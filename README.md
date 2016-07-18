@@ -1,5 +1,5 @@
 # ScreenStream
-Screen Stream over HTTP mobile app
+Screen Stream over HTTP - an Android mobile app: https://play.google.com/store/apps/details?id=info.dvkr.screenstream
 
 The application allows viewing the device screen in your web browser.
 The main idea is to show your device screen during presentations and demos.
