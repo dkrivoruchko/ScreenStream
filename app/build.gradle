@@ -1,0 +1,42 @@
+apply plugin: 'com.android.application'
+
+
+android {
+    signingConfigs {
+
+    }
+    compileSdkVersion 24
+    buildToolsVersion "24.0.0"
+    defaultConfig {
+        applicationId "info.dvkr.screenstream"
+        minSdkVersion 21
+        targetSdkVersion 24
+        versionCode 1
+        versionName "1.0"
+
+        resConfigs "en", "ru"
+    }
+    buildTypes {
+        release {
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+        debug {
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+    aaptOptions {
+        cruncherEnabled = false
+    }
+}
+
+dependencies {
+    compile fileTree(include: ['*.jar'], dir: 'libs')
+    compile 'com.android.support:appcompat-v7:24.0.0'
+    compile 'com.google.firebase:firebase-crash:9.2.1'
+}
+
+apply plugin: 'com.google.gms.google-services'

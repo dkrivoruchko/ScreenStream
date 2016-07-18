@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="@dimen/activity_margin"
+    tools:context="info.dvkr.screenstream.MainActivity">
+
+    <TextView
+        android:id="@+id/textView"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_horizontal"
+        android:paddingBottom="@dimen/activity_vertical_margin"
+        android:paddingTop="@dimen/activity_vertical_margin"
+        android:text="@string/device_address"
+        android:textAppearance="?android:attr/textAppearanceMedium"
+        android:textColor="@color/textColorSecondary" />
+
+    <TextView
+        android:id="@+id/severAddress"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_horizontal"
+        android:paddingBottom="@dimen/activity_vertical_margin"
+        android:paddingTop="@dimen/activity_vertical_margin"
+        android:textAppearance="?android:attr/textAppearanceMedium"
+        android:textColor="@color/textColorSecondary" />
+
+    <ToggleButton
+        android:id="@+id/toggleStream"
+        android:layout_width="260dp"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:layout_margin="@dimen/activity_margin"
+        android:checked="false"
+        android:textColor="@drawable/toggle_button_color"
+        android:textOff="@string/start_stream"
+        android:textOn="@string/stop_stream"
+        android:textSize="16sp" />
+
+    <TextView
+        android:id="@+id/clientsCount"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_horizontal"
+        android:paddingBottom="@dimen/activity_vertical_margin"
+        android:paddingTop="@dimen/activity_vertical_margin"
+        android:textColor="@color/textColorSecondary"
+        android:textSize="16sp" />
+
+</LinearLayout>

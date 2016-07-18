@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="start">НАЧАТЬ</string>
+    <string name="stop">ОСТАНОВИТЬ</string>
+    <string name="settings_interface">Интерфейс</string>
+    <string name="settings">Настройки</string>
+    <string name="server_port">Порт сервера</string>
+    <string name="press">НАЖМИТЕ</string>
+    <string name="on_device">НА УСТРОЙСТВЕ</string>
+    <string name="no_wifi_connected">WiFi не подключен</string>
+    <string name="device_address">Адрес устойства:</string>
+    <string name="close">ЗАКРЫТЬ</string>
+    <string name="go_to">\u0020</string>
+    <string name="settings_advanced">Дополнительно</string>
+    <string name="server_port_summary">Установите порт для входяших подключений\nПо умолчанию: 8080</string>
+    <string name="settings_jpeg_quality">Качество JPEG</string>
+    <string name="settings_jpeg_quality_summary">Установите качество JPEG</string>
+    <string name="stop_on_sleep">Останавливать при выключении</string>
+    <string name="stop_on_sleep_summary">Останавливать поток если выключется экран</string>
+    <string name="cast_permission_deny">Отказано в доступе к изображению экрана</string>
+    <string name="client_timeout">Время ответа клиента</string>
+    <string name="port_range">Порт должен быть между %1$d и %2$d</string>
+    <string name="connected_clients">Подключено клиентов: %1$d</string>
+    <string name="client_timeout_summary">Установите время ответа от клиента в секундах</string>
+    <string name="minimize_on_stream">Сворачивать при трансляции</string>
+    <string name="minimise_on_stream_summary">Сворачивать приложение при начале трансляции</string>
+    <string name="press_start">Нажмите начать для старта трансляции</string>
+    <string name="ready_to_stream">Готов к трансляции</string>
+    <string name="start_stream">Начать трансляцию</string>
+    <string name="stop_stream">Остановить трансляцию</string>
+    <string name="stream">Транслирую…</string>
+    <string name="value">\nЗначение:\u0020</string>
+</resources>

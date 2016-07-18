@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+    <PreferenceCategory android:title="@string/settings_interface">
+        <CheckBoxPreference
+            android:defaultValue="true"
+            android:icon="@drawable/ic_flip_to_back_black_24dp"
+            android:key="minimize_on_stream"
+            android:summary="@string/minimise_on_stream_summary"
+            android:title="@string/minimize_on_stream" />
+        <CheckBoxPreference
+            android:defaultValue="false"
+            android:icon="@drawable/ic_pause_circle_outline_black_24dp"
+            android:key="pause_on_sleep"
+            android:summary="@string/stop_on_sleep_summary"
+            android:title="@string/stop_on_sleep" />
+    </PreferenceCategory>
+
+    <PreferenceCategory android:title="@string/settings_advanced">
+        <EditTextPreference
+            android:defaultValue="8080"
+            android:icon="@drawable/ic_http_black_24dp"
+            android:inputType="number"
+            android:key="port_number"
+            android:selectAllOnFocus="true"
+            android:singleLine="false"
+            android:summary="@string/server_port_summary"
+            android:title="@string/server_port" />
+        <ListPreference
+            android:defaultValue="80"
+            android:dialogIcon="@drawable/ic_high_quality_black_24dp"
+            android:entries="@array/jpeg_quality_names"
+            android:entryValues="@array/jpeg_quality_values"
+            android:icon="@drawable/ic_high_quality_black_24dp"
+            android:key="jpeg_quality"
+            android:summary="@string/settings_jpeg_quality_summary"
+            android:title="@string/settings_jpeg_quality" />
+        <ListPreference
+            android:defaultValue="3000"
+            android:dialogIcon="@drawable/ic_access_time_black_24dp"
+            android:entries="@array/client_connection_timeout_names"
+            android:entryValues="@array/client_connection_timeout_values"
+            android:icon="@drawable/ic_access_time_black_24dp"
+            android:key="client_connection_timeout"
+            android:summary="@string/client_timeout_summary"
+            android:title="@string/client_timeout" />
+    </PreferenceCategory>
+</PreferenceScreen>
