@@ -6,7 +6,7 @@ android {
 
     }
     compileSdkVersion 24
-    buildToolsVersion "24.0.0"
+    buildToolsVersion "24.0.1"
     defaultConfig {
         applicationId "info.dvkr.screenstream"
         minSdkVersion 21
@@ -35,7 +35,7 @@ android {
 
 dependencies {
     compile fileTree(include: ['*.jar'], dir: 'libs')
-    compile 'com.android.support:appcompat-v7:24.0.0'
+    compile 'com.android.support:appcompat-v7:24.1.0'
     compile 'com.google.firebase:firebase-crash:9.2.1'
 }
 
