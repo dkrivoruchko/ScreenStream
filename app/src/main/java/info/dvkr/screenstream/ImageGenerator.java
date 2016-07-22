@@ -30,6 +30,7 @@ final class ImageGenerator {
     private ImageReader imageReader;
     private VirtualDisplay virtualDisplay;
     private Bitmap reusableBitmap;
+    private ByteArrayOutputStream jpegOutputStream;
 
     private final String defaultText1;
     private final String defaultText2;
@@ -63,21 +64,17 @@ final class ImageGenerator {
                     bitmapClean = Bitmap.createBitmap(width, image.getHeight(), Bitmap.Config.ARGB_8888);
                     bitmapClean.copyPixelsFromBuffer(plane.getBuffer());
                 }
-
                 image.close();
 
-                try (final ByteArrayOutputStream jpegOutputStream = new ByteArrayOutputStream(56)) {
-                    bitmapClean.compress(Bitmap.CompressFormat.JPEG, ApplicationContext.getApplicationSettings().getJpegQuality(), jpegOutputStream);
-                    jpegOutputStream.flush();
-                    jpegByteArray = jpegOutputStream.toByteArray();
-                } catch (IOException e) {
-                    FirebaseCrash.report(e);
-                }
-
+                jpegOutputStream.reset();
+                bitmapClean.compress(Bitmap.CompressFormat.JPEG, ApplicationContext.getApplicationSettings().getJpegQuality(), jpegOutputStream);
                 bitmapClean.recycle();
+                jpegByteArray = jpegOutputStream.toByteArray();
 
-                if (jpegByteArray != null) ApplicationContext.getJPEGQueue().add(jpegByteArray);
-                jpegByteArray = null;
+                if (jpegByteArray != null) {
+                    ApplicationContext.getJPEGQueue().add(jpegByteArray);
+                    jpegByteArray = null;
+                }
             }
         }
     }
@@ -94,8 +91,9 @@ final class ImageGenerator {
 
             imageThread = new HandlerThread("Image capture thread", Process.THREAD_PRIORITY_MORE_FAVORABLE);
             imageThread.start();
-            imageReader = ImageReader.newInstance(ApplicationContext.getScreenSize().x, ApplicationContext.getScreenSize().y, PixelFormat.RGBA_8888, 2);
+            imageReader = ImageReader.newInstance(ApplicationContext.getScreenSize().x, ApplicationContext.getScreenSize().y, PixelFormat.RGBX_8888, 2);
             imageHandler = new Handler(imageThread.getLooper());
+            jpegOutputStream = new ByteArrayOutputStream();
             imageReader.setOnImageAvailableListener(new ImageAvailableListener(), imageHandler);
             virtualDisplay = ApplicationContext.getMediaProjection().createVirtualDisplay(
                     "Screen Stream Virtual Display",
@@ -119,6 +117,12 @@ final class ImageGenerator {
             imageReader.setOnImageAvailableListener(null, null);
             imageReader.close();
             imageReader = null;
+
+            try {
+                jpegOutputStream.close();
+            } catch (IOException e) {
+                FirebaseCrash.report(e);
+            }
 
             virtualDisplay.release();
             virtualDisplay = null;
@@ -173,7 +177,6 @@ final class ImageGenerator {
                 byte[] jpegByteArray = null;
                 try (final ByteArrayOutputStream jpegOutputStream = new ByteArrayOutputStream()) {
                     bitmap.compress(Bitmap.CompressFormat.JPEG, ApplicationContext.getApplicationSettings().getJpegQuality(), jpegOutputStream);
-                    jpegOutputStream.flush();
                     jpegByteArray = jpegOutputStream.toByteArray();
                 } catch (IOException e) {
                     FirebaseCrash.report(e);
