@@ -91,7 +91,7 @@ final class ImageGenerator {
 
             imageThread = new HandlerThread("Image capture thread", Process.THREAD_PRIORITY_MORE_FAVORABLE);
             imageThread.start();
-            imageReader = ImageReader.newInstance(ApplicationContext.getScreenSize().x, ApplicationContext.getScreenSize().y, PixelFormat.RGBX_8888, 2);
+            imageReader = ImageReader.newInstance(ApplicationContext.getScreenSize().x, ApplicationContext.getScreenSize().y, PixelFormat.RGBA_8888, 2);
             imageHandler = new Handler(imageThread.getLooper());
             jpegOutputStream = new ByteArrayOutputStream();
             imageReader.setOnImageAvailableListener(new ImageAvailableListener(), imageHandler);
