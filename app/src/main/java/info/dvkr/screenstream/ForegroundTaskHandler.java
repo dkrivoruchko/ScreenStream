@@ -9,7 +9,7 @@ import com.google.firebase.crash.FirebaseCrash;
 import static android.view.Surface.ROTATION_0;
 import static android.view.Surface.ROTATION_180;
 
-final class TaskHandler extends Handler {
+final class ForegroundTaskHandler extends Handler {
     static final int HANDLER_START_STREAMING = 0;
     static final int HANDLER_STOP_STREAMING = 1;
 
@@ -19,7 +19,7 @@ final class TaskHandler extends Handler {
 
     private int currentOrientation;
 
-    TaskHandler(final Looper looper) {
+    ForegroundTaskHandler(final Looper looper) {
         super(looper);
     }
 

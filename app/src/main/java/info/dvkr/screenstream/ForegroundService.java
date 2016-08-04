@@ -21,7 +21,7 @@ public final class ForegroundService extends Service {
     // Fields for streaming
     private HTTPServer httpServer;
     private ImageGenerator imageGenerator;
-    private TaskHandler foregroundServiceTaskHandler;
+    private ForegroundTaskHandler foregroundServiceTaskHandler;
 
     // Fields for broadcast
     static final String SERVICE_ACTION = "info.dvkr.screenstream.ForegroundService.SERVICE_ACTION";
@@ -69,7 +69,7 @@ public final class ForegroundService extends Service {
         // Starting thread Handler
         final HandlerThread looperThread = new HandlerThread("ForegroundServiceHandlerThread", Process.THREAD_PRIORITY_MORE_FAVORABLE);
         looperThread.start();
-        foregroundServiceTaskHandler = new TaskHandler(looperThread.getLooper());
+        foregroundServiceTaskHandler = new ForegroundTaskHandler(looperThread.getLooper());
 
         //Local notifications
         startNotification = getNotificationStart();
@@ -149,13 +149,13 @@ public final class ForegroundService extends Service {
 
         if (messageFromActivity == SERVICE_MESSAGE_START_STREAMING) {
             stopForeground(true);
-            foregroundServiceTaskHandler.obtainMessage(TaskHandler.HANDLER_START_STREAMING).sendToTarget();
+            foregroundServiceTaskHandler.obtainMessage(ForegroundTaskHandler.HANDLER_START_STREAMING).sendToTarget();
             startForeground(120, getNotificationStop());
         }
 
         if (messageFromActivity == SERVICE_MESSAGE_STOP_STREAMING) {
             stopForeground(true);
-            foregroundServiceTaskHandler.obtainMessage(TaskHandler.HANDLER_STOP_STREAMING).sendToTarget();
+            foregroundServiceTaskHandler.obtainMessage(ForegroundTaskHandler.HANDLER_STOP_STREAMING).sendToTarget();
             startForeground(110, startNotification);
 
             imageGenerator.addDefaultScreen();

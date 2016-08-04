@@ -11,8 +11,8 @@ android {
         applicationId "info.dvkr.screenstream"
         minSdkVersion 21
         targetSdkVersion 24
-        versionCode 3
-        versionName "1.0.2"
+        versionCode 4
+        versionName "1.0.3-beta1"
 
         resConfigs "en", "ru"
     }
@@ -35,8 +35,8 @@ android {
 
 dependencies {
     compile fileTree(include: ['*.jar'], dir: 'libs')
-    compile 'com.android.support:appcompat-v7:24.1.1'
-    compile 'com.google.firebase:firebase-crash:9.2.1'
+    compile 'com.google.firebase:firebase-crash:9.4.0'
+//    compile "com.androidplot:androidplot-core:0.9.8"
 }
 
 apply plugin: 'com.google.gms.google-services'

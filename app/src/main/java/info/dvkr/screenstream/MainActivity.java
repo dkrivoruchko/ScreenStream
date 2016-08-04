@@ -1,12 +1,12 @@
 package info.dvkr.screenstream;
 
+import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.media.projection.MediaProjection;
 import android.os.Bundle;
-import android.support.v7.app.AppCompatActivity;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -16,7 +16,7 @@ import android.widget.ToggleButton;
 
 import com.google.firebase.crash.FirebaseCrash;
 
-public final class MainActivity extends AppCompatActivity {
+public final class MainActivity extends Activity {
     private static final int SCREEN_CAPTURE_REQUEST_CODE = 1;
     private static final int SETTINGS_REQUEST_CODE = 2;
 

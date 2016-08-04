@@ -21,7 +21,6 @@ import java.io.IOException;
 
 final class ImageGenerator {
     private final Object lock = new Object();
-    private static final int VIRTUAL_DISPLAY_FLAGS = DisplayManager.VIRTUAL_DISPLAY_FLAG_OWN_CONTENT_ONLY | DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC;
 
     private volatile boolean isThreadRunning;
 
@@ -100,7 +99,7 @@ final class ImageGenerator {
                     ApplicationContext.getScreenSize().x,
                     ApplicationContext.getScreenSize().y,
                     ApplicationContext.getScreenDensity(),
-                    VIRTUAL_DISPLAY_FLAGS,
+                    DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
                     imageReader.getSurface(),
                     null, imageHandler);
 
