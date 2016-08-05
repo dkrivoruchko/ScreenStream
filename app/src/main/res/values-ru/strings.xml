@@ -30,4 +30,5 @@
     <string name="stop_stream">Остановить трансляцию</string>
     <string name="stream">Транслирую…</string>
     <string name="value">\nЗначение:\u0020</string>
+    <string name="snackbar_port_in_use">Порт уже используется\nВыберете другой</string>
 </resources>

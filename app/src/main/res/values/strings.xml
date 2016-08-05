@@ -9,6 +9,7 @@
     <string name="settings">Settings</string>
     <string name="no_wifi_connected">No WiFi connected</string>
     <string name="cast_permission_deny">Screen Cast permission denied</string>
+    <string name="snackbar_port_in_use">Port already in use\nChoose another one</string>
 
     <!--ForegroundService-->
     <string name="press">PRESS</string>

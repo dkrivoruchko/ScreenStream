@@ -18,10 +18,12 @@ import android.support.v4.content.ContextCompat;
 public final class ForegroundService extends Service {
     private static ForegroundService foregroundService;
 
-    // Fields for streaming
+
     private HTTPServer httpServer;
     private ImageGenerator imageGenerator;
     private ForegroundTaskHandler foregroundServiceTaskHandler;
+
+    private int httpServerStatus = HTTPServer.SERVER_STATUS_UNKNOWN;
 
     // Fields for broadcast
     static final String SERVICE_ACTION = "info.dvkr.screenstream.ForegroundService.SERVICE_ACTION";
@@ -34,12 +36,14 @@ public final class ForegroundService extends Service {
     static final int SERVICE_MESSAGE_START_STREAMING = 1020;
     static final int SERVICE_MESSAGE_STOP_STREAMING = 1030;
     static final int SERVICE_MESSAGE_RESTART_HTTP = 1040;
+    static final int SERVICE_MESSAGE_HTTP_PORT_IN_USE = 1050;
+    static final int SERVICE_MESSAGE_HTTP_OK = 1060;
     static final int SERVICE_MESSAGE_EXIT = 1100;
 
     static final String SERVICE_MESSAGE_CLIENTS_COUNT = "SERVICE_MESSAGE_CLIENTS_COUNT";
-    static final int SERVICE_MESSAGE_GET_CLIENT_COUNT = 1040;
+    static final int SERVICE_MESSAGE_GET_CLIENT_COUNT = 1110;
     static final String SERVICE_MESSAGE_SERVER_ADDRESS = "SERVICE_MESSAGE_SERVER_ADDRESS";
-    static final int SERVICE_MESSAGE_GET_SERVER_ADDRESS = 1050;
+    static final int SERVICE_MESSAGE_GET_SERVER_ADDRESS = 1120;
 
     private int currentServiceMessage;
 
@@ -128,7 +132,7 @@ public final class ForegroundService extends Service {
         sendBroadcast(new Intent(SERVICE_ACTION).putExtra(SERVICE_MESSAGE, SERVICE_MESSAGE_UPDATE_STATUS), SERVICE_PERMISSION);
 
         imageGenerator.addDefaultScreen();
-        httpServer.start();
+        httpServerStartAndCheck();
     }
 
     @Override
@@ -164,7 +168,7 @@ public final class ForegroundService extends Service {
         if (messageFromActivity == SERVICE_MESSAGE_RESTART_HTTP) {
             httpServer.stop();
             imageGenerator.addDefaultScreen();
-            httpServer.start();
+            httpServerStartAndCheck();
         }
 
         return START_NOT_STICKY;
@@ -182,6 +186,19 @@ public final class ForegroundService extends Service {
     private void relayMessageViaActivity() {
         startActivity(new Intent(this, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
         sendBroadcast(new Intent(SERVICE_ACTION).putExtra(SERVICE_MESSAGE, SERVICE_MESSAGE_UPDATE_STATUS), SERVICE_PERMISSION);
+    }
+
+    private void httpServerStartAndCheck() {
+        httpServerStatus = httpServer.start();
+        if (httpServerStatus == HTTPServer.SERVER_ERROR_PORT_IN_USE) {
+            currentServiceMessage = SERVICE_MESSAGE_HTTP_PORT_IN_USE;
+            relayMessageViaActivity();
+        } else {
+            currentServiceMessage = SERVICE_MESSAGE_HTTP_OK;
+            relayMessageViaActivity();
+        }
+
+
     }
 
     // Static methods
@@ -204,6 +221,11 @@ public final class ForegroundService extends Service {
         foregroundService.sendClientCount();
     }
 
+    static int getHttpServerStatus() {
+        if (foregroundService == null) return HTTPServer.SERVER_STATUS_UNKNOWN;
+        return foregroundService.httpServerStatus;
+    }
+
     // Private methods
     private Notification getNotificationStart() {
         final Intent mainActivityIntent = new Intent(this, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
@@ -217,6 +239,7 @@ public final class ForegroundService extends Service {
         startNotificationBuilder.setContentIntent(pendingMainActivityIntent);
         startNotificationBuilder.addAction(R.drawable.ic_play_arrow_24dp, getResources().getString(R.string.start), PendingIntent.getBroadcast(this, 0, startStreamIntent, 0));
         startNotificationBuilder.addAction(R.drawable.ic_clear_24dp, getResources().getString(R.string.close), PendingIntent.getBroadcast(this, 0, closeIntent, 0));
+        startNotificationBuilder.setPriority(NotificationCompat.PRIORITY_MAX);
         return startNotificationBuilder.build();
     }
 
@@ -231,6 +254,7 @@ public final class ForegroundService extends Service {
         stopNotificationBuilder.setContentText(getResources().getString(R.string.go_to) + ApplicationContext.getServerAddress());
         stopNotificationBuilder.setContentIntent(pendingMainActivityIntent);
         stopNotificationBuilder.addAction(R.drawable.ic_stop_24dp, getResources().getString(R.string.stop), PendingIntent.getBroadcast(this, 0, stopStreamIntent, 0));
+        stopNotificationBuilder.setPriority(NotificationCompat.PRIORITY_MAX);
         return stopNotificationBuilder.build();
     }
 

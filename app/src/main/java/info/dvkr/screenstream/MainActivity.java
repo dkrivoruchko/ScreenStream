@@ -1,12 +1,14 @@
 package info.dvkr.screenstream;
 
-import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.graphics.Color;
 import android.media.projection.MediaProjection;
 import android.os.Bundle;
+import android.support.design.widget.Snackbar;
+import android.support.v7.app.AppCompatActivity;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -16,7 +18,7 @@ import android.widget.ToggleButton;
 
 import com.google.firebase.crash.FirebaseCrash;
 
-public final class MainActivity extends Activity {
+public final class MainActivity extends AppCompatActivity {
     private static final int SCREEN_CAPTURE_REQUEST_CODE = 1;
     private static final int SETTINGS_REQUEST_CODE = 2;
 
@@ -25,6 +27,8 @@ public final class MainActivity extends Activity {
     private ToggleButton toggleStream;
     private MediaProjection.Callback projectionCallback;
     private BroadcastReceiver broadcastReceiverFromService;
+    private Snackbar portInUseSnackbar;
+    private Menu mainMenu;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -55,6 +59,17 @@ public final class MainActivity extends Activity {
                 stopStreaming();
             }
         };
+
+        portInUseSnackbar = Snackbar.make(findViewById(R.id.mainView), R.string.snackbar_port_in_use, Snackbar.LENGTH_INDEFINITE)
+                .setAction(R.string.settings, new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        onOptionsItemSelected(mainMenu.findItem(R.id.menu_settings));
+                    }
+                })
+                .setActionTextColor(Color.GREEN);
+        ((TextView) portInUseSnackbar.getView().findViewById(android.support.design.R.id.snackbar_text)).setTextColor(Color.RED);
+
 
         // Registering receiver for broadcast messages
         broadcastReceiverFromService = new BroadcastReceiver() {
@@ -95,13 +110,28 @@ public final class MainActivity extends Activity {
                     if (serviceMessage == ForegroundService.SERVICE_MESSAGE_GET_SERVER_ADDRESS) {
                         if (ApplicationContext.isWiFIConnected()) {
                             severAddress.setText(intent.getStringExtra(ForegroundService.SERVICE_MESSAGE_SERVER_ADDRESS));
-                            toggleStream.setEnabled(true);
+                            toggleStream.setEnabled(!portInUseSnackbar.isShown());
                         } else {
                             severAddress.setText(getResources().getString(R.string.no_wifi_connected));
                             toggleStream.setEnabled(false);
                             stopStreaming();
                         }
+                    }
 
+                    // Service ask notify HTTP Server port in use
+                    if (serviceMessage == ForegroundService.SERVICE_MESSAGE_HTTP_PORT_IN_USE) {
+                        if (!portInUseSnackbar.isShown()) {
+                            portInUseSnackbar.show();
+                            toggleStream.setEnabled(!portInUseSnackbar.isShown());
+                        }
+                    }
+
+                    // Service ask notify HTTP Server ok
+                    if (serviceMessage == ForegroundService.SERVICE_MESSAGE_HTTP_OK) {
+                        if (portInUseSnackbar.isShown()) {
+                            portInUseSnackbar.dismiss();
+                            toggleStream.setEnabled(!portInUseSnackbar.isShown());
+                        }
                     }
 
                 }
@@ -115,6 +145,25 @@ public final class MainActivity extends Activity {
     protected void onStart() {
         super.onStart();
         updateServiceStatus();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (ForegroundService.getHttpServerStatus() == HTTPServer.SERVER_ERROR_PORT_IN_USE
+                && !portInUseSnackbar.isShown()) {
+            portInUseSnackbar.show();
+            toggleStream.setEnabled(!portInUseSnackbar.isShown());
+        }
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        if (portInUseSnackbar.isShown()) {
+            portInUseSnackbar.dismiss();
+            toggleStream.setEnabled(!portInUseSnackbar.isShown());
+        }
     }
 
     @Override
@@ -135,7 +184,6 @@ public final class MainActivity extends Activity {
                     toggleStream.setChecked(false);
                     return;
                 }
-
                 startStreaming(resultCode, data);
                 break;
             case SETTINGS_REQUEST_CODE:
@@ -150,6 +198,7 @@ public final class MainActivity extends Activity {
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.settings, menu);
+        mainMenu = menu;
         return super.onCreateOptionsMenu(menu);
     }
 
@@ -173,6 +222,7 @@ public final class MainActivity extends Activity {
 
     private void tryStartStreaming() {
         if (!ApplicationContext.isWiFIConnected()) return;
+        if (ForegroundService.getHttpServerStatus() != HTTPServer.SERVER_OK) return;
         toggleStream.setChecked(true);
         if (ApplicationContext.isStreamRunning()) return;
         startActivityForResult(ApplicationContext.getProjectionManager().createScreenCaptureIntent(), SCREEN_CAPTURE_REQUEST_CODE);
@@ -197,9 +247,7 @@ public final class MainActivity extends Activity {
     private void stopStreaming() {
         toggleStream.setChecked(false);
         if (!ApplicationContext.isStreamRunning()) return;
-
         ApplicationContext.getMediaProjection().unregisterCallback(projectionCallback);
-
         final Intent stopStreaming = new Intent(this, ForegroundService.class);
         stopStreaming.putExtra(ForegroundService.SERVICE_MESSAGE, ForegroundService.SERVICE_MESSAGE_STOP_STREAMING);
         startService(stopStreaming);
@@ -207,9 +255,9 @@ public final class MainActivity extends Activity {
 
     private void restartHTTPServer() {
         stopStreaming();
-        final Intent resrtartHTTP = new Intent(this, ForegroundService.class);
-        resrtartHTTP.putExtra(ForegroundService.SERVICE_MESSAGE, ForegroundService.SERVICE_MESSAGE_RESTART_HTTP);
-        startService(resrtartHTTP);
+        final Intent restartHTTP = new Intent(this, ForegroundService.class);
+        restartHTTP.putExtra(ForegroundService.SERVICE_MESSAGE, ForegroundService.SERVICE_MESSAGE_RESTART_HTTP);
+        startService(restartHTTP);
     }
 
 }

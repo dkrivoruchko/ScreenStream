@@ -6,11 +6,18 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
+import java.net.BindException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
 
 final class HTTPServer {
+    static final int SERVER_STATUS_UNKNOWN = -1;
+    static final int SERVER_OK = 0;
+    static final int SERVER_ERROR_ALREADY_RUNNING = 1;
+    static final int SERVER_ERROR_PORT_IN_USE = 2;
+    static final int SERVER_ERROR_UNKNOWN = 3;
+
     private final Object lock = new Object();
     private static final int SEVER_SOCKET_TIMEOUT = 50;
 
@@ -94,12 +101,13 @@ final class HTTPServer {
                 outputStreamWriter.flush();
             }
         }
+
     }
 
 
-    void start() {
+    int start() {
         synchronized (lock) {
-            if (isThreadRunning) return;
+            if (isThreadRunning) return SERVER_ERROR_ALREADY_RUNNING;
             try {
                 serverSocket = new ServerSocket(ApplicationContext.getApplicationSettings().getSeverPort());
                 serverSocket.setSoTimeout(SEVER_SOCKET_TIMEOUT);
@@ -112,10 +120,14 @@ final class HTTPServer {
 
                 isThreadRunning = true;
 //            Log.d(TAG, "HTTP server started on port: " + ApplicationContext.getApplicationSettings().getSeverPort());
+            } catch (BindException e) {
+                return SERVER_ERROR_PORT_IN_USE;
             } catch (IOException e) {
                 FirebaseCrash.report(e);
+                return SERVER_ERROR_UNKNOWN;
             }
         }
+        return SERVER_OK;
     }
 
     void stop() {
