@@ -3,6 +3,7 @@ package info.dvkr.screenstream;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.ImageFormat;
 import android.graphics.Paint;
 import android.graphics.PixelFormat;
 import android.graphics.Rect;
@@ -10,9 +11,11 @@ import android.hardware.display.DisplayManager;
 import android.hardware.display.VirtualDisplay;
 import android.media.Image;
 import android.media.ImageReader;
+import android.media.projection.MediaProjection;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Process;
+import android.util.Log;
 
 import com.google.firebase.crash.FirebaseCrash;
 
@@ -48,7 +51,11 @@ final class ImageGenerator {
             synchronized (lock) {
                 if (!isThreadRunning) return;
 
-                image = imageReader.acquireLatestImage();
+//                try {
+                    image = imageReader.acquireLatestImage();
+//                } catch (UnsupportedOperationException ex) {
+//
+//                }
                 if (image == null) return;
 
                 plane = image.getPlanes()[0];
@@ -71,6 +78,9 @@ final class ImageGenerator {
                 jpegByteArray = jpegOutputStream.toByteArray();
 
                 if (jpegByteArray != null) {
+                    if (ApplicationContext.getJPEGQueue().size() > 6) {
+                        ApplicationContext.getJPEGQueue().pollLast();
+                    }
                     ApplicationContext.getJPEGQueue().add(jpegByteArray);
                     jpegByteArray = null;
                 }
@@ -87,6 +97,8 @@ final class ImageGenerator {
     void start() {
         synchronized (lock) {
             if (isThreadRunning) return;
+            final MediaProjection mediaProjection = ApplicationContext.getMediaProjection();
+            if (mediaProjection == null) return;
 
             imageThread = new HandlerThread("Image capture thread", Process.THREAD_PRIORITY_MORE_FAVORABLE);
             imageThread.start();
@@ -94,7 +106,7 @@ final class ImageGenerator {
             imageHandler = new Handler(imageThread.getLooper());
             jpegOutputStream = new ByteArrayOutputStream();
             imageReader.setOnImageAvailableListener(new ImageAvailableListener(), imageHandler);
-            virtualDisplay = ApplicationContext.getMediaProjection().createVirtualDisplay(
+            virtualDisplay = mediaProjection.createVirtualDisplay(
                     "Screen Stream Virtual Display",
                     ApplicationContext.getScreenSize().x,
                     ApplicationContext.getScreenSize().y,

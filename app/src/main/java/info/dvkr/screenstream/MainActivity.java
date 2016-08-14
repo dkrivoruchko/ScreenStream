@@ -230,7 +230,9 @@ public final class MainActivity extends AppCompatActivity {
 
     private void startStreaming(final int resultCode, final Intent data) {
         ApplicationContext.setMediaProjection(resultCode, data);
-        ApplicationContext.getMediaProjection().registerCallback(projectionCallback, null);
+        final MediaProjection mediaProjection = ApplicationContext.getMediaProjection();
+        if (mediaProjection == null) return;
+        mediaProjection.registerCallback(projectionCallback, null);
 
         final Intent startStreaming = new Intent(this, ForegroundService.class);
         startStreaming.putExtra(ForegroundService.SERVICE_MESSAGE, ForegroundService.SERVICE_MESSAGE_START_STREAMING);
@@ -247,7 +249,11 @@ public final class MainActivity extends AppCompatActivity {
     private void stopStreaming() {
         toggleStream.setChecked(false);
         if (!ApplicationContext.isStreamRunning()) return;
-        ApplicationContext.getMediaProjection().unregisterCallback(projectionCallback);
+
+        final MediaProjection mediaProjection = ApplicationContext.getMediaProjection();
+        if (mediaProjection == null) return;
+        mediaProjection.unregisterCallback(projectionCallback);
+
         final Intent stopStreaming = new Intent(this, ForegroundService.class);
         stopStreaming.putExtra(ForegroundService.SERVICE_MESSAGE, ForegroundService.SERVICE_MESSAGE_STOP_STREAMING);
         startService(stopStreaming);

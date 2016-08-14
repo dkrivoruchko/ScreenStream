@@ -49,7 +49,8 @@ final class ForegroundTaskHandler extends Handler {
                 removeMessages(HANDLER_DETECT_ROTATION);
                 removeMessages(HANDLER_STOP_STREAMING);
                 ForegroundService.getImageGenerator().stop();
-                ApplicationContext.getMediaProjection().stop();
+                if (ApplicationContext.getMediaProjection() != null)
+                    ApplicationContext.getMediaProjection().stop();
                 ApplicationContext.setIsStreamRunning(false);
                 break;
             case HANDLER_DETECT_ROTATION:

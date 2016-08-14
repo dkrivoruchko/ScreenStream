@@ -51,14 +51,15 @@ final class JpegStreamer {
         public void run() {
             while (!isInterrupted()) {
                 if (!isThreadRunning) break;
-                try {
-                    currentJPEG = ApplicationContext.getJPEGQueue().poll(16, TimeUnit.MILLISECONDS);
-                } catch (InterruptedException e) {
-                    continue;
-                }
+                currentJPEG = ApplicationContext.getJPEGQueue().poll();
                 if (currentJPEG == null) {
+                    try {
+                        sleep(16);
+                    } catch (InterruptedException e) {
+                        continue;
+                    }
                     sleepCount++;
-                    if (sleepCount >= 30) sendLastJPEGToClients();
+                    if (sleepCount >= 60) sendLastJPEGToClients();
                 } else {
                     lastJPEG = currentJPEG;
                     sendLastJPEGToClients();

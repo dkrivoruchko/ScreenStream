@@ -7,6 +7,7 @@ import android.graphics.Point;
 import android.media.projection.MediaProjection;
 import android.media.projection.MediaProjectionManager;
 import android.net.wifi.WifiManager;
+import android.support.annotation.Nullable;
 import android.util.DisplayMetrics;
 import android.view.WindowManager;
 
@@ -17,6 +18,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.Locale;
+import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.LinkedTransferQueue;
 
@@ -32,7 +34,7 @@ public class ApplicationContext extends Application {
     private String indexHtmlPage;
     private byte[] iconBytes;
 
-    private final LinkedTransferQueue<byte[]> JPEGQueue = new LinkedTransferQueue<>();
+    private final ConcurrentLinkedDeque<byte[]> JPEGQueue = new ConcurrentLinkedDeque<>();
     private final ConcurrentLinkedQueue<Client> clientQueue = new ConcurrentLinkedQueue<>();
 
     private volatile boolean isStreamRunning;
@@ -68,6 +70,7 @@ public class ApplicationContext extends Application {
         instance.mediaProjection = instance.projectionManager.getMediaProjection(resultCode, data);
     }
 
+    @Nullable
     static MediaProjection getMediaProjection() {
         return instance.mediaProjection;
     }
@@ -114,7 +117,7 @@ public class ApplicationContext extends Application {
         return "http://" + instance.getIPAddress() + ":" + instance.applicationSettings.getSeverPort();
     }
 
-    static LinkedTransferQueue<byte[]> getJPEGQueue() {
+    static ConcurrentLinkedDeque<byte[]> getJPEGQueue() {
         return instance.JPEGQueue;
     }
 
