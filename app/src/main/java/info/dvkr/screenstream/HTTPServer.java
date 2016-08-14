@@ -45,7 +45,11 @@ final class HTTPServer {
 
                         if (requestLine == null) continue;
 
-                        final String requestUri = requestLine.split(" ")[1];
+                        final String[] requestUriArray = requestLine.split(" ");
+
+                        String requestUri = "NOT_SET";
+                        if (requestUriArray.length >= 2) requestUri = requestUriArray[1];
+
                         switch (requestUri) {
                             case "/":
                                 sendMainPage(clientSocket);
