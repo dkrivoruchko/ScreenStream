@@ -12,7 +12,7 @@ android {
         minSdkVersion 21
         targetSdkVersion 24
         versionCode 5
-        versionName "1.0.5-beta1"
+        versionName "1.0.5"
 
         resConfigs "en", "ru"
     }
