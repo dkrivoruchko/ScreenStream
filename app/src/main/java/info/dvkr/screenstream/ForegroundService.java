@@ -14,6 +14,7 @@ import android.os.Process;
 import android.support.annotation.Nullable;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.content.ContextCompat;
+import android.util.Log;
 
 public final class ForegroundService extends Service {
     private static ForegroundService foregroundService;
@@ -30,22 +31,27 @@ public final class ForegroundService extends Service {
 
     static final String SERVICE_PERMISSION = "info.dvkr.screenstream.RECEIVE_BROADCAST";
     static final String SERVICE_MESSAGE = "SERVICE_MESSAGE";
-    static final int SERVICE_MESSAGE_GET_STATUS = 1000;
-    static final int SERVICE_MESSAGE_UPDATE_STATUS = 1005;
-    static final int SERVICE_MESSAGE_PREPARE_STREAMING = 1010;
-    static final int SERVICE_MESSAGE_START_STREAMING = 1020;
-    static final int SERVICE_MESSAGE_STOP_STREAMING = 1030;
-    static final int SERVICE_MESSAGE_RESTART_HTTP = 1040;
-    static final int SERVICE_MESSAGE_HTTP_PORT_IN_USE = 1050;
-    static final int SERVICE_MESSAGE_HTTP_OK = 1060;
-    static final int SERVICE_MESSAGE_EXIT = 1100;
+    static final int SERVICE_MESSAGE_EMPTY = 0;
+    static final int SERVICE_MESSAGE_HAS_NEW = 1;
+    static final int SERVICE_MESSAGE_GET_STATUS = 10;
+    static final int SERVICE_MESSAGE_GET_CURRENT = 11;
+    static final int SERVICE_MESSAGE_UPDATE_STATUS = 20;
+    static final int SERVICE_MESSAGE_PREPARE_STREAMING = 110;
+    static final int SERVICE_MESSAGE_START_STREAMING = 111;
+    static final int SERVICE_MESSAGE_STOP_STREAMING = 112;
+    static final int SERVICE_MESSAGE_RESTART_HTTP = 3000;
+    static final int SERVICE_MESSAGE_HTTP_PORT_IN_USE = 3001;
+    static final int SERVICE_MESSAGE_HTTP_OK = 3002;
+    static final int SERVICE_MESSAGE_UPDATE_PIN_STATUS = 2000;
+    static final int SERVICE_MESSAGE_EXIT = 9000;
 
     static final String SERVICE_MESSAGE_CLIENTS_COUNT = "SERVICE_MESSAGE_CLIENTS_COUNT";
-    static final int SERVICE_MESSAGE_GET_CLIENT_COUNT = 1110;
+    static final int SERVICE_MESSAGE_GET_CLIENT_COUNT = 100110;
     static final String SERVICE_MESSAGE_SERVER_ADDRESS = "SERVICE_MESSAGE_SERVER_ADDRESS";
-    static final int SERVICE_MESSAGE_GET_SERVER_ADDRESS = 1120;
+    static final int SERVICE_MESSAGE_GET_SERVER_ADDRESS = 100120;
 
     private int currentServiceMessage;
+    private boolean currentWiFiStatus;
 
     // Fields for notifications
     private Notification startNotification;
@@ -63,12 +69,9 @@ public final class ForegroundService extends Service {
     public void onCreate() {
         foregroundService = this;
 
+        currentWiFiStatus = ApplicationContext.isWiFiConnected();
         httpServer = new HTTPServer();
-        imageGenerator = new ImageGenerator(
-                getResources().getString(R.string.press),
-                getResources().getString(R.string.start_stream),
-                getResources().getString(R.string.on_device)
-        );
+        imageGenerator = new ImageGenerator();
 
         // Starting thread Handler
         final HandlerThread looperThread = new HandlerThread("ForegroundServiceHandlerThread", Process.THREAD_PRIORITY_MORE_FAVORABLE);
@@ -121,28 +124,34 @@ public final class ForegroundService extends Service {
                         }
 
                 if (intent.getAction().equals(WifiManager.NETWORK_STATE_CHANGED_ACTION)) {
-                    currentServiceMessage = SERVICE_MESSAGE_GET_STATUS;
-                    sendBroadcast(new Intent(SERVICE_ACTION).putExtra(SERVICE_MESSAGE, SERVICE_MESSAGE_UPDATE_STATUS), SERVICE_PERMISSION);
+                    if (currentWiFiStatus != ApplicationContext.isWiFiConnected()) {
+                        currentWiFiStatus = ApplicationContext.isWiFiConnected();
+                        sendServerAddress();
+                    }
                 }
             }
         };
 
         registerReceiver(broadcastReceiver, screenOnOffFilter);
-
-        sendBroadcast(new Intent(SERVICE_ACTION).putExtra(SERVICE_MESSAGE, SERVICE_MESSAGE_UPDATE_STATUS), SERVICE_PERMISSION);
-
-        imageGenerator.addDefaultScreen();
+        imageGenerator.addDefaultScreen(getApplicationContext());
         httpServerStartAndCheck();
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         final int messageFromActivity = intent.getIntExtra(SERVICE_MESSAGE, 0);
+
+        Log.wtf(">>>>>>>>>>", "messageFromActivity:" + messageFromActivity);
+
         if (messageFromActivity == 0) return START_NOT_STICKY;
 
         if (messageFromActivity == SERVICE_MESSAGE_PREPARE_STREAMING) {
             startForeground(110, startNotification);
             ApplicationContext.setIsForegroundServiceRunning(true);
+        }
+
+        if (messageFromActivity == SERVICE_MESSAGE_GET_CURRENT) {
+            sendCurrentServiceMessage();
         }
 
         if (messageFromActivity == SERVICE_MESSAGE_GET_STATUS) {
@@ -161,13 +170,17 @@ public final class ForegroundService extends Service {
             stopForeground(true);
             foregroundServiceTaskHandler.obtainMessage(ForegroundTaskHandler.HANDLER_STOP_STREAMING).sendToTarget();
             startForeground(110, startNotification);
-
-            imageGenerator.addDefaultScreen();
+            imageGenerator.addDefaultScreen(getApplicationContext());
         }
 
         if (messageFromActivity == SERVICE_MESSAGE_RESTART_HTTP) {
-            httpServer.stop();
-            imageGenerator.addDefaultScreen();
+            httpServer.stop(HTTPServer.SERVER_SETTINGS_RESTART, NotifyImageGenerator.getClientNotifyImage(getApplicationContext(), HTTPServer.SERVER_SETTINGS_RESTART));
+            imageGenerator.addDefaultScreen(getApplicationContext());
+            httpServerStartAndCheck();
+        }
+
+        if (messageFromActivity == SERVICE_MESSAGE_UPDATE_PIN_STATUS) {
+            httpServer.stop(HTTPServer.SERVER_PIN_RESTART, NotifyImageGenerator.getClientNotifyImage(getApplicationContext(), HTTPServer.SERVER_PIN_RESTART));
             httpServerStartAndCheck();
         }
 
@@ -176,29 +189,27 @@ public final class ForegroundService extends Service {
 
     @Override
     public void onDestroy() {
-        httpServer.stop();
+        httpServer.stop(HTTPServer.SERVER_STOP, null);
         stopForeground(true);
         unregisterReceiver(broadcastReceiver);
         unregisterReceiver(localNotificationReceiver);
+        ApplicationContext.setIsForegroundServiceRunning(false);
         foregroundServiceTaskHandler.getLooper().quit();
     }
 
     private void relayMessageViaActivity() {
         startActivity(new Intent(this, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
-        sendBroadcast(new Intent(SERVICE_ACTION).putExtra(SERVICE_MESSAGE, SERVICE_MESSAGE_UPDATE_STATUS), SERVICE_PERMISSION);
+        sendBroadcast(new Intent(SERVICE_ACTION).putExtra(SERVICE_MESSAGE, SERVICE_MESSAGE_HAS_NEW), SERVICE_PERMISSION);
     }
 
     private void httpServerStartAndCheck() {
         httpServerStatus = httpServer.start();
         if (httpServerStatus == HTTPServer.SERVER_ERROR_PORT_IN_USE) {
             currentServiceMessage = SERVICE_MESSAGE_HTTP_PORT_IN_USE;
-            relayMessageViaActivity();
         } else {
             currentServiceMessage = SERVICE_MESSAGE_HTTP_OK;
-            relayMessageViaActivity();
         }
-
-
+        relayMessageViaActivity();
     }
 
     // Static methods
@@ -259,9 +270,9 @@ public final class ForegroundService extends Service {
     }
 
     private void sendCurrentServiceMessage() {
-        sendBroadcast(new Intent(SERVICE_ACTION).putExtra(SERVICE_MESSAGE, currentServiceMessage),
-                SERVICE_PERMISSION);
-        currentServiceMessage = 0;
+        if (currentServiceMessage == SERVICE_MESSAGE_EMPTY) return;
+        sendBroadcast(new Intent(SERVICE_ACTION).putExtra(SERVICE_MESSAGE, currentServiceMessage), SERVICE_PERMISSION);
+        currentServiceMessage = SERVICE_MESSAGE_EMPTY;
     }
 
     private void sendClientCount() {

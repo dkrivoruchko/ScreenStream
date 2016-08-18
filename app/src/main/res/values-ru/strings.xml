@@ -31,4 +31,24 @@
     <string name="stream">Транслирую…</string>
     <string name="value">\nЗначение:\u0020</string>
     <string name="snackbar_port_in_use">Порт уже используется\nВыберете другой</string>
+    <string name="four_digits">Четыре цифры</string>
+    <string name="html_enter_pin">Введите PIN-код:\u0020</string>
+    <string name="stream_require_pin">Этот поток требуется PIN-код для доступа к нему.</string>
+    <string name="submit_text">Отправить</string>
+    <string name="wrong_pin">Неправильный PIN-код!</string>
+    <string name="pin">PIN-код:</string>
+    <string name="enable_pin">Использовать PIN-код</string>
+    <string name="enter_pin_manually">Указать PIN-код</string>
+    <string name="generate_pin">Генерировать новый PIN-код при каждом начале трансляции</string>
+    <string name="protect_with_pin">Защитить доступ к трансляции PIN-кодом</string>
+    <string name="set_pin">Установить PIN-код</string>
+    <string name="settings_pin">PIN-код</string>
+    <string name="auto_change_pin">Автогенерация PIN-кода</string>
+    <string name="pin_digits_count">PIN-код должен иметь 4 цифры</string>
+    <string name="pin_disabled">PIN-код выключен</string>
+    <string name="new_pin_on_start">Новый PIN-код при старте</string>
+    <string name="generate_new_pin_on_start">Генерировать новый PIN-код при старте приложения</string>
+    <string name="go_to_new_address">Пройдите по новому адресу</string>
+    <string name="settings_changed">НАСТРОЙКИ ИЗМЕНЕНЫ</string>
+    <string name="reload_this_page">Обновите страницу</string>
 </resources>

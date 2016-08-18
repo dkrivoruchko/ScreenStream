@@ -18,9 +18,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.Locale;
+import java.util.Random;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.LinkedTransferQueue;
 
 
 public class ApplicationContext extends Application {
@@ -31,7 +31,8 @@ public class ApplicationContext extends Application {
     private MediaProjectionManager projectionManager;
     private MediaProjection mediaProjection;
     private int densityDPI;
-    private String indexHtmlPage;
+    private String indexHTMLPage;
+    private String pinRequestHTMLPage;
     private byte[] iconBytes;
 
     private final ConcurrentLinkedDeque<byte[]> JPEGQueue = new ConcurrentLinkedDeque<>();
@@ -46,11 +47,21 @@ public class ApplicationContext extends Application {
         instance = this;
 
         applicationSettings = new ApplicationSettings(this);
+        if (applicationSettings.isEnablePin() && applicationSettings.isNewPinOnAppStart()) {
+            applicationSettings.setAndSaveUserPin(ApplicationContext.getRandomPin());
+        }
 
         windowManager = (WindowManager) getSystemService(Context.WINDOW_SERVICE);
         projectionManager = (MediaProjectionManager) getSystemService(Context.MEDIA_PROJECTION_SERVICE);
         densityDPI = getDensityDPI();
-        indexHtmlPage = getIndexHTML();
+        indexHTMLPage = getHTML("index.html");
+        pinRequestHTMLPage = getHTML("pinrequest.html");
+        pinRequestHTMLPage = pinRequestHTMLPage
+                .replaceFirst("stream_require_pin", getResources().getString(R.string.stream_require_pin))
+                .replaceFirst("enter_pin", getResources().getString(R.string.html_enter_pin))
+                .replaceFirst("four_digits", getResources().getString(R.string.four_digits))
+                .replaceFirst("submit_text", getResources().getString(R.string.submit_text));
+
         setFavicon();
     }
 
@@ -105,8 +116,13 @@ public class ApplicationContext extends Application {
         instance.isForegroundServiceRunning = isRunning;
     }
 
-    static String getIndexHtmlPage() {
-        return instance.indexHtmlPage;
+    static String getIndexHTMLPage(final String streamAddress) {
+        return instance.indexHTMLPage.replaceFirst("SCREEN_STREAM_ADDRESS", streamAddress);
+    }
+
+    static String getPinRequestHTMLPage(final boolean isError) {
+        final String errorString = (isError) ? instance.getResources().getString(R.string.wrong_pin) : "&nbsp";
+        return instance.pinRequestHTMLPage.replaceFirst("wrong_pin", errorString);
     }
 
     static byte[] getIconBytes() {
@@ -125,9 +141,14 @@ public class ApplicationContext extends Application {
         return instance.clientQueue;
     }
 
-    static boolean isWiFIConnected() {
+    static boolean isWiFiConnected() {
         final WifiManager wifi = (WifiManager) instance.getSystemService(Context.WIFI_SERVICE);
-        return wifi.getConnectionInfo().getNetworkId() != -1;
+        return wifi.getConnectionInfo().getIpAddress() > 0;
+    }
+
+    static String getRandomPin() {
+        final Random random = new Random(System.currentTimeMillis());
+        return "" + random.nextInt(10) + random.nextInt(10) + random.nextInt(10) + random.nextInt(10);
     }
 
     // Private methods
@@ -142,12 +163,12 @@ public class ApplicationContext extends Application {
         return displayMetrics.densityDpi;
     }
 
-    private String getIndexHTML() {
+    private String getHTML(final String fileName) {
         final StringBuilder sb = new StringBuilder();
         String line;
         try (BufferedReader reader =
                      new BufferedReader(
-                             new InputStreamReader(getAssets().open("index.html"), "UTF-8")
+                             new InputStreamReader(getAssets().open(fileName), "UTF-8")
                      )) {
             while ((line = reader.readLine()) != null) sb.append(line.toCharArray());
         } catch (IOException e) {

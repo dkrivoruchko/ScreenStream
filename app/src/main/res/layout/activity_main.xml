@@ -9,12 +9,9 @@
     tools:context="info.dvkr.screenstream.MainActivity">
 
     <TextView
-        android:id="@+id/textView"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:gravity="center_horizontal"
-        android:paddingBottom="@dimen/activity_vertical_margin"
-        android:paddingTop="@dimen/activity_vertical_margin"
         android:text="@string/device_address"
         android:textAppearance="?android:attr/textAppearanceMedium"
         android:textColor="@color/textColorSecondary" />
@@ -29,13 +26,39 @@
         android:textAppearance="?android:attr/textAppearanceMedium"
         android:textColor="@color/textColorSecondary" />
 
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/pinName"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:text="@string/pin"
+            android:textAppearance="?android:attr/textAppearanceMedium"
+            android:textColor="@color/textColorSecondary" />
+
+        <TextView
+            android:id="@+id/pinNumber"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:padding="@dimen/activity_vertical_margin"
+            android:textAppearance="?android:attr/textAppearanceMedium"
+            android:textColor="@color/colorAccent"
+            android:textStyle="bold" />
+    </LinearLayout>
+
     <ToggleButton
         android:id="@+id/toggleStream"
-        android:layout_width="260dp"
+        android:layout_width="280dp"
         android:layout_height="wrap_content"
         android:layout_gravity="center_horizontal"
-        android:layout_margin="@dimen/activity_margin"
         android:checked="false"
+        android:paddingBottom="@dimen/activity_vertical_margin"
+        android:paddingTop="@dimen/activity_vertical_margin"
         android:textColor="@drawable/toggle_button_color"
         android:textOff="@string/start_stream"
         android:textOn="@string/stop_stream"
@@ -46,8 +69,8 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:gravity="center_horizontal"
-        android:paddingBottom="@dimen/activity_vertical_margin"
-        android:paddingTop="@dimen/activity_vertical_margin"
+        android:paddingBottom="@dimen/activity_vertical_margin_small"
+        android:paddingTop="@dimen/activity_vertical_margin_small"
         android:textColor="@color/textColorSecondary"
         android:textSize="16sp" />
 

@@ -1,12 +1,8 @@
 package info.dvkr.screenstream;
 
+import android.content.Context;
 import android.graphics.Bitmap;
-import android.graphics.Canvas;
-import android.graphics.Color;
-import android.graphics.ImageFormat;
-import android.graphics.Paint;
 import android.graphics.PixelFormat;
-import android.graphics.Rect;
 import android.hardware.display.DisplayManager;
 import android.hardware.display.VirtualDisplay;
 import android.media.Image;
@@ -15,7 +11,6 @@ import android.media.projection.MediaProjection;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Process;
-import android.util.Log;
 
 import com.google.firebase.crash.FirebaseCrash;
 
@@ -34,10 +29,6 @@ final class ImageGenerator {
     private Bitmap reusableBitmap;
     private ByteArrayOutputStream jpegOutputStream;
 
-    private final String defaultText1;
-    private final String defaultText2;
-    private final String defaultText3;
-
     private class ImageAvailableListener implements ImageReader.OnImageAvailableListener {
         private Image image;
         private Image.Plane plane;
@@ -52,7 +43,7 @@ final class ImageGenerator {
                 if (!isThreadRunning) return;
 
 //                try {
-                    image = imageReader.acquireLatestImage();
+                image = imageReader.acquireLatestImage();
 //                } catch (UnsupportedOperationException ex) {
 //
 //                }
@@ -88,12 +79,6 @@ final class ImageGenerator {
         }
     }
 
-    ImageGenerator(final String defaultText1, final String defaultText2, final String defaultText3) {
-        this.defaultText1 = defaultText1;
-        this.defaultText2 = defaultText2;
-        this.defaultText3 = defaultText3;
-    }
-
     void start() {
         synchronized (lock) {
             if (isThreadRunning) return;
@@ -116,14 +101,12 @@ final class ImageGenerator {
                     null, imageHandler);
 
             isThreadRunning = true;
-//            Log.d(TAG, "Image generator started.");
         }
     }
 
     void stop() {
         synchronized (lock) {
             if (!isThreadRunning) return;
-            isThreadRunning = false;
 
             imageReader.setOnImageAvailableListener(null, null);
             imageReader.close();
@@ -146,58 +129,25 @@ final class ImageGenerator {
                 reusableBitmap.recycle();
                 reusableBitmap = null;
             }
-//            Log.d(TAG, "Image generator stopped.");
+
+            isThreadRunning = false;
         }
     }
 
-    void addDefaultScreen() {
+    void addDefaultScreen(final Context context) {
         ApplicationContext.getJPEGQueue().clear();
         new Handler().postDelayed(new Runnable() {
             @Override
             public void run() {
-                final Bitmap bitmap = Bitmap.createBitmap(ApplicationContext.getScreenSize().x, ApplicationContext.getScreenSize().y, Bitmap.Config.ARGB_8888);
-                final Canvas canvas = new Canvas(bitmap);
-                canvas.drawRGB(255, 255, 255);
-
-                final Rect bounds = new Rect();
-                final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
-                int textSize = (int) (12 * ApplicationContext.getScale());
-                paint.setTextSize(textSize);
-                paint.setColor(Color.BLACK);
-                paint.getTextBounds(defaultText1, 0, defaultText1.length(), bounds);
-                int x = (bitmap.getWidth() - bounds.width()) / 2;
-                int y = (bitmap.getHeight() + bounds.height()) / 2 - 2 * textSize;
-                canvas.drawText(defaultText1, x, y, paint);
-
-                textSize = (int) (16 * ApplicationContext.getScale());
-                paint.setTextSize(textSize);
-                paint.setColor(Color.rgb(153, 50, 0));
-                paint.getTextBounds(defaultText2.toUpperCase(), 0, defaultText2.length(), bounds);
-                x = (bitmap.getWidth() - bounds.width()) / 2;
-                y = (bitmap.getHeight() + bounds.height()) / 2;
-                canvas.drawText(defaultText2.toUpperCase(), x, y, paint);
-
-                textSize = (int) (12 * ApplicationContext.getScale());
-                paint.setTextSize(textSize);
-                paint.setColor(Color.BLACK);
-                paint.getTextBounds(defaultText3, 0, defaultText3.length(), bounds);
-                x = (bitmap.getWidth() - bounds.width()) / 2;
-                y = (bitmap.getHeight() + bounds.height()) / 2 + 2 * textSize;
-                canvas.drawText(defaultText3, x, y, paint);
-
-                byte[] jpegByteArray = null;
-                try (final ByteArrayOutputStream jpegOutputStream = new ByteArrayOutputStream()) {
-                    bitmap.compress(Bitmap.CompressFormat.JPEG, ApplicationContext.getApplicationSettings().getJpegQuality(), jpegOutputStream);
-                    jpegByteArray = jpegOutputStream.toByteArray();
-                } catch (IOException e) {
-                    FirebaseCrash.report(e);
+                final byte[] jpegByteArray = NotifyImageGenerator.getDefaultScreen(context);
+                if (jpegByteArray != null) {
+                    ApplicationContext.getJPEGQueue().add(jpegByteArray);
                 }
-                bitmap.recycle();
-                if (jpegByteArray != null) ApplicationContext.getJPEGQueue().add(jpegByteArray);
             }
         }, 500);
 
     }
+
 
 }
 

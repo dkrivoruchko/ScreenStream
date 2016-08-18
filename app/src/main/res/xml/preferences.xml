@@ -15,6 +15,41 @@
             android:title="@string/stop_on_sleep" />
     </PreferenceCategory>
 
+    <PreferenceCategory android:title="@string/settings_pin">
+        <CheckBoxPreference
+            android:defaultValue="false"
+            android:icon="@drawable/ic_fiber_pin_black_24dp"
+            android:key="enable_pin"
+            android:summary="@string/protect_with_pin"
+            android:title="@string/enable_pin" />
+
+        <CheckBoxPreference
+            android:defaultValue="true"
+            android:dependency="enable_pin"
+            android:icon="@drawable/ic_dialpad_black_24dp"
+            android:key="pin_new_on_app_start"
+            android:summary="@string/generate_new_pin_on_start"
+            android:title="@string/new_pin_on_start" />
+
+        <CheckBoxPreference
+            android:defaultValue="false"
+            android:dependency="enable_pin"
+            android:icon="@drawable/ic_autorenew_black_24dp"
+            android:key="pin_regenerate_on_start"
+            android:summary="@string/generate_pin"
+            android:title="@string/auto_change_pin" />
+
+        <EditTextPreference
+            android:dependency="enable_pin"
+            android:icon="@drawable/ic_vpn_key_black_24dp"
+            android:inputType="number"
+            android:key="pin_manual"
+            android:selectAllOnFocus="true"
+            android:singleLine="true"
+            android:summary="@string/enter_pin_manually"
+            android:title="@string/set_pin" />
+    </PreferenceCategory>
+
     <PreferenceCategory android:title="@string/settings_advanced">
         <EditTextPreference
             android:defaultValue="8080"
@@ -22,7 +57,7 @@
             android:inputType="number"
             android:key="port_number"
             android:selectAllOnFocus="true"
-            android:singleLine="false"
+            android:singleLine="true"
             android:summary="@string/server_port_summary"
             android:title="@string/server_port" />
         <ListPreference
