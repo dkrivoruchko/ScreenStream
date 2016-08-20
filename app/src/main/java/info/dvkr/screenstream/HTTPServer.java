@@ -66,7 +66,6 @@ final class HTTPServer {
                             sendNotFound(clientSocket);
                             continue;
                         }
-                        Log.wtf(">>>>>>>>>> readLine", requestLine);
 
                         final String[] requestUriArray = requestLine.split(" ");
                         if (requestUriArray.length >= 2) requestUri = requestUriArray[1];

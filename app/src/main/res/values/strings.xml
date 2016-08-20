@@ -50,7 +50,7 @@
     <string name="generate_new_pin_on_start">Generate new pin on application start</string>
     <string name="enter_pin_manually">Enter pin manually</string>
     <string name="auto_change_pin">Auto change pin</string>
-    <string name="generate_pin">Generate new pin on each stream start</string>
+    <string name="generate_pin">Generate new pin for each new stream</string>
     <string name="settings_advanced">Advanced</string>
     <string name="server_port">Server port</string>
     <string name="server_port_summary">Set port for incoming connections\nDefault: 8080</string>

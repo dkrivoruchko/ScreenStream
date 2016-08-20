@@ -53,7 +53,7 @@ public final class ForegroundService extends Service {
     private boolean currentWiFiStatus;
 
     // Fields for notifications
-    private Notification startNotification;
+//    private Notification startNotification;
     private BroadcastReceiver localNotificationReceiver;
     private final String KEY_START = "info.dvkr.screenstream.ForegroundService.startStream";
     private final Intent startStreamIntent = new Intent(KEY_START);
@@ -78,7 +78,7 @@ public final class ForegroundService extends Service {
         foregroundServiceTaskHandler = new ForegroundTaskHandler(looperThread.getLooper());
 
         //Local notifications
-        startNotification = getNotificationStart();
+//        startNotification = getNotificationStart();
 
         final IntentFilter localNotificationIntentFilter = new IntentFilter();
         localNotificationIntentFilter.addAction(KEY_START);
@@ -142,7 +142,7 @@ public final class ForegroundService extends Service {
         if (messageFromActivity == 0) return START_NOT_STICKY;
 
         if (messageFromActivity == SERVICE_MESSAGE_PREPARE_STREAMING) {
-            startForeground(110, startNotification);
+            startForeground(110, getNotificationStart());
             ApplicationContext.setIsForegroundServiceRunning(true);
         }
 
@@ -165,7 +165,7 @@ public final class ForegroundService extends Service {
         if (messageFromActivity == SERVICE_MESSAGE_STOP_STREAMING) {
             stopForeground(true);
             foregroundServiceTaskHandler.obtainMessage(ForegroundTaskHandler.HANDLER_STOP_STREAMING).sendToTarget();
-            startForeground(110, startNotification);
+            startForeground(110, getNotificationStart());
             imageGenerator.addDefaultScreen(getApplicationContext());
         }
 

@@ -39,7 +39,7 @@
     <string name="pin">PIN-код:</string>
     <string name="enable_pin">Использовать PIN-код</string>
     <string name="enter_pin_manually">Указать PIN-код</string>
-    <string name="generate_pin">Генерировать новый PIN-код при каждом начале трансляции</string>
+    <string name="generate_pin">Генерировать новый PIN-код для каждой трансляции</string>
     <string name="protect_with_pin">Защитить доступ к трансляции PIN-кодом</string>
     <string name="set_pin">Установить PIN-код</string>
     <string name="settings_pin">PIN-код</string>

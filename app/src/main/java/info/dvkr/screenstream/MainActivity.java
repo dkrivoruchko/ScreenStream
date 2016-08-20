@@ -47,7 +47,6 @@ public final class MainActivity extends AppCompatActivity {
 
         isPinEnabled = ApplicationContext.getApplicationSettings().isEnablePin();
         currentPin = ApplicationContext.getApplicationSettings().getUserPin();
-        updatePinUI();
 
         if (!ApplicationContext.isForegroundServiceRunning()) {
             final Intent foregroundService = new Intent(this, ForegroundService.class);
@@ -155,6 +154,7 @@ public final class MainActivity extends AppCompatActivity {
     @Override
     protected void onStart() {
         super.onStart();
+        updatePinUI();
         updateServiceStatus(ForegroundService.SERVICE_MESSAGE_GET_STATUS);
         if (ForegroundService.getHttpServerStatus() == HTTPServer.SERVER_ERROR_PORT_IN_USE) {
             portInUseSnackbar.show();
@@ -227,9 +227,7 @@ public final class MainActivity extends AppCompatActivity {
             pinNumber.setTextColor(ContextCompat.getColor(this, R.color.colorAccent));
             pinNumber.setTypeface(null, Typeface.BOLD);
             findViewById(R.id.pinName).setVisibility(View.VISIBLE);
-        } else
-
-        {
+        } else {
             pinNumber.setText(getResources().getString(R.string.pin_disabled));
             pinNumber.setTextColor(ContextCompat.getColor(this, R.color.colorPrimary));
             pinNumber.setTypeface(null, Typeface.NORMAL);
@@ -280,7 +278,7 @@ public final class MainActivity extends AppCompatActivity {
         startStreaming.putExtra(ForegroundService.SERVICE_MESSAGE, ForegroundService.SERVICE_MESSAGE_START_STREAMING);
         startService(startStreaming);
 
-        if (ApplicationContext.getApplicationSettings().isPinAutoHide()) {
+        if (ApplicationContext.getApplicationSettings().isEnablePin() && ApplicationContext.getApplicationSettings().isPinAutoHide()) {
             pinNumber.setText("****");
         }
 
@@ -304,13 +302,13 @@ public final class MainActivity extends AppCompatActivity {
         stopStreaming.putExtra(ForegroundService.SERVICE_MESSAGE, ForegroundService.SERVICE_MESSAGE_STOP_STREAMING);
         startService(stopStreaming);
 
-        if (ApplicationContext.getApplicationSettings().isPinAutoHide()) {
-            pinNumber.setText(currentPin);
-        }
-
         if (ApplicationContext.getApplicationSettings().isAutoGeneratePin()) {
             ApplicationContext.getApplicationSettings().setAndSaveUserPin(ApplicationContext.getRandomPin());
-            updatePinStatus(true);
+            updatePinStatus(false);
+        }
+
+        if (ApplicationContext.getApplicationSettings().isEnablePin()) {
+            pinNumber.setText(currentPin);
         }
     }
 
