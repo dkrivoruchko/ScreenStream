@@ -28,9 +28,9 @@ final class HTTPServer {
     private static final String ALPHABET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
     private static final int ALPHABET_COUNT = ALPHABET.length();
     private static final String DEFAULT_ADDRESS = "/";
-    private static final String DEFAULT_PIN_ADDRESS = "/?pin=";
     private static final String DEFAULT_STREAM_ADDRESS = "/screen_stream.mjpeg";
     private static final String DEFAULT_ICO_ADDRESS = "/favicon.ico";
+    private static final String DEFAULT_PIN_ADDRESS = "/?pin=";
 
     private final Object lock = new Object();
 
@@ -40,15 +40,13 @@ final class HTTPServer {
     private HTTPServerThread httpServerThread;
     private JpegStreamer jpegStreamer;
 
-    private boolean isPinEnabled;
-    private String currentPinURI = "";
+    private volatile boolean isPinEnabled;
+    private String currentPinURI = DEFAULT_PIN_ADDRESS;
     private String currentStreamAddress = DEFAULT_STREAM_ADDRESS;
 
     private class HTTPServerThread extends Thread {
         private Socket clientSocket;
         private BufferedReader bufferedReaderFromClient;
-        private String requestLine;
-        private String[] requestUriArray;
         private String requestUri;
 
         HTTPServerThread() {
@@ -62,30 +60,35 @@ final class HTTPServer {
                     try {
                         clientSocket = HTTPServer.this.serverSocket.accept();
                         bufferedReaderFromClient = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-                        requestLine = bufferedReaderFromClient.readLine();
-                        if (requestLine == null) continue;
 
-                        requestUriArray = requestLine.split(" ");
+                        final String requestLine = bufferedReaderFromClient.readLine();
+                        if (requestLine == null || !requestLine.startsWith("GET")) {
+                            sendNotFound(clientSocket);
+                            continue;
+                        }
+                        Log.wtf(">>>>>>>>>> readLine", requestLine);
+
+                        final String[] requestUriArray = requestLine.split(" ");
                         if (requestUriArray.length >= 2) requestUri = requestUriArray[1];
-                        else requestUri = "URI_NOT_SET";
-
-                        Log.wtf(">>>>>>>>>> requestLine", requestLine);
-
-                        if (DEFAULT_ADDRESS.equals(requestUri)) {
-                            if (isPinEnabled) {
-                                sendPinRequestPage(clientSocket, false);
-                            } else {
-                                sendMainPage(clientSocket, currentStreamAddress);
-                            }
+                        else {
+                            sendNotFound(clientSocket);
                             continue;
                         }
 
                         if (isPinEnabled) {
-                            if (currentPinURI.equals(requestUri)) {
-                                sendMainPage(clientSocket, currentStreamAddress);
+                            if (DEFAULT_ADDRESS.equals(requestUri)) {
+                                sendPinRequestPage(clientSocket, false);
                                 continue;
-                            } else if (requestUri.contains(DEFAULT_PIN_ADDRESS)) {
-                                sendPinRequestPage(clientSocket, true);
+                            }
+                            if (requestUri.startsWith(DEFAULT_PIN_ADDRESS)) {
+                                if (requestUri.equals(currentPinURI))
+                                    sendMainPage(clientSocket, currentStreamAddress);
+                                else sendPinRequestPage(clientSocket, true);
+                                continue;
+                            }
+                        } else {
+                            if (DEFAULT_ADDRESS.equals(requestUri)) {
+                                sendMainPage(clientSocket, currentStreamAddress);
                                 continue;
                             }
                         }
@@ -160,17 +163,17 @@ final class HTTPServer {
     int start() {
         synchronized (lock) {
             if (isThreadRunning) return SERVER_ERROR_ALREADY_RUNNING;
-            try {
-                isPinEnabled = ApplicationContext.getApplicationSettings().isEnablePin();
-                if (isPinEnabled) {
-                    final String currentPin = ApplicationContext.getApplicationSettings().getUserPin();
-                    currentStreamAddress = getStreamAddress(currentPin);
-                    currentPinURI = DEFAULT_PIN_ADDRESS + currentPin;
-                } else {
-                    currentStreamAddress = DEFAULT_STREAM_ADDRESS;
-                    currentPinURI = "";
-                }
 
+            currentStreamAddress = DEFAULT_STREAM_ADDRESS;
+            currentPinURI = DEFAULT_PIN_ADDRESS;
+            isPinEnabled = ApplicationContext.getApplicationSettings().isEnablePin();
+            if (isPinEnabled) {
+                final String currentPin = ApplicationContext.getApplicationSettings().getUserPin();
+                currentPinURI = DEFAULT_PIN_ADDRESS + currentPin;
+                currentStreamAddress = getStreamAddress(currentPin);
+            }
+
+            try {
                 serverSocket = new ServerSocket(ApplicationContext.getApplicationSettings().getSeverPort());
                 serverSocket.setSoTimeout(SEVER_SOCKET_TIMEOUT);
 

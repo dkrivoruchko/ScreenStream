@@ -14,7 +14,6 @@ import android.os.Process;
 import android.support.annotation.Nullable;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.content.ContextCompat;
-import android.util.Log;
 
 public final class ForegroundService extends Service {
     private static ForegroundService foregroundService;
@@ -140,9 +139,6 @@ public final class ForegroundService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         final int messageFromActivity = intent.getIntExtra(SERVICE_MESSAGE, 0);
-
-        Log.wtf(">>>>>>>>>>", "messageFromActivity:" + messageFromActivity);
-
         if (messageFromActivity == 0) return START_NOT_STICKY;
 
         if (messageFromActivity == SERVICE_MESSAGE_PREPARE_STREAMING) {
@@ -181,6 +177,7 @@ public final class ForegroundService extends Service {
 
         if (messageFromActivity == SERVICE_MESSAGE_UPDATE_PIN_STATUS) {
             httpServer.stop(HTTPServer.SERVER_PIN_RESTART, NotifyImageGenerator.getClientNotifyImage(getApplicationContext(), HTTPServer.SERVER_PIN_RESTART));
+            imageGenerator.addDefaultScreen(getApplicationContext());
             httpServerStartAndCheck();
         }
 

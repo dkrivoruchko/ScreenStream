@@ -11,7 +11,6 @@ import android.os.Bundle;
 import android.support.design.widget.Snackbar;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -89,8 +88,6 @@ public final class MainActivity extends AppCompatActivity {
             public void onReceive(Context context, Intent intent) {
                 if (intent.getAction().equals(ForegroundService.SERVICE_ACTION)) {
                     final int serviceMessage = intent.getIntExtra(ForegroundService.SERVICE_MESSAGE, ForegroundService.SERVICE_MESSAGE_EMPTY);
-                    Log.wtf(">>>>>>>>>>", "serviceMessage:" + serviceMessage);
-
                     if (serviceMessage == ForegroundService.SERVICE_MESSAGE_EMPTY) return;
 
                     // Service ask to get new message
