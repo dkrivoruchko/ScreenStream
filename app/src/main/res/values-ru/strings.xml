@@ -51,4 +51,6 @@
     <string name="go_to_new_address">Пройдите по новому адресу</string>
     <string name="settings_changed">НАСТРОЙКИ ИЗМЕНЕНЫ</string>
     <string name="reload_this_page">Обновите страницу</string>
+    <string name="hide_pin">Прятать PIN-код</string>
+    <string name="show_asterisks">При трансляции скрывать PIN-код</string>
 </resources>

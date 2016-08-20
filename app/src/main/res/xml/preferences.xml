@@ -26,6 +26,14 @@
         <CheckBoxPreference
             android:defaultValue="true"
             android:dependency="enable_pin"
+            android:icon="@drawable/ic_visibility_black_24dp"
+            android:key="pin_hide_on_start"
+            android:summary="@string/show_asterisks"
+            android:title="@string/hide_pin" />
+
+        <CheckBoxPreference
+            android:defaultValue="true"
+            android:dependency="enable_pin"
             android:icon="@drawable/ic_dialpad_black_24dp"
             android:key="pin_new_on_app_start"
             android:summary="@string/generate_new_pin_on_start"

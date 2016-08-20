@@ -43,6 +43,8 @@
     <string name="settings_pin">Pin</string>
     <string name="enable_pin">Enable pin</string>
     <string name="protect_with_pin">Protect access to stream with pin</string>
+    <string name="hide_pin">Auto hide pin on stream start</string>
+    <string name="show_asterisks">Show asterisks instead pin while streaming</string>
     <string name="set_pin">Set pin</string>
     <string name="new_pin_on_start">New pin on start</string>
     <string name="generate_new_pin_on_start">Generate new pin on application start</string>

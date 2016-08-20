@@ -219,16 +219,23 @@ public final class MainActivity extends AppCompatActivity {
 
     private void updatePinUI() {
         if (isPinEnabled) {
-            pinNumber.setText(currentPin);
+            if (ApplicationContext.getApplicationSettings().isPinAutoHide() && ApplicationContext.isStreamRunning()) {
+                pinNumber.setText("****");
+            } else {
+                pinNumber.setText(currentPin);
+            }
             pinNumber.setTextColor(ContextCompat.getColor(this, R.color.colorAccent));
             pinNumber.setTypeface(null, Typeface.BOLD);
             findViewById(R.id.pinName).setVisibility(View.VISIBLE);
-        } else {
+        } else
+
+        {
             pinNumber.setText(getResources().getString(R.string.pin_disabled));
             pinNumber.setTextColor(ContextCompat.getColor(this, R.color.colorPrimary));
             pinNumber.setTypeface(null, Typeface.NORMAL);
             findViewById(R.id.pinName).setVisibility(View.GONE);
         }
+
     }
 
     private void updatePinStatus(final boolean isServerPortChanged) {
@@ -273,6 +280,10 @@ public final class MainActivity extends AppCompatActivity {
         startStreaming.putExtra(ForegroundService.SERVICE_MESSAGE, ForegroundService.SERVICE_MESSAGE_START_STREAMING);
         startService(startStreaming);
 
+        if (ApplicationContext.getApplicationSettings().isPinAutoHide()) {
+            pinNumber.setText("****");
+        }
+
         if (ApplicationContext.getApplicationSettings().isMinimizeOnStream()) {
             final Intent minimiseMyself = new Intent(Intent.ACTION_MAIN);
             minimiseMyself.addCategory(Intent.CATEGORY_HOME);
@@ -292,6 +303,10 @@ public final class MainActivity extends AppCompatActivity {
         final Intent stopStreaming = new Intent(this, ForegroundService.class);
         stopStreaming.putExtra(ForegroundService.SERVICE_MESSAGE, ForegroundService.SERVICE_MESSAGE_STOP_STREAMING);
         startService(stopStreaming);
+
+        if (ApplicationContext.getApplicationSettings().isPinAutoHide()) {
+            pinNumber.setText(currentPin);
+        }
 
         if (ApplicationContext.getApplicationSettings().isAutoGeneratePin()) {
             ApplicationContext.getApplicationSettings().setAndSaveUserPin(ApplicationContext.getRandomPin());

@@ -16,6 +16,7 @@ final class ApplicationSettings {
     private boolean minimizeOnStream;
     private boolean pauseOnSleep;
     private boolean enablePin;
+    private boolean pinAutoHide;
     private boolean newPinOnAppStart;
     private boolean autoGeneratePin;
     private String userPin = PIN_NOT_SET;
@@ -30,6 +31,7 @@ final class ApplicationSettings {
         pauseOnSleep = sharedPreferences.getBoolean("pause_on_sleep", false);
 
         enablePin = sharedPreferences.getBoolean("enable_pin", false);
+        pinAutoHide = sharedPreferences.getBoolean("pin_hide_on_start", true);
         newPinOnAppStart = sharedPreferences.getBoolean("pin_new_on_app_start", true);
         autoGeneratePin = sharedPreferences.getBoolean("pin_regenerate_on_start", false);
         userPin = sharedPreferences.getString("pin_manual", PIN_NOT_SET);
@@ -45,6 +47,7 @@ final class ApplicationSettings {
         pauseOnSleep = sharedPreferences.getBoolean("pause_on_sleep", false);
 
         enablePin = sharedPreferences.getBoolean("enable_pin", false);
+        pinAutoHide = sharedPreferences.getBoolean("pin_hide_on_start", true);
         newPinOnAppStart = sharedPreferences.getBoolean("pin_new_on_app_start", true);
         autoGeneratePin = sharedPreferences.getBoolean("pin_regenerate_on_start", false);
         userPin = sharedPreferences.getString("pin_manual", PIN_NOT_SET);
@@ -72,6 +75,10 @@ final class ApplicationSettings {
 
     boolean isEnablePin() {
         return enablePin;
+    }
+
+    boolean isPinAutoHide() {
+        return pinAutoHide;
     }
 
     boolean isNewPinOnAppStart() {
