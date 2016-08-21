@@ -11,8 +11,8 @@ android {
         applicationId "info.dvkr.screenstream"
         minSdkVersion 21
         targetSdkVersion 24
-        versionCode 6
-        versionName "1.1.0-beta1"
+        versionCode 7
+        versionName "1.1.0"
 
         resConfigs "en", "ru"
     }
