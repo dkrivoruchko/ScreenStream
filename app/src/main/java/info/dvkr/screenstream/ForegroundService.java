@@ -240,6 +240,7 @@ public final class ForegroundService extends Service {
         final PendingIntent pendingMainActivityIntent = PendingIntent.getActivity(this, 0, mainActivityIntent, 0);
 
         final NotificationCompat.Builder startNotificationBuilder = new NotificationCompat.Builder(this);
+        startNotificationBuilder.setVisibility(NotificationCompat.VISIBILITY_PUBLIC);
         startNotificationBuilder.setSmallIcon(R.drawable.ic_cast_http_24dp);
         startNotificationBuilder.setColor(ContextCompat.getColor(this, R.color.colorPrimaryDark));
         startNotificationBuilder.setContentTitle(getResources().getString(R.string.ready_to_stream));
@@ -256,6 +257,7 @@ public final class ForegroundService extends Service {
         final PendingIntent pendingMainActivityIntent = PendingIntent.getActivity(this, 0, mainActivityIntent, 0);
 
         final NotificationCompat.Builder stopNotificationBuilder = new NotificationCompat.Builder(this);
+        stopNotificationBuilder.setVisibility(NotificationCompat.VISIBILITY_PUBLIC);
         stopNotificationBuilder.setSmallIcon(R.drawable.ic_cast_http_24dp);
         stopNotificationBuilder.setColor(ContextCompat.getColor(this, R.color.colorPrimaryDark));
         stopNotificationBuilder.setContentTitle(getResources().getString(R.string.stream));

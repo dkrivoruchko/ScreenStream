@@ -54,7 +54,7 @@ public final class SettingsActivity extends PreferenceActivity {
             pinNumberTextPreference.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
                 @Override
                 public boolean onPreferenceChange(Preference preference, Object data) {
-                    final int pinStringLength = ((String) data).length();
+                    final int pinStringLength = data.toString().length();
                     if (pinStringLength != PIN_DIGITS_COUNT) {
                         Toast.makeText(getActivity().getApplicationContext(), getResources().getString(R.string.pin_digits_count), Toast.LENGTH_LONG).show();
                         return false;
@@ -72,7 +72,12 @@ public final class SettingsActivity extends PreferenceActivity {
             portNumberTextPreference.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
                 @Override
                 public boolean onPreferenceChange(Preference preference, Object data) {
-                    final int portNumber = Integer.parseInt((String) data);
+                    final String portString = data.toString();
+                    if (portString == null || portString.length() == 0 || portString.length() > 5 || portString.length() < 4) {
+                        Toast.makeText(getActivity().getApplicationContext(), portRange, Toast.LENGTH_LONG).show();
+                        return false;
+                    }
+                    final int portNumber = Integer.parseInt(portString);
                     if ((portNumber < MIN_PORT_NUMBER) || (portNumber > MAX_PORT_NUMBER)) {
                         Toast.makeText(getActivity().getApplicationContext(), portRange, Toast.LENGTH_LONG).show();
                         return false;
