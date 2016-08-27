@@ -10,6 +10,7 @@ import android.media.projection.MediaProjection;
 import android.os.Bundle;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -42,15 +43,6 @@ public final class MainActivity extends AppCompatActivity {
             startService(foregroundService);
         }
 
-        final ToggleButton toggleStream = (ToggleButton) findViewById(R.id.toggleStream);
-        toggleStream.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (toggleStream.isChecked()) tryStartStreaming();
-                else stopStreaming();
-            }
-        });
-
         projectionCallback = new MediaProjection.Callback() {
             @Override
             public void onStop() {
@@ -75,6 +67,8 @@ public final class MainActivity extends AppCompatActivity {
             public void onReceive(Context context, Intent intent) {
                 if (intent.getAction().equals(ForegroundService.SERVICE_ACTION)) {
                     final int serviceMessage = intent.getIntExtra(ForegroundService.SERVICE_MESSAGE, ForegroundService.SERVICE_MESSAGE_EMPTY);
+                    Log.wtf(">>>>>>>>> serviceMessage", "" + serviceMessage);
+
                     if (serviceMessage == ForegroundService.SERVICE_MESSAGE_EMPTY) return;
 
                     // Service ask to get new message
@@ -115,6 +109,16 @@ public final class MainActivity extends AppCompatActivity {
         registerReceiver(broadcastReceiverFromService, new IntentFilter(ForegroundService.SERVICE_ACTION), ForegroundService.SERVICE_PERMISSION, null);
     }
 
+    public void onToggleButtonClick(View v) {
+        if (AppContext.isStreamRunning()) {
+            stopStreaming();
+        } else {
+            ((ToggleButton) v).setChecked(false);
+            tryStartStreaming();
+        }
+
+    }
+
     @Override
     protected void onStart() {
         super.onStart();
@@ -127,8 +131,9 @@ public final class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onDestroy() {
-        if (AppContext.getMediaProjection() != null)
-            AppContext.getMediaProjection().unregisterCallback(projectionCallback);
+        final MediaProjection mediaProjection = AppContext.getMediaProjection();
+        if (mediaProjection != null)
+            mediaProjection.unregisterCallback(projectionCallback);
 
         unregisterReceiver(broadcastReceiverFromService);
         super.onDestroy();
@@ -148,7 +153,10 @@ public final class MainActivity extends AppCompatActivity {
                 final boolean isServerPortChanged = AppContext.getAppSettings().updateSettings();
                 if (isServerPortChanged) {
                     AppContext.getAppState().serverAddress.set(AppContext.getServerAddress());
-                    restartHTTPServer();
+
+                    final Intent restartHTTP = new Intent(this, ForegroundService.class);
+                    restartHTTP.putExtra(ForegroundService.SERVICE_MESSAGE, ForegroundService.SERVICE_MESSAGE_RESTART_HTTP);
+                    startService(restartHTTP);
                 }
                 updatePinStatus(isServerPortChanged);
                 break;
@@ -239,12 +247,5 @@ public final class MainActivity extends AppCompatActivity {
             AppContext.getAppSettings().generateAndSaveNewPin();
 
         updatePinStatus(false);
-    }
-
-    private void restartHTTPServer() {
-        stopStreaming();
-        final Intent restartHTTP = new Intent(this, ForegroundService.class);
-        restartHTTP.putExtra(ForegroundService.SERVICE_MESSAGE, ForegroundService.SERVICE_MESSAGE_RESTART_HTTP);
-        startService(restartHTTP);
     }
 }
