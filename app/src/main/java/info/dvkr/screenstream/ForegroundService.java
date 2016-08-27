@@ -39,6 +39,7 @@ public final class ForegroundService extends Service {
     static final int SERVICE_MESSAGE_HTTP_PORT_IN_USE = 3001;
     static final int SERVICE_MESSAGE_HTTP_OK = 3002;
     static final int SERVICE_MESSAGE_UPDATE_PIN_STATUS = 2000;
+    static final int SERVICE_MESSAGE_IMAGE_GENERATOR_ERROR = 4000;
     static final int SERVICE_MESSAGE_EXIT = 9000;
 
     private int currentServiceMessage;
@@ -131,9 +132,7 @@ public final class ForegroundService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         final int messageFromActivity = intent.getIntExtra(SERVICE_MESSAGE, 0);
-
-        Log.wtf(">>>>>>>>> messageFromActivity", "" + messageFromActivity);
-
+//        Log.wtf(">>>>>>>>> messageFromActivity", "" + messageFromActivity);
         if (messageFromActivity == 0) return START_NOT_STICKY;
 
         if (messageFromActivity == SERVICE_MESSAGE_PREPARE_STREAMING) {
@@ -159,6 +158,9 @@ public final class ForegroundService extends Service {
             foregroundServiceTaskHandler.obtainMessage(ForegroundTaskHandler.HANDLER_STOP_STREAMING).sendToTarget();
             startForeground(110, getNotificationStart());
             imageGenerator.addDefaultScreen(getApplicationContext());
+
+            if (AppContext.getAppSettings().isAutoChangePin())
+                AppContext.getAppSettings().generateAndSaveNewPin();
         }
 
         if (messageFromActivity == SERVICE_MESSAGE_RESTART_HTTP) {
@@ -209,6 +211,11 @@ public final class ForegroundService extends Service {
     static int getHttpServerStatus() {
         if (foregroundService == null) return HTTPServer.SERVER_STATUS_UNKNOWN;
         return foregroundService.httpServerStatus;
+    }
+
+    static void errorInImageGenerator(){
+        foregroundService.currentServiceMessage = SERVICE_MESSAGE_IMAGE_GENERATOR_ERROR;
+        foregroundService.relayMessageViaActivity();
     }
 
     // Private methods

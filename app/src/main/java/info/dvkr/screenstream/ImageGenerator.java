@@ -45,8 +45,9 @@ final class ImageGenerator {
                 try {
                     image = imageReader.acquireLatestImage();
                 } catch (UnsupportedOperationException e) {
+                    ForegroundService.errorInImageGenerator();
                     FirebaseCrash.report(e);
-                    //TODO Implement Error message
+                    return;
                 }
 
                 if (image == null) return;

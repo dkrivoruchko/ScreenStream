@@ -2,6 +2,7 @@ package info.dvkr.screenstream;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.databinding.DataBindingUtil;
@@ -9,6 +10,7 @@ import android.graphics.Color;
 import android.media.projection.MediaProjection;
 import android.os.Bundle;
 import android.support.design.widget.Snackbar;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.Menu;
@@ -67,8 +69,7 @@ public final class MainActivity extends AppCompatActivity {
             public void onReceive(Context context, Intent intent) {
                 if (intent.getAction().equals(ForegroundService.SERVICE_ACTION)) {
                     final int serviceMessage = intent.getIntExtra(ForegroundService.SERVICE_MESSAGE, ForegroundService.SERVICE_MESSAGE_EMPTY);
-                    Log.wtf(">>>>>>>>> serviceMessage", "" + serviceMessage);
-
+//                    Log.wtf(">>>>>>>>> serviceMessage", "" + serviceMessage);
                     if (serviceMessage == ForegroundService.SERVICE_MESSAGE_EMPTY) return;
 
                     // Service ask to get new message
@@ -100,6 +101,21 @@ public final class MainActivity extends AppCompatActivity {
                     if (serviceMessage == ForegroundService.SERVICE_MESSAGE_HTTP_OK) {
                         if (portInUseSnackbar.isShown()) portInUseSnackbar.dismiss();
                         AppContext.getAppState().httpServerError.set(false);
+                    }
+
+                    // Service ask notify HTTP Server ok
+                    if (serviceMessage == ForegroundService.SERVICE_MESSAGE_IMAGE_GENERATOR_ERROR) {
+                        stopStreaming();
+                        new AlertDialog.Builder(MainActivity.this)
+                                .setTitle(getString(R.string.error))
+                                .setMessage(getString(R.string.unknown_format))
+                                .setIcon(R.drawable.ic_warning_24dp)
+                                .setPositiveButton(R.string.ok, new DialogInterface.OnClickListener() {
+                                    public void onClick(DialogInterface dialog, int id) {
+                                        dialog.dismiss();
+                                    }
+                                })
+                                .show();
                     }
 
                 }
@@ -242,9 +258,6 @@ public final class MainActivity extends AppCompatActivity {
         final Intent stopStreaming = new Intent(this, ForegroundService.class);
         stopStreaming.putExtra(ForegroundService.SERVICE_MESSAGE, ForegroundService.SERVICE_MESSAGE_STOP_STREAMING);
         startService(stopStreaming);
-
-        if (AppContext.getAppSettings().isAutoChangePin())
-            AppContext.getAppSettings().generateAndSaveNewPin();
 
         updatePinStatus(false);
     }

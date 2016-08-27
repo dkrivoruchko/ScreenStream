@@ -53,4 +53,6 @@
     <string name="reload_this_page">Обновите страницу</string>
     <string name="hide_pin">Прятать PIN-код</string>
     <string name="show_asterisks">При трансляции скрывать PIN-код</string>
+    <string name="error">Ошибка</string>
+    <string name="unknown_format">Система отдает изображение в неизвестном формате. На данный момент исправления нет.</string>
 </resources>

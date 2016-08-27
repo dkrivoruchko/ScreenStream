@@ -13,6 +13,9 @@
     <string name="no_wifi_connected">No WiFi connected</string>
     <string name="cast_permission_deny">Screen Cast permission denied</string>
     <string name="snackbar_port_in_use">Port already in use\nChoose another one</string>
+    <string name="error">Oops! Error</string>
+    <string name="unknown_format">System return image in unknown format. Currently no fix available.\nSorry.</string>
+    <string name="ok" translatable="false">OK</string>
 
     <!--ForegroundService-->
     <string name="ready_to_stream">Ready to stream</string>
