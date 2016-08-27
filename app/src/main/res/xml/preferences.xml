@@ -43,7 +43,7 @@
             android:defaultValue="false"
             android:dependency="enable_pin"
             android:icon="@drawable/ic_autorenew_black_24dp"
-            android:key="pin_regenerate_on_start"
+            android:key="pin_change_on_start"
             android:summary="@string/generate_pin"
             android:title="@string/auto_change_pin" />
 

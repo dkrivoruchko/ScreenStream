@@ -18,15 +18,15 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.Locale;
-import java.util.Random;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 
-public class ApplicationContext extends Application {
-    private static ApplicationContext instance;
+public class AppContext extends Application {
+    private static AppContext instance;
 
-    private ApplicationSettings applicationSettings;
+    private final AppState appState = new AppState();
+    private AppSettings appSettings;
     private WindowManager windowManager;
     private MediaProjectionManager projectionManager;
     private MediaProjection mediaProjection;
@@ -41,15 +41,22 @@ public class ApplicationContext extends Application {
     private volatile boolean isStreamRunning;
     private volatile boolean isForegroundServiceRunning;
 
+
     @Override
     public void onCreate() {
         super.onCreate();
         instance = this;
 
-        applicationSettings = new ApplicationSettings(this);
-        if (applicationSettings.isEnablePin() && applicationSettings.isNewPinOnAppStart()) {
-            applicationSettings.setAndSaveUserPin(ApplicationContext.getRandomPin());
+        appSettings = new AppSettings(this);
+        if (appSettings.isEnablePin() && appSettings.isNewPinOnAppStart()) {
+            appSettings.generateAndSaveNewPin();
         }
+
+        appState.serverAddress.set(getServerAddress());
+        appState.pinEnabled.set(appSettings.isEnablePin());
+        appState.pinAutoHide.set(appSettings.isPinAutoHide());
+        appState.streamPin.set(appSettings.getUserPin());
+        appState.wifiConnected.set(isWiFiConnected());
 
         windowManager = (WindowManager) getSystemService(Context.WINDOW_SERVICE);
         projectionManager = (MediaProjectionManager) getSystemService(Context.MEDIA_PROJECTION_SERVICE);
@@ -65,8 +72,12 @@ public class ApplicationContext extends Application {
         setFavicon();
     }
 
-    static ApplicationSettings getApplicationSettings() {
-        return instance.applicationSettings;
+    static AppState getAppState() {
+        return instance.appState;
+    }
+
+    static AppSettings getAppSettings() {
+        return instance.appSettings;
     }
 
     static WindowManager getWindowsManager() {
@@ -106,6 +117,7 @@ public class ApplicationContext extends Application {
 
     static void setIsStreamRunning(final boolean isRunning) {
         instance.isStreamRunning = isRunning;
+        getAppState().streaming.set(isRunning);
     }
 
     static boolean isForegroundServiceRunning() {
@@ -130,7 +142,7 @@ public class ApplicationContext extends Application {
     }
 
     static String getServerAddress() {
-        return "http://" + instance.getIPAddress() + ":" + instance.applicationSettings.getSeverPort();
+        return "http://" + instance.getIPAddress() + ":" + instance.appSettings.getSeverPort();
     }
 
     static ConcurrentLinkedDeque<byte[]> getJPEGQueue() {
@@ -144,11 +156,6 @@ public class ApplicationContext extends Application {
     static boolean isWiFiConnected() {
         final WifiManager wifi = (WifiManager) instance.getSystemService(Context.WIFI_SERVICE);
         return wifi.getConnectionInfo().getIpAddress() > 0;
-    }
-
-    static String getRandomPin() {
-        final Random random = new Random(System.currentTimeMillis());
-        return "" + random.nextInt(10) + random.nextInt(10) + random.nextInt(10) + random.nextInt(10);
     }
 
     // Private methods

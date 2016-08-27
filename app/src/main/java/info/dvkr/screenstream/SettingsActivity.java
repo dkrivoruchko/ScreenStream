@@ -30,7 +30,7 @@ public final class SettingsActivity extends PreferenceActivity {
             addPreferencesFromResource(R.xml.preferences);
 
             final CheckBoxPreference pinNewOnAppStartCheckBoxPreference = (CheckBoxPreference) findPreference("pin_new_on_app_start");
-            final CheckBoxPreference pinAutoGenerateCheckBoxPreference = (CheckBoxPreference) findPreference("pin_regenerate_on_start");
+            final CheckBoxPreference pinAutoGenerateCheckBoxPreference = (CheckBoxPreference) findPreference("pin_change_on_start");
             final EditTextPreference pinNumberTextPreference = (EditTextPreference) findPreference("pin_manual");
 
             pinNewOnAppStartCheckBoxPreference.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {

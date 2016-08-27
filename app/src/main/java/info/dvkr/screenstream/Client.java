@@ -33,8 +33,10 @@ final class Client {
         } catch (IOException e) {
             FirebaseCrash.report(e);
         }
-        ForegroundService.removeClient(Client.this);
+        AppContext.getClientQueue().remove(Client.this);
+        AppContext.getAppState().clients.set(AppContext.getClientQueue().size());
     }
+
 
     void sendClientData(final int httpServerStatus, final int dataType, final byte[] jpegImage) {
         if (dataType == CLIENT_IMAGE && jpegImage == null)
@@ -56,7 +58,7 @@ final class Client {
                             if (dataType == CLIENT_IMAGE) sendImage(jpegImage);
                             return null;
                         }
-                    }).get(ApplicationContext.getApplicationSettings().getClientTimeout(), TimeUnit.MILLISECONDS);
+                    }).get(AppContext.getAppSettings().getClientTimeout(), TimeUnit.MILLISECONDS);
 
                     if (httpServerStatus != HTTPServer.SERVER_OK) closeSocket();
                 } catch (Exception e) {

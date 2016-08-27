@@ -27,34 +27,34 @@ final class ForegroundTaskHandler extends Handler {
     public void handleMessage(Message message) {
         switch (message.what) {
             case HANDLER_START_STREAMING:
-                if (ApplicationContext.isStreamRunning()) break;
+                if (AppContext.isStreamRunning()) break;
                 removeMessages(HANDLER_DETECT_ROTATION);
                 currentOrientation = getOrientation();
                 ForegroundService.getImageGenerator().start();
                 sendMessageDelayed(obtainMessage(HANDLER_DETECT_ROTATION), 250);
-                ApplicationContext.setIsStreamRunning(true);
+                AppContext.setIsStreamRunning(true);
                 break;
             case HANDLER_PAUSE_STREAMING:
-                if (!ApplicationContext.isStreamRunning()) break;
+                if (!AppContext.isStreamRunning()) break;
                 ForegroundService.getImageGenerator().stop();
                 sendMessageDelayed(obtainMessage(HANDLER_RESUME_STREAMING), 250);
                 break;
             case HANDLER_RESUME_STREAMING:
-                if (!ApplicationContext.isStreamRunning()) break;
+                if (!AppContext.isStreamRunning()) break;
                 ForegroundService.getImageGenerator().start();
                 sendMessageDelayed(obtainMessage(HANDLER_DETECT_ROTATION), 250);
                 break;
             case HANDLER_STOP_STREAMING:
-                if (!ApplicationContext.isStreamRunning()) break;
+                if (!AppContext.isStreamRunning()) break;
                 removeMessages(HANDLER_DETECT_ROTATION);
                 removeMessages(HANDLER_STOP_STREAMING);
                 ForegroundService.getImageGenerator().stop();
-                if (ApplicationContext.getMediaProjection() != null)
-                    ApplicationContext.getMediaProjection().stop();
-                ApplicationContext.setIsStreamRunning(false);
+                if (AppContext.getMediaProjection() != null)
+                    AppContext.getMediaProjection().stop();
+                AppContext.setIsStreamRunning(false);
                 break;
             case HANDLER_DETECT_ROTATION:
-                if (!ApplicationContext.isStreamRunning()) break;
+                if (!AppContext.isStreamRunning()) break;
                 final int newOrientation = getOrientation();
                 if (currentOrientation == newOrientation) {
                     sendMessageDelayed(obtainMessage(HANDLER_DETECT_ROTATION), 250);
@@ -69,7 +69,7 @@ final class ForegroundTaskHandler extends Handler {
     }
 
     private int getOrientation() {
-        final int rotation = ApplicationContext.getWindowsManager().getDefaultDisplay().getRotation();
+        final int rotation = AppContext.getWindowsManager().getDefaultDisplay().getRotation();
         if (rotation == ROTATION_0 || rotation == ROTATION_180) return 0;
         return 1;
     }

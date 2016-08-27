@@ -22,7 +22,7 @@ final class JpegStreamer {
         public void run() {
             while (!isInterrupted()) {
                 if (!isThreadRunning) break;
-                currentJPEG = ApplicationContext.getJPEGQueue().poll();
+                currentJPEG = AppContext.getJPEGQueue().poll();
 
                 if (currentJPEG == null) {
                     try {
@@ -43,7 +43,7 @@ final class JpegStreamer {
             sleepCount = 0;
             synchronized (lock) {
                 if (!isThreadRunning) return;
-                for (final Client currentClient : ApplicationContext.getClientQueue())
+                for (final Client currentClient : AppContext.getClientQueue())
                     currentClient.sendClientData(HTTPServer.SERVER_OK, Client.CLIENT_IMAGE, lastJPEG);
             }
         }
@@ -55,7 +55,8 @@ final class JpegStreamer {
             try {
                 final Client newClient = new Client(clientSocket);
                 newClient.sendClientData(HTTPServer.SERVER_OK, Client.CLIENT_HEADER, null);
-                ForegroundService.addClient(newClient);
+                AppContext.getClientQueue().add(newClient);
+                AppContext.getAppState().clients.set(AppContext.getClientQueue().size());
             } catch (IOException e) {
                 FirebaseCrash.report(e);
             }
@@ -76,10 +77,12 @@ final class JpegStreamer {
             if (!isThreadRunning) return;
             isThreadRunning = false;
             jpegStreamerThread.interrupt();
-            for (Client currentClient : ApplicationContext.getClientQueue())
+
+            for (Client currentClient : AppContext.getClientQueue())
                 currentClient.sendClientData(reason, Client.CLIENT_IMAGE, clientNotifyImage);
 
-            ForegroundService.clearClients();
+            AppContext.getClientQueue().clear();
+            AppContext.getAppState().clients.set(0);
         }
     }
 }

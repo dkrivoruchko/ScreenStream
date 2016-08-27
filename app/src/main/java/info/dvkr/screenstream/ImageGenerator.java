@@ -42,11 +42,13 @@ final class ImageGenerator {
             synchronized (lock) {
                 if (!isThreadRunning) return;
 
-//                try {
-                image = imageReader.acquireLatestImage();
-//                } catch (UnsupportedOperationException ex) {
-//
-//                }
+                try {
+                    image = imageReader.acquireLatestImage();
+                } catch (UnsupportedOperationException e) {
+                    FirebaseCrash.report(e);
+                    //TODO Implement Error message
+                }
+
                 if (image == null) return;
 
                 plane = image.getPlanes()[0];
@@ -64,15 +66,15 @@ final class ImageGenerator {
                 image.close();
 
                 jpegOutputStream.reset();
-                bitmapClean.compress(Bitmap.CompressFormat.JPEG, ApplicationContext.getApplicationSettings().getJpegQuality(), jpegOutputStream);
+                bitmapClean.compress(Bitmap.CompressFormat.JPEG, AppContext.getAppSettings().getJpegQuality(), jpegOutputStream);
                 bitmapClean.recycle();
                 jpegByteArray = jpegOutputStream.toByteArray();
 
                 if (jpegByteArray != null) {
-                    if (ApplicationContext.getJPEGQueue().size() > 6) {
-                        ApplicationContext.getJPEGQueue().pollLast();
+                    if (AppContext.getJPEGQueue().size() > 6) {
+                        AppContext.getJPEGQueue().pollLast();
                     }
-                    ApplicationContext.getJPEGQueue().add(jpegByteArray);
+                    AppContext.getJPEGQueue().add(jpegByteArray);
                     jpegByteArray = null;
                 }
             }
@@ -82,20 +84,20 @@ final class ImageGenerator {
     void start() {
         synchronized (lock) {
             if (isThreadRunning) return;
-            final MediaProjection mediaProjection = ApplicationContext.getMediaProjection();
+            final MediaProjection mediaProjection = AppContext.getMediaProjection();
             if (mediaProjection == null) return;
 
             imageThread = new HandlerThread("Image capture thread", Process.THREAD_PRIORITY_MORE_FAVORABLE);
             imageThread.start();
-            imageReader = ImageReader.newInstance(ApplicationContext.getScreenSize().x, ApplicationContext.getScreenSize().y, PixelFormat.RGBA_8888, 2);
+            imageReader = ImageReader.newInstance(AppContext.getScreenSize().x, AppContext.getScreenSize().y, PixelFormat.RGBA_8888, 2);
             imageHandler = new Handler(imageThread.getLooper());
             jpegOutputStream = new ByteArrayOutputStream();
             imageReader.setOnImageAvailableListener(new ImageAvailableListener(), imageHandler);
             virtualDisplay = mediaProjection.createVirtualDisplay(
                     "Screen Stream Virtual Display",
-                    ApplicationContext.getScreenSize().x,
-                    ApplicationContext.getScreenSize().y,
-                    ApplicationContext.getScreenDensity(),
+                    AppContext.getScreenSize().x,
+                    AppContext.getScreenSize().y,
+                    AppContext.getScreenDensity(),
                     DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
                     imageReader.getSurface(),
                     null, imageHandler);
@@ -135,13 +137,13 @@ final class ImageGenerator {
     }
 
     void addDefaultScreen(final Context context) {
-        ApplicationContext.getJPEGQueue().clear();
+        AppContext.getJPEGQueue().clear();
         new Handler().postDelayed(new Runnable() {
             @Override
             public void run() {
                 final byte[] jpegByteArray = NotifyImageGenerator.getDefaultScreen(context);
                 if (jpegByteArray != null) {
-                    ApplicationContext.getJPEGQueue().add(jpegByteArray);
+                    AppContext.getJPEGQueue().add(jpegByteArray);
                 }
             }
         }, 500);

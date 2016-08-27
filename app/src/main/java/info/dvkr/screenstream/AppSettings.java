@@ -5,7 +5,9 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.preference.PreferenceManager;
 
-final class ApplicationSettings {
+import java.util.Random;
+
+final class AppSettings {
     private static final String PIN_NOT_SET = "PIN_NOT_SET";
     private static final String DEFAULT_SERVER_PORT = "8080";
     private static final String DEFAULT_JPEG_QUALITY = "80";
@@ -18,13 +20,13 @@ final class ApplicationSettings {
     private boolean enablePin;
     private boolean pinAutoHide;
     private boolean newPinOnAppStart;
-    private boolean autoGeneratePin;
+    private boolean autoChangePin;
     private String userPin = PIN_NOT_SET;
     private volatile int severPort;
     private volatile int jpegQuality;
     private volatile int clientTimeout;
 
-    ApplicationSettings(Context context) {
+    AppSettings(final Context context) {
         sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context);
 
         minimizeOnStream = sharedPreferences.getBoolean("minimize_on_stream", true);
@@ -33,7 +35,7 @@ final class ApplicationSettings {
         enablePin = sharedPreferences.getBoolean("enable_pin", false);
         pinAutoHide = sharedPreferences.getBoolean("pin_hide_on_start", true);
         newPinOnAppStart = sharedPreferences.getBoolean("pin_new_on_app_start", true);
-        autoGeneratePin = sharedPreferences.getBoolean("pin_regenerate_on_start", false);
+        autoChangePin = sharedPreferences.getBoolean("pin_change_on_start", false);
         userPin = sharedPreferences.getString("pin_manual", PIN_NOT_SET);
 
 
@@ -49,7 +51,7 @@ final class ApplicationSettings {
         enablePin = sharedPreferences.getBoolean("enable_pin", false);
         pinAutoHide = sharedPreferences.getBoolean("pin_hide_on_start", true);
         newPinOnAppStart = sharedPreferences.getBoolean("pin_new_on_app_start", true);
-        autoGeneratePin = sharedPreferences.getBoolean("pin_regenerate_on_start", false);
+        autoChangePin = sharedPreferences.getBoolean("pin_change_on_start", false);
         userPin = sharedPreferences.getString("pin_manual", PIN_NOT_SET);
 
         jpegQuality = Integer.parseInt(sharedPreferences.getString("jpeg_quality", DEFAULT_JPEG_QUALITY));
@@ -85,21 +87,21 @@ final class ApplicationSettings {
         return newPinOnAppStart;
     }
 
-    boolean isAutoGeneratePin() {
-        return autoGeneratePin;
+    boolean isAutoChangePin() {
+        return autoChangePin;
     }
 
     String getUserPin() {
         if (!PIN_NOT_SET.equals(userPin)) return userPin;
         userPin = sharedPreferences.getString("pin_manual", PIN_NOT_SET);
-        if (PIN_NOT_SET.equals(userPin)) setAndSaveUserPin(ApplicationContext.getRandomPin());
+        if (PIN_NOT_SET.equals(userPin)) generateAndSaveNewPin();
         return userPin;
     }
 
-    void setAndSaveUserPin(final String newPin) {
-        userPin = newPin;
+    void generateAndSaveNewPin() {
+        userPin = getRandomPin();
         final SharedPreferences.Editor editor = sharedPreferences.edit();
-        editor.putString("pin_manual", newPin);
+        editor.putString("pin_manual", userPin);
         editor.apply();
     }
 
@@ -113,5 +115,10 @@ final class ApplicationSettings {
 
     int getClientTimeout() {
         return clientTimeout;
+    }
+
+    private static String getRandomPin() {
+        final Random random = new Random(System.currentTimeMillis());
+        return "" + random.nextInt(10) + random.nextInt(10) + random.nextInt(10) + random.nextInt(10);
     }
 }

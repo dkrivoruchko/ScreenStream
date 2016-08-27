@@ -1,7 +1,5 @@
 package info.dvkr.screenstream;
 
-import android.util.Log;
-
 import com.google.firebase.crash.FirebaseCrash;
 
 import java.io.BufferedReader;
@@ -117,7 +115,7 @@ final class HTTPServer {
                 outputStreamWriter.write("Content-Type: text/html\r\n");
                 outputStreamWriter.write("Connection: close\r\n");
                 outputStreamWriter.write("\r\n");
-                outputStreamWriter.write(ApplicationContext.getPinRequestHTMLPage(pinError));
+                outputStreamWriter.write(AppContext.getPinRequestHTMLPage(pinError));
                 outputStreamWriter.write("\r\n");
                 outputStreamWriter.flush();
             }
@@ -129,7 +127,7 @@ final class HTTPServer {
                 outputStreamWriter.write("Content-Type: text/html\r\n");
                 outputStreamWriter.write("Connection: close\r\n");
                 outputStreamWriter.write("\r\n");
-                outputStreamWriter.write(ApplicationContext.getIndexHTMLPage(streamAddress));
+                outputStreamWriter.write(AppContext.getIndexHTMLPage(streamAddress));
                 outputStreamWriter.write("\r\n");
                 outputStreamWriter.flush();
             }
@@ -142,7 +140,7 @@ final class HTTPServer {
                 outputStreamWriter.write("Connection: close\r\n");
                 outputStreamWriter.write("\r\n");
                 outputStreamWriter.flush();
-                socket.getOutputStream().write(ApplicationContext.getIconBytes());
+                socket.getOutputStream().write(AppContext.getIconBytes());
                 socket.getOutputStream().flush();
             }
         }
@@ -150,7 +148,7 @@ final class HTTPServer {
         private void sendNotFound(final Socket socket) throws IOException {
             try (final OutputStreamWriter outputStreamWriter = new OutputStreamWriter(socket.getOutputStream())) {
                 outputStreamWriter.write("HTTP/1.1 301 Moved Permanently\r\n");
-                outputStreamWriter.write("Location: " + ApplicationContext.getServerAddress() + "\r\n");
+                outputStreamWriter.write("Location: " + AppContext.getServerAddress() + "\r\n");
                 outputStreamWriter.write("Connection: close\r\n");
                 outputStreamWriter.write("\r\n");
                 outputStreamWriter.flush();
@@ -165,15 +163,15 @@ final class HTTPServer {
 
             currentStreamAddress = DEFAULT_STREAM_ADDRESS;
             currentPinURI = DEFAULT_PIN_ADDRESS;
-            isPinEnabled = ApplicationContext.getApplicationSettings().isEnablePin();
+            isPinEnabled = AppContext.getAppSettings().isEnablePin();
             if (isPinEnabled) {
-                final String currentPin = ApplicationContext.getApplicationSettings().getUserPin();
+                final String currentPin = AppContext.getAppSettings().getUserPin();
                 currentPinURI = DEFAULT_PIN_ADDRESS + currentPin;
                 currentStreamAddress = getStreamAddress(currentPin);
             }
 
             try {
-                serverSocket = new ServerSocket(ApplicationContext.getApplicationSettings().getSeverPort());
+                serverSocket = new ServerSocket(AppContext.getAppSettings().getSeverPort());
                 serverSocket.setSoTimeout(SEVER_SOCKET_TIMEOUT);
 
                 jpegStreamer = new JpegStreamer();

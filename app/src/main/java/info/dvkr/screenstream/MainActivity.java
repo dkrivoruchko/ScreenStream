@@ -4,12 +4,11 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.databinding.DataBindingUtil;
 import android.graphics.Color;
-import android.graphics.Typeface;
 import android.media.projection.MediaProjection;
 import android.os.Bundle;
 import android.support.design.widget.Snackbar;
-import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -20,41 +19,30 @@ import android.widget.ToggleButton;
 
 import com.google.firebase.crash.FirebaseCrash;
 
+import info.dvkr.screenstream.databinding.ActivityMainBinding;
+
 public final class MainActivity extends AppCompatActivity {
     private static final int SCREEN_CAPTURE_REQUEST_CODE = 1;
     private static final int SETTINGS_REQUEST_CODE = 2;
 
-    private TextView clientsCount;
-    private TextView severAddress;
-    private TextView pinNumber;
-    private ToggleButton toggleStream;
     private MediaProjection.Callback projectionCallback;
     private BroadcastReceiver broadcastReceiverFromService;
     private Snackbar portInUseSnackbar;
     private Menu mainMenu;
 
-    private String currentPin;
-    private boolean isPinEnabled;
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+        ActivityMainBinding binding = DataBindingUtil.setContentView(this, R.layout.activity_main);
+        binding.setAppState(AppContext.getAppState());
 
-        clientsCount = (TextView) findViewById(R.id.clientsCount);
-        severAddress = (TextView) findViewById(R.id.severAddress);
-        pinNumber = (TextView) findViewById(R.id.pinNumber);
-
-        isPinEnabled = ApplicationContext.getApplicationSettings().isEnablePin();
-        currentPin = ApplicationContext.getApplicationSettings().getUserPin();
-
-        if (!ApplicationContext.isForegroundServiceRunning()) {
+        if (!AppContext.isForegroundServiceRunning()) {
             final Intent foregroundService = new Intent(this, ForegroundService.class);
             foregroundService.putExtra(ForegroundService.SERVICE_MESSAGE, ForegroundService.SERVICE_MESSAGE_PREPARE_STREAMING);
             startService(foregroundService);
         }
 
-        toggleStream = (ToggleButton) findViewById(R.id.toggleStream);
+        final ToggleButton toggleStream = (ToggleButton) findViewById(R.id.toggleStream);
         toggleStream.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -93,10 +81,6 @@ public final class MainActivity extends AppCompatActivity {
                     if (serviceMessage == ForegroundService.SERVICE_MESSAGE_HAS_NEW)
                         updateServiceStatus(ForegroundService.SERVICE_MESSAGE_GET_CURRENT);
 
-                    // Service ask to update status
-                    if (serviceMessage == ForegroundService.SERVICE_MESSAGE_UPDATE_STATUS)
-                        updateServiceStatus(ForegroundService.SERVICE_MESSAGE_GET_STATUS);
-
                     // Service ask to start streaming
                     if (serviceMessage == ForegroundService.SERVICE_MESSAGE_START_STREAMING)
                         tryStartStreaming();
@@ -112,36 +96,16 @@ public final class MainActivity extends AppCompatActivity {
                         System.exit(0);
                     }
 
-                    // Service ask to update client count
-                    if (serviceMessage == ForegroundService.SERVICE_MESSAGE_GET_CLIENT_COUNT) {
-                        final String clientCount = String.format(
-                                getResources().getString(R.string.connected_clients),
-                                intent.getIntExtra(ForegroundService.SERVICE_MESSAGE_CLIENTS_COUNT, 0)
-                        );
-                        clientsCount.setText(clientCount);
-                    }
-
-                    // Service ask to update server address
-                    if (serviceMessage == ForegroundService.SERVICE_MESSAGE_GET_SERVER_ADDRESS) {
-                        if (ApplicationContext.isWiFiConnected()) {
-                            severAddress.setText(intent.getStringExtra(ForegroundService.SERVICE_MESSAGE_SERVER_ADDRESS));
-                        } else {
-                            severAddress.setText(getResources().getString(R.string.no_wifi_connected));
-                            stopStreaming();
-                        }
-                        toggleStreamEnabler();
-                    }
-
                     // Service ask notify HTTP Server port in use
                     if (serviceMessage == ForegroundService.SERVICE_MESSAGE_HTTP_PORT_IN_USE) {
                         if (!portInUseSnackbar.isShown()) portInUseSnackbar.show();
-                        toggleStreamEnabler();
+                        AppContext.getAppState().httpServerError.set(true);
                     }
 
                     // Service ask notify HTTP Server ok
                     if (serviceMessage == ForegroundService.SERVICE_MESSAGE_HTTP_OK) {
                         if (portInUseSnackbar.isShown()) portInUseSnackbar.dismiss();
-                        toggleStreamEnabler();
+                        AppContext.getAppState().httpServerError.set(false);
                     }
 
                 }
@@ -154,18 +118,17 @@ public final class MainActivity extends AppCompatActivity {
     @Override
     protected void onStart() {
         super.onStart();
-        updatePinUI();
-        updateServiceStatus(ForegroundService.SERVICE_MESSAGE_GET_STATUS);
+        updateServiceStatus(ForegroundService.SERVICE_MESSAGE_GET_CURRENT);
         if (ForegroundService.getHttpServerStatus() == HTTPServer.SERVER_ERROR_PORT_IN_USE) {
             portInUseSnackbar.show();
-            toggleStreamEnabler();
+            AppContext.getAppState().httpServerError.set(true);
         }
     }
 
     @Override
     protected void onDestroy() {
-        if (ApplicationContext.getMediaProjection() != null)
-            ApplicationContext.getMediaProjection().unregisterCallback(projectionCallback);
+        if (AppContext.getMediaProjection() != null)
+            AppContext.getMediaProjection().unregisterCallback(projectionCallback);
 
         unregisterReceiver(broadcastReceiverFromService);
         super.onDestroy();
@@ -177,14 +140,16 @@ public final class MainActivity extends AppCompatActivity {
             case SCREEN_CAPTURE_REQUEST_CODE:
                 if (resultCode != RESULT_OK) {
                     Toast.makeText(this, getResources().getString(R.string.cast_permission_deny), Toast.LENGTH_SHORT).show();
-                    toggleStream.setChecked(false);
                     return;
                 }
                 startStreaming(resultCode, data);
                 break;
             case SETTINGS_REQUEST_CODE:
-                final boolean isServerPortChanged = ApplicationContext.getApplicationSettings().updateSettings();
-                if (isServerPortChanged) restartHTTPServer();
+                final boolean isServerPortChanged = AppContext.getAppSettings().updateSettings();
+                if (isServerPortChanged) {
+                    AppContext.getAppState().serverAddress.set(AppContext.getServerAddress());
+                    restartHTTPServer();
+                }
                 updatePinStatus(isServerPortChanged);
                 break;
             default:
@@ -211,46 +176,21 @@ public final class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void toggleStreamEnabler() {
-        final boolean wifiStatus = ApplicationContext.isWiFiConnected();
-        final boolean httpStatus = ForegroundService.getHttpServerStatus() == HTTPServer.SERVER_OK;
-        toggleStream.setEnabled(wifiStatus && httpStatus);
-    }
-
-    private void updatePinUI() {
-        if (isPinEnabled) {
-            if (ApplicationContext.getApplicationSettings().isPinAutoHide() && ApplicationContext.isStreamRunning()) {
-                pinNumber.setText("****");
-            } else {
-                pinNumber.setText(currentPin);
-            }
-            pinNumber.setTextColor(ContextCompat.getColor(this, R.color.colorAccent));
-            pinNumber.setTypeface(null, Typeface.BOLD);
-            findViewById(R.id.pinName).setVisibility(View.VISIBLE);
-        } else {
-            pinNumber.setText(getResources().getString(R.string.pin_disabled));
-            pinNumber.setTextColor(ContextCompat.getColor(this, R.color.colorPrimary));
-            pinNumber.setTypeface(null, Typeface.NORMAL);
-            findViewById(R.id.pinName).setVisibility(View.GONE);
-        }
-
-    }
-
     private void updatePinStatus(final boolean isServerPortChanged) {
-        final boolean newIsPinEnabled = ApplicationContext.getApplicationSettings().isEnablePin();
-        final String newPin = ApplicationContext.getApplicationSettings().getUserPin();
+        AppContext.getAppState().pinAutoHide.set(AppContext.getAppSettings().isPinAutoHide());
 
-        if (newIsPinEnabled != isPinEnabled || !newPin.equals(currentPin)) {
-            isPinEnabled = newIsPinEnabled;
-            currentPin = newPin;
+        final boolean newIsPinEnabled = AppContext.getAppSettings().isEnablePin();
+        final String newPin = AppContext.getAppSettings().getUserPin();
+
+        if (newIsPinEnabled != AppContext.getAppState().pinEnabled.get() || !newPin.equals(AppContext.getAppState().streamPin.get())) {
+            AppContext.getAppState().pinEnabled.set(newIsPinEnabled);
+            AppContext.getAppState().streamPin.set(newPin);
 
             if (!isServerPortChanged) {
                 final Intent updatePinStatus = new Intent(this, ForegroundService.class);
                 updatePinStatus.putExtra(ForegroundService.SERVICE_MESSAGE, ForegroundService.SERVICE_MESSAGE_UPDATE_PIN_STATUS);
                 startService(updatePinStatus);
             }
-
-            updatePinUI();
         }
     }
 
@@ -261,16 +201,15 @@ public final class MainActivity extends AppCompatActivity {
     }
 
     private void tryStartStreaming() {
-        if (!ApplicationContext.isWiFiConnected()) return;
+        if (!AppContext.isWiFiConnected()) return;
         if (ForegroundService.getHttpServerStatus() != HTTPServer.SERVER_OK) return;
-        toggleStream.setChecked(true);
-        if (ApplicationContext.isStreamRunning()) return;
-        startActivityForResult(ApplicationContext.getProjectionManager().createScreenCaptureIntent(), SCREEN_CAPTURE_REQUEST_CODE);
+        if (AppContext.isStreamRunning()) return;
+        startActivityForResult(AppContext.getProjectionManager().createScreenCaptureIntent(), SCREEN_CAPTURE_REQUEST_CODE);
     }
 
     private void startStreaming(final int resultCode, final Intent data) {
-        ApplicationContext.setMediaProjection(resultCode, data);
-        final MediaProjection mediaProjection = ApplicationContext.getMediaProjection();
+        AppContext.setMediaProjection(resultCode, data);
+        final MediaProjection mediaProjection = AppContext.getMediaProjection();
         if (mediaProjection == null) return;
         mediaProjection.registerCallback(projectionCallback, null);
 
@@ -278,11 +217,7 @@ public final class MainActivity extends AppCompatActivity {
         startStreaming.putExtra(ForegroundService.SERVICE_MESSAGE, ForegroundService.SERVICE_MESSAGE_START_STREAMING);
         startService(startStreaming);
 
-        if (ApplicationContext.getApplicationSettings().isEnablePin() && ApplicationContext.getApplicationSettings().isPinAutoHide()) {
-            pinNumber.setText("****");
-        }
-
-        if (ApplicationContext.getApplicationSettings().isMinimizeOnStream()) {
+        if (AppContext.getAppSettings().isMinimizeOnStream()) {
             final Intent minimiseMyself = new Intent(Intent.ACTION_MAIN);
             minimiseMyself.addCategory(Intent.CATEGORY_HOME);
             minimiseMyself.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
@@ -291,10 +226,8 @@ public final class MainActivity extends AppCompatActivity {
     }
 
     private void stopStreaming() {
-        toggleStream.setChecked(false);
-        if (!ApplicationContext.isStreamRunning()) return;
-
-        final MediaProjection mediaProjection = ApplicationContext.getMediaProjection();
+        if (!AppContext.isStreamRunning()) return;
+        final MediaProjection mediaProjection = AppContext.getMediaProjection();
         if (mediaProjection == null) return;
         mediaProjection.unregisterCallback(projectionCallback);
 
@@ -302,14 +235,10 @@ public final class MainActivity extends AppCompatActivity {
         stopStreaming.putExtra(ForegroundService.SERVICE_MESSAGE, ForegroundService.SERVICE_MESSAGE_STOP_STREAMING);
         startService(stopStreaming);
 
-        if (ApplicationContext.getApplicationSettings().isAutoGeneratePin()) {
-            ApplicationContext.getApplicationSettings().setAndSaveUserPin(ApplicationContext.getRandomPin());
-            updatePinStatus(false);
-        }
+        if (AppContext.getAppSettings().isAutoChangePin())
+            AppContext.getAppSettings().generateAndSaveNewPin();
 
-        if (ApplicationContext.getApplicationSettings().isEnablePin()) {
-            pinNumber.setText(currentPin);
-        }
+        updatePinStatus(false);
     }
 
     private void restartHTTPServer() {

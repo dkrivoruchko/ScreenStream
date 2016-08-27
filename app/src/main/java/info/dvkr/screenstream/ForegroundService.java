@@ -18,7 +18,6 @@ import android.support.v4.content.ContextCompat;
 public final class ForegroundService extends Service {
     private static ForegroundService foregroundService;
 
-
     private HTTPServer httpServer;
     private ImageGenerator imageGenerator;
     private ForegroundTaskHandler foregroundServiceTaskHandler;
@@ -27,14 +26,11 @@ public final class ForegroundService extends Service {
 
     // Fields for broadcast
     static final String SERVICE_ACTION = "info.dvkr.screenstream.ForegroundService.SERVICE_ACTION";
-
     static final String SERVICE_PERMISSION = "info.dvkr.screenstream.RECEIVE_BROADCAST";
     static final String SERVICE_MESSAGE = "SERVICE_MESSAGE";
     static final int SERVICE_MESSAGE_EMPTY = 0;
     static final int SERVICE_MESSAGE_HAS_NEW = 1;
-    static final int SERVICE_MESSAGE_GET_STATUS = 10;
     static final int SERVICE_MESSAGE_GET_CURRENT = 11;
-    static final int SERVICE_MESSAGE_UPDATE_STATUS = 20;
     static final int SERVICE_MESSAGE_PREPARE_STREAMING = 110;
     static final int SERVICE_MESSAGE_START_STREAMING = 111;
     static final int SERVICE_MESSAGE_STOP_STREAMING = 112;
@@ -44,16 +40,9 @@ public final class ForegroundService extends Service {
     static final int SERVICE_MESSAGE_UPDATE_PIN_STATUS = 2000;
     static final int SERVICE_MESSAGE_EXIT = 9000;
 
-    static final String SERVICE_MESSAGE_CLIENTS_COUNT = "SERVICE_MESSAGE_CLIENTS_COUNT";
-    static final int SERVICE_MESSAGE_GET_CLIENT_COUNT = 100110;
-    static final String SERVICE_MESSAGE_SERVER_ADDRESS = "SERVICE_MESSAGE_SERVER_ADDRESS";
-    static final int SERVICE_MESSAGE_GET_SERVER_ADDRESS = 100120;
-
     private int currentServiceMessage;
-    private boolean currentWiFiStatus;
 
     // Fields for notifications
-//    private Notification startNotification;
     private BroadcastReceiver localNotificationReceiver;
     private final String KEY_START = "info.dvkr.screenstream.ForegroundService.startStream";
     private final Intent startStreamIntent = new Intent(KEY_START);
@@ -68,18 +57,15 @@ public final class ForegroundService extends Service {
     public void onCreate() {
         foregroundService = this;
 
-        currentWiFiStatus = ApplicationContext.isWiFiConnected();
         httpServer = new HTTPServer();
         imageGenerator = new ImageGenerator();
 
         // Starting thread Handler
-        final HandlerThread looperThread = new HandlerThread("ForegroundServiceHandlerThread", Process.THREAD_PRIORITY_MORE_FAVORABLE);
+        final HandlerThread looperThread = new HandlerThread(ForegroundService.class.getSimpleName(), Process.THREAD_PRIORITY_MORE_FAVORABLE);
         looperThread.start();
         foregroundServiceTaskHandler = new ForegroundTaskHandler(looperThread.getLooper());
 
         //Local notifications
-//        startNotification = getNotificationStart();
-
         final IntentFilter localNotificationIntentFilter = new IntentFilter();
         localNotificationIntentFilter.addAction(KEY_START);
         localNotificationIntentFilter.addAction(KEY_STOP);
@@ -115,17 +101,23 @@ public final class ForegroundService extends Service {
         broadcastReceiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
-                if (ApplicationContext.getApplicationSettings().isPauseOnSleep())
+                if (AppContext.getAppSettings().isPauseOnSleep())
                     if (intent.getAction().equals(Intent.ACTION_SCREEN_OFF))
-                        if (ApplicationContext.isStreamRunning()) {
+                        if (AppContext.isStreamRunning()) {
                             currentServiceMessage = SERVICE_MESSAGE_STOP_STREAMING;
                             relayMessageViaActivity();
                         }
 
                 if (intent.getAction().equals(WifiManager.NETWORK_STATE_CHANGED_ACTION)) {
-                    if (currentWiFiStatus != ApplicationContext.isWiFiConnected()) {
-                        currentWiFiStatus = ApplicationContext.isWiFiConnected();
-                        sendServerAddress();
+                    if (AppContext.getAppState().wifiConnected.get() != AppContext.isWiFiConnected()) {
+                        AppContext.getAppState().serverAddress.set(AppContext.getServerAddress());
+                        AppContext.getAppState().wifiConnected.set(AppContext.isWiFiConnected());
+
+                        if ((!AppContext.getAppState().wifiConnected.get()) && AppContext.isStreamRunning()) {
+                            currentServiceMessage = SERVICE_MESSAGE_STOP_STREAMING;
+                            relayMessageViaActivity();
+                        }
+//                        toggleStreamEnabler();
                     }
                 }
             }
@@ -143,17 +135,14 @@ public final class ForegroundService extends Service {
 
         if (messageFromActivity == SERVICE_MESSAGE_PREPARE_STREAMING) {
             startForeground(110, getNotificationStart());
-            ApplicationContext.setIsForegroundServiceRunning(true);
+            AppContext.setIsForegroundServiceRunning(true);
         }
 
         if (messageFromActivity == SERVICE_MESSAGE_GET_CURRENT) {
-            sendCurrentServiceMessage();
-        }
-
-        if (messageFromActivity == SERVICE_MESSAGE_GET_STATUS) {
-            sendCurrentServiceMessage();
-            sendServerAddress();
-            sendClientCount();
+            if (currentServiceMessage != SERVICE_MESSAGE_EMPTY) {
+                sendBroadcast(new Intent(SERVICE_ACTION).putExtra(SERVICE_MESSAGE, currentServiceMessage), SERVICE_PERMISSION);
+                currentServiceMessage = SERVICE_MESSAGE_EMPTY;
+            }
         }
 
         if (messageFromActivity == SERVICE_MESSAGE_START_STREAMING) {
@@ -184,16 +173,6 @@ public final class ForegroundService extends Service {
         return START_NOT_STICKY;
     }
 
-    @Override
-    public void onDestroy() {
-        httpServer.stop(HTTPServer.SERVER_STOP, null);
-        stopForeground(true);
-        unregisterReceiver(broadcastReceiver);
-        unregisterReceiver(localNotificationReceiver);
-        ApplicationContext.setIsForegroundServiceRunning(false);
-        foregroundServiceTaskHandler.getLooper().quit();
-    }
-
     private void relayMessageViaActivity() {
         startActivity(new Intent(this, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
         sendBroadcast(new Intent(SERVICE_ACTION).putExtra(SERVICE_MESSAGE, SERVICE_MESSAGE_HAS_NEW), SERVICE_PERMISSION);
@@ -209,24 +188,19 @@ public final class ForegroundService extends Service {
         relayMessageViaActivity();
     }
 
+    @Override
+    public void onDestroy() {
+        httpServer.stop(HTTPServer.SERVER_STOP, null);
+        stopForeground(true);
+        unregisterReceiver(broadcastReceiver);
+        unregisterReceiver(localNotificationReceiver);
+        AppContext.setIsForegroundServiceRunning(false);
+        foregroundServiceTaskHandler.getLooper().quit();
+    }
+
     // Static methods
     static ImageGenerator getImageGenerator() {
         return foregroundService.imageGenerator;
-    }
-
-    static void addClient(final Client client) {
-        ApplicationContext.getClientQueue().add(client);
-        foregroundService.sendClientCount();
-    }
-
-    static void removeClient(final Client client) {
-        ApplicationContext.getClientQueue().remove(client);
-        foregroundService.sendClientCount();
-    }
-
-    static void clearClients() {
-        ApplicationContext.getClientQueue().clear();
-        foregroundService.sendClientCount();
     }
 
     static int getHttpServerStatus() {
@@ -261,31 +235,11 @@ public final class ForegroundService extends Service {
         stopNotificationBuilder.setSmallIcon(R.drawable.ic_cast_http_24dp);
         stopNotificationBuilder.setColor(ContextCompat.getColor(this, R.color.colorPrimaryDark));
         stopNotificationBuilder.setContentTitle(getResources().getString(R.string.stream));
-        stopNotificationBuilder.setContentText(getResources().getString(R.string.go_to) + ApplicationContext.getServerAddress());
+        stopNotificationBuilder.setContentText(getResources().getString(R.string.go_to) + AppContext.getServerAddress());
         stopNotificationBuilder.setContentIntent(pendingMainActivityIntent);
         stopNotificationBuilder.addAction(R.drawable.ic_stop_24dp, getResources().getString(R.string.stop), PendingIntent.getBroadcast(this, 0, stopStreamIntent, 0));
         stopNotificationBuilder.setPriority(NotificationCompat.PRIORITY_MAX);
         return stopNotificationBuilder.build();
-    }
-
-    private void sendCurrentServiceMessage() {
-        if (currentServiceMessage == SERVICE_MESSAGE_EMPTY) return;
-        sendBroadcast(new Intent(SERVICE_ACTION).putExtra(SERVICE_MESSAGE, currentServiceMessage), SERVICE_PERMISSION);
-        currentServiceMessage = SERVICE_MESSAGE_EMPTY;
-    }
-
-    private void sendClientCount() {
-        sendBroadcast(new Intent(SERVICE_ACTION)
-                        .putExtra(SERVICE_MESSAGE, SERVICE_MESSAGE_GET_CLIENT_COUNT)
-                        .putExtra(SERVICE_MESSAGE_CLIENTS_COUNT, ApplicationContext.getClientQueue().size()),
-                SERVICE_PERMISSION);
-    }
-
-    private void sendServerAddress() {
-        sendBroadcast(new Intent(SERVICE_ACTION)
-                        .putExtra(SERVICE_MESSAGE, SERVICE_MESSAGE_GET_SERVER_ADDRESS)
-                        .putExtra(SERVICE_MESSAGE_SERVER_ADDRESS, ApplicationContext.getServerAddress()),
-                SERVICE_PERMISSION);
     }
 
     @Nullable

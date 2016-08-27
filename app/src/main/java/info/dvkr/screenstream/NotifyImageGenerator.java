@@ -17,14 +17,14 @@ final class NotifyImageGenerator {
     private static byte[] currentDefaultScreen;
 
     static byte[] getDefaultScreen(final Context context) {
-        if (currentScreenSizeX != ApplicationContext.getScreenSize().x) currentDefaultScreen = null;
+        if (currentScreenSizeX != AppContext.getScreenSize().x) currentDefaultScreen = null;
         if (currentDefaultScreen != null) return currentDefaultScreen;
 
         currentDefaultScreen = generateImage(context.getResources().getString(R.string.press),
                 context.getResources().getString(R.string.start_stream).toUpperCase(),
                 context.getResources().getString(R.string.on_device));
 
-        currentScreenSizeX = ApplicationContext.getScreenSize().x;
+        currentScreenSizeX = AppContext.getScreenSize().x;
         return currentDefaultScreen;
     }
 
@@ -39,7 +39,7 @@ final class NotifyImageGenerator {
 
 
     private static byte[] generateImage(final String text1, final String text2, final String text3) {
-        final Bitmap bitmap = Bitmap.createBitmap(ApplicationContext.getScreenSize().x, ApplicationContext.getScreenSize().y, Bitmap.Config.ARGB_8888);
+        final Bitmap bitmap = Bitmap.createBitmap(AppContext.getScreenSize().x, AppContext.getScreenSize().y, Bitmap.Config.ARGB_8888);
         final Canvas canvas = new Canvas(bitmap);
         canvas.drawRGB(255, 255, 255);
 
@@ -47,7 +47,7 @@ final class NotifyImageGenerator {
         final Rect bounds = new Rect();
         final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
         if (!"".equals(text1)) {
-            textSize = (int) (12 * ApplicationContext.getScale());
+            textSize = (int) (12 * AppContext.getScale());
             paint.setTextSize(textSize);
             paint.setColor(Color.BLACK);
             paint.getTextBounds(text1, 0, text1.length(), bounds);
@@ -57,7 +57,7 @@ final class NotifyImageGenerator {
         }
 
         if (!"".equals(text2)) {
-            textSize = (int) (16 * ApplicationContext.getScale());
+            textSize = (int) (16 * AppContext.getScale());
             paint.setTextSize(textSize);
             paint.setColor(Color.rgb(153, 50, 0));
             paint.getTextBounds(text2, 0, text2.length(), bounds);
@@ -67,7 +67,7 @@ final class NotifyImageGenerator {
         }
 
         if (!"".equals(text3)) {
-            textSize = (int) (12 * ApplicationContext.getScale());
+            textSize = (int) (12 * AppContext.getScale());
             paint.setTextSize(textSize);
             paint.setColor(Color.BLACK);
             paint.getTextBounds(text3, 0, text3.length(), bounds);
@@ -78,7 +78,7 @@ final class NotifyImageGenerator {
 
         byte[] jpegByteArray = null;
         try (final ByteArrayOutputStream jpegOutputStream = new ByteArrayOutputStream()) {
-            bitmap.compress(Bitmap.CompressFormat.JPEG, ApplicationContext.getApplicationSettings().getJpegQuality(), jpegOutputStream);
+            bitmap.compress(Bitmap.CompressFormat.JPEG, AppContext.getAppSettings().getJpegQuality(), jpegOutputStream);
             jpegByteArray = jpegOutputStream.toByteArray();
         } catch (IOException e) {
             FirebaseCrash.report(e);

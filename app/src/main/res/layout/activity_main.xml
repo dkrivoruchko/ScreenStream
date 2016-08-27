@@ -1,77 +1,90 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/mainView"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:padding="@dimen/activity_margin"
-    tools:context="info.dvkr.screenstream.MainActivity">
+<layout xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="center_horizontal"
-        android:text="@string/device_address"
-        android:textAppearance="?android:attr/textAppearanceMedium"
-        android:textColor="@color/textColorSecondary" />
+    <data>
 
-    <TextView
-        android:id="@+id/severAddress"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="center_horizontal"
-        android:paddingBottom="@dimen/activity_vertical_margin"
-        android:paddingTop="@dimen/activity_vertical_margin"
-        android:textAppearance="?android:attr/textAppearanceMedium"
-        android:textColor="@color/textColorSecondary" />
+        <import type="android.view.View" />
 
-    <LinearLayout
+        <variable
+            name="appState"
+            type="info.dvkr.screenstream.AppState" />
+    </data>
+
+    <LinearLayout xmlns:tools="http://schemas.android.com/tools"
+        android:id="@+id/mainView"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="center"
-        android:orientation="horizontal">
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:padding="@dimen/activity_margin"
+        tools:context="info.dvkr.screenstream.MainActivity">
 
         <TextView
-            android:id="@+id/pinName"
-            android:layout_width="wrap_content"
-            android:layout_height="match_parent"
-            android:gravity="center"
-            android:text="@string/pin"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_horizontal"
+            android:text="@string/device_address"
             android:textAppearance="?android:attr/textAppearanceMedium"
             android:textColor="@color/textColorSecondary" />
 
         <TextView
-            android:id="@+id/pinNumber"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:padding="@dimen/activity_vertical_margin"
+            android:gravity="center_horizontal"
+            android:paddingBottom="@dimen/activity_vertical_margin"
+            android:paddingTop="@dimen/activity_vertical_margin"
+            android:text="@{appState.wifiConnected ? appState.serverAddress : @string/no_wifi_connected}"
             android:textAppearance="?android:attr/textAppearanceMedium"
-            android:textColor="@color/colorAccent"
-            android:textStyle="bold" />
+            android:textColor="@{appState.wifiConnected ? @color/textColorSecondary : @color/colorAccent}" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:text="@{appState.pinEnabled ? @string/pin : @string/pin_disabled}"
+                android:textAppearance="?android:attr/textAppearanceMedium"
+                android:textColor="@{appState.pinEnabled ? @color/textColorSecondary : @color/colorPrimary}" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:padding="@dimen/activity_vertical_margin"
+                android:text="@{(appState.streaming &amp;&amp; appState.pinAutoHide) ?  @string/pin_asterisks : appState.streamPin}"
+                android:textAppearance="?android:attr/textAppearanceMedium"
+                android:textColor="@color/colorAccent"
+                android:textStyle="bold"
+                android:visibility="@{appState.pinEnabled ? View.VISIBLE : View.GONE}" />
+        </LinearLayout>
+
+        <ToggleButton
+            android:id="@+id/toggleStream"
+            android:layout_width="280dp"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:checked="@{appState.streaming}"
+            android:enabled="@{appState.wifiConnected &amp;&amp; !appState.httpServerError}"
+            android:paddingBottom="@dimen/activity_vertical_margin"
+            android:paddingTop="@dimen/activity_vertical_margin"
+            android:textColor="@drawable/toggle_button_color"
+            android:textOff="@string/start_stream"
+            android:textOn="@string/stop_stream"
+            android:textSize="16sp" />
+
+        <TextView
+            android:id="@+id/clientsCount"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_horizontal"
+            android:paddingBottom="@dimen/activity_vertical_margin_small"
+            android:paddingTop="@dimen/activity_vertical_margin_small"
+            android:text="@{String.format(@string/connected_clients,appState.clients)}"
+            android:textColor="@color/textColorSecondary"
+            android:textSize="16sp" />
+
     </LinearLayout>
-
-    <ToggleButton
-        android:id="@+id/toggleStream"
-        android:layout_width="280dp"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center_horizontal"
-        android:checked="false"
-        android:paddingBottom="@dimen/activity_vertical_margin"
-        android:paddingTop="@dimen/activity_vertical_margin"
-        android:textColor="@drawable/toggle_button_color"
-        android:textOff="@string/start_stream"
-        android:textOn="@string/stop_stream"
-        android:textSize="16sp" />
-
-    <TextView
-        android:id="@+id/clientsCount"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="center_horizontal"
-        android:paddingBottom="@dimen/activity_vertical_margin_small"
-        android:paddingTop="@dimen/activity_vertical_margin_small"
-        android:textColor="@color/textColorSecondary"
-        android:textSize="16sp" />
-
-</LinearLayout>
+</layout>

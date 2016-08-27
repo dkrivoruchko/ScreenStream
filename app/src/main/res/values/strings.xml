@@ -8,6 +8,7 @@
     <string name="connected_clients">Connected clients: %1$d</string>
     <string name="pin">Pin:</string>
     <string name="pin_disabled">Pin is disabled</string>
+    <string name="pin_asterisks" translatable="false">****</string>
     <string name="settings">Settings</string>
     <string name="no_wifi_connected">No WiFi connected</string>
     <string name="cast_permission_deny">Screen Cast permission denied</string>
