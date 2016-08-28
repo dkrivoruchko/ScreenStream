@@ -9,7 +9,7 @@
     <string name="on_device">НА УСТРОЙСТВЕ</string>
     <string name="no_wifi_connected">WiFi не подключен</string>
     <string name="device_address">Адрес устойства:</string>
-    <string name="close">ЗАКРЫТЬ</string>
+    <string name="exit">ВЫХОД</string>
     <string name="go_to">\u0020</string>
     <string name="settings_advanced">Дополнительно</string>
     <string name="server_port_summary">Установите порт для входяших подключений\nПо умолчанию: 8080</string>

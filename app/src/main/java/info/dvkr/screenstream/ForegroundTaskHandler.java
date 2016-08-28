@@ -1,5 +1,6 @@
 package info.dvkr.screenstream;
 
+import android.media.projection.MediaProjection;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
@@ -49,8 +50,8 @@ final class ForegroundTaskHandler extends Handler {
                 removeMessages(HANDLER_DETECT_ROTATION);
                 removeMessages(HANDLER_STOP_STREAMING);
                 ForegroundService.getImageGenerator().stop();
-                if (AppContext.getMediaProjection() != null)
-                    AppContext.getMediaProjection().stop();
+                final MediaProjection mediaProjection = AppContext.getMediaProjection();
+                if (mediaProjection != null) mediaProjection.stop();
                 AppContext.setIsStreamRunning(false);
                 break;
             case HANDLER_DETECT_ROTATION:

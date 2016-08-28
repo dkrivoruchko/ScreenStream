@@ -20,11 +20,11 @@
     <!--ForegroundService-->
     <string name="ready_to_stream">Ready to stream</string>
     <string name="press_start">Press start to begin stream</string>
-    <string name="start">START</string>
-    <string name="close">CLOSE</string>
+    <string name="start">Start</string>
+    <string name="exit">Exit</string>
     <string name="stream">Stream…</string>
     <string name="go_to">Go to:\u0020</string>
-    <string name="stop">STOP</string>
+    <string name="stop">Stop</string>
 
     <!--NotifyImageGenerator-->
     <string name="press">PRESS</string>

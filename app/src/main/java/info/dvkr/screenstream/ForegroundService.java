@@ -132,7 +132,7 @@ public final class ForegroundService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         final int messageFromActivity = intent.getIntExtra(SERVICE_MESSAGE, 0);
-//        Log.wtf(">>>>>>>>> messageFromActivity", "" + messageFromActivity);
+        Log.wtf(">>>>>>>>> messageFromActivity", "" + messageFromActivity);
         if (messageFromActivity == 0) return START_NOT_STICKY;
 
         if (messageFromActivity == SERVICE_MESSAGE_PREPARE_STREAMING) {
@@ -224,11 +224,11 @@ public final class ForegroundService extends Service {
         startNotificationBuilder.setVisibility(NotificationCompat.VISIBILITY_PUBLIC);
         startNotificationBuilder.setSmallIcon(R.drawable.ic_cast_http_24dp);
         startNotificationBuilder.setColor(ContextCompat.getColor(this, R.color.colorPrimaryDark));
-        startNotificationBuilder.setContentTitle(getResources().getString(R.string.ready_to_stream));
-        startNotificationBuilder.setContentText(getResources().getString(R.string.press_start));
+        startNotificationBuilder.setContentTitle(getString(R.string.ready_to_stream));
+        startNotificationBuilder.setContentText(getString(R.string.press_start));
         startNotificationBuilder.setContentIntent(pendingMainActivityIntent);
-        startNotificationBuilder.addAction(R.drawable.ic_play_arrow_24dp, getResources().getString(R.string.start), PendingIntent.getBroadcast(this, 0, startStreamIntent, 0));
-        startNotificationBuilder.addAction(R.drawable.ic_clear_24dp, getResources().getString(R.string.close), PendingIntent.getBroadcast(this, 0, closeIntent, 0));
+        startNotificationBuilder.addAction(R.drawable.ic_play_arrow_24dp, getString(R.string.start).toUpperCase(), PendingIntent.getBroadcast(this, 0, startStreamIntent, 0));
+        startNotificationBuilder.addAction(R.drawable.ic_clear_24dp, getString(R.string.exit).toUpperCase(), PendingIntent.getBroadcast(this, 0, closeIntent, 0));
         startNotificationBuilder.setPriority(NotificationCompat.PRIORITY_MAX);
         return startNotificationBuilder.build();
     }
@@ -241,10 +241,10 @@ public final class ForegroundService extends Service {
         stopNotificationBuilder.setVisibility(NotificationCompat.VISIBILITY_PUBLIC);
         stopNotificationBuilder.setSmallIcon(R.drawable.ic_cast_http_24dp);
         stopNotificationBuilder.setColor(ContextCompat.getColor(this, R.color.colorPrimaryDark));
-        stopNotificationBuilder.setContentTitle(getResources().getString(R.string.stream));
-        stopNotificationBuilder.setContentText(getResources().getString(R.string.go_to) + AppContext.getServerAddress());
+        stopNotificationBuilder.setContentTitle(getString(R.string.stream));
+        stopNotificationBuilder.setContentText(getString(R.string.go_to) + AppContext.getServerAddress());
         stopNotificationBuilder.setContentIntent(pendingMainActivityIntent);
-        stopNotificationBuilder.addAction(R.drawable.ic_stop_24dp, getResources().getString(R.string.stop), PendingIntent.getBroadcast(this, 0, stopStreamIntent, 0));
+        stopNotificationBuilder.addAction(R.drawable.ic_stop_24dp, getString(R.string.stop).toUpperCase(), PendingIntent.getBroadcast(this, 0, stopStreamIntent, 0));
         stopNotificationBuilder.setPriority(NotificationCompat.PRIORITY_MAX);
         return stopNotificationBuilder.build();
     }

@@ -36,8 +36,8 @@ public final class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        ActivityMainBinding binding = DataBindingUtil.setContentView(this, R.layout.activity_main);
-        binding.setAppState(AppContext.getAppState());
+        ActivityMainBinding activityMainBinding = DataBindingUtil.setContentView(this, R.layout.activity_main);
+        activityMainBinding.setAppState(AppContext.getAppState());
 
         if (!AppContext.isForegroundServiceRunning()) {
             final Intent foregroundService = new Intent(this, ForegroundService.class);
@@ -52,7 +52,7 @@ public final class MainActivity extends AppCompatActivity {
             }
         };
 
-        portInUseSnackbar = Snackbar.make(findViewById(R.id.mainView), R.string.snackbar_port_in_use, Snackbar.LENGTH_INDEFINITE)
+        portInUseSnackbar = Snackbar.make(activityMainBinding.mainView, R.string.snackbar_port_in_use, Snackbar.LENGTH_INDEFINITE)
                 .setAction(R.string.settings, new View.OnClickListener() {
                     @Override
                     public void onClick(View view) {
@@ -69,7 +69,7 @@ public final class MainActivity extends AppCompatActivity {
             public void onReceive(Context context, Intent intent) {
                 if (intent.getAction().equals(ForegroundService.SERVICE_ACTION)) {
                     final int serviceMessage = intent.getIntExtra(ForegroundService.SERVICE_MESSAGE, ForegroundService.SERVICE_MESSAGE_EMPTY);
-//                    Log.wtf(">>>>>>>>> serviceMessage", "" + serviceMessage);
+                    Log.wtf(">>>>>>>>> serviceMessage", "" + serviceMessage);
                     if (serviceMessage == ForegroundService.SERVICE_MESSAGE_EMPTY) return;
 
                     // Service ask to get new message
@@ -86,9 +86,7 @@ public final class MainActivity extends AppCompatActivity {
 
                     // Service ask to close application
                     if (serviceMessage == ForegroundService.SERVICE_MESSAGE_EXIT) {
-                        stopService(new Intent(MainActivity.this, ForegroundService.class));
-                        finish();
-                        System.exit(0);
+                        applicationClose();
                     }
 
                     // Service ask notify HTTP Server port in use
@@ -160,7 +158,7 @@ public final class MainActivity extends AppCompatActivity {
         switch (requestCode) {
             case SCREEN_CAPTURE_REQUEST_CODE:
                 if (resultCode != RESULT_OK) {
-                    Toast.makeText(this, getResources().getString(R.string.cast_permission_deny), Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, getString(R.string.cast_permission_deny), Toast.LENGTH_SHORT).show();
                     return;
                 }
                 startStreaming(resultCode, data);
@@ -195,9 +193,18 @@ public final class MainActivity extends AppCompatActivity {
                 final Intent intentSettings = new Intent(this, SettingsActivity.class);
                 startActivityForResult(intentSettings, SETTINGS_REQUEST_CODE);
                 return true;
+            case R.id.menu_exit:
+                applicationClose();
+                return true;
             default:
                 return super.onOptionsItemSelected(item);
         }
+    }
+
+    private void applicationClose() {
+        stopService(new Intent(MainActivity.this, ForegroundService.class));
+        finish();
+        System.exit(0);
     }
 
     private void updatePinStatus(final boolean isServerPortChanged) {

@@ -64,10 +64,10 @@ public class AppContext extends Application {
         indexHTMLPage = getHTML("index.html");
         pinRequestHTMLPage = getHTML("pinrequest.html");
         pinRequestHTMLPage = pinRequestHTMLPage
-                .replaceFirst("stream_require_pin", getResources().getString(R.string.stream_require_pin))
-                .replaceFirst("enter_pin", getResources().getString(R.string.html_enter_pin))
-                .replaceFirst("four_digits", getResources().getString(R.string.four_digits))
-                .replaceFirst("submit_text", getResources().getString(R.string.submit_text));
+                .replaceFirst("stream_require_pin", getString(R.string.stream_require_pin))
+                .replaceFirst("enter_pin", getString(R.string.html_enter_pin))
+                .replaceFirst("four_digits", getString(R.string.four_digits))
+                .replaceFirst("submit_text", getString(R.string.submit_text));
 
         setFavicon();
     }
@@ -133,7 +133,7 @@ public class AppContext extends Application {
     }
 
     static String getPinRequestHTMLPage(final boolean isError) {
-        final String errorString = (isError) ? instance.getResources().getString(R.string.wrong_pin) : "&nbsp";
+        final String errorString = (isError) ? instance.getString(R.string.wrong_pin) : "&nbsp";
         return instance.pinRequestHTMLPage.replaceFirst("wrong_pin", errorString);
     }
 

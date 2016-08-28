@@ -56,7 +56,7 @@ public final class SettingsActivity extends PreferenceActivity {
                 public boolean onPreferenceChange(Preference preference, Object data) {
                     final int pinStringLength = data.toString().length();
                     if (pinStringLength != PIN_DIGITS_COUNT) {
-                        Toast.makeText(getActivity().getApplicationContext(), getResources().getString(R.string.pin_digits_count), Toast.LENGTH_LONG).show();
+                        Toast.makeText(getActivity().getApplicationContext(), getString(R.string.pin_digits_count), Toast.LENGTH_LONG).show();
                         return false;
                     }
                     return true;
@@ -67,7 +67,7 @@ public final class SettingsActivity extends PreferenceActivity {
 
             // Advanced
 
-            final String portRange = String.format(getResources().getString(R.string.port_range), MIN_PORT_NUMBER, MAX_PORT_NUMBER);
+            final String portRange = String.format(getString(R.string.port_range), MIN_PORT_NUMBER, MAX_PORT_NUMBER);
             final EditTextPreference portNumberTextPreference = (EditTextPreference) findPreference("port_number");
             portNumberTextPreference.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
                 @Override
@@ -88,28 +88,28 @@ public final class SettingsActivity extends PreferenceActivity {
 
             final ListPreference jpegQualityPreference = (ListPreference) findPreference("jpeg_quality");
             index = jpegQualityPreference.findIndexOfValue(jpegQualityPreference.getValue());
-            jpegQualityPreference.setSummary(getResources().getString(R.string.settings_jpeg_quality_summary)
-                    + getResources().getString(R.string.value) + jpegQualityPreference.getEntries()[index]);
+            jpegQualityPreference.setSummary(getString(R.string.settings_jpeg_quality_summary)
+                    + getString(R.string.value) + jpegQualityPreference.getEntries()[index]);
             jpegQualityPreference.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
                 @Override
                 public boolean onPreferenceChange(Preference preference, Object data) {
                     int index = jpegQualityPreference.findIndexOfValue(data.toString());
-                    jpegQualityPreference.setSummary(getResources().getString(R.string.settings_jpeg_quality_summary)
-                            + getResources().getString(R.string.value) + jpegQualityPreference.getEntries()[index]);
+                    jpegQualityPreference.setSummary(getString(R.string.settings_jpeg_quality_summary)
+                            + getString(R.string.value) + jpegQualityPreference.getEntries()[index]);
                     return true;
                 }
             });
 
             final ListPreference clientTimeoutPreference = (ListPreference) findPreference("client_connection_timeout");
             index = clientTimeoutPreference.findIndexOfValue(clientTimeoutPreference.getValue());
-            clientTimeoutPreference.setSummary(getResources().getString(R.string.client_timeout_summary)
-                    + getResources().getString(R.string.value) + clientTimeoutPreference.getEntries()[index]);
+            clientTimeoutPreference.setSummary(getString(R.string.client_timeout_summary)
+                    + getString(R.string.value) + clientTimeoutPreference.getEntries()[index]);
             clientTimeoutPreference.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
                 @Override
                 public boolean onPreferenceChange(Preference preference, Object data) {
                     int index = clientTimeoutPreference.findIndexOfValue(data.toString());
-                    clientTimeoutPreference.setSummary(getResources().getString(R.string.client_timeout_summary)
-                            + getResources().getString(R.string.value) + clientTimeoutPreference.getEntries()[index]);
+                    clientTimeoutPreference.setSummary(getString(R.string.client_timeout_summary)
+                            + getString(R.string.value) + clientTimeoutPreference.getEntries()[index]);
                     return true;
                 }
             });
