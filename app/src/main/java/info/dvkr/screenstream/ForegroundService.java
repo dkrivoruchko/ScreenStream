@@ -158,9 +158,6 @@ public final class ForegroundService extends Service {
             foregroundServiceTaskHandler.obtainMessage(ForegroundTaskHandler.HANDLER_STOP_STREAMING).sendToTarget();
             startForeground(110, getNotificationStart());
             imageGenerator.addDefaultScreen(getApplicationContext());
-
-            if (AppContext.getAppSettings().isAutoChangePin())
-                AppContext.getAppSettings().generateAndSaveNewPin();
         }
 
         if (messageFromActivity == SERVICE_MESSAGE_RESTART_HTTP) {

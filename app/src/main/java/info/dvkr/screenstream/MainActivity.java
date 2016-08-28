@@ -259,6 +259,9 @@ public final class MainActivity extends AppCompatActivity {
         stopStreaming.putExtra(ForegroundService.SERVICE_MESSAGE, ForegroundService.SERVICE_MESSAGE_STOP_STREAMING);
         startService(stopStreaming);
 
+        if (AppContext.getAppSettings().isAutoChangePin())
+            AppContext.getAppSettings().generateAndSaveNewPin();
+
         updatePinStatus(false);
     }
 }
