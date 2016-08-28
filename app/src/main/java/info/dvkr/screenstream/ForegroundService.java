@@ -16,13 +16,13 @@ import android.os.Process;
 import android.support.annotation.Nullable;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.content.ContextCompat;
-import android.util.Log;
 
 public final class ForegroundService extends Service {
     private static ForegroundService foregroundService;
 
     private MediaProjectionManager projectionManager;
     private MediaProjection mediaProjection;
+    private MediaProjection.Callback projectionCallback;
     private HTTPServer httpServer;
     private ImageGenerator imageGenerator;
     private ForegroundTaskHandler foregroundServiceTaskHandler;
@@ -59,11 +59,44 @@ public final class ForegroundService extends Service {
 
     private BroadcastReceiver broadcastReceiver;
 
+    static MediaProjectionManager getProjectionManager() {
+        return foregroundService.projectionManager;
+    }
+
+    static void setMediaProjection(final MediaProjection mediaProjection) {
+        foregroundService.mediaProjection = mediaProjection;
+    }
+
+    @Nullable
+    static MediaProjection getMediaProjection() {
+        return foregroundService.mediaProjection;
+    }
+
+    static ImageGenerator getImageGenerator() {
+        return foregroundService.imageGenerator;
+    }
+
+    static int getHttpServerStatus() {
+        if (foregroundService == null) return HTTPServer.SERVER_STATUS_UNKNOWN;
+        return foregroundService.httpServerStatus;
+    }
+
+    static void errorInImageGenerator() {
+        foregroundService.currentServiceMessage = SERVICE_MESSAGE_IMAGE_GENERATOR_ERROR;
+        foregroundService.relayMessageViaActivity();
+    }
+
     @Override
     public void onCreate() {
         foregroundService = this;
 
         projectionManager = (MediaProjectionManager) getSystemService(Context.MEDIA_PROJECTION_SERVICE);
+        projectionCallback = new MediaProjection.Callback() {
+            @Override
+            public void onStop() {
+                serviceStopStreaming();
+            }
+        };
         httpServer = new HTTPServer();
         imageGenerator = new ImageGenerator();
 
@@ -137,46 +170,61 @@ public final class ForegroundService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         final int messageFromActivity = intent.getIntExtra(SERVICE_MESSAGE, 0);
-        Log.wtf(">>>>>>>>> messageFromActivity", "" + messageFromActivity);
-        if (messageFromActivity == 0) return START_NOT_STICKY;
 
-        if (messageFromActivity == SERVICE_MESSAGE_PREPARE_STREAMING) {
-            startForeground(110, getNotificationStart());
+        switch (messageFromActivity) {
+            case SERVICE_MESSAGE_PREPARE_STREAMING:
+                startForeground(110, getNotificationStart());
+                break;
+            case SERVICE_MESSAGE_GET_CURRENT:
+                serviceGetCurrentMessage();
+                break;
+            case SERVICE_MESSAGE_START_STREAMING:
+                serviceStartStreaming();
+                break;
+            case SERVICE_MESSAGE_STOP_STREAMING:
+                serviceStopStreaming();
+                break;
+            case SERVICE_MESSAGE_RESTART_HTTP:
+                serviceRestartHTTP();
+                break;
+            case SERVICE_MESSAGE_UPDATE_PIN_STATUS:
+                serviceUpdatePinStatus();
+                break;
         }
-
-        if (messageFromActivity == SERVICE_MESSAGE_GET_CURRENT) {
-            if (currentServiceMessage != SERVICE_MESSAGE_EMPTY) {
-                sendBroadcast(new Intent(SERVICE_ACTION).putExtra(SERVICE_MESSAGE, currentServiceMessage), SERVICE_PERMISSION);
-                currentServiceMessage = SERVICE_MESSAGE_EMPTY;
-            }
-        }
-
-        if (messageFromActivity == SERVICE_MESSAGE_START_STREAMING) {
-            stopForeground(true);
-            foregroundServiceTaskHandler.obtainMessage(ForegroundTaskHandler.HANDLER_START_STREAMING).sendToTarget();
-            startForeground(120, getNotificationStop());
-        }
-
-        if (messageFromActivity == SERVICE_MESSAGE_STOP_STREAMING) {
-            stopForeground(true);
-            foregroundServiceTaskHandler.obtainMessage(ForegroundTaskHandler.HANDLER_STOP_STREAMING).sendToTarget();
-            startForeground(110, getNotificationStart());
-            imageGenerator.addDefaultScreen(getApplicationContext());
-        }
-
-        if (messageFromActivity == SERVICE_MESSAGE_RESTART_HTTP) {
-            httpServer.stop(HTTPServer.SERVER_SETTINGS_RESTART, NotifyImageGenerator.getClientNotifyImage(getApplicationContext(), HTTPServer.SERVER_SETTINGS_RESTART));
-            imageGenerator.addDefaultScreen(getApplicationContext());
-            httpServerStartAndCheck();
-        }
-
-        if (messageFromActivity == SERVICE_MESSAGE_UPDATE_PIN_STATUS) {
-            httpServer.stop(HTTPServer.SERVER_PIN_RESTART, NotifyImageGenerator.getClientNotifyImage(getApplicationContext(), HTTPServer.SERVER_PIN_RESTART));
-            imageGenerator.addDefaultScreen(getApplicationContext());
-            httpServerStartAndCheck();
-        }
-
         return START_NOT_STICKY;
+    }
+
+    private void serviceStartStreaming() {
+        stopForeground(true);
+        foregroundServiceTaskHandler.obtainMessage(ForegroundTaskHandler.HANDLER_START_STREAMING).sendToTarget();
+        startForeground(120, getNotificationStop());
+        if (mediaProjection != null) mediaProjection.registerCallback(projectionCallback, null);
+    }
+
+    private void serviceGetCurrentMessage() {
+        if (currentServiceMessage == SERVICE_MESSAGE_EMPTY) return;
+        sendBroadcast(new Intent(SERVICE_ACTION).putExtra(SERVICE_MESSAGE, currentServiceMessage), SERVICE_PERMISSION);
+        currentServiceMessage = SERVICE_MESSAGE_EMPTY;
+    }
+
+    private void serviceStopStreaming() {
+        stopForeground(true);
+        foregroundServiceTaskHandler.obtainMessage(ForegroundTaskHandler.HANDLER_STOP_STREAMING).sendToTarget();
+        startForeground(110, getNotificationStart());
+        if (mediaProjection != null) mediaProjection.unregisterCallback(projectionCallback);
+        imageGenerator.addDefaultScreen(getApplicationContext());
+    }
+
+    private void serviceRestartHTTP() {
+        httpServer.stop(HTTPServer.SERVER_SETTINGS_RESTART, NotifyImageGenerator.getClientNotifyImage(getApplicationContext(), HTTPServer.SERVER_SETTINGS_RESTART));
+        imageGenerator.addDefaultScreen(getApplicationContext());
+        httpServerStartAndCheck();
+    }
+
+    private void serviceUpdatePinStatus() {
+        httpServer.stop(HTTPServer.SERVER_PIN_RESTART, NotifyImageGenerator.getClientNotifyImage(getApplicationContext(), HTTPServer.SERVER_PIN_RESTART));
+        imageGenerator.addDefaultScreen(getApplicationContext());
+        httpServerStartAndCheck();
     }
 
     private void relayMessageViaActivity() {
@@ -188,8 +236,10 @@ public final class ForegroundService extends Service {
         httpServerStatus = httpServer.start();
         if (httpServerStatus == HTTPServer.SERVER_ERROR_PORT_IN_USE) {
             currentServiceMessage = SERVICE_MESSAGE_HTTP_PORT_IN_USE;
+            AppContext.getAppState().httpServerError.set(true);
         } else {
             currentServiceMessage = SERVICE_MESSAGE_HTTP_OK;
+            AppContext.getAppState().httpServerError.set(false);
         }
         relayMessageViaActivity();
     }
@@ -200,38 +250,10 @@ public final class ForegroundService extends Service {
         stopForeground(true);
         unregisterReceiver(broadcastReceiver);
         unregisterReceiver(localNotificationReceiver);
+        if (mediaProjection != null) mediaProjection.unregisterCallback(projectionCallback);
         foregroundServiceTaskHandler.getLooper().quit();
     }
 
-    // Static methods
-    static MediaProjectionManager getProjectionManager() {
-        return foregroundService.projectionManager;
-    }
-
-    static void setMediaProjection(final MediaProjection mediaProjection) {
-        foregroundService.mediaProjection = mediaProjection;
-    }
-
-    @Nullable
-    static MediaProjection getMediaProjection() {
-        return foregroundService.mediaProjection;
-    }
-
-    static ImageGenerator getImageGenerator() {
-        return foregroundService.imageGenerator;
-    }
-
-    static int getHttpServerStatus() {
-        if (foregroundService == null) return HTTPServer.SERVER_STATUS_UNKNOWN;
-        return foregroundService.httpServerStatus;
-    }
-
-    static void errorInImageGenerator() {
-        foregroundService.currentServiceMessage = SERVICE_MESSAGE_IMAGE_GENERATOR_ERROR;
-        foregroundService.relayMessageViaActivity();
-    }
-
-    // Private methods
     private Notification getNotificationStart() {
         final Intent mainActivityIntent = new Intent(this, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         final PendingIntent pendingMainActivityIntent = PendingIntent.getActivity(this, 0, mainActivityIntent, 0);

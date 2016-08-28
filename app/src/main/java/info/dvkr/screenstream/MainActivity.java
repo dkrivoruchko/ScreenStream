@@ -12,7 +12,6 @@ import android.os.Bundle;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -24,149 +23,126 @@ import com.google.firebase.crash.FirebaseCrash;
 
 import info.dvkr.screenstream.databinding.ActivityMainBinding;
 
-public final class MainActivity extends AppCompatActivity {
-    private static final int SCREEN_CAPTURE_REQUEST_CODE = 1;
-    private static final int SETTINGS_REQUEST_CODE = 2;
+import static info.dvkr.screenstream.AppContext.getAppSettings;
+import static info.dvkr.screenstream.AppContext.getAppState;
+import static info.dvkr.screenstream.AppContext.getServerAddress;
+import static info.dvkr.screenstream.AppContext.isStreamRunning;
+import static info.dvkr.screenstream.AppContext.isWiFiConnected;
+import static info.dvkr.screenstream.ForegroundService.SERVICE_ACTION;
+import static info.dvkr.screenstream.ForegroundService.SERVICE_MESSAGE;
+import static info.dvkr.screenstream.ForegroundService.SERVICE_MESSAGE_EMPTY;
+import static info.dvkr.screenstream.ForegroundService.SERVICE_MESSAGE_EXIT;
+import static info.dvkr.screenstream.ForegroundService.SERVICE_MESSAGE_GET_CURRENT;
+import static info.dvkr.screenstream.ForegroundService.SERVICE_MESSAGE_HAS_NEW;
+import static info.dvkr.screenstream.ForegroundService.SERVICE_MESSAGE_HTTP_OK;
+import static info.dvkr.screenstream.ForegroundService.SERVICE_MESSAGE_HTTP_PORT_IN_USE;
+import static info.dvkr.screenstream.ForegroundService.SERVICE_MESSAGE_IMAGE_GENERATOR_ERROR;
+import static info.dvkr.screenstream.ForegroundService.SERVICE_MESSAGE_RESTART_HTTP;
+import static info.dvkr.screenstream.ForegroundService.SERVICE_MESSAGE_START_STREAMING;
+import static info.dvkr.screenstream.ForegroundService.SERVICE_MESSAGE_STOP_STREAMING;
+import static info.dvkr.screenstream.ForegroundService.SERVICE_MESSAGE_UPDATE_PIN_STATUS;
+import static info.dvkr.screenstream.ForegroundService.SERVICE_PERMISSION;
+import static info.dvkr.screenstream.ForegroundService.getHttpServerStatus;
+import static info.dvkr.screenstream.ForegroundService.getMediaProjection;
+import static info.dvkr.screenstream.ForegroundService.getProjectionManager;
+import static info.dvkr.screenstream.ForegroundService.setMediaProjection;
 
-    private MediaProjection.Callback projectionCallback;
+public final class MainActivity extends AppCompatActivity {
+    private static final int REQUEST_CODE_SCREEN_CAPTURE = 1;
+    private static final int REQUEST_CODE_SETTINGS = 2;
+
     private BroadcastReceiver broadcastReceiverFromService;
-    private Snackbar portInUseSnackbar;
-    private Menu mainMenu;
+    private Snackbar snackbarPortInUse;
+    private Menu menuMain;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         ActivityMainBinding activityMainBinding = DataBindingUtil.setContentView(this, R.layout.activity_main);
-        activityMainBinding.setAppState(AppContext.getAppState());
+        activityMainBinding.setAppState(getAppState());
 
-        projectionCallback = new MediaProjection.Callback() {
-            @Override
-            public void onStop() {
-                stopStreaming();
-            }
-        };
-
-        portInUseSnackbar = Snackbar.make(activityMainBinding.mainView, R.string.snackbar_port_in_use, Snackbar.LENGTH_INDEFINITE)
+        snackbarPortInUse = Snackbar.make(activityMainBinding.mainView, R.string.snackbar_port_in_use, Snackbar.LENGTH_INDEFINITE)
                 .setAction(R.string.settings, new View.OnClickListener() {
                     @Override
                     public void onClick(View view) {
-                        onOptionsItemSelected(mainMenu.findItem(R.id.menu_settings));
+                        onOptionsItemSelected(menuMain.findItem(R.id.menu_settings));
                     }
                 })
                 .setActionTextColor(Color.GREEN);
-        ((TextView) portInUseSnackbar.getView().findViewById(android.support.design.R.id.snackbar_text)).setTextColor(Color.RED);
+        ((TextView) snackbarPortInUse.getView().findViewById(android.support.design.R.id.snackbar_text)).setTextColor(Color.RED);
 
-
-        // Registering receiver for broadcast messages
         broadcastReceiverFromService = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
-                if (intent.getAction().equals(ForegroundService.SERVICE_ACTION)) {
-                    final int serviceMessage = intent.getIntExtra(ForegroundService.SERVICE_MESSAGE, ForegroundService.SERVICE_MESSAGE_EMPTY);
-                    Log.wtf(">>>>>>>>> serviceMessage", "" + serviceMessage);
-                    if (serviceMessage == ForegroundService.SERVICE_MESSAGE_EMPTY) return;
+                if (intent.getAction().equals(SERVICE_ACTION)) {
+                    final int serviceMessage = intent.getIntExtra(SERVICE_MESSAGE, SERVICE_MESSAGE_EMPTY);
 
                     // Service ask to get new message
-                    if (serviceMessage == ForegroundService.SERVICE_MESSAGE_HAS_NEW)
-                        updateServiceStatus();
+                    if (serviceMessage == SERVICE_MESSAGE_HAS_NEW)
+                        startService(new Intent(MainActivity.this, ForegroundService.class)
+                                .putExtra(SERVICE_MESSAGE, SERVICE_MESSAGE_GET_CURRENT));
 
-                    // Service ask to start streaming
-                    if (serviceMessage == ForegroundService.SERVICE_MESSAGE_START_STREAMING)
+                    if (serviceMessage == SERVICE_MESSAGE_START_STREAMING)
                         tryStartStreaming();
 
-                    // Service ask to stop streaming
-                    if (serviceMessage == ForegroundService.SERVICE_MESSAGE_STOP_STREAMING)
+                    if (serviceMessage == SERVICE_MESSAGE_STOP_STREAMING)
                         stopStreaming();
 
-                    // Service ask to close application
-                    if (serviceMessage == ForegroundService.SERVICE_MESSAGE_EXIT) {
+                    if (serviceMessage == SERVICE_MESSAGE_EXIT) {
                         applicationClose();
                     }
 
-                    // Service ask notify HTTP Server port in use
-                    if (serviceMessage == ForegroundService.SERVICE_MESSAGE_HTTP_PORT_IN_USE) {
-                        if (!portInUseSnackbar.isShown()) portInUseSnackbar.show();
-                        AppContext.getAppState().httpServerError.set(true);
+                    if (serviceMessage == SERVICE_MESSAGE_HTTP_PORT_IN_USE) {
+                        if (!snackbarPortInUse.isShown()) snackbarPortInUse.show();
                     }
 
-                    // Service ask notify HTTP Server ok
-                    if (serviceMessage == ForegroundService.SERVICE_MESSAGE_HTTP_OK) {
-                        if (portInUseSnackbar.isShown()) portInUseSnackbar.dismiss();
-                        AppContext.getAppState().httpServerError.set(false);
+                    if (serviceMessage == SERVICE_MESSAGE_HTTP_OK) {
+                        if (snackbarPortInUse.isShown()) snackbarPortInUse.dismiss();
                     }
 
-                    // Service ask notify ImageGenerator Error
-                    if (serviceMessage == ForegroundService.SERVICE_MESSAGE_IMAGE_GENERATOR_ERROR) {
+                    if (serviceMessage == SERVICE_MESSAGE_IMAGE_GENERATOR_ERROR) {
                         stopStreaming();
-                        new AlertDialog.Builder(MainActivity.this)
-                                .setTitle(getString(R.string.error))
-                                .setMessage(getString(R.string.unknown_format))
-                                .setIcon(R.drawable.ic_warning_24dp)
-                                .setPositiveButton(R.string.ok, new DialogInterface.OnClickListener() {
-                                    public void onClick(DialogInterface dialog, int id) {
-                                        dialog.dismiss();
-                                    }
-                                })
-                                .show();
-                    }
+                        if (!isFinishing())
+                            new AlertDialog.Builder(MainActivity.this)
+                                    .setTitle(getString(R.string.error))
+                                    .setMessage(getString(R.string.unknown_format))
+                                    .setIcon(R.drawable.ic_warning_24dp)
+                                    .setPositiveButton(R.string.ok, new DialogInterface.OnClickListener() {
+                                        public void onClick(DialogInterface dialog, int id) {
+                                            dialog.dismiss();
+                                        }
+                                    })
+                                    .show();
 
+                    }
                 }
             }
         };
-
-        registerReceiver(broadcastReceiverFromService, new IntentFilter(ForegroundService.SERVICE_ACTION), ForegroundService.SERVICE_PERMISSION, null);
     }
 
     @Override
     protected void onStart() {
         super.onStart();
-        updateServiceStatus();
-        if (ForegroundService.getHttpServerStatus() == HTTPServer.SERVER_ERROR_PORT_IN_USE) {
-            portInUseSnackbar.show();
-            AppContext.getAppState().httpServerError.set(true);
+        registerReceiver(broadcastReceiverFromService, new IntentFilter(SERVICE_ACTION), SERVICE_PERMISSION, null);
+
+        startService(new Intent(this, ForegroundService.class)
+                .putExtra(SERVICE_MESSAGE, SERVICE_MESSAGE_GET_CURRENT));
+
+        if (getHttpServerStatus() == HTTPServer.SERVER_ERROR_PORT_IN_USE) {
+            snackbarPortInUse.show();
         }
     }
 
     @Override
-    protected void onDestroy() {
-        final MediaProjection mediaProjection = ForegroundService.getMediaProjection();
-        if (mediaProjection != null)
-            mediaProjection.unregisterCallback(projectionCallback);
-
+    protected void onStop() {
         unregisterReceiver(broadcastReceiverFromService);
-        super.onDestroy();
-    }
-
-    @Override
-    public void onActivityResult(int requestCode, int resultCode, Intent data) {
-        switch (requestCode) {
-            case SCREEN_CAPTURE_REQUEST_CODE:
-                if (resultCode != RESULT_OK) {
-                    Toast.makeText(this, getString(R.string.cast_permission_deny), Toast.LENGTH_SHORT).show();
-                    return;
-                }
-                startStreaming(resultCode, data);
-                break;
-            case SETTINGS_REQUEST_CODE:
-                final boolean isServerPortChanged = AppContext.getAppSettings().updateSettings();
-                if (isServerPortChanged) {
-                    AppContext.getAppState().serverAddress.set(AppContext.getServerAddress());
-
-                    final Intent restartHTTP = new Intent(this, ForegroundService.class);
-                    restartHTTP.putExtra(ForegroundService.SERVICE_MESSAGE, ForegroundService.SERVICE_MESSAGE_RESTART_HTTP);
-                    startService(restartHTTP);
-                }
-                updatePinStatus(isServerPortChanged);
-                break;
-            default:
-                FirebaseCrash.log("Unknown request code: " + requestCode);
-        }
+        super.onStop();
     }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.settings, menu);
-        mainMenu = menu;
+        menuMain = menu;
         return super.onCreateOptionsMenu(menu);
     }
 
@@ -174,8 +150,7 @@ public final class MainActivity extends AppCompatActivity {
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.menu_settings:
-                final Intent intentSettings = new Intent(this, SettingsActivity.class);
-                startActivityForResult(intentSettings, SETTINGS_REQUEST_CODE);
+                startActivityForResult(new Intent(this, SettingsActivity.class), REQUEST_CODE_SETTINGS);
                 return true;
             case R.id.menu_exit:
                 applicationClose();
@@ -185,8 +160,33 @@ public final class MainActivity extends AppCompatActivity {
         }
     }
 
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        switch (requestCode) {
+            case REQUEST_CODE_SCREEN_CAPTURE:
+                if (resultCode != RESULT_OK) {
+                    Toast.makeText(this, getString(R.string.cast_permission_deny), Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                startStreaming(resultCode, data);
+                break;
+            case REQUEST_CODE_SETTINGS:
+                final boolean isServerPortChanged = getAppSettings().updateSettings();
+                if (isServerPortChanged) {
+                    getAppState().serverAddress.set(getServerAddress());
+
+                    startService(new Intent(this, ForegroundService.class)
+                            .putExtra(SERVICE_MESSAGE, SERVICE_MESSAGE_RESTART_HTTP));
+                }
+                updatePinStatus(isServerPortChanged);
+                break;
+            default:
+                FirebaseCrash.log("Unknown request code: " + requestCode);
+        }
+    }
+
     public void onToggleButtonClick(View v) {
-        if (AppContext.isStreamRunning()) {
+        if (isStreamRunning()) {
             stopStreaming();
         } else {
             ((ToggleButton) v).setChecked(false);
@@ -201,67 +201,50 @@ public final class MainActivity extends AppCompatActivity {
     }
 
     private void updatePinStatus(final boolean isServerPortChanged) {
-        AppContext.getAppState().pinAutoHide.set(AppContext.getAppSettings().isPinAutoHide());
+        getAppState().pinAutoHide.set(getAppSettings().isPinAutoHide());
 
-        final boolean newIsPinEnabled = AppContext.getAppSettings().isEnablePin();
-        final String newPin = AppContext.getAppSettings().getUserPin();
+        final boolean newIsPinEnabled = getAppSettings().isEnablePin();
+        final String newPin = getAppSettings().getUserPin();
 
-        if (newIsPinEnabled != AppContext.getAppState().pinEnabled.get() || !newPin.equals(AppContext.getAppState().streamPin.get())) {
-            AppContext.getAppState().pinEnabled.set(newIsPinEnabled);
-            AppContext.getAppState().streamPin.set(newPin);
+        if (newIsPinEnabled != getAppState().pinEnabled.get() || !newPin.equals(getAppState().streamPin.get())) {
+            getAppState().pinEnabled.set(newIsPinEnabled);
+            getAppState().streamPin.set(newPin);
 
             if (!isServerPortChanged) {
-                final Intent updatePinStatus = new Intent(this, ForegroundService.class);
-                updatePinStatus.putExtra(ForegroundService.SERVICE_MESSAGE, ForegroundService.SERVICE_MESSAGE_UPDATE_PIN_STATUS);
-                startService(updatePinStatus);
+                startService(new Intent(this, ForegroundService.class)
+                        .putExtra(SERVICE_MESSAGE, SERVICE_MESSAGE_UPDATE_PIN_STATUS));
             }
         }
     }
 
-    private void updateServiceStatus() {
-        final Intent getStatus = new Intent(this, ForegroundService.class);
-        getStatus.putExtra(ForegroundService.SERVICE_MESSAGE, ForegroundService.SERVICE_MESSAGE_GET_CURRENT);
-        startService(getStatus);
-    }
-
     private void tryStartStreaming() {
-        if (!AppContext.isWiFiConnected()) return;
-        if (ForegroundService.getHttpServerStatus() != HTTPServer.SERVER_OK) return;
-        if (AppContext.isStreamRunning()) return;
-        startActivityForResult(ForegroundService.getProjectionManager().createScreenCaptureIntent(), SCREEN_CAPTURE_REQUEST_CODE);
+        if (!isWiFiConnected() || isStreamRunning()) return;
+        if (getHttpServerStatus() != HTTPServer.SERVER_OK) return;
+        startActivityForResult(getProjectionManager().createScreenCaptureIntent(), REQUEST_CODE_SCREEN_CAPTURE);
     }
 
     private void startStreaming(final int resultCode, final Intent data) {
-        final MediaProjection mediaProjection = ForegroundService.getProjectionManager().getMediaProjection(resultCode, data);
+        final MediaProjection mediaProjection = getProjectionManager().getMediaProjection(resultCode, data);
         if (mediaProjection == null) return;
-        ForegroundService.setMediaProjection(mediaProjection);
-        mediaProjection.registerCallback(projectionCallback, null);
+        setMediaProjection(mediaProjection);
 
-        final Intent startStreaming = new Intent(this, ForegroundService.class);
-        startStreaming.putExtra(ForegroundService.SERVICE_MESSAGE, ForegroundService.SERVICE_MESSAGE_START_STREAMING);
-        startService(startStreaming);
+        startService(new Intent(this, ForegroundService.class)
+                .putExtra(SERVICE_MESSAGE, SERVICE_MESSAGE_START_STREAMING));
 
-        if (AppContext.getAppSettings().isMinimizeOnStream()) {
-            final Intent minimiseMyself = new Intent(Intent.ACTION_MAIN);
-            minimiseMyself.addCategory(Intent.CATEGORY_HOME);
-            minimiseMyself.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            startActivity(minimiseMyself);
-        }
+        if (getAppSettings().isMinimizeOnStream())
+            startActivity(new Intent(Intent.ACTION_MAIN)
+                    .addCategory(Intent.CATEGORY_HOME)
+                    .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            );
     }
 
     private void stopStreaming() {
-        if (!AppContext.isStreamRunning()) return;
-        final MediaProjection mediaProjection = ForegroundService.getMediaProjection();
-        if (mediaProjection == null) return;
-        mediaProjection.unregisterCallback(projectionCallback);
+        if (!isStreamRunning() || getMediaProjection() == null) return;
 
-        final Intent stopStreaming = new Intent(this, ForegroundService.class);
-        stopStreaming.putExtra(ForegroundService.SERVICE_MESSAGE, ForegroundService.SERVICE_MESSAGE_STOP_STREAMING);
-        startService(stopStreaming);
+        startService(new Intent(this, ForegroundService.class)
+                .putExtra(SERVICE_MESSAGE, SERVICE_MESSAGE_STOP_STREAMING));
 
-        if (AppContext.getAppSettings().isAutoChangePin())
-            AppContext.getAppSettings().generateAndSaveNewPin();
-
+        if (getAppSettings().isAutoChangePin()) getAppSettings().generateAndSaveNewPin();
         updatePinStatus(false);
     }
 }

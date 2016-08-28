@@ -18,6 +18,9 @@ import java.util.Locale;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
+import static info.dvkr.screenstream.ForegroundService.SERVICE_MESSAGE;
+import static info.dvkr.screenstream.ForegroundService.SERVICE_MESSAGE_PREPARE_STREAMING;
+
 
 public class AppContext extends Application {
     private static AppContext instance;
@@ -63,9 +66,8 @@ public class AppContext extends Application {
 
         setFavicon();
 
-        final Intent foregroundService = new Intent(this, ForegroundService.class);
-        foregroundService.putExtra(ForegroundService.SERVICE_MESSAGE, ForegroundService.SERVICE_MESSAGE_PREPARE_STREAMING);
-        startService(foregroundService);
+        startService(new Intent(this, ForegroundService.class)
+                .putExtra(SERVICE_MESSAGE, SERVICE_MESSAGE_PREPARE_STREAMING));
     }
 
     static AppState getAppState() {

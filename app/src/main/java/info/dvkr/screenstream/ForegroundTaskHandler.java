@@ -18,7 +18,9 @@ final class ForegroundTaskHandler extends Handler {
     private static final int HANDLER_RESUME_STREAMING = 5;
     private static final int HANDLER_DETECT_ROTATION = 10;
 
-    private int currentOrientation;
+    private boolean currentOrientation;
+    private boolean newOrientation;
+    private int rotation;
 
     ForegroundTaskHandler(final Looper looper) {
         super(looper);
@@ -56,7 +58,7 @@ final class ForegroundTaskHandler extends Handler {
                 break;
             case HANDLER_DETECT_ROTATION:
                 if (!AppContext.isStreamRunning()) break;
-                final int newOrientation = getOrientation();
+                newOrientation = getOrientation();
                 if (currentOrientation == newOrientation) {
                     sendMessageDelayed(obtainMessage(HANDLER_DETECT_ROTATION), 250);
                     break;
@@ -69,9 +71,8 @@ final class ForegroundTaskHandler extends Handler {
         }
     }
 
-    private int getOrientation() {
-        final int rotation = AppContext.getWindowsManager().getDefaultDisplay().getRotation();
-        if (rotation == ROTATION_0 || rotation == ROTATION_180) return 0;
-        return 1;
+    private boolean getOrientation() {
+        rotation = AppContext.getWindowsManager().getDefaultDisplay().getRotation();
+        return rotation == ROTATION_0 || rotation == ROTATION_180;
     }
 }
