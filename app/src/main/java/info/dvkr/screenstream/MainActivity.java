@@ -39,12 +39,6 @@ public final class MainActivity extends AppCompatActivity {
         ActivityMainBinding activityMainBinding = DataBindingUtil.setContentView(this, R.layout.activity_main);
         activityMainBinding.setAppState(AppContext.getAppState());
 
-        if (!AppContext.isForegroundServiceRunning()) {
-            final Intent foregroundService = new Intent(this, ForegroundService.class);
-            foregroundService.putExtra(ForegroundService.SERVICE_MESSAGE, ForegroundService.SERVICE_MESSAGE_PREPARE_STREAMING);
-            startService(foregroundService);
-        }
-
         projectionCallback = new MediaProjection.Callback() {
             @Override
             public void onStop() {
@@ -74,7 +68,7 @@ public final class MainActivity extends AppCompatActivity {
 
                     // Service ask to get new message
                     if (serviceMessage == ForegroundService.SERVICE_MESSAGE_HAS_NEW)
-                        updateServiceStatus(ForegroundService.SERVICE_MESSAGE_GET_CURRENT);
+                        updateServiceStatus();
 
                     // Service ask to start streaming
                     if (serviceMessage == ForegroundService.SERVICE_MESSAGE_START_STREAMING)
@@ -101,7 +95,7 @@ public final class MainActivity extends AppCompatActivity {
                         AppContext.getAppState().httpServerError.set(false);
                     }
 
-                    // Service ask notify HTTP Server ok
+                    // Service ask notify ImageGenerator Error
                     if (serviceMessage == ForegroundService.SERVICE_MESSAGE_IMAGE_GENERATOR_ERROR) {
                         stopStreaming();
                         new AlertDialog.Builder(MainActivity.this)
@@ -123,20 +117,10 @@ public final class MainActivity extends AppCompatActivity {
         registerReceiver(broadcastReceiverFromService, new IntentFilter(ForegroundService.SERVICE_ACTION), ForegroundService.SERVICE_PERMISSION, null);
     }
 
-    public void onToggleButtonClick(View v) {
-        if (AppContext.isStreamRunning()) {
-            stopStreaming();
-        } else {
-            ((ToggleButton) v).setChecked(false);
-            tryStartStreaming();
-        }
-
-    }
-
     @Override
     protected void onStart() {
         super.onStart();
-        updateServiceStatus(ForegroundService.SERVICE_MESSAGE_GET_CURRENT);
+        updateServiceStatus();
         if (ForegroundService.getHttpServerStatus() == HTTPServer.SERVER_ERROR_PORT_IN_USE) {
             portInUseSnackbar.show();
             AppContext.getAppState().httpServerError.set(true);
@@ -145,7 +129,7 @@ public final class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onDestroy() {
-        final MediaProjection mediaProjection = AppContext.getMediaProjection();
+        final MediaProjection mediaProjection = ForegroundService.getMediaProjection();
         if (mediaProjection != null)
             mediaProjection.unregisterCallback(projectionCallback);
 
@@ -201,6 +185,15 @@ public final class MainActivity extends AppCompatActivity {
         }
     }
 
+    public void onToggleButtonClick(View v) {
+        if (AppContext.isStreamRunning()) {
+            stopStreaming();
+        } else {
+            ((ToggleButton) v).setChecked(false);
+            tryStartStreaming();
+        }
+    }
+
     private void applicationClose() {
         stopService(new Intent(MainActivity.this, ForegroundService.class));
         finish();
@@ -225,9 +218,9 @@ public final class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void updateServiceStatus(final int message) {
+    private void updateServiceStatus() {
         final Intent getStatus = new Intent(this, ForegroundService.class);
-        getStatus.putExtra(ForegroundService.SERVICE_MESSAGE, message);
+        getStatus.putExtra(ForegroundService.SERVICE_MESSAGE, ForegroundService.SERVICE_MESSAGE_GET_CURRENT);
         startService(getStatus);
     }
 
@@ -235,13 +228,13 @@ public final class MainActivity extends AppCompatActivity {
         if (!AppContext.isWiFiConnected()) return;
         if (ForegroundService.getHttpServerStatus() != HTTPServer.SERVER_OK) return;
         if (AppContext.isStreamRunning()) return;
-        startActivityForResult(AppContext.getProjectionManager().createScreenCaptureIntent(), SCREEN_CAPTURE_REQUEST_CODE);
+        startActivityForResult(ForegroundService.getProjectionManager().createScreenCaptureIntent(), SCREEN_CAPTURE_REQUEST_CODE);
     }
 
     private void startStreaming(final int resultCode, final Intent data) {
-        AppContext.setMediaProjection(resultCode, data);
-        final MediaProjection mediaProjection = AppContext.getMediaProjection();
+        final MediaProjection mediaProjection = ForegroundService.getProjectionManager().getMediaProjection(resultCode, data);
         if (mediaProjection == null) return;
+        ForegroundService.setMediaProjection(mediaProjection);
         mediaProjection.registerCallback(projectionCallback, null);
 
         final Intent startStreaming = new Intent(this, ForegroundService.class);
@@ -258,7 +251,7 @@ public final class MainActivity extends AppCompatActivity {
 
     private void stopStreaming() {
         if (!AppContext.isStreamRunning()) return;
-        final MediaProjection mediaProjection = AppContext.getMediaProjection();
+        final MediaProjection mediaProjection = ForegroundService.getMediaProjection();
         if (mediaProjection == null) return;
         mediaProjection.unregisterCallback(projectionCallback);
 

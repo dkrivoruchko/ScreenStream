@@ -4,10 +4,7 @@ import android.app.Application;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Point;
-import android.media.projection.MediaProjection;
-import android.media.projection.MediaProjectionManager;
 import android.net.wifi.WifiManager;
-import android.support.annotation.Nullable;
 import android.util.DisplayMetrics;
 import android.view.WindowManager;
 
@@ -28,8 +25,6 @@ public class AppContext extends Application {
     private final AppState appState = new AppState();
     private AppSettings appSettings;
     private WindowManager windowManager;
-    private MediaProjectionManager projectionManager;
-    private MediaProjection mediaProjection;
     private int densityDPI;
     private String indexHTMLPage;
     private String pinRequestHTMLPage;
@@ -39,8 +34,6 @@ public class AppContext extends Application {
     private final ConcurrentLinkedQueue<Client> clientQueue = new ConcurrentLinkedQueue<>();
 
     private volatile boolean isStreamRunning;
-    private volatile boolean isForegroundServiceRunning;
-
 
     @Override
     public void onCreate() {
@@ -59,7 +52,6 @@ public class AppContext extends Application {
         appState.wifiConnected.set(isWiFiConnected());
 
         windowManager = (WindowManager) getSystemService(Context.WINDOW_SERVICE);
-        projectionManager = (MediaProjectionManager) getSystemService(Context.MEDIA_PROJECTION_SERVICE);
         densityDPI = getDensityDPI();
         indexHTMLPage = getHTML("index.html");
         pinRequestHTMLPage = getHTML("pinrequest.html");
@@ -70,6 +62,10 @@ public class AppContext extends Application {
                 .replaceFirst("submit_text", getString(R.string.submit_text));
 
         setFavicon();
+
+        final Intent foregroundService = new Intent(this, ForegroundService.class);
+        foregroundService.putExtra(ForegroundService.SERVICE_MESSAGE, ForegroundService.SERVICE_MESSAGE_PREPARE_STREAMING);
+        startService(foregroundService);
     }
 
     static AppState getAppState() {
@@ -80,25 +76,12 @@ public class AppContext extends Application {
         return instance.appSettings;
     }
 
-    static WindowManager getWindowsManager() {
-        return instance.windowManager;
-    }
-
-    static MediaProjectionManager getProjectionManager() {
-        return instance.projectionManager;
-    }
-
-    static void setMediaProjection(final int resultCode, final Intent data) {
-        instance.mediaProjection = instance.projectionManager.getMediaProjection(resultCode, data);
-    }
-
-    @Nullable
-    static MediaProjection getMediaProjection() {
-        return instance.mediaProjection;
-    }
-
     static int getScreenDensity() {
         return instance.densityDPI;
+    }
+
+    static WindowManager getWindowsManager() {
+        return instance.windowManager;
     }
 
     static float getScale() {
@@ -118,14 +101,6 @@ public class AppContext extends Application {
     static void setIsStreamRunning(final boolean isRunning) {
         instance.isStreamRunning = isRunning;
         getAppState().streaming.set(isRunning);
-    }
-
-    static boolean isForegroundServiceRunning() {
-        return instance.isForegroundServiceRunning;
-    }
-
-    static void setIsForegroundServiceRunning(final boolean isRunning) {
-        instance.isForegroundServiceRunning = isRunning;
     }
 
     static String getIndexHTMLPage(final String streamAddress) {
@@ -189,7 +164,8 @@ public class AppContext extends Application {
     private void setFavicon() {
         try (InputStream inputStream = getAssets().open("favicon.png")) {
             iconBytes = new byte[inputStream.available()];
-            inputStream.read(iconBytes);
+            int count = inputStream.read(iconBytes);
+            if (count != 353) throw new IOException();
         } catch (IOException e) {
             FirebaseCrash.report(e);
         }

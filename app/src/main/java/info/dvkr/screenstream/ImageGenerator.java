@@ -85,7 +85,7 @@ final class ImageGenerator {
     void start() {
         synchronized (lock) {
             if (isThreadRunning) return;
-            final MediaProjection mediaProjection = AppContext.getMediaProjection();
+            final MediaProjection mediaProjection = ForegroundService.getMediaProjection();
             if (mediaProjection == null) return;
 
             imageThread = new HandlerThread("Image capture thread", Process.THREAD_PRIORITY_MORE_FAVORABLE);

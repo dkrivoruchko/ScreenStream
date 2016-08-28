@@ -7,6 +7,8 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.media.projection.MediaProjection;
+import android.media.projection.MediaProjectionManager;
 import android.net.wifi.WifiManager;
 import android.os.HandlerThread;
 import android.os.IBinder;
@@ -19,6 +21,8 @@ import android.util.Log;
 public final class ForegroundService extends Service {
     private static ForegroundService foregroundService;
 
+    private MediaProjectionManager projectionManager;
+    private MediaProjection mediaProjection;
     private HTTPServer httpServer;
     private ImageGenerator imageGenerator;
     private ForegroundTaskHandler foregroundServiceTaskHandler;
@@ -59,6 +63,7 @@ public final class ForegroundService extends Service {
     public void onCreate() {
         foregroundService = this;
 
+        projectionManager = (MediaProjectionManager) getSystemService(Context.MEDIA_PROJECTION_SERVICE);
         httpServer = new HTTPServer();
         imageGenerator = new ImageGenerator();
 
@@ -137,7 +142,6 @@ public final class ForegroundService extends Service {
 
         if (messageFromActivity == SERVICE_MESSAGE_PREPARE_STREAMING) {
             startForeground(110, getNotificationStart());
-            AppContext.setIsForegroundServiceRunning(true);
         }
 
         if (messageFromActivity == SERVICE_MESSAGE_GET_CURRENT) {
@@ -196,11 +200,23 @@ public final class ForegroundService extends Service {
         stopForeground(true);
         unregisterReceiver(broadcastReceiver);
         unregisterReceiver(localNotificationReceiver);
-        AppContext.setIsForegroundServiceRunning(false);
         foregroundServiceTaskHandler.getLooper().quit();
     }
 
     // Static methods
+    static MediaProjectionManager getProjectionManager() {
+        return foregroundService.projectionManager;
+    }
+
+    static void setMediaProjection(final MediaProjection mediaProjection) {
+        foregroundService.mediaProjection = mediaProjection;
+    }
+
+    @Nullable
+    static MediaProjection getMediaProjection() {
+        return foregroundService.mediaProjection;
+    }
+
     static ImageGenerator getImageGenerator() {
         return foregroundService.imageGenerator;
     }
@@ -210,7 +226,7 @@ public final class ForegroundService extends Service {
         return foregroundService.httpServerStatus;
     }
 
-    static void errorInImageGenerator(){
+    static void errorInImageGenerator() {
         foregroundService.currentServiceMessage = SERVICE_MESSAGE_IMAGE_GENERATOR_ERROR;
         foregroundService.relayMessageViaActivity();
     }
