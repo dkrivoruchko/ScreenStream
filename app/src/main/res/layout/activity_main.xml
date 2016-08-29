@@ -7,7 +7,7 @@
 
         <variable
             name="appState"
-            type="info.dvkr.screenstream.AppState" />
+            type="info.dvkr.screenstream.AppViewState" />
     </data>
 
     <LinearLayout xmlns:tools="http://schemas.android.com/tools"

@@ -33,8 +33,8 @@ final class Client {
         } catch (IOException e) {
             FirebaseCrash.report(e);
         }
-        AppContext.getClientQueue().remove(Client.this);
-        AppContext.getAppState().clients.set(AppContext.getClientQueue().size());
+        AppContext.getAppState().clientQueue.remove(Client.this);
+        AppContext.getAppViewState().clients.set(AppContext.getAppState().clientQueue.size());
     }
 
 

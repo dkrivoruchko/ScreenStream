@@ -72,10 +72,10 @@ final class ImageGenerator {
                 jpegByteArray = jpegOutputStream.toByteArray();
 
                 if (jpegByteArray != null) {
-                    if (AppContext.getJPEGQueue().size() > 6) {
-                        AppContext.getJPEGQueue().pollLast();
+                    if (AppContext.getAppState().JPEGQueue.size() > 6) {
+                        AppContext.getAppState().JPEGQueue.pollLast();
                     }
-                    AppContext.getJPEGQueue().add(jpegByteArray);
+                    AppContext.getAppState().JPEGQueue.add(jpegByteArray);
                     jpegByteArray = null;
                 }
             }
@@ -138,13 +138,13 @@ final class ImageGenerator {
     }
 
     void addDefaultScreen(final Context context) {
-        AppContext.getJPEGQueue().clear();
+        AppContext.getAppState().JPEGQueue.clear();
         new Handler().postDelayed(new Runnable() {
             @Override
             public void run() {
                 final byte[] jpegByteArray = NotifyImageGenerator.getDefaultScreen(context);
                 if (jpegByteArray != null) {
-                    AppContext.getJPEGQueue().add(jpegByteArray);
+                    AppContext.getAppState().JPEGQueue.add(jpegByteArray);
                 }
             }
         }, 500);

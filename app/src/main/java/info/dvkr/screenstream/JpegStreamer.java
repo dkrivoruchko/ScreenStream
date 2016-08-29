@@ -22,7 +22,7 @@ final class JpegStreamer {
         public void run() {
             while (!isInterrupted()) {
                 if (!isThreadRunning) break;
-                currentJPEG = AppContext.getJPEGQueue().poll();
+                currentJPEG = AppContext.getAppState().JPEGQueue.poll();
 
                 if (currentJPEG == null) {
                     try {
@@ -43,7 +43,7 @@ final class JpegStreamer {
             sleepCount = 0;
             synchronized (lock) {
                 if (!isThreadRunning) return;
-                for (final Client currentClient : AppContext.getClientQueue())
+                for (final Client currentClient : AppContext.getAppState().clientQueue)
                     currentClient.sendClientData(HTTPServer.SERVER_OK, Client.CLIENT_IMAGE, lastJPEG);
             }
         }
@@ -55,8 +55,8 @@ final class JpegStreamer {
             try {
                 final Client newClient = new Client(clientSocket);
                 newClient.sendClientData(HTTPServer.SERVER_OK, Client.CLIENT_HEADER, null);
-                AppContext.getClientQueue().add(newClient);
-                AppContext.getAppState().clients.set(AppContext.getClientQueue().size());
+                AppContext.getAppState().clientQueue.add(newClient);
+                AppContext.getAppViewState().clients.set(AppContext.getAppState().clientQueue.size());
             } catch (IOException e) {
                 FirebaseCrash.report(e);
             }
@@ -78,11 +78,11 @@ final class JpegStreamer {
             isThreadRunning = false;
             jpegStreamerThread.interrupt();
 
-            for (Client currentClient : AppContext.getClientQueue())
+            for (Client currentClient : AppContext.getAppState().clientQueue)
                 currentClient.sendClientData(reason, Client.CLIENT_IMAGE, clientNotifyImage);
 
-            AppContext.getClientQueue().clear();
-            AppContext.getAppState().clients.set(0);
+            AppContext.getAppState().clientQueue.clear();
+            AppContext.getAppViewState().clients.set(0);
         }
     }
 }

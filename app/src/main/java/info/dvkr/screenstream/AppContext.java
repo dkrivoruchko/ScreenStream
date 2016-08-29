@@ -15,8 +15,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.Locale;
-import java.util.concurrent.ConcurrentLinkedDeque;
-import java.util.concurrent.ConcurrentLinkedQueue;
 
 import static info.dvkr.screenstream.ForegroundService.SERVICE_MESSAGE;
 import static info.dvkr.screenstream.ForegroundService.SERVICE_MESSAGE_PREPARE_STREAMING;
@@ -25,6 +23,7 @@ import static info.dvkr.screenstream.ForegroundService.SERVICE_MESSAGE_PREPARE_S
 public class AppContext extends Application {
     private static AppContext instance;
 
+    private final AppViewState appViewState = new AppViewState();
     private final AppState appState = new AppState();
     private AppSettings appSettings;
     private WindowManager windowManager;
@@ -32,11 +31,6 @@ public class AppContext extends Application {
     private String indexHTMLPage;
     private String pinRequestHTMLPage;
     private byte[] iconBytes;
-
-    private final ConcurrentLinkedDeque<byte[]> JPEGQueue = new ConcurrentLinkedDeque<>();
-    private final ConcurrentLinkedQueue<Client> clientQueue = new ConcurrentLinkedQueue<>();
-
-    private volatile boolean isStreamRunning;
 
     @Override
     public void onCreate() {
@@ -48,11 +42,11 @@ public class AppContext extends Application {
             appSettings.generateAndSaveNewPin();
         }
 
-        appState.serverAddress.set(getServerAddress());
-        appState.pinEnabled.set(appSettings.isEnablePin());
-        appState.pinAutoHide.set(appSettings.isPinAutoHide());
-        appState.streamPin.set(appSettings.getUserPin());
-        appState.wifiConnected.set(isWiFiConnected());
+        appViewState.serverAddress.set(getServerAddress());
+        appViewState.pinEnabled.set(appSettings.isEnablePin());
+        appViewState.pinAutoHide.set(appSettings.isPinAutoHide());
+        appViewState.streamPin.set(appSettings.getUserPin());
+        appViewState.wifiConnected.set(isWiFiConnected());
 
         windowManager = (WindowManager) getSystemService(Context.WINDOW_SERVICE);
         densityDPI = getDensityDPI();
@@ -68,6 +62,10 @@ public class AppContext extends Application {
 
         startService(new Intent(this, ForegroundService.class)
                 .putExtra(SERVICE_MESSAGE, SERVICE_MESSAGE_PREPARE_STREAMING));
+    }
+
+    static AppViewState getAppViewState() {
+        return instance.appViewState;
     }
 
     static AppState getAppState() {
@@ -96,13 +94,9 @@ public class AppContext extends Application {
         return screenSize;
     }
 
-    static boolean isStreamRunning() {
-        return instance.isStreamRunning;
-    }
-
     static void setIsStreamRunning(final boolean isRunning) {
-        instance.isStreamRunning = isRunning;
-        getAppState().streaming.set(isRunning);
+        instance.appState.isStreamRunning = isRunning;
+        getAppViewState().streaming.set(isRunning);
     }
 
     static String getIndexHTMLPage(final String streamAddress) {
@@ -120,14 +114,6 @@ public class AppContext extends Application {
 
     static String getServerAddress() {
         return "http://" + instance.getIPAddress() + ":" + instance.appSettings.getSeverPort();
-    }
-
-    static ConcurrentLinkedDeque<byte[]> getJPEGQueue() {
-        return instance.JPEGQueue;
-    }
-
-    static ConcurrentLinkedQueue<Client> getClientQueue() {
-        return instance.clientQueue;
     }
 
     static boolean isWiFiConnected() {
