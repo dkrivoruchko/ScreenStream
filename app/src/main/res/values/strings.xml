@@ -63,6 +63,18 @@
     <string name="client_timeout">Client connection timeout</string>
     <string name="client_timeout_summary">Set time for client response in seconds</string>
 
+    <!--PreferencesKeys-->
+    <string name="pref_key_minimize_on_stream" translatable="false">PREF_KEY_MINIMIZE_ON_STREAM</string>
+    <string name="pref_key_stop_on_sleep" translatable="false">PREF_KEY_STOP_ON_SLEEP</string>
+    <string name="pref_key_enable_pin" translatable="false">PREF_KEY_ENABLE_PIN</string>
+    <string name="pref_key_hide_pin_on_start" translatable="false">PREF_KEY_HIDE_PIN_ON_START</string>
+    <string name="pref_key_new_pin_on_app_start" translatable="false">PREF_KEY_NEW_PIN_ON_APP_START</string>
+    <string name="pref_key_auto_change_pin" translatable="false">PREF_KEY_AUTO_CHANGE_PIN</string>
+    <string name="pref_key_set_pin" translatable="false">PREF_KEY_SET_PIN</string>
+    <string name="pref_key_server_port" translatable="false">PREF_KEY_SERVER_PORT</string>
+    <string name="pref_key_jpeg_quality" translatable="false">PREF_KEY_JPEG_QUALITY</string>
+    <string name="pref_key_client_con_timeout" translatable="false">PREF_KEY_CLIENT_CON_TIMEOUT</string>
+
     <!--PinRequest.html-->
     <string name="stream_require_pin">This stream require PIN to access it.</string>
     <string name="html_enter_pin">Enter pin:\u0020</string>

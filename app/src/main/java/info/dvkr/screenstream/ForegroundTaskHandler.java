@@ -12,19 +12,19 @@ import static android.view.Surface.ROTATION_180;
 import static info.dvkr.screenstream.AppContext.getAppState;
 import static info.dvkr.screenstream.AppContext.getWindowsManager;
 import static info.dvkr.screenstream.AppContext.setIsStreamRunning;
+import static info.dvkr.screenstream.ForegroundService.getImageGenerator;
+import static info.dvkr.screenstream.ForegroundService.getMediaProjection;
 
 final class ForegroundTaskHandler extends Handler {
     static final int HANDLER_START_STREAMING = 0;
     static final int HANDLER_STOP_STREAMING = 1;
 
-    private static final int HANDLER_PAUSE_STREAMING = 4;
-    private static final int HANDLER_RESUME_STREAMING = 5;
-    private static final int HANDLER_DETECT_ROTATION = 10;
+    private static final int HANDLER_PAUSE_STREAMING = 10;
+    private static final int HANDLER_RESUME_STREAMING = 11;
+    private static final int HANDLER_DETECT_ROTATION = 20;
 
-    private ImageGenerator imageGenerator;
-    private boolean currentOrientation;
-    private boolean newOrientation;
-    private int rotation;
+    private ImageGenerator mImageGenerator;
+    private boolean mCurrentOrientation;
 
     ForegroundTaskHandler(final Looper looper) {
         super(looper);
@@ -36,42 +36,42 @@ final class ForegroundTaskHandler extends Handler {
             case HANDLER_START_STREAMING:
                 if (getAppState().isStreamRunning) break;
                 removeMessages(HANDLER_DETECT_ROTATION);
-                currentOrientation = getOrientation();
-                imageGenerator = ForegroundService.getImageGenerator();
-                if (imageGenerator != null) imageGenerator.start();
+                mCurrentOrientation = getOrientation();
+                mImageGenerator = getImageGenerator();
+                if (mImageGenerator != null) mImageGenerator.start();
                 sendMessageDelayed(obtainMessage(HANDLER_DETECT_ROTATION), 250);
                 setIsStreamRunning(true);
                 break;
             case HANDLER_PAUSE_STREAMING:
                 if (!getAppState().isStreamRunning) break;
-                imageGenerator = ForegroundService.getImageGenerator();
-                if (imageGenerator != null) imageGenerator.stop();
+                mImageGenerator = getImageGenerator();
+                if (mImageGenerator != null) mImageGenerator.stop();
                 sendMessageDelayed(obtainMessage(HANDLER_RESUME_STREAMING), 250);
                 break;
             case HANDLER_RESUME_STREAMING:
                 if (!getAppState().isStreamRunning) break;
-                imageGenerator = ForegroundService.getImageGenerator();
-                if (imageGenerator != null) imageGenerator.start();
+                mImageGenerator = getImageGenerator();
+                if (mImageGenerator != null) mImageGenerator.start();
                 sendMessageDelayed(obtainMessage(HANDLER_DETECT_ROTATION), 250);
                 break;
             case HANDLER_STOP_STREAMING:
                 if (!getAppState().isStreamRunning) break;
                 removeMessages(HANDLER_DETECT_ROTATION);
                 removeMessages(HANDLER_STOP_STREAMING);
-                imageGenerator = ForegroundService.getImageGenerator();
-                if (imageGenerator != null) imageGenerator.stop();
-                final MediaProjection mediaProjection = ForegroundService.getMediaProjection();
+                mImageGenerator = getImageGenerator();
+                if (mImageGenerator != null) mImageGenerator.stop();
+                final MediaProjection mediaProjection = getMediaProjection();
                 if (mediaProjection != null) mediaProjection.stop();
                 setIsStreamRunning(false);
                 break;
             case HANDLER_DETECT_ROTATION:
                 if (!getAppState().isStreamRunning) break;
-                newOrientation = getOrientation();
-                if (currentOrientation == newOrientation) {
+                boolean newOrientation = getOrientation();
+                if (mCurrentOrientation == newOrientation) {
                     sendMessageDelayed(obtainMessage(HANDLER_DETECT_ROTATION), 250);
                     break;
                 }
-                currentOrientation = newOrientation;
+                mCurrentOrientation = newOrientation;
                 obtainMessage(HANDLER_PAUSE_STREAMING).sendToTarget();
                 break;
             default:
@@ -80,7 +80,7 @@ final class ForegroundTaskHandler extends Handler {
     }
 
     private boolean getOrientation() {
-        rotation = getWindowsManager().getDefaultDisplay().getRotation();
+        final int rotation = getWindowsManager().getDefaultDisplay().getRotation();
         return rotation == ROTATION_0 || rotation == ROTATION_180;
     }
 }

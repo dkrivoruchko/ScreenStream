@@ -22,36 +22,36 @@ public final class SettingsActivity extends PreferenceActivity {
     }
 
     public static class ScreenStreamPreferenceFragment extends PreferenceFragment {
-        int index;
+        int mIndex;
 
         @Override
         public void onCreate(final Bundle savedInstanceState) {
             super.onCreate(savedInstanceState);
             addPreferencesFromResource(R.xml.preferences);
 
-            final CheckBoxPreference pinNewOnAppStartCheckBoxPreference = (CheckBoxPreference) findPreference("pin_new_on_app_start");
-            final CheckBoxPreference pinAutoGenerateCheckBoxPreference = (CheckBoxPreference) findPreference("pin_change_on_start");
-            final EditTextPreference pinNumberTextPreference = (EditTextPreference) findPreference("pin_manual");
+            final CheckBoxPreference newPinOnAppStartCheckBoxPreference = (CheckBoxPreference) findPreference(getString(R.string.pref_key_new_pin_on_app_start));
+            final CheckBoxPreference autoChangePinCheckBoxPreference = (CheckBoxPreference) findPreference(getString(R.string.pref_key_auto_change_pin));
+            final EditTextPreference setPinTextPreference = (EditTextPreference) findPreference(getString(R.string.pref_key_set_pin));
 
-            pinNewOnAppStartCheckBoxPreference.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
+            newPinOnAppStartCheckBoxPreference.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
                 @Override
                 public boolean onPreferenceChange(Preference preference, Object data) {
                     final boolean newValue = (boolean) data;
-                    pinNumberTextPreference.setEnabled((!newValue) && (!pinAutoGenerateCheckBoxPreference.isChecked()));
+                    setPinTextPreference.setEnabled((!newValue) && (!autoChangePinCheckBoxPreference.isChecked()));
                     return true;
                 }
             });
 
-            pinAutoGenerateCheckBoxPreference.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
+            autoChangePinCheckBoxPreference.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
                 @Override
                 public boolean onPreferenceChange(Preference preference, Object data) {
                     final boolean newValue = (boolean) data;
-                    pinNumberTextPreference.setEnabled((!newValue) && (!pinNewOnAppStartCheckBoxPreference.isChecked()));
+                    setPinTextPreference.setEnabled((!newValue) && (!newPinOnAppStartCheckBoxPreference.isChecked()));
                     return true;
                 }
             });
 
-            pinNumberTextPreference.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
+            setPinTextPreference.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
                 @Override
                 public boolean onPreferenceChange(Preference preference, Object data) {
                     final int pinStringLength = data.toString().length();
@@ -63,13 +63,11 @@ public final class SettingsActivity extends PreferenceActivity {
                 }
             });
 
-            pinNumberTextPreference.setEnabled((!pinAutoGenerateCheckBoxPreference.isChecked()) && (!pinNewOnAppStartCheckBoxPreference.isChecked()));
-
-            // Advanced
+            setPinTextPreference.setEnabled((!autoChangePinCheckBoxPreference.isChecked()) && (!newPinOnAppStartCheckBoxPreference.isChecked()));
 
             final String portRange = String.format(getString(R.string.port_range), MIN_PORT_NUMBER, MAX_PORT_NUMBER);
-            final EditTextPreference portNumberTextPreference = (EditTextPreference) findPreference("port_number");
-            portNumberTextPreference.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
+            final EditTextPreference serverPortTextPreference = (EditTextPreference) findPreference(getString(R.string.pref_key_server_port));
+            serverPortTextPreference.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
                 @Override
                 public boolean onPreferenceChange(Preference preference, Object data) {
                     final String portString = data.toString();
@@ -86,28 +84,28 @@ public final class SettingsActivity extends PreferenceActivity {
                 }
             });
 
-            final ListPreference jpegQualityPreference = (ListPreference) findPreference("jpeg_quality");
-            index = jpegQualityPreference.findIndexOfValue(jpegQualityPreference.getValue());
+            final ListPreference jpegQualityPreference = (ListPreference) findPreference(getString(R.string.pref_key_jpeg_quality));
+            mIndex = jpegQualityPreference.findIndexOfValue(jpegQualityPreference.getValue());
             jpegQualityPreference.setSummary(getString(R.string.settings_jpeg_quality_summary)
-                    + getString(R.string.value) + jpegQualityPreference.getEntries()[index]);
+                    + getString(R.string.value) + jpegQualityPreference.getEntries()[mIndex]);
             jpegQualityPreference.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
                 @Override
                 public boolean onPreferenceChange(Preference preference, Object data) {
-                    int index = jpegQualityPreference.findIndexOfValue(data.toString());
+                    final int index = jpegQualityPreference.findIndexOfValue(data.toString());
                     jpegQualityPreference.setSummary(getString(R.string.settings_jpeg_quality_summary)
                             + getString(R.string.value) + jpegQualityPreference.getEntries()[index]);
                     return true;
                 }
             });
 
-            final ListPreference clientTimeoutPreference = (ListPreference) findPreference("client_connection_timeout");
-            index = clientTimeoutPreference.findIndexOfValue(clientTimeoutPreference.getValue());
+            final ListPreference clientTimeoutPreference = (ListPreference) findPreference(getString(R.string.pref_key_client_con_timeout));
+            mIndex = clientTimeoutPreference.findIndexOfValue(clientTimeoutPreference.getValue());
             clientTimeoutPreference.setSummary(getString(R.string.client_timeout_summary)
-                    + getString(R.string.value) + clientTimeoutPreference.getEntries()[index]);
+                    + getString(R.string.value) + clientTimeoutPreference.getEntries()[mIndex]);
             clientTimeoutPreference.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
                 @Override
                 public boolean onPreferenceChange(Preference preference, Object data) {
-                    int index = clientTimeoutPreference.findIndexOfValue(data.toString());
+                    final int index = clientTimeoutPreference.findIndexOfValue(data.toString());
                     clientTimeoutPreference.setSummary(getString(R.string.client_timeout_summary)
                             + getString(R.string.value) + clientTimeoutPreference.getEntries()[index]);
                     return true;

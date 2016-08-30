@@ -13,33 +13,36 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
 final class NotifyImageGenerator {
-    private static int currentScreenSizeX;
-    private static byte[] currentDefaultScreen;
+    private static int sCurrentScreenSizeX;
+    private static byte[] sCurrentDefaultScreen;
 
     static byte[] getDefaultScreen(final Context context) {
-        if (currentScreenSizeX != AppContext.getScreenSize().x) currentDefaultScreen = null;
-        if (currentDefaultScreen != null) return currentDefaultScreen;
+        if (sCurrentScreenSizeX != AppContext.getScreenSize().x) sCurrentDefaultScreen = null;
+        if (sCurrentDefaultScreen != null) return sCurrentDefaultScreen;
 
-        currentDefaultScreen = generateImage(context.getString(R.string.press),
+        sCurrentDefaultScreen = generateImage(context.getString(R.string.press),
                 context.getString(R.string.start_stream).toUpperCase(),
                 context.getString(R.string.on_device));
 
-        currentScreenSizeX = AppContext.getScreenSize().x;
-        return currentDefaultScreen;
+        sCurrentScreenSizeX = AppContext.getScreenSize().x;
+        return sCurrentDefaultScreen;
     }
 
 
     static byte[] getClientNotifyImage(final Context context, final int reason) {
-        if (reason == HTTPServer.SERVER_SETTINGS_RESTART)
+        if (reason == HttpServer.SERVER_SETTINGS_RESTART)
             return generateImage(context.getString(R.string.settings_changed), "", context.getString(R.string.go_to_new_address));
-        if (reason == HTTPServer.SERVER_PIN_RESTART)
+        if (reason == HttpServer.SERVER_PIN_RESTART)
             return generateImage(context.getString(R.string.settings_changed), "", context.getString(R.string.reload_this_page));
         return null;
     }
 
 
     private static byte[] generateImage(final String text1, final String text2, final String text3) {
-        final Bitmap bitmap = Bitmap.createBitmap(AppContext.getScreenSize().x, AppContext.getScreenSize().y, Bitmap.Config.ARGB_8888);
+        final Bitmap bitmap = Bitmap.createBitmap(AppContext.getScreenSize().x,
+                AppContext.getScreenSize().y,
+                Bitmap.Config.ARGB_8888);
+
         final Canvas canvas = new Canvas(bitmap);
         canvas.drawRGB(255, 255, 255);
 

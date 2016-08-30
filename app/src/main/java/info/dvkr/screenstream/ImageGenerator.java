@@ -17,120 +17,129 @@ import com.google.firebase.crash.FirebaseCrash;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
+import static info.dvkr.screenstream.AppContext.getAppSettings;
+import static info.dvkr.screenstream.AppContext.getAppState;
+import static info.dvkr.screenstream.AppContext.getScreenDensity;
+import static info.dvkr.screenstream.AppContext.getScreenSize;
+
 final class ImageGenerator {
-    private final Object lock = new Object();
+    private final Object mLock = new Object();
 
     private volatile boolean isThreadRunning;
 
-    private HandlerThread imageThread;
-    private Handler imageHandler;
-    private ImageReader imageReader;
-    private VirtualDisplay virtualDisplay;
-    private Bitmap reusableBitmap;
-    private ByteArrayOutputStream jpegOutputStream;
+    private HandlerThread mImageThread;
+    private Handler mImageHandler;
+    private ImageReader mImageReader;
+    private VirtualDisplay mVirtualDisplay;
+    private Bitmap mReusableBitmap;
+    private ByteArrayOutputStream mJpegOutputStream;
 
     private class ImageAvailableListener implements ImageReader.OnImageAvailableListener {
-        private Image image;
-        private Image.Plane plane;
-        private int width;
-
-        private Bitmap bitmapClean;
-        private byte[] jpegByteArray;
+        private Image mImage;
+        private Image.Plane mPlane;
+        private int mWidth;
+        private Bitmap mCleanBitmap;
+        private byte[] mJpegByteArray;
 
         @Override
         public void onImageAvailable(ImageReader reader) {
-            synchronized (lock) {
+            synchronized (mLock) {
                 if (!isThreadRunning) return;
 
                 try {
-                    image = imageReader.acquireLatestImage();
+                    mImage = mImageReader.acquireLatestImage();
                 } catch (UnsupportedOperationException e) {
                     ForegroundService.errorInImageGenerator();
                     FirebaseCrash.report(e);
                     return;
                 }
 
-                if (image == null) return;
+                if (mImage == null) return;
 
-                plane = image.getPlanes()[0];
-                width = plane.getRowStride() / plane.getPixelStride();
+                mPlane = mImage.getPlanes()[0];
+                mWidth = mPlane.getRowStride() / mPlane.getPixelStride();
 
-                if (width > image.getWidth()) {
-                    if (reusableBitmap == null)
-                        reusableBitmap = Bitmap.createBitmap(width, image.getHeight(), Bitmap.Config.ARGB_8888);
-                    reusableBitmap.copyPixelsFromBuffer(plane.getBuffer());
-                    bitmapClean = Bitmap.createBitmap(reusableBitmap, 0, 0, image.getWidth(), image.getHeight());
-                } else {
-                    bitmapClean = Bitmap.createBitmap(width, image.getHeight(), Bitmap.Config.ARGB_8888);
-                    bitmapClean.copyPixelsFromBuffer(plane.getBuffer());
-                }
-                image.close();
-
-                jpegOutputStream.reset();
-                bitmapClean.compress(Bitmap.CompressFormat.JPEG, AppContext.getAppSettings().getJpegQuality(), jpegOutputStream);
-                bitmapClean.recycle();
-                jpegByteArray = jpegOutputStream.toByteArray();
-
-                if (jpegByteArray != null) {
-                    if (AppContext.getAppState().JPEGQueue.size() > 6) {
-                        AppContext.getAppState().JPEGQueue.pollLast();
+                if (mWidth > mImage.getWidth()) {
+                    if (mReusableBitmap == null) {
+                        mReusableBitmap = Bitmap.createBitmap(mWidth, mImage.getHeight(), Bitmap.Config.ARGB_8888);
                     }
-                    AppContext.getAppState().JPEGQueue.add(jpegByteArray);
-                    jpegByteArray = null;
+                    mReusableBitmap.copyPixelsFromBuffer(mPlane.getBuffer());
+                    mCleanBitmap = Bitmap.createBitmap(mReusableBitmap, 0, 0, mImage.getWidth(), mImage.getHeight());
+                } else {
+                    mCleanBitmap = Bitmap.createBitmap(mWidth, mImage.getHeight(), Bitmap.Config.ARGB_8888);
+                    mCleanBitmap.copyPixelsFromBuffer(mPlane.getBuffer());
+                }
+                mImage.close();
+
+                mJpegOutputStream.reset();
+                mCleanBitmap.compress(Bitmap.CompressFormat.JPEG, getAppSettings().getJpegQuality(), mJpegOutputStream);
+                mCleanBitmap.recycle();
+                mJpegByteArray = mJpegOutputStream.toByteArray();
+
+                if (mJpegByteArray != null) {
+                    if (getAppState().mJPEGQueue.size() > 6) {
+                        getAppState().mJPEGQueue.pollLast();
+                    }
+                    getAppState().mJPEGQueue.add(mJpegByteArray);
+                    mJpegByteArray = null;
                 }
             }
         }
     }
 
     void start() {
-        synchronized (lock) {
+        synchronized (mLock) {
             if (isThreadRunning) return;
             final MediaProjection mediaProjection = ForegroundService.getMediaProjection();
             if (mediaProjection == null) return;
 
-            imageThread = new HandlerThread("Image capture thread", Process.THREAD_PRIORITY_MORE_FAVORABLE);
-            imageThread.start();
-            imageReader = ImageReader.newInstance(AppContext.getScreenSize().x, AppContext.getScreenSize().y, PixelFormat.RGBA_8888, 2);
-            imageHandler = new Handler(imageThread.getLooper());
-            jpegOutputStream = new ByteArrayOutputStream();
-            imageReader.setOnImageAvailableListener(new ImageAvailableListener(), imageHandler);
-            virtualDisplay = mediaProjection.createVirtualDisplay(
-                    "Screen Stream Virtual Display",
-                    AppContext.getScreenSize().x,
-                    AppContext.getScreenSize().y,
-                    AppContext.getScreenDensity(),
+            mImageThread = new HandlerThread(ImageGenerator.class.getSimpleName(),
+                    Process.THREAD_PRIORITY_MORE_FAVORABLE);
+
+            mImageThread.start();
+            mImageReader = ImageReader.newInstance(getScreenSize().x,
+                    getScreenSize().y,
+                    PixelFormat.RGBA_8888, 2);
+
+            mImageHandler = new Handler(mImageThread.getLooper());
+            mJpegOutputStream = new ByteArrayOutputStream();
+            mImageReader.setOnImageAvailableListener(new ImageAvailableListener(), mImageHandler);
+            mVirtualDisplay = mediaProjection.createVirtualDisplay("ScreenStreamVirtualDisplay",
+                    getScreenSize().x,
+                    getScreenSize().y,
+                    getScreenDensity(),
                     DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
-                    imageReader.getSurface(),
-                    null, imageHandler);
+                    mImageReader.getSurface(),
+                    null, mImageHandler);
 
             isThreadRunning = true;
         }
     }
 
     void stop() {
-        synchronized (lock) {
+        synchronized (mLock) {
             if (!isThreadRunning) return;
 
-            imageReader.setOnImageAvailableListener(null, null);
-            imageReader.close();
-            imageReader = null;
+            mImageReader.setOnImageAvailableListener(null, null);
+            mImageReader.close();
+            mImageReader = null;
 
             try {
-                jpegOutputStream.close();
+                mJpegOutputStream.close();
             } catch (IOException e) {
                 FirebaseCrash.report(e);
             }
 
-            virtualDisplay.release();
-            virtualDisplay = null;
+            mVirtualDisplay.release();
+            mVirtualDisplay = null;
 
-            imageHandler.removeCallbacksAndMessages(null);
-            imageThread.quit();
-            imageThread = null;
+            mImageHandler.removeCallbacksAndMessages(null);
+            mImageThread.quit();
+            mImageThread = null;
 
-            if (reusableBitmap != null) {
-                reusableBitmap.recycle();
-                reusableBitmap = null;
+            if (mReusableBitmap != null) {
+                mReusableBitmap.recycle();
+                mReusableBitmap = null;
             }
 
             isThreadRunning = false;
@@ -138,19 +147,17 @@ final class ImageGenerator {
     }
 
     void addDefaultScreen(final Context context) {
-        AppContext.getAppState().JPEGQueue.clear();
+        getAppState().mJPEGQueue.clear();
         new Handler().postDelayed(new Runnable() {
             @Override
             public void run() {
                 final byte[] jpegByteArray = NotifyImageGenerator.getDefaultScreen(context);
                 if (jpegByteArray != null) {
-                    AppContext.getAppState().JPEGQueue.add(jpegByteArray);
+                    getAppState().mJPEGQueue.add(jpegByteArray);
                 }
             }
         }, 500);
 
     }
-
-
 }
 

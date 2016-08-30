@@ -2,7 +2,6 @@ package info.dvkr.screenstream;
 
 import android.app.Application;
 import android.content.Context;
-import android.content.Intent;
 import android.graphics.Point;
 import android.net.wifi.WifiManager;
 import android.util.DisplayMetrics;
@@ -16,43 +15,40 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.Locale;
 
-import static info.dvkr.screenstream.ForegroundService.SERVICE_MESSAGE;
-import static info.dvkr.screenstream.ForegroundService.SERVICE_MESSAGE_PREPARE_STREAMING;
-
 
 public class AppContext extends Application {
-    private static AppContext instance;
+    private static AppContext sAppInstance;
 
-    private final AppViewState appViewState = new AppViewState();
-    private final AppState appState = new AppState();
-    private AppSettings appSettings;
-    private WindowManager windowManager;
-    private int densityDPI;
-    private String indexHTMLPage;
-    private String pinRequestHTMLPage;
-    private byte[] iconBytes;
+    private final AppViewState mAppViewState = new AppViewState();
+    private final AppState mAppState = new AppState();
+    private AppSettings mAppSettings;
+    private WindowManager mWindowManager;
+    private int mDensityDpi;
+    private String mIndexHtmlPage;
+    private String mPinRequestHtmlPage;
+    private byte[] mIconBytes;
 
     @Override
     public void onCreate() {
         super.onCreate();
-        instance = this;
+        sAppInstance = this;
 
-        appSettings = new AppSettings(this);
-        if (appSettings.isEnablePin() && appSettings.isNewPinOnAppStart()) {
-            appSettings.generateAndSaveNewPin();
+        mAppSettings = new AppSettings(this);
+        if (mAppSettings.isEnablePin() && mAppSettings.isNewPinOnAppStart()) {
+            mAppSettings.generateAndSaveNewPin();
         }
 
-        appViewState.serverAddress.set(getServerAddress());
-        appViewState.pinEnabled.set(appSettings.isEnablePin());
-        appViewState.pinAutoHide.set(appSettings.isPinAutoHide());
-        appViewState.streamPin.set(appSettings.getUserPin());
-        appViewState.wifiConnected.set(isWiFiConnected());
+        mAppViewState.serverAddress.set(getServerAddress());
+        mAppViewState.pinEnabled.set(mAppSettings.isEnablePin());
+        mAppViewState.pinAutoHide.set(mAppSettings.isHidePinOnStart());
+        mAppViewState.streamPin.set(mAppSettings.getCurrentPin());
+        mAppViewState.wifiConnected.set(isWiFiConnected());
 
-        windowManager = (WindowManager) getSystemService(Context.WINDOW_SERVICE);
-        densityDPI = getDensityDPI();
-        indexHTMLPage = getHTML("index.html");
-        pinRequestHTMLPage = getHTML("pinrequest.html");
-        pinRequestHTMLPage = pinRequestHTMLPage
+        mWindowManager = (WindowManager) getSystemService(Context.WINDOW_SERVICE);
+        mDensityDpi = getDensityDpi();
+        mIndexHtmlPage = getHtml("index.html");
+        mPinRequestHtmlPage = getHtml("pinrequest.html");
+        mPinRequestHtmlPage = mPinRequestHtmlPage
                 .replaceFirst("stream_require_pin", getString(R.string.stream_require_pin))
                 .replaceFirst("enter_pin", getString(R.string.html_enter_pin))
                 .replaceFirst("four_digits", getString(R.string.four_digits))
@@ -60,83 +56,85 @@ public class AppContext extends Application {
 
         setFavicon();
 
-        startService(new Intent(this, ForegroundService.class)
-                .putExtra(SERVICE_MESSAGE, SERVICE_MESSAGE_PREPARE_STREAMING));
+        startService(ForegroundService.getStartIntent(this));
     }
 
     static AppViewState getAppViewState() {
-        return instance.appViewState;
+        return sAppInstance.mAppViewState;
     }
 
     static AppState getAppState() {
-        return instance.appState;
+        return sAppInstance.mAppState;
     }
 
     static AppSettings getAppSettings() {
-        return instance.appSettings;
+        return sAppInstance.mAppSettings;
     }
 
     static int getScreenDensity() {
-        return instance.densityDPI;
+        return sAppInstance.mDensityDpi;
     }
 
     static WindowManager getWindowsManager() {
-        return instance.windowManager;
+        return sAppInstance.mWindowManager;
     }
 
     static float getScale() {
-        return instance.getResources().getDisplayMetrics().density;
+        return sAppInstance.getResources().getDisplayMetrics().density;
     }
 
     static Point getScreenSize() {
         final Point screenSize = new Point();
-        instance.windowManager.getDefaultDisplay().getRealSize(screenSize);
+        sAppInstance.mWindowManager.getDefaultDisplay().getRealSize(screenSize);
         return screenSize;
     }
 
     static void setIsStreamRunning(final boolean isRunning) {
-        instance.appState.isStreamRunning = isRunning;
+        sAppInstance.mAppState.isStreamRunning = isRunning;
         getAppViewState().streaming.set(isRunning);
     }
 
-    static String getIndexHTMLPage(final String streamAddress) {
-        return instance.indexHTMLPage.replaceFirst("SCREEN_STREAM_ADDRESS", streamAddress);
+    static String getIndexHtmlPage(final String streamAddress) {
+        return sAppInstance.mIndexHtmlPage.replaceFirst("SCREEN_STREAM_ADDRESS", streamAddress);
     }
 
-    static String getPinRequestHTMLPage(final boolean isError) {
-        final String errorString = (isError) ? instance.getString(R.string.wrong_pin) : "&nbsp";
-        return instance.pinRequestHTMLPage.replaceFirst("wrong_pin", errorString);
+    static String getPinRequestHtmlPage(final boolean isError) {
+        final String errorString = (isError) ? sAppInstance.getString(R.string.wrong_pin) : "&nbsp";
+        return sAppInstance.mPinRequestHtmlPage.replaceFirst("wrong_pin", errorString);
     }
 
     static byte[] getIconBytes() {
-        return instance.iconBytes;
+        return sAppInstance.mIconBytes;
     }
 
     static String getServerAddress() {
-        return "http://" + instance.getIPAddress() + ":" + instance.appSettings.getSeverPort();
+        return "http://" + sAppInstance.getIpAddress() + ":" + sAppInstance.mAppSettings.getSeverPort();
     }
 
     static boolean isWiFiConnected() {
-        final WifiManager wifi = (WifiManager) instance.getSystemService(Context.WIFI_SERVICE);
-        return wifi.getConnectionInfo().getIpAddress() > 0;
+        final WifiManager wifiManager = (WifiManager) sAppInstance.getSystemService(Context.WIFI_SERVICE);
+        return wifiManager.getConnectionInfo().getIpAddress() > 0;
     }
 
-    // Private methods
-    private String getIPAddress() {
-        final int ipInt = ((WifiManager) getSystemService(Context.WIFI_SERVICE)).getConnectionInfo().getIpAddress();
-        return String.format(Locale.US, "%d.%d.%d.%d", (ipInt & 0xff), (ipInt >> 8 & 0xff), (ipInt >> 16 & 0xff), (ipInt >> 24 & 0xff));
+    private String getIpAddress() {
+        final int ipInt = ((WifiManager) getSystemService(Context.WIFI_SERVICE))
+                .getConnectionInfo()
+                .getIpAddress();
+        return String.format(Locale.US,
+                "%d.%d.%d.%d",
+                (ipInt & 0xff), (ipInt >> 8 & 0xff), (ipInt >> 16 & 0xff), (ipInt >> 24 & 0xff));
     }
 
-    private int getDensityDPI() {
+    private int getDensityDpi() {
         final DisplayMetrics displayMetrics = new DisplayMetrics();
-        windowManager.getDefaultDisplay().getMetrics(displayMetrics);
+        mWindowManager.getDefaultDisplay().getMetrics(displayMetrics);
         return displayMetrics.densityDpi;
     }
 
-    private String getHTML(final String fileName) {
+    private String getHtml(final String fileName) {
         final StringBuilder sb = new StringBuilder();
         String line;
-        try (BufferedReader reader =
+        try (final BufferedReader reader =
                      new BufferedReader(
                              new InputStreamReader(getAssets().open(fileName), "UTF-8")
                      )) {
@@ -150,9 +148,9 @@ public class AppContext extends Application {
     }
 
     private void setFavicon() {
-        try (InputStream inputStream = getAssets().open("favicon.png")) {
-            iconBytes = new byte[inputStream.available()];
-            int count = inputStream.read(iconBytes);
+        try (final InputStream inputStream = getAssets().open("favicon.png")) {
+            mIconBytes = new byte[inputStream.available()];
+            int count = inputStream.read(mIconBytes);
             if (count != 353) throw new IOException();
         } catch (IOException e) {
             FirebaseCrash.report(e);

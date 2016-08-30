@@ -5,58 +5,62 @@ import com.google.firebase.crash.FirebaseCrash;
 import java.io.IOException;
 import java.net.Socket;
 
+import static info.dvkr.screenstream.AppContext.getAppState;
+import static info.dvkr.screenstream.AppContext.getAppViewState;
+
 final class JpegStreamer {
-    private final Object lock = new Object();
-    private JpegStreamerThread jpegStreamerThread;
+    private final Object mLock = new Object();
+    private JpegStreamerThread mJpegStreamerThread;
     private volatile boolean isThreadRunning;
 
     private class JpegStreamerThread extends Thread {
-        private byte[] currentJPEG;
-        private byte[] lastJPEG;
-        private int sleepCount;
+        private byte[] mCurrentJpeg;
+        private byte[] mLastJpeg;
+        private int mSleepCount;
 
         JpegStreamerThread() {
-            super("JpegStreamerThread");
+            super(JpegStreamerThread.class.getSimpleName());
         }
 
         public void run() {
             while (!isInterrupted()) {
                 if (!isThreadRunning) break;
-                currentJPEG = AppContext.getAppState().JPEGQueue.poll();
+                mCurrentJpeg = getAppState().mJPEGQueue.poll();
 
-                if (currentJPEG == null) {
+                if (mCurrentJpeg == null) {
                     try {
                         sleep(10);
                     } catch (InterruptedException e) {
                         continue;
                     }
-                    sleepCount++;
-                    if (sleepCount >= 50) sendLastJPEGToClients();
+                    mSleepCount++;
+                    if (mSleepCount >= 50) sendLastJPEGToClients();
                 } else {
-                    lastJPEG = currentJPEG;
+                    mLastJpeg = mCurrentJpeg;
                     sendLastJPEGToClients();
                 }
             }
         }
 
         private void sendLastJPEGToClients() {
-            sleepCount = 0;
-            synchronized (lock) {
+            mSleepCount = 0;
+            synchronized (mLock) {
                 if (!isThreadRunning) return;
-                for (final Client currentClient : AppContext.getAppState().clientQueue)
-                    currentClient.sendClientData(HTTPServer.SERVER_OK, Client.CLIENT_IMAGE, lastJPEG);
+                for (final Client currentClient : getAppState().mClientQueue) {
+                    currentClient.sendClientData(HttpServer.SERVER_OK, Client.CLIENT_IMAGE, mLastJpeg);
+                }
             }
         }
     }
 
     void addClient(final Socket clientSocket) {
-        synchronized (lock) {
+        synchronized (mLock) {
             if (!isThreadRunning) return;
             try {
                 final Client newClient = new Client(clientSocket);
-                newClient.sendClientData(HTTPServer.SERVER_OK, Client.CLIENT_HEADER, null);
-                AppContext.getAppState().clientQueue.add(newClient);
-                AppContext.getAppViewState().clients.set(AppContext.getAppState().clientQueue.size());
+                newClient.sendClientData(HttpServer.SERVER_OK, Client.CLIENT_HEADER, null);
+                getAppState().mClientQueue.add(newClient);
+                getAppViewState().clients.set(getAppState().mClientQueue.size());
             } catch (IOException e) {
                 FirebaseCrash.report(e);
             }
@@ -64,25 +68,26 @@ final class JpegStreamer {
     }
 
     void start() {
-        synchronized (lock) {
+        synchronized (mLock) {
             if (isThreadRunning) return;
-            jpegStreamerThread = new JpegStreamerThread();
-            jpegStreamerThread.start();
+            mJpegStreamerThread = new JpegStreamerThread();
+            mJpegStreamerThread.start();
             isThreadRunning = true;
         }
     }
 
     void stop(final int reason, final byte[] clientNotifyImage) {
-        synchronized (lock) {
+        synchronized (mLock) {
             if (!isThreadRunning) return;
             isThreadRunning = false;
-            jpegStreamerThread.interrupt();
+            mJpegStreamerThread.interrupt();
 
-            for (Client currentClient : AppContext.getAppState().clientQueue)
+            for (Client currentClient : getAppState().mClientQueue) {
                 currentClient.sendClientData(reason, Client.CLIENT_IMAGE, clientNotifyImage);
+            }
 
-            AppContext.getAppState().clientQueue.clear();
-            AppContext.getAppViewState().clients.set(0);
+            getAppState().mClientQueue.clear();
+            getAppViewState().clients.set(0);
         }
     }
 }

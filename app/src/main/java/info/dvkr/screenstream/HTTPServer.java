@@ -12,7 +12,7 @@ import java.net.Socket;
 import java.net.SocketTimeoutException;
 import java.util.Random;
 
-final class HTTPServer {
+final class HttpServer {
     static final int SERVER_STATUS_UNKNOWN = -1;
     static final int SERVER_OK = 0;
     static final int SERVER_ERROR_ALREADY_RUNNING = 1;
@@ -23,91 +23,91 @@ final class HTTPServer {
     static final int SERVER_PIN_RESTART = 12;
 
     private static final int SEVER_SOCKET_TIMEOUT = 50;
-    private static final String ALPHABET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
-    private static final int ALPHABET_COUNT = ALPHABET.length();
     private static final String DEFAULT_ADDRESS = "/";
     private static final String DEFAULT_STREAM_ADDRESS = "/screen_stream.mjpeg";
     private static final String DEFAULT_ICO_ADDRESS = "/favicon.ico";
     private static final String DEFAULT_PIN_ADDRESS = "/?pin=";
 
-    private final Object lock = new Object();
-
+    private final Object mLock = new Object();
     private volatile boolean isThreadRunning;
 
-    private ServerSocket serverSocket;
-    private HTTPServerThread httpServerThread;
-    private JpegStreamer jpegStreamer;
+    private ServerSocket mServerSocket;
+    private HttpServerThread mHttpServerThread;
+    private JpegStreamer mJpegStreamer;
 
     private volatile boolean isPinEnabled;
-    private String currentPinURI = DEFAULT_PIN_ADDRESS;
-    private String currentStreamAddress = DEFAULT_STREAM_ADDRESS;
 
-    private class HTTPServerThread extends Thread {
-        private Socket clientSocket;
-        private BufferedReader bufferedReaderFromClient;
-        private String requestUri;
+    private String mCurrentPinUri = DEFAULT_PIN_ADDRESS;
+    private String mCurrentStreamAddress = DEFAULT_STREAM_ADDRESS;
 
-        HTTPServerThread() {
-            super("HTTPServerThread");
+    private class HttpServerThread extends Thread {
+        private Socket mClientSocket;
+        private BufferedReader mBufferedReaderFromClient;
+        private String mRequestUri;
+
+        HttpServerThread() {
+            super(HttpServerThread.class.getSimpleName());
         }
 
         public void run() {
             while (!isInterrupted()) {
-                synchronized (lock) {
+                synchronized (mLock) {
                     if (!isThreadRunning) continue;
                     try {
-                        clientSocket = HTTPServer.this.serverSocket.accept();
-                        bufferedReaderFromClient = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+                        mClientSocket = HttpServer.this.mServerSocket.accept();
+                        mBufferedReaderFromClient = new BufferedReader(
+                                new InputStreamReader(mClientSocket.getInputStream()));
 
-                        final String requestLine = bufferedReaderFromClient.readLine();
+                        final String requestLine = mBufferedReaderFromClient.readLine();
                         if (requestLine == null || !requestLine.startsWith("GET")) {
-                            sendNotFound(clientSocket);
+                            sendNotFound(mClientSocket);
                             continue;
                         }
 
                         final String[] requestUriArray = requestLine.split(" ");
-                        if (requestUriArray.length >= 2) requestUri = requestUriArray[1];
-                        else {
-                            sendNotFound(clientSocket);
+                        if (requestUriArray.length >= 2) {
+                            mRequestUri = requestUriArray[1];
+                        } else {
+                            sendNotFound(mClientSocket);
                             continue;
                         }
 
                         if (isPinEnabled) {
-                            if (DEFAULT_ADDRESS.equals(requestUri)) {
-                                sendPinRequestPage(clientSocket, false);
+                            if (DEFAULT_ADDRESS.equals(mRequestUri)) {
+                                sendPinRequestPage(mClientSocket, false);
                                 continue;
                             }
-                            if (requestUri.startsWith(DEFAULT_PIN_ADDRESS)) {
-                                if (requestUri.equals(currentPinURI))
-                                    sendMainPage(clientSocket, currentStreamAddress);
-                                else sendPinRequestPage(clientSocket, true);
+                            if (mRequestUri.startsWith(DEFAULT_PIN_ADDRESS)) {
+                                if (mRequestUri.equals(mCurrentPinUri))
+                                    sendMainPage(mClientSocket, mCurrentStreamAddress);
+                                else sendPinRequestPage(mClientSocket, true);
                                 continue;
                             }
                         } else {
-                            if (DEFAULT_ADDRESS.equals(requestUri)) {
-                                sendMainPage(clientSocket, currentStreamAddress);
+                            if (DEFAULT_ADDRESS.equals(mRequestUri)) {
+                                sendMainPage(mClientSocket, mCurrentStreamAddress);
                                 continue;
                             }
                         }
 
-                        if (currentStreamAddress.equals(requestUri)) {
-                            HTTPServer.this.jpegStreamer.addClient(clientSocket);
+                        if (mCurrentStreamAddress.equals(mRequestUri)) {
+                            HttpServer.this.mJpegStreamer.addClient(mClientSocket);
                             continue;
                         }
 
-                        if (DEFAULT_ICO_ADDRESS.equals(requestUri)) {
-                            sendFavicon(clientSocket);
+                        if (DEFAULT_ICO_ADDRESS.equals(mRequestUri)) {
+                            sendFavicon(mClientSocket);
                             continue;
                         }
 
-                        sendNotFound(clientSocket);
+                        sendNotFound(mClientSocket);
                     } catch (SocketTimeoutException ignored) {
                     } catch (IOException e) {
                         FirebaseCrash.report(e);
                     }
                 }
-            } // while
-        } // run()
+            }
+        }
 
         private void sendPinRequestPage(final Socket socket, final boolean pinError) throws IOException {
             try (final OutputStreamWriter outputStreamWriter = new OutputStreamWriter(socket.getOutputStream())) {
@@ -115,7 +115,7 @@ final class HTTPServer {
                 outputStreamWriter.write("Content-Type: text/html\r\n");
                 outputStreamWriter.write("Connection: close\r\n");
                 outputStreamWriter.write("\r\n");
-                outputStreamWriter.write(AppContext.getPinRequestHTMLPage(pinError));
+                outputStreamWriter.write(AppContext.getPinRequestHtmlPage(pinError));
                 outputStreamWriter.write("\r\n");
                 outputStreamWriter.flush();
             }
@@ -127,7 +127,7 @@ final class HTTPServer {
                 outputStreamWriter.write("Content-Type: text/html\r\n");
                 outputStreamWriter.write("Connection: close\r\n");
                 outputStreamWriter.write("\r\n");
-                outputStreamWriter.write(AppContext.getIndexHTMLPage(streamAddress));
+                outputStreamWriter.write(AppContext.getIndexHtmlPage(streamAddress));
                 outputStreamWriter.write("\r\n");
                 outputStreamWriter.flush();
             }
@@ -158,27 +158,27 @@ final class HTTPServer {
     }
 
     int start() {
-        synchronized (lock) {
+        synchronized (mLock) {
             if (isThreadRunning) return SERVER_ERROR_ALREADY_RUNNING;
 
-            currentStreamAddress = DEFAULT_STREAM_ADDRESS;
-            currentPinURI = DEFAULT_PIN_ADDRESS;
+            mCurrentStreamAddress = DEFAULT_STREAM_ADDRESS;
+            mCurrentPinUri = DEFAULT_PIN_ADDRESS;
             isPinEnabled = AppContext.getAppSettings().isEnablePin();
             if (isPinEnabled) {
-                final String currentPin = AppContext.getAppSettings().getUserPin();
-                currentPinURI = DEFAULT_PIN_ADDRESS + currentPin;
-                currentStreamAddress = getStreamAddress(currentPin);
+                final String currentPin = AppContext.getAppSettings().getCurrentPin();
+                mCurrentPinUri = DEFAULT_PIN_ADDRESS + currentPin;
+                mCurrentStreamAddress = getRandomStreamAddress(currentPin);
             }
 
             try {
-                serverSocket = new ServerSocket(AppContext.getAppSettings().getSeverPort());
-                serverSocket.setSoTimeout(SEVER_SOCKET_TIMEOUT);
+                mServerSocket = new ServerSocket(AppContext.getAppSettings().getSeverPort());
+                mServerSocket.setSoTimeout(SEVER_SOCKET_TIMEOUT);
 
-                jpegStreamer = new JpegStreamer();
-                jpegStreamer.start();
+                mJpegStreamer = new JpegStreamer();
+                mJpegStreamer.start();
 
-                httpServerThread = new HTTPServerThread();
-                httpServerThread.start();
+                mHttpServerThread = new HttpServerThread();
+                mHttpServerThread.start();
 
                 isThreadRunning = true;
             } catch (BindException e) {
@@ -192,31 +192,33 @@ final class HTTPServer {
     }
 
     void stop(final int reason, final byte[] clientNotifyImage) {
-        synchronized (lock) {
+        synchronized (mLock) {
             if (!isThreadRunning) return;
             isThreadRunning = false;
 
-            httpServerThread.interrupt();
-            httpServerThread = null;
+            mHttpServerThread.interrupt();
+            mHttpServerThread = null;
 
-            jpegStreamer.stop(reason, clientNotifyImage);
-            jpegStreamer = null;
+            mJpegStreamer.stop(reason, clientNotifyImage);
+            mJpegStreamer = null;
 
             try {
-                serverSocket.close();
+                mServerSocket.close();
             } catch (IOException e) {
                 FirebaseCrash.report(e);
             }
-            serverSocket = null;
+            mServerSocket = null;
         }
     }
 
-    private String getStreamAddress(final String pin) {
+    private String getRandomStreamAddress(final String pin) {
+        final String alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
         final int randomLength = 10;
         final Random random = new Random(Long.parseLong(pin));
         final char[] randomPart = new char[randomLength];
-        for (int i = 0; i < randomLength; i++)
-            randomPart[i] = ALPHABET.charAt(random.nextInt(ALPHABET_COUNT));
+        for (int i = 0; i < randomLength; i++) {
+            randomPart[i] = alphabet.charAt(random.nextInt(alphabet.length()));
+        }
         return "/screen_stream_" + String.valueOf(randomPart) + ".mjpeg";
     }
 }

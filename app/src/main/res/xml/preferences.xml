@@ -4,13 +4,13 @@
         <CheckBoxPreference
             android:defaultValue="true"
             android:icon="@drawable/ic_flip_to_back_black_24dp"
-            android:key="minimize_on_stream"
+            android:key="@string/pref_key_minimize_on_stream"
             android:summary="@string/minimise_on_stream_summary"
             android:title="@string/minimize_on_stream" />
         <CheckBoxPreference
             android:defaultValue="false"
             android:icon="@drawable/ic_pause_circle_outline_black_24dp"
-            android:key="pause_on_sleep"
+            android:key="@string/pref_key_stop_on_sleep"
             android:summary="@string/stop_on_sleep_summary"
             android:title="@string/stop_on_sleep" />
     </PreferenceCategory>
@@ -19,39 +19,39 @@
         <CheckBoxPreference
             android:defaultValue="false"
             android:icon="@drawable/ic_fiber_pin_black_24dp"
-            android:key="enable_pin"
+            android:key="@string/pref_key_enable_pin"
             android:summary="@string/protect_with_pin"
             android:title="@string/enable_pin" />
 
         <CheckBoxPreference
             android:defaultValue="true"
-            android:dependency="enable_pin"
+            android:dependency="@string/pref_key_enable_pin"
             android:icon="@drawable/ic_visibility_black_24dp"
-            android:key="pin_hide_on_start"
+            android:key="@string/pref_key_hide_pin_on_start"
             android:summary="@string/show_asterisks"
             android:title="@string/hide_pin" />
 
         <CheckBoxPreference
             android:defaultValue="true"
-            android:dependency="enable_pin"
+            android:dependency="@string/pref_key_enable_pin"
             android:icon="@drawable/ic_dialpad_black_24dp"
-            android:key="pin_new_on_app_start"
+            android:key="@string/pref_key_new_pin_on_app_start"
             android:summary="@string/generate_new_pin_on_start"
             android:title="@string/new_pin_on_start" />
 
         <CheckBoxPreference
             android:defaultValue="false"
-            android:dependency="enable_pin"
+            android:dependency="@string/pref_key_enable_pin"
             android:icon="@drawable/ic_autorenew_black_24dp"
-            android:key="pin_change_on_start"
+            android:key="@string/pref_key_auto_change_pin"
             android:summary="@string/generate_pin"
             android:title="@string/auto_change_pin" />
 
         <EditTextPreference
-            android:dependency="enable_pin"
+            android:dependency="@string/pref_key_enable_pin"
             android:icon="@drawable/ic_vpn_key_black_24dp"
             android:inputType="number"
-            android:key="pin_manual"
+            android:key="@string/pref_key_set_pin"
             android:selectAllOnFocus="true"
             android:singleLine="true"
             android:summary="@string/enter_pin_manually"
@@ -63,7 +63,7 @@
             android:defaultValue="8080"
             android:icon="@drawable/ic_http_black_24dp"
             android:inputType="number"
-            android:key="port_number"
+            android:key="@string/pref_key_server_port"
             android:selectAllOnFocus="true"
             android:singleLine="true"
             android:summary="@string/server_port_summary"
@@ -74,7 +74,7 @@
             android:entries="@array/jpeg_quality_names"
             android:entryValues="@array/jpeg_quality_values"
             android:icon="@drawable/ic_high_quality_black_24dp"
-            android:key="jpeg_quality"
+            android:key="@string/pref_key_jpeg_quality"
             android:summary="@string/settings_jpeg_quality_summary"
             android:title="@string/settings_jpeg_quality" />
         <ListPreference
@@ -83,7 +83,7 @@
             android:entries="@array/client_connection_timeout_names"
             android:entryValues="@array/client_connection_timeout_values"
             android:icon="@drawable/ic_access_time_black_24dp"
-            android:key="client_connection_timeout"
+            android:key="@string/pref_key_client_con_timeout"
             android:summary="@string/client_timeout_summary"
             android:title="@string/client_timeout" />
     </PreferenceCategory>
