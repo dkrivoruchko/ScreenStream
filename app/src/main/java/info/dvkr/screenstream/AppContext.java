@@ -49,10 +49,10 @@ public class AppContext extends Application {
         mIndexHtmlPage = getHtml("index.html");
         mPinRequestHtmlPage = getHtml("pinrequest.html");
         mPinRequestHtmlPage = mPinRequestHtmlPage
-                .replaceFirst("stream_require_pin", getString(R.string.stream_require_pin))
+                .replaceFirst("stream_require_pin", getString(R.string.html_stream_require_pin))
                 .replaceFirst("enter_pin", getString(R.string.html_enter_pin))
-                .replaceFirst("four_digits", getString(R.string.four_digits))
-                .replaceFirst("submit_text", getString(R.string.submit_text));
+                .replaceFirst("four_digits", getString(R.string.html_four_digits))
+                .replaceFirst("submit_text", getString(R.string.html_submit_text));
 
         setFavicon();
 
@@ -99,7 +99,7 @@ public class AppContext extends Application {
     }
 
     static String getPinRequestHtmlPage(final boolean isError) {
-        final String errorString = (isError) ? sAppInstance.getString(R.string.wrong_pin) : "&nbsp";
+        final String errorString = (isError) ? sAppInstance.getString(R.string.html_wrong_pin) : "&nbsp";
         return sAppInstance.mPinRequestHtmlPage.replaceFirst("wrong_pin", errorString);
     }
 

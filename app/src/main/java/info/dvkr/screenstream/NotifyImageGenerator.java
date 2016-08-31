@@ -20,9 +20,9 @@ final class NotifyImageGenerator {
         if (sCurrentScreenSizeX != AppContext.getScreenSize().x) sCurrentDefaultScreen = null;
         if (sCurrentDefaultScreen != null) return sCurrentDefaultScreen;
 
-        sCurrentDefaultScreen = generateImage(context.getString(R.string.press),
-                context.getString(R.string.start_stream).toUpperCase(),
-                context.getString(R.string.on_device));
+        sCurrentDefaultScreen = generateImage(context.getString(R.string.image_generator_press),
+                context.getString(R.string.main_activity_start_stream).toUpperCase(),
+                context.getString(R.string.image_generator_on_device));
 
         sCurrentScreenSizeX = AppContext.getScreenSize().x;
         return sCurrentDefaultScreen;
@@ -31,9 +31,9 @@ final class NotifyImageGenerator {
 
     static byte[] getClientNotifyImage(final Context context, final int reason) {
         if (reason == HttpServer.SERVER_SETTINGS_RESTART)
-            return generateImage(context.getString(R.string.settings_changed), "", context.getString(R.string.go_to_new_address));
+            return generateImage(context.getString(R.string.image_generator_settings_changed), "", context.getString(R.string.image_generator_go_to_new_address));
         if (reason == HttpServer.SERVER_PIN_RESTART)
-            return generateImage(context.getString(R.string.settings_changed), "", context.getString(R.string.reload_this_page));
+            return generateImage(context.getString(R.string.image_generator_settings_changed), "", context.getString(R.string.image_generator_reload_this_page));
         return null;
     }
 

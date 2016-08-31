@@ -2,66 +2,66 @@
     <string name="app_name" translatable="false">Screen Stream</string>
 
     <!--MainActivity-->
-    <string name="device_address">Device address:</string>
-    <string name="start_stream">Start stream</string>
-    <string name="stop_stream">Stop stream</string>
-    <string name="connected_clients">Connected clients: %1$d</string>
-    <string name="pin">Pin:</string>
-    <string name="pin_disabled">Pin is disabled</string>
-    <string name="pin_asterisks" translatable="false">****</string>
-    <string name="settings">Settings</string>
-    <string name="no_wifi_connected">No WiFi connected</string>
-    <string name="cast_permission_deny">Screen Cast permission denied</string>
-    <string name="snackbar_port_in_use">Port already in use\nChoose another one</string>
-    <string name="error">Oops! Error</string>
-    <string name="unknown_format">System return image in unknown format. Currently no fix available.\nSorry.</string>
-    <string name="ok" translatable="false">OK</string>
+    <string name="main_activity_device_address">Device address:</string>
+    <string name="main_activity_start_stream">Start stream</string>
+    <string name="main_activity_stop_stream">Stop stream</string>
+    <string name="main_activity_connected_clients">Connected clients: %1$d</string>
+    <string name="main_activity_pin">Pin:</string>
+    <string name="main_activity_pin_disabled">Pin is disabled</string>
+    <string name="main_activity_pin_asterisks" translatable="false">****</string>
+    <string name="main_activity_menu_settings">Settings</string>
+    <string name="main_activity_no_wifi_connected">No WiFi connected</string>
+    <string name="main_activity_toast_cast_permission_deny">Screen Cast permission denied</string>
+    <string name="main_activity_snackbar_port_in_use">Port already in use\nChoose another one</string>
+    <string name="main_activity_error_title">Oops! Error</string>
+    <string name="main_activity_error_msg_unknown_format">System return image in unknown format. Currently no fix available.\nSorry.</string>
+    <string name="main_activity_error_action_ok" translatable="false">OK</string>
 
     <!--ForegroundService-->
-    <string name="ready_to_stream">Ready to stream</string>
-    <string name="press_start">Press start to begin stream</string>
-    <string name="start">Start</string>
-    <string name="exit">Exit</string>
-    <string name="stream">Stream…</string>
-    <string name="go_to">Go to:\u0020</string>
-    <string name="stop">Stop</string>
+    <string name="service_ready_to_stream">Ready to stream</string>
+    <string name="service_press_start">Press start to begin stream</string>
+    <string name="service_start">Start</string>
+    <string name="service_exit">Exit</string>
+    <string name="service_stream">Stream…</string>
+    <string name="service_go_to">Go to:\u0020</string>
+    <string name="service_stop">Stop</string>
 
     <!--NotifyImageGenerator-->
-    <string name="press">PRESS</string>
-    <string name="on_device">ON DEVICE</string>
-    <string name="settings_changed">SETTINGS CHANGED</string>
-    <string name="go_to_new_address">Please go to new address</string>
-    <string name="reload_this_page">Please reload this page</string>
+    <string name="image_generator_press">PRESS</string>
+    <string name="image_generator_on_device">ON DEVICE</string>
+    <string name="image_generator_settings_changed">SETTINGS CHANGED</string>
+    <string name="image_generator_go_to_new_address">Please go to new address</string>
+    <string name="image_generator_reload_this_page">Please reload this page</string>
 
     <!--SettingsActivity-->
-    <string name="pin_digits_count">Pin must be 4 digits</string>
-    <string name="port_range">Port number must be between %1$d and %2$d</string>
-    <string name="value">\nValue:\u0020</string>
+    <string name="settings_activity_pin_digits_count">Pin must be 4 digits</string>
+    <string name="settings_activity_port_range">Port number must be between %1$d and %2$d</string>
+    <string name="settings_activity_value">\nValue:\u0020</string>
 
     <!--PreferenceScreen-->
-    <string name="settings_interface">Interface</string>
-    <string name="minimize_on_stream">Minimize on stream</string>
-    <string name="minimise_on_stream_summary">Minimize app on stream start</string>
-    <string name="stop_on_sleep">Stop on sleep</string>
-    <string name="stop_on_sleep_summary">Stop stream if screen turns off</string>
-    <string name="settings_pin">Pin</string>
-    <string name="enable_pin">Enable pin</string>
-    <string name="protect_with_pin">Protect access to stream with pin</string>
-    <string name="hide_pin">Auto hide pin on stream start</string>
-    <string name="show_asterisks">Show asterisks instead pin while streaming</string>
-    <string name="set_pin">Set pin</string>
-    <string name="new_pin_on_start">New pin on start</string>
-    <string name="generate_new_pin_on_start">Generate new pin on application start</string>
-    <string name="enter_pin_manually">Enter pin manually</string>
-    <string name="auto_change_pin">Auto change pin</string>
-    <string name="generate_pin">Generate new pin for each new stream</string>
-    <string name="settings_advanced">Advanced</string>
-    <string name="server_port">Server port</string>
-    <string name="server_port_summary">Set port for incoming connections\nDefault: 8080</string>
-    <string name="settings_jpeg_quality">JPEG quality</string>
-    <string name="settings_jpeg_quality_summary">Set JPEG quality</string>
-    <string name="client_timeout">Client connection timeout</string>
-    <string name="client_timeout_summary">Set time for client response in seconds</string>
+    <string name="pref_settings_interface">Interface</string>
+    <string name="pref_minimize_on_stream">Minimize on stream</string>
+    <string name="pref_minimise_on_stream_summary">Minimize app on stream start</string>
+    <string name="pref_stop_on_sleep">Stop on sleep</string>
+    <string name="pref_stop_on_sleep_summary">Stop stream if screen turns off</string>
+    <string name="pref_settings_pin">Pin</string>
+    <string name="pref_enable_pin">Enable pin</string>
+    <string name="pref_enable_pin_summary">Protect access to stream with pin</string>
+    <string name="pref_hide_pin">Auto hide pin on stream start</string>
+    <string name="pref_hide_pin_summary">Show asterisks instead pin while streaming</string>
+    <string name="pref_new_pin_on_start">New pin on start</string>
+    <string name="pref_new_pin_on_start_summary">Generate new pin on application start</string>
+    <string name="pref_auto_change_pin">Auto change pin</string>
+    <string name="pref_auto_change_pin_summary">Generate new pin for each new stream</string>
+    <string name="pref_set_pin">Set pin</string>
+    <string name="pref_set_pin_summary">Enter pin manually</string>
+    <string name="pref_settings_advanced">Advanced</string>
+    <string name="pref_server_port">Server port</string>
+    <string name="pref_server_port_summary">Set port for incoming connections\nDefault: 8080</string>
+    <string name="pref_jpeg_quality">JPEG quality</string>
+    <string name="pref_jpeg_quality_summary">Set JPEG quality</string>
+    <string name="pref_client_timeout">Client connection timeout</string>
+    <string name="pref_client_timeout_summary">Set time for client response in seconds</string>
 
     <!--PreferencesKeys-->
     <string name="pref_key_minimize_on_stream" translatable="false">PREF_KEY_MINIMIZE_ON_STREAM</string>
@@ -76,9 +76,9 @@
     <string name="pref_key_client_con_timeout" translatable="false">PREF_KEY_CLIENT_CON_TIMEOUT</string>
 
     <!--PinRequest.html-->
-    <string name="stream_require_pin">This stream require PIN to access it.</string>
+    <string name="html_stream_require_pin">This stream require PIN to access it.</string>
     <string name="html_enter_pin">Enter pin:\u0020</string>
-    <string name="four_digits">Four digits</string>
-    <string name="submit_text">Submit</string>
-    <string name="wrong_pin">Wrong pin!</string>
+    <string name="html_four_digits">Four digits</string>
+    <string name="html_submit_text">Submit</string>
+    <string name="html_wrong_pin">Wrong pin!</string>
 </resources>

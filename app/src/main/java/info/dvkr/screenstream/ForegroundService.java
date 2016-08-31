@@ -261,16 +261,16 @@ public final class ForegroundService extends Service {
 
         final NotificationCompat.Builder startNotificationBuilder = new NotificationCompat.Builder(this);
         startNotificationBuilder.setVisibility(NotificationCompat.VISIBILITY_PUBLIC);
-        startNotificationBuilder.setSmallIcon(R.drawable.ic_cast_http_24dp);
+        startNotificationBuilder.setSmallIcon(R.drawable.ic_service_notification_24dp);
         startNotificationBuilder.setColor(ContextCompat.getColor(this, R.color.colorPrimaryDark));
-        startNotificationBuilder.setContentTitle(getString(R.string.ready_to_stream));
-        startNotificationBuilder.setContentText(getString(R.string.press_start));
+        startNotificationBuilder.setContentTitle(getString(R.string.service_ready_to_stream));
+        startNotificationBuilder.setContentText(getString(R.string.service_press_start));
         startNotificationBuilder.setContentIntent(pendingMainActivityIntent);
-        startNotificationBuilder.addAction(R.drawable.ic_play_arrow_24dp,
-                getString(R.string.start).toUpperCase(),
+        startNotificationBuilder.addAction(R.drawable.ic_service_start_24dp,
+                getString(R.string.service_start).toUpperCase(),
                 PendingIntent.getBroadcast(this, 0, new Intent(ACTION_NOTIFY_START_STREAM), 0));
-        startNotificationBuilder.addAction(R.drawable.ic_clear_24dp,
-                getString(R.string.exit).toUpperCase(),
+        startNotificationBuilder.addAction(R.drawable.ic_service_exit_24dp,
+                getString(R.string.service_exit).toUpperCase(),
                 PendingIntent.getBroadcast(this, 0, new Intent(ACTION_NOTIFY_CLOSE_APP), 0));
         startNotificationBuilder.setPriority(NotificationCompat.PRIORITY_MAX);
         return startNotificationBuilder.build();
@@ -285,13 +285,13 @@ public final class ForegroundService extends Service {
 
         final NotificationCompat.Builder stopNotificationBuilder = new NotificationCompat.Builder(this);
         stopNotificationBuilder.setVisibility(NotificationCompat.VISIBILITY_PUBLIC);
-        stopNotificationBuilder.setSmallIcon(R.drawable.ic_cast_http_24dp);
+        stopNotificationBuilder.setSmallIcon(R.drawable.ic_service_notification_24dp);
         stopNotificationBuilder.setColor(ContextCompat.getColor(this, R.color.colorPrimaryDark));
-        stopNotificationBuilder.setContentTitle(getString(R.string.stream));
-        stopNotificationBuilder.setContentText(getString(R.string.go_to) + getServerAddress());
+        stopNotificationBuilder.setContentTitle(getString(R.string.service_stream));
+        stopNotificationBuilder.setContentText(getString(R.string.service_go_to) + getServerAddress());
         stopNotificationBuilder.setContentIntent(pendingMainActivityIntent);
-        stopNotificationBuilder.addAction(R.drawable.ic_stop_24dp,
-                getString(R.string.stop).toUpperCase(),
+        stopNotificationBuilder.addAction(R.drawable.ic_service_stop_24dp,
+                getString(R.string.service_stop).toUpperCase(),
                 PendingIntent.getBroadcast(this, 0, new Intent(ACTION_NOTIFY_STOP_STREAM), 0));
         stopNotificationBuilder.setPriority(NotificationCompat.PRIORITY_MAX);
         return stopNotificationBuilder.build();

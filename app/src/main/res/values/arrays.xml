@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string-array name="jpeg_quality_names">
+    <string-array name="pref_jpeg_quality_names">
         <item>100</item>
         <item>90</item>
         <item>80 - Default</item>
@@ -10,7 +10,7 @@
         <item>40</item>
         <item>30</item>
     </string-array>
-    <string-array name="jpeg_quality_values">
+    <string-array name="pref_jpeg_quality_values">
         <item>100</item>
         <item>90</item>
         <item>80</item>
@@ -20,7 +20,7 @@
         <item>40</item>
         <item>30</item>
     </string-array>
-    <string-array name="client_connection_timeout_names">
+    <string-array name="pref_client_connection_timeout_names">
         <item>5s</item>
         <item>4s</item>
         <item>3s - Default</item>
@@ -28,7 +28,7 @@
         <item>1s</item>
         <item>0.5s</item>
     </string-array>
-    <string-array name="client_connection_timeout_values">
+    <string-array name="pref_client_connection_timeout_values">
         <item>5000</item>
         <item>4000</item>
         <item>3000</item>

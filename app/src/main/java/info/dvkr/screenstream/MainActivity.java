@@ -64,10 +64,10 @@ public final class MainActivity extends AppCompatActivity {
                 DataBindingUtil.setContentView(this, R.layout.activity_main);
         activityMainBinding.setAppState(getAppViewState());
 
-        mPortInUseSnackbar = Snackbar.make(activityMainBinding.mainView,
-                R.string.snackbar_port_in_use,
+        mPortInUseSnackbar = Snackbar.make(activityMainBinding.layoutMainView,
+                R.string.main_activity_snackbar_port_in_use,
                 Snackbar.LENGTH_INDEFINITE)
-                .setAction(R.string.settings, new View.OnClickListener() {
+                .setAction(R.string.main_activity_menu_settings, new View.OnClickListener() {
                     @Override
                     public void onClick(View view) {
                         onOptionsItemSelected(mMainMenu.findItem(R.id.menu_settings));
@@ -113,10 +113,10 @@ public final class MainActivity extends AppCompatActivity {
                     stopStreaming();
                     if (!isFinishing())
                         new AlertDialog.Builder(this)
-                                .setTitle(getString(R.string.error))
-                                .setMessage(getString(R.string.unknown_format))
-                                .setIcon(R.drawable.ic_warning_24dp)
-                                .setPositiveButton(R.string.ok, new DialogInterface.OnClickListener() {
+                                .setTitle(getString(R.string.main_activity_error_title))
+                                .setMessage(getString(R.string.main_activity_error_msg_unknown_format))
+                                .setIcon(R.drawable.ic_main_activity_error_24dp)
+                                .setPositiveButton(R.string.main_activity_error_action_ok, new DialogInterface.OnClickListener() {
                                     public void onClick(DialogInterface dialog, int id) {
                                         dialog.dismiss();
                                     }
@@ -148,7 +148,7 @@ public final class MainActivity extends AppCompatActivity {
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        getMenuInflater().inflate(R.menu.settings, menu);
+        getMenuInflater().inflate(R.menu.activity_main, menu);
         mMainMenu = menu;
         return super.onCreateOptionsMenu(menu);
     }
@@ -172,7 +172,7 @@ public final class MainActivity extends AppCompatActivity {
         switch (requestCode) {
             case REQUEST_CODE_SCREEN_CAPTURE:
                 if (resultCode != RESULT_OK) {
-                    Toast.makeText(this, getString(R.string.cast_permission_deny), Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, getString(R.string.main_activity_toast_cast_permission_deny), Toast.LENGTH_SHORT).show();
                     return;
                 }
                 startStreaming(resultCode, data);
