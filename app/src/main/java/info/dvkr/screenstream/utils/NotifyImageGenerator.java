@@ -1,4 +1,4 @@
-package info.dvkr.screenstream;
+package info.dvkr.screenstream.utils;
 
 import android.content.Context;
 import android.graphics.Bitmap;
@@ -12,24 +12,29 @@ import com.google.firebase.crash.FirebaseCrash;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
-final class NotifyImageGenerator {
+import info.dvkr.screenstream.R;
+import info.dvkr.screenstream.ScreenStreamApplication;
+import info.dvkr.screenstream.data.HttpServer;
+
+public final class NotifyImageGenerator {
     private static int sCurrentScreenSizeX;
     private static byte[] sCurrentDefaultScreen;
 
-    static byte[] getDefaultScreen(final Context context) {
-        if (sCurrentScreenSizeX != AppContext.getScreenSize().x) sCurrentDefaultScreen = null;
+    public static byte[] getDefaultScreen(final Context context) {
+        if (sCurrentScreenSizeX != ScreenStreamApplication.getScreenSize().x)
+            sCurrentDefaultScreen = null;
         if (sCurrentDefaultScreen != null) return sCurrentDefaultScreen;
 
         sCurrentDefaultScreen = generateImage(context.getString(R.string.image_generator_press),
                 context.getString(R.string.main_activity_start_stream).toUpperCase(),
                 context.getString(R.string.image_generator_on_device));
 
-        sCurrentScreenSizeX = AppContext.getScreenSize().x;
+        sCurrentScreenSizeX = ScreenStreamApplication.getScreenSize().x;
         return sCurrentDefaultScreen;
     }
 
 
-    static byte[] getClientNotifyImage(final Context context, final int reason) {
+    public static byte[] getClientNotifyImage(final Context context, final int reason) {
         if (reason == HttpServer.SERVER_SETTINGS_RESTART)
             return generateImage(context.getString(R.string.image_generator_settings_changed), "", context.getString(R.string.image_generator_go_to_new_address));
         if (reason == HttpServer.SERVER_PIN_RESTART)
@@ -39,8 +44,8 @@ final class NotifyImageGenerator {
 
 
     private static byte[] generateImage(final String text1, final String text2, final String text3) {
-        final Bitmap bitmap = Bitmap.createBitmap(AppContext.getScreenSize().x,
-                AppContext.getScreenSize().y,
+        final Bitmap bitmap = Bitmap.createBitmap(ScreenStreamApplication.getScreenSize().x,
+                ScreenStreamApplication.getScreenSize().y,
                 Bitmap.Config.ARGB_8888);
 
         final Canvas canvas = new Canvas(bitmap);
@@ -50,7 +55,7 @@ final class NotifyImageGenerator {
         final Rect bounds = new Rect();
         final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
         if (!"".equals(text1)) {
-            textSize = (int) (12 * AppContext.getScale());
+            textSize = (int) (12 * ScreenStreamApplication.getScale());
             paint.setTextSize(textSize);
             paint.setColor(Color.BLACK);
             paint.getTextBounds(text1, 0, text1.length(), bounds);
@@ -60,7 +65,7 @@ final class NotifyImageGenerator {
         }
 
         if (!"".equals(text2)) {
-            textSize = (int) (16 * AppContext.getScale());
+            textSize = (int) (16 * ScreenStreamApplication.getScale());
             paint.setTextSize(textSize);
             paint.setColor(Color.rgb(153, 50, 0));
             paint.getTextBounds(text2, 0, text2.length(), bounds);
@@ -70,7 +75,7 @@ final class NotifyImageGenerator {
         }
 
         if (!"".equals(text3)) {
-            textSize = (int) (12 * AppContext.getScale());
+            textSize = (int) (12 * ScreenStreamApplication.getScale());
             paint.setTextSize(textSize);
             paint.setColor(Color.BLACK);
             paint.getTextBounds(text3, 0, text3.length(), bounds);
@@ -81,7 +86,7 @@ final class NotifyImageGenerator {
 
         byte[] jpegByteArray = null;
         try (final ByteArrayOutputStream jpegOutputStream = new ByteArrayOutputStream()) {
-            bitmap.compress(Bitmap.CompressFormat.JPEG, AppContext.getAppSettings().getJpegQuality(), jpegOutputStream);
+            bitmap.compress(Bitmap.CompressFormat.JPEG, ScreenStreamApplication.getAppSettings().getJpegQuality(), jpegOutputStream);
             jpegByteArray = jpegOutputStream.toByteArray();
         } catch (IOException e) {
             FirebaseCrash.report(e);

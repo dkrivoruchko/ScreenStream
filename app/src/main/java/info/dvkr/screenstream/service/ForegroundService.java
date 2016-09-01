@@ -1,4 +1,4 @@
-package info.dvkr.screenstream;
+package info.dvkr.screenstream.service;
 
 import android.app.Notification;
 import android.app.PendingIntent;
@@ -19,30 +19,37 @@ import android.support.v4.content.ContextCompat;
 
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-import static info.dvkr.screenstream.AppContext.getAppSettings;
-import static info.dvkr.screenstream.AppContext.getAppState;
-import static info.dvkr.screenstream.AppContext.getAppViewState;
-import static info.dvkr.screenstream.AppContext.getServerAddress;
-import static info.dvkr.screenstream.AppContext.isWiFiConnected;
+import info.dvkr.screenstream.R;
+import info.dvkr.screenstream.ScreenStreamApplication;
+import info.dvkr.screenstream.data.HttpServer;
+import info.dvkr.screenstream.data.ImageGenerator;
+import info.dvkr.screenstream.utils.NotifyImageGenerator;
+import info.dvkr.screenstream.view.MainActivity;
+
+import static info.dvkr.screenstream.ScreenStreamApplication.getAppSettings;
+import static info.dvkr.screenstream.ScreenStreamApplication.getAppState;
+import static info.dvkr.screenstream.ScreenStreamApplication.getMainActivityViewModel;
+import static info.dvkr.screenstream.ScreenStreamApplication.getServerAddress;
+import static info.dvkr.screenstream.ScreenStreamApplication.isWiFiConnected;
 
 public final class ForegroundService extends Service {
     private static ForegroundService sServiceInstance;
 
-    static final int SERVICE_MESSAGE_EMPTY = 0;
-    static final int SERVICE_MESSAGE_HAS_NEW = 1;
-    static final int SERVICE_MESSAGE_PREPARE_STREAMING = 110;
-    static final int SERVICE_MESSAGE_START_STREAMING = 111;
-    static final int SERVICE_MESSAGE_STOP_STREAMING = 112;
-    static final int SERVICE_MESSAGE_RESTART_HTTP = 3000;
-    static final int SERVICE_MESSAGE_HTTP_PORT_IN_USE = 3001;
-    static final int SERVICE_MESSAGE_HTTP_OK = 3002;
-    static final int SERVICE_MESSAGE_UPDATE_PIN_STATUS = 2000;
-    static final int SERVICE_MESSAGE_IMAGE_GENERATOR_ERROR = 4000;
-    static final int SERVICE_MESSAGE_EXIT = 9000;
+    public static final int SERVICE_MESSAGE_EMPTY = 0;
+    public static final int SERVICE_MESSAGE_HAS_NEW = 1;
+    public static final int SERVICE_MESSAGE_PREPARE_STREAMING = 110;
+    public static final int SERVICE_MESSAGE_START_STREAMING = 111;
+    public static final int SERVICE_MESSAGE_STOP_STREAMING = 112;
+    public static final int SERVICE_MESSAGE_RESTART_HTTP = 3000;
+    public static final int SERVICE_MESSAGE_HTTP_PORT_IN_USE = 3001;
+    public static final int SERVICE_MESSAGE_HTTP_OK = 3002;
+    public static final int SERVICE_MESSAGE_UPDATE_PIN_STATUS = 2000;
+    public static final int SERVICE_MESSAGE_IMAGE_GENERATOR_ERROR = 4000;
+    public static final int SERVICE_MESSAGE_EXIT = 9000;
 
-    static final String ACTION_DEFAULT = "info.dvkr.screenstream.action.ACTION_DEFAULT";
-    static final String EXTRA_SERVICE_MESSAGE = "info.dvkr.screenstream.extras.EXTRA_SERVICE_MESSAGE";
-    static final String PERMISSION_RECEIVE_BROADCAST = "info.dvkr.screenstream.RECEIVE_BROADCAST";
+    public static final String ACTION_DEFAULT = "info.dvkr.screenstream.action.ACTION_DEFAULT";
+    public static final String EXTRA_SERVICE_MESSAGE = "info.dvkr.screenstream.extras.EXTRA_SERVICE_MESSAGE";
+    public static final String PERMISSION_RECEIVE_BROADCAST = "info.dvkr.screenstream.RECEIVE_BROADCAST";
 
     private final String ACTION_NOTIFY_START_STREAM = "info.dvkr.screenstream.action.ACTION_NOTIFY_START_STREAM";
     private final String ACTION_NOTIFY_STOP_STREAM = "info.dvkr.screenstream.action.ACTION_NOTIFY_STOP_STREAM";
@@ -53,7 +60,7 @@ public final class ForegroundService extends Service {
     private MediaProjection.Callback mProjectionCallback;
     private HttpServer mHttpServer;
     private ImageGenerator mImageGenerator;
-    private ForegroundTaskHandler mForegroundServiceTaskHandler;
+    private ForegroundServiceHandler mForegroundServiceTaskHandler;
     private BroadcastReceiver mLocalNotificationReceiver;
     private BroadcastReceiver mBroadcastReceiver;
     private ConcurrentLinkedQueue<Integer> mServiceMessages = new ConcurrentLinkedQueue<>();
@@ -77,7 +84,7 @@ public final class ForegroundService extends Service {
         final HandlerThread looperThread =
                 new HandlerThread(ForegroundService.class.getSimpleName(), Process.THREAD_PRIORITY_MORE_FAVORABLE);
         looperThread.start();
-        mForegroundServiceTaskHandler = new ForegroundTaskHandler(looperThread.getLooper());
+        mForegroundServiceTaskHandler = new ForegroundServiceHandler(looperThread.getLooper());
 
         //Local notifications
         final IntentFilter localNotificationIntentFilter = new IntentFilter();
@@ -120,11 +127,12 @@ public final class ForegroundService extends Service {
                 }
 
                 if (action.equals(WifiManager.NETWORK_STATE_CHANGED_ACTION)) {
-                    if (getAppViewState().wifiConnected.get() != isWiFiConnected()) {
-                        getAppViewState().serverAddress.set(getServerAddress());
-                        getAppViewState().wifiConnected.set(isWiFiConnected());
+                    final boolean isWiFiConnected = isWiFiConnected();
+                    if (getMainActivityViewModel().isWiFiConnected() != isWiFiConnected) {
+                        getMainActivityViewModel().setServerAddress(getServerAddress());
+                        getMainActivityViewModel().setWiFiConnected(isWiFiConnected);
 
-                        if ((!getAppViewState().wifiConnected.get()) && getAppState().isStreamRunning)
+                        if ((!getMainActivityViewModel().isWiFiConnected()) && getAppState().isStreamRunning)
                             relayMessageViaActivity(SERVICE_MESSAGE_STOP_STREAMING);
                     }
                 }
@@ -169,50 +177,50 @@ public final class ForegroundService extends Service {
         mForegroundServiceTaskHandler.getLooper().quit();
     }
 
-    static Intent getStartIntent(final Context context) {
+    public static Intent getStartIntent(final Context context) {
         return new Intent(context, ForegroundService.class)
                 .putExtra(EXTRA_SERVICE_MESSAGE, SERVICE_MESSAGE_PREPARE_STREAMING);
     }
 
-    static void setMediaProjection(final MediaProjection mediaProjection) {
+    public static void setMediaProjection(final MediaProjection mediaProjection) {
         sServiceInstance.mediaProjection = mediaProjection;
     }
 
     @Nullable
-    static MediaProjectionManager getProjectionManager() {
+    public static MediaProjectionManager getProjectionManager() {
         return sServiceInstance == null ? null : sServiceInstance.sProjectionManager;
     }
 
     @Nullable
-    static MediaProjection getMediaProjection() {
+    public static MediaProjection getMediaProjection() {
         return sServiceInstance == null ? null : sServiceInstance.mediaProjection;
     }
 
     @Nullable
-    static ImageGenerator getImageGenerator() {
+    public static ImageGenerator getImageGenerator() {
         return sServiceInstance == null ? null : sServiceInstance.mImageGenerator;
     }
 
     @Nullable
-    static ConcurrentLinkedQueue<Integer> getServiceMessages() {
+    public static ConcurrentLinkedQueue<Integer> getServiceMessages() {
         return sServiceInstance == null ? null : sServiceInstance.mServiceMessages;
     }
 
-    static void errorInImageGenerator() {
+    public static void errorInImageGenerator() {
         if (sServiceInstance != null)
             sServiceInstance.relayMessageViaActivity(SERVICE_MESSAGE_IMAGE_GENERATOR_ERROR);
     }
 
     private void serviceStartStreaming() {
         stopForeground(true);
-        mForegroundServiceTaskHandler.obtainMessage(ForegroundTaskHandler.HANDLER_START_STREAMING).sendToTarget();
+        mForegroundServiceTaskHandler.obtainMessage(ForegroundServiceHandler.HANDLER_START_STREAMING).sendToTarget();
         startForeground(120, getNotificationStop());
         if (mediaProjection != null) mediaProjection.registerCallback(mProjectionCallback, null);
     }
 
     private void serviceStopStreaming() {
         stopForeground(true);
-        mForegroundServiceTaskHandler.obtainMessage(ForegroundTaskHandler.HANDLER_STOP_STREAMING).sendToTarget();
+        mForegroundServiceTaskHandler.obtainMessage(ForegroundServiceHandler.HANDLER_STOP_STREAMING).sendToTarget();
         startForeground(110, getNotificationStart());
         if (mediaProjection != null) mediaProjection.unregisterCallback(mProjectionCallback);
         mImageGenerator.addDefaultScreen(getApplicationContext());
@@ -241,12 +249,12 @@ public final class ForegroundService extends Service {
     }
 
     private void httpServerStartAndCheck() {
-        AppContext.getAppState().mHttpServerStatus = mHttpServer.start();
-        if (AppContext.getAppState().mHttpServerStatus == HttpServer.SERVER_ERROR_PORT_IN_USE) {
-            getAppViewState().httpServerError.set(true);
+        ScreenStreamApplication.getAppState().mHttpServerStatus = mHttpServer.start();
+        if (ScreenStreamApplication.getAppState().mHttpServerStatus == HttpServer.SERVER_ERROR_PORT_IN_USE) {
+            getMainActivityViewModel().setHttpServerError(true);
             relayMessageViaActivity(SERVICE_MESSAGE_HTTP_PORT_IN_USE);
         } else {
-            getAppViewState().httpServerError.set(false);
+            getMainActivityViewModel().setHttpServerError(false);
             relayMessageViaActivity(SERVICE_MESSAGE_HTTP_OK);
         }
     }

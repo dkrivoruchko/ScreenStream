@@ -1,14 +1,14 @@
-package info.dvkr.screenstream;
+package info.dvkr.screenstream.data;
 
 import com.google.firebase.crash.FirebaseCrash;
 
 import java.io.IOException;
 import java.net.Socket;
 
-import static info.dvkr.screenstream.AppContext.getAppState;
-import static info.dvkr.screenstream.AppContext.getAppViewState;
+import static info.dvkr.screenstream.ScreenStreamApplication.getAppState;
+import static info.dvkr.screenstream.ScreenStreamApplication.getMainActivityViewModel;
 
-final class JpegStreamer {
+final class ImageToClientDispatcher {
     private final Object mLock = new Object();
     private JpegStreamerThread mJpegStreamerThread;
     private volatile boolean isThreadRunning;
@@ -46,8 +46,8 @@ final class JpegStreamer {
             mSleepCount = 0;
             synchronized (mLock) {
                 if (!isThreadRunning) return;
-                for (final Client currentClient : getAppState().mClientQueue) {
-                    currentClient.sendClientData(HttpServer.SERVER_OK, Client.CLIENT_IMAGE, mLastJpeg);
+                for (final ImageToClientStreamer currentImageToClientStreamer : getAppState().mImageToClientStreamerQueue) {
+                    currentImageToClientStreamer.sendClientData(HttpServer.SERVER_OK, ImageToClientStreamer.CLIENT_IMAGE, mLastJpeg);
                 }
             }
         }
@@ -57,10 +57,10 @@ final class JpegStreamer {
         synchronized (mLock) {
             if (!isThreadRunning) return;
             try {
-                final Client newClient = new Client(clientSocket);
-                newClient.sendClientData(HttpServer.SERVER_OK, Client.CLIENT_HEADER, null);
-                getAppState().mClientQueue.add(newClient);
-                getAppViewState().clients.set(getAppState().mClientQueue.size());
+                final ImageToClientStreamer newImageToClientStreamer = new ImageToClientStreamer(clientSocket);
+                newImageToClientStreamer.sendClientData(HttpServer.SERVER_OK, ImageToClientStreamer.CLIENT_HEADER, null);
+                getAppState().mImageToClientStreamerQueue.add(newImageToClientStreamer);
+                getMainActivityViewModel().setClients(getAppState().mImageToClientStreamerQueue.size());
             } catch (IOException e) {
                 FirebaseCrash.report(e);
             }
@@ -82,12 +82,12 @@ final class JpegStreamer {
             isThreadRunning = false;
             mJpegStreamerThread.interrupt();
 
-            for (Client currentClient : getAppState().mClientQueue) {
-                currentClient.sendClientData(reason, Client.CLIENT_IMAGE, clientNotifyImage);
+            for (ImageToClientStreamer currentImageToClientStreamer : getAppState().mImageToClientStreamerQueue) {
+                currentImageToClientStreamer.sendClientData(reason, ImageToClientStreamer.CLIENT_IMAGE, clientNotifyImage);
             }
 
-            getAppState().mClientQueue.clear();
-            getAppViewState().clients.set(0);
+            getAppState().mImageToClientStreamerQueue.clear();
+            getMainActivityViewModel().setClients(0);
         }
     }
 }

@@ -1,4 +1,4 @@
-package info.dvkr.screenstream;
+package info.dvkr.screenstream.data;
 
 import com.google.firebase.crash.FirebaseCrash;
 
@@ -10,7 +10,11 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-final class Client {
+import info.dvkr.screenstream.ScreenStreamApplication;
+
+import static info.dvkr.screenstream.ScreenStreamApplication.*;
+
+public final class ImageToClientStreamer {
     final static int CLIENT_HEADER = 1;
     final static int CLIENT_IMAGE = 2;
 
@@ -18,7 +22,7 @@ final class Client {
     private final OutputStreamWriter mOtputStreamWriter;
     private final ExecutorService mClientThreadPool = Executors.newFixedThreadPool(2);
 
-    Client(final Socket socket) throws IOException {
+    ImageToClientStreamer(final Socket socket) throws IOException {
         mClientSocket = socket;
         mOtputStreamWriter = new OutputStreamWriter(mClientSocket.getOutputStream());
     }
@@ -31,8 +35,8 @@ final class Client {
         } catch (IOException e) {
             FirebaseCrash.report(e);
         }
-        AppContext.getAppState().mClientQueue.remove(Client.this);
-        AppContext.getAppViewState().clients.set(AppContext.getAppState().mClientQueue.size());
+        getAppState().mImageToClientStreamerQueue.remove(ImageToClientStreamer.this);
+        getMainActivityViewModel().setClients(getAppState().mImageToClientStreamerQueue.size());
     }
 
     // TODO Revise logic
@@ -56,7 +60,7 @@ final class Client {
                             if (dataType == CLIENT_IMAGE) sendImage(jpegImage);
                             return null;
                         }
-                    }).get(AppContext.getAppSettings().getClientTimeout(), TimeUnit.MILLISECONDS);
+                    }).get(getAppSettings().getClientTimeout(), TimeUnit.MILLISECONDS);
 
                     if (httpServerStatus != HttpServer.SERVER_OK) closeSocket();
                 } catch (Exception e) {

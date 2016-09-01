@@ -1,4 +1,4 @@
-package info.dvkr.screenstream;
+package info.dvkr.screenstream.view;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -24,30 +24,33 @@ import com.google.firebase.crash.FirebaseCrash;
 
 import java.util.concurrent.ConcurrentLinkedQueue;
 
+import info.dvkr.screenstream.R;
+import info.dvkr.screenstream.data.HttpServer;
 import info.dvkr.screenstream.databinding.ActivityMainBinding;
+import info.dvkr.screenstream.service.ForegroundService;
 
-import static info.dvkr.screenstream.AppContext.getAppSettings;
-import static info.dvkr.screenstream.AppContext.getAppState;
-import static info.dvkr.screenstream.AppContext.getAppViewState;
-import static info.dvkr.screenstream.AppContext.getServerAddress;
-import static info.dvkr.screenstream.AppContext.isWiFiConnected;
-import static info.dvkr.screenstream.ForegroundService.ACTION_DEFAULT;
-import static info.dvkr.screenstream.ForegroundService.EXTRA_SERVICE_MESSAGE;
-import static info.dvkr.screenstream.ForegroundService.PERMISSION_RECEIVE_BROADCAST;
-import static info.dvkr.screenstream.ForegroundService.SERVICE_MESSAGE_EMPTY;
-import static info.dvkr.screenstream.ForegroundService.SERVICE_MESSAGE_EXIT;
-import static info.dvkr.screenstream.ForegroundService.SERVICE_MESSAGE_HAS_NEW;
-import static info.dvkr.screenstream.ForegroundService.SERVICE_MESSAGE_HTTP_OK;
-import static info.dvkr.screenstream.ForegroundService.SERVICE_MESSAGE_HTTP_PORT_IN_USE;
-import static info.dvkr.screenstream.ForegroundService.SERVICE_MESSAGE_IMAGE_GENERATOR_ERROR;
-import static info.dvkr.screenstream.ForegroundService.SERVICE_MESSAGE_RESTART_HTTP;
-import static info.dvkr.screenstream.ForegroundService.SERVICE_MESSAGE_START_STREAMING;
-import static info.dvkr.screenstream.ForegroundService.SERVICE_MESSAGE_STOP_STREAMING;
-import static info.dvkr.screenstream.ForegroundService.SERVICE_MESSAGE_UPDATE_PIN_STATUS;
-import static info.dvkr.screenstream.ForegroundService.getMediaProjection;
-import static info.dvkr.screenstream.ForegroundService.getProjectionManager;
-import static info.dvkr.screenstream.ForegroundService.getServiceMessages;
-import static info.dvkr.screenstream.ForegroundService.setMediaProjection;
+import static info.dvkr.screenstream.ScreenStreamApplication.getAppSettings;
+import static info.dvkr.screenstream.ScreenStreamApplication.getAppState;
+import static info.dvkr.screenstream.ScreenStreamApplication.getMainActivityViewModel;
+import static info.dvkr.screenstream.ScreenStreamApplication.getServerAddress;
+import static info.dvkr.screenstream.ScreenStreamApplication.isWiFiConnected;
+import static info.dvkr.screenstream.service.ForegroundService.ACTION_DEFAULT;
+import static info.dvkr.screenstream.service.ForegroundService.EXTRA_SERVICE_MESSAGE;
+import static info.dvkr.screenstream.service.ForegroundService.PERMISSION_RECEIVE_BROADCAST;
+import static info.dvkr.screenstream.service.ForegroundService.SERVICE_MESSAGE_EMPTY;
+import static info.dvkr.screenstream.service.ForegroundService.SERVICE_MESSAGE_EXIT;
+import static info.dvkr.screenstream.service.ForegroundService.SERVICE_MESSAGE_HAS_NEW;
+import static info.dvkr.screenstream.service.ForegroundService.SERVICE_MESSAGE_HTTP_OK;
+import static info.dvkr.screenstream.service.ForegroundService.SERVICE_MESSAGE_HTTP_PORT_IN_USE;
+import static info.dvkr.screenstream.service.ForegroundService.SERVICE_MESSAGE_IMAGE_GENERATOR_ERROR;
+import static info.dvkr.screenstream.service.ForegroundService.SERVICE_MESSAGE_RESTART_HTTP;
+import static info.dvkr.screenstream.service.ForegroundService.SERVICE_MESSAGE_START_STREAMING;
+import static info.dvkr.screenstream.service.ForegroundService.SERVICE_MESSAGE_STOP_STREAMING;
+import static info.dvkr.screenstream.service.ForegroundService.SERVICE_MESSAGE_UPDATE_PIN_STATUS;
+import static info.dvkr.screenstream.service.ForegroundService.getMediaProjection;
+import static info.dvkr.screenstream.service.ForegroundService.getProjectionManager;
+import static info.dvkr.screenstream.service.ForegroundService.getServiceMessages;
+import static info.dvkr.screenstream.service.ForegroundService.setMediaProjection;
 
 public final class MainActivity extends AppCompatActivity {
     private static final int REQUEST_CODE_SCREEN_CAPTURE = 1;
@@ -62,7 +65,7 @@ public final class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         final ActivityMainBinding activityMainBinding =
                 DataBindingUtil.setContentView(this, R.layout.activity_main);
-        activityMainBinding.setAppState(getAppViewState());
+        activityMainBinding.setViewModel(getMainActivityViewModel());
 
         mPortInUseSnackbar = Snackbar.make(activityMainBinding.layoutMainView,
                 R.string.main_activity_snackbar_port_in_use,
@@ -135,7 +138,7 @@ public final class MainActivity extends AppCompatActivity {
                 new IntentFilter(ACTION_DEFAULT), PERMISSION_RECEIVE_BROADCAST, null);
         processServiceMessages();
 
-        if (AppContext.getAppState().mHttpServerStatus == HttpServer.SERVER_ERROR_PORT_IN_USE) {
+        if (getAppState().mHttpServerStatus == HttpServer.SERVER_ERROR_PORT_IN_USE) {
             mPortInUseSnackbar.show();
         }
     }
@@ -182,7 +185,7 @@ public final class MainActivity extends AppCompatActivity {
                 getAppSettings().updateSettings();
                 final boolean isServerPortChanged = oldServerPort != getAppSettings().getSeverPort();
                 if (isServerPortChanged) {
-                    getAppViewState().serverAddress.set(getServerAddress());
+                    getMainActivityViewModel().setServerAddress(getServerAddress());
 
                     startService(new Intent(this, ForegroundService.class)
                             .putExtra(EXTRA_SERVICE_MESSAGE, SERVICE_MESSAGE_RESTART_HTTP));
@@ -194,6 +197,7 @@ public final class MainActivity extends AppCompatActivity {
         }
     }
 
+    //TODO move to ViewModel
     public void onToggleButtonClick(View v) {
         if (getAppState().isStreamRunning) {
             stopStreaming();
@@ -210,15 +214,15 @@ public final class MainActivity extends AppCompatActivity {
     }
 
     private void updatePinStatus(final boolean isServerPortChanged) {
-        getAppViewState().pinAutoHide.set(getAppSettings().isHidePinOnStart());
+        getMainActivityViewModel().setPinAutoHide(getAppSettings().isHidePinOnStart());
 
         final boolean newIsPinEnabled = getAppSettings().isEnablePin();
         final String newPin = getAppSettings().getCurrentPin();
 
         // TODO do no rely on ViewModel
-        if (newIsPinEnabled != getAppViewState().pinEnabled.get() || !newPin.equals(getAppViewState().streamPin.get())) {
-            getAppViewState().pinEnabled.set(newIsPinEnabled);
-            getAppViewState().streamPin.set(newPin);
+        if (newIsPinEnabled != getMainActivityViewModel().isPinEnabled() || !newPin.equals(getMainActivityViewModel().getStreamPin())) {
+            getMainActivityViewModel().setPinEnabled(newIsPinEnabled);
+            getMainActivityViewModel().setStreamPin(newPin);
 
             if (!isServerPortChanged) {
                 startService(new Intent(this, ForegroundService.class)
@@ -229,7 +233,7 @@ public final class MainActivity extends AppCompatActivity {
 
     private void tryStartStreaming() {
         if (!isWiFiConnected() || getAppState().isStreamRunning) return;
-        if (AppContext.getAppState().mHttpServerStatus != HttpServer.SERVER_OK) return;
+        if (getAppState().mHttpServerStatus != HttpServer.SERVER_OK) return;
 
         final MediaProjectionManager projectionManager = getProjectionManager();
         if (projectionManager == null) return;

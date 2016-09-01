@@ -1,4 +1,4 @@
-package info.dvkr.screenstream;
+package info.dvkr.screenstream.data.local;
 
 
 import android.content.Context;
@@ -7,7 +7,9 @@ import android.preference.PreferenceManager;
 
 import java.util.Random;
 
-final class AppSettings {
+import info.dvkr.screenstream.R;
+
+public final class PreferencesHelper {
     private static final String DEFAULT_PIN = "0000";
     private static final String DEFAULT_SERVER_PORT = "8080";
     private static final String DEFAULT_JPEG_QUALITY = "80";
@@ -26,14 +28,14 @@ final class AppSettings {
     private volatile int mJpegQuality;
     private volatile int mClientTimeout;
 
-    AppSettings(final Context context) {
+    public PreferencesHelper(final Context context) {
         mContext = context;
         mSharedPreferences = PreferenceManager.getDefaultSharedPreferences(mContext);
         updateSettings();
     }
 
     //TODO Replace with Observable
-    void updateSettings() {
+    public void updateSettings() {
         mMinimizeOnStream = mSharedPreferences.getBoolean(mContext.getString(R.string.pref_key_minimize_on_stream), true);
         mStopOnSleep = mSharedPreferences.getBoolean(mContext.getString(R.string.pref_key_stop_on_sleep), false);
         mEnablePin = mSharedPreferences.getBoolean(mContext.getString(R.string.pref_key_enable_pin), false);
@@ -46,50 +48,50 @@ final class AppSettings {
         mClientTimeout = Integer.parseInt(mSharedPreferences.getString(mContext.getString(R.string.pref_key_client_con_timeout), DEFAULT_CLIENT_TIMEOUT));
     }
 
-    void generateAndSaveNewPin() {
+    public void generateAndSaveNewPin() {
         mCurrentPin = getRandomPin();
         final SharedPreferences.Editor editor = mSharedPreferences.edit();
         editor.putString(mContext.getString(R.string.pref_key_set_pin), mCurrentPin);
         editor.apply();
     }
 
-    boolean isMinimizeOnStream() {
+    public boolean isMinimizeOnStream() {
         return mMinimizeOnStream;
     }
 
-    boolean isStopOnSleep() {
+    public boolean isStopOnSleep() {
         return mStopOnSleep;
     }
 
-    boolean isEnablePin() {
+    public boolean isEnablePin() {
         return mEnablePin;
     }
 
-    boolean isHidePinOnStart() {
+    public boolean isHidePinOnStart() {
         return mHidePinOnStart;
     }
 
-    boolean isNewPinOnAppStart() {
+    public boolean isNewPinOnAppStart() {
         return mNewPinOnAppStart;
     }
 
-    boolean isAutoChangePin() {
+    public boolean isAutoChangePin() {
         return mAutoChangePin;
     }
 
-    String getCurrentPin() {
+    public String getCurrentPin() {
         return mCurrentPin;
     }
 
-    int getSeverPort() {
+    public int getSeverPort() {
         return mSeverPort;
     }
 
-    int getJpegQuality() {
+    public int getJpegQuality() {
         return mJpegQuality;
     }
 
-    int getClientTimeout() {
+    public int getClientTimeout() {
         return mClientTimeout;
     }
 

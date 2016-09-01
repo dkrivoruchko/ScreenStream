@@ -1,4 +1,4 @@
-package info.dvkr.screenstream;
+package info.dvkr.screenstream.view;
 
 
 import android.os.Bundle;
@@ -9,6 +9,8 @@ import android.preference.Preference;
 import android.preference.PreferenceActivity;
 import android.preference.PreferenceFragment;
 import android.widget.Toast;
+
+import info.dvkr.screenstream.R;
 
 public final class SettingsActivity extends PreferenceActivity {
     private static final int PIN_DIGITS_COUNT = 4;

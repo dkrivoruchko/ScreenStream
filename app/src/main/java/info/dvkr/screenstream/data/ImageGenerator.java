@@ -1,4 +1,4 @@
-package info.dvkr.screenstream;
+package info.dvkr.screenstream.data;
 
 import android.content.Context;
 import android.graphics.Bitmap;
@@ -17,12 +17,15 @@ import com.google.firebase.crash.FirebaseCrash;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
-import static info.dvkr.screenstream.AppContext.getAppSettings;
-import static info.dvkr.screenstream.AppContext.getAppState;
-import static info.dvkr.screenstream.AppContext.getScreenDensity;
-import static info.dvkr.screenstream.AppContext.getScreenSize;
+import info.dvkr.screenstream.service.ForegroundService;
+import info.dvkr.screenstream.utils.NotifyImageGenerator;
 
-final class ImageGenerator {
+import static info.dvkr.screenstream.ScreenStreamApplication.getAppSettings;
+import static info.dvkr.screenstream.ScreenStreamApplication.getAppState;
+import static info.dvkr.screenstream.ScreenStreamApplication.getScreenDensity;
+import static info.dvkr.screenstream.ScreenStreamApplication.getScreenSize;
+
+public final class ImageGenerator {
     private final Object mLock = new Object();
 
     private volatile boolean isThreadRunning;
@@ -87,7 +90,7 @@ final class ImageGenerator {
         }
     }
 
-    void start() {
+    public void start() {
         synchronized (mLock) {
             if (isThreadRunning) return;
             final MediaProjection mediaProjection = ForegroundService.getMediaProjection();
@@ -116,7 +119,7 @@ final class ImageGenerator {
         }
     }
 
-    void stop() {
+    public void stop() {
         synchronized (mLock) {
             if (!isThreadRunning) return;
 
@@ -146,7 +149,7 @@ final class ImageGenerator {
         }
     }
 
-    void addDefaultScreen(final Context context) {
+    public void addDefaultScreen(final Context context) {
         getAppState().mJPEGQueue.clear();
         new Handler().postDelayed(new Runnable() {
             @Override

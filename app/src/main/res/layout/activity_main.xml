@@ -3,11 +3,9 @@
 
     <data>
 
-        <import type="android.view.View" />
-
         <variable
-            name="appState"
-            type="info.dvkr.screenstream.AppViewState" />
+            name="viewModel"
+            type="info.dvkr.screenstream.viewModel.MainActivityViewModel" />
     </data>
 
     <LinearLayout xmlns:tools="http://schemas.android.com/tools"
@@ -16,7 +14,7 @@
         android:layout_height="match_parent"
         android:orientation="vertical"
         android:padding="@dimen/activity_margin"
-        tools:context="info.dvkr.screenstream.MainActivity">
+        tools:context="info.dvkr.screenstream.view.MainActivity">
 
         <TextView
             android:layout_width="match_parent"
@@ -32,9 +30,9 @@
             android:gravity="center_horizontal"
             android:paddingBottom="@dimen/activity_vertical_margin"
             android:paddingTop="@dimen/activity_vertical_margin"
-            android:text="@{appState.wifiConnected ? appState.serverAddress : @string/main_activity_no_wifi_connected}"
+            android:text="@{viewModel.serverAddressText}"
             android:textAppearance="?android:attr/textAppearanceMedium"
-            android:textColor="@{appState.wifiConnected ? @color/textColorSecondary : @color/colorAccent}" />
+            android:textColor="@{viewModel.serverAddressColor}" />
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -46,27 +44,27 @@
                 android:layout_width="wrap_content"
                 android:layout_height="match_parent"
                 android:gravity="center"
-                android:text="@{appState.pinEnabled ? @string/main_activity_pin : @string/main_activity_pin_disabled}"
+                android:text="@{viewModel.pinTitleText}"
                 android:textAppearance="?android:attr/textAppearanceMedium"
-                android:textColor="@{appState.pinEnabled ? @color/textColorSecondary : @color/colorPrimary}" />
+                android:textColor="@{viewModel.pinTitleColor}" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:padding="@dimen/activity_vertical_margin"
-                android:text="@{(appState.streaming &amp;&amp; appState.pinAutoHide) ?  @string/main_activity_pin_asterisks : appState.streamPin}"
+                android:text="@{viewModel.pinText}"
                 android:textAppearance="?android:attr/textAppearanceMedium"
                 android:textColor="@color/colorAccent"
                 android:textStyle="bold"
-                android:visibility="@{appState.pinEnabled ? View.VISIBLE : View.GONE}" />
+                android:visibility="@{viewModel.pinVisibility}" />
         </LinearLayout>
 
         <ToggleButton
             android:layout_width="280dp"
             android:layout_height="wrap_content"
             android:layout_gravity="center_horizontal"
-            android:checked="@{appState.streaming}"
-            android:enabled="@{appState.wifiConnected &amp;&amp; !appState.httpServerError}"
+            android:checked="@{viewModel.streaming}"
+            android:enabled="@{viewModel.toggleButtonEnabled}"
             android:onClick="onToggleButtonClick"
             android:paddingBottom="@dimen/activity_vertical_margin"
             android:paddingTop="@dimen/activity_vertical_margin"
@@ -81,7 +79,7 @@
             android:gravity="center_horizontal"
             android:paddingBottom="@dimen/activity_vertical_margin_small"
             android:paddingTop="@dimen/activity_vertical_margin_small"
-            android:text="@{String.format(@string/main_activity_connected_clients,appState.clients)}"
+            android:text="@{viewModel.connectedClientsText}"
             android:textColor="@color/textColorSecondary"
             android:textSize="16sp" />
     </LinearLayout>

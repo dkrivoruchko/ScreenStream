@@ -14,35 +14,52 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.Locale;
+import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.ConcurrentLinkedQueue;
+
+import info.dvkr.screenstream.data.HttpServer;
+import info.dvkr.screenstream.data.ImageToClientStreamer;
+import info.dvkr.screenstream.data.local.PreferencesHelper;
+import info.dvkr.screenstream.service.ForegroundService;
+import info.dvkr.screenstream.viewModel.MainActivityViewModel;
 
 
-public class AppContext extends Application {
-    private static AppContext sAppInstance;
+public class ScreenStreamApplication extends Application {
+    private static ScreenStreamApplication sAppInstance;
 
-    private final AppViewState mAppViewState = new AppViewState();
+    private MainActivityViewModel mMainActivityViewModel;
     private final AppState mAppState = new AppState();
-    private AppSettings mAppSettings;
+    private PreferencesHelper mPreferencesHelper;
     private WindowManager mWindowManager;
     private int mDensityDpi;
     private String mIndexHtmlPage;
     private String mPinRequestHtmlPage;
     private byte[] mIconBytes;
 
+    public class AppState {
+        public final ConcurrentLinkedDeque<byte[]> mJPEGQueue = new ConcurrentLinkedDeque<>();
+        public final ConcurrentLinkedQueue<ImageToClientStreamer> mImageToClientStreamerQueue = new ConcurrentLinkedQueue<>();
+        public volatile boolean isStreamRunning;
+        public volatile int mHttpServerStatus = HttpServer.SERVER_STATUS_UNKNOWN;
+    }
+
     @Override
     public void onCreate() {
         super.onCreate();
         sAppInstance = this;
 
-        mAppSettings = new AppSettings(this);
-        if (mAppSettings.isEnablePin() && mAppSettings.isNewPinOnAppStart()) {
-            mAppSettings.generateAndSaveNewPin();
+        mMainActivityViewModel = new MainActivityViewModel(this);
+
+        mPreferencesHelper = new PreferencesHelper(this);
+        if (mPreferencesHelper.isEnablePin() && mPreferencesHelper.isNewPinOnAppStart()) {
+            mPreferencesHelper.generateAndSaveNewPin();
         }
 
-        mAppViewState.serverAddress.set(getServerAddress());
-        mAppViewState.pinEnabled.set(mAppSettings.isEnablePin());
-        mAppViewState.pinAutoHide.set(mAppSettings.isHidePinOnStart());
-        mAppViewState.streamPin.set(mAppSettings.getCurrentPin());
-        mAppViewState.wifiConnected.set(isWiFiConnected());
+        mMainActivityViewModel.setServerAddress(getServerAddress());
+        mMainActivityViewModel.setPinEnabled(mPreferencesHelper.isEnablePin());
+        mMainActivityViewModel.setPinAutoHide(mPreferencesHelper.isHidePinOnStart());
+        mMainActivityViewModel.setStreamPin(mPreferencesHelper.getCurrentPin());
+        mMainActivityViewModel.setWiFiConnected(isWiFiConnected());
 
         mWindowManager = (WindowManager) getSystemService(Context.WINDOW_SERVICE);
         mDensityDpi = getDensityDpi();
@@ -59,59 +76,59 @@ public class AppContext extends Application {
         startService(ForegroundService.getStartIntent(this));
     }
 
-    static AppViewState getAppViewState() {
-        return sAppInstance.mAppViewState;
+    public static MainActivityViewModel getMainActivityViewModel() {
+        return sAppInstance.mMainActivityViewModel;
     }
 
-    static AppState getAppState() {
+    public static AppState getAppState() {
         return sAppInstance.mAppState;
     }
 
-    static AppSettings getAppSettings() {
-        return sAppInstance.mAppSettings;
+    public static PreferencesHelper getAppSettings() {
+        return sAppInstance.mPreferencesHelper;
     }
 
-    static int getScreenDensity() {
+    public static int getScreenDensity() {
         return sAppInstance.mDensityDpi;
     }
 
-    static WindowManager getWindowsManager() {
+    public static WindowManager getWindowsManager() {
         return sAppInstance.mWindowManager;
     }
 
-    static float getScale() {
+    public static float getScale() {
         return sAppInstance.getResources().getDisplayMetrics().density;
     }
 
-    static Point getScreenSize() {
+    public static Point getScreenSize() {
         final Point screenSize = new Point();
         sAppInstance.mWindowManager.getDefaultDisplay().getRealSize(screenSize);
         return screenSize;
     }
 
-    static void setIsStreamRunning(final boolean isRunning) {
+    public static void setIsStreamRunning(final boolean isRunning) {
         sAppInstance.mAppState.isStreamRunning = isRunning;
-        getAppViewState().streaming.set(isRunning);
+        getMainActivityViewModel().setStreaming(isRunning);
     }
 
-    static String getIndexHtmlPage(final String streamAddress) {
+    public static String getIndexHtmlPage(final String streamAddress) {
         return sAppInstance.mIndexHtmlPage.replaceFirst("SCREEN_STREAM_ADDRESS", streamAddress);
     }
 
-    static String getPinRequestHtmlPage(final boolean isError) {
+    public static String getPinRequestHtmlPage(final boolean isError) {
         final String errorString = (isError) ? sAppInstance.getString(R.string.html_wrong_pin) : "&nbsp";
         return sAppInstance.mPinRequestHtmlPage.replaceFirst("wrong_pin", errorString);
     }
 
-    static byte[] getIconBytes() {
+    public static byte[] getIconBytes() {
         return sAppInstance.mIconBytes;
     }
 
-    static String getServerAddress() {
-        return "http://" + sAppInstance.getIpAddress() + ":" + sAppInstance.mAppSettings.getSeverPort();
+    public static String getServerAddress() {
+        return "http://" + sAppInstance.getIpAddress() + ":" + sAppInstance.mPreferencesHelper.getSeverPort();
     }
 
-    static boolean isWiFiConnected() {
+    public static boolean isWiFiConnected() {
         final WifiManager wifiManager = (WifiManager) sAppInstance.getSystemService(Context.WIFI_SERVICE);
         return wifiManager.getConnectionInfo().getIpAddress() > 0;
     }

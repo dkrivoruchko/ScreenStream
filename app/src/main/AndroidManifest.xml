@@ -10,14 +10,14 @@
     <uses-permission android:name="info.dvkr.screenstream.RECEIVE_BROADCAST" />
 
     <application
-        android:name=".AppContext"
+        android:name=".ScreenStreamApplication"
         android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:supportsRtl="false"
         android:theme="@style/AppTheme">
         <activity
-            android:name=".MainActivity"
+            android:name=".view.MainActivity"
             android:launchMode="singleTask">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -25,10 +25,10 @@
             </intent-filter>
         </activity>
 
-        <activity android:name=".SettingsActivity" />
+        <activity android:name=".view.SettingsActivity" />
 
         <service
-            android:name=".ForegroundService"
+            android:name="info.dvkr.screenstream.service.ForegroundService"
             android:exported="false" />
     </application>
 

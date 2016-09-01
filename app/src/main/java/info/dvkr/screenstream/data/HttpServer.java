@@ -1,4 +1,4 @@
-package info.dvkr.screenstream;
+package info.dvkr.screenstream.data;
 
 import com.google.firebase.crash.FirebaseCrash;
 
@@ -12,15 +12,17 @@ import java.net.Socket;
 import java.net.SocketTimeoutException;
 import java.util.Random;
 
-final class HttpServer {
-    static final int SERVER_STATUS_UNKNOWN = -1;
-    static final int SERVER_OK = 0;
-    static final int SERVER_ERROR_ALREADY_RUNNING = 1;
-    static final int SERVER_ERROR_PORT_IN_USE = 2;
-    static final int SERVER_ERROR_UNKNOWN = 3;
-    static final int SERVER_STOP = 10;
-    static final int SERVER_SETTINGS_RESTART = 11;
-    static final int SERVER_PIN_RESTART = 12;
+import info.dvkr.screenstream.ScreenStreamApplication;
+
+public final class HttpServer {
+    public static final int SERVER_STATUS_UNKNOWN = -1;
+    public static final int SERVER_OK = 0;
+    public static final int SERVER_ERROR_ALREADY_RUNNING = 1;
+    public static final int SERVER_ERROR_PORT_IN_USE = 2;
+    public static final int SERVER_ERROR_UNKNOWN = 3;
+    public static final int SERVER_STOP = 10;
+    public static final int SERVER_SETTINGS_RESTART = 11;
+    public static final int SERVER_PIN_RESTART = 12;
 
     private static final int SEVER_SOCKET_TIMEOUT = 50;
     private static final String DEFAULT_ADDRESS = "/";
@@ -33,7 +35,7 @@ final class HttpServer {
 
     private ServerSocket mServerSocket;
     private HttpServerThread mHttpServerThread;
-    private JpegStreamer mJpegStreamer;
+    private ImageToClientDispatcher mImageToClientDispatcher;
 
     private volatile boolean isPinEnabled;
 
@@ -91,7 +93,7 @@ final class HttpServer {
                         }
 
                         if (mCurrentStreamAddress.equals(mRequestUri)) {
-                            HttpServer.this.mJpegStreamer.addClient(mClientSocket);
+                            HttpServer.this.mImageToClientDispatcher.addClient(mClientSocket);
                             continue;
                         }
 
@@ -115,7 +117,7 @@ final class HttpServer {
                 outputStreamWriter.write("Content-Type: text/html\r\n");
                 outputStreamWriter.write("Connection: close\r\n");
                 outputStreamWriter.write("\r\n");
-                outputStreamWriter.write(AppContext.getPinRequestHtmlPage(pinError));
+                outputStreamWriter.write(ScreenStreamApplication.getPinRequestHtmlPage(pinError));
                 outputStreamWriter.write("\r\n");
                 outputStreamWriter.flush();
             }
@@ -127,7 +129,7 @@ final class HttpServer {
                 outputStreamWriter.write("Content-Type: text/html\r\n");
                 outputStreamWriter.write("Connection: close\r\n");
                 outputStreamWriter.write("\r\n");
-                outputStreamWriter.write(AppContext.getIndexHtmlPage(streamAddress));
+                outputStreamWriter.write(ScreenStreamApplication.getIndexHtmlPage(streamAddress));
                 outputStreamWriter.write("\r\n");
                 outputStreamWriter.flush();
             }
@@ -140,7 +142,7 @@ final class HttpServer {
                 outputStreamWriter.write("Connection: close\r\n");
                 outputStreamWriter.write("\r\n");
                 outputStreamWriter.flush();
-                socket.getOutputStream().write(AppContext.getIconBytes());
+                socket.getOutputStream().write(ScreenStreamApplication.getIconBytes());
                 socket.getOutputStream().flush();
             }
         }
@@ -148,7 +150,7 @@ final class HttpServer {
         private void sendNotFound(final Socket socket) throws IOException {
             try (final OutputStreamWriter outputStreamWriter = new OutputStreamWriter(socket.getOutputStream())) {
                 outputStreamWriter.write("HTTP/1.1 301 Moved Permanently\r\n");
-                outputStreamWriter.write("Location: " + AppContext.getServerAddress() + "\r\n");
+                outputStreamWriter.write("Location: " + ScreenStreamApplication.getServerAddress() + "\r\n");
                 outputStreamWriter.write("Connection: close\r\n");
                 outputStreamWriter.write("\r\n");
                 outputStreamWriter.flush();
@@ -157,25 +159,25 @@ final class HttpServer {
 
     }
 
-    int start() {
+    public int start() {
         synchronized (mLock) {
             if (isThreadRunning) return SERVER_ERROR_ALREADY_RUNNING;
 
             mCurrentStreamAddress = DEFAULT_STREAM_ADDRESS;
             mCurrentPinUri = DEFAULT_PIN_ADDRESS;
-            isPinEnabled = AppContext.getAppSettings().isEnablePin();
+            isPinEnabled = ScreenStreamApplication.getAppSettings().isEnablePin();
             if (isPinEnabled) {
-                final String currentPin = AppContext.getAppSettings().getCurrentPin();
+                final String currentPin = ScreenStreamApplication.getAppSettings().getCurrentPin();
                 mCurrentPinUri = DEFAULT_PIN_ADDRESS + currentPin;
                 mCurrentStreamAddress = getRandomStreamAddress(currentPin);
             }
 
             try {
-                mServerSocket = new ServerSocket(AppContext.getAppSettings().getSeverPort());
+                mServerSocket = new ServerSocket(ScreenStreamApplication.getAppSettings().getSeverPort());
                 mServerSocket.setSoTimeout(SEVER_SOCKET_TIMEOUT);
 
-                mJpegStreamer = new JpegStreamer();
-                mJpegStreamer.start();
+                mImageToClientDispatcher = new ImageToClientDispatcher();
+                mImageToClientDispatcher.start();
 
                 mHttpServerThread = new HttpServerThread();
                 mHttpServerThread.start();
@@ -191,7 +193,7 @@ final class HttpServer {
         return SERVER_OK;
     }
 
-    void stop(final int reason, final byte[] clientNotifyImage) {
+    public void stop(final int reason, final byte[] clientNotifyImage) {
         synchronized (mLock) {
             if (!isThreadRunning) return;
             isThreadRunning = false;
@@ -199,8 +201,8 @@ final class HttpServer {
             mHttpServerThread.interrupt();
             mHttpServerThread = null;
 
-            mJpegStreamer.stop(reason, clientNotifyImage);
-            mJpegStreamer = null;
+            mImageToClientDispatcher.stop(reason, clientNotifyImage);
+            mImageToClientDispatcher = null;
 
             try {
                 mServerSocket.close();

@@ -1,4 +1,4 @@
-package info.dvkr.screenstream;
+package info.dvkr.screenstream.service;
 
 import android.media.projection.MediaProjection;
 import android.os.Handler;
@@ -7,15 +7,18 @@ import android.os.Message;
 
 import com.google.firebase.crash.FirebaseCrash;
 
+
+import info.dvkr.screenstream.data.ImageGenerator;
+
 import static android.view.Surface.ROTATION_0;
 import static android.view.Surface.ROTATION_180;
-import static info.dvkr.screenstream.AppContext.getAppState;
-import static info.dvkr.screenstream.AppContext.getWindowsManager;
-import static info.dvkr.screenstream.AppContext.setIsStreamRunning;
-import static info.dvkr.screenstream.ForegroundService.getImageGenerator;
-import static info.dvkr.screenstream.ForegroundService.getMediaProjection;
+import static info.dvkr.screenstream.ScreenStreamApplication.getAppState;
+import static info.dvkr.screenstream.ScreenStreamApplication.getWindowsManager;
+import static info.dvkr.screenstream.ScreenStreamApplication.setIsStreamRunning;
+import static info.dvkr.screenstream.service.ForegroundService.getImageGenerator;
+import static info.dvkr.screenstream.service.ForegroundService.getMediaProjection;
 
-final class ForegroundTaskHandler extends Handler {
+final class ForegroundServiceHandler extends Handler {
     static final int HANDLER_START_STREAMING = 0;
     static final int HANDLER_STOP_STREAMING = 1;
 
@@ -26,7 +29,7 @@ final class ForegroundTaskHandler extends Handler {
     private ImageGenerator mImageGenerator;
     private boolean mCurrentOrientation;
 
-    ForegroundTaskHandler(final Looper looper) {
+    ForegroundServiceHandler(final Looper looper) {
         super(looper);
     }
 
