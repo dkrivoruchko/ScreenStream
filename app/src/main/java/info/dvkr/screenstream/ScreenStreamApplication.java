@@ -63,9 +63,9 @@ public class ScreenStreamApplication extends Application {
 
         mWindowManager = (WindowManager) getSystemService(Context.WINDOW_SERVICE);
         mDensityDpi = getDensityDpi();
-        mIndexHtmlPage = getHtml("index.html");
-        mPinRequestHtmlPage = getHtml("pinrequest.html");
-        mPinRequestHtmlPage = mPinRequestHtmlPage
+        mIndexHtmlPage = getHtml("index.html")
+                .replaceFirst("MSG_NO_MJPEG_SUPPORT", getString(R.string.html_no_mjpeg_support));
+        mPinRequestHtmlPage = getHtml("pinrequest.html")
                 .replaceFirst("stream_require_pin", getString(R.string.html_stream_require_pin))
                 .replaceFirst("enter_pin", getString(R.string.html_enter_pin))
                 .replaceFirst("four_digits", getString(R.string.html_four_digits))
