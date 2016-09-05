@@ -55,6 +55,7 @@ public final class ForegroundService extends Service {
     private final String ACTION_NOTIFY_STOP_STREAM = "info.dvkr.screenstream.action.ACTION_NOTIFY_STOP_STREAM";
     private final String ACTION_NOTIFY_CLOSE_APP = "info.dvkr.screenstream.action.ACTION_NOTIFY_CLOSE_APP";
 
+    private boolean isServiceRunning;
     private MediaProjectionManager sProjectionManager;
     private MediaProjection mediaProjection;
     private MediaProjection.Callback mProjectionCallback;
@@ -141,15 +142,16 @@ public final class ForegroundService extends Service {
 
         registerReceiver(mBroadcastReceiver, screenOnOffAndWiFiFilter);
         httpServerStartAndCheck();
+
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        final int messageFromActivity = intent.getIntExtra(EXTRA_SERVICE_MESSAGE, SERVICE_MESSAGE_EMPTY);
-//        Log.wtf(">>>>>>>>>>> messageFromActivity", "" + messageFromActivity);
-        switch (messageFromActivity) {
+        final int message = intent.getIntExtra(EXTRA_SERVICE_MESSAGE, SERVICE_MESSAGE_EMPTY);
+        switch (message) {
             case SERVICE_MESSAGE_PREPARE_STREAMING:
-                startForeground(110, getNotificationStart());
+                if (!isServiceRunning) startForeground(110, getNotificationStart());
+                isServiceRunning = true;
                 break;
             case SERVICE_MESSAGE_START_STREAMING:
                 serviceStartStreaming();

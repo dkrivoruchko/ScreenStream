@@ -10,14 +10,15 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-import info.dvkr.screenstream.ScreenStreamApplication;
-
-import static info.dvkr.screenstream.ScreenStreamApplication.*;
+import static info.dvkr.screenstream.ScreenStreamApplication.getAppSettings;
+import static info.dvkr.screenstream.ScreenStreamApplication.getAppState;
+import static info.dvkr.screenstream.ScreenStreamApplication.getMainActivityViewModel;
 
 public final class ImageToClientStreamer {
     final static int CLIENT_HEADER = 1;
     final static int CLIENT_IMAGE = 2;
 
+    private volatile boolean isSending;
     private final Socket mClientSocket;
     private final OutputStreamWriter mOtputStreamWriter;
     private final ExecutorService mClientThreadPool = Executors.newFixedThreadPool(2);
@@ -25,22 +26,27 @@ public final class ImageToClientStreamer {
     ImageToClientStreamer(final Socket socket) throws IOException {
         mClientSocket = socket;
         mOtputStreamWriter = new OutputStreamWriter(mClientSocket.getOutputStream());
+
     }
 
     private void closeSocket() {
+        getAppState().mImageToClientStreamerQueue.remove(ImageToClientStreamer.this);
+        getMainActivityViewModel().setClients(getAppState().mImageToClientStreamerQueue.size());
         try {
-            mClientThreadPool.shutdownNow();
             mOtputStreamWriter.close();
             mClientSocket.close();
+            mClientThreadPool.shutdownNow();
         } catch (IOException e) {
             FirebaseCrash.report(e);
         }
-        getAppState().mImageToClientStreamerQueue.remove(ImageToClientStreamer.this);
-        getMainActivityViewModel().setClients(getAppState().mImageToClientStreamerQueue.size());
+
     }
 
     // TODO Revise logic
     void sendClientData(final int httpServerStatus, final int dataType, final byte[] jpegImage) {
+        if (isSending) {
+            return;
+        }
         if (dataType == CLIENT_IMAGE && jpegImage == null)
             if (httpServerStatus == HttpServer.SERVER_OK) {
                 return;
@@ -49,19 +55,32 @@ public final class ImageToClientStreamer {
                 return;
             }
 
+        if (mClientThreadPool.isShutdown()) {
+            closeSocket();
+            return;
+        }
+        isSending = true;
         mClientThreadPool.execute(new Runnable() {
             @Override
             public void run() {
+                if (mClientThreadPool.isShutdown()) {
+                    closeSocket();
+                    return;
+                }
                 try {
                     mClientThreadPool.submit(new Callable<Object>() {
                         @Override
                         public Object call() throws Exception {
+                            if (mClientThreadPool.isShutdown()) {
+                                closeSocket();
+                                return null;
+                            }
                             if (dataType == CLIENT_HEADER) sendHeader();
                             if (dataType == CLIENT_IMAGE) sendImage(jpegImage);
                             return null;
                         }
                     }).get(getAppSettings().getClientTimeout(), TimeUnit.MILLISECONDS);
-
+                    isSending = false;
                     if (httpServerStatus != HttpServer.SERVER_OK) closeSocket();
                 } catch (Exception e) {
                     FirebaseCrash.report(e);
