@@ -64,7 +64,7 @@ public final class ForegroundService extends Service {
     private ForegroundServiceHandler mForegroundServiceTaskHandler;
     private BroadcastReceiver mLocalNotificationReceiver;
     private BroadcastReceiver mBroadcastReceiver;
-    private ConcurrentLinkedQueue<Integer> mServiceMessages = new ConcurrentLinkedQueue<>();
+    private final ConcurrentLinkedQueue<Integer> mServiceMessages = new ConcurrentLinkedQueue<>();
 
     @Override
     public void onCreate() {

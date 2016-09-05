@@ -5,7 +5,6 @@ import android.content.Context;
 import android.graphics.Point;
 import android.net.wifi.WifiManager;
 import android.util.DisplayMetrics;
-import android.util.Log;
 import android.view.WindowManager;
 
 import com.google.firebase.crash.FirebaseCrash;

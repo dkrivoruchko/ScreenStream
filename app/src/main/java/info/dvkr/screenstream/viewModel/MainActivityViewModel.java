@@ -10,7 +10,7 @@ import info.dvkr.screenstream.BR;
 import info.dvkr.screenstream.R;
 
 public final class MainActivityViewModel extends BaseObservable {
-    private Context mContext;
+    private final Context mContext;
 
     private String mServerAddress;
     private boolean mPinEnabled;

@@ -10,7 +10,6 @@ android {
         targetSdkVersion 24
         versionCode 11
         versionName "1.1.4"
-
         resConfigs "en", "ru"
     }
 

@@ -15,7 +15,7 @@ public final class PreferencesHelper {
     private static final String DEFAULT_JPEG_QUALITY = "80";
     private static final String DEFAULT_CLIENT_TIMEOUT = "3000";
 
-    private Context mContext;
+    private final Context mContext;
     private final SharedPreferences mSharedPreferences;
     private boolean mMinimizeOnStream;
     private boolean mStopOnSleep;
