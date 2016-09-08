@@ -7,14 +7,11 @@ import android.os.Message;
 
 import com.google.firebase.crash.FirebaseCrash;
 
-
 import info.dvkr.screenstream.data.ImageGenerator;
 
 import static android.view.Surface.ROTATION_0;
 import static android.view.Surface.ROTATION_180;
-import static info.dvkr.screenstream.ScreenStreamApplication.getAppState;
-import static info.dvkr.screenstream.ScreenStreamApplication.getWindowsManager;
-import static info.dvkr.screenstream.ScreenStreamApplication.setIsStreamRunning;
+import static info.dvkr.screenstream.ScreenStreamApplication.getAppData;
 import static info.dvkr.screenstream.service.ForegroundService.getImageGenerator;
 import static info.dvkr.screenstream.service.ForegroundService.getMediaProjection;
 
@@ -37,38 +34,38 @@ final class ForegroundServiceHandler extends Handler {
     public void handleMessage(Message message) {
         switch (message.what) {
             case HANDLER_START_STREAMING:
-                if (getAppState().isStreamRunning) break;
+                if (getAppData().isStreamRunning()) break;
                 removeMessages(HANDLER_DETECT_ROTATION);
                 mCurrentOrientation = getOrientation();
                 mImageGenerator = getImageGenerator();
                 if (mImageGenerator != null) mImageGenerator.start();
                 sendMessageDelayed(obtainMessage(HANDLER_DETECT_ROTATION), 250);
-                setIsStreamRunning(true);
+                getAppData().setStreamRunning(true);
                 break;
             case HANDLER_PAUSE_STREAMING:
-                if (!getAppState().isStreamRunning) break;
+                if (!getAppData().isStreamRunning()) break;
                 mImageGenerator = getImageGenerator();
                 if (mImageGenerator != null) mImageGenerator.stop();
                 sendMessageDelayed(obtainMessage(HANDLER_RESUME_STREAMING), 250);
                 break;
             case HANDLER_RESUME_STREAMING:
-                if (!getAppState().isStreamRunning) break;
+                if (!getAppData().isStreamRunning()) break;
                 mImageGenerator = getImageGenerator();
                 if (mImageGenerator != null) mImageGenerator.start();
                 sendMessageDelayed(obtainMessage(HANDLER_DETECT_ROTATION), 250);
                 break;
             case HANDLER_STOP_STREAMING:
-                if (!getAppState().isStreamRunning) break;
+                if (!getAppData().isStreamRunning()) break;
                 removeMessages(HANDLER_DETECT_ROTATION);
                 removeMessages(HANDLER_STOP_STREAMING);
                 mImageGenerator = getImageGenerator();
                 if (mImageGenerator != null) mImageGenerator.stop();
                 final MediaProjection mediaProjection = getMediaProjection();
                 if (mediaProjection != null) mediaProjection.stop();
-                setIsStreamRunning(false);
+                getAppData().setStreamRunning(false);
                 break;
             case HANDLER_DETECT_ROTATION:
-                if (!getAppState().isStreamRunning) break;
+                if (!getAppData().isStreamRunning()) break;
                 boolean newOrientation = getOrientation();
                 if (mCurrentOrientation == newOrientation) {
                     sendMessageDelayed(obtainMessage(HANDLER_DETECT_ROTATION), 250);
@@ -83,7 +80,7 @@ final class ForegroundServiceHandler extends Handler {
     }
 
     private boolean getOrientation() {
-        final int rotation = getWindowsManager().getDefaultDisplay().getRotation();
+        final int rotation = getAppData().getWindowsManager().getDefaultDisplay().getRotation();
         return rotation == ROTATION_0 || rotation == ROTATION_180;
     }
 }

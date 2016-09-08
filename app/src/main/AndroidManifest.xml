@@ -3,11 +3,9 @@
     package="info.dvkr.screenstream">
 
     <uses-feature android:name="android.hardware.wifi" />
-    <permission android:name="info.dvkr.screenstream.RECEIVE_BROADCAST" />
 
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="info.dvkr.screenstream.RECEIVE_BROADCAST" />
 
     <application
         android:name=".ScreenStreamApplication"

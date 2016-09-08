@@ -5,9 +5,13 @@ import android.databinding.BaseObservable;
 import android.databinding.Bindable;
 import android.support.v4.content.ContextCompat;
 import android.view.View;
+import android.widget.ToggleButton;
 
 import info.dvkr.screenstream.BR;
 import info.dvkr.screenstream.R;
+import info.dvkr.screenstream.data.BusMessages;
+
+import static info.dvkr.screenstream.ScreenStreamApplication.getAppData;
 
 public final class MainActivityViewModel extends BaseObservable {
     private final Context mContext;
@@ -39,6 +43,7 @@ public final class MainActivityViewModel extends BaseObservable {
 
     public void setPinAutoHide(final boolean pinAutoHide) {
         mPinAutoHide = pinAutoHide;
+        notifyPropertyChanged(BR.pinText);
     }
 
     public void setStreamPin(final String streamPin) {
@@ -67,14 +72,6 @@ public final class MainActivityViewModel extends BaseObservable {
     public void setClients(final int clients) {
         mClients = clients;
         notifyPropertyChanged(BR.connectedClientsText);
-    }
-
-    public boolean isPinEnabled() {
-        return mPinEnabled;
-    }
-
-    public String getStreamPin() {
-        return mStreamPin;
     }
 
     @Bindable
@@ -136,5 +133,14 @@ public final class MainActivityViewModel extends BaseObservable {
     @Bindable
     public String getConnectedClientsText() {
         return String.format(mContext.getString(R.string.main_activity_connected_clients), mClients);
+    }
+
+    public void onToggleButtonClick(View v) {
+        if (getAppData().isStreamRunning()) {
+            getAppData().getMessagesBus().post(BusMessages.MESSAGE_ACTION_STREAMING_STOP);
+        } else {
+            ((ToggleButton) v).setChecked(false);
+            getAppData().getMessagesBus().post(BusMessages.MESSAGE_ACTION_STREAMING_TRY_START);
+        }
     }
 }

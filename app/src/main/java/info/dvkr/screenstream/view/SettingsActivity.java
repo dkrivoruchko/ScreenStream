@@ -1,6 +1,8 @@
 package info.dvkr.screenstream.view;
 
 
+import android.content.Context;
+import android.content.Intent;
 import android.os.Bundle;
 import android.preference.CheckBoxPreference;
 import android.preference.EditTextPreference;
@@ -16,6 +18,10 @@ public final class SettingsActivity extends PreferenceActivity {
     private static final int PIN_DIGITS_COUNT = 4;
     private static final int MIN_PORT_NUMBER = 1025;
     private static final int MAX_PORT_NUMBER = 65534;
+
+    public static Intent getStartIntent(Context context) {
+        return new Intent(context, SettingsActivity.class);
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {

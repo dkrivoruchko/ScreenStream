@@ -20,10 +20,8 @@ import java.io.IOException;
 import info.dvkr.screenstream.service.ForegroundService;
 import info.dvkr.screenstream.utils.NotifyImageGenerator;
 
-import static info.dvkr.screenstream.ScreenStreamApplication.getAppSettings;
-import static info.dvkr.screenstream.ScreenStreamApplication.getAppState;
-import static info.dvkr.screenstream.ScreenStreamApplication.getScreenDensity;
-import static info.dvkr.screenstream.ScreenStreamApplication.getScreenSize;
+import static info.dvkr.screenstream.ScreenStreamApplication.getAppData;
+import static info.dvkr.screenstream.ScreenStreamApplication.getAppPreference;
 
 public final class ImageGenerator {
     private final Object mLock = new Object();
@@ -52,7 +50,7 @@ public final class ImageGenerator {
                 try {
                     mImage = mImageReader.acquireLatestImage();
                 } catch (UnsupportedOperationException e) {
-                    ForegroundService.errorInImageGenerator();
+                    getAppData().getMessagesBus().post(BusMessages.MESSAGE_STATUS_IMAGE_GENERATOR_ERROR);
                     FirebaseCrash.report(e);
                     return;
                 }
@@ -75,15 +73,15 @@ public final class ImageGenerator {
                 mImage.close();
 
                 mJpegOutputStream.reset();
-                mCleanBitmap.compress(Bitmap.CompressFormat.JPEG, getAppSettings().getJpegQuality(), mJpegOutputStream);
+                mCleanBitmap.compress(Bitmap.CompressFormat.JPEG, getAppPreference().getJpegQuality(), mJpegOutputStream);
                 mCleanBitmap.recycle();
                 mJpegByteArray = mJpegOutputStream.toByteArray();
 
                 if (mJpegByteArray != null) {
-                    if (getAppState().mJPEGQueue.size() > 6) {
-                        getAppState().mJPEGQueue.pollLast();
+                    if (getAppData().getImageQueue().size() > 6) {
+                        getAppData().getImageQueue().pollLast();
                     }
-                    getAppState().mJPEGQueue.add(mJpegByteArray);
+                    getAppData().getImageQueue().add(mJpegByteArray);
                     mJpegByteArray = null;
                 }
             }
@@ -100,17 +98,17 @@ public final class ImageGenerator {
                     Process.THREAD_PRIORITY_MORE_FAVORABLE);
 
             mImageThread.start();
-            mImageReader = ImageReader.newInstance(getScreenSize().x,
-                    getScreenSize().y,
+            mImageReader = ImageReader.newInstance(getAppData().getScreenSize().x,
+                    getAppData().getScreenSize().y,
                     PixelFormat.RGBA_8888, 2);
 
             mImageHandler = new Handler(mImageThread.getLooper());
             mJpegOutputStream = new ByteArrayOutputStream();
             mImageReader.setOnImageAvailableListener(new ImageAvailableListener(), mImageHandler);
             mVirtualDisplay = mediaProjection.createVirtualDisplay("ScreenStreamVirtualDisplay",
-                    getScreenSize().x,
-                    getScreenSize().y,
-                    getScreenDensity(),
+                    getAppData().getScreenSize().x,
+                    getAppData().getScreenSize().y,
+                    getAppData().getScreenDensity(),
                     DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
                     mImageReader.getSurface(),
                     null, mImageHandler);
@@ -150,13 +148,13 @@ public final class ImageGenerator {
     }
 
     public void addDefaultScreen(final Context context) {
-        getAppState().mJPEGQueue.clear();
+        getAppData().getImageQueue().clear();
         new Handler().postDelayed(new Runnable() {
             @Override
             public void run() {
                 final byte[] jpegByteArray = NotifyImageGenerator.getDefaultScreen(context);
                 if (jpegByteArray != null) {
-                    getAppState().mJPEGQueue.add(jpegByteArray);
+                    getAppData().getImageQueue().add(jpegByteArray);
                 }
             }
         }, 500);

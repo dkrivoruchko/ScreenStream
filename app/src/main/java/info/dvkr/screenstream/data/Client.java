@@ -10,81 +10,62 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-import static info.dvkr.screenstream.ScreenStreamApplication.getAppSettings;
-import static info.dvkr.screenstream.ScreenStreamApplication.getAppState;
+import static info.dvkr.screenstream.ScreenStreamApplication.getAppData;
+import static info.dvkr.screenstream.ScreenStreamApplication.getAppPreference;
 import static info.dvkr.screenstream.ScreenStreamApplication.getMainActivityViewModel;
 
-public final class ImageToClientStreamer {
+final class Client {
     final static int CLIENT_HEADER = 1;
     final static int CLIENT_IMAGE = 2;
 
     private volatile boolean isSending;
+    private volatile boolean isClosing;
     private final Socket mClientSocket;
     private final OutputStreamWriter mOtputStreamWriter;
     private final ExecutorService mClientThreadPool = Executors.newFixedThreadPool(2);
 
-    ImageToClientStreamer(final Socket socket) throws IOException {
+    Client(final Socket socket) throws IOException {
         mClientSocket = socket;
-        mOtputStreamWriter = new OutputStreamWriter(mClientSocket.getOutputStream());
+        mOtputStreamWriter = new OutputStreamWriter(mClientSocket.getOutputStream(), "UTF8");
 
     }
 
     private void closeSocket() {
-        getAppState().mImageToClientStreamerQueue.remove(ImageToClientStreamer.this);
-        getMainActivityViewModel().setClients(getAppState().mImageToClientStreamerQueue.size());
+        isClosing = true;
+        getAppData().getClientQueue().remove(Client.this);
+        getMainActivityViewModel().setClients(getAppData().getClientQueue().size());
         try {
+            mClientThreadPool.shutdownNow();
             mOtputStreamWriter.close();
             mClientSocket.close();
-            mClientThreadPool.shutdownNow();
         } catch (IOException e) {
             FirebaseCrash.report(e);
         }
 
     }
 
-    // TODO Revise logic
-    void sendClientData(final int httpServerStatus, final int dataType, final byte[] jpegImage) {
-        if (isSending) {
-            return;
-        }
-        if (dataType == CLIENT_IMAGE && jpegImage == null)
-            if (httpServerStatus == HttpServer.SERVER_OK) {
-                return;
-            } else {
-                closeSocket();
-                return;
-            }
-
-        if (mClientThreadPool.isShutdown()) {
-            closeSocket();
-            return;
-        }
+    void sendClientData(final int dataType, final byte[] jpegImage, final boolean closeSocket) {
+        if (isClosing) return;
+        if (closeSocket && jpegImage == null) closeSocket();
+        if (isSending) return;
         isSending = true;
         mClientThreadPool.execute(new Runnable() {
             @Override
             public void run() {
-                if (mClientThreadPool.isShutdown()) {
-                    closeSocket();
-                    return;
-                }
                 try {
                     mClientThreadPool.submit(new Callable<Object>() {
                         @Override
                         public Object call() throws Exception {
-                            if (mClientThreadPool.isShutdown()) {
-                                closeSocket();
-                                return null;
-                            }
                             if (dataType == CLIENT_HEADER) sendHeader();
                             if (dataType == CLIENT_IMAGE) sendImage(jpegImage);
                             return null;
                         }
-                    }).get(getAppSettings().getClientTimeout(), TimeUnit.MILLISECONDS);
+                    }).get(getAppPreference().getClientTimeout(), TimeUnit.MILLISECONDS);
+                    if (closeSocket) closeSocket();
                     isSending = false;
-                    if (httpServerStatus != HttpServer.SERVER_OK) closeSocket();
                 } catch (Exception e) {
-                    FirebaseCrash.report(e);
                     closeSocket();
+                    FirebaseCrash.report(e);
                 }
             }
         });

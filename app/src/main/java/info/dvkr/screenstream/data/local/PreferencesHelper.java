@@ -8,9 +8,13 @@ import android.preference.PreferenceManager;
 import java.util.Random;
 
 import info.dvkr.screenstream.R;
+import info.dvkr.screenstream.data.BusMessages;
+
+import static info.dvkr.screenstream.ScreenStreamApplication.getAppData;
+import static info.dvkr.screenstream.ScreenStreamApplication.getMainActivityViewModel;
 
 public final class PreferencesHelper {
-    private static final String DEFAULT_PIN = "0000";
+    private static final String DEFAULT_PIN = "NOPIN";
     private static final String DEFAULT_SERVER_PORT = "8080";
     private static final String DEFAULT_JPEG_QUALITY = "80";
     private static final String DEFAULT_CLIENT_TIMEOUT = "3000";
@@ -31,21 +35,49 @@ public final class PreferencesHelper {
     public PreferencesHelper(final Context context) {
         mContext = context;
         mSharedPreferences = PreferenceManager.getDefaultSharedPreferences(mContext);
-        updateSettings();
+
+        readSettings();
+
+        if (DEFAULT_PIN.equals(mCurrentPin) || (mEnablePin && mNewPinOnAppStart)) {
+            generateAndSaveNewPin();
+        }
+
+        getMainActivityViewModel().setPinEnabled(mEnablePin);
+        getMainActivityViewModel().setPinAutoHide(mHidePinOnStart);
+        getMainActivityViewModel().setStreamPin(mCurrentPin);
     }
 
-    //TODO Replace with Observable
-    public void updateSettings() {
+    private void readSettings() {
         mMinimizeOnStream = mSharedPreferences.getBoolean(mContext.getString(R.string.pref_key_minimize_on_stream), true);
         mStopOnSleep = mSharedPreferences.getBoolean(mContext.getString(R.string.pref_key_stop_on_sleep), false);
+
         mEnablePin = mSharedPreferences.getBoolean(mContext.getString(R.string.pref_key_enable_pin), false);
         mHidePinOnStart = mSharedPreferences.getBoolean(mContext.getString(R.string.pref_key_hide_pin_on_start), true);
         mNewPinOnAppStart = mSharedPreferences.getBoolean(mContext.getString(R.string.pref_key_new_pin_on_app_start), true);
         mAutoChangePin = mSharedPreferences.getBoolean(mContext.getString(R.string.pref_key_auto_change_pin), false);
         mCurrentPin = mSharedPreferences.getString(mContext.getString(R.string.pref_key_set_pin), DEFAULT_PIN);
+
         mSeverPort = Integer.parseInt(mSharedPreferences.getString(mContext.getString(R.string.pref_key_server_port), DEFAULT_SERVER_PORT));
         mJpegQuality = Integer.parseInt(mSharedPreferences.getString(mContext.getString(R.string.pref_key_jpeg_quality), DEFAULT_JPEG_QUALITY));
         mClientTimeout = Integer.parseInt(mSharedPreferences.getString(mContext.getString(R.string.pref_key_client_con_timeout), DEFAULT_CLIENT_TIMEOUT));
+    }
+
+    public void updatePreference() {
+        final int oldServerPort = mSeverPort;
+        final boolean oldEnablePin = mEnablePin;
+        final String oldPin = mCurrentPin;
+        readSettings();
+
+        getMainActivityViewModel().setPinEnabled(mEnablePin);
+        getMainActivityViewModel().setPinAutoHide(mHidePinOnStart);
+        getMainActivityViewModel().setStreamPin(mCurrentPin);
+
+        if (oldServerPort != mSeverPort) {
+            getMainActivityViewModel().setServerAddress(getAppData().getServerAddress());
+            getAppData().getMessagesBus().post(BusMessages.MESSAGE_ACTION_HTTP_RESTART);
+        } else if (oldEnablePin != mEnablePin || !oldPin.equals(mCurrentPin)) {
+            getAppData().getMessagesBus().post(BusMessages.MESSAGE_ACTION_PIN_UPDATE);
+        }
     }
 
     public void generateAndSaveNewPin() {
@@ -65,14 +97,6 @@ public final class PreferencesHelper {
 
     public boolean isEnablePin() {
         return mEnablePin;
-    }
-
-    public boolean isHidePinOnStart() {
-        return mHidePinOnStart;
-    }
-
-    public boolean isNewPinOnAppStart() {
-        return mNewPinOnAppStart;
     }
 
     public boolean isAutoChangePin() {
