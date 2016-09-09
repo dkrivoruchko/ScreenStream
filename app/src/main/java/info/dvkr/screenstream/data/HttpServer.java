@@ -54,7 +54,7 @@ public final class HttpServer {
                         }
 
                         final String[] requestUriArray = requestLine.split(" ");
-                        String requestUri = "";
+                        String requestUri;
                         if (requestUriArray.length >= 2) {
                             requestUri = requestUriArray[1];
                         } else {

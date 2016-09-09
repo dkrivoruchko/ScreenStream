@@ -23,7 +23,6 @@ final class ForegroundServiceHandler extends Handler {
     private static final int HANDLER_RESUME_STREAMING = 11;
     private static final int HANDLER_DETECT_ROTATION = 20;
 
-    private ImageGenerator mImageGenerator;
     private boolean mCurrentOrientation;
 
     ForegroundServiceHandler(final Looper looper) {
@@ -32,34 +31,36 @@ final class ForegroundServiceHandler extends Handler {
 
     @Override
     public void handleMessage(Message message) {
+        ImageGenerator imageGenerator;
+
         switch (message.what) {
             case HANDLER_START_STREAMING:
                 if (getAppData().isStreamRunning()) break;
                 removeMessages(HANDLER_DETECT_ROTATION);
                 mCurrentOrientation = getOrientation();
-                mImageGenerator = getImageGenerator();
-                if (mImageGenerator != null) mImageGenerator.start();
+                imageGenerator = getImageGenerator();
+                if (imageGenerator != null) imageGenerator.start();
                 sendMessageDelayed(obtainMessage(HANDLER_DETECT_ROTATION), 250);
                 getAppData().setStreamRunning(true);
                 break;
             case HANDLER_PAUSE_STREAMING:
                 if (!getAppData().isStreamRunning()) break;
-                mImageGenerator = getImageGenerator();
-                if (mImageGenerator != null) mImageGenerator.stop();
+                imageGenerator = getImageGenerator();
+                if (imageGenerator != null) imageGenerator.stop();
                 sendMessageDelayed(obtainMessage(HANDLER_RESUME_STREAMING), 250);
                 break;
             case HANDLER_RESUME_STREAMING:
                 if (!getAppData().isStreamRunning()) break;
-                mImageGenerator = getImageGenerator();
-                if (mImageGenerator != null) mImageGenerator.start();
+                imageGenerator = getImageGenerator();
+                if (imageGenerator != null) imageGenerator.start();
                 sendMessageDelayed(obtainMessage(HANDLER_DETECT_ROTATION), 250);
                 break;
             case HANDLER_STOP_STREAMING:
                 if (!getAppData().isStreamRunning()) break;
                 removeMessages(HANDLER_DETECT_ROTATION);
                 removeMessages(HANDLER_STOP_STREAMING);
-                mImageGenerator = getImageGenerator();
-                if (mImageGenerator != null) mImageGenerator.stop();
+                imageGenerator = getImageGenerator();
+                if (imageGenerator != null) imageGenerator.stop();
                 final MediaProjection mediaProjection = getMediaProjection();
                 if (mediaProjection != null) mediaProjection.stop();
                 getAppData().setStreamRunning(false);

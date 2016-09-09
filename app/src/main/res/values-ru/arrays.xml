@@ -26,7 +26,6 @@
         <item>3 - По умолчанию</item>
         <item>2</item>
         <item>1</item>
-        <item>0,5</item>
     </string-array>
     <string-array name="pref_client_connection_timeout_values">
         <item>5000</item>
@@ -34,6 +33,5 @@
         <item>3000</item>
         <item>2000</item>
         <item>1000</item>
-        <item>500</item>
     </string-array>
 </resources>

@@ -26,7 +26,6 @@
         <item>3s - Default</item>
         <item>2s</item>
         <item>1s</item>
-        <item>0.5s</item>
     </string-array>
     <string-array name="pref_client_connection_timeout_values">
         <item>5000</item>
@@ -34,6 +33,5 @@
         <item>3000</item>
         <item>2000</item>
         <item>1000</item>
-        <item>500</item>
     </string-array>
 </resources>
