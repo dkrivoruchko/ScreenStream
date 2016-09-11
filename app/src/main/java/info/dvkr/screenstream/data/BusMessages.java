@@ -1,6 +1,6 @@
 package info.dvkr.screenstream.data;
 
-public class BusMessages {
+public final class BusMessages {
     public static final String MESSAGE_ACTION_STREAMING_TRY_START = "MESSAGE_ACTION_STREAMING_TRY_START";
     public static final String MESSAGE_ACTION_STREAMING_START = "MESSAGE_ACTION_STREAMING_START";
     public static final String MESSAGE_ACTION_STREAMING_STOP = "MESSAGE_ACTION_STREAMING_STOP";
