@@ -7,6 +7,8 @@ import android.support.v4.content.ContextCompat;
 import android.view.View;
 import android.widget.ToggleButton;
 
+import org.greenrobot.eventbus.EventBus;
+
 import info.dvkr.screenstream.BR;
 import info.dvkr.screenstream.R;
 import info.dvkr.screenstream.data.BusMessages;
@@ -137,10 +139,10 @@ public final class MainActivityViewModel extends BaseObservable {
 
     public void onToggleButtonClick(View v) {
         if (getAppData().isStreamRunning()) {
-            getAppData().getMessagesBus().post(BusMessages.MESSAGE_ACTION_STREAMING_STOP);
+            EventBus.getDefault().post(new BusMessages(BusMessages.MESSAGE_ACTION_STREAMING_STOP));
         } else {
             ((ToggleButton) v).setChecked(false);
-            getAppData().getMessagesBus().post(BusMessages.MESSAGE_ACTION_STREAMING_TRY_START);
+            EventBus.getDefault().post(new BusMessages(BusMessages.MESSAGE_ACTION_STREAMING_TRY_START));
         }
     }
 }

@@ -13,4 +13,14 @@ public final class BusMessages {
     public static final String MESSAGE_STATUS_HTTP_ERROR_UNKNOWN = "MESSAGE_STATUS_HTTP_ERROR_UNKNOWN";
 
     public static final String MESSAGE_STATUS_IMAGE_GENERATOR_ERROR = "MESSAGE_STATUS_IMAGE_GENERATOR_ERROR";
+
+    private final String message;
+
+    public BusMessages(final String message) {
+        this.message = message;
+    }
+
+    public String getMessage() {
+        return message;
+    }
 }

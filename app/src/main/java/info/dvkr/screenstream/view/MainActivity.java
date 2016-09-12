@@ -18,7 +18,10 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.firebase.crash.FirebaseCrash;
-import com.squareup.otto.Subscribe;
+
+import org.greenrobot.eventbus.EventBus;
+import org.greenrobot.eventbus.Subscribe;
+import org.greenrobot.eventbus.ThreadMode;
 
 import info.dvkr.screenstream.R;
 import info.dvkr.screenstream.data.BusMessages;
@@ -28,6 +31,12 @@ import info.dvkr.screenstream.service.ForegroundService;
 import static info.dvkr.screenstream.ScreenStreamApplication.getAppData;
 import static info.dvkr.screenstream.ScreenStreamApplication.getAppPreference;
 import static info.dvkr.screenstream.ScreenStreamApplication.getMainActivityViewModel;
+import static info.dvkr.screenstream.data.BusMessages.MESSAGE_ACTION_STREAMING_START;
+import static info.dvkr.screenstream.data.BusMessages.MESSAGE_ACTION_STREAMING_STOP;
+import static info.dvkr.screenstream.data.BusMessages.MESSAGE_ACTION_STREAMING_TRY_START;
+import static info.dvkr.screenstream.data.BusMessages.MESSAGE_STATUS_HTTP_ERROR_PORT_IN_USE;
+import static info.dvkr.screenstream.data.BusMessages.MESSAGE_STATUS_HTTP_OK;
+import static info.dvkr.screenstream.data.BusMessages.MESSAGE_STATUS_IMAGE_GENERATOR_ERROR;
 import static info.dvkr.screenstream.service.ForegroundService.getProjectionManager;
 import static info.dvkr.screenstream.service.ForegroundService.setMediaProjection;
 
@@ -71,42 +80,35 @@ public final class MainActivity extends AppCompatActivity {
     @Override
     protected void onStart() {
         super.onStart();
-        getAppData().getMessagesBus().register(this);
-
-        if (getAppData().isStreamStartRequested()) {
-            getAppData().getMessagesBus().post(BusMessages.MESSAGE_ACTION_STREAMING_TRY_START);
-        }
-
-        if (BusMessages.MESSAGE_STATUS_HTTP_ERROR_PORT_IN_USE.equals(getAppData().getHttpServerStatus())) {
-            if (!mPortInUseSnackbar.isShown()) mPortInUseSnackbar.show();
-        } else {
-            if (mPortInUseSnackbar.isShown()) mPortInUseSnackbar.dismiss();
-        }
+        EventBus.getDefault().register(this);
         getAppData().setActivityRunning(true);
     }
 
 
-    @Subscribe
-    public void onBusEvent(String busMessage) {
-        switch (busMessage) {
-            case BusMessages.MESSAGE_ACTION_STREAMING_TRY_START:
-                getAppData().setStreamStartRequested(false);
+    @Subscribe(sticky = true, threadMode = ThreadMode.MAIN)
+    public void onMessageEvent(BusMessages busMessage) {
+        switch (busMessage.getMessage()) {
+            case MESSAGE_ACTION_STREAMING_TRY_START:
+                EventBus.getDefault().removeStickyEvent(BusMessages.class);
                 if (!getAppData().isWiFiConnected() || getAppData().isStreamRunning()) return;
-                if (!BusMessages.MESSAGE_STATUS_HTTP_OK.equals(getAppData().getHttpServerStatus()))
-                    return;
                 final MediaProjectionManager projectionManager = getProjectionManager();
                 if (projectionManager != null) {
                     startActivityForResult(projectionManager.createScreenCaptureIntent(), REQUEST_CODE_SCREEN_CAPTURE);
                 }
                 break;
-            case BusMessages.MESSAGE_STATUS_HTTP_ERROR_PORT_IN_USE:
+            case MESSAGE_STATUS_HTTP_ERROR_PORT_IN_USE:
                 if (!mPortInUseSnackbar.isShown()) mPortInUseSnackbar.show();
+                getMainActivityViewModel().setHttpServerError(true);
                 break;
-            case BusMessages.MESSAGE_STATUS_HTTP_OK:
+            case MESSAGE_STATUS_HTTP_OK:
+                EventBus.getDefault().removeStickyEvent(BusMessages.class);
                 if (mPortInUseSnackbar.isShown()) mPortInUseSnackbar.dismiss();
+                getMainActivityViewModel().setHttpServerError(false);
                 break;
-            case BusMessages.MESSAGE_STATUS_IMAGE_GENERATOR_ERROR:
-                getAppData().getMessagesBus().post(BusMessages.MESSAGE_ACTION_STREAMING_STOP);
+            case MESSAGE_STATUS_IMAGE_GENERATOR_ERROR:
+                EventBus.getDefault().removeStickyEvent(BusMessages.class);
+                EventBus.getDefault().post(new BusMessages(MESSAGE_ACTION_STREAMING_STOP));
+                startActivity(getStartIntent(this).setFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT));
                 if (!isFinishing())
                     new AlertDialog.Builder(this)
                             .setTitle(getString(R.string.main_activity_error_title))
@@ -124,7 +126,7 @@ public final class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onStop() {
-        getAppData().getMessagesBus().unregister(this);
+        EventBus.getDefault().unregister(this);
         getAppData().setActivityRunning(false);
         super.onStop();
     }
@@ -165,7 +167,7 @@ public final class MainActivity extends AppCompatActivity {
                 if (mediaProjection == null) return;
                 setMediaProjection(mediaProjection);
 
-                getAppData().getMessagesBus().post(BusMessages.MESSAGE_ACTION_STREAMING_START);
+                EventBus.getDefault().post(new BusMessages(MESSAGE_ACTION_STREAMING_START));
 
                 if (getAppPreference().isMinimizeOnStream()) {
                     startActivity(new Intent(Intent.ACTION_MAIN)

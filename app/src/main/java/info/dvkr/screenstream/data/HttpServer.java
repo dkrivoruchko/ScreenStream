@@ -2,6 +2,8 @@ package info.dvkr.screenstream.data;
 
 import com.google.firebase.crash.FirebaseCrash;
 
+import org.greenrobot.eventbus.EventBus;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -166,7 +168,7 @@ public final class HttpServer {
         try {
             final InetAddress localAddress = getAppData().getIpAddress();
             if (localAddress == null) {
-                getAppData().getMessagesBus().post(BusMessages.MESSAGE_STATUS_HTTP_ERROR_NO_IP);
+                EventBus.getDefault().post(new BusMessages(BusMessages.MESSAGE_STATUS_HTTP_ERROR_NO_IP));
                 return;
             }
             mServerSocket = new ServerSocket(getAppPreference().getSeverPort(), 4, localAddress);
@@ -177,14 +179,14 @@ public final class HttpServer {
 
             mHttpServerThread.start();
         } catch (BindException e) {
-            getAppData().getMessagesBus().post(BusMessages.MESSAGE_STATUS_HTTP_ERROR_PORT_IN_USE);
+            EventBus.getDefault().postSticky(new BusMessages(BusMessages.MESSAGE_STATUS_HTTP_ERROR_PORT_IN_USE));
             return;
         } catch (IOException e) {
-            getAppData().getMessagesBus().post(BusMessages.MESSAGE_STATUS_HTTP_ERROR_UNKNOWN);
+            EventBus.getDefault().post(new BusMessages(BusMessages.MESSAGE_STATUS_HTTP_ERROR_UNKNOWN));
             FirebaseCrash.report(e);
             return;
         }
-        getAppData().getMessagesBus().post(BusMessages.MESSAGE_STATUS_HTTP_OK);
+        EventBus.getDefault().postSticky(new BusMessages(BusMessages.MESSAGE_STATUS_HTTP_OK));
     }
 
     public void stop(final byte[] clientNotifyImage) {

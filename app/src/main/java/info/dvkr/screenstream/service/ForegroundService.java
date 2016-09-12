@@ -17,7 +17,8 @@ import android.support.annotation.Nullable;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.content.ContextCompat;
 
-import com.squareup.otto.Subscribe;
+import org.greenrobot.eventbus.EventBus;
+import org.greenrobot.eventbus.Subscribe;
 
 import info.dvkr.screenstream.R;
 import info.dvkr.screenstream.data.BusMessages;
@@ -29,6 +30,12 @@ import info.dvkr.screenstream.view.MainActivity;
 import static info.dvkr.screenstream.ScreenStreamApplication.getAppData;
 import static info.dvkr.screenstream.ScreenStreamApplication.getAppPreference;
 import static info.dvkr.screenstream.ScreenStreamApplication.getMainActivityViewModel;
+import static info.dvkr.screenstream.data.BusMessages.MESSAGE_ACTION_HTTP_RESTART;
+import static info.dvkr.screenstream.data.BusMessages.MESSAGE_ACTION_PIN_UPDATE;
+import static info.dvkr.screenstream.data.BusMessages.MESSAGE_ACTION_STREAMING_START;
+import static info.dvkr.screenstream.data.BusMessages.MESSAGE_ACTION_STREAMING_STOP;
+import static info.dvkr.screenstream.data.BusMessages.MESSAGE_ACTION_STREAMING_TRY_START;
+import static info.dvkr.screenstream.data.BusMessages.MESSAGE_STATUS_HTTP_OK;
 
 public final class ForegroundService extends Service {
     private static ForegroundService sServiceInstance;
@@ -111,13 +118,16 @@ public final class ForegroundService extends Service {
                 final String action = intent.getAction();
                 switch (action) {
                     case ACTION_NOTIFY_START_STREAM:
-                        if (getAppData().isActivityRunning()) {
-                            getAppData().getMessagesBus().post(BusMessages.MESSAGE_ACTION_STREAMING_TRY_START);
-                        } else {
-                            startActivity(MainActivity.getStartIntent(ForegroundService.this)
+                        if (!getAppData().isActivityRunning()) {
+                            startActivity(MainActivity.getStartIntent(getApplicationContext())
                                     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
-                            getAppData().setStreamStartRequested(true);
                         }
+
+                        final BusMessages stickyEvent = EventBus.getDefault().getStickyEvent(BusMessages.class);
+                        if (stickyEvent == null || MESSAGE_STATUS_HTTP_OK.equals(stickyEvent.getMessage())) {
+                            EventBus.getDefault().postSticky(new BusMessages(MESSAGE_ACTION_STREAMING_TRY_START));
+                        }
+
                         break;
                     case ACTION_NOTIFY_STOP_STREAM:
                         serviceStopStreaming();
@@ -161,37 +171,8 @@ public final class ForegroundService extends Service {
 
         registerReceiver(mBroadcastReceiver, screenOnOffAndWiFiFilter);
 
-        getAppData().getMessagesBus().register(this);
+        EventBus.getDefault().register(this);
         mHttpServer.start();
-    }
-
-    @Subscribe
-    public void onBusEvent(String busMessage) {
-        switch (busMessage) {
-            case BusMessages.MESSAGE_ACTION_STREAMING_START:
-                serviceStartStreaming();
-                break;
-            case BusMessages.MESSAGE_ACTION_STREAMING_STOP:
-                serviceStopStreaming();
-                break;
-            case BusMessages.MESSAGE_ACTION_HTTP_RESTART:
-                serviceRestartHTTP();
-                break;
-            case BusMessages.MESSAGE_ACTION_PIN_UPDATE:
-                servicUpdatePin();
-                break;
-            case BusMessages.MESSAGE_STATUS_HTTP_ERROR_NO_IP:
-                getAppData().setHttpServerStatus(BusMessages.MESSAGE_STATUS_HTTP_ERROR_NO_IP);
-                break;
-            case BusMessages.MESSAGE_STATUS_HTTP_ERROR_PORT_IN_USE:
-                getAppData().setHttpServerStatus(BusMessages.MESSAGE_STATUS_HTTP_ERROR_PORT_IN_USE);
-                break;
-            case BusMessages.MESSAGE_STATUS_HTTP_OK:
-                getAppData().setHttpServerStatus(BusMessages.MESSAGE_STATUS_HTTP_OK);
-                break;
-            default:
-                break;
-        }
     }
 
     @Override
@@ -205,13 +186,37 @@ public final class ForegroundService extends Service {
 
     @Override
     public void onDestroy() {
-        getAppData().getMessagesBus().unregister(this);
+        EventBus.getDefault().unregister(this);
         mHttpServer.stop(null);
         stopForeground(true);
         unregisterReceiver(mBroadcastReceiver);
         unregisterReceiver(mLocalNotificationReceiver);
         if (mMediaProjection != null) mMediaProjection.unregisterCallback(mProjectionCallback);
         mForegroundServiceTaskHandler.getLooper().quit();
+    }
+
+    @Subscribe
+    public void onMessageEvent(BusMessages busMessage) {
+        switch (busMessage.getMessage()) {
+            case MESSAGE_ACTION_STREAMING_START:
+                serviceStartStreaming();
+                break;
+            case MESSAGE_ACTION_STREAMING_STOP:
+                serviceStopStreaming();
+                break;
+            case MESSAGE_ACTION_HTTP_RESTART:
+                mHttpServer.stop(NotifyImageGenerator.getClientNotifyImage(getApplicationContext(), MESSAGE_ACTION_HTTP_RESTART));
+                mImageGenerator.addDefaultScreen(getApplicationContext());
+                mHttpServer.start();
+                break;
+            case MESSAGE_ACTION_PIN_UPDATE:
+                mHttpServer.stop(NotifyImageGenerator.getClientNotifyImage(getApplicationContext(), MESSAGE_ACTION_PIN_UPDATE));
+                mImageGenerator.addDefaultScreen(getApplicationContext());
+                mHttpServer.start();
+                break;
+            default:
+                break;
+        }
     }
 
     private void serviceStartStreaming() {
@@ -233,20 +238,8 @@ public final class ForegroundService extends Service {
         if (getAppPreference().isEnablePin() && getAppPreference().isAutoChangePin()) {
             getAppPreference().generateAndSaveNewPin();
             getMainActivityViewModel().setStreamPin(getAppPreference().getCurrentPin());
-            getAppData().getMessagesBus().post(BusMessages.MESSAGE_ACTION_PIN_UPDATE);
+            EventBus.getDefault().post(new BusMessages(MESSAGE_ACTION_PIN_UPDATE));
         }
-    }
-
-    private void serviceRestartHTTP() {
-        mHttpServer.stop(NotifyImageGenerator.getClientNotifyImage(getApplicationContext(), BusMessages.MESSAGE_ACTION_HTTP_RESTART));
-        mImageGenerator.addDefaultScreen(getApplicationContext());
-        mHttpServer.start();
-    }
-
-    private void servicUpdatePin() {
-        mHttpServer.stop(NotifyImageGenerator.getClientNotifyImage(getApplicationContext(), BusMessages.MESSAGE_ACTION_PIN_UPDATE));
-        mImageGenerator.addDefaultScreen(getApplicationContext());
-        mHttpServer.start();
     }
 
     private Notification getNotificationStart() {

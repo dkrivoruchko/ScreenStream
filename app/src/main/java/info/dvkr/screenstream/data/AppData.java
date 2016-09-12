@@ -8,8 +8,6 @@ import android.util.DisplayMetrics;
 import android.view.WindowManager;
 
 import com.google.firebase.crash.FirebaseCrash;
-import com.squareup.otto.Bus;
-import com.squareup.otto.ThreadEnforcer;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -36,14 +34,11 @@ public final class AppData {
     private final String mPinRequestErrorMsg;
     private final byte[] mIconBytes;
 
-    private final Bus mMessagesBus = new Bus(ThreadEnforcer.ANY);
     private final ConcurrentLinkedDeque<byte[]> mImageQueue = new ConcurrentLinkedDeque<>();
     private final ConcurrentLinkedQueue<Client> mClientQueue = new ConcurrentLinkedQueue<>();
 
     private volatile boolean isActivityRunning;
     private volatile boolean isStreamRunning;
-    private volatile boolean isStreamStartRequested;
-    private volatile String mHttpServerStatus;
 
     public AppData(final Context context) {
         mWindowManager = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
@@ -66,23 +61,6 @@ public final class AppData {
         getMainActivityViewModel().setStreaming(streamRunning);
     }
 
-    public void setStreamStartRequested(final boolean streamStartRequested) {
-        isStreamStartRequested = streamStartRequested;
-    }
-
-    public void setHttpServerStatus(final String httpServerStatus) {
-        mHttpServerStatus = httpServerStatus;
-        if (BusMessages.MESSAGE_STATUS_HTTP_OK.equals(mHttpServerStatus)) {
-            getMainActivityViewModel().setHttpServerError(false);
-        } else {
-            getMainActivityViewModel().setHttpServerError(true);
-        }
-    }
-
-    public Bus getMessagesBus() {
-        return mMessagesBus;
-    }
-
     public ConcurrentLinkedDeque<byte[]> getImageQueue() {
         return mImageQueue;
     }
@@ -97,14 +75,6 @@ public final class AppData {
 
     public boolean isStreamRunning() {
         return isStreamRunning;
-    }
-
-    public boolean isStreamStartRequested() {
-        return isStreamStartRequested;
-    }
-
-    public String getHttpServerStatus() {
-        return mHttpServerStatus;
     }
 
     public WindowManager getWindowsManager() {

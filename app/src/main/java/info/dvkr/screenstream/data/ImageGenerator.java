@@ -14,6 +14,8 @@ import android.os.Process;
 
 import com.google.firebase.crash.FirebaseCrash;
 
+import org.greenrobot.eventbus.EventBus;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
@@ -50,7 +52,7 @@ public final class ImageGenerator {
                 try {
                     mImage = mImageReader.acquireLatestImage();
                 } catch (UnsupportedOperationException e) {
-                    getAppData().getMessagesBus().post(BusMessages.MESSAGE_STATUS_IMAGE_GENERATOR_ERROR);
+                    EventBus.getDefault().postSticky(new BusMessages(BusMessages.MESSAGE_STATUS_IMAGE_GENERATOR_ERROR));
                     FirebaseCrash.report(e);
                     return;
                 }

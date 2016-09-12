@@ -5,6 +5,8 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.preference.PreferenceManager;
 
+import org.greenrobot.eventbus.EventBus;
+
 import java.util.Random;
 
 import info.dvkr.screenstream.R;
@@ -74,9 +76,9 @@ public final class PreferencesHelper {
 
         if (oldServerPort != mSeverPort) {
             getMainActivityViewModel().setServerAddress(getAppData().getServerAddress());
-            getAppData().getMessagesBus().post(BusMessages.MESSAGE_ACTION_HTTP_RESTART);
+            EventBus.getDefault().post(new BusMessages(BusMessages.MESSAGE_ACTION_HTTP_RESTART));
         } else if (oldEnablePin != mEnablePin || !oldPin.equals(mCurrentPin)) {
-            getAppData().getMessagesBus().post(BusMessages.MESSAGE_ACTION_PIN_UPDATE);
+            EventBus.getDefault().post(new BusMessages(BusMessages.MESSAGE_ACTION_PIN_UPDATE));
         }
     }
 
