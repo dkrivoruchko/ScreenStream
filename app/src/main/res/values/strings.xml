@@ -13,8 +13,8 @@
     <string name="main_activity_no_wifi_connected">No WiFi connected</string>
     <string name="main_activity_toast_cast_permission_deny">Screen Cast permission denied</string>
     <string name="main_activity_snackbar_port_in_use">Port already in use\nChoose another one</string>
-    <string name="main_activity_error_title">Oops! Error</string>
-    <string name="main_activity_error_msg_unknown_format">System return image in unknown format. Currently no fix available.\nSorry.</string>
+    <string name="main_activity_error_title">Error.</string>
+    <string name="main_activity_error_msg_unknown_format">System returns image in unknown format. Currently no fix available.\nSorry.</string>
     <string name="main_activity_error_action_ok" translatable="false">OK</string>
 
     <!--ForegroundService-->

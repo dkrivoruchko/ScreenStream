@@ -1,20 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
-<layout xmlns:android="http://schemas.android.com/apk/res/android">
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:tools="http://schemas.android.com/tools">
 
     <data>
 
         <variable
             name="viewModel"
-            type="info.dvkr.screenstream.viewModel.MainActivityViewModel" />
+            type="info.dvkr.screenstream.viewModel.MainActivityViewModel"/>
     </data>
 
-    <LinearLayout xmlns:tools="http://schemas.android.com/tools"
-        android:id="@+id/layout_main_view"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:orientation="vertical"
-        android:padding="@dimen/activity_margin"
-        tools:context="info.dvkr.screenstream.view.MainActivity">
+    <LinearLayout android:id="@+id/layout_main_view"
+                  android:layout_width="match_parent"
+                  android:layout_height="match_parent"
+                  android:orientation="vertical"
+                  android:padding="@dimen/activity_margin"
+                  tools:context="info.dvkr.screenstream.view.MainActivity">
 
         <TextView
             android:layout_width="match_parent"
@@ -22,7 +22,7 @@
             android:gravity="center_horizontal"
             android:text="@string/main_activity_device_address"
             android:textAppearance="?android:attr/textAppearanceMedium"
-            android:textColor="@color/textColorSecondary" />
+            android:textColor="@color/textColorSecondary"/>
 
         <TextView
             android:layout_width="match_parent"
@@ -32,7 +32,8 @@
             android:paddingTop="@dimen/activity_vertical_margin"
             android:text="@{viewModel.serverAddressText}"
             android:textAppearance="?android:attr/textAppearanceMedium"
-            android:textColor="@{viewModel.serverAddressColor}" />
+            android:textColor="@{viewModel.serverAddressColor}"
+            tools:text="http://127.0.0.1:8080"/>
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -46,7 +47,8 @@
                 android:gravity="center"
                 android:text="@{viewModel.pinTitleText}"
                 android:textAppearance="?android:attr/textAppearanceMedium"
-                android:textColor="@{viewModel.pinTitleColor}" />
+                android:textColor="@{viewModel.pinTitleColor}"
+                tools:text="Pin:"/>
 
             <TextView
                 android:layout_width="wrap_content"
@@ -56,7 +58,8 @@
                 android:textAppearance="?android:attr/textAppearanceMedium"
                 android:textColor="@color/colorAccent"
                 android:textStyle="bold"
-                android:visibility="@{viewModel.pinVisibility}" />
+                android:visibility="@{viewModel.pinVisibility}"
+                tools:text="0000"/>
         </LinearLayout>
 
         <ToggleButton
@@ -71,7 +74,7 @@
             android:textColor="@drawable/button_main_activity_start_stop"
             android:textOff="@string/main_activity_start_stream"
             android:textOn="@string/main_activity_stop_stream"
-            android:textSize="16sp" />
+            android:textSize="16sp"/>
 
         <TextView
             android:layout_width="match_parent"
@@ -81,6 +84,7 @@
             android:paddingTop="@dimen/activity_vertical_margin_small"
             android:text="@{viewModel.connectedClientsText}"
             android:textColor="@color/textColorSecondary"
-            android:textSize="16sp" />
+            android:textSize="16sp"
+            tools:text="Connected clients: 0"/>
     </LinearLayout>
 </layout>

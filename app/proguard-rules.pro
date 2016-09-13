@@ -16,10 +16,13 @@
 #   public *;
 #}
 
-#-keep class com.androidplot.** { *; }
-
--keepattributes *Annotation*
+# EventBus 3.0
 -keepclassmembers class ** {
-    @com.squareup.otto.Subscribe public *;
-    @com.squareup.otto.Produce public *;
+    public void onMessageEvent*(**);
 }
+
+# EventBus 3.0 annotation
+-keepclassmembers class * {
+    @org.greenrobot.eventbus.Subscribe <methods>;
+}
+-keep enum org.greenrobot.eventbus.ThreadMode { *; }

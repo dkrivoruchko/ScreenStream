@@ -53,7 +53,7 @@
     <string name="image_generator_reload_this_page">Обновите страницу</string>
     <string name="pref_hide_pin">Прятать PIN-код</string>
     <string name="pref_hide_pin_summary">При трансляции скрывать PIN-код</string>
-    <string name="main_activity_error_title">Ошибка</string>
+    <string name="main_activity_error_title">Ошибка.</string>
     <string name="main_activity_error_msg_unknown_format">Система отдает изображение в неизвестном формате. На данный момент исправления нет.</string>
     <string name="html_no_mjpeg_support">Ой :(&lt;br&gt;Этот браузер не поддерживает MJPEG</string>
 </resources>
