@@ -24,7 +24,7 @@ import info.dvkr.screenstream.R;
 import info.dvkr.screenstream.data.BusMessages;
 import info.dvkr.screenstream.data.HttpServer;
 import info.dvkr.screenstream.data.ImageGenerator;
-import info.dvkr.screenstream.utils.NotifyImageGenerator;
+import info.dvkr.screenstream.data.NotifyImageGenerator;
 import info.dvkr.screenstream.view.MainActivity;
 
 import static info.dvkr.screenstream.ScreenStreamApplication.getAppData;
@@ -40,6 +40,9 @@ import static info.dvkr.screenstream.data.BusMessages.MESSAGE_STATUS_HTTP_OK;
 public final class ForegroundService extends Service {
     private static ForegroundService sServiceInstance;
 
+    private static final int NOTIFICATION_START_STREAMING = 10;
+    private static final int NOTIFICATION_STOP_STREAMING = 11;
+
     private static final String EXTRA_SERVICE_MESSAGE = "info.dvkr.screenstream.extras.EXTRA_SERVICE_MESSAGE";
     private static final String SERVICE_MESSAGE_PREPARE_STREAMING = "SERVICE_MESSAGE_PREPARE_STREAMING";
 
@@ -53,6 +56,7 @@ public final class ForegroundService extends Service {
     private MediaProjection.Callback mProjectionCallback;
     private HttpServer mHttpServer;
     private ImageGenerator mImageGenerator;
+    private NotifyImageGenerator mNotifyImageGenerator;
     private ForegroundServiceHandler mForegroundServiceTaskHandler;
     private BroadcastReceiver mLocalNotificationReceiver;
     private BroadcastReceiver mBroadcastReceiver;
@@ -98,7 +102,9 @@ public final class ForegroundService extends Service {
         };
         mHttpServer = new HttpServer();
         mImageGenerator = new ImageGenerator();
-        mImageGenerator.addDefaultScreen(getApplicationContext());
+        getAppData().getImageQueue().clear();
+        mNotifyImageGenerator = new NotifyImageGenerator(getApplicationContext());
+        mNotifyImageGenerator.addDefaultScreen();
 
         // Starting thread Handler
         final HandlerThread looperThread =
@@ -178,7 +184,9 @@ public final class ForegroundService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         if (SERVICE_MESSAGE_PREPARE_STREAMING.equals(intent.getStringExtra(EXTRA_SERVICE_MESSAGE))) {
-            if (!isServicePrepared) startForeground(110, getNotificationStart());
+            if (!isServicePrepared) {
+                startForeground(NOTIFICATION_START_STREAMING, getNotificationStart());
+            }
             isServicePrepared = true;
         }
         return START_NOT_STICKY;
@@ -205,13 +213,15 @@ public final class ForegroundService extends Service {
                 serviceStopStreaming();
                 break;
             case MESSAGE_ACTION_HTTP_RESTART:
-                mHttpServer.stop(NotifyImageGenerator.getClientNotifyImage(getApplicationContext(), MESSAGE_ACTION_HTTP_RESTART));
-                mImageGenerator.addDefaultScreen(getApplicationContext());
+                getAppData().getImageQueue().clear();
+                mHttpServer.stop(mNotifyImageGenerator.getClientNotifyImage(MESSAGE_ACTION_HTTP_RESTART));
+                mNotifyImageGenerator.addDefaultScreen();
                 mHttpServer.start();
                 break;
             case MESSAGE_ACTION_PIN_UPDATE:
-                mHttpServer.stop(NotifyImageGenerator.getClientNotifyImage(getApplicationContext(), MESSAGE_ACTION_PIN_UPDATE));
-                mImageGenerator.addDefaultScreen(getApplicationContext());
+                getAppData().getImageQueue().clear();
+                mHttpServer.stop(mNotifyImageGenerator.getClientNotifyImage(MESSAGE_ACTION_PIN_UPDATE));
+                mNotifyImageGenerator.addDefaultScreen();
                 mHttpServer.start();
                 break;
             default:
@@ -223,7 +233,7 @@ public final class ForegroundService extends Service {
         if (getAppData().isStreamRunning()) return;
         stopForeground(true);
         mForegroundServiceTaskHandler.obtainMessage(ForegroundServiceHandler.HANDLER_START_STREAMING).sendToTarget();
-        startForeground(120, getNotificationStop());
+        startForeground(NOTIFICATION_STOP_STREAMING, getNotificationStop());
         if (mMediaProjection != null) mMediaProjection.registerCallback(mProjectionCallback, null);
     }
 
@@ -231,9 +241,10 @@ public final class ForegroundService extends Service {
         if (!getAppData().isStreamRunning()) return;
         stopForeground(true);
         mForegroundServiceTaskHandler.obtainMessage(ForegroundServiceHandler.HANDLER_STOP_STREAMING).sendToTarget();
-        startForeground(110, getNotificationStart());
+        startForeground(NOTIFICATION_START_STREAMING, getNotificationStart());
         if (mMediaProjection != null) mMediaProjection.unregisterCallback(mProjectionCallback);
-        mImageGenerator.addDefaultScreen(getApplicationContext());
+        getAppData().getImageQueue().clear();
+        mNotifyImageGenerator.addDefaultScreen();
 
         if (getAppPreference().isEnablePin() && getAppPreference().isAutoChangePin()) {
             getAppPreference().generateAndSaveNewPin();

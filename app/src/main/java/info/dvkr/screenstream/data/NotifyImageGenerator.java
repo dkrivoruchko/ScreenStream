@@ -1,4 +1,4 @@
-package info.dvkr.screenstream.utils;
+package info.dvkr.screenstream.data;
 
 import android.content.Context;
 import android.graphics.Bitmap;
@@ -6,6 +6,8 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
+import android.os.Handler;
+import android.support.annotation.Nullable;
 
 import com.google.firebase.crash.FirebaseCrash;
 
@@ -13,38 +15,52 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
 import info.dvkr.screenstream.R;
-import info.dvkr.screenstream.data.BusMessages;
 
 import static info.dvkr.screenstream.ScreenStreamApplication.getAppData;
 import static info.dvkr.screenstream.ScreenStreamApplication.getAppPreference;
 
 public final class NotifyImageGenerator {
-    private static int sCurrentScreenSizeX;
-    private static byte[] sCurrentDefaultScreen;
+    private Context mContext;
+    private int mCurrentScreenSizeX;
+    private byte[] mCurrentDefaultScreen;
 
-    public static byte[] getDefaultScreen(final Context context) {
-        if (sCurrentScreenSizeX != getAppData().getScreenSize().x)
-            sCurrentDefaultScreen = null;
-        if (sCurrentDefaultScreen != null) return sCurrentDefaultScreen;
-
-        sCurrentDefaultScreen = generateImage(context.getString(R.string.image_generator_press),
-                context.getString(R.string.main_activity_start_stream).toUpperCase(),
-                context.getString(R.string.image_generator_on_device));
-
-        sCurrentScreenSizeX = getAppData().getScreenSize().x;
-        return sCurrentDefaultScreen;
+    public NotifyImageGenerator(final Context context) {
+        mContext = context;
     }
 
+    public void addDefaultScreen() {
+        new Handler().postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                if (mCurrentScreenSizeX != getAppData().getScreenSize().x) {
+                    mCurrentDefaultScreen = null;
+                }
+                if (mCurrentDefaultScreen == null) {
+                    mCurrentDefaultScreen = generateImage(mContext.getString(R.string.image_generator_press),
+                            mContext.getString(R.string.main_activity_start_stream).toUpperCase(),
+                            mContext.getString(R.string.image_generator_on_device));
+                    mCurrentScreenSizeX = getAppData().getScreenSize().x;
+                }
+                if (mCurrentDefaultScreen != null) {
+                    getAppData().getImageQueue().add(mCurrentDefaultScreen);
+                }
+            }
+        }, 500);
+    }
 
-    public static byte[] getClientNotifyImage(final Context context, final String reason) {
+    public byte[] getClientNotifyImage(final String reason) {
         if (BusMessages.MESSAGE_ACTION_HTTP_RESTART.equals(reason))
-            return generateImage(context.getString(R.string.image_generator_settings_changed), "", context.getString(R.string.image_generator_go_to_new_address));
+            return generateImage(mContext.getString(R.string.image_generator_settings_changed),
+                    "", mContext.getString(R.string.image_generator_go_to_new_address));
+
         if (BusMessages.MESSAGE_ACTION_PIN_UPDATE.equals(reason))
-            return generateImage(context.getString(R.string.image_generator_settings_changed), "", context.getString(R.string.image_generator_reload_this_page));
+            return generateImage(mContext.getString(R.string.image_generator_settings_changed),
+                    "", mContext.getString(R.string.image_generator_reload_this_page));
         return null;
     }
 
 
+    @Nullable
     private static byte[] generateImage(final String text1, final String text2, final String text3) {
         final Bitmap bitmap = Bitmap.createBitmap(getAppData().getScreenSize().x,
                 getAppData().getScreenSize().y,

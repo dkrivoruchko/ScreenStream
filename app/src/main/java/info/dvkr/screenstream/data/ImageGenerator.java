@@ -1,6 +1,5 @@
 package info.dvkr.screenstream.data;
 
-import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.PixelFormat;
 import android.hardware.display.DisplayManager;
@@ -20,7 +19,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
 import info.dvkr.screenstream.service.ForegroundService;
-import info.dvkr.screenstream.utils.NotifyImageGenerator;
 
 import static info.dvkr.screenstream.ScreenStreamApplication.getAppData;
 import static info.dvkr.screenstream.ScreenStreamApplication.getAppPreference;
@@ -147,20 +145,6 @@ public final class ImageGenerator {
 
             isThreadRunning = false;
         }
-    }
-
-    public void addDefaultScreen(final Context context) {
-        getAppData().getImageQueue().clear();
-        new Handler().postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                final byte[] jpegByteArray = NotifyImageGenerator.getDefaultScreen(context);
-                if (jpegByteArray != null) {
-                    getAppData().getImageQueue().add(jpegByteArray);
-                }
-            }
-        }, 500);
-
     }
 }
 
