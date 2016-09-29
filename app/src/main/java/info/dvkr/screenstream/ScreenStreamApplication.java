@@ -5,24 +5,24 @@ import android.app.Application;
 import info.dvkr.screenstream.data.AppData;
 import info.dvkr.screenstream.data.local.PreferencesHelper;
 import info.dvkr.screenstream.service.ForegroundService;
-import info.dvkr.screenstream.viewModel.MainActivityViewModel;
+import info.dvkr.screenstream.viewmodel.MainActivityViewModel;
 
 
 public class ScreenStreamApplication extends Application {
     private static ScreenStreamApplication sAppInstance;
 
+    private AppData mAppData;
     private MainActivityViewModel mMainActivityViewModel;
     private PreferencesHelper mPreferencesHelper;
-    private AppData mAppData;
 
     @Override
     public void onCreate() {
         super.onCreate();
         sAppInstance = this;
 
+        mAppData = new AppData(this);
         mMainActivityViewModel = new MainActivityViewModel(this);
         mPreferencesHelper = new PreferencesHelper(this);
-        mAppData = new AppData(this);
 
         startService(ForegroundService.getStartIntent(this));
     }

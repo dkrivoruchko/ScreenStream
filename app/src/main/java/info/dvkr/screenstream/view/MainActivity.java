@@ -24,6 +24,7 @@ import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
 
 import info.dvkr.screenstream.R;
+import info.dvkr.screenstream.data.AppData;
 import info.dvkr.screenstream.data.BusMessages;
 import info.dvkr.screenstream.databinding.ActivityMainBinding;
 import info.dvkr.screenstream.service.ForegroundService;
@@ -83,7 +84,6 @@ public final class MainActivity extends AppCompatActivity {
         EventBus.getDefault().register(this);
         getAppData().setActivityRunning(true);
     }
-
 
     @Subscribe(sticky = true, threadMode = ThreadMode.MAIN)
     public void onMessageEvent(BusMessages busMessage) {

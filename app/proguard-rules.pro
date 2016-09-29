@@ -17,11 +17,7 @@
 #}
 
 # EventBus 3.0
--keepclassmembers class ** {
-    public void onMessageEvent*(**);
-}
-
-# EventBus 3.0 annotation
+-keepattributes *Annotation*
 -keepclassmembers class * {
     @org.greenrobot.eventbus.Subscribe <methods>;
 }

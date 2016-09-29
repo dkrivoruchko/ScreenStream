@@ -57,6 +57,7 @@ public final class ForegroundService extends Service {
     private HttpServer mHttpServer;
     private ImageGenerator mImageGenerator;
     private NotifyImageGenerator mNotifyImageGenerator;
+    private HandlerThread mHandlerThread;
     private ForegroundServiceHandler mForegroundServiceTaskHandler;
     private BroadcastReceiver mLocalNotificationReceiver;
     private BroadcastReceiver mBroadcastReceiver;
@@ -107,10 +108,11 @@ public final class ForegroundService extends Service {
         mNotifyImageGenerator.addDefaultScreen();
 
         // Starting thread Handler
-        final HandlerThread looperThread =
-                new HandlerThread(ForegroundService.class.getSimpleName(), Process.THREAD_PRIORITY_MORE_FAVORABLE);
-        looperThread.start();
-        mForegroundServiceTaskHandler = new ForegroundServiceHandler(looperThread.getLooper());
+        mHandlerThread = new HandlerThread(
+                ForegroundService.class.getSimpleName(),
+                Process.THREAD_PRIORITY_MORE_FAVORABLE);
+        mHandlerThread.start();
+        mForegroundServiceTaskHandler = new ForegroundServiceHandler(mHandlerThread.getLooper());
 
         //Local notifications
         final IntentFilter localNotificationIntentFilter = new IntentFilter();
@@ -200,7 +202,7 @@ public final class ForegroundService extends Service {
         unregisterReceiver(mBroadcastReceiver);
         unregisterReceiver(mLocalNotificationReceiver);
         if (mMediaProjection != null) mMediaProjection.unregisterCallback(mProjectionCallback);
-        mForegroundServiceTaskHandler.getLooper().quit();
+        mHandlerThread.quit();
     }
 
     @Subscribe

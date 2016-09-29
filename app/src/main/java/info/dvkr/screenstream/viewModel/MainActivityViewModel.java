@@ -1,4 +1,4 @@
-package info.dvkr.screenstream.viewModel;
+package info.dvkr.screenstream.viewmodel;
 
 import android.content.Context;
 import android.databinding.BaseObservable;
@@ -138,7 +138,7 @@ public final class MainActivityViewModel extends BaseObservable {
     }
 
     public void onToggleButtonClick(View v) {
-        if (getAppData().isStreamRunning()) {
+        if (mIsStreaming) {
             EventBus.getDefault().post(new BusMessages(BusMessages.MESSAGE_ACTION_STREAMING_STOP));
         } else {
             ((ToggleButton) v).setChecked(false);

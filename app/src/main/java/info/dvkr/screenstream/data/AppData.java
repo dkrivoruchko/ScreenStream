@@ -127,7 +127,7 @@ public final class AppData {
     }
 
     public boolean isWiFiConnected() {
-        return mWifiManager.getConnectionInfo().getIpAddress() > 0;
+        return mWifiManager.getConnectionInfo().getIpAddress() != 0;
     }
 
     //Private

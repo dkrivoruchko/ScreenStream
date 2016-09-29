@@ -6,7 +6,7 @@
 
         <variable
             name="viewModel"
-            type="info.dvkr.screenstream.viewModel.MainActivityViewModel"/>
+            type="info.dvkr.screenstream.viewmodel.MainActivityViewModel"/>
     </data>
 
     <LinearLayout android:id="@+id/layout_main_view"
@@ -63,6 +63,7 @@
         </LinearLayout>
 
         <ToggleButton
+            android:id="@+id/btn_start_stream"
             android:layout_width="280dp"
             android:layout_height="wrap_content"
             android:layout_gravity="center_horizontal"

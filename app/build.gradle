@@ -7,8 +7,8 @@ android {
         applicationId "info.dvkr.screenstream"
         minSdkVersion 21
         targetSdkVersion 24
-        versionCode 14
-        versionName "1.1.7"
+        versionCode 15
+        versionName "1.1.8"
         resConfigs "en", "ru"
     }
 
@@ -37,7 +37,7 @@ android {
 dependencies {
     compile fileTree(include: ['*.jar'], dir: 'libs')
     compile 'com.android.support:design:24.2.1'
-    compile 'com.google.firebase:firebase-crash:9.4.0'
+    compile 'com.google.firebase:firebase-crash:9.6.0'
     compile 'org.greenrobot:eventbus:3.0.0'
 }
 
