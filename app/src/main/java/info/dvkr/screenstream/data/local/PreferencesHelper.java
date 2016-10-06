@@ -16,6 +16,7 @@ import static info.dvkr.screenstream.ScreenStreamApplication.getAppData;
 import static info.dvkr.screenstream.ScreenStreamApplication.getMainActivityViewModel;
 
 public final class PreferencesHelper {
+    public static final int DEFAULT_RESIZE_FACTOR = 10;
     private static final String DEFAULT_PIN = "NOPIN";
     private static final String DEFAULT_SERVER_PORT = "8080";
     private static final String DEFAULT_JPEG_QUALITY = "80";
@@ -25,13 +26,15 @@ public final class PreferencesHelper {
     private final SharedPreferences mSharedPreferences;
     private boolean mMinimizeOnStream;
     private boolean mStopOnSleep;
+    private boolean mDisableMJPEGCheck;
+    private volatile int mResizeFactor;
+    private volatile int mJpegQuality;
     private boolean mEnablePin;
     private boolean mHidePinOnStart;
     private boolean mNewPinOnAppStart;
     private boolean mAutoChangePin;
     private String mCurrentPin;
     private volatile int mSeverPort;
-    private volatile int mJpegQuality;
     private volatile int mClientTimeout;
 
     public PreferencesHelper(final Context context) {
@@ -52,6 +55,10 @@ public final class PreferencesHelper {
     private void readSettings() {
         mMinimizeOnStream = mSharedPreferences.getBoolean(mContext.getString(R.string.pref_key_minimize_on_stream), true);
         mStopOnSleep = mSharedPreferences.getBoolean(mContext.getString(R.string.pref_key_stop_on_sleep), false);
+        mDisableMJPEGCheck = mSharedPreferences.getBoolean(mContext.getString(R.string.pref_key_mjpeg_check), false);
+
+        mJpegQuality = Integer.parseInt(mSharedPreferences.getString(mContext.getString(R.string.pref_key_jpeg_quality), DEFAULT_JPEG_QUALITY));
+        mResizeFactor = mSharedPreferences.getInt(mContext.getString(R.string.pref_key_resize_factor), DEFAULT_RESIZE_FACTOR);
 
         mEnablePin = mSharedPreferences.getBoolean(mContext.getString(R.string.pref_key_enable_pin), false);
         mHidePinOnStart = mSharedPreferences.getBoolean(mContext.getString(R.string.pref_key_hide_pin_on_start), true);
@@ -60,19 +67,24 @@ public final class PreferencesHelper {
         mCurrentPin = mSharedPreferences.getString(mContext.getString(R.string.pref_key_set_pin), DEFAULT_PIN);
 
         mSeverPort = Integer.parseInt(mSharedPreferences.getString(mContext.getString(R.string.pref_key_server_port), DEFAULT_SERVER_PORT));
-        mJpegQuality = Integer.parseInt(mSharedPreferences.getString(mContext.getString(R.string.pref_key_jpeg_quality), DEFAULT_JPEG_QUALITY));
         mClientTimeout = Integer.parseInt(mSharedPreferences.getString(mContext.getString(R.string.pref_key_client_con_timeout), DEFAULT_CLIENT_TIMEOUT));
     }
 
     public void updatePreference() {
+        final boolean oldDisableMJPEGCheck = mDisableMJPEGCheck;
         final int oldServerPort = mSeverPort;
         final boolean oldEnablePin = mEnablePin;
         final String oldPin = mCurrentPin;
         readSettings();
 
+        getMainActivityViewModel().setResizeFactor(mResizeFactor);
         getMainActivityViewModel().setPinEnabled(mEnablePin);
         getMainActivityViewModel().setPinAutoHide(mHidePinOnStart);
         getMainActivityViewModel().setStreamPin(mCurrentPin);
+
+        if (oldDisableMJPEGCheck != mDisableMJPEGCheck) {
+            getAppData().initIndexHtmlPage(mContext);
+        }
 
         if (oldServerPort != mSeverPort) {
             getMainActivityViewModel().setServerAddress(getAppData().getServerAddress());
@@ -97,6 +109,26 @@ public final class PreferencesHelper {
         return mStopOnSleep;
     }
 
+    public boolean isDisableMJPEGCheck() {
+        return mDisableMJPEGCheck;
+    }
+
+    public int getResizeFactor() {
+        return mResizeFactor;
+    }
+
+    public void setResizeFactor(final int resizeFactor) {
+        mResizeFactor = resizeFactor;
+        mSharedPreferences
+                .edit()
+                .putInt(mContext.getString(R.string.pref_key_resize_factor), mResizeFactor)
+                .apply();
+    }
+
+    public int getJpegQuality() {
+        return mJpegQuality;
+    }
+
     public boolean isEnablePin() {
         return mEnablePin;
     }
@@ -111,10 +143,6 @@ public final class PreferencesHelper {
 
     public int getSeverPort() {
         return mSeverPort;
-    }
-
-    public int getJpegQuality() {
-        return mJpegQuality;
     }
 
     public int getClientTimeout() {

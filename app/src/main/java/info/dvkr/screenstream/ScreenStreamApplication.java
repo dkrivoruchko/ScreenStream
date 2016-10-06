@@ -39,4 +39,3 @@ public class ScreenStreamApplication extends Application {
         return sAppInstance.mPreferencesHelper;
     }
 }
-

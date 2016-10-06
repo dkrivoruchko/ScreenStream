@@ -42,7 +42,7 @@
     <string name="pref_auto_change_pin_summary">Генерировать новый PIN-код для каждой трансляции</string>
     <string name="pref_enable_pin_summary">Защитить доступ к трансляции PIN-кодом</string>
     <string name="pref_set_pin">Установить PIN-код</string>
-    <string name="pref_settings_pin">PIN-код</string>
+    <string name="pref_settings_security">Безопасность</string>
     <string name="pref_auto_change_pin">Автогенерация PIN-кода</string>
     <string name="settings_activity_pin_digits_count">PIN-код должен иметь 4 цифры</string>
     <string name="main_activity_pin_disabled">PIN-код выключен</string>
@@ -55,5 +55,12 @@
     <string name="pref_hide_pin_summary">При трансляции скрывать PIN-код</string>
     <string name="main_activity_error_title">Ошибка.</string>
     <string name="main_activity_error_msg_unknown_format">Система отдает изображение в неизвестном формате. На данный момент исправления нет.</string>
-    <string name="html_no_mjpeg_support">Ой :(&lt;br&gt;Этот браузер не поддерживает MJPEG</string>
+    <string name="html_no_mjpeg_support">Ой :(&lt;br&gt;Кажется этот браузер не поддерживает MJPEG&lt;br&gt;&lt;br&gt;Эта проверка не очень точна&lt;br&gt;Вы можете отключить ее в настройках приложения</string>
+    <string name="pref_resize">Размер изображения</string>
+    <string name="pref_resize_summary">Изменять размер изображения перед отправкой</string>
+    <string name="pref_settings_image">Изображение</string>
+    <string name="pref_mjpeg_check">Отключить проверку MJPEG</string>
+    <string name="pref_mjpeg_check_summary">Отключить проверку поддержки браузером MJPEG</string>
+    <string name="pref_resize_dialog_text">Выберите коэффициент масштабирования изображения:</string>
+    <string name="main_activity_resize_factor">Масштабирование</string>
 </resources>

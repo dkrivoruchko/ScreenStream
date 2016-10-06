@@ -3,6 +3,7 @@ package info.dvkr.screenstream.viewmodel;
 import android.content.Context;
 import android.databinding.BaseObservable;
 import android.databinding.Bindable;
+import android.graphics.Point;
 import android.support.v4.content.ContextCompat;
 import android.view.View;
 import android.widget.ToggleButton;
@@ -13,7 +14,7 @@ import info.dvkr.screenstream.BR;
 import info.dvkr.screenstream.R;
 import info.dvkr.screenstream.data.BusMessages;
 
-import static info.dvkr.screenstream.ScreenStreamApplication.getAppData;
+import static java.util.Locale.US;
 
 public final class MainActivityViewModel extends BaseObservable {
     private final Context mContext;
@@ -26,6 +27,8 @@ public final class MainActivityViewModel extends BaseObservable {
     private boolean mWiFiConnected;
     private boolean mHttpServerError;
     private int mClients;
+    private int mResizeFactor;
+    private Point mScreenSize;
 
     public MainActivityViewModel(Context context) {
         this.mContext = context;
@@ -74,6 +77,17 @@ public final class MainActivityViewModel extends BaseObservable {
     public void setClients(final int clients) {
         mClients = clients;
         notifyPropertyChanged(BR.connectedClientsText);
+    }
+
+    public void setResizeFactor(final int resizeFactor) {
+        mResizeFactor = resizeFactor;
+        notifyPropertyChanged(BR.resizeText);
+        notifyPropertyChanged(BR.resizeTextColor);
+    }
+
+    public void setScreenSize(final Point screenSize) {
+        mScreenSize = screenSize;
+        notifyPropertyChanged(BR.resizeText);
     }
 
     @Bindable
@@ -136,6 +150,25 @@ public final class MainActivityViewModel extends BaseObservable {
     public String getConnectedClientsText() {
         return String.format(mContext.getString(R.string.main_activity_connected_clients), mClients);
     }
+
+    @Bindable
+    public String getResizeText() {
+        final float scale = mResizeFactor / 10f;
+        return mContext.getString(R.string.main_activity_resize_factor)
+                + String.format(US, " %.1fx: ", mResizeFactor / 10f)
+                + (int) (mScreenSize.x * scale)
+                + "x"
+                + (int) (mScreenSize.y * scale);
+    }
+
+    @Bindable
+    public int getResizeTextColor() {
+        return mResizeFactor > 10 ?
+                ContextCompat.getColor(mContext, R.color.colorAccent) :
+                ContextCompat.getColor(mContext, R.color.textColorSecondary);
+
+    }
+
 
     public void onToggleButtonClick(View v) {
         if (mIsStreaming) {

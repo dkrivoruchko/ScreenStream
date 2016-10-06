@@ -7,9 +7,23 @@ android {
         applicationId "info.dvkr.screenstream"
         minSdkVersion 21
         targetSdkVersion 24
-        versionCode 15
-        versionName "1.1.8"
+        versionCode 16
+        versionName "1.2.0"
         resConfigs "en", "ru"
+    }
+
+    signingConfigs {
+        release {
+            try {
+                storeFile file("DKrivoruchkoDev.jks")
+                storePassword KEYSTORE_PASSWORD
+                keyAlias "krivoruchko_android_key"
+                keyPassword KEY_PASSWORD
+            }
+            catch (ignore) {
+                throw new InvalidUserDataException("You should define KEYSTORE_PASSWORD and KEY_PASSWORD in gradle.properties.")
+            }
+        }
     }
 
     buildTypes {

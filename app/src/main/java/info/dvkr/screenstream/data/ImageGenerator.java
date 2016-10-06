@@ -1,6 +1,7 @@
 package info.dvkr.screenstream.data;
 
 import android.graphics.Bitmap;
+import android.graphics.Matrix;
 import android.graphics.PixelFormat;
 import android.hardware.display.DisplayManager;
 import android.hardware.display.VirtualDisplay;
@@ -18,6 +19,7 @@ import org.greenrobot.eventbus.EventBus;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
+import info.dvkr.screenstream.data.local.PreferencesHelper;
 import info.dvkr.screenstream.service.ForegroundService;
 
 import static info.dvkr.screenstream.ScreenStreamApplication.getAppData;
@@ -67,18 +69,29 @@ public final class ImageGenerator {
                     mReusableBitmap.copyPixelsFromBuffer(mPlane.getBuffer());
                     mCleanBitmap = Bitmap.createBitmap(mReusableBitmap, 0, 0, mImage.getWidth(), mImage.getHeight());
                 } else {
-                    mCleanBitmap = Bitmap.createBitmap(mWidth, mImage.getHeight(), Bitmap.Config.ARGB_8888);
+                    mCleanBitmap = Bitmap.createBitmap(mImage.getWidth(), mImage.getHeight(), Bitmap.Config.ARGB_8888);
                     mCleanBitmap.copyPixelsFromBuffer(mPlane.getBuffer());
+                }
+
+                Bitmap resizedBitmap;
+                if (getAppPreference().getResizeFactor() != PreferencesHelper.DEFAULT_RESIZE_FACTOR) {
+                    float scale = getAppPreference().getResizeFactor() / 10f;
+                    final Matrix matrix = new Matrix();
+                    matrix.postScale(scale, scale);
+                    resizedBitmap = Bitmap.createBitmap(mCleanBitmap, 0, 0, mImage.getWidth(), mImage.getHeight(), matrix, false);
+                    mCleanBitmap.recycle();
+                } else {
+                    resizedBitmap = mCleanBitmap;
                 }
                 mImage.close();
 
                 mJpegOutputStream.reset();
-                mCleanBitmap.compress(Bitmap.CompressFormat.JPEG, getAppPreference().getJpegQuality(), mJpegOutputStream);
-                mCleanBitmap.recycle();
+                resizedBitmap.compress(Bitmap.CompressFormat.JPEG, getAppPreference().getJpegQuality(), mJpegOutputStream);
+                resizedBitmap.recycle();
                 mJpegByteArray = mJpegOutputStream.toByteArray();
 
                 if (mJpegByteArray != null) {
-                    if (getAppData().getImageQueue().size() > 6) {
+                    if (getAppData().getImageQueue().size() > 3) {
                         getAppData().getImageQueue().pollLast();
                     }
                     getAppData().getImageQueue().add(mJpegByteArray);
@@ -147,4 +160,3 @@ public final class ImageGenerator {
         }
     }
 }
-

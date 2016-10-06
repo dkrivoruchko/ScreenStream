@@ -94,6 +94,8 @@ public final class ForegroundService extends Service {
     public void onCreate() {
         sServiceInstance = this;
 
+        getAppData().initIndexHtmlPage(this);
+
         mMediaProjectionManager = (MediaProjectionManager) getSystemService(Context.MEDIA_PROJECTION_SERVICE);
         mProjectionCallback = new MediaProjection.Callback() {
             @Override

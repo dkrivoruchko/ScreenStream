@@ -26,15 +26,14 @@ final class ImageDispatcher {
             while (!isInterrupted()) {
                 if (!isThreadRunning) break;
                 mCurrentJpeg = getAppData().getImageQueue().poll();
-
                 if (mCurrentJpeg == null) {
                     try {
-                        sleep(10);
-                    } catch (InterruptedException e) {
+                        sleep(24);
+                    } catch (InterruptedException ignore) {
                         continue;
                     }
                     mSleepCount++;
-                    if (mSleepCount >= 50) sendLastJPEGToClients();
+                    if (mSleepCount >= 20) sendLastJPEGToClients();
                 } else {
                     mLastJpeg = mCurrentJpeg;
                     sendLastJPEGToClients();

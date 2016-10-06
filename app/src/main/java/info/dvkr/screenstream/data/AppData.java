@@ -29,7 +29,7 @@ public final class AppData {
     private final WifiManager mWifiManager;
     private final int mDensityDpi;
     private final float mScale;
-    private final String mIndexHtmlPage;
+    private String mIndexHtmlPage;
     private final String mPinRequestHtmlPage;
     private final String mPinRequestErrorMsg;
     private final byte[] mIconBytes;
@@ -45,11 +45,9 @@ public final class AppData {
         mWifiManager = (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
         mDensityDpi = getDensityDpi();
         mScale = getScale(context);
-        mIndexHtmlPage = getIndexHtmlPage(context);
         mPinRequestHtmlPage = getPinRequestHtmlPage(context);
         mPinRequestErrorMsg = context.getString(R.string.html_wrong_pin);
         mIconBytes = getFavicon(context);
-
     }
 
     public void setActivityRunning(final boolean activityRunning) {
@@ -93,6 +91,14 @@ public final class AppData {
         final Point screenSize = new Point();
         mWindowManager.getDefaultDisplay().getRealSize(screenSize);
         return screenSize;
+    }
+
+    public void initIndexHtmlPage(final Context context) {
+        mIndexHtmlPage = getHtml(context, "index.html")
+                .replaceFirst("MSG_NO_MJPEG_SUPPORT", context.getString(R.string.html_no_mjpeg_support));
+        if (ScreenStreamApplication.getAppPreference().isDisableMJPEGCheck()) {
+            mIndexHtmlPage = mIndexHtmlPage.replaceFirst("id=mj", "").replaceFirst("id=pmj", "");
+        }
     }
 
     public String getIndexHtml(final String streamAddress) {
@@ -139,11 +145,6 @@ public final class AppData {
 
     private float getScale(final Context context) {
         return context.getResources().getDisplayMetrics().density;
-    }
-
-    private String getIndexHtmlPage(final Context context) {
-        return getHtml(context, "index.html")
-                .replaceFirst("MSG_NO_MJPEG_SUPPORT", context.getString(R.string.html_no_mjpeg_support));
     }
 
     private String getPinRequestHtmlPage(final Context context) {

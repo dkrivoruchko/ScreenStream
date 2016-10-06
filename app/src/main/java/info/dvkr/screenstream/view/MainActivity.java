@@ -24,7 +24,6 @@ import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
 
 import info.dvkr.screenstream.R;
-import info.dvkr.screenstream.data.AppData;
 import info.dvkr.screenstream.data.BusMessages;
 import info.dvkr.screenstream.databinding.ActivityMainBinding;
 import info.dvkr.screenstream.service.ForegroundService;
@@ -62,6 +61,8 @@ public final class MainActivity extends AppCompatActivity {
 
         getMainActivityViewModel().setServerAddress(getAppData().getServerAddress());
         getMainActivityViewModel().setWiFiConnected(getAppData().isWiFiConnected());
+        getMainActivityViewModel().setScreenSize(getAppData().getScreenSize());
+        getMainActivityViewModel().setResizeFactor(getAppPreference().getResizeFactor());
 
         mPortInUseSnackbar = Snackbar.make(activityMainBinding.layoutMainView,
                 R.string.main_activity_snackbar_port_in_use,
@@ -114,7 +115,7 @@ public final class MainActivity extends AppCompatActivity {
                             .setTitle(getString(R.string.main_activity_error_title))
                             .setMessage(getString(R.string.main_activity_error_msg_unknown_format))
                             .setIcon(R.drawable.ic_main_activity_error_24dp)
-                            .setPositiveButton(R.string.main_activity_error_action_ok, new DialogInterface.OnClickListener() {
+                            .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
                                 public void onClick(DialogInterface dialog, int id) {
                                     dialog.dismiss();
                                 }

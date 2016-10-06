@@ -20,7 +20,7 @@ import static info.dvkr.screenstream.ScreenStreamApplication.getAppData;
 import static info.dvkr.screenstream.ScreenStreamApplication.getAppPreference;
 
 public final class NotifyImageGenerator {
-    private Context mContext;
+    private final Context mContext;
     private int mCurrentScreenSizeX;
     private byte[] mCurrentDefaultScreen;
 

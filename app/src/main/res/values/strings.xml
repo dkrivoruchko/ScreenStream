@@ -6,6 +6,7 @@
     <string name="main_activity_start_stream">Start stream</string>
     <string name="main_activity_stop_stream">Stop stream</string>
     <string name="main_activity_connected_clients">Connected clients: %1$d</string>
+    <string name="main_activity_resize_factor">Resize factor</string>
     <string name="main_activity_pin">Pin:</string>
     <string name="main_activity_pin_disabled">Pin is disabled</string>
     <string name="main_activity_pin_asterisks" translatable="false">****</string>
@@ -15,7 +16,6 @@
     <string name="main_activity_snackbar_port_in_use">Port already in use\nChoose another one</string>
     <string name="main_activity_error_title">Error.</string>
     <string name="main_activity_error_msg_unknown_format">System returns image in unknown format. Currently no fix available.\nSorry.</string>
-    <string name="main_activity_error_action_ok" translatable="false">OK</string>
 
     <!--ForegroundService-->
     <string name="service_ready_to_stream">Ready to stream</string>
@@ -44,7 +44,13 @@
     <string name="pref_minimise_on_stream_summary">Minimize app on stream start</string>
     <string name="pref_stop_on_sleep">Stop on sleep</string>
     <string name="pref_stop_on_sleep_summary">Stop stream if screen turns off</string>
-    <string name="pref_settings_pin">Pin</string>
+    <string name="pref_mjpeg_check">Disable MJPEG check</string>
+    <string name="pref_mjpeg_check_summary">Disable check for browser MJPEG support</string>
+    <string name="pref_settings_image">Image</string>
+    <string name="pref_resize">Resize image</string>
+    <string name="pref_resize_summary">Resize image before sending to client</string>
+    <string name="pref_resize_dialog_text">Select image resize factor:</string>
+    <string name="pref_settings_security">Security</string>
     <string name="pref_enable_pin">Enable pin</string>
     <string name="pref_enable_pin_summary">Protect access to stream with pin</string>
     <string name="pref_hide_pin">Auto hide pin on stream start</string>
@@ -63,9 +69,12 @@
     <string name="pref_client_timeout">Client connection timeout</string>
     <string name="pref_client_timeout_summary">Set time for client response in seconds</string>
 
+
     <!--PreferencesKeys-->
     <string name="pref_key_minimize_on_stream" translatable="false">PREF_KEY_MINIMIZE_ON_STREAM</string>
     <string name="pref_key_stop_on_sleep" translatable="false">PREF_KEY_STOP_ON_SLEEP</string>
+    <string name="pref_key_mjpeg_check" translatable="false">PREF_KEY_MJPEG_CHECK</string>
+    <string name="pref_key_resize_factor" translatable="false">PREF_KEY_RESIZE_FACTOR</string>
     <string name="pref_key_enable_pin" translatable="false">PREF_KEY_ENABLE_PIN</string>
     <string name="pref_key_hide_pin_on_start" translatable="false">PREF_KEY_HIDE_PIN_ON_START</string>
     <string name="pref_key_new_pin_on_app_start" translatable="false">PREF_KEY_NEW_PIN_ON_APP_START</string>
@@ -81,5 +90,5 @@
     <string name="html_four_digits">Four digits</string>
     <string name="html_submit_text">Submit</string>
     <string name="html_wrong_pin">Wrong pin!</string>
-    <string name="html_no_mjpeg_support">Sorry :(&lt;br&gt;This browser does not support MJPEG.</string>
+    <string name="html_no_mjpeg_support">Sorry :(&lt;br&gt;Seems that this browser does not support MJPEG.&lt;br&gt;&lt;br&gt;This check is not accurate&lt;br&gt;You can disable it in application settings</string>
 </resources>
