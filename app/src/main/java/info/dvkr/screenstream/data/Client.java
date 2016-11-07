@@ -65,7 +65,6 @@ final class Client {
                     isSending = false;
                 } catch (Exception e) {
                     closeSocket();
-                    FirebaseCrash.report(e);
                 }
             }
         });
