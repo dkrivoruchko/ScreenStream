@@ -172,6 +172,10 @@ public final class ForegroundService extends Service {
                         getMainActivityViewModel().setServerAddress(getAppData().getServerAddress());
                         getMainActivityViewModel().setWiFiConnected(isWiFiConnected);
 
+                        if (getMainActivityViewModel().isWiFiConnected()) {
+                            EventBus.getDefault().post(new BusMessages(BusMessages.MESSAGE_ACTION_HTTP_RESTART));
+                        }
+
                         if ((!getMainActivityViewModel().isWiFiConnected()) && getAppData().isStreamRunning())
                             serviceStopStreaming();
                     }
