@@ -13,6 +13,7 @@ import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
+import java.net.SocketTimeoutException;
 import java.util.Random;
 
 import static info.dvkr.screenstream.ScreenStreamApplication.getAppData;
@@ -93,7 +94,7 @@ public final class HttpServer {
                         }
 
                         sendNotFound(clientSocket);
-                    } catch (SocketException ignored) {
+                    } catch (SocketException | SocketTimeoutException ignored) {
                     } catch (IOException e) {
                         FirebaseCrash.report(e);
                     }
