@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+                  xmlns:app="http://schemas.android.com/apk/res-auto">
     <PreferenceCategory android:title="@string/pref_settings_interface">
         <CheckBoxPreference
             android:defaultValue="true"
@@ -21,6 +22,15 @@
             android:key="@string/pref_key_mjpeg_check"
             android:summary="@string/pref_mjpeg_check_summary"
             android:title="@string/pref_mjpeg_check"/>
+
+        <com.jrummyapps.android.colorpicker.ColorPreference
+            android:defaultValue="@color/htmlBackground"
+            android:icon="@drawable/ic_pref_color_back_black_24dp"
+            android:key="@string/pref_key_html_back_color"
+            android:summary="@string/pref_html_back_color_summary"
+            android:title="@string/pref_html_back_color"
+            app:cpv_dialogTitle="@string/pref_html_back_color_title"
+            app:cpv_showAlphaSlider="false"/>
     </PreferenceCategory>
 
     <PreferenceCategory android:title="@string/pref_settings_image">

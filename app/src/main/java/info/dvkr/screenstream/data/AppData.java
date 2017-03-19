@@ -22,6 +22,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import info.dvkr.screenstream.R;
 import info.dvkr.screenstream.ScreenStreamApplication;
 
+import static info.dvkr.screenstream.ScreenStreamApplication.getAppPreference;
 import static info.dvkr.screenstream.ScreenStreamApplication.getMainActivityViewModel;
 
 public final class AppData {
@@ -95,6 +96,7 @@ public final class AppData {
 
     public void initIndexHtmlPage(final Context context) {
         mIndexHtmlPage = getHtml(context, "index.html")
+                .replaceFirst("BACK_COLOR", String.format("#%06X", (0xFFFFFF & getAppPreference().getHTMLBackColor())))
                 .replaceFirst("MSG_NO_MJPEG_SUPPORT", context.getString(R.string.html_no_mjpeg_support));
         if (ScreenStreamApplication.getAppPreference().isDisableMJPEGCheck()) {
             mIndexHtmlPage = mIndexHtmlPage.replaceFirst("id=mj", "").replaceFirst("id=pmj", "");

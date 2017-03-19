@@ -46,6 +46,9 @@
     <string name="pref_stop_on_sleep_summary">Stop stream if screen turns off</string>
     <string name="pref_mjpeg_check">Disable MJPEG check</string>
     <string name="pref_mjpeg_check_summary">Disable check for browser MJPEG support</string>
+    <string name="pref_html_back_color">Page background color</string>
+    <string name="pref_html_back_color_summary">Set HTML page background color</string>
+    <string name="pref_html_back_color_title">Select background color</string>
     <string name="pref_settings_image">Image</string>
     <string name="pref_resize">Resize image</string>
     <string name="pref_resize_summary">Resize image before sending to client</string>
@@ -74,6 +77,7 @@
     <string name="pref_key_minimize_on_stream" translatable="false">PREF_KEY_MINIMIZE_ON_STREAM</string>
     <string name="pref_key_stop_on_sleep" translatable="false">PREF_KEY_STOP_ON_SLEEP</string>
     <string name="pref_key_mjpeg_check" translatable="false">PREF_KEY_MJPEG_CHECK</string>
+    <string name="pref_key_html_back_color" translatable="false">PREF_KEY_HTML_BACK_COLOR</string>
     <string name="pref_key_resize_factor" translatable="false">PREF_KEY_RESIZE_FACTOR</string>
     <string name="pref_key_enable_pin" translatable="false">PREF_KEY_ENABLE_PIN</string>
     <string name="pref_key_hide_pin_on_start" translatable="false">PREF_KEY_HIDE_PIN_ON_START</string>

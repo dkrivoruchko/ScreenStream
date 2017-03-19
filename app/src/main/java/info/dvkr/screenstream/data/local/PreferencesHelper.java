@@ -27,6 +27,7 @@ public final class PreferencesHelper {
     private boolean mMinimizeOnStream;
     private boolean mStopOnSleep;
     private boolean mDisableMJPEGCheck;
+    private int mHTMLBackColor;
     private volatile int mResizeFactor;
     private volatile int mJpegQuality;
     private boolean mEnablePin;
@@ -56,6 +57,7 @@ public final class PreferencesHelper {
         mMinimizeOnStream = mSharedPreferences.getBoolean(mContext.getString(R.string.pref_key_minimize_on_stream), true);
         mStopOnSleep = mSharedPreferences.getBoolean(mContext.getString(R.string.pref_key_stop_on_sleep), false);
         mDisableMJPEGCheck = mSharedPreferences.getBoolean(mContext.getString(R.string.pref_key_mjpeg_check), false);
+        mHTMLBackColor = mSharedPreferences.getInt(mContext.getString(R.string.pref_key_html_back_color), 0);
 
         mJpegQuality = Integer.parseInt(mSharedPreferences.getString(mContext.getString(R.string.pref_key_jpeg_quality), DEFAULT_JPEG_QUALITY));
         mResizeFactor = mSharedPreferences.getInt(mContext.getString(R.string.pref_key_resize_factor), DEFAULT_RESIZE_FACTOR);
@@ -72,6 +74,7 @@ public final class PreferencesHelper {
 
     public void updatePreference() {
         final boolean oldDisableMJPEGCheck = mDisableMJPEGCheck;
+        final int oldHTMLBackColork = mHTMLBackColor;
         final int oldServerPort = mSeverPort;
         final boolean oldEnablePin = mEnablePin;
         final String oldPin = mCurrentPin;
@@ -82,7 +85,7 @@ public final class PreferencesHelper {
         getMainActivityViewModel().setPinAutoHide(mHidePinOnStart);
         getMainActivityViewModel().setStreamPin(mCurrentPin);
 
-        if (oldDisableMJPEGCheck != mDisableMJPEGCheck) {
+        if (oldDisableMJPEGCheck != mDisableMJPEGCheck || oldHTMLBackColork != mHTMLBackColor) {
             getAppData().initIndexHtmlPage(mContext);
         }
 
@@ -111,6 +114,10 @@ public final class PreferencesHelper {
 
     public boolean isDisableMJPEGCheck() {
         return mDisableMJPEGCheck;
+    }
+
+    public int getHTMLBackColor() {
+        return mHTMLBackColor;
     }
 
     public int getResizeFactor() {
