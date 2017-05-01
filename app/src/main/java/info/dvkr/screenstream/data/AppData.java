@@ -43,7 +43,7 @@ public final class AppData {
 
     public AppData(final Context context) {
         mWindowManager = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
-        mWifiManager = (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
+        mWifiManager = (WifiManager) context.getApplicationContext().getSystemService(Context.WIFI_SERVICE);
         mDensityDpi = getDensityDpi();
         mScale = getScale(context);
         mPinRequestHtmlPage = getPinRequestHtmlPage(context);

@@ -6,7 +6,7 @@
 
         <variable
             name="viewModel"
-            type="info.dvkr.screenstream.viewmodel.MainActivityViewModel"/>
+            type="info.dvkr.screenstream.viewModel.MainActivityViewModel"/>
     </data>
 
     <LinearLayout

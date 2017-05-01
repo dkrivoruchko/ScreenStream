@@ -5,7 +5,7 @@ import android.app.Application;
 import info.dvkr.screenstream.data.AppData;
 import info.dvkr.screenstream.data.local.PreferencesHelper;
 import info.dvkr.screenstream.service.ForegroundService;
-import info.dvkr.screenstream.viewmodel.MainActivityViewModel;
+import info.dvkr.screenstream.viewModel.MainActivityViewModel;
 
 
 public class ScreenStreamApplication extends Application {

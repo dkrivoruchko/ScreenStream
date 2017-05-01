@@ -1,4 +1,4 @@
-package info.dvkr.screenstream.viewmodel;
+package info.dvkr.screenstream.viewModel;
 
 import android.content.Context;
 import android.databinding.BaseObservable;
