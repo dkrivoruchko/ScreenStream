@@ -16,6 +16,10 @@
 #   public *;
 #}
 
+# Retrolambda
+-dontwarn java.lang.invoke.*
+-dontwarn **$$Lambda$*
+
 # EventBus 3.0
 -keepattributes *Annotation*
 -keepclassmembers class * {

@@ -23,7 +23,6 @@ import org.greenrobot.eventbus.Subscribe;
 import info.dvkr.screenstream.R;
 import info.dvkr.screenstream.data.BusMessages;
 import info.dvkr.screenstream.data.HttpServer;
-import info.dvkr.screenstream.data.ImageGenerator;
 import info.dvkr.screenstream.data.NotifyImageGenerator;
 import info.dvkr.screenstream.view.MainActivity;
 
@@ -55,7 +54,6 @@ public final class ForegroundService extends Service {
     private MediaProjection mMediaProjection;
     private MediaProjection.Callback mProjectionCallback;
     private HttpServer mHttpServer;
-    private ImageGenerator mImageGenerator;
     private NotifyImageGenerator mNotifyImageGenerator;
     private HandlerThread mHandlerThread;
     private ForegroundServiceHandler mForegroundServiceTaskHandler;
@@ -85,10 +83,6 @@ public final class ForegroundService extends Service {
         return sServiceInstance == null ? null : sServiceInstance.mMediaProjection;
     }
 
-    @Nullable
-    public static ImageGenerator getImageGenerator() {
-        return sServiceInstance == null ? null : sServiceInstance.mImageGenerator;
-    }
 
     @Override
     public void onCreate() {
@@ -104,7 +98,7 @@ public final class ForegroundService extends Service {
             }
         };
         mHttpServer = new HttpServer();
-        mImageGenerator = new ImageGenerator();
+
         getAppData().getImageQueue().clear();
         mNotifyImageGenerator = new NotifyImageGenerator(getApplicationContext());
         mNotifyImageGenerator.addDefaultScreen();
@@ -207,7 +201,10 @@ public final class ForegroundService extends Service {
         stopForeground(true);
         unregisterReceiver(mBroadcastReceiver);
         unregisterReceiver(mLocalNotificationReceiver);
-        if (mMediaProjection != null) mMediaProjection.unregisterCallback(mProjectionCallback);
+        if (mMediaProjection != null) {
+            mMediaProjection.unregisterCallback(mProjectionCallback);
+            mMediaProjection.stop();
+        }
         mHandlerThread.quit();
     }
 
@@ -250,7 +247,10 @@ public final class ForegroundService extends Service {
         stopForeground(true);
         mForegroundServiceTaskHandler.obtainMessage(ForegroundServiceHandler.HANDLER_STOP_STREAMING).sendToTarget();
         startForeground(NOTIFICATION_START_STREAMING, getNotificationStart());
-        if (mMediaProjection != null) mMediaProjection.unregisterCallback(mProjectionCallback);
+        if (mMediaProjection != null) {
+            mMediaProjection.unregisterCallback(mProjectionCallback);
+            mMediaProjection.stop();
+        }
         getAppData().getImageQueue().clear();
         mNotifyImageGenerator.addDefaultScreen();
 
