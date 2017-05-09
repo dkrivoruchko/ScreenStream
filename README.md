@@ -1,5 +1,9 @@
-# ScreenStream
-**Screen Stream over HTTP** - an Android mobile app: [Screen Stream over HTTP](https://play.google.com/store/apps/details?id=info.dvkr.screenstream)
+# Screen Stream over HTTP
+An Android mobile app for viewing device screen in your web browser.
+
+**This is a unstable development branch for 2.x version.**
+
+[Stable branch 1.x](https://github.com/dkrivoruchko/ScreenStream/tree/1.x) represented in Google Play Market<br>
 
 The application allows viewing the device screen in your web browser.
 The main idea is to show your device screen during presentations and demos.
@@ -12,8 +16,13 @@ The number of client connections is unlimited, but be aware that each of them re
 
 It uses Android Cast feature and requires at least Android 5.0 to operate.
 
+**WARING:** This is not real time streaming app. Expect delay at least 0.5-1 second or more on slow devices, bad WiFi or on heavy CPU load by other apps.<br>
+**WARING:** This app is not designed for streaming video, especially HD video. Use Chromecast instead.<br>
+**WARING:** This app does NOT support SOUND streaming, because MJPEG does not support sound.
+
 **Known problems**
 1. On some devices system return image in unknown format. Mostly on devices with no official Android 5.0 or above. Possible Android bug. App will show an error message. Trying to find some workaround.
 2. On some devices no notification icon showing but notification is present. Android bug: 213309.
+3. Browser MJPEG support check is inaccurate. You can disable it in application settings.
 
 If there are any issues or ideas feel free to contact me.
