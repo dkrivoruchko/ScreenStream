@@ -2,20 +2,15 @@ apply plugin: 'com.android.application'
 apply plugin: 'me.tatarka.retrolambda'
 
 android {
-    compileSdkVersion 25
-    buildToolsVersion "25.0.3"
-
-    compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
-    }
+    compileSdkVersion rootProject.ext.compileSdkVersion
+    buildToolsVersion rootProject.ext.buildToolsVersion
 
     defaultConfig {
         applicationId "info.dvkr.screenstream"
-        minSdkVersion 21
-        targetSdkVersion 25
-        versionCode 23
-        versionName "1.2.7"
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
+        versionCode 30
+        versionName "1.3.0"
         resConfigs "en", "ru"
     }
 
@@ -34,6 +29,11 @@ android {
         }
     }
 
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
     dataBinding {
         enabled = true
     }
@@ -44,11 +44,27 @@ android {
 }
 
 dependencies {
-    compile 'com.android.support:design:25.3.1'
-    compile 'com.google.firebase:firebase-crash:10.2.4'
+    compile project(":presenter")
 
-    compile "io.reactivex.rxjava2:rxjava:2.1.0"
-    compile 'io.reactivex.rxjava2:rxandroid:2.0.1'
+    // Support annotations
+    compile dep.design
+    compile dep.constraint
+
+    // Butterknife
+    compile dep.butterknife
+    annotationProcessor dep.butterknifeCompiler
+
+    // Dagger
+    compile dep.dagger
+    annotationProcessor dep.daggerCompiler
+
+    // Rx
+    compile dep.rxjava
+    compile dep.rxandroid
+
+    // Firebase
+    compile dep.firebase
+
 
     compile 'org.greenrobot:eventbus:3.0.0'
     compile 'com.jrummyapps:colorpicker:2.1.7'

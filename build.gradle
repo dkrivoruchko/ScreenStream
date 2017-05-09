@@ -19,6 +19,44 @@ allprojects {
     }
 }
 
+ext {
+    minSdkVersion     = 21
+    targetSdkVersion  = 25
+    compileSdkVersion = 25
+
+    buildToolsVersion = '25.0.3'
+    supportLibsVersion = '25.3.1'
+    constraintLibsVersion = '1.0.2'
+    rxbindingLibsVersion = '2.0.0'
+
+    // Dependencies
+    dep = [
+            supportAnnotations  : "com.android.support:support-annotations:$supportLibsVersion",
+            design              : "com.android.support:design:$supportLibsVersion",
+
+            // Constraint
+            constraint          : "com.android.support.constraint:constraint-layout:$constraintLibsVersion",
+
+            // Butterknife
+            butterknife         : 'com.jakewharton:butterknife:8.5.1',
+            butterknifeCompiler : 'com.jakewharton:butterknife-compiler:8.5.1',
+
+            // Dagger
+            dagger              : 'com.google.dagger:dagger:2.10',
+            daggerCompiler      : 'com.google.dagger:dagger-compiler:2.10',
+
+            // Rx
+            rxjava              : "io.reactivex.rxjava2:rxjava:2.1.0",
+            rxandroid           : "io.reactivex.rxjava2:rxandroid:2.0.1",
+            rxbinding           : "com.jakewharton.rxbinding2:rxbinding:$rxbindingLibsVersion",
+            rxbindingDesign     : "com.jakewharton.rxbinding2:rxbinding-design:$rxbindingLibsVersion",
+
+            // Firebase
+            firebase            : 'com.google.firebase:firebase-crash:10.2.4'
+    ]
+}
+
+
 task clean(type: Delete) {
     delete rootProject.buildDir
 }
