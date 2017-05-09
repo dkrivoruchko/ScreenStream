@@ -1,0 +1,98 @@
+<resources>
+    <string name="app_name" translatable="false">Screen Stream</string>
+
+    <!--MainActivity-->
+    <string name="main_activity_device_address">Dirección del dispositivo:</string>
+    <string name="main_activity_start_stream">Comenzar la trasnferencia</string>
+    <string name="main_activity_stop_stream">Parar la transferencia</string>
+    <string name="main_activity_connected_clients">Clientes conectados: %1$d</string>
+    <string name="main_activity_resize_factor">Factor de redimensionado</string>
+    <string name="main_activity_pin">Pin:</string>
+    <string name="main_activity_pin_disabled">Pin está deshabilitado</string>
+    <string name="main_activity_pin_asterisks" translatable="false">****</string>
+    <string name="main_activity_menu_settings">Settings</string>
+    <string name="main_activity_no_wifi_connected">No hay conexión WiFi</string>
+    <string name="main_activity_toast_cast_permission_deny">Permiso denegado para un Screen Cast</string>
+    <string name="main_activity_snackbar_port_in_use">Este puerte ya está en uso\nElige otro</string>
+    <string name="main_activity_error_title">Error.</string>
+    <string name="main_activity_error_msg_unknown_format">El sistema devuelve una imagen de formato desconocido. Actualmente no hay disponible solución para esto.\nLo lamento.</string>
+
+    <!--ForegroundService-->
+    <string name="service_ready_to_stream">Listo para realizar la transferencia</string>
+    <string name="service_press_start">Pulsa iniciar para comenzar la transferencia</string>
+    <string name="service_start">Iniciar</string>
+    <string name="service_exit">Salir</string>
+    <string name="service_stream">Tranferencia…</string>
+    <string name="service_go_to">Ir a:\u0020</string>
+    <string name="service_stop">Parar</string>
+
+    <!--NotifyImageGenerator-->
+    <string name="image_generator_press">PULSAR</string>
+    <string name="image_generator_on_device">EN EL DISPOSITIVO</string>
+    <string name="image_generator_settings_changed">CONFIGURACIÓN ACTUALIZADA</string>
+    <string name="image_generator_go_to_new_address">Por favor introduce una nueva dirección</string>
+    <string name="image_generator_reload_this_page">Por favor recarga esta página</string>
+
+    <!--SettingsActivity-->
+    <string name="settings_activity_pin_digits_count">El Pin debe tener 4 dígitos</string>
+    <string name="settings_activity_port_range">El puerto debe estar entre %1$d y %2$d</string>
+    <string name="settings_activity_value">\nValor:\u0020</string>
+
+    <!--PreferenceScreen-->
+    <string name="pref_settings_interface">Interfaz</string>
+    <string name="pref_minimize_on_stream">Minimizar mientras se realiza la transferencia</string>
+    <string name="pref_minimise_on_stream_summary">Minimize app al iniciarse la transferencia</string>
+    <string name="pref_stop_on_sleep">Detenerse al hibernar</string>
+    <string name="pref_stop_on_sleep_summary">Detener la transferencia si se apaga la pantalla</string>
+    <string name="pref_mjpeg_check">Inhabilita la comprobación MJPEG</string>
+    <string name="pref_mjpeg_check_summary">Inhabilita la comprobación de soporte MJPEG del navegador</string>
+    <string name="pref_html_back_color">Color de fondo de la página</string>
+    <string name="pref_html_back_color_summary">Introduce el color de fondo de la página HTML</string>
+    <string name="pref_html_back_color_title">Selecciona el color de fondo</string>
+    <string name="pref_settings_image">Imagen</string>
+    <string name="pref_resize">Redimensiona la imagen</string>
+    <string name="pref_resize_summary">Redimensiona la imagen antes de enviarla</string>
+    <string name="pref_resize_dialog_text">Selecciona el factor de redimensionamiento:</string>
+    <string name="pref_settings_security">Seguridad</string>
+    <string name="pref_enable_pin">Habilita el pin</string>
+    <string name="pref_enable_pin_summary">Protege el acceso a la transferencia con un pin</string>
+    <string name="pref_hide_pin">Auto oculta el pin cuando comienza la transferencia</string>
+    <string name="pref_hide_pin_summary">Muestra asteriscos en lugar del pin</string>
+    <string name="pref_new_pin_on_start">Nuevo pin cuando se inicia</string>
+    <string name="pref_new_pin_on_start_summary">Genera un nuevo pin cuando se incia la aplicación</string>
+    <string name="pref_auto_change_pin">Auto cambia el pin</string>
+    <string name="pref_auto_change_pin_summary">Genera un nuevo pin con cada transferencia</string>
+    <string name="pref_set_pin">Introduce el pin</string>
+    <string name="pref_set_pin_summary">Introduce el pin de forma manual</string>
+    <string name="pref_settings_advanced">Advanzado</string>
+    <string name="pref_server_port">Puerto del servidor</string>
+    <string name="pref_server_port_summary">Introduce el puerto del servidor para la conexiones entrantes\nPor defecto: 8080</string>
+    <string name="pref_jpeg_quality">Calidad JPEG</string>
+    <string name="pref_jpeg_quality_summary">Introduce la calidad JPEG</string>
+    <string name="pref_client_timeout">Tiempo de respuesta en el cliente</string>
+    <string name="pref_client_timeout_summary">Introduce el tiempo de respuesta en segundos</string>
+
+
+    <!--PreferencesKeys-->
+    <string name="pref_key_minimize_on_stream" translatable="false">PREF_KEY_MINIMIZE_ON_STREAM</string>
+    <string name="pref_key_stop_on_sleep" translatable="false">PREF_KEY_STOP_ON_SLEEP</string>
+    <string name="pref_key_mjpeg_check" translatable="false">PREF_KEY_MJPEG_CHECK</string>
+    <string name="pref_key_html_back_color" translatable="false">PREF_KEY_HTML_BACK_COLOR</string>
+    <string name="pref_key_resize_factor" translatable="false">PREF_KEY_RESIZE_FACTOR</string>
+    <string name="pref_key_enable_pin" translatable="false">PREF_KEY_ENABLE_PIN</string>
+    <string name="pref_key_hide_pin_on_start" translatable="false">PREF_KEY_HIDE_PIN_ON_START</string>
+    <string name="pref_key_new_pin_on_app_start" translatable="false">PREF_KEY_NEW_PIN_ON_APP_START</string>
+    <string name="pref_key_auto_change_pin" translatable="false">PREF_KEY_AUTO_CHANGE_PIN</string>
+    <string name="pref_key_set_pin" translatable="false">PREF_KEY_SET_PIN</string>
+    <string name="pref_key_server_port" translatable="false">PREF_KEY_SERVER_PORT</string>
+    <string name="pref_key_jpeg_quality" translatable="false">PREF_KEY_JPEG_QUALITY</string>
+    <string name="pref_key_client_con_timeout" translatable="false">PREF_KEY_CLIENT_CON_TIMEOUT</string>
+
+    <!--PinRequest.html-->
+    <string name="html_stream_require_pin">Esta transferencia necesita PIN para acceder.</string>
+    <string name="html_enter_pin">Introduce el pin:\u0020</string>
+    <string name="html_four_digits">Cuatro dígitos</string>
+    <string name="html_submit_text">Enviar</string>
+    <string name="html_wrong_pin">Pin incorrecto!</string>
+    <string name="html_no_mjpeg_support">Lo sentimos :(&lt;br&gt;Parece que este navegador no soporta MJPEG.&lt;br&gt;&lt;br&gt;Esta comprobación no es exacta&lt;br&gt;Es posible inabilitar la comprobación en la configuración</string>
+</resources>
