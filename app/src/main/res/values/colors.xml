@@ -4,6 +4,14 @@
     <color name="colorPrimaryDark">#455a64</color>
     <color name="colorAccent">#993200</color>
     <color name="textColorSecondary">#455a64</color>
+    <color name="textColorHeader">#FFFFFF</color>
+
+    // Preferences
+    <color name="textColorPrefTitle">#993200</color>
+    <color name="textColorPrefHeader">#000000</color>
+    <color name="textColorPrefSummary">#455a64</color>
+    <color name="textColorPrefValue">#666666</color>
+    <color name="colorPrefSplitLine">#cccccc</color>
 
     <color name="htmlBackground">#000000</color>
 </resources>

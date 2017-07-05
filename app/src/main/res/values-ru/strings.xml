@@ -8,7 +8,7 @@
     <string name="image_generator_press">НАЖМИТЕ</string>
     <string name="image_generator_on_device">НА УСТРОЙСТВЕ</string>
     <string name="main_activity_no_wifi_connected">WiFi не подключен</string>
-    <string name="main_activity_device_address">Адрес устойства:</string>
+    <string name="start_activity_device_address">Адрес устойства:</string>
     <string name="service_exit">Выход</string>
     <string name="service_go_to">\u0020</string>
     <string name="pref_settings_advanced">Дополнительно</string>
@@ -20,14 +20,14 @@
     <string name="main_activity_toast_cast_permission_deny">Отказано в доступе к изображению экрана</string>
     <string name="pref_client_timeout">Время ответа клиента</string>
     <string name="settings_activity_port_range">Порт должен быть между %1$d и %2$d</string>
-    <string name="main_activity_connected_clients">Подключено клиентов: %1$d</string>
+    <string name="start_activity_connected_clients">Подключено клиентов: %1$d</string>
     <string name="pref_client_timeout_summary">Установить время ответа от клиента в секундах</string>
     <string name="pref_minimize_on_stream">Сворачивать при трансляции</string>
     <string name="pref_minimise_on_stream_summary">Сворачивать приложение при начале трансляции</string>
     <string name="service_press_start">Нажмите начать для старта трансляции</string>
     <string name="service_ready_to_stream">Готов к трансляции</string>
-    <string name="main_activity_start_stream">Начать трансляцию</string>
-    <string name="main_activity_stop_stream">Остановить трансляцию</string>
+    <string name="start_activity_start_stream">Начать трансляцию</string>
+    <string name="start_activity_stop_stream">Остановить трансляцию</string>
     <string name="service_stream">Транслирую…</string>
     <string name="settings_activity_value">\nЗначение:\u0020</string>
     <string name="main_activity_snackbar_port_in_use">Порт уже используется\nВыберете другой</string>
@@ -36,7 +36,7 @@
     <string name="html_stream_require_pin">Этот поток требуется PIN-код для доступа к нему.</string>
     <string name="html_submit_text">Отправить</string>
     <string name="html_wrong_pin">Неправильный PIN-код!</string>
-    <string name="main_activity_pin">PIN-код:</string>
+    <string name="start_activity_pin">PIN-код:</string>
     <string name="pref_enable_pin">Использовать PIN-код</string>
     <string name="pref_set_pin_summary">Указать PIN-код</string>
     <string name="pref_auto_change_pin_summary">Генерировать новый PIN-код для каждой трансляции</string>
@@ -45,7 +45,7 @@
     <string name="pref_settings_security">Безопасность</string>
     <string name="pref_auto_change_pin">Автогенерация PIN-кода</string>
     <string name="settings_activity_pin_digits_count">PIN-код должен иметь 4 цифры</string>
-    <string name="main_activity_pin_disabled">PIN-код выключен</string>
+    <string name="start_activity_pin_disabled">PIN-код выключен</string>
     <string name="pref_new_pin_on_start">Новый PIN-код при старте</string>
     <string name="pref_new_pin_on_start_summary">Генерировать новый PIN-код при старте приложения</string>
     <string name="image_generator_go_to_new_address">Пройдите по новому адресу</string>
@@ -54,7 +54,7 @@
     <string name="pref_hide_pin">Прятать PIN-код</string>
     <string name="pref_hide_pin_summary">При трансляции скрывать PIN-код</string>
     <string name="main_activity_error_title">Ошибка.</string>
-    <string name="main_activity_error_msg_unknown_format">Система отдает изображение в неверном формате. На данный момент исправления нет.</string>
+    <string name="main_activity_error_wrong_image_format">Система отдает изображение в неверном формате. На данный момент исправления нет.</string>
     <string name="html_no_mjpeg_support">Ой :(&lt;br&gt;Кажется этот браузер не поддерживает MJPEG&lt;br&gt;&lt;br&gt;Эта проверка не очень точна&lt;br&gt;Вы можете отключить ее в настройках приложения</string>
     <string name="pref_resize">Размер изображения</string>
     <string name="pref_resize_summary">Изменять размер изображения перед отправкой</string>
@@ -62,7 +62,7 @@
     <string name="pref_mjpeg_check">Отключить проверку MJPEG</string>
     <string name="pref_mjpeg_check_summary">Отключить проверку поддержки браузером MJPEG</string>
     <string name="pref_resize_dialog_text">Выберать коэффициент масштабирования изображения:</string>
-    <string name="main_activity_resize_factor">Масштабирование</string>
+    <string name="start_activity_resize_factor">Масштабирование</string>
     <string name="pref_html_back_color">Цвет фона HTML-страницы</string>
     <string name="pref_html_back_color_summary">Выбрать цвет фона HTML-странцы</string>
     <string name="pref_html_back_color_title">Выберете цвет фона</string>

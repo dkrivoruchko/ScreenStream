@@ -2,22 +2,25 @@
     <string name="app_name" translatable="false">Screen Stream</string>
 
     <!--MainActivity-->
-    <string name="main_activity_device_address">Device address:</string>
-    <string name="main_activity_start_stream">Start stream</string>
-    <string name="main_activity_stop_stream">Stop stream</string>
-    <string name="main_activity_connected_clients">Connected clients: %1$d</string>
-    <string name="main_activity_resize_factor">Resize factor</string>
-    <string name="main_activity_pin">Pin:</string>
-    <string name="main_activity_pin_disabled">Pin is disabled</string>
-    <string name="main_activity_pin_asterisks" translatable="false">****</string>
+    <string name="start_activity_name" translatable="false">Screen Stream</string>
+    <string name="start_activity_device_address">Device addresses:</string>
+    <string name="start_activity_start_stream">Start stream</string>
+    <string name="start_activity_stop_stream">Stop stream</string>
+    <string name="start_activity_pin">Pin:\u0020</string>
+    <string name="start_activity_pin_disabled">Pin is disabled</string>
+    <string name="start_activity_pin_asterisks" translatable="false">****</string>
+    <string name="start_activity_resize_factor">Resize factor</string>
+    <string name="start_activity_connected_clients">Connected clients: %1$d</string>
+
     <string name="main_activity_menu_settings">Settings</string>
     <string name="main_activity_no_wifi_connected">No WiFi connected</string>
     <string name="main_activity_toast_cast_permission_deny">Screen Cast permission denied</string>
-    <string name="main_activity_snackbar_port_in_use">Port already in use\nChoose another one</string>
-    <string name="main_activity_error_title">Error.</string>
-    <string name="main_activity_error_msg_unknown_format">System returns image in unknown format. Currently no fix available.\nSorry.</string>
+    <string name="main_activity_error_title">Error</string>
+    <string name="main_activity_error_port_in_use">Port already in use\nChoose another one</string>
+    <string name="main_activity_error_wrong_image_format">System returns image in unknown format. Currently no fix available.\nSorry.</string>
+    <string name="main_activity_error_unknown">Some unknown error</string>
 
-    <!--ForegroundService-->
+    <!--FgService-->
     <string name="service_ready_to_stream">Ready to stream</string>
     <string name="service_press_start">Press start to begin stream</string>
     <string name="service_start">Start</string>
@@ -36,7 +39,6 @@
     <!--SettingsActivity-->
     <string name="settings_activity_pin_digits_count">Pin must be 4 digits</string>
     <string name="settings_activity_port_range">Port number must be between %1$d and %2$d</string>
-    <string name="settings_activity_value">\nValue:\u0020</string>
 
     <!--PreferenceScreen-->
     <string name="pref_settings_interface">Interface</string>
@@ -44,6 +46,8 @@
     <string name="pref_minimise_on_stream_summary">Minimize app on stream start</string>
     <string name="pref_stop_on_sleep">Stop on sleep</string>
     <string name="pref_stop_on_sleep_summary">Stop stream if screen turns off</string>
+    <string name="pref_start_on_boot">Start on boot</string>
+    <string name="pref_start_on_boot_summary">Start stream after device boot</string>
     <string name="pref_mjpeg_check">Disable MJPEG check</string>
     <string name="pref_mjpeg_check_summary">Disable check for browser MJPEG support</string>
     <string name="pref_html_back_color">Page background color</string>
@@ -52,7 +56,7 @@
     <string name="pref_settings_image">Image</string>
     <string name="pref_resize">Resize image</string>
     <string name="pref_resize_summary">Resize image before sending to client</string>
-    <string name="pref_resize_dialog_text">Select image resize factor:</string>
+    <string name="pref_resize_dialog_text">Set image resize factor in percents.\nValues: 10–150 (Default: 50)</string>
     <string name="pref_settings_security">Security</string>
     <string name="pref_enable_pin">Enable pin</string>
     <string name="pref_enable_pin_summary">Protect access to stream with pin</string>
@@ -64,13 +68,16 @@
     <string name="pref_auto_change_pin_summary">Generate new pin for each new stream</string>
     <string name="pref_set_pin">Set pin</string>
     <string name="pref_set_pin_summary">Enter pin manually</string>
+    <string name="pref_set_pin_dialog">Enter pin.\nDefault: 0000</string>
     <string name="pref_settings_advanced">Advanced</string>
     <string name="pref_server_port">Server port</string>
-    <string name="pref_server_port_summary">Set port for incoming connections\nDefault: 8080</string>
-    <string name="pref_jpeg_quality">JPEG quality</string>
-    <string name="pref_jpeg_quality_summary">Set JPEG quality</string>
-    <string name="pref_client_timeout">Client connection timeout</string>
-    <string name="pref_client_timeout_summary">Set time for client response in seconds</string>
+    <string name="pref_server_port_summary">Set port for incoming connections</string>
+    <string name="pref_server_port_dialog">Set server port for incoming connections.\nValues: 1025–65535 (Default: 8080)</string>
+    <string name="pref_jpeg_quality">JPEG compression quality</string>
+    <string name="pref_jpeg_quality_summary">Set JPEG compression quality</string>
+    <string name="pref_jpeg_quality_dialog">Set JPEG compression quality.\nValues: 10–100 (Default: 100)</string>
+    <string name="pref_error_dialog_title">Error</string>
+    <string name="pref_error_dialog_message_port">Port already in use.\nChoose another one.</string>
 
 
     <!--PreferencesKeys-->

@@ -16,13 +16,30 @@
 #   public *;
 #}
 
-# Retrolambda
--dontwarn java.lang.invoke.*
--dontwarn **$$Lambda$*
-
-# EventBus 3.0
+# Fabric
 -keepattributes *Annotation*
--keepclassmembers class * {
-    @org.greenrobot.eventbus.Subscribe <methods>;
+-keepattributes SourceFile,LineNumberTable
+-keep public class * extends java.lang.Exception
+-keep class com.crashlytics.** { *; }
+-dontwarn com.crashlytics.**
+
+# Netty
+-dontwarn io.netty.**
+-keepnames class io.netty.** { *;}
+
+# SLF4J
+-dontwarn org.slf4j.**
+
+# RxJava
+-dontwarn sun.misc.**
+-keepclassmembers class rx.internal.util.unsafe.*ArrayQueue*Field* {
+   long producerIndex;
+   long consumerIndex;
 }
--keep enum org.greenrobot.eventbus.ThreadMode { *; }
+-keepclassmembers class rx.internal.util.unsafe.BaseLinkedQueueProducerNodeRef {
+    rx.internal.util.atomic.LinkedQueueNode producerNode;
+}
+-keepclassmembers class rx.internal.util.unsafe.BaseLinkedQueueConsumerNodeRef {
+    rx.internal.util.atomic.LinkedQueueNode consumerNode;
+}
+-dontnote rx.internal.util.PlatformDependent
