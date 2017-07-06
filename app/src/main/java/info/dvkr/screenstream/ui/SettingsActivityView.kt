@@ -1,13 +1,13 @@
 package info.dvkr.screenstream.ui
 
 
+import android.support.annotation.Keep
 import rx.Observable
-
 
 interface SettingsActivityView {
 
     sealed class Message {
-        class ErrorServerPortBusy : Message()
+        @Keep class ErrorServerPortBusy : Message()
     }
 
     fun onMinimizeOnStream(): Observable<Boolean>

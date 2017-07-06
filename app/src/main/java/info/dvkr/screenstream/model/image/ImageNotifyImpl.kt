@@ -6,6 +6,7 @@ import info.dvkr.screenstream.R
 import info.dvkr.screenstream.model.ImageNotify
 import java.io.ByteArrayOutputStream
 
+// TODO Implement
 class ImageNotifyImpl(context: Context) : ImageNotify {
     private val TAG = "ImageNotifyImpl"
 

@@ -1,6 +1,7 @@
 package info.dvkr.screenstream.model.httpserver
 
 
+import info.dvkr.screenstream.BuildConfig
 import info.dvkr.screenstream.model.HttpServer
 import io.netty.buffer.ByteBuf
 import io.netty.channel.ChannelOption
@@ -16,8 +17,6 @@ import java.net.InetSocketAddress
 import java.util.*
 import java.util.concurrent.atomic.AtomicBoolean
 
-// TODO Singletone???
-// TODO Check Threads
 class HttpServerImpl constructor(serverAddress: InetSocketAddress,
                                  favicon: ByteArray,
                                  baseIndexHtml: String,
@@ -25,10 +24,10 @@ class HttpServerImpl constructor(serverAddress: InetSocketAddress,
                                  disableMJpegCheck: Boolean,
                                  pinEnabled: Boolean,
                                  pin: String,
-                                 pinRequestHtmlPage: String,
+                                 basePinRequestHtmlPage: String,
                                  pinRequestErrorMsg: String,
                                  jpegBytesStream: Observable<ByteArray>,
-                                 onError: Action1<Throwable>) : info.dvkr.screenstream.model.HttpServer {
+                                 onStatus: Action1<String>) : info.dvkr.screenstream.model.HttpServer {
 
     private val TAG = "HttpServerImpl"
 
@@ -52,24 +51,18 @@ class HttpServerImpl constructor(serverAddress: InetSocketAddress,
         }
     }
 
-    private val mIndexHtmlPage: String
-    private val mStreamAddress: String
-    private val mPinAddress: String
-    private val mPinRequestHtmlPage: String
-    private val mPinRequestErrorHtmlPage: String
-
     // Server internal components
-    private val mClientStatus = PublishSubject.create<info.dvkr.screenstream.model.HttpServer.ClientEvent>()
     private val mGlobalServerEventLoop: EventLoopGroup = RxNetty.getRxEventLoopProvider().globalServerEventLoop()
     private val mHttpServer: io.reactivex.netty.protocol.http.server.HttpServer<ByteBuf, ByteBuf>
     private val mHttpServerRxHandler: HttpServerRxHandler
     private val isRunning: AtomicBoolean = AtomicBoolean(false)
+    private val mClientStatus = PublishSubject.create<info.dvkr.screenstream.model.HttpServer.ClientEvent>()
 
     init {
-        println(TAG + ": Thread [${Thread.currentThread().name}] HttpServer: Create")
+        if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] HttpServer: Create")
 
         val httpServerPort = serverAddress.port
-        if (httpServerPort < 1025 || httpServerPort > 65535) throw IllegalArgumentException("Tcp port must be in range [1025, 65535]")
+        if (httpServerPort !in 1025..65535) throw IllegalArgumentException("Tcp port must be in range [1025, 65535]")
 
         mHttpServer = io.reactivex.netty.protocol.http.server.HttpServer.newServer(serverAddress, mGlobalServerEventLoop, NioServerSocketChannel::class.java)
                 .clientChannelOption(ChannelOption.CONNECT_TIMEOUT_MILLIS, 3000)
@@ -78,42 +71,45 @@ class HttpServerImpl constructor(serverAddress: InetSocketAddress,
         var indexHtmlPage = baseIndexHtml.replaceFirst(HttpServer.BACKGROUND_COLOR.toRegex(), String.format("#%06X", 0xFFFFFF and backgroundColor))
         if (disableMJpegCheck) indexHtmlPage = indexHtmlPage.replaceFirst("id=mj".toRegex(), "").replaceFirst("id=pmj".toRegex(), "")
 
+        val streamAddress: String
+        val pinAddress: String
         if (pinEnabled) {
-            mStreamAddress = "/" + randomString(16) + ".mjpeg"
-            mIndexHtmlPage = indexHtmlPage.replaceFirst(HttpServer.SCREEN_STREAM_ADDRESS.toRegex(), mStreamAddress)
-            mPinAddress = HttpServer.DEFAULT_PIN_ADDRESS + pin
+            streamAddress = "/" + randomString(16) + ".mjpeg"
+            indexHtmlPage = indexHtmlPage.replaceFirst(HttpServer.SCREEN_STREAM_ADDRESS.toRegex(), streamAddress)
+            pinAddress = HttpServer.DEFAULT_PIN_ADDRESS + pin
         } else {
-            mStreamAddress = HttpServer.DEFAULT_STREAM_ADDRESS
-            mIndexHtmlPage = indexHtmlPage.replaceFirst(HttpServer.SCREEN_STREAM_ADDRESS.toRegex(), mStreamAddress)
-            mPinAddress = HttpServer.DEFAULT_PIN_ADDRESS
+            streamAddress = HttpServer.DEFAULT_STREAM_ADDRESS
+            indexHtmlPage = indexHtmlPage.replaceFirst(HttpServer.SCREEN_STREAM_ADDRESS.toRegex(), streamAddress)
+            pinAddress = HttpServer.DEFAULT_PIN_ADDRESS
         }
 
-        mPinRequestHtmlPage = pinRequestHtmlPage.replaceFirst(HttpServer.WRONG_PIN_MESSAGE.toRegex(), "&nbsp")
-        mPinRequestErrorHtmlPage = pinRequestHtmlPage.replaceFirst(HttpServer.WRONG_PIN_MESSAGE.toRegex(), pinRequestErrorMsg)
+        val pinRequestHtmlPage = basePinRequestHtmlPage.replaceFirst(HttpServer.WRONG_PIN_MESSAGE.toRegex(), "&nbsp")
+        val pinRequestErrorHtmlPage = pinRequestHtmlPage.replaceFirst(HttpServer.WRONG_PIN_MESSAGE.toRegex(), pinRequestErrorMsg)
 
         mHttpServerRxHandler = HttpServerRxHandler(
                 favicon,
-                mIndexHtmlPage,
+                indexHtmlPage,
                 pinEnabled,
-                mPinAddress,
-                mStreamAddress,
-                mPinRequestHtmlPage,
-                mPinRequestErrorHtmlPage,
+                pinAddress,
+                streamAddress,
+                pinRequestHtmlPage,
+                pinRequestErrorHtmlPage,
                 mClientStatus,
                 jpegBytesStream)
 
         try {
             mHttpServer.start(mHttpServerRxHandler)
             isRunning.set(true)
-            println(TAG + ": Thread [${Thread.currentThread().name}] HttpServer: Started @port: ${mHttpServer.serverPort}")
+            onStatus.call(HttpServer.HTTP_SERVER_OK)
+            if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] HttpServer: Started @port: ${mHttpServer.serverPort}")
         } catch (exception: BindException) {
-            onError.call(exception)
-            println(TAG + exception)
+            onStatus.call(HttpServer.HTTP_SERVER_ERROR_PORT_BUSY)
+            if (BuildConfig.DEBUG_MODE) println(TAG + exception)
         }
     }
 
     override fun stop() {
-        println(TAG + ": Thread [${Thread.currentThread().name}] HttpServer: Stop")
+        if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] HttpServer: Stop")
         if (!isRunning.get()) throw IllegalStateException("Http server is not running")
 
         mHttpServer.shutdown()

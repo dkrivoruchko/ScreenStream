@@ -3,7 +3,6 @@ package info.dvkr.screenstream.model
 
 import rx.Observable
 
-
 interface Settings {
 
     var minimizeOnStream: Boolean

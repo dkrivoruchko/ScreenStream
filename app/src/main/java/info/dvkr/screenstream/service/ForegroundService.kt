@@ -32,14 +32,13 @@ import rx.Scheduler
 import rx.android.schedulers.AndroidSchedulers
 import rx.subjects.PublishSubject
 import rx.subscriptions.CompositeSubscription
-import java.io.IOException
-import java.net.BindException
 import java.net.Inet4Address
 import java.net.NetworkInterface
 import java.net.SocketException
 import java.nio.charset.Charset
 import java.util.*
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 import javax.inject.Inject
 
@@ -65,7 +64,7 @@ class ForegroundService : Service(), ForegroundServiceView {
         }
     }
 
-    private var isForegroundServiceInit = false
+    private val isForegroundServiceInit = AtomicBoolean(false)
     private val mSubscriptions = CompositeSubscription()
     private val mForegroundServiceEvents = PublishSubject.create<ForegroundServiceView.Event>()
     private val mLocalEventThread = HandlerThread("SSFGService")
@@ -111,14 +110,18 @@ class ForegroundService : Service(), ForegroundServiceView {
         (application as ScreenStreamApp).appComponent().plusActivityComponent().inject(this)
         mForegroundServicePresenter.attach(this)
 
-        mFavicon = getFavicon(applicationContext)
-        mBaseIndexHtml = getBaseIndexHtml(applicationContext)
-        mBasePinRequestHtml = getBasePinRequestHtml(applicationContext)
-        mPinRequestErrorMsg = applicationContext.getString(R.string.html_wrong_pin)
-
-        mSubscriptions.add(mForegroundServiceEvents.observeOn(mLocalEventScheduler).subscribe({ event ->
+        mSubscriptions.add(mForegroundServiceEvents
+                .startWith(ForegroundServiceView.Event.Start())
+                .observeOn(mLocalEventScheduler).subscribe({ event ->
             if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] Event: " + event.javaClass.simpleName)
             when (event) {
+                is ForegroundServiceView.Event.Start -> {
+                    mFavicon = getFavicon(applicationContext)
+                    mBaseIndexHtml = getBaseIndexHtml(applicationContext)
+                    mBasePinRequestHtml = getBasePinRequestHtml(applicationContext)
+                    mPinRequestErrorMsg = applicationContext.getString(R.string.html_wrong_pin)
+                }
+
                 is ForegroundServiceView.Event.Notify -> {
                     val notifyType = event.notifyType
                     mAppEvent.getJpegBytesStream().onNext(mImageNotify.getImage(notifyType))
@@ -140,15 +143,13 @@ class ForegroundService : Service(), ForegroundServiceView {
                         startForeground(NOTIFICATION_STOP_STREAMING, getNotification(NOTIFICATION_STOP_STREAMING))
                         mProjectionCallback.set(object : MediaProjection.Callback() {
                             override fun onStop() {
-                                Log.w(TAG, "Thread [${Thread.currentThread().name}] ProjectionCallback")
+                                if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] ProjectionCallback")
                                 mForegroundServiceEvents.onNext(ForegroundServiceView.Event.StopStream(true))
                             }
                         })
                         mediaProjection.registerCallback(mProjectionCallback.get(), null)
                     } else {
-                        if (BuildConfig.DEBUG_MODE) throw IllegalStateException("mediaProjection == null")
-                        Crashlytics.logException(IllegalStateException(TAG + " mediaProjection == null"))
-                        // TODO Add error message for user
+                        mAppEvent.sendEvent(AppEvent.Event.AppError(IllegalStateException(TAG + " mediaProjection == null")))
                     }
                 }
 
@@ -168,33 +169,22 @@ class ForegroundService : Service(), ForegroundServiceView {
                     stopSelf()
                 }
 
-                is ForegroundServiceView.Event.AppError -> {
-                    stopForeground(true)
-                    stopMediaProjection()
-                    startForeground(NOTIFICATION_START_STREAMING, getNotification(NOTIFICATION_START_STREAMING))
+                is ForegroundServiceView.Event.AppStatus -> {
+                    startActivity(StartActivity.getStartIntent(applicationContext, StartActivity.ACTION_APP_STATUS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                }
 
+                is ForegroundServiceView.Event.AppError -> {
                     val (exception) = event
                     if (BuildConfig.DEBUG_MODE) Log.e(TAG, exception.toString())
                     Crashlytics.logException(exception)
-                    val errorType: String
-                    when (exception) {
-                    // From ImageGeneratorImpl
-                        is UnsupportedOperationException -> errorType = AppEvent.APP_ERROR_WRONG_IMAGE_FORMAT
-
-                    // From SSHttpServerImp
-                        is BindException -> errorType = AppEvent.APP_ERROR_SERVER_PORT_BUSY
-
-                    // Unknown error
-                        else -> errorType = AppEvent.APP_ERROR_UNKNOWN_ERROR
-                    }
-                    startActivity(StartActivity.getStartIntent(applicationContext, errorType).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                    startActivity(StartActivity.getErrorIntent(applicationContext, exception.toString()).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
                 }
             }
         })
         { onError ->
             if (BuildConfig.DEBUG_MODE) Log.e(TAG, onError.toString())
             Crashlytics.logException(onError)
-            startActivity(StartActivity.getStartIntent(applicationContext, AppEvent.APP_ERROR_UNKNOWN_ERROR).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            startActivity(StartActivity.getErrorIntent(applicationContext, onError.toString()).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
         })
 
         // Registering receiver for screen off messages and WiFi changes
@@ -243,9 +233,9 @@ class ForegroundService : Service(), ForegroundServiceView {
         }
 
         when (action) {
-            ACTION_INIT -> if (!isForegroundServiceInit) {
-                isForegroundServiceInit = true
+            ACTION_INIT -> if (!isForegroundServiceInit.get()) {
                 mForegroundServiceEvents.onNext(ForegroundServiceView.Event.Init())
+                isForegroundServiceInit.set(true)
             }
 
             ACTION_START_ON_BOOT -> {
@@ -298,7 +288,7 @@ class ForegroundService : Service(), ForegroundServiceView {
     }
 
     private fun getNotification(notificationType: Int): Notification {
-        if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] get:$notificationType")
+        if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] getNotification:$notificationType")
 
         val pendingMainActivityIntent = PendingIntent.getActivity(applicationContext, 0,
                 StartActivity.getStartIntent(applicationContext).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
@@ -345,17 +335,12 @@ class ForegroundService : Service(), ForegroundServiceView {
 
     override fun onBind(intent: Intent): IBinder? = null
 
-    // TODO Revise
     private fun getFileFromAssets(context: Context, fileName: String): ByteArray {
         if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] getFileFromAssets: $fileName")
-        try {
-            context.assets.open(fileName).use { inputStream ->
-                val fileBytes = ByteArray(inputStream.available())
-                inputStream.read(fileBytes)
-                return fileBytes
-            }
-        } catch (e: IOException) {
-            throw IllegalStateException(e)
+        context.assets.open(fileName).use { inputStream ->
+            val fileBytes = ByteArray(inputStream.available())
+            inputStream.read(fileBytes)
+            return fileBytes
         }
     }
 

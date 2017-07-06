@@ -6,12 +6,13 @@
     <color name="textColorSecondary">#455a64</color>
     <color name="textColorHeader">#FFFFFF</color>
 
-    // Preferences
+    // Settings activity
     <color name="textColorPrefTitle">#993200</color>
     <color name="textColorPrefHeader">#000000</color>
     <color name="textColorPrefSummary">#455a64</color>
     <color name="textColorPrefValue">#666666</color>
     <color name="colorPrefSplitLine">#cccccc</color>
 
+    // HTML
     <color name="htmlBackground">#000000</color>
 </resources>

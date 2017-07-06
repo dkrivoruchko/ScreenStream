@@ -28,7 +28,7 @@ class StartActivityPresenter @Inject internal constructor(val mAppEvent: AppEven
             when (event) {
                 is StartActivityView.Event.TryStartStream -> { // Sending message to StartActivity
                     if (mAppEvent.getStreamRunning().value) throw IllegalStateException("Stream already running")
-                    mStartActivity?.onTryToStart() // TODO Check if HttpServer ok. Event from Server?
+                    mStartActivity?.onTryToStart()
                 }
 
                 is StartActivityView.Event.StopStream -> { // Relaying message to ForegroundServicePresenter
@@ -40,6 +40,11 @@ class StartActivityPresenter @Inject internal constructor(val mAppEvent: AppEven
                     mAppEvent.sendEvent(AppEvent.Event.AppExit())
             }
         })
+
+        mSubscriptions.add(mAppEvent.getAppStatus()
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe { statusSet -> mStartActivity?.onAppStatus(statusSet) }
+        )
 
         mSubscriptions.add(mAppEvent.getStreamRunning()
                 .skip(1)

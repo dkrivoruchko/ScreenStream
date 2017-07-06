@@ -6,7 +6,6 @@ import android.util.Log
 import com.crashlytics.android.Crashlytics
 import com.crashlytics.android.core.CrashlyticsCore
 import com.squareup.leakcanary.LeakCanary
-import com.squareup.leakcanary.RefWatcher
 import info.dvkr.screenstream.dagger.component.AppComponent
 import info.dvkr.screenstream.dagger.component.DaggerAppComponent
 import info.dvkr.screenstream.dagger.module.AppModule
@@ -16,18 +15,7 @@ import io.fabric.sdk.android.Fabric
 
 class ScreenStreamApp : Application() {
     private val TAG = "ScreenStreamApp"
-
-    companion object {
-        private lateinit var sScreenStreamApp: ScreenStreamApp
-
-        // Leak monitoring
-//        fun getRefWatcher(): RefWatcher {
-//            return sScreenStreamApp.refWatcher
-//        }
-    }
-
     private lateinit var mAppComponent: AppComponent
-    private lateinit var refWatcher: RefWatcher
 
     override fun onCreate() {
         super.onCreate()
@@ -40,7 +28,6 @@ class ScreenStreamApp : Application() {
                 // You should not initAppState your app in this process.
                 return
             }
-            refWatcher = LeakCanary.install(this)
 
             StrictMode.setThreadPolicy(StrictMode.ThreadPolicy.Builder()
                     .detectAll()
@@ -70,7 +57,6 @@ class ScreenStreamApp : Application() {
                 .settingsModule(SettingsModule())
                 .build()
 
-        sScreenStreamApp = this
         if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] onCreate: End")
     }
 

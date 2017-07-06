@@ -1,5 +1,8 @@
 package info.dvkr.screenstream.model
 
+import android.support.annotation.Keep
+
+
 interface ImageNotify {
     companion object {
         const val IMAGE_TYPE_DEFAULT = "IMAGE_TYPE_DEFAULT"

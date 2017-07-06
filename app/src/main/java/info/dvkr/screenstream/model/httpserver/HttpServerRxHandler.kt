@@ -1,7 +1,7 @@
 package info.dvkr.screenstream.model.httpserver
 
 
-import com.crashlytics.android.Crashlytics
+import info.dvkr.screenstream.BuildConfig
 import info.dvkr.screenstream.model.HttpServer
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
@@ -20,7 +20,6 @@ import rx.subjects.PublishSubject
 import java.net.InetSocketAddress
 import java.util.concurrent.Executors
 
-// TODO Check Threads
 internal class HttpServerRxHandler(private val mFavicon: ByteArray,
                                    private val mIndexHtmlPage: String,
                                    private val mPinEnabled: Boolean,
@@ -30,7 +29,8 @@ internal class HttpServerRxHandler(private val mFavicon: ByteArray,
                                    private val mPinRequestErrorHtmlPage: String,
                                    private val mClientStatusPublishSubject: PublishSubject<HttpServer.ClientEvent>,
                                    jpegBytesStream: Observable<ByteArray>) : RequestHandler<ByteBuf, ByteBuf> {
-    private val TAG = HttpServerRxHandler::class.java.simpleName
+
+    private val TAG = "HttpServerRxHandler"
 
     private val CRLF = "\r\n".toByteArray()
     private val mMultipartBoundary = HttpServerImpl.randomString(20)
@@ -38,35 +38,34 @@ internal class HttpServerRxHandler(private val mFavicon: ByteArray,
     private val mJpegBaseHeader = "Content-Type: image/jpeg\r\nContent-Length: ".toByteArray()
 
     // Handler internal components
-    private val mNewSingleThreadExecutor = Executors.newSingleThreadExecutor()
+    private val mSingleThreadExecutor = Executors.newSingleThreadExecutor()
     private val mJpegBytesStream = BehaviorSubject.create<ByteArray>()
     private val mSubscription: Subscription?
 
     init {
-        println(TAG + ": Thread [${Thread.currentThread().name}] HttpServerRxHandler: Create")
+        if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] HttpServerRxHandler: Create")
 
-        mNewSingleThreadExecutor.submit {
+        mSingleThreadExecutor.submit {
             Thread.currentThread().priority = 8
             Thread.currentThread().name = "SSHttpServerRxHandler"
         }
 
-        mSubscription = jpegBytesStream.observeOn(Schedulers.from(mNewSingleThreadExecutor)).subscribe { jpegBytes ->
-            //            println(TAG + ": Thread [${Thread.currentThread().name}] Priority: ${Thread.currentThread().priority} New jpegBytes: ${jpegBytes.size}b " + jpegBytes);
+        mSubscription = jpegBytesStream.observeOn(Schedulers.from(mSingleThreadExecutor)).subscribe { jpegBytes ->
             val jpegLength = Integer.toString(jpegBytes.size).toByteArray()
             mJpegBytesStream.onNext(Unpooled.copiedBuffer(mJpegBaseHeader, jpegLength, CRLF, CRLF, jpegBytes, CRLF, mJpegBoundary).array())
         }
     }
 
     fun stop() {
-        println(TAG + ": Thread [${Thread.currentThread().name}] HttpServerRxHandler: Stop")
+        if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] HttpServerRxHandler: Stop")
         mSubscription?.unsubscribe()
-        mNewSingleThreadExecutor.shutdown()
+        mSingleThreadExecutor.shutdown()
     }
 
     // TODO How to get server errors?
     override fun handle(request: HttpServerRequest<ByteBuf>, response: HttpServerResponse<ByteBuf>): Observable<Void> {
         val uri = request.uri
-        println(TAG + ": Thread [${Thread.currentThread().name}] Priority: ${Thread.currentThread().priority} HttpServerRxHandler: Handle: " + uri)
+        if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] Priority: ${Thread.currentThread().priority} HttpServerRxHandler: Handle: $uri")
         when {
             uri == HttpServer.DEFAULT_ICON_ADDRESS -> return sentFavicon(response)
             uri == HttpServer.DEFAULT_HTML_ADDRESS -> return if (mPinEnabled) sentPinRequestHtml(response) else sentIndexHtml(response)
@@ -86,7 +85,6 @@ internal class HttpServerRxHandler(private val mFavicon: ByteArray,
     }
 
     private fun sentFavicon(response: HttpServerResponse<ByteBuf>): Observable<Void> {
-        if (mFavicon.isEmpty()) return Observable.empty<Void>()
         response.status = HttpResponseStatus.OK
         response.addHeader(HttpHeaderNames.CONTENT_TYPE, "image/icon")
         response.setHeader(HttpHeaderNames.CACHE_CONTROL, "no-cache,no-store,max-age=0,must-revalidate")
@@ -119,19 +117,15 @@ internal class HttpServerRxHandler(private val mFavicon: ByteArray,
         return response.writeStringAndFlushOnEach(Observable.just(mPinRequestErrorHtmlPage))
     }
 
-    // TODO check BackPressure
     private fun sendStream(response: HttpServerResponse<ByteBuf>): Observable<Void> {
         response.status = HttpResponseStatus.OK
         response.setHeader(HttpHeaderNames.CONTENT_TYPE, "multipart/x-mixed-replace; boundary=" + mMultipartBoundary)
         response.setHeader(HttpHeaderNames.CACHE_CONTROL, "no-cache,no-store,max-age=0,must-revalidate")
         response.setHeader(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE)
         return response.writeBytesAndFlushOnEach(
-                mJpegBytesStream//.onBackpressureLatest()
-                        .onBackpressureDrop {
-                            Crashlytics.logException(IllegalStateException("onBackpressureDrop"))
-                            println(TAG + ": Thread [${Thread.currentThread().name}] Priority: ${Thread.currentThread().priority} onBackpressureDrop !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-                        }
-                        .startWith(Unpooled.copiedBuffer(mJpegBoundary, mJpegBytesStream.value).array()) // Chrome show only previous jpeg
+                mJpegBytesStream.onBackpressureLatest()
+                        // Sending boundary so browser can understand that image is fully send
+                        .startWith(Unpooled.copiedBuffer(mJpegBoundary, mJpegBytesStream.value).array())
         )
     }
 

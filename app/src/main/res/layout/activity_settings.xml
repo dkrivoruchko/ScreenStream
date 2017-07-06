@@ -433,14 +433,14 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
-                android:text="100%"
                 android:textAlignment="center"
                 android:textColor="@color/textColorPrefValue"
                 android:textSize="16sp"
                 app:layout_constraintBottom_toBottomOf="@id/textViewResizeImageSummary"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="@id/guidelineResizeImage"
-                app:layout_constraintTop_toTopOf="@id/textViewResizeImage" />
+                app:layout_constraintTop_toTopOf="@id/textViewResizeImage"
+                tools:text="50%" />
 
             <android.support.constraint.Guideline
                 android:id="@+id/guidelineResizeImage"
@@ -509,14 +509,14 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
-                android:text="80"
                 android:textAlignment="center"
                 android:textColor="@color/textColorPrefValue"
                 android:textSize="16sp"
                 app:layout_constraintBottom_toBottomOf="@+id/textViewJpegQualitySummary"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="@id/guidelineJpegQuality"
-                app:layout_constraintTop_toTopOf="@id/textViewJpegQuality" />
+                app:layout_constraintTop_toTopOf="@id/textViewJpegQuality"
+                tools:text="100" />
 
             <android.support.constraint.Guideline
                 android:id="@+id/guidelineJpegQuality"
@@ -951,14 +951,14 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
-                android:text="65535"
                 android:textAlignment="center"
                 android:textColor="@color/textColorPrefValue"
                 android:textSize="16sp"
                 app:layout_constraintBottom_toBottomOf="@id/textViewServerPortSummary"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="@id/guidelineServerPort"
-                app:layout_constraintTop_toTopOf="@id/textViewServerPort" />
+                app:layout_constraintTop_toTopOf="@id/textViewServerPort"
+                tools:text="65535" />
 
             <android.support.constraint.Guideline
                 android:id="@+id/guidelineServerPort"

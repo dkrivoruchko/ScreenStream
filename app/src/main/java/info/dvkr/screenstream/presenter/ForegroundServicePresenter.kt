@@ -1,10 +1,11 @@
 package info.dvkr.screenstream.presenter
 
 
+import info.dvkr.screenstream.BuildConfig
 import info.dvkr.screenstream.dagger.PersistentScope
 import info.dvkr.screenstream.model.AppEvent
-import info.dvkr.screenstream.model.ImageNotify
 import info.dvkr.screenstream.model.HttpServer
+import info.dvkr.screenstream.model.ImageNotify
 import info.dvkr.screenstream.model.Settings
 import info.dvkr.screenstream.model.httpserver.HttpServerImpl
 import info.dvkr.screenstream.service.ForegroundServiceView
@@ -24,18 +25,18 @@ class ForegroundServicePresenter @Inject internal constructor(val mSettingsHelpe
     private var mHttpServer: HttpServer? = null
 
     init {
-        println(TAG + ": Thread [${Thread.currentThread().name}] Constructor")
+        if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] Constructor")
     }
 
     fun attach(foregroundService: ForegroundServiceView) {
-        println(TAG + ": Thread [${Thread.currentThread().name}] Attach")
+        if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] Attach")
 
-        if (null != mForegroundService) detach()
+        mForegroundService?.let { detach() }
         mForegroundService = foregroundService
 
         // Events from ForegroundService
         mSubscriptions.add(mForegroundService?.onEvent()?.subscribe { event ->
-            println(TAG + ": Thread [${Thread.currentThread().name}] onFGSEvent: " + event.javaClass.simpleName)
+            if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] onFGSEvent: ${event.javaClass.simpleName}")
 
             when (event) {
                 is ForegroundServiceView.Event.Init -> {
@@ -63,7 +64,9 @@ class ForegroundServicePresenter @Inject internal constructor(val mSettingsHelpe
                             basePinRequestHtml,
                             pinRequestErrorMsg,
                             mAppEvent.getJpegBytesStream().asObservable(),
-                            Action1 { exception -> mForegroundService?.sendEvent(ForegroundServiceView.Event.AppError(exception)) })
+                            Action1 { status ->
+                                mAppEvent.sendEvent(AppEvent.Event.AppStatus(status))
+                            })
 
                     mClientSubscriptions.add(
                             mHttpServer?.onClientStatusChange()?.subscribe { clientStatus -> mAppEvent.sendClientEvent(clientStatus) }
@@ -96,7 +99,7 @@ class ForegroundServicePresenter @Inject internal constructor(val mSettingsHelpe
 
         // Events from App
         mSubscriptions.add(mAppEvent.onEvent().subscribe { event ->
-            println(TAG + ": Thread [${Thread.currentThread().name}] onAppEvent: " + event.javaClass.simpleName)
+            if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] onAppEvent: ${event.javaClass.simpleName}")
 
             when (event) {
                 is AppEvent.Event.StopStream -> { // From StartActivityPresenter
@@ -115,6 +118,10 @@ class ForegroundServicePresenter @Inject internal constructor(val mSettingsHelpe
                     mForegroundService?.sendEvent(ForegroundServiceView.Event.AppExit())
                 }
 
+                is AppEvent.Event.AppStatus -> { // From ImageGeneratorImpl, HttpServerImpl
+                    mForegroundService?.sendEvent(ForegroundServiceView.Event.AppStatus())
+                }
+
                 is AppEvent.Event.AppError -> { // From ImageGeneratorImpl
                     mForegroundService?.sendEvent(ForegroundServiceView.Event.StopStream(true))
                     val (exception) = event
@@ -125,7 +132,7 @@ class ForegroundServicePresenter @Inject internal constructor(val mSettingsHelpe
     }
 
     fun detach() {
-        println(TAG + ": Thread [${Thread.currentThread().name}] Detach")
+        if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] Detach")
         mSubscriptions.clear()
         mForegroundService = null
     }

@@ -3,10 +3,12 @@ package info.dvkr.screenstream.ui
 
 import android.app.Activity
 import android.app.Dialog
+import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.graphics.Point
 import android.media.projection.MediaProjectionManager
+import android.net.Uri
 import android.os.Bundle
 import android.support.v7.app.AlertDialog
 import android.util.Log
@@ -45,6 +47,8 @@ class StartActivity : BaseActivity(), StartActivityView {
         const val ACTION_START_STREAM = "ACTION_START_STREAM"
         const val ACTION_STOP_STREAM = "ACTION_STOP_STREAM"
         const val ACTION_EXIT = "ACTION_EXIT"
+        const val ACTION_APP_STATUS = "ACTION_APP_STATUS" // Just for starting Activity
+        private const val ACTION_UNKNOWN_ERROR = "ACTION_UNKNOWN_ERROR"
 
         fun getStartIntent(context: Context): Intent {
             return Intent(context, StartActivity::class.java)
@@ -53,6 +57,13 @@ class StartActivity : BaseActivity(), StartActivityView {
         fun getStartIntent(context: Context, action: String): Intent {
             return Intent(context, StartActivity::class.java)
                     .putExtra(EXTRA_DATA, action)
+                    .addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
+        }
+
+        fun getErrorIntent(context: Context, error: String): Intent {
+            return Intent(context, StartActivity::class.java)
+                    .putExtra(EXTRA_DATA, ACTION_UNKNOWN_ERROR)
+                    .putExtra(ACTION_UNKNOWN_ERROR, error)
                     .addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
         }
     }
@@ -111,10 +122,31 @@ class StartActivity : BaseActivity(), StartActivityView {
                         PrimaryDrawerItem().withIdentifier(8).withName("Sources").withSelectable(false).withIcon(R.drawable.ic_drawer_sources_24dp)
                 )
                 .addStickyDrawerItems(
-                        PrimaryDrawerItem().withIdentifier(9).withName("AppExit").withIcon(R.drawable.ic_drawer_exit_24pd)
+                        PrimaryDrawerItem().withIdentifier(9).withName("Exit").withIcon(R.drawable.ic_drawer_exit_24pd)
                 )
                 .withOnDrawerItemClickListener { _, _, drawerItem ->
                     if (drawerItem.identifier == 3L) startActivity(SettingsActivity.getStartIntent(this))
+
+                    if (drawerItem.identifier == 6L) {
+                        try {
+                            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=$packageName")))
+                        } catch (ex: ActivityNotFoundException) {
+                            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=$packageName")))
+                        }
+                    }
+
+                    if (drawerItem.identifier == 7L) {
+                        val emailIntent = Intent(Intent.ACTION_SENDTO)
+                                .setData(Uri.Builder().scheme("mailto").build())
+                                .putExtra(Intent.EXTRA_EMAIL, arrayOf(StartActivityView.FEEDBACK_EMAIL_ADDRESS))
+                                .putExtra(Intent.EXTRA_SUBJECT, StartActivityView.FEEDBACK_EMAIL_SUBJECT)
+                        startActivity(Intent.createChooser(emailIntent, StartActivityView.FEEDBACK_EMAIL_NAME))
+                    }
+
+                    if (drawerItem.identifier == 8L) {
+                        startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/dkrivoruchko/ScreenStream")))
+                    }
+
                     if (drawerItem.identifier == 9L) mStartEvents.onNext(StartActivityView.Event.AppExit())
                     true
                 }
@@ -144,11 +176,10 @@ class StartActivity : BaseActivity(), StartActivityView {
 
             ACTION_EXIT -> mStartEvents.onNext(StartActivityView.Event.AppExit())
 
-            AppEvent.APP_ERROR_WRONG_IMAGE_FORMAT -> showErrorDialog(getString(R.string.main_activity_error_wrong_image_format))
-
-            AppEvent.APP_ERROR_SERVER_PORT_BUSY -> showErrorDialog(getString(R.string.main_activity_error_port_in_use))
-
-            AppEvent.APP_ERROR_UNKNOWN_ERROR -> showErrorDialog(getString(R.string.main_activity_error_unknown))
+            ACTION_UNKNOWN_ERROR -> {
+                val errorDescription = intent.getStringExtra(ACTION_UNKNOWN_ERROR)
+                showErrorDialog(getString(R.string.start_activity_error_unknown) + "\n$errorDescription")
+            }
         }
     }
 
@@ -173,28 +204,39 @@ class StartActivity : BaseActivity(), StartActivityView {
     }
 
     public override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] onActivityResult: $requestCode")
         when (requestCode) {
             REQUEST_CODE_SCREEN_CAPTURE -> {
-                Log.w(TAG, "Thread [${Thread.currentThread().name}] onActivityResult: REQUEST_CODE_SCREEN_CAPTURE")
-
                 if (Activity.RESULT_OK != resultCode) {
-                    // TODO  BETTE HANDLE PERMISSIONS DENY
-                    // Toast.makeText(this, getString(R.string.main_activity_toast_cast_permission_deny), Toast.LENGTH_SHORT).show();
-                    Log.e(TAG, "onActivityResult ERROR: resultCode != RESULT_OK")
+                    showErrorDialog(getString(R.string.start_activity_error_cast_permission_deny))
+                    if (BuildConfig.DEBUG_MODE) Log.w(TAG, "onActivityResult: Screen Cast permission denied")
                     return
                 }
 
                 if (null == data) {
-                    Log.e(TAG, "onActivityResult ERROR: data == null")
-                    return  // TODO LOG & HANDLE ERROR, crash?
+                    if (BuildConfig.DEBUG_MODE) Log.e(TAG, "onActivityResult ERROR: data = null")
+                    Crashlytics.logException(IllegalStateException("onActivityResult ERROR: data = null"))
+                    showErrorDialog(getString(R.string.start_activity_error_unknown) + "onActivityResult: data = null")
+                    return
                 }
-
                 startService(ForegroundService.getStartStreamIntent(this, data))
             }
         }
     }
 
     override fun onEvent(): Observable<StartActivityView.Event> = mStartEvents.asObservable()
+
+    override fun onAppStatus(appStatus: Set<String>) {
+        if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] onAppStatus")
+
+        toggleButtonStartStop.isEnabled = appStatus.isEmpty()
+
+        if (appStatus.contains(AppEvent.APP_STATUS_ERROR_SERVER_PORT_BUSY))
+            showErrorDialog(getString(R.string.start_activity_error_port_in_use))
+
+        if (appStatus.contains(AppEvent.APP_STATUS_ERROR_WRONG_IMAGE_FORMAT))
+            showErrorDialog(getString(R.string.start_activity_error_wrong_image_format))
+    }
 
     override fun onTryToStart() {
         if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] onTryToStart")
@@ -206,7 +248,7 @@ class StartActivity : BaseActivity(), StartActivityView {
         if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] onStreamStart")
         toggleButtonStartStop.isChecked = true
 
-        if (mSettings.hidePinOnStart)
+        if (mSettings.enablePin && mSettings.hidePinOnStart)
             textViewPinValue.setText(R.string.start_activity_pin_asterisks)
 
         if (mSettings.minimizeOnStream)
@@ -216,6 +258,9 @@ class StartActivity : BaseActivity(), StartActivityView {
     override fun onStreamStop() {
         if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] onStreamStop")
         toggleButtonStartStop.isChecked = false
+
+        if (mSettings.enablePin && mSettings.hidePinOnStart)
+            textViewPinValue.text = mSettings.currentPin
     }
 
     override fun onConnectedClients(clientAddresses: List<InetSocketAddress>) {
@@ -265,7 +310,7 @@ class StartActivity : BaseActivity(), StartActivityView {
                         val interfaceView = addressView.findViewById(R.id.textViewInterfaceName) as TextView
                         interfaceView.text = "${networkInterface.displayName}:"
                         val interfaceAddress = addressView.findViewById(R.id.textViewInterfaceAddress) as TextView
-                        interfaceAddress.text = "http://${inetAddress.hostAddress}:${serverPort}";
+                        interfaceAddress.text = "http://${inetAddress.hostAddress}:$serverPort"
                         linearLayoutServerAddressList.addView(addressView)
                     }
                 }
@@ -279,7 +324,7 @@ class StartActivity : BaseActivity(), StartActivityView {
     private fun showErrorDialog(errorMessage: String) {
         mDialog = AlertDialog.Builder(this)
                 .setIcon(R.drawable.ic_message_error_24dp)
-                .setTitle(R.string.main_activity_error_title)
+                .setTitle(R.string.start_activity_error_title)
                 .setMessage(errorMessage)
                 .setCancelable(false)
                 .setPositiveButton(android.R.string.ok, null)

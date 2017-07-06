@@ -1,6 +1,7 @@
 package info.dvkr.screenstream.model
 
 
+import android.support.annotation.Keep
 import rx.Observable
 import java.net.InetSocketAddress
 
@@ -23,11 +24,15 @@ interface HttpServer {
         const val DEFAULT_STREAM_ADDRESS = "/stream.mjpeg"
         const val DEFAULT_ICON_ADDRESS = "/favicon.ico"
         const val DEFAULT_PIN_ADDRESS = "/?pin="
+
+        // Constants for HttpServer status
+        const val HTTP_SERVER_OK = "HTTP_SERVER_OK"
+        const val HTTP_SERVER_ERROR_PORT_BUSY = "HTTP_SERVER_ERROR_PORT_BUSY"
     }
 
     sealed class ClientEvent {
-        data class ClientConnected(val clientAddress: InetSocketAddress) : ClientEvent()
-        data class ClientDisconnected(val clientAddress: InetSocketAddress) : ClientEvent()
+        @Keep data class ClientConnected(val clientAddress: InetSocketAddress) : ClientEvent()
+        @Keep data class ClientDisconnected(val clientAddress: InetSocketAddress) : ClientEvent()
     }
 
     fun stop()

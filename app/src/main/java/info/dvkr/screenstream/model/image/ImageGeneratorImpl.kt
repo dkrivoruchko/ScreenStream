@@ -18,6 +18,7 @@ import android.util.DisplayMetrics
 import android.util.Log
 import android.view.Surface
 import android.view.WindowManager
+import com.crashlytics.android.Crashlytics
 import info.dvkr.screenstream.BuildConfig
 import info.dvkr.screenstream.model.AppEvent
 import info.dvkr.screenstream.model.ImageGenerator
@@ -113,7 +114,7 @@ class ImageGeneratorImpl(context: Context,
             if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] Stop")
 
             if (!(STATE_STARTED == mState.get() || STATE_ERROR == mState.get()))
-                throw IllegalStateException("ImageGeneratorImpl in state: " + mState.get())
+                throw IllegalStateException("ImageGeneratorImpl in state: ${mState.get()}")
 
             mSubscriptions.clear()
             mCurrentImageReaderListener.set(0)
@@ -134,12 +135,12 @@ class ImageGeneratorImpl(context: Context,
             if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] Restart: Start")
 
             if (STATE_STARTED != mState.get())
-                throw IllegalStateException("ImageGeneratorImpl in state: " + mState.get())
+                throw IllegalStateException("ImageGeneratorImpl in state: ${mState.get()}")
 
             mVirtualDisplay.release()
             mImageReader.close()
             mReusableBitmap?.recycle()
-            mReusableBitmap = null;
+            mReusableBitmap = null
 
             val defaultDisplay = mWindowManager.defaultDisplay
             val displayMetrics = DisplayMetrics()
@@ -162,11 +163,10 @@ class ImageGeneratorImpl(context: Context,
 
     // Runs on ImageGeneratorImpl Thread
     private inner class ImageAvailableListener : ImageReader.OnImageAvailableListener {
-
         override fun onImageAvailable(reader: ImageReader) {
             synchronized(mLock) {
                 if (STATE_STARTED != mState.get()) {
-                    if (BuildConfig.DEBUG_MODE) Log.e(TAG, "Thread [${Thread.currentThread().name}] onImageAvailable: Error: WRONG READER STATE: " + mState.get())
+                    if (BuildConfig.DEBUG_MODE) Log.e(TAG, "Thread [${Thread.currentThread().name}] onImageAvailable: Error: WRONG READER STATE: ${mState.get()}")
                     return
                 }
 
@@ -180,7 +180,8 @@ class ImageGeneratorImpl(context: Context,
                     image = reader.acquireLatestImage()
                 } catch (ex: UnsupportedOperationException) {
                     mState.set(STATE_ERROR)
-                    mAppEvent.sendEvent(AppEvent.Event.AppError(ex))
+                    mAppEvent.sendEvent(AppEvent.Event.AppStatus(ImageGenerator.IMAGE_GENERATOR_ERROR_WRONG_IMAGE_FORMAT))
+                    Crashlytics.logException(ex)
                     return
                 }
                 if (null == image) return

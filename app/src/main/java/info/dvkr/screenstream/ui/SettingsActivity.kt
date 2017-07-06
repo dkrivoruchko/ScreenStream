@@ -307,7 +307,6 @@ class SettingsActivity : BaseActivity(), SettingsActivityView, ColorPickerDialog
     }
 
     // Private methods
-
     private fun getEditTextDialog(@StringRes title: Int,
                                   @DrawableRes icon: Int,
                                   @StringRes content: Int,
