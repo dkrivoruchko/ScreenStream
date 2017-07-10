@@ -19,7 +19,6 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.EditText
 import android.widget.TextView
-import com.jakewharton.rxbinding.view.RxView
 import com.jrummyapps.android.colorpicker.ColorPickerDialog
 import com.jrummyapps.android.colorpicker.ColorPickerDialogListener
 import info.dvkr.screenstream.BuildConfig
@@ -28,6 +27,7 @@ import info.dvkr.screenstream.dagger.component.NonConfigurationComponent
 import info.dvkr.screenstream.presenter.SettingsActivityPresenter
 import kotlinx.android.synthetic.main.activity_settings.*
 import rx.Observable
+import rx.android.schedulers.AndroidSchedulers
 import rx.functions.Action1
 import rx.subjects.PublishSubject
 import javax.inject.Inject
@@ -42,20 +42,12 @@ class SettingsActivity : BaseActivity(), SettingsActivityView, ColorPickerDialog
         }
     }
 
-    private val mHtmlBackColorSubject = PublishSubject.create<Int>()
-    private val mResizeFactorSubject = PublishSubject.create<Int>()
-    private val mJpegQualitySubject = PublishSubject.create<Int>()
-    private val mSetPinSubject = PublishSubject.create<String>()
-    private val mServerPortSubject = PublishSubject.create<Int>()
-
     @Inject internal lateinit var mPresenter: SettingsActivityPresenter
+
+    private val mFromEvents = PublishSubject.create<SettingsActivityView.FromEvent>()
 
     private var mHtmlBackColor: Int = 0
     private var mResizeFactor: Int = 0
-    private var mJpegQuality: Int = 0
-    private var mCurrentPin: String = "0000"
-    private var mServerPort: Int = 0
-
     private var mDialog: Dialog? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -67,15 +59,27 @@ class SettingsActivity : BaseActivity(), SettingsActivityView, ColorPickerDialog
 
         // Interface - Minimize on stream
         clMinimizeOnStream.setOnClickListener { _ -> checkBoxMinimizeOnStream.performClick() }
+        checkBoxMinimizeOnStream.setOnClickListener { _ ->
+            mFromEvents.onNext(SettingsActivityView.FromEvent.MinimizeOnStream(checkBoxMinimizeOnStream.isChecked))
+        }
 
         // Interface - Stop on sleep
         clStopOnSleep.setOnClickListener { _ -> checkBoxStopOnSleep.performClick() }
+        checkBoxStopOnSleep.setOnClickListener { _ ->
+            mFromEvents.onNext(SettingsActivityView.FromEvent.StopOnSleep(checkBoxStopOnSleep.isChecked))
+        }
 
-        // Interface - Start on boot
+        // Interface - StartService on boot
         clStartOnBoot.setOnClickListener { _ -> checkBoxStartOnBoot.performClick() }
+        checkBoxStartOnBoot.setOnClickListener { _ ->
+            mFromEvents.onNext(SettingsActivityView.FromEvent.StartOnBoot(checkBoxStartOnBoot.isChecked))
+        }
 
         // Interface - HTML MJPEG check
         clMjpegCheck.setOnClickListener { _ -> checkBoxMjpegCheck.performClick() }
+        checkBoxMjpegCheck.setOnClickListener { _ ->
+            mFromEvents.onNext(SettingsActivityView.FromEvent.DisableMjpegCheck(checkBoxMjpegCheck.isChecked))
+        }
 
         // Interface - HTML Back color
         clHtmlBackColor.setOnClickListener { _ ->
@@ -96,7 +100,7 @@ class SettingsActivity : BaseActivity(), SettingsActivityView, ColorPickerDialog
                     2, 3,
                     10, 150,
                     Integer.toString(mResizeFactor),
-                    Action1 { newValue -> mResizeFactorSubject.onNext(Integer.parseInt(newValue)) }
+                    Action1 { newValue -> mFromEvents.onNext(SettingsActivityView.FromEvent.ResizeFactor(Integer.parseInt(newValue))) }
             )
             mDialog?.show()
         }
@@ -109,23 +113,45 @@ class SettingsActivity : BaseActivity(), SettingsActivityView, ColorPickerDialog
                     R.string.pref_jpeg_quality_dialog,
                     2, 3,
                     10, 100,
-                    Integer.toString(mJpegQuality),
-                    Action1 { newValue -> mJpegQualitySubject.onNext(Integer.parseInt(newValue)) }
+                    textViewJpegQualityValue.text.toString(),
+                    Action1 { newValue -> mFromEvents.onNext(SettingsActivityView.FromEvent.JpegQuality(Integer.parseInt(newValue))) }
             )
             mDialog?.show()
         }
 
         // Security - Enable pin
         clEnablePin.setOnClickListener { _ -> checkBoxEnablePin.performClick() }
+        checkBoxEnablePin.setOnClickListener { _ ->
+            val checked = checkBoxEnablePin.isChecked
+            enableDisableView(clHidePinOnStart, checked)
+            enableDisableView(clNewPinOnAppStart, checked)
+            enableDisableView(clAutoChangePin, checked)
+            enableDisableView(clSetPin, checkBoxEnablePin.isChecked && !checkBoxNewPinOnAppStart.isChecked && !checkBoxAutoChangePin.isChecked)
+            mFromEvents.onNext(SettingsActivityView.FromEvent.EnablePin(checked))
+        }
 
         // Security - Hide pin on start
         clHidePinOnStart.setOnClickListener { _ -> checkBoxHidePinOnStart.performClick() }
+        checkBoxHidePinOnStart.setOnClickListener { _ ->
+            mFromEvents.onNext(SettingsActivityView.FromEvent.HidePinOnStart(checkBoxHidePinOnStart.isChecked))
+        }
+
 
         // Security - New pin on app start
         clNewPinOnAppStart.setOnClickListener { _ -> checkBoxNewPinOnAppStart.performClick() }
+        checkBoxNewPinOnAppStart.setOnClickListener { _ ->
+            enableDisableView(clSetPin, checkBoxEnablePin.isChecked && !checkBoxNewPinOnAppStart.isChecked && !checkBoxAutoChangePin.isChecked)
+            mFromEvents.onNext(SettingsActivityView.FromEvent.NewPinOnAppStart(checkBoxNewPinOnAppStart.isChecked))
+        }
+
 
         // Security - Auto change pin
         clAutoChangePin.setOnClickListener { _ -> checkBoxAutoChangePin.performClick() }
+        checkBoxAutoChangePin.setOnClickListener { _ ->
+            enableDisableView(clSetPin, checkBoxEnablePin.isChecked && !checkBoxNewPinOnAppStart.isChecked && !checkBoxAutoChangePin.isChecked)
+            mFromEvents.onNext(SettingsActivityView.FromEvent.AutoChangePin(checkBoxAutoChangePin.isChecked))
+        }
+
 
         // Security - Set pin
         clSetPin.setOnClickListener { _ ->
@@ -135,8 +161,8 @@ class SettingsActivity : BaseActivity(), SettingsActivityView, ColorPickerDialog
                     R.string.pref_set_pin_dialog,
                     4, 4,
                     0, 9999,
-                    mCurrentPin,
-                    Action1 { newValue -> mSetPinSubject.onNext(newValue) }
+                    textViewSetPinValue.text.toString(),
+                    Action1 { newValue -> mFromEvents.onNext(SettingsActivityView.FromEvent.SetPin(newValue)) }
             )
             mDialog?.show()
         }
@@ -149,8 +175,8 @@ class SettingsActivity : BaseActivity(), SettingsActivityView, ColorPickerDialog
                     R.string.pref_server_port_dialog,
                     4, 6,
                     1025, 65535,
-                    Integer.toString(mServerPort),
-                    Action1 { newValue -> mServerPortSubject.onNext(Integer.parseInt(newValue)) }
+                    textViewServerPortValue.text.toString(),
+                    Action1 { newValue -> mFromEvents.onNext(SettingsActivityView.FromEvent.ServerPort(Integer.parseInt(newValue))) }
             )
             mDialog?.show()
         }
@@ -168,140 +194,66 @@ class SettingsActivity : BaseActivity(), SettingsActivityView, ColorPickerDialog
         super.onDestroy()
     }
 
-    override fun onMinimizeOnStream(): Observable<Boolean> {
-        return RxView.clicks(checkBoxMinimizeOnStream).map { _ -> checkBoxMinimizeOnStream.isChecked }
-    }
+    override fun fromEvent(): Observable<SettingsActivityView.FromEvent> = mFromEvents.asObservable()
 
-    override fun setMinimizeOnStream(value: Boolean) {
-        checkBoxMinimizeOnStream.isChecked = value
-    }
+    override fun toEvent(toEvent: SettingsActivityView.ToEvent) {
+        Observable.just(toEvent).observeOn(AndroidSchedulers.mainThread()).subscribe { event ->
+            if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}]: ${event.javaClass.simpleName}")
 
-    override fun onStopOnSleep(): Observable<Boolean> {
-        return RxView.clicks(checkBoxStopOnSleep).map { _ -> checkBoxStopOnSleep.isChecked }
-    }
+            when (event) {
+                is SettingsActivityView.ToEvent.MinimizeOnStream -> checkBoxMinimizeOnStream.isChecked = event.value
+                is SettingsActivityView.ToEvent.StopOnSleep -> checkBoxStopOnSleep.isChecked = event.value
+                is SettingsActivityView.ToEvent.StartOnBoot -> checkBoxStartOnBoot.isChecked = event.value
+                is SettingsActivityView.ToEvent.DisableMjpegCheck -> checkBoxMjpegCheck.isChecked = event.value
+                is SettingsActivityView.ToEvent.HtmlBackColor -> viewHtmlBackColor.setBackgroundColor(event.value)
 
-    override fun setStopOnSleep(value: Boolean) {
-        checkBoxStopOnSleep.isChecked = value
-    }
+                is SettingsActivityView.ToEvent.ResizeFactor -> {
+                    mResizeFactor = event.value
+                    textViewResizeImageValue.text = "$mResizeFactor%"
+                    if (mResizeFactor > 100) {
+                        textViewResizeImageValue.setTextColor(ContextCompat.getColor(applicationContext, R.color.colorAccent))
+                        textViewResizeImageValue.setTypeface(textViewResizeImageValue.typeface, Typeface.BOLD)
+                    } else {
+                        textViewResizeImageValue.setTextColor(ContextCompat.getColor(applicationContext, R.color.textColorPrefValue))
+                        textViewResizeImageValue.typeface = Typeface.DEFAULT
+                    }
+                }
 
-    override fun onStartOnBoot(): Observable<Boolean> {
-        return RxView.clicks(checkBoxStartOnBoot).map { _ -> checkBoxStartOnBoot.isChecked }
-    }
+                is SettingsActivityView.ToEvent.JpegQuality -> textViewJpegQualityValue.text = Integer.toString(event.value)
 
-    override fun setStartOnBoot(value: Boolean) {
-        checkBoxStartOnBoot.isChecked = value
-    }
+                is SettingsActivityView.ToEvent.EnablePin -> {
+                    checkBoxEnablePin.isChecked = event.value
+                    enableDisableView(clHidePinOnStart, event.value)
+                    enableDisableView(clNewPinOnAppStart, event.value)
+                    enableDisableView(clAutoChangePin, event.value)
+                    enableDisableView(clSetPin, checkBoxEnablePin.isChecked && !checkBoxNewPinOnAppStart.isChecked && !checkBoxAutoChangePin.isChecked)
+                }
 
-    override fun onDisableMjpegCheck(): Observable<Boolean> {
-        return RxView.clicks(checkBoxMjpegCheck).map { _ -> checkBoxMjpegCheck.isChecked }
-    }
+                is SettingsActivityView.ToEvent.HidePinOnStart -> checkBoxHidePinOnStart.isChecked = event.value
 
-    override fun setDisableMjpegCheck(value: Boolean) {
-        checkBoxMjpegCheck.isChecked = value
-    }
+                is SettingsActivityView.ToEvent.NewPinOnAppStart -> {
+                    checkBoxNewPinOnAppStart.isChecked = event.value
+                    enableDisableView(clSetPin, checkBoxEnablePin.isChecked && !checkBoxNewPinOnAppStart.isChecked && !checkBoxAutoChangePin.isChecked)
+                }
 
-    override fun onHtmlBackColor(): Observable<Int> = mHtmlBackColorSubject.asObservable()
+                is SettingsActivityView.ToEvent.AutoChangePin -> {
+                    checkBoxAutoChangePin.isChecked = event.value
+                    enableDisableView(clSetPin, checkBoxEnablePin.isChecked && !checkBoxNewPinOnAppStart.isChecked && !checkBoxAutoChangePin.isChecked)
+                }
 
-    override fun setHtmlBackColor(value: Int) {
-        viewHtmlBackColor.setBackgroundColor(value)
-    }
+                is SettingsActivityView.ToEvent.SetPin -> textViewSetPinValue.text = event.value
+                is SettingsActivityView.ToEvent.ServerPort -> textViewServerPortValue.text = Integer.toString(event.value)
 
-    override fun onResizeFactor(): Observable<Int> = mResizeFactorSubject.asObservable()
-
-    override fun setResizeFactor(value: Int) {
-        mResizeFactor = value
-        textViewResizeImageValue.text = "$value%"
-        if (value > 100) {
-            textViewResizeImageValue.setTextColor(ContextCompat.getColor(applicationContext, R.color.colorAccent))
-            textViewResizeImageValue.setTypeface(textViewResizeImageValue.typeface, Typeface.BOLD)
-        } else {
-            textViewResizeImageValue.setTextColor(ContextCompat.getColor(applicationContext, R.color.textColorPrefValue))
-            textViewResizeImageValue.typeface = Typeface.DEFAULT
-        }
-    }
-
-    override fun onJpegQuality(): Observable<Int> = mJpegQualitySubject.asObservable()
-
-    override fun setJpegQuality(value: Int) {
-        mJpegQuality = value
-        textViewJpegQualityValue.text = Integer.toString(value)
-    }
-
-    override fun onEnablePin(): Observable<Boolean> {
-        return RxView.clicks(checkBoxEnablePin).map { _ ->
-            val checked = checkBoxEnablePin.isChecked
-            enableDisableView(clHidePinOnStart, checked)
-            enableDisableView(clNewPinOnAppStart, checked)
-            enableDisableView(clAutoChangePin, checked)
-            enableDisableView(clSetPin, checkBoxEnablePin.isChecked && !checkBoxNewPinOnAppStart.isChecked && !checkBoxAutoChangePin.isChecked)
-            checked
-        }
-    }
-
-    override fun setEnablePin(value: Boolean) {
-        checkBoxEnablePin.isChecked = value
-        enableDisableView(clHidePinOnStart, value)
-        enableDisableView(clNewPinOnAppStart, value)
-        enableDisableView(clAutoChangePin, value)
-        enableDisableView(clSetPin, checkBoxEnablePin.isChecked && !checkBoxNewPinOnAppStart.isChecked && !checkBoxAutoChangePin.isChecked)
-    }
-
-    override fun onHidePinOnStart(): Observable<Boolean> {
-        return RxView.clicks(checkBoxHidePinOnStart).map { _ -> checkBoxHidePinOnStart.isChecked }
-    }
-
-    override fun setHidePinOnStart(value: Boolean) {
-        checkBoxHidePinOnStart.isChecked = value
-    }
-
-    override fun onNewPinOnAppStart(): Observable<Boolean> {
-        return RxView.clicks(checkBoxNewPinOnAppStart).map { _ ->
-            enableDisableView(clSetPin, checkBoxEnablePin.isChecked && !checkBoxNewPinOnAppStart.isChecked && !checkBoxAutoChangePin.isChecked)
-            checkBoxNewPinOnAppStart.isChecked
-        }
-    }
-
-    override fun setNewPinOnAppStart(value: Boolean) {
-        checkBoxNewPinOnAppStart.isChecked = value
-        enableDisableView(clSetPin, checkBoxEnablePin.isChecked && !checkBoxNewPinOnAppStart.isChecked && !checkBoxAutoChangePin.isChecked)
-    }
-
-    override fun onAutoChangePin(): Observable<Boolean> {
-        return RxView.clicks(checkBoxAutoChangePin).map { _ ->
-            enableDisableView(clSetPin, checkBoxEnablePin.isChecked && !checkBoxNewPinOnAppStart.isChecked && !checkBoxAutoChangePin.isChecked)
-            checkBoxAutoChangePin.isChecked
-        }
-    }
-
-    override fun setAutoChangePin(value: Boolean) {
-        checkBoxAutoChangePin.isChecked = value
-        enableDisableView(clSetPin, checkBoxEnablePin.isChecked && !checkBoxNewPinOnAppStart.isChecked && !checkBoxAutoChangePin.isChecked)
-    }
-
-    override fun onSetPin(): Observable<String> = mSetPinSubject.asObservable()
-
-    override fun setSetPin(value: String) {
-        mCurrentPin = value
-    }
-
-    override fun onServerPort(): Observable<Int> = mServerPortSubject.asObservable()
-
-    override fun setServerPort(value: Int) {
-        mServerPort = value
-        textViewServerPortValue.text = Integer.toString(value)
-    }
-
-    override fun showMessage(message: SettingsActivityView.Message) {
-        when (message) {
-            is SettingsActivityView.Message.ErrorServerPortBusy -> {
-                mDialog = AlertDialog.Builder(this)
-                        .setIcon(R.drawable.ic_message_error_24dp)
-                        .setTitle(R.string.pref_error_dialog_title)
-                        .setMessage(R.string.pref_error_dialog_message_port)
-                        .setCancelable(false)
-                        .setPositiveButton(android.R.string.ok, null)
-                        .create()
-                mDialog?.show()
+                is SettingsActivityView.ToEvent.ErrorServerPortBusy -> {
+                    mDialog = AlertDialog.Builder(this)
+                            .setIcon(R.drawable.ic_message_error_24dp)
+                            .setTitle(R.string.pref_error_dialog_title)
+                            .setMessage(R.string.pref_error_dialog_message_port)
+                            .setCancelable(false)
+                            .setPositiveButton(android.R.string.ok, null)
+                            .create()
+                    mDialog?.show()
+                }
             }
         }
     }
@@ -371,7 +323,7 @@ class SettingsActivity : BaseActivity(), SettingsActivityView, ColorPickerDialog
     override fun onColorSelected(dialogId: Int, color: Int) {
         if (mHtmlBackColor == color) return
         viewHtmlBackColor.setBackgroundColor(color)
-        mHtmlBackColorSubject.onNext(color)
+        mFromEvents.onNext(SettingsActivityView.FromEvent.HtmlBackColor(color))
     }
 
     override fun onDialogDismissed(dialogId: Int) {}

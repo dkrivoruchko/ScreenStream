@@ -1,35 +1,50 @@
 package info.dvkr.screenstream.service
 
 
-import android.content.Intent
 import android.support.annotation.Keep
 import rx.Observable
 
 interface ForegroundServiceView {
 
-    sealed class Event {
-        @Keep class Start : Event() // Local ForegroundService
-        @Keep class Init : Event() // To ForegroundServicePresenter
-        @Keep class StartHttpServerRequest : Event() // To ForegroundService
+    // System network interfaces
+    @Keep data class Interface(val name: String, val address: String)
+
+    // Known Errors
+//    @Keep data class KnownErrors(var isServerPortBusy: Boolean,
+//                                 var isWrongImageFormat: Boolean)
+
+    // From ForegroundService to ForegroundServicePresenter
+    @Keep sealed class FromEvent {
+        @Keep class Init : FromEvent()
         @Keep data class StartHttpServer(val favicon: ByteArray,
                                          val baseIndexHtml: String,
                                          val basePinRequestHtml: String,
-                                         val pinRequestErrorMsg: String) : Event() // To ForegroundServicePresenter
+                                         val pinRequestErrorMsg: String,
+                                         val jpegByteStream: Observable<ByteArray>) : FromEvent()
 
-        @Keep data class Notify(val notifyType: String) : Event() // To ForegroundService
-        @Keep class StopHttpServer : Event() // To ForegroundServicePresenter
-        @Keep data class StartStream(val intent: Intent) : Event() // To ForegroundService
-        @Keep data class StopStream(val isNotifyOnComplete: Boolean) : Event() // To ForegroundService
-        @Keep class StopStreamComplete : Event() // To ForegroundServicePresenter
-        @Keep class ScreenOff : Event() // To ForegroundServicePresenter
-        @Keep class AppExit : Event() // To ForegroundService
-        @Keep class AppStatus() : Event() // To ForegroundService
-        @Keep data class AppError(val error: Throwable) : Event() // To ForegroundService
+        @Keep class StopHttpServer : FromEvent()
+        @Keep class StopStreamComplete : FromEvent()
+        @Keep class ScreenOff : FromEvent()
+        @Keep data class CurrentInterfaces(val interfaceList: List<Interface>) : FromEvent()
+//        @Keep data class WrongImageFormat(var isWrongImageFormat: Boolean) : FromEvent()
     }
 
-    fun onEvent(): Observable<Event> // Events from ForegroundService
+    // Events from ForegroundService to ForegroundServicePresenter
+    fun fromEvent(): Observable<FromEvent>
 
-    fun sendEvent(event: Event) // Events to ForegroundService
+    // To ForegroundService from ForegroundServicePresenter
+    @Keep open class ToEvent { // Open for ForegroundService.LocalEvent
+        @Keep class StartHttpServer : ToEvent()
+        @Keep data class NotifyImage(val notifyType: String) : ToEvent()
+        @Keep data class StopStream(val isNotifyOnComplete: Boolean = true) : ToEvent()
+        @Keep class AppExit : ToEvent()
+        @Keep class CurrentInterfacesRequest : ToEvent()
+//        @Keep data class Errors(val errors: KnownErrors) : ToEvent()
+    }
 
-    fun sendEvent(event: Event, timeout: Long) // Events to ForegroundService
+    // Events to ForegroundService from ForegroundServicePresenter
+    fun toEvent(event: ToEvent)
+
+    // Events to ForegroundService from ForegroundServicePresenter
+    fun toEvent(event: ToEvent, timeout: Long)
 }

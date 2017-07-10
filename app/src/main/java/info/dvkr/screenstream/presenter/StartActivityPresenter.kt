@@ -1,15 +1,20 @@
 package info.dvkr.screenstream.presenter
 
+import info.dvkr.screenstream.BuildConfig
 import info.dvkr.screenstream.dagger.PersistentScope
-import info.dvkr.screenstream.model.AppEvent
+import info.dvkr.screenstream.model.EventBus
 import info.dvkr.screenstream.ui.StartActivityView
-import rx.android.schedulers.AndroidSchedulers
+import rx.Scheduler
 import rx.subscriptions.CompositeSubscription
+import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
 
 @PersistentScope
-class StartActivityPresenter @Inject internal constructor(val mAppEvent: AppEvent) {
+class StartActivityPresenter @Inject internal constructor(private val mEventScheduler: Scheduler,
+                                                          private val mEventBus: EventBus) {
     private val TAG = "StartActivityPresenter"
+
+    private val isStreamRunning: AtomicBoolean = AtomicBoolean(false) // TODO Can data from FGSP used ?
     private val mSubscriptions = CompositeSubscription()
     private var mStartActivity: StartActivityView? = null
 
@@ -23,41 +28,80 @@ class StartActivityPresenter @Inject internal constructor(val mAppEvent: AppEven
         if (null != mStartActivity) detach()
         mStartActivity = startActivity
 
-        mSubscriptions.add(mStartActivity?.onEvent()?.subscribe { event ->
-            println(TAG + ": Thread [${Thread.currentThread().name}] onEvent: " + event.javaClass.simpleName)
-            when (event) {
-                is StartActivityView.Event.TryStartStream -> { // Sending message to StartActivity
-                    if (mAppEvent.getStreamRunning().value) throw IllegalStateException("Stream already running")
-                    mStartActivity?.onTryToStart()
+        // Events from StartActivity
+        mSubscriptions.add(mStartActivity?.fromEvent()?.observeOn(mEventScheduler)?.subscribe { fromEvent ->
+            println(TAG + ": Thread [${Thread.currentThread().name}] fromEvent: ${fromEvent.javaClass.simpleName}")
+            when (fromEvent) {
+                is StartActivityView.FromEvent.TryStartStream -> { // Sending message to StartActivity
+                    if (isStreamRunning.get()) throw IllegalStateException("Stream already running")
+                    mStartActivity?.toEvent(StartActivityView.ToEvent.TryToStart())
                 }
 
-                is StartActivityView.Event.StopStream -> { // Relaying message to ForegroundServicePresenter
-                    if (!mAppEvent.getStreamRunning().value) throw IllegalStateException("Stream not running")
-                    mAppEvent.sendEvent(AppEvent.Event.StopStream())
+                is StartActivityView.FromEvent.StopStream -> { // Relaying message to ForegroundServicePresenter
+                    if (!isStreamRunning.get()) throw IllegalStateException("Stream not running")
+                    mEventBus.sendEvent(EventBus.GlobalEvent.StopStream())
                 }
 
-                is StartActivityView.Event.AppExit ->  // Relaying message to ForegroundServicePresenter
-                    mAppEvent.sendEvent(AppEvent.Event.AppExit())
+                is StartActivityView.FromEvent.AppExit -> { // Relaying message to ForegroundServicePresenter
+                    mEventBus.sendEvent(EventBus.GlobalEvent.AppExit())
+                }
             }
         })
 
-        mSubscriptions.add(mAppEvent.getAppStatus()
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe { statusSet -> mStartActivity?.onAppStatus(statusSet) }
-        )
+        // Global events
+        mSubscriptions.add(mEventBus.getEvent().observeOn(mEventScheduler).subscribe { globalEvent ->
+            if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] globalEvent: ${globalEvent.javaClass.simpleName}")
 
-        mSubscriptions.add(mAppEvent.getStreamRunning()
-                .skip(1)
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe { isStreamRunning ->
-                    if (isStreamRunning) mStartActivity?.onStreamStart() else mStartActivity?.onStreamStop()
+            when (globalEvent) {
+            // From ImageGeneratorImpl & ForegroundServicePresenter TODo Do mot minimise
+                is EventBus.GlobalEvent.StreamStatus -> {
+                    isStreamRunning.set(globalEvent.isStreamRunning)
+                    if (isStreamRunning.get()) mStartActivity?.toEvent(StartActivityView.ToEvent.StreamStart())
+                    else mStartActivity?.toEvent(StartActivityView.ToEvent.StreamStop())
                 }
-        )
 
-        mSubscriptions.add(mAppEvent.onClientEvent()
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe { clientList -> mStartActivity?.onConnectedClients(clientList) }
-        )
+            // From SettingsActivityPresenter
+                is EventBus.GlobalEvent.ResizeFactor -> {
+                    mStartActivity?.toEvent(StartActivityView.ToEvent.ResizeFactor(globalEvent.value))
+                }
+
+            // From SettingsActivityPresenter
+                is EventBus.GlobalEvent.EnablePin -> {
+                    mStartActivity?.toEvent(StartActivityView.ToEvent.EnablePin(globalEvent.value))
+                }
+
+            // From SettingsActivityPresenter
+                is EventBus.GlobalEvent.SetPin -> {
+                    mStartActivity?.toEvent(StartActivityView.ToEvent.SetPin(globalEvent.value))
+                }
+
+            // From HttpServerImpl
+                is EventBus.GlobalEvent.CurrentClients -> {
+                    mStartActivity?.toEvent(StartActivityView.ToEvent.CurrentClients(globalEvent.clientsList))
+                }
+
+            // From ForegroundServicePresenter
+                is EventBus.GlobalEvent.CurrentInterfaces -> {
+                    mStartActivity?.toEvent(StartActivityView.ToEvent.CurrentInterfaces(globalEvent.interfaceList))
+                }
+            }
+        })
+
+        // Requesting current stream status
+        mEventBus.sendEvent(EventBus.GlobalEvent.StreamStatusRequest())
+
+        // Requesting current clients
+        mEventBus.sendEvent(EventBus.GlobalEvent.CurrentClientsRequest())
+
+        // Requesting current interfaces
+        mEventBus.sendEvent(EventBus.GlobalEvent.CurrentInterfacesRequest())
+
+
+//        mSubscriptions.add(mAppEvent.getAppStatus()
+//                .observeOn(AndroidSchedulers.mainThread())
+//                .subscribe { statusSet -> mStartActivity?.onAppStatus(statusSet) }
+//        )
+
     }
 
     fun detach() {

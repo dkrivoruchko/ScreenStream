@@ -1,12 +1,9 @@
 package info.dvkr.screenstream.model.settings
 
 import android.util.Log
-
 import com.f2prateek.rx.preferences.RxSharedPreferences
-
 import info.dvkr.screenstream.BuildConfig
 import info.dvkr.screenstream.model.Settings
-import rx.Observable
 
 class SettingsImpl(private val mRxSharedPreferences: RxSharedPreferences) : Settings {
     private val TAG = "SettingsImpl"
@@ -44,7 +41,7 @@ class SettingsImpl(private val mRxSharedPreferences: RxSharedPreferences) : Sett
     }
 
     init {
-        if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] SettingsImpl")
+        if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] Constructor")
     }
 
     override var minimizeOnStream: Boolean
@@ -71,22 +68,13 @@ class SettingsImpl(private val mRxSharedPreferences: RxSharedPreferences) : Sett
         get() = getInteger(PREF_KEY_JPEG_QUALITY, DEFAULT_JPEG_QUALITY)
         set(jpegQuality) = mRxSharedPreferences.getInteger(PREF_KEY_JPEG_QUALITY).set(jpegQuality)
 
-    override val jpegQualityObservable: Observable<Int>
-        get() = mRxSharedPreferences.getInteger(PREF_KEY_JPEG_QUALITY, DEFAULT_JPEG_QUALITY).asObservable()
-
     override var resizeFactor: Int
         get() = getInteger(PREF_KEY_RESIZE_FACTOR, DEFAULT_RESIZE_FACTOR)
         set(resizeFactor) = mRxSharedPreferences.getInteger(PREF_KEY_RESIZE_FACTOR).set(resizeFactor)
 
-    override val resizeFactorObservable: Observable<Int>
-        get() = mRxSharedPreferences.getInteger(PREF_KEY_RESIZE_FACTOR, DEFAULT_RESIZE_FACTOR).asObservable()
-
     override var enablePin: Boolean
         get() = getBoolean(PREF_KEY_ENABLE_PIN, DEFAULT_ENABLE_PIN)
         set(enablePin) = mRxSharedPreferences.getBoolean(PREF_KEY_ENABLE_PIN).set(enablePin)
-
-    override val enablePinObservable: Observable<Boolean>
-        get() = mRxSharedPreferences.getBoolean(PREF_KEY_ENABLE_PIN, DEFAULT_ENABLE_PIN).asObservable()
 
     override var hidePinOnStart: Boolean
         get() = getBoolean(PREF_KEY_HIDE_PIN_ON_START, DEFAULT_HIDE_PIN_ON_START)
@@ -104,15 +92,9 @@ class SettingsImpl(private val mRxSharedPreferences: RxSharedPreferences) : Sett
         get() = getString(PREF_KEY_SET_PIN, DEFAULT_PIN)
         set(currentPin) = mRxSharedPreferences.getString(PREF_KEY_SET_PIN).set(currentPin)
 
-    override val currentPinObservable: Observable<String>
-        get() = mRxSharedPreferences.getString(PREF_KEY_SET_PIN, DEFAULT_PIN).asObservable()
-
     override var severPort: Int
         get() = getInteger(PREF_KEY_SERVER_PORT, DEFAULT_SERVER_PORT)
         set(severPort) = mRxSharedPreferences.getInteger(PREF_KEY_SERVER_PORT).set(severPort)
-
-    override val severPortObservable: Observable<Int>
-        get() = mRxSharedPreferences.getInteger(PREF_KEY_SERVER_PORT, DEFAULT_SERVER_PORT).asObservable()
 
     // Helper methods
     private fun getBoolean(pref_key: String, pref_default: Boolean): Boolean =

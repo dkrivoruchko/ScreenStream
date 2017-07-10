@@ -1,8 +1,6 @@
 package info.dvkr.screenstream.model
 
 
-import rx.Observable
-
 interface Settings {
 
     var minimizeOnStream: Boolean
@@ -17,15 +15,9 @@ interface Settings {
 
     var jpegQuality: Int
 
-    val jpegQualityObservable: Observable<Int>
-
     var resizeFactor: Int
 
-    val resizeFactorObservable: Observable<Int>
-
     var enablePin: Boolean
-
-    val enablePinObservable: Observable<Boolean>
 
     var hidePinOnStart: Boolean
 
@@ -35,9 +27,5 @@ interface Settings {
 
     var currentPin: String
 
-    val currentPinObservable: Observable<String>
-
     var severPort: Int
-
-    val severPortObservable: Observable<Int>
 }

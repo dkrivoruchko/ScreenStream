@@ -20,10 +20,11 @@ import android.view.Surface
 import android.view.WindowManager
 import com.crashlytics.android.Crashlytics
 import info.dvkr.screenstream.BuildConfig
-import info.dvkr.screenstream.model.AppEvent
+import info.dvkr.screenstream.model.EventBus
 import info.dvkr.screenstream.model.ImageGenerator
-import info.dvkr.screenstream.model.Settings
 import rx.Observable
+import rx.Scheduler
+import rx.functions.Action1
 import rx.subscriptions.CompositeSubscription
 import java.io.ByteArrayOutputStream
 import java.util.concurrent.TimeUnit
@@ -32,8 +33,11 @@ import java.util.concurrent.atomic.AtomicReference
 
 class ImageGeneratorImpl(context: Context,
                          private val mMediaProjection: MediaProjection,
-                         private val mAppEvent: AppEvent,
-                         settingsHelper: Settings) : ImageGenerator {
+                         mEventScheduler: Scheduler,
+                         private val mEventBus: EventBus,
+                         resizeFactor: Int,
+                         jpegQuality: Int,
+                         private val onNewImage: Action1<ByteArray>) : ImageGenerator {
 
     private val TAG = "ImageGeneratorImpl"
 
@@ -47,7 +51,7 @@ class ImageGeneratorImpl(context: Context,
     // Settings
     private val mSubscriptions = CompositeSubscription()
     private val mMatrix = Matrix()
-    private val mJpegQuality = AtomicInteger(100)
+    private val mJpegQuality = AtomicInteger()
 
     //
     private val mImageThread: HandlerThread
@@ -66,13 +70,22 @@ class ImageGeneratorImpl(context: Context,
     init {
         if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] Constructor: Start")
 
-        mSubscriptions.add(settingsHelper.jpegQualityObservable.subscribe({ mJpegQuality.set(it) }))
-        mSubscriptions.add(settingsHelper.resizeFactorObservable
-                .map { resizeFactor -> resizeFactor / 100f }
-                .subscribe { scale ->
+        mMatrix.postScale(resizeFactor / 100f, resizeFactor / 100f)
+        mJpegQuality.set(jpegQuality)
+
+        mSubscriptions.add(mEventBus.getEvent().observeOn(mEventScheduler).subscribe { globalEvent ->
+            if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] globalEvent: ${globalEvent.javaClass.simpleName}")
+
+            when (globalEvent) {
+                is EventBus.GlobalEvent.ResizeFactor -> {
+                    val scale = globalEvent.value / 100f
                     mMatrix.reset()
                     mMatrix.postScale(scale, scale)
-                })
+                }
+
+                is EventBus.GlobalEvent.JpegQuality -> mJpegQuality.set(globalEvent.value)
+            }
+        })
 
         mImageThread = HandlerThread("SSImageGenerator", Process.THREAD_PRIORITY_BACKGROUND)
         mImageThread.start()
@@ -94,7 +107,7 @@ class ImageGeneratorImpl(context: Context,
                 screenSize.x, screenSize.y, displayMetrics.densityDpi,
                 DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR, mImageReader.surface, null, null)
 
-        mSubscriptions.add(Observable.interval(250, TimeUnit.MILLISECONDS)
+        mSubscriptions.add(Observable.interval(250, TimeUnit.MILLISECONDS, mEventScheduler)
                 .map { _ -> mWindowManager.defaultDisplay.rotation }
                 .map { rotation -> rotation == Surface.ROTATION_0 || rotation == Surface.ROTATION_180 }
                 .distinctUntilChanged()
@@ -103,7 +116,7 @@ class ImageGeneratorImpl(context: Context,
                 .subscribe { _ -> restart() }
         )
 
-        mAppEvent.getStreamRunning().onNext(java.lang.Boolean.TRUE)
+        mEventBus.sendEvent(EventBus.GlobalEvent.StreamStatus(true))
         mState.set(STATE_STARTED)
 
         if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] Constructor: End")
@@ -125,7 +138,7 @@ class ImageGeneratorImpl(context: Context,
             mReusableBitmap?.recycle()
             mImageThread.quit()
 
-            mAppEvent.getStreamRunning().onNext(java.lang.Boolean.FALSE)
+            mEventBus.sendEvent(EventBus.GlobalEvent.StreamStatus(false))
             mState.set(STATE_STOPPED)
         }
     }
@@ -180,7 +193,7 @@ class ImageGeneratorImpl(context: Context,
                     image = reader.acquireLatestImage()
                 } catch (ex: UnsupportedOperationException) {
                     mState.set(STATE_ERROR)
-                    mAppEvent.sendEvent(AppEvent.Event.AppStatus(ImageGenerator.IMAGE_GENERATOR_ERROR_WRONG_IMAGE_FORMAT))
+//                    mAppEvent.sendEvent(AppStatus.Event.AppStatus(ImageGenerator.IMAGE_GENERATOR_ERROR_WRONG_IMAGE_FORMAT))
                     Crashlytics.logException(ex)
                     return
                 }
@@ -211,7 +224,7 @@ class ImageGeneratorImpl(context: Context,
                 mResultJpegStream.reset()
                 resizedBitmap.compress(Bitmap.CompressFormat.JPEG, mJpegQuality.get(), mResultJpegStream)
                 resizedBitmap.recycle()
-                mAppEvent.getJpegBytesStream().onNext(mResultJpegStream.toByteArray())
+                onNewImage.call(mResultJpegStream.toByteArray())
             }
         }
     }

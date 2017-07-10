@@ -13,8 +13,8 @@ import android.media.projection.MediaProjection
 import android.media.projection.MediaProjectionManager
 import android.net.ConnectivityManager
 import android.net.wifi.WifiManager
-import android.os.HandlerThread
 import android.os.IBinder
+import android.support.annotation.Keep
 import android.support.v4.content.ContextCompat
 import android.support.v7.app.NotificationCompat
 import android.util.Log
@@ -29,14 +29,13 @@ import info.dvkr.screenstream.presenter.ForegroundServicePresenter
 import info.dvkr.screenstream.ui.StartActivity
 import rx.Observable
 import rx.Scheduler
-import rx.android.schedulers.AndroidSchedulers
+import rx.functions.Action1
+import rx.subjects.BehaviorSubject
 import rx.subjects.PublishSubject
 import rx.subscriptions.CompositeSubscription
 import java.net.Inet4Address
 import java.net.NetworkInterface
-import java.net.SocketException
 import java.nio.charset.Charset
-import java.util.*
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
@@ -64,25 +63,27 @@ class ForegroundService : Service(), ForegroundServiceView {
         }
     }
 
-    private val isForegroundServiceInit = AtomicBoolean(false)
-    private val mSubscriptions = CompositeSubscription()
-    private val mForegroundServiceEvents = PublishSubject.create<ForegroundServiceView.Event>()
-    private val mLocalEventThread = HandlerThread("SSFGService")
-    private val mLocalEventScheduler: Scheduler
-
-    init {
-        mLocalEventThread.start()
-        mLocalEventScheduler = AndroidSchedulers.from(mLocalEventThread.looper)
+    sealed class LocalEvent : ForegroundServiceView.ToEvent() {
+        @Keep class StartService : LocalEvent()
+        @Keep data class StartStream(val intent: Intent) : ForegroundServiceView.ToEvent()
     }
 
-    @Inject internal lateinit var mForegroundServicePresenter: ForegroundServicePresenter
-    @Inject internal lateinit var mSettingsHelper: Settings
-    @Inject internal lateinit var mAppEvent: AppEvent
+    @Inject internal lateinit var mPresenter: ForegroundServicePresenter
+    @Inject internal lateinit var mSettings: Settings
+    @Inject internal lateinit var mEventScheduler: Scheduler
+    @Inject internal lateinit var mEventBus: EventBus
     @Inject internal lateinit var mImageNotify: ImageNotify
 
+    private val isForegroundServiceInit = AtomicBoolean(false)
+    private val mSubscriptions = CompositeSubscription()
+    private val mFromEvents = PublishSubject.create<ForegroundServiceView.FromEvent>()
+    private val mToEvents = PublishSubject.create<ForegroundServiceView.ToEvent>()
+
+    private val mJpegBytesStream = BehaviorSubject.create<ByteArray>()
     private val mMediaProjection = AtomicReference<MediaProjection?>()
     private val mProjectionCallback = AtomicReference<MediaProjection.Callback?>()
     private val mImageGenerator = AtomicReference<ImageGenerator?>()
+    private val mConnectionEvents = PublishSubject.create<String>()
 
     // Base values
     private lateinit var mFavicon: ByteArray
@@ -90,95 +91,103 @@ class ForegroundService : Service(), ForegroundServiceView {
     private lateinit var mBasePinRequestHtml: String
     private lateinit var mPinRequestErrorMsg: String
 
-    override fun sendEvent(event: ForegroundServiceView.Event) {
-        mForegroundServiceEvents.onNext(event)
+    override fun fromEvent(): Observable<ForegroundServiceView.FromEvent> {
+        return mFromEvents
+                .observeOn(mEventScheduler) // TODO
+                .asObservable()
     }
 
-    override fun sendEvent(event: ForegroundServiceView.Event, timeout: Long) {
-        Observable.just<ForegroundServiceView.Event>(event)
-                .delay(timeout, TimeUnit.MILLISECONDS, mLocalEventScheduler)
-                .subscribe({ mForegroundServiceEvents.onNext(it) })
+    override fun toEvent(event: ForegroundServiceView.ToEvent) {
+        mToEvents.onNext(event)
     }
 
-    override fun onEvent(): Observable<ForegroundServiceView.Event> {
-        return mForegroundServiceEvents.observeOn(mLocalEventScheduler).asObservable()
+    override fun toEvent(event: ForegroundServiceView.ToEvent, timeout: Long) {
+        Observable.just<ForegroundServiceView.ToEvent>(event)
+                .delay(timeout, TimeUnit.MILLISECONDS, mEventScheduler)
+                .subscribe({ toEvent(it) })
     }
+
 
     override fun onCreate() {
         if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] onCreate: Start")
 
         (application as ScreenStreamApp).appComponent().plusActivityComponent().inject(this)
-        mForegroundServicePresenter.attach(this)
+        mPresenter.attach(this)
 
-        mSubscriptions.add(mForegroundServiceEvents
-                .startWith(ForegroundServiceView.Event.Start())
-                .observeOn(mLocalEventScheduler).subscribe({ event ->
-            if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] Event: " + event.javaClass.simpleName)
+        mSubscriptions.add(mToEvents.startWith(ForegroundService.LocalEvent.StartService())
+                .observeOn(mEventScheduler).subscribe({ event ->
+
+            if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] toEvent: " + event.javaClass.simpleName)
+
             when (event) {
-                is ForegroundServiceView.Event.Start -> {
+                is ForegroundService.LocalEvent.StartService -> {
                     mFavicon = getFavicon(applicationContext)
                     mBaseIndexHtml = getBaseIndexHtml(applicationContext)
                     mBasePinRequestHtml = getBasePinRequestHtml(applicationContext)
                     mPinRequestErrorMsg = applicationContext.getString(R.string.html_wrong_pin)
                 }
 
-                is ForegroundServiceView.Event.Notify -> {
+                is ForegroundServiceView.ToEvent.StartHttpServer -> {
+                    mFromEvents.onNext(ForegroundServiceView.FromEvent.StartHttpServer(
+                            mFavicon,
+                            mBaseIndexHtml,
+                            mBasePinRequestHtml,
+                            mPinRequestErrorMsg,
+                            mJpegBytesStream.asObservable())
+                    )
+                }
+
+                is ForegroundServiceView.ToEvent.NotifyImage -> {
                     val notifyType = event.notifyType
-                    mAppEvent.getJpegBytesStream().onNext(mImageNotify.getImage(notifyType))
-                    mAppEvent.getJpegBytesStream().onNext(mImageNotify.getImage(notifyType)) // TODO need better solution
+                    mJpegBytesStream.onNext(mImageNotify.getImage(notifyType))
+                    mJpegBytesStream.onNext(mImageNotify.getImage(notifyType)) // TODO need better solution
                 }
 
-                is ForegroundServiceView.Event.StartHttpServerRequest -> {
-                    mForegroundServiceEvents.onNext(ForegroundServiceView.Event.StartHttpServer(mFavicon, mBaseIndexHtml, mBasePinRequestHtml, mPinRequestErrorMsg))
-                }
-
-                is ForegroundServiceView.Event.StartStream -> {
+                is ForegroundService.LocalEvent.StartStream -> {
                     val data = event.intent
                     val projectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
                     val mediaProjection = projectionManager.getMediaProjection(Activity.RESULT_OK, data)
-                    if (null != mediaProjection) {
-                        mMediaProjection.set(mediaProjection)
-                        mImageGenerator.set(ImageGeneratorImpl(applicationContext, mediaProjection, mAppEvent, mSettingsHelper))
-                        stopForeground(true)
-                        startForeground(NOTIFICATION_STOP_STREAMING, getNotification(NOTIFICATION_STOP_STREAMING))
-                        mProjectionCallback.set(object : MediaProjection.Callback() {
-                            override fun onStop() {
-                                if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] ProjectionCallback")
-                                mForegroundServiceEvents.onNext(ForegroundServiceView.Event.StopStream(true))
-                            }
-                        })
-                        mediaProjection.registerCallback(mProjectionCallback.get(), null)
-                    } else {
-                        mAppEvent.sendEvent(AppEvent.Event.AppError(IllegalStateException(TAG + " mediaProjection == null")))
-                    }
+                    if (null == mediaProjection) IllegalStateException(TAG + ": mediaProjection == null")
+                    mMediaProjection.set(mediaProjection)
+                    mImageGenerator.set(ImageGeneratorImpl(
+                            applicationContext,
+                            mediaProjection,
+                            mEventScheduler,
+                            mEventBus,
+                            mSettings.resizeFactor,
+                            mSettings.jpegQuality,
+                            Action1 { imageByteArray -> mJpegBytesStream.onNext(imageByteArray) })
+                    )
+                    stopForeground(true)
+                    startForeground(NOTIFICATION_STOP_STREAMING, getNotification(NOTIFICATION_STOP_STREAMING))
+                    mProjectionCallback.set(object : MediaProjection.Callback() {
+                        override fun onStop() {
+                            if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] ProjectionCallback")
+                            mEventBus.sendEvent(EventBus.GlobalEvent.StopStream())
+                        }
+                    })
+                    mediaProjection.registerCallback(mProjectionCallback.get(), null)
                 }
 
-                is ForegroundServiceView.Event.StopStream -> {
-                    if (!mAppEvent.getStreamRunning().value) {
-                        Log.w(TAG, "WARRING: Stream in not running")
-                    } else {
-                        stopForeground(true)
-                        stopMediaProjection()
-                        startForeground(NOTIFICATION_START_STREAMING, getNotification(NOTIFICATION_START_STREAMING))
-                    }
+                is ForegroundServiceView.ToEvent.StopStream -> {
+                    stopForeground(true)
+                    stopMediaProjection()
+                    startForeground(NOTIFICATION_START_STREAMING, getNotification(NOTIFICATION_START_STREAMING))
                     if (event.isNotifyOnComplete)
-                        mForegroundServiceEvents.onNext(ForegroundServiceView.Event.StopStreamComplete())
+                        mFromEvents.onNext(ForegroundServiceView.FromEvent.StopStreamComplete())
                 }
 
-                is ForegroundServiceView.Event.AppExit -> {
+                is ForegroundServiceView.ToEvent.AppExit -> {
                     stopSelf()
                 }
 
-                is ForegroundServiceView.Event.AppStatus -> {
-                    startActivity(StartActivity.getStartIntent(applicationContext, StartActivity.ACTION_APP_STATUS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                is ForegroundServiceView.ToEvent.CurrentInterfacesRequest -> {
+                    mFromEvents.onNext(ForegroundServiceView.FromEvent.CurrentInterfaces(getInterfaces()))
                 }
 
-                is ForegroundServiceView.Event.AppError -> {
-                    val (exception) = event
-                    if (BuildConfig.DEBUG_MODE) Log.e(TAG, exception.toString())
-                    Crashlytics.logException(exception)
-                    startActivity(StartActivity.getErrorIntent(applicationContext, exception.toString()).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-                }
+//                is ForegroundServiceView.ToEvent.AppStatus -> {
+//                    startActivity(StartActivity.getStartIntent(applicationContext, StartActivity.ACTION_APP_STATUS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+//                }
             }
         })
         { onError ->
@@ -193,24 +202,22 @@ class ForegroundService : Service(), ForegroundServiceView {
         intentFilter.addAction(WifiManager.WIFI_STATE_CHANGED_ACTION)
         intentFilter.addAction(ConnectivityManager.CONNECTIVITY_ACTION)
 
-        // TODO Review this
         mSubscriptions.add(RxBroadcast.fromBroadcast(applicationContext, intentFilter)
                 .map<String>({ it.action })
-                .observeOn(mLocalEventScheduler)
+                .observeOn(mEventScheduler)
                 .subscribe { action ->
                     if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] Action: " + action)
                     when (action) {
-                        Intent.ACTION_SCREEN_OFF -> mForegroundServiceEvents.onNext(ForegroundServiceView.Event.ScreenOff())
-
-                        WifiManager.WIFI_STATE_CHANGED_ACTION ->
-                            // mForegroundServiceEvents.onNext(new WifiStateChanged());
-                            Log.w(TAG, Arrays.toString(ipList().toTypedArray()))
-
-                        ConnectivityManager.CONNECTIVITY_ACTION ->
-                            //  mForegroundServiceEvents.onNext(new ConnectivityChanged());
-                            Log.w(TAG, Arrays.toString(ipList().toTypedArray()))
+                        Intent.ACTION_SCREEN_OFF -> mFromEvents.onNext(ForegroundServiceView.FromEvent.ScreenOff())
+                        WifiManager.WIFI_STATE_CHANGED_ACTION -> mConnectionEvents.onNext(WifiManager.WIFI_STATE_CHANGED_ACTION)
+                        ConnectivityManager.CONNECTIVITY_ACTION -> mConnectionEvents.onNext(ConnectivityManager.CONNECTIVITY_ACTION)
                     }
                 })
+
+        mSubscriptions.add(mConnectionEvents
+                .throttleWithTimeout(500, TimeUnit.MILLISECONDS, mEventScheduler)
+                .subscribe { _ -> mFromEvents.onNext(ForegroundServiceView.FromEvent.CurrentInterfaces(getInterfaces())) }
+        )
 
         startForeground(NOTIFICATION_START_STREAMING, getNotification(NOTIFICATION_START_STREAMING))
         if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] onCreate: Done")
@@ -234,7 +241,7 @@ class ForegroundService : Service(), ForegroundServiceView {
 
         when (action) {
             ACTION_INIT -> if (!isForegroundServiceInit.get()) {
-                mForegroundServiceEvents.onNext(ForegroundServiceView.Event.Init())
+                mFromEvents.onNext(ForegroundServiceView.FromEvent.Init())
                 isForegroundServiceInit.set(true)
             }
 
@@ -243,19 +250,18 @@ class ForegroundService : Service(), ForegroundServiceView {
             }
 
             ACTION_START_STREAM ->
-                mForegroundServiceEvents.onNext(ForegroundServiceView.Event.StartStream(intent.getParcelableExtra<Intent>(Intent.EXTRA_INTENT)))
+                mToEvents.onNext(ForegroundService.LocalEvent.StartStream(intent.getParcelableExtra<Intent>(Intent.EXTRA_INTENT)))
         }
         return Service.START_NOT_STICKY
     }
 
     override fun onDestroy() {
-        if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] onDestroy: Start")
+        if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] onDestroy: StartService")
         mSubscriptions.clear()
         stopForeground(true)
         stopMediaProjection()
-        mForegroundServiceEvents.onNext(ForegroundServiceView.Event.StopHttpServer())
-        mForegroundServicePresenter.detach()
-        mLocalEventThread.quit()
+        mFromEvents.onNext(ForegroundServiceView.FromEvent.StopHttpServer())
+        mPresenter.detach()
         super.onDestroy()
         if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] onDestroy: Done")
         System.exit(0)
@@ -367,29 +373,7 @@ class ForegroundService : Service(), ForegroundServiceView {
                 .replaceFirst(HttpServer.SUBMIT_TEXT.toRegex(), context.getString(R.string.html_submit_text))
     }
 
-    // TODO Revise, BAD request
-    fun ipList(): List<String> {
-        if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] getIpList")
-
-        val ipList = ArrayList<String>()
-        try {
-            val enumeration = NetworkInterface.getNetworkInterfaces()
-            while (enumeration.hasMoreElements()) {
-                val networkInterface = enumeration.nextElement()
-                val enumIpAddr = networkInterface.inetAddresses
-                while (enumIpAddr.hasMoreElements()) {
-                    val inetAddress = enumIpAddr.nextElement()
-
-                    if (!inetAddress.isLoopbackAddress && inetAddress is Inet4Address)
-                        ipList.add(networkInterface.displayName + ":" + inetAddress.getHostAddress())
-                }
-            }
-        } catch (ex: SocketException) {
-        }
-
-        return ipList
-    }
-
+    //TODO UPDATE THIS
     fun getServerAddresses(): String {
         if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] getServerAddresses")
         val addresses = StringBuilder(getString(R.string.service_go_to))
@@ -401,7 +385,7 @@ class ForegroundService : Service(), ForegroundServiceView {
                 while (enumIpAddr.hasMoreElements()) {
                     val inetAddress = enumIpAddr.nextElement()
                     if (!inetAddress.isLoopbackAddress && inetAddress is Inet4Address)
-                        addresses.append("http://").append(inetAddress.hostAddress).append(":").append(mSettingsHelper.severPort).append("\n")
+                        addresses.append("http://").append(inetAddress.hostAddress).append(":").append(mSettings.severPort).append("\n")
                 }
             }
         } catch (ex: Throwable) {
@@ -409,5 +393,26 @@ class ForegroundService : Service(), ForegroundServiceView {
             Crashlytics.logException(ex)
         }
         return addresses.toString()
+    }
+
+    fun getInterfaces(): List<ForegroundServiceView.Interface> {
+        if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] getInterfaces")
+        val interfaceList = ArrayList<ForegroundServiceView.Interface>()
+        try {
+            val enumeration = NetworkInterface.getNetworkInterfaces()
+            while (enumeration.hasMoreElements()) {
+                val networkInterface = enumeration.nextElement()
+                val enumIpAddr = networkInterface.inetAddresses
+                while (enumIpAddr.hasMoreElements()) {
+                    val inetAddress = enumIpAddr.nextElement()
+                    if (!inetAddress.isLoopbackAddress && inetAddress is Inet4Address)
+                        interfaceList.add(ForegroundServiceView.Interface(networkInterface.displayName, inetAddress.hostAddress))
+                }
+            }
+        } catch (ex: Throwable) {
+            if (BuildConfig.DEBUG_MODE) Log.e(TAG, ex.toString())
+            Crashlytics.logException(ex)
+        }
+        return interfaceList
     }
 }

@@ -24,20 +24,18 @@ import com.mikepenz.materialdrawer.model.PrimaryDrawerItem
 import info.dvkr.screenstream.BuildConfig
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.dagger.component.NonConfigurationComponent
-import info.dvkr.screenstream.model.AppEvent
 import info.dvkr.screenstream.model.Settings
 import info.dvkr.screenstream.presenter.StartActivityPresenter
 import info.dvkr.screenstream.service.ForegroundService
+import info.dvkr.screenstream.service.ForegroundServiceView
 import kotlinx.android.synthetic.main.activity_start.*
 import rx.Observable
+import rx.android.schedulers.AndroidSchedulers
 import rx.subjects.PublishSubject
-import rx.subscriptions.CompositeSubscription
-import java.net.Inet4Address
-import java.net.InetSocketAddress
-import java.net.NetworkInterface
 import javax.inject.Inject
 
 class StartActivity : BaseActivity(), StartActivityView {
+
     private val TAG = "StartActivity"
 
     companion object {
@@ -68,14 +66,57 @@ class StartActivity : BaseActivity(), StartActivityView {
         }
     }
 
-    private val mSubscriptions = CompositeSubscription()
-    private val mStartEvents = PublishSubject.create<StartActivityView.Event>()
-
     @Inject internal lateinit var mPresenter: StartActivityPresenter
     @Inject internal lateinit var mSettings: Settings
 
+    private val mFromEvents = PublishSubject.create<StartActivityView.FromEvent>()
+
     private lateinit var mDrawer: Drawer
     private var mDialog: Dialog? = null
+
+    override fun fromEvent(): Observable<StartActivityView.FromEvent> = mFromEvents.asObservable()
+
+    override fun toEvent(toEvent: StartActivityView.ToEvent) {
+        Observable.just(toEvent).observeOn(AndroidSchedulers.mainThread()).subscribe { event ->
+            if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] toEvent: ${event.javaClass.simpleName}")
+
+            when (event) {
+                is StartActivityView.ToEvent.TryToStart -> {
+                    val projectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
+                    startActivityForResult(projectionManager.createScreenCaptureIntent(), REQUEST_CODE_SCREEN_CAPTURE)
+                }
+
+                is StartActivityView.ToEvent.StreamStart -> {
+                    toggleButtonStartStop.isChecked = true
+
+                    if (mSettings.enablePin && mSettings.hidePinOnStart)
+                        textViewPinValue.setText(R.string.start_activity_pin_asterisks)
+
+                    if (mSettings.minimizeOnStream)
+                        startActivity(Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME).setFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                }
+
+                is StartActivityView.ToEvent.StreamStop -> {
+                    toggleButtonStartStop.isChecked = false
+
+                    if (mSettings.enablePin && mSettings.hidePinOnStart)
+                        textViewPinValue.text = mSettings.currentPin
+                }
+
+                is StartActivityView.ToEvent.ResizeFactor -> showResizeFactor(event.value)
+                is StartActivityView.ToEvent.EnablePin -> showEnablePin(event.value)
+                is StartActivityView.ToEvent.SetPin -> textViewPinValue.text = event.value
+
+                is StartActivityView.ToEvent.CurrentClients -> {
+                    textViewConnectedClients.text = getString(R.string.start_activity_connected_clients).format(event.clientsList.size)
+                }
+
+                is StartActivityView.ToEvent.CurrentInterfaces -> {
+                    showServerAddresses(event.interfaceList, mSettings.severPort)
+                }
+            }
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -89,18 +130,13 @@ class StartActivity : BaseActivity(), StartActivityView {
 
         mPresenter.attach(this)
 
-        mSubscriptions.add(mSettings.resizeFactorObservable.subscribe({ this.showResizeFactor(it) }))
-        mSubscriptions.add(mSettings.enablePinObservable.subscribe({ this.showEnablePin(it) }))
-        mSubscriptions.add(mSettings.currentPinObservable.subscribe({ textViewPinValue.text = it }))
-        mSubscriptions.add(mSettings.severPortObservable.subscribe({ this.showServerAddresses(it) }))
-
         toggleButtonStartStop.setOnClickListener { _ ->
             if (toggleButtonStartStop.isChecked) {
                 toggleButtonStartStop.isChecked = false
-                mStartEvents.onNext(StartActivityView.Event.TryStartStream())
+                mFromEvents.onNext(StartActivityView.FromEvent.TryStartStream())
             } else {
                 toggleButtonStartStop.isChecked = true
-                mStartEvents.onNext(StartActivityView.Event.StopStream())
+                mFromEvents.onNext(StartActivityView.FromEvent.StopStream())
             }
         }
 
@@ -147,10 +183,14 @@ class StartActivity : BaseActivity(), StartActivityView {
                         startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/dkrivoruchko/ScreenStream")))
                     }
 
-                    if (drawerItem.identifier == 9L) mStartEvents.onNext(StartActivityView.Event.AppExit())
+                    if (drawerItem.identifier == 9L) mFromEvents.onNext(StartActivityView.FromEvent.AppExit())
                     true
                 }
                 .build()
+
+        showResizeFactor(mSettings.resizeFactor)
+        showEnablePin(mSettings.enablePin)
+        textViewPinValue.text = mSettings.currentPin
 
         onNewIntent(intent)
         if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] onCreate: End")
@@ -166,15 +206,15 @@ class StartActivity : BaseActivity(), StartActivityView {
         when (action) {
             ACTION_START_STREAM -> {
                 toggleButtonStartStop.isChecked = false
-                mStartEvents.onNext(StartActivityView.Event.TryStartStream())
+                mFromEvents.onNext(StartActivityView.FromEvent.TryStartStream())
             }
 
             ACTION_STOP_STREAM -> {
                 toggleButtonStartStop.isChecked = true
-                mStartEvents.onNext(StartActivityView.Event.StopStream())
+                mFromEvents.onNext(StartActivityView.FromEvent.StopStream())
             }
 
-            ACTION_EXIT -> mStartEvents.onNext(StartActivityView.Event.AppExit())
+            ACTION_EXIT -> mFromEvents.onNext(StartActivityView.FromEvent.AppExit())
 
             ACTION_UNKNOWN_ERROR -> {
                 val errorDescription = intent.getStringExtra(ACTION_UNKNOWN_ERROR)
@@ -196,7 +236,6 @@ class StartActivity : BaseActivity(), StartActivityView {
 
     override fun onDestroy() {
         if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] onDestroy: Start")
-        mSubscriptions.clear()
         mDialog?.let { if (it.isShowing) it.dismiss() }
         mPresenter.detach()
         if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] onDestroy: End")
@@ -224,48 +263,35 @@ class StartActivity : BaseActivity(), StartActivityView {
         }
     }
 
-    override fun onEvent(): Observable<StartActivityView.Event> = mStartEvents.asObservable()
 
-    override fun onAppStatus(appStatus: Set<String>) {
-        if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] onAppStatus")
+    //    override fun onAppStatus(appStatus: Set<String>) {
+//        if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] onAppStatus")
+//
+//        toggleButtonStartStop.isEnabled = appStatus.isEmpty()
+//
+//        if (appStatus.contains(AppStatus.APP_STATUS_ERROR_SERVER_PORT_BUSY))
+//            showErrorDialog(getString(R.string.start_activity_error_port_in_use))
+//
+//        if (appStatus.contains(AppStatus.APP_STATUS_ERROR_WRONG_IMAGE_FORMAT))
+//            showErrorDialog(getString(R.string.start_activity_error_wrong_image_format))
+//    }
+//
 
-        toggleButtonStartStop.isEnabled = appStatus.isEmpty()
+    // Private methods
 
-        if (appStatus.contains(AppEvent.APP_STATUS_ERROR_SERVER_PORT_BUSY))
-            showErrorDialog(getString(R.string.start_activity_error_port_in_use))
+    private fun showServerAddresses(interfaceList: List<ForegroundServiceView.Interface>, serverPort: Int) {
+        if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] showServerAddresses")
 
-        if (appStatus.contains(AppEvent.APP_STATUS_ERROR_WRONG_IMAGE_FORMAT))
-            showErrorDialog(getString(R.string.start_activity_error_wrong_image_format))
-    }
-
-    override fun onTryToStart() {
-        if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] onTryToStart")
-        val projectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
-        startActivityForResult(projectionManager.createScreenCaptureIntent(), REQUEST_CODE_SCREEN_CAPTURE)
-    }
-
-    override fun onStreamStart() {
-        if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] onStreamStart")
-        toggleButtonStartStop.isChecked = true
-
-        if (mSettings.enablePin && mSettings.hidePinOnStart)
-            textViewPinValue.setText(R.string.start_activity_pin_asterisks)
-
-        if (mSettings.minimizeOnStream)
-            startActivity(Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME).setFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-    }
-
-    override fun onStreamStop() {
-        if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] onStreamStop")
-        toggleButtonStartStop.isChecked = false
-
-        if (mSettings.enablePin && mSettings.hidePinOnStart)
-            textViewPinValue.text = mSettings.currentPin
-    }
-
-    override fun onConnectedClients(clientAddresses: List<InetSocketAddress>) {
-        if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] onConnectedClients")
-        textViewConnectedClients.text = getString(R.string.start_activity_connected_clients).format(clientAddresses.size)
+        linearLayoutServerAddressList.removeAllViews()
+        val layoutInflater = LayoutInflater.from(this)
+        for (item in interfaceList) {
+            val addressView = layoutInflater.inflate(R.layout.server_address, null)
+            val interfaceView = addressView.findViewById(R.id.textViewInterfaceName) as TextView
+            interfaceView.text = "${item.name}:"
+            val interfaceAddress = addressView.findViewById(R.id.textViewInterfaceAddress) as TextView
+            interfaceAddress.text = "http://${item.address}:$serverPort"
+            linearLayoutServerAddressList.addView(addressView)
+        }
     }
 
     private fun showResizeFactor(resizeFactor: Int) {
@@ -290,34 +316,6 @@ class StartActivity : BaseActivity(), StartActivityView {
             textViewPinDisabled.visibility = View.VISIBLE
             textViewPinText.visibility = View.GONE
             textViewPinValue.visibility = View.GONE
-        }
-    }
-
-    private fun showServerAddresses(serverPort: Int) {
-        if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] showServerAddresses")
-
-        linearLayoutServerAddressList.removeAllViews()
-        val layoutInflater = LayoutInflater.from(this)
-        try {
-            val enumeration = NetworkInterface.getNetworkInterfaces()
-            while (enumeration.hasMoreElements()) {
-                val networkInterface = enumeration.nextElement()
-                val enumIpAddr = networkInterface.inetAddresses
-                while (enumIpAddr.hasMoreElements()) {
-                    val inetAddress = enumIpAddr.nextElement()
-                    if (!inetAddress.isLoopbackAddress && inetAddress is Inet4Address) {
-                        val addressView = layoutInflater.inflate(R.layout.server_address, null)
-                        val interfaceView = addressView.findViewById(R.id.textViewInterfaceName) as TextView
-                        interfaceView.text = "${networkInterface.displayName}:"
-                        val interfaceAddress = addressView.findViewById(R.id.textViewInterfaceAddress) as TextView
-                        interfaceAddress.text = "http://${inetAddress.hostAddress}:$serverPort"
-                        linearLayoutServerAddressList.addView(addressView)
-                    }
-                }
-            }
-        } catch (ex: Throwable) {
-            if (BuildConfig.DEBUG_MODE) Log.e(TAG, ex.toString())
-            Crashlytics.logException(ex)
         }
     }
 

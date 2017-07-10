@@ -2,10 +2,10 @@ package info.dvkr.screenstream.model
 
 
 import android.support.annotation.Keep
-import rx.Observable
 import java.net.InetSocketAddress
 
 interface HttpServer {
+
     companion object {
         // Constants in index.html
         const val BACKGROUND_COLOR = "BACKGROUND_COLOR"
@@ -30,14 +30,10 @@ interface HttpServer {
         const val HTTP_SERVER_ERROR_PORT_BUSY = "HTTP_SERVER_ERROR_PORT_BUSY"
     }
 
-    sealed class ClientEvent {
-        @Keep data class ClientConnected(val clientAddress: InetSocketAddress) : ClientEvent()
-        @Keep data class ClientDisconnected(val clientAddress: InetSocketAddress) : ClientEvent()
-    }
+    // Clients
+    @Keep data class Client(val clientAddress: InetSocketAddress,
+                            var hasBackpressure: Boolean = false,
+                            var disconnected: Boolean = false)
 
     fun stop()
-
-    fun isRunning(): Boolean
-
-    fun onClientStatusChange(): Observable<ClientEvent>
 }

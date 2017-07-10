@@ -3,24 +3,33 @@ package info.dvkr.screenstream.presenter
 
 import info.dvkr.screenstream.BuildConfig
 import info.dvkr.screenstream.dagger.PersistentScope
-import info.dvkr.screenstream.model.AppEvent
+import info.dvkr.screenstream.model.EventBus
 import info.dvkr.screenstream.model.HttpServer
 import info.dvkr.screenstream.model.ImageNotify
 import info.dvkr.screenstream.model.Settings
 import info.dvkr.screenstream.model.httpserver.HttpServerImpl
 import info.dvkr.screenstream.service.ForegroundServiceView
+import rx.Scheduler
 import rx.functions.Action1
 import rx.subscriptions.CompositeSubscription
 import java.net.InetSocketAddress
 import java.util.*
+import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
 
 @PersistentScope
-class ForegroundServicePresenter @Inject internal constructor(val mSettingsHelper: Settings, val mAppEvent: AppEvent) {
+class ForegroundServicePresenter @Inject internal constructor(val mEventScheduler: Scheduler,
+                                                              val mEventBus: EventBus,
+                                                              val mSettings: Settings) {
     private val TAG = "ForegroundServicePresenter"
+
+    private val isStreamRunning: AtomicBoolean = AtomicBoolean(false)
+//    private val mKnownErrors: BehaviorSubject<ForegroundServiceView.KnownErrors> =
+//            BehaviorSubject.create(ForegroundServiceView.KnownErrors(false, false))
+
     private val mSubscriptions = CompositeSubscription()
-    private val mClientSubscriptions = CompositeSubscription()
     private val mRandom = Random()
+
     private var mForegroundService: ForegroundServiceView? = null
     private var mHttpServer: HttpServer? = null
 
@@ -35,98 +44,112 @@ class ForegroundServicePresenter @Inject internal constructor(val mSettingsHelpe
         mForegroundService = foregroundService
 
         // Events from ForegroundService
-        mSubscriptions.add(mForegroundService?.onEvent()?.subscribe { event ->
-            if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] onFGSEvent: ${event.javaClass.simpleName}")
+        mSubscriptions.add(mForegroundService?.fromEvent()?.observeOn(mEventScheduler)?.subscribe { event ->
+            if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] fromEvent: ${event.javaClass.simpleName}")
 
             when (event) {
-                is ForegroundServiceView.Event.Init -> {
-                    if (mSettingsHelper.enablePin && mSettingsHelper.newPinOnAppStart)
-                        mSettingsHelper.currentPin = randomPin()
+                is ForegroundServiceView.FromEvent.Init -> {
+                    if (mSettings.enablePin && mSettings.newPinOnAppStart)
+                        mSettings.currentPin = randomPin()
 
-                    mForegroundService?.sendEvent(ForegroundServiceView.Event.StartHttpServerRequest())
+                    mForegroundService?.toEvent(ForegroundServiceView.ToEvent.StartHttpServer())
                 }
 
-                is ForegroundServiceView.Event.StartHttpServer -> {
-                    mClientSubscriptions.clear()
-                    mAppEvent.clearClients()
-                    mHttpServer?.let { if (it.isRunning()) it.stop() }
+                is ForegroundServiceView.FromEvent.StartHttpServer -> {
+                    mHttpServer?.stop()
                     mHttpServer = null
 
-                    val (favicon, baseIndexHtml, basePinRequestHtml, pinRequestErrorMsg) = event
+                    val (favicon, baseIndexHtml, basePinRequestHtml, pinRequestErrorMsg, jpegByteStream) = event
 
-                    mHttpServer = HttpServerImpl(InetSocketAddress(mSettingsHelper.severPort),
+                    mHttpServer = HttpServerImpl(InetSocketAddress(mSettings.severPort),
                             favicon,
                             baseIndexHtml,
-                            mSettingsHelper.htmlBackColor,
-                            mSettingsHelper.disableMJPEGCheck,
-                            mSettingsHelper.enablePin,
-                            mSettingsHelper.currentPin,
+                            mSettings.htmlBackColor,
+                            mSettings.disableMJPEGCheck,
+                            mSettings.enablePin,
+                            mSettings.currentPin,
                             basePinRequestHtml,
                             pinRequestErrorMsg,
-                            mAppEvent.getJpegBytesStream().asObservable(),
+                            jpegByteStream,
+                            mEventBus,
                             Action1 { status ->
-                                mAppEvent.sendEvent(AppEvent.Event.AppStatus(status))
+                                //                                mAppEvent.sendEvent(AppStatus.Event.AppStatus(status))
                             })
 
-                    mClientSubscriptions.add(
-                            mHttpServer?.onClientStatusChange()?.subscribe { clientStatus -> mAppEvent.sendClientEvent(clientStatus) }
-                    )
-
-                    mForegroundService?.sendEvent(ForegroundServiceView.Event.Notify(ImageNotify.IMAGE_TYPE_DEFAULT))
+                    mForegroundService?.toEvent(ForegroundServiceView.ToEvent.NotifyImage(ImageNotify.IMAGE_TYPE_DEFAULT))
                 }
 
-                is ForegroundServiceView.Event.StopHttpServer -> {
-                    mClientSubscriptions.clear()
-                    mAppEvent.clearClients()
-                    mHttpServer?.let { if (it.isRunning()) it.stop() }
+                is ForegroundServiceView.FromEvent.StopHttpServer -> {
+                    mHttpServer?.stop()
                     mHttpServer = null
                 }
 
-                is ForegroundServiceView.Event.StopStreamComplete -> {
-                    if (mSettingsHelper.enablePin && mSettingsHelper.autoChangePin) {
-                        mSettingsHelper.currentPin = randomPin()
-                        mAppEvent.sendEvent(AppEvent.Event.HttpServerRestart(ImageNotify.IMAGE_TYPE_RELOAD_PAGE))
+                is ForegroundServiceView.FromEvent.StopStreamComplete -> {
+                    if (mSettings.enablePin && mSettings.autoChangePin) {
+                        mSettings.currentPin = randomPin()
+                        mEventBus.sendEvent(EventBus.GlobalEvent.HttpServerRestart(ImageNotify.IMAGE_TYPE_RELOAD_PAGE))
                     }
-                    mForegroundService?.sendEvent(ForegroundServiceView.Event.Notify(ImageNotify.IMAGE_TYPE_DEFAULT))
+                    mForegroundService?.toEvent(ForegroundServiceView.ToEvent.NotifyImage(ImageNotify.IMAGE_TYPE_DEFAULT))
                 }
 
-                is ForegroundServiceView.Event.ScreenOff -> {
-                    if (mSettingsHelper.stopOnSleep && mAppEvent.getStreamRunning().value)
-                        mForegroundService?.sendEvent(ForegroundServiceView.Event.StopStream(true))
+                is ForegroundServiceView.FromEvent.ScreenOff -> {
+                    if (mSettings.stopOnSleep && isStreamRunning.get())
+                        mForegroundService?.toEvent(ForegroundServiceView.ToEvent.StopStream())
+                }
+
+                is ForegroundServiceView.FromEvent.CurrentInterfaces -> {
+                    mEventBus.sendEvent(EventBus.GlobalEvent.CurrentInterfaces(event.interfaceList))
                 }
             }
         })
 
-        // Events from App
-        mSubscriptions.add(mAppEvent.onEvent().subscribe { event ->
-            if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] onAppEvent: ${event.javaClass.simpleName}")
+        // Global events
+        mSubscriptions.add(mEventBus.getEvent().observeOn(mEventScheduler).subscribe { globalEvent ->
+            if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] globalEvent: ${globalEvent.javaClass.simpleName}")
 
-            when (event) {
-                is AppEvent.Event.StopStream -> { // From StartActivityPresenter
-                    mForegroundService?.sendEvent(ForegroundServiceView.Event.StopStream(true))
+            when (globalEvent) {
+            // From StartActivityPresenter
+                is EventBus.GlobalEvent.StreamStatusRequest -> {
+                    mEventBus.sendEvent(EventBus.GlobalEvent.StreamStatus(isStreamRunning.get()))
                 }
 
-                is AppEvent.Event.HttpServerRestart -> { // From SettingsActivityPresenter, ForegroundServicePresenter
-                    val restartReason = event.restartReason
-                    mForegroundService?.sendEvent(ForegroundServiceView.Event.StopStream(false))
-                    mForegroundService?.sendEvent(ForegroundServiceView.Event.Notify(restartReason))
-                    mForegroundService?.sendEvent(ForegroundServiceView.Event.StopHttpServer(), 1000)
-                    mForegroundService?.sendEvent(ForegroundServiceView.Event.StartHttpServerRequest(), 1100)
+            // From ImageGeneratorImpl
+                is EventBus.GlobalEvent.StreamStatus -> {
+                    isStreamRunning.set(globalEvent.isStreamRunning)
                 }
 
-                is AppEvent.Event.AppExit -> { // From StartActivityPresenter
-                    mForegroundService?.sendEvent(ForegroundServiceView.Event.AppExit())
+            // From StartActivityPresenter & ProjectionCallback
+                is EventBus.GlobalEvent.StopStream -> {
+                    if (!isStreamRunning.get()) throw IllegalStateException("WARRING: Stream in not running")
+                    mForegroundService?.toEvent(ForegroundServiceView.ToEvent.StopStream())
                 }
 
-                is AppEvent.Event.AppStatus -> { // From ImageGeneratorImpl, HttpServerImpl
-                    mForegroundService?.sendEvent(ForegroundServiceView.Event.AppStatus())
+            // From StartActivityPresenter
+                is EventBus.GlobalEvent.AppExit -> {
+                    mForegroundService?.toEvent(ForegroundServiceView.ToEvent.AppExit())
                 }
 
-                is AppEvent.Event.AppError -> { // From ImageGeneratorImpl
-                    mForegroundService?.sendEvent(ForegroundServiceView.Event.StopStream(true))
-                    val (exception) = event
-                    mForegroundService?.sendEvent(ForegroundServiceView.Event.AppError(exception))
+            // From SettingsActivityPresenter, ForegroundServicePresenter
+                is EventBus.GlobalEvent.HttpServerRestart -> {
+                    val restartReason = globalEvent.reason
+                    if (isStreamRunning.get())
+                        mForegroundService?.toEvent(ForegroundServiceView.ToEvent.StopStream(false))
+
+                    mForegroundService?.toEvent(ForegroundServiceView.ToEvent.NotifyImage(restartReason))
+// TODO                    mForegroundService?.toEvent(ForegroundServiceView.ToEvent.StopHttpServer(), 1000)
+                    mForegroundService?.toEvent(ForegroundServiceView.ToEvent.StartHttpServer(), 1000)
                 }
+
+
+                is EventBus.GlobalEvent.CurrentInterfacesRequest -> {
+                    mForegroundService?.toEvent(ForegroundServiceView.ToEvent.CurrentInterfacesRequest())
+                }
+
+            // From ImageGeneratorImpl, HttpServerImpl
+//                is AppStatus.Event.AppStatus -> {
+//                    mForegroundService?.toEvent(ForegroundServiceView.ToEvent.AppStatus())
+//                }
+
             }
         })
     }
