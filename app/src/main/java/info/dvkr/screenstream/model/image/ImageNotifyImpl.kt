@@ -10,31 +10,31 @@ import java.io.ByteArrayOutputStream
 class ImageNotifyImpl(context: Context) : ImageNotify {
     private val TAG = "ImageNotifyImpl"
 
-    private var mImageDefault: ByteArray? = null
-    private var mImageReloadPage: ByteArray? = null
-    private var mImageNewAddress: ByteArray? = null
+    private var imageDefault: ByteArray? = null
+    private var imageReloadPage: ByteArray? = null
+    private var imageNewAddress: ByteArray? = null
 
-    private val mDefaultText: String = context.getString(R.string.image_generator_press)
-    private val mReloadPageText: String = context.getString(R.string.image_generator_reload_this_page)
-    private val mNewAddressText: String = context.getString(R.string.image_generator_go_to_new_address)
+    private val defaultText: String = context.getString(R.string.image_generator_press)
+    private val reloadPageText: String = context.getString(R.string.image_generator_reload_this_page)
+    private val newAddressText: String = context.getString(R.string.image_generator_go_to_new_address)
 
     override fun getImage(imageType: String): ByteArray {
         println(TAG + ": Thread [" + Thread.currentThread().name + "] getImage: " + imageType)
 
         when (imageType) {
             ImageNotify.IMAGE_TYPE_DEFAULT -> {
-                if (null == mImageDefault) mImageDefault = generateImage(mDefaultText)
-                return mImageDefault!!
+                if (null == imageDefault) imageDefault = generateImage(defaultText)
+                return imageDefault!!
             }
 
             ImageNotify.IMAGE_TYPE_RELOAD_PAGE -> {
-                if (null == mImageReloadPage) mImageReloadPage = generateImage(mReloadPageText)
-                return mImageReloadPage!!
+                if (null == imageReloadPage) imageReloadPage = generateImage(reloadPageText)
+                return imageReloadPage!!
             }
 
             ImageNotify.IMAGE_TYPE_NEW_ADDRESS -> {
-                if (null == mImageNewAddress) mImageNewAddress = generateImage(mNewAddressText)
-                return mImageNewAddress!!
+                if (null == imageNewAddress) imageNewAddress = generateImage(newAddressText)
+                return imageNewAddress!!
             }
 
             else -> return ByteArray(0)

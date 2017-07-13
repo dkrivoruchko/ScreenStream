@@ -7,7 +7,6 @@ import rx.Observable
 
 interface EventBus {
 
-    // TODO Split on  from & to ???
     @Keep sealed class GlobalEvent {
         // From StartActivityPresenter to ForegroundServicePresenter
         @Keep class StreamStatusRequest : GlobalEvent()
@@ -40,7 +39,7 @@ interface EventBus {
         @Keep class CurrentClientsRequest : GlobalEvent()
 
         // From HttpServer to SettingsActivityPresenter
-        @Keep data class CurrentClients(val clientsList: List<HttpServer.Client>) : GlobalEvent()
+        @Keep data class CurrentClients(val clientsList: Collection<HttpServer.Client>) : GlobalEvent()
 
         // From StartActivityPresenter to ForegroundServicePresenter
         @Keep class CurrentInterfacesRequest : GlobalEvent()

@@ -12,14 +12,16 @@ import io.netty.channel.socket.nio.NioServerSocketChannel
 import io.netty.util.ResourceLeakDetector
 import io.reactivex.netty.RxNetty
 import rx.Observable
+import rx.Scheduler
 import rx.functions.Action1
 import rx.subjects.BehaviorSubject
 import rx.subscriptions.CompositeSubscription
 import java.net.BindException
 import java.net.InetSocketAddress
 import java.util.*
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
-import kotlin.collections.ArrayList
+import kotlin.collections.HashMap
 
 class HttpServerImpl constructor(serverAddress: InetSocketAddress,
                                  favicon: ByteArray,
@@ -31,7 +33,8 @@ class HttpServerImpl constructor(serverAddress: InetSocketAddress,
                                  basePinRequestHtmlPage: String,
                                  pinRequestErrorMsg: String,
                                  jpegBytesStream: Observable<ByteArray>,
-                                 private val mEventBus: EventBus, // TODO This is bad
+                                 eventBus: EventBus,
+                                 private val eventScheduler: Scheduler,
                                  onStatus: Action1<String>) : HttpServer {
     private val TAG = "HttpServerImpl"
 
@@ -56,20 +59,22 @@ class HttpServerImpl constructor(serverAddress: InetSocketAddress,
     }
 
     // Server internal components
-    private val mGlobalServerEventLoop: EventLoopGroup = RxNetty.getRxEventLoopProvider().globalServerEventLoop()
-    private val mHttpServer: io.reactivex.netty.protocol.http.server.HttpServer<ByteBuf, ByteBuf>
-    private val mHttpServerRxHandler: HttpServerRxHandler
+    private val globalServerEventLoop: EventLoopGroup = RxNetty.getRxEventLoopProvider().globalServerEventLoop()
+    private val httpServer: io.reactivex.netty.protocol.http.server.HttpServer<ByteBuf, ByteBuf>
+    private val httpServerRxHandler: HttpServerRxHandler
     private val isRunning: AtomicBoolean = AtomicBoolean(false)
-    private val mSubscriptions = CompositeSubscription()
+    private val subscriptions = CompositeSubscription()
 
     // Clients
     sealed class LocalEvent {
         @Keep data class ClientConnected(val address: InetSocketAddress) : LocalEvent()
+        @Keep data class ClientBytesCount(val address: InetSocketAddress, val bytesCount: Int) : LocalEvent()
         @Keep data class ClientDisconnected(val address: InetSocketAddress) : LocalEvent()
         @Keep data class ClientBackpressure(val address: InetSocketAddress) : LocalEvent()
     }
 
-    private val mClients = BehaviorSubject.create<List<HttpServer.Client>>(ArrayList<HttpServer.Client>())
+    private val clientsMap = HashMap<InetSocketAddress, HttpServer.Client>()
+    private val clientsEvents = BehaviorSubject.create<Collection<HttpServer.Client>>()
 
     init {
         if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] HttpServer: Create")
@@ -77,14 +82,20 @@ class HttpServerImpl constructor(serverAddress: InetSocketAddress,
         val httpServerPort = serverAddress.port
         if (httpServerPort !in 1025..65535) throw IllegalArgumentException("Tcp port must be in range [1025, 65535]")
 
-        mSubscriptions.add(mEventBus.getEvent().subscribe { globalEvent ->
-            when (globalEvent) {
-                is EventBus.GlobalEvent.CurrentClientsRequest ->
-                    mEventBus.sendEvent(EventBus.GlobalEvent.CurrentClients(mClients.value))
+        subscriptions.add(eventBus.getEvent().subscribe { globalEvent ->
+            if (globalEvent is EventBus.GlobalEvent.CurrentClientsRequest) {
+                if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] globalEvent: $globalEvent")
+                eventBus.sendEvent(EventBus.GlobalEvent.CurrentClients(clientsMap.values))
             }
         })
 
-        mHttpServer = io.reactivex.netty.protocol.http.server.HttpServer.newServer(serverAddress, mGlobalServerEventLoop, NioServerSocketChannel::class.java)
+        subscriptions.add(clientsEvents
+                .throttleLast(1, TimeUnit.SECONDS, eventScheduler).subscribe { clientsList ->
+            //            if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] clientsList: $clientsList")
+            eventBus.sendEvent(EventBus.GlobalEvent.CurrentClients(clientsList))
+        })
+
+        httpServer = io.reactivex.netty.protocol.http.server.HttpServer.newServer(serverAddress, globalServerEventLoop, NioServerSocketChannel::class.java)
                 .clientChannelOption(ChannelOption.CONNECT_TIMEOUT_MILLIS, 3000)
 //                .enableWireLogging(LogLevel.ERROR);
 
@@ -106,7 +117,7 @@ class HttpServerImpl constructor(serverAddress: InetSocketAddress,
         val pinRequestHtmlPage = basePinRequestHtmlPage.replaceFirst(HttpServer.WRONG_PIN_MESSAGE.toRegex(), "&nbsp")
         val pinRequestErrorHtmlPage = basePinRequestHtmlPage.replaceFirst(HttpServer.WRONG_PIN_MESSAGE.toRegex(), pinRequestErrorMsg)
 
-        mHttpServerRxHandler = HttpServerRxHandler(
+        httpServerRxHandler = HttpServerRxHandler(
                 favicon,
                 indexHtmlPage,
                 pinEnabled,
@@ -118,13 +129,13 @@ class HttpServerImpl constructor(serverAddress: InetSocketAddress,
                 jpegBytesStream)
 
         try {
-            mHttpServer.start(mHttpServerRxHandler)
+            httpServer.start(httpServerRxHandler)
             isRunning.set(true)
 
-            onStatus.call(HttpServer.HTTP_SERVER_OK) // ????
+            onStatus.call(HttpServer.HTTP_SERVER_OK) //toDO ????
 
-            mEventBus.sendEvent(EventBus.GlobalEvent.CurrentClients(mClients.value))
-            if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] HttpServer: Started @port: ${mHttpServer.serverPort}")
+            eventBus.sendEvent(EventBus.GlobalEvent.CurrentClients(clientsMap.values))
+            if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] HttpServer: Started @port: ${httpServer.serverPort}")
         } catch (exception: BindException) {
             onStatus.call(HttpServer.HTTP_SERVER_ERROR_PORT_BUSY)
             if (BuildConfig.DEBUG_MODE) println(TAG + exception)
@@ -135,43 +146,26 @@ class HttpServerImpl constructor(serverAddress: InetSocketAddress,
         if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] HttpServer: Stop")
         if (!isRunning.get()) throw IllegalStateException("Http server is not running")
 
-        mHttpServer.shutdown()
-        mHttpServer.awaitShutdown()
-        mHttpServerRxHandler.stop()
-        mGlobalServerEventLoop.shutdownGracefully()
-        mSubscriptions.clear()
+        httpServer.shutdown()
+        httpServer.awaitShutdown()
+        httpServerRxHandler.stop()
+        globalServerEventLoop.shutdownGracefully()
+        subscriptions.clear()
         RxNetty.useEventLoopProvider(HttpServerNioLoopProvider(NETTY_IO_THREADS_NUMBER))
         isRunning.set(false)
     }
 
     fun toEvent(event: LocalEvent) {
-        if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] toEvent: ${event.javaClass.simpleName}")
+        Observable.just(event).observeOn(eventScheduler).subscribe { toEvent ->
+            //            if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] toEvent: $toEvent")
 
-        when (event) {
-            is LocalEvent.ClientConnected -> {
-                val clientsList = mClients.value.plusElement(HttpServer.Client(event.address))
-                mEventBus.sendEvent(EventBus.GlobalEvent.CurrentClients(clientsList))
+            when (toEvent) {
+                is LocalEvent.ClientConnected -> clientsMap.put(toEvent.address, HttpServer.Client(toEvent.address))
+                is LocalEvent.ClientBytesCount -> clientsMap[toEvent.address]?.let { it.sendBytes = it.sendBytes.plus(toEvent.bytesCount) }
+                is LocalEvent.ClientDisconnected -> clientsMap[toEvent.address]?.disconnected = true
+                is LocalEvent.ClientBackpressure -> clientsMap[toEvent.address]?.hasBackpressure = true
             }
-
-            is LocalEvent.ClientDisconnected -> {
-                mClients.value.forEach { client ->
-                    if (client.clientAddress == event.address) {
-                        client.disconnected = true
-                        return@forEach
-                    }
-                }
-                mEventBus.sendEvent(EventBus.GlobalEvent.CurrentClients(mClients.value))
-            }
-
-            is LocalEvent.ClientBackpressure -> {
-                mClients.value.forEach { client ->
-                    if (client.clientAddress == event.address) {
-                        client.hasBackpressure = true
-                        return@forEach
-                    }
-                }
-                mEventBus.sendEvent(EventBus.GlobalEvent.CurrentClients(mClients.value))
-            }
+            clientsEvents.onNext(clientsMap.values)
         }
     }
 }

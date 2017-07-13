@@ -30,6 +30,7 @@ import info.dvkr.screenstream.ui.StartActivity
 import rx.Observable
 import rx.Scheduler
 import rx.functions.Action1
+import rx.schedulers.Schedulers
 import rx.subjects.BehaviorSubject
 import rx.subjects.PublishSubject
 import rx.subscriptions.CompositeSubscription
@@ -68,42 +69,42 @@ class ForegroundService : Service(), ForegroundServiceView {
         @Keep data class StartStream(val intent: Intent) : ForegroundServiceView.ToEvent()
     }
 
-    @Inject internal lateinit var mPresenter: ForegroundServicePresenter
-    @Inject internal lateinit var mSettings: Settings
-    @Inject internal lateinit var mEventScheduler: Scheduler
-    @Inject internal lateinit var mEventBus: EventBus
-    @Inject internal lateinit var mImageNotify: ImageNotify
+    @Inject internal lateinit var presenter: ForegroundServicePresenter
+    @Inject internal lateinit var settings: Settings
+    @Inject internal lateinit var eventScheduler: Scheduler
+    @Inject internal lateinit var eventBus: EventBus
+    @Inject internal lateinit var imageNotify: ImageNotify
 
     private val isForegroundServiceInit = AtomicBoolean(false)
-    private val mSubscriptions = CompositeSubscription()
-    private val mFromEvents = PublishSubject.create<ForegroundServiceView.FromEvent>()
-    private val mToEvents = PublishSubject.create<ForegroundServiceView.ToEvent>()
+    private val subscriptions = CompositeSubscription()
+    private val fromEvents = PublishSubject.create<ForegroundServiceView.FromEvent>()
+    private val toEvents = PublishSubject.create<ForegroundServiceView.ToEvent>()
 
-    private val mJpegBytesStream = BehaviorSubject.create<ByteArray>()
-    private val mMediaProjection = AtomicReference<MediaProjection?>()
-    private val mProjectionCallback = AtomicReference<MediaProjection.Callback?>()
-    private val mImageGenerator = AtomicReference<ImageGenerator?>()
-    private val mConnectionEvents = PublishSubject.create<String>()
+    private val jpegBytesStream = BehaviorSubject.create<ByteArray>()
+    private val mediaProjection = AtomicReference<MediaProjection?>()
+    private val projectionCallback = AtomicReference<MediaProjection.Callback?>()
+    private val imageGenerator = AtomicReference<ImageGenerator?>()
+    private val connectionEvents = PublishSubject.create<String>()
 
     // Base values
-    private lateinit var mFavicon: ByteArray
-    private lateinit var mBaseIndexHtml: String
-    private lateinit var mBasePinRequestHtml: String
-    private lateinit var mPinRequestErrorMsg: String
+    private lateinit var baseFavicon: ByteArray
+    private lateinit var baseIndexHtml: String
+    private lateinit var basePinRequestHtml: String
+    private lateinit var pinRequestErrorMsg: String
 
     override fun fromEvent(): Observable<ForegroundServiceView.FromEvent> {
-        return mFromEvents
-                .observeOn(mEventScheduler) // TODO
+        return fromEvents
+                .observeOn(eventScheduler) // TODO
                 .asObservable()
     }
 
     override fun toEvent(event: ForegroundServiceView.ToEvent) {
-        mToEvents.onNext(event)
+        toEvents.onNext(event)
     }
 
     override fun toEvent(event: ForegroundServiceView.ToEvent, timeout: Long) {
         Observable.just<ForegroundServiceView.ToEvent>(event)
-                .delay(timeout, TimeUnit.MILLISECONDS, mEventScheduler)
+                .delay(timeout, TimeUnit.MILLISECONDS, eventScheduler)
                 .subscribe({ toEvent(it) })
     }
 
@@ -112,61 +113,62 @@ class ForegroundService : Service(), ForegroundServiceView {
         if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] onCreate: Start")
 
         (application as ScreenStreamApp).appComponent().plusActivityComponent().inject(this)
-        mPresenter.attach(this)
+        presenter.attach(this)
 
-        mSubscriptions.add(mToEvents.startWith(ForegroundService.LocalEvent.StartService())
-                .observeOn(mEventScheduler).subscribe({ event ->
+        subscriptions.add(toEvents.startWith(ForegroundService.LocalEvent.StartService())
+                .observeOn(eventScheduler).subscribe({ event ->
 
             if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] toEvent: " + event.javaClass.simpleName)
 
             when (event) {
                 is ForegroundService.LocalEvent.StartService -> {
-                    mFavicon = getFavicon(applicationContext)
-                    mBaseIndexHtml = getBaseIndexHtml(applicationContext)
-                    mBasePinRequestHtml = getBasePinRequestHtml(applicationContext)
-                    mPinRequestErrorMsg = applicationContext.getString(R.string.html_wrong_pin)
+                    baseFavicon = getFavicon(applicationContext)
+                    baseIndexHtml = getBaseIndexHtml(applicationContext)
+                    basePinRequestHtml = getBasePinRequestHtml(applicationContext)
+                    pinRequestErrorMsg = applicationContext.getString(R.string.html_wrong_pin)
                 }
 
                 is ForegroundServiceView.ToEvent.StartHttpServer -> {
-                    mFromEvents.onNext(ForegroundServiceView.FromEvent.StartHttpServer(
-                            mFavicon,
-                            mBaseIndexHtml,
-                            mBasePinRequestHtml,
-                            mPinRequestErrorMsg,
-                            mJpegBytesStream.asObservable())
+                    fromEvents.onNext(ForegroundServiceView.FromEvent.StartHttpServer(
+                            baseFavicon,
+                            baseIndexHtml,
+                            basePinRequestHtml,
+                            pinRequestErrorMsg,
+                            jpegBytesStream.asObservable())
                     )
                 }
 
                 is ForegroundServiceView.ToEvent.NotifyImage -> {
-                    val notifyType = event.notifyType
-                    mJpegBytesStream.onNext(mImageNotify.getImage(notifyType))
-                    mJpegBytesStream.onNext(mImageNotify.getImage(notifyType)) // TODO need better solution
+                    Observable.just(event.notifyType).observeOn(Schedulers.computation())
+                            .map { notifyType -> imageNotify.getImage(notifyType) }
+                            .subscribe { byteArray -> jpegBytesStream.onNext(byteArray) }
+                    // TODO need better solution
                 }
 
                 is ForegroundService.LocalEvent.StartStream -> {
                     val data = event.intent
                     val projectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
-                    val mediaProjection = projectionManager.getMediaProjection(Activity.RESULT_OK, data)
-                    if (null == mediaProjection) IllegalStateException(TAG + ": mediaProjection == null")
-                    mMediaProjection.set(mediaProjection)
-                    mImageGenerator.set(ImageGeneratorImpl(
+                    val projection = projectionManager.getMediaProjection(Activity.RESULT_OK, data)
+                    if (null == projection) IllegalStateException(TAG + ": mediaProjection == null")
+                    mediaProjection.set(projection)
+                    imageGenerator.set(ImageGeneratorImpl(
                             applicationContext,
-                            mediaProjection,
-                            mEventScheduler,
-                            mEventBus,
-                            mSettings.resizeFactor,
-                            mSettings.jpegQuality,
-                            Action1 { imageByteArray -> mJpegBytesStream.onNext(imageByteArray) })
+                            projection,
+                            eventScheduler,
+                            eventBus,
+                            settings.resizeFactor,
+                            settings.jpegQuality,
+                            Action1 { imageByteArray -> jpegBytesStream.onNext(imageByteArray) })
                     )
                     stopForeground(true)
                     startForeground(NOTIFICATION_STOP_STREAMING, getNotification(NOTIFICATION_STOP_STREAMING))
-                    mProjectionCallback.set(object : MediaProjection.Callback() {
+                    projectionCallback.set(object : MediaProjection.Callback() {
                         override fun onStop() {
                             if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] ProjectionCallback")
-                            mEventBus.sendEvent(EventBus.GlobalEvent.StopStream())
+                            eventBus.sendEvent(EventBus.GlobalEvent.StopStream())
                         }
                     })
-                    mediaProjection.registerCallback(mProjectionCallback.get(), null)
+                    projection.registerCallback(projectionCallback.get(), null)
                 }
 
                 is ForegroundServiceView.ToEvent.StopStream -> {
@@ -174,7 +176,7 @@ class ForegroundService : Service(), ForegroundServiceView {
                     stopMediaProjection()
                     startForeground(NOTIFICATION_START_STREAMING, getNotification(NOTIFICATION_START_STREAMING))
                     if (event.isNotifyOnComplete)
-                        mFromEvents.onNext(ForegroundServiceView.FromEvent.StopStreamComplete())
+                        fromEvents.onNext(ForegroundServiceView.FromEvent.StopStreamComplete())
                 }
 
                 is ForegroundServiceView.ToEvent.AppExit -> {
@@ -182,7 +184,7 @@ class ForegroundService : Service(), ForegroundServiceView {
                 }
 
                 is ForegroundServiceView.ToEvent.CurrentInterfacesRequest -> {
-                    mFromEvents.onNext(ForegroundServiceView.FromEvent.CurrentInterfaces(getInterfaces()))
+                    fromEvents.onNext(ForegroundServiceView.FromEvent.CurrentInterfaces(getInterfaces()))
                 }
 
 //                is ForegroundServiceView.ToEvent.AppStatus -> {
@@ -202,21 +204,21 @@ class ForegroundService : Service(), ForegroundServiceView {
         intentFilter.addAction(WifiManager.WIFI_STATE_CHANGED_ACTION)
         intentFilter.addAction(ConnectivityManager.CONNECTIVITY_ACTION)
 
-        mSubscriptions.add(RxBroadcast.fromBroadcast(applicationContext, intentFilter)
+        subscriptions.add(RxBroadcast.fromBroadcast(applicationContext, intentFilter)
                 .map<String>({ it.action })
-                .observeOn(mEventScheduler)
+                .observeOn(eventScheduler)
                 .subscribe { action ->
                     if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] Action: " + action)
                     when (action) {
-                        Intent.ACTION_SCREEN_OFF -> mFromEvents.onNext(ForegroundServiceView.FromEvent.ScreenOff())
-                        WifiManager.WIFI_STATE_CHANGED_ACTION -> mConnectionEvents.onNext(WifiManager.WIFI_STATE_CHANGED_ACTION)
-                        ConnectivityManager.CONNECTIVITY_ACTION -> mConnectionEvents.onNext(ConnectivityManager.CONNECTIVITY_ACTION)
+                        Intent.ACTION_SCREEN_OFF -> fromEvents.onNext(ForegroundServiceView.FromEvent.ScreenOff())
+                        WifiManager.WIFI_STATE_CHANGED_ACTION -> connectionEvents.onNext(WifiManager.WIFI_STATE_CHANGED_ACTION)
+                        ConnectivityManager.CONNECTIVITY_ACTION -> connectionEvents.onNext(ConnectivityManager.CONNECTIVITY_ACTION)
                     }
                 })
 
-        mSubscriptions.add(mConnectionEvents
-                .throttleWithTimeout(500, TimeUnit.MILLISECONDS, mEventScheduler)
-                .subscribe { _ -> mFromEvents.onNext(ForegroundServiceView.FromEvent.CurrentInterfaces(getInterfaces())) }
+        subscriptions.add(connectionEvents
+                .throttleWithTimeout(500, TimeUnit.MILLISECONDS, eventScheduler)
+                .subscribe { _ -> fromEvents.onNext(ForegroundServiceView.FromEvent.CurrentInterfaces(getInterfaces())) }
         )
 
         startForeground(NOTIFICATION_START_STREAMING, getNotification(NOTIFICATION_START_STREAMING))
@@ -241,7 +243,7 @@ class ForegroundService : Service(), ForegroundServiceView {
 
         when (action) {
             ACTION_INIT -> if (!isForegroundServiceInit.get()) {
-                mFromEvents.onNext(ForegroundServiceView.FromEvent.Init())
+                fromEvents.onNext(ForegroundServiceView.FromEvent.Init())
                 isForegroundServiceInit.set(true)
             }
 
@@ -250,18 +252,18 @@ class ForegroundService : Service(), ForegroundServiceView {
             }
 
             ACTION_START_STREAM ->
-                mToEvents.onNext(ForegroundService.LocalEvent.StartStream(intent.getParcelableExtra<Intent>(Intent.EXTRA_INTENT)))
+                toEvents.onNext(ForegroundService.LocalEvent.StartStream(intent.getParcelableExtra<Intent>(Intent.EXTRA_INTENT)))
         }
         return Service.START_NOT_STICKY
     }
 
     override fun onDestroy() {
         if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] onDestroy: StartService")
-        mSubscriptions.clear()
+        subscriptions.clear()
         stopForeground(true)
         stopMediaProjection()
-        mFromEvents.onNext(ForegroundServiceView.FromEvent.StopHttpServer())
-        mPresenter.detach()
+        fromEvents.onNext(ForegroundServiceView.FromEvent.StopHttpServer())
+        presenter.detach()
         super.onDestroy()
         if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] onDestroy: Done")
         System.exit(0)
@@ -272,25 +274,18 @@ class ForegroundService : Service(), ForegroundServiceView {
     private fun stopMediaProjection() {
         if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] stopMediaProjection")
 
-//        ScreenStreamApp.getRefWatcher().watch(mMediaProjection)
-//        ScreenStreamApp.getRefWatcher().watch(mProjectionCallback)
-//        ScreenStreamApp.getRefWatcher().watch(mImageGenerator)
+//        ScreenStreamApp.getRefWatcher().watch(mediaProjection1)
+//        ScreenStreamApp.getRefWatcher().watch(projectionCallback)
+//        ScreenStreamApp.getRefWatcher().watch(imageGenerator)
 
-        val mediaProjection = mMediaProjection.get()
-        if (null != mediaProjection) {
-            val callback = mProjectionCallback.get()
-            if (null != callback) {
-                mediaProjection.unregisterCallback(callback)
-                mProjectionCallback.set(null)
-            }
-            mediaProjection.stop()
-            mMediaProjection.set(null)
+        mediaProjection.get()?.apply {
+            projectionCallback.get()?.let { unregisterCallback(it) }
+            stop()
         }
-        val imageGenerator = mImageGenerator.get()
-        if (null != imageGenerator) {
-            imageGenerator.stop()
-            mImageGenerator.set(null)
-        }
+        projectionCallback.set(null)
+        mediaProjection.set(null)
+        imageGenerator.get()?.stop()
+        imageGenerator.set(null)
     }
 
     private fun getNotification(notificationType: Int): Notification {
@@ -352,7 +347,7 @@ class ForegroundService : Service(), ForegroundServiceView {
 
     private fun getFavicon(context: Context): ByteArray {
         val iconBytes = getFileFromAssets(context, "favicon.ico")
-        if (iconBytes.isEmpty()) throw IllegalStateException("favicon.ico is empty")
+        if (iconBytes.isEmpty()) throw IllegalStateException("baseFavicon.ico is empty")
         return iconBytes
     }
 
@@ -385,7 +380,7 @@ class ForegroundService : Service(), ForegroundServiceView {
                 while (enumIpAddr.hasMoreElements()) {
                     val inetAddress = enumIpAddr.nextElement()
                     if (!inetAddress.isLoopbackAddress && inetAddress is Inet4Address)
-                        addresses.append("http://").append(inetAddress.hostAddress).append(":").append(mSettings.severPort).append("\n")
+                        addresses.append("http://").append(inetAddress.hostAddress).append(":").append(settings.severPort).append("\n")
                 }
             }
         } catch (ex: Throwable) {

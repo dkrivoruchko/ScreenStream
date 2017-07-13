@@ -15,7 +15,7 @@ import io.fabric.sdk.android.Fabric
 
 class ScreenStreamApp : Application() {
     private val TAG = "ScreenStreamApp"
-    private lateinit var mAppComponent: AppComponent
+    private lateinit var appComponent: AppComponent
 
     override fun onCreate() {
         super.onCreate()
@@ -52,7 +52,7 @@ class ScreenStreamApp : Application() {
         // Initialize Fabric with the debug-disabled crashlytics.
         Fabric.with(this, crashlyticsKit)
 
-        mAppComponent = DaggerAppComponent.builder()
+        appComponent = DaggerAppComponent.builder()
                 .appModule(AppModule(this))
                 .settingsModule(SettingsModule())
                 .build()
@@ -60,5 +60,5 @@ class ScreenStreamApp : Application() {
         if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] onCreate: End")
     }
 
-    fun appComponent(): AppComponent = mAppComponent
+    fun appComponent(): AppComponent = appComponent
 }

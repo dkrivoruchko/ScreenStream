@@ -5,10 +5,9 @@ import rx.Observable
 import rx.subjects.PublishSubject
 
 class EventBusImpl : EventBus {
-    private val mEvents = PublishSubject.create<EventBus.GlobalEvent>()
-// TODO Thread ?
+    private val events = PublishSubject.create<EventBus.GlobalEvent>()
 
-    override fun getEvent(): Observable<EventBus.GlobalEvent> = mEvents.asObservable()
+    override fun getEvent(): Observable<EventBus.GlobalEvent> = events.asObservable()
 
-    override fun sendEvent(event: EventBus.GlobalEvent) = mEvents.onNext(event)
+    override fun sendEvent(event: EventBus.GlobalEvent) = events.onNext(event)
 }

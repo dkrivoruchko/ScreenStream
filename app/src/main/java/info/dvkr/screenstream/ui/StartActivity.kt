@@ -66,15 +66,15 @@ class StartActivity : BaseActivity(), StartActivityView {
         }
     }
 
-    @Inject internal lateinit var mPresenter: StartActivityPresenter
-    @Inject internal lateinit var mSettings: Settings
+    @Inject internal lateinit var presenter: StartActivityPresenter
+    @Inject internal lateinit var settings: Settings
 
-    private val mFromEvents = PublishSubject.create<StartActivityView.FromEvent>()
+    private val fromEvents = PublishSubject.create<StartActivityView.FromEvent>()
 
-    private lateinit var mDrawer: Drawer
-    private var mDialog: Dialog? = null
+    private lateinit var drawer: Drawer
+    private var dialog: Dialog? = null
 
-    override fun fromEvent(): Observable<StartActivityView.FromEvent> = mFromEvents.asObservable()
+    override fun fromEvent(): Observable<StartActivityView.FromEvent> = fromEvents.asObservable()
 
     override fun toEvent(toEvent: StartActivityView.ToEvent) {
         Observable.just(toEvent).observeOn(AndroidSchedulers.mainThread()).subscribe { event ->
@@ -89,18 +89,18 @@ class StartActivity : BaseActivity(), StartActivityView {
                 is StartActivityView.ToEvent.StreamStart -> {
                     toggleButtonStartStop.isChecked = true
 
-                    if (mSettings.enablePin && mSettings.hidePinOnStart)
+                    if (settings.enablePin && settings.hidePinOnStart)
                         textViewPinValue.setText(R.string.start_activity_pin_asterisks)
 
-                    if (mSettings.minimizeOnStream)
+                    if (settings.minimizeOnStream)
                         startActivity(Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME).setFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
                 }
 
                 is StartActivityView.ToEvent.StreamStop -> {
                     toggleButtonStartStop.isChecked = false
 
-                    if (mSettings.enablePin && mSettings.hidePinOnStart)
-                        textViewPinValue.text = mSettings.currentPin
+                    if (settings.enablePin && settings.hidePinOnStart)
+                        textViewPinValue.text = settings.currentPin
                 }
 
                 is StartActivityView.ToEvent.ResizeFactor -> showResizeFactor(event.value)
@@ -112,7 +112,7 @@ class StartActivity : BaseActivity(), StartActivityView {
                 }
 
                 is StartActivityView.ToEvent.CurrentInterfaces -> {
-                    showServerAddresses(event.interfaceList, mSettings.severPort)
+                    showServerAddresses(event.interfaceList, settings.severPort)
                 }
             }
         }
@@ -128,19 +128,19 @@ class StartActivity : BaseActivity(), StartActivityView {
 
         startService(ForegroundService.getIntent(applicationContext, ForegroundService.ACTION_INIT))
 
-        mPresenter.attach(this)
+        presenter.attach(this)
 
         toggleButtonStartStop.setOnClickListener { _ ->
             if (toggleButtonStartStop.isChecked) {
                 toggleButtonStartStop.isChecked = false
-                mFromEvents.onNext(StartActivityView.FromEvent.TryStartStream())
+                fromEvents.onNext(StartActivityView.FromEvent.TryStartStream())
             } else {
                 toggleButtonStartStop.isChecked = true
-                mFromEvents.onNext(StartActivityView.FromEvent.StopStream())
+                fromEvents.onNext(StartActivityView.FromEvent.StopStream())
             }
         }
 
-        mDrawer = DrawerBuilder()
+        drawer = DrawerBuilder()
                 .withActivity(this)
                 .withToolbar(toolbarStart)
                 .withHeader(R.layout.activity_start_drawer_header)
@@ -183,14 +183,14 @@ class StartActivity : BaseActivity(), StartActivityView {
                         startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/dkrivoruchko/ScreenStream")))
                     }
 
-                    if (drawerItem.identifier == 9L) mFromEvents.onNext(StartActivityView.FromEvent.AppExit())
+                    if (drawerItem.identifier == 9L) fromEvents.onNext(StartActivityView.FromEvent.AppExit())
                     true
                 }
                 .build()
 
-        showResizeFactor(mSettings.resizeFactor)
-        showEnablePin(mSettings.enablePin)
-        textViewPinValue.text = mSettings.currentPin
+        showResizeFactor(settings.resizeFactor)
+        showEnablePin(settings.enablePin)
+        textViewPinValue.text = settings.currentPin
 
         onNewIntent(intent)
         if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] onCreate: End")
@@ -206,15 +206,15 @@ class StartActivity : BaseActivity(), StartActivityView {
         when (action) {
             ACTION_START_STREAM -> {
                 toggleButtonStartStop.isChecked = false
-                mFromEvents.onNext(StartActivityView.FromEvent.TryStartStream())
+                fromEvents.onNext(StartActivityView.FromEvent.TryStartStream())
             }
 
             ACTION_STOP_STREAM -> {
                 toggleButtonStartStop.isChecked = true
-                mFromEvents.onNext(StartActivityView.FromEvent.StopStream())
+                fromEvents.onNext(StartActivityView.FromEvent.StopStream())
             }
 
-            ACTION_EXIT -> mFromEvents.onNext(StartActivityView.FromEvent.AppExit())
+            ACTION_EXIT -> fromEvents.onNext(StartActivityView.FromEvent.AppExit())
 
             ACTION_UNKNOWN_ERROR -> {
                 val errorDescription = intent.getStringExtra(ACTION_UNKNOWN_ERROR)
@@ -224,11 +224,11 @@ class StartActivity : BaseActivity(), StartActivityView {
     }
 
     override fun onBackPressed() {
-        if (mDrawer.isDrawerOpen) mDrawer.closeDrawer() else mDrawer.openDrawer()
+        if (drawer.isDrawerOpen) drawer.closeDrawer() else drawer.openDrawer()
     }
 
     override fun onStop() {
-        if (mDrawer.isDrawerOpen) mDrawer.closeDrawer()
+        if (drawer.isDrawerOpen) drawer.closeDrawer()
         super.onStop()
     }
 
@@ -236,8 +236,8 @@ class StartActivity : BaseActivity(), StartActivityView {
 
     override fun onDestroy() {
         if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] onDestroy: Start")
-        mDialog?.let { if (it.isShowing) it.dismiss() }
-        mPresenter.detach()
+        dialog?.let { if (it.isShowing) it.dismiss() }
+        presenter.detach()
         if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] onDestroy: End")
         super.onDestroy()
     }
@@ -308,7 +308,7 @@ class StartActivity : BaseActivity(), StartActivityView {
     private fun showEnablePin(enablePin: Boolean) {
         if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] showEnablePin")
         if (enablePin) {
-            textViewPinValue.text = mSettings.currentPin
+            textViewPinValue.text = settings.currentPin
             textViewPinDisabled.visibility = View.GONE
             textViewPinText.visibility = View.VISIBLE
             textViewPinValue.visibility = View.VISIBLE
@@ -320,13 +320,13 @@ class StartActivity : BaseActivity(), StartActivityView {
     }
 
     private fun showErrorDialog(errorMessage: String) {
-        mDialog = AlertDialog.Builder(this)
+        dialog = AlertDialog.Builder(this)
                 .setIcon(R.drawable.ic_message_error_24dp)
                 .setTitle(R.string.start_activity_error_title)
                 .setMessage(errorMessage)
                 .setCancelable(false)
                 .setPositiveButton(android.R.string.ok, null)
                 .create()
-        mDialog?.show()
+        dialog?.show()
     }
 }

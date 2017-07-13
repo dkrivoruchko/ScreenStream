@@ -15,27 +15,27 @@ import javax.inject.Singleton
 
 @Singleton
 @Module
-class AppModule(private val mApplication: Application) {
+class AppModule(private val application: Application) {
 
-    private val mEventThread = HandlerThread("SSEventThread")
-    private val mEventScheduler: Scheduler
+    private val eventThread = HandlerThread("SSEventThread")
+    private val eventScheduler: Scheduler
 
     init {
-        mEventThread.start()
-        mEventScheduler = AndroidSchedulers.from(mEventThread.looper)
+        eventThread.start()
+        eventScheduler = AndroidSchedulers.from(eventThread.looper)
     }
 
     @Provides
     @Singleton
-    internal fun providesApplication(): Application = mApplication
+    internal fun providesApplication(): Application = application
 
     @Provides
     @Singleton
-    internal fun provideContext(): Context = mApplication.applicationContext
+    internal fun provideContext(): Context = application.applicationContext
 
     @Provides
     @Singleton
-    internal fun provideEventScheduler(): Scheduler = mEventScheduler
+    internal fun provideEventScheduler(): Scheduler = eventScheduler
 
     // TODO Is this correct place?
     @Provides

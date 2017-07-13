@@ -10,104 +10,108 @@ import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
 
 @PersistentScope
-class StartActivityPresenter @Inject internal constructor(private val mEventScheduler: Scheduler,
-                                                          private val mEventBus: EventBus) {
+class StartActivityPresenter @Inject internal constructor(private val eventScheduler: Scheduler,
+                                                          private val eventBus: EventBus) {
     private val TAG = "StartActivityPresenter"
 
-    private val isStreamRunning: AtomicBoolean = AtomicBoolean(false) // TODO Can data from FGSP used ?
-    private val mSubscriptions = CompositeSubscription()
-    private var mStartActivity: StartActivityView? = null
+    private val isStreamRunning: AtomicBoolean = AtomicBoolean(false)
+    private val subscriptions = CompositeSubscription()
+    private var startActivity: StartActivityView? = null
 
     init {
         println(TAG + ": Thread [${Thread.currentThread().name}] Constructor")
     }
 
-    fun attach(startActivity: StartActivityView) {
+    fun attach(activity: StartActivityView) {
         println(TAG + ": Thread [${Thread.currentThread().name}] Attach")
 
-        if (null != mStartActivity) detach()
-        mStartActivity = startActivity
+        startActivity?.let { detach() }
+        startActivity = activity
 
         // Events from StartActivity
-        mSubscriptions.add(mStartActivity?.fromEvent()?.observeOn(mEventScheduler)?.subscribe { fromEvent ->
-            println(TAG + ": Thread [${Thread.currentThread().name}] fromEvent: ${fromEvent.javaClass.simpleName}")
+        subscriptions.add(startActivity?.fromEvent()?.observeOn(eventScheduler)?.subscribe { fromEvent ->
+            println(TAG + ": Thread [${Thread.currentThread().name}] fromEvent: $fromEvent")
             when (fromEvent) {
                 is StartActivityView.FromEvent.TryStartStream -> { // Sending message to StartActivity
                     if (isStreamRunning.get()) throw IllegalStateException("Stream already running")
-                    mStartActivity?.toEvent(StartActivityView.ToEvent.TryToStart())
+                    startActivity?.toEvent(StartActivityView.ToEvent.TryToStart())
                 }
 
                 is StartActivityView.FromEvent.StopStream -> { // Relaying message to ForegroundServicePresenter
                     if (!isStreamRunning.get()) throw IllegalStateException("Stream not running")
-                    mEventBus.sendEvent(EventBus.GlobalEvent.StopStream())
+                    eventBus.sendEvent(EventBus.GlobalEvent.StopStream())
                 }
 
                 is StartActivityView.FromEvent.AppExit -> { // Relaying message to ForegroundServicePresenter
-                    mEventBus.sendEvent(EventBus.GlobalEvent.AppExit())
+                    eventBus.sendEvent(EventBus.GlobalEvent.AppExit())
                 }
+
+                else -> println(TAG + ": Thread [${Thread.currentThread().name}] fromEvent: $fromEvent IGNORED")
             }
         })
 
         // Global events
-        mSubscriptions.add(mEventBus.getEvent().observeOn(mEventScheduler).subscribe { globalEvent ->
-            if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] globalEvent: ${globalEvent.javaClass.simpleName}")
+        subscriptions.add(eventBus.getEvent().observeOn(eventScheduler).subscribe { globalEvent ->
+            if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] globalEvent: $globalEvent")
 
             when (globalEvent) {
             // From ImageGeneratorImpl & ForegroundServicePresenter TODo Do mot minimise
                 is EventBus.GlobalEvent.StreamStatus -> {
                     isStreamRunning.set(globalEvent.isStreamRunning)
-                    if (isStreamRunning.get()) mStartActivity?.toEvent(StartActivityView.ToEvent.StreamStart())
-                    else mStartActivity?.toEvent(StartActivityView.ToEvent.StreamStop())
+                    if (isStreamRunning.get()) startActivity?.toEvent(StartActivityView.ToEvent.StreamStart())
+                    else startActivity?.toEvent(StartActivityView.ToEvent.StreamStop())
                 }
 
             // From SettingsActivityPresenter
                 is EventBus.GlobalEvent.ResizeFactor -> {
-                    mStartActivity?.toEvent(StartActivityView.ToEvent.ResizeFactor(globalEvent.value))
+                    startActivity?.toEvent(StartActivityView.ToEvent.ResizeFactor(globalEvent.value))
                 }
 
             // From SettingsActivityPresenter
                 is EventBus.GlobalEvent.EnablePin -> {
-                    mStartActivity?.toEvent(StartActivityView.ToEvent.EnablePin(globalEvent.value))
+                    startActivity?.toEvent(StartActivityView.ToEvent.EnablePin(globalEvent.value))
                 }
 
             // From SettingsActivityPresenter
                 is EventBus.GlobalEvent.SetPin -> {
-                    mStartActivity?.toEvent(StartActivityView.ToEvent.SetPin(globalEvent.value))
+                    startActivity?.toEvent(StartActivityView.ToEvent.SetPin(globalEvent.value))
                 }
 
             // From HttpServerImpl
                 is EventBus.GlobalEvent.CurrentClients -> {
-                    mStartActivity?.toEvent(StartActivityView.ToEvent.CurrentClients(globalEvent.clientsList))
+                    startActivity?.toEvent(StartActivityView.ToEvent.CurrentClients(globalEvent.clientsList))
                 }
 
             // From ForegroundServicePresenter
                 is EventBus.GlobalEvent.CurrentInterfaces -> {
-                    mStartActivity?.toEvent(StartActivityView.ToEvent.CurrentInterfaces(globalEvent.interfaceList))
+                    startActivity?.toEvent(StartActivityView.ToEvent.CurrentInterfaces(globalEvent.interfaceList))
                 }
+
+                else -> println(TAG + ": Thread [${Thread.currentThread().name}] fromEvent: $globalEvent IGNORED")
             }
         })
 
         // Requesting current stream status
-        mEventBus.sendEvent(EventBus.GlobalEvent.StreamStatusRequest())
+        eventBus.sendEvent(EventBus.GlobalEvent.StreamStatusRequest())
 
         // Requesting current clients
-        mEventBus.sendEvent(EventBus.GlobalEvent.CurrentClientsRequest())
+        eventBus.sendEvent(EventBus.GlobalEvent.CurrentClientsRequest())
 
         // Requesting current interfaces
-        mEventBus.sendEvent(EventBus.GlobalEvent.CurrentInterfacesRequest())
+        eventBus.sendEvent(EventBus.GlobalEvent.CurrentInterfacesRequest())
 
 
-//        mSubscriptions.add(mAppEvent.getAppStatus()
+//        subscriptions.add(mAppEvent.getAppStatus()
 //                .observeOn(AndroidSchedulers.mainThread())
-//                .subscribe { statusSet -> mStartActivity?.onAppStatus(statusSet) }
+//                .subscribe { statusSet -> startActivity?.onAppStatus(statusSet) }
 //        )
 
     }
 
     fun detach() {
         println(TAG + ": Thread [${Thread.currentThread().name}] Detach")
-        mSubscriptions.clear()
-        mStartActivity = null
+        subscriptions.clear()
+        startActivity = null
     }
 }
 

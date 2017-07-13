@@ -32,6 +32,7 @@ interface HttpServer {
 
     // Clients
     @Keep data class Client(val clientAddress: InetSocketAddress,
+                            var sendBytes: Long = 0,
                             var hasBackpressure: Boolean = false,
                             var disconnected: Boolean = false)
 

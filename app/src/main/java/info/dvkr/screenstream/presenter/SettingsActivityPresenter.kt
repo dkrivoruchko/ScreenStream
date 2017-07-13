@@ -15,101 +15,101 @@ import java.net.ServerSocket
 import javax.inject.Inject
 
 @PersistentScope
-class SettingsActivityPresenter @Inject internal constructor(private val mSettings: Settings,
-                                                             private val mEventScheduler: Scheduler,
-                                                             private val mEventBus: EventBus) {
+class SettingsActivityPresenter @Inject internal constructor(private val settings: Settings,
+                                                             private val eventScheduler: Scheduler,
+                                                             private val eventBus: EventBus) {
     private val TAG = "SettingsActivityPresenter"
 
-    private val mSubscriptions = CompositeSubscription()
-    private var mSettingsActivity: SettingsActivityView? = null
+    private val subscriptions = CompositeSubscription()
+    private var settingsActivity: SettingsActivityView? = null
 
     init {
         println(TAG + ": Thread [${Thread.currentThread().name}] Constructor")
         //TODO move to ???
         val ANSWERS_TAG = "SETTINGS"
-        Answers.getInstance().logCustom(CustomEvent(ANSWERS_TAG).putCustomAttribute("MinimizeOnStream", mSettings.minimizeOnStream.toString()))
-        Answers.getInstance().logCustom(CustomEvent(ANSWERS_TAG).putCustomAttribute("StopOnSleep", mSettings.stopOnSleep.toString()))
-        Answers.getInstance().logCustom(CustomEvent(ANSWERS_TAG).putCustomAttribute("StartOnBoot", mSettings.startOnBoot.toString()))
-        Answers.getInstance().logCustom(CustomEvent(ANSWERS_TAG).putCustomAttribute("DisableMjpegCheck", mSettings.disableMJPEGCheck.toString()))
-        Answers.getInstance().logCustom(CustomEvent(ANSWERS_TAG).putCustomAttribute("HtmlBackColor", mSettings.htmlBackColor.toString()))
-        Answers.getInstance().logCustom(CustomEvent(ANSWERS_TAG).putCustomAttribute("ResizeFactor", mSettings.resizeFactor.toString()))
-        Answers.getInstance().logCustom(CustomEvent(ANSWERS_TAG).putCustomAttribute("JpegQuality", mSettings.jpegQuality.toString()))
-        Answers.getInstance().logCustom(CustomEvent(ANSWERS_TAG).putCustomAttribute("EnablePin", mSettings.enablePin.toString()))
-        Answers.getInstance().logCustom(CustomEvent(ANSWERS_TAG).putCustomAttribute("HidePinOnStart", mSettings.hidePinOnStart.toString()))
-        Answers.getInstance().logCustom(CustomEvent(ANSWERS_TAG).putCustomAttribute("NewPinOnAppStart", mSettings.newPinOnAppStart.toString()))
-        Answers.getInstance().logCustom(CustomEvent(ANSWERS_TAG).putCustomAttribute("AutoChangePin", mSettings.autoChangePin.toString()))
-        Answers.getInstance().logCustom(CustomEvent(ANSWERS_TAG).putCustomAttribute("ServerPort", mSettings.severPort.toString()))
+        Answers.getInstance().logCustom(CustomEvent(ANSWERS_TAG).putCustomAttribute("MinimizeOnStream", settings.minimizeOnStream.toString()))
+        Answers.getInstance().logCustom(CustomEvent(ANSWERS_TAG).putCustomAttribute("StopOnSleep", settings.stopOnSleep.toString()))
+        Answers.getInstance().logCustom(CustomEvent(ANSWERS_TAG).putCustomAttribute("StartOnBoot", settings.startOnBoot.toString()))
+        Answers.getInstance().logCustom(CustomEvent(ANSWERS_TAG).putCustomAttribute("DisableMjpegCheck", settings.disableMJPEGCheck.toString()))
+        Answers.getInstance().logCustom(CustomEvent(ANSWERS_TAG).putCustomAttribute("HtmlBackColor", settings.htmlBackColor.toString()))
+        Answers.getInstance().logCustom(CustomEvent(ANSWERS_TAG).putCustomAttribute("ResizeFactor", settings.resizeFactor.toString()))
+        Answers.getInstance().logCustom(CustomEvent(ANSWERS_TAG).putCustomAttribute("JpegQuality", settings.jpegQuality.toString()))
+        Answers.getInstance().logCustom(CustomEvent(ANSWERS_TAG).putCustomAttribute("EnablePin", settings.enablePin.toString()))
+        Answers.getInstance().logCustom(CustomEvent(ANSWERS_TAG).putCustomAttribute("HidePinOnStart", settings.hidePinOnStart.toString()))
+        Answers.getInstance().logCustom(CustomEvent(ANSWERS_TAG).putCustomAttribute("NewPinOnAppStart", settings.newPinOnAppStart.toString()))
+        Answers.getInstance().logCustom(CustomEvent(ANSWERS_TAG).putCustomAttribute("AutoChangePin", settings.autoChangePin.toString()))
+        Answers.getInstance().logCustom(CustomEvent(ANSWERS_TAG).putCustomAttribute("ServerPort", settings.severPort.toString()))
     }
 
-    fun attach(startActivity: SettingsActivityView) {
+    fun attach(activity: SettingsActivityView) {
         println(TAG + ": Thread [${Thread.currentThread().name}] Attach")
 
-        if (null != mSettingsActivity) detach()
-        mSettingsActivity = startActivity
+        settingsActivity?.let { detach() }
+        settingsActivity = activity
 
         // Setting current values
-        mSettingsActivity?.let {
-            it.toEvent(SettingsActivityView.ToEvent.MinimizeOnStream(mSettings.minimizeOnStream))
-            it.toEvent(SettingsActivityView.ToEvent.StopOnSleep(mSettings.stopOnSleep))
-            it.toEvent(SettingsActivityView.ToEvent.StartOnBoot(mSettings.startOnBoot))
-            it.toEvent(SettingsActivityView.ToEvent.DisableMjpegCheck(mSettings.disableMJPEGCheck))
-            it.toEvent(SettingsActivityView.ToEvent.HtmlBackColor(mSettings.htmlBackColor))
-            it.toEvent(SettingsActivityView.ToEvent.ResizeFactor(mSettings.resizeFactor))
-            it.toEvent(SettingsActivityView.ToEvent.JpegQuality(mSettings.jpegQuality))
-            it.toEvent(SettingsActivityView.ToEvent.EnablePin(mSettings.enablePin))
-            it.toEvent(SettingsActivityView.ToEvent.HidePinOnStart(mSettings.hidePinOnStart))
-            it.toEvent(SettingsActivityView.ToEvent.NewPinOnAppStart(mSettings.newPinOnAppStart))
-            it.toEvent(SettingsActivityView.ToEvent.AutoChangePin(mSettings.autoChangePin))
-            it.toEvent(SettingsActivityView.ToEvent.SetPin(mSettings.currentPin))
-            it.toEvent(SettingsActivityView.ToEvent.ServerPort(mSettings.severPort))
+        settingsActivity?.let {
+            it.toEvent(SettingsActivityView.ToEvent.MinimizeOnStream(settings.minimizeOnStream))
+            it.toEvent(SettingsActivityView.ToEvent.StopOnSleep(settings.stopOnSleep))
+            it.toEvent(SettingsActivityView.ToEvent.StartOnBoot(settings.startOnBoot))
+            it.toEvent(SettingsActivityView.ToEvent.DisableMjpegCheck(settings.disableMJPEGCheck))
+            it.toEvent(SettingsActivityView.ToEvent.HtmlBackColor(settings.htmlBackColor))
+            it.toEvent(SettingsActivityView.ToEvent.ResizeFactor(settings.resizeFactor))
+            it.toEvent(SettingsActivityView.ToEvent.JpegQuality(settings.jpegQuality))
+            it.toEvent(SettingsActivityView.ToEvent.EnablePin(settings.enablePin))
+            it.toEvent(SettingsActivityView.ToEvent.HidePinOnStart(settings.hidePinOnStart))
+            it.toEvent(SettingsActivityView.ToEvent.NewPinOnAppStart(settings.newPinOnAppStart))
+            it.toEvent(SettingsActivityView.ToEvent.AutoChangePin(settings.autoChangePin))
+            it.toEvent(SettingsActivityView.ToEvent.SetPin(settings.currentPin))
+            it.toEvent(SettingsActivityView.ToEvent.ServerPort(settings.severPort))
         }
 
         // Getting values from Activity
-        mSubscriptions.add(mSettingsActivity?.fromEvent()?.observeOn(mEventScheduler)?.subscribe { fromEvent ->
-            println(TAG + ": Thread [${Thread.currentThread().name}] fromEvent: " + fromEvent.javaClass.simpleName)
+        subscriptions.add(settingsActivity?.fromEvent()?.observeOn(eventScheduler)?.subscribe { fromEvent ->
+            println(TAG + ": Thread [${Thread.currentThread().name}] fromEvent: $fromEvent")
 
             when (fromEvent) {
-                is SettingsActivityView.FromEvent.MinimizeOnStream -> mSettings.minimizeOnStream = fromEvent.value
-                is SettingsActivityView.FromEvent.StopOnSleep -> mSettings.stopOnSleep = fromEvent.value
-                is SettingsActivityView.FromEvent.StartOnBoot -> mSettings.startOnBoot = fromEvent.value
+                is SettingsActivityView.FromEvent.MinimizeOnStream -> settings.minimizeOnStream = fromEvent.value
+                is SettingsActivityView.FromEvent.StopOnSleep -> settings.stopOnSleep = fromEvent.value
+                is SettingsActivityView.FromEvent.StartOnBoot -> settings.startOnBoot = fromEvent.value
 
                 is SettingsActivityView.FromEvent.DisableMjpegCheck -> {
-                    mSettings.disableMJPEGCheck = fromEvent.value
-                    mEventBus.sendEvent(EventBus.GlobalEvent.HttpServerRestart(ImageNotify.IMAGE_TYPE_RELOAD_PAGE))
+                    settings.disableMJPEGCheck = fromEvent.value
+                    eventBus.sendEvent(EventBus.GlobalEvent.HttpServerRestart(ImageNotify.IMAGE_TYPE_RELOAD_PAGE))
                 }
 
                 is SettingsActivityView.FromEvent.HtmlBackColor -> {
-                    mSettings.htmlBackColor = fromEvent.value
-                    mEventBus.sendEvent(EventBus.GlobalEvent.HttpServerRestart(ImageNotify.IMAGE_TYPE_RELOAD_PAGE))
+                    settings.htmlBackColor = fromEvent.value
+                    eventBus.sendEvent(EventBus.GlobalEvent.HttpServerRestart(ImageNotify.IMAGE_TYPE_RELOAD_PAGE))
                 }
 
                 is SettingsActivityView.FromEvent.ResizeFactor -> {
-                    mSettings.resizeFactor = fromEvent.value
-                    mSettingsActivity?.toEvent(SettingsActivityView.ToEvent.ResizeFactor(fromEvent.value))
-                    mEventBus.sendEvent(EventBus.GlobalEvent.ResizeFactor(fromEvent.value))
+                    settings.resizeFactor = fromEvent.value
+                    settingsActivity?.toEvent(SettingsActivityView.ToEvent.ResizeFactor(fromEvent.value))
+                    eventBus.sendEvent(EventBus.GlobalEvent.ResizeFactor(fromEvent.value))
                 }
 
                 is SettingsActivityView.FromEvent.JpegQuality -> {
-                    mSettings.jpegQuality = fromEvent.value
-                    mSettingsActivity?.toEvent(SettingsActivityView.ToEvent.JpegQuality(fromEvent.value))
-                    mEventBus.sendEvent(EventBus.GlobalEvent.JpegQuality(fromEvent.value))
+                    settings.jpegQuality = fromEvent.value
+                    settingsActivity?.toEvent(SettingsActivityView.ToEvent.JpegQuality(fromEvent.value))
+                    eventBus.sendEvent(EventBus.GlobalEvent.JpegQuality(fromEvent.value))
                 }
 
                 is SettingsActivityView.FromEvent.EnablePin -> {
-                    mSettings.enablePin = fromEvent.value
-                    mEventBus.sendEvent(EventBus.GlobalEvent.HttpServerRestart(ImageNotify.IMAGE_TYPE_RELOAD_PAGE))
-                    mEventBus.sendEvent(EventBus.GlobalEvent.EnablePin(fromEvent.value))
+                    settings.enablePin = fromEvent.value
+                    eventBus.sendEvent(EventBus.GlobalEvent.HttpServerRestart(ImageNotify.IMAGE_TYPE_RELOAD_PAGE))
+                    eventBus.sendEvent(EventBus.GlobalEvent.EnablePin(fromEvent.value))
                 }
 
-                is SettingsActivityView.FromEvent.HidePinOnStart -> mSettings.hidePinOnStart = fromEvent.value
-                is SettingsActivityView.FromEvent.NewPinOnAppStart -> mSettings.newPinOnAppStart = fromEvent.value
-                is SettingsActivityView.FromEvent.AutoChangePin -> mSettings.autoChangePin = fromEvent.value
+                is SettingsActivityView.FromEvent.HidePinOnStart -> settings.hidePinOnStart = fromEvent.value
+                is SettingsActivityView.FromEvent.NewPinOnAppStart -> settings.newPinOnAppStart = fromEvent.value
+                is SettingsActivityView.FromEvent.AutoChangePin -> settings.autoChangePin = fromEvent.value
 
                 is SettingsActivityView.FromEvent.SetPin -> {
-                    mSettings.currentPin = fromEvent.value
-                    mSettingsActivity?.toEvent(SettingsActivityView.ToEvent.SetPin(fromEvent.value))
-                    mEventBus.sendEvent(EventBus.GlobalEvent.HttpServerRestart(ImageNotify.IMAGE_TYPE_RELOAD_PAGE))
-                    mEventBus.sendEvent(EventBus.GlobalEvent.SetPin(fromEvent.value))
+                    settings.currentPin = fromEvent.value
+                    settingsActivity?.toEvent(SettingsActivityView.ToEvent.SetPin(fromEvent.value))
+                    eventBus.sendEvent(EventBus.GlobalEvent.HttpServerRestart(ImageNotify.IMAGE_TYPE_RELOAD_PAGE))
+                    eventBus.sendEvent(EventBus.GlobalEvent.SetPin(fromEvent.value))
                 }
 
                 is SettingsActivityView.FromEvent.ServerPort -> {
@@ -125,22 +125,24 @@ class SettingsActivityPresenter @Inject internal constructor(private val mSettin
                     } finally {
                         serverSocket?.close()
                         if (portFree) {
-                            mSettings.severPort = fromEvent.value
-                            mSettingsActivity?.toEvent(SettingsActivityView.ToEvent.ServerPort(fromEvent.value))
-                            mEventBus.sendEvent(EventBus.GlobalEvent.HttpServerRestart(ImageNotify.IMAGE_TYPE_NEW_ADDRESS))
+                            settings.severPort = fromEvent.value
+                            settingsActivity?.toEvent(SettingsActivityView.ToEvent.ServerPort(fromEvent.value))
+                            eventBus.sendEvent(EventBus.GlobalEvent.HttpServerRestart(ImageNotify.IMAGE_TYPE_NEW_ADDRESS))
                         } else {
-                            mSettingsActivity?.toEvent(SettingsActivityView.ToEvent.ErrorServerPortBusy())
+                            settingsActivity?.toEvent(SettingsActivityView.ToEvent.ErrorServerPortBusy())
                             println(TAG + ": Thread [${Thread.currentThread().name}] ERROR: Port busy: ${fromEvent.value}")
                         }
                     }
                 }
+
+                else -> println(TAG + ": Thread [${Thread.currentThread().name}] fromEvent: $fromEvent IGNORED")
             }
         })
     }
 
     fun detach() {
         println(TAG + ": Thread [${Thread.currentThread().name}] Detach")
-        mSubscriptions.clear()
-        mSettingsActivity = null
+        subscriptions.clear()
+        settingsActivity = null
     }
 }

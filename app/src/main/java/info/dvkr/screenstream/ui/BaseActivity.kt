@@ -7,22 +7,22 @@ import info.dvkr.screenstream.ScreenStreamApp
 import info.dvkr.screenstream.dagger.component.NonConfigurationComponent
 
 abstract class BaseActivity : AppCompatActivity() {
-    private lateinit var mInjector: NonConfigurationComponent
+    private lateinit var injector: NonConfigurationComponent
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         val savedInjector = lastCustomNonConfigurationInstance
         if (null == savedInjector) {
-            mInjector = (application as ScreenStreamApp).appComponent().plusActivityComponent()
+            injector = (application as ScreenStreamApp).appComponent().plusActivityComponent()
         } else {
-            mInjector = savedInjector as NonConfigurationComponent
+            injector = savedInjector as NonConfigurationComponent
         }
 
-        inject(mInjector)
+        inject(injector)
     }
 
     abstract fun inject(injector: NonConfigurationComponent)
 
-    override fun onRetainCustomNonConfigurationInstance(): Any = mInjector
+    override fun onRetainCustomNonConfigurationInstance(): Any = injector
 }

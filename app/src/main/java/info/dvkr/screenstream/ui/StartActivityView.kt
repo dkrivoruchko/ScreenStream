@@ -34,7 +34,7 @@ interface StartActivityView {
         @Keep data class SetPin(val value: String) : ToEvent()
 
         // From HttpServer
-        @Keep data class CurrentClients(val clientsList: List<HttpServer.Client>) : ToEvent()
+        @Keep data class CurrentClients(val clientsList: Collection<HttpServer.Client>) : ToEvent()
 
         // From ForegroundServicePresenter
         @Keep data class CurrentInterfaces(val interfaceList: List<ForegroundServiceView.Interface>) : ToEvent()
