@@ -13,6 +13,7 @@ interface StartActivityView {
         @Keep class TryStartStream : FromEvent()
         @Keep class StopStream : FromEvent()
         @Keep class AppExit : FromEvent()
+        @Keep class GetError : FromEvent()
     }
 
     // Events from StartActivity to StartActivityPresenter
@@ -21,8 +22,8 @@ interface StartActivityView {
     // To StartActivity from StartActivityPresenter
     @Keep sealed class ToEvent {
         @Keep class TryToStart : ToEvent()
-        @Keep class StreamStart : ToEvent()
-        @Keep class StreamStop : ToEvent()
+
+        @Keep data class StreamStartStop(val running: Boolean) : ToEvent()
 
         // From SettingsActivityPresenter
         @Keep data class ResizeFactor(val value: Int) : ToEvent()
@@ -32,6 +33,12 @@ interface StartActivityView {
 
         // From SettingsActivityPresenter
         @Keep data class SetPin(val value: String) : ToEvent()
+
+        // From SettingsActivityPresenter
+        @Keep data class StreamRunning(val running: Boolean) : ToEvent()
+
+        // From SettingsActivityPresenter
+        @Keep data class Error(val error: Throwable?) : ToEvent()
 
         // From HttpServer
         @Keep data class CurrentClients(val clientsList: Collection<HttpServer.Client>) : ToEvent()

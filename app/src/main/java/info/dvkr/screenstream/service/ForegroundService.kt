@@ -73,6 +73,7 @@ class ForegroundService : Service(), ForegroundServiceView {
     @Inject internal lateinit var settings: Settings
     @Inject internal lateinit var eventScheduler: Scheduler
     @Inject internal lateinit var eventBus: EventBus
+    @Inject internal lateinit var globalStatus: GlobalStatus
     @Inject internal lateinit var imageNotify: ImageNotify
 
     private val isForegroundServiceInit = AtomicBoolean(false)
@@ -116,7 +117,7 @@ class ForegroundService : Service(), ForegroundServiceView {
         presenter.attach(this)
 
         subscriptions.add(toEvents.startWith(ForegroundService.LocalEvent.StartService())
-                .observeOn(eventScheduler).subscribe({ event ->
+                .observeOn(eventScheduler).subscribe { event ->
 
             if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] toEvent: " + event.javaClass.simpleName)
 
@@ -142,7 +143,6 @@ class ForegroundService : Service(), ForegroundServiceView {
                     Observable.just(event.notifyType).observeOn(Schedulers.computation())
                             .map { notifyType -> imageNotify.getImage(notifyType) }
                             .subscribe { byteArray -> jpegBytesStream.onNext(byteArray) }
-                    // TODO need better solution
                 }
 
                 is ForegroundService.LocalEvent.StartStream -> {
@@ -156,6 +156,7 @@ class ForegroundService : Service(), ForegroundServiceView {
                             projection,
                             eventScheduler,
                             eventBus,
+                            globalStatus,
                             settings.resizeFactor,
                             settings.jpegQuality,
                             Action1 { imageByteArray -> jpegBytesStream.onNext(imageByteArray) })
@@ -187,16 +188,15 @@ class ForegroundService : Service(), ForegroundServiceView {
                     fromEvents.onNext(ForegroundServiceView.FromEvent.CurrentInterfaces(getInterfaces()))
                 }
 
-//                is ForegroundServiceView.ToEvent.AppStatus -> {
-//                    startActivity(StartActivity.getStartIntent(applicationContext, StartActivity.ACTION_APP_STATUS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-//                }
+                is ForegroundServiceView.ToEvent.Error -> {
+                    if (BuildConfig.DEBUG_MODE) Log.e(TAG, event.error.toString())
+                    Crashlytics.logException(event.error)
+                    globalStatus.error.set(event.error)
+                    startActivity(StartActivity.getStartIntent(applicationContext, StartActivity.ACTION_ERROR).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                }
             }
         })
-        { onError ->
-            if (BuildConfig.DEBUG_MODE) Log.e(TAG, onError.toString())
-            Crashlytics.logException(onError)
-            startActivity(StartActivity.getErrorIntent(applicationContext, onError.toString()).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-        })
+
 
         // Registering receiver for screen off messages and WiFi changes
         val intentFilter = IntentFilter()

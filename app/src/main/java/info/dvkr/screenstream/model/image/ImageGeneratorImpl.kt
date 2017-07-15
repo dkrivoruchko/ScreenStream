@@ -18,9 +18,9 @@ import android.util.DisplayMetrics
 import android.util.Log
 import android.view.Surface
 import android.view.WindowManager
-import com.crashlytics.android.Crashlytics
 import info.dvkr.screenstream.BuildConfig
 import info.dvkr.screenstream.model.EventBus
+import info.dvkr.screenstream.model.GlobalStatus
 import info.dvkr.screenstream.model.ImageGenerator
 import rx.Observable
 import rx.Scheduler
@@ -35,6 +35,7 @@ class ImageGeneratorImpl(context: Context,
                          private val mediaProjection: MediaProjection,
                          eventScheduler: Scheduler,
                          private val eventBus: EventBus,
+                         private val globalStatus: GlobalStatus,
                          resizeFactor: Int,
                          jpegQuality: Int,
                          private val onNewImage: Action1<ByteArray>) : ImageGenerator {
@@ -116,7 +117,8 @@ class ImageGeneratorImpl(context: Context,
         )
 
         imageReaderState.set(STATE_STARTED)
-        eventBus.sendEvent(EventBus.GlobalEvent.StreamStatus(true))
+        globalStatus.isStreamRunning.set(true)
+        eventBus.sendEvent(EventBus.GlobalEvent.StreamStatus())
 
         if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] Constructor: End")
     }
@@ -138,7 +140,8 @@ class ImageGeneratorImpl(context: Context,
             imageThread.quit()
 
             imageReaderState.set(STATE_STOPPED)
-            eventBus.sendEvent(EventBus.GlobalEvent.StreamStatus(false))
+            globalStatus.isStreamRunning.set(false)
+            eventBus.sendEvent(EventBus.GlobalEvent.StreamStatus())
         }
     }
 
@@ -182,10 +185,9 @@ class ImageGeneratorImpl(context: Context,
                 val image: Image?
                 try {
                     image = reader.acquireLatestImage()
-                } catch (ex: UnsupportedOperationException) {
+                } catch (exception: UnsupportedOperationException) {
                     imageReaderState.set(STATE_ERROR)
-//                    mAppEvent.sendEvent(AppStatus.Event.AppStatus(ImageGenerator.IMAGE_GENERATOR_ERROR_WRONG_IMAGE_FORMAT))
-                    Crashlytics.logException(ex)
+                    eventBus.sendEvent(EventBus.GlobalEvent.Error(exception))
                     return
                 }
                 if (null == image) return

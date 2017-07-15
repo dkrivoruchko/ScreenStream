@@ -3,29 +3,21 @@ package info.dvkr.screenstream.presenter
 
 import info.dvkr.screenstream.BuildConfig
 import info.dvkr.screenstream.dagger.PersistentScope
-import info.dvkr.screenstream.model.EventBus
-import info.dvkr.screenstream.model.HttpServer
-import info.dvkr.screenstream.model.ImageNotify
-import info.dvkr.screenstream.model.Settings
+import info.dvkr.screenstream.model.*
 import info.dvkr.screenstream.model.httpserver.HttpServerImpl
 import info.dvkr.screenstream.service.ForegroundServiceView
 import rx.Scheduler
-import rx.functions.Action1
 import rx.subscriptions.CompositeSubscription
 import java.net.InetSocketAddress
 import java.util.*
-import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
 
 @PersistentScope
-class ForegroundServicePresenter @Inject internal constructor(val settings: Settings,
-                                                              val eventScheduler: Scheduler,
-                                                              val eventBus: EventBus) {
+class ForegroundServicePresenter @Inject internal constructor(private val settings: Settings,
+                                                              private val eventScheduler: Scheduler,
+                                                              private val eventBus: EventBus,
+                                                              private val globalStatus: GlobalStatus) {
     private val TAG = "ForegroundServicePresenter"
-
-    private val isStreamRunning: AtomicBoolean = AtomicBoolean(false)
-//    private val mKnownErrors: BehaviorSubject<ForegroundServiceView.KnownErrors> =
-//            BehaviorSubject.create(ForegroundServiceView.KnownErrors(false, false))
 
     private val subscriptions = CompositeSubscription()
     private val random = Random()
@@ -61,6 +53,7 @@ class ForegroundServicePresenter @Inject internal constructor(val settings: Sett
 
                     val (favicon, baseIndexHtml, basePinRequestHtml, pinRequestErrorMsg, jpegByteStream) = fromEvent
 
+                    globalStatus.error.set(null)
                     httpServer = HttpServerImpl(InetSocketAddress(settings.severPort),
                             favicon,
                             baseIndexHtml,
@@ -72,10 +65,7 @@ class ForegroundServicePresenter @Inject internal constructor(val settings: Sett
                             pinRequestErrorMsg,
                             jpegByteStream,
                             eventBus,
-                            eventScheduler,
-                            Action1 { status ->
-                                //                                mAppEvent.sendEvent(AppStatus.Event.AppStatus(status))
-                            })
+                            eventScheduler)
 
                     foregroundService?.toEvent(ForegroundServiceView.ToEvent.NotifyImage(ImageNotify.IMAGE_TYPE_DEFAULT))
                 }
@@ -94,7 +84,7 @@ class ForegroundServicePresenter @Inject internal constructor(val settings: Sett
                 }
 
                 is ForegroundServiceView.FromEvent.ScreenOff -> {
-                    if (settings.stopOnSleep && isStreamRunning.get())
+                    if (settings.stopOnSleep && globalStatus.isStreamRunning.get())
                         foregroundService?.toEvent(ForegroundServiceView.ToEvent.StopStream())
                 }
 
@@ -111,19 +101,9 @@ class ForegroundServicePresenter @Inject internal constructor(val settings: Sett
             if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] globalEvent: $globalEvent")
 
             when (globalEvent) {
-            // From StartActivityPresenter
-                is EventBus.GlobalEvent.StreamStatusRequest -> {
-                    eventBus.sendEvent(EventBus.GlobalEvent.StreamStatus(isStreamRunning.get()))
-                }
-
-            // From ImageGeneratorImpl
-                is EventBus.GlobalEvent.StreamStatus -> {
-                    isStreamRunning.set(globalEvent.isStreamRunning)
-                }
-
             // From StartActivityPresenter & ProjectionCallback
                 is EventBus.GlobalEvent.StopStream -> {
-                    if (!isStreamRunning.get()) throw IllegalStateException("WARRING: Stream in not running")
+                    if (!globalStatus.isStreamRunning.get()) throw IllegalStateException("WARRING: Stream in not running")
                     foregroundService?.toEvent(ForegroundServiceView.ToEvent.StopStream())
                 }
 
@@ -135,22 +115,25 @@ class ForegroundServicePresenter @Inject internal constructor(val settings: Sett
             // From SettingsActivityPresenter, ForegroundServicePresenter
                 is EventBus.GlobalEvent.HttpServerRestart -> {
                     val restartReason = globalEvent.reason
-                    if (isStreamRunning.get())
+                    if (globalStatus.isStreamRunning.get())
                         foregroundService?.toEvent(ForegroundServiceView.ToEvent.StopStream(false))
 
                     foregroundService?.toEvent(ForegroundServiceView.ToEvent.NotifyImage(restartReason))
                     foregroundService?.toEvent(ForegroundServiceView.ToEvent.StartHttpServer(), 1000)
                 }
 
-
+            // From StartActivityPresenter
                 is EventBus.GlobalEvent.CurrentInterfacesRequest -> {
                     foregroundService?.toEvent(ForegroundServiceView.ToEvent.CurrentInterfacesRequest())
                 }
 
-            // From ImageGeneratorImpl, HttpServerImpl
-//                is AppStatus.Event.AppStatus -> {
-//                    foregroundService?.toEvent(ForegroundServiceView.ToEvent.AppStatus())
-//                }
+            // From HttpServer & ImageGenerator
+                is EventBus.GlobalEvent.Error -> {
+                    if (globalStatus.isStreamRunning.get())
+                        foregroundService?.toEvent(ForegroundServiceView.ToEvent.StopStream(false))
+
+                    foregroundService?.toEvent(ForegroundServiceView.ToEvent.Error(globalEvent.error))
+                }
 
                 else -> println(TAG + ": Thread [${Thread.currentThread().name}] fromEvent: $globalEvent IGNORED")
             }

@@ -3,18 +3,18 @@ package info.dvkr.screenstream.presenter
 import info.dvkr.screenstream.BuildConfig
 import info.dvkr.screenstream.dagger.PersistentScope
 import info.dvkr.screenstream.model.EventBus
+import info.dvkr.screenstream.model.GlobalStatus
 import info.dvkr.screenstream.ui.StartActivityView
 import rx.Scheduler
 import rx.subscriptions.CompositeSubscription
-import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
 
 @PersistentScope
 class StartActivityPresenter @Inject internal constructor(private val eventScheduler: Scheduler,
-                                                          private val eventBus: EventBus) {
+                                                          private val eventBus: EventBus,
+                                                          private val globalStatus: GlobalStatus) {
     private val TAG = "StartActivityPresenter"
 
-    private val isStreamRunning: AtomicBoolean = AtomicBoolean(false)
     private val subscriptions = CompositeSubscription()
     private var startActivity: StartActivityView? = null
 
@@ -32,18 +32,26 @@ class StartActivityPresenter @Inject internal constructor(private val eventSched
         subscriptions.add(startActivity?.fromEvent()?.observeOn(eventScheduler)?.subscribe { fromEvent ->
             println(TAG + ": Thread [${Thread.currentThread().name}] fromEvent: $fromEvent")
             when (fromEvent) {
-                is StartActivityView.FromEvent.TryStartStream -> { // Sending message to StartActivity
-                    if (isStreamRunning.get()) throw IllegalStateException("Stream already running")
+            // Sending message to StartActivity
+                is StartActivityView.FromEvent.TryStartStream -> {
+                    if (globalStatus.isStreamRunning.get()) throw IllegalStateException("Stream already running")
                     startActivity?.toEvent(StartActivityView.ToEvent.TryToStart())
                 }
 
-                is StartActivityView.FromEvent.StopStream -> { // Relaying message to ForegroundServicePresenter
-                    if (!isStreamRunning.get()) throw IllegalStateException("Stream not running")
+            // Relaying message to ForegroundServicePresenter
+                is StartActivityView.FromEvent.StopStream -> {
+                    if (!globalStatus.isStreamRunning.get()) throw IllegalStateException("Stream not running")
                     eventBus.sendEvent(EventBus.GlobalEvent.StopStream())
                 }
 
-                is StartActivityView.FromEvent.AppExit -> { // Relaying message to ForegroundServicePresenter
+            // Relaying message to ForegroundServicePresenter
+                is StartActivityView.FromEvent.AppExit -> {
                     eventBus.sendEvent(EventBus.GlobalEvent.AppExit())
+                }
+
+            // Getting current Error
+                is StartActivityView.FromEvent.GetError -> {
+                    startActivity?.toEvent(StartActivityView.ToEvent.Error(globalStatus.error.get()))
                 }
 
                 else -> println(TAG + ": Thread [${Thread.currentThread().name}] fromEvent: $fromEvent IGNORED")
@@ -55,11 +63,9 @@ class StartActivityPresenter @Inject internal constructor(private val eventSched
             if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] globalEvent: $globalEvent")
 
             when (globalEvent) {
-            // From ImageGeneratorImpl & ForegroundServicePresenter TODo Do mot minimise
+            // From ImageGeneratorImpl
                 is EventBus.GlobalEvent.StreamStatus -> {
-                    isStreamRunning.set(globalEvent.isStreamRunning)
-                    if (isStreamRunning.get()) startActivity?.toEvent(StartActivityView.ToEvent.StreamStart())
-                    else startActivity?.toEvent(StartActivityView.ToEvent.StreamStop())
+                    startActivity?.toEvent(StartActivityView.ToEvent.StreamStartStop(globalStatus.isStreamRunning.get()))
                 }
 
             // From SettingsActivityPresenter
@@ -91,21 +97,14 @@ class StartActivityPresenter @Inject internal constructor(private val eventSched
             }
         })
 
-        // Requesting current stream status
-        eventBus.sendEvent(EventBus.GlobalEvent.StreamStatusRequest())
+        // Sending current stream status
+        startActivity?.toEvent(StartActivityView.ToEvent.StreamRunning(globalStatus.isStreamRunning.get()))
 
         // Requesting current clients
         eventBus.sendEvent(EventBus.GlobalEvent.CurrentClientsRequest())
 
         // Requesting current interfaces
         eventBus.sendEvent(EventBus.GlobalEvent.CurrentInterfacesRequest())
-
-
-//        subscriptions.add(mAppEvent.getAppStatus()
-//                .observeOn(AndroidSchedulers.mainThread())
-//                .subscribe { statusSet -> startActivity?.onAppStatus(statusSet) }
-//        )
-
     }
 
     fun detach() {

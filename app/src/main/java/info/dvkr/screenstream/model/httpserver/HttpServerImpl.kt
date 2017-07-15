@@ -16,7 +16,6 @@ import rx.Scheduler
 import rx.functions.Action1
 import rx.subjects.BehaviorSubject
 import rx.subscriptions.CompositeSubscription
-import java.net.BindException
 import java.net.InetSocketAddress
 import java.util.*
 import java.util.concurrent.TimeUnit
@@ -34,8 +33,7 @@ class HttpServerImpl constructor(serverAddress: InetSocketAddress,
                                  pinRequestErrorMsg: String,
                                  jpegBytesStream: Observable<ByteArray>,
                                  eventBus: EventBus,
-                                 private val eventScheduler: Scheduler,
-                                 onStatus: Action1<String>) : HttpServer {
+                                 private val eventScheduler: Scheduler) : HttpServer {
     private val TAG = "HttpServerImpl"
 
     companion object {
@@ -127,27 +125,23 @@ class HttpServerImpl constructor(serverAddress: InetSocketAddress,
                 pinRequestErrorHtmlPage,
                 Action1 { clientEvent -> toEvent(clientEvent) },
                 jpegBytesStream)
-
         try {
             httpServer.start(httpServerRxHandler)
             isRunning.set(true)
-
-            onStatus.call(HttpServer.HTTP_SERVER_OK) //toDO ????
-
-            eventBus.sendEvent(EventBus.GlobalEvent.CurrentClients(clientsMap.values))
             if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] HttpServer: Started @port: ${httpServer.serverPort}")
-        } catch (exception: BindException) {
-            onStatus.call(HttpServer.HTTP_SERVER_ERROR_PORT_BUSY)
-            if (BuildConfig.DEBUG_MODE) println(TAG + exception)
+        } catch (exception: Exception) {
+            eventBus.sendEvent(EventBus.GlobalEvent.Error(exception))
         }
+        eventBus.sendEvent(EventBus.GlobalEvent.CurrentClients(clientsMap.values))
     }
 
     override fun stop() {
         if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] HttpServer: Stop")
-        if (!isRunning.get()) throw IllegalStateException("Http server is not running")
 
-        httpServer.shutdown()
-        httpServer.awaitShutdown()
+        if (isRunning.get()) {
+            httpServer.shutdown()
+            httpServer.awaitShutdown()
+        }
         httpServerRxHandler.stop()
         globalServerEventLoop.shutdownGracefully()
         subscriptions.clear()

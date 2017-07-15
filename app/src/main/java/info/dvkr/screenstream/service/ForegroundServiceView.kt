@@ -9,10 +9,6 @@ interface ForegroundServiceView {
     // System network interfaces
     @Keep data class Interface(val name: String, val address: String)
 
-    // Known Errors
-//    @Keep data class KnownErrors(var isServerPortBusy: Boolean,
-//                                 var isWrongImageFormat: Boolean)
-
     // From ForegroundService to ForegroundServicePresenter
     @Keep sealed class FromEvent {
         @Keep class Init : FromEvent()
@@ -26,7 +22,6 @@ interface ForegroundServiceView {
         @Keep class StopStreamComplete : FromEvent()
         @Keep class ScreenOff : FromEvent()
         @Keep data class CurrentInterfaces(val interfaceList: List<Interface>) : FromEvent()
-//        @Keep data class WrongImageFormat(var isWrongImageFormat: Boolean) : FromEvent()
     }
 
     // Events from ForegroundService to ForegroundServicePresenter
@@ -39,7 +34,7 @@ interface ForegroundServiceView {
         @Keep data class StopStream(val isNotifyOnComplete: Boolean = true) : ToEvent()
         @Keep class AppExit : ToEvent()
         @Keep class CurrentInterfacesRequest : ToEvent()
-//        @Keep data class Errors(val errors: KnownErrors) : ToEvent()
+        @Keep data class Error(val error: Throwable) : ToEvent()
     }
 
     // Events to ForegroundService from ForegroundServicePresenter

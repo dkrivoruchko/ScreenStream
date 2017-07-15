@@ -8,11 +8,8 @@ import rx.Observable
 interface EventBus {
 
     @Keep sealed class GlobalEvent {
-        // From StartActivityPresenter to ForegroundServicePresenter
-        @Keep class StreamStatusRequest : GlobalEvent()
-
-        // From ImageGeneratorImpl to StartActivityPresenter & ForegroundServicePresenter
-        @Keep data class StreamStatus(val isStreamRunning: Boolean) : GlobalEvent()
+        // From ImageGeneratorImpl to StartActivityPresenter
+        @Keep class StreamStatus : GlobalEvent()
 
         // From StartActivityPresenter & ProjectionCallback to ForegroundServicePresenter
         @Keep class StopStream : GlobalEvent()
@@ -46,6 +43,9 @@ interface EventBus {
 
         // From ForegroundServicePresenter to StartActivityPresenter
         @Keep data class CurrentInterfaces(val interfaceList: List<ForegroundServiceView.Interface>) : GlobalEvent()
+
+        // From HttpServer & ImageGenerator to ForegroundServicePresenter
+        @Keep data class Error(val error: Throwable) : GlobalEvent()
     }
 
     fun getEvent(): Observable<GlobalEvent>

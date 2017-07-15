@@ -32,6 +32,7 @@ import kotlinx.android.synthetic.main.activity_start.*
 import rx.Observable
 import rx.android.schedulers.AndroidSchedulers
 import rx.subjects.PublishSubject
+import java.net.BindException
 import javax.inject.Inject
 
 class StartActivity : BaseActivity(), StartActivityView {
@@ -45,8 +46,7 @@ class StartActivity : BaseActivity(), StartActivityView {
         const val ACTION_START_STREAM = "ACTION_START_STREAM"
         const val ACTION_STOP_STREAM = "ACTION_STOP_STREAM"
         const val ACTION_EXIT = "ACTION_EXIT"
-        const val ACTION_APP_STATUS = "ACTION_APP_STATUS" // Just for starting Activity
-        private const val ACTION_UNKNOWN_ERROR = "ACTION_UNKNOWN_ERROR"
+        const val ACTION_ERROR = "ACTION_ERROR"
 
         fun getStartIntent(context: Context): Intent {
             return Intent(context, StartActivity::class.java)
@@ -55,13 +55,6 @@ class StartActivity : BaseActivity(), StartActivityView {
         fun getStartIntent(context: Context, action: String): Intent {
             return Intent(context, StartActivity::class.java)
                     .putExtra(EXTRA_DATA, action)
-                    .addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
-        }
-
-        fun getErrorIntent(context: Context, error: String): Intent {
-            return Intent(context, StartActivity::class.java)
-                    .putExtra(EXTRA_DATA, ACTION_UNKNOWN_ERROR)
-                    .putExtra(ACTION_UNKNOWN_ERROR, error)
                     .addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
         }
     }
@@ -86,26 +79,30 @@ class StartActivity : BaseActivity(), StartActivityView {
                     startActivityForResult(projectionManager.createScreenCaptureIntent(), REQUEST_CODE_SCREEN_CAPTURE)
                 }
 
-                is StartActivityView.ToEvent.StreamStart -> {
-                    toggleButtonStartStop.isChecked = true
-
-                    if (settings.enablePin && settings.hidePinOnStart)
-                        textViewPinValue.setText(R.string.start_activity_pin_asterisks)
-
-                    if (settings.minimizeOnStream)
+                is StartActivityView.ToEvent.StreamStartStop -> {
+                    setStreamRunning(event.running)
+                    if (event.running && settings.minimizeOnStream)
                         startActivity(Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME).setFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-                }
-
-                is StartActivityView.ToEvent.StreamStop -> {
-                    toggleButtonStartStop.isChecked = false
-
-                    if (settings.enablePin && settings.hidePinOnStart)
-                        textViewPinValue.text = settings.currentPin
                 }
 
                 is StartActivityView.ToEvent.ResizeFactor -> showResizeFactor(event.value)
                 is StartActivityView.ToEvent.EnablePin -> showEnablePin(event.value)
                 is StartActivityView.ToEvent.SetPin -> textViewPinValue.text = event.value
+                is StartActivityView.ToEvent.StreamRunning -> setStreamRunning(event.running)
+
+                is StartActivityView.ToEvent.Error -> {
+                    toggleButtonStartStop.isEnabled = true
+                    event.error?.let {
+                        when (it) {
+                            is UnsupportedOperationException -> showErrorDialog(getString(R.string.start_activity_error_wrong_image_format))
+                            is BindException -> {
+                                toggleButtonStartStop.isEnabled = false
+                                showErrorDialog(getString(R.string.start_activity_error_port_in_use))
+                            }
+                            else -> showErrorDialog(getString(R.string.start_activity_error_unknown) + "\n${it.message}")
+                        }
+                    }
+                }
 
                 is StartActivityView.ToEvent.CurrentClients -> {
                     textViewConnectedClients.text = getString(R.string.start_activity_connected_clients).format(event.clientsList.size)
@@ -215,12 +212,12 @@ class StartActivity : BaseActivity(), StartActivityView {
             }
 
             ACTION_EXIT -> fromEvents.onNext(StartActivityView.FromEvent.AppExit())
-
-            ACTION_UNKNOWN_ERROR -> {
-                val errorDescription = intent.getStringExtra(ACTION_UNKNOWN_ERROR)
-                showErrorDialog(getString(R.string.start_activity_error_unknown) + "\n$errorDescription")
-            }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        fromEvents.onNext(StartActivityView.FromEvent.GetError())
     }
 
     override fun onBackPressed() {
@@ -258,26 +255,19 @@ class StartActivity : BaseActivity(), StartActivityView {
                     showErrorDialog(getString(R.string.start_activity_error_unknown) + "onActivityResult: data = null")
                     return
                 }
-                startService(ForegroundService.getStartStreamIntent(this, data))
+                startService(ForegroundService.getStartStreamIntent(applicationContext, data))
             }
         }
     }
 
-
-    //    override fun onAppStatus(appStatus: Set<String>) {
-//        if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] onAppStatus")
-//
-//        toggleButtonStartStop.isEnabled = appStatus.isEmpty()
-//
-//        if (appStatus.contains(AppStatus.APP_STATUS_ERROR_SERVER_PORT_BUSY))
-//            showErrorDialog(getString(R.string.start_activity_error_port_in_use))
-//
-//        if (appStatus.contains(AppStatus.APP_STATUS_ERROR_WRONG_IMAGE_FORMAT))
-//            showErrorDialog(getString(R.string.start_activity_error_wrong_image_format))
-//    }
-//
-
     // Private methods
+    private fun setStreamRunning(running: Boolean) {
+        toggleButtonStartStop.isChecked = running
+        if (settings.enablePin && settings.hidePinOnStart) {
+            if (running) textViewPinValue.setText(R.string.start_activity_pin_asterisks)
+            else textViewPinValue.text = settings.currentPin
+        }
+    }
 
     private fun showServerAddresses(interfaceList: List<ForegroundServiceView.Interface>, serverPort: Int) {
         if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] showServerAddresses")

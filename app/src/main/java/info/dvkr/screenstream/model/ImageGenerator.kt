@@ -10,6 +10,6 @@ interface ImageGenerator {
     fun stop()
 
 //    mAppEvent.getStreamRunning().onNext(java.lang.Boolean.FALSE)
-//    mAppEvent.toEvent(AppStatus.Event.AppStatus() ->
+//    mAppEvent.toEvent(GlobalStatus.Event.GlobalStatus() ->
 //    mAppEvent.getJpegBytesStream()
 }
