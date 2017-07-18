@@ -14,12 +14,11 @@ import io.reactivex.netty.RxNetty
 import rx.Observable
 import rx.Scheduler
 import rx.functions.Action1
-import rx.subjects.BehaviorSubject
 import rx.subscriptions.CompositeSubscription
 import java.net.InetSocketAddress
 import java.util.*
+import java.util.concurrent.ConcurrentLinkedDeque
 import java.util.concurrent.TimeUnit
-import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.collections.HashMap
 
 class HttpServerImpl constructor(serverAddress: InetSocketAddress,
@@ -38,6 +37,7 @@ class HttpServerImpl constructor(serverAddress: InetSocketAddress,
 
     companion object {
         private const val NETTY_IO_THREADS_NUMBER = 2
+        private const val MAX_HISTORY_SECONDS = 30
 
         init {
             ResourceLeakDetector.setLevel(ResourceLeakDetector.Level.DISABLED)
@@ -60,7 +60,7 @@ class HttpServerImpl constructor(serverAddress: InetSocketAddress,
     private val globalServerEventLoop: EventLoopGroup = RxNetty.getRxEventLoopProvider().globalServerEventLoop()
     private val httpServer: io.reactivex.netty.protocol.http.server.HttpServer<ByteBuf, ByteBuf>
     private val httpServerRxHandler: HttpServerRxHandler
-    private val isRunning: AtomicBoolean = AtomicBoolean(false)
+    private @Volatile var isRunning: Boolean = false
     private val subscriptions = CompositeSubscription()
 
     // Clients
@@ -72,7 +72,10 @@ class HttpServerImpl constructor(serverAddress: InetSocketAddress,
     }
 
     private val clientsMap = HashMap<InetSocketAddress, HttpServer.Client>()
-    private val clientsEvents = BehaviorSubject.create<Collection<HttpServer.Client>>()
+
+    // Traffic
+    private val trafficHistory = ConcurrentLinkedDeque<HttpServer.TrafficPoint>()
+    private var lastTotalTraffic = 0L
 
     init {
         if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] HttpServer: Create")
@@ -80,17 +83,33 @@ class HttpServerImpl constructor(serverAddress: InetSocketAddress,
         val httpServerPort = serverAddress.port
         if (httpServerPort !in 1025..65535) throw IllegalArgumentException("Tcp port must be in range [1025, 65535]")
 
-        subscriptions.add(eventBus.getEvent().subscribe { globalEvent ->
-            if (globalEvent is EventBus.GlobalEvent.CurrentClientsRequest) {
-                if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] globalEvent: $globalEvent")
-                eventBus.sendEvent(EventBus.GlobalEvent.CurrentClients(clientsMap.values))
+        // Init traffic data
+        val past = System.currentTimeMillis() - MAX_HISTORY_SECONDS * 1000
+        Observable.range(0, MAX_HISTORY_SECONDS + 1).map { i -> i * 1000 + past }
+                .subscribe { trafficHistory.addLast(HttpServer.TrafficPoint(it, 0)) }
+        eventBus.sendEvent(EventBus.GlobalEvent.TrafficHistory(trafficHistory.toList()))
+
+        subscriptions.add(eventBus.getEvent().observeOn(eventScheduler)
+                .filter {
+                    it is EventBus.GlobalEvent.CurrentClientsRequest ||
+                            it is EventBus.GlobalEvent.TrafficHistoryRequest
+                }.subscribe { globalEvent ->
+            if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] globalEvent: $globalEvent")
+            when (globalEvent) {
+                is EventBus.GlobalEvent.CurrentClientsRequest -> eventBus.sendEvent(EventBus.GlobalEvent.CurrentClients(clientsMap.values))
+                is EventBus.GlobalEvent.TrafficHistoryRequest -> eventBus.sendEvent(EventBus.GlobalEvent.TrafficHistory(trafficHistory.toList()))
             }
         })
 
-        subscriptions.add(clientsEvents
-                .throttleLast(1, TimeUnit.SECONDS, eventScheduler).subscribe { clientsList ->
-            //            if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] clientsList: $clientsList")
-            eventBus.sendEvent(EventBus.GlobalEvent.CurrentClients(clientsList))
+        subscriptions.add(Observable.interval(1, TimeUnit.SECONDS, eventScheduler).subscribe {
+            val currentTotalTraffic = clientsMap.values.map { it.sendBytes }.sum()
+            val trafficPoint = HttpServer.TrafficPoint(System.currentTimeMillis(), currentTotalTraffic - lastTotalTraffic)
+            trafficHistory.removeFirst()
+            trafficHistory.addLast(trafficPoint)
+            lastTotalTraffic = currentTotalTraffic
+
+            eventBus.sendEvent(EventBus.GlobalEvent.TrafficPoint(trafficPoint))
+            eventBus.sendEvent(EventBus.GlobalEvent.CurrentClients(clientsMap.values))
         })
 
         httpServer = io.reactivex.netty.protocol.http.server.HttpServer.newServer(serverAddress, globalServerEventLoop, NioServerSocketChannel::class.java)
@@ -127,7 +146,7 @@ class HttpServerImpl constructor(serverAddress: InetSocketAddress,
                 jpegBytesStream)
         try {
             httpServer.start(httpServerRxHandler)
-            isRunning.set(true)
+            isRunning = true
             if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] HttpServer: Started @port: ${httpServer.serverPort}")
         } catch (exception: Exception) {
             eventBus.sendEvent(EventBus.GlobalEvent.Error(exception))
@@ -138,7 +157,7 @@ class HttpServerImpl constructor(serverAddress: InetSocketAddress,
     override fun stop() {
         if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] HttpServer: Stop")
 
-        if (isRunning.get()) {
+        if (isRunning) {
             httpServer.shutdown()
             httpServer.awaitShutdown()
         }
@@ -146,7 +165,7 @@ class HttpServerImpl constructor(serverAddress: InetSocketAddress,
         globalServerEventLoop.shutdownGracefully()
         subscriptions.clear()
         RxNetty.useEventLoopProvider(HttpServerNioLoopProvider(NETTY_IO_THREADS_NUMBER))
-        isRunning.set(false)
+        isRunning = false
     }
 
     fun toEvent(event: LocalEvent) {
@@ -159,7 +178,6 @@ class HttpServerImpl constructor(serverAddress: InetSocketAddress,
                 is LocalEvent.ClientDisconnected -> clientsMap[toEvent.address]?.disconnected = true
                 is LocalEvent.ClientBackpressure -> clientsMap[toEvent.address]?.hasBackpressure = true
             }
-            clientsEvents.onNext(clientsMap.values)
         }
     }
 }

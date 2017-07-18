@@ -53,7 +53,7 @@ class ForegroundServicePresenter @Inject internal constructor(private val settin
 
                     val (favicon, baseIndexHtml, basePinRequestHtml, pinRequestErrorMsg, jpegByteStream) = fromEvent
 
-                    globalStatus.error.set(null)
+                    globalStatus.error = null
                     httpServer = HttpServerImpl(InetSocketAddress(settings.severPort),
                             favicon,
                             baseIndexHtml,
@@ -84,7 +84,7 @@ class ForegroundServicePresenter @Inject internal constructor(private val settin
                 }
 
                 is ForegroundServiceView.FromEvent.ScreenOff -> {
-                    if (settings.stopOnSleep && globalStatus.isStreamRunning.get())
+                    if (settings.stopOnSleep && globalStatus.isStreamRunning)
                         foregroundService?.toEvent(ForegroundServiceView.ToEvent.StopStream())
                 }
 
@@ -97,13 +97,19 @@ class ForegroundServicePresenter @Inject internal constructor(private val settin
         })
 
         // Global events
-        subscriptions.add(eventBus.getEvent().observeOn(eventScheduler).subscribe { globalEvent ->
+        subscriptions.add(eventBus.getEvent().observeOn(eventScheduler)
+                .filter {
+                    it is EventBus.GlobalEvent.StopStream ||
+                            it is EventBus.GlobalEvent.AppExit ||
+                            it is EventBus.GlobalEvent.HttpServerRestart ||
+                            it is EventBus.GlobalEvent.CurrentInterfacesRequest ||
+                            it is EventBus.GlobalEvent.Error
+                }.subscribe { globalEvent ->
             if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] globalEvent: $globalEvent")
-
             when (globalEvent) {
             // From StartActivityPresenter & ProjectionCallback
                 is EventBus.GlobalEvent.StopStream -> {
-                    if (!globalStatus.isStreamRunning.get()) throw IllegalStateException("WARRING: Stream in not running")
+                    if (!globalStatus.isStreamRunning) throw IllegalStateException("WARRING: Stream in not running")
                     foregroundService?.toEvent(ForegroundServiceView.ToEvent.StopStream())
                 }
 
@@ -115,7 +121,7 @@ class ForegroundServicePresenter @Inject internal constructor(private val settin
             // From SettingsActivityPresenter, ForegroundServicePresenter
                 is EventBus.GlobalEvent.HttpServerRestart -> {
                     val restartReason = globalEvent.reason
-                    if (globalStatus.isStreamRunning.get())
+                    if (globalStatus.isStreamRunning)
                         foregroundService?.toEvent(ForegroundServiceView.ToEvent.StopStream(false))
 
                     foregroundService?.toEvent(ForegroundServiceView.ToEvent.NotifyImage(restartReason))
@@ -129,13 +135,11 @@ class ForegroundServicePresenter @Inject internal constructor(private val settin
 
             // From HttpServer & ImageGenerator
                 is EventBus.GlobalEvent.Error -> {
-                    if (globalStatus.isStreamRunning.get())
+                    if (globalStatus.isStreamRunning)
                         foregroundService?.toEvent(ForegroundServiceView.ToEvent.StopStream(false))
 
                     foregroundService?.toEvent(ForegroundServiceView.ToEvent.Error(globalEvent.error))
                 }
-
-                else -> println(TAG + ": Thread [${Thread.currentThread().name}] fromEvent: $globalEvent IGNORED")
             }
         })
     }

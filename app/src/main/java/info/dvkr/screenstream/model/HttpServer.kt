@@ -24,10 +24,6 @@ interface HttpServer {
         const val DEFAULT_STREAM_ADDRESS = "/stream.mjpeg"
         const val DEFAULT_ICON_ADDRESS = "/favicon.ico"
         const val DEFAULT_PIN_ADDRESS = "/?pin="
-
-        // Constants for HttpServer status
-        const val HTTP_SERVER_OK = "HTTP_SERVER_OK"
-        const val HTTP_SERVER_ERROR_PORT_BUSY = "HTTP_SERVER_ERROR_PORT_BUSY"
     }
 
     // Clients
@@ -35,6 +31,9 @@ interface HttpServer {
                             var sendBytes: Long = 0,
                             var hasBackpressure: Boolean = false,
                             var disconnected: Boolean = false)
+
+    // Traffic
+    @Keep data class TrafficPoint(val time: Long, val bytes: Long)
 
     fun stop()
 }

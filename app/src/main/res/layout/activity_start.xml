@@ -118,6 +118,12 @@
                 android:text="@string/start_activity_connected_clients"
                 android:textAppearance="?android:attr/textAppearanceSmall"
                 android:textColor="@color/textColorSecondary" />
+
+            <com.jjoe64.graphview.GraphView
+                android:id="@+id/lineChartTraffic"
+                android:layout_width="match_parent"
+                android:layout_height="128dp"
+                android:layout_margin="8dp" />
         </LinearLayout>
     </ScrollView>
 </RelativeLayout>

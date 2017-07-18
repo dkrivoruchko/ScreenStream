@@ -46,6 +46,15 @@ interface EventBus {
 
         // From HttpServer & ImageGenerator to ForegroundServicePresenter
         @Keep data class Error(val error: Throwable) : GlobalEvent()
+
+        // From StartActivityPresenter to HttpServer
+        @Keep class TrafficHistoryRequest : GlobalEvent()
+
+        // From HttpServer to StartActivityPresenter
+        @Keep data class TrafficHistory(val trafficHistory: List<HttpServer.TrafficPoint>) : GlobalEvent()
+
+        // From HttpServer to StartActivityPresenter
+        @Keep data class TrafficPoint(val trafficPoint: HttpServer.TrafficPoint) : GlobalEvent()
     }
 
     fun getEvent(): Observable<GlobalEvent>

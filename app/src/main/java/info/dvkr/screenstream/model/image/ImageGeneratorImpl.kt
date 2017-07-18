@@ -28,8 +28,6 @@ import rx.functions.Action1
 import rx.subscriptions.CompositeSubscription
 import java.io.ByteArrayOutputStream
 import java.util.concurrent.TimeUnit
-import java.util.concurrent.atomic.AtomicInteger
-import java.util.concurrent.atomic.AtomicReference
 
 class ImageGeneratorImpl(context: Context,
                          private val mediaProjection: MediaProjection,
@@ -52,29 +50,30 @@ class ImageGeneratorImpl(context: Context,
     // Settings
     private val subscriptions = CompositeSubscription()
     private val matrix = Matrix()
-    private val jpegQuality = AtomicInteger()
+    private @Volatile var jpegQuality = 80
 
     // Local data
+    private val lock = Any()
     private val imageThread: HandlerThread
     private val imageThreadHandler: Handler
-
     private val windowManager: WindowManager
     private var imageReader: ImageReader
     private var virtualDisplay: VirtualDisplay
-    private val reusableBitmap = AtomicReference<Bitmap?>(null)
+    private @Volatile var reusableBitmap: Bitmap? = null
     private val resultJpegStream = ByteArrayOutputStream()
-
-    private val lock = Any()
-    private val imageReaderState = AtomicReference(STATE_CREATED)
-    private val currentImageReaderListener = AtomicInteger(0)
+    private @Volatile var imageReaderState = STATE_CREATED
+    private @Volatile var imageListener = 0
 
     init {
         if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] Constructor: Start")
 
         matrix.postScale(resizeFactor / 100f, resizeFactor / 100f)
-        this.jpegQuality.set(jpegQuality)
+        this.jpegQuality = jpegQuality
 
-        subscriptions.add(eventBus.getEvent().observeOn(eventScheduler).subscribe { globalEvent ->
+        subscriptions.add(eventBus.getEvent().observeOn(eventScheduler)
+                .filter {
+                    it is EventBus.GlobalEvent.ResizeFactor || it is EventBus.GlobalEvent.JpegQuality
+                }.subscribe { globalEvent ->
             if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] globalEvent: $globalEvent")
             when (globalEvent) {
                 is EventBus.GlobalEvent.ResizeFactor -> {
@@ -83,7 +82,7 @@ class ImageGeneratorImpl(context: Context,
                     matrix.postScale(scale, scale)
                 }
 
-                is EventBus.GlobalEvent.JpegQuality -> this.jpegQuality.set(globalEvent.value)
+                is EventBus.GlobalEvent.JpegQuality -> this.jpegQuality = globalEvent.value
             }
         })
 
@@ -98,8 +97,8 @@ class ImageGeneratorImpl(context: Context,
         val screenSize = Point()
         defaultDisplay.getRealSize(screenSize)
 
-        val listener = ImageAvailableListener()
-        currentImageReaderListener.set(listener.hashCode())
+        val listener = ImageListener()
+        imageListener = listener.hashCode()
         imageReader = ImageReader.newInstance(screenSize.x, screenSize.y, PixelFormat.RGBA_8888, 2)
         imageReader.setOnImageAvailableListener(listener, imageThreadHandler)
 
@@ -112,12 +111,12 @@ class ImageGeneratorImpl(context: Context,
                 .map { rotation -> rotation == Surface.ROTATION_0 || rotation == Surface.ROTATION_180 }
                 .distinctUntilChanged()
                 .skip(1)
-                .filter { _ -> STATE_STARTED == imageReaderState.get() }
+                .filter { _ -> STATE_STARTED == imageReaderState }
                 .subscribe { _ -> restart() }
         )
 
-        imageReaderState.set(STATE_STARTED)
-        globalStatus.isStreamRunning.set(true)
+        imageReaderState = STATE_STARTED
+        globalStatus.isStreamRunning = true
         eventBus.sendEvent(EventBus.GlobalEvent.StreamStatus())
 
         if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] Constructor: End")
@@ -127,20 +126,20 @@ class ImageGeneratorImpl(context: Context,
         synchronized(lock) {
             if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] Stop")
 
-            if (!(STATE_STARTED == imageReaderState.get() || STATE_ERROR == imageReaderState.get()))
-                throw IllegalStateException("ImageGeneratorImpl in imageReaderState: ${imageReaderState.get()}")
+            if (!(STATE_STARTED == imageReaderState || STATE_ERROR == imageReaderState))
+                throw IllegalStateException("ImageGeneratorImpl in imageReaderState: $imageReaderState")
 
             subscriptions.clear()
-            currentImageReaderListener.set(0)
+            imageListener = 0
             mediaProjection.stop()
 
             virtualDisplay.release()
             imageReader.close()
-            reusableBitmap.get()?.recycle()
+            reusableBitmap?.recycle()
             imageThread.quit()
 
-            imageReaderState.set(STATE_STOPPED)
-            globalStatus.isStreamRunning.set(false)
+            imageReaderState = STATE_STOPPED
+            globalStatus.isStreamRunning = false
             eventBus.sendEvent(EventBus.GlobalEvent.StreamStatus())
         }
     }
@@ -149,13 +148,13 @@ class ImageGeneratorImpl(context: Context,
         synchronized(lock) {
             if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] Restart: Start")
 
-            if (STATE_STARTED != imageReaderState.get())
-                throw IllegalStateException("ImageGeneratorImpl in imageReaderState: ${imageReaderState.get()}")
+            if (STATE_STARTED != imageReaderState)
+                throw IllegalStateException("ImageGeneratorImpl in imageReaderState: $imageReaderState")
 
             virtualDisplay.release()
             imageReader.close()
-            reusableBitmap.get()?.recycle()
-            reusableBitmap.set(null)
+            reusableBitmap?.recycle()
+            reusableBitmap = null
 
             val defaultDisplay = windowManager.defaultDisplay
             val displayMetrics = DisplayMetrics()
@@ -163,8 +162,8 @@ class ImageGeneratorImpl(context: Context,
             val screenSize = Point()
             defaultDisplay.getRealSize(screenSize)
 
-            val listener = ImageAvailableListener()
-            currentImageReaderListener.set(listener.hashCode())
+            val listener = ImageListener()
+            imageListener = listener.hashCode()
             imageReader = ImageReader.newInstance(screenSize.x, screenSize.y, PixelFormat.RGBA_8888, 2)
             imageReader.setOnImageAvailableListener(listener, imageThreadHandler)
 
@@ -176,17 +175,17 @@ class ImageGeneratorImpl(context: Context,
         }
     }
 
-    // Runs on ImageGeneratorImpl Thread
-    private inner class ImageAvailableListener : ImageReader.OnImageAvailableListener {
+    // Runs on SSImageGenerator Thread
+    private inner class ImageListener : ImageReader.OnImageAvailableListener {
         override fun onImageAvailable(reader: ImageReader) {
             synchronized(lock) {
-                if (STATE_STARTED != imageReaderState.get() || currentImageReaderListener.get() != this.hashCode()) return
+                if (STATE_STARTED != imageReaderState || imageListener != this.hashCode()) return
 
                 val image: Image?
                 try {
                     image = reader.acquireLatestImage()
                 } catch (exception: UnsupportedOperationException) {
-                    imageReaderState.set(STATE_ERROR)
+                    imageReaderState = STATE_ERROR
                     eventBus.sendEvent(EventBus.GlobalEvent.Error(exception))
                     return
                 }
@@ -197,9 +196,9 @@ class ImageGeneratorImpl(context: Context,
 
                 val cleanBitmap: Bitmap
                 if (width > image.width) {
-                    if (null == reusableBitmap.get()) reusableBitmap.set(Bitmap.createBitmap(width, image.height, Bitmap.Config.ARGB_8888))
-                    reusableBitmap.get()?.copyPixelsFromBuffer(plane.buffer)
-                    cleanBitmap = Bitmap.createBitmap(reusableBitmap.get(), 0, 0, image.width, image.height)
+                    if (null == reusableBitmap) reusableBitmap = Bitmap.createBitmap(width, image.height, Bitmap.Config.ARGB_8888)
+                    reusableBitmap?.copyPixelsFromBuffer(plane.buffer)
+                    cleanBitmap = Bitmap.createBitmap(reusableBitmap, 0, 0, image.width, image.height)
                 } else {
                     cleanBitmap = Bitmap.createBitmap(image.width, image.height, Bitmap.Config.ARGB_8888)
                     cleanBitmap.copyPixelsFromBuffer(plane.buffer)
@@ -215,7 +214,7 @@ class ImageGeneratorImpl(context: Context,
                 image.close()
 
                 resultJpegStream.reset()
-                resizedBitmap.compress(Bitmap.CompressFormat.JPEG, jpegQuality.get(), resultJpegStream)
+                resizedBitmap.compress(Bitmap.CompressFormat.JPEG, jpegQuality, resultJpegStream)
                 resizedBitmap.recycle()
                 onNewImage.call(resultJpegStream.toByteArray())
             }

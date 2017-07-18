@@ -6,6 +6,7 @@ import android.app.Dialog
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
+import android.graphics.Color
 import android.graphics.Point
 import android.media.projection.MediaProjectionManager
 import android.net.Uri
@@ -17,6 +18,8 @@ import android.view.View
 import android.view.WindowManager
 import android.widget.TextView
 import com.crashlytics.android.Crashlytics
+import com.jjoe64.graphview.series.DataPoint
+import com.jjoe64.graphview.series.LineGraphSeries
 import com.mikepenz.materialdrawer.Drawer
 import com.mikepenz.materialdrawer.DrawerBuilder
 import com.mikepenz.materialdrawer.model.DividerDrawerItem
@@ -64,7 +67,9 @@ class StartActivity : BaseActivity(), StartActivityView {
 
     private val fromEvents = PublishSubject.create<StartActivityView.FromEvent>()
 
+    private var oldClientsCount: Int = -1
     private lateinit var drawer: Drawer
+    private lateinit var lineGraphSeries: LineGraphSeries<DataPoint>
     private var dialog: Dialog? = null
 
     override fun fromEvent(): Observable<StartActivityView.FromEvent> = fromEvents.asObservable()
@@ -105,11 +110,33 @@ class StartActivity : BaseActivity(), StartActivityView {
                 }
 
                 is StartActivityView.ToEvent.CurrentClients -> {
-                    textViewConnectedClients.text = getString(R.string.start_activity_connected_clients).format(event.clientsList.size)
+                    val clientsCount = event.clientsList.filter { !it.disconnected }.count()
+                    if (clientsCount != oldClientsCount) {
+                        textViewConnectedClients.text = getString(R.string.start_activity_connected_clients).format(clientsCount)
+                        oldClientsCount = clientsCount
+                    }
                 }
 
                 is StartActivityView.ToEvent.CurrentInterfaces -> {
                     showServerAddresses(event.interfaceList, settings.severPort)
+                }
+
+                is StartActivityView.ToEvent.TrafficHistory -> {
+                    val arrayOfDataPoints = event.trafficHistory.map { DataPoint(it.time.toDouble(), toMbit(it.bytes)) }.toTypedArray()
+                    lineChartTraffic.removeAllSeries()
+                    lineGraphSeries = LineGraphSeries<DataPoint>(arrayOfDataPoints)
+                    lineGraphSeries.color = Color.BLUE
+                    lineGraphSeries.thickness = 4
+                    lineGraphSeries.isDrawBackground = true
+                    lineChartTraffic.addSeries(lineGraphSeries)
+                    lineChartTraffic.viewport.isXAxisBoundsManual = true;
+                    lineChartTraffic.viewport.setMinX(arrayOfDataPoints[0].x)
+                    lineChartTraffic.viewport.setMaxX(arrayOfDataPoints[arrayOfDataPoints.size - 1].x)
+                    lineChartTraffic.gridLabelRenderer.isHorizontalLabelsVisible = false
+                }
+
+                is StartActivityView.ToEvent.TrafficPoint -> {
+                    lineGraphSeries.appendData(DataPoint(event.trafficPoint.time.toDouble(), toMbit(event.trafficPoint.bytes)), true, 60)
                 }
             }
         }
@@ -146,9 +173,9 @@ class StartActivity : BaseActivity(), StartActivityView {
                         PrimaryDrawerItem().withIdentifier(1).withName("Main").withSelectable(false).withIcon(R.drawable.ic_drawer_main_24dp),
                         PrimaryDrawerItem().withIdentifier(2).withName("Connected clients").withSelectable(false).withIcon(R.drawable.ic_drawer_connected_24dp),
                         PrimaryDrawerItem().withIdentifier(3).withName("Settings").withSelectable(false).withIcon(R.drawable.ic_drawer_settings_24dp),
-                        DividerDrawerItem(),
-                        PrimaryDrawerItem().withIdentifier(4).withName("Instructions").withSelectable(false).withIcon(R.drawable.ic_drawer_instructions_24dp),
-                        PrimaryDrawerItem().withIdentifier(5).withName("Local test").withSelectable(false).withIcon(R.drawable.ic_drawer_test_24dp),
+                        //                        DividerDrawerItem(),
+//                        PrimaryDrawerItem().withIdentifier(4).withName("Instructions").withSelectable(false).withIcon(R.drawable.ic_drawer_instructions_24dp),
+//                        PrimaryDrawerItem().withIdentifier(5).withName("Local test").withSelectable(false).withIcon(R.drawable.ic_drawer_test_24dp),
                         DividerDrawerItem(),
                         PrimaryDrawerItem().withIdentifier(6).withName("Rate app").withSelectable(false).withIcon(R.drawable.ic_drawer_rateapp_24dp),
                         PrimaryDrawerItem().withIdentifier(7).withName("Feedback").withSelectable(false).withIcon(R.drawable.ic_drawer_feedback_24dp),
@@ -190,6 +217,9 @@ class StartActivity : BaseActivity(), StartActivityView {
         textViewPinValue.text = settings.currentPin
 
         onNewIntent(intent)
+
+        lineChartTraffic.title= "Traffic Mbit/s"
+
         if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] onCreate: End")
     }
 
@@ -213,6 +243,11 @@ class StartActivity : BaseActivity(), StartActivityView {
 
             ACTION_EXIT -> fromEvents.onNext(StartActivityView.FromEvent.AppExit())
         }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        fromEvents.onNext(StartActivityView.FromEvent.TrafficHistoryRequest())
     }
 
     override fun onResume() {
@@ -319,4 +354,6 @@ class StartActivity : BaseActivity(), StartActivityView {
                 .create()
         dialog?.show()
     }
+
+    private fun toMbit(byte: Long) = (byte * 8 * 1000 / 1024 / 1024).toDouble() / 1000.0
 }

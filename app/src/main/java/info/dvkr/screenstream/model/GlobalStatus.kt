@@ -6,7 +6,7 @@ import java.util.concurrent.atomic.AtomicReference
 
 interface GlobalStatus {
 
-    var isStreamRunning: AtomicBoolean
+    var isStreamRunning: Boolean
 
-    var error: AtomicReference<Throwable?>
+    var error: Throwable?
 }

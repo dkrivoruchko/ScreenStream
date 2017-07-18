@@ -14,6 +14,7 @@ interface StartActivityView {
         @Keep class StopStream : FromEvent()
         @Keep class AppExit : FromEvent()
         @Keep class GetError : FromEvent()
+        @Keep class TrafficHistoryRequest : FromEvent()
     }
 
     // Events from StartActivity to StartActivityPresenter
@@ -45,6 +46,12 @@ interface StartActivityView {
 
         // From ForegroundServicePresenter
         @Keep data class CurrentInterfaces(val interfaceList: List<ForegroundServiceView.Interface>) : ToEvent()
+
+        // From SettingsActivityPresenter
+        @Keep data class TrafficHistory(val trafficHistory: List<HttpServer.TrafficPoint>) : ToEvent()
+
+        // From SettingsActivityPresenter
+        @Keep data class TrafficPoint(val trafficPoint: HttpServer.TrafficPoint) : ToEvent()
     }
 
     // Events to StartActivity from StartActivityPresenter

@@ -4,9 +4,11 @@ import info.dvkr.screenstream.BuildConfig
 import info.dvkr.screenstream.dagger.PersistentScope
 import info.dvkr.screenstream.model.EventBus
 import info.dvkr.screenstream.model.GlobalStatus
+import info.dvkr.screenstream.model.HttpServer
 import info.dvkr.screenstream.ui.StartActivityView
 import rx.Scheduler
 import rx.subscriptions.CompositeSubscription
+import java.util.concurrent.ConcurrentLinkedDeque
 import javax.inject.Inject
 
 @PersistentScope
@@ -17,6 +19,8 @@ class StartActivityPresenter @Inject internal constructor(private val eventSched
 
     private val subscriptions = CompositeSubscription()
     private var startActivity: StartActivityView? = null
+
+    private val trafficHistory = ConcurrentLinkedDeque<HttpServer.TrafficPoint>()
 
     init {
         println(TAG + ": Thread [${Thread.currentThread().name}] Constructor")
@@ -34,13 +38,13 @@ class StartActivityPresenter @Inject internal constructor(private val eventSched
             when (fromEvent) {
             // Sending message to StartActivity
                 is StartActivityView.FromEvent.TryStartStream -> {
-                    if (globalStatus.isStreamRunning.get()) throw IllegalStateException("Stream already running")
+                    if (globalStatus.isStreamRunning) throw IllegalStateException("Stream already running")
                     startActivity?.toEvent(StartActivityView.ToEvent.TryToStart())
                 }
 
             // Relaying message to ForegroundServicePresenter
                 is StartActivityView.FromEvent.StopStream -> {
-                    if (!globalStatus.isStreamRunning.get()) throw IllegalStateException("Stream not running")
+                    if (!globalStatus.isStreamRunning) throw IllegalStateException("Stream not running")
                     eventBus.sendEvent(EventBus.GlobalEvent.StopStream())
                 }
 
@@ -51,7 +55,17 @@ class StartActivityPresenter @Inject internal constructor(private val eventSched
 
             // Getting current Error
                 is StartActivityView.FromEvent.GetError -> {
-                    startActivity?.toEvent(StartActivityView.ToEvent.Error(globalStatus.error.get()))
+                    startActivity?.toEvent(StartActivityView.ToEvent.Error(globalStatus.error))
+                }
+
+            // Getting current traffic history
+                is StartActivityView.FromEvent.TrafficHistoryRequest -> {
+                    // Requesting current traffic history
+                    if (trafficHistory.isEmpty()) {
+                        eventBus.sendEvent(EventBus.GlobalEvent.TrafficHistoryRequest())
+                    } else {
+                        startActivity?.toEvent(StartActivityView.ToEvent.TrafficHistory(trafficHistory.toList()))
+                    }
                 }
 
                 else -> println(TAG + ": Thread [${Thread.currentThread().name}] fromEvent: $fromEvent IGNORED")
@@ -65,7 +79,7 @@ class StartActivityPresenter @Inject internal constructor(private val eventSched
             when (globalEvent) {
             // From ImageGeneratorImpl
                 is EventBus.GlobalEvent.StreamStatus -> {
-                    startActivity?.toEvent(StartActivityView.ToEvent.StreamStartStop(globalStatus.isStreamRunning.get()))
+                    startActivity?.toEvent(StartActivityView.ToEvent.StreamStartStop(globalStatus.isStreamRunning))
                 }
 
             // From SettingsActivityPresenter
@@ -93,12 +107,26 @@ class StartActivityPresenter @Inject internal constructor(private val eventSched
                     startActivity?.toEvent(StartActivityView.ToEvent.CurrentInterfaces(globalEvent.interfaceList))
                 }
 
+            // From HttpServerImpl
+                is EventBus.GlobalEvent.TrafficHistory -> {
+                    trafficHistory.clear()
+                    trafficHistory.addAll(globalEvent.trafficHistory)
+                    startActivity?.toEvent(StartActivityView.ToEvent.TrafficHistory(trafficHistory.toList()))
+                }
+
+            // From HttpServerImpl
+                is EventBus.GlobalEvent.TrafficPoint -> {
+                    if (trafficHistory.isNotEmpty()) trafficHistory.removeFirst()
+                    trafficHistory.addLast(globalEvent.trafficPoint)
+                    startActivity?.toEvent(StartActivityView.ToEvent.TrafficPoint(globalEvent.trafficPoint))
+                }
+
                 else -> println(TAG + ": Thread [${Thread.currentThread().name}] fromEvent: $globalEvent IGNORED")
             }
         })
 
         // Sending current stream status
-        startActivity?.toEvent(StartActivityView.ToEvent.StreamRunning(globalStatus.isStreamRunning.get()))
+        startActivity?.toEvent(StartActivityView.ToEvent.StreamRunning(globalStatus.isStreamRunning))
 
         // Requesting current clients
         eventBus.sendEvent(EventBus.GlobalEvent.CurrentClientsRequest())
