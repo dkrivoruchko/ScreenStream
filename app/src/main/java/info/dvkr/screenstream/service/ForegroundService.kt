@@ -286,7 +286,7 @@ class ForegroundService : Service(), ForegroundServiceView {
         val builder = NotificationCompat.Builder(applicationContext)
         builder.setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
         builder.setSmallIcon(R.drawable.ic_service_notification_24dp)
-        builder.setLargeIcon(BitmapFactory.decodeResource(resources, R.drawable.ic_notification))
+        builder.setLargeIcon(BitmapFactory.decodeResource(resources, R.drawable.ic_app))
         builder.color = ContextCompat.getColor(applicationContext, R.color.colorPrimaryDark)
         builder.setContentIntent(pendingMainActivityIntent)
 

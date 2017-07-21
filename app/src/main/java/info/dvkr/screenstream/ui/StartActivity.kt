@@ -135,7 +135,7 @@ class StartActivity : BaseActivity(), StartActivityView {
                     lineGraphSeries.isDrawBackground = true
 //                    lineGraphSeries.backgroundColor = ContextCompat.getColor(this, R.color.colorDivider)
                     lineChartTraffic.addSeries(lineGraphSeries)
-                    lineChartTraffic.viewport.isXAxisBoundsManual = true;
+                    lineChartTraffic.viewport.isXAxisBoundsManual = true
                     lineChartTraffic.viewport.setMinX(arrayOfDataPoints[0].x)
                     lineChartTraffic.viewport.setMaxX(arrayOfDataPoints[arrayOfDataPoints.size - 1].x)
                     lineChartTraffic.gridLabelRenderer.isHorizontalLabelsVisible = false
@@ -146,7 +146,7 @@ class StartActivity : BaseActivity(), StartActivityView {
                     nf.minimumIntegerDigits = 1
                     lineChartTraffic.gridLabelRenderer.labelFormatter = DefaultLabelFormatter(nf, nf)
                     lineChartTraffic.gridLabelRenderer.horizontalLabelsColor = ContextCompat.getColor(this, R.color.colorPrimaryText)
-                    lineChartTraffic.viewport.isYAxisBoundsManual = true;
+                    lineChartTraffic.viewport.isYAxisBoundsManual = true
                     lineChartTraffic.viewport.setMinY(0.0)
                     lineChartTraffic.viewport.setMaxY(lineGraphSeries.highestValueY * 1.2)
                 }
@@ -334,12 +334,12 @@ class StartActivity : BaseActivity(), StartActivityView {
 
         linearLayoutServerAddressList.removeAllViews()
         val layoutInflater = LayoutInflater.from(this)
-        for (item in interfaceList) {
+        for ((name, address) in interfaceList) {
             val addressView = layoutInflater.inflate(R.layout.server_address, null)
             val interfaceView = addressView.findViewById(R.id.textViewInterfaceName) as TextView
-            interfaceView.text = "${item.name}:"
+            interfaceView.text = "$name:"
             val interfaceAddress = addressView.findViewById(R.id.textViewInterfaceAddress) as TextView
-            interfaceAddress.text = "http://${item.address}:$serverPort"
+            interfaceAddress.text = "http://$address:$serverPort"
             linearLayoutServerAddressList.addView(addressView)
         }
     }
