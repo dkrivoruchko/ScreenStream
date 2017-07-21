@@ -12,7 +12,8 @@
         android:layout_marginEnd="16dp"
         android:layout_marginStart="16dp"
         android:layout_marginTop="16dp"
-        android:paddingStart="8dp" />
+        android:paddingStart="8dp"
+        android:textColor="@color/colorPrimaryText" />
 
     <EditText
         android:id="@+id/editText_settings_editText_value"
@@ -21,5 +22,6 @@
         android:layout_marginEnd="16dp"
         android:layout_marginStart="16dp"
         android:inputType="number"
-        android:maxLines="1" />
+        android:maxLines="1"
+        android:textColor="@color/colorPrimaryText" />
 </LinearLayout>

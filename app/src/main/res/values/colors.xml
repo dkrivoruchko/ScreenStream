@@ -1,18 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="colorPrimary">#607d8b</color>
+    <color name="colorPrimary">#455a64</color>
     <color name="colorPrimaryDark">#455a64</color>
-    <color name="colorAccent">#993200</color>
-    <color name="textColorSecondary">#455a64</color>
-    <color name="textColorHeader">#FFFFFF</color>
+    <color name="colorAccent">#7f0000</color>
+    <color name="colorPrimaryText">#1c313a</color>
+    <color name="colorPrimaryTextHeader">#FFFFFF</color>
+    <color name="colorSecondaryText">#455a64</color>
+    <color name="colorDivider">#cfd8dc</color>
+
+    // Drawer
+    <color name="colorDrawerTextHeader">@color/colorPrimaryTextHeader</color>
+    <color name="colorDrawerDivider">@color/colorDivider</color>
+    <color name="colorDrawerPrimaryText">@color/colorPrimaryText</color>
 
     // Settings activity
-    <color name="textColorPrefTitle">#993200</color>
-    <color name="textColorPrefHeader">#000000</color>
-    <color name="textColorPrefSummary">#455a64</color>
-    <color name="textColorPrefValue">#666666</color>
-    <color name="colorPrefSplitLine">#cccccc</color>
-
-    // HTML
-    <color name="htmlBackground">#000000</color>
+    <color name="colorSettingsTextTitle">@color/colorAccent</color>
+    <color name="colorSettingsTextHeader">@color/colorPrimaryText</color>
+    <color name="colorSettingsTextSummary">@color/colorSecondaryText</color>
+    <color name="colorSettingsTextValue">@color/colorAccent</color>
+    <color name="colorSettingsDivider">@color/colorDivider</color>
+    <color name="colorSettingsCheckBoxNormal">@color/colorPrimaryText</color>
+    <color name="colorSettingsCheckBoxActivated">@color/colorAccent</color>
 </resources>

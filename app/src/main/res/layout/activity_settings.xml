@@ -20,7 +20,7 @@
             android:padding="8dp"
             android:text="@string/pref_settings_interface"
             android:textAppearance="?android:attr/textAppearanceMedium"
-            android:textColor="@color/textColorPrefTitle"
+            android:textColor="@color/colorSettingsTextTitle"
             android:textStyle="bold" />
 
         <android.support.constraint.ConstraintLayout
@@ -51,7 +51,7 @@
                 android:layout_marginStart="16dp"
                 android:text="@string/pref_minimize_on_stream"
                 android:textAppearance="?android:attr/textAppearanceMedium"
-                android:textColor="@color/textColorPrefHeader"
+                android:textColor="@color/colorSettingsTextHeader"
                 app:layout_constraintEnd_toStartOf="@id/guidelineMinimizeOnStream"
                 app:layout_constraintStart_toEndOf="@id/imageViewMinimizeOnStream"
                 app:layout_constraintTop_toTopOf="parent" />
@@ -63,7 +63,7 @@
                 android:layout_marginStart="16dp"
                 android:text="@string/pref_minimise_on_stream_summary"
                 android:textAppearance="?android:attr/textAppearanceSmall"
-                android:textColor="@color/textColorPrefSummary"
+                android:textColor="@color/colorSettingsTextSummary"
                 app:layout_constraintEnd_toStartOf="@id/guidelineMinimizeOnStream"
                 app:layout_constraintStart_toEndOf="@id/imageViewMinimizeOnStream"
                 app:layout_constraintTop_toBottomOf="@id/textViewMinimizeOnStream" />
@@ -73,6 +73,8 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
+                android:checked="true"
+                android:theme="@style/SettingsCheckBox"
                 app:layout_constraintBottom_toBottomOf="@id/textViewMinimizeOnStreamSummary"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="@id/guidelineMinimizeOnStream"
@@ -92,7 +94,7 @@
             android:layout_height="1dp"
             android:layout_marginBottom="2dp"
             android:layout_marginTop="2dp"
-            android:background="@color/colorPrefSplitLine" />
+            android:background="@color/colorSettingsDivider" />
 
         <android.support.constraint.ConstraintLayout
             android:id="@+id/clStopOnSleep"
@@ -122,7 +124,7 @@
                 android:layout_marginStart="16dp"
                 android:text="@string/pref_stop_on_sleep"
                 android:textAppearance="?android:attr/textAppearanceMedium"
-                android:textColor="@color/textColorPrefHeader"
+                android:textColor="@color/colorSettingsTextHeader"
                 app:layout_constraintEnd_toStartOf="@id/guidelineStopOnSleep"
                 app:layout_constraintStart_toEndOf="@id/imageViewStopOnSleep"
                 app:layout_constraintTop_toTopOf="parent" />
@@ -134,7 +136,7 @@
                 android:layout_marginStart="16dp"
                 android:text="@string/pref_stop_on_sleep_summary"
                 android:textAppearance="?android:attr/textAppearanceSmall"
-                android:textColor="@color/textColorPrefSummary"
+                android:textColor="@color/colorSettingsTextSummary"
                 app:layout_constraintEnd_toStartOf="@id/guidelineStopOnSleep"
                 app:layout_constraintStart_toEndOf="@id/imageViewStopOnSleep"
                 app:layout_constraintTop_toBottomOf="@id/textViewStopOnSleep" />
@@ -144,6 +146,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
+                android:theme="@style/SettingsCheckBox"
                 app:layout_constraintBottom_toBottomOf="@id/textViewStopOnSleepSummary"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="@id/guidelineStopOnSleep"
@@ -163,7 +166,7 @@
             android:layout_height="1dp"
             android:layout_marginBottom="2dp"
             android:layout_marginTop="2dp"
-            android:background="@color/colorPrefSplitLine" />
+            android:background="@color/colorSettingsDivider" />
 
         <android.support.constraint.ConstraintLayout
             android:id="@+id/clStartOnBoot"
@@ -193,7 +196,7 @@
                 android:layout_marginStart="16dp"
                 android:text="@string/pref_start_on_boot"
                 android:textAppearance="?android:attr/textAppearanceMedium"
-                android:textColor="@color/textColorPrefHeader"
+                android:textColor="@color/colorSettingsTextHeader"
                 app:layout_constraintEnd_toStartOf="@id/guidelineStartOnBoot"
                 app:layout_constraintStart_toEndOf="@id/imageViewStartOnBoot"
                 app:layout_constraintTop_toTopOf="parent" />
@@ -205,7 +208,7 @@
                 android:layout_marginStart="16dp"
                 android:text="@string/pref_start_on_boot_summary"
                 android:textAppearance="?android:attr/textAppearanceSmall"
-                android:textColor="@color/textColorPrefSummary"
+                android:textColor="@color/colorSettingsTextSummary"
                 app:layout_constraintEnd_toStartOf="@id/guidelineStartOnBoot"
                 app:layout_constraintStart_toEndOf="@id/imageViewStartOnBoot"
                 app:layout_constraintTop_toBottomOf="@id/textViewStartOnBoot" />
@@ -215,6 +218,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
+                android:theme="@style/SettingsCheckBox"
                 app:layout_constraintBottom_toBottomOf="@id/textViewStartOnBootSummary"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="@id/guidelineStartOnBoot"
@@ -234,7 +238,7 @@
             android:layout_height="1dp"
             android:layout_marginBottom="2dp"
             android:layout_marginTop="2dp"
-            android:background="@color/colorPrefSplitLine" />
+            android:background="@color/colorSettingsDivider" />
 
         <android.support.constraint.ConstraintLayout
             android:id="@+id/clMjpegCheck"
@@ -264,7 +268,7 @@
                 android:layout_marginStart="16dp"
                 android:text="@string/pref_mjpeg_check"
                 android:textAppearance="?android:attr/textAppearanceMedium"
-                android:textColor="@color/textColorPrefHeader"
+                android:textColor="@color/colorSettingsTextHeader"
                 app:layout_constraintEnd_toStartOf="@id/guidelineMjpegCheck"
                 app:layout_constraintStart_toEndOf="@id/imageViewMjpegCheck"
                 app:layout_constraintTop_toTopOf="parent" />
@@ -276,7 +280,7 @@
                 android:layout_marginStart="16dp"
                 android:text="@string/pref_mjpeg_check_summary"
                 android:textAppearance="?android:attr/textAppearanceSmall"
-                android:textColor="@color/textColorPrefSummary"
+                android:textColor="@color/colorSettingsTextSummary"
                 app:layout_constraintEnd_toStartOf="@id/guidelineMjpegCheck"
                 app:layout_constraintStart_toEndOf="@id/imageViewMjpegCheck"
                 app:layout_constraintTop_toBottomOf="@id/textViewMjpegCheck" />
@@ -286,6 +290,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
+                android:theme="@style/SettingsCheckBox"
                 app:layout_constraintBottom_toBottomOf="@id/textViewMjpegCheckSummary"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="@id/guidelineMjpegCheck"
@@ -305,7 +310,7 @@
             android:layout_height="1dp"
             android:layout_marginBottom="2dp"
             android:layout_marginTop="2dp"
-            android:background="@color/colorPrefSplitLine" />
+            android:background="@color/colorSettingsDivider" />
 
         <android.support.constraint.ConstraintLayout
             android:id="@+id/clHtmlBackColor"
@@ -335,7 +340,7 @@
                 android:layout_marginStart="16dp"
                 android:text="@string/pref_html_back_color"
                 android:textAppearance="?android:attr/textAppearanceMedium"
-                android:textColor="@color/textColorPrefHeader"
+                android:textColor="@color/colorSettingsTextHeader"
                 app:layout_constraintEnd_toStartOf="@id/guidelineHtmlBackColor"
                 app:layout_constraintStart_toEndOf="@id/imageViewHtmlBackColor"
                 app:layout_constraintTop_toTopOf="parent" />
@@ -347,7 +352,7 @@
                 android:layout_marginStart="16dp"
                 android:text="@string/pref_html_back_color_summary"
                 android:textAppearance="?android:attr/textAppearanceSmall"
-                android:textColor="@color/textColorPrefSummary"
+                android:textColor="@color/colorSettingsTextSummary"
                 app:layout_constraintEnd_toStartOf="@id/guidelineHtmlBackColor"
                 app:layout_constraintStart_toEndOf="@id/imageViewHtmlBackColor"
                 app:layout_constraintTop_toBottomOf="@id/textViewHtmlBackColor" />
@@ -357,7 +362,7 @@
                 android:layout_width="24dp"
                 android:layout_height="24dp"
                 android:layout_marginStart="8dp"
-                android:background="@color/htmlBackground"
+                android:background="#000"
                 app:layout_constraintBottom_toBottomOf="@id/textViewHtmlBackColorSummary"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="@id/guidelineHtmlBackColor"
@@ -380,7 +385,7 @@
             android:padding="8dp"
             android:text="@string/pref_settings_image"
             android:textAppearance="?android:attr/textAppearanceMedium"
-            android:textColor="@color/textColorPrefTitle"
+            android:textColor="@color/colorSettingsTextTitle"
             android:textStyle="bold" />
 
         <android.support.constraint.ConstraintLayout
@@ -411,7 +416,7 @@
                 android:layout_marginStart="16dp"
                 android:text="@string/pref_resize"
                 android:textAppearance="?android:attr/textAppearanceMedium"
-                android:textColor="@color/textColorPrefHeader"
+                android:textColor="@color/colorSettingsTextHeader"
                 app:layout_constraintEnd_toStartOf="@id/guidelineResizeImage"
                 app:layout_constraintStart_toEndOf="@id/imageViewResizeImage"
                 app:layout_constraintTop_toTopOf="parent" />
@@ -423,7 +428,7 @@
                 android:layout_marginStart="16dp"
                 android:text="@string/pref_resize_summary"
                 android:textAppearance="?android:attr/textAppearanceSmall"
-                android:textColor="@color/textColorPrefSummary"
+                android:textColor="@color/colorSettingsTextSummary"
                 app:layout_constraintEnd_toStartOf="@id/guidelineResizeImage"
                 app:layout_constraintStart_toEndOf="@id/imageViewResizeImage"
                 app:layout_constraintTop_toBottomOf="@id/textViewResizeImage" />
@@ -434,7 +439,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
                 android:textAlignment="center"
-                android:textColor="@color/textColorPrefValue"
+                android:textColor="@color/colorSettingsTextValue"
                 android:textSize="16sp"
                 app:layout_constraintBottom_toBottomOf="@id/textViewResizeImageSummary"
                 app:layout_constraintEnd_toEndOf="parent"
@@ -449,7 +454,6 @@
                 android:orientation="vertical"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintGuide_end="52dp" />
-
         </android.support.constraint.ConstraintLayout>
 
         <View
@@ -457,7 +461,7 @@
             android:layout_height="1dp"
             android:layout_marginBottom="2dp"
             android:layout_marginTop="2dp"
-            android:background="@color/colorPrefSplitLine" />
+            android:background="@color/colorSettingsDivider" />
 
         <android.support.constraint.ConstraintLayout
             android:id="@+id/clJpegQuality"
@@ -487,7 +491,7 @@
                 android:layout_marginStart="16dp"
                 android:text="@string/pref_jpeg_quality"
                 android:textAppearance="?android:attr/textAppearanceMedium"
-                android:textColor="@color/textColorPrefHeader"
+                android:textColor="@color/colorSettingsTextHeader"
                 app:layout_constraintEnd_toStartOf="@id/guidelineJpegQuality"
                 app:layout_constraintStart_toEndOf="@id/imageViewJpegQuality"
                 app:layout_constraintTop_toTopOf="parent" />
@@ -499,7 +503,7 @@
                 android:layout_marginStart="16dp"
                 android:text="@string/pref_jpeg_quality_summary"
                 android:textAppearance="?android:attr/textAppearanceSmall"
-                android:textColor="@color/textColorPrefSummary"
+                android:textColor="@color/colorSettingsTextSummary"
                 app:layout_constraintEnd_toStartOf="@id/guidelineJpegQuality"
                 app:layout_constraintStart_toEndOf="@id/imageViewJpegQuality"
                 app:layout_constraintTop_toBottomOf="@id/textViewJpegQuality" />
@@ -510,7 +514,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
                 android:textAlignment="center"
-                android:textColor="@color/textColorPrefValue"
+                android:textColor="@color/colorSettingsTextValue"
                 android:textSize="16sp"
                 app:layout_constraintBottom_toBottomOf="@+id/textViewJpegQualitySummary"
                 app:layout_constraintEnd_toEndOf="parent"
@@ -535,7 +539,7 @@
             android:padding="8dp"
             android:text="@string/pref_settings_security"
             android:textAppearance="?android:attr/textAppearanceMedium"
-            android:textColor="@color/textColorPrefTitle"
+            android:textColor="@color/colorSettingsTextTitle"
             android:textStyle="bold" />
 
         <android.support.constraint.ConstraintLayout
@@ -566,7 +570,7 @@
                 android:layout_marginStart="16dp"
                 android:text="@string/pref_enable_pin"
                 android:textAppearance="?android:attr/textAppearanceMedium"
-                android:textColor="@color/textColorPrefHeader"
+                android:textColor="@color/colorSettingsTextHeader"
                 app:layout_constraintEnd_toStartOf="@id/guidelineEnablePin"
                 app:layout_constraintStart_toEndOf="@id/imageViewEnablePin"
                 app:layout_constraintTop_toTopOf="parent" />
@@ -578,7 +582,7 @@
                 android:layout_marginStart="16dp"
                 android:text="@string/pref_enable_pin_summary"
                 android:textAppearance="?android:attr/textAppearanceSmall"
-                android:textColor="@color/textColorPrefSummary"
+                android:textColor="@color/colorSettingsTextSummary"
                 app:layout_constraintEnd_toStartOf="@id/guidelineEnablePin"
                 app:layout_constraintStart_toEndOf="@id/imageViewEnablePin"
                 app:layout_constraintTop_toBottomOf="@id/textViewEnablePin" />
@@ -588,6 +592,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
+                android:theme="@style/SettingsCheckBox"
                 app:layout_constraintBottom_toBottomOf="@id/textViewEnablePinSummary"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="@id/guidelineEnablePin"
@@ -607,7 +612,7 @@
             android:layout_height="1dp"
             android:layout_marginBottom="2dp"
             android:layout_marginTop="2dp"
-            android:background="@color/colorPrefSplitLine" />
+            android:background="@color/colorSettingsDivider" />
 
         <android.support.constraint.ConstraintLayout
             android:id="@+id/clHidePinOnStart"
@@ -637,7 +642,7 @@
                 android:layout_marginStart="16dp"
                 android:text="@string/pref_hide_pin"
                 android:textAppearance="?android:attr/textAppearanceMedium"
-                android:textColor="@color/textColorPrefHeader"
+                android:textColor="@color/colorSettingsTextHeader"
                 app:layout_constraintEnd_toStartOf="@id/guidelineHidePinOnStart"
                 app:layout_constraintStart_toEndOf="@id/imageViewHidePinOnStart"
                 app:layout_constraintTop_toTopOf="parent" />
@@ -649,7 +654,7 @@
                 android:layout_marginStart="16dp"
                 android:text="@string/pref_hide_pin_summary"
                 android:textAppearance="?android:attr/textAppearanceSmall"
-                android:textColor="@color/textColorPrefSummary"
+                android:textColor="@color/colorSettingsTextSummary"
                 app:layout_constraintEnd_toStartOf="@id/guidelineHidePinOnStart"
                 app:layout_constraintStart_toEndOf="@id/imageViewHidePinOnStart"
                 app:layout_constraintTop_toBottomOf="@id/textViewHidePinOnStart" />
@@ -659,6 +664,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
+                android:theme="@style/SettingsCheckBox"
                 app:layout_constraintBottom_toBottomOf="@id/textViewHidePinOnStartSummary"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="@id/guidelineHidePinOnStart"
@@ -678,7 +684,7 @@
             android:layout_height="1dp"
             android:layout_marginBottom="2dp"
             android:layout_marginTop="2dp"
-            android:background="@color/colorPrefSplitLine" />
+            android:background="@color/colorSettingsDivider" />
 
         <android.support.constraint.ConstraintLayout
             android:id="@+id/clNewPinOnAppStart"
@@ -708,7 +714,7 @@
                 android:layout_marginStart="16dp"
                 android:text="@string/pref_new_pin_on_start"
                 android:textAppearance="?android:attr/textAppearanceMedium"
-                android:textColor="@color/textColorPrefHeader"
+                android:textColor="@color/colorSettingsTextHeader"
                 app:layout_constraintEnd_toStartOf="@id/guidelineNewPinOnAppStart"
                 app:layout_constraintStart_toEndOf="@id/imageViewNewPinOnAppStart"
                 app:layout_constraintTop_toTopOf="parent" />
@@ -720,7 +726,7 @@
                 android:layout_marginStart="16dp"
                 android:text="@string/pref_new_pin_on_start_summary"
                 android:textAppearance="?android:attr/textAppearanceSmall"
-                android:textColor="@color/textColorPrefSummary"
+                android:textColor="@color/colorSettingsTextSummary"
                 app:layout_constraintEnd_toStartOf="@id/guidelineNewPinOnAppStart"
                 app:layout_constraintStart_toEndOf="@id/imageViewNewPinOnAppStart"
                 app:layout_constraintTop_toBottomOf="@id/textViewNewPinOnAppStart" />
@@ -730,6 +736,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
+                android:theme="@style/SettingsCheckBox"
                 app:layout_constraintBottom_toBottomOf="@id/textViewNewPinOnAppStartSummary"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="@id/guidelineNewPinOnAppStart"
@@ -749,7 +756,7 @@
             android:layout_height="1dp"
             android:layout_marginBottom="2dp"
             android:layout_marginTop="2dp"
-            android:background="@color/colorPrefSplitLine" />
+            android:background="@color/colorSettingsDivider" />
 
         <android.support.constraint.ConstraintLayout
             android:id="@+id/clAutoChangePin"
@@ -779,7 +786,7 @@
                 android:layout_marginStart="16dp"
                 android:text="@string/pref_auto_change_pin"
                 android:textAppearance="?android:attr/textAppearanceMedium"
-                android:textColor="@color/textColorPrefHeader"
+                android:textColor="@color/colorSettingsTextHeader"
                 app:layout_constraintEnd_toStartOf="@id/guidelineAutoChangePin"
                 app:layout_constraintStart_toEndOf="@id/imageViewAutoChangePin"
                 app:layout_constraintTop_toTopOf="parent" />
@@ -791,7 +798,7 @@
                 android:layout_marginStart="16dp"
                 android:text="@string/pref_auto_change_pin_summary"
                 android:textAppearance="?android:attr/textAppearanceSmall"
-                android:textColor="@color/textColorPrefSummary"
+                android:textColor="@color/colorSettingsTextSummary"
                 app:layout_constraintEnd_toStartOf="@id/guidelineAutoChangePin"
                 app:layout_constraintStart_toEndOf="@id/imageViewAutoChangePin"
                 app:layout_constraintTop_toBottomOf="@id/textViewAutoChangePin" />
@@ -801,6 +808,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
+                android:theme="@style/SettingsCheckBox"
                 app:layout_constraintBottom_toBottomOf="@id/textViewAutoChangePinSummary"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="@id/guidelineAutoChangePin"
@@ -820,7 +828,7 @@
             android:layout_height="1dp"
             android:layout_marginBottom="2dp"
             android:layout_marginTop="2dp"
-            android:background="@color/colorPrefSplitLine" />
+            android:background="@color/colorSettingsDivider" />
 
         <android.support.constraint.ConstraintLayout
             android:id="@+id/clSetPin"
@@ -850,7 +858,7 @@
                 android:layout_marginStart="16dp"
                 android:text="@string/pref_set_pin"
                 android:textAppearance="?android:attr/textAppearanceMedium"
-                android:textColor="@color/textColorPrefHeader"
+                android:textColor="@color/colorSettingsTextHeader"
                 app:layout_constraintEnd_toStartOf="@id/guidelineSetPin"
                 app:layout_constraintStart_toEndOf="@id/imageViewSetPin"
                 app:layout_constraintTop_toTopOf="parent" />
@@ -862,7 +870,7 @@
                 android:layout_marginStart="16dp"
                 android:text="@string/pref_set_pin_summary"
                 android:textAppearance="?android:attr/textAppearanceSmall"
-                android:textColor="@color/textColorPrefSummary"
+                android:textColor="@color/colorSettingsTextSummary"
                 app:layout_constraintEnd_toStartOf="@id/guidelineSetPin"
                 app:layout_constraintStart_toEndOf="@id/imageViewSetPin"
                 app:layout_constraintTop_toBottomOf="@id/textViewSetPin" />
@@ -874,7 +882,7 @@
                 android:layout_marginStart="8dp"
                 android:text="0000"
                 android:textAlignment="center"
-                android:textColor="@color/textColorPrefValue"
+                android:textColor="@color/colorSettingsTextValue"
                 android:textSize="16sp"
                 app:layout_constraintBottom_toBottomOf="@id/textViewSetPinSummary"
                 app:layout_constraintEnd_toEndOf="parent"
@@ -898,7 +906,7 @@
             android:padding="8dp"
             android:text="@string/pref_settings_advanced"
             android:textAppearance="?android:attr/textAppearanceMedium"
-            android:textColor="@color/textColorPrefTitle"
+            android:textColor="@color/colorSettingsTextTitle"
             android:textStyle="bold" />
 
         <android.support.constraint.ConstraintLayout
@@ -929,7 +937,7 @@
                 android:layout_marginStart="16dp"
                 android:text="@string/pref_server_port"
                 android:textAppearance="?android:attr/textAppearanceMedium"
-                android:textColor="@color/textColorPrefHeader"
+                android:textColor="@color/colorSettingsTextHeader"
                 app:layout_constraintEnd_toStartOf="@+id/guidelineServerPort"
                 app:layout_constraintStart_toEndOf="@+id/imageViewServerPort"
                 app:layout_constraintTop_toTopOf="parent" />
@@ -941,7 +949,7 @@
                 android:layout_marginStart="16dp"
                 android:text="@string/pref_server_port_summary"
                 android:textAppearance="?android:attr/textAppearanceSmall"
-                android:textColor="@color/textColorPrefSummary"
+                android:textColor="@color/colorSettingsTextSummary"
                 app:layout_constraintEnd_toStartOf="@id/guidelineServerPort"
                 app:layout_constraintStart_toEndOf="@id/imageViewServerPort"
                 app:layout_constraintTop_toBottomOf="@id/textViewServerPort" />
@@ -952,7 +960,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
                 android:textAlignment="center"
-                android:textColor="@color/textColorPrefValue"
+                android:textColor="@color/colorSettingsTextValue"
                 android:textSize="16sp"
                 app:layout_constraintBottom_toBottomOf="@id/textViewServerPortSummary"
                 app:layout_constraintEnd_toEndOf="parent"

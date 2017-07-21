@@ -3,12 +3,10 @@ package info.dvkr.screenstream.ui
 import android.app.Dialog
 import android.content.Context
 import android.content.Intent
-import android.graphics.Typeface
 import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import android.support.annotation.DrawableRes
 import android.support.annotation.StringRes
-import android.support.v4.content.ContextCompat
 import android.support.v7.app.AlertDialog
 import android.text.Editable
 import android.text.InputFilter
@@ -210,13 +208,6 @@ class SettingsActivity : BaseActivity(), SettingsActivityView, ColorPickerDialog
                 is SettingsActivityView.ToEvent.ResizeFactor -> {
                     resizeFactor = event.value
                     textViewResizeImageValue.text = "$resizeFactor%"
-                    if (resizeFactor > 100) {
-                        textViewResizeImageValue.setTextColor(ContextCompat.getColor(applicationContext, R.color.colorAccent))
-                        textViewResizeImageValue.setTypeface(textViewResizeImageValue.typeface, Typeface.BOLD)
-                    } else {
-                        textViewResizeImageValue.setTextColor(ContextCompat.getColor(applicationContext, R.color.textColorPrefValue))
-                        textViewResizeImageValue.typeface = Typeface.DEFAULT
-                    }
                 }
 
                 is SettingsActivityView.ToEvent.JpegQuality -> textViewJpegQualityValue.text = Integer.toString(event.value)

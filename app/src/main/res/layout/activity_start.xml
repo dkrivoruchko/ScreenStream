@@ -12,7 +12,7 @@
         android:layout_height="?attr/actionBarSize"
         android:background="?attr/colorPrimary"
         android:elevation="4dp"
-        app:titleTextColor="@color/textColorHeader" />
+        app:titleTextColor="@color/colorPrimaryTextHeader" />
 
     <ScrollView
         android:layout_width="match_parent"
@@ -34,7 +34,7 @@
                 android:text="@string/start_activity_device_address"
                 android:textAlignment="center"
                 android:textAppearance="?android:attr/textAppearanceMedium"
-                android:textColor="@color/textColorSecondary" />
+                android:textColor="@color/colorPrimaryText" />
 
             <LinearLayout
                 android:id="@+id/linearLayoutServerAddressList"
@@ -46,6 +46,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:gravity="center"
+                    android:textColor="@color/colorAccent"
                     tools:text="No address found" />
             </LinearLayout>
 
@@ -62,7 +63,7 @@
                     android:layout_height="wrap_content"
                     android:text="@string/start_activity_pin_disabled"
                     android:textAppearance="?android:attr/textAppearanceMedium"
-                    android:textColor="@color/textColorSecondary"
+                    android:textColor="@color/colorPrimaryText"
                     android:visibility="gone" />
 
                 <TextView
@@ -71,7 +72,7 @@
                     android:layout_height="wrap_content"
                     android:text="@string/start_activity_pin"
                     android:textAppearance="?android:attr/textAppearanceMedium"
-                    android:textColor="@color/textColorSecondary" />
+                    android:textColor="@color/colorPrimaryText" />
 
                 <TextView
                     android:id="@+id/textViewPinValue"
@@ -91,7 +92,7 @@
                 android:layout_margin="8dp"
                 android:text="@string/start_activity_resize_factor"
                 android:textAppearance="?android:attr/textAppearanceSmall"
-                android:textColor="@color/textColorSecondary" />
+                android:textColor="@color/colorPrimaryText" />
 
             <ToggleButton
                 android:id="@+id/toggleButtonStartStop"
@@ -100,11 +101,11 @@
                 android:layout_gravity="center_horizontal"
                 android:layout_marginBottom="8dp"
                 android:layout_marginTop="8dp"
-                android:paddingEnd="32dp"
-                android:paddingStart="32dp"
+                android:paddingEnd="36dp"
+                android:paddingStart="36dp"
                 android:textAllCaps="true"
                 android:textAppearance="?android:attr/textAppearanceMedium"
-                android:textColor="@drawable/toggle_button_start_activity_start_stop"
+                android:textColor="@drawable/tb_start_activity_start_stop"
                 android:textOff="@string/start_activity_start_stream"
                 android:textOn="@string/start_activity_stop_stream"
                 android:textStyle="bold" />
@@ -114,10 +115,20 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center_horizontal"
-                android:layout_margin="8dp"
+                android:layout_margin="4dp"
                 android:text="@string/start_activity_connected_clients"
                 android:textAppearance="?android:attr/textAppearanceSmall"
-                android:textColor="@color/textColorSecondary" />
+                android:textColor="@color/colorPrimaryText" />
+
+            <TextView
+                android:id="@+id/textViewCurrentTraffic"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:layout_margin="4dp"
+                android:text="@string/start_activity_current_traffic"
+                android:textAppearance="?android:attr/textAppearanceSmall"
+                android:textColor="@color/colorPrimaryText" />
 
             <com.jjoe64.graphview.GraphView
                 android:id="@+id/lineChartTraffic"

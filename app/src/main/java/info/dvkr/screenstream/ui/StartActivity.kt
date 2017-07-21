@@ -6,11 +6,11 @@ import android.app.Dialog
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
-import android.graphics.Color
 import android.graphics.Point
 import android.media.projection.MediaProjectionManager
 import android.net.Uri
 import android.os.Bundle
+import android.support.v4.content.ContextCompat
 import android.support.v7.app.AlertDialog
 import android.util.Log
 import android.view.LayoutInflater
@@ -18,6 +18,8 @@ import android.view.View
 import android.view.WindowManager
 import android.widget.TextView
 import com.crashlytics.android.Crashlytics
+import com.jjoe64.graphview.DefaultLabelFormatter
+import com.jjoe64.graphview.GridLabelRenderer
 import com.jjoe64.graphview.series.DataPoint
 import com.jjoe64.graphview.series.LineGraphSeries
 import com.mikepenz.materialdrawer.Drawer
@@ -36,6 +38,7 @@ import rx.Observable
 import rx.android.schedulers.AndroidSchedulers
 import rx.subjects.PublishSubject
 import java.net.BindException
+import java.text.NumberFormat
 import javax.inject.Inject
 
 class StartActivity : BaseActivity(), StartActivityView {
@@ -122,21 +125,38 @@ class StartActivity : BaseActivity(), StartActivityView {
                 }
 
                 is StartActivityView.ToEvent.TrafficHistory -> {
+                    textViewCurrentTraffic.text = getString(R.string.start_activity_current_traffic).format(toMbit(event.trafficHistory.last().bytes))
+
                     val arrayOfDataPoints = event.trafficHistory.map { DataPoint(it.time.toDouble(), toMbit(it.bytes)) }.toTypedArray()
                     lineChartTraffic.removeAllSeries()
                     lineGraphSeries = LineGraphSeries<DataPoint>(arrayOfDataPoints)
-                    lineGraphSeries.color = Color.BLUE
-                    lineGraphSeries.thickness = 4
+                    lineGraphSeries.color = ContextCompat.getColor(this, R.color.colorAccent)
+                    lineGraphSeries.thickness = 6
                     lineGraphSeries.isDrawBackground = true
+//                    lineGraphSeries.backgroundColor = ContextCompat.getColor(this, R.color.colorDivider)
                     lineChartTraffic.addSeries(lineGraphSeries)
                     lineChartTraffic.viewport.isXAxisBoundsManual = true;
                     lineChartTraffic.viewport.setMinX(arrayOfDataPoints[0].x)
                     lineChartTraffic.viewport.setMaxX(arrayOfDataPoints[arrayOfDataPoints.size - 1].x)
                     lineChartTraffic.gridLabelRenderer.isHorizontalLabelsVisible = false
+                    lineChartTraffic.gridLabelRenderer.gridStyle = GridLabelRenderer.GridStyle.HORIZONTAL
+                    val nf = NumberFormat.getInstance()
+                    nf.minimumFractionDigits = 2
+                    nf.maximumFractionDigits = 2
+                    nf.minimumIntegerDigits = 1
+                    lineChartTraffic.gridLabelRenderer.labelFormatter = DefaultLabelFormatter(nf, nf)
+                    lineChartTraffic.gridLabelRenderer.horizontalLabelsColor = ContextCompat.getColor(this, R.color.colorPrimaryText)
+                    lineChartTraffic.viewport.isYAxisBoundsManual = true;
+                    lineChartTraffic.viewport.setMinY(0.0)
+                    lineChartTraffic.viewport.setMaxY(lineGraphSeries.highestValueY * 1.2)
                 }
 
                 is StartActivityView.ToEvent.TrafficPoint -> {
-                    lineGraphSeries.appendData(DataPoint(event.trafficPoint.time.toDouble(), toMbit(event.trafficPoint.bytes)), true, 60)
+                    val mbit = toMbit(event.trafficPoint.bytes)
+                    textViewCurrentTraffic.text = getString(R.string.start_activity_current_traffic).format(mbit)
+                    lineGraphSeries.appendData(DataPoint(event.trafficPoint.time.toDouble(), mbit), true, 60)
+
+                    lineChartTraffic.viewport.setMaxY(lineGraphSeries.highestValueY * 1.2)
                 }
             }
         }
@@ -171,7 +191,7 @@ class StartActivity : BaseActivity(), StartActivityView {
                 .withHasStableIds(true)
                 .addDrawerItems(
                         PrimaryDrawerItem().withIdentifier(1).withName("Main").withSelectable(false).withIcon(R.drawable.ic_drawer_main_24dp),
-                        PrimaryDrawerItem().withIdentifier(2).withName("Connected clients").withSelectable(false).withIcon(R.drawable.ic_drawer_connected_24dp),
+                        PrimaryDrawerItem().withIdentifier(2).withName("Connected clients").withSelectable(false).withIcon(R.drawable.ic_drawer_connected_24dp).withEnabled(false),
                         PrimaryDrawerItem().withIdentifier(3).withName("Settings").withSelectable(false).withIcon(R.drawable.ic_drawer_settings_24dp),
                         //                        DividerDrawerItem(),
 //                        PrimaryDrawerItem().withIdentifier(4).withName("Instructions").withSelectable(false).withIcon(R.drawable.ic_drawer_instructions_24dp),
@@ -185,6 +205,11 @@ class StartActivity : BaseActivity(), StartActivityView {
                         PrimaryDrawerItem().withIdentifier(9).withName("Exit").withIcon(R.drawable.ic_drawer_exit_24pd)
                 )
                 .withOnDrawerItemClickListener { _, _, drawerItem ->
+                    if (drawerItem.identifier == 1L) if (drawer.isDrawerOpen) drawer.closeDrawer()
+
+                    if (drawerItem.identifier == 2L) {
+                    } // TODO
+
                     if (drawerItem.identifier == 3L) startActivity(SettingsActivity.getStartIntent(this))
 
                     if (drawerItem.identifier == 6L) {
@@ -212,13 +237,13 @@ class StartActivity : BaseActivity(), StartActivityView {
                 }
                 .build()
 
+        drawer.deselect()
+
         showResizeFactor(settings.resizeFactor)
         showEnablePin(settings.enablePin)
         textViewPinValue.text = settings.currentPin
 
         onNewIntent(intent)
-
-        lineChartTraffic.title= "Traffic Mbit/s"
 
         if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] onCreate: End")
     }
@@ -355,5 +380,5 @@ class StartActivity : BaseActivity(), StartActivityView {
         dialog?.show()
     }
 
-    private fun toMbit(byte: Long) = (byte * 8 * 1000 / 1024 / 1024).toDouble() / 1000.0
+    private fun toMbit(byte: Long) = (byte * 8).toDouble() / 1024 / 1024
 }
