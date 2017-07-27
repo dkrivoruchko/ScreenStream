@@ -15,8 +15,6 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.EditText
-import android.widget.TextView
 import com.jrummyapps.android.colorpicker.ColorPickerDialog
 import com.jrummyapps.android.colorpicker.ColorPickerDialogListener
 import info.dvkr.screenstream.BuildConfig
@@ -24,6 +22,7 @@ import info.dvkr.screenstream.R
 import info.dvkr.screenstream.dagger.component.NonConfigurationComponent
 import info.dvkr.screenstream.presenter.SettingsActivityPresenter
 import kotlinx.android.synthetic.main.activity_settings.*
+import kotlinx.android.synthetic.main.settings_edittext_dialog.view.*
 import rx.Observable
 import rx.android.schedulers.AndroidSchedulers
 import rx.functions.Action1
@@ -259,13 +258,12 @@ class SettingsActivity : BaseActivity(), SettingsActivityView, ColorPickerDialog
                                   action: Action1<String>): Dialog {
         val layoutInflater = LayoutInflater.from(this)
         val dialogView = layoutInflater.inflate(R.layout.settings_edittext_dialog, null)
-        val textViewContent = dialogView.findViewById(R.id.textView_settings_editText_content) as TextView
-        textViewContent.setText(content)
-
-        val editTextValue = dialogView.findViewById(R.id.editText_settings_editText_value) as EditText
-        editTextValue.setText(currentValue)
-        editTextValue.setSelection(currentValue.length)
-        editTextValue.filters = arrayOf<InputFilter>(InputFilter.LengthFilter(maxLength))
+        with(dialogView) {
+            textViewSettingsEditTextContent.text = getString(content)
+            editTextSettingsEditTextValue.setText(currentValue)
+            editTextSettingsEditTextValue.setSelection(currentValue.length)
+            editTextSettingsEditTextValue.filters = arrayOf<InputFilter>(InputFilter.LengthFilter(maxLength))
+        }
 
         val alertDialog = AlertDialog.Builder(this)
                 .setView(dialogView)
@@ -273,7 +271,7 @@ class SettingsActivity : BaseActivity(), SettingsActivityView, ColorPickerDialog
                 .setIcon(icon)
                 .setTitle(title)
                 .setPositiveButton(android.R.string.ok) { _, _ ->
-                    val stringValue = editTextValue.text.toString()
+                    val stringValue = dialogView.editTextSettingsEditTextValue.text.toString()
                     if (stringValue.length < minLength || stringValue.length > maxLength) return@setPositiveButton
                     if (currentValue == stringValue) return@setPositiveButton
                     val newValue = Integer.parseInt(stringValue)
@@ -285,7 +283,7 @@ class SettingsActivity : BaseActivity(), SettingsActivityView, ColorPickerDialog
 
         alertDialog.setOnShowListener { _ ->
             val okButton = alertDialog.getButton(AlertDialog.BUTTON_POSITIVE)
-            editTextValue.addTextChangedListener(object : TextWatcher {
+            dialogView.editTextSettingsEditTextValue.addTextChangedListener(object : TextWatcher {
                 override fun beforeTextChanged(s: CharSequence, start: Int, count: Int, after: Int) {
                 }
 

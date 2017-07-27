@@ -5,19 +5,19 @@
     android:orientation="vertical">
 
     <TextView
-        android:id="@+id/textView_settings_editText_content"
+        android:id="@+id/textViewSettingsEditTextContent"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginBottom="8dp"
         android:layout_marginEnd="16dp"
         android:layout_marginStart="16dp"
         android:layout_marginTop="16dp"
-        android:labelFor="@id/editText_settings_editText_value"
+        android:labelFor="@id/editTextSettingsEditTextValue"
         android:paddingStart="8dp"
         android:textColor="@color/colorPrimaryText" />
 
     <EditText
-        android:id="@+id/editText_settings_editText_value"
+        android:id="@+id/editTextSettingsEditTextValue"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginEnd="16dp"

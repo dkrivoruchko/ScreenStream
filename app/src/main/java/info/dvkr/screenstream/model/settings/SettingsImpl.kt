@@ -23,7 +23,7 @@ class SettingsImpl(private val mRxSharedPreferences: RxSharedPreferences) : Sett
         private val PREF_KEY_RESIZE_FACTOR = "PREF_KEY_RESIZE_FACTOR" // Int
         private val DEFAULT_RESIZE_FACTOR = 50
         private val PREF_KEY_JPEG_QUALITY = "PREF_KEY_JPEG_QUALITY" // Int
-        private val DEFAULT_JPEG_QUALITY = 100
+        private val DEFAULT_JPEG_QUALITY = 80
 
         private val PREF_KEY_ENABLE_PIN = "PREF_KEY_ENABLE_PIN" // Boolean
         private val DEFAULT_ENABLE_PIN = false

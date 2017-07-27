@@ -15,8 +15,9 @@ import android.net.ConnectivityManager
 import android.net.wifi.WifiManager
 import android.os.IBinder
 import android.support.annotation.Keep
+import android.support.v4.app.NotificationCompat
 import android.support.v4.content.ContextCompat
-import android.support.v7.app.NotificationCompat
+import android.support.v4.media.app.NotificationCompat.MediaStyle
 import android.util.Log
 import com.cantrowitz.rxbroadcast.RxBroadcast
 import com.crashlytics.android.Crashlytics
@@ -283,7 +284,7 @@ class ForegroundService : Service(), ForegroundServiceView {
                 StartActivity.getStartIntent(applicationContext).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
                 0)
 
-        val builder = NotificationCompat.Builder(applicationContext)
+        val builder = NotificationCompat.Builder(applicationContext, "info.dvkr.sreenstream.NOTIFICATION")// TODO
         builder.setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
         builder.setSmallIcon(R.drawable.ic_service_notification_24dp)
         builder.setLargeIcon(BitmapFactory.decodeResource(resources, R.drawable.ic_app))
@@ -316,7 +317,7 @@ class ForegroundService : Service(), ForegroundServiceView {
             }
         }
 
-        builder.setStyle(NotificationCompat.MediaStyle().setShowActionsInCompactView(0))
+        builder.setStyle(MediaStyle().setShowActionsInCompactView(0))
         builder.setCategory(Notification.CATEGORY_SERVICE)
         builder.priority = NotificationCompat.PRIORITY_MAX
         return builder.build()

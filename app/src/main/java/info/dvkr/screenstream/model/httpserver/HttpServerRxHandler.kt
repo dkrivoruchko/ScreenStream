@@ -69,10 +69,10 @@ internal class HttpServerRxHandler(private val favicon: ByteArray,
         val uri = request.uri
         if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] Priority: ${Thread.currentThread().priority} HttpServerRxHandler: Handle: $uri")
         when {
-            uri == HttpServer.DEFAULT_ICON_ADDRESS -> return sentFavicon(response)
-            uri == HttpServer.DEFAULT_HTML_ADDRESS -> return if (pinEnabled) sentPinRequestHtml(response) else sentIndexHtml(response)
-            uri == pinAddress && pinEnabled -> return sentIndexHtml(response)
-            uri.startsWith(HttpServer.DEFAULT_PIN_ADDRESS) && pinEnabled -> return sentPinRequestErrorHtml(response)
+            uri == HttpServer.DEFAULT_ICON_ADDRESS -> return sendFavicon(response)
+            uri == HttpServer.DEFAULT_HTML_ADDRESS -> return if (pinEnabled) sendHtml(response, pinRequestHtmlPage) else sendHtml(response, indexHtmlPage)
+            uri == pinAddress && pinEnabled -> return sendHtml(response, indexHtmlPage)
+            uri.startsWith(HttpServer.DEFAULT_PIN_ADDRESS) && pinEnabled -> return sendHtml(response, pinRequestErrorHtmlPage)
             uri == streamAddress -> {
                 // Getting clients statuses
                 val channel = response.unsafeConnection().channelPipeline.channel()
@@ -86,7 +86,7 @@ internal class HttpServerRxHandler(private val favicon: ByteArray,
         }
     }
 
-    private fun sentFavicon(response: HttpServerResponse<ByteBuf>): Observable<Void> {
+    private fun sendFavicon(response: HttpServerResponse<ByteBuf>): Observable<Void> {
         response.status = HttpResponseStatus.OK
         response.addHeader(HttpHeaderNames.CONTENT_TYPE, "image/icon")
         response.setHeader(HttpHeaderNames.CACHE_CONTROL, "no-cache,no-store,max-age=0,must-revalidate")
@@ -95,28 +95,12 @@ internal class HttpServerRxHandler(private val favicon: ByteArray,
         return response.writeBytesAndFlushOnEach(Observable.just(favicon))
     }
 
-    private fun sentIndexHtml(response: HttpServerResponse<ByteBuf>): Observable<Void> {
+    private fun sendHtml(response: HttpServerResponse<ByteBuf>, html: String): Observable<Void> {
         response.status = HttpResponseStatus.OK
         response.addHeader(HttpHeaderNames.CONTENT_TYPE, "text/html; charset=UTF-8")
         response.setHeader(HttpHeaderNames.CACHE_CONTROL, "no-cache,no-store,max-age=0,must-revalidate")
         response.setHeader(HttpHeaderNames.CONNECTION, HttpHeaderValues.CLOSE)
-        return response.writeStringAndFlushOnEach(Observable.just(indexHtmlPage))
-    }
-
-    private fun sentPinRequestHtml(response: HttpServerResponse<ByteBuf>): Observable<Void> {
-        response.status = HttpResponseStatus.OK
-        response.addHeader(HttpHeaderNames.CONTENT_TYPE, "text/html; charset=UTF-8")
-        response.setHeader(HttpHeaderNames.CACHE_CONTROL, "no-cache,no-store,max-age=0,must-revalidate")
-        response.setHeader(HttpHeaderNames.CONNECTION, HttpHeaderValues.CLOSE)
-        return response.writeStringAndFlushOnEach(Observable.just(pinRequestHtmlPage))
-    }
-
-    private fun sentPinRequestErrorHtml(response: HttpServerResponse<ByteBuf>): Observable<Void> {
-        response.status = HttpResponseStatus.OK
-        response.addHeader(HttpHeaderNames.CONTENT_TYPE, "text/html; charset=UTF-8")
-        response.setHeader(HttpHeaderNames.CACHE_CONTROL, "no-cache,no-store,max-age=0,must-revalidate")
-        response.setHeader(HttpHeaderNames.CONNECTION, HttpHeaderValues.CLOSE)
-        return response.writeStringAndFlushOnEach(Observable.just(pinRequestErrorHtmlPage))
+        return response.writeStringAndFlushOnEach(Observable.just(html))
     }
 
     private fun sendStream(response: HttpServerResponse<ByteBuf>): Observable<Void> {

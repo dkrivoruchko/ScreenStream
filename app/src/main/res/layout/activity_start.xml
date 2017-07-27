@@ -129,12 +129,6 @@
                 android:text="@string/start_activity_current_traffic"
                 android:textAppearance="?android:attr/textAppearanceSmall"
                 android:textColor="@color/colorPrimaryText" />
-
-            <com.jjoe64.graphview.GraphView
-                android:id="@+id/lineChartTraffic"
-                android:layout_width="match_parent"
-                android:layout_height="128dp"
-                android:layout_margin="8dp" />
         </LinearLayout>
     </ScrollView>
 </RelativeLayout>

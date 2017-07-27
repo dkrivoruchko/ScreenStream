@@ -96,7 +96,7 @@ class HttpServerImpl constructor(serverAddress: InetSocketAddress,
                 }.subscribe { globalEvent ->
             if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] globalEvent: $globalEvent")
             when (globalEvent) {
-                is EventBus.GlobalEvent.CurrentClientsRequest -> eventBus.sendEvent(EventBus.GlobalEvent.CurrentClients(clientsMap.values))
+                is EventBus.GlobalEvent.CurrentClientsRequest -> eventBus.sendEvent(EventBus.GlobalEvent.CurrentClients(clientsMap.values.toList()))
                 is EventBus.GlobalEvent.TrafficHistoryRequest -> eventBus.sendEvent(EventBus.GlobalEvent.TrafficHistory(trafficHistory.toList()))
             }
         })
@@ -109,7 +109,7 @@ class HttpServerImpl constructor(serverAddress: InetSocketAddress,
             lastTotalTraffic = currentTotalTraffic
 
             eventBus.sendEvent(EventBus.GlobalEvent.TrafficPoint(trafficPoint))
-            eventBus.sendEvent(EventBus.GlobalEvent.CurrentClients(clientsMap.values))
+            eventBus.sendEvent(EventBus.GlobalEvent.CurrentClients(clientsMap.values.toList()))
         })
 
         httpServer = io.reactivex.netty.protocol.http.server.HttpServer.newServer(serverAddress, globalServerEventLoop, NioServerSocketChannel::class.java)
@@ -151,7 +151,7 @@ class HttpServerImpl constructor(serverAddress: InetSocketAddress,
         } catch (exception: Exception) {
             eventBus.sendEvent(EventBus.GlobalEvent.Error(exception))
         }
-        eventBus.sendEvent(EventBus.GlobalEvent.CurrentClients(clientsMap.values))
+        eventBus.sendEvent(EventBus.GlobalEvent.CurrentClients(clientsMap.values.toList()))
     }
 
     override fun stop() {

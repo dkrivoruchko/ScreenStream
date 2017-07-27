@@ -11,7 +11,7 @@
     <string name="start_activity_pin_asterisks" translatable="false">****</string>
     <string name="start_activity_resize_factor">Resize factor</string>
     <string name="start_activity_connected_clients">Connected clients: %1$d</string>
-    <string name="start_activity_current_traffic">Current traffic: %1$,.2f Mbit/s</string>
+    <string name="start_activity_current_traffic">Traffic: %1$,.2f Mbit/s</string>
 
     <string name="start_activity_error_cast_permission_deny">Application require Screen Cast permission to capture screen</string>
     <string name="start_activity_error_title">Error</string>
@@ -73,6 +73,16 @@
     <string name="pref_server_port_dialog">Set server port for incoming connections.\nValues: 1025–65535 (Default: 8080)</string>
     <string name="pref_error_dialog_title">Error</string>
     <string name="pref_error_dialog_message_port">Port already in use.\nChoose another one.</string>
+
+    <!--ClientsActivity-->
+    <string name="clients_activity_current_traffic">Traffic: %1$,.2f Mbit/s</string>
+    <string name="clients_activity_connected_clients">Connected clients: %1$d</string>
+    <string name="clients_activity_connected">Connected</string>
+    <string name="clients_activity_disconnected">Disconnected</string>
+    <string name="clients_activity_client_connected">Connected</string>
+    <string name="clients_activity_client_disconnected">Disconnected</string>
+    <string name="clients_activity_client_slow_network">Slow network</string>
+    <string name="clients_activity_client">Client:\u0020</string>
 
     <!--HTML text-->
     <string name="html_stream_require_pin">This stream require PIN to access it.</string>

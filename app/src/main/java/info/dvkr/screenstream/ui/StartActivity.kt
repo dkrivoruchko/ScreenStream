@@ -10,7 +10,6 @@ import android.graphics.Point
 import android.media.projection.MediaProjectionManager
 import android.net.Uri
 import android.os.Bundle
-import android.support.v4.content.ContextCompat
 import android.support.v7.app.AlertDialog
 import android.util.Log
 import android.view.LayoutInflater
@@ -18,10 +17,6 @@ import android.view.View
 import android.view.WindowManager
 import android.widget.TextView
 import com.crashlytics.android.Crashlytics
-import com.jjoe64.graphview.DefaultLabelFormatter
-import com.jjoe64.graphview.GridLabelRenderer
-import com.jjoe64.graphview.series.DataPoint
-import com.jjoe64.graphview.series.LineGraphSeries
 import com.mikepenz.materialdrawer.Drawer
 import com.mikepenz.materialdrawer.DrawerBuilder
 import com.mikepenz.materialdrawer.model.DividerDrawerItem
@@ -38,7 +33,6 @@ import rx.Observable
 import rx.android.schedulers.AndroidSchedulers
 import rx.subjects.PublishSubject
 import java.net.BindException
-import java.text.NumberFormat
 import javax.inject.Inject
 
 class StartActivity : BaseActivity(), StartActivityView {
@@ -70,9 +64,7 @@ class StartActivity : BaseActivity(), StartActivityView {
 
     private val fromEvents = PublishSubject.create<StartActivityView.FromEvent>()
 
-    private var oldClientsCount: Int = -1
     private lateinit var drawer: Drawer
-    private lateinit var lineGraphSeries: LineGraphSeries<DataPoint>
     private var dialog: Dialog? = null
 
     override fun fromEvent(): Observable<StartActivityView.FromEvent> = fromEvents.asObservable()
@@ -114,49 +106,16 @@ class StartActivity : BaseActivity(), StartActivityView {
 
                 is StartActivityView.ToEvent.CurrentClients -> {
                     val clientsCount = event.clientsList.filter { !it.disconnected }.count()
-                    if (clientsCount != oldClientsCount) {
-                        textViewConnectedClients.text = getString(R.string.start_activity_connected_clients).format(clientsCount)
-                        oldClientsCount = clientsCount
-                    }
+                    textViewConnectedClients.text = getString(R.string.start_activity_connected_clients).format(clientsCount)
                 }
 
                 is StartActivityView.ToEvent.CurrentInterfaces -> {
                     showServerAddresses(event.interfaceList, settings.severPort)
                 }
 
-                is StartActivityView.ToEvent.TrafficHistory -> {
-                    textViewCurrentTraffic.text = getString(R.string.start_activity_current_traffic).format(toMbit(event.trafficHistory.last().bytes))
-
-                    val arrayOfDataPoints = event.trafficHistory.map { DataPoint(it.time.toDouble(), toMbit(it.bytes)) }.toTypedArray()
-                    lineChartTraffic.removeAllSeries()
-                    lineGraphSeries = LineGraphSeries<DataPoint>(arrayOfDataPoints)
-                    lineGraphSeries.color = ContextCompat.getColor(this, R.color.colorAccent)
-                    lineGraphSeries.thickness = 6
-                    lineGraphSeries.isDrawBackground = true
-//                    lineGraphSeries.backgroundColor = ContextCompat.getColor(this, R.color.colorDivider)
-                    lineChartTraffic.addSeries(lineGraphSeries)
-                    lineChartTraffic.viewport.isXAxisBoundsManual = true
-                    lineChartTraffic.viewport.setMinX(arrayOfDataPoints[0].x)
-                    lineChartTraffic.viewport.setMaxX(arrayOfDataPoints[arrayOfDataPoints.size - 1].x)
-                    lineChartTraffic.gridLabelRenderer.isHorizontalLabelsVisible = false
-                    lineChartTraffic.gridLabelRenderer.gridStyle = GridLabelRenderer.GridStyle.HORIZONTAL
-                    val nf = NumberFormat.getInstance()
-                    nf.minimumFractionDigits = 2
-                    nf.maximumFractionDigits = 2
-                    nf.minimumIntegerDigits = 1
-                    lineChartTraffic.gridLabelRenderer.labelFormatter = DefaultLabelFormatter(nf, nf)
-                    lineChartTraffic.gridLabelRenderer.horizontalLabelsColor = ContextCompat.getColor(this, R.color.colorPrimaryText)
-                    lineChartTraffic.viewport.isYAxisBoundsManual = true
-                    lineChartTraffic.viewport.setMinY(0.0)
-                    lineChartTraffic.viewport.setMaxY(lineGraphSeries.highestValueY * 1.2)
-                }
-
                 is StartActivityView.ToEvent.TrafficPoint -> {
-                    val mbit = toMbit(event.trafficPoint.bytes)
+                    val mbit = (event.trafficPoint.bytes * 8).toDouble() / 1024 / 1024
                     textViewCurrentTraffic.text = getString(R.string.start_activity_current_traffic).format(mbit)
-                    lineGraphSeries.appendData(DataPoint(event.trafficPoint.time.toDouble(), mbit), true, 60)
-
-                    lineChartTraffic.viewport.setMaxY(lineGraphSeries.highestValueY * 1.2)
                 }
             }
         }
@@ -191,7 +150,7 @@ class StartActivity : BaseActivity(), StartActivityView {
                 .withHasStableIds(true)
                 .addDrawerItems(
                         PrimaryDrawerItem().withIdentifier(1).withName("Main").withSelectable(false).withIcon(R.drawable.ic_drawer_main_24dp),
-                        PrimaryDrawerItem().withIdentifier(2).withName("Connected clients").withSelectable(false).withIcon(R.drawable.ic_drawer_connected_24dp).withEnabled(false),
+                        PrimaryDrawerItem().withIdentifier(2).withName("Traffic & clients").withSelectable(false).withIcon(R.drawable.ic_drawer_connected_24dp),
                         PrimaryDrawerItem().withIdentifier(3).withName("Settings").withSelectable(false).withIcon(R.drawable.ic_drawer_settings_24dp),
                         //                        DividerDrawerItem(),
 //                        PrimaryDrawerItem().withIdentifier(4).withName("Instructions").withSelectable(false).withIcon(R.drawable.ic_drawer_instructions_24dp),
@@ -206,10 +165,7 @@ class StartActivity : BaseActivity(), StartActivityView {
                 )
                 .withOnDrawerItemClickListener { _, _, drawerItem ->
                     if (drawerItem.identifier == 1L) if (drawer.isDrawerOpen) drawer.closeDrawer()
-
-                    if (drawerItem.identifier == 2L) {
-                    } // TODO
-
+                    if (drawerItem.identifier == 2L) startActivity(ClientsActivity.getStartIntent(this))
                     if (drawerItem.identifier == 3L) startActivity(SettingsActivity.getStartIntent(this))
 
                     if (drawerItem.identifier == 6L) {
@@ -268,11 +224,6 @@ class StartActivity : BaseActivity(), StartActivityView {
 
             ACTION_EXIT -> fromEvents.onNext(StartActivityView.FromEvent.AppExit())
         }
-    }
-
-    override fun onStart() {
-        super.onStart()
-        fromEvents.onNext(StartActivityView.FromEvent.TrafficHistoryRequest())
     }
 
     override fun onResume() {
@@ -336,9 +287,9 @@ class StartActivity : BaseActivity(), StartActivityView {
         val layoutInflater = LayoutInflater.from(this)
         for ((name, address) in interfaceList) {
             val addressView = layoutInflater.inflate(R.layout.server_address, null)
-            val interfaceView = addressView.findViewById(R.id.textViewInterfaceName) as TextView
+            val interfaceView = addressView.findViewById<TextView?>(R.id.textViewInterfaceName) as TextView
             interfaceView.text = "$name:"
-            val interfaceAddress = addressView.findViewById(R.id.textViewInterfaceAddress) as TextView
+            val interfaceAddress = addressView.findViewById<TextView?>(R.id.textViewInterfaceAddress) as TextView
             interfaceAddress.text = "http://$address:$serverPort"
             linearLayoutServerAddressList.addView(addressView)
         }
@@ -379,6 +330,4 @@ class StartActivity : BaseActivity(), StartActivityView {
                 .create()
         dialog?.show()
     }
-
-    private fun toMbit(byte: Long) = (byte * 8).toDouble() / 1024 / 1024
 }
