@@ -17,14 +17,25 @@
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_below="@id/toolbarStart"
-        android:paddingBottom="8dp"
-        android:paddingTop="8dp">
+        android:layout_below="@id/toolbarStart">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical">
+            android:orientation="vertical"
+            android:paddingBottom="8dp">
+
+
+            <TextView
+                android:id="@+id/textViewError"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:background="@color/colorErrorBackground"
+                android:gravity="center"
+                android:padding="8dp"
+                android:textAppearance="?android:attr/textAppearanceMedium"
+                android:textColor="@color/colorErrorText" />
 
             <TextView
                 android:layout_width="match_parent"
@@ -111,22 +122,22 @@
                 android:textStyle="bold" />
 
             <TextView
-                android:id="@+id/textViewConnectedClients"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center_horizontal"
-                android:layout_margin="4dp"
-                android:text="@string/start_activity_connected_clients"
-                android:textAppearance="?android:attr/textAppearanceSmall"
-                android:textColor="@color/colorPrimaryText" />
-
-            <TextView
                 android:id="@+id/textViewCurrentTraffic"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center_horizontal"
                 android:layout_margin="4dp"
                 android:text="@string/start_activity_current_traffic"
+                android:textAppearance="?android:attr/textAppearanceSmall"
+                android:textColor="@color/colorPrimaryText" />
+
+            <TextView
+                android:id="@+id/textViewConnectedClients"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:layout_margin="4dp"
+                android:text="@string/start_activity_connected_clients"
                 android:textAppearance="?android:attr/textAppearanceSmall"
                 android:textColor="@color/colorPrimaryText" />
         </LinearLayout>

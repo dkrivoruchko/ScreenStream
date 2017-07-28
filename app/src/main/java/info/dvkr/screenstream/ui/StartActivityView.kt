@@ -10,9 +10,11 @@ interface StartActivityView {
 
     // From StartActivity to StartActivityPresenter
     @Keep sealed class FromEvent {
+        @Keep class CurrentInterfacesRequest : FromEvent()
         @Keep class TryStartStream : FromEvent()
         @Keep class StopStream : FromEvent()
         @Keep class AppExit : FromEvent()
+        @Keep data class Error(val error: Throwable?) : FromEvent()
         @Keep class GetError : FromEvent()
     }
 

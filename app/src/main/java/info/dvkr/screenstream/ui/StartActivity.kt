@@ -2,7 +2,6 @@ package info.dvkr.screenstream.ui
 
 
 import android.app.Activity
-import android.app.Dialog
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
@@ -10,7 +9,6 @@ import android.graphics.Point
 import android.media.projection.MediaProjectionManager
 import android.net.Uri
 import android.os.Bundle
-import android.support.v7.app.AlertDialog
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
@@ -61,11 +59,9 @@ class StartActivity : BaseActivity(), StartActivityView {
 
     @Inject internal lateinit var presenter: StartActivityPresenter
     @Inject internal lateinit var settings: Settings
-
     private val fromEvents = PublishSubject.create<StartActivityView.FromEvent>()
-
     private lateinit var drawer: Drawer
-    private var dialog: Dialog? = null
+    private var canStart: Boolean = true
 
     override fun fromEvent(): Observable<StartActivityView.FromEvent> = fromEvents.asObservable()
 
@@ -91,16 +87,27 @@ class StartActivity : BaseActivity(), StartActivityView {
                 is StartActivityView.ToEvent.StreamRunning -> setStreamRunning(event.running)
 
                 is StartActivityView.ToEvent.Error -> {
-                    toggleButtonStartStop.isEnabled = true
+                    textViewError.visibility = View.GONE
+                    canStart = true
                     event.error?.let {
+                        val message: String
                         when (it) {
-                            is UnsupportedOperationException -> showErrorDialog(getString(R.string.start_activity_error_wrong_image_format))
-                            is BindException -> {
-                                toggleButtonStartStop.isEnabled = false
-                                showErrorDialog(getString(R.string.start_activity_error_port_in_use))
+                            is SecurityException -> message = getString(R.string.start_activity_cast_permission_required)
+                            is UnsupportedOperationException -> {
+                                canStart = false
+                                message = getString(R.string.start_activity_error_wrong_image_format)
                             }
-                            else -> showErrorDialog(getString(R.string.start_activity_error_unknown) + "\n${it.message}")
+                            is BindException -> {
+                                canStart = false
+                                message = getString(R.string.start_activity_error_port_in_use)
+                            }
+                            else -> {
+                                canStart = false
+                                message = getString(R.string.start_activity_error_unknown) + "\n${it.message}"
+                            }
                         }
+                        textViewError.text = message
+                        textViewError.visibility = View.VISIBLE
                     }
                 }
 
@@ -136,6 +143,8 @@ class StartActivity : BaseActivity(), StartActivityView {
         toggleButtonStartStop.setOnClickListener { _ ->
             if (toggleButtonStartStop.isChecked) {
                 toggleButtonStartStop.isChecked = false
+                if (!canStart) return@setOnClickListener
+                textViewError.visibility = View.GONE
                 fromEvents.onNext(StartActivityView.FromEvent.TryStartStream())
             } else {
                 toggleButtonStartStop.isChecked = true
@@ -149,19 +158,19 @@ class StartActivity : BaseActivity(), StartActivityView {
                 .withHeader(R.layout.activity_start_drawer_header)
                 .withHasStableIds(true)
                 .addDrawerItems(
-                        PrimaryDrawerItem().withIdentifier(1).withName("Main").withSelectable(false).withIcon(R.drawable.ic_drawer_main_24dp),
-                        PrimaryDrawerItem().withIdentifier(2).withName("Traffic & clients").withSelectable(false).withIcon(R.drawable.ic_drawer_connected_24dp),
-                        PrimaryDrawerItem().withIdentifier(3).withName("Settings").withSelectable(false).withIcon(R.drawable.ic_drawer_settings_24dp),
+                        PrimaryDrawerItem().withIdentifier(1).withName(R.string.start_activity_drawer_main).withSelectable(false).withIcon(R.drawable.ic_drawer_main_24dp),
+                        PrimaryDrawerItem().withIdentifier(2).withName(R.string.start_activity_drawer_traffic_clients).withSelectable(false).withIcon(R.drawable.ic_drawer_connected_24dp),
+                        PrimaryDrawerItem().withIdentifier(3).withName(R.string.start_activity_drawer_settings).withSelectable(false).withIcon(R.drawable.ic_drawer_settings_24dp),
                         //                        DividerDrawerItem(),
 //                        PrimaryDrawerItem().withIdentifier(4).withName("Instructions").withSelectable(false).withIcon(R.drawable.ic_drawer_instructions_24dp),
 //                        PrimaryDrawerItem().withIdentifier(5).withName("Local test").withSelectable(false).withIcon(R.drawable.ic_drawer_test_24dp),
                         DividerDrawerItem(),
-                        PrimaryDrawerItem().withIdentifier(6).withName("Rate app").withSelectable(false).withIcon(R.drawable.ic_drawer_rateapp_24dp),
-                        PrimaryDrawerItem().withIdentifier(7).withName("Feedback").withSelectable(false).withIcon(R.drawable.ic_drawer_feedback_24dp),
-                        PrimaryDrawerItem().withIdentifier(8).withName("Sources").withSelectable(false).withIcon(R.drawable.ic_drawer_sources_24dp)
+                        PrimaryDrawerItem().withIdentifier(6).withName(R.string.start_activity_drawer_rate_app).withSelectable(false).withIcon(R.drawable.ic_drawer_rateapp_24dp),
+                        PrimaryDrawerItem().withIdentifier(7).withName(R.string.start_activity_drawer_feedback).withSelectable(false).withIcon(R.drawable.ic_drawer_feedback_24dp),
+                        PrimaryDrawerItem().withIdentifier(8).withName(R.string.start_activity_drawer_sources).withSelectable(false).withIcon(R.drawable.ic_drawer_sources_24dp)
                 )
                 .addStickyDrawerItems(
-                        PrimaryDrawerItem().withIdentifier(9).withName("Exit").withIcon(R.drawable.ic_drawer_exit_24pd)
+                        PrimaryDrawerItem().withIdentifier(9).withName(R.string.start_activity_drawer_exit).withIcon(R.drawable.ic_drawer_exit_24pd)
                 )
                 .withOnDrawerItemClickListener { _, _, drawerItem ->
                     if (drawerItem.identifier == 1L) if (drawer.isDrawerOpen) drawer.closeDrawer()
@@ -228,6 +237,7 @@ class StartActivity : BaseActivity(), StartActivityView {
 
     override fun onResume() {
         super.onResume()
+        fromEvents.onNext(StartActivityView.FromEvent.CurrentInterfacesRequest())
         fromEvents.onNext(StartActivityView.FromEvent.GetError())
     }
 
@@ -244,7 +254,6 @@ class StartActivity : BaseActivity(), StartActivityView {
 
     override fun onDestroy() {
         if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] onDestroy: Start")
-        dialog?.let { if (it.isShowing) it.dismiss() }
         presenter.detach()
         if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] onDestroy: End")
         super.onDestroy()
@@ -255,15 +264,16 @@ class StartActivity : BaseActivity(), StartActivityView {
         when (requestCode) {
             REQUEST_CODE_SCREEN_CAPTURE -> {
                 if (Activity.RESULT_OK != resultCode) {
-                    showErrorDialog(getString(R.string.start_activity_error_cast_permission_deny))
+                    fromEvents.onNext(StartActivityView.FromEvent.Error(SecurityException()))
                     if (BuildConfig.DEBUG_MODE) Log.w(TAG, "onActivityResult: Screen Cast permission denied")
                     return
                 }
 
                 if (null == data) {
                     if (BuildConfig.DEBUG_MODE) Log.e(TAG, "onActivityResult ERROR: data = null")
-                    Crashlytics.logException(IllegalStateException("onActivityResult ERROR: data = null"))
-                    showErrorDialog(getString(R.string.start_activity_error_unknown) + "onActivityResult: data = null")
+                    val error = IllegalStateException("onActivityResult: data = null")
+                    Crashlytics.logException(error)
+                    fromEvents.onNext(StartActivityView.FromEvent.Error(error))
                     return
                 }
                 startService(ForegroundService.getStartStreamIntent(applicationContext, data))
@@ -318,16 +328,5 @@ class StartActivity : BaseActivity(), StartActivityView {
             textViewPinText.visibility = View.GONE
             textViewPinValue.visibility = View.GONE
         }
-    }
-
-    private fun showErrorDialog(errorMessage: String) {
-        dialog = AlertDialog.Builder(this)
-                .setIcon(R.drawable.ic_message_error_24dp)
-                .setTitle(R.string.start_activity_error_title)
-                .setMessage(errorMessage)
-                .setCancelable(false)
-                .setPositiveButton(android.R.string.ok, null)
-                .create()
-        dialog?.show()
     }
 }

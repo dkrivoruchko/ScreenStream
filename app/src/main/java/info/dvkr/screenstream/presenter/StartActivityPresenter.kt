@@ -32,8 +32,14 @@ class StartActivityPresenter @Inject internal constructor(private val eventSched
         subscriptions.add(startActivity?.fromEvent()?.observeOn(eventScheduler)?.subscribe { fromEvent ->
             if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] fromEvent: $fromEvent")
             when (fromEvent) {
+            // Relaying message to ForegroundServicePresenter
+                is StartActivityView.FromEvent.CurrentInterfacesRequest -> {
+                    eventBus.sendEvent(EventBus.GlobalEvent.CurrentInterfacesRequest())
+                }
+
             // Sending message to StartActivity
                 is StartActivityView.FromEvent.TryStartStream -> {
+                    globalStatus.error = null
                     if (globalStatus.isStreamRunning) throw IllegalStateException("Stream already running")
                     startActivity?.toEvent(StartActivityView.ToEvent.TryToStart())
                 }
@@ -49,6 +55,12 @@ class StartActivityPresenter @Inject internal constructor(private val eventSched
                     eventBus.sendEvent(EventBus.GlobalEvent.AppExit())
                 }
 
+            // Getting  Error
+                is StartActivityView.FromEvent.Error -> {
+                    globalStatus.error = fromEvent.error
+                    startActivity?.toEvent(StartActivityView.ToEvent.Error(fromEvent.error))
+                }
+
             // Getting current Error
                 is StartActivityView.FromEvent.GetError -> {
                     startActivity?.toEvent(StartActivityView.ToEvent.Error(globalStatus.error))
@@ -60,7 +72,7 @@ class StartActivityPresenter @Inject internal constructor(private val eventSched
 
         // Global events
         subscriptions.add(eventBus.getEvent().observeOn(eventScheduler).subscribe { globalEvent ->
-            if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] globalEvent: $globalEvent")
+            //            if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] globalEvent: $globalEvent")
 
             when (globalEvent) {
             // From ImageGeneratorImpl
@@ -107,9 +119,6 @@ class StartActivityPresenter @Inject internal constructor(private val eventSched
 
         // Requesting current clients
         eventBus.sendEvent(EventBus.GlobalEvent.CurrentClientsRequest())
-
-        // Requesting current interfaces
-        eventBus.sendEvent(EventBus.GlobalEvent.CurrentInterfacesRequest())
     }
 
     fun detach() {

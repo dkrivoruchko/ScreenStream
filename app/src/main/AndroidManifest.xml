@@ -32,11 +32,13 @@
 
         <activity
             android:name=".ui.SettingsActivity"
+            android:label="@string/settings_activity_name"
             android:launchMode="singleTop"
             android:parentActivityName=".ui.StartActivity" />
 
         <activity
             android:name=".ui.ClientsActivity"
+            android:label="@string/clients_activity_name"
             android:launchMode="singleTop"
             android:parentActivityName=".ui.StartActivity" />
 
