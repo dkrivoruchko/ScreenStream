@@ -24,7 +24,7 @@
     <string name="service_stop">Parar</string>
 
     <!--NotifyImageGenerator-->
-    <string name="image_generator_press">PULSAR</string>
+    <string name="image_generator_press_start">PULSAR</string>
     <string name="image_generator_on_device">EN EL DISPOSITIVO</string>
     <string name="image_generator_settings_changed">CONFIGURACIÓN ACTUALIZADA</string>
     <string name="image_generator_go_to_new_address">Por favor introduce una nueva dirección</string>

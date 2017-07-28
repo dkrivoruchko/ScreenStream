@@ -26,6 +26,8 @@
     <string name="start_activity_error_wrong_image_format">Error: system returns image in unknown format.\nCurrently no fix available. Sorry.</string>
     <string name="start_activity_error_unknown">Unexpected error:\u0020</string>
 
+    <string name="start_activity_email_chooser_header">Sending email…</string>
+
     <!--FgService-->
     <string name="service_ready_to_stream">Ready to stream</string>
     <string name="service_press_start">Press start to begin stream</string>
@@ -36,9 +38,7 @@
     <string name="service_stop">Stop</string>
 
     <!--ImageNotify-->
-    <string name="image_generator_press">PRESS</string>
-    <string name="image_generator_on_device">ON DEVICE</string>
-    <string name="image_generator_settings_changed">SETTINGS CHANGED</string>
+    <string name="image_generator_press_start">Press START STREAM on device</string>
     <string name="image_generator_go_to_new_address">Please go to new address</string>
     <string name="image_generator_reload_this_page">Please reload this page</string>
 

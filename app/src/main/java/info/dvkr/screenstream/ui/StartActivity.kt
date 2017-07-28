@@ -188,9 +188,9 @@ class StartActivity : BaseActivity(), StartActivityView {
                     if (drawerItem.identifier == 7L) {
                         val emailIntent = Intent(Intent.ACTION_SENDTO)
                                 .setData(Uri.Builder().scheme("mailto").build())
-                                .putExtra(Intent.EXTRA_EMAIL, arrayOf(StartActivityView.FEEDBACK_EMAIL_ADDRESS))
-                                .putExtra(Intent.EXTRA_SUBJECT, StartActivityView.FEEDBACK_EMAIL_SUBJECT)
-                        startActivity(Intent.createChooser(emailIntent, StartActivityView.FEEDBACK_EMAIL_NAME))
+                                .putExtra(Intent.EXTRA_EMAIL, arrayOf("Dmitriy Krivoruchko <dkrivoruchko@gmail.com>"))
+                                .putExtra(Intent.EXTRA_SUBJECT, "Screen Stream Feedback")
+                        startActivity(Intent.createChooser(emailIntent, getString(R.string.start_activity_email_chooser_header)))
                     }
 
                     if (drawerItem.identifier == 8L) {

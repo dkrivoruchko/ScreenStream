@@ -54,11 +54,4 @@ interface StartActivityView {
 
     // Events to StartActivity from StartActivityPresenter
     fun toEvent(toEvent: ToEvent)
-
-    // TODO Add translation
-    companion object {
-        const val FEEDBACK_EMAIL_ADDRESS = "Dmitriy Krivoruchko <dkrivoruchko@gmail.com>"
-        const val FEEDBACK_EMAIL_SUBJECT = "Screen Stream feedback"
-        const val FEEDBACK_EMAIL_NAME = "Sending email..."
-    }
 }
