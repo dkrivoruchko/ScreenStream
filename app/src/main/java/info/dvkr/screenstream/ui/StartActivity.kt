@@ -9,11 +9,11 @@ import android.graphics.Point
 import android.media.projection.MediaProjectionManager
 import android.net.Uri
 import android.os.Bundle
+import android.support.v4.content.ContextCompat
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.WindowManager
-import android.widget.TextView
 import com.crashlytics.android.Crashlytics
 import com.mikepenz.materialdrawer.Drawer
 import com.mikepenz.materialdrawer.DrawerBuilder
@@ -27,6 +27,7 @@ import info.dvkr.screenstream.presenter.StartActivityPresenter
 import info.dvkr.screenstream.service.ForegroundService
 import info.dvkr.screenstream.service.ForegroundServiceView
 import kotlinx.android.synthetic.main.activity_start.*
+import kotlinx.android.synthetic.main.server_address.view.*
 import rx.Observable
 import rx.android.schedulers.AndroidSchedulers
 import rx.subjects.PublishSubject
@@ -295,13 +296,23 @@ class StartActivity : BaseActivity(), StartActivityView {
 
         linearLayoutServerAddressList.removeAllViews()
         val layoutInflater = LayoutInflater.from(this)
-        for ((name, address) in interfaceList) {
+        if (interfaceList.isEmpty()) {
             val addressView = layoutInflater.inflate(R.layout.server_address, null)
-            val interfaceView = addressView.findViewById<TextView?>(R.id.textViewInterfaceName) as TextView
-            interfaceView.text = "$name:"
-            val interfaceAddress = addressView.findViewById<TextView?>(R.id.textViewInterfaceAddress) as TextView
-            interfaceAddress.text = "http://$address:$serverPort"
+            with(addressView) {
+                textViewInterfaceName.text = ""
+                textViewInterfaceAddress.text = getString(R.string.start_activity_no_address)
+                textViewInterfaceAddress.setTextColor(ContextCompat.getColor(context, R.color.colorAccent))
+            }
             linearLayoutServerAddressList.addView(addressView)
+        } else {
+            for ((name, address) in interfaceList) {
+                val addressView = layoutInflater.inflate(R.layout.server_address, null)
+                with(addressView) {
+                    textViewInterfaceName.text = "$name:"
+                    textViewInterfaceAddress.text = "http://$address:$serverPort"
+                }
+                linearLayoutServerAddressList.addView(addressView)
+            }
         }
     }
 
@@ -319,13 +330,11 @@ class StartActivity : BaseActivity(), StartActivityView {
     private fun showEnablePin(enablePin: Boolean) {
         if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] showEnablePin")
         if (enablePin) {
+            textViewPinText.text = getString(R.string.start_activity_pin)
             textViewPinValue.text = settings.currentPin
-            textViewPinDisabled.visibility = View.GONE
-            textViewPinText.visibility = View.VISIBLE
             textViewPinValue.visibility = View.VISIBLE
         } else {
-            textViewPinDisabled.visibility = View.VISIBLE
-            textViewPinText.visibility = View.GONE
+            textViewPinText.text = getString(R.string.start_activity_pin_disabled)
             textViewPinValue.visibility = View.GONE
         }
     }

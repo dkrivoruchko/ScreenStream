@@ -4,9 +4,10 @@
     <!--StartActivity-->
     <string name="start_activity_name" translatable="false">Screen Stream</string>
     <string name="start_activity_device_address">Device addresses:</string>
+    <string name="start_activity_no_address">No address found</string>
     <string name="start_activity_start_stream">Start stream</string>
     <string name="start_activity_stop_stream">Stop stream</string>
-    <string name="start_activity_pin">Pin:\u0020</string>
+    <string name="start_activity_pin">Pin:</string>
     <string name="start_activity_pin_disabled">Pin is disabled</string>
     <string name="start_activity_pin_asterisks" translatable="false">****</string>
     <string name="start_activity_resize_factor">Resize factor</string>

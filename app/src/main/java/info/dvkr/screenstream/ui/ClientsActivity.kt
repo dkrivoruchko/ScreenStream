@@ -66,35 +66,36 @@ class ClientsActivity : BaseActivity(), ClientsActivityView {
                     textViewCurrentTraffic.text = getString(R.string.clients_activity_current_traffic).format(toMbit(event.trafficHistory.last().bytes))
 
                     val arrayOfDataPoints = event.trafficHistory.map { DataPoint(it.time.toDouble(), toMbit(it.bytes)) }.toTypedArray()
-                    lineChartTraffic.removeAllSeries()
                     lineGraphSeries = LineGraphSeries<DataPoint>(arrayOfDataPoints)
                     lineGraphSeries.color = ContextCompat.getColor(this, R.color.colorAccent)
                     lineGraphSeries.thickness = 6
-                    lineGraphSeries.isDrawBackground = true
-//                    lineGraphSeries.backgroundColor = ContextCompat.getColor(this, R.color.colorDivider)
+                    lineChartTraffic.removeAllSeries()
                     lineChartTraffic.addSeries(lineGraphSeries)
                     lineChartTraffic.viewport.isXAxisBoundsManual = true
                     lineChartTraffic.viewport.setMinX(arrayOfDataPoints[0].x)
                     lineChartTraffic.viewport.setMaxX(arrayOfDataPoints[arrayOfDataPoints.size - 1].x)
-                    lineChartTraffic.gridLabelRenderer.isHorizontalLabelsVisible = false
-                    lineChartTraffic.gridLabelRenderer.gridStyle = GridLabelRenderer.GridStyle.HORIZONTAL
+                    lineChartTraffic.viewport.isYAxisBoundsManual = true
+                    val maxY = Math.max(toMbit(event.maxY) * 1.2, 1.1)
+                    lineChartTraffic.viewport.setMinY(maxY * -0.1)
+                    lineChartTraffic.viewport.setMaxY(maxY)
+
                     val nf = NumberFormat.getInstance()
-                    nf.minimumFractionDigits = 2
-                    nf.maximumFractionDigits = 2
+                    nf.minimumFractionDigits = 1
+                    nf.maximumFractionDigits = 1
                     nf.minimumIntegerDigits = 1
                     lineChartTraffic.gridLabelRenderer.labelFormatter = DefaultLabelFormatter(nf, nf)
-                    lineChartTraffic.gridLabelRenderer.horizontalLabelsColor = ContextCompat.getColor(this, R.color.colorPrimaryText)
-                    lineChartTraffic.viewport.isYAxisBoundsManual = true
-                    lineChartTraffic.viewport.setMinY(0.0)
-                    lineChartTraffic.viewport.setMaxY(lineGraphSeries.highestValueY * 1.2)
+                    lineChartTraffic.gridLabelRenderer.verticalLabelsColor = ContextCompat.getColor(this, R.color.colorPrimaryText)
+                    lineChartTraffic.gridLabelRenderer.isHorizontalLabelsVisible = false
+                    lineChartTraffic.gridLabelRenderer.gridStyle = GridLabelRenderer.GridStyle.HORIZONTAL
                 }
 
                 is ClientsActivityView.ToEvent.TrafficPoint -> {
                     val mbit = toMbit(event.trafficPoint.bytes)
                     textViewCurrentTraffic.text = getString(R.string.start_activity_current_traffic).format(mbit)
                     lineGraphSeries.appendData(DataPoint(event.trafficPoint.time.toDouble(), mbit), true, 60)
-
-                    lineChartTraffic.viewport.setMaxY(lineGraphSeries.highestValueY * 1.2)
+                    val maxY = Math.max(toMbit(event.maxY) * 1.2, 1.1)
+                    lineChartTraffic.viewport.setMinY(maxY * -0.1)
+                    lineChartTraffic.viewport.setMaxY(maxY)
                 }
             }
         }

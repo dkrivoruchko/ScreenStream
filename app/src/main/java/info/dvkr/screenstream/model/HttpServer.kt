@@ -26,9 +26,8 @@ interface HttpServer {
         const val DEFAULT_PIN_ADDRESS = "/?pin="
     }
 
-    // Clients
-    @Keep data class Client(val clientAddress: InetSocketAddress,
-                            var sendBytes: Long = 0,
+    // Clients. Open for HttpServerImpl
+    @Keep open class Client(val clientAddress: InetSocketAddress,
                             var hasBackpressure: Boolean = false,
                             var disconnected: Boolean = false)
 

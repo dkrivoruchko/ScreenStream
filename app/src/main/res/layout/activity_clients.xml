@@ -26,13 +26,14 @@
         <com.jjoe64.graphview.GraphView
             android:id="@+id/lineChartTraffic"
             android:layout_width="match_parent"
-            android:layout_height="128dp" />
+            android:layout_height="160dp" />
 
         <TextView
             android:id="@+id/textViewConnectedClients"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center_horizontal"
+            android:layout_marginBottom="8dp"
             android:layout_marginTop="16dp"
             android:text="@string/clients_activity_connected_clients"
             android:textAppearance="?android:attr/textAppearanceSmall"

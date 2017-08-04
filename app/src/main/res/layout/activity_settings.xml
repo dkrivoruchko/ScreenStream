@@ -15,8 +15,8 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:layout_marginTop="8dp"
+            android:layout_marginStart="@dimen/activity_settings_title_start_top"
+            android:layout_marginTop="@dimen/activity_settings_title_start_top"
             android:padding="8dp"
             android:text="@string/pref_settings_interface"
             android:textAppearance="?android:attr/textAppearanceMedium"
@@ -30,9 +30,10 @@
             android:background="?attr/selectableItemBackground"
             android:clickable="true"
             android:focusable="true"
+            android:minHeight="@dimen/activity_settings_item_min_height"
             android:paddingBottom="8dp"
-            android:paddingEnd="16dp"
-            android:paddingStart="16dp"
+            android:paddingEnd="@dimen/activity_settings_item_start_end"
+            android:paddingStart="@dimen/activity_settings_item_start_end"
             android:paddingTop="8dp">
 
             <ImageView
@@ -52,7 +53,9 @@
                 android:text="@string/pref_minimize_on_stream"
                 android:textAppearance="?android:attr/textAppearanceMedium"
                 android:textColor="@color/colorSettingsTextHeader"
+                app:layout_constraintBottom_toTopOf="@id/textViewMinimizeOnStreamSummary"
                 app:layout_constraintEnd_toStartOf="@id/guidelineMinimizeOnStream"
+                app:layout_constraintHorizontal_bias="0.5"
                 app:layout_constraintStart_toEndOf="@id/imageViewMinimizeOnStream"
                 app:layout_constraintTop_toTopOf="parent" />
 
@@ -64,7 +67,9 @@
                 android:text="@string/pref_minimise_on_stream_summary"
                 android:textAppearance="?android:attr/textAppearanceSmall"
                 android:textColor="@color/colorSettingsTextSummary"
+                app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toStartOf="@id/guidelineMinimizeOnStream"
+                app:layout_constraintHorizontal_bias="0.5"
                 app:layout_constraintStart_toEndOf="@id/imageViewMinimizeOnStream"
                 app:layout_constraintTop_toBottomOf="@id/textViewMinimizeOnStream" />
 
@@ -103,9 +108,10 @@
             android:background="?attr/selectableItemBackground"
             android:clickable="true"
             android:focusable="true"
+            android:minHeight="@dimen/activity_settings_item_min_height"
             android:paddingBottom="8dp"
-            android:paddingEnd="16dp"
-            android:paddingStart="16dp"
+            android:paddingEnd="@dimen/activity_settings_item_start_end"
+            android:paddingStart="@dimen/activity_settings_item_start_end"
             android:paddingTop="8dp">
 
             <ImageView
@@ -120,12 +126,14 @@
             <TextView
                 android:id="@+id/textViewStopOnSleep"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="28dp"
                 android:layout_marginStart="16dp"
                 android:text="@string/pref_stop_on_sleep"
                 android:textAppearance="?android:attr/textAppearanceMedium"
                 android:textColor="@color/colorSettingsTextHeader"
+                app:layout_constraintBottom_toTopOf="@id/textViewStopOnSleepSummary"
                 app:layout_constraintEnd_toStartOf="@id/guidelineStopOnSleep"
+                app:layout_constraintHorizontal_bias="0.5"
                 app:layout_constraintStart_toEndOf="@id/imageViewStopOnSleep"
                 app:layout_constraintTop_toTopOf="parent" />
 
@@ -137,7 +145,9 @@
                 android:text="@string/pref_stop_on_sleep_summary"
                 android:textAppearance="?android:attr/textAppearanceSmall"
                 android:textColor="@color/colorSettingsTextSummary"
+                app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toStartOf="@id/guidelineStopOnSleep"
+                app:layout_constraintHorizontal_bias="0.5"
                 app:layout_constraintStart_toEndOf="@id/imageViewStopOnSleep"
                 app:layout_constraintTop_toBottomOf="@id/textViewStopOnSleep" />
 
@@ -175,9 +185,10 @@
             android:background="?attr/selectableItemBackground"
             android:clickable="true"
             android:focusable="true"
+            android:minHeight="@dimen/activity_settings_item_min_height"
             android:paddingBottom="8dp"
-            android:paddingEnd="16dp"
-            android:paddingStart="16dp"
+            android:paddingEnd="@dimen/activity_settings_item_start_end"
+            android:paddingStart="@dimen/activity_settings_item_start_end"
             android:paddingTop="8dp">
 
             <ImageView
@@ -197,7 +208,9 @@
                 android:text="@string/pref_start_on_boot"
                 android:textAppearance="?android:attr/textAppearanceMedium"
                 android:textColor="@color/colorSettingsTextHeader"
+                app:layout_constraintBottom_toTopOf="@id/textViewStartOnBootSummary"
                 app:layout_constraintEnd_toStartOf="@id/guidelineStartOnBoot"
+                app:layout_constraintHorizontal_bias="0.5"
                 app:layout_constraintStart_toEndOf="@id/imageViewStartOnBoot"
                 app:layout_constraintTop_toTopOf="parent" />
 
@@ -209,7 +222,9 @@
                 android:text="@string/pref_start_on_boot_summary"
                 android:textAppearance="?android:attr/textAppearanceSmall"
                 android:textColor="@color/colorSettingsTextSummary"
+                app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toStartOf="@id/guidelineStartOnBoot"
+                app:layout_constraintHorizontal_bias="0.5"
                 app:layout_constraintStart_toEndOf="@id/imageViewStartOnBoot"
                 app:layout_constraintTop_toBottomOf="@id/textViewStartOnBoot" />
 
@@ -247,9 +262,10 @@
             android:background="?attr/selectableItemBackground"
             android:clickable="true"
             android:focusable="true"
+            android:minHeight="@dimen/activity_settings_item_min_height"
             android:paddingBottom="8dp"
-            android:paddingEnd="16dp"
-            android:paddingStart="16dp"
+            android:paddingEnd="@dimen/activity_settings_item_start_end"
+            android:paddingStart="@dimen/activity_settings_item_start_end"
             android:paddingTop="8dp">
 
             <ImageView
@@ -269,7 +285,9 @@
                 android:text="@string/pref_mjpeg_check"
                 android:textAppearance="?android:attr/textAppearanceMedium"
                 android:textColor="@color/colorSettingsTextHeader"
+                app:layout_constraintBottom_toTopOf="@id/textViewMjpegCheckSummary"
                 app:layout_constraintEnd_toStartOf="@id/guidelineMjpegCheck"
+                app:layout_constraintHorizontal_bias="0.5"
                 app:layout_constraintStart_toEndOf="@id/imageViewMjpegCheck"
                 app:layout_constraintTop_toTopOf="parent" />
 
@@ -281,7 +299,9 @@
                 android:text="@string/pref_mjpeg_check_summary"
                 android:textAppearance="?android:attr/textAppearanceSmall"
                 android:textColor="@color/colorSettingsTextSummary"
+                app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toStartOf="@id/guidelineMjpegCheck"
+                app:layout_constraintHorizontal_bias="0.5"
                 app:layout_constraintStart_toEndOf="@id/imageViewMjpegCheck"
                 app:layout_constraintTop_toBottomOf="@id/textViewMjpegCheck" />
 
@@ -319,9 +339,10 @@
             android:background="?attr/selectableItemBackground"
             android:clickable="true"
             android:focusable="true"
+            android:minHeight="@dimen/activity_settings_item_min_height"
             android:paddingBottom="8dp"
-            android:paddingEnd="16dp"
-            android:paddingStart="16dp"
+            android:paddingEnd="@dimen/activity_settings_item_start_end"
+            android:paddingStart="@dimen/activity_settings_item_start_end"
             android:paddingTop="8dp">
 
             <ImageView
@@ -341,7 +362,9 @@
                 android:text="@string/pref_html_back_color"
                 android:textAppearance="?android:attr/textAppearanceMedium"
                 android:textColor="@color/colorSettingsTextHeader"
+                app:layout_constraintBottom_toTopOf="@id/textViewHtmlBackColorSummary"
                 app:layout_constraintEnd_toStartOf="@id/guidelineHtmlBackColor"
+                app:layout_constraintHorizontal_bias="0.5"
                 app:layout_constraintStart_toEndOf="@id/imageViewHtmlBackColor"
                 app:layout_constraintTop_toTopOf="parent" />
 
@@ -353,7 +376,9 @@
                 android:text="@string/pref_html_back_color_summary"
                 android:textAppearance="?android:attr/textAppearanceSmall"
                 android:textColor="@color/colorSettingsTextSummary"
+                app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toStartOf="@id/guidelineHtmlBackColor"
+                app:layout_constraintHorizontal_bias="0.5"
                 app:layout_constraintStart_toEndOf="@id/imageViewHtmlBackColor"
                 app:layout_constraintTop_toBottomOf="@id/textViewHtmlBackColor" />
 
@@ -380,8 +405,8 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:layout_marginTop="8dp"
+            android:layout_marginStart="@dimen/activity_settings_title_start_top"
+            android:layout_marginTop="@dimen/activity_settings_title_start_top"
             android:padding="8dp"
             android:text="@string/pref_settings_image"
             android:textAppearance="?android:attr/textAppearanceMedium"
@@ -395,16 +420,17 @@
             android:background="?attr/selectableItemBackground"
             android:clickable="true"
             android:focusable="true"
+            android:minHeight="@dimen/activity_settings_item_min_height"
             android:paddingBottom="8dp"
-            android:paddingEnd="16dp"
-            android:paddingStart="16dp"
+            android:paddingEnd="@dimen/activity_settings_item_start_end"
+            android:paddingStart="@dimen/activity_settings_item_start_end"
             android:paddingTop="8dp">
 
             <ImageView
                 android:id="@+id/imageViewResizeImage"
                 android:layout_width="24dp"
                 android:layout_height="24dp"
-                app:layout_constraintBottom_toBottomOf="@+id/textViewResizeImageSummary"
+                app:layout_constraintBottom_toBottomOf="@id/textViewResizeImageSummary"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="@id/textViewResizeImage"
                 app:srcCompat="@drawable/ic_pref_resize_black_24dp" />
@@ -417,7 +443,9 @@
                 android:text="@string/pref_resize"
                 android:textAppearance="?android:attr/textAppearanceMedium"
                 android:textColor="@color/colorSettingsTextHeader"
+                app:layout_constraintBottom_toTopOf="@id/textViewResizeImageSummary"
                 app:layout_constraintEnd_toStartOf="@id/guidelineResizeImage"
+                app:layout_constraintHorizontal_bias="0.5"
                 app:layout_constraintStart_toEndOf="@id/imageViewResizeImage"
                 app:layout_constraintTop_toTopOf="parent" />
 
@@ -429,7 +457,9 @@
                 android:text="@string/pref_resize_summary"
                 android:textAppearance="?android:attr/textAppearanceSmall"
                 android:textColor="@color/colorSettingsTextSummary"
+                app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toStartOf="@id/guidelineResizeImage"
+                app:layout_constraintHorizontal_bias="0.5"
                 app:layout_constraintStart_toEndOf="@id/imageViewResizeImage"
                 app:layout_constraintTop_toBottomOf="@id/textViewResizeImage" />
 
@@ -470,9 +500,10 @@
             android:background="?attr/selectableItemBackground"
             android:clickable="true"
             android:focusable="true"
+            android:minHeight="@dimen/activity_settings_item_min_height"
             android:paddingBottom="8dp"
-            android:paddingEnd="16dp"
-            android:paddingStart="16dp"
+            android:paddingEnd="@dimen/activity_settings_item_start_end"
+            android:paddingStart="@dimen/activity_settings_item_start_end"
             android:paddingTop="8dp">
 
             <ImageView
@@ -492,7 +523,9 @@
                 android:text="@string/pref_jpeg_quality"
                 android:textAppearance="?android:attr/textAppearanceMedium"
                 android:textColor="@color/colorSettingsTextHeader"
+                app:layout_constraintBottom_toTopOf="@id/textViewJpegQualitySummary"
                 app:layout_constraintEnd_toStartOf="@id/guidelineJpegQuality"
+                app:layout_constraintHorizontal_bias="0.5"
                 app:layout_constraintStart_toEndOf="@id/imageViewJpegQuality"
                 app:layout_constraintTop_toTopOf="parent" />
 
@@ -504,7 +537,9 @@
                 android:text="@string/pref_jpeg_quality_summary"
                 android:textAppearance="?android:attr/textAppearanceSmall"
                 android:textColor="@color/colorSettingsTextSummary"
+                app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toStartOf="@id/guidelineJpegQuality"
+                app:layout_constraintHorizontal_bias="0.5"
                 app:layout_constraintStart_toEndOf="@id/imageViewJpegQuality"
                 app:layout_constraintTop_toBottomOf="@id/textViewJpegQuality" />
 
@@ -534,8 +569,8 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:layout_marginTop="8dp"
+            android:layout_marginStart="@dimen/activity_settings_title_start_top"
+            android:layout_marginTop="@dimen/activity_settings_title_start_top"
             android:padding="8dp"
             android:text="@string/pref_settings_security"
             android:textAppearance="?android:attr/textAppearanceMedium"
@@ -549,9 +584,10 @@
             android:background="?attr/selectableItemBackground"
             android:clickable="true"
             android:focusable="true"
+            android:minHeight="@dimen/activity_settings_item_min_height"
             android:paddingBottom="8dp"
-            android:paddingEnd="16dp"
-            android:paddingStart="16dp"
+            android:paddingEnd="@dimen/activity_settings_item_start_end"
+            android:paddingStart="@dimen/activity_settings_item_start_end"
             android:paddingTop="8dp">
 
             <ImageView
@@ -571,7 +607,9 @@
                 android:text="@string/pref_enable_pin"
                 android:textAppearance="?android:attr/textAppearanceMedium"
                 android:textColor="@color/colorSettingsTextHeader"
+                app:layout_constraintBottom_toTopOf="@id/textViewEnablePinSummary"
                 app:layout_constraintEnd_toStartOf="@id/guidelineEnablePin"
+                app:layout_constraintHorizontal_bias="0.5"
                 app:layout_constraintStart_toEndOf="@id/imageViewEnablePin"
                 app:layout_constraintTop_toTopOf="parent" />
 
@@ -583,7 +621,9 @@
                 android:text="@string/pref_enable_pin_summary"
                 android:textAppearance="?android:attr/textAppearanceSmall"
                 android:textColor="@color/colorSettingsTextSummary"
+                app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toStartOf="@id/guidelineEnablePin"
+                app:layout_constraintHorizontal_bias="0.5"
                 app:layout_constraintStart_toEndOf="@id/imageViewEnablePin"
                 app:layout_constraintTop_toBottomOf="@id/textViewEnablePin" />
 
@@ -621,9 +661,10 @@
             android:background="?attr/selectableItemBackground"
             android:clickable="true"
             android:focusable="true"
+            android:minHeight="@dimen/activity_settings_item_min_height"
             android:paddingBottom="8dp"
-            android:paddingEnd="16dp"
-            android:paddingStart="16dp"
+            android:paddingEnd="@dimen/activity_settings_item_start_end"
+            android:paddingStart="@dimen/activity_settings_item_start_end"
             android:paddingTop="8dp">
 
             <ImageView
@@ -643,7 +684,9 @@
                 android:text="@string/pref_hide_pin"
                 android:textAppearance="?android:attr/textAppearanceMedium"
                 android:textColor="@color/colorSettingsTextHeader"
+                app:layout_constraintBottom_toTopOf="@id/textViewHidePinOnStartSummary"
                 app:layout_constraintEnd_toStartOf="@id/guidelineHidePinOnStart"
+                app:layout_constraintHorizontal_bias="0.5"
                 app:layout_constraintStart_toEndOf="@id/imageViewHidePinOnStart"
                 app:layout_constraintTop_toTopOf="parent" />
 
@@ -655,7 +698,9 @@
                 android:text="@string/pref_hide_pin_summary"
                 android:textAppearance="?android:attr/textAppearanceSmall"
                 android:textColor="@color/colorSettingsTextSummary"
+                app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toStartOf="@id/guidelineHidePinOnStart"
+                app:layout_constraintHorizontal_bias="0.5"
                 app:layout_constraintStart_toEndOf="@id/imageViewHidePinOnStart"
                 app:layout_constraintTop_toBottomOf="@id/textViewHidePinOnStart" />
 
@@ -693,9 +738,10 @@
             android:background="?attr/selectableItemBackground"
             android:clickable="true"
             android:focusable="true"
+            android:minHeight="@dimen/activity_settings_item_min_height"
             android:paddingBottom="8dp"
-            android:paddingEnd="16dp"
-            android:paddingStart="16dp"
+            android:paddingEnd="@dimen/activity_settings_item_start_end"
+            android:paddingStart="@dimen/activity_settings_item_start_end"
             android:paddingTop="8dp">
 
             <ImageView
@@ -715,7 +761,9 @@
                 android:text="@string/pref_new_pin_on_start"
                 android:textAppearance="?android:attr/textAppearanceMedium"
                 android:textColor="@color/colorSettingsTextHeader"
+                app:layout_constraintBottom_toTopOf="@id/textViewNewPinOnAppStartSummary"
                 app:layout_constraintEnd_toStartOf="@id/guidelineNewPinOnAppStart"
+                app:layout_constraintHorizontal_bias="0.5"
                 app:layout_constraintStart_toEndOf="@id/imageViewNewPinOnAppStart"
                 app:layout_constraintTop_toTopOf="parent" />
 
@@ -727,7 +775,9 @@
                 android:text="@string/pref_new_pin_on_start_summary"
                 android:textAppearance="?android:attr/textAppearanceSmall"
                 android:textColor="@color/colorSettingsTextSummary"
+                app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toStartOf="@id/guidelineNewPinOnAppStart"
+                app:layout_constraintHorizontal_bias="0.5"
                 app:layout_constraintStart_toEndOf="@id/imageViewNewPinOnAppStart"
                 app:layout_constraintTop_toBottomOf="@id/textViewNewPinOnAppStart" />
 
@@ -765,9 +815,10 @@
             android:background="?attr/selectableItemBackground"
             android:clickable="true"
             android:focusable="true"
+            android:minHeight="@dimen/activity_settings_item_min_height"
             android:paddingBottom="8dp"
-            android:paddingEnd="16dp"
-            android:paddingStart="16dp"
+            android:paddingEnd="@dimen/activity_settings_item_start_end"
+            android:paddingStart="@dimen/activity_settings_item_start_end"
             android:paddingTop="8dp">
 
             <ImageView
@@ -787,7 +838,9 @@
                 android:text="@string/pref_auto_change_pin"
                 android:textAppearance="?android:attr/textAppearanceMedium"
                 android:textColor="@color/colorSettingsTextHeader"
+                app:layout_constraintBottom_toTopOf="@id/textViewAutoChangePinSummary"
                 app:layout_constraintEnd_toStartOf="@id/guidelineAutoChangePin"
+                app:layout_constraintHorizontal_bias="0.5"
                 app:layout_constraintStart_toEndOf="@id/imageViewAutoChangePin"
                 app:layout_constraintTop_toTopOf="parent" />
 
@@ -799,7 +852,9 @@
                 android:text="@string/pref_auto_change_pin_summary"
                 android:textAppearance="?android:attr/textAppearanceSmall"
                 android:textColor="@color/colorSettingsTextSummary"
+                app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toStartOf="@id/guidelineAutoChangePin"
+                app:layout_constraintHorizontal_bias="0.5"
                 app:layout_constraintStart_toEndOf="@id/imageViewAutoChangePin"
                 app:layout_constraintTop_toBottomOf="@id/textViewAutoChangePin" />
 
@@ -837,9 +892,10 @@
             android:background="?attr/selectableItemBackground"
             android:clickable="true"
             android:focusable="true"
+            android:minHeight="@dimen/activity_settings_item_min_height"
             android:paddingBottom="8dp"
-            android:paddingEnd="16dp"
-            android:paddingStart="16dp"
+            android:paddingEnd="@dimen/activity_settings_item_start_end"
+            android:paddingStart="@dimen/activity_settings_item_start_end"
             android:paddingTop="8dp">
 
             <ImageView
@@ -859,7 +915,9 @@
                 android:text="@string/pref_set_pin"
                 android:textAppearance="?android:attr/textAppearanceMedium"
                 android:textColor="@color/colorSettingsTextHeader"
+                app:layout_constraintBottom_toTopOf="@id/textViewSetPinSummary"
                 app:layout_constraintEnd_toStartOf="@id/guidelineSetPin"
+                app:layout_constraintHorizontal_bias="0.5"
                 app:layout_constraintStart_toEndOf="@id/imageViewSetPin"
                 app:layout_constraintTop_toTopOf="parent" />
 
@@ -871,7 +929,9 @@
                 android:text="@string/pref_set_pin_summary"
                 android:textAppearance="?android:attr/textAppearanceSmall"
                 android:textColor="@color/colorSettingsTextSummary"
+                app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toStartOf="@id/guidelineSetPin"
+                app:layout_constraintHorizontal_bias="0.5"
                 app:layout_constraintStart_toEndOf="@id/imageViewSetPin"
                 app:layout_constraintTop_toBottomOf="@id/textViewSetPin" />
 
@@ -901,8 +961,8 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:layout_marginTop="8dp"
+            android:layout_marginStart="@dimen/activity_settings_title_start_top"
+            android:layout_marginTop="@dimen/activity_settings_title_start_top"
             android:padding="8dp"
             android:text="@string/pref_settings_advanced"
             android:textAppearance="?android:attr/textAppearanceMedium"
@@ -916,9 +976,10 @@
             android:background="?attr/selectableItemBackground"
             android:clickable="true"
             android:focusable="true"
+            android:minHeight="@dimen/activity_settings_item_min_height"
             android:paddingBottom="8dp"
-            android:paddingEnd="16dp"
-            android:paddingStart="16dp"
+            android:paddingEnd="@dimen/activity_settings_item_start_end"
+            android:paddingStart="@dimen/activity_settings_item_start_end"
             android:paddingTop="8dp">
 
             <ImageView
@@ -938,7 +999,9 @@
                 android:text="@string/pref_server_port"
                 android:textAppearance="?android:attr/textAppearanceMedium"
                 android:textColor="@color/colorSettingsTextHeader"
+                app:layout_constraintBottom_toTopOf="@id/textViewServerPortSummary"
                 app:layout_constraintEnd_toStartOf="@+id/guidelineServerPort"
+                app:layout_constraintHorizontal_bias="0.5"
                 app:layout_constraintStart_toEndOf="@+id/imageViewServerPort"
                 app:layout_constraintTop_toTopOf="parent" />
 
@@ -950,7 +1013,9 @@
                 android:text="@string/pref_server_port_summary"
                 android:textAppearance="?android:attr/textAppearanceSmall"
                 android:textColor="@color/colorSettingsTextSummary"
+                app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toStartOf="@id/guidelineServerPort"
+                app:layout_constraintHorizontal_bias="0.5"
                 app:layout_constraintStart_toEndOf="@id/imageViewServerPort"
                 app:layout_constraintTop_toBottomOf="@id/textViewServerPort" />
 

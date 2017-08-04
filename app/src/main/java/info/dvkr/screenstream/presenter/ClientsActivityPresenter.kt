@@ -18,6 +18,7 @@ class ClientsActivityPresenter @Inject internal constructor(private val eventSch
     private val subscriptions = CompositeSubscription()
     private var clientsActivity: ClientsActivityView? = null
     private val trafficHistory = ConcurrentLinkedDeque<HttpServer.TrafficPoint>()
+    private var maxYValue = 0L
 
     init {
         if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] Constructor")
@@ -31,7 +32,7 @@ class ClientsActivityPresenter @Inject internal constructor(private val eventSch
 
         // Events from ClientsActivity
         subscriptions.add(clientsActivity?.fromEvent()?.observeOn(eventScheduler)?.subscribe { fromEvent ->
-            if (BuildConfig.DEBUG_MODE)   println(TAG + ": Thread [${Thread.currentThread().name}] fromEvent: $fromEvent")
+            if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] fromEvent: $fromEvent")
             when (fromEvent) {
 
             // Getting current traffic history
@@ -40,7 +41,8 @@ class ClientsActivityPresenter @Inject internal constructor(private val eventSch
                     if (trafficHistory.isEmpty()) {
                         eventBus.sendEvent(EventBus.GlobalEvent.TrafficHistoryRequest())
                     } else {
-                        clientsActivity?.toEvent(ClientsActivityView.ToEvent.TrafficHistory(trafficHistory.toList()))
+                        maxYValue = trafficHistory.maxBy { it.bytes }?.bytes ?: 0
+                        clientsActivity?.toEvent(ClientsActivityView.ToEvent.TrafficHistory(trafficHistory.toList(), maxYValue))
                     }
                 }
 
@@ -63,14 +65,16 @@ class ClientsActivityPresenter @Inject internal constructor(private val eventSch
                 is EventBus.GlobalEvent.TrafficHistory -> {
                     trafficHistory.clear()
                     trafficHistory.addAll(globalEvent.trafficHistory)
-                    clientsActivity?.toEvent(ClientsActivityView.ToEvent.TrafficHistory(trafficHistory.toList()))
+                    maxYValue = trafficHistory.maxBy { it.bytes }?.bytes ?: 0
+                    clientsActivity?.toEvent(ClientsActivityView.ToEvent.TrafficHistory(trafficHistory.toList(), maxYValue))
                 }
 
             // From HttpServerImpl
                 is EventBus.GlobalEvent.TrafficPoint -> {
                     if (trafficHistory.isNotEmpty()) trafficHistory.removeFirst()
                     trafficHistory.addLast(globalEvent.trafficPoint)
-                    clientsActivity?.toEvent(ClientsActivityView.ToEvent.TrafficPoint(globalEvent.trafficPoint))
+                    maxYValue = trafficHistory.maxBy { it.bytes }?.bytes ?: 0
+                    clientsActivity?.toEvent(ClientsActivityView.ToEvent.TrafficPoint(globalEvent.trafficPoint, maxYValue))
                 }
 
                 else -> println(TAG + ": Thread [${Thread.currentThread().name}] fromEvent: $globalEvent IGNORED")

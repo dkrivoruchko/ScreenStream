@@ -64,18 +64,21 @@ class HttpServerImpl constructor(serverAddress: InetSocketAddress,
     private val subscriptions = CompositeSubscription()
 
     // Clients
-    sealed class LocalEvent {
+    @Keep class LocalClient(clientAddress: InetSocketAddress,
+                            var sendBytes: Long = 0,
+                            var disconnectedTime: Long = 0) : HttpServer.Client(clientAddress)
+
+    @Keep sealed class LocalEvent {
         @Keep data class ClientConnected(val address: InetSocketAddress) : LocalEvent()
         @Keep data class ClientBytesCount(val address: InetSocketAddress, val bytesCount: Int) : LocalEvent()
         @Keep data class ClientDisconnected(val address: InetSocketAddress) : LocalEvent()
         @Keep data class ClientBackpressure(val address: InetSocketAddress) : LocalEvent()
     }
 
-    private val clientsMap = HashMap<InetSocketAddress, HttpServer.Client>()
+    private val clientsMap = HashMap<InetSocketAddress, LocalClient>()
 
     // Traffic
     private val trafficHistory = ConcurrentLinkedDeque<HttpServer.TrafficPoint>()
-    private var lastTotalTraffic = 0L
 
     init {
         if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] HttpServer: Create")
@@ -102,11 +105,11 @@ class HttpServerImpl constructor(serverAddress: InetSocketAddress,
         })
 
         subscriptions.add(Observable.interval(1, TimeUnit.SECONDS, eventScheduler).subscribe {
-            val currentTotalTraffic = clientsMap.values.map { it.sendBytes }.sum()
-            val trafficPoint = HttpServer.TrafficPoint(System.currentTimeMillis(), currentTotalTraffic - lastTotalTraffic)
+            clientsMap.values.removeAll { it.disconnected && System.currentTimeMillis() - it.disconnectedTime > 5000 }
+            val trafficPoint = HttpServer.TrafficPoint(System.currentTimeMillis(), clientsMap.values.map { it.sendBytes }.sum())
             trafficHistory.removeFirst()
             trafficHistory.addLast(trafficPoint)
-            lastTotalTraffic = currentTotalTraffic
+            clientsMap.values.forEach { it.sendBytes = 0 }
 
             eventBus.sendEvent(EventBus.GlobalEvent.TrafficPoint(trafficPoint))
             eventBus.sendEvent(EventBus.GlobalEvent.CurrentClients(clientsMap.values.toList()))
@@ -170,12 +173,15 @@ class HttpServerImpl constructor(serverAddress: InetSocketAddress,
 
     fun toEvent(event: LocalEvent) {
         Observable.just(event).observeOn(eventScheduler).subscribe { toEvent ->
-            //            if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] toEvent: $toEvent")
+            // if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] toEvent: $toEvent")
 
             when (toEvent) {
-                is LocalEvent.ClientConnected -> clientsMap.put(toEvent.address, HttpServer.Client(toEvent.address))
+                is LocalEvent.ClientConnected -> clientsMap.put(toEvent.address, LocalClient(toEvent.address))
                 is LocalEvent.ClientBytesCount -> clientsMap[toEvent.address]?.let { it.sendBytes = it.sendBytes.plus(toEvent.bytesCount) }
-                is LocalEvent.ClientDisconnected -> clientsMap[toEvent.address]?.disconnected = true
+                is LocalEvent.ClientDisconnected -> {
+                    clientsMap[toEvent.address]?.disconnected = true
+                    clientsMap[toEvent.address]?.disconnectedTime = System.currentTimeMillis()
+                }
                 is LocalEvent.ClientBackpressure -> clientsMap[toEvent.address]?.hasBackpressure = true
             }
         }

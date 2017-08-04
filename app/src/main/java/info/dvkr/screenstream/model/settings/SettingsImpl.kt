@@ -21,7 +21,7 @@ class SettingsImpl(private val mRxSharedPreferences: RxSharedPreferences) : Sett
         private val DEFAULT_HTML_BACK_COLOR = java.lang.Long.parseLong("ff000000", 16).toInt()
 
         private val PREF_KEY_RESIZE_FACTOR = "PREF_KEY_RESIZE_FACTOR" // Int
-        private val DEFAULT_RESIZE_FACTOR = 50
+        private val DEFAULT_RESIZE_FACTOR = 50 // TODO 50% for >= 1M pixels
         private val PREF_KEY_JPEG_QUALITY = "PREF_KEY_JPEG_QUALITY" // Int
         private val DEFAULT_JPEG_QUALITY = 80
 

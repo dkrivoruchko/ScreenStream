@@ -5,33 +5,31 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:padding="4dp">
+    android:paddingBottom="4dp"
+    android:paddingTop="4dp">
 
     <TextView
         android:id="@+id/textViewInterfaceName"
-        android:layout_width="48dp"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginEnd="4dp"
         android:gravity="end"
+        android:paddingEnd="4dp"
         android:textAlignment="viewEnd"
         android:textAppearance="?android:attr/textAppearanceSmall"
         android:textColor="@color/colorSecondaryText"
         app:layout_constraintBaseline_toBaselineOf="@id/textViewInterfaceAddress"
-        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/textViewInterfaceAddress"
         tools:text="radio0:" />
 
     <TextView
         android:id="@+id/textViewInterfaceAddress"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginEnd="48dp"
-        android:layout_marginStart="48dp"
         android:textAppearance="?android:attr/textAppearanceMedium"
         android:textColor="@color/colorPrimaryText"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintStart_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         tools:text="http://192.168.300.234:8080" />
-
 </android.support.constraint.ConstraintLayout>

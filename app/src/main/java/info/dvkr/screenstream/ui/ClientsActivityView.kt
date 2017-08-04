@@ -20,10 +20,10 @@ interface ClientsActivityView {
         @Keep data class CurrentClients(val clientsList: List<HttpServer.Client>) : ToEvent()
 
         // From HttpServer
-        @Keep data class TrafficHistory(val trafficHistory: List<HttpServer.TrafficPoint>) : ToEvent()
+        @Keep data class TrafficHistory(val trafficHistory: List<HttpServer.TrafficPoint>, val maxY: Long) : ToEvent()
 
         // From HttpServer
-        @Keep data class TrafficPoint(val trafficPoint: HttpServer.TrafficPoint) : ToEvent()
+        @Keep data class TrafficPoint(val trafficPoint: HttpServer.TrafficPoint, val maxY: Long) : ToEvent()
     }
 
     // Events to ClientsActivity from ClientsActivityPresenter
