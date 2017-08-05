@@ -1,24 +1,20 @@
 package info.dvkr.screenstream.service
 
 
-import android.app.Activity
-import android.app.Notification
-import android.app.PendingIntent
-import android.app.Service
+import android.app.*
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import android.graphics.BitmapFactory
 import android.media.projection.MediaProjection
 import android.media.projection.MediaProjectionManager
 import android.net.ConnectivityManager
 import android.net.wifi.WifiManager
+import android.os.Build
 import android.os.IBinder
 import android.support.annotation.Keep
 import android.support.v4.app.NotificationCompat
-import android.support.v4.content.ContextCompat
-import android.support.v4.media.app.NotificationCompat.MediaStyle
 import android.util.Log
+import android.widget.RemoteViews
 import com.cantrowitz.rxbroadcast.RxBroadcast
 import com.crashlytics.android.Crashlytics
 import info.dvkr.screenstream.BuildConfig
@@ -44,6 +40,7 @@ import javax.inject.Inject
 class ForegroundService : Service(), ForegroundServiceView {
     companion object {
         private const val TAG = "ForegroundService"
+        private const val NOTIFICATION_CHANNEL_ID = "info.dvkr.screenstream.service.NOTIFICATION_CHANNEL_01"
         private const val NOTIFICATION_START_STREAMING = 10
         private const val NOTIFICATION_STOP_STREAMING = 11
 
@@ -108,6 +105,11 @@ class ForegroundService : Service(), ForegroundServiceView {
         (application as ScreenStreamApp).appComponent().plusActivityComponent().inject(this)
         presenter.attach(this)
 
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(NOTIFICATION_CHANNEL_ID, "Screen Stream Channel", NotificationManager.IMPORTANCE_HIGH)
+            (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager?)?.createNotificationChannel(channel)
+        }
+
         subscriptions.add(toEvents.startWith(ForegroundService.LocalEvent.StartService())
                 .observeOn(eventScheduler).subscribe { event ->
 
@@ -154,7 +156,7 @@ class ForegroundService : Service(), ForegroundServiceView {
                             Action1 { imageByteArray -> jpegBytesStream.onNext(imageByteArray) })
 
                     stopForeground(true)
-                    startForeground(NOTIFICATION_STOP_STREAMING, getNotification(NOTIFICATION_STOP_STREAMING))
+                    startForeground(NOTIFICATION_STOP_STREAMING, getCustomNotification(NOTIFICATION_STOP_STREAMING))
 
                     projectionCallback = object : MediaProjection.Callback() {
                         override fun onStop() {
@@ -168,7 +170,7 @@ class ForegroundService : Service(), ForegroundServiceView {
                 is ForegroundServiceView.ToEvent.StopStream -> {
                     stopForeground(true)
                     stopMediaProjection()
-                    startForeground(NOTIFICATION_START_STREAMING, getNotification(NOTIFICATION_START_STREAMING))
+                    startForeground(NOTIFICATION_START_STREAMING, getCustomNotification(NOTIFICATION_START_STREAMING))
                     if (event.isNotifyOnComplete)
                         fromEvents.onNext(ForegroundServiceView.FromEvent.StopStreamComplete())
                 }
@@ -214,7 +216,7 @@ class ForegroundService : Service(), ForegroundServiceView {
                 .subscribe { _ -> fromEvents.onNext(ForegroundServiceView.FromEvent.CurrentInterfaces(getInterfaces())) }
         )
 
-        startForeground(NOTIFICATION_START_STREAMING, getNotification(NOTIFICATION_START_STREAMING))
+        startForeground(NOTIFICATION_START_STREAMING, getCustomNotification(NOTIFICATION_START_STREAMING))
         if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] onCreate: Done")
     }
 
@@ -258,6 +260,11 @@ class ForegroundService : Service(), ForegroundServiceView {
         stopForeground(true)
         stopMediaProjection()
         presenter.detach()
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager?)?.deleteNotificationChannel(NOTIFICATION_CHANNEL_ID)
+        }
+
         super.onDestroy()
         if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] onDestroy: Done")
         System.exit(0)
@@ -277,49 +284,68 @@ class ForegroundService : Service(), ForegroundServiceView {
         imageGenerator = null
     }
 
-    private fun getNotification(notificationType: Int): Notification {
-        if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] getNotification:$notificationType")
+    private fun getCustomNotification(notificationType: Int): Notification {
+        if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] getCustomNotification:$notificationType")
 
         val pendingMainActivityIntent = PendingIntent.getActivity(applicationContext, 0,
                 StartActivity.getStartIntent(applicationContext).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
                 0)
 
-        val builder = NotificationCompat.Builder(applicationContext, "info.dvkr.sreenstream.NOTIFICATION")// TODO
+        val builder = NotificationCompat.Builder(applicationContext, NOTIFICATION_CHANNEL_ID)
         builder.setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+        builder.setCategory(Notification.CATEGORY_SERVICE)
+        builder.priority = NotificationCompat.PRIORITY_MAX
         builder.setSmallIcon(R.drawable.ic_service_notification_24dp)
-        builder.setLargeIcon(BitmapFactory.decodeResource(resources, R.drawable.ic_app))
-        builder.color = ContextCompat.getColor(applicationContext, R.color.colorPrimaryDark)
-        builder.setContentIntent(pendingMainActivityIntent)
+        builder.setWhen(0)
 
         when (notificationType) {
             NOTIFICATION_START_STREAMING -> {
-                builder.setContentTitle(getString(R.string.service_ready_to_stream))
-                builder.setContentText(getString(R.string.service_press_start))
-
                 val startIntent = PendingIntent.getActivity(applicationContext, 1,
                         StartActivity.getStartIntent(applicationContext, StartActivity.ACTION_START_STREAM),
                         PendingIntent.FLAG_UPDATE_CURRENT)
-                builder.addAction(R.drawable.ic_service_start_24dp, getString(R.string.service_start).toUpperCase(), startIntent)
 
                 val exitIntent = PendingIntent.getActivity(applicationContext, 3,
-                        StartActivity.getStartIntent(applicationContext, StartActivity.ACTION_EXIT), PendingIntent.FLAG_UPDATE_CURRENT)
-                builder.addAction(R.drawable.ic_service_exit_24dp, getString(R.string.service_exit).toUpperCase(), exitIntent)
+                        StartActivity.getStartIntent(applicationContext, StartActivity.ACTION_EXIT),
+                        PendingIntent.FLAG_UPDATE_CURRENT)
+
+                val smallView = RemoteViews(packageName, R.layout.start_notification_small)
+                smallView.setOnClickPendingIntent(R.id.linearLayoutStartNotificationSmall, pendingMainActivityIntent)
+                smallView.setImageViewResource(R.id.imageViewStartNotificationSmallIconMain, R.drawable.ic_app)
+                smallView.setImageViewResource(R.id.imageViewStartNotificationSmallIconStart, R.drawable.ic_service_start_24dp)
+                smallView.setOnClickPendingIntent(R.id.imageViewStartNotificationSmallIconStart, startIntent)
+                builder.setCustomContentView(smallView)
+
+                val bigView = RemoteViews(packageName, R.layout.start_notification_big)
+                bigView.setOnClickPendingIntent(R.id.linearLayoutStartNotificationBig, pendingMainActivityIntent)
+                bigView.setImageViewResource(R.id.imageViewStartNotificationBigIconMain, R.drawable.ic_app)
+                bigView.setImageViewResource(R.id.imageViewStartNotificationBigIconStart, R.drawable.ic_service_start_24dp)
+                bigView.setImageViewResource(R.id.imageViewStartNotificationBigIconExit, R.drawable.ic_service_exit_24dp)
+                bigView.setOnClickPendingIntent(R.id.linearLayoutStartNotificationBigStart, startIntent)
+                bigView.setOnClickPendingIntent(R.id.linearLayoutStartNotificationBigExit, exitIntent)
+                builder.setCustomBigContentView(bigView)
             }
 
             NOTIFICATION_STOP_STREAMING -> {
-                builder.setContentTitle(getString(R.string.service_stream))
-                builder.setContentText(getServerAddresses())
-
                 val stopIntent = PendingIntent.getActivity(applicationContext, 2,
                         StartActivity.getStartIntent(applicationContext, StartActivity.ACTION_STOP_STREAM),
                         PendingIntent.FLAG_UPDATE_CURRENT)
-                builder.addAction(R.drawable.ic_service_stop_24dp, getString(R.string.service_stop).toUpperCase(), stopIntent)
+
+                val smallView = RemoteViews(packageName, R.layout.stop_notification_small)
+                smallView.setOnClickPendingIntent(R.id.linearLayoutStopNotificationSmall, pendingMainActivityIntent)
+                smallView.setImageViewResource(R.id.imageViewStopNotificationSmallIconMain, R.drawable.ic_app)
+                smallView.setImageViewResource(R.id.imageViewStopNotificationSmallIconStop, R.drawable.ic_service_stop_24dp)
+                smallView.setOnClickPendingIntent(R.id.imageViewStopNotificationSmallIconStop, stopIntent)
+                builder.setCustomContentView(smallView)
+
+                val bigView = RemoteViews(packageName, R.layout.stop_notification_big)
+                bigView.setOnClickPendingIntent(R.id.linearLayoutStopNotificationBig, pendingMainActivityIntent)
+                bigView.setImageViewResource(R.id.imageViewStopNotificationBigIconMain, R.drawable.ic_app)
+                bigView.setImageViewResource(R.id.imageViewStopNotificationBigIconStop, R.drawable.ic_service_stop_24dp)
+                bigView.setOnClickPendingIntent(R.id.linearLayoutStopNotificationBigStop, stopIntent)
+                builder.setCustomBigContentView(bigView)
             }
         }
 
-        builder.setStyle(MediaStyle().setShowActionsInCompactView(0))
-        builder.setCategory(Notification.CATEGORY_SERVICE)
-        builder.priority = NotificationCompat.PRIORITY_MAX
         return builder.build()
     }
 
@@ -355,28 +381,6 @@ class ForegroundService : Service(), ForegroundServiceView {
                 .replaceFirst(HttpServer.ENTER_PIN.toRegex(), context.getString(R.string.html_enter_pin))
                 .replaceFirst(HttpServer.FOUR_DIGITS.toRegex(), context.getString(R.string.html_four_digits))
                 .replaceFirst(HttpServer.SUBMIT_TEXT.toRegex(), context.getString(R.string.html_submit_text))
-    }
-
-    //TODO UPDATE THIS
-    fun getServerAddresses(): String {
-        if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] getServerAddresses")
-        val addresses = StringBuilder(getString(R.string.service_go_to))
-        try {
-            val enumeration = NetworkInterface.getNetworkInterfaces()
-            while (enumeration.hasMoreElements()) {
-                val networkInterface = enumeration.nextElement()
-                val enumIpAddr = networkInterface.inetAddresses
-                while (enumIpAddr.hasMoreElements()) {
-                    val inetAddress = enumIpAddr.nextElement()
-                    if (!inetAddress.isLoopbackAddress && inetAddress is Inet4Address)
-                        addresses.append("http://").append(inetAddress.hostAddress).append(":").append(settings.severPort).append("\n")
-                }
-            }
-        } catch (ex: Throwable) {
-            if (BuildConfig.DEBUG_MODE) Log.e(TAG, ex.toString())
-            Crashlytics.logException(ex)
-        }
-        return addresses.toString()
     }
 
     fun getInterfaces(): List<ForegroundServiceView.Interface> {

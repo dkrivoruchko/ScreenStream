@@ -35,7 +35,7 @@
     <string name="service_start">Start</string>
     <string name="service_exit">Exit</string>
     <string name="service_stream">Stream…</string>
-    <string name="service_go_to">Go to:\u0020</string>
+    <string name="service_press_stop">Press stop to end stream</string>
     <string name="service_stop">Stop</string>
 
     <!--ImageNotify-->
