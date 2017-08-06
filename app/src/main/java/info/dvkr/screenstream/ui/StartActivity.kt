@@ -19,6 +19,7 @@ import com.mikepenz.materialdrawer.Drawer
 import com.mikepenz.materialdrawer.DrawerBuilder
 import com.mikepenz.materialdrawer.model.DividerDrawerItem
 import com.mikepenz.materialdrawer.model.PrimaryDrawerItem
+import com.tapadoo.alerter.Alerter
 import info.dvkr.screenstream.BuildConfig
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.dagger.component.NonConfigurationComponent
@@ -88,27 +89,37 @@ class StartActivity : BaseActivity(), StartActivityView {
                 is StartActivityView.ToEvent.StreamRunning -> setStreamRunning(event.running)
 
                 is StartActivityView.ToEvent.Error -> {
-                    textViewError.visibility = View.GONE
                     canStart = true
                     event.error?.let {
-                        val message: String
+                        val alerter = Alerter.create(this)
                         when (it) {
-                            is SecurityException -> message = getString(R.string.start_activity_cast_permission_required)
+                            is SecurityException -> {
+                                alerter.setTitle(R.string.start_activity_alert_title_warring)
+                                        .setText(R.string.start_activity_cast_permission_required)
+                                        .setBackgroundColorRes(R.color.colorWarring)
+                            }
                             is UnsupportedOperationException -> {
                                 canStart = false
-                                message = getString(R.string.start_activity_error_wrong_image_format)
+                                alerter.setTitle(R.string.start_activity_alert_title_error)
+                                        .setText(R.string.start_activity_error_wrong_image_format)
+                                        .setBackgroundColorRes(R.color.colorAccent)
                             }
                             is BindException -> {
                                 canStart = false
-                                message = getString(R.string.start_activity_error_port_in_use)
+                                alerter.setTitle(R.string.start_activity_alert_title_error)
+                                        .setText(R.string.start_activity_error_port_in_use)
+                                        .setBackgroundColorRes(R.color.colorAccent)
                             }
                             else -> {
                                 canStart = false
-                                message = getString(R.string.start_activity_error_unknown) + "\n${it.message}"
+                                alerter.setTitle(R.string.start_activity_alert_title_error_unknown)
+                                        .setText(it.message)
+                                        .setBackgroundColorRes(R.color.colorAccent)
                             }
                         }
-                        textViewError.text = message
-                        textViewError.visibility = View.VISIBLE
+                        alerter.enableInfiniteDuration(true)
+                                .enableSwipeToDismiss()
+                                .show()
                     }
                 }
 
@@ -145,7 +156,6 @@ class StartActivity : BaseActivity(), StartActivityView {
             if (toggleButtonStartStop.isChecked) {
                 toggleButtonStartStop.isChecked = false
                 if (!canStart) return@setOnClickListener
-                textViewError.visibility = View.GONE
                 fromEvents.onNext(StartActivityView.FromEvent.TryStartStream())
             } else {
                 toggleButtonStartStop.isChecked = true

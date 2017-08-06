@@ -22,7 +22,7 @@ class ImageNotifyImpl(context: Context) : ImageNotify {
 
     init {
         val tempBm = BitmapFactory.decodeResource(context.resources, R.drawable.ic_app)
-        logo = Bitmap.createScaledBitmap(tempBm, 192, 192, false);
+        logo = Bitmap.createScaledBitmap(tempBm, 192, 192, false)
         tempBm.recycle()
     }
 

@@ -17,6 +17,7 @@ import android.view.View
 import android.view.ViewGroup
 import com.jrummyapps.android.colorpicker.ColorPickerDialog
 import com.jrummyapps.android.colorpicker.ColorPickerDialogListener
+import com.tapadoo.alerter.Alerter
 import info.dvkr.screenstream.BuildConfig
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.dagger.component.NonConfigurationComponent
@@ -235,14 +236,13 @@ class SettingsActivity : BaseActivity(), SettingsActivityView, ColorPickerDialog
                 is SettingsActivityView.ToEvent.ServerPort -> textViewServerPortValue.text = Integer.toString(event.value)
 
                 is SettingsActivityView.ToEvent.ErrorServerPortBusy -> {
-                    dialog = AlertDialog.Builder(this)
-                            .setIcon(R.drawable.ic_message_error_24dp)
-                            .setTitle(R.string.pref_error_dialog_title)
-                            .setMessage(R.string.pref_error_dialog_message_port)
-                            .setCancelable(false)
-                            .setPositiveButton(android.R.string.ok, null)
-                            .create()
-                    dialog?.show()
+                    Alerter.create(this)
+                            .setTitle(R.string.pref_alert_error_title)
+                            .setText(R.string.pref_alert_error_message)
+                            .setBackgroundColorRes(R.color.colorAccent)
+                            .setDuration(5000)
+                            .enableSwipeToDismiss()
+                            .show()
                 }
             }
         }

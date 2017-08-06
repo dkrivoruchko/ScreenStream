@@ -26,19 +26,6 @@
             android:paddingBottom="8dp">
 
             <TextView
-                android:id="@+id/textViewError"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center_horizontal"
-                android:background="@color/colorErrorBackground"
-                android:gravity="center"
-                android:minHeight="48dp"
-                android:padding="8dp"
-                android:textAppearance="?android:attr/textAppearanceMedium"
-                android:textColor="@color/colorErrorText"
-                tools:text="This is error text" />
-
-            <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:gravity="center_horizontal"

@@ -25,20 +25,22 @@ class SettingsActivityPresenter @Inject internal constructor(private val setting
 
     init {
         println(TAG + ": Thread [${Thread.currentThread().name}] Constructor")
-        //TODO move to ???
-        val ANSWERS_TAG = "SETTINGS"
-        Answers.getInstance().logCustom(CustomEvent(ANSWERS_TAG).putCustomAttribute("MinimizeOnStream", settings.minimizeOnStream.toString()))
-        Answers.getInstance().logCustom(CustomEvent(ANSWERS_TAG).putCustomAttribute("StopOnSleep", settings.stopOnSleep.toString()))
-        Answers.getInstance().logCustom(CustomEvent(ANSWERS_TAG).putCustomAttribute("StartOnBoot", settings.startOnBoot.toString()))
-        Answers.getInstance().logCustom(CustomEvent(ANSWERS_TAG).putCustomAttribute("DisableMjpegCheck", settings.disableMJPEGCheck.toString()))
-        Answers.getInstance().logCustom(CustomEvent(ANSWERS_TAG).putCustomAttribute("HtmlBackColor", settings.htmlBackColor.toString()))
-        Answers.getInstance().logCustom(CustomEvent(ANSWERS_TAG).putCustomAttribute("ResizeFactor", settings.resizeFactor.toString()))
-        Answers.getInstance().logCustom(CustomEvent(ANSWERS_TAG).putCustomAttribute("JpegQuality", settings.jpegQuality.toString()))
-        Answers.getInstance().logCustom(CustomEvent(ANSWERS_TAG).putCustomAttribute("EnablePin", settings.enablePin.toString()))
-        Answers.getInstance().logCustom(CustomEvent(ANSWERS_TAG).putCustomAttribute("HidePinOnStart", settings.hidePinOnStart.toString()))
-        Answers.getInstance().logCustom(CustomEvent(ANSWERS_TAG).putCustomAttribute("NewPinOnAppStart", settings.newPinOnAppStart.toString()))
-        Answers.getInstance().logCustom(CustomEvent(ANSWERS_TAG).putCustomAttribute("AutoChangePin", settings.autoChangePin.toString()))
-        Answers.getInstance().logCustom(CustomEvent(ANSWERS_TAG).putCustomAttribute("ServerPort", settings.severPort.toString()))
+
+        with(Answers.getInstance()) {
+            val ANSWERS_TAG = "SETTINGS"
+            logCustom(CustomEvent(ANSWERS_TAG).putCustomAttribute("MinimizeOnStream", settings.minimizeOnStream.toString()))
+            logCustom(CustomEvent(ANSWERS_TAG).putCustomAttribute("StopOnSleep", settings.stopOnSleep.toString()))
+            logCustom(CustomEvent(ANSWERS_TAG).putCustomAttribute("StartOnBoot", settings.startOnBoot.toString()))
+            logCustom(CustomEvent(ANSWERS_TAG).putCustomAttribute("DisableMjpegCheck", settings.disableMJPEGCheck.toString()))
+            logCustom(CustomEvent(ANSWERS_TAG).putCustomAttribute("HtmlBackColor", settings.htmlBackColor.toString()))
+            logCustom(CustomEvent(ANSWERS_TAG).putCustomAttribute("ResizeFactor", settings.resizeFactor.toString()))
+            logCustom(CustomEvent(ANSWERS_TAG).putCustomAttribute("JpegQuality", settings.jpegQuality.toString()))
+            logCustom(CustomEvent(ANSWERS_TAG).putCustomAttribute("EnablePin", settings.enablePin.toString()))
+            logCustom(CustomEvent(ANSWERS_TAG).putCustomAttribute("HidePinOnStart", settings.hidePinOnStart.toString()))
+            logCustom(CustomEvent(ANSWERS_TAG).putCustomAttribute("NewPinOnAppStart", settings.newPinOnAppStart.toString()))
+            logCustom(CustomEvent(ANSWERS_TAG).putCustomAttribute("AutoChangePin", settings.autoChangePin.toString()))
+            logCustom(CustomEvent(ANSWERS_TAG).putCustomAttribute("ServerPort", settings.severPort.toString()))
+        }
     }
 
     fun attach(activity: SettingsActivityView) {

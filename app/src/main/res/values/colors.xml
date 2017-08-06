@@ -7,8 +7,7 @@
     <color name="colorPrimaryTextHeader">#FFFFFF</color>
     <color name="colorSecondaryText">#455a64</color>
     <color name="colorDivider">#cfd8dc</color>
-    <color name="colorErrorText">#000000</color>
-    <color name="colorErrorBackground">#f05545</color>
+    <color name="colorWarring">#e54b1b</color>
 
     // Drawer
     <color name="colorDrawerTextHeader">@color/colorPrimaryTextHeader</color>
