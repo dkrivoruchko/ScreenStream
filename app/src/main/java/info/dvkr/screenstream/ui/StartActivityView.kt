@@ -14,7 +14,7 @@ interface StartActivityView {
         @Keep class TryStartStream : FromEvent()
         @Keep class StopStream : FromEvent()
         @Keep class AppExit : FromEvent()
-        @Keep data class Error(val error: Throwable?) : FromEvent()
+        @Keep data class Error(val error: Throwable) : FromEvent()
         @Keep class GetError : FromEvent()
     }
 

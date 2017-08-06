@@ -35,7 +35,7 @@ interface EventBus {
         // From StartActivityPresenter to HttpServer
         @Keep class CurrentClientsRequest : GlobalEvent()
 
-        // From HttpServer to StartActivityPresenter & ClientsActivityPresenter
+        // From HttpServer to StartActivityPresenter & ClientsActivityPresenter & ForegroundServicePresenter
         @Keep data class CurrentClients(val clientsList: List<HttpServer.Client>) : GlobalEvent()
 
         // From StartActivityPresenter to ForegroundServicePresenter

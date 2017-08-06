@@ -91,33 +91,28 @@ class StartActivity : BaseActivity(), StartActivityView {
                 is StartActivityView.ToEvent.Error -> {
                     canStart = true
                     event.error?.let {
+                        canStart = false
                         val alerter = Alerter.create(this)
+
                         when (it) {
-                            is SecurityException -> {
-                                alerter.setTitle(R.string.start_activity_alert_title_warring)
-                                        .setText(R.string.start_activity_cast_permission_required)
-                                        .setBackgroundColorRes(R.color.colorWarring)
-                            }
                             is UnsupportedOperationException -> {
-                                canStart = false
                                 alerter.setTitle(R.string.start_activity_alert_title_error)
                                         .setText(R.string.start_activity_error_wrong_image_format)
-                                        .setBackgroundColorRes(R.color.colorAccent)
                             }
+
                             is BindException -> {
-                                canStart = false
                                 alerter.setTitle(R.string.start_activity_alert_title_error)
                                         .setText(R.string.start_activity_error_port_in_use)
-                                        .setBackgroundColorRes(R.color.colorAccent)
                             }
+
                             else -> {
-                                canStart = false
                                 alerter.setTitle(R.string.start_activity_alert_title_error_unknown)
                                         .setText(it.message)
-                                        .setBackgroundColorRes(R.color.colorAccent)
                             }
                         }
-                        alerter.enableInfiniteDuration(true)
+
+                        alerter.setBackgroundColorRes(R.color.colorAccent)
+                                .enableInfiniteDuration(true)
                                 .enableSwipeToDismiss()
                                 .show()
                     }
@@ -275,7 +270,13 @@ class StartActivity : BaseActivity(), StartActivityView {
         when (requestCode) {
             REQUEST_CODE_SCREEN_CAPTURE -> {
                 if (Activity.RESULT_OK != resultCode) {
-                    fromEvents.onNext(StartActivityView.FromEvent.Error(SecurityException()))
+                    Alerter.create(this).setTitle(R.string.start_activity_alert_title_warring)
+                            .setText(R.string.start_activity_cast_permission_required)
+                            .setBackgroundColorRes(R.color.colorWarring)
+                            .setDuration(5000)
+                            .enableProgress(true)
+                            .enableSwipeToDismiss()
+                            .show()
                     if (BuildConfig.DEBUG_MODE) Log.w(TAG, "onActivityResult: Screen Cast permission denied")
                     return
                 }

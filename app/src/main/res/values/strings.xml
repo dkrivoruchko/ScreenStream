@@ -39,6 +39,7 @@
     <string name="service_stream">Stream…</string>
     <string name="service_press_stop">Press stop to end stream</string>
     <string name="service_stop">Stop</string>
+    <string name="service_slow_client_connection">Slow client connection detected</string>
 
     <!--ImageNotify-->
     <string name="image_generator_press_start">Press START STREAM on device</string>

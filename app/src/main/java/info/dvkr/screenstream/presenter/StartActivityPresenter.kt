@@ -66,14 +66,22 @@ class StartActivityPresenter @Inject internal constructor(private val eventSched
                     startActivity?.toEvent(StartActivityView.ToEvent.Error(globalStatus.error))
                 }
 
-                else -> println(TAG + ": Thread [${Thread.currentThread().name}] fromEvent: $fromEvent IGNORED")
+                else -> println(TAG + ": Thread [${Thread.currentThread().name}] fromEvent: $fromEvent WARRING: IGNORED")
             }
         })
 
         // Global events
-        subscriptions.add(eventBus.getEvent().observeOn(eventScheduler).subscribe { globalEvent ->
-            //            if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] globalEvent: $globalEvent")
-
+        subscriptions.add(eventBus.getEvent().observeOn(eventScheduler)
+                .filter {
+                    it is EventBus.GlobalEvent.StreamStatus ||
+                            it is EventBus.GlobalEvent.ResizeFactor ||
+                            it is EventBus.GlobalEvent.EnablePin ||
+                            it is EventBus.GlobalEvent.SetPin ||
+                            it is EventBus.GlobalEvent.CurrentClients ||
+                            it is EventBus.GlobalEvent.CurrentInterfaces ||
+                            it is EventBus.GlobalEvent.TrafficPoint
+                }.subscribe { globalEvent ->
+            if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] globalEvent: $globalEvent")
             when (globalEvent) {
             // From ImageGeneratorImpl
                 is EventBus.GlobalEvent.StreamStatus -> {
@@ -109,8 +117,6 @@ class StartActivityPresenter @Inject internal constructor(private val eventSched
                 is EventBus.GlobalEvent.TrafficPoint -> {
                     startActivity?.toEvent(StartActivityView.ToEvent.TrafficPoint(globalEvent.trafficPoint))
                 }
-
-                else -> println(TAG + ": Thread [${Thread.currentThread().name}] fromEvent: $globalEvent IGNORED")
             }
         })
 
@@ -127,15 +133,3 @@ class StartActivityPresenter @Inject internal constructor(private val eventSched
         startActivity = null
     }
 }
-
-//        Observable.interval(2000, TimeUnit.MILLISECONDS).skip(1).subscribe(new Action1<Long>() {
-//            @Override
-//            public void call(final Long aLong) {
-//                System.out.println(TAG + " interval");
-//                if (mAppEvent.getStreamRunning().getValue()) {
-//                    mStartActivity.onStreamStop();
-//                } else {
-//                    mStartActivity.onTryToStart();
-//                }
-//            }
-//        });

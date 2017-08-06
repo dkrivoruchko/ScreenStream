@@ -13,8 +13,11 @@ import android.os.Build
 import android.os.IBinder
 import android.support.annotation.Keep
 import android.support.v4.app.NotificationCompat
+import android.support.v4.content.ContextCompat
 import android.util.Log
+import android.view.LayoutInflater
 import android.widget.RemoteViews
+import android.widget.Toast
 import com.cantrowitz.rxbroadcast.RxBroadcast
 import com.crashlytics.android.Crashlytics
 import info.dvkr.screenstream.BuildConfig
@@ -24,6 +27,7 @@ import info.dvkr.screenstream.model.*
 import info.dvkr.screenstream.model.image.ImageGeneratorImpl
 import info.dvkr.screenstream.presenter.ForegroundServicePresenter
 import info.dvkr.screenstream.ui.StartActivity
+import kotlinx.android.synthetic.main.slow_connection_toast.view.*
 import rx.Observable
 import rx.Scheduler
 import rx.functions.Action1
@@ -189,9 +193,18 @@ class ForegroundService : Service(), ForegroundServiceView {
                     globalStatus.error = event.error
                     startActivity(StartActivity.getStartIntent(applicationContext, StartActivity.ACTION_ERROR).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
                 }
+
+                is ForegroundServiceView.ToEvent.SlowConnectionDetected -> {
+                    val toast = Toast(applicationContext)
+                    val inflater = getSystemService(Context.LAYOUT_INFLATER_SERVICE) as LayoutInflater
+                    val toastView = inflater.inflate(R.layout.slow_connection_toast, null)
+                    toastView.slowConnectionToastIcon.setImageDrawable(ContextCompat.getDrawable(applicationContext, R.drawable.ic_service_notification_24dp))
+                    toast.view = toastView
+                    toast.duration = Toast.LENGTH_LONG
+                    toast.show()
+                }
             }
         })
-
 
         // Registering receiver for screen off messages and WiFi changes
         val intentFilter = IntentFilter()
@@ -200,9 +213,12 @@ class ForegroundService : Service(), ForegroundServiceView {
         intentFilter.addAction(ConnectivityManager.CONNECTIVITY_ACTION)
 
         subscriptions.add(RxBroadcast.fromBroadcast(applicationContext, intentFilter)
-                .map<String> { it.action }
+                .map<String>
+                { it.action }
                 .observeOn(eventScheduler)
-                .subscribe { action ->
+                .subscribe
+                {
+                    action ->
                     if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] Action: " + action)
                     when (action) {
                         Intent.ACTION_SCREEN_OFF -> fromEvents.onNext(ForegroundServiceView.FromEvent.ScreenOff())
@@ -213,7 +229,8 @@ class ForegroundService : Service(), ForegroundServiceView {
 
         subscriptions.add(connectionEvents
                 .throttleWithTimeout(500, TimeUnit.MILLISECONDS, eventScheduler)
-                .subscribe { _ -> fromEvents.onNext(ForegroundServiceView.FromEvent.CurrentInterfaces(getInterfaces())) }
+                .subscribe
+                { _ -> fromEvents.onNext(ForegroundServiceView.FromEvent.CurrentInterfaces(getInterfaces())) }
         )
 
         startForeground(NOTIFICATION_START_STREAMING, getCustomNotification(NOTIFICATION_START_STREAMING))

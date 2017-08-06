@@ -46,16 +46,19 @@ class ClientsActivityPresenter @Inject internal constructor(private val eventSch
                     }
                 }
 
-                else -> println(TAG + ": Thread [${Thread.currentThread().name}] fromEvent: $fromEvent IGNORED")
+                else -> println(TAG + ": Thread [${Thread.currentThread().name}] fromEvent: $fromEvent WARRING: IGNORED")
             }
         })
 
         // Global events
-        subscriptions.add(eventBus.getEvent().observeOn(eventScheduler).subscribe { globalEvent ->
+        subscriptions.add(eventBus.getEvent().observeOn(eventScheduler)
+                .filter {
+                    it is EventBus.GlobalEvent.CurrentClients ||
+                            it is EventBus.GlobalEvent.TrafficHistory ||
+                            it is EventBus.GlobalEvent.TrafficPoint
+                }.subscribe { globalEvent ->
             if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] globalEvent: $globalEvent")
-
             when (globalEvent) {
-
             // From HttpServerImpl
                 is EventBus.GlobalEvent.CurrentClients -> {
                     clientsActivity?.toEvent(ClientsActivityView.ToEvent.CurrentClients(globalEvent.clientsList))
@@ -76,14 +79,11 @@ class ClientsActivityPresenter @Inject internal constructor(private val eventSch
                     maxYValue = trafficHistory.maxBy { it.bytes }?.bytes ?: 0
                     clientsActivity?.toEvent(ClientsActivityView.ToEvent.TrafficPoint(globalEvent.trafficPoint, maxYValue))
                 }
-
-                else -> println(TAG + ": Thread [${Thread.currentThread().name}] fromEvent: $globalEvent IGNORED")
             }
         })
 
         // Requesting current clients
         eventBus.sendEvent(EventBus.GlobalEvent.CurrentClientsRequest())
-
     }
 
     fun detach() {

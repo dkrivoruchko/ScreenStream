@@ -137,7 +137,7 @@ class SettingsActivityPresenter @Inject internal constructor(private val setting
                     }
                 }
 
-                else -> println(TAG + ": Thread [${Thread.currentThread().name}] fromEvent: $fromEvent IGNORED")
+                else -> println(TAG + ": Thread [${Thread.currentThread().name}] fromEvent: $fromEvent WARRING: IGNORED")
             }
         })
     }

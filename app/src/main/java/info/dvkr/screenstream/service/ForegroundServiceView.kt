@@ -35,6 +35,7 @@ interface ForegroundServiceView {
         @Keep class AppExit : ToEvent()
         @Keep class CurrentInterfacesRequest : ToEvent()
         @Keep data class Error(val error: Throwable) : ToEvent()
+        @Keep class SlowConnectionDetected : ToEvent()
     }
 
     // Events to ForegroundService from ForegroundServicePresenter

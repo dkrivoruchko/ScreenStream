@@ -241,6 +241,7 @@ class SettingsActivity : BaseActivity(), SettingsActivityView, ColorPickerDialog
                             .setText(R.string.pref_alert_error_message)
                             .setBackgroundColorRes(R.color.colorAccent)
                             .setDuration(5000)
+                            .enableProgress(true)
                             .enableSwipeToDismiss()
                             .show()
                 }

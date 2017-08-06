@@ -11,6 +11,7 @@ import rx.subscriptions.CompositeSubscription
 import java.net.InetSocketAddress
 import java.util.*
 import javax.inject.Inject
+import kotlin.collections.ArrayList
 
 @PersistentScope
 class ForegroundServicePresenter @Inject internal constructor(private val settings: Settings,
@@ -24,6 +25,7 @@ class ForegroundServicePresenter @Inject internal constructor(private val settin
 
     private var foregroundService: ForegroundServiceView? = null
     private var httpServer: HttpServer? = null
+    private val slowConnections: MutableList<HttpServer.Client> = ArrayList()
 
     init {
         if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] Constructor")
@@ -92,7 +94,7 @@ class ForegroundServicePresenter @Inject internal constructor(private val settin
                     eventBus.sendEvent(EventBus.GlobalEvent.CurrentInterfaces(fromEvent.interfaceList))
                 }
 
-                else -> println(TAG + ": Thread [${Thread.currentThread().name}] fromEvent: $fromEvent IGNORED")
+                else -> println(TAG + ": Thread [${Thread.currentThread().name}] fromEvent: $fromEvent WARRING: IGNORED")
             }
         })
 
@@ -103,7 +105,8 @@ class ForegroundServicePresenter @Inject internal constructor(private val settin
                             it is EventBus.GlobalEvent.AppExit ||
                             it is EventBus.GlobalEvent.HttpServerRestart ||
                             it is EventBus.GlobalEvent.CurrentInterfacesRequest ||
-                            it is EventBus.GlobalEvent.Error
+                            it is EventBus.GlobalEvent.Error ||
+                            it is EventBus.GlobalEvent.CurrentClients
                 }.subscribe { globalEvent ->
             if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] globalEvent: $globalEvent")
             when (globalEvent) {
@@ -139,6 +142,15 @@ class ForegroundServicePresenter @Inject internal constructor(private val settin
                         foregroundService?.toEvent(ForegroundServiceView.ToEvent.StopStream(false))
 
                     foregroundService?.toEvent(ForegroundServiceView.ToEvent.Error(globalEvent.error))
+                }
+
+            // From HttpServerImpl
+                is EventBus.GlobalEvent.CurrentClients -> {
+                    val currentSlowConnections = globalEvent.clientsList.filter { it.hasBackpressure }.toList()
+                    if (!slowConnections.containsAll(currentSlowConnections))
+                        foregroundService?.toEvent(ForegroundServiceView.ToEvent.SlowConnectionDetected())
+                    slowConnections.clear()
+                    slowConnections.addAll(currentSlowConnections)
                 }
             }
         })
