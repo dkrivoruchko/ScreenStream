@@ -50,18 +50,18 @@ class ImageNotifyImpl(context: Context) : ImageNotify {
     }
 
     private fun generateImage(message: String): ByteArray {
-        val bitmap = Bitmap.createBitmap(480, 480, Bitmap.Config.ARGB_8888)
+        val bitmap = Bitmap.createBitmap(500, 400, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
         canvas.drawRGB(69, 90, 100)
         val paint = Paint(Paint.ANTI_ALIAS_FLAG)
-        canvas.drawBitmap(logo, 144f, 16f, paint)
+        canvas.drawBitmap(logo, 154f, 16f, paint)
 
-        paint.textSize = 22f
+        paint.textSize = 20f
         paint.color = Color.WHITE
         val bounds = Rect()
         paint.getTextBounds(message, 0, message.length, bounds)
         val x = (bitmap.width - bounds.width()) / 2f
-        canvas.drawText(message, x, 320f, paint)
+        canvas.drawText(message, x, 300f, paint)
 
         val jpegOutputStream = ByteArrayOutputStream()
         bitmap.compress(Bitmap.CompressFormat.JPEG, 100, jpegOutputStream)

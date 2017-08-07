@@ -1,5 +1,5 @@
 <resources>
-    <dimen name="activity_start_toggle_button_padding">48dp</dimen>
+    <dimen name="activity_start_toggle_button_padding">36dp</dimen>
 
     <dimen name="activity_settings_title_start_top">8dp</dimen>
     <dimen name="activity_settings_item_start_end">16dp</dimen>

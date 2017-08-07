@@ -126,7 +126,7 @@
             <TextView
                 android:id="@+id/textViewStopOnSleep"
                 android:layout_width="0dp"
-                android:layout_height="28dp"
+                android:layout_height="wrap_content"
                 android:layout_marginStart="16dp"
                 android:text="@string/pref_stop_on_sleep"
                 android:textAppearance="?android:attr/textAppearanceMedium"
