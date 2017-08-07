@@ -260,7 +260,7 @@ class ForegroundService : Service(), ForegroundServiceView {
             }
 
             ACTION_START_ON_BOOT -> {
-                startActivity(StartActivity.getStartIntent(applicationContext, StartActivity.ACTION_START_STREAM))
+                startActivity(StartActivity.getStartIntent(applicationContext, StartActivity.ACTION_START_STREAM).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
             }
 
             ACTION_START_STREAM ->

@@ -29,7 +29,7 @@ interface EventBus {
         // From SettingsActivityPresenter to StartActivityPresenter
         @Keep data class EnablePin(val value: Boolean) : GlobalEvent()
 
-        // From SettingsActivityPresenter to StartActivityPresenter
+        // From SettingsActivityPresenter & ForegroundServicePresenter to StartActivityPresenter
         @Keep data class SetPin(val value: String) : GlobalEvent()
 
         // From StartActivityPresenter to HttpServer

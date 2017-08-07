@@ -22,12 +22,6 @@ class ScreenStreamApp : Application() {
 
         // Turning on strict mode
         if (BuildConfig.DEBUG_MODE) {
-            if (LeakCanary.isInAnalyzerProcess(this)) {
-                // This process is dedicated to LeakCanary for heap analysis.
-                // You should not initAppState your app in this process.
-                return
-            }
-
             StrictMode.setThreadPolicy(StrictMode.ThreadPolicy.Builder()
                     .detectAll()
                     .detectCustomSlowCalls()
@@ -44,6 +38,13 @@ class ScreenStreamApp : Application() {
                     .penaltyLog()
                     .build())
         }
+
+        if (LeakCanary.isInAnalyzerProcess(this)) {
+            // This process is dedicated to LeakCanary for heap analysis.
+            // You should not initAppState your app in this process.
+            return
+        }
+        LeakCanary.install(this)
 
         // Set up Crashlytics, disabled for debug builds
         val crashlyticsKit = Crashlytics.Builder()

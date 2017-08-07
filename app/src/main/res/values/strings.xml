@@ -96,7 +96,7 @@
     <string name="clients_activity_client">Client:\u0020</string>
 
     <!--HTML text-->
-    <string name="html_stream_require_pin">This stream require PIN to access it.</string>
+    <string name="html_stream_require_pin">This stream require PIN to access it</string>
     <string name="html_enter_pin">Enter pin:\u0020</string>
     <string name="html_four_digits">Four digits</string>
     <string name="html_submit_text">Submit</string>

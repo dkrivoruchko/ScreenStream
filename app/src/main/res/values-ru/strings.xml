@@ -93,7 +93,7 @@
     <string name="clients_activity_client">Клиент:\u0020</string>
 
     <!--HTML text-->
-    <string name="html_stream_require_pin">Этот поток требуется PIN-код для доступа к нему.</string>
+    <string name="html_stream_require_pin">Эта трансляция требует PIN-код для доступа к ней</string>
     <string name="html_enter_pin">Введите PIN-код:\u0020</string>
     <string name="html_four_digits">Четыре цифры</string>
     <string name="html_submit_text">Отправить</string>

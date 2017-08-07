@@ -79,7 +79,9 @@ class ForegroundServicePresenter @Inject internal constructor(private val settin
 
                 is ForegroundServiceView.FromEvent.StopStreamComplete -> {
                     if (settings.enablePin && settings.autoChangePin) {
-                        settings.currentPin = randomPin()
+                        val newPin = randomPin()
+                        settings.currentPin = newPin
+                        eventBus.sendEvent(EventBus.GlobalEvent.SetPin(newPin))
                         eventBus.sendEvent(EventBus.GlobalEvent.HttpServerRestart(ImageNotify.IMAGE_TYPE_RELOAD_PAGE))
                     }
                     foregroundService?.toEvent(ForegroundServiceView.ToEvent.NotifyImage(ImageNotify.IMAGE_TYPE_DEFAULT))
