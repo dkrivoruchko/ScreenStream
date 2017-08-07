@@ -1,60 +1,102 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="service_start">Начать</string>
-    <string name="service_stop">Остановить</string>
-    <string name="pref_settings_interface">Интерфейс</string>
-    <string name="pref_server_port">Порт сервера</string>
-    <string name="image_generator_press_start">НАЖМИТЕ</string>
-    <string name="image_generator_on_device">НА УСТРОЙСТВЕ</string>
-    <string name="start_activity_device_address">Адрес устойства:</string>
-    <string name="service_exit">Выход</string>
-    <string name="service_go_to">\u0020</string>
-    <string name="pref_settings_advanced">Дополнительно</string>
-    <string name="pref_server_port_summary">Установить порт для входяших подключений\nПо умолчанию: 8080</string>
-    <string name="pref_jpeg_quality">Качество JPEG</string>
-    <string name="pref_jpeg_quality_summary">Установить качество JPEG</string>
-    <string name="pref_stop_on_sleep">Останавливать при выключении</string>
-    <string name="pref_stop_on_sleep_summary">Останавливать поток если выключется экран</string>
-    <string name="start_activity_connected_clients">Подключено клиентов: %1$d</string>
-    <string name="pref_minimize_on_stream">Сворачивать при трансляции</string>
-    <string name="pref_minimise_on_stream_summary">Сворачивать приложение при начале трансляции</string>
-    <string name="service_press_start">Нажмите начать для старта трансляции</string>
-    <string name="service_ready_to_stream">Готов к трансляции</string>
+    <!--StartActivity-->
+    <string name="start_activity_device_address">Адреса устойства:</string>
+    <string name="start_activity_no_address">Адреса не найдены</string>
     <string name="start_activity_start_stream">Начать трансляцию</string>
     <string name="start_activity_stop_stream">Остановить трансляцию</string>
-    <string name="service_stream">Транслирую…</string>
-    <string name="html_four_digits">Четыре цифры</string>
-    <string name="html_enter_pin">Введите PIN-код:\u0020</string>
-    <string name="html_stream_require_pin">Этот поток требуется PIN-код для доступа к нему.</string>
-    <string name="html_submit_text">Отправить</string>
-    <string name="html_wrong_pin">Неправильный PIN-код!</string>
     <string name="start_activity_pin">PIN-код:</string>
-    <string name="pref_enable_pin">Использовать PIN-код</string>
-    <string name="pref_set_pin_summary">Указать PIN-код</string>
-    <string name="pref_auto_change_pin_summary">Генерировать новый PIN-код для каждой трансляции</string>
-    <string name="pref_enable_pin_summary">Защитить доступ к трансляции PIN-кодом</string>
-    <string name="pref_set_pin">Установить PIN-код</string>
-    <string name="pref_settings_security">Безопасность</string>
-    <string name="pref_auto_change_pin">Автогенерация PIN-кода</string>
     <string name="start_activity_pin_disabled">PIN-код выключен</string>
-    <string name="pref_new_pin_on_start">Новый PIN-код при старте</string>
-    <string name="pref_new_pin_on_start_summary">Генерировать новый PIN-код при старте приложения</string>
-    <string name="image_generator_go_to_new_address">Пройдите по новому адресу</string>
-    <string name="image_generator_settings_changed">НАСТРОЙКИ ИЗМЕНЕНЫ</string>
-    <string name="image_generator_reload_this_page">Обновите страницу</string>
-    <string name="pref_hide_pin">Прятать PIN-код</string>
-    <string name="pref_hide_pin_summary">При трансляции скрывать PIN-код</string>
-    <string name="start_activity_error_title">Ошибка.</string>
+    <string name="start_activity_resize_factor">Масштабирование</string>
+    <string name="start_activity_current_traffic">Траффик: %1$,.2f Мбит/с</string>
+    <string name="start_activity_connected_clients">Подключено клиентов: %1$d</string>
+
+    <string name="start_activity_drawer_main">Главная</string>
+    <string name="start_activity_drawer_traffic_clients">Траффик и клиенты</string>
+    <string name="start_activity_drawer_settings">Настройки</string>
+    <string name="start_activity_drawer_rate_app">Оценить приложение</string>
+    <string name="start_activity_drawer_feedback">Написать отзыв</string>
+    <string name="start_activity_drawer_sources">Исходный код</string>
+    <string name="start_activity_drawer_exit">Выход</string>
+
+    <string name="start_activity_alert_title_warring">Предупреждение</string>
+    <string name="start_activity_alert_title_error">Ошибка</string>
+    <string name="start_activity_alert_title_error_unknown">Неизвестная ошибка</string>
+    <string name="start_activity_cast_permission_required">Приложению требудется разрешение на трансляцию экрана</string>
+    <string name="start_activity_error_port_in_use">Порт уже используется. Выберете другой</string>
     <string name="start_activity_error_wrong_image_format">Система отдает изображение в неверном формате. На данный момент исправления нет.</string>
-    <string name="html_no_mjpeg_support">Ой :(&lt;br&gt;Кажется этот браузер не поддерживает MJPEG&lt;br&gt;&lt;br&gt;Эта проверка не очень точна&lt;br&gt;Вы можете отключить ее в настройках приложения</string>
-    <string name="pref_resize">Размер изображения</string>
-    <string name="pref_resize_summary">Изменять размер изображения перед отправкой</string>
-    <string name="pref_settings_image">Изображение</string>
+
+    <string name="start_activity_email_chooser_header">Отправка письма…</string>
+
+    <!--FgService-->
+    <string name="service_ready_to_stream">Готов к трансляции</string>
+    <string name="service_press_start">Нажмите НАЧАТЬ для старта трансляции</string>
+    <string name="service_start">Начать</string>
+    <string name="service_exit">Выход</string>
+    <string name="service_stream">Транслирую…</string>
+    <string name="service_press_stop">Нажмите ОСТАНОВИТЬ для окончания трансляции</string>
+    <string name="service_stop">Остановить</string>
+    <string name="service_slow_client_connection">Обнаружено медленное соединение с клиентом</string>
+
+    <!--ImageNotify-->
+    <string name="image_generator_press_start">Нажмите НАЧАТЬ ТРАНСЛЯЦИЮ на устройстве</string>
+    <string name="image_generator_go_to_new_address">Пройдите по новому адресу</string>
+    <string name="image_generator_reload_this_page">Перегрузите эту страницу</string>
+
+    <!--SettingsActivity-->
+    <string name="settings_activity_name">Настройки</string>
+    <string name="pref_settings_interface">Интерфейс</string>
+    <string name="pref_minimize_on_stream">Сворачивать при трансляции</string>
+    <string name="pref_minimise_on_stream_summary">Сворачивать приложение при начале трансляции</string>
+    <string name="pref_stop_on_sleep">Останавливать при выключении</string>
+    <string name="pref_stop_on_sleep_summary">Останавливать поток если выключется экран</string>
+    <string name="pref_start_on_boot">Начинать трансляцию при загрузке</string>
+    <string name="pref_start_on_boot_summary">Начинать трансляцию при загрузке устройства</string>
     <string name="pref_mjpeg_check">Отключить проверку MJPEG</string>
     <string name="pref_mjpeg_check_summary">Отключить проверку поддержки браузером MJPEG</string>
-    <string name="pref_resize_dialog_text">Выберать коэффициент масштабирования изображения:</string>
-    <string name="start_activity_resize_factor">Масштабирование</string>
     <string name="pref_html_back_color">Цвет фона HTML-страницы</string>
     <string name="pref_html_back_color_summary">Выбрать цвет фона HTML-странцы</string>
-    <string name="pref_html_back_color_title">Выберете цвет фона</string>
+    <string name="pref_html_back_color_title">Установить цвет фона</string>
+    <string name="pref_settings_image">Изображение</string>
+    <string name="pref_resize">Размер изображения</string>
+    <string name="pref_resize_summary">Изменять размер изображения перед отправкой</string>
+    <string name="pref_resize_dialog_text">Установить коэффициент масштабирования изображения в процентах. Значения: 10–150</string>
+    <string name="pref_jpeg_quality">Качество JPEG</string>
+    <string name="pref_jpeg_quality_summary">Установить качество JPEG</string>
+    <string name="pref_jpeg_quality_dialog">Установить качество сжатия JPEG. Значения: 1–100 (По умолчанию: 100)</string>
+    <string name="pref_settings_security">Безопасность</string>
+    <string name="pref_enable_pin">Использовать PIN-код</string>
+    <string name="pref_enable_pin_summary">Защитить доступ к трансляции PIN-кодом</string>
+    <string name="pref_hide_pin">Прятать PIN-код</string>
+    <string name="pref_hide_pin_summary">При трансляции скрывать PIN-код</string>
+    <string name="pref_new_pin_on_start">Новый PIN-код при старте</string>
+    <string name="pref_new_pin_on_start_summary">Генерировать новый PIN-код при старте приложения</string>
+    <string name="pref_auto_change_pin">Автогенерация PIN-кода</string>
+    <string name="pref_auto_change_pin_summary">Генерировать новый PIN-код для каждой трансляции</string>
+    <string name="pref_set_pin">Установить PIN-код</string>
+    <string name="pref_set_pin_summary">Указать PIN-код</string>
+    <string name="pref_set_pin_dialog">Введите пин. По умолчанию: 0000</string>
+    <string name="pref_settings_advanced">Дополнительно</string>
+    <string name="pref_server_port">Порт сервера</string>
+    <string name="pref_server_port_summary">Установить порт для входяших подключений</string>
+    <string name="pref_server_port_dialog">Установите порт сервера для входящих подключений. Значения: 1025–65535 (По умолчанию: 8080)</string>
+    <string name="pref_alert_error_title">Ошибка</string>
+    <string name="pref_alert_error_message">Порт уже используется. Выберете другой</string>
+
+    <!--ClientsActivity-->
+    <string name="clients_activity_name">Траффик и клиенты</string>
+    <string name="clients_activity_current_traffic">Траффик: %1$,.2f МБит/с</string>
+    <string name="clients_activity_connected_clients">Подключено клиентов: %1$d</string>
+    <string name="clients_activity_client_connected">Подключен</string>
+    <string name="clients_activity_client_disconnected">Отключен</string>
+    <string name="clients_activity_client_slow_network">Медленное подключение</string>
+    <string name="clients_activity_client">Клиент:\u0020</string>
+
+    <!--HTML text-->
+    <string name="html_stream_require_pin">Этот поток требуется PIN-код для доступа к нему.</string>
+    <string name="html_enter_pin">Введите PIN-код:\u0020</string>
+    <string name="html_four_digits">Четыре цифры</string>
+    <string name="html_submit_text">Отправить</string>
+    <string name="html_wrong_pin">Неправильный PIN-код!</string>
+    <string name="html_no_mjpeg_support">Ой :(&lt;br&gt;Кажется этот браузер не поддерживает MJPEG&lt;br&gt;&lt;br&gt;Эта проверка не очень точна&lt;br&gt;Вы можете отключить ее в настройках приложения</string>
 </resources>

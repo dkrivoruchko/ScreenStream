@@ -9,9 +9,7 @@
     <string name="start_activity_resize_factor">Factor de redimensionado</string>
     <string name="start_activity_pin">Pin:</string>
     <string name="start_activity_pin_disabled">Pin está deshabilitado</string>
-    <string name="start_activity_error_cast_permission_deny">Permiso denegado para un Screen Cast</string>
     <string name="start_activity_error_port_in_use">Este puerte ya está en uso\nElige otro</string>
-    <string name="start_activity_error_title">Error.</string>
     <string name="start_activity_error_wrong_image_format">El sistema devuelve una imagen de formato desconocido. Actualmente no hay disponible solución para esto.\nLo lamento.</string>
 
     <!--ForegroundService-->
@@ -20,18 +18,14 @@
     <string name="service_start">Iniciar</string>
     <string name="service_exit">Salir</string>
     <string name="service_stream">Tranferencia…</string>
-    <string name="service_go_to">Ir a:\u0020</string>
     <string name="service_stop">Parar</string>
 
     <!--NotifyImageGenerator-->
     <string name="image_generator_press_start">PULSAR</string>
-    <string name="image_generator_on_device">EN EL DISPOSITIVO</string>
-    <string name="image_generator_settings_changed">CONFIGURACIÓN ACTUALIZADA</string>
     <string name="image_generator_go_to_new_address">Por favor introduce una nueva dirección</string>
     <string name="image_generator_reload_this_page">Por favor recarga esta página</string>
 
     <!--SettingsActivity-->
-    <string name="settings_activity_pin_digits_count">El Pin debe tener 4 dígitos</string>
 
     <!--PreferenceScreen-->
     <string name="pref_settings_interface">Interfaz</string>
