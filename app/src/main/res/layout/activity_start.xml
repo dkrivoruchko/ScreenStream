@@ -45,6 +45,7 @@
                     android:layout_height="wrap_content"
                     android:gravity="center_horizontal"
                     android:padding="4dp"
+                    android:text="@string/start_activity_no_address"
                     android:textAppearance="?android:attr/textAppearanceMedium"
                     android:textColor="@color/colorPrimaryText"
                     tools:text="http://192.168.231.20:8080" />

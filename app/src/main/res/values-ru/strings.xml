@@ -22,9 +22,9 @@
     <string name="start_activity_alert_title_warring">Предупреждение</string>
     <string name="start_activity_alert_title_error">Ошибка</string>
     <string name="start_activity_alert_title_error_unknown">Неизвестная ошибка</string>
-    <string name="start_activity_cast_permission_required">Приложению требуется разрешение на трансляцию экрана</string>
+    <string name="start_activity_cast_permission_required">Приложению требуется разрешение на доступ к изображению экрана устройства</string>
     <string name="start_activity_error_port_in_use">Порт уже используется. Выберете другой</string>
-    <string name="start_activity_error_wrong_image_format">Система отдает изображение в неверном формате. На данный момент исправления нет.</string>
+    <string name="start_activity_error_wrong_image_format">Система отдает изображение в неверном формате. Решения проблемы нет.</string>
 
     <string name="start_activity_email_chooser_header">Отправка письма…</string>
 
