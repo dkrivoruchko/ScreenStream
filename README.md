@@ -11,9 +11,10 @@ No need of any additional software except for this app and a web browser.
 
 It uses MJPEG to encode screen images and send them through network socket. So it works with any desktop or mobile browser which supports MJPEG (Chrome, Safari, EDGE, Firefox).
 
-The program works via WiFi and/or 3G/LTE connection.
-Fast and stable WiFi recommended because of high traffic and low network delay required.
+The application works via WiFi and/or 3G/LTE connection.<br>
+Fast and stable WiFi recommended because of high traffic and low network delay requirement.
 No Internet required, however, there must be a network connection between the client and the device.
+
 The number of client connections is unlimited, but be aware that each of them requires some CPU resources and bandwidth to send data.
 
 Application uses Android Cast feature and requires at least Android 5.0 to operate.
@@ -30,12 +31,14 @@ Application uses Android Cast feature and requires at least Android 5.0 to opera
 3. Browser MJPEG support check is inaccurate. You can disable it in application settings.
 
 # Screenshots
+
 ![](screenshots/screenshot_1.png)&nbsp;
 ![](screenshots/screenshot_2.png)<br>
 ![](screenshots/screenshot_3.png)&nbsp;
 ![](screenshots/screenshot_4.png)<br>
 ![](screenshots/screenshot_5.png)&nbsp;
-![](screenshots/screenshot_6.png)
+![](screenshots/screenshot_6.png)<br>
+![](screenshots/screenshot_7.png)
 
 # Features and libraries
 
@@ -63,6 +66,7 @@ Dmitriy Krivoruchko - <dkrivoruchko@gmail.com>
 If there are any issues or ideas feel free to contact me.
 
 # License
+
 ```
 The MIT License (MIT)
 
