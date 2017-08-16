@@ -65,9 +65,7 @@ class ForegroundService : Service(), ForegroundServiceView {
     }
 
     sealed class LocalEvent : ForegroundServiceView.ToEvent() {
-        @Keep
-        class StartService : LocalEvent()
-
+        @Keep class StartService : LocalEvent()
         @Keep data class StartStream(val intent: Intent) : ForegroundServiceView.ToEvent()
     }
 
@@ -84,12 +82,9 @@ class ForegroundService : Service(), ForegroundServiceView {
     private val toEvents = PublishSubject.create<ForegroundServiceView.ToEvent>()
 
     private val jpegBytesStream = BehaviorSubject.create<ByteArray>()
-    private @Volatile
-    var mediaProjection: MediaProjection? = null
-    private @Volatile
-    var projectionCallback: MediaProjection.Callback? = null
-    private @Volatile
-    var imageGenerator: ImageGenerator? = null
+    @Volatile private var mediaProjection: MediaProjection? = null
+    @Volatile private var projectionCallback: MediaProjection.Callback? = null
+    @Volatile private var imageGenerator: ImageGenerator? = null
     private val connectionEvents = PublishSubject.create<String>()
 
     // Base values
