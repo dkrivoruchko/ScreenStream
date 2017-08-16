@@ -5,7 +5,7 @@ import com.f2prateek.rx.preferences.RxSharedPreferences
 import info.dvkr.screenstream.BuildConfig
 import info.dvkr.screenstream.model.Settings
 
-class SettingsImpl(private val mRxSharedPreferences: RxSharedPreferences, megaPixels: Double) : Settings {
+class SettingsImpl(private val mRxSharedPreferences: RxSharedPreferences) : Settings {
     private val TAG = "SettingsImpl"
 
     companion object {
@@ -21,7 +21,7 @@ class SettingsImpl(private val mRxSharedPreferences: RxSharedPreferences, megaPi
         private val DEFAULT_HTML_BACK_COLOR = java.lang.Long.parseLong("ff000000", 16).toInt()
 
         private val PREF_KEY_RESIZE_FACTOR = "PREF_KEY_RESIZE_FACTOR" // Int
-        private val DEFAULT_RESIZE_FACTOR = 100
+        private val DEFAULT_RESIZE_FACTOR = 50
         private val PREF_KEY_JPEG_QUALITY = "PREF_KEY_JPEG_QUALITY" // Int
         private val DEFAULT_JPEG_QUALITY = 80
 
@@ -40,11 +40,8 @@ class SettingsImpl(private val mRxSharedPreferences: RxSharedPreferences, megaPi
         private val DEFAULT_SERVER_PORT = 8080
     }
 
-    private val actualDefaultResizeFactor: Int
-
     init {
         if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] Constructor")
-        actualDefaultResizeFactor = if (megaPixels < 1.0) DEFAULT_RESIZE_FACTOR else ((1 / megaPixels) * 100).toInt()
     }
 
     override var minimizeOnStream: Boolean
@@ -72,7 +69,7 @@ class SettingsImpl(private val mRxSharedPreferences: RxSharedPreferences, megaPi
         set(jpegQuality) = mRxSharedPreferences.getInteger(PREF_KEY_JPEG_QUALITY).set(jpegQuality)
 
     override var resizeFactor: Int
-        get() = getInteger(PREF_KEY_RESIZE_FACTOR, actualDefaultResizeFactor)
+        get() = getInteger(PREF_KEY_RESIZE_FACTOR, DEFAULT_RESIZE_FACTOR)
         set(resizeFactor) = mRxSharedPreferences.getInteger(PREF_KEY_RESIZE_FACTOR).set(resizeFactor)
 
     override var enablePin: Boolean

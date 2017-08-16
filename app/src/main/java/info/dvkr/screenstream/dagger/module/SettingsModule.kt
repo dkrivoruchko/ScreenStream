@@ -1,10 +1,8 @@
 package info.dvkr.screenstream.dagger.module
 
 import android.content.Context
-import android.graphics.Point
 import android.preference.PreferenceManager
 import android.util.Log
-import android.view.WindowManager
 import com.crashlytics.android.Crashlytics
 import com.f2prateek.rx.preferences.RxSharedPreferences
 import com.ironz.binaryprefs.BinaryPreferencesBuilder
@@ -32,12 +30,6 @@ class SettingsModule {
                     }
                 }
                 .build()
-
-        val defaultDisplay = (context.getSystemService(Context.WINDOW_SERVICE) as WindowManager).defaultDisplay
-        val screenSize = Point()
-        defaultDisplay.getRealSize(screenSize)
-        val megaPixels = (screenSize.x * screenSize.y) / 1_000_000.0
-
-        return SettingsImpl(RxSharedPreferences.create(preferences), megaPixels)
+        return SettingsImpl(RxSharedPreferences.create(preferences))
     }
 }

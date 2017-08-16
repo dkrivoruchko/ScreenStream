@@ -296,8 +296,8 @@ class StartActivity : BaseActivity(), StartActivityView {
     // Private methods
     private fun setStreamRunning(running: Boolean) {
         toggleButtonStartStop.isChecked = running
-        if (settings.enablePin && settings.hidePinOnStart) {
-            if (running) textViewPinValue.setText(R.string.start_activity_pin_asterisks)
+        if (settings.enablePin) {
+            if (running && settings.hidePinOnStart) textViewPinValue.setText(R.string.start_activity_pin_asterisks)
             else textViewPinValue.text = settings.currentPin
         }
     }

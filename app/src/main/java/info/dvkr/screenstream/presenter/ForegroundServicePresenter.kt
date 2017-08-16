@@ -43,8 +43,11 @@ class ForegroundServicePresenter @Inject internal constructor(private val settin
 
             when (fromEvent) {
                 is ForegroundServiceView.FromEvent.Init -> {
-                    if (settings.enablePin && settings.newPinOnAppStart)
-                        settings.currentPin = randomPin()
+                    if (settings.enablePin && settings.newPinOnAppStart) {
+                        val newPin = randomPin()
+                        settings.currentPin = newPin
+                        eventBus.sendEvent(EventBus.GlobalEvent.SetPin(newPin))
+                    }
 
                     foregroundService?.toEvent(ForegroundServiceView.ToEvent.StartHttpServer())
                 }
