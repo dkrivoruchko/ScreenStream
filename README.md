@@ -1,32 +1,33 @@
 # Screen Stream over HTTP
 An Android mobile app for viewing device screen in your web browser.
 
-**This is a unstable development branch for 2.x version.**
-
-[Stable branch 1.x](https://github.com/dkrivoruchko/ScreenStream/tree/1.x) represented in Google Play Market<br>
+This is a beta branch represented in Google Play Market<br>
+<a href='https://play.google.com/store/apps/details?id=info.dvkr.screenstream&pcampaignid=MKT-Other-global-all-co-prtnr-py-PartBadge-Mar2515-1'><img height="100" width="258" alt='Get it on Google Play' src='https://play.google.com/intl/en_us/badges/images/generic/en_badge_web_generic.png'/></a>
 
 The application allows viewing the device screen in your web browser.
 The main idea is to show your device screen during presentations and demos.
 No need of any additional software except for this app and a web browser.
+No annoying ads or pop-ups.
 
-It uses MJPEG to encode screen images and send them through network socket. So it works with any desktop or mobile browser which supports MJPEG (Chrome, Safari, EDGE, Firefox).
+It uses MJPEG to encode screen images and send them through the network. So it works with any desktop or mobile browser which supports MJPEG (Chrome, Safari, EDGE, Firefox).
 
-The application works via WiFi and/or 3G/LTE connection.<br>
+The application works via WiFi and/or 3G/LTE network.<br>
 Fast and stable WiFi recommended because of high traffic and low network delay requirement.
 No Internet required, however, there must be a network connection between the client and the device.
 
 The number of client connections is unlimited, but be aware that each of them requires some CPU resources and bandwidth to send data.
 
-Application uses Android Cast feature and requires at least Android 5.0 to operate.
+Application uses Android Cast feature and requires at least Android 5.0 to run.
 
-**WARING:** This is not real time streaming app. Expect delay at least 0.5-1 second or more on slow devices, bad WiFi or on heavy CPU load by other apps.<br>
+**WARING:** This is not a real time streaming app. Expected delay is at least 0.5-1 second or more on slow devices, bad WiFi or on heavy CPU load by other apps.<br>
 **WARING:** This app is not designed for streaming video, especially HD video. Use Chromecast instead.<br>
 **WARING:** This app does NOT support SOUND streaming, because MJPEG does not support sound.<br>
-**WARING:** Some cell operators block incoming connections to device for security reasons, so, even if device has IP address from cell operator, you may not be able to connect to device.
+**WARING:** Some cell operators may block incoming connections to your device for security reasons, so, even if the device has an IP address from a cell operator, you may not be able to connect to the device on using this IP address.<br>
+**WARING:** Some WiFi networks (mostly public/guest) block connections between its clients for security reasons, so you may not be able to connect to the device via WiFi. For example, a laptop and a phone in this such a WiFi network will not be able to connect to each other.
 
 # Known problems
 
-1. On some devices system return image in unknown format. Mostly on devices with no official Android 5.0 or above. Possible Android bug. App will show an error message. No solution available.
+1. On some devices, system returns image in unknown format. Mostly on devices with no official Android 5.0 or above. Possible Android bug. App will show an error message. No solution available.
 2. On some devices no notification icon showing but notification is present. Android bug: 213309.
 3. Browser MJPEG support check is inaccurate. You can disable it in application settings.
 

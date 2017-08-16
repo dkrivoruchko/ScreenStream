@@ -22,10 +22,10 @@
     <string name="start_activity_drawer_sources">Sources</string>
     <string name="start_activity_drawer_exit">Exit</string>
 
-    <string name="start_activity_alert_title_warring">Warring</string>
+    <string name="start_activity_alert_title_warring">Warning</string>
     <string name="start_activity_alert_title_error">Error</string>
     <string name="start_activity_alert_title_error_unknown">Unexpected error</string>
-    <string name="start_activity_cast_permission_required">Application require Screen Cast permission to capture screen</string>
+    <string name="start_activity_cast_permission_required">Application requires Screen Cast permission to capture screen</string>
     <string name="start_activity_error_port_in_use">Port already in use. Choose another one</string>
     <string name="start_activity_error_wrong_image_format">System returns image in unknown format. No fix available. Sorry.</string>
 
@@ -63,7 +63,7 @@
     <string name="pref_settings_image">Image</string>
     <string name="pref_resize">Resize image</string>
     <string name="pref_resize_summary">Resize image before sending to client</string>
-    <string name="pref_resize_dialog_text">Set image resize factor in percents.\nValues: 10–150</string>
+    <string name="pref_resize_dialog_text">Set image resize factor in percent.\nValues: 10–150</string>
     <string name="pref_jpeg_quality">JPEG compression quality</string>
     <string name="pref_jpeg_quality_summary">Set JPEG compression quality</string>
     <string name="pref_jpeg_quality_dialog">Set JPEG compression quality.\nValues: 10–100 (Default: 100)</string>
@@ -71,7 +71,7 @@
     <string name="pref_enable_pin">Enable pin</string>
     <string name="pref_enable_pin_summary">Protect access to stream with pin</string>
     <string name="pref_hide_pin">Auto hide pin on stream start</string>
-    <string name="pref_hide_pin_summary">Show asterisks instead pin while streaming</string>
+    <string name="pref_hide_pin_summary">Show asterisks instead of pin while streaming</string>
     <string name="pref_new_pin_on_start">New pin on start</string>
     <string name="pref_new_pin_on_start_summary">Generate new pin on application start</string>
     <string name="pref_auto_change_pin">Auto change pin</string>
@@ -96,7 +96,7 @@
     <string name="clients_activity_client">Client:\u0020</string>
 
     <!--HTML text-->
-    <string name="html_stream_require_pin">This stream require PIN to access it</string>
+    <string name="html_stream_require_pin">This stream requires PIN to access it</string>
     <string name="html_enter_pin">Enter pin:\u0020</string>
     <string name="html_four_digits">Four digits</string>
     <string name="html_submit_text">Submit</string>

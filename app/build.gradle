@@ -5,6 +5,7 @@ apply plugin: 'kotlin-kapt'
 apply plugin: 'io.fabric'
 
 repositories {
+    mavenCentral()
     maven { url 'https://maven.fabric.io/public' }
 }
 
@@ -57,14 +58,15 @@ android {
 
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jre7:$kotlin_version"
-    // Support annotations
-    implementation 'com.android.support:design:26.0.0'
-    implementation 'com.android.support:appcompat-v7:26.0.0'
-    implementation 'com.android.support:support-v13:26.0.0'
-    implementation 'com.android.support:support-vector-drawable:26.0.0'
+
+    // Support
+    implementation 'com.android.support:design:26.0.1'
+    implementation 'com.android.support:appcompat-v7:26.0.1'
+    implementation 'com.android.support:support-v13:26.0.1'
+    implementation 'com.android.support:support-vector-drawable:26.0.1'
     implementation 'com.android.support.constraint:constraint-layout:1.0.2'
-    implementation 'com.android.support:recyclerview-v7:26.0.0'
-    implementation 'com.android.support:support-media-compat:26.0.0'
+    implementation 'com.android.support:recyclerview-v7:26.0.1'
+    implementation 'com.android.support:support-media-compat:26.0.1'
 
     // Dagger
     implementation 'com.google.dagger:dagger:2.11'
@@ -84,7 +86,7 @@ dependencies {
         transitive = true
     }
     implementation 'com.tapadoo.android:alerter:2.0.0'
-    implementation "com.github.iamironz:binaryprefs:1.0.0-ALPHA-2"
+    implementation "com.github.iamironz:binaryprefs:1.0.0-BETA-1"
     implementation 'com.jrummyapps:colorpicker:2.1.7'
     implementation 'com.jjoe64:graphview:4.2.1'
     // Fabric
@@ -93,5 +95,4 @@ dependencies {
     }
     debugImplementation 'com.squareup.leakcanary:leakcanary-android:1.5.1'
     releaseImplementation 'com.squareup.leakcanary:leakcanary-android-no-op:1.5.1'
-    testImplementation 'com.squareup.leakcanary:leakcanary-android-no-op:1.5.1'
 }

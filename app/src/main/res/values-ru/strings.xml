@@ -23,7 +23,7 @@
     <string name="start_activity_alert_title_error">Ошибка</string>
     <string name="start_activity_alert_title_error_unknown">Неизвестная ошибка</string>
     <string name="start_activity_cast_permission_required">Приложению требуется разрешение на доступ к изображению экрана устройства</string>
-    <string name="start_activity_error_port_in_use">Порт уже используется. Выберете другой</string>
+    <string name="start_activity_error_port_in_use">Порт уже используется. Выберите другой</string>
     <string name="start_activity_error_wrong_image_format">Система отдает изображение в неверном формате. Решения проблемы нет.</string>
 
     <string name="start_activity_email_chooser_header">Отправка письма…</string>
@@ -49,14 +49,14 @@
     <string name="pref_minimize_on_stream">Сворачивать при трансляции</string>
     <string name="pref_minimise_on_stream_summary">Сворачивать приложение при начале трансляции</string>
     <string name="pref_stop_on_sleep">Останавливать при выключении</string>
-    <string name="pref_stop_on_sleep_summary">Останавливать трансляцию если выключется экран</string>
+    <string name="pref_stop_on_sleep_summary">Останавливать трансляцию, если выключится экран</string>
     <string name="pref_start_on_boot">Начинать при загрузке</string>
     <string name="pref_start_on_boot_summary">Начинать трансляцию при загрузке устройства</string>
     <string name="pref_mjpeg_check">Отключить проверку MJPEG</string>
     <string name="pref_mjpeg_check_summary">Отключить проверку поддержки браузером MJPEG</string>
     <string name="pref_html_back_color">Цвет фона HTML-страницы</string>
     <string name="pref_html_back_color_summary">Выбрать цвет фона HTML-странцы</string>
-    <string name="pref_html_back_color_title">Выберете цвет фона</string>
+    <string name="pref_html_back_color_title">Выберите цвет фона</string>
     <string name="pref_settings_image">Изображение</string>
     <string name="pref_resize">Размер изображения</string>
     <string name="pref_resize_summary">Изменять размер изображения перед отправкой</string>
@@ -67,7 +67,7 @@
     <string name="pref_settings_security">Безопасность</string>
     <string name="pref_enable_pin">Использовать PIN-код</string>
     <string name="pref_enable_pin_summary">Защитить доступ к трансляции PIN-кодом</string>
-    <string name="pref_hide_pin">Прятать PIN-код</string>
+    <string name="pref_hide_pin">Скрыть PIN-код</string>
     <string name="pref_hide_pin_summary">При трансляции скрывать PIN-код</string>
     <string name="pref_new_pin_on_start">Новый PIN-код при старте</string>
     <string name="pref_new_pin_on_start_summary">Генерировать новый PIN-код при старте приложения</string>
@@ -81,7 +81,7 @@
     <string name="pref_server_port_summary">Установить порт для входяших подключений</string>
     <string name="pref_server_port_dialog">Установите порт сервера для входящих подключений. Значения: 1025–65535 (По умолчанию: 8080)</string>
     <string name="pref_alert_error_title">Ошибка</string>
-    <string name="pref_alert_error_message">Порт уже используется. Выберете другой</string>
+    <string name="pref_alert_error_message">Порт уже используется. Выберите другой</string>
 
     <!--ClientsActivity-->
     <string name="clients_activity_name">Траффик и клиенты</string>
@@ -97,6 +97,6 @@
     <string name="html_enter_pin">Введите PIN-код:\u0020</string>
     <string name="html_four_digits">Четыре цифры</string>
     <string name="html_submit_text">Отправить</string>
-    <string name="html_wrong_pin">Неправильный PIN-код!</string>
-    <string name="html_no_mjpeg_support">Ой :(&lt;br&gt;Кажется этот браузер не поддерживает MJPEG&lt;br&gt;&lt;br&gt;Эта проверка не очень точна&lt;br&gt;Вы можете отключить ее в настройках приложения</string>
+    <string name="html_wrong_pin">Неверный PIN-код!</string>
+    <string name="html_no_mjpeg_support">Ой :(&lt;br&gt;Кажется, этот браузер не поддерживает MJPEG&lt;br&gt;&lt;br&gt;Эта проверка не очень точна&lt;br&gt;Вы можете отключить ее в настройках приложения</string>
 </resources>

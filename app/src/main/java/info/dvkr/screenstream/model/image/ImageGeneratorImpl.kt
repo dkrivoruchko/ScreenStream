@@ -50,7 +50,7 @@ class ImageGeneratorImpl(context: Context,
     // Settings
     private val subscriptions = CompositeSubscription()
     private val matrix = Matrix()
-    private @Volatile var jpegQuality = 80
+    @Volatile private var jpegQuality = 80
 
     // Local data
     private val lock = Any()
@@ -59,10 +59,10 @@ class ImageGeneratorImpl(context: Context,
     private val windowManager: WindowManager
     private var imageReader: ImageReader
     private var virtualDisplay: VirtualDisplay
-    private @Volatile var reusableBitmap: Bitmap? = null
+    @Volatile private var reusableBitmap: Bitmap? = null
     private val resultJpegStream = ByteArrayOutputStream()
-    private @Volatile var imageReaderState = STATE_CREATED
-    private @Volatile var imageListener = 0
+    @Volatile private var imageReaderState = STATE_CREATED
+    @Volatile private var imageListener = 0
 
     init {
         if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] Constructor: Start")

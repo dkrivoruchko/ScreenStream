@@ -24,7 +24,6 @@ class SettingsModule {
     @Singleton
     internal fun getSettingsHelper(context: Context): Settings {
         PreferenceManager.getDefaultSharedPreferences(context).edit().clear().apply()
-//      RxSharedPreferences.create(PreferenceManager.getDefaultSharedPreferences(context))
         val preferences = BinaryPreferencesBuilder(context)
                 .exceptionHandler {
                     it?.let {

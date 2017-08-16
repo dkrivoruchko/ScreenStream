@@ -13,10 +13,10 @@ abstract class BaseActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
 
         val savedInjector = lastCustomNonConfigurationInstance
-        if (null == savedInjector) {
-            injector = (application as ScreenStreamApp).appComponent().plusActivityComponent()
+        injector = if (null == savedInjector) {
+            (application as ScreenStreamApp).appComponent().plusActivityComponent()
         } else {
-            injector = savedInjector as NonConfigurationComponent
+            savedInjector as NonConfigurationComponent
         }
 
         inject(injector)

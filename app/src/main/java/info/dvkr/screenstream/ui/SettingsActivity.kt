@@ -322,7 +322,7 @@ class SettingsActivity : BaseActivity(), SettingsActivityView, ColorPickerDialog
         view.isEnabled = enabled
         view.alpha = if (enabled) 1f else .5f
         if (view is ViewGroup)
-            for (idx in 0..view.childCount - 1)
+            for (idx in 0 until view.childCount)
                 enableDisableView(view.getChildAt(idx), enabled)
     }
 }

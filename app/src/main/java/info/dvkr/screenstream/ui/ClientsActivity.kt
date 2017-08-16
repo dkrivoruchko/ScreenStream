@@ -66,7 +66,7 @@ class ClientsActivity : BaseActivity(), ClientsActivityView {
                     textViewCurrentTraffic.text = getString(R.string.clients_activity_current_traffic).format(toMbit(event.trafficHistory.last().bytes))
 
                     val arrayOfDataPoints = event.trafficHistory.map { DataPoint(it.time.toDouble(), toMbit(it.bytes)) }.toTypedArray()
-                    lineGraphSeries = LineGraphSeries<DataPoint>(arrayOfDataPoints)
+                    lineGraphSeries = LineGraphSeries(arrayOfDataPoints)
                     lineGraphSeries.color = ContextCompat.getColor(this, R.color.colorAccent)
                     lineGraphSeries.thickness = 6
                     lineChartTraffic.removeAllSeries()
@@ -125,5 +125,4 @@ class ClientsActivity : BaseActivity(), ClientsActivityView {
     }
 
     private fun toMbit(byte: Long) = (byte * 8).toDouble() / 1024 / 1024
-
 }

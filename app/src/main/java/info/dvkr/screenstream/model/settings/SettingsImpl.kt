@@ -5,7 +5,7 @@ import com.f2prateek.rx.preferences.RxSharedPreferences
 import info.dvkr.screenstream.BuildConfig
 import info.dvkr.screenstream.model.Settings
 
-class SettingsImpl(val mRxSharedPreferences: RxSharedPreferences, megaPixels: Double) : Settings {
+class SettingsImpl(private val mRxSharedPreferences: RxSharedPreferences, megaPixels: Double) : Settings {
     private val TAG = "SettingsImpl"
 
     companion object {
@@ -40,7 +40,7 @@ class SettingsImpl(val mRxSharedPreferences: RxSharedPreferences, megaPixels: Do
         private val DEFAULT_SERVER_PORT = 8080
     }
 
-    val actualDefaultResizeFactor: Int
+    private val actualDefaultResizeFactor: Int
 
     init {
         if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] Constructor")

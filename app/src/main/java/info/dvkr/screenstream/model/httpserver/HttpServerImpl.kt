@@ -51,7 +51,7 @@ class HttpServerImpl constructor(serverAddress: InetSocketAddress,
             val chars = CharArray(len)
             val symbols = "0123456789abcdefghijklmnopqrstuvwxyz"
             val random = Random()
-            for (i in 0..len - 1) chars[i] = symbols[random.nextInt(symbols.length)]
+            for (i in 0 until len) chars[i] = symbols[random.nextInt(symbols.length)]
             return String(chars)
         }
     }
@@ -60,13 +60,13 @@ class HttpServerImpl constructor(serverAddress: InetSocketAddress,
     private val globalServerEventLoop: EventLoopGroup = RxNetty.getRxEventLoopProvider().globalServerEventLoop()
     private val httpServer: io.reactivex.netty.protocol.http.server.HttpServer<ByteBuf, ByteBuf>
     private val httpServerRxHandler: HttpServerRxHandler
-    private @Volatile var isRunning: Boolean = false
+    @Volatile private var isRunning: Boolean = false
     private val subscriptions = CompositeSubscription()
 
     // Clients
     @Keep class LocalClient(clientAddress: InetSocketAddress,
-                            var sendBytes: Long = 0,
-                            var disconnectedTime: Long = 0) : HttpServer.Client(clientAddress)
+                      var sendBytes: Long = 0,
+                      var disconnectedTime: Long = 0) : HttpServer.Client(clientAddress)
 
     @Keep sealed class LocalEvent {
         @Keep data class ClientConnected(val address: InetSocketAddress) : LocalEvent()

@@ -65,7 +65,9 @@ class ForegroundService : Service(), ForegroundServiceView {
     }
 
     sealed class LocalEvent : ForegroundServiceView.ToEvent() {
-        @Keep class StartService : LocalEvent()
+        @Keep
+        class StartService : LocalEvent()
+
         @Keep data class StartStream(val intent: Intent) : ForegroundServiceView.ToEvent()
     }
 
@@ -82,9 +84,12 @@ class ForegroundService : Service(), ForegroundServiceView {
     private val toEvents = PublishSubject.create<ForegroundServiceView.ToEvent>()
 
     private val jpegBytesStream = BehaviorSubject.create<ByteArray>()
-    private @Volatile var mediaProjection: MediaProjection? = null
-    private @Volatile var projectionCallback: MediaProjection.Callback? = null
-    private @Volatile var imageGenerator: ImageGenerator? = null
+    private @Volatile
+    var mediaProjection: MediaProjection? = null
+    private @Volatile
+    var projectionCallback: MediaProjection.Callback? = null
+    private @Volatile
+    var imageGenerator: ImageGenerator? = null
     private val connectionEvents = PublishSubject.create<String>()
 
     // Base values
@@ -217,8 +222,7 @@ class ForegroundService : Service(), ForegroundServiceView {
                 { it.action }
                 .observeOn(eventScheduler)
                 .subscribe
-                {
-                    action ->
+                { action ->
                     if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] Action: " + action)
                     when (action) {
                         Intent.ACTION_SCREEN_OFF -> fromEvents.onNext(ForegroundServiceView.FromEvent.ScreenOff())
@@ -264,7 +268,7 @@ class ForegroundService : Service(), ForegroundServiceView {
             }
 
             ACTION_START_STREAM ->
-                toEvents.onNext(ForegroundService.LocalEvent.StartStream(intent.getParcelableExtra<Intent>(Intent.EXTRA_INTENT)))
+                toEvents.onNext(ForegroundService.LocalEvent.StartStream(intent.getParcelableExtra(Intent.EXTRA_INTENT)))
         }
 
         return Service.START_NOT_STICKY
@@ -400,7 +404,7 @@ class ForegroundService : Service(), ForegroundServiceView {
                 .replaceFirst(HttpServer.SUBMIT_TEXT.toRegex(), context.getString(R.string.html_submit_text))
     }
 
-    fun getInterfaces(): List<ForegroundServiceView.Interface> {
+    private fun getInterfaces(): List<ForegroundServiceView.Interface> {
         if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] getInterfaces")
         val interfaceList = ArrayList<ForegroundServiceView.Interface>()
         try {
