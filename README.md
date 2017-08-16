@@ -1,11 +1,7 @@
 # Screen Stream over HTTP
 An Android mobile app for viewing device screen in your web browser.
 
-This is a stable branch represented in Google Play Market<br>
-<a href='https://play.google.com/store/apps/details?id=info.dvkr.screenstream&pcampaignid=MKT-Other-global-all-co-prtnr-py-PartBadge-Mar2515-1'><img height="100" width="258" alt='Get it on Google Play' src='https://play.google.com/intl/en_us/badges/images/generic/en_badge_web_generic.png'/></a> 
-
-No new features, just bug fixes.<br>
-All development goes in [master branch](https://github.com/dkrivoruchko/ScreenStream).
+This is an old branch. New development goes in [master branch](https://github.com/dkrivoruchko/ScreenStream).
 
 The application allows viewing the device screen in your web browser.
 The main idea is to show your device screen during presentations and demos.
