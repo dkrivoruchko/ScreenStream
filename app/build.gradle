@@ -17,8 +17,8 @@ android {
         applicationId "info.dvkr.screenstream"
         minSdkVersion 21
         targetSdkVersion 26
-        versionCode 200
-        versionName "2.0.0"
+        versionCode 201
+        versionName "2.0.1"
         resConfigs "en", "ru"//, "es"
 //        multiDexEnabled = true
     }

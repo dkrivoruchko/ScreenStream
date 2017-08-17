@@ -190,7 +190,7 @@ class ForegroundService : Service(), ForegroundServiceView {
                 is ForegroundServiceView.ToEvent.Error -> {
                     if (BuildConfig.DEBUG_MODE) Log.e(TAG, event.error.toString())
                     Crashlytics.logException(event.error)
-                    globalStatus.error = event.error
+                    globalStatus.error.set(event.error)
                     startActivity(StartActivity.getStartIntent(applicationContext, StartActivity.ACTION_ERROR).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
                 }
 

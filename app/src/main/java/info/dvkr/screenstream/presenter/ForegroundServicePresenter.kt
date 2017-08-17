@@ -58,7 +58,7 @@ class ForegroundServicePresenter @Inject internal constructor(private val settin
 
                     val (favicon, baseIndexHtml, basePinRequestHtml, pinRequestErrorMsg, jpegByteStream) = fromEvent
 
-                    globalStatus.error = null
+                    globalStatus.error.set(null)
                     httpServer = HttpServerImpl(InetSocketAddress(settings.severPort),
                             favicon,
                             baseIndexHtml,
@@ -91,7 +91,7 @@ class ForegroundServicePresenter @Inject internal constructor(private val settin
                 }
 
                 is ForegroundServiceView.FromEvent.ScreenOff -> {
-                    if (settings.stopOnSleep && globalStatus.isStreamRunning)
+                    if (settings.stopOnSleep && globalStatus.isStreamRunning.get())
                         foregroundService?.toEvent(ForegroundServiceView.ToEvent.StopStream())
                 }
 
@@ -117,7 +117,7 @@ class ForegroundServicePresenter @Inject internal constructor(private val settin
             when (globalEvent) {
             // From StartActivityPresenter & ProjectionCallback
                 is EventBus.GlobalEvent.StopStream -> {
-                    if (!globalStatus.isStreamRunning) throw IllegalStateException("WARRING: Stream in not running")
+                    if (!globalStatus.isStreamRunning.get()) throw IllegalStateException("WARRING: Stream in not running")
                     foregroundService?.toEvent(ForegroundServiceView.ToEvent.StopStream())
                 }
 
@@ -128,8 +128,9 @@ class ForegroundServicePresenter @Inject internal constructor(private val settin
 
             // From SettingsActivityPresenter, ForegroundServicePresenter
                 is EventBus.GlobalEvent.HttpServerRestart -> {
+                    globalStatus.error.set(null)
                     val restartReason = globalEvent.reason
-                    if (globalStatus.isStreamRunning)
+                    if (globalStatus.isStreamRunning.get())
                         foregroundService?.toEvent(ForegroundServiceView.ToEvent.StopStream(false))
 
                     foregroundService?.toEvent(ForegroundServiceView.ToEvent.NotifyImage(restartReason))
@@ -143,7 +144,7 @@ class ForegroundServicePresenter @Inject internal constructor(private val settin
 
             // From HttpServer & ImageGenerator
                 is EventBus.GlobalEvent.Error -> {
-                    if (globalStatus.isStreamRunning)
+                    if (globalStatus.isStreamRunning.get())
                         foregroundService?.toEvent(ForegroundServiceView.ToEvent.StopStream(false))
 
                     foregroundService?.toEvent(ForegroundServiceView.ToEvent.Error(globalEvent.error))

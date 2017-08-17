@@ -39,14 +39,14 @@ class StartActivityPresenter @Inject internal constructor(private val eventSched
 
             // Sending message to StartActivity
                 is StartActivityView.FromEvent.TryStartStream -> {
-                    globalStatus.error = null
-                    if (globalStatus.isStreamRunning) throw IllegalStateException("Stream already running")
+                    globalStatus.error.set(null)
+                    if (globalStatus.isStreamRunning.get()) throw IllegalStateException("Stream already running")
                     startActivity?.toEvent(StartActivityView.ToEvent.TryToStart())
                 }
 
             // Relaying message to ForegroundServicePresenter
                 is StartActivityView.FromEvent.StopStream -> {
-                    if (!globalStatus.isStreamRunning) throw IllegalStateException("Stream not running")
+                    if (!globalStatus.isStreamRunning.get()) throw IllegalStateException("Stream not running")
                     eventBus.sendEvent(EventBus.GlobalEvent.StopStream())
                 }
 
@@ -57,13 +57,13 @@ class StartActivityPresenter @Inject internal constructor(private val eventSched
 
             // Getting  Error
                 is StartActivityView.FromEvent.Error -> {
-                    globalStatus.error = fromEvent.error
+                    globalStatus.error.set(fromEvent.error)
                     startActivity?.toEvent(StartActivityView.ToEvent.Error(fromEvent.error))
                 }
 
             // Getting current Error
                 is StartActivityView.FromEvent.GetError -> {
-                    startActivity?.toEvent(StartActivityView.ToEvent.Error(globalStatus.error))
+                    startActivity?.toEvent(StartActivityView.ToEvent.Error(globalStatus.error.get()))
                 }
 
                 else -> println(TAG + ": Thread [${Thread.currentThread().name}] fromEvent: $fromEvent WARRING: IGNORED")
@@ -85,7 +85,7 @@ class StartActivityPresenter @Inject internal constructor(private val eventSched
             when (globalEvent) {
             // From ImageGeneratorImpl
                 is EventBus.GlobalEvent.StreamStatus -> {
-                    startActivity?.toEvent(StartActivityView.ToEvent.StreamStartStop(globalStatus.isStreamRunning))
+                    startActivity?.toEvent(StartActivityView.ToEvent.OnStreamStartStop(globalStatus.isStreamRunning.get()))
                 }
 
             // From SettingsActivityPresenter
@@ -121,7 +121,7 @@ class StartActivityPresenter @Inject internal constructor(private val eventSched
         })
 
         // Sending current stream status
-        startActivity?.toEvent(StartActivityView.ToEvent.StreamRunning(globalStatus.isStreamRunning))
+        startActivity?.toEvent(StartActivityView.ToEvent.StreamRunning(globalStatus.isStreamRunning.get()))
 
         // Requesting current clients
         eventBus.sendEvent(EventBus.GlobalEvent.CurrentClientsRequest())

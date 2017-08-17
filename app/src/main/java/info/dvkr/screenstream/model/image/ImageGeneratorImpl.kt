@@ -116,7 +116,7 @@ class ImageGeneratorImpl(context: Context,
         )
 
         imageReaderState = STATE_STARTED
-        globalStatus.isStreamRunning = true
+        globalStatus.isStreamRunning.set(true)
         eventBus.sendEvent(EventBus.GlobalEvent.StreamStatus())
 
         if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] Constructor: End")
@@ -139,7 +139,7 @@ class ImageGeneratorImpl(context: Context,
             imageThread.quit()
 
             imageReaderState = STATE_STOPPED
-            globalStatus.isStreamRunning = false
+            globalStatus.isStreamRunning.set(false)
             eventBus.sendEvent(EventBus.GlobalEvent.StreamStatus())
         }
     }

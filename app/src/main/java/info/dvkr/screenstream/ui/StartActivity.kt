@@ -64,6 +64,7 @@ class StartActivity : BaseActivity(), StartActivityView {
     private val fromEvents = PublishSubject.create<StartActivityView.FromEvent>()
     private lateinit var drawer: Drawer
     private var canStart: Boolean = true
+    private var isRunning: Boolean = false
 
     override fun fromEvent(): Observable<StartActivityView.FromEvent> = fromEvents.asObservable()
 
@@ -77,7 +78,7 @@ class StartActivity : BaseActivity(), StartActivityView {
                     startActivityForResult(projectionManager.createScreenCaptureIntent(), REQUEST_CODE_SCREEN_CAPTURE)
                 }
 
-                is StartActivityView.ToEvent.StreamStartStop -> {
+                is StartActivityView.ToEvent.OnStreamStartStop -> {
                     setStreamRunning(event.running)
                     if (event.running && settings.minimizeOnStream)
                         startActivity(Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME).setFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
@@ -149,11 +150,13 @@ class StartActivity : BaseActivity(), StartActivityView {
 
         toggleButtonStartStop.setOnClickListener { _ ->
             if (toggleButtonStartStop.isChecked) {
-                toggleButtonStartStop.isChecked = false
+                toggleButtonStartStop.isChecked = isRunning
                 if (!canStart) return@setOnClickListener
+                toggleButtonStartStop.isEnabled = false
                 fromEvents.onNext(StartActivityView.FromEvent.TryStartStream())
             } else {
-                toggleButtonStartStop.isChecked = true
+                toggleButtonStartStop.isChecked = isRunning
+                toggleButtonStartStop.isEnabled = false
                 fromEvents.onNext(StartActivityView.FromEvent.StopStream())
             }
         }
@@ -228,12 +231,14 @@ class StartActivity : BaseActivity(), StartActivityView {
 
         when (action) {
             ACTION_START_STREAM -> {
-                toggleButtonStartStop.isChecked = false
+                toggleButtonStartStop.isChecked = isRunning
+                toggleButtonStartStop.isEnabled = false
                 fromEvents.onNext(StartActivityView.FromEvent.TryStartStream())
             }
 
             ACTION_STOP_STREAM -> {
-                toggleButtonStartStop.isChecked = true
+                toggleButtonStartStop.isChecked = isRunning
+                toggleButtonStartStop.isEnabled = false
                 fromEvents.onNext(StartActivityView.FromEvent.StopStream())
             }
 
@@ -270,6 +275,7 @@ class StartActivity : BaseActivity(), StartActivityView {
         when (requestCode) {
             REQUEST_CODE_SCREEN_CAPTURE -> {
                 if (Activity.RESULT_OK != resultCode) {
+                    toggleButtonStartStop.isEnabled = true
                     Alerter.create(this).setTitle(R.string.start_activity_alert_title_warring)
                             .setText(R.string.start_activity_cast_permission_required)
                             .setBackgroundColorRes(R.color.colorWarring)
@@ -282,6 +288,7 @@ class StartActivity : BaseActivity(), StartActivityView {
                 }
 
                 if (null == data) {
+                    toggleButtonStartStop.isEnabled = true
                     if (BuildConfig.DEBUG_MODE) Log.e(TAG, "onActivityResult ERROR: data = null")
                     val error = IllegalStateException("onActivityResult: data = null")
                     Crashlytics.logException(error)
@@ -295,9 +302,11 @@ class StartActivity : BaseActivity(), StartActivityView {
 
     // Private methods
     private fun setStreamRunning(running: Boolean) {
-        toggleButtonStartStop.isChecked = running
+        isRunning = running
+        toggleButtonStartStop.isChecked = isRunning
+        toggleButtonStartStop.isEnabled = true
         if (settings.enablePin) {
-            if (running && settings.hidePinOnStart) textViewPinValue.setText(R.string.start_activity_pin_asterisks)
+            if (isRunning && settings.hidePinOnStart) textViewPinValue.setText(R.string.start_activity_pin_asterisks)
             else textViewPinValue.text = settings.currentPin
         }
     }

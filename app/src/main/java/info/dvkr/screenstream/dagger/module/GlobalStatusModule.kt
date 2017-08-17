@@ -3,7 +3,7 @@ package info.dvkr.screenstream.dagger.module
 import dagger.Module
 import dagger.Provides
 import info.dvkr.screenstream.model.GlobalStatus
-import info.dvkr.screenstream.model.appevent.GlobalStatusImpl
+import info.dvkr.screenstream.model.globalstatus.GlobalStatusImpl
 import javax.inject.Singleton
 
 @Singleton

@@ -25,7 +25,8 @@ interface StartActivityView {
     @Keep sealed class ToEvent {
         @Keep class TryToStart : ToEvent()
 
-        @Keep data class StreamStartStop(val running: Boolean) : ToEvent()
+        // From ImageGeneratorImpl
+        @Keep data class OnStreamStartStop(val running: Boolean) : ToEvent()
 
         // From SettingsActivityPresenter
         @Keep data class ResizeFactor(val value: Int) : ToEvent()
@@ -36,7 +37,7 @@ interface StartActivityView {
         // From SettingsActivityPresenter
         @Keep data class SetPin(val value: String) : ToEvent()
 
-        // From SettingsActivityPresenter
+        // From StartActivityPresenter
         @Keep data class StreamRunning(val running: Boolean) : ToEvent()
 
         // From SettingsActivityPresenter
