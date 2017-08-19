@@ -92,21 +92,28 @@ class StartActivity : BaseActivity(), StartActivityView {
                 is StartActivityView.ToEvent.Error -> {
                     canStart = true
                     event.error?.let {
-                        canStart = false
                         val alerter = Alerter.create(this)
 
                         when (it) {
                             is UnsupportedOperationException -> {
+                                canStart = false
                                 alerter.setTitle(R.string.start_activity_alert_title_error)
                                         .setText(R.string.start_activity_error_wrong_image_format)
                             }
 
                             is BindException -> {
+                                canStart = false
                                 alerter.setTitle(R.string.start_activity_alert_title_error)
                                         .setText(R.string.start_activity_error_port_in_use)
                             }
 
+                            is SecurityException -> {
+                                alerter.setTitle(R.string.start_activity_alert_title_error)
+                                        .setText(R.string.start_activity_error_invalid_media_projection)
+                            }
+
                             else -> {
+                                canStart = false
                                 alerter.setTitle(R.string.start_activity_alert_title_error_unknown)
                                         .setText(it.message)
                             }

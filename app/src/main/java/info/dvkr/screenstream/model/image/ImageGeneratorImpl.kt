@@ -58,7 +58,7 @@ class ImageGeneratorImpl(context: Context,
     private val imageThreadHandler: Handler
     private val windowManager: WindowManager
     private var imageReader: ImageReader
-    private var virtualDisplay: VirtualDisplay
+    private var virtualDisplay: VirtualDisplay?
     @Volatile private var reusableBitmap: Bitmap? = null
     private val resultJpegStream = ByteArrayOutputStream()
     @Volatile private var imageReaderState = STATE_CREATED
@@ -102,24 +102,32 @@ class ImageGeneratorImpl(context: Context,
         imageReader = ImageReader.newInstance(screenSize.x, screenSize.y, PixelFormat.RGBA_8888, 2)
         imageReader.setOnImageAvailableListener(listener, imageThreadHandler)
 
-        virtualDisplay = mediaProjection.createVirtualDisplay("ScreenStreamVirtualDisplay",
-                screenSize.x, screenSize.y, displayMetrics.densityDpi,
-                DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR, imageReader.surface, null, null)
+        try {
+            virtualDisplay = mediaProjection.createVirtualDisplay("ScreenStreamVirtualDisplay",
+                    screenSize.x, screenSize.y, displayMetrics.densityDpi,
+                    DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR, imageReader.surface, null, null)
 
-        subscriptions.add(Observable.interval(250, TimeUnit.MILLISECONDS)
-                .map { _ -> windowManager.defaultDisplay.rotation }
-                .map { rotation -> rotation == Surface.ROTATION_0 || rotation == Surface.ROTATION_180 }
-                .distinctUntilChanged()
-                .skip(1)
-                .filter { _ -> STATE_STARTED == imageReaderState }
-                .subscribe { _ -> restart() }
-        )
+            subscriptions.add(Observable.interval(250, TimeUnit.MILLISECONDS)
+                    .map { _ -> windowManager.defaultDisplay.rotation }
+                    .map { rotation -> rotation == Surface.ROTATION_0 || rotation == Surface.ROTATION_180 }
+                    .distinctUntilChanged()
+                    .skip(1)
+                    .filter { _ -> STATE_STARTED == imageReaderState }
+                    .subscribe { _ -> restart() }
+            )
 
-        imageReaderState = STATE_STARTED
-        globalStatus.isStreamRunning.set(true)
-        eventBus.sendEvent(EventBus.GlobalEvent.StreamStatus())
-
-        if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] Constructor: End")
+            imageReaderState = STATE_STARTED
+            globalStatus.isStreamRunning.set(true)
+            eventBus.sendEvent(EventBus.GlobalEvent.StreamStatus())
+            if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] Constructor: End")
+        } catch (ex: SecurityException) {
+            virtualDisplay = null
+            imageReaderState = STATE_ERROR
+            globalStatus.isStreamRunning.set(true)
+            eventBus.sendEvent(EventBus.GlobalEvent.StreamStatus())
+            eventBus.sendEvent(EventBus.GlobalEvent.Error(ex))
+            if (BuildConfig.DEBUG_MODE) Log.e(TAG, "Thread [${Thread.currentThread().name}] $ex")
+        }
     }
 
     override fun stop() {
@@ -133,7 +141,7 @@ class ImageGeneratorImpl(context: Context,
             imageListener = 0
             mediaProjection.stop()
 
-            virtualDisplay.release()
+            virtualDisplay?.release()
             imageReader.close()
             reusableBitmap?.recycle()
             imageThread.quit()
@@ -151,7 +159,7 @@ class ImageGeneratorImpl(context: Context,
             if (STATE_STARTED != imageReaderState)
                 throw IllegalStateException("ImageGeneratorImpl in imageReaderState: $imageReaderState")
 
-            virtualDisplay.release()
+            virtualDisplay?.release()
             imageReader.close()
             reusableBitmap?.recycle()
             reusableBitmap = null
@@ -167,11 +175,18 @@ class ImageGeneratorImpl(context: Context,
             imageReader = ImageReader.newInstance(screenSize.x, screenSize.y, PixelFormat.RGBA_8888, 2)
             imageReader.setOnImageAvailableListener(listener, imageThreadHandler)
 
-            virtualDisplay = mediaProjection.createVirtualDisplay("SSVirtualDisplay",
-                    screenSize.x, screenSize.y, displayMetrics.densityDpi,
-                    DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR, imageReader.surface, null, null)
+            try {
+                virtualDisplay = mediaProjection.createVirtualDisplay("SSVirtualDisplay",
+                        screenSize.x, screenSize.y, displayMetrics.densityDpi,
+                        DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR, imageReader.surface, null, null)
 
-            if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] Restart: End")
+                if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] Restart: End")
+            } catch (ex: SecurityException) {
+                imageReaderState = STATE_ERROR
+                eventBus.sendEvent(EventBus.GlobalEvent.Error(ex))
+                virtualDisplay = null
+                if (BuildConfig.DEBUG_MODE) Log.e(TAG, "Thread [${Thread.currentThread().name}] $ex")
+            }
         }
     }
 

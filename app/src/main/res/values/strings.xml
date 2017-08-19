@@ -27,6 +27,7 @@
     <string name="start_activity_alert_title_error_unknown">Unexpected error</string>
     <string name="start_activity_cast_permission_required">Application requires Screen Cast permission to capture screen</string>
     <string name="start_activity_error_port_in_use">Port already in use. Choose another one</string>
+    <string name="start_activity_error_invalid_media_projection">Security error: Invalid media projection. Try one more time</string>
     <string name="start_activity_error_wrong_image_format">System returns image in unknown format. No fix available. Sorry.</string>
 
     <string name="start_activity_email_chooser_header">Sending email…</string>
