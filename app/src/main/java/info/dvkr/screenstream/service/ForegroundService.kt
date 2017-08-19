@@ -165,6 +165,7 @@ class ForegroundService : Service(), ForegroundServiceView {
                     projectionCallback = object : MediaProjection.Callback() {
                         override fun onStop() {
                             if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] ProjectionCallback")
+                            Crashlytics.log(1, "EventBus.GlobalEvent.StopStream", "ProjectionCallback")
                             eventBus.sendEvent(EventBus.GlobalEvent.StopStream())
                         }
                     }

@@ -1,6 +1,7 @@
 package info.dvkr.screenstream.presenter
 
 
+import com.crashlytics.android.Crashlytics
 import info.dvkr.screenstream.BuildConfig
 import info.dvkr.screenstream.dagger.PersistentScope
 import info.dvkr.screenstream.model.*

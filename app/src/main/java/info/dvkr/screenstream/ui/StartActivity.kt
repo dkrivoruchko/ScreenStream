@@ -80,6 +80,7 @@ class StartActivity : BaseActivity(), StartActivityView {
 
                 is StartActivityView.ToEvent.OnStreamStartStop -> {
                     setStreamRunning(event.running)
+                    Crashlytics.log(1, "StartActivityView.ToEvent.OnStreamStartStop", "isRunning=$isRunning")
                     if (event.running && settings.minimizeOnStream)
                         startActivity(Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME).setFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
                 }
@@ -87,7 +88,10 @@ class StartActivity : BaseActivity(), StartActivityView {
                 is StartActivityView.ToEvent.ResizeFactor -> showResizeFactor(event.value)
                 is StartActivityView.ToEvent.EnablePin -> showEnablePin(event.value)
                 is StartActivityView.ToEvent.SetPin -> textViewPinValue.text = event.value
-                is StartActivityView.ToEvent.StreamRunning -> setStreamRunning(event.running)
+                is StartActivityView.ToEvent.StreamRunning -> {
+                    setStreamRunning(event.running)
+                    Crashlytics.log(1, "StartActivityView.ToEvent.StreamRunning", "isRunning=$isRunning")
+                }
 
                 is StartActivityView.ToEvent.Error -> {
                     canStart = true
@@ -160,10 +164,12 @@ class StartActivity : BaseActivity(), StartActivityView {
                 toggleButtonStartStop.isChecked = isRunning
                 if (!canStart) return@setOnClickListener
                 toggleButtonStartStop.isEnabled = false
+                Crashlytics.log(1, "StartActivityView.FromEvent.TryStartStreamm", "setOnClickListener;isRunning=$isRunning")
                 fromEvents.onNext(StartActivityView.FromEvent.TryStartStream())
             } else {
                 toggleButtonStartStop.isChecked = isRunning
                 toggleButtonStartStop.isEnabled = false
+                Crashlytics.log(1, "StartActivityView.FromEvent.StopStream", "setOnClickListener;isRunning=$isRunning")
                 fromEvents.onNext(StartActivityView.FromEvent.StopStream())
             }
         }
@@ -238,14 +244,17 @@ class StartActivity : BaseActivity(), StartActivityView {
 
         when (action) {
             ACTION_START_STREAM -> {
+                if (!canStart) return
                 toggleButtonStartStop.isChecked = isRunning
                 toggleButtonStartStop.isEnabled = false
+                Crashlytics.log(1, "StartActivityView.FromEvent.TryStartStreamm", "ACTION_START_STREAM;isRunning=$isRunning")
                 fromEvents.onNext(StartActivityView.FromEvent.TryStartStream())
             }
 
             ACTION_STOP_STREAM -> {
                 toggleButtonStartStop.isChecked = isRunning
                 toggleButtonStartStop.isEnabled = false
+                Crashlytics.log(1, "StartActivityView.FromEvent.StopStream", "ACTION_STOP_STREAM;isRunning=$isRunning")
                 fromEvents.onNext(StartActivityView.FromEvent.StopStream())
             }
 
