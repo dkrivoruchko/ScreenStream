@@ -3,6 +3,7 @@ package info.dvkr.screenstream.ui
 import android.app.Dialog
 import android.content.Context
 import android.content.Intent
+import android.graphics.Point
 import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import android.support.annotation.DrawableRes
@@ -15,6 +16,7 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.WindowManager
 import com.jrummyapps.android.colorpicker.ColorPickerDialog
 import com.jrummyapps.android.colorpicker.ColorPickerDialogListener
 import com.tapadoo.alerter.Alerter
@@ -45,12 +47,17 @@ class SettingsActivity : BaseActivity(), SettingsActivityView, ColorPickerDialog
     private val fromEvents = PublishSubject.create<SettingsActivityView.FromEvent>()
 
     private var htmlBackColor: Int = 0
+    private val screenSize = Point()
     private var resizeFactor: Int = 0
     private var dialog: Dialog? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] onCreate: Start")
+
+        val windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
+        val defaultDisplay = windowManager.defaultDisplay
+        defaultDisplay.getRealSize(screenSize)
 
         setContentView(R.layout.activity_settings)
         presenter.attach(this)
@@ -98,7 +105,9 @@ class SettingsActivity : BaseActivity(), SettingsActivityView, ColorPickerDialog
                     2, 3,
                     10, 150,
                     Integer.toString(resizeFactor),
-                    Action1 { newValue -> fromEvents.onNext(SettingsActivityView.FromEvent.ResizeFactor(Integer.parseInt(newValue))) }
+                    Action1 { newValue -> fromEvents.onNext(SettingsActivityView.FromEvent.ResizeFactor(Integer.parseInt(newValue))) },
+                    true,
+                    R.string.pref_resize_dialog_result
             )
             dialog?.show()
         }
@@ -134,7 +143,6 @@ class SettingsActivity : BaseActivity(), SettingsActivityView, ColorPickerDialog
             fromEvents.onNext(SettingsActivityView.FromEvent.HidePinOnStart(checkBoxHidePinOnStart.isChecked))
         }
 
-
         // Security - New pin on app start
         clNewPinOnAppStart.setOnClickListener { _ -> checkBoxNewPinOnAppStart.performClick() }
         checkBoxNewPinOnAppStart.setOnClickListener { _ ->
@@ -142,14 +150,12 @@ class SettingsActivity : BaseActivity(), SettingsActivityView, ColorPickerDialog
             fromEvents.onNext(SettingsActivityView.FromEvent.NewPinOnAppStart(checkBoxNewPinOnAppStart.isChecked))
         }
 
-
         // Security - Auto change pin
         clAutoChangePin.setOnClickListener { _ -> checkBoxAutoChangePin.performClick() }
         checkBoxAutoChangePin.setOnClickListener { _ ->
             enableDisableView(clSetPin, checkBoxEnablePin.isChecked && !checkBoxNewPinOnAppStart.isChecked && !checkBoxAutoChangePin.isChecked)
             fromEvents.onNext(SettingsActivityView.FromEvent.AutoChangePin(checkBoxAutoChangePin.isChecked))
         }
-
 
         // Security - Set pin
         clSetPin.setOnClickListener { _ ->
@@ -256,11 +262,21 @@ class SettingsActivity : BaseActivity(), SettingsActivityView, ColorPickerDialog
                                   minLength: Int, maxLength: Int,
                                   minValue: Int, maxValue: Int,
                                   currentValue: String,
-                                  action: Action1<String>): Dialog {
+                                  action: Action1<String>,
+                                  resizeImageDialog: Boolean = false,
+                                  @StringRes resizeImageResultText: Int = 0): Dialog {
         val layoutInflater = LayoutInflater.from(this)
         val dialogView = layoutInflater.inflate(R.layout.settings_edittext_dialog, null)
         with(dialogView) {
-            textViewSettingsEditTextContent.text = getString(content)
+            if (resizeImageDialog) {
+                textViewSettingsEditTextContent.text = getString(content).format(screenSize.x, screenSize.y)
+                val resizeFactor = Integer.parseInt(currentValue) / 100f
+                textViewSettingsEditTextResult.text = getString(resizeImageResultText)
+                        .format((screenSize.x * resizeFactor).toInt(), (screenSize.y * resizeFactor).toInt())
+            } else {
+                textViewSettingsEditTextContent.text = getString(content)
+                textViewSettingsEditTextResult.visibility = View.GONE
+            }
             editTextSettingsEditTextValue.setText(currentValue)
             editTextSettingsEditTextValue.setSelection(currentValue.length)
             editTextSettingsEditTextValue.filters = arrayOf<InputFilter>(InputFilter.LengthFilter(maxLength))
@@ -272,12 +288,11 @@ class SettingsActivity : BaseActivity(), SettingsActivityView, ColorPickerDialog
                 .setIcon(icon)
                 .setTitle(title)
                 .setPositiveButton(android.R.string.ok) { _, _ ->
-                    val stringValue = dialogView.editTextSettingsEditTextValue.text.toString()
-                    if (stringValue.length < minLength || stringValue.length > maxLength) return@setPositiveButton
-                    if (currentValue == stringValue) return@setPositiveButton
-                    val newValue = Integer.parseInt(stringValue)
-                    if (newValue < minValue || newValue > maxValue) return@setPositiveButton
-                    action.call(stringValue)
+                    val newStringValue = dialogView.editTextSettingsEditTextValue.text.toString()
+                    if (newStringValue.length in minLength..maxLength &&
+                            currentValue != newStringValue &&
+                            Integer.parseInt(newStringValue) in minValue..maxValue)
+                        action.call(newStringValue)
                 }
                 .setNegativeButton(android.R.string.cancel, null)
                 .create()
@@ -289,18 +304,16 @@ class SettingsActivity : BaseActivity(), SettingsActivityView, ColorPickerDialog
                 }
 
                 override fun onTextChanged(s: CharSequence, start: Int, before: Int, count: Int) {
-                    if (s.length < minLength || s.length > maxLength) {
-                        okButton.isEnabled = false
-                        return
-                    }
+                    okButton.isEnabled = s.length in minLength..maxLength && Integer.parseInt(s.toString()) in minValue..maxValue
+                    if (resizeImageDialog) {
+                        val newResizeFactor: Float
 
-                    val newValue = Integer.parseInt(s.toString())
-                    if (newValue < minValue || newValue > maxValue) {
-                        okButton.isEnabled = false
-                        return
-                    }
+                        if (okButton.isEnabled) newResizeFactor = Integer.parseInt(s.toString()) / 100f
+                        else newResizeFactor = Integer.parseInt(currentValue) / 100f
 
-                    okButton.isEnabled = true
+                        dialogView.textViewSettingsEditTextResult.text = getString(resizeImageResultText)
+                                .format((screenSize.x * newResizeFactor).toInt(), (screenSize.y * newResizeFactor).toInt())
+                    }
                 }
 
                 override fun afterTextChanged(s: Editable) {

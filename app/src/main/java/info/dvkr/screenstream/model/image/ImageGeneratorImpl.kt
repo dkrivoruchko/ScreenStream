@@ -18,6 +18,7 @@ import android.util.DisplayMetrics
 import android.util.Log
 import android.view.Surface
 import android.view.WindowManager
+import com.crashlytics.android.Crashlytics
 import info.dvkr.screenstream.BuildConfig
 import info.dvkr.screenstream.model.EventBus
 import info.dvkr.screenstream.model.GlobalStatus
@@ -102,12 +103,11 @@ class ImageGeneratorImpl(context: Context,
         imageReader = ImageReader.newInstance(screenSize.x, screenSize.y, PixelFormat.RGBA_8888, 2)
         imageReader.setOnImageAvailableListener(listener, imageThreadHandler)
 
-//        try {
         virtualDisplay = mediaProjection.createVirtualDisplay("ScreenStreamVirtualDisplay",
                 screenSize.x, screenSize.y, displayMetrics.densityDpi,
                 DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR, imageReader.surface, null, null)
 
-        subscriptions.add(Observable.interval(250, TimeUnit.MILLISECONDS)
+        subscriptions.add(Observable.interval(250, TimeUnit.MILLISECONDS, eventScheduler)
                 .map { _ -> windowManager.defaultDisplay.rotation }
                 .map { rotation -> rotation == Surface.ROTATION_0 || rotation == Surface.ROTATION_180 }
                 .distinctUntilChanged()
@@ -120,19 +120,16 @@ class ImageGeneratorImpl(context: Context,
         globalStatus.isStreamRunning.set(true)
         eventBus.sendEvent(EventBus.GlobalEvent.StreamStatus())
         if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] Constructor: End")
-//        } catch (ex: SecurityException) {
-//            virtualDisplay = null
-//            imageReaderState = STATE_ERROR
-//            globalStatus.isStreamRunning.set(true)
-//            eventBus.sendEvent(EventBus.GlobalEvent.StreamStatus())
-//            eventBus.sendEvent(EventBus.GlobalEvent.Error(ex))
-//            if (BuildConfig.DEBUG_MODE) Log.e(TAG, "Thread [${Thread.currentThread().name}] $ex")
-//        }
+        Crashlytics.log(1, "ImageGeneratorImpl.init", "imageReaderState=$imageReaderState")
+        Crashlytics.log(1, "ImageGeneratorImpl.init", "isStreamRunning=${globalStatus.isStreamRunning.get()}")
     }
 
     override fun stop() {
         synchronized(lock) {
             if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] Stop")
+
+            Crashlytics.log(1, "ImageGeneratorImpl.stop", "imageReaderState=$imageReaderState")
+            Crashlytics.log(1, "ImageGeneratorImpl.stop", "isStreamRunning=${globalStatus.isStreamRunning.get()}")
 
             if (!(STATE_STARTED == imageReaderState || STATE_ERROR == imageReaderState))
                 throw IllegalStateException("ImageGeneratorImpl in imageReaderState: $imageReaderState")
@@ -155,6 +152,10 @@ class ImageGeneratorImpl(context: Context,
     private fun restart() {
         synchronized(lock) {
             if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] Restart: Start")
+
+            Crashlytics.log(1, "ImageGeneratorImpl.restart", "imageReaderState=$imageReaderState")
+            Crashlytics.log(1, "ImageGeneratorImpl.restart", "isStreamRunning=${globalStatus.isStreamRunning.get()}")
+            Crashlytics.log(1, "ImageGeneratorImpl.restart", "mediaProjection=${mediaProjection}")
 
             if (STATE_STARTED != imageReaderState)
                 throw IllegalStateException("ImageGeneratorImpl in imageReaderState: $imageReaderState")

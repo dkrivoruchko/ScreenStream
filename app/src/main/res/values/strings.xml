@@ -64,7 +64,8 @@
     <string name="pref_settings_image">Image</string>
     <string name="pref_resize">Resize image</string>
     <string name="pref_resize_summary">Resize image before sending to client</string>
-    <string name="pref_resize_dialog_text">Set image resize factor in percent.\nValues: 10–150</string>
+    <string name="pref_resize_dialog_text">Set image resize factor in percent.\nValues: 10–150 (Default: 50)\nScreen size: %1$dx%2$d</string>
+    <string name="pref_resize_dialog_result">Picture size: %1$dx%2$d</string>
     <string name="pref_jpeg_quality">JPEG compression quality</string>
     <string name="pref_jpeg_quality_summary">Set JPEG compression quality</string>
     <string name="pref_jpeg_quality_dialog">Set JPEG compression quality.\nValues: 10–100 (Default: 100)</string>

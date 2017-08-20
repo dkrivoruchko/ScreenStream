@@ -8,7 +8,6 @@
         android:id="@+id/textViewSettingsEditTextContent"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="8dp"
         android:layout_marginEnd="16dp"
         android:layout_marginStart="16dp"
         android:layout_marginTop="16dp"
@@ -25,4 +24,14 @@
         android:inputType="number"
         android:maxLines="1"
         android:textColor="@color/colorPrimaryText" />
+
+    <TextView
+        android:id="@+id/textViewSettingsEditTextResult"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginStart="16dp"
+        android:paddingStart="8dp"
+        android:textColor="@color/colorAccent" />
 </LinearLayout>
