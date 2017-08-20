@@ -35,7 +35,7 @@ class ClientsActivity : BaseActivity(), ClientsActivityView {
 
     @Inject internal lateinit var presenter: ClientsActivityPresenter
     private val fromEvents = PublishSubject.create<ClientsActivityView.FromEvent>()
-    private lateinit var lineGraphSeries: LineGraphSeries<DataPoint>
+    private var lineGraphSeries: LineGraphSeries<DataPoint>? = null
 
     override fun fromEvent(): Observable<ClientsActivityView.FromEvent> = fromEvents.asObservable()
 
@@ -66,11 +66,13 @@ class ClientsActivity : BaseActivity(), ClientsActivityView {
                     textViewCurrentTraffic.text = getString(R.string.clients_activity_current_traffic).format(toMbit(event.trafficHistory.last().bytes))
 
                     val arrayOfDataPoints = event.trafficHistory.map { DataPoint(it.time.toDouble(), toMbit(it.bytes)) }.toTypedArray()
-                    lineGraphSeries = LineGraphSeries(arrayOfDataPoints)
-                    lineGraphSeries.color = ContextCompat.getColor(this, R.color.colorAccent)
-                    lineGraphSeries.thickness = 6
                     lineChartTraffic.removeAllSeries()
-                    lineChartTraffic.addSeries(lineGraphSeries)
+                    lineGraphSeries = LineGraphSeries(arrayOfDataPoints)
+                    lineGraphSeries?.apply {
+                        color = ContextCompat.getColor(this@ClientsActivity, R.color.colorAccent)
+                        thickness = 6
+                        lineChartTraffic.addSeries(lineGraphSeries)
+                    }
                     lineChartTraffic.viewport.isXAxisBoundsManual = true
                     lineChartTraffic.viewport.setMinX(arrayOfDataPoints[0].x)
                     lineChartTraffic.viewport.setMaxX(arrayOfDataPoints[arrayOfDataPoints.size - 1].x)
@@ -90,12 +92,14 @@ class ClientsActivity : BaseActivity(), ClientsActivityView {
                 }
 
                 is ClientsActivityView.ToEvent.TrafficPoint -> {
-                    val mbit = toMbit(event.trafficPoint.bytes)
-                    textViewCurrentTraffic.text = getString(R.string.start_activity_current_traffic).format(mbit)
-                    lineGraphSeries.appendData(DataPoint(event.trafficPoint.time.toDouble(), mbit), true, 60)
-                    val maxY = Math.max(toMbit(event.maxY) * 1.2, 1.1)
-                    lineChartTraffic.viewport.setMinY(maxY * -0.1)
-                    lineChartTraffic.viewport.setMaxY(maxY)
+                    lineGraphSeries?.let {
+                        val mbit = toMbit(event.trafficPoint.bytes)
+                        textViewCurrentTraffic.text = getString(R.string.start_activity_current_traffic).format(mbit)
+                        it.appendData(DataPoint(event.trafficPoint.time.toDouble(), mbit), true, 60)
+                        val maxY = Math.max(toMbit(event.maxY) * 1.2, 1.1)
+                        lineChartTraffic.viewport.setMinY(maxY * -0.1)
+                        lineChartTraffic.viewport.setMaxY(maxY)
+                    }
                 }
             }
         }

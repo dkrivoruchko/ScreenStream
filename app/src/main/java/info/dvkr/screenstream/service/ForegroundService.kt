@@ -293,11 +293,10 @@ class ForegroundService : Service(), ForegroundServiceView {
         if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] stopMediaProjection")
         mediaProjection?.apply {
             projectionCallback?.let { unregisterCallback(it) }
-            stop()
         }
+        imageGenerator?.stop()
         projectionCallback = null
         mediaProjection = null
-        imageGenerator?.stop()
         imageGenerator = null
     }
 

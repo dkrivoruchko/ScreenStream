@@ -39,14 +39,14 @@ class StartActivityPresenter @Inject internal constructor(private val eventSched
 
             // Sending message to StartActivity
                 is StartActivityView.FromEvent.TryStartStream -> {
+                    if (globalStatus.isStreamRunning.get()) return@subscribe
                     globalStatus.error.set(null)
-                    if (globalStatus.isStreamRunning.get()) throw IllegalStateException("Stream already running")
                     startActivity?.toEvent(StartActivityView.ToEvent.TryToStart())
                 }
 
             // Relaying message to ForegroundServicePresenter
                 is StartActivityView.FromEvent.StopStream -> {
-                    if (!globalStatus.isStreamRunning.get()) throw IllegalStateException("Stream not running")
+                    if (!globalStatus.isStreamRunning.get()) return@subscribe
                     eventBus.sendEvent(EventBus.GlobalEvent.StopStream())
                 }
 

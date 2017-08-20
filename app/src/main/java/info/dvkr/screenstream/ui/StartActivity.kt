@@ -64,7 +64,6 @@ class StartActivity : BaseActivity(), StartActivityView {
     private val fromEvents = PublishSubject.create<StartActivityView.FromEvent>()
     private lateinit var drawer: Drawer
     private var canStart: Boolean = true
-    private var isRunning: Boolean = false
 
     override fun fromEvent(): Observable<StartActivityView.FromEvent> = fromEvents.asObservable()
 
@@ -80,7 +79,6 @@ class StartActivity : BaseActivity(), StartActivityView {
 
                 is StartActivityView.ToEvent.OnStreamStartStop -> {
                     setStreamRunning(event.running)
-                    Crashlytics.log(1, "StartActivityView.ToEvent.OnStreamStartStop", "isRunning=$isRunning")
                     if (event.running && settings.minimizeOnStream)
                         startActivity(Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME).setFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
                 }
@@ -88,10 +86,7 @@ class StartActivity : BaseActivity(), StartActivityView {
                 is StartActivityView.ToEvent.ResizeFactor -> showResizeFactor(event.value)
                 is StartActivityView.ToEvent.EnablePin -> showEnablePin(event.value)
                 is StartActivityView.ToEvent.SetPin -> textViewPinValue.text = event.value
-                is StartActivityView.ToEvent.StreamRunning -> {
-                    setStreamRunning(event.running)
-                    Crashlytics.log(1, "StartActivityView.ToEvent.StreamRunning", "isRunning=$isRunning")
-                }
+                is StartActivityView.ToEvent.StreamRunning -> setStreamRunning(event.running)
 
                 is StartActivityView.ToEvent.Error -> {
                     canStart = true
@@ -156,20 +151,20 @@ class StartActivity : BaseActivity(), StartActivityView {
         supportActionBar?.setTitle(R.string.start_activity_name)
 
         startService(ForegroundService.getIntent(applicationContext, ForegroundService.ACTION_INIT))
-
+        toggleButtonStartStop.isEnabled = false
+        textViewConnectedClients.text = getString(R.string.start_activity_connected_clients).format(0)
+        textViewCurrentTraffic.text = getString(R.string.start_activity_current_traffic).format(0f)
         presenter.attach(this)
 
         toggleButtonStartStop.setOnClickListener { _ ->
             if (toggleButtonStartStop.isChecked) {
-                toggleButtonStartStop.isChecked = isRunning
+                toggleButtonStartStop.isChecked = false
                 if (!canStart) return@setOnClickListener
                 toggleButtonStartStop.isEnabled = false
-                Crashlytics.log(1, "StartActivityView.FromEvent.TryStartStreamm", "setOnClickListener;isRunning=$isRunning")
                 fromEvents.onNext(StartActivityView.FromEvent.TryStartStream())
             } else {
-                toggleButtonStartStop.isChecked = isRunning
+                toggleButtonStartStop.isChecked = true
                 toggleButtonStartStop.isEnabled = false
-                Crashlytics.log(1, "StartActivityView.FromEvent.StopStream", "setOnClickListener;isRunning=$isRunning")
                 fromEvents.onNext(StartActivityView.FromEvent.StopStream())
             }
         }
@@ -242,19 +237,18 @@ class StartActivity : BaseActivity(), StartActivityView {
         if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] onNewIntent: action = $action")
         if (null == action) return
 
+        intent.removeExtra(EXTRA_DATA)
+        this.intent = intent
+
         when (action) {
             ACTION_START_STREAM -> {
                 if (!canStart) return
-                toggleButtonStartStop.isChecked = isRunning
                 toggleButtonStartStop.isEnabled = false
-                Crashlytics.log(1, "StartActivityView.FromEvent.TryStartStreamm", "ACTION_START_STREAM;isRunning=$isRunning")
                 fromEvents.onNext(StartActivityView.FromEvent.TryStartStream())
             }
 
             ACTION_STOP_STREAM -> {
-                toggleButtonStartStop.isChecked = isRunning
                 toggleButtonStartStop.isEnabled = false
-                Crashlytics.log(1, "StartActivityView.FromEvent.StopStream", "ACTION_STOP_STREAM;isRunning=$isRunning")
                 fromEvents.onNext(StartActivityView.FromEvent.StopStream())
             }
 
@@ -318,11 +312,10 @@ class StartActivity : BaseActivity(), StartActivityView {
 
     // Private methods
     private fun setStreamRunning(running: Boolean) {
-        isRunning = running
-        toggleButtonStartStop.isChecked = isRunning
+        toggleButtonStartStop.isChecked = running
         toggleButtonStartStop.isEnabled = true
         if (settings.enablePin) {
-            if (isRunning && settings.hidePinOnStart) textViewPinValue.setText(R.string.start_activity_pin_asterisks)
+            if (running && settings.hidePinOnStart) textViewPinValue.setText(R.string.start_activity_pin_asterisks)
             else textViewPinValue.text = settings.currentPin
         }
     }

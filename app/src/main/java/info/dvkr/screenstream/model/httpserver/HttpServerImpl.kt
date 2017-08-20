@@ -65,8 +65,8 @@ class HttpServerImpl constructor(serverAddress: InetSocketAddress,
 
     // Clients
     @Keep class LocalClient(clientAddress: InetSocketAddress,
-                      var sendBytes: Long = 0,
-                      var disconnectedTime: Long = 0) : HttpServer.Client(clientAddress)
+                            var sendBytes: Long = 0,
+                            var disconnectedTime: Long = 0) : HttpServer.Client(clientAddress)
 
     @Keep sealed class LocalEvent {
         @Keep data class ClientConnected(val address: InetSocketAddress) : LocalEvent()
