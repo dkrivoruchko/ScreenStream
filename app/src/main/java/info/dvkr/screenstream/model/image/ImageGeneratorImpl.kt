@@ -155,7 +155,7 @@ class ImageGeneratorImpl(context: Context,
 
             Crashlytics.log(1, "ImageGeneratorImpl.restart", "imageReaderState=$imageReaderState")
             Crashlytics.log(1, "ImageGeneratorImpl.restart", "isStreamRunning=${globalStatus.isStreamRunning.get()}")
-            Crashlytics.log(1, "ImageGeneratorImpl.restart", "mediaProjection=${mediaProjection}")
+            Crashlytics.log(1, "ImageGeneratorImpl.restart", "mediaProjection=$mediaProjection")
 
             if (STATE_STARTED != imageReaderState)
                 throw IllegalStateException("ImageGeneratorImpl in imageReaderState: $imageReaderState")

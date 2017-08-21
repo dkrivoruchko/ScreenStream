@@ -306,11 +306,8 @@ class SettingsActivity : BaseActivity(), SettingsActivityView, ColorPickerDialog
                 override fun onTextChanged(s: CharSequence, start: Int, before: Int, count: Int) {
                     okButton.isEnabled = s.length in minLength..maxLength && Integer.parseInt(s.toString()) in minValue..maxValue
                     if (resizeImageDialog) {
-                        val newResizeFactor: Float
-
-                        if (okButton.isEnabled) newResizeFactor = Integer.parseInt(s.toString()) / 100f
-                        else newResizeFactor = Integer.parseInt(currentValue) / 100f
-
+                        val newResizeFactor = if (okButton.isEnabled) Integer.parseInt(s.toString()) / 100f
+                        else Integer.parseInt(currentValue) / 100f
                         dialogView.textViewSettingsEditTextResult.text = getString(resizeImageResultText)
                                 .format((screenSize.x * newResizeFactor).toInt(), (screenSize.y * newResizeFactor).toInt())
                     }
