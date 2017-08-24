@@ -176,18 +176,18 @@ class ImageGeneratorImpl(context: Context,
             imageReader = ImageReader.newInstance(screenSize.x, screenSize.y, PixelFormat.RGBA_8888, 2)
             imageReader.setOnImageAvailableListener(listener, imageThreadHandler)
 
-//            try {
-            virtualDisplay = mediaProjection.createVirtualDisplay("SSVirtualDisplay",
-                    screenSize.x, screenSize.y, displayMetrics.densityDpi,
-                    DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR, imageReader.surface, null, null)
+            try {
+                virtualDisplay = mediaProjection.createVirtualDisplay("SSVirtualDisplay",
+                        screenSize.x, screenSize.y, displayMetrics.densityDpi,
+                        DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR, imageReader.surface, null, null)
 
-            if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] Restart: End")
-//            } catch (ex: SecurityException) {
-//                imageReaderState = STATE_ERROR
-//                eventBus.sendEvent(EventBus.GlobalEvent.Error(ex))
-//                virtualDisplay = null
-//                if (BuildConfig.DEBUG_MODE) Log.e(TAG, "Thread [${Thread.currentThread().name}] $ex")
-//            }
+                if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] Restart: End")
+            } catch (ex: SecurityException) {
+                imageReaderState = STATE_ERROR
+                eventBus.sendEvent(EventBus.GlobalEvent.Error(ex))
+                virtualDisplay = null
+                if (BuildConfig.DEBUG_MODE) Log.e(TAG, "Thread [${Thread.currentThread().name}] $ex")
+            }
         }
     }
 
