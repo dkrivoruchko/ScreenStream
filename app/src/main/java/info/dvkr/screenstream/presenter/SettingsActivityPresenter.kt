@@ -2,8 +2,7 @@ package info.dvkr.screenstream.presenter
 
 
 import com.crashlytics.android.Crashlytics
-import com.crashlytics.android.answers.Answers
-import com.crashlytics.android.answers.CustomEvent
+import info.dvkr.screenstream.BuildConfig
 import info.dvkr.screenstream.dagger.PersistentScope
 import info.dvkr.screenstream.model.EventBus
 import info.dvkr.screenstream.model.ImageNotify
@@ -24,27 +23,11 @@ class SettingsActivityPresenter @Inject internal constructor(private val setting
     private var settingsActivity: SettingsActivityView? = null
 
     init {
-        println(TAG + ": Thread [${Thread.currentThread().name}] Constructor")
-
-        with(Answers.getInstance()) {
-            val ANSWERS_TAG = "SETTINGS"
-            logCustom(CustomEvent(ANSWERS_TAG).putCustomAttribute("MinimizeOnStream", settings.minimizeOnStream.toString()))
-            logCustom(CustomEvent(ANSWERS_TAG).putCustomAttribute("StopOnSleep", settings.stopOnSleep.toString()))
-            logCustom(CustomEvent(ANSWERS_TAG).putCustomAttribute("StartOnBoot", settings.startOnBoot.toString()))
-            logCustom(CustomEvent(ANSWERS_TAG).putCustomAttribute("DisableMjpegCheck", settings.disableMJPEGCheck.toString()))
-            logCustom(CustomEvent(ANSWERS_TAG).putCustomAttribute("HtmlBackColor", settings.htmlBackColor.toString()))
-            logCustom(CustomEvent(ANSWERS_TAG).putCustomAttribute("ResizeFactor", settings.resizeFactor.toString()))
-            logCustom(CustomEvent(ANSWERS_TAG).putCustomAttribute("JpegQuality", settings.jpegQuality.toString()))
-            logCustom(CustomEvent(ANSWERS_TAG).putCustomAttribute("EnablePin", settings.enablePin.toString()))
-            logCustom(CustomEvent(ANSWERS_TAG).putCustomAttribute("HidePinOnStart", settings.hidePinOnStart.toString()))
-            logCustom(CustomEvent(ANSWERS_TAG).putCustomAttribute("NewPinOnAppStart", settings.newPinOnAppStart.toString()))
-            logCustom(CustomEvent(ANSWERS_TAG).putCustomAttribute("AutoChangePin", settings.autoChangePin.toString()))
-            logCustom(CustomEvent(ANSWERS_TAG).putCustomAttribute("ServerPort", settings.severPort.toString()))
-        }
+        if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] Constructor")
     }
 
     fun attach(activity: SettingsActivityView) {
-        println(TAG + ": Thread [${Thread.currentThread().name}] Attach")
+        if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] Attach")
 
         settingsActivity?.let { detach() }
         settingsActivity = activity
@@ -68,7 +51,7 @@ class SettingsActivityPresenter @Inject internal constructor(private val setting
 
         // Getting values from Activity
         subscriptions.add(settingsActivity?.fromEvent()?.observeOn(eventScheduler)?.subscribe { fromEvent ->
-            println(TAG + ": Thread [${Thread.currentThread().name}] fromEvent: $fromEvent")
+            if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] fromEvent: $fromEvent")
 
             when (fromEvent) {
                 is SettingsActivityView.FromEvent.MinimizeOnStream -> settings.minimizeOnStream = fromEvent.value
@@ -137,13 +120,13 @@ class SettingsActivityPresenter @Inject internal constructor(private val setting
                     }
                 }
 
-                else -> println(TAG + ": Thread [${Thread.currentThread().name}] fromEvent: $fromEvent WARRING: IGNORED")
+                else -> if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] fromEvent: $fromEvent WARRING: IGNORED")
             }
         })
     }
 
     fun detach() {
-        println(TAG + ": Thread [${Thread.currentThread().name}] Detach")
+        if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] Detach")
         subscriptions.clear()
         settingsActivity = null
     }
