@@ -117,7 +117,7 @@ class ForegroundServicePresenter @Inject internal constructor(private val settin
             when (globalEvent) {
             // From StartActivityPresenter & ProjectionCallback
                 is EventBus.GlobalEvent.StopStream -> {
-                    if (!globalStatus.isStreamRunning.get()) throw IllegalStateException("WARRING: Stream in not running")
+                    if (!globalStatus.isStreamRunning.get()) return@subscribe
                     foregroundService?.toEvent(ForegroundServiceView.ToEvent.StopStream())
                 }
 

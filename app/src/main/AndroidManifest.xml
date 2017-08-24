@@ -40,6 +40,7 @@
         <activity
             android:name=".ui.ClientsActivity"
             android:label="@string/clients_activity_name"
+            android:hardwareAccelerated="true"
             android:launchMode="singleTop"
             android:parentActivityName=".ui.StartActivity" />
 
