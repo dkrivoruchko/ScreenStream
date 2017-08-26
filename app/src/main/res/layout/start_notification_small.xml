@@ -12,7 +12,7 @@
         android:id="@+id/imageViewStartNotificationSmallIconMain"
         android:layout_width="48dp"
         android:layout_height="48dp"
-        app:srcCompat="@drawable/ic_app" />
+        app:srcCompat="@drawable/ic_app_icon" />
 
     <LinearLayout
         android:layout_width="0dp"

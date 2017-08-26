@@ -21,7 +21,7 @@ class ImageNotifyImpl(context: Context) : ImageNotify {
     private val newAddressText: String = context.getString(R.string.image_generator_go_to_new_address)
 
     init {
-        val tempBm = BitmapFactory.decodeResource(context.resources, R.drawable.ic_app)
+        val tempBm = BitmapFactory.decodeResource(context.resources, R.drawable.ic_app_icon)
         logo = Bitmap.createScaledBitmap(tempBm, 192, 192, false)
         tempBm.recycle()
     }

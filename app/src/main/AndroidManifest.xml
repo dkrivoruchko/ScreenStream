@@ -30,17 +30,20 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
         <activity
             android:name=".ui.SettingsActivity"
             android:label="@string/settings_activity_name"
             android:launchMode="singleTop"
             android:parentActivityName=".ui.StartActivity" />
-
         <activity
             android:name=".ui.ClientsActivity"
-            android:label="@string/clients_activity_name"
             android:hardwareAccelerated="true"
+            android:label="@string/clients_activity_name"
+            android:launchMode="singleTop"
+            android:parentActivityName=".ui.StartActivity" />
+        <activity
+            android:name=".ui.AboutActivity"
+            android:label="@string/about_activity_name"
             android:launchMode="singleTop"
             android:parentActivityName=".ui.StartActivity" />
 

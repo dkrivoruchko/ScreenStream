@@ -185,11 +185,10 @@ class StartActivity : BaseActivity(), StartActivityView {
 //                        PrimaryDrawerItem().withIdentifier(5).withName("Local test").withSelectable(false).withIcon(R.drawable.ic_drawer_test_24dp),
                         DividerDrawerItem(),
                         PrimaryDrawerItem().withIdentifier(6).withName(R.string.start_activity_drawer_rate_app).withSelectable(false).withIcon(R.drawable.ic_drawer_rateapp_24dp),
-                        PrimaryDrawerItem().withIdentifier(7).withName(R.string.start_activity_drawer_feedback).withSelectable(false).withIcon(R.drawable.ic_drawer_feedback_24dp),
-                        PrimaryDrawerItem().withIdentifier(8).withName(R.string.start_activity_drawer_sources).withSelectable(false).withIcon(R.drawable.ic_drawer_sources_24dp)
+                        PrimaryDrawerItem().withIdentifier(7).withName(R.string.start_activity_drawer_about).withSelectable(false).withIcon(R.drawable.ic_drawer_about_24dp)
                 )
                 .addStickyDrawerItems(
-                        PrimaryDrawerItem().withIdentifier(9).withName(R.string.start_activity_drawer_exit).withIcon(R.drawable.ic_drawer_exit_24pd)
+                        PrimaryDrawerItem().withIdentifier(8).withName(R.string.start_activity_drawer_exit).withIcon(R.drawable.ic_drawer_exit_24pd)
                 )
                 .withOnDrawerItemClickListener { _, _, drawerItem ->
                     if (drawerItem.identifier == 1L) if (drawer.isDrawerOpen) drawer.closeDrawer()
@@ -204,19 +203,8 @@ class StartActivity : BaseActivity(), StartActivityView {
                         }
                     }
 
-                    if (drawerItem.identifier == 7L) {
-                        val emailIntent = Intent(Intent.ACTION_SENDTO)
-                                .setData(Uri.Builder().scheme("mailto").build())
-                                .putExtra(Intent.EXTRA_EMAIL, arrayOf("Dmitriy Krivoruchko <dkrivoruchko@gmail.com>"))
-                                .putExtra(Intent.EXTRA_SUBJECT, "Screen Stream Feedback")
-                        startActivity(Intent.createChooser(emailIntent, getString(R.string.start_activity_email_chooser_header)))
-                    }
-
-                    if (drawerItem.identifier == 8L) {
-                        startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/dkrivoruchko/ScreenStream")))
-                    }
-
-                    if (drawerItem.identifier == 9L) fromEvents.onNext(StartActivityView.FromEvent.AppExit())
+                    if (drawerItem.identifier == 7L) startActivity(AboutActivity.getStartIntent(this))
+                    if (drawerItem.identifier == 8L) fromEvents.onNext(StartActivityView.FromEvent.AppExit())
                     true
                 }
                 .build()

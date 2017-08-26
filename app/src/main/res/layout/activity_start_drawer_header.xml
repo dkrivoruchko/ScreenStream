@@ -12,7 +12,7 @@
         android:layout_width="48dp"
         android:layout_height="48dp"
         android:layout_margin="4dp"
-        app:srcCompat="@drawable/ic_app" />
+        app:srcCompat="@drawable/ic_app_icon" />
 
     <TextView
         android:layout_width="match_parent"

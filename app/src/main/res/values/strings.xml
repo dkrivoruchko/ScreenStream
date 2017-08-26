@@ -18,8 +18,7 @@
     <string name="start_activity_drawer_traffic_clients">Traffic &amp; clients</string>
     <string name="start_activity_drawer_settings">Settings</string>
     <string name="start_activity_drawer_rate_app">Rate app</string>
-    <string name="start_activity_drawer_feedback">Send email to developer</string>
-    <string name="start_activity_drawer_sources">Sources</string>
+    <string name="start_activity_drawer_about">About</string>
     <string name="start_activity_drawer_exit">Exit</string>
 
     <string name="start_activity_alert_title_warring">Warning</string>
@@ -100,6 +99,14 @@
     <string name="clients_activity_client_disconnected">Disconnected</string>
     <string name="clients_activity_client_slow_network">Slow connection</string>
     <string name="clients_activity_client">Client:\u0020</string>
+
+    <!--AboutActivity-->
+    <string name="about_activity_name">About</string>
+    <string name="about_app_name" translatable="false">Screen Stream over HTTP</string>
+    <string name="about_app_version">Version: %1$s</string>
+    <string name="about_developer_name">Developed by Dmitriy Krivoruchko</string>
+    <string name="about_developer_send_email">Send email to developer</string>
+    <string name="about_app_sources">Application sources</string>
 
     <!--HTML text-->
     <string name="html_stream_require_pin">This stream requires PIN to access it</string>

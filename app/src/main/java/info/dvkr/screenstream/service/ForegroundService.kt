@@ -364,14 +364,14 @@ class ForegroundService : Service(), ForegroundServiceView {
 
                 val smallView = RemoteViews(packageName, R.layout.start_notification_small)
                 smallView.setOnClickPendingIntent(R.id.linearLayoutStartNotificationSmall, pendingMainActivityIntent)
-                smallView.setImageViewResource(R.id.imageViewStartNotificationSmallIconMain, R.drawable.ic_app)
+                smallView.setImageViewResource(R.id.imageViewStartNotificationSmallIconMain, R.drawable.ic_app_icon)
                 smallView.setImageViewResource(R.id.imageViewStartNotificationSmallIconStart, R.drawable.ic_service_start_24dp)
                 smallView.setOnClickPendingIntent(R.id.imageViewStartNotificationSmallIconStart, startIntent)
                 builder.setCustomContentView(smallView)
 
                 val bigView = RemoteViews(packageName, R.layout.start_notification_big)
                 bigView.setOnClickPendingIntent(R.id.linearLayoutStartNotificationBig, pendingMainActivityIntent)
-                bigView.setImageViewResource(R.id.imageViewStartNotificationBigIconMain, R.drawable.ic_app)
+                bigView.setImageViewResource(R.id.imageViewStartNotificationBigIconMain, R.drawable.ic_app_icon)
                 bigView.setImageViewResource(R.id.imageViewStartNotificationBigIconStart, R.drawable.ic_service_start_24dp)
                 bigView.setImageViewResource(R.id.imageViewStartNotificationBigIconExit, R.drawable.ic_service_exit_24dp)
                 bigView.setOnClickPendingIntent(R.id.linearLayoutStartNotificationBigStart, startIntent)
@@ -386,14 +386,14 @@ class ForegroundService : Service(), ForegroundServiceView {
 
                 val smallView = RemoteViews(packageName, R.layout.stop_notification_small)
                 smallView.setOnClickPendingIntent(R.id.linearLayoutStopNotificationSmall, pendingMainActivityIntent)
-                smallView.setImageViewResource(R.id.imageViewStopNotificationSmallIconMain, R.drawable.ic_app)
+                smallView.setImageViewResource(R.id.imageViewStopNotificationSmallIconMain, R.drawable.ic_app_icon)
                 smallView.setImageViewResource(R.id.imageViewStopNotificationSmallIconStop, R.drawable.ic_service_stop_24dp)
                 smallView.setOnClickPendingIntent(R.id.imageViewStopNotificationSmallIconStop, stopIntent)
                 builder.setCustomContentView(smallView)
 
                 val bigView = RemoteViews(packageName, R.layout.stop_notification_big)
                 bigView.setOnClickPendingIntent(R.id.linearLayoutStopNotificationBig, pendingMainActivityIntent)
-                bigView.setImageViewResource(R.id.imageViewStopNotificationBigIconMain, R.drawable.ic_app)
+                bigView.setImageViewResource(R.id.imageViewStopNotificationBigIconMain, R.drawable.ic_app_icon)
                 bigView.setImageViewResource(R.id.imageViewStopNotificationBigIconStop, R.drawable.ic_service_stop_24dp)
                 bigView.setOnClickPendingIntent(R.id.linearLayoutStopNotificationBigStop, stopIntent)
                 builder.setCustomBigContentView(bigView)

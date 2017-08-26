@@ -15,8 +15,7 @@
     <string name="start_activity_drawer_traffic_clients">Траффик и клиенты</string>
     <string name="start_activity_drawer_settings">Настройки</string>
     <string name="start_activity_drawer_rate_app">Оценить приложение</string>
-    <string name="start_activity_drawer_feedback">Написать отзыв</string>
-    <string name="start_activity_drawer_sources">Исходный код</string>
+    <string name="start_activity_drawer_about">О приложении</string>
     <string name="start_activity_drawer_exit">Выход</string>
 
     <string name="start_activity_alert_title_warring">Предупреждение</string>
@@ -97,6 +96,13 @@
     <string name="clients_activity_client_disconnected">Отключен</string>
     <string name="clients_activity_client_slow_network">Медленный</string>
     <string name="clients_activity_client">Клиент:\u0020</string>
+
+    <!--AboutActivity-->
+    <string name="about_activity_name">О приложении</string>
+    <string name="about_app_version">Версия: %1$s</string>
+    <string name="about_developer_name">Разработано: Криворучко Дмитрий</string>
+    <string name="about_developer_send_email">Написать Email разработчику</string>
+    <string name="about_app_sources">Исходный код приложения</string>
 
     <!--HTML text-->
     <string name="html_stream_require_pin">Эта трансляция требует PIN-код для доступа к ней</string>
