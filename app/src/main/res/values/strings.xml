@@ -24,9 +24,11 @@
 
     <string name="start_activity_alert_title_warring">Warning</string>
     <string name="start_activity_alert_title_error">Error</string>
+    <string name="start_activity_alert_title_error_network">Network error</string>
     <string name="start_activity_alert_title_error_unknown">Unexpected error</string>
     <string name="start_activity_cast_permission_required">Application requires Screen Cast permission to capture screen</string>
     <string name="start_activity_error_port_in_use">Port already in use. Choose another one</string>
+    <string name="start_activity_error_network_unknown">Unknown network error</string>
     <string name="start_activity_error_invalid_media_projection">Security error: Invalid media projection. Try one more time</string>
     <string name="start_activity_error_wrong_image_format">System returns image in unknown format. No fix available. Sorry.</string>
 
@@ -82,6 +84,8 @@
     <string name="pref_set_pin_summary">Enter pin manually</string>
     <string name="pref_set_pin_dialog">Enter pin.\nDefault: 0000</string>
     <string name="pref_settings_advanced">Advanced</string>
+    <string name="pref_wifi_only">Use WiFi only</string>
+    <string name="pref_wifi_only_summary">Run server on WiFi interface only</string>
     <string name="pref_server_port">Server port</string>
     <string name="pref_server_port_summary">Set port for incoming connections</string>
     <string name="pref_server_port_dialog">Set server port for incoming connections.\nValues: 1025–65535 (Default: 8080)</string>

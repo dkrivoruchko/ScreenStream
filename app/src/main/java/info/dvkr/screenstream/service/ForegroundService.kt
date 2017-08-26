@@ -5,6 +5,7 @@ import android.app.*
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.res.Resources
 import android.media.projection.MediaProjection
 import android.media.projection.MediaProjectionManager
 import android.net.ConnectivityManager
@@ -20,6 +21,8 @@ import android.widget.RemoteViews
 import android.widget.Toast
 import com.cantrowitz.rxbroadcast.RxBroadcast
 import com.crashlytics.android.Crashlytics
+import com.crashlytics.android.answers.Answers
+import com.crashlytics.android.answers.CustomEvent
 import info.dvkr.screenstream.BuildConfig
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.ScreenStreamApp
@@ -36,10 +39,13 @@ import rx.subjects.BehaviorSubject
 import rx.subjects.PublishSubject
 import rx.subscriptions.CompositeSubscription
 import java.net.Inet4Address
+import java.net.InetSocketAddress
 import java.net.NetworkInterface
 import java.nio.charset.Charset
+import java.util.*
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
+import kotlin.collections.ArrayList
 
 class ForegroundService : Service(), ForegroundServiceView {
     companion object {
@@ -86,6 +92,8 @@ class ForegroundService : Service(), ForegroundServiceView {
     @Volatile private var projectionCallback: MediaProjection.Callback? = null
     @Volatile private var imageGenerator: ImageGenerator? = null
     private val connectionEvents = PublishSubject.create<String>()
+    private lateinit var wifiRegexArray: Array<Regex>
+    private var counterStartHttpServer: Int = 0
 
     // Base values
     private lateinit var baseFavicon: ByteArray
@@ -105,6 +113,10 @@ class ForegroundService : Service(), ForegroundServiceView {
 
     override fun onCreate() {
         if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] onCreate: Start")
+
+        val tetherId = Resources.getSystem().getIdentifier("config_tether_wifi_regexs", "array", "android")
+        wifiRegexArray = resources.getStringArray(tetherId).map { it.toRegex() }.toTypedArray()
+        Answers.getInstance().logCustom(CustomEvent("WIFI_REGEX").putCustomAttribute("ConfigTetherWifiRegexs", Arrays.toString(wifiRegexArray)))
 
         (application as ScreenStreamApp).appComponent().plusActivityComponent().inject(this)
         presenter.attach(this)
@@ -128,7 +140,27 @@ class ForegroundService : Service(), ForegroundServiceView {
                 }
 
                 is ForegroundServiceView.ToEvent.StartHttpServer -> {
+                    fromEvents.onNext(ForegroundServiceView.FromEvent.StopHttpServer())
+
+                    val interfaces = getInterfaces()
+                    val serverAddress: InetSocketAddress
+                    fromEvents.onNext(ForegroundServiceView.FromEvent.CurrentInterfaces(interfaces))
+                    if (settings.useWiFiOnly) {
+                        if (interfaces.isEmpty()) {
+                            if (counterStartHttpServer < 5) { // Scheduling one more try in 1 second
+                                counterStartHttpServer++
+                                toEvent(ForegroundServiceView.ToEvent.StartHttpServer(), 1000)
+                            }
+                            return@subscribe
+                        }
+                        counterStartHttpServer = 0
+                        serverAddress = InetSocketAddress(interfaces.first().address, settings.severPort)
+                    } else {
+                        serverAddress = InetSocketAddress(settings.severPort)
+                    }
+
                     fromEvents.onNext(ForegroundServiceView.FromEvent.StartHttpServer(
+                            serverAddress,
                             baseFavicon,
                             baseIndexHtml,
                             basePinRequestHtml,
@@ -165,7 +197,6 @@ class ForegroundService : Service(), ForegroundServiceView {
                     projectionCallback = object : MediaProjection.Callback() {
                         override fun onStop() {
                             if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] ProjectionCallback")
-                            Crashlytics.log(1, "EventBus.GlobalEvent.StopStream", "ProjectionCallback")
                             eventBus.sendEvent(EventBus.GlobalEvent.StopStream())
                         }
                     }
@@ -207,18 +238,16 @@ class ForegroundService : Service(), ForegroundServiceView {
             }
         })
 
-        // Registering receiver for screen off messages and WiFi changes
+        // Registering receiver for screen off messages and network & WiFi changes
         val intentFilter = IntentFilter()
         intentFilter.addAction(Intent.ACTION_SCREEN_OFF)
         intentFilter.addAction(WifiManager.WIFI_STATE_CHANGED_ACTION)
         intentFilter.addAction(ConnectivityManager.CONNECTIVITY_ACTION)
 
         subscriptions.add(RxBroadcast.fromBroadcast(applicationContext, intentFilter)
-                .map<String>
-                { it.action }
+                .map { it.action }
                 .observeOn(eventScheduler)
-                .subscribe
-                { action ->
+                .subscribe { action ->
                     if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] Action: " + action)
                     when (action) {
                         Intent.ACTION_SCREEN_OFF -> fromEvents.onNext(ForegroundServiceView.FromEvent.ScreenOff())
@@ -227,10 +256,16 @@ class ForegroundService : Service(), ForegroundServiceView {
                     }
                 })
 
-        subscriptions.add(connectionEvents
-                .throttleWithTimeout(500, TimeUnit.MILLISECONDS, eventScheduler)
-                .subscribe
-                { _ -> fromEvents.onNext(ForegroundServiceView.FromEvent.CurrentInterfaces(getInterfaces())) }
+        subscriptions.add(connectionEvents.throttleWithTimeout(500, TimeUnit.MILLISECONDS, eventScheduler)
+                .skip(1)
+                .subscribe { _ ->
+                    if (settings.useWiFiOnly) {
+                        counterStartHttpServer = 0
+                        fromEvents.onNext(ForegroundServiceView.FromEvent.HttpServerRestartRequest())
+                    } else {
+                        fromEvents.onNext(ForegroundServiceView.FromEvent.CurrentInterfaces(getInterfaces()))
+                    }
+                }
         )
 
         startForeground(NOTIFICATION_START_STREAMING, getCustomNotification(NOTIFICATION_START_STREAMING))
@@ -410,7 +445,14 @@ class ForegroundService : Service(), ForegroundServiceView {
                 while (enumIpAddr.hasMoreElements()) {
                     val inetAddress = enumIpAddr.nextElement()
                     if (!inetAddress.isLoopbackAddress && inetAddress is Inet4Address)
-                        interfaceList.add(ForegroundServiceView.Interface(networkInterface.displayName, inetAddress.hostAddress))
+                        if (settings.useWiFiOnly) {
+                            if (wifiRegexArray.any { it.matches(networkInterface.displayName) }) {
+                                interfaceList.add(ForegroundServiceView.Interface(networkInterface.displayName, inetAddress))
+                                return interfaceList
+                            }
+                        } else {
+                            interfaceList.add(ForegroundServiceView.Interface(networkInterface.displayName, inetAddress))
+                        }
                 }
             }
         } catch (ex: Throwable) {

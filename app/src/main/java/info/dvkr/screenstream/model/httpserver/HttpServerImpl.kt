@@ -117,7 +117,7 @@ class HttpServerImpl constructor(serverAddress: InetSocketAddress,
 
         httpServer = io.reactivex.netty.protocol.http.server.HttpServer.newServer(serverAddress, globalServerEventLoop, NioServerSocketChannel::class.java)
                 .clientChannelOption(ChannelOption.CONNECT_TIMEOUT_MILLIS, 3000)
-//                .enableWireLogging(LogLevel.ERROR);
+//                .enableWireLogging(LogLevel.ERROR)
 
         var indexHtmlPage = baseIndexHtml.replaceFirst(HttpServer.BACKGROUND_COLOR.toRegex(), String.format("#%06X", 0xFFFFFF and backgroundColor))
         if (disableMJpegCheck) indexHtmlPage = indexHtmlPage.replaceFirst("id=mj".toRegex(), "").replaceFirst("id=pmj".toRegex(), "")
@@ -150,7 +150,7 @@ class HttpServerImpl constructor(serverAddress: InetSocketAddress,
         try {
             httpServer.start(httpServerRxHandler)
             isRunning = true
-            if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] HttpServer: Started @port: ${httpServer.serverPort}")
+            if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] HttpServer: Started ${httpServer.serverAddress}")
         } catch (exception: Exception) {
             eventBus.sendEvent(EventBus.GlobalEvent.Error(exception))
         }

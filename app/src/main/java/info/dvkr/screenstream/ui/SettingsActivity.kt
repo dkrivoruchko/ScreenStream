@@ -171,6 +171,12 @@ class SettingsActivity : BaseActivity(), SettingsActivityView, ColorPickerDialog
             dialog?.show()
         }
 
+        // Advanced - Use WiFi Only
+        clUseWifiOnly.setOnClickListener { _ -> checkBoxUseWifiOnly.performClick() }
+        checkBoxUseWifiOnly.setOnClickListener { _ ->
+            fromEvents.onNext(SettingsActivityView.FromEvent.UseWiFiOnly(checkBoxUseWifiOnly.isChecked))
+        }
+
         // Advanced - Server port
         clServerPort.setOnClickListener { _ ->
             dialog = getEditTextDialog(
@@ -239,6 +245,7 @@ class SettingsActivity : BaseActivity(), SettingsActivityView, ColorPickerDialog
                 }
 
                 is SettingsActivityView.ToEvent.SetPin -> textViewSetPinValue.text = event.value
+                is SettingsActivityView.ToEvent.UseWiFiOnly -> checkBoxUseWifiOnly.isChecked = event.value
                 is SettingsActivityView.ToEvent.ServerPort -> textViewServerPortValue.text = Integer.toString(event.value)
 
                 is SettingsActivityView.ToEvent.ErrorServerPortBusy -> {

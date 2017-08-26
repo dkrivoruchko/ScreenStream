@@ -46,6 +46,7 @@ class SettingsActivityPresenter @Inject internal constructor(private val setting
             it.toEvent(SettingsActivityView.ToEvent.NewPinOnAppStart(settings.newPinOnAppStart))
             it.toEvent(SettingsActivityView.ToEvent.AutoChangePin(settings.autoChangePin))
             it.toEvent(SettingsActivityView.ToEvent.SetPin(settings.currentPin))
+            it.toEvent(SettingsActivityView.ToEvent.UseWiFiOnly(settings.useWiFiOnly))
             it.toEvent(SettingsActivityView.ToEvent.ServerPort(settings.severPort))
         }
 
@@ -95,6 +96,11 @@ class SettingsActivityPresenter @Inject internal constructor(private val setting
                     settingsActivity?.toEvent(SettingsActivityView.ToEvent.SetPin(fromEvent.value))
                     eventBus.sendEvent(EventBus.GlobalEvent.HttpServerRestart(ImageNotify.IMAGE_TYPE_RELOAD_PAGE))
                     eventBus.sendEvent(EventBus.GlobalEvent.SetPin(fromEvent.value))
+                }
+
+                is SettingsActivityView.FromEvent.UseWiFiOnly -> {
+                    settings.useWiFiOnly = fromEvent.value
+                    eventBus.sendEvent(EventBus.GlobalEvent.HttpServerRestart(ImageNotify.IMAGE_TYPE_NEW_ADDRESS))
                 }
 
                 is SettingsActivityView.FromEvent.ServerPort -> {

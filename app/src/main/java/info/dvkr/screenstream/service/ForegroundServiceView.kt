@@ -3,16 +3,19 @@ package info.dvkr.screenstream.service
 
 import android.support.annotation.Keep
 import rx.Observable
+import java.net.Inet4Address
+import java.net.InetSocketAddress
 
 interface ForegroundServiceView {
 
     // System network interfaces
-    @Keep data class Interface(val name: String, val address: String)
+    @Keep data class Interface(val name: String, val address: Inet4Address)
 
     // From ForegroundService to ForegroundServicePresenter
     @Keep sealed class FromEvent {
         @Keep class Init : FromEvent()
-        @Keep data class StartHttpServer(val favicon: ByteArray,
+        @Keep data class StartHttpServer(val serverAddress: InetSocketAddress,
+                                         val favicon: ByteArray,
                                          val baseIndexHtml: String,
                                          val basePinRequestHtml: String,
                                          val pinRequestErrorMsg: String,
@@ -20,6 +23,7 @@ interface ForegroundServiceView {
 
         @Keep class StopHttpServer : FromEvent()
         @Keep class StopStreamComplete : FromEvent()
+        @Keep class HttpServerRestartRequest : FromEvent()
         @Keep class ScreenOff : FromEvent()
         @Keep data class CurrentInterfaces(val interfaceList: List<Interface>) : FromEvent()
     }

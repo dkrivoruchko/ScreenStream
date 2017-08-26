@@ -102,8 +102,10 @@ class StartActivity : BaseActivity(), StartActivityView {
 
                             is BindException -> {
                                 canStart = false
-                                alerter.setTitle(R.string.start_activity_alert_title_error)
-                                        .setText(R.string.start_activity_error_port_in_use)
+                                alerter.setTitle(R.string.start_activity_alert_title_error_network)
+                                val msg = it.message?.drop(13) ?: getString(R.string.start_activity_error_network_unknown)
+                                if (msg.contains("EADDRINUSE")) alerter.setText(R.string.start_activity_error_port_in_use)
+                                else alerter.setText(msg)
                             }
 
                             is SecurityException -> {
@@ -338,7 +340,7 @@ class StartActivity : BaseActivity(), StartActivityView {
                 val addressView = layoutInflater.inflate(R.layout.server_address, null)
                 with(addressView) {
                     textViewInterfaceName.text = "$name:"
-                    textViewInterfaceAddress.text = "http://$address:$serverPort"
+                    textViewInterfaceAddress.text = "http://${address.hostAddress}:$serverPort"
                 }
                 linearLayoutServerAddressList.addView(addressView)
             }

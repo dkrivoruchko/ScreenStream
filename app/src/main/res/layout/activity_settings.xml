@@ -970,6 +970,83 @@
             android:textStyle="bold" />
 
         <android.support.constraint.ConstraintLayout
+            android:id="@+id/clUseWifiOnly"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="?attr/selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true"
+            android:minHeight="@dimen/activity_settings_item_min_height"
+            android:paddingBottom="8dp"
+            android:paddingEnd="@dimen/activity_settings_item_start_end"
+            android:paddingStart="@dimen/activity_settings_item_start_end"
+            android:paddingTop="8dp">
+
+            <ImageView
+                android:id="@+id/imageViewUseWifiOnly"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                app:layout_constraintBottom_toBottomOf="@id/textViewUseWifiOnlySummary"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="@id/textViewUseWifiOnly"
+                app:srcCompat="@drawable/ic_pref_wifionly_24dp" />
+
+            <TextView
+                android:id="@+id/textViewUseWifiOnly"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:text="@string/pref_wifi_only"
+                android:textAppearance="?android:attr/textAppearanceMedium"
+                android:textColor="@color/colorSettingsTextHeader"
+                app:layout_constraintBottom_toTopOf="@id/textViewUseWifiOnlySummary"
+                app:layout_constraintEnd_toStartOf="@id/guidelineUseWifiOnly"
+                app:layout_constraintHorizontal_bias="0.5"
+                app:layout_constraintStart_toEndOf="@id/imageViewUseWifiOnly"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <TextView
+                android:id="@+id/textViewUseWifiOnlySummary"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:text="@string/pref_wifi_only_summary"
+                android:textAppearance="?android:attr/textAppearanceSmall"
+                android:textColor="@color/colorSettingsTextSummary"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toStartOf="@id/guidelineUseWifiOnly"
+                app:layout_constraintHorizontal_bias="0.5"
+                app:layout_constraintStart_toEndOf="@id/imageViewUseWifiOnly"
+                app:layout_constraintTop_toBottomOf="@id/textViewUseWifiOnly" />
+
+            <CheckBox
+                android:id="@+id/checkBoxUseWifiOnly"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:theme="@style/SettingsCheckBox"
+                app:layout_constraintBottom_toBottomOf="@id/textViewUseWifiOnlySummary"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="@id/guidelineUseWifiOnly"
+                app:layout_constraintTop_toTopOf="@id/textViewUseWifiOnly" />
+
+            <android.support.constraint.Guideline
+                android:id="@+id/guidelineUseWifiOnly"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintGuide_end="52dp" />
+        </android.support.constraint.ConstraintLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginBottom="2dp"
+            android:layout_marginTop="2dp"
+            android:background="@color/colorSettingsDivider" />
+
+        <android.support.constraint.ConstraintLayout
             android:id="@+id/clServerPort"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

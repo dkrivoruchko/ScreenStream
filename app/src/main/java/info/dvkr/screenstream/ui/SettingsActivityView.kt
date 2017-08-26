@@ -20,6 +20,7 @@ interface SettingsActivityView {
         @Keep data class NewPinOnAppStart(val value: Boolean) : FromEvent()
         @Keep data class AutoChangePin(val value: Boolean) : FromEvent()
         @Keep data class SetPin(val value: String) : FromEvent()
+        @Keep data class UseWiFiOnly(val value: Boolean) : FromEvent()
         @Keep data class ServerPort(val value: Int) : FromEvent()
     }
 
@@ -40,6 +41,7 @@ interface SettingsActivityView {
         @Keep data class NewPinOnAppStart(val value: Boolean) : ToEvent()
         @Keep data class AutoChangePin(val value: Boolean) : ToEvent()
         @Keep data class SetPin(val value: String) : ToEvent()
+        @Keep data class UseWiFiOnly(val value: Boolean) : ToEvent()
         @Keep data class ServerPort(val value: Int) : ToEvent()
 
         // Error message

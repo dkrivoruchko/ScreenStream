@@ -94,7 +94,7 @@ class ClientsActivity : BaseActivity(), ClientsActivityView {
                 is ClientsActivityView.ToEvent.TrafficPoint -> {
                     lineGraphSeries?.let {
                         val mbit = toMbit(event.trafficPoint.bytes)
-                        textViewCurrentTraffic.text = getString(R.string.start_activity_current_traffic).format(mbit)
+                        textViewCurrentTraffic.text = getString(R.string.clients_activity_current_traffic).format(mbit)
                         it.appendData(DataPoint(event.trafficPoint.time.toDouble(), mbit), true, 60)
                         val maxY = Math.max(toMbit(event.maxY) * 1.2, 1.1)
                         lineChartTraffic.viewport.setMinY(maxY * -0.1)
@@ -109,6 +109,9 @@ class ClientsActivity : BaseActivity(), ClientsActivityView {
         super.onCreate(savedInstanceState)
         if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] onCreate: Start")
         setContentView(R.layout.activity_clients)
+
+        textViewCurrentTraffic.text = getString(R.string.clients_activity_current_traffic).format(0.0)
+        textViewConnectedClients.text = getString(R.string.clients_activity_connected_clients).format(0)
 
         presenter.attach(this)
         if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] onCreate: End")

@@ -36,6 +36,8 @@ class SettingsImpl(private val mRxSharedPreferences: RxSharedPreferences) : Sett
         private val PREF_KEY_SET_PIN = "PREF_KEY_SET_PIN" // String
         private val DEFAULT_PIN = "0000"
 
+        private val PREF_KEY_USE_WIFI_ONLY = "PREF_KEY_USE_WIFI_ONLY" // Boolean
+        private val DEFAULT_USE_WIFI_ONLY = true
         private val PREF_KEY_SERVER_PORT = "PREF_KEY_SERVER_PORT" // Int
         private val DEFAULT_SERVER_PORT = 8080
     }
@@ -91,6 +93,10 @@ class SettingsImpl(private val mRxSharedPreferences: RxSharedPreferences) : Sett
     override var currentPin: String
         get() = getString(PREF_KEY_SET_PIN, DEFAULT_PIN)
         set(currentPin) = mRxSharedPreferences.getString(PREF_KEY_SET_PIN).set(currentPin)
+
+    override var useWiFiOnly: Boolean
+        get() = getBoolean(PREF_KEY_USE_WIFI_ONLY, DEFAULT_USE_WIFI_ONLY)
+        set(runWiFiOnly) = mRxSharedPreferences.getBoolean(PREF_KEY_USE_WIFI_ONLY).set(runWiFiOnly)
 
     override var severPort: Int
         get() = getInteger(PREF_KEY_SERVER_PORT, DEFAULT_SERVER_PORT)

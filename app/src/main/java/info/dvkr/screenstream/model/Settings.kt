@@ -27,5 +27,7 @@ interface Settings {
 
     var currentPin: String
 
+    var useWiFiOnly: Boolean
+
     var severPort: Int
 }

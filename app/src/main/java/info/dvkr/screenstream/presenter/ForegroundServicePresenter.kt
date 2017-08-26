@@ -8,7 +8,6 @@ import info.dvkr.screenstream.model.httpserver.HttpServerImpl
 import info.dvkr.screenstream.service.ForegroundServiceView
 import rx.Scheduler
 import rx.subscriptions.CompositeSubscription
-import java.net.InetSocketAddress
 import java.util.*
 import javax.inject.Inject
 import kotlin.collections.ArrayList
@@ -53,13 +52,9 @@ class ForegroundServicePresenter @Inject internal constructor(private val settin
                 }
 
                 is ForegroundServiceView.FromEvent.StartHttpServer -> {
-                    httpServer?.stop()
-                    httpServer = null
-
-                    val (favicon, baseIndexHtml, basePinRequestHtml, pinRequestErrorMsg, jpegByteStream) = fromEvent
-
+                    val (serverAddress, favicon, baseIndexHtml, basePinRequestHtml, pinRequestErrorMsg, jpegByteStream) = fromEvent
                     globalStatus.error.set(null)
-                    httpServer = HttpServerImpl(InetSocketAddress(settings.severPort),
+                    httpServer = HttpServerImpl(serverAddress,
                             favicon,
                             baseIndexHtml,
                             settings.htmlBackColor,
@@ -88,6 +83,10 @@ class ForegroundServicePresenter @Inject internal constructor(private val settin
                         eventBus.sendEvent(EventBus.GlobalEvent.HttpServerRestart(ImageNotify.IMAGE_TYPE_RELOAD_PAGE))
                     }
                     foregroundService?.toEvent(ForegroundServiceView.ToEvent.NotifyImage(ImageNotify.IMAGE_TYPE_DEFAULT))
+                }
+
+                is ForegroundServiceView.FromEvent.HttpServerRestartRequest -> {
+                    eventBus.sendEvent(EventBus.GlobalEvent.HttpServerRestart(ImageNotify.IMAGE_TYPE_NONE))
                 }
 
                 is ForegroundServiceView.FromEvent.ScreenOff -> {
