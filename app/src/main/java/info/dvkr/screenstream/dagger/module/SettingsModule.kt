@@ -4,7 +4,6 @@ import android.content.Context
 import android.preference.PreferenceManager
 import android.util.Log
 import com.crashlytics.android.Crashlytics
-import com.f2prateek.rx.preferences.RxSharedPreferences
 import com.ironz.binaryprefs.BinaryPreferencesBuilder
 import dagger.Module
 import dagger.Provides
@@ -30,6 +29,6 @@ class SettingsModule {
                     }
                 }
                 .build()
-        return SettingsImpl(RxSharedPreferences.create(preferences))
+        return SettingsImpl(preferences)
     }
 }

@@ -49,7 +49,6 @@ Version 2.x based on MVP architecture pattern and uses:
 * [Dagger 2](https://github.com/google/dagger)
 * [RxJava 1.x](https://github.com/ReactiveX/RxJava/tree/1.x) / [RxAndroid](https://github.com/ReactiveX/RxAndroid/tree/1.x) / [RxBinding](https://github.com/JakeWharton/RxBinding/tree/version-one)
 * [RxNetty](https://github.com/ReactiveX/RxNetty)
-* [RxPreferences](https://github.com/f2prateek/rx-preferences)
 * [RxBroadcast](https://github.com/cantrowitz/RxBroadcast)
 * [MaterialDrawer](https://github.com/mikepenz/MaterialDrawer)
 * [Alerter](https://github.com/Tapadoo/Alerter)

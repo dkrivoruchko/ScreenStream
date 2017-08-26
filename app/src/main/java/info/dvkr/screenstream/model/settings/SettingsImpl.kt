@@ -1,11 +1,11 @@
 package info.dvkr.screenstream.model.settings
 
 import android.util.Log
-import com.f2prateek.rx.preferences.RxSharedPreferences
+import com.ironz.binaryprefs.Preferences
 import info.dvkr.screenstream.BuildConfig
 import info.dvkr.screenstream.model.Settings
 
-class SettingsImpl(private val mRxSharedPreferences: RxSharedPreferences) : Settings {
+class SettingsImpl(private val preferences: Preferences) : Settings {
     private val TAG = "SettingsImpl"
 
     companion object {
@@ -47,68 +47,71 @@ class SettingsImpl(private val mRxSharedPreferences: RxSharedPreferences) : Sett
     }
 
     override var minimizeOnStream: Boolean
-        get() = getBoolean(PREF_KEY_MINIMIZE_ON_STREAM, DEFAULT_MINIMIZE_ON_STREAM)
-        set(minimizeOnStream) = mRxSharedPreferences.getBoolean(PREF_KEY_MINIMIZE_ON_STREAM).set(minimizeOnStream)
+        get() = preferences.getBoolean(PREF_KEY_MINIMIZE_ON_STREAM, DEFAULT_MINIMIZE_ON_STREAM)
+        set(minimizeOnStream) = setBoolean(PREF_KEY_MINIMIZE_ON_STREAM, minimizeOnStream)
 
     override var stopOnSleep: Boolean
-        get() = getBoolean(PREF_KEY_STOP_ON_SLEEP, DEFAULT_STOP_ON_SLEEP)
-        set(stopOnSleep) = mRxSharedPreferences.getBoolean(PREF_KEY_STOP_ON_SLEEP).set(stopOnSleep)
+        get() = preferences.getBoolean(PREF_KEY_STOP_ON_SLEEP, DEFAULT_STOP_ON_SLEEP)
+        set(stopOnSleep) = setBoolean(PREF_KEY_STOP_ON_SLEEP, stopOnSleep)
 
     override var startOnBoot: Boolean
-        get() = getBoolean(PREF_KEY_START_ON_BOOT, DEFAULT_START_ON_BOOT)
-        set(startOnBoot) = mRxSharedPreferences.getBoolean(PREF_KEY_START_ON_BOOT).set(startOnBoot)
+        get() = preferences.getBoolean(PREF_KEY_START_ON_BOOT, DEFAULT_START_ON_BOOT)
+        set(startOnBoot) = setBoolean(PREF_KEY_START_ON_BOOT, startOnBoot)
 
     override var disableMJPEGCheck: Boolean
-        get() = getBoolean(PREF_KEY_MJPEG_CHECK, DEFAULT_MJPEG_CHECK)
-        set(disableMJPEGCheck) = mRxSharedPreferences.getBoolean(PREF_KEY_MJPEG_CHECK).set(disableMJPEGCheck)
+        get() = preferences.getBoolean(PREF_KEY_MJPEG_CHECK, DEFAULT_MJPEG_CHECK)
+        set(disableMJPEGCheck) = setBoolean(PREF_KEY_MJPEG_CHECK, disableMJPEGCheck)
 
     override var htmlBackColor: Int
-        get() = getInteger(PREF_KEY_HTML_BACK_COLOR, DEFAULT_HTML_BACK_COLOR)
-        set(HTMLBackColor) = mRxSharedPreferences.getInteger(PREF_KEY_HTML_BACK_COLOR).set(HTMLBackColor)
+        get() = preferences.getInt(PREF_KEY_HTML_BACK_COLOR, DEFAULT_HTML_BACK_COLOR)
+        set(HTMLBackColor) = setInteger(PREF_KEY_HTML_BACK_COLOR, HTMLBackColor)
 
     override var jpegQuality: Int
-        get() = getInteger(PREF_KEY_JPEG_QUALITY, DEFAULT_JPEG_QUALITY)
-        set(jpegQuality) = mRxSharedPreferences.getInteger(PREF_KEY_JPEG_QUALITY).set(jpegQuality)
+        get() = preferences.getInt(PREF_KEY_JPEG_QUALITY, DEFAULT_JPEG_QUALITY)
+        set(jpegQuality) = setInteger(PREF_KEY_JPEG_QUALITY, jpegQuality)
 
     override var resizeFactor: Int
-        get() = getInteger(PREF_KEY_RESIZE_FACTOR, DEFAULT_RESIZE_FACTOR)
-        set(resizeFactor) = mRxSharedPreferences.getInteger(PREF_KEY_RESIZE_FACTOR).set(resizeFactor)
+        get() = preferences.getInt(PREF_KEY_RESIZE_FACTOR, DEFAULT_RESIZE_FACTOR)
+        set(resizeFactor) = setInteger(PREF_KEY_RESIZE_FACTOR, resizeFactor)
 
     override var enablePin: Boolean
-        get() = getBoolean(PREF_KEY_ENABLE_PIN, DEFAULT_ENABLE_PIN)
-        set(enablePin) = mRxSharedPreferences.getBoolean(PREF_KEY_ENABLE_PIN).set(enablePin)
+        get() = preferences.getBoolean(PREF_KEY_ENABLE_PIN, DEFAULT_ENABLE_PIN)
+        set(enablePin) = setBoolean(PREF_KEY_ENABLE_PIN, enablePin)
 
     override var hidePinOnStart: Boolean
-        get() = getBoolean(PREF_KEY_HIDE_PIN_ON_START, DEFAULT_HIDE_PIN_ON_START)
-        set(hidePinOnStart) = mRxSharedPreferences.getBoolean(PREF_KEY_HIDE_PIN_ON_START).set(hidePinOnStart)
+        get() = preferences.getBoolean(PREF_KEY_HIDE_PIN_ON_START, DEFAULT_HIDE_PIN_ON_START)
+        set(hidePinOnStart) = setBoolean(PREF_KEY_HIDE_PIN_ON_START, hidePinOnStart)
 
     override var newPinOnAppStart: Boolean
-        get() = getBoolean(PREF_KEY_NEW_PIN_ON_APP_START, DEFAULT_NEW_PIN_ON_APP_START)
-        set(newPinOnAppStart) = mRxSharedPreferences.getBoolean(PREF_KEY_NEW_PIN_ON_APP_START).set(newPinOnAppStart)
+        get() = preferences.getBoolean(PREF_KEY_NEW_PIN_ON_APP_START, DEFAULT_NEW_PIN_ON_APP_START)
+        set(newPinOnAppStart) = setBoolean(PREF_KEY_NEW_PIN_ON_APP_START, newPinOnAppStart)
 
     override var autoChangePin: Boolean
-        get() = getBoolean(PREF_KEY_AUTO_CHANGE_PIN, DEFAULT_AUTO_CHANGE_PIN)
-        set(autoChangePin) = mRxSharedPreferences.getBoolean(PREF_KEY_AUTO_CHANGE_PIN).set(autoChangePin)
+        get() = preferences.getBoolean(PREF_KEY_AUTO_CHANGE_PIN, DEFAULT_AUTO_CHANGE_PIN)
+        set(autoChangePin) = setBoolean(PREF_KEY_AUTO_CHANGE_PIN, autoChangePin)
 
     override var currentPin: String
-        get() = getString(PREF_KEY_SET_PIN, DEFAULT_PIN)
-        set(currentPin) = mRxSharedPreferences.getString(PREF_KEY_SET_PIN).set(currentPin)
+        get() = preferences.getString(PREF_KEY_SET_PIN, DEFAULT_PIN) ?: DEFAULT_PIN
+        set(currentPin) = setString(PREF_KEY_SET_PIN, currentPin)
 
     override var useWiFiOnly: Boolean
-        get() = getBoolean(PREF_KEY_USE_WIFI_ONLY, DEFAULT_USE_WIFI_ONLY)
-        set(runWiFiOnly) = mRxSharedPreferences.getBoolean(PREF_KEY_USE_WIFI_ONLY).set(runWiFiOnly)
+        get() = preferences.getBoolean(PREF_KEY_USE_WIFI_ONLY, DEFAULT_USE_WIFI_ONLY)
+        set(runWiFiOnly) = setBoolean(PREF_KEY_USE_WIFI_ONLY, runWiFiOnly)
 
     override var severPort: Int
-        get() = getInteger(PREF_KEY_SERVER_PORT, DEFAULT_SERVER_PORT)
-        set(severPort) = mRxSharedPreferences.getInteger(PREF_KEY_SERVER_PORT).set(severPort)
+        get() = preferences.getInt(PREF_KEY_SERVER_PORT, DEFAULT_SERVER_PORT)
+        set(severPort) = setInteger(PREF_KEY_SERVER_PORT, severPort)
 
     // Helper methods
-    private fun getBoolean(pref_key: String, pref_default: Boolean): Boolean =
-            mRxSharedPreferences.getBoolean(pref_key, pref_default).get() ?: pref_default
+    private fun setBoolean(pref_key: String, pref_new_value: Boolean) {
+        preferences.edit().putBoolean(pref_key, pref_new_value).commit()
+    }
 
-    private fun getInteger(pref_key: String, pref_default: Int): Int =
-            mRxSharedPreferences.getInteger(pref_key, pref_default).get() ?: pref_default
+    private fun setInteger(pref_key: String, pref_new_value: Int) {
+        preferences.edit().putInt(pref_key, pref_new_value).commit()
+    }
 
-    private fun getString(pref_key: String, pref_default: String): String =
-            mRxSharedPreferences.getString(pref_key, pref_default).get() ?: pref_default
+    private fun setString(pref_key: String, pref_new_value: String) {
+        preferences.edit().putString(pref_key, pref_new_value).commit()
+    }
 }
