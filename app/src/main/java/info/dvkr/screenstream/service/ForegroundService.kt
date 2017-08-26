@@ -97,6 +97,7 @@ class ForegroundService : Service(), ForegroundServiceView {
 
     // Base values
     private lateinit var baseFavicon: ByteArray
+    private lateinit var baseLogo: ByteArray
     private lateinit var baseIndexHtml: String
     private lateinit var basePinRequestHtml: String
     private lateinit var pinRequestErrorMsg: String
@@ -134,6 +135,7 @@ class ForegroundService : Service(), ForegroundServiceView {
             when (event) {
                 is ForegroundService.LocalEvent.StartService -> {
                     baseFavicon = getFavicon(applicationContext)
+                    baseLogo = getLogo(applicationContext)
                     baseIndexHtml = getBaseIndexHtml(applicationContext)
                     basePinRequestHtml = getBasePinRequestHtml(applicationContext)
                     pinRequestErrorMsg = applicationContext.getString(R.string.html_wrong_pin)
@@ -162,6 +164,7 @@ class ForegroundService : Service(), ForegroundServiceView {
                     fromEvents.onNext(ForegroundServiceView.FromEvent.StartHttpServer(
                             serverAddress,
                             baseFavicon,
+                            baseLogo,
                             baseIndexHtml,
                             basePinRequestHtml,
                             pinRequestErrorMsg,
@@ -415,6 +418,12 @@ class ForegroundService : Service(), ForegroundServiceView {
         val iconBytes = getFileFromAssets(context, "favicon.ico")
         if (iconBytes.isEmpty()) throw IllegalStateException("baseFavicon.ico is empty")
         return iconBytes
+    }
+
+    private fun getLogo(context: Context): ByteArray {
+        val logoBytes = getFileFromAssets(context, "logo_big.png")
+        if (logoBytes.isEmpty()) throw IllegalStateException("logo_big.png is empty")
+        return logoBytes
     }
 
     private fun getBaseIndexHtml(context: Context): String {

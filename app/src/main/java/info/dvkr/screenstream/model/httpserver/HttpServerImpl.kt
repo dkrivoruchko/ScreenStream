@@ -23,6 +23,7 @@ import kotlin.collections.HashMap
 
 class HttpServerImpl constructor(serverAddress: InetSocketAddress,
                                  favicon: ByteArray,
+                                 logo: ByteArray,
                                  baseIndexHtml: String,
                                  backgroundColor: Int,
                                  disableMJpegCheck: Boolean,
@@ -139,6 +140,7 @@ class HttpServerImpl constructor(serverAddress: InetSocketAddress,
 
         httpServerRxHandler = HttpServerRxHandler(
                 favicon,
+                logo,
                 indexHtmlPage,
                 pinEnabled,
                 pinAddress,

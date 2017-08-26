@@ -52,10 +52,11 @@ class ForegroundServicePresenter @Inject internal constructor(private val settin
                 }
 
                 is ForegroundServiceView.FromEvent.StartHttpServer -> {
-                    val (serverAddress, favicon, baseIndexHtml, basePinRequestHtml, pinRequestErrorMsg, jpegByteStream) = fromEvent
+                    val (serverAddress, favicon, logo, baseIndexHtml, basePinRequestHtml, pinRequestErrorMsg, jpegByteStream) = fromEvent
                     globalStatus.error.set(null)
                     httpServer = HttpServerImpl(serverAddress,
                             favicon,
+                            logo,
                             baseIndexHtml,
                             settings.htmlBackColor,
                             settings.disableMJPEGCheck,

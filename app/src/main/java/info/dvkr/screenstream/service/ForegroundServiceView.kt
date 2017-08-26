@@ -16,6 +16,7 @@ interface ForegroundServiceView {
         @Keep class Init : FromEvent()
         @Keep data class StartHttpServer(val serverAddress: InetSocketAddress,
                                          val favicon: ByteArray,
+                                         val logo: ByteArray,
                                          val baseIndexHtml: String,
                                          val basePinRequestHtml: String,
                                          val pinRequestErrorMsg: String,

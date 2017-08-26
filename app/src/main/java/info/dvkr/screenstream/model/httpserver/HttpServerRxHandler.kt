@@ -23,6 +23,7 @@ import java.net.InetSocketAddress
 import java.util.concurrent.Executors
 
 internal class HttpServerRxHandler(private val favicon: ByteArray,
+                                   private val logo: ByteArray,
                                    private val indexHtmlPage: String,
                                    private val pinEnabled: Boolean,
                                    private val pinAddress: String,
@@ -70,6 +71,7 @@ internal class HttpServerRxHandler(private val favicon: ByteArray,
         if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] Priority: ${Thread.currentThread().priority} HttpServerRxHandler: Handle: $uri")
         when {
             uri == HttpServer.DEFAULT_ICON_ADDRESS -> return sendFavicon(response)
+            uri == HttpServer.DEFAULT_LOGO_ADDRESS -> return sendLogo(response)
             uri == HttpServer.DEFAULT_HTML_ADDRESS -> return if (pinEnabled) sendHtml(response, pinRequestHtmlPage) else sendHtml(response, indexHtmlPage)
             uri == pinAddress && pinEnabled -> return sendHtml(response, indexHtmlPage)
             uri.startsWith(HttpServer.DEFAULT_PIN_ADDRESS) && pinEnabled -> return sendHtml(response, pinRequestErrorHtmlPage)
@@ -93,6 +95,15 @@ internal class HttpServerRxHandler(private val favicon: ByteArray,
         response.setHeader(HttpHeaderNames.CONTENT_LENGTH, Integer.toString(favicon.size))
         response.setHeader(HttpHeaderNames.CONNECTION, HttpHeaderValues.CLOSE)
         return response.writeBytesAndFlushOnEach(Observable.just(favicon))
+    }
+
+    private fun sendLogo(response: HttpServerResponse<ByteBuf>): Observable<Void> {
+        response.status = HttpResponseStatus.OK
+        response.addHeader(HttpHeaderNames.CONTENT_TYPE, "image/png")
+        response.setHeader(HttpHeaderNames.CACHE_CONTROL, "no-cache,no-store,max-age=0,must-revalidate")
+        response.setHeader(HttpHeaderNames.CONTENT_LENGTH, Integer.toString(logo.size))
+        response.setHeader(HttpHeaderNames.CONNECTION, HttpHeaderValues.CLOSE)
+        return response.writeBytesAndFlushOnEach(Observable.just(logo))
     }
 
     private fun sendHtml(response: HttpServerResponse<ByteBuf>, html: String): Observable<Void> {

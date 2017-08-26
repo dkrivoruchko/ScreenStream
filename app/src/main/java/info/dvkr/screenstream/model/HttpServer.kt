@@ -24,6 +24,7 @@ interface HttpServer {
         const val DEFAULT_STREAM_ADDRESS = "/stream.mjpeg"
         const val DEFAULT_ICON_ADDRESS = "/favicon.ico"
         const val DEFAULT_PIN_ADDRESS = "/?pin="
+        const val DEFAULT_LOGO_ADDRESS = "/logo_big.png"
     }
 
     // Clients. Open for HttpServerImpl
