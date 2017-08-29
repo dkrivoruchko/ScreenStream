@@ -1,7 +1,6 @@
 package info.dvkr.screenstream.presenter
 
 
-import com.crashlytics.android.Crashlytics
 import info.dvkr.screenstream.BuildConfig
 import info.dvkr.screenstream.dagger.PersistentScope
 import info.dvkr.screenstream.model.EventBus
@@ -109,10 +108,8 @@ class SettingsActivityPresenter @Inject internal constructor(private val setting
                     try {
                         serverSocket = ServerSocket(fromEvent.value)
                         portFree = true
-                    } catch (ex: Throwable) {
+                    } catch (ignore: Throwable) {
                         // Port is busy
-                        Crashlytics.log("Settings: Requested port: ${fromEvent.value}")
-                        Crashlytics.logException(ex)
                     } finally {
                         serverSocket?.close()
                         if (portFree) {

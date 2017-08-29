@@ -74,7 +74,11 @@ class StartActivity : BaseActivity(), StartActivityView {
             when (event) {
                 is StartActivityView.ToEvent.TryToStart -> {
                     val projectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
-                    startActivityForResult(projectionManager.createScreenCaptureIntent(), REQUEST_CODE_SCREEN_CAPTURE)
+                    try {
+                        startActivityForResult(projectionManager.createScreenCaptureIntent(), REQUEST_CODE_SCREEN_CAPTURE)
+                    } catch (ex: ActivityNotFoundException) {
+                        fromEvents.onNext(StartActivityView.FromEvent.Error(ex))
+                    }
                 }
 
                 is StartActivityView.ToEvent.OnStreamStartStop -> {
@@ -94,6 +98,12 @@ class StartActivity : BaseActivity(), StartActivityView {
                         val alerter = Alerter.create(this)
 
                         when (it) {
+                            is ActivityNotFoundException -> {
+                                canStart = false
+                                alerter.setTitle(R.string.start_activity_alert_title_error_activity_not_found)
+                                        .setText(R.string.start_activity_error_activity_not_found)
+                            }
+
                             is UnsupportedOperationException -> {
                                 canStart = false
                                 alerter.setTitle(R.string.start_activity_alert_title_error)

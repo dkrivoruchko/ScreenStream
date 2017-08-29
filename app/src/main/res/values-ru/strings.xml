@@ -27,6 +27,8 @@
     <string name="start_activity_error_network_unknown">Неизвестная сетевая ошибка</string>
     <string name="start_activity_error_invalid_media_projection">Ошибка безопасности: Недопустимая проекция медиа. Попробуйте еще раз</string>
     <string name="start_activity_error_wrong_image_format">Система отдает изображение в неверном формате. Решения проблемы нет.</string>
+    <string name="start_activity_alert_title_error_activity_not_found">Ошибка диалога доступа</string>
+    <string name="start_activity_error_activity_not_found">Баг Андроида. Не отмечайте \"Больше не показывать\" в диалоге запроса доступа к изображению экрана. Если вы уже отметили, переустановите приложение.</string>
 
     <string name="start_activity_email_chooser_header">Отправка письма…</string>
 

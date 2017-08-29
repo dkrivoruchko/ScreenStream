@@ -30,6 +30,8 @@
     <string name="start_activity_error_network_unknown">Unknown network error</string>
     <string name="start_activity_error_invalid_media_projection">Security error: Invalid media projection. Try one more time</string>
     <string name="start_activity_error_wrong_image_format">System returns image in unknown format. No fix available. Sorry.</string>
+    <string name="start_activity_alert_title_error_activity_not_found">Permission dialog error</string>
+    <string name="start_activity_error_activity_not_found">Android bug. Don\'t check \"Don\'t show again\" at the rights request dialogue to capture the screen. If you already did so, reinstall the app.</string>
 
     <string name="start_activity_email_chooser_header">Sending email…</string>
 
