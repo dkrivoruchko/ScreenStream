@@ -15,6 +15,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.WindowManager
 import com.crashlytics.android.Crashlytics
+import com.jakewharton.rxrelay.PublishRelay
 import com.mikepenz.materialdrawer.Drawer
 import com.mikepenz.materialdrawer.DrawerBuilder
 import com.mikepenz.materialdrawer.model.DividerDrawerItem
@@ -31,7 +32,6 @@ import kotlinx.android.synthetic.main.activity_start.*
 import kotlinx.android.synthetic.main.server_address.view.*
 import rx.Observable
 import rx.android.schedulers.AndroidSchedulers
-import rx.subjects.PublishSubject
 import java.net.BindException
 import javax.inject.Inject
 
@@ -61,7 +61,7 @@ class StartActivity : BaseActivity(), StartActivityView {
 
     @Inject internal lateinit var presenter: StartActivityPresenter
     @Inject internal lateinit var settings: Settings
-    private val fromEvents = PublishSubject.create<StartActivityView.FromEvent>()
+    private val fromEvents = PublishRelay.create<StartActivityView.FromEvent>()
     private lateinit var drawer: Drawer
     private var canStart: Boolean = true
 
@@ -77,7 +77,7 @@ class StartActivity : BaseActivity(), StartActivityView {
                     try {
                         startActivityForResult(projectionManager.createScreenCaptureIntent(), REQUEST_CODE_SCREEN_CAPTURE)
                     } catch (ex: ActivityNotFoundException) {
-                        fromEvents.onNext(StartActivityView.FromEvent.Error(ex))
+                        fromEvents.call(StartActivityView.FromEvent.Error(ex))
                     }
                 }
 
@@ -173,11 +173,11 @@ class StartActivity : BaseActivity(), StartActivityView {
                 toggleButtonStartStop.isChecked = false
                 if (!canStart) return@setOnClickListener
                 toggleButtonStartStop.isEnabled = false
-                fromEvents.onNext(StartActivityView.FromEvent.TryStartStream())
+                fromEvents.call(StartActivityView.FromEvent.TryStartStream())
             } else {
                 toggleButtonStartStop.isChecked = true
                 toggleButtonStartStop.isEnabled = false
-                fromEvents.onNext(StartActivityView.FromEvent.StopStream())
+                fromEvents.call(StartActivityView.FromEvent.StopStream())
             }
         }
 
@@ -214,7 +214,7 @@ class StartActivity : BaseActivity(), StartActivityView {
                     }
 
                     if (drawerItem.identifier == 7L) startActivity(AboutActivity.getStartIntent(this))
-                    if (drawerItem.identifier == 8L) fromEvents.onNext(StartActivityView.FromEvent.AppExit())
+                    if (drawerItem.identifier == 8L) fromEvents.call(StartActivityView.FromEvent.AppExit())
                     true
                 }
                 .build()
@@ -244,22 +244,22 @@ class StartActivity : BaseActivity(), StartActivityView {
             ACTION_START_STREAM -> {
                 if (!canStart) return
                 toggleButtonStartStop.isEnabled = false
-                fromEvents.onNext(StartActivityView.FromEvent.TryStartStream())
+                fromEvents.call(StartActivityView.FromEvent.TryStartStream())
             }
 
             ACTION_STOP_STREAM -> {
                 toggleButtonStartStop.isEnabled = false
-                fromEvents.onNext(StartActivityView.FromEvent.StopStream())
+                fromEvents.call(StartActivityView.FromEvent.StopStream())
             }
 
-            ACTION_EXIT -> fromEvents.onNext(StartActivityView.FromEvent.AppExit())
+            ACTION_EXIT -> fromEvents.call(StartActivityView.FromEvent.AppExit())
         }
     }
 
     override fun onResume() {
         super.onResume()
-        fromEvents.onNext(StartActivityView.FromEvent.CurrentInterfacesRequest())
-        fromEvents.onNext(StartActivityView.FromEvent.GetError())
+        fromEvents.call(StartActivityView.FromEvent.CurrentInterfacesRequest())
+        fromEvents.call(StartActivityView.FromEvent.GetError())
     }
 
     override fun onBackPressed() {
@@ -302,7 +302,7 @@ class StartActivity : BaseActivity(), StartActivityView {
                     if (BuildConfig.DEBUG_MODE) Log.e(TAG, "onActivityResult ERROR: data = null")
                     val error = IllegalStateException("onActivityResult: data = null")
                     Crashlytics.logException(error)
-                    fromEvents.onNext(StartActivityView.FromEvent.Error(error))
+                    fromEvents.call(StartActivityView.FromEvent.Error(error))
                     return
                 }
                 startService(ForegroundService.getStartStreamIntent(applicationContext, data))

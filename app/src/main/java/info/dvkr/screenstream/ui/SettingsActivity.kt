@@ -17,6 +17,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
+import com.jakewharton.rxrelay.PublishRelay
 import com.jrummyapps.android.colorpicker.ColorPickerDialog
 import com.jrummyapps.android.colorpicker.ColorPickerDialogListener
 import com.tapadoo.alerter.Alerter
@@ -29,7 +30,6 @@ import kotlinx.android.synthetic.main.settings_edittext_dialog.view.*
 import rx.Observable
 import rx.android.schedulers.AndroidSchedulers
 import rx.functions.Action1
-import rx.subjects.PublishSubject
 import javax.inject.Inject
 
 
@@ -44,7 +44,7 @@ class SettingsActivity : BaseActivity(), SettingsActivityView, ColorPickerDialog
 
     @Inject internal lateinit var presenter: SettingsActivityPresenter
 
-    private val fromEvents = PublishSubject.create<SettingsActivityView.FromEvent>()
+    private val fromEvents = PublishRelay.create<SettingsActivityView.FromEvent>()
 
     private var htmlBackColor: Int = 0
     private val screenSize = Point()
@@ -65,25 +65,25 @@ class SettingsActivity : BaseActivity(), SettingsActivityView, ColorPickerDialog
         // Interface - Minimize on stream
         clMinimizeOnStream.setOnClickListener { _ -> checkBoxMinimizeOnStream.performClick() }
         checkBoxMinimizeOnStream.setOnClickListener { _ ->
-            fromEvents.onNext(SettingsActivityView.FromEvent.MinimizeOnStream(checkBoxMinimizeOnStream.isChecked))
+            fromEvents.call(SettingsActivityView.FromEvent.MinimizeOnStream(checkBoxMinimizeOnStream.isChecked))
         }
 
         // Interface - Stop on sleep
         clStopOnSleep.setOnClickListener { _ -> checkBoxStopOnSleep.performClick() }
         checkBoxStopOnSleep.setOnClickListener { _ ->
-            fromEvents.onNext(SettingsActivityView.FromEvent.StopOnSleep(checkBoxStopOnSleep.isChecked))
+            fromEvents.call(SettingsActivityView.FromEvent.StopOnSleep(checkBoxStopOnSleep.isChecked))
         }
 
         // Interface - StartService on boot
         clStartOnBoot.setOnClickListener { _ -> checkBoxStartOnBoot.performClick() }
         checkBoxStartOnBoot.setOnClickListener { _ ->
-            fromEvents.onNext(SettingsActivityView.FromEvent.StartOnBoot(checkBoxStartOnBoot.isChecked))
+            fromEvents.call(SettingsActivityView.FromEvent.StartOnBoot(checkBoxStartOnBoot.isChecked))
         }
 
         // Interface - HTML MJPEG check
         clMjpegCheck.setOnClickListener { _ -> checkBoxMjpegCheck.performClick() }
         checkBoxMjpegCheck.setOnClickListener { _ ->
-            fromEvents.onNext(SettingsActivityView.FromEvent.DisableMjpegCheck(checkBoxMjpegCheck.isChecked))
+            fromEvents.call(SettingsActivityView.FromEvent.DisableMjpegCheck(checkBoxMjpegCheck.isChecked))
         }
 
         // Interface - HTML Back color
@@ -105,7 +105,7 @@ class SettingsActivity : BaseActivity(), SettingsActivityView, ColorPickerDialog
                     2, 3,
                     10, 150,
                     Integer.toString(resizeFactor),
-                    Action1 { newValue -> fromEvents.onNext(SettingsActivityView.FromEvent.ResizeFactor(Integer.parseInt(newValue))) },
+                    Action1 { newValue -> fromEvents.call(SettingsActivityView.FromEvent.ResizeFactor(Integer.parseInt(newValue))) },
                     true,
                     R.string.pref_resize_dialog_result
             )
@@ -121,7 +121,7 @@ class SettingsActivity : BaseActivity(), SettingsActivityView, ColorPickerDialog
                     2, 3,
                     10, 100,
                     textViewJpegQualityValue.text.toString(),
-                    Action1 { newValue -> fromEvents.onNext(SettingsActivityView.FromEvent.JpegQuality(Integer.parseInt(newValue))) }
+                    Action1 { newValue -> fromEvents.call(SettingsActivityView.FromEvent.JpegQuality(Integer.parseInt(newValue))) }
             )
             dialog?.show()
         }
@@ -134,27 +134,27 @@ class SettingsActivity : BaseActivity(), SettingsActivityView, ColorPickerDialog
             enableDisableView(clNewPinOnAppStart, checked)
             enableDisableView(clAutoChangePin, checked)
             enableDisableView(clSetPin, checkBoxEnablePin.isChecked && !checkBoxNewPinOnAppStart.isChecked && !checkBoxAutoChangePin.isChecked)
-            fromEvents.onNext(SettingsActivityView.FromEvent.EnablePin(checked))
+            fromEvents.call(SettingsActivityView.FromEvent.EnablePin(checked))
         }
 
         // Security - Hide pin on start
         clHidePinOnStart.setOnClickListener { _ -> checkBoxHidePinOnStart.performClick() }
         checkBoxHidePinOnStart.setOnClickListener { _ ->
-            fromEvents.onNext(SettingsActivityView.FromEvent.HidePinOnStart(checkBoxHidePinOnStart.isChecked))
+            fromEvents.call(SettingsActivityView.FromEvent.HidePinOnStart(checkBoxHidePinOnStart.isChecked))
         }
 
         // Security - New pin on app start
         clNewPinOnAppStart.setOnClickListener { _ -> checkBoxNewPinOnAppStart.performClick() }
         checkBoxNewPinOnAppStart.setOnClickListener { _ ->
             enableDisableView(clSetPin, checkBoxEnablePin.isChecked && !checkBoxNewPinOnAppStart.isChecked && !checkBoxAutoChangePin.isChecked)
-            fromEvents.onNext(SettingsActivityView.FromEvent.NewPinOnAppStart(checkBoxNewPinOnAppStart.isChecked))
+            fromEvents.call(SettingsActivityView.FromEvent.NewPinOnAppStart(checkBoxNewPinOnAppStart.isChecked))
         }
 
         // Security - Auto change pin
         clAutoChangePin.setOnClickListener { _ -> checkBoxAutoChangePin.performClick() }
         checkBoxAutoChangePin.setOnClickListener { _ ->
             enableDisableView(clSetPin, checkBoxEnablePin.isChecked && !checkBoxNewPinOnAppStart.isChecked && !checkBoxAutoChangePin.isChecked)
-            fromEvents.onNext(SettingsActivityView.FromEvent.AutoChangePin(checkBoxAutoChangePin.isChecked))
+            fromEvents.call(SettingsActivityView.FromEvent.AutoChangePin(checkBoxAutoChangePin.isChecked))
         }
 
         // Security - Set pin
@@ -166,7 +166,7 @@ class SettingsActivity : BaseActivity(), SettingsActivityView, ColorPickerDialog
                     4, 4,
                     0, 9999,
                     textViewSetPinValue.text.toString(),
-                    Action1 { newValue -> fromEvents.onNext(SettingsActivityView.FromEvent.SetPin(newValue)) }
+                    Action1 { newValue -> fromEvents.call(SettingsActivityView.FromEvent.SetPin(newValue)) }
             )
             dialog?.show()
         }
@@ -174,7 +174,7 @@ class SettingsActivity : BaseActivity(), SettingsActivityView, ColorPickerDialog
         // Advanced - Use WiFi Only
         clUseWifiOnly.setOnClickListener { _ -> checkBoxUseWifiOnly.performClick() }
         checkBoxUseWifiOnly.setOnClickListener { _ ->
-            fromEvents.onNext(SettingsActivityView.FromEvent.UseWiFiOnly(checkBoxUseWifiOnly.isChecked))
+            fromEvents.call(SettingsActivityView.FromEvent.UseWiFiOnly(checkBoxUseWifiOnly.isChecked))
         }
 
         // Advanced - Server port
@@ -186,7 +186,7 @@ class SettingsActivity : BaseActivity(), SettingsActivityView, ColorPickerDialog
                     4, 6,
                     1025, 65535,
                     textViewServerPortValue.text.toString(),
-                    Action1 { newValue -> fromEvents.onNext(SettingsActivityView.FromEvent.ServerPort(Integer.parseInt(newValue))) }
+                    Action1 { newValue -> fromEvents.call(SettingsActivityView.FromEvent.ServerPort(Integer.parseInt(newValue))) }
             )
             dialog?.show()
         }
@@ -330,7 +330,7 @@ class SettingsActivity : BaseActivity(), SettingsActivityView, ColorPickerDialog
     override fun onColorSelected(dialogId: Int, color: Int) {
         if (htmlBackColor == color) return
         viewHtmlBackColor.setBackgroundColor(color)
-        fromEvents.onNext(SettingsActivityView.FromEvent.HtmlBackColor(color))
+        fromEvents.call(SettingsActivityView.FromEvent.HtmlBackColor(color))
     }
 
     override fun onDialogDismissed(dialogId: Int) {}

@@ -1,6 +1,7 @@
 package info.dvkr.screenstream.model.httpserver
 
 
+import com.jakewharton.rxrelay.BehaviorRelay
 import info.dvkr.screenstream.BuildConfig
 import info.dvkr.screenstream.model.HttpServer
 import io.netty.buffer.ByteBuf
@@ -18,7 +19,6 @@ import rx.Subscription
 import rx.functions.Action0
 import rx.functions.Action1
 import rx.schedulers.Schedulers
-import rx.subjects.BehaviorSubject
 import java.net.InetSocketAddress
 import java.util.concurrent.Executors
 
@@ -42,7 +42,7 @@ internal class HttpServerRxHandler(private val favicon: ByteArray,
 
     // Handler internal components
     private val singleThreadExecutor = Executors.newSingleThreadExecutor()
-    private val jpegBytesStream = BehaviorSubject.create<ByteArray>()
+    private val jpegBytesStream = BehaviorRelay.create<ByteArray>()
     private val subscription: Subscription?
 
     init {
@@ -55,7 +55,7 @@ internal class HttpServerRxHandler(private val favicon: ByteArray,
 
         subscription = jpegBytesStream.observeOn(Schedulers.from(singleThreadExecutor)).subscribe { jpegBytes ->
             val jpegLength = Integer.toString(jpegBytes.size).toByteArray()
-            this.jpegBytesStream.onNext(Unpooled.copiedBuffer(jpegBaseHeader, jpegLength, CRLF, CRLF, jpegBytes, CRLF, jpegBoundary).array())
+            this.jpegBytesStream.call(Unpooled.copiedBuffer(jpegBaseHeader, jpegLength, CRLF, CRLF, jpegBytes, CRLF, jpegBoundary).array())
         }
     }
 

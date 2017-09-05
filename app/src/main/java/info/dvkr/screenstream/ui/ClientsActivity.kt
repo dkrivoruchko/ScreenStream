@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.support.v4.content.ContextCompat
 import android.util.Log
 import android.view.LayoutInflater
+import com.jakewharton.rxrelay.PublishRelay
 import com.jjoe64.graphview.DefaultLabelFormatter
 import com.jjoe64.graphview.GridLabelRenderer
 import com.jjoe64.graphview.series.DataPoint
@@ -18,7 +19,6 @@ import kotlinx.android.synthetic.main.activity_clients.*
 import kotlinx.android.synthetic.main.avtivity_clients_client_item.view.*
 import rx.Observable
 import rx.android.schedulers.AndroidSchedulers
-import rx.subjects.PublishSubject
 import java.text.NumberFormat
 import javax.inject.Inject
 
@@ -34,7 +34,7 @@ class ClientsActivity : BaseActivity(), ClientsActivityView {
     }
 
     @Inject internal lateinit var presenter: ClientsActivityPresenter
-    private val fromEvents = PublishSubject.create<ClientsActivityView.FromEvent>()
+    private val fromEvents = PublishRelay.create<ClientsActivityView.FromEvent>()
     private var lineGraphSeries: LineGraphSeries<DataPoint>? = null
 
     override fun fromEvent(): Observable<ClientsActivityView.FromEvent> = fromEvents.asObservable()
@@ -121,7 +121,7 @@ class ClientsActivity : BaseActivity(), ClientsActivityView {
 
     override fun onStart() {
         super.onStart()
-        fromEvents.onNext(ClientsActivityView.FromEvent.TrafficHistoryRequest())
+        fromEvents.call(ClientsActivityView.FromEvent.TrafficHistoryRequest())
     }
 
     override fun onDestroy() {

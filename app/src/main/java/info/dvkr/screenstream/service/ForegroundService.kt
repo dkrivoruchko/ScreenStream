@@ -23,6 +23,8 @@ import com.cantrowitz.rxbroadcast.RxBroadcast
 import com.crashlytics.android.Crashlytics
 import com.crashlytics.android.answers.Answers
 import com.crashlytics.android.answers.CustomEvent
+import com.jakewharton.rxrelay.BehaviorRelay
+import com.jakewharton.rxrelay.PublishRelay
 import info.dvkr.screenstream.BuildConfig
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.ScreenStreamApp
@@ -35,8 +37,6 @@ import rx.Observable
 import rx.Scheduler
 import rx.functions.Action1
 import rx.schedulers.Schedulers
-import rx.subjects.BehaviorSubject
-import rx.subjects.PublishSubject
 import rx.subscriptions.CompositeSubscription
 import java.net.Inet4Address
 import java.net.InetAddress
@@ -85,14 +85,14 @@ class ForegroundService : Service(), ForegroundServiceView {
 
     private var isForegroundServiceInit: Boolean = false
     private val subscriptions = CompositeSubscription()
-    private val fromEvents = PublishSubject.create<ForegroundServiceView.FromEvent>()
-    private val toEvents = PublishSubject.create<ForegroundServiceView.ToEvent>()
+    private val fromEvents = PublishRelay.create<ForegroundServiceView.FromEvent>()
+    private val toEvents = PublishRelay.create<ForegroundServiceView.ToEvent>()
 
-    private val jpegBytesStream = BehaviorSubject.create<ByteArray>()
+    private val jpegBytesStream = BehaviorRelay.create<ByteArray>()
     @Volatile private var mediaProjection: MediaProjection? = null
     @Volatile private var projectionCallback: MediaProjection.Callback? = null
     @Volatile private var imageGenerator: ImageGenerator? = null
-    private val connectionEvents = PublishSubject.create<String>()
+    private val connectionEvents = PublishRelay.create<String>()
     private lateinit var wifiRegexArray: Array<Regex>
     private val defaultWifiRegexArray: Array<Regex> = arrayOf(Regex("wlan\\d"), Regex("ap\\d"), Regex("wigig\\d"), Regex("softap\\.?\\d"))
     private lateinit var wifiManager: WifiManager
@@ -107,7 +107,7 @@ class ForegroundService : Service(), ForegroundServiceView {
 
     override fun fromEvent(): Observable<ForegroundServiceView.FromEvent> = fromEvents.asObservable()
 
-    override fun toEvent(event: ForegroundServiceView.ToEvent) = toEvents.onNext(event)
+    override fun toEvent(event: ForegroundServiceView.ToEvent) = toEvents.call(event)
 
     override fun toEvent(event: ForegroundServiceView.ToEvent, timeout: Long) {
         Observable.just<ForegroundServiceView.ToEvent>(event)
@@ -146,11 +146,11 @@ class ForegroundService : Service(), ForegroundServiceView {
                 }
 
                 is ForegroundServiceView.ToEvent.StartHttpServer -> {
-                    fromEvents.onNext(ForegroundServiceView.FromEvent.StopHttpServer())
+                    fromEvents.call(ForegroundServiceView.FromEvent.StopHttpServer())
 
                     val interfaces = getInterfaces()
                     val serverAddress: InetSocketAddress
-                    fromEvents.onNext(ForegroundServiceView.FromEvent.CurrentInterfaces(interfaces))
+                    fromEvents.call(ForegroundServiceView.FromEvent.CurrentInterfaces(interfaces))
                     if (settings.useWiFiOnly) {
                         if (interfaces.isEmpty()) {
                             if (counterStartHttpServer < 5) { // Scheduling one more try in 1 second
@@ -165,7 +165,7 @@ class ForegroundService : Service(), ForegroundServiceView {
                         serverAddress = InetSocketAddress(settings.severPort)
                     }
 
-                    fromEvents.onNext(ForegroundServiceView.FromEvent.StartHttpServer(
+                    fromEvents.call(ForegroundServiceView.FromEvent.StartHttpServer(
                             serverAddress,
                             baseFavicon,
                             baseLogo,
@@ -179,7 +179,7 @@ class ForegroundService : Service(), ForegroundServiceView {
                 is ForegroundServiceView.ToEvent.NotifyImage -> {
                     Observable.just(event.notifyType).observeOn(Schedulers.computation())
                             .map { notifyType -> imageNotify.getImage(notifyType) }
-                            .subscribe { byteArray -> jpegBytesStream.onNext(byteArray) }
+                            .subscribe { byteArray -> jpegBytesStream.call(byteArray) }
                 }
 
                 is ForegroundService.LocalEvent.StartStream -> {
@@ -196,7 +196,7 @@ class ForegroundService : Service(), ForegroundServiceView {
                             globalStatus,
                             settings.resizeFactor,
                             settings.jpegQuality,
-                            Action1 { imageByteArray -> jpegBytesStream.onNext(imageByteArray) })
+                            Action1 { imageByteArray -> jpegBytesStream.call(imageByteArray) })
 
                     stopForeground(true)
                     startForeground(NOTIFICATION_STOP_STREAMING, getCustomNotification(NOTIFICATION_STOP_STREAMING))
@@ -215,7 +215,7 @@ class ForegroundService : Service(), ForegroundServiceView {
                     stopMediaProjection()
                     startForeground(NOTIFICATION_START_STREAMING, getCustomNotification(NOTIFICATION_START_STREAMING))
                     if (event.isNotifyOnComplete)
-                        fromEvents.onNext(ForegroundServiceView.FromEvent.StopStreamComplete())
+                        fromEvents.call(ForegroundServiceView.FromEvent.StopStreamComplete())
                 }
 
                 is ForegroundServiceView.ToEvent.AppExit -> {
@@ -223,7 +223,7 @@ class ForegroundService : Service(), ForegroundServiceView {
                 }
 
                 is ForegroundServiceView.ToEvent.CurrentInterfacesRequest -> {
-                    fromEvents.onNext(ForegroundServiceView.FromEvent.CurrentInterfaces(getInterfaces()))
+                    fromEvents.call(ForegroundServiceView.FromEvent.CurrentInterfaces(getInterfaces()))
                 }
 
                 is ForegroundServiceView.ToEvent.Error -> {
@@ -257,9 +257,9 @@ class ForegroundService : Service(), ForegroundServiceView {
                 .subscribe { action ->
                     if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] Action: " + action)
                     when (action) {
-                        Intent.ACTION_SCREEN_OFF -> fromEvents.onNext(ForegroundServiceView.FromEvent.ScreenOff())
-                        WifiManager.WIFI_STATE_CHANGED_ACTION -> connectionEvents.onNext(WifiManager.WIFI_STATE_CHANGED_ACTION)
-                        ConnectivityManager.CONNECTIVITY_ACTION -> connectionEvents.onNext(ConnectivityManager.CONNECTIVITY_ACTION)
+                        Intent.ACTION_SCREEN_OFF -> fromEvents.call(ForegroundServiceView.FromEvent.ScreenOff())
+                        WifiManager.WIFI_STATE_CHANGED_ACTION -> connectionEvents.call(WifiManager.WIFI_STATE_CHANGED_ACTION)
+                        ConnectivityManager.CONNECTIVITY_ACTION -> connectionEvents.call(ConnectivityManager.CONNECTIVITY_ACTION)
                     }
                 })
 
@@ -268,9 +268,9 @@ class ForegroundService : Service(), ForegroundServiceView {
                 .subscribe { _ ->
                     if (settings.useWiFiOnly) {
                         counterStartHttpServer = 0
-                        fromEvents.onNext(ForegroundServiceView.FromEvent.HttpServerRestartRequest())
+                        fromEvents.call(ForegroundServiceView.FromEvent.HttpServerRestartRequest())
                     } else {
-                        fromEvents.onNext(ForegroundServiceView.FromEvent.CurrentInterfaces(getInterfaces()))
+                        fromEvents.call(ForegroundServiceView.FromEvent.CurrentInterfaces(getInterfaces()))
                     }
                 }
         )
@@ -297,7 +297,7 @@ class ForegroundService : Service(), ForegroundServiceView {
 
         when (action) {
             ACTION_INIT -> if (!isForegroundServiceInit) {
-                fromEvents.onNext(ForegroundServiceView.FromEvent.Init())
+                fromEvents.call(ForegroundServiceView.FromEvent.Init())
                 isForegroundServiceInit = true
             }
 
@@ -306,7 +306,7 @@ class ForegroundService : Service(), ForegroundServiceView {
             }
 
             ACTION_START_STREAM ->
-                toEvents.onNext(ForegroundService.LocalEvent.StartStream(intent.getParcelableExtra(Intent.EXTRA_INTENT)))
+                toEvents.call(ForegroundService.LocalEvent.StartStream(intent.getParcelableExtra(Intent.EXTRA_INTENT)))
         }
 
         return Service.START_NOT_STICKY
@@ -314,7 +314,7 @@ class ForegroundService : Service(), ForegroundServiceView {
 
     override fun onDestroy() {
         if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] onDestroy: StartService")
-        fromEvents.onNext(ForegroundServiceView.FromEvent.StopHttpServer())
+        fromEvents.call(ForegroundServiceView.FromEvent.StopHttpServer())
         subscriptions.clear()
         stopForeground(true)
         stopMediaProjection()
