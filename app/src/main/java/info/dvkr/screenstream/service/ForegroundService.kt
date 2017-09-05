@@ -39,6 +39,7 @@ import rx.subjects.BehaviorSubject
 import rx.subjects.PublishSubject
 import rx.subscriptions.CompositeSubscription
 import java.net.Inet4Address
+import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.net.NetworkInterface
 import java.nio.charset.Charset
@@ -93,6 +94,8 @@ class ForegroundService : Service(), ForegroundServiceView {
     @Volatile private var imageGenerator: ImageGenerator? = null
     private val connectionEvents = PublishSubject.create<String>()
     private lateinit var wifiRegexArray: Array<Regex>
+    private val defaultWifiRegexArray: Array<Regex> = arrayOf(Regex("wlan\\d"), Regex("ap\\d"), Regex("wigig\\d"), Regex("softap\\.?\\d"))
+    private lateinit var wifiManager: WifiManager
     private var counterStartHttpServer: Int = 0
 
     // Base values
@@ -118,6 +121,7 @@ class ForegroundService : Service(), ForegroundServiceView {
         val tetherId = Resources.getSystem().getIdentifier("config_tether_wifi_regexs", "array", "android")
         wifiRegexArray = resources.getStringArray(tetherId).map { it.toRegex() }.toTypedArray()
         Answers.getInstance().logCustom(CustomEvent("WIFI_REGEX").putCustomAttribute("ConfigTetherWifiRegexs", Arrays.toString(wifiRegexArray)))
+        wifiManager = applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
 
         (application as ScreenStreamApp).appComponent().plusActivityComponent().inject(this)
         presenter.attach(this)
@@ -455,7 +459,8 @@ class ForegroundService : Service(), ForegroundServiceView {
                     val inetAddress = enumIpAddr.nextElement()
                     if (!inetAddress.isLoopbackAddress && inetAddress is Inet4Address)
                         if (settings.useWiFiOnly) {
-                            if (wifiRegexArray.any { it.matches(networkInterface.displayName) }) {
+                            if (defaultWifiRegexArray.any { it.matches(networkInterface.displayName) } ||
+                                    wifiRegexArray.any { it.matches(networkInterface.displayName) }) {
                                 interfaceList.add(ForegroundServiceView.Interface(networkInterface.displayName, inetAddress))
                                 return interfaceList
                             }
@@ -466,8 +471,17 @@ class ForegroundService : Service(), ForegroundServiceView {
             }
         } catch (ex: Throwable) {
             if (BuildConfig.DEBUG_MODE) Log.e(TAG, ex.toString())
+            if (wifiConnected()) interfaceList.add(ForegroundServiceView.Interface("wlan0", getWiFiIpAddress()))
             Crashlytics.logException(ex)
         }
         return interfaceList
+    }
+
+    private fun wifiConnected() = wifiManager.connectionInfo.ipAddress != 0
+
+    private fun getWiFiIpAddress(): Inet4Address {
+        if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] getWiFiIpAddress")
+        val ipInt = wifiManager.connectionInfo.ipAddress
+        return InetAddress.getByAddress(ByteArray(4, { i -> (ipInt.shr(i * 8).and(255)).toByte() })) as Inet4Address
     }
 }
