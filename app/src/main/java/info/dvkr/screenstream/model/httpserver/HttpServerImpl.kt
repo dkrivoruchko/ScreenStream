@@ -2,6 +2,7 @@ package info.dvkr.screenstream.model.httpserver
 
 
 import android.support.annotation.Keep
+import com.crashlytics.android.Crashlytics
 import info.dvkr.screenstream.BuildConfig
 import info.dvkr.screenstream.model.EventBus
 import info.dvkr.screenstream.model.HttpServer
@@ -83,6 +84,7 @@ class HttpServerImpl constructor(serverAddress: InetSocketAddress,
 
     init {
         if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] HttpServer: Create")
+        Crashlytics.log(1, TAG, "HttpServer: Create")
 
         val httpServerPort = serverAddress.port
         if (httpServerPort !in 1025..65535) throw IllegalArgumentException("Tcp port must be in range [1025, 65535]")
@@ -153,6 +155,7 @@ class HttpServerImpl constructor(serverAddress: InetSocketAddress,
             httpServer.start(httpServerRxHandler)
             isRunning = true
             if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] HttpServer: Started ${httpServer.serverAddress}")
+            Crashlytics.log(1, TAG, "HttpServer: Started")
         } catch (exception: Exception) {
             eventBus.sendEvent(EventBus.GlobalEvent.Error(exception))
         }
@@ -161,6 +164,7 @@ class HttpServerImpl constructor(serverAddress: InetSocketAddress,
 
     override fun stop() {
         if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] HttpServer: Stop")
+        Crashlytics.log(1, TAG, "HttpServer: Stop")
 
         if (isRunning) {
             httpServer.shutdown()

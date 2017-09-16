@@ -57,6 +57,7 @@ class ScreenStreamApp : Application() {
         appComponent = DaggerAppComponent.builder().appModule(AppModule(this)).build()
 
         if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] onCreate: End")
+        Crashlytics.log(1, TAG, "onCreate")
     }
 
     fun appComponent(): AppComponent = appComponent

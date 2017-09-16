@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.support.v4.content.ContextCompat
 import android.util.Log
 import android.view.LayoutInflater
+import com.crashlytics.android.Crashlytics
 import com.jakewharton.rxrelay.PublishRelay
 import com.jjoe64.graphview.DefaultLabelFormatter
 import com.jjoe64.graphview.GridLabelRenderer
@@ -108,6 +109,7 @@ class ClientsActivity : BaseActivity(), ClientsActivityView {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] onCreate: Start")
+        Crashlytics.log(1, TAG, "onCreate: Start")
         setContentView(R.layout.activity_clients)
 
         textViewCurrentTraffic.text = getString(R.string.clients_activity_current_traffic).format(0.0)
@@ -115,6 +117,7 @@ class ClientsActivity : BaseActivity(), ClientsActivityView {
 
         presenter.attach(this)
         if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] onCreate: End")
+        Crashlytics.log(1, TAG, "onCreate: End")
     }
 
     override fun inject(injector: NonConfigurationComponent) = injector.inject(this)
@@ -128,6 +131,7 @@ class ClientsActivity : BaseActivity(), ClientsActivityView {
         if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] onDestroy: Start")
         presenter.detach()
         if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] onDestroy: End")
+        Crashlytics.log(1, TAG, "onDestroy: End")
         super.onDestroy()
     }
 

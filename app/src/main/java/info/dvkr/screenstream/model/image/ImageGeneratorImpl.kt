@@ -120,16 +120,13 @@ class ImageGeneratorImpl(context: Context,
         globalStatus.isStreamRunning.set(true)
         eventBus.sendEvent(EventBus.GlobalEvent.StreamStatus())
         if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] Constructor: End")
-        Crashlytics.log(1, "ImageGeneratorImpl.init", "imageReaderState=$imageReaderState")
-        Crashlytics.log(1, "ImageGeneratorImpl.init", "isStreamRunning=${globalStatus.isStreamRunning.get()}")
+        Crashlytics.log(1, TAG, "Init")
     }
 
     override fun stop() {
         synchronized(lock) {
             if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] Stop")
-
-            Crashlytics.log(1, "ImageGeneratorImpl.stop", "imageReaderState=$imageReaderState")
-            Crashlytics.log(1, "ImageGeneratorImpl.stop", "isStreamRunning=${globalStatus.isStreamRunning.get()}")
+            Crashlytics.log(1, TAG, "Stop")
 
             if (!(STATE_STARTED == imageReaderState || STATE_ERROR == imageReaderState))
                 throw IllegalStateException("ImageGeneratorImpl in imageReaderState: $imageReaderState")
@@ -152,10 +149,7 @@ class ImageGeneratorImpl(context: Context,
     private fun restart() {
         synchronized(lock) {
             if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] Restart: Start")
-
-            Crashlytics.log(1, "ImageGeneratorImpl.restart", "imageReaderState=$imageReaderState")
-            Crashlytics.log(1, "ImageGeneratorImpl.restart", "isStreamRunning=${globalStatus.isStreamRunning.get()}")
-            Crashlytics.log(1, "ImageGeneratorImpl.restart", "mediaProjection=$mediaProjection")
+            Crashlytics.log(1, TAG, "Restart")
 
             if (STATE_STARTED != imageReaderState)
                 throw IllegalStateException("ImageGeneratorImpl in imageReaderState: $imageReaderState")

@@ -157,6 +157,7 @@ class StartActivity : BaseActivity(), StartActivityView {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] onCreate: Start")
+        Crashlytics.log(1, TAG, "onCreate: Start")
 
         setContentView(R.layout.activity_start)
         setSupportActionBar(toolbarStart)
@@ -228,6 +229,7 @@ class StartActivity : BaseActivity(), StartActivityView {
         onNewIntent(intent)
 
         if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] onCreate: End")
+        Crashlytics.log(1, TAG, "onCreate: End")
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -240,6 +242,7 @@ class StartActivity : BaseActivity(), StartActivityView {
         intent.removeExtra(EXTRA_DATA)
         this.intent = intent
 
+        Crashlytics.log(1, TAG, "Action: $action")
         when (action) {
             ACTION_START_STREAM -> {
                 if (!canStart) return
@@ -277,6 +280,7 @@ class StartActivity : BaseActivity(), StartActivityView {
         if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] onDestroy: Start")
         presenter.detach()
         if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] onDestroy: End")
+        Crashlytics.log(1, TAG, "onDestroy: End")
         super.onDestroy()
     }
 
@@ -294,6 +298,7 @@ class StartActivity : BaseActivity(), StartActivityView {
                             .enableSwipeToDismiss()
                             .show()
                     if (BuildConfig.DEBUG_MODE) Log.w(TAG, "onActivityResult: Screen Cast permission denied")
+                    Crashlytics.log(1, TAG, "onActivityResult: Screen Cast permission denied")
                     return
                 }
 
