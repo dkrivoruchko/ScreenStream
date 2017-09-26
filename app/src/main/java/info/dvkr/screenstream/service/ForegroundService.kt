@@ -33,8 +33,10 @@ import info.dvkr.screenstream.model.image.ImageGeneratorImpl
 import info.dvkr.screenstream.presenter.ForegroundServicePresenter
 import info.dvkr.screenstream.ui.StartActivity
 import kotlinx.android.synthetic.main.slow_connection_toast.view.*
+import rx.BackpressureOverflow
 import rx.Observable
 import rx.Scheduler
+import rx.functions.Action0
 import rx.functions.Action1
 import rx.schedulers.Schedulers
 import rx.subscriptions.CompositeSubscription
@@ -173,7 +175,9 @@ class ForegroundService : Service(), ForegroundServiceView {
                             baseIndexHtml,
                             basePinRequestHtml,
                             pinRequestErrorMsg,
-                            jpegBytesStream.asObservable())
+                            jpegBytesStream.onBackpressureBuffer(2,
+                                    Action0 { Crashlytics.log(1, TAG, "jpegBytesStream.onBackpressureBuffer - ON_OVERFLOW_DROP_OLDEST") },
+                                    BackpressureOverflow.ON_OVERFLOW_DROP_OLDEST))
                     )
                 }
 
@@ -480,7 +484,6 @@ class ForegroundService : Service(), ForegroundServiceView {
             if (BuildConfig.DEBUG_MODE) Log.e(TAG, ex.toString())
             Crashlytics.log(1, TAG, "getInterfaces: $ex")
             if (wifiConnected()) interfaceList.add(ForegroundServiceView.Interface("wlan0", getWiFiIpAddress()))
-            Crashlytics.logException(ex)
         }
         return interfaceList
     }

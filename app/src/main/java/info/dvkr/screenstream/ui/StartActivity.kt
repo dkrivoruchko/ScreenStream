@@ -84,7 +84,12 @@ class StartActivity : BaseActivity(), StartActivityView {
                 is StartActivityView.ToEvent.OnStreamStartStop -> {
                     setStreamRunning(event.running)
                     if (event.running && settings.minimizeOnStream)
-                        startActivity(Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME).setFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                        try {
+                            startActivity(Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME).setFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                        } catch (ex: ActivityNotFoundException) {
+                            Crashlytics.log(1, TAG, "OnStreamStartStop: minimizeOnStream: ActivityNotFoundException")
+                            Crashlytics.logException(ex)
+                        }
                 }
 
                 is StartActivityView.ToEvent.ResizeFactor -> showResizeFactor(event.value)

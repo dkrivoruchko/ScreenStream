@@ -17,8 +17,8 @@ android {
         applicationId "info.dvkr.screenstream"
         minSdkVersion 21
         targetSdkVersion 26
-        versionCode 208
-        versionName "2.0.8"
+        versionCode 209
+        versionName "2.0.9"
         resConfigs "en", "ru"//, "es"
     }
 
@@ -78,7 +78,7 @@ dependencies {
     implementation('com.mikepenz:materialdrawer:5.9.5@aar') {
         transitive = true
     }
-    implementation 'com.tapadoo.android:alerter:2.0.0'
+    implementation 'com.tapadoo.android:alerter:2.0.1'
     implementation "com.github.iamironz:binaryprefs:1.0.0-BETA-2"
     implementation 'com.jrummyapps:colorpicker:2.1.7'
     implementation 'com.jjoe64:graphview:4.2.1'
@@ -86,6 +86,6 @@ dependencies {
     implementation('com.crashlytics.sdk.android:crashlytics:2.6.8@aar') {
         transitive = true
     }
-    debugImplementation 'com.squareup.leakcanary:leakcanary-android:1.5.2'
-    releaseImplementation 'com.squareup.leakcanary:leakcanary-android-no-op:1.5.2'
+    debugImplementation 'com.squareup.leakcanary:leakcanary-android:1.5.4'
+    releaseImplementation 'com.squareup.leakcanary:leakcanary-android-no-op:1.5.4'
 }
