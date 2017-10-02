@@ -2,6 +2,7 @@ package info.dvkr.screenstream.model.httpserver
 
 
 import android.support.annotation.Keep
+import android.util.Log
 import com.crashlytics.android.Crashlytics
 import info.dvkr.screenstream.BuildConfig
 import info.dvkr.screenstream.model.EventBus
