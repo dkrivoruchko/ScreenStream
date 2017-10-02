@@ -70,14 +70,17 @@ class ClientsActivityPresenter @Inject internal constructor(private val eventSch
             // From HttpServerImpl
                 is EventBus.GlobalEvent.TrafficHistory -> {
                     trafficHistory.clear()
-                    trafficHistory.addAll(globalEvent.trafficHistory)
+                    trafficHistory.addAll(globalEvent.trafficHistory.sortedBy { it.time })
                     maxYValue = trafficHistory.maxBy { it.bytes }?.bytes ?: 0
                     clientsActivity?.toEvent(ClientsActivityView.ToEvent.TrafficHistory(trafficHistory.toList(), maxYValue))
                 }
 
             // From HttpServerImpl
                 is EventBus.GlobalEvent.TrafficPoint -> {
-                    if (trafficHistory.isNotEmpty()) trafficHistory.removeFirst()
+                    if (trafficHistory.isEmpty() || trafficHistory.last.time >= globalEvent.trafficPoint.time) {
+                        return@subscribe
+                    }
+                    trafficHistory.removeFirst()
                     trafficHistory.addLast(globalEvent.trafficPoint)
                     maxYValue = trafficHistory.maxBy { it.bytes }?.bytes ?: 0
                     clientsActivity?.toEvent(ClientsActivityView.ToEvent.TrafficPoint(globalEvent.trafficPoint, maxYValue))

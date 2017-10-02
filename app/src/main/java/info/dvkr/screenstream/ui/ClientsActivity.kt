@@ -66,7 +66,7 @@ class ClientsActivity : BaseActivity(), ClientsActivityView {
                 is ClientsActivityView.ToEvent.TrafficHistory -> {
                     textViewCurrentTraffic.text = getString(R.string.clients_activity_current_traffic).format(toMbit(event.trafficHistory.last().bytes))
 
-                    val arrayOfDataPoints = event.trafficHistory.map { DataPoint(it.time.toDouble(), toMbit(it.bytes)) }.sortedBy { it.x }.toTypedArray()
+                    val arrayOfDataPoints = event.trafficHistory.map { DataPoint(it.time.toDouble(), toMbit(it.bytes)) }.toTypedArray()
                     lineChartTraffic.removeAllSeries()
                     lineGraphSeries = LineGraphSeries(arrayOfDataPoints)
                     lineGraphSeries?.apply {
