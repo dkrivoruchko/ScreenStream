@@ -13,6 +13,7 @@
     <string name="start_activity_resize_factor">Resize factor</string>
     <string name="start_activity_current_traffic">Traffic: %1$,.2f Mbit/s</string>
     <string name="start_activity_connected_clients">Connected clients: %1$d</string>
+    <string name="start_activity_copied">Copied</string>
 
     <string name="start_activity_drawer_main">Main</string>
     <string name="start_activity_drawer_traffic_clients">Traffic &amp; clients</string>

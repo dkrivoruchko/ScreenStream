@@ -10,6 +10,7 @@
     <string name="start_activity_resize_factor">Масштабирование</string>
     <string name="start_activity_current_traffic">Траффик: %1$,.2f Мбит/с</string>
     <string name="start_activity_connected_clients">Подключено клиентов: %1$d</string>
+    <string name="start_activity_copied">Скопировано</string>
 
     <string name="start_activity_drawer_main">Главная</string>
     <string name="start_activity_drawer_traffic_clients">Траффик и клиенты</string>

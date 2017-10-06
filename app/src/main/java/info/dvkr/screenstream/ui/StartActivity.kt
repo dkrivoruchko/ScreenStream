@@ -2,9 +2,7 @@ package info.dvkr.screenstream.ui
 
 
 import android.app.Activity
-import android.content.ActivityNotFoundException
-import android.content.Context
-import android.content.Intent
+import android.content.*
 import android.graphics.Point
 import android.media.projection.MediaProjectionManager
 import android.net.Uri
@@ -14,6 +12,7 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.WindowManager
+import android.widget.Toast
 import com.crashlytics.android.Crashlytics
 import com.jakewharton.rxrelay.PublishRelay
 import com.mikepenz.materialdrawer.Drawer
@@ -64,6 +63,7 @@ class StartActivity : BaseActivity(), StartActivityView {
     private val fromEvents = PublishRelay.create<StartActivityView.FromEvent>()
     private lateinit var drawer: Drawer
     private var canStart: Boolean = true
+    private val clipboard: ClipboardManager by lazy { getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager }
 
     override fun fromEvent(): Observable<StartActivityView.FromEvent> = fromEvents.asObservable()
 
@@ -349,6 +349,10 @@ class StartActivity : BaseActivity(), StartActivityView {
                 with(addressView) {
                     textViewInterfaceName.text = "$name:"
                     textViewInterfaceAddress.text = "http://${address.hostAddress}:$serverPort"
+                    imageViewCopy.setOnClickListener {
+                        clipboard.primaryClip = ClipData.newPlainText(textViewInterfaceAddress.text, textViewInterfaceAddress.text)
+                        Toast.makeText(applicationContext, R.string.start_activity_copied, Toast.LENGTH_LONG).show()
+                    }
                 }
                 linearLayoutServerAddressList.addView(addressView)
             }
