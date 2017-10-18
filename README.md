@@ -25,13 +25,13 @@ Application uses Android Cast feature and requires at least Android 5.0 to run.
 **WARING:** Some cell operators may block incoming connections to your device for security reasons, so, even if the device has an IP address from a cell operator, you may not be able to connect to the device on using this IP address.<br>
 **WARING:** Some WiFi networks (mostly public/guest) block connections between its clients for security reasons, so you may not be able to connect to the device via WiFi. For example, a laptop and a phone in this such a WiFi network will not be able to connect to each other.
 
-# Known problems
+### Known problems
 
 1. On some devices, system returns image in unknown format. Mostly on devices with no official Android 5.0 or above. Possible Android bug. App will show an error message. No solution available.
 2. On some devices no notification icon showing but notification is present. Android bug: 213309.
 3. Browser MJPEG support check is inaccurate. You can disable it in application settings.
 
-# Screenshots
+### Screenshots
 
 ![](screenshots/screenshot_1.png)&nbsp;
 ![](screenshots/screenshot_2.png)<br>
@@ -42,7 +42,7 @@ Application uses Android Cast feature and requires at least Android 5.0 to run.
 ![](screenshots/screenshot_7.png)&nbsp;
 ![](screenshots/screenshot_8.png)
 
-# Features and libraries
+## Features and libraries
 
 Version 2.x based on MVP architecture pattern and uses:
 * [Kotlin](https://kotlinlang.org)
@@ -60,13 +60,13 @@ Version 2.x based on MVP architecture pattern and uses:
 * [LeakCanary](https://github.com/square/leakcanary)
 
 
-# Developed By
+## Developed By
 
 Dmitriy Krivoruchko - <dkrivoruchko@gmail.com>
 
 If there are any issues or ideas feel free to contact me.
 
-# License
+## License
 
 ```
 The MIT License (MIT)
