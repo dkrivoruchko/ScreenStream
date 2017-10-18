@@ -32,7 +32,7 @@ class StartActivityPresenter @Inject internal constructor(private val eventSched
         startActivity = activity
 
         // Events from StartActivity
-        subscriptions.add(startActivity?.fromEvent()?.observeOn(eventScheduler)?.subscribe { fromEvent ->
+        startActivity?.fromEvent()?.observeOn(eventScheduler)?.subscribe { fromEvent ->
             if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] fromEvent: $fromEvent")
             when (fromEvent) {
             // Relaying message to ForegroundServicePresenter
@@ -71,19 +71,18 @@ class StartActivityPresenter @Inject internal constructor(private val eventSched
 
                 else -> println(TAG + ": Thread [${Thread.currentThread().name}] fromEvent: $fromEvent WARRING: IGNORED")
             }
-        })
+        }.also { subscriptions.add(it) }
 
         // Global events
-        subscriptions.add(eventBus.getEvent().observeOn(eventScheduler)
-                .filter {
-                    it is EventBus.GlobalEvent.StreamStatus ||
-                            it is EventBus.GlobalEvent.ResizeFactor ||
-                            it is EventBus.GlobalEvent.EnablePin ||
-                            it is EventBus.GlobalEvent.SetPin ||
-                            it is EventBus.GlobalEvent.CurrentClients ||
-                            it is EventBus.GlobalEvent.CurrentInterfaces ||
-                            it is EventBus.GlobalEvent.TrafficPoint
-                }.subscribe { globalEvent ->
+        eventBus.getEvent().filter {
+            it is EventBus.GlobalEvent.StreamStatus ||
+                    it is EventBus.GlobalEvent.ResizeFactor ||
+                    it is EventBus.GlobalEvent.EnablePin ||
+                    it is EventBus.GlobalEvent.SetPin ||
+                    it is EventBus.GlobalEvent.CurrentClients ||
+                    it is EventBus.GlobalEvent.CurrentInterfaces ||
+                    it is EventBus.GlobalEvent.TrafficPoint
+        }.subscribe { globalEvent ->
             if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] globalEvent: $globalEvent")
             when (globalEvent) {
             // From ImageGeneratorImpl
@@ -121,7 +120,7 @@ class StartActivityPresenter @Inject internal constructor(private val eventSched
                     startActivity?.toEvent(StartActivityView.ToEvent.TrafficPoint(globalEvent.trafficPoint))
                 }
             }
-        })
+        }.also { subscriptions.add(it) }
 
         // Sending current stream status
         startActivity?.toEvent(StartActivityView.ToEvent.StreamRunning(globalStatus.isStreamRunning.get()))

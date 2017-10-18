@@ -2,7 +2,6 @@ package info.dvkr.screenstream.model.httpserver
 
 
 import android.support.annotation.Keep
-import android.util.Log
 import com.crashlytics.android.Crashlytics
 import info.dvkr.screenstream.BuildConfig
 import info.dvkr.screenstream.model.EventBus
@@ -96,19 +95,17 @@ class HttpServerImpl constructor(serverAddress: InetSocketAddress,
                 .subscribe { trafficHistory.addLast(HttpServer.TrafficPoint(it, 0)) }
         eventBus.sendEvent(EventBus.GlobalEvent.TrafficHistory(trafficHistory.toList()))
 
-        subscriptions.add(eventBus.getEvent().observeOn(eventScheduler)
-                .filter {
-                    it is EventBus.GlobalEvent.CurrentClientsRequest ||
-                            it is EventBus.GlobalEvent.TrafficHistoryRequest
-                }.subscribe { globalEvent ->
+        eventBus.getEvent().filter {
+            it is EventBus.GlobalEvent.CurrentClientsRequest || it is EventBus.GlobalEvent.TrafficHistoryRequest
+        }.subscribe { globalEvent ->
             if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] globalEvent: $globalEvent")
             when (globalEvent) {
                 is EventBus.GlobalEvent.CurrentClientsRequest -> eventBus.sendEvent(EventBus.GlobalEvent.CurrentClients(clientsMap.values.toList()))
                 is EventBus.GlobalEvent.TrafficHistoryRequest -> eventBus.sendEvent(EventBus.GlobalEvent.TrafficHistory(trafficHistory.toList()))
             }
-        })
+        }.also { subscriptions.add(it) }
 
-        subscriptions.add(Observable.interval(1, TimeUnit.SECONDS, eventScheduler).subscribe {
+        Observable.interval(1, TimeUnit.SECONDS, eventScheduler).subscribe {
             clientsMap.values.removeAll { it.disconnected && System.currentTimeMillis() - it.disconnectedTime > 5000 }
             val trafficPoint = HttpServer.TrafficPoint(System.currentTimeMillis(), clientsMap.values.map { it.sendBytes }.sum())
             trafficHistory.removeFirst()
@@ -117,7 +114,7 @@ class HttpServerImpl constructor(serverAddress: InetSocketAddress,
 
             eventBus.sendEvent(EventBus.GlobalEvent.TrafficPoint(trafficPoint))
             eventBus.sendEvent(EventBus.GlobalEvent.CurrentClients(clientsMap.values.toList()))
-        })
+        }.also { subscriptions.add(it) }
 
         httpServer = io.reactivex.netty.protocol.http.server.HttpServer.newServer(serverAddress, globalServerEventLoop, NioServerSocketChannel::class.java)
                 .clientChannelOption(ChannelOption.CONNECT_TIMEOUT_MILLIS, 3000)

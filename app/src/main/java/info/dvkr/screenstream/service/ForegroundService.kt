@@ -134,7 +134,7 @@ class ForegroundService : Service(), ForegroundServiceView {
             (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager?)?.createNotificationChannel(channel)
         }
 
-        subscriptions.add(toEvents.startWith(ForegroundService.LocalEvent.StartService())
+        toEvents.startWith(ForegroundService.LocalEvent.StartService())
                 .observeOn(eventScheduler).subscribe { event ->
 
             if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] toEvent: " + event.javaClass.simpleName)
@@ -249,7 +249,7 @@ class ForegroundService : Service(), ForegroundServiceView {
                     toast.show()
                 }
             }
-        })
+        }.also { subscriptions.add(it) }
 
         // Registering receiver for screen off messages and network & WiFi changes
         val intentFilter = IntentFilter()
@@ -257,9 +257,9 @@ class ForegroundService : Service(), ForegroundServiceView {
         intentFilter.addAction(WifiManager.WIFI_STATE_CHANGED_ACTION)
         intentFilter.addAction(ConnectivityManager.CONNECTIVITY_ACTION)
 
-        subscriptions.add(RxBroadcast.fromBroadcast(applicationContext, intentFilter)
-                .map { it.action }
+        RxBroadcast.fromBroadcast(applicationContext, intentFilter)
                 .observeOn(eventScheduler)
+                .map { it.action }
                 .subscribe { action ->
                     if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] Action: " + action)
                     when (action) {
@@ -267,9 +267,9 @@ class ForegroundService : Service(), ForegroundServiceView {
                         WifiManager.WIFI_STATE_CHANGED_ACTION -> connectionEvents.call(WifiManager.WIFI_STATE_CHANGED_ACTION)
                         ConnectivityManager.CONNECTIVITY_ACTION -> connectionEvents.call(ConnectivityManager.CONNECTIVITY_ACTION)
                     }
-                })
+                }.also { subscriptions.add(it) }
 
-        subscriptions.add(connectionEvents.throttleWithTimeout(500, TimeUnit.MILLISECONDS, eventScheduler)
+        connectionEvents.throttleWithTimeout(500, TimeUnit.MILLISECONDS, eventScheduler)
                 .skip(1)
                 .subscribe { _ ->
                     Crashlytics.log(1, TAG, "connectionEvents")
@@ -279,8 +279,7 @@ class ForegroundService : Service(), ForegroundServiceView {
                     } else {
                         fromEvents.call(ForegroundServiceView.FromEvent.CurrentInterfaces(getInterfaces()))
                     }
-                }
-        )
+                }.also { subscriptions.add(it) }
 
         startForeground(NOTIFICATION_START_STREAMING, getCustomNotification(NOTIFICATION_START_STREAMING))
         if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] onCreate: End")

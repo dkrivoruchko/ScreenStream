@@ -53,7 +53,7 @@ class SettingsActivityPresenter @Inject internal constructor(private val setting
         }
 
         // Getting values from Activity
-        subscriptions.add(settingsActivity?.fromEvent()?.observeOn(eventScheduler)?.subscribe { fromEvent ->
+        settingsActivity?.fromEvent()?.observeOn(eventScheduler)?.subscribe { fromEvent ->
             if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] fromEvent: $fromEvent")
 
             when (fromEvent) {
@@ -128,7 +128,7 @@ class SettingsActivityPresenter @Inject internal constructor(private val setting
 
                 else -> if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] fromEvent: $fromEvent WARRING: IGNORED")
             }
-        })
+        }.also { subscriptions.add(it) }
     }
 
     fun detach() {

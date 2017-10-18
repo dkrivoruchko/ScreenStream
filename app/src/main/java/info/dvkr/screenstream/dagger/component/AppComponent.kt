@@ -10,7 +10,6 @@ import javax.inject.Singleton
 @Component(modules = arrayOf(
         AppModule::class,
         EventBusModule::class,
-        EventSchedulerModule::class,
         GlobalStatusModule::class,
         ImageNotifyModule::class,
         SettingsModule::class))

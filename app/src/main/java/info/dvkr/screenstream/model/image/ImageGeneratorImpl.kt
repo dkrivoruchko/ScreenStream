@@ -71,10 +71,9 @@ class ImageGeneratorImpl(context: Context,
         matrix.postScale(resizeFactor / 100f, resizeFactor / 100f)
         this.jpegQuality = jpegQuality
 
-        subscriptions.add(eventBus.getEvent().observeOn(eventScheduler)
-                .filter {
-                    it is EventBus.GlobalEvent.ResizeFactor || it is EventBus.GlobalEvent.JpegQuality
-                }.subscribe { globalEvent ->
+        eventBus.getEvent().filter {
+            it is EventBus.GlobalEvent.ResizeFactor || it is EventBus.GlobalEvent.JpegQuality
+        }.subscribe { globalEvent ->
             if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] globalEvent: $globalEvent")
             when (globalEvent) {
                 is EventBus.GlobalEvent.ResizeFactor -> {
@@ -85,7 +84,7 @@ class ImageGeneratorImpl(context: Context,
 
                 is EventBus.GlobalEvent.JpegQuality -> this.jpegQuality = globalEvent.value
             }
-        })
+        }.also { subscriptions.add(it) }
 
         imageThread = HandlerThread("SSImageGenerator", Process.THREAD_PRIORITY_BACKGROUND)
         imageThread.start()
@@ -107,14 +106,14 @@ class ImageGeneratorImpl(context: Context,
                 screenSize.x, screenSize.y, displayMetrics.densityDpi,
                 DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR, imageReader.surface, null, null)
 
-        subscriptions.add(Observable.interval(250, TimeUnit.MILLISECONDS, eventScheduler)
+        Observable.interval(250, TimeUnit.MILLISECONDS, eventScheduler)
                 .map { _ -> windowManager.defaultDisplay.rotation }
                 .map { rotation -> rotation == Surface.ROTATION_0 || rotation == Surface.ROTATION_180 }
                 .distinctUntilChanged()
                 .skip(1)
                 .filter { _ -> STATE_STARTED == imageReaderState }
                 .subscribe { _ -> restart() }
-        )
+                .also { subscriptions.add(it) }
 
         imageReaderState = STATE_STARTED
         globalStatus.isStreamRunning.set(true)

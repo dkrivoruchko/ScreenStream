@@ -34,7 +34,7 @@ class ClientsActivityPresenter @Inject internal constructor(private val eventSch
         clientsActivity = activity
 
         // Events from ClientsActivity
-        subscriptions.add(clientsActivity?.fromEvent()?.observeOn(eventScheduler)?.subscribe { fromEvent ->
+        clientsActivity?.fromEvent()?.observeOn(eventScheduler)?.subscribe { fromEvent ->
             if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] fromEvent: $fromEvent")
             when (fromEvent) {
 
@@ -51,15 +51,14 @@ class ClientsActivityPresenter @Inject internal constructor(private val eventSch
 
                 else -> println(TAG + ": Thread [${Thread.currentThread().name}] fromEvent: $fromEvent WARRING: IGNORED")
             }
-        })
+        }.also { subscriptions.add(it) }
 
         // Global events
-        subscriptions.add(eventBus.getEvent().observeOn(eventScheduler)
-                .filter {
-                    it is EventBus.GlobalEvent.CurrentClients ||
-                            it is EventBus.GlobalEvent.TrafficHistory ||
-                            it is EventBus.GlobalEvent.TrafficPoint
-                }.subscribe { globalEvent ->
+        eventBus.getEvent().filter {
+            it is EventBus.GlobalEvent.CurrentClients ||
+                    it is EventBus.GlobalEvent.TrafficHistory ||
+                    it is EventBus.GlobalEvent.TrafficPoint
+        }.subscribe { globalEvent ->
             if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] globalEvent: $globalEvent")
             when (globalEvent) {
             // From HttpServerImpl
@@ -86,7 +85,7 @@ class ClientsActivityPresenter @Inject internal constructor(private val eventSch
                     clientsActivity?.toEvent(ClientsActivityView.ToEvent.TrafficPoint(globalEvent.trafficPoint, maxYValue))
                 }
             }
-        })
+        }.also { subscriptions.add(it) }
 
         // Requesting current clients
         eventBus.sendEvent(EventBus.GlobalEvent.CurrentClientsRequest())

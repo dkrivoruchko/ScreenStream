@@ -40,7 +40,7 @@ class ForegroundServicePresenter @Inject internal constructor(private val settin
         foregroundService = service
 
         // Events from ForegroundService
-        subscriptions.add(foregroundService?.fromEvent()?.observeOn(eventScheduler)?.subscribe { fromEvent ->
+        foregroundService?.fromEvent()?.observeOn(eventScheduler)?.subscribe { fromEvent ->
             if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] fromEvent: ${fromEvent.javaClass.simpleName}")
 
             when (fromEvent) {
@@ -104,18 +104,17 @@ class ForegroundServicePresenter @Inject internal constructor(private val settin
 
                 else -> println(TAG + ": Thread [${Thread.currentThread().name}] fromEvent: $fromEvent WARRING: IGNORED")
             }
-        })
+        }.also { subscriptions.add(it) }
 
         // Global events
-        subscriptions.add(eventBus.getEvent().observeOn(eventScheduler)
-                .filter {
-                    it is EventBus.GlobalEvent.StopStream ||
-                            it is EventBus.GlobalEvent.AppExit ||
-                            it is EventBus.GlobalEvent.HttpServerRestart ||
-                            it is EventBus.GlobalEvent.CurrentInterfacesRequest ||
-                            it is EventBus.GlobalEvent.Error ||
-                            it is EventBus.GlobalEvent.CurrentClients
-                }.subscribe { globalEvent ->
+        eventBus.getEvent().filter {
+            it is EventBus.GlobalEvent.StopStream ||
+                    it is EventBus.GlobalEvent.AppExit ||
+                    it is EventBus.GlobalEvent.HttpServerRestart ||
+                    it is EventBus.GlobalEvent.CurrentInterfacesRequest ||
+                    it is EventBus.GlobalEvent.Error ||
+                    it is EventBus.GlobalEvent.CurrentClients
+        }.subscribe { globalEvent ->
             if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] globalEvent: $globalEvent")
             when (globalEvent) {
             // From StartActivityPresenter & ProjectionCallback
@@ -162,7 +161,7 @@ class ForegroundServicePresenter @Inject internal constructor(private val settin
                     slowConnections.addAll(currentSlowConnections)
                 }
             }
-        })
+        }.also { subscriptions.add(it) }
     }
 
     fun detach() {
