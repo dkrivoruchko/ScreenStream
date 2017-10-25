@@ -41,7 +41,7 @@ class ClientsActivity : BaseActivity(), ClientsActivityView {
     override fun fromEvent(): Observable<ClientsActivityView.FromEvent> = fromEvents.asObservable()
 
     override fun toEvent(toEvent: ClientsActivityView.ToEvent) {
-        Observable.just(toEvent).observeOn(AndroidSchedulers.mainThread()).subscribe { event ->
+        Observable.just(toEvent).subscribeOn(AndroidSchedulers.mainThread()).subscribe { event ->
             if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] toEvent: ${event.javaClass.simpleName}")
 
             when (event) {

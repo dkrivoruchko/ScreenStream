@@ -211,7 +211,7 @@ class SettingsActivity : BaseActivity(), SettingsActivityView, ColorPickerDialog
     override fun fromEvent(): Observable<SettingsActivityView.FromEvent> = fromEvents.asObservable()
 
     override fun toEvent(toEvent: SettingsActivityView.ToEvent) {
-        Observable.just(toEvent).observeOn(AndroidSchedulers.mainThread()).subscribe { event ->
+        Observable.just(toEvent).subscribeOn(AndroidSchedulers.mainThread()).subscribe { event ->
             if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}]: ${event.javaClass.simpleName}")
 
             when (event) {

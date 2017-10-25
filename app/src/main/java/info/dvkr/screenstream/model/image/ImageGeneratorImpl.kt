@@ -102,24 +102,31 @@ class ImageGeneratorImpl(context: Context,
         imageReader = ImageReader.newInstance(screenSize.x, screenSize.y, PixelFormat.RGBA_8888, 2)
         imageReader.setOnImageAvailableListener(listener, imageThreadHandler)
 
-        virtualDisplay = mediaProjection.createVirtualDisplay("ScreenStreamVirtualDisplay",
-                screenSize.x, screenSize.y, displayMetrics.densityDpi,
-                DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR, imageReader.surface, null, null)
+        try {
+            virtualDisplay = mediaProjection.createVirtualDisplay("ScreenStreamVirtualDisplay",
+                    screenSize.x, screenSize.y, displayMetrics.densityDpi,
+                    DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR, imageReader.surface, null, null)
 
-        Observable.interval(250, TimeUnit.MILLISECONDS, eventScheduler)
-                .map { _ -> windowManager.defaultDisplay.rotation }
-                .map { rotation -> rotation == Surface.ROTATION_0 || rotation == Surface.ROTATION_180 }
-                .distinctUntilChanged()
-                .skip(1)
-                .filter { _ -> STATE_STARTED == imageReaderState }
-                .subscribe { _ -> restart() }
-                .also { subscriptions.add(it) }
+            Observable.interval(250, TimeUnit.MILLISECONDS, eventScheduler)
+                    .map { _ -> windowManager.defaultDisplay.rotation }
+                    .map { rotation -> rotation == Surface.ROTATION_0 || rotation == Surface.ROTATION_180 }
+                    .distinctUntilChanged()
+                    .skip(1)
+                    .filter { _ -> STATE_STARTED == imageReaderState }
+                    .subscribe { _ -> restart() }
+                    .also { subscriptions.add(it) }
 
-        imageReaderState = STATE_STARTED
-        globalStatus.isStreamRunning.set(true)
-        eventBus.sendEvent(EventBus.GlobalEvent.StreamStatus())
-        if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] Constructor: End")
-        Crashlytics.log(1, TAG, "Init")
+            imageReaderState = STATE_STARTED
+            globalStatus.isStreamRunning.set(true)
+            eventBus.sendEvent(EventBus.GlobalEvent.StreamStatus())
+            if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] Constructor: End")
+            Crashlytics.log(1, TAG, "Init")
+        } catch (ex: SecurityException) {
+            imageReaderState = STATE_ERROR
+            eventBus.sendEvent(EventBus.GlobalEvent.Error(ex))
+            virtualDisplay = null
+            if (BuildConfig.DEBUG_MODE) Log.e(TAG, "Thread [${Thread.currentThread().name}] $ex")
+        }
     }
 
     override fun stop() {

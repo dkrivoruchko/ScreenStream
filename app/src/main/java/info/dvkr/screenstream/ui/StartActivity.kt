@@ -68,7 +68,7 @@ class StartActivity : BaseActivity(), StartActivityView {
     override fun fromEvent(): Observable<StartActivityView.FromEvent> = fromEvents.asObservable()
 
     override fun toEvent(toEvent: StartActivityView.ToEvent) {
-        Observable.just(toEvent).observeOn(AndroidSchedulers.mainThread()).subscribe { event ->
+        Observable.just(toEvent).subscribeOn(AndroidSchedulers.mainThread()).subscribe { event ->
             if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] toEvent: ${event.javaClass.simpleName}")
 
             when (event) {

@@ -21,8 +21,6 @@ import android.widget.RemoteViews
 import android.widget.Toast
 import com.cantrowitz.rxbroadcast.RxBroadcast
 import com.crashlytics.android.Crashlytics
-import com.crashlytics.android.answers.Answers
-import com.crashlytics.android.answers.CustomEvent
 import com.jakewharton.rxrelay.BehaviorRelay
 import com.jakewharton.rxrelay.PublishRelay
 import info.dvkr.screenstream.BuildConfig
@@ -45,10 +43,8 @@ import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.net.NetworkInterface
 import java.nio.charset.Charset
-import java.util.*
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
-import kotlin.collections.ArrayList
 
 class ForegroundService : Service(), ForegroundServiceView {
     companion object {
@@ -115,6 +111,7 @@ class ForegroundService : Service(), ForegroundServiceView {
         Observable.just<ForegroundServiceView.ToEvent>(event)
                 .delay(timeout, TimeUnit.MILLISECONDS, eventScheduler)
                 .subscribe { toEvent(it) }
+                .also { subscriptions.add(it) }
     }
 
     override fun onCreate() {
@@ -123,7 +120,6 @@ class ForegroundService : Service(), ForegroundServiceView {
 
         val tetherId = Resources.getSystem().getIdentifier("config_tether_wifi_regexs", "array", "android")
         wifiRegexArray = resources.getStringArray(tetherId).map { it.toRegex() }.toTypedArray()
-        Answers.getInstance().logCustom(CustomEvent("WIFI_REGEX").putCustomAttribute("ConfigTetherWifiRegexs", Arrays.toString(wifiRegexArray)))
         wifiManager = applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
 
         (application as ScreenStreamApp).appComponent().plusActivityComponent().inject(this)
@@ -191,7 +187,6 @@ class ForegroundService : Service(), ForegroundServiceView {
                     val data = event.intent
                     val projectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
                     val projection = projectionManager.getMediaProjection(Activity.RESULT_OK, data)
-                    if (null == projection) IllegalStateException(TAG + ": mediaProjection == null")
                     mediaProjection = projection
                     imageGenerator = ImageGeneratorImpl(
                             applicationContext,
@@ -289,11 +284,7 @@ class ForegroundService : Service(), ForegroundServiceView {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] onStartCommand")
 
-        if (null == intent) {
-            if (BuildConfig.DEBUG_MODE) Log.e(TAG, "onStartCommand: Intent == null")
-            Crashlytics.logException(IllegalStateException(TAG + " onStartCommand: Intent == null"))
-            return Service.START_NOT_STICKY
-        }
+        if (null == intent) throw IllegalArgumentException(TAG + " onStartCommand: Intent == null")
 
         val action = intent.getStringExtra(EXTRA_DATA)
         if (null == action) {
