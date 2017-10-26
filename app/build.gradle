@@ -5,7 +5,7 @@ apply plugin: 'kotlin-kapt'
 apply plugin: 'io.fabric'
 
 repositories {
-    mavenCentral()
+//    mavenCentral()
     maven { url 'https://maven.fabric.io/public' }
 }
 
@@ -17,8 +17,8 @@ android {
         applicationId "info.dvkr.screenstream"
         minSdkVersion 21
         targetSdkVersion 26
-        versionCode 211
-        versionName "2.1.1"
+        versionCode 212
+        versionName "2.1.2"
         resConfigs "en", "ru"//, "es"
     }
 
@@ -54,11 +54,8 @@ dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jre7:$kotlin_version"
 
     implementation 'com.android.support:design:26.1.0'
-    implementation 'com.android.support:appcompat-v7:26.1.0'
     implementation 'com.android.support:support-v13:26.1.0'
-    implementation 'com.android.support:support-vector-drawable:26.1.0'
     implementation 'com.android.support.constraint:constraint-layout:1.0.2'
-    implementation 'com.android.support:support-media-compat:26.1.0'
 
     implementation 'com.google.dagger:dagger:2.12'
     kapt 'com.google.dagger:dagger-compiler:2.12'

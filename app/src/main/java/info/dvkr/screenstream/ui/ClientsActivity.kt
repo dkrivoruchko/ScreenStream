@@ -52,7 +52,7 @@ class ClientsActivity : BaseActivity(), ClientsActivityView {
                     linearLayoutConnectedClients.removeAllViews()
                     val layoutInflater = LayoutInflater.from(this)
                     event.clientsList.forEach {
-                        with(layoutInflater.inflate(R.layout.avtivity_clients_client_item, null)) {
+                        with(layoutInflater.inflate(R.layout.avtivity_clients_client_item, linearLayoutConnectedClients, false)) {
                             textViewClientItemAddress.text = context.getString(R.string.clients_activity_client) + it.clientAddress.toString().drop(1)
                             if (it.disconnected)
                                 textViewClientItemAddress.setCompoundDrawablesWithIntrinsicBounds(0, 0, R.drawable.ic_client_disconnected_24dp, 0)

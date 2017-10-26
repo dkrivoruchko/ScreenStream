@@ -277,7 +277,7 @@ class SettingsActivity : BaseActivity(), SettingsActivityView, ColorPickerDialog
                                   resizeImageDialog: Boolean = false,
                                   @StringRes resizeImageResultText: Int = 0): Dialog {
         val layoutInflater = LayoutInflater.from(this)
-        val dialogView = layoutInflater.inflate(R.layout.settings_edittext_dialog, null)
+        val dialogView = layoutInflater.inflate(R.layout.settings_edittext_dialog, null, false)
         with(dialogView) {
             if (resizeImageDialog) {
                 textViewSettingsEditTextContent.text = getString(content).format(screenSize.x, screenSize.y)

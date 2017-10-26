@@ -336,7 +336,7 @@ class StartActivity : BaseActivity(), StartActivityView {
         linearLayoutServerAddressList.removeAllViews()
         val layoutInflater = LayoutInflater.from(this)
         if (interfaceList.isEmpty()) {
-            val addressView = layoutInflater.inflate(R.layout.server_address, null)
+            val addressView = layoutInflater.inflate(R.layout.server_address, linearLayoutServerAddressList, false)
             with(addressView) {
                 textViewInterfaceName.text = ""
                 textViewInterfaceAddress.text = getString(R.string.start_activity_no_address)
@@ -345,7 +345,7 @@ class StartActivity : BaseActivity(), StartActivityView {
             linearLayoutServerAddressList.addView(addressView)
         } else {
             for ((name, address) in interfaceList) {
-                val addressView = layoutInflater.inflate(R.layout.server_address, null)
+                val addressView = layoutInflater.inflate(R.layout.server_address, linearLayoutServerAddressList, false)
                 with(addressView) {
                     textViewInterfaceName.text = "$name:"
                     textViewInterfaceAddress.text = "http://${address.hostAddress}:$serverPort"
