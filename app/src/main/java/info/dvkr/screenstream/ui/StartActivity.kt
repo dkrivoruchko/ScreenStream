@@ -204,7 +204,7 @@ class StartActivity : BaseActivity(), StartActivityView {
                         PrimaryDrawerItem().withIdentifier(7).withName(R.string.start_activity_drawer_about).withSelectable(false).withIcon(R.drawable.ic_drawer_about_24dp)
                 )
                 .addStickyDrawerItems(
-                        PrimaryDrawerItem().withIdentifier(8).withName(R.string.start_activity_drawer_exit).withIcon(R.drawable.ic_drawer_exit_24pd)
+                        PrimaryDrawerItem().withIdentifier(8).withName(R.string.start_activity_drawer_exit).withIcon(R.drawable.ic_drawer_exit_24dp)
                 )
                 .withOnDrawerItemClickListener { _, _, drawerItem ->
                     if (drawerItem.identifier == 1L) if (drawer.isDrawerOpen) drawer.closeDrawer()
