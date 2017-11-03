@@ -7,7 +7,7 @@ import java.net.InetSocketAddress
 interface HttpServer {
 
     companion object {
-        const val DEBUG_MODE = false;
+        const val DEBUG_MODE = false
 
         // Constants in index.html
         const val BACKGROUND_COLOR = "BACKGROUND_COLOR"

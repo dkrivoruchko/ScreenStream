@@ -44,11 +44,14 @@ Application uses Android Cast feature and requires at least Android 5.0 to run.
 
 ## Features and libraries
 
-Version 2.x based on MVP architecture pattern and uses:
+Version 2.x based on Clean Architecture and MVP pattern and uses:
 * [Kotlin](https://kotlinlang.org)
 * [Android support libraries](https://developer.android.com/topic/libraries/support-library/index.html)
 * [Dagger 2](https://github.com/google/dagger)
-* [RxJava 1.x](https://github.com/ReactiveX/RxJava/tree/1.x) / [RxAndroid](https://github.com/ReactiveX/RxAndroid/tree/1.x) / [RxBinding](https://github.com/JakeWharton/RxBinding/tree/version-one)
+* [RxJava 1.x](https://github.com/ReactiveX/RxJava/tree/1.x)
+* [RxAndroid](https://github.com/ReactiveX/RxAndroid/tree/1.x) 
+* [RxBinding](https://github.com/JakeWharton/RxBinding/tree/version-one)
+* [RxRelay](https://github.com/JakeWharton/RxRelay/tree/version-one)
 * [RxNetty](https://github.com/ReactiveX/RxNetty)
 * [RxBroadcast](https://github.com/cantrowitz/RxBroadcast)
 * [MaterialDrawer](https://github.com/mikepenz/MaterialDrawer)
