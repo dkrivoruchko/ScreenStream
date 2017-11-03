@@ -7,9 +7,9 @@ import com.crashlytics.android.Crashlytics
 import com.ironz.binaryprefs.BinaryPreferencesBuilder
 import dagger.Module
 import dagger.Provides
-import info.dvkr.screenstream.BuildConfig
-import info.dvkr.screenstream.model.Settings
-import info.dvkr.screenstream.model.settings.SettingsImpl
+import info.dvkr.screenstream.data.BuildConfig
+import info.dvkr.screenstream.data.settings.SettingsImpl
+import info.dvkr.screenstream.domain.settings.Settings
 import javax.inject.Singleton
 
 

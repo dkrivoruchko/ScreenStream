@@ -1,7 +1,7 @@
 package info.dvkr.screenstream.dagger.component
 
 import dagger.Subcomponent
-import info.dvkr.screenstream.dagger.PersistentScope
+import info.dvkr.screenstream.data.dagger.PersistentScope
 import info.dvkr.screenstream.service.BootReceiver
 import info.dvkr.screenstream.service.ForegroundService
 import info.dvkr.screenstream.ui.ClientsActivity

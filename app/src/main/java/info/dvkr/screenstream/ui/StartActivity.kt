@@ -2,7 +2,11 @@ package info.dvkr.screenstream.ui
 
 
 import android.app.Activity
-import android.content.*
+import android.content.ActivityNotFoundException
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
+import android.content.Intent
 import android.graphics.Point
 import android.media.projection.MediaProjectionManager
 import android.net.Uri
@@ -23,10 +27,11 @@ import com.tapadoo.alerter.Alerter
 import info.dvkr.screenstream.BuildConfig
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.dagger.component.NonConfigurationComponent
-import info.dvkr.screenstream.model.Settings
-import info.dvkr.screenstream.presenter.StartActivityPresenter
+import info.dvkr.screenstream.data.presenter.start.StartPresenter
+import info.dvkr.screenstream.data.presenter.start.StartView
+import info.dvkr.screenstream.domain.eventbus.EventBus
+import info.dvkr.screenstream.domain.settings.Settings
 import info.dvkr.screenstream.service.ForegroundService
-import info.dvkr.screenstream.service.ForegroundServiceView
 import kotlinx.android.synthetic.main.activity_start.*
 import kotlinx.android.synthetic.main.server_address.view.*
 import rx.Observable
@@ -34,7 +39,7 @@ import rx.android.schedulers.AndroidSchedulers
 import java.net.BindException
 import javax.inject.Inject
 
-class StartActivity : BaseActivity(), StartActivityView {
+class StartActivity : BaseActivity(), StartView {
 
     private val TAG = "StartActivity"
 
@@ -58,30 +63,30 @@ class StartActivity : BaseActivity(), StartActivityView {
         }
     }
 
-    @Inject internal lateinit var presenter: StartActivityPresenter
+    @Inject internal lateinit var presenter: StartPresenter
     @Inject internal lateinit var settings: Settings
-    private val fromEvents = PublishRelay.create<StartActivityView.FromEvent>()
+    private val fromEvents = PublishRelay.create<StartView.FromEvent>()
     private lateinit var drawer: Drawer
     private var canStart: Boolean = true
     private val clipboard: ClipboardManager by lazy { getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager }
 
-    override fun fromEvent(): Observable<StartActivityView.FromEvent> = fromEvents.asObservable()
+    override fun fromEvent(): Observable<StartView.FromEvent> = fromEvents.asObservable()
 
-    override fun toEvent(toEvent: StartActivityView.ToEvent) {
+    override fun toEvent(toEvent: StartView.ToEvent) {
         Observable.just(toEvent).subscribeOn(AndroidSchedulers.mainThread()).subscribe { event ->
             if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] toEvent: ${event.javaClass.simpleName}")
 
             when (event) {
-                is StartActivityView.ToEvent.TryToStart -> {
+                is StartView.ToEvent.TryToStart -> {
                     val projectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
                     try {
                         startActivityForResult(projectionManager.createScreenCaptureIntent(), REQUEST_CODE_SCREEN_CAPTURE)
                     } catch (ex: ActivityNotFoundException) {
-                        fromEvents.call(StartActivityView.FromEvent.Error(ex))
+                        fromEvents.call(StartView.FromEvent.Error(ex))
                     }
                 }
 
-                is StartActivityView.ToEvent.OnStreamStartStop -> {
+                is StartView.ToEvent.OnStreamStartStop -> {
                     setStreamRunning(event.running)
                     if (event.running && settings.minimizeOnStream)
                         try {
@@ -92,12 +97,12 @@ class StartActivity : BaseActivity(), StartActivityView {
                         }
                 }
 
-                is StartActivityView.ToEvent.ResizeFactor -> showResizeFactor(event.value)
-                is StartActivityView.ToEvent.EnablePin -> showEnablePin(event.value)
-                is StartActivityView.ToEvent.SetPin -> textViewPinValue.text = event.value
-                is StartActivityView.ToEvent.StreamRunning -> setStreamRunning(event.running)
+                is StartView.ToEvent.ResizeFactor -> showResizeFactor(event.value)
+                is StartView.ToEvent.EnablePin -> showEnablePin(event.value)
+                is StartView.ToEvent.SetPin -> textViewPinValue.text = event.value
+                is StartView.ToEvent.StreamRunning -> setStreamRunning(event.running)
 
-                is StartActivityView.ToEvent.Error -> {
+                is StartView.ToEvent.Error -> {
                     canStart = true
                     event.error?.let {
                         val alerter = Alerter.create(this)
@@ -142,16 +147,16 @@ class StartActivity : BaseActivity(), StartActivityView {
                     }
                 }
 
-                is StartActivityView.ToEvent.CurrentClients -> {
+                is StartView.ToEvent.CurrentClients -> {
                     val clientsCount = event.clientsList.filter { !it.disconnected }.count()
                     textViewConnectedClients.text = getString(R.string.start_activity_connected_clients).format(clientsCount)
                 }
 
-                is StartActivityView.ToEvent.CurrentInterfaces -> {
+                is StartView.ToEvent.CurrentInterfaces -> {
                     showServerAddresses(event.interfaceList, settings.severPort)
                 }
 
-                is StartActivityView.ToEvent.TrafficPoint -> {
+                is StartView.ToEvent.TrafficPoint -> {
                     val mbit = (event.trafficPoint.bytes * 8).toDouble() / 1024 / 1024
                     textViewCurrentTraffic.text = getString(R.string.start_activity_current_traffic).format(mbit)
                 }
@@ -179,11 +184,11 @@ class StartActivity : BaseActivity(), StartActivityView {
                 toggleButtonStartStop.isChecked = false
                 if (!canStart) return@setOnClickListener
                 toggleButtonStartStop.isEnabled = false
-                fromEvents.call(StartActivityView.FromEvent.TryStartStream())
+                fromEvents.call(StartView.FromEvent.TryStartStream)
             } else {
                 toggleButtonStartStop.isChecked = true
                 toggleButtonStartStop.isEnabled = false
-                fromEvents.call(StartActivityView.FromEvent.StopStream())
+                fromEvents.call(StartView.FromEvent.StopStream)
             }
         }
 
@@ -220,7 +225,7 @@ class StartActivity : BaseActivity(), StartActivityView {
                     }
 
                     if (drawerItem.identifier == 7L) startActivity(AboutActivity.getStartIntent(this))
-                    if (drawerItem.identifier == 8L) fromEvents.call(StartActivityView.FromEvent.AppExit())
+                    if (drawerItem.identifier == 8L) fromEvents.call(StartView.FromEvent.AppExit)
                     true
                 }
                 .build()
@@ -252,22 +257,22 @@ class StartActivity : BaseActivity(), StartActivityView {
             ACTION_START_STREAM -> {
                 if (!canStart) return
                 toggleButtonStartStop.isEnabled = false
-                fromEvents.call(StartActivityView.FromEvent.TryStartStream())
+                fromEvents.call(StartView.FromEvent.TryStartStream)
             }
 
             ACTION_STOP_STREAM -> {
                 toggleButtonStartStop.isEnabled = false
-                fromEvents.call(StartActivityView.FromEvent.StopStream())
+                fromEvents.call(StartView.FromEvent.StopStream)
             }
 
-            ACTION_EXIT -> fromEvents.call(StartActivityView.FromEvent.AppExit())
+            ACTION_EXIT -> fromEvents.call(StartView.FromEvent.AppExit)
         }
     }
 
     override fun onResume() {
         super.onResume()
-        fromEvents.call(StartActivityView.FromEvent.CurrentInterfacesRequest())
-        fromEvents.call(StartActivityView.FromEvent.GetError())
+        fromEvents.call(StartView.FromEvent.CurrentInterfacesRequest)
+        fromEvents.call(StartView.FromEvent.GetError)
     }
 
     override fun onBackPressed() {
@@ -312,7 +317,7 @@ class StartActivity : BaseActivity(), StartActivityView {
                     if (BuildConfig.DEBUG_MODE) Log.e(TAG, "onActivityResult ERROR: data = null")
                     val error = IllegalStateException("onActivityResult: data = null")
                     Crashlytics.logException(error)
-                    fromEvents.call(StartActivityView.FromEvent.Error(error))
+                    fromEvents.call(StartView.FromEvent.Error(error))
                     return
                 }
                 startService(ForegroundService.getStartStreamIntent(applicationContext, data))
@@ -330,7 +335,7 @@ class StartActivity : BaseActivity(), StartActivityView {
         }
     }
 
-    private fun showServerAddresses(interfaceList: List<ForegroundServiceView.Interface>, serverPort: Int) {
+    private fun showServerAddresses(interfaceList: List<EventBus.Interface>, serverPort: Int) {
         if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] showServerAddresses")
 
         linearLayoutServerAddressList.removeAllViews()

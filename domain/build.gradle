@@ -1,0 +1,16 @@
+apply plugin: 'java-library'
+apply plugin: 'kotlin'
+
+sourceCompatibility = "1.8"
+targetCompatibility = "1.8"
+
+dependencies {
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jre7:$kotlin_version"
+
+    implementation "com.android.support:support-annotations:$support_version"
+
+    implementation "io.reactivex:rxjava:$rxjava_version"
+    implementation "com.jakewharton.rxrelay:rxrelay:$rxrelay_version"
+
+    implementation 'io.reactivex:rxnetty-http:0.5.2'
+}

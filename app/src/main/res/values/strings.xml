@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name" translatable="false">Screen Stream</string>
 
@@ -45,11 +46,6 @@
     <string name="service_press_stop">Press stop to end stream</string>
     <string name="service_stop">Stop</string>
     <string name="service_slow_client_connection">Slow client connection detected</string>
-
-    <!--ImageNotify-->
-    <string name="image_generator_press_start">Press START STREAM on device</string>
-    <string name="image_generator_go_to_new_address">Please go to new address</string>
-    <string name="image_generator_reload_this_page">Please reload this page</string>
 
     <!--SettingsActivity-->
     <string name="settings_activity_name">Settings</string>

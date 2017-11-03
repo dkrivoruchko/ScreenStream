@@ -3,8 +3,8 @@ package info.dvkr.screenstream.dagger.module
 import android.content.Context
 import dagger.Module
 import dagger.Provides
-import info.dvkr.screenstream.model.ImageNotify
-import info.dvkr.screenstream.model.image.ImageNotifyImpl
+import info.dvkr.screenstream.data.image.ImageNotify
+import info.dvkr.screenstream.data.image.ImageNotifyImpl
 import javax.inject.Singleton
 
 @Singleton

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--ImageNotify-->
+    <string name="image_generator_press_start">Press START STREAM on device</string>
+    <string name="image_generator_go_to_new_address">Please go to new address</string>
+    <string name="image_generator_reload_this_page">Please reload this page</string>
+</resources>

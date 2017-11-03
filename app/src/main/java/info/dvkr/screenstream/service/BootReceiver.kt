@@ -8,7 +8,7 @@ import android.util.Log
 import com.crashlytics.android.Crashlytics
 import info.dvkr.screenstream.BuildConfig
 import info.dvkr.screenstream.ScreenStreamApp
-import info.dvkr.screenstream.model.Settings
+import info.dvkr.screenstream.domain.settings.Settings
 import javax.inject.Inject
 
 class BootReceiver : BroadcastReceiver() {

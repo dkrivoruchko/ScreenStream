@@ -15,7 +15,8 @@ import com.jjoe64.graphview.series.LineGraphSeries
 import info.dvkr.screenstream.BuildConfig
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.dagger.component.NonConfigurationComponent
-import info.dvkr.screenstream.presenter.ClientsActivityPresenter
+import info.dvkr.screenstream.data.presenter.clients.ClientsPresenter
+import info.dvkr.screenstream.data.presenter.clients.ClientsView
 import kotlinx.android.synthetic.main.activity_clients.*
 import kotlinx.android.synthetic.main.avtivity_clients_client_item.view.*
 import rx.Observable
@@ -24,7 +25,7 @@ import java.text.NumberFormat
 import javax.inject.Inject
 
 
-class ClientsActivity : BaseActivity(), ClientsActivityView {
+class ClientsActivity : BaseActivity(), ClientsView {
 
     private val TAG = "ClientsActivity"
 
@@ -34,18 +35,18 @@ class ClientsActivity : BaseActivity(), ClientsActivityView {
         }
     }
 
-    @Inject internal lateinit var presenter: ClientsActivityPresenter
-    private val fromEvents = PublishRelay.create<ClientsActivityView.FromEvent>()
+    @Inject internal lateinit var presenter: ClientsPresenter
+    private val fromEvents = PublishRelay.create<ClientsView.FromEvent>()
     private var lineGraphSeries: LineGraphSeries<DataPoint>? = null
 
-    override fun fromEvent(): Observable<ClientsActivityView.FromEvent> = fromEvents.asObservable()
+    override fun fromEvent(): Observable<ClientsView.FromEvent> = fromEvents.asObservable()
 
-    override fun toEvent(toEvent: ClientsActivityView.ToEvent) {
+    override fun toEvent(toEvent: ClientsView.ToEvent) {
         Observable.just(toEvent).subscribeOn(AndroidSchedulers.mainThread()).subscribe { event ->
             if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] toEvent: ${event.javaClass.simpleName}")
 
             when (event) {
-                is ClientsActivityView.ToEvent.CurrentClients -> {
+                is ClientsView.ToEvent.CurrentClients -> {
                     val clientsCount = event.clientsList.filter { !it.disconnected }.count()
                     textViewConnectedClients.text = getString(R.string.clients_activity_connected_clients).format(clientsCount)
 
@@ -63,7 +64,7 @@ class ClientsActivity : BaseActivity(), ClientsActivityView {
                     }
                 }
 
-                is ClientsActivityView.ToEvent.TrafficHistory -> {
+                is ClientsView.ToEvent.TrafficHistory -> {
                     textViewCurrentTraffic.text = getString(R.string.clients_activity_current_traffic).format(toMbit(event.trafficHistory.last().bytes))
 
                     val arrayOfDataPoints = event.trafficHistory.map { DataPoint(it.time.toDouble(), toMbit(it.bytes)) }.toTypedArray()
@@ -92,7 +93,7 @@ class ClientsActivity : BaseActivity(), ClientsActivityView {
                     lineChartTraffic.gridLabelRenderer.gridStyle = GridLabelRenderer.GridStyle.HORIZONTAL
                 }
 
-                is ClientsActivityView.ToEvent.TrafficPoint -> {
+                is ClientsView.ToEvent.TrafficPoint -> {
                     lineGraphSeries?.let {
                         val mbit = toMbit(event.trafficPoint.bytes)
                         textViewCurrentTraffic.text = getString(R.string.clients_activity_current_traffic).format(mbit)
@@ -124,7 +125,7 @@ class ClientsActivity : BaseActivity(), ClientsActivityView {
 
     override fun onStart() {
         super.onStart()
-        fromEvents.call(ClientsActivityView.FromEvent.TrafficHistoryRequest())
+        fromEvents.call(ClientsView.FromEvent.TrafficHistoryRequest)
     }
 
     override fun onDestroy() {

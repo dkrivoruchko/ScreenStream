@@ -43,11 +43,6 @@
     <string name="service_stop">Остановить</string>
     <string name="service_slow_client_connection">Обнаружено медленное соединение</string>
 
-    <!--ImageNotify-->
-    <string name="image_generator_press_start">Нажмите НАЧАТЬ ТРАНСЛЯЦИЮ на устройстве</string>
-    <string name="image_generator_go_to_new_address">Пройдите по новому адресу</string>
-    <string name="image_generator_reload_this_page">Перегрузите эту страницу</string>
-
     <!--SettingsActivity-->
     <string name="settings_activity_name">Настройки</string>
     <string name="pref_settings_interface">Интерфейс</string>

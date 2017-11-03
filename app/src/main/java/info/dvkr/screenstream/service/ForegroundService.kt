@@ -1,7 +1,12 @@
 package info.dvkr.screenstream.service
 
 
-import android.app.*
+import android.app.Activity
+import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
+import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
@@ -26,9 +31,15 @@ import com.jakewharton.rxrelay.PublishRelay
 import info.dvkr.screenstream.BuildConfig
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.ScreenStreamApp
-import info.dvkr.screenstream.model.*
-import info.dvkr.screenstream.model.image.ImageGeneratorImpl
-import info.dvkr.screenstream.presenter.ForegroundServicePresenter
+import info.dvkr.screenstream.data.image.ImageGenerator
+import info.dvkr.screenstream.data.image.ImageGeneratorImpl
+import info.dvkr.screenstream.data.image.ImageNotify
+import info.dvkr.screenstream.data.presenter.foreground.ForegroundPresenter
+import info.dvkr.screenstream.data.presenter.foreground.ForegroundView
+import info.dvkr.screenstream.domain.eventbus.EventBus
+import info.dvkr.screenstream.domain.globalstatus.GlobalStatus
+import info.dvkr.screenstream.domain.httpserver.HttpServer
+import info.dvkr.screenstream.domain.settings.Settings
 import info.dvkr.screenstream.ui.StartActivity
 import kotlinx.android.synthetic.main.slow_connection_toast.view.*
 import rx.BackpressureOverflow
@@ -46,7 +57,7 @@ import java.nio.charset.Charset
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
-class ForegroundService : Service(), ForegroundServiceView {
+class ForegroundService : Service(), ForegroundView {
     companion object {
         private const val TAG = "ForegroundService"
         private const val NOTIFICATION_CHANNEL_ID = "info.dvkr.screenstream.service.NOTIFICATION_CHANNEL_01"
@@ -69,12 +80,12 @@ class ForegroundService : Service(), ForegroundServiceView {
         }
     }
 
-    sealed class LocalEvent : ForegroundServiceView.ToEvent() {
+    sealed class LocalEvent : ForegroundView.ToEvent() {
         @Keep class StartService : LocalEvent()
-        @Keep data class StartStream(val intent: Intent) : ForegroundServiceView.ToEvent()
+        @Keep data class StartStream(val intent: Intent) : ForegroundView.ToEvent()
     }
 
-    @Inject internal lateinit var presenter: ForegroundServicePresenter
+    @Inject internal lateinit var presenter: ForegroundPresenter
     @Inject internal lateinit var settings: Settings
     @Inject internal lateinit var eventScheduler: Scheduler
     @Inject internal lateinit var eventBus: EventBus
@@ -83,8 +94,8 @@ class ForegroundService : Service(), ForegroundServiceView {
 
     private var isForegroundServiceInit: Boolean = false
     private val subscriptions = CompositeSubscription()
-    private val fromEvents = PublishRelay.create<ForegroundServiceView.FromEvent>()
-    private val toEvents = PublishRelay.create<ForegroundServiceView.ToEvent>()
+    private val fromEvents = PublishRelay.create<ForegroundView.FromEvent>()
+    private val toEvents = PublishRelay.create<ForegroundView.ToEvent>()
 
     private val jpegBytesStream = BehaviorRelay.create<ByteArray>()
     @Volatile private var mediaProjection: MediaProjection? = null
@@ -103,12 +114,12 @@ class ForegroundService : Service(), ForegroundServiceView {
     private lateinit var basePinRequestHtml: String
     private lateinit var pinRequestErrorMsg: String
 
-    override fun fromEvent(): Observable<ForegroundServiceView.FromEvent> = fromEvents.asObservable()
+    override fun fromEvent(): Observable<ForegroundView.FromEvent> = fromEvents.asObservable()
 
-    override fun toEvent(event: ForegroundServiceView.ToEvent) = toEvents.call(event)
+    override fun toEvent(event: ForegroundView.ToEvent) = toEvents.call(event)
 
-    override fun toEvent(event: ForegroundServiceView.ToEvent, timeout: Long) {
-        Observable.just<ForegroundServiceView.ToEvent>(event)
+    override fun toEvent(event: ForegroundView.ToEvent, timeout: Long) {
+        Observable.just<ForegroundView.ToEvent>(event)
                 .delay(timeout, TimeUnit.MILLISECONDS, eventScheduler)
                 .subscribe { toEvent(it) }
                 .also { subscriptions.add(it) }
@@ -144,17 +155,17 @@ class ForegroundService : Service(), ForegroundServiceView {
                     pinRequestErrorMsg = applicationContext.getString(R.string.html_wrong_pin)
                 }
 
-                is ForegroundServiceView.ToEvent.StartHttpServer -> {
-                    fromEvents.call(ForegroundServiceView.FromEvent.StopHttpServer())
+                is ForegroundView.ToEvent.StartHttpServer -> {
+                    fromEvents.call(ForegroundView.FromEvent.StopHttpServer)
 
                     val interfaces = getInterfaces()
                     val serverAddress: InetSocketAddress
-                    fromEvents.call(ForegroundServiceView.FromEvent.CurrentInterfaces(interfaces))
+                    fromEvents.call(ForegroundView.FromEvent.CurrentInterfaces(interfaces))
                     if (settings.useWiFiOnly) {
                         if (interfaces.isEmpty()) {
                             if (counterStartHttpServer < 5) { // Scheduling one more try in 1 second
                                 counterStartHttpServer++
-                                toEvent(ForegroundServiceView.ToEvent.StartHttpServer(), 1000)
+                                toEvent(ForegroundView.ToEvent.StartHttpServer, 1000)
                             }
                             return@subscribe
                         }
@@ -164,7 +175,7 @@ class ForegroundService : Service(), ForegroundServiceView {
                         serverAddress = InetSocketAddress(settings.severPort)
                     }
 
-                    fromEvents.call(ForegroundServiceView.FromEvent.StartHttpServer(
+                    fromEvents.call(ForegroundView.FromEvent.StartHttpServer(
                             serverAddress,
                             baseFavicon,
                             baseLogo,
@@ -177,7 +188,7 @@ class ForegroundService : Service(), ForegroundServiceView {
                     )
                 }
 
-                is ForegroundServiceView.ToEvent.NotifyImage -> {
+                is ForegroundView.ToEvent.NotifyImage -> {
                     Observable.just(event.notifyType).observeOn(Schedulers.computation())
                             .map { notifyType -> imageNotify.getImage(notifyType) }
                             .subscribe { byteArray -> jpegBytesStream.call(byteArray) }
@@ -211,30 +222,30 @@ class ForegroundService : Service(), ForegroundServiceView {
                     projection.registerCallback(projectionCallback, null)
                 }
 
-                is ForegroundServiceView.ToEvent.StopStream -> {
+                is ForegroundView.ToEvent.StopStream -> {
                     stopForeground(true)
                     stopMediaProjection()
                     startForeground(NOTIFICATION_START_STREAMING, getCustomNotification(NOTIFICATION_START_STREAMING))
                     if (event.isNotifyOnComplete)
-                        fromEvents.call(ForegroundServiceView.FromEvent.StopStreamComplete())
+                        fromEvents.call(ForegroundView.FromEvent.StopStreamComplete)
                 }
 
-                is ForegroundServiceView.ToEvent.AppExit -> {
+                is ForegroundView.ToEvent.AppExit -> {
                     stopSelf()
                 }
 
-                is ForegroundServiceView.ToEvent.CurrentInterfacesRequest -> {
-                    fromEvents.call(ForegroundServiceView.FromEvent.CurrentInterfaces(getInterfaces()))
+                is ForegroundView.ToEvent.CurrentInterfacesRequest -> {
+                    fromEvents.call(ForegroundView.FromEvent.CurrentInterfaces(getInterfaces()))
                 }
 
-                is ForegroundServiceView.ToEvent.Error -> {
+                is ForegroundView.ToEvent.Error -> {
                     if (BuildConfig.DEBUG_MODE) Log.e(TAG, event.error.toString())
                     Crashlytics.logException(event.error)
                     globalStatus.error.set(event.error)
                     startActivity(StartActivity.getStartIntent(applicationContext, StartActivity.ACTION_ERROR).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
                 }
 
-                is ForegroundServiceView.ToEvent.SlowConnectionDetected -> {
+                is ForegroundView.ToEvent.SlowConnectionDetected -> {
                     val toast = Toast(applicationContext)
                     val inflater = getSystemService(Context.LAYOUT_INFLATER_SERVICE) as LayoutInflater
                     val toastView = inflater.inflate(R.layout.slow_connection_toast, null)
@@ -258,7 +269,7 @@ class ForegroundService : Service(), ForegroundServiceView {
                 .subscribe { action ->
                     if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] Action: " + action)
                     when (action) {
-                        Intent.ACTION_SCREEN_OFF -> fromEvents.call(ForegroundServiceView.FromEvent.ScreenOff())
+                        Intent.ACTION_SCREEN_OFF -> fromEvents.call(ForegroundView.FromEvent.ScreenOff)
                         WifiManager.WIFI_STATE_CHANGED_ACTION -> connectionEvents.call(WifiManager.WIFI_STATE_CHANGED_ACTION)
                         ConnectivityManager.CONNECTIVITY_ACTION -> connectionEvents.call(ConnectivityManager.CONNECTIVITY_ACTION)
                     }
@@ -270,9 +281,9 @@ class ForegroundService : Service(), ForegroundServiceView {
                     Crashlytics.log(1, TAG, "connectionEvents")
                     if (settings.useWiFiOnly) {
                         counterStartHttpServer = 0
-                        fromEvents.call(ForegroundServiceView.FromEvent.HttpServerRestartRequest())
+                        fromEvents.call(ForegroundView.FromEvent.HttpServerRestartRequest)
                     } else {
-                        fromEvents.call(ForegroundServiceView.FromEvent.CurrentInterfaces(getInterfaces()))
+                        fromEvents.call(ForegroundView.FromEvent.CurrentInterfaces(getInterfaces()))
                     }
                 }.also { subscriptions.add(it) }
 
@@ -296,7 +307,7 @@ class ForegroundService : Service(), ForegroundServiceView {
         Crashlytics.log(1, TAG, "onStartCommand: $action")
         when (action) {
             ACTION_INIT -> if (!isForegroundServiceInit) {
-                fromEvents.call(ForegroundServiceView.FromEvent.Init())
+                fromEvents.call(ForegroundView.FromEvent.Init)
                 isForegroundServiceInit = true
             }
 
@@ -313,7 +324,7 @@ class ForegroundService : Service(), ForegroundServiceView {
 
     override fun onDestroy() {
         if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] onDestroy: StartService")
-        fromEvents.call(ForegroundServiceView.FromEvent.StopHttpServer())
+        fromEvents.call(ForegroundView.FromEvent.StopHttpServer)
         subscriptions.clear()
         stopForeground(true)
         stopMediaProjection()
@@ -448,10 +459,10 @@ class ForegroundService : Service(), ForegroundServiceView {
                 .replaceFirst(HttpServer.SUBMIT_TEXT.toRegex(), context.getString(R.string.html_submit_text))
     }
 
-    private fun getInterfaces(): List<ForegroundServiceView.Interface> {
+    private fun getInterfaces(): List<EventBus.Interface> {
         if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] getInterfaces")
         Crashlytics.log(1, TAG, "getInterfaces")
-        val interfaceList = ArrayList<ForegroundServiceView.Interface>()
+        val interfaceList = ArrayList<EventBus.Interface>()
         try {
             val enumeration = NetworkInterface.getNetworkInterfaces()
             while (enumeration.hasMoreElements()) {
@@ -463,18 +474,18 @@ class ForegroundService : Service(), ForegroundServiceView {
                         if (settings.useWiFiOnly) {
                             if (defaultWifiRegexArray.any { it.matches(networkInterface.displayName) } ||
                                     wifiRegexArray.any { it.matches(networkInterface.displayName) }) {
-                                interfaceList.add(ForegroundServiceView.Interface(networkInterface.displayName, inetAddress))
+                                interfaceList.add(EventBus.Interface(networkInterface.displayName, inetAddress))
                                 return interfaceList
                             }
                         } else {
-                            interfaceList.add(ForegroundServiceView.Interface(networkInterface.displayName, inetAddress))
+                            interfaceList.add(EventBus.Interface(networkInterface.displayName, inetAddress))
                         }
                 }
             }
         } catch (ex: Throwable) {
             if (BuildConfig.DEBUG_MODE) Log.e(TAG, ex.toString())
             Crashlytics.log(1, TAG, "getInterfaces: $ex")
-            if (wifiConnected()) interfaceList.add(ForegroundServiceView.Interface("wlan0", getWiFiIpAddress()))
+            if (wifiConnected()) interfaceList.add(EventBus.Interface("wlan0", getWiFiIpAddress()))
         }
         return interfaceList
     }
