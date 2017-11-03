@@ -80,7 +80,7 @@ class ForegroundService : Service(), ForegroundView {
     }
 
     sealed class LocalEvent : ForegroundView.ToEvent() {
-        @Keep class StartService : LocalEvent()
+        @Keep object StartService : LocalEvent()
         @Keep data class StartStream(val intent: Intent) : ForegroundView.ToEvent()
     }
 
@@ -101,10 +101,21 @@ class ForegroundService : Service(), ForegroundView {
     @Volatile private var projectionCallback: MediaProjection.Callback? = null
     @Volatile private var imageGenerator: ImageGenerator? = null
     private val connectionEvents = PublishRelay.create<String>()
-    private lateinit var wifiRegexArray: Array<Regex>
-    private val defaultWifiRegexArray: Array<Regex> = arrayOf(Regex("wlan\\d"), Regex("ap\\d"), Regex("wigig\\d"), Regex("softap\\.?\\d"))
-    private lateinit var wifiManager: WifiManager
     private var counterStartHttpServer: Int = 0
+
+    private val defaultWifiRegexArray: Array<Regex> = arrayOf(Regex("wlan\\d"), Regex("ap\\d"), Regex("wigig\\d"), Regex("softap\\.?\\d"))
+    private val wifiRegexArray: Array<Regex> by lazy {
+        val tetherId = Resources.getSystem().getIdentifier("config_tether_wifi_regexs", "array", "android")
+        resources.getStringArray(tetherId).map { it.toRegex() }.toTypedArray()
+    }
+
+    private val wifiManager: WifiManager by lazy {
+        getSystemService(Context.WIFI_SERVICE) as WifiManager
+    }
+
+    private val notificationManager: NotificationManager by lazy {
+        getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+    }
 
     // Base values
     private lateinit var baseFavicon: ByteArray
@@ -128,19 +139,15 @@ class ForegroundService : Service(), ForegroundView {
         if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] onCreate: Start")
         Crashlytics.log(1, TAG, "onCreate: Start")
 
-        val tetherId = Resources.getSystem().getIdentifier("config_tether_wifi_regexs", "array", "android")
-        wifiRegexArray = resources.getStringArray(tetherId).map { it.toRegex() }.toTypedArray()
-        wifiManager = applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
-
         (application as ScreenStreamApp).appComponent().plusActivityComponent().inject(this)
         presenter.attach(this)
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(NOTIFICATION_CHANNEL_ID, "Screen Stream Channel", NotificationManager.IMPORTANCE_HIGH)
-            (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager?)?.createNotificationChannel(channel)
+            notificationManager.createNotificationChannel(channel)
         }
 
-        toEvents.startWith(ForegroundService.LocalEvent.StartService())
+        toEvents.startWith(ForegroundService.LocalEvent.StartService)
                 .observeOn(eventScheduler).subscribe { event ->
 
             if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] toEvent: " + event.javaClass.simpleName)
@@ -330,7 +337,7 @@ class ForegroundService : Service(), ForegroundView {
         presenter.detach()
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager?)?.deleteNotificationChannel(NOTIFICATION_CHANNEL_ID)
+            notificationManager.deleteNotificationChannel(NOTIFICATION_CHANNEL_ID)
         }
 
         super.onDestroy()
