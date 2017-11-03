@@ -47,6 +47,11 @@
     <string name="service_stop">Stop</string>
     <string name="service_slow_client_connection">Slow client connection detected</string>
 
+    <!--ImageNotify-->
+    <string name="image_generator_press_start">Press START STREAM on device</string>
+    <string name="image_generator_go_to_new_address">Please go to new address</string>
+    <string name="image_generator_reload_this_page">Please reload this page</string>
+
     <!--SettingsActivity-->
     <string name="settings_activity_name">Settings</string>
     <string name="pref_settings_interface">Interface</string>

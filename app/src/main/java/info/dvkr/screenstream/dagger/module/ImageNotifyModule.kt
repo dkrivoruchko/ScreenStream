@@ -4,7 +4,7 @@ import android.content.Context
 import dagger.Module
 import dagger.Provides
 import info.dvkr.screenstream.data.image.ImageNotify
-import info.dvkr.screenstream.data.image.ImageNotifyImpl
+import info.dvkr.screenstream.image.ImageNotifyImpl
 import javax.inject.Singleton
 
 @Singleton

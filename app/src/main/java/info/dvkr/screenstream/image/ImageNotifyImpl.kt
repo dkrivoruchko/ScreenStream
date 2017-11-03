@@ -1,4 +1,4 @@
-package info.dvkr.screenstream.data.image
+package info.dvkr.screenstream.image
 
 import android.content.Context
 import android.graphics.Bitmap
@@ -8,7 +8,8 @@ import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Rect
 import com.crashlytics.android.Crashlytics
-import info.dvkr.screenstream.data.R
+import info.dvkr.screenstream.R
+import info.dvkr.screenstream.data.image.ImageNotify
 import java.io.ByteArrayOutputStream
 
 

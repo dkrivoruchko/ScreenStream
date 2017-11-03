@@ -47,7 +47,6 @@ import rx.Observable
 import rx.Scheduler
 import rx.functions.Action0
 import rx.functions.Action1
-import rx.schedulers.Schedulers
 import rx.subscriptions.CompositeSubscription
 import java.net.Inet4Address
 import java.net.InetAddress
@@ -189,7 +188,7 @@ class ForegroundService : Service(), ForegroundView {
                 }
 
                 is ForegroundView.ToEvent.NotifyImage -> {
-                    Observable.just(event.notifyType).observeOn(Schedulers.computation())
+                    Observable.just(event.notifyType)
                             .map { notifyType -> imageNotify.getImage(notifyType) }
                             .subscribe { byteArray -> jpegBytesStream.call(byteArray) }
                 }
