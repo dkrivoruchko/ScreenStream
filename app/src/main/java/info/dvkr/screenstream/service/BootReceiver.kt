@@ -4,6 +4,7 @@ package info.dvkr.screenstream.service
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.util.Log
 import com.crashlytics.android.Crashlytics
 import info.dvkr.screenstream.BuildConfig
@@ -23,8 +24,13 @@ class BootReceiver : BroadcastReceiver() {
 
         if ("android.intent.action.BOOT_COMPLETED" == intent.action ||
                 "android.intent.action.QUICKBOOT_POWERON" == intent.action) {
-            context.startService(ForegroundService.getIntent(context, ForegroundService.ACTION_INIT))
-            context.startService(ForegroundService.getIntent(context, ForegroundService.ACTION_START_ON_BOOT))
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                context.startForegroundService(ForegroundService.getIntent(context, ForegroundService.ACTION_INIT))
+                context.startForegroundService(ForegroundService.getIntent(context, ForegroundService.ACTION_START_ON_BOOT))
+            } else {
+                context.startService(ForegroundService.getIntent(context, ForegroundService.ACTION_INIT))
+                context.startService(ForegroundService.getIntent(context, ForegroundService.ACTION_START_ON_BOOT))
+            }
         }
     }
 }
