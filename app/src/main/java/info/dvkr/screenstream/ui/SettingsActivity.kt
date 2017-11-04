@@ -1,6 +1,7 @@
 package info.dvkr.screenstream.ui
 
 import android.app.Dialog
+import android.arch.lifecycle.ViewModelProviders
 import android.content.Context
 import android.content.Intent
 import android.graphics.Point
@@ -9,6 +10,7 @@ import android.os.Bundle
 import android.support.annotation.DrawableRes
 import android.support.annotation.StringRes
 import android.support.v7.app.AlertDialog
+import android.support.v7.app.AppCompatActivity
 import android.text.Editable
 import android.text.InputFilter
 import android.text.TextWatcher
@@ -24,7 +26,8 @@ import com.jrummyapps.android.colorpicker.ColorPickerDialogListener
 import com.tapadoo.alerter.Alerter
 import info.dvkr.screenstream.BuildConfig
 import info.dvkr.screenstream.R
-import info.dvkr.screenstream.dagger.component.NonConfigurationComponent
+import info.dvkr.screenstream.ScreenStreamApp
+import info.dvkr.screenstream.data.presenter.PresenterFactory
 import info.dvkr.screenstream.data.presenter.settings.SettingsPresenter
 import info.dvkr.screenstream.data.presenter.settings.SettingsView
 import kotlinx.android.synthetic.main.activity_settings.*
@@ -35,7 +38,7 @@ import rx.functions.Action1
 import javax.inject.Inject
 
 
-class SettingsActivity : BaseActivity(), SettingsView, ColorPickerDialogListener {
+class SettingsActivity : AppCompatActivity(), SettingsView, ColorPickerDialogListener {
     private val TAG = "SettingsActivity"
 
     companion object {
@@ -44,7 +47,10 @@ class SettingsActivity : BaseActivity(), SettingsView, ColorPickerDialogListener
         }
     }
 
-    @Inject internal lateinit var presenter: SettingsPresenter
+    @Inject internal lateinit var presenterFactory: PresenterFactory
+    private val presenter: SettingsPresenter by lazy {
+        ViewModelProviders.of(this, presenterFactory).get(SettingsPresenter::class.java)
+    }
 
     private val fromEvents = PublishRelay.create<SettingsView.FromEvent>()
 
@@ -53,9 +59,67 @@ class SettingsActivity : BaseActivity(), SettingsView, ColorPickerDialogListener
     private var resizeFactor: Int = 0
     private var dialog: Dialog? = null
 
+    override fun fromEvent(): Observable<SettingsView.FromEvent> = fromEvents.asObservable()
+
+    override fun toEvent(toEvent: SettingsView.ToEvent) {
+        Observable.just(toEvent).subscribeOn(AndroidSchedulers.mainThread()).subscribe { event ->
+            if (BuildConfig.DEBUG_MODE) Log.i(TAG, "Thread [${Thread.currentThread().name}]: ${event.javaClass.simpleName}")
+
+            when (event) {
+                is SettingsView.ToEvent.MinimizeOnStream -> checkBoxMinimizeOnStream.isChecked = event.value
+                is SettingsView.ToEvent.StopOnSleep -> checkBoxStopOnSleep.isChecked = event.value
+                is SettingsView.ToEvent.StartOnBoot -> checkBoxStartOnBoot.isChecked = event.value
+                is SettingsView.ToEvent.DisableMjpegCheck -> checkBoxMjpegCheck.isChecked = event.value
+                is SettingsView.ToEvent.HtmlBackColor -> viewHtmlBackColor.setBackgroundColor(event.value)
+
+                is SettingsView.ToEvent.ResizeFactor -> {
+                    resizeFactor = event.value
+                    textViewResizeImageValue.text = "$resizeFactor%"
+                }
+
+                is SettingsView.ToEvent.JpegQuality -> textViewJpegQualityValue.text = Integer.toString(event.value)
+
+                is SettingsView.ToEvent.EnablePin -> {
+                    checkBoxEnablePin.isChecked = event.value
+                    enableDisableView(clHidePinOnStart, event.value)
+                    enableDisableView(clNewPinOnAppStart, event.value)
+                    enableDisableView(clAutoChangePin, event.value)
+                    enableDisableView(clSetPin, checkBoxEnablePin.isChecked && !checkBoxNewPinOnAppStart.isChecked && !checkBoxAutoChangePin.isChecked)
+                }
+
+                is SettingsView.ToEvent.HidePinOnStart -> checkBoxHidePinOnStart.isChecked = event.value
+
+                is SettingsView.ToEvent.NewPinOnAppStart -> {
+                    checkBoxNewPinOnAppStart.isChecked = event.value
+                    enableDisableView(clSetPin, checkBoxEnablePin.isChecked && !checkBoxNewPinOnAppStart.isChecked && !checkBoxAutoChangePin.isChecked)
+                }
+
+                is SettingsView.ToEvent.AutoChangePin -> {
+                    checkBoxAutoChangePin.isChecked = event.value
+                    enableDisableView(clSetPin, checkBoxEnablePin.isChecked && !checkBoxNewPinOnAppStart.isChecked && !checkBoxAutoChangePin.isChecked)
+                }
+
+                is SettingsView.ToEvent.SetPin -> textViewSetPinValue.text = event.value
+                is SettingsView.ToEvent.UseWiFiOnly -> checkBoxUseWifiOnly.isChecked = event.value
+                is SettingsView.ToEvent.ServerPort -> textViewServerPortValue.text = Integer.toString(event.value)
+
+                is SettingsView.ToEvent.ErrorServerPortBusy -> {
+                    Alerter.create(this)
+                            .setTitle(R.string.pref_alert_error_title)
+                            .setText(R.string.pref_alert_error_message)
+                            .setBackgroundColorRes(R.color.colorAccent)
+                            .setDuration(5000)
+                            .enableProgress(true)
+                            .enableSwipeToDismiss()
+                            .show()
+                }
+            }
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] onCreate: Start")
+        if (BuildConfig.DEBUG_MODE) Log.i(TAG, "Thread [${Thread.currentThread().name}] onCreate: Start")
         Crashlytics.log(1, TAG, "onCreate: Start")
 
         val windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
@@ -63,6 +127,8 @@ class SettingsActivity : BaseActivity(), SettingsView, ColorPickerDialogListener
         defaultDisplay.getRealSize(screenSize)
 
         setContentView(R.layout.activity_settings)
+
+        (application as ScreenStreamApp).appComponent().activityComponent().inject(this)
         presenter.attach(this)
 
         // Interface - Minimize on stream
@@ -194,77 +260,16 @@ class SettingsActivity : BaseActivity(), SettingsView, ColorPickerDialogListener
             dialog?.show()
         }
 
-        if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] onCreate: End")
+        if (BuildConfig.DEBUG_MODE) Log.i(TAG, "Thread [${Thread.currentThread().name}] onCreate: End")
         Crashlytics.log(1, TAG, "onCreate: End")
     }
 
-    override fun inject(injector: NonConfigurationComponent) = injector.inject(this)
-
     override fun onDestroy() {
-        if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] onDestroy: Start")
+        if (BuildConfig.DEBUG_MODE) Log.i(TAG, "Thread [${Thread.currentThread().name}] onDestroy: Start")
         dialog?.let { if (it.isShowing) it.dismiss() }
         presenter.detach()
-        if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] onDestroy: End")
         Crashlytics.log(1, TAG, "onDestroy: End")
         super.onDestroy()
-    }
-
-    override fun fromEvent(): Observable<SettingsView.FromEvent> = fromEvents.asObservable()
-
-    override fun toEvent(toEvent: SettingsView.ToEvent) {
-        Observable.just(toEvent).subscribeOn(AndroidSchedulers.mainThread()).subscribe { event ->
-            if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}]: ${event.javaClass.simpleName}")
-
-            when (event) {
-                is SettingsView.ToEvent.MinimizeOnStream -> checkBoxMinimizeOnStream.isChecked = event.value
-                is SettingsView.ToEvent.StopOnSleep -> checkBoxStopOnSleep.isChecked = event.value
-                is SettingsView.ToEvent.StartOnBoot -> checkBoxStartOnBoot.isChecked = event.value
-                is SettingsView.ToEvent.DisableMjpegCheck -> checkBoxMjpegCheck.isChecked = event.value
-                is SettingsView.ToEvent.HtmlBackColor -> viewHtmlBackColor.setBackgroundColor(event.value)
-
-                is SettingsView.ToEvent.ResizeFactor -> {
-                    resizeFactor = event.value
-                    textViewResizeImageValue.text = "$resizeFactor%"
-                }
-
-                is SettingsView.ToEvent.JpegQuality -> textViewJpegQualityValue.text = Integer.toString(event.value)
-
-                is SettingsView.ToEvent.EnablePin -> {
-                    checkBoxEnablePin.isChecked = event.value
-                    enableDisableView(clHidePinOnStart, event.value)
-                    enableDisableView(clNewPinOnAppStart, event.value)
-                    enableDisableView(clAutoChangePin, event.value)
-                    enableDisableView(clSetPin, checkBoxEnablePin.isChecked && !checkBoxNewPinOnAppStart.isChecked && !checkBoxAutoChangePin.isChecked)
-                }
-
-                is SettingsView.ToEvent.HidePinOnStart -> checkBoxHidePinOnStart.isChecked = event.value
-
-                is SettingsView.ToEvent.NewPinOnAppStart -> {
-                    checkBoxNewPinOnAppStart.isChecked = event.value
-                    enableDisableView(clSetPin, checkBoxEnablePin.isChecked && !checkBoxNewPinOnAppStart.isChecked && !checkBoxAutoChangePin.isChecked)
-                }
-
-                is SettingsView.ToEvent.AutoChangePin -> {
-                    checkBoxAutoChangePin.isChecked = event.value
-                    enableDisableView(clSetPin, checkBoxEnablePin.isChecked && !checkBoxNewPinOnAppStart.isChecked && !checkBoxAutoChangePin.isChecked)
-                }
-
-                is SettingsView.ToEvent.SetPin -> textViewSetPinValue.text = event.value
-                is SettingsView.ToEvent.UseWiFiOnly -> checkBoxUseWifiOnly.isChecked = event.value
-                is SettingsView.ToEvent.ServerPort -> textViewServerPortValue.text = Integer.toString(event.value)
-
-                is SettingsView.ToEvent.ErrorServerPortBusy -> {
-                    Alerter.create(this)
-                            .setTitle(R.string.pref_alert_error_title)
-                            .setText(R.string.pref_alert_error_message)
-                            .setBackgroundColorRes(R.color.colorAccent)
-                            .setDuration(5000)
-                            .enableProgress(true)
-                            .enableSwipeToDismiss()
-                            .show()
-                }
-            }
-        }
     }
 
     // Private methods

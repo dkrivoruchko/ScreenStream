@@ -58,6 +58,7 @@ dependencies {
     implementation "com.android.support:design:$support_version"
     implementation "com.android.support:support-v13:$support_version"
     implementation 'com.android.support.constraint:constraint-layout:1.0.2'
+    implementation "android.arch.lifecycle:extensions:1.0.0-rc1"
 
     implementation "com.google.dagger:dagger:$dagger_version"
     kapt "com.google.dagger:dagger-compiler:$dagger_version"

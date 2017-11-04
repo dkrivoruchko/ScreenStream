@@ -2,6 +2,7 @@ package info.dvkr.screenstream.ui
 
 
 import android.app.Activity
+import android.arch.lifecycle.ViewModelProviders
 import android.content.ActivityNotFoundException
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -12,6 +13,7 @@ import android.media.projection.MediaProjectionManager
 import android.net.Uri
 import android.os.Bundle
 import android.support.v4.content.ContextCompat
+import android.support.v7.app.AppCompatActivity
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
@@ -26,7 +28,8 @@ import com.mikepenz.materialdrawer.model.PrimaryDrawerItem
 import com.tapadoo.alerter.Alerter
 import info.dvkr.screenstream.BuildConfig
 import info.dvkr.screenstream.R
-import info.dvkr.screenstream.dagger.component.NonConfigurationComponent
+import info.dvkr.screenstream.ScreenStreamApp
+import info.dvkr.screenstream.data.presenter.PresenterFactory
 import info.dvkr.screenstream.data.presenter.start.StartPresenter
 import info.dvkr.screenstream.data.presenter.start.StartView
 import info.dvkr.screenstream.domain.eventbus.EventBus
@@ -39,7 +42,7 @@ import rx.android.schedulers.AndroidSchedulers
 import java.net.BindException
 import javax.inject.Inject
 
-class StartActivity : BaseActivity(), StartView {
+class StartActivity : AppCompatActivity(), StartView {
 
     private val TAG = "StartActivity"
 
@@ -63,8 +66,12 @@ class StartActivity : BaseActivity(), StartView {
         }
     }
 
-    @Inject internal lateinit var presenter: StartPresenter
     @Inject internal lateinit var settings: Settings
+    @Inject internal lateinit var presenterFactory: PresenterFactory
+    private val presenter: StartPresenter by lazy {
+        ViewModelProviders.of(this, presenterFactory).get(StartPresenter::class.java)
+    }
+
     private val fromEvents = PublishRelay.create<StartView.FromEvent>()
     private lateinit var drawer: Drawer
     private var canStart: Boolean = true
@@ -74,7 +81,7 @@ class StartActivity : BaseActivity(), StartView {
 
     override fun toEvent(toEvent: StartView.ToEvent) {
         Observable.just(toEvent).subscribeOn(AndroidSchedulers.mainThread()).subscribe { event ->
-            if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] toEvent: ${event.javaClass.simpleName}")
+            if (BuildConfig.DEBUG_MODE) Log.i(TAG, "Thread [${Thread.currentThread().name}] toEvent: ${event.javaClass.simpleName}")
 
             when (event) {
                 is StartView.ToEvent.TryToStart -> {
@@ -166,7 +173,7 @@ class StartActivity : BaseActivity(), StartView {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] onCreate: Start")
+        if (BuildConfig.DEBUG_MODE) Log.i(TAG, "Thread [${Thread.currentThread().name}] onCreate: Start")
         Crashlytics.log(1, TAG, "onCreate: Start")
 
         setContentView(R.layout.activity_start)
@@ -177,6 +184,8 @@ class StartActivity : BaseActivity(), StartView {
         toggleButtonStartStop.isEnabled = false
         textViewConnectedClients.text = getString(R.string.start_activity_connected_clients).format(0)
         textViewCurrentTraffic.text = getString(R.string.start_activity_current_traffic).format(0f)
+
+        (application as ScreenStreamApp).appComponent().activityComponent().inject(this)
         presenter.attach(this)
 
         toggleButtonStartStop.setOnClickListener { _ ->
@@ -238,7 +247,7 @@ class StartActivity : BaseActivity(), StartView {
 
         onNewIntent(intent)
 
-        if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] onCreate: End")
+        if (BuildConfig.DEBUG_MODE) Log.i(TAG, "Thread [${Thread.currentThread().name}] onCreate: End")
         Crashlytics.log(1, TAG, "onCreate: End")
     }
 
@@ -246,7 +255,7 @@ class StartActivity : BaseActivity(), StartView {
         super.onNewIntent(intent)
 
         val action = intent.getStringExtra(EXTRA_DATA)
-        if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] onNewIntent: action = $action")
+        if (BuildConfig.DEBUG_MODE) Log.i(TAG, "Thread [${Thread.currentThread().name}] onNewIntent: action = $action")
         if (null == action) return
 
         intent.removeExtra(EXTRA_DATA)
@@ -284,18 +293,15 @@ class StartActivity : BaseActivity(), StartView {
         super.onStop()
     }
 
-    override fun inject(injector: NonConfigurationComponent) = injector.inject(this)
-
     override fun onDestroy() {
-        if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] onDestroy: Start")
+        if (BuildConfig.DEBUG_MODE) Log.i(TAG, "Thread [${Thread.currentThread().name}] onDestroy: Start")
         presenter.detach()
-        if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] onDestroy: End")
         Crashlytics.log(1, TAG, "onDestroy: End")
         super.onDestroy()
     }
 
     public override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] onActivityResult: $requestCode")
+        if (BuildConfig.DEBUG_MODE) Log.i(TAG, "Thread [${Thread.currentThread().name}] onActivityResult: $requestCode")
         when (requestCode) {
             REQUEST_CODE_SCREEN_CAPTURE -> {
                 if (Activity.RESULT_OK != resultCode) {
@@ -336,7 +342,7 @@ class StartActivity : BaseActivity(), StartView {
     }
 
     private fun showServerAddresses(interfaceList: List<EventBus.Interface>, serverPort: Int) {
-        if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] showServerAddresses")
+        if (BuildConfig.DEBUG_MODE) Log.i(TAG, "Thread [${Thread.currentThread().name}] showServerAddresses")
 
         linearLayoutServerAddressList.removeAllViews()
         val layoutInflater = LayoutInflater.from(this)
@@ -365,7 +371,7 @@ class StartActivity : BaseActivity(), StartView {
     }
 
     private fun showResizeFactor(resizeFactor: Int) {
-        if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] showResizeFactor")
+        if (BuildConfig.DEBUG_MODE) Log.i(TAG, "Thread [${Thread.currentThread().name}] showResizeFactor")
 
         val defaultDisplay = (getSystemService(Context.WINDOW_SERVICE) as WindowManager).defaultDisplay
         val screenSize = Point()
@@ -376,7 +382,7 @@ class StartActivity : BaseActivity(), StartView {
     }
 
     private fun showEnablePin(enablePin: Boolean) {
-        if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] showEnablePin")
+        if (BuildConfig.DEBUG_MODE) Log.i(TAG, "Thread [${Thread.currentThread().name}] showEnablePin")
         if (enablePin) {
             textViewPinText.text = getString(R.string.start_activity_pin)
             textViewPinValue.text = settings.currentPin

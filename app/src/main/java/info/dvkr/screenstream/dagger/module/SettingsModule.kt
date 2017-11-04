@@ -19,7 +19,7 @@ class SettingsModule {
 
     @Provides
     @Singleton
-    internal fun getSettingsHelper(context: Context): Settings {
+    internal fun provideSettingsHelper(context: Context): Settings {
         PreferenceManager.getDefaultSharedPreferences(context).edit().clear().apply()
         val preferences = BinaryPreferencesBuilder(context)
                 .exceptionHandler {

@@ -1,9 +1,11 @@
 package info.dvkr.screenstream.ui
 
+import android.arch.lifecycle.ViewModelProviders
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.support.v4.content.ContextCompat
+import android.support.v7.app.AppCompatActivity
 import android.util.Log
 import android.view.LayoutInflater
 import com.crashlytics.android.Crashlytics
@@ -14,7 +16,8 @@ import com.jjoe64.graphview.series.DataPoint
 import com.jjoe64.graphview.series.LineGraphSeries
 import info.dvkr.screenstream.BuildConfig
 import info.dvkr.screenstream.R
-import info.dvkr.screenstream.dagger.component.NonConfigurationComponent
+import info.dvkr.screenstream.ScreenStreamApp
+import info.dvkr.screenstream.data.presenter.PresenterFactory
 import info.dvkr.screenstream.data.presenter.clients.ClientsPresenter
 import info.dvkr.screenstream.data.presenter.clients.ClientsView
 import kotlinx.android.synthetic.main.activity_clients.*
@@ -25,7 +28,7 @@ import java.text.NumberFormat
 import javax.inject.Inject
 
 
-class ClientsActivity : BaseActivity(), ClientsView {
+class ClientsActivity : AppCompatActivity(), ClientsView {
 
     private val TAG = "ClientsActivity"
 
@@ -35,7 +38,11 @@ class ClientsActivity : BaseActivity(), ClientsView {
         }
     }
 
-    @Inject internal lateinit var presenter: ClientsPresenter
+    @Inject internal lateinit var presenterFactory: PresenterFactory
+    private val presenter: ClientsPresenter by lazy {
+        ViewModelProviders.of(this, presenterFactory).get(ClientsPresenter::class.java)
+    }
+
     private val fromEvents = PublishRelay.create<ClientsView.FromEvent>()
     private var lineGraphSeries: LineGraphSeries<DataPoint>? = null
 
@@ -43,7 +50,7 @@ class ClientsActivity : BaseActivity(), ClientsView {
 
     override fun toEvent(toEvent: ClientsView.ToEvent) {
         Observable.just(toEvent).subscribeOn(AndroidSchedulers.mainThread()).subscribe { event ->
-            if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] toEvent: ${event.javaClass.simpleName}")
+            if (BuildConfig.DEBUG_MODE) Log.i(TAG, "Thread [${Thread.currentThread().name}] toEvent: ${event.javaClass.simpleName}")
 
             when (event) {
                 is ClientsView.ToEvent.CurrentClients -> {
@@ -109,19 +116,19 @@ class ClientsActivity : BaseActivity(), ClientsView {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] onCreate: Start")
+        if (BuildConfig.DEBUG_MODE) Log.i(TAG, "Thread [${Thread.currentThread().name}] onCreate: Start")
         Crashlytics.log(1, TAG, "onCreate: Start")
         setContentView(R.layout.activity_clients)
 
         textViewCurrentTraffic.text = getString(R.string.clients_activity_current_traffic).format(0.0)
         textViewConnectedClients.text = getString(R.string.clients_activity_connected_clients).format(0)
 
+        (application as ScreenStreamApp).appComponent().activityComponent().inject(this)
         presenter.attach(this)
-        if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] onCreate: End")
+
+        if (BuildConfig.DEBUG_MODE) Log.i(TAG, "Thread [${Thread.currentThread().name}] onCreate: End")
         Crashlytics.log(1, TAG, "onCreate: End")
     }
-
-    override fun inject(injector: NonConfigurationComponent) = injector.inject(this)
 
     override fun onStart() {
         super.onStart()
@@ -129,9 +136,8 @@ class ClientsActivity : BaseActivity(), ClientsView {
     }
 
     override fun onDestroy() {
-        if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] onDestroy: Start")
+        if (BuildConfig.DEBUG_MODE) Log.i(TAG, "Thread [${Thread.currentThread().name}] onDestroy")
         presenter.detach()
-        if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] onDestroy: End")
         Crashlytics.log(1, TAG, "onDestroy: End")
         super.onDestroy()
     }

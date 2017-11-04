@@ -1,30 +1,29 @@
 package info.dvkr.screenstream.data.presenter.start
 
+import android.arch.lifecycle.ViewModel
+import android.util.Log
 import com.crashlytics.android.Crashlytics
 import info.dvkr.screenstream.data.BuildConfig
-import info.dvkr.screenstream.data.dagger.PersistentScope
 import info.dvkr.screenstream.domain.eventbus.EventBus
 import info.dvkr.screenstream.domain.globalstatus.GlobalStatus
 import rx.Scheduler
 import rx.subscriptions.CompositeSubscription
-import javax.inject.Inject
 
-@PersistentScope
-class StartPresenter @Inject internal constructor(private val eventScheduler: Scheduler,
-                                                  private val eventBus: EventBus,
-                                                  private val globalStatus: GlobalStatus) {
+class StartPresenter internal constructor(private val eventScheduler: Scheduler,
+                                          private val eventBus: EventBus,
+                                          private val globalStatus: GlobalStatus) : ViewModel() {
     private val TAG = "StartPresenter"
 
     private val subscriptions = CompositeSubscription()
     private var startView: StartView? = null
 
     init {
-        if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] Constructor")
+        if (BuildConfig.DEBUG_MODE) Log.i(TAG, "Thread [${Thread.currentThread().name}] Constructor")
         Crashlytics.log(1, TAG, "Constructor")
     }
 
     fun attach(view: StartView) {
-        if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] Attach")
+        if (BuildConfig.DEBUG_MODE) Log.i(TAG, "Thread [${Thread.currentThread().name}] Attach")
         Crashlytics.log(1, TAG, "Attach")
 
         startView?.let { detach() }
@@ -32,7 +31,7 @@ class StartPresenter @Inject internal constructor(private val eventScheduler: Sc
 
         // Events from StartActivity
         startView?.fromEvent()?.observeOn(eventScheduler)?.subscribe { fromEvent ->
-            if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] fromEvent: $fromEvent")
+            if (BuildConfig.DEBUG_MODE) Log.i(TAG, "Thread [${Thread.currentThread().name}] fromEvent: $fromEvent")
             when (fromEvent) {
             // Relaying message to ForegroundPresenter
                 is StartView.FromEvent.CurrentInterfacesRequest -> {
@@ -68,7 +67,7 @@ class StartPresenter @Inject internal constructor(private val eventScheduler: Sc
                     startView?.toEvent(StartView.ToEvent.Error(globalStatus.error.get()))
                 }
 
-                else -> println(TAG + ": Thread [${Thread.currentThread().name}] fromEvent: $fromEvent WARRING: IGNORED")
+                else -> Log.e(TAG, "Thread [${Thread.currentThread().name}] fromEvent: $fromEvent WARRING: IGNORED")
             }
         }.also { subscriptions.add(it) }
 
@@ -82,7 +81,7 @@ class StartPresenter @Inject internal constructor(private val eventScheduler: Sc
                     it is EventBus.GlobalEvent.CurrentInterfaces ||
                     it is EventBus.GlobalEvent.TrafficPoint
         }.subscribe { globalEvent ->
-            if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] globalEvent: $globalEvent")
+            if (BuildConfig.DEBUG_MODE) Log.i(TAG, "Thread [${Thread.currentThread().name}] globalEvent: $globalEvent")
             when (globalEvent) {
             // From ImageGeneratorImpl
                 is EventBus.GlobalEvent.StreamStatus -> {
@@ -129,7 +128,7 @@ class StartPresenter @Inject internal constructor(private val eventScheduler: Sc
     }
 
     fun detach() {
-        if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] Detach")
+        if (BuildConfig.DEBUG_MODE) Log.i(TAG, "Thread [${Thread.currentThread().name}] Detach")
         Crashlytics.log(1, TAG, "Detach")
         subscriptions.clear()
         startView = null

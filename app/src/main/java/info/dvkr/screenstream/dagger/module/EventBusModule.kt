@@ -1,4 +1,4 @@
-package info.dvkr.screenstream.data.dagger.module
+package info.dvkr.screenstream.dagger.module
 
 import android.os.HandlerThread
 import dagger.Module

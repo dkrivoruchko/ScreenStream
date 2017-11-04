@@ -43,7 +43,7 @@ class SettingsImpl(private val preferences: Preferences) : Settings {
     }
 
     init {
-        if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] Constructor")
+        if (BuildConfig.DEBUG_MODE) Log.i(TAG, "Thread [${Thread.currentThread().name}] Constructor")
     }
 
     override var minimizeOnStream: Boolean

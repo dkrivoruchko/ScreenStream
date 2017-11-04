@@ -1,18 +1,17 @@
 package info.dvkr.screenstream.data.presenter.clients
 
+import android.arch.lifecycle.ViewModel
+import android.util.Log
 import com.crashlytics.android.Crashlytics
 import info.dvkr.screenstream.data.BuildConfig
-import info.dvkr.screenstream.data.dagger.PersistentScope
 import info.dvkr.screenstream.domain.eventbus.EventBus
 import info.dvkr.screenstream.domain.httpserver.HttpServer
 import rx.Scheduler
 import rx.subscriptions.CompositeSubscription
 import java.util.concurrent.ConcurrentLinkedDeque
-import javax.inject.Inject
 
-@PersistentScope
-class ClientsPresenter @Inject internal constructor(private val eventScheduler: Scheduler,
-                                                    private val eventBus: EventBus) {
+class ClientsPresenter internal constructor(private val eventScheduler: Scheduler,
+                                            private val eventBus: EventBus) : ViewModel() {
     private val TAG = "ClientsPresenter"
 
     private val subscriptions = CompositeSubscription()
@@ -20,13 +19,14 @@ class ClientsPresenter @Inject internal constructor(private val eventScheduler: 
     private val trafficHistory = ConcurrentLinkedDeque<HttpServer.TrafficPoint>()
     private var maxYValue = 0L
 
+
     init {
-        if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] Constructor")
+        if (BuildConfig.DEBUG_MODE) Log.i(TAG, "Thread [${Thread.currentThread().name}] Constructor")
         Crashlytics.log(1, TAG, "Constructor")
     }
 
     fun attach(view: ClientsView) {
-        if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] Attach")
+        if (BuildConfig.DEBUG_MODE) Log.i(TAG, "Thread [${Thread.currentThread().name}] Attach")
         Crashlytics.log(1, TAG, "Attach")
 
         clientsView?.let { detach() }
@@ -34,7 +34,7 @@ class ClientsPresenter @Inject internal constructor(private val eventScheduler: 
 
         // Events from ClientsActivity
         clientsView?.fromEvent()?.observeOn(eventScheduler)?.subscribe { fromEvent ->
-            if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] fromEvent: $fromEvent")
+            if (BuildConfig.DEBUG_MODE) Log.i(TAG, "Thread [${Thread.currentThread().name}] fromEvent: $fromEvent")
             when (fromEvent) {
 
             // Getting current traffic history
@@ -48,7 +48,7 @@ class ClientsPresenter @Inject internal constructor(private val eventScheduler: 
                     }
                 }
 
-                else -> println(TAG + ": Thread [${Thread.currentThread().name}] fromEvent: $fromEvent WARRING: IGNORED")
+                else -> Log.e(TAG, "Thread [${Thread.currentThread().name}] fromEvent: $fromEvent WARRING: IGNORED")
             }
         }.also { subscriptions.add(it) }
 
@@ -58,7 +58,7 @@ class ClientsPresenter @Inject internal constructor(private val eventScheduler: 
                     it is EventBus.GlobalEvent.TrafficHistory ||
                     it is EventBus.GlobalEvent.TrafficPoint
         }.subscribe { globalEvent ->
-            if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] globalEvent: $globalEvent")
+            if (BuildConfig.DEBUG_MODE) Log.i(TAG, "Thread [${Thread.currentThread().name}] globalEvent: $globalEvent")
             when (globalEvent) {
             // From HttpServerImpl
                 is EventBus.GlobalEvent.CurrentClients -> {
@@ -90,8 +90,9 @@ class ClientsPresenter @Inject internal constructor(private val eventScheduler: 
         eventBus.sendEvent(EventBus.GlobalEvent.CurrentClientsRequest())
     }
 
+
     fun detach() {
-        if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] Detach")
+        if (BuildConfig.DEBUG_MODE) Log.i(TAG, "Thread [${Thread.currentThread().name}] Detach")
         Crashlytics.log(1, TAG, "Detach")
         subscriptions.clear()
         clientsView = null

@@ -7,7 +7,6 @@ import java.net.InetSocketAddress
 
 
 interface ForegroundView {
-
     // From ForegroundService to ForegroundPresenter
     @Keep sealed class FromEvent {
         @Keep object Init : FromEvent()

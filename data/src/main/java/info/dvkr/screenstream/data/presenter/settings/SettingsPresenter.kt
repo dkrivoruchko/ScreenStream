@@ -1,33 +1,32 @@
 package info.dvkr.screenstream.data.presenter.settings
 
 
+import android.arch.lifecycle.ViewModel
+import android.util.Log
 import com.crashlytics.android.Crashlytics
 import info.dvkr.screenstream.data.BuildConfig
-import info.dvkr.screenstream.data.dagger.PersistentScope
 import info.dvkr.screenstream.data.image.ImageNotify
 import info.dvkr.screenstream.domain.eventbus.EventBus
 import info.dvkr.screenstream.domain.settings.Settings
 import rx.Scheduler
 import rx.subscriptions.CompositeSubscription
 import java.net.ServerSocket
-import javax.inject.Inject
 
-@PersistentScope
-class SettingsPresenter @Inject internal constructor(private val settings: Settings,
-                                                     private val eventScheduler: Scheduler,
-                                                     private val eventBus: EventBus) {
+class SettingsPresenter internal constructor(private val settings: Settings,
+                                             private val eventScheduler: Scheduler,
+                                             private val eventBus: EventBus) : ViewModel() {
     private val TAG = "SettingsPresenter"
 
     private val subscriptions = CompositeSubscription()
     private var settingsView: SettingsView? = null
 
     init {
-        if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] Constructor")
+        if (BuildConfig.DEBUG_MODE) Log.i(TAG, "Thread [${Thread.currentThread().name}] Constructor")
         Crashlytics.log(1, TAG, "Constructor")
     }
 
     fun attach(view: SettingsView) {
-        if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] Attach")
+        if (BuildConfig.DEBUG_MODE) Log.i(TAG, "Thread [${Thread.currentThread().name}] Attach")
         Crashlytics.log(1, TAG, "Attach")
 
         settingsView?.let { detach() }
@@ -53,7 +52,7 @@ class SettingsPresenter @Inject internal constructor(private val settings: Setti
 
         // Getting values from Activity
         settingsView?.fromEvent()?.observeOn(eventScheduler)?.subscribe { fromEvent ->
-            if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] fromEvent: $fromEvent")
+            if (BuildConfig.DEBUG_MODE) Log.i(TAG, "Thread [${Thread.currentThread().name}] fromEvent: $fromEvent")
 
             when (fromEvent) {
                 is SettingsView.FromEvent.MinimizeOnStream -> settings.minimizeOnStream = fromEvent.value
@@ -125,13 +124,13 @@ class SettingsPresenter @Inject internal constructor(private val settings: Setti
                     }
                 }
 
-                else -> if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] fromEvent: $fromEvent WARRING: IGNORED")
+                else -> if (BuildConfig.DEBUG_MODE) Log.e(TAG, "Thread [${Thread.currentThread().name}] fromEvent: $fromEvent WARRING: IGNORED")
             }
         }.also { subscriptions.add(it) }
     }
 
     fun detach() {
-        if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] Detach")
+        if (BuildConfig.DEBUG_MODE) Log.i(TAG, "Thread [${Thread.currentThread().name}] Detach")
         Crashlytics.log(1, TAG, "Detach")
         subscriptions.clear()
         settingsView = null

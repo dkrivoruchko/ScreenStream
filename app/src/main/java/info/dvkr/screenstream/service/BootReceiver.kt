@@ -17,7 +17,7 @@ class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         if (BuildConfig.DEBUG_MODE) Log.w("BootReceiver", "Thread [${Thread.currentThread().name}] onReceive")
         Crashlytics.log(1, "BootReceiver", "onReceive")
-        (context.applicationContext as ScreenStreamApp).appComponent().plusActivityComponent().inject(this)
+        (context.applicationContext as ScreenStreamApp).appComponent().serviceComponent().inject(this)
 
         if (!settings.startOnBoot) System.exit(0)
 

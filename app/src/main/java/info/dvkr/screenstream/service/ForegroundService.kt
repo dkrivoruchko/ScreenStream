@@ -136,10 +136,10 @@ class ForegroundService : Service(), ForegroundView {
     }
 
     override fun onCreate() {
-        if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] onCreate: Start")
+        if (BuildConfig.DEBUG_MODE) Log.i(TAG, "Thread [${Thread.currentThread().name}] onCreate: Start")
         Crashlytics.log(1, TAG, "onCreate: Start")
 
-        (application as ScreenStreamApp).appComponent().plusActivityComponent().inject(this)
+        (application as ScreenStreamApp).appComponent().serviceComponent().inject(this)
         presenter.attach(this)
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -150,7 +150,7 @@ class ForegroundService : Service(), ForegroundView {
         toEvents.startWith(ForegroundService.LocalEvent.StartService)
                 .observeOn(eventScheduler).subscribe { event ->
 
-            if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] toEvent: " + event.javaClass.simpleName)
+            if (BuildConfig.DEBUG_MODE) Log.i(TAG, "Thread [${Thread.currentThread().name}] toEvent: " + event.javaClass.simpleName)
 
             when (event) {
                 is ForegroundService.LocalEvent.StartService -> {
@@ -294,7 +294,7 @@ class ForegroundService : Service(), ForegroundView {
                 }.also { subscriptions.add(it) }
 
         startForeground(NOTIFICATION_START_STREAMING, getCustomNotification(NOTIFICATION_START_STREAMING))
-        if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] onCreate: End")
+        if (BuildConfig.DEBUG_MODE) Log.i(TAG, "Thread [${Thread.currentThread().name}] onCreate: End")
         Crashlytics.log(1, TAG, "onCreate: End")
     }
 
@@ -329,7 +329,7 @@ class ForegroundService : Service(), ForegroundView {
     }
 
     override fun onDestroy() {
-        if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] onDestroy: StartService")
+        if (BuildConfig.DEBUG_MODE) Log.i(TAG, "Thread [${Thread.currentThread().name}] onDestroy: StartService")
         fromEvents.call(ForegroundView.FromEvent.StopHttpServer)
         subscriptions.clear()
         stopForeground(true)
@@ -341,7 +341,6 @@ class ForegroundService : Service(), ForegroundView {
         }
 
         super.onDestroy()
-        if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] onDestroy: End")
         Crashlytics.log(1, TAG, "onDestroy: End")
         System.exit(0)
     }
@@ -349,7 +348,7 @@ class ForegroundService : Service(), ForegroundView {
 // ======================================================================================================
 
     private fun stopMediaProjection() {
-        if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] stopMediaProjection")
+        if (BuildConfig.DEBUG_MODE) Log.i(TAG, "Thread [${Thread.currentThread().name}] stopMediaProjection")
         Crashlytics.log(1, TAG, "stopMediaProjection")
         mediaProjection?.apply {
             projectionCallback?.let { unregisterCallback(it) }
@@ -361,7 +360,7 @@ class ForegroundService : Service(), ForegroundView {
     }
 
     private fun getCustomNotification(notificationType: Int): Notification {
-        if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] getCustomNotification:$notificationType")
+        if (BuildConfig.DEBUG_MODE) Log.i(TAG, "Thread [${Thread.currentThread().name}] getCustomNotification:$notificationType")
 
         val pendingMainActivityIntent = PendingIntent.getActivity(applicationContext, 0,
                 StartActivity.getStartIntent(applicationContext).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
@@ -428,7 +427,7 @@ class ForegroundService : Service(), ForegroundView {
     override fun onBind(intent: Intent): IBinder? = null
 
     private fun getFileFromAssets(context: Context, fileName: String): ByteArray {
-        if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] getFileFromAssets: $fileName")
+        if (BuildConfig.DEBUG_MODE) Log.i(TAG, "Thread [${Thread.currentThread().name}] getFileFromAssets: $fileName")
         context.assets.open(fileName).use { inputStream ->
             val fileBytes = ByteArray(inputStream.available())
             inputStream.read(fileBytes)
@@ -466,7 +465,7 @@ class ForegroundService : Service(), ForegroundView {
     }
 
     private fun getInterfaces(): List<EventBus.Interface> {
-        if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] getInterfaces")
+        if (BuildConfig.DEBUG_MODE) Log.i(TAG, "Thread [${Thread.currentThread().name}] getInterfaces")
         Crashlytics.log(1, TAG, "getInterfaces")
         val interfaceList = ArrayList<EventBus.Interface>()
         try {
@@ -499,7 +498,7 @@ class ForegroundService : Service(), ForegroundView {
     private fun wifiConnected() = wifiManager.connectionInfo.ipAddress != 0
 
     private fun getWiFiIpAddress(): Inet4Address {
-        if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] getWiFiIpAddress")
+        if (BuildConfig.DEBUG_MODE) Log.i(TAG, "Thread [${Thread.currentThread().name}] getWiFiIpAddress")
         Crashlytics.log(1, TAG, "getWiFiIpAddress")
         val ipInt = wifiManager.connectionInfo.ipAddress
         return InetAddress.getByAddress(ByteArray(4, { i -> (ipInt.shr(i * 8).and(255)).toByte() })) as Inet4Address

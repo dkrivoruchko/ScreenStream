@@ -5,7 +5,6 @@ import info.dvkr.screenstream.domain.httpserver.HttpServer
 import rx.Observable
 
 interface ClientsView {
-
     // From ClientsActivity to ClientsPresenter
     @Keep sealed class FromEvent {
         @Keep object TrafficHistoryRequest : FromEvent()

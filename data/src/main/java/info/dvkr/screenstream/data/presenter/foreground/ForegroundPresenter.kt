@@ -1,9 +1,9 @@
 package info.dvkr.screenstream.data.presenter.foreground
 
 
+import android.util.Log
 import com.crashlytics.android.Crashlytics
 import info.dvkr.screenstream.data.BuildConfig
-import info.dvkr.screenstream.data.dagger.PersistentScope
 import info.dvkr.screenstream.data.image.ImageNotify
 import info.dvkr.screenstream.domain.eventbus.EventBus
 import info.dvkr.screenstream.domain.globalstatus.GlobalStatus
@@ -13,13 +13,11 @@ import info.dvkr.screenstream.domain.settings.Settings
 import rx.Scheduler
 import rx.functions.Action2
 import rx.subscriptions.CompositeSubscription
-import javax.inject.Inject
 
-@PersistentScope
-class ForegroundPresenter @Inject internal constructor(private val settings: Settings,
-                                                       private val eventScheduler: Scheduler,
-                                                       private val eventBus: EventBus,
-                                                       private val globalStatus: GlobalStatus) {
+class ForegroundPresenter constructor(private val settings: Settings,
+                                      private val eventScheduler: Scheduler,
+                                      private val eventBus: EventBus,
+                                      private val globalStatus: GlobalStatus) {
     private val TAG = "ForegroundPresenter"
 
     private val subscriptions = CompositeSubscription()
@@ -30,12 +28,12 @@ class ForegroundPresenter @Inject internal constructor(private val settings: Set
     private val slowConnections: MutableList<HttpServer.Client> = ArrayList()
 
     init {
-        if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] Constructor")
+        if (BuildConfig.DEBUG_MODE) Log.i(TAG, "Thread [${Thread.currentThread().name}] Constructor")
         Crashlytics.log(1, TAG, "Constructor")
     }
 
     fun attach(view: ForegroundView) {
-        if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] Attach")
+        if (BuildConfig.DEBUG_MODE) Log.i(TAG, "Thread [${Thread.currentThread().name}] Attach")
         Crashlytics.log(1, TAG, "Attach")
 
         foregroundView?.let { detach() }
@@ -43,7 +41,7 @@ class ForegroundPresenter @Inject internal constructor(private val settings: Set
 
         // Events from ForegroundService
         foregroundView?.fromEvent()?.observeOn(eventScheduler)?.subscribe { fromEvent ->
-            if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] fromEvent: ${fromEvent.javaClass.simpleName}")
+            if (BuildConfig.DEBUG_MODE) Log.i(TAG, "Thread [${Thread.currentThread().name}] fromEvent: $fromEvent")
 
             when (fromEvent) {
                 is ForegroundView.FromEvent.Init -> {
@@ -105,7 +103,7 @@ class ForegroundPresenter @Inject internal constructor(private val settings: Set
                     eventBus.sendEvent(EventBus.GlobalEvent.CurrentInterfaces(fromEvent.interfaceList))
                 }
 
-                else -> println(TAG + ": Thread [${Thread.currentThread().name}] fromEvent: $fromEvent WARRING: IGNORED")
+                else -> Log.e(TAG, "Thread [${Thread.currentThread().name}] fromEvent: $fromEvent WARRING: IGNORED")
             }
         }.also { subscriptions.add(it) }
 
@@ -118,7 +116,7 @@ class ForegroundPresenter @Inject internal constructor(private val settings: Set
                     it is EventBus.GlobalEvent.Error ||
                     it is EventBus.GlobalEvent.CurrentClients
         }.subscribe { globalEvent ->
-            if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] globalEvent: $globalEvent")
+            if (BuildConfig.DEBUG_MODE) Log.i(TAG, "Thread [${Thread.currentThread().name}] globalEvent: $globalEvent")
             when (globalEvent) {
             // From StartPresenter & ProjectionCallback
                 is EventBus.GlobalEvent.StopStream -> {
@@ -168,7 +166,7 @@ class ForegroundPresenter @Inject internal constructor(private val settings: Set
     }
 
     fun detach() {
-        if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] Detach")
+        if (BuildConfig.DEBUG_MODE) Log.i(TAG, "Thread [${Thread.currentThread().name}] Detach")
         Crashlytics.log(1, TAG, "Detach")
         subscriptions.clear()
         foregroundView = null
