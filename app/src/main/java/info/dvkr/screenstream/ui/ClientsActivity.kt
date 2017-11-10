@@ -16,16 +16,15 @@ import com.jjoe64.graphview.series.DataPoint
 import com.jjoe64.graphview.series.LineGraphSeries
 import info.dvkr.screenstream.BuildConfig
 import info.dvkr.screenstream.R
-import info.dvkr.screenstream.ScreenStreamApp
 import info.dvkr.screenstream.data.presenter.PresenterFactory
 import info.dvkr.screenstream.data.presenter.clients.ClientsPresenter
 import info.dvkr.screenstream.data.presenter.clients.ClientsView
 import kotlinx.android.synthetic.main.activity_clients.*
 import kotlinx.android.synthetic.main.avtivity_clients_client_item.view.*
+import org.koin.android.ext.android.inject
 import rx.Observable
 import rx.android.schedulers.AndroidSchedulers
 import java.text.NumberFormat
-import javax.inject.Inject
 
 
 class ClientsActivity : AppCompatActivity(), ClientsView {
@@ -33,12 +32,10 @@ class ClientsActivity : AppCompatActivity(), ClientsView {
     private val TAG = "ClientsActivity"
 
     companion object {
-        fun getStartIntent(context: Context): Intent {
-            return Intent(context, ClientsActivity::class.java)
-        }
+        fun getStartIntent(context: Context): Intent = Intent(context, ClientsActivity::class.java)
     }
 
-    @Inject internal lateinit var presenterFactory: PresenterFactory
+    private val presenterFactory: PresenterFactory by inject()
     private val presenter: ClientsPresenter by lazy {
         ViewModelProviders.of(this, presenterFactory).get(ClientsPresenter::class.java)
     }
@@ -123,7 +120,6 @@ class ClientsActivity : AppCompatActivity(), ClientsView {
         textViewCurrentTraffic.text = getString(R.string.clients_activity_current_traffic).format(0.0)
         textViewConnectedClients.text = getString(R.string.clients_activity_connected_clients).format(0)
 
-        (application as ScreenStreamApp).appComponent().activityComponent().inject(this)
         presenter.attach(this)
 
         if (BuildConfig.DEBUG_MODE) Log.i(TAG, "Thread [${Thread.currentThread().name}] onCreate: End")

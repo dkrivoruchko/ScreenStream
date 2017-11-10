@@ -26,28 +26,25 @@ import com.jrummyapps.android.colorpicker.ColorPickerDialogListener
 import com.tapadoo.alerter.Alerter
 import info.dvkr.screenstream.BuildConfig
 import info.dvkr.screenstream.R
-import info.dvkr.screenstream.ScreenStreamApp
 import info.dvkr.screenstream.data.presenter.PresenterFactory
 import info.dvkr.screenstream.data.presenter.settings.SettingsPresenter
 import info.dvkr.screenstream.data.presenter.settings.SettingsView
 import kotlinx.android.synthetic.main.activity_settings.*
 import kotlinx.android.synthetic.main.settings_edittext_dialog.view.*
+import org.koin.android.ext.android.inject
 import rx.Observable
 import rx.android.schedulers.AndroidSchedulers
 import rx.functions.Action1
-import javax.inject.Inject
 
 
 class SettingsActivity : AppCompatActivity(), SettingsView, ColorPickerDialogListener {
     private val TAG = "SettingsActivity"
 
     companion object {
-        fun getStartIntent(context: Context): Intent {
-            return Intent(context, SettingsActivity::class.java)
-        }
+        fun getStartIntent(context: Context): Intent = Intent(context, SettingsActivity::class.java)
     }
 
-    @Inject internal lateinit var presenterFactory: PresenterFactory
+    private val presenterFactory: PresenterFactory by inject()
     private val presenter: SettingsPresenter by lazy {
         ViewModelProviders.of(this, presenterFactory).get(SettingsPresenter::class.java)
     }
@@ -128,7 +125,6 @@ class SettingsActivity : AppCompatActivity(), SettingsView, ColorPickerDialogLis
 
         setContentView(R.layout.activity_settings)
 
-        (application as ScreenStreamApp).appComponent().activityComponent().inject(this)
         presenter.attach(this)
 
         // Interface - Minimize on stream

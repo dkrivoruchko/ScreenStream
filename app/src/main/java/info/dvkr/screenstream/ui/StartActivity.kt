@@ -28,7 +28,6 @@ import com.mikepenz.materialdrawer.model.PrimaryDrawerItem
 import com.tapadoo.alerter.Alerter
 import info.dvkr.screenstream.BuildConfig
 import info.dvkr.screenstream.R
-import info.dvkr.screenstream.ScreenStreamApp
 import info.dvkr.screenstream.data.presenter.PresenterFactory
 import info.dvkr.screenstream.data.presenter.start.StartPresenter
 import info.dvkr.screenstream.data.presenter.start.StartView
@@ -37,10 +36,11 @@ import info.dvkr.screenstream.domain.settings.Settings
 import info.dvkr.screenstream.service.ForegroundService
 import kotlinx.android.synthetic.main.activity_start.*
 import kotlinx.android.synthetic.main.server_address.view.*
+import org.koin.android.ext.android.inject
 import rx.Observable
 import rx.android.schedulers.AndroidSchedulers
 import java.net.BindException
-import javax.inject.Inject
+
 
 class StartActivity : AppCompatActivity(), StartView {
 
@@ -55,9 +55,7 @@ class StartActivity : AppCompatActivity(), StartView {
         const val ACTION_EXIT = "ACTION_EXIT"
         const val ACTION_ERROR = "ACTION_ERROR"
 
-        fun getStartIntent(context: Context): Intent {
-            return Intent(context, StartActivity::class.java)
-        }
+        fun getStartIntent(context: Context): Intent = Intent(context, StartActivity::class.java)
 
         fun getStartIntent(context: Context, action: String): Intent {
             return Intent(context, StartActivity::class.java)
@@ -66,8 +64,8 @@ class StartActivity : AppCompatActivity(), StartView {
         }
     }
 
-    @Inject internal lateinit var settings: Settings
-    @Inject internal lateinit var presenterFactory: PresenterFactory
+    private val settings: Settings by inject()
+    private val presenterFactory: PresenterFactory by inject()
     private val presenter: StartPresenter by lazy {
         ViewModelProviders.of(this, presenterFactory).get(StartPresenter::class.java)
     }
@@ -185,13 +183,15 @@ class StartActivity : AppCompatActivity(), StartView {
         textViewConnectedClients.text = getString(R.string.start_activity_connected_clients).format(0)
         textViewCurrentTraffic.text = getString(R.string.start_activity_current_traffic).format(0f)
 
-        (application as ScreenStreamApp).appComponent().activityComponent().inject(this)
         presenter.attach(this)
 
         toggleButtonStartStop.setOnClickListener { _ ->
             if (toggleButtonStartStop.isChecked) {
                 toggleButtonStartStop.isChecked = false
-                if (!canStart) return@setOnClickListener
+                if (!canStart) {
+                    fromEvents.call(StartView.FromEvent.GetError)
+                    return@setOnClickListener
+                }
                 toggleButtonStartStop.isEnabled = false
                 fromEvents.call(StartView.FromEvent.TryStartStream)
             } else {

@@ -1,12 +1,7 @@
 apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-android-extensions'
-apply plugin: 'kotlin-kapt'
 apply plugin: 'io.fabric'
-
-repositories {
-    maven { url 'https://maven.fabric.io/public' }
-}
 
 android {
     compileSdkVersion compile_sdk
@@ -19,6 +14,8 @@ android {
         versionCode version_code
         versionName version_name
         resConfigs "en", "ru"//, "es"
+
+        vectorDrawables.useSupportLibrary = true
     }
 
     buildTypes {
@@ -58,10 +55,9 @@ dependencies {
     implementation "com.android.support:design:$support_version"
     implementation "com.android.support:support-v13:$support_version"
     implementation 'com.android.support.constraint:constraint-layout:1.0.2'
-    implementation "android.arch.lifecycle:extensions:1.0.0-rc1"
+    implementation 'android.arch.lifecycle:extensions:1.0.0'
 
-    implementation "com.google.dagger:dagger:$dagger_version"
-    kapt "com.google.dagger:dagger-compiler:$dagger_version"
+    implementation "org.koin:koin-android:$koin_version"
 
     implementation "io.reactivex:rxjava:$rxjava_version"
     implementation "io.reactivex:rxandroid:$rxandroid_version"
@@ -71,13 +67,13 @@ dependencies {
 
     implementation 'com.cantrowitz:rxbroadcast:1.1.2'
     implementation 'com.jakewharton.rxbinding:rxbinding:1.0.1'
-    implementation("com.mikepenz:materialdrawer:6.0.0@aar") {
+    implementation("com.mikepenz:materialdrawer:6.0.1@aar") {
         transitive = true
     }
     implementation 'com.tapadoo.android:alerter:2.0.1'
     implementation 'com.jrummyapps:colorpicker:2.1.7'
     implementation 'com.jjoe64:graphview:4.2.1'
-    implementation('com.crashlytics.sdk.android:crashlytics:2.7.0@aar') {
+    implementation('com.crashlytics.sdk.android:crashlytics:2.7.1@aar') {
         transitive = true
     }
 

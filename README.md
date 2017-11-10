@@ -48,7 +48,7 @@ Version 2.x based on Clean Architecture, Android Architecture Components (ViewMo
 * [Kotlin](https://kotlinlang.org)
 * [Android support libraries](https://developer.android.com/topic/libraries/support-library/index.html)
 * [Android Architecture Components](https://developer.android.com/topic/libraries/architecture/index.html)
-* [Dagger 2](https://github.com/google/dagger)
+* [Koin](https://github.com/Ekito/koin)
 * [RxJava 1.x](https://github.com/ReactiveX/RxJava/tree/1.x)
 * [RxAndroid](https://github.com/ReactiveX/RxAndroid/tree/1.x) 
 * [RxBinding](https://github.com/JakeWharton/RxBinding/tree/version-one)

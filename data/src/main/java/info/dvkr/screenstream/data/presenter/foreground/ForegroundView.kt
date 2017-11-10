@@ -1,6 +1,8 @@
 package info.dvkr.screenstream.data.presenter.foreground
 
+import android.media.projection.MediaProjection
 import android.support.annotation.Keep
+import android.view.Display
 import info.dvkr.screenstream.domain.eventbus.EventBus
 import rx.Observable
 import java.net.InetSocketAddress
@@ -19,6 +21,9 @@ interface ForegroundView {
                                          val jpegByteStream: Observable<ByteArray>) : FromEvent()
 
         @Keep object StopHttpServer : FromEvent()
+        @Keep data class StartImageGenerator(val display: Display,
+                                             val mediaProjection: MediaProjection) : FromEvent()
+
         @Keep object StopStreamComplete : FromEvent()
         @Keep object HttpServerRestartRequest : FromEvent()
         @Keep object ScreenOff : FromEvent()

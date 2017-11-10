@@ -19,9 +19,10 @@ import android.os.Build
 import android.os.IBinder
 import android.support.annotation.Keep
 import android.support.v4.app.NotificationCompat
-import android.support.v4.content.ContextCompat
+import android.support.v7.content.res.AppCompatResources
 import android.util.Log
 import android.view.LayoutInflater
+import android.view.WindowManager
 import android.widget.RemoteViews
 import android.widget.Toast
 import com.cantrowitz.rxbroadcast.RxBroadcast
@@ -30,9 +31,6 @@ import com.jakewharton.rxrelay.BehaviorRelay
 import com.jakewharton.rxrelay.PublishRelay
 import info.dvkr.screenstream.BuildConfig
 import info.dvkr.screenstream.R
-import info.dvkr.screenstream.ScreenStreamApp
-import info.dvkr.screenstream.data.image.ImageGenerator
-import info.dvkr.screenstream.data.image.ImageGeneratorImpl
 import info.dvkr.screenstream.data.image.ImageNotify
 import info.dvkr.screenstream.data.presenter.foreground.ForegroundPresenter
 import info.dvkr.screenstream.data.presenter.foreground.ForegroundView
@@ -42,11 +40,11 @@ import info.dvkr.screenstream.domain.httpserver.HttpServer
 import info.dvkr.screenstream.domain.settings.Settings
 import info.dvkr.screenstream.ui.StartActivity
 import kotlinx.android.synthetic.main.slow_connection_toast.view.*
+import org.koin.android.ext.android.inject
 import rx.BackpressureOverflow
 import rx.Observable
 import rx.Scheduler
 import rx.functions.Action0
-import rx.functions.Action1
 import rx.subscriptions.CompositeSubscription
 import java.net.Inet4Address
 import java.net.InetAddress
@@ -54,7 +52,6 @@ import java.net.InetSocketAddress
 import java.net.NetworkInterface
 import java.nio.charset.Charset
 import java.util.concurrent.TimeUnit
-import javax.inject.Inject
 
 class ForegroundService : Service(), ForegroundView {
     companion object {
@@ -68,9 +65,8 @@ class ForegroundService : Service(), ForegroundView {
         const val ACTION_INIT = "ACTION_INIT"
         const val ACTION_START_ON_BOOT = "ACTION_START_ON_BOOT"
 
-        fun getIntent(context: Context, action: String): Intent {
-            return Intent(context, ForegroundService::class.java).putExtra(EXTRA_DATA, action)
-        }
+        fun getIntent(context: Context, action: String): Intent =
+                Intent(context, ForegroundService::class.java).putExtra(EXTRA_DATA, action)
 
         fun getStartStreamIntent(context: Context, data: Intent): Intent {
             return Intent(context, ForegroundService::class.java)
@@ -84,22 +80,22 @@ class ForegroundService : Service(), ForegroundView {
         @Keep data class StartStream(val intent: Intent) : ForegroundView.ToEvent()
     }
 
-    @Inject internal lateinit var presenter: ForegroundPresenter
-    @Inject internal lateinit var settings: Settings
-    @Inject internal lateinit var eventScheduler: Scheduler
-    @Inject internal lateinit var eventBus: EventBus
-    @Inject internal lateinit var globalStatus: GlobalStatus
-    @Inject internal lateinit var imageNotify: ImageNotify
+    private val presenter: ForegroundPresenter by inject()
+    private val settings: Settings by inject()
+    private val eventScheduler: Scheduler by inject()
+    private val eventBus: EventBus by inject()
+    private val globalStatus: GlobalStatus by inject()
+    private val imageNotify: ImageNotify by inject()
+    private val jpegBytesStream: BehaviorRelay<ByteArray> by inject()
 
     private var isForegroundServiceInit: Boolean = false
     private val subscriptions = CompositeSubscription()
     private val fromEvents = PublishRelay.create<ForegroundView.FromEvent>()
     private val toEvents = PublishRelay.create<ForegroundView.ToEvent>()
 
-    private val jpegBytesStream = BehaviorRelay.create<ByteArray>()
     @Volatile private var mediaProjection: MediaProjection? = null
     @Volatile private var projectionCallback: MediaProjection.Callback? = null
-    @Volatile private var imageGenerator: ImageGenerator? = null
+
     private val connectionEvents = PublishRelay.create<String>()
     private var counterStartHttpServer: Int = 0
 
@@ -139,7 +135,6 @@ class ForegroundService : Service(), ForegroundView {
         if (BuildConfig.DEBUG_MODE) Log.i(TAG, "Thread [${Thread.currentThread().name}] onCreate: Start")
         Crashlytics.log(1, TAG, "onCreate: Start")
 
-        (application as ScreenStreamApp).appComponent().serviceComponent().inject(this)
         presenter.attach(this)
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -205,16 +200,8 @@ class ForegroundService : Service(), ForegroundView {
                     val projectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
                     val projection = projectionManager.getMediaProjection(Activity.RESULT_OK, data)
                     mediaProjection = projection
-                    imageGenerator = ImageGeneratorImpl(
-                            applicationContext,
-                            projection,
-                            eventScheduler,
-                            eventBus,
-                            globalStatus,
-                            settings.resizeFactor,
-                            settings.jpegQuality,
-                            Action1 { imageByteArray -> jpegBytesStream.call(imageByteArray) })
-
+                    val windowManager = applicationContext.getSystemService(Context.WINDOW_SERVICE) as WindowManager
+                    fromEvents.call(ForegroundView.FromEvent.StartImageGenerator(windowManager.defaultDisplay, projection))
                     stopForeground(true)
                     startForeground(NOTIFICATION_STOP_STREAMING, getCustomNotification(NOTIFICATION_STOP_STREAMING))
 
@@ -255,7 +242,7 @@ class ForegroundService : Service(), ForegroundView {
                     val toast = Toast(applicationContext)
                     val inflater = getSystemService(Context.LAYOUT_INFLATER_SERVICE) as LayoutInflater
                     val toastView = inflater.inflate(R.layout.slow_connection_toast, null)
-                    toastView.slowConnectionToastIcon.setImageDrawable(ContextCompat.getDrawable(applicationContext, R.drawable.ic_service_notification_24dp))
+                    toastView.slowConnectionToastIcon.setImageDrawable(AppCompatResources.getDrawable(applicationContext, R.drawable.ic_service_notification_24dp))
                     toast.view = toastView
                     toast.duration = Toast.LENGTH_LONG
                     toast.show()
@@ -353,10 +340,10 @@ class ForegroundService : Service(), ForegroundView {
         mediaProjection?.apply {
             projectionCallback?.let { unregisterCallback(it) }
         }
-        imageGenerator?.stop()
+
         projectionCallback = null
+        mediaProjection?.stop()
         mediaProjection = null
-        imageGenerator = null
     }
 
     private fun getCustomNotification(notificationType: Int): Notification {

@@ -12,9 +12,7 @@ import kotlinx.android.synthetic.main.activity_about.*
 class AboutActivity : AppCompatActivity() {
 
     companion object {
-        fun getStartIntent(context: Context): Intent {
-            return Intent(context, AboutActivity::class.java)
-        }
+        fun getStartIntent(context: Context): Intent = Intent(context, AboutActivity::class.java)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {

@@ -1,7 +1,6 @@
 package info.dvkr.screenstream.data.image
 
 
-import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Matrix
 import android.graphics.PixelFormat
@@ -13,195 +12,165 @@ import android.media.ImageReader
 import android.media.projection.MediaProjection
 import android.os.Handler
 import android.os.HandlerThread
-import android.os.Process
+import android.os.Process.THREAD_PRIORITY_BACKGROUND
 import android.util.DisplayMetrics
 import android.util.Log
+import android.view.Display
 import android.view.Surface
-import android.view.WindowManager
-import com.crashlytics.android.Crashlytics
 import info.dvkr.screenstream.data.BuildConfig
-import info.dvkr.screenstream.domain.eventbus.EventBus
-import info.dvkr.screenstream.domain.globalstatus.GlobalStatus
+import info.dvkr.screenstream.data.image.ImageGenerator.*
 import rx.Observable
 import rx.Scheduler
-import rx.functions.Action1
 import rx.subscriptions.CompositeSubscription
 import java.io.ByteArrayOutputStream
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicReference
 
-class ImageGeneratorImpl(context: Context,
-                         private val mediaProjection: MediaProjection,
-                         eventScheduler: Scheduler,
-                         private val eventBus: EventBus,
-                         private val globalStatus: GlobalStatus,
-                         resizeFactor: Int,
-                         jpegQuality: Int,
-                         private val onNewImage: Action1<ByteArray>) : ImageGenerator {
+class ImageGeneratorImpl private constructor(
+        private val display: Display,
+        private val mediaProjection: MediaProjection,
+        private val scheduler: Scheduler,
+        private val event: (event: ImageGenerator.ImageGeneratorEvent) -> Unit) : ImageGenerator {
+
+    companion object : ImageGeneratorBuilder {
+        @JvmStatic
+        override fun create(display: Display,
+                            mediaProjection: MediaProjection,
+                            scheduler: Scheduler,
+                            event: (event: ImageGeneratorEvent) -> Unit): ImageGenerator =
+                ImageGeneratorImpl(display, mediaProjection, scheduler, event)
+
+        const val STATE_INIT = "STATE_INIT"
+        const val STATE_STARTED = "STATE_STARTED"
+        const val STATE_STOPPED = "STATE_STOPPED"
+        const val STATE_ERROR = "STATE_ERROR"
+    }
 
     private val TAG = "ImageGeneratorImpl"
 
-    companion object {
-        private const val STATE_CREATED = "STATE_CREATED"
-        private const val STATE_STARTED = "STATE_STARTED"
-        private const val STATE_STOPPED = "STATE_STOPPED"
-        private const val STATE_ERROR = "STATE_ERROR"
-    }
+    private val resizeMatrix = AtomicReference<Matrix>(Matrix().also { it.postScale(.5f, .5f) })
+    private val jpegQuality = AtomicInteger(80)
 
-    // Settings
+    private val state: AtomicReference<String> = AtomicReference(STATE_INIT)
+    private val imageThread: HandlerThread by lazy { HandlerThread("ImageGenerator", THREAD_PRIORITY_BACKGROUND) }
+    private val imageThreadHandler: Handler by lazy { Handler(imageThread.looper) }
+    private val imageListener: AtomicReference<ImageListener?> = AtomicReference()
+    private lateinit var imageReader: ImageReader
+    private lateinit var virtualDisplay: VirtualDisplay
+
     private val subscriptions = CompositeSubscription()
-    private val matrix = Matrix()
-    @Volatile private var jpegQuality = 80
-
-    // Local data
-    private val lock = Any()
-    private val imageThread: HandlerThread
-    private val imageThreadHandler: Handler
-    private val windowManager: WindowManager
-    private var imageReader: ImageReader
-    private var virtualDisplay: VirtualDisplay?
-    @Volatile private var reusableBitmap: Bitmap? = null
-    private val resultJpegStream = ByteArrayOutputStream()
-    @Volatile private var imageReaderState = STATE_CREATED
-    @Volatile private var imageListener = 0
 
     init {
-        if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] Constructor: Start")
-
-        matrix.postScale(resizeFactor / 100f, resizeFactor / 100f)
-        this.jpegQuality = jpegQuality
-
-        eventBus.getEvent().filter {
-            it is EventBus.GlobalEvent.ResizeFactor || it is EventBus.GlobalEvent.JpegQuality
-        }.subscribe { globalEvent ->
-            if (BuildConfig.DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] globalEvent: $globalEvent")
-            when (globalEvent) {
-                is EventBus.GlobalEvent.ResizeFactor -> {
-                    val scale = globalEvent.value / 100f
-                    matrix.reset()
-                    matrix.postScale(scale, scale)
-                }
-
-                is EventBus.GlobalEvent.JpegQuality -> this.jpegQuality = globalEvent.value
-            }
-        }.also { subscriptions.add(it) }
-
-        imageThread = HandlerThread("SSImageGenerator", Process.THREAD_PRIORITY_BACKGROUND)
+        if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] Constructor")
         imageThread.start()
-        imageThreadHandler = Handler(imageThread.looper)
+    }
 
-        windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
-        val defaultDisplay = windowManager.defaultDisplay
-        val displayMetrics = DisplayMetrics()
-        defaultDisplay.getMetrics(displayMetrics)
-        val screenSize = Point()
-        defaultDisplay.getRealSize(screenSize)
+    override fun setImageResizeFactor(factor: Int): ImageGenerator {
+        if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] setImageResizeFactor: $factor")
+        if (factor !in 1..150) throw IllegalArgumentException("Resize factor has to be in range [1..150]")
 
-        val listener = ImageListener()
-        imageListener = listener.hashCode()
-        imageReader = ImageReader.newInstance(screenSize.x, screenSize.y, PixelFormat.RGBA_8888, 2)
-        imageReader.setOnImageAvailableListener(listener, imageThreadHandler)
+        val scale = factor / 100f
+        resizeMatrix.set(Matrix().also { it.postScale(scale, scale) })
+        return this
+    }
 
-        try {
-            virtualDisplay = mediaProjection.createVirtualDisplay("ScreenStreamVirtualDisplay",
-                    screenSize.x, screenSize.y, displayMetrics.densityDpi,
-                    DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR, imageReader.surface, null, null)
+    override fun setImageJpegQuality(quality: Int): ImageGenerator {
+        if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] setImageJpegQuality: $quality")
+        if (quality !in 1..100) throw IllegalArgumentException("JPEG quality has to be in range [1..100]")
 
-            Observable.interval(250, TimeUnit.MILLISECONDS, eventScheduler)
-                    .map { _ -> windowManager.defaultDisplay.rotation }
+        jpegQuality.set(quality)
+        return this
+    }
+
+    @Synchronized
+    override fun start() {
+        if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] Start")
+        if (state.get() != STATE_INIT) throw IllegalStateException("Can't start ImageGenerator in state $state")
+
+        startDisplayCapture()
+
+        if (state.get() == STATE_STARTED)
+            Observable.interval(250, TimeUnit.MILLISECONDS, scheduler)
+                    .map { _ -> display.rotation }
                     .map { rotation -> rotation == Surface.ROTATION_0 || rotation == Surface.ROTATION_180 }
                     .distinctUntilChanged()
                     .skip(1)
-                    .filter { _ -> STATE_STARTED == imageReaderState }
+                    .filter { _ -> state.get() == STATE_STARTED }
                     .subscribe { _ -> restart() }
                     .also { subscriptions.add(it) }
-
-            imageReaderState = STATE_STARTED
-            globalStatus.isStreamRunning.set(true)
-            eventBus.sendEvent(EventBus.GlobalEvent.StreamStatus())
-            if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] Constructor: End")
-            Crashlytics.log(1, TAG, "Init")
-        } catch (ex: SecurityException) {
-            imageReaderState = STATE_ERROR
-            eventBus.sendEvent(EventBus.GlobalEvent.Error(ex))
-            virtualDisplay = null
-            if (BuildConfig.DEBUG_MODE) Log.e(TAG, "Thread [${Thread.currentThread().name}] $ex")
-        }
     }
 
+    @Synchronized
     override fun stop() {
-        synchronized(lock) {
-            if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] Stop")
-            Crashlytics.log(1, TAG, "Stop")
+        if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] Stop")
+        if (state.get() != STATE_STARTED && state.get() != STATE_ERROR)
+            throw IllegalStateException("Can't stop ImageGenerator in state $state")
 
-            if (!(STATE_STARTED == imageReaderState || STATE_ERROR == imageReaderState))
-                throw IllegalStateException("ImageGeneratorImpl in imageReaderState: $imageReaderState")
+        state.set(STATE_STOPPED)
+        subscriptions.clear()
+        stopDisplayCapture()
+        imageThread.quit()
+    }
 
-            subscriptions.clear()
-            imageListener = 0
-            mediaProjection.stop()
+    private fun sendEventOnScheduler(event: ImageGeneratorEvent) {
+        Observable.just(event).observeOn(scheduler).subscribe { event(it) }
+    }
 
-            virtualDisplay?.release()
-            imageReader.close()
-            reusableBitmap?.recycle()
-            imageThread.quit()
+    private fun startDisplayCapture() {
+        val screenSize = Point().also { display.getRealSize(it) }
+        imageListener.set(ImageListener())
+        imageReader = ImageReader.newInstance(screenSize.x, screenSize.y, PixelFormat.RGBA_8888, 2)
+        imageReader.setOnImageAvailableListener(imageListener.get(), imageThreadHandler)
 
-            imageReaderState = STATE_STOPPED
-            globalStatus.isStreamRunning.set(false)
-            eventBus.sendEvent(EventBus.GlobalEvent.StreamStatus())
+        try {
+            val densityDpi = DisplayMetrics().also { display.getMetrics(it) }.densityDpi
+            virtualDisplay = mediaProjection.createVirtualDisplay("ScreenStreamVirtualDisplay",
+                    screenSize.x, screenSize.y, densityDpi,
+                    DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR, imageReader.surface, null, null)
+            state.set(STATE_STARTED)
+        } catch (ex: SecurityException) {
+            state.set(STATE_ERROR)
+            sendEventOnScheduler(ImageGeneratorEvent.OnError(ex))
         }
     }
 
+    private fun stopDisplayCapture() {
+        if (::virtualDisplay.isInitialized) virtualDisplay.release()
+        imageReader.close()
+        imageListener.get()?.close()
+    }
+
+    @Synchronized
     private fun restart() {
-        synchronized(lock) {
-            if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] Restart: Start")
-            Crashlytics.log(1, TAG, "Restart")
+        if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] Restart: Start")
+        if (state.get() != STATE_STARTED) throw IllegalStateException("Can't restart ImageGenerator in state $state")
 
-            if (STATE_STARTED != imageReaderState)
-                throw IllegalStateException("ImageGeneratorImpl in imageReaderState: $imageReaderState")
+        stopDisplayCapture()
+        startDisplayCapture()
 
-            virtualDisplay?.release()
-            imageReader.close()
-            reusableBitmap?.recycle()
-            reusableBitmap = null
-
-            val defaultDisplay = windowManager.defaultDisplay
-            val displayMetrics = DisplayMetrics()
-            defaultDisplay.getMetrics(displayMetrics)
-            val screenSize = Point()
-            defaultDisplay.getRealSize(screenSize)
-
-            val listener = ImageListener()
-            imageListener = listener.hashCode()
-            imageReader = ImageReader.newInstance(screenSize.x, screenSize.y, PixelFormat.RGBA_8888, 2)
-            imageReader.setOnImageAvailableListener(listener, imageThreadHandler)
-
-            try {
-                virtualDisplay = mediaProjection.createVirtualDisplay("SSVirtualDisplay",
-                        screenSize.x, screenSize.y, displayMetrics.densityDpi,
-                        DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR, imageReader.surface, null, null)
-
-                if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] Restart: End")
-            } catch (ex: SecurityException) {
-                imageReaderState = STATE_ERROR
-                eventBus.sendEvent(EventBus.GlobalEvent.Error(ex))
-                virtualDisplay = null
-                if (BuildConfig.DEBUG_MODE) Log.e(TAG, "Thread [${Thread.currentThread().name}] $ex")
-            }
-        }
+        if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] Restart: End")
     }
 
-    // Runs on SSImageGenerator Thread
+    // Runs on ImageGenerator Thread
     private inner class ImageListener : ImageReader.OnImageAvailableListener {
+        private var reusableBitmap: Bitmap? = null
+        private val resultJpegStream = ByteArrayOutputStream()
+
+        internal fun close() {
+            reusableBitmap?.recycle()
+        }
+
         override fun onImageAvailable(reader: ImageReader) {
-            synchronized(lock) {
-                if (STATE_STARTED != imageReaderState || imageListener != this.hashCode()) return
+            synchronized(this@ImageGeneratorImpl) {
+                if (state.get() != STATE_STARTED || this != imageListener.get()) return
 
                 val image: Image?
                 try {
                     image = reader.acquireLatestImage()
-                } catch (exception: UnsupportedOperationException) {
-                    imageReaderState = STATE_ERROR
-                    eventBus.sendEvent(EventBus.GlobalEvent.Error(exception))
+                } catch (ex: UnsupportedOperationException) {
+                    state.set(STATE_ERROR)
+                    sendEventOnScheduler(ImageGeneratorEvent.OnError(ex))
                     return
                 }
                 if (null == image) return
@@ -220,18 +189,19 @@ class ImageGeneratorImpl(context: Context,
                 }
 
                 val resizedBitmap: Bitmap
-                if (matrix.isIdentity) {
+                if (resizeMatrix.get().isIdentity) {
                     resizedBitmap = cleanBitmap
                 } else {
-                    resizedBitmap = Bitmap.createBitmap(cleanBitmap, 0, 0, image.width, image.height, matrix, false)
+                    resizedBitmap = Bitmap.createBitmap(cleanBitmap, 0, 0, image.width, image.height, resizeMatrix.get(), false)
                     cleanBitmap.recycle()
                 }
                 image.close()
 
                 resultJpegStream.reset()
-                resizedBitmap.compress(Bitmap.CompressFormat.JPEG, jpegQuality, resultJpegStream)
+                resizedBitmap.compress(Bitmap.CompressFormat.JPEG, jpegQuality.get(), resultJpegStream)
                 resizedBitmap.recycle()
-                onNewImage.call(resultJpegStream.toByteArray())
+
+                sendEventOnScheduler(ImageGeneratorEvent.OnJpegImage(resultJpegStream.toByteArray()))
             }
         }
     }

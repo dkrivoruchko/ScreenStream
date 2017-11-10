@@ -6,15 +6,13 @@ import android.util.Log
 import com.crashlytics.android.Crashlytics
 import com.crashlytics.android.core.CrashlyticsCore
 import com.squareup.leakcanary.LeakCanary
-import info.dvkr.screenstream.dagger.component.AppComponent
-import info.dvkr.screenstream.dagger.component.DaggerAppComponent
-import info.dvkr.screenstream.dagger.module.AppModule
+import info.dvkr.screenstream.di.KoinModule
 import io.fabric.sdk.android.Fabric
+import org.koin.android.ext.android.startAndroidContext
 
 
 class ScreenStreamApp : Application() {
     private val TAG = "ScreenStreamApp"
-    private lateinit var appComponent: AppComponent
 
     override fun onCreate() {
         super.onCreate()
@@ -24,17 +22,12 @@ class ScreenStreamApp : Application() {
         if (BuildConfig.DEBUG_MODE) {
             StrictMode.setThreadPolicy(StrictMode.ThreadPolicy.Builder()
                     .detectAll()
-                    .detectCustomSlowCalls()
-                    .permitDiskReads()
-                    .permitDiskWrites()
-                    .detectNetwork()
                     .penaltyLog()
-                    .penaltyFlashScreen()
+                    .penaltyDialog()
                     .build())
 
             StrictMode.setVmPolicy(StrictMode.VmPolicy.Builder()
-                    .detectActivityLeaks()
-                    .detectLeakedClosableObjects()
+                    .detectAll()
                     .penaltyLog()
                     .build())
         }
@@ -54,11 +47,9 @@ class ScreenStreamApp : Application() {
         // Initialize Fabric with the debug-disabled crashlytics.
         Fabric.with(this, crashlyticsKit)
 
-        appComponent = DaggerAppComponent.builder().appModule(AppModule(this)).build()
+        startAndroidContext(this, listOf(KoinModule()))
 
         if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] onCreate: End")
         Crashlytics.log(1, TAG, "onCreate")
     }
-
-    fun appComponent(): AppComponent = appComponent
 }

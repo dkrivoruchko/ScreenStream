@@ -3,7 +3,10 @@ package info.dvkr.screenstream.data.presenter.foreground
 
 import android.util.Log
 import com.crashlytics.android.Crashlytics
+import com.jakewharton.rxrelay.BehaviorRelay
 import info.dvkr.screenstream.data.BuildConfig
+import info.dvkr.screenstream.data.image.ImageGenerator
+import info.dvkr.screenstream.data.image.ImageGeneratorImpl
 import info.dvkr.screenstream.data.image.ImageNotify
 import info.dvkr.screenstream.domain.eventbus.EventBus
 import info.dvkr.screenstream.domain.globalstatus.GlobalStatus
@@ -17,7 +20,8 @@ import rx.subscriptions.CompositeSubscription
 class ForegroundPresenter constructor(private val settings: Settings,
                                       private val eventScheduler: Scheduler,
                                       private val eventBus: EventBus,
-                                      private val globalStatus: GlobalStatus) {
+                                      private val globalStatus: GlobalStatus,
+                                      private val jpegBytesStream: BehaviorRelay<ByteArray>) {
     private val TAG = "ForegroundPresenter"
 
     private val subscriptions = CompositeSubscription()
@@ -25,6 +29,7 @@ class ForegroundPresenter constructor(private val settings: Settings,
 
     private var foregroundView: ForegroundView? = null
     private var httpServer: HttpServer? = null
+    private var imageGenerator: ImageGenerator? = null
     private val slowConnections: MutableList<HttpServer.Client> = ArrayList()
 
     init {
@@ -80,6 +85,29 @@ class ForegroundPresenter constructor(private val settings: Settings,
                     httpServer = null
                 }
 
+                is ForegroundView.FromEvent.StartImageGenerator -> {
+                    imageGenerator = ImageGeneratorImpl.create(fromEvent.display, fromEvent.mediaProjection, eventScheduler) { igEvent ->
+                        when (igEvent) {
+                            is ImageGenerator.ImageGeneratorEvent.OnError -> {
+                                eventBus.sendEvent(EventBus.GlobalEvent.Error(igEvent.error))
+                                Crashlytics.log(1, "ImageGenerator", "ERROR")
+                            }
+
+                            is ImageGenerator.ImageGeneratorEvent.OnJpegImage -> {
+                                jpegBytesStream.call(igEvent.image)
+                            }
+                        }
+                    }.apply {
+                        setImageResizeFactor(settings.resizeFactor)
+                        setImageJpegQuality(settings.jpegQuality)
+                        start()
+                    }
+
+                    globalStatus.isStreamRunning.set(true)
+                    eventBus.sendEvent(EventBus.GlobalEvent.StreamStatus())
+                    Crashlytics.log(1, "ImageGenerator", "STARTED")
+                }
+
                 is ForegroundView.FromEvent.StopStreamComplete -> {
                     if (settings.enablePin && settings.autoChangePin) {
                         val newPin = randomPin()
@@ -114,13 +142,20 @@ class ForegroundPresenter constructor(private val settings: Settings,
                     it is EventBus.GlobalEvent.HttpServerRestart ||
                     it is EventBus.GlobalEvent.CurrentInterfacesRequest ||
                     it is EventBus.GlobalEvent.Error ||
-                    it is EventBus.GlobalEvent.CurrentClients
+                    it is EventBus.GlobalEvent.CurrentClients ||
+                    it is EventBus.GlobalEvent.ResizeFactor ||
+                    it is EventBus.GlobalEvent.JpegQuality
         }.subscribe { globalEvent ->
             if (BuildConfig.DEBUG_MODE) Log.i(TAG, "Thread [${Thread.currentThread().name}] globalEvent: $globalEvent")
             when (globalEvent) {
-            // From StartPresenter & ProjectionCallback
+            // From ForegroundPresenter, StartPresenter & ProjectionCallback
                 is EventBus.GlobalEvent.StopStream -> {
                     if (!globalStatus.isStreamRunning.get()) return@subscribe
+                    imageGenerator?.stop()
+                    imageGenerator = null
+                    Crashlytics.log(1, "ImageGenerator", "STOPPED")
+                    globalStatus.isStreamRunning.set(false)
+                    eventBus.sendEvent(EventBus.GlobalEvent.StreamStatus())
                     foregroundView?.toEvent(ForegroundView.ToEvent.StopStream())
                 }
 
@@ -147,8 +182,14 @@ class ForegroundPresenter constructor(private val settings: Settings,
 
             // From HttpServer & ImageGenerator
                 is EventBus.GlobalEvent.Error -> {
-                    if (globalStatus.isStreamRunning.get())
+                    if (globalStatus.isStreamRunning.get()) {
+                        imageGenerator?.stop()
+                        imageGenerator = null
+                        Crashlytics.log(1, "ImageGenerator", "STOPPED")
+                        globalStatus.isStreamRunning.set(false)
+                        eventBus.sendEvent(EventBus.GlobalEvent.StreamStatus())
                         foregroundView?.toEvent(ForegroundView.ToEvent.StopStream(false))
+                    }
 
                     foregroundView?.toEvent(ForegroundView.ToEvent.Error(globalEvent.error))
                 }
@@ -160,6 +201,16 @@ class ForegroundPresenter constructor(private val settings: Settings,
                         foregroundView?.toEvent(ForegroundView.ToEvent.SlowConnectionDetected)
                     slowConnections.clear()
                     slowConnections.addAll(currentSlowConnections)
+                }
+
+            // From SettingsPresenter
+                is EventBus.GlobalEvent.ResizeFactor -> {
+                    imageGenerator?.setImageResizeFactor(globalEvent.value)
+                }
+
+            // From SettingsPresenter
+                is EventBus.GlobalEvent.JpegQuality -> {
+                    imageGenerator?.setImageJpegQuality(globalEvent.value)
                 }
             }
         }.also { subscriptions.add(it) }
