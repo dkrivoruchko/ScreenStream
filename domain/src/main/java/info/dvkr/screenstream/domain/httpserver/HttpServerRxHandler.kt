@@ -2,7 +2,6 @@ package info.dvkr.screenstream.domain.httpserver
 
 
 import com.jakewharton.rxrelay.BehaviorRelay
-import info.dvkr.screenstream.domain.httpserver.HttpServer.Companion.DEBUG_MODE
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
 import io.netty.channel.ChannelFutureListener
@@ -17,7 +16,6 @@ import rx.Observable
 import rx.Subscription
 import rx.functions.Action0
 import rx.functions.Action1
-import rx.functions.Action2
 import rx.schedulers.Schedulers
 import java.net.InetSocketAddress
 import java.util.concurrent.Executors
@@ -31,10 +29,8 @@ internal class HttpServerRxHandler(private val favicon: ByteArray,
                                    private val pinRequestHtmlPage: String,
                                    private val pinRequestErrorHtmlPage: String,
                                    private val clientEvent: Action1<HttpServerImpl.LocalEvent>,
-                                   private val log: Action2<String, String>,
+                                   private val logIt: Action1<String>,
                                    jpegBytesStream: Observable<ByteArray>) : RequestHandler<ByteBuf, ByteBuf> {
-
-    private val TAG = "HttpServerRxHandler"
 
     private val CRLF = "\r\n".toByteArray()
     private val multipartBoundary = HttpServerImpl.randomString(20)
@@ -47,8 +43,7 @@ internal class HttpServerRxHandler(private val favicon: ByteArray,
     private val subscription: Subscription?
 
     init {
-        if (DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] HttpServerRxHandler: Create")
-        log.call(TAG, "HttpServerRxHandler: Create")
+        logIt.call("HttpServerRxHandler @${this.hashCode()}: Init")
 
         singleThreadExecutor.submit {
             Thread.currentThread().priority = 8
@@ -62,8 +57,7 @@ internal class HttpServerRxHandler(private val favicon: ByteArray,
     }
 
     fun stop() {
-        if (DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] HttpServerRxHandler: Stop")
-        log.call(TAG, "HttpServerRxHandler: Stop")
+        logIt.call("HttpServerRxHandler @${this.hashCode()}: Stop")
 
         subscription?.unsubscribe()
         singleThreadExecutor.shutdown()
@@ -71,7 +65,8 @@ internal class HttpServerRxHandler(private val favicon: ByteArray,
 
     override fun handle(request: HttpServerRequest<ByteBuf>, response: HttpServerResponse<ByteBuf>): Observable<Void> {
         val uri = request.uri
-        if (DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] Priority: ${Thread.currentThread().priority} HttpServerRxHandler: Handle: $uri")
+        logIt.call("HttpServerRxHandler @${this.hashCode()}: Handle: $uri}")
+
         when {
             uri == HttpServer.DEFAULT_ICON_ADDRESS -> return sendFavicon(response)
             uri == HttpServer.DEFAULT_LOGO_ADDRESS -> return sendLogo(response)

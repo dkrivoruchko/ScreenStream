@@ -20,16 +20,13 @@ import android.os.IBinder
 import android.support.annotation.Keep
 import android.support.v4.app.NotificationCompat
 import android.support.v7.content.res.AppCompatResources
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.WindowManager
 import android.widget.RemoteViews
 import android.widget.Toast
 import com.cantrowitz.rxbroadcast.RxBroadcast
-import com.crashlytics.android.Crashlytics
 import com.jakewharton.rxrelay.BehaviorRelay
 import com.jakewharton.rxrelay.PublishRelay
-import info.dvkr.screenstream.BuildConfig
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.data.image.ImageNotify
 import info.dvkr.screenstream.data.presenter.foreground.ForegroundPresenter
@@ -46,6 +43,7 @@ import rx.Observable
 import rx.Scheduler
 import rx.functions.Action0
 import rx.subscriptions.CompositeSubscription
+import timber.log.Timber
 import java.net.Inet4Address
 import java.net.InetAddress
 import java.net.InetSocketAddress
@@ -55,7 +53,6 @@ import java.util.concurrent.TimeUnit
 
 class ForegroundService : Service(), ForegroundView {
     companion object {
-        private const val TAG = "ForegroundService"
         private const val NOTIFICATION_CHANNEL_ID = "info.dvkr.screenstream.service.NOTIFICATION_CHANNEL_01"
         private const val NOTIFICATION_START_STREAMING = 10
         private const val NOTIFICATION_STOP_STREAMING = 11
@@ -132,8 +129,7 @@ class ForegroundService : Service(), ForegroundView {
     }
 
     override fun onCreate() {
-        if (BuildConfig.DEBUG_MODE) Log.i(TAG, "Thread [${Thread.currentThread().name}] onCreate: Start")
-        Crashlytics.log(1, TAG, "onCreate: Start")
+        Timber.w("[${Thread.currentThread().name} @${this.hashCode()}] onCreate")
 
         presenter.attach(this)
 
@@ -144,8 +140,7 @@ class ForegroundService : Service(), ForegroundView {
 
         toEvents.startWith(ForegroundService.LocalEvent.StartService)
                 .observeOn(eventScheduler).subscribe { event ->
-
-            if (BuildConfig.DEBUG_MODE) Log.i(TAG, "Thread [${Thread.currentThread().name}] toEvent: " + event.javaClass.simpleName)
+            Timber.d("[${Thread.currentThread().name} @${this.hashCode()}] toEvent: $event")
 
             when (event) {
                 is ForegroundService.LocalEvent.StartService -> {
@@ -184,7 +179,7 @@ class ForegroundService : Service(), ForegroundView {
                             basePinRequestHtml,
                             pinRequestErrorMsg,
                             jpegBytesStream.onBackpressureBuffer(2,
-                                    Action0 { Crashlytics.log(1, TAG, "jpegBytesStream.onBackpressureBuffer - ON_OVERFLOW_DROP_OLDEST") },
+                                    Action0 { Timber.e("jpegBytesStream.onBackpressureBuffer - ON_OVERFLOW_DROP_OLDEST") },
                                     BackpressureOverflow.ON_OVERFLOW_DROP_OLDEST))
                     )
                 }
@@ -207,8 +202,7 @@ class ForegroundService : Service(), ForegroundView {
 
                     projectionCallback = object : MediaProjection.Callback() {
                         override fun onStop() {
-                            if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] ProjectionCallback")
-                            Crashlytics.log(1, TAG, "ProjectionCallback: onStop")
+                            Timber.w("[${Thread.currentThread().name} @${this.hashCode()}] ProjectionCallback: onStop")
                             eventBus.sendEvent(EventBus.GlobalEvent.StopStream())
                         }
                     }
@@ -232,8 +226,7 @@ class ForegroundService : Service(), ForegroundView {
                 }
 
                 is ForegroundView.ToEvent.Error -> {
-                    if (BuildConfig.DEBUG_MODE) Log.e(TAG, event.error.toString())
-                    Crashlytics.logException(event.error)
+                    Timber.e(event.error)
                     globalStatus.error.set(event.error)
                     startActivity(StartActivity.getStartIntent(applicationContext, StartActivity.ACTION_ERROR).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
                 }
@@ -260,7 +253,7 @@ class ForegroundService : Service(), ForegroundView {
                 .observeOn(eventScheduler)
                 .map { it.action }
                 .subscribe { action ->
-                    if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] Action: " + action)
+                    Timber.w("[${Thread.currentThread().name} @${this.hashCode()}] action: $action")
                     when (action) {
                         Intent.ACTION_SCREEN_OFF -> fromEvents.call(ForegroundView.FromEvent.ScreenOff)
                         WifiManager.WIFI_STATE_CHANGED_ACTION -> connectionEvents.call(WifiManager.WIFI_STATE_CHANGED_ACTION)
@@ -271,7 +264,7 @@ class ForegroundService : Service(), ForegroundView {
         connectionEvents.throttleWithTimeout(500, TimeUnit.MILLISECONDS, eventScheduler)
                 .skip(1)
                 .subscribe { _ ->
-                    Crashlytics.log(1, TAG, "connectionEvents")
+                    Timber.w("[${Thread.currentThread().name} @${this.hashCode()}] connectionEvent")
                     if (settings.useWiFiOnly) {
                         counterStartHttpServer = 0
                         fromEvents.call(ForegroundView.FromEvent.HttpServerRestartRequest)
@@ -281,42 +274,34 @@ class ForegroundService : Service(), ForegroundView {
                 }.also { subscriptions.add(it) }
 
         startForeground(NOTIFICATION_START_STREAMING, getCustomNotification(NOTIFICATION_START_STREAMING))
-        if (BuildConfig.DEBUG_MODE) Log.i(TAG, "Thread [${Thread.currentThread().name}] onCreate: End")
-        Crashlytics.log(1, TAG, "onCreate: End")
     }
 
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] onStartCommand")
-
-        if (null == intent) throw IllegalArgumentException(TAG + " onStartCommand: Intent == null")
-
+    override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
         val action = intent.getStringExtra(EXTRA_DATA)
-        if (null == action) {
-            if (BuildConfig.DEBUG_MODE) Log.e(TAG, "onStartCommand: action == null")
-            Crashlytics.logException(IllegalStateException(TAG + " onStartCommand: action == null"))
-            return Service.START_NOT_STICKY
-        }
+        if (action == null) {
+            Timber.e(IllegalStateException("ForegroundService:onStartCommand: action == null"))
+        } else {
+            Timber.w("[${Thread.currentThread().name} @${this.hashCode()}] onStartCommand.action:  $action")
+            when (action) {
+                ACTION_INIT -> if (!isForegroundServiceInit) {
+                    fromEvents.call(ForegroundView.FromEvent.Init)
+                    isForegroundServiceInit = true
+                }
 
-        Crashlytics.log(1, TAG, "onStartCommand: $action")
-        when (action) {
-            ACTION_INIT -> if (!isForegroundServiceInit) {
-                fromEvents.call(ForegroundView.FromEvent.Init)
-                isForegroundServiceInit = true
+                ACTION_START_ON_BOOT -> {
+                    startActivity(StartActivity.getStartIntent(applicationContext, StartActivity.ACTION_START_STREAM).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                }
+
+                ACTION_START_STREAM ->
+                    toEvents.call(ForegroundService.LocalEvent.StartStream(intent.getParcelableExtra(Intent.EXTRA_INTENT)))
             }
-
-            ACTION_START_ON_BOOT -> {
-                startActivity(StartActivity.getStartIntent(applicationContext, StartActivity.ACTION_START_STREAM).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-            }
-
-            ACTION_START_STREAM ->
-                toEvents.call(ForegroundService.LocalEvent.StartStream(intent.getParcelableExtra(Intent.EXTRA_INTENT)))
         }
-
         return Service.START_NOT_STICKY
     }
 
     override fun onDestroy() {
-        if (BuildConfig.DEBUG_MODE) Log.i(TAG, "Thread [${Thread.currentThread().name}] onDestroy: StartService")
+        Timber.w("[${Thread.currentThread().name} @${this.hashCode()}] onDestroy")
+
         fromEvents.call(ForegroundView.FromEvent.StopHttpServer)
         subscriptions.clear()
         stopForeground(true)
@@ -328,26 +313,20 @@ class ForegroundService : Service(), ForegroundView {
         }
 
         super.onDestroy()
-        Crashlytics.log(1, TAG, "onDestroy: End")
         System.exit(0)
     }
 
-// ======================================================================================================
-
     private fun stopMediaProjection() {
-        if (BuildConfig.DEBUG_MODE) Log.i(TAG, "Thread [${Thread.currentThread().name}] stopMediaProjection")
-        Crashlytics.log(1, TAG, "stopMediaProjection")
-        mediaProjection?.apply {
-            projectionCallback?.let { unregisterCallback(it) }
-        }
+        Timber.w("[${Thread.currentThread().name} @${this.hashCode()}] stopMediaProjection")
 
+        mediaProjection?.apply { projectionCallback?.let { unregisterCallback(it) } }
         projectionCallback = null
         mediaProjection?.stop()
         mediaProjection = null
     }
 
     private fun getCustomNotification(notificationType: Int): Notification {
-        if (BuildConfig.DEBUG_MODE) Log.i(TAG, "Thread [${Thread.currentThread().name}] getCustomNotification:$notificationType")
+        Timber.w("[${Thread.currentThread().name} @${this.hashCode()}] getCustomNotification: $notificationType")
 
         val pendingMainActivityIntent = PendingIntent.getActivity(applicationContext, 0,
                 StartActivity.getStartIntent(applicationContext).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
@@ -414,7 +393,7 @@ class ForegroundService : Service(), ForegroundView {
     override fun onBind(intent: Intent): IBinder? = null
 
     private fun getFileFromAssets(context: Context, fileName: String): ByteArray {
-        if (BuildConfig.DEBUG_MODE) Log.i(TAG, "Thread [${Thread.currentThread().name}] getFileFromAssets: $fileName")
+        Timber.w("[${Thread.currentThread().name} @${this.hashCode()}] getFileFromAssets: $fileName")
         context.assets.open(fileName).use { inputStream ->
             val fileBytes = ByteArray(inputStream.available())
             inputStream.read(fileBytes)
@@ -452,8 +431,8 @@ class ForegroundService : Service(), ForegroundView {
     }
 
     private fun getInterfaces(): List<EventBus.Interface> {
-        if (BuildConfig.DEBUG_MODE) Log.i(TAG, "Thread [${Thread.currentThread().name}] getInterfaces")
-        Crashlytics.log(1, TAG, "getInterfaces")
+        Timber.w("[${Thread.currentThread().name} @${this.hashCode()}] getInterfaces")
+
         val interfaceList = ArrayList<EventBus.Interface>()
         try {
             val enumeration = NetworkInterface.getNetworkInterfaces()
@@ -475,8 +454,7 @@ class ForegroundService : Service(), ForegroundView {
                 }
             }
         } catch (ex: Throwable) {
-            if (BuildConfig.DEBUG_MODE) Log.e(TAG, ex.toString())
-            Crashlytics.log(1, TAG, "getInterfaces: $ex")
+            Timber.e(ex)
             if (wifiConnected()) interfaceList.add(EventBus.Interface("wlan0", getWiFiIpAddress()))
         }
         return interfaceList
@@ -485,8 +463,8 @@ class ForegroundService : Service(), ForegroundView {
     private fun wifiConnected() = wifiManager.connectionInfo.ipAddress != 0
 
     private fun getWiFiIpAddress(): Inet4Address {
-        if (BuildConfig.DEBUG_MODE) Log.i(TAG, "Thread [${Thread.currentThread().name}] getWiFiIpAddress")
-        Crashlytics.log(1, TAG, "getWiFiIpAddress")
+        Timber.w("[${Thread.currentThread().name} @${this.hashCode()}] getWiFiIpAddress")
+
         val ipInt = wifiManager.connectionInfo.ipAddress
         return InetAddress.getByAddress(ByteArray(4, { i -> (ipInt.shr(i * 8).and(255)).toByte() })) as Inet4Address
     }

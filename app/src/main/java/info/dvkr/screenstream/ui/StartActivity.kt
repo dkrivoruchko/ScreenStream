@@ -14,7 +14,6 @@ import android.net.Uri
 import android.os.Bundle
 import android.support.v4.content.ContextCompat
 import android.support.v7.app.AppCompatActivity
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.WindowManager
@@ -26,7 +25,6 @@ import com.mikepenz.materialdrawer.DrawerBuilder
 import com.mikepenz.materialdrawer.model.DividerDrawerItem
 import com.mikepenz.materialdrawer.model.PrimaryDrawerItem
 import com.tapadoo.alerter.Alerter
-import info.dvkr.screenstream.BuildConfig
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.data.presenter.PresenterFactory
 import info.dvkr.screenstream.data.presenter.start.StartPresenter
@@ -39,12 +37,11 @@ import kotlinx.android.synthetic.main.server_address.view.*
 import org.koin.android.ext.android.inject
 import rx.Observable
 import rx.android.schedulers.AndroidSchedulers
+import timber.log.Timber
 import java.net.BindException
 
 
 class StartActivity : AppCompatActivity(), StartView {
-
-    private val TAG = "StartActivity"
 
     companion object {
         private const val REQUEST_CODE_SCREEN_CAPTURE = 10
@@ -79,7 +76,7 @@ class StartActivity : AppCompatActivity(), StartView {
 
     override fun toEvent(toEvent: StartView.ToEvent) {
         Observable.just(toEvent).subscribeOn(AndroidSchedulers.mainThread()).subscribe { event ->
-            if (BuildConfig.DEBUG_MODE) Log.i(TAG, "Thread [${Thread.currentThread().name}] toEvent: ${event.javaClass.simpleName}")
+            Timber.d("[${Thread.currentThread().name} @${this.hashCode()}] toEvent: $event")
 
             when (event) {
                 is StartView.ToEvent.TryToStart -> {
@@ -97,8 +94,7 @@ class StartActivity : AppCompatActivity(), StartView {
                         try {
                             startActivity(Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME).setFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
                         } catch (ex: ActivityNotFoundException) {
-                            Crashlytics.log(1, TAG, "OnStreamStartStop: minimizeOnStream: ActivityNotFoundException")
-                            Crashlytics.logException(ex)
+                            Timber.e(ex, "StartView.ToEvent.OnStreamStartStop: minimizeOnStream: ActivityNotFoundException")
                         }
                 }
 
@@ -171,8 +167,7 @@ class StartActivity : AppCompatActivity(), StartView {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        if (BuildConfig.DEBUG_MODE) Log.i(TAG, "Thread [${Thread.currentThread().name}] onCreate: Start")
-        Crashlytics.log(1, TAG, "onCreate: Start")
+        Timber.w("[${Thread.currentThread().name} @${this.hashCode()}] onCreate")
 
         setContentView(R.layout.activity_start)
         setSupportActionBar(toolbarStart)
@@ -246,22 +241,18 @@ class StartActivity : AppCompatActivity(), StartView {
         textViewPinValue.text = settings.currentPin
 
         onNewIntent(intent)
-
-        if (BuildConfig.DEBUG_MODE) Log.i(TAG, "Thread [${Thread.currentThread().name}] onCreate: End")
-        Crashlytics.log(1, TAG, "onCreate: End")
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
 
         val action = intent.getStringExtra(EXTRA_DATA)
-        if (BuildConfig.DEBUG_MODE) Log.i(TAG, "Thread [${Thread.currentThread().name}] onNewIntent: action = $action")
+        Timber.w("[${Thread.currentThread().name} @${this.hashCode()}] onNewIntent: action = $action")
         if (null == action) return
 
         intent.removeExtra(EXTRA_DATA)
         this.intent = intent
 
-        Crashlytics.log(1, TAG, "Action: $action")
         when (action) {
             ACTION_START_STREAM -> {
                 if (!canStart) return
@@ -294,14 +285,14 @@ class StartActivity : AppCompatActivity(), StartView {
     }
 
     override fun onDestroy() {
-        if (BuildConfig.DEBUG_MODE) Log.i(TAG, "Thread [${Thread.currentThread().name}] onDestroy: Start")
+        Timber.w("[${Thread.currentThread().name} @${this.hashCode()}] onDestroy")
         presenter.detach()
-        Crashlytics.log(1, TAG, "onDestroy: End")
         super.onDestroy()
     }
 
     public override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        if (BuildConfig.DEBUG_MODE) Log.i(TAG, "Thread [${Thread.currentThread().name}] onActivityResult: $requestCode")
+        Timber.w("[${Thread.currentThread().name} @${this.hashCode()}] onActivityResult: $requestCode")
+
         when (requestCode) {
             REQUEST_CODE_SCREEN_CAPTURE -> {
                 if (Activity.RESULT_OK != resultCode) {
@@ -313,14 +304,14 @@ class StartActivity : AppCompatActivity(), StartView {
                             .enableProgress(true)
                             .enableSwipeToDismiss()
                             .show()
-                    if (BuildConfig.DEBUG_MODE) Log.w(TAG, "onActivityResult: Screen Cast permission denied")
-                    Crashlytics.log(1, TAG, "onActivityResult: Screen Cast permission denied")
+
+                    Timber.w("onActivityResult: Screen Cast permission denied")
                     return
                 }
 
                 if (null == data) {
                     toggleButtonStartStop.isEnabled = true
-                    if (BuildConfig.DEBUG_MODE) Log.e(TAG, "onActivityResult ERROR: data = null")
+                    Timber.e("onActivityResult ERROR: data = null")
                     val error = IllegalStateException("onActivityResult: data = null")
                     Crashlytics.logException(error)
                     fromEvents.call(StartView.FromEvent.Error(error))
@@ -342,7 +333,7 @@ class StartActivity : AppCompatActivity(), StartView {
     }
 
     private fun showServerAddresses(interfaceList: List<EventBus.Interface>, serverPort: Int) {
-        if (BuildConfig.DEBUG_MODE) Log.i(TAG, "Thread [${Thread.currentThread().name}] showServerAddresses")
+        Timber.i("[${Thread.currentThread().name} @${this.hashCode()}] showServerAddresses")
 
         linearLayoutServerAddressList.removeAllViews()
         val layoutInflater = LayoutInflater.from(this)
@@ -371,7 +362,7 @@ class StartActivity : AppCompatActivity(), StartView {
     }
 
     private fun showResizeFactor(resizeFactor: Int) {
-        if (BuildConfig.DEBUG_MODE) Log.i(TAG, "Thread [${Thread.currentThread().name}] showResizeFactor")
+        Timber.i("[${Thread.currentThread().name} @${this.hashCode()}] showResizeFactor")
 
         val defaultDisplay = (getSystemService(Context.WINDOW_SERVICE) as WindowManager).defaultDisplay
         val screenSize = Point()
@@ -382,7 +373,8 @@ class StartActivity : AppCompatActivity(), StartView {
     }
 
     private fun showEnablePin(enablePin: Boolean) {
-        if (BuildConfig.DEBUG_MODE) Log.i(TAG, "Thread [${Thread.currentThread().name}] showEnablePin")
+        Timber.i("[${Thread.currentThread().name} @${this.hashCode()}] showEnablePin")
+
         if (enablePin) {
             textViewPinText.text = getString(R.string.start_activity_pin)
             textViewPinValue.text = settings.currentPin

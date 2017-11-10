@@ -14,14 +14,13 @@ import android.os.Handler
 import android.os.HandlerThread
 import android.os.Process.THREAD_PRIORITY_BACKGROUND
 import android.util.DisplayMetrics
-import android.util.Log
 import android.view.Display
 import android.view.Surface
-import info.dvkr.screenstream.data.BuildConfig
 import info.dvkr.screenstream.data.image.ImageGenerator.*
 import rx.Observable
 import rx.Scheduler
 import rx.subscriptions.CompositeSubscription
+import timber.log.Timber
 import java.io.ByteArrayOutputStream
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
@@ -47,8 +46,6 @@ class ImageGeneratorImpl private constructor(
         const val STATE_ERROR = "STATE_ERROR"
     }
 
-    private val TAG = "ImageGeneratorImpl"
-
     private val resizeMatrix = AtomicReference<Matrix>(Matrix().also { it.postScale(.5f, .5f) })
     private val jpegQuality = AtomicInteger(80)
 
@@ -62,12 +59,12 @@ class ImageGeneratorImpl private constructor(
     private val subscriptions = CompositeSubscription()
 
     init {
-        if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] Constructor")
+        Timber.w("[${Thread.currentThread().name} @${this.hashCode()}] Init")
         imageThread.start()
     }
 
     override fun setImageResizeFactor(factor: Int): ImageGenerator {
-        if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] setImageResizeFactor: $factor")
+        Timber.i("[${Thread.currentThread().name} @${this.hashCode()}] setImageResizeFactor: $factor")
         if (factor !in 1..150) throw IllegalArgumentException("Resize factor has to be in range [1..150]")
 
         val scale = factor / 100f
@@ -76,7 +73,7 @@ class ImageGeneratorImpl private constructor(
     }
 
     override fun setImageJpegQuality(quality: Int): ImageGenerator {
-        if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] setImageJpegQuality: $quality")
+        Timber.i("[${Thread.currentThread().name} @${this.hashCode()}] setImageJpegQuality: $quality")
         if (quality !in 1..100) throw IllegalArgumentException("JPEG quality has to be in range [1..100]")
 
         jpegQuality.set(quality)
@@ -85,7 +82,7 @@ class ImageGeneratorImpl private constructor(
 
     @Synchronized
     override fun start() {
-        if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] Start")
+        Timber.w("[${Thread.currentThread().name} @${this.hashCode()}] Start")
         if (state.get() != STATE_INIT) throw IllegalStateException("Can't start ImageGenerator in state $state")
 
         startDisplayCapture()
@@ -103,7 +100,7 @@ class ImageGeneratorImpl private constructor(
 
     @Synchronized
     override fun stop() {
-        if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] Stop")
+        Timber.w("[${Thread.currentThread().name} @${this.hashCode()}] Stop")
         if (state.get() != STATE_STARTED && state.get() != STATE_ERROR)
             throw IllegalStateException("Can't stop ImageGenerator in state $state")
 
@@ -143,13 +140,13 @@ class ImageGeneratorImpl private constructor(
 
     @Synchronized
     private fun restart() {
-        if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] Restart: Start")
+        Timber.w("[${Thread.currentThread().name} @${this.hashCode()}] Restart: Start")
         if (state.get() != STATE_STARTED) throw IllegalStateException("Can't restart ImageGenerator in state $state")
 
         stopDisplayCapture()
         startDisplayCapture()
 
-        if (BuildConfig.DEBUG_MODE) Log.w(TAG, "Thread [${Thread.currentThread().name}] Restart: End")
+        Timber.w("[${Thread.currentThread().name} @${this.hashCode()}] Restart: End")
     }
 
     // Runs on ImageGenerator Thread

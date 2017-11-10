@@ -3,7 +3,6 @@ package info.dvkr.screenstream.domain.httpserver
 
 import android.support.annotation.Keep
 import info.dvkr.screenstream.domain.eventbus.EventBus
-import info.dvkr.screenstream.domain.httpserver.HttpServer.Companion.DEBUG_MODE
 import io.netty.buffer.ByteBuf
 import io.netty.channel.ChannelOption
 import io.netty.channel.EventLoopGroup
@@ -13,7 +12,6 @@ import io.reactivex.netty.RxNetty
 import rx.Observable
 import rx.Scheduler
 import rx.functions.Action1
-import rx.functions.Action2
 import rx.subscriptions.CompositeSubscription
 import java.net.InetSocketAddress
 import java.util.concurrent.ConcurrentLinkedDeque
@@ -32,8 +30,7 @@ class HttpServerImpl constructor(serverAddress: InetSocketAddress,
                                  jpegBytesStream: Observable<ByteArray>,
                                  eventBus: EventBus,
                                  private val eventScheduler: Scheduler,
-                                 private val log: Action2<String, String>) : HttpServer {
-    private val TAG = "HttpServerImpl"
+                                 private val logIt: Action1<String>) : HttpServer {
 
     companion object {
         private const val NETTY_IO_THREADS_NUMBER = 2
@@ -81,8 +78,7 @@ class HttpServerImpl constructor(serverAddress: InetSocketAddress,
     private val trafficHistory = ConcurrentLinkedDeque<HttpServer.TrafficPoint>()
 
     init {
-        if (DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] HttpServer: Create")
-        log.call(TAG, "HttpServer: Create")
+        logIt.call("HttpServer @${this.hashCode()}: Init")
 
         val httpServerPort = serverAddress.port
         if (httpServerPort !in 1025..65535) throw IllegalArgumentException("Tcp port must be in range [1025, 65535]")
@@ -96,7 +92,8 @@ class HttpServerImpl constructor(serverAddress: InetSocketAddress,
         eventBus.getEvent().filter {
             it is EventBus.GlobalEvent.CurrentClientsRequest || it is EventBus.GlobalEvent.TrafficHistoryRequest
         }.subscribe { globalEvent ->
-            if (DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] globalEvent: $globalEvent")
+            logIt.call("HttpServer @${this.hashCode()}: globalEvent: $globalEvent")
+
             when (globalEvent) {
                 is EventBus.GlobalEvent.CurrentClientsRequest -> eventBus.sendEvent(EventBus.GlobalEvent.CurrentClients(clientsMap.values.toList()))
                 is EventBus.GlobalEvent.TrafficHistoryRequest -> eventBus.sendEvent(EventBus.GlobalEvent.TrafficHistory(trafficHistory.toList()))
@@ -146,14 +143,13 @@ class HttpServerImpl constructor(serverAddress: InetSocketAddress,
                 pinRequestHtmlPage,
                 pinRequestErrorHtmlPage,
                 Action1 { clientEvent -> toEvent(clientEvent) },
-                log,
+                logIt,
                 jpegBytesStream)
         try {
 
             httpServer.start(httpServerRxHandler)
             isRunning = true
-            if (DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] HttpServer: Started ${httpServer.serverAddress}")
-            log.call(TAG, "HttpServer: Started")
+            logIt.call("HttpServer @${this.hashCode()}: Started")
 
         } catch (exception: Exception) {
             eventBus.sendEvent(EventBus.GlobalEvent.Error(exception))
@@ -162,13 +158,13 @@ class HttpServerImpl constructor(serverAddress: InetSocketAddress,
     }
 
     override fun stop() {
-        if (DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] HttpServer: Stop")
-        log.call(TAG, "HttpServer: Stop")
+        logIt.call("HttpServer @${this.hashCode()}: Stop")
 
         if (isRunning) {
             httpServer.shutdown()
             httpServer.awaitShutdown()
         }
+
         httpServerRxHandler.stop()
         globalServerEventLoop.shutdownGracefully()
         subscriptions.clear()
@@ -178,8 +174,6 @@ class HttpServerImpl constructor(serverAddress: InetSocketAddress,
 
     fun toEvent(event: LocalEvent) {
         Observable.just(event).observeOn(eventScheduler).subscribe { toEvent ->
-            // if (DEBUG_MODE) println(TAG + ": Thread [${Thread.currentThread().name}] toEvent: $toEvent")
-
             when (toEvent) {
                 is LocalEvent.ClientConnected -> clientsMap.put(toEvent.address, LocalClient(toEvent.address))
                 is LocalEvent.ClientBytesCount -> clientsMap[toEvent.address]?.let { it.sendBytes = it.sendBytes.plus(toEvent.bytesCount) }

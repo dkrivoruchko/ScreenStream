@@ -7,15 +7,13 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Rect
-import com.crashlytics.android.Crashlytics
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.data.image.ImageNotify
+import timber.log.Timber
 import java.io.ByteArrayOutputStream
 
 
 class ImageNotifyImpl(context: Context) : ImageNotify {
-    private val TAG = "ImageNotifyImpl"
-
     private val defaultText: String = context.getString(R.string.image_generator_press_start)
     private val reloadPageText: String = context.getString(R.string.image_generator_reload_this_page)
     private val newAddressText: String = context.getString(R.string.image_generator_go_to_new_address)
@@ -33,8 +31,7 @@ class ImageNotifyImpl(context: Context) : ImageNotify {
     }
 
     override fun getImage(imageType: String): ByteArray {
-        println(TAG + ": Thread [" + Thread.currentThread().name + "] getImage: " + imageType)
-        Crashlytics.log(1, TAG, "getImage: $imageType")
+        Timber.w("[${Thread.currentThread().name} @${this.hashCode()}] getImage: $imageType")
 
         return when (imageType) {
             ImageNotify.IMAGE_TYPE_DEFAULT -> imageDefault

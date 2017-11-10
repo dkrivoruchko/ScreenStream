@@ -1,39 +1,26 @@
 package info.dvkr.screenstream.data.presenter.settings
 
 
-import android.arch.lifecycle.ViewModel
-import android.util.Log
-import com.crashlytics.android.Crashlytics
-import info.dvkr.screenstream.data.BuildConfig
 import info.dvkr.screenstream.data.image.ImageNotify
+import info.dvkr.screenstream.data.presenter.BasePresenter
 import info.dvkr.screenstream.domain.eventbus.EventBus
 import info.dvkr.screenstream.domain.settings.Settings
 import rx.Scheduler
-import rx.subscriptions.CompositeSubscription
+import timber.log.Timber
 import java.net.ServerSocket
 
 class SettingsPresenter internal constructor(private val settings: Settings,
                                              private val eventScheduler: Scheduler,
-                                             private val eventBus: EventBus) : ViewModel() {
-    private val TAG = "SettingsPresenter"
+                                             private val eventBus: EventBus) : BasePresenter<SettingsView>() {
 
-    private val subscriptions = CompositeSubscription()
-    private var settingsView: SettingsView? = null
+    override fun attach(newView: SettingsView) {
+        Timber.w("[${Thread.currentThread().name} @${this.hashCode()}] Attach")
 
-    init {
-        if (BuildConfig.DEBUG_MODE) Log.i(TAG, "Thread [${Thread.currentThread().name}] Constructor")
-        Crashlytics.log(1, TAG, "Constructor")
-    }
-
-    fun attach(view: SettingsView) {
-        if (BuildConfig.DEBUG_MODE) Log.i(TAG, "Thread [${Thread.currentThread().name}] Attach")
-        Crashlytics.log(1, TAG, "Attach")
-
-        settingsView?.let { detach() }
-        settingsView = view
+        view?.let { detach() }
+        view = newView
 
         // Setting current values
-        settingsView?.let {
+        view?.let {
             it.toEvent(SettingsView.ToEvent.MinimizeOnStream(settings.minimizeOnStream))
             it.toEvent(SettingsView.ToEvent.StopOnSleep(settings.stopOnSleep))
             it.toEvent(SettingsView.ToEvent.StartOnBoot(settings.startOnBoot))
@@ -51,8 +38,8 @@ class SettingsPresenter internal constructor(private val settings: Settings,
         }
 
         // Getting values from Activity
-        settingsView?.fromEvent()?.observeOn(eventScheduler)?.subscribe { fromEvent ->
-            if (BuildConfig.DEBUG_MODE) Log.i(TAG, "Thread [${Thread.currentThread().name}] fromEvent: $fromEvent")
+        view?.fromEvent()?.observeOn(eventScheduler)?.subscribe { fromEvent ->
+            Timber.d("[${Thread.currentThread().name} @${this.hashCode()}] fromEvent: $fromEvent")
 
             when (fromEvent) {
                 is SettingsView.FromEvent.MinimizeOnStream -> settings.minimizeOnStream = fromEvent.value
@@ -71,13 +58,13 @@ class SettingsPresenter internal constructor(private val settings: Settings,
 
                 is SettingsView.FromEvent.ResizeFactor -> {
                     settings.resizeFactor = fromEvent.value
-                    settingsView?.toEvent(SettingsView.ToEvent.ResizeFactor(fromEvent.value))
+                    view?.toEvent(SettingsView.ToEvent.ResizeFactor(fromEvent.value))
                     eventBus.sendEvent(EventBus.GlobalEvent.ResizeFactor(fromEvent.value))
                 }
 
                 is SettingsView.FromEvent.JpegQuality -> {
                     settings.jpegQuality = fromEvent.value
-                    settingsView?.toEvent(SettingsView.ToEvent.JpegQuality(fromEvent.value))
+                    view?.toEvent(SettingsView.ToEvent.JpegQuality(fromEvent.value))
                     eventBus.sendEvent(EventBus.GlobalEvent.JpegQuality(fromEvent.value))
                 }
 
@@ -93,7 +80,7 @@ class SettingsPresenter internal constructor(private val settings: Settings,
 
                 is SettingsView.FromEvent.SetPin -> {
                     settings.currentPin = fromEvent.value
-                    settingsView?.toEvent(SettingsView.ToEvent.SetPin(fromEvent.value))
+                    view?.toEvent(SettingsView.ToEvent.SetPin(fromEvent.value))
                     eventBus.sendEvent(EventBus.GlobalEvent.HttpServerRestart(ImageNotify.IMAGE_TYPE_RELOAD_PAGE))
                     eventBus.sendEvent(EventBus.GlobalEvent.SetPin(fromEvent.value))
                 }
@@ -115,24 +102,17 @@ class SettingsPresenter internal constructor(private val settings: Settings,
                         serverSocket?.close()
                         if (portFree) {
                             settings.severPort = fromEvent.value
-                            settingsView?.toEvent(SettingsView.ToEvent.ServerPort(fromEvent.value))
+                            view?.toEvent(SettingsView.ToEvent.ServerPort(fromEvent.value))
                             eventBus.sendEvent(EventBus.GlobalEvent.HttpServerRestart(ImageNotify.IMAGE_TYPE_NEW_ADDRESS))
                         } else {
-                            settingsView?.toEvent(SettingsView.ToEvent.ErrorServerPortBusy())
-                            println(TAG + ": Thread [${Thread.currentThread().name}] ERROR: Port busy: ${fromEvent.value}")
+                            view?.toEvent(SettingsView.ToEvent.ErrorServerPortBusy())
+                            Timber.e("[${Thread.currentThread().name}] ERROR: Port busy: ${fromEvent.value}")
                         }
                     }
                 }
 
-                else -> if (BuildConfig.DEBUG_MODE) Log.e(TAG, "Thread [${Thread.currentThread().name}] fromEvent: $fromEvent WARRING: IGNORED")
+                else -> throw IllegalArgumentException("Unknown fromEvent")
             }
         }.also { subscriptions.add(it) }
-    }
-
-    fun detach() {
-        if (BuildConfig.DEBUG_MODE) Log.i(TAG, "Thread [${Thread.currentThread().name}] Detach")
-        Crashlytics.log(1, TAG, "Detach")
-        subscriptions.clear()
-        settingsView = null
     }
 }

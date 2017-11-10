@@ -5,25 +5,17 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.os.Build
-import android.util.Log
-import com.crashlytics.android.Crashlytics
 import com.ironz.binaryprefs.BinaryPreferencesBuilder
-import info.dvkr.screenstream.BuildConfig
 import info.dvkr.screenstream.data.settings.SettingsImpl
+import timber.log.Timber
 
 class BootReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
-        if (BuildConfig.DEBUG_MODE) Log.w("BootReceiver", "Thread [${Thread.currentThread().name}] onReceive")
-        Crashlytics.log(1, "BootReceiver", "onReceive")
+        Timber.w("[${Thread.currentThread().name} @${this.hashCode()}] BootReceiver.onReceive")
 
         val preferences = BinaryPreferencesBuilder(context)
-                .exceptionHandler {
-                    it?.let {
-                        if (info.dvkr.screenstream.data.BuildConfig.DEBUG_MODE) Log.e("BinaryPreferences", it.toString())
-                        Crashlytics.logException(it)
-                    }
-                }
+                .exceptionHandler { Timber.e(it, "BinaryPreferencesBuilder") }
                 .build()
         val settings = SettingsImpl(preferences)
 

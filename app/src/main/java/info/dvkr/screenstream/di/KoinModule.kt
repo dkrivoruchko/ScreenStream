@@ -1,12 +1,9 @@
 package info.dvkr.screenstream.di
 
 import android.os.HandlerThread
-import android.util.Log
-import com.crashlytics.android.Crashlytics
 import com.ironz.binaryprefs.BinaryPreferencesBuilder
 import com.ironz.binaryprefs.Preferences
 import com.jakewharton.rxrelay.BehaviorRelay
-import info.dvkr.screenstream.data.BuildConfig
 import info.dvkr.screenstream.data.image.ImageNotify
 import info.dvkr.screenstream.data.presenter.PresenterFactory
 import info.dvkr.screenstream.data.presenter.foreground.ForegroundPresenter
@@ -20,6 +17,7 @@ import info.dvkr.screenstream.image.ImageNotifyImpl
 import org.koin.android.module.AndroidModule
 import rx.Scheduler
 import rx.android.schedulers.AndroidSchedulers
+import timber.log.Timber
 
 class KoinModule : AndroidModule() {
     private val eventThread = HandlerThread("SSEventThread")
@@ -43,12 +41,9 @@ class KoinModule : AndroidModule() {
         provide { ImageNotifyImpl(androidApplication) } bind (ImageNotify::class)
 
         provide {
-            BinaryPreferencesBuilder(androidApplication).exceptionHandler {
-                it?.let {
-                    if (BuildConfig.DEBUG_MODE) Log.e("BinaryPreferences", it.toString())
-                    Crashlytics.logException(it)
-                }
-            }.build()
+            BinaryPreferencesBuilder(androidApplication)
+                    .exceptionHandler { Timber.e(it, "BinaryPreferencesBuilder") }
+                    .build()
         } bind (Preferences::class)
 
         provide { SettingsImpl(get()) } bind (Settings::class)

@@ -6,15 +6,12 @@ import android.content.Intent
 import android.os.Bundle
 import android.support.v4.content.ContextCompat
 import android.support.v7.app.AppCompatActivity
-import android.util.Log
 import android.view.LayoutInflater
-import com.crashlytics.android.Crashlytics
 import com.jakewharton.rxrelay.PublishRelay
 import com.jjoe64.graphview.DefaultLabelFormatter
 import com.jjoe64.graphview.GridLabelRenderer
 import com.jjoe64.graphview.series.DataPoint
 import com.jjoe64.graphview.series.LineGraphSeries
-import info.dvkr.screenstream.BuildConfig
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.data.presenter.PresenterFactory
 import info.dvkr.screenstream.data.presenter.clients.ClientsPresenter
@@ -24,12 +21,11 @@ import kotlinx.android.synthetic.main.avtivity_clients_client_item.view.*
 import org.koin.android.ext.android.inject
 import rx.Observable
 import rx.android.schedulers.AndroidSchedulers
+import timber.log.Timber
 import java.text.NumberFormat
 
 
 class ClientsActivity : AppCompatActivity(), ClientsView {
-
-    private val TAG = "ClientsActivity"
 
     companion object {
         fun getStartIntent(context: Context): Intent = Intent(context, ClientsActivity::class.java)
@@ -47,7 +43,7 @@ class ClientsActivity : AppCompatActivity(), ClientsView {
 
     override fun toEvent(toEvent: ClientsView.ToEvent) {
         Observable.just(toEvent).subscribeOn(AndroidSchedulers.mainThread()).subscribe { event ->
-            if (BuildConfig.DEBUG_MODE) Log.i(TAG, "Thread [${Thread.currentThread().name}] toEvent: ${event.javaClass.simpleName}")
+            Timber.d("[${Thread.currentThread().name} @${this.hashCode()}] toEvent: $event")
 
             when (event) {
                 is ClientsView.ToEvent.CurrentClients -> {
@@ -113,17 +109,14 @@ class ClientsActivity : AppCompatActivity(), ClientsView {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        if (BuildConfig.DEBUG_MODE) Log.i(TAG, "Thread [${Thread.currentThread().name}] onCreate: Start")
-        Crashlytics.log(1, TAG, "onCreate: Start")
+        Timber.w("[${Thread.currentThread().name} @${this.hashCode()}] onCreate")
+
         setContentView(R.layout.activity_clients)
 
         textViewCurrentTraffic.text = getString(R.string.clients_activity_current_traffic).format(0.0)
         textViewConnectedClients.text = getString(R.string.clients_activity_connected_clients).format(0)
 
         presenter.attach(this)
-
-        if (BuildConfig.DEBUG_MODE) Log.i(TAG, "Thread [${Thread.currentThread().name}] onCreate: End")
-        Crashlytics.log(1, TAG, "onCreate: End")
     }
 
     override fun onStart() {
@@ -132,9 +125,8 @@ class ClientsActivity : AppCompatActivity(), ClientsView {
     }
 
     override fun onDestroy() {
-        if (BuildConfig.DEBUG_MODE) Log.i(TAG, "Thread [${Thread.currentThread().name}] onDestroy")
+        Timber.w("[${Thread.currentThread().name} @${this.hashCode()}] onDestroy")
         presenter.detach()
-        Crashlytics.log(1, TAG, "onDestroy: End")
         super.onDestroy()
     }
 

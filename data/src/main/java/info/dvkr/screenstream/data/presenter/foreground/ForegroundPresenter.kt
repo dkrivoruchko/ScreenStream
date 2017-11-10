@@ -1,10 +1,7 @@
 package info.dvkr.screenstream.data.presenter.foreground
 
 
-import android.util.Log
-import com.crashlytics.android.Crashlytics
 import com.jakewharton.rxrelay.BehaviorRelay
-import info.dvkr.screenstream.data.BuildConfig
 import info.dvkr.screenstream.data.image.ImageGenerator
 import info.dvkr.screenstream.data.image.ImageGeneratorImpl
 import info.dvkr.screenstream.data.image.ImageNotify
@@ -14,15 +11,15 @@ import info.dvkr.screenstream.domain.httpserver.HttpServer
 import info.dvkr.screenstream.domain.httpserver.HttpServerImpl
 import info.dvkr.screenstream.domain.settings.Settings
 import rx.Scheduler
-import rx.functions.Action2
+import rx.functions.Action1
 import rx.subscriptions.CompositeSubscription
+import timber.log.Timber
 
 class ForegroundPresenter constructor(private val settings: Settings,
                                       private val eventScheduler: Scheduler,
                                       private val eventBus: EventBus,
                                       private val globalStatus: GlobalStatus,
                                       private val jpegBytesStream: BehaviorRelay<ByteArray>) {
-    private val TAG = "ForegroundPresenter"
 
     private val subscriptions = CompositeSubscription()
     private val random = java.util.Random()
@@ -33,20 +30,18 @@ class ForegroundPresenter constructor(private val settings: Settings,
     private val slowConnections: MutableList<HttpServer.Client> = ArrayList()
 
     init {
-        if (BuildConfig.DEBUG_MODE) Log.i(TAG, "Thread [${Thread.currentThread().name}] Constructor")
-        Crashlytics.log(1, TAG, "Constructor")
+        Timber.w("[${Thread.currentThread().name} @${this.hashCode()}] Init")
     }
 
     fun attach(view: ForegroundView) {
-        if (BuildConfig.DEBUG_MODE) Log.i(TAG, "Thread [${Thread.currentThread().name}] Attach")
-        Crashlytics.log(1, TAG, "Attach")
+        Timber.w("[${Thread.currentThread().name} @${this.hashCode()}] Attach")
 
         foregroundView?.let { detach() }
         foregroundView = view
 
         // Events from ForegroundService
         foregroundView?.fromEvent()?.observeOn(eventScheduler)?.subscribe { fromEvent ->
-            if (BuildConfig.DEBUG_MODE) Log.i(TAG, "Thread [${Thread.currentThread().name}] fromEvent: $fromEvent")
+            Timber.d("[${Thread.currentThread().name} @${this.hashCode()}] fromEvent: $fromEvent")
 
             when (fromEvent) {
                 is ForegroundView.FromEvent.Init -> {
@@ -75,7 +70,7 @@ class ForegroundPresenter constructor(private val settings: Settings,
                             jpegByteStream,
                             eventBus,
                             eventScheduler,
-                            Action2 { tag, msg -> Crashlytics.log(1, tag, msg) })
+                            Action1 { Timber.i(it) })
 
                     foregroundView?.toEvent(ForegroundView.ToEvent.NotifyImage(ImageNotify.IMAGE_TYPE_DEFAULT))
                 }
@@ -90,7 +85,7 @@ class ForegroundPresenter constructor(private val settings: Settings,
                         when (igEvent) {
                             is ImageGenerator.ImageGeneratorEvent.OnError -> {
                                 eventBus.sendEvent(EventBus.GlobalEvent.Error(igEvent.error))
-                                Crashlytics.log(1, "ImageGenerator", "ERROR")
+                                Timber.e(igEvent.error, "ImageGenerator: ERROR")
                             }
 
                             is ImageGenerator.ImageGeneratorEvent.OnJpegImage -> {
@@ -105,7 +100,6 @@ class ForegroundPresenter constructor(private val settings: Settings,
 
                     globalStatus.isStreamRunning.set(true)
                     eventBus.sendEvent(EventBus.GlobalEvent.StreamStatus())
-                    Crashlytics.log(1, "ImageGenerator", "STARTED")
                 }
 
                 is ForegroundView.FromEvent.StopStreamComplete -> {
@@ -131,7 +125,7 @@ class ForegroundPresenter constructor(private val settings: Settings,
                     eventBus.sendEvent(EventBus.GlobalEvent.CurrentInterfaces(fromEvent.interfaceList))
                 }
 
-                else -> Log.e(TAG, "Thread [${Thread.currentThread().name}] fromEvent: $fromEvent WARRING: IGNORED")
+                else -> throw IllegalArgumentException("Unknown fromEvent")
             }
         }.also { subscriptions.add(it) }
 
@@ -146,14 +140,14 @@ class ForegroundPresenter constructor(private val settings: Settings,
                     it is EventBus.GlobalEvent.ResizeFactor ||
                     it is EventBus.GlobalEvent.JpegQuality
         }.subscribe { globalEvent ->
-            if (BuildConfig.DEBUG_MODE) Log.i(TAG, "Thread [${Thread.currentThread().name}] globalEvent: $globalEvent")
+            Timber.d("[${Thread.currentThread().name} @${this.hashCode()}] globalEvent: $globalEvent")
+
             when (globalEvent) {
             // From ForegroundPresenter, StartPresenter & ProjectionCallback
                 is EventBus.GlobalEvent.StopStream -> {
                     if (!globalStatus.isStreamRunning.get()) return@subscribe
                     imageGenerator?.stop()
                     imageGenerator = null
-                    Crashlytics.log(1, "ImageGenerator", "STOPPED")
                     globalStatus.isStreamRunning.set(false)
                     eventBus.sendEvent(EventBus.GlobalEvent.StreamStatus())
                     foregroundView?.toEvent(ForegroundView.ToEvent.StopStream())
@@ -185,7 +179,6 @@ class ForegroundPresenter constructor(private val settings: Settings,
                     if (globalStatus.isStreamRunning.get()) {
                         imageGenerator?.stop()
                         imageGenerator = null
-                        Crashlytics.log(1, "ImageGenerator", "STOPPED")
                         globalStatus.isStreamRunning.set(false)
                         eventBus.sendEvent(EventBus.GlobalEvent.StreamStatus())
                         foregroundView?.toEvent(ForegroundView.ToEvent.StopStream(false))
@@ -217,8 +210,7 @@ class ForegroundPresenter constructor(private val settings: Settings,
     }
 
     fun detach() {
-        if (BuildConfig.DEBUG_MODE) Log.i(TAG, "Thread [${Thread.currentThread().name}] Detach")
-        Crashlytics.log(1, TAG, "Detach")
+        Timber.w("[${Thread.currentThread().name} @${this.hashCode()}] Detach")
         subscriptions.clear()
         foregroundView = null
     }

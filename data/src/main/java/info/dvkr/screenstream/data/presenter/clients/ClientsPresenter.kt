@@ -1,42 +1,29 @@
 package info.dvkr.screenstream.data.presenter.clients
 
-import android.arch.lifecycle.ViewModel
-import android.util.Log
-import com.crashlytics.android.Crashlytics
-import info.dvkr.screenstream.data.BuildConfig
+import info.dvkr.screenstream.data.presenter.BasePresenter
 import info.dvkr.screenstream.domain.eventbus.EventBus
 import info.dvkr.screenstream.domain.httpserver.HttpServer
 import rx.Scheduler
-import rx.subscriptions.CompositeSubscription
+import timber.log.Timber
 import java.util.concurrent.ConcurrentLinkedDeque
 
 class ClientsPresenter internal constructor(private val eventScheduler: Scheduler,
-                                            private val eventBus: EventBus) : ViewModel() {
-    private val TAG = "ClientsPresenter"
+                                            private val eventBus: EventBus) : BasePresenter<ClientsView>() {
 
-    private val subscriptions = CompositeSubscription()
-    private var clientsView: ClientsView? = null
     private val trafficHistory = ConcurrentLinkedDeque<HttpServer.TrafficPoint>()
     private var maxYValue = 0L
 
+    override fun attach(newView: ClientsView) {
+        Timber.w("[${Thread.currentThread().name} @${this.hashCode()}] Attach")
 
-    init {
-        if (BuildConfig.DEBUG_MODE) Log.i(TAG, "Thread [${Thread.currentThread().name}] Constructor")
-        Crashlytics.log(1, TAG, "Constructor")
-    }
-
-    fun attach(view: ClientsView) {
-        if (BuildConfig.DEBUG_MODE) Log.i(TAG, "Thread [${Thread.currentThread().name}] Attach")
-        Crashlytics.log(1, TAG, "Attach")
-
-        clientsView?.let { detach() }
-        clientsView = view
+        view?.let { detach() }
+        view = newView
 
         // Events from ClientsActivity
-        clientsView?.fromEvent()?.observeOn(eventScheduler)?.subscribe { fromEvent ->
-            if (BuildConfig.DEBUG_MODE) Log.i(TAG, "Thread [${Thread.currentThread().name}] fromEvent: $fromEvent")
-            when (fromEvent) {
+        view?.fromEvent()?.observeOn(eventScheduler)?.subscribe { fromEvent ->
+            Timber.d("[${Thread.currentThread().name} @${this.hashCode()}] fromEvent: $fromEvent")
 
+            when (fromEvent) {
             // Getting current traffic history
                 is ClientsView.FromEvent.TrafficHistoryRequest -> {
                     // Requesting current traffic history
@@ -44,11 +31,11 @@ class ClientsPresenter internal constructor(private val eventScheduler: Schedule
                         eventBus.sendEvent(EventBus.GlobalEvent.TrafficHistoryRequest())
                     } else {
                         maxYValue = trafficHistory.maxBy { it.bytes }?.bytes ?: 0
-                        clientsView?.toEvent(ClientsView.ToEvent.TrafficHistory(trafficHistory.toList(), maxYValue))
+                        view?.toEvent(ClientsView.ToEvent.TrafficHistory(trafficHistory.toList(), maxYValue))
                     }
                 }
 
-                else -> Log.e(TAG, "Thread [${Thread.currentThread().name}] fromEvent: $fromEvent WARRING: IGNORED")
+                else -> throw IllegalArgumentException("Unknown fromEvent")
             }
         }.also { subscriptions.add(it) }
 
@@ -58,11 +45,12 @@ class ClientsPresenter internal constructor(private val eventScheduler: Schedule
                     it is EventBus.GlobalEvent.TrafficHistory ||
                     it is EventBus.GlobalEvent.TrafficPoint
         }.subscribe { globalEvent ->
-            if (BuildConfig.DEBUG_MODE) Log.i(TAG, "Thread [${Thread.currentThread().name}] globalEvent: $globalEvent")
+            Timber.d("[${Thread.currentThread().name} @${this.hashCode()}] globalEvent: $globalEvent")
+
             when (globalEvent) {
             // From HttpServerImpl
                 is EventBus.GlobalEvent.CurrentClients -> {
-                    clientsView?.toEvent(ClientsView.ToEvent.CurrentClients(globalEvent.clientsList))
+                    view?.toEvent(ClientsView.ToEvent.CurrentClients(globalEvent.clientsList))
                 }
 
             // From HttpServerImpl
@@ -70,7 +58,7 @@ class ClientsPresenter internal constructor(private val eventScheduler: Schedule
                     trafficHistory.clear()
                     trafficHistory.addAll(globalEvent.trafficHistory.sortedBy { it.time })
                     maxYValue = trafficHistory.maxBy { it.bytes }?.bytes ?: 0
-                    clientsView?.toEvent(ClientsView.ToEvent.TrafficHistory(trafficHistory.toList(), maxYValue))
+                    view?.toEvent(ClientsView.ToEvent.TrafficHistory(trafficHistory.toList(), maxYValue))
                 }
 
             // From HttpServerImpl
@@ -81,20 +69,12 @@ class ClientsPresenter internal constructor(private val eventScheduler: Schedule
                     trafficHistory.removeFirst()
                     trafficHistory.addLast(globalEvent.trafficPoint)
                     maxYValue = trafficHistory.maxBy { it.bytes }?.bytes ?: 0
-                    clientsView?.toEvent(ClientsView.ToEvent.TrafficPoint(globalEvent.trafficPoint, maxYValue))
+                    view?.toEvent(ClientsView.ToEvent.TrafficPoint(globalEvent.trafficPoint, maxYValue))
                 }
             }
         }.also { subscriptions.add(it) }
 
         // Requesting current clients
         eventBus.sendEvent(EventBus.GlobalEvent.CurrentClientsRequest())
-    }
-
-
-    fun detach() {
-        if (BuildConfig.DEBUG_MODE) Log.i(TAG, "Thread [${Thread.currentThread().name}] Detach")
-        Crashlytics.log(1, TAG, "Detach")
-        subscriptions.clear()
-        clientsView = null
     }
 }

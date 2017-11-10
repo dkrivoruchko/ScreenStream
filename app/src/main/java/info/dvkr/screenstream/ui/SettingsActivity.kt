@@ -14,17 +14,14 @@ import android.support.v7.app.AppCompatActivity
 import android.text.Editable
 import android.text.InputFilter
 import android.text.TextWatcher
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
-import com.crashlytics.android.Crashlytics
 import com.jakewharton.rxrelay.PublishRelay
 import com.jrummyapps.android.colorpicker.ColorPickerDialog
 import com.jrummyapps.android.colorpicker.ColorPickerDialogListener
 import com.tapadoo.alerter.Alerter
-import info.dvkr.screenstream.BuildConfig
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.data.presenter.PresenterFactory
 import info.dvkr.screenstream.data.presenter.settings.SettingsPresenter
@@ -35,10 +32,10 @@ import org.koin.android.ext.android.inject
 import rx.Observable
 import rx.android.schedulers.AndroidSchedulers
 import rx.functions.Action1
+import timber.log.Timber
 
 
 class SettingsActivity : AppCompatActivity(), SettingsView, ColorPickerDialogListener {
-    private val TAG = "SettingsActivity"
 
     companion object {
         fun getStartIntent(context: Context): Intent = Intent(context, SettingsActivity::class.java)
@@ -60,7 +57,7 @@ class SettingsActivity : AppCompatActivity(), SettingsView, ColorPickerDialogLis
 
     override fun toEvent(toEvent: SettingsView.ToEvent) {
         Observable.just(toEvent).subscribeOn(AndroidSchedulers.mainThread()).subscribe { event ->
-            if (BuildConfig.DEBUG_MODE) Log.i(TAG, "Thread [${Thread.currentThread().name}]: ${event.javaClass.simpleName}")
+            Timber.d("[${Thread.currentThread().name} @${this.hashCode()}] toEvent: $event")
 
             when (event) {
                 is SettingsView.ToEvent.MinimizeOnStream -> checkBoxMinimizeOnStream.isChecked = event.value
@@ -116,8 +113,7 @@ class SettingsActivity : AppCompatActivity(), SettingsView, ColorPickerDialogLis
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        if (BuildConfig.DEBUG_MODE) Log.i(TAG, "Thread [${Thread.currentThread().name}] onCreate: Start")
-        Crashlytics.log(1, TAG, "onCreate: Start")
+        Timber.w("[${Thread.currentThread().name} @${this.hashCode()}] onCreate")
 
         val windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
         val defaultDisplay = windowManager.defaultDisplay
@@ -255,16 +251,12 @@ class SettingsActivity : AppCompatActivity(), SettingsView, ColorPickerDialogLis
             )
             dialog?.show()
         }
-
-        if (BuildConfig.DEBUG_MODE) Log.i(TAG, "Thread [${Thread.currentThread().name}] onCreate: End")
-        Crashlytics.log(1, TAG, "onCreate: End")
     }
 
     override fun onDestroy() {
-        if (BuildConfig.DEBUG_MODE) Log.i(TAG, "Thread [${Thread.currentThread().name}] onDestroy: Start")
+        Timber.w("[${Thread.currentThread().name} @${this.hashCode()}] onDestroy")
         dialog?.let { if (it.isShowing) it.dismiss() }
         presenter.detach()
-        Crashlytics.log(1, TAG, "onDestroy: End")
         super.onDestroy()
     }
 

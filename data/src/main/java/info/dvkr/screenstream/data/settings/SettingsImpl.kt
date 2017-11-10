@@ -1,12 +1,10 @@
 package info.dvkr.screenstream.data.settings
 
-import android.util.Log
 import com.ironz.binaryprefs.Preferences
-import info.dvkr.screenstream.data.BuildConfig
 import info.dvkr.screenstream.domain.settings.Settings
+import timber.log.Timber
 
 class SettingsImpl(private val preferences: Preferences) : Settings {
-    private val TAG = "SettingsImpl"
 
     companion object {
         private val PREF_KEY_MINIMIZE_ON_STREAM = "PREF_KEY_MINIMIZE_ON_STREAM" // Boolean
@@ -43,7 +41,7 @@ class SettingsImpl(private val preferences: Preferences) : Settings {
     }
 
     init {
-        if (BuildConfig.DEBUG_MODE) Log.i(TAG, "Thread [${Thread.currentThread().name}] Constructor")
+        Timber.w("[${Thread.currentThread().name} @${this.hashCode()}] Init")
     }
 
     override var minimizeOnStream: Boolean
