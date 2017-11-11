@@ -15,16 +15,16 @@ import rx.functions.Action1
 import rx.subscriptions.CompositeSubscription
 import timber.log.Timber
 
-class ForegroundPresenter constructor(private val settings: Settings,
-                                      private val eventScheduler: Scheduler,
-                                      private val eventBus: EventBus,
-                                      private val globalStatus: GlobalStatus,
-                                      private val jpegBytesStream: BehaviorRelay<ByteArray>) {
+class FgPresenter constructor(private val settings: Settings,
+                              private val eventScheduler: Scheduler,
+                              private val eventBus: EventBus,
+                              private val globalStatus: GlobalStatus,
+                              private val jpegBytesStream: BehaviorRelay<ByteArray>) {
 
     private val subscriptions = CompositeSubscription()
     private val random = java.util.Random()
 
-    private var foregroundView: ForegroundView? = null
+    private var fgView: FgView? = null
     private var httpServer: HttpServer? = null
     private var imageGenerator: ImageGenerator? = null
     private val slowConnections: MutableList<HttpServer.Client> = ArrayList()
@@ -33,28 +33,28 @@ class ForegroundPresenter constructor(private val settings: Settings,
         Timber.w("[${Thread.currentThread().name} @${this.hashCode()}] Init")
     }
 
-    fun attach(view: ForegroundView) {
+    fun attach(view: FgView) {
         Timber.w("[${Thread.currentThread().name} @${this.hashCode()}] Attach")
 
-        foregroundView?.let { detach() }
-        foregroundView = view
+        fgView?.let { detach() }
+        fgView = view
 
         // Events from ForegroundService
-        foregroundView?.fromEvent()?.observeOn(eventScheduler)?.subscribe { fromEvent ->
+        fgView?.fromEvent()?.observeOn(eventScheduler)?.subscribe { fromEvent ->
             Timber.d("[${Thread.currentThread().name} @${this.hashCode()}] fromEvent: $fromEvent")
 
             when (fromEvent) {
-                is ForegroundView.FromEvent.Init -> {
+                is FgView.FromEvent.Init -> {
                     if (settings.enablePin && settings.newPinOnAppStart) {
                         val newPin = randomPin()
                         settings.currentPin = newPin
                         eventBus.sendEvent(EventBus.GlobalEvent.SetPin(newPin))
                     }
 
-                    foregroundView?.toEvent(ForegroundView.ToEvent.StartHttpServer)
+                    fgView?.toEvent(FgView.ToEvent.StartHttpServer)
                 }
 
-                is ForegroundView.FromEvent.StartHttpServer -> {
+                is FgView.FromEvent.StartHttpServer -> {
                     val (serverAddress, favicon, logo, baseIndexHtml, basePinRequestHtml, pinRequestErrorMsg, jpegByteStream) = fromEvent
                     globalStatus.error.set(null)
                     httpServer = HttpServerImpl(serverAddress,
@@ -72,15 +72,15 @@ class ForegroundPresenter constructor(private val settings: Settings,
                             eventScheduler,
                             Action1 { Timber.i(it) })
 
-                    foregroundView?.toEvent(ForegroundView.ToEvent.NotifyImage(ImageNotify.IMAGE_TYPE_DEFAULT))
+                    fgView?.toEvent(FgView.ToEvent.NotifyImage(ImageNotify.IMAGE_TYPE_DEFAULT))
                 }
 
-                is ForegroundView.FromEvent.StopHttpServer -> {
+                is FgView.FromEvent.StopHttpServer -> {
                     httpServer?.stop()
                     httpServer = null
                 }
 
-                is ForegroundView.FromEvent.StartImageGenerator -> {
+                is FgView.FromEvent.StartImageGenerator -> {
                     imageGenerator = ImageGeneratorImpl.create(fromEvent.display, fromEvent.mediaProjection, eventScheduler) { igEvent ->
                         when (igEvent) {
                             is ImageGenerator.ImageGeneratorEvent.OnError -> {
@@ -102,26 +102,26 @@ class ForegroundPresenter constructor(private val settings: Settings,
                     eventBus.sendEvent(EventBus.GlobalEvent.StreamStatus())
                 }
 
-                is ForegroundView.FromEvent.StopStreamComplete -> {
+                is FgView.FromEvent.StopStreamComplete -> {
                     if (settings.enablePin && settings.autoChangePin) {
                         val newPin = randomPin()
                         settings.currentPin = newPin
                         eventBus.sendEvent(EventBus.GlobalEvent.SetPin(newPin))
                         eventBus.sendEvent(EventBus.GlobalEvent.HttpServerRestart(ImageNotify.IMAGE_TYPE_RELOAD_PAGE))
                     }
-                    foregroundView?.toEvent(ForegroundView.ToEvent.NotifyImage(ImageNotify.IMAGE_TYPE_DEFAULT))
+                    fgView?.toEvent(FgView.ToEvent.NotifyImage(ImageNotify.IMAGE_TYPE_DEFAULT))
                 }
 
-                is ForegroundView.FromEvent.HttpServerRestartRequest -> {
+                is FgView.FromEvent.HttpServerRestartRequest -> {
                     eventBus.sendEvent(EventBus.GlobalEvent.HttpServerRestart(ImageNotify.IMAGE_TYPE_NONE))
                 }
 
-                is ForegroundView.FromEvent.ScreenOff -> {
+                is FgView.FromEvent.ScreenOff -> {
                     if (settings.stopOnSleep && globalStatus.isStreamRunning.get())
-                        foregroundView?.toEvent(ForegroundView.ToEvent.StopStream())
+                        fgView?.toEvent(FgView.ToEvent.StopStream())
                 }
 
-                is ForegroundView.FromEvent.CurrentInterfaces -> {
+                is FgView.FromEvent.CurrentInterfaces -> {
                     eventBus.sendEvent(EventBus.GlobalEvent.CurrentInterfaces(fromEvent.interfaceList))
                 }
 
@@ -143,35 +143,40 @@ class ForegroundPresenter constructor(private val settings: Settings,
             Timber.d("[${Thread.currentThread().name} @${this.hashCode()}] globalEvent: $globalEvent")
 
             when (globalEvent) {
-            // From ForegroundPresenter, StartPresenter & ProjectionCallback
+            // From FgPresenter, StartPresenter & ProjectionCallback
                 is EventBus.GlobalEvent.StopStream -> {
                     if (!globalStatus.isStreamRunning.get()) return@subscribe
                     imageGenerator?.stop()
                     imageGenerator = null
                     globalStatus.isStreamRunning.set(false)
                     eventBus.sendEvent(EventBus.GlobalEvent.StreamStatus())
-                    foregroundView?.toEvent(ForegroundView.ToEvent.StopStream())
+                    fgView?.toEvent(FgView.ToEvent.StopStream())
                 }
 
             // From StartPresenter
                 is EventBus.GlobalEvent.AppExit -> {
-                    foregroundView?.toEvent(ForegroundView.ToEvent.AppExit)
+                    fgView?.toEvent(FgView.ToEvent.AppExit)
                 }
 
-            // From SettingsPresenter, ForegroundPresenter
+            // From SettingsPresenter, FgPresenter
                 is EventBus.GlobalEvent.HttpServerRestart -> {
                     globalStatus.error.set(null)
                     val restartReason = globalEvent.reason
-                    if (globalStatus.isStreamRunning.get())
-                        foregroundView?.toEvent(ForegroundView.ToEvent.StopStream(false))
+                    if (globalStatus.isStreamRunning.get()) {
+                        imageGenerator?.stop()
+                        imageGenerator = null
+                        globalStatus.isStreamRunning.set(false)
+                        eventBus.sendEvent(EventBus.GlobalEvent.StreamStatus())
+                        fgView?.toEvent(FgView.ToEvent.StopStream(false))
+                    }
 
-                    foregroundView?.toEvent(ForegroundView.ToEvent.NotifyImage(restartReason))
-                    foregroundView?.toEvent(ForegroundView.ToEvent.StartHttpServer, 1000)
+                    fgView?.toEvent(FgView.ToEvent.NotifyImage(restartReason))
+                    fgView?.toEvent(FgView.ToEvent.StartHttpServer, 1000)
                 }
 
             // From StartPresenter
                 is EventBus.GlobalEvent.CurrentInterfacesRequest -> {
-                    foregroundView?.toEvent(ForegroundView.ToEvent.CurrentInterfacesRequest)
+                    fgView?.toEvent(FgView.ToEvent.CurrentInterfacesRequest)
                 }
 
             // From HttpServer & ImageGenerator
@@ -181,17 +186,17 @@ class ForegroundPresenter constructor(private val settings: Settings,
                         imageGenerator = null
                         globalStatus.isStreamRunning.set(false)
                         eventBus.sendEvent(EventBus.GlobalEvent.StreamStatus())
-                        foregroundView?.toEvent(ForegroundView.ToEvent.StopStream(false))
+                        fgView?.toEvent(FgView.ToEvent.StopStream(false))
                     }
 
-                    foregroundView?.toEvent(ForegroundView.ToEvent.Error(globalEvent.error))
+                    fgView?.toEvent(FgView.ToEvent.Error(globalEvent.error))
                 }
 
             // From HttpServerImpl
                 is EventBus.GlobalEvent.CurrentClients -> {
                     val currentSlowConnections = globalEvent.clientsList.filter { it.hasBackpressure }.toList()
                     if (!slowConnections.containsAll(currentSlowConnections))
-                        foregroundView?.toEvent(ForegroundView.ToEvent.SlowConnectionDetected)
+                        fgView?.toEvent(FgView.ToEvent.SlowConnectionDetected)
                     slowConnections.clear()
                     slowConnections.addAll(currentSlowConnections)
                 }
@@ -212,7 +217,7 @@ class ForegroundPresenter constructor(private val settings: Settings,
     fun detach() {
         Timber.w("[${Thread.currentThread().name} @${this.hashCode()}] Detach")
         subscriptions.clear()
-        foregroundView = null
+        fgView = null
     }
 
     private fun randomPin(): String =

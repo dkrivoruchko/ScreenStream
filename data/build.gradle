@@ -31,7 +31,7 @@ dependencies {
 
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jre7:$kotlin_version"
 
-    implementation 'android.arch.lifecycle:extensions:1.0.0'
+    implementation "android.arch.lifecycle:extensions:$lifecycle_version"
     implementation "com.android.support:support-annotations:$support_version"
 
     implementation "io.reactivex:rxjava:$rxjava_version"

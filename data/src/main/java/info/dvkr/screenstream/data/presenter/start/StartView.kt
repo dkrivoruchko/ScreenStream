@@ -45,7 +45,7 @@ interface StartView {
         // From HttpServer
         @Keep data class CurrentClients(val clientsList: Collection<HttpServer.Client>) : ToEvent()
 
-        // From ForegroundPresenter
+        // From FgPresenter
         @Keep data class CurrentInterfaces(val interfaceList: List<EventBus.Interface>) : ToEvent()
 
         // From HttpServer

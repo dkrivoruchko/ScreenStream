@@ -6,7 +6,7 @@ import com.ironz.binaryprefs.Preferences
 import com.jakewharton.rxrelay.BehaviorRelay
 import info.dvkr.screenstream.data.image.ImageNotify
 import info.dvkr.screenstream.data.presenter.PresenterFactory
-import info.dvkr.screenstream.data.presenter.foreground.ForegroundPresenter
+import info.dvkr.screenstream.data.presenter.foreground.FgPresenter
 import info.dvkr.screenstream.data.settings.SettingsImpl
 import info.dvkr.screenstream.domain.eventbus.EventBus
 import info.dvkr.screenstream.domain.eventbus.EventBusImpl
@@ -50,7 +50,7 @@ class KoinModule : AndroidModule() {
 
         provide { PresenterFactory(get(), get(), get(), get()) } bind (PresenterFactory::class)
 
-        provide { ForegroundPresenter(get(), get(), get(), get(), get()) } bind (ForegroundPresenter::class)
+        provide { FgPresenter(get(), get(), get(), get(), get()) } bind (FgPresenter::class)
 
     }
 }

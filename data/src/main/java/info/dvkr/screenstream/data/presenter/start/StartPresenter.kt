@@ -21,7 +21,7 @@ class StartPresenter internal constructor(private val eventScheduler: Scheduler,
             Timber.d("[${Thread.currentThread().name} @${this.hashCode()}] fromEvent: $fromEvent")
 
             when (fromEvent) {
-            // Relaying message to ForegroundPresenter
+            // Relaying message to FgPresenter
                 is StartView.FromEvent.CurrentInterfacesRequest -> {
                     eventBus.sendEvent(EventBus.GlobalEvent.CurrentInterfacesRequest())
                 }
@@ -33,13 +33,13 @@ class StartPresenter internal constructor(private val eventScheduler: Scheduler,
                     view?.toEvent(StartView.ToEvent.TryToStart())
                 }
 
-            // Relaying message to ForegroundPresenter
+            // Relaying message to FgPresenter
                 is StartView.FromEvent.StopStream -> {
                     if (!globalStatus.isStreamRunning.get()) return@subscribe
                     eventBus.sendEvent(EventBus.GlobalEvent.StopStream())
                 }
 
-            // Relaying message to ForegroundPresenter
+            // Relaying message to FgPresenter
                 is StartView.FromEvent.AppExit -> {
                     eventBus.sendEvent(EventBus.GlobalEvent.AppExit())
                 }
@@ -97,7 +97,7 @@ class StartPresenter internal constructor(private val eventScheduler: Scheduler,
                     view?.toEvent(StartView.ToEvent.CurrentClients(globalEvent.clientsList))
                 }
 
-            // From ForegroundPresenter
+            // From FgPresenter
                 is EventBus.GlobalEvent.CurrentInterfaces -> {
                     view?.toEvent(StartView.ToEvent.CurrentInterfaces(globalEvent.interfaceList))
                 }

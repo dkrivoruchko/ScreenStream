@@ -55,7 +55,7 @@ dependencies {
     implementation "com.android.support:design:$support_version"
     implementation "com.android.support:support-v13:$support_version"
     implementation 'com.android.support.constraint:constraint-layout:1.0.2'
-    implementation 'android.arch.lifecycle:extensions:1.0.0'
+    implementation "android.arch.lifecycle:extensions:$lifecycle_version"
 
     implementation "org.koin:koin-android:$koin_version"
 
@@ -66,7 +66,6 @@ dependencies {
     implementation "com.github.iamironz:binaryprefs:$binaryprefs_version"
 
     implementation 'com.cantrowitz:rxbroadcast:1.1.2'
-    implementation 'com.jakewharton.rxbinding:rxbinding:1.0.1'
     implementation("com.mikepenz:materialdrawer:6.0.1@aar") {
         transitive = true
     }

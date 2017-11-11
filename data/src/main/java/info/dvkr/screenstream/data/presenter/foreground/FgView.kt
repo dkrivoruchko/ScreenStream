@@ -8,8 +8,8 @@ import rx.Observable
 import java.net.InetSocketAddress
 
 
-interface ForegroundView {
-    // From ForegroundService to ForegroundPresenter
+interface FgView {
+    // From ForegroundService to FgPresenter
     @Keep sealed class FromEvent {
         @Keep object Init : FromEvent()
         @Keep data class StartHttpServer(val serverAddress: InetSocketAddress,
@@ -30,10 +30,10 @@ interface ForegroundView {
         @Keep data class CurrentInterfaces(val interfaceList: List<EventBus.Interface>) : FromEvent()
     }
 
-    // Events from ForegroundService to ForegroundPresenter
+    // Events from ForegroundService to FgPresenter
     fun fromEvent(): Observable<FromEvent>
 
-    // To ForegroundService from ForegroundPresenter
+    // To ForegroundService from FgPresenter
     @Keep open class ToEvent { // Open for ForegroundService.LocalEvent
         @Keep object StartHttpServer : ToEvent()
         @Keep data class NotifyImage(val notifyType: String) : ToEvent()
@@ -44,9 +44,9 @@ interface ForegroundView {
         @Keep object SlowConnectionDetected : ToEvent()
     }
 
-    // Events to ForegroundService from ForegroundPresenter
+    // Events to ForegroundService from FgPresenter
     fun toEvent(event: ToEvent)
 
-    // Events to ForegroundService from ForegroundPresenter
+    // Events to ForegroundService from FgPresenter
     fun toEvent(event: ToEvent, timeout: Long)
 }

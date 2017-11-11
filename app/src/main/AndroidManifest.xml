@@ -49,7 +49,7 @@
             android:parentActivityName=".ui.StartActivity" />
 
         <service
-            android:name=".service.ForegroundService"
+            android:name=".service.FgService"
             android:exported="false" />
 
         <receiver

@@ -31,7 +31,7 @@ import info.dvkr.screenstream.data.presenter.start.StartPresenter
 import info.dvkr.screenstream.data.presenter.start.StartView
 import info.dvkr.screenstream.domain.eventbus.EventBus
 import info.dvkr.screenstream.domain.settings.Settings
-import info.dvkr.screenstream.service.ForegroundService
+import info.dvkr.screenstream.service.FgService
 import kotlinx.android.synthetic.main.activity_start.*
 import kotlinx.android.synthetic.main.server_address.view.*
 import org.koin.android.ext.android.inject
@@ -173,7 +173,7 @@ class StartActivity : AppCompatActivity(), StartView {
         setSupportActionBar(toolbarStart)
         supportActionBar?.setTitle(R.string.start_activity_name)
 
-        startService(ForegroundService.getIntent(applicationContext, ForegroundService.ACTION_INIT))
+        startService(FgService.getIntent(applicationContext, FgService.ACTION_INIT))
         toggleButtonStartStop.isEnabled = false
         textViewConnectedClients.text = getString(R.string.start_activity_connected_clients).format(0)
         textViewCurrentTraffic.text = getString(R.string.start_activity_current_traffic).format(0f)
@@ -317,7 +317,7 @@ class StartActivity : AppCompatActivity(), StartView {
                     fromEvents.call(StartView.FromEvent.Error(error))
                     return
                 }
-                startService(ForegroundService.getStartStreamIntent(applicationContext, data))
+                startService(FgService.getStartStreamIntent(applicationContext, data))
             }
         }
     }
