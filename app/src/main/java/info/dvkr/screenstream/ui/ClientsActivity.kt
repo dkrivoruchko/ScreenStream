@@ -20,7 +20,6 @@ import kotlinx.android.synthetic.main.activity_clients.*
 import kotlinx.android.synthetic.main.avtivity_clients_client_item.view.*
 import org.koin.android.ext.android.inject
 import rx.Observable
-import rx.android.schedulers.AndroidSchedulers
 import timber.log.Timber
 import java.text.NumberFormat
 
@@ -41,67 +40,65 @@ class ClientsActivity : AppCompatActivity(), ClientsView {
 
     override fun fromEvent(): Observable<ClientsView.FromEvent> = fromEvents.asObservable()
 
-    override fun toEvent(toEvent: ClientsView.ToEvent) {
-        Observable.just(toEvent).subscribeOn(AndroidSchedulers.mainThread()).subscribe { event ->
-            Timber.d("[${Thread.currentThread().name} @${this.hashCode()}] toEvent: $event")
+    override fun toEvent(toEvent: ClientsView.ToEvent) = runOnUiThread {
+        Timber.d("[${Thread.currentThread().name} @${this.hashCode()}] toEvent: $toEvent")
 
-            when (event) {
-                is ClientsView.ToEvent.CurrentClients -> {
-                    val clientsCount = event.clientsList.filter { !it.disconnected }.count()
-                    textViewConnectedClients.text = getString(R.string.clients_activity_connected_clients).format(clientsCount)
+        when (toEvent) {
+            is ClientsView.ToEvent.CurrentClients -> {
+                val clientsCount = toEvent.clientsList.filter { !it.disconnected }.count()
+                textViewConnectedClients.text = getString(R.string.clients_activity_connected_clients).format(clientsCount)
 
-                    linearLayoutConnectedClients.removeAllViews()
-                    val layoutInflater = LayoutInflater.from(this)
-                    event.clientsList.forEach {
-                        with(layoutInflater.inflate(R.layout.avtivity_clients_client_item, linearLayoutConnectedClients, false)) {
-                            textViewClientItemAddress.text = context.getString(R.string.clients_activity_client) + it.clientAddress.toString().drop(1)
-                            if (it.disconnected)
-                                textViewClientItemAddress.setCompoundDrawablesWithIntrinsicBounds(0, 0, R.drawable.ic_client_disconnected_24dp, 0)
-                            else if (it.hasBackpressure)
-                                textViewClientItemAddress.setCompoundDrawablesWithIntrinsicBounds(0, 0, R.drawable.ic_client_slow_network_24dp, 0)
-                            linearLayoutConnectedClients.addView(this)
-                        }
+                linearLayoutConnectedClients.removeAllViews()
+                val layoutInflater = LayoutInflater.from(this)
+                toEvent.clientsList.forEach {
+                    with(layoutInflater.inflate(R.layout.avtivity_clients_client_item, linearLayoutConnectedClients, false)) {
+                        textViewClientItemAddress.text = context.getString(R.string.clients_activity_client) + it.clientAddress.toString().drop(1)
+                        if (it.disconnected)
+                            textViewClientItemAddress.setCompoundDrawablesWithIntrinsicBounds(0, 0, R.drawable.ic_client_disconnected_24dp, 0)
+                        else if (it.hasBackpressure)
+                            textViewClientItemAddress.setCompoundDrawablesWithIntrinsicBounds(0, 0, R.drawable.ic_client_slow_network_24dp, 0)
+                        linearLayoutConnectedClients.addView(this)
                     }
                 }
+            }
 
-                is ClientsView.ToEvent.TrafficHistory -> {
-                    textViewCurrentTraffic.text = getString(R.string.clients_activity_current_traffic).format(toMbit(event.trafficHistory.last().bytes))
+            is ClientsView.ToEvent.TrafficHistory -> {
+                textViewCurrentTraffic.text = getString(R.string.clients_activity_current_traffic).format(toMbit(toEvent.trafficHistory.last().bytes))
 
-                    val arrayOfDataPoints = event.trafficHistory.map { DataPoint(it.time.toDouble(), toMbit(it.bytes)) }.toTypedArray()
-                    lineChartTraffic.removeAllSeries()
-                    lineGraphSeries = LineGraphSeries(arrayOfDataPoints)
-                    lineGraphSeries?.apply {
-                        color = ContextCompat.getColor(this@ClientsActivity, R.color.colorAccent)
-                        thickness = 6
-                        lineChartTraffic.addSeries(lineGraphSeries)
-                    }
-                    lineChartTraffic.viewport.isXAxisBoundsManual = true
-                    lineChartTraffic.viewport.setMinX(arrayOfDataPoints[0].x)
-                    lineChartTraffic.viewport.setMaxX(arrayOfDataPoints[arrayOfDataPoints.size - 1].x)
-                    lineChartTraffic.viewport.isYAxisBoundsManual = true
-                    val maxY = Math.max(toMbit(event.maxY) * 1.2, 1.1)
+                val arrayOfDataPoints = toEvent.trafficHistory.map { DataPoint(it.time.toDouble(), toMbit(it.bytes)) }.toTypedArray()
+                lineChartTraffic.removeAllSeries()
+                lineGraphSeries = LineGraphSeries(arrayOfDataPoints)
+                lineGraphSeries?.apply {
+                    color = ContextCompat.getColor(this@ClientsActivity, R.color.colorAccent)
+                    thickness = 6
+                    lineChartTraffic.addSeries(lineGraphSeries)
+                }
+                lineChartTraffic.viewport.isXAxisBoundsManual = true
+                lineChartTraffic.viewport.setMinX(arrayOfDataPoints[0].x)
+                lineChartTraffic.viewport.setMaxX(arrayOfDataPoints[arrayOfDataPoints.size - 1].x)
+                lineChartTraffic.viewport.isYAxisBoundsManual = true
+                val maxY = Math.max(toMbit(toEvent.maxY) * 1.2, 1.1)
+                lineChartTraffic.viewport.setMinY(maxY * -0.1)
+                lineChartTraffic.viewport.setMaxY(maxY)
+
+                val nf = NumberFormat.getInstance()
+                nf.minimumFractionDigits = 1
+                nf.maximumFractionDigits = 1
+                nf.minimumIntegerDigits = 1
+                lineChartTraffic.gridLabelRenderer.labelFormatter = DefaultLabelFormatter(nf, nf)
+                lineChartTraffic.gridLabelRenderer.verticalLabelsColor = ContextCompat.getColor(this, R.color.colorPrimaryText)
+                lineChartTraffic.gridLabelRenderer.isHorizontalLabelsVisible = false
+                lineChartTraffic.gridLabelRenderer.gridStyle = GridLabelRenderer.GridStyle.HORIZONTAL
+            }
+
+            is ClientsView.ToEvent.TrafficPoint -> {
+                lineGraphSeries?.let {
+                    val mbit = toMbit(toEvent.trafficPoint.bytes)
+                    textViewCurrentTraffic.text = getString(R.string.clients_activity_current_traffic).format(mbit)
+                    it.appendData(DataPoint(toEvent.trafficPoint.time.toDouble(), mbit), true, 60)
+                    val maxY = Math.max(toMbit(toEvent.maxY) * 1.2, 1.1)
                     lineChartTraffic.viewport.setMinY(maxY * -0.1)
                     lineChartTraffic.viewport.setMaxY(maxY)
-
-                    val nf = NumberFormat.getInstance()
-                    nf.minimumFractionDigits = 1
-                    nf.maximumFractionDigits = 1
-                    nf.minimumIntegerDigits = 1
-                    lineChartTraffic.gridLabelRenderer.labelFormatter = DefaultLabelFormatter(nf, nf)
-                    lineChartTraffic.gridLabelRenderer.verticalLabelsColor = ContextCompat.getColor(this, R.color.colorPrimaryText)
-                    lineChartTraffic.gridLabelRenderer.isHorizontalLabelsVisible = false
-                    lineChartTraffic.gridLabelRenderer.gridStyle = GridLabelRenderer.GridStyle.HORIZONTAL
-                }
-
-                is ClientsView.ToEvent.TrafficPoint -> {
-                    lineGraphSeries?.let {
-                        val mbit = toMbit(event.trafficPoint.bytes)
-                        textViewCurrentTraffic.text = getString(R.string.clients_activity_current_traffic).format(mbit)
-                        it.appendData(DataPoint(event.trafficPoint.time.toDouble(), mbit), true, 60)
-                        val maxY = Math.max(toMbit(event.maxY) * 1.2, 1.1)
-                        lineChartTraffic.viewport.setMinY(maxY * -0.1)
-                        lineChartTraffic.viewport.setMaxY(maxY)
-                    }
                 }
             }
         }

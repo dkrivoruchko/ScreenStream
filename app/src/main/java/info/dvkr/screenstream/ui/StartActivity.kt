@@ -36,7 +36,6 @@ import kotlinx.android.synthetic.main.activity_start.*
 import kotlinx.android.synthetic.main.server_address.view.*
 import org.koin.android.ext.android.inject
 import rx.Observable
-import rx.android.schedulers.AndroidSchedulers
 import timber.log.Timber
 import java.net.BindException
 
@@ -74,93 +73,91 @@ class StartActivity : AppCompatActivity(), StartView {
 
     override fun fromEvent(): Observable<StartView.FromEvent> = fromEvents.asObservable()
 
-    override fun toEvent(toEvent: StartView.ToEvent) {
-        Observable.just(toEvent).subscribeOn(AndroidSchedulers.mainThread()).subscribe { event ->
-            Timber.d("[${Thread.currentThread().name} @${this.hashCode()}] toEvent: $event")
+    override fun toEvent(toEvent: StartView.ToEvent) = runOnUiThread {
+        Timber.d("[${Thread.currentThread().name} @${this.hashCode()}] toEvent: $toEvent")
 
-            when (event) {
-                is StartView.ToEvent.TryToStart -> {
-                    val projectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
+        when (toEvent) {
+            is StartView.ToEvent.TryToStart -> {
+                val projectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
+                try {
+                    startActivityForResult(projectionManager.createScreenCaptureIntent(), REQUEST_CODE_SCREEN_CAPTURE)
+                } catch (ex: ActivityNotFoundException) {
+                    fromEvents.call(StartView.FromEvent.Error(ex))
+                }
+            }
+
+            is StartView.ToEvent.OnStreamStartStop -> {
+                setStreamRunning(toEvent.running)
+                if (toEvent.running && settings.minimizeOnStream)
                     try {
-                        startActivityForResult(projectionManager.createScreenCaptureIntent(), REQUEST_CODE_SCREEN_CAPTURE)
+                        startActivity(Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME).setFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
                     } catch (ex: ActivityNotFoundException) {
-                        fromEvents.call(StartView.FromEvent.Error(ex))
+                        Timber.e(ex, "StartView.ToEvent.OnStreamStartStop: minimizeOnStream: ActivityNotFoundException")
                     }
-                }
+            }
 
-                is StartView.ToEvent.OnStreamStartStop -> {
-                    setStreamRunning(event.running)
-                    if (event.running && settings.minimizeOnStream)
-                        try {
-                            startActivity(Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME).setFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-                        } catch (ex: ActivityNotFoundException) {
-                            Timber.e(ex, "StartView.ToEvent.OnStreamStartStop: minimizeOnStream: ActivityNotFoundException")
-                        }
-                }
+            is StartView.ToEvent.ResizeFactor -> showResizeFactor(toEvent.value)
+            is StartView.ToEvent.EnablePin -> showEnablePin(toEvent.value)
+            is StartView.ToEvent.SetPin -> textViewPinValue.text = toEvent.value
+            is StartView.ToEvent.StreamRunning -> setStreamRunning(toEvent.running)
 
-                is StartView.ToEvent.ResizeFactor -> showResizeFactor(event.value)
-                is StartView.ToEvent.EnablePin -> showEnablePin(event.value)
-                is StartView.ToEvent.SetPin -> textViewPinValue.text = event.value
-                is StartView.ToEvent.StreamRunning -> setStreamRunning(event.running)
+            is StartView.ToEvent.Error -> {
+                canStart = true
+                toEvent.error?.let {
+                    val alerter = Alerter.create(this)
 
-                is StartView.ToEvent.Error -> {
-                    canStart = true
-                    event.error?.let {
-                        val alerter = Alerter.create(this)
-
-                        when (it) {
-                            is ActivityNotFoundException -> {
-                                canStart = false
-                                alerter.setTitle(R.string.start_activity_alert_title_error_activity_not_found)
-                                        .setText(R.string.start_activity_error_activity_not_found)
-                            }
-
-                            is UnsupportedOperationException -> {
-                                canStart = false
-                                alerter.setTitle(R.string.start_activity_alert_title_error)
-                                        .setText(R.string.start_activity_error_wrong_image_format)
-                            }
-
-                            is BindException -> {
-                                canStart = false
-                                alerter.setTitle(R.string.start_activity_alert_title_error_network)
-                                val msg = it.message?.drop(13) ?: getString(R.string.start_activity_error_network_unknown)
-                                if (msg.contains("EADDRINUSE")) alerter.setText(R.string.start_activity_error_port_in_use)
-                                else alerter.setText(msg)
-                            }
-
-                            is SecurityException -> {
-                                alerter.setTitle(R.string.start_activity_alert_title_error)
-                                        .setText(R.string.start_activity_error_invalid_media_projection)
-                            }
-
-                            else -> {
-                                canStart = false
-                                alerter.setTitle(R.string.start_activity_alert_title_error_unknown)
-                                        .setText(it.message)
-                            }
+                    when (it) {
+                        is ActivityNotFoundException -> {
+                            canStart = false
+                            alerter.setTitle(R.string.start_activity_alert_title_error_activity_not_found)
+                                    .setText(R.string.start_activity_error_activity_not_found)
                         }
 
-                        alerter.setBackgroundColorRes(R.color.colorAccent)
-                                .enableInfiniteDuration(true)
-                                .enableSwipeToDismiss()
-                                .show()
+                        is UnsupportedOperationException -> {
+                            canStart = false
+                            alerter.setTitle(R.string.start_activity_alert_title_error)
+                                    .setText(R.string.start_activity_error_wrong_image_format)
+                        }
+
+                        is BindException -> {
+                            canStart = false
+                            alerter.setTitle(R.string.start_activity_alert_title_error_network)
+                            val msg = it.message?.drop(13) ?: getString(R.string.start_activity_error_network_unknown)
+                            if (msg.contains("EADDRINUSE")) alerter.setText(R.string.start_activity_error_port_in_use)
+                            else alerter.setText(msg)
+                        }
+
+                        is SecurityException -> {
+                            alerter.setTitle(R.string.start_activity_alert_title_error)
+                                    .setText(R.string.start_activity_error_invalid_media_projection)
+                        }
+
+                        else -> {
+                            canStart = false
+                            alerter.setTitle(R.string.start_activity_alert_title_error_unknown)
+                                    .setText(it.message)
+                        }
                     }
-                }
 
-                is StartView.ToEvent.CurrentClients -> {
-                    val clientsCount = event.clientsList.filter { !it.disconnected }.count()
-                    textViewConnectedClients.text = getString(R.string.start_activity_connected_clients).format(clientsCount)
+                    alerter.setBackgroundColorRes(R.color.colorAccent)
+                            .enableInfiniteDuration(true)
+                            .enableSwipeToDismiss()
+                            .show()
                 }
+            }
 
-                is StartView.ToEvent.CurrentInterfaces -> {
-                    showServerAddresses(event.interfaceList, settings.severPort)
-                }
+            is StartView.ToEvent.CurrentClients -> {
+                val clientsCount = toEvent.clientsList.filter { !it.disconnected }.count()
+                textViewConnectedClients.text = getString(R.string.start_activity_connected_clients).format(clientsCount)
+            }
 
-                is StartView.ToEvent.TrafficPoint -> {
-                    val mbit = (event.trafficPoint.bytes * 8).toDouble() / 1024 / 1024
-                    textViewCurrentTraffic.text = getString(R.string.start_activity_current_traffic).format(mbit)
-                }
+            is StartView.ToEvent.CurrentInterfaces -> {
+                showServerAddresses(toEvent.interfaceList, settings.severPort)
+            }
+
+            is StartView.ToEvent.TrafficPoint -> {
+                val mbit = (toEvent.trafficPoint.bytes * 8).toDouble() / 1024 / 1024
+                textViewCurrentTraffic.text = getString(R.string.start_activity_current_traffic).format(mbit)
             }
         }
     }

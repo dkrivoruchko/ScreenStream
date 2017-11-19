@@ -30,7 +30,6 @@ import kotlinx.android.synthetic.main.activity_settings.*
 import kotlinx.android.synthetic.main.settings_edittext_dialog.view.*
 import org.koin.android.ext.android.inject
 import rx.Observable
-import rx.android.schedulers.AndroidSchedulers
 import rx.functions.Action1
 import timber.log.Timber
 
@@ -55,58 +54,56 @@ class SettingsActivity : AppCompatActivity(), SettingsView, ColorPickerDialogLis
 
     override fun fromEvent(): Observable<SettingsView.FromEvent> = fromEvents.asObservable()
 
-    override fun toEvent(toEvent: SettingsView.ToEvent) {
-        Observable.just(toEvent).subscribeOn(AndroidSchedulers.mainThread()).subscribe { event ->
-            Timber.d("[${Thread.currentThread().name} @${this.hashCode()}] toEvent: $event")
+    override fun toEvent(toEvent: SettingsView.ToEvent) = runOnUiThread {
+        Timber.d("[${Thread.currentThread().name} @${this.hashCode()}] toEvent: $toEvent")
 
-            when (event) {
-                is SettingsView.ToEvent.MinimizeOnStream -> checkBoxMinimizeOnStream.isChecked = event.value
-                is SettingsView.ToEvent.StopOnSleep -> checkBoxStopOnSleep.isChecked = event.value
-                is SettingsView.ToEvent.StartOnBoot -> checkBoxStartOnBoot.isChecked = event.value
-                is SettingsView.ToEvent.DisableMjpegCheck -> checkBoxMjpegCheck.isChecked = event.value
-                is SettingsView.ToEvent.HtmlBackColor -> viewHtmlBackColor.setBackgroundColor(event.value)
+        when (toEvent) {
+            is SettingsView.ToEvent.MinimizeOnStream -> checkBoxMinimizeOnStream.isChecked = toEvent.value
+            is SettingsView.ToEvent.StopOnSleep -> checkBoxStopOnSleep.isChecked = toEvent.value
+            is SettingsView.ToEvent.StartOnBoot -> checkBoxStartOnBoot.isChecked = toEvent.value
+            is SettingsView.ToEvent.DisableMjpegCheck -> checkBoxMjpegCheck.isChecked = toEvent.value
+            is SettingsView.ToEvent.HtmlBackColor -> viewHtmlBackColor.setBackgroundColor(toEvent.value)
 
-                is SettingsView.ToEvent.ResizeFactor -> {
-                    resizeFactor = event.value
-                    textViewResizeImageValue.text = "$resizeFactor%"
-                }
+            is SettingsView.ToEvent.ResizeFactor -> {
+                resizeFactor = toEvent.value
+                textViewResizeImageValue.text = "$resizeFactor%"
+            }
 
-                is SettingsView.ToEvent.JpegQuality -> textViewJpegQualityValue.text = Integer.toString(event.value)
+            is SettingsView.ToEvent.JpegQuality -> textViewJpegQualityValue.text = Integer.toString(toEvent.value)
 
-                is SettingsView.ToEvent.EnablePin -> {
-                    checkBoxEnablePin.isChecked = event.value
-                    enableDisableView(clHidePinOnStart, event.value)
-                    enableDisableView(clNewPinOnAppStart, event.value)
-                    enableDisableView(clAutoChangePin, event.value)
-                    enableDisableView(clSetPin, checkBoxEnablePin.isChecked && !checkBoxNewPinOnAppStart.isChecked && !checkBoxAutoChangePin.isChecked)
-                }
+            is SettingsView.ToEvent.EnablePin -> {
+                checkBoxEnablePin.isChecked = toEvent.value
+                enableDisableView(clHidePinOnStart, toEvent.value)
+                enableDisableView(clNewPinOnAppStart, toEvent.value)
+                enableDisableView(clAutoChangePin, toEvent.value)
+                enableDisableView(clSetPin, checkBoxEnablePin.isChecked && !checkBoxNewPinOnAppStart.isChecked && !checkBoxAutoChangePin.isChecked)
+            }
 
-                is SettingsView.ToEvent.HidePinOnStart -> checkBoxHidePinOnStart.isChecked = event.value
+            is SettingsView.ToEvent.HidePinOnStart -> checkBoxHidePinOnStart.isChecked = toEvent.value
 
-                is SettingsView.ToEvent.NewPinOnAppStart -> {
-                    checkBoxNewPinOnAppStart.isChecked = event.value
-                    enableDisableView(clSetPin, checkBoxEnablePin.isChecked && !checkBoxNewPinOnAppStart.isChecked && !checkBoxAutoChangePin.isChecked)
-                }
+            is SettingsView.ToEvent.NewPinOnAppStart -> {
+                checkBoxNewPinOnAppStart.isChecked = toEvent.value
+                enableDisableView(clSetPin, checkBoxEnablePin.isChecked && !checkBoxNewPinOnAppStart.isChecked && !checkBoxAutoChangePin.isChecked)
+            }
 
-                is SettingsView.ToEvent.AutoChangePin -> {
-                    checkBoxAutoChangePin.isChecked = event.value
-                    enableDisableView(clSetPin, checkBoxEnablePin.isChecked && !checkBoxNewPinOnAppStart.isChecked && !checkBoxAutoChangePin.isChecked)
-                }
+            is SettingsView.ToEvent.AutoChangePin -> {
+                checkBoxAutoChangePin.isChecked = toEvent.value
+                enableDisableView(clSetPin, checkBoxEnablePin.isChecked && !checkBoxNewPinOnAppStart.isChecked && !checkBoxAutoChangePin.isChecked)
+            }
 
-                is SettingsView.ToEvent.SetPin -> textViewSetPinValue.text = event.value
-                is SettingsView.ToEvent.UseWiFiOnly -> checkBoxUseWifiOnly.isChecked = event.value
-                is SettingsView.ToEvent.ServerPort -> textViewServerPortValue.text = Integer.toString(event.value)
+            is SettingsView.ToEvent.SetPin -> textViewSetPinValue.text = toEvent.value
+            is SettingsView.ToEvent.UseWiFiOnly -> checkBoxUseWifiOnly.isChecked = toEvent.value
+            is SettingsView.ToEvent.ServerPort -> textViewServerPortValue.text = Integer.toString(toEvent.value)
 
-                is SettingsView.ToEvent.ErrorServerPortBusy -> {
-                    Alerter.create(this)
-                            .setTitle(R.string.pref_alert_error_title)
-                            .setText(R.string.pref_alert_error_message)
-                            .setBackgroundColorRes(R.color.colorAccent)
-                            .setDuration(5000)
-                            .enableProgress(true)
-                            .enableSwipeToDismiss()
-                            .show()
-                }
+            is SettingsView.ToEvent.ErrorServerPortBusy -> {
+                Alerter.create(this)
+                        .setTitle(R.string.pref_alert_error_title)
+                        .setText(R.string.pref_alert_error_message)
+                        .setBackgroundColorRes(R.color.colorAccent)
+                        .setDuration(5000)
+                        .enableProgress(true)
+                        .enableSwipeToDismiss()
+                        .show()
             }
         }
     }
