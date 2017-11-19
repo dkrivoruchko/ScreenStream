@@ -37,7 +37,7 @@ class ImageGeneratorImpl private constructor(
         override fun create(display: Display,
                             mediaProjection: MediaProjection,
                             scheduler: Scheduler,
-                            event: (event: ImageGeneratorEvent) -> Unit): ImageGenerator =
+                            event: ImageGeneratorEvent.() -> Unit): ImageGenerator =
                 ImageGeneratorImpl(display, mediaProjection, scheduler, event)
 
         const val STATE_INIT = "STATE_INIT"
@@ -53,8 +53,8 @@ class ImageGeneratorImpl private constructor(
     private val imageThread: HandlerThread by lazy { HandlerThread("ImageGenerator", THREAD_PRIORITY_BACKGROUND) }
     private val imageThreadHandler: Handler by lazy { Handler(imageThread.looper) }
     private val imageListener: AtomicReference<ImageListener?> = AtomicReference()
-    private lateinit var imageReader: ImageReader
-    private lateinit var virtualDisplay: VirtualDisplay
+    private var imageReader: ImageReader? = null
+    private var virtualDisplay: VirtualDisplay? = null
 
     private val subscriptions = CompositeSubscription()
 
@@ -118,13 +118,13 @@ class ImageGeneratorImpl private constructor(
         val screenSize = Point().also { display.getRealSize(it) }
         imageListener.set(ImageListener())
         imageReader = ImageReader.newInstance(screenSize.x, screenSize.y, PixelFormat.RGBA_8888, 2)
-        imageReader.setOnImageAvailableListener(imageListener.get(), imageThreadHandler)
+                .apply { setOnImageAvailableListener(imageListener.get(), imageThreadHandler) }
 
         try {
             val densityDpi = DisplayMetrics().also { display.getMetrics(it) }.densityDpi
             virtualDisplay = mediaProjection.createVirtualDisplay("ScreenStreamVirtualDisplay",
                     screenSize.x, screenSize.y, densityDpi,
-                    DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR, imageReader.surface, null, null)
+                    DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR, imageReader?.surface, null, null)
             state.set(STATE_STARTED)
         } catch (ex: SecurityException) {
             state.set(STATE_ERROR)
@@ -133,8 +133,8 @@ class ImageGeneratorImpl private constructor(
     }
 
     private fun stopDisplayCapture() {
-        if (::virtualDisplay.isInitialized) virtualDisplay.release()
-        imageReader.close()
+        virtualDisplay?.release()
+        imageReader?.close()
         imageListener.get()?.close()
     }
 

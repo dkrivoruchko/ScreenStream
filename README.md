@@ -51,7 +51,6 @@ Version 2.x based on Clean Architecture, Android Architecture Components (ViewMo
 * [Koin](https://github.com/Ekito/koin)
 * [RxJava 1.x](https://github.com/ReactiveX/RxJava/tree/1.x)
 * [RxAndroid](https://github.com/ReactiveX/RxAndroid/tree/1.x) 
-* [RxBinding](https://github.com/JakeWharton/RxBinding/tree/version-one)
 * [RxNetty](https://github.com/ReactiveX/RxNetty)
 * [RxBroadcast](https://github.com/cantrowitz/RxBroadcast)
 * [MaterialDrawer](https://github.com/mikepenz/MaterialDrawer)

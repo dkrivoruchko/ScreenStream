@@ -81,15 +81,15 @@ class FgPresenter constructor(private val settings: Settings,
                 }
 
                 is FgView.FromEvent.StartImageGenerator -> {
-                    imageGenerator = ImageGeneratorImpl.create(fromEvent.display, fromEvent.mediaProjection, eventScheduler) { igEvent ->
-                        when (igEvent) {
+                    imageGenerator = ImageGeneratorImpl.create(fromEvent.display, fromEvent.mediaProjection, eventScheduler) {
+                        when (this) {
                             is ImageGenerator.ImageGeneratorEvent.OnError -> {
-                                eventBus.sendEvent(EventBus.GlobalEvent.Error(igEvent.error))
-                                Timber.e(igEvent.error, "ImageGenerator: ERROR")
+                                eventBus.sendEvent(EventBus.GlobalEvent.Error(error))
+                                Timber.e(error, "ImageGenerator: ERROR")
                             }
 
                             is ImageGenerator.ImageGeneratorEvent.OnJpegImage -> {
-                                jpegBytesStream.call(igEvent.image)
+                                jpegBytesStream.call(image)
                             }
                         }
                     }.apply {

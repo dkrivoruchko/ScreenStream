@@ -18,7 +18,7 @@ interface ImageGenerator {
         fun create(display: Display,
                    mediaProjection: MediaProjection,
                    scheduler: Scheduler,
-                   event: (event: ImageGeneratorEvent) -> Unit): ImageGenerator
+                   event: ImageGeneratorEvent.() -> Unit): ImageGenerator
     }
 
     fun setImageResizeFactor(@IntRange(from = 1, to = 150) factor: Int): ImageGenerator
