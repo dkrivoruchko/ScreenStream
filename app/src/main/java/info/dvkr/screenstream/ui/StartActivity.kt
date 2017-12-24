@@ -19,7 +19,6 @@ import android.view.View
 import android.view.WindowManager
 import android.widget.Toast
 import com.crashlytics.android.Crashlytics
-import com.jakewharton.rxrelay.PublishRelay
 import com.mikepenz.materialdrawer.Drawer
 import com.mikepenz.materialdrawer.DrawerBuilder
 import com.mikepenz.materialdrawer.model.DividerDrawerItem
@@ -35,7 +34,6 @@ import info.dvkr.screenstream.service.FgService
 import kotlinx.android.synthetic.main.activity_start.*
 import kotlinx.android.synthetic.main.server_address.view.*
 import org.koin.android.ext.android.inject
-import rx.Observable
 import timber.log.Timber
 import java.net.BindException
 
@@ -66,12 +64,9 @@ class StartActivity : AppCompatActivity(), StartView {
         ViewModelProviders.of(this, presenterFactory).get(StartPresenter::class.java)
     }
 
-    private val fromEvents = PublishRelay.create<StartView.FromEvent>()
     private lateinit var drawer: Drawer
     private var canStart: Boolean = true
     private val clipboard: ClipboardManager by lazy { getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager }
-
-    override fun fromEvent(): Observable<StartView.FromEvent> = fromEvents.asObservable()
 
     override fun toEvent(toEvent: StartView.ToEvent) = runOnUiThread {
         Timber.d("[${Thread.currentThread().name} @${this.hashCode()}] toEvent: $toEvent")
@@ -82,7 +77,7 @@ class StartActivity : AppCompatActivity(), StartView {
                 try {
                     startActivityForResult(projectionManager.createScreenCaptureIntent(), REQUEST_CODE_SCREEN_CAPTURE)
                 } catch (ex: ActivityNotFoundException) {
-                    fromEvents.call(StartView.FromEvent.Error(ex))
+                    presenter.offer(StartView.FromEvent.Error(ex))
                 }
             }
 
@@ -181,15 +176,15 @@ class StartActivity : AppCompatActivity(), StartView {
             if (toggleButtonStartStop.isChecked) {
                 toggleButtonStartStop.isChecked = false
                 if (!canStart) {
-                    fromEvents.call(StartView.FromEvent.GetError)
+                    presenter.offer(StartView.FromEvent.GetError)
                     return@setOnClickListener
                 }
                 toggleButtonStartStop.isEnabled = false
-                fromEvents.call(StartView.FromEvent.TryStartStream)
+                presenter.offer(StartView.FromEvent.TryStartStream)
             } else {
                 toggleButtonStartStop.isChecked = true
                 toggleButtonStartStop.isEnabled = false
-                fromEvents.call(StartView.FromEvent.StopStream)
+                presenter.offer(StartView.FromEvent.StopStream)
             }
         }
 
@@ -226,7 +221,7 @@ class StartActivity : AppCompatActivity(), StartView {
                     }
 
                     if (drawerItem.identifier == 7L) startActivity(AboutActivity.getStartIntent(this))
-                    if (drawerItem.identifier == 8L) fromEvents.call(StartView.FromEvent.AppExit)
+                    if (drawerItem.identifier == 8L) presenter.offer(StartView.FromEvent.AppExit)
                     true
                 }
                 .build()
@@ -254,22 +249,22 @@ class StartActivity : AppCompatActivity(), StartView {
             ACTION_START_STREAM -> {
                 if (!canStart) return
                 toggleButtonStartStop.isEnabled = false
-                fromEvents.call(StartView.FromEvent.TryStartStream)
+                presenter.offer(StartView.FromEvent.TryStartStream)
             }
 
             ACTION_STOP_STREAM -> {
                 toggleButtonStartStop.isEnabled = false
-                fromEvents.call(StartView.FromEvent.StopStream)
+                presenter.offer(StartView.FromEvent.StopStream)
             }
 
-            ACTION_EXIT -> fromEvents.call(StartView.FromEvent.AppExit)
+            ACTION_EXIT -> presenter.offer(StartView.FromEvent.AppExit)
         }
     }
 
     override fun onResume() {
         super.onResume()
-        fromEvents.call(StartView.FromEvent.CurrentInterfacesRequest)
-        fromEvents.call(StartView.FromEvent.GetError)
+        presenter.offer(StartView.FromEvent.CurrentInterfacesRequest)
+        presenter.offer(StartView.FromEvent.GetError)
     }
 
     override fun onBackPressed() {
@@ -311,7 +306,7 @@ class StartActivity : AppCompatActivity(), StartView {
                     Timber.e("onActivityResult ERROR: data = null")
                     val error = IllegalStateException("onActivityResult: data = null")
                     Crashlytics.logException(error)
-                    fromEvents.call(StartView.FromEvent.Error(error))
+                    presenter.offer(StartView.FromEvent.Error(error))
                     return
                 }
                 startService(FgService.getStartStreamIntent(applicationContext, data))

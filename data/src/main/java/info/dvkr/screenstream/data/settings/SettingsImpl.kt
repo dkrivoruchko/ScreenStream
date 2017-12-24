@@ -1,10 +1,13 @@
 package info.dvkr.screenstream.data.settings
 
 import com.ironz.binaryprefs.Preferences
+import com.ironz.binaryprefs.PreferencesEditor
 import info.dvkr.screenstream.domain.settings.Settings
 import timber.log.Timber
+import kotlin.properties.ReadWriteProperty
+import kotlin.reflect.KProperty
 
-class SettingsImpl(private val preferences: Preferences) : Settings {
+class SettingsImpl(preferences: Preferences) : Settings {
 
     companion object {
         private val PREF_KEY_MINIMIZE_ON_STREAM = "PREF_KEY_MINIMIZE_ON_STREAM" // Boolean
@@ -44,72 +47,57 @@ class SettingsImpl(private val preferences: Preferences) : Settings {
         Timber.w("[${Thread.currentThread().name} @${this.hashCode()}] Init")
     }
 
-    override var minimizeOnStream: Boolean
-        get() = preferences.getBoolean(PREF_KEY_MINIMIZE_ON_STREAM, DEFAULT_MINIMIZE_ON_STREAM)
-        set(minimizeOnStream) = setBoolean(PREF_KEY_MINIMIZE_ON_STREAM, minimizeOnStream)
+    override var minimizeOnStream: Boolean by bindPreference(preferences, PREF_KEY_MINIMIZE_ON_STREAM, DEFAULT_MINIMIZE_ON_STREAM)
 
-    override var stopOnSleep: Boolean
-        get() = preferences.getBoolean(PREF_KEY_STOP_ON_SLEEP, DEFAULT_STOP_ON_SLEEP)
-        set(stopOnSleep) = setBoolean(PREF_KEY_STOP_ON_SLEEP, stopOnSleep)
+    override var stopOnSleep: Boolean by bindPreference(preferences, PREF_KEY_STOP_ON_SLEEP, DEFAULT_STOP_ON_SLEEP)
 
-    override var startOnBoot: Boolean
-        get() = preferences.getBoolean(PREF_KEY_START_ON_BOOT, DEFAULT_START_ON_BOOT)
-        set(startOnBoot) = setBoolean(PREF_KEY_START_ON_BOOT, startOnBoot)
+    override var startOnBoot: Boolean by bindPreference(preferences, PREF_KEY_START_ON_BOOT, DEFAULT_START_ON_BOOT)
 
-    override var disableMJPEGCheck: Boolean
-        get() = preferences.getBoolean(PREF_KEY_MJPEG_CHECK, DEFAULT_MJPEG_CHECK)
-        set(disableMJPEGCheck) = setBoolean(PREF_KEY_MJPEG_CHECK, disableMJPEGCheck)
+    override var disableMJPEGCheck: Boolean by bindPreference(preferences, PREF_KEY_MJPEG_CHECK, DEFAULT_MJPEG_CHECK)
 
-    override var htmlBackColor: Int
-        get() = preferences.getInt(PREF_KEY_HTML_BACK_COLOR, DEFAULT_HTML_BACK_COLOR)
-        set(HTMLBackColor) = setInteger(PREF_KEY_HTML_BACK_COLOR, HTMLBackColor)
+    override var htmlBackColor: Int by bindPreference(preferences, PREF_KEY_HTML_BACK_COLOR, DEFAULT_HTML_BACK_COLOR)
 
-    override var jpegQuality: Int
-        get() = preferences.getInt(PREF_KEY_JPEG_QUALITY, DEFAULT_JPEG_QUALITY)
-        set(jpegQuality) = setInteger(PREF_KEY_JPEG_QUALITY, jpegQuality)
+    override var jpegQuality: Int by bindPreference(preferences, PREF_KEY_JPEG_QUALITY, DEFAULT_JPEG_QUALITY)
 
-    override var resizeFactor: Int
-        get() = preferences.getInt(PREF_KEY_RESIZE_FACTOR, DEFAULT_RESIZE_FACTOR)
-        set(resizeFactor) = setInteger(PREF_KEY_RESIZE_FACTOR, resizeFactor)
+    override var resizeFactor: Int by bindPreference(preferences, PREF_KEY_RESIZE_FACTOR, DEFAULT_RESIZE_FACTOR)
 
-    override var enablePin: Boolean
-        get() = preferences.getBoolean(PREF_KEY_ENABLE_PIN, DEFAULT_ENABLE_PIN)
-        set(enablePin) = setBoolean(PREF_KEY_ENABLE_PIN, enablePin)
+    override var enablePin: Boolean by bindPreference(preferences, PREF_KEY_ENABLE_PIN, DEFAULT_ENABLE_PIN)
 
-    override var hidePinOnStart: Boolean
-        get() = preferences.getBoolean(PREF_KEY_HIDE_PIN_ON_START, DEFAULT_HIDE_PIN_ON_START)
-        set(hidePinOnStart) = setBoolean(PREF_KEY_HIDE_PIN_ON_START, hidePinOnStart)
+    override var hidePinOnStart: Boolean by bindPreference(preferences, PREF_KEY_HIDE_PIN_ON_START, DEFAULT_HIDE_PIN_ON_START)
 
-    override var newPinOnAppStart: Boolean
-        get() = preferences.getBoolean(PREF_KEY_NEW_PIN_ON_APP_START, DEFAULT_NEW_PIN_ON_APP_START)
-        set(newPinOnAppStart) = setBoolean(PREF_KEY_NEW_PIN_ON_APP_START, newPinOnAppStart)
+    override var newPinOnAppStart: Boolean by bindPreference(preferences, PREF_KEY_NEW_PIN_ON_APP_START, DEFAULT_NEW_PIN_ON_APP_START)
 
-    override var autoChangePin: Boolean
-        get() = preferences.getBoolean(PREF_KEY_AUTO_CHANGE_PIN, DEFAULT_AUTO_CHANGE_PIN)
-        set(autoChangePin) = setBoolean(PREF_KEY_AUTO_CHANGE_PIN, autoChangePin)
+    override var autoChangePin: Boolean by bindPreference(preferences, PREF_KEY_AUTO_CHANGE_PIN, DEFAULT_AUTO_CHANGE_PIN)
 
-    override var currentPin: String
-        get() = preferences.getString(PREF_KEY_SET_PIN, DEFAULT_PIN) ?: DEFAULT_PIN
-        set(currentPin) = setString(PREF_KEY_SET_PIN, currentPin)
+    override var currentPin: String by bindPreference(preferences, PREF_KEY_SET_PIN, DEFAULT_PIN)
 
-    override var useWiFiOnly: Boolean
-        get() = preferences.getBoolean(PREF_KEY_USE_WIFI_ONLY, DEFAULT_USE_WIFI_ONLY)
-        set(runWiFiOnly) = setBoolean(PREF_KEY_USE_WIFI_ONLY, runWiFiOnly)
+    override var useWiFiOnly: Boolean by bindPreference(preferences, PREF_KEY_USE_WIFI_ONLY, DEFAULT_USE_WIFI_ONLY)
 
-    override var severPort: Int
-        get() = preferences.getInt(PREF_KEY_SERVER_PORT, DEFAULT_SERVER_PORT)
-        set(severPort) = setInteger(PREF_KEY_SERVER_PORT, severPort)
+    override var severPort: Int by bindPreference(preferences, PREF_KEY_SERVER_PORT, DEFAULT_SERVER_PORT)
 
-    // Helper methods
-    private fun setBoolean(pref_key: String, pref_new_value: Boolean) {
-        preferences.edit().putBoolean(pref_key, pref_new_value).commit()
+    private class PreferenceDelegate<T>(
+            private val preferences: Preferences,
+            private val key: String,
+            private val defaultValue: T,
+            private val getter: Preferences.(String, T) -> T,
+            private val setter: PreferencesEditor.(String, T) -> PreferencesEditor
+    ) : ReadWriteProperty<Any, T> {
+        override fun getValue(thisRef: Any, property: KProperty<*>) =
+                preferences.getter(key, defaultValue)
+
+        override fun setValue(thisRef: Any, property: KProperty<*>, value: T) {
+            preferences.edit().setter(key, value).commit()
+        }
     }
 
-    private fun setInteger(pref_key: String, pref_new_value: Int) {
-        preferences.edit().putInt(pref_key, pref_new_value).commit()
-    }
-
-    private fun setString(pref_key: String, pref_new_value: String) {
-        preferences.edit().putString(pref_key, pref_new_value).commit()
-    }
+    @Suppress("UNCHECKED_CAST")
+    private fun <T> bindPreference(preferences: Preferences, key: String, defaultValue: T): ReadWriteProperty<Any, T> =
+            when (defaultValue) {
+                is Boolean -> PreferenceDelegate(preferences, key, defaultValue, Preferences::getBoolean, PreferencesEditor::putBoolean)
+                is Int -> PreferenceDelegate(preferences, key, defaultValue, Preferences::getInt, PreferencesEditor::putInt)
+                is Long -> PreferenceDelegate(preferences, key, defaultValue, Preferences::getLong, PreferencesEditor::putLong)
+                is Float -> PreferenceDelegate(preferences, key, defaultValue, Preferences::getFloat, PreferencesEditor::putFloat)
+                is String -> PreferenceDelegate(preferences, key, defaultValue, Preferences::getString, PreferencesEditor::putString)
+                else -> throw IllegalArgumentException("Unsupported preference type")
+            } as ReadWriteProperty<Any, T>
 }

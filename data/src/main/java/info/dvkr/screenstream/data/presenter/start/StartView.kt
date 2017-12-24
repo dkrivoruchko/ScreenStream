@@ -17,9 +17,6 @@ interface StartView {
         @Keep object GetError : FromEvent()
     }
 
-    // Events from StartActivity to StartActivityPresenter
-    fun fromEvent(): Observable<FromEvent>
-
     // To StartActivity from StartActivityPresenter
     @Keep sealed class ToEvent {
         @Keep class TryToStart : ToEvent()

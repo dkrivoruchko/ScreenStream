@@ -6,9 +6,9 @@ import android.util.Log
 import com.crashlytics.android.Crashlytics
 import com.crashlytics.android.core.CrashlyticsCore
 import com.squareup.leakcanary.LeakCanary
-import info.dvkr.screenstream.di.KoinModule
+import info.dvkr.screenstream.di.koinModule
 import io.fabric.sdk.android.Fabric
-import org.koin.android.ext.android.startAndroidContext
+import org.koin.android.ext.android.startKoin
 import timber.log.Timber
 import timber.log.Timber.DebugTree
 
@@ -36,7 +36,7 @@ class ScreenStreamApp : Application() {
             StrictMode.setThreadPolicy(StrictMode.ThreadPolicy.Builder()
                     .detectAll()
                     .penaltyLog()
-                    .penaltyDialog()
+//                    .penaltyDialog()
                     .build())
 
             StrictMode.setVmPolicy(StrictMode.VmPolicy.Builder()
@@ -50,7 +50,7 @@ class ScreenStreamApp : Application() {
         LeakCanary.install(this)
 
         // Set up DI
-        startAndroidContext(this, listOf(KoinModule()))
+        startKoin(this, listOf(koinModule))
 
         Timber.w("[${Thread.currentThread().name}] onCreate: End")
     }

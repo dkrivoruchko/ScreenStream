@@ -27,179 +27,179 @@ import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
 
 class ImageGeneratorImpl private constructor(
-        private val display: Display,
-        private val mediaProjection: MediaProjection,
-        private val scheduler: Scheduler,
-        private val event: (event: ImageGenerator.ImageGeneratorEvent) -> Unit) : ImageGenerator {
+    private val display: Display,
+    private val mediaProjection: MediaProjection,
+    private val scheduler: Scheduler,
+    private val event: (event: ImageGenerator.ImageGeneratorEvent) -> Unit) : ImageGenerator {
 
-    companion object : ImageGeneratorBuilder {
-        @JvmStatic
-        override fun create(display: Display,
-                            mediaProjection: MediaProjection,
-                            scheduler: Scheduler,
-                            event: ImageGeneratorEvent.() -> Unit): ImageGenerator =
-                ImageGeneratorImpl(display, mediaProjection, scheduler, event)
+  companion object : ImageGeneratorBuilder {
+    @JvmStatic
+    override fun create(display: Display,
+                        mediaProjection: MediaProjection,
+                        scheduler: Scheduler,
+                        event: ImageGeneratorEvent.() -> Unit): ImageGenerator =
+        ImageGeneratorImpl(display, mediaProjection, scheduler, event)
 
-        const val STATE_INIT = "STATE_INIT"
-        const val STATE_STARTED = "STATE_STARTED"
-        const val STATE_STOPPED = "STATE_STOPPED"
-        const val STATE_ERROR = "STATE_ERROR"
+    const val STATE_INIT = "STATE_INIT"
+    const val STATE_STARTED = "STATE_STARTED"
+    const val STATE_STOPPED = "STATE_STOPPED"
+    const val STATE_ERROR = "STATE_ERROR"
+  }
+
+  private val resizeMatrix = AtomicReference<Matrix>(Matrix().also { it.postScale(.5f, .5f) })
+  private val jpegQuality = AtomicInteger(80)
+
+  private val state: AtomicReference<String> = AtomicReference(STATE_INIT)
+  private val imageThread: HandlerThread by lazy { HandlerThread("ImageGenerator", THREAD_PRIORITY_BACKGROUND) }
+  private val imageThreadHandler: Handler by lazy { Handler(imageThread.looper) }
+  private val imageListener: AtomicReference<ImageListener?> = AtomicReference()
+  private var imageReader: ImageReader? = null
+  private var virtualDisplay: VirtualDisplay? = null
+
+  private val subscriptions = CompositeSubscription()
+
+  init {
+    Timber.w("[${Thread.currentThread().name} @${this.hashCode()}] Init")
+    imageThread.start()
+  }
+
+  override fun setImageResizeFactor(factor: Int): ImageGenerator {
+    Timber.i("[${Thread.currentThread().name} @${this.hashCode()}] setImageResizeFactor: $factor")
+    if (factor !in 1..150) throw IllegalArgumentException("Resize factor has to be in range [1..150]")
+
+    val scale = factor / 100f
+    resizeMatrix.set(Matrix().also { it.postScale(scale, scale) })
+    return this
+  }
+
+  override fun setImageJpegQuality(quality: Int): ImageGenerator {
+    Timber.i("[${Thread.currentThread().name} @${this.hashCode()}] setImageJpegQuality: $quality")
+    if (quality !in 1..100) throw IllegalArgumentException("JPEG quality has to be in range [1..100]")
+
+    jpegQuality.set(quality)
+    return this
+  }
+
+  @Synchronized
+  override fun start() {
+    Timber.w("[${Thread.currentThread().name} @${this.hashCode()}] Start")
+    if (state.get() != STATE_INIT) throw IllegalStateException("Can't start ImageGenerator in state $state")
+
+    startDisplayCapture()
+
+    if (state.get() == STATE_STARTED)
+      Observable.interval(250, TimeUnit.MILLISECONDS, scheduler)
+          .map { _ -> display.rotation }
+          .map { rotation -> rotation == Surface.ROTATION_0 || rotation == Surface.ROTATION_180 }
+          .distinctUntilChanged()
+          .skip(1)
+          .filter { _ -> state.get() == STATE_STARTED }
+          .subscribe { _ -> restart() }
+          .also { subscriptions.add(it) }
+  }
+
+  @Synchronized
+  override fun stop() {
+    Timber.w("[${Thread.currentThread().name} @${this.hashCode()}] Stop")
+    if (state.get() != STATE_STARTED && state.get() != STATE_ERROR)
+      throw IllegalStateException("Can't stop ImageGenerator in state $state")
+
+    state.set(STATE_STOPPED)
+    subscriptions.clear()
+    stopDisplayCapture()
+    imageThread.quit()
+  }
+
+  private fun sendEventOnScheduler(event: ImageGeneratorEvent) {
+    Observable.just(event).observeOn(scheduler).subscribe { event(it) }
+  }
+
+  private fun startDisplayCapture() {
+    val screenSize = Point().also { display.getRealSize(it) }
+    imageListener.set(ImageListener())
+    imageReader = ImageReader.newInstance(screenSize.x, screenSize.y, PixelFormat.RGBA_8888, 2)
+        .apply { setOnImageAvailableListener(imageListener.get(), imageThreadHandler) }
+
+    try {
+      val densityDpi = DisplayMetrics().also { display.getMetrics(it) }.densityDpi
+      virtualDisplay = mediaProjection.createVirtualDisplay("ScreenStreamVirtualDisplay",
+          screenSize.x, screenSize.y, densityDpi,
+          DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR, imageReader?.surface, null, null)
+      state.set(STATE_STARTED)
+    } catch (ex: SecurityException) {
+      state.set(STATE_ERROR)
+      sendEventOnScheduler(ImageGeneratorEvent.OnError(ex))
+    }
+  }
+
+  private fun stopDisplayCapture() {
+    virtualDisplay?.release()
+    imageReader?.close()
+    imageListener.get()?.close()
+  }
+
+  @Synchronized
+  private fun restart() {
+    Timber.w("[${Thread.currentThread().name} @${this.hashCode()}] Restart: Start")
+    if (state.get() != STATE_STARTED) throw IllegalStateException("Can't restart ImageGenerator in state $state")
+
+    stopDisplayCapture()
+    startDisplayCapture()
+
+    Timber.w("[${Thread.currentThread().name} @${this.hashCode()}] Restart: End")
+  }
+
+  // Runs on ImageGenerator Thread
+  private inner class ImageListener : ImageReader.OnImageAvailableListener {
+    private var reusableBitmap: Bitmap? = null
+    private val resultJpegStream = ByteArrayOutputStream()
+
+    internal fun close() {
+      reusableBitmap?.recycle()
     }
 
-    private val resizeMatrix = AtomicReference<Matrix>(Matrix().also { it.postScale(.5f, .5f) })
-    private val jpegQuality = AtomicInteger(80)
+    override fun onImageAvailable(reader: ImageReader) {
+      synchronized(this@ImageGeneratorImpl) {
+        if (state.get() != STATE_STARTED || this != imageListener.get()) return
 
-    private val state: AtomicReference<String> = AtomicReference(STATE_INIT)
-    private val imageThread: HandlerThread by lazy { HandlerThread("ImageGenerator", THREAD_PRIORITY_BACKGROUND) }
-    private val imageThreadHandler: Handler by lazy { Handler(imageThread.looper) }
-    private val imageListener: AtomicReference<ImageListener?> = AtomicReference()
-    private var imageReader: ImageReader? = null
-    private var virtualDisplay: VirtualDisplay? = null
-
-    private val subscriptions = CompositeSubscription()
-
-    init {
-        Timber.w("[${Thread.currentThread().name} @${this.hashCode()}] Init")
-        imageThread.start()
-    }
-
-    override fun setImageResizeFactor(factor: Int): ImageGenerator {
-        Timber.i("[${Thread.currentThread().name} @${this.hashCode()}] setImageResizeFactor: $factor")
-        if (factor !in 1..150) throw IllegalArgumentException("Resize factor has to be in range [1..150]")
-
-        val scale = factor / 100f
-        resizeMatrix.set(Matrix().also { it.postScale(scale, scale) })
-        return this
-    }
-
-    override fun setImageJpegQuality(quality: Int): ImageGenerator {
-        Timber.i("[${Thread.currentThread().name} @${this.hashCode()}] setImageJpegQuality: $quality")
-        if (quality !in 1..100) throw IllegalArgumentException("JPEG quality has to be in range [1..100]")
-
-        jpegQuality.set(quality)
-        return this
-    }
-
-    @Synchronized
-    override fun start() {
-        Timber.w("[${Thread.currentThread().name} @${this.hashCode()}] Start")
-        if (state.get() != STATE_INIT) throw IllegalStateException("Can't start ImageGenerator in state $state")
-
-        startDisplayCapture()
-
-        if (state.get() == STATE_STARTED)
-            Observable.interval(250, TimeUnit.MILLISECONDS, scheduler)
-                    .map { _ -> display.rotation }
-                    .map { rotation -> rotation == Surface.ROTATION_0 || rotation == Surface.ROTATION_180 }
-                    .distinctUntilChanged()
-                    .skip(1)
-                    .filter { _ -> state.get() == STATE_STARTED }
-                    .subscribe { _ -> restart() }
-                    .also { subscriptions.add(it) }
-    }
-
-    @Synchronized
-    override fun stop() {
-        Timber.w("[${Thread.currentThread().name} @${this.hashCode()}] Stop")
-        if (state.get() != STATE_STARTED && state.get() != STATE_ERROR)
-            throw IllegalStateException("Can't stop ImageGenerator in state $state")
-
-        state.set(STATE_STOPPED)
-        subscriptions.clear()
-        stopDisplayCapture()
-        imageThread.quit()
-    }
-
-    private fun sendEventOnScheduler(event: ImageGeneratorEvent) {
-        Observable.just(event).observeOn(scheduler).subscribe { event(it) }
-    }
-
-    private fun startDisplayCapture() {
-        val screenSize = Point().also { display.getRealSize(it) }
-        imageListener.set(ImageListener())
-        imageReader = ImageReader.newInstance(screenSize.x, screenSize.y, PixelFormat.RGBA_8888, 2)
-                .apply { setOnImageAvailableListener(imageListener.get(), imageThreadHandler) }
-
+        val image: Image?
         try {
-            val densityDpi = DisplayMetrics().also { display.getMetrics(it) }.densityDpi
-            virtualDisplay = mediaProjection.createVirtualDisplay("ScreenStreamVirtualDisplay",
-                    screenSize.x, screenSize.y, densityDpi,
-                    DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR, imageReader?.surface, null, null)
-            state.set(STATE_STARTED)
-        } catch (ex: SecurityException) {
-            state.set(STATE_ERROR)
-            sendEventOnScheduler(ImageGeneratorEvent.OnError(ex))
+          image = reader.acquireLatestImage()
+        } catch (ex: UnsupportedOperationException) {
+          state.set(STATE_ERROR)
+          sendEventOnScheduler(ImageGeneratorEvent.OnError(ex))
+          return
         }
-    }
+        if (null == image) return
 
-    private fun stopDisplayCapture() {
-        virtualDisplay?.release()
-        imageReader?.close()
-        imageListener.get()?.close()
-    }
+        val plane = image.planes[0]
+        val width = plane.rowStride / plane.pixelStride
 
-    @Synchronized
-    private fun restart() {
-        Timber.w("[${Thread.currentThread().name} @${this.hashCode()}] Restart: Start")
-        if (state.get() != STATE_STARTED) throw IllegalStateException("Can't restart ImageGenerator in state $state")
-
-        stopDisplayCapture()
-        startDisplayCapture()
-
-        Timber.w("[${Thread.currentThread().name} @${this.hashCode()}] Restart: End")
-    }
-
-    // Runs on ImageGenerator Thread
-    private inner class ImageListener : ImageReader.OnImageAvailableListener {
-        private var reusableBitmap: Bitmap? = null
-        private val resultJpegStream = ByteArrayOutputStream()
-
-        internal fun close() {
-            reusableBitmap?.recycle()
+        val cleanBitmap: Bitmap
+        if (width > image.width) {
+          if (null == reusableBitmap) reusableBitmap = Bitmap.createBitmap(width, image.height, Bitmap.Config.ARGB_8888)
+          reusableBitmap?.copyPixelsFromBuffer(plane.buffer)
+          cleanBitmap = Bitmap.createBitmap(reusableBitmap, 0, 0, image.width, image.height)
+        } else {
+          cleanBitmap = Bitmap.createBitmap(image.width, image.height, Bitmap.Config.ARGB_8888)
+          cleanBitmap.copyPixelsFromBuffer(plane.buffer)
         }
 
-        override fun onImageAvailable(reader: ImageReader) {
-            synchronized(this@ImageGeneratorImpl) {
-                if (state.get() != STATE_STARTED || this != imageListener.get()) return
-
-                val image: Image?
-                try {
-                    image = reader.acquireLatestImage()
-                } catch (ex: UnsupportedOperationException) {
-                    state.set(STATE_ERROR)
-                    sendEventOnScheduler(ImageGeneratorEvent.OnError(ex))
-                    return
-                }
-                if (null == image) return
-
-                val plane = image.planes[0]
-                val width = plane.rowStride / plane.pixelStride
-
-                val cleanBitmap: Bitmap
-                if (width > image.width) {
-                    if (null == reusableBitmap) reusableBitmap = Bitmap.createBitmap(width, image.height, Bitmap.Config.ARGB_8888)
-                    reusableBitmap?.copyPixelsFromBuffer(plane.buffer)
-                    cleanBitmap = Bitmap.createBitmap(reusableBitmap, 0, 0, image.width, image.height)
-                } else {
-                    cleanBitmap = Bitmap.createBitmap(image.width, image.height, Bitmap.Config.ARGB_8888)
-                    cleanBitmap.copyPixelsFromBuffer(plane.buffer)
-                }
-
-                val resizedBitmap: Bitmap
-                if (resizeMatrix.get().isIdentity) {
-                    resizedBitmap = cleanBitmap
-                } else {
-                    resizedBitmap = Bitmap.createBitmap(cleanBitmap, 0, 0, image.width, image.height, resizeMatrix.get(), false)
-                    cleanBitmap.recycle()
-                }
-                image.close()
-
-                resultJpegStream.reset()
-                resizedBitmap.compress(Bitmap.CompressFormat.JPEG, jpegQuality.get(), resultJpegStream)
-                resizedBitmap.recycle()
-
-                sendEventOnScheduler(ImageGeneratorEvent.OnJpegImage(resultJpegStream.toByteArray()))
-            }
+        val resizedBitmap: Bitmap
+        if (resizeMatrix.get().isIdentity) {
+          resizedBitmap = cleanBitmap
+        } else {
+          resizedBitmap = Bitmap.createBitmap(cleanBitmap, 0, 0, image.width, image.height, resizeMatrix.get(), false)
+          cleanBitmap.recycle()
         }
+        image.close()
+
+        resultJpegStream.reset()
+        resizedBitmap.compress(Bitmap.CompressFormat.JPEG, jpegQuality.get(), resultJpegStream)
+        resizedBitmap.recycle()
+
+        sendEventOnScheduler(ImageGeneratorEvent.OnJpegImage(resultJpegStream.toByteArray()))
+      }
     }
+  }
 }

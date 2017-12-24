@@ -6,18 +6,18 @@ import timber.log.Timber
 
 abstract class BasePresenter<T> : ViewModel() {
 
-    protected val subscriptions = CompositeSubscription()
-    protected var view: T? = null
+  protected val subscriptions = CompositeSubscription()
+  protected var view: T? = null
 
-    init {
-        Timber.w("[${Thread.currentThread().name} @${this.hashCode()}] Init")
-    }
+  init {
+    Timber.w("[${Thread.currentThread().name} @${this.hashCode()}] Init")
+  }
 
-    abstract fun attach(newView: T)
+  abstract fun attach(newView: T)
 
-    fun detach() {
-        Timber.w("[${Thread.currentThread().name} @${this.hashCode()}] Detach")
-        subscriptions.clear()
-        view = null
-    }
+  fun detach() {
+    Timber.w("[${Thread.currentThread().name} @${this.hashCode()}] Detach")
+    subscriptions.clear()
+    view = null
+  }
 }

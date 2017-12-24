@@ -46,3 +46,8 @@
 
 # MaterialDrawer
 -dontwarn com.mikepenz.fastadapter.**
+
+# kotlinx.coroutines
+-keepclassmembernames class kotlinx.** {
+    volatile <fields>;
+}

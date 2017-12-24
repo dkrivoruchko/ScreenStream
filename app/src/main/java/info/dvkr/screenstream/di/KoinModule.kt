@@ -2,7 +2,6 @@ package info.dvkr.screenstream.di
 
 import android.os.HandlerThread
 import com.ironz.binaryprefs.BinaryPreferencesBuilder
-import com.ironz.binaryprefs.Preferences
 import com.jakewharton.rxrelay.BehaviorRelay
 import info.dvkr.screenstream.data.image.ImageNotify
 import info.dvkr.screenstream.data.presenter.PresenterFactory
@@ -14,43 +13,39 @@ import info.dvkr.screenstream.domain.globalstatus.GlobalStatus
 import info.dvkr.screenstream.domain.globalstatus.GlobalStatusImpl
 import info.dvkr.screenstream.domain.settings.Settings
 import info.dvkr.screenstream.image.ImageNotifyImpl
-import org.koin.android.module.AndroidModule
+import kotlinx.coroutines.experimental.newSingleThreadContext
+import org.koin.android.ext.koin.androidApplication
+import org.koin.dsl.module.applicationContext
 import rx.Scheduler
 import rx.android.schedulers.AndroidSchedulers
 import timber.log.Timber
 
-class KoinModule : AndroidModule() {
+val koinModule = applicationContext {
+  val scheduler = object {
     private val eventThread = HandlerThread("SSEventThread")
-    private val eventScheduler: Scheduler
+    val eventScheduler: Scheduler
 
     init {
-        eventThread.start()
-        eventScheduler = AndroidSchedulers.from(eventThread.looper)
+      eventThread.start()
+      eventScheduler = AndroidSchedulers.from(eventThread.looper)
     }
+  }
 
-    override fun context() = applicationContext {
+  bean { scheduler.eventScheduler }
 
-        provide { eventScheduler } bind (Scheduler::class)
+  bean { newSingleThreadContext("SSEventContext") } // TODO Release
 
-        provide { EventBusImpl(get()) } bind (EventBus::class)
+  bean { EventBusImpl(get()) as EventBus }
 
-        provide { GlobalStatusImpl() } bind (GlobalStatus::class)
+  bean { GlobalStatusImpl() as GlobalStatus }
 
-        provide { BehaviorRelay.create<ByteArray>() } bind (BehaviorRelay::class)
+  bean { BehaviorRelay.create<ByteArray>() as BehaviorRelay }
 
-        provide { ImageNotifyImpl(androidApplication) } bind (ImageNotify::class)
+  bean { ImageNotifyImpl(androidApplication()) as ImageNotify }
 
-        provide {
-            BinaryPreferencesBuilder(androidApplication)
-                    .exceptionHandler { Timber.e(it, "BinaryPreferencesBuilder") }
-                    .build()
-        } bind (Preferences::class)
+  bean { SettingsImpl(BinaryPreferencesBuilder(androidApplication()).exceptionHandler { Timber.e(it) }.build()) as Settings }
 
-        provide { SettingsImpl(get()) } bind (Settings::class)
+  bean { PresenterFactory(get(), get(), get(), get(), get()) }
 
-        provide { PresenterFactory(get(), get(), get(), get()) } bind (PresenterFactory::class)
-
-        provide { FgPresenter(get(), get(), get(), get(), get()) } bind (FgPresenter::class)
-
-    }
+  bean { FgPresenter(get(), get(), get(), get(), get()) }
 }
