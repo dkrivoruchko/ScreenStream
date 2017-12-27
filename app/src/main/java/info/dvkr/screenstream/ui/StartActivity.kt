@@ -18,7 +18,6 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.WindowManager
 import android.widget.Toast
-import com.crashlytics.android.Crashlytics
 import com.mikepenz.materialdrawer.Drawer
 import com.mikepenz.materialdrawer.DrawerBuilder
 import com.mikepenz.materialdrawer.model.DividerDrawerItem
@@ -303,9 +302,8 @@ class StartActivity : AppCompatActivity(), StartView {
 
                 if (null == data) {
                     toggleButtonStartStop.isEnabled = true
-                    Timber.e("onActivityResult ERROR: data = null")
                     val error = IllegalStateException("onActivityResult: data = null")
-                    Crashlytics.logException(error)
+                    Timber.e(error, "onActivityResult ERROR: data = null")
                     presenter.offer(StartView.FromEvent.Error(error))
                     return
                 }

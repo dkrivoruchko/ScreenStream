@@ -72,6 +72,7 @@ class FgService : Service(), FgView {
         }
     }
 
+    @Keep
     sealed class LocalEvent : FgView.ToEvent() {
         @Keep object StartService : LocalEvent()
         @Keep data class StartStream(val intent: Intent) : FgView.ToEvent()
@@ -435,12 +436,8 @@ class FgService : Service(), FgView {
 
         val interfaceList = ArrayList<EventBus.Interface>()
         try {
-            val enumeration = NetworkInterface.getNetworkInterfaces()
-            while (enumeration.hasMoreElements()) {
-                val networkInterface = enumeration.nextElement()
-                val enumIpAddr = networkInterface.inetAddresses
-                while (enumIpAddr.hasMoreElements()) {
-                    val inetAddress = enumIpAddr.nextElement()
+            for (networkInterface in NetworkInterface.getNetworkInterfaces()) {
+                for (inetAddress in networkInterface.inetAddresses) {
                     if (!inetAddress.isLoopbackAddress && inetAddress is Inet4Address)
                         if (settings.useWiFiOnly) {
                             if (defaultWifiRegexArray.any { it.matches(networkInterface.displayName) } ||

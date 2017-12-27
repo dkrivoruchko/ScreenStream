@@ -13,16 +13,23 @@ android {
 
     buildTypes {
         release {
-            buildConfigField "Boolean", "DEBUG_MODE", "false"
             minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
-
+        fabricfree {
+            minifyEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
         debug {
-            buildConfigField "Boolean", "DEBUG_MODE", "true"
             minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
+    }
+}
+
+kotlin {
+    experimental {
+        coroutines "enable"
     }
 }
 
@@ -37,7 +44,6 @@ dependencies {
     implementation "android.arch.lifecycle:extensions:$lifecycle_version"
 
     implementation "io.reactivex:rxjava:$rxjava_version"
-    implementation "io.reactivex:rxandroid:$rxandroid_version"
     implementation "com.jakewharton.rxrelay:rxrelay:$rxrelay_version"
 
     implementation "com.github.iamironz:binaryprefs:$binaryprefs_version"

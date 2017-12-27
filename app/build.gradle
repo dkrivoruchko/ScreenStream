@@ -20,16 +20,16 @@ android {
 
     buildTypes {
         release {
-            buildConfigField "Boolean", "DEBUG_MODE", "false"
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+        fabricfree {
             minifyEnabled true
             shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
         debug {
-            // Disable fabric build ID generation for debug builds
-            ext.enableCrashlytics = false
-
-            buildConfigField "Boolean", "DEBUG_MODE", "true"
             minifyEnabled true
             shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
@@ -45,6 +45,15 @@ android {
         exclude 'META-INF/io.netty.versions.properties'
     }
 
+    configurations {
+        debugCompile
+        releaseCompile
+        fabricfreeCompile
+    }
+}
+
+androidExtensions {
+    experimental = true
 }
 
 kotlin {
@@ -62,7 +71,6 @@ dependencies {
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:$coroutine_version"
 
     implementation "com.android.support:design:$support_version"
-//    implementation "com.android.support:support-v13:$support_version"
     implementation 'com.android.support.constraint:constraint-layout:1.0.2'
     implementation "android.arch.lifecycle:extensions:$lifecycle_version"
 
@@ -78,15 +86,15 @@ dependencies {
     implementation("com.mikepenz:materialdrawer:6.0.2@aar") {
         transitive = true
     }
-    implementation 'com.tapadoo.android:alerter:2.0.1'
+    implementation 'com.tapadoo.android:alerter:2.0.2'
     implementation 'com.jrummyapps:colorpicker:2.1.7'
     implementation 'com.jjoe64:graphview:4.2.1'
 
     implementation "com.jakewharton.timber:timber:$timber_version"
-    implementation('com.crashlytics.sdk.android:crashlytics:2.7.1@aar') {
+
+    releaseImplementation('com.crashlytics.sdk.android:crashlytics:2.8.0@aar') {
         transitive = true
     }
 
     debugImplementation 'com.squareup.leakcanary:leakcanary-android:1.5.4'
-    releaseImplementation 'com.squareup.leakcanary:leakcanary-android-no-op:1.5.4'
 }
