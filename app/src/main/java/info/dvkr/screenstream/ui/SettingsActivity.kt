@@ -20,6 +20,8 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
+import android.widget.EditText
+import android.widget.TextView
 import com.jakewharton.rxrelay.PublishRelay
 import com.jrummyapps.android.colorpicker.ColorPickerDialog
 import com.jrummyapps.android.colorpicker.ColorPickerDialogListener
@@ -32,13 +34,19 @@ import kotlinx.android.synthetic.main.activity_settings.*
 import kotlinx.android.synthetic.main.settings_edittext_dialog.view.*
 import org.koin.android.ext.android.inject
 import rx.Observable
-import rx.functions.Action1
 import timber.log.Timber
 
 
-class SettingsActivity : AppCompatActivity(), SettingsView, ColorPickerDialogListener {
+class SettingsActivity : AppCompatActivity(), SettingsView, ColorPickerDialogListener,
+        EditTextDialog.DialogCallback {
 
     companion object {
+        private const val DIALOG_RESIZE_FACTOR_TAG = "DIALOG_RESIZE_FACTOR_TAG"
+        private const val DIALOG_JPEG_QUALITY_TAG = "DIALOG_JPEG_QUALITY_TAG"
+        private const val DIALOG_SET_PIN_TAG = "DIALOG_SET_PIN_TAG"
+        private const val DIALOG_SERVER_PORT_TAG = "DIALOG_SERVER_PORT_TAG"
+
+
         fun getStartIntent(context: Context): Intent = Intent(context, SettingsActivity::class.java)
     }
 
@@ -52,7 +60,7 @@ class SettingsActivity : AppCompatActivity(), SettingsView, ColorPickerDialogLis
     private var htmlBackColor: Int = 0
     private val screenSize = Point()
     private var resizeFactor: Int = 0
-    private var dialog: Dialog? = null
+//    private var dialog: Dialog? = null
 
     override fun fromEvent(): Observable<SettingsView.FromEvent> = fromEvents.asObservable()
 
@@ -158,32 +166,32 @@ class SettingsActivity : AppCompatActivity(), SettingsView, ColorPickerDialogLis
 
         // Image - Resize factor
         clResizeImage.setOnClickListener { _ ->
-            dialog = getEditTextDialog(
+            EditTextDialog.newInstance(this@SettingsActivity,
+                    DIALOG_RESIZE_FACTOR_TAG,
                     R.string.pref_resize,
                     R.drawable.ic_pref_resize_black_24dp,
                     R.string.pref_resize_dialog_text,
                     2, 3,
                     10, 150,
                     Integer.toString(resizeFactor),
-                    Action1 { newValue -> fromEvents.call(SettingsView.FromEvent.ResizeFactor(Integer.parseInt(newValue))) },
                     true,
                     R.string.pref_resize_dialog_result
             )
-            dialog?.show()
+                    .show(supportFragmentManager, DIALOG_RESIZE_FACTOR_TAG)
         }
 
         // Image - Jpeg Quality
         clJpegQuality.setOnClickListener { _ ->
-            dialog = getEditTextDialog(
+            EditTextDialog.newInstance(this@SettingsActivity,
+                    DIALOG_JPEG_QUALITY_TAG,
                     R.string.pref_jpeg_quality,
                     R.drawable.ic_pref_high_quality_black_24dp,
                     R.string.pref_jpeg_quality_dialog,
                     2, 3,
                     10, 100,
-                    textViewJpegQualityValue.text.toString(),
-                    Action1 { newValue -> fromEvents.call(SettingsView.FromEvent.JpegQuality(Integer.parseInt(newValue))) }
+                    textViewJpegQualityValue.text.toString()
             )
-            dialog?.show()
+                    .show(supportFragmentManager, DIALOG_JPEG_QUALITY_TAG)
         }
 
         // Security - Enable pin
@@ -219,16 +227,16 @@ class SettingsActivity : AppCompatActivity(), SettingsView, ColorPickerDialogLis
 
         // Security - Set pin
         clSetPin.setOnClickListener { _ ->
-            dialog = getEditTextDialog(
+            EditTextDialog.newInstance(this@SettingsActivity,
+                    DIALOG_SET_PIN_TAG,
                     R.string.pref_set_pin,
                     R.drawable.ic_pref_key_black_24dp,
                     R.string.pref_set_pin_dialog,
                     4, 4,
                     0, 9999,
-                    textViewSetPinValue.text.toString(),
-                    Action1 { newValue -> fromEvents.call(SettingsView.FromEvent.SetPin(newValue)) }
+                    textViewSetPinValue.text.toString()
             )
-            dialog?.show()
+                    .show(supportFragmentManager, DIALOG_SET_PIN_TAG)
         }
 
         // Advanced - Use WiFi Only
@@ -239,89 +247,42 @@ class SettingsActivity : AppCompatActivity(), SettingsView, ColorPickerDialogLis
 
         // Advanced - Server port
         clServerPort.setOnClickListener { _ ->
-            dialog = getEditTextDialog(
+            EditTextDialog.newInstance(this@SettingsActivity,
+                    DIALOG_SERVER_PORT_TAG,
                     R.string.pref_server_port,
                     R.drawable.ic_pref_http_black_24dp,
                     R.string.pref_server_port_dialog,
                     4, 6,
                     1025, 65535,
-                    textViewServerPortValue.text.toString(),
-                    Action1 { newValue -> fromEvents.call(SettingsView.FromEvent.ServerPort(Integer.parseInt(newValue))) }
+                    textViewServerPortValue.text.toString()
             )
-            dialog?.show()
+                    .show(supportFragmentManager, DIALOG_SERVER_PORT_TAG)
+        }
+    }
+
+    override fun onDialogResult(result: EditTextDialog.DialogCallback.Result) {
+        result as EditTextDialog.DialogCallback.Result.Positive
+        when (result.dialogTag) {
+            DIALOG_RESIZE_FACTOR_TAG ->
+                fromEvents.call(SettingsView.FromEvent.ResizeFactor(Integer.parseInt(result.result)))
+
+            DIALOG_JPEG_QUALITY_TAG ->
+                fromEvents.call(SettingsView.FromEvent.JpegQuality(Integer.parseInt(result.result)))
+
+            DIALOG_SET_PIN_TAG ->
+                fromEvents.call(SettingsView.FromEvent.SetPin(result.result))
+
+            DIALOG_SERVER_PORT_TAG ->
+                fromEvents.call(SettingsView.FromEvent.ServerPort(Integer.parseInt(result.result)))
+
+            else -> Unit
         }
     }
 
     override fun onDestroy() {
         Timber.w("[${Thread.currentThread().name} @${this.hashCode()}] onDestroy")
-        dialog?.let { if (it.isShowing) it.dismiss() }
         presenter.detach()
         super.onDestroy()
-    }
-
-    // Private methods
-    private fun getEditTextDialog(@StringRes title: Int,
-                                  @DrawableRes icon: Int,
-                                  @StringRes content: Int,
-                                  minLength: Int, maxLength: Int,
-                                  minValue: Int, maxValue: Int,
-                                  currentValue: String,
-                                  action: Action1<String>,
-                                  resizeImageDialog: Boolean = false,
-                                  @StringRes resizeImageResultText: Int = 0): Dialog {
-        val layoutInflater = LayoutInflater.from(this)
-        val dialogView = layoutInflater.inflate(R.layout.settings_edittext_dialog, null, false)
-        with(dialogView) {
-            if (resizeImageDialog) {
-                textViewSettingsEditTextContent.text = getString(content).format(screenSize.x, screenSize.y)
-                val resizeFactor = Integer.parseInt(currentValue) / 100f
-                textViewSettingsEditTextResult.text = getString(resizeImageResultText)
-                        .format((screenSize.x * resizeFactor).toInt(), (screenSize.y * resizeFactor).toInt())
-            } else {
-                textViewSettingsEditTextContent.text = getString(content)
-                textViewSettingsEditTextResult.visibility = View.GONE
-            }
-            editTextSettingsEditTextValue.setText(currentValue)
-            editTextSettingsEditTextValue.setSelection(currentValue.length)
-            editTextSettingsEditTextValue.filters = arrayOf<InputFilter>(InputFilter.LengthFilter(maxLength))
-        }
-
-        val alertDialog = AlertDialog.Builder(this)
-                .setView(dialogView)
-                .setCancelable(false)
-                .setIcon(icon)
-                .setTitle(title)
-                .setPositiveButton(android.R.string.ok) { _, _ ->
-                    val newStringValue = dialogView.editTextSettingsEditTextValue.text.toString()
-                    if (newStringValue.length in minLength..maxLength &&
-                            currentValue != newStringValue &&
-                            Integer.parseInt(newStringValue) in minValue..maxValue)
-                        action.call(newStringValue)
-                }
-                .setNegativeButton(android.R.string.cancel, null)
-                .create()
-
-        alertDialog.setOnShowListener { _ ->
-            val okButton = alertDialog.getButton(AlertDialog.BUTTON_POSITIVE)
-            dialogView.editTextSettingsEditTextValue.addTextChangedListener(object : TextWatcher {
-                override fun beforeTextChanged(s: CharSequence, start: Int, count: Int, after: Int) {
-                }
-
-                override fun onTextChanged(s: CharSequence, start: Int, before: Int, count: Int) {
-                    okButton.isEnabled = s.length in minLength..maxLength && Integer.parseInt(s.toString()) in minValue..maxValue
-                    if (resizeImageDialog) {
-                        val newResizeFactor = if (okButton.isEnabled) Integer.parseInt(s.toString()) / 100f
-                        else Integer.parseInt(currentValue) / 100f
-                        dialogView.textViewSettingsEditTextResult.text = getString(resizeImageResultText)
-                                .format((screenSize.x * newResizeFactor).toInt(), (screenSize.y * newResizeFactor).toInt())
-                    }
-                }
-
-                override fun afterTextChanged(s: Editable) {
-                }
-            })
-        }
-        return alertDialog
     }
 
     override fun onColorSelected(dialogId: Int, color: Int) {
@@ -339,103 +300,180 @@ class SettingsActivity : AppCompatActivity(), SettingsView, ColorPickerDialogLis
             for (idx in 0 until view.childCount)
                 enableDisableView(view.getChildAt(idx), enabled)
     }
+}
 
-
-    open class BaseDialog : DialogFragment() {
-
-        interface DialogCallback {
-            @Keep open class Result(val dialogTag: String) {
-                @Keep data class Positive(val tag: String, val result: String = "") : Result(tag)
-                @Keep data class Negative(val tag: String) : Result(tag)
-                @Keep data class Neutral(val tag: String) : Result(tag)
-            }
-
-            fun onDialogResult(result: Result): Any
+class EditTextDialog : DialogFragment() {
+    interface DialogCallback {
+        @Keep open class Result(val dialogTag: String) {
+            @Keep data class Positive(val tag: String, val result: String = "") : Result(tag)
         }
 
-        companion object {
-            internal const val DIALOG_TAG = "DIALOG_TAG"
-            internal const val TITLE_TEXT = "TITLE_TEXT"
-            internal const val TITLE_ICON = "TITLE_ICON"
-            internal const val MESSAGE_TEXT = "MESSAGE_TEXT"
-            internal const val POSITIVE_TEXT = "POSITIVE_TEXT"
-            internal const val NEGATIVE_TEXT = "NEGATIVE_TEXT"
-            internal const val NEUTRAL_TEXT = "NEUTRAL_TEXT"
-            internal const val IS_CANCELABLE = "IS_CANCELABLE"
+        fun onDialogResult(result: Result)
+    }
 
-            @JvmStatic
-            fun newInstance(context: Context,
-                            dialogTag: String,
-                            @StringRes titleResId: Int = 0,
-                            @DrawableRes titleIconResId: Int = 0,
-                            @StringRes messageResId: Int = 0,
-                            @StringRes positiveButtonResId: Int = android.R.string.ok,
-                            @StringRes negativeButtonResId: Int = android.R.string.cancel,
-                            @StringRes neutralButtonResId: Int = 0,
-                            isCancelable: Boolean = true) =
-                    newInstance(
-                            dialogTag = dialogTag,
-                            titleText = if (titleResId > 0) context.getString(titleResId) else "",
-                            titleIconResId = if (titleIconResId > 0) titleIconResId else 0,
-                            messageText = if (messageResId > 0) context.getString(messageResId) else "",
-                            positiveButtonText = if (positiveButtonResId > 0) context.getString(positiveButtonResId) else "",
-                            negativeButtonText = if (negativeButtonResId > 0) context.getString(negativeButtonResId) else "",
-                            neutralButtonText = if (neutralButtonResId > 0) context.getString(neutralButtonResId) else "",
-                            isCancelable = isCancelable
-                    )
+    companion object {
+        internal const val DIALOG_TAG = "DIALOG_TAG"
+        internal const val TITLE_TEXT = "TITLE_TEXT"
+        internal const val TITLE_ICON = "TITLE_ICON"
+        internal const val MESSAGE_TEXT = "MESSAGE_TEXT"
+        internal const val MIN_LENGTH = "MIN_LENGTH"
+        internal const val MAX_LENGTH = "MAX_LENGTH"
+        internal const val MIN_VALUE = "MIN_VALUE"
+        internal const val MAX_VALUE = "MAX_VALUE"
+        internal const val CURRENT_VALUE = "CURRENT_VALUE"
+        internal const val RESIZE_IMAGE_DIALOG = "RESIZE_IMAGE_DIALOG"
+        internal const val RESIZE_IMAGE_TEXT = "RESIZE_IMAGE_TEXT"
 
-            @JvmStatic
-            fun newInstance(dialogTag: String,
-                            titleText: String = "",
-                            titleIconResId: Int = 0,
-                            messageText: String = "",
-                            positiveButtonText: String = "",
-                            negativeButtonText: String = "",
-                            neutralButtonText: String = "",
-                            isCancelable: Boolean = true) =
-                    BaseDialog().apply {
-                        arguments = Bundle().apply {
-                            putString(DIALOG_TAG, dialogTag)
-                            putString(TITLE_TEXT, titleText)
-                            putInt(TITLE_ICON, titleIconResId)
-                            putString(MESSAGE_TEXT, messageText)
-                            putString(POSITIVE_TEXT, positiveButtonText)
-                            putString(NEGATIVE_TEXT, negativeButtonText)
-                            putString(NEUTRAL_TEXT, neutralButtonText)
-                            putBoolean(IS_CANCELABLE, isCancelable)
-                        }
-                    }
-        }
+        @JvmStatic
+        fun newInstance(context: Context,
+                        dialogTag: String,
+                        @StringRes titleResId: Int = 0,
+                        @DrawableRes titleIconResId: Int = 0,
+                        @StringRes messageResId: Int = 0,
+                        minLength: Int, maxLength: Int,
+                        minValue: Int, maxValue: Int,
+                        currentValue: String = "",
+                        resizeImageDialog: Boolean = false,
+                        @StringRes resizeImageResultTextResId: Int = 0) =
+                newInstance(
+                        dialogTag = dialogTag,
+                        titleText = if (titleResId > 0) context.getString(titleResId) else "",
+                        titleIconResId = if (titleIconResId > 0) titleIconResId else 0,
+                        messageText = if (messageResId > 0) context.getString(messageResId) else "",
+                        minLength = if (minLength > 0) minLength else -1,
+                        maxLength = if (maxLength > 0) minLength else -1,
+                        minValue = if (minValue >= 0) minValue else -1,
+                        maxValue = if (maxValue > 0) maxValue else -1,
+                        currentValue = if (currentValue.isNotBlank()) currentValue else "",
+                        resizeImageDialog = resizeImageDialog,
+                        resizeImageResultText = if (resizeImageResultTextResId > 0) context.getString(resizeImageResultTextResId) else ""
+                )
 
-        override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
-            return AlertDialog.Builder(activity ?: throw IllegalStateException("Activity is null")).apply {
-                arguments?.apply {
-                    isCancelable = getBoolean(IS_CANCELABLE)
-
-                    val dialogTag = getString(DIALOG_TAG) ?: throw IllegalStateException("Tag not set")
-                    getString(TITLE_TEXT)?.let { setTitle(it) }
-                    getInt(TITLE_ICON).let { if (it > 0) setIcon(it) }
-                    getString(MESSAGE_TEXT)?.let { setMessage(it) }
-
-                    getString(POSITIVE_TEXT)?.let {
-                        setPositiveButton(it, { _, _ ->
-                            activity?.let { (it as DialogCallback).onDialogResult(DialogCallback.Result.Positive(dialogTag)) }
-                        })
-                    }
-
-                    getString(NEGATIVE_TEXT)?.let {
-                        setNegativeButton(it, { _, _ ->
-                            activity?.let { (it as DialogCallback).onDialogResult(DialogCallback.Result.Negative(dialogTag)) }
-                        })
-                    }
-
-                    getString(NEUTRAL_TEXT)?.let {
-                        setNeutralButton(it, { _, _ ->
-                            activity?.let { (it as DialogCallback).onDialogResult(DialogCallback.Result.Neutral(dialogTag)) }
-                        })
+        @JvmStatic
+        fun newInstance(dialogTag: String,
+                        titleText: String = "",
+                        titleIconResId: Int = 0,
+                        messageText: String = "",
+                        minLength: Int, maxLength: Int,
+                        minValue: Int, maxValue: Int,
+                        currentValue: String = "",
+                        resizeImageDialog: Boolean = false,
+                        resizeImageResultText: String = "") =
+                EditTextDialog().apply {
+                    arguments = Bundle().apply {
+                        putString(DIALOG_TAG, dialogTag)
+                        putString(TITLE_TEXT, titleText)
+                        putInt(TITLE_ICON, titleIconResId)
+                        putString(MESSAGE_TEXT, messageText)
+                        putInt(MIN_LENGTH, minLength)
+                        putInt(MAX_LENGTH, maxLength)
+                        putInt(MIN_VALUE, minValue)
+                        putInt(MAX_VALUE, maxValue)
+                        putString(CURRENT_VALUE, currentValue)
+                        putBoolean(RESIZE_IMAGE_DIALOG, resizeImageDialog)
+                        putString(RESIZE_IMAGE_TEXT, resizeImageResultText)
                     }
                 }
-            }.create().apply { setCanceledOnTouchOutside(false) }
+    }
+
+    private val windowManager: WindowManager by lazy { activity?.getSystemService(Context.WINDOW_SERVICE) as WindowManager }
+
+    override fun onStart() {
+        super.onStart()
+        val positiveButton = (dialog as AlertDialog).getButton(Dialog.BUTTON_POSITIVE)
+        val editTextValue = dialog.findViewById<EditText>(R.id.editTextSettingsEditTextValue)
+        val textViewResult = dialog.findViewById<TextView>(R.id.textViewSettingsEditTextResult)
+
+        val screenSize = Point()
+        windowManager.defaultDisplay.apply { getRealSize(screenSize) }
+
+        arguments?.apply {
+            positiveButton.isEnabled = editTextValue.text.length in getInt(MIN_LENGTH)..getInt(MAX_LENGTH) &&
+                    Integer.parseInt(editTextValue.text.toString()) in getInt(MIN_VALUE)..getInt(MAX_VALUE)
+
+            if (getBoolean(RESIZE_IMAGE_DIALOG)) {
+                val newResizeFactor = if (positiveButton.isEnabled) Integer.parseInt(editTextValue.text.toString()) / 100f
+                else Integer.parseInt(getString(CURRENT_VALUE)) / 100f
+                getString(RESIZE_IMAGE_TEXT)?.let {
+                    textViewResult.text = it
+                            .format((screenSize.x * newResizeFactor).toInt(), (screenSize.y * newResizeFactor).toInt())
+                }
+            }
+
+            editTextValue?.addTextChangedListener(SimpleTextWatcher { s ->
+                positiveButton.isEnabled = s.length in getInt(MIN_LENGTH)..getInt(MAX_LENGTH) &&
+                        Integer.parseInt(s.toString()) in getInt(MIN_VALUE)..getInt(MAX_VALUE)
+
+                if (getBoolean(RESIZE_IMAGE_DIALOG)) {
+                    val newResizeFactor = if (positiveButton.isEnabled) Integer.parseInt(s.toString()) / 100f
+                    else Integer.parseInt(getString(CURRENT_VALUE)) / 100f
+                    getString(RESIZE_IMAGE_TEXT)?.let {
+                        textViewResult.text = it
+                                .format((screenSize.x * newResizeFactor).toInt(), (screenSize.y * newResizeFactor).toInt())
+                    }
+                }
+            })
         }
+    }
+
+    override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
+        return AlertDialog.Builder(activity ?: throw IllegalStateException("Activity is null")).apply {
+            arguments?.apply {
+                isCancelable = false
+
+                val dialogTag = getString(DIALOG_TAG) ?: throw IllegalStateException("Tag not set")
+                val minLength = getInt(MIN_LENGTH)
+                if (minLength <= 0) throw IllegalStateException("minLength <= 0")
+                val maxLength = getInt(MAX_LENGTH)
+                if (maxLength <= 0) throw IllegalStateException("maxLength <= 0")
+                val minValue = getInt(MIN_VALUE)
+                if (minValue < 0) throw IllegalStateException("minValue < 0")
+                val maxValue = getInt(MAX_VALUE)
+                if (maxValue <= 0) throw IllegalStateException("maxValue <= 0")
+                val currentValue = getString(CURRENT_VALUE) ?: ""
+
+                getString(TITLE_TEXT)?.let { setTitle(it) }
+                getInt(TITLE_ICON).let { if (it > 0) setIcon(it) }
+
+                val dialogView = LayoutInflater.from(activity)
+                        .inflate(R.layout.settings_edittext_dialog, null, false)
+                with(dialogView) {
+                    if (getBoolean(RESIZE_IMAGE_DIALOG)) {
+                        val screenSize = Point()
+                        windowManager.defaultDisplay.apply { getRealSize(screenSize) }
+                        getString(MESSAGE_TEXT)?.let { textViewSettingsEditTextContent.text = it.format(screenSize.x, screenSize.y) }
+                    } else {
+                        getString(MESSAGE_TEXT)?.let { textViewSettingsEditTextContent.text = it }
+                        textViewSettingsEditTextResult.visibility = View.GONE
+                    }
+
+                    editTextSettingsEditTextValue.setText(currentValue)
+                    editTextSettingsEditTextValue.setSelection(currentValue.length)
+                    editTextSettingsEditTextValue.filters =
+                            arrayOf<InputFilter>(InputFilter.LengthFilter(maxLength))
+                }
+                setView(dialogView)
+
+                setPositiveButton(android.R.string.ok, { _, _ ->
+                    val newStringValue = dialogView.editTextSettingsEditTextValue.text.toString()
+                    if (newStringValue.length in minLength..maxLength &&
+                            currentValue != newStringValue &&
+                            Integer.parseInt(newStringValue) in minValue..maxValue)
+                        activity?.let {
+                            (it as DialogCallback).onDialogResult(
+                                    DialogCallback.Result.Positive(dialogTag, newStringValue)
+                            )
+                        }
+                })
+
+                setNegativeButton(android.R.string.cancel, null)
+            }
+        }.create().apply { setCanceledOnTouchOutside(false) }
+    }
+
+    class SimpleTextWatcher(private val afterTextChangedBlock: (s: Editable) -> Unit) : TextWatcher {
+        override fun afterTextChanged(s: Editable?) = s?.let { afterTextChangedBlock(it) } as Unit
+        override fun beforeTextChanged(p0: CharSequence?, p1: Int, p2: Int, p3: Int) = Unit
+        override fun onTextChanged(p0: CharSequence?, p1: Int, p2: Int, p3: Int) = Unit
     }
 }

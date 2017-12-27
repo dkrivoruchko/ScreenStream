@@ -23,6 +23,7 @@
         android:layout_marginStart="16dp"
         android:inputType="number"
         android:maxLines="1"
+        android:imeOptions="actionDone|flagNoExtractUi"
         android:textColor="@color/colorPrimaryText" />
 
     <TextView
