@@ -34,7 +34,7 @@ interface HttpServer {
                             var disconnected: Boolean = false)
 
     // Traffic
-    @Keep data class TrafficPoint(val time: Long, val bytes: Long)
+    @Keep class TrafficPoint(val time: Long, val bytes: Long)
 
     fun stop()
 }

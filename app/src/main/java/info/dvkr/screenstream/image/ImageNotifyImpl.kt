@@ -9,6 +9,7 @@ import android.graphics.Paint
 import android.graphics.Rect
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.data.image.ImageNotify
+import info.dvkr.screenstream.domain.utils.Utils
 import timber.log.Timber
 import java.io.ByteArrayOutputStream
 
@@ -31,7 +32,7 @@ class ImageNotifyImpl(context: Context) : ImageNotify {
     }
 
     override fun getImage(imageType: String): ByteArray {
-        Timber.w("[${Thread.currentThread().name} @${this.hashCode()}] getImage: $imageType")
+        Timber.i("[${Utils.getLogPrefix(this)}] getImage: $imageType")
 
         return when (imageType) {
             ImageNotify.IMAGE_TYPE_DEFAULT -> imageDefault

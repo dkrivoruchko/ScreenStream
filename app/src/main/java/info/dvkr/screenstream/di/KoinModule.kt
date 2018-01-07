@@ -1,11 +1,12 @@
 package info.dvkr.screenstream.di
 
-import android.os.HandlerThread
 import com.ironz.binaryprefs.BinaryPreferencesBuilder
 import com.jakewharton.rxrelay.BehaviorRelay
 import info.dvkr.screenstream.data.image.ImageNotify
-import info.dvkr.screenstream.data.presenter.PresenterFactory
+import info.dvkr.screenstream.data.presenter.clients.ClientsPresenter
 import info.dvkr.screenstream.data.presenter.foreground.FgPresenter
+import info.dvkr.screenstream.data.presenter.settings.SettingsPresenter
+import info.dvkr.screenstream.data.presenter.start.StartPresenter
 import info.dvkr.screenstream.data.settings.SettingsImpl
 import info.dvkr.screenstream.domain.eventbus.EventBus
 import info.dvkr.screenstream.domain.eventbus.EventBusImpl
@@ -13,39 +14,39 @@ import info.dvkr.screenstream.domain.globalstatus.GlobalStatus
 import info.dvkr.screenstream.domain.globalstatus.GlobalStatusImpl
 import info.dvkr.screenstream.domain.settings.Settings
 import info.dvkr.screenstream.image.ImageNotifyImpl
+import kotlinx.coroutines.experimental.CoroutineExceptionHandler
 import kotlinx.coroutines.experimental.newSingleThreadContext
+import org.koin.android.architecture.ext.viewModel
 import org.koin.android.ext.koin.androidApplication
 import org.koin.dsl.module.applicationContext
-import rx.Scheduler
-import rx.android.schedulers.AndroidSchedulers
 import timber.log.Timber
+import kotlin.coroutines.experimental.CoroutineContext
 
 val koinModule = applicationContext {
-  val scheduler = object {
-    private val eventThread = HandlerThread("SSEventThread")
-    val eventScheduler: Scheduler
 
-    init {
-      eventThread.start()
-      eventScheduler = AndroidSchedulers.from(eventThread.looper)
+    bean {
+        newSingleThreadContext("SSEventContext") +
+                CoroutineExceptionHandler { _, ex -> // TODO Temp Solution
+                    Timber.e(ex)
+                    throw ex
+                } as CoroutineContext
     }
-  }
 
-  bean { scheduler.eventScheduler }
+    bean { EventBusImpl() as EventBus }
 
-  bean { newSingleThreadContext("SSEventContext") } // TODO Release
+    bean { GlobalStatusImpl() as GlobalStatus }
 
-  bean { EventBusImpl(get()) as EventBus }
+    bean { BehaviorRelay.create<ByteArray>() as BehaviorRelay }
 
-  bean { GlobalStatusImpl() as GlobalStatus }
+    bean { ImageNotifyImpl(androidApplication()) as ImageNotify }
 
-  bean { BehaviorRelay.create<ByteArray>() as BehaviorRelay }
+    bean { SettingsImpl(BinaryPreferencesBuilder(androidApplication()).exceptionHandler { Timber.e(it) }.build()) as Settings }
 
-  bean { ImageNotifyImpl(androidApplication()) as ImageNotify }
+    viewModel { StartPresenter(get(), get(), get()) }
 
-  bean { SettingsImpl(BinaryPreferencesBuilder(androidApplication()).exceptionHandler { Timber.e(it) }.build()) as Settings }
+    viewModel { SettingsPresenter(get(), get(), get()) }
 
-  bean { PresenterFactory(get(), get(), get(), get(), get()) }
+    viewModel { ClientsPresenter(get(), get()) }
 
-  bean { FgPresenter(get(), get(), get(), get(), get()) }
+    bean { FgPresenter(get(), get(), get(), get(), get()) }
 }

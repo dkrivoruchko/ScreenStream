@@ -7,6 +7,7 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
@@ -16,17 +17,18 @@ import android.media.projection.MediaProjectionManager
 import android.net.ConnectivityManager
 import android.net.wifi.WifiManager
 import android.os.Build
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
 import android.support.annotation.Keep
 import android.support.v4.app.NotificationCompat
+import android.support.v4.content.LocalBroadcastManager
 import android.support.v7.content.res.AppCompatResources
 import android.view.LayoutInflater
 import android.view.WindowManager
 import android.widget.RemoteViews
 import android.widget.Toast
-import com.cantrowitz.rxbroadcast.RxBroadcast
 import com.jakewharton.rxrelay.BehaviorRelay
-import com.jakewharton.rxrelay.PublishRelay
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.data.image.ImageNotify
 import info.dvkr.screenstream.data.presenter.foreground.FgPresenter
@@ -35,14 +37,18 @@ import info.dvkr.screenstream.domain.eventbus.EventBus
 import info.dvkr.screenstream.domain.globalstatus.GlobalStatus
 import info.dvkr.screenstream.domain.httpserver.HttpServer
 import info.dvkr.screenstream.domain.settings.Settings
+import info.dvkr.screenstream.domain.utils.Utils
 import info.dvkr.screenstream.ui.StartActivity
 import kotlinx.android.synthetic.main.slow_connection_toast.view.*
+import kotlinx.coroutines.experimental.async
+import kotlinx.coroutines.experimental.channels.Channel
+import kotlinx.coroutines.experimental.channels.SendChannel
+import kotlinx.coroutines.experimental.channels.actor
+import kotlinx.coroutines.experimental.delay
+import kotlinx.coroutines.experimental.launch
 import org.koin.android.ext.android.inject
 import rx.BackpressureOverflow
-import rx.Observable
-import rx.Scheduler
 import rx.functions.Action0
-import rx.subscriptions.CompositeSubscription
 import timber.log.Timber
 import java.net.Inet4Address
 import java.net.InetAddress
@@ -50,6 +56,7 @@ import java.net.InetSocketAddress
 import java.net.NetworkInterface
 import java.nio.charset.Charset
 import java.util.concurrent.TimeUnit
+import kotlin.coroutines.experimental.CoroutineContext
 
 class FgService : Service(), FgView {
     companion object {
@@ -72,35 +79,65 @@ class FgService : Service(), FgView {
         }
     }
 
-    @Keep
-    sealed class LocalEvent : FgView.ToEvent() {
+    @Keep sealed class LocalEvent : FgView.ToEvent() {
         @Keep object StartService : LocalEvent()
-        @Keep data class StartStream(val intent: Intent) : FgView.ToEvent()
+        @Keep class StartStream(val intent: Intent) : FgView.ToEvent()
     }
 
+    private val crtContext: CoroutineContext by inject()
     private val presenter: FgPresenter by inject()
     private val settings: Settings by inject()
-    private val eventScheduler: Scheduler by inject()
     private val eventBus: EventBus by inject()
     private val globalStatus: GlobalStatus by inject()
     private val imageNotify: ImageNotify by inject()
     private val jpegBytesStream: BehaviorRelay<ByteArray> by inject()
 
     private var isForegroundServiceInit: Boolean = false
-    private val subscriptions = CompositeSubscription()
-    private val fromEvents = PublishRelay.create<FgView.FromEvent>()
-    private val toEvents = PublishRelay.create<FgView.ToEvent>()
+    private var isConnectionEventScheduled: Boolean = false
+
+    private lateinit var toEvents: SendChannel<FgView.ToEvent>
 
     @Volatile private var mediaProjection: MediaProjection? = null
     @Volatile private var projectionCallback: MediaProjection.Callback? = null
 
-    private val connectionEvents = PublishRelay.create<String>()
     private var counterStartHttpServer: Int = 0
 
-    private val defaultWifiRegexArray: Array<Regex> = arrayOf(Regex("wlan\\d"), Regex("ap\\d"), Regex("wigig\\d"), Regex("softap\\.?\\d"))
+    private val defaultWifiRegexArray: Array<Regex> = arrayOf(
+            Regex("wlan\\d"),
+            Regex("ap\\d"),
+            Regex("wigig\\d"),
+            Regex("softap\\.?\\d"))
+
     private val wifiRegexArray: Array<Regex> by lazy {
         val tetherId = Resources.getSystem().getIdentifier("config_tether_wifi_regexs", "array", "android")
         resources.getStringArray(tetherId).map { it.toRegex() }.toTypedArray()
+    }
+
+    // Registering receiver for screen off messages and network & WiFi changes
+    private val intentFilter: IntentFilter by lazy {
+        IntentFilter().apply {
+            addAction(Intent.ACTION_SCREEN_OFF)
+            addAction(WifiManager.WIFI_STATE_CHANGED_ACTION)
+            addAction(ConnectivityManager.CONNECTIVITY_ACTION)
+        }
+    }
+
+    private val broadCastReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            Timber.e("[${Utils.getLogPrefix(this)}] action: ${intent?.action}")
+            when (intent?.action) {
+                Intent.ACTION_SCREEN_OFF -> presenter.offer(FgView.FromEvent.ScreenOff)
+                WifiManager.WIFI_STATE_CHANGED_ACTION,
+                ConnectivityManager.CONNECTIVITY_ACTION -> {
+                    isConnectionEventScheduled = true
+                    toEvent(FgView.ToEvent.ConnectionEvent, 500)
+                }
+            }
+        }
+    }
+
+    private val localBroadcastManager: LocalBroadcastManager by lazy {
+        LocalBroadcastManager.getInstance(applicationContext)
     }
 
     private val wifiManager: WifiManager by lazy {
@@ -118,19 +155,20 @@ class FgService : Service(), FgView {
     private lateinit var basePinRequestHtml: String
     private lateinit var pinRequestErrorMsg: String
 
-    override fun fromEvent(): Observable<FgView.FromEvent> = fromEvents.asObservable()
-
-    override fun toEvent(event: FgView.ToEvent) = toEvents.call(event)
-
     override fun toEvent(event: FgView.ToEvent, timeout: Long) {
-        Observable.just<FgView.ToEvent>(event)
-                .delay(timeout, TimeUnit.MILLISECONDS, eventScheduler)
-                .subscribe { toEvent(it) }
-                .also { subscriptions.add(it) }
+        Timber.d("[${Utils.getLogPrefix(this)}] toEvent: ${event.javaClass.simpleName}, delay: $timeout")
+        if (timeout > 0) {
+            async {
+                delay(timeout, TimeUnit.MILLISECONDS)
+                toEvent(event)
+            }
+        } else {
+            if (toEvents.isClosedForSend.not()) toEvents.offer(event)
+        }
     }
 
     override fun onCreate() {
-        Timber.w("[${Thread.currentThread().name} @${this.hashCode()}] onCreate")
+        Timber.i("[${Utils.getLogPrefix(this)}] onCreate")
 
         presenter.attach(this)
 
@@ -139,11 +177,8 @@ class FgService : Service(), FgView {
             notificationManager.createNotificationChannel(channel)
         }
 
-        toEvents.startWith(FgService.LocalEvent.StartService)
-                .observeOn(eventScheduler).subscribe { event ->
-            Timber.d("[${Thread.currentThread().name} @${this.hashCode()}] toEvent: $event")
-
-            when (event) {
+        toEvents = actor(crtContext, Channel.UNLIMITED) {
+            for (event in this) when (event) {
                 is FgService.LocalEvent.StartService -> {
                     baseFavicon = getFavicon(applicationContext)
                     baseLogo = getLogo(applicationContext)
@@ -153,18 +188,18 @@ class FgService : Service(), FgView {
                 }
 
                 is FgView.ToEvent.StartHttpServer -> {
-                    fromEvents.call(FgView.FromEvent.StopHttpServer)
+                    presenter.offer(FgView.FromEvent.StopHttpServer)
 
                     val interfaces = getInterfaces()
                     val serverAddress: InetSocketAddress
-                    fromEvents.call(FgView.FromEvent.CurrentInterfaces(interfaces))
+                    presenter.offer(FgView.FromEvent.CurrentInterfaces(interfaces))
                     if (settings.useWiFiOnly) {
                         if (interfaces.isEmpty()) {
                             if (counterStartHttpServer < 5) { // Scheduling one more try in 1 second
                                 counterStartHttpServer++
                                 toEvent(FgView.ToEvent.StartHttpServer, 1000)
                             }
-                            return@subscribe
+                            return@actor
                         }
                         counterStartHttpServer = 0
                         serverAddress = InetSocketAddress(interfaces.first().address, settings.severPort)
@@ -172,7 +207,7 @@ class FgService : Service(), FgView {
                         serverAddress = InetSocketAddress(settings.severPort)
                     }
 
-                    fromEvents.call(FgView.FromEvent.StartHttpServer(
+                    presenter.offer(FgView.FromEvent.StartHttpServer(
                             serverAddress,
                             baseFavicon,
                             baseLogo,
@@ -183,6 +218,16 @@ class FgService : Service(), FgView {
                                     Action0 { Timber.e("jpegBytesStream.onBackpressureBuffer - ON_OVERFLOW_DROP_OLDEST") },
                                     BackpressureOverflow.ON_OVERFLOW_DROP_OLDEST))
                     )
+                }
+
+                is FgView.ToEvent.ConnectionEvent -> {
+                    isConnectionEventScheduled = false
+                    if (settings.useWiFiOnly) {
+                        counterStartHttpServer = 0
+                        presenter.offer(FgView.FromEvent.HttpServerRestartRequest)
+                    } else {
+                        presenter.offer(FgView.FromEvent.CurrentInterfaces(getInterfaces()))
+                    }
                 }
 
                 is FgView.ToEvent.NotifyImage -> {
@@ -197,17 +242,17 @@ class FgService : Service(), FgView {
                     val projection = projectionManager.getMediaProjection(Activity.RESULT_OK, data)
                     mediaProjection = projection
                     val windowManager = applicationContext.getSystemService(Context.WINDOW_SERVICE) as WindowManager
-                    fromEvents.call(FgView.FromEvent.StartImageGenerator(windowManager.defaultDisplay, projection))
+                    presenter.offer(FgView.FromEvent.StartImageGenerator(windowManager.defaultDisplay, projection))
                     stopForeground(true)
                     startForeground(NOTIFICATION_STOP_STREAMING, getCustomNotification(NOTIFICATION_STOP_STREAMING))
 
                     projectionCallback = object : MediaProjection.Callback() {
                         override fun onStop() {
-                            Timber.w("[${Thread.currentThread().name} @${this.hashCode()}] ProjectionCallback: onStop")
-                            eventBus.sendEvent(EventBus.GlobalEvent.StopStream())
+                            Timber.w("[${Utils.getLogPrefix(this)}] ProjectionCallback: onStop")
+                            launch(crtContext) { eventBus.send(EventBus.GlobalEvent.StopStream) }
                         }
                     }
-                    projection.registerCallback(projectionCallback, null)
+                    projection.registerCallback(projectionCallback, Handler(Looper.getMainLooper()))
                 }
 
                 is FgView.ToEvent.StopStream -> {
@@ -215,7 +260,7 @@ class FgService : Service(), FgView {
                     stopMediaProjection()
                     startForeground(NOTIFICATION_START_STREAMING, getCustomNotification(NOTIFICATION_START_STREAMING))
                     if (event.isNotifyOnComplete)
-                        fromEvents.call(FgView.FromEvent.StopStreamComplete)
+                        presenter.offer(FgView.FromEvent.StopStreamComplete)
                 }
 
                 is FgView.ToEvent.AppExit -> {
@@ -223,7 +268,7 @@ class FgService : Service(), FgView {
                 }
 
                 is FgView.ToEvent.CurrentInterfacesRequest -> {
-                    fromEvents.call(FgView.FromEvent.CurrentInterfaces(getInterfaces()))
+                    presenter.offer(FgView.FromEvent.CurrentInterfaces(getInterfaces()))
                 }
 
                 is FgView.ToEvent.Error -> {
@@ -242,37 +287,11 @@ class FgService : Service(), FgView {
                     toast.show()
                 }
             }
-        }.also { subscriptions.add(it) }
+        }
 
-        // Registering receiver for screen off messages and network & WiFi changes
-        val intentFilter = IntentFilter()
-        intentFilter.addAction(Intent.ACTION_SCREEN_OFF)
-        intentFilter.addAction(WifiManager.WIFI_STATE_CHANGED_ACTION)
-        intentFilter.addAction(ConnectivityManager.CONNECTIVITY_ACTION)
+        toEvents.offer(FgService.LocalEvent.StartService)
 
-        RxBroadcast.fromBroadcast(applicationContext, intentFilter)
-                .observeOn(eventScheduler)
-                .map { it.action }
-                .subscribe { action ->
-                    Timber.w("[${Thread.currentThread().name} @${this.hashCode()}] action: $action")
-                    when (action) {
-                        Intent.ACTION_SCREEN_OFF -> fromEvents.call(FgView.FromEvent.ScreenOff)
-                        WifiManager.WIFI_STATE_CHANGED_ACTION -> connectionEvents.call(WifiManager.WIFI_STATE_CHANGED_ACTION)
-                        ConnectivityManager.CONNECTIVITY_ACTION -> connectionEvents.call(ConnectivityManager.CONNECTIVITY_ACTION)
-                    }
-                }.also { subscriptions.add(it) }
-
-        connectionEvents.throttleWithTimeout(500, TimeUnit.MILLISECONDS, eventScheduler)
-                .skip(1)
-                .subscribe { _ ->
-                    Timber.w("[${Thread.currentThread().name} @${this.hashCode()}] connectionEvent")
-                    if (settings.useWiFiOnly) {
-                        counterStartHttpServer = 0
-                        fromEvents.call(FgView.FromEvent.HttpServerRestartRequest)
-                    } else {
-                        fromEvents.call(FgView.FromEvent.CurrentInterfaces(getInterfaces()))
-                    }
-                }.also { subscriptions.add(it) }
+        localBroadcastManager.registerReceiver(broadCastReceiver, intentFilter)
 
         startForeground(NOTIFICATION_START_STREAMING, getCustomNotification(NOTIFICATION_START_STREAMING))
     }
@@ -282,32 +301,38 @@ class FgService : Service(), FgView {
         if (action == null) {
             Timber.e(IllegalStateException("FgService:onStartCommand: action == null"))
         } else {
-            Timber.w("[${Thread.currentThread().name} @${this.hashCode()}] onStartCommand.action: $action")
+            Timber.i("[${Utils.getLogPrefix(this)}] onStartCommand.action: $action")
             when (action) {
                 ACTION_INIT -> if (!isForegroundServiceInit) {
-                    fromEvents.call(FgView.FromEvent.Init)
+                    presenter.offer(FgView.FromEvent.Init)
                     isForegroundServiceInit = true
                 }
 
-                ACTION_START_ON_BOOT -> {
-                    startActivity(StartActivity.getStartIntent(applicationContext, StartActivity.ACTION_START_STREAM).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-                }
+                ACTION_START_ON_BOOT ->
+                    startActivity(StartActivity.
+                            getStartIntent(applicationContext, StartActivity.ACTION_START_STREAM)
+                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    )
 
                 ACTION_START_STREAM ->
-                    toEvents.call(FgService.LocalEvent.StartStream(intent.getParcelableExtra(Intent.EXTRA_INTENT)))
+                    toEvent(FgService.LocalEvent.StartStream(intent.getParcelableExtra(Intent.EXTRA_INTENT)))
             }
         }
         return Service.START_NOT_STICKY
     }
 
     override fun onDestroy() {
-        Timber.w("[${Thread.currentThread().name} @${this.hashCode()}] onDestroy")
+        Timber.i("[${Utils.getLogPrefix(this)}] onDestroy")
 
-        fromEvents.call(FgView.FromEvent.StopHttpServer)
-        subscriptions.clear()
+        localBroadcastManager.unregisterReceiver(broadCastReceiver)
+
+        presenter.offer(FgView.FromEvent.StopHttpServer)
+
         stopForeground(true)
         stopMediaProjection()
         presenter.detach()
+
+        toEvents.close()
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             notificationManager.deleteNotificationChannel(NOTIFICATION_CHANNEL_ID)
@@ -318,7 +343,7 @@ class FgService : Service(), FgView {
     }
 
     private fun stopMediaProjection() {
-        Timber.w("[${Thread.currentThread().name} @${this.hashCode()}] stopMediaProjection")
+        Timber.i("[${Utils.getLogPrefix(this)}] stopMediaProjection")
 
         mediaProjection?.apply { projectionCallback?.let { unregisterCallback(it) } }
         projectionCallback = null
@@ -327,7 +352,7 @@ class FgService : Service(), FgView {
     }
 
     private fun getCustomNotification(notificationType: Int): Notification {
-        Timber.w("[${Thread.currentThread().name} @${this.hashCode()}] getCustomNotification: $notificationType")
+        Timber.i("[${Utils.getLogPrefix(this)}] getCustomNotification: $notificationType")
 
         val pendingMainActivityIntent = PendingIntent.getActivity(applicationContext, 0,
                 StartActivity.getStartIntent(applicationContext).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
@@ -394,7 +419,7 @@ class FgService : Service(), FgView {
     override fun onBind(intent: Intent): IBinder? = null
 
     private fun getFileFromAssets(context: Context, fileName: String): ByteArray {
-        Timber.w("[${Thread.currentThread().name} @${this.hashCode()}] getFileFromAssets: $fileName")
+        Timber.i("[${Utils.getLogPrefix(this)}] getFileFromAssets: $fileName")
         context.assets.open(fileName).use { inputStream ->
             val fileBytes = ByteArray(inputStream.available())
             inputStream.read(fileBytes)
@@ -432,7 +457,7 @@ class FgService : Service(), FgView {
     }
 
     private fun getInterfaces(): List<EventBus.Interface> {
-        Timber.w("[${Thread.currentThread().name} @${this.hashCode()}] getInterfaces")
+        Timber.i("[${Utils.getLogPrefix(this)}] getInterfaces")
 
         val interfaceList = ArrayList<EventBus.Interface>()
         try {
@@ -460,9 +485,11 @@ class FgService : Service(), FgView {
     private fun wifiConnected() = wifiManager.connectionInfo.ipAddress != 0
 
     private fun getWiFiIpAddress(): Inet4Address {
-        Timber.w("[${Thread.currentThread().name} @${this.hashCode()}] getWiFiIpAddress")
+        Timber.w("[${Utils.getLogPrefix(this)}] getWiFiIpAddress")
 
         val ipInt = wifiManager.connectionInfo.ipAddress
-        return InetAddress.getByAddress(ByteArray(4, { i -> (ipInt.shr(i * 8).and(255)).toByte() })) as Inet4Address
+        return InetAddress.getByAddress(
+                ByteArray(4, { i -> (ipInt.shr(i * 8).and(255)).toByte() })
+        ) as Inet4Address
     }
 }

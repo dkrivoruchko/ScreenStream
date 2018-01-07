@@ -3,19 +3,22 @@ package info.dvkr.screenstream.domain.httpserver
 
 import android.support.annotation.Keep
 import info.dvkr.screenstream.domain.eventbus.EventBus
+import info.dvkr.screenstream.domain.utils.Utils
 import io.netty.buffer.ByteBuf
 import io.netty.channel.ChannelOption
 import io.netty.channel.EventLoopGroup
 import io.netty.channel.socket.nio.NioServerSocketChannel
 import io.netty.util.ResourceLeakDetector
 import io.reactivex.netty.RxNetty
+import kotlinx.coroutines.experimental.channels.SubscriptionReceiveChannel
+import kotlinx.coroutines.experimental.channels.consumeEach
+import kotlinx.coroutines.experimental.launch
 import rx.Observable
-import rx.Scheduler
 import rx.functions.Action1
 import rx.subscriptions.CompositeSubscription
 import java.net.InetSocketAddress
 import java.util.concurrent.ConcurrentLinkedDeque
-import java.util.concurrent.TimeUnit
+import kotlin.coroutines.experimental.CoroutineContext
 
 class HttpServerImpl constructor(serverAddress: InetSocketAddress,
                                  favicon: ByteArray,
@@ -29,7 +32,7 @@ class HttpServerImpl constructor(serverAddress: InetSocketAddress,
                                  pinRequestErrorMsg: String,
                                  jpegBytesStream: Observable<ByteArray>,
                                  eventBus: EventBus,
-                                 private val eventScheduler: Scheduler,
+                                 crtContext: CoroutineContext,
                                  private val logIt: Action1<String>) : HttpServer {
 
     companion object {
@@ -54,6 +57,7 @@ class HttpServerImpl constructor(serverAddress: InetSocketAddress,
     }
 
     // Server internal components
+    private val subscription: SubscriptionReceiveChannel<EventBus.GlobalEvent>
     private val globalServerEventLoop: EventLoopGroup = RxNetty.getRxEventLoopProvider().globalServerEventLoop()
     private val httpServer: io.reactivex.netty.protocol.http.server.HttpServer<ByteBuf, ByteBuf>
     private val httpServerRxHandler: HttpServerRxHandler
@@ -78,7 +82,7 @@ class HttpServerImpl constructor(serverAddress: InetSocketAddress,
     private val trafficHistory = ConcurrentLinkedDeque<HttpServer.TrafficPoint>()
 
     init {
-        logIt.call("HttpServer @${this.hashCode()}: Init")
+        logIt.call("[${Utils.getLogPrefix(this)}] HttpServer: Init")
 
         val httpServerPort = serverAddress.port
         if (httpServerPort !in 1025..65535) throw IllegalArgumentException("Tcp port must be in range [1025, 65535]")
@@ -87,29 +91,32 @@ class HttpServerImpl constructor(serverAddress: InetSocketAddress,
         val past = System.currentTimeMillis() - MAX_HISTORY_SECONDS * 1000
         Observable.range(0, MAX_HISTORY_SECONDS + 1).map { i -> i * 1000 + past }
                 .subscribe { trafficHistory.addLast(HttpServer.TrafficPoint(it, 0)) }
-        eventBus.sendEvent(EventBus.GlobalEvent.TrafficHistory(trafficHistory.toList()))
+        launch(crtContext) { eventBus.send(EventBus.GlobalEvent.TrafficHistory(trafficHistory.toList())) }
 
-        eventBus.getEvent().filter {
-            it is EventBus.GlobalEvent.CurrentClientsRequest || it is EventBus.GlobalEvent.TrafficHistoryRequest
-        }.subscribe { globalEvent ->
-            logIt.call("HttpServer @${this.hashCode()}: globalEvent: $globalEvent")
+        subscription = eventBus.openSubscription()
+        launch(crtContext) {
+            subscription.consumeEach { globalEvent ->
+                logIt.call("[${Utils.getLogPrefix(this)}] HttpServer: globalEvent: ${globalEvent.javaClass.simpleName}")
 
-            when (globalEvent) {
-                is EventBus.GlobalEvent.CurrentClientsRequest -> eventBus.sendEvent(EventBus.GlobalEvent.CurrentClients(clientsMap.values.toList()))
-                is EventBus.GlobalEvent.TrafficHistoryRequest -> eventBus.sendEvent(EventBus.GlobalEvent.TrafficHistory(trafficHistory.toList()))
+                when (globalEvent) {
+                    is EventBus.GlobalEvent.CurrentClientsRequest -> eventBus.send(EventBus.GlobalEvent.CurrentClients(clientsMap.values.toList()))
+                    is EventBus.GlobalEvent.TrafficHistoryRequest -> eventBus.send(EventBus.GlobalEvent.TrafficHistory(trafficHistory.toList()))
+                }
             }
-        }.also { subscriptions.add(it) }
+        }
 
-        Observable.interval(1, TimeUnit.SECONDS, eventScheduler).subscribe {
-            clientsMap.values.removeAll { it.disconnected && System.currentTimeMillis() - it.disconnectedTime > 5000 }
-            val trafficPoint = HttpServer.TrafficPoint(System.currentTimeMillis(), clientsMap.values.map { it.sendBytes }.sum())
-            trafficHistory.removeFirst()
-            trafficHistory.addLast(trafficPoint)
-            clientsMap.values.forEach { it.sendBytes = 0 }
-
-            eventBus.sendEvent(EventBus.GlobalEvent.TrafficPoint(trafficPoint))
-            eventBus.sendEvent(EventBus.GlobalEvent.CurrentClients(clientsMap.values.toList()))
-        }.also { subscriptions.add(it) }
+//        Observable.interval(1, TimeUnit.SECONDS).subscribe {
+//            clientsMap.values.removeAll { it.disconnected && System.currentTimeMillis() - it.disconnectedTime > 5000 }
+//            val trafficPoint = HttpServer.TrafficPoint(System.currentTimeMillis(), clientsMap.values.map { it.sendBytes }.sum())
+//            trafficHistory.removeFirst()
+//            trafficHistory.addLast(trafficPoint)
+//            clientsMap.values.forEach { it.sendBytes = 0 }
+//
+//            launch(crtContext) {
+//                eventBus.send(EventBus.GlobalEvent.TrafficPoint(trafficPoint))
+//                eventBus.send(EventBus.GlobalEvent.CurrentClients(clientsMap.values.toList()))
+//            }
+//        }.also { subscriptions.add(it) }
 
         httpServer = io.reactivex.netty.protocol.http.server.HttpServer.newServer(serverAddress, globalServerEventLoop, NioServerSocketChannel::class.java)
                 .clientChannelOption(ChannelOption.CONNECT_TIMEOUT_MILLIS, 3000)
@@ -149,17 +156,21 @@ class HttpServerImpl constructor(serverAddress: InetSocketAddress,
 
             httpServer.start(httpServerRxHandler)
             isRunning = true
-            logIt.call("HttpServer @${this.hashCode()}: Started")
+            logIt.call("[${Utils.getLogPrefix(this)}] HttpServer: Started")
 
         } catch (exception: Exception) {
-            eventBus.sendEvent(EventBus.GlobalEvent.Error(exception))
+            launch(crtContext) { eventBus.send(EventBus.GlobalEvent.Error(exception)) }
         }
-        eventBus.sendEvent(EventBus.GlobalEvent.CurrentClients(clientsMap.values.toList()))
+
+        launch(crtContext) {
+            eventBus.send(EventBus.GlobalEvent.CurrentClients(clientsMap.values.toList()))
+        }
     }
 
     override fun stop() {
-        logIt.call("HttpServer @${this.hashCode()}: Stop")
+        logIt.call("[${Utils.getLogPrefix(this)}] HttpServer: Stop")
 
+        subscription.close()
         if (isRunning) {
             httpServer.shutdown()
             httpServer.awaitShutdown()
@@ -173,16 +184,16 @@ class HttpServerImpl constructor(serverAddress: InetSocketAddress,
     }
 
     fun toEvent(event: LocalEvent) {
-        Observable.just(event).observeOn(eventScheduler).subscribe { toEvent ->
-            when (toEvent) {
-                is LocalEvent.ClientConnected -> clientsMap.put(toEvent.address, LocalClient(toEvent.address))
-                is LocalEvent.ClientBytesCount -> clientsMap[toEvent.address]?.let { it.sendBytes = it.sendBytes.plus(toEvent.bytesCount) }
-                is LocalEvent.ClientDisconnected -> {
-                    clientsMap[toEvent.address]?.disconnected = true
-                    clientsMap[toEvent.address]?.disconnectedTime = System.currentTimeMillis()
-                }
-                is LocalEvent.ClientBackpressure -> clientsMap[toEvent.address]?.hasBackpressure = true
-            }
-        }
+//        Observable.just(event).observeOn(eventScheduler).subscribe { toEvent ->
+//            when (toEvent) {
+//                is LocalEvent.ClientConnected -> clientsMap.put(toEvent.address, LocalClient(toEvent.address))
+//                is LocalEvent.ClientBytesCount -> clientsMap[toEvent.address]?.let { it.sendBytes = it.sendBytes.plus(toEvent.bytesCount) }
+//                is LocalEvent.ClientDisconnected -> {
+//                    clientsMap[toEvent.address]?.disconnected = true
+//                    clientsMap[toEvent.address]?.disconnectedTime = System.currentTimeMillis()
+//                }
+//                is LocalEvent.ClientBackpressure -> clientsMap[toEvent.address]?.hasBackpressure = true
+//            }
+//        }
     }
 }

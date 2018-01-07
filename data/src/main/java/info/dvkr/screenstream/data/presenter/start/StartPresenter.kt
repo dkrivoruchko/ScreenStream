@@ -1,133 +1,78 @@
 package info.dvkr.screenstream.data.presenter.start
 
 import info.dvkr.screenstream.data.presenter.BasePresenter
+import info.dvkr.screenstream.data.presenter.BaseView
 import info.dvkr.screenstream.domain.eventbus.EventBus
 import info.dvkr.screenstream.domain.globalstatus.GlobalStatus
-import kotlinx.coroutines.experimental.ThreadPoolDispatcher
 import kotlinx.coroutines.experimental.channels.Channel
-import kotlinx.coroutines.experimental.channels.SendChannel
 import kotlinx.coroutines.experimental.channels.actor
-import timber.log.Timber
+import kotlinx.coroutines.experimental.launch
+import kotlin.coroutines.experimental.CoroutineContext
 
-class StartPresenter internal constructor(private val actorContext: ThreadPoolDispatcher,
-                                          private val eventBus: EventBus,
-                                          private val globalStatus: GlobalStatus) : BasePresenter<StartView>() {
+class StartPresenter(crtContext: CoroutineContext, eventBus: EventBus,
+                     private val globalStatus: GlobalStatus) :
+        BasePresenter<StartView, StartView.FromEvent>(crtContext, eventBus) {
 
-  private val actor: SendChannel<StartView.FromEvent>
+    init {
+        viewChannel = actor(crtContext, Channel.UNLIMITED) {
+            for (fromEvent in this) when (fromEvent) {
+                is StartView.FromEvent.CurrentInterfacesRequest ->
+                    eventBus.send(EventBus.GlobalEvent.CurrentInterfacesRequest)
 
-  init {
-    actor = actor(actorContext, Channel.UNLIMITED) {
-      for (fromEvent in this) {
-        // Events from StartActivity
-        Timber.d("[${Thread.currentThread().name} @${this.hashCode()}] fromEvent: $fromEvent")
+                is StartView.FromEvent.TryStartStream ->
+                    if (globalStatus.isStreamRunning.get().not()) {
+                        globalStatus.error.set(null)
+                        notifyView(StartView.ToEvent.TryToStart())
+                    }
 
-        when (fromEvent) {
-        // Relaying message to FgPresenter
-          is StartView.FromEvent.CurrentInterfacesRequest -> {
-            eventBus.sendEvent(EventBus.GlobalEvent.CurrentInterfacesRequest())
-          }
+                is StartView.FromEvent.StopStream ->
+                    if (globalStatus.isStreamRunning.get())
+                        eventBus.send(EventBus.GlobalEvent.StopStream)
 
-        // Sending message to StartActivity
-          is StartView.FromEvent.TryStartStream -> {
-            if (globalStatus.isStreamRunning.get()) return@actor
-            globalStatus.error.set(null)
-            view?.toEvent(StartView.ToEvent.TryToStart())
-          }
+                is StartView.FromEvent.AppExit ->
+                    eventBus.send(EventBus.GlobalEvent.AppExit)
 
-        // Relaying message to FgPresenter
-          is StartView.FromEvent.StopStream -> {
-            if (!globalStatus.isStreamRunning.get()) return@actor
-            eventBus.sendEvent(EventBus.GlobalEvent.StopStream())
-          }
+                is StartView.FromEvent.Error -> {
+                    globalStatus.error.set(fromEvent.error)
+                    notifyView(BaseView.BaseToEvent.Error(fromEvent.error))
+                }
 
-        // Relaying message to FgPresenter
-          is StartView.FromEvent.AppExit -> {
-            eventBus.sendEvent(EventBus.GlobalEvent.AppExit())
-          }
-
-        // Getting  Error
-          is StartView.FromEvent.Error -> {
-            globalStatus.error.set(fromEvent.error)
-            view?.toEvent(StartView.ToEvent.Error(fromEvent.error))
-          }
-
-        // Getting current Error
-          is StartView.FromEvent.GetError -> {
-            view?.toEvent(StartView.ToEvent.Error(globalStatus.error.get()))
-          }
+                is StartView.FromEvent.GetError ->
+                    notifyView(BaseView.BaseToEvent.Error(globalStatus.error.get()))
+            }
         }
-      }
     }
-  }
 
-  // Events from StartActivity to StartActivityPresenter
-  fun offer(fromEvent: StartView.FromEvent) = actor.offer(fromEvent)
+    fun attach(newView: StartView) {
+        super.attach(newView) { globalEvent ->
+            when (globalEvent) {
+                is EventBus.GlobalEvent.StreamStatus ->
+                    notifyView(StartView.ToEvent.OnStreamStartStop(globalStatus.isStreamRunning.get()))
 
-  override fun onCleared() {
-    actor.close()
-    super.onCleared()
-  }
+                is EventBus.GlobalEvent.ResizeFactor ->
+                    notifyView(StartView.ToEvent.ResizeFactor(globalEvent.value))
 
-  override fun attach(newView: StartView) {
-    Timber.w("[${Thread.currentThread().name} @${this.hashCode()}] Attach")
+                is EventBus.GlobalEvent.EnablePin ->
+                    notifyView(StartView.ToEvent.EnablePin(globalEvent.value))
 
-    view?.let { detach() }
-    view = newView
+                is EventBus.GlobalEvent.SetPin ->
+                    notifyView(StartView.ToEvent.SetPin(globalEvent.value))
 
-    // Global events
-    eventBus.getEvent().filter {
-      it is EventBus.GlobalEvent.StreamStatus ||
-          it is EventBus.GlobalEvent.ResizeFactor ||
-          it is EventBus.GlobalEvent.EnablePin ||
-          it is EventBus.GlobalEvent.SetPin ||
-          it is EventBus.GlobalEvent.CurrentClients ||
-          it is EventBus.GlobalEvent.CurrentInterfaces ||
-          it is EventBus.GlobalEvent.TrafficPoint
-    }.subscribe { globalEvent ->
-      Timber.d("[${Thread.currentThread().name} @${this.hashCode()}] globalEvent: $globalEvent")
+                is EventBus.GlobalEvent.CurrentClients ->
+                    notifyView(StartView.ToEvent.CurrentClients(globalEvent.clientsList))
 
-      when (globalEvent) {
-      // From ImageGeneratorImpl
-        is EventBus.GlobalEvent.StreamStatus -> {
-          view?.toEvent(StartView.ToEvent.OnStreamStartStop(globalStatus.isStreamRunning.get()))
+                is EventBus.GlobalEvent.CurrentInterfaces ->
+                    notifyView(StartView.ToEvent.CurrentInterfaces(globalEvent.interfaceList))
+
+                is EventBus.GlobalEvent.TrafficPoint ->
+                    notifyView(StartView.ToEvent.TrafficPoint(globalEvent.trafficPoint))
+            }
         }
 
-      // From SettingsPresenter
-        is EventBus.GlobalEvent.ResizeFactor -> {
-          view?.toEvent(StartView.ToEvent.ResizeFactor(globalEvent.value))
-        }
+        // Sending current stream status
+        notifyView(StartView.ToEvent.StreamRunning(globalStatus.isStreamRunning.get()))
 
-      // From SettingsPresenter
-        is EventBus.GlobalEvent.EnablePin -> {
-          view?.toEvent(StartView.ToEvent.EnablePin(globalEvent.value))
-        }
-
-      // From SettingsPresenter
-        is EventBus.GlobalEvent.SetPin -> {
-          view?.toEvent(StartView.ToEvent.SetPin(globalEvent.value))
-        }
-
-      // From HttpServerImpl
-        is EventBus.GlobalEvent.CurrentClients -> {
-          view?.toEvent(StartView.ToEvent.CurrentClients(globalEvent.clientsList))
-        }
-
-      // From FgPresenter
-        is EventBus.GlobalEvent.CurrentInterfaces -> {
-          view?.toEvent(StartView.ToEvent.CurrentInterfaces(globalEvent.interfaceList))
-        }
-
-      // From HttpServerImpl
-        is EventBus.GlobalEvent.TrafficPoint -> {
-          view?.toEvent(StartView.ToEvent.TrafficPoint(globalEvent.trafficPoint))
-        }
-      }
-    }.also { subscriptions.add(it) }
-
-    // Sending current stream status
-    view?.toEvent(StartView.ToEvent.StreamRunning(globalStatus.isStreamRunning.get()))
-
-    // Requesting current clients
-    eventBus.sendEvent(EventBus.GlobalEvent.CurrentClientsRequest())
-  }
+        // Requesting current clients
+        launch(crtContext) { eventBus.send(EventBus.GlobalEvent.CurrentClientsRequest) }
+    }
 }

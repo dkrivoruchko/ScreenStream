@@ -5,20 +5,18 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.os.Build
-import com.ironz.binaryprefs.BinaryPreferencesBuilder
-import info.dvkr.screenstream.data.settings.SettingsImpl
+import info.dvkr.screenstream.domain.settings.Settings
+import info.dvkr.screenstream.domain.utils.Utils
+import org.koin.standalone.KoinComponent
+import org.koin.standalone.inject
 import timber.log.Timber
 
-class BootReceiver : BroadcastReceiver() {
+class BootReceiver : BroadcastReceiver(), KoinComponent {
+
+    private val settings: Settings by inject()
 
     override fun onReceive(context: Context, intent: Intent) {
-        Timber.w("[${Thread.currentThread().name} @${this.hashCode()}] BootReceiver.onReceive")
-
-        val preferences = BinaryPreferencesBuilder(context)
-                .exceptionHandler { Timber.e(it, "BinaryPreferencesBuilder") }
-                .build()
-        val settings = SettingsImpl(preferences)
-
+        Timber.i("[${Utils.getLogPrefix(this)}] BootReceiver.onReceive")
         if (!settings.startOnBoot) System.exit(0)
 
         if ("android.intent.action.BOOT_COMPLETED" == intent.action ||

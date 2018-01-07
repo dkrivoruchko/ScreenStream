@@ -3,6 +3,7 @@ package info.dvkr.screenstream
 import android.app.Application
 import android.os.StrictMode
 import com.squareup.leakcanary.LeakCanary
+import info.dvkr.screenstream.domain.utils.Utils
 import info.dvkr.screenstream.di.koinModule
 import org.koin.android.ext.android.startKoin
 import timber.log.Timber
@@ -10,13 +11,12 @@ import timber.log.Timber.DebugTree
 
 
 class ScreenStreamApp : Application() {
-
     override fun onCreate() {
         super.onCreate()
 
         // Set up Timber
         Timber.plant(DebugTree())
-        Timber.w("[${Thread.currentThread().name}] onCreate: Start")
+        Timber.w("[${Utils.getLogPrefix(this)}] onCreate: Start")
 
         // Turning on strict mode
         StrictMode.setThreadPolicy(StrictMode.ThreadPolicy.Builder()
@@ -37,6 +37,6 @@ class ScreenStreamApp : Application() {
         // Set up DI
         startKoin(this, listOf(koinModule))
 
-        Timber.w("[${Thread.currentThread().name}] onCreate: End")
+        Timber.w("[${Utils.getLogPrefix(this)}] onCreate: End")
     }
 }

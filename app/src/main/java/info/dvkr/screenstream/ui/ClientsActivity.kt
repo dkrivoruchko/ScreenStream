@@ -1,47 +1,37 @@
 package info.dvkr.screenstream.ui
 
-import android.arch.lifecycle.ViewModelProviders
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.support.v4.content.ContextCompat
-import android.support.v7.app.AppCompatActivity
 import android.view.LayoutInflater
-import com.jakewharton.rxrelay.PublishRelay
 import com.jjoe64.graphview.DefaultLabelFormatter
 import com.jjoe64.graphview.GridLabelRenderer
 import com.jjoe64.graphview.series.DataPoint
 import com.jjoe64.graphview.series.LineGraphSeries
 import info.dvkr.screenstream.R
-import info.dvkr.screenstream.data.presenter.PresenterFactory
+import info.dvkr.screenstream.data.presenter.BaseView
 import info.dvkr.screenstream.data.presenter.clients.ClientsPresenter
 import info.dvkr.screenstream.data.presenter.clients.ClientsView
 import kotlinx.android.synthetic.main.activity_clients.*
 import kotlinx.android.synthetic.main.avtivity_clients_client_item.view.*
-import org.koin.android.ext.android.inject
-import rx.Observable
+import org.koin.android.architecture.ext.getViewModel
 import timber.log.Timber
 import java.text.NumberFormat
 
 
-class ClientsActivity : AppCompatActivity(), ClientsView {
+class ClientsActivity : BaseActivity(), ClientsView {
 
     companion object {
         fun getStartIntent(context: Context): Intent = Intent(context, ClientsActivity::class.java)
     }
 
-    private val presenterFactory: PresenterFactory by inject()
-    private val presenter: ClientsPresenter by lazy {
-        ViewModelProviders.of(this, presenterFactory).get(ClientsPresenter::class.java)
-    }
+    private val presenter: ClientsPresenter by lazy { getViewModel<ClientsPresenter>() }
 
-    private val fromEvents = PublishRelay.create<ClientsView.FromEvent>()
     private var lineGraphSeries: LineGraphSeries<DataPoint>? = null
 
-    override fun fromEvent(): Observable<ClientsView.FromEvent> = fromEvents.asObservable()
-
-    override fun toEvent(toEvent: ClientsView.ToEvent) = runOnUiThread {
-        Timber.d("[${Thread.currentThread().name} @${this.hashCode()}] toEvent: $toEvent")
+    override fun toEvent(toEvent: BaseView.BaseToEvent) = runOnUiThread {
+        Timber.d("[${this.javaClass.simpleName}#${this.hashCode()}@${Thread.currentThread().name}] toEvent: $toEvent")
 
         when (toEvent) {
             is ClientsView.ToEvent.CurrentClients -> {
@@ -106,8 +96,6 @@ class ClientsActivity : AppCompatActivity(), ClientsView {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        Timber.w("[${Thread.currentThread().name} @${this.hashCode()}] onCreate")
-
         setContentView(R.layout.activity_clients)
 
         textViewCurrentTraffic.text = getString(R.string.clients_activity_current_traffic).format(0.0)
@@ -118,11 +106,10 @@ class ClientsActivity : AppCompatActivity(), ClientsView {
 
     override fun onStart() {
         super.onStart()
-        fromEvents.call(ClientsView.FromEvent.TrafficHistoryRequest)
+        presenter.offer(ClientsView.FromEvent.TrafficHistoryRequest)
     }
 
     override fun onDestroy() {
-        Timber.w("[${Thread.currentThread().name} @${this.hashCode()}] onDestroy")
         presenter.detach()
         super.onDestroy()
     }

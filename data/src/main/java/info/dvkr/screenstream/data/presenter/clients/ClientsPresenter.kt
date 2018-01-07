@@ -3,78 +3,60 @@ package info.dvkr.screenstream.data.presenter.clients
 import info.dvkr.screenstream.data.presenter.BasePresenter
 import info.dvkr.screenstream.domain.eventbus.EventBus
 import info.dvkr.screenstream.domain.httpserver.HttpServer
-import rx.Scheduler
-import timber.log.Timber
+import kotlinx.coroutines.experimental.channels.Channel
+import kotlinx.coroutines.experimental.channels.actor
+import kotlinx.coroutines.experimental.launch
 import java.util.concurrent.ConcurrentLinkedDeque
+import kotlin.coroutines.experimental.CoroutineContext
 
-class ClientsPresenter internal constructor(private val eventScheduler: Scheduler,
-                                            private val eventBus: EventBus) : BasePresenter<ClientsView>() {
+class ClientsPresenter(crtContext: CoroutineContext, eventBus: EventBus) :
+        BasePresenter<ClientsView, ClientsView.FromEvent>(crtContext, eventBus) {
 
     private val trafficHistory = ConcurrentLinkedDeque<HttpServer.TrafficPoint>()
     private var maxYValue = 0L
 
-    override fun attach(newView: ClientsView) {
-        Timber.w("[${Thread.currentThread().name} @${this.hashCode()}] Attach")
-
-        view?.let { detach() }
-        view = newView
-
-        // Events from ClientsActivity
-        view?.fromEvent()?.observeOn(eventScheduler)?.subscribe { fromEvent ->
-            Timber.d("[${Thread.currentThread().name} @${this.hashCode()}] fromEvent: $fromEvent")
-
-            when (fromEvent) {
-            // Getting current traffic history
+    init {
+        viewChannel = actor(crtContext, Channel.UNLIMITED) {
+            for (fromEvent in this) when (fromEvent) {
                 is ClientsView.FromEvent.TrafficHistoryRequest -> {
                     // Requesting current traffic history
                     if (trafficHistory.isEmpty()) {
-                        eventBus.sendEvent(EventBus.GlobalEvent.TrafficHistoryRequest())
+                        eventBus.send(EventBus.GlobalEvent.TrafficHistoryRequest)
                     } else {
                         maxYValue = trafficHistory.maxBy { it.bytes }?.bytes ?: 0
-                        view?.toEvent(ClientsView.ToEvent.TrafficHistory(trafficHistory.toList(), maxYValue))
+                        notifyView(ClientsView.ToEvent.TrafficHistory(trafficHistory.toList(), maxYValue))
                     }
                 }
-
-                else -> throw IllegalArgumentException("Unknown fromEvent")
             }
-        }.also { subscriptions.add(it) }
 
-        // Global events
-        eventBus.getEvent().filter {
-            it is EventBus.GlobalEvent.CurrentClients ||
-                    it is EventBus.GlobalEvent.TrafficHistory ||
-                    it is EventBus.GlobalEvent.TrafficPoint
-        }.subscribe { globalEvent ->
-            Timber.d("[${Thread.currentThread().name} @${this.hashCode()}] globalEvent: $globalEvent")
+        }
+    }
 
+    fun attach(newView: ClientsView) {
+        super.attach(newView) { globalEvent ->
             when (globalEvent) {
-            // From HttpServerImpl
-                is EventBus.GlobalEvent.CurrentClients -> {
-                    view?.toEvent(ClientsView.ToEvent.CurrentClients(globalEvent.clientsList))
-                }
+                is EventBus.GlobalEvent.CurrentClients ->
+                    notifyView(ClientsView.ToEvent.CurrentClients(globalEvent.clientsList))
 
-            // From HttpServerImpl
                 is EventBus.GlobalEvent.TrafficHistory -> {
                     trafficHistory.clear()
                     trafficHistory.addAll(globalEvent.trafficHistory.sortedBy { it.time })
                     maxYValue = trafficHistory.maxBy { it.bytes }?.bytes ?: 0
-                    view?.toEvent(ClientsView.ToEvent.TrafficHistory(trafficHistory.toList(), maxYValue))
+                    notifyView(ClientsView.ToEvent.TrafficHistory(trafficHistory.toList(), maxYValue))
                 }
 
-            // From HttpServerImpl
-                is EventBus.GlobalEvent.TrafficPoint -> {
-                    if (trafficHistory.isEmpty() || trafficHistory.last.time >= globalEvent.trafficPoint.time) {
-                        return@subscribe
+                is EventBus.GlobalEvent.TrafficPoint ->
+                    if (trafficHistory.isNotEmpty() && trafficHistory.last.time < globalEvent.trafficPoint.time) {
+                        trafficHistory.removeFirst()
+                        trafficHistory.addLast(globalEvent.trafficPoint)
+                        maxYValue = trafficHistory.maxBy { it.bytes }?.bytes ?: 0
+                        notifyView(ClientsView.ToEvent.TrafficPoint(globalEvent.trafficPoint, maxYValue))
                     }
-                    trafficHistory.removeFirst()
-                    trafficHistory.addLast(globalEvent.trafficPoint)
-                    maxYValue = trafficHistory.maxBy { it.bytes }?.bytes ?: 0
-                    view?.toEvent(ClientsView.ToEvent.TrafficPoint(globalEvent.trafficPoint, maxYValue))
-                }
             }
-        }.also { subscriptions.add(it) }
+
+        }
 
         // Requesting current clients
-        eventBus.sendEvent(EventBus.GlobalEvent.CurrentClientsRequest())
+        launch(crtContext) { eventBus.send(EventBus.GlobalEvent.CurrentClientsRequest) }
     }
 }

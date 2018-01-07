@@ -1,15 +1,16 @@
 package info.dvkr.screenstream.domain.eventbus
 
-import com.jakewharton.rxrelay.PublishRelay
-import rx.Observable
-import rx.Scheduler
+import kotlinx.coroutines.experimental.channels.ArrayBroadcastChannel
+import kotlinx.coroutines.experimental.channels.Channel
+import kotlinx.coroutines.experimental.channels.SubscriptionReceiveChannel
 
-class EventBusImpl(private val eventScheduler: Scheduler) : EventBus {
-    private val events = PublishRelay.create<EventBus.GlobalEvent>()
+class EventBusImpl : EventBus {
+    private val broadcastChannel = ArrayBroadcastChannel<EventBus.GlobalEvent>(256)
 
-    override fun getEvent(): Observable<EventBus.GlobalEvent> = events.asObservable()
-            .subscribeOn(eventScheduler)
-            .onBackpressureBuffer()
+    override suspend fun send(event: EventBus.GlobalEvent) {
+        if (broadcastChannel.isClosedForSend.not()) broadcastChannel.send(event)
+    }
 
-    override fun sendEvent(event: EventBus.GlobalEvent) = events.call(event)
+    override fun openSubscription(): SubscriptionReceiveChannel<EventBus.GlobalEvent> =
+            broadcastChannel.openSubscription()
 }

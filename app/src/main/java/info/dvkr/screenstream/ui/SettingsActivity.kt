@@ -1,7 +1,6 @@
 package info.dvkr.screenstream.ui
 
 import android.app.Dialog
-import android.arch.lifecycle.ViewModelProviders
 import android.content.Context
 import android.content.Intent
 import android.graphics.Point
@@ -12,7 +11,6 @@ import android.support.annotation.Keep
 import android.support.annotation.StringRes
 import android.support.v4.app.DialogFragment
 import android.support.v7.app.AlertDialog
-import android.support.v7.app.AppCompatActivity
 import android.text.Editable
 import android.text.InputFilter
 import android.text.TextWatcher
@@ -22,22 +20,21 @@ import android.view.ViewGroup
 import android.view.WindowManager
 import android.widget.EditText
 import android.widget.TextView
-import com.jakewharton.rxrelay.PublishRelay
 import com.jrummyapps.android.colorpicker.ColorPickerDialog
 import com.jrummyapps.android.colorpicker.ColorPickerDialogListener
 import com.tapadoo.alerter.Alerter
 import info.dvkr.screenstream.R
-import info.dvkr.screenstream.data.presenter.PresenterFactory
+import info.dvkr.screenstream.data.presenter.BaseView
 import info.dvkr.screenstream.data.presenter.settings.SettingsPresenter
 import info.dvkr.screenstream.data.presenter.settings.SettingsView
+import info.dvkr.screenstream.data.presenter.start.StartPresenter
 import kotlinx.android.synthetic.main.activity_settings.*
 import kotlinx.android.synthetic.main.settings_edittext_dialog.view.*
-import org.koin.android.ext.android.inject
-import rx.Observable
+import org.koin.android.architecture.ext.getViewModel
 import timber.log.Timber
 
 
-class SettingsActivity : AppCompatActivity(), SettingsView, ColorPickerDialogListener,
+class SettingsActivity : BaseActivity(), SettingsView, ColorPickerDialogListener,
         EditTextDialog.DialogCallback {
 
     companion object {
@@ -50,21 +47,12 @@ class SettingsActivity : AppCompatActivity(), SettingsView, ColorPickerDialogLis
         fun getStartIntent(context: Context): Intent = Intent(context, SettingsActivity::class.java)
     }
 
-    private val presenterFactory: PresenterFactory by inject()
-    private val presenter: SettingsPresenter by lazy {
-        ViewModelProviders.of(this, presenterFactory).get(SettingsPresenter::class.java)
-    }
-
-    private val fromEvents = PublishRelay.create<SettingsView.FromEvent>()
+    private val presenter: SettingsPresenter by lazy { getViewModel<SettingsPresenter>() }
 
     private var htmlBackColor: Int = 0
-    private val screenSize = Point()
     private var resizeFactor: Int = 0
-//    private var dialog: Dialog? = null
 
-    override fun fromEvent(): Observable<SettingsView.FromEvent> = fromEvents.asObservable()
-
-    override fun toEvent(toEvent: SettingsView.ToEvent) = runOnUiThread {
+    override fun toEvent(toEvent: BaseView.BaseToEvent) = runOnUiThread {
         Timber.d("[${Thread.currentThread().name} @${this.hashCode()}] toEvent: $toEvent")
 
         when (toEvent) {
@@ -86,19 +74,28 @@ class SettingsActivity : AppCompatActivity(), SettingsView, ColorPickerDialogLis
                 enableDisableView(clHidePinOnStart, toEvent.value)
                 enableDisableView(clNewPinOnAppStart, toEvent.value)
                 enableDisableView(clAutoChangePin, toEvent.value)
-                enableDisableView(clSetPin, checkBoxEnablePin.isChecked && !checkBoxNewPinOnAppStart.isChecked && !checkBoxAutoChangePin.isChecked)
+                enableDisableView(clSetPin,
+                        checkBoxEnablePin.isChecked &&
+                                !checkBoxNewPinOnAppStart.isChecked &&
+                                !checkBoxAutoChangePin.isChecked)
             }
 
             is SettingsView.ToEvent.HidePinOnStart -> checkBoxHidePinOnStart.isChecked = toEvent.value
 
             is SettingsView.ToEvent.NewPinOnAppStart -> {
                 checkBoxNewPinOnAppStart.isChecked = toEvent.value
-                enableDisableView(clSetPin, checkBoxEnablePin.isChecked && !checkBoxNewPinOnAppStart.isChecked && !checkBoxAutoChangePin.isChecked)
+                enableDisableView(clSetPin,
+                        checkBoxEnablePin.isChecked &&
+                                !checkBoxNewPinOnAppStart.isChecked &&
+                                !checkBoxAutoChangePin.isChecked)
             }
 
             is SettingsView.ToEvent.AutoChangePin -> {
                 checkBoxAutoChangePin.isChecked = toEvent.value
-                enableDisableView(clSetPin, checkBoxEnablePin.isChecked && !checkBoxNewPinOnAppStart.isChecked && !checkBoxAutoChangePin.isChecked)
+                enableDisableView(clSetPin,
+                        checkBoxEnablePin.isChecked &&
+                                !checkBoxNewPinOnAppStart.isChecked &&
+                                !checkBoxAutoChangePin.isChecked)
             }
 
             is SettingsView.ToEvent.SetPin -> textViewSetPinValue.text = toEvent.value
@@ -120,12 +117,6 @@ class SettingsActivity : AppCompatActivity(), SettingsView, ColorPickerDialogLis
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        Timber.w("[${Thread.currentThread().name} @${this.hashCode()}] onCreate")
-
-        val windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
-        val defaultDisplay = windowManager.defaultDisplay
-        defaultDisplay.getRealSize(screenSize)
-
         setContentView(R.layout.activity_settings)
 
         presenter.attach(this)
@@ -133,25 +124,25 @@ class SettingsActivity : AppCompatActivity(), SettingsView, ColorPickerDialogLis
         // Interface - Minimize on stream
         clMinimizeOnStream.setOnClickListener { _ -> checkBoxMinimizeOnStream.performClick() }
         checkBoxMinimizeOnStream.setOnClickListener { _ ->
-            fromEvents.call(SettingsView.FromEvent.MinimizeOnStream(checkBoxMinimizeOnStream.isChecked))
+            presenter.offer(SettingsView.FromEvent.MinimizeOnStream(checkBoxMinimizeOnStream.isChecked))
         }
 
         // Interface - Stop on sleep
         clStopOnSleep.setOnClickListener { _ -> checkBoxStopOnSleep.performClick() }
         checkBoxStopOnSleep.setOnClickListener { _ ->
-            fromEvents.call(SettingsView.FromEvent.StopOnSleep(checkBoxStopOnSleep.isChecked))
+            presenter.offer(SettingsView.FromEvent.StopOnSleep(checkBoxStopOnSleep.isChecked))
         }
 
         // Interface - StartService on boot
         clStartOnBoot.setOnClickListener { _ -> checkBoxStartOnBoot.performClick() }
         checkBoxStartOnBoot.setOnClickListener { _ ->
-            fromEvents.call(SettingsView.FromEvent.StartOnBoot(checkBoxStartOnBoot.isChecked))
+            presenter.offer(SettingsView.FromEvent.StartOnBoot(checkBoxStartOnBoot.isChecked))
         }
 
         // Interface - HTML MJPEG check
         clMjpegCheck.setOnClickListener { _ -> checkBoxMjpegCheck.performClick() }
         checkBoxMjpegCheck.setOnClickListener { _ ->
-            fromEvents.call(SettingsView.FromEvent.DisableMjpegCheck(checkBoxMjpegCheck.isChecked))
+            presenter.offer(SettingsView.FromEvent.DisableMjpegCheck(checkBoxMjpegCheck.isChecked))
         }
 
         // Interface - HTML Back color
@@ -201,28 +192,37 @@ class SettingsActivity : AppCompatActivity(), SettingsView, ColorPickerDialogLis
             enableDisableView(clHidePinOnStart, checked)
             enableDisableView(clNewPinOnAppStart, checked)
             enableDisableView(clAutoChangePin, checked)
-            enableDisableView(clSetPin, checkBoxEnablePin.isChecked && !checkBoxNewPinOnAppStart.isChecked && !checkBoxAutoChangePin.isChecked)
-            fromEvents.call(SettingsView.FromEvent.EnablePin(checked))
+            enableDisableView(clSetPin,
+                    checkBoxEnablePin.isChecked &&
+                            !checkBoxNewPinOnAppStart.isChecked &&
+                            !checkBoxAutoChangePin.isChecked)
+            presenter.offer(SettingsView.FromEvent.EnablePin(checked))
         }
 
         // Security - Hide pin on start
         clHidePinOnStart.setOnClickListener { _ -> checkBoxHidePinOnStart.performClick() }
         checkBoxHidePinOnStart.setOnClickListener { _ ->
-            fromEvents.call(SettingsView.FromEvent.HidePinOnStart(checkBoxHidePinOnStart.isChecked))
+            presenter.offer(SettingsView.FromEvent.HidePinOnStart(checkBoxHidePinOnStart.isChecked))
         }
 
         // Security - New pin on app start
         clNewPinOnAppStart.setOnClickListener { _ -> checkBoxNewPinOnAppStart.performClick() }
         checkBoxNewPinOnAppStart.setOnClickListener { _ ->
-            enableDisableView(clSetPin, checkBoxEnablePin.isChecked && !checkBoxNewPinOnAppStart.isChecked && !checkBoxAutoChangePin.isChecked)
-            fromEvents.call(SettingsView.FromEvent.NewPinOnAppStart(checkBoxNewPinOnAppStart.isChecked))
+            enableDisableView(clSetPin,
+                    checkBoxEnablePin.isChecked &&
+                            !checkBoxNewPinOnAppStart.isChecked &&
+                            !checkBoxAutoChangePin.isChecked)
+            presenter.offer(SettingsView.FromEvent.NewPinOnAppStart(checkBoxNewPinOnAppStart.isChecked))
         }
 
         // Security - Auto change pin
         clAutoChangePin.setOnClickListener { _ -> checkBoxAutoChangePin.performClick() }
         checkBoxAutoChangePin.setOnClickListener { _ ->
-            enableDisableView(clSetPin, checkBoxEnablePin.isChecked && !checkBoxNewPinOnAppStart.isChecked && !checkBoxAutoChangePin.isChecked)
-            fromEvents.call(SettingsView.FromEvent.AutoChangePin(checkBoxAutoChangePin.isChecked))
+            enableDisableView(clSetPin,
+                    checkBoxEnablePin.isChecked &&
+                            !checkBoxNewPinOnAppStart.isChecked &&
+                            !checkBoxAutoChangePin.isChecked)
+            presenter.offer(SettingsView.FromEvent.AutoChangePin(checkBoxAutoChangePin.isChecked))
         }
 
         // Security - Set pin
@@ -242,7 +242,7 @@ class SettingsActivity : AppCompatActivity(), SettingsView, ColorPickerDialogLis
         // Advanced - Use WiFi Only
         clUseWifiOnly.setOnClickListener { _ -> checkBoxUseWifiOnly.performClick() }
         checkBoxUseWifiOnly.setOnClickListener { _ ->
-            fromEvents.call(SettingsView.FromEvent.UseWiFiOnly(checkBoxUseWifiOnly.isChecked))
+            presenter.offer(SettingsView.FromEvent.UseWiFiOnly(checkBoxUseWifiOnly.isChecked))
         }
 
         // Advanced - Server port
@@ -264,23 +264,22 @@ class SettingsActivity : AppCompatActivity(), SettingsView, ColorPickerDialogLis
         result as EditTextDialog.DialogCallback.Result.Positive
         when (result.dialogTag) {
             DIALOG_RESIZE_FACTOR_TAG ->
-                fromEvents.call(SettingsView.FromEvent.ResizeFactor(Integer.parseInt(result.result)))
+                presenter.offer(SettingsView.FromEvent.ResizeFactor(Integer.parseInt(result.result)))
 
             DIALOG_JPEG_QUALITY_TAG ->
-                fromEvents.call(SettingsView.FromEvent.JpegQuality(Integer.parseInt(result.result)))
+                presenter.offer(SettingsView.FromEvent.JpegQuality(Integer.parseInt(result.result)))
 
             DIALOG_SET_PIN_TAG ->
-                fromEvents.call(SettingsView.FromEvent.SetPin(result.result))
+                presenter.offer(SettingsView.FromEvent.SetPin(result.result))
 
             DIALOG_SERVER_PORT_TAG ->
-                fromEvents.call(SettingsView.FromEvent.ServerPort(Integer.parseInt(result.result)))
+                presenter.offer(SettingsView.FromEvent.ServerPort(Integer.parseInt(result.result)))
 
             else -> Unit
         }
     }
 
     override fun onDestroy() {
-        Timber.w("[${Thread.currentThread().name} @${this.hashCode()}] onDestroy")
         presenter.detach()
         super.onDestroy()
     }
@@ -288,7 +287,7 @@ class SettingsActivity : AppCompatActivity(), SettingsView, ColorPickerDialogLis
     override fun onColorSelected(dialogId: Int, color: Int) {
         if (htmlBackColor == color) return
         viewHtmlBackColor.setBackgroundColor(color)
-        fromEvents.call(SettingsView.FromEvent.HtmlBackColor(color))
+        presenter.offer(SettingsView.FromEvent.HtmlBackColor(color))
     }
 
     override fun onDialogDismissed(dialogId: Int) {}
@@ -376,16 +375,19 @@ class EditTextDialog : DialogFragment() {
                 }
     }
 
-    private val windowManager: WindowManager by lazy { activity?.getSystemService(Context.WINDOW_SERVICE) as WindowManager }
+
+    private val screenSize: Point  by lazy {
+        val screenSize = Point()
+        val windowManager = activity?.getSystemService(Context.WINDOW_SERVICE) as WindowManager
+        windowManager.defaultDisplay.apply { getRealSize(screenSize) }
+        screenSize
+    }
 
     override fun onStart() {
         super.onStart()
         val positiveButton = (dialog as AlertDialog).getButton(Dialog.BUTTON_POSITIVE)
         val editTextValue = dialog.findViewById<EditText>(R.id.editTextSettingsEditTextValue)
         val textViewResult = dialog.findViewById<TextView>(R.id.textViewSettingsEditTextResult)
-
-        val screenSize = Point()
-        windowManager.defaultDisplay.apply { getRealSize(screenSize) }
 
         arguments?.apply {
             positiveButton.isEnabled = editTextValue.text.length in getInt(MIN_LENGTH)..getInt(MAX_LENGTH) &&
@@ -439,8 +441,6 @@ class EditTextDialog : DialogFragment() {
                         .inflate(R.layout.settings_edittext_dialog, null, false)
                 with(dialogView) {
                     if (getBoolean(RESIZE_IMAGE_DIALOG)) {
-                        val screenSize = Point()
-                        windowManager.defaultDisplay.apply { getRealSize(screenSize) }
                         getString(MESSAGE_TEXT)?.let { textViewSettingsEditTextContent.text = it.format(screenSize.x, screenSize.y) }
                     } else {
                         getString(MESSAGE_TEXT)?.let { textViewSettingsEditTextContent.text = it }

@@ -75,6 +75,7 @@ dependencies {
     implementation "android.arch.lifecycle:extensions:$lifecycle_version"
 
     implementation "org.koin:koin-android:$koin_version"
+    implementation "org.koin:koin-android-architecture:$koin_version"
 
     implementation "io.reactivex:rxjava:$rxjava_version"
     implementation "io.reactivex:rxandroid:$rxandroid_version"
@@ -82,7 +83,6 @@ dependencies {
 
     implementation "com.github.iamironz:binaryprefs:$binaryprefs_version"
 
-    implementation 'com.cantrowitz:rxbroadcast:1.1.2'
     implementation("com.mikepenz:materialdrawer:6.0.2@aar") {
         transitive = true
     }
