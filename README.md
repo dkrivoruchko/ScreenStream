@@ -19,11 +19,11 @@ The number of client connections is unlimited, but be aware that each of them re
 
 Application uses Android Cast feature and requires at least Android 5.0 to run.
 
-**WARING:** This is not a real time streaming app. Expected delay is at least 0.5-1 second or more on slow devices, bad WiFi or on heavy CPU load by other apps.<br>
-**WARING:** This app is not designed for streaming video, especially HD video. Use Chromecast instead.<br>
-**WARING:** This app does NOT support SOUND streaming, because MJPEG does not support sound.<br>
-**WARING:** Some cell operators may block incoming connections to your device for security reasons, so, even if the device has an IP address from a cell operator, you may not be able to connect to the device on using this IP address.<br>
-**WARING:** Some WiFi networks (mostly public/guest) block connections between its clients for security reasons, so you may not be able to connect to the device via WiFi. For example, a laptop and a phone in this such a WiFi network will not be able to connect to each other.
+**WARNING:** This is not a real time streaming app. Expected delay is at least 0.5-1 second or more on slow devices, bad WiFi or on heavy CPU load by other apps.<br>
+**WARNING:** This app is not designed for streaming video, especially HD video. Use Chromecast instead.<br>
+**WARNING:** This app does NOT support SOUND streaming, because MJPEG does not support sound.<br>
+**WARNING:** Some cell operators may block incoming connections to your device for security reasons, so, even if the device has an IP address from a cell operator, you may not be able to connect to the device on using this IP address.<br>
+**WARNING:** Some WiFi networks (mostly public/guest) block connections between its clients for security reasons, so you may not be able to connect to the device via WiFi. For example, a laptop and a phone in this such a WiFi network will not be able to connect to each other.
 
 ### Known problems
 
