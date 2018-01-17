@@ -7,9 +7,7 @@ import android.graphics.Point
 import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import android.support.annotation.DrawableRes
-import android.support.annotation.Keep
 import android.support.annotation.StringRes
-import android.support.v4.app.DialogFragment
 import android.support.v7.app.AlertDialog
 import android.text.Editable
 import android.text.InputFilter
@@ -27,15 +25,16 @@ import info.dvkr.screenstream.R
 import info.dvkr.screenstream.data.presenter.BaseView
 import info.dvkr.screenstream.data.presenter.settings.SettingsPresenter
 import info.dvkr.screenstream.data.presenter.settings.SettingsView
-import info.dvkr.screenstream.data.presenter.start.StartPresenter
 import kotlinx.android.synthetic.main.activity_settings.*
 import kotlinx.android.synthetic.main.settings_edittext_dialog.view.*
 import org.koin.android.architecture.ext.getViewModel
 import timber.log.Timber
 
 
-class SettingsActivity : BaseActivity(), SettingsView, ColorPickerDialogListener,
-        EditTextDialog.DialogCallback {
+class SettingsActivity : BaseActivity(),
+        SettingsView,
+        ColorPickerDialogListener,
+        BaseDialog.DialogCallback {
 
     companion object {
         private const val DIALOG_RESIZE_FACTOR_TAG = "DIALOG_RESIZE_FACTOR_TAG"
@@ -167,8 +166,7 @@ class SettingsActivity : BaseActivity(), SettingsView, ColorPickerDialogListener
                     Integer.toString(resizeFactor),
                     true,
                     R.string.pref_resize_dialog_result
-            )
-                    .show(supportFragmentManager, DIALOG_RESIZE_FACTOR_TAG)
+            ).show(fragmentManager, DIALOG_RESIZE_FACTOR_TAG)
         }
 
         // Image - Jpeg Quality
@@ -181,8 +179,7 @@ class SettingsActivity : BaseActivity(), SettingsView, ColorPickerDialogListener
                     2, 3,
                     10, 100,
                     textViewJpegQualityValue.text.toString()
-            )
-                    .show(supportFragmentManager, DIALOG_JPEG_QUALITY_TAG)
+            ).show(fragmentManager, DIALOG_JPEG_QUALITY_TAG)
         }
 
         // Security - Enable pin
@@ -235,8 +232,7 @@ class SettingsActivity : BaseActivity(), SettingsView, ColorPickerDialogListener
                     4, 4,
                     0, 9999,
                     textViewSetPinValue.text.toString()
-            )
-                    .show(supportFragmentManager, DIALOG_SET_PIN_TAG)
+            ).show(fragmentManager, DIALOG_SET_PIN_TAG)
         }
 
         // Advanced - Use WiFi Only
@@ -255,25 +251,24 @@ class SettingsActivity : BaseActivity(), SettingsView, ColorPickerDialogListener
                     4, 6,
                     1025, 65535,
                     textViewServerPortValue.text.toString()
-            )
-                    .show(supportFragmentManager, DIALOG_SERVER_PORT_TAG)
+            ).show(fragmentManager, DIALOG_SERVER_PORT_TAG)
         }
     }
 
-    override fun onDialogResult(result: EditTextDialog.DialogCallback.Result) {
-        result as EditTextDialog.DialogCallback.Result.Positive
+    override fun onDialogResult(result: BaseDialog.DialogCallback.Result) {
+        result as BaseDialog.DialogCallback.Result.Positive
         when (result.dialogTag) {
             DIALOG_RESIZE_FACTOR_TAG ->
-                presenter.offer(SettingsView.FromEvent.ResizeFactor(Integer.parseInt(result.result)))
+                presenter.offer(SettingsView.FromEvent.ResizeFactor(Integer.parseInt(result.data)))
 
             DIALOG_JPEG_QUALITY_TAG ->
-                presenter.offer(SettingsView.FromEvent.JpegQuality(Integer.parseInt(result.result)))
+                presenter.offer(SettingsView.FromEvent.JpegQuality(Integer.parseInt(result.data)))
 
             DIALOG_SET_PIN_TAG ->
-                presenter.offer(SettingsView.FromEvent.SetPin(result.result))
+                presenter.offer(SettingsView.FromEvent.SetPin(result.data))
 
             DIALOG_SERVER_PORT_TAG ->
-                presenter.offer(SettingsView.FromEvent.ServerPort(Integer.parseInt(result.result)))
+                presenter.offer(SettingsView.FromEvent.ServerPort(Integer.parseInt(result.data)))
 
             else -> Unit
         }
@@ -301,20 +296,9 @@ class SettingsActivity : BaseActivity(), SettingsView, ColorPickerDialogListener
     }
 }
 
-class EditTextDialog : DialogFragment() {
-    interface DialogCallback {
-        @Keep open class Result(val dialogTag: String) {
-            @Keep data class Positive(val tag: String, val result: String = "") : Result(tag)
-        }
-
-        fun onDialogResult(result: Result)
-    }
-
+class EditTextDialog : BaseDialog() {
     companion object {
-        internal const val DIALOG_TAG = "DIALOG_TAG"
-        internal const val TITLE_TEXT = "TITLE_TEXT"
         internal const val TITLE_ICON = "TITLE_ICON"
-        internal const val MESSAGE_TEXT = "MESSAGE_TEXT"
         internal const val MIN_LENGTH = "MIN_LENGTH"
         internal const val MAX_LENGTH = "MAX_LENGTH"
         internal const val MIN_VALUE = "MIN_VALUE"
@@ -323,7 +307,6 @@ class EditTextDialog : DialogFragment() {
         internal const val RESIZE_IMAGE_DIALOG = "RESIZE_IMAGE_DIALOG"
         internal const val RESIZE_IMAGE_TEXT = "RESIZE_IMAGE_TEXT"
 
-        @JvmStatic
         fun newInstance(context: Context,
                         dialogTag: String,
                         @StringRes titleResId: Int = 0,
@@ -348,16 +331,15 @@ class EditTextDialog : DialogFragment() {
                         resizeImageResultText = if (resizeImageResultTextResId > 0) context.getString(resizeImageResultTextResId) else ""
                 )
 
-        @JvmStatic
-        fun newInstance(dialogTag: String,
-                        titleText: String = "",
-                        titleIconResId: Int = 0,
-                        messageText: String = "",
-                        minLength: Int, maxLength: Int,
-                        minValue: Int, maxValue: Int,
-                        currentValue: String = "",
-                        resizeImageDialog: Boolean = false,
-                        resizeImageResultText: String = "") =
+        private fun newInstance(dialogTag: String,
+                                titleText: String = "",
+                                titleIconResId: Int = 0,
+                                messageText: String = "",
+                                minLength: Int, maxLength: Int,
+                                minValue: Int, maxValue: Int,
+                                currentValue: String = "",
+                                resizeImageDialog: Boolean = false,
+                                resizeImageResultText: String = "") =
                 EditTextDialog().apply {
                     arguments = Bundle().apply {
                         putString(DIALOG_TAG, dialogTag)
@@ -449,8 +431,7 @@ class EditTextDialog : DialogFragment() {
 
                     editTextSettingsEditTextValue.setText(currentValue)
                     editTextSettingsEditTextValue.setSelection(currentValue.length)
-                    editTextSettingsEditTextValue.filters =
-                            arrayOf<InputFilter>(InputFilter.LengthFilter(maxLength))
+                    editTextSettingsEditTextValue.filters = arrayOf<InputFilter>(InputFilter.LengthFilter(maxLength))
                 }
                 setView(dialogView)
 
@@ -459,11 +440,7 @@ class EditTextDialog : DialogFragment() {
                     if (newStringValue.length in minLength..maxLength &&
                             currentValue != newStringValue &&
                             Integer.parseInt(newStringValue) in minValue..maxValue)
-                        activity?.let {
-                            (it as DialogCallback).onDialogResult(
-                                    DialogCallback.Result.Positive(dialogTag, newStringValue)
-                            )
-                        }
+                        sendDialogResult(DialogCallback.Result.Positive(dialogTag, newStringValue))
                 })
 
                 setNegativeButton(android.R.string.cancel, null)

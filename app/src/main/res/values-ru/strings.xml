@@ -23,7 +23,9 @@
     <string name="start_activity_alert_title_error">Ошибка</string>
     <string name="start_activity_alert_title_error_network">Сетевая ошибка</string>
     <string name="start_activity_alert_title_error_unknown">Неизвестная ошибка</string>
-    <string name="start_activity_cast_permission_required">Приложению требуется разрешение на доступ к изображению экрана устройства</string>
+    <string name="start_activity_cast_permission_required_title">Требуется разрешение</string>
+    <string name="start_activity_cast_permission_required">Приложению требуется разрешение на доступ к изображению экрана устройства.</string>
+    <string name="start_activity_error_ip_address_not_found">IP адресс не найден</string>
     <string name="start_activity_error_port_in_use">Порт уже используется. Выберите другой</string>
     <string name="start_activity_error_network_unknown">Неизвестная сетевая ошибка</string>
     <string name="start_activity_error_invalid_media_projection">Ошибка безопасности: Недопустимая проекция медиа. Попробуйте еще раз</string>
@@ -98,7 +100,7 @@
     <string name="clients_activity_client_connected">Подключен</string>
     <string name="clients_activity_client_disconnected">Отключен</string>
     <string name="clients_activity_client_slow_network">Медленный</string>
-    <string name="clients_activity_client">Клиент:\u0020</string>
+    <string name="clients_activity_client">Клиент: %1$s</string>
 
     <!--AboutActivity-->
     <string name="about_activity_name">О приложении</string>

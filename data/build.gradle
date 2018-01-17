@@ -40,7 +40,6 @@ dependencies {
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutine_version"
 
     implementation "com.android.support:support-annotations:$support_version"
-    implementation "com.android.support:support-fragment:$support_version"
     implementation "android.arch.lifecycle:extensions:$lifecycle_version"
 
     implementation "io.reactivex:rxjava:$rxjava_version"

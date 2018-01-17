@@ -2,6 +2,7 @@ package info.dvkr.screenstream.domain.httpserver
 
 
 import com.jakewharton.rxrelay.BehaviorRelay
+import info.dvkr.screenstream.domain.utils.Utils
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
 import io.netty.channel.ChannelFutureListener
@@ -29,7 +30,7 @@ internal class HttpServerRxHandler(private val favicon: ByteArray,
                                    private val pinRequestHtmlPage: String,
                                    private val pinRequestErrorHtmlPage: String,
                                    private val clientEvent: Action1<HttpServerImpl.LocalEvent>,
-                                   private val logIt: Action1<String>,
+                                   private val logItv: Action1<String>,
                                    jpegBytesStream: Observable<ByteArray>) : RequestHandler<ByteBuf, ByteBuf> {
 
     private val CRLF = "\r\n".toByteArray()
@@ -43,7 +44,7 @@ internal class HttpServerRxHandler(private val favicon: ByteArray,
     private val subscription: Subscription?
 
     init {
-        logIt.call("HttpServerRxHandler @${this.hashCode()}: Init")
+        logItv.call("[${Utils.getLogPrefix(this)}] Init")
 
         singleThreadExecutor.submit {
             Thread.currentThread().priority = 8
@@ -57,7 +58,7 @@ internal class HttpServerRxHandler(private val favicon: ByteArray,
     }
 
     fun stop() {
-        logIt.call("HttpServerRxHandler @${this.hashCode()}: Stop")
+        logItv.call("[${Utils.getLogPrefix(this)}] Stop")
 
         subscription?.unsubscribe()
         singleThreadExecutor.shutdown()
@@ -65,7 +66,7 @@ internal class HttpServerRxHandler(private val favicon: ByteArray,
 
     override fun handle(request: HttpServerRequest<ByteBuf>, response: HttpServerResponse<ByteBuf>): Observable<Void> {
         val uri = request.uri
-        logIt.call("HttpServerRxHandler @${this.hashCode()}: Handle: $uri}")
+        logItv.call("[${Utils.getLogPrefix(this)}] Handle: $uri}")
 
         when {
             uri == HttpServer.DEFAULT_ICON_ADDRESS -> return sendFavicon(response)
@@ -79,7 +80,10 @@ internal class HttpServerRxHandler(private val favicon: ByteArray,
                 // Client connected
                 clientEvent.call(HttpServerImpl.LocalEvent.ClientConnected(channel.remoteAddress() as InetSocketAddress))
                 // Client disconnected
-                channel.closeFuture().addListener(ChannelFutureListener { future -> clientEvent.call(HttpServerImpl.LocalEvent.ClientDisconnected(future.channel().remoteAddress() as InetSocketAddress)) })
+                channel.closeFuture().addListener(ChannelFutureListener { future ->
+                    val address = future.channel().remoteAddress() as InetSocketAddress
+                    clientEvent.call(HttpServerImpl.LocalEvent.ClientDisconnected(address))
+                })
                 return sendStream(response)
             }
             else -> return redirect(request.hostHeader, response) // Redirecting to default server address

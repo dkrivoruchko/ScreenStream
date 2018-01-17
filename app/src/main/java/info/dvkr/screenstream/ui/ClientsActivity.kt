@@ -13,6 +13,7 @@ import info.dvkr.screenstream.R
 import info.dvkr.screenstream.data.presenter.BaseView
 import info.dvkr.screenstream.data.presenter.clients.ClientsPresenter
 import info.dvkr.screenstream.data.presenter.clients.ClientsView
+import info.dvkr.screenstream.domain.utils.Utils
 import kotlinx.android.synthetic.main.activity_clients.*
 import kotlinx.android.synthetic.main.avtivity_clients_client_item.view.*
 import org.koin.android.architecture.ext.getViewModel
@@ -31,7 +32,7 @@ class ClientsActivity : BaseActivity(), ClientsView {
     private var lineGraphSeries: LineGraphSeries<DataPoint>? = null
 
     override fun toEvent(toEvent: BaseView.BaseToEvent) = runOnUiThread {
-        Timber.d("[${this.javaClass.simpleName}#${this.hashCode()}@${Thread.currentThread().name}] toEvent: $toEvent")
+        Timber.d("[${Utils.getLogPrefix(this)}] toEvent: ${toEvent.javaClass.simpleName}")
 
         when (toEvent) {
             is ClientsView.ToEvent.CurrentClients -> {
@@ -42,11 +43,14 @@ class ClientsActivity : BaseActivity(), ClientsView {
                 val layoutInflater = LayoutInflater.from(this)
                 toEvent.clientsList.forEach {
                     with(layoutInflater.inflate(R.layout.avtivity_clients_client_item, linearLayoutConnectedClients, false)) {
-                        textViewClientItemAddress.text = context.getString(R.string.clients_activity_client) + it.clientAddress.toString().drop(1)
-                        if (it.disconnected)
-                            textViewClientItemAddress.setCompoundDrawablesWithIntrinsicBounds(0, 0, R.drawable.ic_client_disconnected_24dp, 0)
-                        else if (it.hasBackpressure)
-                            textViewClientItemAddress.setCompoundDrawablesWithIntrinsicBounds(0, 0, R.drawable.ic_client_slow_network_24dp, 0)
+                        textViewClientItemAddress.text = getString(R.string.clients_activity_client).format(it.clientAddress.toString().drop(1))
+                        when {
+                            it.disconnected ->
+                                textViewClientItemAddress.setCompoundDrawablesWithIntrinsicBounds(0, 0, R.drawable.ic_client_disconnected_24dp, 0)
+
+                            it.hasBackpressure ->
+                                textViewClientItemAddress.setCompoundDrawablesWithIntrinsicBounds(0, 0, R.drawable.ic_client_slow_network_24dp, 0)
+                        }
                         linearLayoutConnectedClients.addView(this)
                     }
                 }

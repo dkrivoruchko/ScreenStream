@@ -17,8 +17,7 @@ interface FgView {
                                     val logo: ByteArray,
                                     val baseIndexHtml: String,
                                     val basePinRequestHtml: String,
-                                    val pinRequestErrorMsg: String,
-                                    val jpegByteStream: Observable<ByteArray>) : FromEvent()
+                                    val pinRequestErrorMsg: String) : FromEvent()
 
         @Keep object StopHttpServer : FromEvent()
         @Keep class StartImageGenerator(val display: Display,

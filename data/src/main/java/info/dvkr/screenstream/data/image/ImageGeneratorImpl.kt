@@ -87,8 +87,8 @@ class ImageGeneratorImpl(private val display: Display,
                 Timber.i("[${Utils.getLogPrefix(this)}] Rotation detector started")
                 while (true) {
                     delay(250, TimeUnit.MILLISECONDS)
-                    val rotation = display.rotation
-                    current = rotation == Surface.ROTATION_0 || rotation == Surface.ROTATION_180
+                    val oldRotation = display.rotation
+                    current = oldRotation == Surface.ROTATION_0 || oldRotation == Surface.ROTATION_180
                     if (previous != current) {
                         Timber.i("[${Utils.getLogPrefix(this)}] Rotation detected")
                         previous = current

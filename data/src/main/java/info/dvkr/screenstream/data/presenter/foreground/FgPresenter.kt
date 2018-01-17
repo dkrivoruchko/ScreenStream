@@ -17,6 +17,8 @@ import kotlinx.coroutines.experimental.channels.SubscriptionReceiveChannel
 import kotlinx.coroutines.experimental.channels.actor
 import kotlinx.coroutines.experimental.channels.consumeEach
 import kotlinx.coroutines.experimental.launch
+import rx.BackpressureOverflow
+import rx.functions.Action0
 import rx.functions.Action1
 import timber.log.Timber
 import kotlin.coroutines.experimental.CoroutineContext
@@ -54,7 +56,7 @@ open class FgPresenter(private val crtContext: CoroutineContext,
                 }
 
                 is FgView.FromEvent.StartHttpServer -> {
-                    val (serverAddress, favicon, logo, baseIndexHtml, basePinRequestHtml, pinRequestErrorMsg, jpegByteStream) = fromEvent
+                    val (serverAddress, favicon, logo, baseIndexHtml, basePinRequestHtml, pinRequestErrorMsg) = fromEvent
                     globalStatus.error.set(null)
                     httpServer = HttpServerImpl(serverAddress,
                             favicon,
@@ -66,7 +68,9 @@ open class FgPresenter(private val crtContext: CoroutineContext,
                             settings.currentPin,
                             basePinRequestHtml,
                             pinRequestErrorMsg,
-                            jpegByteStream,
+                            jpegBytesStream.onBackpressureBuffer(2,
+                                    Action0 { Timber.e("jpegBytesStream.onBackpressureBuffer - ON_OVERFLOW_DROP_OLDEST") },
+                                    BackpressureOverflow.ON_OVERFLOW_DROP_OLDEST),
                             eventBus,
                             crtContext,
                             Action1 { Timber.v(it) })

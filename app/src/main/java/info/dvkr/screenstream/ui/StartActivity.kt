@@ -41,6 +41,7 @@ class StartActivity : BaseActivity(), StartView {
 
     companion object {
         private const val REQUEST_CODE_SCREEN_CAPTURE = 10
+        private const val DIALOG_SCREEN_CAPTURE_PERMISSION_TAG = "DIALOG_SCREEN_CAPTURE_PERMISSION_TAG"
 
         private const val EXTRA_DATA = "EXTRA_DATA"
         const val ACTION_START_STREAM = "ACTION_START_STREAM"
@@ -62,14 +63,21 @@ class StartActivity : BaseActivity(), StartView {
 
     private lateinit var drawer: Drawer
     private var canStart: Boolean = true
-    private val clipboard: ClipboardManager by lazy { getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager }
+
+    private val projectionManager: MediaProjectionManager by lazy {
+        getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
+    }
+
+    private val clipboard: ClipboardManager by lazy {
+        getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+    }
+
 
     override fun toEvent(toEvent: BaseView.BaseToEvent) = runOnUiThread {
         Timber.d("[${Utils.getLogPrefix(this)}] toEvent: ${toEvent.javaClass.simpleName}")
 
         when (toEvent) {
             is StartView.ToEvent.TryToStart -> {
-                val projectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
                 try {
                     startActivityForResult(projectionManager.createScreenCaptureIntent(), REQUEST_CODE_SCREEN_CAPTURE)
                 } catch (ex: ActivityNotFoundException) {
@@ -110,10 +118,17 @@ class StartActivity : BaseActivity(), StartView {
                                     .setText(R.string.start_activity_error_wrong_image_format)
                         }
 
+                        is NoSuchElementException -> {
+                            canStart = false
+                            alerter.setTitle(R.string.start_activity_alert_title_error_network)
+                                    .setText(R.string.start_activity_error_ip_address_not_found)
+                        }
+
                         is BindException -> {
                             canStart = false
                             alerter.setTitle(R.string.start_activity_alert_title_error_network)
-                            val msg = it.message?.drop(13) ?: getString(R.string.start_activity_error_network_unknown)
+                            val msg = it.message?.drop(13)
+                                    ?: getString(R.string.start_activity_error_network_unknown)
                             if (msg.contains("EADDRINUSE")) alerter.setText(R.string.start_activity_error_port_in_use)
                             else alerter.setText(msg)
                         }
@@ -235,14 +250,14 @@ class StartActivity : BaseActivity(), StartView {
 
         val action = intent.getStringExtra(EXTRA_DATA)
         Timber.i("[${Utils.getLogPrefix(this)}] onNewIntent: action = $action")
-        if (null == action) return
+        action != null || return
 
         intent.removeExtra(EXTRA_DATA)
         this.intent = intent
 
         when (action) {
             ACTION_START_STREAM -> {
-                if (!canStart) return
+                canStart || return
                 toggleButtonStartStop.isEnabled = false
                 presenter.offer(StartView.FromEvent.TryStartStream)
             }
@@ -283,13 +298,13 @@ class StartActivity : BaseActivity(), StartView {
             REQUEST_CODE_SCREEN_CAPTURE -> {
                 if (Activity.RESULT_OK != resultCode) {
                     toggleButtonStartStop.isEnabled = true
-                    Alerter.create(this).setTitle(R.string.start_activity_alert_title_warring)
-                            .setText(R.string.start_activity_cast_permission_required)
-                            .setBackgroundColorRes(R.color.colorWarring)
-                            .setDuration(5000)
-                            .enableProgress(true)
-                            .enableSwipeToDismiss()
-                            .show()
+
+                    NotificationDialog.newInstance(DIALOG_SCREEN_CAPTURE_PERMISSION_TAG,
+                            titleText = getString(R.string.start_activity_cast_permission_required_title),
+                            messageText = getString(R.string.start_activity_cast_permission_required),
+                            positiveButtonText = getString(android.R.string.ok),
+                            isCancelable = false)
+                            .show(fragmentManager, DIALOG_SCREEN_CAPTURE_PERMISSION_TAG)
 
                     Timber.w("onActivityResult: Screen Cast permission denied")
                     return
