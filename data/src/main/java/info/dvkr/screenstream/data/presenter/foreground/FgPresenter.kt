@@ -45,7 +45,7 @@ open class FgPresenter(private val crtContext: CoroutineContext,
 
         viewChannel = actor(crtContext, Channel.UNLIMITED) {
             for (fromEvent in this) when (fromEvent) {
-                is FgView.FromEvent.Init -> {
+                FgView.FromEvent.Init -> {
                     if (settings.enablePin && settings.newPinOnAppStart) {
                         val newPin = randomPin()
                         settings.currentPin = newPin
@@ -78,7 +78,7 @@ open class FgPresenter(private val crtContext: CoroutineContext,
                     notifyView(FgView.ToEvent.NotifyImage(ImageNotify.IMAGE_TYPE_DEFAULT))
                 }
 
-                is FgView.FromEvent.StopHttpServer -> {
+                FgView.FromEvent.StopHttpServer -> {
                     httpServer?.stop()
                     httpServer = null
                 }
@@ -107,7 +107,7 @@ open class FgPresenter(private val crtContext: CoroutineContext,
                     eventBus.send(EventBus.GlobalEvent.StreamStatus)
                 }
 
-                is FgView.FromEvent.StopStreamComplete -> {
+                FgView.FromEvent.StopStreamComplete -> {
                     if (settings.enablePin && settings.autoChangePin) {
                         val newPin = randomPin()
                         settings.currentPin = newPin
@@ -117,13 +117,12 @@ open class FgPresenter(private val crtContext: CoroutineContext,
                     notifyView(FgView.ToEvent.NotifyImage(ImageNotify.IMAGE_TYPE_DEFAULT))
                 }
 
-                is FgView.FromEvent.HttpServerRestartRequest -> {
+                FgView.FromEvent.HttpServerRestartRequest -> {
                     eventBus.send(EventBus.GlobalEvent.HttpServerRestart(ImageNotify.IMAGE_TYPE_NONE))
                 }
 
-                is FgView.FromEvent.ScreenOff -> {
-                    if (settings.stopOnSleep && globalStatus.isStreamRunning.get())
-                        notifyView(FgView.ToEvent.StopStream())
+                FgView.FromEvent.ScreenOff -> {
+                    if (settings.stopOnSleep) eventBus.send(EventBus.GlobalEvent.StopStream)
                 }
 
                 is FgView.FromEvent.CurrentInterfaces -> {
@@ -152,7 +151,7 @@ open class FgPresenter(private val crtContext: CoroutineContext,
 
                 when (globalEvent) {
                 // From FgPresenter, StartPresenter & ProjectionCallback
-                    is EventBus.GlobalEvent.StopStream ->
+                    EventBus.GlobalEvent.StopStream ->
                         if (globalStatus.isStreamRunning.get()) {
                             imageGenerator?.stop()
                             imageGenerator = null
@@ -162,7 +161,7 @@ open class FgPresenter(private val crtContext: CoroutineContext,
                         }
 
                 // From StartPresenter
-                    is EventBus.GlobalEvent.AppExit -> {
+                    EventBus.GlobalEvent.AppExit -> {
                         notifyView(FgView.ToEvent.AppExit)
                     }
 
@@ -183,7 +182,7 @@ open class FgPresenter(private val crtContext: CoroutineContext,
                     }
 
                 // From StartPresenter
-                    is EventBus.GlobalEvent.CurrentInterfacesRequest -> {
+                    EventBus.GlobalEvent.CurrentInterfacesRequest -> {
                         notifyView(FgView.ToEvent.CurrentInterfacesRequest)
                     }
 

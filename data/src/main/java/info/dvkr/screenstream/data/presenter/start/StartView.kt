@@ -8,6 +8,7 @@ import info.dvkr.screenstream.domain.httpserver.HttpServer
 
 interface StartView : BaseView {
     @Keep sealed class FromEvent : BaseView.BaseFromEvent() {
+        @Keep object StreamRunningRequest : FromEvent()
         @Keep object CurrentInterfacesRequest : FromEvent()
         @Keep object TryStartStream : FromEvent()
         @Keep object StopStream : FromEvent()

@@ -101,7 +101,7 @@ class SettingsActivity : BaseActivity(),
             is SettingsView.ToEvent.UseWiFiOnly -> checkBoxUseWifiOnly.isChecked = toEvent.value
             is SettingsView.ToEvent.ServerPort -> textViewServerPortValue.text = Integer.toString(toEvent.value)
 
-            is SettingsView.ToEvent.ErrorServerPortBusy -> {
+            SettingsView.ToEvent.ErrorServerPortBusy -> {
                 Alerter.create(this)
                         .setTitle(R.string.pref_alert_error_title)
                         .setText(R.string.pref_alert_error_message)

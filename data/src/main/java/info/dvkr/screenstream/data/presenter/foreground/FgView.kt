@@ -4,7 +4,6 @@ import android.media.projection.MediaProjection
 import android.support.annotation.Keep
 import android.view.Display
 import info.dvkr.screenstream.domain.eventbus.EventBus
-import rx.Observable
 import java.net.InetSocketAddress
 
 
@@ -13,11 +12,11 @@ interface FgView {
     @Keep sealed class FromEvent {
         @Keep object Init : FromEvent()
         @Keep data class StartHttpServer(val serverAddress: InetSocketAddress,
-                                    val favicon: ByteArray,
-                                    val logo: ByteArray,
-                                    val baseIndexHtml: String,
-                                    val basePinRequestHtml: String,
-                                    val pinRequestErrorMsg: String) : FromEvent()
+                                         val favicon: ByteArray,
+                                         val logo: ByteArray,
+                                         val baseIndexHtml: String,
+                                         val basePinRequestHtml: String,
+                                         val pinRequestErrorMsg: String) : FromEvent()
 
         @Keep object StopHttpServer : FromEvent()
         @Keep class StartImageGenerator(val display: Display,

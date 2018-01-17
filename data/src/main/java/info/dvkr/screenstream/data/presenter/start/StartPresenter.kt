@@ -16,20 +16,23 @@ class StartPresenter(crtContext: CoroutineContext, eventBus: EventBus,
     init {
         viewChannel = actor(crtContext, Channel.UNLIMITED) {
             for (fromEvent in this) when (fromEvent) {
-                is StartView.FromEvent.CurrentInterfacesRequest ->
+                StartView.FromEvent.StreamRunningRequest ->
+                    notifyView(StartView.ToEvent.StreamRunning(globalStatus.isStreamRunning.get()))
+
+                StartView.FromEvent.CurrentInterfacesRequest ->
                     eventBus.send(EventBus.GlobalEvent.CurrentInterfacesRequest)
 
-                is StartView.FromEvent.TryStartStream ->
+                StartView.FromEvent.TryStartStream ->
                     if (globalStatus.isStreamRunning.get().not()) {
                         globalStatus.error.set(null)
                         notifyView(StartView.ToEvent.TryToStart())
                     }
 
-                is StartView.FromEvent.StopStream ->
+                StartView.FromEvent.StopStream ->
                     if (globalStatus.isStreamRunning.get())
                         eventBus.send(EventBus.GlobalEvent.StopStream)
 
-                is StartView.FromEvent.AppExit ->
+                StartView.FromEvent.AppExit ->
                     eventBus.send(EventBus.GlobalEvent.AppExit)
 
                 is StartView.FromEvent.Error -> {
@@ -37,7 +40,7 @@ class StartPresenter(crtContext: CoroutineContext, eventBus: EventBus,
                     notifyView(BaseView.BaseToEvent.Error(fromEvent.error))
                 }
 
-                is StartView.FromEvent.GetError ->
+                StartView.FromEvent.GetError ->
                     notifyView(BaseView.BaseToEvent.Error(globalStatus.error.get()))
             }
         }
@@ -46,7 +49,7 @@ class StartPresenter(crtContext: CoroutineContext, eventBus: EventBus,
     fun attach(newView: StartView) {
         super.attach(newView) { globalEvent ->
             when (globalEvent) {
-                is EventBus.GlobalEvent.StreamStatus ->
+                EventBus.GlobalEvent.StreamStatus ->
                     notifyView(StartView.ToEvent.OnStreamStartStop(globalStatus.isStreamRunning.get()))
 
                 is EventBus.GlobalEvent.ResizeFactor ->
@@ -70,7 +73,7 @@ class StartPresenter(crtContext: CoroutineContext, eventBus: EventBus,
         }
 
         // Sending current stream status
-        notifyView(StartView.ToEvent.StreamRunning(globalStatus.isStreamRunning.get()))
+//        notifyView(StartView.ToEvent.StreamRunning(globalStatus.isStreamRunning.get()))
 
         // Requesting current clients
         launch(crtContext) { eventBus.send(EventBus.GlobalEvent.CurrentClientsRequest) }

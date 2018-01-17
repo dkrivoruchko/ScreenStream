@@ -12,6 +12,7 @@ import android.media.projection.MediaProjectionManager
 import android.net.Uri
 import android.os.Bundle
 import android.support.v4.content.ContextCompat
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.WindowManager
@@ -180,8 +181,6 @@ class StartActivity : BaseActivity(), StartView {
         textViewConnectedClients.text = getString(R.string.start_activity_connected_clients).format(0)
         textViewCurrentTraffic.text = getString(R.string.start_activity_current_traffic).format(0f)
 
-        presenter.attach(this)
-
         toggleButtonStartStop.setOnClickListener { _ ->
             if (toggleButtonStartStop.isChecked) {
                 toggleButtonStartStop.isChecked = false
@@ -197,6 +196,8 @@ class StartActivity : BaseActivity(), StartView {
                 presenter.offer(StartView.FromEvent.StopStream)
             }
         }
+
+        presenter.attach(this)
 
         drawer = DrawerBuilder()
                 .withActivity(this)
@@ -273,6 +274,7 @@ class StartActivity : BaseActivity(), StartView {
 
     override fun onResume() {
         super.onResume()
+        presenter.offer(StartView.FromEvent.StreamRunningRequest)
         presenter.offer(StartView.FromEvent.CurrentInterfacesRequest)
         presenter.offer(StartView.FromEvent.GetError)
     }
@@ -324,6 +326,7 @@ class StartActivity : BaseActivity(), StartView {
 
     // Private methods
     private fun setStreamRunning(running: Boolean) {
+        Log.w(">>>>>>>>>>", "running: $running")
         toggleButtonStartStop.isChecked = running
         toggleButtonStartStop.isEnabled = true
         if (settings.enablePin) {

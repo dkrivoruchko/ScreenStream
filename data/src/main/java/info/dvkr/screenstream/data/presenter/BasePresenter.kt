@@ -3,9 +3,8 @@ package info.dvkr.screenstream.data.presenter
 import android.arch.lifecycle.ViewModel
 import android.support.annotation.CallSuper
 import android.support.annotation.MainThread
-import info.dvkr.screenstream.domain.utils.Utils
 import info.dvkr.screenstream.domain.eventbus.EventBus
-import kotlinx.coroutines.experimental.ThreadPoolDispatcher
+import info.dvkr.screenstream.domain.utils.Utils
 import kotlinx.coroutines.experimental.channels.SendChannel
 import kotlinx.coroutines.experimental.channels.SubscriptionReceiveChannel
 import kotlinx.coroutines.experimental.channels.consumeEach
@@ -18,7 +17,7 @@ abstract class BasePresenter<in T : BaseView, R : BaseView.BaseFromEvent>(
         protected val eventBus: EventBus) : ViewModel() {
 
     protected lateinit var viewChannel: SendChannel<R>
-    protected lateinit var subscription: SubscriptionReceiveChannel<EventBus.GlobalEvent>
+    private lateinit var subscription: SubscriptionReceiveChannel<EventBus.GlobalEvent>
     private var view: T? = null
 
     init {

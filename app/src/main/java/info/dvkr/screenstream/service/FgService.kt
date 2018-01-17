@@ -187,7 +187,7 @@ class FgService : Service(), FgView {
 
         toEvents = actor(crtContext, Channel.UNLIMITED) {
             for (event in this) when (event) {
-                is FgService.LocalEvent.StartService -> {
+                FgService.LocalEvent.StartService -> {
                     baseFavicon = getFavicon(applicationContext)
                     baseLogo = getLogo(applicationContext)
                     baseIndexHtml = getBaseIndexHtml(applicationContext)
@@ -195,7 +195,7 @@ class FgService : Service(), FgView {
                     pinRequestErrorMsg = applicationContext.getString(R.string.html_wrong_pin)
                 }
 
-                is FgView.ToEvent.StartHttpServer -> {
+                FgView.ToEvent.StartHttpServer -> {
                     presenter.offer(FgView.FromEvent.StopHttpServer)
 
                     val interfaces = getInterfaces()
@@ -229,7 +229,7 @@ class FgService : Service(), FgView {
                     }
                 }
 
-                is FgView.ToEvent.ConnectionEvent -> {
+                FgView.ToEvent.ConnectionEvent -> {
                     isConnectionEventScheduled.set(false)
                     if (isFirstNetworkEvent.get()) {
                         isFirstNetworkEvent.set(false)
@@ -270,11 +270,11 @@ class FgService : Service(), FgView {
                     if (event.isNotifyOnComplete) presenter.offer(FgView.FromEvent.StopStreamComplete)
                 }
 
-                is FgView.ToEvent.AppExit -> {
+                FgView.ToEvent.AppExit -> {
                     stopSelf()
                 }
 
-                is FgView.ToEvent.CurrentInterfacesRequest -> {
+                FgView.ToEvent.CurrentInterfacesRequest -> {
                     presenter.offer(FgView.FromEvent.CurrentInterfaces(getInterfaces()))
                 }
 
@@ -285,7 +285,7 @@ class FgService : Service(), FgView {
                             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
                 }
 
-                is FgView.ToEvent.SlowConnectionDetected -> {
+                FgView.ToEvent.SlowConnectionDetected -> {
                     val toastView = layoutInflater.inflate(R.layout.slow_connection_toast, null)
                     val drawable = AppCompatResources.getDrawable(applicationContext, R.drawable.ic_service_notification_24dp)
                     toastView.slowConnectionToastIcon.setImageDrawable(drawable)

@@ -18,7 +18,7 @@ class ClientsPresenter(crtContext: CoroutineContext, eventBus: EventBus) :
     init {
         viewChannel = actor(crtContext, Channel.UNLIMITED) {
             for (fromEvent in this) when (fromEvent) {
-                is ClientsView.FromEvent.TrafficHistoryRequest -> {
+                ClientsView.FromEvent.TrafficHistoryRequest -> {
                     // Requesting current traffic history
                     if (trafficHistory.isEmpty()) {
                         eventBus.send(EventBus.GlobalEvent.TrafficHistoryRequest)

@@ -1,7 +1,6 @@
 package info.dvkr.screenstream.domain.eventbus
 
 import kotlinx.coroutines.experimental.channels.ArrayBroadcastChannel
-import kotlinx.coroutines.experimental.channels.Channel
 import kotlinx.coroutines.experimental.channels.SubscriptionReceiveChannel
 
 class EventBusImpl : EventBus {
