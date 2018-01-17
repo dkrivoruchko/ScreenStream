@@ -4,6 +4,7 @@ import android.app.Application
 import android.util.Log
 import com.crashlytics.android.Crashlytics
 import info.dvkr.screenstream.di.koinModule
+import io.fabric.sdk.android.Fabric
 import org.koin.android.ext.android.startKoin
 import timber.log.Timber
 
@@ -12,6 +13,8 @@ class ScreenStreamApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        Fabric.with(this, Crashlytics())
+
         // Set up Timber
         Timber.plant(CrashReportingTree())
         Timber.w("[${Thread.currentThread().name}] onCreate: Start")

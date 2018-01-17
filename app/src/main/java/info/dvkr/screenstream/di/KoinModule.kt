@@ -26,7 +26,7 @@ val koinModule = applicationContext {
 
     bean {
         newSingleThreadContext("SSEventContext") +
-                CoroutineExceptionHandler { _, ex -> // TODO Temp Solution
+                CoroutineExceptionHandler { _, ex -> // TODO() Temp Solution
                     Timber.e(ex)
                     throw ex
                 } as CoroutineContext
