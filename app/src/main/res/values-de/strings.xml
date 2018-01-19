@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--StartActivity-->
+    <string name="start_activity_device_address">Gerätadresse:</string>
+    <string name="start_activity_no_address">Keine Adressen gefunden</string>
+    <string name="start_activity_start_stream">Stream starten</string>
+    <string name="start_activity_stop_stream">Stream stoppen</string>
+    <string name="start_activity_pin">Pin:</string>
+    <string name="start_activity_pin_disabled">Pin ausgeschaltet</string>
+    <string name="start_activity_resize_factor">Größenfaktor</string>
+    <string name="start_activity_current_traffic">Traffic: %1$,.2f Mbit/s</string>
+    <string name="start_activity_connected_clients">Verbundene clients: %1$d</string>
+    <string name="start_activity_copied">Kopiert</string>
+
+    <string name="start_activity_drawer_main">Haupt</string>
+    <string name="start_activity_drawer_traffic_clients">Traffic &amp; clients</string>
+    <string name="start_activity_drawer_settings">Einstellungen</string>
+    <string name="start_activity_drawer_rate_app">Bewertungs App</string>
+    <string name="start_activity_drawer_about">Über die Anwendung</string>
+    <string name="start_activity_drawer_exit">Ausgang</string>
+
+    <string name="start_activity_alert_title_warring">Warnung</string>
+    <string name="start_activity_alert_title_error">Fehler</string>
+    <string name="start_activity_alert_title_error_network">Netzwerkfehler</string>
+    <string name="start_activity_alert_title_error_unknown">Die unbekannte Fehler</string>
+    <string name="start_activity_cast_permission_required_title">Erlaubnis erforderlich</string>
+    <string name="start_activity_cast_permission_required">Die Anwendung benötigt die Screencast-Berechtigung zum Erfassen des Bildschirms.</string>
+    <string name="start_activity_error_port_in_use">Netzwerk-Port bereits verwendet. Wähle einen anderen</string>
+    <string name="start_activity_error_ip_address_not_found">IP-Adresse nicht gefunden</string>
+    <string name="start_activity_error_network_unknown">Die unbekannte Netzfehler</string>
+    <string name="start_activity_error_invalid_media_projection">Sicherheitsfehler: Ungültige Medienprojektion. Probieren Sie es noch einmal</string>
+    <string name="start_activity_error_wrong_image_format">Das System gibt das Bild in unbekanntem Format zurück. Keine Lösung verfügbar. Es tut uns leid.</string>
+    <string name="start_activity_alert_title_error_activity_not_found">Berechtigungsdialogfehler</string>
+    <string name="start_activity_error_activity_not_found">Fehler von Android. Nicht markieren \"Nicht anzeigen\" im Dialogfeld für die Rechteanforderung, um den Bildschirm zu erfassen. Wenn Sie dies bereits getan haben, installieren Sie die App neu.</string>
+
+    <string name="start_activity_email_chooser_header">Email schicken…</string>
+
+    <!--FgService-->
+    <string name="service_ready_to_stream">Bereit zum Streamen</string>
+    <string name="service_press_start">Drücken Sie auf Start, um mit dem Stream zu starten</string>
+    <string name="service_start">Start</string>
+    <string name="service_exit">Ausgang</string>
+    <string name="service_stream">Stream…</string>
+    <string name="service_press_stop">Drücken Sie auf Stopp, um den Stream zu beenden</string>
+    <string name="service_stop">Stop</string>
+    <string name="service_slow_client_connection">Langsame Clientverbindung erkannt</string>
+
+    <!--ImageNotify-->
+    <string name="image_generator_press_start">Press START STREAM on device</string>
+    <string name="image_generator_go_to_new_address">Please go to new address</string>
+    <string name="image_generator_reload_this_page">Please reload this page</string>
+
+    <!--SettingsActivity-->
+    <string name="settings_activity_name">Settings</string>
+    <string name="pref_settings_interface">Interface</string>
+    <string name="pref_minimize_on_stream">Minimize on stream</string>
+    <string name="pref_minimise_on_stream_summary">Minimize app on stream start</string>
+    <string name="pref_stop_on_sleep">Stop on sleep</string>
+    <string name="pref_stop_on_sleep_summary">Stop stream if screen turns off</string>
+    <string name="pref_start_on_boot">Start on boot</string>
+    <string name="pref_start_on_boot_summary">Start stream after device boot</string>
+    <string name="pref_mjpeg_check">Disable MJPEG check</string>
+    <string name="pref_mjpeg_check_summary">Disable check for browser MJPEG support</string>
+    <string name="pref_html_back_color">Page background color</string>
+    <string name="pref_html_back_color_summary">Set HTML page background color</string>
+    <string name="pref_html_back_color_title">Select background color</string>
+    <string name="pref_settings_image">Image</string>
+    <string name="pref_resize">Resize image</string>
+    <string name="pref_resize_summary">Resize image before sending to client</string>
+    <string name="pref_resize_dialog_text">Set image resize factor in percent.\nValues: 10–150 (Default: 50)\nScreen size: %1$dx%2$d</string>
+    <string name="pref_resize_dialog_result">Picture size: %1$dx%2$d</string>
+    <string name="pref_jpeg_quality">JPEG compression quality</string>
+    <string name="pref_jpeg_quality_summary">Set JPEG compression quality</string>
+    <string name="pref_jpeg_quality_dialog">Set JPEG compression quality.\nValues: 10–100 (Default: 100)</string>
+    <string name="pref_settings_security">Security</string>
+    <string name="pref_enable_pin">Enable pin</string>
+    <string name="pref_enable_pin_summary">Protect access to stream with pin</string>
+    <string name="pref_hide_pin">Auto hide pin on stream start</string>
+    <string name="pref_hide_pin_summary">Show asterisks instead of pin while streaming</string>
+    <string name="pref_new_pin_on_start">New pin on start</string>
+    <string name="pref_new_pin_on_start_summary">Generate new pin on application start</string>
+    <string name="pref_auto_change_pin">Auto change pin</string>
+    <string name="pref_auto_change_pin_summary">Generate new pin for each new stream</string>
+    <string name="pref_set_pin">Set pin</string>
+    <string name="pref_set_pin_summary">Enter pin manually</string>
+    <string name="pref_set_pin_dialog">Enter pin.\nDefault: 0000</string>
+    <string name="pref_settings_advanced">Advanced</string>
+    <string name="pref_wifi_only">Use WiFi only</string>
+    <string name="pref_wifi_only_summary">Run server on WiFi interface only</string>
+    <string name="pref_server_port">Server port</string>
+    <string name="pref_server_port_summary">Set port for incoming connections</string>
+    <string name="pref_server_port_dialog">Set server port for incoming connections.\nValues: 1025–65535 (Default: 8080)</string>
+    <string name="pref_alert_error_title">Error</string>
+    <string name="pref_alert_error_message">Port already in use. Choose another one.</string>
+
+    <!--ClientsActivity-->
+    <string name="clients_activity_name">Traffic &amp; clients</string>
+    <string name="clients_activity_current_traffic">Traffic: %1$,.2f Mbit/s</string>
+    <string name="clients_activity_connected_clients">Connected clients: %1$d</string>
+    <string name="clients_activity_client_connected">Connected</string>
+    <string name="clients_activity_client_disconnected">Disconnected</string>
+    <string name="clients_activity_client_slow_network">Slow connection</string>
+    <string name="clients_activity_client">Client: %1$s</string>
+
+    <!--AboutActivity-->
+    <string name="about_activity_name">About</string>
+    <string name="about_app_version">Version: %1$s</string>
+    <string name="about_developer_name">Developed by Dmitriy Krivoruchko</string>
+    <string name="about_developer_send_email">Send email to developer</string>
+    <string name="about_app_sources">Application sources</string>
+
+    <!--HTML text-->
+    <string name="html_stream_require_pin">This stream requires PIN to access it</string>
+    <string name="html_enter_pin">Enter pin:\u0020</string>
+    <string name="html_four_digits">Four digits</string>
+    <string name="html_submit_text">Submit</string>
+    <string name="html_wrong_pin">Wrong pin!</string>
+    <string name="html_no_mjpeg_support">Sorry :(&lt;br&gt;Seems that this browser does not support MJPEG.&lt;br&gt;&lt;br&gt;This check is inaccurate&lt;br&gt;You can disable it in application settings</string>
+</resources>

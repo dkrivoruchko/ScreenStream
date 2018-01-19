@@ -8,8 +8,8 @@ buildscript {
         min_sdk = 21
         target_sdk = 27
 
-        version_code = 214
-        version_name = '2.1.4'
+        version_code = 215
+        version_name = '2.1.5'
 
         support_version = '27.0.2'
         lifecycle_version = '1.0.0'

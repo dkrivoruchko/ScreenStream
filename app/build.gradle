@@ -82,7 +82,6 @@ dependencies {
     implementation "org.koin:koin-android-architecture:$koin_version"
 
     implementation "io.reactivex:rxjava:$rxjava_version"
-    implementation "io.reactivex:rxandroid:$rxandroid_version"
     implementation "com.jakewharton.rxrelay:rxrelay:$rxrelay_version"
 
     implementation "com.github.iamironz:binaryprefs:$binaryprefs_version"

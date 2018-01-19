@@ -46,13 +46,12 @@ Application uses Android Cast feature and requires at least Android 5.0 to run.
 
 Version 2.x based on Clean Architecture, Android Architecture Components (ViewModel) and MVP pattern and uses:
 * [Kotlin](https://kotlinlang.org)
+* [Kotlin coroutines](https://github.com/Kotlin/kotlinx.coroutines)
 * [Android support libraries](https://developer.android.com/topic/libraries/support-library/index.html)
-* [Android Architecture Components](https://developer.android.com/topic/libraries/architecture/index.html)
+* [Android Architecture Components](https://developer.android.com/topic/libraries/architecture/index.html) (ViewModel)
 * [Koin](https://github.com/Ekito/koin)
 * [RxJava 1.x](https://github.com/ReactiveX/RxJava/tree/1.x)
-* [RxAndroid](https://github.com/ReactiveX/RxAndroid/tree/1.x) 
 * [RxNetty](https://github.com/ReactiveX/RxNetty)
-* [RxBroadcast](https://github.com/cantrowitz/RxBroadcast)
 * [MaterialDrawer](https://github.com/mikepenz/MaterialDrawer)
 * [Alerter](https://github.com/Tapadoo/Alerter)
 * [Binary Preferences](https://github.com/iamironz/binaryprefs)

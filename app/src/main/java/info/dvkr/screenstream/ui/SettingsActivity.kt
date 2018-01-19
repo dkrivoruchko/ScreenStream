@@ -12,6 +12,7 @@ import android.support.v7.app.AlertDialog
 import android.text.Editable
 import android.text.InputFilter
 import android.text.TextWatcher
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -25,6 +26,7 @@ import info.dvkr.screenstream.R
 import info.dvkr.screenstream.data.presenter.BaseView
 import info.dvkr.screenstream.data.presenter.settings.SettingsPresenter
 import info.dvkr.screenstream.data.presenter.settings.SettingsView
+import info.dvkr.screenstream.domain.utils.Utils
 import kotlinx.android.synthetic.main.activity_settings.*
 import kotlinx.android.synthetic.main.settings_edittext_dialog.view.*
 import org.koin.android.architecture.ext.getViewModel
@@ -52,7 +54,7 @@ class SettingsActivity : BaseActivity(),
     private var resizeFactor: Int = 0
 
     override fun toEvent(toEvent: BaseView.BaseToEvent) = runOnUiThread {
-        Timber.d("[${Thread.currentThread().name} @${this.hashCode()}] toEvent: $toEvent")
+        Timber.d("[${Utils.getLogPrefix(this)}] toEvent: ${toEvent.javaClass.simpleName}")
 
         when (toEvent) {
             is SettingsView.ToEvent.MinimizeOnStream -> checkBoxMinimizeOnStream.isChecked = toEvent.value
@@ -323,7 +325,7 @@ class EditTextDialog : BaseDialog() {
                         titleIconResId = if (titleIconResId > 0) titleIconResId else 0,
                         messageText = if (messageResId > 0) context.getString(messageResId) else "",
                         minLength = if (minLength > 0) minLength else -1,
-                        maxLength = if (maxLength > 0) minLength else -1,
+                        maxLength = if (maxLength > 0) maxLength else -1,
                         minValue = if (minValue >= 0) minValue else -1,
                         maxValue = if (maxValue > 0) maxValue else -1,
                         currentValue = if (currentValue.isNotBlank()) currentValue else "",
@@ -409,6 +411,7 @@ class EditTextDialog : BaseDialog() {
                 val minLength = getInt(MIN_LENGTH)
                 if (minLength <= 0) throw IllegalStateException("minLength <= 0")
                 val maxLength = getInt(MAX_LENGTH)
+                Log.e(">>>>>", maxLength.toString())
                 if (maxLength <= 0) throw IllegalStateException("maxLength <= 0")
                 val minValue = getInt(MIN_VALUE)
                 if (minValue < 0) throw IllegalStateException("minValue < 0")
