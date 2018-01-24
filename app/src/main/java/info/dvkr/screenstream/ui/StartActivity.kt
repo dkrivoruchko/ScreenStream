@@ -326,7 +326,6 @@ class StartActivity : BaseActivity(), StartView {
 
     // Private methods
     private fun setStreamRunning(running: Boolean) {
-        Log.w(">>>>>>>>>>", "running: $running")
         toggleButtonStartStop.isChecked = running
         toggleButtonStartStop.isEnabled = true
         if (settings.enablePin) {
