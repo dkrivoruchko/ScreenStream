@@ -3,7 +3,9 @@ package info.dvkr.screenstream
 import android.app.Application
 import android.util.Log
 import info.dvkr.screenstream.di.koinModule
+import org.koin.Koin
 import org.koin.android.ext.android.startKoin
+import org.koin.log.Logger
 import timber.log.Timber
 
 
