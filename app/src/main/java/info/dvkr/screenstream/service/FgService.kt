@@ -1,6 +1,7 @@
 package info.dvkr.screenstream.service
 
 
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.Notification
 import android.app.NotificationChannel
@@ -47,6 +48,7 @@ import kotlinx.coroutines.experimental.delay
 import kotlinx.coroutines.experimental.launch
 import org.koin.android.ext.android.inject
 import timber.log.Timber
+import java.net.BindException
 import java.net.Inet4Address
 import java.net.InetAddress
 import java.net.InetSocketAddress
@@ -68,12 +70,12 @@ class FgService : Service(), FgView {
         const val ACTION_START_ON_BOOT = "ACTION_START_ON_BOOT"
 
         fun getIntent(context: Context, action: String): Intent =
-                Intent(context, FgService::class.java).putExtra(EXTRA_DATA, action)
+            Intent(context, FgService::class.java).putExtra(EXTRA_DATA, action)
 
         fun getStartStreamIntent(context: Context, data: Intent): Intent {
             return Intent(context, FgService::class.java)
-                    .putExtra(EXTRA_DATA, ACTION_START_STREAM)
-                    .putExtra(Intent.EXTRA_INTENT, data)
+                .putExtra(EXTRA_DATA, ACTION_START_STREAM)
+                .putExtra(Intent.EXTRA_INTENT, data)
         }
     }
 
@@ -102,10 +104,11 @@ class FgService : Service(), FgView {
     private var counterStartHttpServer: Int = 0
 
     private val defaultWifiRegexArray: Array<Regex> = arrayOf(
-            Regex("wlan\\d"),
-            Regex("ap\\d"),
-            Regex("wigig\\d"),
-            Regex("softap\\.?\\d"))
+        Regex("wlan\\d"),
+        Regex("ap\\d"),
+        Regex("wigig\\d"),
+        Regex("softap\\.?\\d")
+    )
 
     private val wifiRegexArray: Array<Regex> by lazy {
         val tetherId = Resources.getSystem().getIdentifier("config_tether_wifi_regexs", "array", "android")
@@ -175,13 +178,16 @@ class FgService : Service(), FgView {
         }
     }
 
+    @SuppressLint("NewApi")
     override fun onCreate() {
         Timber.i("[${Utils.getLogPrefix(this)}] onCreate")
 
         presenter.attach(this)
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(NOTIFICATION_CHANNEL_ID, "Screen Stream Channel", NotificationManager.IMPORTANCE_HIGH)
+            val channel = NotificationChannel(
+                NOTIFICATION_CHANNEL_ID, "Screen Stream Channel", NotificationManager.IMPORTANCE_HIGH
+            )
             notificationManager.createNotificationChannel(channel)
         }
 
@@ -210,22 +216,28 @@ class FgService : Service(), FgView {
                             }
                         } else {
                             counterStartHttpServer = 0
-                            presenter.offer(FgView.FromEvent.StartHttpServer(
+                            presenter.offer(
+                                FgView.FromEvent.StartHttpServer(
                                     InetSocketAddress(interfaces.first().address, settings.severPort),
                                     baseFavicon,
                                     baseLogo,
                                     baseIndexHtml,
                                     basePinRequestHtml,
-                                    pinRequestErrorMsg))
+                                    pinRequestErrorMsg
+                                )
+                            )
                         }
                     } else {
-                        presenter.offer(FgView.FromEvent.StartHttpServer(
+                        presenter.offer(
+                            FgView.FromEvent.StartHttpServer(
                                 InetSocketAddress(settings.severPort),
                                 baseFavicon,
                                 baseLogo,
                                 baseIndexHtml,
                                 basePinRequestHtml,
-                                pinRequestErrorMsg))
+                                pinRequestErrorMsg
+                            )
+                        )
                     }
                 }
 
@@ -279,15 +291,21 @@ class FgService : Service(), FgView {
                 }
 
                 is FgView.ToEvent.Error -> {
-                    Timber.i(event.error)
+                    when (event.error) {
+                        is NoSuchElementException, is BindException, is UnsupportedOperationException -> Timber.i(event.error)
+                        else -> Timber.w(event.error)
+                    }
                     globalStatus.error.set(event.error)
-                    startActivity(StartActivity.getStartIntent(applicationContext, StartActivity.ACTION_ERROR)
-                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                    startActivity(
+                        StartActivity.getStartIntent(applicationContext, StartActivity.ACTION_ERROR)
+                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    )
                 }
 
                 FgView.ToEvent.SlowConnectionDetected -> {
                     val toastView = layoutInflater.inflate(R.layout.slow_connection_toast, null)
-                    val drawable = AppCompatResources.getDrawable(applicationContext, R.drawable.ic_service_notification_24dp)
+                    val drawable =
+                        AppCompatResources.getDrawable(applicationContext, R.drawable.ic_service_notification_24dp)
                     toastView.slowConnectionToastIcon.setImageDrawable(drawable)
                     Toast(applicationContext).apply {
                         view = toastView
@@ -317,7 +335,8 @@ class FgService : Service(), FgView {
                 }
 
                 ACTION_START_ON_BOOT ->
-                    startActivity(StartActivity.getStartIntent(applicationContext, StartActivity.ACTION_START_STREAM)
+                    startActivity(
+                        StartActivity.getStartIntent(applicationContext, StartActivity.ACTION_START_STREAM)
                             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     )
 
@@ -361,68 +380,88 @@ class FgService : Service(), FgView {
     private fun getCustomNotification(notificationType: Int): Notification {
         Timber.i("[${Utils.getLogPrefix(this)}] getCustomNotification: $notificationType")
 
-        val pendingMainActivityIntent = PendingIntent.getActivity(applicationContext, 0,
-                StartActivity.getStartIntent(applicationContext).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
-                0)
+        val pendingMainActivityIntent = PendingIntent.getActivity(
+            applicationContext, 0,
+            StartActivity.getStartIntent(applicationContext).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+            0
+        )
 
         val builder = NotificationCompat.Builder(applicationContext, NOTIFICATION_CHANNEL_ID)
-                .apply {
-                    setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-                    setCategory(Notification.CATEGORY_SERVICE)
-                    priority = NotificationCompat.PRIORITY_MAX
-                    setSmallIcon(R.drawable.ic_service_notification_24dp)
-                    setWhen(0)
-                }
+            .apply {
+                setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                setCategory(Notification.CATEGORY_SERVICE)
+                priority = NotificationCompat.PRIORITY_MAX
+                setSmallIcon(R.drawable.ic_service_notification_24dp)
+                setWhen(0)
+            }
 
         when (notificationType) {
             NOTIFICATION_START_STREAMING -> {
-                val startIntent = PendingIntent.getActivity(applicationContext, 1,
-                        StartActivity.getStartIntent(applicationContext, StartActivity.ACTION_START_STREAM),
-                        PendingIntent.FLAG_UPDATE_CURRENT)
+                val startIntent = PendingIntent.getActivity(
+                    applicationContext, 1,
+                    StartActivity.getStartIntent(applicationContext, StartActivity.ACTION_START_STREAM),
+                    PendingIntent.FLAG_UPDATE_CURRENT
+                )
 
                 builder.setCustomContentView(
-                        RemoteViews(packageName, R.layout.start_notification_small).apply {
-                            setOnClickPendingIntent(R.id.linearLayoutStartNotificationSmall, pendingMainActivityIntent)
-                            setImageViewResource(R.id.imageViewStartNotificationSmallIconMain, R.drawable.ic_app_icon)
-                            setImageViewResource(R.id.imageViewStartNotificationSmallIconStart, R.drawable.ic_service_start_24dp)
-                            setOnClickPendingIntent(R.id.imageViewStartNotificationSmallIconStart, startIntent)
-                        })
+                    RemoteViews(packageName, R.layout.start_notification_small).apply {
+                        setOnClickPendingIntent(R.id.linearLayoutStartNotificationSmall, pendingMainActivityIntent)
+                        setImageViewResource(R.id.imageViewStartNotificationSmallIconMain, R.drawable.ic_app_icon)
+                        setImageViewResource(
+                            R.id.imageViewStartNotificationSmallIconStart,
+                            R.drawable.ic_service_start_24dp
+                        )
+                        setOnClickPendingIntent(R.id.imageViewStartNotificationSmallIconStart, startIntent)
+                    })
 
-                val exitIntent = PendingIntent.getActivity(applicationContext, 3,
-                        StartActivity.getStartIntent(applicationContext, StartActivity.ACTION_EXIT),
-                        PendingIntent.FLAG_UPDATE_CURRENT)
+                val exitIntent = PendingIntent.getActivity(
+                    applicationContext, 3,
+                    StartActivity.getStartIntent(applicationContext, StartActivity.ACTION_EXIT),
+                    PendingIntent.FLAG_UPDATE_CURRENT
+                )
 
                 builder.setCustomBigContentView(
-                        RemoteViews(packageName, R.layout.start_notification_big).apply {
-                            setOnClickPendingIntent(R.id.linearLayoutStartNotificationBig, pendingMainActivityIntent)
-                            setImageViewResource(R.id.imageViewStartNotificationBigIconMain, R.drawable.ic_app_icon)
-                            setImageViewResource(R.id.imageViewStartNotificationBigIconStart, R.drawable.ic_service_start_24dp)
-                            setImageViewResource(R.id.imageViewStartNotificationBigIconExit, R.drawable.ic_service_exit_24dp)
-                            setOnClickPendingIntent(R.id.linearLayoutStartNotificationBigStart, startIntent)
-                            setOnClickPendingIntent(R.id.linearLayoutStartNotificationBigExit, exitIntent)
-                        })
+                    RemoteViews(packageName, R.layout.start_notification_big).apply {
+                        setOnClickPendingIntent(R.id.linearLayoutStartNotificationBig, pendingMainActivityIntent)
+                        setImageViewResource(R.id.imageViewStartNotificationBigIconMain, R.drawable.ic_app_icon)
+                        setImageViewResource(
+                            R.id.imageViewStartNotificationBigIconStart,
+                            R.drawable.ic_service_start_24dp
+                        )
+                        setImageViewResource(
+                            R.id.imageViewStartNotificationBigIconExit,
+                            R.drawable.ic_service_exit_24dp
+                        )
+                        setOnClickPendingIntent(R.id.linearLayoutStartNotificationBigStart, startIntent)
+                        setOnClickPendingIntent(R.id.linearLayoutStartNotificationBigExit, exitIntent)
+                    })
             }
 
             NOTIFICATION_STOP_STREAMING -> {
-                val stopIntent = PendingIntent.getActivity(applicationContext, 2,
-                        StartActivity.getStartIntent(applicationContext, StartActivity.ACTION_STOP_STREAM),
-                        PendingIntent.FLAG_UPDATE_CURRENT)
+                val stopIntent = PendingIntent.getActivity(
+                    applicationContext, 2,
+                    StartActivity.getStartIntent(applicationContext, StartActivity.ACTION_STOP_STREAM),
+                    PendingIntent.FLAG_UPDATE_CURRENT
+                )
 
                 builder.setCustomContentView(
-                        RemoteViews(packageName, R.layout.stop_notification_small).apply {
-                            setOnClickPendingIntent(R.id.linearLayoutStopNotificationSmall, pendingMainActivityIntent)
-                            setImageViewResource(R.id.imageViewStopNotificationSmallIconMain, R.drawable.ic_app_icon)
-                            setImageViewResource(R.id.imageViewStopNotificationSmallIconStop, R.drawable.ic_service_stop_24dp)
-                            setOnClickPendingIntent(R.id.imageViewStopNotificationSmallIconStop, stopIntent)
-                        })
+                    RemoteViews(packageName, R.layout.stop_notification_small).apply {
+                        setOnClickPendingIntent(R.id.linearLayoutStopNotificationSmall, pendingMainActivityIntent)
+                        setImageViewResource(R.id.imageViewStopNotificationSmallIconMain, R.drawable.ic_app_icon)
+                        setImageViewResource(
+                            R.id.imageViewStopNotificationSmallIconStop,
+                            R.drawable.ic_service_stop_24dp
+                        )
+                        setOnClickPendingIntent(R.id.imageViewStopNotificationSmallIconStop, stopIntent)
+                    })
 
                 builder.setCustomBigContentView(
-                        RemoteViews(packageName, R.layout.stop_notification_big).apply {
-                            setOnClickPendingIntent(R.id.linearLayoutStopNotificationBig, pendingMainActivityIntent)
-                            setImageViewResource(R.id.imageViewStopNotificationBigIconMain, R.drawable.ic_app_icon)
-                            setImageViewResource(R.id.imageViewStopNotificationBigIconStop, R.drawable.ic_service_stop_24dp)
-                            setOnClickPendingIntent(R.id.linearLayoutStopNotificationBigStop, stopIntent)
-                        })
+                    RemoteViews(packageName, R.layout.stop_notification_big).apply {
+                        setOnClickPendingIntent(R.id.linearLayoutStopNotificationBig, pendingMainActivityIntent)
+                        setImageViewResource(R.id.imageViewStopNotificationBigIconMain, R.drawable.ic_app_icon)
+                        setImageViewResource(R.id.imageViewStopNotificationBigIconStop, R.drawable.ic_service_stop_24dp)
+                        setOnClickPendingIntent(R.id.linearLayoutStopNotificationBigStop, stopIntent)
+                    })
             }
         }
 
@@ -456,17 +495,20 @@ class FgService : Service(), FgView {
         val htmlBytes = getFileFromAssets(context, "index.html")
         htmlBytes.isNotEmpty() || throw IllegalStateException("index.html is empty")
         return String(htmlBytes, Charset.defaultCharset())
-                .replaceFirst(HttpServer.NO_MJPEG_SUPPORT_MESSAGE.toRegex(), context.getString(R.string.html_no_mjpeg_support))
+            .replaceFirst(
+                HttpServer.NO_MJPEG_SUPPORT_MESSAGE.toRegex(),
+                context.getString(R.string.html_no_mjpeg_support)
+            )
     }
 
     private fun getBasePinRequestHtml(context: Context): String {
         val htmlBytes = getFileFromAssets(context, "pinrequest.html")
         htmlBytes.isNotEmpty() || throw IllegalStateException("pinrequest.html is empty")
         return String(htmlBytes, Charset.defaultCharset())
-                .replaceFirst(HttpServer.STREAM_REQUIRE_PIN.toRegex(), context.getString(R.string.html_stream_require_pin))
-                .replaceFirst(HttpServer.ENTER_PIN.toRegex(), context.getString(R.string.html_enter_pin))
-                .replaceFirst(HttpServer.FOUR_DIGITS.toRegex(), context.getString(R.string.html_four_digits))
-                .replaceFirst(HttpServer.SUBMIT_TEXT.toRegex(), context.getString(R.string.html_submit_text))
+            .replaceFirst(HttpServer.STREAM_REQUIRE_PIN.toRegex(), context.getString(R.string.html_stream_require_pin))
+            .replaceFirst(HttpServer.ENTER_PIN.toRegex(), context.getString(R.string.html_enter_pin))
+            .replaceFirst(HttpServer.FOUR_DIGITS.toRegex(), context.getString(R.string.html_four_digits))
+            .replaceFirst(HttpServer.SUBMIT_TEXT.toRegex(), context.getString(R.string.html_submit_text))
     }
 
     private fun getInterfaces(): List<EventBus.Interface> {
@@ -479,7 +521,7 @@ class FgService : Service(), FgView {
                     if (!inetAddress.isLoopbackAddress && inetAddress is Inet4Address)
                         if (settings.useWiFiOnly) {
                             if (defaultWifiRegexArray.any { it.matches(networkInterface.displayName) } ||
-                                    wifiRegexArray.any { it.matches(networkInterface.displayName) }) {
+                                wifiRegexArray.any { it.matches(networkInterface.displayName) }) {
                                 interfaceList.add(EventBus.Interface(networkInterface.displayName, inetAddress))
                                 return interfaceList
                             }
@@ -489,7 +531,7 @@ class FgService : Service(), FgView {
                 }
             }
         } catch (ex: Throwable) {
-            Timber.e(ex)
+            Timber.i(ex)
             if (wifiConnected()) interfaceList.add(EventBus.Interface("wlan0", getWiFiIpAddress()))
         }
         return interfaceList
@@ -502,7 +544,7 @@ class FgService : Service(), FgView {
 
         val ipInt = wifiManager.connectionInfo.ipAddress
         return InetAddress.getByAddress(
-                ByteArray(4, { i -> (ipInt.shr(i * 8).and(255)).toByte() })
+            ByteArray(4, { i -> (ipInt.shr(i * 8).and(255)).toByte() })
         ) as Inet4Address
     }
 }

@@ -1,24 +1,23 @@
 buildscript {
     ext {
-        kotlin_version = '1.2.20'
-        coroutine_version = '0.21.2'
+        kotlin_version = '1.2.21'
+        coroutine_version = '0.22.3'
 
         build_tools = '27.0.3'
         compile_sdk = 27
         min_sdk = 21
         target_sdk = 27
 
-        version_code = 215
-        version_name = '2.1.5'
+        version_code = 216
+        version_name = '2.1.6'
 
-        support_version = '27.0.2'
-        lifecycle_version = '1.0.0'
-        koin_version = '0.8.0'
-        rxjava_version = '1.3.4'
-        rxandroid_version = '1.2.1'
+        support_version = '27.1.0'
+        lifecycle_version = '1.1.0'
+        koin_version = '0.8.2'
+        rxjava_version = '1.3.6'
         rxrelay_version = '1.2.0'
         binaryprefs_version = '1.0.0-BETA-2'
-        timber_version = '4.6.0'
+        timber_version = '4.6.1'
     }
 
     repositories {
@@ -40,9 +39,6 @@ allprojects {
         jcenter()
         maven { url "https://jitpack.io" }
         maven { url 'https://maven.fabric.io/public' }
-        maven {
-            url  "https://dl.bintray.com/ekito/koin"
-        }
     }
 }
 
