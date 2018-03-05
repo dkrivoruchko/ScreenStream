@@ -13,8 +13,9 @@ import timber.log.Timber
 import kotlin.coroutines.experimental.CoroutineContext
 
 abstract class BasePresenter<in T : BaseView, R : BaseView.BaseFromEvent>(
-        protected val crtContext: CoroutineContext,
-        protected val eventBus: EventBus) : ViewModel() {
+    protected val crtContext: CoroutineContext,
+    protected val eventBus: EventBus
+) : ViewModel() {
 
     protected lateinit var viewChannel: SendChannel<R>
     private lateinit var subscription: SubscriptionReceiveChannel<EventBus.GlobalEvent>
@@ -27,7 +28,11 @@ abstract class BasePresenter<in T : BaseView, R : BaseView.BaseFromEvent>(
     @MainThread
     fun offer(fromEvent: R) {
         Timber.d("[${Utils.getLogPrefix(this)}] fromEvent: ${fromEvent.javaClass.simpleName}")
-        viewChannel.offer(fromEvent)
+        try {
+            viewChannel.offer(fromEvent)
+        } catch (t: Throwable) {
+            Timber.e(t)
+        }
     }
 
     @CallSuper

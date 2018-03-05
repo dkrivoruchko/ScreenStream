@@ -35,7 +35,7 @@ class HttpServerImpl constructor(serverAddress: InetSocketAddress,
                                  jpegBytesStream: Observable<ByteArray>,
                                  eventBus: EventBus,
                                  crtContext: CoroutineContext,
-                                 private val logItd: Action1<String>) : HttpServer {
+                                 private val logItv: Action1<String>) : HttpServer {
 
     companion object {
         private const val NETTY_IO_THREADS_NUMBER = 2
@@ -84,7 +84,7 @@ class HttpServerImpl constructor(serverAddress: InetSocketAddress,
     private val trafficHistory = ConcurrentLinkedDeque<HttpServer.TrafficPoint>()
 
     init {
-        logItd.call("[${Utils.getLogPrefix(this)}] Init")
+        logItv.call("[${Utils.getLogPrefix(this)}] Init")
 
         val httpServerPort = serverAddress.port
         if (httpServerPort !in 1025..65535) throw IllegalArgumentException("Tcp port must be in range [1025, 65535]")
@@ -98,7 +98,7 @@ class HttpServerImpl constructor(serverAddress: InetSocketAddress,
         subscription = eventBus.openSubscription()
         launch(crtContext) {
             subscription.consumeEach { globalEvent ->
-                logItd.call("[${Utils.getLogPrefix(this)}] globalEvent: ${globalEvent.javaClass.simpleName}")
+                logItv.call("[${Utils.getLogPrefix(this)}] globalEvent: ${globalEvent.javaClass.simpleName}")
 
                 when (globalEvent) {
                     EventBus.GlobalEvent.CurrentClientsRequest ->
@@ -155,13 +155,13 @@ class HttpServerImpl constructor(serverAddress: InetSocketAddress,
                 pinRequestHtmlPage,
                 pinRequestErrorHtmlPage,
                 Action1 { clientEvent -> toEvent(clientEvent) },
-                logItd,
+                logItv,
                 jpegBytesStream)
         try {
 
             httpServer.start(httpServerRxHandler)
             isRunning = true
-            logItd.call("[${Utils.getLogPrefix(this)}] Started")
+            logItv.call("[${Utils.getLogPrefix(this)}] Started")
 
         } catch (exception: Exception) {
             launch(crtContext) { eventBus.send(EventBus.GlobalEvent.Error(exception)) }
@@ -173,7 +173,7 @@ class HttpServerImpl constructor(serverAddress: InetSocketAddress,
     }
 
     override fun stop() {
-        logItd.call("[${Utils.getLogPrefix(this)}] Stop")
+        logItv.call("[${Utils.getLogPrefix(this)}] Stop")
 
         subscription.close()
         if (isRunning) {

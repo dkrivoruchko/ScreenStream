@@ -26,10 +26,7 @@ val koinModule = applicationContext {
 
     bean {
         newSingleThreadContext("SSEventContext") +
-                CoroutineExceptionHandler { _, ex -> // TODO() Temp Solution
-                    Timber.e(ex)
-                    throw ex
-                } as CoroutineContext
+                CoroutineExceptionHandler { _, ex -> Timber.e(ex) } as CoroutineContext
     }
 
     bean { EventBusImpl() as EventBus }
@@ -40,7 +37,12 @@ val koinModule = applicationContext {
 
     bean { ImageNotifyImpl(androidApplication()) as ImageNotify }
 
-    bean { SettingsImpl(BinaryPreferencesBuilder(androidApplication()).exceptionHandler { Timber.e(it) }.build()) as Settings }
+    bean {
+        SettingsImpl(
+            BinaryPreferencesBuilder(androidApplication())
+                .exceptionHandler { Timber.e(it) }.build()
+        ) as Settings
+    }
 
     viewModel { StartPresenter(get(), get(), get()) }
 

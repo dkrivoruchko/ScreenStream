@@ -292,7 +292,7 @@ class FgService : Service(), FgView {
 
                 is FgView.ToEvent.Error -> {
                     when (event.error) {
-                        is NoSuchElementException, is BindException, is UnsupportedOperationException -> Timber.i(event.error)
+                        is NoSuchElementException, is BindException, is UnsupportedOperationException -> Timber.d(event.error)
                         else -> Timber.w(event.error)
                     }
                     globalStatus.error.set(event.error)

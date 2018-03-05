@@ -26,12 +26,11 @@ class ScreenStreamApp : Application() {
         }
 
         // Set up DI
-        startKoin(this, listOf(koinModule))
-        Koin.logger = object : Logger {
+        startKoin(this, listOf(koinModule), logger = object : Logger {
             override fun debug(msg: String) = Timber.d(msg)
             override fun err(msg: String) = Timber.e(msg)
-            override fun log(msg: String) = Timber.i(msg)
-        }
+            override fun log(msg: String) = Timber.d(msg)
+        })
 
         Timber.w("[${Thread.currentThread().name}] onCreate: End")
     }

@@ -6,6 +6,7 @@ import com.squareup.leakcanary.LeakCanary
 import info.dvkr.screenstream.di.koinModule
 import info.dvkr.screenstream.domain.utils.Utils
 import org.koin.android.ext.android.startKoin
+import org.koin.log.Logger
 import timber.log.Timber
 import timber.log.Timber.DebugTree
 
@@ -43,7 +44,11 @@ class ScreenStreamApp : Application() {
         LeakCanary.install(this)
 
         // Set up DI
-        startKoin(this, listOf(koinModule))
+        startKoin(this, listOf(koinModule), logger = object : Logger {
+            override fun debug(msg: String) = Timber.d(msg)
+            override fun err(msg: String) = Timber.e(msg)
+            override fun log(msg: String) = Timber.d(msg)
+        })
 
         Timber.w("[${Utils.getLogPrefix(this)}] onCreate: End")
     }

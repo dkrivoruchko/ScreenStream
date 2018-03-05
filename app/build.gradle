@@ -91,7 +91,7 @@ dependencies {
 
     implementation "com.jakewharton.timber:timber:$timber_version"
 
-    releaseImplementation('com.crashlytics.sdk.android:crashlytics:2.9.0@aar') {
+    releaseImplementation('com.crashlytics.sdk.android:crashlytics:2.9.1@aar') {
         transitive = true
     }
 
