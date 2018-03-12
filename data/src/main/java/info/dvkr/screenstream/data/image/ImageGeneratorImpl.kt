@@ -27,9 +27,11 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
 
-class ImageGeneratorImpl(private val display: Display,
-                         private val mediaProjection: MediaProjection,
-                         private val action: (ImageGeneratorEvent) -> Unit) : ImageGenerator {
+class ImageGeneratorImpl(
+    private val display: Display,
+    private val mediaProjection: MediaProjection,
+    private val action: (ImageGeneratorEvent) -> Unit
+) : ImageGenerator {
 
     companion object {
         private const val STATE_INIT = "STATE_INIT"
@@ -43,7 +45,9 @@ class ImageGeneratorImpl(private val display: Display,
 
     private val state: AtomicReference<String> = AtomicReference(STATE_INIT)
     private lateinit var rotationDetector: Deferred<Unit>
-    private val imageThread: HandlerThread by lazy { HandlerThread("ImageGenerator", THREAD_PRIORITY_BACKGROUND) }
+    private val imageThread: HandlerThread by lazy {
+        HandlerThread("ImageGenerator", THREAD_PRIORITY_BACKGROUND)
+    }
     private val imageThreadHandler: Handler by lazy { Handler(imageThread.looper) }
     private val imageListener: AtomicReference<ImageListener?> = AtomicReference()
     private var imageReader: ImageReader? = null
@@ -88,7 +92,8 @@ class ImageGeneratorImpl(private val display: Display,
                 while (true) {
                     delay(250, TimeUnit.MILLISECONDS)
                     val oldRotation = display.rotation
-                    current = oldRotation == Surface.ROTATION_0 || oldRotation == Surface.ROTATION_180
+                    current = oldRotation == Surface.ROTATION_0 || oldRotation ==
+                            Surface.ROTATION_180
                     if (previous != current) {
                         Timber.i("[${Utils.getLogPrefix(this)}] Rotation detected")
                         previous = current
@@ -114,14 +119,16 @@ class ImageGeneratorImpl(private val display: Display,
         val screenSize = Point().also { display.getRealSize(it) }
         imageListener.set(ImageListener())
         imageReader = ImageReader.newInstance(screenSize.x, screenSize.y, PixelFormat.RGBA_8888, 2)
-                .apply { setOnImageAvailableListener(imageListener.get(), imageThreadHandler) }
+            .apply { setOnImageAvailableListener(imageListener.get(), imageThreadHandler) }
 
         try {
             val densityDpi = DisplayMetrics().also { display.getMetrics(it) }.densityDpi
-            virtualDisplay = mediaProjection.createVirtualDisplay("ScreenStreamVirtualDisplay",
-                    screenSize.x, screenSize.y, densityDpi,
-                    DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
-                    imageReader?.surface, null, imageThreadHandler)
+            virtualDisplay = mediaProjection.createVirtualDisplay(
+                "ScreenStreamVirtualDisplay",
+                screenSize.x, screenSize.y, densityDpi,
+                DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
+                imageReader?.surface, null, imageThreadHandler
+            )
             state.set(STATE_STARTED)
         } catch (ex: SecurityException) {
             state.set(STATE_ERROR)
@@ -160,46 +167,60 @@ class ImageGeneratorImpl(private val display: Display,
             synchronized(this@ImageGeneratorImpl) {
                 if (state.get() != STATE_STARTED || this != imageListener.get()) return
 
-                val image: Image?
+                var image: Image? = null
                 try {
                     image = reader.acquireLatestImage()
                 } catch (ex: UnsupportedOperationException) {
                     state.set(STATE_ERROR)
                     action(ImageGeneratorEvent.OnError(ex))
                     return
-                }
-                if (null == image) return
-
-                val plane = image.planes[0]
-                val width = plane.rowStride / plane.pixelStride
-
-                val cleanBitmap: Bitmap
-                if (width > image.width) {
-                    if (null == reusableBitmap) reusableBitmap =
-                            Bitmap.createBitmap(width, image.height, Bitmap.Config.ARGB_8888)
-
-                    reusableBitmap?.copyPixelsFromBuffer(plane.buffer)
-                    cleanBitmap = Bitmap.createBitmap(reusableBitmap, 0, 0, image.width, image.height)
-                } else {
-                    cleanBitmap = Bitmap.createBitmap(image.width, image.height, Bitmap.Config.ARGB_8888)
-                    cleanBitmap.copyPixelsFromBuffer(plane.buffer)
+                } catch (ignore: IllegalStateException) {
                 }
 
-                val resizedBitmap: Bitmap
-                if (resizeMatrix.get().isIdentity) {
-                    resizedBitmap = cleanBitmap
-                } else {
-                    resizedBitmap = Bitmap.createBitmap(cleanBitmap, 0, 0,
-                            image.width, image.height, resizeMatrix.get(), false)
-                    cleanBitmap.recycle()
+                if (image != null) {
+                    val plane = image.planes[0]
+                    val width = plane.rowStride / plane.pixelStride
+
+                    val cleanBitmap: Bitmap
+                    if (width > image.width) {
+                        if (null == reusableBitmap) reusableBitmap =
+                                Bitmap.createBitmap(width, image.height, Bitmap.Config.ARGB_8888)
+
+                        reusableBitmap?.copyPixelsFromBuffer(plane.buffer)
+                        cleanBitmap =
+                                Bitmap.createBitmap(reusableBitmap, 0, 0, image.width, image.height)
+                    } else {
+                        cleanBitmap =
+                                Bitmap.createBitmap(
+                                    image.width,
+                                    image.height,
+                                    Bitmap.Config.ARGB_8888
+                                )
+                        cleanBitmap.copyPixelsFromBuffer(plane.buffer)
+                    }
+
+                    val resizedBitmap: Bitmap
+                    if (resizeMatrix.get().isIdentity) {
+                        resizedBitmap = cleanBitmap
+                    } else {
+                        resizedBitmap = Bitmap.createBitmap(
+                            cleanBitmap, 0, 0,
+                            image.width, image.height, resizeMatrix.get(), false
+                        )
+                        cleanBitmap.recycle()
+                    }
+                    image.close()
+
+                    resultJpegStream.reset()
+                    resizedBitmap.compress(
+                        Bitmap.CompressFormat.JPEG,
+                        jpegQuality.get(),
+                        resultJpegStream
+                    )
+                    resizedBitmap.recycle()
+
+                    action(ImageGeneratorEvent.OnJpegImage(resultJpegStream.toByteArray()))
                 }
-                image.close()
-
-                resultJpegStream.reset()
-                resizedBitmap.compress(Bitmap.CompressFormat.JPEG, jpegQuality.get(), resultJpegStream)
-                resizedBitmap.recycle()
-
-                action(ImageGeneratorEvent.OnJpegImage(resultJpegStream.toByteArray()))
             }
         }
     }

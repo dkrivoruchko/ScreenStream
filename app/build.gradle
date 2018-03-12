@@ -13,7 +13,7 @@ android {
         targetSdkVersion target_sdk
         versionCode version_code
         versionName version_name
-        resConfigs "en", "ru"//, "de", "es"
+        resConfigs "en", "ru", "pt-rBR"//, "de", "es"
 
         vectorDrawables.useSupportLibrary = true
     }

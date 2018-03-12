@@ -322,8 +322,8 @@ class FgService : Service(), FgView {
         startForeground(NOTIFICATION_START_STREAMING, getCustomNotification(NOTIFICATION_START_STREAMING))
     }
 
-    override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
-        val action = intent.getStringExtra(EXTRA_DATA)
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        val action = intent?.getStringExtra(EXTRA_DATA)
         if (action == null) {
             Timber.e(IllegalStateException("FgService:onStartCommand: action == null"))
         } else {

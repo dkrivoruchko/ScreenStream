@@ -1,15 +1,15 @@
 buildscript {
     ext {
         kotlin_version = '1.2.30'
-        coroutine_version = '0.22.3'
+        coroutine_version = '0.22.5'
 
         build_tools = '27.0.3'
         compile_sdk = 27
         min_sdk = 21
         target_sdk = 27
 
-        version_code = 217
-        version_name = '2.1.7'
+        version_code = 218
+        version_name = '2.1.8'
 
         support_version = '27.1.0'
         lifecycle_version = '1.1.0'

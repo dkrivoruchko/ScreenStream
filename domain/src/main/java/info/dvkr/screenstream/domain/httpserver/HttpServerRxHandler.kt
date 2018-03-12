@@ -21,21 +21,23 @@ import rx.schedulers.Schedulers
 import java.net.InetSocketAddress
 import java.util.concurrent.Executors
 
-internal class HttpServerRxHandler(private val favicon: ByteArray,
-                                   private val logo: ByteArray,
-                                   private val indexHtmlPage: String,
-                                   private val pinEnabled: Boolean,
-                                   private val pinAddress: String,
-                                   private val streamAddress: String,
-                                   private val pinRequestHtmlPage: String,
-                                   private val pinRequestErrorHtmlPage: String,
-                                   private val clientEvent: Action1<HttpServerImpl.LocalEvent>,
-                                   private val logItv: Action1<String>,
-                                   jpegBytesStream: Observable<ByteArray>) : RequestHandler<ByteBuf, ByteBuf> {
+internal class HttpServerRxHandler(
+    private val favicon: ByteArray,
+    private val logo: ByteArray,
+    private val indexHtmlPage: String,
+    private val pinEnabled: Boolean,
+    private val pinAddress: String,
+    private val streamAddress: String,
+    private val pinRequestHtmlPage: String,
+    private val pinRequestErrorHtmlPage: String,
+    private val clientEvent: Action1<HttpServerImpl.LocalEvent>,
+    private val logItv: Action1<String>,
+    jpegBytesStream: Observable<ByteArray>
+) : RequestHandler<ByteBuf, ByteBuf> {
 
     private val CRLF = "\r\n".toByteArray()
     private val multipartBoundary = HttpServerImpl.randomString(20)
-    private val jpegBoundary = ("--" + multipartBoundary + "\r\n").toByteArray()
+    private val jpegBoundary = ("--$multipartBoundary\r\n").toByteArray()
     private val jpegBaseHeader = "Content-Type: image/jpeg\r\nContent-Length: ".toByteArray()
 
     // Handler internal components
@@ -53,7 +55,9 @@ internal class HttpServerRxHandler(private val favicon: ByteArray,
 
         subscription = jpegBytesStream.observeOn(Schedulers.from(singleThreadExecutor)).subscribe { jpegBytes ->
             val jpegLength = Integer.toString(jpegBytes.size).toByteArray()
-            this.jpegBytesStream.call(Unpooled.copiedBuffer(jpegBaseHeader, jpegLength, CRLF, CRLF, jpegBytes, CRLF, jpegBoundary).array())
+            this.jpegBytesStream.call(
+                Unpooled.copiedBuffer(jpegBaseHeader, jpegLength, CRLF, CRLF, jpegBytes, CRLF, jpegBoundary).array()
+            )
         }
     }
 
@@ -70,10 +74,17 @@ internal class HttpServerRxHandler(private val favicon: ByteArray,
 
         when {
             uri == HttpServer.DEFAULT_ICON_ADDRESS -> return sendFavicon(response)
+
             uri == HttpServer.DEFAULT_LOGO_ADDRESS -> return sendLogo(response)
-            uri == HttpServer.DEFAULT_HTML_ADDRESS -> return if (pinEnabled) sendHtml(response, pinRequestHtmlPage) else sendHtml(response, indexHtmlPage)
+
+            uri == HttpServer.DEFAULT_HTML_ADDRESS ->
+                return if (pinEnabled) sendHtml(response, pinRequestHtmlPage) else sendHtml(response, indexHtmlPage)
+
             uri == pinAddress && pinEnabled -> return sendHtml(response, indexHtmlPage)
-            uri.startsWith(HttpServer.DEFAULT_PIN_ADDRESS) && pinEnabled -> return sendHtml(response, pinRequestErrorHtmlPage)
+
+            uri.startsWith(HttpServer.DEFAULT_PIN_ADDRESS) && pinEnabled ->
+                return sendHtml(response, pinRequestErrorHtmlPage)
+
             uri == streamAddress -> {
                 // Getting clients statuses
                 val channel = response.unsafeConnection().channelPipeline.channel()
@@ -118,16 +129,19 @@ internal class HttpServerRxHandler(private val favicon: ByteArray,
 
     private fun sendStream(response: HttpServerResponse<ByteBuf>): Observable<Void> {
         response.status = HttpResponseStatus.OK
-        response.setHeader(HttpHeaderNames.CONTENT_TYPE, "multipart/x-mixed-replace; boundary=" + multipartBoundary)
+        response.setHeader(HttpHeaderNames.CONTENT_TYPE, "multipart/x-mixed-replace; boundary=$multipartBoundary")
         response.setHeader(HttpHeaderNames.CACHE_CONTROL, "no-cache,no-store,max-age=0,must-revalidate")
         response.setHeader(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE)
-        return response.writeBytesAndFlushOnEach(jpegBytesStream
-                .onBackpressureBuffer(2,
-                        Action0 {
-                            val channel = response.unsafeConnection().channelPipeline.channel()
-                            val inetSocketAddress = channel.remoteAddress() as InetSocketAddress
-                            clientEvent.call(HttpServerImpl.LocalEvent.ClientBackpressure(inetSocketAddress))
-                        }, BackpressureOverflow.ON_OVERFLOW_DROP_OLDEST)
+        return response.writeBytesAndFlushOnEach(
+            jpegBytesStream
+                .onBackpressureBuffer(
+                    2,
+                    Action0 {
+                        val channel = response.unsafeConnection().channelPipeline.channel()
+                        val inetSocketAddress = channel.remoteAddress() as InetSocketAddress
+                        clientEvent.call(HttpServerImpl.LocalEvent.ClientBackpressure(inetSocketAddress))
+                    }, BackpressureOverflow.ON_OVERFLOW_DROP_OLDEST
+                )
                 .doOnNext({ jpegBytes ->
                     val channel = response.unsafeConnection().channelPipeline.channel()
                     val inetSocketAddress = channel.remoteAddress() as InetSocketAddress
@@ -140,7 +154,7 @@ internal class HttpServerRxHandler(private val favicon: ByteArray,
 
     private fun redirect(serverAddress: String, response: HttpServerResponse<ByteBuf>): Observable<Void> {
         response.status = HttpResponseStatus.MOVED_PERMANENTLY
-        response.addHeader(HttpHeaderNames.LOCATION, "http://" + serverAddress)
+        response.addHeader(HttpHeaderNames.LOCATION, "http://$serverAddress")
         response.addHeader(HttpHeaderNames.CONTENT_TYPE, "text/plain; charset=UTF-8")
         response.setHeader(HttpHeaderNames.CACHE_CONTROL, "no-cache,no-store,max-age=0,must-revalidate")
         response.setHeader(HttpHeaderNames.CONNECTION, HttpHeaderValues.CLOSE)

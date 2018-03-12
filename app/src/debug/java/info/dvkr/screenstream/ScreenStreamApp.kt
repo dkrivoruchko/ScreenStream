@@ -19,9 +19,9 @@ class ScreenStreamApp : Application() {
         Timber.plant(DebugTree())
         Timber.w("[${Utils.getLogPrefix(this)}] onCreate: Start")
 
-        Thread.setDefaultUncaughtExceptionHandler { thread: Thread, throwable: Throwable ->
-            Timber.e(throwable, "Uncaught throwable in thread ${thread.name}")
-        }
+//        Thread.setDefaultUncaughtExceptionHandler { thread: Thread, throwable: Throwable ->
+//            Timber.e(throwable, "Uncaught throwable in thread ${thread.name}")
+//        }
 
         // Turning on strict mode
         StrictMode.setThreadPolicy(

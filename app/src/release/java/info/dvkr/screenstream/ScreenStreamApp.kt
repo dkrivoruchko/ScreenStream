@@ -21,9 +21,9 @@ class ScreenStreamApp : Application() {
         Timber.plant(CrashReportingTree())
         Timber.w("[${Thread.currentThread().name}] onCreate: Start")
 
-        Thread.setDefaultUncaughtExceptionHandler { thread: Thread, throwable: Throwable ->
-            Timber.e(throwable, "Uncaught throwable in thread ${thread.name}")
-        }
+//        Thread.setDefaultUncaughtExceptionHandler { thread: Thread, throwable: Throwable ->
+//            Timber.e(throwable, "Uncaught throwable in thread ${thread.name}")
+//        }
 
         // Set up DI
         startKoin(this, listOf(koinModule), logger = object : Logger {
