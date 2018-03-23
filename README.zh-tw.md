@@ -1,41 +1,41 @@
 # Screen Stream over HTTP
-An Android mobile app for viewing device screen in your web browser.
+一個Android行動裝置app用來在任何裝置上，觀看你的螢幕畫面
 
 <a href='https://play.google.com/store/apps/details?id=info.dvkr.screenstream'>
 <img alt='Get it on Google Play' src='https://play.google.com/intl/en_us/badges/images/generic/en_badge_web_generic.png' height="100"/></a>
 <a href="https://f-droid.org/packages/info.dvkr.screenstream/" target="_blank">
 <img src="https://f-droid.org/badge/get-it-on.png" alt="Get it on F-Droid" height="100"/></a>
 
-The application allows viewing the device screen in your web browser.
-The main idea is to show your device screen during presentations and demos.
-No need of any additional software except for this app and a web browser.
-No annoying ads or pop-ups.
+這個app讓你可以從任何瀏覽器中觀看裝置的螢幕串流畫面
+簡單來說讓你的裝置可以在簡報或是demo時投射出畫面
+除了瀏覽器外，你不需要安裝任何額外軟體來使用它
+沒有惱人的廣告彈出及干擾
 
-Read this in other languages: [正體中文](README.zh-tw.md)
+Read this in other languages: [English](README.md)
 
-It uses MJPEG to encode screen images and send them through the network. So it works with any desktop or mobile browser which supports MJPEG (Chrome, Safari, EDGE, Firefox).
+使用MJPEG編碼並透過網路傳輸傳輸畫面。如此一來在任何支援編碼的瀏覽器上皆可觀看(Chrome, Safari, EDGE, Firefox).
 
-The application works via WiFi and/or 3G/LTE network.<br>
-Fast and stable WiFi recommended because of high traffic and low network delay requirement.
-No Internet required, however, there must be a network connection between the client and the device.
+這個app透過WiFi或3G/LTE網路傳輸。<br>
+請使用穩定的高速WiFi以達到順暢的收看體驗。
+無須連接到外部網際網路。但一個能連接裝置與用戶端的區域網路是最低需求。
 
-The number of client connections is unlimited, but be aware that each of them requires some CPU resources and bandwidth to send data.
+無限制收看的用戶端數量，但請注意每個用戶端都會佔用一定量的cpu資源及頻寬
 
-Application uses Android Cast feature and requires at least Android 5.0 to run.
+本程式使用Android Cast功能，因此需Android 5.0以上版本以執行。
 
-**WARNING:** This is not a real time streaming app. Expected delay is at least 0.5-1 second or more on slow devices, bad WiFi or on heavy CPU load by other apps.<br>
-**WARNING:** This app is not designed for streaming video, especially HD video. Use Chromecast instead.<br>
-**WARNING:** This app does NOT support SOUND streaming, because MJPEG does not support sound.<br>
-**WARNING:** Some cell operators may block incoming connections to your device for security reasons, so, even if the device has an IP address from a cell operator, you may not be able to connect to the device on using this IP address.<br>
-**WARNING:** Some WiFi networks (mostly public/guest) block connections between its clients for security reasons, so you may not be able to connect to the device via WiFi. For example, a laptop and a phone in this such a WiFi network will not be able to connect to each other.
+**警示:** 這不是實時串流app。依裝置性能及網路環境不同，約有0.5至1秒甚至更多的延遲。<br>
+**警示:** 這個app不是設計來串流影片的，特別是高畫質影片。如有這些需求請使用Chromecast。<br>
+**警示:** 這個app不支援聲音串流，因為MJPEG僅為影像編碼。<br>
+**警示:** 某些電信商可能阻擋到您裝置的連入連線，因此即使裝置取得了一個ip位置，也不見得能夠連入。<br>
+**警示:** 某些WiFi網路(大部分是公用/免費網路)為了安全性的理由，阻擋連上它的裝置們彼此間的通訊。在這樣的網路環境上不一定能連入。例如在此網路環境中的筆電和手機將無法直接彼此通訊。
 
-### Known problems
+### 已知問題
 
-1. On some devices, system returns image in unknown format. Mostly on devices with no official Android 5.0 or above. Possible Android bug. App will show an error message. No solution available.
-2. On some devices no notification icon showing but notification is present. Android bug: 213309.
-3. Browser MJPEG support check is inaccurate. You can disable it in application settings.
+1. 某些裝置上系統會回傳無效的影像格式。這些系統大部份是非正規的Android。很有可能是Android的bug。app將會顯示錯誤訊息。這個無解。
+2. 某些裝置上不會顯示通知圖示，但通知區域訊息實際存在。 Android bug: 213309。
+3. 瀏覽器MJPEG支援檢查可能有誤。你可以在設定中關閉。
 
-### Screenshots
+### 畫面截圖
 
 ![](screenshots/screenshot_1.png)&nbsp;
 ![](screenshots/screenshot_2.png)<br>
@@ -46,9 +46,9 @@ Application uses Android Cast feature and requires at least Android 5.0 to run.
 ![](screenshots/screenshot_7.png)&nbsp;
 ![](screenshots/screenshot_8.png)
 
-## Features and libraries
+## 函式庫
 
-Version 2.x based on Clean Architecture, Android Architecture Components (ViewModel) and MVP pattern and uses:
+Version 2.x 基於 Clean Architecture, Android Architecture Components (ViewModel) and MVP pattern and uses:
 * [Kotlin](https://kotlinlang.org)
 * [Kotlin coroutines](https://github.com/Kotlin/kotlinx.coroutines)
 * [Android support libraries](https://developer.android.com/topic/libraries/support-library/index.html)
@@ -65,13 +65,13 @@ Version 2.x based on Clean Architecture, Android Architecture Components (ViewMo
 * [LeakCanary](https://github.com/square/leakcanary)
 
 
-## Developed By
+## 開發者
 
 Dmitriy Krivoruchko - <dkrivoruchko@gmail.com>
 
-If there are any issues or ideas feel free to contact me.
+如果有任何問題或點子歡迎來信談談。
 
-## License
+## 授權
 
 ```
 The MIT License (MIT)

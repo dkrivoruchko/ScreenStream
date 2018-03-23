@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--StartActivity-->
+    <string name="start_activity_device_address">本機位址：</string>
+    <string name="start_activity_no_address">找不到位址</string>
+    <string name="start_activity_start_stream">開始串流</string>
+    <string name="start_activity_stop_stream">停止串流</string>
+    <string name="start_activity_pin">PIN：</string>
+    <string name="start_activity_pin_disabled">停用PIN</string>
+    <string name="start_activity_resize_factor">縮放比例</string>
+    <string name="start_activity_current_traffic">流量： %1$,.2f Mbit/s</string>
+    <string name="start_activity_connected_clients">已連接用戶端數： %1$d</string>
+    <string name="start_activity_copied">已複製</string>
+
+    <string name="start_activity_drawer_main">主畫面</string>
+    <string name="start_activity_drawer_traffic_clients">流量與用戶端</string>
+    <string name="start_activity_drawer_settings">設定</string>
+    <string name="start_activity_drawer_rate_app">給評分</string>
+    <string name="start_activity_drawer_about">關於</string>
+    <string name="start_activity_drawer_exit">離開</string>
+
+    <string name="start_activity_alert_title_warring">警告</string>
+    <string name="start_activity_alert_title_error">錯誤</string>
+    <string name="start_activity_alert_title_error_network">網路錯誤</string>
+    <string name="start_activity_alert_title_error_unknown">非預期的錯誤</string>
+    <string name="start_activity_cast_permission_required_title">權限被拒</string>
+    <string name="start_activity_cast_permission_required">需要螢幕錄製的權限以捕捉畫面。</string>
+    <string name="start_activity_error_port_in_use">該連接埠正被使用中。請換一個試試</string>
+    <string name="start_activity_error_ip_address_not_found">找不到IP位址</string>
+    <string name="start_activity_error_network_unknown">不明的網路錯誤</string>
+    <string name="start_activity_error_invalid_media_projection">安全性錯誤：無效的螢幕投射。請重試</string>
+    <string name="start_activity_error_wrong_image_format">系統回傳無效的影像格式。無可用解決方案</string>
+    <string name="start_activity_alert_title_error_activity_not_found">取得權限錯誤</string>
+    <string name="start_activity_error_activity_not_found">此為Android漏洞。在提示對話窗中請勿勾選\"不要再顯示\"選項。如果已勾選，請移除本程式後重新安裝。</string>
+
+    <string name="start_activity_email_chooser_header">發送郵件…</string>
+
+    <!--FgService-->
+    <string name="service_ready_to_stream">已準備好串流</string>
+    <string name="service_press_start">請按下開始</string>
+    <string name="service_start">開始</string>
+    <string name="service_exit">離開</string>
+    <string name="service_stream">串流…</string>
+    <string name="service_press_stop">按下停止以結束串流</string>
+    <string name="service_stop">停止</string>
+    <string name="service_slow_client_connection">偵測到用戶端網路速度不佳</string>
+
+    <!--ImageNotify-->
+    <string name="image_generator_press_start">在裝置上按下開始串流</string>
+    <string name="image_generator_go_to_new_address">請連接到新位址</string>
+    <string name="image_generator_reload_this_page">請重新整理此頁面</string>
+
+    <!--SettingsActivity-->
+    <string name="settings_activity_name">設定</string>
+    <string name="pref_settings_interface">界面</string>
+    <string name="pref_minimize_on_stream">串流時最小化</string>
+    <string name="pref_minimise_on_stream_summary">在串流時最小化app到通知列</string>
+    <string name="pref_stop_on_sleep">睡眠時停止</string>
+    <string name="pref_stop_on_sleep_summary">當螢幕待機關閉時停止串流</string>
+    <string name="pref_start_on_boot">開機時啟動</string>
+    <string name="pref_start_on_boot_summary">開機後自動開始串流</string>
+    <string name="pref_mjpeg_check">停止MJPEG檢查</string>
+    <string name="pref_mjpeg_check_summary">停止檢查瀏覽器對於MJPEG的支援</string>
+    <string name="pref_html_back_color">背景色</string>
+    <string name="pref_html_back_color_summary">設定串流頁面背景色</string>
+    <string name="pref_html_back_color_title">選擇背景色</string>
+    <string name="pref_settings_image">畫面</string>
+    <string name="pref_resize">縮放畫面</string>
+    <string name="pref_resize_summary">傳送縮放過的畫面到用戶端</string>
+    <string name="pref_resize_dialog_text">設置縮放百分比。\n範圍： 10–150 (預設： 50)\n螢幕解析度： %1$dx%2$d</string>
+    <string name="pref_resize_dialog_result">畫面大小 size： %1$dx%2$d</string>
+    <string name="pref_jpeg_quality">JPEG壓縮品質</string>
+    <string name="pref_jpeg_quality_summary">設定JPEG壓縮品質</string>
+    <string name="pref_jpeg_quality_dialog">設定JPEG壓縮品質。\n範圍： 10–100 (Default： 100)</string>
+    <string name="pref_settings_security">安全性</string>
+    <string name="pref_enable_pin">使用pin</string>
+    <string name="pref_enable_pin_summary">需輸入pin以進入被保護的串流</string>
+    <string name="pref_hide_pin">串流開始後隱藏pin</string>
+    <string name="pref_hide_pin_summary">串流開始後顯示星號代替pin</string>
+    <string name="pref_new_pin_on_start">產生新的pin</string>
+    <string name="pref_new_pin_on_start_summary">每當程式開啟就產生一組新的pin</string>
+    <string name="pref_auto_change_pin">自動更換pin</string>
+    <string name="pref_auto_change_pin_summary">每次開啟串流就產生一組新的pin</string>
+    <string name="pref_set_pin">設定pin</string>
+    <string name="pref_set_pin_summary">手動輸入pin</string>
+    <string name="pref_set_pin_dialog">輸入pin。\n預設： 0000</string>
+    <string name="pref_settings_advanced">進階</string>
+    <string name="pref_wifi_only">僅使用WiFi</string>
+    <string name="pref_wifi_only_summary">串流伺服器僅使用WiFi傳輸</string>
+    <string name="pref_server_port">伺服器連接埠</string>
+    <string name="pref_server_port_summary">設定連接埠</string>
+    <string name="pref_server_port_dialog">設定連入使用的連接埠號。\n範圍： 1025–65535 (預設： 8080)</string>
+    <string name="pref_alert_error_title">錯誤</string>
+    <string name="pref_alert_error_message">連接埠正被使用中。請換一個試試。</string>
+
+    <!--ClientsActivity-->
+    <string name="clients_activity_name">流量與用戶端</string>
+    <string name="clients_activity_current_traffic">流量： %1$,.2f Mbit/s</string>
+    <string name="clients_activity_connected_clients">已連接用戶端數： %1$d</string>
+    <string name="clients_activity_client_connected">已連接</string>
+    <string name="clients_activity_client_disconnected">已斷線</string>
+    <string name="clients_activity_client_slow_network">網路不佳</string>
+    <string name="clients_activity_client">用戶端： %1$s</string>
+
+    <!--AboutActivity-->
+    <string name="about_activity_name">關於</string>
+    <string name="about_app_version">版本： %1$s</string>
+    <string name="about_developer_name">由Dmitriy Krivoruchko開發</string>
+    <string name="about_developer_send_email">寄信給開發者</string>
+    <string name="about_app_sources">應用程式原始碼</string>
+
+    <!--HTML text-->
+    <string name="html_stream_require_pin">此串流需要PIN以觀看</string>
+    <string name="html_enter_pin">輸入pin：\u0020</string>
+    <string name="html_four_digits">四位數字</string>
+    <string name="html_submit_text">傳送</string>
+    <string name="html_wrong_pin">pin錯誤！</string>
+    <string name="html_no_mjpeg_support">抱歉：(&lt;br&gt;您的瀏覽器看來不支援MJPEG格式。&lt;br&gt;&lt;br&gt;這個檢查或許有誤&lt;br&gt;您可以在串流程式設定中關閉本檢查</string>
+</resources>
