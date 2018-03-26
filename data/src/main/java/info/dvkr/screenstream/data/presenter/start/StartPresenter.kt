@@ -4,17 +4,16 @@ import info.dvkr.screenstream.data.presenter.BasePresenter
 import info.dvkr.screenstream.data.presenter.BaseView
 import info.dvkr.screenstream.domain.eventbus.EventBus
 import info.dvkr.screenstream.domain.globalstatus.GlobalStatus
+import kotlinx.coroutines.experimental.CommonPool
 import kotlinx.coroutines.experimental.channels.Channel
 import kotlinx.coroutines.experimental.channels.actor
 import kotlinx.coroutines.experimental.launch
-import kotlin.coroutines.experimental.CoroutineContext
 
-class StartPresenter(crtContext: CoroutineContext, eventBus: EventBus,
-                     private val globalStatus: GlobalStatus) :
-        BasePresenter<StartView, StartView.FromEvent>(crtContext, eventBus) {
+class StartPresenter(eventBus: EventBus, private val globalStatus: GlobalStatus) :
+    BasePresenter<StartView, StartView.FromEvent>(eventBus) {
 
     init {
-        viewChannel = actor(crtContext, Channel.UNLIMITED) {
+        viewChannel = actor(CommonPool, Channel.UNLIMITED) {
             for (fromEvent in this) when (fromEvent) {
                 StartView.FromEvent.StreamRunningRequest ->
                     notifyView(StartView.ToEvent.StreamRunning(globalStatus.isStreamRunning.get()))
@@ -76,6 +75,6 @@ class StartPresenter(crtContext: CoroutineContext, eventBus: EventBus,
 //        notifyView(StartView.ToEvent.StreamRunning(globalStatus.isStreamRunning.get()))
 
         // Requesting current clients
-        launch(crtContext) { eventBus.send(EventBus.GlobalEvent.CurrentClientsRequest) }
+        launch(CommonPool) { eventBus.send(EventBus.GlobalEvent.CurrentClientsRequest) }
     }
 }

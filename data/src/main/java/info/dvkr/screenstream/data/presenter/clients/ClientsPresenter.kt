@@ -3,23 +3,22 @@ package info.dvkr.screenstream.data.presenter.clients
 import info.dvkr.screenstream.data.presenter.BasePresenter
 import info.dvkr.screenstream.domain.eventbus.EventBus
 import info.dvkr.screenstream.domain.httpserver.HttpServer
+import kotlinx.coroutines.experimental.CommonPool
 import kotlinx.coroutines.experimental.channels.Channel
 import kotlinx.coroutines.experimental.channels.actor
 import kotlinx.coroutines.experimental.launch
 import java.util.concurrent.ConcurrentLinkedDeque
-import kotlin.coroutines.experimental.CoroutineContext
 
-class ClientsPresenter(crtContext: CoroutineContext, eventBus: EventBus) :
-        BasePresenter<ClientsView, ClientsView.FromEvent>(crtContext, eventBus) {
+class ClientsPresenter(eventBus: EventBus) :
+    BasePresenter<ClientsView, ClientsView.FromEvent>(eventBus) {
 
     private val trafficHistory = ConcurrentLinkedDeque<HttpServer.TrafficPoint>()
     private var maxYValue = 0L
 
     init {
-        viewChannel = actor(crtContext, Channel.UNLIMITED) {
+        viewChannel = actor(CommonPool, Channel.UNLIMITED) {
             for (fromEvent in this) when (fromEvent) {
-                ClientsView.FromEvent.TrafficHistoryRequest -> {
-                    // Requesting current traffic history
+                ClientsView.FromEvent.TrafficHistoryRequest -> { // Requesting current traffic history
                     if (trafficHistory.isEmpty()) {
                         eventBus.send(EventBus.GlobalEvent.TrafficHistoryRequest)
                     } else {
@@ -57,6 +56,6 @@ class ClientsPresenter(crtContext: CoroutineContext, eventBus: EventBus) :
         }
 
         // Requesting current clients
-        launch(crtContext) { eventBus.send(EventBus.GlobalEvent.CurrentClientsRequest) }
+        launch(CommonPool) { eventBus.send(EventBus.GlobalEvent.CurrentClientsRequest) }
     }
 }

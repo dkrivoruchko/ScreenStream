@@ -14,20 +14,12 @@ import info.dvkr.screenstream.domain.globalstatus.GlobalStatus
 import info.dvkr.screenstream.domain.globalstatus.GlobalStatusImpl
 import info.dvkr.screenstream.domain.settings.Settings
 import info.dvkr.screenstream.image.ImageNotifyImpl
-import kotlinx.coroutines.experimental.CoroutineExceptionHandler
-import kotlinx.coroutines.experimental.newSingleThreadContext
 import org.koin.android.architecture.ext.viewModel
 import org.koin.android.ext.koin.androidApplication
 import org.koin.dsl.module.applicationContext
 import timber.log.Timber
-import kotlin.coroutines.experimental.CoroutineContext
 
 val koinModule = applicationContext {
-
-    bean {
-        newSingleThreadContext("SSEventContext") +
-                CoroutineExceptionHandler { _, ex -> Timber.e(ex) } as CoroutineContext
-    }
 
     bean { EventBusImpl() as EventBus }
 
@@ -44,11 +36,11 @@ val koinModule = applicationContext {
         ) as Settings
     }
 
-    viewModel { StartPresenter(get(), get(), get()) }
+    viewModel { StartPresenter(get(), get()) }
 
-    viewModel { SettingsPresenter(get(), get(), get()) }
+    viewModel { SettingsPresenter(get(), get()) }
 
-    viewModel { ClientsPresenter(get(), get()) }
+    viewModel { ClientsPresenter(get()) }
 
-    bean { FgPresenter(get(), get(), get(), get(), get()) }
+    bean { FgPresenter(get(), get(), get(), get()) }
 }

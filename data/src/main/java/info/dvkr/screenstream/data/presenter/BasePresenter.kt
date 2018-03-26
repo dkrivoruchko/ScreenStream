@@ -5,15 +5,14 @@ import android.support.annotation.CallSuper
 import android.support.annotation.MainThread
 import info.dvkr.screenstream.domain.eventbus.EventBus
 import info.dvkr.screenstream.domain.utils.Utils
+import kotlinx.coroutines.experimental.CommonPool
 import kotlinx.coroutines.experimental.channels.SendChannel
 import kotlinx.coroutines.experimental.channels.SubscriptionReceiveChannel
 import kotlinx.coroutines.experimental.channels.consumeEach
 import kotlinx.coroutines.experimental.launch
 import timber.log.Timber
-import kotlin.coroutines.experimental.CoroutineContext
 
 abstract class BasePresenter<in T : BaseView, R : BaseView.BaseFromEvent>(
-    protected val crtContext: CoroutineContext,
     protected val eventBus: EventBus
 ) : ViewModel() {
 
@@ -29,7 +28,7 @@ abstract class BasePresenter<in T : BaseView, R : BaseView.BaseFromEvent>(
     fun offer(fromEvent: R) {
         Timber.d("[${Utils.getLogPrefix(this)}] fromEvent: ${fromEvent.javaClass.simpleName}")
         try {
-            viewChannel.offer(fromEvent)
+            if (viewChannel.isClosedForSend.not()) viewChannel.offer(fromEvent)
         } catch (t: Throwable) {
             Timber.e(t)
         }
@@ -42,7 +41,7 @@ abstract class BasePresenter<in T : BaseView, R : BaseView.BaseFromEvent>(
         view = newView
 
         subscription = eventBus.openSubscription()
-        launch(crtContext) {
+        launch(CommonPool) {
             subscription.consumeEach { globalEvent ->
                 Timber.d("[${Utils.getLogPrefix(this)}] globalEvent: ${globalEvent.javaClass.simpleName}")
                 block(globalEvent)

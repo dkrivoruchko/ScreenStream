@@ -11,6 +11,7 @@ import info.dvkr.screenstream.domain.httpserver.HttpServer
 import info.dvkr.screenstream.domain.httpserver.HttpServerImpl
 import info.dvkr.screenstream.domain.settings.Settings
 import info.dvkr.screenstream.domain.utils.Utils
+import kotlinx.coroutines.experimental.CommonPool
 import kotlinx.coroutines.experimental.channels.Channel
 import kotlinx.coroutines.experimental.channels.SendChannel
 import kotlinx.coroutines.experimental.channels.SubscriptionReceiveChannel
@@ -21,18 +22,19 @@ import rx.BackpressureOverflow
 import rx.functions.Action0
 import rx.functions.Action1
 import timber.log.Timber
-import kotlin.coroutines.experimental.CoroutineContext
+import java.util.concurrent.atomic.AtomicReference
 
-open class FgPresenter(private val crtContext: CoroutineContext,
-                       private val eventBus: EventBus,
-                       private val globalStatus: GlobalStatus,
-                       private val settings: Settings,
-                       private val jpegBytesStream: BehaviorRelay<ByteArray>) {
+open class FgPresenter(
+    private val eventBus: EventBus,
+    private val globalStatus: GlobalStatus,
+    private val settings: Settings,
+    private val jpegBytesStream: BehaviorRelay<ByteArray>
+) {
 
     private val random = java.util.Random()
 
     private var httpServer: HttpServer? = null
-    private var imageGenerator: ImageGenerator? = null
+    private val imageGenerator: AtomicReference<ImageGenerator?> = AtomicReference(null)
     private val slowConnections: MutableList<HttpServer.Client> = ArrayList()
 
 
@@ -43,7 +45,7 @@ open class FgPresenter(private val crtContext: CoroutineContext,
     init {
         Timber.i("[${Utils.getLogPrefix(this)}] Init")
 
-        viewChannel = actor(crtContext, Channel.UNLIMITED) {
+        viewChannel = actor(CommonPool, Channel.UNLIMITED) {
             for (fromEvent in this) when (fromEvent) {
                 FgView.FromEvent.Init -> {
                     if (settings.enablePin && settings.newPinOnAppStart) {
@@ -58,22 +60,18 @@ open class FgPresenter(private val crtContext: CoroutineContext,
                 is FgView.FromEvent.StartHttpServer -> {
                     val (serverAddress, favicon, logo, baseIndexHtml, basePinRequestHtml, pinRequestErrorMsg) = fromEvent
                     globalStatus.error.set(null)
-                    httpServer = HttpServerImpl(serverAddress,
-                            favicon,
-                            logo,
-                            baseIndexHtml,
-                            settings.htmlBackColor,
-                            settings.disableMJPEGCheck,
-                            settings.enablePin,
-                            settings.currentPin,
-                            basePinRequestHtml,
-                            pinRequestErrorMsg,
-                            jpegBytesStream.onBackpressureBuffer(2,
-                                    Action0 { Timber.e("jpegBytesStream.onBackpressureBuffer - ON_OVERFLOW_DROP_OLDEST") },
-                                    BackpressureOverflow.ON_OVERFLOW_DROP_OLDEST),
-                            eventBus,
-                            crtContext,
-                            Action1 { Timber.v(it) })
+                    httpServer = HttpServerImpl(
+                        serverAddress, favicon, logo, baseIndexHtml,
+                        settings.htmlBackColor, settings.disableMJPEGCheck, settings.enablePin, settings.currentPin,
+                        basePinRequestHtml,
+                        pinRequestErrorMsg,
+                        jpegBytesStream.onBackpressureBuffer(
+                            2,
+                            Action0 { Timber.e("jpegBytesStream.onBackpressureBuffer - ON_OVERFLOW_DROP_OLDEST") },
+                            BackpressureOverflow.ON_OVERFLOW_DROP_OLDEST
+                        ),
+                        eventBus,
+                        Action1 { Timber.v(it) })
 
                     notifyView(FgView.ToEvent.NotifyImage(ImageNotify.IMAGE_TYPE_DEFAULT))
                 }
@@ -84,8 +82,8 @@ open class FgPresenter(private val crtContext: CoroutineContext,
                 }
 
                 is FgView.FromEvent.StartImageGenerator -> {
-                    imageGenerator = ImageGeneratorImpl(fromEvent.display, fromEvent.mediaProjection) { action ->
-                        launch(crtContext) {
+                    val newImageGenerator = ImageGeneratorImpl(fromEvent.display, fromEvent.mediaProjection) { action ->
+                        launch(CommonPool) {
                             when (action) {
                                 is ImageGenerator.ImageGeneratorEvent.OnError -> {
                                     eventBus.send(EventBus.GlobalEvent.Error(action.error))
@@ -97,12 +95,15 @@ open class FgPresenter(private val crtContext: CoroutineContext,
                                 }
                             }
                         }
-                    }.apply {
+                    }
+
+                    with(newImageGenerator) {
                         setImageResizeFactor(settings.resizeFactor)
                         setImageJpegQuality(settings.jpegQuality)
                         start()
                     }
 
+                    imageGenerator.set(newImageGenerator)
                     globalStatus.isStreamRunning.set(true)
                     eventBus.send(EventBus.GlobalEvent.StreamStatus)
                 }
@@ -134,7 +135,11 @@ open class FgPresenter(private val crtContext: CoroutineContext,
 
     fun offer(fromEvent: FgView.FromEvent) {
         Timber.d("[${Utils.getLogPrefix(this)}] fromEvent: ${fromEvent.javaClass.simpleName}")
-        viewChannel.offer(fromEvent)
+        try {
+            if (viewChannel.isClosedForSend.not()) viewChannel.offer(fromEvent)
+        } catch (t: Throwable) {
+            Timber.e(t)
+        }
     }
 
     private fun notifyView(toEvent: FgView.ToEvent, timeout: Long = 0) = view?.toEvent(toEvent, timeout)
@@ -145,7 +150,7 @@ open class FgPresenter(private val crtContext: CoroutineContext,
         view = newView
 
         subscription = eventBus.openSubscription()
-        launch(crtContext) {
+        launch(CommonPool) {
             subscription.consumeEach { globalEvent ->
                 Timber.d("[${Utils.getLogPrefix(this)}] globalEvent: ${globalEvent.javaClass.simpleName}")
 
@@ -153,8 +158,7 @@ open class FgPresenter(private val crtContext: CoroutineContext,
                 // From FgPresenter, StartPresenter & ProjectionCallback
                     EventBus.GlobalEvent.StopStream ->
                         if (globalStatus.isStreamRunning.get()) {
-                            imageGenerator?.stop()
-                            imageGenerator = null
+                            imageGenerator.getAndSet(null)?.stop()
                             globalStatus.isStreamRunning.set(false)
                             eventBus.send(EventBus.GlobalEvent.StreamStatus)
                             notifyView(FgView.ToEvent.StopStream())
@@ -170,8 +174,7 @@ open class FgPresenter(private val crtContext: CoroutineContext,
                         globalStatus.error.set(null)
                         val restartReason = globalEvent.reason
                         if (globalStatus.isStreamRunning.get()) {
-                            imageGenerator?.stop()
-                            imageGenerator = null
+                            imageGenerator.getAndSet(null)?.stop()
                             globalStatus.isStreamRunning.set(false)
                             eventBus.send(EventBus.GlobalEvent.StreamStatus)
                             notifyView(FgView.ToEvent.StopStream(false))
@@ -189,8 +192,7 @@ open class FgPresenter(private val crtContext: CoroutineContext,
                 // From HttpServer & ImageGenerator
                     is EventBus.GlobalEvent.Error -> {
                         if (globalStatus.isStreamRunning.get()) {
-                            imageGenerator?.stop()
-                            imageGenerator = null
+                            imageGenerator.getAndSet(null)?.stop()
                             globalStatus.isStreamRunning.set(false)
                             eventBus.send(EventBus.GlobalEvent.StreamStatus)
                             notifyView(FgView.ToEvent.StopStream(false))
@@ -210,12 +212,12 @@ open class FgPresenter(private val crtContext: CoroutineContext,
 
                 // From SettingsPresenter
                     is EventBus.GlobalEvent.ResizeFactor -> {
-                        imageGenerator?.setImageResizeFactor(globalEvent.value)
+                        imageGenerator.get()?.setImageResizeFactor(globalEvent.value)
                     }
 
                 // From SettingsPresenter
                     is EventBus.GlobalEvent.JpegQuality -> {
-                        imageGenerator?.setImageJpegQuality(globalEvent.value)
+                        imageGenerator.get()?.setImageJpegQuality(globalEvent.value)
                     }
                 }
             }
@@ -229,6 +231,6 @@ open class FgPresenter(private val crtContext: CoroutineContext,
     }
 
     private fun randomPin(): String =
-            Integer.toString(random.nextInt(10)) + Integer.toString(random.nextInt(10)) +
-                    Integer.toString(random.nextInt(10)) + Integer.toString(random.nextInt(10))
+        Integer.toString(random.nextInt(10)) + Integer.toString(random.nextInt(10)) +
+                Integer.toString(random.nextInt(10)) + Integer.toString(random.nextInt(10))
 }

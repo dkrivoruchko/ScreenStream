@@ -12,7 +12,6 @@ import android.media.projection.MediaProjectionManager
 import android.net.Uri
 import android.os.Bundle
 import android.support.v4.content.ContextCompat
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.WindowManager
@@ -42,7 +41,8 @@ class StartActivity : BaseActivity(), StartView {
 
     companion object {
         private const val REQUEST_CODE_SCREEN_CAPTURE = 10
-        private const val DIALOG_SCREEN_CAPTURE_PERMISSION_TAG = "DIALOG_SCREEN_CAPTURE_PERMISSION_TAG"
+        private const val DIALOG_SCREEN_CAPTURE_PERMISSION_TAG =
+            "DIALOG_SCREEN_CAPTURE_PERMISSION_TAG"
 
         private const val EXTRA_DATA = "EXTRA_DATA"
         const val ACTION_START_STREAM = "ACTION_START_STREAM"
@@ -54,8 +54,8 @@ class StartActivity : BaseActivity(), StartView {
 
         fun getStartIntent(context: Context, action: String): Intent {
             return Intent(context, StartActivity::class.java)
-                    .putExtra(EXTRA_DATA, action)
-                    .addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                .putExtra(EXTRA_DATA, action)
+                .addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
         }
     }
 
@@ -80,7 +80,10 @@ class StartActivity : BaseActivity(), StartView {
         when (toEvent) {
             is StartView.ToEvent.TryToStart -> {
                 try {
-                    startActivityForResult(projectionManager.createScreenCaptureIntent(), REQUEST_CODE_SCREEN_CAPTURE)
+                    startActivityForResult(
+                        projectionManager.createScreenCaptureIntent(),
+                        REQUEST_CODE_SCREEN_CAPTURE
+                    )
                 } catch (ex: ActivityNotFoundException) {
                     presenter.offer(StartView.FromEvent.Error(ex))
                 }
@@ -90,9 +93,16 @@ class StartActivity : BaseActivity(), StartView {
                 setStreamRunning(toEvent.running)
                 if (toEvent.running && settings.minimizeOnStream)
                     try {
-                        startActivity(Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME).setFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                        startActivity(
+                            Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME).setFlags(
+                                Intent.FLAG_ACTIVITY_NEW_TASK
+                            )
+                        )
                     } catch (ex: ActivityNotFoundException) {
-                        Timber.e(ex, "StartView.ToEvent.OnStreamStartStop: minimizeOnStream: ActivityNotFoundException")
+                        Timber.e(
+                            ex,
+                            "StartView.ToEvent.OnStreamStartStop: minimizeOnStream: ActivityNotFoundException"
+                        )
                     }
             }
 
@@ -110,19 +120,19 @@ class StartActivity : BaseActivity(), StartView {
                         is ActivityNotFoundException -> {
                             canStart = false
                             alerter.setTitle(R.string.start_activity_alert_title_error_activity_not_found)
-                                    .setText(R.string.start_activity_error_activity_not_found)
+                                .setText(R.string.start_activity_error_activity_not_found)
                         }
 
                         is UnsupportedOperationException -> {
                             canStart = false
                             alerter.setTitle(R.string.start_activity_alert_title_error)
-                                    .setText(R.string.start_activity_error_wrong_image_format)
+                                .setText(R.string.start_activity_error_wrong_image_format)
                         }
 
                         is NoSuchElementException -> {
                             canStart = false
                             alerter.setTitle(R.string.start_activity_alert_title_error_network)
-                                    .setText(R.string.start_activity_error_ip_address_not_found)
+                                .setText(R.string.start_activity_error_ip_address_not_found)
                         }
 
                         is BindException -> {
@@ -136,26 +146,27 @@ class StartActivity : BaseActivity(), StartView {
 
                         is SecurityException -> {
                             alerter.setTitle(R.string.start_activity_alert_title_error)
-                                    .setText(R.string.start_activity_error_invalid_media_projection)
+                                .setText(R.string.start_activity_error_invalid_media_projection)
                         }
 
                         else -> {
                             canStart = false
                             alerter.setTitle(R.string.start_activity_alert_title_error_unknown)
-                                    .setText(it.message)
+                                .setText(it.message)
                         }
                     }
 
                     alerter.setBackgroundColorRes(R.color.colorAccent)
-                            .enableInfiniteDuration(true)
-                            .enableSwipeToDismiss()
-                            .show()
+                        .enableInfiniteDuration(true)
+                        .enableSwipeToDismiss()
+                        .show()
                 }
             }
 
             is StartView.ToEvent.CurrentClients -> {
                 val clientsCount = toEvent.clientsList.filter { !it.disconnected }.count()
-                textViewConnectedClients.text = getString(R.string.start_activity_connected_clients).format(clientsCount)
+                textViewConnectedClients.text =
+                        getString(R.string.start_activity_connected_clients).format(clientsCount)
             }
 
             is StartView.ToEvent.CurrentInterfaces -> {
@@ -164,7 +175,8 @@ class StartActivity : BaseActivity(), StartView {
 
             is StartView.ToEvent.TrafficPoint -> {
                 val mbit = (toEvent.trafficPoint.bytes * 8).toDouble() / 1024 / 1024
-                textViewCurrentTraffic.text = getString(R.string.start_activity_current_traffic).format(mbit)
+                textViewCurrentTraffic.text =
+                        getString(R.string.start_activity_current_traffic).format(mbit)
             }
         }
     }
@@ -178,7 +190,8 @@ class StartActivity : BaseActivity(), StartView {
 
         startService(FgService.getIntent(applicationContext, FgService.ACTION_INIT))
         toggleButtonStartStop.isEnabled = false
-        textViewConnectedClients.text = getString(R.string.start_activity_connected_clients).format(0)
+        textViewConnectedClients.text =
+                getString(R.string.start_activity_connected_clients).format(0)
         textViewCurrentTraffic.text = getString(R.string.start_activity_current_traffic).format(0f)
 
         toggleButtonStartStop.setOnClickListener { _ ->
@@ -200,42 +213,64 @@ class StartActivity : BaseActivity(), StartView {
         presenter.attach(this)
 
         drawer = DrawerBuilder()
-                .withActivity(this)
-                .withToolbar(toolbarStart)
-                .withHeader(R.layout.activity_start_drawer_header)
-                .withHasStableIds(true)
-                .addDrawerItems(
-                        PrimaryDrawerItem().withIdentifier(1).withName(R.string.start_activity_drawer_main).withSelectable(false).withIcon(R.drawable.ic_drawer_main_24dp),
-                        PrimaryDrawerItem().withIdentifier(2).withName(R.string.start_activity_drawer_traffic_clients).withSelectable(false).withIcon(R.drawable.ic_drawer_connected_24dp),
-                        PrimaryDrawerItem().withIdentifier(3).withName(R.string.start_activity_drawer_settings).withSelectable(false).withIcon(R.drawable.ic_drawer_settings_24dp),
-                        //                        DividerDrawerItem(),
+            .withActivity(this)
+            .withToolbar(toolbarStart)
+            .withHeader(R.layout.activity_start_drawer_header)
+            .withHasStableIds(true)
+            .addDrawerItems(
+                PrimaryDrawerItem().withIdentifier(1).withName(R.string.start_activity_drawer_main).withSelectable(
+                    false
+                ).withIcon(R.drawable.ic_drawer_main_24dp),
+                PrimaryDrawerItem().withIdentifier(2).withName(R.string.start_activity_drawer_traffic_clients).withSelectable(
+                    false
+                ).withIcon(R.drawable.ic_drawer_connected_24dp),
+                PrimaryDrawerItem().withIdentifier(3).withName(R.string.start_activity_drawer_settings).withSelectable(
+                    false
+                ).withIcon(R.drawable.ic_drawer_settings_24dp),
+                //                        DividerDrawerItem(),
 //                        PrimaryDrawerItem().withIdentifier(4).withName("Instructions").withSelectable(false).withIcon(R.drawable.ic_drawer_instructions_24dp),
 //                        PrimaryDrawerItem().withIdentifier(5).withName("Local test").withSelectable(false).withIcon(R.drawable.ic_drawer_test_24dp),
-                        DividerDrawerItem(),
-                        PrimaryDrawerItem().withIdentifier(6).withName(R.string.start_activity_drawer_rate_app).withSelectable(false).withIcon(R.drawable.ic_drawer_rateapp_24dp),
-                        PrimaryDrawerItem().withIdentifier(7).withName(R.string.start_activity_drawer_about).withSelectable(false).withIcon(R.drawable.ic_drawer_about_24dp)
+                DividerDrawerItem(),
+                PrimaryDrawerItem().withIdentifier(6).withName(R.string.start_activity_drawer_rate_app).withSelectable(
+                    false
+                ).withIcon(R.drawable.ic_drawer_rateapp_24dp),
+                PrimaryDrawerItem().withIdentifier(7).withName(R.string.start_activity_drawer_about).withSelectable(
+                    false
+                ).withIcon(R.drawable.ic_drawer_about_24dp)
+            )
+            .addStickyDrawerItems(
+                PrimaryDrawerItem().withIdentifier(8).withName(R.string.start_activity_drawer_exit).withIcon(
+                    R.drawable.ic_drawer_exit_24dp
                 )
-                .addStickyDrawerItems(
-                        PrimaryDrawerItem().withIdentifier(8).withName(R.string.start_activity_drawer_exit).withIcon(R.drawable.ic_drawer_exit_24dp)
-                )
-                .withOnDrawerItemClickListener { _, _, drawerItem ->
-                    if (drawerItem.identifier == 1L) if (drawer.isDrawerOpen) drawer.closeDrawer()
-                    if (drawerItem.identifier == 2L) startActivity(ClientsActivity.getStartIntent(this))
-                    if (drawerItem.identifier == 3L) startActivity(SettingsActivity.getStartIntent(this))
+            )
+            .withOnDrawerItemClickListener { _, _, drawerItem ->
+                if (drawerItem.identifier == 1L) if (drawer.isDrawerOpen) drawer.closeDrawer()
+                if (drawerItem.identifier == 2L) startActivity(ClientsActivity.getStartIntent(this))
+                if (drawerItem.identifier == 3L) startActivity(SettingsActivity.getStartIntent(this))
 
-                    if (drawerItem.identifier == 6L) {
-                        try {
-                            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=$packageName")))
-                        } catch (ex: ActivityNotFoundException) {
-                            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=$packageName")))
-                        }
+                if (drawerItem.identifier == 6L) {
+                    try {
+                        startActivity(
+                            Intent(
+                                Intent.ACTION_VIEW,
+                                Uri.parse("market://details?id=$packageName")
+                            )
+                        )
+                    } catch (ex: ActivityNotFoundException) {
+                        startActivity(
+                            Intent(
+                                Intent.ACTION_VIEW,
+                                Uri.parse("https://play.google.com/store/apps/details?id=$packageName")
+                            )
+                        )
                     }
-
-                    if (drawerItem.identifier == 7L) startActivity(AboutActivity.getStartIntent(this))
-                    if (drawerItem.identifier == 8L) presenter.offer(StartView.FromEvent.AppExit)
-                    true
                 }
-                .build()
+
+                if (drawerItem.identifier == 7L) startActivity(AboutActivity.getStartIntent(this))
+                if (drawerItem.identifier == 8L) presenter.offer(StartView.FromEvent.AppExit)
+                true
+            }
+            .build()
 
         drawer.deselect()
 
@@ -301,12 +336,14 @@ class StartActivity : BaseActivity(), StartView {
                 if (Activity.RESULT_OK != resultCode) {
                     toggleButtonStartStop.isEnabled = true
 
-                    NotificationDialog.newInstance(DIALOG_SCREEN_CAPTURE_PERMISSION_TAG,
-                            titleText = getString(R.string.start_activity_cast_permission_required_title),
-                            messageText = getString(R.string.start_activity_cast_permission_required),
-                            positiveButtonText = getString(android.R.string.ok),
-                            isCancelable = false)
-                            .show(fragmentManager, DIALOG_SCREEN_CAPTURE_PERMISSION_TAG)
+                    NotificationDialog.newInstance(
+                        DIALOG_SCREEN_CAPTURE_PERMISSION_TAG,
+                        titleText = getString(R.string.start_activity_cast_permission_required_title),
+                        messageText = getString(R.string.start_activity_cast_permission_required),
+                        positiveButtonText = getString(android.R.string.ok),
+                        isCancelable = false
+                    )
+                        .show(fragmentManager, DIALOG_SCREEN_CAPTURE_PERMISSION_TAG)
 
                     Timber.w("onActivityResult: Screen Cast permission denied")
                     return
@@ -338,22 +375,39 @@ class StartActivity : BaseActivity(), StartView {
         linearLayoutServerAddressList.removeAllViews()
         val layoutInflater = LayoutInflater.from(this)
         if (interfaceList.isEmpty()) {
-            val addressView = layoutInflater.inflate(R.layout.server_address, linearLayoutServerAddressList, false)
+            val addressView = layoutInflater.inflate(
+                R.layout.server_address,
+                linearLayoutServerAddressList,
+                false
+            )
             with(addressView) {
                 textViewInterfaceName.text = ""
                 textViewInterfaceAddress.text = getString(R.string.start_activity_no_address)
-                textViewInterfaceAddress.setTextColor(ContextCompat.getColor(context, R.color.colorAccent))
+                textViewInterfaceAddress.setTextColor(
+                    ContextCompat.getColor(
+                        context,
+                        R.color.colorAccent
+                    )
+                )
             }
             linearLayoutServerAddressList.addView(addressView)
         } else {
             for ((name, address) in interfaceList) {
-                val addressView = layoutInflater.inflate(R.layout.server_address, linearLayoutServerAddressList, false)
+                val addressView = layoutInflater.inflate(
+                    R.layout.server_address,
+                    linearLayoutServerAddressList,
+                    false
+                )
                 with(addressView) {
                     textViewInterfaceName.text = "$name:"
                     textViewInterfaceAddress.text = "http://${address.hostAddress}:$serverPort"
                     imageViewCopy.setOnClickListener {
-                        clipboard.primaryClip = ClipData.newPlainText(textViewInterfaceAddress.text, textViewInterfaceAddress.text)
-                        Toast.makeText(applicationContext, R.string.start_activity_copied, Toast.LENGTH_LONG).show()
+                        clipboard.primaryClip = ClipData.newPlainText(
+                            textViewInterfaceAddress.text, textViewInterfaceAddress.text
+                        )
+                        Toast.makeText(
+                            applicationContext, R.string.start_activity_copied, Toast.LENGTH_LONG
+                        ).show()
                     }
                 }
                 linearLayoutServerAddressList.addView(addressView)
@@ -364,7 +418,8 @@ class StartActivity : BaseActivity(), StartView {
     private fun showResizeFactor(resizeFactor: Int) {
         Timber.i("[${Utils.getLogPrefix(this)}] showResizeFactor")
 
-        val defaultDisplay = (getSystemService(Context.WINDOW_SERVICE) as WindowManager).defaultDisplay
+        val defaultDisplay =
+            (getSystemService(Context.WINDOW_SERVICE) as WindowManager).defaultDisplay
         val screenSize = Point()
         defaultDisplay.getSize(screenSize)
         val scale = resizeFactor / 100f

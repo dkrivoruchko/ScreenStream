@@ -126,7 +126,7 @@ class ImageGeneratorImpl(
             virtualDisplay = mediaProjection.createVirtualDisplay(
                 "ScreenStreamVirtualDisplay",
                 screenSize.x, screenSize.y, densityDpi,
-                DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
+                DisplayManager.VIRTUAL_DISPLAY_FLAG_PRESENTATION,
                 imageReader?.surface, null, imageThreadHandler
             )
             state.set(STATE_STARTED)

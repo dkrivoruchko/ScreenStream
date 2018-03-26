@@ -5,18 +5,17 @@ import info.dvkr.screenstream.data.image.ImageNotify
 import info.dvkr.screenstream.data.presenter.BasePresenter
 import info.dvkr.screenstream.domain.eventbus.EventBus
 import info.dvkr.screenstream.domain.settings.Settings
+import kotlinx.coroutines.experimental.CommonPool
 import kotlinx.coroutines.experimental.channels.Channel
 import kotlinx.coroutines.experimental.channels.actor
 import timber.log.Timber
 import java.net.ServerSocket
-import kotlin.coroutines.experimental.CoroutineContext
 
-class SettingsPresenter(crtContext: CoroutineContext, eventBus: EventBus,
-                        private val settings: Settings) :
-        BasePresenter<SettingsView, SettingsView.FromEvent>(crtContext, eventBus) {
+class SettingsPresenter(eventBus: EventBus, private val settings: Settings) :
+    BasePresenter<SettingsView, SettingsView.FromEvent>(eventBus) {
 
     init {
-        viewChannel = actor(crtContext, Channel.UNLIMITED) {
+        viewChannel = actor(CommonPool, Channel.UNLIMITED) {
             for (fromEvent in this) when (fromEvent) {
                 is SettingsView.FromEvent.MinimizeOnStream ->
                     settings.minimizeOnStream = fromEvent.value

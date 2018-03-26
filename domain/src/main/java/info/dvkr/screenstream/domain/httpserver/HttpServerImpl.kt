@@ -10,6 +10,7 @@ import io.netty.channel.EventLoopGroup
 import io.netty.channel.socket.nio.NioServerSocketChannel
 import io.netty.util.ResourceLeakDetector
 import io.reactivex.netty.RxNetty
+import kotlinx.coroutines.experimental.CommonPool
 import kotlinx.coroutines.experimental.channels.SubscriptionReceiveChannel
 import kotlinx.coroutines.experimental.channels.consumeEach
 import kotlinx.coroutines.experimental.launch
@@ -20,22 +21,22 @@ import rx.subscriptions.CompositeSubscription
 import java.net.InetSocketAddress
 import java.util.concurrent.ConcurrentLinkedDeque
 import java.util.concurrent.TimeUnit
-import kotlin.coroutines.experimental.CoroutineContext
 
-class HttpServerImpl constructor(serverAddress: InetSocketAddress,
-                                 favicon: ByteArray,
-                                 logo: ByteArray,
-                                 baseIndexHtml: String,
-                                 backgroundColor: Int,
-                                 disableMJpegCheck: Boolean,
-                                 pinEnabled: Boolean,
-                                 pin: String,
-                                 basePinRequestHtmlPage: String,
-                                 pinRequestErrorMsg: String,
-                                 jpegBytesStream: Observable<ByteArray>,
-                                 eventBus: EventBus,
-                                 crtContext: CoroutineContext,
-                                 private val logItv: Action1<String>) : HttpServer {
+class HttpServerImpl constructor(
+    serverAddress: InetSocketAddress,
+    favicon: ByteArray,
+    logo: ByteArray,
+    baseIndexHtml: String,
+    backgroundColor: Int,
+    disableMJpegCheck: Boolean,
+    pinEnabled: Boolean,
+    pin: String,
+    basePinRequestHtmlPage: String,
+    pinRequestErrorMsg: String,
+    jpegBytesStream: Observable<ByteArray>,
+    eventBus: EventBus,
+    private val logItv: Action1<String>
+) : HttpServer {
 
     companion object {
         private const val NETTY_IO_THREADS_NUMBER = 2
@@ -63,13 +64,14 @@ class HttpServerImpl constructor(serverAddress: InetSocketAddress,
     private val globalServerEventLoop: EventLoopGroup = RxNetty.getRxEventLoopProvider().globalServerEventLoop()
     private val httpServer: io.reactivex.netty.protocol.http.server.HttpServer<ByteBuf, ByteBuf>
     private val httpServerRxHandler: HttpServerRxHandler
+
     @Volatile private var isRunning: Boolean = false
     private val subscriptions = CompositeSubscription()
 
     // Clients
-    @Keep class LocalClient(clientAddress: InetSocketAddress,
-                            var sendBytes: Long = 0,
-                            var disconnectedTime: Long = 0) : HttpServer.Client(clientAddress)
+    @Keep class LocalClient(
+        clientAddress: InetSocketAddress, var sendBytes: Long = 0, var disconnectedTime: Long = 0
+    ) : HttpServer.Client(clientAddress)
 
     @Keep sealed class LocalEvent {
         @Keep data class ClientConnected(val address: InetSocketAddress) : LocalEvent()
@@ -92,11 +94,11 @@ class HttpServerImpl constructor(serverAddress: InetSocketAddress,
         // Init traffic data
         val past = System.currentTimeMillis() - MAX_HISTORY_SECONDS * 1000
         Observable.range(0, MAX_HISTORY_SECONDS + 1).map { i -> i * 1000 + past }
-                .subscribe { trafficHistory.addLast(HttpServer.TrafficPoint(it, 0)) }
-        launch(crtContext) { eventBus.send(EventBus.GlobalEvent.TrafficHistory(trafficHistory.toList())) }
+            .subscribe { trafficHistory.addLast(HttpServer.TrafficPoint(it, 0)) }
+        launch(CommonPool) { eventBus.send(EventBus.GlobalEvent.TrafficHistory(trafficHistory.toList())) }
 
         subscription = eventBus.openSubscription()
-        launch(crtContext) {
+        launch(CommonPool) {
             subscription.consumeEach { globalEvent ->
                 logItv.call("[${Utils.getLogPrefix(this)}] globalEvent: ${globalEvent.javaClass.simpleName}")
 
@@ -112,23 +114,29 @@ class HttpServerImpl constructor(serverAddress: InetSocketAddress,
 
         Observable.interval(1, TimeUnit.SECONDS).subscribe {
             clientsMap.values.removeAll { it.disconnected && System.currentTimeMillis() - it.disconnectedTime > 5000 }
-            val trafficPoint = HttpServer.TrafficPoint(System.currentTimeMillis(), clientsMap.values.map { it.sendBytes }.sum())
+            val trafficPoint =
+                HttpServer.TrafficPoint(System.currentTimeMillis(), clientsMap.values.map { it.sendBytes }.sum())
             trafficHistory.removeFirst()
             trafficHistory.addLast(trafficPoint)
             clientsMap.values.forEach { it.sendBytes = 0 }
 
-            launch(crtContext) {
+            launch(CommonPool) {
                 eventBus.send(EventBus.GlobalEvent.TrafficPoint(trafficPoint))
                 eventBus.send(EventBus.GlobalEvent.CurrentClients(clientsMap.values.toList()))
             }
         }.also { subscriptions.add(it) }
 
-        httpServer = io.reactivex.netty.protocol.http.server.HttpServer.newServer(serverAddress, globalServerEventLoop, NioServerSocketChannel::class.java)
-                .clientChannelOption(ChannelOption.CONNECT_TIMEOUT_MILLIS, 3000)
+        httpServer = io.reactivex.netty.protocol.http.server.HttpServer.newServer(
+            serverAddress, globalServerEventLoop, NioServerSocketChannel::class.java
+        ).clientChannelOption(ChannelOption.CONNECT_TIMEOUT_MILLIS, 3000)
 //                .enableWireLogging(LogLevel.ERROR)
 
-        var indexHtmlPage = baseIndexHtml.replaceFirst(HttpServer.BACKGROUND_COLOR.toRegex(), String.format("#%06X", 0xFFFFFF and backgroundColor))
-        if (disableMJpegCheck) indexHtmlPage = indexHtmlPage.replaceFirst("id=mj".toRegex(), "").replaceFirst("id=pmj".toRegex(), "")
+        var indexHtmlPage = baseIndexHtml.replaceFirst(
+            HttpServer.BACKGROUND_COLOR.toRegex(), String.format("#%06X", 0xFFFFFF and backgroundColor)
+        )
+
+        if (disableMJpegCheck) indexHtmlPage =
+                indexHtmlPage.replaceFirst("id=mj".toRegex(), "").replaceFirst("id=pmj".toRegex(), "")
 
         val streamAddress: String
         val pinAddress: String
@@ -143,31 +151,26 @@ class HttpServerImpl constructor(serverAddress: InetSocketAddress,
         }
 
         val pinRequestHtmlPage = basePinRequestHtmlPage.replaceFirst(HttpServer.WRONG_PIN_MESSAGE.toRegex(), "&nbsp")
-        val pinRequestErrorHtmlPage = basePinRequestHtmlPage.replaceFirst(HttpServer.WRONG_PIN_MESSAGE.toRegex(), pinRequestErrorMsg)
+        val pinRequestErrorHtmlPage =
+            basePinRequestHtmlPage.replaceFirst(HttpServer.WRONG_PIN_MESSAGE.toRegex(), pinRequestErrorMsg)
 
         httpServerRxHandler = HttpServerRxHandler(
-                favicon,
-                logo,
-                indexHtmlPage,
-                pinEnabled,
-                pinAddress,
-                streamAddress,
-                pinRequestHtmlPage,
-                pinRequestErrorHtmlPage,
-                Action1 { clientEvent -> toEvent(clientEvent) },
-                logItv,
-                jpegBytesStream)
+            favicon, logo, indexHtmlPage, pinEnabled, pinAddress, streamAddress,
+            pinRequestHtmlPage, pinRequestErrorHtmlPage,
+            Action1 { clientEvent -> toEvent(clientEvent) },
+            logItv,
+            jpegBytesStream
+        )
         try {
-
             httpServer.start(httpServerRxHandler)
             isRunning = true
             logItv.call("[${Utils.getLogPrefix(this)}] Started")
 
         } catch (exception: Exception) {
-            launch(crtContext) { eventBus.send(EventBus.GlobalEvent.Error(exception)) }
+            launch(CommonPool) { eventBus.send(EventBus.GlobalEvent.Error(exception)) }
         }
 
-        launch(crtContext) {
+        launch(CommonPool) {
             eventBus.send(EventBus.GlobalEvent.CurrentClients(clientsMap.values.toList()))
         }
     }
@@ -192,7 +195,9 @@ class HttpServerImpl constructor(serverAddress: InetSocketAddress,
         Observable.just(event).observeOn(Schedulers.computation()).subscribe { toEvent ->
             when (toEvent) {
                 is LocalEvent.ClientConnected -> clientsMap[toEvent.address] = LocalClient(toEvent.address)
-                is LocalEvent.ClientBytesCount -> clientsMap[toEvent.address]?.let { it.sendBytes = it.sendBytes.plus(toEvent.bytesCount) }
+                is LocalEvent.ClientBytesCount -> clientsMap[toEvent.address]?.let {
+                    it.sendBytes = it.sendBytes.plus(toEvent.bytesCount)
+                }
                 is LocalEvent.ClientDisconnected -> {
                     clientsMap[toEvent.address]?.disconnected = true
                     clientsMap[toEvent.address]?.disconnectedTime = System.currentTimeMillis()
