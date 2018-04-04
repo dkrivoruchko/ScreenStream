@@ -12,7 +12,6 @@ import android.support.v7.app.AlertDialog
 import android.text.Editable
 import android.text.InputFilter
 import android.text.TextWatcher
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -34,9 +33,9 @@ import timber.log.Timber
 
 
 class SettingsActivity : BaseActivity(),
-        SettingsView,
-        ColorPickerDialogListener,
-        BaseDialog.DialogCallback {
+    SettingsView,
+    ColorPickerDialogListener,
+    BaseDialog.DialogCallback {
 
     companion object {
         private const val DIALOG_RESIZE_FACTOR_TAG = "DIALOG_RESIZE_FACTOR_TAG"
@@ -75,28 +74,34 @@ class SettingsActivity : BaseActivity(),
                 enableDisableView(clHidePinOnStart, toEvent.value)
                 enableDisableView(clNewPinOnAppStart, toEvent.value)
                 enableDisableView(clAutoChangePin, toEvent.value)
-                enableDisableView(clSetPin,
-                        checkBoxEnablePin.isChecked &&
-                                !checkBoxNewPinOnAppStart.isChecked &&
-                                !checkBoxAutoChangePin.isChecked)
+                enableDisableView(
+                    clSetPin,
+                    checkBoxEnablePin.isChecked &&
+                            !checkBoxNewPinOnAppStart.isChecked &&
+                            !checkBoxAutoChangePin.isChecked
+                )
             }
 
             is SettingsView.ToEvent.HidePinOnStart -> checkBoxHidePinOnStart.isChecked = toEvent.value
 
             is SettingsView.ToEvent.NewPinOnAppStart -> {
                 checkBoxNewPinOnAppStart.isChecked = toEvent.value
-                enableDisableView(clSetPin,
-                        checkBoxEnablePin.isChecked &&
-                                !checkBoxNewPinOnAppStart.isChecked &&
-                                !checkBoxAutoChangePin.isChecked)
+                enableDisableView(
+                    clSetPin,
+                    checkBoxEnablePin.isChecked &&
+                            !checkBoxNewPinOnAppStart.isChecked &&
+                            !checkBoxAutoChangePin.isChecked
+                )
             }
 
             is SettingsView.ToEvent.AutoChangePin -> {
                 checkBoxAutoChangePin.isChecked = toEvent.value
-                enableDisableView(clSetPin,
-                        checkBoxEnablePin.isChecked &&
-                                !checkBoxNewPinOnAppStart.isChecked &&
-                                !checkBoxAutoChangePin.isChecked)
+                enableDisableView(
+                    clSetPin,
+                    checkBoxEnablePin.isChecked &&
+                            !checkBoxNewPinOnAppStart.isChecked &&
+                            !checkBoxAutoChangePin.isChecked
+                )
             }
 
             is SettingsView.ToEvent.SetPin -> textViewSetPinValue.text = toEvent.value
@@ -105,13 +110,13 @@ class SettingsActivity : BaseActivity(),
 
             SettingsView.ToEvent.ErrorServerPortBusy -> {
                 Alerter.create(this)
-                        .setTitle(R.string.pref_alert_error_title)
-                        .setText(R.string.pref_alert_error_message)
-                        .setBackgroundColorRes(R.color.colorAccent)
-                        .setDuration(5000)
-                        .enableProgress(true)
-                        .enableSwipeToDismiss()
-                        .show()
+                    .setTitle(R.string.pref_alert_error_title)
+                    .setText(R.string.pref_alert_error_message)
+                    .setBackgroundColorRes(R.color.colorAccent)
+                    .setDuration(5000)
+                    .enableProgress(true)
+                    .enableSwipeToDismiss()
+                    .show()
             }
         }
     }
@@ -150,37 +155,39 @@ class SettingsActivity : BaseActivity(),
         clHtmlBackColor.setOnClickListener { _ ->
             htmlBackColor = (viewHtmlBackColor.background as ColorDrawable).color
             ColorPickerDialog.newBuilder()
-                    .setColor(htmlBackColor)
-                    .setDialogTitle(R.string.pref_html_back_color_title)
-                    .setShowAlphaSlider(false)
-                    .show(this@SettingsActivity)
+                .setColor(htmlBackColor)
+                .setDialogTitle(R.string.pref_html_back_color_title)
+                .setShowAlphaSlider(false)
+                .show(this@SettingsActivity)
         }
 
         // Image - Resize factor
         clResizeImage.setOnClickListener { _ ->
-            EditTextDialog.newInstance(this@SettingsActivity,
-                    DIALOG_RESIZE_FACTOR_TAG,
-                    R.string.pref_resize,
-                    R.drawable.ic_pref_resize_black_24dp,
-                    R.string.pref_resize_dialog_text,
-                    2, 3,
-                    10, 150,
-                    Integer.toString(resizeFactor),
-                    true,
-                    R.string.pref_resize_dialog_result
+            EditTextDialog.newInstance(
+                this@SettingsActivity,
+                DIALOG_RESIZE_FACTOR_TAG,
+                R.string.pref_resize,
+                R.drawable.ic_pref_resize_black_24dp,
+                R.string.pref_resize_dialog_text,
+                2, 3,
+                10, 150,
+                Integer.toString(resizeFactor),
+                true,
+                R.string.pref_resize_dialog_result
             ).show(fragmentManager, DIALOG_RESIZE_FACTOR_TAG)
         }
 
         // Image - Jpeg Quality
         clJpegQuality.setOnClickListener { _ ->
-            EditTextDialog.newInstance(this@SettingsActivity,
-                    DIALOG_JPEG_QUALITY_TAG,
-                    R.string.pref_jpeg_quality,
-                    R.drawable.ic_pref_high_quality_black_24dp,
-                    R.string.pref_jpeg_quality_dialog,
-                    2, 3,
-                    10, 100,
-                    textViewJpegQualityValue.text.toString()
+            EditTextDialog.newInstance(
+                this@SettingsActivity,
+                DIALOG_JPEG_QUALITY_TAG,
+                R.string.pref_jpeg_quality,
+                R.drawable.ic_pref_high_quality_black_24dp,
+                R.string.pref_jpeg_quality_dialog,
+                2, 3,
+                10, 100,
+                textViewJpegQualityValue.text.toString()
             ).show(fragmentManager, DIALOG_JPEG_QUALITY_TAG)
         }
 
@@ -191,10 +198,12 @@ class SettingsActivity : BaseActivity(),
             enableDisableView(clHidePinOnStart, checked)
             enableDisableView(clNewPinOnAppStart, checked)
             enableDisableView(clAutoChangePin, checked)
-            enableDisableView(clSetPin,
-                    checkBoxEnablePin.isChecked &&
-                            !checkBoxNewPinOnAppStart.isChecked &&
-                            !checkBoxAutoChangePin.isChecked)
+            enableDisableView(
+                clSetPin,
+                checkBoxEnablePin.isChecked &&
+                        !checkBoxNewPinOnAppStart.isChecked &&
+                        !checkBoxAutoChangePin.isChecked
+            )
             presenter.offer(SettingsView.FromEvent.EnablePin(checked))
         }
 
@@ -207,33 +216,38 @@ class SettingsActivity : BaseActivity(),
         // Security - New pin on app start
         clNewPinOnAppStart.setOnClickListener { _ -> checkBoxNewPinOnAppStart.performClick() }
         checkBoxNewPinOnAppStart.setOnClickListener { _ ->
-            enableDisableView(clSetPin,
-                    checkBoxEnablePin.isChecked &&
-                            !checkBoxNewPinOnAppStart.isChecked &&
-                            !checkBoxAutoChangePin.isChecked)
+            enableDisableView(
+                clSetPin,
+                checkBoxEnablePin.isChecked &&
+                        !checkBoxNewPinOnAppStart.isChecked &&
+                        !checkBoxAutoChangePin.isChecked
+            )
             presenter.offer(SettingsView.FromEvent.NewPinOnAppStart(checkBoxNewPinOnAppStart.isChecked))
         }
 
         // Security - Auto change pin
         clAutoChangePin.setOnClickListener { _ -> checkBoxAutoChangePin.performClick() }
         checkBoxAutoChangePin.setOnClickListener { _ ->
-            enableDisableView(clSetPin,
-                    checkBoxEnablePin.isChecked &&
-                            !checkBoxNewPinOnAppStart.isChecked &&
-                            !checkBoxAutoChangePin.isChecked)
+            enableDisableView(
+                clSetPin,
+                checkBoxEnablePin.isChecked &&
+                        !checkBoxNewPinOnAppStart.isChecked &&
+                        !checkBoxAutoChangePin.isChecked
+            )
             presenter.offer(SettingsView.FromEvent.AutoChangePin(checkBoxAutoChangePin.isChecked))
         }
 
         // Security - Set pin
         clSetPin.setOnClickListener { _ ->
-            EditTextDialog.newInstance(this@SettingsActivity,
-                    DIALOG_SET_PIN_TAG,
-                    R.string.pref_set_pin,
-                    R.drawable.ic_pref_key_black_24dp,
-                    R.string.pref_set_pin_dialog,
-                    4, 4,
-                    0, 9999,
-                    textViewSetPinValue.text.toString()
+            EditTextDialog.newInstance(
+                this@SettingsActivity,
+                DIALOG_SET_PIN_TAG,
+                R.string.pref_set_pin,
+                R.drawable.ic_pref_key_black_24dp,
+                R.string.pref_set_pin_dialog,
+                4, 4,
+                0, 9999,
+                textViewSetPinValue.text.toString()
             ).show(fragmentManager, DIALOG_SET_PIN_TAG)
         }
 
@@ -245,14 +259,15 @@ class SettingsActivity : BaseActivity(),
 
         // Advanced - Server port
         clServerPort.setOnClickListener { _ ->
-            EditTextDialog.newInstance(this@SettingsActivity,
-                    DIALOG_SERVER_PORT_TAG,
-                    R.string.pref_server_port,
-                    R.drawable.ic_pref_http_black_24dp,
-                    R.string.pref_server_port_dialog,
-                    4, 6,
-                    1025, 65535,
-                    textViewServerPortValue.text.toString()
+            EditTextDialog.newInstance(
+                this@SettingsActivity,
+                DIALOG_SERVER_PORT_TAG,
+                R.string.pref_server_port,
+                R.drawable.ic_pref_http_black_24dp,
+                R.string.pref_server_port_dialog,
+                4, 6,
+                1025, 65535,
+                textViewServerPortValue.text.toString()
             ).show(fragmentManager, DIALOG_SERVER_PORT_TAG)
         }
     }
@@ -309,54 +324,60 @@ class EditTextDialog : BaseDialog() {
         internal const val RESIZE_IMAGE_DIALOG = "RESIZE_IMAGE_DIALOG"
         internal const val RESIZE_IMAGE_TEXT = "RESIZE_IMAGE_TEXT"
 
-        fun newInstance(context: Context,
-                        dialogTag: String,
-                        @StringRes titleResId: Int = 0,
-                        @DrawableRes titleIconResId: Int = 0,
-                        @StringRes messageResId: Int = 0,
-                        minLength: Int, maxLength: Int,
-                        minValue: Int, maxValue: Int,
-                        currentValue: String = "",
-                        resizeImageDialog: Boolean = false,
-                        @StringRes resizeImageResultTextResId: Int = 0) =
-                newInstance(
-                        dialogTag = dialogTag,
-                        titleText = if (titleResId > 0) context.getString(titleResId) else "",
-                        titleIconResId = if (titleIconResId > 0) titleIconResId else 0,
-                        messageText = if (messageResId > 0) context.getString(messageResId) else "",
-                        minLength = if (minLength > 0) minLength else -1,
-                        maxLength = if (maxLength > 0) maxLength else -1,
-                        minValue = if (minValue >= 0) minValue else -1,
-                        maxValue = if (maxValue > 0) maxValue else -1,
-                        currentValue = if (currentValue.isNotBlank()) currentValue else "",
-                        resizeImageDialog = resizeImageDialog,
-                        resizeImageResultText = if (resizeImageResultTextResId > 0) context.getString(resizeImageResultTextResId) else ""
-                )
+        fun newInstance(
+            context: Context,
+            dialogTag: String,
+            @StringRes titleResId: Int = 0,
+            @DrawableRes titleIconResId: Int = 0,
+            @StringRes messageResId: Int = 0,
+            minLength: Int, maxLength: Int,
+            minValue: Int, maxValue: Int,
+            currentValue: String = "",
+            resizeImageDialog: Boolean = false,
+            @StringRes resizeImageResultTextResId: Int = 0
+        ) =
+            newInstance(
+                dialogTag = dialogTag,
+                titleText = if (titleResId != 0) context.getString(titleResId) else "",
+                titleIconResId = if (titleIconResId != 0) titleIconResId else 0,
+                messageText = if (messageResId != 0) context.getString(messageResId) else "",
+                minLength = if (minLength > 0) minLength else -1,
+                maxLength = if (maxLength > 0) maxLength else -1,
+                minValue = if (minValue >= 0) minValue else -1,
+                maxValue = if (maxValue > 0) maxValue else -1,
+                currentValue = if (currentValue.isNotBlank()) currentValue else "",
+                resizeImageDialog = resizeImageDialog,
+                resizeImageResultText = if (resizeImageResultTextResId != 0) context.getString(
+                    resizeImageResultTextResId
+                ) else ""
+            )
 
-        private fun newInstance(dialogTag: String,
-                                titleText: String = "",
-                                titleIconResId: Int = 0,
-                                messageText: String = "",
-                                minLength: Int, maxLength: Int,
-                                minValue: Int, maxValue: Int,
-                                currentValue: String = "",
-                                resizeImageDialog: Boolean = false,
-                                resizeImageResultText: String = "") =
-                EditTextDialog().apply {
-                    arguments = Bundle().apply {
-                        putString(DIALOG_TAG, dialogTag)
-                        putString(TITLE_TEXT, titleText)
-                        putInt(TITLE_ICON, titleIconResId)
-                        putString(MESSAGE_TEXT, messageText)
-                        putInt(MIN_LENGTH, minLength)
-                        putInt(MAX_LENGTH, maxLength)
-                        putInt(MIN_VALUE, minValue)
-                        putInt(MAX_VALUE, maxValue)
-                        putString(CURRENT_VALUE, currentValue)
-                        putBoolean(RESIZE_IMAGE_DIALOG, resizeImageDialog)
-                        putString(RESIZE_IMAGE_TEXT, resizeImageResultText)
-                    }
+        private fun newInstance(
+            dialogTag: String,
+            titleText: String = "",
+            titleIconResId: Int = 0,
+            messageText: String = "",
+            minLength: Int, maxLength: Int,
+            minValue: Int, maxValue: Int,
+            currentValue: String = "",
+            resizeImageDialog: Boolean = false,
+            resizeImageResultText: String = ""
+        ) =
+            EditTextDialog().apply {
+                arguments = Bundle().apply {
+                    putString(DIALOG_TAG, dialogTag)
+                    putString(TITLE_TEXT, titleText)
+                    putInt(TITLE_ICON, titleIconResId)
+                    putString(MESSAGE_TEXT, messageText)
+                    putInt(MIN_LENGTH, minLength)
+                    putInt(MAX_LENGTH, maxLength)
+                    putInt(MIN_VALUE, minValue)
+                    putInt(MAX_VALUE, maxValue)
+                    putString(CURRENT_VALUE, currentValue)
+                    putBoolean(RESIZE_IMAGE_DIALOG, resizeImageDialog)
+                    putString(RESIZE_IMAGE_TEXT, resizeImageResultText)
                 }
+            }
     }
 
 
@@ -378,11 +399,12 @@ class EditTextDialog : BaseDialog() {
                     Integer.parseInt(editTextValue.text.toString()) in getInt(MIN_VALUE)..getInt(MAX_VALUE)
 
             if (getBoolean(RESIZE_IMAGE_DIALOG)) {
-                val newResizeFactor = if (positiveButton.isEnabled) Integer.parseInt(editTextValue.text.toString()) / 100f
-                else Integer.parseInt(getString(CURRENT_VALUE)) / 100f
+                val newResizeFactor =
+                    if (positiveButton.isEnabled) Integer.parseInt(editTextValue.text.toString()) / 100f
+                    else Integer.parseInt(getString(CURRENT_VALUE)) / 100f
                 getString(RESIZE_IMAGE_TEXT)?.let {
                     textViewResult.text = it
-                            .format((screenSize.x * newResizeFactor).toInt(), (screenSize.y * newResizeFactor).toInt())
+                        .format((screenSize.x * newResizeFactor).toInt(), (screenSize.y * newResizeFactor).toInt())
                 }
             }
 
@@ -395,7 +417,7 @@ class EditTextDialog : BaseDialog() {
                     else Integer.parseInt(getString(CURRENT_VALUE)) / 100f
                     getString(RESIZE_IMAGE_TEXT)?.let {
                         textViewResult.text = it
-                                .format((screenSize.x * newResizeFactor).toInt(), (screenSize.y * newResizeFactor).toInt())
+                            .format((screenSize.x * newResizeFactor).toInt(), (screenSize.y * newResizeFactor).toInt())
                     }
                 }
             })
@@ -411,7 +433,6 @@ class EditTextDialog : BaseDialog() {
                 val minLength = getInt(MIN_LENGTH)
                 if (minLength <= 0) throw IllegalStateException("minLength <= 0")
                 val maxLength = getInt(MAX_LENGTH)
-                Log.e(">>>>>", maxLength.toString())
                 if (maxLength <= 0) throw IllegalStateException("maxLength <= 0")
                 val minValue = getInt(MIN_VALUE)
                 if (minValue < 0) throw IllegalStateException("minValue < 0")
@@ -423,10 +444,12 @@ class EditTextDialog : BaseDialog() {
                 getInt(TITLE_ICON).let { if (it > 0) setIcon(it) }
 
                 val dialogView = LayoutInflater.from(activity)
-                        .inflate(R.layout.settings_edittext_dialog, null, false)
+                    .inflate(R.layout.settings_edittext_dialog, null, false)
                 with(dialogView) {
                     if (getBoolean(RESIZE_IMAGE_DIALOG)) {
-                        getString(MESSAGE_TEXT)?.let { textViewSettingsEditTextContent.text = it.format(screenSize.x, screenSize.y) }
+                        getString(MESSAGE_TEXT)?.let {
+                            textViewSettingsEditTextContent.text = it.format(screenSize.x, screenSize.y)
+                        }
                     } else {
                         getString(MESSAGE_TEXT)?.let { textViewSettingsEditTextContent.text = it }
                         textViewSettingsEditTextResult.visibility = View.GONE
@@ -441,8 +464,9 @@ class EditTextDialog : BaseDialog() {
                 setPositiveButton(android.R.string.ok, { _, _ ->
                     val newStringValue = dialogView.editTextSettingsEditTextValue.text.toString()
                     if (newStringValue.length in minLength..maxLength &&
-                            currentValue != newStringValue &&
-                            Integer.parseInt(newStringValue) in minValue..maxValue)
+                        currentValue != newStringValue &&
+                        Integer.parseInt(newStringValue) in minValue..maxValue
+                    )
                         sendDialogResult(DialogCallback.Result.Positive(dialogTag, newStringValue))
                 })
 
