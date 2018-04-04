@@ -82,7 +82,7 @@ dependencies {
 
     implementation "com.github.iamironz:binaryprefs:$binaryprefs_version"
 
-    implementation("com.mikepenz:materialdrawer:6.0.6@aar") {
+    implementation("com.mikepenz:materialdrawer:6.0.7@aar") {
         transitive = true
     }
     implementation 'com.tapadoo.android:alerter:2.0.4'

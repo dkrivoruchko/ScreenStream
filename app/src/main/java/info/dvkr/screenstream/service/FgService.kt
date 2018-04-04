@@ -41,12 +41,14 @@ import info.dvkr.screenstream.domain.utils.Utils
 import info.dvkr.screenstream.ui.StartActivity
 import kotlinx.android.synthetic.main.slow_connection_toast.view.*
 import kotlinx.coroutines.experimental.CommonPool
+import kotlinx.coroutines.experimental.android.UI
 import kotlinx.coroutines.experimental.async
 import kotlinx.coroutines.experimental.channels.Channel
 import kotlinx.coroutines.experimental.channels.SendChannel
 import kotlinx.coroutines.experimental.channels.actor
 import kotlinx.coroutines.experimental.delay
 import kotlinx.coroutines.experimental.launch
+import kotlinx.coroutines.experimental.runBlocking
 import org.koin.android.ext.android.inject
 import timber.log.Timber
 import java.net.BindException
@@ -303,7 +305,7 @@ class FgService : Service(), FgView {
                         )
                     }
 
-                    FgView.ToEvent.SlowConnectionDetected -> {
+                    FgView.ToEvent.SlowConnectionDetected -> runBlocking(UI) {
                         val toastView = layoutInflater.inflate(R.layout.slow_connection_toast, null)
                         val drawable =
                             AppCompatResources.getDrawable(applicationContext, R.drawable.ic_service_notification_24dp)
