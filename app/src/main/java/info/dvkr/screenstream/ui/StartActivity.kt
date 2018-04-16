@@ -41,8 +41,7 @@ class StartActivity : BaseActivity(), StartView {
 
     companion object {
         private const val REQUEST_CODE_SCREEN_CAPTURE = 10
-        private const val DIALOG_SCREEN_CAPTURE_PERMISSION_TAG =
-            "DIALOG_SCREEN_CAPTURE_PERMISSION_TAG"
+        private const val DIALOG_SCREEN_CAPTURE_PERMISSION_TAG = "DIALOG_SCREEN_CAPTURE_PERMISSION_TAG"
 
         private const val EXTRA_DATA = "EXTRA_DATA"
         const val ACTION_START_STREAM = "ACTION_START_STREAM"
@@ -73,17 +72,13 @@ class StartActivity : BaseActivity(), StartView {
         getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
     }
 
-
     override fun toEvent(toEvent: BaseView.BaseToEvent) = runOnUiThread {
         Timber.d("[${Utils.getLogPrefix(this)}] toEvent: ${toEvent.javaClass.simpleName}")
 
         when (toEvent) {
             is StartView.ToEvent.TryToStart -> {
                 try {
-                    startActivityForResult(
-                        projectionManager.createScreenCaptureIntent(),
-                        REQUEST_CODE_SCREEN_CAPTURE
-                    )
+                    startActivityForResult(projectionManager.createScreenCaptureIntent(), REQUEST_CODE_SCREEN_CAPTURE)
                 } catch (ex: ActivityNotFoundException) {
                     presenter.offer(StartView.FromEvent.Error(ex))
                 }
@@ -175,8 +170,7 @@ class StartActivity : BaseActivity(), StartView {
 
             is StartView.ToEvent.TrafficPoint -> {
                 val mbit = (toEvent.trafficPoint.bytes * 8).toDouble() / 1024 / 1024
-                textViewCurrentTraffic.text =
-                        getString(R.string.start_activity_current_traffic).format(mbit)
+                textViewCurrentTraffic.text = getString(R.string.start_activity_current_traffic).format(mbit)
             }
         }
     }
@@ -190,8 +184,7 @@ class StartActivity : BaseActivity(), StartView {
 
         startService(FgService.getIntent(applicationContext, FgService.ACTION_INIT))
         toggleButtonStartStop.isEnabled = false
-        textViewConnectedClients.text =
-                getString(R.string.start_activity_connected_clients).format(0)
+        textViewConnectedClients.text = getString(R.string.start_activity_connected_clients).format(0)
         textViewCurrentTraffic.text = getString(R.string.start_activity_current_traffic).format(0f)
 
         toggleButtonStartStop.setOnClickListener { _ ->
@@ -227,9 +220,6 @@ class StartActivity : BaseActivity(), StartView {
                 PrimaryDrawerItem().withIdentifier(3).withName(R.string.start_activity_drawer_settings).withSelectable(
                     false
                 ).withIcon(R.drawable.ic_drawer_settings_24dp),
-                //                        DividerDrawerItem(),
-//                        PrimaryDrawerItem().withIdentifier(4).withName("Instructions").withSelectable(false).withIcon(R.drawable.ic_drawer_instructions_24dp),
-//                        PrimaryDrawerItem().withIdentifier(5).withName("Local test").withSelectable(false).withIcon(R.drawable.ic_drawer_test_24dp),
                 DividerDrawerItem(),
                 PrimaryDrawerItem().withIdentifier(6).withName(R.string.start_activity_drawer_rate_app).withSelectable(
                     false
@@ -250,12 +240,7 @@ class StartActivity : BaseActivity(), StartView {
 
                 if (drawerItem.identifier == 6L) {
                     try {
-                        startActivity(
-                            Intent(
-                                Intent.ACTION_VIEW,
-                                Uri.parse("market://details?id=$packageName")
-                            )
-                        )
+                        startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=$packageName")))
                     } catch (ex: ActivityNotFoundException) {
                         startActivity(
                             Intent(
@@ -375,29 +360,16 @@ class StartActivity : BaseActivity(), StartView {
         linearLayoutServerAddressList.removeAllViews()
         val layoutInflater = LayoutInflater.from(this)
         if (interfaceList.isEmpty()) {
-            val addressView = layoutInflater.inflate(
-                R.layout.server_address,
-                linearLayoutServerAddressList,
-                false
-            )
+            val addressView = layoutInflater.inflate(R.layout.server_address, linearLayoutServerAddressList, false)
             with(addressView) {
                 textViewInterfaceName.text = ""
                 textViewInterfaceAddress.text = getString(R.string.start_activity_no_address)
-                textViewInterfaceAddress.setTextColor(
-                    ContextCompat.getColor(
-                        context,
-                        R.color.colorAccent
-                    )
-                )
+                textViewInterfaceAddress.setTextColor(ContextCompat.getColor(context, R.color.colorAccent))
             }
             linearLayoutServerAddressList.addView(addressView)
         } else {
             for ((name, address) in interfaceList) {
-                val addressView = layoutInflater.inflate(
-                    R.layout.server_address,
-                    linearLayoutServerAddressList,
-                    false
-                )
+                val addressView = layoutInflater.inflate(R.layout.server_address, linearLayoutServerAddressList, false)
                 with(addressView) {
                     textViewInterfaceName.text = "$name:"
                     textViewInterfaceAddress.text = "http://${address.hostAddress}:$serverPort"
@@ -405,9 +377,7 @@ class StartActivity : BaseActivity(), StartView {
                         clipboard.primaryClip = ClipData.newPlainText(
                             textViewInterfaceAddress.text, textViewInterfaceAddress.text
                         )
-                        Toast.makeText(
-                            applicationContext, R.string.start_activity_copied, Toast.LENGTH_LONG
-                        ).show()
+                        Toast.makeText(applicationContext, R.string.start_activity_copied, Toast.LENGTH_LONG).show()
                     }
                 }
                 linearLayoutServerAddressList.addView(addressView)
