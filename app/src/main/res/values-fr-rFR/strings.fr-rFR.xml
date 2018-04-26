@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--StartActivity-->
+    <string name="start_activity_device_address">Adresses de l\'appareil :</string>
+    <string name="start_activity_no_address">Pas d\'adresse trouvée</string>
+    <string name="start_activity_start_stream">Démarrer la diffusion</string>
+    <string name="start_activity_stop_stream">Arrêter la diffusion</string>
+    <string name="start_activity_pin">Code :</string>
+    <string name="start_activity_pin_disabled">Le code est désactivé</string>
+    <string name="start_activity_resize_factor">Facteur de redimensionnement</string>
+    <string name="start_activity_current_traffic">Trafic : %1$,.2f Mbit/s</string>
+    <string name="start_activity_connected_clients">Clients connectés : %1$d</string>
+    <string name="start_activity_copied">Copied</string>
+
+    <string name="start_activity_drawer_main">Principal</string>
+    <string name="start_activity_drawer_traffic_clients">Trafic &amp; clients</string>
+    <string name="start_activity_drawer_settings">Paramètres</string>
+    <string name="start_activity_drawer_rate_app">Évaluer l\'application</string>
+    <string name="start_activity_drawer_about">À propos de</string>
+    <string name="start_activity_drawer_exit">Quitter</string>
+
+    <string name="start_activity_alert_title_warring">Avertissement</string>
+    <string name="start_activity_alert_title_error">Erreur</string>
+    <string name="start_activity_alert_title_error_network">Erreur réseau</string>
+    <string name="start_activity_alert_title_error_unknown">Erreur inattendue</string>
+    <string name="start_activity_cast_permission_required_title">Permission requise</string>
+    <string name="start_activity_cast_permission_required">L\'application requiert l\'autorisation Cast pour capturer l\'écran.</string>
+    <string name="start_activity_error_port_in_use">Port déjà utilisé. Sélectionnez une autre valeur</string>
+    <string name="start_activity_error_ip_address_not_found">Adresse IP non trouvée</string>
+    <string name="start_activity_error_network_unknown">Erreur réseau inconnue</string>
+    <string name="start_activity_error_invalid_media_projection">Erreur de sécurité : projection de média invalide. Veuillez re-essayer</string>
+    <string name="start_activity_error_wrong_image_format">Le système fournit une image dans un format inconnu. Pas de solution, désolé.</string>
+    <string name="start_activity_alert_title_error_activity_not_found">Erreur du dialogue d\'autorisation</string>
+    <string name="start_activity_error_activity_not_found">Bug Android. Veuillez ne pas sélectionner \"Ne plus demander\" dans le dialogue de demande de permission de capture d\'écran. Si vous l\'avez déjà fait, réinstallez l\'application.</string>
+    <string name="start_activity_email_chooser_header">Envoi du courriel…</string>
+
+    <!--FgService-->
+    <string name="service_ready_to_stream">Prêt à diffuser</string>
+    <string name="service_press_start">Appuyez sur Démarrer pour démarrer la diffusion</string>
+    <string name="service_start">Démarrer</string>
+    <string name="service_exit">Quitter</string>
+    <string name="service_stream">Diffusion…</string>
+    <string name="service_press_stop">Appuyez sur Stop pour arrêter la diffusion</string>
+    <string name="service_stop">Stop</string>
+    <string name="service_slow_client_connection">Client avec connection lente détecté</string>
+
+    <!--ImageNotify-->
+    <string name="image_generator_press_start">Appuyez sur Démarrer sur l\'appareil</string>
+    <string name="image_generator_go_to_new_address">Veuillez vous rendre à la nouvelle adresse</string>
+    <string name="image_generator_reload_this_page">Veuillez recharger cette page</string>
+
+    <!--SettingsActivity-->
+    <string name="settings_activity_name">Paramètres</string>
+    <string name="pref_settings_interface">Interface</string>
+    <string name="pref_minimize_on_stream">Minimiser lors de la diffusion</string>
+    <string name="pref_minimise_on_stream_summary">Minimise l\'application au démarrage de la diffusion</string>
+    <string name="pref_stop_on_sleep">Arrêter en veille</string>
+    <string name="pref_stop_on_sleep_summary">Arrête la diffusion si l\'écran s\'éteint</string>
+    <string name="pref_start_on_boot">Diffuser au démarrage</string>
+    <string name="pref_start_on_boot_summary">Lance la diffusion après le démarrage de l\'appareil</string>
+    <string name="pref_mjpeg_check">Désactiver la vérification MJPEG</string>
+    <string name="pref_mjpeg_check_summary">Désactive la vérification du support du format MJPEG par le navigateur</string>
+    <string name="pref_html_back_color">Couleur d\'arrière-plan de la page</string>
+    <string name="pref_html_back_color_summary">Définir la couleur d\'arrière-plan de la page HTML</string>
+    <string name="pref_html_back_color_title">Selection de la couleur d\'arrière-plan</string>
+    <string name="pref_settings_image">Image</string>
+    <string name="pref_resize">Redimensionnement</string>
+    <string name="pref_resize_summary">Redimensionne l\'image pour l\'envoi au client</string>
+    <string name="pref_resize_dialog_text">Définissez le pourcentage de redimensionnement de l\'image.\nValeurs : 10–150 (par défaut : 50)\nDéfinition de l\'écran : %1$dx%2$d</string>
+    <string name="pref_resize_dialog_result">Définition de l\'image : %1$dx%2$d</string>
+    <string name="pref_jpeg_quality">Qualité de la compression JPEG</string>
+    <string name="pref_jpeg_quality_summary">Définir la qualité de la compression JPEG</string>
+    <string name="pref_jpeg_quality_dialog">Set la qualité de compression JPEG.\nValeurs : 10–100 (par défaut : 100)</string>
+    <string name="pref_settings_security">Sécurité</string>
+    <string name="pref_enable_pin">Activer le code</string>
+    <string name="pref_enable_pin_summary">Protège l\'accès au flux avec un code</string>
+    <string name="pref_hide_pin">Masquer le code au démarrage de la diffusion</string>
+    <string name="pref_hide_pin_summary">Montre des astérisques au lieu du code pendant la diffusion</string>
+    <string name="pref_new_pin_on_start">Nouveau code au démarrage</string>
+    <string name="pref_new_pin_on_start_summary">Génère une nouveau code au démarrage de l\'application</string>
+    <string name="pref_auto_change_pin">Changement automatique du code</string>
+    <string name="pref_auto_change_pin_summary">Génère un nouveau code pour chaque nouvelle diffusion</string>
+    <string name="pref_set_pin">Code</string>
+    <string name="pref_set_pin_summary">Définir manuellement le code</string>
+    <string name="pref_set_pin_dialog">Entrez un code.\nPar défaut : 0000</string>
+    <string name="pref_settings_advanced">Avancé</string>
+    <string name="pref_wifi_only">WiFi uniquement</string>
+    <string name="pref_wifi_only_summary">Le serveur ne fonctionne que sur WiFi</string>
+    <string name="pref_server_port">Port d\'écoute</string>
+    <string name="pref_server_port_summary">Définir un port pour les connections entrantes</string>
+    <string name="pref_server_port_dialog">Définissez un port pour les connections entrantes.\nValeurs : 1025–65535 (par défaut : 8080)</string>
+    <string name="pref_alert_error_title">Erreur</string>
+    <string name="pref_alert_error_message">Port déjà utilisé. Sélectionnez une autre valeur.</string>
+
+    <!--ClientsActivity-->
+    <string name="clients_activity_name">Trafic &amp; clients</string>
+    <string name="clients_activity_current_traffic">Trafic : %1$,.2f Mbit/s</string>
+    <string name="clients_activity_connected_clients">Clients connectés : %1$d</string>
+    <string name="clients_activity_client_connected">Connecté</string>
+    <string name="clients_activity_client_disconnected">Déconnecté</string>
+    <string name="clients_activity_client_slow_network">Connection lente</string>
+    <string name="clients_activity_client">Client : %1$s</string>
+
+    <!--AboutActivity-->
+    <string name="about_activity_name">À propos de</string>
+    <string name="about_app_version">Version : %1$s</string>
+    <string name="about_developer_name">Développé par Dmitriy Krivoruchko</string>
+    <string name="about_developer_send_email">Envoyer un courriel au développeur</string>
+    <string name="about_app_sources">Code source de l\'application</string>
+
+    <!--HTML text-->
+    <string name="html_stream_require_pin">Ce flux requiert un code pour y accéder</string>
+    <string name="html_enter_pin">Code :\u0020</string>
+    <string name="html_four_digits">Quatre chiffres</string>
+    <string name="html_submit_text">Soumettre</string>
+    <string name="html_wrong_pin">Mauvais code !</string>
+    <string name="html_no_mjpeg_support">Désolé :(<br />Il semble que ce navigateur ne supporte pas le format MJPEG.<br /><br />Cette vérification peut être inexacte.<br />Vous pouvez la désactiver dans les paramètres de l\'application.</string>
+</resources>
