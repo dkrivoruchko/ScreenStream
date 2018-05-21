@@ -15,23 +15,26 @@
         android:layout_height="wrap_content"
         android:gravity="end"
         android:paddingEnd="4dp"
+        android:paddingStart="4dp"
         android:textAlignment="viewEnd"
         android:textAppearance="?android:attr/textAppearanceSmall"
         android:textColor="@color/colorSecondaryText"
         app:layout_constraintBaseline_toBaselineOf="@id/textViewInterfaceAddress"
         app:layout_constraintEnd_toStartOf="@id/textViewInterfaceAddress"
+        app:layout_constraintStart_toStartOf="parent"
         tools:text="radio0:" />
 
     <TextView
         android:id="@+id/textViewInterfaceAddress"
-        android:layout_width="wrap_content"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:autoLink="web"
+        android:gravity="center_horizontal"
         android:textAppearance="?android:attr/textAppearanceMedium"
         android:textColor="@color/colorPrimaryText"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toStartOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/imageViewCopy"
+        app:layout_constraintStart_toEndOf="@id/textViewInterfaceName"
         app:layout_constraintTop_toTopOf="parent"
         tools:text="http://192.168.300.234:8080" />
 
