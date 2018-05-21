@@ -70,9 +70,9 @@ dependencies {
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutine_version"
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:$coroutine_version"
 
-    implementation "com.android.support:design:$support_version"
-    implementation 'com.android.support.constraint:constraint-layout:1.0.2'
     implementation "android.arch.lifecycle:extensions:$lifecycle_version"
+    implementation "com.android.support:design:$support_version"
+    implementation "com.android.support.constraint:constraint-layout:$constraint_version"
 
     implementation "org.koin:koin-android:$koin_version"
     implementation "org.koin:koin-android-architecture:$koin_version"
@@ -80,18 +80,18 @@ dependencies {
     implementation "io.reactivex:rxjava:$rxjava_version"
     implementation "com.jakewharton.rxrelay:rxrelay:$rxrelay_version"
 
-    implementation "com.github.iamironz:binaryprefs:$binaryprefs_version"
+    implementation "com.github.yandextaxitech:binaryprefs:$binaryprefs_version"
 
     implementation("com.mikepenz:materialdrawer:6.0.7@aar") {
         transitive = true
     }
-    implementation 'com.tapadoo.android:alerter:2.0.4'
+    implementation 'com.tapadoo.android:alerter:2.0.5'
     implementation 'com.jrummyapps:colorpicker:2.1.7'
     implementation 'com.jjoe64:graphview:4.2.1'
 
     implementation "com.jakewharton.timber:timber:$timber_version"
 
-    releaseImplementation('com.crashlytics.sdk.android:crashlytics:2.9.1@aar') {
+    releaseImplementation('com.crashlytics.sdk.android:crashlytics:2.9.2@aar') {
         transitive = true
     }
 

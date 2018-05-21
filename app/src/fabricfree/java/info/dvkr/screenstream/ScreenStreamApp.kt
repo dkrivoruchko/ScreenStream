@@ -17,8 +17,10 @@ class ScreenStreamApp : Application() {
         Timber.plant(CrashReportingTree())
         Timber.w("[${Thread.currentThread().name}] onCreate: Start")
 
+        val defaultHandler = Thread.getDefaultUncaughtExceptionHandler()
         Thread.setDefaultUncaughtExceptionHandler { thread: Thread, throwable: Throwable ->
             Timber.e(throwable, "Uncaught throwable in thread ${thread.name}")
+            defaultHandler.uncaughtException(thread, throwable)
         }
 
         // Set up DI

@@ -19,8 +19,10 @@ class ScreenStreamApp : Application() {
         Timber.plant(DebugTree())
         Timber.w("[${Utils.getLogPrefix(this)}] onCreate: Start")
 
+        val defaultHandler = Thread.getDefaultUncaughtExceptionHandler()
         Thread.setDefaultUncaughtExceptionHandler { thread: Thread, throwable: Throwable ->
             Timber.e(throwable, "Uncaught throwable in thread ${thread.name}")
+            defaultHandler.uncaughtException(thread, throwable)
         }
 
         // Turning on strict mode
