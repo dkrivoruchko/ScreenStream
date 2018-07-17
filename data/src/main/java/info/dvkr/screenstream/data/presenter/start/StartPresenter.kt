@@ -13,7 +13,7 @@ class StartPresenter(eventBus: EventBus, private val globalStatus: GlobalStatus)
     BasePresenter<StartView, StartView.FromEvent>(eventBus) {
 
     init {
-        viewChannel = actor(CommonPool, Channel.UNLIMITED) {
+        viewChannel = actor(CommonPool, Channel.UNLIMITED, parent = baseJob) {
             for (fromEvent in this) when (fromEvent) {
                 StartView.FromEvent.StreamRunningRequest ->
                     notifyView(StartView.ToEvent.StreamRunning(globalStatus.isStreamRunning.get()))
@@ -75,6 +75,6 @@ class StartPresenter(eventBus: EventBus, private val globalStatus: GlobalStatus)
 //        notifyView(StartView.ToEvent.StreamRunning(globalStatus.isStreamRunning.get()))
 
         // Requesting current clients
-        launch(CommonPool) { eventBus.send(EventBus.GlobalEvent.CurrentClientsRequest) }
+        launch(CommonPool, parent = baseJob) { eventBus.send(EventBus.GlobalEvent.CurrentClientsRequest) }
     }
 }

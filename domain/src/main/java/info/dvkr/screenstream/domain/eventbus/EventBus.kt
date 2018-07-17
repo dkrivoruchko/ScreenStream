@@ -2,7 +2,7 @@ package info.dvkr.screenstream.domain.eventbus
 
 import android.support.annotation.Keep
 import info.dvkr.screenstream.domain.httpserver.HttpServer
-import kotlinx.coroutines.experimental.channels.SubscriptionReceiveChannel
+import kotlinx.coroutines.experimental.channels.ReceiveChannel
 import java.net.Inet4Address
 
 
@@ -63,5 +63,5 @@ interface EventBus {
 
     suspend fun send(event: GlobalEvent)
 
-    fun openSubscription(): SubscriptionReceiveChannel<GlobalEvent>
+    fun openSubscription(): ReceiveChannel<GlobalEvent>
 }

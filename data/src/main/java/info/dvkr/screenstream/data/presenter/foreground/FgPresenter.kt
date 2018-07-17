@@ -12,9 +12,10 @@ import info.dvkr.screenstream.domain.httpserver.HttpServerImpl
 import info.dvkr.screenstream.domain.settings.Settings
 import info.dvkr.screenstream.domain.utils.Utils
 import kotlinx.coroutines.experimental.CommonPool
+import kotlinx.coroutines.experimental.Job
 import kotlinx.coroutines.experimental.channels.Channel
+import kotlinx.coroutines.experimental.channels.ReceiveChannel
 import kotlinx.coroutines.experimental.channels.SendChannel
-import kotlinx.coroutines.experimental.channels.SubscriptionReceiveChannel
 import kotlinx.coroutines.experimental.channels.actor
 import kotlinx.coroutines.experimental.channels.consumeEach
 import kotlinx.coroutines.experimental.launch
@@ -39,13 +40,14 @@ open class FgPresenter(
 
 
     private var viewChannel: SendChannel<FgView.FromEvent>
-    private lateinit var subscription: SubscriptionReceiveChannel<EventBus.GlobalEvent>
-    private var view: FgView? = null
+    private lateinit var subscription: ReceiveChannel<EventBus.GlobalEvent>
+    @Volatile private var view: FgView? = null
+    protected val baseJob = Job()
 
     init {
         Timber.i("[${Utils.getLogPrefix(this)}] Init")
 
-        viewChannel = actor(CommonPool, Channel.UNLIMITED) {
+        viewChannel = actor(CommonPool, Channel.UNLIMITED, parent = baseJob) {
             for (fromEvent in this) when (fromEvent) {
                 FgView.FromEvent.Init -> {
                     if (settings.enablePin && settings.newPinOnAppStart) {
@@ -83,7 +85,7 @@ open class FgPresenter(
 
                 is FgView.FromEvent.StartImageGenerator -> {
                     val newImageGenerator = ImageGeneratorImpl(fromEvent.display, fromEvent.mediaProjection) { action ->
-                        launch(CommonPool) {
+                        launch(CommonPool, parent = baseJob) {
                             when (action) {
                                 is ImageGenerator.ImageGeneratorEvent.OnError -> {
                                     eventBus.send(EventBus.GlobalEvent.Error(action.error))
@@ -150,7 +152,7 @@ open class FgPresenter(
         view = newView
 
         subscription = eventBus.openSubscription()
-        launch(CommonPool) {
+        launch(CommonPool, parent = baseJob) {
             subscription.consumeEach { globalEvent ->
                 Timber.d("[${Utils.getLogPrefix(this)}] globalEvent: ${globalEvent.javaClass.simpleName}")
 
@@ -226,7 +228,9 @@ open class FgPresenter(
 
     fun detach() {
         Timber.i("[${Utils.getLogPrefix(this)}] Detach")
-        subscription.close()
+        baseJob.cancel()
+        viewChannel.close()
+        subscription.cancel()
         view = null
     }
 

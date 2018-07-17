@@ -11,7 +11,7 @@ import io.netty.channel.socket.nio.NioServerSocketChannel
 import io.netty.util.ResourceLeakDetector
 import io.reactivex.netty.RxNetty
 import kotlinx.coroutines.experimental.CommonPool
-import kotlinx.coroutines.experimental.channels.SubscriptionReceiveChannel
+import kotlinx.coroutines.experimental.channels.ReceiveChannel
 import kotlinx.coroutines.experimental.channels.consumeEach
 import kotlinx.coroutines.experimental.launch
 import rx.Observable
@@ -60,7 +60,7 @@ class HttpServerImpl constructor(
     }
 
     // Server internal components
-    private val subscription: SubscriptionReceiveChannel<EventBus.GlobalEvent>
+    private val subscription: ReceiveChannel<EventBus.GlobalEvent>
     private val globalServerEventLoop: EventLoopGroup = RxNetty.getRxEventLoopProvider().globalServerEventLoop()
     private val httpServer: io.reactivex.netty.protocol.http.server.HttpServer<ByteBuf, ByteBuf>
     private val httpServerRxHandler: HttpServerRxHandler
@@ -178,7 +178,7 @@ class HttpServerImpl constructor(
     override fun stop() {
         logItv.call("[${Utils.getLogPrefix(this)}] Stop")
 
-        subscription.close()
+        subscription.cancel()
         if (isRunning) {
             httpServer.shutdown()
             httpServer.awaitShutdown()

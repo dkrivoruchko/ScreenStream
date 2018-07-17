@@ -16,7 +16,7 @@ class ClientsPresenter(eventBus: EventBus) :
     private var maxYValue = 0L
 
     init {
-        viewChannel = actor(CommonPool, Channel.UNLIMITED) {
+        viewChannel = actor(CommonPool, Channel.UNLIMITED, parent = baseJob) {
             for (fromEvent in this) when (fromEvent) {
                 ClientsView.FromEvent.TrafficHistoryRequest -> { // Requesting current traffic history
                     if (trafficHistory.isEmpty()) {
@@ -56,6 +56,6 @@ class ClientsPresenter(eventBus: EventBus) :
         }
 
         // Requesting current clients
-        launch(CommonPool) { eventBus.send(EventBus.GlobalEvent.CurrentClientsRequest) }
+        launch(CommonPool, parent = baseJob) { eventBus.send(EventBus.GlobalEvent.CurrentClientsRequest) }
     }
 }

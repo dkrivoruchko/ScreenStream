@@ -15,7 +15,7 @@ class SettingsPresenter(eventBus: EventBus, private val settings: Settings) :
     BasePresenter<SettingsView, SettingsView.FromEvent>(eventBus) {
 
     init {
-        viewChannel = actor(CommonPool, Channel.UNLIMITED) {
+        viewChannel = actor(CommonPool, Channel.UNLIMITED, parent = baseJob) {
             for (fromEvent in this) when (fromEvent) {
                 is SettingsView.FromEvent.MinimizeOnStream ->
                     settings.minimizeOnStream = fromEvent.value

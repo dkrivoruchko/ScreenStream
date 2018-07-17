@@ -6,8 +6,9 @@ import android.support.annotation.MainThread
 import info.dvkr.screenstream.domain.eventbus.EventBus
 import info.dvkr.screenstream.domain.utils.Utils
 import kotlinx.coroutines.experimental.CommonPool
+import kotlinx.coroutines.experimental.Job
+import kotlinx.coroutines.experimental.channels.ReceiveChannel
 import kotlinx.coroutines.experimental.channels.SendChannel
-import kotlinx.coroutines.experimental.channels.SubscriptionReceiveChannel
 import kotlinx.coroutines.experimental.channels.consumeEach
 import kotlinx.coroutines.experimental.launch
 import timber.log.Timber
@@ -17,8 +18,9 @@ abstract class BasePresenter<in T : BaseView, R : BaseView.BaseFromEvent>(
 ) : ViewModel() {
 
     protected lateinit var viewChannel: SendChannel<R>
-    private lateinit var subscription: SubscriptionReceiveChannel<EventBus.GlobalEvent>
-    private var view: T? = null
+    private lateinit var subscription: ReceiveChannel<EventBus.GlobalEvent>
+    @Volatile private var view: T? = null
+    protected val baseJob = Job()
 
     init {
         Timber.i("[${Utils.getLogPrefix(this)}] Init")
@@ -34,6 +36,7 @@ abstract class BasePresenter<in T : BaseView, R : BaseView.BaseFromEvent>(
         }
     }
 
+    @MainThread
     @CallSuper
     open fun attach(newView: T, block: suspend (globalEvent: EventBus.GlobalEvent) -> Unit) {
         Timber.i("[${Utils.getLogPrefix(this)}] Attach")
@@ -41,7 +44,7 @@ abstract class BasePresenter<in T : BaseView, R : BaseView.BaseFromEvent>(
         view = newView
 
         subscription = eventBus.openSubscription()
-        launch(CommonPool) {
+        launch(CommonPool, parent = baseJob) {
             subscription.consumeEach { globalEvent ->
                 Timber.d("[${Utils.getLogPrefix(this)}] globalEvent: ${globalEvent.javaClass.simpleName}")
                 block(globalEvent)
@@ -49,15 +52,17 @@ abstract class BasePresenter<in T : BaseView, R : BaseView.BaseFromEvent>(
         }
     }
 
+    @MainThread
     @CallSuper
     fun detach() {
         Timber.i("[${Utils.getLogPrefix(this)}] Detach")
-        subscription.close()
+        subscription.cancel()
         view = null
     }
 
     @CallSuper
     override fun onCleared() {
+        baseJob.cancel()
         viewChannel.close()
         super.onCleared()
     }

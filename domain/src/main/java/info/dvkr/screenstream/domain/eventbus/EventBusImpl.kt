@@ -1,7 +1,7 @@
 package info.dvkr.screenstream.domain.eventbus
 
 import kotlinx.coroutines.experimental.channels.ArrayBroadcastChannel
-import kotlinx.coroutines.experimental.channels.SubscriptionReceiveChannel
+import kotlinx.coroutines.experimental.channels.ReceiveChannel
 
 class EventBusImpl : EventBus {
     private val broadcastChannel = ArrayBroadcastChannel<EventBus.GlobalEvent>(16)
@@ -14,6 +14,6 @@ class EventBusImpl : EventBus {
         else IllegalStateException("EventBusImpl.send: broadcastChannel.isClosedForSend")
     }
 
-    override fun openSubscription(): SubscriptionReceiveChannel<EventBus.GlobalEvent> =
+    override fun openSubscription(): ReceiveChannel<EventBus.GlobalEvent> =
         broadcastChannel.openSubscription()
 }
