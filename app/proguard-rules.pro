@@ -17,6 +17,11 @@
 #}
 #-keepnames class info.dvkr.screenstream.** { *;}
 
+#-assumevalues  class android.os.Build$VERSION {
+#   int SDK_INT return 21..2147483647;
+#}
+-allowaccessmodification
+
 # Fabric
 -keepattributes *Annotation*
 -keepattributes SourceFile,LineNumberTable
@@ -49,6 +54,8 @@
 -dontwarn com.mikepenz.fastadapter.**
 
 # kotlinx.coroutines
+-keepnames class kotlinx.coroutines.internal.MainDispatcherFactory {}
+-keepnames class kotlinx.coroutines.CoroutineExceptionHandler {}
 -keepclassmembernames class kotlinx.** {
     volatile <fields>;
 }
