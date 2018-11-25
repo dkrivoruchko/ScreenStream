@@ -49,7 +49,7 @@ class ScreenStreamApp : Application() {
         startKoin(this, listOf(koinModule), logger = object : Logger {
             override fun debug(msg: String) = Timber.d(msg)
             override fun err(msg: String) = Timber.e(msg)
-            override fun log(msg: String) = Timber.d(msg)
+            override fun info(msg: String) = Timber.d(msg)
         })
 
         Timber.w("[${Utils.getLogPrefix(this)}] onCreate: End")

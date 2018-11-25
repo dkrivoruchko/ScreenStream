@@ -3,10 +3,9 @@ package info.dvkr.screenstream.data.presenter.clients
 import info.dvkr.screenstream.data.presenter.BasePresenter
 import info.dvkr.screenstream.domain.eventbus.EventBus
 import info.dvkr.screenstream.domain.httpserver.HttpServer
-import kotlinx.coroutines.experimental.CommonPool
-import kotlinx.coroutines.experimental.channels.Channel
-import kotlinx.coroutines.experimental.channels.actor
-import kotlinx.coroutines.experimental.launch
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.channels.actor
+import kotlinx.coroutines.launch
 import java.util.concurrent.ConcurrentLinkedDeque
 
 class ClientsPresenter(eventBus: EventBus) :
@@ -16,7 +15,7 @@ class ClientsPresenter(eventBus: EventBus) :
     private var maxYValue = 0L
 
     init {
-        viewChannel = actor(CommonPool, Channel.UNLIMITED, parent = baseJob) {
+        viewChannel = GlobalScope.actor(baseJob, capacity = 16) {
             for (fromEvent in this) when (fromEvent) {
                 ClientsView.FromEvent.TrafficHistoryRequest -> { // Requesting current traffic history
                     if (trafficHistory.isEmpty()) {
@@ -56,6 +55,6 @@ class ClientsPresenter(eventBus: EventBus) :
         }
 
         // Requesting current clients
-        launch(CommonPool, parent = baseJob) { eventBus.send(EventBus.GlobalEvent.CurrentClientsRequest) }
+        GlobalScope.launch(baseJob) { eventBus.send(EventBus.GlobalEvent.CurrentClientsRequest) }
     }
 }

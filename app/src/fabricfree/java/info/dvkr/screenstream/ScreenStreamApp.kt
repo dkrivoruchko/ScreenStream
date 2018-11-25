@@ -3,8 +3,8 @@ package info.dvkr.screenstream
 import android.app.Application
 import android.util.Log
 import info.dvkr.screenstream.di.koinModule
-import org.koin.Koin
 import org.koin.android.ext.android.startKoin
+import org.koin.core.Koin
 import org.koin.log.Logger
 import timber.log.Timber
 
@@ -28,7 +28,7 @@ class ScreenStreamApp : Application() {
         Koin.logger = object : Logger {
             override fun debug(msg: String) = Timber.d(msg)
             override fun err(msg: String) = Timber.e(msg)
-            override fun log(msg: String) = Timber.i(msg)
+            override fun info(msg: String) = Timber.i(msg)
         }
 
         Timber.w("[${Thread.currentThread().name}] onCreate: End")

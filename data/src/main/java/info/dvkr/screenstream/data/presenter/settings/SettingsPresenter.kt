@@ -5,9 +5,8 @@ import info.dvkr.screenstream.data.image.ImageNotify
 import info.dvkr.screenstream.data.presenter.BasePresenter
 import info.dvkr.screenstream.domain.eventbus.EventBus
 import info.dvkr.screenstream.domain.settings.Settings
-import kotlinx.coroutines.experimental.CommonPool
-import kotlinx.coroutines.experimental.channels.Channel
-import kotlinx.coroutines.experimental.channels.actor
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.channels.actor
 import timber.log.Timber
 import java.net.ServerSocket
 
@@ -15,7 +14,7 @@ class SettingsPresenter(eventBus: EventBus, private val settings: Settings) :
     BasePresenter<SettingsView, SettingsView.FromEvent>(eventBus) {
 
     init {
-        viewChannel = actor(CommonPool, Channel.UNLIMITED, parent = baseJob) {
+        viewChannel = GlobalScope.actor(baseJob, capacity = 16) {
             for (fromEvent in this) when (fromEvent) {
                 is SettingsView.FromEvent.MinimizeOnStream ->
                     settings.minimizeOnStream = fromEvent.value

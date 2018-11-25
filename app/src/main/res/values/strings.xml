@@ -75,7 +75,7 @@
     <string name="pref_resize_dialog_result">Picture size: %1$dx%2$d</string>
     <string name="pref_jpeg_quality">JPEG compression quality</string>
     <string name="pref_jpeg_quality_summary">Set JPEG compression quality</string>
-    <string name="pref_jpeg_quality_dialog">Set JPEG compression quality.\nValues: 10–100 (Default: 100)</string>
+    <string name="pref_jpeg_quality_dialog">Set JPEG compression quality. Values: 10–100 (Default: 100)</string>
     <string name="pref_settings_security">Security</string>
     <string name="pref_enable_pin">Enable pin</string>
     <string name="pref_enable_pin_summary">Protect access to stream with pin</string>

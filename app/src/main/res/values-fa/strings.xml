@@ -1,16 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name" translatable="false">Screen Stream</string>
-
     <!--StartActivity-->
-    <string name="start_activity_name" translatable="false">Screen Stream</string>
     <string name="start_activity_device_address">نشانی‌های دستگاه:</string>
     <string name="start_activity_no_address">نشانی یافت نشد</string>
     <string name="start_activity_start_stream">شروع جران</string>
     <string name="start_activity_stop_stream">توقف جریان</string>
     <string name="start_activity_pin">پین:</string>
     <string name="start_activity_pin_disabled">پین غیر فعال است</string>
-    <string name="start_activity_pin_asterisks" translatable="false">****</string>
     <string name="start_activity_resize_factor">ضریب اندازه تصویر</string>
     <string name="start_activity_current_traffic">ترافیک: %1$,.2f Mbit/s</string>
     <string name="start_activity_connected_clients">کارخواه‌های متصل: %1$d</string>
@@ -108,7 +104,6 @@
 
     <!--AboutActivity-->
     <string name="about_activity_name">درباره</string>
-    <string name="about_app_name" translatable="false">پخش جریان صفحه روی HTTP</string>
     <string name="about_app_version">نسخه: %1$s</string>
     <string name="about_developer_name">توسعه‌داده شده توسط Dmitriy Krivoruchko</string>
     <string name="about_developer_send_email">فرستادن رایانه به توسعه‌دهنده</string>

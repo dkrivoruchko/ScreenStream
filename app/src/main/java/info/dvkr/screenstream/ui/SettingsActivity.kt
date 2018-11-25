@@ -28,7 +28,7 @@ import info.dvkr.screenstream.data.presenter.settings.SettingsView
 import info.dvkr.screenstream.domain.utils.Utils
 import kotlinx.android.synthetic.main.activity_settings.*
 import kotlinx.android.synthetic.main.settings_edittext_dialog.view.*
-import org.koin.android.architecture.ext.getViewModel
+import org.koin.android.viewmodel.ext.android.getViewModel
 import timber.log.Timber
 
 

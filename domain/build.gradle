@@ -3,12 +3,6 @@ apply plugin: 'kotlin'
 sourceCompatibility = "1.8"
 targetCompatibility = "1.8"
 
-kotlin {
-    experimental {
-        coroutines "enable"
-    }
-}
-
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutine_version"
@@ -18,5 +12,7 @@ dependencies {
     implementation "io.reactivex:rxjava:$rxjava_version"
     implementation "com.jakewharton.rxrelay:rxrelay:$rxrelay_version"
 
-    implementation 'io.reactivex:rxnetty-http:0.5.2'
+    implementation 'io.netty:netty-codec-http:4.1.30.Final'
+    implementation 'io.netty:netty-handler:4.1.30.Final'
+    implementation 'io.reactivex:rxnetty-http:0.5.3-rc.1'
 }

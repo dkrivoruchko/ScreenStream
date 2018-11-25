@@ -10,10 +10,10 @@ import io.netty.channel.EventLoopGroup
 import io.netty.channel.socket.nio.NioServerSocketChannel
 import io.netty.util.ResourceLeakDetector
 import io.reactivex.netty.RxNetty
-import kotlinx.coroutines.experimental.CommonPool
-import kotlinx.coroutines.experimental.channels.ReceiveChannel
-import kotlinx.coroutines.experimental.channels.consumeEach
-import kotlinx.coroutines.experimental.launch
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.channels.ReceiveChannel
+import kotlinx.coroutines.channels.consumeEach
+import kotlinx.coroutines.launch
 import rx.Observable
 import rx.functions.Action1
 import rx.schedulers.Schedulers
@@ -95,10 +95,10 @@ class HttpServerImpl constructor(
         val past = System.currentTimeMillis() - MAX_HISTORY_SECONDS * 1000
         Observable.range(0, MAX_HISTORY_SECONDS + 1).map { i -> i * 1000 + past }
             .subscribe { trafficHistory.addLast(HttpServer.TrafficPoint(it, 0)) }
-        launch(CommonPool) { eventBus.send(EventBus.GlobalEvent.TrafficHistory(trafficHistory.toList())) }
+        GlobalScope.launch { eventBus.send(EventBus.GlobalEvent.TrafficHistory(trafficHistory.toList())) }
 
         subscription = eventBus.openSubscription()
-        launch(CommonPool) {
+        GlobalScope.launch {
             subscription.consumeEach { globalEvent ->
                 logItv.call("[${Utils.getLogPrefix(this)}] globalEvent: ${globalEvent.javaClass.simpleName}")
 
@@ -120,7 +120,7 @@ class HttpServerImpl constructor(
             trafficHistory.addLast(trafficPoint)
             clientsMap.values.forEach { it.sendBytes = 0 }
 
-            launch(CommonPool) {
+            GlobalScope.launch {
                 eventBus.send(EventBus.GlobalEvent.TrafficPoint(trafficPoint))
                 eventBus.send(EventBus.GlobalEvent.CurrentClients(clientsMap.values.toList()))
             }
@@ -167,10 +167,10 @@ class HttpServerImpl constructor(
             logItv.call("[${Utils.getLogPrefix(this)}] Started")
 
         } catch (exception: Exception) {
-            launch(CommonPool) { eventBus.send(EventBus.GlobalEvent.Error(exception)) }
+            GlobalScope.launch { eventBus.send(EventBus.GlobalEvent.Error(exception)) }
         }
 
-        launch(CommonPool) {
+        GlobalScope.launch {
             eventBus.send(EventBus.GlobalEvent.CurrentClients(clientsMap.values.toList()))
         }
     }

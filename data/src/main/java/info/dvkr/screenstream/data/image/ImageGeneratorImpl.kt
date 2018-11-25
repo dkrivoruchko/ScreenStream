@@ -18,12 +18,12 @@ import android.view.Display
 import android.view.Surface
 import info.dvkr.screenstream.data.image.ImageGenerator.ImageGeneratorEvent
 import info.dvkr.screenstream.domain.utils.Utils
-import kotlinx.coroutines.experimental.Deferred
-import kotlinx.coroutines.experimental.async
-import kotlinx.coroutines.experimental.delay
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.async
+import kotlinx.coroutines.delay
 import timber.log.Timber
 import java.io.ByteArrayOutputStream
-import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
 
@@ -84,13 +84,13 @@ class ImageGeneratorImpl(
         startDisplayCapture()
 
         if (state.get() == STATE_STARTED)
-            rotationDetector = async {
+            rotationDetector = GlobalScope.async {
                 val rotation = display.rotation
                 var previous = rotation == Surface.ROTATION_0 || rotation == Surface.ROTATION_180
                 var current: Boolean
                 Timber.i("[${Utils.getLogPrefix(this)}] Rotation detector started")
                 while (true) {
-                    delay(250, TimeUnit.MILLISECONDS)
+                    delay(250)
                     val oldRotation = display.rotation
                     current = oldRotation == Surface.ROTATION_0 || oldRotation ==
                             Surface.ROTATION_180
@@ -212,11 +212,7 @@ class ImageGeneratorImpl(
                     image.close()
 
                     resultJpegStream.reset()
-                    resizedBitmap.compress(
-                        Bitmap.CompressFormat.JPEG,
-                        jpegQuality.get(),
-                        resultJpegStream
-                    )
+                    resizedBitmap.compress(Bitmap.CompressFormat.JPEG, jpegQuality.get(), resultJpegStream)
                     resizedBitmap.recycle()
 
                     action(ImageGeneratorEvent.OnJpegImage(resultJpegStream.toByteArray()))

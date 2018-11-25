@@ -16,7 +16,7 @@ import info.dvkr.screenstream.data.presenter.clients.ClientsView
 import info.dvkr.screenstream.domain.utils.Utils
 import kotlinx.android.synthetic.main.activity_clients.*
 import kotlinx.android.synthetic.main.avtivity_clients_client_item.view.*
-import org.koin.android.architecture.ext.getViewModel
+import org.koin.android.viewmodel.ext.android.getViewModel
 import timber.log.Timber
 import java.text.NumberFormat
 

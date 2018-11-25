@@ -10,6 +10,7 @@ import android.content.Intent
 import android.graphics.Point
 import android.media.projection.MediaProjectionManager
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.support.v4.content.ContextCompat
 import android.view.LayoutInflater
@@ -31,8 +32,8 @@ import info.dvkr.screenstream.domain.utils.Utils
 import info.dvkr.screenstream.service.FgService
 import kotlinx.android.synthetic.main.activity_start.*
 import kotlinx.android.synthetic.main.server_address.view.*
-import org.koin.android.architecture.ext.getViewModel
 import org.koin.android.ext.android.inject
+import org.koin.android.viewmodel.ext.android.getViewModel
 import timber.log.Timber
 import java.net.BindException
 
@@ -147,7 +148,7 @@ class StartActivity : BaseActivity(), StartView {
                         else -> {
                             canStart = false
                             alerter.setTitle(R.string.start_activity_alert_title_error_unknown)
-                                .setText(it.message)
+                                .setText(it.message ?: getString(R.string.start_activity_alert_title_error_unknown))
                         }
                     }
 
@@ -182,7 +183,11 @@ class StartActivity : BaseActivity(), StartView {
         setSupportActionBar(toolbarStart)
         supportActionBar?.setTitle(R.string.start_activity_name)
 
-        startService(FgService.getIntent(applicationContext, FgService.ACTION_INIT))
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
+            startForegroundService(FgService.getIntent(applicationContext, FgService.ACTION_INIT))
+        else
+            startService(FgService.getIntent(applicationContext, FgService.ACTION_INIT))
+
         toggleButtonStartStop.isEnabled = false
         textViewConnectedClients.text = getString(R.string.start_activity_connected_clients).format(0)
         textViewCurrentTraffic.text = getString(R.string.start_activity_current_traffic).format(0f)

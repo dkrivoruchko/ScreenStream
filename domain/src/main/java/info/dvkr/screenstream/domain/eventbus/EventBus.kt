@@ -2,7 +2,7 @@ package info.dvkr.screenstream.domain.eventbus
 
 import android.support.annotation.Keep
 import info.dvkr.screenstream.domain.httpserver.HttpServer
-import kotlinx.coroutines.experimental.channels.ReceiveChannel
+import kotlinx.coroutines.channels.ReceiveChannel
 import java.net.Inet4Address
 
 

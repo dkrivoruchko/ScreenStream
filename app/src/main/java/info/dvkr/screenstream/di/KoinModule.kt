@@ -14,22 +14,22 @@ import info.dvkr.screenstream.domain.globalstatus.GlobalStatus
 import info.dvkr.screenstream.domain.globalstatus.GlobalStatusImpl
 import info.dvkr.screenstream.domain.settings.Settings
 import info.dvkr.screenstream.image.ImageNotifyImpl
-import org.koin.android.architecture.ext.viewModel
 import org.koin.android.ext.koin.androidApplication
-import org.koin.dsl.module.applicationContext
+import org.koin.android.viewmodel.ext.koin.viewModel
+import org.koin.dsl.module.module
 import timber.log.Timber
 
-val koinModule = applicationContext {
+val koinModule = module {
 
-    bean { EventBusImpl() as EventBus }
+    single { EventBusImpl() as EventBus }
 
-    bean { GlobalStatusImpl() as GlobalStatus }
+    single { GlobalStatusImpl() as GlobalStatus }
 
-    bean { BehaviorRelay.create<ByteArray>() as BehaviorRelay }
+    single { BehaviorRelay.create<ByteArray>() as BehaviorRelay }
 
-    bean { ImageNotifyImpl(androidApplication()) as ImageNotify }
+    single { ImageNotifyImpl(androidApplication()) as ImageNotify }
 
-    bean {
+    single {
         SettingsImpl(
             BinaryPreferencesBuilder(androidApplication())
                 .exceptionHandler { Timber.e(it) }.build()
@@ -42,5 +42,5 @@ val koinModule = applicationContext {
 
     viewModel { ClientsPresenter(get()) }
 
-    bean { FgPresenter(get(), get(), get(), get()) }
+    single { FgPresenter(get(), get(), get(), get()) }
 }

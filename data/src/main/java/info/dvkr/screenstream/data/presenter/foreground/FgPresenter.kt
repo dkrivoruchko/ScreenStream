@@ -11,14 +11,13 @@ import info.dvkr.screenstream.domain.httpserver.HttpServer
 import info.dvkr.screenstream.domain.httpserver.HttpServerImpl
 import info.dvkr.screenstream.domain.settings.Settings
 import info.dvkr.screenstream.domain.utils.Utils
-import kotlinx.coroutines.experimental.CommonPool
-import kotlinx.coroutines.experimental.Job
-import kotlinx.coroutines.experimental.channels.Channel
-import kotlinx.coroutines.experimental.channels.ReceiveChannel
-import kotlinx.coroutines.experimental.channels.SendChannel
-import kotlinx.coroutines.experimental.channels.actor
-import kotlinx.coroutines.experimental.channels.consumeEach
-import kotlinx.coroutines.experimental.launch
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.channels.ReceiveChannel
+import kotlinx.coroutines.channels.SendChannel
+import kotlinx.coroutines.channels.actor
+import kotlinx.coroutines.channels.consumeEach
+import kotlinx.coroutines.launch
 import rx.BackpressureOverflow
 import rx.functions.Action0
 import rx.functions.Action1
@@ -47,7 +46,7 @@ open class FgPresenter(
     init {
         Timber.i("[${Utils.getLogPrefix(this)}] Init")
 
-        viewChannel = actor(CommonPool, Channel.UNLIMITED, parent = baseJob) {
+        viewChannel = GlobalScope.actor(baseJob, capacity = 16) {
             for (fromEvent in this) when (fromEvent) {
                 FgView.FromEvent.Init -> {
                     if (settings.enablePin && settings.newPinOnAppStart) {
@@ -85,7 +84,7 @@ open class FgPresenter(
 
                 is FgView.FromEvent.StartImageGenerator -> {
                     val newImageGenerator = ImageGeneratorImpl(fromEvent.display, fromEvent.mediaProjection) { action ->
-                        launch(CommonPool, parent = baseJob) {
+                        GlobalScope.launch(baseJob) {
                             when (action) {
                                 is ImageGenerator.ImageGeneratorEvent.OnError -> {
                                     eventBus.send(EventBus.GlobalEvent.Error(action.error))
@@ -152,12 +151,12 @@ open class FgPresenter(
         view = newView
 
         subscription = eventBus.openSubscription()
-        launch(CommonPool, parent = baseJob) {
+        GlobalScope.launch(baseJob) {
             subscription.consumeEach { globalEvent ->
                 Timber.d("[${Utils.getLogPrefix(this)}] globalEvent: ${globalEvent.javaClass.simpleName}")
 
                 when (globalEvent) {
-                // From FgPresenter, StartPresenter & ProjectionCallback
+                    // From FgPresenter, StartPresenter & ProjectionCallback
                     EventBus.GlobalEvent.StopStream ->
                         if (globalStatus.isStreamRunning.get()) {
                             imageGenerator.getAndSet(null)?.stop()
@@ -166,12 +165,12 @@ open class FgPresenter(
                             notifyView(FgView.ToEvent.StopStream())
                         }
 
-                // From StartPresenter
+                    // From StartPresenter
                     EventBus.GlobalEvent.AppExit -> {
                         notifyView(FgView.ToEvent.AppExit)
                     }
 
-                // From SettingsPresenter, FgPresenter
+                    // From SettingsPresenter, FgPresenter
                     is EventBus.GlobalEvent.HttpServerRestart -> {
                         globalStatus.error.set(null)
                         val restartReason = globalEvent.reason
@@ -186,12 +185,12 @@ open class FgPresenter(
                         notifyView(FgView.ToEvent.StartHttpServer, 1000)
                     }
 
-                // From StartPresenter
+                    // From StartPresenter
                     EventBus.GlobalEvent.CurrentInterfacesRequest -> {
                         notifyView(FgView.ToEvent.CurrentInterfacesRequest)
                     }
 
-                // From HttpServer & ImageGenerator
+                    // From HttpServer & ImageGenerator
                     is EventBus.GlobalEvent.Error -> {
                         if (globalStatus.isStreamRunning.get()) {
                             imageGenerator.getAndSet(null)?.stop()
@@ -203,7 +202,7 @@ open class FgPresenter(
                         notifyView(FgView.ToEvent.Error(globalEvent.error))
                     }
 
-                // From HttpServerImpl
+                    // From HttpServerImpl
                     is EventBus.GlobalEvent.CurrentClients -> {
                         val currentSlowConnections = globalEvent.clientsList.filter { it.hasBackpressure }.toList()
                         if (!slowConnections.containsAll(currentSlowConnections))
@@ -212,12 +211,12 @@ open class FgPresenter(
                         slowConnections.addAll(currentSlowConnections)
                     }
 
-                // From SettingsPresenter
+                    // From SettingsPresenter
                     is EventBus.GlobalEvent.ResizeFactor -> {
                         imageGenerator.get()?.setImageResizeFactor(globalEvent.value)
                     }
 
-                // From SettingsPresenter
+                    // From SettingsPresenter
                     is EventBus.GlobalEvent.JpegQuality -> {
                         imageGenerator.get()?.setImageJpegQuality(globalEvent.value)
                     }

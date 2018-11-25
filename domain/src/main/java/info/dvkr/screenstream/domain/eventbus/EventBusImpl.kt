@@ -1,10 +1,11 @@
 package info.dvkr.screenstream.domain.eventbus
 
-import kotlinx.coroutines.experimental.channels.ArrayBroadcastChannel
-import kotlinx.coroutines.experimental.channels.ReceiveChannel
+import kotlinx.coroutines.channels.BroadcastChannel
+import kotlinx.coroutines.channels.ReceiveChannel
+
 
 class EventBusImpl : EventBus {
-    private val broadcastChannel = ArrayBroadcastChannel<EventBus.GlobalEvent>(16)
+    private val broadcastChannel = BroadcastChannel<EventBus.GlobalEvent>(16)
 
     override suspend fun send(event: EventBus.GlobalEvent) {
         if (broadcastChannel.isFull)

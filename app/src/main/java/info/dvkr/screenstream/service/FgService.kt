@@ -2,12 +2,7 @@ package info.dvkr.screenstream.service
 
 
 import android.annotation.SuppressLint
-import android.app.Activity
-import android.app.Notification
-import android.app.NotificationChannel
-import android.app.NotificationManager
-import android.app.PendingIntent
-import android.app.Service
+import android.app.*
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -40,24 +35,13 @@ import info.dvkr.screenstream.domain.settings.Settings
 import info.dvkr.screenstream.domain.utils.Utils
 import info.dvkr.screenstream.ui.StartActivity
 import kotlinx.android.synthetic.main.slow_connection_toast.view.*
-import kotlinx.coroutines.experimental.CommonPool
-import kotlinx.coroutines.experimental.android.UI
-import kotlinx.coroutines.experimental.async
-import kotlinx.coroutines.experimental.channels.Channel
-import kotlinx.coroutines.experimental.channels.SendChannel
-import kotlinx.coroutines.experimental.channels.actor
-import kotlinx.coroutines.experimental.delay
-import kotlinx.coroutines.experimental.launch
-import kotlinx.coroutines.experimental.runBlocking
+import kotlinx.coroutines.*
+import kotlinx.coroutines.channels.SendChannel
+import kotlinx.coroutines.channels.actor
 import org.koin.android.ext.android.inject
 import timber.log.Timber
-import java.net.BindException
-import java.net.Inet4Address
-import java.net.InetAddress
-import java.net.InetSocketAddress
-import java.net.NetworkInterface
+import java.net.*
 import java.nio.charset.Charset
-import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 
 class FgService : Service(), FgView {
@@ -171,10 +155,7 @@ class FgService : Service(), FgView {
     override fun toEvent(event: FgView.ToEvent, timeout: Long) {
         Timber.d("[${Utils.getLogPrefix(this)}] toEvent: ${event.javaClass.simpleName}, delay: $timeout")
         if (timeout > 0) {
-            async {
-                delay(timeout, TimeUnit.MILLISECONDS)
-                toEvent(event)
-            }
+            GlobalScope.async { delay(timeout); toEvent(event) }
         } else {
             if (toEvents.isFull)
                 IllegalStateException("FgService.toEvent: toEvents.isFull")
@@ -196,7 +177,7 @@ class FgService : Service(), FgView {
             notificationManager.createNotificationChannel(channel)
         }
 
-        toEvents = actor(CommonPool, Channel.UNLIMITED) {
+        toEvents = GlobalScope.actor(capacity = 16) {
             for (event in this) try {
                 when (event) {
                     FgService.LocalEvent.StartService -> {
@@ -269,7 +250,7 @@ class FgService : Service(), FgView {
                         projectionCallback = object : MediaProjection.Callback() {
                             override fun onStop() {
                                 Timber.w("[${Utils.getLogPrefix(this)}] ProjectionCallback: onStop")
-                                launch(CommonPool) { eventBus.send(EventBus.GlobalEvent.StopStream) }
+                                GlobalScope.launch { eventBus.send(EventBus.GlobalEvent.StopStream) }
                             }
                         }
                         projection.registerCallback(projectionCallback, Handler(Looper.getMainLooper()))
@@ -305,7 +286,7 @@ class FgService : Service(), FgView {
                         )
                     }
 
-                    FgView.ToEvent.SlowConnectionDetected -> runBlocking(UI) {
+                    FgView.ToEvent.SlowConnectionDetected -> runBlocking(Dispatchers.Main) {
                         val toastView = layoutInflater.inflate(R.layout.slow_connection_toast, null)
                         val drawable =
                             AppCompatResources.getDrawable(applicationContext, R.drawable.ic_service_notification_24dp)

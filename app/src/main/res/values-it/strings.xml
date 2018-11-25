@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--StartActivity-->
+    <string name="start_activity_device_address">Indirizzo del tuo dispositivo:</string>
+    <string name="start_activity_no_address">Nessun indirizzo trovato</string>
+    <string name="start_activity_start_stream">Trasmetti schermo</string>
+    <string name="start_activity_stop_stream">Interrompi trasmissione</string>
+    <string name="start_activity_pin">Pin:</string>
+    <string name="start_activity_pin_disabled">Pin disabilitato</string>
+    <string name="start_activity_resize_factor">Ridimensionamento</string>
+    <string name="start_activity_current_traffic">Traffico: %1$,.2f Mbit/s</string>
+    <string name="start_activity_connected_clients">Clients connessi: %1$d</string>
+    <string name="start_activity_copied">Copiato</string>
+
+    <string name="start_activity_drawer_main">Principale</string>
+    <string name="start_activity_drawer_traffic_clients">Traffico &amp; clients</string>
+    <string name="start_activity_drawer_settings">Impostazioni</string>
+    <string name="start_activity_drawer_rate_app">Vota app</string>
+    <string name="start_activity_drawer_about">About</string>
+    <string name="start_activity_drawer_exit">Esci</string>
+
+    <string name="start_activity_alert_title_warring">Attenzione</string>
+    <string name="start_activity_alert_title_error">Errore</string>
+    <string name="start_activity_alert_title_error_network">Errore di rete</string>
+    <string name="start_activity_alert_title_error_unknown">Errore inaspettato</string>
+    <string name="start_activity_cast_permission_required_title">Permesso richiesto</string>
+    <string name="start_activity_cast_permission_required">L\'applicazione richiede il permesso Screen Cast per catturare lo schermo.</string>
+    <string name="start_activity_error_port_in_use">Porta già in uso. Scegline un\'altra</string>
+    <string name="start_activity_error_ip_address_not_found">Indirizzo IP non trovato</string>
+    <string name="start_activity_error_network_unknown">Errore di rete sconosciuto</string>
+    <string name="start_activity_error_invalid_media_projection">Security error: Proiezione del media non valida. Prova di nuovo</string>
+    <string name="start_activity_error_wrong_image_format">Il sistema rileva che l\'immagine in un formato sconosciuto. Nessuna risoluzione possibile. Ci dispiace.</string>
+    <string name="start_activity_alert_title_error_activity_not_found">Errore nei permessi</string>
+    <string name="start_activity_error_activity_not_found">Android bug. Non mettere la spunta su \"Non mostrare più\" quando richiesto da Registra Schermo. Se l\'hai già fatto reinstalla l\'app.</string>
+
+    <string name="start_activity_email_chooser_header">Invio email in corso…</string>
+
+    <!--FgService-->
+    <string name="service_ready_to_stream">Pronto alla trasmissione</string>
+    <string name="service_press_start">Premi Start per iniziare la trasmissione</string>
+    <string name="service_start">Start</string>
+    <string name="service_exit">Exit</string>
+    <string name="service_stream">Trasmissione…</string>
+    <string name="service_press_stop">Premi stop per interrompere la trasmissione</string>
+    <string name="service_stop">Stop</string>
+    <string name="service_slow_client_connection">Rilevata connessione lenta del client</string>
+
+    <!--ImageNotify-->
+    <string name="image_generator_press_start">Premi INIZIA TRASMISSIONE nel dispositivo</string>
+    <string name="image_generator_go_to_new_address">Vai al nuovo indirizzo</string>
+    <string name="image_generator_reload_this_page">Ricarica questa pagina</string>
+
+    <!--SettingsActivity-->
+    <string name="settings_activity_name">Impostazioni</string>
+    <string name="pref_settings_interface">Interfaccia</string>
+    <string name="pref_minimize_on_stream">Minimize on stream</string>
+    <string name="pref_minimise_on_stream_summary">Minimizza l\'app quando trasmetti</string>
+    <string name="pref_stop_on_sleep">Interrompi a schermo spento</string>
+    <string name="pref_stop_on_sleep_summary">Interrompi trasmissione quando lo schermo si spegne</string>
+    <string name="pref_start_on_boot">Start on boot</string>
+    <string name="pref_start_on_boot_summary">Avvia trasmissione quando accendi il dispositivo</string>
+    <string name="pref_mjpeg_check">Disabilita controllo MJPEG</string>
+    <string name="pref_mjpeg_check_summary">Disabilita controllo relativo al supporto MJPEG del tuo browser</string>
+    <string name="pref_html_back_color">Page background color</string>
+    <string name="pref_html_back_color_summary">Imposta il colore di sfondo della pagina HTML</string>
+    <string name="pref_html_back_color_title">Seleziona colore di sfondo</string>
+    <string name="pref_settings_image">Immagine</string>
+    <string name="pref_resize">Ridimensiona immagine</string>
+    <string name="pref_resize_summary">Ridimensiona risoluzione prima di inviarla al client</string>
+    <string name="pref_resize_dialog_text">Imposta percentuale di ridimensionamento.\nValues: 10–150 (Default: 50)\nScreen size: %1$dx%2$d</string>
+    <string name="pref_resize_dialog_result">Dimensione immagine: %1$dx%2$d</string>
+    <string name="pref_jpeg_quality">Qualità di compressione  JPEG</string>
+    <string name="pref_jpeg_quality_summary">Imposta la qualità di compressione JPEG</string>
+    <string name="pref_jpeg_quality_dialog">Imposta la qualità di compressione JPEG. Values: 10–100 (Default: 100)</string>
+    <string name="pref_settings_security">Sicurezza</string>
+    <string name="pref_enable_pin">Abilita pin</string>
+    <string name="pref_enable_pin_summary">Proteggi l\'accesso alla trasmissione con il pin</string>
+    <string name="pref_hide_pin">Nascondi pin quando la trasmissione inizia</string>
+    <string name="pref_hide_pin_summary">Mostra asterischi invece del pin</string>
+    <string name="pref_new_pin_on_start">Nuovo pin allo start</string>
+    <string name="pref_new_pin_on_start_summary">Genera un nuovo pin ogni volta che si avvia l\'applicazione</string>
+    <string name="pref_auto_change_pin">Auto change pin</string>
+    <string name="pref_auto_change_pin_summary">Genera automaticamente un nuovo pin ad ogni sessione di trasmissione</string>
+    <string name="pref_set_pin">Imposta pin</string>
+    <string name="pref_set_pin_summary">Inserisci pin manualmente</string>
+    <string name="pref_set_pin_dialog">Inserisci pin.\nDefault: 0000</string>
+    <string name="pref_settings_advanced">Avanzate</string>
+    <string name="pref_wifi_only">Usa solo WiFi</string>
+    <string name="pref_wifi_only_summary">Avvia server solo in una rete WiFi</string>
+    <string name="pref_server_port">Server port</string>
+    <string name="pref_server_port_summary">Imposta porta per le connessioni in arrivo</string>
+    <string name="pref_server_port_dialog">Imposta porta per le connessione in arrivo.\nValues: 1025–65535 (Default: 8080)</string>
+    <string name="pref_alert_error_title">Errore</string>
+    <string name="pref_alert_error_message">Porta già in uso. Scegline un\'altra.</string>
+
+    <!--ClientsActivity-->
+    <string name="clients_activity_name">Traffico &amp; clients</string>
+    <string name="clients_activity_current_traffic">Traffico: %1$,.2f Mbit/s</string>
+    <string name="clients_activity_connected_clients">Clients connessi: %1$d</string>
+    <string name="clients_activity_client_connected">Connesso</string>
+    <string name="clients_activity_client_disconnected">Disconnesso</string>
+    <string name="clients_activity_client_slow_network">Connessione lenta</string>
+    <string name="clients_activity_client">Client: %1$s</string>
+
+    <!--AboutActivity-->
+    <string name="about_activity_name">About</string>
+    <string name="about_app_version">Version: %1$s</string>
+    <string name="about_developer_name">Developed by Dmitriy Krivoruchko</string>
+    <string name="about_developer_send_email">Send email to developer</string>
+    <string name="about_app_sources">Application sources</string>
+
+    <!--HTML text-->
+    <string name="html_stream_require_pin">Pin richiesto per accedere a questa trasmissione</string>
+    <string name="html_enter_pin">Inserisci pin:\u0020</string>
+    <string name="html_four_digits">Quattro numeri</string>
+    <string name="html_submit_text">Ok</string>
+    <string name="html_wrong_pin">Pin errato!</string>
+    <string name="html_no_mjpeg_support">Spiacente :(&lt;br&gt;Sembra che questo browser non supporti il formato MJPEG.&lt;br&gt;&lt;br&gt;Questo controllo è inaccurato&lt;br&gt;Puoi disabilitarlo nelle impostazioni dell\'applicazione</string>
+</resources>

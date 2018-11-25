@@ -5,12 +5,12 @@ import android.support.annotation.CallSuper
 import android.support.annotation.MainThread
 import info.dvkr.screenstream.domain.eventbus.EventBus
 import info.dvkr.screenstream.domain.utils.Utils
-import kotlinx.coroutines.experimental.CommonPool
-import kotlinx.coroutines.experimental.Job
-import kotlinx.coroutines.experimental.channels.ReceiveChannel
-import kotlinx.coroutines.experimental.channels.SendChannel
-import kotlinx.coroutines.experimental.channels.consumeEach
-import kotlinx.coroutines.experimental.launch
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.channels.ReceiveChannel
+import kotlinx.coroutines.channels.SendChannel
+import kotlinx.coroutines.channels.consumeEach
+import kotlinx.coroutines.launch
 import timber.log.Timber
 
 abstract class BasePresenter<in T : BaseView, R : BaseView.BaseFromEvent>(
@@ -44,7 +44,7 @@ abstract class BasePresenter<in T : BaseView, R : BaseView.BaseFromEvent>(
         view = newView
 
         subscription = eventBus.openSubscription()
-        launch(CommonPool, parent = baseJob) {
+        GlobalScope.launch(baseJob) {
             subscription.consumeEach { globalEvent ->
                 Timber.d("[${Utils.getLogPrefix(this)}] globalEvent: ${globalEvent.javaClass.simpleName}")
                 block(globalEvent)
