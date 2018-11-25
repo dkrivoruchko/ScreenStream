@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name" translatable="false">Screen Stream</string>
+
+    <!--StartActivity-->
+    <string name="start_activity_name" translatable="false">Screen Stream</string>
+    <string name="start_activity_device_address">نشانی‌های دستگاه:</string>
+    <string name="start_activity_no_address">نشانی یافت نشد</string>
+    <string name="start_activity_start_stream">شروع جران</string>
+    <string name="start_activity_stop_stream">توقف جریان</string>
+    <string name="start_activity_pin">پین:</string>
+    <string name="start_activity_pin_disabled">پین غیر فعال است</string>
+    <string name="start_activity_pin_asterisks" translatable="false">****</string>
+    <string name="start_activity_resize_factor">ضریب اندازه تصویر</string>
+    <string name="start_activity_current_traffic">ترافیک: %1$,.2f Mbit/s</string>
+    <string name="start_activity_connected_clients">کارخواه‌های متصل: %1$d</string>
+    <string name="start_activity_copied">کپی شد</string>
+
+    <string name="start_activity_drawer_main">اصلی</string>
+    <string name="start_activity_drawer_traffic_clients">ترافیک و کارخواه‌ها</string>
+    <string name="start_activity_drawer_settings">تنظیمات</string>
+    <string name="start_activity_drawer_rate_app">امتیاز به این کاره</string>
+    <string name="start_activity_drawer_about">درباره</string>
+    <string name="start_activity_drawer_exit">خروج</string>
+
+    <string name="start_activity_alert_title_warring">هشدار</string>
+    <string name="start_activity_alert_title_error">خطا</string>
+    <string name="start_activity_alert_title_error_network">خطای شبکه</string>
+    <string name="start_activity_alert_title_error_unknown">خطای غیرمنتظره</string>
+    <string name="start_activity_cast_permission_required_title">جواز دسترسی نیاز است</string>
+    <string name="start_activity_cast_permission_required">Application requires Screen Cast permission to capture screen.</string>
+    <string name="start_activity_error_port_in_use">این درگاه در حال استفاده است. درگاه دیگری انتخاب کنید.</string>
+    <string name="start_activity_error_ip_address_not_found">نشانی IP یافت نشد</string>
+    <string name="start_activity_error_network_unknown">خطای شبکه ناشناخته</string>
+    <string name="start_activity_error_invalid_media_projection">خطای امنیتی: نمایش‌دهنده رسانه نامعتبر. یک بار دیگر تلاش کنید.</string>
+    <string name="start_activity_error_wrong_image_format">سیستم، تصویری با قالب ناشناخته برگردانده است. راه‌حلی وجود ندارد. ببخشید.</string>
+    <string name="start_activity_alert_title_error_activity_not_found">خطای پنجره مجوز</string>
+    <string name="start_activity_error_activity_not_found">مشکل اندرویدی. در پنجره تعاملی برای گرفتن تصویر صفحه، گزینه «دیگر نشان نده» را فعال نکنید. اگر چنین کرده‌اید، برنامه را از اول نصب کنید.</string>
+
+    <string name="start_activity_email_chooser_header">درحال فرستادن رایانامه…</string>
+
+    <!--FgService-->
+    <string name="service_ready_to_stream">آماده ایجاد جریان</string>
+    <string name="service_press_start">برای شروع جریان، دکمه شروع را بفشارید</string>
+    <string name="service_start">شروع</string>
+    <string name="service_exit">خروج</string>
+    <string name="service_stream">جریان…</string>
+    <string name="service_press_stop">با فشردن توقف، جریان را متوقف کنید</string>
+    <string name="service_stop">توقف</string>
+    <string name="service_slow_client_connection">سرعت کارخواه پایین به نظر می‌رسد</string>
+
+    <!--ImageNotify-->
+    <string name="image_generator_press_start">روی دستگاه خود، دکمه «شروع جریان» را فشار دهید</string>
+    <string name="image_generator_go_to_new_address">لطفا به نشانی جدید بروید</string>
+    <string name="image_generator_reload_this_page">لطفا این صفحه را از نو بارگذاری کنید</string>
+
+    <!--SettingsActivity-->
+    <string name="settings_activity_name">تنظیمات</string>
+    <string name="pref_settings_interface">رابط گرافیکی</string>
+    <string name="pref_minimize_on_stream">کمینه‌سازی در حین جریان</string>
+    <string name="pref_minimise_on_stream_summary">کاره را در حین جریان، کمینه کن</string>
+    <string name="pref_stop_on_sleep">توقف در زمان خوابیدن</string>
+    <string name="pref_stop_on_sleep_summary">در صورت خاموش شدن صفحه، جریان متوقف شود</string>
+    <string name="pref_start_on_boot">شروع در زمان راه‌اندازی</string>
+    <string name="pref_start_on_boot_summary">پس از بالاآمدن دستگاه، جریان شروع شود</string>
+    <string name="pref_mjpeg_check">غیرفعال‌سازی بررسی MJPEG</string>
+    <string name="pref_mjpeg_check_summary">غیرفعال‌سازی بررسی پشتیبانی MJPEG توسط مرورگر</string>
+    <string name="pref_html_back_color">رنگ پس‌زمینه صفحه</string>
+    <string name="pref_html_back_color_summary">تنظیم رنگ پس‌زمینه صفحه HTML</string>
+    <string name="pref_html_back_color_title">رنگ پس‌زمینه را انتخاب کنید</string>
+    <string name="pref_settings_image">تصویر</string>
+    <string name="pref_resize">تغییر اندازه تصویر</string>
+    <string name="pref_resize_summary">تغییر اندازه تصویر پیش از فرستادن برای کارخواه</string>
+    <string name="pref_resize_dialog_text">ضریب اندازه تصویر را بر حسب درصد تنظیم کنید.\nمقدارها: ۱۰ تا ۱۵۰ (پیشفرض:۵۰)\nاندازه صفحه: %1$dx%2$d</string>
+    <string name="pref_resize_dialog_result">اندازه صفحه: %1$dx%2$d</string>
+    <string name="pref_jpeg_quality">کیفیت فشرده‌سازی JPEG</string>
+    <string name="pref_jpeg_quality_summary">تنظیم کیفیت فشرده‌سازی JPEG</string>
+    <string name="pref_jpeg_quality_dialog">کیفیت فشرده‌سازی JPEG را تنظیم کنید.\nمقادیر: ۱۰ تا ۱۰۰ (پیش‌فرض: ۱۰۰)</string>
+    <string name="pref_settings_security">امنیت</string>
+    <string name="pref_enable_pin">فعال‌سازی پین</string>
+    <string name="pref_enable_pin_summary">دسترسی به جریان را به کمک پین، ایمن کنید</string>
+    <string name="pref_hide_pin">پنهان‌سازی خودکار پین در زمان شروع جریان</string>
+    <string name="pref_hide_pin_summary">نمایش ستاره به جای پین در میان پخش جریان</string>
+    <string name="pref_new_pin_on_start">پین جدید در زمان شروع</string>
+    <string name="pref_new_pin_on_start_summary">تولید پین جدید در زمان شروع برنامه</string>
+    <string name="pref_auto_change_pin">تغییر خودکار پین</string>
+    <string name="pref_auto_change_pin_summary">تولید پین جدید برای هر جریان جدید</string>
+    <string name="pref_set_pin">تنظیم پین</string>
+    <string name="pref_set_pin_summary">وارد کردن دستی پین</string>
+    <string name="pref_set_pin_dialog">پین را وارد کنید.\nپیش‌فرض: 0000</string>
+    <string name="pref_settings_advanced">پیش‌رفته</string>
+    <string name="pref_wifi_only">فقط از وای‌فای استفاده کن</string>
+    <string name="pref_wifi_only_summary">کارساز فقط روی وای‌فای اجرا شود</string>
+    <string name="pref_server_port">درگاه کارساز</string>
+    <string name="pref_server_port_summary">تنظیم درگاه برای اتصال‌های ورودی</string>
+    <string name="pref_server_port_dialog">درگاه کارساز را برای اتصال‌های ورودی تنظیم کنید.\nمقادیر: ۱۰۲۵ تا ۶۵۵۳۵ (پیش‌فرض: ۸۰۸۰)</string>
+    <string name="pref_alert_error_title">خطا</string>
+    <string name="pref_alert_error_message">درگاه در حال استفاده است. درگاه دیگری را انتخاب کنید.</string>
+
+    <!--ClientsActivity-->
+    <string name="clients_activity_name">ترافیک و کارخواه‌ها</string>
+    <string name="clients_activity_current_traffic">ترافیک: %1$,.2f Mbit/s</string>
+    <string name="clients_activity_connected_clients">کارخواه‌های متصل: %1$d</string>
+    <string name="clients_activity_client_connected">متصل</string>
+    <string name="clients_activity_client_disconnected">قطع</string>
+    <string name="clients_activity_client_slow_network">اتصال کند</string>
+    <string name="clients_activity_client">کارخواه: %1$s</string>
+
+    <!--AboutActivity-->
+    <string name="about_activity_name">درباره</string>
+    <string name="about_app_name" translatable="false">پخش جریان صفحه روی HTTP</string>
+    <string name="about_app_version">نسخه: %1$s</string>
+    <string name="about_developer_name">توسعه‌داده شده توسط Dmitriy Krivoruchko</string>
+    <string name="about_developer_send_email">فرستادن رایانه به توسعه‌دهنده</string>
+    <string name="about_app_sources">کدمنبع برنامه</string>
+
+    <!--HTML text-->
+    <string name="html_stream_require_pin">برای دسترسی به این جریان باید پین را وارد کنید</string>
+    <string name="html_enter_pin">پین را وارد کنید:\u0020</string>
+    <string name="html_four_digits">چهار رقم</string>
+    <string name="html_submit_text">فرستادن</string>
+    <string name="html_wrong_pin">پین نادرست!</string>
+    <string name="html_no_mjpeg_support">ببخشید :(&lt;br&gt;به نظر می‌رسد این مرورگر MJPEG را پشتیبانی نمی‌کند.&lt;br&gt;&lt;br&gt;این بررسی، دقیق نیست&lt;br&gt;می‌توانید آن را در تنظیمات برنامه، غیر فعال کنید.</string>
+</resources>
