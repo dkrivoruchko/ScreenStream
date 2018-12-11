@@ -19,10 +19,6 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        <meta-data
-            android:name="io.fabric.ApiKey"
-            android:value="fdc0202c5726f3a7f8da8d257fd86099b6effc38" />
-
         <activity
             android:name=".ui.StartActivity"
             android:launchMode="singleTask"

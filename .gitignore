@@ -40,4 +40,3 @@ captures/
 
 # Keystore files
 *.jks
-src/main/AndroidManifest.xml
