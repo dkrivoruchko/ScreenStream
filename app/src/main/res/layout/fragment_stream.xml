@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true"
+    tools:context=".ui.activity.AppActivity">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="40dp">
+
+        <LinearLayout
+            android:id="@+id/ll_fragment_stream_addresses"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <TextView
+            android:id="@+id/tv_fragment_stream_pin"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="8dp"
+            android:background="@color/colorBackgroundSecondary"
+            android:gravity="center"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
+            android:textAppearance="?android:attr/textAppearanceMedium"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/ll_fragment_stream_addresses"
+            tools:text="Pin: 5676" />
+
+        <LinearLayout
+            android:id="@+id/ll_fragment_stream_traffic"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="8dp"
+            android:background="@color/colorBackgroundSecondary"
+            android:orientation="vertical"
+            app:layout_constraintTop_toBottomOf="@id/tv_fragment_stream_pin">
+
+            <com.github.florent37.expansionpanel.ExpansionHeader
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:expansion_headerIndicator="@id/hi_fragment_stream_traffic"
+                app:expansion_headerIndicatorRotationCollapsed="0"
+                app:expansion_headerIndicatorRotationExpanded="90"
+                app:expansion_layout="@id/el_fragment_stream_traffic"
+                app:expansion_toggleOnClick="true">
+
+                <androidx.appcompat.widget.AppCompatTextView
+                    android:id="@+id/tv_fragment_stream_traffic_header"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:paddingTop="8dp"
+                    android:paddingBottom="8dp"
+                    android:textAppearance="?android:attr/textAppearanceMedium"
+                    tools:text="Traffic: 5.69Mbit/s" />
+
+                <androidx.appcompat.widget.AppCompatImageView
+                    android:id="@+id/hi_fragment_stream_traffic"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_vertical|start"
+                    android:layout_marginStart="16dp"
+                    android:adjustViewBounds="true"
+                    app:srcCompat="@drawable/ic_expansion_header_indicator_24dp" />
+            </com.github.florent37.expansionpanel.ExpansionHeader>
+
+            <com.github.florent37.expansionpanel.ExpansionLayout
+                android:id="@+id/el_fragment_stream_traffic"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:background="@color/colorDivider" />
+
+                    <com.jjoe64.graphview.GraphView
+                        android:id="@+id/graph_fragment_stream_traffic"
+                        android:layout_width="match_parent"
+                        android:layout_height="160dp"
+                        android:paddingStart="8dp"
+                        android:paddingEnd="4dp" />
+                </LinearLayout>
+
+            </com.github.florent37.expansionpanel.ExpansionLayout>
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/ll_fragment_stream_clients"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="8dp"
+            android:background="@color/colorBackgroundSecondary"
+            android:orientation="vertical"
+            app:layout_constraintTop_toBottomOf="@id/ll_fragment_stream_traffic">
+
+            <com.github.florent37.expansionpanel.ExpansionHeader
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:expansion_headerIndicator="@id/hi_fragment_stream_clients"
+                app:expansion_headerIndicatorRotationCollapsed="0"
+                app:expansion_headerIndicatorRotationExpanded="90"
+                app:expansion_layout="@id/el_fragment_stream_clients"
+                app:expansion_toggleOnClick="true">
+
+                <androidx.appcompat.widget.AppCompatTextView
+                    android:id="@+id/tv_fragment_stream_clients_header"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:paddingTop="8dp"
+                    android:paddingBottom="8dp"
+                    android:textAppearance="?android:attr/textAppearanceMedium"
+                    tools:text="Connected clients: 2" />
+
+                <androidx.appcompat.widget.AppCompatImageView
+                    android:id="@+id/hi_fragment_stream_clients"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_vertical|start"
+                    android:layout_marginStart="16dp"
+                    android:adjustViewBounds="true"
+                    app:srcCompat="@drawable/ic_expansion_header_indicator_24dp" />
+            </com.github.florent37.expansionpanel.ExpansionHeader>
+
+            <com.github.florent37.expansionpanel.ExpansionLayout
+                android:id="@+id/el_fragment_stream_clients"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:background="@color/colorDivider" />
+
+                    <LinearLayout
+                        android:id="@+id/ll_fragment_stream_client_list"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical" />
+
+                </LinearLayout>
+
+            </com.github.florent37.expansionpanel.ExpansionLayout>
+        </LinearLayout>
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</androidx.core.widget.NestedScrollView>

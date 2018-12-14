@@ -1,0 +1,14 @@
+<resources>
+    <!--BitmapNotification-->
+    <string name="image_generator_press_start">Appuyez sur Démarrer sur l\'appareil</string>
+    <string name="image_generator_go_to_new_address">Veuillez vous rendre à la nouvelle adresse</string>
+    <string name="image_generator_reload_this_page">Veuillez recharger cette page</string>
+
+    <!--HTML text-->
+    <string name="html_stream_require_pin">Ce flux requiert un code pour y accéder</string>
+    <string name="html_enter_pin">Code :\u0020</string>
+    <string name="html_four_digits">Quatre chiffres</string>
+    <string name="html_submit_text">Soumettre</string>
+    <string name="html_wrong_pin">Mauvais code !</string>
+    <string name="html_no_mjpeg_support">Désolé :(<br />Il semble que ce navigateur ne supporte pas le format MJPEG.<br /><br />Cette vérification peut être inexacte.<br />Vous pouvez la désactiver dans les paramètres de l\'application.</string>
+</resources>

@@ -1,25 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="colorPrimary">#455a64</color>
-    <color name="colorPrimaryDark">#455a64</color>
-    <color name="colorAccent">#7f0000</color>
-    <color name="colorPrimaryText">#1c313a</color>
-    <color name="colorPrimaryTextHeader">#FFFFFF</color>
-    <color name="colorSecondaryText">#455a64</color>
-    <color name="colorDivider">#cfd8dc</color>
-    <color name="colorWarring">#e54b1b</color>
+    <color name="colorPrimary">#FFFFFF</color>
+    <color name="colorPrimaryDark">#FFFFFF</color>
+    <color name="colorAccent">#05A484</color>
+    <color name="colorBackgroundSecondary">#F4F4F4</color>
 
-    // Drawer
-    <color name="colorDrawerTextHeader">@color/colorPrimaryTextHeader</color>
-    <color name="colorDrawerDivider">@color/colorDivider</color>
-    <color name="colorDrawerPrimaryText">@color/colorPrimaryText</color>
+    <color name="textColorPrimary">#5F6368</color>
+    <color name="textColorSecondary">#3C4043</color>
+    <color name="textColorSecondaryLight">#9AA0A6</color>
 
-    // Settings activity
+    <color name="colorIcon">@color/textColorSecondary</color>
+
+    <color name="colorNavigationIconsChecked">@color/colorAccent</color>
+    <color name="colorNavigationIconsUnchecked">@color/textColorPrimary</color>
+    <color name="colorNavigationBackground">#FDFDFD</color>
+
+    <color name="colorDivider">#FFFFFF</color>
+
+    <color name="colorNotificationText">@color/textColorSecondary</color>
+
     <color name="colorSettingsTextTitle">@color/colorAccent</color>
-    <color name="colorSettingsTextHeader">@color/colorPrimaryText</color>
-    <color name="colorSettingsTextSummary">@color/colorSecondaryText</color>
     <color name="colorSettingsTextValue">@color/colorAccent</color>
-    <color name="colorSettingsDivider">@color/colorDivider</color>
-    <color name="colorSettingsCheckBoxNormal">@color/colorPrimaryText</color>
-    <color name="colorSettingsCheckBoxActivated">@color/colorAccent</color>
+    <color name="colorSettingsDivider">#E0E0E0</color>
+
+    <!--TODO-->
+    <color name="colorError1">#D81B60</color>
+    <color name="colorAccentWarring">#FEEFC3</color>
 </resources>

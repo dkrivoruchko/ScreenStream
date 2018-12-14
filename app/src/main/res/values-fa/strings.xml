@@ -1,57 +1,49 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!--StartActivity-->
-    <string name="start_activity_device_address">نشانی‌های دستگاه:</string>
-    <string name="start_activity_no_address">نشانی یافت نشد</string>
-    <string name="start_activity_start_stream">شروع جران</string>
-    <string name="start_activity_stop_stream">توقف جریان</string>
-    <string name="start_activity_pin">پین:</string>
-    <string name="start_activity_pin_disabled">پین غیر فعال است</string>
-    <string name="start_activity_resize_factor">ضریب اندازه تصویر</string>
-    <string name="start_activity_current_traffic">ترافیک: %1$,.2f Mbit/s</string>
-    <string name="start_activity_connected_clients">کارخواه‌های متصل: %1$d</string>
-    <string name="start_activity_copied">کپی شد</string>
+    <string name="app_activity_error_title">خطا</string>
+    <string name="app_activity_error_port_in_use">این درگاه در حال استفاده است. درگاه دیگری انتخاب کنید.</string>
+    <string name="app_activity_error_invalid_media_projection">خطای امنیتی: نمایش‌دهنده رسانه نامعتبر. یک بار دیگر تلاش کنید.</string>
+    <string name="app_activity_error_ip_address_not_found">نشانی IP یافت نشد</string>
+    <string name="app_activity_error_wrong_image_format">سیستم، تصویری با قالب ناشناخته برگردانده است. راه‌حلی وجود ندارد. ببخشید.</string>
+    <string name="app_activity_error_exit">خروج</string>
 
-    <string name="start_activity_drawer_main">اصلی</string>
-    <string name="start_activity_drawer_traffic_clients">ترافیک و کارخواه‌ها</string>
-    <string name="start_activity_drawer_settings">تنظیمات</string>
-    <string name="start_activity_drawer_rate_app">امتیاز به این کاره</string>
-    <string name="start_activity_drawer_about">درباره</string>
-    <string name="start_activity_drawer_exit">خروج</string>
+    <string name="bottom_menu_stream">جریان</string>
+    <string name="bottom_menu_settings">تنظیمات</string>
+    <string name="bottom_menu_start">شروع</string>
+    <string name="bottom_menu_stop">توقف</string>
+    <string name="bottom_menu_about">درباره</string>
+    <string name="bottom_menu_exit">خروج</string>
 
-    <string name="start_activity_alert_title_warring">هشدار</string>
-    <string name="start_activity_alert_title_error">خطا</string>
-    <string name="start_activity_alert_title_error_network">خطای شبکه</string>
-    <string name="start_activity_alert_title_error_unknown">خطای غیرمنتظره</string>
-    <string name="start_activity_cast_permission_required_title">جواز دسترسی نیاز است</string>
-    <string name="start_activity_cast_permission_required">Application requires Screen Cast permission to capture screen.</string>
-    <string name="start_activity_error_port_in_use">این درگاه در حال استفاده است. درگاه دیگری انتخاب کنید.</string>
-    <string name="start_activity_error_ip_address_not_found">نشانی IP یافت نشد</string>
-    <string name="start_activity_error_network_unknown">خطای شبکه ناشناخته</string>
-    <string name="start_activity_error_invalid_media_projection">خطای امنیتی: نمایش‌دهنده رسانه نامعتبر. یک بار دیگر تلاش کنید.</string>
-    <string name="start_activity_error_wrong_image_format">سیستم، تصویری با قالب ناشناخته برگردانده است. راه‌حلی وجود ندارد. ببخشید.</string>
-    <string name="start_activity_alert_title_error_activity_not_found">خطای پنجره مجوز</string>
-    <string name="start_activity_error_activity_not_found">مشکل اندرویدی. در پنجره تعاملی برای گرفتن تصویر صفحه، گزینه «دیگر نشان نده» را فعال نکنید. اگر چنین کرده‌اید، برنامه را از اول نصب کنید.</string>
+    <string name="stream_fragment_current_traffic" formatted="false">ترافیک: %1$,.2f Mbit/s</string>
+    <string name="stream_fragment_connected_clients">کارخواه‌های متصل: %1$d</string>
+    <string name="stream_fragment_no_address">نشانی یافت نشد</string>
+    <string name="stream_fragment_interface">رابط: %1$s</string>
+    <string name="stream_fragment_copied">کپی شد</string>
+    <string name="stream_fragment_pin">پین: %1$s</string>
+    <string name="stream_fragment_pin_disabled">پین غیر فعال است</string>
+    <string name="stream_fragment_client_disconnected">قطع</string>
+    <string name="stream_fragment_client_slow_network">اتصال کند</string>
+    <string name="stream_fragment_client_connected">متصل</string>
 
-    <string name="start_activity_email_chooser_header">درحال فرستادن رایانامه…</string>
+    <string name="item_device_address">نشانی‌های دستگاه:</string>
 
-    <!--FgService-->
-    <string name="service_ready_to_stream">آماده ایجاد جریان</string>
-    <string name="service_press_start">برای شروع جریان، دکمه شروع را بفشارید</string>
-    <string name="service_start">شروع</string>
-    <string name="service_exit">خروج</string>
-    <string name="service_stream">جریان…</string>
-    <string name="service_press_stop">با فشردن توقف، جریان را متوقف کنید</string>
-    <string name="service_stop">توقف</string>
-    <string name="service_slow_client_connection">سرعت کارخواه پایین به نظر می‌رسد</string>
+    <string name="permission_activity_error_title_activity_not_found">خطای پنجره مجوز</string>
+    <string name="permission_activity_error_activity_not_found">مشکل اندرویدی. در پنجره تعاملی برای گرفتن تصویر صفحه، گزینه «دیگر نشان نده» را فعال نکنید. اگر چنین کرده‌اید، برنامه را از اول نصب کنید.</string>
+    <string name="permission_activity_cast_permission_required_title">جواز دسترسی نیاز است</string>
+    <string name="permission_activity_cast_permission_required">ScreenStream application requires Screen Cast permission to capture screen.</string>
+    <string name="permission_activity_error_title">خطا</string>
+    <string name="permission_activity_error_unknown">خطای غیرمنتظره</string>
 
-    <!--ImageNotify-->
-    <string name="image_generator_press_start">روی دستگاه خود، دکمه «شروع جریان» را فشار دهید</string>
-    <string name="image_generator_go_to_new_address">لطفا به نشانی جدید بروید</string>
-    <string name="image_generator_reload_this_page">لطفا این صفحه را از نو بارگذاری کنید</string>
+    <string name="notification_ready_to_stream">آماده ایجاد جریان</string>
+    <string name="notification_press_start">برای شروع جریان، دکمه شروع را بفشارید</string>
+    <string name="notification_start">شروع</string>
+    <string name="notification_exit">خروج</string>
+    <string name="notification_stream">جریان…</string>
+    <string name="notification_press_stop">با فشردن توقف، جریان را متوقف کنید</string>
+    <string name="notification_stop">توقف</string>
 
-    <!--SettingsActivity-->
-    <string name="settings_activity_name">تنظیمات</string>
+    <string name="toast_slow_client_connection">سرعت کارخواه پایین به نظر می‌رسد</string>
+
     <string name="pref_settings_interface">رابط گرافیکی</string>
     <string name="pref_minimize_on_stream">کمینه‌سازی در حین جریان</string>
     <string name="pref_minimise_on_stream_summary">کاره را در حین جریان، کمینه کن</string>
@@ -90,30 +82,11 @@
     <string name="pref_server_port">درگاه کارساز</string>
     <string name="pref_server_port_summary">تنظیم درگاه برای اتصال‌های ورودی</string>
     <string name="pref_server_port_dialog">درگاه کارساز را برای اتصال‌های ورودی تنظیم کنید.\nمقادیر: ۱۰۲۵ تا ۶۵۵۳۵ (پیش‌فرض: ۸۰۸۰)</string>
-    <string name="pref_alert_error_title">خطا</string>
-    <string name="pref_alert_error_message">درگاه در حال استفاده است. درگاه دیگری را انتخاب کنید.</string>
 
-    <!--ClientsActivity-->
-    <string name="clients_activity_name">ترافیک و کارخواه‌ها</string>
-    <string name="clients_activity_current_traffic">ترافیک: %1$,.2f Mbit/s</string>
-    <string name="clients_activity_connected_clients">کارخواه‌های متصل: %1$d</string>
-    <string name="clients_activity_client_connected">متصل</string>
-    <string name="clients_activity_client_disconnected">قطع</string>
-    <string name="clients_activity_client_slow_network">اتصال کند</string>
-    <string name="clients_activity_client">کارخواه: %1$s</string>
-
-    <!--AboutActivity-->
-    <string name="about_activity_name">درباره</string>
-    <string name="about_app_version">نسخه: %1$s</string>
-    <string name="about_developer_name">توسعه‌داده شده توسط Dmitriy Krivoruchko</string>
-    <string name="about_developer_send_email">فرستادن رایانه به توسعه‌دهنده</string>
-    <string name="about_app_sources">کدمنبع برنامه</string>
-
-    <!--HTML text-->
-    <string name="html_stream_require_pin">برای دسترسی به این جریان باید پین را وارد کنید</string>
-    <string name="html_enter_pin">پین را وارد کنید:\u0020</string>
-    <string name="html_four_digits">چهار رقم</string>
-    <string name="html_submit_text">فرستادن</string>
-    <string name="html_wrong_pin">پین نادرست!</string>
-    <string name="html_no_mjpeg_support">ببخشید :(&lt;br&gt;به نظر می‌رسد این مرورگر MJPEG را پشتیبانی نمی‌کند.&lt;br&gt;&lt;br&gt;این بررسی، دقیق نیست&lt;br&gt;می‌توانید آن را در تنظیمات برنامه، غیر فعال کنید.</string>
+    <string name="about_fragment_app_version">نسخه: %1$s</string>
+    <string name="about_fragment_developer_name">توسعه‌داده شده توسط Dmitriy Krivoruchko</string>
+    <string name="about_fragment_rate_app">امتیاز به این کاره</string>
+    <string name="about_fragment_send_email">فرستادن رایانه به توسعه‌دهنده</string>
+    <string name="about_fragment_email_chooser_header">درحال فرستادن رایانامه…</string>
+    <string name="about_fragment_app_sources">کدمنبع برنامه</string>
 </resources>

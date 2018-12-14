@@ -1,57 +1,49 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!--StartActivity-->
-    <string name="start_activity_device_address">Адреса устойства:</string>
-    <string name="start_activity_no_address">Адреса не найдены</string>
-    <string name="start_activity_start_stream">Начать трансляцию</string>
-    <string name="start_activity_stop_stream">Остановить трансляцию</string>
-    <string name="start_activity_pin">PIN-код:</string>
-    <string name="start_activity_pin_disabled">PIN-код выключен</string>
-    <string name="start_activity_resize_factor">Масштабирование</string>
-    <string name="start_activity_current_traffic">Траффик: %1$,.2f Мбит/с</string>
-    <string name="start_activity_connected_clients">Подключено клиентов: %1$d</string>
-    <string name="start_activity_copied">Скопировано</string>
+    <string name="app_activity_error_title">Ошибка</string>
+    <string name="app_activity_error_port_in_use">Порт уже используется. Выберите другой.</string>
+    <string name="app_activity_error_invalid_media_projection">Ошибка безопасности: Недопустимая проекция медиа. Попробуйте еще раз.</string>
+    <string name="app_activity_error_ip_address_not_found">IP адресс не найден.\nПопробуйте отключить \"Использовать только WiFi\" в настройках.ы</string>
+    <string name="app_activity_error_wrong_image_format">Система отдает изображение в неверном формате. Решения проблемы нет.</string>
+    <string name="app_activity_error_exit">Выход</string>
 
-    <string name="start_activity_drawer_main">Главная</string>
-    <string name="start_activity_drawer_traffic_clients">Траффик и клиенты</string>
-    <string name="start_activity_drawer_settings">Настройки</string>
-    <string name="start_activity_drawer_rate_app">Оценить приложение</string>
-    <string name="start_activity_drawer_about">О приложении</string>
-    <string name="start_activity_drawer_exit">Выход</string>
+    <string name="bottom_menu_stream">Главная</string>
+    <string name="bottom_menu_settings">Настройки</string>
+    <string name="bottom_menu_start">Старт</string>
+    <string name="bottom_menu_stop">Стоп</string>
+    <string name="bottom_menu_about">Инфо</string>
+    <string name="bottom_menu_exit">Выход</string>
 
-    <string name="start_activity_alert_title_warring">Предупреждение</string>
-    <string name="start_activity_alert_title_error">Ошибка</string>
-    <string name="start_activity_alert_title_error_network">Сетевая ошибка</string>
-    <string name="start_activity_alert_title_error_unknown">Неизвестная ошибка</string>
-    <string name="start_activity_cast_permission_required_title">Требуется разрешение</string>
-    <string name="start_activity_cast_permission_required">Приложению требуется разрешение на доступ к изображению экрана устройства.</string>
-    <string name="start_activity_error_ip_address_not_found">IP адресс не найден</string>
-    <string name="start_activity_error_port_in_use">Порт уже используется. Выберите другой</string>
-    <string name="start_activity_error_network_unknown">Неизвестная сетевая ошибка</string>
-    <string name="start_activity_error_invalid_media_projection">Ошибка безопасности: Недопустимая проекция медиа. Попробуйте еще раз</string>
-    <string name="start_activity_error_wrong_image_format">Система отдает изображение в неверном формате. Решения проблемы нет.</string>
-    <string name="start_activity_alert_title_error_activity_not_found">Ошибка диалога доступа</string>
-    <string name="start_activity_error_activity_not_found">Баг Андроида. Не отмечайте \"Больше не показывать\" в диалоге запроса доступа к изображению экрана. Если вы уже отметили, переустановите приложение.</string>
+    <string name="stream_fragment_current_traffic">Траффик: %1$,.2f Мбит/с</string>
+    <string name="stream_fragment_connected_clients">Подключено клиентов: %1$d</string>
+    <string name="stream_fragment_no_address">Адреса не найдены</string>
+    <string name="stream_fragment_interface">Интерфейс: %1$s</string>
+    <string name="stream_fragment_copied">Скопировано</string>
+    <string name="stream_fragment_pin">PIN-код: %1$s</string>
+    <string name="stream_fragment_pin_disabled">PIN-код выключен</string>
+    <string name="stream_fragment_client_disconnected">Отключен</string>
+    <string name="stream_fragment_client_slow_network">Медленный</string>
+    <string name="stream_fragment_client_connected">Подключен</string>
 
-    <string name="start_activity_email_chooser_header">Отправка письма…</string>
+    <string name="item_device_address">Адрес устойства:</string>
 
-    <!--FgService-->
-    <string name="service_ready_to_stream">Готов к трансляции</string>
-    <string name="service_press_start">Нажмите НАЧАТЬ для старта трансляции</string>
-    <string name="service_start">Начать</string>
-    <string name="service_exit">Выход</string>
-    <string name="service_stream">Транслирую…</string>
-    <string name="service_press_stop">Нажмите ОСТАНОВИТЬ для окончания</string>
-    <string name="service_stop">Остановить</string>
-    <string name="service_slow_client_connection">Обнаружено медленное соединение</string>
+    <string name="permission_activity_error_title_activity_not_found">Ошибка диалога доступа</string>
+    <string name="permission_activity_error_activity_not_found">Баг Андроида. Не отмечайте \"Больше не показывать\" в диалоге запроса доступа к изображению экрана. Если вы уже отметили, переустановите приложение.</string>
+    <string name="permission_activity_cast_permission_required_title">Требуется разрешение</string>
+    <string name="permission_activity_cast_permission_required">Приложению ScreenStream требуется разрешение на доступ к изображению экрана устройства.</string>
+    <string name="permission_activity_error_title">Ошибка</string>
+    <string name="permission_activity_error_unknown">Неизвестная ошибка</string>
 
-    <!--ImageNotify-->
-    <string name="image_generator_press_start">Нажмите НАЧАТЬ ТРАНСЛЯЦИЮ на устройстве</string>
-    <string name="image_generator_go_to_new_address">Пройдите по новому адресу</string>
-    <string name="image_generator_reload_this_page">Перегрузите эту страницу</string>
+    <string name="notification_ready_to_stream">Готов к трансляции</string>
+    <string name="notification_press_start">Нажмите НАЧАТЬ для старта трансляции</string>
+    <string name="notification_start">Начать</string>
+    <string name="notification_exit">Выход</string>
+    <string name="notification_stream">Транслирую…</string>
+    <string name="notification_press_stop">Нажмите ОСТАНОВИТЬ для окончания</string>
+    <string name="notification_stop">Остановить</string>
 
-    <!--SettingsActivity-->
-    <string name="settings_activity_name">Настройки</string>
+    <string name="toast_slow_client_connection">Обнаружено медленное соединение</string>
+
     <string name="pref_settings_interface">Интерфейс</string>
     <string name="pref_minimize_on_stream">Сворачивать при трансляции</string>
     <string name="pref_minimise_on_stream_summary">Сворачивать приложение при начале трансляции</string>
@@ -71,7 +63,7 @@
     <string name="pref_resize_dialog_result">Размер изображения: %1$dx%2$d</string>
     <string name="pref_jpeg_quality">Качество JPEG</string>
     <string name="pref_jpeg_quality_summary">Установить качество JPEG</string>
-    <string name="pref_jpeg_quality_dialog">Установите качество сжатия JPEG.\nЗначения: 1–100 (По умолчанию: 100)</string>
+    <string name="pref_jpeg_quality_dialog">Установите качество сжатия JPEG.\nЗначения: 1–100\n(По умолчанию: 100)</string>
     <string name="pref_settings_security">Безопасность</string>
     <string name="pref_enable_pin">Использовать PIN-код</string>
     <string name="pref_enable_pin_summary">Защитить доступ к трансляции PIN-кодом</string>
@@ -83,37 +75,18 @@
     <string name="pref_auto_change_pin_summary">Генерировать новый PIN-код для каждой трансляции</string>
     <string name="pref_set_pin">Установить PIN-код</string>
     <string name="pref_set_pin_summary">Указать PIN-код</string>
-    <string name="pref_set_pin_dialog">Введите пин. По умолчанию: 0000</string>
+    <string name="pref_set_pin_dialog">Введите пин.\nПо умолчанию: 0000</string>
     <string name="pref_settings_advanced">Дополнительно</string>
     <string name="pref_wifi_only">Использовать только WiFi</string>
     <string name="pref_wifi_only_summary">Запускать сервер только на WiFi интерфейсе</string>
     <string name="pref_server_port">Порт сервера</string>
     <string name="pref_server_port_summary">Установить порт для входяших подключений</string>
-    <string name="pref_server_port_dialog">Установите порт сервера для входящих подключений.\nЗначения: 1025–65535 (По умолчанию: 8080)</string>
-    <string name="pref_alert_error_title">Ошибка</string>
-    <string name="pref_alert_error_message">Порт уже используется. Выберите другой</string>
+    <string name="pref_server_port_dialog">Установите порт сервера для входящих подключений.\nЗначения: 1025–65535\n(По умолчанию: 8080)</string>
 
-    <!--ClientsActivity-->
-    <string name="clients_activity_name">Траффик и клиенты</string>
-    <string name="clients_activity_current_traffic">Траффик: %1$,.2f МБит/с</string>
-    <string name="clients_activity_connected_clients">Подключено клиентов: %1$d</string>
-    <string name="clients_activity_client_connected">Подключен</string>
-    <string name="clients_activity_client_disconnected">Отключен</string>
-    <string name="clients_activity_client_slow_network">Медленный</string>
-    <string name="clients_activity_client">Клиент: %1$s</string>
-
-    <!--AboutActivity-->
-    <string name="about_activity_name">О приложении</string>
-    <string name="about_app_version">Версия: %1$s</string>
-    <string name="about_developer_name">Разработано: Криворучко Дмитрий</string>
-    <string name="about_developer_send_email">Написать Email разработчику</string>
-    <string name="about_app_sources">Исходный код приложения</string>
-
-    <!--HTML text-->
-    <string name="html_stream_require_pin">Эта трансляция требует PIN-код для доступа к ней</string>
-    <string name="html_enter_pin">Введите PIN-код:\u0020</string>
-    <string name="html_four_digits">Четыре цифры</string>
-    <string name="html_submit_text">Отправить</string>
-    <string name="html_wrong_pin">Неверный PIN-код!</string>
-    <string name="html_no_mjpeg_support">Ой :(&lt;br&gt;Кажется, этот браузер не поддерживает MJPEG&lt;br&gt;&lt;br&gt;Эта проверка не очень точна&lt;br&gt;Вы можете отключить ее в настройках приложения</string>
+    <string name="about_fragment_app_version">Версия: %1$s</string>
+    <string name="about_fragment_developer_name">Разработчик Криворучко Дмитрий</string>
+    <string name="about_fragment_rate_app">Оценить приложение</string>
+    <string name="about_fragment_send_email">Написать Email разработчику</string>
+    <string name="about_fragment_email_chooser_header">Отправка письма…</string>
+    <string name="about_fragment_app_sources">Исходный код приложения</string>
 </resources>

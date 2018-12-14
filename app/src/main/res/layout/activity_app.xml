@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".ui.activity.AppActivity">
+
+    <FrameLayout
+        android:id="@+id/fl_activity_single"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        app:layout_constraintBottom_toTopOf="@id/bottom_navigation_activity_single"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <info.dvkr.screenstream.ui.view.CurvedBottomNavigationView
+        android:id="@+id/bottom_navigation_activity_single"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/colorNavigationBackground"
+        app:itemIconTint="@drawable/bottom_navigation_colors"
+        app:itemTextColor="@drawable/bottom_navigation_colors"
+        app:labelVisibilityMode="labeled"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:menu="@menu/bottom_navigation_menu" />
+
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fab_activity_single_start_stop"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="68dp"
+        android:clickable="true"
+        android:focusable="true"
+        app:elevation="8dp"
+        app:fabSize="normal"
+        app:layout_constraintBottom_toBottomOf="@id/bottom_navigation_activity_single"
+        app:layout_constraintEnd_toEndOf="@id/bottom_navigation_activity_single"
+        app:layout_constraintStart_toStartOf="@id/bottom_navigation_activity_single"
+        app:layout_constraintTop_toTopOf="@id/bottom_navigation_activity_single"
+        app:srcCompat="@drawable/ic_fab_start_24dp" />
+</androidx.constraintlayout.widget.ConstraintLayout>

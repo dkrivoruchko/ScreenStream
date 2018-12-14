@@ -1,14 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     package="info.dvkr.screenstream"
     android:installLocation="auto">
 
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.REORDER_TASKS" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
 
     <application
         android:name=".ScreenStreamApp"
@@ -18,40 +19,37 @@
         android:largeHeap="true"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/AppTheme">
+        android:theme="@style/AppTheme"
+        tools:ignore="GoogleAppIndexingWarning">
+        <meta-data
+            android:name="io.fabric.ApiKey"
+            android:value="fdc0202c5726f3a7f8da8d257fd86099b6effc38" />
+
         <activity
-            android:name=".ui.StartActivity"
-            android:launchMode="singleTask"
-            android:theme="@style/StartActivityTheme">
+            android:name=".ui.activity.AppActivity"
+            android:launchMode="singleTask">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
         <activity
-            android:name=".ui.SettingsActivity"
-            android:label="@string/settings_activity_name"
-            android:launchMode="singleTop"
-            android:parentActivityName=".ui.StartActivity" />
-        <activity
-            android:name=".ui.ClientsActivity"
-            android:hardwareAccelerated="true"
-            android:label="@string/clients_activity_name"
-            android:launchMode="singleTop"
-            android:parentActivityName=".ui.StartActivity" />
-        <activity
-            android:name=".ui.AboutActivity"
-            android:label="@string/about_activity_name"
-            android:launchMode="singleTop"
-            android:parentActivityName=".ui.StartActivity" />
+            android:name=".ui.activity.PermissionActivity"
+            android:autoRemoveFromRecents="true"
+            android:label=""
+            android:launchMode="singleInstance"
+            android:process=":fg_service"
+            android:theme="@style/Theme.Transparent" />
 
         <service
-            android:name=".service.FgService"
-            android:exported="false" />
+            android:name=".service.AppService"
+            android:exported="false"
+            android:process=":fg_service" />
 
         <receiver
-            android:name=".service.BootReceiver"
+            android:name=".receiver.BootReceiver"
             android:enabled="true"
             android:exported="false">
             <intent-filter>
@@ -60,4 +58,5 @@
             </intent-filter>
         </receiver>
     </application>
+
 </manifest>

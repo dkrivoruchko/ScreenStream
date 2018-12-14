@@ -1,0 +1,14 @@
+<resources>
+    <!--BitmapNotification-->
+    <string name="image_generator_press_start">Premi INIZIA TRASMISSIONE nel dispositivo</string>
+    <string name="image_generator_go_to_new_address">Vai al nuovo indirizzo</string>
+    <string name="image_generator_reload_this_page">Ricarica questa pagina</string>
+
+    <!--HTML text-->
+    <string name="html_stream_require_pin">Pin richiesto per accedere a questa trasmissione</string>
+    <string name="html_enter_pin">Inserisci pin:\u0020</string>
+    <string name="html_four_digits">Quattro numeri</string>
+    <string name="html_submit_text">Ok</string>
+    <string name="html_wrong_pin">Pin errato!</string>
+    <string name="html_no_mjpeg_support">Spiacente :(&lt;br&gt;Sembra che questo browser non supporti il formato MJPEG.&lt;br&gt;&lt;br&gt;Questo controllo è inaccurato&lt;br&gt;Puoi disabilitarlo nelle impostazioni dell\'applicazione</string>
+</resources>

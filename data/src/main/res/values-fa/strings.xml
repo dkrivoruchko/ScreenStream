@@ -1,0 +1,14 @@
+<resources>
+    <!--BitmapNotification-->
+    <string name="image_generator_press_start">روی دستگاه خود، دکمه «شروع جریان» را فشار دهید</string>
+    <string name="image_generator_go_to_new_address">لطفا به نشانی جدید بروید</string>
+    <string name="image_generator_reload_this_page">لطفا این صفحه را از نو بارگذاری کنید</string>
+
+    <!--HTML text-->
+    <string name="html_stream_require_pin">برای دسترسی به این جریان باید پین را وارد کنید</string>
+    <string name="html_enter_pin">پین را وارد کنید:\u0020</string>
+    <string name="html_four_digits">چهار رقم</string>
+    <string name="html_submit_text">فرستادن</string>
+    <string name="html_wrong_pin">پین نادرست!</string>
+    <string name="html_no_mjpeg_support">ببخشید :(&lt;br&gt;به نظر می‌رسد این مرورگر MJPEG را پشتیبانی نمی‌کند.&lt;br&gt;&lt;br&gt;این بررسی، دقیق نیست&lt;br&gt;می‌توانید آن را در تنظیمات برنامه، غیر فعال کنید.</string>
+</resources>

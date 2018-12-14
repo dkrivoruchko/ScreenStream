@@ -1,0 +1,14 @@
+<resources>
+    <!--BitmapNotification-->
+    <string name="image_generator_press_start">Pressione INICIAR STREAM no dispositivo</string>
+    <string name="image_generator_go_to_new_address">Por favor, vá para novo endereço</string>
+    <string name="image_generator_reload_this_page">Por favor recarregue esta página</string>
+
+    <!--HTML text-->
+    <string name="html_stream_require_pin">Este stream requer PIN para acessá-lo</string>
+    <string name="html_enter_pin">Digite pin: \u0020</string>
+    <string name="html_four_digits">Quatro dígitos</string>
+    <string name="html_submit_text">Enviar</string>
+    <string name="html_wrong_pin">Pin errado!</string>
+    <string name="html_no_mjpeg_support">Desculpe :(&lt;br&gt;Parece que este navegador não suporta MJPEG.&lt;br&gt;&lt;br&gt;Este cheque é impreciso&lt;br&gt;Você pode desativá-lo nas configurações do aplicativo</string>
+</resources>

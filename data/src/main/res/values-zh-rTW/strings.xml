@@ -1,0 +1,14 @@
+<resources>
+    <!--BitmapNotification-->
+    <string name="image_generator_press_start">在裝置上按下開始串流</string>
+    <string name="image_generator_go_to_new_address">請連接到新位址</string>
+    <string name="image_generator_reload_this_page">請重新整理此頁面</string>
+
+    <!--HTML text-->
+    <string name="html_stream_require_pin">此串流需要PIN以觀看</string>
+    <string name="html_enter_pin">輸入pin：\u0020</string>
+    <string name="html_four_digits">四位數字</string>
+    <string name="html_submit_text">傳送</string>
+    <string name="html_wrong_pin">pin錯誤！</string>
+    <string name="html_no_mjpeg_support">抱歉：(&lt;br&gt;您的瀏覽器看來不支援MJPEG格式。&lt;br&gt;&lt;br&gt;這個檢查或許有誤&lt;br&gt;您可以在串流程式設定中關閉本檢查</string>
+</resources>

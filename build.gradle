@@ -1,6 +1,6 @@
 buildscript {
     ext {
-        kotlin_version = '1.3.10'
+        kotlin_version = '1.3.11'
         coroutine_version = '1.0.1'
 
         build_tools = '28.0.3'
@@ -8,16 +8,19 @@ buildscript {
         min_sdk = 21
         target_sdk = 28
 
-        version_code = 222
-        version_name = '2.2.2'
+        version_code = 300
+        version_name = '3.0.0'
 
-        support_version = '28.0.0'
-        lifecycle_version = '1.1.1'
+        annotations_version = '16.0.2'
+        view_version = '28.0.0'
         constraint_version = '1.1.3'
+
         koin_version = '1.0.2'
+        threetenabp_version = '1.1.0'
 
         rxjava_version = '1.3.8'
         rxrelay_version = '1.2.0'
+
         binaryprefs_version = '1.0.0'
         timber_version = '4.7.1'
     }
@@ -31,6 +34,7 @@ buildscript {
     dependencies {
         classpath 'com.android.tools.build:gradle:3.2.1'
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+        classpath 'com.google.gms:google-services:4.2.0'
         classpath 'io.fabric.tools:gradle:1.+'
     }
 }
@@ -41,6 +45,7 @@ allprojects {
         jcenter()
         maven { url "https://jitpack.io" }
         maven { url 'https://maven.fabric.io/public' }
+        maven { url "https://dl.bintray.com/drummer-aidan/maven/" } //Temp for 'com.afollestad.material-dialogs:color:2.0.0-rc2'
     }
 }
 
