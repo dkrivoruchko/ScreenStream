@@ -1,0 +1,4 @@
+project.pluginManager.withPlugin("com.android.application") {
+    android.buildTypes.debug.ext.enableCrashlytics = false
+    android.buildTypes.fabricfree.ext.enableCrashlytics = false
+}
