@@ -23,8 +23,6 @@ android {
         resConfigs("en", "ru", "pt-rBR", "zh-rTW", "fr-rFR", "fa", "it")
 
         vectorDrawables.useSupportLibrary = true
-
-//        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
@@ -101,10 +99,6 @@ dependencies {
     debugImplementation("com.squareup.leakcanary:leakcanary-android:${Versions.leakcanary}")
     debugImplementation("com.squareup.leakcanary:leakcanary-support-fragment:${Versions.leakcanary}")
     releaseImplementation("com.squareup.leakcanary:leakcanary-android-no-op:${Versions.leakcanary}")
-
-//    testImplementation "junit:junit:4.12"
-//    androidTestImplementation "com.android.support.test:runner:1.0.2"
-//    androidTestImplementation "com.android.support.test.espresso:espresso-core:3.0.2"
 }
 
 apply(from = "fabric.gradle")
