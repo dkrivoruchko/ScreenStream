@@ -302,10 +302,10 @@ class SettingsFragment : Fragment() {
                 input(
                     prefill = settings.severPort.toString(),
                     inputType = InputType.TYPE_CLASS_NUMBER,
-                    maxLength = 6,
+                    maxLength = 5,
                     waitForPositiveButton = false
                 ) { dialog, text ->
-                    val isValid = text.length in 4..6 && text.toString().toInt() in 1025..65535
+                    val isValid = text.length in 4..5 && text.toString().toInt() in 1025..65535
                     dialog.setActionButtonEnabled(WhichButton.POSITIVE, isValid)
                 }
                 positiveButton(android.R.string.ok) { dialog ->
@@ -313,7 +313,7 @@ class SettingsFragment : Fragment() {
                     if (settings.severPort != newValue) settings.severPort = newValue
                 }
                 negativeButton(android.R.string.cancel)
-                getInputField()?.filters = arrayOf<InputFilter>(InputFilter.LengthFilter(6))
+                getInputField()?.filters = arrayOf<InputFilter>(InputFilter.LengthFilter(5))
                 getInputField()?.imeOptions = EditorInfo.IME_FLAG_NO_EXTRACT_UI
             }
         }

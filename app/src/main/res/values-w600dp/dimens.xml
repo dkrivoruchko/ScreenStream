@@ -1,4 +1,4 @@
 <resources>
-    <dimen name="activity_settings_title_start_top">16dp</dimen>
-    <dimen name="activity_settings_item_start_end">32dp</dimen>
+    <dimen name="fragment_settings_title_start_top">16dp</dimen>
+    <dimen name="fragment_settings_item_start_end">32dp</dimen>
 </resources>

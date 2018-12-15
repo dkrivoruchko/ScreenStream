@@ -16,8 +16,8 @@
         <androidx.appcompat.widget.AppCompatTextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginStart="@dimen/activity_settings_title_start_top"
-            android:layout_marginTop="@dimen/activity_settings_title_start_top"
+            android:layout_marginStart="@dimen/fragment_settings_title_start_top"
+            android:layout_marginTop="@dimen/fragment_settings_title_start_top"
             android:padding="8dp"
             android:text="@string/pref_settings_interface"
             android:textAllCaps="true"
@@ -31,10 +31,10 @@
             android:background="?attr/selectableItemBackground"
             android:clickable="true"
             android:focusable="true"
-            android:minHeight="@dimen/activity_settings_item_min_height"
-            android:paddingStart="@dimen/activity_settings_item_start_end"
+            android:minHeight="@dimen/fragment_settings_item_min_height"
+            android:paddingStart="@dimen/fragment_settings_item_start_end"
             android:paddingTop="8dp"
-            android:paddingEnd="@dimen/activity_settings_item_start_end"
+            android:paddingEnd="@dimen/fragment_settings_item_start_end"
             android:paddingBottom="8dp">
 
             <androidx.appcompat.widget.AppCompatImageView
@@ -51,11 +51,12 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="16dp"
+                android:layout_marginEnd="@dimen/fragment_settings_item_margin_end"
                 android:text="@string/pref_minimize_on_stream"
                 android:textAppearance="?android:attr/textAppearanceMedium"
                 android:textColor="@color/textColorSecondary"
                 app:layout_constraintBottom_toTopOf="@id/tv_fragment_settings_minimize_on_stream_summary"
-                app:layout_constraintEnd_toStartOf="@id/gl_fragment_settings_minimize_on_stream"
+                app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toEndOf="@id/iv_fragment_settings_minimize_on_stream"
                 app:layout_constraintTop_toTopOf="parent" />
 
@@ -64,9 +65,10 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="16dp"
+                android:layout_marginEnd="@dimen/fragment_settings_item_margin_end"
                 android:text="@string/pref_minimise_on_stream_summary"
                 app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toStartOf="@id/gl_fragment_settings_minimize_on_stream"
+                app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toEndOf="@id/iv_fragment_settings_minimize_on_stream"
                 app:layout_constraintTop_toBottomOf="@id/tv_fragment_settings_minimize_on_stream" />
 
@@ -74,20 +76,11 @@
                 android:id="@+id/cb_fragment_settings_minimize_on_stream"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
+                android:layout_marginEnd="8dp"
                 android:checked="true"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="@id/gl_fragment_settings_minimize_on_stream"
                 app:layout_constraintTop_toTopOf="parent" />
-
-            <androidx.constraintlayout.widget.Guideline
-                android:id="@+id/gl_fragment_settings_minimize_on_stream"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintGuide_end="52dp" />
         </androidx.constraintlayout.widget.ConstraintLayout>
 
         <View
@@ -104,10 +97,10 @@
             android:background="?attr/selectableItemBackground"
             android:clickable="true"
             android:focusable="true"
-            android:minHeight="@dimen/activity_settings_item_min_height"
-            android:paddingStart="@dimen/activity_settings_item_start_end"
+            android:minHeight="@dimen/fragment_settings_item_min_height"
+            android:paddingStart="@dimen/fragment_settings_item_start_end"
             android:paddingTop="8dp"
-            android:paddingEnd="@dimen/activity_settings_item_start_end"
+            android:paddingEnd="@dimen/fragment_settings_item_start_end"
             android:paddingBottom="8dp">
 
             <androidx.appcompat.widget.AppCompatImageView
@@ -124,11 +117,12 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="16dp"
+                android:layout_marginEnd="@dimen/fragment_settings_item_margin_end"
                 android:text="@string/pref_stop_on_sleep"
                 android:textAppearance="?android:attr/textAppearanceMedium"
                 android:textColor="@color/textColorSecondary"
                 app:layout_constraintBottom_toTopOf="@id/tv_fragment_settings_stop_on_sleep_summary"
-                app:layout_constraintEnd_toStartOf="@id/gl_fragment_settings_stop_on_sleep"
+                app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toEndOf="@id/iv_fragment_settings_stop_on_sleep"
                 app:layout_constraintTop_toTopOf="parent" />
 
@@ -137,9 +131,10 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="16dp"
+                android:layout_marginEnd="@dimen/fragment_settings_item_margin_end"
                 android:text="@string/pref_stop_on_sleep_summary"
                 app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toStartOf="@id/gl_fragment_settings_stop_on_sleep"
+                app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toEndOf="@id/iv_fragment_settings_stop_on_sleep"
                 app:layout_constraintTop_toBottomOf="@id/tv_fragment_settings_stop_on_sleep" />
 
@@ -147,19 +142,10 @@
                 android:id="@+id/cb_fragment_settings_stop_on_sleep"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
+                android:layout_marginEnd="8dp"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="@id/gl_fragment_settings_stop_on_sleep"
                 app:layout_constraintTop_toTopOf="parent" />
-
-            <androidx.constraintlayout.widget.Guideline
-                android:id="@+id/gl_fragment_settings_stop_on_sleep"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintGuide_end="52dp" />
         </androidx.constraintlayout.widget.ConstraintLayout>
 
         <View
@@ -176,10 +162,10 @@
             android:background="?attr/selectableItemBackground"
             android:clickable="true"
             android:focusable="true"
-            android:minHeight="@dimen/activity_settings_item_min_height"
-            android:paddingStart="@dimen/activity_settings_item_start_end"
+            android:minHeight="@dimen/fragment_settings_item_min_height"
+            android:paddingStart="@dimen/fragment_settings_item_start_end"
             android:paddingTop="8dp"
-            android:paddingEnd="@dimen/activity_settings_item_start_end"
+            android:paddingEnd="@dimen/fragment_settings_item_start_end"
             android:paddingBottom="8dp">
 
             <androidx.appcompat.widget.AppCompatImageView
@@ -196,11 +182,12 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="16dp"
+                android:layout_marginEnd="@dimen/fragment_settings_item_margin_end"
                 android:text="@string/pref_start_on_boot"
                 android:textAppearance="?android:attr/textAppearanceMedium"
                 android:textColor="@color/textColorSecondary"
                 app:layout_constraintBottom_toTopOf="@id/tv_fragment_settings_start_on_boot_summary"
-                app:layout_constraintEnd_toStartOf="@id/gl_fragment_settings_start_on_boot"
+                app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toEndOf="@id/iv_fragment_settings_start_on_boot"
                 app:layout_constraintTop_toTopOf="parent" />
 
@@ -209,10 +196,11 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="16dp"
+                android:layout_marginEnd="@dimen/fragment_settings_item_margin_end"
                 android:text="@string/pref_start_on_boot_summary"
                 android:textAppearance="?android:attr/textAppearanceSmall"
                 app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toStartOf="@id/gl_fragment_settings_start_on_boot"
+                app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toEndOf="@id/iv_fragment_settings_start_on_boot"
                 app:layout_constraintTop_toBottomOf="@id/tv_fragment_settings_start_on_boot" />
 
@@ -220,19 +208,10 @@
                 android:id="@+id/cb_fragment_settings_start_on_boot"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
+                android:layout_marginEnd="8dp"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="@id/gl_fragment_settings_start_on_boot"
                 app:layout_constraintTop_toTopOf="parent" />
-
-            <androidx.constraintlayout.widget.Guideline
-                android:id="@+id/gl_fragment_settings_start_on_boot"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintGuide_end="52dp" />
         </androidx.constraintlayout.widget.ConstraintLayout>
 
         <View
@@ -249,10 +228,10 @@
             android:background="?attr/selectableItemBackground"
             android:clickable="true"
             android:focusable="true"
-            android:minHeight="@dimen/activity_settings_item_min_height"
-            android:paddingStart="@dimen/activity_settings_item_start_end"
+            android:minHeight="@dimen/fragment_settings_item_min_height"
+            android:paddingStart="@dimen/fragment_settings_item_start_end"
             android:paddingTop="8dp"
-            android:paddingEnd="@dimen/activity_settings_item_start_end"
+            android:paddingEnd="@dimen/fragment_settings_item_start_end"
             android:paddingBottom="8dp">
 
             <androidx.appcompat.widget.AppCompatImageView
@@ -305,7 +284,7 @@
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
                 app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintGuide_end="52dp" />
+                app:layout_constraintGuide_end="@dimen/fragment_settings_item_margin_end" />
         </androidx.constraintlayout.widget.ConstraintLayout>
 
         <View
@@ -322,10 +301,10 @@
             android:background="?attr/selectableItemBackground"
             android:clickable="true"
             android:focusable="true"
-            android:minHeight="@dimen/activity_settings_item_min_height"
-            android:paddingStart="@dimen/activity_settings_item_start_end"
+            android:minHeight="@dimen/fragment_settings_item_min_height"
+            android:paddingStart="@dimen/fragment_settings_item_start_end"
             android:paddingTop="8dp"
-            android:paddingEnd="@dimen/activity_settings_item_start_end"
+            android:paddingEnd="@dimen/fragment_settings_item_start_end"
             android:paddingBottom="8dp">
 
             <androidx.appcompat.widget.AppCompatImageView
@@ -342,11 +321,12 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="16dp"
+                android:layout_marginEnd="@dimen/fragment_settings_item_margin_end"
                 android:text="@string/pref_html_back_color"
                 android:textAppearance="?android:attr/textAppearanceMedium"
                 android:textColor="@color/textColorSecondary"
                 app:layout_constraintBottom_toTopOf="@id/tv_fragment_settings_html_back_color_summary"
-                app:layout_constraintEnd_toStartOf="@id/gl_fragment_settings_html_back_color"
+                app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toEndOf="@id/iv_fragment_settings_html_back_color"
                 app:layout_constraintTop_toTopOf="parent" />
 
@@ -355,10 +335,11 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="16dp"
+                android:layout_marginEnd="@dimen/fragment_settings_item_margin_end"
                 android:text="@string/pref_html_back_color_summary"
                 android:textAppearance="?android:attr/textAppearanceSmall"
                 app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toStartOf="@id/gl_fragment_settings_html_back_color"
+                app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toEndOf="@id/iv_fragment_settings_html_back_color"
                 app:layout_constraintTop_toBottomOf="@id/tv_fragment_settings_html_back_color" />
 
@@ -366,27 +347,18 @@
                 android:id="@+id/v_fragment_settings_html_back_color"
                 android:layout_width="24dp"
                 android:layout_height="24dp"
-                android:layout_marginStart="8dp"
+                android:layout_marginEnd="10dp"
                 android:background="#000"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="@id/gl_fragment_settings_html_back_color"
                 app:layout_constraintTop_toTopOf="parent" />
-
-            <androidx.constraintlayout.widget.Guideline
-                android:id="@+id/gl_fragment_settings_html_back_color"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintGuide_end="52dp" />
         </androidx.constraintlayout.widget.ConstraintLayout>
 
         <androidx.appcompat.widget.AppCompatTextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginStart="@dimen/activity_settings_title_start_top"
-            android:layout_marginTop="@dimen/activity_settings_title_start_top"
+            android:layout_marginStart="@dimen/fragment_settings_title_start_top"
+            android:layout_marginTop="@dimen/fragment_settings_title_start_top"
             android:padding="8dp"
             android:text="@string/pref_settings_image"
             android:textAllCaps="true"
@@ -400,10 +372,10 @@
             android:background="?attr/selectableItemBackground"
             android:clickable="true"
             android:focusable="true"
-            android:minHeight="@dimen/activity_settings_item_min_height"
-            android:paddingStart="@dimen/activity_settings_item_start_end"
+            android:minHeight="@dimen/fragment_settings_item_min_height"
+            android:paddingStart="@dimen/fragment_settings_item_start_end"
             android:paddingTop="8dp"
-            android:paddingEnd="@dimen/activity_settings_item_start_end"
+            android:paddingEnd="@dimen/fragment_settings_item_start_end"
             android:paddingBottom="8dp">
 
             <androidx.appcompat.widget.AppCompatImageView
@@ -420,11 +392,12 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="16dp"
+                android:layout_marginEnd="@dimen/fragment_settings_item_margin_end"
                 android:text="@string/pref_resize"
                 android:textAppearance="?android:attr/textAppearanceMedium"
                 android:textColor="@color/textColorSecondary"
                 app:layout_constraintBottom_toTopOf="@id/tv_fragment_settings_resize_image_summary"
-                app:layout_constraintEnd_toStartOf="@id/gl_fragment_settings_resize_image"
+                app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toEndOf="@id/iv_fragment_settings_resize_image"
                 app:layout_constraintTop_toTopOf="parent" />
 
@@ -433,10 +406,11 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="16dp"
+                android:layout_marginEnd="@dimen/fragment_settings_item_margin_end"
                 android:text="@string/pref_resize_summary"
                 android:textAppearance="?android:attr/textAppearanceSmall"
                 app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toStartOf="@id/gl_fragment_settings_resize_image"
+                app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toEndOf="@id/iv_fragment_settings_resize_image"
                 app:layout_constraintTop_toBottomOf="@id/tv_fragment_settings_resize_image" />
 
@@ -450,17 +424,9 @@
                 android:textSize="16sp"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="@id/gl_fragment_settings_resize_image"
+                app:layout_constraintStart_toEndOf="@id/tv_fragment_settings_resize_image_summary"
                 app:layout_constraintTop_toTopOf="parent"
                 tools:text="50%" />
-
-            <androidx.constraintlayout.widget.Guideline
-                android:id="@+id/gl_fragment_settings_resize_image"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintGuide_end="52dp" />
         </androidx.constraintlayout.widget.ConstraintLayout>
 
         <View
@@ -477,10 +443,10 @@
             android:background="?attr/selectableItemBackground"
             android:clickable="true"
             android:focusable="true"
-            android:minHeight="@dimen/activity_settings_item_min_height"
-            android:paddingStart="@dimen/activity_settings_item_start_end"
+            android:minHeight="@dimen/fragment_settings_item_min_height"
+            android:paddingStart="@dimen/fragment_settings_item_start_end"
             android:paddingTop="8dp"
-            android:paddingEnd="@dimen/activity_settings_item_start_end"
+            android:paddingEnd="@dimen/fragment_settings_item_start_end"
             android:paddingBottom="8dp">
 
             <androidx.appcompat.widget.AppCompatImageView
@@ -497,11 +463,12 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="16dp"
+                android:layout_marginEnd="@dimen/fragment_settings_item_margin_end"
                 android:text="@string/pref_jpeg_quality"
                 android:textAppearance="?android:attr/textAppearanceMedium"
                 android:textColor="@color/textColorSecondary"
                 app:layout_constraintBottom_toTopOf="@id/tv_fragment_settings_jpeg_quality_summary"
-                app:layout_constraintEnd_toStartOf="@id/gl_fragment_settings_jpeg_quality"
+                app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toEndOf="@id/iv_fragment_settings_jpeg_quality"
                 app:layout_constraintTop_toTopOf="parent" />
 
@@ -510,10 +477,11 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="16dp"
+                android:layout_marginEnd="@dimen/fragment_settings_item_margin_end"
                 android:text="@string/pref_jpeg_quality_summary"
                 android:textAppearance="?android:attr/textAppearanceSmall"
                 app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toStartOf="@id/gl_fragment_settings_jpeg_quality"
+                app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toEndOf="@id/iv_fragment_settings_jpeg_quality"
                 app:layout_constraintTop_toBottomOf="@id/tv_fragment_settings_jpeg_quality" />
 
@@ -527,24 +495,16 @@
                 android:textSize="16sp"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="@id/gl_fragment_settings_jpeg_quality"
+                app:layout_constraintStart_toEndOf="@id/tv_fragment_settings_jpeg_quality"
                 app:layout_constraintTop_toTopOf="parent"
                 tools:text="100" />
-
-            <androidx.constraintlayout.widget.Guideline
-                android:id="@+id/gl_fragment_settings_jpeg_quality"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintGuide_end="52dp" />
         </androidx.constraintlayout.widget.ConstraintLayout>
 
         <androidx.appcompat.widget.AppCompatTextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginStart="@dimen/activity_settings_title_start_top"
-            android:layout_marginTop="@dimen/activity_settings_title_start_top"
+            android:layout_marginStart="@dimen/fragment_settings_title_start_top"
+            android:layout_marginTop="@dimen/fragment_settings_title_start_top"
             android:padding="8dp"
             android:text="@string/pref_settings_security"
             android:textAllCaps="true"
@@ -558,10 +518,10 @@
             android:background="?attr/selectableItemBackground"
             android:clickable="true"
             android:focusable="true"
-            android:minHeight="@dimen/activity_settings_item_min_height"
-            android:paddingStart="@dimen/activity_settings_item_start_end"
+            android:minHeight="@dimen/fragment_settings_item_min_height"
+            android:paddingStart="@dimen/fragment_settings_item_start_end"
             android:paddingTop="8dp"
-            android:paddingEnd="@dimen/activity_settings_item_start_end"
+            android:paddingEnd="@dimen/fragment_settings_item_start_end"
             android:paddingBottom="8dp">
 
             <androidx.appcompat.widget.AppCompatImageView
@@ -578,11 +538,12 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="16dp"
+                android:layout_marginEnd="@dimen/fragment_settings_item_margin_end"
                 android:text="@string/pref_enable_pin"
                 android:textAppearance="?android:attr/textAppearanceMedium"
                 android:textColor="@color/textColorSecondary"
                 app:layout_constraintBottom_toTopOf="@id/tv_fragment_settings_enable_pin_summary"
-                app:layout_constraintEnd_toStartOf="@id/gl_fragment_settings_enable_pin"
+                app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toEndOf="@id/iv_fragment_settings_enable_pin"
                 app:layout_constraintTop_toTopOf="parent" />
 
@@ -591,10 +552,11 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="16dp"
+                android:layout_marginEnd="@dimen/fragment_settings_item_margin_end"
                 android:text="@string/pref_enable_pin_summary"
                 android:textAppearance="?android:attr/textAppearanceSmall"
                 app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toStartOf="@id/gl_fragment_settings_enable_pin"
+                app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toEndOf="@id/iv_fragment_settings_enable_pin"
                 app:layout_constraintTop_toBottomOf="@id/tv_fragment_settings_enable_pin" />
 
@@ -602,19 +564,10 @@
                 android:id="@+id/cb_fragment_settings_enable_pin"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
+                android:layout_marginEnd="8dp"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="@id/gl_fragment_settings_enable_pin"
                 app:layout_constraintTop_toTopOf="parent" />
-
-            <androidx.constraintlayout.widget.Guideline
-                android:id="@+id/gl_fragment_settings_enable_pin"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintGuide_end="52dp" />
         </androidx.constraintlayout.widget.ConstraintLayout>
 
         <View
@@ -631,10 +584,10 @@
             android:background="?attr/selectableItemBackground"
             android:clickable="true"
             android:focusable="true"
-            android:minHeight="@dimen/activity_settings_item_min_height"
-            android:paddingStart="@dimen/activity_settings_item_start_end"
+            android:minHeight="@dimen/fragment_settings_item_min_height"
+            android:paddingStart="@dimen/fragment_settings_item_start_end"
             android:paddingTop="8dp"
-            android:paddingEnd="@dimen/activity_settings_item_start_end"
+            android:paddingEnd="@dimen/fragment_settings_item_start_end"
             android:paddingBottom="8dp">
 
             <androidx.appcompat.widget.AppCompatImageView
@@ -651,11 +604,12 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="16dp"
+                android:layout_marginEnd="@dimen/fragment_settings_item_margin_end"
                 android:text="@string/pref_hide_pin"
                 android:textAppearance="?android:attr/textAppearanceMedium"
                 android:textColor="@color/textColorSecondary"
                 app:layout_constraintBottom_toTopOf="@id/tv_fragment_settings_hide_pin_on_start_summary"
-                app:layout_constraintEnd_toStartOf="@id/gl_fragment_settings_hide_pin_on_start"
+                app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toEndOf="@id/iv_fragment_settings_hide_pin_on_start"
                 app:layout_constraintTop_toTopOf="parent" />
 
@@ -664,10 +618,11 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="16dp"
+                android:layout_marginEnd="@dimen/fragment_settings_item_margin_end"
                 android:text="@string/pref_hide_pin_summary"
                 android:textAppearance="?android:attr/textAppearanceSmall"
                 app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toStartOf="@id/gl_fragment_settings_hide_pin_on_start"
+                app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toEndOf="@id/iv_fragment_settings_hide_pin_on_start"
                 app:layout_constraintTop_toBottomOf="@id/tv_fragment_settings_hide_pin_on_start" />
 
@@ -675,19 +630,10 @@
                 android:id="@+id/cb_fragment_settings_hide_pin_on_start"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
+                android:layout_marginEnd="8dp"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="@id/gl_fragment_settings_hide_pin_on_start"
                 app:layout_constraintTop_toTopOf="parent" />
-
-            <androidx.constraintlayout.widget.Guideline
-                android:id="@+id/gl_fragment_settings_hide_pin_on_start"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintGuide_end="52dp" />
         </androidx.constraintlayout.widget.ConstraintLayout>
 
         <View
@@ -704,10 +650,10 @@
             android:background="?attr/selectableItemBackground"
             android:clickable="true"
             android:focusable="true"
-            android:minHeight="@dimen/activity_settings_item_min_height"
-            android:paddingStart="@dimen/activity_settings_item_start_end"
+            android:minHeight="@dimen/fragment_settings_item_min_height"
+            android:paddingStart="@dimen/fragment_settings_item_start_end"
             android:paddingTop="8dp"
-            android:paddingEnd="@dimen/activity_settings_item_start_end"
+            android:paddingEnd="@dimen/fragment_settings_item_start_end"
             android:paddingBottom="8dp">
 
             <androidx.appcompat.widget.AppCompatImageView
@@ -724,11 +670,12 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="16dp"
+                android:layout_marginEnd="@dimen/fragment_settings_item_margin_end"
                 android:text="@string/pref_new_pin_on_start"
                 android:textAppearance="?android:attr/textAppearanceMedium"
                 android:textColor="@color/textColorSecondary"
                 app:layout_constraintBottom_toTopOf="@id/tv_fragment_settings_new_pin_on_app_start_summary"
-                app:layout_constraintEnd_toStartOf="@id/gl_fragment_settings_new_pin_on_app_start"
+                app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toEndOf="@id/iv_fragment_settings_new_pin_on_app_start"
                 app:layout_constraintTop_toTopOf="parent" />
 
@@ -737,10 +684,11 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="16dp"
+                android:layout_marginEnd="@dimen/fragment_settings_item_margin_end"
                 android:text="@string/pref_new_pin_on_start_summary"
                 android:textAppearance="?android:attr/textAppearanceSmall"
                 app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toStartOf="@id/gl_fragment_settings_new_pin_on_app_start"
+                app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toEndOf="@id/iv_fragment_settings_new_pin_on_app_start"
                 app:layout_constraintTop_toBottomOf="@id/tv_fragment_settings_new_pin_on_app_start" />
 
@@ -748,19 +696,10 @@
                 android:id="@+id/cb_fragment_settings_new_pin_on_app_start"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
+                android:layout_marginEnd="8dp"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="@id/gl_fragment_settings_new_pin_on_app_start"
                 app:layout_constraintTop_toTopOf="parent" />
-
-            <androidx.constraintlayout.widget.Guideline
-                android:id="@+id/gl_fragment_settings_new_pin_on_app_start"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintGuide_end="52dp" />
         </androidx.constraintlayout.widget.ConstraintLayout>
 
         <View
@@ -777,10 +716,10 @@
             android:background="?attr/selectableItemBackground"
             android:clickable="true"
             android:focusable="true"
-            android:minHeight="@dimen/activity_settings_item_min_height"
-            android:paddingStart="@dimen/activity_settings_item_start_end"
+            android:minHeight="@dimen/fragment_settings_item_min_height"
+            android:paddingStart="@dimen/fragment_settings_item_start_end"
             android:paddingTop="8dp"
-            android:paddingEnd="@dimen/activity_settings_item_start_end"
+            android:paddingEnd="@dimen/fragment_settings_item_start_end"
             android:paddingBottom="8dp">
 
             <androidx.appcompat.widget.AppCompatImageView
@@ -797,11 +736,12 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="16dp"
+                android:layout_marginEnd="@dimen/fragment_settings_item_margin_end"
                 android:text="@string/pref_auto_change_pin"
                 android:textAppearance="?android:attr/textAppearanceMedium"
                 android:textColor="@color/textColorSecondary"
                 app:layout_constraintBottom_toTopOf="@id/tv_fragment_settings_auto_change_pin_summary"
-                app:layout_constraintEnd_toStartOf="@id/gl_fragment_settings_auto_change_pin"
+                app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toEndOf="@id/iv_fragment_settings_auto_change_pin"
                 app:layout_constraintTop_toTopOf="parent" />
 
@@ -810,10 +750,11 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="16dp"
+                android:layout_marginEnd="@dimen/fragment_settings_item_margin_end"
                 android:text="@string/pref_auto_change_pin_summary"
                 android:textAppearance="?android:attr/textAppearanceSmall"
                 app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toStartOf="@id/gl_fragment_settings_auto_change_pin"
+                app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toEndOf="@id/iv_fragment_settings_auto_change_pin"
                 app:layout_constraintTop_toBottomOf="@id/tv_fragment_settings_auto_change_pin" />
 
@@ -821,19 +762,10 @@
                 android:id="@+id/cb_fragment_settings_auto_change_pin"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
+                android:layout_marginEnd="8dp"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="@id/gl_fragment_settings_auto_change_pin"
                 app:layout_constraintTop_toTopOf="parent" />
-
-            <androidx.constraintlayout.widget.Guideline
-                android:id="@+id/gl_fragment_settings_auto_change_pin"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintGuide_end="52dp" />
         </androidx.constraintlayout.widget.ConstraintLayout>
 
         <View
@@ -850,10 +782,10 @@
             android:background="?attr/selectableItemBackground"
             android:clickable="true"
             android:focusable="true"
-            android:minHeight="@dimen/activity_settings_item_min_height"
-            android:paddingStart="@dimen/activity_settings_item_start_end"
+            android:minHeight="@dimen/fragment_settings_item_min_height"
+            android:paddingStart="@dimen/fragment_settings_item_start_end"
             android:paddingTop="8dp"
-            android:paddingEnd="@dimen/activity_settings_item_start_end"
+            android:paddingEnd="@dimen/fragment_settings_item_start_end"
             android:paddingBottom="8dp">
 
             <androidx.appcompat.widget.AppCompatImageView
@@ -870,11 +802,12 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="16dp"
+                android:layout_marginEnd="@dimen/fragment_settings_item_margin_end"
                 android:text="@string/pref_set_pin"
                 android:textAppearance="?android:attr/textAppearanceMedium"
                 android:textColor="@color/textColorSecondary"
                 app:layout_constraintBottom_toTopOf="@id/tv_fragment_settings_set_pin_summary"
-                app:layout_constraintEnd_toStartOf="@id/gl_fragment_settings_set_pin"
+                app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toEndOf="@id/iv_fragment_settings_set_pin"
                 app:layout_constraintTop_toTopOf="parent" />
 
@@ -883,10 +816,11 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="16dp"
+                android:layout_marginEnd="@dimen/fragment_settings_item_margin_end"
                 android:text="@string/pref_set_pin_summary"
                 android:textAppearance="?android:attr/textAppearanceSmall"
                 app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toStartOf="@id/gl_fragment_settings_set_pin"
+                app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toEndOf="@id/iv_fragment_settings_set_pin"
                 app:layout_constraintTop_toBottomOf="@id/tv_fragment_settings_set_pin" />
 
@@ -900,24 +834,16 @@
                 android:textSize="16sp"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="@id/gl_fragment_settings_set_pin"
+                app:layout_constraintStart_toEndOf="@id/tv_fragment_settings_set_pin"
                 app:layout_constraintTop_toTopOf="parent"
                 tools:text="0000" />
-
-            <androidx.constraintlayout.widget.Guideline
-                android:id="@+id/gl_fragment_settings_set_pin"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintGuide_end="52dp" />
         </androidx.constraintlayout.widget.ConstraintLayout>
 
         <androidx.appcompat.widget.AppCompatTextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginStart="@dimen/activity_settings_title_start_top"
-            android:layout_marginTop="@dimen/activity_settings_title_start_top"
+            android:layout_marginStart="@dimen/fragment_settings_title_start_top"
+            android:layout_marginTop="@dimen/fragment_settings_title_start_top"
             android:padding="8dp"
             android:text="@string/pref_settings_advanced"
             android:textAppearance="?android:attr/textAppearanceMedium"
@@ -931,10 +857,10 @@
             android:background="?attr/selectableItemBackground"
             android:clickable="true"
             android:focusable="true"
-            android:minHeight="@dimen/activity_settings_item_min_height"
-            android:paddingStart="@dimen/activity_settings_item_start_end"
+            android:minHeight="@dimen/fragment_settings_item_min_height"
+            android:paddingStart="@dimen/fragment_settings_item_start_end"
             android:paddingTop="8dp"
-            android:paddingEnd="@dimen/activity_settings_item_start_end"
+            android:paddingEnd="@dimen/fragment_settings_item_start_end"
             android:paddingBottom="8dp">
 
             <androidx.appcompat.widget.AppCompatImageView
@@ -951,11 +877,12 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="16dp"
+                android:layout_marginEnd="@dimen/fragment_settings_item_margin_end"
                 android:text="@string/pref_wifi_only"
                 android:textAppearance="?android:attr/textAppearanceMedium"
                 android:textColor="@color/textColorSecondary"
                 app:layout_constraintBottom_toTopOf="@id/tv_fragment_settings_use_wifi_only_summary"
-                app:layout_constraintEnd_toStartOf="@id/gl_fragment_settings_use_wifi_only"
+                app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toEndOf="@id/iv_fragment_settings_use_wifi_only"
                 app:layout_constraintTop_toTopOf="parent" />
 
@@ -964,10 +891,11 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="16dp"
+                android:layout_marginEnd="@dimen/fragment_settings_item_margin_end"
                 android:text="@string/pref_wifi_only_summary"
                 android:textAppearance="?android:attr/textAppearanceSmall"
                 app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toStartOf="@id/gl_fragment_settings_use_wifi_only"
+                app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toEndOf="@id/iv_fragment_settings_use_wifi_only"
                 app:layout_constraintTop_toBottomOf="@id/tv_fragment_settings_use_wifi_only" />
 
@@ -975,19 +903,10 @@
                 android:id="@+id/cb_fragment_settings_use_wifi_only"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
+                android:layout_marginEnd="8dp"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="@id/gl_fragment_settings_use_wifi_only"
                 app:layout_constraintTop_toTopOf="parent" />
-
-            <androidx.constraintlayout.widget.Guideline
-                android:id="@+id/gl_fragment_settings_use_wifi_only"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintGuide_end="52dp" />
         </androidx.constraintlayout.widget.ConstraintLayout>
 
         <View
@@ -1004,10 +923,10 @@
             android:background="?attr/selectableItemBackground"
             android:clickable="true"
             android:focusable="true"
-            android:minHeight="@dimen/activity_settings_item_min_height"
-            android:paddingStart="@dimen/activity_settings_item_start_end"
+            android:minHeight="@dimen/fragment_settings_item_min_height"
+            android:paddingStart="@dimen/fragment_settings_item_start_end"
             android:paddingTop="8dp"
-            android:paddingEnd="@dimen/activity_settings_item_start_end"
+            android:paddingEnd="@dimen/fragment_settings_item_start_end"
             android:paddingBottom="8dp">
 
             <androidx.appcompat.widget.AppCompatImageView
@@ -1024,11 +943,12 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="16dp"
+                android:layout_marginEnd="@dimen/fragment_settings_item_margin_end"
                 android:text="@string/pref_server_port"
                 android:textAppearance="?android:attr/textAppearanceMedium"
                 android:textColor="@color/textColorSecondary"
                 app:layout_constraintBottom_toTopOf="@id/tv_fragment_settings_server_port_summary"
-                app:layout_constraintEnd_toStartOf="@+id/gl_fragment_settings_server_port"
+                app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toEndOf="@+id/iv_fragment_settings_server_port"
                 app:layout_constraintTop_toTopOf="parent" />
 
@@ -1037,10 +957,11 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="16dp"
+                android:layout_marginEnd="@dimen/fragment_settings_item_margin_end"
                 android:text="@string/pref_server_port_summary"
                 android:textAppearance="?android:attr/textAppearanceSmall"
                 app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toStartOf="@id/gl_fragment_settings_server_port"
+                app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toEndOf="@id/iv_fragment_settings_server_port"
                 app:layout_constraintTop_toBottomOf="@id/tv_fragment_settings_server_port" />
 
@@ -1054,17 +975,9 @@
                 android:textSize="16sp"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="@id/gl_fragment_settings_server_port"
+                app:layout_constraintStart_toEndOf="@id/tv_fragment_settings_server_port"
                 app:layout_constraintTop_toTopOf="parent"
                 tools:text="65535" />
-
-            <androidx.constraintlayout.widget.Guideline
-                android:id="@+id/gl_fragment_settings_server_port"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintGuide_end="52dp" />
         </androidx.constraintlayout.widget.ConstraintLayout>
     </LinearLayout>
 </androidx.core.widget.NestedScrollView>
