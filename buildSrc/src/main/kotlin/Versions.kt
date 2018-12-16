@@ -4,7 +4,7 @@ object Versions {
     const val minSdk = 21
     const val targetSdk = 28
 
-    const val versionMajor = 1
+    const val versionMajor = 3
     const val versionMinor = 0
     const val versionPatch = 0
 

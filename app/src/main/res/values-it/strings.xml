@@ -11,7 +11,7 @@
     <string name="bottom_menu_settings">Impostazioni</string>
     <string name="bottom_menu_start">Start</string>
     <string name="bottom_menu_stop">Stop</string>
-    <string name="bottom_menu_about">About</string>
+    <string name="bottom_menu_about">Circa</string>
     <string name="bottom_menu_exit">Esci</string>
 
     <string name="stream_fragment_current_traffic">Traffico: %1$,.2f Mbit/s</string>

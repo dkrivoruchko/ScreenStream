@@ -10,6 +10,7 @@
         <item name="android:textColor">@color/textColorPrimary</item>
         <item name="android:textColorSecondary">@color/textColorSecondary</item>
 
+        // Material dialog
         <item name="md_color_title">@color/textColorSecondary</item>
         <item name="md_color_content">@color/textColorPrimary</item>
     </style>

@@ -4,7 +4,11 @@ import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.widget.TextView
+import androidx.core.view.forEach
 import com.andrognito.flashbar.Flashbar
+import com.google.android.material.bottomnavigation.BottomNavigationItemView
+import com.google.android.material.bottomnavigation.BottomNavigationMenuView
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.data.model.AppError
 import info.dvkr.screenstream.data.model.FatalError
@@ -13,10 +17,10 @@ import info.dvkr.screenstream.data.other.getTag
 import info.dvkr.screenstream.data.settings.SettingsReadOnly
 import info.dvkr.screenstream.service.AppService
 import info.dvkr.screenstream.service.ServiceMessage
-import info.dvkr.screenstream.ui.router.FragmentRouter
 import info.dvkr.screenstream.ui.fragments.AboutFragment
 import info.dvkr.screenstream.ui.fragments.SettingsFragment
 import info.dvkr.screenstream.ui.fragments.StreamFragment
+import info.dvkr.screenstream.ui.router.FragmentRouter
 import kotlinx.android.synthetic.main.activity_app.*
 import org.koin.android.ext.android.inject
 import timber.log.Timber
@@ -50,6 +54,11 @@ class AppActivity : BaseActivity() {
         setContentView(R.layout.activity_app)
 
         if (savedInstanceState == null) fragmentRouter.navigateTo(R.id.menu_stream_fragment)
+
+        // Fix for https://github.com/material-components/material-components-android/issues/139
+        (bottom_navigation_activity_single.getChildAt(0) as BottomNavigationMenuView).forEach { item ->
+            (item as BottomNavigationItemView).findViewById<TextView>(R.id.largeLabel).setPadding(0, 0, 0, 0)
+        }
 
         bottom_navigation_activity_single.setOnNavigationItemSelectedListener { menuItem ->
             return@setOnNavigationItemSelectedListener when (menuItem.itemId) {

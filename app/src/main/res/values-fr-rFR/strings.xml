@@ -8,9 +8,9 @@
     <string name="app_activity_error_exit">Exit</string>
 
     <string name="bottom_menu_stream">Diffusion</string>
-    <string name="bottom_menu_settings">Paramètres</string>
+    <string name="bottom_menu_settings">Réglages</string>
     <string name="bottom_menu_start">Démarrer</string>
-    <string name="bottom_menu_stop">Stop</string>
+    <string name="bottom_menu_stop">Arrêtez</string>
     <string name="bottom_menu_about">À propos de</string>
     <string name="bottom_menu_exit">Quitter</string>
 
@@ -39,8 +39,8 @@
     <string name="notification_start">Démarrer</string>
     <string name="notification_exit">Quitter</string>
     <string name="notification_stream">Diffusion…</string>
-    <string name="notification_press_stop">Appuyez sur Stop pour arrêter la diffusion</string>
-    <string name="notification_stop">Stop</string>
+    <string name="notification_press_stop">Appuyez sur Arrêtez pour arrêter la diffusion</string>
+    <string name="notification_stop">Arrêtez</string>
 
     <string name="toast_slow_client_connection">Client avec connection lente détecté</string>
 

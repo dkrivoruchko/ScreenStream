@@ -1,6 +1,10 @@
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <dimen name="fragment_settings_title_start_top">8dp</dimen>
     <dimen name="fragment_settings_item_start_end">16dp</dimen>
     <dimen name="fragment_settings_item_min_height">72dp</dimen>
     <dimen name="fragment_settings_item_margin_end">52dp</dimen>
+
+    // Fix for https://github.com/material-components/material-components-android/issues/139
+    <dimen name="design_bottom_navigation_text_size" tools:override="true">12sp</dimen>
+    <dimen name="design_bottom_navigation_active_text_size" tools:override="true">12sp</dimen>
 </resources>
