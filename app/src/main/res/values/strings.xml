@@ -46,6 +46,13 @@
     <string name="toast_slow_client_connection">Slow client connection detected</string>
 
     <string name="pref_settings_interface">Interface</string>
+    <string name="pref_night_mode">Dark theme</string>
+    <string-array name="pref_night_mode_options">
+        <item>Always</item>
+        <item>Automatically (at night and battery saver)</item>
+        <item>Battery saver only</item>
+        <item>Never</item>
+    </string-array>
     <string name="pref_minimize_on_stream">Minimize on stream</string>
     <string name="pref_minimise_on_stream_summary">Minimize app on stream start</string>
     <string name="pref_stop_on_sleep">Stop on sleep</string>

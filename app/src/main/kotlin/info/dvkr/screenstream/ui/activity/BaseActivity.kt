@@ -6,16 +6,21 @@ import android.content.ServiceConnection
 import android.os.*
 import androidx.annotation.CallSuper
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.Observer
 import info.dvkr.screenstream.data.other.getTag
+import info.dvkr.screenstream.data.settings.Settings
+import info.dvkr.screenstream.data.settings.SettingsReadOnly
 import info.dvkr.screenstream.service.AppService
 import info.dvkr.screenstream.service.ServiceMessage
+import org.koin.android.ext.android.inject
 import timber.log.Timber
 
 abstract class BaseActivity : AppCompatActivity() {
 
+    protected val settingsReadOnly: SettingsReadOnly by inject()
     private var serviceMessenger: Messenger? = null
     private var isBound: Boolean = false
 
@@ -56,16 +61,24 @@ abstract class BaseActivity : AppCompatActivity() {
 
     private val serviceMessagesHandler = ServiceMessagesHandler()
     private val activityMessenger = Messenger(serviceMessagesHandler)
+    private val settingsListener = object : SettingsReadOnly.OnSettingsChangeListener {
+        override fun onSettingsChanged(key: String) {
+            if (key == Settings.Key.NIGHT_MODE) setNightMode(settingsReadOnly.nightMode)
+        }
+    }
 
     override fun onStart() {
         super.onStart()
         Timber.tag(getTag("onStart")).d("Invoked")
+        setNightMode(settingsReadOnly.nightMode)
 
         serviceMessagesHandler.getServiceMessageLiveData().observe(this, Observer<ServiceMessage> { message ->
             message?.let { onServiceMessage(it) }
         })
 
         bindService(AppService.getIntent(this), serviceConnection, Context.BIND_AUTO_CREATE)
+
+        settingsReadOnly.registerChangeListener(settingsListener)
     }
 
     override fun onStop() {
@@ -77,6 +90,7 @@ abstract class BaseActivity : AppCompatActivity() {
             isBound = false
         }
 
+        settingsReadOnly.unregisterChangeListener(settingsListener)
         super.onStop()
     }
 
@@ -88,4 +102,9 @@ abstract class BaseActivity : AppCompatActivity() {
     }
 
     fun getServiceMessageLiveData() = serviceMessagesHandler.getServiceMessageLiveData()
+
+    private fun setNightMode(@AppCompatDelegate.NightMode nightMode: Int) {
+        AppCompatDelegate.setDefaultNightMode(nightMode)
+        delegate.setLocalNightMode(nightMode)
+    }
 }

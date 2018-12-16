@@ -79,7 +79,7 @@ dependencies {
     implementation("androidx.annotation:annotation:${Versions.annotation}")
     implementation("com.google.android.material:material:${Versions.material}")
     implementation("androidx.appcompat:appcompat:${Versions.appcompat}")
-    implementation( "androidx.core:core-ktx:1.0.1")
+    implementation("androidx.core:core-ktx:1.0.1")
     implementation("androidx.legacy:legacy-support-v4:${Versions.legacySupport}")
     implementation("androidx.constraintlayout:constraintlayout:${Versions.constraint}")
 

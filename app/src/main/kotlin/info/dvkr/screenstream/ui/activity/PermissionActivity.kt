@@ -29,7 +29,7 @@ class PermissionActivity : AppCompatActivity() {
         overridePendingTransition(0, 0)
         super.onCreate(savedInstanceState)
 
-        val projectionManager = ContextCompat.getSystemService(this, MediaProjectionManager::class.java)!!
+        val projectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
         try {
             startActivityForResult(projectionManager.createScreenCaptureIntent(), REQUEST_CODE_SCREEN_CAPTURE)
         } catch (ex: ActivityNotFoundException) {

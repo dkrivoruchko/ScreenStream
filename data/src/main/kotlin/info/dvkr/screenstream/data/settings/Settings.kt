@@ -3,6 +3,7 @@ package info.dvkr.screenstream.data.settings
 interface Settings : SettingsReadOnly {
 
     object Key {
+        const val NIGHT_MODE = "PREF_KEY_NIGHT_MODE"
         const val MINIMIZE_ON_STREAM = "PREF_KEY_MINIMIZE_ON_STREAM"
         const val STOP_ON_SLEEP = "PREF_KEY_STOP_ON_SLEEP"
         const val START_ON_BOOT = "PREF_KEY_START_ON_BOOT"
@@ -22,6 +23,7 @@ interface Settings : SettingsReadOnly {
     }
 
     object Default {
+        const val NIGHT_MODE = 0
         const val MINIMIZE_ON_STREAM = true
         const val STOP_ON_SLEEP = false
         const val START_ON_BOOT = false
@@ -40,6 +42,7 @@ interface Settings : SettingsReadOnly {
         const val SERVER_PORT = 8080
     }
 
+    override var nightMode: Int
     override var minimizeOnStream: Boolean
     override var stopOnSleep: Boolean
     override var startOnBoot: Boolean

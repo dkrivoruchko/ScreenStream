@@ -4,6 +4,7 @@ import androidx.annotation.MainThread
 
 
 interface SettingsReadOnly {
+    val nightMode: Int
     val minimizeOnStream: Boolean
     val stopOnSleep: Boolean
     val startOnBoot: Boolean

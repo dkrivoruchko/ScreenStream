@@ -46,7 +46,7 @@ class StreamFragment : Fragment() {
 
     private val textColorPrimary by lazy { ContextCompat.getColor(requireContext(), R.color.textColorPrimary) }
     private val colorAccent by lazy { ContextCompat.getColor(requireContext(), R.color.colorAccent) }
-    private val colorError by lazy { ContextCompat.getColor(requireContext(), R.color.colorError1) }
+    private val colorError by lazy { ContextCompat.getColor(requireContext(), R.color.colorErrorBackground) }
 
     private val clipboard: ClipboardManager? by lazy {
         ContextCompat.getSystemService(requireContext(), ClipboardManager::class.java)

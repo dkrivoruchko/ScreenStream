@@ -3,27 +3,28 @@
     <color name="colorPrimary">#FFFFFF</color>
     <color name="colorPrimaryDark">#FFFFFF</color>
     <color name="colorAccent">#05A484</color>
-    <color name="colorBackgroundSecondary">#F4F4F4</color>
-
     <color name="textColorPrimary">#5F6368</color>
     <color name="textColorSecondary">#3C4043</color>
-    <color name="textColorSecondaryLight">#9AA0A6</color>
+    <color name="textColorTertiary">#9AA0A6</color>
+
+    <color name="colorStatusBar">#5F6368</color>
+    <color name="colorWindowBackgroundStart">#FFFFFF</color>
+    <color name="colorWindowBackgroundEnd">#F6F6F6</color>
+
+    <color name="colorBackgroundSecondary">#F4F4F4</color>
 
     <color name="colorIcon">@color/textColorSecondary</color>
+    <color name="colorSettingsHeader">@color/textColorSecondary</color>
+    <color name="colorSettingsSummary">@color/textColorPrimary</color>
 
     <color name="colorNavigationIconsChecked">@color/colorAccent</color>
     <color name="colorNavigationIconsUnchecked">@color/textColorPrimary</color>
     <color name="colorNavigationBackground">#FDFDFD</color>
 
-    <color name="colorDivider">#FFFFFF</color>
+    <color name="colorClientDivider">#FFFFFF</color>
+    <color name="colorSettingsDivider">#E0E0E0</color>
 
     <color name="colorNotificationText">@color/textColorSecondary</color>
 
-    <color name="colorSettingsTextTitle">@color/colorAccent</color>
-    <color name="colorSettingsTextValue">@color/colorAccent</color>
-    <color name="colorSettingsDivider">#E0E0E0</color>
-
-    <!--TODO-->
-    <color name="colorError1">#D81B60</color>
-    <color name="colorAccentWarring">#FEEFC3</color>
+    <color name="colorErrorBackground">#B00020</color>
 </resources>

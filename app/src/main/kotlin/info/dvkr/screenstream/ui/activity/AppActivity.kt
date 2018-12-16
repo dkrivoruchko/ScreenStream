@@ -14,7 +14,6 @@ import info.dvkr.screenstream.data.model.AppError
 import info.dvkr.screenstream.data.model.FatalError
 import info.dvkr.screenstream.data.model.FixableError
 import info.dvkr.screenstream.data.other.getTag
-import info.dvkr.screenstream.data.settings.SettingsReadOnly
 import info.dvkr.screenstream.service.AppService
 import info.dvkr.screenstream.service.ServiceMessage
 import info.dvkr.screenstream.ui.fragments.AboutFragment
@@ -22,7 +21,6 @@ import info.dvkr.screenstream.ui.fragments.SettingsFragment
 import info.dvkr.screenstream.ui.fragments.StreamFragment
 import info.dvkr.screenstream.ui.router.FragmentRouter
 import kotlinx.android.synthetic.main.activity_app.*
-import org.koin.android.ext.android.inject
 import timber.log.Timber
 
 class AppActivity : BaseActivity() {
@@ -30,7 +28,6 @@ class AppActivity : BaseActivity() {
         fun getStartIntent(context: Context): Intent = Intent(context, AppActivity::class.java)
     }
 
-    private val settingsReadOnly: SettingsReadOnly by inject()
     private val fragmentRouter: FragmentRouter by lazy {
         FragmentRouter(
             supportFragmentManager,
@@ -154,7 +151,7 @@ class AppActivity : BaseActivity() {
             .titleColorRes(R.color.colorPrimary)
             .message(message)
             .messageColorRes(R.color.colorPrimary)
-            .backgroundColorRes(R.color.colorError1)
+            .backgroundColorRes(R.color.colorErrorBackground)
             // .backgroundDrawable(R.drawable.bg_gradient) todo
             .positiveActionText(if (appError is FixableError) android.R.string.ok else R.string.app_activity_error_exit)
             .positiveActionTextColorRes(R.color.colorPrimary)

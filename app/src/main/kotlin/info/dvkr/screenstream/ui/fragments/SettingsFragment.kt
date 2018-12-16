@@ -12,6 +12,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
 import android.view.inputmethod.EditorInfo
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import com.afollestad.materialdialogs.MaterialDialog
@@ -22,6 +23,7 @@ import com.afollestad.materialdialogs.customview.customView
 import com.afollestad.materialdialogs.customview.getCustomView
 import com.afollestad.materialdialogs.input.getInputField
 import com.afollestad.materialdialogs.input.input
+import com.afollestad.materialdialogs.list.listItemsSingleChoice
 import com.google.android.material.textfield.TextInputEditText
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.data.other.getTag
@@ -46,6 +48,12 @@ class SettingsFragment : Fragment() {
     private val settings: Settings by inject()
     private val settingsListener = object : SettingsReadOnly.OnSettingsChangeListener {
         override fun onSettingsChanged(key: String) = when (key) {
+            Settings.Key.NIGHT_MODE -> {
+                val index = nightModeList.first { it.second == settings.nightMode }.first
+                tv_fragment_settings_night_mode_summary.text =
+                        resources.getStringArray(R.array.pref_night_mode_options)[index]
+            }
+
             Settings.Key.HTML_BACK_COLOR ->
                 v_fragment_settings_html_back_color.setBackgroundColor(settings.htmlBackColor)
 
@@ -73,12 +81,39 @@ class SettingsFragment : Fragment() {
         }
     }
 
+    private val nightModeList = listOf(
+        0 to AppCompatDelegate.MODE_NIGHT_YES,
+        1 to AppCompatDelegate.MODE_NIGHT_AUTO,
+        2 to AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM, // Battery saver only
+        3 to AppCompatDelegate.MODE_NIGHT_NO
+    )
+
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View =
         inflater.inflate(R.layout.fragment_settings, container, false)
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         Timber.tag(getTag("onViewCreated")).w("Invoked")
+
+        // Interface - Night mode
+        val index = nightModeList.first { it.second == settings.nightMode }.first
+        tv_fragment_settings_night_mode_summary.text = resources.getStringArray(R.array.pref_night_mode_options)[index]
+
+        with(cl_fragment_settings_night_mode) {
+            setOnClickListener {
+                val indexOld = nightModeList.first { it.second == settings.nightMode }.first
+                MaterialDialog(requireActivity()).show {
+                    title(R.string.pref_night_mode)
+                    icon(R.drawable.ic_settings_night_mode_24dp)
+                    listItemsSingleChoice(R.array.pref_night_mode_options, initialSelection = indexOld) { _, index, _ ->
+                        settings.nightMode = nightModeList.firstOrNull { item -> item.first == index }?.second ?:
+                                throw IllegalArgumentException("Unknown night mode index")
+                    }
+                    positiveButton(android.R.string.ok)
+                    negativeButton(android.R.string.cancel)
+                }
+            }
+        }
 
         // Interface - Minimize on stream
         with(cb_fragment_settings_minimize_on_stream) {

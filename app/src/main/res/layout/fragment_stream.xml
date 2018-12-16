@@ -87,7 +87,7 @@
                     <View
                         android:layout_width="match_parent"
                         android:layout_height="1dp"
-                        android:background="@color/colorDivider" />
+                        android:background="@color/colorClientDivider" />
 
                     <com.jjoe64.graphview.GraphView
                         android:id="@+id/graph_fragment_stream_traffic"
@@ -152,7 +152,7 @@
                     <View
                         android:layout_width="match_parent"
                         android:layout_height="1dp"
-                        android:background="@color/colorDivider" />
+                        android:background="@color/colorClientDivider" />
 
                     <LinearLayout
                         android:id="@+id/ll_fragment_stream_client_list"

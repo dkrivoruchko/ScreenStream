@@ -19,7 +19,7 @@
         android:largeHeap="true"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/AppTheme"
+        android:theme="@style/Theme.App.DayNight"
         tools:ignore="GoogleAppIndexingWarning">
         <meta-data
             android:name="io.fabric.ApiKey"
