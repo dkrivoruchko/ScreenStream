@@ -6,7 +6,6 @@ interface Settings : SettingsReadOnly {
         const val MINIMIZE_ON_STREAM = "PREF_KEY_MINIMIZE_ON_STREAM"
         const val STOP_ON_SLEEP = "PREF_KEY_STOP_ON_SLEEP"
         const val START_ON_BOOT = "PREF_KEY_START_ON_BOOT"
-        const val MJPEG_CHECK = "PREF_KEY_MJPEG_CHECK"
         const val HTML_BACK_COLOR = "PREF_KEY_HTML_BACK_COLOR"
 
         const val JPEG_QUALITY = "PREF_KEY_JPEG_QUALITY"
@@ -26,7 +25,6 @@ interface Settings : SettingsReadOnly {
         const val MINIMIZE_ON_STREAM = true
         const val STOP_ON_SLEEP = false
         const val START_ON_BOOT = false
-        const val MJPEG_CHECK = false
         const val HTML_BACK_COLOR = -16777216 // "ff000000".toLong(radix = 16).toInt()
 
         const val JPEG_QUALITY = 80
@@ -45,7 +43,6 @@ interface Settings : SettingsReadOnly {
     override var minimizeOnStream: Boolean
     override var stopOnSleep: Boolean
     override var startOnBoot: Boolean
-    override var disableMJPEGCheck: Boolean
     override var htmlBackColor: Int
 
     override var jpegQuality: Int

@@ -10,5 +10,4 @@
     <string name="html_four_digits">Четыре цифры</string>
     <string name="html_submit_text">Отправить</string>
     <string name="html_wrong_pin">Неверный PIN-код!</string>
-    <string name="html_no_mjpeg_support">Ой :(&lt;br&gt;Кажется, этот браузер не поддерживает MJPEG&lt;br&gt;&lt;br&gt;Эта проверка не очень точна&lt;br&gt;Вы можете отключить ее в настройках приложения</string>
 </resources>

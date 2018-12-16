@@ -80,9 +80,6 @@ class AppStateMachineImpl(
     private val settingsListener = object : SettingsReadOnly.OnSettingsChangeListener {
         override fun onSettingsChanged(key: String) {
             when (key) {
-                Settings.Key.MJPEG_CHECK ->
-                    RestartReason.SettingsChanged("disableMJPEGCheck: ${settingsReadOnly.disableMJPEGCheck}")
-
                 Settings.Key.HTML_BACK_COLOR ->
                     RestartReason.SettingsChanged("htmlBackColor: ${settingsReadOnly.htmlBackColor}")
 

@@ -10,5 +10,4 @@
     <string name="html_four_digits">Quatre chiffres</string>
     <string name="html_submit_text">Soumettre</string>
     <string name="html_wrong_pin">Mauvais code !</string>
-    <string name="html_no_mjpeg_support">Désolé :(<br />Il semble que ce navigateur ne supporte pas le format MJPEG.<br /><br />Cette vérification peut être inexacte.<br />Vous pouvez la désactiver dans les paramètres de l\'application.</string>
 </resources>

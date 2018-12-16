@@ -137,11 +137,6 @@ class HttpServerImpl constructor(
 
         val indexHtmlBytes = getFileFromAssets(applicationContext, HttpServerFiles.INDEX_HTML)
         val baseIndexHtml = String(indexHtmlBytes, StandardCharsets.UTF_8)
-            .replaceFirst(
-                HttpServerFiles.INDEX_HTML_NO_MJPEG_SUPPORT_MESSAGE.toRegex(),
-                applicationContext.getString(R.string.html_no_mjpeg_support)
-            )
-
         val pinRequestHtmlBytes = getFileFromAssets(applicationContext, HttpServerFiles.PINREQUEST_HTML)
         val basePinRequestHtml = String(pinRequestHtmlBytes, StandardCharsets.UTF_8)
             .replaceFirst(
@@ -178,12 +173,6 @@ class HttpServerImpl constructor(
             HttpServerFiles.INDEX_HTML_BACKGROUND_COLOR.toRegex(),
             "#%06X".format(0xFFFFFF and settingsReadOnly.htmlBackColor)
         )
-
-        if (settingsReadOnly.disableMJPEGCheck) {
-            currentIndexHtml = currentIndexHtml
-                .replaceFirst("id=mj".toRegex(), "")
-                .replaceFirst("id=pmj".toRegex(), "")
-        }
 
         val currentStreamAddress: String
         val currentPinAddress: String

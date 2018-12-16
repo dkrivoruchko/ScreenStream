@@ -51,8 +51,6 @@
     <string name="pref_stop_on_sleep_summary">當螢幕待機關閉時停止串流</string>
     <string name="pref_start_on_boot">開機時啟動</string>
     <string name="pref_start_on_boot_summary">開機後自動開始串流</string>
-    <string name="pref_mjpeg_check">停止MJPEG檢查</string>
-    <string name="pref_mjpeg_check_summary">停止檢查瀏覽器對於MJPEG的支援</string>
     <string name="pref_html_back_color">背景色</string>
     <string name="pref_html_back_color_summary">設定串流頁面背景色</string>
     <string name="pref_html_back_color_title">選擇背景色</string>

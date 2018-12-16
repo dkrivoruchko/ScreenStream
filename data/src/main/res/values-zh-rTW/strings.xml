@@ -10,5 +10,4 @@
     <string name="html_four_digits">四位數字</string>
     <string name="html_submit_text">傳送</string>
     <string name="html_wrong_pin">pin錯誤！</string>
-    <string name="html_no_mjpeg_support">抱歉：(&lt;br&gt;您的瀏覽器看來不支援MJPEG格式。&lt;br&gt;&lt;br&gt;這個檢查或許有誤&lt;br&gt;您可以在串流程式設定中關閉本檢查</string>
 </resources>

@@ -51,8 +51,6 @@
     <string name="pref_stop_on_sleep_summary">Parar stream se a tela for desligada</string>
     <string name="pref_start_on_boot">Comecar na inicialização</string>
     <string name="pref_start_on_boot_summary">Iniciar stream assim que o dispositivo iniciar</string>
-    <string name="pref_mjpeg_check">Desativar verificação MJPEG</string>
-    <string name="pref_mjpeg_check_summary">Desativar verificar o suporte do navegador MJPEG</string>
     <string name="pref_html_back_color">Cor de fundo da página</string>
     <string name="pref_html_back_color_summary">Essa função foi desativada</string>
     <string name="pref_html_back_color_title">Função obsoleta</string>

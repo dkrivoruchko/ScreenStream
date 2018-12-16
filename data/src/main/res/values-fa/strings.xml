@@ -10,5 +10,4 @@
     <string name="html_four_digits">چهار رقم</string>
     <string name="html_submit_text">فرستادن</string>
     <string name="html_wrong_pin">پین نادرست!</string>
-    <string name="html_no_mjpeg_support">ببخشید :(&lt;br&gt;به نظر می‌رسد این مرورگر MJPEG را پشتیبانی نمی‌کند.&lt;br&gt;&lt;br&gt;این بررسی، دقیق نیست&lt;br&gt;می‌توانید آن را در تنظیمات برنامه، غیر فعال کنید.</string>
 </resources>

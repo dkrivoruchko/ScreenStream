@@ -8,7 +8,6 @@ internal interface HttpServerFiles {
         const val INDEX_HTML = "index.html"
         const val INDEX_HTML_BACKGROUND_COLOR = "BACKGROUND_COLOR"
         const val INDEX_HTML_SCREEN_STREAM_ADDRESS = "SCREEN_STREAM_ADDRESS"
-        const val INDEX_HTML_NO_MJPEG_SUPPORT_MESSAGE = "NO_MJPEG_SUPPORT_MESSAGE"
 
         const val PINREQUEST_HTML = "pinrequest.html"
         const val PINREQUEST_HTML_STREAM_REQUIRE_PIN = "STREAM_REQUIRE_PIN"

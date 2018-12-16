@@ -12,10 +12,6 @@
 <script>
     if("undefined"!=typeof history.pushState){var o={Title:"Screen Stream",Url:"/"};history.pushState(o,o.Title,o.Url)}
 </script>
-<img id=mj src="SCREEN_STREAM_ADDRESS"/>
-<p id=pmj>NO_MJPEG_SUPPORT_MESSAGE</p>
-<script>
-    var v=document.createElement("video");var a=v.canPlayType('audio/mpeg;codecs=""');if(a!="probably"){document.getElementById("pmj").style.display="block";document.getElementById("mj").style.display="none"};
-</script>
+<img src="SCREEN_STREAM_ADDRESS"/>
 </body>
 </html>

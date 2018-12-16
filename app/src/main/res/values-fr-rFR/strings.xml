@@ -51,8 +51,6 @@
     <string name="pref_stop_on_sleep_summary">Arrête la diffusion si l\'écran s\'éteint</string>
     <string name="pref_start_on_boot">Diffuser au démarrage</string>
     <string name="pref_start_on_boot_summary">Lance la diffusion après le démarrage de l\'appareil</string>
-    <string name="pref_mjpeg_check">Désactiver la vérification MJPEG</string>
-    <string name="pref_mjpeg_check_summary">Désactive la vérification du support du format MJPEG par le navigateur</string>
     <string name="pref_html_back_color">Couleur d\'arrière-plan de la page</string>
     <string name="pref_html_back_color_summary">Définir la couleur d\'arrière-plan de la page HTML</string>
     <string name="pref_html_back_color_title">Selection de la couleur d\'arrière-plan</string>

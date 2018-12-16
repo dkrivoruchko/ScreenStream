@@ -51,8 +51,6 @@
     <string name="pref_stop_on_sleep_summary">Останавливать трансляцию, если выключится экран</string>
     <string name="pref_start_on_boot">Начинать при загрузке</string>
     <string name="pref_start_on_boot_summary">Начинать трансляцию при загрузке устройства</string>
-    <string name="pref_mjpeg_check">Отключить проверку MJPEG</string>
-    <string name="pref_mjpeg_check_summary">Отключить проверку поддержки браузером MJPEG</string>
     <string name="pref_html_back_color">Цвет фона HTML-страницы</string>
     <string name="pref_html_back_color_summary">Выбрать цвет фона HTML-странцы</string>
     <string name="pref_html_back_color_title">Выберите цвет фона</string>

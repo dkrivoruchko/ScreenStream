@@ -52,8 +52,6 @@
     <string name="pref_stop_on_sleep_summary">Stop stream if screen turns off</string>
     <string name="pref_start_on_boot">Start on boot</string>
     <string name="pref_start_on_boot_summary">Start stream after device boot</string>
-    <string name="pref_mjpeg_check">Disable MJPEG check</string>
-    <string name="pref_mjpeg_check_summary">Disable check for browser MJPEG support</string>
     <string name="pref_html_back_color">Page background color</string>
     <string name="pref_html_back_color_summary">Set HTML page background color</string>
     <string name="pref_html_back_color_title">Select background color</string>

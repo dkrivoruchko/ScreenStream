@@ -10,5 +10,4 @@
     <string name="html_four_digits">Quatro dígitos</string>
     <string name="html_submit_text">Enviar</string>
     <string name="html_wrong_pin">Pin errado!</string>
-    <string name="html_no_mjpeg_support">Desculpe :(&lt;br&gt;Parece que este navegador não suporta MJPEG.&lt;br&gt;&lt;br&gt;Este cheque é impreciso&lt;br&gt;Você pode desativá-lo nas configurações do aplicativo</string>
 </resources>

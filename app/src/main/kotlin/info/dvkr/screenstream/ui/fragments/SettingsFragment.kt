@@ -101,13 +101,6 @@ class SettingsFragment : Fragment() {
             cl_fragment_settings_start_on_boot.setOnClickListener { performClick() }
         }
 
-        // Interface - HTML MJPEG check
-        with(cb_fragment_settings_mjpeg_check) {
-            isChecked = settings.disableMJPEGCheck
-            setOnClickListener { settings.disableMJPEGCheck = isChecked }
-            cl_fragment_settings_mjpeg_check.setOnClickListener { performClick() }
-        }
-
         // Interface - HTML Back color
         v_fragment_settings_html_back_color.setBackgroundColor(settings.htmlBackColor)
         cl_fragment_settings_html_back_color.setOnClickListener {

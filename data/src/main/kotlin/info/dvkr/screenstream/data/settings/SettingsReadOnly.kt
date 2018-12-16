@@ -7,7 +7,6 @@ interface SettingsReadOnly {
     val minimizeOnStream: Boolean
     val stopOnSleep: Boolean
     val startOnBoot: Boolean
-    val disableMJPEGCheck: Boolean
     val htmlBackColor: Int
 
     val jpegQuality: Int

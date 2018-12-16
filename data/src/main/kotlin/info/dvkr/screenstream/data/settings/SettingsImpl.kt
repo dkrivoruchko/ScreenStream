@@ -20,9 +20,6 @@ class SettingsImpl(private val preferences: Preferences) : Settings {
     override var startOnBoot: Boolean
             by bindPreference(preferences, Settings.Key.START_ON_BOOT, Settings.Default.START_ON_BOOT)
 
-    override var disableMJPEGCheck: Boolean
-            by bindPreference(preferences, Settings.Key.MJPEG_CHECK, Settings.Default.MJPEG_CHECK)
-
     override var htmlBackColor: Int
             by bindPreference(preferences, Settings.Key.HTML_BACK_COLOR, Settings.Default.HTML_BACK_COLOR)
 

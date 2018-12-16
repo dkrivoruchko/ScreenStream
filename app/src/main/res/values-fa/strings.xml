@@ -51,8 +51,6 @@
     <string name="pref_stop_on_sleep_summary">در صورت خاموش شدن صفحه، جریان متوقف شود</string>
     <string name="pref_start_on_boot">شروع در زمان راه‌اندازی</string>
     <string name="pref_start_on_boot_summary">پس از بالاآمدن دستگاه، جریان شروع شود</string>
-    <string name="pref_mjpeg_check">غیرفعال‌سازی بررسی MJPEG</string>
-    <string name="pref_mjpeg_check_summary">غیرفعال‌سازی بررسی پشتیبانی MJPEG توسط مرورگر</string>
     <string name="pref_html_back_color">رنگ پس‌زمینه صفحه</string>
     <string name="pref_html_back_color_summary">تنظیم رنگ پس‌زمینه صفحه HTML</string>
     <string name="pref_html_back_color_title">رنگ پس‌زمینه را انتخاب کنید</string>

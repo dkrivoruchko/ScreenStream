@@ -10,5 +10,4 @@
     <string name="html_four_digits">Four digits</string>
     <string name="html_submit_text">Submit</string>
     <string name="html_wrong_pin">Wrong pin!</string>
-    <string name="html_no_mjpeg_support">Sorry :(&lt;br&gt;Seems that this browser does not support MJPEG.&lt;br&gt;&lt;br&gt;This check is inaccurate&lt;br&gt;You can disable it in application settings</string>
 </resources>
