@@ -9,7 +9,6 @@ import android.os.Bundle
 import android.view.View
 import android.view.animation.OvershootInterpolator
 import android.widget.TextView
-import androidx.core.view.forEach
 import com.andrognito.flashbar.Flashbar
 import com.google.android.material.bottomnavigation.BottomNavigationItemView
 import com.google.android.material.bottomnavigation.BottomNavigationMenuView
@@ -61,8 +60,10 @@ class AppActivity : BaseActivity() {
         if (savedInstanceState == null) fragmentRouter.navigateTo(R.id.menu_stream_fragment)
 
         // Fix for https://github.com/material-components/material-components-android/issues/139
-        (bottom_navigation_activity_single.getChildAt(0) as BottomNavigationMenuView).forEach { item ->
-            (item as BottomNavigationItemView).findViewById<TextView>(R.id.largeLabel).setPadding(0, 0, 0, 0)
+        with(bottom_navigation_activity_single.getChildAt(0) as BottomNavigationMenuView) {
+            for (index in 0 until childCount)
+                (getChildAt(index) as BottomNavigationItemView).findViewById<TextView>(R.id.largeLabel)
+                    .setPadding(0, 0, 0, 0)
         }
 
         bottom_navigation_activity_single.setOnNavigationItemSelectedListener { menuItem ->

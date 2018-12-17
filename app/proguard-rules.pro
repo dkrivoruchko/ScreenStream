@@ -27,43 +27,33 @@
 
 -keep class com.crashlytics.** { *; }
 -dontwarn com.crashlytics.**
-# TODO
-#-allowaccessmodification
-#
-## Fabric
-#-keepattributes *Annotation*
-#-keepattributes SourceFile,LineNumberTable
-#-keep public class * extends java.lang.Exception
-#-keep class com.crashlytics.** { *; }
-#-dontwarn com.crashlytics.**
-#
-## Netty
-#-dontwarn io.netty.**
-#-keepnames class io.netty.** { *;}
-#
-## SLF4J
-#-dontwarn org.slf4j.**
-#
-## RxJava
-#-dontwarn sun.misc.**
-#-keepclassmembers class rx.internal.util.unsafe.*ArrayQueue*Field* {
-#   long producerIndex;
-#   long consumerIndex;
-#}
-#-keepclassmembers class rx.internal.util.unsafe.BaseLinkedQueueProducerNodeRef {
-#    rx.internal.util.atomic.LinkedQueueNode producerNode;
-#}
-#-keepclassmembers class rx.internal.util.unsafe.BaseLinkedQueueConsumerNodeRef {
-#    rx.internal.util.atomic.LinkedQueueNode consumerNode;
-#}
-#-dontnote rx.internal.util.PlatformDependent
-#
-## MaterialDrawer
-#-dontwarn com.mikepenz.fastadapter.**
-#
-## kotlinx.coroutines
-#-keepnames class kotlinx.coroutines.internal.MainDispatcherFactory {}
-#-keepnames class kotlinx.coroutines.CoroutineExceptionHandler {}
-#-keepclassmembernames class kotlinx.** {
-#    volatile <fields>;
-#}
+
+# Coroutines
+# ServiceLoader support
+-keepnames class kotlinx.coroutines.internal.MainDispatcherFactory {}
+-keepnames class kotlinx.coroutines.CoroutineExceptionHandler {}
+# Most of volatile fields are updated with AFU and should not be mangled
+-keepclassmembernames class kotlinx.** {
+    volatile <fields>;
+}
+
+# Netty
+-dontwarn io.netty.**
+-keepnames class io.netty.** { *;}
+
+# SLF4J
+-dontwarn org.slf4j.**
+
+# RxJava
+-dontwarn sun.misc.**
+-keepclassmembers class rx.internal.util.unsafe.*ArrayQueue*Field* {
+   long producerIndex;
+   long consumerIndex;
+}
+-keepclassmembers class rx.internal.util.unsafe.BaseLinkedQueueProducerNodeRef {
+    rx.internal.util.atomic.LinkedQueueNode producerNode;
+}
+-keepclassmembers class rx.internal.util.unsafe.BaseLinkedQueueConsumerNodeRef {
+    rx.internal.util.atomic.LinkedQueueNode consumerNode;
+}
+-dontnote rx.internal.util.PlatformDependent

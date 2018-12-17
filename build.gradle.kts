@@ -20,7 +20,7 @@ allprojects {
         maven { url = uri("https://jitpack.io") }
         maven { url = uri("https://maven.fabric.io/public") }
         maven { url = uri("https://dl.bintray.com/drummer-aidan/maven/") }
-        //Temp for "com.afollestad.material-dialogs:color:2.0.0-rc2"
+        //Temp for "com.afollestad.material-dialogs:color:2.0.0-rc3"
     }
 }
 

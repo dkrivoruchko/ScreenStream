@@ -13,7 +13,6 @@ class ScreenStreamApp : Application() {
     override fun onCreate() {
         super.onCreate()
 
-        // Set up Timber
         Timber.plant(Timber.DebugTree())
 
         val defaultHandler = Thread.getDefaultUncaughtExceptionHandler()
@@ -22,7 +21,6 @@ class ScreenStreamApp : Application() {
             defaultHandler.uncaughtException(thread, throwable)
         }
 
-        // Turning on strict mode
         StrictMode.setThreadPolicy(
             StrictMode.ThreadPolicy.Builder()
                 .detectAll()
@@ -39,15 +37,9 @@ class ScreenStreamApp : Application() {
                 .build()
         )
 
-        // Set up LeakCanary
         if (LeakCanary.isInAnalyzerProcess(this)) return
         LeakCanary.install(this)
 
-//        System.setProperty("kotlinx.coroutines.debug", "on")
-
-//        AndroidThreeTen.init(this)
-
-        // Set up DI
         startKoin(this,
             listOf(baseKoinModule),
             logger = object : Logger {
@@ -55,7 +47,6 @@ class ScreenStreamApp : Application() {
                 override fun err(msg: String) = Timber.tag("Koin").e(msg)
                 override fun info(msg: String) = Timber.tag("Koin").i(msg)
             })
-
 
         AppService.startForegroundService(this)
     }

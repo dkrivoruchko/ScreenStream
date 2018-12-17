@@ -72,6 +72,4 @@ dependencies {
 
     implementation("com.github.iamironz:binaryprefs:${Versions.binaryprefs}")
     implementation("com.jakewharton.timber:timber:${Versions.timber}")
-
-//    implementation "com.jakewharton.threetenabp:threetenabp:1.1.0"
 }

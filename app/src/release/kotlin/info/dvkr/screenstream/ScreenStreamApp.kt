@@ -4,6 +4,7 @@ import android.app.Application
 import android.util.Log
 import com.crashlytics.android.Crashlytics
 import info.dvkr.screenstream.di.baseKoinModule
+import info.dvkr.screenstream.service.AppService
 import io.fabric.sdk.android.Fabric
 import org.koin.android.ext.android.startKoin
 import org.koin.log.Logger
@@ -16,13 +17,11 @@ class ScreenStreamApp : Application() {
 
         Fabric.with(this, Crashlytics())
 
-        // Set up Timber
         Timber.plant(object : Timber.Tree() {
             override fun log(priority: Int, tag: String?, message: String, throwable: Throwable?) {
                 if (priority == Log.VERBOSE || priority == Log.DEBUG) return
                 Crashlytics.log("${tag ?: ""}:$message")
                 throwable?.run { Crashlytics.logException(this) }
-
             }
         })
 
@@ -32,16 +31,14 @@ class ScreenStreamApp : Application() {
             defaultHandler.uncaughtException(thread, throwable)
         }
 
-//        AndroidThreeTen.init(this)
-
-        // Set up DI
         startKoin(this,
             listOf(baseKoinModule),
-            loadProperties = true,
             logger = object : Logger {
                 override fun debug(msg: String) = Timber.tag("Koin").d(msg)
                 override fun err(msg: String) = Timber.tag("Koin").e(msg)
                 override fun info(msg: String) = Timber.tag("Koin").i(msg)
             })
+
+        AppService.startForegroundService(this)
     }
 }
