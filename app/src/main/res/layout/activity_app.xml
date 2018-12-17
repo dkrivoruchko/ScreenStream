@@ -32,6 +32,7 @@
         android:layout_marginBottom="@dimen/fragment_stream_fab_margin_bottom"
         android:clickable="true"
         android:focusable="true"
+        android:visibility="invisible"
         app:elevation="8dp"
         app:fabSize="normal"
         app:layout_constraintBottom_toBottomOf="@id/bottom_navigation_activity_single"

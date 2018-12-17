@@ -135,8 +135,7 @@ class AppService : Service(), CoroutineScope {
 
         when (effect) {
             is AppStateMachine.Effect.RequestCastPermissions -> startActivity(PermissionActivity.getStartIntent(this))
-            is AppStateMachine.Effect.ConnectionChanged -> { //todo
-            }
+            is AppStateMachine.Effect.ConnectionChanged -> Unit  // TODO Notify user about restart reason
             is AppStateMachine.Effect.PublicState -> {
                 activityMessagesHandler.sendMessageToActivities(
                     ServiceMessage.ServiceState(
