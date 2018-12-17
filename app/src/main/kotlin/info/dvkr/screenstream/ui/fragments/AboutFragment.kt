@@ -33,7 +33,7 @@ class AboutFragment : Fragment() {
 
         with(requireActivity()) {
             val version = packageManager.getPackageInfo(packageName, 0).versionName
-            tv_fragment_about_version.text = getString(R.string.about_fragment_app_version).format(version)
+            tv_fragment_about_version.text = getString(R.string.about_fragment_app_version, version)
 
             b_fragment_about_rate.setOnClickListener {
                 try {

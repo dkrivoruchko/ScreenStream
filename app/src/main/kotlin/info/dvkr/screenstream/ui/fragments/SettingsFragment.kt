@@ -55,11 +55,11 @@ class SettingsFragment : Fragment() {
             }
 
             Settings.Key.HTML_BACK_COLOR ->
-                v_fragment_settings_html_back_color.setBackgroundColor(settings.htmlBackColor)
+                v_fragment_settings_html_back_color.color = settings.htmlBackColor
 
             Settings.Key.RESIZE_FACTOR ->
                 tv_fragment_settings_resize_image_value.text =
-                        getString(R.string.pref_resize_value).format(settings.resizeFactor)
+                        getString(R.string.pref_resize_value, settings.resizeFactor)
 
             Settings.Key.JPEG_QUALITY ->
                 tv_fragment_settings_jpeg_quality_value.text = settings.jpegQuality.toString()
@@ -83,8 +83,8 @@ class SettingsFragment : Fragment() {
 
     private val nightModeList = listOf(
         0 to AppCompatDelegate.MODE_NIGHT_YES,
-        1 to AppCompatDelegate.MODE_NIGHT_AUTO,
-        2 to AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM, // Battery saver only
+        1 to AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM,
+        2 to AppCompatDelegate.MODE_NIGHT_AUTO,
         3 to AppCompatDelegate.MODE_NIGHT_NO
     )
 
@@ -137,7 +137,8 @@ class SettingsFragment : Fragment() {
         }
 
         // Interface - HTML Back color
-        v_fragment_settings_html_back_color.setBackgroundColor(settings.htmlBackColor)
+        v_fragment_settings_html_back_color.color = settings.htmlBackColor
+        v_fragment_settings_html_back_color.border = ContextCompat.getColor(requireContext(), R.color.textColorPrimary)
         cl_fragment_settings_html_back_color.setOnClickListener {
             MaterialDialog(requireActivity()).show {
                 title(R.string.pref_html_back_color_title)
@@ -161,9 +162,7 @@ class SettingsFragment : Fragment() {
         }
 
         // Image - Resize factor
-        tv_fragment_settings_resize_image_value.text =
-                getString(R.string.pref_resize_value).format(settings.resizeFactor)
-
+        tv_fragment_settings_resize_image_value.text = getString(R.string.pref_resize_value, settings.resizeFactor)
         val resizePictureSizeString = getString(R.string.pref_resize_dialog_result)
         cl_fragment_settings_resize_image.setOnClickListener {
             val resizeDialog = MaterialDialog(requireActivity())
@@ -180,7 +179,7 @@ class SettingsFragment : Fragment() {
 
             resizeDialog.getCustomView()?.apply DialogView@{
                 tv_dialog_settings_resize_content.text =
-                        getString(R.string.pref_resize_dialog_text).format(screenSize.x, screenSize.y)
+                        getString(R.string.pref_resize_dialog_text, screenSize.x, screenSize.y)
 
                 ti_dialog_settings_resize.isCounterEnabled = true
                 ti_dialog_settings_resize.counterMaxLength = 3
@@ -191,8 +190,7 @@ class SettingsFragment : Fragment() {
                         resizeDialog.setActionButtonEnabled(WhichButton.POSITIVE, isValid)
                         val newResizeFactor = (if (isValid) text.toString().toInt() else settings.resizeFactor) / 100f
                         this@DialogView.tv_dialog_settings_resize_result.text = resizePictureSizeString.format(
-                            (screenSize.x * newResizeFactor).toInt(),
-                            (screenSize.y * newResizeFactor).toInt()
+                            (screenSize.x * newResizeFactor).toInt(), (screenSize.y * newResizeFactor).toInt()
                         )
                     })
                     setText(settings.resizeFactor.toString())

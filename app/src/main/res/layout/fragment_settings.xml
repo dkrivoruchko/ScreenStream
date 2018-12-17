@@ -10,7 +10,7 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="40dp"
+        android:layout_marginBottom="@dimen/fragments_margin_bottom"
         android:orientation="vertical">
 
         <androidx.appcompat.widget.AppCompatTextView
@@ -331,12 +331,11 @@
                 app:layout_constraintStart_toEndOf="@id/iv_fragment_settings_html_back_color"
                 app:layout_constraintTop_toBottomOf="@id/tv_fragment_settings_html_back_color" />
 
-            <View
+            <info.dvkr.screenstream.ui.view.ColorCircleView
                 android:id="@+id/v_fragment_settings_html_back_color"
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:layout_marginEnd="10dp"
-                android:background="#000"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_marginEnd="8dp"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintTop_toTopOf="parent" />

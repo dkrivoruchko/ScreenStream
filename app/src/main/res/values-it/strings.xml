@@ -45,6 +45,13 @@
     <string name="toast_slow_client_connection">Rilevata connessione lenta del client</string>
 
     <string name="pref_settings_interface">Interfaccia</string>
+    <string name="pref_night_mode">Tema scuro</string>
+    <string-array name="pref_night_mode_options">
+        <item>Sempre</item>
+        <item>Automaticamente (di notte e risparmia batteria)</item>
+        <item>Solo risparmio batteria</item>
+        <item>Mai</item>
+    </string-array>
     <string name="pref_minimize_on_stream">Minimize on stream</string>
     <string name="pref_minimise_on_stream_summary">Minimizza l\'app quando trasmetti</string>
     <string name="pref_stop_on_sleep">Interrompi a schermo spento</string>

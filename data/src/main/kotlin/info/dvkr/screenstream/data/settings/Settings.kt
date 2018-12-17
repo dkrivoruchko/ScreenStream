@@ -23,7 +23,7 @@ interface Settings : SettingsReadOnly {
     }
 
     object Default {
-        const val NIGHT_MODE = 0
+        const val NIGHT_MODE = -1
         const val MINIMIZE_ON_STREAM = true
         const val STOP_ON_SLEEP = false
         const val START_ON_BOOT = false

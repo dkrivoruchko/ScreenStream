@@ -10,14 +10,15 @@
         android:id="@+id/fl_activity_single"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        app:layout_constraintBottom_toTopOf="@id/bottom_navigation_activity_single"
+        android:layout_marginBottom="24dp"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
     <info.dvkr.screenstream.ui.view.CurvedBottomNavigationView
         android:id="@+id/bottom_navigation_activity_single"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@color/colorNavigationBackground"
+        android:background="@color/colorBackgroundSecondary"
         app:itemIconTint="@drawable/bottom_navigation_colors"
         app:itemTextColor="@drawable/bottom_navigation_colors"
         app:labelVisibilityMode="labeled"
@@ -28,7 +29,7 @@
         android:id="@+id/fab_activity_single_start_stop"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="68dp"
+        android:layout_marginBottom="@dimen/fragment_stream_fab_margin_bottom"
         android:clickable="true"
         android:focusable="true"
         app:elevation="8dp"

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+
     <style name="Theme.App.Light" parent="Theme.MaterialComponents.Light.NoActionBar">
         <item name="colorPrimary">@color/colorPrimary</item>
         <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
@@ -32,7 +33,7 @@
 
     <style name="Theme.App.DayNight" parent="Theme.App.Light" />
 
-    <style name="Theme.Transparent" parent="Theme.App.DayNight">
+    <style name="Theme.Transparent" parent="Theme.App.Light">
         <item name="android:windowIsTranslucent">true</item>
         <item name="android:windowBackground">@android:color/transparent</item>
         <item name="android:windowContentOverlay">@null</item>

@@ -8,11 +8,13 @@ import android.media.projection.MediaProjectionManager
 import android.os.Bundle
 import androidx.annotation.StringRes
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.ContextCompat
+import androidx.appcompat.app.AppCompatDelegate
 import com.afollestad.materialdialogs.MaterialDialog
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.data.other.getTag
+import info.dvkr.screenstream.data.settings.SettingsReadOnly
 import info.dvkr.screenstream.service.AppService
+import org.koin.android.ext.android.inject
 import timber.log.Timber
 
 
@@ -25,10 +27,16 @@ class PermissionActivity : AppCompatActivity() {
         private const val REQUEST_CODE_SCREEN_CAPTURE = 10
     }
 
+    private val settingsReadOnly: SettingsReadOnly by inject()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         overridePendingTransition(0, 0)
+        setNightMode(settingsReadOnly.nightMode)
         super.onCreate(savedInstanceState)
+    }
 
+    override fun onStart() {
+        super.onStart()
         val projectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
         try {
             startActivityForResult(projectionManager.createScreenCaptureIntent(), REQUEST_CODE_SCREEN_CAPTURE)
@@ -86,5 +94,10 @@ class PermissionActivity : AppCompatActivity() {
         AppService.startForegroundService(this, intentAction)
         finish()
         overridePendingTransition(0, 0)
+    }
+
+    private fun setNightMode(@AppCompatDelegate.NightMode nightMode: Int) {
+        AppCompatDelegate.setDefaultNightMode(nightMode)
+        delegate.setLocalNightMode(nightMode)
     }
 }

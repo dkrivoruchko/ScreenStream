@@ -7,8 +7,8 @@
     <color name="textColorSecondary">#A5A5A5</color>
     <color name="textColorTertiary">#656565</color>
 
-    <color name="colorStatusBar">#0E0E0E</color>
-    <color name="colorWindowBackgroundStart">#0E0E0E</color>
+    <color name="colorStatusBar">#0F0F0F</color>
+    <color name="colorWindowBackgroundStart">#0F0F0F</color>
     <color name="colorWindowBackgroundEnd">#000000</color>
 
     <color name="colorBackgroundSecondary">#1A1A1A</color>
@@ -24,6 +24,7 @@
     <color name="colorClientDivider">#393939</color>
     <color name="colorSettingsDivider">#393939</color>
 
+    <color name="colorNotificationBackground">#1A1A1A</color>
     <color name="colorNotificationText">@color/textColorSecondary</color>
 
     <color name="colorErrorBackground">#B00020</color>

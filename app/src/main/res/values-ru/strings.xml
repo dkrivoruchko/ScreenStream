@@ -45,6 +45,13 @@
     <string name="toast_slow_client_connection">Обнаружено медленное соединение</string>
 
     <string name="pref_settings_interface">Интерфейс</string>
+    <string name="pref_night_mode">Темная тема</string>
+    <string-array name="pref_night_mode_options">
+        <item>Всегда</item>
+        <item>Автоматически (ночью и при экономии батареи)</item>
+        <item>Только при экономии батареи</item>
+        <item>Никогда</item>
+    </string-array>
     <string name="pref_minimize_on_stream">Сворачивать при трансляции</string>
     <string name="pref_minimise_on_stream_summary">Сворачивать приложение при начале трансляции</string>
     <string name="pref_stop_on_sleep">Останавливать при выключении</string>

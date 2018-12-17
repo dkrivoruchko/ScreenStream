@@ -4,7 +4,7 @@
     android:id="@+id/ll_notification_stop_big"
     android:layout_width="match_parent"
     android:layout_height="96dp"
-    android:background="@color/colorPrimary"
+    android:background="@color/colorNotificationBackground"
     android:gravity="center_vertical"
     android:orientation="vertical"
     android:paddingStart="8dp"

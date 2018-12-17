@@ -10,7 +10,7 @@
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="40dp">
+        android:layout_marginBottom="@dimen/fragments_margin_bottom">
 
         <androidx.appcompat.widget.AppCompatImageView
             android:id="@+id/iv_fragment_about"

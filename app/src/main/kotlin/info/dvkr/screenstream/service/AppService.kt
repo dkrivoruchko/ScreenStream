@@ -26,7 +26,7 @@ import info.dvkr.screenstream.ui.activity.PermissionActivity
 import kotlinx.android.parcel.Parcelize
 import kotlinx.android.synthetic.main.toast_slow_connection.view.*
 import kotlinx.coroutines.*
-import org.koin.android.ext.android.get
+import org.koin.android.ext.android.inject
 import timber.log.Timber
 import java.util.*
 import kotlin.coroutines.CoroutineContext
@@ -136,7 +136,7 @@ class AppService : Service(), CoroutineScope {
         when (effect) {
             is AppStateMachine.Effect.RequestCastPermissions -> startActivity(PermissionActivity.getStartIntent(this))
             is AppStateMachine.Effect.ConnectionChanged -> { //todo
-                         }
+            }
             is AppStateMachine.Effect.PublicState -> {
                 activityMessagesHandler.sendMessageToActivities(
                     ServiceMessage.ServiceState(
@@ -154,6 +154,7 @@ class AppService : Service(), CoroutineScope {
         }
     }
 
+    private val settingsReadOnly: SettingsReadOnly by inject()
     private val notificationHelper by lazy { NotificationHelper(this) }
     private lateinit var appStateMachine: AppStateMachine
 
@@ -164,8 +165,8 @@ class AppService : Service(), CoroutineScope {
         appStateMachine = AppStateMachineImpl(
             this,
             parentJob,
-            get<SettingsReadOnly>(),
-            getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager, // TODO
+            settingsReadOnly,
+            getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager,
             BitmapFactory.decodeResource(resources, R.drawable.ic_app_icon),
             { clients: List<HttpClient>, trafficHistory: List<TrafficPoint> ->
                 checkForSlowClients(clients)

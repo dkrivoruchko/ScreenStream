@@ -67,10 +67,14 @@ abstract class BaseActivity : AppCompatActivity() {
         }
     }
 
+    override fun onCreate(savedInstanceState: Bundle?) {
+        setNightMode(settingsReadOnly.nightMode)
+        super.onCreate(savedInstanceState)
+    }
+
     override fun onStart() {
         super.onStart()
         Timber.tag(getTag("onStart")).d("Invoked")
-        setNightMode(settingsReadOnly.nightMode)
 
         serviceMessagesHandler.getServiceMessageLiveData().observe(this, Observer<ServiceMessage> { message ->
             message?.let { onServiceMessage(it) }

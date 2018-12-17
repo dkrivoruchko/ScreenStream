@@ -4,7 +4,7 @@
     android:id="@+id/ll_notification_start_small"
     android:layout_width="match_parent"
     android:layout_height="64dp"
-    android:background="@color/colorPrimary"
+    android:background="@color/colorNotificationBackground"
     android:gravity="center_vertical"
     android:padding="8dp">
 

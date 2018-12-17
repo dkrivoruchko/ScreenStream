@@ -102,8 +102,7 @@ class StreamFragment : Fragment() {
         } else {
             serviceMessage.netInterfaces.forEach { netInterface ->
                 with(layoutInflater.inflate(R.layout.item_device_address, ll_fragment_stream_addresses, false)) {
-                    tv_item_device_address_name.text =
-                            getString(R.string.stream_fragment_interface).format(netInterface.name)
+                    tv_item_device_address_name.text = getString(R.string.stream_fragment_interface, netInterface.name)
 
                     val fullAddress = "http://${netInterface.address.hostAddress}:${settingsReadOnly.severPort}"
                     tv_item_device_address.text = fullAddress
@@ -128,10 +127,11 @@ class StreamFragment : Fragment() {
 
         // Hide pin on Start
         if (settingsReadOnly.enablePin) {
-            val pinText = getString(R.string.stream_fragment_pin).run {
-                if (serviceMessage.isStreaming && settingsReadOnly.hidePinOnStart) format("****")
-                else format(settingsReadOnly.pin)
-            }
+            val pinText = if (serviceMessage.isStreaming && settingsReadOnly.hidePinOnStart)
+                getString(R.string.stream_fragment_pin, "****")
+            else
+                getString(R.string.stream_fragment_pin, settingsReadOnly.pin)
+
             tv_fragment_stream_pin.text = pinText.setColorSpan(colorAccent, pinText.length - 4)
         } else {
             tv_fragment_stream_pin.setText(R.string.stream_fragment_pin_disabled)
