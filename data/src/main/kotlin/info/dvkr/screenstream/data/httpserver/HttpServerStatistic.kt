@@ -1,6 +1,5 @@
 package info.dvkr.screenstream.data.httpserver
 
-import androidx.annotation.Keep
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.data.model.AppError
 import info.dvkr.screenstream.data.model.FatalError
@@ -20,7 +19,7 @@ internal class HttpServerStatistic(
     onError: (AppError) -> Unit
 ) : HttpServerCoroutineScope(onError) {
 
-    @Keep private data class LocalClient(
+    private data class LocalClient(
         val clientAddress: InetSocketAddress,
         var isSlowConnection: Boolean = false,
         var isDisconnected: Boolean = false,
@@ -33,15 +32,15 @@ internal class HttpServerStatistic(
         internal fun toHttpClient() = HttpClient(clientAddress, isSlowConnection, isDisconnected)
     }
 
-    @Keep internal sealed class StatisticEvent {
-        @Keep object Init : StatisticEvent()
-        @Keep object CalculateTraffic : StatisticEvent()
-        @Keep object SendStatistic : StatisticEvent()
+    internal sealed class StatisticEvent {
+        object Init : StatisticEvent()
+        object CalculateTraffic : StatisticEvent()
+        object SendStatistic : StatisticEvent()
 
-        @Keep data class Connected(val address: InetSocketAddress) : StatisticEvent()
-        @Keep data class Disconnected(val address: InetSocketAddress) : StatisticEvent()
-        @Keep data class Backpressure(val address: InetSocketAddress) : StatisticEvent()
-        @Keep data class NextBytes(val address: InetSocketAddress, val bytesCount: Int) : StatisticEvent()
+        data class Connected(val address: InetSocketAddress) : StatisticEvent()
+        data class Disconnected(val address: InetSocketAddress) : StatisticEvent()
+        data class Backpressure(val address: InetSocketAddress) : StatisticEvent()
+        data class NextBytes(val address: InetSocketAddress, val bytesCount: Int) : StatisticEvent()
 
         override fun toString(): String = this::class.java.simpleName
     }

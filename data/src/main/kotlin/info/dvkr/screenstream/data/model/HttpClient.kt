@@ -1,11 +1,10 @@
 package info.dvkr.screenstream.data.model
 
 import android.os.Parcelable
-import androidx.annotation.Keep
 import kotlinx.android.parcel.Parcelize
 import java.net.InetSocketAddress
 
-@Keep @Parcelize
+@Parcelize
 data class HttpClient(
     val clientAddress: InetSocketAddress,
     val isSlowConnection: Boolean,

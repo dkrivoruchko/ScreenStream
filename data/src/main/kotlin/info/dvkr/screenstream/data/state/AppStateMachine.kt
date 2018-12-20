@@ -2,7 +2,6 @@ package info.dvkr.screenstream.data.state
 
 import android.content.Intent
 import androidx.annotation.AnyThread
-import androidx.annotation.Keep
 import info.dvkr.screenstream.data.model.AppError
 import info.dvkr.screenstream.data.model.FatalError
 import info.dvkr.screenstream.data.model.NetInterface
@@ -10,19 +9,19 @@ import info.dvkr.screenstream.data.model.NetInterface
 
 interface AppStateMachine {
 
-    @Keep open class Event {
-        @Keep object StartStream : Event()
-        @Keep object CastPermissionsDenied : Event()
-        @Keep class StartProjection(val intent: Intent) : Event()
-        @Keep object StopStream : Event()
-        @Keep object RequestPublicState : Event()
-        @Keep object RecoverError : Event()
+    open class Event {
+        object StartStream : Event()
+        object CastPermissionsDenied : Event()
+        class StartProjection(val intent: Intent) : Event()
+        object StopStream : Event()
+        object RequestPublicState : Event()
+        object RecoverError : Event()
     }
 
-    @Keep sealed class Effect {
-        @Keep object RequestCastPermissions : Effect()
-        @Keep object ConnectionChanged : Effect()
-        @Keep data class PublicState(
+    sealed class Effect {
+        object RequestCastPermissions : Effect()
+        object ConnectionChanged : Effect()
+        data class PublicState(
             val isStreaming: Boolean,
             val isBusy: Boolean,
             val netInterfaces: List<NetInterface>,

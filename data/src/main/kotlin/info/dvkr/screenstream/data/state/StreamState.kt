@@ -1,14 +1,13 @@
 package info.dvkr.screenstream.data.state
 
 import android.media.projection.MediaProjection
-import androidx.annotation.Keep
 import info.dvkr.screenstream.data.image.BitmapCapture
 import info.dvkr.screenstream.data.model.AppError
 import info.dvkr.screenstream.data.model.NetInterface
 import java.net.InetSocketAddress
 
 
-@Keep data class StreamState(
+data class StreamState(
     val state: State = State.CREATED,
     val mediaProjection: MediaProjection? = null,
     val bitmapCapture: BitmapCapture? = null,

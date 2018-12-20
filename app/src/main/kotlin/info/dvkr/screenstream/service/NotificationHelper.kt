@@ -25,7 +25,7 @@ class NotificationHelper(context: Context) {
     fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             notificationManager.createNotificationChannel(
-                NotificationChannel(CHANNEL_ID, "Screen Stream Channel", NotificationManager.IMPORTANCE_HIGH).apply {
+                NotificationChannel(CHANNEL_ID, "Screen Stream Channel", NotificationManager.IMPORTANCE_DEFAULT).apply {
                     setSound(null, null)
                     enableLights(false)
                     enableVibration(false)

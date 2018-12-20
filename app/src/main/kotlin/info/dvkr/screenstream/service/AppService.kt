@@ -9,12 +9,10 @@ import android.os.*
 import android.view.LayoutInflater
 import android.widget.Toast
 import androidx.annotation.AnyThread
-import androidx.annotation.Keep
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.content.ContextCompat
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.R
-import info.dvkr.screenstream.ScreenStreamApp
 import info.dvkr.screenstream.data.model.AppError
 import info.dvkr.screenstream.data.model.FatalError
 import info.dvkr.screenstream.data.model.HttpClient
@@ -34,7 +32,7 @@ import kotlin.coroutines.CoroutineContext
 
 class AppService : Service(), CoroutineScope {
 
-    @Keep sealed class IntentAction : Parcelable {
+    sealed class IntentAction : Parcelable {
         internal companion object {
             private const val EXTRA_PARCELABLE = "EXTRA_PARCELABLE"
             fun fromIntent(intent: Intent?): IntentAction? = intent?.getParcelableExtra(EXTRA_PARCELABLE)
@@ -42,14 +40,14 @@ class AppService : Service(), CoroutineScope {
 
         fun addToIntent(intent: Intent): Intent = intent.putExtra(EXTRA_PARCELABLE, this)
 
-        @Keep @Parcelize object GetServiceState : IntentAction()
-        @Keep @Parcelize object StartStream : IntentAction()
-        @Keep @Parcelize object StopStream : IntentAction()
-        @Keep @Parcelize object Exit : IntentAction()
-        @Keep @Parcelize data class CastIntent(val intent: Intent) : IntentAction()
-        @Keep @Parcelize object CastPermissionsDenied : IntentAction()
-        @Keep @Parcelize object StartOnBoot : IntentAction()
-        @Keep @Parcelize object RecoverError : IntentAction()
+        @Parcelize object GetServiceState : IntentAction()
+        @Parcelize object StartStream : IntentAction()
+        @Parcelize object StopStream : IntentAction()
+        @Parcelize object Exit : IntentAction()
+        @Parcelize data class CastIntent(val intent: Intent) : IntentAction()
+        @Parcelize object CastPermissionsDenied : IntentAction()
+        @Parcelize object StartOnBoot : IntentAction()
+        @Parcelize object RecoverError : IntentAction()
 
         override fun toString(): String = this::class.java.simpleName
     }

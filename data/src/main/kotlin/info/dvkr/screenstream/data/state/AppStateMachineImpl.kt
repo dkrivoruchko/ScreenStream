@@ -10,7 +10,6 @@ import android.os.Handler
 import android.os.Looper
 import android.view.WindowManager
 import androidx.annotation.AnyThread
-import androidx.annotation.Keep
 import androidx.annotation.WorkerThread
 import androidx.core.content.ContextCompat
 import com.elvishew.xlog.XLog
@@ -58,21 +57,21 @@ class AppStateMachineImpl(
     private val bitmapToJpeg = BitmapToJpeg(settingsReadOnly, bitmapChannel, jpegChannel, ::onError)
     private val httpServer: HttpServer
 
-    @Keep private sealed class InternalEvent : AppStateMachine.Event() {
-        @Keep object DiscoverServerAddress : InternalEvent()
-        @Keep object StartHttpServer : InternalEvent()
-        @Keep object ScreenOff : InternalEvent()
-        @Keep object Destroy : InternalEvent()
-        @Keep data class RestartHttpServer(val reason: RestartReason) : InternalEvent()
-        @Keep data class ComponentError(val appError: AppError) : InternalEvent()
+    private sealed class InternalEvent : AppStateMachine.Event() {
+        object DiscoverServerAddress : InternalEvent()
+        object StartHttpServer : InternalEvent()
+        object ScreenOff : InternalEvent()
+        object Destroy : InternalEvent()
+        data class RestartHttpServer(val reason: RestartReason) : InternalEvent()
+        data class ComponentError(val appError: AppError) : InternalEvent()
 
         override fun toString(): String = this::class.java.simpleName
     }
 
-    @Keep private sealed class RestartReason(val msg: String) {
-        @Keep class ConnectionChanged(msg: String) : RestartReason(msg)
-        @Keep class SettingsChanged(msg: String) : RestartReason(msg)
-        @Keep class NetworkSettingsChanged(msg: String) : RestartReason(msg)
+    private sealed class RestartReason(val msg: String) {
+        class ConnectionChanged(msg: String) : RestartReason(msg)
+        class SettingsChanged(msg: String) : RestartReason(msg)
+        class NetworkSettingsChanged(msg: String) : RestartReason(msg)
 
         override fun toString(): String = "${this::class.java.simpleName}[$msg]"
     }

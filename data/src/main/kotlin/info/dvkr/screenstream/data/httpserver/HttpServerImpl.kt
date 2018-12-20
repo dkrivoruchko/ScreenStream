@@ -1,7 +1,6 @@
 package info.dvkr.screenstream.data.httpserver
 
 import android.content.Context
-import androidx.annotation.Keep
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.data.R
 import info.dvkr.screenstream.data.model.*
@@ -44,7 +43,7 @@ class HttpServerImpl constructor(
     }
 
     @Suppress("ArrayInDataClass")
-    @Keep private data class ServerState(
+    private data class ServerState(
         val state: State = State.CREATED,
         val favicon: ByteArray = ByteArray(0),
         val logo: ByteArray = ByteArray(0),
@@ -69,13 +68,13 @@ class HttpServerImpl constructor(
         }
     }
 
-    @Keep sealed class ServerEvent {
-        @Keep object Init : ServerEvent()
-        @Keep data class Configure(val settingsReadOnly: SettingsReadOnly) : ServerEvent()
-        @Keep data class Start(val serverAddress: InetSocketAddress) : ServerEvent()
-        @Keep object Stop : ServerEvent()
-        @Keep data class ServerError(val appError: AppError) : ServerEvent()
-        @Keep object Destroy : ServerEvent()
+    sealed class ServerEvent {
+        object Init : ServerEvent()
+        data class Configure(val settingsReadOnly: SettingsReadOnly) : ServerEvent()
+        data class Start(val serverAddress: InetSocketAddress) : ServerEvent()
+        object Stop : ServerEvent()
+        data class ServerError(val appError: AppError) : ServerEvent()
+        object Destroy : ServerEvent()
 
         override fun toString(): String = this::class.java.simpleName
     }

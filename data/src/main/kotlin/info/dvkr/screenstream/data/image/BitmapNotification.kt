@@ -7,6 +7,7 @@ import info.dvkr.screenstream.data.R
 import info.dvkr.screenstream.data.model.AppError
 import info.dvkr.screenstream.data.other.getLog
 import kotlinx.coroutines.channels.SendChannel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 
@@ -45,11 +46,12 @@ class BitmapNotification(
             Type.NEW_ADDRESS -> bitmapNewAddress
         }
 
-        // TODO work bad
-        if (outBitmapChannel.isClosedForSend.not()) {
-            outBitmapChannel.offer(bitmap)
-            outBitmapChannel.offer(bitmap) // Work around bug on some web browsers
-            outBitmapChannel.offer(bitmap) // Work around bug on some web browsers
+        launch {
+            repeat(3) {
+                outBitmapChannel.isClosedForSend.not() || return@launch
+                outBitmapChannel.offer(bitmap)
+                delay(250)
+            }
         }
     }
 

@@ -841,7 +841,7 @@
             android:layout_marginTop="@dimen/fragment_settings_title_start_top"
             android:padding="8dp"
             android:text="@string/pref_settings_advanced"
-            android:textAppearance="?android:attr/textAppearanceMedium"
+            android:textAllCaps="true"
             android:textColor="@color/colorAccent"
             android:textStyle="bold" />
 
