@@ -56,6 +56,9 @@ class SettingsImpl(private val preferences: Preferences) : Settings {
     override var severPort: Int
             by bindPreference(preferences, Settings.Key.SERVER_PORT, Settings.Default.SERVER_PORT)
 
+    override var loggingOn: Boolean
+            by bindPreference(preferences, Settings.Key.LOGGING_ON, Settings.Default.LOGGING_ON)
+
 
     init {
         if (enablePin && newPinOnAppStart) pin = randomPin()

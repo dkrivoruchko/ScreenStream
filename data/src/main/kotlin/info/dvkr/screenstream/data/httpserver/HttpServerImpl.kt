@@ -2,9 +2,10 @@ package info.dvkr.screenstream.data.httpserver
 
 import android.content.Context
 import androidx.annotation.Keep
+import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.data.R
 import info.dvkr.screenstream.data.model.*
-import info.dvkr.screenstream.data.other.getTag
+import info.dvkr.screenstream.data.other.getLog
 import info.dvkr.screenstream.data.other.randomString
 import info.dvkr.screenstream.data.settings.SettingsReadOnly
 import io.netty.buffer.ByteBuf
@@ -16,7 +17,6 @@ import io.reactivex.netty.RxNetty
 import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.channels.SendChannel
 import kotlinx.coroutines.channels.actor
-import timber.log.Timber
 import java.net.BindException
 import java.net.InetSocketAddress
 import java.nio.charset.StandardCharsets
@@ -95,7 +95,7 @@ class HttpServerImpl constructor(
         var serverState = ServerState()
 
         for (event in this@actor) try {
-            Timber.tag(this@HttpServerImpl.getTag("actor")).v("$serverState. Request: $event")
+            XLog.v(this@HttpServerImpl.getLog("actor", "$serverState. Request: $event"))
 
             when (event) {
                 is ServerEvent.Init -> serverState = initServer(serverState)
@@ -106,7 +106,7 @@ class HttpServerImpl constructor(
                 is ServerEvent.Destroy -> super.destroy()
             }
         } catch (throwable: Throwable) {
-            Timber.tag(this@HttpServerImpl.getTag("actor")).e(throwable)
+            XLog.e(this@HttpServerImpl.getLog("actor"), throwable)
             onError(FatalError.ActorException)
         }
     }
@@ -115,21 +115,21 @@ class HttpServerImpl constructor(
         parentJob.isActive || return
 
         if (serverEventChannel.isClosedForSend) {
-            Timber.tag(getTag("sendServerEvent")).e(IllegalStateException("Channel is ClosedForSend"))
+            XLog.e(getLog("sendServerEvent"), IllegalStateException("Channel is ClosedForSend"))
             onError(FatalError.ChannelException)
         } else if (serverEventChannel.offer(event).not()) {
-            Timber.tag(getTag("sendServerEvent")).e(IllegalStateException("Channel is full"))
+            XLog.e(getLog("sendServerEvent"), IllegalStateException("Channel is full"))
             onError(FatalError.ChannelException)
         }
     }
 
     init {
-        Timber.tag(getTag("Init")).d("Invoked")
+        XLog.d(getLog("init", "Invoked"))
         sendServerEvent(ServerEvent.Init)
     }
 
     private fun initServer(serverState: ServerState): ServerState {
-        Timber.tag(getTag("initServer")).d("Invoked")
+        XLog.d(getLog("initServer", "Invoked"))
         serverState.requireState(State.CREATED)
 
         val favicon = getFileFromAssets(applicationContext, HttpServerFiles.FAVICON_ICO)
@@ -166,7 +166,7 @@ class HttpServerImpl constructor(
     }
 
     private fun configureServer(serverState: ServerState, settingsReadOnly: SettingsReadOnly): ServerState {
-        Timber.tag(getTag("configureServer")).d("Invoked")
+        XLog.d(getLog("configureServer", "Invoked"))
         serverState.requireState(State.INIT, State.CONFIGURED, State.ERROR)
 
         var currentIndexHtml = serverState.baseIndexHtml.replaceFirst(
@@ -217,7 +217,7 @@ class HttpServerImpl constructor(
     }
 
     private fun startServer(serverState: ServerState, serverAddress: InetSocketAddress): ServerState {
-        Timber.tag(getTag("startServer")).d("Invoked")
+        XLog.d(getLog("startServer", "Invoked"))
         serverState.requireState(State.CONFIGURED)
 
         if (serverAddress.port !in 1025..65535) throw IllegalArgumentException("Tcp port must be in range [1025, 65535]")
@@ -252,11 +252,11 @@ class HttpServerImpl constructor(
         try {
             nettyHttpServer.start(httpServerRxHandler)
         } catch (ex: BindException) {
-            Timber.tag(getTag("startServer")).e(ex)
+            XLog.e(getLog("startServer"), ex)
             exception = FixableError.AddressInUseException
             sendServerEvent(ServerEvent.ServerError(exception))
         } catch (throwable: Throwable) {
-            Timber.tag(getTag("startServer")).e(throwable)
+            XLog.e(getLog("startServer"), throwable)
             exception = FatalError.NettyServerException
             sendServerEvent(ServerEvent.ServerError(exception))
         }
@@ -271,7 +271,7 @@ class HttpServerImpl constructor(
     }
 
     private fun stopServer(serverState: ServerState): ServerState {
-        Timber.tag(getTag("stopServer")).d("Invoked")
+        XLog.d(getLog("stopServer", "Invoked"))
 
         serverState.httpServerRxHandler?.destroy()
         serverState.httpServerStatistic?.destroy()
@@ -280,7 +280,7 @@ class HttpServerImpl constructor(
             serverState.nettyHttpServer?.shutdown()
             serverState.nettyHttpServer?.awaitShutdown()
         } catch (throwable: Throwable) {
-            Timber.tag(getTag("stopServer")).w(throwable)
+            XLog.w(getLog("stopServer"), throwable)
         }
 
         serverState.globalServerEventLoop?.shutdownGracefully()
@@ -296,13 +296,13 @@ class HttpServerImpl constructor(
     }
 
     private fun serverError(serverState: ServerState, appError: AppError): ServerState {
-        Timber.tag(getTag("serverError")).d("Invoked")
+        XLog.d(getLog("serverError", "Invoked"))
         onError(appError)
         return serverState.copy(state = State.ERROR)
     }
 
     private fun getFileFromAssets(applicationContext: Context, fileName: String): ByteArray {
-        Timber.tag(getTag("getFileFromAssets")).d(fileName)
+        XLog.d(getLog("getFileFromAssets", fileName))
 
         applicationContext.assets.open(fileName).use { inputStream ->
             val fileBytes = ByteArray(inputStream.available())

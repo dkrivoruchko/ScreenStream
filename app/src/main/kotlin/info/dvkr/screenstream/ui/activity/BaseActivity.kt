@@ -10,13 +10,14 @@ import androidx.appcompat.app.AppCompatDelegate
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.Observer
-import info.dvkr.screenstream.data.other.getTag
+import com.elvishew.xlog.XLog
+import info.dvkr.screenstream.ScreenStreamApp
+import info.dvkr.screenstream.data.other.getLog
 import info.dvkr.screenstream.data.settings.Settings
 import info.dvkr.screenstream.data.settings.SettingsReadOnly
 import info.dvkr.screenstream.service.AppService
 import info.dvkr.screenstream.service.ServiceMessage
 import org.koin.android.ext.android.inject
-import timber.log.Timber
 
 abstract class BaseActivity : AppCompatActivity() {
 
@@ -39,13 +40,13 @@ abstract class BaseActivity : AppCompatActivity() {
     }
 
     fun sendMessage(serviceMessage: ServiceMessage) {
-        Timber.tag(getTag("sendMessage")).d("ServiceMessage: $serviceMessage")
+        XLog.d(getLog("sendMessage", "ServiceMessage: $serviceMessage"))
         isBound || return
 
         try {
             serviceMessenger?.send(Message.obtain(null, 0).apply { data = serviceMessage.toBundle() })
         } catch (ex: RemoteException) {
-            Timber.tag(getTag("sendMessage")).e(ex)
+            XLog.e(getLog("sendMessage"), ex)
         }
     }
 
@@ -74,7 +75,7 @@ abstract class BaseActivity : AppCompatActivity() {
 
     override fun onStart() {
         super.onStart()
-        Timber.tag(getTag("onStart")).d("Invoked")
+        XLog.d(getLog("onStart", "Invoked"))
 
         serviceMessagesHandler.getServiceMessageLiveData().observe(this, Observer<ServiceMessage> { message ->
             message?.let { onServiceMessage(it) }
@@ -86,7 +87,7 @@ abstract class BaseActivity : AppCompatActivity() {
     }
 
     override fun onStop() {
-        Timber.tag(getTag("onStop")).d("Invoked")
+        XLog.d(getLog("onStop", "Invoked"))
 
         if (isBound) {
             sendMessage(ServiceMessage.UnRegisterActivity(activityMessenger))
@@ -101,7 +102,10 @@ abstract class BaseActivity : AppCompatActivity() {
     @CallSuper
     open fun onServiceMessage(serviceMessage: ServiceMessage) {
         when (serviceMessage) {
-            ServiceMessage.FinishActivity -> finish()
+            ServiceMessage.FinishActivity -> {
+                finishAndRemoveTask()
+                Runtime.getRuntime().exit(0)
+            }
         }
     }
 

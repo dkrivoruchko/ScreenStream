@@ -9,10 +9,8 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import info.dvkr.screenstream.R
-import info.dvkr.screenstream.data.other.getTag
 import info.dvkr.screenstream.ui.router.FragmentRouter
 import kotlinx.android.synthetic.main.fragment_about.*
-import timber.log.Timber
 
 class AboutFragment : Fragment() {
 
@@ -29,7 +27,6 @@ class AboutFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        Timber.tag(getTag("onViewCreated")).w("Invoked")
 
         with(requireActivity()) {
             val version = packageManager.getPackageInfo(packageName, 0).versionName

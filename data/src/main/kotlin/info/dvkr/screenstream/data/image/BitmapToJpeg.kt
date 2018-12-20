@@ -1,14 +1,14 @@
 package info.dvkr.screenstream.data.image
 
 import android.graphics.Bitmap
-import info.dvkr.screenstream.data.other.getTag
+import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.data.model.AppError
+import info.dvkr.screenstream.data.other.getLog
 import info.dvkr.screenstream.data.settings.Settings
 import info.dvkr.screenstream.data.settings.SettingsReadOnly
 import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.channels.SendChannel
 import kotlinx.coroutines.launch
-import timber.log.Timber
 import java.io.ByteArrayOutputStream
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -25,15 +25,14 @@ class BitmapToJpeg(
     private val settingsListener = object : SettingsReadOnly.OnSettingsChangeListener {
         override fun onSettingsChanged(key: String) {
             if (key == Settings.Key.JPEG_QUALITY) {
-                Timber.tag(this@BitmapToJpeg.getTag("onSettingsChanged"))
-                    .d("jpegQuality: ${settingsReadOnly.jpegQuality}")
+                XLog.d(this@BitmapToJpeg.getLog("onSettingsChanged", "jpegQuality: ${settingsReadOnly.jpegQuality}"))
                 jpegQuality.set(settingsReadOnly.jpegQuality)
             }
         }
     }
 
     init {
-        Timber.tag(getTag("Init")).d("Invoked")
+        XLog.d(getLog("init", "Invoked"))
         settingsReadOnly.registerChangeListener(settingsListener)
         jpegQuality.set(settingsReadOnly.jpegQuality)
     }

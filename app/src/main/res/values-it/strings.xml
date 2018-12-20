@@ -6,6 +6,8 @@
     <string name="app_activity_error_ip_address_not_found">Indirizzo IP non trovato.\nProva a disabilitare \"Usa solo WiFi\" nelle impostazioni.</string>
     <string name="app_activity_error_wrong_image_format">Il sistema rileva che l\'immagine in un formato sconosciuto. Nessuna risoluzione possibile. Ci dispiace.</string>
     <string name="app_activity_error_exit">Esci</string>
+    <string name="app_activity_collecting_logs">Raccolta dei registri delle applicazioni…</string>
+    <string name="app_activity_send_logs">Invia i registri allo sviluppatore</string>
 
     <string name="bottom_menu_stream">Trasmissione</string>
     <string name="bottom_menu_settings">Impostazioni</string>
@@ -87,6 +89,8 @@
     <string name="pref_server_port">Server port</string>
     <string name="pref_server_port_summary">Imposta porta per le connessioni in arrivo</string>
     <string name="pref_server_port_dialog">Imposta porta per le connessione in arrivo.\nValues: 1025–65535 (Default: 8080)</string>
+    <string name="pref_logging">Abilita i log delle applicazioni</string>
+    <string name="pref_logging_summary">Raccogli i registri delle applicazioni</string>
 
     <string name="about_fragment_app_version">Versione: %1$s</string>
     <string name="about_fragment_developer_name">Sviluppato da Dmitriy Krivoruchko</string>

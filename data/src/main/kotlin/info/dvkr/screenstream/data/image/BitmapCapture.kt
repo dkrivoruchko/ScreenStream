@@ -14,10 +14,11 @@ import android.os.Process
 import android.util.DisplayMetrics
 import android.view.Display
 import android.view.Surface
+import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.data.model.AppError
 import info.dvkr.screenstream.data.model.FatalError
 import info.dvkr.screenstream.data.model.FixableError
-import info.dvkr.screenstream.data.other.getTag
+import info.dvkr.screenstream.data.other.getLog
 import info.dvkr.screenstream.data.settings.Settings
 import info.dvkr.screenstream.data.settings.SettingsReadOnly
 import kotlinx.coroutines.Deferred
@@ -25,7 +26,6 @@ import kotlinx.coroutines.channels.SendChannel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import timber.log.Timber
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
 
@@ -59,15 +59,14 @@ class BitmapCapture constructor(
     private val settingsListener = object : SettingsReadOnly.OnSettingsChangeListener {
         override fun onSettingsChanged(key: String) {
             if (key == Settings.Key.RESIZE_FACTOR) {
-                Timber.tag(this@BitmapCapture.getTag("onSettingsChanged"))
-                    .d("resizeFactor: ${settingsReadOnly.resizeFactor}")
+                XLog.d(this@BitmapCapture.getLog("onSettingsChanged", "resizeFactor: ${settingsReadOnly.resizeFactor}"))
                 setResizeFactor(settingsReadOnly.resizeFactor)
             }
         }
     }
 
     init {
-        Timber.tag(getTag("Init")).d("Invoked")
+        XLog.d(getLog("init", "Invoked"))
         settingsReadOnly.registerChangeListener(settingsListener)
         setResizeFactor(settingsReadOnly.resizeFactor)
         imageThread.start()
@@ -90,7 +89,7 @@ class BitmapCapture constructor(
 
     @Synchronized
     override fun start() {
-        Timber.tag(getTag("Start")).d("Invoked")
+        XLog.d(getLog("start", "Invoked"))
         requireState(State.INIT)
 
         startDisplayCapture()
@@ -101,14 +100,13 @@ class BitmapCapture constructor(
                 var previous = rotation == Surface.ROTATION_0 || rotation == Surface.ROTATION_180
                 var current: Boolean
 
-                Timber.tag(this@BitmapCapture.getTag("Start")).d("Rotation detector started")
-
+                XLog.d(this@BitmapCapture.getLog("Start", "Rotation detector started"))
                 while (isActive) {
                     delay(250)
                     val newRotation = display.rotation
                     current = newRotation == Surface.ROTATION_0 || newRotation == Surface.ROTATION_180
                     if (previous != current) {
-                        Timber.tag(this@BitmapCapture.getTag("Start")).d("Rotation detected")
+                        XLog.d(this@BitmapCapture.getLog("Start", "Rotation detected"))
                         previous = current
                         if (state == State.STARTED) restart()
                     }
@@ -118,7 +116,7 @@ class BitmapCapture constructor(
 
     @Synchronized
     override fun stop() {
-        Timber.tag(getTag("Stop")).d("Invoked")
+        XLog.d(getLog("stop", "Invoked"))
         requireState(State.STARTED, State.ERROR)
 
         state = State.STOPPED
@@ -158,7 +156,7 @@ class BitmapCapture constructor(
             state = State.STARTED
         } catch (ex: SecurityException) {
             state = State.ERROR
-            Timber.tag(this.getTag("startDisplayCapture")).e(ex)
+            XLog.e(getLog("startDisplayCapture"), ex)
             onError(FixableError.CastSecurityException)
         }
     }
@@ -171,13 +169,13 @@ class BitmapCapture constructor(
 
     @Synchronized
     private fun restart() {
-        Timber.tag(getTag("Restart")).d("Start")
+        XLog.d(getLog("restart", "Start"))
         requireState(State.STARTED)
 
         stopDisplayCapture()
         startDisplayCapture()
 
-        Timber.tag(getTag("Restart")).d("End")
+        XLog.d(getLog("restart", "End"))
     }
 
     // Runs on imageThread
@@ -225,11 +223,11 @@ class BitmapCapture constructor(
 
                     }
                 } catch (ex: UnsupportedOperationException) {
-                    Timber.tag(this@BitmapCapture.getTag("outBitmapChannel")).e(ex)
+                    XLog.e(this@BitmapCapture.getLog("outBitmapChannel"), ex)
                     state = State.ERROR
                     onError(FatalError.BitmapFormatException)
                 } catch (throwable: Throwable) {
-                    Timber.tag(this@BitmapCapture.getTag("outBitmapChannel")).e(throwable)
+                    XLog.e(this@BitmapCapture.getLog("outBitmapChannel"), throwable)
                     state = State.ERROR
                     onError(FatalError.BitmapCaptureException)
                 }

@@ -6,6 +6,8 @@
     <string name="app_activity_error_ip_address_not_found">IP адресс не найден.\nПопробуйте отключить \"Использовать только WiFi\" в настройках.ы</string>
     <string name="app_activity_error_wrong_image_format">Система отдает изображение в неверном формате. Решения проблемы нет.</string>
     <string name="app_activity_error_exit">Выход</string>
+    <string name="app_activity_collecting_logs">Идет логирование…</string>
+    <string name="app_activity_send_logs">Отправить лог разработчику</string>
 
     <string name="bottom_menu_stream">Главная</string>
     <string name="bottom_menu_settings">Настройки</string>
@@ -87,6 +89,8 @@
     <string name="pref_server_port">Порт сервера</string>
     <string name="pref_server_port_summary">Установить порт для входяших подключений</string>
     <string name="pref_server_port_dialog">Установите порт сервера для входящих подключений.\nЗначения: 1025–65535\n(По умолчанию: 8080)</string>
+    <string name="pref_logging">Включить логирование</string>
+    <string name="pref_logging_summary">Собирать логи приложения</string>
 
     <string name="about_fragment_app_version">Версия: %1$s</string>
     <string name="about_fragment_developer_name">Разработчик Криворучко Дмитрий</string>

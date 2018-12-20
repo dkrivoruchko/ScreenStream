@@ -12,12 +12,13 @@ import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Observer
+import com.elvishew.xlog.XLog
 import com.jjoe64.graphview.DefaultLabelFormatter
 import com.jjoe64.graphview.GridLabelRenderer
 import com.jjoe64.graphview.series.DataPoint
 import com.jjoe64.graphview.series.LineGraphSeries
 import info.dvkr.screenstream.R
-import info.dvkr.screenstream.data.other.getTag
+import info.dvkr.screenstream.data.other.getLog
 import info.dvkr.screenstream.data.other.setColorSpan
 import info.dvkr.screenstream.data.settings.SettingsReadOnly
 import info.dvkr.screenstream.service.AppService
@@ -28,7 +29,6 @@ import kotlinx.android.synthetic.main.fragment_stream.*
 import kotlinx.android.synthetic.main.item_client.view.*
 import kotlinx.android.synthetic.main.item_device_address.view.*
 import org.koin.android.ext.android.inject
-import timber.log.Timber
 import java.text.NumberFormat
 
 class StreamFragment : Fragment() {
@@ -59,7 +59,6 @@ class StreamFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        Timber.tag(getTag("onViewCreated")).w("Invoked")
         isViewCreated = true
 
         tv_fragment_stream_traffic_header.text = getString(R.string.stream_fragment_current_traffic).run {
@@ -73,7 +72,7 @@ class StreamFragment : Fragment() {
 
     override fun onStart() {
         super.onStart()
-        Timber.tag(getTag("onStart")).w("Invoked")
+        XLog.d(getLog("onStart", "Invoked"))
 
         (requireActivity() as BaseActivity).getServiceMessageLiveData()
             .observe(this, Observer<ServiceMessage> { serviceMessage ->

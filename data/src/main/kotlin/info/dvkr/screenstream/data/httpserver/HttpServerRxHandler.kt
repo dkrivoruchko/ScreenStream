@@ -1,8 +1,9 @@
 package info.dvkr.screenstream.data.httpserver
 
+import com.elvishew.xlog.XLog
 import com.jakewharton.rxrelay.BehaviorRelay
 import info.dvkr.screenstream.data.model.AppError
-import info.dvkr.screenstream.data.other.getTag
+import info.dvkr.screenstream.data.other.getLog
 import info.dvkr.screenstream.data.other.randomString
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
@@ -19,7 +20,6 @@ import kotlinx.coroutines.launch
 import rx.BackpressureOverflow
 import rx.Observable
 import rx.functions.Action0
-import timber.log.Timber
 import java.net.InetSocketAddress
 
 internal class HttpServerRxHandler(
@@ -45,7 +45,7 @@ internal class HttpServerRxHandler(
     private val eventloopScheduler = RxJavaEventloopScheduler(RxNetty.getRxEventLoopProvider().globalClientEventLoop())
 
     init {
-        Timber.tag(getTag("init")).d("Invoked")
+        XLog.d(getLog("init", "Invoked"))
         launch {
             for (jpegBytes in jpegBytesChannel) {
                 val jpegLength = jpegBytes.size.toString().toByteArray()
@@ -59,7 +59,7 @@ internal class HttpServerRxHandler(
     override fun handle(request: HttpServerRequest<ByteBuf>, response: HttpServerResponse<ByteBuf>): Observable<Void> {
         val uri = request.uri
         val clientAddress = response.unsafeConnection().channelPipeline.channel().remoteAddress() as InetSocketAddress
-        Timber.tag(getTag("handle")).d("Request [$uri] from ${clientAddress.address.hostAddress}:${clientAddress.port}")
+        XLog.d(getLog("handle", "Request [$uri] from ${clientAddress.address.hostAddress}:${clientAddress.port}"))
 
         return when {
             uri == HttpServerFiles.DEFAULT_ICON_ADDRESS -> sendFavicon(response)

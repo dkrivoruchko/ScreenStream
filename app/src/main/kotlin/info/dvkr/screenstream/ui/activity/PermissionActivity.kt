@@ -10,12 +10,12 @@ import androidx.annotation.StringRes
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import com.afollestad.materialdialogs.MaterialDialog
+import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.R
-import info.dvkr.screenstream.data.other.getTag
+import info.dvkr.screenstream.data.other.getLog
 import info.dvkr.screenstream.data.settings.SettingsReadOnly
 import info.dvkr.screenstream.service.AppService
 import org.koin.android.ext.android.inject
-import timber.log.Timber
 
 
 class PermissionActivity : AppCompatActivity() {
@@ -49,16 +49,16 @@ class PermissionActivity : AppCompatActivity() {
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        Timber.tag(getTag("onActivityResult")).d("requestCode: $requestCode")
+        XLog.d(getLog("onActivityResult", "requestCode: $requestCode"))
 
         if (requestCode != REQUEST_CODE_SCREEN_CAPTURE) {
-            Timber.tag(getTag("onActivityResult")).e(IllegalStateException("Unknown requestCode: $requestCode"))
+            XLog.e(getLog("onActivityResult"), IllegalStateException("Unknown requestCode: $requestCode"))
             showErrorDialog()
             return
         }
 
         if (Activity.RESULT_OK != resultCode) {
-            Timber.tag(getTag("onActivityResult")).w("Cast permission denied")
+            XLog.w(getLog("onActivityResult", "Cast permission denied"))
             showErrorDialog(
                 R.string.permission_activity_cast_permission_required_title,
                 R.string.permission_activity_cast_permission_required
@@ -67,12 +67,12 @@ class PermissionActivity : AppCompatActivity() {
         }
 
         if (data == null) {
-            Timber.tag(getTag("onActivityResult")).e(IllegalStateException("onActivityResult: data = null"))
+            XLog.e(getLog("onActivityResult"), IllegalStateException("onActivityResult: data = null"))
             showErrorDialog()
             return
         }
 
-        Timber.tag(getTag("onActivityResult")).d("Cast permission granted")
+        XLog.d(getLog("onActivityResult", "Cast permission granted"))
         closeActivity(AppService.IntentAction.CastIntent(data))
     }
 

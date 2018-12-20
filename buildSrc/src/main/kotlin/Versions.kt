@@ -23,7 +23,7 @@ object Versions {
     const val binaryprefs = "1.0.0"
     const val rxJava = "1.3.8"
     const val rxRelay = "1.2.0"
-    const val timber = "4.7.1"
+    const val xlog = "1.6.1"
     const val netty = "4.1.32.Final"
     const val rxNetty = "0.5.3-rc.1"
 

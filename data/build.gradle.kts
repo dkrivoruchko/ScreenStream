@@ -36,6 +36,11 @@ android {
         }
     }
 
+    compileOptions {
+        setSourceCompatibility(JavaVersion.VERSION_1_8)
+        setTargetCompatibility(JavaVersion.VERSION_1_8)
+    }
+
     sourceSets["main"].java.srcDirs(file("src/main/kotlin"))
     sourceSets["debug"].java.srcDirs(file("src/debug/kotlin"))
     sourceSets["release"].java.srcDirs(file("src/release/kotlin"))
@@ -71,5 +76,5 @@ dependencies {
     implementation("io.reactivex:rxnetty-http:${Versions.rxNetty}")
 
     implementation("com.github.iamironz:binaryprefs:${Versions.binaryprefs}")
-    implementation("com.jakewharton.timber:timber:${Versions.timber}")
+    implementation("com.elvishew:xlog:${Versions.xlog}")
 }

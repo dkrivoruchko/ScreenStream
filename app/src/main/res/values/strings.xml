@@ -7,6 +7,8 @@
     <string name="app_activity_error_ip_address_not_found">IP address not found.\nTry to disable \"Use WiFi only\" in settings.</string>
     <string name="app_activity_error_wrong_image_format">System returns image in unknown format. No fix available. Sorry.</string>
     <string name="app_activity_error_exit">Exit</string>
+    <string name="app_activity_collecting_logs">Collecting application logs…</string>
+    <string name="app_activity_send_logs">Send logs to developer</string>
 
     <string name="bottom_menu_stream">Stream</string>
     <string name="bottom_menu_settings">Settings</string>
@@ -89,6 +91,8 @@
     <string name="pref_server_port">Server port</string>
     <string name="pref_server_port_summary">Set port for incoming connections</string>
     <string name="pref_server_port_dialog">Set server port for incoming connections.\nValues: 1025–65535\n(Default: 8080)</string>
+    <string name="pref_logging">Enable application logs</string>
+    <string name="pref_logging_summary">Collect application logs</string>
 
     <string name="about_fragment_app_name" translatable="false">Screen Stream over HTTP</string>
     <string name="about_fragment_app_version">Version: %1$s</string>

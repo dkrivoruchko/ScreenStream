@@ -2,12 +2,12 @@ package info.dvkr.screenstream.data.image
 
 import android.content.Context
 import android.graphics.*
+import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.data.R
-import info.dvkr.screenstream.data.other.getTag
 import info.dvkr.screenstream.data.model.AppError
+import info.dvkr.screenstream.data.other.getLog
 import kotlinx.coroutines.channels.SendChannel
 import kotlinx.coroutines.launch
-import timber.log.Timber
 
 
 class BitmapNotification(
@@ -24,7 +24,7 @@ class BitmapNotification(
     private lateinit var bitmapNewAddress: Bitmap
 
     init {
-        Timber.tag(getTag("Init")).d("Invoked")
+        XLog.d(getLog("init", "Invoked"))
 
         launch {
             val logo: Bitmap = Bitmap.createScaledBitmap(logoBitmap, 192, 192, false)
@@ -37,7 +37,7 @@ class BitmapNotification(
     override fun start() {}
 
     fun sentBitmapNotification(notificationType: Type) {
-        Timber.tag(getTag("sentBitmapNotification")).d("BitmapType: $notificationType")
+        XLog.d(getLog("sentBitmapNotification", "BitmapType: $notificationType"))
 
         val bitmap: Bitmap = when (notificationType) {
             Type.START -> bitmapStart
@@ -45,6 +45,7 @@ class BitmapNotification(
             Type.NEW_ADDRESS -> bitmapNewAddress
         }
 
+        // TODO work bad
         if (outBitmapChannel.isClosedForSend.not()) {
             outBitmapChannel.offer(bitmap)
             outBitmapChannel.offer(bitmap) // Work around bug on some web browsers

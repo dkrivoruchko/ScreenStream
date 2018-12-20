@@ -24,16 +24,17 @@ import com.afollestad.materialdialogs.customview.getCustomView
 import com.afollestad.materialdialogs.input.getInputField
 import com.afollestad.materialdialogs.input.input
 import com.afollestad.materialdialogs.list.listItemsSingleChoice
+import com.elvishew.xlog.XLog
 import com.google.android.material.textfield.TextInputEditText
 import info.dvkr.screenstream.R
-import info.dvkr.screenstream.data.other.getTag
+import info.dvkr.screenstream.data.other.getLog
 import info.dvkr.screenstream.data.settings.Settings
 import info.dvkr.screenstream.data.settings.SettingsReadOnly
+import info.dvkr.screenstream.logging.cleanLogFiles
 import info.dvkr.screenstream.ui.router.FragmentRouter
 import kotlinx.android.synthetic.main.dialog_settings_resize.view.*
 import kotlinx.android.synthetic.main.fragment_settings.*
 import org.koin.android.ext.android.inject
-import timber.log.Timber
 
 class SettingsFragment : Fragment() {
 
@@ -93,7 +94,6 @@ class SettingsFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        Timber.tag(getTag("onViewCreated")).w("Invoked")
 
         // Interface - Night mode
         val index = nightModeList.first { it.second == settings.nightMode }.first
@@ -235,8 +235,7 @@ class SettingsFragment : Fragment() {
 
 
         // Security - Enable pin
-        with(cb_fragment_settings_enable_pin)
-        {
+        with(cb_fragment_settings_enable_pin) {
             isChecked = settings.enablePin
             enableDisableViewWithChildren(cl_fragment_settings_hide_pin_on_start, settings.enablePin)
             enableDisableViewWithChildren(cl_fragment_settings_new_pin_on_app_start, settings.enablePin)
@@ -253,16 +252,14 @@ class SettingsFragment : Fragment() {
         }
 
         // Security - Hide pin on start
-        with(cb_fragment_settings_hide_pin_on_start)
-        {
+        with(cb_fragment_settings_hide_pin_on_start) {
             isChecked = settings.hidePinOnStart
             setOnClickListener { settings.hidePinOnStart = isChecked }
             cl_fragment_settings_hide_pin_on_start.setOnClickListener { performClick() }
         }
 
         // Security - New pin on app start
-        with(cb_fragment_settings_new_pin_on_app_start)
-        {
+        with(cb_fragment_settings_new_pin_on_app_start) {
             isChecked = settings.newPinOnAppStart
             enableDisableViewWithChildren(cl_fragment_settings_set_pin, canEnableSetPin())
             setOnClickListener {
@@ -273,8 +270,7 @@ class SettingsFragment : Fragment() {
         }
 
         // Security - Auto change pin
-        with(cb_fragment_settings_auto_change_pin)
-        {
+        with(cb_fragment_settings_auto_change_pin) {
             isChecked = settings.autoChangePin
             enableDisableViewWithChildren(cl_fragment_settings_set_pin, canEnableSetPin())
             setOnClickListener {
@@ -311,8 +307,7 @@ class SettingsFragment : Fragment() {
         }
 
         // Advanced - Use WiFi Only
-        with(cb_fragment_settings_use_wifi_only)
-        {
+        with(cb_fragment_settings_use_wifi_only) {
             isChecked = settings.useWiFiOnly
             setOnClickListener { settings.useWiFiOnly = isChecked }
             cl_fragment_settings_use_wifi_only.setOnClickListener { performClick() }
@@ -343,16 +338,26 @@ class SettingsFragment : Fragment() {
                 getInputField()?.imeOptions = EditorInfo.IME_FLAG_NO_EXTRACT_UI
             }
         }
+
+        // Advanced - Enable application logs
+        with(cb_fragment_settings_logging) {
+            isChecked = settings.loggingOn
+            setOnClickListener {
+                settings.loggingOn = isChecked
+                if (settings.loggingOn.not()) cleanLogFiles(requireContext().applicationContext)
+            }
+            cl_fragment_settings_logging.setOnClickListener { performClick() }
+        }
     }
 
     override fun onStart() {
         super.onStart()
         settings.registerChangeListener(settingsListener)
-        Timber.tag(getTag("onStart")).w("Invoked")
+        XLog.d(getLog("onStart", "Invoked"))
     }
 
     override fun onStop() {
-        Timber.tag(getTag("onStop")).w("Invoked")
+        XLog.d(getLog("onStop", "Invoked"))
         settings.unregisterChangeListener(settingsListener)
         super.onStop()
     }

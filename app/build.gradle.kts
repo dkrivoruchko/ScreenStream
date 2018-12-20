@@ -45,6 +45,11 @@ android {
         }
     }
 
+    compileOptions {
+        setSourceCompatibility(JavaVersion.VERSION_1_8)
+        setTargetCompatibility(JavaVersion.VERSION_1_8)
+    }
+
     sourceSets["main"].java.srcDirs(file("src/main/kotlin"))
     sourceSets["debug"].java.srcDirs(file("src/debug/kotlin"))
     sourceSets["release"].java.srcDirs(file("src/release/kotlin"))
@@ -91,7 +96,7 @@ dependencies {
 
     implementation("org.koin:koin-android:${Versions.koin}")
     implementation("com.github.iamironz:binaryprefs:${Versions.binaryprefs}")
-    implementation("com.jakewharton.timber:timber:${Versions.timber}")
+    implementation("com.elvishew:xlog:${Versions.xlog}")
 
     releaseImplementation("com.google.firebase:firebase-core:${Versions.firebaseCore}")
     releaseImplementation("com.crashlytics.sdk.android:crashlytics:${Versions.crashlytics}")

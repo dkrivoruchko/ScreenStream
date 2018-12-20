@@ -7,14 +7,15 @@ import android.os.Build
 import android.widget.RemoteViews
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
+import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.R
-import info.dvkr.screenstream.data.other.getTag
+import info.dvkr.screenstream.data.other.getLog
 import info.dvkr.screenstream.ui.activity.AppActivity
-import timber.log.Timber
 
 class NotificationHelper(context: Context) {
 
     enum class NotificationType(val id: Int) { START(10), STOP(11) }
+
     private val applicationContext: Context = context.applicationContext
     private val packageName: String = applicationContext.packageName
     private val notificationManager = ContextCompat.getSystemService(context, NotificationManager::class.java)!!
@@ -42,7 +43,7 @@ class NotificationHelper(context: Context) {
     }
 
     private fun getNotification(notificationType: NotificationType): Notification {
-        Timber.tag(getTag("getNotification")).d("NotificationType: $notificationType")
+        XLog.d(getLog("getNotification", "NotificationType: $notificationType"))
 
         val pendingAppActivityIntent = PendingIntent.getActivity(
             applicationContext, 0,

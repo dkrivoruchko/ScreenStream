@@ -10,13 +10,17 @@ import android.view.View
 import android.view.animation.OvershootInterpolator
 import android.widget.TextView
 import com.andrognito.flashbar.Flashbar
+import com.elvishew.xlog.XLog
 import com.google.android.material.bottomnavigation.BottomNavigationItemView
 import com.google.android.material.bottomnavigation.BottomNavigationMenuView
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.data.model.AppError
 import info.dvkr.screenstream.data.model.FatalError
 import info.dvkr.screenstream.data.model.FixableError
-import info.dvkr.screenstream.data.other.getTag
+import info.dvkr.screenstream.data.other.getLog
+import info.dvkr.screenstream.data.settings.Settings
+import info.dvkr.screenstream.data.settings.SettingsReadOnly
+import info.dvkr.screenstream.logging.sendLogsInEmail
 import info.dvkr.screenstream.service.AppService
 import info.dvkr.screenstream.service.ServiceMessage
 import info.dvkr.screenstream.ui.fragments.AboutFragment
@@ -24,7 +28,6 @@ import info.dvkr.screenstream.ui.fragments.SettingsFragment
 import info.dvkr.screenstream.ui.fragments.StreamFragment
 import info.dvkr.screenstream.ui.router.FragmentRouter
 import kotlinx.android.synthetic.main.activity_app.*
-import timber.log.Timber
 
 class AppActivity : BaseActivity() {
     companion object {
@@ -46,10 +49,15 @@ class AppActivity : BaseActivity() {
     private val scaleY = PropertyValuesHolder.ofFloat(View.SCALE_Y, 0.5f, 1f)
     private val alpha = PropertyValuesHolder.ofFloat(View.ALPHA, 0f, 1f)
     private var lastServiceMessage: ServiceMessage.ServiceState? = null
+    private val settingsListener = object : SettingsReadOnly.OnSettingsChangeListener {
+        override fun onSettingsChanged(key: String) {
+            if (key == Settings.Key.LOGGING_ON) setLogging(settingsReadOnly.loggingOn)
+        }
+    }
 
     override fun onBackPressed() {
         val itemId = fragmentRouter.onBackPressed()
-        if (itemId != 0) bottom_navigation_activity_single.selectedItemId = itemId
+        if (itemId != 0) bottom_navigation_activity_app.selectedItemId = itemId
         else super.onBackPressed()
     }
 
@@ -60,13 +68,13 @@ class AppActivity : BaseActivity() {
         if (savedInstanceState == null) fragmentRouter.navigateTo(R.id.menu_stream_fragment)
 
         // Fix for https://github.com/material-components/material-components-android/issues/139
-        with(bottom_navigation_activity_single.getChildAt(0) as BottomNavigationMenuView) {
+        with(bottom_navigation_activity_app.getChildAt(0) as BottomNavigationMenuView) {
             for (index in 0 until childCount)
                 (getChildAt(index) as BottomNavigationItemView).findViewById<TextView>(R.id.largeLabel)
                     .setPadding(0, 0, 0, 0)
         }
 
-        bottom_navigation_activity_single.setOnNavigationItemSelectedListener { menuItem ->
+        bottom_navigation_activity_app.setOnNavigationItemSelectedListener { menuItem ->
             return@setOnNavigationItemSelectedListener when (menuItem.itemId) {
                 R.id.menu_stream_fragment,
                 R.id.menu_settings_fragment,
@@ -81,17 +89,35 @@ class AppActivity : BaseActivity() {
         }
     }
 
+    override fun onStart() {
+        super.onStart()
+        XLog.d(getLog("onStart", "Invoked"))
+        settingsReadOnly.registerChangeListener(settingsListener)
+        setLogging(settingsReadOnly.loggingOn)
+    }
+
+    override fun onStop() {
+        XLog.d(getLog("onStop", "Invoked"))
+        settingsReadOnly.unregisterChangeListener(settingsListener)
+        super.onStop()
+    }
+
+    private fun setLogging(loggingOn: Boolean) {
+        ll_activity_app_logs.visibility = if (loggingOn) View.VISIBLE else View.GONE
+        b_activity_app_send_logs.setOnClickListener { sendLogsInEmail(applicationContext) }
+    }
+
     override fun onServiceMessage(serviceMessage: ServiceMessage) {
         when (serviceMessage) {
             is ServiceMessage.ServiceState -> {
                 lastServiceMessage != serviceMessage || return
-                Timber.tag(this@AppActivity.getTag("onServiceMessage")).d("Message: $serviceMessage")
+                XLog.d(this@AppActivity.getLog("onServiceMessage", "Message: $serviceMessage"))
 
-                bottom_navigation_activity_single.menu.findItem(R.id.menu_fab).title =
+                bottom_navigation_activity_app.menu.findItem(R.id.menu_fab).title =
                         if (serviceMessage.isStreaming) getString(R.string.bottom_menu_stop)
                         else getString(R.string.bottom_menu_start)
 
-                with(fab_activity_single_start_stop) {
+                with(fab_activity_app_start_stop) {
                     visibility = View.VISIBLE
                     isEnabled = serviceMessage.isBusy.not()
 
@@ -109,7 +135,7 @@ class AppActivity : BaseActivity() {
                 }
 
                 if (serviceMessage.isStreaming != lastServiceMessage?.isStreaming) {
-                    ObjectAnimator.ofPropertyValuesHolder(fab_activity_single_start_stop, scaleX, scaleY, alpha).apply {
+                    ObjectAnimator.ofPropertyValuesHolder(fab_activity_app_start_stop, scaleX, scaleY, alpha).apply {
                         interpolator = OvershootInterpolator()
                         duration = 750
                     }.start()
@@ -124,7 +150,7 @@ class AppActivity : BaseActivity() {
                             Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME).setFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                         )
                     } catch (ex: ActivityNotFoundException) {
-                        Timber.tag(getTag("onServiceMessage")).e(ex)
+                        XLog.e(getLog("onServiceMessage"), ex)
                     }
 
                 if (serviceMessage.appError != null) {
@@ -142,7 +168,7 @@ class AppActivity : BaseActivity() {
     }
 
     private fun showError(appError: AppError) {
-        Timber.tag(getTag("showError")).d(appError.toString())
+        XLog.d(getLog("showError", appError.toString()))
 
         val message: String = when (appError) {
             is FixableError.AddressInUseException -> getString(R.string.app_activity_error_port_in_use)

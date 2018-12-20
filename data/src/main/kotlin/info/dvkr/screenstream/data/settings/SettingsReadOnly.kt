@@ -21,6 +21,7 @@ interface SettingsReadOnly {
 
     val useWiFiOnly: Boolean
     val severPort: Int
+    val loggingOn: Boolean
 
     fun autoChangePinOnStop(): Boolean
 

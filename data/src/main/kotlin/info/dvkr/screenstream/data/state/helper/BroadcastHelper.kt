@@ -6,11 +6,11 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.net.ConnectivityManager
 import android.net.wifi.WifiManager
+import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.data.model.AppError
 import info.dvkr.screenstream.data.model.FatalError
-import info.dvkr.screenstream.data.other.getTag
+import info.dvkr.screenstream.data.other.getLog
 import kotlinx.coroutines.*
-import timber.log.Timber
 import kotlin.coroutines.CoroutineContext
 
 class BroadcastHelper(context: Context, private val onError: (AppError) -> Unit) : CoroutineScope {
@@ -20,7 +20,7 @@ class BroadcastHelper(context: Context, private val onError: (AppError) -> Unit)
 
     override val coroutineContext: CoroutineContext
         get() = parentJob + Dispatchers.Main + CoroutineExceptionHandler { _, throwable ->
-            Timber.tag(getTag("onCoroutineException")).e(throwable)
+            XLog.e(getLog("onCoroutineException"), throwable)
             onError(FatalError.CoroutineException)
         }
 
@@ -42,7 +42,7 @@ class BroadcastHelper(context: Context, private val onError: (AppError) -> Unit)
 
         broadcastReceiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context?, intent: Intent?) {
-                Timber.tag(this@BroadcastHelper.getTag("onReceive")).d("Action: ${intent?.action}")
+                XLog.d(this@BroadcastHelper.getLog("onReceive", "Action: ${intent?.action}"))
 
                 when (intent?.action) {
                     Intent.ACTION_SCREEN_OFF -> onScreenOff()

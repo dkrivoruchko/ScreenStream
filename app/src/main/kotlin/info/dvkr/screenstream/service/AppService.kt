@@ -12,12 +12,14 @@ import androidx.annotation.AnyThread
 import androidx.annotation.Keep
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.content.ContextCompat
+import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.R
+import info.dvkr.screenstream.ScreenStreamApp
 import info.dvkr.screenstream.data.model.AppError
 import info.dvkr.screenstream.data.model.FatalError
 import info.dvkr.screenstream.data.model.HttpClient
 import info.dvkr.screenstream.data.model.TrafficPoint
-import info.dvkr.screenstream.data.other.getTag
+import info.dvkr.screenstream.data.other.getLog
 import info.dvkr.screenstream.data.settings.SettingsReadOnly
 import info.dvkr.screenstream.data.state.AppStateMachine
 import info.dvkr.screenstream.data.state.AppStateMachineImpl
@@ -27,7 +29,6 @@ import kotlinx.android.parcel.Parcelize
 import kotlinx.android.synthetic.main.toast_slow_connection.view.*
 import kotlinx.coroutines.*
 import org.koin.android.ext.android.inject
-import timber.log.Timber
 import java.util.*
 import kotlin.coroutines.CoroutineContext
 
@@ -75,7 +76,7 @@ class AppService : Service(), CoroutineScope {
         private fun unRegisterActivityMessenger(messenger: Messenger) = activityMessengers.remove(messenger)
 
         fun sendMessageToActivities(serviceMessage: ServiceMessage) {
-            Timber.tag(getTag("sendMessageToActivities")).v("ServiceMessage: $serviceMessage")
+            XLog.v(getLog("sendMessageToActivities", "ServiceMessage: $serviceMessage"))
             lastServiceMessage = serviceMessage
             synchronized(activityMessengers) {
                 activityMessengers.forEach { activityMessenger -> sendMessage(activityMessenger, serviceMessage) }
@@ -83,19 +84,18 @@ class AppService : Service(), CoroutineScope {
         }
 
         private fun sendMessage(activityMessenger: Messenger, serviceMessage: ServiceMessage) {
-            Timber.tag(getTag("sendMessage")).v("Messenger: $activityMessenger, ServiceMessage: $serviceMessage")
+            XLog.v(getLog("sendMessage", "Messenger: $activityMessenger, ServiceMessage: $serviceMessage"))
             try {
                 activityMessenger.send(Message.obtain(null, 0).apply { data = serviceMessage.toBundle() })
             } catch (ex: RemoteException) {
-                Timber.tag(getTag("sendMessageToActivities")).e(ex)
+                XLog.e(getLog("sendMessageToActivities"), ex)
                 unRegisterActivityMessenger(activityMessenger)
             }
         }
 
         override fun handleMessage(msg: Message?) {
             val message = ServiceMessage.fromBundle(msg?.data)
-            Timber.tag(getTag("handleMessage")).d("ServiceMessage: $message")
-
+            XLog.d(getLog("handleMessage", "ServiceMessage: $message"))
             when (message) {
                 is ServiceMessage.RegisterActivity -> {
                     lastServiceMessage?.let { sendMessage(message.relyTo, it) }
@@ -114,24 +114,24 @@ class AppService : Service(), CoroutineScope {
 
     override val coroutineContext: CoroutineContext
         get() = parentJob + Dispatchers.Main + CoroutineExceptionHandler { _, throwable ->
-            Timber.tag(getTag("onCoroutineException")).e(throwable)
+            XLog.e(getLog("onCoroutineException"), throwable)
             onError(FatalError.CoroutineException)
         }
 
     override fun onBind(intent: Intent?): IBinder? {
-        Timber.tag(getTag("onBind")).d("Invoked")
+        XLog.d(getLog("onBind", "Invoked"))
         return incomingMessenger.binder
     }
 
     @AnyThread
     private fun onError(appError: AppError) {
-        Timber.tag(this@AppService.getTag("onError")).e("AppError: $appError")
+        XLog.e(this@AppService.getLog("onError", "AppError: $appError"))
 
         startActivity(AppActivity.getStartIntent(applicationContext).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
     }
 
     private fun onEffect(effect: AppStateMachine.Effect) {
-        Timber.tag(this.getTag("onEffect")).d("Effect: $effect")
+        XLog.d(getLog("onEffect", "Effect: $effect"))
 
         when (effect) {
             is AppStateMachine.Effect.RequestCastPermissions -> startActivity(PermissionActivity.getStartIntent(this))
@@ -179,7 +179,7 @@ class AppService : Service(), CoroutineScope {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val intentAction = IntentAction.fromIntent(intent)
         intentAction != null || return Service.START_NOT_STICKY
-        Timber.tag(getTag("onStartCommand")).d("IntentAction: $intentAction")
+        XLog.d(getLog("onStartCommand", "IntentAction: $intentAction"))
 
         when (intentAction) {
             IntentAction.GetServiceState -> {
@@ -199,6 +199,7 @@ class AppService : Service(), CoroutineScope {
             IntentAction.Exit -> {
                 sendBroadcast(Intent(Intent.ACTION_CLOSE_SYSTEM_DIALOGS))
                 activityMessagesHandler.sendMessageToActivities(ServiceMessage.FinishActivity)
+                stopForeground(true)
                 this@AppService.stopSelf()
             }
 
@@ -214,14 +215,14 @@ class AppService : Service(), CoroutineScope {
             IntentAction.RecoverError ->
                 appStateMachine.sendEvent(AppStateMachine.Event.RecoverError)
 
-            else -> Timber.tag(getTag("onStartCommand")).e("Unknown action: $intentAction")
+            else -> XLog.e(getLog("onStartCommand", "Unknown action: $intentAction"))
         }
 
         return Service.START_NOT_STICKY
     }
 
     override fun onDestroy() {
-        Timber.tag(getTag("onDestroy")).d("Invoked")
+        XLog.d(getLog("onDestroy", "Invoked"))
         appStateMachine.destroy()
         parentJob.cancel()
         stopForeground(true)

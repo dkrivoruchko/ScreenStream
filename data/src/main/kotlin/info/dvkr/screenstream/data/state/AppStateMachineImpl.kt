@@ -13,13 +13,14 @@ import androidx.annotation.AnyThread
 import androidx.annotation.Keep
 import androidx.annotation.WorkerThread
 import androidx.core.content.ContextCompat
+import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.data.httpserver.HttpServer
 import info.dvkr.screenstream.data.httpserver.HttpServerImpl
 import info.dvkr.screenstream.data.image.BitmapCapture
 import info.dvkr.screenstream.data.image.BitmapNotification
 import info.dvkr.screenstream.data.image.BitmapToJpeg
 import info.dvkr.screenstream.data.model.*
-import info.dvkr.screenstream.data.other.getTag
+import info.dvkr.screenstream.data.other.getLog
 import info.dvkr.screenstream.data.settings.Settings
 import info.dvkr.screenstream.data.settings.SettingsReadOnly
 import info.dvkr.screenstream.data.state.helper.BroadcastHelper
@@ -28,7 +29,6 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.SendChannel
 import kotlinx.coroutines.channels.actor
-import timber.log.Timber
 import java.net.InetSocketAddress
 import kotlin.coroutines.CoroutineContext
 
@@ -45,7 +45,7 @@ class AppStateMachineImpl(
 
     override val coroutineContext: CoroutineContext
         get() = parentJob + Dispatchers.Default + CoroutineExceptionHandler { _, throwable ->
-            Timber.tag(getTag("onCoroutineException")).e(throwable)
+            XLog.e(getLog("onCoroutineException"), throwable)
             onError(FatalError.CoroutineException)
         }
 
@@ -81,19 +81,19 @@ class AppStateMachineImpl(
         override fun onSettingsChanged(key: String) {
             when (key) {
                 Settings.Key.HTML_BACK_COLOR ->
-                    RestartReason.SettingsChanged("htmlBackColor: ${settingsReadOnly.htmlBackColor}")
+                    RestartReason.SettingsChanged("$key: ${settingsReadOnly.htmlBackColor}")
 
                 Settings.Key.ENABLE_PIN ->
-                    RestartReason.SettingsChanged("enablePin: ${settingsReadOnly.enablePin}")
+                    RestartReason.SettingsChanged("$key: ${settingsReadOnly.enablePin}")
 
                 Settings.Key.PIN ->
-                    RestartReason.SettingsChanged("pin: ${settingsReadOnly.pin}")
+                    RestartReason.SettingsChanged("$key: ${settingsReadOnly.pin}")
 
                 Settings.Key.USE_WIFI_ONLY ->
-                    RestartReason.NetworkSettingsChanged("useWiFiOnly: ${settingsReadOnly.useWiFiOnly}")
+                    RestartReason.NetworkSettingsChanged("$key: ${settingsReadOnly.useWiFiOnly}")
 
                 Settings.Key.SERVER_PORT ->
-                    RestartReason.NetworkSettingsChanged("severPort: ${settingsReadOnly.severPort}")
+                    RestartReason.NetworkSettingsChanged("$key: ${settingsReadOnly.severPort}")
 
                 else -> null
             }?.let { restartReason -> sendEvent(InternalEvent.RestartHttpServer(restartReason)) }
@@ -102,7 +102,7 @@ class AppStateMachineImpl(
 
     private val projectionCallback = object : MediaProjection.Callback() {
         override fun onStop() {
-            Timber.tag(getTag("MediaProjection.Callback")).d("onStop")
+            XLog.d(getLog("MediaProjection.Callback", "onStop"))
             sendEvent(AppStateMachine.Event.StopStream)
         }
     }
@@ -110,16 +110,16 @@ class AppStateMachineImpl(
     @Throws(FatalError.ChannelException::class)
     override fun sendEvent(event: AppStateMachine.Event, timeout: Long) {
         if (timeout > 0) {
-            Timber.tag(getTag("sendEvent [Timeout: $timeout]")).d("Event: $event")
+            XLog.d(getLog("sendEvent[Timeout: $timeout]", "Event: $event"))
             launch { delay(timeout); sendEvent(event) }
         } else {
-            Timber.tag(getTag("sendEvent")).d("Event: $event")
+            XLog.d(getLog("sendEvent", "Event: $event"))
             parentJob.isActive || return
 
             if (eventChannel.isClosedForSend) {
-                Timber.tag(getTag("sendEvent")).e(IllegalStateException("Channel is ClosedForSend"))
+                XLog.e(getLog("sendEvent"), IllegalStateException("Channel is ClosedForSend"))
             } else if (eventChannel.offer(event).not()) {
-                Timber.tag(getTag("sendEvent")).e(IllegalStateException("Channel is full"))
+                XLog.e(getLog("sendEvent"), IllegalStateException("Channel is full"))
                 throw FatalError.ChannelException
             }
         }
@@ -135,11 +135,11 @@ class AppStateMachineImpl(
                     InternalEvent.Destroy, AppStateMachine.Event.RequestPublicState, AppStateMachine.Event.RecoverError
                 )
             ) {
-                Timber.tag(this@AppStateMachineImpl.getTag("actor")).w("[State.ERROR] Skipping event: $event")
+                XLog.w(this@AppStateMachineImpl.getLog("actor", "[State.ERROR] Skipping event: $event"))
                 continue
             }
 
-            Timber.tag(this@AppStateMachineImpl.getTag("actor")).d("$streamState. Event: $event")
+            XLog.d(this@AppStateMachineImpl.getLog("actor", "$streamState. Event: $event"))
             previousStreamState = streamState
             streamState = when (event) {
                 is InternalEvent.DiscoverServerAddress -> discoverServerAddress(streamState)
@@ -184,23 +184,23 @@ class AppStateMachineImpl(
                 else -> throw IllegalArgumentException("Unknown AppStateMachine.Event: $event")
             }
 
-            Timber.tag(this@AppStateMachineImpl.getTag("actor")).d("New $streamState")
+            XLog.d(this@AppStateMachineImpl.getLog("actor", "New $streamState"))
             if (streamState.isPublicStatePublishRequired(previousStreamState)) onEffect(streamState.toPublicState())
 
         } catch (throwable: Throwable) {
-            Timber.tag(this@AppStateMachineImpl.getTag("actor")).e(throwable)
+            XLog.e(this@AppStateMachineImpl.getLog("actor"), throwable)
             onError(FatalError.ActorException)
         }
     }
 
     @WorkerThread
     private fun onError(appError: AppError) {
-        Timber.tag(getTag("onError")).e("AppError: $appError")
+        XLog.e(getLog("onError", "AppError: $appError"))
         sendEvent(InternalEvent.ComponentError(appError))
     }
 
     init {
-        Timber.tag(getTag("init")).d("Invoked")
+        XLog.d(getLog("init", "Invoked"))
         settingsReadOnly.registerChangeListener(settingsListener)
         broadcastHelper.registerReceiver(
             onScreenOff = { sendEvent(InternalEvent.ScreenOff) },
@@ -213,7 +213,7 @@ class AppStateMachineImpl(
 
     @AnyThread
     override fun destroy() {
-        Timber.tag(getTag("destroy")).d("Invoked")
+        XLog.d(getLog("destroy", "Invoked"))
         sendEvent(InternalEvent.Destroy)
         settingsReadOnly.unregisterChangeListener(settingsListener)
         broadcastHelper.unregisterReceiver()
@@ -224,7 +224,7 @@ class AppStateMachineImpl(
     }
 
     private fun discoverServerAddress(streamState: StreamState): StreamState {
-        Timber.tag(getTag("discoverServerAddress")).d("Invoked")
+        XLog.d(getLog("discoverServerAddress", "Invoked"))
         streamState.requireState(StreamState.State.CREATED, StreamState.State.SERVER_STARTED)
 
         val netInterfaces = networkHelper.getNetInterfaces(settingsReadOnly.useWiFiOnly)
@@ -233,7 +233,7 @@ class AppStateMachineImpl(
                 sendEvent(InternalEvent.DiscoverServerAddress, 1000)
                 streamState.copy(httpServerAddressAttempt = streamState.httpServerAddressAttempt + 1)
             } else {
-                Timber.tag(getTag("discoverServerAddress")).w("No address found")
+                XLog.w(getLog("discoverServerAddress", "No address found"))
                 streamState.copy(
                     state = StreamState.State.ERROR,
                     netInterfaces = emptyList(),
@@ -260,7 +260,7 @@ class AppStateMachineImpl(
     }
 
     private fun startHttpServer(streamState: StreamState): StreamState {
-        Timber.tag(getTag("startHttpServer")).d("Invoked")
+        XLog.d(getLog("startHttpServer", "Invoked"))
         streamState.requireState(StreamState.State.SERVER_ADDRESS_DISCOVERED)
         require(streamState.httpServerAddress != null)
 
@@ -273,7 +273,7 @@ class AppStateMachineImpl(
     }
 
     private fun startProjection(streamState: StreamState, intent: Intent): StreamState {
-        Timber.tag(getTag("startProjection")).d("Invoked")
+        XLog.d(getLog("startProjection", "Invoked"))
         streamState.requireState(StreamState.State.PERMISSION_REQUESTED)
 
         val mediaProjection = projectionManager.getMediaProjection(Activity.RESULT_OK, intent)
@@ -290,7 +290,7 @@ class AppStateMachineImpl(
     }
 
     private fun stopStream(streamState: StreamState): StreamState {
-        Timber.tag(getTag("stopStream")).d("Invoked")
+        XLog.d(getLog("stopStream", "Invoked"))
         streamState.requireState(StreamState.State.STREAMING)
 
         return streamState.stopProjectionIfStreaming(projectionCallback).also {
@@ -300,7 +300,7 @@ class AppStateMachineImpl(
     }
 
     private fun restartHttpServer(streamState: StreamState, reason: RestartReason): StreamState {
-        Timber.tag(getTag("restartHttpServer")).d("Invoked")
+        XLog.d(getLog("restartHttpServer", "Invoked"))
         when (reason) {
             is RestartReason.ConnectionChanged ->
                 onEffect(AppStateMachine.Effect.ConnectionChanged)

@@ -1,17 +1,17 @@
 package info.dvkr.screenstream.data.httpserver
 
 import androidx.annotation.Keep
+import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.data.model.AppError
 import info.dvkr.screenstream.data.model.FatalError
 import info.dvkr.screenstream.data.model.HttpClient
 import info.dvkr.screenstream.data.model.TrafficPoint
-import info.dvkr.screenstream.data.other.getTag
+import info.dvkr.screenstream.data.other.getLog
 import kotlinx.coroutines.channels.SendChannel
 import kotlinx.coroutines.channels.actor
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import timber.log.Timber
 import java.net.InetSocketAddress
 import java.util.*
 
@@ -51,7 +51,7 @@ internal class HttpServerStatistic(
         val trafficHistory = LinkedList<TrafficPoint>()
 
         for (event in this@actor) try {
-            Timber.tag(this@HttpServerStatistic.getTag("Actor")).v(event.toString())
+            XLog.v(this@HttpServerStatistic.getLog("Actor", event.toString()))
 
             when (event) {
                 is StatisticEvent.Init -> {
@@ -97,13 +97,13 @@ internal class HttpServerStatistic(
                 )
             }
         } catch (throwable: Throwable) {
-            Timber.tag(this@HttpServerStatistic.getTag("actor")).e(throwable)
+            XLog.e(this@HttpServerStatistic.getLog("actor"), throwable)
             onError(FatalError.ActorException)
         }
     }
 
     init {
-        Timber.tag(getTag("init")).d("Invoked")
+        XLog.d(getLog("init", "Invoked"))
         sendStatisticEvent(HttpServerStatistic.StatisticEvent.Init)
     }
 
@@ -111,10 +111,10 @@ internal class HttpServerStatistic(
         parentJob.isActive || return
 
         if (statisticEventChannel.isClosedForSend) {
-            Timber.tag(getTag("sendStatisticEvent")).e(IllegalStateException("Channel is ClosedForSend"))
+            XLog.e(getLog("sendStatisticEvent"), IllegalStateException("Channel is ClosedForSend"))
             onError(FatalError.ChannelException)
         } else if (statisticEventChannel.offer(event).not()) {
-            Timber.tag(getTag("sendStatisticEvent")).e(IllegalStateException("Channel is full"))
+            XLog.e(getLog("sendStatisticEvent"), IllegalStateException("Channel is full"))
             onError(FatalError.ChannelException)
         }
     }

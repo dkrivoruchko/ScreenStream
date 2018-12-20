@@ -5,11 +5,11 @@ import android.content.Context
 import android.content.res.Resources
 import android.net.wifi.WifiManager
 import androidx.core.content.ContextCompat
+import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.data.model.AppError
 import info.dvkr.screenstream.data.model.FatalError
 import info.dvkr.screenstream.data.model.NetInterface
-import info.dvkr.screenstream.data.other.getTag
-import timber.log.Timber
+import info.dvkr.screenstream.data.other.getLog
 import java.net.Inet4Address
 import java.net.InetAddress
 import java.net.NetworkInterface
@@ -32,7 +32,7 @@ class NetworkHelper(context: Context, private val onError: (AppError) -> Unit) {
     private val wifiManager: WifiManager = ContextCompat.getSystemService(context, WifiManager::class.java)!!
 
     fun getNetInterfaces(useWiFiOnly: Boolean): List<NetInterface> {
-        Timber.tag(getTag("getNetInterfaces")).d("Invoked")
+        XLog.d(getLog("getNetInterfaces", "Invoked"))
 
         val netInterfaceList = mutableListOf<NetInterface>()
         try {
@@ -57,12 +57,12 @@ class NetworkHelper(context: Context, private val onError: (AppError) -> Unit) {
                     .toCollection(netInterfaceList)
             } catch (throwable: Throwable) {
                 if (wifiConnected()) {
-                    Timber.tag(getTag("getNetInterfaces")).e(throwable)
+                    XLog.e(getLog("getNetInterfaces"), throwable)
                     netInterfaceList.add(getWiFiNetAddress())
                 } else throw throwable
             }
         } catch (throwable: Throwable) {
-            Timber.tag(getTag("getNetInterfaces")).e(throwable)
+            XLog.e(getLog("getNetInterfaces"), throwable)
             onError(FatalError.NetInterfaceException)
         }
         return netInterfaceList
@@ -71,7 +71,7 @@ class NetworkHelper(context: Context, private val onError: (AppError) -> Unit) {
     private fun wifiConnected() = wifiManager.connectionInfo.ipAddress != 0
 
     private fun getWiFiNetAddress(): NetInterface {
-        Timber.tag(getTag("getWiFiNetAddress")).d("Invoked")
+        XLog.d(getLog("getWiFiNetAddress", "Invoked"))
 
         val ipInt = wifiManager.connectionInfo.ipAddress
         val ipByteArray = ByteArray(4) { i -> (ipInt.shr(i * 8).and(255)).toByte() }
