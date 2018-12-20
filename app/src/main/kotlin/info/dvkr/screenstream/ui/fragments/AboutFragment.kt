@@ -8,7 +8,9 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
+import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.R
+import info.dvkr.screenstream.data.other.getLog
 import info.dvkr.screenstream.ui.router.FragmentRouter
 import kotlinx.android.synthetic.main.fragment_about.*
 
@@ -29,8 +31,12 @@ class AboutFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         with(requireActivity()) {
-            val version = packageManager.getPackageInfo(packageName, 0).versionName
-            tv_fragment_about_version.text = getString(R.string.about_fragment_app_version, version)
+            try {
+                val version = packageManager.getPackageInfo(packageName, 0).versionName
+                tv_fragment_about_version.text = getString(R.string.about_fragment_app_version, version)
+            } catch (t: Throwable) {
+                XLog.e(getLog("onViewCreated", "getPackageInfo"), t)
+            }
 
             b_fragment_about_rate.setOnClickListener {
                 try {
