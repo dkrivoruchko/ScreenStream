@@ -55,11 +55,12 @@ class NotificationHelper(context: Context) {
             setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             setCategory(Notification.CATEGORY_SERVICE)
             priority = NotificationCompat.PRIORITY_HIGH
-            setSmallIcon(R.drawable.ic_notification_small_24dp)
         }
 
         when (notificationType) {
             NotificationType.START -> {
+                builder.setSmallIcon(R.drawable.ic_notification_small_24dp)
+
                 val startIntent = PendingIntent.getService(
                     applicationContext, 1,
                     AppService.getStartIntent(applicationContext, AppService.IntentAction.StartStream),
@@ -100,6 +101,8 @@ class NotificationHelper(context: Context) {
             }
 
             NotificationType.STOP -> {
+                builder.setSmallIcon(R.drawable.ic_notification_small_anim_24dp)
+
                 val stopIntent = PendingIntent.getService(
                     applicationContext, 2,
                     AppService.getStartIntent(applicationContext, AppService.IntentAction.StopStream),
