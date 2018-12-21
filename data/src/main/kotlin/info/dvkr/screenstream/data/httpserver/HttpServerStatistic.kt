@@ -29,7 +29,11 @@ internal class HttpServerStatistic(
         internal fun isDisconnectHoldTimePass(now: Long) =
             (now - disconnectedTime) > HttpServer.CLIENT_DISCONNECT_HOLD_TIME_SECONDS * 1000
 
-        internal fun toHttpClient() = HttpClient(clientAddress, isSlowConnection, isDisconnected)
+        internal fun addressToString(): String = clientAddress.toString().drop(1)
+
+        internal fun addressToId(): Long = addressToString().filterNot { it == '.' || it == ':' }.toLong()
+
+        internal fun toHttpClient() = HttpClient(addressToId(), addressToString(), isSlowConnection, isDisconnected)
     }
 
     internal sealed class StatisticEvent {
@@ -91,7 +95,7 @@ internal class HttpServerStatistic(
                 }
 
                 is StatisticEvent.SendStatistic -> onStatistic(
-                    clientsMap.values.toList().map { it.toHttpClient() },
+                    clientsMap.values.toList().map { it.toHttpClient() }.sortedBy { it.id },
                     trafficHistory.toList().sortedBy { it.time }
                 )
             }

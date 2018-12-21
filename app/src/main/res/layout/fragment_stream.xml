@@ -154,12 +154,11 @@
                         android:layout_height="1dp"
                         android:background="@color/colorClientDivider" />
 
-                    <LinearLayout
-                        android:id="@+id/ll_fragment_stream_client_list"
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/rv_fragment_stream_clients"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:orientation="vertical" />
-
+                        app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager" />
                 </LinearLayout>
 
             </com.github.florent37.expansionpanel.ExpansionLayout>

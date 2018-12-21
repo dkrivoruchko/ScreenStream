@@ -39,6 +39,14 @@
             app:iconTint="@color/colorPrimary" />
     </LinearLayout>
 
+    <View
+        android:id="@+id/v_activity_app_logs"
+        android:layout_width="match_parent"
+        android:layout_height="3dp"
+        android:layout_above="@+id/ll_activity_app_logs"
+        android:background="@drawable/view_shadow_bottom"
+        app:layout_constraintTop_toBottomOf="@id/ll_activity_app_logs" />
+
     <FrameLayout
         android:id="@+id/fl_activity_single"
         android:layout_width="match_parent"

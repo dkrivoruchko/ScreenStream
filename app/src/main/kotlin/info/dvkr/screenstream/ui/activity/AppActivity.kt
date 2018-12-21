@@ -104,6 +104,7 @@ class AppActivity : BaseActivity() {
 
     private fun setLogging(loggingOn: Boolean) {
         ll_activity_app_logs.visibility = if (loggingOn) View.VISIBLE else View.GONE
+        v_activity_app_logs.visibility = if (loggingOn) View.VISIBLE else View.GONE
         b_activity_app_send_logs.setOnClickListener { sendLogsInEmail(applicationContext) }
     }
 

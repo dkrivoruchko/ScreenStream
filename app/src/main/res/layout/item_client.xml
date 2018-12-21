@@ -7,10 +7,10 @@
 
     <androidx.appcompat.widget.AppCompatTextView
         android:id="@+id/tv_client_item_address"
-        android:layout_width="0dp"
+        android:layout_width="wrap_content"
         android:layout_height="match_parent"
         android:layout_margin="4dp"
-        android:gravity="center_vertical"
+        android:gravity="start"
         android:paddingStart="16dp"
         android:paddingTop="4dp"
         android:paddingBottom="4dp"
@@ -20,10 +20,10 @@
 
     <androidx.appcompat.widget.AppCompatTextView
         android:id="@+id/tv_client_item_status"
-        android:layout_width="0dp"
+        android:layout_width="wrap_content"
         android:layout_height="match_parent"
         android:layout_margin="4dp"
-        android:gravity="center_vertical"
+        android:gravity="end"
         android:paddingTop="4dp"
         android:paddingEnd="16dp"
         android:paddingBottom="4dp"
