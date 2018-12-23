@@ -185,7 +185,7 @@ class AppActivity : BaseActivity() {
             .titleColorRes(R.color.colorPrimary)
             .message(message)
             .messageColorRes(R.color.colorPrimary)
-            .backgroundColorRes(R.color.colorErrorBackground)
+            .backgroundDrawable(R.drawable.error_background)
             .positiveActionText(if (appError is FixableError) android.R.string.ok else R.string.app_activity_error_exit)
             .positiveActionTextColorRes(R.color.colorPrimary)
             .positiveActionTapListener(object : Flashbar.OnActionTapListener {

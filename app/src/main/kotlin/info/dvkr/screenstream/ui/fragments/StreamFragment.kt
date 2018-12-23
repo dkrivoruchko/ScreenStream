@@ -78,7 +78,6 @@ class StreamFragment : Fragment() {
         }
     }
 
-
     override fun onDestroyView() {
         super.onDestroyView()
         httpClientAdapter = null
@@ -97,6 +96,9 @@ class StreamFragment : Fragment() {
                     is ServiceMessage.TrafficHistory -> onTrafficHistoryMessage(serviceMessage)
                 }
             })
+
+        el_fragment_stream_traffic.collapse(false)
+        el_fragment_stream_clients.collapse(false)
 
         AppService.startForegroundService(requireContext(), AppService.IntentAction.GetServiceState)
     }
@@ -223,7 +225,7 @@ class StreamFragment : Fragment() {
         RecyclerView.ViewHolder(containerView), LayoutContainer {
 
         private val textColorPrimary by lazy { ContextCompat.getColor(containerView.context, R.color.textColorPrimary) }
-        private val colorError by lazy { ContextCompat.getColor(containerView.context, R.color.colorErrorBackground) }
+        private val colorError by lazy { ContextCompat.getColor(containerView.context, R.color.colorError) }
         private val colorAccent by lazy { ContextCompat.getColor(containerView.context, R.color.colorAccent) }
 
         fun bind(product: HttpClient) = with(product) {

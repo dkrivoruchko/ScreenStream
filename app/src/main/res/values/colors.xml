@@ -2,7 +2,7 @@
 <resources>
     <color name="colorPrimary">#FFFFFF</color>
     <color name="colorPrimaryDark">#FFFFFF</color>
-    <color name="colorAccent">#05A484</color>
+    <color name="colorAccent">#00A389</color>
     <color name="textColorPrimary">#5F6368</color>
     <color name="textColorSecondary">#3C4043</color>
     <color name="textColorTertiary">#9AA0A6</color>
@@ -27,5 +27,7 @@
     <color name="colorNotificationBackground">#F4F4F4</color>
     <color name="colorNotificationText">@color/textColorSecondary</color>
 
-    <color name="colorErrorBackground">#B00020</color>
+    <color name="colorError">#D2283D</color>
+    <color name="colorErrorBackgroundStart">#FB334C</color>
+    <color name="colorErrorBackgroundEnd">#D2283D</color>
 </resources>

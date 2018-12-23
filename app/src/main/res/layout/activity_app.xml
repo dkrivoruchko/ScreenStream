@@ -10,7 +10,7 @@
         android:id="@+id/ll_activity_app_logs"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@color/colorErrorBackground"
+        android:background="@drawable/error_background"
         android:orientation="vertical"
         android:paddingStart="16dp"
         android:paddingTop="16dp"
