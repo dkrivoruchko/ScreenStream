@@ -1,6 +1,6 @@
 <resources>
     <!--BitmapNotification-->
-    <string name="image_generator_press_start">Нажмите НАЧАТЬ ТРАНСЛЯЦИЮ на устройстве</string>
+    <string name="image_generator_press_start">Нажмите СТАРТ на устройстве</string>
     <string name="image_generator_go_to_new_address">Пройдите по новому адресу</string>
     <string name="image_generator_reload_this_page">Перегрузите эту страницу</string>
 

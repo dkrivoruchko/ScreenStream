@@ -59,7 +59,7 @@
         android:id="@+id/bottom_navigation_activity_app"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@color/colorBackgroundSecondary"
+        android:background="@color/colorNavigationBackground"
         app:itemIconTint="@drawable/bottom_navigation_colors"
         app:itemTextColor="@drawable/bottom_navigation_colors"
         app:labelVisibilityMode="labeled"

@@ -19,7 +19,7 @@
             android:id="@+id/iv_notification_start_big_main"
             android:layout_width="48dp"
             android:layout_height="48dp"
-            app:srcCompat="@drawable/ic_app_icon" />
+            app:srcCompat="@drawable/logo" />
 
         <LinearLayout
             android:layout_width="match_parent"

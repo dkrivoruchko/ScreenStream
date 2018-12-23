@@ -164,7 +164,7 @@ class AppService : Service(), CoroutineScope {
             parentJob,
             settingsReadOnly,
             getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager,
-            BitmapFactory.decodeResource(resources, R.drawable.ic_app_icon),
+            BitmapFactory.decodeResource(resources, R.drawable.logo),
             { clients: List<HttpClient>, trafficHistory: List<TrafficPoint> ->
                 checkForSlowClients(clients)
                 activityMessagesHandler.sendMessageToActivities(ServiceMessage.Clients(clients))

@@ -1,6 +1,6 @@
 <resources>
     <!--BitmapNotification-->
-    <string name="image_generator_press_start">Pressione INICIAR STREAM no dispositivo</string>
+    <string name="image_generator_press_start">Pressione INICIAR no dispositivo</string>
     <string name="image_generator_go_to_new_address">Por favor, vá para novo endereço</string>
     <string name="image_generator_reload_this_page">Por favor recarregue esta página</string>
 

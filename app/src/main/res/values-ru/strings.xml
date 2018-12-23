@@ -37,8 +37,8 @@
     <string name="permission_activity_error_unknown">Неизвестная ошибка</string>
 
     <string name="notification_ready_to_stream">Готов к трансляции</string>
-    <string name="notification_press_start">Нажмите НАЧАТЬ для старта трансляции</string>
-    <string name="notification_start">Начать</string>
+    <string name="notification_press_start">Нажмите СТАРТ для старта трансляции</string>
+    <string name="notification_start">Старт</string>
     <string name="notification_exit">Выход</string>
     <string name="notification_stream">Транслирую…</string>
     <string name="notification_press_stop">Нажмите ОСТАНОВИТЬ для окончания</string>

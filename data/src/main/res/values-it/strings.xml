@@ -1,6 +1,6 @@
 <resources>
     <!--BitmapNotification-->
-    <string name="image_generator_press_start">Premi INIZIA TRASMISSIONE nel dispositivo</string>
+    <string name="image_generator_press_start">Premi START nel dispositivo</string>
     <string name="image_generator_go_to_new_address">Vai al nuovo indirizzo</string>
     <string name="image_generator_reload_this_page">Ricarica questa pagina</string>
 

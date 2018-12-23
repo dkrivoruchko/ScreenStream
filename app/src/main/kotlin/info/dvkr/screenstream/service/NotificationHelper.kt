@@ -70,7 +70,7 @@ class NotificationHelper(context: Context) {
                 builder.setCustomContentView(
                     RemoteViews(packageName, R.layout.notification_start_small).apply {
                         setOnClickPendingIntent(R.id.ll_notification_start_small, pendingAppActivityIntent)
-                        setImageViewResource(R.id.iv_notification_start_small_main, R.drawable.ic_app_icon)
+                        setImageViewResource(R.id.iv_notification_start_small_main, R.drawable.logo)
                         setImageViewResource(
                             R.id.iv_notification_start_small_start, R.drawable.ic_notification_start_24dp
                         )
@@ -86,7 +86,7 @@ class NotificationHelper(context: Context) {
                 builder.setCustomBigContentView(
                     RemoteViews(packageName, R.layout.notification_start_big).apply {
                         setOnClickPendingIntent(R.id.ll_notification_start_big, pendingAppActivityIntent)
-                        setImageViewResource(R.id.iv_notification_start_big_main, R.drawable.ic_app_icon)
+                        setImageViewResource(R.id.iv_notification_start_big_main, R.drawable.logo)
                         setTextViewCompoundDrawables(
                             R.id.tv_notification_start_big_start,
                             R.drawable.ic_notification_start_24dp, 0, 0, 0
@@ -112,7 +112,7 @@ class NotificationHelper(context: Context) {
                 builder.setCustomContentView(
                     RemoteViews(packageName, R.layout.notification_stop_small).apply {
                         setOnClickPendingIntent(R.id.ll_notification_stop_small, pendingAppActivityIntent)
-                        setImageViewResource(R.id.iv_notification_stop_small_main, R.drawable.ic_app_icon)
+                        setImageViewResource(R.id.iv_notification_stop_small_main, R.drawable.logo)
                         setImageViewResource(R.id.iv_notification_stop_small_stop, R.drawable.ic_notification_stop_24dp)
                         setOnClickPendingIntent(R.id.iv_notification_stop_small_stop, stopIntent)
                     })
@@ -120,7 +120,7 @@ class NotificationHelper(context: Context) {
                 builder.setCustomBigContentView(
                     RemoteViews(packageName, R.layout.notification_stop_big).apply {
                         setOnClickPendingIntent(R.id.ll_notification_stop_big, pendingAppActivityIntent)
-                        setImageViewResource(R.id.iv_notification_stop_big_main, R.drawable.ic_app_icon)
+                        setImageViewResource(R.id.iv_notification_stop_big_main, R.drawable.logo)
                         setTextViewCompoundDrawables(
                             R.id.tv_notification_stop_big_stop,
                             R.drawable.ic_notification_stop_24dp, 0, 0, 0
