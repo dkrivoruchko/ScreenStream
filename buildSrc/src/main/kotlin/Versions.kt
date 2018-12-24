@@ -6,7 +6,7 @@ object Versions {
 
     const val versionMajor = 3
     const val versionMinor = 0
-    const val versionPatch = 0
+    const val versionPatch = 1
 
     const val kotlin = "1.3.11"
     const val coroutine = "1.0.1"
@@ -17,8 +17,8 @@ object Versions {
     const val material = "1.0.0"
     const val appcompat = "1.0.2"
     const val legacySupport = "1.0.0"
-    const val constraint = "2.0.0-alpha2" //1.1.3
-    const val materialDialogs = "2.0.0-rc3"
+    const val constraint = "2.0.0-alpha3" //1.1.3
+    const val materialDialogs = "2.0.0-rc4"
     const val koin = "1.0.2"
     const val binaryprefs = "1.0.0"
     const val rxJava = "1.3.8"

@@ -84,9 +84,12 @@ class AppService : Service(), CoroutineScope {
         private fun sendMessage(activityMessenger: Messenger, serviceMessage: ServiceMessage) {
             XLog.v(getLog("sendMessage", "Messenger: $activityMessenger, ServiceMessage: $serviceMessage"))
             try {
-                activityMessenger.send(Message.obtain(null, 0).apply { data = serviceMessage.toBundle() })
+                if (activityMessenger.binder.isBinderAlive)
+                    activityMessenger.send(Message.obtain(null, 0).apply { data = serviceMessage.toBundle() })
+                else
+                    unRegisterActivityMessenger(activityMessenger)
             } catch (ex: RemoteException) {
-                XLog.e(getLog("sendMessageToActivities"), ex)
+                XLog.w(getLog("sendMessageToActivities", ex.toString()))
                 unRegisterActivityMessenger(activityMessenger)
             }
         }

@@ -138,7 +138,7 @@ class AppStateMachineImpl(
                 continue
             }
 
-            XLog.d(this@AppStateMachineImpl.getLog("actor", "$streamState. Event: $event"))
+            XLog.i(this@AppStateMachineImpl.getLog("actor", "$streamState. Event: $event"))
             previousStreamState = streamState
             streamState = when (event) {
                 is InternalEvent.DiscoverServerAddress -> discoverServerAddress(streamState)
@@ -183,7 +183,7 @@ class AppStateMachineImpl(
                 else -> throw IllegalArgumentException("Unknown AppStateMachine.Event: $event")
             }
 
-            XLog.d(this@AppStateMachineImpl.getLog("actor", "New $streamState"))
+            XLog.i(this@AppStateMachineImpl.getLog("actor", "New $streamState"))
             if (streamState.isPublicStatePublishRequired(previousStreamState)) onEffect(streamState.toPublicState())
 
         } catch (throwable: Throwable) {

@@ -48,19 +48,17 @@ Application uses Android Cast feature and requires at least Android 5.0 to run.
 
 ## Features and libraries
 
-Version 2.x based on Clean Architecture, Android Architecture Components (ViewModel) and MVP pattern and uses:
+Version 3.x based on Clean Architecture, Single Activity and MVI patterns and uses:
 * [Kotlin](https://kotlinlang.org)
 * [Kotlin coroutines](https://github.com/Kotlin/kotlinx.coroutines)
-* [Android support libraries](https://developer.android.com/topic/libraries/support-library/index.html)
-* [Android Architecture Components](https://developer.android.com/topic/libraries/architecture/index.html) (ViewModel)
+* [Android Jetpack libraries](https://developer.android.com/jetpack/)
 * [Koin](https://github.com/Ekito/koin)
+* [Flashbar](https://github.com/aritraroy/Flashbar)
+* [Material Dialogs](https://github.com/afollestad/material-dialogs)
+* [Binary Preferences](https://github.com/iamironz/binaryprefs)
+* [GraphView](https://github.com/appsthatmatter/GraphView)
 * [RxJava 1.x](https://github.com/ReactiveX/RxJava/tree/1.x)
 * [RxNetty](https://github.com/ReactiveX/RxNetty)
-* [MaterialDrawer](https://github.com/mikepenz/MaterialDrawer)
-* [Alerter](https://github.com/Tapadoo/Alerter)
-* [Binary Preferences](https://github.com/iamironz/binaryprefs)
-* [Color Picker](https://github.com/jrummyapps/colorpicker)
-* [GraphView](https://github.com/appsthatmatter/GraphView)
 * [Crashlytics](https://try.crashlytics.com/)
 * [LeakCanary](https://github.com/square/leakcanary)
 
