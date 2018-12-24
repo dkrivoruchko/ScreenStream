@@ -70,6 +70,15 @@
     <string name="pref_resize_value" translatable="false">%1$d%%</string>
     <string name="pref_resize_dialog_text">Set image resize factor in percent.\nValues: 10–150 (Default: 50)\nScreen size: %1$dx%2$d</string>
     <string name="pref_resize_dialog_result">Picture size: %1$dx%2$d</string>
+    <string name="pref_rotate">Rotate image clockwise</string>
+    <string name="pref_rotate_summary">Rotate image before sending to client</string>
+    <string name="pref_rotate_value" translatable="false">%1$d\u00B0</string>
+    <string-array name="pref_rotate_options" translatable="false">
+        <item>0\u00B0</item>
+        <item>90\u00B0</item>
+        <item>180\u00B0</item>
+        <item>270\u00B0</item>
+    </string-array>
     <string name="pref_jpeg_quality">JPEG compression quality</string>
     <string name="pref_jpeg_quality_summary">Set JPEG compression quality</string>
     <string name="pref_jpeg_quality_dialog">Set JPEG compression quality.\nValues: 10–100 (Default: 100)</string>

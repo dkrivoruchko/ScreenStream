@@ -62,6 +62,9 @@ class SettingsFragment : Fragment() {
                 tv_fragment_settings_resize_image_value.text =
                         getString(R.string.pref_resize_value, settings.resizeFactor)
 
+            Settings.Key.ROTATION ->
+                tv_fragment_settings_rotation_value.text = getString(R.string.pref_rotate_value, settings.rotation)
+
             Settings.Key.JPEG_QUALITY ->
                 tv_fragment_settings_jpeg_quality_value.text = settings.jpegQuality.toString()
 
@@ -89,6 +92,13 @@ class SettingsFragment : Fragment() {
         3 to AppCompatDelegate.MODE_NIGHT_NO
     )
 
+    private val rotationList = listOf(
+        0 to Settings.Values.ROTATION_0,
+        1 to Settings.Values.ROTATION_90,
+        2 to Settings.Values.ROTATION_180,
+        3 to Settings.Values.ROTATION_270
+    )
+
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View =
         inflater.inflate(R.layout.fragment_settings, container, false)
 
@@ -98,20 +108,17 @@ class SettingsFragment : Fragment() {
         // Interface - Night mode
         val index = nightModeList.first { it.second == settings.nightMode }.first
         tv_fragment_settings_night_mode_summary.text = resources.getStringArray(R.array.pref_night_mode_options)[index]
-
-        with(cl_fragment_settings_night_mode) {
-            setOnClickListener {
-                val indexOld = nightModeList.first { it.second == settings.nightMode }.first
-                MaterialDialog(requireActivity()).show {
-                    title(R.string.pref_night_mode)
-                    icon(R.drawable.ic_settings_night_mode_24dp)
-                    listItemsSingleChoice(R.array.pref_night_mode_options, initialSelection = indexOld) { _, index, _ ->
-                        settings.nightMode = nightModeList.firstOrNull { item -> item.first == index }?.second ?:
-                                throw IllegalArgumentException("Unknown night mode index")
-                    }
-                    positiveButton(android.R.string.ok)
-                    negativeButton(android.R.string.cancel)
+        cl_fragment_settings_night_mode.setOnClickListener {
+            val indexOld = nightModeList.first { it.second == settings.nightMode }.first
+            MaterialDialog(requireActivity()).show {
+                title(R.string.pref_night_mode)
+                icon(R.drawable.ic_settings_night_mode_24dp)
+                listItemsSingleChoice(R.array.pref_night_mode_options, initialSelection = indexOld) { _, index, _ ->
+                    settings.nightMode = nightModeList.firstOrNull { item -> item.first == index }?.second ?:
+                            throw IllegalArgumentException("Unknown night mode index")
                 }
+                positiveButton(android.R.string.ok)
+                negativeButton(android.R.string.cancel)
             }
         }
 
@@ -205,6 +212,22 @@ class SettingsFragment : Fragment() {
 
             }
             resizeDialog.show()
+        }
+
+        // Image - Rotation
+        tv_fragment_settings_rotation_value.text = getString(R.string.pref_rotate_value, settings.rotation)
+        cl_fragment_settings_rotation.setOnClickListener {
+            val indexOld = rotationList.first { it.second == settings.rotation }.first
+            MaterialDialog(requireActivity()).show {
+                title(R.string.pref_rotate)
+                icon(R.drawable.ic_settings_rotation_24dp)
+                listItemsSingleChoice(R.array.pref_rotate_options, initialSelection = indexOld) { _, index, _ ->
+                    settings.rotation = rotationList.firstOrNull { item -> item.first == index }?.second ?:
+                            throw IllegalArgumentException("Unknown rotation index")
+                }
+                positiveButton(android.R.string.ok)
+                negativeButton(android.R.string.cancel)
+            }
         }
 
         // Image - Jpeg Quality

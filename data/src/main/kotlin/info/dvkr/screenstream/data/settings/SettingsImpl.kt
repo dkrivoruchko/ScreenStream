@@ -33,6 +33,9 @@ class SettingsImpl(private val preferences: Preferences) : Settings {
     override var resizeFactor: Int
             by bindPreference(preferences, Settings.Key.RESIZE_FACTOR, Settings.Default.RESIZE_FACTOR)
 
+    override var rotation: Int
+            by bindPreference(preferences, Settings.Key.ROTATION, Settings.Default.ROTATION)
+
 
     override var enablePin: Boolean
             by bindPreference(preferences, Settings.Key.ENABLE_PIN, Settings.Default.ENABLE_PIN)

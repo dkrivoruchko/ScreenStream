@@ -68,6 +68,8 @@
     <string name="pref_resize_summary">Изменять размер изображения перед отправкой</string>
     <string name="pref_resize_dialog_text">Установите коэффициент масштабирования изображения в процентах.\nЗначения: 10–150 (По умолчанию: 50)\nРазмер экрана: %1$dx%2$d</string>
     <string name="pref_resize_dialog_result">Размер изображения: %1$dx%2$d</string>
+    <string name="pref_rotate">Поворачивать по часовой стрелке</string>
+    <string name="pref_rotate_summary">Поворачивать изображение перед отправкой</string>
     <string name="pref_jpeg_quality">Качество JPEG</string>
     <string name="pref_jpeg_quality_summary">Установить качество JPEG</string>
     <string name="pref_jpeg_quality_dialog">Установите качество сжатия JPEG.\nЗначения: 1–100\n(По умолчанию: 100)</string>

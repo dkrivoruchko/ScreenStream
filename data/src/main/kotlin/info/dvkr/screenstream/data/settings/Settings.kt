@@ -11,6 +11,7 @@ interface Settings : SettingsReadOnly {
 
         const val JPEG_QUALITY = "PREF_KEY_JPEG_QUALITY"
         const val RESIZE_FACTOR = "PREF_KEY_RESIZE_FACTOR"
+        const val ROTATION = "PREF_KEY_ROTATION"
 
         const val ENABLE_PIN = "PREF_KEY_ENABLE_PIN"
         const val HIDE_PIN_ON_START = "PREF_KEY_HIDE_PIN_ON_START"
@@ -32,6 +33,7 @@ interface Settings : SettingsReadOnly {
 
         const val JPEG_QUALITY = 80
         const val RESIZE_FACTOR = 50
+        const val ROTATION = Values.ROTATION_0
 
         const val ENABLE_PIN = false
         const val HIDE_PIN_ON_START = true
@@ -44,6 +46,15 @@ interface Settings : SettingsReadOnly {
         const val LOGGING_ON = false
     }
 
+    object Values {
+        const val RESIZE_DISABLED = 100
+
+        const val ROTATION_0 = 0
+        const val ROTATION_90 = 90
+        const val ROTATION_180 = 180
+        const val ROTATION_270 = 270
+    }
+
     override var nightMode: Int
     override var minimizeOnStream: Boolean
     override var stopOnSleep: Boolean
@@ -52,6 +63,7 @@ interface Settings : SettingsReadOnly {
 
     override var jpegQuality: Int
     override var resizeFactor: Int
+    override var rotation: Int
 
     override var enablePin: Boolean
     override var hidePinOnStart: Boolean

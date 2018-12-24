@@ -53,14 +53,15 @@ class BitmapCapture constructor(
     private var virtualDisplay: VirtualDisplay? = null
     private lateinit var rotationDetector: Deferred<Unit>
 
-    private val resizeMatrix = AtomicReference<Matrix>(Matrix())
-    private val resizeFactor = AtomicInteger(100)
+    private val matrix = AtomicReference<Matrix>(Matrix())
+    private val resizeFactor = AtomicInteger(Settings.Values.RESIZE_DISABLED)
+    private val rotation = AtomicInteger(Settings.Values.ROTATION_0)
 
     private val settingsListener = object : SettingsReadOnly.OnSettingsChangeListener {
         override fun onSettingsChanged(key: String) {
-            if (key == Settings.Key.RESIZE_FACTOR) {
-                XLog.d(this@BitmapCapture.getLog("onSettingsChanged", "resizeFactor: ${settingsReadOnly.resizeFactor}"))
-                setResizeFactor(settingsReadOnly.resizeFactor)
+            when (key) {
+                Settings.Key.RESIZE_FACTOR, Settings.Key.ROTATION ->
+                    setMatrix(settingsReadOnly.resizeFactor, settingsReadOnly.rotation)
             }
         }
     }
@@ -68,7 +69,7 @@ class BitmapCapture constructor(
     init {
         XLog.d(getLog("init", "Invoked"))
         settingsReadOnly.registerChangeListener(settingsListener)
-        setResizeFactor(settingsReadOnly.resizeFactor)
+        setMatrix(settingsReadOnly.resizeFactor, settingsReadOnly.rotation)
         imageThread.start()
     }
 
@@ -78,13 +79,21 @@ class BitmapCapture constructor(
     }
 
     @Synchronized
-    private fun setResizeFactor(newResizeFactor: Int) {
-        if (newResizeFactor != resizeFactor.get()) {
-            resizeFactor.set(newResizeFactor)
-            val scale = newResizeFactor / 100f
-            resizeMatrix.set(Matrix().also { it.postScale(scale, scale) })
-            if (state == State.STARTED) restart()
-        }
+    private fun setMatrix(newResizeFactor: Int, newRotation: Int) {
+        (newResizeFactor != resizeFactor.get() || newRotation != rotation.get()) || return
+        resizeFactor.set(newResizeFactor)
+        rotation.set(newRotation)
+
+        val newMatrix = Matrix()
+
+        if (newResizeFactor > Settings.Values.RESIZE_DISABLED)
+            newMatrix.postScale(newResizeFactor / 100f, newResizeFactor / 100f)
+
+        if (newRotation != Settings.Values.ROTATION_0)
+            newMatrix.postRotate(newRotation.toFloat())
+
+        matrix.set(newMatrix)
+        if (state == State.STARTED) restart()
     }
 
     @Synchronized
@@ -135,7 +144,7 @@ class BitmapCapture constructor(
 
         val screenSizeX: Int
         val screenSizeY: Int
-        if (resizeFactor.get() < 100) {
+        if (resizeFactor.get() < Settings.Values.RESIZE_DISABLED) {
             val scale = resizeFactor.get() / 100f
             screenSizeX = (screenSize.x * scale).toInt()
             screenSizeY = (screenSize.y * scale).toInt()
@@ -209,9 +218,9 @@ class BitmapCapture constructor(
                         }
 
                         val resizedBitmap: Bitmap
-                        if (resizeFactor.get() > 100) {
+                        if (matrix.get().isIdentity.not()) {
                             resizedBitmap = Bitmap.createBitmap(
-                                cleanBitmap, 0, 0, image.width, image.height, resizeMatrix.get(), false
+                                cleanBitmap, 0, 0, image.width, image.height, matrix.get(), false
                             )
                             cleanBitmap.recycle()
                         } else {

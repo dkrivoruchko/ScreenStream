@@ -68,6 +68,8 @@
     <string name="pref_resize_summary">Redimensione a imagem antes de enviar para o cliente</string>
     <string name="pref_resize_dialog_text">"Defina o fator de redimensionamento da imagem em porcentagem.\nValores: 10–150 (Padrão: 50)\nTamanho da tela: %1$dx%2$d"</string>
     <string name="pref_resize_dialog_result">Tamanho da imagem: %1$dx%2$d</string>
+    <string name="pref_rotate">Rodar a imagem no sentido horário</string>
+    <string name="pref_rotate_summary">Rodar a imagem antes de enviar para o cliente</string>
     <string name="pref_jpeg_quality">Qualidade de compressão JPEG</string>
     <string name="pref_jpeg_quality_summary">Definir qualidade de compressão JPEG</string>
     <string name="pref_jpeg_quality_dialog">Defina a qualidade de compressão JPEG.\nValores: 10–100 (Padrão: 100)</string>
