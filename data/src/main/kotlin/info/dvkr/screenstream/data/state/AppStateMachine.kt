@@ -11,7 +11,6 @@ interface AppStateMachine {
 
     open class Event {
         object StartStream : Event()
-        object CastPermissionsDenied : Event()
         class StartProjection(val intent: Intent) : Event()
         object StopStream : Event()
         object RequestPublicState : Event()

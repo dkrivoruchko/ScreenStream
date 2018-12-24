@@ -85,8 +85,7 @@ class AppStateMachineImpl(
                 Settings.Key.ENABLE_PIN ->
                     RestartReason.SettingsChanged("$key: ${settingsReadOnly.enablePin}")
 
-                Settings.Key.PIN ->
-                    RestartReason.SettingsChanged("$key: ${settingsReadOnly.pin}")
+                Settings.Key.PIN -> RestartReason.SettingsChanged(key)
 
                 Settings.Key.USE_WIFI_ONLY ->
                     RestartReason.NetworkSettingsChanged("$key: ${settingsReadOnly.useWiFiOnly}")
@@ -138,6 +137,15 @@ class AppStateMachineImpl(
                 continue
             }
 
+            if (streamState.state == StreamState.State.RESTART_PENDING &&
+                event !in listOf(
+                    InternalEvent.DiscoverServerAddress, AppStateMachine.Event.RecoverError
+                )
+            ) {
+                XLog.w(this@AppStateMachineImpl.getLog("actor", "[State.RESTART_PENDING] Skipping event: $event"))
+                continue
+            }
+
             XLog.i(this@AppStateMachineImpl.getLog("actor", "$streamState. Event: $event"))
             previousStreamState = streamState
             streamState = when (event) {
@@ -148,10 +156,6 @@ class AppStateMachineImpl(
                     streamState.requireState(StreamState.State.SERVER_STARTED).also {
                         onEffect(AppStateMachine.Effect.RequestCastPermissions)
                     }.copy(state = StreamState.State.PERMISSION_REQUESTED)
-
-                is AppStateMachine.Event.CastPermissionsDenied ->
-                    streamState.requireState(StreamState.State.PERMISSION_REQUESTED)
-                        .copy(state = StreamState.State.SERVER_STARTED)
 
                 is AppStateMachine.Event.StartProjection -> startProjection(streamState, event.intent)
                 is AppStateMachine.Event.StopStream -> stopStream(streamState)
@@ -172,7 +176,7 @@ class AppStateMachineImpl(
 
                 is AppStateMachine.Event.RecoverError -> {
                     sendEvent(InternalEvent.DiscoverServerAddress)
-                    streamState.copy(state = StreamState.State.CREATED, appError = null)
+                    streamState.copy(state = StreamState.State.RESTART_PENDING, appError = null)
                 }
 
                 is AppStateMachine.Event.RequestPublicState -> {
@@ -224,7 +228,9 @@ class AppStateMachineImpl(
 
     private fun discoverServerAddress(streamState: StreamState): StreamState {
         XLog.d(getLog("discoverServerAddress", "Invoked"))
-        streamState.requireState(StreamState.State.CREATED, StreamState.State.SERVER_STARTED)
+        streamState.requireState(
+            StreamState.State.CREATED, StreamState.State.SERVER_STARTED, StreamState.State.RESTART_PENDING
+        )
 
         val netInterfaces = networkHelper.getNetInterfaces(settingsReadOnly.useWiFiOnly)
         if (netInterfaces.isEmpty())
@@ -315,7 +321,7 @@ class AppStateMachineImpl(
         else sendEvent(InternalEvent.DiscoverServerAddress, 1000)
 
         return streamState.copy(
-            state = StreamState.State.CREATED,
+            state = StreamState.State.RESTART_PENDING,
             netInterfaces = emptyList(),
             httpServerAddress = null,
             httpServerAddressAttempt = 0

@@ -45,7 +45,6 @@ class AppService : Service(), CoroutineScope {
         @Parcelize object StopStream : IntentAction()
         @Parcelize object Exit : IntentAction()
         @Parcelize data class CastIntent(val intent: Intent) : IntentAction()
-        @Parcelize object CastPermissionsDenied : IntentAction()
         @Parcelize object StartOnBoot : IntentAction()
         @Parcelize object RecoverError : IntentAction()
 
@@ -206,9 +205,6 @@ class AppService : Service(), CoroutineScope {
 
             is IntentAction.CastIntent ->
                 appStateMachine.sendEvent(AppStateMachine.Event.StartProjection(intentAction.intent))
-
-            IntentAction.CastPermissionsDenied ->
-                appStateMachine.sendEvent(AppStateMachine.Event.CastPermissionsDenied)
 
             IntentAction.StartOnBoot ->
                 appStateMachine.sendEvent(AppStateMachine.Event.StartStream, 3500)

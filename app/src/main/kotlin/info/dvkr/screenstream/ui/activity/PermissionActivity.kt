@@ -86,7 +86,7 @@ class PermissionActivity : AppCompatActivity() {
             message(messageRes)
             cancelable(false)
             cancelOnTouchOutside(false)
-            positiveButton(android.R.string.ok) { closeActivity(AppService.IntentAction.CastPermissionsDenied) }
+            positiveButton(android.R.string.ok)
         }
     }
 

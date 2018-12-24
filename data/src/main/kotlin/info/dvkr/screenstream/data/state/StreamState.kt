@@ -20,8 +20,8 @@ data class StreamState(
     override fun toString(): String = "StreamState: $state"
 
     enum class State {
-        CREATED, SERVER_ADDRESS_DISCOVERED, ERROR, SERVER_STARTED, PERMISSION_REQUESTED, STREAMING, DESTROYED
-
+        CREATED, SERVER_ADDRESS_DISCOVERED, ERROR, SERVER_STARTED,
+        PERMISSION_REQUESTED, STREAMING, DESTROYED, RESTART_PENDING
     }
 
     internal fun requireState(vararg requireStates: State): StreamState {
