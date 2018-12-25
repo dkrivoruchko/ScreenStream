@@ -7,7 +7,7 @@ import android.content.Intent
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.data.other.getLog
 import info.dvkr.screenstream.data.settings.SettingsReadOnly
-import info.dvkr.screenstream.service.AppService
+import info.dvkr.screenstream.service.helper.IntentAction
 import org.koin.standalone.KoinComponent
 import org.koin.standalone.inject
 
@@ -24,7 +24,7 @@ class BootReceiver : BroadcastReceiver(), KoinComponent {
             intent.action == "android.intent.action.BOOT_COMPLETED" ||
             intent.action == "android.intent.action.QUICKBOOT_POWERON"
         ) {
-            AppService.startForegroundService(context, AppService.IntentAction.StartOnBoot)
+            IntentAction.StartOnBoot.sendToAppService(context)
         }
     }
 }

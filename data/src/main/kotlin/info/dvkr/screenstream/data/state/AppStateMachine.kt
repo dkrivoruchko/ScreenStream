@@ -15,6 +15,8 @@ interface AppStateMachine {
         object StopStream : Event()
         object RequestPublicState : Event()
         object RecoverError : Event()
+
+        override fun toString(): String = this::class.java.simpleName
     }
 
     sealed class Effect {

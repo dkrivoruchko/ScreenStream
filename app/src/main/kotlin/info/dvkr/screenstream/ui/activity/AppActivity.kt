@@ -21,8 +21,8 @@ import info.dvkr.screenstream.data.other.getLog
 import info.dvkr.screenstream.data.settings.Settings
 import info.dvkr.screenstream.data.settings.SettingsReadOnly
 import info.dvkr.screenstream.logging.sendLogsInEmail
-import info.dvkr.screenstream.service.AppService
 import info.dvkr.screenstream.service.ServiceMessage
+import info.dvkr.screenstream.service.helper.IntentAction
 import info.dvkr.screenstream.ui.fragments.AboutFragment
 import info.dvkr.screenstream.ui.fragments.SettingsFragment
 import info.dvkr.screenstream.ui.fragments.StreamFragment
@@ -30,8 +30,10 @@ import info.dvkr.screenstream.ui.router.FragmentRouter
 import kotlinx.android.synthetic.main.activity_app.*
 
 class AppActivity : BaseActivity() {
+
     companion object {
-        fun getStartIntent(context: Context): Intent = Intent(context, AppActivity::class.java)
+        fun getStartIntent(context: Context): Intent =
+            Intent(context.applicationContext, AppActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
     }
 
     private val fragmentRouter: FragmentRouter by lazy {
@@ -81,7 +83,7 @@ class AppActivity : BaseActivity() {
                 R.id.menu_about_fragment -> fragmentRouter.navigateTo(menuItem.itemId)
 
                 R.id.menu_action_exit -> {
-                    AppService.startForegroundService(this@AppActivity, AppService.IntentAction.Exit)
+                    IntentAction.Exit.sendToAppService(this@AppActivity)
                     true
                 }
                 else -> false
@@ -124,14 +126,10 @@ class AppActivity : BaseActivity() {
 
                     if (serviceMessage.isStreaming) {
                         setImageResource(R.drawable.ic_fab_stop_24dp)
-                        setOnClickListener {
-                            AppService.startForegroundService(this@AppActivity, AppService.IntentAction.StopStream)
-                        }
+                        setOnClickListener { IntentAction.StopStream.sendToAppService(this@AppActivity) }
                     } else {
                         setImageResource(R.drawable.ic_fab_start_24dp)
-                        setOnClickListener {
-                            AppService.startForegroundService(this@AppActivity, AppService.IntentAction.StartStream)
-                        }
+                        setOnClickListener { IntentAction.StartStream.sendToAppService(this@AppActivity) }
                     }
                 }
 
@@ -196,10 +194,8 @@ class AppActivity : BaseActivity() {
                     override fun onDismissing(bar: Flashbar, isSwiped: Boolean) = Unit
                     override fun onDismissProgress(bar: Flashbar, progress: Float) = Unit
                     override fun onDismissed(bar: Flashbar, event: Flashbar.DismissEvent) {
-                        if (appError is FixableError)
-                            AppService.startForegroundService(this@AppActivity, AppService.IntentAction.RecoverError)
-                        else
-                            AppService.startForegroundService(this@AppActivity, AppService.IntentAction.Exit)
+                        if (appError is FixableError) IntentAction.RecoverError.sendToAppService(this@AppActivity)
+                        else IntentAction.Exit.sendToAppService(this@AppActivity)
                     }
                 }
             )

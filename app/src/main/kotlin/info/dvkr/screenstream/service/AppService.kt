@@ -21,9 +21,10 @@ import info.dvkr.screenstream.data.other.getLog
 import info.dvkr.screenstream.data.settings.SettingsReadOnly
 import info.dvkr.screenstream.data.state.AppStateMachine
 import info.dvkr.screenstream.data.state.AppStateMachineImpl
+import info.dvkr.screenstream.service.helper.IntentAction
+import info.dvkr.screenstream.service.helper.NotificationHelper
 import info.dvkr.screenstream.ui.activity.AppActivity
 import info.dvkr.screenstream.ui.activity.PermissionActivity
-import kotlinx.android.parcel.Parcelize
 import kotlinx.android.synthetic.main.toast_slow_connection.view.*
 import kotlinx.coroutines.*
 import org.koin.android.ext.android.inject
@@ -32,35 +33,18 @@ import kotlin.coroutines.CoroutineContext
 
 class AppService : Service(), CoroutineScope {
 
-    sealed class IntentAction : Parcelable {
-        internal companion object {
-            private const val EXTRA_PARCELABLE = "EXTRA_PARCELABLE"
-            fun fromIntent(intent: Intent?): IntentAction? = intent?.getParcelableExtra(EXTRA_PARCELABLE)
-        }
-
-        fun addToIntent(intent: Intent): Intent = intent.putExtra(EXTRA_PARCELABLE, this)
-
-        @Parcelize object GetServiceState : IntentAction()
-        @Parcelize object StartStream : IntentAction()
-        @Parcelize object StopStream : IntentAction()
-        @Parcelize object Exit : IntentAction()
-        @Parcelize data class CastIntent(val intent: Intent) : IntentAction()
-        @Parcelize object StartOnBoot : IntentAction()
-        @Parcelize object RecoverError : IntentAction()
-
-        override fun toString(): String = this::class.java.simpleName
-    }
-
     companion object {
-        fun getIntent(context: Context): Intent = Intent(context, AppService::class.java)
+        fun getAppServiceIntent(context: Context): Intent =
+            Intent(context.applicationContext, AppService::class.java)
 
-        fun getStartIntent(context: Context, intentAction: IntentAction? = null): Intent =
-            getIntent(context).also { intentAction?.addToIntent(it) }
+        fun getAppServiceIntent(context: Context, intentAction: IntentAction): Intent =
+            getAppServiceIntent(context).also { intentAction.addToIntent(it) }
 
-        fun startForegroundService(context: Context, intentAction: IntentAction? = null) {
-            val intent = getStartIntent(context, intentAction)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) context.startForegroundService(intent)
-            else context.startService(intent)
+        fun startForeground(context: Context) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
+                context.startForegroundService(getAppServiceIntent(context))
+            else
+                context.startService(getAppServiceIntent(context))
         }
     }
 
@@ -126,16 +110,18 @@ class AppService : Service(), CoroutineScope {
     @AnyThread
     private fun onError(appError: AppError) {
         XLog.e(this@AppService.getLog("onError", "AppError: $appError"))
-
-        startActivity(AppActivity.getStartIntent(applicationContext).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        IntentAction.StartAppActivity.sendToAppService(this)
     }
 
     private fun onEffect(effect: AppStateMachine.Effect) {
         XLog.d(getLog("onEffect", "Effect: $effect"))
 
         when (effect) {
-            is AppStateMachine.Effect.RequestCastPermissions -> startActivity(PermissionActivity.getStartIntent(this))
+            is AppStateMachine.Effect.RequestCastPermissions ->
+                IntentAction.StartPermissionActivity.sendToAppService(this)
+
             is AppStateMachine.Effect.ConnectionChanged -> Unit  // TODO Notify user about restart reason
+
             is AppStateMachine.Effect.PublicState -> {
                 activityMessagesHandler.sendMessageToActivities(
                     ServiceMessage.ServiceState(
@@ -176,6 +162,8 @@ class AppService : Service(), CoroutineScope {
         )
     }
 
+    private var isCastPermissionsPending: Boolean = false
+
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val intentAction = IntentAction.fromIntent(intent)
         intentAction != null || return Service.START_NOT_STICKY
@@ -203,14 +191,40 @@ class AppService : Service(), CoroutineScope {
                 this@AppService.stopSelf()
             }
 
-            is IntentAction.CastIntent ->
+            is IntentAction.CastIntent -> {
+                isCastPermissionsPending = false
+                appStateMachine.sendEvent(AppStateMachine.Event.RequestPublicState)
                 appStateMachine.sendEvent(AppStateMachine.Event.StartProjection(intentAction.intent))
+            }
+
+            IntentAction.CastPermissionsDenied -> {
+                appStateMachine.sendEvent(AppStateMachine.Event.RequestPublicState)
+                isCastPermissionsPending = false
+            }
 
             IntentAction.StartOnBoot ->
                 appStateMachine.sendEvent(AppStateMachine.Event.StartStream, 3500)
 
             IntentAction.RecoverError ->
                 appStateMachine.sendEvent(AppStateMachine.Event.RecoverError)
+
+            IntentAction.StartAppActivity -> {
+                sendBroadcast(Intent(Intent.ACTION_CLOSE_SYSTEM_DIALOGS))
+                if (isCastPermissionsPending)
+                    XLog.w(getLog("onStartCommand", "IntentAction.StartAppActivity: PermissionActivity open"))
+                else
+                    startActivity(AppActivity.getStartIntent(this))
+            }
+
+            IntentAction.StartPermissionActivity -> {
+                sendBroadcast(Intent(Intent.ACTION_CLOSE_SYSTEM_DIALOGS))
+                if (isCastPermissionsPending)
+                    XLog.w(getLog("onStartCommand", "IntentAction.StartPermissionActivity: Already open"))
+                else {
+                    isCastPermissionsPending = true
+                    startActivity(PermissionActivity.getStartIntent(this))
+                }
+            }
 
             else -> XLog.e(getLog("onStartCommand", "Unknown action: $intentAction"))
         }

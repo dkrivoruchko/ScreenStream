@@ -14,7 +14,7 @@ import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.data.other.getLog
 import info.dvkr.screenstream.data.settings.SettingsReadOnly
-import info.dvkr.screenstream.service.AppService
+import info.dvkr.screenstream.service.helper.IntentAction
 import org.koin.android.ext.android.inject
 
 
@@ -22,12 +22,13 @@ class PermissionActivity : AppCompatActivity() {
 
     companion object {
         fun getStartIntent(context: Context): Intent =
-            Intent(context, PermissionActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-
-        private const val REQUEST_CODE_SCREEN_CAPTURE = 10
+            Intent(context.applicationContext, PermissionActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
     }
 
+    private val requestCodeScreenCapture = 10
     private val settingsReadOnly: SettingsReadOnly by inject()
+
+    private var materialDialog: MaterialDialog? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         overridePendingTransition(0, 0)
@@ -37,9 +38,12 @@ class PermissionActivity : AppCompatActivity() {
 
     override fun onStart() {
         super.onStart()
+        if (materialDialog != null)
+            XLog.e(getLog("onStart", "materialDialog != null"), IllegalStateException("materialDialog != null"))
+
         val projectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
         try {
-            startActivityForResult(projectionManager.createScreenCaptureIntent(), REQUEST_CODE_SCREEN_CAPTURE)
+            startActivityForResult(projectionManager.createScreenCaptureIntent(), requestCodeScreenCapture)
         } catch (ex: ActivityNotFoundException) {
             showErrorDialog(
                 R.string.permission_activity_error_title_activity_not_found,
@@ -51,7 +55,7 @@ class PermissionActivity : AppCompatActivity() {
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         XLog.d(getLog("onActivityResult", "requestCode: $requestCode"))
 
-        if (requestCode != REQUEST_CODE_SCREEN_CAPTURE) {
+        if (requestCode != requestCodeScreenCapture) {
             XLog.e(getLog("onActivityResult"), IllegalStateException("Unknown requestCode: $requestCode"))
             showErrorDialog()
             return
@@ -73,25 +77,26 @@ class PermissionActivity : AppCompatActivity() {
         }
 
         XLog.d(getLog("onActivityResult", "Cast permission granted"))
-        closeActivity(AppService.IntentAction.CastIntent(data))
+        closeActivity(IntentAction.CastIntent(data))
     }
 
     private fun showErrorDialog(
         @StringRes titleRes: Int = R.string.permission_activity_error_title,
         @StringRes messageRes: Int = R.string.permission_activity_error_unknown
     ) {
-        MaterialDialog(this).show {
+        materialDialog = MaterialDialog(this).show {
             icon(R.drawable.ic_permission_dialog_24dp)
             title(titleRes)
             message(messageRes)
             cancelable(false)
             cancelOnTouchOutside(false)
-            positiveButton(android.R.string.ok)
+            positiveButton(android.R.string.ok) { closeActivity(IntentAction.CastPermissionsDenied) }
         }
     }
 
-    private fun closeActivity(intentAction: AppService.IntentAction) {
-        AppService.startForegroundService(this, intentAction)
+    private fun closeActivity(intentAction: IntentAction) {
+        materialDialog = null
+        intentAction.sendToAppService(this@PermissionActivity)
         finish()
         overridePendingTransition(0, 0)
     }

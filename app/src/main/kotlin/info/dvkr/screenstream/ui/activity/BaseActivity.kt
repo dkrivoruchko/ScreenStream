@@ -11,12 +11,12 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.Observer
 import com.elvishew.xlog.XLog
-import info.dvkr.screenstream.ScreenStreamApp
 import info.dvkr.screenstream.data.other.getLog
 import info.dvkr.screenstream.data.settings.Settings
 import info.dvkr.screenstream.data.settings.SettingsReadOnly
 import info.dvkr.screenstream.service.AppService
 import info.dvkr.screenstream.service.ServiceMessage
+import info.dvkr.screenstream.service.helper.IntentAction
 import org.koin.android.ext.android.inject
 
 abstract class BaseActivity : AppCompatActivity() {
@@ -30,7 +30,7 @@ abstract class BaseActivity : AppCompatActivity() {
             serviceMessenger = Messenger(service)
             isBound = true
             sendMessage(ServiceMessage.RegisterActivity(activityMessenger))
-            AppService.startForegroundService(this@BaseActivity, AppService.IntentAction.GetServiceState)
+            IntentAction.GetServiceState.sendToAppService(this@BaseActivity)
         }
 
         override fun onServiceDisconnected(name: ComponentName?) {
@@ -81,7 +81,7 @@ abstract class BaseActivity : AppCompatActivity() {
             message?.let { onServiceMessage(it) }
         })
 
-        bindService(AppService.getIntent(this), serviceConnection, Context.BIND_AUTO_CREATE)
+        bindService(AppService.getAppServiceIntent(this), serviceConnection, Context.BIND_AUTO_CREATE)
 
         settingsReadOnly.registerChangeListener(settingsListener)
     }

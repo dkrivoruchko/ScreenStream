@@ -24,6 +24,8 @@ class AboutFragment : Fragment() {
         }
     }
 
+    private var version: String = ""
+
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View =
         inflater.inflate(R.layout.fragment_about, container, false)
 
@@ -32,7 +34,7 @@ class AboutFragment : Fragment() {
 
         with(requireActivity()) {
             try {
-                val version = packageManager.getPackageInfo(packageName, 0).versionName
+                version = packageManager.getPackageInfo(packageName, 0).versionName
                 tv_fragment_about_version.text = getString(R.string.about_fragment_app_version, version)
             } catch (t: Throwable) {
                 XLog.e(getLog("onViewCreated", "getPackageInfo"), t)
@@ -62,7 +64,7 @@ class AboutFragment : Fragment() {
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 .setData(Uri.Builder().scheme("mailto").build())
                 .putExtra(Intent.EXTRA_EMAIL, arrayOf("Dmitriy Krivoruchko <dkrivoruchko@gmail.com>"))
-                .putExtra(Intent.EXTRA_SUBJECT, "Screen Stream Feedback")
+                .putExtra(Intent.EXTRA_SUBJECT, "Screen Stream Feedback ($version)")
             startActivity(Intent.createChooser(emailIntent, getString(R.string.about_fragment_email_chooser_header)))
         }
 

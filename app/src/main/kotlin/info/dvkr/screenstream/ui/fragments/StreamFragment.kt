@@ -26,8 +26,8 @@ import info.dvkr.screenstream.data.model.HttpClient
 import info.dvkr.screenstream.data.other.getLog
 import info.dvkr.screenstream.data.other.setColorSpan
 import info.dvkr.screenstream.data.settings.SettingsReadOnly
-import info.dvkr.screenstream.service.AppService
 import info.dvkr.screenstream.service.ServiceMessage
+import info.dvkr.screenstream.service.helper.IntentAction
 import info.dvkr.screenstream.ui.activity.BaseActivity
 import info.dvkr.screenstream.ui.router.FragmentRouter
 import kotlinx.android.extensions.LayoutContainer
@@ -100,7 +100,7 @@ class StreamFragment : Fragment() {
         el_fragment_stream_traffic.collapse(false)
         el_fragment_stream_clients.collapse(false)
 
-        AppService.startForegroundService(requireContext(), AppService.IntentAction.GetServiceState)
+        IntentAction.GetServiceState.sendToAppService(requireContext())
     }
 
     private fun onServiceStateMessage(serviceMessage: ServiceMessage.ServiceState) {

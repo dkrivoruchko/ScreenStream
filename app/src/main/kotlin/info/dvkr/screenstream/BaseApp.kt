@@ -39,6 +39,6 @@ abstract class BaseApp : Application() {
             defaultHandler.uncaughtException(thread, throwable)
         }
 
-        AppService.startForegroundService(this)
+        AppService.startForeground(this)
     }
 }

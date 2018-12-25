@@ -152,10 +152,11 @@ class AppStateMachineImpl(
                 is InternalEvent.DiscoverServerAddress -> discoverServerAddress(streamState)
                 is InternalEvent.StartHttpServer -> startHttpServer(streamState)
 
-                is AppStateMachine.Event.StartStream ->
-                    streamState.requireState(StreamState.State.SERVER_STARTED).also {
-                        onEffect(AppStateMachine.Effect.RequestCastPermissions)
-                    }.copy(state = StreamState.State.PERMISSION_REQUESTED)
+                is AppStateMachine.Event.StartStream -> {
+                    streamState.requireState(StreamState.State.SERVER_STARTED)
+                    onEffect(AppStateMachine.Effect.RequestCastPermissions)
+                    streamState
+                }
 
                 is AppStateMachine.Event.StartProjection -> startProjection(streamState, event.intent)
                 is AppStateMachine.Event.StopStream -> stopStream(streamState)
@@ -279,7 +280,7 @@ class AppStateMachineImpl(
 
     private fun startProjection(streamState: StreamState, intent: Intent): StreamState {
         XLog.d(getLog("startProjection", "Invoked"))
-        streamState.requireState(StreamState.State.PERMISSION_REQUESTED)
+        streamState.requireState(StreamState.State.SERVER_STARTED)
 
         val mediaProjection = projectionManager.getMediaProjection(Activity.RESULT_OK, intent)
         mediaProjection.registerCallback(projectionCallback, Handler(Looper.getMainLooper()))
