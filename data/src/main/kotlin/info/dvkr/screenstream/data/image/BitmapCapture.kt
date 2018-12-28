@@ -232,7 +232,7 @@ class BitmapCapture constructor(
 
                     }
                 } catch (ex: UnsupportedOperationException) {
-                    XLog.e(this@BitmapCapture.getLog("outBitmapChannel"), ex)
+                    XLog.w(this@BitmapCapture.getLog("outBitmapChannel", ex.toString()))
                     state = State.ERROR
                     onError(FatalError.BitmapFormatException)
                 } catch (throwable: Throwable) {

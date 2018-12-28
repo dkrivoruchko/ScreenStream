@@ -94,7 +94,7 @@ class HttpServerImpl constructor(
         var serverState = ServerState()
 
         for (event in this@actor) try {
-            XLog.v(this@HttpServerImpl.getLog("actor", "$serverState. Request: $event"))
+            XLog.i(this@HttpServerImpl.getLog("actor", "$serverState. Request: $event"))
 
             when (event) {
                 is ServerEvent.Init -> serverState = initServer(serverState)
@@ -251,7 +251,7 @@ class HttpServerImpl constructor(
         try {
             nettyHttpServer.start(httpServerRxHandler)
         } catch (ex: BindException) {
-            XLog.e(getLog("startServer"), ex)
+            XLog.w(getLog("startServer", ex.toString()))
             exception = FixableError.AddressInUseException
             sendServerEvent(ServerEvent.ServerError(exception))
         } catch (throwable: Throwable) {
@@ -278,11 +278,11 @@ class HttpServerImpl constructor(
         try {
             serverState.nettyHttpServer?.shutdown()
             serverState.nettyHttpServer?.awaitShutdown()
+            serverState.globalServerEventLoop?.shutdownGracefully()
         } catch (throwable: Throwable) {
-            XLog.w(getLog("stopServer"), throwable)
+            XLog.w(getLog("stopServer", throwable.toString()))
         }
 
-        serverState.globalServerEventLoop?.shutdownGracefully()
         RxNetty.useEventLoopProvider(HttpServerNioLoopProvider(NETTY_IO_THREADS_NUMBER))
 
         return serverState.copy(

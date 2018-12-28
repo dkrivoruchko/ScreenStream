@@ -45,12 +45,6 @@ android {
     sourceSets["debug"].java.srcDirs(file("src/debug/kotlin"))
     sourceSets["release"].java.srcDirs(file("src/release/kotlin"))
     sourceSets["fabricfree"].java.srcDirs(file("src/fabricfree/kotlin"))
-
-//    sourceSets["fabricfree"].java.srcDirs(
-//        file("src/fabricfree/kotlin"),
-//        file("$buildDir/generated/source/kapt/fabricfree"),
-//        file("$buildDir/generated/source/kaptKotlin/fabricfree")
-//    )
 }
 
 androidExtensions {

@@ -4,6 +4,8 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.Parcelable
+import com.elvishew.xlog.XLog
+import info.dvkr.screenstream.data.other.getLog
 import info.dvkr.screenstream.service.AppService
 import kotlinx.android.parcel.Parcelize
 
@@ -20,6 +22,7 @@ sealed class IntentAction : Parcelable {
     fun toAppServiceIntent(context: Context): Intent = AppService.getAppServiceIntent(context.applicationContext, this)
 
     fun sendToAppService(context: Context) {
+        XLog.i(getLog("sendToAppService", this.toString()))
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
             context.startForegroundService(this.toAppServiceIntent(context))
         else

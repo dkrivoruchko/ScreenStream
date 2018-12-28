@@ -49,19 +49,21 @@ class AppService : Service(), CoroutineScope {
     }
 
     private class ActivityMessagesHandler : Handler() {
-        private val activityMessengers = Collections.synchronizedSet(HashSet<Messenger>())
+        private val activityMessengers = HashSet<Messenger>()
         private var lastServiceMessage: ServiceMessage? = null
 
+        @Synchronized
         private fun registerActivityMessenger(messenger: Messenger) = activityMessengers.add(messenger)
 
+        @Synchronized
         private fun unRegisterActivityMessenger(messenger: Messenger) = activityMessengers.remove(messenger)
 
+        @Synchronized
         fun sendMessageToActivities(serviceMessage: ServiceMessage) {
             XLog.v(getLog("sendMessageToActivities", "ServiceMessage: $serviceMessage"))
             lastServiceMessage = serviceMessage
-            synchronized(activityMessengers) {
-                activityMessengers.forEach { activityMessenger -> sendMessage(activityMessenger, serviceMessage) }
-            }
+            val iterator = activityMessengers.iterator()
+            while (iterator.hasNext()) sendMessage(iterator.next(), serviceMessage)
         }
 
         private fun sendMessage(activityMessenger: Messenger, serviceMessage: ServiceMessage) {
@@ -255,5 +257,3 @@ class AppService : Service(), CoroutineScope {
         slowClients = currentSlowConnections
     }
 }
-
-

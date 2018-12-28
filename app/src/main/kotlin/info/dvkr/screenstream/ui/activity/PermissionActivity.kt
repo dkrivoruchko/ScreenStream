@@ -34,12 +34,9 @@ class PermissionActivity : AppCompatActivity() {
         overridePendingTransition(0, 0)
         setNightMode(settingsReadOnly.nightMode)
         super.onCreate(savedInstanceState)
-    }
 
-    override fun onStart() {
-        super.onStart()
         if (materialDialog != null)
-            XLog.e(getLog("onStart", "materialDialog != null"), IllegalStateException("materialDialog != null"))
+            XLog.e(getLog("onCreate", "materialDialog != null"), IllegalStateException("materialDialog != null"))
 
         val projectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
         try {
@@ -84,6 +81,8 @@ class PermissionActivity : AppCompatActivity() {
         @StringRes titleRes: Int = R.string.permission_activity_error_title,
         @StringRes messageRes: Int = R.string.permission_activity_error_unknown
     ) {
+        materialDialog?.dismiss()
+
         materialDialog = MaterialDialog(this).show {
             icon(R.drawable.ic_permission_dialog_24dp)
             title(titleRes)
@@ -95,6 +94,7 @@ class PermissionActivity : AppCompatActivity() {
     }
 
     private fun closeActivity(intentAction: IntentAction) {
+        materialDialog?.dismiss()
         materialDialog = null
         intentAction.sendToAppService(this@PermissionActivity)
         finish()

@@ -46,7 +46,7 @@ abstract class BaseActivity : AppCompatActivity() {
         try {
             serviceMessenger?.send(Message.obtain(null, 0).apply { data = serviceMessage.toBundle() })
         } catch (ex: RemoteException) {
-            XLog.e(getLog("sendMessage"), ex)
+            XLog.w(getLog("sendMessage", ex.toString()))
         }
     }
 
