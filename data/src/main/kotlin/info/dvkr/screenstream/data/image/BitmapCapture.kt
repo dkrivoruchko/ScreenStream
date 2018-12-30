@@ -165,7 +165,7 @@ class BitmapCapture constructor(
             state = State.STARTED
         } catch (ex: SecurityException) {
             state = State.ERROR
-            XLog.e(getLog("startDisplayCapture"), ex)
+            XLog.w(getLog("startDisplayCapture", ex.toString()))
             onError(FixableError.CastSecurityException)
         }
     }

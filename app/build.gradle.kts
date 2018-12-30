@@ -89,7 +89,6 @@ dependencies {
 
     implementation("com.andrognito.flashbar:flashbar:1.0.3")
     implementation("com.github.florent37:expansionpanel:1.2.2")
-    implementation("com.jjoe64:graphview:4.2.2")
     implementation("com.afollestad.material-dialogs:core:${Versions.materialDialogs}")
     implementation("com.afollestad.material-dialogs:color:${Versions.materialDialogs}")
     implementation("com.afollestad.material-dialogs:input:${Versions.materialDialogs}")

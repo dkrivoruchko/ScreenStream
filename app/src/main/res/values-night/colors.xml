@@ -30,4 +30,9 @@
     <color name="colorError">#D2283D</color>
     <color name="colorErrorBackgroundStart">#FB334C</color>
     <color name="colorErrorBackgroundEnd">#D2283D</color>
+
+    <color name="colorGraphGradientStart">#9F4597EA</color>
+    <color name="colorGraphGradientEnd">#084597EA</color>
+    <color name="colorGraphGuideline">#656565</color>
+
 </resources>

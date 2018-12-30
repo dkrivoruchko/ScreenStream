@@ -17,10 +17,6 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.elvishew.xlog.XLog
-import com.jjoe64.graphview.DefaultLabelFormatter
-import com.jjoe64.graphview.GridLabelRenderer
-import com.jjoe64.graphview.series.DataPoint
-import com.jjoe64.graphview.series.LineGraphSeries
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.data.model.HttpClient
 import info.dvkr.screenstream.data.other.getLog
@@ -35,7 +31,6 @@ import kotlinx.android.synthetic.main.fragment_stream.*
 import kotlinx.android.synthetic.main.item_client.*
 import kotlinx.android.synthetic.main.item_device_address.view.*
 import org.koin.android.ext.android.inject
-import java.text.NumberFormat
 
 class StreamFragment : Fragment() {
 
@@ -58,8 +53,7 @@ class StreamFragment : Fragment() {
 
     private val settingsReadOnly: SettingsReadOnly by inject()
     private var httpClientAdapter: HttpClientAdapter? = null
-    private var lineGraphSeries: LineGraphSeries<DataPoint>? = null
-    private var maxY: Double = 0.0
+    private var isTrafficGraphInit: Boolean = false
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -81,7 +75,7 @@ class StreamFragment : Fragment() {
     override fun onDestroyView() {
         super.onDestroyView()
         httpClientAdapter = null
-        lineGraphSeries = null
+        isTrafficGraphInit = false
     }
 
     override fun onStart() {
@@ -158,49 +152,17 @@ class StreamFragment : Fragment() {
     }
 
     private fun onTrafficHistoryMessage(serviceMessage: ServiceMessage.TrafficHistory) {
+        val lastTrafficPoint = serviceMessage.trafficHistory.last()
         tv_fragment_stream_traffic_header.text = getString(R.string.stream_fragment_current_traffic).run {
-            format(serviceMessage.trafficHistory.last().bytes.toMbit()).setColorSpan(colorAccent, indexOf('%'))
+            format(lastTrafficPoint.bytes.toMbit()).setColorSpan(colorAccent, indexOf('%'))
         }
 
-        with(graph_fragment_stream_traffic) {
-            if (lineGraphSeries == null) {
-                val arrayOfDataPoints = serviceMessage.trafficHistory
-                    .map { DataPoint(it.time.toDouble(), it.bytes.toMbit()) }
-                    .toTypedArray()
-
-                removeAllSeries()
-                lineGraphSeries = LineGraphSeries(arrayOfDataPoints).apply {
-                    color = colorAccent
-                    thickness = 6
-                }
-                addSeries(lineGraphSeries)
-
-                viewport.isXAxisBoundsManual = true
-                viewport.setMinX(arrayOfDataPoints.first().x)
-                viewport.setMaxX(arrayOfDataPoints.last().x)
-
-                viewport.isYAxisBoundsManual = true
-                maxY = Math.max(arrayOfDataPoints.map { it.y }.max()?.times(1.2) ?: 0.0, 1.1)
-                viewport.setMinY(maxY * -0.1)
-                viewport.setMaxY(maxY)
-
-                val numberFormat = NumberFormat.getInstance().apply {
-                    minimumFractionDigits = 1
-                    maximumFractionDigits = 1
-                    minimumIntegerDigits = 1
-                }
-                gridLabelRenderer.labelFormatter = DefaultLabelFormatter(numberFormat, numberFormat)
-                gridLabelRenderer.verticalLabelsColor = textColorPrimary
-                gridLabelRenderer.isHorizontalLabelsVisible = false
-                gridLabelRenderer.gridStyle = GridLabelRenderer.GridStyle.HORIZONTAL
+        with(traffic_graph_fragment_stream) {
+            if (isTrafficGraphInit) {
+                addDataPoint(Pair(lastTrafficPoint.time, lastTrafficPoint.bytes))
             } else {
-                val currentTraffic = serviceMessage.trafficHistory.last().bytes.toMbit()
-                lineGraphSeries?.appendData(
-                    DataPoint(serviceMessage.trafficHistory.last().time.toDouble(), currentTraffic), true, 60
-                )
-                maxY = Math.max(maxY, currentTraffic)
-                viewport.setMinY(maxY * -0.1)
-                viewport.setMaxY(maxY)
+                setDataPoints(serviceMessage.trafficHistory.map { Pair(it.time, it.bytes) })
+                isTrafficGraphInit = true
             }
         }
     }

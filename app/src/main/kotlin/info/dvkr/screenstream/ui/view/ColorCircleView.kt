@@ -7,13 +7,15 @@ import android.graphics.Paint
 import android.util.AttributeSet
 import android.view.View
 import androidx.annotation.ColorInt
-import com.afollestad.materialdialogs.utils.MDUtil.dimenPx
 import info.dvkr.screenstream.R
 
-class ColorCircleView(context: Context, attrs: AttributeSet? = null) : View(context, attrs) {
+class ColorCircleView @JvmOverloads constructor(
+    context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
+) : View(context, attrs, defStyleAttr) {
+
     private val fillPaint = Paint()
     private val strokePaint = Paint()
-    private val borderWidth = dimenPx(R.dimen.color_circle_view_border)
+    private val borderWidth = resources.getDimension(R.dimen.color_circle_view_border)
 
     init {
         setWillNotDraw(false)
@@ -44,8 +46,7 @@ class ColorCircleView(context: Context, attrs: AttributeSet? = null) : View(cont
         super.onMeasure(widthMeasureSpec, widthMeasureSpec)
 
     override fun onDraw(canvas: Canvas) {
-        super.onDraw(canvas)
-        canvas.drawCircle(measuredWidth / 2f, measuredHeight / 2f, (measuredWidth / 2f) - borderWidth, fillPaint)
-        canvas.drawCircle(measuredWidth / 2f, measuredHeight / 2f, (measuredWidth / 2f) - borderWidth, strokePaint)
+        canvas.drawCircle(width / 2f, height / 2f, (width / 2f) - borderWidth, fillPaint)
+        canvas.drawCircle(width / 2f, height / 2f, (width / 2f) - borderWidth, strokePaint)
     }
 }

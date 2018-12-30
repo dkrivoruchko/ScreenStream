@@ -9,4 +9,10 @@
     // Fix for https://github.com/material-components/material-components-android/issues/139
     <dimen name="design_bottom_navigation_text_size" tools:override="true">12sp</dimen>
     <dimen name="design_bottom_navigation_active_text_size" tools:override="true">12sp</dimen>
+
+    <dimen name="fragment_stream_color_graph_line_width">2dp</dimen>
+    <dimen name="fragment_stream_color_graph_guideline_width">0.4dp</dimen>
+    <dimen name="fragment_stream_color_graph_guideline_dash_length">4dp</dimen>
+    <dimen name="fragment_stream_color_graph_mark_text_size">14sp</dimen>
+    <dimen name="fragment_stream_color_graph_mark_text_padding">4dp</dimen>
 </resources>

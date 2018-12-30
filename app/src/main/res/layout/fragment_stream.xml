@@ -89,12 +89,10 @@
                         android:layout_height="1dp"
                         android:background="@color/colorClientDivider" />
 
-                    <com.jjoe64.graphview.GraphView
-                        android:id="@+id/graph_fragment_stream_traffic"
+                    <info.dvkr.screenstream.ui.view.TrafficGraph
+                        android:id="@+id/traffic_graph_fragment_stream"
                         android:layout_width="match_parent"
-                        android:layout_height="160dp"
-                        android:paddingStart="8dp"
-                        android:paddingEnd="4dp" />
+                        android:layout_height="160dp" />
                 </LinearLayout>
 
             </com.github.florent37.expansionpanel.ExpansionLayout>

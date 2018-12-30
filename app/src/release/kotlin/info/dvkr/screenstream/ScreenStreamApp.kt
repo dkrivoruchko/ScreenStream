@@ -23,7 +23,7 @@ class ScreenStreamApp : BaseApp() {
             }
             .addInterceptor(object : AbstractFilterInterceptor() {
                 override fun reject(log: LogItem): Boolean {
-                    if (log.level >= LogLevel.INFO) Crashlytics.log(log.msg)
+                    if (log.level >= LogLevel.DEBUG) Crashlytics.log(log.msg)
                     return settingsReadOnly.loggingOn.not()
                 }
             })
