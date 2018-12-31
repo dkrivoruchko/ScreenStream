@@ -42,10 +42,7 @@ class NetworkHelper(context: Context, private val onError: (AppError) -> Unit) {
                         networkInterface.inetAddresses.asSequence().filterNotNull()
                             .filter { inetAddress -> !inetAddress.isLoopbackAddress && inetAddress is Inet4Address }
                             .map { inetAddress ->
-                                NetInterface(
-                                    networkInterface.displayName,
-                                    inetAddress as Inet4Address
-                                )
+                                NetInterface(networkInterface.displayName, inetAddress as Inet4Address)
                             }
                     }
                     .filter { netInterface ->
@@ -57,7 +54,7 @@ class NetworkHelper(context: Context, private val onError: (AppError) -> Unit) {
                     .toCollection(netInterfaceList)
             } catch (throwable: Throwable) {
                 if (wifiConnected()) {
-                    XLog.e(getLog("getNetInterfaces"), throwable)
+                    XLog.w(getLog("getNetInterfaces", throwable.toString()))
                     netInterfaceList.add(getWiFiNetAddress())
                 } else throw throwable
             }

@@ -19,6 +19,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.data.model.HttpClient
+import info.dvkr.screenstream.data.other.bytesToMbit
 import info.dvkr.screenstream.data.other.getLog
 import info.dvkr.screenstream.data.other.setColorSpan
 import info.dvkr.screenstream.data.settings.SettingsReadOnly
@@ -53,7 +54,6 @@ class StreamFragment : Fragment() {
 
     private val settingsReadOnly: SettingsReadOnly by inject()
     private var httpClientAdapter: HttpClientAdapter? = null
-    private var isTrafficGraphInit: Boolean = false
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -75,7 +75,6 @@ class StreamFragment : Fragment() {
     override fun onDestroyView() {
         super.onDestroyView()
         httpClientAdapter = null
-        isTrafficGraphInit = false
     }
 
     override fun onStart() {
@@ -152,22 +151,14 @@ class StreamFragment : Fragment() {
     }
 
     private fun onTrafficHistoryMessage(serviceMessage: ServiceMessage.TrafficHistory) {
-        val lastTrafficPoint = serviceMessage.trafficHistory.last()
         tv_fragment_stream_traffic_header.text = getString(R.string.stream_fragment_current_traffic).run {
-            format(lastTrafficPoint.bytes.toMbit()).setColorSpan(colorAccent, indexOf('%'))
+            format(serviceMessage.trafficHistory.last().bytes.bytesToMbit()).setColorSpan(colorAccent, indexOf('%'))
         }
 
-        with(traffic_graph_fragment_stream) {
-            if (isTrafficGraphInit) {
-                addDataPoint(Pair(lastTrafficPoint.time, lastTrafficPoint.bytes))
-            } else {
-                setDataPoints(serviceMessage.trafficHistory.map { Pair(it.time, it.bytes) })
-                isTrafficGraphInit = true
-            }
-        }
+        traffic_graph_fragment_stream.setDataPoints(
+            serviceMessage.trafficHistory.map { Pair(it.time, it.bytes.bytesToMbit()) }
+        )
     }
-
-    private fun Long.toMbit() = (this * 8).toDouble() / 1024 / 1024
 
     private class HttpClientAdapter : ListAdapter<HttpClient, HttpClientViewHolder>(
         object : DiffUtil.ItemCallback<HttpClient>() {

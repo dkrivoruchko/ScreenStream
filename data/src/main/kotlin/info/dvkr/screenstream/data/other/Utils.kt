@@ -17,3 +17,5 @@ fun randomString(len: Int): String {
     for (i in 0 until len) chars[i] = symbols.random()
     return String(chars)
 }
+
+fun Long.bytesToMbit() = (this * 8).toFloat() / 1024 / 1024

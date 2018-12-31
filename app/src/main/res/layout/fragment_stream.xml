@@ -92,9 +92,9 @@
                     <info.dvkr.screenstream.ui.view.TrafficGraph
                         android:id="@+id/traffic_graph_fragment_stream"
                         android:layout_width="match_parent"
-                        android:layout_height="160dp" />
+                        android:paddingBottom="8dp"
+                        android:layout_height="168dp" />
                 </LinearLayout>
-
             </com.github.florent37.expansionpanel.ExpansionLayout>
         </LinearLayout>
 

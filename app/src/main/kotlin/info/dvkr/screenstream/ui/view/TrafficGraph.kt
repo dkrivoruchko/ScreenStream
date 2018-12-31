@@ -17,14 +17,12 @@ class TrafficGraph @JvmOverloads constructor(
 
     private data class DataPoint(val x: Long, val y: Float, var positionX: Float = 0f, var positionY: Float = 0f) {
         companion object {
-            fun fromPair(point: Pair<Long, Long>) = DataPoint(point.first, point.second.bytesToMbit())
-
-            private fun Long.bytesToMbit() = (this * 8).toFloat() / 1024 / 1024
+            fun fromPair(point: Pair<Long, Float>) = DataPoint(point.first, point.second)
         }
     }
 
     companion object {
-        private const val Y_MARKS_COUNT: Int = 7
+        private const val Y_MARKS_COUNT: Int = 6
         private const val MINIMUM_FOR_MAX_Y_MARK = 1f
 
         private val MARK_FORMATTER = NumberFormat.getInstance().apply {
@@ -39,16 +37,14 @@ class TrafficGraph @JvmOverloads constructor(
     }
 
     private var dataPoints: Array<DataPoint> = emptyArray()
+    private var pxPerYUnit: Float = 0f
     private var maxY: Float = MINIMUM_FOR_MAX_Y_MARK
-    private val yMarks: Array<Float> = Array(Y_MARKS_COUNT) { i -> (MINIMUM_FOR_MAX_Y_MARK / Y_MARKS_COUNT) * i }
-
     private var zeroX: Float = 0f
     private var zeroY: Float = 0f
-    private var pxPerYUnit: Float = 0f
-
-    private fun preparePaints() {
-        gradientPaint.shader =
-                LinearGradient(0f, paddingTop.toFloat(), 0f, zeroY, gradientColors, null, Shader.TileMode.CLAMP)
+    private var previousDataPoint: DataPoint? = null
+    private val yMarks: Array<Pair<Float, String>> = Array(Y_MARKS_COUNT) { i ->
+        val mark = (MINIMUM_FOR_MAX_Y_MARK / Y_MARKS_COUNT) * i
+        Pair(mark, MARK_FORMATTER.format(mark))
     }
 
     private val gradientPath = Path()
@@ -79,29 +75,21 @@ class TrafficGraph @JvmOverloads constructor(
         isAntiAlias = true
     }
 
+    private val textPadding = resources.getDimension(R.dimen.fragment_stream_color_graph_mark_text_padding)
     private val textPaint = TextPaint().apply {
         isAntiAlias = true
         textSize = resources.getDimension(R.dimen.fragment_stream_color_graph_mark_text_size)
         color = ContextCompat.getColor(context, R.color.textColorPrimary)
     }
 
-    fun setDataPoints(points: List<Pair<Long, Long>>) {
+    fun setDataPoints(points: List<Pair<Long, Float>>) {
         dataPoints = points.map { DataPoint.fromPair(it) }.toTypedArray()
 
         calculatePositions()
-        preparePaints()
-        invalidate()
-    }
 
-    private val textPadding = resources.getDimension(R.dimen.fragment_stream_color_graph_mark_text_padding)
+        gradientPaint.shader =
+                LinearGradient(0f, paddingTop.toFloat(), 0f, zeroY, gradientColors, null, Shader.TileMode.CLAMP)
 
-    fun addDataPoint(point: Pair<Long, Long>) {
-        dataPoints = dataPoints
-            .sliceArray(1 until dataPoints.size)
-            .plusElement(DataPoint.fromPair(point))
-
-        calculatePositions()
-        preparePaints()
         invalidate()
     }
 
@@ -111,20 +99,22 @@ class TrafficGraph @JvmOverloads constructor(
         pxPerYUnit = (height - paddingTop - paddingBottom) / maxY
         zeroY = maxY * pxPerYUnit + paddingTop
 
-        zeroX = (paddingStart + textPaint.measureText(MARK_FORMATTER.format(maxY)) + 2 * textPadding)
+        val markStepY = maxY / Y_MARKS_COUNT
+        repeat(Y_MARKS_COUNT) { i ->
+            val mark = markStepY * i
+            yMarks[i] = Pair(mark, MARK_FORMATTER.format(mark))
+        }
+
+        zeroX = (paddingStart + textPaint.measureText(yMarks.last().second) + 2 * textPadding)
         val pxPerXStep = (width - zeroX - paddingEnd) / (dataPoints.size - 1)
 
         dataPoints.withIndex().forEach { (i, point) ->
             point.positionX = zeroX + pxPerXStep * i
             point.positionY = zeroY - point.y * pxPerYUnit
         }
-
-        val markStepY = maxY / Y_MARKS_COUNT
-        repeat(Y_MARKS_COUNT) { i -> yMarks[i] = markStepY * i }
     }
 
     override fun onDraw(canvas: Canvas) {
-
         // Draw gradient
         if (dataPoints.isNotEmpty()) {
             gradientPath.reset()
@@ -135,16 +125,16 @@ class TrafficGraph @JvmOverloads constructor(
             canvas.drawPath(gradientPath, gradientPaint)
         }
 
-        // Draw Y marks line
+        // Draw Y marks lines
         guidelinePath.reset()
         yMarks.forEach { yMark ->
-            guidelinePath.moveTo(zeroX, zeroY - yMark * pxPerYUnit)
-            guidelinePath.lineTo((width - paddingEnd).toFloat(), zeroY - yMark * pxPerYUnit)
+            guidelinePath.moveTo(zeroX, zeroY - yMark.first * pxPerYUnit)
+            guidelinePath.lineTo((width - paddingEnd).toFloat(), zeroY - yMark.first * pxPerYUnit)
         }
         canvas.drawPath(guidelinePath, guidelinePaint)
 
         // Draw lines
-        var previousDataPoint: DataPoint? = null
+        previousDataPoint = null
         dataPoints.forEach { dataPoint ->
             previousDataPoint?.let {
                 canvas.drawLine(it.positionX, it.positionY, dataPoint.positionX, dataPoint.positionY, dataPointsPaint)
@@ -153,12 +143,11 @@ class TrafficGraph @JvmOverloads constructor(
         }
 
         // Draw Y marks
-        yMarks.forEach { yMark ->
-            val text = MARK_FORMATTER.format(yMark)
+        yMarks.forEach { mark ->
             canvas.drawText(
-                text,
-                zeroX - textPaint.measureText(text) - textPadding,
-                zeroY - yMark * pxPerYUnit,
+                mark.second,
+                zeroX - textPaint.measureText(mark.second) - textPadding,
+                zeroY - mark.first * pxPerYUnit + textPaint.textSize / 4f,
                 textPaint
             )
         }

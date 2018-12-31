@@ -3,7 +3,9 @@ package info.dvkr.screenstream.ui.router
 import androidx.annotation.IdRes
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
+import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.R
+import info.dvkr.screenstream.data.other.getLog
 import java.util.*
 
 class FragmentRouter(private val fragmentManager: FragmentManager, vararg fragmentCreators: FragmentCreator) {
@@ -23,11 +25,19 @@ class FragmentRouter(private val fragmentManager: FragmentManager, vararg fragme
         repeat(fragmentManager.backStackEntryCount) {
             localStack.addLast(fragmentManager.getBackStackEntryAt(it).name)
         }
+
+        XLog.i(getLog("init", "knownFragmentCreators: ${knownFragmentCreators.joinToString { it.getTag() }}"))
+        XLog.i(getLog("init", "localStack: ${localStack.joinToString()}"))
     }
 
     fun navigateTo(@IdRes menuItemId: Int): Boolean {
         val currentFragment = fragmentManager.fragments.firstOrNull { it.isVisible }
         val fragmentCreator = knownFragmentCreators.firstOrNull { it.getMenuItemId() == menuItemId }
+
+        XLog.i(getLog("navigateTo", "localStack: ${localStack.joinToString()}"))
+        XLog.i(getLog("navigateTo", "menuItemId: $menuItemId"))
+        XLog.i(getLog("navigateTo", "fragmentCreator: ${fragmentCreator?.getTag()}"))
+
         require(fragmentCreator != null)
         val newFragment = fragmentManager.findFragmentByTag(fragmentCreator.getTag())
 
@@ -46,6 +56,8 @@ class FragmentRouter(private val fragmentManager: FragmentManager, vararg fragme
             localStack.addLast(fragmentCreator.getTag())
         } else {
             val index = localStack.indexOf(fragmentCreator.getTag())
+            XLog.i(getLog("navigateTo", "fragmentCreator: ${fragmentCreator?.getTag()}"))
+
             require(index >= 0)
             repeat(localStack.size - index - 1) { localStack.removeLast() }
             fragmentManager.popBackStack(fragmentCreator.getTag(), 0)

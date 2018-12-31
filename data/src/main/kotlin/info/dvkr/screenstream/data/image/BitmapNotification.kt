@@ -25,10 +25,7 @@ class BitmapNotification(
 
     init {
         XLog.d(getLog("init", "Invoked"))
-
-        launch {
-            logo = Bitmap.createScaledBitmap(logoBitmap, 256, 256, false)
-        }
+        logo = Bitmap.createScaledBitmap(logoBitmap, 256, 256, false)
     }
 
     override fun start() {}
