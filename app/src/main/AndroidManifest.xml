@@ -40,7 +40,6 @@
             android:autoRemoveFromRecents="true"
             android:launchMode="singleInstance"
             android:process=":fg_service"
-            android:screenOrientation="portrait"
             android:theme="@style/Theme.Transparent" />
 
         <service

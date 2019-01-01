@@ -6,7 +6,7 @@ object Versions {
 
     const val versionMajor = 3
     const val versionMinor = 0
-    const val versionPatch = 5
+    const val versionPatch = 6
 
     const val kotlin = "1.3.11"
     const val coroutine = "1.1.0"

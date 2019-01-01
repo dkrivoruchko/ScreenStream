@@ -135,6 +135,8 @@ class AppStateMachineImpl(
                 ))
                 ||
                 (state == StreamState.State.SERVER_STARTED && newEvent in listOf(AppStateMachine.Event.StopStream))
+                ||
+                (state == StreamState.State.STREAMING && newEvent is AppStateMachine.Event.StartProjection)
 
     private val eventChannel: SendChannel<AppStateMachine.Event> = actor(capacity = 8) {
         var streamState = StreamState()

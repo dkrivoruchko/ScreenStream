@@ -21,11 +21,10 @@ class BitmapNotification(
     enum class Type { START, RELOAD_PAGE, NEW_ADDRESS }
 
     private val applicationContext: Context = context.applicationContext
-    private lateinit var logo: Bitmap
+    private val logo: Bitmap = Bitmap.createScaledBitmap(logoBitmap, 256, 256, false)
 
     init {
         XLog.d(getLog("init", "Invoked"))
-        logo = Bitmap.createScaledBitmap(logoBitmap, 256, 256, false)
     }
 
     override fun start() {}
