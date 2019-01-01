@@ -56,7 +56,7 @@ class FragmentRouter(private val fragmentManager: FragmentManager, vararg fragme
             localStack.addLast(fragmentCreator.getTag())
         } else {
             val index = localStack.indexOf(fragmentCreator.getTag())
-            XLog.i(getLog("navigateTo", "fragmentCreator: ${fragmentCreator?.getTag()}"))
+            XLog.i(getLog("navigateTo", "fragmentCreator: ${fragmentCreator.getTag()}"))
 
             require(index >= 0)
             repeat(localStack.size - index - 1) { localStack.removeLast() }

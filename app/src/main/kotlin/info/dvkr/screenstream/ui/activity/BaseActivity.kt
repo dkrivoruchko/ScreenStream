@@ -27,6 +27,10 @@ abstract class BaseActivity : AppCompatActivity() {
 
     private val serviceConnection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
+            if (service == null) { // TODO Waiting for real world logs
+                XLog.e(getLog("onServiceConnected", "service == null"), IllegalArgumentException("service == null"))
+                return
+            }
             serviceMessenger = Messenger(service)
             isBound = true
             sendMessage(ServiceMessage.RegisterActivity(activityMessenger))

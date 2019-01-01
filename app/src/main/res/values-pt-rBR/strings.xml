@@ -21,6 +21,7 @@
     <string name="stream_fragment_no_address">Nenhum endereço encontrado</string>
     <string name="stream_fragment_interface">Interface: %1$s</string>
     <string name="stream_fragment_copied">Copiado</string>
+    <string name="stream_fragment_no_web_browser_found">Nenhum navegador da web encontrado</string>
     <string name="stream_fragment_pin">Pin: %1$s</string>
     <string name="stream_fragment_pin_disabled">Pin está desabilitado</string>
     <string name="stream_fragment_client_disconnected">Desconectado</string>

@@ -38,9 +38,9 @@
         <activity
             android:name=".ui.activity.PermissionActivity"
             android:autoRemoveFromRecents="true"
-            android:label=""
             android:launchMode="singleInstance"
             android:process=":fg_service"
+            android:screenOrientation="portrait"
             android:theme="@style/Theme.Transparent" />
 
         <service

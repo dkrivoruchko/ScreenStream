@@ -1,5 +1,6 @@
 package info.dvkr.screenstream.ui.fragments
 
+import android.content.ActivityNotFoundException
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Intent
@@ -46,7 +47,6 @@ class StreamFragment : Fragment() {
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View =
         inflater.inflate(R.layout.fragment_stream, container, false)
 
-    private val textColorPrimary by lazy { ContextCompat.getColor(requireContext(), R.color.textColorPrimary) }
     private val colorAccent by lazy { ContextCompat.getColor(requireContext(), R.color.colorAccent) }
     private val clipboard: ClipboardManager? by lazy {
         ContextCompat.getSystemService(requireContext(), ClipboardManager::class.java)
@@ -112,11 +112,7 @@ class StreamFragment : Fragment() {
 
                     val fullAddress = "http://${netInterface.address.hostAddress}:${settingsReadOnly.severPort}"
                     tv_item_device_address.text = fullAddress
-                    iv_item_device_address_open_external.setOnClickListener {
-                        startActivity(
-                            Intent(Intent.ACTION_VIEW, Uri.parse(fullAddress)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                        )
-                    }
+                    iv_item_device_address_open_external.setOnClickListener { openInBrowser(fullAddress) }
                     iv_item_device_address_copy.setOnClickListener {
                         clipboard?.primaryClip =
                                 ClipData.newPlainText(tv_item_device_address.text, tv_item_device_address.text)
@@ -158,6 +154,17 @@ class StreamFragment : Fragment() {
         traffic_graph_fragment_stream.setDataPoints(
             serviceMessage.trafficHistory.map { Pair(it.time, it.bytes.bytesToMbit()) }
         )
+    }
+
+    private fun openInBrowser(fullAddress: String) {
+        try {
+            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(fullAddress)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        } catch (ex: ActivityNotFoundException) {
+            Toast.makeText(
+                requireContext().applicationContext, R.string.stream_fragment_no_web_browser_found, Toast.LENGTH_LONG
+            ).show()
+            XLog.w(getLog("openInBrowser", ex.toString()))
+        }
     }
 
     private class HttpClientAdapter : ListAdapter<HttpClient, HttpClientViewHolder>(

@@ -70,7 +70,7 @@ class HttpServerImpl constructor(
 
     sealed class ServerEvent {
         object Init : ServerEvent()
-        data class Configure(val settingsReadOnly: SettingsReadOnly) : ServerEvent()
+        class Configure(val settingsReadOnly: SettingsReadOnly) : ServerEvent()
         data class Start(val serverAddress: InetSocketAddress) : ServerEvent()
         object Stop : ServerEvent()
         data class ServerError(val appError: AppError) : ServerEvent()

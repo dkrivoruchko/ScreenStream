@@ -25,7 +25,7 @@ class ColorCircleView @JvmOverloads constructor(
         strokePaint.style = Paint.Style.STROKE
         strokePaint.isAntiAlias = true
         strokePaint.color = Color.BLACK
-        strokePaint.strokeWidth = borderWidth.toFloat()
+        strokePaint.strokeWidth = borderWidth
     }
 
     @ColorInt var color: Int = Color.BLACK

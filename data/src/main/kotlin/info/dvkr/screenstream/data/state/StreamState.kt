@@ -50,6 +50,5 @@ data class StreamState(
         return copy(mediaProjection = null, bitmapCapture = null)
     }
 
-
     private fun canStartStream(): Boolean = this.state == State.SERVER_STARTED
 }

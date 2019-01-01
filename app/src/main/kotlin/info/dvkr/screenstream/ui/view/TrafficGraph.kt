@@ -83,7 +83,7 @@ class TrafficGraph @JvmOverloads constructor(
     }
 
     fun setDataPoints(points: List<Pair<Long, Float>>) {
-        dataPoints = points.map { DataPoint.fromPair(it) }.toTypedArray()
+        dataPoints = points.sortedBy { it.first }.map { DataPoint.fromPair(it) }.toTypedArray()
 
         calculatePositions()
 

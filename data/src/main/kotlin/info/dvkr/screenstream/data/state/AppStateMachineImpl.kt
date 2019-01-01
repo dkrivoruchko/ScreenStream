@@ -123,26 +123,26 @@ class AppStateMachineImpl(
         }
     }
 
+    private fun skipEvent(state: StreamState.State, newEvent: AppStateMachine.Event): Boolean =
+        (state == StreamState.State.ERROR && newEvent !in listOf(
+            AppStateMachineImpl.InternalEvent.Destroy,
+            AppStateMachine.Event.RequestPublicState,
+            AppStateMachine.Event.RecoverError
+        ))
+                ||
+                (state == StreamState.State.RESTART_PENDING && newEvent !in listOf(
+                    AppStateMachineImpl.InternalEvent.DiscoverServerAddress, AppStateMachine.Event.RecoverError
+                ))
+                ||
+                (state == StreamState.State.SERVER_STARTED && newEvent in listOf(AppStateMachine.Event.StopStream))
+
     private val eventChannel: SendChannel<AppStateMachine.Event> = actor(capacity = 8) {
         var streamState = StreamState()
         var previousStreamState: StreamState
 
         for (event in this) try {
-            if (streamState.state == StreamState.State.ERROR &&
-                event !in listOf(
-                    InternalEvent.Destroy, AppStateMachine.Event.RequestPublicState, AppStateMachine.Event.RecoverError
-                )
-            ) {
-                XLog.w(this@AppStateMachineImpl.getLog("actor", "[State.ERROR] Skipping event: $event"))
-                continue
-            }
-
-            if (streamState.state == StreamState.State.RESTART_PENDING &&
-                event !in listOf(
-                    InternalEvent.DiscoverServerAddress, AppStateMachine.Event.RecoverError
-                )
-            ) {
-                XLog.w(this@AppStateMachineImpl.getLog("actor", "[State.RESTART_PENDING] Skipping event: $event"))
+            if (skipEvent(streamState.state, event)) {
+                XLog.w(this@AppStateMachineImpl.getLog("actor", "[${streamState.state}] Skipping event: $event"))
                 continue
             }
 
