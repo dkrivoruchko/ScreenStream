@@ -27,10 +27,12 @@ internal class HttpServerRxHandler(
     private val logo: ByteArray,
     private val indexHtmlPage: String,
     private val streamAddress: String,
+    private val startStopAddress: String,
     private val pinEnabled: Boolean,
     private val pinAddress: String,
     private val pinRequestHtmlPage: String,
     private val pinRequestErrorHtmlPage: String,
+    private val onStartStopRequest: () -> Unit,
     private val onStatisticEvent: (HttpServerStatistic.StatisticEvent) -> Unit,
     jpegBytesChannel: ReceiveChannel<ByteArray>,
     onError: (AppError) -> Unit
@@ -65,6 +67,11 @@ internal class HttpServerRxHandler(
             uri == HttpServerFiles.DEFAULT_ICON_ADDRESS -> sendFavicon(response)
 
             uri == HttpServerFiles.DEFAULT_LOGO_ADDRESS -> sendLogo(response)
+
+            uri == startStopAddress -> {
+                onStartStopRequest()
+                sendHtml(response, indexHtmlPage)
+            }
 
             uri == HttpServerFiles.DEFAULT_HTML_ADDRESS ->
                 if (pinEnabled) sendHtml(response, pinRequestHtmlPage) else sendHtml(response, indexHtmlPage)

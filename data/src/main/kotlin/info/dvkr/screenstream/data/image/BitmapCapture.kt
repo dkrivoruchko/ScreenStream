@@ -173,7 +173,6 @@ class BitmapCapture constructor(
     private fun stopDisplayCapture() {
         virtualDisplay?.release()
         imageReader?.close()
-        imageListener?.close()
     }
 
     @Synchronized
@@ -190,10 +189,6 @@ class BitmapCapture constructor(
     // Runs on imageThread
     private inner class ImageListener : ImageReader.OnImageAvailableListener {
         private lateinit var reusableBitmap: Bitmap
-
-        internal fun close() {
-            if (::reusableBitmap.isInitialized) reusableBitmap.recycle()
-        }
 
         override fun onImageAvailable(reader: ImageReader) {
             synchronized(this@BitmapCapture) {
@@ -217,19 +212,13 @@ class BitmapCapture constructor(
                             cleanBitmap.copyPixelsFromBuffer(plane.buffer)
                         }
 
-                        val resizedBitmap: Bitmap
-                        if (matrix.get().isIdentity.not()) {
-                            resizedBitmap = Bitmap.createBitmap(
-                                cleanBitmap, 0, 0, image.width, image.height, matrix.get(), false
-                            )
-                            cleanBitmap.recycle()
-                        } else {
-                            resizedBitmap = cleanBitmap
-                        }
+                        val resizedBitmap = if (matrix.get().isIdentity)
+                            cleanBitmap
+                        else
+                            Bitmap.createBitmap(cleanBitmap, 0, 0, image.width, image.height, matrix.get(), false)
 
                         image.close()
                         if (outBitmapChannel.isClosedForSend.not()) outBitmapChannel.offer(resizedBitmap)
-
                     }
                 } catch (ex: UnsupportedOperationException) {
                     XLog.w(this@BitmapCapture.getLog("outBitmapChannel", ex.toString()))

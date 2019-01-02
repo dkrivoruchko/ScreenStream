@@ -48,7 +48,7 @@ class BitmapNotification(
             repeat(3) {
                 outBitmapChannel.isClosedForSend.not() || return@launch
                 outBitmapChannel.offer(bitmap)
-                delay(250)
+                delay(200)
             }
         }
     }

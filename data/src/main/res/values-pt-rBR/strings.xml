@@ -5,6 +5,8 @@
     <string name="image_generator_reload_this_page">Por favor recarregue esta página</string>
 
     <!--HTML text-->
+    <string name="html_fullscreen_button">Tela cheia de ligar/desligar</string>
+    <string name="html_start_stop_button">Iniciar/Parar o stream</string>
     <string name="html_stream_require_pin">Este stream requer PIN para acessá-lo</string>
     <string name="html_enter_pin">Digite pin: \u0020</string>
     <string name="html_four_digits">Quatro dígitos</string>

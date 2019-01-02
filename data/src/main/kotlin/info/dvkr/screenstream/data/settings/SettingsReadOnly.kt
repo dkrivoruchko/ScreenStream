@@ -24,6 +24,8 @@ interface SettingsReadOnly {
     val severPort: Int
     val loggingOn: Boolean
 
+    fun autoChangePinOnStart()
+
     fun autoChangePinOnStop(): Boolean
 
     interface OnSettingsChangeListener {

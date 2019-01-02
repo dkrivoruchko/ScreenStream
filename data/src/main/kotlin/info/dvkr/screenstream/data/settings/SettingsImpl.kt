@@ -62,8 +62,7 @@ class SettingsImpl(private val preferences: Preferences) : Settings {
     override var loggingOn: Boolean
             by bindPreference(preferences, Settings.Key.LOGGING_ON, Settings.Default.LOGGING_ON)
 
-
-    init {
+    override fun autoChangePinOnStart() {
         if (enablePin && newPinOnAppStart) pin = randomPin()
     }
 

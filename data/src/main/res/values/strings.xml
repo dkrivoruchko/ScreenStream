@@ -5,6 +5,8 @@
     <string name="image_generator_reload_this_page">Please reload this page</string>
 
     <!--HTML text-->
+    <string name="html_fullscreen_button">On/Off full screen</string>
+    <string name="html_start_stop_button">Start/Stop stream</string>
     <string name="html_stream_require_pin">This stream requires PIN to access it</string>
     <string name="html_enter_pin">Enter pin:\u0020</string>
     <string name="html_four_digits">Four digits</string>

@@ -377,6 +377,7 @@ class SettingsFragment : Fragment() {
         super.onStart()
         settings.registerChangeListener(settingsListener)
         XLog.d(getLog("onStart", "Invoked"))
+        tv_fragment_settings_set_pin_value.text = settings.pin
     }
 
     override fun onStop() {

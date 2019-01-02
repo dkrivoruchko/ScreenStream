@@ -18,6 +18,7 @@ import info.dvkr.screenstream.data.model.FatalError
 import info.dvkr.screenstream.data.model.HttpClient
 import info.dvkr.screenstream.data.model.TrafficPoint
 import info.dvkr.screenstream.data.other.getLog
+import info.dvkr.screenstream.data.settings.Settings
 import info.dvkr.screenstream.data.settings.SettingsReadOnly
 import info.dvkr.screenstream.data.state.AppStateMachine
 import info.dvkr.screenstream.data.state.AppStateMachineImpl
@@ -37,15 +38,8 @@ class AppService : Service(), CoroutineScope {
         fun getAppServiceIntent(context: Context): Intent =
             Intent(context.applicationContext, AppService::class.java)
 
-        fun getAppServiceIntent(context: Context, intentAction: IntentAction): Intent =
-            getAppServiceIntent(context).also { intentAction.addToIntent(it) }
-
-        fun startForeground(context: Context) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
-                context.startForegroundService(getAppServiceIntent(context))
-            else
-                context.startService(getAppServiceIntent(context))
-        }
+        fun startForeground(context: Context, intent: Intent = getAppServiceIntent(context)) =
+            ContextCompat.startForegroundService(context, intent)
     }
 
     private class ActivityMessagesHandler : Handler() {
@@ -139,18 +133,21 @@ class AppService : Service(), CoroutineScope {
         }
     }
 
-    private val settingsReadOnly: SettingsReadOnly by inject()
+    private val settings: Settings by inject()
     private val notificationHelper by lazy { NotificationHelper(this) }
     private lateinit var appStateMachine: AppStateMachine
 
     override fun onCreate() {
         super.onCreate()
         notificationHelper.createNotificationChannel()
+        notificationHelper.showForegroundNotification(this, NotificationHelper.NotificationType.START)
+
+        settings.autoChangePinOnStart()
 
         appStateMachine = AppStateMachineImpl(
             this,
             parentJob,
-            settingsReadOnly,
+            settings as SettingsReadOnly,
             getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager,
             BitmapFactory.decodeResource(resources, R.drawable.logo),
             { clients: List<HttpClient>, trafficHistory: List<TrafficPoint> ->

@@ -14,6 +14,7 @@ import androidx.annotation.WorkerThread
 import androidx.core.content.ContextCompat
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.data.httpserver.HttpServer
+import info.dvkr.screenstream.data.httpserver.HttpServerFiles
 import info.dvkr.screenstream.data.httpserver.HttpServerImpl
 import info.dvkr.screenstream.data.image.BitmapCapture
 import info.dvkr.screenstream.data.image.BitmapNotification
@@ -62,6 +63,7 @@ class AppStateMachineImpl(
         object StartHttpServer : InternalEvent()
         object ScreenOff : InternalEvent()
         object Destroy : InternalEvent()
+        object HtmlStartStop : InternalEvent()
         data class RestartHttpServer(val reason: RestartReason) : InternalEvent()
         data class ComponentError(val appError: AppError) : InternalEvent()
 
@@ -136,7 +138,10 @@ class AppStateMachineImpl(
                 ||
                 (state == StreamState.State.SERVER_STARTED && newEvent in listOf(AppStateMachine.Event.StopStream))
                 ||
-                (state == StreamState.State.STREAMING && newEvent is AppStateMachine.Event.StartProjection)
+                (state == StreamState.State.STREAMING && (
+                        newEvent is AppStateMachine.Event.StartProjection || newEvent is AppStateMachine.Event.StartStream
+                        )
+                        )
 
     private val eventChannel: SendChannel<AppStateMachine.Event> = actor(capacity = 8) {
         var streamState = StreamState()
@@ -169,6 +174,15 @@ class AppStateMachineImpl(
                 is InternalEvent.Destroy ->
                     streamState.stopProjectionIfStreaming(projectionCallback)
                         .copy(state = StreamState.State.DESTROYED)
+
+                is InternalEvent.HtmlStartStop -> when {
+                    streamState.isStreaming() -> stopStream(streamState)
+                    streamState.state == StreamState.State.SERVER_STARTED -> {
+                        onEffect(AppStateMachine.Effect.RequestCastPermissions)
+                        streamState
+                    }
+                    else -> streamState
+                }
 
                 is InternalEvent.RestartHttpServer ->
                     restartHttpServer(streamState.stopProjectionIfStreaming(projectionCallback), event.reason)
@@ -213,7 +227,14 @@ class AppStateMachineImpl(
             onConnectionChanged = { sendEvent(InternalEvent.RestartHttpServer(RestartReason.ConnectionChanged(""))) }
         )
         bitmapToJpeg.start()
-        httpServer = HttpServerImpl(applicationContext, jpegChannel, onStatistic, ::onError)
+        httpServer = HttpServerImpl(
+            applicationContext,
+            HttpServerFiles(applicationContext, settingsReadOnly),
+            jpegChannel,
+            { sendEvent(InternalEvent.HtmlStartStop) },
+            onStatistic,
+            ::onError
+        )
         sendEvent(InternalEvent.DiscoverServerAddress)
     }
 
@@ -273,7 +294,6 @@ class AppStateMachineImpl(
         require(streamState.httpServerAddress != null)
 
         httpServer.stop()
-        httpServer.configure(settingsReadOnly)
         httpServer.start(streamState.httpServerAddress)
         bitmapNotification.sentBitmapNotification(BitmapNotification.Type.START)
 

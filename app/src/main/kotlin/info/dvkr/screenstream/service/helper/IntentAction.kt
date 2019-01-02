@@ -2,7 +2,6 @@ package info.dvkr.screenstream.service.helper
 
 import android.content.Context
 import android.content.Intent
-import android.os.Build
 import android.os.Parcelable
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.data.other.getLog
@@ -17,16 +16,13 @@ sealed class IntentAction : Parcelable {
         )
     }
 
-    fun addToIntent(intent: Intent): Intent = intent.putExtra(EXTRA_PARCELABLE, this)
-
-    fun toAppServiceIntent(context: Context): Intent = AppService.getAppServiceIntent(context.applicationContext, this)
+    fun toAppServiceIntent(context: Context): Intent = AppService.getAppServiceIntent(context).apply {
+        putExtra(EXTRA_PARCELABLE, this@IntentAction)
+    }
 
     fun sendToAppService(context: Context) {
         XLog.i(getLog("sendToAppService", this.toString()))
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
-            context.startForegroundService(this.toAppServiceIntent(context))
-        else
-            context.startService(this.toAppServiceIntent(context))
+        AppService.startForeground(context, this.toAppServiceIntent(context))
     }
 
     @Parcelize object GetServiceState : IntentAction()

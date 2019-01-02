@@ -10,8 +10,6 @@ interface HttpServer {
         const val TRAFFIC_HISTORY_SECONDS = 30
     }
 
-    fun configure(settingsReadOnly: SettingsReadOnly)
-
     fun start(serverAddress: InetSocketAddress)
 
     fun stop()
