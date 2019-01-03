@@ -13,6 +13,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.net.InetSocketAddress
 import java.util.*
+import java.util.concurrent.ConcurrentLinkedDeque
 
 internal class HttpServerStatistic(
     private val onStatistic: (List<HttpClient>, List<TrafficPoint>) -> Unit,
@@ -44,10 +45,14 @@ internal class HttpServerStatistic(
         data class Connected(val address: InetSocketAddress) : StatisticEvent()
         data class Disconnected(val address: InetSocketAddress) : StatisticEvent()
         data class Backpressure(val address: InetSocketAddress) : StatisticEvent()
-        data class NextBytes(val address: InetSocketAddress, val bytesCount: Int) : StatisticEvent()
+        data class NextBytes(val address: InetSocketAddress, val bytesCount: Int) : StatisticEvent() {
+            override fun toString(): String = this::class.java.simpleName
+        }
 
         override fun toString(): String = this::class.java.simpleName
     }
+
+    private val eventQueue = ConcurrentLinkedDeque<StatisticEvent>() // For debug
 
     private val statisticEventChannel: SendChannel<StatisticEvent> = actor(capacity = 16) {
         val clientsMap = HashMap<InetSocketAddress, LocalClient>()
@@ -55,6 +60,8 @@ internal class HttpServerStatistic(
 
         for (event in this@actor) try {
             XLog.v(this@HttpServerStatistic.getLog("Actor", event.toString()))
+            val e = eventQueue.poll()
+            if (eventQueue.size > 8) XLog.i(getLog("Actor", "eventQueue.size:${eventQueue.size} : $e"))
 
             when (event) {
                 is StatisticEvent.Init -> {
@@ -116,9 +123,17 @@ internal class HttpServerStatistic(
         if (statisticEventChannel.isClosedForSend) {
             XLog.e(getLog("sendStatisticEvent"), IllegalStateException("Channel is ClosedForSend"))
             onError(FatalError.ChannelException)
-        } else if (statisticEventChannel.offer(event).not()) {
-            XLog.e(getLog("sendStatisticEvent"), IllegalStateException("Channel is full"))
-            onError(FatalError.ChannelException)
+        } else {
+            eventQueue.addLast(event)
+            if (eventQueue.size > 8)
+                XLog.i(
+                    getLog("sendStatisticEvent", "eventQueue.size:${eventQueue.size} : ${eventQueue.joinToString()}")
+                )
+            val result = statisticEventChannel.offer(event)
+            if (result.not()) {
+                XLog.e(getLog("sendStatisticEvent"), IllegalStateException("Channel is full"))
+                onError(FatalError.ChannelException)
+            }
         }
     }
 }

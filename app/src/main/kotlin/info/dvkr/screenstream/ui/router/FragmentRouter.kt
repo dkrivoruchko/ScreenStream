@@ -51,7 +51,7 @@ class FragmentRouter(private val fragmentManager: FragmentManager, vararg fragme
                 )
                 .replace(R.id.fl_activity_single, fragmentCreator.newInstance(), fragmentCreator.getTag())
                 .addToBackStack(fragmentCreator.getTag())
-                .commit()
+                .commitAllowingStateLoss()
 
             localStack.addLast(fragmentCreator.getTag())
         } else {
