@@ -33,7 +33,7 @@
     <string name="permission_activity_error_title_activity_not_found">Errore finestra autorizzazione</string>
     <string name="permission_activity_error_activity_not_found">Errore di Android. Non selezionare \"Non mostrare più\" quando richiesto da Registra Schermo. Se l\'hai già fatto reinstalla l\'app.</string>
     <string name="permission_activity_cast_permission_required_title">Richiesta autorizzazione</string>
-    <string name="permission_activity_cast_permission_required">L\'applicazione richiede l'autorizzazione di registrazione per catturare lo schermo.</string>
+    <string name="permission_activity_cast_permission_required">L\'applicazione richiede l\'autorizzazione di registrazione per catturare lo schermo.</string>
     <string name="permission_activity_error_title">Errore</string>
     <string name="permission_activity_error_unknown">Errore sconosciuto</string>
 

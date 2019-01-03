@@ -26,14 +26,13 @@ Application uses Android Cast feature and requires at least Android 5.0 to run.
 **WARNING:** This is not a real time streaming app. Expected delay is at least 0.5-1 second or more on slow devices, bad WiFi or on heavy CPU load by other apps.<br>
 **WARNING:** This app is not designed for streaming video, especially HD video. Use Chromecast instead.<br>
 **WARNING:** This app does NOT support SOUND streaming, because MJPEG does not support sound.<br>
-**WARNING:** Some cell operators may block incoming connections to your device for security reasons, so, even if the device has an IP address from a cell operator, you may not be able to connect to the device on using this IP address.<br>
+**WARNING:** Some cell operators may block incoming connections to your device for security reasons, so, even if the device has an IP address from a cell operator, you may not be able to connect to the device on this IP address.<br>
 **WARNING:** Some WiFi networks (mostly public/guest) block connections between its clients for security reasons, so you may not be able to connect to the device via WiFi. For example, a laptop and a phone in this such a WiFi network will not be able to connect to each other.
 
 ### Known problems
 
 1. On some devices, system returns image in unknown format. Mostly on devices with no official Android 5.0 or above. Possible Android bug. App will show an error message. No solution available.
 2. On some devices no notification icon showing but notification is present. Android bug: 213309.
-3. Browser MJPEG support check is inaccurate. You can disable it in application settings.
 
 ### Screenshots
 
@@ -50,15 +49,14 @@ Application uses Android Cast feature and requires at least Android 5.0 to run.
 
 ## Features and libraries
 
-Version 3.x based on Clean Architecture, Single Activity and MVI patterns and uses:
+Version 3.x based on Clean Architecture, Single Activity and MVI patterns and use:
 * [Kotlin](https://kotlinlang.org)
 * [Kotlin coroutines](https://github.com/Kotlin/kotlinx.coroutines)
 * [Android Jetpack libraries](https://developer.android.com/jetpack/)
 * [Koin](https://github.com/Ekito/koin)
-* [Flashbar](https://github.com/aritraroy/Flashbar)
+* [Alerter](https://github.com/Tapadoo/Alerter)
 * [Material Dialogs](https://github.com/afollestad/material-dialogs)
 * [Binary Preferences](https://github.com/iamironz/binaryprefs)
-* [GraphView](https://github.com/appsthatmatter/GraphView)
 * [RxJava 1.x](https://github.com/ReactiveX/RxJava/tree/1.x)
 * [RxNetty](https://github.com/ReactiveX/RxNetty)
 * [Crashlytics](https://try.crashlytics.com/)
