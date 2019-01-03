@@ -42,4 +42,13 @@
         <item name="android:backgroundDimEnabled">false</item>
         <item name="colorAccent">@color/colorAccent</item>
     </style>
+
+    <style name="AlertTextAppearance">
+        <item name="android:textColor">@color/colorPrimary</item>
+    </style>
+
+    <style name="AlerterButton" parent="Widget.MaterialComponents.Button.TextButton">
+        <item name="android:background">#00ffffff</item>
+        <item name="android:textColor">@color/colorPrimary</item>
+    </style>
 </resources>

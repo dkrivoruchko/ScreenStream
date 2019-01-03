@@ -18,6 +18,7 @@ object Versions {
     const val appcompat = "1.0.2"
     const val legacySupport = "1.0.0"
     const val constraint = "2.0.0-alpha3"
+    const val alerter = "4.0.0"
     const val materialDialogs = "2.0.0-rc5"
     const val koin = "1.0.2"
     const val binaryprefs = "1.0.1"

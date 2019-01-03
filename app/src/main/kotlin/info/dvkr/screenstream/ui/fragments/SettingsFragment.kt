@@ -265,6 +265,7 @@ class SettingsFragment : Fragment() {
             enableDisableViewWithChildren(cl_fragment_settings_auto_change_pin, settings.enablePin)
             enableDisableViewWithChildren(cl_fragment_settings_set_pin, canEnableSetPin())
             setOnClickListener {
+                if (isChecked) settings.pin = String(settings.pin.toCharArray()) // Workaround for BinaryPreferences IPC
                 settings.enablePin = isChecked
                 enableDisableViewWithChildren(cl_fragment_settings_hide_pin_on_start, isChecked)
                 enableDisableViewWithChildren(cl_fragment_settings_new_pin_on_app_start, isChecked)

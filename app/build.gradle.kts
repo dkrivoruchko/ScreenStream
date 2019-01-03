@@ -87,7 +87,7 @@ dependencies {
     implementation("androidx.legacy:legacy-support-v4:${Versions.legacySupport}")
     implementation("androidx.constraintlayout:constraintlayout:${Versions.constraint}")
 
-    implementation("com.andrognito.flashbar:flashbar:1.0.3")
+    implementation("com.tapadoo.android:alerter:${Versions.alerter}")
     implementation("com.github.florent37:expansionpanel:1.2.2")
     implementation("com.afollestad.material-dialogs:core:${Versions.materialDialogs}")
     implementation("com.afollestad.material-dialogs:color:${Versions.materialDialogs}")

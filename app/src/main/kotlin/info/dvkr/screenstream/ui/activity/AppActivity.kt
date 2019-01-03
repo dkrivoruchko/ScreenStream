@@ -9,10 +9,10 @@ import android.os.Bundle
 import android.view.View
 import android.view.animation.OvershootInterpolator
 import android.widget.TextView
-import com.andrognito.flashbar.Flashbar
 import com.elvishew.xlog.XLog
 import com.google.android.material.bottomnavigation.BottomNavigationItemView
 import com.google.android.material.bottomnavigation.BottomNavigationMenuView
+import com.tapadoo.alerter.Alerter
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.data.model.AppError
 import info.dvkr.screenstream.data.model.FatalError
@@ -46,7 +46,6 @@ class AppActivity : BaseActivity() {
     }
     private var isStreamingBefore: Boolean = true
     private var errorPrevious: AppError? = null
-    private var flashBar: Flashbar? = null
     private val scaleX = PropertyValuesHolder.ofFloat(View.SCALE_X, 0.5f, 1f)
     private val scaleY = PropertyValuesHolder.ofFloat(View.SCALE_Y, 0.5f, 1f)
     private val alpha = PropertyValuesHolder.ofFloat(View.ALPHA, 0f, 1f)
@@ -177,30 +176,23 @@ class AppActivity : BaseActivity() {
             else -> appError.toString()
         }
 
-        flashBar = Flashbar.Builder(this)
-            .gravity(Flashbar.Gravity.TOP)
-            .title(R.string.app_activity_error_title)
-            .titleColorRes(R.color.colorPrimary)
-            .message(message)
-            .messageColorRes(R.color.colorPrimary)
-            .backgroundDrawable(R.drawable.error_background)
-            .positiveActionText(if (appError is FixableError) android.R.string.ok else R.string.app_activity_error_exit)
-            .positiveActionTextColorRes(R.color.colorPrimary)
-            .positiveActionTapListener(object : Flashbar.OnActionTapListener {
-                override fun onActionTapped(bar: Flashbar) = bar.dismiss()
+        val buttonText =
+            getString(if (appError is FixableError) android.R.string.ok else R.string.app_activity_error_exit)
+
+        Alerter.create(this@AppActivity)
+            .setTitle(R.string.app_activity_error_title)
+            .setTitleAppearance(R.style.AlertTextAppearance_Title)
+            .setText(message)
+            .setTextAppearance(R.style.AlertTextAppearance_Text)
+            .setBackgroundResource(R.drawable.error_background)
+            .addButton(buttonText, R.style.AlerterButton, View.OnClickListener {
+                if (appError is FixableError) IntentAction.RecoverError.sendToAppService(this@AppActivity)
+                else IntentAction.Exit.sendToAppService(this@AppActivity)
+                Alerter.hide()
             })
-            .barDismissListener(
-                object : Flashbar.OnBarDismissListener {
-                    override fun onDismissing(bar: Flashbar, isSwiped: Boolean) = Unit
-                    override fun onDismissProgress(bar: Flashbar, progress: Float) = Unit
-                    override fun onDismissed(bar: Flashbar, event: Flashbar.DismissEvent) {
-                        if (appError is FixableError) IntentAction.RecoverError.sendToAppService(this@AppActivity)
-                        else IntentAction.Exit.sendToAppService(this@AppActivity)
-                    }
-                }
-            )
-            .vibrateOn(Flashbar.Vibration.SHOW)
-            .build()
-            .apply { show() }
+            .enableInfiniteDuration(true)
+            .setDismissable(false)
+            .disableOutsideTouch()
+            .show()
     }
 }

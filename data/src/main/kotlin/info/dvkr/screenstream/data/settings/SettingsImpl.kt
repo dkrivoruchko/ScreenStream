@@ -52,7 +52,6 @@ class SettingsImpl(private val preferences: Preferences) : Settings {
     override var pin: String
             by bindPreference(preferences, Settings.Key.PIN, Settings.Default.PIN)
 
-
     override var useWiFiOnly: Boolean
             by bindPreference(preferences, Settings.Key.USE_WIFI_ONLY, Settings.Default.USE_WIFI_ONLY)
 
@@ -112,7 +111,7 @@ class SettingsImpl(private val preferences: Preferences) : Settings {
         private val getter: Preferences.(String, T) -> T,
         private val setter: PreferencesEditor.(String, T) -> PreferencesEditor
     ) : ReadWriteProperty<Any, T> {
-        override fun getValue(thisRef: Any, property: KProperty<*>) =
+        override fun getValue(thisRef: Any, property: KProperty<*>): T =
             preferences.getter(key, defaultValue)
 
         override fun setValue(thisRef: Any, property: KProperty<*>, value: T) {
