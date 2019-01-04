@@ -13,9 +13,9 @@ import androidx.annotation.AnyThread
 import androidx.annotation.WorkerThread
 import androidx.core.content.ContextCompat
 import com.elvishew.xlog.XLog
-import info.dvkr.screenstream.data.httpserver.HttpServer
+import info.dvkr.screenstream.data.httpserver.AppHttpServer
 import info.dvkr.screenstream.data.httpserver.HttpServerFiles
-import info.dvkr.screenstream.data.httpserver.HttpServerImpl
+import info.dvkr.screenstream.data.httpserver.AppHttpServerImpl
 import info.dvkr.screenstream.data.image.BitmapCapture
 import info.dvkr.screenstream.data.image.BitmapNotification
 import info.dvkr.screenstream.data.image.BitmapToJpeg
@@ -56,7 +56,7 @@ class AppStateMachineImpl(
     private val networkHelper = NetworkHelper(applicationContext, ::onError)
     private val bitmapNotification = BitmapNotification(applicationContext, appIconBitmap, bitmapChannel, ::onError)
     private val bitmapToJpeg = BitmapToJpeg(settingsReadOnly, bitmapChannel, jpegChannel, ::onError)
-    private val httpServer: HttpServer
+    private val appHttpServer: AppHttpServer
 
     private sealed class InternalEvent : AppStateMachine.Event() {
         object DiscoverServerAddress : InternalEvent()
@@ -227,8 +227,7 @@ class AppStateMachineImpl(
             onConnectionChanged = { sendEvent(InternalEvent.RestartHttpServer(RestartReason.ConnectionChanged(""))) }
         )
         bitmapToJpeg.start()
-        httpServer = HttpServerImpl(
-            applicationContext,
+        appHttpServer = AppHttpServerImpl(
             HttpServerFiles(applicationContext, settingsReadOnly),
             jpegChannel,
             { sendEvent(InternalEvent.HtmlStartStop) },
@@ -246,8 +245,7 @@ class AppStateMachineImpl(
         broadcastHelper.unregisterReceiver()
         eventChannel.close()
         bitmapToJpeg.stop()
-        httpServer.stop()
-        httpServer.destroy()
+        appHttpServer.stop()
     }
 
     private fun discoverServerAddress(streamState: StreamState): StreamState {
@@ -293,8 +291,8 @@ class AppStateMachineImpl(
         streamState.requireState(StreamState.State.SERVER_ADDRESS_DISCOVERED)
         require(streamState.httpServerAddress != null)
 
-        httpServer.stop()
-        httpServer.start(streamState.httpServerAddress)
+        appHttpServer.stop()
+        appHttpServer.start(streamState.httpServerAddress)
         bitmapNotification.sentBitmapNotification(BitmapNotification.Type.START)
 
         return streamState.copy(state = StreamState.State.SERVER_STARTED)

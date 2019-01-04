@@ -28,7 +28,7 @@ internal class HttpServerStatistic(
         var disconnectedTime: Long = 0
     ) {
         internal fun isDisconnectHoldTimePass(now: Long) =
-            (now - disconnectedTime) > HttpServer.CLIENT_DISCONNECT_HOLD_TIME_SECONDS * 1000
+            (now - disconnectedTime) > AppHttpServer.CLIENT_DISCONNECT_HOLD_TIME_SECONDS * 1000
 
         internal fun addressToString(): String = clientAddress.toString().drop(1)
 
@@ -65,8 +65,8 @@ internal class HttpServerStatistic(
 
             when (event) {
                 is StatisticEvent.Init -> {
-                    val past = System.currentTimeMillis() - HttpServer.TRAFFIC_HISTORY_SECONDS * 1000
-                    (0..HttpServer.TRAFFIC_HISTORY_SECONDS + 1).forEach { i ->
+                    val past = System.currentTimeMillis() - AppHttpServer.TRAFFIC_HISTORY_SECONDS * 1000
+                    (0..AppHttpServer.TRAFFIC_HISTORY_SECONDS + 1).forEach { i ->
                         trafficHistory.addLast(TrafficPoint(i * 1000 + past, 0))
                     }
 
