@@ -4,7 +4,6 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.graphics.BitmapFactory
-import android.media.projection.MediaProjectionManager
 import android.os.*
 import android.view.LayoutInflater
 import android.widget.Toast
@@ -148,7 +147,6 @@ class AppService : Service(), CoroutineScope {
             this,
             parentJob,
             settings as SettingsReadOnly,
-            getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager,
             BitmapFactory.decodeResource(resources, R.drawable.logo),
             { clients: List<HttpClient>, trafficHistory: List<TrafficPoint> ->
                 checkForSlowClients(clients)

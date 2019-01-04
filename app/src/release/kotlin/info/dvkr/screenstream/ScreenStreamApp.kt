@@ -1,5 +1,6 @@
 package info.dvkr.screenstream
 
+import android.os.Build
 import com.crashlytics.android.Crashlytics
 import com.elvishew.xlog.LogConfiguration
 import com.elvishew.xlog.LogItem
@@ -30,5 +31,13 @@ class ScreenStreamApp : BaseApp() {
             .build()
 
         XLog.init(logConfiguration, filePrinter)
+
+        var version = ""
+        try {
+            version = packageManager.getPackageInfo(packageName, 0).versionName
+        } catch (ignore: Throwable) {
+        }
+        XLog.i("Device:${Build.MANUFACTURER} ${Build.MODEL} [API:${Build.VERSION.SDK_INT}, Build:$version]")
+
     }
 }

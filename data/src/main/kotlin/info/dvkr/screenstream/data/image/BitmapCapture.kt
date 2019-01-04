@@ -37,9 +37,7 @@ class BitmapCapture constructor(
     onError: (AppError) -> Unit
 ) : AbstractImageHandler(onError) {
 
-    private enum class State {
-        INIT, STARTED, STOPPED, ERROR
-    }
+    private enum class State { INIT, STARTED, STOPPED, ERROR }
 
     private var state: State = State.INIT
 

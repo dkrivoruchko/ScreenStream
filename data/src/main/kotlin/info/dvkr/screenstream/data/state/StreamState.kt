@@ -40,15 +40,5 @@ data class StreamState(
 
     internal fun isStreaming(): Boolean = this.state == State.STREAMING
 
-    internal fun stopProjectionIfStreaming(projectionCallback: MediaProjection.Callback): StreamState {
-        if (isStreaming()) {
-            bitmapCapture?.stop()
-            mediaProjection?.unregisterCallback(projectionCallback)
-            mediaProjection?.stop()
-        }
-
-        return copy(mediaProjection = null, bitmapCapture = null)
-    }
-
     private fun canStartStream(): Boolean = this.state == State.SERVER_STARTED
 }

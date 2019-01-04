@@ -1,21 +1,16 @@
 package info.dvkr.screenstream.data.state
 
-import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
-import android.media.projection.MediaProjection
-import android.media.projection.MediaProjectionManager
-import android.os.Handler
-import android.os.Looper
 import android.view.WindowManager
 import androidx.annotation.AnyThread
 import androidx.annotation.WorkerThread
 import androidx.core.content.ContextCompat
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.data.httpserver.AppHttpServer
-import info.dvkr.screenstream.data.httpserver.HttpServerFiles
 import info.dvkr.screenstream.data.httpserver.AppHttpServerImpl
+import info.dvkr.screenstream.data.httpserver.HttpServerFiles
 import info.dvkr.screenstream.data.image.BitmapCapture
 import info.dvkr.screenstream.data.image.BitmapNotification
 import info.dvkr.screenstream.data.image.BitmapToJpeg
@@ -24,6 +19,7 @@ import info.dvkr.screenstream.data.other.getLog
 import info.dvkr.screenstream.data.settings.Settings
 import info.dvkr.screenstream.data.settings.SettingsReadOnly
 import info.dvkr.screenstream.data.state.helper.BroadcastHelper
+import info.dvkr.screenstream.data.state.helper.MediaProjectionHelper
 import info.dvkr.screenstream.data.state.helper.NetworkHelper
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
@@ -36,12 +32,10 @@ class AppStateMachineImpl(
     context: Context,
     private val parentJob: Job,
     private val settingsReadOnly: SettingsReadOnly,
-    private val projectionManager: MediaProjectionManager,
     appIconBitmap: Bitmap,
     onStatistic: (List<HttpClient>, List<TrafficPoint>) -> Unit,
     private val onEffect: (AppStateMachine.Effect) -> Unit
 ) : AppStateMachine, CoroutineScope {
-
 
     override val coroutineContext: CoroutineContext
         get() = parentJob + Dispatchers.Default + CoroutineExceptionHandler { _, throwable ->
@@ -52,9 +46,10 @@ class AppStateMachineImpl(
     private val applicationContext: Context = context.applicationContext
     private val bitmapChannel: Channel<Bitmap> = Channel(Channel.CONFLATED)
     private val jpegChannel: Channel<ByteArray> = Channel(Channel.CONFLATED)
-    private val broadcastHelper = BroadcastHelper(applicationContext, ::onError)
-    private val networkHelper = NetworkHelper(applicationContext, ::onError)
-    private val bitmapNotification = BitmapNotification(applicationContext, appIconBitmap, bitmapChannel, ::onError)
+    private val mediaProjectionHelper = MediaProjectionHelper(context) { sendEvent(AppStateMachine.Event.StopStream) }
+    private val broadcastHelper = BroadcastHelper(context, ::onError)
+    private val networkHelper = NetworkHelper(context, ::onError)
+    private val bitmapNotification = BitmapNotification(context, appIconBitmap, bitmapChannel, ::onError)
     private val bitmapToJpeg = BitmapToJpeg(settingsReadOnly, bitmapChannel, jpegChannel, ::onError)
     private val appHttpServer: AppHttpServer
 
@@ -63,7 +58,7 @@ class AppStateMachineImpl(
         object StartHttpServer : InternalEvent()
         object ScreenOff : InternalEvent()
         object Destroy : InternalEvent()
-        object HtmlStartStop : InternalEvent()
+        object StartStopFromWebPage : InternalEvent()
         data class RestartHttpServer(val reason: RestartReason) : InternalEvent()
         data class ComponentError(val appError: AppError) : InternalEvent()
 
@@ -80,30 +75,11 @@ class AppStateMachineImpl(
 
     private val settingsListener = object : SettingsReadOnly.OnSettingsChangeListener {
         override fun onSettingsChanged(key: String) {
-            when (key) {
-                Settings.Key.HTML_BACK_COLOR ->
-                    RestartReason.SettingsChanged("$key: ${settingsReadOnly.htmlBackColor}")
+            if (key in arrayOf(Settings.Key.HTML_BACK_COLOR, Settings.Key.ENABLE_PIN, Settings.Key.PIN))
+                sendEvent(InternalEvent.RestartHttpServer(RestartReason.SettingsChanged(key)))
 
-                Settings.Key.ENABLE_PIN ->
-                    RestartReason.SettingsChanged("$key: ${settingsReadOnly.enablePin}")
-
-                Settings.Key.PIN -> RestartReason.SettingsChanged(key)
-
-                Settings.Key.USE_WIFI_ONLY ->
-                    RestartReason.NetworkSettingsChanged("$key: ${settingsReadOnly.useWiFiOnly}")
-
-                Settings.Key.SERVER_PORT ->
-                    RestartReason.NetworkSettingsChanged("$key: ${settingsReadOnly.severPort}")
-
-                else -> null
-            }?.let { restartReason -> sendEvent(InternalEvent.RestartHttpServer(restartReason)) }
-        }
-    }
-
-    private val projectionCallback = object : MediaProjection.Callback() {
-        override fun onStop() {
-            XLog.d(getLog("MediaProjection.Callback", "onStop"))
-            sendEvent(AppStateMachine.Event.StopStream)
+            if (key in arrayOf(Settings.Key.USE_WIFI_ONLY, Settings.Key.SERVER_PORT))
+                sendEvent(InternalEvent.RestartHttpServer(RestartReason.NetworkSettingsChanged(key)))
         }
     }
 
@@ -171,11 +147,9 @@ class AppStateMachineImpl(
                 is InternalEvent.ScreenOff ->
                     if (settingsReadOnly.stopOnSleep && streamState.isStreaming()) stopStream(streamState) else streamState
 
-                is InternalEvent.Destroy ->
-                    streamState.stopProjectionIfStreaming(projectionCallback)
-                        .copy(state = StreamState.State.DESTROYED)
+                is InternalEvent.Destroy -> stopProjection(streamState).copy(state = StreamState.State.DESTROYED)
 
-                is InternalEvent.HtmlStartStop -> when {
+                is InternalEvent.StartStopFromWebPage -> when {
                     streamState.isStreaming() -> stopStream(streamState)
                     streamState.state == StreamState.State.SERVER_STARTED -> {
                         onEffect(AppStateMachine.Effect.RequestCastPermissions)
@@ -184,12 +158,10 @@ class AppStateMachineImpl(
                     else -> streamState
                 }
 
-                is InternalEvent.RestartHttpServer ->
-                    restartHttpServer(streamState.stopProjectionIfStreaming(projectionCallback), event.reason)
+                is InternalEvent.RestartHttpServer -> restartHttpServer(stopProjection(streamState), event.reason)
 
                 is InternalEvent.ComponentError ->
-                    streamState.stopProjectionIfStreaming(projectionCallback)
-                        .copy(state = StreamState.State.ERROR, appError = event.appError)
+                    stopProjection(streamState).copy(state = StreamState.State.ERROR, appError = event.appError)
 
                 is AppStateMachine.Event.RecoverError -> {
                     sendEvent(InternalEvent.DiscoverServerAddress)
@@ -230,7 +202,7 @@ class AppStateMachineImpl(
         appHttpServer = AppHttpServerImpl(
             HttpServerFiles(applicationContext, settingsReadOnly),
             jpegChannel,
-            { sendEvent(InternalEvent.HtmlStartStop) },
+            { sendEvent(InternalEvent.StartStopFromWebPage) },
             onStatistic,
             ::onError
         )
@@ -302,8 +274,7 @@ class AppStateMachineImpl(
         XLog.d(getLog("startProjection", "Invoked"))
         streamState.requireState(StreamState.State.SERVER_STARTED)
 
-        val mediaProjection = projectionManager.getMediaProjection(Activity.RESULT_OK, intent)
-        mediaProjection.registerCallback(projectionCallback, Handler(Looper.getMainLooper()))
+        val mediaProjection = mediaProjectionHelper.getMediaProjection(intent)
         val display = ContextCompat.getSystemService(applicationContext, WindowManager::class.java)!!.defaultDisplay
         val bitmapCapture = BitmapCapture(display, settingsReadOnly, mediaProjection, bitmapChannel, ::onError)
         bitmapCapture.start()
@@ -319,7 +290,7 @@ class AppStateMachineImpl(
         XLog.d(getLog("stopStream", "Invoked"))
         streamState.requireState(StreamState.State.STREAMING)
 
-        return streamState.stopProjectionIfStreaming(projectionCallback).also {
+        return stopProjection(streamState).also {
             if (settingsReadOnly.autoChangePinOnStop().not())
                 bitmapNotification.sentBitmapNotification(BitmapNotification.Type.START)
         }.copy(state = StreamState.State.SERVER_STARTED)
@@ -348,4 +319,15 @@ class AppStateMachineImpl(
             httpServerAddressAttempt = 0
         )
     }
+
+    private fun stopProjection(streamState: StreamState): StreamState {
+        XLog.d(getLog("stopProjection", "Invoked"))
+        if (streamState.isStreaming()) {
+            streamState.bitmapCapture?.stop()
+            mediaProjectionHelper.stopMediaProjection(streamState.mediaProjection)
+        }
+
+        return streamState.copy(mediaProjection = null, bitmapCapture = null)
+    }
+
 }
