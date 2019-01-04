@@ -71,8 +71,6 @@ class HttpServerImpl constructor(
 
     override fun destroy() = sendServerEvent(ServerEvent.Destroy)
 
-    private val applicationContext: Context = context.applicationContext
-
     private val serverEventChannel: SendChannel<ServerEvent> = actor(capacity = 16) {
         var serverState = ServerState()
 

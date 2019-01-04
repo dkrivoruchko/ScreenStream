@@ -45,14 +45,20 @@
             android:orientation="vertical"
             app:layout_constraintTop_toBottomOf="@id/tv_fragment_stream_pin">
 
-            <com.github.florent37.expansionpanel.ExpansionHeader
+            <info.dvkr.screenstream.ui.view.ExpansionHeader
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                app:expansion_headerIndicator="@id/hi_fragment_stream_traffic"
-                app:expansion_headerIndicatorRotationCollapsed="0"
-                app:expansion_headerIndicatorRotationExpanded="90"
-                app:expansion_layout="@id/el_fragment_stream_traffic"
-                app:expansion_toggleOnClick="true">
+                app:expansion_headerIndicator="@id/iv_fragment_stream_traffic"
+                app:expansion_layout="@id/el_fragment_stream_traffic">
+
+                <androidx.appcompat.widget.AppCompatImageView
+                    android:id="@+id/iv_fragment_stream_traffic"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_vertical|start"
+                    android:layout_marginStart="16dp"
+                    android:adjustViewBounds="true"
+                    app:srcCompat="@drawable/ic_expansion_header_indicator_24dp" />
 
                 <androidx.appcompat.widget.AppCompatTextView
                     android:id="@+id/tv_fragment_stream_traffic_header"
@@ -63,18 +69,9 @@
                     android:paddingBottom="8dp"
                     android:textAppearance="?android:attr/textAppearanceMedium"
                     tools:text="Traffic: 5.69Mbit/s" />
+            </info.dvkr.screenstream.ui.view.ExpansionHeader>
 
-                <androidx.appcompat.widget.AppCompatImageView
-                    android:id="@+id/hi_fragment_stream_traffic"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center_vertical|start"
-                    android:layout_marginStart="16dp"
-                    android:adjustViewBounds="true"
-                    app:srcCompat="@drawable/ic_expansion_header_indicator_24dp" />
-            </com.github.florent37.expansionpanel.ExpansionHeader>
-
-            <com.github.florent37.expansionpanel.ExpansionLayout
+            <info.dvkr.screenstream.ui.view.ExpansionLayout
                 android:id="@+id/el_fragment_stream_traffic"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content">
@@ -92,10 +89,10 @@
                     <info.dvkr.screenstream.ui.view.TrafficGraph
                         android:id="@+id/traffic_graph_fragment_stream"
                         android:layout_width="match_parent"
-                        android:paddingBottom="8dp"
-                        android:layout_height="168dp" />
+                        android:layout_height="168dp"
+                        android:paddingBottom="8dp" />
                 </LinearLayout>
-            </com.github.florent37.expansionpanel.ExpansionLayout>
+            </info.dvkr.screenstream.ui.view.ExpansionLayout>
         </LinearLayout>
 
         <LinearLayout
@@ -108,14 +105,20 @@
             android:orientation="vertical"
             app:layout_constraintTop_toBottomOf="@id/ll_fragment_stream_traffic">
 
-            <com.github.florent37.expansionpanel.ExpansionHeader
+            <info.dvkr.screenstream.ui.view.ExpansionHeader
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                app:expansion_headerIndicator="@id/hi_fragment_stream_clients"
-                app:expansion_headerIndicatorRotationCollapsed="0"
-                app:expansion_headerIndicatorRotationExpanded="90"
-                app:expansion_layout="@id/el_fragment_stream_clients"
-                app:expansion_toggleOnClick="true">
+                app:expansion_headerIndicator="@id/iv_fragment_stream_clients"
+                app:expansion_layout="@id/el_fragment_stream_clients">
+
+                <androidx.appcompat.widget.AppCompatImageView
+                    android:id="@+id/iv_fragment_stream_clients"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_vertical|start"
+                    android:layout_marginStart="16dp"
+                    android:adjustViewBounds="true"
+                    app:srcCompat="@drawable/ic_expansion_header_indicator_24dp" />
 
                 <androidx.appcompat.widget.AppCompatTextView
                     android:id="@+id/tv_fragment_stream_clients_header"
@@ -126,18 +129,9 @@
                     android:paddingBottom="8dp"
                     android:textAppearance="?android:attr/textAppearanceMedium"
                     tools:text="Connected clients: 2" />
+            </info.dvkr.screenstream.ui.view.ExpansionHeader>
 
-                <androidx.appcompat.widget.AppCompatImageView
-                    android:id="@+id/hi_fragment_stream_clients"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center_vertical|start"
-                    android:layout_marginStart="16dp"
-                    android:adjustViewBounds="true"
-                    app:srcCompat="@drawable/ic_expansion_header_indicator_24dp" />
-            </com.github.florent37.expansionpanel.ExpansionHeader>
-
-            <com.github.florent37.expansionpanel.ExpansionLayout
+            <info.dvkr.screenstream.ui.view.ExpansionLayout
                 android:id="@+id/el_fragment_stream_clients"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content">
@@ -158,8 +152,7 @@
                         android:layout_height="wrap_content"
                         app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager" />
                 </LinearLayout>
-
-            </com.github.florent37.expansionpanel.ExpansionLayout>
+            </info.dvkr.screenstream.ui.view.ExpansionLayout>
         </LinearLayout>
     </androidx.constraintlayout.widget.ConstraintLayout>
 </androidx.core.widget.NestedScrollView>

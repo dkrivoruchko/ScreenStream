@@ -1,6 +1,5 @@
 package info.dvkr.screenstream.data.httpserver
 
-import info.dvkr.screenstream.data.settings.SettingsReadOnly
 import java.net.InetSocketAddress
 
 interface HttpServer {

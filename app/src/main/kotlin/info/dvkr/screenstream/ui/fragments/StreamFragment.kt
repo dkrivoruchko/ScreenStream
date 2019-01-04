@@ -90,9 +90,6 @@ class StreamFragment : Fragment() {
                 }
             })
 
-        el_fragment_stream_traffic.collapse(false)
-        el_fragment_stream_clients.collapse(false)
-
         IntentAction.GetServiceState.sendToAppService(requireContext())
     }
 

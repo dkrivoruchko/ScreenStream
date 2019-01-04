@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="ExpansionHeader">
+        <attr name="expansion_layout" format="reference" />
+        <attr name="expansion_headerIndicator" format="reference" />
+    </declare-styleable>
+</resources>
