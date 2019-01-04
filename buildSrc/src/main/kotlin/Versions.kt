@@ -19,7 +19,7 @@ object Versions {
     const val legacySupport = "1.0.0"
     const val constraint = "1.1.3"
     const val alerter = "4.0.0"
-    const val materialDialogs = "2.0.0-rc5"
+    const val materialDialogs = "2.0.0-rc7"
     const val koin = "1.0.2"
     const val binaryprefs = "1.0.1"
     const val rxJava = "1.3.8"

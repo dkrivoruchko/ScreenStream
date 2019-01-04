@@ -78,6 +78,8 @@ class SettingsFragment : Fragment() {
         }
     }
 
+    private var materialDialog: MaterialDialog? = null
+
     private val screenSize: Point by lazy {
         Point().apply {
             ContextCompat.getSystemService(requireContext(), WindowManager::class.java)
@@ -110,7 +112,8 @@ class SettingsFragment : Fragment() {
         tv_fragment_settings_night_mode_summary.text = resources.getStringArray(R.array.pref_night_mode_options)[index]
         cl_fragment_settings_night_mode.setOnClickListener {
             val indexOld = nightModeList.first { it.second == settings.nightMode }.first
-            MaterialDialog(requireActivity()).show {
+            materialDialog?.hide()
+            materialDialog = MaterialDialog(requireActivity()).show {
                 title(R.string.pref_night_mode)
                 icon(R.drawable.ic_settings_night_mode_24dp)
                 listItemsSingleChoice(R.array.pref_night_mode_options, initialSelection = indexOld) { _, index, _ ->
@@ -147,7 +150,8 @@ class SettingsFragment : Fragment() {
         v_fragment_settings_html_back_color.color = settings.htmlBackColor
         v_fragment_settings_html_back_color.border = ContextCompat.getColor(requireContext(), R.color.textColorPrimary)
         cl_fragment_settings_html_back_color.setOnClickListener {
-            MaterialDialog(requireActivity()).show {
+            materialDialog?.hide()
+            materialDialog = MaterialDialog(requireActivity()).show {
                 title(R.string.pref_html_back_color_title)
                 icon(R.drawable.ic_settings_color_back_24dp)
                 colorChooser(
@@ -172,7 +176,8 @@ class SettingsFragment : Fragment() {
         tv_fragment_settings_resize_image_value.text = getString(R.string.pref_resize_value, settings.resizeFactor)
         val resizePictureSizeString = getString(R.string.pref_resize_dialog_result)
         cl_fragment_settings_resize_image.setOnClickListener {
-            val resizeDialog = MaterialDialog(requireActivity())
+            materialDialog?.hide()
+            materialDialog = MaterialDialog(requireActivity())
                 .title(R.string.pref_resize)
                 .icon(R.drawable.ic_settings_resize_24dp)
                 .customView(R.layout.dialog_settings_resize)
@@ -183,42 +188,47 @@ class SettingsFragment : Fragment() {
                     if (settings.resizeFactor != newValue) settings.resizeFactor = newValue
                 }
                 .negativeButton(android.R.string.cancel)
+                .apply Dialog@{
+                    getCustomView()?.apply DialogView@{
+                        tv_dialog_settings_resize_content.text =
+                                getString(R.string.pref_resize_dialog_text, screenSize.x, screenSize.y)
 
-            resizeDialog.getCustomView()?.apply DialogView@{
-                tv_dialog_settings_resize_content.text =
-                        getString(R.string.pref_resize_dialog_text, screenSize.x, screenSize.y)
+                        ti_dialog_settings_resize.isCounterEnabled = true
+                        ti_dialog_settings_resize.counterMaxLength = 3
 
-                ti_dialog_settings_resize.isCounterEnabled = true
-                ti_dialog_settings_resize.counterMaxLength = 3
+                        with(tiet_dialog_settings_resize) {
+                            addTextChangedListener(info.dvkr.screenstream.ui.fragments.SettingsFragment.SimpleTextWatcher { text ->
+                                val isValid = text.length in 2..3 && text.toString().toInt() in 10..150
+                                this@Dialog.setActionButtonEnabled(
+                                    com.afollestad.materialdialogs.WhichButton.POSITIVE, isValid
+                                )
+                                val newResizeFactor =
+                                    (if (isValid) text.toString().toInt() else settings.resizeFactor) / 100f
+                                this@DialogView.tv_dialog_settings_resize_result.text = resizePictureSizeString.format(
+                                    (screenSize.x * newResizeFactor).toInt(), (screenSize.y * newResizeFactor).toInt()
+                                )
+                            })
+                            setText(settings.resizeFactor.toString())
+                            setSelection(settings.resizeFactor.toString().length)
+                            filters = kotlin.arrayOf<InputFilter>(android.text.InputFilter.LengthFilter(3))
+                        }
 
-                with(tiet_dialog_settings_resize) {
-                    addTextChangedListener(SimpleTextWatcher { text ->
-                        val isValid = text.length in 2..3 && text.toString().toInt() in 10..150
-                        resizeDialog.setActionButtonEnabled(WhichButton.POSITIVE, isValid)
-                        val newResizeFactor = (if (isValid) text.toString().toInt() else settings.resizeFactor) / 100f
-                        this@DialogView.tv_dialog_settings_resize_result.text = resizePictureSizeString.format(
-                            (screenSize.x * newResizeFactor).toInt(), (screenSize.y * newResizeFactor).toInt()
+                        tv_dialog_settings_resize_result.text = resizePictureSizeString.format(
+                            (screenSize.x * settings.resizeFactor / 100f).toInt(),
+                            (screenSize.y * settings.resizeFactor / 100f).toInt()
                         )
-                    })
-                    setText(settings.resizeFactor.toString())
-                    setSelection(settings.resizeFactor.toString().length)
-                    filters = arrayOf<InputFilter>(InputFilter.LengthFilter(3))
+
+                        show()
+                    }
                 }
-
-                tv_dialog_settings_resize_result.text = resizePictureSizeString.format(
-                    (screenSize.x * settings.resizeFactor / 100f).toInt(),
-                    (screenSize.y * settings.resizeFactor / 100f).toInt()
-                )
-
-            }
-            resizeDialog.show()
         }
 
         // Image - Rotation
         tv_fragment_settings_rotation_value.text = getString(R.string.pref_rotate_value, settings.rotation)
         cl_fragment_settings_rotation.setOnClickListener {
             val indexOld = rotationList.first { it.second == settings.rotation }.first
-            MaterialDialog(requireActivity()).show {
+            materialDialog?.hide()
+            materialDialog = MaterialDialog(requireActivity()).show {
                 title(R.string.pref_rotate)
                 icon(R.drawable.ic_settings_rotation_24dp)
                 listItemsSingleChoice(R.array.pref_rotate_options, initialSelection = indexOld) { _, index, _ ->
@@ -233,7 +243,8 @@ class SettingsFragment : Fragment() {
         // Image - Jpeg Quality
         tv_fragment_settings_jpeg_quality_value.text = settings.jpegQuality.toString()
         cl_fragment_settings_jpeg_quality.setOnClickListener {
-            MaterialDialog(requireActivity()).show {
+            materialDialog?.hide()
+            materialDialog = MaterialDialog(requireActivity()).show {
                 title(R.string.pref_jpeg_quality)
                 icon(R.drawable.ic_settings_high_quality_24dp)
                 message(R.string.pref_jpeg_quality_dialog)
@@ -307,7 +318,8 @@ class SettingsFragment : Fragment() {
         // Security - Set pin
         tv_fragment_settings_set_pin_value.text = settings.pin
         cl_fragment_settings_set_pin.setOnClickListener {
-            MaterialDialog(requireActivity()).show {
+            materialDialog?.hide()
+            materialDialog = MaterialDialog(requireActivity()).show {
                 title(R.string.pref_set_pin)
                 icon(R.drawable.ic_settings_key_24dp)
                 message(R.string.pref_set_pin_dialog)
@@ -340,7 +352,8 @@ class SettingsFragment : Fragment() {
         // Advanced - Server port
         tv_fragment_settings_server_port_value.text = settings.severPort.toString()
         cl_fragment_settings_server_port.setOnClickListener {
-            MaterialDialog(requireActivity()).show {
+            materialDialog?.hide()
+            materialDialog = MaterialDialog(requireActivity()).show {
                 title(R.string.pref_server_port)
                 icon(R.drawable.ic_settings_http_24dp)
                 message(R.string.pref_server_port_dialog)
@@ -384,6 +397,8 @@ class SettingsFragment : Fragment() {
     override fun onStop() {
         XLog.d(getLog("onStop", "Invoked"))
         settings.unregisterChangeListener(settingsListener)
+        materialDialog?.hide()
+        materialDialog = null
         super.onStop()
     }
 
