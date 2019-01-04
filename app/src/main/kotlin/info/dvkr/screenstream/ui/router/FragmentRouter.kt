@@ -6,40 +6,31 @@ import androidx.fragment.app.FragmentManager
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.data.other.getLog
-import java.util.*
 
 class FragmentRouter(private val fragmentManager: FragmentManager, vararg fragmentCreators: FragmentCreator) {
 
     interface FragmentCreator {
-        @IdRes
-        fun getMenuItemId(): Int
-
+        @IdRes fun getMenuItemId(): Int
         fun getTag(): String
         fun newInstance(): Fragment
     }
 
     private val knownFragmentCreators = fragmentCreators.toList()
-    private val localStack = LinkedList<String>()
 
     init {
-        repeat(fragmentManager.backStackEntryCount) {
-            localStack.addLast(fragmentManager.getBackStackEntryAt(it).name)
-        }
-
         XLog.i(getLog("init", "knownFragmentCreators: ${knownFragmentCreators.joinToString { it.getTag() }}"))
-        XLog.i(getLog("init", "localStack: ${localStack.joinToString()}"))
     }
 
     fun navigateTo(@IdRes menuItemId: Int): Boolean {
-        val currentFragment = fragmentManager.fragments.firstOrNull { it.isVisible }
-        val fragmentCreator = knownFragmentCreators.firstOrNull { it.getMenuItemId() == menuItemId }
-
-        XLog.i(getLog("navigateTo", "localStack: ${localStack.joinToString()}"))
         XLog.i(getLog("navigateTo", "menuItemId: $menuItemId"))
-        XLog.i(getLog("navigateTo", "fragmentCreator: ${fragmentCreator?.getTag()}"))
 
-        require(fragmentCreator != null)
-        val newFragment = fragmentManager.findFragmentByTag(fragmentCreator.getTag())
+        val currentFragment = fragmentManager.fragments.firstOrNull { it.isVisible }
+        val navigateToFragment = knownFragmentCreators.firstOrNull { it.getMenuItemId() == menuItemId }
+
+        XLog.i(getLog("navigateTo", "navigateToFragment: ${navigateToFragment?.getTag()}"))
+
+        require(navigateToFragment != null)
+        val newFragment = fragmentManager.findFragmentByTag(navigateToFragment.getTag())
 
         if (currentFragment != null && currentFragment == newFragment) return true
 
@@ -49,28 +40,22 @@ class FragmentRouter(private val fragmentManager: FragmentManager, vararg fragme
                     R.anim.nav_default_enter_anim, R.anim.nav_default_exit_anim,
                     R.anim.nav_default_enter_anim, R.anim.nav_default_exit_anim
                 )
-                .replace(R.id.fl_activity_single, fragmentCreator.newInstance(), fragmentCreator.getTag())
-                .addToBackStack(fragmentCreator.getTag())
+                .replace(R.id.fl_activity_single, navigateToFragment.newInstance(), navigateToFragment.getTag())
+                .addToBackStack(navigateToFragment.getTag())
                 .commitAllowingStateLoss()
-
-            localStack.addLast(fragmentCreator.getTag())
         } else {
-            val index = localStack.indexOf(fragmentCreator.getTag())
-            XLog.i(getLog("navigateTo", "fragmentCreator: ${fragmentCreator.getTag()}"))
-
-            require(index >= 0)
-            repeat(localStack.size - index - 1) { localStack.removeLast() }
-            fragmentManager.popBackStack(fragmentCreator.getTag(), 0)
+            XLog.i(getLog("navigateTo", "newFragment !=null: ${navigateToFragment.getTag()}"))
+            fragmentManager.popBackStack(navigateToFragment.getTag(), 0)
         }
         return true
     }
 
+    fun onBackPressed(): Boolean = fragmentManager.popBackStackImmediate()
+
     @IdRes
-    fun onBackPressed(): Int {
-        localStack.isEmpty().not() || return 0
-        fragmentManager.popBackStack()
-        localStack.removeLast()
-        localStack.isEmpty().not() || return 0
-        return knownFragmentCreators.firstOrNull { it.getTag() == localStack.last }?.getMenuItemId() ?: 0
+    fun getCurrentMenuItemId(): Int {
+        val currentFragmentTag = fragmentManager.fragments.firstOrNull { it.isVisible }?.tag
+        val currentFragmentCreator = knownFragmentCreators.firstOrNull { it.getTag() == currentFragmentTag }
+        return currentFragmentCreator?.getMenuItemId() ?: 0
     }
 }

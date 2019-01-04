@@ -57,7 +57,8 @@ class AppActivity : BaseActivity() {
     }
 
     override fun onBackPressed() {
-        val itemId = fragmentRouter.onBackPressed()
+        fragmentRouter.onBackPressed()
+        val itemId = fragmentRouter.getCurrentMenuItemId()
         if (itemId != 0) bottom_navigation_activity_app.selectedItemId = itemId
         else super.onBackPressed()
     }
@@ -69,6 +70,7 @@ class AppActivity : BaseActivity() {
         if (savedInstanceState == null) fragmentRouter.navigateTo(R.id.menu_stream_fragment)
 
         // Fix for https://github.com/material-components/material-components-android/issues/139
+        // https://issuetracker.google.com/issues/115754572
         with(bottom_navigation_activity_app.getChildAt(0) as BottomNavigationMenuView) {
             for (index in 0 until childCount)
                 (getChildAt(index) as BottomNavigationItemView).findViewById<TextView>(R.id.largeLabel)
