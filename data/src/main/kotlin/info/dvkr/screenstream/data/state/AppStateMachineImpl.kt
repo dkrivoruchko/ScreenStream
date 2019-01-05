@@ -109,6 +109,7 @@ class AppStateMachineImpl(
         ))
                 ||
                 (state == StreamState.State.RESTART_PENDING && newEvent !in listOf(
+                    AppStateMachineImpl.InternalEvent.Destroy,
                     AppStateMachineImpl.InternalEvent.DiscoverServerAddress, AppStateMachine.Event.RecoverError
                 ))
                 ||

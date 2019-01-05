@@ -94,13 +94,11 @@ class AppActivity : BaseActivity() {
 
     override fun onStart() {
         super.onStart()
-        XLog.d(getLog("onStart", "Invoked"))
         settingsReadOnly.registerChangeListener(settingsListener)
         setLogging(settingsReadOnly.loggingOn)
     }
 
     override fun onStop() {
-        XLog.d(getLog("onStop", "Invoked"))
         settingsReadOnly.unregisterChangeListener(settingsListener)
         super.onStop()
     }

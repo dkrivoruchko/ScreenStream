@@ -397,7 +397,7 @@ class SettingsFragment : Fragment() {
     override fun onStop() {
         XLog.d(getLog("onStop", "Invoked"))
         settings.unregisterChangeListener(settingsListener)
-        materialDialog?.hide()
+        materialDialog?.dismiss()
         materialDialog = null
         super.onStop()
     }
