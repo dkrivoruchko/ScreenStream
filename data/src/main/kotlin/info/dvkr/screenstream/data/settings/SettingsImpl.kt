@@ -65,7 +65,7 @@ class SettingsImpl(private val preferences: Preferences) : Settings {
         if (enablePin && newPinOnAppStart) pin = randomPin()
     }
 
-    override fun autoChangePinOnStop(): Boolean =
+    override fun checkAndChangeAutoChangePinOnStop(): Boolean =
         if (enablePin && autoChangePin) {
             pin = randomPin(); true
         } else {

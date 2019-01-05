@@ -17,17 +17,7 @@ data class StreamState(
     val appError: AppError? = null
 ) {
 
-    override fun toString(): String = "StreamState: $state"
-
-    enum class State {
-        CREATED, SERVER_ADDRESS_DISCOVERED, ERROR, SERVER_STARTED, STREAMING, DESTROYED, RESTART_PENDING
-    }
-
-    internal fun requireState(vararg requireStates: State): StreamState {
-        state in requireStates ||
-                throw IllegalStateException("Service in state [$state] expected ${requireStates.contentToString()}")
-        return this
-    }
+    enum class State { CREATED, ADDRESS_DISCOVERED, SERVER_STARTED, STREAMING, RESTART_PENDING, ERROR, DESTROYED }
 
     internal fun isPublicStatePublishRequired(previousStreamState: StreamState): Boolean =
         (this.state != State.DESTROYED && this.state != previousStreamState.state) ||

@@ -26,7 +26,7 @@ interface SettingsReadOnly {
 
     fun autoChangePinOnStart()
 
-    fun autoChangePinOnStop(): Boolean
+    fun checkAndChangeAutoChangePinOnStop(): Boolean
 
     interface OnSettingsChangeListener {
         @MainThread
