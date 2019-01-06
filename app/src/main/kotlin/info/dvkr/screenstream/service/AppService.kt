@@ -161,6 +161,7 @@ class AppService : Service(), CoroutineScope {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val intentAction = IntentAction.fromIntent(intent)
+        XLog.e(getLog("onStartCommand", "IntentAction: $intentAction"))
         intentAction != null || return Service.START_NOT_STICKY
         XLog.d(getLog("onStartCommand", "IntentAction: $intentAction"))
 

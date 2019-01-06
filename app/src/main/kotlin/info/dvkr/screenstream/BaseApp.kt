@@ -9,7 +9,6 @@ import info.dvkr.screenstream.data.settings.SettingsReadOnly
 import info.dvkr.screenstream.di.baseKoinModule
 import info.dvkr.screenstream.logging.DateSuffixFileNameGenerator
 import info.dvkr.screenstream.logging.getLogFolder
-import info.dvkr.screenstream.service.AppService
 import org.koin.android.ext.android.inject
 import org.koin.android.ext.android.startKoin
 
@@ -38,7 +37,5 @@ abstract class BaseApp : Application() {
             XLog.e("Uncaught throwable in thread ${thread.name}", throwable)
             defaultHandler.uncaughtException(thread, throwable)
         }
-
-        AppService.startForeground(this)
     }
 }

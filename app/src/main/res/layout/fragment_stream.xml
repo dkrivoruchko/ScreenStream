@@ -90,6 +90,8 @@
                         android:id="@+id/traffic_graph_fragment_stream"
                         android:layout_width="match_parent"
                         android:layout_height="168dp"
+                        android:layout_marginStart="8dp"
+                        android:layout_marginEnd="8dp"
                         android:paddingBottom="8dp" />
                 </LinearLayout>
             </info.dvkr.screenstream.ui.view.ExpansionLayout>

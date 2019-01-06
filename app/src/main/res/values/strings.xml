@@ -56,11 +56,11 @@
         <item>Battery saver only</item>
         <item>Never</item>
     </string-array>
-    <string name="pref_minimize_on_stream">Minimize on stream</string>
+    <string name="pref_minimize_on_stream">Minimize on stream start</string>
     <string name="pref_minimise_on_stream_summary">Minimize app on stream start</string>
-    <string name="pref_stop_on_sleep">Stop on sleep</string>
+    <string name="pref_stop_on_sleep">Stop stream on sleep</string>
     <string name="pref_stop_on_sleep_summary">Stop stream if screen turns off</string>
-    <string name="pref_start_on_boot">Start on boot</string>
+    <string name="pref_start_on_boot">Start stream on boot</string>
     <string name="pref_start_on_boot_summary">Start stream after device boot</string>
     <string name="pref_html_back_color">Page background color</string>
     <string name="pref_html_back_color_summary">Set HTML page background color</string>

@@ -21,6 +21,7 @@ import info.dvkr.screenstream.data.other.getLog
 import info.dvkr.screenstream.data.settings.Settings
 import info.dvkr.screenstream.data.settings.SettingsReadOnly
 import info.dvkr.screenstream.logging.sendLogsInEmail
+import info.dvkr.screenstream.service.AppService
 import info.dvkr.screenstream.service.ServiceMessage
 import info.dvkr.screenstream.service.helper.IntentAction
 import info.dvkr.screenstream.ui.fragments.AboutFragment
@@ -67,9 +68,10 @@ class AppActivity : BaseActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_app)
 
+        AppService.startForeground(this)
         if (savedInstanceState == null) fragmentRouter.navigateTo(R.id.menu_stream_fragment)
 
-        // Fix for https://github.com/material-components/material-components-android/issues/139
+        // TODO Fix for https://github.com/material-components/material-components-android/issues/139
         // https://issuetracker.google.com/issues/115754572
         with(bottom_navigation_activity_app.getChildAt(0) as BottomNavigationMenuView) {
             for (index in 0 until childCount)
