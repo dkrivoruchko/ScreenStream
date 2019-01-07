@@ -52,7 +52,7 @@ internal class HttpServerStatistic(
 
     private val eventQueue = ConcurrentLinkedDeque<StatisticEvent>() // For debug
 
-    private val statisticEventChannel: SendChannel<StatisticEvent> = actor(capacity = 16) {
+    private val statisticEventChannel: SendChannel<StatisticEvent> = actor(capacity = 32) {
         val clientsMap = HashMap<InetSocketAddress, LocalClient>()
         val trafficHistory = LinkedList<TrafficPoint>()
 

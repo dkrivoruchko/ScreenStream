@@ -349,6 +349,13 @@ class SettingsFragment : Fragment() {
             cl_fragment_settings_use_wifi_only.setOnClickListener { performClick() }
         }
 
+        // Advanced - Enable IPv6 support
+        with(cb_fragment_settings_enable_ipv6) {
+            isChecked = settings.enableIPv6
+            setOnClickListener { settings.enableIPv6 = isChecked }
+            cl_fragment_settings_enable_ipv6.setOnClickListener { performClick() }
+        }
+
         // Advanced - Server port
         tv_fragment_settings_server_port_value.text = settings.severPort.toString()
         cl_fragment_settings_server_port.setOnClickListener {

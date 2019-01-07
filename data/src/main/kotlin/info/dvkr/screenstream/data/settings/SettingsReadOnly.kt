@@ -21,6 +21,7 @@ interface SettingsReadOnly {
     val pin: String
 
     val useWiFiOnly: Boolean
+    val enableIPv6: Boolean
     val severPort: Int
     val loggingOn: Boolean
 

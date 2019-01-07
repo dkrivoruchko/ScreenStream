@@ -32,7 +32,7 @@ class NetworkHelper(context: Context, private val onError: (AppError) -> Unit) {
 
     private val wifiManager: WifiManager = ContextCompat.getSystemService(context, WifiManager::class.java)!!
 
-    fun getNetInterfaces(useWiFiOnly: Boolean): List<NetInterface> {
+    fun getNetInterfaces(useWiFiOnly: Boolean, enableIPv6: Boolean): List<NetInterface> {
         XLog.d(getLog("getNetInterfaces", "Invoked"))
 
         val netInterfaceList = mutableListOf<NetInterface>()
@@ -43,6 +43,9 @@ class NetworkHelper(context: Context, private val onError: (AppError) -> Unit) {
                         networkInterface.inetAddresses.asSequence().filterNotNull()
                             .filter { inetAddress ->
                                 !inetAddress.isLinkLocalAddress && !inetAddress.isLoopbackAddress && !inetAddress.isMulticastAddress
+                            }
+                            .filter { inetAddress ->
+                                (inetAddress is Inet4Address) || (enableIPv6 && (inetAddress is Inet6Address))
                             }
                             .map { inetAddress ->
                                 val address =

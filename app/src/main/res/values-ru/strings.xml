@@ -89,6 +89,8 @@
     <string name="pref_settings_advanced">Дополнительно</string>
     <string name="pref_wifi_only">Использовать только WiFi</string>
     <string name="pref_wifi_only_summary">Запускать сервер только на WiFi интерфейсе</string>
+    <string name="pref_enable_ipv6">Включить поддержку IPv6</string>
+    <string name="pref_enable_ipv6_summary">Запускать сервер и на IPv6 адресах</string>
     <string name="pref_server_port">Порт сервера</string>
     <string name="pref_server_port_summary">Установить порт для входяших подключений</string>
     <string name="pref_server_port_dialog">Установите порт сервера для входящих подключений.\nЗначения: 1025–65535\n(По умолчанию: 8080)</string>

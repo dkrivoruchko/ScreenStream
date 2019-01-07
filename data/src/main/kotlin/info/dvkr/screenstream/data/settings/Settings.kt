@@ -20,6 +20,7 @@ interface Settings : SettingsReadOnly {
         const val PIN = "PREF_KEY_SET_PIN"
 
         const val USE_WIFI_ONLY = "PREF_KEY_USE_WIFI_ONLY"
+        const val ENABLE_IPV6 = "PREF_KEY_ENABLE_IPV6"
         const val SERVER_PORT = "PREF_KEY_SERVER_PORT"
         const val LOGGING_ON = "PREF_KEY_LOGGING_ON"
     }
@@ -42,6 +43,7 @@ interface Settings : SettingsReadOnly {
         const val PIN = "0000"
 
         const val USE_WIFI_ONLY = true
+        const val ENABLE_IPV6 = false
         const val SERVER_PORT = 8080
         const val LOGGING_ON = false
     }
@@ -72,6 +74,7 @@ interface Settings : SettingsReadOnly {
     override var pin: String
 
     override var useWiFiOnly: Boolean
+    override var enableIPv6: Boolean
     override var severPort: Int
     override var loggingOn: Boolean
 }

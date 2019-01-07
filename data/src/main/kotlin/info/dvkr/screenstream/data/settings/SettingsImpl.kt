@@ -55,6 +55,9 @@ class SettingsImpl(private val preferences: Preferences) : Settings {
     override var useWiFiOnly: Boolean
             by bindPreference(preferences, Settings.Key.USE_WIFI_ONLY, Settings.Default.USE_WIFI_ONLY)
 
+    override var enableIPv6: Boolean
+            by bindPreference(preferences, Settings.Key.ENABLE_IPV6, Settings.Default.ENABLE_IPV6)
+
     override var severPort: Int
             by bindPreference(preferences, Settings.Key.SERVER_PORT, Settings.Default.SERVER_PORT)
 
