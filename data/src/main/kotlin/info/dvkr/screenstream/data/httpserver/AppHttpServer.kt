@@ -1,6 +1,6 @@
 package info.dvkr.screenstream.data.httpserver
 
-import java.net.InetSocketAddress
+import info.dvkr.screenstream.data.model.NetInterface
 
 interface AppHttpServer {
 
@@ -9,7 +9,7 @@ interface AppHttpServer {
         const val TRAFFIC_HISTORY_SECONDS = 30
     }
 
-    fun start(serverAddress: InetSocketAddress)
+    fun start(serverAddresses: List<NetInterface>, severPort: Int, useWiFiOnly: Boolean)
 
     fun stop()
 }

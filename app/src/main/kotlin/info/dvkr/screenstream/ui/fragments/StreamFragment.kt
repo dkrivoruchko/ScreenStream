@@ -20,9 +20,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.data.model.HttpClient
-import info.dvkr.screenstream.data.other.bytesToMbit
-import info.dvkr.screenstream.data.other.getLog
-import info.dvkr.screenstream.data.other.setColorSpan
+import info.dvkr.screenstream.data.other.*
 import info.dvkr.screenstream.data.settings.SettingsReadOnly
 import info.dvkr.screenstream.service.ServiceMessage
 import info.dvkr.screenstream.service.helper.IntentAction
@@ -100,6 +98,7 @@ class StreamFragment : Fragment() {
             with(layoutInflater.inflate(R.layout.item_device_address, ll_fragment_stream_addresses, false)) {
                 tv_item_device_address_name.text = ""
                 tv_item_device_address.setText(R.string.stream_fragment_no_address)
+                tv_item_device_address.setTextColor(ContextCompat.getColor(requireContext(), R.color.textColorPrimary))
                 ll_fragment_stream_addresses.addView(this)
             }
         } else {
@@ -107,8 +106,9 @@ class StreamFragment : Fragment() {
                 with(layoutInflater.inflate(R.layout.item_device_address, ll_fragment_stream_addresses, false)) {
                     tv_item_device_address_name.text = getString(R.string.stream_fragment_interface, netInterface.name)
 
-                    val fullAddress = "http://${netInterface.address.hostAddress}:${settingsReadOnly.severPort}"
-                    tv_item_device_address.text = fullAddress
+                    val fullAddress = "http://${netInterface.address.asString()}:${settingsReadOnly.severPort}"
+                    tv_item_device_address.text = fullAddress.setUnderlineSpan()
+                    tv_item_device_address.setOnClickListener { openInBrowser(fullAddress) }
                     iv_item_device_address_open_external.setOnClickListener { openInBrowser(fullAddress) }
                     iv_item_device_address_copy.setOnClickListener {
                         clipboard?.primaryClip =

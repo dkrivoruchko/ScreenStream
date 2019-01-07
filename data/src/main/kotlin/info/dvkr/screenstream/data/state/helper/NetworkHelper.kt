@@ -11,6 +11,7 @@ import info.dvkr.screenstream.data.model.FatalError
 import info.dvkr.screenstream.data.model.NetInterface
 import info.dvkr.screenstream.data.other.getLog
 import java.net.Inet4Address
+import java.net.Inet6Address
 import java.net.InetAddress
 import java.net.NetworkInterface
 
@@ -40,9 +41,14 @@ class NetworkHelper(context: Context, private val onError: (AppError) -> Unit) {
                 NetworkInterface.getNetworkInterfaces().asSequence().filterNotNull()
                     .flatMap { networkInterface ->
                         networkInterface.inetAddresses.asSequence().filterNotNull()
-                            .filter { inetAddress -> !inetAddress.isLoopbackAddress && inetAddress is Inet4Address }
+                            .filter { inetAddress ->
+                                !inetAddress.isLinkLocalAddress && !inetAddress.isLoopbackAddress && !inetAddress.isMulticastAddress
+                            }
                             .map { inetAddress ->
-                                NetInterface(networkInterface.displayName, inetAddress as Inet4Address)
+                                val address =
+                                    if (inetAddress is Inet6Address) Inet6Address.getByAddress(inetAddress.address)
+                                    else inetAddress
+                                NetInterface(networkInterface.displayName, address)
                             }
                     }
                     .filter { netInterface ->
@@ -53,10 +59,8 @@ class NetworkHelper(context: Context, private val onError: (AppError) -> Unit) {
                     }
                     .toCollection(netInterfaceList)
             } catch (throwable: Throwable) {
-                if (wifiConnected()) {
-                    XLog.w(getLog("getNetInterfaces", throwable.toString()))
-                    netInterfaceList.add(getWiFiNetAddress())
-                } else throw throwable
+                XLog.e(getLog("getNetInterfaces"), throwable)
+                if (wifiConnected()) netInterfaceList.add(getWiFiNetAddress()) else throw throwable
             }
         } catch (throwable: Throwable) {
             XLog.e(getLog("getNetInterfaces"), throwable)

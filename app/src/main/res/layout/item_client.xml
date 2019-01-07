@@ -7,16 +7,19 @@
 
     <androidx.appcompat.widget.AppCompatTextView
         android:id="@+id/tv_client_item_address"
-        android:layout_width="wrap_content"
-        android:layout_height="match_parent"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
         android:layout_margin="4dp"
         android:gravity="start"
         android:paddingStart="16dp"
         android:paddingTop="4dp"
         android:paddingBottom="4dp"
         android:textAppearance="?android:attr/textAppearanceSmall"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/tv_client_item_status"
         app:layout_constraintStart_toStartOf="parent"
-        tools:text="192.168.30.23:23867" />
+        app:layout_constraintTop_toTopOf="parent"
+        tools:text="2002:d45a:2fe9:0:e97c:811f:ea99:c668:23867" />
 
     <androidx.appcompat.widget.AppCompatTextView
         android:id="@+id/tv_client_item_status"
@@ -28,7 +31,9 @@
         android:paddingEnd="16dp"
         android:paddingBottom="4dp"
         android:textAppearance="?android:attr/textAppearanceSmall"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
         tools:text="Slow connection" />
 
     <View

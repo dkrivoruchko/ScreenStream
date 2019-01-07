@@ -4,7 +4,6 @@ import android.media.projection.MediaProjection
 import info.dvkr.screenstream.data.image.BitmapCapture
 import info.dvkr.screenstream.data.model.AppError
 import info.dvkr.screenstream.data.model.NetInterface
-import java.net.InetSocketAddress
 
 
 data class StreamState(
@@ -12,7 +11,6 @@ data class StreamState(
     val mediaProjection: MediaProjection? = null,
     val bitmapCapture: BitmapCapture? = null,
     val netInterfaces: List<NetInterface> = emptyList(),
-    val httpServerAddress: InetSocketAddress? = null,
     val httpServerAddressAttempt: Int = 0,
     val appError: AppError? = null
 ) {

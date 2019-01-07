@@ -3,6 +3,7 @@ package info.dvkr.screenstream.data.httpserver
 import com.elvishew.xlog.XLog
 import com.jakewharton.rxrelay.BehaviorRelay
 import info.dvkr.screenstream.data.model.AppError
+import info.dvkr.screenstream.data.other.asString
 import info.dvkr.screenstream.data.other.getLog
 import info.dvkr.screenstream.data.other.randomString
 import io.netty.buffer.ByteBuf
@@ -20,9 +21,11 @@ import kotlinx.coroutines.launch
 import rx.BackpressureOverflow
 import rx.Observable
 import rx.functions.Action0
+import java.net.InetAddress
 import java.net.InetSocketAddress
 
 internal class HttpServerRxHandler(
+    private val serverAddresses: List<InetAddress>,
     private val favicon: ByteArray,
     private val logo: ByteArray,
     private val indexHtmlPage: String,
@@ -59,9 +62,15 @@ internal class HttpServerRxHandler(
     }
 
     override fun handle(request: HttpServerRequest<ByteBuf>, response: HttpServerResponse<ByteBuf>): Observable<Void> {
+        val localAddress = response.unsafeConnection().channelPipeline.channel().localAddress() as InetSocketAddress
+        if (localAddress.address !in serverAddresses) {
+            XLog.w(getLog("handle", "Closing request to wrong IP address: ${localAddress.asString()}"))
+            return response.unsafeConnection().close()
+        }
+
         val uri = request.uri
         val clientAddress = response.unsafeConnection().channelPipeline.channel().remoteAddress() as InetSocketAddress
-        XLog.d(getLog("handle", "Request [$uri] from ${clientAddress.address.hostAddress}:${clientAddress.port}"))
+        XLog.d(getLog("handle", "Request to: ${localAddress.asString()}$uri from ${clientAddress.asString()}"))
 
         return when {
             uri == HttpServerFiles.DEFAULT_ICON_ADDRESS -> sendFavicon(response)

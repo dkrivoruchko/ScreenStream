@@ -12,7 +12,6 @@ import io.reactivex.netty.RxNetty
 import io.reactivex.netty.protocol.http.server.HttpServer
 import kotlinx.coroutines.channels.ReceiveChannel
 import java.net.BindException
-import java.net.InetSocketAddress
 import java.util.concurrent.atomic.AtomicReference
 
 class AppHttpServerImpl constructor(
@@ -47,10 +46,10 @@ class AppHttpServerImpl constructor(
     }
 
     @Synchronized
-    override fun start(serverAddress: InetSocketAddress) {
+    override fun start(serverAddresses: List<NetInterface>, severPort: Int, useWiFiOnly: Boolean) {
         XLog.d(getLog("startServer", "Invoked"))
         if (state.get() != State.CREATED) throw IllegalStateException("AppHttpServer in state [${state.get()}] expected ${State.CREATED}")
-        if (serverAddress.port !in 1025..65535) throw IllegalArgumentException("Tcp port must be in range [1025, 65535]")
+        if (severPort !in 1025..65535) throw IllegalArgumentException("Tcp port must be in range [1025, 65535]")
 
         val httpServerStatistic = HttpServerStatistic(::onStatistic.get()) { appError ->
             state.set(State.ERROR)
@@ -62,6 +61,7 @@ class AppHttpServerImpl constructor(
         val currentStartStopAddress = httpServerFiles.configureStartStopAddress()
 
         val httpServerRxHandler = HttpServerRxHandler(
+            serverAddresses.map { it.address },
             httpServerFiles.favicon,
             httpServerFiles.logo,
             httpServerFiles.configureIndexHtml(currentStreamAddress, currentStartStopAddress),
@@ -79,7 +79,7 @@ class AppHttpServerImpl constructor(
 
         val serverEventLoop = RxNetty.getRxEventLoopProvider().globalServerEventLoop()
 
-        val nettyHttpServer = HttpServer.newServer(serverAddress, serverEventLoop, NioServerSocketChannel::class.java)
+        val nettyHttpServer = HttpServer.newServer(severPort, serverEventLoop, NioServerSocketChannel::class.java)
             .clientChannelOption(ChannelOption.CONNECT_TIMEOUT_MILLIS, 3000)
 //          .enableWireLogging(LogLevel.ERROR)
 

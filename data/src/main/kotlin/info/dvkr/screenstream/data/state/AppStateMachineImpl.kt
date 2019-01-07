@@ -25,7 +25,6 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.SendChannel
 import kotlinx.coroutines.channels.actor
-import java.net.InetSocketAddress
 import kotlin.coroutines.CoroutineContext
 
 class AppStateMachineImpl(
@@ -194,34 +193,25 @@ class AppStateMachineImpl(
                 streamState.copy(
                     state = StreamState.State.ERROR,
                     netInterfaces = emptyList(),
-                    httpServerAddress = null,
                     httpServerAddressAttempt = 0,
                     appError = FixableError.AddressNotFoundException
                 )
             }
 
         sendEvent(InternalEvent.StartServer)
-        val httpServerAddress =
-            if (settingsReadOnly.useWiFiOnly) {
-                InetSocketAddress(netInterfaces.first().address, settingsReadOnly.severPort)
-            } else {
-                InetSocketAddress(settingsReadOnly.severPort)
-            }
-
         return streamState.copy(
             state = StreamState.State.ADDRESS_DISCOVERED,
             netInterfaces = netInterfaces,
-            httpServerAddress = httpServerAddress,
             httpServerAddressAttempt = 0
         )
     }
 
     private fun startServer(streamState: StreamState): StreamState {
         XLog.d(getLog("startServer", "Invoked"))
-        require(streamState.httpServerAddress != null)
+        require(streamState.netInterfaces.isNotEmpty())
 
         appHttpServer.stop()
-        appHttpServer.start(streamState.httpServerAddress)
+        appHttpServer.start(streamState.netInterfaces, settingsReadOnly.severPort, settingsReadOnly.useWiFiOnly)
         bitmapNotification.sentBitmapNotification(BitmapNotification.Type.START)
 
         return streamState.copy(state = StreamState.State.SERVER_STARTED)
@@ -308,7 +298,6 @@ class AppStateMachineImpl(
         return state.copy(
             state = StreamState.State.RESTART_PENDING,
             netInterfaces = emptyList(),
-            httpServerAddress = null,
             httpServerAddressAttempt = 0
         )
     }

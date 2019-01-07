@@ -5,6 +5,7 @@ import info.dvkr.screenstream.data.model.AppError
 import info.dvkr.screenstream.data.model.FatalError
 import info.dvkr.screenstream.data.model.HttpClient
 import info.dvkr.screenstream.data.model.TrafficPoint
+import info.dvkr.screenstream.data.other.asString
 import info.dvkr.screenstream.data.other.getLog
 import kotlinx.coroutines.channels.SendChannel
 import kotlinx.coroutines.channels.actor
@@ -30,11 +31,8 @@ internal class HttpServerStatistic(
         internal fun isDisconnectHoldTimePass(now: Long) =
             (now - disconnectedTime) > AppHttpServer.CLIENT_DISCONNECT_HOLD_TIME_SECONDS * 1000
 
-        internal fun addressToString(): String = clientAddress.toString().drop(1)
-
-        internal fun addressToId(): Long = addressToString().filterNot { it == '.' || it == ':' }.toLong()
-
-        internal fun toHttpClient() = HttpClient(addressToId(), addressToString(), isSlowConnection, isDisconnected)
+        internal fun toHttpClient() =
+            HttpClient(clientAddress.hashCode().toLong(), clientAddress.asString(), isSlowConnection, isDisconnected)
     }
 
     internal sealed class StatisticEvent {
