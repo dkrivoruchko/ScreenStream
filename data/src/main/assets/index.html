@@ -41,15 +41,9 @@
             z-index: 9999;
         }
 
-        button {
+        input {
             background-color: #19769F;
-            border: none;
-            color: white;
-            padding: 8px 16px;
-            text-align: center;
-            text-decoration: none;
-            display: inline-block;
-            font-size: 18px;
+            padding: 4px;
         }
     </style>
 </head>
@@ -67,12 +61,25 @@
             hideTimeout = setTimeout(buttonsHideFunction, 1000);
         }
 
+        function isFullscreen() {
+            return document.webkitIsFullScreen || document.mozFullScreen || false;
+        }
+
+        function fullScreenHandler() {
+            var fullscreenInput = document.getElementById("fullscreen");
+            if (isFullscreen()) fullscreenInput.src = "/fullscreen-off.png"; else fullscreenInput.src = "/fullscreen-on.png";
+        }
+
+        document.addEventListener("fullscreenchange", fullScreenHandler);
+        document.addEventListener("webkitfullscreenchange", fullScreenHandler);
+        document.addEventListener("mozfullscreenchange", fullScreenHandler);
+        document.addEventListener("MSFullscreenChange", fullScreenHandler);
+
         function toggleFullscreen() {
             var element = document.documentElement;
-            var isFullscreen = document.webkitIsFullScreen || document.mozFullScreen || false;
             element.requestFullScreen = element.requestFullScreen || element.webkitRequestFullScreen || element.mozRequestFullScreen || function () { return false; };
             document.cancelFullScreen = document.cancelFullScreen || document.webkitCancelFullScreen || document.mozCancelFullScreen || function () { return false; };
-            isFullscreen ? document.cancelFullScreen() : element.requestFullScreen();
+            isFullscreen() ? document.cancelFullScreen() : element.requestFullScreen();
         }
 
         function toggleStartStop() {
@@ -83,8 +90,8 @@
     </script>
     <img src="SCREEN_STREAM_ADDRESS" />
     <div id="buttons">
-        <button onclick="toggleFullscreen()">FULLSCREEN_TEXT</button>
-        <button onclick="toggleStartStop()">START_STOP_TEXT</button>
+        <input type="image" id="fullscreen" src="/fullscreen-on.png" onclick="toggleFullscreen()" />
+        <input type="image" src="/start-stop.png" onclick="toggleStartStop()" />
     </div>
 </body>
 

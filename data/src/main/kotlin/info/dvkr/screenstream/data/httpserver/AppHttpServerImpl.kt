@@ -56,21 +56,9 @@ class AppHttpServerImpl constructor(
             onError(appError)
         }
 
-        val (currentStreamAddress, pinEnabled) = httpServerFiles.configureStreamAddress()
-
-        val currentStartStopAddress = httpServerFiles.configureStartStopAddress()
-
         val httpServerRxHandler = HttpServerRxHandler(
             serverAddresses.map { it.address },
-            httpServerFiles.favicon,
-            httpServerFiles.logo,
-            httpServerFiles.configureIndexHtml(currentStreamAddress, currentStartStopAddress),
-            currentStreamAddress,
-            currentStartStopAddress,
-            pinEnabled,
-            httpServerFiles.configurePinAddress(),
-            httpServerFiles.configurePinRequestHtmlPage(),
-            httpServerFiles.configurePinRequestErrorHtmlPage(),
+            httpServerFiles,
             onStartStopRequest,
             { statisticEvent -> httpServerStatistic.sendStatisticEvent(statisticEvent) },
             jpegChannel,

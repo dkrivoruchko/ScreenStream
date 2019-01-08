@@ -5,8 +5,6 @@
     <string name="image_generator_reload_this_page">Перегрузите эту страницу</string>
 
     <!--HTML text-->
-    <string name="html_fullscreen_button">Включить/Выключить полный зкран</string>
-    <string name="html_start_stop_button">Начать/Остановть трансляцию</string>
     <string name="html_stream_require_pin">Эта трансляция требует PIN-код для доступа к ней</string>
     <string name="html_enter_pin">Введите PIN-код:\u0020</string>
     <string name="html_four_digits">Четыре цифры</string>

@@ -10,15 +10,16 @@ import java.nio.charset.StandardCharsets
 
 class HttpServerFiles(context: Context, private val settingsReadOnly: SettingsReadOnly) {
     companion object {
-        private const val FAVICON_ICO = "favicon.ico"
+        private const val FAVICON_PNG = "favicon.png"
         private const val LOGO_PNG = "logo.png"
+        private const val FULLSCREEN_ON_PNG = "fullscreen-on.png"
+        private const val FULLSCREEN_OFF_PNG = "fullscreen-off.png"
+        private const val START_STOP_PNG = "start-stop.png"
 
         private const val INDEX_HTML = "index.html"
         private const val INDEX_HTML_BACKGROUND_COLOR = "BACKGROUND_COLOR"
         private const val INDEX_HTML_SCREEN_STREAM_ADDRESS = "SCREEN_STREAM_ADDRESS"
         private const val INDEX_HTML_START_STOP_ADDRESS = "START_STOP_ADDRESS"
-        private const val INDEX_HTML_FULLSCREEN_TEXT = "FULLSCREEN_TEXT"
-        private const val INDEX_HTML_START_STOP_TEXT = "START_STOP_TEXT"
 
         private const val PINREQUEST_HTML = "pinrequest.html"
         private const val PINREQUEST_HTML_STREAM_REQUIRE_PIN = "STREAM_REQUIRE_PIN"
@@ -30,26 +31,25 @@ class HttpServerFiles(context: Context, private val settingsReadOnly: SettingsRe
         const val DEFAULT_HTML_ADDRESS = "/"
         private const val DEFAULT_STREAM_ADDRESS = "/stream.mjpeg"
         private const val DEFAULT_START_STOP_ADDRESS = "/start-stop"
-        const val DEFAULT_ICON_ADDRESS = "/favicon.ico"
         const val DEFAULT_PIN_ADDRESS = "/?pin="
-        const val DEFAULT_LOGO_ADDRESS = "/logo.png"
+
+        const val ICON_PNG_ADDRESS = "/favicon.ico"
+        const val LOGO_PNG_ADDRESS = "/logo.png"
+        const val FULLSCREEN_ON_PNG_ADDRESS = "/fullscreen-on.png"
+        const val FULLSCREEN_OFF_PNG_ADDRESS = "/fullscreen-off.png"
+        const val START_STOP_PNG_ADDRESS = "/start-stop.png"
     }
 
     private val applicationContext: Context = context.applicationContext
 
-    val favicon = getFileFromAssets(applicationContext, FAVICON_ICO)
-    val logo = getFileFromAssets(applicationContext, LOGO_PNG)
+    val faviconPng = getFileFromAssets(applicationContext, FAVICON_PNG)
+    val logoPng = getFileFromAssets(applicationContext, LOGO_PNG)
+    val fullScreenOnPng = getFileFromAssets(applicationContext, FULLSCREEN_ON_PNG)
+    val fullScreenOffPng = getFileFromAssets(applicationContext, FULLSCREEN_OFF_PNG)
+    val startStopPng = getFileFromAssets(applicationContext, START_STOP_PNG)
 
     private val baseIndexHtml =
         String(getFileFromAssets(applicationContext, INDEX_HTML), StandardCharsets.UTF_8)
-            .replaceFirst(
-                INDEX_HTML_FULLSCREEN_TEXT.toRegex(),
-                applicationContext.getString(R.string.html_fullscreen_button)
-            )
-            .replaceFirst(
-                INDEX_HTML_START_STOP_TEXT.toRegex(),
-                applicationContext.getString(R.string.html_start_stop_button)
-            )
 
     private val basePinRequestHtml =
         String(getFileFromAssets(applicationContext, PINREQUEST_HTML), StandardCharsets.UTF_8)
@@ -94,13 +94,13 @@ class HttpServerFiles(context: Context, private val settingsReadOnly: SettingsRe
         if (settingsReadOnly.enablePin) DEFAULT_PIN_ADDRESS + settingsReadOnly.pin
         else DEFAULT_PIN_ADDRESS
 
-    fun configurePinRequestHtmlPage(): String =
+    fun configurePinRequestHtml(): String =
         if (settingsReadOnly.enablePin)
             basePinRequestHtml.replaceFirst(PINREQUEST_HTML_WRONG_PIN_MESSAGE.toRegex(), "&nbsp")
         else
             ""
 
-    fun configurePinRequestErrorHtmlPage(): String =
+    fun configurePinRequestErrorHtml(): String =
         if (settingsReadOnly.enablePin)
             basePinRequestHtml
                 .replaceFirst(

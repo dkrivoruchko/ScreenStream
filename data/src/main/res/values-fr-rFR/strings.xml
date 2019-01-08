@@ -5,8 +5,6 @@
     <string name="image_generator_reload_this_page">Veuillez recharger cette page</string>
 
     <!--HTML text-->
-    <string name="html_fullscreen_button">On/Off plein écran</string>
-    <string name="html_start_stop_button">Démarrer/Arrêter la diffusion</string>
     <string name="html_stream_require_pin">Ce flux requiert un code pour y accéder</string>
     <string name="html_enter_pin">Code :\u0020</string>
     <string name="html_four_digits">Quatre chiffres</string>

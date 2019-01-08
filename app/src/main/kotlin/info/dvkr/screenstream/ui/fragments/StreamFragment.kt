@@ -102,7 +102,7 @@ class StreamFragment : Fragment() {
                 ll_fragment_stream_addresses.addView(this)
             }
         } else {
-            serviceMessage.netInterfaces.forEach { netInterface ->
+            serviceMessage.netInterfaces.sortedBy { it.address.asString() }.forEach { netInterface ->
                 with(layoutInflater.inflate(R.layout.item_device_address, ll_fragment_stream_addresses, false)) {
                     tv_item_device_address_name.text = getString(R.string.stream_fragment_interface, netInterface.name)
 

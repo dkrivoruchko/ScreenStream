@@ -26,20 +26,20 @@ import java.net.InetSocketAddress
 
 internal class HttpServerRxHandler(
     private val serverAddresses: List<InetAddress>,
-    private val favicon: ByteArray,
-    private val logo: ByteArray,
-    private val indexHtmlPage: String,
-    private val streamAddress: String,
-    private val startStopAddress: String,
-    private val pinEnabled: Boolean,
-    private val pinAddress: String,
-    private val pinRequestHtmlPage: String,
-    private val pinRequestErrorHtmlPage: String,
+    private val httpServerFiles: HttpServerFiles,
     private val onStartStopRequest: () -> Unit,
     private val onStatisticEvent: (HttpServerStatistic.StatisticEvent) -> Unit,
     jpegBytesChannel: ReceiveChannel<ByteArray>,
     onError: (AppError) -> Unit
 ) : HttpServerCoroutineScope(onError), RequestHandler<ByteBuf, ByteBuf> {
+
+    private val indexHtml: String
+    private val streamAddress: String
+    private val startStopAddress: String
+    private val pinEnabled: Boolean
+    private val pinAddress: String
+    private val pinRequestHtml: String
+    private val pinRequestErrorHtml: String
 
     private val crlf = "\r\n".toByteArray()
     private val multipartBoundary = randomString(20)
@@ -51,6 +51,18 @@ internal class HttpServerRxHandler(
 
     init {
         XLog.d(getLog("init", "Invoked"))
+
+        httpServerFiles.configureStreamAddress().apply {
+            streamAddress = first
+            pinEnabled = second
+        }
+
+        startStopAddress = httpServerFiles.configureStartStopAddress()
+        indexHtml = httpServerFiles.configureIndexHtml(streamAddress, startStopAddress)
+        pinAddress = httpServerFiles.configurePinAddress()
+        pinRequestHtml = httpServerFiles.configurePinRequestHtml()
+        pinRequestErrorHtml = httpServerFiles.configurePinRequestErrorHtml()
+
         launch {
             for (jpegBytes in jpegBytesChannel) {
                 val jpegLength = jpegBytes.size.toString().toByteArray()
@@ -73,53 +85,35 @@ internal class HttpServerRxHandler(
         XLog.d(getLog("handle", "Request to: ${localAddress.asString()}$uri from ${clientAddress.asString()}"))
 
         return when {
-            uri == HttpServerFiles.DEFAULT_ICON_ADDRESS -> sendFavicon(response)
-
-            uri == HttpServerFiles.DEFAULT_LOGO_ADDRESS -> sendLogo(response)
-
-            uri == startStopAddress -> {
-                onStartStopRequest()
-                sendHtml(response, indexHtmlPage)
-            }
-
-            uri == HttpServerFiles.DEFAULT_HTML_ADDRESS ->
-                if (pinEnabled) sendHtml(response, pinRequestHtmlPage) else sendHtml(response, indexHtmlPage)
-
-            uri == pinAddress && pinEnabled -> sendHtml(response, indexHtmlPage)
-
-            uri.startsWith(HttpServerFiles.DEFAULT_PIN_ADDRESS) && pinEnabled ->
-                sendHtml(response, pinRequestErrorHtmlPage)
-
+            uri == HttpServerFiles.ICON_PNG_ADDRESS -> response.sendPng(httpServerFiles.faviconPng)
+            uri == HttpServerFiles.LOGO_PNG_ADDRESS -> response.sendPng(httpServerFiles.logoPng)
+            uri == HttpServerFiles.FULLSCREEN_ON_PNG_ADDRESS -> response.sendPng(httpServerFiles.fullScreenOnPng)
+            uri == HttpServerFiles.FULLSCREEN_OFF_PNG_ADDRESS -> response.sendPng(httpServerFiles.fullScreenOffPng)
+            uri == HttpServerFiles.START_STOP_PNG_ADDRESS -> response.sendPng(httpServerFiles.startStopPng)
+            uri == startStopAddress -> onStartStopRequest().run { response.sendHtml(indexHtml) }
+            uri == HttpServerFiles.DEFAULT_HTML_ADDRESS -> response.sendHtml(if (pinEnabled) pinRequestHtml else indexHtml)
+            uri == pinAddress && pinEnabled -> response.sendHtml(indexHtml)
+            uri.startsWith(HttpServerFiles.DEFAULT_PIN_ADDRESS) && pinEnabled -> response.sendHtml(pinRequestErrorHtml)
             uri == streamAddress -> sendStream(response)
-
-            else -> redirect(request.hostHeader, response)
+            else -> response.redirect(request.hostHeader)
         }
     }
 
-    private fun sendFavicon(response: HttpServerResponse<ByteBuf>): Observable<Void> {
-        response.status = HttpResponseStatus.OK
-        response.addHeader(HttpHeaderNames.CONTENT_TYPE, "image/icon")
-        response.setHeader(HttpHeaderNames.CACHE_CONTROL, "no-cache,no-store,max-age=0,must-revalidate")
-        response.setHeader(HttpHeaderNames.CONTENT_LENGTH, Integer.toString(favicon.size))
-        response.setHeader(HttpHeaderNames.CONNECTION, HttpHeaderValues.CLOSE)
-        return response.writeBytesAndFlushOnEach(Observable.just(favicon))
+    private fun HttpServerResponse<ByteBuf>.sendPng(pngBytes: ByteArray): Observable<Void> {
+        status = HttpResponseStatus.OK
+        addHeader(HttpHeaderNames.CONTENT_TYPE, "image/png")
+        setHeader(HttpHeaderNames.CACHE_CONTROL, "no-cache,no-store,max-age=0,must-revalidate")
+        setHeader(HttpHeaderNames.CONTENT_LENGTH, Integer.toString(pngBytes.size))
+        setHeader(HttpHeaderNames.CONNECTION, HttpHeaderValues.CLOSE)
+        return writeBytesAndFlushOnEach(Observable.just(pngBytes))
     }
 
-    private fun sendLogo(response: HttpServerResponse<ByteBuf>): Observable<Void> {
-        response.status = HttpResponseStatus.OK
-        response.addHeader(HttpHeaderNames.CONTENT_TYPE, "image/png")
-        response.setHeader(HttpHeaderNames.CACHE_CONTROL, "no-cache,no-store,max-age=0,must-revalidate")
-        response.setHeader(HttpHeaderNames.CONTENT_LENGTH, Integer.toString(logo.size))
-        response.setHeader(HttpHeaderNames.CONNECTION, HttpHeaderValues.CLOSE)
-        return response.writeBytesAndFlushOnEach(Observable.just(logo))
-    }
-
-    private fun sendHtml(response: HttpServerResponse<ByteBuf>, html: String): Observable<Void> {
-        response.status = HttpResponseStatus.OK
-        response.addHeader(HttpHeaderNames.CONTENT_TYPE, "text/html; charset=UTF-8")
-        response.setHeader(HttpHeaderNames.CACHE_CONTROL, "no-cache,no-store,max-age=0,must-revalidate")
-        response.setHeader(HttpHeaderNames.CONNECTION, HttpHeaderValues.CLOSE)
-        return response.writeStringAndFlushOnEach(Observable.just(html))
+    private fun HttpServerResponse<ByteBuf>.sendHtml(html: String): Observable<Void> {
+        status = HttpResponseStatus.OK
+        addHeader(HttpHeaderNames.CONTENT_TYPE, "text/html; charset=UTF-8")
+        setHeader(HttpHeaderNames.CACHE_CONTROL, "no-cache,no-store,max-age=0,must-revalidate")
+        setHeader(HttpHeaderNames.CONNECTION, HttpHeaderValues.CLOSE)
+        return writeStringAndFlushOnEach(Observable.just(html))
     }
 
     private fun sendStream(response: HttpServerResponse<ByteBuf>): Observable<Void> {
@@ -152,12 +146,12 @@ internal class HttpServerRxHandler(
         )
     }
 
-    private fun redirect(serverAddress: String, response: HttpServerResponse<ByteBuf>): Observable<Void> {
-        response.status = HttpResponseStatus.MOVED_PERMANENTLY
-        response.addHeader(HttpHeaderNames.LOCATION, "http://$serverAddress")
-        response.addHeader(HttpHeaderNames.CONTENT_TYPE, "text/plain; charset=UTF-8")
-        response.setHeader(HttpHeaderNames.CACHE_CONTROL, "no-cache,no-store,max-age=0,must-revalidate")
-        response.setHeader(HttpHeaderNames.CONNECTION, HttpHeaderValues.CLOSE)
+    private fun HttpServerResponse<ByteBuf>.redirect(serverAddress: String): Observable<Void> {
+        status = HttpResponseStatus.MOVED_PERMANENTLY
+        addHeader(HttpHeaderNames.LOCATION, "http://$serverAddress")
+        addHeader(HttpHeaderNames.CONTENT_TYPE, "text/plain; charset=UTF-8")
+        setHeader(HttpHeaderNames.CACHE_CONTROL, "no-cache,no-store,max-age=0,must-revalidate")
+        setHeader(HttpHeaderNames.CONNECTION, HttpHeaderValues.CLOSE)
         return Observable.empty<Void>()
     }
 }

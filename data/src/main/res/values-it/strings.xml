@@ -5,8 +5,6 @@
     <string name="image_generator_reload_this_page">Ricarica questa pagina</string>
 
     <!--HTML text-->
-    <string name="html_fullscreen_button">On/Off a schermo intero</string>
-    <string name="html_start_stop_button">Avvia/Ferma la trasmissione</string>
     <string name="html_stream_require_pin">L\'accesso a questa trasmissione richiede un PIN</string>
     <string name="html_enter_pin">Inserisci pin:\u0020</string>
     <string name="html_four_digits">Quattro numeri</string>
