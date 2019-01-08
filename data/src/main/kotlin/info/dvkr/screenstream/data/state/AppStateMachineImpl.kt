@@ -64,7 +64,7 @@ class AppStateMachineImpl(
         override fun toString(): String = this::class.java.simpleName
     }
 
-    internal sealed class RestartReason(val msg: String) {
+    internal sealed class RestartReason(private val msg: String) {
         class ConnectionChanged(msg: String) : RestartReason(msg)
         class SettingsChanged(msg: String) : RestartReason(msg)
         class NetworkSettingsChanged(msg: String) : RestartReason(msg)
