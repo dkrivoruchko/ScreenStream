@@ -146,14 +146,21 @@ class SettingsFragment : Fragment() {
             cl_fragment_settings_start_on_boot.setOnClickListener { performClick() }
         }
 
-        // Interface - HTML Back color
+        // Web page - Image buttons
+        with(cb_fragment_settings_html_buttons) {
+            isChecked = settings.htmlEnableButtons
+            setOnClickListener { settings.htmlEnableButtons = isChecked }
+            cl_fragment_settings_html_buttons.setOnClickListener { performClick() }
+        }
+
+        // Web page - HTML Back color
         v_fragment_settings_html_back_color.color = settings.htmlBackColor
         v_fragment_settings_html_back_color.border = ContextCompat.getColor(requireContext(), R.color.textColorPrimary)
         cl_fragment_settings_html_back_color.setOnClickListener {
             materialDialog?.hide()
             materialDialog = MaterialDialog(requireActivity()).show {
                 title(R.string.pref_html_back_color_title)
-                icon(R.drawable.ic_settings_color_back_24dp)
+                icon(R.drawable.ic_settings_html_back_color_24dp)
                 colorChooser(
                     colors = intArrayOf(
                         parseColor("#F44336"), parseColor("#E91E63"), parseColor("#9C27B0"),

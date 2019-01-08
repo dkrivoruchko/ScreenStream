@@ -61,8 +61,11 @@
     <string name="pref_stop_on_sleep_summary">Arrête la diffusion si l\'écran s\'éteint</string>
     <string name="pref_start_on_boot">Diffuser au démarrage</string>
     <string name="pref_start_on_boot_summary">Lance la diffusion après le démarrage de l\'appareil</string>
+    <string name="pref_settings_web_page">La page Web</string>
+    <string name="pref_html_buttons">Activer les boutons de page Web</string>
+    <string name="pref_html_buttons_summary">Afficher les boutons de contrôle sur la page Web</string>
     <string name="pref_html_back_color">Couleur d\'arrière-plan de la page</string>
-    <string name="pref_html_back_color_summary">Définir la couleur d\'arrière-plan de la page HTML</string>
+    <string name="pref_html_back_color_summary">Définir la couleur d\'arrière-plan de la page Web</string>
     <string name="pref_html_back_color_title">Selection de la couleur d\'arrière-plan</string>
     <string name="pref_settings_image">Image</string>
     <string name="pref_resize">Redimensionnement</string>

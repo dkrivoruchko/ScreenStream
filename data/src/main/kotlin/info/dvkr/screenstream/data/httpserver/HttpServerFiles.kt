@@ -20,6 +20,7 @@ class HttpServerFiles(context: Context, private val settingsReadOnly: SettingsRe
         private const val INDEX_HTML_BACKGROUND_COLOR = "BACKGROUND_COLOR"
         private const val INDEX_HTML_SCREEN_STREAM_ADDRESS = "SCREEN_STREAM_ADDRESS"
         private const val INDEX_HTML_START_STOP_ADDRESS = "START_STOP_ADDRESS"
+        private const val INDEX_HTML_ENABLE_BUTTONS = "ENABLE_BUTTONS"
 
         private const val PINREQUEST_HTML = "pinrequest.html"
         private const val PINREQUEST_HTML_STREAM_REQUIRE_PIN = "STREAM_REQUIRE_PIN"
@@ -70,38 +71,52 @@ class HttpServerFiles(context: Context, private val settingsReadOnly: SettingsRe
                 applicationContext.getString(R.string.html_submit_text)
             )
 
-    fun configureStreamAddress(): Pair<String, Boolean> =
-        Pair(
-            if (settingsReadOnly.enablePin) "/" + randomString(16) + ".mjpeg"
-            else HttpServerFiles.DEFAULT_STREAM_ADDRESS
-            , settingsReadOnly.enablePin
-        )
+    private var htmlEnableButtons = settingsReadOnly.htmlEnableButtons
+    private var htmlBackColor = settingsReadOnly.htmlBackColor
+    private var enablePin = settingsReadOnly.enablePin
+    private var pin = settingsReadOnly.pin
+
+    fun prepareForConfigure(): Pair<Boolean, Boolean> {
+        htmlEnableButtons = settingsReadOnly.htmlEnableButtons
+        htmlBackColor = settingsReadOnly.htmlBackColor
+        enablePin = settingsReadOnly.enablePin
+        pin = settingsReadOnly.pin
+
+        return Pair(htmlEnableButtons, enablePin)
+    }
+
+    fun configureStreamAddress(): String =
+        if (enablePin) "/" + randomString(16) + ".mjpeg"
+        else HttpServerFiles.DEFAULT_STREAM_ADDRESS
 
     fun configureStartStopAddress(): String =
-        if (settingsReadOnly.enablePin) "/" + randomString(16)
+        if (enablePin) "/" + randomString(16)
         else HttpServerFiles.DEFAULT_START_STOP_ADDRESS
 
     fun configureIndexHtml(streamAddress: String, startStopAddress: String): String =
         baseIndexHtml
             .replaceFirst(
+                INDEX_HTML_ENABLE_BUTTONS.toRegex(),
+                htmlEnableButtons.toString()
+            )
+            .replaceFirst(
                 INDEX_HTML_BACKGROUND_COLOR.toRegex(),
-                "#%06X".format(0xFFFFFF and settingsReadOnly.htmlBackColor)
+                "#%06X".format(0xFFFFFF and htmlBackColor)
             )
             .replaceFirst(INDEX_HTML_SCREEN_STREAM_ADDRESS.toRegex(), streamAddress)
             .replaceFirst(INDEX_HTML_START_STOP_ADDRESS.toRegex(), startStopAddress)
 
     fun configurePinAddress(): String =
-        if (settingsReadOnly.enablePin) DEFAULT_PIN_ADDRESS + settingsReadOnly.pin
-        else DEFAULT_PIN_ADDRESS
+        if (enablePin) DEFAULT_PIN_ADDRESS + pin else DEFAULT_PIN_ADDRESS
 
     fun configurePinRequestHtml(): String =
-        if (settingsReadOnly.enablePin)
+        if (enablePin)
             basePinRequestHtml.replaceFirst(PINREQUEST_HTML_WRONG_PIN_MESSAGE.toRegex(), "&nbsp")
         else
             ""
 
     fun configurePinRequestErrorHtml(): String =
-        if (settingsReadOnly.enablePin)
+        if (enablePin)
             basePinRequestHtml
                 .replaceFirst(
                     PINREQUEST_HTML_WRONG_PIN_MESSAGE.toRegex(),

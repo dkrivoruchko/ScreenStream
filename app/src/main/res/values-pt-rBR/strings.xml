@@ -61,6 +61,9 @@
     <string name="pref_stop_on_sleep_summary">Parar stream se a tela for desligada</string>
     <string name="pref_start_on_boot">Comecar na inicialização</string>
     <string name="pref_start_on_boot_summary">Iniciar stream assim que o dispositivo iniciar</string>
+    <string name="pref_settings_web_page">Página da web</string>
+    <string name="pref_html_buttons">Ativar botões da página da web</string>
+    <string name="pref_html_buttons_summary">Mostrar botões de controle na página da web</string>
     <string name="pref_html_back_color">Cor de fundo da página</string>
     <string name="pref_html_back_color_summary">Essa função foi desativada</string>
     <string name="pref_html_back_color_title">Função obsoleta</string>

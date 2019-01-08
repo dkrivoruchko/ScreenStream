@@ -36,6 +36,7 @@ internal class HttpServerRxHandler(
     private val indexHtml: String
     private val streamAddress: String
     private val startStopAddress: String
+    private val htmlEnableButtons: Boolean
     private val pinEnabled: Boolean
     private val pinAddress: String
     private val pinRequestHtml: String
@@ -52,11 +53,12 @@ internal class HttpServerRxHandler(
     init {
         XLog.d(getLog("init", "Invoked"))
 
-        httpServerFiles.configureStreamAddress().apply {
-            streamAddress = first
+        httpServerFiles.prepareForConfigure().apply {
+            htmlEnableButtons = first
             pinEnabled = second
         }
 
+        streamAddress = httpServerFiles.configureStreamAddress()
         startStopAddress = httpServerFiles.configureStartStopAddress()
         indexHtml = httpServerFiles.configureIndexHtml(streamAddress, startStopAddress)
         pinAddress = httpServerFiles.configurePinAddress()
@@ -90,7 +92,7 @@ internal class HttpServerRxHandler(
             uri == HttpServerFiles.FULLSCREEN_ON_PNG_ADDRESS -> response.sendPng(httpServerFiles.fullScreenOnPng)
             uri == HttpServerFiles.FULLSCREEN_OFF_PNG_ADDRESS -> response.sendPng(httpServerFiles.fullScreenOffPng)
             uri == HttpServerFiles.START_STOP_PNG_ADDRESS -> response.sendPng(httpServerFiles.startStopPng)
-            uri == startStopAddress -> onStartStopRequest().run { response.sendHtml(indexHtml) }
+            uri == startStopAddress && htmlEnableButtons -> onStartStopRequest().run { response.sendHtml(indexHtml) }
             uri == HttpServerFiles.DEFAULT_HTML_ADDRESS -> response.sendHtml(if (pinEnabled) pinRequestHtml else indexHtml)
             uri == pinAddress && pinEnabled -> response.sendHtml(indexHtml)
             uri.startsWith(HttpServerFiles.DEFAULT_PIN_ADDRESS) && pinEnabled -> response.sendHtml(pinRequestErrorHtml)

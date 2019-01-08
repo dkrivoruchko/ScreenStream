@@ -33,6 +33,7 @@
         }
 
         div {
+            visibility: hidden;
             top: 16px;
             left: 16px;
             width: 100%;
@@ -49,13 +50,21 @@
 </head>
 
 <body onmousemove="onMouseMove()">
+    <img src="SCREEN_STREAM_ADDRESS" />
+    <div id="buttons">
+        <input type="image" id="fullscreen" src="/fullscreen-on.png" onclick="toggleFullscreen()" />
+        <input type="image" src="/start-stop.png" onclick="toggleStartStop()" />
+    </div>
     <script>
         if ("undefined" != typeof history.pushState) { var o = { Title: "Screen Stream", Url: "/" }; history.pushState(o, o.Title, o.Url) }
 
+        var enableButtons = ENABLE_BUTTONS;
+        if (enableButtons) document.getElementById('buttons').style.visibility = 'visible';
         var buttonsHideFunction = function () { document.getElementById('buttons').style.visibility = 'hidden'; }
         var hideTimeout = setTimeout(buttonsHideFunction, 1500);
 
         function onMouseMove() {
+            if (!enableButtons) return
             document.getElementById('buttons').style.visibility = 'visible';
             clearTimeout(hideTimeout)
             hideTimeout = setTimeout(buttonsHideFunction, 1000);
@@ -88,11 +97,6 @@
             xmlHttp.send(null);
         }
     </script>
-    <img src="SCREEN_STREAM_ADDRESS" />
-    <div id="buttons">
-        <input type="image" id="fullscreen" src="/fullscreen-on.png" onclick="toggleFullscreen()" />
-        <input type="image" src="/start-stop.png" onclick="toggleStartStop()" />
-    </div>
 </body>
 
 </html>

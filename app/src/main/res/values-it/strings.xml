@@ -61,8 +61,11 @@
     <string name="pref_stop_on_sleep_summary">Interrompi la trasmissione quando lo schermo si spegne</string>
     <string name="pref_start_on_boot">Esegui all\'avvio</string>
     <string name="pref_start_on_boot_summary">Avvia la trasmissione quando accendi il dispositivo</string>
+    <string name="pref_settings_web_page">La pagina web</string>
+    <string name="pref_html_buttons">Abilita i pulsanti della pagina Web</string>
+    <string name="pref_html_buttons_summary">Mostra pulsanti di controllo sulla pagina web</string>
     <string name="pref_html_back_color">Colore di sfondo pagina</string>
-    <string name="pref_html_back_color_summary">Imposta il colore di sfondo della pagina HTML</string>
+    <string name="pref_html_back_color_summary">Imposta il colore di sfondo della pagina web</string>
     <string name="pref_html_back_color_title">Seleziona colore di sfondo</string>
     <string name="pref_settings_image">Immagine</string>
     <string name="pref_resize">Ridimensiona immagine</string>

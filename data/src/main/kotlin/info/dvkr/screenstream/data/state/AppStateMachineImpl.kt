@@ -74,8 +74,11 @@ class AppStateMachineImpl(
 
     private val settingsListener = object : SettingsReadOnly.OnSettingsChangeListener {
         override fun onSettingsChanged(key: String) {
-            if (key in arrayOf(Settings.Key.HTML_BACK_COLOR, Settings.Key.ENABLE_PIN, Settings.Key.PIN))
-                sendEvent(InternalEvent.RestartServer(RestartReason.SettingsChanged(key)))
+            if (key in arrayOf(
+                    Settings.Key.HTML_ENABLE_BUTTONS, Settings.Key.HTML_BACK_COLOR,
+                    Settings.Key.ENABLE_PIN, Settings.Key.PIN
+                )
+            ) sendEvent(InternalEvent.RestartServer(RestartReason.SettingsChanged(key)))
 
             if (key in arrayOf(Settings.Key.USE_WIFI_ONLY, Settings.Key.ENABLE_IPV6, Settings.Key.SERVER_PORT))
                 sendEvent(InternalEvent.RestartServer(RestartReason.NetworkSettingsChanged(key)))
