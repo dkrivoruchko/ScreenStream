@@ -16,6 +16,7 @@ Read this in other languages: [正體中文](README.zh-tw.md)
 It uses MJPEG to encode screen images and send them through the network. So it works with any desktop or mobile browser which supports MJPEG (Chrome, Safari, EDGE, Firefox).
 
 The application works via WiFi and/or 3G/LTE network.<br>
+Support for IPv4 and IPv6.<br>
 Fast and stable WiFi recommended because of high traffic and low network delay requirement.
 No Internet required, however, there must be a network connection between the client and the device.
 
