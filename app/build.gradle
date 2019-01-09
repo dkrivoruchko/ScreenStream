@@ -1,0 +1,92 @@
+apply plugin: 'com.android.application'
+apply plugin: 'kotlin-android'
+apply plugin: 'kotlin-android-extensions'
+apply plugin: 'kotlin-kapt'
+apply plugin: 'io.fabric'
+
+android {
+    compileSdkVersion(compileSdk)
+    buildToolsVersion(buildTools)
+
+    defaultConfig {
+        applicationId = "info.dvkr.screenstream"
+        minSdkVersion(minSdk)
+        targetSdkVersion(targetSdk)
+        versionCode = 30009
+        versionName = "3.0.9"
+        resConfigs("en", "ru", "pt-rBR", "zh-rTW", "fr-rFR", "fa", "it")
+
+        vectorDrawables.useSupportLibrary = true
+    }
+
+    buildTypes {
+        debug {
+            ext.enableCrashlytics = false
+            ext.alwaysUpdateBuildId = false
+            minifyEnabled false
+            shrinkResources false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+        fabricfree {
+            ext.enableCrashlytics = false
+            ext.alwaysUpdateBuildId = false
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+        release {
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    compileOptions {
+        setSourceCompatibility(JavaVersion.VERSION_1_8)
+        setTargetCompatibility(JavaVersion.VERSION_1_8)
+    }
+
+    sourceSets {
+        main.java.srcDirs += 'src/main/kotlin'
+        debug.java.srcDirs += 'src/debug/kotlin'
+        release.java.srcDirs += 'src/release/kotlin'
+        fabricfree.java.srcDirs += 'src/fabricfree/kotlin'
+    }
+
+    packagingOptions {
+        exclude 'META-INF/INDEX.LIST'
+        exclude 'META-INF/io.netty.versions.properties'
+    }
+}
+
+androidExtensions { experimental = true }
+kapt { useBuildCache = true }
+
+dependencies {
+    implementation project(':data')
+
+    implementation("org.jetbrains:annotations:$jetbrainsAnnotations")
+    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlinVersion")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutineVersion")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:$coroutineVersion")
+
+    implementation("androidx.annotation:annotation:$androidxAnnotation")
+    implementation("com.google.android.material:material:$androidMaterial")
+    implementation("androidx.appcompat:appcompat:$androidxAppcompat")
+    implementation("androidx.constraintlayout:constraintlayout:$androidxConstraint")
+
+    implementation("com.tapadoo.android:alerter:$alerter")
+    implementation("com.afollestad.material-dialogs:core:$materialDialogs")
+    implementation("com.afollestad.material-dialogs:color:$materialDialogs")
+    implementation("com.afollestad.material-dialogs:input:$materialDialogs")
+
+    implementation("org.koin:koin-android:$koin")
+    implementation("com.github.iamironz:binaryprefs:$binaryprefs")
+    implementation("com.elvishew:xlog:$xlog")
+
+    releaseImplementation("com.crashlytics.sdk.android:crashlytics:$fabricCrashlytics") { transitive = true }
+
+    debugImplementation("com.squareup.leakcanary:leakcanary-android:$leakcanary")
+    debugImplementation("com.squareup.leakcanary:leakcanary-support-fragment:$leakcanary")
+    releaseImplementation("com.squareup.leakcanary:leakcanary-android-no-op:$leakcanary")
+}

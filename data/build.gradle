@@ -1,0 +1,66 @@
+apply plugin: 'com.android.library'
+apply plugin: 'kotlin-android'
+apply plugin: 'kotlin-android-extensions'
+apply plugin: 'kotlin-kapt'
+
+
+android {
+    compileSdkVersion(compileSdk)
+    buildToolsVersion(buildTools)
+
+    defaultConfig {
+        minSdkVersion(minSdk)
+        targetSdkVersion(targetSdk)
+        versionCode = 30009
+        versionName = "3.0.9"
+    }
+
+    buildTypes {
+        debug {
+            minifyEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+        fabricfree {
+            minifyEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+        release {
+            minifyEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    compileOptions {
+        setSourceCompatibility(JavaVersion.VERSION_1_8)
+        setTargetCompatibility(JavaVersion.VERSION_1_8)
+    }
+
+    sourceSets {
+        main.java.srcDirs += 'src/main/kotlin'
+        debug.java.srcDirs += 'src/debug/kotlin'
+        release.java.srcDirs += 'src/release/kotlin'
+        fabricfree.java.srcDirs += 'src/fabricfree/kotlin'
+    }
+}
+
+androidExtensions { experimental = true }
+kapt { useBuildCache = true }
+
+dependencies {
+    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlinVersion")
+    implementation("org.jetbrains.kotlin:kotlin-android-extensions-runtime:$kotlinVersion")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutineVersion")
+
+    implementation("androidx.annotation:annotation:$androidxAnnotation")
+    implementation("androidx.core:core:$androidxCore")
+
+    implementation("io.reactivex:rxjava:$rxJava")
+    implementation("com.jakewharton.rxrelay:rxrelay:$rxRelay")
+
+    implementation("io.netty:netty-codec-http:$netty")
+    implementation("io.netty:netty-handler:$netty")
+    implementation("io.reactivex:rxnetty-http:$rxNetty")
+
+    implementation("com.github.iamironz:binaryprefs:$binaryprefs")
+    implementation("com.elvishew:xlog:$xlog")
+}
