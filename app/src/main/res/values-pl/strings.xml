@@ -6,7 +6,7 @@
     <string name="app_activity_error_ip_address_not_found">Nie znaleziono adresu IP. \nSpróbuj wyłączyć \"Używaj tylko WiFi\" w ustawieniach.</string>
     <string name="app_activity_error_wrong_image_format">System nadaje obrazowi niewłaściwy format. Nie ma rozwiązania tego problemu.</string>
     <string name="app_activity_error_exit">Wyjście</string>
-    <string name="app_activity_collecting_logs">Zbieranie dzienników aplikacji...</string>
+    <string name="app_activity_collecting_logs">Zbieranie dzienników aplikacji…</string>
     <string name="app_activity_send_logs">Wyślij dzienniki do programisty</string>
 
     <string name="bottom_menu_stream">Transmisja</string>
@@ -70,18 +70,10 @@
     <string name="pref_settings_image">Obraz</string>
     <string name="pref_resize">Zmiana rozmiaru obrazu</string>
     <string name="pref_resize_summary">Zmień rozmiar obrazu przed wysłaniem</string>
-	<string name="pref_resize_value" translatable="false">%1$d%%</string>
     <string name="pref_resize_dialog_text">Ustaw współczynnik powiększenia obrazu w procentach.\nWartość: 10–150 (Domyślnie: 50)\nRozmiar ekranu: %1$dx%2$d</string>
     <string name="pref_resize_dialog_result">Rozmiar obrazu: %1$dx%2$d</string>
     <string name="pref_rotate">Obróć obraz zgodnie z ruchem wskazówek zegara</string>
     <string name="pref_rotate_summary">Obróć obraz przed wysłaniem</string>
-	<string name="pref_rotate_value" translatable="false">%1$d\u00B0</string>
-    <string-array name="pref_rotate_options" translatable="false">
-        <item>0\u00B0</item>
-        <item>90\u00B0</item>
-        <item>180\u00B0</item>
-        <item>270\u00B0</item>
-	</string-array>
 	<string name="pref_jpeg_quality">Jakość kompresji JPEG</string>
     <string name="pref_jpeg_quality_summary">Ustaw jakość kompresji JPEG</string>
     <string name="pref_jpeg_quality_dialog">Ustaw jakość kompresji JPEG.\nWartość: 1–100\n(Domyślnie: 100)</string>
@@ -109,9 +101,9 @@
     <string name="pref_logging_summary">Zbieraj dzienniki aplikacji</string>
 
     <string name="about_fragment_app_version">Wersja: %1$s</string>
-    <string name="about_fragment_developer_name">Programista Криворучко Дмитрий</string>
+    <string name="about_fragment_developer_name">Programista Dmitriy Krivoruchko</string>
     <string name="about_fragment_rate_app">Oceń aplikację</string>
     <string name="about_fragment_send_email">Wyślij e-mail do autora</string>
-    <string name="about_fragment_email_chooser_header">Wysłam wiadomość e-mail... </string>
+    <string name="about_fragment_email_chooser_header">Wysłam wiadomość e-mail…</string>
     <string name="about_fragment_app_sources">Kod źródłowy aplikacji</string>
 </resources>

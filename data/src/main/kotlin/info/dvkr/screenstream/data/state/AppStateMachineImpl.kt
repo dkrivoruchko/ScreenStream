@@ -29,20 +29,15 @@ import kotlin.coroutines.CoroutineContext
 
 class AppStateMachineImpl(
     context: Context,
-    private val parentJob: Job,
+    parentJob: Job,
     private val settingsReadOnly: SettingsReadOnly,
     appIconBitmap: Bitmap,
     onStatistic: (List<HttpClient>, List<TrafficPoint>) -> Unit,
     private val onEffect: (AppStateMachine.Effect) -> Unit
 ) : AppStateMachine, CoroutineScope {
 
-    override val coroutineContext: CoroutineContext
-        get() = parentJob + Dispatchers.Default + CoroutineExceptionHandler { _, throwable ->
-            XLog.e(getLog("onCoroutineException"), throwable)
-            onError(FatalError.CoroutineException)
-        }
-
     private val applicationContext: Context = context.applicationContext
+    private val supervisorJob = SupervisorJob(parentJob)
     private val bitmapChannel: Channel<Bitmap> = Channel(Channel.CONFLATED)
     private val jpegChannel: Channel<ByteArray> = Channel(Channel.CONFLATED)
     private val mediaProjectionHelper = MediaProjectionHelper(context) { sendEvent(AppStateMachine.Event.StopStream) }
@@ -51,6 +46,12 @@ class AppStateMachineImpl(
     private val bitmapNotification = BitmapNotification(context, appIconBitmap, bitmapChannel, ::onError)
     private val bitmapToJpeg = BitmapToJpeg(settingsReadOnly, bitmapChannel, jpegChannel, ::onError)
     private val appHttpServer: AppHttpServer
+
+    override val coroutineContext: CoroutineContext
+        get() = supervisorJob + Dispatchers.Default + CoroutineExceptionHandler { _, throwable ->
+            XLog.e(getLog("onCoroutineException"), throwable)
+            onError(FatalError.CoroutineException)
+        }
 
     internal sealed class InternalEvent : AppStateMachine.Event() {
         object DiscoverAddress : InternalEvent()
@@ -92,7 +93,7 @@ class AppStateMachineImpl(
             launch { delay(timeout); sendEvent(event) }
         } else {
             XLog.d(getLog("sendEvent", "Event: $event"))
-            parentJob.isActive || return
+            supervisorJob.isActive || return
 
             if (eventChannel.isClosedForSend) {
                 XLog.e(getLog("sendEvent"), IllegalStateException("Channel is ClosedForSend"))
@@ -168,6 +169,7 @@ class AppStateMachineImpl(
         sendEvent(InternalEvent.Destroy)
         settingsReadOnly.unregisterChangeListener(settingsListener)
         broadcastHelper.unregisterReceiver()
+        supervisorJob.cancel()
         eventChannel.close()
         bitmapToJpeg.stop()
         appHttpServer.stop()

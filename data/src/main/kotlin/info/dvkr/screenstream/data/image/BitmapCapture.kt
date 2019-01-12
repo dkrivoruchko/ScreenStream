@@ -39,7 +39,7 @@ class BitmapCapture constructor(
 
     private enum class State { INIT, STARTED, STOPPED, ERROR }
 
-    private var state: State = State.INIT
+    @Volatile private var state: State = State.INIT
 
     private val imageThread: HandlerThread by lazy {
         HandlerThread("BitmapCapture", Process.THREAD_PRIORITY_BACKGROUND)
@@ -176,12 +176,13 @@ class BitmapCapture constructor(
     @Synchronized
     private fun restart() {
         XLog.d(getLog("restart", "Start"))
-        requireState(State.STARTED)
-
-        stopDisplayCapture()
-        startDisplayCapture()
-
-        XLog.d(getLog("restart", "End"))
+        if (state != State.STARTED) {
+            XLog.d(getLog("restart", "Ignored"))
+        } else {
+            stopDisplayCapture()
+            startDisplayCapture()
+            XLog.d(getLog("restart", "End"))
+        }
     }
 
     // Runs on imageThread

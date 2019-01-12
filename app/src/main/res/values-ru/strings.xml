@@ -101,7 +101,7 @@
     <string name="pref_logging_summary">Собирать логи приложения</string>
 
     <string name="about_fragment_app_version">Версия: %1$s</string>
-    <string name="about_fragment_developer_name">Разработчик Криворучко Дмитрий</string>
+    <string name="about_fragment_developer_name">Разработчик Дмитрий Криворучко</string>
     <string name="about_fragment_rate_app">Оценить приложение</string>
     <string name="about_fragment_send_email">Написать Email разработчику</string>
     <string name="about_fragment_email_chooser_header">Отправка письма…</string>

@@ -36,7 +36,6 @@ internal class HttpServerStatistic(
     }
 
     internal sealed class StatisticEvent {
-        object Init : StatisticEvent()
         object CalculateTraffic : StatisticEvent()
         object SendStatistic : StatisticEvent()
 
@@ -56,27 +55,17 @@ internal class HttpServerStatistic(
         val clientsMap = HashMap<InetSocketAddress, LocalClient>()
         val trafficHistory = LinkedList<TrafficPoint>()
 
+        val past = System.currentTimeMillis() - AppHttpServer.TRAFFIC_HISTORY_SECONDS * 1000
+        (0..AppHttpServer.TRAFFIC_HISTORY_SECONDS + 1).forEach { i ->
+            trafficHistory.addLast(TrafficPoint(i * 1000 + past, 0))
+        }
+
         for (event in this@actor) try {
             XLog.v(this@HttpServerStatistic.getLog("Actor", event.toString()))
             val e = eventQueue.poll()
             if (eventQueue.size > 8) XLog.i(getLog("Actor", "eventQueue.size:${eventQueue.size} : $e"))
 
             when (event) {
-                is StatisticEvent.Init -> {
-                    val past = System.currentTimeMillis() - AppHttpServer.TRAFFIC_HISTORY_SECONDS * 1000
-                    (0..AppHttpServer.TRAFFIC_HISTORY_SECONDS + 1).forEach { i ->
-                        trafficHistory.addLast(TrafficPoint(i * 1000 + past, 0))
-                    }
-
-                    launch {
-                        while (isActive) {
-                            sendStatisticEvent(StatisticEvent.CalculateTraffic)
-                            sendStatisticEvent(StatisticEvent.SendStatistic)
-                            delay(1000)
-                        }
-                    }
-                }
-
                 is StatisticEvent.Connected -> clientsMap[event.address] = LocalClient(event.address)
 
                 is StatisticEvent.Disconnected -> clientsMap[event.address]?.apply {
@@ -112,11 +101,18 @@ internal class HttpServerStatistic(
 
     init {
         XLog.d(getLog("init", "Invoked"))
-        sendStatisticEvent(HttpServerStatistic.StatisticEvent.Init)
+
+        launch {
+            while (isActive) {
+                sendStatisticEvent(StatisticEvent.CalculateTraffic)
+                sendStatisticEvent(StatisticEvent.SendStatistic)
+                delay(1000)
+            }
+        }
     }
 
     internal fun sendStatisticEvent(event: StatisticEvent) {
-        parentJob.isActive || return
+        supervisorJob.isActive || return
 
         if (statisticEventChannel.isClosedForSend) {
             XLog.e(getLog("sendStatisticEvent"), IllegalStateException("Channel is ClosedForSend"))
