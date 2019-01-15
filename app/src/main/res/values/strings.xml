@@ -56,6 +56,8 @@
         <item>Battery saver only</item>
         <item>Never</item>
     </string-array>
+    <string name="pref_notification">Device notification settings</string>
+    <string name="pref_notification_summary">Open system notification settings</string>
     <string name="pref_minimize_on_stream">Minimize on stream start</string>
     <string name="pref_minimise_on_stream_summary">Minimize app on stream start</string>
     <string name="pref_stop_on_sleep">Stop stream on sleep</string>

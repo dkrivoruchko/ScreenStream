@@ -2,10 +2,11 @@ package info.dvkr.screenstream.service.helper
 
 import android.app.*
 import android.content.Context
+import android.content.Intent
 import android.os.Build
 import android.widget.RemoteViews
+import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
-import androidx.core.content.ContextCompat
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.data.other.getLog
@@ -16,21 +17,34 @@ class NotificationHelper(context: Context) {
 
     private val applicationContext: Context = context.applicationContext
     private val packageName: String = applicationContext.packageName
-    private val notificationManager = ContextCompat.getSystemService(context, NotificationManager::class.java)!!
-    private val CHANNEL_ID = "info.dvkr.screenstream.service.NOTIFICATION_CHANNEL_01"
+    private val notificationManager =
+        applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+    private val CHANNEL_START_STOP = "info.dvkr.screenstream.NOTIFICATION_CHANNEL_START_STOP"
     private var currentNotificationType: NotificationType? = null
 
     fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            notificationManager.deleteNotificationChannel("info.dvkr.screenstream.service.NOTIFICATION_CHANNEL_01")
             notificationManager.createNotificationChannel(
-                NotificationChannel(CHANNEL_ID, "Screen Stream Channel", NotificationManager.IMPORTANCE_DEFAULT).apply {
-                    setSound(null, null)
-                    enableLights(false)
-                    enableVibration(false)
-                }
+                NotificationChannel(
+                    CHANNEL_START_STOP, "Start/Stop notifications", NotificationManager.IMPORTANCE_DEFAULT
+                )
+                    .apply {
+                        setSound(null, null)
+                        enableLights(false)
+                        enableVibration(false)
+                        setShowBadge(false)
+                    }
             )
         }
     }
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    fun getNotificationSettingsIntent(): Intent =
+        Intent(android.provider.Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS)
+            .putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, packageName)
+            .putExtra(android.provider.Settings.EXTRA_CHANNEL_ID, CHANNEL_START_STOP)
 
     fun showForegroundNotification(service: Service, notificationType: NotificationType) {
         if (currentNotificationType != notificationType) {
@@ -49,10 +63,15 @@ class NotificationHelper(context: Context) {
             0
         )
 
-        val builder = NotificationCompat.Builder(applicationContext, CHANNEL_ID).apply {
+        val builder = NotificationCompat.Builder(applicationContext, CHANNEL_START_STOP).apply {
             setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             setCategory(Notification.CATEGORY_SERVICE)
-            priority = NotificationCompat.PRIORITY_HIGH
+            priority = NotificationCompat.PRIORITY_DEFAULT
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                setSound(notificationManager.getNotificationChannel(CHANNEL_START_STOP).sound)
+                priority = notificationManager.getNotificationChannel(CHANNEL_START_STOP).importance
+                setVibrate(notificationManager.getNotificationChannel(CHANNEL_START_STOP).vibrationPattern)
+            }
         }
 
         when (notificationType) {

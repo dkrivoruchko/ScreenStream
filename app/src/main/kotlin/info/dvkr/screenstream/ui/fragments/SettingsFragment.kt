@@ -2,6 +2,7 @@ package info.dvkr.screenstream.ui.fragments
 
 import android.graphics.Color.parseColor
 import android.graphics.Point
+import android.os.Build
 import android.os.Bundle
 import android.text.Editable
 import android.text.InputFilter
@@ -31,6 +32,7 @@ import info.dvkr.screenstream.data.other.getLog
 import info.dvkr.screenstream.data.settings.Settings
 import info.dvkr.screenstream.data.settings.SettingsReadOnly
 import info.dvkr.screenstream.logging.cleanLogFiles
+import info.dvkr.screenstream.service.helper.NotificationHelper
 import info.dvkr.screenstream.ui.router.FragmentRouter
 import kotlinx.android.synthetic.main.dialog_settings_resize.view.*
 import kotlinx.android.synthetic.main.fragment_settings.*
@@ -46,6 +48,7 @@ class SettingsFragment : Fragment() {
         }
     }
 
+    private val notificationHelper: NotificationHelper by inject()
     private val settings: Settings by inject()
     private val settingsListener = object : SettingsReadOnly.OnSettingsChangeListener {
         override fun onSettingsChanged(key: String) = when (key) {
@@ -123,6 +126,16 @@ class SettingsFragment : Fragment() {
                 positiveButton(android.R.string.ok)
                 negativeButton(android.R.string.cancel)
             }
+        }
+
+        // Interface - Device notification settings
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            cl_fragment_settings_notification.setOnClickListener {
+                startActivity(notificationHelper.getNotificationSettingsIntent())
+            }
+        } else {
+            cl_fragment_settings_notification.visibility = View.GONE
+            v_fragment_settings_notification.visibility = View.GONE
         }
 
         // Interface - Minimize on stream

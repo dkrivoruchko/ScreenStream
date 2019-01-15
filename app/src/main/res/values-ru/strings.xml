@@ -55,6 +55,8 @@
         <item>Только при экономии батареи</item>
         <item>Никогда</item>
     </string-array>
+    <string name="pref_notification">Настройки уведомлений устройства</string>
+    <string name="pref_notification_summary">Открыть настройки уведомлений системы</string>
     <string name="pref_minimize_on_stream">Сворачивать при трансляции</string>
     <string name="pref_minimise_on_stream_summary">Сворачивать приложение при начале трансляции</string>
     <string name="pref_stop_on_sleep">Останавливать при выключении</string>

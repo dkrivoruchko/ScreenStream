@@ -6,6 +6,7 @@ import com.ironz.binaryprefs.Preferences
 import info.dvkr.screenstream.data.settings.Settings
 import info.dvkr.screenstream.data.settings.SettingsImpl
 import info.dvkr.screenstream.data.settings.SettingsReadOnly
+import info.dvkr.screenstream.service.helper.NotificationHelper
 import org.koin.android.ext.koin.androidApplication
 import org.koin.dsl.module.module
 
@@ -19,4 +20,6 @@ val baseKoinModule = module {
     }
 
     single { SettingsImpl(get()) as Settings } bind SettingsReadOnly::class
+
+    single { NotificationHelper(androidApplication()) }
 }

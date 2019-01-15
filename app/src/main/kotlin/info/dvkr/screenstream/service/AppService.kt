@@ -133,7 +133,7 @@ class AppService : Service(), CoroutineScope {
     }
 
     private val settings: Settings by inject()
-    private val notificationHelper by lazy { NotificationHelper(this) }
+    private val notificationHelper: NotificationHelper by inject()
     private lateinit var appStateMachine: AppStateMachine
 
     override fun onCreate() {
