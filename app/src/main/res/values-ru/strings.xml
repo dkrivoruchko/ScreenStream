@@ -76,7 +76,7 @@
     <string name="pref_rotate_summary">Поворачивать изображение перед отправкой</string>
     <string name="pref_jpeg_quality">Качество JPEG</string>
     <string name="pref_jpeg_quality_summary">Установить качество JPEG</string>
-    <string name="pref_jpeg_quality_dialog">Установите качество сжатия JPEG.\nЗначения: 1–100\n(По умолчанию: 100)</string>
+    <string name="pref_jpeg_quality_dialog">Установите качество сжатия JPEG.\nЗначения: 10–100\n(По умолчанию: 100)</string>
     <string name="pref_settings_security">Безопасность</string>
     <string name="pref_enable_pin">Использовать PIN-код</string>
     <string name="pref_enable_pin_summary">Защитить доступ к трансляции PIN-кодом</string>

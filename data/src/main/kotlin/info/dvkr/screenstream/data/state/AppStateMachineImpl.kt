@@ -5,7 +5,6 @@ import android.content.Intent
 import android.graphics.Bitmap
 import android.view.WindowManager
 import androidx.annotation.AnyThread
-import androidx.annotation.WorkerThread
 import androidx.core.content.ContextCompat
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.data.httpserver.AppHttpServer
@@ -86,20 +85,18 @@ class AppStateMachineImpl(
         }
     }
 
-    @Throws(FatalError.ChannelException::class)
     override fun sendEvent(event: AppStateMachine.Event, timeout: Long) {
         if (timeout > 0) {
             XLog.d(getLog("sendEvent[Timeout: $timeout]", "Event: $event"))
             launch { delay(timeout); sendEvent(event) }
         } else {
             XLog.d(getLog("sendEvent", "Event: $event"))
-            supervisorJob.isActive || return
-
-            if (eventChannel.isClosedForSend) {
-                XLog.e(getLog("sendEvent"), IllegalStateException("Channel is ClosedForSend"))
-            } else if (eventChannel.offer(event).not()) {
-                XLog.e(getLog("sendEvent"), IllegalStateException("Channel is full"))
-                throw FatalError.ChannelException
+            try {
+                if (supervisorJob.isActive.not()) throw IllegalStateException("JobIsNotActive")
+                if (eventChannel.offer(event).not()) throw IllegalStateException("ChannelIsFull")
+            } catch (th: Throwable) {
+                XLog.e(getLog("sendEvent"), th)
+                onEffect(AppStateMachine.Effect.PublicState(false, true, emptyList(), FatalError.ChannelException))
             }
         }
     }
@@ -139,7 +136,6 @@ class AppStateMachineImpl(
         }
     }
 
-    @WorkerThread
     private fun onError(appError: AppError) {
         XLog.e(getLog("onError", "AppError: $appError"))
         sendEvent(InternalEvent.ComponentError(appError))

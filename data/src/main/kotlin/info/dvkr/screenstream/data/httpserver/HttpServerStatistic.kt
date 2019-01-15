@@ -112,22 +112,17 @@ internal class HttpServerStatistic(
     }
 
     internal fun sendStatisticEvent(event: StatisticEvent) {
-        supervisorJob.isActive || return
-
-        if (statisticEventChannel.isClosedForSend) {
-            XLog.e(getLog("sendStatisticEvent"), IllegalStateException("Channel is ClosedForSend"))
-            onError(FatalError.ChannelException)
-        } else {
+        try {
+            if (supervisorJob.isActive.not()) throw IllegalStateException("JobIsNotActive")
             eventQueue.addLast(event)
             if (eventQueue.size > 8)
                 XLog.i(
                     getLog("sendStatisticEvent", "eventQueue.size:${eventQueue.size} : ${eventQueue.joinToString()}")
                 )
-            val result = statisticEventChannel.offer(event)
-            if (result.not()) {
-                XLog.e(getLog("sendStatisticEvent"), IllegalStateException("Channel is full"))
-                onError(FatalError.ChannelException)
-            }
+            if (statisticEventChannel.offer(event).not()) throw IllegalStateException("ChannelIsFull")
+        } catch (th: Throwable) {
+            XLog.e(getLog("sendStatisticEvent"), th)
+            onError(FatalError.ChannelException)
         }
     }
 }

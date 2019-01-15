@@ -33,12 +33,12 @@ buildscript {
 
     repositories {
         google()
-        jcenter()
         maven { url = uri("https://maven.fabric.io/public") }
+        jcenter()
     }
 
     dependencies {
-        classpath("com.android.tools.build:gradle:3.2.1")
+        classpath('com.android.tools.build:gradle:3.3.0')
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion"
         classpath("io.fabric.tools:gradle:1.+")
     }
@@ -47,11 +47,12 @@ buildscript {
 allprojects {
     repositories {
         google()
-        jcenter()
         maven { url = uri("https://jitpack.io") }
         maven { url = uri("https://maven.fabric.io/public") }
         maven { url = uri("https://dl.bintray.com/drummer-aidan/maven/") }
         //Temp for "com.afollestad.material-dialogs:color:2.0.0-rc3"
+
+        jcenter()
     }
 }
 
