@@ -91,8 +91,13 @@ class AppStateMachineImpl(
             launch { delay(timeout); sendEvent(event) }
         } else {
             XLog.d(getLog("sendEvent", "Event: $event"))
+
+            if (supervisorJob.isActive.not()) {
+                XLog.w(getLog("sendEvent", "JobIsNotActive"))
+                return
+            }
+
             try {
-                if (supervisorJob.isActive.not()) throw IllegalStateException("JobIsNotActive")
                 if (eventChannel.offer(event).not()) throw IllegalStateException("ChannelIsFull")
             } catch (th: Throwable) {
                 XLog.e(getLog("sendEvent"), th)

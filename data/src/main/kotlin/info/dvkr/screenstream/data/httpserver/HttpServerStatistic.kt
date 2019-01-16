@@ -112,8 +112,12 @@ internal class HttpServerStatistic(
     }
 
     internal fun sendStatisticEvent(event: StatisticEvent) {
+        if (supervisorJob.isActive.not()) {
+            XLog.w(getLog("sendStatisticEvent", "JobIsNotActive"))
+            return
+        }
+
         try {
-            if (supervisorJob.isActive.not()) throw IllegalStateException("JobIsNotActive")
             eventQueue.addLast(event)
             if (eventQueue.size > 8)
                 XLog.i(
