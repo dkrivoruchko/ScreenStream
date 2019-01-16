@@ -61,6 +61,7 @@ Version 3.x based on Clean Architecture, Single Activity and MVI patterns and us
 * [RxJava 1.x](https://github.com/ReactiveX/RxJava/tree/1.x)
 * [RxNetty](https://github.com/ReactiveX/RxNetty)
 * [Crashlytics](https://try.crashlytics.com/)
+* [xLog](https://github.com/elvishew/xLog)
 * [LeakCanary](https://github.com/square/leakcanary)
 
 

@@ -26,9 +26,8 @@ buildscript {
         netty = "4.1.32.Final"
         rxNetty = "0.5.3-rc.1"
 
-        firebaseCore = "16.0.6"
         fabricCrashlytics = "2.9.8@aar"
-        leakcanary = "1.6.2"
+        leakcanary = "1.6.3"
     }
 
     repositories {
