@@ -105,7 +105,7 @@ object StateToEventMatrix {
             AppStateMachineImpl.InternalEvent.StartServer::class.java to Action.Skipp,
             AppStateMachineImpl.InternalEvent.ComponentError::class.java to Action.Process,
             AppStateMachineImpl.InternalEvent.StartStopFromWebPage::class.java to Action.Skipp,
-            AppStateMachineImpl.InternalEvent.RestartServer::class.java to Action.Process,
+            AppStateMachineImpl.InternalEvent.RestartServer::class.java to Action.Skipp,
             AppStateMachineImpl.InternalEvent.ScreenOff::class.java to Action.Skipp,
             AppStateMachineImpl.InternalEvent.Destroy::class.java to Action.Process,
 
