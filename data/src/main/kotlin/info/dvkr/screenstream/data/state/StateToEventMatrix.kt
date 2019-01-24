@@ -45,11 +45,11 @@ object StateToEventMatrix {
             AppStateMachineImpl.InternalEvent.ScreenOff::class.java to Action.Skipp,
             AppStateMachineImpl.InternalEvent.Destroy::class.java to Action.Process,
 
-            AppStateMachine.Event.StartStream::class.java to Action.Error,
+            AppStateMachine.Event.StartStream::class.java to Action.Skipp,
             AppStateMachine.Event.StartProjection::class.java to Action.Error,
             AppStateMachine.Event.StopStream::class.java to Action.Error,
             AppStateMachine.Event.RequestPublicState::class.java to Action.Process,
-            AppStateMachine.Event.RecoverError::class.java to Action.Error
+            AppStateMachine.Event.RecoverError::class.java to Action.Skipp
         )
 
         matrix[StreamState.State.ADDRESS_DISCOVERED] = mapOf(
@@ -70,7 +70,7 @@ object StateToEventMatrix {
 
         matrix[StreamState.State.SERVER_STARTED] = mapOf(
             AppStateMachineImpl.InternalEvent.DiscoverAddress::class.java to Action.Process,
-            AppStateMachineImpl.InternalEvent.StartServer::class.java to Action.Error,
+            AppStateMachineImpl.InternalEvent.StartServer::class.java to Action.Skipp,
             AppStateMachineImpl.InternalEvent.ComponentError::class.java to Action.Process,
             AppStateMachineImpl.InternalEvent.StartStopFromWebPage::class.java to Action.Process,
             AppStateMachineImpl.InternalEvent.RestartServer::class.java to Action.Process,

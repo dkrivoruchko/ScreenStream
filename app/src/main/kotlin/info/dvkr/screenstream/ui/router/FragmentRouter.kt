@@ -45,7 +45,7 @@ class FragmentRouter(private val fragmentManager: FragmentManager, vararg fragme
                 .commitAllowingStateLoss()
         } else {
             XLog.i(getLog("navigateTo", "newFragment !=null: ${navigateToFragment.getTag()}"))
-            fragmentManager.popBackStack(navigateToFragment.getTag(), 0)
+            fragmentManager.popBackStackImmediate(navigateToFragment.getTag(), 0)
         }
         return true
     }

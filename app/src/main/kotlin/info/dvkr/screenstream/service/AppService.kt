@@ -198,7 +198,7 @@ class AppService : Service(), CoroutineScope {
             }
 
             IntentAction.StartOnBoot ->
-                appStateMachine.sendEvent(AppStateMachine.Event.StartStream, 3500)
+                appStateMachine.sendEvent(AppStateMachine.Event.StartStream, 4500)
 
             IntentAction.RecoverError ->
                 appStateMachine.sendEvent(AppStateMachine.Event.RecoverError)

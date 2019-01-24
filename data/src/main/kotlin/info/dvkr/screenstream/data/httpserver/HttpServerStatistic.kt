@@ -14,7 +14,6 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.net.InetSocketAddress
 import java.util.*
-import java.util.concurrent.ConcurrentLinkedDeque
 
 internal class HttpServerStatistic(
     private val onStatistic: (List<HttpClient>, List<TrafficPoint>) -> Unit,
@@ -49,8 +48,6 @@ internal class HttpServerStatistic(
         override fun toString(): String = this::class.java.simpleName
     }
 
-    private val eventQueue = ConcurrentLinkedDeque<StatisticEvent>() // For debug
-
     private val statisticEventChannel: SendChannel<StatisticEvent> = actor(capacity = 32) {
         val clientsMap = HashMap<InetSocketAddress, LocalClient>()
         val trafficHistory = LinkedList<TrafficPoint>()
@@ -62,8 +59,6 @@ internal class HttpServerStatistic(
 
         for (event in this@actor) try {
             XLog.v(this@HttpServerStatistic.getLog("Actor", event.toString()))
-            val e = eventQueue.poll()
-            if (eventQueue.size > 8) XLog.i(getLog("Actor", "eventQueue.size:${eventQueue.size} : $e"))
 
             when (event) {
                 is StatisticEvent.Connected -> clientsMap[event.address] = LocalClient(event.address)
@@ -82,15 +77,15 @@ internal class HttpServerStatistic(
                 is StatisticEvent.CalculateTraffic -> {
                     val now = System.currentTimeMillis()
                     clientsMap.values.removeAll { it.isDisconnected && it.isDisconnectHoldTimePass(now) }
-                    val traffic = clientsMap.values.map { it.sendBytes }.sum()
+                    val traffic = clientsMap.values.asSequence().map { it.sendBytes }.sum()
                     clientsMap.values.forEach { it.sendBytes = 0 }
                     trafficHistory.removeFirst()
                     trafficHistory.addLast(TrafficPoint(now, traffic))
                 }
 
                 is StatisticEvent.SendStatistic -> onStatistic(
-                    clientsMap.values.toList().map { it.toHttpClient() }.sortedBy { it.id },
-                    trafficHistory.toList().sortedBy { it.time }
+                    clientsMap.values.map { it.toHttpClient() }.sortedBy { it.id },
+                    trafficHistory.sortedBy { it.time }
                 )
             }
         } catch (throwable: Throwable) {
@@ -112,21 +107,19 @@ internal class HttpServerStatistic(
     }
 
     internal fun sendStatisticEvent(event: StatisticEvent) {
-        if (supervisorJob.isActive.not()) {
-            XLog.w(getLog("sendStatisticEvent", "JobIsNotActive"))
-            return
-        }
+        synchronized(lock) {
+            if (supervisorJob.isActive.not()) {
+                XLog.w(getLog("sendStatisticEvent", "JobIsNotActive"))
+                return
+            }
 
-        try {
-            eventQueue.addLast(event)
-            if (eventQueue.size > 8)
-                XLog.i(
-                    getLog("sendStatisticEvent", "eventQueue.size:${eventQueue.size} : ${eventQueue.joinToString()}")
-                )
-            if (statisticEventChannel.offer(event).not()) throw IllegalStateException("ChannelIsFull")
-        } catch (th: Throwable) {
-            XLog.e(getLog("sendStatisticEvent"), th)
-            onError(FatalError.ChannelException)
+            try {
+                if (statisticEventChannel.offer(event).not())
+                    XLog.w(getLog("sendStatisticEvent", "ChannelIsFull"))
+            } catch (th: Throwable) {
+                XLog.e(getLog("sendStatisticEvent"), th)
+                onError(FatalError.ChannelException)
+            }
         }
     }
 }
