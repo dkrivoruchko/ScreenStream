@@ -55,7 +55,7 @@ class SettingsFragment : Fragment() {
             Settings.Key.NIGHT_MODE -> {
                 val index = nightModeList.first { it.second == settings.nightMode }.first
                 tv_fragment_settings_night_mode_summary.text =
-                        resources.getStringArray(R.array.pref_night_mode_options)[index]
+                    resources.getStringArray(R.array.pref_night_mode_options)[index]
             }
 
             Settings.Key.HTML_BACK_COLOR ->
@@ -63,7 +63,7 @@ class SettingsFragment : Fragment() {
 
             Settings.Key.RESIZE_FACTOR ->
                 tv_fragment_settings_resize_image_value.text =
-                        getString(R.string.pref_resize_value, settings.resizeFactor)
+                    getString(R.string.pref_resize_value, settings.resizeFactor)
 
             Settings.Key.ROTATION ->
                 tv_fragment_settings_rotation_value.text = getString(R.string.pref_rotate_value, settings.rotation)
@@ -120,8 +120,8 @@ class SettingsFragment : Fragment() {
                 title(R.string.pref_night_mode)
                 icon(R.drawable.ic_settings_night_mode_24dp)
                 listItemsSingleChoice(R.array.pref_night_mode_options, initialSelection = indexOld) { _, index, _ ->
-                    settings.nightMode = nightModeList.firstOrNull { item -> item.first == index }?.second ?:
-                            throw IllegalArgumentException("Unknown night mode index")
+                    settings.nightMode = nightModeList.firstOrNull { item -> item.first == index }?.second
+                        ?: throw IllegalArgumentException("Unknown night mode index")
                 }
                 positiveButton(android.R.string.ok)
                 negativeButton(android.R.string.cancel)
@@ -203,15 +203,15 @@ class SettingsFragment : Fragment() {
                 .customView(R.layout.dialog_settings_resize)
                 .positiveButton(android.R.string.ok) { dialog ->
                     val tietView =
-                        dialog.getCustomView()?.findViewById<TextInputEditText>(R.id.tiet_dialog_settings_resize)
+                        dialog.getCustomView().findViewById<TextInputEditText>(R.id.tiet_dialog_settings_resize)
                     val newValue = tietView?.text?.toString()?.toInt() ?: settings.resizeFactor
                     if (settings.resizeFactor != newValue) settings.resizeFactor = newValue
                 }
                 .negativeButton(android.R.string.cancel)
                 .apply Dialog@{
-                    getCustomView()?.apply DialogView@{
+                    getCustomView().apply DialogView@{
                         tv_dialog_settings_resize_content.text =
-                                getString(R.string.pref_resize_dialog_text, screenSize.x, screenSize.y)
+                            getString(R.string.pref_resize_dialog_text, screenSize.x, screenSize.y)
 
                         ti_dialog_settings_resize.isCounterEnabled = true
                         ti_dialog_settings_resize.counterMaxLength = 3
@@ -252,8 +252,8 @@ class SettingsFragment : Fragment() {
                 title(R.string.pref_rotate)
                 icon(R.drawable.ic_settings_rotation_24dp)
                 listItemsSingleChoice(R.array.pref_rotate_options, initialSelection = indexOld) { _, index, _ ->
-                    settings.rotation = rotationList.firstOrNull { item -> item.first == index }?.second ?:
-                            throw IllegalArgumentException("Unknown rotation index")
+                    settings.rotation = rotationList.firstOrNull { item -> item.first == index }?.second
+                        ?: throw IllegalArgumentException("Unknown rotation index")
                 }
                 positiveButton(android.R.string.ok)
                 negativeButton(android.R.string.cancel)
@@ -278,12 +278,12 @@ class SettingsFragment : Fragment() {
                     dialog.setActionButtonEnabled(WhichButton.POSITIVE, isValid)
                 }
                 positiveButton(android.R.string.ok) { dialog ->
-                    val newValue = dialog.getInputField()?.text?.toString()?.toInt() ?: settings.jpegQuality
+                    val newValue = dialog.getInputField().text?.toString()?.toInt() ?: settings.jpegQuality
                     if (settings.jpegQuality != newValue) settings.jpegQuality = newValue
                 }
                 negativeButton(android.R.string.cancel)
-                getInputField()?.filters = arrayOf<InputFilter>(InputFilter.LengthFilter(3))
-                getInputField()?.imeOptions = EditorInfo.IME_FLAG_NO_EXTRACT_UI
+                getInputField().filters = arrayOf<InputFilter>(InputFilter.LengthFilter(3))
+                getInputField().imeOptions = EditorInfo.IME_FLAG_NO_EXTRACT_UI
             }
         }
 
@@ -353,12 +353,12 @@ class SettingsFragment : Fragment() {
                     dialog.setActionButtonEnabled(WhichButton.POSITIVE, isValid)
                 }
                 positiveButton(android.R.string.ok) { dialog ->
-                    val newValue = dialog.getInputField()?.text?.toString() ?: settings.pin
+                    val newValue = dialog.getInputField().text?.toString() ?: settings.pin
                     if (settings.pin != newValue) settings.pin = newValue
                 }
                 negativeButton(android.R.string.cancel)
-                getInputField()?.filters = arrayOf<InputFilter>(InputFilter.LengthFilter(4))
-                getInputField()?.imeOptions = EditorInfo.IME_FLAG_NO_EXTRACT_UI
+                getInputField().filters = arrayOf<InputFilter>(InputFilter.LengthFilter(4))
+                getInputField().imeOptions = EditorInfo.IME_FLAG_NO_EXTRACT_UI
             }
         }
 
@@ -394,18 +394,17 @@ class SettingsFragment : Fragment() {
                     dialog.setActionButtonEnabled(WhichButton.POSITIVE, isValid)
                 }
                 positiveButton(android.R.string.ok) { dialog ->
-                    val newValue = dialog.getInputField()?.text?.toString()?.toInt() ?: settings.severPort
+                    val newValue = dialog.getInputField().text?.toString()?.toInt() ?: settings.severPort
                     if (settings.severPort != newValue) settings.severPort = newValue
                 }
                 negativeButton(android.R.string.cancel)
-                getInputField()?.filters = arrayOf<InputFilter>(InputFilter.LengthFilter(5))
-                getInputField()?.imeOptions = EditorInfo.IME_FLAG_NO_EXTRACT_UI
+                getInputField().filters = arrayOf<InputFilter>(InputFilter.LengthFilter(5))
+                getInputField().imeOptions = EditorInfo.IME_FLAG_NO_EXTRACT_UI
             }
         }
 
         // Advanced - Enable application logs
         with(cb_fragment_settings_logging) {
-            isChecked = settings.loggingOn
             setOnClickListener {
                 settings.loggingOn = isChecked
                 if (settings.loggingOn.not()) cleanLogFiles(requireContext().applicationContext)
