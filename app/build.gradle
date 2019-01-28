@@ -92,4 +92,10 @@ dependencies {
     releaseImplementation("com.squareup.leakcanary:leakcanary-android-no-op:$leakcanary")
 }
 
-apply plugin: 'com.google.gms.google-services'
+apply plugin: "com.google.gms.google-services"
+
+android.applicationVariants.all { variant ->
+    if (variant.name == "fabricfree") {
+        project.tasks.getByName("process" + variant.name.capitalize() + "GoogleServices").enabled = false
+    }
+}
