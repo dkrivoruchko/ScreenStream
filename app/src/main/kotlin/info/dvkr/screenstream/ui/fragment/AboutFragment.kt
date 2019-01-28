@@ -1,4 +1,4 @@
-package info.dvkr.screenstream.ui.fragments
+package info.dvkr.screenstream.ui.fragment
 
 import android.content.ActivityNotFoundException
 import android.content.Intent

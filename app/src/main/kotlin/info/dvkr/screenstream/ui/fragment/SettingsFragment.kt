@@ -1,4 +1,4 @@
-package info.dvkr.screenstream.ui.fragments
+package info.dvkr.screenstream.ui.fragment
 
 import android.graphics.Color.parseColor
 import android.graphics.Point
@@ -217,7 +217,7 @@ class SettingsFragment : Fragment() {
                         ti_dialog_settings_resize.counterMaxLength = 3
 
                         with(tiet_dialog_settings_resize) {
-                            addTextChangedListener(info.dvkr.screenstream.ui.fragments.SettingsFragment.SimpleTextWatcher { text ->
+                            addTextChangedListener(info.dvkr.screenstream.ui.fragment.SettingsFragment.SimpleTextWatcher { text ->
                                 val isValid = text.length in 2..3 && text.toString().toInt() in 10..150
                                 this@Dialog.setActionButtonEnabled(
                                     com.afollestad.materialdialogs.WhichButton.POSITIVE, isValid

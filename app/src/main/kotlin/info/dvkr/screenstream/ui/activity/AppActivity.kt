@@ -24,9 +24,9 @@ import info.dvkr.screenstream.logging.sendLogsInEmail
 import info.dvkr.screenstream.service.AppService
 import info.dvkr.screenstream.service.ServiceMessage
 import info.dvkr.screenstream.service.helper.IntentAction
-import info.dvkr.screenstream.ui.fragments.AboutFragment
-import info.dvkr.screenstream.ui.fragments.SettingsFragment
-import info.dvkr.screenstream.ui.fragments.StreamFragment
+import info.dvkr.screenstream.ui.fragment.AboutFragment
+import info.dvkr.screenstream.ui.fragment.SettingsFragment
+import info.dvkr.screenstream.ui.fragment.StreamFragment
 import info.dvkr.screenstream.ui.router.FragmentRouter
 import kotlinx.android.synthetic.main.activity_app.*
 

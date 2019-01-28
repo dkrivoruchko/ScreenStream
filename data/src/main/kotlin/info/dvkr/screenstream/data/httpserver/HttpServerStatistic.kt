@@ -7,6 +7,7 @@ import info.dvkr.screenstream.data.model.HttpClient
 import info.dvkr.screenstream.data.model.TrafficPoint
 import info.dvkr.screenstream.data.other.asString
 import info.dvkr.screenstream.data.other.getLog
+import kotlinx.coroutines.channels.ClosedSendChannelException
 import kotlinx.coroutines.channels.SendChannel
 import kotlinx.coroutines.channels.actor
 import kotlinx.coroutines.delay
@@ -116,6 +117,7 @@ internal class HttpServerStatistic(
             try {
                 if (statisticEventChannel.offer(event).not())
                     XLog.w(getLog("sendStatisticEvent", "ChannelIsFull"))
+            } catch (ignore: ClosedSendChannelException) {
             } catch (th: Throwable) {
                 XLog.e(getLog("sendStatisticEvent"), th)
                 onError(FatalError.ChannelException)
