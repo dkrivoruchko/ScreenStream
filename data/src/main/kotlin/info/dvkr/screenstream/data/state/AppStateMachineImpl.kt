@@ -170,7 +170,7 @@ class AppStateMachineImpl(
         sendEvent(InternalEvent.Destroy)
         settingsReadOnly.unregisterChangeListener(settingsListener)
         broadcastHelper.unregisterReceiver()
-        supervisorJob.cancel()
+        supervisorJob.cancelChildren()
         eventChannel.close()
         bitmapToJpeg.stop()
         appHttpServer.stop()

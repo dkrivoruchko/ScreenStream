@@ -87,10 +87,10 @@ class AppService : Service(), CoroutineScope {
     private val activityMessagesHandler = ActivityMessagesHandler()
     private val incomingMessenger = Messenger(activityMessagesHandler)
 
-    private val parentJob: Job = Job()
+    private val supervisorJob = SupervisorJob()
 
     override val coroutineContext: CoroutineContext
-        get() = parentJob + Dispatchers.Main + CoroutineExceptionHandler { _, throwable ->
+        get() = supervisorJob + Dispatchers.Main + CoroutineExceptionHandler { _, throwable ->
             XLog.e(getLog("onCoroutineException"), throwable)
             onError(FatalError.CoroutineException)
         }
@@ -145,7 +145,7 @@ class AppService : Service(), CoroutineScope {
 
         appStateMachine = AppStateMachineImpl(
             this,
-            parentJob,
+            supervisorJob,
             settings as SettingsReadOnly,
             BitmapFactory.decodeResource(resources, R.drawable.logo),
             { clients: List<HttpClient>, trafficHistory: List<TrafficPoint> ->
@@ -230,7 +230,7 @@ class AppService : Service(), CoroutineScope {
     override fun onDestroy() {
         XLog.d(getLog("onDestroy", "Invoked"))
         appStateMachine.destroy()
-        parentJob.cancel()
+        coroutineContext.cancelChildren()
         stopForeground(true)
         Runtime.getRuntime().exit(0)
         super.onDestroy()

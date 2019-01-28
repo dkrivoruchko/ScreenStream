@@ -84,9 +84,12 @@ dependencies {
     implementation("com.github.iamironz:binaryprefs:$binaryprefs")
     implementation("com.elvishew:xlog:$xlog")
 
-    releaseImplementation("com.crashlytics.sdk.android:crashlytics:$fabricCrashlytics") { transitive = true }
+    releaseImplementation("com.google.firebase:firebase-core:$firebaseCore")
+    releaseImplementation("com.crashlytics.sdk.android:crashlytics:$fabricCrashlytics")
 
     debugImplementation("com.squareup.leakcanary:leakcanary-android:$leakcanary")
     debugImplementation("com.squareup.leakcanary:leakcanary-support-fragment:$leakcanary")
     releaseImplementation("com.squareup.leakcanary:leakcanary-android-no-op:$leakcanary")
 }
+
+apply plugin: 'com.google.gms.google-services'

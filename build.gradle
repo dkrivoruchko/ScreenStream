@@ -17,7 +17,7 @@ buildscript {
         androidxConstraint = "1.1.3"
 
         alerter = "4.0.0"
-        materialDialogs = "2.0.0-rc8"
+        materialDialogs = "2.0.0-rc9"
         koin = "1.0.2"
         binaryprefs = "1.0.1"
         rxJava = "1.3.8"
@@ -26,7 +26,8 @@ buildscript {
         netty = "4.1.32.Final"
         rxNetty = "0.5.3-rc.1"
 
-        fabricCrashlytics = "2.9.8@aar"
+        firebaseCore = "16.0.6"
+        fabricCrashlytics = "2.9.8"
         leakcanary = "1.6.3"
     }
 
@@ -37,9 +38,10 @@ buildscript {
     }
 
     dependencies {
-        classpath('com.android.tools.build:gradle:3.3.0')
-        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion"
-        classpath("io.fabric.tools:gradle:1.+")
+        classpath("com.android.tools.build:gradle:3.3.0")
+        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion")
+        classpath("com.google.gms:google-services:4.2.0")
+        classpath("io.fabric.tools:gradle:1.27.0")
     }
 }
 

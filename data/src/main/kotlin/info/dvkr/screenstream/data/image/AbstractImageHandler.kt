@@ -5,20 +5,17 @@ import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.data.model.AppError
 import info.dvkr.screenstream.data.model.FatalError
 import info.dvkr.screenstream.data.other.getLog
-import kotlinx.coroutines.CoroutineExceptionHandler
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
+import kotlinx.coroutines.*
 import kotlin.coroutines.CoroutineContext
 
 abstract class AbstractImageHandler(
     protected val onError: (AppError) -> Unit
 ) : CoroutineScope {
 
-    private val parentJob: Job = Job()
+    private val supervisorJob = SupervisorJob()
 
     override val coroutineContext: CoroutineContext
-        get() = parentJob + Dispatchers.Default + CoroutineExceptionHandler { _, throwable ->
+        get() = supervisorJob + Dispatchers.Default + CoroutineExceptionHandler { _, throwable ->
             XLog.e(getLog("onCoroutineException"), throwable)
             onError(FatalError.CoroutineException)
         }
@@ -27,7 +24,7 @@ abstract class AbstractImageHandler(
 
     @CallSuper
     open fun stop() {
-        parentJob.cancel()
+        coroutineContext.cancelChildren()
     }
 
 }

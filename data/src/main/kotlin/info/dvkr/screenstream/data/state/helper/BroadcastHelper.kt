@@ -16,10 +16,10 @@ import kotlin.coroutines.CoroutineContext
 class BroadcastHelper(context: Context, private val onError: (AppError) -> Unit) : CoroutineScope {
 
     private val applicationContext: Context = context.applicationContext
-    private lateinit var parentJob: Job
+    private val supervisorJob = SupervisorJob()
 
     override val coroutineContext: CoroutineContext
-        get() = parentJob + Dispatchers.Main + CoroutineExceptionHandler { _, throwable ->
+        get() = supervisorJob + Dispatchers.Main + CoroutineExceptionHandler { _, throwable ->
             XLog.e(getLog("onCoroutineException"), throwable)
             onError(FatalError.CoroutineException)
         }
@@ -38,8 +38,6 @@ class BroadcastHelper(context: Context, private val onError: (AppError) -> Unit)
     private var broadcastReceiver: BroadcastReceiver? = null
 
     fun registerReceiver(onScreenOff: () -> Unit, onConnectionChanged: () -> Unit) {
-        parentJob = Job()
-
         broadcastReceiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context?, intent: Intent?) {
                 XLog.d(this@BroadcastHelper.getLog("onReceive", "Action: ${intent?.action}"))
@@ -68,6 +66,6 @@ class BroadcastHelper(context: Context, private val onError: (AppError) -> Unit)
 
     fun unregisterReceiver() {
         applicationContext.unregisterReceiver(broadcastReceiver)
-        parentJob.cancel()
+        coroutineContext.cancelChildren()
     }
 }

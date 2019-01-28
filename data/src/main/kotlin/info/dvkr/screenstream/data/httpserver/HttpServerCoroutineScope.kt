@@ -11,7 +11,7 @@ abstract class HttpServerCoroutineScope(
     protected val onError: (AppError) -> Unit
 ) : CoroutineScope {
 
-    protected val supervisorJob: Job = SupervisorJob()
+    protected val supervisorJob = SupervisorJob()
     protected val lock = Unit
 
     override val coroutineContext: CoroutineContext
@@ -23,7 +23,7 @@ abstract class HttpServerCoroutineScope(
     open fun destroy() {
         synchronized(lock) {
             XLog.d(getLog("destroy", "Invoked"))
-            supervisorJob.cancel()
+            coroutineContext.cancelChildren()
         }
     }
 }

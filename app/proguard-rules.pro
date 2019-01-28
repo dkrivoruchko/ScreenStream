@@ -23,6 +23,7 @@
 #Firebase https://firebase.google.com/docs/crashlytics/get-deobfuscated-reports
 -keepnames class info.dvkr.screenstream.** { *; }
 
+#Crashlytics
 -keepattributes *Annotation*
 -keepattributes SourceFile,LineNumberTable
 -keep public class * extends java.lang.Exception
