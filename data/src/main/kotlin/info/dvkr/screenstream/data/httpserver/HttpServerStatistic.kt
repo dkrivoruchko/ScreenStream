@@ -10,6 +10,7 @@ import info.dvkr.screenstream.data.other.getLog
 import kotlinx.coroutines.channels.ClosedSendChannelException
 import kotlinx.coroutines.channels.SendChannel
 import kotlinx.coroutines.channels.actor
+import kotlinx.coroutines.channels.consumeEach
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -58,40 +59,42 @@ internal class HttpServerStatistic(
             trafficHistory.addLast(TrafficPoint(i * 1000 + past, 0))
         }
 
-        for (event in this@actor) try {
-            XLog.v(this@HttpServerStatistic.getLog("Actor", event.toString()))
+        consumeEach { event ->
+            try {
+                XLog.v(this@HttpServerStatistic.getLog("Actor", event.toString()))
 
-            when (event) {
-                is StatisticEvent.Connected -> clientsMap[event.address] = LocalClient(event.address)
+                when (event) {
+                    is StatisticEvent.Connected -> clientsMap[event.address] = LocalClient(event.address)
 
-                is StatisticEvent.Disconnected -> clientsMap[event.address]?.apply {
-                    isDisconnected = true
-                    disconnectedTime = System.currentTimeMillis()
+                    is StatisticEvent.Disconnected -> clientsMap[event.address]?.apply {
+                        isDisconnected = true
+                        disconnectedTime = System.currentTimeMillis()
+                    }
+
+                    is StatisticEvent.Backpressure -> clientsMap[event.address]?.isSlowConnection = true
+
+                    is StatisticEvent.NextBytes -> clientsMap[event.address]?.apply {
+                        sendBytes = sendBytes.plus(event.bytesCount)
+                    }
+
+                    is StatisticEvent.CalculateTraffic -> {
+                        val now = System.currentTimeMillis()
+                        clientsMap.values.removeAll { it.isDisconnected && it.isDisconnectHoldTimePass(now) }
+                        val traffic = clientsMap.values.asSequence().map { it.sendBytes }.sum()
+                        clientsMap.values.forEach { it.sendBytes = 0 }
+                        trafficHistory.removeFirst()
+                        trafficHistory.addLast(TrafficPoint(now, traffic))
+                    }
+
+                    is StatisticEvent.SendStatistic -> onStatistic(
+                        clientsMap.values.map { it.toHttpClient() }.sortedBy { it.id },
+                        trafficHistory.sortedBy { it.time }
+                    )
                 }
-
-                is StatisticEvent.Backpressure -> clientsMap[event.address]?.isSlowConnection = true
-
-                is StatisticEvent.NextBytes -> clientsMap[event.address]?.apply {
-                    sendBytes = sendBytes.plus(event.bytesCount)
-                }
-
-                is StatisticEvent.CalculateTraffic -> {
-                    val now = System.currentTimeMillis()
-                    clientsMap.values.removeAll { it.isDisconnected && it.isDisconnectHoldTimePass(now) }
-                    val traffic = clientsMap.values.asSequence().map { it.sendBytes }.sum()
-                    clientsMap.values.forEach { it.sendBytes = 0 }
-                    trafficHistory.removeFirst()
-                    trafficHistory.addLast(TrafficPoint(now, traffic))
-                }
-
-                is StatisticEvent.SendStatistic -> onStatistic(
-                    clientsMap.values.map { it.toHttpClient() }.sortedBy { it.id },
-                    trafficHistory.sortedBy { it.time }
-                )
+            } catch (throwable: Throwable) {
+                XLog.e(this@HttpServerStatistic.getLog("actor"), throwable)
+                onError(FatalError.ActorException)
             }
-        } catch (throwable: Throwable) {
-            XLog.e(this@HttpServerStatistic.getLog("actor"), throwable)
-            onError(FatalError.ActorException)
         }
     }
 

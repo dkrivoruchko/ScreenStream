@@ -5,28 +5,27 @@ buildscript {
         minSdk = 21
         targetSdk = 28
 
-        jetbrainsAnnotations = "16.0.3"
-        kotlinVersion = "1.3.20"
-        coroutineVersion = "1.1.0"
+        jetbrainsAnnotations = "17.0.0"
+        kotlinVersion = "1.3.21"
+        coroutineVersion = "1.1.1"
 
         androidxAnnotation = "1.0.1"
         androidxCore = "1.0.1"
         androidMaterial = "1.0.0"
         androidxAppcompat = "1.0.2"
-        androidxLegacySupport = "1.0.0"
         androidxConstraint = "1.1.3"
 
         alerter = "4.0.0"
-        materialDialogs = "2.0.0-rc9"
+        materialDialogs = "2.0.0"
         koin = "1.0.2"
         binaryprefs = "1.0.1"
         rxJava = "1.3.8"
         rxRelay = "1.2.0"
         xlog = "1.6.1"
-        netty = "4.1.32.Final"
-        rxNetty = "0.5.3-rc.1"
+        netty = "4.1.33.Final"
+        rxNetty = "0.5.3-rc.2"
 
-        firebaseCore = "16.0.6"
+        firebaseCore = "16.0.7"
         fabricCrashlytics = "2.9.8"
         leakcanary = "1.6.3"
     }
@@ -38,10 +37,11 @@ buildscript {
     }
 
     dependencies {
-        classpath("com.android.tools.build:gradle:3.3.0")
+        classpath('com.android.tools.build:gradle:3.3.1')
         classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion")
         classpath("com.google.gms:google-services:4.2.0")
-        classpath("io.fabric.tools:gradle:1.27.0")
+        classpath("io.fabric.tools:gradle:1.27.1")
+        classpath("com.getkeepsafe.dexcount:dexcount-gradle-plugin:0.8.6")
     }
 }
 
@@ -50,9 +50,6 @@ allprojects {
         google()
         maven { url = uri("https://jitpack.io") }
         maven { url = uri("https://maven.fabric.io/public") }
-        maven { url = uri("https://dl.bintray.com/drummer-aidan/maven/") }
-        //Temp for "com.afollestad.material-dialogs:color:2.0.0-rc3"
-
         jcenter()
     }
 }

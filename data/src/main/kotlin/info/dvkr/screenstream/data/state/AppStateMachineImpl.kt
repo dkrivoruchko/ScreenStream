@@ -21,9 +21,7 @@ import info.dvkr.screenstream.data.state.helper.BroadcastHelper
 import info.dvkr.screenstream.data.state.helper.MediaProjectionHelper
 import info.dvkr.screenstream.data.state.helper.NetworkHelper
 import kotlinx.coroutines.*
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.channels.SendChannel
-import kotlinx.coroutines.channels.actor
+import kotlinx.coroutines.channels.*
 import kotlin.coroutines.CoroutineContext
 
 class AppStateMachineImpl(
@@ -98,7 +96,8 @@ class AppStateMachineImpl(
             }
 
             try {
-                if (eventChannel.offer(event).not()) throw IllegalStateException("ChannelIsFull")
+                eventChannel.offer(event) || throw IllegalStateException("ChannelIsFull")
+            } catch (ignore: ClosedSendChannelException) {
             } catch (th: Throwable) {
                 XLog.e(getLog("sendEvent"), th)
                 onEffect(AppStateMachine.Effect.PublicState(false, true, emptyList(), FatalError.ChannelException))
@@ -110,34 +109,37 @@ class AppStateMachineImpl(
         var streamState = StreamState()
         var previousStreamState: StreamState
 
-        for (event in this) try {
-            if (StateToEventMatrix.skippEvent(streamState.state, event)) continue
+        consumeEach { event ->
+            try {
+                if (StateToEventMatrix.skippEvent(streamState.state, event).not()) {
 
-            previousStreamState = streamState
+                    previousStreamState = streamState
 
-            streamState = when (event) {
-                is InternalEvent.DiscoverAddress -> discoverAddress(streamState)
-                is InternalEvent.StartServer -> startServer(streamState)
-                is InternalEvent.ComponentError -> componentError(streamState, event.appError)
-                is InternalEvent.StartStopFromWebPage -> startStopFromWebPage(streamState)
-                is InternalEvent.RestartServer -> restartServer(streamState, event.reason)
-                is InternalEvent.ScreenOff -> screenOff(streamState)
-                is InternalEvent.Destroy -> destroy(streamState)
+                    streamState = when (event) {
+                        is InternalEvent.DiscoverAddress -> discoverAddress(streamState)
+                        is InternalEvent.StartServer -> startServer(streamState)
+                        is InternalEvent.ComponentError -> componentError(streamState, event.appError)
+                        is InternalEvent.StartStopFromWebPage -> startStopFromWebPage(streamState)
+                        is InternalEvent.RestartServer -> restartServer(streamState, event.reason)
+                        is InternalEvent.ScreenOff -> screenOff(streamState)
+                        is InternalEvent.Destroy -> destroy(streamState)
 
-                is AppStateMachine.Event.StartStream -> startStream(streamState)
-                is AppStateMachine.Event.StartProjection -> startProjection(streamState, event.intent)
-                is AppStateMachine.Event.StopStream -> stopStream(streamState)
-                is AppStateMachine.Event.RequestPublicState -> requestPublicState(streamState)
-                is AppStateMachine.Event.RecoverError -> recoverError(streamState)
-                else -> throw IllegalArgumentException("Unknown AppStateMachine.Event: $event")
+                        is AppStateMachine.Event.StartStream -> startStream(streamState)
+                        is AppStateMachine.Event.StartProjection -> startProjection(streamState, event.intent)
+                        is AppStateMachine.Event.StopStream -> stopStream(streamState)
+                        is AppStateMachine.Event.RequestPublicState -> requestPublicState(streamState)
+                        is AppStateMachine.Event.RecoverError -> recoverError(streamState)
+                        else -> throw IllegalArgumentException("Unknown AppStateMachine.Event: $event")
+                    }
+
+                    if (streamState.isPublicStatePublishRequired(previousStreamState)) onEffect(streamState.toPublicState())
+
+                    XLog.i(this@AppStateMachineImpl.getLog("actor", "New state:${streamState.state}"))
+                }
+            } catch (throwable: Throwable) {
+                XLog.e(this@AppStateMachineImpl.getLog("actor"), throwable)
+                onError(FatalError.ActorException)
             }
-
-            if (streamState.isPublicStatePublishRequired(previousStreamState)) onEffect(streamState.toPublicState())
-
-            XLog.i(this@AppStateMachineImpl.getLog("actor", "New state:${streamState.state}"))
-        } catch (throwable: Throwable) {
-            XLog.e(this@AppStateMachineImpl.getLog("actor"), throwable)
-            onError(FatalError.ActorException)
         }
     }
 

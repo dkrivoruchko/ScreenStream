@@ -11,8 +11,8 @@ android {
     defaultConfig {
         minSdkVersion(minSdk)
         targetSdkVersion(targetSdk)
-        versionCode = 30012
-        versionName = "3.0.12"
+        versionCode = 30013
+        versionName = "3.0.13"
     }
 
     buildTypes {
@@ -47,6 +47,7 @@ androidExtensions { experimental = true }
 kapt { useBuildCache = true }
 
 dependencies {
+    implementation("org.jetbrains:annotations:$jetbrainsAnnotations")
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlinVersion")
     implementation("org.jetbrains.kotlin:kotlin-android-extensions-runtime:$kotlinVersion")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutineVersion")
