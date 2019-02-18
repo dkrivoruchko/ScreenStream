@@ -159,6 +159,13 @@ class SettingsFragment : Fragment() {
             cl_fragment_settings_start_on_boot.setOnClickListener { performClick() }
         }
 
+        // Interface - Notify slow connections
+        with(cb_fragment_settings_notify_slow_connections) {
+            isChecked = settings.notifySlowConnections
+            setOnClickListener { settings.notifySlowConnections = isChecked }
+            cl_fragment_settings_notify_slow_connections.setOnClickListener { performClick() }
+        }
+
         // Web page - Image buttons
         with(cb_fragment_settings_html_buttons) {
             isChecked = settings.htmlEnableButtons

@@ -48,7 +48,7 @@ class AboutFragment : Fragment() {
                             Uri.parse("market://details?id=$packageName")
                         ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     )
-                } catch (ex: ActivityNotFoundException) {
+                } catch (ignore: ActivityNotFoundException) {
                     startActivity(
                         Intent(
                             Intent.ACTION_VIEW,
@@ -69,12 +69,16 @@ class AboutFragment : Fragment() {
         }
 
         b_fragment_about_sources.setOnClickListener {
-            startActivity(
-                Intent(
-                    Intent.ACTION_VIEW,
-                    Uri.parse("https://github.com/dkrivoruchko/ScreenStream")
-                ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            )
+            try {
+                startActivity(
+                    Intent(
+                        Intent.ACTION_VIEW,
+                        Uri.parse("https://github.com/dkrivoruchko/ScreenStream")
+                    ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                )
+
+            } catch (ignore: ActivityNotFoundException) {
+            }
         }
     }
 }

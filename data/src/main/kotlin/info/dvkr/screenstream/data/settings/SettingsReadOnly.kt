@@ -8,6 +8,7 @@ interface SettingsReadOnly {
     val minimizeOnStream: Boolean
     val stopOnSleep: Boolean
     val startOnBoot: Boolean
+    val notifySlowConnections: Boolean
 
     val htmlEnableButtons: Boolean
     val htmlBackColor: Int

@@ -21,10 +21,6 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.App.DayNight"
         tools:ignore="GoogleAppIndexingWarning">
-        <meta-data
-            android:name="io.fabric.ApiKey"
-            android:value="fdc0202c5726f3a7f8da8d257fd86099b6effc38" />
-
         <activity
             android:name=".ui.activity.AppActivity"
             android:launchMode="singleTask">
