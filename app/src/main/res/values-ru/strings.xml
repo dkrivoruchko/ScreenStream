@@ -21,14 +21,14 @@
     <string name="stream_fragment_no_address">Адреса не найдены</string>
     <string name="stream_fragment_interface">Интерфейс: %1$s</string>
     <string name="stream_fragment_copied">Скопировано</string>
-    <string name="stream_fragment_no_web_browser_found">Не найдеи веб-браузер</string>
+    <string name="stream_fragment_no_web_browser_found">Не найден веб-браузер</string>
     <string name="stream_fragment_pin">PIN-код: %1$s</string>
     <string name="stream_fragment_pin_disabled">PIN-код выключен</string>
     <string name="stream_fragment_client_disconnected">Отключен</string>
     <string name="stream_fragment_client_slow_network">Медленный</string>
     <string name="stream_fragment_client_connected">Подключен</string>
 
-    <string name="item_device_address">Адрес устойства:</string>
+    <string name="item_device_address">Адрес устройства:</string>
 
     <string name="permission_activity_error_title_activity_not_found">Ошибка диалога доступа</string>
     <string name="permission_activity_error_activity_not_found">Баг Андроида. Не отмечайте \"Больше не показывать\" в диалоге запроса доступа к изображению экрана. Если вы уже отметили, переустановите приложение.</string>
