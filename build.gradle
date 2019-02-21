@@ -23,7 +23,7 @@ buildscript {
         rxRelay = "1.2.0"
         xlog = "1.6.1"
         netty = "4.1.33.Final"
-        rxNetty = "0.5.3-rc.4"
+        rxNetty = "0.5.3"
 
         firebaseCore = "16.0.7"
         fabricCrashlytics = "2.9.9"
