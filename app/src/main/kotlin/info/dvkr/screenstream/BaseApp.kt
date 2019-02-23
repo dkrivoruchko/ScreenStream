@@ -30,12 +30,12 @@ abstract class BaseApp : Application() {
 
         startKoin(this, listOf(baseKoinModule))
 
-        initLogger()
-
         val defaultHandler = Thread.getDefaultUncaughtExceptionHandler()
         Thread.setDefaultUncaughtExceptionHandler { thread: Thread, throwable: Throwable ->
             XLog.e("Uncaught throwable in thread ${thread.name}", throwable)
             defaultHandler.uncaughtException(thread, throwable)
         }
+
+        initLogger()
     }
 }
