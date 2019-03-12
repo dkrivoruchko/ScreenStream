@@ -5,8 +5,9 @@ An Android mobile app for viewing device screen in your web browser.
 <img alt='Get it on Google Play' src='https://play.google.com/intl/en_us/badges/images/generic/en_badge_web_generic.png' height="100"/></a>
 <a href="https://f-droid.org/packages/info.dvkr.screenstream/" target="_blank">
 <img src="https://f-droid.org/badge/get-it-on.png" alt="Get it on F-Droid" height="100"/></a>
+<br>
 <a href="https://aapks.com/apk/screen-stream/">
-<img src="https://aapks.com/xheader.png,q1=1.pagespeed.ic.2Yhmyb_8O_.png" alt="Get it on AAPKS" height="100"/></a>
+<img src="https://aapks.com/xheader.png,q1=1.pagespeed.ic.2Yhmyb_8O_.png" alt="Get it on AAPKS" style="background-color:#000"/></a>
 
 The application allows viewing the device screen in your web browser.
 The main idea is to show your device screen during presentations and demos.
