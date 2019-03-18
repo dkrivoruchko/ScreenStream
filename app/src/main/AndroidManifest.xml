@@ -23,6 +23,14 @@
         tools:ignore="GoogleAppIndexingWarning">
 
         <meta-data
+            android:name="google_analytics_adid_collection_enabled"
+            android:value="false" />
+
+        <meta-data
+            android:name="firebase_analytics_collection_deactivated"
+            android:value="true" />
+
+        <meta-data
             android:name="io.fabric.ApiKey"
             android:value="fdc0202c5726f3a7f8da8d257fd86099b6effc38" />
 
