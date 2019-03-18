@@ -99,7 +99,7 @@
             android:layout_height="wrap_content"
             android:paddingStart="16dp"
             android:paddingEnd="16dp"
-            android:text="@string/about_fragment_app_sources"
+            android:text="@string/about_fragment_privacy_policy"
             app:icon="@drawable/ic_about_policy_24dp"
             app:iconPadding="8dp"
             app:layout_constraintEnd_toEndOf="parent"
