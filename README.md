@@ -73,6 +73,10 @@ Dmitriy Krivoruchko - <dkrivoruchko@gmail.com>
 
 If there are any issues or ideas feel free to contact me.
 
+## Privacy Policy
+
+App [privacy policy](https://github.com/dkrivoruchko/ScreenStream/blob/master/PrivacyPolicy.md)
+
 ## License
 
 ```

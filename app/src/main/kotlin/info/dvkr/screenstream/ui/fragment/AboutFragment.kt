@@ -80,5 +80,19 @@ class AboutFragment : Fragment() {
             } catch (ignore: ActivityNotFoundException) {
             }
         }
+
+        b_fragment_privacy_policy.setOnClickListener {
+            try {
+                startActivity(
+                    Intent(
+                        Intent.ACTION_VIEW,
+                        Uri.parse("https://github.com/dkrivoruchko/ScreenStream/blob/master/PrivacyPolicy.md")
+                    ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                )
+
+            } catch (ignore: ActivityNotFoundException) {
+            }
+        }
+
     }
 }

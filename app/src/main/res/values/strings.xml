@@ -120,4 +120,5 @@
     <string name="about_fragment_send_email">Send email to developer</string>
     <string name="about_fragment_email_chooser_header">Sending email…</string>
     <string name="about_fragment_app_sources">Application sources</string>
+    <string name="about_fragment_privacy_policy">Privacy policy</string>
 </resources>

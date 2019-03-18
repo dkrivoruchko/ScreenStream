@@ -16,7 +16,7 @@ The app does use third party services that may collect information used to ident
 
 Link to privacy policy of third party service providers used by the app
 
-  -   ![Google Play Services](https://www.google.com/policies/privacy/)  
+  - <a href="https://www.google.com/policies/privacy/">Google Play Services</a>
 
 ### Log Data
 
@@ -57,4 +57,5 @@ I may update our Privacy Policy from time to time. Thus, you are advised to revi
 
 ### Contact Us
 
-If you have any questions or suggestions about my Privacy Policy, do not hesitate to contact me. 
+If you have any questions or suggestions about my Privacy Policy, do not hesitate to contact me.
+<br>Dmitriy Krivoruchko - <dkrivoruchko@gmail.com>
