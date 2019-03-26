@@ -19,7 +19,7 @@
     <string name="stream_fragment_current_traffic">Ruch: %1$,.2f Mbit/s</string>
     <string name="stream_fragment_connected_clients">Połączeni klienci: %1$d</string>
     <string name="stream_fragment_no_address">Nie znaleziono adresu</string>
-    <string name="stream_fragment_interface">Interface: %1$s</string>
+    <string name="stream_fragment_interface">Łącze: %1$s</string>
     <string name="stream_fragment_copied">Skopiowano</string>
     <string name="stream_fragment_no_web_browser_found">Nie znaleziono przeglądarki internetowej</string>
     <string name="stream_fragment_pin">Kod PIN: %1$s</string>
@@ -55,12 +55,16 @@
         <item>Tylko oszczędzanie baterii</item>
         <item>Nigdy</item>
     </string-array>
+    <string name="pref_notification">Ustawienia powiadomień urządzenia</string>
+    <string name="pref_notification_summary">Otwórz ustawienia powiadomień systemu</string>
     <string name="pref_minimize_on_stream">Zminimalizuj podczas transmisji</string>
     <string name="pref_minimise_on_stream_summary">Minimalizuj okno aplikacji podczas uruchamiania transmisji</string>
     <string name="pref_stop_on_sleep">Zatrzymaj transmisję przy uśpieniu</string>
     <string name="pref_stop_on_sleep_summary">Zatrzymaj transmisję, jeśli ekran się wyłączy</string>
     <string name="pref_start_on_boot">Uruchom transmisję przy starcie</string>
     <string name="pref_start_on_boot_summary">Uruchom trnsmisję po uruchomieniu urządzenia</string>
+    <string name="pref_detect_slow_connections">Powiadamiaj o wolnych połączeniach</string>
+    <string name="pref_detect_slow_connections_summary">Wykryj i powiadom o wolnym połączeniu klienta</string>
     <string name="pref_settings_web_page">Strona internetowa</string>
     <string name="pref_html_buttons">Włącz przyciski strony internetowej</string>
     <string name="pref_html_buttons_summary">Pokaż przyciski sterowania na stronie internetowej</string>
@@ -87,7 +91,7 @@
     <string name="pref_auto_change_pin">Automatyczna zmiana kodu PIN</string>
     <string name="pref_auto_change_pin_summary">Wygeneruj nowy kod PIN dla każdej transmisji</string>
     <string name="pref_set_pin">Ustaw kod PIN</string>
-    <string name="pref_set_pin_summary">Podaj kod pin</string>
+    <string name="pref_set_pin_summary">Podaj kod PIN</string>
     <string name="pref_set_pin_dialog">Wprowadź kod PIN.\nDomyślnie: 0000</string>
     <string name="pref_settings_advanced">Zaawansowane</string>
     <string name="pref_wifi_only">Używaj tylko WiFi</string>
@@ -100,10 +104,12 @@
     <string name="pref_logging">Włącz dzienniki aplikacji</string>
     <string name="pref_logging_summary">Zbieraj dzienniki aplikacji</string>
 
+    <string name="about_fragment_app_name" translatable="false">Screen Stream przez HTTP</string>
     <string name="about_fragment_app_version">Wersja: %1$s</string>
     <string name="about_fragment_developer_name">Programista Dmitriy Krivoruchko</string>
     <string name="about_fragment_rate_app">Oceń aplikację</string>
     <string name="about_fragment_send_email">Wyślij e-mail do autora</string>
     <string name="about_fragment_email_chooser_header">Wysłam wiadomość e-mail…</string>
     <string name="about_fragment_app_sources">Kod źródłowy aplikacji</string>
+    <string name="about_fragment_privacy_policy">Polityka prywatności</string>
 </resources>
