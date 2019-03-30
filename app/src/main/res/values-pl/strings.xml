@@ -104,7 +104,6 @@
     <string name="pref_logging">Włącz dzienniki aplikacji</string>
     <string name="pref_logging_summary">Zbieraj dzienniki aplikacji</string>
 
-    <string name="about_fragment_app_name" translatable="false">Screen Stream przez HTTP</string>
     <string name="about_fragment_app_version">Wersja: %1$s</string>
     <string name="about_fragment_developer_name">Programista Dmitriy Krivoruchko</string>
     <string name="about_fragment_rate_app">Oceń aplikację</string>

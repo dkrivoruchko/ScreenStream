@@ -13,8 +13,8 @@ android {
         applicationId = "info.dvkr.screenstream"
         minSdkVersion(minSdk)
         targetSdkVersion(targetSdk)
-        versionCode = 30018
-        versionName = "3.0.18"
+        versionCode = 30100
+        versionName = "3.1.0"
         resConfigs("en", "ru", "pt-rBR", "zh-rTW", "fr-rFR", "fa", "it", "pl")
 
         vectorDrawables.useSupportLibrary = true
@@ -67,7 +67,7 @@ dependencies {
     implementation project(':data')
 
     implementation("org.jetbrains:annotations:$jetbrainsAnnotations")
-    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlinVersion")
+    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlinVersion")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutineVersion")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:$coroutineVersion")
 
@@ -78,6 +78,7 @@ dependencies {
 
     implementation("com.tapadoo.android:alerter:$alerter")
     implementation("com.afollestad.material-dialogs:core:$materialDialogs")
+    implementation("com.afollestad.material-dialogs:lifecycle:$materialDialogs")
     implementation("com.afollestad.material-dialogs:color:$materialDialogs")
     implementation("com.afollestad.material-dialogs:input:$materialDialogs")
 

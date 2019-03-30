@@ -11,8 +11,8 @@ android {
     defaultConfig {
         minSdkVersion(minSdk)
         targetSdkVersion(targetSdk)
-        versionCode = 30018
-        versionName = "3.0.18"
+        versionCode = 30100
+        versionName = "3.1.0"
     }
 
     buildTypes {
@@ -48,7 +48,7 @@ kapt { useBuildCache = true }
 
 dependencies {
     implementation("org.jetbrains:annotations:$jetbrainsAnnotations")
-    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlinVersion")
+    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlinVersion")
     implementation("org.jetbrains.kotlin:kotlin-android-extensions-runtime:$kotlinVersion")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutineVersion")
 

@@ -10,7 +10,9 @@ import info.dvkr.screenstream.di.baseKoinModule
 import info.dvkr.screenstream.logging.DateSuffixFileNameGenerator
 import info.dvkr.screenstream.logging.getLogFolder
 import org.koin.android.ext.android.inject
-import org.koin.android.ext.android.startKoin
+import org.koin.android.ext.koin.androidContext
+import org.koin.android.ext.koin.androidLogger
+import org.koin.core.context.startKoin
 
 abstract class BaseApp : Application() {
 
@@ -28,7 +30,11 @@ abstract class BaseApp : Application() {
     override fun onCreate() {
         super.onCreate()
 
-        startKoin(this, listOf(baseKoinModule))
+        startKoin {
+            androidLogger()
+            androidContext(this@BaseApp)
+            modules(baseKoinModule)
+        }
 
         val defaultHandler = Thread.getDefaultUncaughtExceptionHandler()
         Thread.setDefaultUncaughtExceptionHandler { thread: Thread, throwable: Throwable ->

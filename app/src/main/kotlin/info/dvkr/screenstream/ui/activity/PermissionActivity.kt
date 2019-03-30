@@ -10,6 +10,7 @@ import androidx.annotation.StringRes
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import com.afollestad.materialdialogs.MaterialDialog
+import com.afollestad.materialdialogs.lifecycle.lifecycleOwner
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.data.other.getLog
@@ -34,9 +35,6 @@ class PermissionActivity : AppCompatActivity() {
         overridePendingTransition(0, 0)
         setNightMode(settingsReadOnly.nightMode)
         super.onCreate(savedInstanceState)
-
-        if (materialDialog != null)
-            XLog.e(getLog("onCreate", "materialDialog != null"), IllegalStateException("materialDialog != null"))
 
         val projectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
         try {
@@ -84,6 +82,7 @@ class PermissionActivity : AppCompatActivity() {
         materialDialog?.dismiss()
 
         materialDialog = MaterialDialog(this).show {
+            lifecycleOwner(this@PermissionActivity)
             icon(R.drawable.ic_permission_dialog_24dp)
             title(titleRes)
             message(messageRes)
@@ -94,8 +93,6 @@ class PermissionActivity : AppCompatActivity() {
     }
 
     private fun closeActivity(intentAction: IntentAction) {
-        materialDialog?.dismiss()
-        materialDialog = null
         intentAction.sendToAppService(this@PermissionActivity)
         finish()
         overridePendingTransition(0, 0)

@@ -19,11 +19,13 @@ import androidx.fragment.app.Fragment
 import com.afollestad.materialdialogs.MaterialDialog
 import com.afollestad.materialdialogs.WhichButton
 import com.afollestad.materialdialogs.actions.setActionButtonEnabled
+import com.afollestad.materialdialogs.color.ColorPalette
 import com.afollestad.materialdialogs.color.colorChooser
 import com.afollestad.materialdialogs.customview.customView
 import com.afollestad.materialdialogs.customview.getCustomView
 import com.afollestad.materialdialogs.input.getInputField
 import com.afollestad.materialdialogs.input.input
+import com.afollestad.materialdialogs.lifecycle.lifecycleOwner
 import com.afollestad.materialdialogs.list.listItemsSingleChoice
 import com.elvishew.xlog.XLog
 import com.google.android.material.textfield.TextInputEditText
@@ -81,8 +83,6 @@ class SettingsFragment : Fragment() {
         }
     }
 
-    private var materialDialog: MaterialDialog? = null
-
     private val screenSize: Point by lazy {
         Point().apply {
             ContextCompat.getSystemService(requireContext(), WindowManager::class.java)
@@ -115,8 +115,8 @@ class SettingsFragment : Fragment() {
         tv_fragment_settings_night_mode_summary.text = resources.getStringArray(R.array.pref_night_mode_options)[index]
         cl_fragment_settings_night_mode.setOnClickListener {
             val indexOld = nightModeList.first { it.second == settings.nightMode }.first
-            materialDialog?.hide()
-            materialDialog = MaterialDialog(requireActivity()).show {
+            MaterialDialog(requireActivity()).show {
+                lifecycleOwner(viewLifecycleOwner)
                 title(R.string.pref_night_mode)
                 icon(R.drawable.ic_settings_night_mode_24dp)
                 listItemsSingleChoice(R.array.pref_night_mode_options, initialSelection = indexOld) { _, index, _ ->
@@ -172,25 +172,16 @@ class SettingsFragment : Fragment() {
             setOnClickListener { settings.htmlEnableButtons = isChecked }
             cl_fragment_settings_html_buttons.setOnClickListener { performClick() }
         }
-
         // Web page - HTML Back color
         v_fragment_settings_html_back_color.color = settings.htmlBackColor
         v_fragment_settings_html_back_color.border = ContextCompat.getColor(requireContext(), R.color.textColorPrimary)
         cl_fragment_settings_html_back_color.setOnClickListener {
-            materialDialog?.hide()
-            materialDialog = MaterialDialog(requireActivity()).show {
+            MaterialDialog(requireActivity()).show {
+                lifecycleOwner(viewLifecycleOwner)
                 title(R.string.pref_html_back_color_title)
                 icon(R.drawable.ic_settings_html_back_color_24dp)
                 colorChooser(
-                    colors = intArrayOf(
-                        parseColor("#F44336"), parseColor("#E91E63"), parseColor("#9C27B0"),
-                        parseColor("#673AB7"), parseColor("#3F51B5"), parseColor("#2196F3"),
-                        parseColor("#03A9F4"), parseColor("#00BCD4"), parseColor("#009688"),
-                        parseColor("#4CAF50"), parseColor("#8BC34A"), parseColor("#CDDC39"),
-                        parseColor("#FFEB3B"), parseColor("#FFC107"), parseColor("#FF9800"),
-                        parseColor("#FF5722"), parseColor("#795548"), parseColor("#9E9E9E"),
-                        parseColor("#607D8B"), parseColor("#000000")
-                    ),
+                    colors = ColorPalette.Primary + parseColor("#000000"),
                     initialSelection = settings.htmlBackColor,
                     allowCustomArgb = true
                 ) { _, color -> if (settings.htmlBackColor != color) settings.htmlBackColor = color }
@@ -203,8 +194,8 @@ class SettingsFragment : Fragment() {
         tv_fragment_settings_resize_image_value.text = getString(R.string.pref_resize_value, settings.resizeFactor)
         val resizePictureSizeString = getString(R.string.pref_resize_dialog_result)
         cl_fragment_settings_resize_image.setOnClickListener {
-            materialDialog?.hide()
-            materialDialog = MaterialDialog(requireActivity())
+            MaterialDialog(requireActivity())
+                .lifecycleOwner(viewLifecycleOwner)
                 .title(R.string.pref_resize)
                 .icon(R.drawable.ic_settings_resize_24dp)
                 .customView(R.layout.dialog_settings_resize)
@@ -254,8 +245,8 @@ class SettingsFragment : Fragment() {
         tv_fragment_settings_rotation_value.text = getString(R.string.pref_rotate_value, settings.rotation)
         cl_fragment_settings_rotation.setOnClickListener {
             val indexOld = rotationList.first { it.second == settings.rotation }.first
-            materialDialog?.hide()
-            materialDialog = MaterialDialog(requireActivity()).show {
+            MaterialDialog(requireActivity()).show {
+                lifecycleOwner(viewLifecycleOwner)
                 title(R.string.pref_rotate)
                 icon(R.drawable.ic_settings_rotation_24dp)
                 listItemsSingleChoice(R.array.pref_rotate_options, initialSelection = indexOld) { _, index, _ ->
@@ -270,8 +261,8 @@ class SettingsFragment : Fragment() {
         // Image - Jpeg Quality
         tv_fragment_settings_jpeg_quality_value.text = settings.jpegQuality.toString()
         cl_fragment_settings_jpeg_quality.setOnClickListener {
-            materialDialog?.hide()
-            materialDialog = MaterialDialog(requireActivity()).show {
+            MaterialDialog(requireActivity()).show {
+                lifecycleOwner(viewLifecycleOwner)
                 title(R.string.pref_jpeg_quality)
                 icon(R.drawable.ic_settings_high_quality_24dp)
                 message(R.string.pref_jpeg_quality_dialog)
@@ -345,8 +336,8 @@ class SettingsFragment : Fragment() {
         // Security - Set pin
         tv_fragment_settings_set_pin_value.text = settings.pin
         cl_fragment_settings_set_pin.setOnClickListener {
-            materialDialog?.hide()
-            materialDialog = MaterialDialog(requireActivity()).show {
+            MaterialDialog(requireActivity()).show {
+                lifecycleOwner(viewLifecycleOwner)
                 title(R.string.pref_set_pin)
                 icon(R.drawable.ic_settings_key_24dp)
                 message(R.string.pref_set_pin_dialog)
@@ -386,8 +377,8 @@ class SettingsFragment : Fragment() {
         // Advanced - Server port
         tv_fragment_settings_server_port_value.text = settings.severPort.toString()
         cl_fragment_settings_server_port.setOnClickListener {
-            materialDialog?.hide()
-            materialDialog = MaterialDialog(requireActivity()).show {
+            MaterialDialog(requireActivity()).show {
+                lifecycleOwner(viewLifecycleOwner)
                 title(R.string.pref_server_port)
                 icon(R.drawable.ic_settings_http_24dp)
                 message(R.string.pref_server_port_dialog)
@@ -430,8 +421,6 @@ class SettingsFragment : Fragment() {
     override fun onStop() {
         XLog.d(getLog("onStop", "Invoked"))
         settings.unregisterChangeListener(settingsListener)
-        materialDialog?.dismiss()
-        materialDialog = null
         super.onStop()
     }
 

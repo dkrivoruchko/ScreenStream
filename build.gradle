@@ -9,23 +9,23 @@ buildscript {
         kotlinVersion = "1.3.21"
         coroutineVersion = "1.1.1"
 
-        androidxAnnotation = "1.0.1"
+        androidxAnnotation = "1.0.2"
         androidxCore = "1.0.1"
         androidMaterial = "1.0.0"
         androidxAppcompat = "1.0.2"
         androidxConstraint = "1.1.3"
 
-        alerter = "4.0.0"
-        materialDialogs = "2.0.0"
-        koin = "1.0.2"
+        alerter = "4.0.2"
+        materialDialogs = "2.6.0"
+        koin = "2.0.0-rc-2"
         binaryprefs = "1.0.1"
         rxJava = "1.3.8"
         rxRelay = "1.2.0"
         xlog = "1.6.1"
-        netty = "4.1.33.Final"
+        netty = "4.1.34.Final"
         rxNetty = "0.5.3"
 
-        firebaseCore = "16.0.7"
+        firebaseCore = "16.0.8"
         fabricCrashlytics = "2.9.9"
         leakcanary = "1.6.3"
     }
@@ -41,7 +41,7 @@ buildscript {
         classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion")
         classpath("com.google.gms:google-services:4.2.0")
         classpath("com.getkeepsafe.dexcount:dexcount-gradle-plugin:0.8.6")
-        classpath("io.fabric.tools:gradle:1.27.1")
+        classpath("io.fabric.tools:gradle:1.28.1")
     }
 }
 
