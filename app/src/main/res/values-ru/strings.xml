@@ -22,6 +22,7 @@
     <string name="stream_fragment_interface">Интерфейс: %1$s</string>
     <string name="stream_fragment_copied">Скопировано</string>
     <string name="stream_fragment_no_web_browser_found">Не найден веб-браузер</string>
+    <string name="stream_fragment_external_app_error">Ошибка внешнего приложения</string>
     <string name="stream_fragment_pin">PIN-код: %1$s</string>
     <string name="stream_fragment_pin_disabled">PIN-код выключен</string>
     <string name="stream_fragment_client_disconnected">Отключен</string>

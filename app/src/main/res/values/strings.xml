@@ -23,6 +23,7 @@
     <string name="stream_fragment_interface">Interface: %1$s</string>
     <string name="stream_fragment_copied">Copied</string>
     <string name="stream_fragment_no_web_browser_found">No web browser found</string>
+    <string name="stream_fragment_external_app_error">External application error</string>
     <string name="stream_fragment_pin">Pin: %1$s</string>
     <string name="stream_fragment_pin_disabled">Pin is disabled</string>
     <string name="stream_fragment_client_disconnected">Disconnected</string>

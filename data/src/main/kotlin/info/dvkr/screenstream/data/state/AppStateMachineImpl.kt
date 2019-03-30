@@ -105,7 +105,7 @@ class AppStateMachineImpl(
         }
     }
 
-    private val eventChannel: SendChannel<AppStateMachine.Event> = actor(capacity = 8) {
+    private val eventChannel: SendChannel<AppStateMachine.Event> = actor(capacity = 16) {
         var streamState = StreamState()
         var previousStreamState: StreamState
 

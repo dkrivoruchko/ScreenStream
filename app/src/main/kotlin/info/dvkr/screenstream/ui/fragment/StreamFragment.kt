@@ -161,6 +161,11 @@ class StreamFragment : Fragment() {
                 requireContext().applicationContext, R.string.stream_fragment_no_web_browser_found, Toast.LENGTH_LONG
             ).show()
             XLog.w(getLog("openInBrowser", ex.toString()))
+        } catch (ex: SecurityException) {
+            Toast.makeText(
+                requireContext().applicationContext, R.string.stream_fragment_external_app_error, Toast.LENGTH_LONG
+            ).show()
+            XLog.w(getLog("openInBrowser", ex.toString()))
         }
     }
 
