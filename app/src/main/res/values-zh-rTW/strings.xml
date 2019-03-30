@@ -84,7 +84,7 @@
     <string name="about_fragment_app_version">版本：%1$s</string>
     <string name="about_fragment_developer_name">由Dmitriy Krivoruchko開發</string>
     <string name="about_fragment_rate_app">給評分</string>
-    <string name="about_fragment_send_email">寄信給開發者</string>
+    <string name="about_fragment_write_email">寄信給開發者</string>
     <string name="about_fragment_email_chooser_header">發送郵件…</string>
     <string name="about_fragment_app_sources">應用程式原始碼</string>
 </resources>

@@ -84,7 +84,7 @@
     <string name="about_fragment_app_version">نسخه: %1$s</string>
     <string name="about_fragment_developer_name">توسعه‌داده شده توسط Dmitriy Krivoruchko</string>
     <string name="about_fragment_rate_app">امتیاز به این کاره</string>
-    <string name="about_fragment_send_email">فرستادن رایانه به توسعه‌دهنده</string>
+    <string name="about_fragment_write_email">فرستادن رایانه به توسعه‌دهنده</string>
     <string name="about_fragment_email_chooser_header">درحال فرستادن رایانامه…</string>
     <string name="about_fragment_app_sources">کدمنبع برنامه</string>
 </resources>

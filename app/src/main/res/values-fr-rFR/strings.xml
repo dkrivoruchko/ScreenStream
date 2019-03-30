@@ -101,7 +101,7 @@
     <string name="about_fragment_app_version">Version: %1$s</string>
     <string name="about_fragment_developer_name">Développé par Dmitriy Krivoruchko</string>
     <string name="about_fragment_rate_app">Évaluer l\'application</string>
-    <string name="about_fragment_send_email">Envoyer un courriel au développeur</string>
+    <string name="about_fragment_write_email">Envoyer un courriel au développeur</string>
     <string name="about_fragment_email_chooser_header">Envoi du courriel…</string>
     <string name="about_fragment_app_sources">Code source de l\'application</string>
 </resources>

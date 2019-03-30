@@ -49,6 +49,6 @@
 
     <style name="AlerterButton" parent="Widget.MaterialComponents.Button.TextButton">
         <item name="android:background">#00ffffff</item>
-        <item name="android:textColor">@color/colorPrimary</item>
+        <item name="android:textColor">#FFFFFF</item>
     </style>
 </resources>

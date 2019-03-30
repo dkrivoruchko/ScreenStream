@@ -68,7 +68,6 @@ class AppActivity : BaseActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_app)
 
-        AppService.startForeground(this)
         if (savedInstanceState == null) fragmentRouter.navigateTo(R.id.menu_stream_fragment)
 
         // TODO Fix for https://github.com/material-components/material-components-android/issues/139

@@ -8,6 +8,8 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
+import com.afollestad.materialdialogs.MaterialDialog
+import com.afollestad.materialdialogs.lifecycle.lifecycleOwner
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.data.other.getLog
@@ -60,12 +62,22 @@ class AboutFragment : Fragment() {
         }
 
         b_fragment_about_developer_email.setOnClickListener {
-            val emailIntent = Intent(Intent.ACTION_SENDTO)
-                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                .setData(Uri.Builder().scheme("mailto").build())
-                .putExtra(Intent.EXTRA_EMAIL, arrayOf("Dmitriy Krivoruchko <dkrivoruchko@gmail.com>"))
-                .putExtra(Intent.EXTRA_SUBJECT, "Screen Stream Feedback ($version)")
-            startActivity(Intent.createChooser(emailIntent, getString(R.string.about_fragment_email_chooser_header)))
+            MaterialDialog(requireActivity()).show {
+                lifecycleOwner(viewLifecycleOwner)
+                title(R.string.about_fragment_write_email_dialog)
+                icon(R.drawable.ic_about_feedback_24dp)
+                positiveButton(android.R.string.yes) {
+                    val emailIntent = Intent(Intent.ACTION_SENDTO)
+                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        .setData(Uri.Builder().scheme("mailto").build())
+                        .putExtra(Intent.EXTRA_EMAIL, arrayOf("Dmitriy Krivoruchko <dkrivoruchko@gmail.com>"))
+                        .putExtra(Intent.EXTRA_SUBJECT, "Screen Stream Feedback ($version)")
+                    startActivity(
+                        Intent.createChooser(emailIntent, getString(R.string.about_fragment_email_chooser_header))
+                    )
+                }
+                negativeButton(android.R.string.cancel)
+            }
         }
 
         b_fragment_about_sources.setOnClickListener {
