@@ -66,7 +66,8 @@ class AboutFragment : Fragment() {
                 lifecycleOwner(viewLifecycleOwner)
                 title(R.string.about_fragment_write_email_dialog)
                 icon(R.drawable.ic_about_feedback_24dp)
-                positiveButton(android.R.string.yes) {
+                positiveButton(android.R.string.cancel)
+                negativeButton(android.R.string.yes) {
                     val emailIntent = Intent(Intent.ACTION_SENDTO)
                         .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                         .setData(Uri.Builder().scheme("mailto").build())
@@ -76,7 +77,6 @@ class AboutFragment : Fragment() {
                         Intent.createChooser(emailIntent, getString(R.string.about_fragment_email_chooser_header))
                     )
                 }
-                negativeButton(android.R.string.cancel)
             }
         }
 

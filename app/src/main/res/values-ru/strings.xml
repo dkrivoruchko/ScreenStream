@@ -8,6 +8,8 @@
     <string name="app_activity_error_exit">Выход</string>
     <string name="app_activity_collecting_logs">Идет логирование…</string>
     <string name="app_activity_send_logs">Отправить лог разработчику</string>
+    <string name="app_activity_send_logs_dialog_title">Отправить лог разработчику</string>
+    <string name="app_activity_send_logs_dialog_message">Опишите проблему:</string>
 
     <string name="bottom_menu_stream">Главная</string>
     <string name="bottom_menu_settings">Настройки</string>

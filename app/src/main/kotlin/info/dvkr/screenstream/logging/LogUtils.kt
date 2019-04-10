@@ -17,7 +17,7 @@ internal fun Context.getLogFolder(): String = this.cacheDir.absolutePath
 internal fun Context.getLogZipFolder(): String = "${this.filesDir.absolutePath}/logs/"
 internal fun Context.getLogZipFile(): String = this.getLogZipFolder() + "logs.zip"
 
-internal fun sendLogsInEmail(context: Context) {
+internal fun sendLogsInEmail(context: Context, text:String) {
     GlobalScope.launch {
         LogUtils.compress(context.getLogFolder(), context.getLogZipFile())
 
@@ -38,7 +38,7 @@ internal fun sendLogsInEmail(context: Context) {
             .setType("vnd.android.cursor.dir/email")
             .putExtra(Intent.EXTRA_EMAIL, arrayOf("Dmitriy Krivoruchko <dkrivoruchko@gmail.com>"))
             .putExtra(Intent.EXTRA_SUBJECT, "Screen Stream Logs ($version)")
-            .putExtra(Intent.EXTRA_TEXT, "$versions \n\n Please add issue description.")
+            .putExtra(Intent.EXTRA_TEXT, "$versions \n\n Issue description: \n\n $text")
             .putExtra(Intent.EXTRA_STREAM, fileUri)
             .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
 

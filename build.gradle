@@ -16,7 +16,7 @@ buildscript {
         androidxConstraint = "1.1.3"
 
         alerter = "4.0.2"
-        materialDialogs = "2.6.0"
+        materialDialogs = "2.7.0"
         koin = "2.0.0-rc-2"
         binaryprefs = "1.0.1"
         rxJava = "1.3.8"

@@ -9,6 +9,8 @@
     <string name="app_activity_error_exit">Exit</string>
     <string name="app_activity_collecting_logs">Collecting application logs…</string>
     <string name="app_activity_send_logs">Send logs to developer</string>
+    <string name="app_activity_send_logs_dialog_title">Send logs in email to developer</string>
+    <string name="app_activity_send_logs_dialog_message">Please add issue description:</string>
 
     <string name="bottom_menu_stream">Stream</string>
     <string name="bottom_menu_settings">Settings</string>
