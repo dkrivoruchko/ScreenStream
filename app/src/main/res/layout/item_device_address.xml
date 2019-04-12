@@ -63,6 +63,21 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        android:background="?android:selectableItemBackgroundBorderless"
+        android:clickable="true"
+        android:focusable="true"
+        android:padding="8dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/iv_item_device_address_share"
+        app:layout_constraintTop_toBottomOf="@id/tv_item_device_address"
+        app:srcCompat="@drawable/ic_copy_24dp" />
+
+    <androidx.appcompat.widget.AppCompatImageView
+        android:id="@+id/iv_item_device_address_share"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
         android:background="?android:selectableItemBackgroundBorderless"
         android:clickable="true"
         android:focusable="true"
@@ -70,5 +85,5 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toBottomOf="@id/tv_item_device_address"
-        app:srcCompat="@drawable/ic_copy_24dp" />
+        app:srcCompat="@drawable/ic_share_24dp" />
 </androidx.constraintlayout.widget.ConstraintLayout>

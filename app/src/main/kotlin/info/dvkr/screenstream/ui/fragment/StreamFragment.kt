@@ -112,11 +112,12 @@ class StreamFragment : Fragment() {
                     iv_item_device_address_open_external.setOnClickListener { openInBrowser(fullAddress) }
                     iv_item_device_address_copy.setOnClickListener {
                         clipboard?.primaryClip =
-                                ClipData.newPlainText(tv_item_device_address.text, tv_item_device_address.text)
+                            ClipData.newPlainText(tv_item_device_address.text, tv_item_device_address.text)
                         Toast.makeText(
                             requireContext().applicationContext, R.string.stream_fragment_copied, Toast.LENGTH_LONG
                         ).show()
                     }
+                    iv_item_device_address_share.setOnClickListener { shareAddress(fullAddress) }
                     ll_fragment_stream_addresses.addView(this)
                 }
             }
@@ -167,6 +168,15 @@ class StreamFragment : Fragment() {
             ).show()
             XLog.w(getLog("openInBrowser", ex.toString()))
         }
+    }
+
+    private fun shareAddress(fullAddress: String) {
+        val sharingIntent = Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(Intent.EXTRA_TEXT, fullAddress)
+        }
+        startActivity(Intent.createChooser(sharingIntent, getString(R.string.stream_fragment_share_address)))
+
     }
 
     private class HttpClientAdapter : ListAdapter<HttpClient, HttpClientViewHolder>(
