@@ -2,13 +2,13 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
     <item
-        android:id="@+id/menu_stream_fragment"
+        android:id="@+id/nav_streamFragment"
         android:enabled="true"
         android:icon="@drawable/ic_navigation_stream_24dp"
         android:title="@string/bottom_menu_stream"
         app:showAsAction="always" />
     <item
-        android:id="@+id/menu_settings_fragment"
+        android:id="@+id/nav_settingsFragment"
         android:enabled="true"
         android:icon="@drawable/ic_navigation_settings_24dp"
         android:title="@string/bottom_menu_settings"
@@ -19,13 +19,13 @@
         android:title=""
         app:showAsAction="always" />
     <item
-        android:id="@+id/menu_about_fragment"
+        android:id="@+id/nav_aboutFragment"
         android:enabled="true"
         android:icon="@drawable/ic_navigation_about_24dp"
         android:title="@string/bottom_menu_about"
         app:showAsAction="always" />
     <item
-        android:id="@+id/menu_action_exit"
+        android:id="@+id/nav_exitFragment"
         android:enabled="true"
         android:icon="@drawable/ic_navigation_exit_24dp"
         android:title="@string/bottom_menu_exit"

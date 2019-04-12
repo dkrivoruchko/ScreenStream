@@ -48,13 +48,16 @@
         android:background="@drawable/view_shadow_bottom"
         app:layout_constraintTop_toBottomOf="@id/ll_activity_app_logs" />
 
-    <FrameLayout
-        android:id="@+id/fl_activity_single"
+    <fragment
+        android:id="@+id/fr_activity_app_nav_host_fragment"
+        android:name="androidx.navigation.fragment.NavHostFragment"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_marginBottom="24dp"
+        app:defaultNavHost="true"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/ll_activity_app_logs" />
+        app:layout_constraintTop_toBottomOf="@id/ll_activity_app_logs"
+        app:navGraph="@navigation/nav_graph" />
 
     <info.dvkr.screenstream.ui.view.CurvedBottomNavigationView
         android:id="@+id/bottom_navigation_activity_app"

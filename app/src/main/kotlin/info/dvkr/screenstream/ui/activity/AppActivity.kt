@@ -2,6 +2,7 @@ package info.dvkr.screenstream.ui.activity
 
 import android.animation.ObjectAnimator
 import android.animation.PropertyValuesHolder
+import android.annotation.SuppressLint
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
@@ -10,6 +11,8 @@ import android.text.InputType
 import android.view.View
 import android.view.animation.OvershootInterpolator
 import android.widget.TextView
+import androidx.navigation.findNavController
+import androidx.navigation.ui.setupWithNavController
 import com.afollestad.materialdialogs.MaterialDialog
 import com.afollestad.materialdialogs.WhichButton
 import com.afollestad.materialdialogs.actions.setActionButtonEnabled
@@ -30,10 +33,6 @@ import info.dvkr.screenstream.data.settings.SettingsReadOnly
 import info.dvkr.screenstream.logging.sendLogsInEmail
 import info.dvkr.screenstream.service.ServiceMessage
 import info.dvkr.screenstream.service.helper.IntentAction
-import info.dvkr.screenstream.ui.fragment.AboutFragment
-import info.dvkr.screenstream.ui.fragment.SettingsFragment
-import info.dvkr.screenstream.ui.fragment.StreamFragment
-import info.dvkr.screenstream.ui.router.FragmentRouter
 import kotlinx.android.synthetic.main.activity_app.*
 
 class AppActivity : BaseActivity() {
@@ -43,14 +42,6 @@ class AppActivity : BaseActivity() {
             Intent(context.applicationContext, AppActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
     }
 
-    private val fragmentRouter: FragmentRouter by lazy {
-        FragmentRouter(
-            supportFragmentManager,
-            StreamFragment.getFragmentCreator(),
-            SettingsFragment.getFragmentCreator(),
-            AboutFragment.getFragmentCreator()
-        )
-    }
     private var isStreamingBefore: Boolean = true
     private var errorPrevious: AppError? = null
     private val scaleX = PropertyValuesHolder.ofFloat(View.SCALE_X, 0.5f, 1f)
@@ -63,18 +54,9 @@ class AppActivity : BaseActivity() {
         }
     }
 
-    override fun onBackPressed() {
-        fragmentRouter.onBackPressed()
-        val itemId = fragmentRouter.getCurrentMenuItemId()
-        if (itemId != 0) bottom_navigation_activity_app.selectedItemId = itemId
-        else super.onBackPressed()
-    }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_app)
-
-        if (savedInstanceState == null) fragmentRouter.navigateTo(R.id.menu_stream_fragment)
 
         // TODO Fix for https://github.com/material-components/material-components-android/issues/139
         // https://issuetracker.google.com/issues/115754572
@@ -84,17 +66,10 @@ class AppActivity : BaseActivity() {
                     .setPadding(0, 0, 0, 0)
         }
 
-        bottom_navigation_activity_app.setOnNavigationItemSelectedListener { menuItem ->
-            return@setOnNavigationItemSelectedListener when (menuItem.itemId) {
-                R.id.menu_stream_fragment,
-                R.id.menu_settings_fragment,
-                R.id.menu_about_fragment -> fragmentRouter.navigateTo(menuItem.itemId)
-
-                R.id.menu_action_exit -> {
-                    IntentAction.Exit.sendToAppService(this@AppActivity)
-                    true
-                }
-                else -> false
+        with(findNavController(R.id.fr_activity_app_nav_host_fragment)) {
+            bottom_navigation_activity_app.setupWithNavController(this)
+            addOnDestinationChangedListener { _, destination, _ ->
+                if (destination.id == R.id.nav_exitFragment) IntentAction.Exit.sendToAppService(this@AppActivity)
             }
         }
     }
@@ -131,6 +106,7 @@ class AppActivity : BaseActivity() {
         }
     }
 
+    @SuppressLint("RestrictedApi")
     override fun onServiceMessage(serviceMessage: ServiceMessage) {
         when (serviceMessage) {
             is ServiceMessage.ServiceState -> {

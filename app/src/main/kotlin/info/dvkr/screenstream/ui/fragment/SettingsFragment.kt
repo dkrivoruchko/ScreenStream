@@ -35,20 +35,11 @@ import info.dvkr.screenstream.data.settings.Settings
 import info.dvkr.screenstream.data.settings.SettingsReadOnly
 import info.dvkr.screenstream.logging.cleanLogFiles
 import info.dvkr.screenstream.service.helper.NotificationHelper
-import info.dvkr.screenstream.ui.router.FragmentRouter
 import kotlinx.android.synthetic.main.dialog_settings_resize.view.*
 import kotlinx.android.synthetic.main.fragment_settings.*
 import org.koin.android.ext.android.inject
 
 class SettingsFragment : Fragment() {
-
-    companion object {
-        fun getFragmentCreator() = object : FragmentRouter.FragmentCreator {
-            override fun getMenuItemId(): Int = R.id.menu_settings_fragment
-            override fun getTag(): String = SettingsFragment::class.java.name
-            override fun newInstance(): Fragment = SettingsFragment()
-        }
-    }
 
     private val notificationHelper: NotificationHelper by inject()
     private val settings: Settings by inject()
@@ -215,10 +206,10 @@ class SettingsFragment : Fragment() {
                         ti_dialog_settings_resize.counterMaxLength = 3
 
                         with(tiet_dialog_settings_resize) {
-                            addTextChangedListener(info.dvkr.screenstream.ui.fragment.SettingsFragment.SimpleTextWatcher { text ->
+                            addTextChangedListener(SimpleTextWatcher { text ->
                                 val isValid = text.length in 2..3 && text.toString().toInt() in 10..150
                                 this@Dialog.setActionButtonEnabled(
-                                    com.afollestad.materialdialogs.WhichButton.POSITIVE, isValid
+                                    WhichButton.POSITIVE, isValid
                                 )
                                 val newResizeFactor =
                                     (if (isValid) text.toString().toInt() else settings.resizeFactor) / 100f
@@ -228,7 +219,7 @@ class SettingsFragment : Fragment() {
                             })
                             setText(settings.resizeFactor.toString())
                             setSelection(settings.resizeFactor.toString().length)
-                            filters = kotlin.arrayOf<InputFilter>(android.text.InputFilter.LengthFilter(3))
+                            filters = arrayOf<InputFilter>(InputFilter.LengthFilter(3))
                         }
 
                         tv_dialog_settings_resize_result.text = resizePictureSizeString.format(

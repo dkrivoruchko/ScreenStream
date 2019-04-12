@@ -25,7 +25,6 @@ import info.dvkr.screenstream.data.settings.SettingsReadOnly
 import info.dvkr.screenstream.service.ServiceMessage
 import info.dvkr.screenstream.service.helper.IntentAction
 import info.dvkr.screenstream.ui.activity.BaseActivity
-import info.dvkr.screenstream.ui.router.FragmentRouter
 import kotlinx.android.extensions.LayoutContainer
 import kotlinx.android.synthetic.main.fragment_stream.*
 import kotlinx.android.synthetic.main.item_client.*
@@ -33,17 +32,6 @@ import kotlinx.android.synthetic.main.item_device_address.view.*
 import org.koin.android.ext.android.inject
 
 class StreamFragment : Fragment() {
-
-    companion object {
-        fun getFragmentCreator() = object : FragmentRouter.FragmentCreator {
-            override fun getMenuItemId(): Int = R.id.menu_stream_fragment
-            override fun getTag(): String = StreamFragment::class.java.name
-            override fun newInstance(): Fragment = StreamFragment()
-        }
-    }
-
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View =
-        inflater.inflate(R.layout.fragment_stream, container, false)
 
     private val colorAccent by lazy { ContextCompat.getColor(requireContext(), R.color.colorAccent) }
     private val clipboard: ClipboardManager? by lazy {
@@ -53,8 +41,12 @@ class StreamFragment : Fragment() {
     private val settingsReadOnly: SettingsReadOnly by inject()
     private var httpClientAdapter: HttpClientAdapter? = null
 
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View =
+        inflater.inflate(R.layout.fragment_stream, container, false)
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
         tv_fragment_stream_traffic_header.text = getString(R.string.stream_fragment_current_traffic).run {
             format(0.0).setColorSpan(colorAccent, indexOf('%'))
         }

@@ -23,8 +23,8 @@ class ExpansionLayout @JvmOverloads constructor(
         fun onStartedExpand(expansionLayout: ExpansionLayout, willExpand: Boolean)
     }
 
-    private val indicatorListeners = ArrayList<ExpansionLayout.IndicatorListener>()
-    private val listeners = ArrayList<ExpansionLayout.Listener>()
+    private val indicatorListeners = ArrayList<IndicatorListener>()
+    private val listeners = ArrayList<Listener>()
     var isExpanded = false
         private set
     private var animator: Animator? = null
@@ -33,19 +33,19 @@ class ExpansionLayout @JvmOverloads constructor(
         requestDisallowInterceptTouchEvent(true)
     }
 
-    fun addListener(listener: ExpansionLayout.Listener?) {
+    fun addListener(listener: Listener?) {
         if (listener != null && listeners.contains(listener).not()) listeners.add(listener)
     }
 
-    fun removeListener(listener: ExpansionLayout.Listener?) {
+    fun removeListener(listener: Listener?) {
         listener?.let { listeners.remove(it) }
     }
 
-    fun addIndicatorListener(listener: ExpansionLayout.IndicatorListener?) {
+    fun addIndicatorListener(listener: IndicatorListener?) {
         if (listener != null && indicatorListeners.contains(listener).not()) indicatorListeners.add(listener)
     }
 
-    fun removeIndicatorListener(listener: ExpansionLayout.IndicatorListener?) {
+    fun removeIndicatorListener(listener: IndicatorListener?) {
         listener?.let { indicatorListeners.remove(it) }
     }
 

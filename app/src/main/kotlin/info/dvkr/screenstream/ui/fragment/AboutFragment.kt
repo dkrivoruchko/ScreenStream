@@ -13,18 +13,9 @@ import com.afollestad.materialdialogs.lifecycle.lifecycleOwner
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.data.other.getLog
-import info.dvkr.screenstream.ui.router.FragmentRouter
 import kotlinx.android.synthetic.main.fragment_about.*
 
 class AboutFragment : Fragment() {
-
-    companion object {
-        fun getFragmentCreator() = object : FragmentRouter.FragmentCreator {
-            override fun getMenuItemId(): Int = R.id.menu_about_fragment
-            override fun getTag(): String = AboutFragment::class.java.name
-            override fun newInstance(): Fragment = AboutFragment()
-        }
-    }
 
     private var version: String = ""
 

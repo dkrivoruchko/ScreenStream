@@ -75,6 +75,8 @@ dependencies {
     implementation("com.google.android.material:material:$androidMaterial")
     implementation("androidx.appcompat:appcompat:$androidxAppcompat")
     implementation("androidx.constraintlayout:constraintlayout:$androidxConstraint")
+    implementation("androidx.navigation:navigation-fragment-ktx:$androidxNavigation")
+    implementation("androidx.navigation:navigation-ui-ktx:$androidxNavigation")
 
     implementation("com.tapadoo.android:alerter:$alerter")
     implementation("com.afollestad.material-dialogs:core:$materialDialogs")

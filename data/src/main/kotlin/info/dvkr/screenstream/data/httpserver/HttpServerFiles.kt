@@ -87,11 +87,11 @@ class HttpServerFiles(context: Context, private val settingsReadOnly: SettingsRe
 
     fun configureStreamAddress(): String =
         if (enablePin) "/" + randomString(16) + ".mjpeg"
-        else HttpServerFiles.DEFAULT_STREAM_ADDRESS
+        else DEFAULT_STREAM_ADDRESS
 
     fun configureStartStopAddress(): String =
         if (enablePin) "/" + randomString(16)
-        else HttpServerFiles.DEFAULT_START_STOP_ADDRESS
+        else DEFAULT_START_STOP_ADDRESS
 
     fun configureIndexHtml(streamAddress: String, startStopAddress: String): String =
         baseIndexHtml

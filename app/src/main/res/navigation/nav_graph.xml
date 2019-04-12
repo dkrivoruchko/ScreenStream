@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/nav_streamFragment">
+
+    <fragment
+        android:id="@+id/nav_streamFragment"
+        android:name="info.dvkr.screenstream.ui.fragment.StreamFragment"
+        android:label="StreamFragment" />
+    <fragment
+        android:id="@+id/nav_settingsFragment"
+        android:name="info.dvkr.screenstream.ui.fragment.SettingsFragment"
+        android:label="SettingsFragment" />
+    <fragment
+        android:id="@+id/nav_aboutFragment"
+        android:name="info.dvkr.screenstream.ui.fragment.AboutFragment"
+        android:label="AboutFragment" />
+    <fragment
+        android:id="@+id/nav_exitFragment"
+        android:name="info.dvkr.screenstream.ui.fragment.ExitFragment"
+        android:label="ExitFragment" />
+</navigation>
