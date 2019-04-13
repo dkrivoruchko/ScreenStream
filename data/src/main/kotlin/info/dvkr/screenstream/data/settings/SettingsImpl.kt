@@ -23,6 +23,9 @@ class SettingsImpl(private val preferences: Preferences) : Settings {
     override var startOnBoot: Boolean
             by bindPreference(preferences, Settings.Key.START_ON_BOOT, Settings.Default.START_ON_BOOT)
 
+    override var autoStartStop: Boolean
+            by bindPreference(preferences, Settings.Key.AUTO_START_STOP, Settings.Default.AUTO_START_STOP)
+
     override var notifySlowConnections: Boolean
             by bindPreference(preferences, Settings.Key.NOTIFY_SLOW_CONNECTIONS, Settings.Default.NOTIFY_SLOW_CONNECTIONS)
 

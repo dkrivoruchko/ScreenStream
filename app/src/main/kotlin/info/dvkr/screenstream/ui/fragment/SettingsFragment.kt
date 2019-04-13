@@ -150,6 +150,13 @@ class SettingsFragment : Fragment() {
             cl_fragment_settings_start_on_boot.setOnClickListener { performClick() }
         }
 
+        // Interface - Auto start stop
+        with(cb_fragment_settings_auto_start_stop) {
+            isChecked = settings.autoStartStop
+            setOnClickListener { settings.autoStartStop = isChecked }
+            cl_fragment_settings_auto_start_stop.setOnClickListener { performClick() }
+        }
+
         // Interface - Notify slow connections
         with(cb_fragment_settings_notify_slow_connections) {
             isChecked = settings.notifySlowConnections

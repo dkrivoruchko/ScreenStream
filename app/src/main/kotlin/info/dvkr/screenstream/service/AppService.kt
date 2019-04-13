@@ -29,6 +29,7 @@ import kotlinx.android.synthetic.main.toast_slow_connection.view.*
 import kotlinx.coroutines.*
 import org.koin.android.ext.android.inject
 import java.util.concurrent.CopyOnWriteArraySet
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.coroutines.CoroutineContext
 
 class AppService : Service(), CoroutineScope {
@@ -89,6 +90,8 @@ class AppService : Service(), CoroutineScope {
 
     private val supervisorJob = SupervisorJob()
 
+    private val isStreaming = AtomicBoolean(false)
+
     override val coroutineContext: CoroutineContext
         get() = supervisorJob + Dispatchers.Main + CoroutineExceptionHandler { _, throwable ->
             XLog.e(getLog("onCoroutineException"), throwable)
@@ -116,6 +119,8 @@ class AppService : Service(), CoroutineScope {
             is AppStateMachine.Effect.ConnectionChanged -> Unit  // TODO Notify user about restart reason
 
             is AppStateMachine.Effect.PublicState -> {
+                isStreaming.set(effect.isStreaming)
+
                 activityMessagesHandler.sendMessageToActivities(
                     ServiceMessage.ServiceState(
                         effect.isStreaming, effect.isBusy, effect.netInterfaces, effect.appError
@@ -149,6 +154,7 @@ class AppService : Service(), CoroutineScope {
             settings as SettingsReadOnly,
             BitmapFactory.decodeResource(resources, R.drawable.logo),
             { clients: List<HttpClient>, trafficHistory: List<TrafficPoint> ->
+                if (settings.autoStartStop) checkAutoStartStop(clients)
                 if (settings.notifySlowConnections) checkForSlowClients(clients)
                 activityMessagesHandler.sendMessageToActivities(ServiceMessage.Clients(clients))
                 activityMessagesHandler.sendMessageToActivities(ServiceMessage.TrafficHistory(trafficHistory))
@@ -248,5 +254,17 @@ class AppService : Service(), CoroutineScope {
             Toast(applicationContext).apply { view = toastView; duration = Toast.LENGTH_LONG }.show()
         }
         slowClients = currentSlowConnections
+    }
+
+    private fun checkAutoStartStop(clients: List<HttpClient>) {
+        if (clients.isNotEmpty() && isStreaming.get().not()) {
+            XLog.d(getLog("checkAutoStartStop", "Auto starting"))
+            appStateMachine.sendEvent(AppStateMachine.Event.StartStream)
+        }
+
+        if (clients.isEmpty() && isStreaming.get()) {
+            XLog.d(getLog("checkAutoStartStop", "Auto stopping"))
+            appStateMachine.sendEvent(AppStateMachine.Event.StopStream)
+        }
     }
 }

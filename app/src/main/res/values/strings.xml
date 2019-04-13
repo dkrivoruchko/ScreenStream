@@ -69,6 +69,8 @@
     <string name="pref_stop_on_sleep_summary">Stop stream if screen turns off</string>
     <string name="pref_start_on_boot">Start stream on boot</string>
     <string name="pref_start_on_boot_summary">Start stream after device boot</string>
+    <string name="pref_auto_start_stop">Auto Start/Stop streaming</string>
+    <string name="pref_auto_start_stop_summary">Auto Start/Stop streaming on clients connect/disconnect</string>
     <string name="pref_detect_slow_connections">Notify for slow connections</string>
     <string name="pref_detect_slow_connections_summary">Detect and notify for slow client connections</string>
     <string name="pref_settings_web_page">Web page</string>

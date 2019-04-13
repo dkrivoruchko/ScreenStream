@@ -339,6 +339,73 @@
             android:background="@color/colorSettingsDivider" />
 
         <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/cl_fragment_settings_auto_start_stop"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="?attr/selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true"
+            android:minHeight="@dimen/fragment_settings_item_min_height"
+            android:paddingStart="@dimen/fragment_settings_item_start_end"
+            android:paddingTop="8dp"
+            android:paddingEnd="@dimen/fragment_settings_item_start_end"
+            android:paddingBottom="8dp">
+
+            <androidx.appcompat.widget.AppCompatImageView
+                android:id="@+id/iv_fragment_settings_auto_start_stop"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:srcCompat="@drawable/ic_settings_start_stop_24dp" />
+
+            <androidx.appcompat.widget.AppCompatTextView
+                android:id="@+id/tv_fragment_settings_auto_start_stop"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:layout_marginEnd="@dimen/fragment_settings_item_margin_end"
+                android:text="@string/pref_auto_start_stop"
+                android:textAppearance="?android:attr/textAppearanceMedium"
+                android:textColor="@color/colorSettingsHeader"
+                app:layout_constraintBottom_toTopOf="@id/tv_fragment_settings_auto_start_stop_summary"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toEndOf="@id/iv_fragment_settings_auto_start_stop"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <androidx.appcompat.widget.AppCompatTextView
+                android:id="@+id/tv_fragment_settings_auto_start_stop_summary"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:layout_marginEnd="@dimen/fragment_settings_item_margin_end"
+                android:text="@string/pref_auto_start_stop_summary"
+                android:textAppearance="?android:attr/textAppearanceSmall"
+                android:textColor="@color/colorSettingsSummary"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toEndOf="@id/iv_fragment_settings_auto_start_stop"
+                app:layout_constraintTop_toBottomOf="@id/tv_fragment_settings_auto_start_stop" />
+
+            <CheckBox
+                android:id="@+id/cb_fragment_settings_auto_start_stop"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="8dp"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginTop="2dp"
+            android:layout_marginBottom="2dp"
+            android:background="@color/colorSettingsDivider" />
+
+        <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/cl_fragment_settings_notify_slow_connections"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
