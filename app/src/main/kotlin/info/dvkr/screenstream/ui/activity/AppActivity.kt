@@ -50,7 +50,7 @@ class AppActivity : BaseActivity() {
     private var lastServiceMessage: ServiceMessage.ServiceState? = null
     private val settingsListener = object : SettingsReadOnly.OnSettingsChangeListener {
         override fun onSettingsChanged(key: String) {
-            if (key == Settings.Key.LOGGING_ON) setLogging(settingsReadOnly.loggingOn)
+            if (key == Settings.Key.LOGGING_ON) setLogging(settings.loggingOn)
         }
     }
 
@@ -76,12 +76,12 @@ class AppActivity : BaseActivity() {
 
     override fun onStart() {
         super.onStart()
-        settingsReadOnly.registerChangeListener(settingsListener)
-        setLogging(settingsReadOnly.loggingOn)
+        settings.registerChangeListener(settingsListener)
+        setLogging(settings.loggingOn)
     }
 
     override fun onStop() {
-        settingsReadOnly.unregisterChangeListener(settingsListener)
+        settings.unregisterChangeListener(settingsListener)
         super.onStop()
     }
 
@@ -101,6 +101,7 @@ class AppActivity : BaseActivity() {
                 negativeButton(android.R.string.yes) {
                     sendLogsInEmail(applicationContext, getInputField().text.toString())
                 }
+                neutralButton(R.string.app_activity_send_logs_dialog_neutral) { settings.loggingOn = false }
                 setActionButtonEnabled(WhichButton.NEGATIVE, false)
             }
         }
@@ -140,7 +141,7 @@ class AppActivity : BaseActivity() {
                 lastServiceMessage = serviceMessage
 
                 // MinimizeOnStream
-                if (settingsReadOnly.minimizeOnStream && isStreamingBefore.not() && serviceMessage.isStreaming && serviceMessage.appError == null)
+                if (settings.minimizeOnStream && isStreamingBefore.not() && serviceMessage.isStreaming && serviceMessage.appError == null)
                     try {
                         startActivity(
                             Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME).setFlags(Intent.FLAG_ACTIVITY_NEW_TASK)

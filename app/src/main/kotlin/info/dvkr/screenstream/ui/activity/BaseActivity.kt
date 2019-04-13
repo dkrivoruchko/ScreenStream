@@ -21,7 +21,7 @@ import org.koin.android.ext.android.inject
 
 abstract class BaseActivity : AppCompatActivity() {
 
-    protected val settingsReadOnly: SettingsReadOnly by inject()
+    protected val settings: Settings by inject()
     private var serviceMessenger: Messenger? = null
     private var isBound: Boolean = false
 
@@ -64,12 +64,12 @@ abstract class BaseActivity : AppCompatActivity() {
     private val activityMessenger = Messenger(serviceMessagesHandler)
     private val settingsListener = object : SettingsReadOnly.OnSettingsChangeListener {
         override fun onSettingsChanged(key: String) {
-            if (key == Settings.Key.NIGHT_MODE) setNightMode(settingsReadOnly.nightMode)
+            if (key == Settings.Key.NIGHT_MODE) setNightMode(settings.nightMode)
         }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        setNightMode(settingsReadOnly.nightMode)
+        setNightMode(settings.nightMode)
         super.onCreate(savedInstanceState)
     }
 
@@ -83,7 +83,7 @@ abstract class BaseActivity : AppCompatActivity() {
 
         bindService(AppService.getAppServiceIntent(this), serviceConnection, Context.BIND_AUTO_CREATE)
 
-        settingsReadOnly.registerChangeListener(settingsListener)
+        settings.registerChangeListener(settingsListener)
     }
 
     override fun onStop() {
@@ -95,7 +95,7 @@ abstract class BaseActivity : AppCompatActivity() {
             isBound = false
         }
 
-        settingsReadOnly.unregisterChangeListener(settingsListener)
+        settings.unregisterChangeListener(settingsListener)
         super.onStop()
     }
 
