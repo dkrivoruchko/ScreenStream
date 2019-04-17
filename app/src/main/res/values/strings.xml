@@ -1,92 +1,93 @@
 <resources>
-    <string name="app_name" translatable="false">ScreenStream</string>
+    <string name="app_name" translatable="false">स्क्रीन स्ट्रीम</string>
 
-    <string name="app_activity_error_title">Error</string>
-    <string name="app_activity_error_port_in_use">Port already in use. Choose another one.</string>
-    <string name="app_activity_error_invalid_media_projection">Security error: Invalid media projection. Try one more time.</string>
-    <string name="app_activity_error_ip_address_not_found">IP address not found.\nTry to disable \"Use WiFi only\" in settings.</string>
-    <string name="app_activity_error_wrong_image_format">System returns image in unknown format. No fix available. Sorry.</string>
-    <string name="app_activity_error_exit">Exit</string>
-    <string name="app_activity_collecting_logs">Collecting application logs…</string>
-    <string name="app_activity_send_logs">Send logs to developer</string>
-    <string name="app_activity_send_logs_dialog_title">Send logs in email to developer</string>
-    <string name="app_activity_send_logs_dialog_message">Please add issue description:</string>
-    <string name="app_activity_send_logs_dialog_neutral">Stop logging</string>
+    <string name="app_activity_error_title">त्रुटि</string>
+    <string name="app_activity_error_port_in_use">पोर्ट पहले से ही उपयोग में है। कोई दूसरा चुनें।</string>
+    <string name="app_activity_error_invalid_media_projection">सुरक्षा त्रुटि: अमान्य मीडिया प्रक्षेपण। एक बार और कोशिश करें।</string>
+    <string name="app_activity_error_ip_address_not_found">IP पता नहीं मिला। \ n सेटिंग में \ "केवल वाईफाई का उपयोग करें" को निष्क्रिय करने की कोशिश करें।</string>
+    <string name="app_activity_error_wrong_image_format">
+सिस्टम अज्ञात प्रारूप में छवि लौटाता है। कोई फिक्स उपलब्ध नहीं। माफ़ कीजिये।</string>
+    <string name="app_activity_error_exit">बाहर जाएं</string>
+    <string name="app_activity_collecting_logs">एप्लिकेशन लॉग एकत्रित कर रहा है ...</string>
+    <string name="app_activity_send_logs">डेवलपर को लॉग भेजें</string>
+    <string name="app_activity_send_logs_dialog_title">डेवलपर को ईमेल में लॉग भेजें</string>
+    <string name="app_activity_send_logs_dialog_message">कृपया समस्या विवरण जोड़ें:</string>
+    <string name="app_activity_send_logs_dialog_neutral">लॉग करना बंद करो</string>
 
-    <string name="bottom_menu_stream">Stream</string>
-    <string name="bottom_menu_settings">Settings</string>
-    <string name="bottom_menu_start">Start</string>
-    <string name="bottom_menu_stop">Stop</string>
-    <string name="bottom_menu_about">About</string>
-    <string name="bottom_menu_exit">Exit</string>
+    <string name="bottom_menu_stream">प्रवाह/string>
+    <string name="bottom_menu_settings">सेटिंग्स</string>
+    <string name="bottom_menu_start">शुरु</string>
+    <string name="bottom_menu_stop">रुकें</string>
+    <string name="bottom_menu_about">विषय में</string>
+    <string name="bottom_menu_exit">प्रस्थान</string>
 
-    <string name="stream_fragment_current_traffic">Traffic: %1$,.2f Mbit/s</string>
-    <string name="stream_fragment_connected_clients">Connected clients: %1$d</string>
-    <string name="stream_fragment_no_address">No address found</string>
-    <string name="stream_fragment_interface">Interface: %1$s</string>
-    <string name="stream_fragment_copied">Copied</string>
-    <string name="stream_fragment_no_web_browser_found">No web browser found</string>
-    <string name="stream_fragment_external_app_error">External application error</string>
-    <string name="stream_fragment_share_address">Share device address</string>
-    <string name="stream_fragment_pin">Pin: %1$s</string>
-    <string name="stream_fragment_pin_disabled">Pin is disabled</string>
-    <string name="stream_fragment_client_disconnected">Disconnected</string>
-    <string name="stream_fragment_client_slow_network">Slow connection</string>
-    <string name="stream_fragment_client_connected">Connected</string>
+    <string name="stream_fragment_current_traffic">ट्रैफ़िक:% 1 $। 2f Mbit / s</string>
+    <string name="stream_fragment_connected_clients">कनेक्टेड क्लाइंट:% 1 $ d</string>
+    <string name="stream_fragment_no_address">कोई पता नहीं मिला</string>
+    <string name="stream_fragment_interface">इंटरफ़ेस:% 1 $ s</string>
+    <string name="stream_fragment_copied">नक़ल किया गया</string>
+    <string name="stream_fragment_no_web_browser_found">कोई वेब ब्राउज़र नहीं मिला</string>
+    <string name="stream_fragment_external_app_error">बाहरी अनुप्रयोग त्रुटि</string>
+    <string name="stream_fragment_share_address">डिवाइस पता साझा करें</string>
+    <string name="stream_fragment_pin">पिन:% 1 $ s</string>
+    <string name="stream_fragment_pin_disabled">पिन अक्षम है</string>
+    <string name="stream_fragment_client_disconnected">डिस्कनेक्ट किया गया</string>
+    <string name="stream_fragment_client_slow_network">धीमी गति का कनेक्सन</string>
+    <string name="stream_fragment_client_connected">जुड़ा हुआ</string>
 
-    <string name="item_device_address">Device address:</string>
+    <string name="item_device_address">डिवाइस पता:</string>
 
-    <string name="permission_activity_error_title_activity_not_found">Permission dialog error</string>
-    <string name="permission_activity_error_activity_not_found">Android bug. Don\'t check \"Don\'t show again\" at the rights request dialogue to capture the screen. If you already did so, reinstall the app.</string>
-    <string name="permission_activity_cast_permission_required_title">Permission required</string>
-    <string name="permission_activity_cast_permission_required">ScreenStream application requires Screen Cast permission to capture screen.</string>
-    <string name="permission_activity_error_title">Error</string>
-    <string name="permission_activity_error_unknown">Unknown error</string>
+    <string name="permission_activity_error_title_activity_not_found">अनुमति संवाद त्रुटि</string>
+    <string name="permission_activity_error_activity_not_found">Android बग। स्क्रीन पर कब्जा करने के लिए राइट्स रिक्वेस्ट डायलॉग पर \ "टी चेक \" फिर से शो न करें। यदि आपने पहले से ही ऐसा किया है, तो ऐप को फिर से इंस्टॉल करें।</string>
+    <string name="permission_activity_cast_permission_required_title">अनुमति आवश्यक है</string>
+    <string name="permission_activity_cast_permission_required">स्क्रीनस्ट्रीम एप्लिकेशन को स्क्रीन पर कब्जा करने के लिए स्क्रीन कास्ट की अनुमति की आवश्यकता होती है।</string>
+    <string name="permission_activity_error_title">त्रुटि</string>
+    <string name="permission_activity_error_unknown">अज्ञात त्रुटि</string>
 
-    <string name="notification_ready_to_stream">Ready to stream</string>
-    <string name="notification_press_start">Press START to begin stream</string>
-    <string name="notification_start">Start</string>
-    <string name="notification_exit">Exit</string>
-    <string name="notification_stream">Stream…</string>
-    <string name="notification_press_stop">Press STOP to end stream</string>
-    <string name="notification_stop">Stop</string>
+    <string name="notification_ready_to_stream">स्ट्रीम करने के लिए तैयार है</string>
+    <string name="notification_press_start">स्ट्रीम शुरू करने के लिए START दबाएं</string>
+    <string name="notification_start">शुरु</string>
+    <string name="notification_exit">निकास</string>
+    <string name="notification_stream">प्रवाह…</string>
+    <string name="notification_press_stop">धारा समाप्त करने के लिए STOP दबाएँ</string>
+    <string name="notification_stop">रुकें</string>
 
-    <string name="toast_slow_client_connection">Slow client connection detected</string>
+    <string name="toast_slow_client_connection">धीमी क्लाइंट कनेक्शन का पता चला</string>
 
-    <string name="pref_settings_interface">Interface</string>
-    <string name="pref_night_mode">Dark theme</string>
+    <string name="pref_settings_interface">इंटरफेस</string>
+    <string name="pref_night_mode">डार्क थीम</string>
     <string-array name="pref_night_mode_options">
-        <item>Always</item>
-        <item>Automatically (at night and battery saver)</item>
-        <item>Battery saver only</item>
-        <item>Never</item>
+        <item>हमेशा</item>
+        <item>स्वचालित रूप से (रात और बैटरी सेवर पर)</item>
+        <item>बैटरी सेवर</item>
+        <item>कभी नहीँ</item>
     </string-array>
-    <string name="pref_notification">Device notification settings</string>
-    <string name="pref_notification_summary">Open system notification settings</string>
-    <string name="pref_minimize_on_stream">Minimize on stream start</string>
-    <string name="pref_minimise_on_stream_summary">Minimize app on stream start</string>
-    <string name="pref_stop_on_sleep">Stop stream on sleep</string>
-    <string name="pref_stop_on_sleep_summary">Stop stream if screen turns off</string>
-    <string name="pref_start_on_boot">Start stream on boot</string>
-    <string name="pref_start_on_boot_summary">Start stream after device boot</string>
-    <string name="pref_auto_start_stop">Auto Start/Stop streaming</string>
-    <string name="pref_auto_start_stop_summary">Auto Start/Stop streaming on clients connect/disconnect</string>
-    <string name="pref_detect_slow_connections">Notify for slow connections</string>
-    <string name="pref_detect_slow_connections_summary">Detect and notify for slow client connections</string>
-    <string name="pref_settings_web_page">Web page</string>
-    <string name="pref_html_buttons">Enable web page buttons</string>
-    <string name="pref_html_buttons_summary">Show control buttons on web page</string>
-    <string name="pref_html_back_color">Web page background color</string>
-    <string name="pref_html_back_color_summary">Set web page background color</string>
-    <string name="pref_html_back_color_title">Select background color</string>
-    <string name="pref_settings_image">Image</string>
-    <string name="pref_resize">Resize image</string>
-    <string name="pref_resize_summary">Resize image before sending to client</string>
+    <string name="pref_notification">डिवाइस अधिसूचना सेटिंग्स</string>
+    <string name="pref_notification_summary">सिस्टम अधिसूचना सेटिंग्स खोलें</string>
+    <string name="pref_minimize_on_stream">स्ट्रीम स्टार्ट पर छोटा करें</string>
+    <string name="pref_minimise_on_stream_summary">स्ट्रीम स्टार्ट पर ऐप को छोटा करें</string>
+    <string name="pref_stop_on_sleep">नींद पर धारा रोकें</string>
+    <string name="pref_stop_on_sleep_summary">यदि स्क्रीन बंद हो जाती है तो स्ट्रीम को रोकें</string>
+    <string name="pref_start_on_boot">बूट पर स्ट्रीम शुरू करें</string>
+    <string name="pref_start_on_boot_summary">डिवाइस बूट के बाद स्टार्ट स्ट्रीम</string>
+    <string name="pref_auto_start_stop">ऑटो स्टार्ट/ स्टॉप स्ट्रीमिंग</string>
+    <string name="pref_auto_start_stop_summary">ऑटो स्टार्ट / स्टॉप स्ट्रीमिंग क्लाइंट कनेक्ट / डिस्कनेक्ट करें</string>
+    <string name="pref_detect_slow_connections">धीमे कनेक्शन के लिए सूचित करें</string>
+    <string name="pref_detect_slow_connections_summary">धीमी क्लाइंट कनेक्शन के लिए पता लगाएँ और सूचित करें</string>
+    <string name="pref_settings_web_page">वेब पृष्ठ</string>
+    <string name="pref_html_buttons">वेब पेज बटन सक्षम करें</string>
+    <string name="pref_html_buttons_summary">वेब पेज पर नियंत्रण बटन दिखाएं</string>
+    <string name="pref_html_back_color">वेब पेज पृष्ठभूमि का रंग</string>
+    <string name="pref_html_back_color_summary">वेब पेज बैकग्राउंड कलर सेट करें</string>
+    <string name="pref_html_back_color_title">पृष्ठभूमि का रंग चुनें</string>
+    <string name="pref_settings_image">चित्र</string>
+    <string name="pref_resize">चित्र को पुनर्कार करें</string>
+    <string name="pref_resize_summary">क्लाइंट को भेजने से पहले छवि का आकार बदलें</string>
     <string name="pref_resize_value" translatable="false">%1$d%%</string>
-    <string name="pref_resize_dialog_text">Set image resize factor in percent.\nValues: 10–150 (Default: 50)\nScreen size: %1$dx%2$d</string>
-    <string name="pref_resize_dialog_result">Picture size: %1$dx%2$d</string>
-    <string name="pref_rotate">Rotate image clockwise</string>
-    <string name="pref_rotate_summary">Rotate image before sending to client</string>
+    <string name="pref_resize_dialog_text">छवि का आकार प्रतिशत में फैक्टर का आकार बदलें। \ n आकार: 10–150 (डिफ़ॉल्ट: 50) \ n स्क्रीन आकार: %1$dx%2$d</string>
+    <string name="pref_resize_dialog_result">चित्र का आकार: %1$dx%2$d</string>
+    <string name="pref_rotate">छवि को दक्षिणावर्त घुमाएँ</string>
+    <string name="pref_rotate_summary">क्लाइंट को भेजने से पहले छवि को घुमाएं</string>
     <string name="pref_rotate_value" translatable="false">%1$d\u00B0</string>
     <string-array name="pref_rotate_options" translatable="false">
         <item>0\u00B0</item>
@@ -94,39 +95,39 @@
         <item>180\u00B0</item>
         <item>270\u00B0</item>
     </string-array>
-    <string name="pref_jpeg_quality">JPEG compression quality</string>
-    <string name="pref_jpeg_quality_summary">Set JPEG compression quality</string>
-    <string name="pref_jpeg_quality_dialog">Set JPEG compression quality.\nValues: 10–100 (Default: 100)</string>
-    <string name="pref_settings_security">Security</string>
-    <string name="pref_enable_pin">Enable pin</string>
-    <string name="pref_enable_pin_summary">Protect access to stream with pin</string>
-    <string name="pref_hide_pin">Auto hide pin on stream start</string>
-    <string name="pref_hide_pin_summary">Show asterisks instead of pin while streaming</string>
-    <string name="pref_new_pin_on_start">New pin on start</string>
-    <string name="pref_new_pin_on_start_summary">Generate new pin on application start</string>
-    <string name="pref_auto_change_pin">Auto change pin</string>
-    <string name="pref_auto_change_pin_summary">Generate new pin for each new stream</string>
-    <string name="pref_set_pin">Set pin</string>
-    <string name="pref_set_pin_summary">Enter pin manually</string>
-    <string name="pref_set_pin_dialog">Enter pin.\nDefault: 0000</string>
-    <string name="pref_settings_advanced">Advanced</string>
-    <string name="pref_wifi_only">Use WiFi only</string>
-    <string name="pref_wifi_only_summary">Run server on WiFi interface only</string>
-    <string name="pref_enable_ipv6">Enable IPv6 support</string>
-    <string name="pref_enable_ipv6_summary">Run server on IPv6 addresses also</string>
-    <string name="pref_server_port">Server port</string>
-    <string name="pref_server_port_summary">Set port for incoming connections</string>
-    <string name="pref_server_port_dialog">Set server port for incoming connections.\nValues: 1025–65535\n(Default: 8080)</string>
-    <string name="pref_logging">Enable application logs</string>
-    <string name="pref_logging_summary">Collect application logs</string>
+    <string name="pref_jpeg_quality">JPEG संपीड़न गुणवत्ता</string>
+    <string name="pref_jpeg_quality_summary">JPEG संपीड़न गुणवत्ता सेट करें</string>
+    <string name="pref_jpeg_quality_dialog">JPEG संपीड़न गुणवत्ता सेट करें। \ nValues: 10100 (डिफ़ॉल्ट: 100)</string>
+    <string name="pref_settings_security">सुरक्षा</string>
+    <string name="pref_enable_pin">पिन सक्षम करें</string>
+    <string name="pref_enable_pin_summary">पिन के साथ स्ट्रीम तक पहुंच को सुरक्षित रखें</string>
+    <string name="pref_hide_pin">ऑटो स्टार्ट पिन ऑन स्ट्रीम स्टार्ट</string>
+    <string name="pref_hide_pin_summary">स्ट्रीमिंग करते समय पिन के बजाय तारांकन दिखाएँ</string>
+    <string name="pref_new_pin_on_start">प्रारंभ पर नया पिन</string>
+    <string name="pref_new_pin_on_start_summary">एप्लिकेशन प्रारंभ पर नया पिन जनरेट करें</string>
+    <string name="pref_auto_change_pin">ऑटो चेंज पिन</string>
+    <string name="pref_auto_change_pin_summary">प्रत्येक नई स्ट्रीम के लिए नया पिन जनरेट करें</string>
+    <string name="pref_set_pin">पिन सेट करें</string>
+    <string name="pref_set_pin_summary">पिन मैन्युअल रूप से दर्ज करें</string>
+    <string name="pref_set_pin_dialog">पिन दर्ज करें। \ n संदर्भ: 0000</string>
+    <string name="pref_settings_advanced">उन्नत</string>
+    <string name="pref_wifi_only">वाईफाई का ही इस्तेमाल करें</string>
+    <string name="pref_wifi_only_summary">वाईफाई इंटरफेस पर ही सर्वर चलाएं</string>
+    <string name="pref_enable_ipv6">IPv6 समर्थन सक्षम करें</string>
+    <string name="pref_enable_ipv6_summary">IPv6 पतों पर भी सर्वर चलाएं</string>
+    <string name="pref_server_port">सर्वर पोर्ट</string>
+    <string name="pref_server_port_summary">आने वाले कनेक्शन के लिए पोर्ट सेट करें</string>
+    <string name="pref_server_port_dialog">आने वाले कनेक्शन के लिए सर्वर पोर्ट सेट करें। \ nValues: 1025-65535 \ n (डिफ़ॉल्ट: 8080)</string>
+    <string name="pref_logging">एप्लिकेशन लॉग सक्षम करें</string>
+    <string name="pref_logging_summary">आवेदन पत्र एकत्र करें</string>
 
-    <string name="about_fragment_app_name" translatable="false">Screen Stream over HTTP</string>
-    <string name="about_fragment_app_version">Version: %1$s</string>
-    <string name="about_fragment_developer_name">Developed by Dmitriy Krivoruchko</string>
-    <string name="about_fragment_rate_app">Rate app</string>
-    <string name="about_fragment_write_email">Write email to developer</string>
-    <string name="about_fragment_write_email_dialog">Write email to developer?</string>
-    <string name="about_fragment_email_chooser_header">Sending email…</string>
-    <string name="about_fragment_app_sources">Application sources</string>
-    <string name="about_fragment_privacy_policy">Privacy policy</string>
+    <string name="about_fragment_app_name" translatable="false">HTTP पर स्क्रीन स्ट्रीम</string>
+    <string name="about_fragment_app_version">संस्करण: %1$s</string>
+    <string name="about_fragment_developer_name">दिमित्री Krivoruchko द्वारा विकसित</string>
+    <string name="about_fragment_rate_app">एप्लिकेशन का मूल्यांकन करें</string>
+    <string name="about_fragment_write_email">डेवलपर को ईमेल लिखें</string>
+    <string name="about_fragment_write_email_dialog">डेवलपर को ईमेल लिखें?</string>
+    <string name="about_fragment_email_chooser_header">ईमेल भेज रहा हूं…</string>
+    <string name="about_fragment_app_sources">आवेदन के स्रोत</string>
+    <string name="about_fragment_privacy_policy">गोपनीयता नीति</string>
 </resources>
