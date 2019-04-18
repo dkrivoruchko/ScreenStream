@@ -13,6 +13,8 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
 import android.view.inputmethod.EditorInfo
+import android.widget.EditText
+import android.widget.TextView
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
@@ -28,13 +30,13 @@ import com.afollestad.materialdialogs.input.input
 import com.afollestad.materialdialogs.lifecycle.lifecycleOwner
 import com.afollestad.materialdialogs.list.listItemsSingleChoice
 import com.elvishew.xlog.XLog
-import com.google.android.material.textfield.TextInputEditText
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.data.other.getLog
 import info.dvkr.screenstream.data.settings.Settings
 import info.dvkr.screenstream.data.settings.SettingsReadOnly
 import info.dvkr.screenstream.logging.cleanLogFiles
 import info.dvkr.screenstream.service.helper.NotificationHelper
+import kotlinx.android.synthetic.main.dialog_settings_crop.view.*
 import kotlinx.android.synthetic.main.dialog_settings_resize.view.*
 import kotlinx.android.synthetic.main.fragment_settings.*
 import org.koin.android.ext.android.inject
@@ -170,6 +172,7 @@ class SettingsFragment : Fragment() {
             setOnClickListener { settings.htmlEnableButtons = isChecked }
             cl_fragment_settings_html_buttons.setOnClickListener { performClick() }
         }
+
         // Web page - HTML Back color
         v_fragment_settings_html_back_color.color = settings.htmlBackColor
         v_fragment_settings_html_back_color.border = ContextCompat.getColor(requireContext(), R.color.textColorPrimary)
@@ -188,6 +191,70 @@ class SettingsFragment : Fragment() {
             }
         }
 
+
+        // Image - Crop image
+        with(cb_fragment_settings_crop_image) {
+            isChecked = settings.imageCrop
+            setOnClickListener {
+                if (settings.imageCrop) settings.imageCrop = false
+                else {
+                    isChecked = false
+                    MaterialDialog(requireActivity())
+                        .lifecycleOwner(viewLifecycleOwner)
+                        .title(R.string.pref_crop)
+                        .icon(R.drawable.ic_settings_crop_24dp)
+                        .customView(R.layout.dialog_settings_crop)
+                        .positiveButton(android.R.string.ok) { dialog ->
+                            dialog.getCustomView().apply DialogView@{
+                                val newTopCrop = tiet_dialog_settings_crop_top.text.toString().toInt()
+                                if (newTopCrop != settings.imageCropTop) settings.imageCropTop = newTopCrop
+                                val newBottomCrop = tiet_dialog_settings_crop_bottom.text.toString().toInt()
+                                if (newBottomCrop != settings.imageCropBottom) settings.imageCropBottom = newBottomCrop
+                                val newLeftCrop = tiet_dialog_settings_crop_left.text.toString().toInt()
+                                if (newLeftCrop != settings.imageCropLeft) settings.imageCropLeft = newLeftCrop
+                                val newRightCrop = tiet_dialog_settings_crop_right.text.toString().toInt()
+                                if (newRightCrop != settings.imageCropRight) settings.imageCropRight = newRightCrop
+
+                                settings.imageCrop = newTopCrop + newBottomCrop + newLeftCrop + newRightCrop != 0
+                                cb_fragment_settings_crop_image.isChecked = settings.imageCrop
+                            }
+                        }
+                        .negativeButton(android.R.string.cancel)
+                        .apply Dialog@{
+                            getCustomView().apply DialogView@{
+                                tv_dialog_settings_crop_error_message.visibility = View.GONE
+                                tiet_dialog_settings_crop_top.setText(settings.imageCropTop.toString())
+                                tiet_dialog_settings_crop_bottom.setText(settings.imageCropBottom.toString())
+                                tiet_dialog_settings_crop_left.setText(settings.imageCropLeft.toString())
+                                tiet_dialog_settings_crop_right.setText(settings.imageCropRight.toString())
+
+                                tiet_dialog_settings_crop_top.setSelection(settings.imageCropTop.toString().length)
+
+                                val validateTextWatcher = SimpleTextWatcher { _ ->
+                                    validateCropValues(
+                                        this@Dialog,
+                                        tiet_dialog_settings_crop_top,
+                                        tiet_dialog_settings_crop_bottom,
+                                        tiet_dialog_settings_crop_left,
+                                        tiet_dialog_settings_crop_right,
+                                        tv_dialog_settings_crop_error_message
+                                    )
+                                }
+
+                                tiet_dialog_settings_crop_top.addTextChangedListener(validateTextWatcher)
+                                tiet_dialog_settings_crop_bottom.addTextChangedListener(validateTextWatcher)
+                                tiet_dialog_settings_crop_left.addTextChangedListener(validateTextWatcher)
+                                tiet_dialog_settings_crop_right.addTextChangedListener(validateTextWatcher)
+                            }
+
+                            show()
+                        }
+
+                }
+            }
+            cl_fragment_settings_crop_image.setOnClickListener { performClick() }
+        }
+
         // Image - Resize factor
         tv_fragment_settings_resize_image_value.text = getString(R.string.pref_resize_value, settings.resizeFactor)
         val resizePictureSizeString = getString(R.string.pref_resize_dialog_result)
@@ -198,10 +265,10 @@ class SettingsFragment : Fragment() {
                 .icon(R.drawable.ic_settings_resize_24dp)
                 .customView(R.layout.dialog_settings_resize)
                 .positiveButton(android.R.string.ok) { dialog ->
-                    val tietView =
-                        dialog.getCustomView().findViewById<TextInputEditText>(R.id.tiet_dialog_settings_resize)
-                    val newValue = tietView?.text?.toString()?.toInt() ?: settings.resizeFactor
-                    if (settings.resizeFactor != newValue) settings.resizeFactor = newValue
+                    dialog.getCustomView().apply DialogView@{
+                        val newResizeFactor = tiet_dialog_settings_resize.text.toString().toInt()
+                        if (newResizeFactor != settings.resizeFactor) settings.resizeFactor = newResizeFactor
+                    }
                 }
                 .negativeButton(android.R.string.cancel)
                 .apply Dialog@{
@@ -420,6 +487,42 @@ class SettingsFragment : Fragment() {
         XLog.d(getLog("onStop", "Invoked"))
         settings.unregisterChangeListener(settingsListener)
         super.onStop()
+    }
+
+    private fun validateCropValues(
+        dialog: MaterialDialog,
+        topView: EditText,
+        bottomView: EditText,
+        leftView: EditText,
+        rightView: EditText,
+        errorView: TextView
+    ) {
+        val topCrop = topView.text.let { if (it.isNullOrBlank()) -1 else it.toString().toInt() }
+        val bottomCrop = bottomView.text.let { if (it.isNullOrBlank()) -1 else it.toString().toInt() }
+        val leftCrop = leftView.text.let { if (it.isNullOrBlank()) -1 else it.toString().toInt() }
+        val rightCrop = rightView.text.let { if (it.isNullOrBlank()) -1 else it.toString().toInt() }
+
+        val isTopBottomValid = (topCrop + bottomCrop) < screenSize.y
+        val isLeftRightValid = (leftCrop + rightCrop) < screenSize.x
+
+        if (isTopBottomValid && isLeftRightValid) {
+            if (topCrop >= 0 && bottomCrop >= 0 && leftCrop >= 0 && rightCrop >= 0) {
+                dialog.setActionButtonEnabled(WhichButton.POSITIVE, true)
+                errorView.visibility = View.GONE
+            } else {
+                dialog.setActionButtonEnabled(WhichButton.POSITIVE, false)
+                errorView.text = getString(R.string.pref_crop_dialog_error_message)
+                errorView.visibility = View.VISIBLE
+            }
+        } else {
+            dialog.setActionButtonEnabled(WhichButton.POSITIVE, false)
+            if (isTopBottomValid.not()) {
+                errorView.text = getString(R.string.pref_crop_dialog_error_message_top_bottom, screenSize.y)
+            } else {
+                errorView.text = getString(R.string.pref_crop_dialog_error_message_left_right, screenSize.x)
+            }
+            errorView.visibility = View.VISIBLE
+        }
     }
 
     private fun canEnableSetPin(): Boolean =

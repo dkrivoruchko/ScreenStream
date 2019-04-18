@@ -6,6 +6,7 @@ import android.graphics.PixelFormat
 import android.graphics.Point
 import android.hardware.display.DisplayManager
 import android.hardware.display.VirtualDisplay
+import android.media.Image
 import android.media.ImageReader
 import android.media.projection.MediaProjection
 import android.os.Handler
@@ -138,7 +139,7 @@ class BitmapCapture constructor(
 
     private fun startDisplayCapture() {
         val screenSize = Point().also { display.getRealSize(it) }
-        imageListener = ImageListener()
+        imageListener = ImageListener(display, settingsReadOnly, resizeFactor, matrix)
 
         val screenSizeX: Int
         val screenSizeY: Int
@@ -186,8 +187,12 @@ class BitmapCapture constructor(
     }
 
     // Runs on imageThread
-    private inner class ImageListener : ImageReader.OnImageAvailableListener {
-        private lateinit var reusableBitmap: Bitmap
+    private inner class ImageListener(
+        private val display: Display,
+        private val settingsReadOnly: SettingsReadOnly,
+        private val resizeFactor: AtomicInteger,
+        private val matrix: AtomicReference<Matrix>
+    ) : ImageReader.OnImageAvailableListener {
 
         override fun onImageAvailable(reader: ImageReader) {
             synchronized(this@BitmapCapture) {
@@ -195,29 +200,13 @@ class BitmapCapture constructor(
 
                 try {
                     reader.acquireLatestImage()?.let { image ->
-                        val plane = image.planes[0]
-                        val width = plane.rowStride / plane.pixelStride
-                        val cleanBitmap: Bitmap
-
-                        if (width > image.width) {
-                            if (::reusableBitmap.isInitialized.not()) {
-                                reusableBitmap = Bitmap.createBitmap(width, image.height, Bitmap.Config.ARGB_8888)
-                            }
-
-                            reusableBitmap.copyPixelsFromBuffer(plane.buffer)
-                            cleanBitmap = Bitmap.createBitmap(reusableBitmap, 0, 0, image.width, image.height)
-                        } else {
-                            cleanBitmap = Bitmap.createBitmap(image.width, image.height, Bitmap.Config.ARGB_8888)
-                            cleanBitmap.copyPixelsFromBuffer(plane.buffer)
-                        }
-
-                        val resizedBitmap = if (matrix.get().isIdentity)
-                            cleanBitmap
-                        else
-                            Bitmap.createBitmap(cleanBitmap, 0, 0, image.width, image.height, matrix.get(), false)
+                        val cleanBitmap = getCleanBitmap(image)
+                        val croppedBitmap = getCroppedBitmap(cleanBitmap, image)
+                        val upsizedBitmap = getUpsizedBitmap(croppedBitmap)
 
                         image.close()
-                        if (outBitmapChannel.isClosedForSend.not()) outBitmapChannel.offer(resizedBitmap)
+
+                        if (outBitmapChannel.isClosedForSend.not()) outBitmapChannel.offer(upsizedBitmap)
                     }
                 } catch (ex: UnsupportedOperationException) {
                     XLog.w(this@BitmapCapture.getLog("outBitmapChannel", ex.toString()))
@@ -230,5 +219,82 @@ class BitmapCapture constructor(
                 }
             }
         }
+
+        private lateinit var reusableBitmap: Bitmap
+
+        private fun getCleanBitmap(image: Image): Bitmap {
+            val plane = image.planes[0]
+            val width = plane.rowStride / plane.pixelStride
+            val cleanBitmap: Bitmap
+
+            if (width > image.width) {
+                if (::reusableBitmap.isInitialized.not()) {
+                    reusableBitmap = Bitmap.createBitmap(width, image.height, Bitmap.Config.ARGB_8888)
+                }
+
+                reusableBitmap.copyPixelsFromBuffer(plane.buffer)
+                cleanBitmap = Bitmap.createBitmap(reusableBitmap, 0, 0, image.width, image.height)
+            } else {
+                cleanBitmap = Bitmap.createBitmap(image.width, image.height, Bitmap.Config.ARGB_8888)
+                cleanBitmap.copyPixelsFromBuffer(plane.buffer)
+            }
+            return cleanBitmap
+        }
+
+        private fun getCroppedBitmap(bitmap: Bitmap, image: Image): Bitmap {
+            if (settingsReadOnly.imageCrop.not()) return bitmap
+
+            val imageCropLeft: Int
+            val imageCropRight: Int
+            val imageCropTop: Int
+            val imageCropBottom: Int
+            if (resizeFactor.get() < Settings.Values.RESIZE_DISABLED) {
+                val scale = resizeFactor.get() / 100f
+                imageCropLeft = (settingsReadOnly.imageCropLeft * scale).toInt()
+                imageCropRight = (settingsReadOnly.imageCropRight * scale).toInt()
+                imageCropTop = (settingsReadOnly.imageCropTop * scale).toInt()
+                imageCropBottom = (settingsReadOnly.imageCropBottom * scale).toInt()
+            } else {
+                imageCropLeft = settingsReadOnly.imageCropLeft
+                imageCropRight = settingsReadOnly.imageCropRight
+                imageCropTop = settingsReadOnly.imageCropTop
+                imageCropBottom = settingsReadOnly.imageCropBottom
+            }
+
+            try {
+                return when (display.rotation) {
+                    Surface.ROTATION_0 -> Bitmap.createBitmap(
+                        bitmap, imageCropLeft, imageCropTop,
+                        image.width - imageCropLeft - imageCropRight, image.height - imageCropTop - imageCropBottom
+                    )
+
+                    Surface.ROTATION_180 -> Bitmap.createBitmap(
+                        bitmap, imageCropRight, imageCropBottom,
+                        image.width - imageCropLeft - imageCropRight, image.height - imageCropTop - imageCropBottom
+                    )
+
+                    Surface.ROTATION_90 -> Bitmap.createBitmap(
+                        bitmap, imageCropTop, imageCropRight,
+                        image.width - imageCropTop - imageCropBottom, image.height - imageCropLeft - imageCropRight
+                    )
+
+                    Surface.ROTATION_270 -> Bitmap.createBitmap(
+                        bitmap, imageCropBottom, imageCropLeft,
+                        image.width - imageCropTop - imageCropBottom, image.height - imageCropLeft - imageCropRight
+                    )
+
+                    else -> bitmap
+                }
+            } catch (ex: IllegalArgumentException) {
+                XLog.w(this@BitmapCapture.getLog("getCroppedBitmap: Rotation: ${display.rotation}", ex.toString()))
+                return bitmap
+            }
+        }
+
+        private fun getUpsizedBitmap(bitmap: Bitmap): Bitmap {
+            if (matrix.get().isIdentity) return bitmap
+            return Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix.get(), false)
+        }
+
     }
 }

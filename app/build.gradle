@@ -15,7 +15,7 @@ android {
         targetSdkVersion(targetSdk)
         versionCode = 30100
         versionName = "3.1.0"
-        resConfigs("en", "ru", "pt-rBR", "zh-rTW", "fr-rFR", "fa", "it", "pl")
+        resConfigs("en", "ru", "pt-rBR", "zh-rTW", "fr-rFR", "fa", "it", "pl", "hi")
 
         vectorDrawables.useSupportLibrary = true
     }

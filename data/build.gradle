@@ -60,6 +60,7 @@ dependencies {
 
     implementation("io.netty:netty-codec-http:$netty")
     implementation("io.netty:netty-handler:$netty")
+    implementation("io.reactivex:rxnetty-common:$rxNetty")
     implementation("io.reactivex:rxnetty-http:$rxNetty")
 
     implementation("com.github.iamironz:binaryprefs:$binaryprefs")

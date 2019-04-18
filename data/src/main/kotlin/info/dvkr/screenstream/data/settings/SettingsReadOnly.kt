@@ -14,6 +14,11 @@ interface SettingsReadOnly {
     val htmlEnableButtons: Boolean
     val htmlBackColor: Int
 
+    val imageCrop: Boolean
+    val imageCropTop: Int
+    val imageCropBottom: Int
+    val imageCropLeft: Int
+    val imageCropRight: Int
     val jpegQuality: Int
     val resizeFactor: Int
     val rotation: Int

@@ -13,6 +13,11 @@ interface Settings : SettingsReadOnly {
         const val HTML_ENABLE_BUTTONS = "PREF_KEY_HTML_ENABLE_BUTTONS"
         const val HTML_BACK_COLOR = "PREF_KEY_HTML_BACK_COLOR"
 
+        const val IMAGE_CROP = "PREF_KEY_IMAGE_CROP"
+        const val IMAGE_CROP_TOP = "PREF_KEY_IMAGE_CROP_TOP"
+        const val IMAGE_CROP_BOTTOM = "PREF_KEY_IMAGE_CROP_BOTTOM"
+        const val IMAGE_CROP_LEFT = "PREF_KEY_IMAGE_CROP_LEFT"
+        const val IMAGE_CROP_RIGHT = "PREF_KEY_IMAGE_CROP_RIGHT"
         const val JPEG_QUALITY = "PREF_KEY_JPEG_QUALITY"
         const val RESIZE_FACTOR = "PREF_KEY_RESIZE_FACTOR"
         const val ROTATION = "PREF_KEY_ROTATION"
@@ -40,6 +45,11 @@ interface Settings : SettingsReadOnly {
         const val HTML_ENABLE_BUTTONS = true
         const val HTML_BACK_COLOR = -16777216 // "ff000000".toLong(radix = 16).toInt()
 
+        const val IMAGE_CROP = false
+        const val IMAGE_CROP_TOP = 0
+        const val IMAGE_CROP_BOTTOM = 0
+        const val IMAGE_CROP_LEFT = 0
+        const val IMAGE_CROP_RIGHT = 0
         const val JPEG_QUALITY = 80
         const val RESIZE_FACTOR = 50
         const val ROTATION = Values.ROTATION_0
@@ -75,6 +85,11 @@ interface Settings : SettingsReadOnly {
     override var htmlEnableButtons: Boolean
     override var htmlBackColor: Int
 
+    override var imageCrop: Boolean
+    override var imageCropTop: Int
+    override var imageCropBottom: Int
+    override var imageCropLeft: Int
+    override var imageCropRight: Int
     override var jpegQuality: Int
     override var resizeFactor: Int
     override var rotation: Int

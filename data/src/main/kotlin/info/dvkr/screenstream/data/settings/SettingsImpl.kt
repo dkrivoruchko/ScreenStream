@@ -37,6 +37,21 @@ class SettingsImpl(private val preferences: Preferences) : Settings {
             by bindPreference(preferences, Settings.Key.HTML_BACK_COLOR, Settings.Default.HTML_BACK_COLOR)
 
 
+    override var imageCrop: Boolean
+            by bindPreference(preferences, Settings.Key.IMAGE_CROP, Settings.Default.IMAGE_CROP)
+
+    override var imageCropTop: Int
+            by bindPreference(preferences, Settings.Key.IMAGE_CROP_TOP, Settings.Default.IMAGE_CROP_TOP)
+
+    override var imageCropBottom: Int
+            by bindPreference(preferences, Settings.Key.IMAGE_CROP_BOTTOM, Settings.Default.IMAGE_CROP_BOTTOM)
+
+    override var imageCropLeft: Int
+            by bindPreference(preferences, Settings.Key.IMAGE_CROP_LEFT, Settings.Default.IMAGE_CROP_LEFT)
+
+    override var imageCropRight: Int
+            by bindPreference(preferences, Settings.Key.IMAGE_CROP_RIGHT, Settings.Default.IMAGE_CROP_RIGHT)
+
     override var jpegQuality: Int
             by bindPreference(preferences, Settings.Key.JPEG_QUALITY, Settings.Default.JPEG_QUALITY)
 
