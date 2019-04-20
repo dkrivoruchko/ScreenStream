@@ -3,7 +3,7 @@
     <string name="app_activity_error_title">त्रुटि</string>
     <string name="app_activity_error_port_in_use">पोर्ट पहले से ही उपयोग में है। कोई दूसरा चुनें।</string>
     <string name="app_activity_error_invalid_media_projection">सुरक्षा त्रुटि: अमान्य मीडिया प्रक्षेपण। एक बार और कोशिश करें।</string>
-    <string name="app_activity_error_ip_address_not_found">IP पता नहीं मिला। \ n सेटिंग में \ "केवल वाईफाई का उपयोग करें" को निष्क्रिय करने की कोशिश करें।</string>
+    <string name="app_activity_error_ip_address_not_found">IP पता नहीं मिला। \n सेटिंग में \"केवल वाईफाई का उपयोग करें\" को निष्क्रिय करने की कोशिश करें।</string>
     <string name="app_activity_error_wrong_image_format">सिस्टम अज्ञात प्रारूप में छवि लौटाता है। कोई फिक्स उपलब्ध नहीं। माफ़ कीजिये।</string>
     <string name="app_activity_error_exit">बाहर जाएं</string>
     <string name="app_activity_collecting_logs">एप्लिकेशन लॉग एकत्रित कर रहा है …</string>
@@ -19,7 +19,7 @@
     <string name="bottom_menu_about">विषय में</string>
     <string name="bottom_menu_exit">प्रस्थान</string>
 
-    <string name="stream_fragment_current_traffic">ट्रैफ़िक:% 1$।2f Mbit/s</string>
+    <string name="stream_fragment_current_traffic">ट्रैफ़िक:%1$,.2f Mbit/s</string>
     <string name="stream_fragment_connected_clients">कनेक्टेड क्लाइंट:%1$d</string>
     <string name="stream_fragment_no_address">कोई पता नहीं मिला</string>
     <string name="stream_fragment_interface">इंटरफ़ेस:%1$s</string>
@@ -87,7 +87,7 @@
     <string name="pref_rotate_summary">क्लाइंट को भेजने से पहले छवि को घुमाएं</string>
     <string name="pref_jpeg_quality">JPEG संपीड़न गुणवत्ता</string>
     <string name="pref_jpeg_quality_summary">JPEG संपीड़न गुणवत्ता सेट करें</string>
-    <string name="pref_jpeg_quality_dialog">JPEG संपीड़न गुणवत्ता सेट करें। \nValues: 10100 (डिफ़ॉल्ट: 100)</string>
+    <string name="pref_jpeg_quality_dialog">JPEG संपीड़न गुणवत्ता सेट करें। \nValues: 10–100 (डिफ़ॉल्ट: 100)</string>
     <string name="pref_settings_security">सुरक्षा</string>
     <string name="pref_enable_pin">पिन सक्षम करें</string>
     <string name="pref_enable_pin_summary">पिन के साथ स्ट्रीम तक पहुंच को सुरक्षित रखें</string>
@@ -107,7 +107,7 @@
     <string name="pref_enable_ipv6_summary">IPv6 पतों पर भी सर्वर चलाएं</string>
     <string name="pref_server_port">सर्वर पोर्ट</string>
     <string name="pref_server_port_summary">आने वाले कनेक्शन के लिए पोर्ट सेट करें</string>
-    <string name="pref_server_port_dialog">आने वाले कनेक्शन के लिए सर्वर पोर्ट सेट करें। \nValues: 1025–65535 \n (डिफ़ॉल्ट: 8080)</string>
+    <string name="pref_server_port_dialog">आने वाले कनेक्शन के लिए सर्वर पोर्ट सेट करें। \nValues: 1025–65535 \n(डिफ़ॉल्ट: 8080)</string>
     <string name="pref_logging">एप्लिकेशन लॉग सक्षम करें</string>
     <string name="pref_logging_summary">आवेदन पत्र एकत्र करें</string>
 
