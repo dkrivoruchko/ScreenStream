@@ -1,0 +1,282 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true"
+    tools:context=".ui.activity.AppActivity">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="@dimen/fragments_margin_bottom"
+        android:orientation="vertical">
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/cl_fragment_settings_use_wifi_only"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="?attr/selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true"
+            android:minHeight="@dimen/fragment_settings_item_min_height"
+            android:paddingStart="@dimen/fragment_settings_item_start_end"
+            android:paddingTop="8dp"
+            android:paddingEnd="@dimen/fragment_settings_item_start_end"
+            android:paddingBottom="8dp">
+
+            <androidx.appcompat.widget.AppCompatImageView
+                android:id="@+id/iv_fragment_settings_use_wifi_only"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:srcCompat="@drawable/ic_settings_wifi_24dp" />
+
+            <androidx.appcompat.widget.AppCompatTextView
+                android:id="@+id/tv_fragment_settings_use_wifi_only"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:layout_marginEnd="@dimen/fragment_settings_item_margin_end"
+                android:text="@string/pref_wifi_only"
+                android:textAppearance="?android:attr/textAppearanceMedium"
+                android:textColor="@color/colorSettingsHeader"
+                app:layout_constraintBottom_toTopOf="@id/tv_fragment_settings_use_wifi_only_summary"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toEndOf="@id/iv_fragment_settings_use_wifi_only"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <androidx.appcompat.widget.AppCompatTextView
+                android:id="@+id/tv_fragment_settings_use_wifi_only_summary"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:layout_marginEnd="@dimen/fragment_settings_item_margin_end"
+                android:text="@string/pref_wifi_only_summary"
+                android:textAppearance="?android:attr/textAppearanceSmall"
+                android:textColor="@color/colorSettingsSummary"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toEndOf="@id/iv_fragment_settings_use_wifi_only"
+                app:layout_constraintTop_toBottomOf="@id/tv_fragment_settings_use_wifi_only" />
+
+            <CheckBox
+                android:id="@+id/cb_fragment_settings_use_wifi_only"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="8dp"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginTop="2dp"
+            android:layout_marginBottom="2dp"
+            android:background="@color/colorSettingsDivider" />
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/cl_fragment_settings_enable_ipv6"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="?attr/selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true"
+            android:minHeight="@dimen/fragment_settings_item_min_height"
+            android:paddingStart="@dimen/fragment_settings_item_start_end"
+            android:paddingTop="8dp"
+            android:paddingEnd="@dimen/fragment_settings_item_start_end"
+            android:paddingBottom="8dp">
+
+            <androidx.appcompat.widget.AppCompatImageView
+                android:id="@+id/iv_fragment_settings_enable_ipv6"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:srcCompat="@drawable/ic_settings_ipv6_24dp" />
+
+            <androidx.appcompat.widget.AppCompatTextView
+                android:id="@+id/tv_fragment_settings_enable_ipv6"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:layout_marginEnd="@dimen/fragment_settings_item_margin_end"
+                android:text="@string/pref_enable_ipv6"
+                android:textAppearance="?android:attr/textAppearanceMedium"
+                android:textColor="@color/colorSettingsHeader"
+                app:layout_constraintBottom_toTopOf="@id/tv_fragment_settings_enable_ipv6_summary"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toEndOf="@id/iv_fragment_settings_enable_ipv6"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <androidx.appcompat.widget.AppCompatTextView
+                android:id="@+id/tv_fragment_settings_enable_ipv6_summary"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:layout_marginEnd="@dimen/fragment_settings_item_margin_end"
+                android:text="@string/pref_enable_ipv6_summary"
+                android:textAppearance="?android:attr/textAppearanceSmall"
+                android:textColor="@color/colorSettingsSummary"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toEndOf="@id/iv_fragment_settings_enable_ipv6"
+                app:layout_constraintTop_toBottomOf="@id/tv_fragment_settings_enable_ipv6" />
+
+            <CheckBox
+                android:id="@+id/cb_fragment_settings_enable_ipv6"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="8dp"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginTop="2dp"
+            android:layout_marginBottom="2dp"
+            android:background="@color/colorSettingsDivider" />
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/cl_fragment_settings_server_port"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="?attr/selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true"
+            android:minHeight="@dimen/fragment_settings_item_min_height"
+            android:paddingStart="@dimen/fragment_settings_item_start_end"
+            android:paddingTop="8dp"
+            android:paddingEnd="@dimen/fragment_settings_item_start_end"
+            android:paddingBottom="8dp">
+
+            <androidx.appcompat.widget.AppCompatImageView
+                android:id="@+id/iv_fragment_settings_server_port"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:srcCompat="@drawable/ic_settings_http_24dp" />
+
+            <androidx.appcompat.widget.AppCompatTextView
+                android:id="@+id/tv_fragment_settings_server_port"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:layout_marginEnd="@dimen/fragment_settings_item_margin_end"
+                android:text="@string/pref_server_port"
+                android:textAppearance="?android:attr/textAppearanceMedium"
+                android:textColor="@color/colorSettingsHeader"
+                app:layout_constraintBottom_toTopOf="@id/tv_fragment_settings_server_port_summary"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toEndOf="@+id/iv_fragment_settings_server_port"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <androidx.appcompat.widget.AppCompatTextView
+                android:id="@+id/tv_fragment_settings_server_port_summary"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:layout_marginEnd="@dimen/fragment_settings_item_margin_end"
+                android:text="@string/pref_server_port_summary"
+                android:textAppearance="?android:attr/textAppearanceSmall"
+                android:textColor="@color/colorSettingsSummary"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toEndOf="@id/iv_fragment_settings_server_port"
+                app:layout_constraintTop_toBottomOf="@id/tv_fragment_settings_server_port" />
+
+            <androidx.appcompat.widget.AppCompatTextView
+                android:id="@+id/tv_fragment_settings_server_port_value"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:textAlignment="center"
+                android:textColor="@color/colorAccent"
+                android:textSize="16sp"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toEndOf="@id/tv_fragment_settings_server_port"
+                app:layout_constraintTop_toTopOf="parent"
+                tools:text="65535" />
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginTop="2dp"
+            android:layout_marginBottom="2dp"
+            android:background="@color/colorSettingsDivider" />
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/cl_fragment_settings_logging"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="?attr/selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true"
+            android:minHeight="@dimen/fragment_settings_item_min_height"
+            android:paddingStart="@dimen/fragment_settings_item_start_end"
+            android:paddingTop="8dp"
+            android:paddingEnd="@dimen/fragment_settings_item_start_end"
+            android:paddingBottom="8dp">
+
+            <androidx.appcompat.widget.AppCompatImageView
+                android:id="@+id/iv_fragment_settings_logging"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:srcCompat="@drawable/ic_settings_logging_24dp" />
+
+            <androidx.appcompat.widget.AppCompatTextView
+                android:id="@+id/tv_fragment_settings_logging"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:layout_marginEnd="@dimen/fragment_settings_item_margin_end"
+                android:text="@string/pref_logging"
+                android:textAppearance="?android:attr/textAppearanceMedium"
+                android:textColor="@color/colorSettingsHeader"
+                app:layout_constraintBottom_toTopOf="@id/tv_fragment_settings_logging_summary"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toEndOf="@id/iv_fragment_settings_logging"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <androidx.appcompat.widget.AppCompatTextView
+                android:id="@+id/tv_fragment_settings_logging_summary"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:layout_marginEnd="@dimen/fragment_settings_item_margin_end"
+                android:text="@string/pref_logging_summary"
+                android:textAppearance="?android:attr/textAppearanceSmall"
+                android:textColor="@color/colorSettingsSummary"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toEndOf="@id/iv_fragment_settings_logging"
+                app:layout_constraintTop_toBottomOf="@id/tv_fragment_settings_logging" />
+
+            <CheckBox
+                android:id="@+id/cb_fragment_settings_logging"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="8dp"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+        </androidx.constraintlayout.widget.ConstraintLayout>
+    </LinearLayout>
+</androidx.core.widget.NestedScrollView>
