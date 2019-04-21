@@ -48,7 +48,12 @@ Application uses Android Cast feature and requires at least Android 5.0 to run.
 ![](screenshots/screenshot_7.png)&nbsp;
 ![](screenshots/screenshot_8.png)<br>
 ![](screenshots/screenshot_9.png)&nbsp;
-![](screenshots/screenshot_10.png)
+![](screenshots/screenshot_10.png)<br>
+![](screenshots/screenshot_11.png)&nbsp;
+![](screenshots/screenshot_12.png)<br>
+![](screenshots/screenshot_13.png)&nbsp;
+![](screenshots/screenshot_14.png)
+
 
 ## Features and libraries
 
