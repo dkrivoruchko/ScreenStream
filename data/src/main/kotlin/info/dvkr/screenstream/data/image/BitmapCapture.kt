@@ -139,7 +139,7 @@ class BitmapCapture constructor(
 
     private fun startDisplayCapture() {
         val screenSize = Point().also { display.getRealSize(it) }
-        imageListener = ImageListener(display, settingsReadOnly, resizeFactor, matrix)
+        imageListener = ImageListener(settingsReadOnly, resizeFactor, matrix)
 
         val screenSizeX: Int
         val screenSizeY: Int
@@ -188,7 +188,6 @@ class BitmapCapture constructor(
 
     // Runs on imageThread
     private inner class ImageListener(
-        private val display: Display,
         private val settingsReadOnly: SettingsReadOnly,
         private val resizeFactor: AtomicInteger,
         private val matrix: AtomicReference<Matrix>
@@ -276,6 +275,5 @@ class BitmapCapture constructor(
             if (matrix.get().isIdentity) return bitmap
             return Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix.get(), false)
         }
-
     }
 }

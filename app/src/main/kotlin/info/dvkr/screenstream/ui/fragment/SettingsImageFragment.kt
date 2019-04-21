@@ -111,7 +111,7 @@ class SettingsImageFragment : Fragment() {
 
                                 tiet_dialog_settings_crop_top.setSelection(settings.imageCropTop.toString().length)
 
-                                val validateTextWatcher = SimpleTextWatcher { _ ->
+                                val validateTextWatcher = SimpleTextWatcher {
                                     validateCropValues(
                                         this@Dialog,
                                         tiet_dialog_settings_crop_top,

@@ -12,6 +12,9 @@ import info.dvkr.screenstream.R
 import info.dvkr.screenstream.data.other.getLog
 
 class NotificationHelper(context: Context) {
+    companion object {
+        private const val CHANNEL_START_STOP = "info.dvkr.screenstream.NOTIFICATION_CHANNEL_START_STOP"
+    }
 
     enum class NotificationType(val id: Int) { START(10), STOP(11) }
 
@@ -20,7 +23,6 @@ class NotificationHelper(context: Context) {
     private val notificationManager =
         applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
-    private val CHANNEL_START_STOP = "info.dvkr.screenstream.NOTIFICATION_CHANNEL_START_STOP"
     private var currentNotificationType: NotificationType? = null
 
     fun createNotificationChannel() {
