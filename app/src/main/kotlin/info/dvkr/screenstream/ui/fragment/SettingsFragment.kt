@@ -45,8 +45,8 @@ class SettingsFragment : Fragment() {
         override fun getItem(position: Int): Fragment =
             when (position) {
                 0 -> SettingsInterfaceFragment()
-                1 -> SettingsWebPageFragment()
-                2 -> SettingsImageFragment()
+                1 -> SettingsImageFragment()
+                2 -> SettingsWebPageFragment()
                 3 -> SettingsSecturityFragment()
                 4 -> SettingsAdvancedFragment()
                 else -> throw IllegalArgumentException("SettingsPageAdapter.getItem: unexpected position: $position")
@@ -55,8 +55,8 @@ class SettingsFragment : Fragment() {
         override fun getPageTitle(position: Int): CharSequence =
             when (position) {
                 0 -> context.getString(R.string.pref_settings_interface)
-                1 -> context.getString(R.string.pref_settings_web_page)
-                2 -> context.getString(R.string.pref_settings_image)
+                1 -> context.getString(R.string.pref_settings_image)
+                2 -> context.getString(R.string.pref_settings_web_page)
                 3 -> context.getString(R.string.pref_settings_security)
                 4 -> context.getString(R.string.pref_settings_advanced)
                 else -> throw IllegalArgumentException("SettingsPageAdapter.getPageTitle: unexpected position: $position")

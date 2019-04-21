@@ -258,8 +258,9 @@ class SettingsImageFragment : Fragment() {
         val leftCrop = leftView.text.let { if (it.isNullOrBlank()) -1 else it.toString().toInt() }
         val rightCrop = rightView.text.let { if (it.isNullOrBlank()) -1 else it.toString().toInt() }
 
-        val isTopBottomValid = (topCrop + bottomCrop) < screenSize.y
-        val isLeftRightValid = (leftCrop + rightCrop) < screenSize.x
+        val maxCrop = Math.min(screenSize.x, screenSize.y)
+        val isTopBottomValid = (topCrop + bottomCrop) < maxCrop
+        val isLeftRightValid = (leftCrop + rightCrop) < maxCrop
 
         if (isTopBottomValid && isLeftRightValid) {
             if (topCrop >= 0 && bottomCrop >= 0 && leftCrop >= 0 && rightCrop >= 0) {
@@ -273,9 +274,9 @@ class SettingsImageFragment : Fragment() {
         } else {
             dialog.setActionButtonEnabled(WhichButton.POSITIVE, false)
             if (isTopBottomValid.not()) {
-                errorView.text = getString(R.string.pref_crop_dialog_error_message_top_bottom, screenSize.y)
+                errorView.text = getString(R.string.pref_crop_dialog_error_message_top_bottom, maxCrop)
             } else {
-                errorView.text = getString(R.string.pref_crop_dialog_error_message_left_right, screenSize.x)
+                errorView.text = getString(R.string.pref_crop_dialog_error_message_left_right, maxCrop)
             }
             errorView.visibility = View.VISIBLE
         }

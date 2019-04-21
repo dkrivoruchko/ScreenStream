@@ -261,33 +261,14 @@ class BitmapCapture constructor(
                 imageCropBottom = settingsReadOnly.imageCropBottom
             }
 
-            try {
-                return when (display.rotation) {
-                    Surface.ROTATION_0 -> Bitmap.createBitmap(
-                        bitmap, imageCropLeft, imageCropTop,
-                        image.width - imageCropLeft - imageCropRight, image.height - imageCropTop - imageCropBottom
-                    )
-
-                    Surface.ROTATION_180 -> Bitmap.createBitmap(
-                        bitmap, imageCropRight, imageCropBottom,
-                        image.width - imageCropLeft - imageCropRight, image.height - imageCropTop - imageCropBottom
-                    )
-
-                    Surface.ROTATION_90 -> Bitmap.createBitmap(
-                        bitmap, imageCropTop, imageCropRight,
-                        image.width - imageCropTop - imageCropBottom, image.height - imageCropLeft - imageCropRight
-                    )
-
-                    Surface.ROTATION_270 -> Bitmap.createBitmap(
-                        bitmap, imageCropBottom, imageCropLeft,
-                        image.width - imageCropTop - imageCropBottom, image.height - imageCropLeft - imageCropRight
-                    )
-
-                    else -> bitmap
-                }
+            return try {
+                Bitmap.createBitmap(
+                    bitmap, imageCropLeft, imageCropTop,
+                    image.width - imageCropLeft - imageCropRight, image.height - imageCropTop - imageCropBottom
+                )
             } catch (ex: IllegalArgumentException) {
-                XLog.w(this@BitmapCapture.getLog("getCroppedBitmap: Rotation: ${display.rotation}", ex.toString()))
-                return bitmap
+                XLog.w(this@BitmapCapture.getLog("getCroppedBitmap", ex.toString()))
+                bitmap
             }
         }
 
