@@ -23,7 +23,7 @@
             android:gravity="center"
             android:text="@string/app_activity_collecting_logs"
             android:textAppearance="?android:attr/textAppearanceMedium"
-            android:textColor="@color/colorPrimary" />
+            android:textColor="@color/colorErrorText" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/b_activity_app_send_logs"
@@ -34,10 +34,10 @@
             android:layout_marginTop="8dp"
             android:layout_marginBottom="8dp"
             android:text="@string/app_activity_send_logs"
-            android:textColor="@color/colorPrimary"
+            android:textColor="@color/colorErrorText"
             app:icon="@drawable/ic_about_feedback_24dp"
             app:iconPadding="8dp"
-            app:iconTint="@color/colorPrimary" />
+            app:iconTint="@color/colorErrorText" />
     </LinearLayout>
 
     <View

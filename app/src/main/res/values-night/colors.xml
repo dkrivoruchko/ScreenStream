@@ -28,6 +28,7 @@
     <color name="colorNotificationText">@color/textColorSecondary</color>
 
     <color name="colorError">#D2283D</color>
+    <color name="colorErrorText">#FFFFFF</color>
     <color name="colorErrorBackgroundStart">#FB334C</color>
     <color name="colorErrorBackgroundEnd">#D2283D</color>
 
