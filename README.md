@@ -50,9 +50,7 @@ Application uses Android Cast feature and requires at least Android 5.0 to run.
 ![](screenshots/screenshot_9.png)&nbsp;
 ![](screenshots/screenshot_10.png)<br>
 ![](screenshots/screenshot_11.png)&nbsp;
-![](screenshots/screenshot_12.png)<br>
-![](screenshots/screenshot_13.png)&nbsp;
-![](screenshots/screenshot_14.png)
+![](screenshots/screenshot_12.png)
 
 
 ## Features and libraries
@@ -63,6 +61,7 @@ Version 3.x based on Clean Architecture, Single Activity and MVI patterns and us
 * [Android Jetpack libraries](https://developer.android.com/jetpack/)
 * [Koin](https://github.com/Ekito/koin)
 * [Alerter](https://github.com/Tapadoo/Alerter)
+* [ZXing](https://github.com/zxing/zxing)
 * [Material Dialogs](https://github.com/afollestad/material-dialogs)
 * [Binary Preferences](https://github.com/iamironz/binaryprefs)
 * [RxJava 1.x](https://github.com/ReactiveX/RxJava/tree/1.x)
