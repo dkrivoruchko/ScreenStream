@@ -94,8 +94,6 @@ dependencies {
     releaseImplementation("com.crashlytics.sdk.android:crashlytics:$fabricCrashlytics")
 
     debugImplementation("com.squareup.leakcanary:leakcanary-android:$leakcanary")
-    debugImplementation("com.squareup.leakcanary:leakcanary-support-fragment:$leakcanary")
-    releaseImplementation("com.squareup.leakcanary:leakcanary-android-no-op:$leakcanary")
 }
 
 apply plugin: "com.google.gms.google-services"

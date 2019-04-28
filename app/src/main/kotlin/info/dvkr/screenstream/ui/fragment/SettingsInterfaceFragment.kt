@@ -1,13 +1,17 @@
 package info.dvkr.screenstream.ui.fragment
 
+import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import com.afollestad.materialdialogs.MaterialDialog
+import com.afollestad.materialdialogs.color.ColorPalette
+import com.afollestad.materialdialogs.color.colorChooser
 import com.afollestad.materialdialogs.lifecycle.lifecycleOwner
 import com.afollestad.materialdialogs.list.listItemsSingleChoice
 import com.elvishew.xlog.XLog
@@ -110,6 +114,30 @@ class SettingsInterfaceFragment : Fragment() {
             cl_fragment_settings_notify_slow_connections.setOnClickListener { performClick() }
         }
 
+        // Interface - Web page Image buttons
+        with(cb_fragment_settings_html_buttons) {
+            isChecked = settings.htmlEnableButtons
+            setOnClickListener { settings.htmlEnableButtons = isChecked }
+            cl_fragment_settings_html_buttons.setOnClickListener { performClick() }
+        }
+
+        // Interface - Web page HTML Back color
+        v_fragment_settings_html_back_color.color = settings.htmlBackColor
+        v_fragment_settings_html_back_color.border = ContextCompat.getColor(requireContext(), R.color.textColorPrimary)
+        cl_fragment_settings_html_back_color.setOnClickListener {
+            MaterialDialog(requireActivity()).show {
+                lifecycleOwner(viewLifecycleOwner)
+                title(R.string.pref_html_back_color_title)
+                icon(R.drawable.ic_settings_html_back_color_24dp)
+                colorChooser(
+                    colors = ColorPalette.Primary + Color.parseColor("#000000"),
+                    initialSelection = settings.htmlBackColor,
+                    allowCustomArgb = true
+                ) { _, color -> if (settings.htmlBackColor != color) settings.htmlBackColor = color }
+                positiveButton(android.R.string.ok)
+                negativeButton(android.R.string.cancel)
+            }
+        }
     }
 
     override fun onStart() {
