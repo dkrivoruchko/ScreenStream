@@ -27,8 +27,8 @@
     <string name="stream_fragment_no_web_browser_found">Kein Browser gefunden</string>
     <string name="stream_fragment_external_app_error">Fehler einer externen Applikation</string>
     <string name="stream_fragment_share_address">Adresse teilen</string>
-    <string name="stream_fragment_pin">Pin: %1$s</string>
-    <string name="stream_fragment_pin_disabled">Pin ist deaktiviert</string>
+    <string name="stream_fragment_pin">PIN: %1$s</string>
+    <string name="stream_fragment_pin_disabled">PIN ist deaktiviert</string>
     <string name="stream_fragment_client_disconnected">Verbindung getrennt</string>
     <string name="stream_fragment_client_slow_network">Langsame Verbindung</string>
     <string name="stream_fragment_client_connected">Verbunden</string>
@@ -43,24 +43,24 @@
     <string name="permission_activity_error_unknown">Unbekannter Fehler</string>
 
     <string name="notification_ready_to_stream">Bereit für Aufnahme</string>
-    <string name="notification_press_start">Tippen Sie auf STARTEN um den Stream zu starten</string>
+    <string name="notification_press_start">Tippen Sie auf START um den Stream zu starten</string>
     <string name="notification_start">Start</string>
     <string name="notification_exit">Beenden</string>
-    <string name="notification_stream">Streaming läuft…</string>
-    <string name="notification_press_stop">Tippen Sie STOPPEN um den Stream zu stoppen</string>
+    <string name="notification_stream">Streaming läuft …</string>
+    <string name="notification_press_stop">Tippen Sie STOPP um den Stream zu stoppen</string>
     <string name="notification_stop">Stopp</string>
 
     <string name="toast_slow_client_connection">Langsame Verbindung eines verbundenen Gerätes erkannt</string>
 
     <string name="pref_settings_interface">Schnittstelle</string>
-    <string name="pref_night_mode">Dunkles Schema</string>
+    <string name="pref_night_mode">Dunkles Farbschema</string>
     <string-array name="pref_night_mode_options">
         <item>Immer</item>
-        <item>Automatisch (bei Nacht und bei Energiesparmodus)</item>
+        <item>Automatisch (bei Nacht und Energiesparmodus)</item>
         <item>Nur Energiesparmodus</item>
         <item>Nie</item>
     </string-array>
-    <string name="pref_notification">Geräteeinstellungen für Benachrichtigungen</string>
+    <string name="pref_notification">Einstellungen für Benachrichtigungen</string>
     <string name="pref_notification_summary">Systemeinstellungen für Benachrichtigungen öffnen</string>
     <string name="pref_minimize_on_stream">Beim Start des Streams minimieren</string>
     <string name="pref_minimise_on_stream_summary">App beim Stream-Start minimieren</string>
@@ -70,8 +70,8 @@
     <string name="pref_start_on_boot_summary">Stream starten, nachdem das Gerät hochgefahren wurde</string>
     <string name="pref_auto_start_stop">Streaming automatisch starten/stoppen</string>
     <string name="pref_auto_start_stop_summary">Stream automatisch starten/stoppen wenn sich ein Gerät mit dem Stream verbindet/trennt</string>
-    <string name="pref_detect_slow_connections">Bei schlechter Verbindung benachrichtigen</string>
-    <string name="pref_detect_slow_connections_summary">Schlechte Verbindung von Geräten erkennen und benachrichtigen</string>
+    <string name="pref_detect_slow_connections">Benachrichtigung bei schlechter Verbindung</string>
+    <string name="pref_detect_slow_connections_summary">Schlechte Verbindung von Geräten erkennen und diese benachrichtigen</string>
     <string name="pref_settings_web_page">Webseite</string>
     <string name="pref_html_buttons">Schaltflächen auf Webseite anzeigen</string>
     <string name="pref_html_buttons_summary">Kontoll-Schaltflächen auf der Webseite anzeigen/verstecken</string>
@@ -99,19 +99,19 @@
     <string name="pref_jpeg_quality_summary">JPEG-Kompressionsqualität setzen</string>
     <string name="pref_jpeg_quality_dialog">JPEG-Kompressionsqualität setzen.\nWerte: 10–100 (Standard: 100)</string>
     <string name="pref_settings_security">Sicherheit</string>
-    <string name="pref_enable_pin">Pin aktivieren</string>
-    <string name="pref_enable_pin_summary">Zugriff auf dem Stream mit Pin schützen</string>
+    <string name="pref_enable_pin">PIN aktivieren</string>
+    <string name="pref_enable_pin_summary">Zugriff auf dem Stream mit PIN schützen</string>
     <string name="pref_hide_pin">Pin beim Stream-Start automatisch verstecken</string>
-    <string name="pref_hide_pin_summary">Sternchen statt Pin anzeigen, wenn gestreamt wird</string>
-    <string name="pref_new_pin_on_start">Neuer Pin beim Start</string>
-    <string name="pref_new_pin_on_start_summary">Neuer Pin beim App-Start erzeugen</string>
-    <string name="pref_auto_change_pin">Pin automatisch ändern</string>
-    <string name="pref_auto_change_pin_summary">Neuen Pin für jeden Stream erstellen</string>
+    <string name="pref_hide_pin_summary">Sternchen statt PIN anzeigen, wenn gestreamt wird</string>
+    <string name="pref_new_pin_on_start">Neuer PIN beim Start</string>
+    <string name="pref_new_pin_on_start_summary">Neuen PIN beim App-Start erzeugen</string>
+    <string name="pref_auto_change_pin">PIN automatisch ändern</string>
+    <string name="pref_auto_change_pin_summary">Neuen PIN für jeden Stream erstellen</string>
     <string name="pref_set_pin">Pin setzen</string>
-    <string name="pref_set_pin_summary">Pin manuell setzen</string>
-    <string name="pref_set_pin_dialog">Pin eingeben.\nStandard: 0000</string>
+    <string name="pref_set_pin_summary">PIN manuell setzen</string>
+    <string name="pref_set_pin_dialog">PIN eingeben.\nStandard: 0000</string>
     <string name="pref_settings_advanced">Erweitert</string>
-    <string name="pref_wifi_only">Nur WLAN benutzen</string>
+    <string name="pref_wifi_only">Nur über WLAN</string>
     <string name="pref_wifi_only_summary">Server nur über WLAN-Schnittstelle verwenden </string>
     <string name="pref_enable_ipv6">IPv6 Unterstützung aktivieren</string>
     <string name="pref_enable_ipv6_summary">Server auch auf IPv6 Adressen starten</string>
