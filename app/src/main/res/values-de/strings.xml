@@ -91,18 +91,10 @@
     <string name="pref_crop_dialog_error_message_left_right">Links + Rechts &#8805; %1$d</string>
     <string name="pref_resize">Bildgröße anpassen</string>
     <string name="pref_resize_summary">Bildgröße vor dem Senden anpassen</string>
-    <string name="pref_resize_value" translatable="false">%1$d%%</string>
     <string name="pref_resize_dialog_text">Vergrößerungsfaktor in Prozent angeben.\nWerte: 10–150 (Standard: 50)\nBildschirmgröße: %1$dx%2$d</string>
     <string name="pref_resize_dialog_result">Bildgröße: %1$dx%2$d</string>
     <string name="pref_rotate">Bild im Uhrzeigersinn drehen</string>
     <string name="pref_rotate_summary">Bild vor dem Senden drehen</string>
-    <string name="pref_rotate_value" translatable="false">%1$d\u00B0</string>
-    <string-array name="pref_rotate_options" translatable="false">
-        <item>0\u00B0</item>
-        <item>90\u00B0</item>
-        <item>180\u00B0</item>
-        <item>270\u00B0</item>
-    </string-array>
     <string name="pref_jpeg_quality">JPEG-Kompressionsqualität</string>
     <string name="pref_jpeg_quality_summary">JPEG-Kompressionsqualität setzen</string>
     <string name="pref_jpeg_quality_dialog">JPEG-Kompressionsqualität setzen.\nWerte: 10–100 (Standard: 100)</string>

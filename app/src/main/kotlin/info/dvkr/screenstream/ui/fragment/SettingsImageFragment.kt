@@ -84,7 +84,7 @@ class SettingsImageFragment : Fragment() {
                         .lifecycleOwner(viewLifecycleOwner)
                         .title(R.string.pref_crop)
                         .icon(R.drawable.ic_settings_crop_24dp)
-                        .customView(R.layout.dialog_settings_crop)
+                        .customView(R.layout.dialog_settings_crop, scrollable = true)
                         .positiveButton(android.R.string.ok) { dialog ->
                             dialog.getCustomView().apply DialogView@{
                                 val newTopCrop = tiet_dialog_settings_crop_top.text.toString().toInt()
@@ -130,7 +130,6 @@ class SettingsImageFragment : Fragment() {
 
                             show()
                         }
-
                 }
             }
             cl_fragment_settings_crop_image.setOnClickListener { performClick() }
@@ -144,7 +143,7 @@ class SettingsImageFragment : Fragment() {
                 .lifecycleOwner(viewLifecycleOwner)
                 .title(R.string.pref_resize)
                 .icon(R.drawable.ic_settings_resize_24dp)
-                .customView(R.layout.dialog_settings_resize)
+                .customView(R.layout.dialog_settings_resize, scrollable = true)
                 .positiveButton(android.R.string.ok) { dialog ->
                     dialog.getCustomView().apply DialogView@{
                         val newResizeFactor = tiet_dialog_settings_resize.text.toString().toInt()

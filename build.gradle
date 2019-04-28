@@ -18,6 +18,7 @@ buildscript {
         androidxViewpager = "1.0.0"
 
         alerter = "4.0.2"
+        zxing = "3.3.3"
         materialDialogs = "2.8.1"
         koin = "2.0.0-rc-2"
         binaryprefs = "1.0.1"

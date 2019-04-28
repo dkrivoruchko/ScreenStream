@@ -13,6 +13,7 @@
 
     <color name="colorBackgroundSecondary">#F4F4F4</color>
 
+    <color name="colorAddressIcon">@color/textColorPrimary</color>
     <color name="colorIcon">@color/textColorSecondary</color>
     <color name="colorSettingsHeader">@color/textColorSecondary</color>
     <color name="colorSettingsSummary">@color/textColorPrimary</color>

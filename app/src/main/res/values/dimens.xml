@@ -1,6 +1,7 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <dimen name="fragments_margin_bottom">72dp</dimen>
     <dimen name="fragment_stream_fab_margin_bottom">68dp</dimen>
+    <dimen name="fragment_stream_qrcode_size">256dp</dimen>
     <dimen name="fragment_settings_item_start_end">16dp</dimen>
     <dimen name="fragment_settings_item_min_height">72dp</dimen>
     <dimen name="fragment_settings_item_margin_end">52dp</dimen>

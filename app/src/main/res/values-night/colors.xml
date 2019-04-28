@@ -13,6 +13,7 @@
 
     <color name="colorBackgroundSecondary">#1A1A1A</color>
 
+    <color name="colorAddressIcon">@color/textColorPrimary</color>
     <color name="colorIcon">@color/textColorPrimary</color>
     <color name="colorSettingsHeader">@color/textColorPrimary</color>
     <color name="colorSettingsSummary">@color/textColorSecondary</color>

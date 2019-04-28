@@ -10,6 +10,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.appcompat.widget.AppCompatImageView
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Observer
@@ -17,6 +18,9 @@ import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
+import com.afollestad.materialdialogs.MaterialDialog
+import com.afollestad.materialdialogs.customview.customView
+import com.afollestad.materialdialogs.lifecycle.lifecycleOwner
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.data.model.HttpClient
@@ -110,6 +114,7 @@ class StreamFragment : Fragment() {
                         ).show()
                     }
                     iv_item_device_address_share.setOnClickListener { shareAddress(fullAddress) }
+                    iv_item_device_address_qr.setOnClickListener { showQrCode(fullAddress) }
                     ll_fragment_stream_addresses.addView(this)
                 }
             }
@@ -168,7 +173,17 @@ class StreamFragment : Fragment() {
             putExtra(Intent.EXTRA_TEXT, fullAddress)
         }
         startActivity(Intent.createChooser(sharingIntent, getString(R.string.stream_fragment_share_address)))
+    }
 
+    private fun showQrCode(fullAddress: String) {
+        fullAddress.getQRBitmap(resources.getDimensionPixelSize(R.dimen.fragment_stream_qrcode_size))?.let { qrBitmap ->
+            val imageView = AppCompatImageView(requireContext()).apply { setImageBitmap(qrBitmap) }
+            MaterialDialog(requireActivity())
+                .lifecycleOwner(viewLifecycleOwner)
+                .customView(view = imageView, noVerticalPadding = true)
+                .maxWidth(R.dimen.fragment_stream_qrcode_size)
+                .show()
+        }
     }
 
     private class HttpClientAdapter : ListAdapter<HttpClient, HttpClientViewHolder>(

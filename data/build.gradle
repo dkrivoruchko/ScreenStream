@@ -63,6 +63,8 @@ dependencies {
     implementation("io.reactivex:rxnetty-common:$rxNetty")
     implementation("io.reactivex:rxnetty-http:$rxNetty")
 
+    implementation("com.google.zxing:core:$zxing")
+
     implementation("com.github.iamironz:binaryprefs:$binaryprefs")
     implementation("com.elvishew:xlog:$xlog")
 }
