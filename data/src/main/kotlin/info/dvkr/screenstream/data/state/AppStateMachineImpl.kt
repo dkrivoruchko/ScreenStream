@@ -18,6 +18,7 @@ import info.dvkr.screenstream.data.other.getLog
 import info.dvkr.screenstream.data.settings.Settings
 import info.dvkr.screenstream.data.settings.SettingsReadOnly
 import info.dvkr.screenstream.data.state.helper.BroadcastHelper
+import info.dvkr.screenstream.data.state.helper.ConnectivityHelper
 import info.dvkr.screenstream.data.state.helper.MediaProjectionHelper
 import info.dvkr.screenstream.data.state.helper.NetworkHelper
 import kotlinx.coroutines.*
@@ -38,8 +39,9 @@ class AppStateMachineImpl(
     private val bitmapChannel: Channel<Bitmap> = Channel(Channel.CONFLATED)
     private val jpegChannel: Channel<ByteArray> = Channel(Channel.CONFLATED)
     private val mediaProjectionHelper = MediaProjectionHelper(context) { sendEvent(AppStateMachine.Event.StopStream) }
-    private val broadcastHelper = BroadcastHelper(context, ::onError)
-    private val networkHelper = NetworkHelper(context, ::onError)
+    private val broadcastHelper = BroadcastHelper.getInstance(context, ::onError)
+    private val connectivityHelper: ConnectivityHelper = ConnectivityHelper.getInstance(context)
+    private val networkHelper = NetworkHelper(context)
     private val bitmapNotification = BitmapNotification(context, appIconBitmap, bitmapChannel, ::onError)
     private val bitmapToJpeg = BitmapToJpeg(settingsReadOnly, bitmapChannel, jpegChannel, ::onError)
     private val appHttpServer: AppHttpServer
@@ -151,10 +153,13 @@ class AppStateMachineImpl(
     init {
         XLog.d(getLog("init", "Invoked"))
         settingsReadOnly.registerChangeListener(settingsListener)
-        broadcastHelper.registerReceiver(
+        broadcastHelper.startListening(
             onScreenOff = { sendEvent(InternalEvent.ScreenOff) },
             onConnectionChanged = { sendEvent(InternalEvent.RestartServer(RestartReason.ConnectionChanged(""))) }
         )
+        connectivityHelper.startListening {
+            sendEvent(InternalEvent.RestartServer(RestartReason.ConnectionChanged("")))
+        }
         bitmapToJpeg.start()
         appHttpServer = AppHttpServerImpl(
             HttpServerFiles(applicationContext, settingsReadOnly),
@@ -171,7 +176,8 @@ class AppStateMachineImpl(
         XLog.d(getLog("destroy", "Invoked"))
         sendEvent(InternalEvent.Destroy)
         settingsReadOnly.unregisterChangeListener(settingsListener)
-        broadcastHelper.unregisterReceiver()
+        broadcastHelper.stopListening()
+        connectivityHelper.stopListening()
         supervisorJob.cancelChildren()
         eventChannel.close()
         bitmapToJpeg.stop()

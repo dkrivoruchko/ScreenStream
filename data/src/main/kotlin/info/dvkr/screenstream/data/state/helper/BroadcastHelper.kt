@@ -1,11 +1,13 @@
 package info.dvkr.screenstream.data.state.helper
 
+import android.annotation.TargetApi
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.net.ConnectivityManager
 import android.net.wifi.WifiManager
+import android.os.Build
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.data.model.AppError
 import info.dvkr.screenstream.data.model.FatalError
@@ -13,9 +15,18 @@ import info.dvkr.screenstream.data.other.getLog
 import kotlinx.coroutines.*
 import kotlin.coroutines.CoroutineContext
 
-class BroadcastHelper(context: Context, private val onError: (AppError) -> Unit) : CoroutineScope {
+internal sealed class BroadcastHelper(context: Context, private val onError: (AppError) -> Unit) : CoroutineScope {
 
-    private val applicationContext: Context = context.applicationContext
+    companion object {
+        fun getInstance(context: Context, onError: (AppError) -> Unit): BroadcastHelper {
+            return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N)
+                NougatBroadcastHelper(context, onError)
+            else
+                LegacyBroadcastHelper(context, onError)
+        }
+    }
+
+    protected val applicationContext: Context = context.applicationContext
     private val supervisorJob = SupervisorJob()
 
     override val coroutineContext: CoroutineContext
@@ -24,48 +35,90 @@ class BroadcastHelper(context: Context, private val onError: (AppError) -> Unit)
             onError(FatalError.CoroutineException)
         }
 
-    // Registering receiver for screen off messages and network & WiFi changes
-    private val intentFilter: IntentFilter by lazy {
-        IntentFilter().apply {
-            addAction(Intent.ACTION_SCREEN_OFF)
-            addAction(WifiManager.WIFI_STATE_CHANGED_ACTION)
-            addAction(ConnectivityManager.CONNECTIVITY_ACTION)
-        }
+    protected abstract val intentFilter: IntentFilter
+    protected abstract val broadcastReceiver: BroadcastReceiver
+    private lateinit var onScreenOff: () -> Unit
+    private lateinit var onConnectionChanged: () -> Unit
+
+    fun startListening(onScreenOff: () -> Unit, onConnectionChanged: () -> Unit) {
+        this.onScreenOff = onScreenOff
+        this.onConnectionChanged = onConnectionChanged
+        applicationContext.registerReceiver(broadcastReceiver, intentFilter)
+    }
+
+    fun stopListening() {
+        applicationContext.unregisterReceiver(broadcastReceiver)
+        coroutineContext.cancelChildren()
+    }
+
+    protected fun onScreenIntentAction() {
+        if (::onScreenOff.isInitialized) onScreenOff.invoke()
     }
 
     private var isConnectionEventScheduled: Boolean = false
     private var isFirstConnectionEvent: Boolean = true
-    private var broadcastReceiver: BroadcastReceiver? = null
 
-    fun registerReceiver(onScreenOff: () -> Unit, onConnectionChanged: () -> Unit) {
-        broadcastReceiver = object : BroadcastReceiver() {
-            override fun onReceive(context: Context?, intent: Intent?) {
-                XLog.d(this@BroadcastHelper.getLog("onReceive", "Action: ${intent?.action}"))
+    protected fun onConnectivityIntentAction() {
+        isConnectionEventScheduled.not() || return
+        isConnectionEventScheduled = true
+        launch {
+            delay(1000)
+            if (isActive) {
+                isConnectionEventScheduled = false
+                if (isFirstConnectionEvent) isFirstConnectionEvent = false
+                else if (::onConnectionChanged.isInitialized) onConnectionChanged.invoke()
+            }
+        }
+    }
 
-                when (intent?.action) {
-                    Intent.ACTION_SCREEN_OFF -> onScreenOff()
+    @TargetApi(Build.VERSION_CODES.N)
+    private class NougatBroadcastHelper(context: Context, onError: (AppError) -> Unit) :
+        BroadcastHelper(context, onError) {
 
-                    WifiManager.WIFI_STATE_CHANGED_ACTION, ConnectivityManager.CONNECTIVITY_ACTION -> {
-                        isConnectionEventScheduled.not() || return
-                        isConnectionEventScheduled = true
-                        launch {
-                            delay(1000)
-                            if (isActive) {
-                                isConnectionEventScheduled = false
-                                if (isFirstConnectionEvent) isFirstConnectionEvent = false
-                                else onConnectionChanged()
-                            }
-                        }
-                    }
-                }
+        override val intentFilter: IntentFilter by lazy {
+            IntentFilter().apply {
+                addAction(Intent.ACTION_SCREEN_OFF)
+                addAction("android.net.wifi.WIFI_AP_STATE_CHANGED")
             }
         }
 
-        applicationContext.registerReceiver(broadcastReceiver, intentFilter)
+        override val broadcastReceiver: BroadcastReceiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent?) {
+                XLog.d(this@NougatBroadcastHelper.getLog("onReceive", "Action: ${intent?.action}"))
+
+                when (intent?.action) {
+                    Intent.ACTION_SCREEN_OFF -> onScreenIntentAction()
+                    "android.net.wifi.WIFI_AP_STATE_CHANGED" -> onConnectivityIntentAction()
+                }
+            }
+        }
     }
 
-    fun unregisterReceiver() {
-        applicationContext.unregisterReceiver(broadcastReceiver)
-        coroutineContext.cancelChildren()
+    @Suppress("Deprecation")
+    private class LegacyBroadcastHelper(context: Context, onError: (AppError) -> Unit) :
+        BroadcastHelper(context, onError) {
+
+        override val intentFilter: IntentFilter by lazy {
+            IntentFilter().apply {
+                addAction(Intent.ACTION_SCREEN_OFF)
+                addAction(ConnectivityManager.CONNECTIVITY_ACTION)
+                addAction(WifiManager.WIFI_STATE_CHANGED_ACTION)
+                addAction("android.net.wifi.WIFI_AP_STATE_CHANGED")
+            }
+        }
+
+        override val broadcastReceiver: BroadcastReceiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent?) {
+                XLog.d(this@LegacyBroadcastHelper.getLog("onReceive", "Action: ${intent?.action}"))
+
+                when (intent?.action) {
+                    Intent.ACTION_SCREEN_OFF -> onScreenIntentAction()
+
+                    WifiManager.WIFI_STATE_CHANGED_ACTION,
+                    ConnectivityManager.CONNECTIVITY_ACTION,
+                    "android.net.wifi.WIFI_AP_STATE_CHANGED" -> onConnectivityIntentAction()
+                }
+            }
+        }
     }
 }

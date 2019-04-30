@@ -10,7 +10,6 @@ sealed class FatalError : AppError() {
     object NettyServerException : FatalError()
     object BitmapFormatException : FatalError()
     object BitmapCaptureException : FatalError()
-    object NetInterfaceException : FatalError()
 }
 
 sealed class FixableError : AppError() {

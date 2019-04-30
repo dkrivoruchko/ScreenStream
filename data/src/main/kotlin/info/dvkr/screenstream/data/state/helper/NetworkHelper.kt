@@ -6,17 +6,16 @@ import android.content.res.Resources
 import android.net.wifi.WifiManager
 import androidx.core.content.ContextCompat
 import com.elvishew.xlog.XLog
-import info.dvkr.screenstream.data.model.AppError
-import info.dvkr.screenstream.data.model.FatalError
 import info.dvkr.screenstream.data.model.NetInterface
 import info.dvkr.screenstream.data.other.getLog
-import java.net.Inet4Address
-import java.net.Inet6Address
-import java.net.InetAddress
-import java.net.NetworkInterface
+import java.net.*
+import java.util.*
 
 @SuppressLint("WifiManagerPotentialLeak")
-class NetworkHelper(context: Context, private val onError: (AppError) -> Unit) {
+class NetworkHelper(context: Context) {
+
+    private val networkInterfaceCommonNameArray =
+        arrayOf("lo", "eth", "lan", "wlan", "en", "p2p", "net", "ppp", "wigig", "ap", "rmnet", "rmnet_data")
 
     private val defaultWifiRegexArray: Array<Regex> = arrayOf(
         Regex("wlan\\d"),
@@ -32,43 +31,76 @@ class NetworkHelper(context: Context, private val onError: (AppError) -> Unit) {
 
     private val wifiManager: WifiManager = ContextCompat.getSystemService(context, WifiManager::class.java)!!
 
+    private fun getNetworkInterfacesWithFallBack(): Enumeration<NetworkInterface> {
+        try {
+            return NetworkInterface.getNetworkInterfaces()
+        } catch (ex: SocketException) {
+            XLog.e(getLog("getNetworkInterfacesWithFallBack.getNetworkInterfaces"), ex)
+        }
+
+        val netList = mutableListOf<NetworkInterface>()
+        (0..7).forEach { index ->
+            try {
+                val networkInterface: NetworkInterface? = NetworkInterface.getByIndex(index)
+                if (networkInterface != null) netList.add(networkInterface)
+                else if (index > 3) {
+                    if (netList.isNotEmpty()) return Collections.enumeration(netList)
+                    return@forEach
+                }
+            } catch (ex: SocketException) {
+                XLog.e(getLog("getNetworkInterfacesWithFallBack.getByIndex#$index:"), ex)
+            }
+        }
+
+        networkInterfaceCommonNameArray.forEach { commonName ->
+            try {
+                val networkInterface: NetworkInterface? = NetworkInterface.getByName(commonName)
+                if (networkInterface != null) netList.add(networkInterface)
+
+                (0..15).forEach { index ->
+                    val networkInterfaceIndexed: NetworkInterface? = NetworkInterface.getByName("$commonName$index")
+                    if (networkInterfaceIndexed != null) netList.add(networkInterfaceIndexed)
+                }
+
+            } catch (ex: SocketException) {
+                XLog.e(getLog("getNetworkInterfacesWithFallBack.commonName#$commonName:"), ex)
+            }
+        }
+
+        return Collections.enumeration(netList)
+    }
+
     fun getNetInterfaces(useWiFiOnly: Boolean, enableIPv6: Boolean): List<NetInterface> {
         XLog.d(getLog("getNetInterfaces", "Invoked"))
 
         val netInterfaceList = mutableListOf<NetInterface>()
-        try {
-            try {
-                NetworkInterface.getNetworkInterfaces().asSequence().filterNotNull()
-                    .flatMap { networkInterface ->
-                        networkInterface.inetAddresses.asSequence().filterNotNull()
-                            .filter { inetAddress ->
-                                !inetAddress.isLinkLocalAddress && !inetAddress.isLoopbackAddress && !inetAddress.isMulticastAddress
-                            }
-                            .filter { inetAddress ->
-                                (inetAddress is Inet4Address) || (enableIPv6 && (inetAddress is Inet6Address))
-                            }
-                            .map { inetAddress ->
-                                val address =
-                                    if (inetAddress is Inet6Address) Inet6Address.getByAddress(inetAddress.address)
-                                    else inetAddress
-                                NetInterface(networkInterface.displayName, address)
-                            }
+
+        getNetworkInterfacesWithFallBack().asSequence().filterNotNull()
+            .flatMap { networkInterface ->
+                networkInterface.inetAddresses.asSequence().filterNotNull()
+                    .filter { inetAddress ->
+                        !inetAddress.isLinkLocalAddress && !inetAddress.isLoopbackAddress && !inetAddress.isMulticastAddress
                     }
-                    .filter { netInterface ->
-                        useWiFiOnly.not() || (
-                                defaultWifiRegexArray.any { it.matches(netInterface.name) } ||
-                                        wifiRegexArray.any { it.matches(netInterface.name) }
-                                )
+                    .filter { inetAddress ->
+                        (inetAddress is Inet4Address) || (enableIPv6 && (inetAddress is Inet6Address))
                     }
-                    .toCollection(netInterfaceList)
-            } catch (throwable: Throwable) {
-                XLog.e(getLog("getNetInterfaces"), throwable)
-                if (wifiConnected()) netInterfaceList.add(getWiFiNetAddress()) else throw throwable
+                    .map { inetAddress ->
+                        val address =
+                            if (inetAddress is Inet6Address) Inet6Address.getByAddress(inetAddress.address)
+                            else inetAddress
+                        NetInterface(networkInterface.displayName, address)
+                    }
             }
-        } catch (throwable: Throwable) {
-            XLog.e(getLog("getNetInterfaces"), throwable)
-            onError(FatalError.NetInterfaceException)
-        }
+            .filter { netInterface ->
+                useWiFiOnly.not() || (
+                        defaultWifiRegexArray.any { it.matches(netInterface.name) } ||
+                                wifiRegexArray.any { it.matches(netInterface.name) }
+                        )
+            }
+            .toCollection(netInterfaceList)
+
+        if (netInterfaceList.isEmpty() && wifiConnected()) netInterfaceList.add(getWiFiNetAddress())
+
         return netInterfaceList
     }
 
