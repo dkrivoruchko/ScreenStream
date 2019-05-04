@@ -1,7 +1,6 @@
 apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-android-extensions'
-apply plugin: 'kotlin-kapt'
 
 
 android {
@@ -44,7 +43,6 @@ android {
 }
 
 androidExtensions { experimental = true }
-kapt { useBuildCache = true }
 
 dependencies {
     implementation("org.jetbrains:annotations:$jetbrainsAnnotations")

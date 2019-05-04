@@ -13,6 +13,7 @@ import android.widget.Toast
 import androidx.appcompat.widget.AppCompatImageView
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.Observer
 import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.DiffUtil
@@ -177,12 +178,14 @@ class StreamFragment : Fragment() {
 
     private fun showQrCode(fullAddress: String) {
         fullAddress.getQRBitmap(resources.getDimensionPixelSize(R.dimen.fragment_stream_qrcode_size))?.let { qrBitmap ->
-            val imageView = AppCompatImageView(requireContext()).apply { setImageBitmap(qrBitmap) }
-            MaterialDialog(requireActivity())
-                .lifecycleOwner(viewLifecycleOwner)
-                .customView(view = imageView, noVerticalPadding = true)
-                .maxWidth(R.dimen.fragment_stream_qrcode_size)
-                .show()
+            if (viewLifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) {
+                val imageView = AppCompatImageView(requireContext()).apply { setImageBitmap(qrBitmap) }
+                MaterialDialog(requireActivity())
+                    .lifecycleOwner(viewLifecycleOwner)
+                    .customView(view = imageView, noVerticalPadding = true)
+                    .maxWidth(R.dimen.fragment_stream_qrcode_size)
+                    .show()
+            }
         }
     }
 
