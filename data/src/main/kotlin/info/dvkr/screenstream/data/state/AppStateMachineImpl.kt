@@ -157,9 +157,7 @@ class AppStateMachineImpl(
             onScreenOff = { sendEvent(InternalEvent.ScreenOff) },
             onConnectionChanged = { sendEvent(InternalEvent.RestartServer(RestartReason.ConnectionChanged(""))) }
         )
-        connectivityHelper.startListening {
-            sendEvent(InternalEvent.RestartServer(RestartReason.ConnectionChanged("")))
-        }
+
         bitmapToJpeg.start()
         appHttpServer = AppHttpServerImpl(
             HttpServerFiles(applicationContext, settingsReadOnly),
@@ -168,7 +166,9 @@ class AppStateMachineImpl(
             onStatistic,
             ::onError
         )
-        sendEvent(InternalEvent.DiscoverAddress)
+        connectivityHelper.startListening {
+            sendEvent(InternalEvent.RestartServer(RestartReason.ConnectionChanged("")))
+        }
     }
 
     @AnyThread

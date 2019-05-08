@@ -52,7 +52,11 @@ internal sealed class ConnectivityHelper {
 
     @Suppress("Deprecation")
     private class EmptyConnectivityHelper : ConnectivityHelper() {
-        override fun startListening(onConnectionChanged: () -> Unit) = Unit
+        override fun startListening(onConnectionChanged: () -> Unit) {
+            XLog.d(this@EmptyConnectivityHelper.getLog("startListening", "Trigger on start address discovery"))
+            onConnectionChanged.invoke()
+        }
+
         override fun stopListening() = Unit
     }
 }
