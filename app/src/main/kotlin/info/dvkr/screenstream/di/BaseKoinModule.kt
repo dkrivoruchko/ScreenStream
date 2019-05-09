@@ -20,7 +20,7 @@ val baseKoinModule = module {
             .build()
     }
 
-    single { SettingsImpl(get()) as Settings } bind SettingsReadOnly::class
+    single<Settings> { SettingsImpl(get()) } bind SettingsReadOnly::class
 
     single { NotificationHelper(androidApplication()) }
 }

@@ -1,5 +1,6 @@
 package info.dvkr.screenstream.ui.fragment
 
+import android.content.ActivityNotFoundException
 import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
@@ -72,7 +73,10 @@ class SettingsInterfaceFragment : Fragment() {
         // Interface - Device notification settings
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             cl_fragment_settings_notification.setOnClickListener {
-                startActivity(notificationHelper.getNotificationSettingsIntent())
+                try {
+                    startActivity(notificationHelper.getNotificationSettingsIntent())
+                } catch (ignore: ActivityNotFoundException) {
+                }
             }
         } else {
             cl_fragment_settings_notification.visibility = View.GONE

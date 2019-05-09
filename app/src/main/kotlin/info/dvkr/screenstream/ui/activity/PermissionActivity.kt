@@ -14,10 +14,9 @@ import com.afollestad.materialdialogs.lifecycle.lifecycleOwner
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.data.other.getLog
-import info.dvkr.screenstream.data.settings.Settings
 import info.dvkr.screenstream.data.settings.SettingsReadOnly
 import info.dvkr.screenstream.service.helper.IntentAction
-import org.koin.android.ext.android.getKoin
+import org.koin.android.ext.android.inject
 
 
 class PermissionActivity : AppCompatActivity() {
@@ -28,7 +27,7 @@ class PermissionActivity : AppCompatActivity() {
     }
 
     private val requestCodeScreenCapture = 10
-    private val settingsReadOnly: SettingsReadOnly = getKoin().bind<Settings, SettingsReadOnly>()
+    private val settingsReadOnly: SettingsReadOnly by inject()
 
     private var materialDialog: MaterialDialog? = null
 

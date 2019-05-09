@@ -19,7 +19,7 @@ buildscript {
 
         alerter = "4.0.3"
         materialDialogs = "2.8.1"
-        koin = "2.0.0-GA"
+        koin = "2.0.0-rc-2"
         binaryprefs = "1.0.1"
         rxJava = "1.3.8"
         rxRelay = "1.2.0"

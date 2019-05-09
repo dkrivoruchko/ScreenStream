@@ -26,7 +26,6 @@ import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.data.model.HttpClient
 import info.dvkr.screenstream.data.other.*
-import info.dvkr.screenstream.data.settings.Settings
 import info.dvkr.screenstream.data.settings.SettingsReadOnly
 import info.dvkr.screenstream.service.ServiceMessage
 import info.dvkr.screenstream.service.helper.IntentAction
@@ -35,7 +34,7 @@ import kotlinx.android.extensions.LayoutContainer
 import kotlinx.android.synthetic.main.fragment_stream.*
 import kotlinx.android.synthetic.main.item_client.*
 import kotlinx.android.synthetic.main.item_device_address.view.*
-import org.koin.android.ext.android.getKoin
+import org.koin.android.ext.android.inject
 
 class StreamFragment : Fragment() {
 
@@ -44,7 +43,7 @@ class StreamFragment : Fragment() {
         ContextCompat.getSystemService(requireContext(), ClipboardManager::class.java)
     }
 
-    private val settingsReadOnly: SettingsReadOnly = getKoin().bind<Settings, SettingsReadOnly>()
+    private val settingsReadOnly: SettingsReadOnly by inject()
     private var httpClientAdapter: HttpClientAdapter? = null
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View =
