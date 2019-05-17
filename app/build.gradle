@@ -12,8 +12,8 @@ android {
         applicationId = "info.dvkr.screenstream"
         minSdkVersion(minSdk)
         targetSdkVersion(targetSdk)
-        versionCode = 30104
-        versionName = "3.1.4"
+        versionCode = 30105
+        versionName = "3.1.5"
         resConfigs("en", "ru", "pt-rBR", "zh-rTW", "fr-rFR", "fa", "it", "pl", "hi", "de")
 
         vectorDrawables.useSupportLibrary = true
@@ -27,17 +27,22 @@ android {
             shrinkResources false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
-        fabricfree {
-            ext.enableCrashlytics = false
-            ext.alwaysUpdateBuildId = false
-            minifyEnabled true
-            shrinkResources true
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-        }
         release {
             minifyEnabled true
             shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    flavorDimensions "default"
+    productFlavors {
+        fabric {
+
+        }
+
+        fabricfree {
+            ext.enableCrashlytics = false
+            ext.alwaysUpdateBuildId = false
         }
     }
 
@@ -48,9 +53,14 @@ android {
 
     sourceSets {
         main.java.srcDirs += 'src/main/kotlin'
-        debug.java.srcDirs += 'src/debug/kotlin'
-        release.java.srcDirs += 'src/release/kotlin'
+
+        fabric.java.srcDirs += 'src/fabric/kotlin'
+        fabricDebug.java.srcDirs += 'src/fabricDebug/kotlin'
+        fabricRelease.java.srcDirs += 'src/fabricRelease/kotlin'
+
         fabricfree.java.srcDirs += 'src/fabricfree/kotlin'
+        fabricfreeDebug.java.srcDirs += 'src/fabricfreeDebug/kotlin'
+        fabricfreeRelease.java.srcDirs += 'src/fabricfreeRelease/kotlin'
     }
 
     packagingOptions {
@@ -82,11 +92,13 @@ dependencies {
     implementation("com.afollestad.material-dialogs:lifecycle:$materialDialogs")
     implementation("com.afollestad.material-dialogs:color:$materialDialogs")
     implementation("com.afollestad.material-dialogs:input:$materialDialogs")
+    implementation("com.afollestad.material-dialogs:input:$materialDialogs")
 
     implementation("org.koin:koin-android:$koin")
     implementation("com.github.iamironz:binaryprefs:$binaryprefs")
     implementation("com.elvishew:xlog:$xlog")
 
+    fabricImplementation("com.google.android.play:core:$playCore")
     releaseImplementation("com.google.firebase:firebase-core:$firebaseCore")
     releaseImplementation("com.crashlytics.sdk.android:crashlytics:$fabricCrashlytics")
 
@@ -96,7 +108,7 @@ dependencies {
 apply plugin: "com.google.gms.google-services"
 
 android.applicationVariants.all { variant ->
-    if (variant.name == "fabricfree") {
+    if (variant.name == "fabricfreeDebug" || variant.name == "fabricfreeRelease") {
         project.tasks.getByName("process" + variant.name.capitalize() + "GoogleServices").enabled = false
     }
 }

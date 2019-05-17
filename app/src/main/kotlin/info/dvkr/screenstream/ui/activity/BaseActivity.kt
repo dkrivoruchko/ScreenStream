@@ -5,7 +5,6 @@ import android.content.Context
 import android.content.ServiceConnection
 import android.os.*
 import androidx.annotation.CallSuper
-import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
@@ -17,11 +16,9 @@ import info.dvkr.screenstream.data.settings.SettingsReadOnly
 import info.dvkr.screenstream.service.AppService
 import info.dvkr.screenstream.service.ServiceMessage
 import info.dvkr.screenstream.service.helper.IntentAction
-import org.koin.android.ext.android.inject
 
-abstract class BaseActivity : AppCompatActivity() {
+abstract class BaseActivity : AppUpdateActivity() {
 
-    protected val settings: Settings by inject()
     private var serviceMessenger: Messenger? = null
     private var isBound: Boolean = false
 

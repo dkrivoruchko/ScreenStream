@@ -32,6 +32,8 @@ interface Settings : SettingsReadOnly {
         const val ENABLE_IPV6 = "PREF_KEY_ENABLE_IPV6"
         const val SERVER_PORT = "PREF_KEY_SERVER_PORT"
         const val LOGGING_ON = "PREF_KEY_LOGGING_ON"
+
+        const val LAST_IAU_REQUEST_TIMESTAMP = "PREF_KEY_LAST_IAU_REQUEST_TIMESTAMP"
     }
 
     object Default {
@@ -64,6 +66,8 @@ interface Settings : SettingsReadOnly {
         const val ENABLE_IPV6 = false
         const val SERVER_PORT = 8080
         const val LOGGING_ON = false
+
+        const val LAST_IAU_REQUEST_TIMESTAMP = 0L
     }
 
     object Values {
@@ -104,4 +108,6 @@ interface Settings : SettingsReadOnly {
     override var enableIPv6: Boolean
     override var severPort: Int
     override var loggingOn: Boolean
+
+    override var lastIAURequestTimeStamp: Long
 }

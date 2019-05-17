@@ -12,6 +12,10 @@
     <string name="app_activity_send_logs_dialog_message">Опишите проблему:</string>
     <string name="app_activity_send_logs_dialog_neutral">Остановить логирование</string>
 
+    <string name="app_update_activity_dialog_title">Доступно обновление</string>
+    <string name="app_update_activity_dialog_message">Обновление было только что загружено. Перезапустить приложение сейчас?</string>
+    <string name="app_update_activity_dialog_restart">Перезапустить</string>
+
     <string name="bottom_menu_stream">Главная</string>
     <string name="bottom_menu_settings">Настройки</string>
     <string name="bottom_menu_start">Старт</string>

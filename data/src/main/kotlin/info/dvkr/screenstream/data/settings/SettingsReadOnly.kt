@@ -34,6 +34,8 @@ interface SettingsReadOnly {
     val severPort: Int
     val loggingOn: Boolean
 
+    val lastIAURequestTimeStamp: Long
+
     fun autoChangePinOnStart()
 
     fun checkAndChangeAutoChangePinOnStop(): Boolean

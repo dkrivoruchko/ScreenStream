@@ -89,6 +89,10 @@ class SettingsImpl(private val preferences: Preferences) : Settings {
     override var loggingOn: Boolean
             by bindPreference(preferences, Settings.Key.LOGGING_ON, Settings.Default.LOGGING_ON)
 
+
+    override var lastIAURequestTimeStamp: Long
+            by bindPreference(preferences, Settings.Key.LAST_IAU_REQUEST_TIMESTAMP, Settings.Default.LAST_IAU_REQUEST_TIMESTAMP)
+
     override fun autoChangePinOnStart() {
         if (enablePin && newPinOnAppStart) pin = randomPin()
     }
