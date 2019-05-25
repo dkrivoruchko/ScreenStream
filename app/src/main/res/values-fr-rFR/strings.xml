@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_activity_error_title">Erreur</string>
-    <string name="app_activity_error_port_in_use">Port déjà utilisé. Sélectionnez une autre valeur.</string>
-    <string name="app_activity_error_invalid_media_projection">Erreur de sécurité : projection de média invalide. Veuillez re-essayer.</string>
-    <string name="app_activity_error_ip_address_not_found">Adresse IP non trouvée.\nEssayez de désactiver le \"WiFi uniquement\" dans les paramètres.</string>
-    <string name="app_activity_error_wrong_image_format">Le système fournit une image dans un format inconnu. Pas de solution, désolé.</string>
-    <string name="app_activity_error_exit">Exit</string>
+    <string name="error_title">Erreur</string>
+    <string name="error_port_in_use">Port déjà utilisé. Sélectionnez une autre valeur.</string>
+    <string name="error_invalid_media_projection">Erreur de sécurité : projection de média invalide. Veuillez re-essayer.</string>
+    <string name="error_ip_address_not_found">Adresse IP non trouvée.\nEssayez de désactiver le \"WiFi uniquement\" dans les paramètres.</string>
+    <string name="error_wrong_image_format">Le système fournit une image dans un format inconnu. Pas de solution, désolé.</string>
+    <string name="error_exit">Exit</string>
     <string name="app_activity_collecting_logs">Collecte des journaux d\'application…</string>
     <string name="app_activity_send_logs">Envoyer des journaux au développeur</string>
 

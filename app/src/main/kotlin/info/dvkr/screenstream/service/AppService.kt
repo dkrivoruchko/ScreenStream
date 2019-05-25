@@ -91,6 +91,7 @@ class AppService : Service(), CoroutineScope {
     private val supervisorJob = SupervisorJob()
 
     private val isStreaming = AtomicBoolean(false)
+    private var errorPrevious: AppError? = null
 
     override val coroutineContext: CoroutineContext
         get() = supervisorJob + Dispatchers.Main + CoroutineExceptionHandler { _, throwable ->
@@ -104,9 +105,17 @@ class AppService : Service(), CoroutineScope {
     }
 
     @AnyThread
-    private fun onError(appError: AppError) {
-        XLog.e(this@AppService.getLog("onError", "AppError: $appError"))
-        IntentAction.StartAppActivity.sendToAppService(this)
+    private fun onError(appError: AppError?) {
+        errorPrevious != appError || return
+
+        if (appError == null) {
+            notificationHelper.hideErrorNotification()
+        } else {
+            XLog.e(this@AppService.getLog("onError", "AppError: $appError"))
+            notificationHelper.showErrorNotification(appError)
+        }
+
+        errorPrevious = appError
     }
 
     private fun onEffect(effect: AppStateMachine.Effect) {
@@ -132,7 +141,7 @@ class AppService : Service(), CoroutineScope {
                 else
                     notificationHelper.showForegroundNotification(this, NotificationHelper.NotificationType.START)
 
-                effect.appError?.let { onError(it) }
+                onError(effect.appError)
             }
         }
     }
@@ -187,6 +196,7 @@ class AppService : Service(), CoroutineScope {
 
             IntentAction.Exit -> {
                 sendBroadcast(Intent(Intent.ACTION_CLOSE_SYSTEM_DIALOGS))
+                notificationHelper.hideErrorNotification()
                 activityMessagesHandler.sendMessageToActivities(ServiceMessage.FinishActivity)
                 stopForeground(true)
                 this@AppService.stopSelf()
@@ -206,8 +216,11 @@ class AppService : Service(), CoroutineScope {
             IntentAction.StartOnBoot ->
                 appStateMachine.sendEvent(AppStateMachine.Event.StartStream, 4500)
 
-            IntentAction.RecoverError ->
+            IntentAction.RecoverError -> {
+                sendBroadcast(Intent(Intent.ACTION_CLOSE_SYSTEM_DIALOGS))
+                notificationHelper.hideErrorNotification()
                 appStateMachine.sendEvent(AppStateMachine.Event.RecoverError)
+            }
 
             IntentAction.StartAppActivity -> {
                 sendBroadcast(Intent(Intent.ACTION_CLOSE_SYSTEM_DIALOGS))

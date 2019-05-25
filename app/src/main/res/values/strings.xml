@@ -2,12 +2,13 @@
 <resources>
     <string name="app_name" translatable="false">ScreenStream</string>
 
-    <string name="app_activity_error_title">Error</string>
-    <string name="app_activity_error_port_in_use">Port already in use. Choose another one.</string>
-    <string name="app_activity_error_invalid_media_projection">Security error: Invalid media projection. Try one more time.</string>
-    <string name="app_activity_error_ip_address_not_found">IP address not found.\nTry to disable \"Use WiFi only\" in settings.</string>
-    <string name="app_activity_error_wrong_image_format">System returns image in unknown format. No fix available. Sorry.</string>
-    <string name="app_activity_error_exit">Exit</string>
+    <string name="error_title">Error</string>
+    <string name="error_port_in_use">Port already in use. Choose another one.</string>
+    <string name="error_invalid_media_projection">Security error: Invalid media projection. Try one more time.</string>
+    <string name="error_ip_address_not_found">IP address not found.\nTry to disable \"Use WiFi only\" in settings.</string>
+    <string name="error_wrong_image_format">System returns image in unknown format. No fix available. Sorry.</string>
+    <string name="error_exit">Exit</string>
+
     <string name="app_activity_collecting_logs">Collecting application logs…</string>
     <string name="app_activity_send_logs">Send logs to developer</string>
     <string name="app_activity_send_logs_dialog_title">Send logs in email to developer</string>

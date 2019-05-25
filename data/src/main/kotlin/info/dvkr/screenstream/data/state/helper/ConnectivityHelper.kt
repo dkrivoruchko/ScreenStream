@@ -43,6 +43,7 @@ internal sealed class ConnectivityHelper {
         override fun startListening(onConnectionChanged: () -> Unit) {
             this.onConnectionChanged = onConnectionChanged
             connectivityManager.registerDefaultNetworkCallback(networkCallback)
+            onConnectionChanged.invoke()
         }
 
         override fun stopListening() {

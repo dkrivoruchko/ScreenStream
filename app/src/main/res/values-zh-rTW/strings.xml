@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_activity_error_title">錯誤</string>
-    <string name="app_activity_error_port_in_use">該連接埠正被使用中。請換一個試試</string>
-    <string name="app_activity_error_invalid_media_projection">安全性錯誤：無效的螢幕投射。請重試</string>
-    <string name="app_activity_error_ip_address_not_found">找不到IP位址</string>
-    <string name="app_activity_error_wrong_image_format">系統回傳無效的影像格式。無可用解決方案</string>
-    <string name="app_activity_error_exit">離開</string>
+    <string name="error_title">錯誤</string>
+    <string name="error_port_in_use">該連接埠正被使用中。請換一個試試</string>
+    <string name="error_invalid_media_projection">安全性錯誤：無效的螢幕投射。請重試</string>
+    <string name="error_ip_address_not_found">找不到IP位址</string>
+    <string name="error_wrong_image_format">系統回傳無效的影像格式。無可用解決方案</string>
+    <string name="error_exit">離開</string>
 
     <string name="bottom_menu_stream">主畫面</string>
     <string name="bottom_menu_settings">設定</string>

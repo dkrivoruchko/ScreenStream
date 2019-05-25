@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_activity_error_title">Błąd</string>
-    <string name="app_activity_error_port_in_use">Port jest już w użyciu. Wybierz inny.</string>
-    <string name="app_activity_error_invalid_media_projection">Błąd bezpieczeństwa: Nieprawidłowa projekcja multimediów. Spróbuj ponownie.</string>
-    <string name="app_activity_error_ip_address_not_found">Nie znaleziono adresu IP. \nSpróbuj wyłączyć \"Używaj tylko WiFi\" w ustawieniach.</string>
-    <string name="app_activity_error_wrong_image_format">System nadaje obrazowi niewłaściwy format. Nie ma rozwiązania tego problemu.</string>
-    <string name="app_activity_error_exit">Wyjście</string>
+    <string name="error_title">Błąd</string>
+    <string name="error_port_in_use">Port jest już w użyciu. Wybierz inny.</string>
+    <string name="error_invalid_media_projection">Błąd bezpieczeństwa: Nieprawidłowa projekcja multimediów. Spróbuj ponownie.</string>
+    <string name="error_ip_address_not_found">Nie znaleziono adresu IP. \nSpróbuj wyłączyć \"Używaj tylko WiFi\" w ustawieniach.</string>
+    <string name="error_wrong_image_format">System nadaje obrazowi niewłaściwy format. Nie ma rozwiązania tego problemu.</string>
+    <string name="error_exit">Wyjście</string>
     <string name="app_activity_collecting_logs">Zbieranie dzienników aplikacji…</string>
     <string name="app_activity_send_logs">Wyślij dzienniki do programisty</string>
 

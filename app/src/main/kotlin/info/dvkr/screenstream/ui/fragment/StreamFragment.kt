@@ -24,6 +24,9 @@ import com.afollestad.materialdialogs.customview.customView
 import com.afollestad.materialdialogs.lifecycle.lifecycleOwner
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.R
+import info.dvkr.screenstream.data.model.AppError
+import info.dvkr.screenstream.data.model.FatalError
+import info.dvkr.screenstream.data.model.FixableError
 import info.dvkr.screenstream.data.model.HttpClient
 import info.dvkr.screenstream.data.other.*
 import info.dvkr.screenstream.data.settings.SettingsReadOnly
@@ -45,6 +48,7 @@ class StreamFragment : Fragment() {
 
     private val settingsReadOnly: SettingsReadOnly by inject()
     private var httpClientAdapter: HttpClientAdapter? = null
+    private var errorPrevious: AppError? = null
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View =
         inflater.inflate(R.layout.fragment_stream, container, false)
@@ -132,6 +136,8 @@ class StreamFragment : Fragment() {
         } else {
             tv_fragment_stream_pin.setText(R.string.stream_fragment_pin_disabled)
         }
+
+        showError(serviceMessage.appError)
     }
 
     private fun onClientsMessage(serviceMessage: ServiceMessage.Clients) {
@@ -187,6 +193,26 @@ class StreamFragment : Fragment() {
                     .show()
             }
         }
+    }
+
+    private fun showError(appError: AppError?) {
+        errorPrevious != appError || return
+
+        if (appError == null) {
+            tv_fragment_stream_error.visibility = View.GONE
+        } else {
+            XLog.d(getLog("showError", appError.toString()))
+            tv_fragment_stream_error.text = when (appError) {
+                is FixableError.AddressInUseException -> getString(R.string.error_port_in_use)
+                is FixableError.CastSecurityException -> getString(R.string.error_invalid_media_projection)
+                is FixableError.AddressNotFoundException -> getString(R.string.error_ip_address_not_found)
+                is FatalError.BitmapFormatException -> getString(R.string.error_wrong_image_format)
+                else -> appError.toString()
+            }
+            tv_fragment_stream_error.visibility = View.VISIBLE
+        }
+
+        errorPrevious = appError
     }
 
     private class HttpClientAdapter : ListAdapter<HttpClient, HttpClientViewHolder>(

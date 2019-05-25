@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_activity_error_title">Fehler</string>
-    <string name="app_activity_error_port_in_use">Port wird bereits genutzt. Bitte wählen Sie einen anderen Port.</string>
-    <string name="app_activity_error_invalid_media_projection">Sicherheitsfehler: Ungültige Medien-Projektion. Bitte versuchen Sie es erneut.</string>
-    <string name="app_activity_error_ip_address_not_found">IP-Adresse nicht gefunden\nVersuchen Sie \"Nur über WLAN\" in den Einstellungen zu deaktivieren.</string>
-    <string name="app_activity_error_wrong_image_format">Das System liefert ein Bild in einem ungültigen Format zurück. Keine Fehlerbehebung verfügbar. Entschuldigung.</string>
-    <string name="app_activity_error_exit">Beenden</string>
+    <string name="error_title">Fehler</string>
+    <string name="error_port_in_use">Port wird bereits genutzt. Bitte wählen Sie einen anderen Port.</string>
+    <string name="error_invalid_media_projection">Sicherheitsfehler: Ungültige Medien-Projektion. Bitte versuchen Sie es erneut.</string>
+    <string name="error_ip_address_not_found">IP-Adresse nicht gefunden\nVersuchen Sie \"Nur über WLAN\" in den Einstellungen zu deaktivieren.</string>
+    <string name="error_wrong_image_format">Das System liefert ein Bild in einem ungültigen Format zurück. Keine Fehlerbehebung verfügbar. Entschuldigung.</string>
+    <string name="error_exit">Beenden</string>
     <string name="app_activity_collecting_logs">Logs werden gesammelt…</string>
     <string name="app_activity_send_logs">Logs zum Entwickler senden</string>
     <string name="app_activity_send_logs_dialog_title">Logs per E-Mail zum Entwickler senden</string>

@@ -12,12 +12,28 @@
         android:layout_height="wrap_content"
         android:layout_marginBottom="@dimen/fragments_margin_bottom">
 
+        <androidx.appcompat.widget.AppCompatTextView
+            android:id="@+id/tv_fragment_stream_error"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:background="@drawable/error_background"
+            android:padding="16dp"
+            android:textColor="@color/colorErrorText"
+            android:visibility="gone"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            tools:text="@string/error_ip_address_not_found" />
+
         <LinearLayout
             android:id="@+id/ll_fragment_stream_addresses"
-            android:layout_width="match_parent"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            app:layout_constraintTop_toTopOf="parent" />
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/tv_fragment_stream_error" />
 
         <TextView
             android:id="@+id/tv_fragment_stream_pin"
@@ -37,12 +53,14 @@
 
         <LinearLayout
             android:id="@+id/ll_fragment_stream_traffic"
-            android:layout_width="match_parent"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
             android:layout_marginBottom="8dp"
             android:background="@color/colorBackgroundSecondary"
             android:orientation="vertical"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/tv_fragment_stream_pin">
 
             <info.dvkr.screenstream.ui.view.ExpansionHeader
@@ -99,12 +117,14 @@
 
         <LinearLayout
             android:id="@+id/ll_fragment_stream_clients"
-            android:layout_width="match_parent"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
             android:layout_marginBottom="8dp"
             android:background="@color/colorBackgroundSecondary"
             android:orientation="vertical"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/ll_fragment_stream_traffic">
 
             <info.dvkr.screenstream.ui.view.ExpansionHeader

@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_activity_error_title">त्रुटि</string>
-    <string name="app_activity_error_port_in_use">पोर्ट पहले से ही उपयोग में है। कोई दूसरा चुनें।</string>
-    <string name="app_activity_error_invalid_media_projection">सुरक्षा त्रुटि: अमान्य मीडिया प्रक्षेपण। एक बार और कोशिश करें।</string>
-    <string name="app_activity_error_ip_address_not_found">IP पता नहीं मिला। \n सेटिंग में \"केवल वाईफाई का उपयोग करें\" को निष्क्रिय करने की कोशिश करें।</string>
-    <string name="app_activity_error_wrong_image_format">सिस्टम अज्ञात प्रारूप में छवि लौटाता है। कोई फिक्स उपलब्ध नहीं। माफ़ कीजिये।</string>
-    <string name="app_activity_error_exit">बाहर जाएं</string>
+    <string name="error_title">त्रुटि</string>
+    <string name="error_port_in_use">पोर्ट पहले से ही उपयोग में है। कोई दूसरा चुनें।</string>
+    <string name="error_invalid_media_projection">सुरक्षा त्रुटि: अमान्य मीडिया प्रक्षेपण। एक बार और कोशिश करें।</string>
+    <string name="error_ip_address_not_found">IP पता नहीं मिला। \n सेटिंग में \"केवल वाईफाई का उपयोग करें\" को निष्क्रिय करने की कोशिश करें।</string>
+    <string name="error_wrong_image_format">सिस्टम अज्ञात प्रारूप में छवि लौटाता है। कोई फिक्स उपलब्ध नहीं। माफ़ कीजिये।</string>
+    <string name="error_exit">बाहर जाएं</string>
     <string name="app_activity_collecting_logs">एप्लिकेशन लॉग एकत्रित कर रहा है …</string>
     <string name="app_activity_send_logs">डेवलपर को लॉग भेजें</string>
     <string name="app_activity_send_logs_dialog_title">डेवलपर को ईमेल में लॉग भेजें</string>

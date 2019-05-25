@@ -87,7 +87,6 @@ dependencies {
     implementation("androidx.navigation:navigation-ui-ktx:$androidxNavigation")
     implementation("androidx.viewpager:viewpager:$androidxViewpager")
 
-    implementation("com.tapadoo.android:alerter:$alerter")
     implementation("com.afollestad.material-dialogs:core:$materialDialogs")
     implementation("com.afollestad.material-dialogs:lifecycle:$materialDialogs")
     implementation("com.afollestad.material-dialogs:color:$materialDialogs")

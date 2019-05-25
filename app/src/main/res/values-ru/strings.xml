@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_activity_error_title">Ошибка</string>
-    <string name="app_activity_error_port_in_use">Порт уже используется. Выберите другой.</string>
-    <string name="app_activity_error_invalid_media_projection">Ошибка безопасности: Недопустимая проекция медиа. Попробуйте еще раз.</string>
-    <string name="app_activity_error_ip_address_not_found">IP адресс не найден.\nПопробуйте отключить \"Использовать только WiFi\" в настройках.</string>
-    <string name="app_activity_error_wrong_image_format">Система отдает изображение в неверном формате. Решения проблемы нет.</string>
-    <string name="app_activity_error_exit">Выход</string>
+    <string name="error_title">Ошибка</string>
+    <string name="error_port_in_use">Порт уже используется. Выберите другой.</string>
+    <string name="error_invalid_media_projection">Ошибка безопасности: Недопустимая проекция медиа. Попробуйте еще раз.</string>
+    <string name="error_ip_address_not_found">IP адресс не найден.\nПопробуйте отключить \"Использовать только WiFi\" в настройках.</string>
+    <string name="error_wrong_image_format">Система отдает изображение в неверном формате. Решения проблемы нет.</string>
+    <string name="error_exit">Выход</string>
     <string name="app_activity_collecting_logs">Идет логирование…</string>
     <string name="app_activity_send_logs">Отправить лог разработчику</string>
     <string name="app_activity_send_logs_dialog_title">Отправить лог разработчику</string>

@@ -84,6 +84,7 @@ class SettingsAdvancedFragment : Fragment() {
 
         // Advanced - Enable application logs
         with(cb_fragment_settings_logging) {
+            isChecked = settings.loggingOn
             setOnClickListener {
                 settings.loggingOn = isChecked
                 if (settings.loggingOn.not()) cleanLogFiles(requireContext().applicationContext)

@@ -22,11 +22,7 @@ import com.afollestad.materialdialogs.lifecycle.lifecycleOwner
 import com.elvishew.xlog.XLog
 import com.google.android.material.bottomnavigation.BottomNavigationItemView
 import com.google.android.material.bottomnavigation.BottomNavigationMenuView
-import com.tapadoo.alerter.Alerter
 import info.dvkr.screenstream.R
-import info.dvkr.screenstream.data.model.AppError
-import info.dvkr.screenstream.data.model.FatalError
-import info.dvkr.screenstream.data.model.FixableError
 import info.dvkr.screenstream.data.other.getLog
 import info.dvkr.screenstream.data.settings.Settings
 import info.dvkr.screenstream.data.settings.SettingsReadOnly
@@ -43,7 +39,6 @@ class AppActivity : BaseActivity() {
     }
 
     private var isStreamingBefore: Boolean = true
-    private var errorPrevious: AppError? = null
     private val scaleX = PropertyValuesHolder.ofFloat(View.SCALE_X, 0.5f, 1f)
     private val scaleY = PropertyValuesHolder.ofFloat(View.SCALE_Y, 0.5f, 1f)
     private val alpha = PropertyValuesHolder.ofFloat(View.ALPHA, 0f, 1f)
@@ -141,7 +136,7 @@ class AppActivity : BaseActivity() {
                 lastServiceMessage = serviceMessage
 
                 // MinimizeOnStream
-                if (settings.minimizeOnStream && isStreamingBefore.not() && serviceMessage.isStreaming && serviceMessage.appError == null)
+                if (settings.minimizeOnStream && isStreamingBefore.not() && serviceMessage.isStreaming)
                     try {
                         startActivity(
                             Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME).setFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -150,48 +145,10 @@ class AppActivity : BaseActivity() {
                         XLog.e(getLog("onServiceMessage"), ex)
                     }
 
-                if (serviceMessage.appError != null) {
-                    if (errorPrevious == null) showError(serviceMessage.appError)
-                    else if (errorPrevious!!::class.java != serviceMessage.appError::class.java)
-                        showError(serviceMessage.appError)
-                }
-
-                errorPrevious = serviceMessage.appError
                 isStreamingBefore = serviceMessage.isStreaming
             }
 
             else -> super.onServiceMessage(serviceMessage)
         }
-    }
-
-    private fun showError(appError: AppError) {
-        XLog.d(getLog("showError", appError.toString()))
-
-        val message: String = when (appError) {
-            is FixableError.AddressInUseException -> getString(R.string.app_activity_error_port_in_use)
-            is FixableError.CastSecurityException -> getString(R.string.app_activity_error_invalid_media_projection)
-            is FixableError.AddressNotFoundException -> getString(R.string.app_activity_error_ip_address_not_found)
-            is FatalError.BitmapFormatException -> getString(R.string.app_activity_error_wrong_image_format)
-            else -> appError.toString()
-        }
-
-        val buttonText =
-            getString(if (appError is FixableError) android.R.string.ok else R.string.app_activity_error_exit)
-
-        Alerter.create(this@AppActivity)
-            .setTitle(R.string.app_activity_error_title)
-            .setTitleAppearance(R.style.AlertTextAppearance_Title)
-            .setText(message)
-            .setTextAppearance(R.style.AlertTextAppearance_Text)
-            .setBackgroundResource(R.drawable.error_background)
-            .addButton(buttonText, R.style.AlerterButton, View.OnClickListener {
-                if (appError is FixableError) IntentAction.RecoverError.sendToAppService(this@AppActivity)
-                else IntentAction.Exit.sendToAppService(this@AppActivity)
-                Alerter.hide()
-            })
-            .enableInfiniteDuration(true)
-            .setDismissable(false)
-            .disableOutsideTouch()
-            .show()
     }
 }

@@ -9,14 +9,18 @@ import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.R
+import info.dvkr.screenstream.data.model.AppError
+import info.dvkr.screenstream.data.model.FatalError
+import info.dvkr.screenstream.data.model.FixableError
 import info.dvkr.screenstream.data.other.getLog
 
 class NotificationHelper(context: Context) {
     companion object {
         private const val CHANNEL_START_STOP = "info.dvkr.screenstream.NOTIFICATION_CHANNEL_START_STOP"
+        private const val CHANNEL_ERROR = "info.dvkr.screenstream.NOTIFICATION_CHANNEL_ERROR"
     }
 
-    enum class NotificationType(val id: Int) { START(10), STOP(11) }
+    enum class NotificationType(val id: Int) { START(10), STOP(11), ERROR(50) }
 
     private val applicationContext: Context = context.applicationContext
     private val packageName: String = applicationContext.packageName
@@ -39,25 +43,97 @@ class NotificationHelper(context: Context) {
                         setShowBadge(false)
                     }
             )
+
+            notificationManager.createNotificationChannel(
+                NotificationChannel(
+                    CHANNEL_ERROR, "Error notifications", NotificationManager.IMPORTANCE_HIGH
+                )
+                    .apply {
+                        setSound(null, null)
+                        enableLights(false)
+                        enableVibration(false)
+                        setShowBadge(false)
+                    }
+            )
         }
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
     fun getNotificationSettingsIntent(): Intent =
-        Intent(android.provider.Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS)
+        Intent(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS)
             .putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, packageName)
-            .putExtra(android.provider.Settings.EXTRA_CHANNEL_ID, CHANNEL_START_STOP)
 
     fun showForegroundNotification(service: Service, notificationType: NotificationType) {
         if (currentNotificationType != notificationType) {
             service.stopForeground(true)
-            service.startForeground(notificationType.id, getNotification(notificationType))
+            service.startForeground(notificationType.id, getForegroundNotification(notificationType))
             currentNotificationType = notificationType
         }
     }
 
-    private fun getNotification(notificationType: NotificationType): Notification {
-        XLog.d(getLog("getNotification", "NotificationType: $notificationType"))
+    fun showErrorNotification(appError: AppError) {
+        notificationManager.cancel(NotificationHelper.NotificationType.ERROR.id)
+
+        val pendingStartAppActivityIntent = PendingIntent.getService(
+            applicationContext, 0,
+            IntentAction.StartAppActivity.toAppServiceIntent(applicationContext),
+            0
+        )
+
+        val builder = NotificationCompat.Builder(applicationContext, CHANNEL_ERROR).apply {
+            setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            setCategory(Notification.CATEGORY_ERROR)
+            priority = NotificationCompat.PRIORITY_HIGH
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                setSound(notificationManager.getNotificationChannel(CHANNEL_ERROR).sound)
+                priority = notificationManager.getNotificationChannel(CHANNEL_ERROR).importance
+                setVibrate(notificationManager.getNotificationChannel(CHANNEL_ERROR).vibrationPattern)
+            }
+        }
+
+        builder.setSmallIcon(R.drawable.ic_notification_small_24dp)
+
+        val actionIntent = PendingIntent.getService(
+            applicationContext, 5,
+            if (appError is FixableError) IntentAction.RecoverError.toAppServiceIntent(applicationContext)
+            else IntentAction.Exit.toAppServiceIntent(applicationContext),
+            PendingIntent.FLAG_UPDATE_CURRENT
+        )
+
+        val message: String = when (appError) {
+            is FixableError.AddressInUseException ->
+                applicationContext.getString(R.string.error_port_in_use)
+            is FixableError.CastSecurityException ->
+                applicationContext.getString(R.string.error_invalid_media_projection)
+            is FixableError.AddressNotFoundException ->
+                applicationContext.getString(R.string.error_ip_address_not_found)
+            is FatalError.BitmapFormatException ->
+                applicationContext.getString(R.string.error_wrong_image_format)
+            else -> appError.toString()
+        }
+
+        val actionText = applicationContext.getString(
+            if (appError is FixableError) android.R.string.ok else R.string.error_exit
+        )
+
+        builder.setCustomContentView(
+            RemoteViews(packageName, R.layout.notification_error_small).apply {
+                setOnClickPendingIntent(R.id.ll_notification_error_small, pendingStartAppActivityIntent)
+                setImageViewResource(R.id.iv_notification_error_small_main, R.drawable.logo)
+                setTextViewText(R.id.tv_notification_error_small_message, message)
+                setTextViewText(R.id.tv_notification_error_small_action, actionText)
+                setOnClickPendingIntent(R.id.tv_notification_error_small_action, actionIntent)
+            })
+
+        notificationManager.notify(NotificationHelper.NotificationType.ERROR.id, builder.build())
+    }
+
+    fun hideErrorNotification() {
+        notificationManager.cancel(NotificationHelper.NotificationType.ERROR.id)
+    }
+
+    private fun getForegroundNotification(notificationType: NotificationType): Notification {
+        XLog.d(getLog("getForegroundNotification", "NotificationType: $notificationType"))
 
         val pendingStartAppActivityIntent = PendingIntent.getService(
             applicationContext, 0,

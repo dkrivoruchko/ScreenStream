@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_activity_error_title">Errore</string>
-    <string name="app_activity_error_port_in_use">Porta già in uso. Scegline un\'altra.</string>
-    <string name="app_activity_error_invalid_media_projection">Errore di sicurezza: proiezione del media non valida. Prova di nuovo.</string>
-    <string name="app_activity_error_ip_address_not_found">Indirizzo IP non trovato.\nProva a disattivare \"Usa solo WiFi\" nelle impostazioni.</string>
-    <string name="app_activity_error_wrong_image_format">Il sistema fornisce l\'immagine in un formato sconosciuto. Nessuna soluzione possibile. Spiacenti.</string>
-    <string name="app_activity_error_exit">Esci</string>
+    <string name="error_title">Errore</string>
+    <string name="error_port_in_use">Porta già in uso. Scegline un\'altra.</string>
+    <string name="error_invalid_media_projection">Errore di sicurezza: proiezione del media non valida. Prova di nuovo.</string>
+    <string name="error_ip_address_not_found">Indirizzo IP non trovato.\nProva a disattivare \"Usa solo WiFi\" nelle impostazioni.</string>
+    <string name="error_wrong_image_format">Il sistema fornisce l\'immagine in un formato sconosciuto. Nessuna soluzione possibile. Spiacenti.</string>
+    <string name="error_exit">Esci</string>
     <string name="app_activity_collecting_logs">Raccolta dei registri dell\'applicazione…</string>
     <string name="app_activity_send_logs">Invia i registri allo sviluppatore</string>
 
