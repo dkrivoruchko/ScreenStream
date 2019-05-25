@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <integer name="tv_notification_error_small_message_max_lines">1</integer>
+</resources>

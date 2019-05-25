@@ -36,7 +36,7 @@
             android:id="@+id/tv_notification_error_small_message"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:maxLines="3"
+            android:maxLines="@integer/tv_notification_error_small_message_max_lines"
             android:paddingStart="8dp"
             android:textAppearance="?android:attr/textAppearanceSmall"
             android:textColor="@color/colorErrorText"
