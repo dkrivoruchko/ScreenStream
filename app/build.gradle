@@ -98,8 +98,8 @@ dependencies {
     implementation("com.elvishew:xlog:$xlog")
 
     fabricImplementation("com.google.android.play:core:$playCore")
-    releaseImplementation("com.google.firebase:firebase-core:$firebaseCore")
-    releaseImplementation("com.crashlytics.sdk.android:crashlytics:$fabricCrashlytics")
+    fabricReleaseImplementation("com.google.firebase:firebase-core:$firebaseCore")
+    fabricReleaseImplementation("com.crashlytics.sdk.android:crashlytics:$fabricCrashlytics")
 
     debugImplementation("com.squareup.leakcanary:leakcanary-android:$leakcanary")
 }
