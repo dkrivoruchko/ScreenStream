@@ -7,43 +7,58 @@ import android.content.Intent
 import android.media.projection.MediaProjectionManager
 import android.os.Bundle
 import androidx.annotation.StringRes
-import androidx.appcompat.app.AppCompatActivity
-import androidx.appcompat.app.AppCompatDelegate
 import com.afollestad.materialdialogs.MaterialDialog
+import com.afollestad.materialdialogs.callbacks.onDismiss
 import com.afollestad.materialdialogs.lifecycle.lifecycleOwner
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.data.other.getLog
-import info.dvkr.screenstream.data.settings.SettingsReadOnly
+import info.dvkr.screenstream.service.ServiceMessage
 import info.dvkr.screenstream.service.helper.IntentAction
-import org.koin.android.ext.android.inject
 
 
-class PermissionActivity : AppCompatActivity() {
+abstract class PermissionActivity : BaseActivity() {
 
     companion object {
-        fun getStartIntent(context: Context): Intent =
-            Intent(context.applicationContext, PermissionActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        private const val CAST_PERMISSION_PENDING_KEY = "CAST_PERMISSION_PENDING_KEY"
     }
 
     private val requestCodeScreenCapture = 10
-    private val settingsReadOnly: SettingsReadOnly by inject()
-
-    private var materialDialog: MaterialDialog? = null
+    private var permissionsErrorDialog: MaterialDialog? = null
+    private var isCastPermissionsPending: Boolean = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        overridePendingTransition(0, 0)
-        setNightMode(settingsReadOnly.nightMode)
         super.onCreate(savedInstanceState)
+        isCastPermissionsPending = savedInstanceState?.getBoolean(CAST_PERMISSION_PENDING_KEY) ?: false
+        XLog.d(getLog("onCreate", "isCastPermissionsPending: $isCastPermissionsPending"))
+    }
 
-        val projectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
-        try {
-            startActivityForResult(projectionManager.createScreenCaptureIntent(), requestCodeScreenCapture)
-        } catch (ex: ActivityNotFoundException) {
-            showErrorDialog(
-                R.string.permission_activity_error_title_activity_not_found,
-                R.string.permission_activity_error_activity_not_found
-            )
+    override fun onSaveInstanceState(outState: Bundle?) {
+        XLog.d(getLog("onSaveInstanceState", "isCastPermissionsPending: $isCastPermissionsPending"))
+        outState?.putBoolean(CAST_PERMISSION_PENDING_KEY, isCastPermissionsPending)
+        super.onSaveInstanceState(outState)
+    }
+
+    override fun onServiceMessage(serviceMessage: ServiceMessage) {
+        super.onServiceMessage(serviceMessage)
+
+        when (serviceMessage) {
+            is ServiceMessage.ServiceState -> {
+                if (serviceMessage.isWaitingForPermission.not()) isCastPermissionsPending = false
+                else if (isCastPermissionsPending.not()) {
+                    isCastPermissionsPending = true
+
+                    val projectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
+                    try {
+                        startActivityForResult(projectionManager.createScreenCaptureIntent(), requestCodeScreenCapture)
+                    } catch (ex: ActivityNotFoundException) {
+                        showErrorDialog(
+                            R.string.permission_activity_error_title_activity_not_found,
+                            R.string.permission_activity_error_activity_not_found
+                        )
+                    }
+                }
+            }
         }
     }
 
@@ -72,34 +87,27 @@ class PermissionActivity : AppCompatActivity() {
         }
 
         XLog.d(getLog("onActivityResult", "Cast permission granted"))
-        closeActivity(IntentAction.CastIntent(data))
+        IntentAction.CastIntent(data).sendToAppService(this@PermissionActivity)
     }
 
     private fun showErrorDialog(
         @StringRes titleRes: Int = R.string.permission_activity_error_title,
         @StringRes messageRes: Int = R.string.permission_activity_error_unknown
     ) {
-        materialDialog?.dismiss()
+        permissionsErrorDialog?.dismiss()
 
-        materialDialog = MaterialDialog(this).show {
+        permissionsErrorDialog = MaterialDialog(this).show {
             lifecycleOwner(this@PermissionActivity)
             icon(R.drawable.ic_permission_dialog_24dp)
             title(titleRes)
             message(messageRes)
             cancelable(false)
             cancelOnTouchOutside(false)
-            positiveButton(android.R.string.ok) { closeActivity(IntentAction.CastPermissionsDenied) }
+            positiveButton(android.R.string.ok)
+            onDismiss {
+                IntentAction.CastPermissionsDenied.sendToAppService(this@PermissionActivity)
+                isCastPermissionsPending = false
+            }
         }
-    }
-
-    private fun closeActivity(intentAction: IntentAction) {
-        intentAction.sendToAppService(this@PermissionActivity)
-        finish()
-        overridePendingTransition(0, 0)
-    }
-
-    private fun setNightMode(@AppCompatDelegate.NightMode nightMode: Int) {
-        AppCompatDelegate.setDefaultNightMode(nightMode)
-        delegate.setLocalNightMode(nightMode)
     }
 }

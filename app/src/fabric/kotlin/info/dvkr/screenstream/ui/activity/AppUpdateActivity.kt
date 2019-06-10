@@ -36,25 +36,30 @@ abstract class AppUpdateActivity : AppCompatActivity() {
 
         appUpdateManager.registerListener(installStateListener)
 
-        appUpdateManager.appUpdateInfo.addOnSuccessListener { appUpdateInfo ->
-            if (appUpdateInfo.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE
-                && appUpdateInfo.isUpdateTypeAllowed(AppUpdateType.FLEXIBLE)
-            ) {
-                XLog.d(getLog("appUpdateInfo", "startUpdateFlowForResult"))
-                appUpdateManager.startUpdateFlowForResult(
-                    appUpdateInfo, AppUpdateType.FLEXIBLE, this, APP_UPDATE_FLEXIBLE_REQUEST_CODE
-                )
+        if (isIAURequestTimeoutPassed())
+            appUpdateManager.appUpdateInfo.addOnSuccessListener { appUpdateInfo ->
+                if (appUpdateInfo.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE
+                    && appUpdateInfo.isUpdateTypeAllowed(AppUpdateType.FLEXIBLE)
+                ) {
+                    XLog.d(getLog("appUpdateInfo", "startUpdateFlowForResult"))
+                    appUpdateManager.startUpdateFlowForResult(
+                        appUpdateInfo, AppUpdateType.FLEXIBLE, this, APP_UPDATE_FLEXIBLE_REQUEST_CODE
+                    )
+                }
             }
-        }
+                .addOnCompleteListener {
+                    settings.lastIAURequestTimeStamp = System.currentTimeMillis()
+                }
     }
 
-    override fun onResume() {
-        super.onResume()
-        appUpdateManager.appUpdateInfo.addOnSuccessListener { appUpdateInfo ->
-            if (appUpdateInfo.installStatus() == InstallStatus.DOWNLOADED && isIAURequestTimeoutPassed())
-                showUpdateConfirmationDialog()
-        }
-    }
+//    This cause memory leaks
+//    override fun onResume() {
+//        super.onResume()
+//        appUpdateManager.appUpdateInfo.addOnSuccessListener { appUpdateInfo ->
+//            if (appUpdateInfo.installStatus() == InstallStatus.DOWNLOADED && isIAURequestTimeoutPassed())
+//                showUpdateConfirmationDialog()
+//        }
+//    }
 
     override fun onDestroy() {
         appUpdateManager.unregisterListener(installStateListener)

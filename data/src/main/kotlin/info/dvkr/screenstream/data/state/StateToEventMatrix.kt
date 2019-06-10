@@ -46,6 +46,7 @@ object StateToEventMatrix {
             AppStateMachineImpl.InternalEvent.Destroy::class.java to Action.Process,
 
             AppStateMachine.Event.StartStream::class.java to Action.Skipp,
+            AppStateMachine.Event.CastPermissionsDenied::class.java to Action.Skipp,
             AppStateMachine.Event.StartProjection::class.java to Action.Error,
             AppStateMachine.Event.StopStream::class.java to Action.Error,
             AppStateMachine.Event.RequestPublicState::class.java to Action.Process,
@@ -62,6 +63,7 @@ object StateToEventMatrix {
             AppStateMachineImpl.InternalEvent.Destroy::class.java to Action.Process,
 
             AppStateMachine.Event.StartStream::class.java to Action.Skipp,
+            AppStateMachine.Event.CastPermissionsDenied::class.java to Action.Skipp,
             AppStateMachine.Event.StartProjection::class.java to Action.Skipp,
             AppStateMachine.Event.StopStream::class.java to Action.Skipp,
             AppStateMachine.Event.RequestPublicState::class.java to Action.Process,
@@ -78,8 +80,26 @@ object StateToEventMatrix {
             AppStateMachineImpl.InternalEvent.Destroy::class.java to Action.Process,
 
             AppStateMachine.Event.StartStream::class.java to Action.Process,
+            AppStateMachine.Event.CastPermissionsDenied::class.java to Action.Skipp,
             AppStateMachine.Event.StartProjection::class.java to Action.Process,
             AppStateMachine.Event.StopStream::class.java to Action.Skipp,
+            AppStateMachine.Event.RequestPublicState::class.java to Action.Process,
+            AppStateMachine.Event.RecoverError::class.java to Action.Process
+        )
+
+        matrix[StreamState.State.PERMISSION_PENDING] = mapOf(
+            AppStateMachineImpl.InternalEvent.DiscoverAddress::class.java to Action.Process,
+            AppStateMachineImpl.InternalEvent.StartServer::class.java to Action.Process,
+            AppStateMachineImpl.InternalEvent.ComponentError::class.java to Action.Process,
+            AppStateMachineImpl.InternalEvent.StartStopFromWebPage::class.java to Action.Skipp,
+            AppStateMachineImpl.InternalEvent.RestartServer::class.java to Action.Process,
+            AppStateMachineImpl.InternalEvent.ScreenOff::class.java to Action.Skipp,
+            AppStateMachineImpl.InternalEvent.Destroy::class.java to Action.Process,
+
+            AppStateMachine.Event.StartStream::class.java to Action.Skipp,
+            AppStateMachine.Event.CastPermissionsDenied::class.java to Action.Process,
+            AppStateMachine.Event.StartProjection::class.java to Action.Process,
+            AppStateMachine.Event.StopStream::class.java to Action.Error,
             AppStateMachine.Event.RequestPublicState::class.java to Action.Process,
             AppStateMachine.Event.RecoverError::class.java to Action.Process
         )
@@ -94,6 +114,7 @@ object StateToEventMatrix {
             AppStateMachineImpl.InternalEvent.Destroy::class.java to Action.Process,
 
             AppStateMachine.Event.StartStream::class.java to Action.Skipp,
+            AppStateMachine.Event.CastPermissionsDenied::class.java to Action.Skipp,
             AppStateMachine.Event.StartProjection::class.java to Action.Skipp,
             AppStateMachine.Event.StopStream::class.java to Action.Process,
             AppStateMachine.Event.RequestPublicState::class.java to Action.Process,
@@ -110,6 +131,7 @@ object StateToEventMatrix {
             AppStateMachineImpl.InternalEvent.Destroy::class.java to Action.Process,
 
             AppStateMachine.Event.StartStream::class.java to Action.Skipp,
+            AppStateMachine.Event.CastPermissionsDenied::class.java to Action.Skipp,
             AppStateMachine.Event.StartProjection::class.java to Action.Skipp,
             AppStateMachine.Event.StopStream::class.java to Action.Skipp,
             AppStateMachine.Event.RequestPublicState::class.java to Action.Process,
@@ -126,6 +148,7 @@ object StateToEventMatrix {
             AppStateMachineImpl.InternalEvent.Destroy::class.java to Action.Process,
 
             AppStateMachine.Event.StartStream::class.java to Action.Skipp,
+            AppStateMachine.Event.CastPermissionsDenied::class.java to Action.Skipp,
             AppStateMachine.Event.StartProjection::class.java to Action.Skipp,
             AppStateMachine.Event.StopStream::class.java to Action.Skipp,
             AppStateMachine.Event.RequestPublicState::class.java to Action.Process,
@@ -142,6 +165,7 @@ object StateToEventMatrix {
             AppStateMachineImpl.InternalEvent.Destroy::class.java to Action.Skipp,
 
             AppStateMachine.Event.StartStream::class.java to Action.Skipp,
+            AppStateMachine.Event.CastPermissionsDenied::class.java to Action.Skipp,
             AppStateMachine.Event.StartProjection::class.java to Action.Skipp,
             AppStateMachine.Event.StopStream::class.java to Action.Skipp,
             AppStateMachine.Event.RequestPublicState::class.java to Action.Skipp,

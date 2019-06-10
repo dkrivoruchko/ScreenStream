@@ -7,7 +7,7 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
-    <uses-permission android:name="android.permission.REORDER_TASKS" />
+    <!--<uses-permission android:name="android.permission.REORDER_TASKS" />-->
 
     <application
         android:name=".ScreenStreamApp"
@@ -41,13 +41,6 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
-        <activity
-            android:name=".ui.activity.PermissionActivity"
-            android:autoRemoveFromRecents="true"
-            android:launchMode="singleInstance"
-            android:process=":fg_service"
-            android:theme="@style/Theme.Transparent" />
 
         <service
             android:name=".service.AppService"

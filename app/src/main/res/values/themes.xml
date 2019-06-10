@@ -32,14 +32,4 @@
     </style>
 
     <style name="Theme.App.DayNight" parent="Theme.App.Light" />
-
-    <style name="Theme.Transparent" parent="Theme.App.Light">
-        <item name="android:windowIsTranslucent">true</item>
-        <item name="android:windowBackground">@android:color/transparent</item>
-        <item name="android:windowContentOverlay">@null</item>
-        <item name="android:windowNoTitle">true</item>
-        <item name="android:windowIsFloating">true</item>
-        <item name="android:backgroundDimEnabled">false</item>
-        <item name="colorAccent">@color/colorAccent</item>
-    </style>
 </resources>

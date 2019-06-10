@@ -15,18 +15,20 @@ data class StreamState(
     val appError: AppError? = null
 ) {
 
-    enum class State { CREATED, ADDRESS_DISCOVERED, SERVER_STARTED, STREAMING, RESTART_PENDING, ERROR, DESTROYED }
+    enum class State { CREATED, ADDRESS_DISCOVERED, SERVER_STARTED, PERMISSION_PENDING, STREAMING, RESTART_PENDING, ERROR, DESTROYED }
 
     internal fun isPublicStatePublishRequired(previousStreamState: StreamState): Boolean =
-        (this.state != State.DESTROYED && this.state != previousStreamState.state) ||
-                this.netInterfaces != previousStreamState.netInterfaces ||
-                this.appError != previousStreamState.appError
+        (state != State.DESTROYED && state != previousStreamState.state) ||
+                netInterfaces != previousStreamState.netInterfaces ||
+                appError != previousStreamState.appError
 
     internal fun toPublicState() = AppStateMachine.Effect.PublicState(
-        this.isStreaming(), (this.canStartStream() || this.isStreaming()).not(), this.netInterfaces, this.appError
+        isStreaming(), (canStartStream() || isStreaming()).not(), isWaitingForPermission(), netInterfaces, appError
     )
 
-    internal fun isStreaming(): Boolean = this.state == State.STREAMING
+    internal fun isStreaming(): Boolean = state == State.STREAMING
 
-    private fun canStartStream(): Boolean = this.state == State.SERVER_STARTED
+    private fun canStartStream(): Boolean = state == State.SERVER_STARTED
+
+    private fun isWaitingForPermission(): Boolean = state == State.PERMISSION_PENDING
 }

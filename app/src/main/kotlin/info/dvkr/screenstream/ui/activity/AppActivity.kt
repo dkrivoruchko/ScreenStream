@@ -31,11 +31,14 @@ import info.dvkr.screenstream.service.ServiceMessage
 import info.dvkr.screenstream.service.helper.IntentAction
 import kotlinx.android.synthetic.main.activity_app.*
 
-class AppActivity : BaseActivity() {
+class AppActivity : PermissionActivity() {
 
     companion object {
+        fun getAppActivityIntent(context: Context): Intent =
+            Intent(context.applicationContext, AppActivity::class.java)
+
         fun getStartIntent(context: Context): Intent =
-            Intent(context.applicationContext, AppActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            getAppActivityIntent(context)
     }
 
     private var isStreamingBefore: Boolean = true
@@ -67,6 +70,13 @@ class AppActivity : BaseActivity() {
                 if (destination.id == R.id.nav_exitFragment) IntentAction.Exit.sendToAppService(this@AppActivity)
             }
         }
+
+        routeIntentAction(intent)
+    }
+
+    override fun onNewIntent(intent: Intent?) {
+        super.onNewIntent(intent)
+        routeIntentAction(intent)
     }
 
     override fun onStart() {
@@ -78,6 +88,16 @@ class AppActivity : BaseActivity() {
     override fun onStop() {
         settings.unregisterChangeListener(settingsListener)
         super.onStop()
+    }
+
+    private fun routeIntentAction(intent: Intent?) {
+        val intentAction = IntentAction.fromIntent(intent)
+        intentAction != null || return
+        XLog.d(getLog("routeIntentAction", "IntentAction: $intentAction"))
+
+        when (intentAction) {
+            IntentAction.StartStream -> IntentAction.StartStream.sendToAppService(this)
+        }
     }
 
     private fun setLogging(loggingOn: Boolean) {
@@ -104,6 +124,8 @@ class AppActivity : BaseActivity() {
 
     @SuppressLint("RestrictedApi")
     override fun onServiceMessage(serviceMessage: ServiceMessage) {
+        super.onServiceMessage(serviceMessage)
+
         when (serviceMessage) {
             is ServiceMessage.ServiceState -> {
                 lastServiceMessage != serviceMessage || return
@@ -147,8 +169,6 @@ class AppActivity : BaseActivity() {
 
                 isStreamingBefore = serviceMessage.isStreaming
             }
-
-            else -> super.onServiceMessage(serviceMessage)
         }
     }
 }

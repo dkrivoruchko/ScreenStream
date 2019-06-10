@@ -23,8 +23,6 @@ import info.dvkr.screenstream.data.state.AppStateMachine
 import info.dvkr.screenstream.data.state.AppStateMachineImpl
 import info.dvkr.screenstream.service.helper.IntentAction
 import info.dvkr.screenstream.service.helper.NotificationHelper
-import info.dvkr.screenstream.ui.activity.AppActivity
-import info.dvkr.screenstream.ui.activity.PermissionActivity
 import kotlinx.android.synthetic.main.toast_slow_connection.view.*
 import kotlinx.coroutines.*
 import org.koin.android.ext.android.inject
@@ -122,9 +120,6 @@ class AppService : Service(), CoroutineScope {
         XLog.d(getLog("onEffect", "Effect: $effect"))
 
         when (effect) {
-            is AppStateMachine.Effect.RequestCastPermissions ->
-                IntentAction.StartPermissionActivity.sendToAppService(this)
-
             is AppStateMachine.Effect.ConnectionChanged -> Unit  // TODO Notify user about restart reason
 
             is AppStateMachine.Effect.PublicState -> {
@@ -132,7 +127,8 @@ class AppService : Service(), CoroutineScope {
 
                 activityMessagesHandler.sendMessageToActivities(
                     ServiceMessage.ServiceState(
-                        effect.isStreaming, effect.isBusy, effect.netInterfaces, effect.appError
+                        effect.isStreaming, effect.isBusy, effect.isWaitingForPermission,
+                        effect.netInterfaces, effect.appError
                     )
                 )
 
@@ -172,8 +168,6 @@ class AppService : Service(), CoroutineScope {
         )
     }
 
-    private var isCastPermissionsPending: Boolean = false
-
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val intentAction = IntentAction.fromIntent(intent)
         intentAction != null || return START_NOT_STICKY
@@ -203,14 +197,13 @@ class AppService : Service(), CoroutineScope {
             }
 
             is IntentAction.CastIntent -> {
-                isCastPermissionsPending = false
                 appStateMachine.sendEvent(AppStateMachine.Event.RequestPublicState)
                 appStateMachine.sendEvent(AppStateMachine.Event.StartProjection(intentAction.intent))
             }
 
             IntentAction.CastPermissionsDenied -> {
+                appStateMachine.sendEvent(AppStateMachine.Event.CastPermissionsDenied)
                 appStateMachine.sendEvent(AppStateMachine.Event.RequestPublicState)
-                isCastPermissionsPending = false
             }
 
             IntentAction.StartOnBoot ->
@@ -220,24 +213,6 @@ class AppService : Service(), CoroutineScope {
                 sendBroadcast(Intent(Intent.ACTION_CLOSE_SYSTEM_DIALOGS))
                 notificationHelper.hideErrorNotification()
                 appStateMachine.sendEvent(AppStateMachine.Event.RecoverError)
-            }
-
-            IntentAction.StartAppActivity -> {
-                sendBroadcast(Intent(Intent.ACTION_CLOSE_SYSTEM_DIALOGS))
-                if (isCastPermissionsPending)
-                    XLog.w(getLog("onStartCommand", "IntentAction.StartAppActivity: PermissionActivity open"))
-                else
-                    startActivity(AppActivity.getStartIntent(this))
-            }
-
-            IntentAction.StartPermissionActivity -> {
-                sendBroadcast(Intent(Intent.ACTION_CLOSE_SYSTEM_DIALOGS))
-                if (isCastPermissionsPending)
-                    XLog.w(getLog("onStartCommand", "IntentAction.StartPermissionActivity: Already open"))
-                else {
-                    isCastPermissionsPending = true
-                    startActivity(PermissionActivity.getStartIntent(this))
-                }
             }
 
             else -> XLog.e(getLog("onStartCommand", "Unknown action: $intentAction"))

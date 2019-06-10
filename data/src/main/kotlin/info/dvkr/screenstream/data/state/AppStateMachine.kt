@@ -10,6 +10,7 @@ interface AppStateMachine {
 
     open class Event {
         object StartStream : Event()
+        object CastPermissionsDenied : Event()
         class StartProjection(val intent: Intent) : Event()
         object StopStream : Event()
         object RequestPublicState : Event()
@@ -19,11 +20,11 @@ interface AppStateMachine {
     }
 
     sealed class Effect {
-        object RequestCastPermissions : Effect()
         object ConnectionChanged : Effect()
         data class PublicState(
             val isStreaming: Boolean,
             val isBusy: Boolean,
+            val isWaitingForPermission: Boolean,
             val netInterfaces: List<NetInterface>,
             val appError: AppError?
         ) : Effect()

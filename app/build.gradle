@@ -12,8 +12,8 @@ android {
         applicationId = "info.dvkr.screenstream"
         minSdkVersion(minSdk)
         targetSdkVersion(targetSdk)
-        versionCode = 30105
-        versionName = "3.1.5"
+        versionCode = 30200
+        versionName = "3.2.0"
         resConfigs("en", "ru", "pt-rBR", "zh-rTW", "fr-rFR", "fa", "it", "pl", "hi", "de")
 
         vectorDrawables.useSupportLibrary = true
@@ -90,7 +90,6 @@ dependencies {
     implementation("com.afollestad.material-dialogs:core:$materialDialogs")
     implementation("com.afollestad.material-dialogs:lifecycle:$materialDialogs")
     implementation("com.afollestad.material-dialogs:color:$materialDialogs")
-    implementation("com.afollestad.material-dialogs:input:$materialDialogs")
     implementation("com.afollestad.material-dialogs:input:$materialDialogs")
 
     implementation("org.koin:koin-android:$koin")

@@ -60,7 +60,6 @@ Version 3.x based on Clean Architecture, Single Activity and MVI patterns and us
 * [Kotlin coroutines](https://github.com/Kotlin/kotlinx.coroutines)
 * [Android Jetpack libraries](https://developer.android.com/jetpack/)
 * [Koin](https://github.com/Ekito/koin)
-* [Alerter](https://github.com/Tapadoo/Alerter)
 * [ZXing](https://github.com/zxing/zxing)
 * [Material Dialogs](https://github.com/afollestad/material-dialogs)
 * [Binary Preferences](https://github.com/iamironz/binaryprefs)

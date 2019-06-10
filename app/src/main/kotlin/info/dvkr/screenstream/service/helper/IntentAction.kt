@@ -6,6 +6,7 @@ import android.os.Parcelable
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.data.other.getLog
 import info.dvkr.screenstream.service.AppService
+import info.dvkr.screenstream.ui.activity.AppActivity
 import kotlinx.android.parcel.Parcelize
 
 sealed class IntentAction : Parcelable {
@@ -17,6 +18,10 @@ sealed class IntentAction : Parcelable {
     }
 
     fun toAppServiceIntent(context: Context): Intent = AppService.getAppServiceIntent(context).apply {
+        putExtra(EXTRA_PARCELABLE, this@IntentAction)
+    }
+
+    fun toAppActivityIntent(context: Context): Intent = AppActivity.getAppActivityIntent(context).apply {
         putExtra(EXTRA_PARCELABLE, this@IntentAction)
     }
 
@@ -33,9 +38,6 @@ sealed class IntentAction : Parcelable {
     @Parcelize object CastPermissionsDenied : IntentAction()
     @Parcelize object StartOnBoot : IntentAction()
     @Parcelize object RecoverError : IntentAction()
-
-    @Parcelize object StartAppActivity : IntentAction()
-    @Parcelize object StartPermissionActivity : IntentAction()
 
     override fun toString(): String = this::class.java.simpleName
 }

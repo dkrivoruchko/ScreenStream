@@ -26,6 +26,7 @@ sealed class ServiceMessage : Parcelable {
     @Parcelize data class ServiceState(
         val isStreaming: Boolean,
         val isBusy: Boolean,
+        val isWaitingForPermission: Boolean,
         val netInterfaces: List<NetInterface>,
         val appError: AppError?
     ) : ServiceMessage()

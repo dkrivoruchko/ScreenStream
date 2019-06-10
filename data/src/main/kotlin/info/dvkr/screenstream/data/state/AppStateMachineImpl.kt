@@ -102,7 +102,11 @@ class AppStateMachineImpl(
             } catch (ignore: ClosedSendChannelException) {
             } catch (th: Throwable) {
                 XLog.e(getLog("sendEvent"), th)
-                onEffect(AppStateMachine.Effect.PublicState(false, true, emptyList(), FatalError.ChannelException))
+                onEffect(
+                    AppStateMachine.Effect.PublicState(
+                        false, true, false, emptyList(), FatalError.ChannelException
+                    )
+                )
             }
         }
     }
@@ -127,6 +131,7 @@ class AppStateMachineImpl(
                         is InternalEvent.Destroy -> destroy(streamState)
 
                         is AppStateMachine.Event.StartStream -> startStream(streamState)
+                        is AppStateMachine.Event.CastPermissionsDenied -> castPermissionsDenied(streamState)
                         is AppStateMachine.Event.StartProjection -> startProjection(streamState, event.intent)
                         is AppStateMachine.Event.StopStream -> stopStream(streamState)
                         is AppStateMachine.Event.RequestPublicState -> requestPublicState(streamState)
@@ -234,9 +239,13 @@ class AppStateMachineImpl(
     private fun startStream(streamState: StreamState): StreamState {
         XLog.d(getLog("startStream", "Invoked"))
 
-        onEffect(AppStateMachine.Effect.RequestCastPermissions)
+        return streamState.copy(state = StreamState.State.PERMISSION_PENDING)
+    }
 
-        return streamState
+    private fun castPermissionsDenied(streamState: StreamState): StreamState {
+        XLog.d(getLog("castPermissionsDenied", "Invoked"))
+
+        return streamState.copy(state = StreamState.State.SERVER_STARTED)
     }
 
     private fun startProjection(streamState: StreamState, intent: Intent): StreamState {
@@ -283,7 +292,7 @@ class AppStateMachineImpl(
         if (streamState.isStreaming()) return stopStream(streamState)
 
         if (streamState.state == StreamState.State.SERVER_STARTED)
-            onEffect(AppStateMachine.Effect.RequestCastPermissions)
+            return streamState.copy(state = StreamState.State.PERMISSION_PENDING)
 
         return streamState
     }

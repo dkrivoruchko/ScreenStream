@@ -13,6 +13,7 @@ import info.dvkr.screenstream.data.model.AppError
 import info.dvkr.screenstream.data.model.FatalError
 import info.dvkr.screenstream.data.model.FixableError
 import info.dvkr.screenstream.data.other.getLog
+import info.dvkr.screenstream.ui.activity.AppActivity
 
 class NotificationHelper(context: Context) {
     companion object {
@@ -74,10 +75,8 @@ class NotificationHelper(context: Context) {
     fun showErrorNotification(appError: AppError) {
         notificationManager.cancel(NotificationHelper.NotificationType.ERROR.id)
 
-        val pendingStartAppActivityIntent = PendingIntent.getService(
-            applicationContext, 0,
-            IntentAction.StartAppActivity.toAppServiceIntent(applicationContext),
-            0
+        val pendingStartAppActivityIntent = PendingIntent.getActivity(
+            applicationContext, 0, AppActivity.getStartIntent(applicationContext), 0
         )
 
         val builder = NotificationCompat.Builder(applicationContext, CHANNEL_ERROR).apply {
@@ -135,10 +134,8 @@ class NotificationHelper(context: Context) {
     private fun getForegroundNotification(notificationType: NotificationType): Notification {
         XLog.d(getLog("getForegroundNotification", "NotificationType: $notificationType"))
 
-        val pendingStartAppActivityIntent = PendingIntent.getService(
-            applicationContext, 0,
-            IntentAction.StartAppActivity.toAppServiceIntent(applicationContext),
-            0
+        val pendingStartAppActivityIntent = PendingIntent.getActivity(
+            applicationContext, 0, AppActivity.getStartIntent(applicationContext), 0
         )
 
         val builder = NotificationCompat.Builder(applicationContext, CHANNEL_START_STOP).apply {
@@ -156,9 +153,9 @@ class NotificationHelper(context: Context) {
             NotificationType.START -> {
                 builder.setSmallIcon(R.drawable.ic_notification_small_24dp)
 
-                val startIntent = PendingIntent.getService(
+                val startIntent = PendingIntent.getActivity(
                     applicationContext, 1,
-                    IntentAction.StartStream.toAppServiceIntent(applicationContext),
+                    IntentAction.StartStream.toAppActivityIntent(applicationContext),
                     PendingIntent.FLAG_UPDATE_CURRENT
                 )
 
