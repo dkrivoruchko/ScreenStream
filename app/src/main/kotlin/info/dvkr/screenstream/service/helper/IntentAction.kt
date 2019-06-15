@@ -26,7 +26,7 @@ sealed class IntentAction : Parcelable {
     }
 
     fun sendToAppService(context: Context) {
-        XLog.i(getLog("sendToAppService", this.toString()))
+        XLog.i(context.getLog("sendToAppService", this.toString()))
         AppService.startForeground(context, this.toAppServiceIntent(context))
     }
 

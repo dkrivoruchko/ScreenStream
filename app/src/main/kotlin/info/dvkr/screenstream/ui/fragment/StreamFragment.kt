@@ -32,7 +32,7 @@ import info.dvkr.screenstream.data.other.*
 import info.dvkr.screenstream.data.settings.SettingsReadOnly
 import info.dvkr.screenstream.service.ServiceMessage
 import info.dvkr.screenstream.service.helper.IntentAction
-import info.dvkr.screenstream.ui.activity.BaseActivity
+import info.dvkr.screenstream.ui.activity.ServiceActivity
 import kotlinx.android.extensions.LayoutContainer
 import kotlinx.android.synthetic.main.fragment_stream.*
 import kotlinx.android.synthetic.main.item_client.*
@@ -80,7 +80,7 @@ class StreamFragment : Fragment() {
         super.onStart()
         XLog.d(getLog("onStart", "Invoked"))
 
-        (requireActivity() as BaseActivity).getServiceMessageLiveData()
+        (requireActivity() as ServiceActivity).getServiceMessageLiveData()
             .observe(this, Observer<ServiceMessage> { serviceMessage ->
                 when (serviceMessage) {
                     is ServiceMessage.ServiceState -> onServiceStateMessage(serviceMessage)
