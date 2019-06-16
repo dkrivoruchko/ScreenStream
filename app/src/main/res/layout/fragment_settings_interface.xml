@@ -177,7 +177,7 @@
                 app:layout_constraintStart_toEndOf="@id/iv_fragment_settings_minimize_on_stream"
                 app:layout_constraintTop_toBottomOf="@id/tv_fragment_settings_minimize_on_stream" />
 
-            <CheckBox
+            <androidx.appcompat.widget.AppCompatCheckBox
                 android:id="@+id/cb_fragment_settings_minimize_on_stream"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -243,7 +243,7 @@
                 app:layout_constraintStart_toEndOf="@id/iv_fragment_settings_stop_on_sleep"
                 app:layout_constraintTop_toBottomOf="@id/tv_fragment_settings_stop_on_sleep" />
 
-            <CheckBox
+            <androidx.appcompat.widget.AppCompatCheckBox
                 android:id="@+id/cb_fragment_settings_stop_on_sleep"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -310,7 +310,7 @@
                 app:layout_constraintStart_toEndOf="@id/iv_fragment_settings_start_on_boot"
                 app:layout_constraintTop_toBottomOf="@id/tv_fragment_settings_start_on_boot" />
 
-            <CheckBox
+            <androidx.appcompat.widget.AppCompatCheckBox
                 android:id="@+id/cb_fragment_settings_start_on_boot"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -377,7 +377,7 @@
                 app:layout_constraintStart_toEndOf="@id/iv_fragment_settings_auto_start_stop"
                 app:layout_constraintTop_toBottomOf="@id/tv_fragment_settings_auto_start_stop" />
 
-            <CheckBox
+            <androidx.appcompat.widget.AppCompatCheckBox
                 android:id="@+id/cb_fragment_settings_auto_start_stop"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -444,7 +444,7 @@
                 app:layout_constraintStart_toEndOf="@id/iv_fragment_settings_notify_slow_connections"
                 app:layout_constraintTop_toBottomOf="@id/tv_fragment_settings_notify_slow_connections" />
 
-            <CheckBox
+            <androidx.appcompat.widget.AppCompatCheckBox
                 android:id="@+id/cb_fragment_settings_notify_slow_connections"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -511,7 +511,7 @@
                 app:layout_constraintStart_toEndOf="@id/iv_fragment_settings_html_buttons"
                 app:layout_constraintTop_toBottomOf="@id/tv_fragment_settings_html_buttons" />
 
-            <CheckBox
+            <androidx.appcompat.widget.AppCompatCheckBox
                 android:id="@+id/cb_fragment_settings_html_buttons"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"

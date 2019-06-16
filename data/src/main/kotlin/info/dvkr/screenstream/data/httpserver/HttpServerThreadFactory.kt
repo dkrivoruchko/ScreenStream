@@ -28,7 +28,7 @@ internal class HttpServerThreadFactory private constructor(
     }
 
     internal constructor(poolName: String, daemon: Boolean, priority: Int) :
-            this(poolName, daemon, priority, Thread.currentThread().threadGroup)
+            this(poolName, daemon, priority, Thread.currentThread().threadGroup!!)
 
     override fun newThread(r: Runnable): Thread {
         val t = newThread(DefaultRunnableDecorator(r), prefix + nextId.incrementAndGet())

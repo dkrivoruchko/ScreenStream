@@ -28,7 +28,7 @@ class ExpansionHeader @JvmOverloads constructor(
 
     init {
         if (attrs != null) {
-            context.obtainStyledAttributes(attrs, R.styleable.ExpansionHeader)?.run {
+            context.obtainStyledAttributes(attrs, R.styleable.ExpansionHeader).run {
                 setHeaderIndicatorId(
                     getResourceId(R.styleable.ExpansionHeader_expansion_headerIndicator, headerIndicatorId)
                 )

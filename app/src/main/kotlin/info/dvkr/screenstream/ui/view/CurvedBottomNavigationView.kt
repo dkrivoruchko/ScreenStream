@@ -1,15 +1,10 @@
 package info.dvkr.screenstream.ui.view
 
 import android.content.Context
-import android.graphics.Color
-import android.graphics.Path
-import android.graphics.Point
-import android.graphics.PorterDuff
+import android.graphics.*
 import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.ShapeDrawable
 import android.graphics.drawable.shapes.PathShape
-//import android.support.design.R
-//import android.support.design.widget.BottomNavigationView
 import android.util.AttributeSet
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import info.dvkr.screenstream.R
@@ -73,6 +68,8 @@ class CurvedBottomNavigationView @JvmOverloads constructor(
         }
 
         val shape = PathShape(path, w.toFloat(), h.toFloat())
-        background = ShapeDrawable(shape).apply { setColorFilter(backgroundShapeColor, PorterDuff.Mode.SRC_IN) }
+        background = ShapeDrawable(shape).apply {
+            colorFilter = PorterDuffColorFilter(backgroundShapeColor, PorterDuff.Mode.SRC_IN)
+        }
     }
 }

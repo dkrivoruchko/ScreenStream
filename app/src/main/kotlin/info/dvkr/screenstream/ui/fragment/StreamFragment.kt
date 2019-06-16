@@ -112,8 +112,9 @@ class StreamFragment : Fragment() {
                     tv_item_device_address.setOnClickListener { openInBrowser(fullAddress) }
                     iv_item_device_address_open_external.setOnClickListener { openInBrowser(fullAddress) }
                     iv_item_device_address_copy.setOnClickListener {
-                        clipboard?.primaryClip =
+                        clipboard?.setPrimaryClip(
                             ClipData.newPlainText(tv_item_device_address.text, tv_item_device_address.text)
+                        )
                         Toast.makeText(
                             requireContext().applicationContext, R.string.stream_fragment_copied, Toast.LENGTH_LONG
                         ).show()
