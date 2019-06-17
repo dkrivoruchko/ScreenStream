@@ -16,7 +16,7 @@ class MediaProjectionHelper(context: Context, private val onProjectionCallback: 
 
     private val projectionCallback = object : MediaProjection.Callback() {
         override fun onStop() {
-            XLog.i(getLog("MediaProjectionHelper.Callback", "onStop"))
+            XLog.i(this@MediaProjectionHelper.getLog("Callback", "onStop"))
             onProjectionCallback()
         }
     }
