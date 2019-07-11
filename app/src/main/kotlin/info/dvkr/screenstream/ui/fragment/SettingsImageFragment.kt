@@ -33,6 +33,7 @@ import kotlinx.android.synthetic.main.dialog_settings_crop.view.*
 import kotlinx.android.synthetic.main.dialog_settings_resize.view.*
 import kotlinx.android.synthetic.main.fragment_settings_image.*
 import org.koin.android.ext.android.inject
+import kotlin.math.min
 
 class SettingsImageFragment : Fragment() {
 
@@ -257,7 +258,7 @@ class SettingsImageFragment : Fragment() {
         val leftCrop = leftView.text.let { if (it.isNullOrBlank()) -1 else it.toString().toInt() }
         val rightCrop = rightView.text.let { if (it.isNullOrBlank()) -1 else it.toString().toInt() }
 
-        val maxCrop = Math.min(screenSize.x, screenSize.y)
+        val maxCrop = min(screenSize.x, screenSize.y)
         val isTopBottomValid = (topCrop + bottomCrop) < maxCrop
         val isLeftRightValid = (leftCrop + rightCrop) < maxCrop
 

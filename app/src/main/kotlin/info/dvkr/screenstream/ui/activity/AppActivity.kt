@@ -116,6 +116,7 @@ class AppActivity : PermissionActivity() {
                 negativeButton(android.R.string.yes) {
                     sendLogsInEmail(applicationContext, getInputField().text.toString())
                 }
+                @Suppress("DEPRECATION")
                 neutralButton(R.string.app_activity_send_logs_dialog_neutral) { settings.loggingOn = false }
                 setActionButtonEnabled(WhichButton.NEGATIVE, false)
             }
