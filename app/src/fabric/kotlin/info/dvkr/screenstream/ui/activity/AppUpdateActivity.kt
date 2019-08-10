@@ -49,9 +49,9 @@ abstract class AppUpdateActivity : BaseActivity() {
         appUpdateManager.registerListener(installStateListener)
     }
 
-    override fun onSaveInstanceState(outState: Bundle?) {
+    override fun onSaveInstanceState(outState: Bundle) {
         XLog.d(getLog("onSaveInstanceState", "isAppUpdatePending: $isAppUpdatePending"))
-        outState?.putBoolean(APP_UPDATE_FLEXIBLE_PENDING_KEY, isAppUpdatePending)
+        outState.putBoolean(APP_UPDATE_FLEXIBLE_PENDING_KEY, isAppUpdatePending)
         super.onSaveInstanceState(outState)
     }
 
