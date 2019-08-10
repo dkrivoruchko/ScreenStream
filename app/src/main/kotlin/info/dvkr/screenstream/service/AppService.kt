@@ -69,8 +69,8 @@ class AppService : Service(), CoroutineScope {
             }
         }
 
-        override fun handleMessage(msg: Message?) {
-            val message = ServiceMessage.fromBundle(msg?.data)
+        override fun handleMessage(msg: Message) {
+            val message = ServiceMessage.fromBundle(msg.data)
             XLog.d(getLog("handleMessage", "ServiceMessage: $message"))
             when (message) {
                 is ServiceMessage.RegisterActivity -> {

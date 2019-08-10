@@ -32,9 +32,9 @@ abstract class PermissionActivity : ServiceActivity() {
         XLog.d(getLog("onCreate", "isCastPermissionsPending: $isCastPermissionsPending"))
     }
 
-    override fun onSaveInstanceState(outState: Bundle?) {
+    override fun onSaveInstanceState(outState: Bundle) {
         XLog.d(getLog("onSaveInstanceState", "isCastPermissionsPending: $isCastPermissionsPending"))
-        outState?.putBoolean(CAST_PERMISSION_PENDING_KEY, isCastPermissionsPending)
+        outState.putBoolean(CAST_PERMISSION_PENDING_KEY, isCastPermissionsPending)
         super.onSaveInstanceState(outState)
     }
 

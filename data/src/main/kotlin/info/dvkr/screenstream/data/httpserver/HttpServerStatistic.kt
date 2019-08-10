@@ -7,6 +7,7 @@ import info.dvkr.screenstream.data.model.HttpClient
 import info.dvkr.screenstream.data.model.TrafficPoint
 import info.dvkr.screenstream.data.other.asString
 import info.dvkr.screenstream.data.other.getLog
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.ClosedSendChannelException
 import kotlinx.coroutines.channels.SendChannel
 import kotlinx.coroutines.channels.actor
@@ -51,7 +52,7 @@ internal class HttpServerStatistic(
     }
 
     private val statisticEventChannel: SendChannel<StatisticEvent> = actor(capacity = 32) {
-        val clientsMap = HashMap<InetSocketAddress, LocalClient>()
+        val clientsMap: MutableMap<InetSocketAddress, LocalClient> = mutableMapOf()
         val trafficHistory = LinkedList<TrafficPoint>()
 
         val past = System.currentTimeMillis() - AppHttpServer.TRAFFIC_HISTORY_SECONDS * 1000
@@ -121,6 +122,7 @@ internal class HttpServerStatistic(
                 if (statisticEventChannel.offer(event).not())
                     XLog.w(getLog("sendStatisticEvent", "ChannelIsFull"))
             } catch (ignore: ClosedSendChannelException) {
+            } catch (ignore: CancellationException) {
             } catch (th: Throwable) {
                 XLog.e(getLog("sendStatisticEvent"), th)
                 onError(FatalError.ChannelException)

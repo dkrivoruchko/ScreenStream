@@ -52,8 +52,8 @@ abstract class ServiceActivity : AppUpdateActivity() {
 
         fun getServiceMessageLiveData(): LiveData<ServiceMessage> = serviceMessageLiveData
 
-        override fun handleMessage(msg: Message?) {
-            serviceMessageLiveData.value = ServiceMessage.fromBundle(msg?.data)
+        override fun handleMessage(msg: Message) {
+            serviceMessageLiveData.value = ServiceMessage.fromBundle(msg.data)
         }
     }
 

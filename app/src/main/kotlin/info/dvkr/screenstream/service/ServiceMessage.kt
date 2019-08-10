@@ -13,7 +13,7 @@ sealed class ServiceMessage : Parcelable {
     internal companion object {
         private const val MESSAGE_PARCELABLE = "MESSAGE_PARCELABLE"
 
-        fun fromBundle(bundle: Bundle?): ServiceMessage? = bundle?.run {
+        fun fromBundle(bundle: Bundle): ServiceMessage? = bundle.run {
             classLoader = ServiceMessage::class.java.classLoader
             getParcelable(MESSAGE_PARCELABLE)
         }

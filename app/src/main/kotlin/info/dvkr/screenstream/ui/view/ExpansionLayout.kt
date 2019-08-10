@@ -9,7 +9,6 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.ViewTreeObserver
 import androidx.core.widget.NestedScrollView
-import java.util.*
 
 class ExpansionLayout @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
@@ -23,8 +22,8 @@ class ExpansionLayout @JvmOverloads constructor(
         fun onStartedExpand(expansionLayout: ExpansionLayout, willExpand: Boolean)
     }
 
-    private val indicatorListeners = ArrayList<IndicatorListener>()
-    private val listeners = ArrayList<Listener>()
+    private val indicatorListeners: MutableList<IndicatorListener> = mutableListOf()
+    private val listeners: MutableList<Listener> = mutableListOf()
     var isExpanded = false
         private set
     private var animator: Animator? = null

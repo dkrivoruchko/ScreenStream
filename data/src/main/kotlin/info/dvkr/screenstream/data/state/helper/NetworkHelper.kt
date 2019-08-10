@@ -35,7 +35,7 @@ class NetworkHelper(context: Context) {
         try {
             return NetworkInterface.getNetworkInterfaces()
         } catch (ex: SocketException) {
-            XLog.e(getLog("getNetworkInterfacesWithFallBack.getNetworkInterfaces"), ex)
+            XLog.w(getLog("getNetworkInterfacesWithFallBack.getNetworkInterfaces", ex.toString()))
         }
 
         val netList = mutableListOf<NetworkInterface>()
@@ -48,7 +48,7 @@ class NetworkHelper(context: Context) {
                     return@forEach
                 }
             } catch (ex: SocketException) {
-                XLog.e(getLog("getNetworkInterfacesWithFallBack.getByIndex#$index:"), ex)
+                XLog.e(getLog("getNetworkInterfacesWithFallBack.getByIndex#$index:", ex.toString()))
             }
         }
 
@@ -63,7 +63,7 @@ class NetworkHelper(context: Context) {
                 }
 
             } catch (ex: SocketException) {
-                XLog.e(getLog("getNetworkInterfacesWithFallBack.commonName#$commonName:"), ex)
+                XLog.e(getLog("getNetworkInterfacesWithFallBack.commonName#$commonName:", ex.toString()))
             }
         }
 

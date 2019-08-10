@@ -16,6 +16,7 @@ import com.google.android.play.core.tasks.Task
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.data.other.getLog
 import info.dvkr.screenstream.data.settings.Settings
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
 import kotlin.coroutines.suspendCoroutine
@@ -59,7 +60,9 @@ abstract class AppUpdateActivity : BaseActivity() {
 
         isIAURequestTimeoutPassed() || return
 
-        launch {
+        launch(coroutineContext + CoroutineExceptionHandler { _, throwable ->
+            XLog.w(getLog("onCoroutineException", throwable.toString()))
+        }) {
             val appUpdateInfo = appUpdateManager.appUpdateInfo.await()
             if (appUpdateInfo.installStatus() == InstallStatus.DOWNLOADED) {
                 settings.lastIAURequestTimeStamp = System.currentTimeMillis()

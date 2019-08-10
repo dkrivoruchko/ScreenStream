@@ -23,7 +23,7 @@ abstract class HttpServerCoroutineScope(
     open fun destroy() {
         synchronized(lock) {
             XLog.d(getLog("destroy", "Invoked"))
-            coroutineContext.cancelChildren()
+            supervisorJob.cancelChildren()
         }
     }
 }
