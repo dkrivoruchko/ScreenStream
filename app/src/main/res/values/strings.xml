@@ -61,10 +61,14 @@
 
     <string name="pref_settings_interface">Interface</string>
     <string name="pref_night_mode">Dark theme</string>
-    <string-array name="pref_night_mode_options">
+    <string-array name="pref_night_mode_options_api21_28">
         <item>Always</item>
-        <item>Automatically (at night and battery saver)</item>
-        <item>Battery saver only</item>
+        <item>Set by Battery Saver</item>
+        <item>Never</item>
+    </string-array>
+    <string-array name="pref_night_mode_options_api29">
+        <item>Always</item>
+        <item>Automatically (follow system)</item>
         <item>Never</item>
     </string-array>
     <string name="pref_notification">Device notification settings</string>

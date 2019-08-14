@@ -32,19 +32,30 @@ class SettingsInterfaceFragment : Fragment() {
         override fun onSettingsChanged(key: String) = when (key) {
             Settings.Key.NIGHT_MODE -> {
                 val index = nightModeList.first { it.second == settings.nightMode }.first
-                tv_fragment_settings_night_mode_summary.text =
-                    resources.getStringArray(R.array.pref_night_mode_options)[index]
+                tv_fragment_settings_night_mode_summary.text = nightModeOptions[index]
             }
             else -> Unit
         }
     }
 
-    private val nightModeList = listOf(
+    private val nightModeList = if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.P)
+        listOf(
+            0 to AppCompatDelegate.MODE_NIGHT_YES,
+            1 to AppCompatDelegate.MODE_NIGHT_AUTO_BATTERY,
+            2 to AppCompatDelegate.MODE_NIGHT_NO
+        )
+    else listOf(
         0 to AppCompatDelegate.MODE_NIGHT_YES,
         1 to AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM,
-        2 to AppCompatDelegate.MODE_NIGHT_AUTO,
-        3 to AppCompatDelegate.MODE_NIGHT_NO
+        2 to AppCompatDelegate.MODE_NIGHT_NO
     )
+
+    private val nightModeOptions by lazy {
+        if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.P)
+            resources.getStringArray(R.array.pref_night_mode_options_api21_28).asList()
+        else
+            resources.getStringArray(R.array.pref_night_mode_options_api29).asList()
+    }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View =
         inflater.inflate(R.layout.fragment_settings_interface, container, false)
@@ -54,14 +65,14 @@ class SettingsInterfaceFragment : Fragment() {
 
         // Interface - Night mode
         val index = nightModeList.first { it.second == settings.nightMode }.first
-        tv_fragment_settings_night_mode_summary.text = resources.getStringArray(R.array.pref_night_mode_options)[index]
+        tv_fragment_settings_night_mode_summary.text = nightModeOptions[index]
         cl_fragment_settings_night_mode.setOnClickListener {
             val indexOld = nightModeList.first { it.second == settings.nightMode }.first
             MaterialDialog(requireActivity()).show {
                 lifecycleOwner(viewLifecycleOwner)
                 title(R.string.pref_night_mode)
                 icon(R.drawable.ic_settings_night_mode_24dp)
-                listItemsSingleChoice(R.array.pref_night_mode_options, initialSelection = indexOld) { _, index, _ ->
+                listItemsSingleChoice(items = nightModeOptions, initialSelection = indexOld) { _, index, _ ->
                     settings.nightMode = nightModeList.firstOrNull { item -> item.first == index }?.second
                         ?: throw IllegalArgumentException("Unknown night mode index")
                 }

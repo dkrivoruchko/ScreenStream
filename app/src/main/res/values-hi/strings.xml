@@ -54,10 +54,14 @@
 
     <string name="pref_settings_interface">इंटरफेस</string>
     <string name="pref_night_mode">डार्क थीम</string>
-    <string-array name="pref_night_mode_options">
+    <string-array name="pref_night_mode_options_api21_28">
         <item>हमेशा</item>
-        <item>स्वचालित रूप से (रात और बैटरी सेवर पर)</item>
         <item>बैटरी सेवर</item>
+        <item>कभी नहीँ</item>
+    </string-array>
+    <string-array name="pref_night_mode_options_api29">
+        <item>हमेशा</item>
+        <item>स्वचालित रूप से (सिस्टम का अनुसरण करें)</item>
         <item>कभी नहीँ</item>
     </string-array>
     <string name="pref_notification">डिवाइस अधिसूचना सेटिंग्स</string>

@@ -49,10 +49,14 @@
 
     <string name="pref_settings_interface">Interfaccia</string>
     <string name="pref_night_mode">Tema scuro</string>
-    <string-array name="pref_night_mode_options">
+    <string-array name="pref_night_mode_options_api21_28">
         <item>Sempre</item>
-        <item>Automaticamente (di notte e risparmio batteria)</item>
         <item>Solo risparmio batteria</item>
+        <item>Mai</item>
+    </string-array>
+    <string-array name="pref_night_mode_options_api29">
+        <item>Sempre</item>
+        <item>Automaticamente (segui il sistema)</item>
         <item>Mai</item>
     </string-array>
     <string name="pref_minimize_on_stream">Riduci alla trasmissione</string>

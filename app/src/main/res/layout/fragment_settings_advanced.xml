@@ -63,7 +63,7 @@
                 app:layout_constraintStart_toEndOf="@id/iv_fragment_settings_use_wifi_only"
                 app:layout_constraintTop_toBottomOf="@id/tv_fragment_settings_use_wifi_only" />
 
-            <androidx.appcompat.widget.AppCompatCheckBox
+            <com.google.android.material.checkbox.MaterialCheckBox
                 android:id="@+id/cb_fragment_settings_use_wifi_only"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -130,7 +130,7 @@
                 app:layout_constraintStart_toEndOf="@id/iv_fragment_settings_enable_ipv6"
                 app:layout_constraintTop_toBottomOf="@id/tv_fragment_settings_enable_ipv6" />
 
-            <androidx.appcompat.widget.AppCompatCheckBox
+            <com.google.android.material.checkbox.MaterialCheckBox
                 android:id="@+id/cb_fragment_settings_enable_ipv6"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -269,7 +269,7 @@
                 app:layout_constraintStart_toEndOf="@id/iv_fragment_settings_logging"
                 app:layout_constraintTop_toBottomOf="@id/tv_fragment_settings_logging" />
 
-            <androidx.appcompat.widget.AppCompatCheckBox
+            <com.google.android.material.checkbox.MaterialCheckBox
                 android:id="@+id/cb_fragment_settings_logging"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"

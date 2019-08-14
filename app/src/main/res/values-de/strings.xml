@@ -54,10 +54,14 @@
 
     <string name="pref_settings_interface">Schnittstelle</string>
     <string name="pref_night_mode">Dunkles Farbschema</string>
-    <string-array name="pref_night_mode_options">
+    <string-array name="pref_night_mode_options_api21_28">
         <item>Immer</item>
-        <item>Automatisch (bei Nacht und Energiesparmodus)</item>
         <item>Nur Energiesparmodus</item>
+        <item>Nie</item>
+    </string-array>
+    <string-array name="pref_night_mode_options_api29">
+        <item>Immer</item>
+        <item>Automatisch (system folgen)</item>
         <item>Nie</item>
     </string-array>
     <string name="pref_notification">Einstellungen für Benachrichtigungen</string>

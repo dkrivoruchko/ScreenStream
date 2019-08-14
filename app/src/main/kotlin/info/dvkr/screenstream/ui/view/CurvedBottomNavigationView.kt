@@ -2,10 +2,10 @@ package info.dvkr.screenstream.ui.view
 
 import android.content.Context
 import android.graphics.*
-import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.ShapeDrawable
 import android.graphics.drawable.shapes.PathShape
 import android.util.AttributeSet
+import androidx.core.content.ContextCompat
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import info.dvkr.screenstream.R
 
@@ -15,12 +15,11 @@ class CurvedBottomNavigationView @JvmOverloads constructor(
 ) : BottomNavigationView(context, attrs, defStyleAttr) {
 
     private val path: Path = Path()
-    private var fabRadius: Int = 0
-    private var backgroundShapeColor: Int = Color.WHITE
+    private var fabRadius: Int = resources.getDimensionPixelSize(R.dimen.fab_size_normal) / 2
+    private var backgroundShapeColor: Int =
+        ContextCompat.getColor(getContext(), R.color.colorNavigationBackground)
 
     init {
-        fabRadius = this.resources.getDimensionPixelSize(R.dimen.design_fab_size_normal) / 2
-        (this.background as? ColorDrawable)?.let { backgroundShapeColor = it.color }
         setBackgroundColor(Color.TRANSPARENT)
     }
 

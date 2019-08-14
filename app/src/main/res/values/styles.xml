@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <style name="Theme.App.Light" parent="Theme.MaterialComponents.Light.NoActionBar">
+    <style name="Theme.App.DayNightBase" parent="Theme.MaterialComponents.DayNight.NoActionBar">
         <item name="colorPrimary">@color/colorPrimary</item>
         <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
         <item name="colorAccent">@color/colorAccent</item>
@@ -10,26 +10,21 @@
 
         <item name="android:statusBarColor">@color/colorStatusBar</item>
         <item name="android:windowBackground">@drawable/window_background</item>
+
+        <item name="textInputStyle">@style/Base.Widget.MaterialComponents.TextInputLayout</item>
+        <item name="checkboxStyle">@style/AppCheckBox</item>
 
         // Material dialog
         <item name="md_color_title">@color/textColorSecondary</item>
         <item name="md_color_content">@color/textColorPrimary</item>
     </style>
 
-    <style name="Theme.App.Dark" parent="Theme.MaterialComponents.NoActionBar">
-        <item name="colorPrimary">@color/colorPrimary</item>
-        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
-        <item name="colorAccent">@color/colorAccent</item>
-        <item name="android:textColor">@color/textColorPrimary</item>
-        <item name="android:textColorSecondary">@color/textColorSecondary</item>
-
+    <style name="Theme.App.DayNight" parent="Theme.App.DayNightBase">
         <item name="android:statusBarColor">@color/colorStatusBar</item>
-        <item name="android:windowBackground">@drawable/window_background</item>
-
-        // Material dialog
-        <item name="md_color_title">@color/textColorPrimary</item>
-        <item name="md_color_content">@color/textColorSecondary</item>
     </style>
 
-    <style name="Theme.App.DayNight" parent="Theme.App.Light" />
+    <style name="AppCheckBox" parent="Widget.MaterialComponents.CompoundButton.CheckBox">
+        <item name="android:minWidth">32dp</item>
+        <item name="android:minHeight">32dp</item>
+    </style>
 </resources>

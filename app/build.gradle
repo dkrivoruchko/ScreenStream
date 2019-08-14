@@ -89,7 +89,7 @@ dependencies {
     implementation("androidx.constraintlayout:constraintlayout:$androidxConstraint")
     implementation("androidx.navigation:navigation-fragment-ktx:$androidxNavigation")
     implementation("androidx.navigation:navigation-ui-ktx:$androidxNavigation")
-    implementation("androidx.viewpager:viewpager:$androidxViewpager")
+    implementation("androidx.viewpager2:viewpager2:1.0.0-beta03")
 
     implementation("com.afollestad.material-dialogs:core:$materialDialogs")
     implementation("com.afollestad.material-dialogs:color:$materialDialogs")

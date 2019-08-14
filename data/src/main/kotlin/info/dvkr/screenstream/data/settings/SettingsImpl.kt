@@ -1,6 +1,7 @@
 package info.dvkr.screenstream.data.settings
 
 import android.content.SharedPreferences
+import android.os.Build
 import com.ironz.binaryprefs.Preferences
 import com.ironz.binaryprefs.PreferencesEditor
 import java.util.*
@@ -103,6 +104,12 @@ class SettingsImpl(private val preferences: Preferences) : Settings {
         } else {
             false
         }
+
+    init {
+        // Update from 28 to 29
+        if (Build.VERSION.SDK_INT == Build.VERSION_CODES.Q && nightMode == 3) nightMode = -1
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q && nightMode == -1) nightMode = 3
+    }
 
     private val changeListenerSet = Collections.synchronizedSet(HashSet<SettingsReadOnly.OnSettingsChangeListener>())
 

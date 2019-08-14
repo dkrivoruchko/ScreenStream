@@ -63,7 +63,7 @@
                 app:layout_constraintStart_toEndOf="@id/iv_fragment_settings_enable_pin"
                 app:layout_constraintTop_toBottomOf="@id/tv_fragment_settings_enable_pin" />
 
-            <androidx.appcompat.widget.AppCompatCheckBox
+            <com.google.android.material.checkbox.MaterialCheckBox
                 android:id="@+id/cb_fragment_settings_enable_pin"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -131,7 +131,7 @@
                 app:layout_constraintStart_toEndOf="@id/iv_fragment_settings_hide_pin_on_start"
                 app:layout_constraintTop_toBottomOf="@id/tv_fragment_settings_hide_pin_on_start" />
 
-            <androidx.appcompat.widget.AppCompatCheckBox
+            <com.google.android.material.checkbox.MaterialCheckBox
                 android:id="@+id/cb_fragment_settings_hide_pin_on_start"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -198,7 +198,7 @@
                 app:layout_constraintStart_toEndOf="@id/iv_fragment_settings_new_pin_on_app_start"
                 app:layout_constraintTop_toBottomOf="@id/tv_fragment_settings_new_pin_on_app_start" />
 
-            <androidx.appcompat.widget.AppCompatCheckBox
+            <com.google.android.material.checkbox.MaterialCheckBox
                 android:id="@+id/cb_fragment_settings_new_pin_on_app_start"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -265,7 +265,7 @@
                 app:layout_constraintStart_toEndOf="@id/iv_fragment_settings_auto_change_pin"
                 app:layout_constraintTop_toBottomOf="@id/tv_fragment_settings_auto_change_pin" />
 
-            <androidx.appcompat.widget.AppCompatCheckBox
+            <com.google.android.material.checkbox.MaterialCheckBox
                 android:id="@+id/cb_fragment_settings_auto_change_pin"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"

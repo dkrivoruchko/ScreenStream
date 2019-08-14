@@ -1,5 +1,7 @@
 package info.dvkr.screenstream.data.settings
 
+import android.os.Build
+
 interface Settings : SettingsReadOnly {
 
     object Key {
@@ -37,7 +39,7 @@ interface Settings : SettingsReadOnly {
     }
 
     object Default {
-        const val NIGHT_MODE = -1
+        var NIGHT_MODE = if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.P) 3 else -1
         const val MINIMIZE_ON_STREAM = true
         const val STOP_ON_SLEEP = false
         const val START_ON_BOOT = false

@@ -177,11 +177,12 @@
                 app:layout_constraintStart_toEndOf="@id/iv_fragment_settings_minimize_on_stream"
                 app:layout_constraintTop_toBottomOf="@id/tv_fragment_settings_minimize_on_stream" />
 
-            <androidx.appcompat.widget.AppCompatCheckBox
+            <com.google.android.material.checkbox.MaterialCheckBox
                 android:id="@+id/cb_fragment_settings_minimize_on_stream"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginEnd="8dp"
+                android:gravity="center"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintTop_toTopOf="parent" />
@@ -243,7 +244,7 @@
                 app:layout_constraintStart_toEndOf="@id/iv_fragment_settings_stop_on_sleep"
                 app:layout_constraintTop_toBottomOf="@id/tv_fragment_settings_stop_on_sleep" />
 
-            <androidx.appcompat.widget.AppCompatCheckBox
+            <com.google.android.material.checkbox.MaterialCheckBox
                 android:id="@+id/cb_fragment_settings_stop_on_sleep"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -310,7 +311,7 @@
                 app:layout_constraintStart_toEndOf="@id/iv_fragment_settings_start_on_boot"
                 app:layout_constraintTop_toBottomOf="@id/tv_fragment_settings_start_on_boot" />
 
-            <androidx.appcompat.widget.AppCompatCheckBox
+            <com.google.android.material.checkbox.MaterialCheckBox
                 android:id="@+id/cb_fragment_settings_start_on_boot"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -377,7 +378,7 @@
                 app:layout_constraintStart_toEndOf="@id/iv_fragment_settings_auto_start_stop"
                 app:layout_constraintTop_toBottomOf="@id/tv_fragment_settings_auto_start_stop" />
 
-            <androidx.appcompat.widget.AppCompatCheckBox
+            <com.google.android.material.checkbox.MaterialCheckBox
                 android:id="@+id/cb_fragment_settings_auto_start_stop"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -444,7 +445,7 @@
                 app:layout_constraintStart_toEndOf="@id/iv_fragment_settings_notify_slow_connections"
                 app:layout_constraintTop_toBottomOf="@id/tv_fragment_settings_notify_slow_connections" />
 
-            <androidx.appcompat.widget.AppCompatCheckBox
+            <com.google.android.material.checkbox.MaterialCheckBox
                 android:id="@+id/cb_fragment_settings_notify_slow_connections"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -511,7 +512,7 @@
                 app:layout_constraintStart_toEndOf="@id/iv_fragment_settings_html_buttons"
                 app:layout_constraintTop_toBottomOf="@id/tv_fragment_settings_html_buttons" />
 
-            <androidx.appcompat.widget.AppCompatCheckBox
+            <com.google.android.material.checkbox.MaterialCheckBox
                 android:id="@+id/cb_fragment_settings_html_buttons"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"

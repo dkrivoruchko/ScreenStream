@@ -49,10 +49,14 @@
 
     <string name="pref_settings_interface">Interfejs</string>
     <string name="pref_night_mode">Ciemny motyw</string>
-    <string-array name="pref_night_mode_options">
+    <string-array name="pref_night_mode_options_api21_28">
         <item>Zawsze</item>
-        <item>Automatycznie (w nocy i oszczędzanie baterii)</item>
         <item>Tylko oszczędzanie baterii</item>
+        <item>Nigdy</item>
+    </string-array>
+    <string-array name="pref_night_mode_options_api29">
+        <item>Zawsze</item>
+        <item>Automatycznie (podążaj za systemem)</item>
         <item>Nigdy</item>
     </string-array>
     <string name="pref_notification">Ustawienia powiadomień urządzenia</string>
@@ -78,7 +82,7 @@
     <string name="pref_resize_dialog_result">Rozmiar obrazu: %1$dx%2$d</string>
     <string name="pref_rotate">Obróć obraz zgodnie z ruchem wskazówek zegara</string>
     <string name="pref_rotate_summary">Obróć obraz przed wysłaniem</string>
-	<string name="pref_jpeg_quality">Jakość kompresji JPEG</string>
+    <string name="pref_jpeg_quality">Jakość kompresji JPEG</string>
     <string name="pref_jpeg_quality_summary">Ustaw jakość kompresji JPEG</string>
     <string name="pref_jpeg_quality_dialog">Ustaw jakość kompresji JPEG.\nWartość: 1–100\n(Domyślnie: 100)</string>
     <string name="pref_settings_security">Bezpieczeństwo</string>
