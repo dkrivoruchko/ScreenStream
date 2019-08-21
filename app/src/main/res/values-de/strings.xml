@@ -83,6 +83,12 @@
     <string name="pref_html_back_color_summary">Hintergrundfarbe der Webseite setzen</string>
     <string name="pref_html_back_color_title">Hintergrundfarbe wählen</string>
     <string name="pref_settings_image">Bild</string>
+    <string name="pref_vr_mode">Virtual Reality modus</string>
+    <string name="pref_vr_mode_summary">Erfassen Inhalte vom halben Bildschirm</string>
+    <string-array name="pref_vr_mode_options" translatable="false">
+        <item>Verwenden den linken Teil</item>
+        <item>Verwenden das richtige Teil</item>
+    </string-array>
     <string name="pref_crop">Bild zuschneiden</string>
     <string name="pref_crop_summary">Bild vor dem Senden zuschneiden</string>
     <string name="pref_crop_dialog_crop_top">Oben zuschneiden:</string>
@@ -90,9 +96,8 @@
     <string name="pref_crop_dialog_crop_left">Links zuschneiden:</string>
     <string name="pref_crop_dialog_crop_right">Rechts zuschneiden:</string>
     <string name="pref_crop_dialog_pixels">Pixel</string>
+    <string name="pref_crop_dialog_warning_message">Zuschneiden wird ignoriert, wenn das Ergebnis ein leeres Bild ist</string>
     <string name="pref_crop_dialog_error_message">Gültige Werte für Zuschneidung eintragen</string>
-    <string name="pref_crop_dialog_error_message_top_bottom">Oben + Unten &#8805; %1$d</string>
-    <string name="pref_crop_dialog_error_message_left_right">Links + Rechts &#8805; %1$d</string>
     <string name="pref_resize">Bildgröße anpassen</string>
     <string name="pref_resize_summary">Bildgröße vor dem Senden anpassen</string>
     <string name="pref_resize_dialog_text">Vergrößerungsfaktor in Prozent angeben.\nWerte: 10–150 (Standard: 50)\nBildschirmgröße: %1$dx%2$d</string>

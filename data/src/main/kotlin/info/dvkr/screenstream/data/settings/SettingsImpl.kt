@@ -38,6 +38,9 @@ class SettingsImpl(private val preferences: Preferences) : Settings {
             by bindPreference(preferences, Settings.Key.HTML_BACK_COLOR, Settings.Default.HTML_BACK_COLOR)
 
 
+    override var vrMode: Int
+            by bindPreference(preferences, Settings.Key.VR_MODE, Settings.Default.VR_MODE_DISABLE)
+
     override var imageCrop: Boolean
             by bindPreference(preferences, Settings.Key.IMAGE_CROP, Settings.Default.IMAGE_CROP)
 

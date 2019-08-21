@@ -87,6 +87,12 @@
     <string name="pref_html_back_color_summary">Выбрать цвет фона веб-странцы</string>
     <string name="pref_html_back_color_title">Выберите цвет фона</string>
     <string name="pref_settings_image">Изображение</string>
+    <string name="pref_vr_mode">Режим виртуальной реальности</string>
+    <string name="pref_vr_mode_summary">Захват контента с половины экрана</string>
+    <string-array name="pref_vr_mode_options" translatable="false">
+        <item>Использовать левую часть</item>
+        <item>Использовать правую часть</item>
+    </string-array>
     <string name="pref_crop">Обрезать изображение</string>
     <string name="pref_crop_summary">Обрезать изображение перед отправкой</string>
     <string name="pref_crop_dialog_crop_top">Обрезать сверху:</string>
@@ -94,9 +100,8 @@
     <string name="pref_crop_dialog_crop_left">Обрезать слева:</string>
     <string name="pref_crop_dialog_crop_right">Обрезать справа:</string>
     <string name="pref_crop_dialog_pixels">пикселей</string>
+    <string name="pref_crop_dialog_warning_message">Обрезка будет проигнорирована если приведет к пустому изображению</string>
     <string name="pref_crop_dialog_error_message">Введите верные значения</string>
-    <string name="pref_crop_dialog_error_message_top_bottom">С верху + с низу &#8805; %1$d </string>
-    <string name="pref_crop_dialog_error_message_left_right">С лева + с права &#8805; %1$d </string>
     <string name="pref_resize">Размер изображения</string>
     <string name="pref_resize_summary">Изменять размер изображения перед отправкой</string>
     <string name="pref_resize_dialog_text">Установите коэффициент масштабирования изображения в процентах.\nЗначения: 10–150 (По умолчанию: 50)\nРазмер экрана: %1$dx%2$d</string>

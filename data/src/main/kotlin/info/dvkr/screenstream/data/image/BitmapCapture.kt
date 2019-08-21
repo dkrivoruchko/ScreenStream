@@ -40,7 +40,8 @@ class BitmapCapture constructor(
 
     private enum class State { INIT, STARTED, STOPPED, ERROR }
 
-    @Volatile private var state: State = State.INIT
+    @Volatile
+    private var state: State = State.INIT
 
     private val imageThread: HandlerThread by lazy {
         HandlerThread("BitmapCapture", Process.THREAD_PRIORITY_BACKGROUND)
@@ -200,8 +201,8 @@ class BitmapCapture constructor(
                 try {
                     reader.acquireLatestImage()?.let { image ->
                         val cleanBitmap = getCleanBitmap(image)
-                        val croppedBitmap = getCroppedBitmap(cleanBitmap, image)
-                        val upsizedBitmap = getUpsizedBitmap(croppedBitmap)
+                        val croppedBitmap = getCroppedBitmap(cleanBitmap)
+                        val upsizedBitmap = getUpsizedAndRotadedBitmap(croppedBitmap)
 
                         image.close()
 
@@ -240,30 +241,49 @@ class BitmapCapture constructor(
             return cleanBitmap
         }
 
-        private fun getCroppedBitmap(bitmap: Bitmap, image: Image): Bitmap {
-            if (settingsReadOnly.imageCrop.not()) return bitmap
+        private fun getCroppedBitmap(bitmap: Bitmap): Bitmap {
+            if (settingsReadOnly.vrMode == Settings.Default.VR_MODE_DISABLE && settingsReadOnly.imageCrop.not())
+                return bitmap
 
-            val imageCropLeft: Int
-            val imageCropRight: Int
-            val imageCropTop: Int
-            val imageCropBottom: Int
-            if (resizeFactor.get() < Settings.Values.RESIZE_DISABLED) {
-                val scale = resizeFactor.get() / 100f
-                imageCropLeft = (settingsReadOnly.imageCropLeft * scale).toInt()
-                imageCropRight = (settingsReadOnly.imageCropRight * scale).toInt()
-                imageCropTop = (settingsReadOnly.imageCropTop * scale).toInt()
-                imageCropBottom = (settingsReadOnly.imageCropBottom * scale).toInt()
-            } else {
-                imageCropLeft = settingsReadOnly.imageCropLeft
-                imageCropRight = settingsReadOnly.imageCropRight
-                imageCropTop = settingsReadOnly.imageCropTop
-                imageCropBottom = settingsReadOnly.imageCropBottom
+            var imageLeft: Int = 0
+            var imageRight: Int = bitmap.width
+
+            when (settingsReadOnly.vrMode) {
+                Settings.Default.VR_MODE_LEFT -> imageRight = bitmap.width / 2
+                Settings.Default.VR_MODE_RIGHT -> imageLeft = bitmap.width / 2
             }
+
+            var imageCropLeft: Int = 0
+            var imageCropRight: Int = 0
+            var imageCropTop: Int = 0
+            var imageCropBottom: Int = 0
+            if (settingsReadOnly.imageCrop)
+                when {
+                    resizeFactor.get() < Settings.Values.RESIZE_DISABLED -> {
+                        val scale = resizeFactor.get() / 100f
+                        imageCropLeft = (settingsReadOnly.imageCropLeft * scale).toInt()
+                        imageCropRight = (settingsReadOnly.imageCropRight * scale).toInt()
+                        imageCropTop = (settingsReadOnly.imageCropTop * scale).toInt()
+                        imageCropBottom = (settingsReadOnly.imageCropBottom * scale).toInt()
+                    }
+                    else -> {
+                        imageCropLeft = settingsReadOnly.imageCropLeft
+                        imageCropRight = settingsReadOnly.imageCropRight
+                        imageCropTop = settingsReadOnly.imageCropTop
+                        imageCropBottom = settingsReadOnly.imageCropBottom
+                    }
+                }
+
+            if (imageLeft + imageRight - imageCropLeft - imageCropRight <= 0 ||
+                bitmap.height - imageCropTop - imageCropBottom <= 0
+            )
+                return bitmap
 
             return try {
                 Bitmap.createBitmap(
-                    bitmap, imageCropLeft, imageCropTop,
-                    image.width - imageCropLeft - imageCropRight, image.height - imageCropTop - imageCropBottom
+                    bitmap, imageLeft + imageCropLeft, imageCropTop,
+                    imageRight - imageLeft - imageCropLeft - imageCropRight,
+                    bitmap.height - imageCropTop - imageCropBottom
                 )
             } catch (ex: IllegalArgumentException) {
                 XLog.w(this@BitmapCapture.getLog("getCroppedBitmap", ex.toString()))
@@ -271,7 +291,7 @@ class BitmapCapture constructor(
             }
         }
 
-        private fun getUpsizedBitmap(bitmap: Bitmap): Bitmap {
+        private fun getUpsizedAndRotadedBitmap(bitmap: Bitmap): Bitmap {
             if (matrix.get().isIdentity) return bitmap
             return Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix.get(), false)
         }

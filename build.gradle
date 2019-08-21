@@ -27,7 +27,7 @@ buildscript {
         rxNetty = "0.5.3"
 
         playCore = "1.6.1"
-        firebaseCore = '17.0.1'
+        firebaseCore = '17.1.0'
         fabricCrashlytics = "2.10.1"
         leakcanary = "2.0-beta-2"
     }
@@ -39,7 +39,7 @@ buildscript {
     }
 
     dependencies {
-        classpath('com.android.tools.build:gradle:3.5.0-rc03')
+        classpath('com.android.tools.build:gradle:3.5.0')
         classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion")
         classpath("com.google.gms:google-services:4.3.0")
         classpath("com.getkeepsafe.dexcount:dexcount-gradle-plugin:0.8.6")

@@ -33,7 +33,6 @@ import kotlinx.android.synthetic.main.dialog_settings_crop.view.*
 import kotlinx.android.synthetic.main.dialog_settings_resize.view.*
 import kotlinx.android.synthetic.main.fragment_settings_image.*
 import org.koin.android.ext.android.inject
-import kotlin.math.min
 
 class SettingsImageFragment : Fragment() {
 
@@ -74,6 +73,29 @@ class SettingsImageFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        // Image - VR mode
+        with(cb_fragment_settings_vr_mode) {
+            isChecked = isVRModeEnabled()
+            setOnClickListener {
+                if (isVRModeEnabled()) settings.vrMode = Settings.Default.VR_MODE_DISABLE
+                else {
+                    isChecked = false
+                    MaterialDialog(requireActivity()).show {
+                        lifecycleOwner(viewLifecycleOwner)
+                        title(R.string.pref_vr_mode)
+                        icon(R.drawable.ic_settings_vr_mode_24dp)
+                        listItemsSingleChoice(R.array.pref_vr_mode_options) { _, index, _ ->
+                            settings.vrMode = index + 1
+                            isChecked = isVRModeEnabled()
+                        }
+                        positiveButton(android.R.string.ok)
+                        negativeButton(android.R.string.cancel)
+                    }
+                }
+            }
+            cl_fragment_settings_vr_mode.setOnClickListener { performClick() }
+        }
+
         // Image - Crop image
         with(cb_fragment_settings_crop_image) {
             isChecked = settings.imageCrop
@@ -104,7 +126,6 @@ class SettingsImageFragment : Fragment() {
                         .negativeButton(android.R.string.cancel)
                         .apply Dialog@{
                             getCustomView().apply DialogView@{
-                                tv_dialog_settings_crop_error_message.visibility = View.GONE
                                 tiet_dialog_settings_crop_top.setText(settings.imageCropTop.toString())
                                 tiet_dialog_settings_crop_bottom.setText(settings.imageCropBottom.toString())
                                 tiet_dialog_settings_crop_left.setText(settings.imageCropLeft.toString())
@@ -245,40 +266,24 @@ class SettingsImageFragment : Fragment() {
         super.onStop()
     }
 
+    private fun isVRModeEnabled(): Boolean =
+        settings.vrMode in arrayOf(Settings.Default.VR_MODE_RIGHT, Settings.Default.VR_MODE_LEFT)
+
     private fun validateCropValues(
         dialog: MaterialDialog,
-        topView: EditText,
-        bottomView: EditText,
-        leftView: EditText,
-        rightView: EditText,
-        errorView: TextView
+        topView: EditText, bottomView: EditText, leftView: EditText, rightView: EditText, errorView: TextView
     ) {
         val topCrop = topView.text.let { if (it.isNullOrBlank()) -1 else it.toString().toInt() }
         val bottomCrop = bottomView.text.let { if (it.isNullOrBlank()) -1 else it.toString().toInt() }
         val leftCrop = leftView.text.let { if (it.isNullOrBlank()) -1 else it.toString().toInt() }
         val rightCrop = rightView.text.let { if (it.isNullOrBlank()) -1 else it.toString().toInt() }
 
-        val maxCrop = min(screenSize.x, screenSize.y)
-        val isTopBottomValid = (topCrop + bottomCrop) < maxCrop
-        val isLeftRightValid = (leftCrop + rightCrop) < maxCrop
-
-        if (isTopBottomValid && isLeftRightValid) {
-            if (topCrop >= 0 && bottomCrop >= 0 && leftCrop >= 0 && rightCrop >= 0) {
-                dialog.setActionButtonEnabled(WhichButton.POSITIVE, true)
-                errorView.visibility = View.GONE
-            } else {
-                dialog.setActionButtonEnabled(WhichButton.POSITIVE, false)
-                errorView.text = getString(R.string.pref_crop_dialog_error_message)
-                errorView.visibility = View.VISIBLE
-            }
+        if (topCrop >= 0 && bottomCrop >= 0 && leftCrop >= 0 && rightCrop >= 0) {
+            dialog.setActionButtonEnabled(WhichButton.POSITIVE, true)
+            errorView.text = getString(R.string.pref_crop_dialog_warning_message)
         } else {
             dialog.setActionButtonEnabled(WhichButton.POSITIVE, false)
-            if (isTopBottomValid.not()) {
-                errorView.text = getString(R.string.pref_crop_dialog_error_message_top_bottom, maxCrop)
-            } else {
-                errorView.text = getString(R.string.pref_crop_dialog_error_message_left_right, maxCrop)
-            }
-            errorView.visibility = View.VISIBLE
+            errorView.text = getString(R.string.pref_crop_dialog_error_message)
         }
     }
 

@@ -90,6 +90,12 @@
     <string name="pref_html_back_color_summary">Set web page background color</string>
     <string name="pref_html_back_color_title">Select background color</string>
     <string name="pref_settings_image">Image</string>
+    <string name="pref_vr_mode">Virtual reality mode</string>
+    <string name="pref_vr_mode_summary">Capture content from half screen</string>
+    <string-array name="pref_vr_mode_options" translatable="false">
+        <item>Use left part</item>
+        <item>Use right part</item>
+    </string-array>
     <string name="pref_crop">Crop image</string>
     <string name="pref_crop_summary">Crop image before sending to client</string>
     <string name="pref_crop_dialog_crop_top">Crop top:</string>
@@ -97,9 +103,8 @@
     <string name="pref_crop_dialog_crop_left">Crop left:</string>
     <string name="pref_crop_dialog_crop_right">Crop right:</string>
     <string name="pref_crop_dialog_pixels">pixels</string>
+    <string name="pref_crop_dialog_warning_message">Crop will be ignored if result is an empty image</string>
     <string name="pref_crop_dialog_error_message">Enter valid crop values</string>
-    <string name="pref_crop_dialog_error_message_top_bottom">Top + Bottom &#8805; %1$d </string>
-    <string name="pref_crop_dialog_error_message_left_right">Left + Right &#8805; %1$d </string>
     <string name="pref_resize">Resize image</string>
     <string name="pref_resize_summary">Resize image before sending to client</string>
     <string name="pref_resize_value" translatable="false">%1$d%%</string>
