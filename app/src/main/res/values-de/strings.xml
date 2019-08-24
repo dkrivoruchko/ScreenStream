@@ -83,11 +83,11 @@
     <string name="pref_html_back_color_summary">Hintergrundfarbe der Webseite setzen</string>
     <string name="pref_html_back_color_title">Hintergrundfarbe wählen</string>
     <string name="pref_settings_image">Bild</string>
-    <string name="pref_vr_mode">Virtual Reality modus</string>
-    <string name="pref_vr_mode_summary">Erfassen Inhalte vom halben Bildschirm</string>
+    <string name="pref_vr_mode">Virtuelle-Realität-Modus</string>
+    <string name="pref_vr_mode_summary">Erfassen von Inhalten vom halben Bildschirm</string>
     <string-array name="pref_vr_mode_options" translatable="false">
-        <item>Verwenden den linken Teil</item>
-        <item>Verwenden das richtige Teil</item>
+        <item>Verwendung des linken Teils</item>
+        <item>Verwendung des rechten Teils</item>
     </string-array>
     <string name="pref_crop">Bild zuschneiden</string>
     <string name="pref_crop_summary">Bild vor dem Senden zuschneiden</string>
