@@ -48,8 +48,8 @@ class AppHttpServerImpl constructor(
     @Synchronized
     override fun start(serverAddresses: List<NetInterface>, severPort: Int, useWiFiOnly: Boolean) {
         XLog.d(getLog("startServer", "Invoked"))
-        if (state.get() != State.CREATED) throw IllegalStateException("AppHttpServer in state [${state.get()}] expected ${State.CREATED}")
-        if (severPort !in 1025..65535) throw IllegalArgumentException("Tcp port must be in range [1025, 65535]")
+        check(state.get() == State.CREATED) { "AppHttpServer in state [${state.get()}] expected ${State.CREATED}" }
+        require(severPort in 1025..65535) { "Tcp port must be in range [1025, 65535]" }
 
         val httpServerStatistic = HttpServerStatistic(::onStatistic.get()) { appError ->
             state.set(State.ERROR)

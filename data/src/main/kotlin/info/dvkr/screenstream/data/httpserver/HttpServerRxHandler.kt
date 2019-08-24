@@ -105,7 +105,7 @@ internal class HttpServerRxHandler(
         status = HttpResponseStatus.OK
         addHeader(HttpHeaderNames.CONTENT_TYPE, "image/png")
         setHeader(HttpHeaderNames.CACHE_CONTROL, "no-cache,no-store,max-age=0,must-revalidate")
-        setHeader(HttpHeaderNames.CONTENT_LENGTH, Integer.toString(pngBytes.size))
+        setHeader(HttpHeaderNames.CONTENT_LENGTH, pngBytes.size.toString())
         setHeader(HttpHeaderNames.CONNECTION, HttpHeaderValues.CLOSE)
         return writeBytesAndFlushOnEach(Observable.just(pngBytes))
     }
@@ -128,7 +128,7 @@ internal class HttpServerRxHandler(
         }
 
         response.status = HttpResponseStatus.OK
-        response.setHeader(HttpHeaderNames.CONTENT_TYPE, "multipart/x-mixed-replace; boundary=$multipartBoundary")
+        response.setHeader(HttpHeaderNames.CONTENT_TYPE, "multipart/x-mixed-replace;boundary=$multipartBoundary")
         response.setHeader(HttpHeaderNames.CACHE_CONTROL, "no-cache,no-store,max-age=0,must-revalidate")
         response.setHeader(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE)
 

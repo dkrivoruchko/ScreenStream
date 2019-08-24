@@ -73,7 +73,7 @@ class NotificationHelper(context: Context) {
     }
 
     fun showErrorNotification(appError: AppError) {
-        notificationManager.cancel(NotificationHelper.NotificationType.ERROR.id)
+        notificationManager.cancel(NotificationType.ERROR.id)
 
         val pendingStartAppActivityIntent = PendingIntent.getActivity(
             applicationContext, 0, AppActivity.getStartIntent(applicationContext), 0
@@ -124,11 +124,11 @@ class NotificationHelper(context: Context) {
                 setOnClickPendingIntent(R.id.tv_notification_error_small_action, actionIntent)
             })
 
-        notificationManager.notify(NotificationHelper.NotificationType.ERROR.id, builder.build())
+        notificationManager.notify(NotificationType.ERROR.id, builder.build())
     }
 
     fun hideErrorNotification() {
-        notificationManager.cancel(NotificationHelper.NotificationType.ERROR.id)
+        notificationManager.cancel(NotificationType.ERROR.id)
     }
 
     private fun getForegroundNotification(notificationType: NotificationType): Notification {

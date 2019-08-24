@@ -12,8 +12,8 @@ android {
         applicationId = "info.dvkr.screenstream"
         minSdkVersion(minSdk)
         targetSdkVersion(targetSdk)
-        versionCode = 30109
-        versionName = "3.1.9"
+        versionCode = 30200
+        versionName = "3.2.0"
         resConfigs("en", "ru", "pt-rBR", "zh-rTW", "fr-rFR", "fa", "it", "pl", "hi", "de")
 
         vectorDrawables.useSupportLibrary = true
@@ -103,7 +103,9 @@ dependencies {
 
     fabricImplementation("com.google.android.play:core:$playCore")
     fabricReleaseImplementation("com.google.firebase:firebase-core:$firebaseCore")
-    fabricReleaseImplementation("com.crashlytics.sdk.android:crashlytics:$fabricCrashlytics")
+    fabricReleaseImplementation("com.crashlytics.sdk.android:crashlytics:$fabricCrashlytics@aar") {
+        transitive = true;
+    }
 
     debugImplementation("com.squareup.leakcanary:leakcanary-android:$leakcanary")
 }

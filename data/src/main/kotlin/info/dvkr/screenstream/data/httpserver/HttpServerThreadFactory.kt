@@ -18,10 +18,8 @@ internal class HttpServerThreadFactory private constructor(
     private val prefix: String
 
     init {
-        if (priority !in Thread.MIN_PRIORITY..Thread.MAX_PRIORITY) {
-            throw IllegalArgumentException(
-                "Priority ($priority) out of range: ${Thread.MIN_PRIORITY}..${Thread.MAX_PRIORITY}"
-            )
+        require(priority in Thread.MIN_PRIORITY..Thread.MAX_PRIORITY) {
+            "Priority ($priority) out of range: ${Thread.MIN_PRIORITY}..${Thread.MAX_PRIORITY}"
         }
 
         prefix = poolName + '-' + poolId.incrementAndGet() + '-'

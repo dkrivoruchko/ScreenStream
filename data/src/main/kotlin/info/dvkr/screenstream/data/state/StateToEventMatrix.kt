@@ -11,17 +11,17 @@ object StateToEventMatrix {
         require(action != null) { getLog("skippEvent", "Unknown Sate-Event pair [$state, $event]") }
 
         return when (action) {
-            StateToEventMatrix.Action.Process -> {
+            Action.Process -> {
                 XLog.i(getLog("skippEvent", "Accepting: [State:$state, Event:$event]"))
                 false
             }
 
-            StateToEventMatrix.Action.Skipp -> {
+            Action.Skipp -> {
                 XLog.w(getLog("skippEvent", "Skipping: [State:$state, Event:$event]"))
                 true
             }
 
-            StateToEventMatrix.Action.Error ->
+            Action.Error ->
                 throw IllegalStateException("AppStateMachine in state [$state] event: $event")
         }
     }
