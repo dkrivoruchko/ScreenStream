@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name" translatable="false">ScreenStream</string>
+
+    <string name="error_title">Chyba</string>
+    <string name="error_port_in_use">Port sa už používa. Zadajte iný.</string>
+    <string name="error_invalid_media_projection">Bezpečnostná chyba: Neplatná projekcia média. Skúse to znova.</string>
+    <string name="error_ip_address_not_found">IP adresa sa nenašla.\nSkúste zakázať \"Iba cez WiFi\" v nastaveniach.</string>
+    <string name="error_wrong_image_format">System vrátil obrázok v neznámom formáte. Prepáčte, ale zatiaľ to nedokážem opraviť.</string>
+    <string name="error_exit">Ukončiť</string>
+
+    <string name="app_activity_collecting_logs">Získavajú sa záznamy aplikácie…</string>
+    <string name="app_activity_send_logs">Poslať záznamy vývojárovi</string>
+    <string name="app_activity_send_logs_dialog_title">Poslať záznamy vývojárovi e-mailom</string>
+    <string name="app_activity_send_logs_dialog_message">Prosím, opíšte chybu:</string>
+    <string name="app_activity_send_logs_dialog_neutral">Ukončiť zaznamenávanie</string>
+
+    <string name="app_update_activity_dialog_title">Je dostupná aktualizácia</string>
+    <string name="app_update_activity_dialog_message">Práve sa stiahla aktualizácia. Chcete aplikáciu reštartovať?</string>
+    <string name="app_update_activity_dialog_restart">Reštartovať</string>
+
+    <string name="bottom_menu_stream">Vysielanie</string>
+    <string name="bottom_menu_settings">Nastavenia</string>
+    <string name="bottom_menu_start">Štart</string>
+    <string name="bottom_menu_stop">Stop</string>
+    <string name="bottom_menu_about">O aplikácii</string>
+    <string name="bottom_menu_exit">Ukončiť</string>
+
+    <string name="stream_fragment_current_traffic">Vyťaženie: %1$,.2f Mbit/s</string>
+    <string name="stream_fragment_connected_clients">Počet pripojení: %1$d</string>
+    <string name="stream_fragment_no_address">Žiadna adresa</string>
+    <string name="stream_fragment_interface">Zariadenie: %1$s</string>
+    <string name="stream_fragment_copied">Skopírované</string>
+    <string name="stream_fragment_no_web_browser_found">Žiadny webový prehliadač</string>
+    <string name="stream_fragment_external_app_error">Vonkajšia chyba aplikácie</string>
+    <string name="stream_fragment_share_address">Zdielať adresu zariadenia</string>
+    <string name="stream_fragment_pin">Heslo: %1$s</string>
+    <string name="stream_fragment_pin_disabled">Heslo je zakázané</string>
+    <string name="stream_fragment_client_disconnected">Odpojené</string>
+    <string name="stream_fragment_client_slow_network">Pomalé pripojenie</string>
+    <string name="stream_fragment_client_connected">Pripojené</string>
+
+    <string name="item_device_address">Adresa zariadenia:</string>
+
+    <string name="permission_activity_error_title_activity_not_found">Chyba prístupov</string>
+    <string name="permission_activity_error_activity_not_found">Chyba Androidu. Neťukajte na \"Viac nezobrazovať\" pri nastavovaní práv na zachytávanie obrazovky. Ak ste už zaškrtli, preinštalujte aplikáciu.</string>
+    <string name="permission_activity_cast_permission_required_title">Je potrebné povolenie</string>
+    <string name="permission_activity_cast_permission_required">Aplikácia ScreenStream vyžaduje povolenie na zdielanie obrazovky, aby mohla nahrávať obrazovku.</string>
+    <string name="permission_activity_error_title">Chyba</string>
+    <string name="permission_activity_error_unknown">Neznáma chyba</string>
+
+    <string name="notification_ready_to_stream">Pripravené na vysielanie</string>
+    <string name="notification_press_start">Ťuknite na tlačidlo ŠTART a začnete zdielať vašu obrazovku</string>
+    <string name="notification_start">Štart</string>
+    <string name="notification_exit">Ukončiť</string>
+    <string name="notification_stream">Vysielanie…</string>
+    <string name="notification_press_stop">Ťuknite na tlačidlo STOP a ukončíte zdielanie vašej obrazovky</string>
+    <string name="notification_stop">Stop</string>
+
+    <string name="toast_slow_client_connection">Zistené pomalé pripojenie na strane klienta</string>
+
+    <string name="pref_settings_interface">Zariadenie</string>
+    <string name="pref_night_mode">Tmavý vzhľad</string>
+    <string-array name="pref_night_mode_options_api21_28">
+        <item>Vždy</item>
+        <item>Nastaví šetrič baterky</item>
+        <item>Nikdy</item>
+    </string-array>
+    <string-array name="pref_night_mode_options_api29">
+        <item>Vždy</item>
+        <item>Automaticky (podľa systému)</item>
+        <item>Nikdy</item>
+    </string-array>
+    <string name="pref_notification">Nastavenia upozornenia zariadenia</string>
+    <string name="pref_notification_summary">Otvoriť systémové nastavenia upozornení</string>
+    <string name="pref_minimize_on_stream">Po začatí vysielania minimalizovať</string>
+    <string name="pref_minimise_on_stream_summary">Minimalizuje aplikáciu po ťuknutí na tlačidlo Štart</string>
+    <string name="pref_stop_on_sleep">Zastaviť vysielanie pri vypnutí obrazovky</string>
+    <string name="pref_stop_on_sleep_summary">Keď sa vypne obrazovka, vysielanie sa ukončí</string>
+    <string name="pref_start_on_boot">Začať vysielať po štarte systému</string>
+    <string name="pref_start_on_boot_summary">Vysielanie sa začne hneď po spustení systému</string>
+    <string name="pref_auto_start_stop">Automaticky začni/ukonči vysielanie</string>
+    <string name="pref_auto_start_stop_summary">Automaticky začne/ukončí vysielanie, keď sa klient pripojí/odpojí</string>
+    <string name="pref_detect_slow_connections">Upozorniť na pomalé pripojenia</string>
+    <string name="pref_detect_slow_connections_summary">Zistiť a upozorniť na pomalé pripojenia na strane klienta</string>
+    <string name="pref_settings_web_page">Webová stránka</string>
+    <string name="pref_html_buttons">Povoliť tlačidlo na webovej stránke</string>
+    <string name="pref_html_buttons_summary">Zobraziť ovládacie tlačidlá na webovej stránke</string>
+    <string name="pref_html_back_color">Farba pozadia webovej stránky</string>
+    <string name="pref_html_back_color_summary">Nastaví farbu pozadia webovej stránky</string>
+    <string name="pref_html_back_color_title">Vybrať farbu pozadia</string>
+    <string name="pref_settings_image">Zobrazenie</string>
+    <string name="pref_vr_mode">Režim virtuálnej reality</string>
+    <string name="pref_vr_mode_summary">Nahrá obsah jednej polovice obrazovky</string>
+    <string-array name="pref_vr_mode_options" translatable="false">
+        <item>Použiť ľavú stranu</item>
+        <item>Použiť pravú stranu</item>
+    </string-array>
+    <string name="pref_crop">Orezať</string>
+    <string name="pref_crop_summary">Orezať obraz pred poslaním klientovi</string>
+    <string name="pref_crop_dialog_crop_top">Orezať hore:</string>
+    <string name="pref_crop_dialog_crop_bottom">Orezať dole:</string>
+    <string name="pref_crop_dialog_crop_left">Orezať vľavo:</string>
+    <string name="pref_crop_dialog_crop_right">Orezať vpravo:</string>
+    <string name="pref_crop_dialog_pixels">pixelov</string>
+    <string name="pref_crop_dialog_warning_message">Orezanie bude ignorované, ak je jeho výsledok prázdny obrázok</string>
+    <string name="pref_crop_dialog_error_message">Zadajte platné hodnoty na orezanie</string>
+    <string name="pref_resize">Zmeniť veľkosť</string>
+    <string name="pref_resize_summary">Zmení veľkosť obrazu pred poslaním klientovi</string>
+    <string name="pref_resize_value" translatable="false">%1$d%%</string>
+    <string name="pref_resize_dialog_text">Zadajte percento zmeny veľkosti.\nHodnoty: 10–150 (Prednastavené: 50)\nVeľkosť obrazovky: %1$dx%2$d</string>
+    <string name="pref_resize_dialog_result">Veľkosť obrazu: %1$dx%2$d</string>
+    <string name="pref_rotate">Otočiť</string>
+    <string name="pref_rotate_summary">Otočí obraz v smere hodinových ručičiek pred poslaním klientovi</string>
+    <string name="pref_rotate_value" translatable="false">%1$d\u00B0</string>
+    <string-array name="pref_rotate_options" translatable="false">
+        <item>0\u00B0</item>
+        <item>90\u00B0</item>
+        <item>180\u00B0</item>
+        <item>270\u00B0</item>
+    </string-array>
+    <string name="pref_jpeg_quality">Kompresia JPEG</string>
+    <string name="pref_jpeg_quality_summary">Nastaviť kvalitu kompresie JPEG</string>
+    <string name="pref_jpeg_quality_dialog">Nastavte kvalitu kompresie JPEG.\nHodnoty: 10–100 (Prednastavené: 100)</string>
+    <string name="pref_settings_security">Bezpečnosť</string>
+    <string name="pref_enable_pin">Povoliť heslo</string>
+    <string name="pref_enable_pin_summary">Chrániť prístup k vysielaniu heslom</string>
+    <string name="pref_hide_pin">Automaticky skryť heslo po začatí vysielania</string>
+    <string name="pref_hide_pin_summary">Zobrazí hviezdičky namiesto hesla počas vysielania</string>
+    <string name="pref_new_pin_on_start">Nové heslo po spustení</string>
+    <string name="pref_new_pin_on_start_summary">Vytvorí nové heslo pri každom novom spustení aplikácie</string>
+    <string name="pref_auto_change_pin">Nové heslo pre nové vysielanie</string>
+    <string name="pref_auto_change_pin_summary">Vytvorí nové heslo pre každé nové vysielanie</string>
+    <string name="pref_set_pin">Zadať heslo</string>
+    <string name="pref_set_pin_summary">Zadajte heslo ručne</string>
+    <string name="pref_set_pin_dialog">Zadajte heslo.\Prednastavené: 0000</string>
+    <string name="pref_settings_advanced">Pokročilé</string>
+    <string name="pref_wifi_only">Iba cez WiFi</string>
+    <string name="pref_wifi_only_summary">Spustiť server iba po pripojení na WiFi</string>
+    <string name="pref_enable_ipv6">Povoliť podporu IPv6</string>
+    <string name="pref_enable_ipv6_summary">Spustí server aj na IPv6 adrese</string>
+    <string name="pref_server_port">Port servera</string>
+    <string name="pref_server_port_summary">Nastaví port pre príchodzie pripojenia</string>
+    <string name="pref_server_port_dialog">Nastavte port pre príchodzie pripojenia.\Hodnoty: 1025–65535\n(Prednastavené: 8080)</string>
+    <string name="pref_logging">Povoliť záznamy aplikácie</string>
+    <string name="pref_logging_summary">Aplikácia začne zapisovať záznamy o svojej aktivite</string>
+
+    <string name="about_fragment_app_name" translatable="false">Screen Stream over HTTP</string>
+    <string name="about_fragment_app_version">Verzia: %1$s</string>
+    <string name="about_fragment_developer_name">Vývojár: Dmitriy Krivoruchko</string>
+    <string name="about_fragment_rate_app">Ohodnotiť aplikáciu</string>
+    <string name="about_fragment_write_email">Napísať e-mail vývojárovi</string>
+    <string name="about_fragment_write_email_dialog">Napísať e-mail vývojárovi?</string>
+    <string name="about_fragment_email_chooser_header">E-mail sa posiela…</string>
+    <string name="about_fragment_app_sources">Zdroje aplikácie</string>
+    <string name="about_fragment_privacy_policy">Zásady ochrany osobných údajov</string>
+</resources>
