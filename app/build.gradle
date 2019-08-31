@@ -12,9 +12,9 @@ android {
         applicationId = "info.dvkr.screenstream"
         minSdkVersion(minSdk)
         targetSdkVersion(targetSdk)
-        versionCode = 30200
-        versionName = "3.2.0"
-        resConfigs("en", "ru", "pt-rBR", "zh-rTW", "fr-rFR", "fa", "it", "pl", "hi", "de")
+        versionCode = 30201
+        versionName = "3.2.1"
+        resConfigs("en", "ru", "pt-rBR", "zh-rTW", "fr-rFR", "fa", "it", "pl", "hi", "de", "sk")
 
         vectorDrawables.useSupportLibrary = true
     }
@@ -86,6 +86,8 @@ dependencies {
     implementation("androidx.annotation:annotation:$androidxAnnotation")
     implementation("com.google.android.material:material:$androidMaterial")
     implementation("androidx.appcompat:appcompat:$androidxAppcompat")
+    implementation("androidx.activity:activity-ktx:1.0.0-rc01")
+    implementation("androidx.fragment:fragment-ktx:1.1.0-rc04")
     implementation("androidx.constraintlayout:constraintlayout:$androidxConstraint")
     implementation("androidx.navigation:navigation-fragment-ktx:$androidxNavigation")
     implementation("androidx.navigation:navigation-ui-ktx:$androidxNavigation")

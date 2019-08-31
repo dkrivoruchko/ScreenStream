@@ -92,7 +92,7 @@
     <string name="pref_settings_image">Image</string>
     <string name="pref_vr_mode">Virtual reality mode</string>
     <string name="pref_vr_mode_summary">Capture content from half screen</string>
-    <string-array name="pref_vr_mode_options" translatable="false">
+    <string-array name="pref_vr_mode_options">
         <item>Use left part</item>
         <item>Use right part</item>
     </string-array>

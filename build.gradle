@@ -27,7 +27,7 @@ buildscript {
         rxNetty = "0.5.3"
 
         playCore = "1.6.1"
-        firebaseCore = '17.1.0'
+        firebaseCore = '17.2.0'
         fabricCrashlytics = "2.10.1"
         leakcanary = "2.0-beta-2"
     }
