@@ -1,0 +1,13 @@
+<resources>
+    <!--BitmapNotification-->
+    <string name="image_generator_press_start">Ťuknite na ŠTART na zariadení</string>
+    <string name="image_generator_go_to_new_address">Prosím, choďte na novú adresu</string>
+    <string name="image_generator_reload_this_page">Prosím, obnovte túto stránku</string>
+
+    <!--HTML text-->
+    <string name="html_stream_require_pin">Toto vysielanie je zabezpečené heslom</string>
+    <string name="html_enter_pin">Zadajte heslo:\u0020</string>
+    <string name="html_four_digits">Štyri čísla</string>
+    <string name="html_submit_text">Poslať</string>
+    <string name="html_wrong_pin">Nesprávne heslo!</string>
+</resources>
