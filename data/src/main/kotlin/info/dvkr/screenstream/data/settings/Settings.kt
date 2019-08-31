@@ -5,7 +5,7 @@ import android.os.Build
 interface Settings : SettingsReadOnly {
 
     object Key {
-        const val NIGHT_MODE = "PREF_KEY_NIGHT_MODE"
+        const val NIGHT_MODE = "PREF_KEY_NIGHT_MODE_V2"
         const val MINIMIZE_ON_STREAM = "PREF_KEY_MINIMIZE_ON_STREAM"
         const val STOP_ON_SLEEP = "PREF_KEY_STOP_ON_SLEEP"
         const val START_ON_BOOT = "PREF_KEY_START_ON_BOOT"

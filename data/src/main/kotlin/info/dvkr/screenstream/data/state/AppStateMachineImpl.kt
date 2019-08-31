@@ -100,6 +100,7 @@ class AppStateMachineImpl(
             try {
                 eventChannel.offer(event) || throw IllegalStateException("ChannelIsFull")
             } catch (ignore: ClosedSendChannelException) {
+            } catch (ignore: CancellationException) {
             } catch (th: Throwable) {
                 XLog.e(getLog("sendEvent"), th)
                 onEffect(
