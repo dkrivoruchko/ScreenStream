@@ -69,6 +69,16 @@ Version 3.x based on Clean Architecture, Single Activity and MVI patterns and us
 * [xLog](https://github.com/elvishew/xLog)
 * [LeakCanary](https://github.com/square/leakcanary)
 
+## Contribution
+
+If you want to contribute with translation, you have to translate this 2 files:
+
+1. https://github.com/dkrivoruchko/ScreenStream/blob/master/app/src/main/res/values/strings.xml and
+2. https://github.com/dkrivoruchko/ScreenStream/blob/master/data/src/main/res/values/strings.xml
+
+Then, please, [make a pull request](https://help.github.com/en/articles/creating-a-pull-request) or send those 2 files to the developer via e-mail <dkrivoruchko@gmail.com> as a attachment.
+
+Your contribution is much appreciated. Thank you.
 
 ## Developed By
 
