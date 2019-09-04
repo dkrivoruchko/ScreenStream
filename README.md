@@ -76,7 +76,7 @@ If you want to contribute with translation, you have to translate this 2 files:
 1. https://github.com/dkrivoruchko/ScreenStream/blob/master/app/src/main/res/values/strings.xml and
 2. https://github.com/dkrivoruchko/ScreenStream/blob/master/data/src/main/res/values/strings.xml
 
-Then, please, [make a pull request](https://help.github.com/en/articles/creating-a-pull-request) or send those 2 files to the developer via e-mail <dkrivoruchko@gmail.com> as a attachment.
+Then, please, [make a pull request](https://help.github.com/en/articles/creating-a-pull-request) or send those 2 files to the developer via e-mail <dkrivoruchko@gmail.com> as an attachment.
 
 Your contribution is much appreciated. Thank you.
 
