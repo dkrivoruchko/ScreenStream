@@ -7,16 +7,16 @@ buildscript {
 
         jetbrainsAnnotations = "17.0.0"
         kotlinVersion = "1.3.50"
-        coroutineVersion = "1.3.0"
+        coroutineVersion = "1.3.1"
 
         androidxAnnotation = "1.1.0"
-        androidxCore = "1.0.2"
-        androidMaterial = "1.1.0-alpha09"
-        androidxAppcompat = '1.1.0-rc01'
+        androidxCore = '1.1.0'
+        androidMaterial = "1.1.0-alpha10"
+        androidxAppcompat = '1.1.0'
         androidxConstraint = "1.1.3"
-        androidxNavigation = "2.0.0"
+        androidxNavigation = '2.1.0'
 
-        materialDialogs = "3.1.0"
+        materialDialogs = "3.1.1"
         koin = "2.0.1"
         binaryprefs = "1.0.1"
         rxJava = "1.3.8"
@@ -26,7 +26,7 @@ buildscript {
         netty = "4.1.34.Final"
         rxNetty = "0.5.3"
 
-        playCore = "1.6.1"
+        playCore = '1.6.2'
         firebaseCore = '17.2.0'
         fabricCrashlytics = "2.10.1"
         leakcanary = "2.0-beta-3"
