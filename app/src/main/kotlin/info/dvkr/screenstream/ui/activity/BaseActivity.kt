@@ -13,7 +13,7 @@ abstract class BaseActivity : AppCompatActivity(), CoroutineScope {
     private val supervisorJob = SupervisorJob()
 
     override val coroutineContext: CoroutineContext
-        get() = supervisorJob + Dispatchers.Main + CoroutineExceptionHandler { _, throwable ->
+        get() = supervisorJob + Dispatchers.Main.immediate + CoroutineExceptionHandler { _, throwable ->
             XLog.e(getLog("onCoroutineException"), throwable)
         }
 
