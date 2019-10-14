@@ -66,7 +66,6 @@ class NotificationHelper(context: Context) {
 
     fun showForegroundNotification(service: Service, notificationType: NotificationType) {
         if (currentNotificationType != notificationType) {
-            service.stopForeground(true)
             service.startForeground(notificationType.id, getForegroundNotification(notificationType))
             currentNotificationType = notificationType
         }
