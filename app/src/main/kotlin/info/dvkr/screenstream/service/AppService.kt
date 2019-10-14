@@ -92,7 +92,7 @@ class AppService : Service(), CoroutineScope {
     private var errorPrevious: AppError? = null
 
     override val coroutineContext: CoroutineContext
-        get() = supervisorJob + Dispatchers.Main + CoroutineExceptionHandler { _, throwable ->
+        get() = supervisorJob + Dispatchers.Main.immediate + CoroutineExceptionHandler { _, throwable ->
             XLog.e(getLog("onCoroutineException"), throwable)
             onError(FatalError.CoroutineException)
         }

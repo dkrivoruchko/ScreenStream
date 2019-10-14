@@ -1,7 +1,7 @@
 apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-android-extensions'
-apply plugin: 'com.getkeepsafe.dexcount'
+//apply plugin: 'com.getkeepsafe.dexcount'
 apply plugin: 'io.fabric'
 
 android {
@@ -91,7 +91,7 @@ dependencies {
     implementation("androidx.constraintlayout:constraintlayout:$androidxConstraint")
     implementation("androidx.navigation:navigation-fragment-ktx:$androidxNavigation")
     implementation("androidx.navigation:navigation-ui-ktx:$androidxNavigation")
-    implementation("androidx.viewpager2:viewpager2:1.0.0-beta04")
+    implementation('androidx.viewpager2:viewpager2:1.0.0-beta05')
 
     implementation("com.afollestad.material-dialogs:core:$materialDialogs")
     implementation("com.afollestad.material-dialogs:color:$materialDialogs")
