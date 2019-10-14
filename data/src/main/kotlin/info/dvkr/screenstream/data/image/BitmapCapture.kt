@@ -200,12 +200,18 @@ class BitmapCapture constructor(
 
                 try {
                     reader.acquireLatestImage()?.let { image ->
+                        val now = System.currentTimeMillis()
+                        if ((now - lastImageMillis) < (1000 / settingsReadOnly.maxFPS)) {
+                            image.close()
+                            return
+                        }
+                        lastImageMillis = now
+
                         val cleanBitmap = getCleanBitmap(image)
                         val croppedBitmap = getCroppedBitmap(cleanBitmap)
                         val upsizedBitmap = getUpsizedAndRotadedBitmap(croppedBitmap)
 
                         image.close()
-
                         if (outBitmapChannel.isClosedForSend.not()) outBitmapChannel.offer(upsizedBitmap)
                     }
                 } catch (ex: UnsupportedOperationException) {
@@ -220,6 +226,7 @@ class BitmapCapture constructor(
             }
         }
 
+        private var lastImageMillis: Long = 0L
         private lateinit var reusableBitmap: Bitmap
 
         private fun getCleanBitmap(image: Image): Bitmap {

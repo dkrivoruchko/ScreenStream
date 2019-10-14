@@ -23,6 +23,7 @@ interface SettingsReadOnly {
     val jpegQuality: Int
     val resizeFactor: Int
     val rotation: Int
+    val maxFPS: Int
 
     val enablePin: Boolean
     val hidePinOnStart: Boolean

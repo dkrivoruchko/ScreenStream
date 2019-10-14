@@ -28,7 +28,11 @@ class SettingsImpl(private val preferences: Preferences) : Settings {
             by bindPreference(preferences, Settings.Key.AUTO_START_STOP, Settings.Default.AUTO_START_STOP)
 
     override var notifySlowConnections: Boolean
-            by bindPreference(preferences, Settings.Key.NOTIFY_SLOW_CONNECTIONS, Settings.Default.NOTIFY_SLOW_CONNECTIONS)
+            by bindPreference(
+                preferences,
+                Settings.Key.NOTIFY_SLOW_CONNECTIONS,
+                Settings.Default.NOTIFY_SLOW_CONNECTIONS
+            )
 
 
     override var htmlEnableButtons: Boolean
@@ -65,6 +69,9 @@ class SettingsImpl(private val preferences: Preferences) : Settings {
     override var rotation: Int
             by bindPreference(preferences, Settings.Key.ROTATION, Settings.Default.ROTATION)
 
+    override var maxFPS: Int
+            by bindPreference(preferences, Settings.Key.MAX_FPS, Settings.Default.MAX_FPS)
+
 
     override var enablePin: Boolean
             by bindPreference(preferences, Settings.Key.ENABLE_PIN, Settings.Default.ENABLE_PIN)
@@ -98,7 +105,11 @@ class SettingsImpl(private val preferences: Preferences) : Settings {
 
 
     override var lastIAURequestTimeStamp: Long
-            by bindPreference(preferences, Settings.Key.LAST_IAU_REQUEST_TIMESTAMP, Settings.Default.LAST_IAU_REQUEST_TIMESTAMP)
+            by bindPreference(
+                preferences,
+                Settings.Key.LAST_IAU_REQUEST_TIMESTAMP,
+                Settings.Default.LAST_IAU_REQUEST_TIMESTAMP
+            )
 
     override fun autoChangePinOnStart() {
         if (enablePin && newPinOnAppStart) pin = randomPin()
