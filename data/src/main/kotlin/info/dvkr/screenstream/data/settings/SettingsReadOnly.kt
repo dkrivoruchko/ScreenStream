@@ -32,6 +32,7 @@ interface SettingsReadOnly {
 
     val useWiFiOnly: Boolean
     val enableIPv6: Boolean
+    val enableLocalHost: Boolean
     val severPort: Int
     val loggingOn: Boolean
 

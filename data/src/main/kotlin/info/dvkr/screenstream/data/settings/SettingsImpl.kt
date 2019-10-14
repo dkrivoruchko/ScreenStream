@@ -87,6 +87,9 @@ class SettingsImpl(private val preferences: Preferences) : Settings {
     override var enableIPv6: Boolean
             by bindPreference(preferences, Settings.Key.ENABLE_IPV6, Settings.Default.ENABLE_IPV6)
 
+    override var enableLocalHost: Boolean
+            by bindPreference(preferences, Settings.Key.ENABLE_LOCAL_HOST, Settings.Default.ENABLE_LOCAL_HOST)
+
     override var severPort: Int
             by bindPreference(preferences, Settings.Key.SERVER_PORT, Settings.Default.SERVER_PORT)
 
