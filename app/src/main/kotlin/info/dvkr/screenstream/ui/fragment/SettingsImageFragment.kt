@@ -46,6 +46,9 @@ class SettingsImageFragment : Fragment() {
             Settings.Key.ROTATION ->
                 tv_fragment_settings_rotation_value.text = getString(R.string.pref_rotate_value, settings.rotation)
 
+            Settings.Key.MAX_FPS ->
+                tv_fragment_settings_fps_value.text = settings.maxFPS.toString()
+
             Settings.Key.JPEG_QUALITY ->
                 tv_fragment_settings_jpeg_quality_value.text = settings.jpegQuality.toString()
 
@@ -225,6 +228,34 @@ class SettingsImageFragment : Fragment() {
             }
         }
 
+        // Image - Max FPS
+        tv_fragment_settings_fps_value.text = settings.maxFPS.toString()
+        cl_fragment_settings_fps.setOnClickListener {
+            MaterialDialog(requireActivity()).show {
+                lifecycleOwner(viewLifecycleOwner)
+                title(R.string.pref_fps)
+                icon(R.drawable.ic_settings_fps_24dp)
+                message(R.string.pref_fps_dialog)
+                input(
+                    prefill = settings.maxFPS.toString(),
+                    inputType = InputType.TYPE_CLASS_NUMBER,
+                    maxLength = 2,
+                    waitForPositiveButton = false
+                ) { dialog, text ->
+                    val isValid = text.length in 1..2 && text.toString().toInt() in 1..30
+                    dialog.setActionButtonEnabled(WhichButton.POSITIVE, isValid)
+                }
+                positiveButton(android.R.string.ok) { dialog ->
+                    val newValue = dialog.getInputField().text?.toString()?.toInt() ?: settings.maxFPS
+                    if (settings.maxFPS != newValue) settings.maxFPS = newValue
+                }
+                negativeButton(android.R.string.cancel)
+                getInputField().filters = arrayOf<InputFilter>(InputFilter.LengthFilter(2))
+                getInputField().imeOptions = EditorInfo.IME_FLAG_NO_EXTRACT_UI
+            }
+        }
+
+
         // Image - Jpeg Quality
         tv_fragment_settings_jpeg_quality_value.text = settings.jpegQuality.toString()
         cl_fragment_settings_jpeg_quality.setOnClickListener {
@@ -251,7 +282,6 @@ class SettingsImageFragment : Fragment() {
                 getInputField().imeOptions = EditorInfo.IME_FLAG_NO_EXTRACT_UI
             }
         }
-
     }
 
     override fun onStart() {

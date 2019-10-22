@@ -108,6 +108,9 @@
     <string name="pref_resize_dialog_result">Размер изображения: %1$dx%2$d</string>
     <string name="pref_rotate">Поворачивать по часовой стрелке</string>
     <string name="pref_rotate_summary">Поворачивать изображение перед отправкой</string>
+    <string name="pref_fps">Ограничить кадры в секунду</string>
+    <string name="pref_fps_summary">Установите максимальное количество кадров в секунду</string>
+    <string name="pref_fps_dialog">Установите максимальное количество кадров в секунду.\nЗначения: 1–30 (По умолчанию: 8)</string>
     <string name="pref_jpeg_quality">Качество JPEG</string>
     <string name="pref_jpeg_quality_summary">Установить качество JPEG</string>
     <string name="pref_jpeg_quality_dialog">Установите качество сжатия JPEG.\nЗначения: 10–100\n(По умолчанию: 100)</string>
@@ -128,6 +131,8 @@
     <string name="pref_wifi_only_summary">Запускать сервер только на WiFi интерфейсе</string>
     <string name="pref_enable_ipv6">Включить поддержку IPv6</string>
     <string name="pref_enable_ipv6_summary">Запускать сервер и на IPv6 адресах</string>
+    <string name="pref_enable_localhost">Слушать local host</string>
+    <string name="pref_enable_localhost_summary">Запускать сервер и на local host адресах</string>
     <string name="pref_server_port">Порт сервера</string>
     <string name="pref_server_port_summary">Установить порт для входяших подключений</string>
     <string name="pref_server_port_dialog">Установите порт сервера для входящих подключений.\nЗначения: 1025–65535\n(По умолчанию: 8080)</string>

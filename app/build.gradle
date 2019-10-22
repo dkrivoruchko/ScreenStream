@@ -1,7 +1,7 @@
 apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-android-extensions'
-apply plugin: 'com.getkeepsafe.dexcount'
+//apply plugin: 'com.getkeepsafe.dexcount'
 apply plugin: 'io.fabric'
 
 android {
@@ -12,9 +12,9 @@ android {
         applicationId = "info.dvkr.screenstream"
         minSdkVersion(minSdk)
         targetSdkVersion(targetSdk)
-        versionCode = 30200
-        versionName = "3.2.0"
-        resConfigs("en", "ru", "pt-rBR", "zh-rTW", "fr-rFR", "fa", "it", "pl", "hi", "de")
+        versionCode = 30300
+        versionName = "3.3.0"
+        resConfigs("en", "ru", "pt-rBR", "zh-rTW", "fr-rFR", "fa", "it", "pl", "hi", "de", "sk")
 
         vectorDrawables.useSupportLibrary = true
     }
@@ -86,10 +86,12 @@ dependencies {
     implementation("androidx.annotation:annotation:$androidxAnnotation")
     implementation("com.google.android.material:material:$androidMaterial")
     implementation("androidx.appcompat:appcompat:$androidxAppcompat")
+    implementation("androidx.activity:activity-ktx:1.0.0")
+    implementation("androidx.fragment:fragment-ktx:1.1.0")
     implementation("androidx.constraintlayout:constraintlayout:$androidxConstraint")
     implementation("androidx.navigation:navigation-fragment-ktx:$androidxNavigation")
     implementation("androidx.navigation:navigation-ui-ktx:$androidxNavigation")
-    implementation("androidx.viewpager2:viewpager2:1.0.0-beta03")
+    implementation('androidx.viewpager2:viewpager2:1.0.0-beta05')
 
     implementation("com.afollestad.material-dialogs:core:$materialDialogs")
     implementation("com.afollestad.material-dialogs:color:$materialDialogs")
@@ -116,4 +118,8 @@ android.applicationVariants.all { variant ->
     if (variant.name == "fabricfreeDebug" || variant.name == "fabricfreeRelease") {
         project.tasks.getByName("process" + variant.name.capitalize() + "GoogleServices").enabled = false
     }
+}
+
+tasks.withType(org.jetbrains.kotlin.gradle.tasks.AbstractKotlinCompile).all {
+    kotlinOptions.freeCompilerArgs += ["-Xuse-experimental=kotlinx.coroutines.ExperimentalCoroutinesApi"]
 }

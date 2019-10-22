@@ -23,6 +23,7 @@ interface SettingsReadOnly {
     val jpegQuality: Int
     val resizeFactor: Int
     val rotation: Int
+    val maxFPS: Int
 
     val enablePin: Boolean
     val hidePinOnStart: Boolean
@@ -32,6 +33,7 @@ interface SettingsReadOnly {
 
     val useWiFiOnly: Boolean
     val enableIPv6: Boolean
+    val enableLocalHost: Boolean
     val severPort: Int
     val loggingOn: Boolean
 

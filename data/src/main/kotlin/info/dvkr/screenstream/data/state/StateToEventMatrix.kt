@@ -99,7 +99,7 @@ object StateToEventMatrix {
             AppStateMachine.Event.StartStream::class.java to Action.Skipp,
             AppStateMachine.Event.CastPermissionsDenied::class.java to Action.Process,
             AppStateMachine.Event.StartProjection::class.java to Action.Process,
-            AppStateMachine.Event.StopStream::class.java to Action.Error,
+            AppStateMachine.Event.StopStream::class.java to Action.Skipp,
             AppStateMachine.Event.RequestPublicState::class.java to Action.Process,
             AppStateMachine.Event.RecoverError::class.java to Action.Process
         )

@@ -92,7 +92,7 @@
     <string name="pref_settings_image">Image</string>
     <string name="pref_vr_mode">Virtual reality mode</string>
     <string name="pref_vr_mode_summary">Capture content from half screen</string>
-    <string-array name="pref_vr_mode_options" translatable="false">
+    <string-array name="pref_vr_mode_options">
         <item>Use left part</item>
         <item>Use right part</item>
     </string-array>
@@ -119,6 +119,9 @@
         <item>180\u00B0</item>
         <item>270\u00B0</item>
     </string-array>
+    <string name="pref_fps">Limit frames per second</string>
+    <string name="pref_fps_summary">Set maximum frames per second</string>
+    <string name="pref_fps_dialog">Set maximum frames per second.\nValues: 1–30 (Default: 8)</string>
     <string name="pref_jpeg_quality">JPEG compression quality</string>
     <string name="pref_jpeg_quality_summary">Set JPEG compression quality</string>
     <string name="pref_jpeg_quality_dialog">Set JPEG compression quality.\nValues: 10–100 (Default: 100)</string>
@@ -139,6 +142,8 @@
     <string name="pref_wifi_only_summary">Run server on WiFi interface only</string>
     <string name="pref_enable_ipv6">Enable IPv6 support</string>
     <string name="pref_enable_ipv6_summary">Run server on IPv6 addresses also</string>
+    <string name="pref_enable_localhost">Enable local host</string>
+    <string name="pref_enable_localhost_summary">Run server on local host addresses also</string>
     <string name="pref_server_port">Server port</string>
     <string name="pref_server_port_summary">Set port for incoming connections</string>
     <string name="pref_server_port_dialog">Set server port for incoming connections.\nValues: 1025–65535\n(Default: 8080)</string>

@@ -80,7 +80,11 @@ class AppStateMachineImpl(
                 )
             ) sendEvent(InternalEvent.RestartServer(RestartReason.SettingsChanged(key)))
 
-            if (key in arrayOf(Settings.Key.USE_WIFI_ONLY, Settings.Key.ENABLE_IPV6, Settings.Key.SERVER_PORT))
+            if (key in arrayOf(
+                    Settings.Key.USE_WIFI_ONLY, Settings.Key.ENABLE_IPV6,
+                    Settings.Key.ENABLE_LOCAL_HOST, Settings.Key.SERVER_PORT
+                )
+            )
                 sendEvent(InternalEvent.RestartServer(RestartReason.NetworkSettingsChanged(key)))
         }
     }
@@ -100,6 +104,7 @@ class AppStateMachineImpl(
             try {
                 eventChannel.offer(event) || throw IllegalStateException("ChannelIsFull")
             } catch (ignore: ClosedSendChannelException) {
+            } catch (ignore: CancellationException) {
             } catch (th: Throwable) {
                 XLog.e(getLog("sendEvent"), th)
                 onEffect(
@@ -202,7 +207,9 @@ class AppStateMachineImpl(
     private fun discoverAddress(streamState: StreamState): StreamState {
         XLog.d(getLog("discoverAddress", "Invoked"))
 
-        val netInterfaces = networkHelper.getNetInterfaces(settingsReadOnly.useWiFiOnly, settingsReadOnly.enableIPv6)
+        val netInterfaces = networkHelper.getNetInterfaces(
+            settingsReadOnly.useWiFiOnly, settingsReadOnly.enableIPv6, settingsReadOnly.enableLocalHost
+        )
         if (netInterfaces.isEmpty())
             return if (streamState.httpServerAddressAttempt < 3) {
                 sendEvent(InternalEvent.DiscoverAddress, 1000)

@@ -30,7 +30,7 @@ internal sealed class BroadcastHelper(context: Context, private val onError: (Ap
     private val supervisorJob = SupervisorJob()
 
     override val coroutineContext: CoroutineContext
-        get() = supervisorJob + Dispatchers.Main + CoroutineExceptionHandler { _, throwable ->
+        get() = supervisorJob + Dispatchers.Main.immediate + CoroutineExceptionHandler { _, throwable ->
             XLog.e(getLog("onCoroutineException"), throwable)
             onError(FatalError.CoroutineException)
         }

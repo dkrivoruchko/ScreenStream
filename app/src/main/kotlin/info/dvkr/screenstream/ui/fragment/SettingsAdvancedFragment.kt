@@ -55,6 +55,13 @@ class SettingsAdvancedFragment : Fragment() {
             cl_fragment_settings_enable_ipv6.setOnClickListener { performClick() }
         }
 
+        // Advanced - Enable Local host
+        with(cb_fragment_settings_enable_localhost) {
+            isChecked = settings.enableLocalHost
+            setOnClickListener { settings.enableLocalHost = isChecked }
+            cl_fragment_settings_enable_localhost.setOnClickListener { performClick() }
+        }
+
         // Advanced - Server port
         tv_fragment_settings_server_port_value.text = settings.severPort.toString()
         cl_fragment_settings_server_port.setOnClickListener {

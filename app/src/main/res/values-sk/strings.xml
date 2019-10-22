@@ -1,8 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name" translatable="false">ScreenStream</string>
-
     <string name="error_title">Chyba</string>
     <string name="error_port_in_use">Port sa už používa. Zadajte iný.</string>
     <string name="error_invalid_media_projection">Bezpečnostná chyba: Neplatná projekcia média. Skúse to znova.</string>
@@ -93,7 +91,7 @@
     <string name="pref_settings_image">Zobrazenie</string>
     <string name="pref_vr_mode">Režim virtuálnej reality</string>
     <string name="pref_vr_mode_summary">Nahrá obsah jednej polovice obrazovky</string>
-    <string-array name="pref_vr_mode_options" translatable="false">
+    <string-array name="pref_vr_mode_options">
         <item>Použiť ľavú stranu</item>
         <item>Použiť pravú stranu</item>
     </string-array>
@@ -108,7 +106,6 @@
     <string name="pref_crop_dialog_error_message">Zadajte platné hodnoty na orezanie</string>
     <string name="pref_resize">Zmeniť veľkosť</string>
     <string name="pref_resize_summary">Zmení veľkosť obrazu pred poslaním klientovi</string>
-    <string name="pref_resize_value" translatable="false">%1$d%%</string>
     <string name="pref_resize_dialog_text">Zadajte percento zmeny veľkosti.\nHodnoty: 10–150 (Prednastavené: 50)\nVeľkosť obrazovky: %1$dx%2$d</string>
     <string name="pref_resize_dialog_result">Veľkosť obrazu: %1$dx%2$d</string>
     <string name="pref_rotate">Otočiť</string>
@@ -137,7 +134,7 @@
     <string name="pref_auto_change_pin_summary">Vytvorí nové heslo pre každé nové vysielanie</string>
     <string name="pref_set_pin">Zadať heslo</string>
     <string name="pref_set_pin_summary">Zadajte heslo ručne</string>
-    <string name="pref_set_pin_dialog">Zadajte heslo.\Prednastavené: 0000</string>
+    <string name="pref_set_pin_dialog">Zadajte heslo.\nPrednastavené: 0000</string>
     <string name="pref_settings_advanced">Pokročilé</string>
     <string name="pref_wifi_only">Iba cez WiFi</string>
     <string name="pref_wifi_only_summary">Spustiť server iba po pripojení na WiFi</string>
@@ -147,11 +144,10 @@
     <string name="pref_enable_localhost_summary">Spustí server aj na tomto zariadení</string>
     <string name="pref_server_port">Port servera</string>
     <string name="pref_server_port_summary">Nastaví port pre príchodzie pripojenia</string>
-    <string name="pref_server_port_dialog">Nastavte port pre príchodzie pripojenia.\Hodnoty: 1025–65535\n(Prednastavené: 8080)</string>
+    <string name="pref_server_port_dialog">Nastavte port pre príchodzie pripojenia.\nHodnoty: 1025–65535\n(Prednastavené: 8080)</string>
     <string name="pref_logging">Povoliť záznamy aplikácie</string>
     <string name="pref_logging_summary">Aplikácia začne zapisovať záznamy o svojej aktivite</string>
 
-    <string name="about_fragment_app_name" translatable="false">Screen Stream over HTTP</string>
     <string name="about_fragment_app_version">Verzia: %1$s</string>
     <string name="about_fragment_developer_name">Vývojár: Dmitriy Krivoruchko</string>
     <string name="about_fragment_rate_app">Ohodnotiť aplikáciu</string>
