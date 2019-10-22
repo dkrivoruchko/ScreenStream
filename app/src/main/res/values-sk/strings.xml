@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name" translatable="false">ScreenStream</string>
 
@@ -119,6 +120,9 @@
         <item>180\u00B0</item>
         <item>270\u00B0</item>
     </string-array>
+    <string name="pref_fps">Počet snímkov za sekundu</string>
+    <string name="pref_fps_summary">Nastaviť maximálný počet snímkov za sekundu</string>
+    <string name="pref_fps_dialog">Nastaviť maximálný počet snímkov za sekundu.\nHodnoty: 1–30 (Prednastavené: 8)</string>
     <string name="pref_jpeg_quality">Kompresia JPEG</string>
     <string name="pref_jpeg_quality_summary">Nastaviť kvalitu kompresie JPEG</string>
     <string name="pref_jpeg_quality_dialog">Nastavte kvalitu kompresie JPEG.\nHodnoty: 10–100 (Prednastavené: 100)</string>
@@ -139,6 +143,8 @@
     <string name="pref_wifi_only_summary">Spustiť server iba po pripojení na WiFi</string>
     <string name="pref_enable_ipv6">Povoliť podporu IPv6</string>
     <string name="pref_enable_ipv6_summary">Spustí server aj na IPv6 adrese</string>
+    <string name="pref_enable_localhost">Povoliť server na tomto zariadení</string>
+    <string name="pref_enable_localhost_summary">Spustí server aj na tomto zariadení</string>
     <string name="pref_server_port">Port servera</string>
     <string name="pref_server_port_summary">Nastaví port pre príchodzie pripojenia</string>
     <string name="pref_server_port_dialog">Nastavte port pre príchodzie pripojenia.\Hodnoty: 1025–65535\n(Prednastavené: 8080)</string>
