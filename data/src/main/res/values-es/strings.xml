@@ -1,0 +1,13 @@
+<resources>
+    <!--BitmapNotification-->
+    <string name="image_generator_press_start">Presiona Iniciar en la pantalla</string>
+    <string name="image_generator_go_to_new_address">Vaya a la dirección</string>
+    <string name="image_generator_reload_this_page">Recarga esta página</string>
+
+    <!--HTML text-->
+    <string name="html_stream_require_pin">Necesitas un PIN para acceder</string>
+    <string name="html_enter_pin">Introdusca el PIN:\u0020</string>
+    <string name="html_four_digits">Cuatro dígitos</string>
+    <string name="html_submit_text">Enviar</string>
+    <string name="html_wrong_pin">PIN incorrecto!</string>
+</resources>
