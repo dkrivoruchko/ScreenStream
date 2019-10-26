@@ -136,6 +136,7 @@
             android:clickable="true"
             android:focusable="true"
             android:minHeight="@dimen/fragment_settings_item_min_height"
+            android:visibility="gone"
             android:paddingStart="@dimen/fragment_settings_item_start_end"
             android:paddingTop="8dp"
             android:paddingEnd="@dimen/fragment_settings_item_start_end"
@@ -191,6 +192,7 @@
         <View
             android:layout_width="match_parent"
             android:layout_height="1dp"
+            android:visibility="gone"
             android:layout_marginTop="2dp"
             android:layout_marginBottom="2dp"
             android:background="@color/colorSettingsDivider" />

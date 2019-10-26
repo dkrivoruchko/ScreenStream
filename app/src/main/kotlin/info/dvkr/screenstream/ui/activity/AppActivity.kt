@@ -3,14 +3,12 @@ package info.dvkr.screenstream.ui.activity
 import android.animation.ObjectAnimator
 import android.animation.PropertyValuesHolder
 import android.annotation.SuppressLint
-import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.text.InputType
 import android.view.View
 import android.view.animation.OvershootInterpolator
-import android.widget.TextView
 import androidx.navigation.findNavController
 import androidx.navigation.ui.setupWithNavController
 import com.afollestad.materialdialogs.MaterialDialog
@@ -20,8 +18,6 @@ import com.afollestad.materialdialogs.input.getInputField
 import com.afollestad.materialdialogs.input.input
 import com.afollestad.materialdialogs.lifecycle.lifecycleOwner
 import com.elvishew.xlog.XLog
-import com.google.android.material.bottomnavigation.BottomNavigationItemView
-import com.google.android.material.bottomnavigation.BottomNavigationMenuView
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.data.other.getLog
 import info.dvkr.screenstream.data.settings.Settings
@@ -55,14 +51,6 @@ class AppActivity : PermissionActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_app)
-
-        // TODO Fix for https://github.com/material-components/material-components-android/issues/139
-        // https://issuetracker.google.com/issues/115754572
-        with(bottom_navigation_activity_app.getChildAt(0) as BottomNavigationMenuView) {
-            for (index in 0 until childCount)
-                (getChildAt(index) as BottomNavigationItemView).findViewById<TextView>(R.id.largeLabel)
-                    .setPadding(0, 0, 0, 0)
-        }
 
         with(findNavController(R.id.fr_activity_app_nav_host_fragment)) {
             bottom_navigation_activity_app.setupWithNavController(this)
@@ -160,15 +148,15 @@ class AppActivity : PermissionActivity() {
 
                 // MinimizeOnStream
                 if (settings.minimizeOnStream && isStreamingBefore.not() && serviceMessage.isStreaming)
-                    try {
-                        startActivity(
-                            Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME).setFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                        )
-                    } catch (ex: ActivityNotFoundException) {
-                        XLog.e(getLog("onServiceMessage"), ex)
-                    }
+//                    try {
+//                        startActivity(
+//                            Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME).setFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+//                        )
+//                    } catch (ex: ActivityNotFoundException) {
+//                        XLog.e(getLog("onServiceMessage"), ex)
+//                    }
 
-                isStreamingBefore = serviceMessage.isStreaming
+                    isStreamingBefore = serviceMessage.isStreaming
             }
         }
     }
