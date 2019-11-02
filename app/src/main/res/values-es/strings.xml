@@ -52,7 +52,7 @@
     <string name="notification_start">Iniciar</string>
     <string name="notification_exit">Salir</string>
     <string name="notification_stream">Transmitiendo…</string>
-    <string name="notification_press_stop">Presione Detener para terminar la transmición</string>
+    <string name="notification_press_stop">Presione Detener para terminar la transmisión</string>
     <string name="notification_stop">Detener</string>
 
     <string name="toast_slow_client_connection">Conexión lenta detectada</string>
@@ -71,14 +71,14 @@
     </string-array>
     <string name="pref_notification">Opciones de notificación</string>
     <string name="pref_notification_summary">Abrir opciones de notificación del sistema</string>
-    <string name="pref_minimize_on_stream">Minimizar al iniciar la transmición</string>
-    <string name="pref_minimise_on_stream_summary">Minimizar aplicación al iniciar la transmición</string>
-    <string name="pref_stop_on_sleep">Detener transmición al dormir</string>
-    <string name="pref_stop_on_sleep_summary">Detener transmición si la apaga la pantalla</string>
-    <string name="pref_start_on_boot">Iniciar transmición al arranque</string>
-    <string name="pref_start_on_boot_summary">Iniciar transmición despues del arranque</string>
-    <string name="pref_auto_start_stop">Auto Iniciar/Detener transmición</string>
-    <string name="pref_auto_start_stop_summary">Auto Iniciar/Detener transmición cuando el cliente se conecte/desconecte</string>
+    <string name="pref_minimize_on_stream">Minimizar al iniciar la transmisión</string>
+    <string name="pref_minimise_on_stream_summary">Minimizar aplicación al iniciar la transmisión</string>
+    <string name="pref_stop_on_sleep">Detener transmisión al dormir</string>
+    <string name="pref_stop_on_sleep_summary">Detener transmisión si la apaga la pantalla</string>
+    <string name="pref_start_on_boot">Iniciar transmisión al arranque</string>
+    <string name="pref_start_on_boot_summary">Iniciar transmisión despues del arranque</string>
+    <string name="pref_auto_start_stop">Auto Iniciar/Detener transmisión</string>
+    <string name="pref_auto_start_stop_summary">Auto Iniciar/Detener transmisión cuando el cliente se conecte/desconecte</string>
     <string name="pref_detect_slow_connections">Notificar conexiones lentas</string>
     <string name="pref_detect_slow_connections_summary">Detectar y notificar las conexiones lentas</string>
     <string name="pref_settings_web_page">Página Web</string>
@@ -89,23 +89,23 @@
     <string name="pref_html_back_color_title">Seleccionar color de fondo</string>
     <string name="pref_settings_image">Imagen</string>
     <string name="pref_vr_mode">Modo Realidad Virtual</string>
-    <string name="pref_vr_mode_summary">Capturar contenido de la mitad de la pantalla</string>
+    <string name="pref_vr_mode_summary">Capturar contenido en modo de realidad aumentada</string>
     <string-array name="pref_vr_mode_options">
-        <item>Usar parte izquierda</item>
-        <item>Usar parte derecha</item>
+        <item>Usar región izquierda</item>
+        <item>Usar región derecha</item>
     </string-array>
     <string name="pref_crop">Cortar imagen</string>
     <string name="pref_crop_summary">Cortar imagen antes de enviar al cliente</string>
-    <string name="pref_crop_dialog_crop_top">Cortar superior:</string>
-    <string name="pref_crop_dialog_crop_bottom">Cortar inferior:</string>
-    <string name="pref_crop_dialog_crop_left">Cortar izquierdo:</string>
-    <string name="pref_crop_dialog_crop_right">Cortar derecho:</string>
-    <string name="pref_crop_dialog_pixels">pixels</string>
-    <string name="pref_crop_dialog_warning_message">Cortar se ignora si el resultado es una imagen vacia</string>
+    <string name="pref_crop_dialog_crop_top">Cortar borde superior:</string>
+    <string name="pref_crop_dialog_crop_bottom">Cortar borde inferior:</string>
+    <string name="pref_crop_dialog_crop_left">Cortar borde izquierdo:</string>
+    <string name="pref_crop_dialog_crop_right">Cortar borde derecho:</string>
+    <string name="pref_crop_dialog_pixels">píxeles</string>
+    <string name="pref_crop_dialog_warning_message">Cortar se ignora si el resultado es una imagen vacía</string>
     <string name="pref_crop_dialog_error_message">Introdusca un valor válido para el corte</string>
-    <string name="pref_resize">Rediseñe la imagen</string>
-    <string name="pref_resize_summary">Rediseñe la imagen antes de enviar al cliente</string>
-    <string name="pref_resize_dialog_text">Ponga el factor de aumento de la imagen en porcentaje.\nValores: 10–150 (Por defecto: 50)\nTamaño: %1$dx%2$d</string>
+    <string name="pref_resize">Redimensionar la imagen</string>
+    <string name="pref_resize_summary">Redimensionar la imagen antes de enviar al cliente</string>
+    <string name="pref_resize_dialog_text">Establesca un factor de aumento de la imagen en porciento.\nValores: 10–150 (Por defecto: 50)\nTamaño: %1$dx%2$d</string>
     <string name="pref_resize_dialog_result">Tamaño de imagen: %1$dx%2$d</string>
     <string name="pref_rotate">Rotar imagen en sentido del reloj</string>
     <string name="pref_rotate_summary">Rotar imagen antes de enviar al cliente</string>
@@ -114,13 +114,13 @@
     <string name="pref_jpeg_quality_dialog">Ajuste la calidad de compresión JPEG.\nValores: 10–100 (Por defecto: 100)</string>
     <string name="pref_settings_security">Seguridad</string>
     <string name="pref_enable_pin">Habilitar PIN</string>
-    <string name="pref_enable_pin_summary">Proteger acceso a transmición mediante PIN</string>
-    <string name="pref_hide_pin">Auto ocultar el PIN al iniciar la transmición</string>
+    <string name="pref_enable_pin_summary">Proteger acceso a transmisión mediante PIN</string>
+    <string name="pref_hide_pin">Auto ocultar el PIN al iniciar la transmisión</string>
     <string name="pref_hide_pin_summary">Mostrar asteriscos en vez del PIN mientras transmite</string>
     <string name="pref_new_pin_on_start">PIN nuevo al iniciar</string>
     <string name="pref_new_pin_on_start_summary">Generar nuevo PIN al iniciar la aplicación</string>
     <string name="pref_auto_change_pin">Auto cambiar PIN</string>
-    <string name="pref_auto_change_pin_summary">Generar un PIN nuevo por cada transmición</string>
+    <string name="pref_auto_change_pin_summary">Generar un PIN nuevo por cada transmisión</string>
     <string name="pref_set_pin">Ponga el PIN</string>
     <string name="pref_set_pin_summary">Introdusca el PIN manualmente</string>
     <string name="pref_set_pin_dialog">Introdusca PIN.\nPor defecto: 0000</string>
@@ -135,12 +135,12 @@
     <string name="pref_logging">Habilitar registros</string>
     <string name="pref_logging_summary">Generando los registros</string>
 
-    <string name="about_fragment_app_version">Version: %1$s</string>
+    <string name="about_fragment_app_version">Versión: %1$s</string>
     <string name="about_fragment_developer_name">Desarrollado por Dmitriy Krivoruchko</string>
     <string name="about_fragment_rate_app">Valore la aplicación</string>
-    <string name="about_fragment_write_email">Escriba al desarrollador</string>
+    <string name="about_fragment_write_email">Escribir al desarrollador</string>
     <string name="about_fragment_write_email_dialog">Desea escribir al desarrollador?</string>
     <string name="about_fragment_email_chooser_header">Enviando correo…</string>
     <string name="about_fragment_app_sources">Fuentes de la aplicación</string>
     <string name="about_fragment_privacy_policy">Política de Privacidad</string>
-</resources>  
+</resources>
