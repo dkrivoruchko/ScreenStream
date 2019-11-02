@@ -111,6 +111,6 @@ abstract class ServiceActivity : AppUpdateActivity() {
 
     private fun setNightMode(@AppCompatDelegate.NightMode nightMode: Int) {
         AppCompatDelegate.setDefaultNightMode(nightMode)
-        delegate.setLocalNightMode(nightMode)
+//        delegate.localNightMode = nightMode
     }
 }
