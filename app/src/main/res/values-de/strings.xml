@@ -12,6 +12,10 @@
     <string name="app_activity_send_logs_dialog_message">Bitte fügen Sie eine Fehlerbeschreibung hinzu:</string>
     <string name="app_activity_send_logs_dialog_neutral">Log-Aufzeichnung stoppen</string>
 
+    <string name="app_update_activity_dialog_title">Update verfügbar</string>
+    <string name="app_update_activity_dialog_message">Eine Update wurde soeben heruntergeladen. App neu starten?</string>
+    <string name="app_update_activity_dialog_restart">Neu starten</string>
+
     <string name="bottom_menu_stream">Streamen</string>
     <string name="bottom_menu_settings">Einstellungen</string>
     <string name="bottom_menu_start">Starten</string>
@@ -104,9 +108,12 @@
     <string name="pref_resize_dialog_result">Bildgröße: %1$dx%2$d</string>
     <string name="pref_rotate">Bild im Uhrzeigersinn drehen</string>
     <string name="pref_rotate_summary">Bild vor dem Senden drehen</string>
+    <string name="pref_fps">Bilder pro Sekunde begrenzen</string>
+    <string name="pref_fps_summary">Maximale Bilder pro Sekunde festlegen</string>
+    <string name="pref_fps_dialog">Maximale Bilder pro Sekunde festlegen.\nWerte: 1–30 (Standard: 8)</string>
     <string name="pref_jpeg_quality">JPEG-Kompressionsqualität</string>
-    <string name="pref_jpeg_quality_summary">JPEG-Kompressionsqualität setzen</string>
-    <string name="pref_jpeg_quality_dialog">JPEG-Kompressionsqualität setzen.\nWerte: 10–100 (Standard: 100)</string>
+    <string name="pref_jpeg_quality_summary">JPEG-Kompressionsqualität festlegen</string>
+    <string name="pref_jpeg_quality_dialog">JPEG-Kompressionsqualität festlegen.\nMögliche Werte: 10–100 (Standard: 100)</string>
     <string name="pref_settings_security">Sicherheit</string>
     <string name="pref_enable_pin">PIN aktivieren</string>
     <string name="pref_enable_pin_summary">Zugriff auf dem Stream mit PIN schützen</string>
@@ -124,6 +131,8 @@
     <string name="pref_wifi_only_summary">Server nur über WLAN-Schnittstelle verwenden </string>
     <string name="pref_enable_ipv6">IPv6 Unterstützung aktivieren</string>
     <string name="pref_enable_ipv6_summary">Server auch auf IPv6 Adressen starten</string>
+    <string name="pref_enable_localhost">Localhost aktivieren</string>
+    <string name="pref_enable_localhost_summary">Server auch auf localhost Adressen starten</string>
     <string name="pref_server_port">Server-Port</string>
     <string name="pref_server_port_summary">Port für eingehende Verbindungen setzen</string>
     <string name="pref_server_port_dialog">Port für eingehende Verbindungen setzen.\nWerte: 1025–65535\n(Standard: 8080)</string>
