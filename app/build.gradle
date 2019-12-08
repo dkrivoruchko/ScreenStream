@@ -1,7 +1,7 @@
 apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-android-extensions'
-//apply plugin: 'com.getkeepsafe.dexcount'
+apply plugin: 'com.getkeepsafe.dexcount'
 apply plugin: 'io.fabric'
 
 android {
@@ -12,8 +12,8 @@ android {
         applicationId = "info.dvkr.screenstream"
         minSdkVersion(minSdk)
         targetSdkVersion(targetSdk)
-        versionCode = 30302
-        versionName = "3.3.2"
+        versionCode = 30303
+        versionName = "3.3.3"
         resConfigs("en", "ru", "pt-rBR", "zh-rTW", "fr-rFR", "fa", "it", "pl", "hi", "de", "sk", "es")
 
         vectorDrawables.useSupportLibrary = true
@@ -86,11 +86,11 @@ dependencies {
     implementation("androidx.annotation:annotation:$androidxAnnotation")
     implementation("com.google.android.material:material:$androidMaterial")
     implementation("androidx.appcompat:appcompat:$androidxAppcompat")
-    implementation("androidx.fragment:fragment-ktx:1.2.0-rc01")
+    implementation('androidx.fragment:fragment-ktx:1.2.0-rc03')
     implementation("androidx.constraintlayout:constraintlayout:$androidxConstraint")
     implementation("androidx.navigation:navigation-fragment-ktx:$androidxNavigation")
     implementation("androidx.navigation:navigation-ui-ktx:$androidxNavigation")
-    implementation('androidx.viewpager2:viewpager2:1.0.0-rc01')
+    implementation('androidx.viewpager2:viewpager2:1.0.0')
 
     implementation("com.afollestad.material-dialogs:core:$materialDialogs")
     implementation("com.afollestad.material-dialogs:color:$materialDialogs")
@@ -107,7 +107,7 @@ dependencies {
         transitive = true;
     }
 
-    debugImplementation("com.squareup.leakcanary:leakcanary-android:2.0-beta-3")
+    debugImplementation("com.squareup.leakcanary:leakcanary-android:2.0")
 }
 
 apply plugin: "com.google.gms.google-services"
