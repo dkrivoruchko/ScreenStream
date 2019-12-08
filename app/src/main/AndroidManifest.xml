@@ -45,7 +45,6 @@
             android:name=".service.AppService"
             android:exported="false"
             android:foregroundServiceType="mediaProjection"
-            android:process=":fg_service"
             tools:targetApi="q" />
 
         <receiver

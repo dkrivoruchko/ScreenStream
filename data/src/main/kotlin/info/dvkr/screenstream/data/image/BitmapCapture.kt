@@ -99,12 +99,13 @@ class BitmapCapture constructor(
     @Synchronized
     override fun start() {
         XLog.d(getLog("start", "Invoked"))
+        super.start()
         requireState(State.INIT)
 
         startDisplayCapture()
 
         if (state == State.STARTED)
-            launch {
+            coroutineScope.launch {
                 val rotation = display.rotation
                 var previous = rotation == Surface.ROTATION_0 || rotation == Surface.ROTATION_180
                 var current: Boolean
@@ -124,14 +125,14 @@ class BitmapCapture constructor(
     }
 
     @Synchronized
-    override fun stop() {
+    override fun destroy() {
         XLog.d(getLog("stop", "Invoked"))
         requireState(State.STARTED, State.ERROR)
 
         state = State.STOPPED
         settingsReadOnly.unregisterChangeListener(settingsListener)
 
-        super.stop()
+        super.destroy()
 
         if (::rotationDetector.isInitialized) rotationDetector.cancel()
         stopDisplayCapture()

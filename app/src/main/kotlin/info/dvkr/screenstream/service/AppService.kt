@@ -4,7 +4,8 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.graphics.BitmapFactory
-import android.os.*
+import android.os.Binder
+import android.os.IBinder
 import android.view.LayoutInflater
 import android.widget.Toast
 import androidx.annotation.AnyThread
@@ -25,12 +26,13 @@ import info.dvkr.screenstream.service.helper.IntentAction
 import info.dvkr.screenstream.service.helper.NotificationHelper
 import kotlinx.android.synthetic.main.toast_slow_connection.view.*
 import kotlinx.coroutines.*
+import kotlinx.coroutines.channels.ConflatedBroadcastChannel
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.asFlow
 import org.koin.android.ext.android.inject
-import java.util.concurrent.CopyOnWriteArraySet
 import java.util.concurrent.atomic.AtomicBoolean
-import kotlin.coroutines.CoroutineContext
 
-class AppService : Service(), CoroutineScope {
+class AppService : Service() {
 
     companion object {
         fun getAppServiceIntent(context: Context): Intent =
@@ -40,66 +42,36 @@ class AppService : Service(), CoroutineScope {
             ContextCompat.startForegroundService(context, intent)
     }
 
-    private class ActivityMessagesHandler : Handler() {
-        private val activityMessengers = CopyOnWriteArraySet<Messenger>()
-        private var lastServiceMessage: ServiceMessage? = null
-
-        private fun registerActivityMessenger(messenger: Messenger) = activityMessengers.add(messenger)
-
-        private fun unRegisterActivityMessenger(messenger: Messenger) = activityMessengers.remove(messenger)
-
-        fun sendMessageToActivities(serviceMessage: ServiceMessage) {
-            XLog.v(getLog("sendMessageToActivities", "ServiceMessage: $serviceMessage"))
-            lastServiceMessage = serviceMessage
-            val iterator = activityMessengers.iterator()
-            while (iterator.hasNext()) sendMessage(iterator.next(), serviceMessage)
-
-        }
-
-        private fun sendMessage(activityMessenger: Messenger, serviceMessage: ServiceMessage) {
-            XLog.v(getLog("sendMessage", "Messenger: $activityMessenger, ServiceMessage: $serviceMessage"))
-            try {
-                if (activityMessenger.binder.isBinderAlive)
-                    activityMessenger.send(Message.obtain(null, 0).apply { data = serviceMessage.toBundle() })
-                else
-                    unRegisterActivityMessenger(activityMessenger)
-            } catch (ex: RemoteException) {
-                XLog.w(getLog("sendMessageToActivities", ex.toString()))
-                unRegisterActivityMessenger(activityMessenger)
-            }
-        }
-
-        override fun handleMessage(msg: Message) {
-            val message = ServiceMessage.fromBundle(msg.data)
-            XLog.d(getLog("handleMessage", "ServiceMessage: $message"))
-            when (message) {
-                is ServiceMessage.RegisterActivity -> {
-                    lastServiceMessage?.let { sendMessage(message.relyTo, it) }
-                    registerActivityMessenger(message.relyTo)
-                }
-                is ServiceMessage.UnRegisterActivity -> unRegisterActivityMessenger(message.relyTo)
-                else -> throw IllegalStateException("Unknown ServiceMessage message: $message")
-            }
-        }
+    inner class AppServiceBinder : Binder() {
+        fun getServiceMessageFlow(): Flow<ServiceMessage> = serviceMessageFlow
     }
 
-    private val activityMessagesHandler = ActivityMessagesHandler()
-    private val incomingMessenger = Messenger(activityMessagesHandler)
+    private val appServiceBinder = AppServiceBinder()
+    private val serviceMessageChannel = ConflatedBroadcastChannel<ServiceMessage>()
+    private val serviceMessageFlow: Flow<ServiceMessage> = serviceMessageChannel.asFlow()
 
-    private val supervisorJob = SupervisorJob()
+    private fun sendMessageToActivities(serviceMessage: ServiceMessage) {
+        XLog.v(getLog("sendMessageToActivities", "ServiceMessage: $serviceMessage"))
+        if (serviceMessageChannel.isClosedForSend) {
+            XLog.w(getLog("sendMessageToActivities", "ServiceMessageChannel: isClosedForSend"))
+            return
+        }
+        serviceMessageChannel.offer(serviceMessage)
+    }
+
+    private val coroutineScope = CoroutineScope(
+        SupervisorJob() + Dispatchers.Main.immediate + CoroutineExceptionHandler { _, throwable ->
+            XLog.e(getLog("onCoroutineException"), throwable)
+            onError(FatalError.CoroutineException)
+        }
+    )
 
     private val isStreaming = AtomicBoolean(false)
     private var errorPrevious: AppError? = null
 
-    override val coroutineContext: CoroutineContext
-        get() = supervisorJob + Dispatchers.Main.immediate + CoroutineExceptionHandler { _, throwable ->
-            XLog.e(getLog("onCoroutineException"), throwable)
-            onError(FatalError.CoroutineException)
-        }
-
     override fun onBind(intent: Intent?): IBinder? {
         XLog.d(getLog("onBind", "Invoked"))
-        return incomingMessenger.binder
+        return appServiceBinder
     }
 
     @AnyThread
@@ -125,7 +97,7 @@ class AppService : Service(), CoroutineScope {
             is AppStateMachine.Effect.PublicState -> {
                 isStreaming.set(effect.isStreaming)
 
-                activityMessagesHandler.sendMessageToActivities(
+                sendMessageToActivities(
                     ServiceMessage.ServiceState(
                         effect.isStreaming, effect.isBusy, effect.isWaitingForPermission,
                         effect.netInterfaces, effect.appError
@@ -155,14 +127,14 @@ class AppService : Service(), CoroutineScope {
 
         appStateMachine = AppStateMachineImpl(
             this,
-            supervisorJob,
+            coroutineScope.coroutineContext[Job.Key],
             settings as SettingsReadOnly,
             BitmapFactory.decodeResource(resources, R.drawable.logo),
             { clients: List<HttpClient>, trafficHistory: List<TrafficPoint> ->
                 if (settings.autoStartStop) checkAutoStartStop(clients)
                 if (settings.notifySlowConnections) checkForSlowClients(clients)
-                activityMessagesHandler.sendMessageToActivities(ServiceMessage.Clients(clients))
-                activityMessagesHandler.sendMessageToActivities(ServiceMessage.TrafficHistory(trafficHistory))
+                sendMessageToActivities(ServiceMessage.Clients(clients))
+                sendMessageToActivities(ServiceMessage.TrafficHistory(trafficHistory))
             },
             ::onEffect
         )
@@ -191,7 +163,7 @@ class AppService : Service(), CoroutineScope {
             IntentAction.Exit -> {
                 sendBroadcast(Intent(Intent.ACTION_CLOSE_SYSTEM_DIALOGS))
                 notificationHelper.hideErrorNotification()
-                activityMessagesHandler.sendMessageToActivities(ServiceMessage.FinishActivity)
+                sendMessageToActivities(ServiceMessage.FinishActivity)
                 stopForeground(true)
                 this@AppService.stopSelf()
             }
@@ -224,7 +196,7 @@ class AppService : Service(), CoroutineScope {
     override fun onDestroy() {
         XLog.d(getLog("onDestroy", "Invoked"))
         appStateMachine.destroy()
-        coroutineContext.cancelChildren()
+        coroutineScope.coroutineContext.cancelChildren()
         stopForeground(true)
         Runtime.getRuntime().exit(0)
         super.onDestroy()
@@ -232,7 +204,7 @@ class AppService : Service(), CoroutineScope {
 
     private var slowClients: List<HttpClient> = emptyList()
 
-    private fun checkForSlowClients(clients: List<HttpClient>) = launch {
+    private fun checkForSlowClients(clients: List<HttpClient>) = coroutineScope.launch {
         val currentSlowConnections = clients.filter { it.isSlowConnection }.toList()
         if (slowClients.containsAll(currentSlowConnections).not()) {
             val layoutInflater = ContextCompat.getSystemService(this@AppService, LayoutInflater::class.java)!!

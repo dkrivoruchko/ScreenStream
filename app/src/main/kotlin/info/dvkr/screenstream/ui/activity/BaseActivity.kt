@@ -5,18 +5,8 @@ import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.data.other.getLog
-import kotlinx.coroutines.*
-import kotlin.coroutines.CoroutineContext
 
-abstract class BaseActivity : AppCompatActivity(), CoroutineScope {
-
-    private val supervisorJob = SupervisorJob()
-
-    override val coroutineContext: CoroutineContext
-        get() = supervisorJob + Dispatchers.Main.immediate + CoroutineExceptionHandler { _, throwable ->
-            XLog.e(getLog("onCoroutineException"), throwable)
-        }
-
+abstract class BaseActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         XLog.v(getLog("onCreate", "Invoked"))
@@ -49,7 +39,6 @@ abstract class BaseActivity : AppCompatActivity(), CoroutineScope {
 
     override fun onDestroy() {
         XLog.v(getLog("onDestroy", "Invoked"))
-        supervisorJob.cancelChildren()
         super.onDestroy()
     }
 }

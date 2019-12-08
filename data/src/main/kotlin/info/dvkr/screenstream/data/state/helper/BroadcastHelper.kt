@@ -13,9 +13,8 @@ import info.dvkr.screenstream.data.model.AppError
 import info.dvkr.screenstream.data.model.FatalError
 import info.dvkr.screenstream.data.other.getLog
 import kotlinx.coroutines.*
-import kotlin.coroutines.CoroutineContext
 
-internal sealed class BroadcastHelper(context: Context, private val onError: (AppError) -> Unit) : CoroutineScope {
+internal sealed class BroadcastHelper(context: Context, private val onError: (AppError) -> Unit) {
 
     companion object {
         fun getInstance(context: Context, onError: (AppError) -> Unit): BroadcastHelper {
@@ -27,13 +26,12 @@ internal sealed class BroadcastHelper(context: Context, private val onError: (Ap
     }
 
     protected val applicationContext: Context = context.applicationContext
-    private val supervisorJob = SupervisorJob()
-
-    override val coroutineContext: CoroutineContext
-        get() = supervisorJob + Dispatchers.Main.immediate + CoroutineExceptionHandler { _, throwable ->
+    protected val coroutineScope = CoroutineScope(
+        SupervisorJob() + Dispatchers.Main.immediate + CoroutineExceptionHandler { _, throwable ->
             XLog.e(getLog("onCoroutineException"), throwable)
             onError(FatalError.CoroutineException)
         }
+    )
 
     protected abstract val intentFilter: IntentFilter
     protected abstract val broadcastReceiver: BroadcastReceiver
@@ -48,7 +46,7 @@ internal sealed class BroadcastHelper(context: Context, private val onError: (Ap
 
     fun stopListening() {
         applicationContext.unregisterReceiver(broadcastReceiver)
-        coroutineContext.cancelChildren()
+        coroutineScope.coroutineContext.cancelChildren()
     }
 
     protected fun onScreenIntentAction() {
@@ -61,7 +59,7 @@ internal sealed class BroadcastHelper(context: Context, private val onError: (Ap
     protected fun onConnectivityIntentAction() {
         isConnectionEventScheduled.not() || return
         isConnectionEventScheduled = true
-        launch {
+        coroutineScope.launch {
             delay(1000)
             if (isActive) {
                 isConnectionEventScheduled = false

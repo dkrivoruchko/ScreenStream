@@ -6,25 +6,28 @@ import info.dvkr.screenstream.data.model.AppError
 import info.dvkr.screenstream.data.model.FatalError
 import info.dvkr.screenstream.data.other.getLog
 import kotlinx.coroutines.*
-import kotlin.coroutines.CoroutineContext
 
 abstract class AbstractImageHandler(
     protected val onError: (AppError) -> Unit
-) : CoroutineScope {
+) {
 
-    private val supervisorJob = SupervisorJob()
-
-    override val coroutineContext: CoroutineContext
-        get() = supervisorJob + Dispatchers.Default + CoroutineExceptionHandler { _, throwable ->
+    protected val coroutineScope = CoroutineScope(
+        SupervisorJob() + Dispatchers.Default + CoroutineExceptionHandler { _, throwable ->
             XLog.e(getLog("onCoroutineException"), throwable)
             onError(FatalError.CoroutineException)
         }
+    )
 
-    abstract fun start()
+    private var isDestroyed: Boolean = false
 
     @CallSuper
-    open fun stop() {
-        coroutineContext.cancelChildren()
+    open fun start() {
+        if (isDestroyed) throw IllegalStateException("Handler was destroyed")
     }
 
+    @CallSuper
+    open fun destroy() {
+        isDestroyed = true
+        coroutineScope.coroutineContext.cancel()
+    }
 }

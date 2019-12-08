@@ -38,7 +38,9 @@ class BitmapToJpeg(
     }
 
     override fun start() {
-        launch {
+        XLog.d(getLog("start", "Invoked"))
+        super.start()
+        coroutineScope.launch {
             for (bitmap in inBitmapChannel) {
                 bitmap.compress(Bitmap.CompressFormat.JPEG, jpegQuality.get(), resultJpegStream)
                 if (outJpegChannel.isClosedForSend.not()) outJpegChannel.offer(resultJpegStream.toByteArray())
@@ -47,8 +49,8 @@ class BitmapToJpeg(
         }
     }
 
-    override fun stop() {
+    override fun destroy() {
         settingsReadOnly.unregisterChangeListener(settingsListener)
-        super.stop()
+        super.destroy()
     }
 }

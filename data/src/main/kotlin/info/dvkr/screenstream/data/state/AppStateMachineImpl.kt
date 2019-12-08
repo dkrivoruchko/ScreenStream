@@ -23,19 +23,17 @@ import info.dvkr.screenstream.data.state.helper.MediaProjectionHelper
 import info.dvkr.screenstream.data.state.helper.NetworkHelper
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.*
-import kotlin.coroutines.CoroutineContext
 
 class AppStateMachineImpl(
     context: Context,
-    parentJob: Job,
+    parentJob: Job?,
     private val settingsReadOnly: SettingsReadOnly,
     appIconBitmap: Bitmap,
     onStatistic: (List<HttpClient>, List<TrafficPoint>) -> Unit,
     private val onEffect: (AppStateMachine.Effect) -> Unit
-) : AppStateMachine, CoroutineScope {
+) : AppStateMachine {
 
     private val applicationContext: Context = context.applicationContext
-    private val supervisorJob = SupervisorJob(parentJob)
     private val bitmapChannel: Channel<Bitmap> = Channel(Channel.CONFLATED)
     private val jpegChannel: Channel<ByteArray> = Channel(Channel.CONFLATED)
     private val mediaProjectionHelper = MediaProjectionHelper(context) { sendEvent(AppStateMachine.Event.StopStream) }
@@ -46,11 +44,12 @@ class AppStateMachineImpl(
     private val bitmapToJpeg = BitmapToJpeg(settingsReadOnly, bitmapChannel, jpegChannel, ::onError)
     private val appHttpServer: AppHttpServer
 
-    override val coroutineContext: CoroutineContext
-        get() = supervisorJob + Dispatchers.Default + CoroutineExceptionHandler { _, throwable ->
+    private val coroutineScope = CoroutineScope(
+        SupervisorJob(parentJob) + Dispatchers.Default + CoroutineExceptionHandler { _, throwable ->
             XLog.e(getLog("onCoroutineException"), throwable)
             onError(FatalError.CoroutineException)
         }
+    )
 
     internal sealed class InternalEvent : AppStateMachine.Event() {
         object DiscoverAddress : InternalEvent()
@@ -92,12 +91,12 @@ class AppStateMachineImpl(
     override fun sendEvent(event: AppStateMachine.Event, timeout: Long) {
         if (timeout > 0) {
             XLog.d(getLog("sendEvent[Timeout: $timeout]", "Event: $event"))
-            launch { delay(timeout); sendEvent(event) }
+            coroutineScope.launch { delay(timeout); sendEvent(event) }
         } else {
             XLog.d(getLog("sendEvent", "Event: $event"))
 
-            if (supervisorJob.isActive.not()) {
-                XLog.w(getLog("sendEvent", "JobIsNotActive"))
+            if (coroutineScope.isActive.not()) {
+                XLog.w(getLog("sendEvent", "ScopeIsNotActive"))
                 return
             }
 
@@ -116,7 +115,7 @@ class AppStateMachineImpl(
         }
     }
 
-    private val eventChannel: SendChannel<AppStateMachine.Event> = actor(capacity = 32) {
+    private val eventChannel: SendChannel<AppStateMachine.Event> = coroutineScope.actor(capacity = 32) {
         var streamState = StreamState()
         var previousStreamState: StreamState
 
@@ -188,16 +187,17 @@ class AppStateMachineImpl(
         settingsReadOnly.unregisterChangeListener(settingsListener)
         broadcastHelper.stopListening()
         connectivityHelper.stopListening()
-        supervisorJob.cancelChildren()
+        coroutineScope.coroutineContext.cancelChildren()
         eventChannel.close()
-        bitmapToJpeg.stop()
+        bitmapToJpeg.destroy()
+        bitmapNotification.destroy()
         appHttpServer.stop()
     }
 
     private fun stopProjection(streamState: StreamState): StreamState {
         XLog.d(getLog("stopProjection", "Invoked"))
         if (streamState.isStreaming()) {
-            streamState.bitmapCapture?.stop()
+            streamState.bitmapCapture?.destroy()
             mediaProjectionHelper.stopMediaProjection(streamState.mediaProjection)
         }
 

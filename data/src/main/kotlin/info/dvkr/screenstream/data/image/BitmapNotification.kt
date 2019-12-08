@@ -27,7 +27,10 @@ class BitmapNotification(
         XLog.d(getLog("init", "Invoked"))
     }
 
-    override fun start() {}
+    override fun start() {
+        XLog.d(getLog("start", "Invoked"))
+        super.start()
+    }
 
     fun sentBitmapNotification(notificationType: Type) {
         XLog.d(getLog("sentBitmapNotification", "BitmapType: $notificationType"))
@@ -44,7 +47,7 @@ class BitmapNotification(
             )
         }
 
-        launch {
+        coroutineScope.launch {
             repeat(3) {
                 outBitmapChannel.isClosedForSend.not() || return@launch
                 outBitmapChannel.offer(bitmap)
