@@ -71,8 +71,6 @@
     </string-array>
     <string name="pref_notification">Nastavenia upozornenia zariadenia</string>
     <string name="pref_notification_summary">Otvoriť systémové nastavenia upozornení</string>
-    <string name="pref_minimize_on_stream">Po začatí vysielania minimalizovať</string>
-    <string name="pref_minimise_on_stream_summary">Minimalizuje aplikáciu po ťuknutí na tlačidlo Štart</string>
     <string name="pref_stop_on_sleep">Zastaviť vysielanie pri vypnutí obrazovky</string>
     <string name="pref_stop_on_sleep_summary">Keď sa vypne obrazovka, vysielanie sa ukončí</string>
     <string name="pref_start_on_boot">Začať vysielať po štarte systému</string>
@@ -81,7 +79,6 @@
     <string name="pref_auto_start_stop_summary">Automaticky začne/ukončí vysielanie, keď sa klient pripojí/odpojí</string>
     <string name="pref_detect_slow_connections">Upozorniť na pomalé pripojenia</string>
     <string name="pref_detect_slow_connections_summary">Zistiť a upozorniť na pomalé pripojenia na strane klienta</string>
-    <string name="pref_settings_web_page">Webová stránka</string>
     <string name="pref_html_buttons">Povoliť tlačidlo na webovej stránke</string>
     <string name="pref_html_buttons_summary">Zobraziť ovládacie tlačidlá na webovej stránke</string>
     <string name="pref_html_back_color">Farba pozadia webovej stránky</string>
@@ -109,7 +106,6 @@
     <string name="pref_resize_dialog_result">Veľkosť obrazu: %1$dx%2$d</string>
     <string name="pref_rotate">Otočiť</string>
     <string name="pref_rotate_summary">Otočí obraz v smere hodinových ručičiek pred poslaním klientovi</string>
-    <string name="pref_rotate_value" translatable="false">%1$d\u00B0</string>
     <string-array name="pref_rotate_options" translatable="false">
         <item>0\u00B0</item>
         <item>90\u00B0</item>

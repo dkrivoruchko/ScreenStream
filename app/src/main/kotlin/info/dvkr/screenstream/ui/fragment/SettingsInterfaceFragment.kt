@@ -10,7 +10,9 @@ import android.view.ViewGroup
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
+import com.afollestad.materialdialogs.LayoutMode
 import com.afollestad.materialdialogs.MaterialDialog
+import com.afollestad.materialdialogs.bottomsheets.BottomSheet
 import com.afollestad.materialdialogs.color.ColorPalette
 import com.afollestad.materialdialogs.color.colorChooser
 import com.afollestad.materialdialogs.lifecycle.lifecycleOwner
@@ -68,7 +70,7 @@ class SettingsInterfaceFragment : Fragment() {
         tv_fragment_settings_night_mode_summary.text = nightModeOptions[index]
         cl_fragment_settings_night_mode.setOnClickListener {
             val indexOld = nightModeList.first { it.second == settings.nightMode }.first
-            MaterialDialog(requireActivity()).show {
+            MaterialDialog(requireActivity(), BottomSheet(LayoutMode.WRAP_CONTENT)).show {
                 lifecycleOwner(viewLifecycleOwner)
                 title(R.string.pref_night_mode)
                 icon(R.drawable.ic_settings_night_mode_24dp)
@@ -92,13 +94,6 @@ class SettingsInterfaceFragment : Fragment() {
         } else {
             cl_fragment_settings_notification.visibility = View.GONE
             v_fragment_settings_notification.visibility = View.GONE
-        }
-
-        // Interface - Minimize on stream
-        with(cb_fragment_settings_minimize_on_stream) {
-            isChecked = settings.minimizeOnStream
-            setOnClickListener { settings.minimizeOnStream = isChecked }
-            cl_fragment_settings_minimize_on_stream.setOnClickListener { performClick() }
         }
 
         // Interface - Stop on sleep

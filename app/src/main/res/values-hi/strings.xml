@@ -66,8 +66,6 @@
     </string-array>
     <string name="pref_notification">डिवाइस अधिसूचना सेटिंग्स</string>
     <string name="pref_notification_summary">सिस्टम अधिसूचना सेटिंग्स खोलें</string>
-    <string name="pref_minimize_on_stream">स्ट्रीम स्टार्ट पर छोटा करें</string>
-    <string name="pref_minimise_on_stream_summary">स्ट्रीम स्टार्ट पर ऐप को छोटा करें</string>
     <string name="pref_stop_on_sleep">नींद पर धारा रोकें</string>
     <string name="pref_stop_on_sleep_summary">यदि स्क्रीन बंद हो जाती है तो स्ट्रीम को रोकें</string>
     <string name="pref_start_on_boot">बूट पर स्ट्रीम शुरू करें</string>
@@ -76,7 +74,6 @@
     <string name="pref_auto_start_stop_summary">ऑटो स्टार्ट / स्टॉप स्ट्रीमिंग क्लाइंट कनेक्ट / डिस्कनेक्ट करें</string>
     <string name="pref_detect_slow_connections">धीमे कनेक्शन के लिए सूचित करें</string>
     <string name="pref_detect_slow_connections_summary">धीमी क्लाइंट कनेक्शन के लिए पता लगाएँ और सूचित करें</string>
-    <string name="pref_settings_web_page">वेब पृष्ठ</string>
     <string name="pref_html_buttons">वेब पेज बटन सक्षम करें</string>
     <string name="pref_html_buttons_summary">वेब पेज पर नियंत्रण बटन दिखाएं</string>
     <string name="pref_html_back_color">वेब पेज पृष्ठभूमि का रंग</string>

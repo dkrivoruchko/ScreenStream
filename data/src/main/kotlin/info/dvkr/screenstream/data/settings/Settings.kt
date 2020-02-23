@@ -6,7 +6,6 @@ interface Settings : SettingsReadOnly {
 
     object Key {
         const val NIGHT_MODE = "PREF_KEY_NIGHT_MODE_V2"
-        const val MINIMIZE_ON_STREAM = "PREF_KEY_MINIMIZE_ON_STREAM"
         const val STOP_ON_SLEEP = "PREF_KEY_STOP_ON_SLEEP"
         const val START_ON_BOOT = "PREF_KEY_START_ON_BOOT"
         const val AUTO_START_STOP = "PREF_KEY_AUTO_START_STOP"
@@ -43,7 +42,6 @@ interface Settings : SettingsReadOnly {
 
     object Default {
         var NIGHT_MODE = if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.P) 3 else -1
-        const val MINIMIZE_ON_STREAM = true
         const val STOP_ON_SLEEP = false
         const val START_ON_BOOT = false
         const val AUTO_START_STOP = false
@@ -90,7 +88,6 @@ interface Settings : SettingsReadOnly {
     }
 
     override var nightMode: Int
-    override var minimizeOnStream: Boolean
     override var stopOnSleep: Boolean
     override var startOnBoot: Boolean
     override var autoStartStop: Boolean

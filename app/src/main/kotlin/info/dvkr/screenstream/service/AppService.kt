@@ -196,10 +196,10 @@ class AppService : Service() {
     override fun onDestroy() {
         XLog.d(getLog("onDestroy", "Invoked"))
         appStateMachine.destroy()
-        coroutineScope.coroutineContext.cancelChildren()
+        coroutineScope.coroutineContext.cancel()
         stopForeground(true)
-        Runtime.getRuntime().exit(0)
         super.onDestroy()
+        Runtime.getRuntime().exit(0)
     }
 
     private var slowClients: List<HttpClient> = emptyList()

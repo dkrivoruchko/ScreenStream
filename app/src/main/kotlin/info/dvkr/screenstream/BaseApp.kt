@@ -1,7 +1,6 @@
 package info.dvkr.screenstream
 
 import android.app.Application
-import com.elvishew.xlog.XLog
 import com.elvishew.xlog.flattener.ClassicFlattener
 import com.elvishew.xlog.printer.file.FilePrinter
 import com.elvishew.xlog.printer.file.clean.FileLastModifiedCleanStrategy
@@ -36,11 +35,11 @@ abstract class BaseApp : Application() {
             modules(baseKoinModule)
         }
 
-        val defaultHandler = Thread.getDefaultUncaughtExceptionHandler()
-        Thread.setDefaultUncaughtExceptionHandler { thread: Thread, throwable: Throwable ->
-            XLog.e("Uncaught throwable in thread ${thread.name}", throwable)
-            defaultHandler?.uncaughtException(thread, throwable)
-        }
+//        val defaultHandler = Thread.getDefaultUncaughtExceptionHandler()
+//        Thread.setDefaultUncaughtExceptionHandler { thread: Thread, throwable: Throwable ->
+//            XLog.e("Uncaught throwable in thread ${thread.name}", throwable)
+//            defaultHandler?.uncaughtException(thread, throwable)
+//        }
 
         initLogger()
     }

@@ -11,6 +11,7 @@
     <application
         android:name=".ScreenStreamApp"
         android:allowBackup="false"
+        android:fullBackupContent="false"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:largeHeap="true"
@@ -27,13 +28,10 @@
             android:name="firebase_analytics_collection_deactivated"
             android:value="true" />
 
-        <meta-data
-            android:name="io.fabric.ApiKey"
-            android:value="fdc0202c5726f3a7f8da8d257fd86099b6effc38" />
-
         <activity
             android:name=".ui.activity.AppActivity"
-            android:launchMode="singleTask">
+            android:launchMode="singleTask"
+            android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 

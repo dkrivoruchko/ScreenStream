@@ -18,19 +18,22 @@ import info.dvkr.screenstream.data.settings.SettingsReadOnly
 import info.dvkr.screenstream.service.AppService
 import info.dvkr.screenstream.service.ServiceMessage
 import info.dvkr.screenstream.service.helper.IntentAction
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 
 abstract class ServiceActivity : AppUpdateActivity() {
 
     private val serviceMessageLiveData = MutableLiveData<ServiceMessage>()
+    private var serviceMessageFlowJob: Job? = null
     private var isBound: Boolean = false
 
     private val serviceConnection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, service: IBinder) {
-            (service as AppService.AppServiceBinder).getServiceMessageFlow()
+            XLog.d(this@ServiceActivity.getLog("onServiceConnected"))
+            serviceMessageFlowJob = (service as AppService.AppServiceBinder).getServiceMessageFlow()
                 .onEach {
-                    XLog.v(getLog("onServiceMessage", "ServiceMessage: $it")) //TODO
+                    XLog.v(this@ServiceActivity.getLog("onServiceMessage", "$it"))
                     serviceMessageLiveData.value = it
                 }
                 .launchIn(lifecycle.coroutineScope)
@@ -39,6 +42,8 @@ abstract class ServiceActivity : AppUpdateActivity() {
         }
 
         override fun onServiceDisconnected(name: ComponentName?) {
+            XLog.w(this@ServiceActivity.getLog("onServiceDisconnected"))
+            serviceMessageFlowJob?.cancel()
             isBound = false
         }
     }
@@ -70,6 +75,7 @@ abstract class ServiceActivity : AppUpdateActivity() {
 
     override fun onStop() {
         if (isBound) {
+            serviceMessageFlowJob?.cancel()
             unbindService(serviceConnection)
             isBound = false
         }
@@ -81,10 +87,7 @@ abstract class ServiceActivity : AppUpdateActivity() {
     @CallSuper
     open fun onServiceMessage(serviceMessage: ServiceMessage) {
         when (serviceMessage) {
-            ServiceMessage.FinishActivity -> {
-                finishAndRemoveTask()
-                Runtime.getRuntime().exit(0)
-            }
+            ServiceMessage.FinishActivity -> finishAndRemoveTask()
         }
     }
 

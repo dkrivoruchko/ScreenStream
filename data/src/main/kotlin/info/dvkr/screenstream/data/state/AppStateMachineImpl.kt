@@ -187,7 +187,7 @@ class AppStateMachineImpl(
         settingsReadOnly.unregisterChangeListener(settingsListener)
         broadcastHelper.stopListening()
         connectivityHelper.stopListening()
-        coroutineScope.coroutineContext.cancelChildren()
+        coroutineScope.coroutineContext.cancel()
         eventChannel.close()
         bitmapToJpeg.destroy()
         bitmapNotification.destroy()

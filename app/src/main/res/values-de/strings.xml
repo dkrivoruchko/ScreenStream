@@ -70,8 +70,6 @@
     </string-array>
     <string name="pref_notification">Einstellungen für Benachrichtigungen</string>
     <string name="pref_notification_summary">Systemeinstellungen für Benachrichtigungen öffnen</string>
-    <string name="pref_minimize_on_stream">Beim Start des Streams minimieren</string>
-    <string name="pref_minimise_on_stream_summary">App beim Stream-Start minimieren</string>
     <string name="pref_stop_on_sleep">Stream im Standby-Modus stoppen</string>
     <string name="pref_stop_on_sleep_summary">Stream stoppen, wenn der Bildschirm ausgeschaltet wird</string>
     <string name="pref_start_on_boot">Stream beim Gerätestart starten</string>
@@ -80,7 +78,6 @@
     <string name="pref_auto_start_stop_summary">Stream automatisch starten/stoppen wenn sich ein Gerät mit dem Stream verbindet/trennt</string>
     <string name="pref_detect_slow_connections">Benachrichtigung bei schlechter Verbindung</string>
     <string name="pref_detect_slow_connections_summary">Schlechte Verbindung von Geräten erkennen und diese benachrichtigen</string>
-    <string name="pref_settings_web_page">Webseite</string>
     <string name="pref_html_buttons">Schaltflächen auf Webseite anzeigen</string>
     <string name="pref_html_buttons_summary">Kontoll-Schaltflächen auf der Webseite anzeigen/verstecken</string>
     <string name="pref_html_back_color">Hintergrundfarbe der Webseite</string>

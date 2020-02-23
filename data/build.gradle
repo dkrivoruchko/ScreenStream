@@ -10,8 +10,8 @@ android {
     defaultConfig {
         minSdkVersion(minSdk)
         targetSdkVersion(targetSdk)
-        versionCode = 30303
-        versionName = "3.3.3"
+        versionCode = 30400
+        versionName = "3.4.0"
     }
 
     buildTypes {
@@ -19,7 +19,6 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
         release {
-            minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
@@ -34,12 +33,12 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility = '1.8'
-        targetCompatibility = '1.8'
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
     }
 
     kotlinOptions {
-        jvmTarget = "1.8"
+        jvmTarget = JavaVersion.VERSION_1_8
     }
 
     sourceSets {

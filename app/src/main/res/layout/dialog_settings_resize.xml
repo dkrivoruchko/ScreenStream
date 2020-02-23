@@ -25,7 +25,8 @@
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/tiet_dialog_settings_resize"
-            style="@style/MD_Dialog_Input_Layout.Message"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
             android:imeOptions="flagNoExtractUi"
             android:inputType="number"
             android:maxLines="1" />

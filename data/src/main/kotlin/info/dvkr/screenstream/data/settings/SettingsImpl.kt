@@ -15,9 +15,6 @@ class SettingsImpl(private val preferences: Preferences) : Settings {
     override var nightMode: Int
             by bindPreference(preferences, Settings.Key.NIGHT_MODE, Settings.Default.NIGHT_MODE)
 
-    override var minimizeOnStream: Boolean
-            by bindPreference(preferences, Settings.Key.MINIMIZE_ON_STREAM, Settings.Default.MINIMIZE_ON_STREAM)
-
     override var stopOnSleep: Boolean
             by bindPreference(preferences, Settings.Key.STOP_ON_SLEEP, Settings.Default.STOP_ON_SLEEP)
 

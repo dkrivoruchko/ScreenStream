@@ -15,9 +15,11 @@ import android.widget.EditText
 import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
+import com.afollestad.materialdialogs.LayoutMode
 import com.afollestad.materialdialogs.MaterialDialog
 import com.afollestad.materialdialogs.WhichButton
 import com.afollestad.materialdialogs.actions.setActionButtonEnabled
+import com.afollestad.materialdialogs.bottomsheets.BottomSheet
 import com.afollestad.materialdialogs.customview.customView
 import com.afollestad.materialdialogs.customview.getCustomView
 import com.afollestad.materialdialogs.input.getInputField
@@ -83,7 +85,7 @@ class SettingsImageFragment : Fragment() {
                 if (isVRModeEnabled()) settings.vrMode = Settings.Default.VR_MODE_DISABLE
                 else {
                     isChecked = false
-                    MaterialDialog(requireActivity()).show {
+                    MaterialDialog(requireActivity(), BottomSheet(LayoutMode.WRAP_CONTENT)).show {
                         lifecycleOwner(viewLifecycleOwner)
                         title(R.string.pref_vr_mode)
                         icon(R.drawable.ic_settings_vr_mode_24dp)
@@ -106,7 +108,7 @@ class SettingsImageFragment : Fragment() {
                 if (settings.imageCrop) settings.imageCrop = false
                 else {
                     isChecked = false
-                    MaterialDialog(requireActivity())
+                    MaterialDialog(requireActivity(), BottomSheet(LayoutMode.WRAP_CONTENT))
                         .lifecycleOwner(viewLifecycleOwner)
                         .title(R.string.pref_crop)
                         .icon(R.drawable.ic_settings_crop_24dp)
@@ -164,7 +166,7 @@ class SettingsImageFragment : Fragment() {
         tv_fragment_settings_resize_image_value.text = getString(R.string.pref_resize_value, settings.resizeFactor)
         val resizePictureSizeString = getString(R.string.pref_resize_dialog_result)
         cl_fragment_settings_resize_image.setOnClickListener {
-            MaterialDialog(requireActivity())
+            MaterialDialog(requireActivity(), BottomSheet(LayoutMode.WRAP_CONTENT))
                 .lifecycleOwner(viewLifecycleOwner)
                 .title(R.string.pref_resize)
                 .icon(R.drawable.ic_settings_resize_24dp)
@@ -215,7 +217,7 @@ class SettingsImageFragment : Fragment() {
         tv_fragment_settings_rotation_value.text = getString(R.string.pref_rotate_value, settings.rotation)
         cl_fragment_settings_rotation.setOnClickListener {
             val indexOld = rotationList.first { it.second == settings.rotation }.first
-            MaterialDialog(requireActivity()).show {
+            MaterialDialog(requireActivity(), BottomSheet(LayoutMode.WRAP_CONTENT)).show {
                 lifecycleOwner(viewLifecycleOwner)
                 title(R.string.pref_rotate)
                 icon(R.drawable.ic_settings_rotation_24dp)
@@ -231,7 +233,7 @@ class SettingsImageFragment : Fragment() {
         // Image - Max FPS
         tv_fragment_settings_fps_value.text = settings.maxFPS.toString()
         cl_fragment_settings_fps.setOnClickListener {
-            MaterialDialog(requireActivity()).show {
+            MaterialDialog(requireActivity(), BottomSheet(LayoutMode.WRAP_CONTENT)).show {
                 lifecycleOwner(viewLifecycleOwner)
                 title(R.string.pref_fps)
                 icon(R.drawable.ic_settings_fps_24dp)
@@ -259,7 +261,7 @@ class SettingsImageFragment : Fragment() {
         // Image - Jpeg Quality
         tv_fragment_settings_jpeg_quality_value.text = settings.jpegQuality.toString()
         cl_fragment_settings_jpeg_quality.setOnClickListener {
-            MaterialDialog(requireActivity()).show {
+            MaterialDialog(requireActivity(), BottomSheet(LayoutMode.WRAP_CONTENT)).show {
                 lifecycleOwner(viewLifecycleOwner)
                 title(R.string.pref_jpeg_quality)
                 icon(R.drawable.ic_settings_high_quality_24dp)

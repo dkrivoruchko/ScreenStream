@@ -61,15 +61,12 @@
     </string-array>
     <string name="pref_notification">Ustawienia powiadomień urządzenia</string>
     <string name="pref_notification_summary">Otwórz ustawienia powiadomień systemu</string>
-    <string name="pref_minimize_on_stream">Zminimalizuj podczas transmisji</string>
-    <string name="pref_minimise_on_stream_summary">Minimalizuj okno aplikacji podczas uruchamiania transmisji</string>
     <string name="pref_stop_on_sleep">Zatrzymaj transmisję przy uśpieniu</string>
     <string name="pref_stop_on_sleep_summary">Zatrzymaj transmisję, jeśli ekran się wyłączy</string>
     <string name="pref_start_on_boot">Uruchom transmisję przy starcie</string>
     <string name="pref_start_on_boot_summary">Uruchom trnsmisję po uruchomieniu urządzenia</string>
     <string name="pref_detect_slow_connections">Powiadamiaj o wolnych połączeniach</string>
     <string name="pref_detect_slow_connections_summary">Wykryj i powiadom o wolnym połączeniu klienta</string>
-    <string name="pref_settings_web_page">Strona internetowa</string>
     <string name="pref_html_buttons">Włącz przyciski strony internetowej</string>
     <string name="pref_html_buttons_summary">Pokaż przyciski sterowania na stronie internetowej</string>
     <string name="pref_html_back_color">Kolor tła strony internetowej</string>

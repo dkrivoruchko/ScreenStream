@@ -49,7 +49,8 @@
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/tiet_dialog_settings_crop_top"
-            style="@style/MD_Dialog_Input_Layout.Message"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
             android:imeOptions="flagNoExtractUi"
             android:inputType="number"
             android:maxLength="6"
@@ -91,7 +92,8 @@
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/tiet_dialog_settings_crop_bottom"
-            style="@style/MD_Dialog_Input_Layout.Message"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
             android:imeOptions="flagNoExtractUi"
             android:inputType="number"
             android:maxLength="6"
@@ -133,7 +135,8 @@
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/tiet_dialog_settings_crop_left"
-            style="@style/MD_Dialog_Input_Layout.Message"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
             android:imeOptions="flagNoExtractUi"
             android:inputType="number"
             android:maxLength="6"
@@ -175,7 +178,8 @@
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/tiet_dialog_settings_crop_right"
-            style="@style/MD_Dialog_Input_Layout.Message"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
             android:imeOptions="flagNoExtractUi"
             android:inputType="number"
             android:maxLength="6"

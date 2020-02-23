@@ -45,8 +45,6 @@
     <string name="toast_slow_client_connection">سرعت کارخواه پایین به نظر می‌رسد</string>
 
     <string name="pref_settings_interface">رابط گرافیکی</string>
-    <string name="pref_minimize_on_stream">کمینه‌سازی در حین جریان</string>
-    <string name="pref_minimise_on_stream_summary">کاره را در حین جریان، کمینه کن</string>
     <string name="pref_stop_on_sleep">توقف در زمان خوابیدن</string>
     <string name="pref_stop_on_sleep_summary">در صورت خاموش شدن صفحه، جریان متوقف شود</string>
     <string name="pref_start_on_boot">شروع در زمان راه‌اندازی</string>

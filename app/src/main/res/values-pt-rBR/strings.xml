@@ -59,13 +59,10 @@
         <item>Automaticamente (siga o sistema)</item>
         <item>Nunca</item>
     </string-array>
-    <string name="pref_minimize_on_stream">Minimizar no stream</string>
-    <string name="pref_minimise_on_stream_summary">Minimizar o aplicativo ao iniciar o stream</string>
     <string name="pref_stop_on_sleep">Parar em sleep</string>
     <string name="pref_stop_on_sleep_summary">Parar stream se a tela for desligada</string>
     <string name="pref_start_on_boot">Comecar na inicialização</string>
     <string name="pref_start_on_boot_summary">Iniciar stream assim que o dispositivo iniciar</string>
-    <string name="pref_settings_web_page">Página da web</string>
     <string name="pref_html_buttons">Ativar botões da página da web</string>
     <string name="pref_html_buttons_summary">Mostrar botões de controle na página da web</string>
     <string name="pref_html_back_color">Cor de fundo da página</string>

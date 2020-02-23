@@ -1,8 +1,9 @@
 apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-android-extensions'
+apply plugin: 'com.google.firebase.crashlytics'
+apply plugin: "com.google.gms.google-services"
 apply plugin: 'com.getkeepsafe.dexcount'
-apply plugin: 'io.fabric'
 
 android {
     compileSdkVersion(compileSdk)
@@ -12,8 +13,8 @@ android {
         applicationId = "info.dvkr.screenstream"
         minSdkVersion(minSdk)
         targetSdkVersion(targetSdk)
-        versionCode = 30303
-        versionName = "3.3.3"
+        versionCode = 30400
+        versionName = "3.4.0"
         resConfigs("en", "ru", "pt-rBR", "zh-rTW", "fr-rFR", "fa", "it", "pl", "hi", "de", "sk", "es")
 
         vectorDrawables.useSupportLibrary = true
@@ -47,12 +48,12 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility = '1.8'
-        targetCompatibility = '1.8'
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
     }
 
     kotlinOptions {
-        jvmTarget = "1.8"
+        jvmTarget = JavaVersion.VERSION_1_8
     }
 
     sourceSets {
@@ -86,31 +87,31 @@ dependencies {
     implementation("androidx.annotation:annotation:$androidxAnnotation")
     implementation("com.google.android.material:material:$androidMaterial")
     implementation("androidx.appcompat:appcompat:$androidxAppcompat")
-    implementation('androidx.fragment:fragment-ktx:1.2.0-rc03')
+    implementation('androidx.fragment:fragment-ktx:1.2.2')
+    implementation('androidx.recyclerview:recyclerview:1.1.0')
     implementation("androidx.constraintlayout:constraintlayout:$androidxConstraint")
     implementation("androidx.navigation:navigation-fragment-ktx:$androidxNavigation")
     implementation("androidx.navigation:navigation-ui-ktx:$androidxNavigation")
     implementation('androidx.viewpager2:viewpager2:1.0.0')
+    implementation("androidx.lifecycle:lifecycle-livedata:$androidxLifecycle")
 
     implementation("com.afollestad.material-dialogs:core:$materialDialogs")
     implementation("com.afollestad.material-dialogs:color:$materialDialogs")
     implementation("com.afollestad.material-dialogs:input:$materialDialogs")
     implementation("com.afollestad.material-dialogs:lifecycle:$materialDialogs")
+    implementation files('libs/bottomsheets-release.aar')  // Temp fix for https://github.com/afollestad/material-dialogs/issues/1825
+//    implementation("com.afollestad.material-dialogs:bottomsheets:$materialDialogs")
 
     implementation("org.koin:koin-android:$koin")
     implementation("com.github.iamironz:binaryprefs:$binaryprefs")
     implementation("com.elvishew:xlog:$xlog")
 
-    fabricImplementation("com.google.android.play:core:1.6.4")
-    fabricReleaseImplementation("com.google.firebase:firebase-analytics:17.2.1")
-    fabricReleaseImplementation("com.crashlytics.sdk.android:crashlytics:2.10.1@aar") {
-        transitive = true;
-    }
+    fabricImplementation("com.google.android.play:core-ktx:1.6.5")
+    fabricReleaseImplementation('com.google.firebase:firebase-analytics:17.2.2')
+    fabricReleaseImplementation("com.google.firebase:firebase-crashlytics:17.0.0-beta01")
 
-    debugImplementation("com.squareup.leakcanary:leakcanary-android:2.0")
+    debugImplementation("com.squareup.leakcanary:leakcanary-android:2.2")
 }
-
-apply plugin: "com.google.gms.google-services"
 
 android.applicationVariants.all { variant ->
     if (variant.name == "fabricfreeDebug" || variant.name == "fabricfreeRelease") {

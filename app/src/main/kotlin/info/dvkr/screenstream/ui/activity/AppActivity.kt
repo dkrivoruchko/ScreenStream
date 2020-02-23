@@ -11,9 +11,11 @@ import android.view.View
 import android.view.animation.OvershootInterpolator
 import androidx.navigation.findNavController
 import androidx.navigation.ui.setupWithNavController
+import com.afollestad.materialdialogs.LayoutMode
 import com.afollestad.materialdialogs.MaterialDialog
 import com.afollestad.materialdialogs.WhichButton
 import com.afollestad.materialdialogs.actions.setActionButtonEnabled
+import com.afollestad.materialdialogs.bottomsheets.BottomSheet
 import com.afollestad.materialdialogs.input.getInputField
 import com.afollestad.materialdialogs.input.input
 import com.afollestad.materialdialogs.lifecycle.lifecycleOwner
@@ -37,7 +39,6 @@ class AppActivity : PermissionActivity() {
             getAppActivityIntent(context)
     }
 
-    private var isStreamingBefore: Boolean = true
     private val scaleX = PropertyValuesHolder.ofFloat(View.SCALE_X, 0.5f, 1f)
     private val scaleY = PropertyValuesHolder.ofFloat(View.SCALE_Y, 0.5f, 1f)
     private val alpha = PropertyValuesHolder.ofFloat(View.ALPHA, 0f, 1f)
@@ -92,7 +93,7 @@ class AppActivity : PermissionActivity() {
         ll_activity_app_logs.visibility = if (loggingOn) View.VISIBLE else View.GONE
         v_activity_app_logs.visibility = if (loggingOn) View.VISIBLE else View.GONE
         b_activity_app_send_logs.setOnClickListener {
-            MaterialDialog(this).show {
+            MaterialDialog(this, BottomSheet(LayoutMode.WRAP_CONTENT)).show {
                 lifecycleOwner(this@AppActivity)
                 title(R.string.app_activity_send_logs_dialog_title)
                 icon(R.drawable.ic_about_feedback_24dp)
@@ -118,7 +119,7 @@ class AppActivity : PermissionActivity() {
         when (serviceMessage) {
             is ServiceMessage.ServiceState -> {
                 lastServiceMessage != serviceMessage || return
-                XLog.d(this@AppActivity.getLog("onServiceMessage", "Message: $serviceMessage"))
+                XLog.d(this@AppActivity.getLog("onServiceMessage", "$serviceMessage"))
 
                 bottom_navigation_activity_app.menu.findItem(R.id.menu_fab).title =
                     if (serviceMessage.isStreaming) getString(R.string.bottom_menu_stop)
@@ -145,18 +146,6 @@ class AppActivity : PermissionActivity() {
                 }
 
                 lastServiceMessage = serviceMessage
-
-                // MinimizeOnStream
-                if (settings.minimizeOnStream && isStreamingBefore.not() && serviceMessage.isStreaming)
-//                    try {
-//                        startActivity(
-//                            Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME).setFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-//                        )
-//                    } catch (ex: ActivityNotFoundException) {
-//                        XLog.e(getLog("onServiceMessage"), ex)
-//                    }
-
-                    isStreamingBefore = serviceMessage.isStreaming
             }
         }
     }

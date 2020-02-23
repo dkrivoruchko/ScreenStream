@@ -8,6 +8,7 @@
     <color name="textColorTertiary">#656565</color>
 
     <color name="colorStatusBar">#0F0F0F</color>
+    <color name="colorNavigationBar">#0F0F0F</color>
     <color name="colorWindowBackgroundStart">#0F0F0F</color>
     <color name="colorWindowBackgroundEnd">#000000</color>
 
