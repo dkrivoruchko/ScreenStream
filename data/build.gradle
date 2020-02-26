@@ -55,7 +55,11 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutineVersion")
 
     implementation("androidx.annotation:annotation:$androidxAnnotation")
-    implementation("androidx.core:core:$androidxCore")
+    implementation("androidx.core:core:1.2.0")
+    implementation("androidx.arch.core:core-common:2.1.0")
+    implementation("androidx.collection:collection:1.1.0")
+    implementation("androidx.lifecycle:lifecycle-common-java8:2.2.0")
+    implementation("androidx.lifecycle:lifecycle-runtime:2.2.0")
 
     implementation("io.reactivex:rxjava:$rxJava")
     implementation("com.jakewharton.rxrelay:rxrelay:$rxRelay")
