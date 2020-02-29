@@ -4,23 +4,23 @@ import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
-import android.view.LayoutInflater
 import android.view.View
-import android.view.ViewGroup
+import android.widget.Toast
 import androidx.fragment.app.Fragment
 import com.afollestad.materialdialogs.MaterialDialog
 import com.afollestad.materialdialogs.lifecycle.lifecycleOwner
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.data.other.getLog
+import info.dvkr.screenstream.data.settings.Settings
 import kotlinx.android.synthetic.main.fragment_about.*
+import org.koin.android.ext.android.inject
 
-class AboutFragment : Fragment() {
+class AboutFragment : Fragment(R.layout.fragment_about) {
 
+    private val settings: Settings by inject()
+    private var settingsLoggingVisibleCounter: Int = 0
     private var version: String = ""
-
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View =
-        inflater.inflate(R.layout.fragment_about, container, false)
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -31,6 +31,15 @@ class AboutFragment : Fragment() {
                 tv_fragment_about_version.text = getString(R.string.about_fragment_app_version, version)
             } catch (t: Throwable) {
                 XLog.e(getLog("onViewCreated", "getPackageInfo"), t)
+            }
+
+            tv_fragment_about_version.setOnClickListener {
+                settingsLoggingVisibleCounter++
+                if (settingsLoggingVisibleCounter >= 5) {
+                    settings.loggingVisible = true
+                    Toast.makeText(requireContext().applicationContext, "Logging option enabled", Toast.LENGTH_LONG)
+                        .show()
+                }
             }
 
             b_fragment_about_rate.setOnClickListener {

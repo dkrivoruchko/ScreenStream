@@ -3,9 +3,7 @@ package info.dvkr.screenstream.ui.fragment
 import android.os.Bundle
 import android.text.InputFilter
 import android.text.InputType
-import android.view.LayoutInflater
 import android.view.View
-import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
 import androidx.fragment.app.Fragment
 import com.afollestad.materialdialogs.LayoutMode
@@ -25,7 +23,7 @@ import info.dvkr.screenstream.logging.cleanLogFiles
 import kotlinx.android.synthetic.main.fragment_settings_advanced.*
 import org.koin.android.ext.android.inject
 
-class SettingsAdvancedFragment : Fragment() {
+class SettingsAdvancedFragment : Fragment(R.layout.fragment_settings_advanced) {
 
     private val settings: Settings by inject()
     private val settingsListener = object : SettingsReadOnly.OnSettingsChangeListener {
@@ -36,9 +34,6 @@ class SettingsAdvancedFragment : Fragment() {
             else -> Unit
         }
     }
-
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View =
-        inflater.inflate(R.layout.fragment_settings_advanced, container, false)
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -92,6 +87,8 @@ class SettingsAdvancedFragment : Fragment() {
         }
 
         // Advanced - Enable application logs
+        v_fragment_settings_logging.visibility = if (settings.loggingVisible) View.VISIBLE else View.GONE
+        cl_fragment_settings_logging.visibility = if (settings.loggingVisible) View.VISIBLE else View.GONE
         with(cb_fragment_settings_logging) {
             isChecked = settings.loggingOn
             setOnClickListener {

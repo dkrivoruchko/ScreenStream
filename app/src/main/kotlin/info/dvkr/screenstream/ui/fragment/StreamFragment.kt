@@ -39,7 +39,7 @@ import kotlinx.android.synthetic.main.item_client.*
 import kotlinx.android.synthetic.main.item_device_address.view.*
 import org.koin.android.ext.android.inject
 
-class StreamFragment : Fragment() {
+class StreamFragment : Fragment(R.layout.fragment_stream) {
 
     private val colorAccent by lazy { ContextCompat.getColor(requireContext(), R.color.colorAccent) }
     private val clipboard: ClipboardManager? by lazy {
@@ -49,9 +49,6 @@ class StreamFragment : Fragment() {
     private val settingsReadOnly: SettingsReadOnly by inject()
     private var httpClientAdapter: HttpClientAdapter? = null
     private var errorPrevious: AppError? = null
-
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View =
-        inflater.inflate(R.layout.fragment_stream, container, false)
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)

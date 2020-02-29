@@ -3,7 +3,6 @@ package info.dvkr.screenstream.ui.fragment
 import android.os.Bundle
 import android.text.InputFilter
 import android.text.InputType
-import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
@@ -24,7 +23,7 @@ import info.dvkr.screenstream.data.settings.SettingsReadOnly
 import kotlinx.android.synthetic.main.fragment_settings_security.*
 import org.koin.android.ext.android.inject
 
-class SettingsSecturityFragment : Fragment() {
+class SettingsSecurityFragment : Fragment(R.layout.fragment_settings_security) {
 
     private val settings: Settings by inject()
     private val settingsListener = object : SettingsReadOnly.OnSettingsChangeListener {
@@ -35,9 +34,6 @@ class SettingsSecturityFragment : Fragment() {
             else -> Unit
         }
     }
-
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View =
-        inflater.inflate(R.layout.fragment_settings_security, container, false)
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)

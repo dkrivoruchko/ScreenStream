@@ -8,6 +8,7 @@ import info.dvkr.screenstream.data.model.AppError
 import info.dvkr.screenstream.data.other.getLog
 import kotlinx.coroutines.channels.SendChannel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
 
 
@@ -49,6 +50,7 @@ class BitmapNotification(
 
         coroutineScope.launch {
             repeat(3) {
+                ensureActive()
                 outBitmapChannel.isClosedForSend.not() || return@launch
                 outBitmapChannel.offer(bitmap)
                 delay(200)

@@ -17,6 +17,7 @@ import io.reactivex.netty.protocol.http.server.HttpServerResponse
 import io.reactivex.netty.protocol.http.server.RequestHandler
 import io.reactivex.netty.threads.RxJavaEventloopScheduler
 import kotlinx.coroutines.channels.ReceiveChannel
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
 import rx.BackpressureOverflow
 import rx.Observable
@@ -65,12 +66,14 @@ internal class HttpServerRxHandler(
         pinRequestHtml = httpServerFiles.configurePinRequestHtml()
         pinRequestErrorHtml = httpServerFiles.configurePinRequestErrorHtml()
 
-        launch {
+        coroutineScope.launch {
             for (jpegBytes in jpegBytesChannel) {
+                ensureActive()
                 val jpegLength = jpegBytes.size.toString().toByteArray()
                 jpegBytesStream.call(
                     Unpooled.copiedBuffer(jpegBaseHeader, jpegLength, crlf, crlf, jpegBytes, crlf, jpegBoundary).array()
                 )
+                ensureActive()
             }
         }
     }

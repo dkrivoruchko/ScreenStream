@@ -1,8 +1,8 @@
 apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-android-extensions'
-apply plugin: 'com.google.firebase.crashlytics'
 apply plugin: "com.google.gms.google-services"
+apply plugin: 'com.google.firebase.crashlytics'
 apply plugin: 'com.getkeepsafe.dexcount'
 
 android {
@@ -13,8 +13,8 @@ android {
         applicationId = "info.dvkr.screenstream"
         minSdkVersion(minSdk)
         targetSdkVersion(targetSdk)
-        versionCode = 30400
-        versionName = "3.4.0"
+        versionCode = 30401
+        versionName = "3.4.1"
         resConfigs("en", "ru", "pt-rBR", "zh-rTW", "fr-rFR", "fa", "it", "pl", "hi", "de", "sk", "es")
 
         vectorDrawables.useSupportLibrary = true
@@ -42,6 +42,9 @@ android {
         }
 
         fabricfree {
+            firebaseCrashlytics {
+                mappingFileUploadEnabled false
+            }
             ext.enableCrashlytics = false
             ext.alwaysUpdateBuildId = false
         }
@@ -124,8 +127,8 @@ tasks.withType(org.jetbrains.kotlin.gradle.tasks.AbstractKotlinCompile).all {
     kotlinOptions.freeCompilerArgs += ["-Xuse-experimental=kotlinx.coroutines.FlowPreview"]
 }
 
-tasks.whenTaskAdded { task ->
-    if (task.name.contains("uploadCrashlyticsMappingFileFabricfreeRelease")) {
-        task.enabled = false
-    }
-}
+//tasks.whenTaskAdded { task ->
+//    if (task.name.contains("uploadCrashlyticsMappingFileFabricfreeRelease")) {
+//        task.enabled = false
+//    }
+//}

@@ -120,6 +120,7 @@ class AppStateMachineImpl(
         var previousStreamState: StreamState
 
         consumeEach { event ->
+            ensureActive()
             try {
                 if (StateToEventMatrix.skippEvent(streamState.state, event).not()) {
 
@@ -151,6 +152,7 @@ class AppStateMachineImpl(
                 XLog.e(this@AppStateMachineImpl.getLog("actor"), throwable)
                 onError(FatalError.ActorException)
             }
+            ensureActive()
         }
     }
 
@@ -187,7 +189,7 @@ class AppStateMachineImpl(
         settingsReadOnly.unregisterChangeListener(settingsListener)
         broadcastHelper.stopListening()
         connectivityHelper.stopListening()
-        coroutineScope.coroutineContext.cancel()
+        coroutineScope.cancel()
         eventChannel.close()
         bitmapToJpeg.destroy()
         bitmapNotification.destroy()

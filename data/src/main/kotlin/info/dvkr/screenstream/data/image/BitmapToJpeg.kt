@@ -8,6 +8,7 @@ import info.dvkr.screenstream.data.settings.Settings
 import info.dvkr.screenstream.data.settings.SettingsReadOnly
 import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.channels.SendChannel
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
 import java.io.ByteArrayOutputStream
 import java.util.concurrent.atomic.AtomicInteger
@@ -42,9 +43,12 @@ class BitmapToJpeg(
         super.start()
         coroutineScope.launch {
             for (bitmap in inBitmapChannel) {
+                ensureActive()
                 bitmap.compress(Bitmap.CompressFormat.JPEG, jpegQuality.get(), resultJpegStream)
+                ensureActive()
                 if (outJpegChannel.isClosedForSend.not()) outJpegChannel.offer(resultJpegStream.toByteArray())
                 resultJpegStream.reset()
+                ensureActive()
             }
         }
     }

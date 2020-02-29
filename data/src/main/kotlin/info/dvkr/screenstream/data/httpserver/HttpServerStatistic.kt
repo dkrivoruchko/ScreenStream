@@ -7,14 +7,11 @@ import info.dvkr.screenstream.data.model.HttpClient
 import info.dvkr.screenstream.data.model.TrafficPoint
 import info.dvkr.screenstream.data.other.asString
 import info.dvkr.screenstream.data.other.getLog
-import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.ClosedSendChannelException
 import kotlinx.coroutines.channels.SendChannel
 import kotlinx.coroutines.channels.actor
 import kotlinx.coroutines.channels.consumeEach
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.isActive
-import kotlinx.coroutines.launch
 import java.net.InetSocketAddress
 import java.util.*
 
@@ -51,7 +48,7 @@ internal class HttpServerStatistic(
         override fun toString(): String = this::class.java.simpleName
     }
 
-    private val statisticEventChannel: SendChannel<StatisticEvent> = actor(capacity = 32) {
+    private val statisticEventChannel: SendChannel<StatisticEvent> = coroutineScope.actor(capacity = 32) {
         val clientsMap: MutableMap<InetSocketAddress, LocalClient> = mutableMapOf()
         val trafficHistory = LinkedList<TrafficPoint>()
 
@@ -61,6 +58,7 @@ internal class HttpServerStatistic(
         }
 
         consumeEach { event ->
+            ensureActive()
             try {
                 XLog.v(this@HttpServerStatistic.getLog("Actor", event.toString()))
 
@@ -96,13 +94,14 @@ internal class HttpServerStatistic(
                 XLog.e(this@HttpServerStatistic.getLog("actor"), throwable)
                 onError(FatalError.ActorException)
             }
+            ensureActive()
         }
     }
 
     init {
         XLog.d(getLog("init", "Invoked"))
 
-        launch {
+        coroutineScope.launch {
             while (isActive) {
                 sendStatisticEvent(StatisticEvent.CalculateTraffic)
                 sendStatisticEvent(StatisticEvent.SendStatistic)
@@ -113,7 +112,7 @@ internal class HttpServerStatistic(
 
     internal fun sendStatisticEvent(event: StatisticEvent) {
         synchronized(lock) {
-            if (supervisorJob.isActive.not()) {
+            if (coroutineScope.isActive.not()) {
                 XLog.w(getLog("sendStatisticEvent", "JobIsNotActive"))
                 return
             }

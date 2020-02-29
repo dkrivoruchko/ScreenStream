@@ -20,14 +20,6 @@
         android:theme="@style/Theme.App.DayNight"
         tools:ignore="GoogleAppIndexingWarning">
 
-        <meta-data
-            android:name="google_analytics_adid_collection_enabled"
-            android:value="false" />
-
-        <meta-data
-            android:name="firebase_analytics_collection_deactivated"
-            android:value="true" />
-
         <activity
             android:name=".ui.activity.AppActivity"
             android:launchMode="singleTask"

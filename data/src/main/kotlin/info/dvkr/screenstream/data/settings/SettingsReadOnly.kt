@@ -34,6 +34,7 @@ interface SettingsReadOnly {
     val enableIPv6: Boolean
     val enableLocalHost: Boolean
     val severPort: Int
+    val loggingVisible: Boolean
     val loggingOn: Boolean
 
     val lastIAURequestTimeStamp: Long
