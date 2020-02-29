@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="error_title">خطأ</string>
+    <string name="error_port_in_use"> المنفذ قيد الاستخدام. اختر واحد اخر </string>
+    <string name="error_invalid_media_projection"> خطآ امني : إسقاط وسائل الاعلام غير صحيح. حاول مرة أخرى  </string>
+    <string name="error_ip_address_not_found"> عنوان الانترنت غير موجود \n حاول تعطيل "\استخدام واي فاي فقط"\في الاعدادات   </string>
+    <string name="error_wrong_image_format">يقوم النظام بإرجاع الصورة بتنسيق غير معروف .لا يوجد إصلاح المتاحة .آسف</string>
+    <string name="error_exit">خروج</string>
+    <string name="app_activity_collecting_logs">...جمع سجلات التطبيق</string>
+    <string name="app_activity_send_logs">إرسال السجلات إلى المطور</string>
+    <string name="app_activity_send_logs_dialog_title">إرسال سجلات في البريد الإلكتروني إلى مطور</string>
+    <string name="app_activity_send_logs_dialog_message"> : الرجاء إضافة وصف المشكلة</string>
+    <string name="app_activity_send_logs_dialog_neutral">وقف التسجيل</string>
+    <string name="app_update_activity_dialog_title">تحديث متوفر</string>
+    <string name="app_update_activity_dialog_message">تم تنزيل التحديث للتو. أعد تشغيل التطبيق الآن؟</string>
+    <string name="app_update_activity_dialog_restart">اعادة تشغيل</string>
+    <string name="bottom_menu_stream">بث</string>
+    <string name="bottom_menu_settings">الإعدادات</string>
+    <string name="bottom_menu_start">ابدأ</string>
+    <string name="bottom_menu_stop">توقف</string>
+    <string name="bottom_menu_about">حول</string>
+    <string name="bottom_menu_exit">خروج</string>
+    <string name = "stream_fragment_current_traffic"> عدد الزيارات : f 2.,1$% ميغابت / ثانية </string>
+    <string name="stream_fragment_connected_clients">  %1$d : عملاء متصلون </string>
+    <string name="stream_fragment_no_address">لم يتم العثور على عنوان</string>
+    <string name="stream_fragment_interface">%1$s : واجهة تعامل</string>
+    <string name="stream_fragment_copied">منسوخ</string>
+    <string name="stream_fragment_no_web_browser_found">لم يتم العثور على متصفح الويب</string>
+    <string name="stream_fragment_external_app_error">خطأ تطبيق خارجي</string>
+    <string name="stream_fragment_share_address">مشاركة عنوان الجهاز</string>
+    <string name="stream_fragment_pin">%1$s : الرقم السري</string>
+    <string name="stream_fragment_pin_disabled">تم تعطيل الرمز السري</string>
+    <string name="stream_fragment_client_disconnected">انقطع الاتصال</string>
+    <string name="stream_fragment_client_slow_network">اتصال بطيء</string>
+    <string name="stream_fragment_client_connected">متصل</string>
+    <string name="item_device_address">عنوان الجهاز</string>
+    <string name="permission_activity_error_title_activity_not_found">خطأ في إذن </string>
+    <string name="permission_activity_error_activity_not_found"> خلل اندرويد .لا تحقق في طلب الحقوق لالتقاط الشاشة إذا قمت بذلك بالفعل ، فأعد تثبيت التطبيق</string>
+    <string name="permission_activity_cast_permission_required_title">إذن مطلوب</string>
+    <string name="permission_activity_cast_permission_required">يتطلب التطبيق إذن سكرينكست  لالتقاط الشاشة </string>
+    <string name="permission_activity_error_title">خطأ</string>
+    <string name="permission_activity_error_unknown">خطأ غير معروف</string>
+    <string name="notification_ready_to_stream">جاهز للبث </string>
+    <string name="notification_press_start">اضغط على بدء على الجهاز</string>
+    <string name="notification_start">ابدأ</string>
+    <string name="notification_exit">خروج</string>
+    <string name="notification_stream">...بث</string>
+    <string name="notification_press_stop">اضغط على وقف لإنهاء بث</string>
+    <string name="notification_stop">وقف</string>
+    <string name="toast_slow_client_connection">تم اكتشاف اتصال عميل بطيء</string>
+    <string name="pref_settings_interface">واجهه المستخدم</string>
+    <string name="pref_night_mode"> واجهه داكنه</string>
+    <string-array name="pref_night_mode_options_api21_28">
+        <item>دائما</item>
+        <item>تعيين بواسطة حافظ البطارية </item>
+        <item>أبدا</item>
+    </string-array>
+    <string-array name="pref_night_mode_options_api29">
+        <item>دائما</item>
+        <item>تلقائيا </item>
+        <item>أبدا</item>
+    </string-array>
+    <string name="pref_notification">إعدادات التنبيه</string>
+    <string name="pref_notification_summary">افتح إعدادات التنبيه</string>
+    <string name="pref_stop_on_sleep">وقف البث عند النوم </string>
+    <string name="pref_stop_on_sleep_summary">وقف البث عندإيقاف الشاشة </string>
+    <string name="pref_start_on_boot">بدءالبث عندبداية</string>
+    <string name="pref_start_on_boot_summary">بدءالبث بعد بداية</string>
+    <string name="pref_auto_start_stop">بدء تلقائي / إيقاف بدءالبث</string>
+    <string name="pref_auto_start_stop_summary">بدء تلقائي / إيقاف بدءالبث </string>
+    <string name="pref_detect_slow_connections">إبلاغ عن اتصالات بطيئة</string>
+    <string name="pref_detect_slow_connections_summary">كشف وإعلام لاتصالات العملاء بطيئة</string>
+    <string name="pref_html_buttons">تمكين أزرار صفحة الويب</string>
+    <string name="pref_html_buttons_summary">إظهار أزرار التحكم على صفحة الويب</string>
+    <string name="pref_html_back_color">لون خلفية صفحة الويب</string>
+    <string name="pref_html_back_color_summary">تعيين لون خلفية صفحة الويب</string>
+    <string name="pref_html_back_color_title">اختيار لون الخلفية</string>
+    <string name="pref_settings_image">صورة</string>
+    <string name="pref_vr_mode">وضع الواقع الافتراضي</string>
+    <string name="pref_vr_mode_summary">التقاط المحتوى من نصف الشاشة</string>
+    <string-array name="pref_vr_mode_options">
+        <item>استخدام الجزء الأيسر</item>
+        <item>استخدام الجزء الصحيح</item>
+    </string-array>
+    <string name="pref_crop">قص الصوره</string>
+    <string name="pref_crop_summary">قص الصورة قبل إرسالها إلى العميل</string>
+    <string name="pref_crop_dialog_crop_top">قص الجزء العلوي</string>
+    <string name="pref_crop_dialog_crop_bottom">قص الجزء السفلي</string>
+    <string name="pref_crop_dialog_crop_left">قص جزء الأيسر</string>
+    <string name="pref_crop_dialog_crop_right">قص الجزء الأيمن</string>
+    <string name="pref_crop_dialog_pixels">بكسل</string>
+    <string name="pref_crop_dialog_warning_message">سيتم تجاهل قص إذا كانت النتيجة هي صورة فارغة</string>
+    <string name="pref_crop_dialog_error_message">أدخل قيم قص صالحة</string>
+    <string name="pref_resize">تغيير حجم الصورة</string>
+    <string name="pref_resize_summary">تغيير حجم الصورة قبل إرسالها إلى العميل</string>
+    <string name="pref_resize_dialog_text">تعيين عامل تغيير حجم الصورة في المئةالقيم: 10-150</string>
+    <string name="pref_resize_dialog_result">%1$dx%2$d حجم الصورة</string>
+    <string name="pref_rotate">تدوير الصورة في اتجاه عقارب الساعة</string>
+    <string name="pref_rotate_summary">تدوير الصورة قبل إرسالها إلى العميل</string>
+    <string name="pref_fps">الحد من صور في الثانية الواحدة</string>
+    <string name="pref_fps_summary">اضبط أقصى صور في الثانية</string>
+    <string name="pref_fps_dialog">عيّن الحد الأقصى للصور في الثانية. \ n القيم: 1-30 (افتراضيًا: 8)</string>
+    <string name="pref_jpeg_quality">جودة ضغط JPEG</string>
+    <string name="pref_jpeg_quality_summary">اضبط جودة ضغط JPEG</string>
+    <string name="pref_jpeg_quality_dialog">اضبط جودة ضغط JPEG. القيم: 10–100 (الافتراضي: 100)</string>
+    <string name="pref_settings_security">الحماية</string>
+    <string name="pref_enable_pin">تمكين الرمز السري</string>
+    <string name="pref_enable_pin_summary">حماية البث عن طريق الرمز السري</string>
+    <string name="pref_hide_pin"> إخفاء الرمز السري على بدء البث</string>
+    <string name="pref_hide_pin_summary">إظهار العلامات النجمية بدلاً من الرمز السري أثناء البث</string>
+    <string name="pref_new_pin_on_start">رقم سري جديد في البداية</string>
+    <string name="pref_new_pin_on_start_summary">إنشاء رمز سري جديد عند بدء التطبيق</string>
+    <string name="pref_auto_change_pin">تغيير تلقاءي الرمز السري</string>
+    <string name="pref_auto_change_pin_summary">إنشاء رمز سري جديد لكل بث جديد</string>
+    <string name="pref_set_pin">ضبط الرمز السري</string>
+    <string name="pref_set_pin_summary">أدخل الرمز السري يدويًا</string>
+    <string name="pref_set_pin_dialog">أدخل الرمز السري. افتراضيا: 0000</string>
+    <string name="pref_settings_advanced">متقدم</string>
+    <string name="pref_wifi_only">استخدام واي فاي فقط</string>
+    <string name="pref_wifi_only_summary">قم بتشغيل سيرفر على واجهة واي فاي فقط</string>
+    <string name="pref_enable_ipv6">تمكين دعم IPv6</string>
+    <string name="pref_enable_ipv6_summary">تشغيل سيرفر على عناوين IPv6 أيضا</string>
+    <string name="pref_enable_localhost">تمكين المضيف المحلي</string>
+    <string name="pref_enable_localhost_summary">تشغيل سيرفر على عناوين المضيف المحلي أيضا</string>
+    <string name="pref_server_port">منفذ سيرفر</string>
+    <string name="pref_server_port_summary">تعيين منفذ للاتصالات الواردة</string>
+    <string name="pref_server_port_dialog">تعيين منفذ سيرفر للاتصالات الواردة. القيم: 1025–65535 (الافتراضي: 8080)</string>
+    <string name="pref_logging">تمكين سجلات التطبيق</string>
+    <string name="pref_logging_summary">جمع سجلات التطبيق</string>
+    <string name="about_fragment_app_version">%1$s الإصدار</string>
+    <string name="about_fragment_developer_name"> طور من قبل دميتري كريفوروشكو</string>
+    <string name="about_fragment_rate_app">قيم التطبيق</string>
+    <string name="about_fragment_write_email">إرسال بريد إلكتروني إلى المطور</string>
+    <string name="about_fragment_write_email_dialog">إرسال بريد إلكتروني إلى المطور؟</string>
+    <string name="about_fragment_email_chooser_header">...إرسال البريد الإلكتروني</string>
+    <string name="about_fragment_app_sources">مصادر التطبيق</string>
+    <string name="about_fragment_privacy_policy">سياسة الخصوصية</string>
+</resources>

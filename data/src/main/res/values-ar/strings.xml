@@ -1,0 +1,14 @@
+<resources>
+    <!--BitmapNotification-->
+    <string name="image_generator_press_start">اضغط على بدء على الجهاز</string>
+    <string name="image_generator_go_to_new_address">يرجى الذهاب إلى عنوان جديد</string>
+    <string name="image_generator_reload_this_page">يرجى إعادة تحميل هذه الصفحة</string>
+
+    <!--HTML text-->
+    <string name="html_stream_require_pin">يتطلب هذا البث الرقم السري للدخول إليه</string>
+    <string name="html_enter_pin"> \u0020: أدخل الرقم السري</string>
+    <string name="html_four_digits">أربعة أرقام</string>
+    <string name="html_submit_text">إرسال</string>
+    <string name="html_wrong_pin">رقم سري خطأ!</string>
+</resources>
+
