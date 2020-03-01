@@ -3,7 +3,7 @@
     <string name="error_title">خطأ</string>
     <string name="error_port_in_use"> المنفذ قيد الاستخدام. اختر واحد اخر </string>
     <string name="error_invalid_media_projection"> خطآ امني : إسقاط وسائل الاعلام غير صحيح. حاول مرة أخرى  </string>
-    <string name="error_ip_address_not_found"> عنوان الانترنت غير موجود \n حاول تعطيل "\استخدام واي فاي فقط"\في الاعدادات   </string>
+    <string name="error_ip_address_not_found"> عنوان الانترنت غير موجود \n حاول تعطيل \"استخدام واي فاي فقط\" في الاعدادات   </string>
     <string name="error_wrong_image_format">يقوم النظام بإرجاع الصورة بتنسيق غير معروف .لا يوجد إصلاح المتاحة .آسف</string>
     <string name="error_exit">خروج</string>
     <string name="app_activity_collecting_logs">...جمع سجلات التطبيق</string>
@@ -20,7 +20,7 @@
     <string name="bottom_menu_stop">توقف</string>
     <string name="bottom_menu_about">حول</string>
     <string name="bottom_menu_exit">خروج</string>
-    <string name = "stream_fragment_current_traffic"> عدد الزيارات : f 2.,1$% ميغابت / ثانية </string>
+    <string name = "stream_fragment_current_traffic"> عدد الزيارات : %1$,.2f  ميغابت / ثانية </string>
     <string name="stream_fragment_connected_clients">  %1$d : عملاء متصلون </string>
     <string name="stream_fragment_no_address">لم يتم العثور على عنوان</string>
     <string name="stream_fragment_interface">%1$s : واجهة تعامل</string>
