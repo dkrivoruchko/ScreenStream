@@ -12,6 +12,7 @@ import androidx.annotation.AnyThread
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.content.ContextCompat
 import com.elvishew.xlog.XLog
+import info.dvkr.screenstream.service.helper.QuickSettingsHelper
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.data.model.AppError
 import info.dvkr.screenstream.data.model.FatalError
@@ -104,11 +105,14 @@ class AppService : Service() {
                     )
                 )
 
-                if (effect.isStreaming)
+                if (effect.isStreaming){
                     notificationHelper.showForegroundNotification(this, NotificationHelper.NotificationType.STOP)
-                else
+                    quickSettingsHelper.setState(quickSettingsHelper.STATE_ACTIVE)
+                }
+                else {
                     notificationHelper.showForegroundNotification(this, NotificationHelper.NotificationType.START)
-
+                    quickSettingsHelper.setState(quickSettingsHelper.STATE_INACTIVE)
+                }
                 onError(effect.appError)
             }
         }
@@ -116,6 +120,7 @@ class AppService : Service() {
 
     private val settings: Settings by inject()
     private val notificationHelper: NotificationHelper by inject()
+    private val quickSettingsHelper : QuickSettingsHelper by inject()
     private lateinit var appStateMachine: AppStateMachine
 
     override fun onCreate() {
