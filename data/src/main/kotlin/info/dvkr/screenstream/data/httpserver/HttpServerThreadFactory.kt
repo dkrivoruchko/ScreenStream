@@ -3,6 +3,7 @@ package info.dvkr.screenstream.data.httpserver
 
 import io.netty.util.concurrent.FastThreadLocal
 import io.netty.util.concurrent.FastThreadLocalThread
+import kotlinx.coroutines.CancellationException
 import java.util.concurrent.ThreadFactory
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -52,6 +53,7 @@ internal class HttpServerThreadFactory private constructor(
         override fun run() {
             try {
                 r.run()
+            } catch (ignored: CancellationException) {
             } finally {
                 FastThreadLocal.removeAll()
             }
