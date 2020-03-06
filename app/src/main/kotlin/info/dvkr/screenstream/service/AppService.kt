@@ -12,7 +12,6 @@ import androidx.annotation.AnyThread
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.content.ContextCompat
 import com.elvishew.xlog.XLog
-import info.dvkr.screenstream.service.helper.QuickSettingsHelper
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.data.model.AppError
 import info.dvkr.screenstream.data.model.FatalError
@@ -36,6 +35,8 @@ import java.util.concurrent.atomic.AtomicBoolean
 class AppService : Service() {
 
     companion object {
+        var isRunning: Boolean = false
+
         fun getAppServiceIntent(context: Context): Intent =
             Intent(context.applicationContext, AppService::class.java)
 
@@ -105,14 +106,10 @@ class AppService : Service() {
                     )
                 )
 
-                if (effect.isStreaming){
+                if (effect.isStreaming)
                     notificationHelper.showForegroundNotification(this, NotificationHelper.NotificationType.STOP)
-                    quickSettingsHelper.setState(quickSettingsHelper.STATE_ACTIVE)
-                }
-                else {
+                else
                     notificationHelper.showForegroundNotification(this, NotificationHelper.NotificationType.START)
-                    quickSettingsHelper.setState(quickSettingsHelper.STATE_INACTIVE)
-                }
                 onError(effect.appError)
             }
         }
@@ -120,7 +117,6 @@ class AppService : Service() {
 
     private val settings: Settings by inject()
     private val notificationHelper: NotificationHelper by inject()
-    private val quickSettingsHelper : QuickSettingsHelper by inject()
     private lateinit var appStateMachine: AppStateMachine
 
     override fun onCreate() {
@@ -143,6 +139,7 @@ class AppService : Service() {
             },
             ::onEffect
         )
+        isRunning = true
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -200,6 +197,7 @@ class AppService : Service() {
 
     override fun onDestroy() {
         XLog.d(getLog("onDestroy", "Invoked"))
+        isRunning = false
         appStateMachine.destroy()
         coroutineScope.cancel()
         stopForeground(true)

@@ -12,9 +12,7 @@ import kotlinx.android.parcel.Parcelize
 sealed class IntentAction : Parcelable {
     internal companion object {
         private const val EXTRA_PARCELABLE = "EXTRA_PARCELABLE"
-        fun fromIntent(intent: Intent?): IntentAction? = intent?.getParcelableExtra(
-            EXTRA_PARCELABLE
-        )
+        fun fromIntent(intent: Intent?): IntentAction? = intent?.getParcelableExtra(EXTRA_PARCELABLE)
     }
 
     fun toAppServiceIntent(context: Context): Intent = AppService.getAppServiceIntent(context).apply {

@@ -3,7 +3,6 @@ package info.dvkr.screenstream.di
 import com.elvishew.xlog.XLog
 import com.ironz.binaryprefs.BinaryPreferencesBuilder
 import com.ironz.binaryprefs.Preferences
-import info.dvkr.screenstream.service.helper.QuickSettingsHelper
 import info.dvkr.screenstream.data.settings.Settings
 import info.dvkr.screenstream.data.settings.SettingsImpl
 import info.dvkr.screenstream.data.settings.SettingsReadOnly
@@ -24,5 +23,4 @@ val baseKoinModule = module {
     single<Settings> { SettingsImpl(get()) } bind SettingsReadOnly::class
 
     single { NotificationHelper(androidApplication()) }
-    single { QuickSettingsHelper() }
 }

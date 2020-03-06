@@ -38,13 +38,12 @@
             tools:targetApi="q" />
 
         <service
-            android:name=".service.helper.QuickSettingsHelper"
+            android:name=".service.TileActionService"
+            android:icon="@drawable/ic_tile_default_24dp"
             android:label="@string/app_name"
-            android:icon="@drawable/ic_navigation_stream_24dp"
             android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
             <intent-filter>
-                <action
-                    android:name="android.service.quicksettings.action.QS_TILE"/>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
             </intent-filter>
         </service>
 

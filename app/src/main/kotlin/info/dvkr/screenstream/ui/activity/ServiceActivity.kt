@@ -44,6 +44,7 @@ abstract class ServiceActivity : AppUpdateActivity() {
         override fun onServiceDisconnected(name: ComponentName?) {
             XLog.w(this@ServiceActivity.getLog("onServiceDisconnected"))
             serviceMessageFlowJob?.cancel()
+            serviceMessageFlowJob = null
             isBound = false
         }
     }
@@ -76,6 +77,7 @@ abstract class ServiceActivity : AppUpdateActivity() {
     override fun onStop() {
         if (isBound) {
             serviceMessageFlowJob?.cancel()
+            serviceMessageFlowJob = null
             unbindService(serviceConnection)
             isBound = false
         }

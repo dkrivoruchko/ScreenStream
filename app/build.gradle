@@ -110,7 +110,7 @@ dependencies {
     implementation("com.elvishew:xlog:$xlog")
 
     fabricImplementation("com.google.android.play:core-ktx:1.6.5")
-    fabricReleaseImplementation('com.google.firebase:firebase-analytics:17.2.2')
+    fabricReleaseImplementation('com.google.firebase:firebase-analytics:17.2.3')
     fabricReleaseImplementation("com.google.firebase:firebase-crashlytics:17.0.0-beta01")
 
     debugImplementation("com.squareup.leakcanary:leakcanary-android:2.2")
