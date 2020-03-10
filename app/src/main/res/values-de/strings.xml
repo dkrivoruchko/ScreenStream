@@ -65,7 +65,7 @@
     </string-array>
     <string-array name="pref_night_mode_options_api29">
         <item>Immer</item>
-        <item>Automatisch (system folgen)</item>
+        <item>Automatisch (System folgen)</item>
         <item>Nie</item>
     </string-array>
     <string name="pref_notification">Einstellungen für Benachrichtigungen</string>
@@ -84,7 +84,7 @@
     <string name="pref_html_back_color_summary">Hintergrundfarbe der Webseite setzen</string>
     <string name="pref_html_back_color_title">Hintergrundfarbe wählen</string>
     <string name="pref_settings_image">Bild</string>
-    <string name="pref_vr_mode">Virtuelle-Realität-Modus</string>
+    <string name="pref_vr_mode">Modus für virtuelle Realität</string>
     <string name="pref_vr_mode_summary">Erfassen von Inhalten vom halben Bildschirm</string>
     <string-array name="pref_vr_mode_options" translatable="false">
         <item>Verwendung des linken Teils</item>
