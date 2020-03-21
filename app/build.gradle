@@ -13,8 +13,8 @@ android {
         applicationId = "info.dvkr.screenstream"
         minSdkVersion(minSdk)
         targetSdkVersion(targetSdk)
-        versionCode = 30402
-        versionName = "3.4.2"
+        versionCode = 30403
+        versionName = "3.4.3"
         resConfigs("en", "ru", "pt-rBR", "zh-rTW", "fr-rFR", "fa", "it", "pl", "hi", "de", "sk", "es", "ar")
 
         vectorDrawables.useSupportLibrary = true
@@ -90,7 +90,7 @@ dependencies {
     implementation("androidx.annotation:annotation:$androidxAnnotation")
     implementation("com.google.android.material:material:$androidMaterial")
     implementation("androidx.appcompat:appcompat:$androidxAppcompat")
-    implementation('androidx.fragment:fragment-ktx:1.2.2')
+    implementation('androidx.fragment:fragment-ktx:1.2.3')
     implementation('androidx.recyclerview:recyclerview:1.1.0')
     implementation("androidx.constraintlayout:constraintlayout:$androidxConstraint")
     implementation("androidx.navigation:navigation-fragment-ktx:$androidxNavigation")
@@ -109,9 +109,9 @@ dependencies {
     implementation("com.github.iamironz:binaryprefs:$binaryprefs")
     implementation("com.elvishew:xlog:$xlog")
 
-    fabricImplementation("com.google.android.play:core-ktx:1.6.5")
+    fabricImplementation("com.google.android.play:core-ktx:1.7.0")
     fabricReleaseImplementation('com.google.firebase:firebase-analytics:17.2.3')
-    fabricReleaseImplementation("com.google.firebase:firebase-crashlytics:17.0.0-beta01")
+    fabricReleaseImplementation("com.google.firebase:firebase-crashlytics:17.0.0-beta02")
 
     debugImplementation("com.squareup.leakcanary:leakcanary-android:2.2")
 }
