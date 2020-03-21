@@ -12,6 +12,7 @@ import io.reactivex.netty.RxNetty
 import io.reactivex.netty.protocol.http.server.HttpServer
 import kotlinx.coroutines.channels.ReceiveChannel
 import java.net.BindException
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
 
 class AppHttpServerImpl constructor(
@@ -108,7 +109,7 @@ class AppHttpServerImpl constructor(
         }
 
         try {
-            serverEventLoop?.shutdownGracefully()
+            serverEventLoop?.shutdownGracefully(0, 0, TimeUnit.MILLISECONDS)
             serverEventLoop = null
         } catch (throwable: Throwable) {
             XLog.e(getLog("stopServer.serverEventLoop"), throwable)
