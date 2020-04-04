@@ -23,7 +23,7 @@ interface Settings : SettingsReadOnly {
         const val JPEG_QUALITY = "PREF_KEY_JPEG_QUALITY"
         const val RESIZE_FACTOR = "PREF_KEY_RESIZE_FACTOR"
         const val ROTATION = "PREF_KEY_ROTATION"
-        const val MAX_FPS = "PREF_KEY_MAX_FPS"
+        const val MAX_FPS = "PREF_KEY_MAX_FPS_2"
 
         const val ENABLE_PIN = "PREF_KEY_ENABLE_PIN"
         const val HIDE_PIN_ON_START = "PREF_KEY_HIDE_PIN_ON_START"
@@ -62,7 +62,7 @@ interface Settings : SettingsReadOnly {
         const val JPEG_QUALITY = 80
         const val RESIZE_FACTOR = 50
         const val ROTATION = Values.ROTATION_0
-        const val MAX_FPS = 8
+        const val MAX_FPS = 30
 
         const val ENABLE_PIN = false
         const val HIDE_PIN_ON_START = true

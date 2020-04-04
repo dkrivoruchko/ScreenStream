@@ -239,7 +239,7 @@ class SettingsImageFragment : Fragment(R.layout.fragment_settings_image) {
                     maxLength = 2,
                     waitForPositiveButton = false
                 ) { dialog, text ->
-                    val isValid = text.length in 1..2 && text.toString().toInt() in 1..30
+                    val isValid = text.length in 1..2 && text.toString().toInt() in 1..60
                     dialog.setActionButtonEnabled(WhichButton.POSITIVE, isValid)
                 }
                 positiveButton(android.R.string.ok) { dialog ->

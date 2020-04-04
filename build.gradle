@@ -4,27 +4,6 @@ buildscript {
         buildTools = "29.0.3"
         minSdk = 21
         targetSdk = 29
-
-        jetbrainsAnnotations = "19.0.0"
-        kotlinVersion = "1.3.70"
-        coroutineVersion = "1.3.5"
-
-        androidxAnnotation = "1.1.0"
-        androidMaterial = '1.1.0'
-        androidxAppcompat = '1.1.0'
-        androidxConstraint = "1.1.3"
-        androidxNavigation = '2.2.1'
-        androidxLifecycle =  "2.2.0"
-
-        materialDialogs = "3.3.0"
-        koin = "2.1.4"
-        binaryprefs = "1.0.1"
-        rxJava = "1.3.8"
-        rxRelay = "1.2.0"
-        zxing = "3.3.3" // Next version is for API 24
-        xlog = "1.6.1"
-        netty = "4.1.34.Final"
-        rxNetty = "0.5.3"
     }
 
     repositories {
@@ -33,8 +12,8 @@ buildscript {
     }
 
     dependencies {
-        classpath('com.android.tools.build:gradle:3.6.1')
-        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion")
+        classpath('com.android.tools.build:gradle:4.0.0-beta03')
+        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:1.3.71")
         classpath("com.google.gms:google-services:4.3.3")
         classpath("com.getkeepsafe.dexcount:dexcount-gradle-plugin:1.0.2")
         classpath('com.google.firebase:firebase-crashlytics-gradle:2.0.0-beta03')

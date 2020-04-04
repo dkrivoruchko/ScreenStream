@@ -10,8 +10,8 @@ android {
     defaultConfig {
         minSdkVersion(minSdk)
         targetSdkVersion(targetSdk)
-        versionCode = 30403
-        versionName = "3.4.3"
+        versionCode = 30404
+        versionName = "3.4.4"
     }
 
     buildTypes {
@@ -49,33 +49,27 @@ android {
 androidExtensions { experimental = true }
 
 dependencies {
-    implementation("org.jetbrains:annotations:$jetbrainsAnnotations")
-    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlinVersion")
-    implementation("org.jetbrains.kotlin:kotlin-android-extensions-runtime:$kotlinVersion")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutineVersion")
+    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.3.71")
+    implementation("org.jetbrains.kotlin:kotlin-android-extensions-runtime:1.3.71")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.3.5")
 
-    implementation("androidx.annotation:annotation:$androidxAnnotation")
     implementation("androidx.core:core:1.2.0")
     implementation("androidx.arch.core:core-common:2.1.0")
     implementation("androidx.collection:collection:1.1.0")
     implementation("androidx.lifecycle:lifecycle-common-java8:2.2.0")
     implementation("androidx.lifecycle:lifecycle-runtime:2.2.0")
 
-    implementation("io.reactivex:rxjava:$rxJava")
-    implementation("com.jakewharton.rxrelay:rxrelay:$rxRelay")
+    implementation "io.ktor:ktor-server-netty:1.3.2"
+//    implementation "io.ktor:ktor-server-cio:1.3.2"
 
-    implementation("io.netty:netty-codec-http:$netty")
-    implementation("io.netty:netty-handler:$netty")
-    implementation("io.reactivex:rxnetty-common:$rxNetty")
-    implementation("io.reactivex:rxnetty-http:$rxNetty")
+    implementation("com.google.zxing:core:3.3.3")
 
-    implementation("com.google.zxing:core:$zxing")
-
-    implementation("com.github.iamironz:binaryprefs:$binaryprefs")
-    implementation("com.elvishew:xlog:$xlog")
+    implementation("com.github.iamironz:binaryprefs:1.0.1")
+    implementation("com.elvishew:xlog:1.6.1")
 }
 
 tasks.withType(org.jetbrains.kotlin.gradle.tasks.AbstractKotlinCompile).all {
     kotlinOptions.freeCompilerArgs += ["-Xuse-experimental=kotlinx.coroutines.ExperimentalCoroutinesApi"]
     kotlinOptions.freeCompilerArgs += ["-Xuse-experimental=kotlinx.coroutines.FlowPreview"]
+    kotlinOptions.freeCompilerArgs += ["-Xuse-experimental=kotlinx.coroutines.ObsoleteCoroutinesApi"]
 }

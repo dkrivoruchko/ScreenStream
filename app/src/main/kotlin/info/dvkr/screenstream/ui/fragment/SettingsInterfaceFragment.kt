@@ -34,6 +34,9 @@ class SettingsInterfaceFragment : Fragment(R.layout.fragment_settings_interface)
                 val index = nightModeList.first { it.second == settings.nightMode }.first
                 tv_fragment_settings_night_mode_summary.text = nightModeOptions[index]
             }
+            Settings.Key.HTML_BACK_COLOR -> {
+                v_fragment_settings_html_back_color.color = settings.htmlBackColor
+            }
             else -> Unit
         }
     }

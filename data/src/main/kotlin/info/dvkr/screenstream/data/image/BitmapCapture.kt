@@ -1,5 +1,6 @@
 package info.dvkr.screenstream.data.image
 
+import android.annotation.SuppressLint
 import android.graphics.Bitmap
 import android.graphics.Matrix
 import android.graphics.PixelFormat
@@ -22,11 +23,8 @@ import info.dvkr.screenstream.data.model.FixableError
 import info.dvkr.screenstream.data.other.getLog
 import info.dvkr.screenstream.data.settings.Settings
 import info.dvkr.screenstream.data.settings.SettingsReadOnly
-import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.SendChannel
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.isActive
-import kotlinx.coroutines.launch
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
 
@@ -35,8 +33,15 @@ class BitmapCapture constructor(
     private val settingsReadOnly: SettingsReadOnly,
     private val mediaProjection: MediaProjection,
     private val outBitmapChannel: SendChannel<Bitmap>,
-    onError: (AppError) -> Unit
-) : AbstractImageHandler(onError) {
+    private val onError: (AppError) -> Unit
+) {
+
+    private val coroutineExceptionHandler = CoroutineExceptionHandler { _, throwable ->
+        XLog.e(getLog("onCoroutineException"), throwable)
+        onError(FatalError.CoroutineException)
+    }
+
+    private val coroutineScope = CoroutineScope(Job() + Dispatchers.Default + coroutineExceptionHandler)
 
     private enum class State { INIT, STARTED, STOPPED, ERROR }
 
@@ -67,7 +72,7 @@ class BitmapCapture constructor(
     }
 
     init {
-        XLog.d(getLog("init", "Invoked"))
+        XLog.d(getLog("init"))
         settingsReadOnly.registerChangeListener(settingsListener)
         setMatrix(settingsReadOnly.resizeFactor, settingsReadOnly.rotation)
         imageThread.start()
@@ -97,9 +102,8 @@ class BitmapCapture constructor(
     }
 
     @Synchronized
-    override fun start() {
-        XLog.d(getLog("start", "Invoked"))
-        super.start()
+    fun start() {
+        XLog.d(getLog("start"))
         requireState(State.INIT)
 
         startDisplayCapture()
@@ -125,20 +129,20 @@ class BitmapCapture constructor(
     }
 
     @Synchronized
-    override fun destroy() {
-        XLog.d(getLog("stop", "Invoked"))
+    fun destroy() {
+        XLog.d(getLog("destroy"))
         requireState(State.STARTED, State.ERROR)
 
         state = State.STOPPED
         settingsReadOnly.unregisterChangeListener(settingsListener)
 
-        super.destroy()
-
         if (::rotationDetector.isInitialized) rotationDetector.cancel()
         stopDisplayCapture()
         imageThread.quit()
+        coroutineScope.cancel()
     }
 
+    @SuppressLint("WrongConstant")
     private fun startDisplayCapture() {
         val screenSize = Point().also { display.getRealSize(it) }
         imageListener = ImageListener(settingsReadOnly, resizeFactor, matrix)

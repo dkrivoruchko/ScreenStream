@@ -1,5 +1,6 @@
 package info.dvkr.screenstream.data.other
 
+import android.content.Context
 import android.graphics.Bitmap
 import android.text.Spannable
 import android.text.SpannableString
@@ -11,10 +12,9 @@ import com.google.zxing.EncodeHintType
 import com.google.zxing.qrcode.QRCodeWriter
 import java.net.Inet6Address
 import java.net.InetAddress
-import java.net.InetSocketAddress
 import java.util.*
 
-fun Any.getLog(tag: String? = "", msg: String? = "") =
+fun Any.getLog(tag: String? = "", msg: String? = "Invoked") =
     "${this.javaClass.simpleName}#${this.hashCode()}.$tag@${Thread.currentThread().name}: $msg"
 
 fun String.setColorSpan(color: Int, start: Int = 0, end: Int = this.length) = SpannableString(this).apply {
@@ -38,7 +38,18 @@ fun InetAddress.asString(): String =
     if (this is Inet6Address) "[${this.hostAddress}]"
     else this.hostAddress
 
-fun InetSocketAddress.asString(): String = "${this.address.asString()}:${this.port}"
+//fun InetSocketAddress.asString(): String = "${this.address.asString()}:${this.port}"
+
+fun Context.getFileFromAssets(fileName: String): ByteArray {
+    XLog.d(getLog("getFileFromAssets", fileName))
+
+    assets.open(fileName).use { inputStream ->
+        val fileBytes = ByteArray(inputStream.available())
+        inputStream.read(fileBytes)
+        fileBytes.isNotEmpty() || throw IllegalStateException("$fileName is empty")
+        return fileBytes
+    }
+}
 
 fun String.getQRBitmap(size: Int): Bitmap? =
     try {

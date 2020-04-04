@@ -10,7 +10,6 @@
     <string name="app_activity_send_logs">डेवलपर को लॉग भेजें</string>
     <string name="app_activity_send_logs_dialog_title">डेवलपर को ईमेल में लॉग भेजें</string>
     <string name="app_activity_send_logs_dialog_message">कृपया समस्या विवरण जोड़ें:</string>
-    <string name="app_activity_send_logs_dialog_neutral">लॉग करना बंद करो</string>
 
     <string name="bottom_menu_stream">प्रवाह</string>
     <string name="bottom_menu_settings">सेटिंग्स</string>

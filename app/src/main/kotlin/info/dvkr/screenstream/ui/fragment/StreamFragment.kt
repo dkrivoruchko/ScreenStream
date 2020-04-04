@@ -235,7 +235,7 @@ class StreamFragment : Fragment(R.layout.fragment_stream) {
         private val colorAccent by lazy { ContextCompat.getColor(containerView.context, R.color.colorAccent) }
 
         fun bind(product: HttpClient) = with(product) {
-            tv_client_item_address.text = clientAddress
+            tv_client_item_address.text = clientAddressAndPort
             with(tv_client_item_status) {
                 when {
                     isDisconnected -> {

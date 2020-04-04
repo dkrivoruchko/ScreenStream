@@ -3,7 +3,6 @@ package info.dvkr.screenstream.service
 import android.app.Service
 import android.content.Context
 import android.content.Intent
-import android.graphics.BitmapFactory
 import android.os.Binder
 import android.os.IBinder
 import android.view.LayoutInflater
@@ -130,7 +129,6 @@ class AppService : Service() {
             this,
             coroutineScope.coroutineContext[Job.Key],
             settings as SettingsReadOnly,
-            BitmapFactory.decodeResource(resources, R.drawable.logo),
             { clients: List<HttpClient>, trafficHistory: List<TrafficPoint> ->
                 if (settings.autoStartStop) checkAutoStartStop(clients)
                 if (settings.notifySlowConnections) checkForSlowClients(clients)
