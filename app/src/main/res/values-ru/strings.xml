@@ -110,7 +110,7 @@
     <string name="pref_fps_dialog">Установите максимальное количество кадров в секунду.\nЗначения: 1–60 (По умолчанию: 30)</string>
     <string name="pref_jpeg_quality">Качество JPEG</string>
     <string name="pref_jpeg_quality_summary">Установить качество JPEG</string>
-    <string name="pref_jpeg_quality_dialog">Установите качество сжатия JPEG.\nЗначения: 10–100\n(По умолчанию: 100)</string>
+    <string name="pref_jpeg_quality_dialog">Установите качество сжатия JPEG.\nЗначения: 10–100\n(По умолчанию: 80)</string>
     <string name="pref_settings_security">Безопасность</string>
     <string name="pref_enable_pin">Использовать PIN-код</string>
     <string name="pref_enable_pin_summary">Защитить доступ к трансляции PIN-кодом</string>

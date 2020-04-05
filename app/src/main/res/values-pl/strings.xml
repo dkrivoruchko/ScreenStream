@@ -81,7 +81,7 @@
     <string name="pref_rotate_summary">Obróć obraz przed wysłaniem</string>
     <string name="pref_jpeg_quality">Jakość kompresji JPEG</string>
     <string name="pref_jpeg_quality_summary">Ustaw jakość kompresji JPEG</string>
-    <string name="pref_jpeg_quality_dialog">Ustaw jakość kompresji JPEG.\nWartość: 1–100\n(Domyślnie: 100)</string>
+    <string name="pref_jpeg_quality_dialog">Ustaw jakość kompresji JPEG.\nWartość: 1–100\n(Domyślnie: 80)</string>
     <string name="pref_settings_security">Bezpieczeństwo</string>
     <string name="pref_enable_pin">Użyj kodu PIN</string>
     <string name="pref_enable_pin_summary">Chroń dostęp do transmisji za pomocą kodu PIN</string>

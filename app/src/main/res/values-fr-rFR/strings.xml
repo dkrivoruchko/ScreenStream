@@ -77,7 +77,7 @@
     <string name="pref_rotate_summary">Faire pivoter l\'image pour l\'envoi au client</string>
     <string name="pref_jpeg_quality">Qualité de la compression JPEG</string>
     <string name="pref_jpeg_quality_summary">Définir la qualité de la compression JPEG</string>
-    <string name="pref_jpeg_quality_dialog">Set la qualité de compression JPEG.\nValeurs : 10–100 (par défaut : 100)</string>
+    <string name="pref_jpeg_quality_dialog">Set la qualité de compression JPEG.\nValeurs : 10–100 (par défaut : 80)</string>
     <string name="pref_settings_security">Sécurité</string>
     <string name="pref_enable_pin">Activer le code</string>
     <string name="pref_enable_pin_summary">Protège l\'accès au flux avec un code</string>

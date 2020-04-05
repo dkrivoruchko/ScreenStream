@@ -77,7 +77,7 @@
     <string name="pref_rotate_summary">Rodar a imagem antes de enviar para o cliente</string>
     <string name="pref_jpeg_quality">Qualidade de compressão JPEG</string>
     <string name="pref_jpeg_quality_summary">Definir qualidade de compressão JPEG</string>
-    <string name="pref_jpeg_quality_dialog">Defina a qualidade de compressão JPEG.\nValores: 10–100 (Padrão: 100)</string>
+    <string name="pref_jpeg_quality_dialog">Defina a qualidade de compressão JPEG.\nValores: 10–100 (Padrão: 80)</string>
     <string name="pref_settings_security">Segurança</string>
     <string name="pref_enable_pin">Ativar pin</string>
     <string name="pref_enable_pin_summary">Proteger o acesso ao stream com o pin</string>

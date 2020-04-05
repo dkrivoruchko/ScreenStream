@@ -110,7 +110,7 @@
     <string name="pref_fps_dialog">Maximale Bilder pro Sekunde festlegen.\nWerte: 1–60 (Standard: 30)</string>
     <string name="pref_jpeg_quality">JPEG-Kompressionsqualität</string>
     <string name="pref_jpeg_quality_summary">JPEG-Kompressionsqualität festlegen</string>
-    <string name="pref_jpeg_quality_dialog">JPEG-Kompressionsqualität festlegen.\nMögliche Werte: 10–100 (Standard: 100)</string>
+    <string name="pref_jpeg_quality_dialog">JPEG-Kompressionsqualität festlegen.\nMögliche Werte: 10–100 (Standard: 80)</string>
     <string name="pref_settings_security">Sicherheit</string>
     <string name="pref_enable_pin">PIN aktivieren</string>
     <string name="pref_enable_pin_summary">Zugriff auf dem Stream mit PIN schützen</string>

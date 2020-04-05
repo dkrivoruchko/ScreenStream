@@ -77,7 +77,7 @@
     <string name="pref_rotate_summary">Ruota l\'immagine prima di inviarla al client</string>
     <string name="pref_jpeg_quality">Qualità di compressione JPEG</string>
     <string name="pref_jpeg_quality_summary">Imposta la qualità di compressione JPEG</string>
-    <string name="pref_jpeg_quality_dialog">Imposta la qualità di compressione JPEG. Valori: 10–100 (predefinito: 100)</string>
+    <string name="pref_jpeg_quality_dialog">Imposta la qualità di compressione JPEG. Valori: 10–100 (predefinito: 80)</string>
     <string name="pref_settings_security">Sicurezza</string>
     <string name="pref_enable_pin">Attiva pin</string>
     <string name="pref_enable_pin_summary">Proteggi l\'accesso alla trasmissione con un pin</string>

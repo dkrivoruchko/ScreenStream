@@ -59,7 +59,7 @@
     <string name="pref_resize_dialog_result">畫面大小 size： %1$dx%2$d</string>
     <string name="pref_jpeg_quality">JPEG壓縮品質</string>
     <string name="pref_jpeg_quality_summary">設定JPEG壓縮品質</string>
-    <string name="pref_jpeg_quality_dialog">設定JPEG壓縮品質。\n範圍： 10–100 (Default： 100)</string>
+    <string name="pref_jpeg_quality_dialog">設定JPEG壓縮品質。\n範圍： 10–100 (Default： 80)</string>
     <string name="pref_settings_security">安全性</string>
     <string name="pref_enable_pin">使用pin</string>
     <string name="pref_enable_pin_summary">需輸入pin以進入被保護的串流</string>
