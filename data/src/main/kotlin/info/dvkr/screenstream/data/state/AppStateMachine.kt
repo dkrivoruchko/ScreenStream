@@ -1,7 +1,6 @@
 package info.dvkr.screenstream.data.state
 
 import android.content.Intent
-import androidx.annotation.AnyThread
 import info.dvkr.screenstream.data.model.AppError
 import info.dvkr.screenstream.data.model.NetInterface
 
@@ -32,6 +31,5 @@ interface AppStateMachine {
 
     fun sendEvent(event: Event, timeout: Long = 0)
 
-    @AnyThread
-    fun destroy()
+    suspend fun destroy()
 }

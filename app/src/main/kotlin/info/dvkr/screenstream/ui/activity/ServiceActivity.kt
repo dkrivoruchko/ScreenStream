@@ -19,6 +19,7 @@ import info.dvkr.screenstream.service.AppService
 import info.dvkr.screenstream.service.ServiceMessage
 import info.dvkr.screenstream.service.helper.IntentAction
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 
@@ -36,6 +37,7 @@ abstract class ServiceActivity : AppUpdateActivity() {
                     XLog.v(this@ServiceActivity.getLog("onServiceMessage", "$it"))
                     serviceMessageLiveData.value = it
                 }
+                .catch { XLog.e(this@ServiceActivity.getLog("onServiceMessage"), it) }
                 .launchIn(lifecycle.coroutineScope)
             isBound = true
             IntentAction.GetServiceState.sendToAppService(this@ServiceActivity)

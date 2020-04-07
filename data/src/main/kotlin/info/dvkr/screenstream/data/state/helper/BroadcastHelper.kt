@@ -27,7 +27,7 @@ internal sealed class BroadcastHelper(context: Context, private val onError: (Ap
 
     protected val applicationContext: Context = context.applicationContext
     private val coroutineScope = CoroutineScope(
-        SupervisorJob() + Dispatchers.Main.immediate + CoroutineExceptionHandler { _, throwable ->
+        Job() + Dispatchers.Main.immediate + CoroutineExceptionHandler { _, throwable ->
             XLog.e(getLog("onCoroutineException"), throwable)
             onError(FatalError.CoroutineException)
         }
@@ -46,7 +46,7 @@ internal sealed class BroadcastHelper(context: Context, private val onError: (Ap
 
     fun stopListening() {
         applicationContext.unregisterReceiver(broadcastReceiver)
-        coroutineScope.coroutineContext.cancelChildren()
+        coroutineScope.cancel(CancellationException("BroadcastHelper.destroy"))
     }
 
     protected fun onScreenIntentAction() {

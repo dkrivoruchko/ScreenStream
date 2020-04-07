@@ -44,12 +44,11 @@ class AppService : Service() {
     }
 
     inner class AppServiceBinder : Binder() {
-        fun getServiceMessageFlow(): Flow<ServiceMessage> = serviceMessageFlow
+        fun getServiceMessageFlow(): Flow<ServiceMessage> = serviceMessageChannel.asFlow()
     }
 
     private val appServiceBinder = AppServiceBinder()
     private val serviceMessageChannel = ConflatedBroadcastChannel<ServiceMessage>()
-    private val serviceMessageFlow: Flow<ServiceMessage> = serviceMessageChannel.asFlow()
 
     private fun sendMessageToActivities(serviceMessage: ServiceMessage) {
         XLog.v(getLog("sendMessageToActivities", "ServiceMessage: $serviceMessage"))
@@ -127,7 +126,6 @@ class AppService : Service() {
 
         appStateMachine = AppStateMachineImpl(
             this,
-            coroutineScope.coroutineContext[Job.Key],
             settings as SettingsReadOnly,
             { clients: List<HttpClient>, trafficHistory: List<TrafficPoint> ->
                 if (settings.autoStartStop) checkAutoStartStop(clients)
@@ -194,11 +192,12 @@ class AppService : Service() {
     }
 
     override fun onDestroy() {
-        XLog.d(getLog("onDestroy", "Invoked"))
+        XLog.d(getLog("onDestroy"))
         isRunning = false
-        appStateMachine.destroy()
-        coroutineScope.cancel()
+        runBlocking(coroutineScope.coroutineContext) { appStateMachine.destroy() }
+        coroutineScope.cancel(CancellationException("AppService.destroy"))
         stopForeground(true)
+        XLog.d(getLog("onDestroy", "Done"))
         super.onDestroy()
         Runtime.getRuntime().exit(0)
     }

@@ -9,7 +9,7 @@ import info.dvkr.screenstream.data.other.getLog
 abstract class BaseActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        XLog.v(getLog("onCreate", "Invoked"))
+        XLog.d(getLog("onCreate", "Invoked"))
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -19,26 +19,26 @@ abstract class BaseActivity : AppCompatActivity() {
 
     override fun onStart() {
         super.onStart()
-        XLog.v(getLog("onStart", "Invoked"))
+        XLog.d(getLog("onStart", "Invoked"))
     }
 
     override fun onResume() {
         super.onResume()
-        XLog.v(getLog("onResume", "Invoked"))
+        XLog.d(getLog("onResume", "Invoked"))
     }
 
     override fun onPause() {
-        XLog.v(getLog("onPause", "Invoked"))
+        XLog.d(getLog("onPause", "Invoked"))
         super.onPause()
     }
 
     override fun onStop() {
-        XLog.v(getLog("onStop", "Invoked"))
+        XLog.d(getLog("onStop", "Invoked"))
         super.onStop()
     }
 
     override fun onDestroy() {
-        XLog.v(getLog("onDestroy", "Invoked"))
+        XLog.d(getLog("onDestroy", "Invoked"))
         super.onDestroy()
     }
 }

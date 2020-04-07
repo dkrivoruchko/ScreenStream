@@ -4,7 +4,6 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.view.WindowManager
-import androidx.annotation.AnyThread
 import androidx.core.content.ContextCompat
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.data.httpserver.ClientStatistic
@@ -25,7 +24,6 @@ import kotlinx.coroutines.channels.*
 
 class AppStateMachineImpl(
     context: Context,
-    parentJob: Job?,
     private val settingsReadOnly: SettingsReadOnly,
     onStatistic: (List<HttpClient>, List<TrafficPoint>) -> Unit,
     private val onEffect: (AppStateMachine.Effect) -> Unit
@@ -46,8 +44,7 @@ class AppStateMachineImpl(
         onError(FatalError.CoroutineException)
     }
 
-    private val coroutineScope =
-        CoroutineScope(SupervisorJob(parentJob) + Dispatchers.Default + coroutineExceptionHandler)
+    private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default + coroutineExceptionHandler)
 
     internal sealed class InternalEvent : AppStateMachine.Event() {
         object DiscoverAddress : InternalEvent()
@@ -181,17 +178,16 @@ class AppStateMachineImpl(
         }
     }
 
-    @AnyThread
-    override fun destroy() {
+    override suspend fun destroy() {
         XLog.d(getLog("destroy"))
         sendEvent(InternalEvent.Destroy)
+        httpServer.stop().await()
+        clientStatistic.destroy()
         settingsReadOnly.unregisterChangeListener(settingsListener)
         broadcastHelper.stopListening()
         connectivityHelper.stopListening()
-        coroutineScope.cancel()
         eventChannel.close()
-        clientStatistic.destroy()
-        httpServer.stop()
+        coroutineScope.cancel(CancellationException("AppStateMachine.destroy"))
     }
 
     private fun stopProjection(streamState: StreamState): StreamState {
