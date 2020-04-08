@@ -16,6 +16,7 @@
 
     <color name="colorAddressIcon">@color/textColorPrimary</color>
     <color name="colorIcon">@color/textColorPrimary</color>
+    <color name="colorIconDisabled">@color/textColorTertiary</color>
     <color name="colorSettingsHeader">@color/textColorPrimary</color>
     <color name="colorSettingsSummary">@color/textColorSecondary</color>
 
