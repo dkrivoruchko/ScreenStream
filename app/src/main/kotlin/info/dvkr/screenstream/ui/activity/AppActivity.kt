@@ -9,6 +9,7 @@ import android.os.Bundle
 import android.text.InputType
 import android.view.View
 import android.view.animation.OvershootInterpolator
+import androidx.core.content.ContextCompat
 import androidx.navigation.findNavController
 import androidx.navigation.ui.setupWithNavController
 import com.afollestad.materialdialogs.LayoutMode
@@ -127,7 +128,14 @@ class AppActivity : PermissionActivity() {
 
                 with(fab_activity_app_start_stop) {
                     visibility = View.VISIBLE
-                    isEnabled = serviceMessage.isBusy.not()
+                    if (serviceMessage.isBusy) {
+                        isEnabled = false
+                        backgroundTintList = ContextCompat.getColorStateList(this@AppActivity, R.color.colorIconDisabled)
+                    } else {
+                        isEnabled = true
+                        backgroundTintList = ContextCompat.getColorStateList(this@AppActivity, R.color.colorAccent)
+                    }
+
 
                     if (serviceMessage.isStreaming) {
                         setImageResource(R.drawable.ic_fab_stop_24dp)
