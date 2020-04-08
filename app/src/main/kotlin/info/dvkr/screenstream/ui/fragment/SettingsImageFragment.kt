@@ -6,7 +6,9 @@ import android.text.Editable
 import android.text.InputFilter
 import android.text.InputType
 import android.text.TextWatcher
+import android.view.LayoutInflater
 import android.view.View
+import android.view.ViewGroup
 import android.view.WindowManager
 import android.view.inputmethod.EditorInfo
 import android.widget.EditText
@@ -29,28 +31,28 @@ import info.dvkr.screenstream.R
 import info.dvkr.screenstream.data.other.getLog
 import info.dvkr.screenstream.data.settings.Settings
 import info.dvkr.screenstream.data.settings.SettingsReadOnly
-import kotlinx.android.synthetic.main.dialog_settings_crop.view.*
-import kotlinx.android.synthetic.main.dialog_settings_resize.view.*
-import kotlinx.android.synthetic.main.fragment_settings_image.*
+import info.dvkr.screenstream.databinding.DialogSettingsCropBinding
+import info.dvkr.screenstream.databinding.DialogSettingsResizeBinding
+import info.dvkr.screenstream.databinding.FragmentSettingsImageBinding
 import org.koin.android.ext.android.inject
 
-class SettingsImageFragment : Fragment(R.layout.fragment_settings_image) {
+class SettingsImageFragment : Fragment() {
 
     private val settings: Settings by inject()
     private val settingsListener = object : SettingsReadOnly.OnSettingsChangeListener {
         override fun onSettingsChanged(key: String) = when (key) {
             Settings.Key.RESIZE_FACTOR ->
-                tv_fragment_settings_resize_image_value.text =
+                binding.tvFragmentSettingsResizeImageValue.text =
                     getString(R.string.pref_resize_value, settings.resizeFactor)
 
             Settings.Key.ROTATION ->
-                tv_fragment_settings_rotation_value.text = getString(R.string.pref_rotate_value, settings.rotation)
+                binding.tvFragmentSettingsRotationValue.text = getString(R.string.pref_rotate_value, settings.rotation)
 
             Settings.Key.MAX_FPS ->
-                tv_fragment_settings_fps_value.text = settings.maxFPS.toString()
+                binding.tvFragmentSettingsFpsValue.text = settings.maxFPS.toString()
 
             Settings.Key.JPEG_QUALITY ->
-                tv_fragment_settings_jpeg_quality_value.text = settings.jpegQuality.toString()
+                binding.tvFragmentSettingsJpegQualityValue.text = settings.jpegQuality.toString()
 
             else -> Unit
         }
@@ -70,11 +72,24 @@ class SettingsImageFragment : Fragment(R.layout.fragment_settings_image) {
         3 to Settings.Values.ROTATION_270
     )
 
+    private var _binding: FragmentSettingsImageBinding? = null
+    private val binding get() = _binding!!
+
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
+        _binding = FragmentSettingsImageBinding.inflate(inflater, container, false)
+        return binding.root
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
+    }
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
         // Image - VR mode
-        with(cb_fragment_settings_vr_mode) {
+        with(binding.cbFragmentSettingsVrMode) {
             isChecked = isVRModeEnabled()
             setOnClickListener {
                 if (isVRModeEnabled()) settings.vrMode = Settings.Default.VR_MODE_DISABLE
@@ -93,11 +108,11 @@ class SettingsImageFragment : Fragment(R.layout.fragment_settings_image) {
                     }
                 }
             }
-            cl_fragment_settings_vr_mode.setOnClickListener { performClick() }
+            binding.clFragmentSettingsVrMode.setOnClickListener { performClick() }
         }
 
         // Image - Crop image
-        with(cb_fragment_settings_crop_image) {
+        with(binding.cbFragmentSettingsCropImage) {
             isChecked = settings.imageCrop
             setOnClickListener {
                 if (settings.imageCrop) settings.imageCrop = false
@@ -109,96 +124,100 @@ class SettingsImageFragment : Fragment(R.layout.fragment_settings_image) {
                         .icon(R.drawable.ic_settings_crop_24dp)
                         .customView(R.layout.dialog_settings_crop, scrollable = true)
                         .positiveButton(android.R.string.ok) { dialog ->
-                            dialog.getCustomView().apply DialogView@{
-                                val newTopCrop = tiet_dialog_settings_crop_top.text.toString().toInt()
+                            DialogSettingsCropBinding.bind(dialog.getCustomView()).apply {
+                                val newTopCrop = tietDialogSettingsCropTop.text.toString().toInt()
                                 if (newTopCrop != settings.imageCropTop) settings.imageCropTop = newTopCrop
-                                val newBottomCrop = tiet_dialog_settings_crop_bottom.text.toString().toInt()
+                                val newBottomCrop = tietDialogSettingsCropBottom.text.toString().toInt()
                                 if (newBottomCrop != settings.imageCropBottom) settings.imageCropBottom = newBottomCrop
-                                val newLeftCrop = tiet_dialog_settings_crop_left.text.toString().toInt()
+                                val newLeftCrop = tietDialogSettingsCropLeft.text.toString().toInt()
                                 if (newLeftCrop != settings.imageCropLeft) settings.imageCropLeft = newLeftCrop
-                                val newRightCrop = tiet_dialog_settings_crop_right.text.toString().toInt()
+                                val newRightCrop = tietDialogSettingsCropRight.text.toString().toInt()
                                 if (newRightCrop != settings.imageCropRight) settings.imageCropRight = newRightCrop
 
                                 settings.imageCrop = newTopCrop + newBottomCrop + newLeftCrop + newRightCrop != 0
-                                cb_fragment_settings_crop_image.isChecked = settings.imageCrop
+                                binding.cbFragmentSettingsCropImage.isChecked = settings.imageCrop
                             }
                         }
                         .negativeButton(android.R.string.cancel)
                         .apply Dialog@{
-                            getCustomView().apply DialogView@{
-                                tiet_dialog_settings_crop_top.setText(settings.imageCropTop.toString())
-                                tiet_dialog_settings_crop_bottom.setText(settings.imageCropBottom.toString())
-                                tiet_dialog_settings_crop_left.setText(settings.imageCropLeft.toString())
-                                tiet_dialog_settings_crop_right.setText(settings.imageCropRight.toString())
+                            DialogSettingsCropBinding.bind(getCustomView()).apply {
+                                tietDialogSettingsCropTop.setText(settings.imageCropTop.toString())
+                                tietDialogSettingsCropBottom.setText(settings.imageCropBottom.toString())
+                                tietDialogSettingsCropLeft.setText(settings.imageCropLeft.toString())
+                                tietDialogSettingsCropRight.setText(settings.imageCropRight.toString())
 
-                                tiet_dialog_settings_crop_top.setSelection(settings.imageCropTop.toString().length)
+                                try {
+                                    tietDialogSettingsCropTop.setSelection(settings.imageCropTop.toString().length)
+                                } catch (ignore: Throwable) {
+                                }
 
                                 val validateTextWatcher = SimpleTextWatcher {
                                     validateCropValues(
                                         this@Dialog,
-                                        tiet_dialog_settings_crop_top,
-                                        tiet_dialog_settings_crop_bottom,
-                                        tiet_dialog_settings_crop_left,
-                                        tiet_dialog_settings_crop_right,
-                                        tv_dialog_settings_crop_error_message
+                                        tietDialogSettingsCropTop, tietDialogSettingsCropBottom,
+                                        tietDialogSettingsCropLeft, tietDialogSettingsCropRight,
+                                        tvDialogSettingsCropErrorMessage
                                     )
                                 }
 
-                                tiet_dialog_settings_crop_top.addTextChangedListener(validateTextWatcher)
-                                tiet_dialog_settings_crop_bottom.addTextChangedListener(validateTextWatcher)
-                                tiet_dialog_settings_crop_left.addTextChangedListener(validateTextWatcher)
-                                tiet_dialog_settings_crop_right.addTextChangedListener(validateTextWatcher)
+                                tietDialogSettingsCropTop.addTextChangedListener(validateTextWatcher)
+                                tietDialogSettingsCropBottom.addTextChangedListener(validateTextWatcher)
+                                tietDialogSettingsCropLeft.addTextChangedListener(validateTextWatcher)
+                                tietDialogSettingsCropRight.addTextChangedListener(validateTextWatcher)
                             }
 
                             show()
                         }
                 }
             }
-            cl_fragment_settings_crop_image.setOnClickListener { performClick() }
+            binding.clFragmentSettingsCropImage.setOnClickListener { performClick() }
         }
 
         // Image - Resize factor
-        tv_fragment_settings_resize_image_value.text = getString(R.string.pref_resize_value, settings.resizeFactor)
+        binding.tvFragmentSettingsResizeImageValue.text = getString(R.string.pref_resize_value, settings.resizeFactor)
         val resizePictureSizeString = getString(R.string.pref_resize_dialog_result)
-        cl_fragment_settings_resize_image.setOnClickListener {
+        binding.clFragmentSettingsResizeImage.setOnClickListener {
             MaterialDialog(requireActivity(), BottomSheet(LayoutMode.WRAP_CONTENT))
                 .lifecycleOwner(viewLifecycleOwner)
                 .title(R.string.pref_resize)
                 .icon(R.drawable.ic_settings_resize_24dp)
                 .customView(R.layout.dialog_settings_resize, scrollable = true)
                 .positiveButton(android.R.string.ok) { dialog ->
-                    dialog.getCustomView().apply DialogView@{
-                        val newResizeFactor = tiet_dialog_settings_resize.text.toString().toInt()
+                    DialogSettingsResizeBinding.bind(dialog.getCustomView()).apply {
+                        val newResizeFactor = tietDialogSettingsResize.text.toString().toInt()
                         if (newResizeFactor != settings.resizeFactor) settings.resizeFactor = newResizeFactor
                     }
                 }
                 .negativeButton(android.R.string.cancel)
                 .apply Dialog@{
-                    getCustomView().apply DialogView@{
-                        tv_dialog_settings_resize_content.text =
+                    DialogSettingsResizeBinding.bind(getCustomView()).apply {
+                        tvDialogSettingsResizeContent.text =
                             getString(R.string.pref_resize_dialog_text, screenSize.x, screenSize.y)
 
-                        ti_dialog_settings_resize.isCounterEnabled = true
-                        ti_dialog_settings_resize.counterMaxLength = 3
+                        tiDialogSettingsResize.isCounterEnabled = true
+                        tiDialogSettingsResize.counterMaxLength = 3
 
-                        with(tiet_dialog_settings_resize) {
+                        with(tietDialogSettingsResize) {
                             addTextChangedListener(SimpleTextWatcher { text ->
                                 val isValid = text.length in 2..3 && text.toString().toInt() in 10..150
-                                this@Dialog.setActionButtonEnabled(
-                                    WhichButton.POSITIVE, isValid
-                                )
+                                this@Dialog.setActionButtonEnabled(WhichButton.POSITIVE, isValid)
                                 val newResizeFactor =
                                     (if (isValid) text.toString().toInt() else settings.resizeFactor) / 100f
-                                this@DialogView.tv_dialog_settings_resize_result.text = resizePictureSizeString.format(
-                                    (screenSize.x * newResizeFactor).toInt(), (screenSize.y * newResizeFactor).toInt()
+
+                                tvDialogSettingsResizeResult.text = resizePictureSizeString.format(
+                                    (screenSize.x * newResizeFactor).toInt(),
+                                    (screenSize.y * newResizeFactor).toInt()
                                 )
                             })
                             setText(settings.resizeFactor.toString())
-                            setSelection(settings.resizeFactor.toString().length)
+                            try {
+                                setSelection(settings.resizeFactor.toString().length)
+                            } catch (ignore: Throwable) {
+                            }
                             filters = arrayOf<InputFilter>(InputFilter.LengthFilter(3))
                         }
 
-                        tv_dialog_settings_resize_result.text = resizePictureSizeString.format(
+                        tvDialogSettingsResizeResult.text = resizePictureSizeString.format(
                             (screenSize.x * settings.resizeFactor / 100f).toInt(),
                             (screenSize.y * settings.resizeFactor / 100f).toInt()
                         )
@@ -209,8 +228,8 @@ class SettingsImageFragment : Fragment(R.layout.fragment_settings_image) {
         }
 
         // Image - Rotation
-        tv_fragment_settings_rotation_value.text = getString(R.string.pref_rotate_value, settings.rotation)
-        cl_fragment_settings_rotation.setOnClickListener {
+        binding.tvFragmentSettingsRotationValue.text = getString(R.string.pref_rotate_value, settings.rotation)
+        binding.clFragmentSettingsRotation.setOnClickListener {
             val indexOld = rotationList.first { it.second == settings.rotation }.first
             MaterialDialog(requireActivity(), BottomSheet(LayoutMode.WRAP_CONTENT)).show {
                 lifecycleOwner(viewLifecycleOwner)
@@ -226,8 +245,8 @@ class SettingsImageFragment : Fragment(R.layout.fragment_settings_image) {
         }
 
         // Image - Max FPS
-        tv_fragment_settings_fps_value.text = settings.maxFPS.toString()
-        cl_fragment_settings_fps.setOnClickListener {
+        binding.tvFragmentSettingsFpsValue.text = settings.maxFPS.toString()
+        binding.clFragmentSettingsFps.setOnClickListener {
             MaterialDialog(requireActivity(), BottomSheet(LayoutMode.WRAP_CONTENT)).show {
                 lifecycleOwner(viewLifecycleOwner)
                 title(R.string.pref_fps)
@@ -254,8 +273,8 @@ class SettingsImageFragment : Fragment(R.layout.fragment_settings_image) {
 
 
         // Image - Jpeg Quality
-        tv_fragment_settings_jpeg_quality_value.text = settings.jpegQuality.toString()
-        cl_fragment_settings_jpeg_quality.setOnClickListener {
+        binding.tvFragmentSettingsJpegQualityValue.text = settings.jpegQuality.toString()
+        binding.clFragmentSettingsJpegQuality.setOnClickListener {
             MaterialDialog(requireActivity(), BottomSheet(LayoutMode.WRAP_CONTENT)).show {
                 lifecycleOwner(viewLifecycleOwner)
                 title(R.string.pref_jpeg_quality)

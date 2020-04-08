@@ -4,7 +4,9 @@ import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.view.LayoutInflater
 import android.view.View
+import android.view.ViewGroup
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import com.afollestad.materialdialogs.MaterialDialog
@@ -13,14 +15,27 @@ import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.data.other.getLog
 import info.dvkr.screenstream.data.settings.Settings
-import kotlinx.android.synthetic.main.fragment_about.*
+import info.dvkr.screenstream.databinding.FragmentAboutBinding
 import org.koin.android.ext.android.inject
 
-class AboutFragment : Fragment(R.layout.fragment_about) {
+class AboutFragment : Fragment() {
 
     private val settings: Settings by inject()
     private var settingsLoggingVisibleCounter: Int = 0
     private var version: String = ""
+
+    private var _binding: FragmentAboutBinding? = null
+    private val binding get() = _binding!!
+
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
+        _binding = FragmentAboutBinding.inflate(inflater, container, false)
+        return binding.root
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
+    }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -28,12 +43,12 @@ class AboutFragment : Fragment(R.layout.fragment_about) {
         with(requireActivity()) {
             try {
                 version = packageManager.getPackageInfo(packageName, 0).versionName
-                tv_fragment_about_version.text = getString(R.string.about_fragment_app_version, version)
+                binding.tvFragmentAboutVersion.text = getString(R.string.about_fragment_app_version, version)
             } catch (t: Throwable) {
                 XLog.e(getLog("onViewCreated", "getPackageInfo"), t)
             }
 
-            tv_fragment_about_version.setOnClickListener {
+            binding.tvFragmentAboutVersion.setOnClickListener {
                 settingsLoggingVisibleCounter++
                 if (settingsLoggingVisibleCounter >= 5) {
                     settings.loggingVisible = true
@@ -42,7 +57,7 @@ class AboutFragment : Fragment(R.layout.fragment_about) {
                 }
             }
 
-            b_fragment_about_rate.setOnClickListener {
+            binding.bFragmentAboutRate.setOnClickListener {
                 try {
                     startActivity(
                         Intent(
@@ -61,7 +76,7 @@ class AboutFragment : Fragment(R.layout.fragment_about) {
             }
         }
 
-        b_fragment_about_developer_email.setOnClickListener {
+        binding.bFragmentAboutDeveloperEmail.setOnClickListener {
             MaterialDialog(requireActivity()).show {
                 lifecycleOwner(viewLifecycleOwner)
                 title(R.string.about_fragment_write_email_dialog)
@@ -80,7 +95,7 @@ class AboutFragment : Fragment(R.layout.fragment_about) {
             }
         }
 
-        b_fragment_about_sources.setOnClickListener {
+        binding.bFragmentAboutSources.setOnClickListener {
             try {
                 startActivity(
                     Intent(
@@ -93,7 +108,7 @@ class AboutFragment : Fragment(R.layout.fragment_about) {
             }
         }
 
-        b_fragment_privacy_policy.setOnClickListener {
+        binding.bFragmentPrivacyPolicy.setOnClickListener {
             try {
                 startActivity(
                     Intent(

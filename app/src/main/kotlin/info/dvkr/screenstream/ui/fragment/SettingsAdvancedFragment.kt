@@ -3,7 +3,9 @@ package info.dvkr.screenstream.ui.fragment
 import android.os.Bundle
 import android.text.InputFilter
 import android.text.InputType
+import android.view.LayoutInflater
 import android.view.View
+import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
 import androidx.fragment.app.Fragment
 import com.afollestad.materialdialogs.LayoutMode
@@ -19,49 +21,62 @@ import info.dvkr.screenstream.R
 import info.dvkr.screenstream.data.other.getLog
 import info.dvkr.screenstream.data.settings.Settings
 import info.dvkr.screenstream.data.settings.SettingsReadOnly
+import info.dvkr.screenstream.databinding.FragmentSettingsAdvancedBinding
 import info.dvkr.screenstream.logging.cleanLogFiles
-import kotlinx.android.synthetic.main.fragment_settings_advanced.*
 import org.koin.android.ext.android.inject
 
-class SettingsAdvancedFragment : Fragment(R.layout.fragment_settings_advanced) {
+class SettingsAdvancedFragment : Fragment() {
 
     private val settings: Settings by inject()
     private val settingsListener = object : SettingsReadOnly.OnSettingsChangeListener {
         override fun onSettingsChanged(key: String) = when (key) {
             Settings.Key.SERVER_PORT ->
-                tv_fragment_settings_server_port_value.text = settings.severPort.toString()
+                binding.tvFragmentSettingsServerPortValue.text = settings.severPort.toString()
 
             else -> Unit
         }
+    }
+
+    private var _binding: FragmentSettingsAdvancedBinding? = null
+    private val binding get() = _binding!!
+
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
+        _binding = FragmentSettingsAdvancedBinding.inflate(inflater, container, false)
+        return binding.root
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
         // Advanced - Use WiFi Only
-        with(cb_fragment_settings_use_wifi_only) {
+        with(binding.cbFragmentSettingsUseWifiOnly) {
             isChecked = settings.useWiFiOnly
             setOnClickListener { settings.useWiFiOnly = isChecked }
-            cl_fragment_settings_use_wifi_only.setOnClickListener { performClick() }
+            binding.clFragmentSettingsUseWifiOnly.setOnClickListener { performClick() }
         }
 
         // Advanced - Enable IPv6 support
-        with(cb_fragment_settings_enable_ipv6) {
+        with(binding.cbFragmentSettingsEnableIpv6) {
             isChecked = settings.enableIPv6
             setOnClickListener { settings.enableIPv6 = isChecked }
-            cl_fragment_settings_enable_ipv6.setOnClickListener { performClick() }
+            binding.clFragmentSettingsEnableIpv6.setOnClickListener { performClick() }
         }
 
         // Advanced - Enable Local host
-        with(cb_fragment_settings_enable_localhost) {
+        with(binding.cbFragmentSettingsEnableLocalhost) {
             isChecked = settings.enableLocalHost
             setOnClickListener { settings.enableLocalHost = isChecked }
-            cl_fragment_settings_enable_localhost.setOnClickListener { performClick() }
+            binding.clFragmentSettingsEnableLocalhost.setOnClickListener { performClick() }
         }
 
         // Advanced - Server port
-        tv_fragment_settings_server_port_value.text = settings.severPort.toString()
-        cl_fragment_settings_server_port.setOnClickListener {
+        binding.tvFragmentSettingsServerPortValue.text = settings.severPort.toString()
+        binding.clFragmentSettingsServerPort.setOnClickListener {
             MaterialDialog(requireActivity(), BottomSheet(LayoutMode.WRAP_CONTENT)).show {
                 lifecycleOwner(viewLifecycleOwner)
                 title(R.string.pref_server_port)
@@ -87,15 +102,15 @@ class SettingsAdvancedFragment : Fragment(R.layout.fragment_settings_advanced) {
         }
 
         // Advanced - Enable application logs
-        v_fragment_settings_logging.visibility = if (settings.loggingVisible) View.VISIBLE else View.GONE
-        cl_fragment_settings_logging.visibility = if (settings.loggingVisible) View.VISIBLE else View.GONE
-        with(cb_fragment_settings_logging) {
+        binding.vFragmentSettingsLogging.visibility = if (settings.loggingVisible) View.VISIBLE else View.GONE
+        binding.clFragmentSettingsLogging.visibility = if (settings.loggingVisible) View.VISIBLE else View.GONE
+        with(binding.cbFragmentSettingsLogging) {
             isChecked = settings.loggingOn
             setOnClickListener {
                 settings.loggingOn = isChecked
                 if (settings.loggingOn.not()) cleanLogFiles(requireContext().applicationContext)
             }
-            cl_fragment_settings_logging.setOnClickListener { performClick() }
+            binding.clFragmentSettingsLogging.setOnClickListener { performClick() }
         }
     }
 

@@ -30,13 +30,12 @@ import info.dvkr.screenstream.data.model.FixableError
 import info.dvkr.screenstream.data.model.HttpClient
 import info.dvkr.screenstream.data.other.*
 import info.dvkr.screenstream.data.settings.SettingsReadOnly
+import info.dvkr.screenstream.databinding.FragmentStreamBinding
+import info.dvkr.screenstream.databinding.ItemClientBinding
+import info.dvkr.screenstream.databinding.ItemDeviceAddressBinding
 import info.dvkr.screenstream.service.ServiceMessage
 import info.dvkr.screenstream.service.helper.IntentAction
 import info.dvkr.screenstream.ui.activity.ServiceActivity
-import kotlinx.android.extensions.LayoutContainer
-import kotlinx.android.synthetic.main.fragment_stream.*
-import kotlinx.android.synthetic.main.item_client.*
-import kotlinx.android.synthetic.main.item_device_address.view.*
 import org.koin.android.ext.android.inject
 
 class StreamFragment : Fragment(R.layout.fragment_stream) {
@@ -50,27 +49,36 @@ class StreamFragment : Fragment(R.layout.fragment_stream) {
     private var httpClientAdapter: HttpClientAdapter? = null
     private var errorPrevious: AppError? = null
 
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
+    private var _binding: FragmentStreamBinding? = null
+    private val binding get() = _binding!!
 
-        tv_fragment_stream_traffic_header.text = getString(R.string.stream_fragment_current_traffic).run {
-            format(0.0).setColorSpan(colorAccent, indexOf('%'))
-        }
-
-        tv_fragment_stream_clients_header.text = getString(R.string.stream_fragment_connected_clients).run {
-            format(0).setColorSpan(colorAccent, indexOf('%'))
-        }
-
-        with(rv_fragment_stream_clients) {
-            itemAnimator = DefaultItemAnimator()
-            httpClientAdapter = HttpClientAdapter().apply { setHasStableIds(true) }
-            adapter = httpClientAdapter
-        }
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
+        _binding = FragmentStreamBinding.inflate(inflater, container, false)
+        return binding.root
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
+        _binding = null
         httpClientAdapter = null
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+
+        binding.tvFragmentStreamTrafficHeader.text = getString(R.string.stream_fragment_current_traffic).run {
+            format(0.0).setColorSpan(colorAccent, indexOf('%'))
+        }
+
+        binding.tvFragmentStreamClientsHeader.text = getString(R.string.stream_fragment_connected_clients).run {
+            format(0).setColorSpan(colorAccent, indexOf('%'))
+        }
+
+        with(binding.rvFragmentStreamClients) {
+            itemAnimator = DefaultItemAnimator()
+            httpClientAdapter = HttpClientAdapter().apply { setHasStableIds(true) }
+            adapter = httpClientAdapter
+        }
     }
 
     override fun onStart() {
@@ -91,34 +99,34 @@ class StreamFragment : Fragment(R.layout.fragment_stream) {
 
     private fun onServiceStateMessage(serviceMessage: ServiceMessage.ServiceState) {
         // Interfaces
-        ll_fragment_stream_addresses.removeAllViews()
+        binding.llFragmentStreamAddresses.removeAllViews()
         if (serviceMessage.netInterfaces.isEmpty()) {
-            with(layoutInflater.inflate(R.layout.item_device_address, ll_fragment_stream_addresses, false)) {
-                tv_item_device_address_name.text = ""
-                tv_item_device_address.setText(R.string.stream_fragment_no_address)
-                tv_item_device_address.setTextColor(ContextCompat.getColor(requireContext(), R.color.textColorPrimary))
-                ll_fragment_stream_addresses.addView(this)
+            with(ItemDeviceAddressBinding.inflate(layoutInflater, binding.llFragmentStreamAddresses, false)) {
+                tvItemDeviceAddressName.text = ""
+                tvItemDeviceAddress.setText(R.string.stream_fragment_no_address)
+                tvItemDeviceAddress.setTextColor(ContextCompat.getColor(requireContext(), R.color.textColorPrimary))
+                binding.llFragmentStreamAddresses.addView(this.root)
             }
         } else {
             serviceMessage.netInterfaces.sortedBy { it.address.asString() }.forEach { netInterface ->
-                with(layoutInflater.inflate(R.layout.item_device_address, ll_fragment_stream_addresses, false)) {
-                    tv_item_device_address_name.text = getString(R.string.stream_fragment_interface, netInterface.name)
+                with(ItemDeviceAddressBinding.inflate(layoutInflater, binding.llFragmentStreamAddresses, false)) {
+                    tvItemDeviceAddressName.text = getString(R.string.stream_fragment_interface, netInterface.name)
 
                     val fullAddress = "http://${netInterface.address.asString()}:${settingsReadOnly.severPort}"
-                    tv_item_device_address.text = fullAddress.setUnderlineSpan()
-                    tv_item_device_address.setOnClickListener { openInBrowser(fullAddress) }
-                    iv_item_device_address_open_external.setOnClickListener { openInBrowser(fullAddress) }
-                    iv_item_device_address_copy.setOnClickListener {
+                    tvItemDeviceAddress.text = fullAddress.setUnderlineSpan()
+                    tvItemDeviceAddress.setOnClickListener { openInBrowser(fullAddress) }
+                    ivItemDeviceAddressOpenExternal.setOnClickListener { openInBrowser(fullAddress) }
+                    ivItemDeviceAddressCopy.setOnClickListener {
                         clipboard?.setPrimaryClip(
-                            ClipData.newPlainText(tv_item_device_address.text, tv_item_device_address.text)
+                            ClipData.newPlainText(tvItemDeviceAddress.text, tvItemDeviceAddress.text)
                         )
                         Toast.makeText(
                             requireContext().applicationContext, R.string.stream_fragment_copied, Toast.LENGTH_LONG
                         ).show()
                     }
-                    iv_item_device_address_share.setOnClickListener { shareAddress(fullAddress) }
-                    iv_item_device_address_qr.setOnClickListener { showQrCode(fullAddress) }
-                    ll_fragment_stream_addresses.addView(this)
+                    ivItemDeviceAddressShare.setOnClickListener { shareAddress(fullAddress) }
+                    ivItemDeviceAddressQr.setOnClickListener { showQrCode(fullAddress) }
+                    binding.llFragmentStreamAddresses.addView(this.root)
                 }
             }
         }
@@ -130,9 +138,9 @@ class StreamFragment : Fragment(R.layout.fragment_stream) {
             else
                 getString(R.string.stream_fragment_pin, settingsReadOnly.pin)
 
-            tv_fragment_stream_pin.text = pinText.setColorSpan(colorAccent, pinText.length - 4)
+            binding.tvFragmentStreamPin.text = pinText.setColorSpan(colorAccent, pinText.length - 4)
         } else {
-            tv_fragment_stream_pin.setText(R.string.stream_fragment_pin_disabled)
+            binding.tvFragmentStreamPin.setText(R.string.stream_fragment_pin_disabled)
         }
 
         showError(serviceMessage.appError)
@@ -140,18 +148,18 @@ class StreamFragment : Fragment(R.layout.fragment_stream) {
 
     private fun onClientsMessage(serviceMessage: ServiceMessage.Clients) {
         val clientsCount = serviceMessage.clients.filter { it.isDisconnected.not() }.count()
-        tv_fragment_stream_clients_header.text = getString(R.string.stream_fragment_connected_clients).run {
+        binding.tvFragmentStreamClientsHeader.text = getString(R.string.stream_fragment_connected_clients).run {
             format(clientsCount).setColorSpan(colorAccent, indexOf('%'))
         }
         httpClientAdapter?.submitList(serviceMessage.clients)
     }
 
     private fun onTrafficHistoryMessage(serviceMessage: ServiceMessage.TrafficHistory) {
-        tv_fragment_stream_traffic_header.text = getString(R.string.stream_fragment_current_traffic).run {
+        binding.tvFragmentStreamTrafficHeader.text = getString(R.string.stream_fragment_current_traffic).run {
             format(serviceMessage.trafficHistory.last().bytes.bytesToMbit()).setColorSpan(colorAccent, indexOf('%'))
         }
 
-        traffic_graph_fragment_stream.setDataPoints(
+        binding.trafficGraphFragmentStream.setDataPoints(
             serviceMessage.trafficHistory.map { Pair(it.time, it.bytes.bytesToMbit()) }
         )
     }
@@ -197,17 +205,17 @@ class StreamFragment : Fragment(R.layout.fragment_stream) {
         errorPrevious != appError || return
 
         if (appError == null) {
-            tv_fragment_stream_error.visibility = View.GONE
+            binding.tvFragmentStreamError.visibility = View.GONE
         } else {
             XLog.d(getLog("showError", appError.toString()))
-            tv_fragment_stream_error.text = when (appError) {
+            binding.tvFragmentStreamError.text = when (appError) {
                 is FixableError.AddressInUseException -> getString(R.string.error_port_in_use)
                 is FixableError.CastSecurityException -> getString(R.string.error_invalid_media_projection)
                 is FixableError.AddressNotFoundException -> getString(R.string.error_ip_address_not_found)
                 is FatalError.BitmapFormatException -> getString(R.string.error_wrong_image_format)
                 else -> appError.toString()
             }
-            tv_fragment_stream_error.visibility = View.VISIBLE
+            binding.tvFragmentStreamError.visibility = View.VISIBLE
         }
 
         errorPrevious = appError
@@ -220,23 +228,22 @@ class StreamFragment : Fragment(R.layout.fragment_stream) {
         }
     ) {
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) =
-            HttpClientViewHolder(LayoutInflater.from(parent.context).inflate(R.layout.item_client, parent, false))
+            HttpClientViewHolder(ItemClientBinding.inflate(LayoutInflater.from(parent.context), parent, false))
 
         override fun getItemId(position: Int): Long = getItem(position).id
 
         override fun onBindViewHolder(holder: HttpClientViewHolder, position: Int) = holder.bind(getItem(position))
     }
 
-    private class HttpClientViewHolder(override val containerView: View) :
-        RecyclerView.ViewHolder(containerView), LayoutContainer {
+    private class HttpClientViewHolder(private val binding: ItemClientBinding) : RecyclerView.ViewHolder(binding.root) {
 
-        private val textColorPrimary by lazy { ContextCompat.getColor(containerView.context, R.color.textColorPrimary) }
-        private val colorError by lazy { ContextCompat.getColor(containerView.context, R.color.colorError) }
-        private val colorAccent by lazy { ContextCompat.getColor(containerView.context, R.color.colorAccent) }
+        private val textColorPrimary by lazy { ContextCompat.getColor(binding.root.context, R.color.textColorPrimary) }
+        private val colorError by lazy { ContextCompat.getColor(binding.root.context, R.color.colorError) }
+        private val colorAccent by lazy { ContextCompat.getColor(binding.root.context, R.color.colorAccent) }
 
         fun bind(product: HttpClient) = with(product) {
-            tv_client_item_address.text = clientAddressAndPort
-            with(tv_client_item_status) {
+            binding.tvClientItemAddress.text = clientAddressAndPort
+            with(binding.tvClientItemStatus) {
                 when {
                     isDisconnected -> {
                         setText(R.string.stream_fragment_client_disconnected)

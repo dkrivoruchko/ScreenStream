@@ -21,9 +21,9 @@ import info.dvkr.screenstream.data.settings.Settings
 import info.dvkr.screenstream.data.settings.SettingsReadOnly
 import info.dvkr.screenstream.data.state.AppStateMachine
 import info.dvkr.screenstream.data.state.AppStateMachineImpl
+import info.dvkr.screenstream.databinding.ToastSlowConnectionBinding
 import info.dvkr.screenstream.service.helper.IntentAction
 import info.dvkr.screenstream.service.helper.NotificationHelper
-import kotlinx.android.synthetic.main.toast_slow_connection.view.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.ConflatedBroadcastChannel
 import kotlinx.coroutines.flow.Flow
@@ -208,10 +208,10 @@ class AppService : Service() {
         val currentSlowConnections = clients.filter { it.isSlowConnection }.toList()
         if (slowClients.containsAll(currentSlowConnections).not()) {
             val layoutInflater = ContextCompat.getSystemService(this@AppService, LayoutInflater::class.java)!!
-            val toastView = layoutInflater.inflate(R.layout.toast_slow_connection, null)
+            val binding = ToastSlowConnectionBinding.inflate(layoutInflater)
             val drawable = AppCompatResources.getDrawable(applicationContext, R.drawable.ic_notification_small_24dp)
-            toastView.iv_toast_slow_connection.setImageDrawable(drawable)
-            Toast(applicationContext).apply { view = toastView; duration = Toast.LENGTH_LONG }.show()
+            binding.ivToastSlowConnection.setImageDrawable(drawable)
+            Toast(applicationContext).apply { view = binding.root; duration = Toast.LENGTH_LONG }.show()
         }
         slowClients = currentSlowConnections
     }

@@ -50,6 +50,10 @@ android {
         }
     }
 
+    buildFeatures {
+        viewBinding = true
+    }
+
     compileOptions {
         coreLibraryDesugaringEnabled true
         sourceCompatibility = JavaVersion.VERSION_1_8
@@ -77,8 +81,6 @@ android {
         exclude 'META-INF/io.netty.versions.properties'
     }
 }
-
-androidExtensions { experimental = true }
 
 dependencies {
     coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:1.0.5'
