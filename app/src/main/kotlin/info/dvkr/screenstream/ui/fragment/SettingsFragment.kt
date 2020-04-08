@@ -1,21 +1,36 @@
 package info.dvkr.screenstream.ui.fragment
 
 import android.os.Bundle
+import android.view.LayoutInflater
 import android.view.View
+import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.viewpager2.adapter.FragmentStateAdapter
 import com.elvishew.xlog.XLog
 import com.google.android.material.tabs.TabLayoutMediator
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.data.other.getLog
-import kotlinx.android.synthetic.main.fragment_settings.*
+import info.dvkr.screenstream.databinding.FragmentSettingsBinding
 
-class SettingsFragment : Fragment(R.layout.fragment_settings) {
+class SettingsFragment : Fragment() {
+
+    private var _binding: FragmentSettingsBinding? = null
+    private val binding get() = _binding!!
+
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
+        _binding = FragmentSettingsBinding.inflate(inflater, container, false)
+        return binding.root
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
+    }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        vp_fragment_settings.adapter = object : FragmentStateAdapter(this) {
+        binding.vpFragmentSettings.adapter = object : FragmentStateAdapter(this) {
             override fun getItemCount(): Int = 4
 
             override fun createFragment(position: Int): Fragment =
@@ -28,7 +43,7 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
                 }
         }
 
-        TabLayoutMediator(tl_fragment_settings, vp_fragment_settings) { tab, position ->
+        TabLayoutMediator(binding.tlFragmentSettings, binding.vpFragmentSettings) { tab, position ->
             tab.text = when (position) {
                 0 -> requireContext().getString(R.string.pref_settings_interface)
                 1 -> requireContext().getString(R.string.pref_settings_image)

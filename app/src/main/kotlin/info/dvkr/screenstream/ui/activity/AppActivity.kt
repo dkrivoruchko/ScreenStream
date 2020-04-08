@@ -25,10 +25,10 @@ import info.dvkr.screenstream.R
 import info.dvkr.screenstream.data.other.getLog
 import info.dvkr.screenstream.data.settings.Settings
 import info.dvkr.screenstream.data.settings.SettingsReadOnly
+import info.dvkr.screenstream.databinding.ActivityAppBinding
 import info.dvkr.screenstream.logging.sendLogsInEmail
 import info.dvkr.screenstream.service.ServiceMessage
 import info.dvkr.screenstream.service.helper.IntentAction
-import kotlinx.android.synthetic.main.activity_app.*
 
 class AppActivity : PermissionActivity() {
 
@@ -39,6 +39,8 @@ class AppActivity : PermissionActivity() {
         fun getStartIntent(context: Context): Intent =
             getAppActivityIntent(context)
     }
+
+    private lateinit var binding: ActivityAppBinding
 
     private val scaleX = PropertyValuesHolder.ofFloat(View.SCALE_X, 0.5f, 1f)
     private val scaleY = PropertyValuesHolder.ofFloat(View.SCALE_Y, 0.5f, 1f)
@@ -52,10 +54,11 @@ class AppActivity : PermissionActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_app)
+        binding = ActivityAppBinding.inflate(layoutInflater)
+        setContentView(binding.root)
 
         with(findNavController(R.id.fr_activity_app_nav_host_fragment)) {
-            bottom_navigation_activity_app.setupWithNavController(this)
+            binding.bottomNavigationActivityApp.setupWithNavController(this)
             addOnDestinationChangedListener { _, destination, _ ->
                 if (destination.id == R.id.nav_exitFragment) IntentAction.Exit.sendToAppService(this@AppActivity)
             }
@@ -91,9 +94,9 @@ class AppActivity : PermissionActivity() {
     }
 
     private fun setLogging(loggingOn: Boolean) {
-        ll_activity_app_logs.visibility = if (loggingOn) View.VISIBLE else View.GONE
-        v_activity_app_logs.visibility = if (loggingOn) View.VISIBLE else View.GONE
-        b_activity_app_send_logs.setOnClickListener {
+        binding.llActivityAppLogs.visibility = if (loggingOn) View.VISIBLE else View.GONE
+        binding.vActivityAppLogs.visibility = if (loggingOn) View.VISIBLE else View.GONE
+        binding.bActivityAppSendLogs.setOnClickListener {
             MaterialDialog(this, BottomSheet(LayoutMode.WRAP_CONTENT)).show {
                 lifecycleOwner(this@AppActivity)
                 title(R.string.app_activity_send_logs_dialog_title)
@@ -122,15 +125,16 @@ class AppActivity : PermissionActivity() {
                 lastServiceMessage != serviceMessage || return
                 XLog.d(this@AppActivity.getLog("onServiceMessage", "$serviceMessage"))
 
-                bottom_navigation_activity_app.menu.findItem(R.id.menu_fab).title =
+                binding.bottomNavigationActivityApp.menu.findItem(R.id.menu_fab).title =
                     if (serviceMessage.isStreaming) getString(R.string.bottom_menu_stop)
                     else getString(R.string.bottom_menu_start)
 
-                with(fab_activity_app_start_stop) {
+                with(binding.fabActivityAppStartStop) {
                     visibility = View.VISIBLE
                     if (serviceMessage.isBusy) {
                         isEnabled = false
-                        backgroundTintList = ContextCompat.getColorStateList(this@AppActivity, R.color.colorIconDisabled)
+                        backgroundTintList =
+                            ContextCompat.getColorStateList(this@AppActivity, R.color.colorIconDisabled)
                     } else {
                         isEnabled = true
                         backgroundTintList = ContextCompat.getColorStateList(this@AppActivity, R.color.colorAccent)
@@ -147,10 +151,11 @@ class AppActivity : PermissionActivity() {
                 }
 
                 if (serviceMessage.isStreaming != lastServiceMessage?.isStreaming) {
-                    ObjectAnimator.ofPropertyValuesHolder(fab_activity_app_start_stop, scaleX, scaleY, alpha).apply {
-                        interpolator = OvershootInterpolator()
-                        duration = 750
-                    }.start()
+                    ObjectAnimator.ofPropertyValuesHolder(binding.fabActivityAppStartStop, scaleX, scaleY, alpha)
+                        .apply {
+                            interpolator = OvershootInterpolator()
+                            duration = 750
+                        }.start()
                 }
 
                 lastServiceMessage = serviceMessage
