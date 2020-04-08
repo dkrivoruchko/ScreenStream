@@ -63,9 +63,8 @@ Version 3.x based on Clean Architecture, Single Activity and MVI patterns and us
 * [ZXing](https://github.com/zxing/zxing)
 * [Material Dialogs](https://github.com/afollestad/material-dialogs)
 * [Binary Preferences](https://github.com/iamironz/binaryprefs)
-* [RxJava 1.x](https://github.com/ReactiveX/RxJava/tree/1.x)
-* [RxNetty](https://github.com/ReactiveX/RxNetty)
-* [Crashlytics](https://try.crashlytics.com/)
+* [Ktor](https://ktor.io/)
+* [Firebase Crashlytics](https://firebase.google.com/docs/crashlytics)
 * [xLog](https://github.com/elvishew/xLog)
 * [LeakCanary](https://github.com/square/leakcanary)
 
