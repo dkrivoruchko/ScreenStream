@@ -61,7 +61,7 @@ class HttpServer(
         XLog.d(getLog("init"))
     }
 
-    private val lastMJPEGFrame: AtomicReference<ByteArray> = AtomicReference(ByteArray(0))
+    private val lastJPEG: AtomicReference<ByteArray> = AtomicReference(ByteArray(0))
     private var ktorServer: NettyApplicationEngine? = null
     private var stopDeferred: CompletableDeferred<Unit>? = null
 
@@ -81,8 +81,7 @@ class HttpServer(
                 bitmap.compress(Bitmap.CompressFormat.JPEG, settingsReadOnly.jpegQuality, resultJpegStream)
                 resultJpegStream.toByteArray()
             }
-            .map { jpegBytes -> jpegBytes.toMJPEGFrame() }
-            .onEach { frame -> lastMJPEGFrame.set(frame) }
+            .onEach { frame -> lastJPEG.set(frame) }
             .conflate()
             .broadcastIn(CoroutineScope(context), CoroutineStart.DEFAULT)
 
@@ -194,15 +193,12 @@ class HttpServer(
                                     clientStatistic.sendEvent(
                                         StatisticEvent.Connected(clientId, call.request.local.remoteHost)
                                     )
-                                    val frame = lastMJPEGFrame.get()
-                                    channel.writeFully(frame, 0, frame.size)
-                                    channel.flush()
-                                    clientStatistic.sendEvent(StatisticEvent.NextBytes(clientId, frame.size))
+                                    val totalSize = writeMJPEGFrame(channel, lastJPEG.get())
+                                    clientStatistic.sendEvent(StatisticEvent.NextBytes(clientId, totalSize))
                                 }
                                 .onEach { jpeg ->
-                                    channel.writeFully(jpeg, 0, jpeg.size)
-                                    channel.flush()
-                                    clientStatistic.sendEvent(StatisticEvent.NextBytes(clientId, jpeg.size))
+                                    val totalSize = writeMJPEGFrame(channel, jpeg)
+                                    clientStatistic.sendEvent(StatisticEvent.NextBytes(clientId, totalSize))
                                 }
                                 .onCompletion {
                                     XLog.d(this@HttpServer.getLog("onCompletion", "Client: $clientId"))
@@ -237,22 +233,16 @@ class HttpServer(
         }
     }
 
-    private fun ByteArray.toMJPEGFrame(): ByteArray {
-        val jpegSizeText = this.size.toString().toByteArray()
-        val totalSize = jpegBaseHeader.size + jpegSizeText.size + crlf.size * 3 + this.size + jpegBoundary.size
-        val result = jpegBaseHeader.copyOf(totalSize)
-        var position = jpegBaseHeader.size
-        System.arraycopy(jpegSizeText, 0, result, position, jpegSizeText.size)
-        position += jpegSizeText.size
-        System.arraycopy(crlf, 0, result, position, crlf.size)
-        position += crlf.size
-        System.arraycopy(crlf, 0, result, position, crlf.size)
-        position += crlf.size
-        System.arraycopy(this, 0, result, position, this.size)
-        position += this.size
-        System.arraycopy(crlf, 0, result, position, crlf.size)
-        position += crlf.size
-        System.arraycopy(jpegBoundary, 0, result, position, jpegBoundary.size)
-        return result
+    private suspend fun writeMJPEGFrame(channel: ByteWriteChannel, jpeg: ByteArray): Int {
+        channel.writeFully(jpegBaseHeader, 0, jpegBaseHeader.size)
+        val jpegSizeText = jpeg.size.toString().toByteArray()
+        channel.writeFully(jpegSizeText, 0, jpegSizeText.size)
+        channel.writeFully(crlf, 0, crlf.size)
+        channel.writeFully(crlf, 0, crlf.size)
+        channel.writeFully(jpeg, 0, jpeg.size)
+        channel.writeFully(crlf, 0, crlf.size)
+        channel.writeFully(jpegBoundary, 0, jpegBoundary.size)
+        channel.flush()
+        return jpegBaseHeader.size + jpegSizeText.size + crlf.size * 3 + jpeg.size + jpegBoundary.size
     }
 }
