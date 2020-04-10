@@ -7,7 +7,6 @@ import android.os.Binder
 import android.os.IBinder
 import android.view.LayoutInflater
 import android.widget.Toast
-import androidx.annotation.AnyThread
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.content.ContextCompat
 import com.elvishew.xlog.XLog
@@ -30,6 +29,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
 import org.koin.android.ext.android.inject
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicReference
 
 class AppService : Service() {
 
@@ -67,16 +67,16 @@ class AppService : Service() {
     )
 
     private val isStreaming = AtomicBoolean(false)
-    private var errorPrevious: AppError? = null
+    private val errorPrevious = AtomicReference<AppError?>(null)
 
     override fun onBind(intent: Intent?): IBinder? {
         XLog.d(getLog("onBind", "Invoked"))
         return appServiceBinder
     }
 
-    @AnyThread
     private fun onError(appError: AppError?) {
-        errorPrevious != appError || return
+        val oldError = errorPrevious.getAndSet(appError)
+        oldError != appError || return
 
         if (appError == null) {
             notificationHelper.hideErrorNotification()
@@ -84,8 +84,6 @@ class AppService : Service() {
             XLog.e(this@AppService.getLog("onError", "AppError: $appError"))
             notificationHelper.showErrorNotification(appError)
         }
-
-        errorPrevious = appError
     }
 
     private fun onEffect(effect: AppStateMachine.Effect) {

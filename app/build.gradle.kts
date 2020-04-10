@@ -111,7 +111,7 @@ dependencies {
     "firebaseImplementation"("com.google.android.play:core:1.7.2")
     "firebaseImplementation"("com.google.android.play:core-ktx:1.7.0")
     "firebaseReleaseImplementation"("com.google.firebase:firebase-analytics:17.3.0")
-    "firebaseReleaseImplementation"("com.google.firebase:firebase-crashlytics:17.0.0-beta03")
+    "firebaseReleaseImplementation"("com.google.firebase:firebase-crashlytics:17.0.0-beta04")
 
     debugImplementation("com.squareup.leakcanary:leakcanary-android:2.2")
 }

@@ -20,7 +20,10 @@ import info.dvkr.screenstream.data.state.helper.ConnectivityHelper
 import info.dvkr.screenstream.data.state.helper.MediaProjectionHelper
 import info.dvkr.screenstream.data.state.helper.NetworkHelper
 import kotlinx.coroutines.*
-import kotlinx.coroutines.channels.*
+import kotlinx.coroutines.channels.ClosedSendChannelException
+import kotlinx.coroutines.channels.ConflatedBroadcastChannel
+import kotlinx.coroutines.channels.SendChannel
+import kotlinx.coroutines.channels.actor
 
 class AppStateMachineImpl(
     context: Context,
@@ -30,14 +33,19 @@ class AppStateMachineImpl(
 ) : AppStateMachine {
 
     private val applicationContext: Context = context.applicationContext
-    private val bitmapChannel: BroadcastChannel<Bitmap> = BroadcastChannel(Channel.CONFLATED)
+    private val bitmapChannel: ConflatedBroadcastChannel<Bitmap> = ConflatedBroadcastChannel()
     private val mediaProjectionHelper = MediaProjectionHelper(context) { sendEvent(AppStateMachine.Event.StopStream) }
     private val broadcastHelper = BroadcastHelper.getInstance(context, ::onError)
     private val connectivityHelper: ConnectivityHelper = ConnectivityHelper.getInstance(context)
     private val networkHelper = NetworkHelper(context)
     private val notificationBitmap = NotificationBitmap(context)
-    private val httpServer: HttpServer
-    private val clientStatistic: ClientStatistic
+    private val clientStatistic: ClientStatistic = ClientStatistic(onStatistic, ::onError)
+    private val httpServerFiles = HttpServerFiles(applicationContext, settingsReadOnly)
+    private val httpServer: HttpServer = HttpServer(
+        settingsReadOnly, httpServerFiles, clientStatistic, bitmapChannel,
+        { sendEvent(InternalEvent.StartStopFromWebPage) },
+        ::onError
+    )
 
     private val coroutineExceptionHandler = CoroutineExceptionHandler { _, throwable ->
         XLog.e(getLog("onCoroutineException"), throwable)
@@ -90,12 +98,8 @@ class AppStateMachineImpl(
         } else {
             XLog.d(getLog("sendEvent", "Event: $event"))
 
-            if (coroutineScope.isActive.not()) {
-                XLog.w(getLog("sendEvent", "ScopeIsNotActive"))
-                return
-            }
-
             try {
+                coroutineScope.ensureActive()
                 eventChannel.offer(event) || throw IllegalStateException("ChannelIsFull")
             } catch (ignore: ClosedSendChannelException) {
             } catch (ignore: CancellationException) {
@@ -114,46 +118,34 @@ class AppStateMachineImpl(
         var streamState = StreamState()
         var previousStreamState: StreamState
 
-        consumeEach { event ->
-            ensureActive()
-            try {
-                if (StateToEventMatrix.skippEvent(streamState.state, event).not()) {
+        for (event in this) {
+            if (StateToEventMatrix.skippEvent(streamState.state, event).not()) {
 
-                    previousStreamState = streamState
+                previousStreamState = streamState
 
-                    streamState = when (event) {
-                        is InternalEvent.DiscoverAddress -> discoverAddress(streamState)
-                        is InternalEvent.StartServer -> startServer(streamState)
-                        is InternalEvent.ComponentError -> componentError(streamState, event.appError)
-                        is InternalEvent.StartStopFromWebPage -> startStopFromWebPage(streamState)
-                        is InternalEvent.RestartServer -> restartServer(streamState, event.reason)
-                        is InternalEvent.ScreenOff -> screenOff(streamState)
-                        is InternalEvent.Destroy -> destroy(streamState)
+                streamState = when (event) {
+                    is InternalEvent.DiscoverAddress -> discoverAddress(streamState)
+                    is InternalEvent.StartServer -> startServer(streamState)
+                    is InternalEvent.ComponentError -> componentError(streamState, event.appError)
+                    is InternalEvent.StartStopFromWebPage -> startStopFromWebPage(streamState)
+                    is InternalEvent.RestartServer -> restartServer(streamState, event.reason)
+                    is InternalEvent.ScreenOff -> screenOff(streamState)
+                    is InternalEvent.Destroy -> destroy(streamState)
 
-                        is AppStateMachine.Event.StartStream -> startStream(streamState)
-                        is AppStateMachine.Event.CastPermissionsDenied -> castPermissionsDenied(streamState)
-                        is AppStateMachine.Event.StartProjection -> startProjection(streamState, event.intent)
-                        is AppStateMachine.Event.StopStream -> stopStream(streamState)
-                        is AppStateMachine.Event.RequestPublicState -> requestPublicState(streamState)
-                        is AppStateMachine.Event.RecoverError -> recoverError(streamState)
-                        else -> throw IllegalArgumentException("Unknown AppStateMachine.Event: $event")
-                    }
-
-                    if (streamState.isPublicStatePublishRequired(previousStreamState)) onEffect(streamState.toPublicState())
-
-                    XLog.i(this@AppStateMachineImpl.getLog("actor", "New state:${streamState.state}"))
+                    is AppStateMachine.Event.StartStream -> startStream(streamState)
+                    is AppStateMachine.Event.CastPermissionsDenied -> castPermissionsDenied(streamState)
+                    is AppStateMachine.Event.StartProjection -> startProjection(streamState, event.intent)
+                    is AppStateMachine.Event.StopStream -> stopStream(streamState)
+                    is AppStateMachine.Event.RequestPublicState -> requestPublicState(streamState)
+                    is AppStateMachine.Event.RecoverError -> recoverError(streamState)
+                    else -> throw IllegalArgumentException("Unknown AppStateMachine.Event: $event")
                 }
-            } catch (throwable: Throwable) {
-                XLog.e(this@AppStateMachineImpl.getLog("actor"), throwable)
-                onError(FatalError.ActorException)
-            }
-            ensureActive()
-        }
-    }
 
-    private fun onError(appError: AppError) {
-        XLog.e(getLog("onError", "AppError: $appError"))
-        sendEvent(InternalEvent.ComponentError(appError))
+                if (streamState.isPublicStatePublishRequired(previousStreamState)) onEffect(streamState.toPublicState())
+
+                XLog.i(this@AppStateMachineImpl.getLog("actor", "New state:${streamState.state}"))
+            }
+        }
     }
 
     init {
@@ -164,15 +156,6 @@ class AppStateMachineImpl(
             onConnectionChanged = { sendEvent(InternalEvent.RestartServer(RestartReason.ConnectionChanged(""))) }
         )
 
-        clientStatistic = ClientStatistic(onStatistic, ::onError)
-        httpServer = HttpServer(
-            settingsReadOnly,
-            HttpServerFiles(applicationContext, settingsReadOnly),
-            clientStatistic,
-            bitmapChannel,
-            { sendEvent(InternalEvent.StartStopFromWebPage) },
-            ::onError
-        )
         connectivityHelper.startListening {
             sendEvent(InternalEvent.RestartServer(RestartReason.ConnectionChanged("")))
         }
@@ -188,6 +171,11 @@ class AppStateMachineImpl(
         connectivityHelper.stopListening()
         eventChannel.close()
         coroutineScope.cancel(CancellationException("AppStateMachine.destroy"))
+    }
+
+    private fun onError(appError: AppError) {
+        XLog.e(getLog("onError", "AppError: $appError"))
+        sendEvent(InternalEvent.ComponentError(appError))
     }
 
     private fun stopProjection(streamState: StreamState): StreamState {
@@ -323,6 +311,8 @@ class AppStateMachineImpl(
                     repeat(3) { bitmapChannel.send(bitmap); delay(250) }
                 }
         }
+
+        httpServer.stop().await()
 
         if (state.state == StreamState.State.ERROR)
             sendEvent(AppStateMachine.Event.RecoverError)

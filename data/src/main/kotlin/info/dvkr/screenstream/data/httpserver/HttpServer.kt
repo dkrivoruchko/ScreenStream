@@ -81,7 +81,7 @@ class HttpServer(
                 bitmap.compress(Bitmap.CompressFormat.JPEG, settingsReadOnly.jpegQuality, resultJpegStream)
                 resultJpegStream.toByteArray()
             }
-            .onEach { frame -> lastJPEG.set(frame) }
+            .onEach { jpeg -> lastJPEG.set(jpeg) }
             .conflate()
             .broadcastIn(CoroutineScope(context), CoroutineStart.DEFAULT)
 
