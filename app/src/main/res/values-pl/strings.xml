@@ -1,31 +1,43 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="app_name" translatable="false">ScreenStream</string>
+
     <string name="error_title">Błąd</string>
     <string name="error_port_in_use">Port jest już w użyciu. Wybierz inny.</string>
-    <string name="error_invalid_media_projection">Błąd bezpieczeństwa: Nieprawidłowa projekcja multimediów. Spróbuj ponownie.</string>
+    <string name="error_invalid_media_projection">Błąd bezpieczeństwa: nieprawidłowa projekcja mediów. Spróbuj ponownie.</string>
     <string name="error_ip_address_not_found">Nie znaleziono adresu IP. \nSpróbuj wyłączyć \"Używaj tylko WiFi\" w ustawieniach.</string>
     <string name="error_wrong_image_format">System nadaje obrazowi niewłaściwy format. Nie ma rozwiązania tego problemu.</string>
-    <string name="error_exit">Wyjście</string>
-    <string name="app_activity_collecting_logs">Zbieranie dzienników aplikacji…</string>
+    <string name="error_exit">Zamknij</string>
+
+    <string name="app_activity_collecting_logs">Trwa zbieranie dzienników aplikacji...</string>
     <string name="app_activity_send_logs">Wyślij dzienniki do programisty</string>
+    <string name="app_activity_send_logs_dialog_title">Wyślij dzienniki e-mailem do programisty</string>
+    <string name="app_activity_send_logs_dialog_message">Dodaj opis problemu:</string>
+    <string name="app_activity_send_logs_dialog_neutral">Zatrzymaj rejestrowanie</string>
+
+    <string name="app_update_activity_dialog_title">Dostępna aktualizacja</string>
+    <string name="app_update_activity_dialog_message">Pobrano aktualizację. Uruchom ponownie aplikację?</string>
+    <string name="app_update_activity_dialog_restart">Uruchom ponownie</string>
 
     <string name="bottom_menu_stream">Transmisja</string>
     <string name="bottom_menu_settings">Ustawienia</string>
-    <string name="bottom_menu_start">Start</string>
-    <string name="bottom_menu_stop">Stop</string>
+    <string name="bottom_menu_start">Uruchom</string>
+    <string name="bottom_menu_stop">Zatrzymaj</string>
     <string name="bottom_menu_about">O aplikacji</string>
-    <string name="bottom_menu_exit">Wyjście</string>
+    <string name="bottom_menu_exit">Zamknij</string>
 
     <string name="stream_fragment_current_traffic">Ruch: %1$,.2f Mbit/s</string>
     <string name="stream_fragment_connected_clients">Połączeni klienci: %1$d</string>
     <string name="stream_fragment_no_address">Nie znaleziono adresu</string>
     <string name="stream_fragment_interface">Łącze: %1$s</string>
-    <string name="stream_fragment_copied">Skopiowano</string>
+    <string name="stream_fragment_copied">Skopiowane</string>
     <string name="stream_fragment_no_web_browser_found">Nie znaleziono przeglądarki internetowej</string>
+    <string name="stream_fragment_external_app_error">Błąd aplikacji zewnętrznej</string>
+    <string name="stream_fragment_share_address">Udostępnij adres urządzenia</string>
     <string name="stream_fragment_pin">Kod PIN: %1$s</string>
     <string name="stream_fragment_pin_disabled">Kod PIN jest wyłączony</string>
     <string name="stream_fragment_client_disconnected">Rozłączony</string>
-    <string name="stream_fragment_client_slow_network">Wolne połączenie</string>
+    <string name="stream_fragment_client_slow_network">Powolne połączenie</string>
     <string name="stream_fragment_client_connected">Połączony</string>
 
     <string name="item_device_address">Adres urządzenia:</string>
@@ -40,18 +52,18 @@
     <string name="notification_ready_to_stream">Gotowy do transmisji</string>
     <string name="notification_press_start">Naciśnij START, aby rozpocząć transmisję</string>
     <string name="notification_start">Start</string>
-    <string name="notification_exit">Wyjście</string>
+    <string name="notification_exit">Zamknij</string>
     <string name="notification_stream">Przesyłanie…</string>
     <string name="notification_press_stop">Naciśnij STOP, aby zakończyć transmisję</string>
     <string name="notification_stop">Stop</string>
 
-    <string name="toast_slow_client_connection">Wykryto wolne połączenie</string>
+    <string name="toast_slow_client_connection">Wykryto wolne połączenie klienta</string>
 
-    <string name="pref_settings_interface">Interfejs</string>
+    <string name="pref_settings_interface">Wygląd</string>
     <string name="pref_night_mode">Ciemny motyw</string>
     <string-array name="pref_night_mode_options_api21_28">
         <item>Zawsze</item>
-        <item>Tylko oszczędzanie baterii</item>
+        <item>Ustawiony przez Oszczędzanie baterii</item>
         <item>Nigdy</item>
     </string-array>
     <string-array name="pref_night_mode_options_api29">
@@ -59,56 +71,88 @@
         <item>Automatycznie (podążaj za systemem)</item>
         <item>Nigdy</item>
     </string-array>
-    <string name="pref_notification">Ustawienia powiadomień urządzenia</string>
-    <string name="pref_notification_summary">Otwórz ustawienia powiadomień systemu</string>
-    <string name="pref_stop_on_sleep">Zatrzymaj transmisję przy uśpieniu</string>
-    <string name="pref_stop_on_sleep_summary">Zatrzymaj transmisję, jeśli ekran się wyłączy</string>
+    <string name="pref_notification">Ustawienia powiadomień</string>
+    <string name="pref_notification_summary">Otwiera ustawienia powiadomień systemu</string>
+    <string name="pref_stop_on_sleep">Zatrzymaj transmisję podczas uśpienia</string>
+    <string name="pref_stop_on_sleep_summary">Zatrzymuje transmisję, jeśli ekran się wyłączy</string>
     <string name="pref_start_on_boot">Uruchom transmisję przy starcie</string>
-    <string name="pref_start_on_boot_summary">Uruchom trnsmisję po uruchomieniu urządzenia</string>
-    <string name="pref_detect_slow_connections">Powiadamiaj o wolnych połączeniach</string>
-    <string name="pref_detect_slow_connections_summary">Wykryj i powiadom o wolnym połączeniu klienta</string>
+    <string name="pref_start_on_boot_summary">Uruchamia transmisję po uruchomieniu urządzenia</string>
+    <string name="pref_auto_start_stop">Automatyczne uruchamianie/zatrzymywanie transmisji</string>
+    <string name="pref_auto_start_stop_summary">Automatycznie uruchamia/zatrzymuje transmisję, łączy/rozłącza klienta</string>
+    <string name="pref_detect_slow_connections">Powiadamianie o powolnych połączeniach</string>
+    <string name="pref_detect_slow_connections_summary">Wykrywa i powiadamia o powolnym połączeniu klienta</string>
     <string name="pref_html_buttons">Włącz przyciski strony internetowej</string>
-    <string name="pref_html_buttons_summary">Pokaż przyciski sterowania na stronie internetowej</string>
+    <string name="pref_html_buttons_summary">Pokazuje przyciski sterujące na stronie internetowej</string>
     <string name="pref_html_back_color">Kolor tła strony internetowej</string>
-    <string name="pref_html_back_color_summary">Ustaw kolor tła strony internetowej</string>
+    <string name="pref_html_back_color_summary">Ustawia kolor tła strony internetowej</string>
     <string name="pref_html_back_color_title">Wybierz kolor tła</string>
     <string name="pref_settings_image">Obraz</string>
+    <string name="pref_vr_mode">Tryb wirtualnej rzeczywistości</string>
+    <string name="pref_vr_mode_summary">Przechwytuje zawartość z połowy ekranu</string>
+    <string-array name="pref_vr_mode_options">
+        <item>Użyj lewej części</item>
+        <item>Użyj prawej części</item>
+    </string-array>
+    <string name="pref_crop">Przytnij zdjęcie</string>
+    <string name="pref_crop_summary">Przycina obraz przed wysłaniem</string>
+    <string name="pref_crop_dialog_crop_top">Przytnij górę:</string>
+    <string name="pref_crop_dialog_crop_bottom">Przytnij dół:</string>
+    <string name="pref_crop_dialog_crop_left">Przytnij z lewej:</string>
+    <string name="pref_crop_dialog_crop_right">Przytnij z prawej:</string>
+    <string name="pref_crop_dialog_pixels">pikseli</string>
+    <string name="pref_crop_dialog_warning_message">Przycięcie zostanie zignorowane, jeśli wynikiem będzie pusty obraz</string>
+    <string name="pref_crop_dialog_error_message">Wprowadź prawidłowe wartości przycięcia</string>
     <string name="pref_resize">Zmiana rozmiaru obrazu</string>
-    <string name="pref_resize_summary">Zmień rozmiar obrazu przed wysłaniem</string>
-    <string name="pref_resize_dialog_text">Ustaw współczynnik powiększenia obrazu w procentach.\nWartość: 10–150 (Domyślnie: 50)\nRozmiar ekranu: %1$dx%2$d</string>
+    <string name="pref_resize_summary">Zmienia rozmiar obrazu przed wysłaniem</string>
+    <string name="pref_resize_value" translatable="false">%1$d%%</string>
+    <string name="pref_resize_dialog_text">Ustaw współczynnik zmiany rozmiaru obrazu w procentach. \nWartość: 10–150 (Domyślnie: 50) \nRozmiar ekranu: %1$dx%2$d</string>
     <string name="pref_resize_dialog_result">Rozmiar obrazu: %1$dx%2$d</string>
-    <string name="pref_rotate">Obróć obraz zgodnie z ruchem wskazówek zegara</string>
-    <string name="pref_rotate_summary">Obróć obraz przed wysłaniem</string>
+    <string name="pref_rotate">Obróć zdjęcie zgodnie z ruchem wskazówek zegara</string>
+    <string name="pref_rotate_summary">Obraca obraz przed wysłaniem</string>
+    <string name="pref_rotate_value" translatable="false">%1$d\u00B0</string>
+    <string-array name="pref_rotate_options" translatable="false">
+        <item>0\u00B0</item>
+        <item>90\u00B0</item>
+        <item>180\u00B0</item>
+        <item>270\u00B0</item>
+    </string-array>
+    <string name="pref_fps">Ogranicz liczbę klatek na sekundę</string>
+    <string name="pref_fps_summary">Ustawia maksymalną liczbę klatek na sekundę</string>
+    <string name="pref_fps_dialog">Ustaw maksymalną liczbę klatek na sekundę. \nWartość: 1–60 (Domyślnie: 30)</string>
     <string name="pref_jpeg_quality">Jakość kompresji JPEG</string>
-    <string name="pref_jpeg_quality_summary">Ustaw jakość kompresji JPEG</string>
-    <string name="pref_jpeg_quality_dialog">Ustaw jakość kompresji JPEG.\nWartość: 1–100\n(Domyślnie: 80)</string>
+    <string name="pref_jpeg_quality_summary">Ustawia jakość kompresji JPEG</string>
+    <string name="pref_jpeg_quality_dialog">Ustaw jakość kompresji JPEG. \nWartość: 10–100 (Domyślnie: 80)</string>
     <string name="pref_settings_security">Bezpieczeństwo</string>
     <string name="pref_enable_pin">Użyj kodu PIN</string>
-    <string name="pref_enable_pin_summary">Chroń dostęp do transmisji za pomocą kodu PIN</string>
+    <string name="pref_enable_pin_summary">Chroni dostęp do transmisji za pomocą kodu PIN</string>
     <string name="pref_hide_pin">Automatycznie ukryj kod PIN podczas uruchamiania transmisji</string>
-    <string name="pref_hide_pin_summary">Pokaż gwiazdki zamiast kodu PIN</string>
+    <string name="pref_hide_pin_summary">Pokazuje gwiazdki zamiast kodu PIN</string>
     <string name="pref_new_pin_on_start">Nowy kod PIN podczas uruchamiania</string>
-    <string name="pref_new_pin_on_start_summary">Wygeneruj nowy kod PIN podczas uruchomieniu aplikacji</string>
+    <string name="pref_new_pin_on_start_summary">Wygeneruje nowy kod PIN podczas uruchomienia aplikacji</string>
     <string name="pref_auto_change_pin">Automatyczna zmiana kodu PIN</string>
-    <string name="pref_auto_change_pin_summary">Wygeneruj nowy kod PIN dla każdej transmisji</string>
+    <string name="pref_auto_change_pin_summary">Wygeneruje kod PIN dla każdej nowej transmisji</string>
     <string name="pref_set_pin">Ustaw kod PIN</string>
-    <string name="pref_set_pin_summary">Podaj kod PIN</string>
+    <string name="pref_set_pin_summary">Tworzenie kodu PIN</string>
     <string name="pref_set_pin_dialog">Wprowadź kod PIN.\nDomyślnie: 0000</string>
     <string name="pref_settings_advanced">Zaawansowane</string>
-    <string name="pref_wifi_only">Używaj tylko WiFi</string>
-    <string name="pref_wifi_only_summary">Uruchom serwer tylko w interfejsie WiFi</string>
+    <string name="pref_wifi_only">Używaj tylko Wi-Fi</string>
+    <string name="pref_wifi_only_summary">Uruchamia serwer tylko poprzez połączenie WiFi</string>
     <string name="pref_enable_ipv6">Włącz obsługę protokołu IPv6</string>
-    <string name="pref_enable_ipv6_summary">Uruchom serwer i adresy IPv6</string>
+    <string name="pref_enable_ipv6_summary">Uruchamia także serwer na adresach IPv6</string>
+    <string name="pref_enable_localhost">Włącz host lokalny </string>
+    <string name="pref_enable_localhost_summary">Uruchamia serwer na lokalnych adresach hostów</string>
     <string name="pref_server_port">Port serwera</string>
-    <string name="pref_server_port_summary">Ustaw port dla połączeń przychodzących</string>
+    <string name="pref_server_port_summary">Ustawianie portu dla połączeń przychodzących</string>
     <string name="pref_server_port_dialog">Ustaw port serwera dla połączeń przychodzących.\nWartość: 1025–65535\n(Domyślnie: 8080)</string>
     <string name="pref_logging">Włącz dzienniki aplikacji</string>
     <string name="pref_logging_summary">Zbieraj dzienniki aplikacji</string>
 
+    <string name="about_fragment_app_name" translatable="false">Screen Stream over HTTP</string>
     <string name="about_fragment_app_version">Wersja: %1$s</string>
     <string name="about_fragment_developer_name">Programista Dmitriy Krivoruchko</string>
     <string name="about_fragment_rate_app">Oceń aplikację</string>
-    <string name="about_fragment_write_email">Wyślij e-mail do autora</string>
+    <string name="about_fragment_write_email">Napisz e-mail do autora</string>
+    <string name="about_fragment_write_email_dialog">Wysłać e-mail do autora?</string>
     <string name="about_fragment_email_chooser_header">Wysłam wiadomość e-mail…</string>
     <string name="about_fragment_app_sources">Kod źródłowy aplikacji</string>
     <string name="about_fragment_privacy_policy">Polityka prywatności</string>
