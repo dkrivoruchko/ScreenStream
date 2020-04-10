@@ -28,7 +28,7 @@ import kotlinx.coroutines.channels.SendChannel
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
 
-class BitmapCapture constructor(
+class BitmapCapture(
     private val display: Display,
     private val settingsReadOnly: SettingsReadOnly,
     private val mediaProjection: MediaProjection,
@@ -56,7 +56,6 @@ class BitmapCapture constructor(
     private var imageListener: ImageListener? = null
     private var imageReader: ImageReader? = null
     private var virtualDisplay: VirtualDisplay? = null
-    private lateinit var rotationDetector: Deferred<Unit>
 
     private val matrix = AtomicReference<Matrix>(Matrix())
     private val resizeFactor = AtomicInteger(Settings.Values.RESIZE_DISABLED)
@@ -132,14 +131,11 @@ class BitmapCapture constructor(
     fun destroy() {
         XLog.d(getLog("destroy"))
         requireState(State.STARTED, State.ERROR)
-
+        coroutineScope.cancel(CancellationException("BitmapCapture.destroy"))
         state = State.STOPPED
         settingsReadOnly.unregisterChangeListener(settingsListener)
-
-        if (::rotationDetector.isInitialized) rotationDetector.cancel()
         stopDisplayCapture()
         imageThread.quit()
-        coroutineScope.cancel()
     }
 
     @SuppressLint("WrongConstant")
