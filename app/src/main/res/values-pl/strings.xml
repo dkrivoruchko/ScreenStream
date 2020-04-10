@@ -1,15 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name" translatable="false">ScreenStream</string>
-
     <string name="error_title">Błąd</string>
     <string name="error_port_in_use">Port jest już w użyciu. Wybierz inny.</string>
     <string name="error_invalid_media_projection">Błąd bezpieczeństwa: nieprawidłowa projekcja mediów. Spróbuj ponownie.</string>
     <string name="error_ip_address_not_found">Nie znaleziono adresu IP. \nSpróbuj wyłączyć \"Używaj tylko WiFi\" w ustawieniach.</string>
     <string name="error_wrong_image_format">System nadaje obrazowi niewłaściwy format. Nie ma rozwiązania tego problemu.</string>
     <string name="error_exit">Zamknij</string>
-
-    <string name="app_activity_collecting_logs">Trwa zbieranie dzienników aplikacji...</string>
+    <string name="app_activity_collecting_logs">Trwa zbieranie dzienników aplikacji…</string>
     <string name="app_activity_send_logs">Wyślij dzienniki do programisty</string>
     <string name="app_activity_send_logs_dialog_title">Wyślij dzienniki e-mailem do programisty</string>
     <string name="app_activity_send_logs_dialog_message">Dodaj opis problemu:</string>
@@ -104,24 +101,16 @@
     <string name="pref_crop_dialog_error_message">Wprowadź prawidłowe wartości przycięcia</string>
     <string name="pref_resize">Zmiana rozmiaru obrazu</string>
     <string name="pref_resize_summary">Zmienia rozmiar obrazu przed wysłaniem</string>
-    <string name="pref_resize_value" translatable="false">%1$d%%</string>
-    <string name="pref_resize_dialog_text">Ustaw współczynnik zmiany rozmiaru obrazu w procentach. \nWartość: 10–150 (Domyślnie: 50) \nRozmiar ekranu: %1$dx%2$d</string>
+    <string name="pref_resize_dialog_text">Ustaw współczynnik zmiany rozmiaru obrazu w procentach.\nWartość: 10–150 (Domyślnie: 50)\nRozmiar ekranu: %1$dx%2$d</string>
     <string name="pref_resize_dialog_result">Rozmiar obrazu: %1$dx%2$d</string>
     <string name="pref_rotate">Obróć zdjęcie zgodnie z ruchem wskazówek zegara</string>
     <string name="pref_rotate_summary">Obraca obraz przed wysłaniem</string>
-    <string name="pref_rotate_value" translatable="false">%1$d\u00B0</string>
-    <string-array name="pref_rotate_options" translatable="false">
-        <item>0\u00B0</item>
-        <item>90\u00B0</item>
-        <item>180\u00B0</item>
-        <item>270\u00B0</item>
-    </string-array>
     <string name="pref_fps">Ogranicz liczbę klatek na sekundę</string>
     <string name="pref_fps_summary">Ustawia maksymalną liczbę klatek na sekundę</string>
-    <string name="pref_fps_dialog">Ustaw maksymalną liczbę klatek na sekundę. \nWartość: 1–60 (Domyślnie: 30)</string>
+    <string name="pref_fps_dialog">Ustaw maksymalną liczbę klatek na sekundę.\nWartość: 1–60 (Domyślnie: 30)</string>
     <string name="pref_jpeg_quality">Jakość kompresji JPEG</string>
     <string name="pref_jpeg_quality_summary">Ustawia jakość kompresji JPEG</string>
-    <string name="pref_jpeg_quality_dialog">Ustaw jakość kompresji JPEG. \nWartość: 10–100 (Domyślnie: 80)</string>
+    <string name="pref_jpeg_quality_dialog">Ustaw jakość kompresji JPEG.\nWartość: 10–100 (Domyślnie: 80)</string>
     <string name="pref_settings_security">Bezpieczeństwo</string>
     <string name="pref_enable_pin">Użyj kodu PIN</string>
     <string name="pref_enable_pin_summary">Chroni dostęp do transmisji za pomocą kodu PIN</string>
@@ -147,7 +136,6 @@
     <string name="pref_logging">Włącz dzienniki aplikacji</string>
     <string name="pref_logging_summary">Zbieraj dzienniki aplikacji</string>
 
-    <string name="about_fragment_app_name" translatable="false">Screen Stream over HTTP</string>
     <string name="about_fragment_app_version">Wersja: %1$s</string>
     <string name="about_fragment_developer_name">Programista Dmitriy Krivoruchko</string>
     <string name="about_fragment_rate_app">Oceń aplikację</string>
