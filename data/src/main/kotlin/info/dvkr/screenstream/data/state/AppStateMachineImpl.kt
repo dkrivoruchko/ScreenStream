@@ -20,16 +20,14 @@ import info.dvkr.screenstream.data.state.helper.ConnectivityHelper
 import info.dvkr.screenstream.data.state.helper.MediaProjectionHelper
 import info.dvkr.screenstream.data.state.helper.NetworkHelper
 import kotlinx.coroutines.*
-import kotlinx.coroutines.channels.ClosedSendChannelException
 import kotlinx.coroutines.channels.ConflatedBroadcastChannel
-import kotlinx.coroutines.channels.SendChannel
 import kotlinx.coroutines.channels.actor
 
 class AppStateMachineImpl(
     context: Context,
     private val settingsReadOnly: SettingsReadOnly,
-    onStatistic: (List<HttpClient>, List<TrafficPoint>) -> Unit,
-    private val onEffect: (AppStateMachine.Effect) -> Unit
+    onStatistic: suspend (List<HttpClient>, List<TrafficPoint>) -> Unit,
+    private val onEffect: suspend (AppStateMachine.Effect) -> Unit
 ) : AppStateMachine {
 
     private val applicationContext: Context = context.applicationContext
@@ -98,52 +96,66 @@ class AppStateMachineImpl(
         } else {
             XLog.d(getLog("sendEvent", "Event: $event"))
 
+            if (eventChannel.isClosedForSend) {
+                XLog.e(getLog("sendEvent", "ChannelIsClosed"))
+                return
+            }
+
             try {
-                coroutineScope.ensureActive()
                 eventChannel.offer(event) || throw IllegalStateException("ChannelIsFull")
-            } catch (ignore: ClosedSendChannelException) {
             } catch (ignore: CancellationException) {
+                XLog.w(getLog("sendEvent.ignore"), ignore)
             } catch (th: Throwable) {
                 XLog.e(getLog("sendEvent"), th)
-                onEffect(
-                    AppStateMachine.Effect.PublicState(
-                        false, true, false, emptyList(), FatalError.ChannelException
+                coroutineScope.launch(NonCancellable) {
+                    onEffect(
+                        AppStateMachine.Effect.PublicState(
+                            false, true, false, emptyList(), FatalError.ChannelException
+                        )
                     )
-                )
+                }
             }
         }
     }
 
-    private val eventChannel: SendChannel<AppStateMachine.Event> = coroutineScope.actor(capacity = 32) {
+    private val eventChannel = coroutineScope.actor<AppStateMachine.Event>(capacity = 32) {
         var streamState = StreamState()
         var previousStreamState: StreamState
 
         for (event in this) {
-            if (StateToEventMatrix.skippEvent(streamState.state, event).not()) {
+            try {
+                if (StateToEventMatrix.skippEvent(streamState.state, event).not()) {
 
-                previousStreamState = streamState
+                    previousStreamState = streamState
 
-                streamState = when (event) {
-                    is InternalEvent.DiscoverAddress -> discoverAddress(streamState)
-                    is InternalEvent.StartServer -> startServer(streamState)
-                    is InternalEvent.ComponentError -> componentError(streamState, event.appError)
-                    is InternalEvent.StartStopFromWebPage -> startStopFromWebPage(streamState)
-                    is InternalEvent.RestartServer -> restartServer(streamState, event.reason)
-                    is InternalEvent.ScreenOff -> screenOff(streamState)
-                    is InternalEvent.Destroy -> destroy(streamState)
+                    streamState = when (event) {
+                        is InternalEvent.DiscoverAddress -> discoverAddress(streamState)
+                        is InternalEvent.StartServer -> startServer(streamState)
+                        is InternalEvent.ComponentError -> componentError(streamState, event.appError)
+                        is InternalEvent.StartStopFromWebPage -> startStopFromWebPage(streamState)
+                        is InternalEvent.RestartServer -> restartServer(streamState, event.reason)
+                        is InternalEvent.ScreenOff -> screenOff(streamState)
+                        is InternalEvent.Destroy -> destroy(streamState)
 
-                    is AppStateMachine.Event.StartStream -> startStream(streamState)
-                    is AppStateMachine.Event.CastPermissionsDenied -> castPermissionsDenied(streamState)
-                    is AppStateMachine.Event.StartProjection -> startProjection(streamState, event.intent)
-                    is AppStateMachine.Event.StopStream -> stopStream(streamState)
-                    is AppStateMachine.Event.RequestPublicState -> requestPublicState(streamState)
-                    is AppStateMachine.Event.RecoverError -> recoverError(streamState)
-                    else -> throw IllegalArgumentException("Unknown AppStateMachine.Event: $event")
+                        is AppStateMachine.Event.StartStream -> startStream(streamState)
+                        is AppStateMachine.Event.CastPermissionsDenied -> castPermissionsDenied(streamState)
+                        is AppStateMachine.Event.StartProjection -> startProjection(streamState, event.intent)
+                        is AppStateMachine.Event.StopStream -> stopStream(streamState)
+                        is AppStateMachine.Event.RequestPublicState -> requestPublicState(streamState)
+                        is AppStateMachine.Event.RecoverError -> recoverError(streamState)
+                        else -> throw IllegalArgumentException("Unknown AppStateMachine.Event: $event")
+                    }
+
+                    if (streamState.isPublicStatePublishRequired(previousStreamState)) onEffect(streamState.toPublicState())
+
+                    XLog.i(this@AppStateMachineImpl.getLog("actor", "New state:${streamState.state}"))
                 }
-
-                if (streamState.isPublicStatePublishRequired(previousStreamState)) onEffect(streamState.toPublicState())
-
-                XLog.i(this@AppStateMachineImpl.getLog("actor", "New state:${streamState.state}"))
+            } catch (ignore: CancellationException) {
+                XLog.w(this@AppStateMachineImpl.getLog("actor.catch"), ignore)
+            } catch (throwable: Throwable) {
+                XLog.e(this@AppStateMachineImpl.getLog("actor.catch"), throwable)
+                streamState = componentError(streamState, FatalError.CoroutineException)
+                onEffect(streamState.toPublicState())
             }
         }
     }
@@ -169,7 +181,6 @@ class AppStateMachineImpl(
         settingsReadOnly.unregisterChangeListener(settingsListener)
         broadcastHelper.stopListening()
         connectivityHelper.stopListening()
-        eventChannel.close()
         coroutineScope.cancel(CancellationException("AppStateMachine.destroy"))
     }
 
@@ -223,7 +234,7 @@ class AppStateMachineImpl(
         httpServer.stop().await()
         httpServer.start(streamState.netInterfaces)
         notificationBitmap.getNotificationBitmap(NotificationBitmap.Type.START).let { bitmap ->
-            repeat(3) { bitmapChannel.send(bitmap); delay(250) }
+            repeat(3) { bitmapChannel.send(bitmap); delay(150) }
         }
 
         return streamState.copy(state = StreamState.State.SERVER_STARTED)
@@ -262,7 +273,7 @@ class AppStateMachineImpl(
         val state = stopProjection(streamState)
         if (settingsReadOnly.checkAndChangeAutoChangePinOnStop().not())
             notificationBitmap.getNotificationBitmap(NotificationBitmap.Type.START).let { bitmap ->
-                repeat(3) { bitmapChannel.send(bitmap); delay(250) }
+                repeat(3) { bitmapChannel.send(bitmap); delay(150) }
             }
 
         return state.copy(state = StreamState.State.SERVER_STARTED)
@@ -303,12 +314,12 @@ class AppStateMachineImpl(
 
             is RestartReason.SettingsChanged ->
                 notificationBitmap.getNotificationBitmap(NotificationBitmap.Type.RELOAD_PAGE).let { bitmap ->
-                    repeat(3) { bitmapChannel.send(bitmap); delay(250) }
+                    repeat(3) { bitmapChannel.send(bitmap); delay(150) }
                 }
 
             is RestartReason.NetworkSettingsChanged ->
                 notificationBitmap.getNotificationBitmap(NotificationBitmap.Type.NEW_ADDRESS).let { bitmap ->
-                    repeat(3) { bitmapChannel.send(bitmap); delay(250) }
+                    repeat(3) { bitmapChannel.send(bitmap); delay(150) }
                 }
         }
 
@@ -339,7 +350,7 @@ class AppStateMachineImpl(
         return streamState.copy(state = StreamState.State.RESTART_PENDING, appError = null)
     }
 
-    private fun requestPublicState(streamState: StreamState): StreamState {
+    private suspend fun requestPublicState(streamState: StreamState): StreamState {
         XLog.d(getLog("requestPublicState"))
 
         onEffect(streamState.toPublicState())

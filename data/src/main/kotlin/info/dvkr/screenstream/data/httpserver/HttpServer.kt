@@ -74,7 +74,7 @@ class HttpServer(
         httpServerFiles.configure()
 
         val resultJpegStream = ByteArrayOutputStream()
-        val context = Job() + Dispatchers.Default + coroutineExceptionHandler
+        val coroutineScope = CoroutineScope(Job() + Dispatchers.Default + coroutineExceptionHandler)
         val clientMJPEGFrameBroadcastChannel = bitmapChannel.asFlow()
             .map { bitmap ->
                 resultJpegStream.reset()
@@ -83,10 +83,10 @@ class HttpServer(
             }
             .onEach { jpeg -> lastJPEG.set(jpeg) }
             .conflate()
-            .broadcastIn(CoroutineScope(context), CoroutineStart.DEFAULT)
+            .broadcastIn(coroutineScope, CoroutineStart.DEFAULT)
 
         val environment = applicationEngineEnvironment {
-            parentCoroutineContext = context
+            parentCoroutineContext = coroutineScope.coroutineContext
             module { appModule(clientMJPEGFrameBroadcastChannel) }
             serverAddresses.forEach { netInterface ->
                 connector {
@@ -139,8 +139,8 @@ class HttpServer(
 
         environment.monitor.subscribe(ApplicationStopped) {
             XLog.i(this@HttpServer.getLog("monitor", "ApplicationStopped: ${hashCode()}"))
+            clientStatistic.sendEvent(StatisticEvent.ClearClients)
             it.environment.parentCoroutineContext.cancel()
-            clientStatistic.clearClients()
             stopDeferred?.complete(Unit)
             stopDeferred = null
         }

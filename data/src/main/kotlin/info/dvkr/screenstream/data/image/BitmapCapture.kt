@@ -43,7 +43,7 @@ class BitmapCapture(
 
     private val coroutineScope = CoroutineScope(Job() + Dispatchers.Default + coroutineExceptionHandler)
 
-    private enum class State { INIT, STARTED, STOPPED, ERROR }
+    private enum class State { INIT, STARTED, DESTROYED, ERROR }
 
     @Volatile
     private var state: State = State.INIT
@@ -130,9 +130,13 @@ class BitmapCapture(
     @Synchronized
     fun destroy() {
         XLog.d(getLog("destroy"))
+        if (state == State.DESTROYED) {
+            XLog.w(getLog("destroy", "Already destroyed"))
+            return
+        }
         requireState(State.STARTED, State.ERROR)
         coroutineScope.cancel(CancellationException("BitmapCapture.destroy"))
-        state = State.STOPPED
+        state = State.DESTROYED
         settingsReadOnly.unregisterChangeListener(settingsListener)
         stopDisplayCapture()
         imageThread.quit()
