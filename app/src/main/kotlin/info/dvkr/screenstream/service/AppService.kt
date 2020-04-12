@@ -52,11 +52,19 @@ class AppService : Service() {
 
     private fun sendMessageToActivities(serviceMessage: ServiceMessage) {
         XLog.v(getLog("sendMessageToActivities", "ServiceMessage: $serviceMessage"))
+
         if (serviceMessageChannel.isClosedForSend) {
             XLog.w(getLog("sendMessageToActivities", "ServiceMessageChannel: isClosedForSend"))
             return
         }
-        serviceMessageChannel.offer(serviceMessage)
+
+        try {
+            serviceMessageChannel.offer(serviceMessage) || throw IllegalStateException("ChannelIsFull")
+        } catch (ignore: CancellationException) {
+            XLog.w(getLog("sendMessageToActivities.ignore"), ignore)
+        } catch (th: Throwable) {
+            XLog.e(getLog("sendMessageToActivities"), th)
+        }
     }
 
     private val coroutineScope = CoroutineScope(
@@ -86,8 +94,8 @@ class AppService : Service() {
         }
     }
 
-    private fun onEffect(effect: AppStateMachine.Effect) {
-        XLog.d(getLog("onEffect", "Effect: $effect"))
+    private suspend fun onEffect(effect: AppStateMachine.Effect) = coroutineScope.launch {
+        XLog.d(this@AppService.getLog("onEffect", "Effect: $effect"))
 
         when (effect) {
             is AppStateMachine.Effect.ConnectionChanged -> Unit  // TODO Notify user about restart reason
@@ -103,20 +111,25 @@ class AppService : Service() {
                 )
 
                 if (effect.isStreaming)
-                    notificationHelper.showForegroundNotification(this, NotificationHelper.NotificationType.STOP)
+                    notificationHelper.showForegroundNotification(
+                        this@AppService, NotificationHelper.NotificationType.STOP
+                    )
                 else
-                    notificationHelper.showForegroundNotification(this, NotificationHelper.NotificationType.START)
+                    notificationHelper.showForegroundNotification(
+                        this@AppService, NotificationHelper.NotificationType.START
+                    )
                 onError(effect.appError)
             }
         }
-    }
+    }.join()
 
     private val settings: Settings by inject()
     private val notificationHelper: NotificationHelper by inject()
-    private lateinit var appStateMachine: AppStateMachine
+    private var appStateMachine: AppStateMachine? = null
 
     override fun onCreate() {
         super.onCreate()
+        XLog.d(getLog("onCreate"))
         notificationHelper.createNotificationChannel()
         notificationHelper.showForegroundNotification(this, NotificationHelper.NotificationType.START)
 
@@ -126,10 +139,13 @@ class AppService : Service() {
             this,
             settings as SettingsReadOnly,
             { clients: List<HttpClient>, trafficHistory: List<TrafficPoint> ->
-                if (settings.autoStartStop) checkAutoStartStop(clients)
-                if (settings.notifySlowConnections) checkForSlowClients(clients)
-                sendMessageToActivities(ServiceMessage.Clients(clients))
-                sendMessageToActivities(ServiceMessage.TrafficHistory(trafficHistory))
+                coroutineScope.launch {
+                    XLog.v(this@AppService.getLog("onStatistic"))
+                    if (settings.autoStartStop) checkAutoStartStop(clients)
+                    if (settings.notifySlowConnections) checkForSlowClients(clients)
+                    sendMessageToActivities(ServiceMessage.Clients(clients))
+                    sendMessageToActivities(ServiceMessage.TrafficHistory(trafficHistory))
+                }.join()
             },
             ::onEffect
         )
@@ -143,17 +159,17 @@ class AppService : Service() {
 
         when (intentAction) {
             IntentAction.GetServiceState -> {
-                appStateMachine.sendEvent(AppStateMachine.Event.RequestPublicState)
+                appStateMachine?.sendEvent(AppStateMachine.Event.RequestPublicState)
             }
 
             IntentAction.StartStream -> {
                 sendBroadcast(Intent(Intent.ACTION_CLOSE_SYSTEM_DIALOGS))
-                appStateMachine.sendEvent(AppStateMachine.Event.StartStream)
+                appStateMachine?.sendEvent(AppStateMachine.Event.StartStream)
             }
 
             IntentAction.StopStream -> {
                 sendBroadcast(Intent(Intent.ACTION_CLOSE_SYSTEM_DIALOGS))
-                appStateMachine.sendEvent(AppStateMachine.Event.StopStream)
+                appStateMachine?.sendEvent(AppStateMachine.Event.StopStream)
             }
 
             IntentAction.Exit -> {
@@ -165,22 +181,22 @@ class AppService : Service() {
             }
 
             is IntentAction.CastIntent -> {
-                appStateMachine.sendEvent(AppStateMachine.Event.RequestPublicState)
-                appStateMachine.sendEvent(AppStateMachine.Event.StartProjection(intentAction.intent))
+                appStateMachine?.sendEvent(AppStateMachine.Event.RequestPublicState)
+                appStateMachine?.sendEvent(AppStateMachine.Event.StartProjection(intentAction.intent))
             }
 
             IntentAction.CastPermissionsDenied -> {
-                appStateMachine.sendEvent(AppStateMachine.Event.CastPermissionsDenied)
-                appStateMachine.sendEvent(AppStateMachine.Event.RequestPublicState)
+                appStateMachine?.sendEvent(AppStateMachine.Event.CastPermissionsDenied)
+                appStateMachine?.sendEvent(AppStateMachine.Event.RequestPublicState)
             }
 
             IntentAction.StartOnBoot ->
-                appStateMachine.sendEvent(AppStateMachine.Event.StartStream, 4500)
+                appStateMachine?.sendEvent(AppStateMachine.Event.StartStream, 4500)
 
             IntentAction.RecoverError -> {
                 sendBroadcast(Intent(Intent.ACTION_CLOSE_SYSTEM_DIALOGS))
                 notificationHelper.hideErrorNotification()
-                appStateMachine.sendEvent(AppStateMachine.Event.RecoverError)
+                appStateMachine?.sendEvent(AppStateMachine.Event.RecoverError)
             }
 
             else -> XLog.e(getLog("onStartCommand", "Unknown action: $intentAction"))
@@ -192,7 +208,8 @@ class AppService : Service() {
     override fun onDestroy() {
         XLog.d(getLog("onDestroy"))
         isRunning = false
-        runBlocking(coroutineScope.coroutineContext) { appStateMachine.destroy() }
+        runBlocking(coroutineScope.coroutineContext) { appStateMachine?.destroy() }
+        appStateMachine = null
         coroutineScope.cancel(CancellationException("AppService.destroy"))
         stopForeground(true)
         XLog.d(getLog("onDestroy", "Done"))
@@ -202,7 +219,7 @@ class AppService : Service() {
 
     private var slowClients: List<HttpClient> = emptyList()
 
-    private fun checkForSlowClients(clients: List<HttpClient>) = coroutineScope.launch {
+    private fun checkForSlowClients(clients: List<HttpClient>) {
         val currentSlowConnections = clients.filter { it.isSlowConnection }.toList()
         if (slowClients.containsAll(currentSlowConnections).not()) {
             val layoutInflater = ContextCompat.getSystemService(this@AppService, LayoutInflater::class.java)!!
@@ -217,12 +234,12 @@ class AppService : Service() {
     private fun checkAutoStartStop(clients: List<HttpClient>) {
         if (clients.isNotEmpty() && isStreaming.get().not()) {
             XLog.d(getLog("checkAutoStartStop", "Auto starting"))
-            appStateMachine.sendEvent(AppStateMachine.Event.StartStream)
+            appStateMachine?.sendEvent(AppStateMachine.Event.StartStream)
         }
 
         if (clients.isEmpty() && isStreaming.get()) {
             XLog.d(getLog("checkAutoStartStop", "Auto stopping"))
-            appStateMachine.sendEvent(AppStateMachine.Event.StopStream)
+            appStateMachine?.sendEvent(AppStateMachine.Event.StopStream)
         }
     }
 }

@@ -6,8 +6,8 @@ import com.elvishew.xlog.XLog
 import com.elvishew.xlog.printer.AndroidPrinter
 
 class ScreenStreamApp : BaseApp() {
-
     override fun initLogger() {
+        System.setProperty("kotlinx.coroutines.debug", "on")
 
         StrictMode.setThreadPolicy(
             StrictMode.ThreadPolicy.Builder()
