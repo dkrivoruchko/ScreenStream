@@ -1,11 +1,9 @@
-plugins {
-    id("com.android.application")
-    kotlin("android")
-    kotlin("android.extensions")
-    id("com.google.gms.google-services")
-    id("com.google.firebase.crashlytics")
-    id("com.getkeepsafe.dexcount")
-}
+apply plugin: "com.android.application"
+apply plugin: "kotlin-android"
+apply plugin: "kotlin-android-extensions"
+apply plugin: "com.google.gms.google-services"
+apply plugin: "com.google.firebase.crashlytics"
+apply plugin: "com.getkeepsafe.dexcount"
 
 android {
     compileSdkVersion(29)
@@ -24,13 +22,13 @@ android {
 
     buildTypes {
         getByName("debug") {
-            isMinifyEnabled = false
-            isShrinkResources = false
+            minifyEnabled  = false
+            shrinkResources  = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
         getByName("release") {
-            isMinifyEnabled = true
-            isShrinkResources = true
+            minifyEnabled  = true
+            shrinkResources  = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
@@ -39,8 +37,9 @@ android {
     productFlavors {
         create("firebase") {}
         create("firebasefree") {
-            firebaseCrashlytics.mappingFileUploadEnabled = false
-            firebaseCrashlytics.nativeSymbolUploadEnabled = false
+            firebaseCrashlytics {
+                mappingFileUploadEnabled = false
+            }
         }
     }
 
@@ -55,20 +54,17 @@ android {
     }
 
     kotlinOptions.jvmTarget = "1.8"
-    kotlinOptions.freeCompilerArgs = kotlinOptions.freeCompilerArgs
-        .plusElement("-Xuse-experimental=kotlinx.coroutines.ExperimentalCoroutinesApi")
-        .plusElement("-Xuse-experimental=kotlinx.coroutines.FlowPreview")
 
     sourceSets {
-        maybeCreate("main").java.srcDirs(File("src/main/kotlin"))
+        main.java.srcDirs += 'src/main/kotlin'
 
-        maybeCreate("firebase").java.srcDirs(File("src/firebase/kotlin"))
-        maybeCreate("firebaseDebug").java.srcDirs(File("src/firebaseDebug/kotlin"))
-        maybeCreate("firebaseRelease").java.srcDirs(File("src/firebaseRelease/kotlin"))
+        firebase.java.srcDirs += 'src/firebase/kotlin'
+        firebaseDebug.java.srcDirs += 'src/firebaseDebug/kotlin'
+        firebaseRelease.java.srcDirs += 'src/firebaseRelease/kotlin'
 
-        maybeCreate("firebasefree").java.srcDirs(File("src/firebasefree/kotlin"))
-        maybeCreate("firebasefreeDebug").java.srcDirs(File("src/firebasefreeDebug/kotlin"))
-        maybeCreate("firebasefreeRelease").java.srcDirs(File("src/firebasefreeRelease/kotlin"))
+        firebasefree.java.srcDirs += 'src/firebasefree/kotlin'
+        firebasefreeDebug.java.srcDirs += 'src/firebasefreeDebug/kotlin'
+        firebasefreeRelease.java.srcDirs += 'src/firebasefreeRelease/kotlin'
     }
 
     packagingOptions {
@@ -82,7 +78,7 @@ dependencies {
 
     implementation(project(":data"))
 
-    implementation(kotlin("stdlib-jdk8", "1.3.71"))
+    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.3.71")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.3.5")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.3.5")
 
@@ -108,10 +104,10 @@ dependencies {
     implementation("com.github.iamironz:binaryprefs:1.0.1")
     implementation("com.elvishew:xlog:1.6.1")
 
-    "firebaseImplementation"("com.google.android.play:core:1.7.2")
-    "firebaseImplementation"("com.google.android.play:core-ktx:1.7.0")
-    "firebaseReleaseImplementation"("com.google.firebase:firebase-analytics:17.3.0")
-    "firebaseReleaseImplementation"("com.google.firebase:firebase-crashlytics:17.0.0-beta04")
+    firebaseImplementation("com.google.android.play:core:1.7.2")
+    firebaseImplementation("com.google.android.play:core-ktx:1.7.0")
+    firebaseReleaseImplementation("com.google.firebase:firebase-analytics:17.3.0")
+    firebaseReleaseImplementation("com.google.firebase:firebase-crashlytics:17.0.0-beta04")
 
     debugImplementation("com.squareup.leakcanary:leakcanary-android:2.2")
 }
