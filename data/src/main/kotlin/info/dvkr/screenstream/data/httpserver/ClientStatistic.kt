@@ -7,6 +7,7 @@ import info.dvkr.screenstream.data.model.HttpClient
 import info.dvkr.screenstream.data.model.TrafficPoint
 import info.dvkr.screenstream.data.other.getLog
 import kotlinx.coroutines.*
+import kotlinx.coroutines.channels.ClosedSendChannelException
 import kotlinx.coroutines.channels.actor
 import java.util.*
 
@@ -64,6 +65,7 @@ class ClientStatistic(
 
         for (event in this) {
             try {
+                ensureActive()
                 when (event) {
                     is StatisticEvent.Connected ->
                         clientsMap[event.id] = StatisticClient(event.id, event.clientAddressAndPort)
@@ -97,8 +99,10 @@ class ClientStatistic(
                     is StatisticEvent.ClearClients -> clientsMap.clear()
                 }
             } catch (ignore: CancellationException) {
-                XLog.w(this@ClientStatistic.getLog("actor.catch"), ignore)
+                XLog.w(this@ClientStatistic.getLog("actor.ignore", ignore.toString()))
+                XLog.w(this@ClientStatistic.getLog("actor.ignore"), ignore)
             } catch (throwable: Throwable) {
+                XLog.e(this@ClientStatistic.getLog("actor.catch", throwable.toString()))
                 XLog.e(this@ClientStatistic.getLog("actor.catch"), throwable)
                 onError(FatalError.CoroutineException)
             }
@@ -108,7 +112,8 @@ class ClientStatistic(
     init {
         XLog.d(getLog("init"))
         statisticScope.launch {
-            while (isActive) {
+            while (true) {
+                ensureActive()
                 sendEvent(StatisticEvent.CalculateTraffic)
                 sendEvent(StatisticEvent.SendStatistic)
                 delay(1000)
@@ -125,10 +130,15 @@ class ClientStatistic(
         }
 
         try {
-            statisticEventChannel.offer(event) || throw IllegalStateException("ChannelIsFull")
+            statisticEventChannel.offer(event) //|| throw IllegalStateException("ChannelIsFull")
         } catch (ignore: CancellationException) {
+            XLog.w(getLog("sendEvent.ignore", ignore.toString()))
             XLog.w(getLog("sendEvent.ignore"), ignore)
+        } catch (closedChannel: ClosedSendChannelException) {
+            XLog.w(getLog("sendEvent.closedChannel", closedChannel.toString()))
+            XLog.w(getLog("sendEvent.closedChannel"), closedChannel)
         } catch (th: Throwable) {
+            XLog.e(getLog("sendEvent", th.toString()))
             XLog.e(getLog("sendEvent"), th)
             onError(FatalError.ChannelException)
         }
@@ -136,6 +146,7 @@ class ClientStatistic(
 
     fun destroy() {
         XLog.d(getLog("destroy"))
-        statisticScope.cancel(CancellationException("ClientStatistic.destroy"))
+        statisticEventChannel.close()
+        statisticScope.cancel()
     }
 }

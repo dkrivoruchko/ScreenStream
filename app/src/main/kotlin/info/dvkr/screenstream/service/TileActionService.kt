@@ -15,8 +15,7 @@ import info.dvkr.screenstream.R
 import info.dvkr.screenstream.data.other.getLog
 import info.dvkr.screenstream.service.helper.IntentAction
 import kotlinx.coroutines.*
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.safeCollect
 
 @TargetApi(Build.VERSION_CODES.N)
 class TileActionService : TileService() {
@@ -40,19 +39,20 @@ class TileActionService : TileService() {
             serviceConnection = object : ServiceConnection {
                 override fun onServiceConnected(name: ComponentName?, service: IBinder) {
                     XLog.d(this@TileActionService.getLog("onServiceConnected"))
-                    (service as AppService.AppServiceBinder).getServiceMessageFlow()
-                        .onEach {
-                            XLog.v(this@TileActionService.getLog("onServiceMessage", "$it"))
-                            when (it) {
-                                is ServiceMessage.ServiceState -> {
-                                    isStreaming = it.isStreaming; updateTile()
-                                }
-                                is ServiceMessage.FinishActivity -> {
-                                    isStreaming = false; updateTile()
+                    coroutineScope!!.launch {
+                        (service as AppService.AppServiceBinder).getServiceMessageFlow()
+                            .safeCollect {
+                                XLog.v(this@TileActionService.getLog("onServiceMessage", "$it"))
+                                when (it) {
+                                    is ServiceMessage.ServiceState -> {
+                                        isStreaming = it.isStreaming; updateTile()
+                                    }
+                                    is ServiceMessage.FinishActivity -> {
+                                        isStreaming = false; updateTile()
+                                    }
                                 }
                             }
-                        }
-                        .launchIn(coroutineScope!!)
+                    }
                     isBound = true
                     IntentAction.GetServiceState.sendToAppService(this@TileActionService)
                 }

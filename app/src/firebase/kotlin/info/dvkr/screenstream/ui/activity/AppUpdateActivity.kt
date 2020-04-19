@@ -16,9 +16,9 @@ import com.google.android.play.core.ktx.requestUpdateFlow
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.data.other.getLog
 import info.dvkr.screenstream.data.settings.Settings
-import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.CoroutineExceptionHandler
+import kotlinx.coroutines.flow.safeCollect
+import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
 
 abstract class AppUpdateActivity : BaseActivity() {
@@ -33,6 +33,9 @@ abstract class AppUpdateActivity : BaseActivity() {
     private val appUpdateManager by lazy { AppUpdateManagerFactory.create(this) }
     private var isAppUpdatePending: Boolean = false
     private var appUpdateConfirmationDialog: MaterialDialog? = null
+    private val exceptionHandler = CoroutineExceptionHandler { _, throwable ->
+        XLog.e(getLog("onCoroutineException"), throwable)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -40,21 +43,28 @@ abstract class AppUpdateActivity : BaseActivity() {
         isAppUpdatePending = savedInstanceState?.getBoolean(APP_UPDATE_PENDING_KEY) ?: false
         XLog.d(getLog("onCreate", "isAppUpdatePending: $isAppUpdatePending"))
 
-        appUpdateManager.requestUpdateFlow().onEach { updateResult ->
-            if (isAppUpdatePending.not() && isIAURequestTimeoutPassed() &&
-                updateResult is AppUpdateResult.Available && updateResult.updateInfo.isFlexibleUpdateAllowed
-            ) {
-                XLog.d(this@AppUpdateActivity.getLog("AppUpdateManager", "startUpdateFlowForResult"))
-                isAppUpdatePending = true
-                appUpdateManager.startUpdateFlowForResult(
-                    updateResult.updateInfo, AppUpdateType.FLEXIBLE, this, APP_UPDATE_FLEXIBLE_REQUEST_CODE
-                )
-            }
+        lifecycleScope.launch(exceptionHandler) {
+            appUpdateManager.requestUpdateFlow().safeCollect { updateResult ->
+                try {
+                    if (isAppUpdatePending.not() && isIAURequestTimeoutPassed() &&
+                        updateResult is AppUpdateResult.Available && updateResult.updateInfo.isFlexibleUpdateAllowed
+                    ) {
+                        XLog.d(this@AppUpdateActivity.getLog("AppUpdateManager", "startUpdateFlowForResult"))
+                        isAppUpdatePending = true
+                        appUpdateManager.startUpdateFlowForResult(
+                            updateResult.updateInfo,
+                            AppUpdateType.FLEXIBLE,
+                            this@AppUpdateActivity,
+                            APP_UPDATE_FLEXIBLE_REQUEST_CODE
+                        )
+                    }
 
-            if (updateResult is AppUpdateResult.Downloaded && isIAURequestTimeoutPassed()) showUpdateConfirmationDialog()
+                    if (updateResult is AppUpdateResult.Downloaded && isIAURequestTimeoutPassed()) showUpdateConfirmationDialog()
+                } catch (throwable: Throwable) {
+                    XLog.e(getLog("AppUpdateManager.catch: $throwable"))
+                }
+            }
         }
-            .catch { throwable -> XLog.e(getLog("AppUpdateManager.catch: $throwable")) }
-            .launchIn(lifecycleScope)
     }
 
     override fun onSaveInstanceState(outState: Bundle) {

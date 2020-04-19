@@ -61,11 +61,10 @@ internal sealed class BroadcastHelper(context: Context, private val onError: (Ap
         isConnectionEventScheduled = true
         coroutineScope.launch {
             delay(1000)
-            if (isActive) {
-                isConnectionEventScheduled = false
-                if (isFirstConnectionEvent) isFirstConnectionEvent = false
-                else if (::onConnectionChanged.isInitialized) onConnectionChanged.invoke()
-            }
+            ensureActive()
+            isConnectionEventScheduled = false
+            if (isFirstConnectionEvent) isFirstConnectionEvent = false
+            else if (::onConnectionChanged.isInitialized) onConnectionChanged.invoke()
         }
     }
 
