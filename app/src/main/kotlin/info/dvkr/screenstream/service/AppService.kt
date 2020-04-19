@@ -59,10 +59,12 @@ class AppService : Service() {
         }
 
         try {
-            serviceMessageChannel.offer(serviceMessage) || throw IllegalStateException("ChannelIsFull")
+            serviceMessageChannel.offer(serviceMessage)
         } catch (ignore: CancellationException) {
+            XLog.w(getLog("sendMessageToActivities.ignore", ignore.toString()))
             XLog.w(getLog("sendMessageToActivities.ignore"), ignore)
         } catch (th: Throwable) {
+            XLog.e(getLog("sendMessageToActivities", th.toString()))
             XLog.e(getLog("sendMessageToActivities"), th)
         }
     }

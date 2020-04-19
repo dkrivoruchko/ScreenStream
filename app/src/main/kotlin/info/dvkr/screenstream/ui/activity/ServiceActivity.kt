@@ -19,9 +19,8 @@ import info.dvkr.screenstream.service.AppService
 import info.dvkr.screenstream.service.ServiceMessage
 import info.dvkr.screenstream.service.helper.IntentAction
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.safeCollect
+import kotlinx.coroutines.launch
 
 abstract class ServiceActivity : AppUpdateActivity() {
 
@@ -32,13 +31,17 @@ abstract class ServiceActivity : AppUpdateActivity() {
     private val serviceConnection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, service: IBinder) {
             XLog.d(this@ServiceActivity.getLog("onServiceConnected"))
-            serviceMessageFlowJob = (service as AppService.AppServiceBinder).getServiceMessageFlow()
-                .onEach {
-                    XLog.v(this@ServiceActivity.getLog("onServiceMessage", "$it"))
-                    serviceMessageLiveData.value = it
+            serviceMessageFlowJob = lifecycle.coroutineScope.launch {
+                (service as AppService.AppServiceBinder).getServiceMessageFlow().safeCollect {
+                    try {
+                        XLog.v(this@ServiceActivity.getLog("onServiceMessage", "$it"))
+                        serviceMessageLiveData.value = it
+                    } catch (th: Throwable) {
+                        XLog.e(this@ServiceActivity.getLog("onServiceMessage"), it)
+                    }
                 }
-                .catch { XLog.e(this@ServiceActivity.getLog("onServiceMessage"), it) }
-                .launchIn(lifecycle.coroutineScope)
+            }
+
             isBound = true
             IntentAction.GetServiceState.sendToAppService(this@ServiceActivity)
         }

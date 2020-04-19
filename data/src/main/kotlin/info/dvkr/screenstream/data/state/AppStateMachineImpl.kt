@@ -20,6 +20,7 @@ import info.dvkr.screenstream.data.state.helper.ConnectivityHelper
 import info.dvkr.screenstream.data.state.helper.MediaProjectionHelper
 import info.dvkr.screenstream.data.state.helper.NetworkHelper
 import kotlinx.coroutines.*
+import kotlinx.coroutines.channels.ClosedSendChannelException
 import kotlinx.coroutines.channels.ConflatedBroadcastChannel
 import kotlinx.coroutines.channels.actor
 
@@ -104,8 +105,13 @@ class AppStateMachineImpl(
             try {
                 eventChannel.offer(event) || throw IllegalStateException("ChannelIsFull")
             } catch (ignore: CancellationException) {
+                XLog.w(getLog("sendEvent.ignore", ignore.toString()))
                 XLog.w(getLog("sendEvent.ignore"), ignore)
+            } catch (closedChannel: ClosedSendChannelException) {
+                XLog.w(getLog("sendEvent.closedChannel", closedChannel.toString()))
+                XLog.w(getLog("sendEvent.closedChannel"), closedChannel)
             } catch (th: Throwable) {
+                XLog.e(getLog("sendEvent", th.toString()))
                 XLog.e(getLog("sendEvent"), th)
                 coroutineScope.launch(NonCancellable) {
                     onEffect(
@@ -124,6 +130,7 @@ class AppStateMachineImpl(
 
         for (event in this) {
             try {
+                ensureActive()
                 if (StateToEventMatrix.skippEvent(streamState.state, event).not()) {
 
                     previousStreamState = streamState
@@ -151,8 +158,10 @@ class AppStateMachineImpl(
                     XLog.i(this@AppStateMachineImpl.getLog("actor", "New state:${streamState.state}"))
                 }
             } catch (ignore: CancellationException) {
-                XLog.w(this@AppStateMachineImpl.getLog("actor.catch"), ignore)
+                XLog.w(this@AppStateMachineImpl.getLog("actor.ignore", ignore.toString()))
+                XLog.w(this@AppStateMachineImpl.getLog("actor.ignore"), ignore)
             } catch (throwable: Throwable) {
+                XLog.e(this@AppStateMachineImpl.getLog("actor.catch", throwable.toString()))
                 XLog.e(this@AppStateMachineImpl.getLog("actor.catch"), throwable)
                 streamState = componentError(streamState, FatalError.CoroutineException)
                 onEffect(streamState.toPublicState())
@@ -176,6 +185,7 @@ class AppStateMachineImpl(
     override suspend fun destroy() {
         XLog.d(getLog("destroy"))
         sendEvent(InternalEvent.Destroy)
+        eventChannel.close()
         httpServer.stop().await()
         clientStatistic.destroy()
         settingsReadOnly.unregisterChangeListener(settingsListener)

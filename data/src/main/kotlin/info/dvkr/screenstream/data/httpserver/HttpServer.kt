@@ -139,8 +139,8 @@ class HttpServer(
 
         environment.monitor.subscribe(ApplicationStopped) {
             XLog.i(this@HttpServer.getLog("monitor", "ApplicationStopped: ${hashCode()}"))
-            clientStatistic.sendEvent(StatisticEvent.ClearClients)
             it.environment.parentCoroutineContext.cancel()
+            clientStatistic.sendEvent(StatisticEvent.ClearClients)
             stopDeferred?.complete(Unit)
             stopDeferred = null
         }
@@ -196,15 +196,14 @@ class HttpServer(
                                     val totalSize = writeMJPEGFrame(channel, lastJPEG.get())
                                     clientStatistic.sendEvent(StatisticEvent.NextBytes(clientId, totalSize))
                                 }
-                                .onEach { jpeg ->
-                                    val totalSize = writeMJPEGFrame(channel, jpeg)
-                                    clientStatistic.sendEvent(StatisticEvent.NextBytes(clientId, totalSize))
-                                }
                                 .onCompletion {
                                     XLog.d(this@HttpServer.getLog("onCompletion", "Client: $clientId"))
                                     clientStatistic.sendEvent(StatisticEvent.Disconnected(clientId))
                                 }
-                                .collect()
+                                .safeCollect { jpeg ->
+                                    val totalSize = writeMJPEGFrame(channel, jpeg)
+                                    clientStatistic.sendEvent(StatisticEvent.NextBytes(clientId, totalSize))
+                                }
                         }
                     })
                 }
