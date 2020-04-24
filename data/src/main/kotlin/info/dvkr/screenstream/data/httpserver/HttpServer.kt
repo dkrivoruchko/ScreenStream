@@ -184,8 +184,8 @@ class HttpServer(
                         override val contentType: ContentType = ContentType.parse(contentTypeString)
 
                         override suspend fun writeTo(channel: ByteWriteChannel) {
+                            this@get.ensureActive()
                             val clientId = hashCode().toLong()
-
                             clientMJPEGFrameBroadcastChannel.asFlow()
                                 .conflate() // TODO StatisticEvent.Backpressure()
                                 .onStart {
@@ -233,6 +233,7 @@ class HttpServer(
     }
 
     private suspend fun writeMJPEGFrame(channel: ByteWriteChannel, jpeg: ByteArray): Int {
+        if (channel.isClosedForWrite) return 0
         channel.writeFully(jpegBaseHeader, 0, jpegBaseHeader.size)
         val jpegSizeText = jpeg.size.toString().toByteArray()
         channel.writeFully(jpegSizeText, 0, jpegSizeText.size)

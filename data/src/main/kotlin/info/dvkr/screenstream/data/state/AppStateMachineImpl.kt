@@ -23,11 +23,11 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.ClosedSendChannelException
 import kotlinx.coroutines.channels.ConflatedBroadcastChannel
 import kotlinx.coroutines.channels.actor
+import kotlinx.coroutines.flow.Flow
 
 class AppStateMachineImpl(
     context: Context,
     private val settingsReadOnly: SettingsReadOnly,
-    onStatistic: suspend (List<HttpClient>, List<TrafficPoint>) -> Unit,
     private val onEffect: suspend (AppStateMachine.Effect) -> Unit
 ) : AppStateMachine {
 
@@ -38,7 +38,7 @@ class AppStateMachineImpl(
     private val connectivityHelper: ConnectivityHelper = ConnectivityHelper.getInstance(context)
     private val networkHelper = NetworkHelper(context)
     private val notificationBitmap = NotificationBitmap(context)
-    private val clientStatistic: ClientStatistic = ClientStatistic(onStatistic, ::onError)
+    private val clientStatistic: ClientStatistic = ClientStatistic(::onError)
     private val httpServerFiles = HttpServerFiles(applicationContext, settingsReadOnly)
     private val httpServer: HttpServer = HttpServer(
         settingsReadOnly, httpServerFiles, clientStatistic, bitmapChannel,
@@ -90,6 +90,8 @@ class AppStateMachineImpl(
         }
     }
 
+    override val statisticFlow: Flow<Pair<List<HttpClient>, List<TrafficPoint>>> = clientStatistic.statisticFlow
+
     override fun sendEvent(event: AppStateMachine.Event, timeout: Long) {
         if (timeout > 0) {
             XLog.d(getLog("sendEvent[Timeout: $timeout]", "Event: $event"))
@@ -129,8 +131,8 @@ class AppStateMachineImpl(
         var previousStreamState: StreamState
 
         for (event in this) {
+            ensureActive()
             try {
-                ensureActive()
                 if (StateToEventMatrix.skippEvent(streamState.state, event).not()) {
 
                     previousStreamState = streamState

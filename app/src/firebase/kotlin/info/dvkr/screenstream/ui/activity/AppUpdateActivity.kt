@@ -34,7 +34,7 @@ abstract class AppUpdateActivity : BaseActivity() {
     private var isAppUpdatePending: Boolean = false
     private var appUpdateConfirmationDialog: MaterialDialog? = null
     private val exceptionHandler = CoroutineExceptionHandler { _, throwable ->
-        XLog.e(getLog("onCoroutineException"), throwable)
+        XLog.w(getLog("onCoroutineException", throwable.toString()))
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {

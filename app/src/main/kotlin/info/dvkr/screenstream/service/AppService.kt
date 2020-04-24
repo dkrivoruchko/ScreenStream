@@ -14,7 +14,6 @@ import info.dvkr.screenstream.R
 import info.dvkr.screenstream.data.model.AppError
 import info.dvkr.screenstream.data.model.FatalError
 import info.dvkr.screenstream.data.model.HttpClient
-import info.dvkr.screenstream.data.model.TrafficPoint
 import info.dvkr.screenstream.data.other.getLog
 import info.dvkr.screenstream.data.settings.Settings
 import info.dvkr.screenstream.data.settings.SettingsReadOnly
@@ -27,6 +26,7 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.ConflatedBroadcastChannel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
+import kotlinx.coroutines.flow.safeCollect
 import org.koin.android.ext.android.inject
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
@@ -137,20 +137,18 @@ class AppService : Service() {
 
         settings.autoChangePinOnStart()
 
-        appStateMachine = AppStateMachineImpl(
-            this,
-            settings as SettingsReadOnly,
-            { clients: List<HttpClient>, trafficHistory: List<TrafficPoint> ->
-                coroutineScope.launch {
-                    XLog.v(this@AppService.getLog("onStatistic"))
-                    if (settings.autoStartStop) checkAutoStartStop(clients)
-                    if (settings.notifySlowConnections) checkForSlowClients(clients)
-                    sendMessageToActivities(ServiceMessage.Clients(clients))
-                    sendMessageToActivities(ServiceMessage.TrafficHistory(trafficHistory))
-                }.join()
-            },
-            ::onEffect
-        )
+        appStateMachine = AppStateMachineImpl(this, settings as SettingsReadOnly, ::onEffect)
+
+        coroutineScope.launch {
+            appStateMachine!!.statisticFlow.safeCollect { (clients, trafficHistory) ->
+                XLog.v(this@AppService.getLog("onStatistic"))
+                if (settings.autoStartStop) checkAutoStartStop(clients)
+                if (settings.notifySlowConnections) checkForSlowClients(clients)
+                sendMessageToActivities(ServiceMessage.Clients(clients))
+                sendMessageToActivities(ServiceMessage.TrafficHistory(trafficHistory))
+            }
+        }
+
         isRunning = true
     }
 

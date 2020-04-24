@@ -2,7 +2,10 @@ package info.dvkr.screenstream.data.state
 
 import android.content.Intent
 import info.dvkr.screenstream.data.model.AppError
+import info.dvkr.screenstream.data.model.HttpClient
 import info.dvkr.screenstream.data.model.NetInterface
+import info.dvkr.screenstream.data.model.TrafficPoint
+import kotlinx.coroutines.flow.Flow
 
 
 interface AppStateMachine {
@@ -28,6 +31,8 @@ interface AppStateMachine {
             val appError: AppError?
         ) : Effect()
     }
+
+    val statisticFlow: Flow<Pair<List<HttpClient>, List<TrafficPoint>>>
 
     fun sendEvent(event: Event, timeout: Long = 0)
 
