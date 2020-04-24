@@ -13,8 +13,8 @@ android {
         applicationId = "info.dvkr.screenstream"
         minSdkVersion(21)
         targetSdkVersion(29)
-        versionCode = 30407
-        versionName = "3.4.7"
+        versionCode = 30408
+        versionName = "3.4.8"
         resConfigs("en", "ru", "pt-rBR", "zh-rTW", "fr-rFR", "fa", "it", "pl", "hi", "de", "sk", "es", "ar")
 
         vectorDrawables.useSupportLibrary = true
@@ -106,8 +106,8 @@ dependencies {
 
     firebaseImplementation("com.google.android.play:core:1.7.2")
     firebaseImplementation("com.google.android.play:core-ktx:1.7.0")
-    firebaseReleaseImplementation("com.google.firebase:firebase-analytics:17.3.0")
-    firebaseReleaseImplementation("com.google.firebase:firebase-crashlytics:17.0.0-beta04")
+    firebaseReleaseImplementation('com.google.firebase:firebase-analytics:17.4.0')
+    firebaseReleaseImplementation('com.google.firebase:firebase-crashlytics:17.0.0')
 
     debugImplementation("com.squareup.leakcanary:leakcanary-android:2.2")
 }
