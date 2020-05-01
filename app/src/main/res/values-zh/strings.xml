@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="error_title">出错了</string>
+    <string name="error_port_in_use">端口已被占用，请使用另一个端口</string>
+    <string name="error_invalid_media_projection">安全错误：非法媒体投射，请再试一次</string>
+    <string name="error_ip_address_not_found">未找到 IP 地址。\n可以尝试在设置中关闭 “只使用WIFI”</string>
+    <string name="error_wrong_image_format">系统返回了未知格式的图像，暂时无法解决，抱歉。</string>
+    <string name="error_exit">Exit</string>
+
+    <string name="app_activity_collecting_logs">收集应用日志中…</string>
+    <string name="app_activity_send_logs">向开发者发送日志</string>
+    <string name="app_activity_send_logs_dialog_title">通过邮件向开发者发送日志</string>
+    <string name="app_activity_send_logs_dialog_message">请添加问题描述：</string>
+    <string name="app_activity_send_logs_dialog_neutral">停止记录日志</string>
+
+    <string name="app_update_activity_dialog_title">有可用的升级</string>
+    <string name="app_update_activity_dialog_message">升级包已下载，是否重启应用？</string>
+    <string name="app_update_activity_dialog_restart">Restart</string>
+
+    <string name="bottom_menu_stream">投射</string>
+    <string name="bottom_menu_settings">设置</string>
+    <string name="bottom_menu_start">开始</string>
+    <string name="bottom_menu_stop">停止</string>
+    <string name="bottom_menu_about">关于</string>
+    <string name="bottom_menu_exit">退出</string>
+
+    <string name="stream_fragment_current_traffic">网速: %1$,.2f Mbit/s</string>
+    <string name="stream_fragment_connected_clients">已连接设备: %1$d</string>
+    <string name="stream_fragment_no_address">未找到地址</string>
+    <string name="stream_fragment_interface">交互界面: %1$s</string>
+    <string name="stream_fragment_copied">已复制</string>
+    <string name="stream_fragment_no_web_browser_found">未找到浏览器</string>
+    <string name="stream_fragment_external_app_error">外部程序错误</string>
+    <string name="stream_fragment_share_address">分享设备地址</string>
+    <string name="stream_fragment_pin">Pin: %1$s</string>
+    <string name="stream_fragment_pin_disabled">已关闭 Pin</string>
+    <string name="stream_fragment_client_disconnected">连接已断开</string>
+    <string name="stream_fragment_client_slow_network">慢速连接</string>
+    <string name="stream_fragment_client_connected">已连接</string>
+
+    <string name="item_device_address">设备地址:</string>
+
+    <string name="permission_activity_error_title_activity_not_found">权限错误</string>
+    <string name="permission_activity_error_activity_not_found">安卓BUG。请不要在获取屏幕内容的对话框中勾选“不再提示”。如果已勾选，请卸载重装。</string>
+    <string name="permission_activity_cast_permission_required_title">权限已获得</string>
+    <string name="permission_activity_cast_permission_required">ScreenStream需要捕获屏幕内容的权限</string>
+    <string name="permission_activity_error_title">错误</string>
+    <string name="permission_activity_error_unknown">未知错误</string>
+
+    <string name="notification_ready_to_stream">准备投射</string>
+    <string name="notification_press_start">按下“开始”开始投射</string>
+    <string name="notification_start">开始</string>
+    <string name="notification_exit">退出</string>
+    <string name="notification_stream">投射中…</string>
+    <string name="notification_press_stop">按下“停止”停止投射</string>
+    <string name="notification_stop">停止</string>
+
+    <string name="toast_slow_client_connection">检测到连接速度慢的客户端</string>
+
+    <string name="pref_settings_interface">交互界面</string>
+    <string name="pref_night_mode">暗色主题</string>
+    <string-array name="pref_night_mode_options_api21_28">
+        <item>总是</item>
+        <item>由电池优化决定</item>
+        <item>从不</item>
+    </string-array>
+    <string-array name="pref_night_mode_options_api29">
+        <item>总是</item>
+        <item>跟随系统</item>
+        <item>从不</item>
+    </string-array>
+    <string name="pref_notification">通知设置</string>
+    <string name="pref_notification_summary">打开系统提醒设置</string>
+    <string name="pref_stop_on_sleep">休眠时停止投射</string>
+    <string name="pref_stop_on_sleep_summary">屏幕关闭后停止投射</string>
+    <string name="pref_start_on_boot">开机自启</string>
+    <string name="pref_start_on_boot_summary">开机就开始投射</string>
+    <string name="pref_auto_start_stop">自动开始/停止投射</string>
+    <string name="pref_auto_start_stop_summary">根据是否有客户端连接自动开始/停止投射</string>
+    <string name="pref_detect_slow_connections">对较慢的连接进行提醒</string>
+    <string name="pref_detect_slow_connections_summary">对连接较慢的客户端检测并提醒</string>
+    <string name="pref_html_buttons">开启网页按钮</string>
+    <string name="pref_html_buttons_summary">在网页显示控制按钮</string>
+    <string name="pref_html_back_color">网页背景颜色</string>
+    <string name="pref_html_back_color_summary">设置网页背景颜色</string>
+    <string name="pref_html_back_color_title">选择背景颜色</string>
+    <string name="pref_settings_image">图像</string>
+    <string name="pref_vr_mode">虚拟现实模式</string>
+    <string name="pref_vr_mode_summary">从一半屏幕捕获内容</string>
+    <string-array name="pref_vr_mode_options">
+        <item>使用左半部分</item>
+        <item>使用右半部分</item>
+    </string-array>
+    <string name="pref_crop">剪裁画面</string>
+    <string name="pref_crop_summary">在投射前剪裁画面</string>
+    <string name="pref_crop_dialog_crop_top">顶部:</string>
+    <string name="pref_crop_dialog_crop_bottom">底部:</string>
+    <string name="pref_crop_dialog_crop_left">左侧:</string>
+    <string name="pref_crop_dialog_crop_right">右侧:</string>
+    <string name="pref_crop_dialog_pixels">像素</string>
+    <string name="pref_crop_dialog_warning_message">如果剪切区域为空，则不会应用剪裁</string>
+    <string name="pref_crop_dialog_error_message">输入有效的剪裁值</string>
+    <string name="pref_resize">缩放画面</string>
+    <string name="pref_resize_summary">在发送前先缩放画面</string>
+    <string name="pref_resize_dialog_text">以 %% 为单位设置剪裁.\n值: 10–150 (默认: 50)\n屏幕大小: %1$dx%2$d</string>
+    <string name="pref_resize_dialog_result">图像大小: %1$dx%2$d</string>
+    <string name="pref_rotate">顺时针旋转画面</string>
+    <string name="pref_rotate_summary">在发送前先旋转画面</string>
+    <string name="pref_fps">限制帧率</string>
+    <string name="pref_fps_summary">设置最大帧率</string>
+    <string name="pref_fps_dialog">设置最大同步率\n值: 1–60 (默认: 30)</string>
+    <string name="pref_jpeg_quality">JPEG 压缩质量</string>
+    <string name="pref_jpeg_quality_summary">设置 JPEG 压缩画质</string>
+    <string name="pref_jpeg_quality_dialog">顺时针旋转方向.\n值: 10–100 (默认: 80)</string>
+    <string name="pref_settings_security">安全</string>
+    <string name="pref_enable_pin">启用 pin 码</string>
+    <string name="pref_enable_pin_summary">用 pin 码给投射内容设置权限</string>
+    <string name="pref_hide_pin">投射开始时自动隐匿 pin</string>
+    <string name="pref_hide_pin_summary">在投射时用星号代替明文显示 pin</string>
+    <string name="pref_new_pin_on_start">开始投射时就用新的 pin</string>
+    <string name="pref_new_pin_on_start_summary">应用启动时更换 pin</string>
+    <string name="pref_auto_change_pin">自动改变 pin</string>
+    <string name="pref_auto_change_pin_summary">每个新的投射都自动改变 pin</string>
+    <string name="pref_set_pin">设置 pin</string>
+    <string name="pref_set_pin_summary">手动输入 pin</string>
+    <string name="pref_set_pin_dialog">输入pin。\n默认: 0000</string>
+    <string name="pref_settings_advanced">高级</string>
+    <string name="pref_wifi_only">只使用WIFI</string>
+    <string name="pref_wifi_only_summary">只在 wifi 交互界面运行服务</string>
+    <string name="pref_enable_ipv6">启用 IPv6 支持</string>
+    <string name="pref_enable_ipv6_summary">也在 IPv6 地址运行</string>
+    <string name="pref_enable_localhost">开启 local host</string>
+    <string name="pref_enable_localhost_summary">也在 local host 上运行服务</string>
+    <string name="pref_server_port">服务端口</string>
+    <string name="pref_server_port_summary">为新加入的连接设置端口</string>
+    <string name="pref_server_port_dialog">为新加入的连接设置端口\值: 1025–65535\n(默认: 8080)</string>
+    <string name="pref_logging">开启应用日志</string>
+    <string name="pref_logging_summary">收集应用日志</string>
+
+    <string name="about_fragment_app_version">版本: %1$s</string>
+    <string name="about_fragment_developer_name">由 Dmitriy Krivoruchko 开发</string>
+    <string name="about_fragment_rate_app">评价本应用</string>
+    <string name="about_fragment_write_email">给开发者发邮件</string>
+    <string name="about_fragment_write_email_dialog">是否要给开发者发邮件?</string>
+    <string name="about_fragment_email_chooser_header">发送邮件中…</string>
+    <string name="about_fragment_app_sources">源代码</string>
+    <string name="about_fragment_privacy_policy">隐私政策</string>
+</resources>

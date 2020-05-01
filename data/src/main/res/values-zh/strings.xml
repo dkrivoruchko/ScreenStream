@@ -1,0 +1,13 @@
+<resources>
+    <!--BitmapNotification-->
+    <string name="image_generator_press_start">在设备上按下“开始”</string>
+    <string name="image_generator_go_to_new_address">请到新地址</string>
+    <string name="image_generator_reload_this_page">请刷新页面</string>
+
+    <!--HTML text-->
+    <string name="html_stream_require_pin">本投影需要 PIN 码访问</string>
+    <string name="html_enter_pin">PIN码错误:\u0020</string>
+    <string name="html_four_digits">四位数字</string>
+    <string name="html_submit_text">提交</string>
+    <string name="html_wrong_pin">PIN码错误!</string>
+</resources>
