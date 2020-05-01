@@ -30,7 +30,7 @@ import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 import io.ktor.server.netty.NettyApplicationEngine
 import io.ktor.utils.io.ByteWriteChannel
-import io.netty.handler.codec.http.HttpHeaderValues
+import kotlinx.atomicfu.atomic
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.BroadcastChannel
 import kotlinx.coroutines.flow.*
@@ -145,9 +145,7 @@ class HttpServer(
             stopDeferred = null
         }
 
-        install(DefaultHeaders) {
-            header(HttpHeaders.CacheControl, HttpHeaderValues.NO_CACHE.toString())
-        }
+        install(DefaultHeaders) { header(HttpHeaders.CacheControl, "no-cache") }
 
         install(StatusPages) {
             status(HttpStatusCode.NotFound) {
@@ -186,8 +184,11 @@ class HttpServer(
                         override suspend fun writeTo(channel: ByteWriteChannel) {
                             this@get.ensureActive()
                             val clientId = hashCode().toLong()
+                            val emmitCounter = atomic(0L)
+                            val collectCounter = atomic(0L)
                             clientMJPEGFrameBroadcastChannel.asFlow()
-                                .conflate() // TODO StatisticEvent.Backpressure()
+                                .map { Pair(emmitCounter.incrementAndGet(), it) }
+                                .conflate()
                                 .onStart {
                                     XLog.d(this@HttpServer.getLog("onStart", "Client: $clientId"))
                                     clientStatistic.sendEvent(
@@ -200,7 +201,12 @@ class HttpServer(
                                     XLog.d(this@HttpServer.getLog("onCompletion", "Client: $clientId"))
                                     clientStatistic.sendEvent(StatisticEvent.Disconnected(clientId))
                                 }
-                                .safeCollect { jpeg ->
+                                .safeCollect { (counter, jpeg) ->
+                                    if (collectCounter.incrementAndGet() != counter) {
+                                        XLog.i(this@HttpServer.getLog("safeCollect", "Slow connection. Client: $clientId"))
+                                        collectCounter.getAndSet(counter)
+                                        clientStatistic.sendEvent(StatisticEvent.Backpressure(clientId))
+                                    }
                                     val totalSize = writeMJPEGFrame(channel, jpeg)
                                     clientStatistic.sendEvent(StatisticEvent.NextBytes(clientId, totalSize))
                                 }
