@@ -6,8 +6,8 @@ import android.graphics.Bitmap
 import android.view.WindowManager
 import androidx.core.content.ContextCompat
 import com.elvishew.xlog.XLog
+import info.dvkr.screenstream.data.httpserver.AppHttpServer
 import info.dvkr.screenstream.data.httpserver.ClientStatistic
-import info.dvkr.screenstream.data.httpserver.HttpServer
 import info.dvkr.screenstream.data.httpserver.HttpServerFiles
 import info.dvkr.screenstream.data.image.BitmapCapture
 import info.dvkr.screenstream.data.image.NotificationBitmap
@@ -40,7 +40,7 @@ class AppStateMachineImpl(
     private val notificationBitmap = NotificationBitmap(context)
     private val clientStatistic: ClientStatistic = ClientStatistic(::onError)
     private val httpServerFiles = HttpServerFiles(applicationContext, settingsReadOnly)
-    private val httpServer: HttpServer = HttpServer(
+    private val httpServer: AppHttpServer = AppHttpServer(
         settingsReadOnly, httpServerFiles, clientStatistic, bitmapChannel,
         { sendEvent(InternalEvent.StartStopFromWebPage) },
         ::onError
@@ -188,7 +188,7 @@ class AppStateMachineImpl(
         XLog.d(getLog("destroy"))
         sendEvent(InternalEvent.Destroy)
         eventChannel.close()
-        httpServer.stop().await()
+        httpServer.stop()
         clientStatistic.destroy()
         settingsReadOnly.unregisterChangeListener(settingsListener)
         broadcastHelper.stopListening()
@@ -243,7 +243,7 @@ class AppStateMachineImpl(
         XLog.d(getLog("startServer"))
         require(streamState.netInterfaces.isNotEmpty())
 
-        httpServer.stop().await()
+        httpServer.stop()
         httpServer.start(streamState.netInterfaces)
         notificationBitmap.getNotificationBitmap(NotificationBitmap.Type.START).let { bitmap ->
             repeat(3) { bitmapChannel.send(bitmap); delay(150) }
@@ -335,7 +335,7 @@ class AppStateMachineImpl(
                 }
         }
 
-        httpServer.stop().await()
+        httpServer.stop()
 
         if (state.state == StreamState.State.ERROR)
             sendEvent(AppStateMachine.Event.RecoverError)

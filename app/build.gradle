@@ -13,8 +13,8 @@ android {
         applicationId = "info.dvkr.screenstream"
         minSdkVersion(21)
         targetSdkVersion(29)
-        versionCode = 30408
-        versionName = "3.4.8"
+        versionCode = 30409
+        versionName = "3.4.9"
         resConfigs("en", "ru", "pt-rBR", "zh-rTW", "fr-rFR", "fa", "it", "pl", "hi", "de", "sk", "es", "ar")
 
         vectorDrawables.useSupportLibrary = true
@@ -48,7 +48,7 @@ android {
     }
 
     compileOptions {
-        coreLibraryDesugaringEnabled = true
+//        coreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_1_8
         targetCompatibility = JavaVersion.VERSION_1_8
     }
@@ -74,7 +74,7 @@ android {
 }
 
 dependencies {
-    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:1.0.5")
+//    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:1.0.5")
 
     implementation(project(":data"))
 

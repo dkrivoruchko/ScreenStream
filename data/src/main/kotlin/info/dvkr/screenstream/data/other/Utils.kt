@@ -12,6 +12,7 @@ import com.google.zxing.EncodeHintType
 import com.google.zxing.qrcode.QRCodeWriter
 import java.net.Inet6Address
 import java.net.InetAddress
+import java.net.InetSocketAddress
 import java.util.*
 
 fun Any.getLog(tag: String? = "", msg: String? = "Invoked") =
@@ -38,7 +39,7 @@ fun InetAddress.asString(): String =
     if (this is Inet6Address) "[${this.hostAddress}]"
     else this.hostAddress
 
-//fun InetSocketAddress.asString(): String = "${this.address.asString()}:${this.port}"
+fun InetSocketAddress.asString(): String = "${this.address.asString()}:${this.port}"
 
 fun Context.getFileFromAssets(fileName: String): ByteArray {
     XLog.d(getLog("getFileFromAssets", fileName))
