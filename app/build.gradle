@@ -3,7 +3,6 @@ apply plugin: "kotlin-android"
 apply plugin: "kotlin-android-extensions"
 apply plugin: "com.google.gms.google-services"
 apply plugin: "com.google.firebase.crashlytics"
-apply plugin: "com.getkeepsafe.dexcount"
 
 android {
     compileSdkVersion(29)
@@ -104,12 +103,12 @@ dependencies {
     implementation("com.github.iamironz:binaryprefs:1.0.1")
     implementation("com.elvishew:xlog:1.6.1")
 
-    firebaseImplementation("com.google.android.play:core:1.7.2")
+    firebaseImplementation('com.google.android.play:core:1.7.3')
     firebaseImplementation("com.google.android.play:core-ktx:1.7.0")
-    firebaseReleaseImplementation('com.google.firebase:firebase-analytics:17.4.0')
+    firebaseReleaseImplementation('com.google.firebase:firebase-analytics:17.4.2')
     firebaseReleaseImplementation('com.google.firebase:firebase-crashlytics:17.0.0')
 
-    debugImplementation("com.squareup.leakcanary:leakcanary-android:2.2")
+    debugImplementation("com.squareup.leakcanary:leakcanary-android:2.3")
 }
 
 android.applicationVariants.all {
