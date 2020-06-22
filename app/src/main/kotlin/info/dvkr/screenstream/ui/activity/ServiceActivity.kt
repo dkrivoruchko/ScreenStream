@@ -6,6 +6,7 @@ import android.content.ServiceConnection
 import android.os.Bundle
 import android.os.IBinder
 import androidx.annotation.CallSuper
+import androidx.annotation.LayoutRes
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
@@ -22,7 +23,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.safeCollect
 import kotlinx.coroutines.launch
 
-abstract class ServiceActivity : AppUpdateActivity() {
+abstract class ServiceActivity(@LayoutRes contentLayoutId: Int) : AppUpdateActivity(contentLayoutId) {
 
     private val serviceMessageLiveData = MutableLiveData<ServiceMessage>()
     private var serviceMessageFlowJob: Job? = null

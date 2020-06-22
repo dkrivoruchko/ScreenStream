@@ -3,7 +3,6 @@ package info.dvkr.screenstream.ui.fragment
 import android.os.Bundle
 import android.text.InputFilter
 import android.text.InputType
-import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
@@ -22,6 +21,7 @@ import info.dvkr.screenstream.data.other.getLog
 import info.dvkr.screenstream.data.settings.Settings
 import info.dvkr.screenstream.data.settings.SettingsReadOnly
 import info.dvkr.screenstream.databinding.FragmentSettingsSecurityBinding
+import info.dvkr.screenstream.ui.viewBinding
 import org.koin.android.ext.android.inject
 
 class SettingsSecurityFragment : Fragment(R.layout.fragment_settings_security) {
@@ -36,18 +36,7 @@ class SettingsSecurityFragment : Fragment(R.layout.fragment_settings_security) {
         }
     }
 
-    private var _binding: FragmentSettingsSecurityBinding? = null
-    private val binding get() = _binding!!
-
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
-        _binding = FragmentSettingsSecurityBinding.inflate(inflater, container, false)
-        return binding.root
-    }
-
-    override fun onDestroyView() {
-        super.onDestroyView()
-        _binding = null
-    }
+    private val binding by viewBinding { fragment -> FragmentSettingsSecurityBinding.bind(fragment.requireView()) }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)

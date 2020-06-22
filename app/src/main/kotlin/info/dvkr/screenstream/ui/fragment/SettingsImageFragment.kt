@@ -6,9 +6,7 @@ import android.text.Editable
 import android.text.InputFilter
 import android.text.InputType
 import android.text.TextWatcher
-import android.view.LayoutInflater
 import android.view.View
-import android.view.ViewGroup
 import android.view.WindowManager
 import android.view.inputmethod.EditorInfo
 import android.widget.EditText
@@ -34,9 +32,10 @@ import info.dvkr.screenstream.data.settings.SettingsReadOnly
 import info.dvkr.screenstream.databinding.DialogSettingsCropBinding
 import info.dvkr.screenstream.databinding.DialogSettingsResizeBinding
 import info.dvkr.screenstream.databinding.FragmentSettingsImageBinding
+import info.dvkr.screenstream.ui.viewBinding
 import org.koin.android.ext.android.inject
 
-class SettingsImageFragment : Fragment() {
+class SettingsImageFragment : Fragment(R.layout.fragment_settings_image) {
 
     private val settings: Settings by inject()
     private val settingsListener = object : SettingsReadOnly.OnSettingsChangeListener {
@@ -72,18 +71,7 @@ class SettingsImageFragment : Fragment() {
         3 to Settings.Values.ROTATION_270
     )
 
-    private var _binding: FragmentSettingsImageBinding? = null
-    private val binding get() = _binding!!
-
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
-        _binding = FragmentSettingsImageBinding.inflate(inflater, container, false)
-        return binding.root
-    }
-
-    override fun onDestroyView() {
-        super.onDestroyView()
-        _binding = null
-    }
+    private val binding by viewBinding { fragment -> FragmentSettingsImageBinding.bind(fragment.requireView()) }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)

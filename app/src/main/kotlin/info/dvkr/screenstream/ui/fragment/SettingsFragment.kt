@@ -1,9 +1,7 @@
 package info.dvkr.screenstream.ui.fragment
 
 import android.os.Bundle
-import android.view.LayoutInflater
 import android.view.View
-import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.viewpager2.adapter.FragmentStateAdapter
 import com.elvishew.xlog.XLog
@@ -11,21 +9,11 @@ import com.google.android.material.tabs.TabLayoutMediator
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.data.other.getLog
 import info.dvkr.screenstream.databinding.FragmentSettingsBinding
+import info.dvkr.screenstream.ui.viewBinding
 
-class SettingsFragment : Fragment() {
+class SettingsFragment : Fragment(R.layout.fragment_settings) {
 
-    private var _binding: FragmentSettingsBinding? = null
-    private val binding get() = _binding!!
-
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
-        _binding = FragmentSettingsBinding.inflate(inflater, container, false)
-        return binding.root
-    }
-
-    override fun onDestroyView() {
-        super.onDestroyView()
-        _binding = null
-    }
+    private val binding by viewBinding { fragment -> FragmentSettingsBinding.bind(fragment.requireView()) }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)

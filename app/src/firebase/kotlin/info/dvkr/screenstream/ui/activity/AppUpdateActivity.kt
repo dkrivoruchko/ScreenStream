@@ -3,6 +3,7 @@ package info.dvkr.screenstream.ui.activity
 import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
+import androidx.annotation.LayoutRes
 import androidx.lifecycle.lifecycleScope
 import com.afollestad.materialdialogs.MaterialDialog
 import com.afollestad.materialdialogs.callbacks.onDismiss
@@ -21,7 +22,7 @@ import kotlinx.coroutines.flow.safeCollect
 import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
 
-abstract class AppUpdateActivity : BaseActivity() {
+abstract class AppUpdateActivity(@LayoutRes contentLayoutId: Int) : BaseActivity(contentLayoutId) {
 
     companion object {
         private const val APP_UPDATE_PENDING_KEY = "info.dvkr.screenstream.key.APP_UPDATE_PENDING"

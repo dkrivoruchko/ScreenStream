@@ -214,7 +214,7 @@ class AppService : Service() {
         stopForeground(true)
         XLog.d(getLog("onDestroy", "Done"))
         super.onDestroy()
-        Runtime.getRuntime().exit(0)
+//        Runtime.getRuntime().exit(0)
     }
 
     private var slowClients: List<HttpClient> = emptyList()

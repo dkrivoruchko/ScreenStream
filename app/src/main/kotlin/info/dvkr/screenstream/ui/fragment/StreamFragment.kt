@@ -36,6 +36,7 @@ import info.dvkr.screenstream.databinding.ItemDeviceAddressBinding
 import info.dvkr.screenstream.service.ServiceMessage
 import info.dvkr.screenstream.service.helper.IntentAction
 import info.dvkr.screenstream.ui.activity.ServiceActivity
+import info.dvkr.screenstream.ui.viewBinding
 import org.koin.android.ext.android.inject
 
 class StreamFragment : Fragment(R.layout.fragment_stream) {
@@ -49,19 +50,7 @@ class StreamFragment : Fragment(R.layout.fragment_stream) {
     private var httpClientAdapter: HttpClientAdapter? = null
     private var errorPrevious: AppError? = null
 
-    private var _binding: FragmentStreamBinding? = null
-    private val binding get() = _binding!!
-
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
-        _binding = FragmentStreamBinding.inflate(inflater, container, false)
-        return binding.root
-    }
-
-    override fun onDestroyView() {
-        super.onDestroyView()
-        _binding = null
-        httpClientAdapter = null
-    }
+    private val binding by viewBinding { fragment -> FragmentStreamBinding.bind(fragment.requireView()) }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)

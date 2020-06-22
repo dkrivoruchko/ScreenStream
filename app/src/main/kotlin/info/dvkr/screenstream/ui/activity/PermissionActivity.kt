@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.media.projection.MediaProjectionManager
 import android.os.Bundle
+import androidx.annotation.LayoutRes
 import androidx.annotation.StringRes
 import com.afollestad.materialdialogs.MaterialDialog
 import com.afollestad.materialdialogs.lifecycle.lifecycleOwner
@@ -16,7 +17,7 @@ import info.dvkr.screenstream.service.ServiceMessage
 import info.dvkr.screenstream.service.helper.IntentAction
 
 
-abstract class PermissionActivity : ServiceActivity() {
+abstract class PermissionActivity(@LayoutRes contentLayoutId: Int) : ServiceActivity(contentLayoutId) {
 
     companion object {
         private const val CAST_PERMISSION_PENDING_KEY = "CAST_PERMISSION_PENDING_KEY"

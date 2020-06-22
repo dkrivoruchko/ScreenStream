@@ -29,8 +29,9 @@ import info.dvkr.screenstream.databinding.ActivityAppBinding
 import info.dvkr.screenstream.logging.sendLogsInEmail
 import info.dvkr.screenstream.service.ServiceMessage
 import info.dvkr.screenstream.service.helper.IntentAction
+import info.dvkr.screenstream.ui.viewBinding
 
-class AppActivity : PermissionActivity() {
+class AppActivity : PermissionActivity(R.layout.activity_app) {
 
     companion object {
         fun getAppActivityIntent(context: Context): Intent =
@@ -40,7 +41,7 @@ class AppActivity : PermissionActivity() {
             getAppActivityIntent(context)
     }
 
-    private lateinit var binding: ActivityAppBinding
+    private val binding by viewBinding { activity -> ActivityAppBinding.bind(activity.findViewById(R.id.container)) }
 
     private val scaleX = PropertyValuesHolder.ofFloat(View.SCALE_X, 0.5f, 1f)
     private val scaleY = PropertyValuesHolder.ofFloat(View.SCALE_Y, 0.5f, 1f)
@@ -54,8 +55,6 @@ class AppActivity : PermissionActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        binding = ActivityAppBinding.inflate(layoutInflater)
-        setContentView(binding.root)
 
         with(findNavController(R.id.fr_activity_app_nav_host_fragment)) {
             binding.bottomNavigationActivityApp.setupWithNavController(this)

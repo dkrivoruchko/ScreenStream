@@ -4,9 +4,7 @@ import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
-import android.view.LayoutInflater
 import android.view.View
-import android.view.ViewGroup
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import com.afollestad.materialdialogs.MaterialDialog
@@ -16,26 +14,16 @@ import info.dvkr.screenstream.R
 import info.dvkr.screenstream.data.other.getLog
 import info.dvkr.screenstream.data.settings.Settings
 import info.dvkr.screenstream.databinding.FragmentAboutBinding
+import info.dvkr.screenstream.ui.viewBinding
 import org.koin.android.ext.android.inject
 
-class AboutFragment : Fragment() {
+class AboutFragment : Fragment(R.layout.fragment_about) {
 
     private val settings: Settings by inject()
     private var settingsLoggingVisibleCounter: Int = 0
     private var version: String = ""
 
-    private var _binding: FragmentAboutBinding? = null
-    private val binding get() = _binding!!
-
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
-        _binding = FragmentAboutBinding.inflate(inflater, container, false)
-        return binding.root
-    }
-
-    override fun onDestroyView() {
-        super.onDestroyView()
-        _binding = null
-    }
+    private val binding by viewBinding { fragment -> FragmentAboutBinding.bind(fragment.requireView()) }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)

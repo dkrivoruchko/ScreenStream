@@ -4,9 +4,7 @@ import android.content.ActivityNotFoundException
 import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
-import android.view.LayoutInflater
 import android.view.View
-import android.view.ViewGroup
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
@@ -24,6 +22,7 @@ import info.dvkr.screenstream.data.settings.Settings
 import info.dvkr.screenstream.data.settings.SettingsReadOnly
 import info.dvkr.screenstream.databinding.FragmentSettingsInterfaceBinding
 import info.dvkr.screenstream.service.helper.NotificationHelper
+import info.dvkr.screenstream.ui.viewBinding
 import org.koin.android.ext.android.inject
 
 class SettingsInterfaceFragment : Fragment(R.layout.fragment_settings_interface) {
@@ -62,18 +61,7 @@ class SettingsInterfaceFragment : Fragment(R.layout.fragment_settings_interface)
             resources.getStringArray(R.array.pref_night_mode_options_api29).asList()
     }
 
-    private var _binding: FragmentSettingsInterfaceBinding? = null
-    private val binding get() = _binding!!
-
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
-        _binding = FragmentSettingsInterfaceBinding.inflate(inflater, container, false)
-        return binding.root
-    }
-
-    override fun onDestroyView() {
-        super.onDestroyView()
-        _binding = null
-    }
+    private val binding by viewBinding { fragment -> FragmentSettingsInterfaceBinding.bind(fragment.requireView()) }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
