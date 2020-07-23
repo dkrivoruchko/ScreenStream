@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="error_title">エラー</string>
+    <string name="error_port_in_use">ポートは既に使用されています。 他のポートを選択してください。</string>
+    <string name="error_invalid_media_projection">セキュリティエラー: メディアプロジェクションが無効です。 もう一度お試しください。</string>
+    <string name="error_ip_address_not_found">IPアドレスがありません。\n設定の「WiFiのみ使用する」を無効にしてみてください。</string>
+    <string name="error_wrong_image_format">システムが画像を不明な形式で返します。 修正できません。 ごめんなさい。</string>
+    <string name="error_exit">終了</string>
+
+    <string name="app_activity_collecting_logs">アプリケーションログを収集しています…</string>
+    <string name="app_activity_send_logs">開発者にログを送る</string>
+    <string name="app_activity_send_logs_dialog_title">Eメールで開発者にログを送る</string>
+    <string name="app_activity_send_logs_dialog_message">問題の説明を追加してください:</string>
+    <string name="app_activity_send_logs_dialog_neutral">ログの収集を停止</string>
+
+    <string name="app_update_activity_dialog_title">更新が利用可能</string>
+    <string name="app_update_activity_dialog_message">アップデートをダウンロードしました。 今すぐアプリを再起動しますか?</string>
+    <string name="app_update_activity_dialog_restart">再起動</string>
+
+    <string name="bottom_menu_stream">ストリーム</string>
+    <string name="bottom_menu_settings">設定</string>
+    <string name="bottom_menu_start">開始</string>
+    <string name="bottom_menu_stop">停止</string>
+    <string name="bottom_menu_about">情報</string>
+    <string name="bottom_menu_exit">終了</string>
+
+    <string name="stream_fragment_current_traffic">トラフィック: %1$,.2f Mbit/s</string>
+    <string name="stream_fragment_connected_clients">接続中のクライアント数: %1$d</string>
+    <string name="stream_fragment_no_address">アドレスがありません</string>
+    <string name="stream_fragment_interface">インターフェース: %1$s</string>
+    <string name="stream_fragment_copied">コピーしました</string>
+    <string name="stream_fragment_no_web_browser_found">Webブラウザがありません</string>
+    <string name="stream_fragment_external_app_error">外部アプリケーションエラー</string>
+    <string name="stream_fragment_share_address">端末のアドレスを共有する</string>
+    <string name="stream_fragment_pin">PIN: %1$s</string>
+    <string name="stream_fragment_pin_disabled">PINは無効です</string>
+    <string name="stream_fragment_client_disconnected">切断しました</string>
+    <string name="stream_fragment_client_slow_network">遅い接続</string>
+    <string name="stream_fragment_client_connected">接続しました</string>
+
+    <string name="item_device_address">端末のアドレス:</string>
+
+    <string name="permission_activity_error_title_activity_not_found">権限ダイアログエラー</string>
+    <string name="permission_activity_error_activity_not_found">Androidのバグです。 画面をキャプチャするために、権限要求ダイアログで「今後表示しない」にチェックを入れないでください。 既にそうした場合は、アプリを再インストールしてください。</string>
+    <string name="permission_activity_cast_permission_required_title">権限が必要です</string>
+    <string name="permission_activity_cast_permission_required">ScreenStreamアプリでは画面をキャプチャするためにスクリーン キャスト権限が必要です。</string>
+    <string name="permission_activity_error_title">エラー</string>
+    <string name="permission_activity_error_unknown">不明なエラー</string>
+
+    <string name="notification_ready_to_stream">ストリームする準備ができました</string>
+    <string name="notification_press_start">開始を押してストリームを開始します</string>
+    <string name="notification_start">開始</string>
+    <string name="notification_exit">終了</string>
+    <string name="notification_stream">ストリーム中…</string>
+    <string name="notification_press_stop">停止を押してストリームを停止します</string>
+    <string name="notification_stop">停止</string>
+
+    <string name="toast_slow_client_connection">遅いクライアント接続が検出されました</string>
+
+    <string name="pref_settings_interface">インターフェース</string>
+    <string name="pref_night_mode">ダークテーマ</string>
+    <string-array name="pref_night_mode_options_api21_28">
+        <item>常時オン</item>
+        <item>バッテリー セーバー有効時にオン</item>
+        <item>オフ</item>
+    </string-array>
+    <string-array name="pref_night_mode_options_api29">
+        <item>常時オン</item>
+        <item>自動 (システムに従う)</item>
+        <item>オフ</item>
+    </string-array>
+    <string name="pref_notification">端末の通知設定</string>
+    <string name="pref_notification_summary">システムの通知設定を開きます</string>
+    <string name="pref_stop_on_sleep">スリープ時にストリームを停止</string>
+    <string name="pref_stop_on_sleep_summary">画面がオフになったらストリームを停止します</string>
+    <string name="pref_start_on_boot">起動時にストリームを開始</string>
+    <string name="pref_start_on_boot_summary">端末が起動した時にストリームを開始します</string>
+    <string name="pref_auto_start_stop">ストリーミングの自動開始/停止</string>
+    <string name="pref_auto_start_stop_summary">クライアントが接続/切断した時にストリーミングを自動開始/停止します</string>
+    <string name="pref_detect_slow_connections">遅い接続を通知する</string>
+    <string name="pref_detect_slow_connections_summary">遅いクライアント接続を検出して通知します</string>
+    <string name="pref_html_buttons">Webページのボタンを有効化</string>
+    <string name="pref_html_buttons_summary">Webページにコントロールボタンを表示します</string>
+    <string name="pref_html_back_color">Webページの背景色</string>
+    <string name="pref_html_back_color_summary">Webページの背景色を設定します</string>
+    <string name="pref_html_back_color_title">背景色を選択してください</string>
+    <string name="pref_settings_image">画像</string>
+    <string name="pref_vr_mode">VRモード</string>
+    <string name="pref_vr_mode_summary">画面の半分をキャプチャします</string>
+    <string-array name="pref_vr_mode_options">
+        <item>左部分を使用する</item>
+        <item>右部分を使用する</item>
+    </string-array>
+    <string name="pref_crop">画像の切り抜き</string>
+    <string name="pref_crop_summary">クライアントに送信する前に画像を切り抜きます</string>
+    <string name="pref_crop_dialog_crop_top">上部分の切り抜き:</string>
+    <string name="pref_crop_dialog_crop_bottom">下部分の切り抜き:</string>
+    <string name="pref_crop_dialog_crop_left">左部分の切り抜き:</string>
+    <string name="pref_crop_dialog_crop_right">右部分の切り抜き:</string>
+    <string name="pref_crop_dialog_pixels">ピクセル</string>
+    <string name="pref_crop_dialog_warning_message">結果が空の画像の場合は切り抜きは無視されます</string>
+    <string name="pref_crop_dialog_error_message">有効な切り抜き値を入力してください</string>
+    <string name="pref_resize">画像のリサイズ</string>
+    <string name="pref_resize_summary">クライアントに送信する前に画像サイズを変更します</string>
+    <string name="pref_resize_dialog_text">画像のリサイズ率をパーセントで指定してください。\n値: 10–150 (初期値: 50)\n画面サイズ: %1$dx%2$d</string>
+    <string name="pref_resize_dialog_result">画像サイズ: %1$dx%2$d</string>
+    <string name="pref_rotate">時計回りに画像を回転する</string>
+    <string name="pref_rotate_summary">クライアントに送信する前に画像を回転します</string>
+    <string name="pref_fps">FPSリミット</string>
+    <string name="pref_fps_summary">最大FPSを設定します</string>
+    <string name="pref_fps_dialog">最大FPSを指定してください.\n値: 1–60 (初期値: 30)</string>
+    <string name="pref_jpeg_quality">JPEG圧縮の品質</string>
+    <string name="pref_jpeg_quality_summary">JPEG圧縮の品質を設定します</string>
+    <string name="pref_jpeg_quality_dialog">JPEG圧縮の品質を指定してください。\n値: 10–100 (初期値: 80)</string>
+    <string name="pref_settings_security">セキュリティ</string>
+    <string name="pref_enable_pin">PINを有効化</string>
+    <string name="pref_enable_pin_summary">ストリームへのアクセスをPINで保護します</string>
+    <string name="pref_hide_pin">ストリームの開始時に自動でPINを非表示にする</string>
+    <string name="pref_hide_pin_summary">ストリーミング中にPINの代わりにアスタリスクを表示します</string>
+    <string name="pref_new_pin_on_start">アプリ開始時に新しいPINを生成する</string>
+    <string name="pref_new_pin_on_start_summary">アプリケーションの開始時に新しいPINを生成します</string>
+    <string name="pref_auto_change_pin">PINの自動変更</string>
+    <string name="pref_auto_change_pin_summary">新しいストリームを開始する度に新しいPINを生成します</string>
+    <string name="pref_set_pin">PINを設定</string>
+    <string name="pref_set_pin_summary">手動でPINを設定します</string>
+    <string name="pref_set_pin_dialog">PINを入力してください。\n初期値: 0000</string>
+    <string name="pref_settings_advanced">高度</string>
+    <string name="pref_wifi_only">WiFiのみ使用する</string>
+    <string name="pref_wifi_only_summary">WiFiインターフェースでのみサーバーを実行します</string>
+    <string name="pref_enable_ipv6">IPv6の有効化</string>
+    <string name="pref_enable_ipv6_summary">IPv6アドレスでもサーバーを実行します</string>
+    <string name="pref_enable_localhost">ローカルホストを有効化</string>
+    <string name="pref_enable_localhost_summary">ローカルホストでもサーバーを実行します</string>
+    <string name="pref_server_port">サーバー ポート</string>
+    <string name="pref_server_port_summary">接続を待ち受けるポートを設定します</string>
+    <string name="pref_server_port_dialog">接続を待ち受けるポートを設定してください。\n値: 1025–65535\n(初期値: 8080)</string>
+    <string name="pref_logging">アプリケーションログを有効化</string>
+    <string name="pref_logging_summary">アプリケーションログを収集します</string>
+
+    <string name="about_fragment_app_version">バージョン: %1$s</string>
+    <string name="about_fragment_developer_name">開発者: Dmitriy Krivoruchko</string>
+    <string name="about_fragment_rate_app">アプリを評価</string>
+    <string name="about_fragment_write_email">開発者へEメールを書く</string>
+    <string name="about_fragment_write_email_dialog">開発者へEメールを書きますか?</string>
+    <string name="about_fragment_email_chooser_header">Eメールを送信中…</string>
+    <string name="about_fragment_app_sources">アプリケーションのソースコード</string>
+    <string name="about_fragment_privacy_policy">プライバシー ポリシー</string>
+</resources>
