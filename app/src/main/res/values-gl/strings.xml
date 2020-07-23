@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<resources>
+    <string name="error_title">Erro</string>
+    <string name="error_port_in_use">Porta xa en uso. Elixe outro.</string>
+    <string name="error_invalid_media_projection">Erro de seguridade: proxección de medios non válida. Proba unha vez máis.</string>
+    <string name="error_ip_address_not_found">Non se atopou o enderezo IP.\nProba a deshabilitar \"Use WiFi só\" na configuración.</string>
+    <string name="error_wrong_image_format">O sistema devolve a imaxe nun formato descoñecido. Non hai corrección dispoñible. Desculpa.</string>
+    <string name="error_exit">Saír</string>
+    <string name="app_activity_collecting_logs">Recollendo rexistros de aplicacións ...</string>
+    <string name="app_activity_send_logs">Envía rexistros ao creador</string>
+
+    <string name="bottom_menu_stream">Stream</string>
+    <string name="bottom_menu_settings">Configurar</string>
+    <string name="bottom_menu_start">Comezar</string>
+    <string name="bottom_menu_stop">Parar</string>
+    <string name="bottom_menu_about">Sobre</string>
+    <string name="bottom_menu_exit">Saír</string>
+
+    <string name="stream_fragment_current_traffic">Tráfico: %1$,.2f Mbit/s</string>
+    <string name="stream_fragment_connected_clients">Clientes conectados: %1$d</string>
+    <string name="stream_fragment_no_address">Non se atopou ningún enderezo</string>
+    <string name="stream_fragment_interface">Interface: %1$s</string>
+    <string name="stream_fragment_copied">Copiado</string>
+    <string name="stream_fragment_no_web_browser_found">Non se atopou ningún navegador web</string>
+    <string name="stream_fragment_pin">Pin: %1$s</string>
+    <string name="stream_fragment_pin_disabled">O pin está desactivado</string>
+    <string name="stream_fragment_client_disconnected">Desconectado</string>
+    <string name="stream_fragment_client_slow_network">Conexión lenta</string>
+    <string name="stream_fragment_client_connected">Conectado</string>
+
+    <string name="item_device_address">Enderezo do dispositivo:</string>
+
+    <string name="permission_activity_error_title_activity_not_found">Erro de diálogo de permiso</string>
+    <string name="permission_activity_error_activity_not_found">Erro de Android. Non comprobe \"Non volvas a mostrar\" no diálogo de solicitude de dereitos para capturar a pantalla. Se xa o fixeches, reinstale a aplicación.</string>
+    <string name="permission_activity_cast_permission_required_title">Permiso necesario</string>
+    <string name="permission_activity_cast_permission_required">ScreenStream a aplicación require o permiso de Screen Cast para capturar a pantalla.</string>
+    <string name="permission_activity_error_title">Erro</string>
+    <string name="permission_activity_error_unknown">Erro inesperado</string>
+
+    <string name="notification_ready_to_stream">Listo para o reparto</string>
+    <string name="notification_press_start">Prema START para iniciar o fluxo</string>
+    <string name="notification_start">Comezar</string>
+    <string name="notification_exit">Saír</string>
+    <string name="notification_stream">Stream…</string>
+    <string name="notification_press_stop">Pulse STOP para finalizar a transmisión</string>
+    <string name="notification_stop">STOP</string>
+
+    <string name="toast_slow_client_connection">Detectouse unha conexión de cliente lenta</string>
+
+    <string name="pref_settings_interface">Interfaz</string>
+    <string name="pref_night_mode">Tema escuro</string>
+    <string-array name="pref_night_mode_options_api21_28">
+        <item>Dende sempre</item>
+        <item>Só aforrador de batería</item>
+        <item>Nunca</item>
+    </string-array>
+    <string-array name="pref_night_mode_options_api29">
+        <item>Dende sempre</item>
+        <item>Automaticamente (siga o sistema)</item>
+        <item>Nunca</item>
+    </string-array>
+    <string name="pref_stop_on_sleep">Parar em sleep</string>
+    <string name="pref_stop_on_sleep_summary">Pare o fluxo se a pantalla está desactivada</string>
+    <string name="pref_start_on_boot">Comezar no inicio</string>
+    <string name="pref_start_on_boot_summary">Inicia a transmisión en canto arranque o dispositivo</string>
+    <string name="pref_html_buttons">Activa os botóns da páxina web</string>
+    <string name="pref_html_buttons_summary">Amosar botóns de control na páxina web</string>
+    <string name="pref_html_back_color">Cor de fondo da páxina</string>
+    <string name="pref_html_back_color_summary">Esta función foi deshabilitada</string>
+    <string name="pref_html_back_color_title">Función obsoleta</string>
+    <string name="pref_settings_image">Imaxe</string>
+    <string name="pref_resize">Cambiar o tamaño da imaxe</string>
+    <string name="pref_resize_summary">Cambie o tamaño da imaxe antes de envialo ao cliente</string>
+    <string name="pref_resize_dialog_text">"Estableza o factor de escala de imaxe como porcentaxe.\nValores: 10–150 (Padrão: 50)\nTamaño da pantalla: %1$dx%2$d"</string>
+    <string name="pref_resize_dialog_result">Tamaño da imaxe: %1$dx%2$d</string>
+    <string name="pref_rotate">Xira a imaxe no sentido horario</string>
+    <string name="pref_rotate_summary">Xira a imaxe antes de envialo ao cliente</string>
+    <string name="pref_jpeg_quality">Calidade de compresión JPEG</string>
+    <string name="pref_jpeg_quality_summary">Estableza a calidade de compresión JPEG</string>
+    <string name="pref_jpeg_quality_dialog">Estableza a calidade de compresión JPEG.\nValores: 10–100 (Padrão: 80)</string>
+    <string name="pref_settings_security">Seguridade</string>
+    <string name="pref_enable_pin">Habilitar o pin</string>
+    <string name="pref_enable_pin_summary">Pin acceso do fluxo</string>
+    <string name="pref_hide_pin">Pin agochado ao comezo do fluxo</string>
+    <string name="pref_hide_pin_summary">Amosar asteriscos no canto de pin durante a transmisión</string>
+    <string name="pref_new_pin_on_start">Pin novo no inicio</string>
+    <string name="pref_new_pin_on_start_summary">Xera novo pin no lanzamento da aplicación</string>
+    <string name="pref_auto_change_pin">Cambio automático de pin</string>
+    <string name="pref_auto_change_pin_summary">Xera un novo pin para cada novo fluxo</string>
+    <string name="pref_set_pin">Establecer o pin</string>
+    <string name="pref_set_pin_summary">Inserir o pin manualmente</string>
+    <string name="pref_set_pin_dialog">"Inserir pin.\nPatrón: 0000"</string>
+    <string name="pref_settings_advanced">Avançado</string>
+    <string name="pref_wifi_only">Use WiFi só</string>
+    <string name="pref_wifi_only_summary">Executa o servidor só na interface Wi-Fi</string>
+    <string name="pref_server_port">Porto do servidor</string>
+    <string name="pref_server_port_summary">Estableza o porto para as conexións entrantes</string>
+    <string name="pref_server_port_dialog">Estableza o porto do servidor para as conexións entrantes.\nValores: 1025–65535 (Padrão: 8080)</string>
+    <string name="pref_logging">Activa os rexistros de aplicacións</string>
+    <string name="pref_logging_summary">Recoller rexistros de aplicacións</string>
+
+    <string name="about_fragment_app_version">Versión: %1$s</string>
+    <string name="about_fragment_developer_name">Desenvolvido por Dmitriy Krivoruchko</string>
+    <string name="about_fragment_rate_app">Valora a aplicación</string>
+    <string name="about_fragment_write_email">Envíe un correo electrónico ao creador</string>
+    <string name="about_fragment_email_chooser_header">Enviando correo electrónico ...</string>
+    <string name="about_fragment_app_sources">Códigos fonte da aplicación</string>
+</resources>
