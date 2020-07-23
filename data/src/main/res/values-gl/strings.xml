@@ -1,0 +1,13 @@
+<resources>
+    <!--BitmapNotification-->
+    <string name="image_generator_press_start">Pulse START no dispositivo</string>
+    <string name="image_generator_go_to_new_address">Ve a nova dirección</string>
+    <string name="image_generator_reload_this_page">Recarga esta páxina</string>
+
+    <!--HTML text-->
+    <string name="html_stream_require_pin">Este fluxo require un PIN para acceder a el</string>
+    <string name="html_enter_pin">Tipo pin: \u0020</string>
+    <string name="html_four_digits">Catro díxitos</string>
+    <string name="html_submit_text">Envía</string>
+    <string name="html_wrong_pin">Pin incorrecto!</string>
+</resources>
