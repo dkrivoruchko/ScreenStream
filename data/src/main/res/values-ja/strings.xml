@@ -1,0 +1,13 @@
+<resources>
+    <!--BitmapNotification-->
+    <string name="image_generator_press_start">端末で 開始 を押してください</string>
+    <string name="image_generator_go_to_new_address">新しいアドレスへ移動してください</string>
+    <string name="image_generator_reload_this_page">このページを再読み込みしてください</string>
+
+    <!--HTML テキスト-->
+    <string name="html_stream_require_pin">このストリームにアクセスするにはPINが必要です</string>
+    <string name="html_enter_pin">PINを入力:\u0020</string>
+    <string name="html_four_digits">4桁</string>
+    <string name="html_submit_text">送信</string>
+    <string name="html_wrong_pin">PINが間違っています!</string>
+</resources>
