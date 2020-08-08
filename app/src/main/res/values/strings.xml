@@ -156,4 +156,5 @@
     <string name="about_fragment_email_chooser_header">Sending email…</string>
     <string name="about_fragment_app_sources">Application sources</string>
     <string name="about_fragment_privacy_policy">Privacy policy</string>
+    <string name="about_fragment_license">License</string>
 </resources>

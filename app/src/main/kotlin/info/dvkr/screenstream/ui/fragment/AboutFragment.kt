@@ -109,5 +109,18 @@ class AboutFragment : Fragment(R.layout.fragment_about) {
             }
         }
 
+        binding.bFragmentLicense.setOnClickListener {
+            try {
+                startActivity(
+                    Intent(
+                        Intent.ACTION_VIEW,
+                        Uri.parse("https://github.com/dkrivoruchko/ScreenStream/blob/master/LICENSE")
+                    ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                )
+
+            } catch (ignore: ActivityNotFoundException) {
+            }
+        }
+
     }
 }

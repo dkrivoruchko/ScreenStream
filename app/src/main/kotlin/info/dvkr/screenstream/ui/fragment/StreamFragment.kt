@@ -86,6 +86,11 @@ class StreamFragment : Fragment(R.layout.fragment_stream) {
         IntentAction.GetServiceState.sendToAppService(requireContext())
     }
 
+    override fun onDestroyView() {
+        super.onDestroyView()
+        httpClientAdapter = null
+    }
+
     private fun onServiceStateMessage(serviceMessage: ServiceMessage.ServiceState) {
         // Interfaces
         binding.llFragmentStreamAddresses.removeAllViews()
