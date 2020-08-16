@@ -50,7 +50,7 @@
 </head>
 
 <body onmousemove="onMouseMove()">
-    <img src="SCREEN_STREAM_ADDRESS" />
+    <img id="stream" src="SCREEN_STREAM_ADDRESS" onerror="streamFallback()" />
     <div id="buttons">
         <input type="image" id="fullscreen" src="/fullscreen-on.png" onclick="toggleFullscreen()" />
         <input type="image" src="/start-stop.png" onclick="toggleStartStop()" />
@@ -78,6 +78,22 @@
             var fullscreenInput = document.getElementById("fullscreen");
             if (isFullscreen()) fullscreenInput.src = "/fullscreen-off.png"; else fullscreenInput.src = "/fullscreen-on.png";
         }
+
+        function streamFallback() { //mjpeg -> jpeg fallback
+            var stream = document.getElementById("stream");
+
+            function streamStillUpdate() { // refresh the image
+                var oldurlbase = stream.src.split(".jpeg")[0];
+                var newurl = oldurlbase + ".jpeg?t=" + Math.random();
+                stream.src = newurl;
+            }
+            setInterval(streamStillUpdate, 1000);
+        }
+
+        setTimeout( function () { // check if the mjpeg image could be loaded, otherwise use the jpeg fallback
+            if (!document.getElementById("stream").complete)
+                streamFallback();
+        }, 2000);
 
         document.addEventListener("fullscreenchange", fullScreenHandler);
         document.addEventListener("webkitfullscreenchange", fullScreenHandler);

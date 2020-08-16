@@ -45,6 +45,8 @@ internal class HttpServerRxHandler(
     private val jpegBaseHeader = "Content-Type: image/jpeg\r\nContent-Length: ".toByteArray()
 
     private val jpegBytesStream = BehaviorRelay.create<ByteArray>()
+    private var jpegStillImg:ByteArray= "".toByteArray()
+
     private val eventloopScheduler = RxJavaEventloopScheduler(RxNetty.getRxEventLoopProvider().globalClientEventLoop())
 
     init {
@@ -60,6 +62,7 @@ internal class HttpServerRxHandler(
                 bitmap.compress(Bitmap.CompressFormat.JPEG, settingsReadOnly.jpegQuality, resultJpegStream)
                 this.ensureActive()
                 val jpegBytes = resultJpegStream.toByteArray()
+                jpegStillImg = jpegBytes
                 val jpegLength = jpegBytes.size.toString().toByteArray()
                 jpegBytesStream.call(
                     Unpooled.copiedBuffer(jpegBaseHeader, jpegLength, crlf, crlf, jpegBytes, crlf, jpegBoundary).array()
@@ -98,6 +101,8 @@ internal class HttpServerRxHandler(
                 response.sendHtml(httpServerFiles.pinRequestErrorHtml)
 
             uri == HttpServerFiles.ROOT_ADDRESS + httpServerFiles.streamAddress -> sendStream(response)
+            uri.startsWith(HttpServerFiles.ROOT_ADDRESS + httpServerFiles.streamAddress + ".jpeg")  -> response.sendJpeg(jpegStillImg)
+
 
             else -> response.redirect(request.hostHeader)
         }
@@ -110,6 +115,15 @@ internal class HttpServerRxHandler(
         setHeader(HttpHeaderNames.CONTENT_LENGTH, pngBytes.size.toString())
         setHeader(HttpHeaderNames.CONNECTION, HttpHeaderValues.CLOSE)
         return writeBytesAndFlushOnEach(Observable.just(pngBytes))
+    }
+
+    private fun HttpServerResponse<ByteBuf>.sendJpeg(jpegBytes: ByteArray): Observable<Void> {
+        status = HttpResponseStatus.OK
+        addHeader(HttpHeaderNames.CONTENT_TYPE, "image/jpeg")
+        setHeader(HttpHeaderNames.CACHE_CONTROL, "no-cache,no-store,max-age=0,must-revalidate")
+        setHeader(HttpHeaderNames.CONTENT_LENGTH, jpegBytes.size.toString())
+        setHeader(HttpHeaderNames.CONNECTION, HttpHeaderValues.CLOSE)
+        return writeBytesAndFlushOnEach(Observable.just(jpegBytes))
     }
 
     private fun HttpServerResponse<ByteBuf>.sendHtml(html: String): Observable<Void> {
