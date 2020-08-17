@@ -44,7 +44,12 @@ Read this in other languages: [English](README.md)
 ![](screenshots/screenshot_5.png)&nbsp;
 ![](screenshots/screenshot_6.png)<br>
 ![](screenshots/screenshot_7.png)&nbsp;
-![](screenshots/screenshot_8.png)
+![](screenshots/screenshot_8.png)<br>
+![](screenshots/screenshot_9.png)&nbsp;
+![](screenshots/screenshot_10.png)<br>
+![](screenshots/screenshot_11.png)&nbsp;
+![](screenshots/screenshot_12.png)&nbsp;
+![](screenshots/screenshot_13.png)
 
 ## 函式庫
 

@@ -6,14 +6,14 @@ apply plugin: "com.google.firebase.crashlytics"
 
 android {
     compileSdkVersion(30)
-    buildToolsVersion("30.0.1")
+    buildToolsVersion("30.0.2")
 
     defaultConfig {
         applicationId = "info.dvkr.screenstream"
         minSdkVersion(21)
         targetSdkVersion(30)
-        versionCode = 30412
-        versionName = "3.4.12"
+        versionCode = 30413
+        versionName = "3.4.13"
         resConfigs("en", "ru", "pt-rBR", "zh-rTW", "fr-rFR", "fa", "it", "pl", "hi", "de", "sk", "es", "ar", "ja", "ga")
 
         vectorDrawables.useSupportLibrary = true
@@ -99,8 +99,8 @@ dependencies {
 
     firebaseImplementation('com.google.android.play:core:1.8.0')
     firebaseImplementation("com.google.android.play:core-ktx:1.8.1")
-    firebaseReleaseImplementation('com.google.firebase:firebase-analytics:17.4.4')
-    firebaseReleaseImplementation('com.google.firebase:firebase-crashlytics:17.1.1')
+    firebaseReleaseImplementation('com.google.firebase:firebase-analytics:17.5.0')
+    firebaseReleaseImplementation('com.google.firebase:firebase-crashlytics:17.2.1')
 
     debugImplementation("com.squareup.leakcanary:leakcanary-android:2.4")
 }
