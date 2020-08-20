@@ -1,19 +1,20 @@
+![](screenshots/about_image_full.png)
 # Screen Stream over HTTP
 An Android mobile app for viewing device screen in your web browser.
 
-<a href='https://play.google.com/store/apps/details?id=info.dvkr.screenstream'>
-<img alt='Get it on Google Play' src='https://play.google.com/intl/en_us/badges/images/generic/en_badge_web_generic.png' height="100"/></a>
-<a href="https://f-droid.org/packages/info.dvkr.screenstream/" target="_blank">
-<img src="https://f-droid.org/badge/get-it-on.png" alt="Get it on F-Droid" height="100"/></a>
-<a href="https://aapks.com/apk/screen-stream/">
-<img src="https://aapks.com/get.png" alt="Get it on AAPKs" height="100"/></a>
+[![xscode](https://img.shields.io/badge/Available%20on-xs%3Acode-blue?style=?style=plastic&logo=appveyor&logo=data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAMAAACdt4HsAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAAZQTFRF////////VXz1bAAAAAJ0Uk5T/wDltzBKAAAAlUlEQVR42uzXSwqAMAwE0Mn9L+3Ggtgkk35QwcnSJo9S+yGwM9DCooCbgn4YrJ4CIPUcQF7/XSBbx2TEz4sAZ2q1RAECBAiYBlCtvwN+KiYAlG7UDGj59MViT9hOwEqAhYCtAsUZvL6I6W8c2wcbd+LIWSCHSTeSAAECngN4xxIDSK9f4B9t377Wd7H5Nt7/Xz8eAgwAvesLRjYYPuUAAAAASUVORK5CYII=)](https://xscode.com/dkrivoruchko/ScreenStream)![GitHub](https://img.shields.io/github/license/dkrivoruchko/ScreenStream)![GitHub release (latest by date)](https://img.shields.io/github/v/release/dkrivoruchko/ScreenStream)
 
-The application allows viewing the device screen in your web browser.
-The main idea is to show your device screen during presentations and demos.
-No need of any additional software except for this app and a web browser.
-No annoying ads or pop-ups.
+[![Foo](https://xscode.com/assets/promo-banner.svg)](https://xscode.com/dkrivoruchko/ScreenStream)
 
-Read this in other languages: [正體中文](README.zh-tw.md)
+> *Developed by [Dmitriy Krivoruchko](dkrivoruchko@gmail.com)* &middot; If there are any issues or ideas feel free to contact me.
+----
+
+The application allows viewing the device screen in your web browser. The main idea is to show your device screen during presentations and demos.
+No need of any additional software except for this app and a web browser. No annoying ads or pop-ups.
+
+<a href='https://play.google.com/store/apps/details?id=info.dvkr.screenstream'><img alt='Get it on Google Play' src='https://play.google.com/intl/en_us/badges/images/generic/en_badge_web_generic.png' height="100"/></a> <a href="https://f-droid.org/packages/info.dvkr.screenstream/" target="_blank"><img src="https://f-droid.org/badge/get-it-on.png" alt="Get it on F-Droid" height="100"/></a> <a href="https://aapks.com/apk/screen-stream/"><img src="https://aapks.com/get.png" alt="Get it on AAPKs" height="100"/></a>
+
+Read this in other languages (outdated): [正體中文](README.zh-tw.md)
 
 It uses MJPEG to encode screen images and send them through the network. So it works with any desktop or mobile browser which supports MJPEG (Chrome, Safari, EDGE, Firefox).
 

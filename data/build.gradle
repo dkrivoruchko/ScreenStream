@@ -9,7 +9,7 @@ android {
         minSdkVersion(21)
         targetSdkVersion(30)
         versionCode = 30413
-        versionName = "3.4.14"
+        versionName = "3.4.13"
     }
 
     compileOptions {
