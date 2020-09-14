@@ -98,7 +98,7 @@ class TileActionService : TileService() {
     private fun updateTile() {
         XLog.d(getLog("updateTile", "isRunning:${AppService.isRunning}, isStreaming: $isStreaming"))
         if (AppService.isRunning.not()) {
-            qsTile.apply {
+            qsTile?.apply {
                 icon = Icon.createWithResource(this@TileActionService, R.drawable.ic_tile_default_24dp)
                 label = getString(R.string.app_name)
                 contentDescription = getString(R.string.app_name)
@@ -106,7 +106,7 @@ class TileActionService : TileService() {
                 updateTile()
             }
         } else if (isStreaming.not()) {
-            qsTile.apply {
+            qsTile?.apply {
                 icon = Icon.createWithResource(this@TileActionService, R.drawable.ic_tile_start_24dp)
                 label = getString(R.string.notification_start)
                 contentDescription = getString(R.string.notification_start)
@@ -114,7 +114,7 @@ class TileActionService : TileService() {
                 updateTile()
             }
         } else {
-            qsTile.apply {
+            qsTile?.apply {
                 icon = Icon.createWithResource(this@TileActionService, R.drawable.ic_tile_stop_24dp)
                 label = getString(R.string.notification_stop)
                 contentDescription = getString(R.string.notification_stop)

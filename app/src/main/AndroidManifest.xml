@@ -66,6 +66,9 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/filepaths" />
         </provider>
-    </application>
 
+        <receiver
+            android:name="com.ironz.binaryprefs.dump.DumpReceiver"
+            tools:node="remove" />
+    </application>
 </manifest>
