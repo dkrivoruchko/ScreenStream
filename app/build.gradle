@@ -102,7 +102,9 @@ dependencies {
     implementation("com.elvishew:xlog:1.6.1")
 
     firebaseImplementation('com.google.android.play:core:1.8.0')
-    firebaseImplementation("com.google.android.play:core-ktx:1.8.1")
+    firebaseImplementation("com.google.android.play:core-ktx:1.8.1") {
+        exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk7'
+    }
     firebaseReleaseImplementation('com.google.firebase:firebase-analytics:17.5.0')
     firebaseReleaseImplementation('com.google.firebase:firebase-crashlytics:17.2.1')
 
