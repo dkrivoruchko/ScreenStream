@@ -94,7 +94,7 @@ class TrafficGraph @JvmOverloads constructor(
     }
 
     private fun calculatePositions() {
-        val currentMaxY = (dataPoints.maxBy { it.y }?.y ?: MINIMUM_FOR_MAX_Y_MARK) * 1.1f
+        val currentMaxY = (dataPoints.maxByOrNull { it.y }?.y ?: MINIMUM_FOR_MAX_Y_MARK) * 1.1f
         maxY = max(maxY, currentMaxY)
         pxPerYUnit = (height - paddingTop - paddingBottom) / maxY
         zeroY = maxY * pxPerYUnit + paddingTop

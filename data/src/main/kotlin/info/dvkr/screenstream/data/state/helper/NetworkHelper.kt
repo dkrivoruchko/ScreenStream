@@ -70,7 +70,9 @@ class NetworkHelper(context: Context) {
         return Collections.enumeration(netList)
     }
 
-    fun getNetInterfaces(useWiFiOnly: Boolean, enableIPv6: Boolean, enableLocalHost: Boolean): List<NetInterface> {
+    fun getNetInterfaces(
+        useWiFiOnly: Boolean, enableIPv6: Boolean, enableLocalHost: Boolean, localHostOnly: Boolean
+    ): List<NetInterface> {
         XLog.d(getLog("getNetInterfaces", "Invoked"))
 
         val netInterfaceList = mutableListOf<NetInterface>()
@@ -79,7 +81,8 @@ class NetworkHelper(context: Context) {
             .flatMap { networkInterface ->
                 networkInterface.inetAddresses.asSequence().filterNotNull()
                     .filter { !it.isLinkLocalAddress && !it.isMulticastAddress }
-                    .filter { enableLocalHost || !it.isLoopbackAddress }
+                    .filter { enableLocalHost || it.isLoopbackAddress.not() }
+                    .filter { localHostOnly.not() || it.isLoopbackAddress}
                     .filter { (it is Inet4Address) || (enableIPv6 && (it is Inet6Address)) }
                     .map { if (it is Inet6Address) Inet6Address.getByAddress(it.address) else it }
                     .map { NetInterface(networkInterface.displayName, it) }

@@ -90,6 +90,9 @@ class SettingsImpl(private val preferences: Preferences) : Settings {
     override var enableLocalHost: Boolean
             by bindPreference(preferences, Settings.Key.ENABLE_LOCAL_HOST, Settings.Default.ENABLE_LOCAL_HOST)
 
+    override var localHostOnly: Boolean
+            by bindPreference(preferences, Settings.Key.LOCAL_HOST_ONLY, Settings.Default.LOCAL_HOST_ONLY)
+
     override var severPort: Int
             by bindPreference(preferences, Settings.Key.SERVER_PORT, Settings.Default.SERVER_PORT)
 

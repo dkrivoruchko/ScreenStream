@@ -21,6 +21,7 @@ import info.dvkr.screenstream.data.settings.Settings
 import info.dvkr.screenstream.data.settings.SettingsReadOnly
 import info.dvkr.screenstream.databinding.FragmentSettingsAdvancedBinding
 import info.dvkr.screenstream.logging.cleanLogFiles
+import info.dvkr.screenstream.ui.enableDisableViewWithChildren
 import info.dvkr.screenstream.ui.viewBinding
 import org.koin.android.ext.android.inject
 
@@ -44,6 +45,9 @@ class SettingsAdvancedFragment : Fragment(R.layout.fragment_settings_advanced) {
         // Advanced - Use WiFi Only
         with(binding.cbFragmentSettingsUseWifiOnly) {
             isChecked = settings.useWiFiOnly
+            binding.clFragmentSettingsUseWifiOnly.enableDisableViewWithChildren(
+                (settings.enableLocalHost && settings.localHostOnly).not()
+            )
             setOnClickListener { settings.useWiFiOnly = isChecked }
             binding.clFragmentSettingsUseWifiOnly.setOnClickListener { performClick() }
         }
@@ -58,8 +62,28 @@ class SettingsAdvancedFragment : Fragment(R.layout.fragment_settings_advanced) {
         // Advanced - Enable Local host
         with(binding.cbFragmentSettingsEnableLocalhost) {
             isChecked = settings.enableLocalHost
-            setOnClickListener { settings.enableLocalHost = isChecked }
+            binding.clFragmentSettingsLocalhostOnly.enableDisableViewWithChildren(settings.enableLocalHost)
+            setOnClickListener {
+                settings.enableLocalHost = isChecked
+                binding.clFragmentSettingsLocalhostOnly.enableDisableViewWithChildren(settings.enableLocalHost)
+                binding.clFragmentSettingsUseWifiOnly.enableDisableViewWithChildren(
+                    (settings.enableLocalHost && settings.localHostOnly).not()
+                )
+            }
             binding.clFragmentSettingsEnableLocalhost.setOnClickListener { performClick() }
+        }
+
+        // Advanced - Local host only
+        with(binding.cbFragmentSettingsLocalhostOnly) {
+            isChecked = settings.localHostOnly
+            binding.clFragmentSettingsLocalhostOnly.enableDisableViewWithChildren(settings.enableLocalHost)
+            setOnClickListener {
+                settings.localHostOnly = isChecked
+                binding.clFragmentSettingsUseWifiOnly.enableDisableViewWithChildren(
+                    (settings.enableLocalHost && settings.localHostOnly).not()
+                )
+            }
+            binding.clFragmentSettingsLocalhostOnly.setOnClickListener { performClick() }
         }
 
         // Advanced - Server port

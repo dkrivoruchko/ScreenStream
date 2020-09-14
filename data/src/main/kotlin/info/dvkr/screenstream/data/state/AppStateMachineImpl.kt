@@ -83,7 +83,7 @@ class AppStateMachineImpl(
 
             if (key in arrayOf(
                     Settings.Key.USE_WIFI_ONLY, Settings.Key.ENABLE_IPV6,
-                    Settings.Key.ENABLE_LOCAL_HOST, Settings.Key.SERVER_PORT
+                    Settings.Key.ENABLE_LOCAL_HOST, Settings.Key.LOCAL_HOST_ONLY, Settings.Key.SERVER_PORT
                 )
             )
                 sendEvent(InternalEvent.RestartServer(RestartReason.NetworkSettingsChanged(key)))
@@ -215,7 +215,8 @@ class AppStateMachineImpl(
         XLog.d(getLog("discoverAddress"))
 
         val netInterfaces = networkHelper.getNetInterfaces(
-            settingsReadOnly.useWiFiOnly, settingsReadOnly.enableIPv6, settingsReadOnly.enableLocalHost
+            settingsReadOnly.useWiFiOnly, settingsReadOnly.enableIPv6,
+            settingsReadOnly.enableLocalHost, settingsReadOnly.localHostOnly
         )
         if (netInterfaces.isEmpty())
             return if (streamState.httpServerAddressAttempt < 3) {

@@ -4,7 +4,6 @@ import android.os.Bundle
 import android.text.InputFilter
 import android.text.InputType
 import android.view.View
-import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
 import androidx.fragment.app.Fragment
 import com.afollestad.materialdialogs.LayoutMode
@@ -21,6 +20,7 @@ import info.dvkr.screenstream.data.other.getLog
 import info.dvkr.screenstream.data.settings.Settings
 import info.dvkr.screenstream.data.settings.SettingsReadOnly
 import info.dvkr.screenstream.databinding.FragmentSettingsSecurityBinding
+import info.dvkr.screenstream.ui.enableDisableViewWithChildren
 import info.dvkr.screenstream.ui.viewBinding
 import org.koin.android.ext.android.inject
 
@@ -44,17 +44,17 @@ class SettingsSecurityFragment : Fragment(R.layout.fragment_settings_security) {
         // Security - Enable pin
         with(binding.cbFragmentSettingsEnablePin) {
             isChecked = settings.enablePin
-            enableDisableViewWithChildren(binding.clFragmentSettingsHidePinOnStart, settings.enablePin)
-            enableDisableViewWithChildren(binding.clFragmentSettingsNewPinOnAppStart, settings.enablePin)
-            enableDisableViewWithChildren(binding.clFragmentSettingsAutoChangePin, settings.enablePin)
-            enableDisableViewWithChildren(binding.clFragmentSettingsSetPin, canEnableSetPin())
+            binding.clFragmentSettingsHidePinOnStart.enableDisableViewWithChildren(settings.enablePin)
+            binding.clFragmentSettingsNewPinOnAppStart.enableDisableViewWithChildren(settings.enablePin)
+            binding.clFragmentSettingsAutoChangePin.enableDisableViewWithChildren(settings.enablePin)
+            binding.clFragmentSettingsSetPin.enableDisableViewWithChildren(canEnableSetPin())
             setOnClickListener {
                 if (isChecked) settings.pin = String(settings.pin.toCharArray()) // Workaround for BinaryPreferences IPC
                 settings.enablePin = isChecked
-                enableDisableViewWithChildren(binding.clFragmentSettingsHidePinOnStart, isChecked)
-                enableDisableViewWithChildren(binding.clFragmentSettingsNewPinOnAppStart, isChecked)
-                enableDisableViewWithChildren(binding.clFragmentSettingsAutoChangePin, isChecked)
-                enableDisableViewWithChildren(binding.clFragmentSettingsSetPin, canEnableSetPin())
+                binding.clFragmentSettingsHidePinOnStart.enableDisableViewWithChildren(isChecked)
+                binding.clFragmentSettingsNewPinOnAppStart.enableDisableViewWithChildren(isChecked)
+                binding.clFragmentSettingsAutoChangePin.enableDisableViewWithChildren(isChecked)
+                binding.clFragmentSettingsSetPin.enableDisableViewWithChildren(canEnableSetPin())
             }
             binding.clFragmentSettingsEnablePin.setOnClickListener { performClick() }
         }
@@ -69,10 +69,10 @@ class SettingsSecurityFragment : Fragment(R.layout.fragment_settings_security) {
         // Security - New pin on app start
         with(binding.cbFragmentSettingsNewPinOnAppStart) {
             isChecked = settings.newPinOnAppStart
-            enableDisableViewWithChildren(binding.clFragmentSettingsSetPin, canEnableSetPin())
+            binding.clFragmentSettingsSetPin.enableDisableViewWithChildren(canEnableSetPin())
             setOnClickListener {
                 settings.newPinOnAppStart = isChecked
-                enableDisableViewWithChildren(binding.clFragmentSettingsSetPin, canEnableSetPin())
+                binding.clFragmentSettingsSetPin.enableDisableViewWithChildren(canEnableSetPin())
             }
             binding.clFragmentSettingsNewPinOnAppStart.setOnClickListener { performClick() }
         }
@@ -80,10 +80,10 @@ class SettingsSecurityFragment : Fragment(R.layout.fragment_settings_security) {
         // Security - Auto change pin
         with(binding.cbFragmentSettingsAutoChangePin) {
             isChecked = settings.autoChangePin
-            enableDisableViewWithChildren(binding.clFragmentSettingsSetPin, canEnableSetPin())
+            binding.clFragmentSettingsSetPin.enableDisableViewWithChildren(canEnableSetPin())
             setOnClickListener {
                 settings.autoChangePin = isChecked
-                enableDisableViewWithChildren(binding.clFragmentSettingsSetPin, canEnableSetPin())
+                binding.clFragmentSettingsSetPin.enableDisableViewWithChildren(canEnableSetPin())
             }
             binding.clFragmentSettingsAutoChangePin.setOnClickListener { performClick() }
         }
@@ -133,11 +133,4 @@ class SettingsSecurityFragment : Fragment(R.layout.fragment_settings_security) {
         binding.cbFragmentSettingsEnablePin.isChecked &&
                 binding.cbFragmentSettingsNewPinOnAppStart.isChecked.not() &&
                 binding.cbFragmentSettingsAutoChangePin.isChecked.not()
-
-    private fun enableDisableViewWithChildren(view: View, enabled: Boolean) {
-        view.isEnabled = enabled
-        view.alpha = if (enabled) 1f else .5f
-        if (view is ViewGroup)
-            for (idx in 0 until view.childCount) enableDisableViewWithChildren(view.getChildAt(idx), enabled)
-    }
 }

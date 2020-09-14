@@ -34,6 +34,7 @@ interface Settings : SettingsReadOnly {
         const val USE_WIFI_ONLY = "PREF_KEY_USE_WIFI_ONLY"
         const val ENABLE_IPV6 = "PREF_KEY_ENABLE_IPV6"
         const val ENABLE_LOCAL_HOST = "PREF_KEY_ENABLE_LOCAL_HOST"
+        const val LOCAL_HOST_ONLY = "PREF_KEY_LOCAL_HOST_ONLY"
         const val SERVER_PORT = "PREF_KEY_SERVER_PORT"
         const val LOGGING_VISIBLE = "PREF_KEY_LOGGING_VISIBLE"
         const val LOGGING_ON = "PREF_KEY_LOGGING_ON"
@@ -73,6 +74,7 @@ interface Settings : SettingsReadOnly {
         const val USE_WIFI_ONLY = true
         const val ENABLE_IPV6 = false
         const val ENABLE_LOCAL_HOST = false
+        const val LOCAL_HOST_ONLY = false
         const val SERVER_PORT = 8080
         const val LOGGING_VISIBLE = false
         const val LOGGING_ON = false
@@ -118,6 +120,7 @@ interface Settings : SettingsReadOnly {
     override var useWiFiOnly: Boolean
     override var enableIPv6: Boolean
     override var enableLocalHost: Boolean
+    override var localHostOnly: Boolean
     override var severPort: Int
     override var loggingVisible: Boolean
     override var loggingOn: Boolean

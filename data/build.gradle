@@ -8,8 +8,8 @@ android {
     defaultConfig {
         minSdkVersion(21)
         targetSdkVersion(30)
-        versionCode = 30413
-        versionName = "3.4.13"
+        versionCode = 30414
+        versionName = "3.4.14"
     }
 
     compileOptions {
@@ -17,17 +17,21 @@ android {
         targetCompatibility = JavaVersion.VERSION_1_8
     }
 
-    kotlinOptions.jvmTarget = JavaVersion.VERSION_1_8
-
     sourceSets {
         main.java.srcDirs += 'src/main/kotlin'
+    }
+
+    kotlinOptions {
+        jvmTarget = JavaVersion.VERSION_1_8.toString()
+        freeCompilerArgs += ["-Xopt-in=kotlinx.coroutines.ExperimentalCoroutinesApi"]
+//        freeCompilerArgs += ["-Xopt-in=kotlinx.coroutines.ObsoleteCoroutinesApi"]
+//        freeCompilerArgs += ["-Xopt-in=kotlinx.coroutines.FlowPreview"]
     }
 }
 
 dependencies {
-    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.3.72")
-    implementation("org.jetbrains.kotlin:kotlin-android-extensions-runtime:1.3.72")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.3.8")
+    implementation("org.jetbrains.kotlin:kotlin-android-extensions-runtime:1.4.10")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.3.9")
 
     implementation("androidx.core:core:1.3.1")
     implementation("androidx.arch.core:core-common:2.1.0")
