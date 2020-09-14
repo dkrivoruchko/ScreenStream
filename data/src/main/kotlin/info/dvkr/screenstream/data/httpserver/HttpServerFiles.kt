@@ -69,6 +69,7 @@ class HttpServerFiles(context: Context, private val settingsReadOnly: SettingsRe
     var enablePin: Boolean = settingsReadOnly.enablePin
     var pin: String = settingsReadOnly.pin
     var streamAddress: String = configureStreamAddress()
+    var jpegFallbackAddress: String = configureJpegFallbackAddress()
     var indexHtml: String = configureIndexHtml(streamAddress)
     var pinRequestHtml: String = configurePinRequestHtml()
     var pinRequestErrorHtml: String = configurePinRequestErrorHtml()
@@ -81,6 +82,7 @@ class HttpServerFiles(context: Context, private val settingsReadOnly: SettingsRe
         enablePin = settingsReadOnly.enablePin
         pin = settingsReadOnly.pin
         streamAddress = configureStreamAddress()
+        jpegFallbackAddress = configureJpegFallbackAddress()
         indexHtml = configureIndexHtml(streamAddress)
 
         pinRequestHtml = configurePinRequestHtml()
@@ -88,6 +90,8 @@ class HttpServerFiles(context: Context, private val settingsReadOnly: SettingsRe
     }
 
     private fun configureStreamAddress(): String = if (enablePin) "${randomString(16)}.mjpeg" else "stream.mjpeg"
+
+    private fun configureJpegFallbackAddress(): String = streamAddress.dropLast(5) + "jpeg"
 
     private fun configureIndexHtml(streamAddress: String): String =
         baseIndexHtml
@@ -99,7 +103,7 @@ class HttpServerFiles(context: Context, private val settingsReadOnly: SettingsRe
                 INDEX_HTML_BACKGROUND_COLOR.toRegex(),
                 "#%06X".format(0xFFFFFF and htmlBackColor)
             )
-            .replaceFirst(INDEX_HTML_SCREEN_STREAM_ADDRESS.toRegex(), streamAddress)
+            .replace(INDEX_HTML_SCREEN_STREAM_ADDRESS.toRegex(), streamAddress)
 
     private fun configurePinRequestHtml(): String =
         if (enablePin)

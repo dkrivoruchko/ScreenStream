@@ -80,19 +80,17 @@
         }
 
         function streamFallback() { //mjpeg -> jpeg fallback
-            var stream = document.getElementById("stream");
+            var baseurl = "SCREEN_STREAM_ADDRESS".split(".mjpeg")[0];
 
             function streamStillUpdate() { // refresh the image
-                var oldurlbase = stream.src.split(".jpeg")[0];
-                var newurl = oldurlbase + ".jpeg?t=" + Math.random();
-                stream.src = newurl;
+                stream.src = baseurl + ".jpeg?t=" + Math.random();
             }
-            setInterval(streamStillUpdate, 1000);
+
+            setInterval(streamStillUpdate, 500);
         }
 
         setTimeout( function () { // check if the mjpeg image could be loaded, otherwise use the jpeg fallback
-            if (!document.getElementById("stream").complete)
-                streamFallback();
+            if (!document.getElementById("stream").complete) streamFallback();
         }, 2000);
 
         document.addEventListener("fullscreenchange", fullScreenHandler);

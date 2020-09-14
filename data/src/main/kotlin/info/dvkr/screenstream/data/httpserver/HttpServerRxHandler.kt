@@ -28,6 +28,7 @@ import rx.functions.Action0
 import java.io.ByteArrayOutputStream
 import java.net.InetAddress
 import java.net.InetSocketAddress
+import java.util.concurrent.atomic.AtomicReference
 
 internal class HttpServerRxHandler(
     coroutineScope: CoroutineScope,
@@ -45,7 +46,7 @@ internal class HttpServerRxHandler(
     private val jpegBaseHeader = "Content-Type: image/jpeg\r\nContent-Length: ".toByteArray()
 
     private val jpegBytesStream = BehaviorRelay.create<ByteArray>()
-    private var jpegStillImg:ByteArray= "".toByteArray()
+    private val jpegStillImg: AtomicReference<ByteArray> = AtomicReference(ByteArray(0))
 
     private val eventloopScheduler = RxJavaEventloopScheduler(RxNetty.getRxEventLoopProvider().globalClientEventLoop())
 
@@ -61,8 +62,7 @@ internal class HttpServerRxHandler(
                 resultJpegStream.reset()
                 bitmap.compress(Bitmap.CompressFormat.JPEG, settingsReadOnly.jpegQuality, resultJpegStream)
                 this.ensureActive()
-                val jpegBytes = resultJpegStream.toByteArray()
-                jpegStillImg = jpegBytes
+                val jpegBytes = resultJpegStream.toByteArray().also { jpegStillImg.set(it) }
                 val jpegLength = jpegBytes.size.toString().toByteArray()
                 jpegBytesStream.call(
                     Unpooled.copiedBuffer(jpegBaseHeader, jpegLength, crlf, crlf, jpegBytes, crlf, jpegBoundary).array()
@@ -93,16 +93,19 @@ internal class HttpServerRxHandler(
             uri == HttpServerFiles.ROOT_ADDRESS + HttpServerFiles.START_STOP_ADDRESS && httpServerFiles.htmlEnableButtons ->
                 onStartStopRequest().run { response.sendHtml(httpServerFiles.indexHtml) }
 
-            uri == HttpServerFiles.ROOT_ADDRESS -> response.sendHtml(if (httpServerFiles.enablePin) httpServerFiles.pinRequestHtml else httpServerFiles.indexHtml)
+            uri == HttpServerFiles.ROOT_ADDRESS ->
+                response.sendHtml(if (httpServerFiles.enablePin) httpServerFiles.pinRequestHtml else httpServerFiles.indexHtml)
 
-            uri == ("/?pin=" + httpServerFiles.pin) && httpServerFiles.enablePin -> response.sendHtml(httpServerFiles.indexHtml)
+            uri == "${HttpServerFiles.ROOT_ADDRESS}?pin=${httpServerFiles.pin}" && httpServerFiles.enablePin ->
+                response.sendHtml(httpServerFiles.indexHtml)
 
-            uri.startsWith("/?pin=") && httpServerFiles.enablePin ->
+            uri.startsWith("${HttpServerFiles.ROOT_ADDRESS}?pin=") && httpServerFiles.enablePin ->
                 response.sendHtml(httpServerFiles.pinRequestErrorHtml)
 
             uri == HttpServerFiles.ROOT_ADDRESS + httpServerFiles.streamAddress -> sendStream(response)
-            uri.startsWith(HttpServerFiles.ROOT_ADDRESS + httpServerFiles.streamAddress + ".jpeg")  -> response.sendJpeg(jpegStillImg)
 
+            uri.startsWith(HttpServerFiles.ROOT_ADDRESS + httpServerFiles.jpegFallbackAddress) ->
+                response.sendJpeg(jpegStillImg.get())
 
             else -> response.redirect(request.hostHeader)
         }
@@ -115,15 +118,6 @@ internal class HttpServerRxHandler(
         setHeader(HttpHeaderNames.CONTENT_LENGTH, pngBytes.size.toString())
         setHeader(HttpHeaderNames.CONNECTION, HttpHeaderValues.CLOSE)
         return writeBytesAndFlushOnEach(Observable.just(pngBytes))
-    }
-
-    private fun HttpServerResponse<ByteBuf>.sendJpeg(jpegBytes: ByteArray): Observable<Void> {
-        status = HttpResponseStatus.OK
-        addHeader(HttpHeaderNames.CONTENT_TYPE, "image/jpeg")
-        setHeader(HttpHeaderNames.CACHE_CONTROL, "no-cache,no-store,max-age=0,must-revalidate")
-        setHeader(HttpHeaderNames.CONTENT_LENGTH, jpegBytes.size.toString())
-        setHeader(HttpHeaderNames.CONNECTION, HttpHeaderValues.CLOSE)
-        return writeBytesAndFlushOnEach(Observable.just(jpegBytes))
     }
 
     private fun HttpServerResponse<ByteBuf>.sendHtml(html: String): Observable<Void> {
@@ -172,6 +166,15 @@ internal class HttpServerRxHandler(
                 // Sending boundary so browser can understand that previous image was fully send
                 .startWith(Unpooled.copiedBuffer(jpegBoundary, jpegBytesStream.value).array())
         )
+    }
+
+    private fun HttpServerResponse<ByteBuf>.sendJpeg(jpegBytes: ByteArray): Observable<Void> {
+        status = HttpResponseStatus.OK
+        addHeader(HttpHeaderNames.CONTENT_TYPE, "image/jpeg")
+        setHeader(HttpHeaderNames.CACHE_CONTROL, "no-cache,no-store,max-age=0,must-revalidate")
+        setHeader(HttpHeaderNames.CONTENT_LENGTH, jpegBytes.size.toString())
+        setHeader(HttpHeaderNames.CONNECTION, HttpHeaderValues.CLOSE)
+        return writeBytesAndFlushOnEach(Observable.just(jpegBytes))
     }
 
     private fun HttpServerResponse<ByteBuf>.redirect(serverAddress: String): Observable<Void> {
