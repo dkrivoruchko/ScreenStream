@@ -112,10 +112,15 @@ class SettingsInterfaceFragment : Fragment(R.layout.fragment_settings_interface)
         }
 
         // Interface - Auto start stop
-        with(binding.cbFragmentSettingsAutoStartStop) {
-            isChecked = settings.autoStartStop
-            setOnClickListener { settings.autoStartStop = isChecked }
-            binding.clFragmentSettingsAutoStartStop.setOnClickListener { performClick() }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            binding.clFragmentSettingsAutoStartStop.visibility = View.GONE
+            binding.vFragmentSettingsAutoStartStop.visibility = View.GONE
+        } else {
+            with(binding.cbFragmentSettingsAutoStartStop) {
+                isChecked = settings.autoStartStop
+                setOnClickListener { settings.autoStartStop = isChecked }
+                binding.clFragmentSettingsAutoStartStop.setOnClickListener { performClick() }
+            }
         }
 
         // Interface - Notify slow connections

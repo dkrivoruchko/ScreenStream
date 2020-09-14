@@ -4,6 +4,7 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.os.Binder
+import android.os.Build
 import android.os.IBinder
 import android.view.LayoutInflater
 import android.widget.Toast
@@ -232,6 +233,8 @@ class AppService : Service() {
     }
 
     private fun checkAutoStartStop(clients: List<HttpClient>) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) return
+
         if (clients.isNotEmpty() && isStreaming.get().not()) {
             XLog.d(getLog("checkAutoStartStop", "Auto starting"))
             appStateMachine?.sendEvent(AppStateMachine.Event.StartStream)
