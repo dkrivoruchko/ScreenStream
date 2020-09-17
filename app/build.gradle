@@ -14,7 +14,7 @@ android {
         targetSdkVersion(30)
         versionCode = 30414
         versionName = "3.4.14"
-        resConfigs("en", "ru", "pt-rBR", "zh-rTW", "fr-rFR", "fa", "it", "pl", "hi", "de", "sk", "es", "ar", "ja", "gl")
+        resConfigs("en", "ru", "pt-rBR", "zh-rTW", "fr-rFR", "fa", "it", "pl", "hi", "de", "sk", "es", "ar", "ja", "gl","cat")
 
         vectorDrawables.useSupportLibrary = true
     }
