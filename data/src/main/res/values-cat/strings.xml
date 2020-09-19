@@ -1,0 +1,13 @@
+<resources>
+    <!--BitmapNotification-->
+    <string name="image_generator_press_start">Premeu INICI al dispositiu</string>
+    <string name="image_generator_go_to_new_address">Aneu a una nova adreça</string>
+    <string name="image_generator_reload_this_page">Torneu a carregar aquesta pàgina</string>
+
+    <!--HTML text-->
+    <string name="html_stream_require_pin">Aquest flux requereix un PIN per accedir-hi</string>
+    <string name="html_enter_pin">Escriviu el pin: \u0020</string>
+    <string name="html_four_digits">Quatre dígits</string>
+    <string name="html_submit_text">Presentar</string>
+    <string name="html_wrong_pin">Pin equivocat.</string>
+</resources>
