@@ -115,6 +115,7 @@ internal class HttpServerRxHandler(
         status = HttpResponseStatus.OK
         addHeader(HttpHeaderNames.CONTENT_TYPE, "image/png")
         setHeader(HttpHeaderNames.CACHE_CONTROL, "no-cache,no-store,max-age=0,must-revalidate")
+        setHeader(HttpHeaderNames.ACCESS_CONTROL_ALLOW_ORIGIN, "*")
         setHeader(HttpHeaderNames.CONTENT_LENGTH, pngBytes.size.toString())
         setHeader(HttpHeaderNames.CONNECTION, HttpHeaderValues.CLOSE)
         return writeBytesAndFlushOnEach(Observable.just(pngBytes))
@@ -124,6 +125,7 @@ internal class HttpServerRxHandler(
         status = HttpResponseStatus.OK
         addHeader(HttpHeaderNames.CONTENT_TYPE, "text/html; charset=UTF-8")
         setHeader(HttpHeaderNames.CACHE_CONTROL, "no-cache,no-store,max-age=0,must-revalidate")
+        setHeader(HttpHeaderNames.ACCESS_CONTROL_ALLOW_ORIGIN, "*")
         setHeader(HttpHeaderNames.CONNECTION, HttpHeaderValues.CLOSE)
         return writeStringAndFlushOnEach(Observable.just(html))
     }
@@ -144,6 +146,7 @@ internal class HttpServerRxHandler(
         response.status = HttpResponseStatus.OK
         response.setHeader(HttpHeaderNames.CONTENT_TYPE, "multipart/x-mixed-replace;boundary=$multipartBoundary")
         response.setHeader(HttpHeaderNames.CACHE_CONTROL, "no-cache,no-store,max-age=0,must-revalidate")
+        response.setHeader(HttpHeaderNames.ACCESS_CONTROL_ALLOW_ORIGIN, "*")
         response.setHeader(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE)
 
         return response.writeBytesAndFlushOnEach(
@@ -172,6 +175,7 @@ internal class HttpServerRxHandler(
         status = HttpResponseStatus.OK
         addHeader(HttpHeaderNames.CONTENT_TYPE, "image/jpeg")
         setHeader(HttpHeaderNames.CACHE_CONTROL, "no-cache,no-store,max-age=0,must-revalidate")
+        setHeader(HttpHeaderNames.ACCESS_CONTROL_ALLOW_ORIGIN, "*")
         setHeader(HttpHeaderNames.CONTENT_LENGTH, jpegBytes.size.toString())
         setHeader(HttpHeaderNames.CONNECTION, HttpHeaderValues.CLOSE)
         return writeBytesAndFlushOnEach(Observable.just(jpegBytes))
