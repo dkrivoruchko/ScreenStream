@@ -5,17 +5,23 @@ import android.graphics.Bitmap
 import android.graphics.Matrix
 import android.graphics.PixelFormat
 import android.graphics.Point
+import android.graphics.SurfaceTexture
 import android.hardware.display.DisplayManager
 import android.hardware.display.VirtualDisplay
 import android.media.Image
 import android.media.ImageReader
 import android.media.projection.MediaProjection
+import android.opengl.GLES20
 import android.os.Handler
 import android.os.HandlerThread
 import android.os.Process
 import android.util.DisplayMetrics
 import android.view.Display
 import android.view.Surface
+import com.android.grafika.gles.EglCore
+import com.android.grafika.gles.FullFrameRect
+import com.android.grafika.gles.OffscreenSurface
+import com.android.grafika.gles.Texture2dProgram
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.data.model.AppError
 import info.dvkr.screenstream.data.model.FatalError
@@ -25,6 +31,8 @@ import info.dvkr.screenstream.data.settings.Settings
 import info.dvkr.screenstream.data.settings.SettingsReadOnly
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.SendChannel
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
 
@@ -48,6 +56,8 @@ class BitmapCapture(
     @Volatile
     private var state: State = State.INIT
 
+    private var fallback: Boolean = false
+
     private val imageThread: HandlerThread by lazy {
         HandlerThread("BitmapCapture", Process.THREAD_PRIORITY_BACKGROUND)
     }
@@ -56,6 +66,16 @@ class BitmapCapture(
     private var imageListener: ImageListener? = null
     private var imageReader: ImageReader? = null
     private var virtualDisplay: VirtualDisplay? = null
+
+    private var fallbackListener: FallbackListener? = null
+    private var mEglCore: EglCore? = null
+    private var mProducerSide: Surface? = null
+    private var mTexture: SurfaceTexture? = null
+    private var mTextureId = 0
+    private var mConsumerSide: OffscreenSurface? = null
+    private var mShader: Texture2dProgram? = null
+    private var mScreen: FullFrameRect? = null
+    private var mBuf: ByteBuffer? = null
 
     private val matrix = AtomicReference<Matrix>(Matrix())
     private val resizeFactor = AtomicInteger(Settings.Values.RESIZE_DISABLED)
@@ -145,7 +165,6 @@ class BitmapCapture(
     @SuppressLint("WrongConstant")
     private fun startDisplayCapture() {
         val screenSize = Point().also { display.getRealSize(it) }
-        imageListener = ImageListener(settingsReadOnly, resizeFactor, matrix)
 
         val screenSizeX: Int
         val screenSizeY: Int
@@ -158,15 +177,45 @@ class BitmapCapture(
             screenSizeY = screenSize.y
         }
 
-        imageReader = ImageReader.newInstance(screenSizeX, screenSizeY, PixelFormat.RGBA_8888, 2)
-            .apply { setOnImageAvailableListener(imageListener, imageThreadHandler) }
+        if (fallback.not()) {
+            imageListener = ImageListener(settingsReadOnly)
+            imageReader = ImageReader.newInstance(screenSizeX, screenSizeY, PixelFormat.RGBA_8888, 2)
+                    .apply { setOnImageAvailableListener(imageListener, imageThreadHandler) }
+        } else {
+            try {
+                fallbackListener = FallbackListener(settingsReadOnly, screenSizeX, screenSizeY)
+                mEglCore = EglCore(null, EglCore.FLAG_TRY_GLES3 or EglCore.FLAG_RECORDABLE)
+                mConsumerSide = OffscreenSurface(mEglCore, screenSizeX, screenSizeY)
+                mConsumerSide!!.makeCurrent()
+                mShader = Texture2dProgram(Texture2dProgram.ProgramType.TEXTURE_EXT)
+                mScreen = FullFrameRect(mShader)
+                mTexture =
+                    SurfaceTexture(mScreen!!.createTextureObject().also { mTextureId = it }, false)
+                mTexture!!.setDefaultBufferSize(screenSizeX, screenSizeY)
+                mProducerSide = Surface(mTexture)
+                mTexture!!.setOnFrameAvailableListener(fallbackListener, imageThreadHandler)
+                mBuf = ByteBuffer.allocate(screenSizeX * screenSizeY * 4)
+                mBuf!!.order(ByteOrder.nativeOrder())
+            } catch (ex: Exception) {
+                XLog.w(this@BitmapCapture.getLog("outBitmapChannel", ex.toString()))
+                state = State.ERROR
+                onError(FatalError.BitmapFormatException)
+            }
+        }
 
         try {
             val densityDpi = DisplayMetrics().also { display.getMetrics(it) }.densityDpi
-            virtualDisplay = mediaProjection.createVirtualDisplay(
-                "ScreenStreamVirtualDisplay", screenSizeX, screenSizeY, densityDpi,
-                DisplayManager.VIRTUAL_DISPLAY_FLAG_PRESENTATION, imageReader?.surface, null, imageThreadHandler
-            )
+            if (fallback.not()) {
+                virtualDisplay = mediaProjection.createVirtualDisplay(
+                    "ScreenStreamVirtualDisplay", screenSizeX, screenSizeY, densityDpi,
+                    DisplayManager.VIRTUAL_DISPLAY_FLAG_PRESENTATION, imageReader?.surface, null, imageThreadHandler
+                )
+            } else {
+                virtualDisplay = mediaProjection.createVirtualDisplay(
+                    "ScreenStreamVirtualDisplay", screenSizeX, screenSizeY, densityDpi,
+                    DisplayManager.VIRTUAL_DISPLAY_FLAG_PRESENTATION, mProducerSide, null, imageThreadHandler
+                )
+            }
             state = State.STARTED
         } catch (ex: SecurityException) {
             state = State.ERROR
@@ -178,6 +227,10 @@ class BitmapCapture(
     private fun stopDisplayCapture() {
         virtualDisplay?.release()
         imageReader?.close()
+        if (fallback) {
+            mProducerSide?.release()
+            mEglCore?.release()
+        }
     }
 
     @Synchronized
@@ -192,16 +245,59 @@ class BitmapCapture(
         }
     }
 
+    /** https://stackoverflow.com/a/34741581 **/
+
+    private inner class FallbackListener(
+        private val settingsReadOnly: SettingsReadOnly,
+        private val width: Int,
+        private val height: Int
+    ) : SurfaceTexture.OnFrameAvailableListener {
+        override fun onFrameAvailable(p0: SurfaceTexture?) {
+            synchronized(this@BitmapCapture) {
+                if (state != State.STARTED || this != fallbackListener) return
+
+                mConsumerSide!!.makeCurrent()
+
+                var mtx = FloatArray(16)
+
+                mTexture!!.updateTexImage()
+                mTexture!!.getTransformMatrix(mtx)
+
+                val now = System.currentTimeMillis()
+                if ((now - lastImageMillis) < (1000 / settingsReadOnly.maxFPS)) {
+                    return
+                }
+                lastImageMillis = now
+
+                mConsumerSide!!.makeCurrent()
+
+                mScreen!!.drawFrame(mTextureId, mtx)
+                mConsumerSide!!.swapBuffers()
+
+                mBuf!!.rewind()
+                GLES20.glReadPixels(0, 0, width, height, GLES20.GL_RGBA, GLES20.GL_UNSIGNED_BYTE, mBuf)
+
+                mBuf!!.rewind()
+                val cleanBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+                cleanBitmap.copyPixelsFromBuffer(mBuf)
+
+                val croppedBitmap = getCroppedBitmap(cleanBitmap)
+                val upsizedBitmap = getUpsizedAndRotadedBitmap(croppedBitmap)
+
+                if (outBitmapChannel.isClosedForSend.not()) outBitmapChannel.offer(upsizedBitmap)
+            }
+        }
+
+    }
+
     // Runs on imageThread
     private inner class ImageListener(
         private val settingsReadOnly: SettingsReadOnly,
-        private val resizeFactor: AtomicInteger,
-        private val matrix: AtomicReference<Matrix>
     ) : ImageReader.OnImageAvailableListener {
 
         override fun onImageAvailable(reader: ImageReader) {
             synchronized(this@BitmapCapture) {
-                if (state != State.STARTED || this != imageListener) return
+                if (state != State.STARTED || this != imageListener || fallback) return
 
                 try {
                     reader.acquireLatestImage()?.let { image ->
@@ -220,9 +316,9 @@ class BitmapCapture(
                         if (outBitmapChannel.isClosedForSend.not()) outBitmapChannel.offer(upsizedBitmap)
                     }
                 } catch (ex: UnsupportedOperationException) {
-                    XLog.w(this@BitmapCapture.getLog("outBitmapChannel", ex.toString()))
-                    state = State.ERROR
-                    onError(FatalError.BitmapFormatException)
+                        XLog.d("unsupported image format, switching to fallback image reader")
+                        fallback = true
+                        restart()
                 } catch (throwable: Throwable) {
                     XLog.e(this@BitmapCapture.getLog("outBitmapChannel"), throwable)
                     state = State.ERROR
@@ -231,7 +327,6 @@ class BitmapCapture(
             }
         }
 
-        private var lastImageMillis: Long = 0L
         private lateinit var reusableBitmap: Bitmap
 
         private fun getCleanBitmap(image: Image): Bitmap {
@@ -252,60 +347,62 @@ class BitmapCapture(
             }
             return cleanBitmap
         }
+    }
 
-        private fun getCroppedBitmap(bitmap: Bitmap): Bitmap {
-            if (settingsReadOnly.vrMode == Settings.Default.VR_MODE_DISABLE && settingsReadOnly.imageCrop.not())
-                return bitmap
+    private var lastImageMillis: Long = 0L
 
-            var imageLeft: Int = 0
-            var imageRight: Int = bitmap.width
+    private fun getCroppedBitmap(bitmap: Bitmap): Bitmap {
+        if (settingsReadOnly.vrMode == Settings.Default.VR_MODE_DISABLE && settingsReadOnly.imageCrop.not())
+            return bitmap
 
-            when (settingsReadOnly.vrMode) {
-                Settings.Default.VR_MODE_LEFT -> imageRight = bitmap.width / 2
-                Settings.Default.VR_MODE_RIGHT -> imageLeft = bitmap.width / 2
-            }
+        var imageLeft: Int = 0
+        var imageRight: Int = bitmap.width
 
-            var imageCropLeft: Int = 0
-            var imageCropRight: Int = 0
-            var imageCropTop: Int = 0
-            var imageCropBottom: Int = 0
-            if (settingsReadOnly.imageCrop)
-                when {
-                    resizeFactor.get() < Settings.Values.RESIZE_DISABLED -> {
-                        val scale = resizeFactor.get() / 100f
-                        imageCropLeft = (settingsReadOnly.imageCropLeft * scale).toInt()
-                        imageCropRight = (settingsReadOnly.imageCropRight * scale).toInt()
-                        imageCropTop = (settingsReadOnly.imageCropTop * scale).toInt()
-                        imageCropBottom = (settingsReadOnly.imageCropBottom * scale).toInt()
-                    }
-                    else -> {
-                        imageCropLeft = settingsReadOnly.imageCropLeft
-                        imageCropRight = settingsReadOnly.imageCropRight
-                        imageCropTop = settingsReadOnly.imageCropTop
-                        imageCropBottom = settingsReadOnly.imageCropBottom
-                    }
+        when (settingsReadOnly.vrMode) {
+            Settings.Default.VR_MODE_LEFT -> imageRight = bitmap.width / 2
+            Settings.Default.VR_MODE_RIGHT -> imageLeft = bitmap.width / 2
+        }
+
+        var imageCropLeft: Int = 0
+        var imageCropRight: Int = 0
+        var imageCropTop: Int = 0
+        var imageCropBottom: Int = 0
+        if (settingsReadOnly.imageCrop)
+            when {
+                resizeFactor.get() < Settings.Values.RESIZE_DISABLED -> {
+                    val scale = resizeFactor.get() / 100f
+                    imageCropLeft = (settingsReadOnly.imageCropLeft * scale).toInt()
+                    imageCropRight = (settingsReadOnly.imageCropRight * scale).toInt()
+                    imageCropTop = (settingsReadOnly.imageCropTop * scale).toInt()
+                    imageCropBottom = (settingsReadOnly.imageCropBottom * scale).toInt()
                 }
-
-            if (imageLeft + imageRight - imageCropLeft - imageCropRight <= 0 ||
-                bitmap.height - imageCropTop - imageCropBottom <= 0
-            )
-                return bitmap
-
-            return try {
-                Bitmap.createBitmap(
-                    bitmap, imageLeft + imageCropLeft, imageCropTop,
-                    imageRight - imageLeft - imageCropLeft - imageCropRight,
-                    bitmap.height - imageCropTop - imageCropBottom
-                )
-            } catch (ex: IllegalArgumentException) {
-                XLog.w(this@BitmapCapture.getLog("getCroppedBitmap", ex.toString()))
-                bitmap
+                else -> {
+                    imageCropLeft = settingsReadOnly.imageCropLeft
+                    imageCropRight = settingsReadOnly.imageCropRight
+                    imageCropTop = settingsReadOnly.imageCropTop
+                    imageCropBottom = settingsReadOnly.imageCropBottom
+                }
             }
-        }
 
-        private fun getUpsizedAndRotadedBitmap(bitmap: Bitmap): Bitmap {
-            if (matrix.get().isIdentity) return bitmap
-            return Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix.get(), false)
+        if (imageLeft + imageRight - imageCropLeft - imageCropRight <= 0 ||
+            bitmap.height - imageCropTop - imageCropBottom <= 0
+        )
+            return bitmap
+
+        return try {
+            Bitmap.createBitmap(
+                bitmap, imageLeft + imageCropLeft, imageCropTop,
+                imageRight - imageLeft - imageCropLeft - imageCropRight,
+                bitmap.height - imageCropTop - imageCropBottom
+            )
+        } catch (ex: IllegalArgumentException) {
+            XLog.w(this@BitmapCapture.getLog("getCroppedBitmap", ex.toString()))
+            bitmap
         }
+    }
+
+    private fun getUpsizedAndRotadedBitmap(bitmap: Bitmap): Bitmap {
+        if (matrix.get().isIdentity) return bitmap
+        return Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix.get(), false)
     }
 }
