@@ -196,6 +196,7 @@ class BitmapCapture(
                 mTexture!!.setOnFrameAvailableListener(fallbackListener, imageThreadHandler)
                 mBuf = ByteBuffer.allocate(screenSizeX * screenSizeY * 4)
                 mBuf!!.order(ByteOrder.nativeOrder())
+                mEglCore!!.makeNothingCurrent()
             } catch (ex: Exception) {
                 XLog.w(this@BitmapCapture.getLog("outBitmapChannel", ex.toString()))
                 state = State.ERROR
@@ -229,6 +230,8 @@ class BitmapCapture(
         imageReader?.close()
         if (fallback) {
             mProducerSide?.release()
+            mTexture?.release()
+            mConsumerSide?.release()
             mEglCore?.release()
         }
     }
