@@ -5,7 +5,6 @@ sealed class AppError : Throwable()
 
 sealed class FatalError : AppError() {
     object CoroutineException : FatalError()
-    object ActorException : FatalError()
     object ChannelException : FatalError()
     object NettyServerException : FatalError()
     object BitmapFormatException : FatalError()

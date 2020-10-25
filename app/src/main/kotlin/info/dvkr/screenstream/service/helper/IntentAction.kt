@@ -37,5 +37,5 @@ sealed class IntentAction : Parcelable {
     @Parcelize object StartOnBoot : IntentAction()
     @Parcelize object RecoverError : IntentAction()
 
-    override fun toString(): String = this::class.java.simpleName
+    override fun toString(): String = javaClass.simpleName
 }

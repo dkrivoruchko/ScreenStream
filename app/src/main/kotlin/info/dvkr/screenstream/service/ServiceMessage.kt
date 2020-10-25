@@ -16,8 +16,8 @@ sealed class ServiceMessage {
 
     data class Clients(val clients: List<HttpClient>) : ServiceMessage()
     data class TrafficHistory(val trafficHistory: List<TrafficPoint>) : ServiceMessage() {
-        override fun toString(): String = this::class.java.simpleName
+        override fun toString(): String = javaClass.simpleName
     }
 
-    override fun toString(): String = this::class.java.simpleName
+    override fun toString(): String = javaClass.simpleName
 }

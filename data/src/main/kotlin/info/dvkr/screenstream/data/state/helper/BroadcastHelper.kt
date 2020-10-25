@@ -9,29 +9,22 @@ import android.net.ConnectivityManager
 import android.net.wifi.WifiManager
 import android.os.Build
 import com.elvishew.xlog.XLog
-import info.dvkr.screenstream.data.model.AppError
-import info.dvkr.screenstream.data.model.FatalError
 import info.dvkr.screenstream.data.other.getLog
 import kotlinx.coroutines.*
 
-internal sealed class BroadcastHelper(context: Context, private val onError: (AppError) -> Unit) {
+internal sealed class BroadcastHelper(context: Context) {
 
     companion object {
-        fun getInstance(context: Context, onError: (AppError) -> Unit): BroadcastHelper {
+        fun getInstance(context: Context): BroadcastHelper {
             return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N)
-                NougatBroadcastHelper(context, onError)
+                NougatBroadcastHelper(context)
             else
-                LegacyBroadcastHelper(context, onError)
+                LegacyBroadcastHelper(context)
         }
     }
 
     protected val applicationContext: Context = context.applicationContext
-    private val coroutineScope = CoroutineScope(
-        Job() + Dispatchers.Main.immediate + CoroutineExceptionHandler { _, throwable ->
-            XLog.e(getLog("onCoroutineException"), throwable)
-            onError(FatalError.CoroutineException)
-        }
-    )
+    private val coroutineScope = CoroutineScope(Job() + Dispatchers.Main.immediate)
 
     protected abstract val intentFilter: IntentFilter
     protected abstract val broadcastReceiver: BroadcastReceiver
@@ -46,7 +39,7 @@ internal sealed class BroadcastHelper(context: Context, private val onError: (Ap
 
     fun stopListening() {
         applicationContext.unregisterReceiver(broadcastReceiver)
-        coroutineScope.cancel(CancellationException("BroadcastHelper.destroy"))
+        coroutineScope.cancel()
     }
 
     protected fun onScreenIntentAction() {
@@ -61,7 +54,6 @@ internal sealed class BroadcastHelper(context: Context, private val onError: (Ap
         isConnectionEventScheduled = true
         coroutineScope.launch {
             delay(1000)
-            ensureActive()
             isConnectionEventScheduled = false
             if (isFirstConnectionEvent) isFirstConnectionEvent = false
             else if (::onConnectionChanged.isInitialized) onConnectionChanged.invoke()
@@ -69,8 +61,7 @@ internal sealed class BroadcastHelper(context: Context, private val onError: (Ap
     }
 
     @TargetApi(Build.VERSION_CODES.N)
-    private class NougatBroadcastHelper(context: Context, onError: (AppError) -> Unit) :
-        BroadcastHelper(context, onError) {
+    private class NougatBroadcastHelper(context: Context) : BroadcastHelper(context) {
 
         override val intentFilter: IntentFilter by lazy {
             IntentFilter().apply {
@@ -92,8 +83,7 @@ internal sealed class BroadcastHelper(context: Context, private val onError: (Ap
     }
 
     @Suppress("Deprecation")
-    private class LegacyBroadcastHelper(context: Context, onError: (AppError) -> Unit) :
-        BroadcastHelper(context, onError) {
+    private class LegacyBroadcastHelper(context: Context) : BroadcastHelper(context) {
 
         override val intentFilter: IntentFilter by lazy {
             IntentFilter().apply {

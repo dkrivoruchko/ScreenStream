@@ -16,7 +16,7 @@ import io.netty.util.ResourceLeakDetector
 import io.reactivex.netty.RxNetty
 import io.reactivex.netty.protocol.http.server.HttpServer
 import kotlinx.coroutines.*
-import kotlinx.coroutines.channels.BroadcastChannel
+import kotlinx.coroutines.flow.StateFlow
 import java.net.BindException
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
@@ -25,7 +25,7 @@ class AppHttpServer(
     private val settingsReadOnly: SettingsReadOnly,
     private val httpServerFiles: HttpServerFiles,
     private val clientStatistic: ClientStatistic,
-    private val bitmapChannel: BroadcastChannel<Bitmap>,
+    private val bitmapStateFlow: StateFlow<Bitmap>,
     private val onStartStopRequest: () -> Unit,
     private val onError: (AppError) -> Unit
 ) {
@@ -73,7 +73,7 @@ class AppHttpServer(
             onStartStopRequest,
             clientStatistic,
             settingsReadOnly,
-            bitmapChannel
+            bitmapStateFlow
         )
 
         val serverEventLoop = RxNetty.getRxEventLoopProvider().globalServerEventLoop()

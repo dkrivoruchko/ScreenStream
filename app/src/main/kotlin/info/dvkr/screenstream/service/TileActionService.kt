@@ -15,7 +15,9 @@ import info.dvkr.screenstream.R
 import info.dvkr.screenstream.data.other.getLog
 import info.dvkr.screenstream.service.helper.IntentAction
 import kotlinx.coroutines.*
-import kotlinx.coroutines.flow.safeCollect
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.onEach
 
 @TargetApi(Build.VERSION_CODES.N)
 class TileActionService : TileService() {
@@ -28,30 +30,29 @@ class TileActionService : TileService() {
     override fun onStartListening() {
         super.onStartListening()
         XLog.d(getLog("onStartListening", " isRunning:${AppService.isRunning}, isBound:$isBound"))
-        if (AppService.isRunning && isBound.not()) {
-            coroutineScope?.cancel()
-            coroutineScope = CoroutineScope(
-                Job() + Dispatchers.Main.immediate + CoroutineExceptionHandler { _, throwable ->
-                    XLog.e(getLog("onCoroutineException"), throwable)
-                }
-            )
 
+        if (AppService.isRunning && isBound.not()) {
             serviceConnection = object : ServiceConnection {
                 override fun onServiceConnected(name: ComponentName?, service: IBinder) {
                     XLog.d(this@TileActionService.getLog("onServiceConnected"))
-                    coroutineScope!!.launch {
-                        (service as AppService.AppServiceBinder).getServiceMessageFlow()
-                            .safeCollect {
-                                XLog.v(this@TileActionService.getLog("onServiceMessage", "$it"))
-                                when (it) {
-                                    is ServiceMessage.ServiceState -> {
-                                        isStreaming = it.isStreaming; updateTile()
-                                    }
-                                    is ServiceMessage.FinishActivity -> {
-                                        isStreaming = false; updateTile()
+                    coroutineScope?.cancel()
+                    coroutineScope = CoroutineScope(Job() + Dispatchers.Main.immediate).apply {
+                        launch(CoroutineName("TileActionService.ServiceMessageFlow")) {
+                            (service as AppService.AppServiceBinder).getServiceMessageFlow()
+                                .onEach { serviceMessage ->
+                                    XLog.d(this@TileActionService.getLog("onServiceMessage", "$serviceMessage"))
+                                    when (serviceMessage) {
+                                        is ServiceMessage.ServiceState -> {
+                                            isStreaming = serviceMessage.isStreaming; updateTile()
+                                        }
+                                        is ServiceMessage.FinishActivity -> {
+                                            isStreaming = false; updateTile()
+                                        }
                                     }
                                 }
-                            }
+                                .catch { cause -> XLog.e(this@TileActionService.getLog("onServiceMessage"), cause) }
+                                .collect()
+                        }
                     }
                     isBound = true
                     IntentAction.GetServiceState.sendToAppService(this@TileActionService)
@@ -111,7 +112,7 @@ class TileActionService : TileService() {
                 label = getString(R.string.notification_start)
                 contentDescription = getString(R.string.notification_start)
                 state = Tile.STATE_ACTIVE
-                updateTile()
+                runCatching { updateTile() }
             }
         } else {
             qsTile?.apply {

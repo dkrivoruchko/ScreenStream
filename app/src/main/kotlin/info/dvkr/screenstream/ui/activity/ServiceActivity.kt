@@ -18,8 +18,11 @@ import info.dvkr.screenstream.data.settings.SettingsReadOnly
 import info.dvkr.screenstream.service.AppService
 import info.dvkr.screenstream.service.ServiceMessage
 import info.dvkr.screenstream.service.helper.IntentAction
+import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.safeCollect
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 
 abstract class ServiceActivity(@LayoutRes contentLayoutId: Int) : AppUpdateActivity(contentLayoutId) {
@@ -31,16 +34,16 @@ abstract class ServiceActivity(@LayoutRes contentLayoutId: Int) : AppUpdateActiv
     private val serviceConnection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, service: IBinder) {
             XLog.d(this@ServiceActivity.getLog("onServiceConnected"))
-            serviceMessageFlowJob = lifecycle.coroutineScope.launch {
-                (service as AppService.AppServiceBinder).getServiceMessageFlow().safeCollect {
-                    try {
-                        XLog.v(this@ServiceActivity.getLog("onServiceMessage", "$it"))
-                        serviceMessageLiveData.value = it
-                    } catch (th: Throwable) {
-                        XLog.e(this@ServiceActivity.getLog("onServiceMessage"), it)
-                    }
+            serviceMessageFlowJob =
+                lifecycle.coroutineScope.launch(CoroutineName("ServiceActivity.ServiceMessageFlow")) {
+                    (service as AppService.AppServiceBinder).getServiceMessageFlow()
+                        .onEach { serviceMessage ->
+                            XLog.v(this@ServiceActivity.getLog("onServiceMessage", "$serviceMessage"))
+                            serviceMessageLiveData.value = serviceMessage
+                        }
+                        .catch { cause -> XLog.e(this@ServiceActivity.getLog("onServiceMessage"), cause) }
+                        .collect()
                 }
-            }
 
             isBound = true
             IntentAction.GetServiceState.sendToAppService(this@ServiceActivity)

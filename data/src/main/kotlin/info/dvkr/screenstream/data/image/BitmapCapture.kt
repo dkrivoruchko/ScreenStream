@@ -1,11 +1,7 @@
 package info.dvkr.screenstream.data.image
 
 import android.annotation.SuppressLint
-import android.graphics.Bitmap
-import android.graphics.Matrix
-import android.graphics.PixelFormat
-import android.graphics.Point
-import android.graphics.SurfaceTexture
+import android.graphics.*
 import android.hardware.display.DisplayManager
 import android.hardware.display.VirtualDisplay
 import android.media.Image
@@ -30,7 +26,7 @@ import info.dvkr.screenstream.data.other.getLog
 import info.dvkr.screenstream.data.settings.Settings
 import info.dvkr.screenstream.data.settings.SettingsReadOnly
 import kotlinx.coroutines.*
-import kotlinx.coroutines.channels.SendChannel
+import kotlinx.coroutines.flow.MutableStateFlow
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.util.concurrent.atomic.AtomicInteger
@@ -40,7 +36,7 @@ class BitmapCapture(
     private val display: Display,
     private val settingsReadOnly: SettingsReadOnly,
     private val mediaProjection: MediaProjection,
-    private val outBitmapChannel: SendChannel<Bitmap>,
+    private val bitmapStateFlow: MutableStateFlow<Bitmap>,
     private val onError: (AppError) -> Unit
 ) {
 
@@ -278,7 +274,7 @@ class BitmapCapture(
                 val croppedBitmap = getCroppedBitmap(cleanBitmap)
                 val upsizedBitmap = getUpsizedAndRotadedBitmap(croppedBitmap)
 
-                if (outBitmapChannel.isClosedForSend.not()) outBitmapChannel.offer(upsizedBitmap)
+                bitmapStateFlow.tryEmit(upsizedBitmap)
             }
         }
     }
@@ -305,7 +301,7 @@ class BitmapCapture(
                         val upsizedBitmap = getUpsizedAndRotadedBitmap(croppedBitmap)
 
                         image.close()
-                        if (outBitmapChannel.isClosedForSend.not()) outBitmapChannel.offer(upsizedBitmap)
+                        bitmapStateFlow.tryEmit(upsizedBitmap)
                     }
                 } catch (ex: UnsupportedOperationException) {
                     XLog.d("unsupported image format, switching to fallback image reader")

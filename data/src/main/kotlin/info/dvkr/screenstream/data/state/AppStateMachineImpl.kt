@@ -20,10 +20,7 @@ import info.dvkr.screenstream.data.state.helper.ConnectivityHelper
 import info.dvkr.screenstream.data.state.helper.MediaProjectionHelper
 import info.dvkr.screenstream.data.state.helper.NetworkHelper
 import kotlinx.coroutines.*
-import kotlinx.coroutines.channels.ClosedSendChannelException
-import kotlinx.coroutines.channels.ConflatedBroadcastChannel
-import kotlinx.coroutines.channels.actor
-import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.*
 
 class AppStateMachineImpl(
     context: Context,
@@ -31,17 +28,17 @@ class AppStateMachineImpl(
     private val onEffect: suspend (AppStateMachine.Effect) -> Unit
 ) : AppStateMachine {
 
-    private val applicationContext: Context = context.applicationContext
-    private val bitmapChannel: ConflatedBroadcastChannel<Bitmap> = ConflatedBroadcastChannel()
+    private val applicationContext = context.applicationContext
+    private val bitmapStateFlow = MutableStateFlow(Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888))
     private val mediaProjectionHelper = MediaProjectionHelper(context) { sendEvent(AppStateMachine.Event.StopStream) }
-    private val broadcastHelper = BroadcastHelper.getInstance(context, ::onError)
+    private val broadcastHelper = BroadcastHelper.getInstance(context)
     private val connectivityHelper: ConnectivityHelper = ConnectivityHelper.getInstance(context)
     private val networkHelper = NetworkHelper(context)
     private val notificationBitmap = NotificationBitmap(context)
     private val clientStatistic: ClientStatistic = ClientStatistic(::onError)
     private val httpServerFiles = HttpServerFiles(applicationContext, settingsReadOnly)
-    private val httpServer: AppHttpServer = AppHttpServer(
-        settingsReadOnly, httpServerFiles, clientStatistic, bitmapChannel,
+    private val httpServer = AppHttpServer(
+        settingsReadOnly, httpServerFiles, clientStatistic, bitmapStateFlow.asStateFlow(),
         { sendEvent(InternalEvent.StartStopFromWebPage) },
         ::onError
     )
@@ -62,7 +59,7 @@ class AppStateMachineImpl(
         object ScreenOff : InternalEvent()
         object Destroy : InternalEvent()
 
-        override fun toString(): String = this::class.java.simpleName
+        override fun toString(): String = javaClass.simpleName
     }
 
     internal sealed class RestartReason(private val msg: String) {
@@ -70,7 +67,7 @@ class AppStateMachineImpl(
         class SettingsChanged(msg: String) : RestartReason(msg)
         class NetworkSettingsChanged(msg: String) : RestartReason(msg)
 
-        override fun toString(): String = "${this::class.java.simpleName}[$msg]"
+        override fun toString(): String = "${javaClass.simpleName}[$msg]"
     }
 
     private val settingsListener = object : SettingsReadOnly.OnSettingsChangeListener {
@@ -90,7 +87,7 @@ class AppStateMachineImpl(
         }
     }
 
-    override val statisticFlow: Flow<Pair<List<HttpClient>, List<TrafficPoint>>> = clientStatistic.statisticFlow
+    override val statisticFlow: StateFlow<Pair<List<HttpClient>, List<TrafficPoint>>> = clientStatistic.statisticFlow
 
     override fun sendEvent(event: AppStateMachine.Event, timeout: Long) {
         if (timeout > 0) {
@@ -99,44 +96,31 @@ class AppStateMachineImpl(
         } else {
             XLog.d(getLog("sendEvent", "Event: $event"))
 
-            if (eventChannel.isClosedForSend) {
-                XLog.e(getLog("sendEvent", "ChannelIsClosed"))
-                return
-            }
-
             try {
-                eventChannel.offer(event) || throw IllegalStateException("ChannelIsFull")
-            } catch (ignore: CancellationException) {
-                XLog.w(getLog("sendEvent.ignore", ignore.toString()))
-                XLog.w(getLog("sendEvent.ignore"), ignore)
-            } catch (closedChannel: ClosedSendChannelException) {
-                XLog.w(getLog("sendEvent.closedChannel", closedChannel.toString()))
-                XLog.w(getLog("sendEvent.closedChannel"), closedChannel)
+                _eventSharedFlow.tryEmit(event) || throw IllegalStateException("_eventSharedFlow IsFull")
             } catch (th: Throwable) {
-                XLog.e(getLog("sendEvent", th.toString()))
                 XLog.e(getLog("sendEvent"), th)
                 coroutineScope.launch(NonCancellable) {
                     onEffect(
-                        AppStateMachine.Effect.PublicState(
-                            false, true, false, emptyList(), FatalError.ChannelException
-                        )
+                        AppStateMachine.Effect.PublicState(false, true, false, emptyList(), FatalError.ChannelException)
                     )
                 }
             }
         }
     }
 
-    private val eventChannel = coroutineScope.actor<AppStateMachine.Event>(capacity = 32) {
-        var streamState = StreamState()
-        var previousStreamState: StreamState
+    private var streamState = StreamState()
+    private var previousStreamState = StreamState()
+    private val _eventSharedFlow = MutableSharedFlow<AppStateMachine.Event>(extraBufferCapacity = 32)
 
-        for (event in this) {
-            ensureActive()
-            try {
+    init {
+        XLog.d(getLog("init"))
+
+        coroutineScope.launch(CoroutineName("AppStateMachineImpl.eventSharedFlow")) {
+            _eventSharedFlow.onEach { event ->
+                XLog.d(this@AppStateMachineImpl.getLog("eventSharedFlow.onEach", "$event"))
                 if (StateToEventMatrix.skippEvent(streamState.state, event).not()) {
-
                     previousStreamState = streamState
-
                     streamState = when (event) {
                         is InternalEvent.DiscoverAddress -> discoverAddress(streamState)
                         is InternalEvent.StartServer -> startServer(streamState)
@@ -157,22 +141,17 @@ class AppStateMachineImpl(
 
                     if (streamState.isPublicStatePublishRequired(previousStreamState)) onEffect(streamState.toPublicState())
 
-                    XLog.i(this@AppStateMachineImpl.getLog("actor", "New state:${streamState.state}"))
+                    XLog.i(this@AppStateMachineImpl.getLog("eventSharedFlow.onEach", "New state:${streamState.state}"))
                 }
-            } catch (ignore: CancellationException) {
-                XLog.w(this@AppStateMachineImpl.getLog("actor.ignore", ignore.toString()))
-                XLog.w(this@AppStateMachineImpl.getLog("actor.ignore"), ignore)
-            } catch (throwable: Throwable) {
-                XLog.e(this@AppStateMachineImpl.getLog("actor.catch", throwable.toString()))
-                XLog.e(this@AppStateMachineImpl.getLog("actor.catch"), throwable)
-                streamState = componentError(streamState, FatalError.CoroutineException)
-                onEffect(streamState.toPublicState())
             }
+                .catch { cause ->
+                    XLog.e(this@AppStateMachineImpl.getLog("eventSharedFlow.catch"), cause)
+                    streamState = componentError(streamState, FatalError.CoroutineException)
+                    onEffect(streamState.toPublicState())
+                }
+                .collect()
         }
-    }
 
-    init {
-        XLog.d(getLog("init"))
         settingsReadOnly.registerChangeListener(settingsListener)
         broadcastHelper.startListening(
             onScreenOff = { sendEvent(InternalEvent.ScreenOff) },
@@ -187,13 +166,12 @@ class AppStateMachineImpl(
     override suspend fun destroy() {
         XLog.d(getLog("destroy"))
         sendEvent(InternalEvent.Destroy)
-        eventChannel.close()
         httpServer.stop()
         clientStatistic.destroy()
         settingsReadOnly.unregisterChangeListener(settingsListener)
         broadcastHelper.stopListening()
         connectivityHelper.stopListening()
-        coroutineScope.cancel(CancellationException("AppStateMachine.destroy"))
+        coroutineScope.cancel()
     }
 
     private fun onError(appError: AppError) {
@@ -247,7 +225,7 @@ class AppStateMachineImpl(
         httpServer.stop()
         httpServer.start(streamState.netInterfaces)
         notificationBitmap.getNotificationBitmap(NotificationBitmap.Type.START).let { bitmap ->
-            repeat(3) { bitmapChannel.send(bitmap); delay(150) }
+            repeat(3) { bitmapStateFlow.tryEmit(bitmap); delay(150) }
         }
 
         return streamState.copy(state = StreamState.State.SERVER_STARTED)
@@ -270,7 +248,7 @@ class AppStateMachineImpl(
 
         val mediaProjection = mediaProjectionHelper.getMediaProjection(intent)
         val display = ContextCompat.getSystemService(applicationContext, WindowManager::class.java)!!.defaultDisplay
-        val bitmapCapture = BitmapCapture(display, settingsReadOnly, mediaProjection, bitmapChannel, ::onError)
+        val bitmapCapture = BitmapCapture(display, settingsReadOnly, mediaProjection, bitmapStateFlow, ::onError)
         bitmapCapture.start()
 
         return streamState.copy(
@@ -286,7 +264,7 @@ class AppStateMachineImpl(
         val state = stopProjection(streamState)
         if (settingsReadOnly.checkAndChangeAutoChangePinOnStop().not())
             notificationBitmap.getNotificationBitmap(NotificationBitmap.Type.START).let { bitmap ->
-                repeat(3) { bitmapChannel.send(bitmap); delay(150) }
+                repeat(3) { bitmapStateFlow.tryEmit(bitmap); delay(150) }
             }
 
         return state.copy(state = StreamState.State.SERVER_STARTED)
@@ -327,12 +305,12 @@ class AppStateMachineImpl(
 
             is RestartReason.SettingsChanged ->
                 notificationBitmap.getNotificationBitmap(NotificationBitmap.Type.RELOAD_PAGE).let { bitmap ->
-                    repeat(3) { bitmapChannel.send(bitmap); delay(150) }
+                    repeat(3) { bitmapStateFlow.tryEmit(bitmap); delay(150) }
                 }
 
             is RestartReason.NetworkSettingsChanged ->
                 notificationBitmap.getNotificationBitmap(NotificationBitmap.Type.NEW_ADDRESS).let { bitmap ->
-                    repeat(3) { bitmapChannel.send(bitmap); delay(150) }
+                    repeat(3) { bitmapStateFlow.tryEmit(bitmap); delay(150) }
                 }
         }
 

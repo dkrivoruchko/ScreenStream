@@ -149,7 +149,8 @@ class StreamFragment : Fragment(R.layout.fragment_stream) {
 
     private fun onTrafficHistoryMessage(serviceMessage: ServiceMessage.TrafficHistory) {
         binding.tvFragmentStreamTrafficHeader.text = getString(R.string.stream_fragment_current_traffic).run {
-            format(serviceMessage.trafficHistory.last().bytes.bytesToMbit()).setColorSpan(colorAccent, indexOf('%'))
+            val lastTrafficPoint = serviceMessage.trafficHistory.lastOrNull() ?: return@run "0"
+            format(lastTrafficPoint.bytes.bytesToMbit()).setColorSpan(colorAccent, indexOf('%'))
         }
 
         binding.trafficGraphFragmentStream.setDataPoints(

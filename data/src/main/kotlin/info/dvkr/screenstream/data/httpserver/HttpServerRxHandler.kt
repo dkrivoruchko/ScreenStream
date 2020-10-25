@@ -18,9 +18,10 @@ import io.reactivex.netty.protocol.http.server.HttpServerResponse
 import io.reactivex.netty.protocol.http.server.RequestHandler
 import io.reactivex.netty.threads.RxJavaEventloopScheduler
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.channels.BroadcastChannel
-import kotlinx.coroutines.channels.consumeEach
 import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import rx.BackpressureOverflow
 import rx.Observable
@@ -36,7 +37,7 @@ internal class HttpServerRxHandler(
     private val onStartStopRequest: () -> Unit,
     private val clientStatistic: ClientStatistic,
     private val settingsReadOnly: SettingsReadOnly,
-    private val bitmapChannel: BroadcastChannel<Bitmap>
+    private val bitmapStateFlow: StateFlow<Bitmap>
 ) : RequestHandler<ByteBuf, ByteBuf> {
 
     private val crlf = "\r\n".toByteArray()
@@ -56,18 +57,16 @@ internal class HttpServerRxHandler(
 
         val resultJpegStream = ByteArrayOutputStream()
         coroutineScope.launch {
-            bitmapChannel.openSubscription().consumeEach { bitmap ->
-                this.ensureActive()
+            bitmapStateFlow.onEach { bitmap ->
                 resultJpegStream.reset()
                 bitmap.compress(Bitmap.CompressFormat.JPEG, settingsReadOnly.jpegQuality, resultJpegStream)
-                this.ensureActive()
+                ensureActive()
                 val jpegBytes = resultJpegStream.toByteArray().also { jpegStillImg.set(it) }
                 val jpegLength = jpegBytes.size.toString().toByteArray()
                 jpegBytesStream.call(
                     Unpooled.copiedBuffer(jpegBaseHeader, jpegLength, crlf, crlf, jpegBytes, crlf, jpegBoundary).array()
                 )
-                this.ensureActive()
-            }
+            }.collect()
         }
     }
 

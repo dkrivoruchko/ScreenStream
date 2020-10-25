@@ -24,10 +24,8 @@ import info.dvkr.screenstream.databinding.ToastSlowConnectionBinding
 import info.dvkr.screenstream.service.helper.IntentAction
 import info.dvkr.screenstream.service.helper.NotificationHelper
 import kotlinx.coroutines.*
-import kotlinx.coroutines.channels.ConflatedBroadcastChannel
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.asFlow
-import kotlinx.coroutines.flow.safeCollect
+import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.flow.*
 import org.koin.android.ext.android.inject
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
@@ -45,29 +43,16 @@ class AppService : Service() {
     }
 
     inner class AppServiceBinder : Binder() {
-        fun getServiceMessageFlow(): Flow<ServiceMessage> = serviceMessageChannel.asFlow()
+        fun getServiceMessageFlow(): SharedFlow<ServiceMessage> = _serviceMessageSharedFlow.asSharedFlow()
     }
 
     private val appServiceBinder = AppServiceBinder()
-    private val serviceMessageChannel = ConflatedBroadcastChannel<ServiceMessage>()
+    private val _serviceMessageSharedFlow =
+        MutableSharedFlow<ServiceMessage>(extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
 
     private fun sendMessageToActivities(serviceMessage: ServiceMessage) {
         XLog.v(getLog("sendMessageToActivities", "ServiceMessage: $serviceMessage"))
-
-        if (serviceMessageChannel.isClosedForSend) {
-            XLog.w(getLog("sendMessageToActivities", "ServiceMessageChannel: isClosedForSend"))
-            return
-        }
-
-        try {
-            serviceMessageChannel.offer(serviceMessage)
-        } catch (ignore: CancellationException) {
-            XLog.w(getLog("sendMessageToActivities.ignore", ignore.toString()))
-            XLog.w(getLog("sendMessageToActivities.ignore"), ignore)
-        } catch (th: Throwable) {
-            XLog.e(getLog("sendMessageToActivities", th.toString()))
-            XLog.e(getLog("sendMessageToActivities"), th)
-        }
+        _serviceMessageSharedFlow.tryEmit(serviceMessage)
     }
 
     private val coroutineScope = CoroutineScope(
@@ -140,14 +125,14 @@ class AppService : Service() {
 
         appStateMachine = AppStateMachineImpl(this, settings as SettingsReadOnly, ::onEffect)
 
-        coroutineScope.launch {
-            appStateMachine!!.statisticFlow.safeCollect { (clients, trafficHistory) ->
+        coroutineScope.launch(CoroutineName("AppService.statisticFlow")) {
+            appStateMachine!!.statisticFlow.onEach { (clients, trafficHistory) ->
                 XLog.v(this@AppService.getLog("onStatistic"))
                 if (settings.autoStartStop) checkAutoStartStop(clients)
                 if (settings.notifySlowConnections) checkForSlowClients(clients)
                 sendMessageToActivities(ServiceMessage.Clients(clients))
                 sendMessageToActivities(ServiceMessage.TrafficHistory(trafficHistory))
-            }
+            }.collect()
         }
 
         isRunning = true
@@ -215,7 +200,6 @@ class AppService : Service() {
         stopForeground(true)
         XLog.d(getLog("onDestroy", "Done"))
         super.onDestroy()
-//        Runtime.getRuntime().exit(0)
     }
 
     private var slowClients: List<HttpClient> = emptyList()
