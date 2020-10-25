@@ -107,9 +107,9 @@ class ExpansionHeader @JvmOverloads constructor(
             indicatorAnimator?.cancel()
 
             indicatorAnimator = if (willExpand) {
-                ObjectAnimator.ofFloat<View>(it, View.ROTATION, headerRotationExpanded.toFloat())
+                ObjectAnimator.ofFloat(it, View.ROTATION, headerRotationExpanded.toFloat())
             } else {
-                ObjectAnimator.ofFloat<View>(it, View.ROTATION, headerRotationCollapsed.toFloat())
+                ObjectAnimator.ofFloat(it, View.ROTATION, headerRotationCollapsed.toFloat())
             }
 
             indicatorAnimator?.addListener(object : AnimatorListenerAdapter() {

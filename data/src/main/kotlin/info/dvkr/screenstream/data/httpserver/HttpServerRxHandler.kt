@@ -24,7 +24,6 @@ import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
 import rx.BackpressureOverflow
 import rx.Observable
-import rx.functions.Action0
 import java.io.ByteArrayOutputStream
 import java.net.InetAddress
 import java.net.InetSocketAddress
@@ -154,7 +153,7 @@ internal class HttpServerRxHandler(
                 .observeOn(eventloopScheduler)
                 .onBackpressureBuffer(
                     2,
-                    Action0 {
+                    {
                         clientStatistic.sendEvent(
                             ClientStatistic.StatisticEvent.Backpressure(clientAddress.hashCode().toLong())
                         )
@@ -187,6 +186,6 @@ internal class HttpServerRxHandler(
         addHeader(HttpHeaderNames.CONTENT_TYPE, "text/plain; charset=UTF-8")
         setHeader(HttpHeaderNames.CACHE_CONTROL, "no-cache,no-store,max-age=0,must-revalidate")
         setHeader(HttpHeaderNames.CONNECTION, HttpHeaderValues.CLOSE)
-        return Observable.empty<Void>()
+        return Observable.empty()
     }
 }

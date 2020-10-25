@@ -10,7 +10,6 @@ import androidx.annotation.LayoutRes
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.Observer
 import androidx.lifecycle.coroutineScope
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.data.other.getLog
@@ -69,7 +68,7 @@ abstract class ServiceActivity(@LayoutRes contentLayoutId: Int) : AppUpdateActiv
 
     override fun onStart() {
         super.onStart()
-        serviceMessageLiveData.observe(this, Observer { message -> message?.let { onServiceMessage(it) } })
+        serviceMessageLiveData.observe(this, { message -> message?.let { onServiceMessage(it) } })
         bindService(AppService.getAppServiceIntent(this), serviceConnection, Context.BIND_AUTO_CREATE)
 
         settings.registerChangeListener(settingsListener)

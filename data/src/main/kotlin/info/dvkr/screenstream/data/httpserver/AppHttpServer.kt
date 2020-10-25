@@ -48,7 +48,7 @@ class AppHttpServer(
 
     private enum class State { CREATED, RUNNING, ERROR }
 
-    private val state = AtomicReference<State>(State.CREATED)
+    private val state = AtomicReference(State.CREATED)
     private var serverEventLoop: EventLoopGroup? = null
     private var nettyHttpServer: HttpServer<ByteBuf, ByteBuf>? = null
     private var httpServerRxHandler: HttpServerRxHandler? = null

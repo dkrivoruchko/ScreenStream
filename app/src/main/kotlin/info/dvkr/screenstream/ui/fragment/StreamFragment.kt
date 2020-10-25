@@ -14,7 +14,6 @@ import androidx.appcompat.widget.AppCompatImageView
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.Observer
 import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
@@ -75,7 +74,7 @@ class StreamFragment : Fragment(R.layout.fragment_stream) {
         XLog.d(getLog("onStart", "Invoked"))
 
         (requireActivity() as ServiceActivity).getServiceMessageLiveData()
-            .observe(this, Observer<ServiceMessage> { serviceMessage ->
+            .observe(this, { serviceMessage ->
                 when (serviceMessage) {
                     is ServiceMessage.ServiceState -> onServiceStateMessage(serviceMessage)
                     is ServiceMessage.Clients -> onClientsMessage(serviceMessage)

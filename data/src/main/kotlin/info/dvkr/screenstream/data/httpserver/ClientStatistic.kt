@@ -53,10 +53,9 @@ class ClientStatistic(
         var sendBytes: Long = 0,
         var disconnectedTime: Long = 0
     ) {
-        internal fun isDisconnectHoldTimePass(now: Long) =
-            (now - disconnectedTime) > CLIENT_DISCONNECT_HOLD_TIME_SECONDS * 1000
+        fun isDisconnectHoldTimePass(now: Long) = (now - disconnectedTime) > CLIENT_DISCONNECT_HOLD_TIME_SECONDS * 1000
 
-        internal fun toHttpClient() = HttpClient(id, clientAddressAndPort, isSlowConnection, isDisconnected)
+        fun toHttpClient() = HttpClient(id, clientAddressAndPort, isSlowConnection, isDisconnected)
     }
 
     private val statisticEventChannel = statisticScope.actor<StatisticEvent>(capacity = 64) {

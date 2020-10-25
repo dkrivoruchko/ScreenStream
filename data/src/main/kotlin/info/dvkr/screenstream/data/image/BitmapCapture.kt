@@ -56,8 +56,6 @@ class BitmapCapture(
     @Volatile
     private var state: State = State.INIT
 
-    private var fallback: Boolean = false
-
     private val imageThread: HandlerThread by lazy {
         HandlerThread("BitmapCapture", Process.THREAD_PRIORITY_BACKGROUND)
     }
@@ -65,19 +63,20 @@ class BitmapCapture(
 
     private var imageListener: ImageListener? = null
     private var imageReader: ImageReader? = null
+    private var lastImageMillis: Long = 0L
     private var virtualDisplay: VirtualDisplay? = null
 
-    private var fallbackListener: FallbackListener? = null
+    private var fallback: Boolean = false
+    private var fallbackFrameListener: FallbackFrameListener? = null
     private var mEglCore: EglCore? = null
     private var mProducerSide: Surface? = null
     private var mTexture: SurfaceTexture? = null
     private var mTextureId = 0
     private var mConsumerSide: OffscreenSurface? = null
-    private var mShader: Texture2dProgram? = null
     private var mScreen: FullFrameRect? = null
     private var mBuf: ByteBuffer? = null
 
-    private val matrix = AtomicReference<Matrix>(Matrix())
+    private val matrix = AtomicReference(Matrix())
     private val resizeFactor = AtomicInteger(Settings.Values.RESIZE_DISABLED)
     private val rotation = AtomicInteger(Settings.Values.ROTATION_0)
 
@@ -180,25 +179,26 @@ class BitmapCapture(
         if (fallback.not()) {
             imageListener = ImageListener(settingsReadOnly)
             imageReader = ImageReader.newInstance(screenSizeX, screenSizeY, PixelFormat.RGBA_8888, 2)
-                    .apply { setOnImageAvailableListener(imageListener, imageThreadHandler) }
+                .apply { setOnImageAvailableListener(imageListener, imageThreadHandler) }
         } else {
             try {
-                fallbackListener = FallbackListener(settingsReadOnly, screenSizeX, screenSizeY)
                 mEglCore = EglCore(null, EglCore.FLAG_TRY_GLES3 or EglCore.FLAG_RECORDABLE)
                 mConsumerSide = OffscreenSurface(mEglCore, screenSizeX, screenSizeY)
                 mConsumerSide!!.makeCurrent()
-                mShader = Texture2dProgram(Texture2dProgram.ProgramType.TEXTURE_EXT)
-                mScreen = FullFrameRect(mShader)
-                mTexture =
-                    SurfaceTexture(mScreen!!.createTextureObject().also { mTextureId = it }, false)
-                mTexture!!.setDefaultBufferSize(screenSizeX, screenSizeY)
+
+                fallbackFrameListener = FallbackFrameListener(settingsReadOnly, screenSizeX, screenSizeY)
+                mBuf = ByteBuffer.allocate(screenSizeX * screenSizeY * 4).apply { order(ByteOrder.nativeOrder()) }
+                mScreen = FullFrameRect(Texture2dProgram(Texture2dProgram.ProgramType.TEXTURE_EXT))
+                mTextureId = mScreen!!.createTextureObject()
+                mTexture = SurfaceTexture(mTextureId, false).apply {
+                    setDefaultBufferSize(screenSizeX, screenSizeY)
+                    setOnFrameAvailableListener(fallbackFrameListener, imageThreadHandler)
+                }
                 mProducerSide = Surface(mTexture)
-                mTexture!!.setOnFrameAvailableListener(fallbackListener, imageThreadHandler)
-                mBuf = ByteBuffer.allocate(screenSizeX * screenSizeY * 4)
-                mBuf!!.order(ByteOrder.nativeOrder())
+
                 mEglCore!!.makeNothingCurrent()
-            } catch (ex: Exception) {
-                XLog.w(this@BitmapCapture.getLog("outBitmapChannel", ex.toString()))
+            } catch (cause: Throwable) {
+                XLog.w(this@BitmapCapture.getLog("startDisplayCapture", cause.toString()))
                 state = State.ERROR
                 onError(FatalError.BitmapFormatException)
             }
@@ -228,12 +228,11 @@ class BitmapCapture(
     private fun stopDisplayCapture() {
         virtualDisplay?.release()
         imageReader?.close()
-        if (fallback) {
-            mProducerSide?.release()
-            mTexture?.release()
-            mConsumerSide?.release()
-            mEglCore?.release()
-        }
+
+        mProducerSide?.release()
+        mTexture?.release()
+        mConsumerSide?.release()
+        mEglCore?.release()
     }
 
     @Synchronized
@@ -249,37 +248,29 @@ class BitmapCapture(
     }
 
     /** https://stackoverflow.com/a/34741581 **/
-
-    private inner class FallbackListener(
-        private val settingsReadOnly: SettingsReadOnly,
-        private val width: Int,
-        private val height: Int
+    private inner class FallbackFrameListener(
+        private val settingsReadOnly: SettingsReadOnly, private val width: Int, private val height: Int
     ) : SurfaceTexture.OnFrameAvailableListener {
-        override fun onFrameAvailable(p0: SurfaceTexture?) {
+        override fun onFrameAvailable(surfaceTexture: SurfaceTexture?) {
             synchronized(this@BitmapCapture) {
-                if (state != State.STARTED || this != fallbackListener) return
+                if (state != State.STARTED || this != fallbackFrameListener) return
 
                 mConsumerSide!!.makeCurrent()
-
-                var mtx = FloatArray(16)
-
                 mTexture!!.updateTexImage()
-                mTexture!!.getTransformMatrix(mtx)
 
                 val now = System.currentTimeMillis()
-                if ((now - lastImageMillis) < (1000 / settingsReadOnly.maxFPS)) {
-                    return
-                }
+                ((now - lastImageMillis) >= (1000 / settingsReadOnly.maxFPS)) || return
                 lastImageMillis = now
 
-                mConsumerSide!!.makeCurrent()
+                FloatArray(16).let { matrix ->
+                    mTexture!!.getTransformMatrix(matrix)
+                    mScreen!!.drawFrame(mTextureId, matrix)
+                }
 
-                mScreen!!.drawFrame(mTextureId, mtx)
                 mConsumerSide!!.swapBuffers()
 
                 mBuf!!.rewind()
                 GLES20.glReadPixels(0, 0, width, height, GLES20.GL_RGBA, GLES20.GL_UNSIGNED_BYTE, mBuf)
-
                 mBuf!!.rewind()
                 val cleanBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
                 cleanBitmap.copyPixelsFromBuffer(mBuf)
@@ -290,10 +281,8 @@ class BitmapCapture(
                 if (outBitmapChannel.isClosedForSend.not()) outBitmapChannel.offer(upsizedBitmap)
             }
         }
-
     }
 
-    // Runs on imageThread
     private inner class ImageListener(
         private val settingsReadOnly: SettingsReadOnly,
     ) : ImageReader.OnImageAvailableListener {
@@ -319,9 +308,9 @@ class BitmapCapture(
                         if (outBitmapChannel.isClosedForSend.not()) outBitmapChannel.offer(upsizedBitmap)
                     }
                 } catch (ex: UnsupportedOperationException) {
-                        XLog.d("unsupported image format, switching to fallback image reader")
-                        fallback = true
-                        restart()
+                    XLog.d("unsupported image format, switching to fallback image reader")
+                    fallback = true
+                    restart()
                 } catch (throwable: Throwable) {
                     XLog.e(this@BitmapCapture.getLog("outBitmapChannel"), throwable)
                     state = State.ERROR
@@ -351,8 +340,6 @@ class BitmapCapture(
             return cleanBitmap
         }
     }
-
-    private var lastImageMillis: Long = 0L
 
     private fun getCroppedBitmap(bitmap: Bitmap): Bitmap {
         if (settingsReadOnly.vrMode == Settings.Default.VR_MODE_DISABLE && settingsReadOnly.imageCrop.not())

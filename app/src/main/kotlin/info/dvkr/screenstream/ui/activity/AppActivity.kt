@@ -56,14 +56,18 @@ class AppActivity : PermissionActivity(R.layout.activity_app) {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        routeIntentAction(intent)
+    }
+
+    override fun onPostCreate(savedInstanceState: Bundle?) {
+        super.onPostCreate(savedInstanceState)
+
         with(findNavController(R.id.fr_activity_app_nav_host_fragment)) {
             binding.bottomNavigationActivityApp.setupWithNavController(this)
             addOnDestinationChangedListener { _, destination, _ ->
                 if (destination.id == R.id.nav_exitFragment) IntentAction.Exit.sendToAppService(this@AppActivity)
             }
         }
-
-        routeIntentAction(intent)
     }
 
     override fun onNewIntent(intent: Intent?) {

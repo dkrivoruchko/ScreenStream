@@ -49,7 +49,7 @@ internal class HttpServerThreadFactory private constructor(
 
     private fun newThread(r: Runnable, name: String): Thread = FastThreadLocalThread(threadGroup, r, name)
 
-    private class DefaultRunnableDecorator internal constructor(private val r: Runnable) : Runnable {
+    private class DefaultRunnableDecorator constructor(private val r: Runnable) : Runnable {
         override fun run() {
             try {
                 r.run()
