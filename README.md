@@ -35,8 +35,7 @@ Application uses Android Cast feature and requires at least Android 5.0 to run.
 
 ### Known problems
 
-1. On some devices, system returns image in unknown format. Mostly on devices with no official Android 5.0 or above. Possible Android bug. App will show an error message. No solution available.
-2. On some devices no notification icon showing but notification is present. Android bug: 213309.
+1. On some devices no notification icon showing but notification is present. Android bug: 213309.
 
 ### Screenshots
 
