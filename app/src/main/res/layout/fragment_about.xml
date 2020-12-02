@@ -65,20 +65,6 @@
             app:layout_constraintTop_toBottomOf="@+id/tv_fragment_about_developer" />
 
         <com.google.android.material.button.MaterialButton
-            android:id="@+id/b_fragment_about_developer_email"
-            style="@style/Widget.MaterialComponents.Button.TextButton.Dialog.Icon"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:paddingStart="16dp"
-            android:paddingEnd="16dp"
-            android:text="@string/about_fragment_write_email"
-            app:icon="@drawable/ic_about_feedback_24dp"
-            app:iconPadding="8dp"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/b_fragment_about_rate" />
-
-        <com.google.android.material.button.MaterialButton
             android:id="@+id/b_fragment_about_sources"
             style="@style/Widget.MaterialComponents.Button.TextButton.Dialog.Icon"
             android:layout_width="wrap_content"
@@ -90,7 +76,7 @@
             app:iconPadding="8dp"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/b_fragment_about_developer_email" />
+            app:layout_constraintTop_toBottomOf="@+id/b_fragment_about_rate" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/b_fragment_privacy_policy"

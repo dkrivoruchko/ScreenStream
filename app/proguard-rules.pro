@@ -24,7 +24,9 @@
 -repackageclasses
 
 -keepnames class info.dvkr.screenstream.** { *; }
-
+-keep class **.R$* {
+    <fields>;
+}
 #Crashlytics
 -keepattributes *Annotation*
 -keepattributes SourceFile,LineNumberTable

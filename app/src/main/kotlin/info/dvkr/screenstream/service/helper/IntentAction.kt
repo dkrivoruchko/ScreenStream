@@ -7,7 +7,7 @@ import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.data.other.getLog
 import info.dvkr.screenstream.service.AppService
 import info.dvkr.screenstream.ui.activity.AppActivity
-import kotlinx.android.parcel.Parcelize
+import kotlinx.parcelize.Parcelize
 
 sealed class IntentAction : Parcelable {
     internal companion object {

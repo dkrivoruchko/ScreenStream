@@ -8,8 +8,8 @@ android {
     defaultConfig {
         minSdkVersion(21)
         targetSdkVersion(30)
-        versionCode = 30501
-        versionName = "3.5.1"
+        versionCode = 30502
+        versionName = "3.5.2"
     }
 
     compileOptions {
@@ -23,13 +23,11 @@ android {
 
     kotlinOptions {
         jvmTarget = JavaVersion.VERSION_1_8.toString()
-//        freeCompilerArgs += ["-Xopt-in=kotlinx.coroutines.ExperimentalCoroutinesApi"]
     }
 }
 
 dependencies {
-    implementation("org.jetbrains.kotlin:kotlin-android-extensions-runtime:1.4.10")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.4.1")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.4.2")
 
     implementation("androidx.core:core-ktx:1.3.2")
     implementation("androidx.arch.core:core-common:2.1.0")
@@ -40,12 +38,12 @@ dependencies {
     implementation("io.reactivex:rxjava:1.3.8")
     implementation("com.jakewharton.rxrelay:rxrelay:1.2.0")
 
-    implementation("io.netty:netty-codec-http:4.1.34.Final")
-    implementation("io.netty:netty-handler:4.1.34.Final")
+    implementation("io.netty:netty-codec-http:4.1.54.Final")
+    implementation("io.netty:netty-handler:4.1.54.Final")
     implementation("io.reactivex:rxnetty-common:0.5.3")
     implementation("io.reactivex:rxnetty-http:0.5.3")
  
     implementation("com.google.zxing:core:3.3.3")
     implementation("com.github.iamironz:binaryprefs:1.0.1")
-    implementation("com.elvishew:xlog:1.7.0")
+    implementation('com.elvishew:xlog:1.7.2')
 }

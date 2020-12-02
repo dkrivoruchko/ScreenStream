@@ -110,7 +110,7 @@
     <string name="pref_fps_summary">设置最大帧率</string>
     <string name="pref_fps_dialog">设置最大同步率\n值: 1–60 (默认: 30)</string>
     <string name="pref_jpeg_quality">JPEG 压缩质量</string>
-    <string name="pref_jpeg_quality_summary">设置 JPEG 压缩画质</string>
+    <string name="pref_jpeg_quality_summary">设置JPEG压缩画质</string>
     <string name="pref_jpeg_quality_dialog">顺时针旋转方向.\n值: 10–100 (默认: 80)</string>
     <string name="pref_settings_security">安全</string>
     <string name="pref_enable_pin">启用 pin 码</string>

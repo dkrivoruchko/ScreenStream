@@ -35,11 +35,9 @@ class AppService : Service() {
     companion object {
         var isRunning: Boolean = false
 
-        fun getAppServiceIntent(context: Context): Intent =
-            Intent(context.applicationContext, AppService::class.java)
+        fun getAppServiceIntent(context: Context): Intent = Intent(context.applicationContext, AppService::class.java)
 
-        fun startForeground(context: Context, intent: Intent = getAppServiceIntent(context)) =
-            ContextCompat.startForegroundService(context, intent)
+        fun startForeground(context: Context, intent: Intent) = context.startService(intent)
     }
 
     inner class AppServiceBinder : Binder() {

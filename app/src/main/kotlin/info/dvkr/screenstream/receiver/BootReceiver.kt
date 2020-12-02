@@ -8,8 +8,8 @@ import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.data.other.getLog
 import info.dvkr.screenstream.data.settings.SettingsReadOnly
 import info.dvkr.screenstream.service.helper.IntentAction
-import org.koin.core.KoinComponent
-import org.koin.core.inject
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 
 class BootReceiver : BroadcastReceiver(), KoinComponent {
 
