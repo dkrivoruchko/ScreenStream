@@ -25,7 +25,10 @@ sealed class IntentAction : Parcelable {
 
     fun sendToAppService(context: Context) {
         XLog.i(context.getLog("sendToAppService", this.toString()))
-        AppService.startForeground(context, this.toAppServiceIntent(context))
+        if (this is StartOnBoot)
+            AppService.startForeground(context, this.toAppServiceIntent(context))
+        else
+            AppService.startService(context, this.toAppServiceIntent(context))
     }
 
     @Parcelize object GetServiceState : IntentAction()

@@ -37,7 +37,9 @@ class AppService : Service() {
 
         fun getAppServiceIntent(context: Context): Intent = Intent(context.applicationContext, AppService::class.java)
 
-        fun startForeground(context: Context, intent: Intent) = context.startService(intent)
+        fun startService(context: Context, intent: Intent) = context.startService(intent)
+
+        fun startForeground(context: Context, intent: Intent) = ContextCompat.startForegroundService(context, intent)
     }
 
     inner class AppServiceBinder : Binder() {

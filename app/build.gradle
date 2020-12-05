@@ -12,9 +12,9 @@ android {
         applicationId = "info.dvkr.screenstream"
         minSdkVersion(21)
         targetSdkVersion(30)
-        versionCode = 30502
-        versionName = "3.5.2"
-        resConfigs("en", "ru", "pt-rBR", "zh-rTW", "fr-rFR", "fa", "it", "pl", "hi", "de", "sk", "es", "ar", "ja", "gl", "cat")
+        versionCode = 30503
+        versionName = "3.5.3"
+        resConfigs("en", "ru", "pt-rBR", "zh-rTW", "fr-rFR", "fa", "it", "pl", "hi", "de", "sk", "es", "ar", "ja", "gl", "ca")
 
         vectorDrawables.useSupportLibrary = true
     }
