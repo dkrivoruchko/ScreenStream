@@ -1,11 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="app_name" translatable="false">ScreenStream</string>
+    
     <string name="error_title">出错了</string>
     <string name="error_port_in_use">端口已被占用，请使用另一个端口</string>
     <string name="error_invalid_media_projection">安全错误：非法媒体投射，请再试一次</string>
     <string name="error_ip_address_not_found">未找到 IP 地址。\n可以尝试在设置中关闭 “只使用WIFI”</string>
     <string name="error_wrong_image_format">系统返回了未知格式的图像，暂时无法解决，抱歉。</string>
-    <string name="error_exit">Exit</string>
+    <string name="error_exit">退出</string>
 
     <string name="app_activity_collecting_logs">收集应用日志中…</string>
     <string name="app_activity_send_logs">向开发者发送日志</string>
@@ -15,7 +17,7 @@
 
     <string name="app_update_activity_dialog_title">有可用的升级</string>
     <string name="app_update_activity_dialog_message">升级包已下载，是否重启应用？</string>
-    <string name="app_update_activity_dialog_restart">Restart</string>
+    <string name="app_update_activity_dialog_restart">重启</string>
 
     <string name="bottom_menu_stream">投射</string>
     <string name="bottom_menu_settings">设置</string>
@@ -32,7 +34,7 @@
     <string name="stream_fragment_no_web_browser_found">未找到浏览器</string>
     <string name="stream_fragment_external_app_error">外部程序错误</string>
     <string name="stream_fragment_share_address">分享设备地址</string>
-    <string name="stream_fragment_pin">Pin: %1$s</string>
+    <string name="stream_fragment_pin">Pin码: %1$s</string>
     <string name="stream_fragment_pin_disabled">已关闭 Pin</string>
     <string name="stream_fragment_client_disconnected">连接已断开</string>
     <string name="stream_fragment_client_slow_network">慢速连接</string>
@@ -102,10 +104,18 @@
     <string name="pref_crop_dialog_error_message">输入有效的剪裁值</string>
     <string name="pref_resize">缩放画面</string>
     <string name="pref_resize_summary">在发送前先缩放画面</string>
+	<string name="pref_resize_value" translatable="false">%1$d%%</string>
     <string name="pref_resize_dialog_text">以 %% 为单位设置剪裁.\n值: 10–150 (默认: 50)\n屏幕大小: %1$dx%2$d</string>
     <string name="pref_resize_dialog_result">图像大小: %1$dx%2$d</string>
     <string name="pref_rotate">顺时针旋转画面</string>
-    <string name="pref_rotate_summary">在发送前先旋转画面</string>
+	<string name="pref_rotate_summary">在发送前先旋转画面</string>
+	<string name="pref_rotate_value" translatable="false">%1$d\u00B0</string>
+    <string-array name="pref_rotate_options" translatable="false">
+        <item>0\u00B0</item>
+        <item>90\u00B0</item>
+        <item>180\u00B0</item>
+        <item>270\u00B0</item>
+    </string-array>
     <string name="pref_fps">限制帧率</string>
     <string name="pref_fps_summary">设置最大帧率</string>
     <string name="pref_fps_dialog">设置最大同步率\n值: 1–60 (默认: 30)</string>
@@ -131,13 +141,16 @@
     <string name="pref_enable_ipv6_summary">也在 IPv6 地址运行</string>
     <string name="pref_enable_localhost">开启 local host</string>
     <string name="pref_enable_localhost_summary">也在 local host 上运行服务</string>
+    <string name="pref_localhost_only">仅本地主机</string>
+    <string name="pref_localhost_only_summary">仅在本地主机地址上运行服务器</string>
     <string name="pref_server_port">服务端口</string>
     <string name="pref_server_port_summary">为新加入的连接设置端口</string>
     <string name="pref_server_port_dialog">为新加入的连接设置端口\值: 1025–65535\n(默认: 8080)</string>
     <string name="pref_logging">开启应用日志</string>
     <string name="pref_logging_summary">收集应用日志</string>
-
-    <string name="about_fragment_app_version">版本: %1$s</string>
+	
+	<string name="about_fragment_app_name" translatable="false">Screen Stream over HTTP</string>
+	<string name="about_fragment_app_version">版本: %1$s</string>
     <string name="about_fragment_developer_name">由 Dmitriy Krivoruchko 开发</string>
     <string name="about_fragment_rate_app">评价本应用</string>
     <string name="about_fragment_write_email">给开发者发邮件</string>
@@ -145,4 +158,5 @@
     <string name="about_fragment_email_chooser_header">发送邮件中…</string>
     <string name="about_fragment_app_sources">源代码</string>
     <string name="about_fragment_privacy_policy">隐私政策</string>
+	<string name="about_fragment_license">许可证</string>
 </resources>
