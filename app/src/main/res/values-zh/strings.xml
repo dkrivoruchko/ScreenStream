@@ -158,5 +158,5 @@
     <string name="about_fragment_email_chooser_header">发送邮件中…</string>
     <string name="about_fragment_app_sources">源代码</string>
     <string name="about_fragment_privacy_policy">隐私政策</string>
-	<string name="about_fragment_license">许可证</string>
+    <string name="about_fragment_license">许可证</string>
 </resources>
