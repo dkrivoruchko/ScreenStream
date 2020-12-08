@@ -104,7 +104,7 @@
     <string name="pref_crop_dialog_error_message">输入有效的剪裁值</string>
     <string name="pref_resize">缩放画面</string>
     <string name="pref_resize_summary">在发送前先缩放画面</string>
-	<string name="pref_resize_value" translatable="false">%1$d%%</string>
+    <string name="pref_resize_value" translatable="false">%1$d%%</string>
     <string name="pref_resize_dialog_text">以 %% 为单位设置剪裁.\n值: 10–150 (默认: 50)\n屏幕大小: %1$dx%2$d</string>
     <string name="pref_resize_dialog_result">图像大小: %1$dx%2$d</string>
     <string name="pref_rotate">顺时针旋转画面</string>
@@ -149,8 +149,8 @@
     <string name="pref_logging">开启应用日志</string>
     <string name="pref_logging_summary">收集应用日志</string>
 	
-	<string name="about_fragment_app_name" translatable="false">Screen Stream over HTTP</string>
-	<string name="about_fragment_app_version">版本: %1$s</string>
+    <string name="about_fragment_app_name" translatable="false">Screen Stream over HTTP</string>
+    <string name="about_fragment_app_version">版本: %1$s</string>
     <string name="about_fragment_developer_name">由 Dmitriy Krivoruchko 开发</string>
     <string name="about_fragment_rate_app">评价本应用</string>
     <string name="about_fragment_write_email">给开发者发邮件</string>
