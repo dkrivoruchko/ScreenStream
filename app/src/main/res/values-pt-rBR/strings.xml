@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>    
-
+<resources>
     <string name="error_title">Erro</string>
     <string name="error_port_in_use">Porta já em uso. Escolha outra.</string>
     <string name="error_invalid_media_projection">Erro de segurança: projeção de mídia inválida. Tente mais uma vez.</string>
@@ -95,18 +94,19 @@
     <string name="pref_crop">Redimensionar imagem</string>
     <string name="pref_crop_summary">Redimensione a imagem antes de enviar para o cliente</string>
     <string name="pref_crop_dialog_crop_top">Redimensione parte superior:</string>
-    - [ ] <string name="pref_crop_dialog_crop_bottom">Redimensione parte inferior:</string>
+    - [ ]
+    <string name="pref_crop_dialog_crop_bottom">Redimensione parte inferior:</string>
     <string name="pref_crop_dialog_crop_left">Redimensione lado esquerdo:</string>
     <string name="pref_crop_dialog_crop_right">Redimensione lado direito:</string>
     <string name="pref_crop_dialog_pixels">pixéis</string>
     <string name="pref_crop_dialog_warning_message">Ação de redimensionar será ignorado se o resultado for uma imagem vazia</string>
     <string name="pref_crop_dialog_error_message">Insira os valores válidos para redimensionar</string>
     <string name="pref_resize">Redimensionar a imagem</string>
-    <string name="pref_resize_summary">Redimensionar a imagem antes de enviar para o cliente</string>    
+    <string name="pref_resize_summary">Redimensionar a imagem antes de enviar para o cliente</string>
     <string name="pref_resize_dialog_text">Defina o fator de redimensionamento da imagem em porcentagem.\nValores: 10–150 (Padrão: 50)\nTamanho da tela: %1$dx%2$d</string>
     <string name="pref_resize_dialog_result">Tamanho da imagem: %1$dx%2$d</string>
     <string name="pref_rotate">Girar a imagem no sentido horário</string>
-    <string name="pref_rotate_summary">Girar a imagem antes de enviar para o cliente</string>        
+    <string name="pref_rotate_summary">Girar a imagem antes de enviar para o cliente</string>
     <string name="pref_fps">Limite de quadros por segundo</string>
     <string name="pref_fps_summary">Definir o máximo de quadros por segundo</string>
     <string name="pref_fps_dialog">Defina o máximo de quadros por segundo.\nValores: 1–60 (Padrão: 30)</string>
@@ -139,7 +139,7 @@
     <string name="pref_server_port_dialog">Defina a porta do servidor para as conexões recebidas.\nValores: 1025–65535\n(Padrão: 8080)</string>
     <string name="pref_logging">Ativar logs do aplicativo</string>
     <string name="pref_logging_summary">Colete logs do aplicativo</string>
-    
+
     <string name="about_fragment_app_version">Versão: %1$s</string>
     <string name="about_fragment_developer_name">Desenvolvido por Dmitriy Krivoruchko</string>
     <string name="about_fragment_rate_app">Avalie o aplicativo</string>
