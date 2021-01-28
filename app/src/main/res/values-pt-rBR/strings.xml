@@ -1,13 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources>    
+
     <string name="error_title">Erro</string>
     <string name="error_port_in_use">Porta já em uso. Escolha outra.</string>
     <string name="error_invalid_media_projection">Erro de segurança: projeção de mídia inválida. Tente mais uma vez.</string>
-    <string name="error_ip_address_not_found">Endereço IP não encontrado.\nTente desativar \"Use WiFi apenas\" nas configurações.</string>
-    <string name="error_wrong_image_format">O sistema retorna a imagem em formato desconhecido. Nenhuma correção disponível. Desculpa.</string>
+    <string name="error_ip_address_not_found">Endereço IP não encontrado.\nTente desativar \"Use apenas WiFi\" nas configurações.</string>
+    <string name="error_wrong_image_format">O sistema retorna a imagem em formato desconhecido. Nenhuma solução disponível. Desculpa.</string>
     <string name="error_exit">Sair</string>
-    <string name="app_activity_collecting_logs">Coletando logs do aplicativo…</string>
-    <string name="app_activity_send_logs">Enviar logs para o desenvolvedor</string>
+
+    <string name="app_activity_collecting_logs">Coletando os logs do aplicativo…</string>
+    <string name="app_activity_send_logs">Enviar os logs ao desenvolvedor</string>
+    <string name="app_activity_send_logs_dialog_title">Enviar os logs via e-mail ao desenvolvedor</string>
+    <string name="app_activity_send_logs_dialog_message">Favor adicionar a descrição do problema:</string>
+    <string name="app_activity_send_logs_dialog_neutral">Parar de registrar os logs</string>
+
+    <string name="app_update_activity_dialog_title">Atualização disponível</string>
+    <string name="app_update_activity_dialog_message">Uma atualização foi baixada. Reiniciar o aplicativo agora?</string>
+    <string name="app_update_activity_dialog_restart">Reiniciar</string>
 
     <string name="bottom_menu_stream">Stream</string>
     <string name="bottom_menu_settings">Configurar</string>
@@ -21,7 +30,9 @@
     <string name="stream_fragment_no_address">Nenhum endereço encontrado</string>
     <string name="stream_fragment_interface">Interface: %1$s</string>
     <string name="stream_fragment_copied">Copiado</string>
-    <string name="stream_fragment_no_web_browser_found">Nenhum navegador da web encontrado</string>
+    <string name="stream_fragment_no_web_browser_found">Nenhum navegador encontrado</string>
+    <string name="stream_fragment_external_app_error">Erro do aplicativo externo</string>
+    <string name="stream_fragment_share_address">Compartilhar o endereço do dispositivo</string>
     <string name="stream_fragment_pin">Pin: %1$s</string>
     <string name="stream_fragment_pin_disabled">Pin está desabilitado</string>
     <string name="stream_fragment_client_disconnected">Desconectado</string>
@@ -31,27 +42,27 @@
     <string name="item_device_address">Endereço do dispositivo:</string>
 
     <string name="permission_activity_error_title_activity_not_found">Erro de diálogo de permissão</string>
-    <string name="permission_activity_error_activity_not_found">Android bug. Não marque \"Não mostre novamente\" no diálogo de solicitação de direitos para capturar a tela. Se você já fez isso, reinstale o aplicativo.</string>
+    <string name="permission_activity_error_activity_not_found">Android bug. Não marque \"Não mostar novamente\" no diálogo de solicitação de direitos para capturar a tela. Se você já fez isso, reinstale o aplicativo.</string>
     <string name="permission_activity_cast_permission_required_title">Permissão necessária</string>
-    <string name="permission_activity_cast_permission_required">ScreenStream aplicativo requer permissão do Screen Cast para capturar a tela.</string>
+    <string name="permission_activity_cast_permission_required">ScreenStream app requer permissão do Screen Cast para capturar a tela.</string>
     <string name="permission_activity_error_title">Erro</string>
     <string name="permission_activity_error_unknown">Erro inesperado</string>
 
     <string name="notification_ready_to_stream">Pronto para transmitir</string>
-    <string name="notification_press_start">Pressione INICIAR para começar o stream</string>
+    <string name="notification_press_start">Pressione no INICIAR para começar a transmitir</string>
     <string name="notification_start">Iniciar</string>
     <string name="notification_exit">Sair</string>
     <string name="notification_stream">Stream…</string>
-    <string name="notification_press_stop">Pressione PARAR para terminar o stream</string>
+    <string name="notification_press_stop">Pressione no PARAR para terminar a transmissão</string>
     <string name="notification_stop">Parar</string>
 
-    <string name="toast_slow_client_connection">Conexão do cliente lenta detectada</string>
+    <string name="toast_slow_client_connection">Conexão lenta do cliente detectada</string>
 
     <string name="pref_settings_interface">Interface</string>
     <string name="pref_night_mode">Tema escuro</string>
     <string-array name="pref_night_mode_options_api21_28">
         <item>Sempre</item>
-        <item>Apenas economizador de bateria</item>
+        <item>Definido por optimização da bateria</item>
         <item>Nunca</item>
     </string-array>
     <string-array name="pref_night_mode_options_api29">
@@ -59,50 +70,83 @@
         <item>Automaticamente (siga o sistema)</item>
         <item>Nunca</item>
     </string-array>
-    <string name="pref_stop_on_sleep">Parar em sleep</string>
-    <string name="pref_stop_on_sleep_summary">Parar stream se a tela for desligada</string>
-    <string name="pref_start_on_boot">Comecar na inicialização</string>
-    <string name="pref_start_on_boot_summary">Iniciar stream assim que o dispositivo iniciar</string>
-    <string name="pref_html_buttons">Ativar botões da página da web</string>
-    <string name="pref_html_buttons_summary">Mostrar botões de controle na página da web</string>
+    <string name="pref_notification">Configuração de notificações</string>
+    <string name="pref_notification_summary">Abrir configuração de notificações do sistema</string>
+    <string name="pref_stop_on_sleep">Parar a transmissão ao suspender</string>
+    <string name="pref_stop_on_sleep_summary">Parar a transmissão se a tela for desligada</string>
+    <string name="pref_start_on_boot">Começar na inicialização</string>
+    <string name="pref_start_on_boot_summary">Começa a transmissão assim que o dispositivo iniciar</string>
+    <string name="pref_auto_start_stop">Começar/Parar automaticamente a transmissão</string>
+    <string name="pref_auto_start_stop_summary">Começar/Parar automaticamente a transmissão ao des/conectar o cliente</string>
+    <string name="pref_detect_slow_connections">Notificar sobre as conexões lentas</string>
+    <string name="pref_detect_slow_connections_summary">Detectar e notificar sobre as conexões lentas do cliente</string>
+    <string name="pref_html_buttons">Ativar os botões da página da web</string>
+    <string name="pref_html_buttons_summary">Mostrar os botões de controle na página da web</string>
     <string name="pref_html_back_color">Cor de fundo da página</string>
-    <string name="pref_html_back_color_summary">Essa função foi desativada</string>
-    <string name="pref_html_back_color_title">Função obsoleta</string>
+    <string name="pref_html_back_color_summary">Definir a cor de fundo da página</string>
+    <string name="pref_html_back_color_title">Selecione a cor de fundo da página</string>
     <string name="pref_settings_image">Imagem</string>
-    <string name="pref_resize">Redimensionar imagem</string>
-    <string name="pref_resize_summary">Redimensione a imagem antes de enviar para o cliente</string>
-    <string name="pref_resize_dialog_text">"Defina o fator de redimensionamento da imagem em porcentagem.\nValores: 10–150 (Padrão: 50)\nTamanho da tela: %1$dx%2$d"</string>
+    <string name="pref_vr_mode">Modo de realidade virtual</string>
+    <string name="pref_vr_mode_summary">Capturar o conteúdo da meia tela</string>
+    <string-array name="pref_vr_mode_options">
+        <item>Use a parte esquerda</item>
+        <item>Use a parte direita</item>
+    </string-array>
+    <string name="pref_crop">Redimensionar imagem</string>
+    <string name="pref_crop_summary">Redimensione a imagem antes de enviar para o cliente</string>
+    <string name="pref_crop_dialog_crop_top">Redimensione parte superior:</string>
+    - [ ] <string name="pref_crop_dialog_crop_bottom">Redimensione parte inferior:</string>
+    <string name="pref_crop_dialog_crop_left">Redimensione lado esquerdo:</string>
+    <string name="pref_crop_dialog_crop_right">Redimensione lado direito:</string>
+    <string name="pref_crop_dialog_pixels">pixéis</string>
+    <string name="pref_crop_dialog_warning_message">Ação de redimensionar será ignorado se o resultado for uma imagem vazia</string>
+    <string name="pref_crop_dialog_error_message">Insira os valores válidos para redimensionar</string>
+    <string name="pref_resize">Redimensionar a imagem</string>
+    <string name="pref_resize_summary">Redimensionar a imagem antes de enviar para o cliente</string>    
+    <string name="pref_resize_dialog_text">Defina o fator de redimensionamento da imagem em porcentagem.\nValores: 10–150 (Padrão: 50)\nTamanho da tela: %1$dx%2$d</string>
     <string name="pref_resize_dialog_result">Tamanho da imagem: %1$dx%2$d</string>
-    <string name="pref_rotate">Rodar a imagem no sentido horário</string>
-    <string name="pref_rotate_summary">Rodar a imagem antes de enviar para o cliente</string>
+    <string name="pref_rotate">Girar a imagem no sentido horário</string>
+    <string name="pref_rotate_summary">Girar a imagem antes de enviar para o cliente</string>        
+    <string name="pref_fps">Limite de quadros por segundo</string>
+    <string name="pref_fps_summary">Definir o máximo de quadros por segundo</string>
+    <string name="pref_fps_dialog">Defina o máximo de quadros por segundo.\nValores: 1–60 (Padrão: 30)</string>
     <string name="pref_jpeg_quality">Qualidade de compressão JPEG</string>
     <string name="pref_jpeg_quality_summary">Definir qualidade de compressão JPEG</string>
     <string name="pref_jpeg_quality_dialog">Defina a qualidade de compressão JPEG.\nValores: 10–100 (Padrão: 80)</string>
     <string name="pref_settings_security">Segurança</string>
-    <string name="pref_enable_pin">Ativar pin</string>
-    <string name="pref_enable_pin_summary">Proteger o acesso ao stream com o pin</string>
-    <string name="pref_hide_pin">Pin escondido no início do fluxo</string>
-    <string name="pref_hide_pin_summary">Mostrar asteriscos em vez do pin durante a transmissão</string>
-    <string name="pref_new_pin_on_start">Novo pin ao iniciar</string>
-    <string name="pref_new_pin_on_start_summary">Gerar novo pin na inicializção do aplicativo</string>
-    <string name="pref_auto_change_pin">Mudança automática de pin</string>
-    <string name="pref_auto_change_pin_summary">Gerar novo pin para cada novo fluxo</string>
-    <string name="pref_set_pin">Definir pin</string>
-    <string name="pref_set_pin_summary">Inserir pin manualmente</string>
-    <string name="pref_set_pin_dialog">"Inserir pin.\nPadrão: 0000"</string>
+    <string name="pref_enable_pin">Ativar Pin</string>
+    <string name="pref_enable_pin_summary">Proteger o acesso à transmissão com o Pin</string>
+    <string name="pref_hide_pin">Pin escondido no início da transmissão</string>
+    <string name="pref_hide_pin_summary">Mostrar asteriscos em vez do Pin durante a transmissão</string>
+    <string name="pref_new_pin_on_start">Novo Pin ao iniciar</string>
+    <string name="pref_new_pin_on_start_summary">Gerar novo Pin na inicializção do aplicativo</string>
+    <string name="pref_auto_change_pin">Alteração automática de Pin</string>
+    <string name="pref_auto_change_pin_summary">Gerar novo Pin para cada nova transmissão</string>
+    <string name="pref_set_pin">Definir Pin</string>
+    <string name="pref_set_pin_summary">Inserir Pin manualmente</string>
+    <string name="pref_set_pin_dialog">Insira Pin.\nPadrão: 0000</string>
     <string name="pref_settings_advanced">Avançado</string>
-    <string name="pref_wifi_only">Use WiFi apenas</string>
+    <string name="pref_wifi_only">Use apenas WiFi</string>
     <string name="pref_wifi_only_summary">Execute o servidor apenas na interface Wi-Fi</string>
+    <string name="pref_enable_ipv6">Habilitar suporte IPv6</string>
+    <string name="pref_enable_ipv6_summary">Execute o servidor também em endereços IPv6</string>
+    <string name="pref_enable_localhost">Habilitar host local</string>
+    <string name="pref_enable_localhost_summary">Execute o servidor também em endereços de host local</string>
+    <string name="pref_localhost_only">Apenas host local</string>
+    <string name="pref_localhost_only_summary">Execute o servidor apenas em endereços de host local</string>
     <string name="pref_server_port">Porta do servidor</string>
-    <string name="pref_server_port_summary">Definir porta para conexões recebidas</string>
-    <string name="pref_server_port_dialog">Defina a porta do servidor para as conexões recebidas.\nValores: 1025–65535 (Padrão: 8080)</string>
+    <string name="pref_server_port_summary">Definir porta para as conexões recebidas</string>
+    <string name="pref_server_port_dialog">Defina a porta do servidor para as conexões recebidas.\nValores: 1025–65535\n(Padrão: 8080)</string>
     <string name="pref_logging">Ativar logs do aplicativo</string>
-    <string name="pref_logging_summary">Colete logs de aplicativos</string>
-
+    <string name="pref_logging_summary">Colete logs do aplicativo</string>
+    
     <string name="about_fragment_app_version">Versão: %1$s</string>
-    <string name="about_fragment_developer_name">Developed by Dmitriy Krivoruchko</string>
+    <string name="about_fragment_developer_name">Desenvolvido por Dmitriy Krivoruchko</string>
     <string name="about_fragment_rate_app">Avalie o aplicativo</string>
     <string name="about_fragment_write_email">Enviar e-mail ao desenvolvedor</string>
-    <string name="about_fragment_email_chooser_header">Enviando email…</string>
-    <string name="about_fragment_app_sources">Códicos fonte do aplicativo</string>
+    <string name="about_fragment_write_email_dialog">Enviar e-mail ao desenvolvedor?</string>
+    <string name="about_fragment_email_chooser_header">Enviando o e-mail…</string>
+    <string name="about_fragment_app_sources">Códigos fonte do aplicativo</string>
+    <string name="about_fragment_privacy_policy">Política de privacidade</string>
+    <string name="about_fragment_license">Licença</string>
 </resources>
