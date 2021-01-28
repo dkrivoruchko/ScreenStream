@@ -3,7 +3,7 @@ apply plugin: "kotlin-android"
 
 android {
     compileSdkVersion(30)
-    buildToolsVersion("30.0.2")
+    buildToolsVersion("30.0.3")
 
     defaultConfig {
         minSdkVersion(21)
@@ -45,5 +45,5 @@ dependencies {
  
     implementation("com.google.zxing:core:3.3.3")
     implementation("com.github.iamironz:binaryprefs:1.0.1")
-    implementation('com.elvishew:xlog:1.7.2')
+    implementation('com.elvishew:xlog:1.8.0')
 }
