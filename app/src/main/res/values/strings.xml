@@ -41,6 +41,10 @@
     <string name="stream_fragment_client_connected">Connected</string>
 
     <string name="item_device_address">Device address:</string>
+    <string name="item_device_address_description_open_address">Open address</string>
+    <string name="item_device_address_description_copy_address">Copy address</string>
+    <string name="item_device_address_description_share_address">Share address</string>
+    <string name="item_device_address_description_qr_address">Show address as QR-code</string>
 
     <string name="permission_activity_error_title_activity_not_found">Permission dialog error</string>
     <string name="permission_activity_error_activity_not_found">Android bug. Don\'t check \"Don\'t show again\" at the rights request dialogue to capture the screen. If you already did so, reinstall the app.</string>

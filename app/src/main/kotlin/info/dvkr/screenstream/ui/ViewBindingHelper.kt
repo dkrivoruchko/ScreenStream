@@ -17,20 +17,19 @@ abstract class ViewBindingProperty<in R, T : ViewBinding>(
 ) : ReadOnlyProperty<R, T> {
 
     internal var viewBinding: T? = null
-    private val lifecycleObserver = BindingLifecycleObserver()
+    private val lifecycleObserver = ClearOnDestroyLifecycleObserver()
 
     protected abstract fun getLifecycleOwner(thisRef: R): LifecycleOwner
 
     @MainThread
     override fun getValue(thisRef: R, property: KProperty<*>): T {
-        check(Looper.myLooper() == Looper.getMainLooper())
         viewBinding?.let { return it }
 
         getLifecycleOwner(thisRef).lifecycle.addObserver(lifecycleObserver)
         return viewBinder(thisRef).also { viewBinding = it }
     }
 
-    private inner class BindingLifecycleObserver : DefaultLifecycleObserver {
+    private inner class ClearOnDestroyLifecycleObserver : DefaultLifecycleObserver {
         @MainThread
         override fun onDestroy(owner: LifecycleOwner) {
             owner.lifecycle.removeObserver(this)
@@ -60,7 +59,7 @@ internal class DialogFragmentViewBindingProperty<F : DialogFragment, T : ViewBin
 ) : ViewBindingProperty<F, T>(viewBinder) {
 
     override fun getLifecycleOwner(thisRef: F): LifecycleOwner {
-        return if (thisRef.view == null) thisRef.viewLifecycleOwner else thisRef
+        return if (thisRef.showsDialog) thisRef else thisRef.viewLifecycleOwner
     }
 }
 

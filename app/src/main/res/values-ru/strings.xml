@@ -38,6 +38,10 @@
     <string name="stream_fragment_client_connected">Подключен</string>
 
     <string name="item_device_address">Адрес устройства:</string>
+    <string name="item_device_address_description_open_address">Открыть адрес</string>
+    <string name="item_device_address_description_copy_address">Копировать адрес</string>
+    <string name="item_device_address_description_share_address">Поделиться адресом</string>
+    <string name="item_device_address_description_qr_address">Показать адрес как QR-код</string>
 
     <string name="permission_activity_error_title_activity_not_found">Ошибка диалога доступа</string>
     <string name="permission_activity_error_activity_not_found">Баг Андроида. Не отмечайте \"Больше не показывать\" в диалоге запроса доступа к изображению экрана. Если вы уже отметили, переустановите приложение.</string>

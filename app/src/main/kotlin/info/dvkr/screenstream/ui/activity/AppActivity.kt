@@ -147,9 +147,11 @@ class AppActivity : PermissionActivity(R.layout.activity_app) {
                     if (serviceMessage.isStreaming) {
                         setImageResource(R.drawable.ic_fab_stop_24dp)
                         setOnClickListener { IntentAction.StopStream.sendToAppService(this@AppActivity) }
+                        contentDescription = getString(R.string.bottom_menu_stop)
                     } else {
                         setImageResource(R.drawable.ic_fab_start_24dp)
                         setOnClickListener { IntentAction.StartStream.sendToAppService(this@AppActivity) }
+                        contentDescription = getString(R.string.bottom_menu_start)
                     }
                 }
 
