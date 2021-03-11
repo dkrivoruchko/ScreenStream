@@ -37,7 +37,6 @@ dependencies {
 
     implementation("io.ktor:ktor-server-cio:1.5.2")
  
-    implementation("com.google.zxing:core:3.3.3")
     implementation("com.github.iamironz:binaryprefs:1.0.1")
     implementation("com.elvishew:xlog:1.8.0")
 }
