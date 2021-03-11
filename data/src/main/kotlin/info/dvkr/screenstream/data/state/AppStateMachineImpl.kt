@@ -6,8 +6,8 @@ import android.graphics.Bitmap
 import android.view.WindowManager
 import androidx.core.content.ContextCompat
 import com.elvishew.xlog.XLog
-import info.dvkr.screenstream.data.httpserver.AppHttpServer
 import info.dvkr.screenstream.data.httpserver.ClientStatistic
+import info.dvkr.screenstream.data.httpserver.HttpServer
 import info.dvkr.screenstream.data.httpserver.HttpServerFiles
 import info.dvkr.screenstream.data.image.BitmapCapture
 import info.dvkr.screenstream.data.image.NotificationBitmap
@@ -37,7 +37,7 @@ class AppStateMachineImpl(
     private val notificationBitmap = NotificationBitmap(context)
     private val clientStatistic: ClientStatistic = ClientStatistic(::onError)
     private val httpServerFiles = HttpServerFiles(applicationContext, settingsReadOnly)
-    private val httpServer = AppHttpServer(
+    private val httpServer = HttpServer(
         settingsReadOnly, httpServerFiles, clientStatistic, bitmapStateFlow.asStateFlow(),
         { sendEvent(InternalEvent.StartStopFromWebPage) },
         ::onError
@@ -166,7 +166,7 @@ class AppStateMachineImpl(
     override suspend fun destroy() {
         XLog.d(getLog("destroy"))
         sendEvent(InternalEvent.Destroy)
-        httpServer.stop()
+        httpServer.stop().await()
         clientStatistic.destroy()
         settingsReadOnly.unregisterChangeListener(settingsListener)
         broadcastHelper.stopListening()
@@ -222,11 +222,9 @@ class AppStateMachineImpl(
         XLog.d(getLog("startServer"))
         require(streamState.netInterfaces.isNotEmpty())
 
-        httpServer.stop()
+        httpServer.stop().await()
         httpServer.start(streamState.netInterfaces)
-        notificationBitmap.getNotificationBitmap(NotificationBitmap.Type.START).let { bitmap ->
-            repeat(3) { bitmapStateFlow.tryEmit(bitmap); delay(150) }
-        }
+        bitmapStateFlow.tryEmit(notificationBitmap.getNotificationBitmap(NotificationBitmap.Type.START))
 
         return streamState.copy(state = StreamState.State.SERVER_STARTED)
     }
@@ -258,19 +256,17 @@ class AppStateMachineImpl(
         )
     }
 
-    private suspend fun stopStream(streamState: StreamState): StreamState {
+    private fun stopStream(streamState: StreamState): StreamState {
         XLog.d(getLog("stopStream"))
 
         val state = stopProjection(streamState)
         if (settingsReadOnly.checkAndChangeAutoChangePinOnStop().not())
-            notificationBitmap.getNotificationBitmap(NotificationBitmap.Type.START).let { bitmap ->
-                repeat(3) { bitmapStateFlow.tryEmit(bitmap); delay(150) }
-            }
+            bitmapStateFlow.tryEmit(notificationBitmap.getNotificationBitmap(NotificationBitmap.Type.START))
 
         return state.copy(state = StreamState.State.SERVER_STARTED)
     }
 
-    private suspend fun screenOff(streamState: StreamState): StreamState {
+    private fun screenOff(streamState: StreamState): StreamState {
         XLog.d(getLog("screenOff"))
 
         return if (settingsReadOnly.stopOnSleep && streamState.isStreaming()) stopStream(streamState)
@@ -283,7 +279,7 @@ class AppStateMachineImpl(
         return stopProjection(streamState).copy(state = StreamState.State.DESTROYED)
     }
 
-    private suspend fun startStopFromWebPage(streamState: StreamState): StreamState {
+    private fun startStopFromWebPage(streamState: StreamState): StreamState {
         XLog.d(getLog("startStopFromWebPage"))
 
         if (streamState.isStreaming()) return stopStream(streamState)
@@ -304,17 +300,13 @@ class AppStateMachineImpl(
                 onEffect(AppStateMachine.Effect.ConnectionChanged)
 
             is RestartReason.SettingsChanged ->
-                notificationBitmap.getNotificationBitmap(NotificationBitmap.Type.RELOAD_PAGE).let { bitmap ->
-                    repeat(3) { bitmapStateFlow.tryEmit(bitmap); delay(150) }
-                }
+                bitmapStateFlow.tryEmit(notificationBitmap.getNotificationBitmap(NotificationBitmap.Type.RELOAD_PAGE))
 
             is RestartReason.NetworkSettingsChanged ->
-                notificationBitmap.getNotificationBitmap(NotificationBitmap.Type.NEW_ADDRESS).let { bitmap ->
-                    repeat(3) { bitmapStateFlow.tryEmit(bitmap); delay(150) }
-                }
+                bitmapStateFlow.tryEmit(notificationBitmap.getNotificationBitmap(NotificationBitmap.Type.NEW_ADDRESS))
         }
 
-        httpServer.stop()
+        httpServer.stop().await()
 
         if (state.state == StreamState.State.ERROR)
             sendEvent(AppStateMachine.Event.RecoverError)
