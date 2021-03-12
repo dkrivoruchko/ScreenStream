@@ -17,6 +17,7 @@ internal fun Context.getLogFolder(): String = this.cacheDir.absolutePath
 internal fun Context.getLogZipFolder(): String = "${this.filesDir.absolutePath}/logs/"
 internal fun Context.getLogZipFile(): String = this.getLogZipFolder() + "logs.zip"
 
+@Suppress("BlockingMethodInNonBlockingContext")
 internal fun sendLogsInEmail(context: Context, text:String) {
     GlobalScope.launch {
         LogUtils.compress(context.getLogFolder(), context.getLogZipFile())

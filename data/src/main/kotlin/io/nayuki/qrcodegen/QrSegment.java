@@ -140,34 +140,6 @@ public final class QrSegment {
         return result;
     }
 
-
-    /**
-     * Returns a segment representing an Extended Channel Interpretation
-     * (ECI) designator with the specified assignment value.
-     *
-     * @param assignVal the ECI assignment number (see the AIM ECI specification)
-     * @return a segment (not {@code null}) containing the data
-     * @throws IllegalArgumentException if the value is outside the range [0, 10<sup>6</sup>)
-     */
-    public static QrSegment makeEci(int assignVal) {
-        BitBuffer bb = new BitBuffer();
-        if (assignVal < 0)
-            throw new IllegalArgumentException("ECI assignment value out of range");
-        else if (assignVal < (1 << 7))
-            bb.appendBits(assignVal, 8);
-        else if (assignVal < (1 << 14)) {
-            bb.appendBits(2, 2);
-            bb.appendBits(assignVal, 14);
-        } else if (assignVal < 1_000_000) {
-            bb.appendBits(6, 3);
-            bb.appendBits(assignVal, 21);
-        } else
-            throw new IllegalArgumentException("ECI assignment value out of range");
-        return new QrSegment(Mode.ECI, 0, bb);
-    }
-
-
-
     /*---- Instance fields ----*/
 
     /**

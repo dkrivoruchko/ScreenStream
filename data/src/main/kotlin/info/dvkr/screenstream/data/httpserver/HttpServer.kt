@@ -42,17 +42,8 @@ class HttpServer(
     private val jpegBoundary = ("--$multipartBoundary\r\n").toByteArray()
 
     private val coroutineExceptionHandler = CoroutineExceptionHandler { _, throwable ->
-        when (throwable) {
-            is BindException -> {
-                XLog.w(getLog("onCoroutineException", throwable.toString()))
-                onError(FixableError.AddressInUseException)
-            }
-
-            else -> {
-                XLog.e(getLog("onCoroutineException"), throwable)
-                onError(FatalError.NettyServerException)
-            }
-        }
+        XLog.e(getLog("onCoroutineException"), throwable)
+        onError(FatalError.NettyServerException)
         ktorServer?.stop(250, 250)
         ktorServer = null
     }
@@ -91,6 +82,7 @@ class HttpServer(
 
         val environment = applicationEngineEnvironment {
             parentCoroutineContext = coroutineScope.coroutineContext
+            watchPaths = emptyList() // Fix for java.lang.ClassNotFoundException: java.nio.file.FileSystems in API < 26
             module { appModule(clientMJPEGFrameSharedFlow) }
             serverAddresses.forEach { netInterface ->
                 connector {
@@ -107,6 +99,7 @@ class HttpServer(
         var exception: AppError? = null
         try {
             ktorServer?.start(false)
+        } catch (ignore: kotlinx.coroutines.CancellationException) {
         } catch (ex: BindException) {
             XLog.w(getLog("startServer", ex.toString()))
             exception = FixableError.AddressInUseException
