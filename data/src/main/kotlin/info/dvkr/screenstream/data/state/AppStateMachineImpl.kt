@@ -6,7 +6,6 @@ import android.graphics.Bitmap
 import android.view.WindowManager
 import androidx.core.content.ContextCompat
 import com.elvishew.xlog.XLog
-import info.dvkr.screenstream.data.httpserver.ClientStatistic
 import info.dvkr.screenstream.data.httpserver.HttpServer
 import info.dvkr.screenstream.data.httpserver.HttpServerFiles
 import info.dvkr.screenstream.data.image.BitmapCapture
@@ -29,26 +28,26 @@ class AppStateMachineImpl(
 ) : AppStateMachine {
 
     private val applicationContext = context.applicationContext
-    private val bitmapStateFlow = MutableStateFlow(Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888))
-    private val mediaProjectionHelper = MediaProjectionHelper(context) { sendEvent(AppStateMachine.Event.StopStream) }
-    private val broadcastHelper = BroadcastHelper.getInstance(context)
-    private val connectivityHelper: ConnectivityHelper = ConnectivityHelper.getInstance(context)
-    private val networkHelper = NetworkHelper(context)
-    private val notificationBitmap = NotificationBitmap(context)
-    private val clientStatistic: ClientStatistic = ClientStatistic(::onError)
-    private val httpServerFiles = HttpServerFiles(applicationContext, settingsReadOnly)
-    private val httpServer = HttpServer(
-        settingsReadOnly, httpServerFiles, clientStatistic, bitmapStateFlow.asStateFlow(),
-        { sendEvent(InternalEvent.StartStopFromWebPage) },
-        ::onError
-    )
-
     private val coroutineExceptionHandler = CoroutineExceptionHandler { _, throwable ->
         XLog.e(getLog("onCoroutineException"), throwable)
         onError(FatalError.CoroutineException)
     }
 
     private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default + coroutineExceptionHandler)
+
+    private val bitmapStateFlow = MutableStateFlow(Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888))
+    private val mediaProjectionHelper = MediaProjectionHelper(context) { sendEvent(AppStateMachine.Event.StopStream) }
+    private val broadcastHelper = BroadcastHelper.getInstance(context)
+    private val connectivityHelper: ConnectivityHelper = ConnectivityHelper.getInstance(context)
+    private val networkHelper = NetworkHelper(context)
+    private val notificationBitmap = NotificationBitmap(context)
+    private val httpServer = HttpServer(
+        coroutineScope,
+        settingsReadOnly,
+        HttpServerFiles(applicationContext, settingsReadOnly),
+        bitmapStateFlow.asStateFlow()
+    )
+
 
     internal sealed class InternalEvent : AppStateMachine.Event() {
         object DiscoverAddress : InternalEvent()
@@ -86,8 +85,6 @@ class AppStateMachineImpl(
                 sendEvent(InternalEvent.RestartServer(RestartReason.NetworkSettingsChanged(key)))
         }
     }
-
-    override val statisticFlow: StateFlow<Pair<List<HttpClient>, List<TrafficPoint>>> = clientStatistic.statisticFlow
 
     override fun sendEvent(event: AppStateMachine.Event, timeout: Long) {
         if (timeout > 0) {
@@ -161,13 +158,47 @@ class AppStateMachineImpl(
         connectivityHelper.startListening {
             sendEvent(InternalEvent.RestartServer(RestartReason.ConnectionChanged("")))
         }
+
+        coroutineScope.launch(CoroutineName("AppStateMachineImpl.httpServer.eventSharedFlow")) {
+            httpServer.eventSharedFlow.onEach { event ->
+                XLog.d(this@AppStateMachineImpl.getLog("httpServer.eventSharedFlow.onEach", "$event"))
+
+                when (event) {
+                    is HttpServer.Event.Action ->
+                        when (event) {
+                            is HttpServer.Event.Action.StartStopRequest -> sendEvent(InternalEvent.StartStopFromWebPage)
+
+                            else -> throw IllegalArgumentException("Unknown HttpServer.Event: $event")
+                        }
+
+                    is HttpServer.Event.Statistic ->
+                        when (event) {
+                            is HttpServer.Event.Statistic.Clients ->
+                                onEffect(AppStateMachine.Effect.Statistic.Clients(event.clients))
+
+                            is HttpServer.Event.Statistic.Traffic ->
+                                onEffect(AppStateMachine.Effect.Statistic.Traffic(event.traffic))
+
+                            else -> throw IllegalArgumentException("Unknown HttpServer.Event: $event")
+                        }
+
+                    is HttpServer.Event.Error -> onError(event.error)
+
+                    else -> throw IllegalArgumentException("Unknown HttpServer.Event: $event")
+                }
+            }
+                .catch { cause ->
+                    XLog.e(this@AppStateMachineImpl.getLog("httpServer.eventSharedFlow.catch"), cause)
+                    onError(FatalError.CoroutineException)
+                }
+                .collect()
+        }
     }
 
     override suspend fun destroy() {
         XLog.d(getLog("destroy"))
         sendEvent(InternalEvent.Destroy)
-        httpServer.stop().await()
-        clientStatistic.destroy()
+        httpServer.destroy().await()
         settingsReadOnly.unregisterChangeListener(settingsListener)
         broadcastHelper.stopListening()
         connectivityHelper.stopListening()

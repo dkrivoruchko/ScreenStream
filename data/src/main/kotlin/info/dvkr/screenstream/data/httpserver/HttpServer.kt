@@ -3,10 +3,7 @@ package info.dvkr.screenstream.data.httpserver
 import android.graphics.Bitmap
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.data.httpserver.ClientStatistic.StatisticEvent
-import info.dvkr.screenstream.data.model.AppError
-import info.dvkr.screenstream.data.model.FatalError
-import info.dvkr.screenstream.data.model.FixableError
-import info.dvkr.screenstream.data.model.NetInterface
+import info.dvkr.screenstream.data.model.*
 import info.dvkr.screenstream.data.other.getLog
 import info.dvkr.screenstream.data.other.randomString
 import info.dvkr.screenstream.data.settings.SettingsReadOnly
@@ -28,44 +25,49 @@ import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
 
 class HttpServer(
+    private val parentCoroutineScope: CoroutineScope,
     private val settingsReadOnly: SettingsReadOnly,
     private val httpServerFiles: HttpServerFiles,
-    private val clientStatistic: ClientStatistic,
-    private val bitmapStateFlow: StateFlow<Bitmap>,
-    private val onStartStopRequest: () -> Unit,
-    private val onError: (AppError) -> Unit
+    private val bitmapStateFlow: StateFlow<Bitmap>
 ) {
-    private val crlf = "\r\n".toByteArray()
-    private val jpegBaseHeader = "Content-Type: image/jpeg\r\nContent-Length: ".toByteArray()
-    private val multipartBoundary = randomString(20)
-    private val contentTypeString = "multipart/x-mixed-replace; boundary=$multipartBoundary"
-    private val jpegBoundary = ("--$multipartBoundary\r\n").toByteArray()
 
-    private val coroutineExceptionHandler = CoroutineExceptionHandler { _, throwable ->
-        XLog.e(getLog("onCoroutineException"), throwable)
-        onError(FatalError.NettyServerException)
-        ktorServer?.stop(250, 250)
-        ktorServer = null
+    sealed class Event {
+
+        sealed class Action : Event() {
+            object StartStopRequest : Action()
+        }
+
+        sealed class Statistic : Event() {
+            class Clients(val clients: List<HttpClient>) : Statistic()
+            class Traffic(val traffic: List<TrafficPoint>) : Statistic()
+        }
+
+        class Error(val error: AppError) : Event()
+
+        override fun toString(): String = javaClass.simpleName
     }
+
+    private val _eventSharedFlow = MutableSharedFlow<Event>(extraBufferCapacity = 64)
+    val eventSharedFlow: SharedFlow<Event> = _eventSharedFlow.asSharedFlow()
+
+    private val clientStatistic: ClientStatistic = ClientStatistic { sendEvent(it) }
 
     init {
         XLog.d(getLog("init"))
     }
 
-    private val lastJPEG: AtomicReference<ByteArray> = AtomicReference(ByteArray(0))
-    private var ktorServer: CIOApplicationEngine? = null
-    private var stopDeferred: CompletableDeferred<Unit>? = null
-
     fun start(serverAddresses: List<NetInterface>) {
         XLog.d(getLog("startServer"))
 
-        val severPort = settingsReadOnly.severPort
-        require(severPort in 1025..65535) { "Tcp port must be in range [1025, 65535]" }
-
-        httpServerFiles.configure()
+        val coroutineExceptionHandler = CoroutineExceptionHandler { _, throwable ->
+            XLog.e(getLog("onCoroutineException"), throwable)
+            sendEvent(Event.Error(FatalError.NettyServerException))
+            ktorServer?.stop(250, 250)
+            ktorServer = null
+        }
+        val coroutineScope = CoroutineScope(Job() + Dispatchers.Default + coroutineExceptionHandler)
 
         val resultJpegStream = ByteArrayOutputStream()
-        val coroutineScope = CoroutineScope(Job() + Dispatchers.Default + coroutineExceptionHandler)
 
         val clientMJPEGFrameSharedFlow = bitmapStateFlow
             .map { bitmap ->
@@ -75,19 +77,26 @@ class HttpServer(
             }
             .flatMapLatest { jpeg ->
                 lastJPEG.set(jpeg)
-                flow<ByteArray> { repeat(Int.MAX_VALUE) { emit(jpeg); delay(1000) } }
+                flow<ByteArray> { // Send last image every second as keep-alive //TODO Add settings option for this
+                    while (currentCoroutineContext().isActive) {
+                        emit(jpeg)
+                        delay(1000)
+                    }
+                }
             }
             .conflate()
             .shareIn(coroutineScope, SharingStarted.Eagerly, 1)
 
+        httpServerFiles.configure()
+
         val environment = applicationEngineEnvironment {
             parentCoroutineContext = coroutineScope.coroutineContext
-            watchPaths = emptyList() // Fix for java.lang.ClassNotFoundException: java.nio.file.FileSystems in API < 26
+            watchPaths = emptyList() // Fix for java.lang.ClassNotFoundException: java.nio.file.FileSystems for API < 26
             module { appModule(clientMJPEGFrameSharedFlow) }
             serverAddresses.forEach { netInterface ->
                 connector {
                     host = netInterface.address.hostAddress
-                    port = severPort
+                    port = settingsReadOnly.severPort
                 }
             }
         }
@@ -107,8 +116,8 @@ class HttpServer(
             XLog.e(getLog("startServer"), throwable)
             exception = FatalError.NettyServerException
         } finally {
-            if (exception != null) {
-                onError(exception)
+            exception?.let {
+                sendEvent(Event.Error(it))
                 ktorServer?.stop(250, 250)
                 ktorServer = null
             }
@@ -126,6 +135,26 @@ class HttpServer(
             } ?: complete(Unit)
         }
     }
+
+    fun destroy(): CompletableDeferred<Unit> {
+        XLog.d(getLog("destroy"))
+        clientStatistic.destroy()
+        return stop()
+    }
+
+    private fun sendEvent(event: Event) {
+        parentCoroutineScope.launch { _eventSharedFlow.emit(event) }
+    }
+
+    private val lastJPEG: AtomicReference<ByteArray> = AtomicReference(ByteArray(0))
+    private var ktorServer: CIOApplicationEngine? = null
+    private var stopDeferred: CompletableDeferred<Unit>? = null
+
+    private val crlf = "\r\n".toByteArray()
+    private val jpegBaseHeader = "Content-Type: image/jpeg\r\nContent-Length: ".toByteArray()
+    private val multipartBoundary = randomString(20)
+    private val contentTypeString = "multipart/x-mixed-replace; boundary=$multipartBoundary"
+    private val jpegBoundary = "--$multipartBoundary\r\n".toByteArray()
 
     private fun Application.appModule(clientMJPEGFrameSharedFlow: SharedFlow<ByteArray>) {
         environment.monitor.subscribe(ApplicationStarted) {
@@ -148,7 +177,7 @@ class HttpServer(
             }
             exception<Throwable> { cause ->
                 XLog.e(getLog("exception"), cause)
-                onError(FatalError.NettyServerException)
+                sendEvent(Event.Error(FatalError.NettyServerException))
                 call.respond(HttpStatusCode.InternalServerError)
             }
         }
@@ -200,7 +229,7 @@ class HttpServer(
                                     if (collectCounter.incrementAndGet() != counter) {
                                         XLog.i(this@HttpServer.getLog("onEach", "Slow connection. Client: $clientId"))
                                         collectCounter.set(counter)
-                                        clientStatistic.sendEvent(StatisticEvent.Backpressure(clientId))
+                                        clientStatistic.sendEvent(StatisticEvent.SlowConnection(clientId))
                                     }
                                     val totalSize = writeMJPEGFrame(channel, jpeg)
                                     clientStatistic.sendEvent(StatisticEvent.NextBytes(clientId, totalSize))
@@ -216,7 +245,7 @@ class HttpServer(
                 }
 
                 get(HttpServerFiles.START_STOP_ADDRESS) {
-                    if (httpServerFiles.htmlEnableButtons) onStartStopRequest()
+                    if (httpServerFiles.htmlEnableButtons) sendEvent(Event.Action.StartStopRequest)
                     call.respondText("")
                 }
 
