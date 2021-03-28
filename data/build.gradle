@@ -29,7 +29,7 @@ android {
 dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.4.3")
 
-    implementation("androidx.core:core:1.5.0-beta03")
+    implementation("androidx.core:core:1.5.0-rc01")
 
     implementation("io.ktor:ktor-server-cio:1.5.2")
 

@@ -207,7 +207,7 @@ class HttpServer(
 
                         override suspend fun writeTo(channel: ByteWriteChannel) {
                             this@get.ensureActive()
-                            val clientId = UUID.randomUUID().mostSignificantBits
+                            val clientId = this.hashCode().toLong()
                             val emmitCounter = AtomicLong(0L)
                             val collectCounter = AtomicLong(0L)
                             clientMJPEGFrameSharedFlow
@@ -226,7 +226,7 @@ class HttpServer(
                                     clientStatistic.sendEvent(StatisticEvent.Disconnected(clientId))
                                 }
                                 .onEach { (counter, jpeg) ->
-                                    if (collectCounter.incrementAndGet() != counter) {
+                                    if (counter - collectCounter.incrementAndGet() >= 5) {
                                         XLog.i(this@HttpServer.getLog("onEach", "Slow connection. Client: $clientId"))
                                         collectCounter.set(counter)
                                         clientStatistic.sendEvent(StatisticEvent.SlowConnection(clientId))
