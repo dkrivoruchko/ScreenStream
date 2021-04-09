@@ -60,8 +60,9 @@ class HttpServer(
         XLog.d(getLog("startServer"))
 
         val coroutineExceptionHandler = CoroutineExceptionHandler { _, throwable ->
+            XLog.e(getLog("onCoroutineException"))
             XLog.e(getLog("onCoroutineException"), throwable)
-            sendEvent(Event.Error(FatalError.NettyServerException))
+            sendEvent(Event.Error(FatalError.HttpServerException))
             ktorServer?.stop(250, 250)
             ktorServer = null
         }
@@ -113,8 +114,9 @@ class HttpServer(
             XLog.w(getLog("startServer", ex.toString()))
             exception = FixableError.AddressInUseException
         } catch (throwable: Throwable) {
+            XLog.e(getLog("startServer"))
             XLog.e(getLog("startServer"), throwable)
-            exception = FatalError.NettyServerException
+            exception = FatalError.HttpServerException
         } finally {
             exception?.let {
                 sendEvent(Event.Error(it))
@@ -176,8 +178,9 @@ class HttpServer(
                 call.respondRedirect(HttpServerFiles.ROOT_ADDRESS, permanent = true)
             }
             exception<Throwable> { cause ->
+                XLog.e(getLog("exception<Throwable>"))
                 XLog.e(getLog("exception"), cause)
-                sendEvent(Event.Error(FatalError.NettyServerException))
+                sendEvent(Event.Error(FatalError.HttpServerException))
                 call.respond(HttpStatusCode.InternalServerError)
             }
         }
@@ -234,7 +237,7 @@ class HttpServer(
                                     val totalSize = writeMJPEGFrame(channel, jpeg)
                                     clientStatistic.sendEvent(StatisticEvent.NextBytes(clientId, totalSize))
                                 }
-                                .catch { cause -> XLog.e(this@HttpServer.getLog("catch", "cause: $cause")) }
+                                .catch { }
                                 .collect()
                         }
                     })

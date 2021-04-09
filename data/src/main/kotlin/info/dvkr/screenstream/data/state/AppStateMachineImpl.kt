@@ -161,7 +161,8 @@ class AppStateMachineImpl(
 
         coroutineScope.launch(CoroutineName("AppStateMachineImpl.httpServer.eventSharedFlow")) {
             httpServer.eventSharedFlow.onEach { event ->
-                XLog.d(this@AppStateMachineImpl.getLog("httpServer.eventSharedFlow.onEach", "$event"))
+                if (event !is HttpServer.Event.Statistic)
+                    XLog.d(this@AppStateMachineImpl.getLog("httpServer.eventSharedFlow.onEach", "$event"))
 
                 when (event) {
                     is HttpServer.Event.Action ->

@@ -83,7 +83,8 @@ class AppService : Service() {
     }
 
     private suspend fun onEffect(effect: AppStateMachine.Effect) = coroutineScope.launch {
-        XLog.d(this@AppService.getLog("onEffect", "Effect: $effect"))
+        if (effect !is AppStateMachine.Effect.Statistic)
+            XLog.d(this@AppService.getLog("onEffect", "Effect: $effect"))
 
         when (effect) {
             is AppStateMachine.Effect.ConnectionChanged -> Unit  // TODO Notify user about restart reason
@@ -110,7 +111,7 @@ class AppService : Service() {
             }
 
             is AppStateMachine.Effect.Statistic ->
-                when(effect) {
+                when (effect) {
                     is AppStateMachine.Effect.Statistic.Clients -> {
                         if (settings.autoStartStop) checkAutoStartStop(effect.clients)
                         if (settings.notifySlowConnections) checkForSlowClients(effect.clients)
