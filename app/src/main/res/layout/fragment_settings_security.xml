@@ -309,7 +309,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="16dp"
-                android:layout_marginEnd="@dimen/fragment_settings_item_margin_end"
+                android:layout_marginEnd="64dp"
                 android:text="@string/pref_set_pin"
                 android:textAppearance="?android:attr/textAppearanceMedium"
                 android:textColor="@color/colorSettingsHeader"
@@ -323,7 +323,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="16dp"
-                android:layout_marginEnd="@dimen/fragment_settings_item_margin_end"
+                android:layout_marginEnd="64dp"
                 android:text="@string/pref_set_pin_summary"
                 android:textAppearance="?android:attr/textAppearanceSmall"
                 android:textColor="@color/colorSettingsSummary"
@@ -344,7 +344,7 @@
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toEndOf="@id/tv_fragment_settings_set_pin"
                 app:layout_constraintTop_toTopOf="parent"
-                tools:text="0000" />
+                tools:text="000000" />
         </androidx.constraintlayout.widget.ConstraintLayout>
     </LinearLayout>
 </androidx.core.widget.NestedScrollView>

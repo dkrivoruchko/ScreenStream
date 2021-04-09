@@ -7,7 +7,6 @@
     <!--HTML text-->
     <string name="html_stream_require_pin">此串流需要PIN以觀看</string>
     <string name="html_enter_pin">輸入pin：\u0020</string>
-    <string name="html_four_digits">四位數字</string>
     <string name="html_submit_text">傳送</string>
     <string name="html_wrong_pin">pin錯誤！</string>
 </resources>

@@ -153,6 +153,7 @@ class SettingsImpl(private val preferences: Preferences) : Settings {
     }
 
     private fun randomPin(): String = Random.nextInt(10).toString() + Random.nextInt(10).toString() +
+            Random.nextInt(10).toString() + Random.nextInt(10).toString() +
             Random.nextInt(10).toString() + Random.nextInt(10).toString()
 
     private class PreferenceDelegate<T>(

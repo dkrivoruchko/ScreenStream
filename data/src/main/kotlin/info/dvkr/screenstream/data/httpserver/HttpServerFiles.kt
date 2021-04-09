@@ -25,7 +25,6 @@ class HttpServerFiles(context: Context, private val settingsReadOnly: SettingsRe
         private const val PINREQUEST_HTML = "pinrequest.html"
         private const val PINREQUEST_HTML_STREAM_REQUIRE_PIN = "STREAM_REQUIRE_PIN"
         private const val PINREQUEST_HTML_ENTER_PIN = "ENTER_PIN"
-        private const val PINREQUEST_HTML_FOUR_DIGITS = "FOUR_DIGITS"
         private const val PINREQUEST_HTML_SUBMIT_TEXT = "SUBMIT_TEXT"
         private const val PINREQUEST_HTML_WRONG_PIN_MESSAGE = "WRONG_PIN_MESSAGE"
 
@@ -54,10 +53,6 @@ class HttpServerFiles(context: Context, private val settingsReadOnly: SettingsRe
             .replaceFirst(
                 PINREQUEST_HTML_ENTER_PIN.toRegex(),
                 applicationContext.getString(R.string.html_enter_pin)
-            )
-            .replaceFirst(
-                PINREQUEST_HTML_FOUR_DIGITS.toRegex(),
-                applicationContext.getString(R.string.html_four_digits)
             )
             .replaceFirst(
                 PINREQUEST_HTML_SUBMIT_TEXT.toRegex(),

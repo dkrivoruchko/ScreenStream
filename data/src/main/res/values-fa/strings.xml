@@ -7,7 +7,6 @@
     <!--HTML text-->
     <string name="html_stream_require_pin">برای دسترسی به این جریان باید پین را وارد کنید</string>
     <string name="html_enter_pin">پین را وارد کنید:\u0020</string>
-    <string name="html_four_digits">چهار رقم</string>
     <string name="html_submit_text">فرستادن</string>
     <string name="html_wrong_pin">پین نادرست!</string>
 </resources>
