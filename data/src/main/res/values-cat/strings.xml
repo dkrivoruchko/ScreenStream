@@ -7,7 +7,6 @@
     <!--HTML text-->
     <string name="html_stream_require_pin">Aquest flux requereix un PIN per accedir-hi</string>
     <string name="html_enter_pin">Escriviu el pin: \u0020</string>
-    <string name="html_four_digits">Quatre dígits</string>
     <string name="html_submit_text">Presentar</string>
     <string name="html_wrong_pin">Pin equivocat.</string>
 </resources>

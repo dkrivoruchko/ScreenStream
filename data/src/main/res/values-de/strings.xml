@@ -7,7 +7,6 @@
     <!--HTML text-->
     <string name="html_stream_require_pin">Dieser Stream benötigt einen Pin für den Zugriff</string>
     <string name="html_enter_pin">Pin eingeben:\u0020</string>
-    <string name="html_four_digits">Vier Zeichen</string>
     <string name="html_submit_text">Senden</string>
     <string name="html_wrong_pin">Falscher Pin!</string>
 </resources>

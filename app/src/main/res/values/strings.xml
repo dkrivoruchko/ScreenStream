@@ -39,6 +39,7 @@
     <string name="stream_fragment_client_disconnected">Disconnected</string>
     <string name="stream_fragment_client_slow_network">Slow connection</string>
     <string name="stream_fragment_client_connected">Connected</string>
+    <string name="stream_fragment_client_blocked">Blocked</string>
 
     <string name="item_device_address">Device address:</string>
     <string name="item_device_address_description_open_address">Open address</string>
@@ -138,6 +139,8 @@
     <string name="pref_set_pin">Set pin</string>
     <string name="pref_set_pin_summary">Enter pin manually</string>
     <string name="pref_set_pin_dialog">Enter pin.\nDefault: 0000</string>
+    <string name="pref_block_address">Block IP address</string>
+    <string name="pref_block_address_summary">Block client IP address after 5 wrong pin attempts for 5 minutes</string>
     <string name="pref_settings_advanced">Advanced</string>
     <string name="pref_wifi_only">Use WiFi only</string>
     <string name="pref_wifi_only_summary">Run server on WiFi interface only</string>

@@ -7,7 +7,6 @@
     <!--HTML text-->
     <string name="html_stream_require_pin">Ce flux requiert un code pour y accéder</string>
     <string name="html_enter_pin">Code :\u0020</string>
-    <string name="html_four_digits">Quatre chiffres</string>
     <string name="html_submit_text">Soumettre</string>
     <string name="html_wrong_pin">Mauvais code !</string>
 </resources>

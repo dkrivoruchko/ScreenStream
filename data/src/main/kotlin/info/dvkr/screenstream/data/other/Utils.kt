@@ -7,13 +7,11 @@ import android.text.SpannableString
 import android.text.style.ForegroundColorSpan
 import android.text.style.UnderlineSpan
 import com.elvishew.xlog.XLog
-import com.google.zxing.BarcodeFormat
-import com.google.zxing.EncodeHintType
-import com.google.zxing.qrcode.QRCodeWriter
+import io.nayuki.qrcodegen.QrCode
 import java.net.Inet6Address
 import java.net.InetAddress
 import java.net.InetSocketAddress
-import java.util.*
+import java.nio.ByteBuffer
 
 fun Any.getLog(tag: String? = "", msg: String? = "Invoked") =
     "${this.javaClass.simpleName}#${this.hashCode()}.$tag@${Thread.currentThread().name}: $msg"
@@ -35,11 +33,11 @@ fun randomString(len: Int): String {
 
 fun Long.bytesToMbit() = (this * 8).toFloat() / 1024 / 1024
 
-fun InetAddress.asString(): String =
-    if (this is Inet6Address) "[${this.hostAddress}]"
-    else this.hostAddress
+fun Int.toByteArray(): ByteArray = ByteBuffer.allocate(Int.SIZE_BYTES).putInt(this).array()
 
-fun InetSocketAddress.asString(): String = "${this.address.asString()}:${this.port}"
+fun InetAddress.asString(): String = if (this is Inet6Address) "[${this.hostAddress}]" else this.hostAddress
+
+fun InetSocketAddress.asString(): String = "${this.hostName?.let { it + "\n" }}${this.address.asString()}:${this.port}"
 
 fun Context.getFileFromAssets(fileName: String): ByteArray {
     XLog.d(getLog("getFileFromAssets", fileName))
@@ -54,21 +52,16 @@ fun Context.getFileFromAssets(fileName: String): ByteArray {
 
 fun String.getQRBitmap(size: Int): Bitmap? =
     try {
-        val hints = EnumMap<EncodeHintType, Any>(EncodeHintType::class.java).apply {
-            put(EncodeHintType.CHARACTER_SET, "UTF-8")
-        }
+        val qrCode = QrCode.encodeText(this, QrCode.Ecc.MEDIUM)
+        val scale = size / qrCode.size
+        val pixels = IntArray(size * size).apply { fill(0xFFFFFFFF.toInt()) }
+        for (y in 0 until size)
+            for (x in 0 until size)
+                if (qrCode.getModule(x / scale, y / scale)) pixels[y * size + x] = 0xFF000000.toInt()
 
-        val bitMatrix = QRCodeWriter().encode(this, BarcodeFormat.QR_CODE, size, size, hints)
-        val white = 0xFFFFFFFF.toInt()
-        val black = 0xFF000000.toInt()
-        val pixels = IntArray(bitMatrix.width * bitMatrix.height)
-        for (y in 0 until bitMatrix.height) {
-            val offset = y * bitMatrix.width
-            for (x in 0 until bitMatrix.width) pixels[offset + x] = if (bitMatrix.get(x, y)) black else white
-        }
-
-        Bitmap.createBitmap(bitMatrix.width, bitMatrix.height, Bitmap.Config.ARGB_8888).apply {
-            setPixels(pixels, 0, width, 0, 0, width, height)
+        val border = 16
+        Bitmap.createBitmap(size + border, size + border, Bitmap.Config.ARGB_8888).apply {
+            setPixels(pixels, 0, size, border, border, size, size)
         }
     } catch (ex: Exception) {
         XLog.e(getLog("String.getQRBitmap", ex.toString()))

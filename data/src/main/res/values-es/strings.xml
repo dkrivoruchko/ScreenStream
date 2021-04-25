@@ -7,7 +7,6 @@
     <!--HTML text-->
     <string name="html_stream_require_pin">Necesitas un PIN para acceder</string>
     <string name="html_enter_pin">Introdusca el PIN:\u0020</string>
-    <string name="html_four_digits">Cuatro dígitos</string>
     <string name="html_submit_text">Enviar</string>
     <string name="html_wrong_pin">PIN incorrecto!</string>
 </resources>

@@ -29,6 +29,7 @@ interface SettingsReadOnly {
     val newPinOnAppStart: Boolean
     val autoChangePin: Boolean
     val pin: String
+    val blockAddress: Boolean
 
     val useWiFiOnly: Boolean
     val enableIPv6: Boolean

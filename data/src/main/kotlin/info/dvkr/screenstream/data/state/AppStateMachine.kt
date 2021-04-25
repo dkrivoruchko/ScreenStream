@@ -5,7 +5,6 @@ import info.dvkr.screenstream.data.model.AppError
 import info.dvkr.screenstream.data.model.HttpClient
 import info.dvkr.screenstream.data.model.NetInterface
 import info.dvkr.screenstream.data.model.TrafficPoint
-import kotlinx.coroutines.flow.StateFlow
 
 
 interface AppStateMachine {
@@ -23,6 +22,7 @@ interface AppStateMachine {
 
     sealed class Effect {
         object ConnectionChanged : Effect()
+
         data class PublicState(
             val isStreaming: Boolean,
             val isBusy: Boolean,
@@ -30,9 +30,12 @@ interface AppStateMachine {
             val netInterfaces: List<NetInterface>,
             val appError: AppError?
         ) : Effect()
-    }
 
-    val statisticFlow: StateFlow<Pair<List<HttpClient>, List<TrafficPoint>>>
+        sealed class Statistic : Effect() {
+            class Clients(val clients: List<HttpClient>) : Statistic()
+            class Traffic(val traffic: List<TrafficPoint>) : Statistic()
+        }
+    }
 
     fun sendEvent(event: Event, timeout: Long = 0)
 

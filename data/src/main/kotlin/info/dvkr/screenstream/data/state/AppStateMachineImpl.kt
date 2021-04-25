@@ -6,9 +6,7 @@ import android.graphics.Bitmap
 import android.view.WindowManager
 import androidx.core.content.ContextCompat
 import com.elvishew.xlog.XLog
-import info.dvkr.screenstream.data.httpserver.AppHttpServer
-import info.dvkr.screenstream.data.httpserver.ClientStatistic
-import info.dvkr.screenstream.data.httpserver.HttpServerFiles
+import info.dvkr.screenstream.data.httpserver.HttpServer
 import info.dvkr.screenstream.data.image.BitmapCapture
 import info.dvkr.screenstream.data.image.NotificationBitmap
 import info.dvkr.screenstream.data.model.*
@@ -29,26 +27,24 @@ class AppStateMachineImpl(
 ) : AppStateMachine {
 
     private val applicationContext = context.applicationContext
-    private val bitmapStateFlow = MutableStateFlow(Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888))
-    private val mediaProjectionHelper = MediaProjectionHelper(context) { sendEvent(AppStateMachine.Event.StopStream) }
-    private val broadcastHelper = BroadcastHelper.getInstance(context)
-    private val connectivityHelper: ConnectivityHelper = ConnectivityHelper.getInstance(context)
-    private val networkHelper = NetworkHelper(context)
-    private val notificationBitmap = NotificationBitmap(context)
-    private val clientStatistic: ClientStatistic = ClientStatistic(::onError)
-    private val httpServerFiles = HttpServerFiles(applicationContext, settingsReadOnly)
-    private val httpServer = AppHttpServer(
-        settingsReadOnly, httpServerFiles, clientStatistic, bitmapStateFlow.asStateFlow(),
-        { sendEvent(InternalEvent.StartStopFromWebPage) },
-        ::onError
-    )
-
     private val coroutineExceptionHandler = CoroutineExceptionHandler { _, throwable ->
         XLog.e(getLog("onCoroutineException"), throwable)
         onError(FatalError.CoroutineException)
     }
 
     private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default + coroutineExceptionHandler)
+
+    private val bitmapStateFlow = MutableStateFlow(Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888))
+    private val mediaProjectionHelper = MediaProjectionHelper(context) { sendEvent(AppStateMachine.Event.StopStream) }
+    private val broadcastHelper = BroadcastHelper.getInstance(context)
+    private val connectivityHelper: ConnectivityHelper = ConnectivityHelper.getInstance(context)
+    private val networkHelper = NetworkHelper(context)
+    private val notificationBitmap = NotificationBitmap(context)
+    private val httpServer = HttpServer(
+        applicationContext, coroutineScope, settingsReadOnly, bitmapStateFlow.asStateFlow(),
+        notificationBitmap.getNotificationBitmap(NotificationBitmap.Type.ADDRESS_BLOCKED)
+    )
+
 
     internal sealed class InternalEvent : AppStateMachine.Event() {
         object DiscoverAddress : InternalEvent()
@@ -74,7 +70,7 @@ class AppStateMachineImpl(
         override fun onSettingsChanged(key: String) {
             if (key in arrayOf(
                     Settings.Key.HTML_ENABLE_BUTTONS, Settings.Key.HTML_BACK_COLOR,
-                    Settings.Key.ENABLE_PIN, Settings.Key.PIN
+                    Settings.Key.ENABLE_PIN, Settings.Key.PIN, Settings.Key.BLOCK_ADDRESS
                 )
             ) sendEvent(InternalEvent.RestartServer(RestartReason.SettingsChanged(key)))
 
@@ -86,8 +82,6 @@ class AppStateMachineImpl(
                 sendEvent(InternalEvent.RestartServer(RestartReason.NetworkSettingsChanged(key)))
         }
     }
-
-    override val statisticFlow: StateFlow<Pair<List<HttpClient>, List<TrafficPoint>>> = clientStatistic.statisticFlow
 
     override fun sendEvent(event: AppStateMachine.Event, timeout: Long) {
         if (timeout > 0) {
@@ -161,13 +155,48 @@ class AppStateMachineImpl(
         connectivityHelper.startListening {
             sendEvent(InternalEvent.RestartServer(RestartReason.ConnectionChanged("")))
         }
+
+        coroutineScope.launch(CoroutineName("AppStateMachineImpl.httpServer.eventSharedFlow")) {
+            httpServer.eventSharedFlow.onEach { event ->
+                if (event !is HttpServer.Event.Statistic)
+                    XLog.d(this@AppStateMachineImpl.getLog("httpServer.eventSharedFlow.onEach", "$event"))
+
+                when (event) {
+                    is HttpServer.Event.Action ->
+                        when (event) {
+                            is HttpServer.Event.Action.StartStopRequest -> sendEvent(InternalEvent.StartStopFromWebPage)
+
+                            else -> throw IllegalArgumentException("Unknown HttpServer.Event: $event")
+                        }
+
+                    is HttpServer.Event.Statistic ->
+                        when (event) {
+                            is HttpServer.Event.Statistic.Clients ->
+                                onEffect(AppStateMachine.Effect.Statistic.Clients(event.clients))
+
+                            is HttpServer.Event.Statistic.Traffic ->
+                                onEffect(AppStateMachine.Effect.Statistic.Traffic(event.traffic))
+
+                            else -> throw IllegalArgumentException("Unknown HttpServer.Event: $event")
+                        }
+
+                    is HttpServer.Event.Error -> onError(event.error)
+
+                    else -> throw IllegalArgumentException("Unknown HttpServer.Event: $event")
+                }
+            }
+                .catch { cause ->
+                    XLog.e(this@AppStateMachineImpl.getLog("httpServer.eventSharedFlow.catch"), cause)
+                    onError(FatalError.CoroutineException)
+                }
+                .collect()
+        }
     }
 
     override suspend fun destroy() {
         XLog.d(getLog("destroy"))
         sendEvent(InternalEvent.Destroy)
-        httpServer.stop()
-        clientStatistic.destroy()
+        httpServer.destroy().await()
         settingsReadOnly.unregisterChangeListener(settingsListener)
         broadcastHelper.stopListening()
         connectivityHelper.stopListening()
@@ -222,11 +251,9 @@ class AppStateMachineImpl(
         XLog.d(getLog("startServer"))
         require(streamState.netInterfaces.isNotEmpty())
 
-        httpServer.stop()
+        httpServer.stop().await()
         httpServer.start(streamState.netInterfaces)
-        notificationBitmap.getNotificationBitmap(NotificationBitmap.Type.START).let { bitmap ->
-            repeat(3) { bitmapStateFlow.tryEmit(bitmap); delay(150) }
-        }
+        bitmapStateFlow.tryEmit(notificationBitmap.getNotificationBitmap(NotificationBitmap.Type.START))
 
         return streamState.copy(state = StreamState.State.SERVER_STARTED)
     }
@@ -258,19 +285,17 @@ class AppStateMachineImpl(
         )
     }
 
-    private suspend fun stopStream(streamState: StreamState): StreamState {
+    private fun stopStream(streamState: StreamState): StreamState {
         XLog.d(getLog("stopStream"))
 
         val state = stopProjection(streamState)
         if (settingsReadOnly.checkAndChangeAutoChangePinOnStop().not())
-            notificationBitmap.getNotificationBitmap(NotificationBitmap.Type.START).let { bitmap ->
-                repeat(3) { bitmapStateFlow.tryEmit(bitmap); delay(150) }
-            }
+            bitmapStateFlow.tryEmit(notificationBitmap.getNotificationBitmap(NotificationBitmap.Type.START))
 
         return state.copy(state = StreamState.State.SERVER_STARTED)
     }
 
-    private suspend fun screenOff(streamState: StreamState): StreamState {
+    private fun screenOff(streamState: StreamState): StreamState {
         XLog.d(getLog("screenOff"))
 
         return if (settingsReadOnly.stopOnSleep && streamState.isStreaming()) stopStream(streamState)
@@ -283,7 +308,7 @@ class AppStateMachineImpl(
         return stopProjection(streamState).copy(state = StreamState.State.DESTROYED)
     }
 
-    private suspend fun startStopFromWebPage(streamState: StreamState): StreamState {
+    private fun startStopFromWebPage(streamState: StreamState): StreamState {
         XLog.d(getLog("startStopFromWebPage"))
 
         if (streamState.isStreaming()) return stopStream(streamState)
@@ -304,17 +329,13 @@ class AppStateMachineImpl(
                 onEffect(AppStateMachine.Effect.ConnectionChanged)
 
             is RestartReason.SettingsChanged ->
-                notificationBitmap.getNotificationBitmap(NotificationBitmap.Type.RELOAD_PAGE).let { bitmap ->
-                    repeat(3) { bitmapStateFlow.tryEmit(bitmap); delay(150) }
-                }
+                bitmapStateFlow.tryEmit(notificationBitmap.getNotificationBitmap(NotificationBitmap.Type.RELOAD_PAGE))
 
             is RestartReason.NetworkSettingsChanged ->
-                notificationBitmap.getNotificationBitmap(NotificationBitmap.Type.NEW_ADDRESS).let { bitmap ->
-                    repeat(3) { bitmapStateFlow.tryEmit(bitmap); delay(150) }
-                }
+                bitmapStateFlow.tryEmit(notificationBitmap.getNotificationBitmap(NotificationBitmap.Type.NEW_ADDRESS))
         }
 
-        httpServer.stop()
+        httpServer.stop().await()
 
         if (state.state == StreamState.State.ERROR)
             sendEvent(AppStateMachine.Event.RecoverError)

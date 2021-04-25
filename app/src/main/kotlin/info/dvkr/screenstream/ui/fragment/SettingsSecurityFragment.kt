@@ -48,6 +48,7 @@ class SettingsSecurityFragment : Fragment(R.layout.fragment_settings_security) {
             binding.clFragmentSettingsNewPinOnAppStart.enableDisableViewWithChildren(settings.enablePin)
             binding.clFragmentSettingsAutoChangePin.enableDisableViewWithChildren(settings.enablePin)
             binding.clFragmentSettingsSetPin.enableDisableViewWithChildren(canEnableSetPin())
+            binding.clFragmentSettingsBlockAddress.enableDisableViewWithChildren(isChecked)
             setOnClickListener {
                 if (isChecked) settings.pin = String(settings.pin.toCharArray()) // Workaround for BinaryPreferences IPC
                 settings.enablePin = isChecked
@@ -55,6 +56,7 @@ class SettingsSecurityFragment : Fragment(R.layout.fragment_settings_security) {
                 binding.clFragmentSettingsNewPinOnAppStart.enableDisableViewWithChildren(isChecked)
                 binding.clFragmentSettingsAutoChangePin.enableDisableViewWithChildren(isChecked)
                 binding.clFragmentSettingsSetPin.enableDisableViewWithChildren(canEnableSetPin())
+                binding.clFragmentSettingsBlockAddress.enableDisableViewWithChildren(isChecked)
             }
             binding.clFragmentSettingsEnablePin.setOnClickListener { performClick() }
         }
@@ -99,10 +101,10 @@ class SettingsSecurityFragment : Fragment(R.layout.fragment_settings_security) {
                 input(
                     prefill = settings.pin,
                     inputType = InputType.TYPE_CLASS_NUMBER,
-                    maxLength = 4,
+                    maxLength = 6,
                     waitForPositiveButton = false
                 ) { dialog, text ->
-                    val isValid = text.length in 4..4 && text.toString().toInt() in 0..9999
+                    val isValid = text.length in 4..6 && text.toString().toInt() in 0..999999
                     dialog.setActionButtonEnabled(WhichButton.POSITIVE, isValid)
                 }
                 positiveButton(android.R.string.ok) { dialog ->
@@ -110,9 +112,18 @@ class SettingsSecurityFragment : Fragment(R.layout.fragment_settings_security) {
                     if (settings.pin != newValue) settings.pin = newValue
                 }
                 negativeButton(android.R.string.cancel)
-                getInputField().filters = arrayOf<InputFilter>(InputFilter.LengthFilter(4))
+                getInputField().filters = arrayOf<InputFilter>(InputFilter.LengthFilter(6))
                 getInputField().imeOptions = EditorInfo.IME_FLAG_NO_EXTRACT_UI
             }
+        }
+
+        // Security - Block address
+        with(binding.cbFragmentSettingsBlockAddress) {
+            isChecked = settings.blockAddress
+            setOnClickListener {
+                settings.blockAddress = isChecked
+            }
+            binding.clFragmentSettingsBlockAddress.setOnClickListener { performClick() }
         }
     }
 

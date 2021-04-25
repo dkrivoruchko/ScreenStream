@@ -49,7 +49,7 @@
         android:background="@drawable/view_shadow_bottom"
         app:layout_constraintTop_toBottomOf="@id/ll_activity_app_logs" />
 
-    <fragment
+    <androidx.fragment.app.FragmentContainerView
         android:id="@+id/fr_activity_app_nav_host_fragment"
         android:name="androidx.navigation.fragment.NavHostFragment"
         android:layout_width="match_parent"

@@ -7,7 +7,6 @@
     <!--HTML text-->
     <string name="html_stream_require_pin">L\'accesso a questa trasmissione richiede un PIN</string>
     <string name="html_enter_pin">Inserisci pin:\u0020</string>
-    <string name="html_four_digits">Quattro numeri</string>
     <string name="html_submit_text">Invia</string>
     <string name="html_wrong_pin">Pin errato!</string>
 </resources>

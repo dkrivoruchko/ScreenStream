@@ -83,7 +83,8 @@ class AppService : Service() {
     }
 
     private suspend fun onEffect(effect: AppStateMachine.Effect) = coroutineScope.launch {
-        XLog.d(this@AppService.getLog("onEffect", "Effect: $effect"))
+        if (effect !is AppStateMachine.Effect.Statistic)
+            XLog.d(this@AppService.getLog("onEffect", "Effect: $effect"))
 
         when (effect) {
             is AppStateMachine.Effect.ConnectionChanged -> Unit  // TODO Notify user about restart reason
@@ -108,6 +109,20 @@ class AppService : Service() {
                     )
                 onError(effect.appError)
             }
+
+            is AppStateMachine.Effect.Statistic ->
+                when (effect) {
+                    is AppStateMachine.Effect.Statistic.Clients -> {
+                        if (settings.autoStartStop) checkAutoStartStop(effect.clients)
+                        if (settings.notifySlowConnections) checkForSlowClients(effect.clients)
+                        sendMessageToActivities(ServiceMessage.Clients(effect.clients))
+                    }
+
+                    is AppStateMachine.Effect.Statistic.Traffic ->
+                        sendMessageToActivities(ServiceMessage.TrafficHistory(effect.traffic))
+
+                    else -> throw IllegalArgumentException("Unexpected onEffect: $effect")
+                }
         }
     }.join()
 
@@ -124,16 +139,6 @@ class AppService : Service() {
         settings.autoChangePinOnStart()
 
         appStateMachine = AppStateMachineImpl(this, settings as SettingsReadOnly, ::onEffect)
-
-        coroutineScope.launch(CoroutineName("AppService.statisticFlow")) {
-            appStateMachine!!.statisticFlow.onEach { (clients, trafficHistory) ->
-                XLog.v(this@AppService.getLog("onStatistic"))
-                if (settings.autoStartStop) checkAutoStartStop(clients)
-                if (settings.notifySlowConnections) checkForSlowClients(clients)
-                sendMessageToActivities(ServiceMessage.Clients(clients))
-                sendMessageToActivities(ServiceMessage.TrafficHistory(trafficHistory))
-            }.collect()
-        }
 
         isRunning = true
     }

@@ -130,6 +130,8 @@
     <string name="pref_enable_ipv6_summary">Server auch auf IPv6 Adressen starten</string>
     <string name="pref_enable_localhost">Localhost aktivieren</string>
     <string name="pref_enable_localhost_summary">Server auch auf localhost Adressen starten</string>
+    <string name="pref_localhost_only">Nur Localhost</string>
+    <string name="pref_localhost_only_summary">Server nur auf Localhost-Adressen starten</string>
     <string name="pref_server_port">Server-Port</string>
     <string name="pref_server_port_summary">Port für eingehende Verbindungen setzen</string>
     <string name="pref_server_port_dialog">Port für eingehende Verbindungen setzen.\nWerte: 1025–65535\n(Standard: 8080)</string>
