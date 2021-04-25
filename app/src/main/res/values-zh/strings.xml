@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="app_name" translatable="false">ScreenStream</string>
+    
     <string name="error_title">出错了</string>
     <string name="error_port_in_use">端口已被占用，请使用另一个端口</string>
     <string name="error_invalid_media_projection">安全错误：非法媒体投射，请再试一次</string>
@@ -37,6 +39,7 @@
     <string name="stream_fragment_client_disconnected">连接已断开</string>
     <string name="stream_fragment_client_slow_network">慢速连接</string>
     <string name="stream_fragment_client_connected">已连接</string>
+    <string name="stream_fragment_client_blocked">已拦截</string>
 
     <string name="item_device_address">设备地址:</string>
     <string name="item_device_address_description_open_address">打开地址</string>
@@ -106,10 +109,18 @@
     <string name="pref_crop_dialog_error_message">输入有效的剪裁值</string>
     <string name="pref_resize">缩放画面</string>
     <string name="pref_resize_summary">在发送前先缩放画面</string>
+    <string name="pref_resize_value" translatable="false">%1$d%%</string>
     <string name="pref_resize_dialog_text">以 %% 为单位设置剪裁.\n值: 10–150 (默认: 50)\n屏幕大小: %1$dx%2$d</string>
     <string name="pref_resize_dialog_result">图像大小: %1$dx%2$d</string>
     <string name="pref_rotate">顺时针旋转画面</string>
-    <string name="pref_rotate_summary">在发送前先旋转画面</string>
+	<string name="pref_rotate_summary">在发送前先旋转画面</string>
+	<string name="pref_rotate_value" translatable="false">%1$d\u00B0</string>
+    <string-array name="pref_rotate_options" translatable="false">
+        <item>0\u00B0</item>
+        <item>90\u00B0</item>
+        <item>180\u00B0</item>
+        <item>270\u00B0</item>
+    </string-array>
     <string name="pref_fps">限制帧率</string>
     <string name="pref_fps_summary">设置最大帧率</string>
     <string name="pref_fps_dialog">设置最大同步率\n值: 1–60 (默认: 30)</string>
@@ -128,6 +139,8 @@
     <string name="pref_set_pin">设置 pin</string>
     <string name="pref_set_pin_summary">手动输入 pin</string>
     <string name="pref_set_pin_dialog">输入pin。\n默认: 0000</string>
+    <string name="pref_block_address">拦截 IP 地址</string>
+    <string name="pref_block_address_summary">输错 pin 码 5 次后阻止客户端 IP 地址5分钟</string>
     <string name="pref_settings_advanced">高级</string>
     <string name="pref_wifi_only">只使用WIFI</string>
     <string name="pref_wifi_only_summary">只在 wifi 交互界面运行服务</string>
@@ -142,7 +155,8 @@
     <string name="pref_server_port_dialog">为新加入的连接设置端口\值: 1025–65535\n(默认: 8080)</string>
     <string name="pref_logging">开启应用日志</string>
     <string name="pref_logging_summary">收集应用日志</string>
-
+	
+    <string name="about_fragment_app_name" translatable="false">Screen Stream over HTTP</string>
     <string name="about_fragment_app_version">版本: %1$s</string>
     <string name="about_fragment_developer_name">由 Dmitriy Krivoruchko 开发</string>
     <string name="about_fragment_rate_app">评价本应用</string>
