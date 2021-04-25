@@ -38,10 +38,10 @@ internal class ClientData(
         }
 
         @Synchronized
-        fun onPinCheck(isPinValid: Boolean) {
+        fun onPinCheck(isPinValid: Boolean, blockAddress: Boolean) {
             if (isPinValid.not()) {
                 pinCheckAttempt += 1
-                if (pinCheckAttempt >= DEFAULT_WRONG_PIN_MAX_COUNT) setBlocked()
+                if (blockAddress && pinCheckAttempt >= DEFAULT_WRONG_PIN_MAX_COUNT) setBlocked()
             } else if (isBlocked.not()) {
                 isPinValidated = isPinValid
                 pinCheckAttempt = 0
@@ -104,7 +104,7 @@ internal class ClientData(
 
     internal fun onDisconnected(id: Long) = clients[id]?.setDisconnected()
 
-    internal fun onPinCheck(id: Long, isPinValid: Boolean) = clients[id]?.onPinCheck(isPinValid)
+    internal fun onPinCheck(id: Long, isPinValid: Boolean) = clients[id]?.onPinCheck(isPinValid, blockAddress)
 
     internal fun isClientAuthorized(id: Long): Boolean = clients[id]?.isPinValidated ?: false
 
