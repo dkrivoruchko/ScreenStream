@@ -1,11 +1,10 @@
 package info.dvkr.screenstream.data.httpserver
 
+import android.content.Context
 import android.graphics.Bitmap
 import com.elvishew.xlog.XLog
-import info.dvkr.screenstream.data.httpserver.ClientStatistic.StatisticEvent
 import info.dvkr.screenstream.data.model.*
 import info.dvkr.screenstream.data.other.getLog
-import info.dvkr.screenstream.data.other.randomString
 import info.dvkr.screenstream.data.settings.SettingsReadOnly
 import io.ktor.application.*
 import io.ktor.features.*
@@ -21,14 +20,14 @@ import kotlinx.coroutines.flow.*
 import java.io.ByteArrayOutputStream
 import java.net.BindException
 import java.util.*
-import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
 
-class HttpServer(
+internal class HttpServer(
+    applicationContext: Context,
     private val parentCoroutineScope: CoroutineScope,
     private val settingsReadOnly: SettingsReadOnly,
-    private val httpServerFiles: HttpServerFiles,
-    private val bitmapStateFlow: StateFlow<Bitmap>
+    private val bitmapStateFlow: StateFlow<Bitmap>,
+    private val addressBlockedBitmap: Bitmap
 ) {
 
     sealed class Event {
@@ -50,7 +49,14 @@ class HttpServer(
     private val _eventSharedFlow = MutableSharedFlow<Event>(extraBufferCapacity = 64)
     val eventSharedFlow: SharedFlow<Event> = _eventSharedFlow.asSharedFlow()
 
-    private val clientStatistic: ClientStatistic = ClientStatistic { sendEvent(it) }
+    private val httpServerFiles: HttpServerFiles = HttpServerFiles(applicationContext, settingsReadOnly)
+    private val clientData: ClientData = ClientData(settingsReadOnly) { sendEvent(it) }
+    private val stopDeferred: AtomicReference<CompletableDeferred<Unit>?> = AtomicReference(null)
+    private val blockedJPEG: ByteArray = ByteArrayOutputStream().apply {
+        addressBlockedBitmap.compress(Bitmap.CompressFormat.JPEG, 100, this)
+    }.toByteArray()
+
+    private var ktorServer: CIOApplicationEngine? = null
 
     init {
         XLog.d(getLog("init"))
@@ -69,8 +75,9 @@ class HttpServer(
         val coroutineScope = CoroutineScope(Job() + Dispatchers.Default + coroutineExceptionHandler)
 
         val resultJpegStream = ByteArrayOutputStream()
+        val lastJPEG: AtomicReference<ByteArray> = AtomicReference(ByteArray(0))
 
-        val clientMJPEGFrameSharedFlow = bitmapStateFlow
+        val mjpegSharedFlow = bitmapStateFlow
             .map { bitmap ->
                 resultJpegStream.reset()
                 bitmap.compress(Bitmap.CompressFormat.JPEG, settingsReadOnly.jpegQuality, resultJpegStream)
@@ -89,11 +96,16 @@ class HttpServer(
             .shareIn(coroutineScope, SharingStarted.Eagerly, 1)
 
         httpServerFiles.configure()
+        clientData.configure()
 
         val environment = applicationEngineEnvironment {
             parentCoroutineContext = coroutineScope.coroutineContext
             watchPaths = emptyList() // Fix for java.lang.ClassNotFoundException: java.nio.file.FileSystems for API < 26
-            module { appModule(clientMJPEGFrameSharedFlow) }
+            module {
+                appModule(
+                    httpServerFiles, clientData, mjpegSharedFlow, lastJPEG, blockedJPEG, stopDeferred
+                ) { sendEvent(it) }
+            }
             serverAddresses.forEach { netInterface ->
                 connector {
                     host = netInterface.address.hostAddress
@@ -131,7 +143,7 @@ class HttpServer(
 
         return CompletableDeferred<Unit>().apply Deferred@{
             ktorServer?.apply {
-                stopDeferred = this@Deferred
+                stopDeferred.set(this@Deferred)
                 stop(250, 250)
                 ktorServer = null
             } ?: complete(Unit)
@@ -140,148 +152,11 @@ class HttpServer(
 
     fun destroy(): CompletableDeferred<Unit> {
         XLog.d(getLog("destroy"))
-        clientStatistic.destroy()
+        clientData.destroy()
         return stop()
     }
 
     private fun sendEvent(event: Event) {
         parentCoroutineScope.launch { _eventSharedFlow.emit(event) }
-    }
-
-    private val lastJPEG: AtomicReference<ByteArray> = AtomicReference(ByteArray(0))
-    private var ktorServer: CIOApplicationEngine? = null
-    private var stopDeferred: CompletableDeferred<Unit>? = null
-
-    private val crlf = "\r\n".toByteArray()
-    private val jpegBaseHeader = "Content-Type: image/jpeg\r\nContent-Length: ".toByteArray()
-    private val multipartBoundary = randomString(20)
-    private val contentTypeString = "multipart/x-mixed-replace; boundary=$multipartBoundary"
-    private val jpegBoundary = "--$multipartBoundary\r\n".toByteArray()
-
-    private fun Application.appModule(clientMJPEGFrameSharedFlow: SharedFlow<ByteArray>) {
-        environment.monitor.subscribe(ApplicationStarted) {
-            XLog.i(this@HttpServer.getLog("monitor", "ApplicationStarted: ${hashCode()}"))
-        }
-
-        environment.monitor.subscribe(ApplicationStopped) {
-            XLog.i(this@HttpServer.getLog("monitor", "ApplicationStopped: ${hashCode()}"))
-            it.environment.parentCoroutineContext.cancel()
-            clientStatistic.sendEvent(StatisticEvent.ClearClients)
-            stopDeferred?.complete(Unit)
-            stopDeferred = null
-        }
-
-        install(DefaultHeaders) { header(HttpHeaders.CacheControl, "no-cache") }
-
-        install(StatusPages) {
-            status(HttpStatusCode.NotFound) {
-                call.respondRedirect(HttpServerFiles.ROOT_ADDRESS, permanent = true)
-            }
-            exception<Throwable> { cause ->
-                XLog.e(getLog("exception<Throwable>"))
-                XLog.e(getLog("exception"), cause)
-                sendEvent(Event.Error(FatalError.HttpServerException))
-                call.respond(HttpStatusCode.InternalServerError)
-            }
-        }
-
-        install(Routing) {
-            route(HttpServerFiles.ROOT_ADDRESS) {
-                handle {
-                    val responseHtml =
-                        if (httpServerFiles.enablePin) {
-                            when (call.request.queryParameters[HttpServerFiles.PIN_PARAMETER]) {
-                                httpServerFiles.pin -> httpServerFiles.indexHtml
-                                null -> httpServerFiles.pinRequestHtml
-                                else -> httpServerFiles.pinRequestErrorHtml
-                            }
-                        } else {
-                            httpServerFiles.indexHtml
-                        }
-
-                    call.respondText(responseHtml, ContentType.Text.Html)
-                }
-
-                get(httpServerFiles.streamAddress) {
-                    call.respond(object : OutgoingContent.WriteChannelContent() {
-                        override val status: HttpStatusCode = HttpStatusCode.OK
-
-                        override val contentType: ContentType = ContentType.parse(contentTypeString)
-
-                        override suspend fun writeTo(channel: ByteWriteChannel) {
-                            this@get.ensureActive()
-                            val clientId = this.hashCode().toLong()
-                            val emmitCounter = AtomicLong(0L)
-                            val collectCounter = AtomicLong(0L)
-                            clientMJPEGFrameSharedFlow
-                                .map { Pair(emmitCounter.incrementAndGet(), it) }
-                                .conflate()
-                                .onStart {
-                                    XLog.d(this@HttpServer.getLog("onStart", "Client: $clientId"))
-                                    val clientAddressAndPort = call.request.local.remoteHost
-                                    clientStatistic.sendEvent(StatisticEvent.Connected(clientId, clientAddressAndPort))
-                                    channel.writeFully(jpegBoundary, 0, jpegBoundary.size)
-                                    val totalSize = writeMJPEGFrame(channel, lastJPEG.get())
-                                    clientStatistic.sendEvent(StatisticEvent.NextBytes(clientId, totalSize))
-                                }
-                                .onCompletion {
-                                    XLog.d(this@HttpServer.getLog("onCompletion", "Client: $clientId"))
-                                    clientStatistic.sendEvent(StatisticEvent.Disconnected(clientId))
-                                }
-                                .onEach { (counter, jpeg) ->
-                                    if (counter - collectCounter.incrementAndGet() >= 5) {
-                                        XLog.i(this@HttpServer.getLog("onEach", "Slow connection. Client: $clientId"))
-                                        collectCounter.set(counter)
-                                        clientStatistic.sendEvent(StatisticEvent.SlowConnection(clientId))
-                                    }
-                                    val totalSize = writeMJPEGFrame(channel, jpeg)
-                                    clientStatistic.sendEvent(StatisticEvent.NextBytes(clientId, totalSize))
-                                }
-                                .catch { }
-                                .collect()
-                        }
-                    })
-                }
-
-                get(httpServerFiles.jpegFallbackAddress) {
-                    call.respondBytes(lastJPEG.get(), ContentType.Image.JPEG)
-                }
-
-                get(HttpServerFiles.START_STOP_ADDRESS) {
-                    if (httpServerFiles.htmlEnableButtons) sendEvent(Event.Action.StartStopRequest)
-                    call.respondText("")
-                }
-
-                get(HttpServerFiles.FAVICON_PNG) {
-                    call.respondBytes(httpServerFiles.faviconPng, ContentType.Image.PNG)
-                }
-                get(HttpServerFiles.LOGO_PNG) {
-                    call.respondBytes(httpServerFiles.logoPng, ContentType.Image.PNG)
-                }
-                get(HttpServerFiles.FULLSCREEN_ON_PNG) {
-                    call.respondBytes(httpServerFiles.fullscreenOnPng, ContentType.Image.PNG)
-                }
-                get(HttpServerFiles.FULLSCREEN_OFF_PNG) {
-                    call.respondBytes(httpServerFiles.fullscreenOffPng, ContentType.Image.PNG)
-                }
-                get(HttpServerFiles.START_STOP_PNG) {
-                    call.respondBytes(httpServerFiles.startStopPng, ContentType.Image.PNG)
-                }
-            }
-        }
-    }
-
-    private suspend fun writeMJPEGFrame(channel: ByteWriteChannel, jpeg: ByteArray): Int {
-        if (channel.isClosedForWrite) return 0
-        channel.writeFully(jpegBaseHeader, 0, jpegBaseHeader.size)
-        val jpegSizeText = jpeg.size.toString().toByteArray()
-        channel.writeFully(jpegSizeText, 0, jpegSizeText.size)
-        channel.writeFully(crlf, 0, crlf.size)
-        channel.writeFully(crlf, 0, crlf.size)
-        channel.writeFully(jpeg, 0, jpeg.size)
-        channel.writeFully(crlf, 0, crlf.size)
-        channel.writeFully(jpegBoundary, 0, jpegBoundary.size)
-        channel.flush()
-        return jpegBaseHeader.size + jpegSizeText.size + crlf.size * 3 + jpeg.size + jpegBoundary.size
     }
 }

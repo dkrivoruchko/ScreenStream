@@ -28,7 +28,12 @@ class HttpServerFiles(context: Context, private val settingsReadOnly: SettingsRe
         private const val PINREQUEST_HTML_SUBMIT_TEXT = "SUBMIT_TEXT"
         private const val PINREQUEST_HTML_WRONG_PIN_MESSAGE = "WRONG_PIN_MESSAGE"
 
+        private const val ADDRESS_BLOCKED_HTML = "blocked.html"
+        private const val ADDRESS_BLOCKED_HTML_ADDRESS_BLOCKED = "ADDRESS_BLOCKED"
+
         const val ROOT_ADDRESS = "/"
+        const val PIN_REQUEST_ADDRESS = "pinrequest"
+        const val CLIENT_BLOCKED_ADDRESS = "blocked"
         const val START_STOP_ADDRESS = "start-stop"
         const val PIN_PARAMETER = "pin"
     }
@@ -59,15 +64,20 @@ class HttpServerFiles(context: Context, private val settingsReadOnly: SettingsRe
                 applicationContext.getString(R.string.html_submit_text)
             )
 
+    private val baseAddressBlockedHtml: String =
+        String(applicationContext.getFileFromAssets(ADDRESS_BLOCKED_HTML), StandardCharsets.UTF_8)
+
     var htmlEnableButtons: Boolean = settingsReadOnly.htmlEnableButtons
     var htmlBackColor: Int = settingsReadOnly.htmlBackColor
-    var enablePin: Boolean = settingsReadOnly.enablePin
     var pin: String = settingsReadOnly.pin
     var streamAddress: String = configureStreamAddress()
     var jpegFallbackAddress: String = configureJpegFallbackAddress()
     var indexHtml: String = configureIndexHtml(streamAddress)
     var pinRequestHtml: String = configurePinRequestHtml()
     var pinRequestErrorHtml: String = configurePinRequestErrorHtml()
+    var addressBlockedHtml: String = configureAddressBlockedHtml()
+
+    private var enablePin: Boolean = settingsReadOnly.enablePin
 
     fun configure() {
         XLog.d(getLog("configure"))
@@ -82,6 +92,7 @@ class HttpServerFiles(context: Context, private val settingsReadOnly: SettingsRe
 
         pinRequestHtml = configurePinRequestHtml()
         pinRequestErrorHtml = configurePinRequestErrorHtml()
+        addressBlockedHtml = configureAddressBlockedHtml()
     }
 
     private fun configureStreamAddress(): String = if (enablePin) "${randomString(16)}.mjpeg" else "stream.mjpeg"
@@ -92,7 +103,7 @@ class HttpServerFiles(context: Context, private val settingsReadOnly: SettingsRe
         baseIndexHtml
             .replaceFirst(
                 INDEX_HTML_ENABLE_BUTTONS.toRegex(),
-                htmlEnableButtons.toString()
+                (htmlEnableButtons && enablePin.not()).toString()
             )
             .replaceFirst(
                 INDEX_HTML_BACKGROUND_COLOR.toRegex(),
@@ -113,6 +124,15 @@ class HttpServerFiles(context: Context, private val settingsReadOnly: SettingsRe
                     PINREQUEST_HTML_WRONG_PIN_MESSAGE.toRegex(),
                     applicationContext.getString(R.string.html_wrong_pin)
                 )
+        else
+            ""
+
+    private fun configureAddressBlockedHtml(): String =
+        if (enablePin)
+            baseAddressBlockedHtml.replaceFirst(
+                ADDRESS_BLOCKED_HTML_ADDRESS_BLOCKED.toRegex(),
+                applicationContext.getString(R.string.html_address_blocked)
+            )
         else
             ""
 }

@@ -30,6 +30,7 @@ interface Settings : SettingsReadOnly {
         const val NEW_PIN_ON_APP_START = "PREF_KEY_NEW_PIN_ON_APP_START"
         const val AUTO_CHANGE_PIN = "PREF_KEY_AUTO_CHANGE_PIN"
         const val PIN = "PREF_KEY_SET_PIN"
+        const val BLOCK_ADDRESS = "PREF_KEY_BLOCK_ADDRESS"
 
         const val USE_WIFI_ONLY = "PREF_KEY_USE_WIFI_ONLY"
         const val ENABLE_IPV6 = "PREF_KEY_ENABLE_IPV6"
@@ -70,6 +71,7 @@ interface Settings : SettingsReadOnly {
         const val NEW_PIN_ON_APP_START = true
         const val AUTO_CHANGE_PIN = false
         const val PIN = "0000"
+        const val BLOCK_ADDRESS = true
 
         const val USE_WIFI_ONLY = true
         const val ENABLE_IPV6 = false
@@ -116,6 +118,7 @@ interface Settings : SettingsReadOnly {
     override var newPinOnAppStart: Boolean
     override var autoChangePin: Boolean
     override var pin: String
+    override var blockAddress: Boolean
 
     override var useWiFiOnly: Boolean
     override var enableIPv6: Boolean

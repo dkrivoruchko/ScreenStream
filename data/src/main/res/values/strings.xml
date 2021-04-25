@@ -3,10 +3,12 @@
     <string name="image_generator_press_start">Press START on device</string>
     <string name="image_generator_go_to_new_address">Please go to new address</string>
     <string name="image_generator_reload_this_page">Please reload this page</string>
+    <string name="image_generator_address_blocked">Client address blocked</string>
 
     <!--HTML text-->
     <string name="html_stream_require_pin">This stream requires PIN to access it</string>
     <string name="html_enter_pin">Enter pin:\u0020</string>
     <string name="html_submit_text">Submit</string>
     <string name="html_wrong_pin">Wrong pin!</string>
+    <string name="html_address_blocked">Client address blocked</string>
 </resources>

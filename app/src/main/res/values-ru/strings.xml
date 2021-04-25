@@ -36,6 +36,7 @@
     <string name="stream_fragment_client_disconnected">Отключен</string>
     <string name="stream_fragment_client_slow_network">Медленный</string>
     <string name="stream_fragment_client_connected">Подключен</string>
+    <string name="stream_fragment_client_blocked">Заблокирован</string>
 
     <string name="item_device_address">Адрес устройства:</string>
     <string name="item_device_address_description_open_address">Открыть адрес</string>
@@ -127,6 +128,8 @@
     <string name="pref_set_pin">Установить PIN-код</string>
     <string name="pref_set_pin_summary">Указать PIN-код</string>
     <string name="pref_set_pin_dialog">Введите пин.\nПо умолчанию: 0000</string>
+    <string name="pref_block_address">Блокрировать IP-адрес</string>
+    <string name="pref_block_address_summary">Блокировать IP-адрес клиента после 5 неправильных попыток ввода PIN-кода на 5 минут</string>
     <string name="pref_settings_advanced">Дополнительно</string>
     <string name="pref_wifi_only">Использовать только WiFi</string>
     <string name="pref_wifi_only_summary">Запускать сервер только на WiFi интерфейсе</string>

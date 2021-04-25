@@ -48,6 +48,7 @@ class SettingsSecurityFragment : Fragment(R.layout.fragment_settings_security) {
             binding.clFragmentSettingsNewPinOnAppStart.enableDisableViewWithChildren(settings.enablePin)
             binding.clFragmentSettingsAutoChangePin.enableDisableViewWithChildren(settings.enablePin)
             binding.clFragmentSettingsSetPin.enableDisableViewWithChildren(canEnableSetPin())
+            binding.clFragmentSettingsBlockAddress.enableDisableViewWithChildren(isChecked)
             setOnClickListener {
                 if (isChecked) settings.pin = String(settings.pin.toCharArray()) // Workaround for BinaryPreferences IPC
                 settings.enablePin = isChecked
@@ -55,6 +56,7 @@ class SettingsSecurityFragment : Fragment(R.layout.fragment_settings_security) {
                 binding.clFragmentSettingsNewPinOnAppStart.enableDisableViewWithChildren(isChecked)
                 binding.clFragmentSettingsAutoChangePin.enableDisableViewWithChildren(isChecked)
                 binding.clFragmentSettingsSetPin.enableDisableViewWithChildren(canEnableSetPin())
+                binding.clFragmentSettingsBlockAddress.enableDisableViewWithChildren(isChecked)
             }
             binding.clFragmentSettingsEnablePin.setOnClickListener { performClick() }
         }
@@ -113,6 +115,15 @@ class SettingsSecurityFragment : Fragment(R.layout.fragment_settings_security) {
                 getInputField().filters = arrayOf<InputFilter>(InputFilter.LengthFilter(6))
                 getInputField().imeOptions = EditorInfo.IME_FLAG_NO_EXTRACT_UI
             }
+        }
+
+        // Security - Block address
+        with(binding.cbFragmentSettingsBlockAddress) {
+            isChecked = settings.blockAddress
+            setOnClickListener {
+                settings.blockAddress = isChecked
+            }
+            binding.clFragmentSettingsBlockAddress.setOnClickListener { performClick() }
         }
     }
 

@@ -131,7 +131,7 @@ class StreamFragment : Fragment(R.layout.fragment_stream) {
             else
                 getString(R.string.stream_fragment_pin, settingsReadOnly.pin)
 
-            binding.tvFragmentStreamPin.text = pinText.setColorSpan(colorAccent, pinText.length - 4)
+            binding.tvFragmentStreamPin.text = pinText.setColorSpan(colorAccent, pinText.length - settingsReadOnly.pin.length)
         } else {
             binding.tvFragmentStreamPin.setText(R.string.stream_fragment_pin_disabled)
         }
@@ -236,9 +236,13 @@ class StreamFragment : Fragment(R.layout.fragment_stream) {
         private val colorAccent by lazy { ContextCompat.getColor(binding.root.context, R.color.colorAccent) }
 
         fun bind(product: HttpClient) = with(product) {
-            binding.tvClientItemAddress.text = clientAddressAndPort
+            binding.tvClientItemAddress.text = clientAddress
             with(binding.tvClientItemStatus) {
                 when {
+                    isBlocked -> {
+                        setText(R.string.stream_fragment_client_blocked)
+                        setTextColor(colorError)
+                    }
                     isDisconnected -> {
                         setText(R.string.stream_fragment_client_disconnected)
                         setTextColor(textColorPrimary)

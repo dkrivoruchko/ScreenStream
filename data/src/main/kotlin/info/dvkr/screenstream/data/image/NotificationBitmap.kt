@@ -11,7 +11,7 @@ import info.dvkr.screenstream.data.other.getLog
 
 class NotificationBitmap(context: Context) {
 
-    enum class Type { START, RELOAD_PAGE, NEW_ADDRESS }
+    enum class Type { START, RELOAD_PAGE, NEW_ADDRESS, ADDRESS_BLOCKED }
 
     private val applicationContext: Context = context.applicationContext
     private val logo: Bitmap
@@ -31,6 +31,7 @@ class NotificationBitmap(context: Context) {
             Type.START -> applicationContext.getString(R.string.image_generator_press_start)
             Type.RELOAD_PAGE -> applicationContext.getString(R.string.image_generator_reload_this_page)
             Type.NEW_ADDRESS -> applicationContext.getString(R.string.image_generator_go_to_new_address)
+            Type.ADDRESS_BLOCKED -> applicationContext.getString(R.string.image_generator_address_blocked)
         }
 
         return generateImage(message, logo)

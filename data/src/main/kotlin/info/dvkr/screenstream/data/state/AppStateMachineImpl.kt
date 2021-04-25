@@ -7,7 +7,6 @@ import android.view.WindowManager
 import androidx.core.content.ContextCompat
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.data.httpserver.HttpServer
-import info.dvkr.screenstream.data.httpserver.HttpServerFiles
 import info.dvkr.screenstream.data.image.BitmapCapture
 import info.dvkr.screenstream.data.image.NotificationBitmap
 import info.dvkr.screenstream.data.model.*
@@ -42,10 +41,8 @@ class AppStateMachineImpl(
     private val networkHelper = NetworkHelper(context)
     private val notificationBitmap = NotificationBitmap(context)
     private val httpServer = HttpServer(
-        coroutineScope,
-        settingsReadOnly,
-        HttpServerFiles(applicationContext, settingsReadOnly),
-        bitmapStateFlow.asStateFlow()
+        applicationContext, coroutineScope, settingsReadOnly, bitmapStateFlow.asStateFlow(),
+        notificationBitmap.getNotificationBitmap(NotificationBitmap.Type.ADDRESS_BLOCKED)
     )
 
 
@@ -73,7 +70,7 @@ class AppStateMachineImpl(
         override fun onSettingsChanged(key: String) {
             if (key in arrayOf(
                     Settings.Key.HTML_ENABLE_BUTTONS, Settings.Key.HTML_BACK_COLOR,
-                    Settings.Key.ENABLE_PIN, Settings.Key.PIN
+                    Settings.Key.ENABLE_PIN, Settings.Key.PIN, Settings.Key.BLOCK_ADDRESS
                 )
             ) sendEvent(InternalEvent.RestartServer(RestartReason.SettingsChanged(key)))
 

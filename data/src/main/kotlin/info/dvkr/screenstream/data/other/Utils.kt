@@ -11,6 +11,7 @@ import io.nayuki.qrcodegen.QrCode
 import java.net.Inet6Address
 import java.net.InetAddress
 import java.net.InetSocketAddress
+import java.nio.ByteBuffer
 
 fun Any.getLog(tag: String? = "", msg: String? = "Invoked") =
     "${this.javaClass.simpleName}#${this.hashCode()}.$tag@${Thread.currentThread().name}: $msg"
@@ -32,11 +33,11 @@ fun randomString(len: Int): String {
 
 fun Long.bytesToMbit() = (this * 8).toFloat() / 1024 / 1024
 
-fun InetAddress.asString(): String =
-    if (this is Inet6Address) "[${this.hostAddress}]"
-    else this.hostAddress
+fun Int.toByteArray(): ByteArray = ByteBuffer.allocate(Int.SIZE_BYTES).putInt(this).array()
 
-fun InetSocketAddress.asString(): String = "${this.address.asString()}:${this.port}"
+fun InetAddress.asString(): String = if (this is Inet6Address) "[${this.hostAddress}]" else this.hostAddress
+
+fun InetSocketAddress.asString(): String = "${this.hostName?.let { it + "\n" }}${this.address.asString()}:${this.port}"
 
 fun Context.getFileFromAssets(fileName: String): ByteArray {
     XLog.d(getLog("getFileFromAssets", fileName))

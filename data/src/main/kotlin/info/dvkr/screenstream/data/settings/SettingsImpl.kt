@@ -81,6 +81,10 @@ class SettingsImpl(private val preferences: Preferences) : Settings {
     override var pin: String
             by bindPreference(preferences, Settings.Key.PIN, Settings.Default.PIN)
 
+    override var blockAddress: Boolean
+            by bindPreference(preferences, Settings.Key.BLOCK_ADDRESS, Settings.Default.BLOCK_ADDRESS)
+
+
     override var useWiFiOnly: Boolean
             by bindPreference(preferences, Settings.Key.USE_WIFI_ONLY, Settings.Default.USE_WIFI_ONLY)
 

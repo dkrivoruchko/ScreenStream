@@ -3,10 +3,12 @@
     <string name="image_generator_press_start">Нажмите СТАРТ на устройстве</string>
     <string name="image_generator_go_to_new_address">Пройдите по новому адресу</string>
     <string name="image_generator_reload_this_page">Перегрузите эту страницу</string>
+    <string name="image_generator_address_blocked">Адрес клиента заблокирован</string>
 
     <!--HTML text-->
     <string name="html_stream_require_pin">Эта трансляция требует PIN-код для доступа к ней</string>
     <string name="html_enter_pin">Введите PIN-код:\u0020</string>
     <string name="html_submit_text">Отправить</string>
     <string name="html_wrong_pin">Неверный PIN-код!</string>
+    <string name="html_address_blocked">Адрес клиента заблокирован</string>
 </resources>

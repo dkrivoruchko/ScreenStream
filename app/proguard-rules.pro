@@ -20,9 +20,6 @@
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
 
--allowaccessmodification
--repackageclasses
-
 -keepnames class info.dvkr.screenstream.** { *; }
 -keep class **.R$* {
     <fields>;
