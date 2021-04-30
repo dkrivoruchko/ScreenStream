@@ -154,7 +154,7 @@ internal fun Application.appModule(
                 val clientId = ClientData.getId(ipAddress, fallbackHost)
 
                 if (clientData.isClientAllowed(clientId, ipAddress, fallbackHost).not()) {
-                    call.respond(HttpStatusCode.Forbidden)
+                    call.respond(HttpStatusCode.NotFound)
                     return@get
                 }
 

@@ -18,6 +18,7 @@ import io.ktor.utils.io.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import java.io.ByteArrayOutputStream
+import java.io.IOException
 import java.net.BindException
 import java.util.*
 import java.util.concurrent.atomic.AtomicReference
@@ -66,7 +67,8 @@ internal class HttpServer(
         XLog.d(getLog("startServer"))
 
         val coroutineExceptionHandler = CoroutineExceptionHandler { _, throwable ->
-            XLog.e(getLog("onCoroutineException"))
+            if (throwable is IOException) return@CoroutineExceptionHandler
+            XLog.e(getLog("onCoroutineException >>>"))
             XLog.e(getLog("onCoroutineException"), throwable)
             sendEvent(Event.Error(FatalError.HttpServerException))
             ktorServer?.stop(250, 250)
@@ -126,7 +128,7 @@ internal class HttpServer(
             XLog.w(getLog("startServer", ex.toString()))
             exception = FixableError.AddressInUseException
         } catch (throwable: Throwable) {
-            XLog.e(getLog("startServer"))
+            XLog.e(getLog("startServer >>>"))
             XLog.e(getLog("startServer"), throwable)
             exception = FatalError.HttpServerException
         } finally {
