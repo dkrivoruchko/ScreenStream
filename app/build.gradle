@@ -12,8 +12,8 @@ android {
         applicationId = "info.dvkr.screenstream"
         minSdkVersion(21)
         targetSdkVersion(30)
-        versionCode = 30602
-        versionName = "3.6.2"
+        versionCode = 30603
+        versionName = "3.6.3"
         resConfigs("en", "ru", "pt-rBR", "zh-rTW", "fr-rFR", "fa", "it", "pl", "hi", "de", "sk", "es", "ar", "ja", "gl", "ca")
 
         vectorDrawables.useSupportLibrary = true
@@ -78,10 +78,11 @@ dependencies {
 
     implementation(project(":data"))
 
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.4.3")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.4.3")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.5.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.5.0")
 
-    implementation("androidx.core:core-ktx:1.5.0-rc01")
+    implementation("androidx.core:core-ktx:1.5.0-rc02")
+    implementation("androidx.activity:activity-ktx:1.2.3")
     implementation("androidx.fragment:fragment-ktx:1.3.3")
     implementation("androidx.appcompat:appcompat:1.3.0-rc01")
     implementation("androidx.constraintlayout:constraintlayout:2.0.4")
@@ -103,7 +104,7 @@ dependencies {
 
     implementation("io.insert-koin:koin-android:3.0.1")
     implementation("com.github.iamironz:binaryprefs:1.0.1")
-    implementation("com.elvishew:xlog:1.8.0")
+    implementation("com.elvishew:xlog:1.9.0")
 
     firebaseImplementation("com.google.android.play:core:1.10.0")
     firebaseImplementation("com.google.android.play:core-ktx:1.8.1") {
@@ -112,8 +113,8 @@ dependencies {
         exclude group: "androidx.fragment"
         exclude group: "androidx.core"
     }
-    firebaseReleaseImplementation("com.google.firebase:firebase-analytics:18.0.3")
-    firebaseReleaseImplementation("com.google.firebase:firebase-crashlytics:17.4.1")
+    firebaseReleaseImplementation("com.google.firebase:firebase-analytics:19.0.0")
+    firebaseReleaseImplementation("com.google.firebase:firebase-crashlytics:18.0.0")
 
     debugImplementation("com.squareup.leakcanary:leakcanary-android:2.7")
 }

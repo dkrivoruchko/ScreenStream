@@ -53,9 +53,11 @@ internal class HttpServer(
     private val httpServerFiles: HttpServerFiles = HttpServerFiles(applicationContext, settingsReadOnly)
     private val clientData: ClientData = ClientData(settingsReadOnly) { sendEvent(it) }
     private val stopDeferred: AtomicReference<CompletableDeferred<Unit>?> = AtomicReference(null)
-    private val blockedJPEG: ByteArray = ByteArrayOutputStream().apply {
-        addressBlockedBitmap.compress(Bitmap.CompressFormat.JPEG, 100, this)
-    }.toByteArray()
+    private val blockedJPEG: ByteArray by lazy {
+        ByteArrayOutputStream().apply {
+            addressBlockedBitmap.compress(Bitmap.CompressFormat.JPEG, 100, this)
+        }.toByteArray()
+    }
 
     private var ktorServer: CIOApplicationEngine? = null
 
@@ -67,9 +69,7 @@ internal class HttpServer(
         XLog.d(getLog("startServer"))
 
         val coroutineExceptionHandler = CoroutineExceptionHandler { _, throwable ->
-            if (throwable is IOException) return@CoroutineExceptionHandler
-            XLog.e(getLog("onCoroutineException >>>"))
-            XLog.e(getLog("onCoroutineException"), throwable)
+            XLog.e(getLog("onCoroutineException", throwable.toString()))
             sendEvent(Event.Error(FatalError.HttpServerException))
             ktorServer?.stop(250, 250)
             ktorServer = null
