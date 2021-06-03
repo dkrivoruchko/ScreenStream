@@ -12,8 +12,8 @@ android {
         applicationId = "info.dvkr.screenstream"
         minSdkVersion(21)
         targetSdkVersion(30)
-        versionCode = 30603
-        versionName = "3.6.3"
+        versionCode = 30604
+        versionName = "3.6.4"
         resConfigs("en", "ru", "pt-rBR", "zh-rTW", "fr-rFR", "fa", "it", "pl", "hi", "de", "sk", "es", "ar", "ja", "gl", "ca")
 
         vectorDrawables.useSupportLibrary = true
@@ -81,12 +81,12 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.5.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.5.0")
 
-    implementation("androidx.core:core-ktx:1.5.0-rc02")
+    implementation("androidx.core:core-ktx:1.5.0")
     implementation("androidx.activity:activity-ktx:1.2.3")
-    implementation("androidx.fragment:fragment-ktx:1.3.3")
-    implementation("androidx.appcompat:appcompat:1.3.0-rc01")
+    implementation("androidx.fragment:fragment-ktx:1.3.4")
+    implementation("androidx.appcompat:appcompat:1.3.0")
     implementation("androidx.constraintlayout:constraintlayout:2.0.4")
-    implementation("androidx.recyclerview:recyclerview:1.2.0")
+    implementation("androidx.recyclerview:recyclerview:1.2.1")
     implementation("com.google.android.material:material:1.3.0")
 
     implementation("androidx.navigation:navigation-fragment-ktx:2.3.5")
@@ -102,7 +102,7 @@ dependencies {
     implementation(fileTree("libs/bottomsheets-release.aar"))
 //    implementation("com.afollestad.material-dialogs:bottomsheets:3.3.0")
 
-    implementation("io.insert-koin:koin-android:3.0.1")
+    implementation("io.insert-koin:koin-android:3.0.2")
     implementation("com.github.iamironz:binaryprefs:1.0.1")
     implementation("com.elvishew:xlog:1.9.0")
 

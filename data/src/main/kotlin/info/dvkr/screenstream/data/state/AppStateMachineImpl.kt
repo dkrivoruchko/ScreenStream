@@ -19,6 +19,7 @@ import info.dvkr.screenstream.data.state.helper.MediaProjectionHelper
 import info.dvkr.screenstream.data.state.helper.NetworkHelper
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
+import java.util.concurrent.LinkedBlockingDeque
 
 class AppStateMachineImpl(
     context: Context,
@@ -91,8 +92,10 @@ class AppStateMachineImpl(
             XLog.d(getLog("sendEvent", "Event: $event"))
 
             try {
+                _eventDeque.addLast(event)
                 _eventSharedFlow.tryEmit(event) || throw IllegalStateException("_eventSharedFlow IsFull")
             } catch (th: Throwable) {
+                XLog.e(getLog("sendEvent", _eventDeque.toString()))
                 XLog.e(getLog("sendEvent"), th)
                 coroutineScope.launch(NonCancellable) {
                     onEffect(
@@ -106,6 +109,7 @@ class AppStateMachineImpl(
     private var streamState = StreamState()
     private var previousStreamState = StreamState()
     private val _eventSharedFlow = MutableSharedFlow<AppStateMachine.Event>(extraBufferCapacity = 32)
+    private val _eventDeque = LinkedBlockingDeque<AppStateMachine.Event>()
 
     init {
         XLog.d(getLog("init"))
@@ -118,7 +122,7 @@ class AppStateMachineImpl(
                     streamState = when (event) {
                         is InternalEvent.DiscoverAddress -> discoverAddress(streamState)
                         is InternalEvent.StartServer -> startServer(streamState)
-                        is InternalEvent.ComponentError -> componentError(streamState, event.appError)
+                        is InternalEvent.ComponentError -> componentError(streamState, event.appError, false)
                         is InternalEvent.StartStopFromWebPage -> startStopFromWebPage(streamState)
                         is InternalEvent.RestartServer -> restartServer(streamState, event.reason)
                         is InternalEvent.ScreenOff -> screenOff(streamState)
@@ -135,12 +139,13 @@ class AppStateMachineImpl(
 
                     if (streamState.isPublicStatePublishRequired(previousStreamState)) onEffect(streamState.toPublicState())
 
+                    _eventDeque.pollFirst()
                     XLog.i(this@AppStateMachineImpl.getLog("eventSharedFlow.onEach", "New state:${streamState.state}"))
                 }
             }
                 .catch { cause ->
                     XLog.e(this@AppStateMachineImpl.getLog("eventSharedFlow.catch"), cause)
-                    streamState = componentError(streamState, FatalError.CoroutineException)
+                    streamState = componentError(streamState, FatalError.CoroutineException, true)
                     onEffect(streamState.toPublicState())
                 }
                 .collect()
@@ -349,8 +354,9 @@ class AppStateMachineImpl(
         )
     }
 
-    private fun componentError(streamState: StreamState, appError: AppError): StreamState {
+    private fun componentError(streamState: StreamState, appError: AppError, report: Boolean): StreamState {
         XLog.d(getLog("componentError"))
+        if (report) XLog.e(getLog("componentError"), appError)
 
         return stopProjection(streamState).copy(state = StreamState.State.ERROR, appError = appError)
     }
