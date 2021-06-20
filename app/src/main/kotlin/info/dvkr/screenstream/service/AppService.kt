@@ -166,8 +166,8 @@ class AppService : Service() {
             IntentAction.Exit -> {
                 sendBroadcast(Intent(Intent.ACTION_CLOSE_SYSTEM_DIALOGS))
                 notificationHelper.hideErrorNotification()
-                sendMessageToActivities(ServiceMessage.FinishActivity)
                 stopForeground(true)
+                sendMessageToActivities(ServiceMessage.FinishActivity)
                 this@AppService.stopSelf()
             }
 

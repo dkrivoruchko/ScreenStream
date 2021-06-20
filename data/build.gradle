@@ -35,5 +35,5 @@ dependencies {
     implementation("io.ktor:ktor-server-cio:1.6.0")
 
     implementation("com.github.iamironz:binaryprefs:1.0.1")
-    implementation("com.elvishew:xlog:1.9.0")
+    implementation('com.elvishew:xlog:1.10.0')
 }

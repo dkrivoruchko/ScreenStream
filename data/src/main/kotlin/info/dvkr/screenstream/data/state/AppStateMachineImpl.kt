@@ -108,7 +108,7 @@ class AppStateMachineImpl(
 
     private var streamState = StreamState()
     private var previousStreamState = StreamState()
-    private val _eventSharedFlow = MutableSharedFlow<AppStateMachine.Event>(extraBufferCapacity = 32)
+    private val _eventSharedFlow = MutableSharedFlow<AppStateMachine.Event>(extraBufferCapacity = 8)
     private val _eventDeque = LinkedBlockingDeque<AppStateMachine.Event>()
 
     init {
