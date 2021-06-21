@@ -20,6 +20,10 @@
         android:theme="@style/Theme.App.DayNight"
         tools:ignore="GoogleAppIndexingWarning">
 
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="ca-app-pub-3406399667931208~2862159727"/>
+
         <activity
             android:name=".ui.activity.AppActivity"
             android:launchMode="singleTask"

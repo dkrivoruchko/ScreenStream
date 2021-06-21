@@ -42,13 +42,13 @@ class AppService : Service() {
         fun startForeground(context: Context, intent: Intent) = ContextCompat.startForegroundService(context, intent)
     }
 
-    inner class AppServiceBinder : Binder() {
-        fun getServiceMessageFlow(): SharedFlow<ServiceMessage> = _serviceMessageSharedFlow.asSharedFlow()
+    class AppServiceBinder(private val serviceMessageSharedFlow: MutableSharedFlow<ServiceMessage>) : Binder() {
+        fun getServiceMessageFlow(): SharedFlow<ServiceMessage> = serviceMessageSharedFlow.asSharedFlow()
     }
 
-    private val appServiceBinder = AppServiceBinder()
     private val _serviceMessageSharedFlow =
         MutableSharedFlow<ServiceMessage>(extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
+    private var appServiceBinder: AppServiceBinder? = AppServiceBinder(_serviceMessageSharedFlow)
 
     private fun sendMessageToActivities(serviceMessage: ServiceMessage) {
         XLog.v(getLog("sendMessageToActivities", "ServiceMessage: $serviceMessage"))
@@ -203,6 +203,7 @@ class AppService : Service() {
         appStateMachine = null
         coroutineScope.cancel(CancellationException("AppService.destroy"))
         stopForeground(true)
+        appServiceBinder = null
         XLog.d(getLog("onDestroy", "Done"))
         super.onDestroy()
     }

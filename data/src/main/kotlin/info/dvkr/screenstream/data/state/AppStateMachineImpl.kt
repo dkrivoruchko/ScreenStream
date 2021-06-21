@@ -1,8 +1,13 @@
 package info.dvkr.screenstream.data.state
 
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
+import android.media.projection.MediaProjection
+import android.media.projection.MediaProjectionManager
+import android.os.Handler
+import android.os.Looper
 import android.view.WindowManager
 import androidx.core.content.ContextCompat
 import com.elvishew.xlog.XLog
@@ -15,7 +20,6 @@ import info.dvkr.screenstream.data.settings.Settings
 import info.dvkr.screenstream.data.settings.SettingsReadOnly
 import info.dvkr.screenstream.data.state.helper.BroadcastHelper
 import info.dvkr.screenstream.data.state.helper.ConnectivityHelper
-import info.dvkr.screenstream.data.state.helper.MediaProjectionHelper
 import info.dvkr.screenstream.data.state.helper.NetworkHelper
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
@@ -36,7 +40,14 @@ class AppStateMachineImpl(
     private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default + coroutineExceptionHandler)
 
     private val bitmapStateFlow = MutableStateFlow(Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888))
-    private val mediaProjectionHelper = MediaProjectionHelper(context) { sendEvent(AppStateMachine.Event.StopStream) }
+    private val projectionManager = context.getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
+    private val projectionCallback = object : MediaProjection.Callback() {
+        override fun onStop() {
+            XLog.i(this@AppStateMachineImpl.getLog("MediaProjection.Callback", "onStop"))
+            sendEvent(AppStateMachine.Event.StopStream)
+        }
+    }
+
     private val broadcastHelper = BroadcastHelper.getInstance(context)
     private val connectivityHelper: ConnectivityHelper = ConnectivityHelper.getInstance(context)
     private val networkHelper = NetworkHelper(context)
@@ -217,7 +228,8 @@ class AppStateMachineImpl(
         XLog.d(getLog("stopProjection"))
         if (streamState.isStreaming()) {
             streamState.bitmapCapture?.destroy()
-            mediaProjectionHelper.stopMediaProjection(streamState.mediaProjection)
+            streamState.mediaProjection?.unregisterCallback(projectionCallback)
+            streamState.mediaProjection?.stop()
         }
 
         return streamState.copy(mediaProjection = null, bitmapCapture = null)
@@ -278,7 +290,8 @@ class AppStateMachineImpl(
     private fun startProjection(streamState: StreamState, intent: Intent): StreamState {
         XLog.d(getLog("startProjection"))
 
-        val mediaProjection = mediaProjectionHelper.getMediaProjection(intent)
+        val mediaProjection = projectionManager.getMediaProjection(Activity.RESULT_OK, intent)
+        mediaProjection.registerCallback(projectionCallback, Handler(Looper.getMainLooper()))
         val display = ContextCompat.getSystemService(applicationContext, WindowManager::class.java)!!.defaultDisplay
         val bitmapCapture = BitmapCapture(display, settingsReadOnly, mediaProjection, bitmapStateFlow, ::onError)
         bitmapCapture.start()
