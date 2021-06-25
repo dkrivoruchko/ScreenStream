@@ -5,6 +5,7 @@ import android.view.ViewTreeObserver
 import android.widget.FrameLayout
 import androidx.annotation.LayoutRes
 import com.google.android.gms.ads.*
+import info.dvkr.screenstream.BuildConfig
 
 
 abstract class AdActivity(@LayoutRes contentLayoutId: Int) : AppUpdateActivity(contentLayoutId) {
@@ -24,9 +25,9 @@ abstract class AdActivity(@LayoutRes contentLayoutId: Int) : AppUpdateActivity(c
                     val adWidth = (adWidthPixels / outMetrics.density).toInt()
                     val adSize = AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(this@AdActivity, adWidth)
 
-                    // Device MUST be added to test devices
-                    adView!!.adUnitId = "ca-app-pub-3406399667931208/3206361386"
+                    adView!!.adUnitId = if (BuildConfig.DEBUG) BuildConfig.AD_UNIT_ID_TEST else BuildConfig.AD_UNIT_ID
                     adView!!.adSize = adSize
+                    adViewContainer.minimumHeight = adSize.getHeightInPixels(this@AdActivity)
                     adView!!.loadAd(AdRequest.Builder().build())
 
                     adViewContainer.viewTreeObserver.removeOnGlobalLayoutListener(this)

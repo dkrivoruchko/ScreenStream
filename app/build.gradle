@@ -12,8 +12,8 @@ android {
         applicationId = "info.dvkr.screenstream"
         minSdkVersion(21)
         targetSdkVersion(30)
-        versionCode = 30700
-        versionName = "3.7.0"
+        versionCode = 30701
+        versionName = "3.7.1"
         resConfigs("en", "ru", "pt-rBR", "zh-rTW", "fr-rFR", "fa", "it", "pl", "hi", "de", "sk", "es", "ar", "ja", "gl", "ca")
 
         vectorDrawables.useSupportLibrary = true
@@ -36,9 +36,17 @@ android {
         }
     }
 
+    Properties localProps = new Properties()
+    File localProperties = new File(rootProject.rootDir, "local.properties")
+    if (localProperties.exists() && localProperties.isFile()) {
+        localProperties.withInputStream { localProps.load(it) }
+    }
     flavorDimensions("default")
     productFlavors {
-        create("firebase") {}
+        create("firebase") {
+            buildConfigField "String", "AD_UNIT_ID",  localProps.getProperty("ad.unitId")
+            buildConfigField "String", "AD_UNIT_ID_TEST",  localProps.getProperty("ad.unitIdTest")
+        }
         create("firebasefree") {
             firebaseCrashlytics.mappingFileUploadEnabled = false
         }
@@ -102,7 +110,7 @@ dependencies {
     implementation(fileTree("libs/bottomsheets-release.aar"))
 //    implementation("com.afollestad.material-dialogs:bottomsheets:3.3.0")
 
-    implementation("io.insert-koin:koin-android:3.1.0")
+    implementation("io.insert-koin:koin-android:3.1.1")
     implementation("com.github.iamironz:binaryprefs:1.0.1")
     implementation("com.elvishew:xlog:1.10.0")
 
@@ -114,7 +122,7 @@ dependencies {
         exclude group: "androidx.core"
     }
     firebaseImplementation("com.google.firebase:firebase-analytics:19.0.0")
-    firebaseImplementation("com.google.firebase:firebase-crashlytics:18.0.1")
+    firebaseImplementation("com.google.firebase:firebase-crashlytics:18.1.0")
     firebaseImplementation("com.google.android.gms:play-services-ads:20.2.0")
 
     debugImplementation("com.squareup.leakcanary:leakcanary-android:2.7")
