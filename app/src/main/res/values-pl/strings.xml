@@ -1,11 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="app_name" translatable="false">ScreenStream</string>
+    
     <string name="error_title">Błąd</string>
     <string name="error_port_in_use">Port jest już w użyciu. Wybierz inny.</string>
     <string name="error_invalid_media_projection">Błąd bezpieczeństwa: nieprawidłowa projekcja mediów. Spróbuj ponownie.</string>
     <string name="error_ip_address_not_found">Nie znaleziono adresu IP. \nSpróbuj wyłączyć \"Używaj tylko WiFi\" w ustawieniach.</string>
     <string name="error_wrong_image_format">System nadaje obrazowi niewłaściwy format. Nie ma rozwiązania tego problemu.</string>
     <string name="error_exit">Zamknij</string>
+    
     <string name="app_activity_collecting_logs">Trwa zbieranie dzienników aplikacji…</string>
     <string name="app_activity_send_logs">Wyślij dzienniki do programisty</string>
     <string name="app_activity_send_logs_dialog_title">Wyślij dzienniki e-mailem do programisty</string>
@@ -13,7 +16,7 @@
     <string name="app_activity_send_logs_dialog_neutral">Zatrzymaj rejestrowanie</string>
 
     <string name="app_update_activity_dialog_title">Dostępna aktualizacja</string>
-    <string name="app_update_activity_dialog_message">Pobrano aktualizację. Uruchom ponownie aplikację?</string>
+    <string name="app_update_activity_dialog_message">Pobrano aktualizację. Zrestartować aplikację?</string>
     <string name="app_update_activity_dialog_restart">Uruchom ponownie</string>
 
     <string name="bottom_menu_stream">Transmisja</string>
@@ -27,18 +30,23 @@
     <string name="stream_fragment_connected_clients">Połączeni klienci: %1$d</string>
     <string name="stream_fragment_no_address">Nie znaleziono adresu</string>
     <string name="stream_fragment_interface">Łącze: %1$s</string>
-    <string name="stream_fragment_copied">Skopiowane</string>
+    <string name="stream_fragment_copied">Skopiowano</string>
     <string name="stream_fragment_no_web_browser_found">Nie znaleziono przeglądarki internetowej</string>
     <string name="stream_fragment_external_app_error">Błąd aplikacji zewnętrznej</string>
     <string name="stream_fragment_share_address">Udostępnij adres urządzenia</string>
     <string name="stream_fragment_pin">Kod PIN: %1$s</string>
     <string name="stream_fragment_pin_disabled">Kod PIN jest wyłączony</string>
     <string name="stream_fragment_client_disconnected">Rozłączony</string>
-    <string name="stream_fragment_client_slow_network">Powolne połączenie</string>
+    <string name="stream_fragment_client_slow_network">Wolne połączenie</string>
     <string name="stream_fragment_client_connected">Połączony</string>
-
+    <string name="stream_fragment_client_blocked">Zablokowany</string>
+    
     <string name="item_device_address">Adres urządzenia:</string>
-
+    <string name="item_device_address_description_open_address">Otwórz adres</string>
+    <string name="item_device_address_description_copy_address">Skopiuj adres</string>
+    <string name="item_device_address_description_share_address">Udostępnij adres</string>
+    <string name="item_device_address_description_qr_address">Pokaż adres jako kod QR</string>
+    
     <string name="permission_activity_error_title_activity_not_found">Błąd dostępu do okna dialogowego</string>
     <string name="permission_activity_error_activity_not_found">Błąd systemu Android. Nie sprawdzaj \"Nie pokazuj ponownie\" w oknie dialogowym żądania uprawnień, aby przechwycić ekran. Jeśli już to zrobiłeś, przeinstaluj aplikację.</string>
     <string name="permission_activity_cast_permission_required_title">Wymaga pozwolenia</string>
@@ -101,10 +109,18 @@
     <string name="pref_crop_dialog_error_message">Wprowadź prawidłowe wartości przycięcia</string>
     <string name="pref_resize">Zmiana rozmiaru obrazu</string>
     <string name="pref_resize_summary">Zmienia rozmiar obrazu przed wysłaniem</string>
+    <string name="pref_resize_value" translatable="false">%1$d%%</string>
     <string name="pref_resize_dialog_text">Ustaw współczynnik zmiany rozmiaru obrazu w procentach.\nWartość: 10–150 (Domyślnie: 50)\nRozmiar ekranu: %1$dx%2$d</string>
     <string name="pref_resize_dialog_result">Rozmiar obrazu: %1$dx%2$d</string>
     <string name="pref_rotate">Obróć zdjęcie zgodnie z ruchem wskazówek zegara</string>
     <string name="pref_rotate_summary">Obraca obraz przed wysłaniem</string>
+    <string name="pref_rotate_value" translatable="false">%1$d\u00B0</string>
+    <string-array name="pref_rotate_options" translatable="false">
+        <item>0\u00B0</item>
+        <item>90\u00B0</item>
+        <item>180\u00B0</item>
+        <item>270\u00B0</item>
+    </string-array>
     <string name="pref_fps">Ogranicz liczbę klatek na sekundę</string>
     <string name="pref_fps_summary">Ustawia maksymalną liczbę klatek na sekundę</string>
     <string name="pref_fps_dialog">Ustaw maksymalną liczbę klatek na sekundę.\nWartość: 1–60 (Domyślnie: 30)</string>
@@ -123,6 +139,8 @@
     <string name="pref_set_pin">Ustaw kod PIN</string>
     <string name="pref_set_pin_summary">Tworzenie kodu PIN</string>
     <string name="pref_set_pin_dialog">Wprowadź kod PIN.\nDomyślnie: 0000</string>
+    <string name="pref_block_address">Zablokuj adres IP</string>
+    <string name="pref_block_address_summary">Blokuj przez 5 minut adres IP klienta po 5 próbach podania błędnego kodu PIN</string>
     <string name="pref_settings_advanced">Zaawansowane</string>
     <string name="pref_wifi_only">Używaj tylko Wi-Fi</string>
     <string name="pref_wifi_only_summary">Uruchamia serwer tylko poprzez połączenie WiFi</string>
@@ -130,12 +148,15 @@
     <string name="pref_enable_ipv6_summary">Uruchamia także serwer na adresach IPv6</string>
     <string name="pref_enable_localhost">Włącz host lokalny </string>
     <string name="pref_enable_localhost_summary">Uruchamia serwer na lokalnych adresach hostów</string>
+    <string name="pref_localhost_only">Tylko host lokalny</string>
+    <string name="pref_localhost_only_summary">Uruchom serwer tylko na lokalnych adresach hostów</string>
     <string name="pref_server_port">Port serwera</string>
     <string name="pref_server_port_summary">Ustawianie portu dla połączeń przychodzących</string>
-    <string name="pref_server_port_dialog">Ustaw port serwera dla połączeń przychodzących.\nWartość: 1025–65535\n(Domyślnie: 8080)</string>
+    <string name="pref_server_port_dialog">Ustaw numer portu serwera dla połączeń przychodzących.\nWartość: 1025–65535\n(Domyślnie: 8080)</string>
     <string name="pref_logging">Włącz dzienniki aplikacji</string>
     <string name="pref_logging_summary">Zbieraj dzienniki aplikacji</string>
 
+    <string name="about_fragment_app_name" translatable="false">Przesyłanie ekranu przez HTTP</string>
     <string name="about_fragment_app_version">Wersja: %1$s</string>
     <string name="about_fragment_developer_name">Programista Dmitriy Krivoruchko</string>
     <string name="about_fragment_rate_app">Oceń aplikację</string>
@@ -143,5 +164,6 @@
     <string name="about_fragment_write_email_dialog">Wysłać e-mail do autora?</string>
     <string name="about_fragment_email_chooser_header">Wysłam wiadomość e-mail…</string>
     <string name="about_fragment_app_sources">Kod źródłowy aplikacji</string>
-    <string name="about_fragment_privacy_policy">Polityka prywatności</string>
+    <string name="about_fragment_privacy_policy">Polityka prywatności</string
+    <string name="about_fragment_license">Licencja</string>
 </resources>
