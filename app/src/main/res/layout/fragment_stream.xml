@@ -51,6 +51,14 @@
             app:layout_constraintTop_toBottomOf="@id/ll_fragment_stream_addresses"
             tools:text="Pin: 5676" />
 
+        <FrameLayout
+            android:id="@+id/fl_fragment_stream_ad_view_container"
+            android:layout_width="match_parent"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="8dp"
+            android:layout_height="wrap_content"
+            app:layout_constraintTop_toBottomOf="@id/tv_fragment_stream_pin" />
+
         <LinearLayout
             android:id="@+id/ll_fragment_stream_traffic"
             android:layout_width="0dp"
@@ -61,7 +69,7 @@
             android:orientation="vertical"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/tv_fragment_stream_pin">
+            app:layout_constraintTop_toBottomOf="@id/fl_fragment_stream_ad_view_container">
 
             <info.dvkr.screenstream.ui.view.ExpansionHeader
                 android:layout_width="match_parent"

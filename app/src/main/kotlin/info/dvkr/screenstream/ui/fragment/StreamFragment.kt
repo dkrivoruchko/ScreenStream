@@ -38,7 +38,7 @@ import info.dvkr.screenstream.ui.activity.ServiceActivity
 import info.dvkr.screenstream.ui.viewBinding
 import org.koin.android.ext.android.inject
 
-class StreamFragment : Fragment(R.layout.fragment_stream) {
+class StreamFragment : AdFragment(R.layout.fragment_stream) {
 
     private val colorAccent by lazy { ContextCompat.getColor(requireContext(), R.color.colorAccent) }
     private val clipboard: ClipboardManager? by lazy {
@@ -53,6 +53,8 @@ class StreamFragment : Fragment(R.layout.fragment_stream) {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
+        loadAd(binding.flFragmentStreamAdViewContainer)
 
         binding.tvFragmentStreamTrafficHeader.text = getString(R.string.stream_fragment_current_traffic).run {
             format(0.0).setColorSpan(colorAccent, indexOf('%'))

@@ -8,8 +8,8 @@ android {
     defaultConfig {
         minSdkVersion(21)
         targetSdkVersion(30)
-        versionCode = 30701
-        versionName = "3.7.1"
+        versionCode = 30702
+        versionName = "3.7.2"
     }
 
     compileOptions {
@@ -30,10 +30,10 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.5.0")
     implementation("org.jetbrains.kotlin:kotlin-reflect:1.5.20")
 
-    implementation("androidx.core:core:1.5.0")
+    implementation("androidx.core:core:1.6.0")
 
-    implementation("io.ktor:ktor-server-cio:1.6.0")
+    implementation("io.ktor:ktor-server-cio:1.6.1")
 
     implementation("com.github.iamironz:binaryprefs:1.0.1")
-    implementation('com.elvishew:xlog:1.10.0')
+    implementation('com.elvishew:xlog:1.10.1')
 }

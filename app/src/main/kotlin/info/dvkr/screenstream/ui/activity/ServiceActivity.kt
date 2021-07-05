@@ -25,7 +25,7 @@ import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 
-abstract class ServiceActivity(@LayoutRes contentLayoutId: Int) : AdActivity(contentLayoutId) {
+abstract class ServiceActivity(@LayoutRes contentLayoutId: Int) : AppUpdateActivity(contentLayoutId) {
 
     private val serviceMessageLiveData = MutableLiveData<ServiceMessage>()
     private var serviceMessageFlowJob: Job? = null

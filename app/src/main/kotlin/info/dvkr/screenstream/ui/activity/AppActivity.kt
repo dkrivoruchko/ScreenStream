@@ -56,8 +56,6 @@ class AppActivity : PermissionActivity(R.layout.activity_app) {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        loadAd(binding.flActivityAppAdViewContainer)
-
         routeIntentAction(intent)
     }
 
