@@ -3,10 +3,12 @@
     <string name="image_generator_press_start">Premi AVVIA nel dispositivo</string>
     <string name="image_generator_go_to_new_address">Vai al nuovo indirizzo</string>
     <string name="image_generator_reload_this_page">Ricarica questa pagina</string>
+    <string name="image_generator_address_blocked">Indirizzo client bloccato</string>
 
     <!--HTML text-->
     <string name="html_stream_require_pin">L\'accesso a questa trasmissione richiede un PIN</string>
     <string name="html_enter_pin">Inserisci pin:\u0020</string>
     <string name="html_submit_text">Invia</string>
     <string name="html_wrong_pin">Pin errato!</string>
+    <string name="html_address_blocked">Indirizzo client bloccato</string>
 </resources>
