@@ -22,7 +22,7 @@
 
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
-            android:value="ca-app-pub-3406399667931208~2862159727"/>
+            android:value="${adMobPubId}" />
 
         <activity
             android:name=".ui.activity.AppActivity"

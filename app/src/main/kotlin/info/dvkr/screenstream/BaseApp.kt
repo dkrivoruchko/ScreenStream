@@ -25,6 +25,8 @@ abstract class BaseApp : Application() {
             .build()
     }
 
+    var lastAdLoadTime: Long = 0
+
     abstract fun initLogger()
 
     override fun onCreate() {

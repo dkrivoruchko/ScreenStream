@@ -12,7 +12,6 @@ import android.view.ViewGroup
 import android.widget.Toast
 import androidx.appcompat.widget.AppCompatImageView
 import androidx.core.content.ContextCompat
-import androidx.fragment.app.Fragment
 import androidx.lifecycle.Lifecycle
 import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.DiffUtil
@@ -54,7 +53,7 @@ class StreamFragment : AdFragment(R.layout.fragment_stream) {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        loadAd(binding.flFragmentStreamAdViewContainer)
+        loadAdOnViewCreated(binding.flFragmentStreamAdViewContainer)
 
         binding.tvFragmentStreamTrafficHeader.text = getString(R.string.stream_fragment_current_traffic).run {
             format(0.0).setColorSpan(colorAccent, indexOf('%'))
@@ -133,7 +132,8 @@ class StreamFragment : AdFragment(R.layout.fragment_stream) {
             else
                 getString(R.string.stream_fragment_pin, settingsReadOnly.pin)
 
-            binding.tvFragmentStreamPin.text = pinText.setColorSpan(colorAccent, pinText.length - settingsReadOnly.pin.length)
+            binding.tvFragmentStreamPin.text =
+                pinText.setColorSpan(colorAccent, pinText.length - settingsReadOnly.pin.length)
         } else {
             binding.tvFragmentStreamPin.setText(R.string.stream_fragment_pin_disabled)
         }

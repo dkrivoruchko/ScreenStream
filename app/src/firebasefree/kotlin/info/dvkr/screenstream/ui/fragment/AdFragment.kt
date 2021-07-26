@@ -8,7 +8,7 @@ import androidx.fragment.app.Fragment
 
 abstract class AdFragment(@LayoutRes contentLayoutId: Int) : Fragment(contentLayoutId) {
 
-    fun loadAd(adViewContainer: FrameLayout) {
+    fun loadAdOnViewCreated(adViewContainer: FrameLayout) {
         adViewContainer.visibility = View.GONE
     }
 }
