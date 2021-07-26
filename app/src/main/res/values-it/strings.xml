@@ -1,7 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name" translatable="false">ScreenStream</string>
-
     <string name="error_title">Errore</string>
     <string name="error_port_in_use">Porta già in uso. Scegline un\'altra.</string>
     <string name="error_invalid_media_projection">Errore di sicurezza: protezione multimedia non valida. Riprova.</string>
@@ -105,22 +103,14 @@
     <string name="pref_crop_dialog_crop_left">Ritaglia a sinistra:</string>
     <string name="pref_crop_dialog_crop_right">Ritaglia a destra:</string>
     <string name="pref_crop_dialog_pixels">pixel</string>
-    <string name="pref_crop_dialog_warning_message">Il ritaglio verrà ignorato se il risultato è un\'immagine vuota/string>
+    <string name="pref_crop_dialog_warning_message">Il ritaglio verrà ignorato se il risultato è un\'immagine vuota</string>
     <string name="pref_crop_dialog_error_message">Inserisci valori di ritaglio validi</string>
     <string name="pref_resize">Ridimensiona immagine</string>
     <string name="pref_resize_summary">Ridimensiona l\'immagine prima di inviarla al client</string>
-    <string name="pref_resize_value" translatable="false">%1$d%%</string>
     <string name="pref_resize_dialog_text">Imposta la percentuale di ridimensionamento.\nValori: 10–150 (Predefinita: 50)\nDimensione schermo: %1$dx%2$d</string>
     <string name="pref_resize_dialog_result">Dimensione immagine: %1$dx%2$d</string>
     <string name="pref_rotate">Ruota immagine in senso orario</string>
     <string name="pref_rotate_summary">Ruota l\'immagine prima di inviarla al client</string>
-    <string name="pref_rotate_value" translatable="false">%1$d\u00B0</string>
-    <string-array name="pref_rotate_options" translatable="false">
-        <item>0\u00B0</item>
-        <item>90\u00B0</item>
-        <item>180\u00B0</item>
-        <item>270\u00B0</item>
-    </string-array>
     <string name="pref_fps">Limita frame al secondo</string>
     <string name="pref_fps_summary">Imposta i frame al secondo massimi</string>
     <string name="pref_fps_dialog">Imposta i frame al secondo massimi.\nValori: 1–60 (Predefiniti: 30)</string>
@@ -156,7 +146,6 @@
     <string name="pref_logging">Attiva registro dell\'applicazione</string>
     <string name="pref_logging_summary">Raccogli il registro dell\'applicazione</string>
 
-    <string name="about_fragment_app_name" translatable="false">Screen Stream over HTTP</string>
     <string name="about_fragment_app_version">Versione: %1$s</string>
     <string name="about_fragment_developer_name">Sviluppato da Dmitriy Krivoruchko</string>
     <string name="about_fragment_rate_app">Valuta l\'app</string>
