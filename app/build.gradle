@@ -12,8 +12,8 @@ android {
         applicationId = "info.dvkr.screenstream"
         minSdkVersion(21)
         targetSdkVersion(30)
-        versionCode = 30704
-        versionName = "3.7.4"
+        versionCode = 30705
+        versionName = "3.7.5"
         resConfigs("en", "ru", "pt-rBR", "zh-rTW", "fr-rFR", "fa", "it", "pl", "hi", "de", "sk", "es", "ar", "ja", "gl", "ca")
 
         vectorDrawables.useSupportLibrary = true
@@ -45,11 +45,10 @@ android {
     productFlavors {
         create("firebase") {
             manifestPlaceholders = ["adMobPubId": "${localProps.getProperty("ad.pubId")}"]
-            buildConfigField "String", "AD_UNIT_ID", localProps.getProperty("ad.unitId")
+            buildConfigField "String", "AD_UNIT_ID", localProps.getProperty("ad.unitId", "")
         }
         create("firebasefree") {
             manifestPlaceholders = ["adMobPubId": ""]
-//            buildConfigField "String", "AD_UNIT_ID", "ca-app-pub-3940256099942544/6300978111"
             firebaseCrashlytics.mappingFileUploadEnabled = false
         }
     }

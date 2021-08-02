@@ -43,12 +43,12 @@ abstract class AdFragment(@LayoutRes contentLayoutId: Int) : Fragment(contentLay
     }
 
     private fun loadAd(adViewContainer: FrameLayout) {
+        adViewContainer.minimumHeight = adSize.getHeightInPixels(requireContext())
         viewLifecycleOwner.lifecycleScope.launchWhenStarted {
             delay((requireActivity().application as BaseApp).lastAdLoadTime + 61_000 - System.currentTimeMillis())
             MobileAds.initialize(requireActivity()) {}
             adView = AdView(requireActivity()).also { adView ->
                 adViewContainer.addView(adView)
-                adViewContainer.minimumHeight = adSize.getHeightInPixels(requireContext())
                 adView.adUnitId = if (BuildConfig.DEBUG) TEST_AD_UNIT_ID else BuildConfig.AD_UNIT_ID;
                 adView.adSize = adSize
                 adView.loadAd(AdRequest.Builder().build())

@@ -30,7 +30,7 @@ dependencies {
 
     implementation("androidx.core:core:1.6.0")
 
-    implementation("io.ktor:ktor-server-cio:1.6.0")
+    implementation("io.ktor:ktor-server-cio:1.6.2")
 
     implementation("com.github.iamironz:binaryprefs:1.0.1")
     implementation('com.elvishew:xlog:1.11.0')
