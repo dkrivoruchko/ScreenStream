@@ -2,7 +2,7 @@
     <dimen name="fab_size_normal">56dp</dimen>
 
     <dimen name="fragments_margin_bottom">72dp</dimen>
-    <dimen name="fragment_stream_fab_margin_bottom">68dp</dimen>
+    <dimen name="fragment_stream_fab_margin_bottom">36dp</dimen>
     <dimen name="fragment_stream_qrcode_size">256dp</dimen>
     <dimen name="fragment_settings_item_start_end">16dp</dimen>
     <dimen name="fragment_settings_item_min_height">72dp</dimen>

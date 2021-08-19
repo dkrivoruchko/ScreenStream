@@ -110,7 +110,7 @@
     <string name="pref_resize_dialog_text">Встановіть фактор зміни розміру у відсотках.\nВеличини: 10–150 (За замовчуванням: 50)\nРозмір екрану: %1$dx%2$d</string>
     <string name="pref_resize_dialog_result">Розмір картинки: %1$dx%2$d</string>
     <string name="pref_rotate">Повернути картинку за годинниковаою стрілкою</string>
-    <string name="pref_rotate_summary">Повернути картинку перед надсиланням на клієнт<</string>
+    <string name="pref_rotate_summary">Повернути картинку перед надсиланням на клієнт</string>
     <string name="pref_fps">Встановити ліміт кадрів на секунду</string>
     <string name="pref_fps_summary">Встановити максимальний ліміт кадрів на секунду</string>
     <string name="pref_fps_dialog">Встановити ліміт кадрів на секунду.\nВеличини: 1–60 (За замовчуванням: 30)</string>

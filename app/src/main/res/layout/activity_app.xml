@@ -84,7 +84,6 @@
         app:layout_constraintBottom_toBottomOf="@id/bottom_navigation_activity_app"
         app:layout_constraintEnd_toEndOf="@id/bottom_navigation_activity_app"
         app:layout_constraintStart_toStartOf="@id/bottom_navigation_activity_app"
-        app:layout_constraintTop_toTopOf="@id/bottom_navigation_activity_app"
         app:srcCompat="@drawable/ic_fab_start_24dp"
         app:tint="@null" />
 </androidx.constraintlayout.widget.ConstraintLayout>
