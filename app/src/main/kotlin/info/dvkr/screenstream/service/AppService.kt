@@ -1,5 +1,6 @@
 package info.dvkr.screenstream.service
 
+import android.annotation.SuppressLint
 import android.app.Service
 import android.content.Context
 import android.content.Intent
@@ -143,6 +144,7 @@ class AppService : Service() {
         isRunning = true
     }
 
+    @SuppressLint("MissingPermission")
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val intentAction = IntentAction.fromIntent(intent)
         intentAction != null || return START_NOT_STICKY
@@ -154,17 +156,20 @@ class AppService : Service() {
             }
 
             IntentAction.StartStream -> {
-                sendBroadcast(Intent(Intent.ACTION_CLOSE_SYSTEM_DIALOGS))
+                if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.R)
+                    sendBroadcast(Intent(Intent.ACTION_CLOSE_SYSTEM_DIALOGS))
                 appStateMachine?.sendEvent(AppStateMachine.Event.StartStream)
             }
 
             IntentAction.StopStream -> {
-                sendBroadcast(Intent(Intent.ACTION_CLOSE_SYSTEM_DIALOGS))
+                if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.R)
+                    sendBroadcast(Intent(Intent.ACTION_CLOSE_SYSTEM_DIALOGS))
                 appStateMachine?.sendEvent(AppStateMachine.Event.StopStream)
             }
 
             IntentAction.Exit -> {
-                sendBroadcast(Intent(Intent.ACTION_CLOSE_SYSTEM_DIALOGS))
+                if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.R)
+                    sendBroadcast(Intent(Intent.ACTION_CLOSE_SYSTEM_DIALOGS))
                 notificationHelper.hideErrorNotification()
                 stopForeground(true)
                 sendMessageToActivities(ServiceMessage.FinishActivity)
@@ -185,7 +190,8 @@ class AppService : Service() {
                 appStateMachine?.sendEvent(AppStateMachine.Event.StartStream, 4500)
 
             IntentAction.RecoverError -> {
-                sendBroadcast(Intent(Intent.ACTION_CLOSE_SYSTEM_DIALOGS))
+                if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.R)
+                    sendBroadcast(Intent(Intent.ACTION_CLOSE_SYSTEM_DIALOGS))
                 notificationHelper.hideErrorNotification()
                 appStateMachine?.sendEvent(AppStateMachine.Event.RecoverError)
             }

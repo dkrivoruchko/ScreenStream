@@ -2,12 +2,12 @@ apply plugin: "com.android.library"
 apply plugin: "kotlin-android"
 
 android {
-    compileSdkVersion(30)
-    buildToolsVersion("30.0.3")
+    compileSdkVersion(31)
+    buildToolsVersion("31.0.0")
 
     defaultConfig {
         minSdkVersion(21)
-        targetSdkVersion(30)
+        targetSdkVersion(31)
     }
 
     compileOptions {
@@ -26,11 +26,11 @@ android {
 
 dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.5.1")
-    implementation("org.jetbrains.kotlin:kotlin-reflect:1.5.21")
+    implementation("org.jetbrains.kotlin:kotlin-reflect:1.5.30")
 
     implementation("androidx.core:core:1.6.0")
 
-    implementation("io.ktor:ktor-server-cio:1.6.2")
+    implementation("io.ktor:ktor-server-cio:1.6.3")
 
     implementation("com.github.iamironz:binaryprefs:1.0.1")
     implementation('com.elvishew:xlog:1.11.0')

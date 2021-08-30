@@ -26,6 +26,7 @@
 
         <activity
             android:name=".ui.activity.AppActivity"
+            android:exported="true"
             android:launchMode="singleTask"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
@@ -43,6 +44,7 @@
 
         <service
             android:name=".service.TileActionService"
+            android:exported="true"
             android:icon="@drawable/ic_tile_default_24dp"
             android:label="@string/app_name"
             android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">

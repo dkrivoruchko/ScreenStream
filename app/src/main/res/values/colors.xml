@@ -27,9 +27,6 @@
     <color name="colorClientDivider">#FFFFFF</color>
     <color name="colorSettingsDivider">#E0E0E0</color>
 
-    <color name="colorNotificationBackground">#F4F4F4</color>
-    <color name="colorNotificationText">@color/textColorSecondary</color>
-
     <color name="colorError">#D2283D</color>
     <color name="colorErrorText">#FFFFFF</color>
     <color name="colorErrorBackgroundStart">#FB334C</color>
