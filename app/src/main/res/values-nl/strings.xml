@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="error_title">Foutmelding</string>
+    <string name="error_port_in_use">Poort is al in gebruik, kies een andere.</string>
+    <string name="error_invalid_media_projection">Beveilig fout: Ongeldige media projectie. Probeer het nogmaals.</string>
+    <string name="error_ip_address_not_found">IP adres niet gevonden.\n Probeer \"Gebruik alleen WiFi\" Uit te zetten in de instellingen.</string>
+    <string name="error_wrong_image_format">Systeem maakt een frame in een onbekend formaat. Geen oplossing mogelijk. Sorry.</string>
+    <string name="error_exit">Sluiten</string>
+
+    <string name="app_activity_collecting_logs">Logboek word opgeslagen…</string>
+    <string name="app_activity_send_logs">Stuur het logboek naar de developers</string>
+    <string name="app_activity_send_logs_dialog_title">Stuur het logboek via mail naar de developers</string>
+    <string name="app_activity_send_logs_dialog_message">Beschrijf de fout:</string>
+    <string name="app_activity_send_logs_dialog_neutral">Stop met loggen</string>
+
+    <string name="app_update_activity_dialog_title">Update beschikbaar</string>
+    <string name="app_update_activity_dialog_message">Een update is zojuist gedownload. Herstart de app</string>
+    <string name="app_update_activity_dialog_restart">Herstart</string>
+
+    <string name="bottom_menu_stream">Stream</string>
+    <string name="bottom_menu_settings">Instellingen</string>
+    <string name="bottom_menu_start">Start</string>
+    <string name="bottom_menu_stop">Stop</string>
+    <string name="bottom_menu_about">Informatie</string>
+    <string name="bottom_menu_exit">Sluiten</string>
+
+    <string name="stream_fragment_current_traffic">Internetverkeer: %1$,.2f Mbit/s</string>
+    <string name="stream_fragment_connected_clients">Verbonden clients: %1$d</string>
+    <string name="stream_fragment_no_address">Geen adres gevonden</string>
+    <string name="stream_fragment_interface">Interface: %1$s</string>
+    <string name="stream_fragment_copied">gekopieerd</string>
+    <string name="stream_fragment_no_web_browser_found">Geen webbrowser gevonden</string>
+    <string name="stream_fragment_external_app_error">Externe applicatie fout</string>
+    <string name="stream_fragment_share_address">Deel toestel adres</string>
+    <string name="stream_fragment_pin">Pin: %1$s</string>
+    <string name="stream_fragment_pin_disabled">Pin is uit</string>
+    <string name="stream_fragment_client_disconnected">Niet verbonden</string>
+    <string name="stream_fragment_client_slow_network">Slome verbinding</string>
+    <string name="stream_fragment_client_connected">Verbonden</string>
+    <string name="stream_fragment_client_blocked">Geblokeerd</string>
+
+    <string name="item_device_address">Toestel adres:</string>
+    <string name="item_device_address_description_open_address">Open adressen</string>
+    <string name="item_device_address_description_copy_address">Copieer adres</string>
+    <string name="item_device_address_description_share_address">Deel adres</string>
+    <string name="item_device_address_description_qr_address">Toon adres als QR-code</string>
+
+    <string name="permission_activity_error_title_activity_not_found">Toestemmingen fout</string>
+    <string name="permission_activity_error_activity_not_found">Android bug. Niet controleren \"Niet meer tonen\" Bij de toestemmingen, geef toestemming om het scherm op te nemen. Als je dit al gedaan hebt, download de app opnieuw.</string>
+    <string name="permission_activity_cast_permission_required_title">Toestemming nodig</string>
+    <string name="permission_activity_cast_permission_required">ScreenStream app heeft Scherm Delen toestemming nodig om je scherm op te nemen.</string>
+    <string name="permission_activity_error_title">Fout</string>
+    <string name="permission_activity_error_unknown">Onbekende fout</string>
+
+    <string name="notification_ready_to_stream">Klaar om te streamen</string>
+    <string name="notification_press_start">Druk op START om beginnen met te streamen</string>
+    <string name="notification_start">Start</string>
+    <string name="notification_exit">Sluit</string>
+    <string name="notification_stream">Stream…</string>
+    <string name="notification_press_stop">Druk op STOP om de stream te stoppen</string>
+    <string name="notification_stop">Stop</string>
+
+    <string name="toast_slow_client_connection">Slome client verbinding gedetecteerd</string>
+
+    <string name="pref_settings_interface">Interface</string>
+    <string name="pref_night_mode">Donker modus</string>
+    <string-array name="pref_night_mode_options_api21_28">
+        <item>Altijd</item>
+        <item>Automatisch via batterij</item>
+        <item>Nooit</item>
+    </string-array>
+    <string-array name="pref_night_mode_options_api29">
+        <item>Altijd</item>
+        <item>Automatisch (via systeem)</item>
+        <item>Nooit</item>
+    </string-array>
+    <string name="pref_notification">Toestel notificatie instellingen</string>
+    <string name="pref_notification_summary">Open notificatie instellingen</string>
+    <string name="pref_stop_on_sleep">Stop stream bij slaapmodus</string>
+    <string name="pref_stop_on_sleep_summary">Stop stream als het scherm word uitgezet</string>
+    <string name="pref_start_on_boot">Start stream automatisch met openen</string>
+    <string name="pref_start_on_boot_summary">Start stream automatisch met toestel</string>
+    <string name="pref_auto_start_stop">Auto Start/Stop stream</string>
+    <string name="pref_auto_start_stop_summary">Auto Start/Stop stream als clients verbinden/verbinding sluiten</string>
+    <string name="pref_detect_slow_connections">Meld slome verbindingen</string>
+    <string name="pref_detect_slow_connections_summary">Meld slome client verbindingen</string>
+    <string name="pref_html_buttons">Zet pagina knoppen aan</string>
+    <string name="pref_html_buttons_summary">Laat controle knoppen zien op pagina</string>
+    <string name="pref_html_back_color">Pagina achtergrond kleur</string>
+    <string name="pref_html_back_color_summary">Stel de pagina achtergrond kleur in</string>
+    <string name="pref_html_back_color_title">Selecteer pagina achtergrond kleur</string>
+    <string name="pref_settings_image">Beeld</string>
+    <string name="pref_vr_mode">Virtual Reality modus</string>
+    <string name="pref_vr_mode_summary">Neem het halve scherm op</string>
+    <string-array name="pref_vr_mode_options">
+        <item>Gebruik linker deel</item>
+        <item>Gebruik rechter deel</item>
+    </string-array>
+    <string name="pref_crop">Snij het beeld bij</string>
+    <string name="pref_crop_summary">Snij het beeld bij voor het sturen naar de client</string>
+    <string name="pref_crop_dialog_crop_top">Bijsnijden vanaf boven:</string>
+    <string name="pref_crop_dialog_crop_bottom">Bijsnijden vanaf beneden:</string>
+    <string name="pref_crop_dialog_crop_left">Bijsnijden vanaf links:</string>
+    <string name="pref_crop_dialog_crop_right">Bijsnijden vanaf rechts:</string>
+    <string name="pref_crop_dialog_pixels">pixels</string>
+    <string name="pref_crop_dialog_warning_message">Bijsnijden word niet gebruikt wanneer het scherm leeg is</string>
+    <string name="pref_crop_dialog_error_message">Vul de juiste bijsnijdings waardes in.</string>
+    <string name="pref_resize">Formaat van beeld weizigen</string>
+    <string name="pref_resize_summary">Formaat weizigen voor het sturen naar de client</string>
+    <string name="pref_resize_dialog_text">Waarde van formaat weizigen in procenten invullen.\nWaardes: 10–150 (Standaard: 50)\nScherm maat: %1$dx%2$d</string>
+    <string name="pref_resize_dialog_result">Beeld maat: %1$dx%2$d</string>
+    <string name="pref_rotate">Draai het scherm om</string>
+    <string name="pref_rotate_summary">Draai het scherm om voor het sturen naar de client</string>
+    <string name="pref_fps">Limiteer beelden per seconden (FPS)</string>
+    <string name="pref_fps_summary">Maximum beelden per seconden (FPS)</string>
+    <string name="pref_fps_dialog">Stel het maximum beelden per seconden in (FPS).\nWaardes: 1–60 (Standaard: 30)</string>
+    <string name="pref_jpeg_quality">JPEG compressie kwaliteit</string>
+    <string name="pref_jpeg_quality_summary">Stel JPEG compressie kwaliteit in</string>
+    <string name="pref_jpeg_quality_dialog">Stel JPEG compressie kwaliteit.\nWaardes: 10–100 (Standaard: 80)</string>
+    <string name="pref_settings_security">Beveiliging</string>
+    <string name="pref_enable_pin">Zet pin aan</string>
+    <string name="pref_enable_pin_summary">Beveilig stream met PIN</string>
+    <string name="pref_hide_pin">Verberg de PIN met de start van de stream</string>
+    <string name="pref_hide_pin_summary">Toon sterretjes (*) in plaats van nummers als stream aan is</string>
+    <string name="pref_new_pin_on_start">Nieuwe pin met start</string>
+    <string name="pref_new_pin_on_start_summary">Genereer een nieuwe pin met start van applicatie</string>
+    <string name="pref_auto_change_pin">Verander de pin automatisch</string>
+    <string name="pref_auto_change_pin_summary">Genereer een nieuwe pin voor elke nieuwe stream</string>
+    <string name="pref_set_pin">Stel de pin in</string>
+    <string name="pref_set_pin_summary">Stel de pin handmatig in</string>
+    <string name="pref_set_pin_dialog">Voeg de pin in.\nStandaard: 0000</string>
+    <string name="pref_block_address">Blokkeer IP adressen</string>
+    <string name="pref_block_address_summary">Blok IP adressen na 5 foute pogingen voor 5 minuten</string>
+    <string name="pref_settings_advanced">Overigen</string>
+    <string name="pref_wifi_only">Gebruik alleen WiFI</string>
+    <string name="pref_wifi_only_summary">Zet de server alleen aan met een WiFi verbinding</string>
+    <string name="pref_enable_ipv6">Zet de IPv6 ondersteuning aan</string>
+    <string name="pref_enable_ipv6_summary">Zet de server ook aan op IPv6 verbindingen</string>
+    <string name="pref_enable_localhost">Schakel lokale host aan (localhost)</string>
+    <string name="pref_enable_localhost_summary">Zet de server ook aan op de lokale host</string>
+    <string name="pref_localhost_only">Alleen localhost</string>
+    <string name="pref_localhost_only_summary">Steld de server in voor alleen lokale host verbindingen</string>
+    <string name="pref_server_port">Server poort</string>
+    <string name="pref_server_port_summary">Stel welke poort gebruikt mag worden voor verbindingen in</string>
+    <string name="pref_server_port_dialog">Stel de server poort in voor inkomende verbindingen.\nWaardes: 1025–65535\n(Standaard: 8080)</string>
+    <string name="pref_logging">Zet applicatie loggen aan</string>
+    <string name="pref_logging_summary">Totaal logboek opsomming</string>
+
+    <string name="about_fragment_app_version">Versie: %1$s</string>
+    <string name="about_fragment_developer_name">Gemaakt door Dmitriy Krivoruchko</string>
+    <string name="about_fragment_rate_app">Beoordeel de app</string>
+    <string name="about_fragment_write_email">Schrijf een email naar de developer</string>
+    <string name="about_fragment_write_email_dialog">Stuur een mail naar de developer?</string>
+    <string name="about_fragment_email_chooser_header">Mail word verzonden…</string>
+    <string name="about_fragment_app_sources">Applicatie bronnen</string>
+    <string name="about_fragment_privacy_policy">privacybeleid</string>
+    <string name="about_fragment_license">Licentie</string>
+</resources>

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--BitmapNotification-->
+    <string name="image_generator_press_start">Druk START op het toestel</string>
+    <string name="image_generator_go_to_new_address">Ga naar het nieuwe adres</string>
+    <string name="image_generator_reload_this_page">Herlaad deze pagina</string>
+    <string name="image_generator_address_blocked">Uw adres is geblokeerd</string>
+
+    <!--HTML text-->
+    <string name="html_stream_require_pin">Deze stream is beveiligd met een PIN</string>
+    <string name="html_enter_pin">Vul de pin in:\u0020</string>
+    <string name="html_submit_text">Verstuur</string>
+    <string name="html_wrong_pin">Verkeerde pin!</string>
+    <string name="html_address_blocked">Uw adres is geblokeerd door te veel pogenigen</string>
+</resources>
