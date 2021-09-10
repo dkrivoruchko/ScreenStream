@@ -39,6 +39,7 @@ abstract class PermissionActivity(@LayoutRes contentLayoutId: Int) : ServiceActi
         super.onSaveInstanceState(outState)
     }
 
+    @Suppress("DEPRECATION")
     override fun onServiceMessage(serviceMessage: ServiceMessage) {
         super.onServiceMessage(serviceMessage)
 
@@ -70,7 +71,7 @@ abstract class PermissionActivity(@LayoutRes contentLayoutId: Int) : ServiceActi
             }
         }
     }
-
+    @Suppress("DEPRECATION")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         if (requestCode == SCREEN_CAPTURE_REQUEST_CODE) {
             if (resultCode == Activity.RESULT_OK) {

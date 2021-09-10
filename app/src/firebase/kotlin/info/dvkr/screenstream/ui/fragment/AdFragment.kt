@@ -1,11 +1,11 @@
 package info.dvkr.screenstream.ui.fragment
 
-import android.util.DisplayMetrics
 import android.view.ViewTreeObserver
 import android.widget.FrameLayout
 import androidx.annotation.LayoutRes
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
+import androidx.window.layout.WindowMetricsCalculator
 import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.AdSize
 import com.google.android.gms.ads.AdView
@@ -16,10 +16,6 @@ import kotlinx.coroutines.delay
 
 abstract class AdFragment(@LayoutRes contentLayoutId: Int) : Fragment(contentLayoutId) {
 
-    private companion object {
-        private const val TEST_AD_UNIT_ID = "ca-app-pub-3940256099942544/6300978111"
-    }
-
     private var adView: AdView? = null
     private lateinit var adSize: AdSize
 
@@ -28,11 +24,10 @@ abstract class AdFragment(@LayoutRes contentLayoutId: Int) : Fragment(contentLay
         else adViewContainer.viewTreeObserver.addOnGlobalLayoutListener(
             object : ViewTreeObserver.OnGlobalLayoutListener {
                 override fun onGlobalLayout() {
-                    val outMetrics =
-                        DisplayMetrics().also { requireActivity().windowManager.defaultDisplay.getMetrics(it) }
                     var adWidthPixels = adViewContainer.width.toFloat()
-                    if (adWidthPixels == 0f) adWidthPixels = outMetrics.widthPixels.toFloat()
-                    val adWidth = (adWidthPixels / outMetrics.density).toInt()
+                    if (adWidthPixels == 0f) adWidthPixels = WindowMetricsCalculator.getOrCreate()
+                        .computeCurrentWindowMetrics(requireActivity()).bounds.width().toFloat()
+                    val adWidth = (adWidthPixels / resources.displayMetrics.density).toInt()
                     adSize = AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(requireContext(), adWidth)
 
                     adViewContainer.viewTreeObserver.removeOnGlobalLayoutListener(this)
@@ -43,13 +38,13 @@ abstract class AdFragment(@LayoutRes contentLayoutId: Int) : Fragment(contentLay
     }
 
     private fun loadAd(adViewContainer: FrameLayout) {
-        adViewContainer.minimumHeight = adSize.getHeightInPixels(requireContext())
+        adViewContainer.minimumHeight = adSize.getHeightInPixels(requireActivity())
         viewLifecycleOwner.lifecycleScope.launchWhenStarted {
             delay((requireActivity().application as BaseApp).lastAdLoadTime + 61_000 - System.currentTimeMillis())
             MobileAds.initialize(requireActivity()) {}
             adView = AdView(requireActivity()).also { adView ->
                 adViewContainer.addView(adView)
-                adView.adUnitId = if (BuildConfig.DEBUG) TEST_AD_UNIT_ID else BuildConfig.AD_UNIT_ID;
+                adView.adUnitId = BuildConfig.AD_UNIT_ID
                 adView.adSize = adSize
                 adView.loadAd(AdRequest.Builder().build())
                 (requireActivity().application as BaseApp).lastAdLoadTime = System.currentTimeMillis()

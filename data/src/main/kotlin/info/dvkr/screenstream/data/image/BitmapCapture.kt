@@ -1,6 +1,7 @@
 package info.dvkr.screenstream.data.image
 
 import android.annotation.SuppressLint
+import android.content.Context
 import android.graphics.*
 import android.hardware.display.DisplayManager
 import android.hardware.display.VirtualDisplay
@@ -8,12 +9,16 @@ import android.media.Image
 import android.media.ImageReader
 import android.media.projection.MediaProjection
 import android.opengl.GLES20
+import android.os.Build
 import android.os.Handler
 import android.os.HandlerThread
 import android.os.Process
 import android.util.DisplayMetrics
 import android.view.Display
 import android.view.Surface
+import android.view.WindowManager
+import androidx.annotation.RequiresApi
+import androidx.core.content.ContextCompat
 import com.android.grafika.gles.EglCore
 import com.android.grafika.gles.FullFrameRect
 import com.android.grafika.gles.OffscreenSurface
@@ -33,7 +38,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
 
 class BitmapCapture(
-    private val display: Display,
+    private val applicationContext: Context,
     private val settingsReadOnly: SettingsReadOnly,
     private val mediaProjection: MediaProjection,
     private val bitmapStateFlow: MutableStateFlow<Bitmap>,
@@ -56,6 +61,33 @@ class BitmapCapture(
         HandlerThread("BitmapCapture", Process.THREAD_PRIORITY_BACKGROUND)
     }
     private val imageThreadHandler: Handler by lazy { Handler(imageThread.looper) }
+
+    private val display: Display by lazy {
+        ContextCompat.getSystemService(applicationContext, DisplayManager::class.java)!!
+            .getDisplay(Display.DEFAULT_DISPLAY)
+    }
+
+    @RequiresApi(Build.VERSION_CODES.S)
+    private fun windowContext(): Context = applicationContext.createDisplayContext(display)
+        .createWindowContext(WindowManager.LayoutParams.TYPE_APPLICATION, null)
+
+    private fun getDensityDpiCompat(): Int =
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+            @Suppress("DEPRECATION")
+            DisplayMetrics().also { display.getMetrics(it) }.densityDpi
+        } else {
+            windowContext().resources.configuration.densityDpi
+        }
+
+    private fun getScreenSizeCompat(): Point =
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+            @Suppress("DEPRECATION")
+            val metrics = DisplayMetrics().also { display.getMetrics(it) }
+            Point(metrics.widthPixels, metrics.heightPixels)
+        } else {
+            val bounds = windowContext().getSystemService(WindowManager::class.java).maximumWindowMetrics.bounds
+            Point(bounds.width(), bounds.height())
+        }
 
     private var imageListener: ImageListener? = null
     private var imageReader: ImageReader? = null
@@ -159,7 +191,7 @@ class BitmapCapture(
 
     @SuppressLint("WrongConstant")
     private fun startDisplayCapture() {
-        val screenSize = Point().also { display.getRealSize(it) }
+        val screenSize = getScreenSizeCompat()
 
         val screenSizeX: Int
         val screenSizeY: Int
@@ -201,14 +233,14 @@ class BitmapCapture(
         }
 
         try {
-            val densityDpi = DisplayMetrics().also { display.getMetrics(it) }.densityDpi
-            if (fallback.not()) {
-                virtualDisplay = mediaProjection.createVirtualDisplay(
+            val densityDpi = getDensityDpiCompat()
+            virtualDisplay = if (fallback.not()) {
+                mediaProjection.createVirtualDisplay(
                     "ScreenStreamVirtualDisplay", screenSizeX, screenSizeY, densityDpi,
                     DisplayManager.VIRTUAL_DISPLAY_FLAG_PRESENTATION, imageReader?.surface, null, imageThreadHandler
                 )
             } else {
-                virtualDisplay = mediaProjection.createVirtualDisplay(
+                mediaProjection.createVirtualDisplay(
                     "ScreenStreamVirtualDisplay", screenSizeX, screenSizeY, densityDpi,
                     DisplayManager.VIRTUAL_DISPLAY_FLAG_PRESENTATION, mProducerSide, null, imageThreadHandler
                 )
@@ -350,7 +382,7 @@ class BitmapCapture(
         }
 
         var imageCropLeft: Int = 0
-        var imageCropRight: Int = 0
+        var imageCropRight = 0
         var imageCropTop: Int = 0
         var imageCropBottom: Int = 0
         if (settingsReadOnly.imageCrop)

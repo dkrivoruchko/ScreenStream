@@ -165,7 +165,6 @@ public final class QrCode {
                 throw new DataTooLongException(msg);
             }
         }
-        assert dataUsedBits != -1;
 
         // Increase the error correction level while the data still fits in the current version number
         for (Ecc newEcl : Ecc.values()) {  // From low to high

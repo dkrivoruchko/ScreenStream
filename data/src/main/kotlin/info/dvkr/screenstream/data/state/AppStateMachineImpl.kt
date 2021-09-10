@@ -8,8 +8,6 @@ import android.media.projection.MediaProjection
 import android.media.projection.MediaProjectionManager
 import android.os.Handler
 import android.os.Looper
-import android.view.WindowManager
-import androidx.core.content.ContextCompat
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.data.httpserver.HttpServer
 import info.dvkr.screenstream.data.image.BitmapCapture
@@ -31,7 +29,7 @@ class AppStateMachineImpl(
     private val onEffect: suspend (AppStateMachine.Effect) -> Unit
 ) : AppStateMachine {
 
-    private val applicationContext = context.applicationContext
+    private val appContext = context.applicationContext
     private val coroutineExceptionHandler = CoroutineExceptionHandler { _, throwable ->
         XLog.e(getLog("onCoroutineException"), throwable)
         onError(FatalError.CoroutineException)
@@ -53,7 +51,7 @@ class AppStateMachineImpl(
     private val networkHelper = NetworkHelper(context)
     private val notificationBitmap = NotificationBitmap(context)
     private val httpServer = HttpServer(
-        applicationContext, coroutineScope, settingsReadOnly, bitmapStateFlow.asStateFlow(),
+        appContext, coroutineScope, settingsReadOnly, bitmapStateFlow.asStateFlow(),
         notificationBitmap.getNotificationBitmap(NotificationBitmap.Type.ADDRESS_BLOCKED)
     )
 
@@ -292,8 +290,7 @@ class AppStateMachineImpl(
 
         val mediaProjection = projectionManager.getMediaProjection(Activity.RESULT_OK, intent)
         mediaProjection.registerCallback(projectionCallback, Handler(Looper.getMainLooper()))
-        val display = ContextCompat.getSystemService(applicationContext, WindowManager::class.java)!!.defaultDisplay
-        val bitmapCapture = BitmapCapture(display, settingsReadOnly, mediaProjection, bitmapStateFlow, ::onError)
+        val bitmapCapture = BitmapCapture(appContext, settingsReadOnly, mediaProjection, bitmapStateFlow, ::onError)
         bitmapCapture.start()
 
         return streamState.copy(

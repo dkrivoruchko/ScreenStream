@@ -1,18 +1,17 @@
 package info.dvkr.screenstream.ui.fragment
 
-import android.graphics.Point
+import android.graphics.Rect
 import android.os.Bundle
 import android.text.Editable
 import android.text.InputFilter
 import android.text.InputType
 import android.text.TextWatcher
 import android.view.View
-import android.view.WindowManager
 import android.view.inputmethod.EditorInfo
 import android.widget.EditText
 import android.widget.TextView
-import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
+import androidx.window.layout.WindowMetricsCalculator
 import com.afollestad.materialdialogs.LayoutMode
 import com.afollestad.materialdialogs.MaterialDialog
 import com.afollestad.materialdialogs.WhichButton
@@ -57,11 +56,8 @@ class SettingsImageFragment : Fragment(R.layout.fragment_settings_image) {
         }
     }
 
-    private val screenSize: Point by lazy {
-        Point().apply {
-            ContextCompat.getSystemService(requireContext(), WindowManager::class.java)
-                ?.defaultDisplay?.getRealSize(this)
-        }
+    private val screenBounds: Rect by lazy {
+        WindowMetricsCalculator.getOrCreate().computeMaximumWindowMetrics(requireActivity()).bounds
     }
 
     private val rotationList = listOf(
@@ -180,7 +176,7 @@ class SettingsImageFragment : Fragment(R.layout.fragment_settings_image) {
                 .apply Dialog@{
                     DialogSettingsResizeBinding.bind(getCustomView()).apply {
                         tvDialogSettingsResizeContent.text =
-                            getString(R.string.pref_resize_dialog_text, screenSize.x, screenSize.y)
+                            getString(R.string.pref_resize_dialog_text, screenBounds.width(), screenBounds.height())
 
                         tiDialogSettingsResize.isCounterEnabled = true
                         tiDialogSettingsResize.counterMaxLength = 3
@@ -193,8 +189,8 @@ class SettingsImageFragment : Fragment(R.layout.fragment_settings_image) {
                                     (if (isValid) text.toString().toInt() else settings.resizeFactor) / 100f
 
                                 tvDialogSettingsResizeResult.text = resizePictureSizeString.format(
-                                    (screenSize.x * newResizeFactor).toInt(),
-                                    (screenSize.y * newResizeFactor).toInt()
+                                    (screenBounds.width() * newResizeFactor).toInt(),
+                                    (screenBounds.height() * newResizeFactor).toInt()
                                 )
                             })
                             setText(settings.resizeFactor.toString())
@@ -206,8 +202,8 @@ class SettingsImageFragment : Fragment(R.layout.fragment_settings_image) {
                         }
 
                         tvDialogSettingsResizeResult.text = resizePictureSizeString.format(
-                            (screenSize.x * settings.resizeFactor / 100f).toInt(),
-                            (screenSize.y * settings.resizeFactor / 100f).toInt()
+                            (screenBounds.width() * settings.resizeFactor / 100f).toInt(),
+                            (screenBounds.height() * settings.resizeFactor / 100f).toInt()
                         )
 
                         show()

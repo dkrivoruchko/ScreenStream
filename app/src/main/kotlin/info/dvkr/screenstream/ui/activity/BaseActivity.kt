@@ -13,6 +13,7 @@ abstract class BaseActivity(@LayoutRes contentLayoutId: Int) : AppCompatActivity
         XLog.d(getLog("onCreate", "Invoked"))
     }
 
+    @Suppress("DEPRECATION")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         XLog.e(getLog("onActivityResult"), IllegalStateException("Unknown requestCode: $requestCode"))
         super.onActivityResult(requestCode, resultCode, data)

@@ -145,6 +145,7 @@ class AppService : Service() {
     }
 
     @SuppressLint("MissingPermission")
+    @Suppress("DEPRECATION")
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val intentAction = IntentAction.fromIntent(intent)
         intentAction != null || return START_NOT_STICKY

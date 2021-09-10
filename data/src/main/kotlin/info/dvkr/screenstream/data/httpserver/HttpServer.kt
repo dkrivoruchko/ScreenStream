@@ -18,7 +18,6 @@ import io.ktor.utils.io.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import java.io.ByteArrayOutputStream
-import java.io.IOException
 import java.net.BindException
 import java.util.*
 import java.util.concurrent.atomic.AtomicReference
@@ -110,7 +109,7 @@ internal class HttpServer(
             }
             serverAddresses.forEach { netInterface ->
                 connector {
-                    host = netInterface.address.hostAddress
+                    host = netInterface.address.hostAddress!!
                     port = settingsReadOnly.severPort
                 }
             }

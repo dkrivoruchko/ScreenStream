@@ -130,7 +130,7 @@ class ExpansionHeader @JvmOverloads constructor(
         expansionLayout?.removeListener(listener)
     }
 
-    override fun onSaveInstanceState(): Parcelable? = Bundle().apply {
+    override fun onSaveInstanceState(): Parcelable = Bundle().apply {
         putParcelable("super", super.onSaveInstanceState())
 
         putInt("headerIndicatorId", headerIndicatorId)

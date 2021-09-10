@@ -6,7 +6,7 @@
     <string name="error_ip_address_not_found"> عنوان الانترنت غير موجود \n حاول تعطيل \"استخدام واي فاي فقط\" في الاعدادات   </string>
     <string name="error_wrong_image_format">يقوم النظام بإرجاع الصورة بتنسيق غير معروف .لا يوجد إصلاح المتاحة .آسف</string>
     <string name="error_exit">خروج</string>
-    <string name="app_activity_collecting_logs">...جمع سجلات التطبيق</string>
+    <string name="app_activity_collecting_logs">…جمع سجلات التطبيق</string>
     <string name="app_activity_send_logs">إرسال السجلات إلى المطور</string>
     <string name="app_activity_send_logs_dialog_title">إرسال سجلات في البريد الإلكتروني إلى مطور</string>
     <string name="app_activity_send_logs_dialog_message"> : الرجاء إضافة وصف المشكلة</string>
@@ -44,7 +44,7 @@
     <string name="notification_press_start">اضغط على بدء على الجهاز</string>
     <string name="notification_start">ابدأ</string>
     <string name="notification_exit">خروج</string>
-    <string name="notification_stream">...بث</string>
+    <string name="notification_stream">…بث</string>
     <string name="notification_press_stop">اضغط على وقف لإنهاء بث</string>
     <string name="notification_stop">وقف</string>
     <string name="toast_slow_client_connection">تم اكتشاف اتصال عميل بطيء</string>
@@ -93,13 +93,13 @@
     <string name="pref_crop_dialog_error_message">أدخل قيم قص صالحة</string>
     <string name="pref_resize">تغيير حجم الصورة</string>
     <string name="pref_resize_summary">تغيير حجم الصورة قبل إرسالها إلى العميل</string>
-    <string name="pref_resize_dialog_text">تعيين عامل تغيير حجم الصورة في المئةالقيم: 10-150</string>
+    <string name="pref_resize_dialog_text">تعيين عامل تغيير حجم الصورة في المئةالقيم: 10–150</string>
     <string name="pref_resize_dialog_result">%1$dx%2$d حجم الصورة</string>
     <string name="pref_rotate">تدوير الصورة في اتجاه عقارب الساعة</string>
     <string name="pref_rotate_summary">تدوير الصورة قبل إرسالها إلى العميل</string>
     <string name="pref_fps">الحد من صور في الثانية الواحدة</string>
     <string name="pref_fps_summary">اضبط أقصى صور في الثانية</string>
-    <string name="pref_fps_dialog">عيّن الحد الأقصى للصور في الثانية. \ n القيم: 1-60 (افتراضيًا: 30)</string>
+    <string name="pref_fps_dialog">عيّن الحد الأقصى للصور في الثانية. \n القيم: 1–60 (افتراضيًا: 30)</string>
     <string name="pref_jpeg_quality">جودة ضغط JPEG</string>
     <string name="pref_jpeg_quality_summary">اضبط جودة ضغط JPEG</string>
     <string name="pref_jpeg_quality_dialog">اضبط جودة ضغط JPEG. القيم: 10–100 (الافتراضي: 80)</string>
@@ -132,7 +132,7 @@
     <string name="about_fragment_rate_app">قيم التطبيق</string>
     <string name="about_fragment_write_email">إرسال بريد إلكتروني إلى المطور</string>
     <string name="about_fragment_write_email_dialog">إرسال بريد إلكتروني إلى المطور؟</string>
-    <string name="about_fragment_email_chooser_header">...إرسال البريد الإلكتروني</string>
+    <string name="about_fragment_email_chooser_header">…إرسال البريد الإلكتروني</string>
     <string name="about_fragment_app_sources">مصادر التطبيق</string>
     <string name="about_fragment_privacy_policy">سياسة الخصوصية</string>
 </resources>

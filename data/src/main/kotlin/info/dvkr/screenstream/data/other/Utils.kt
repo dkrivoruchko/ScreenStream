@@ -35,7 +35,7 @@ fun Long.bytesToMbit() = (this * 8).toFloat() / 1024 / 1024
 
 fun Int.toByteArray(): ByteArray = ByteBuffer.allocate(Int.SIZE_BYTES).putInt(this).array()
 
-fun InetAddress.asString(): String = if (this is Inet6Address) "[${this.hostAddress}]" else this.hostAddress
+fun InetAddress.asString(): String = if (this is Inet6Address) "[${this.hostAddress}]" else this.hostAddress ?: ""
 
 fun InetSocketAddress.asString(): String = "${this.hostName?.let { it + "\n" }}${this.address.asString()}:${this.port}"
 

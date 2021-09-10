@@ -100,8 +100,10 @@ class NetworkHelper(context: Context) {
         return netInterfaceList
     }
 
+    @Suppress("DEPRECATION")
     private fun wifiConnected() = wifiManager.connectionInfo.ipAddress != 0
 
+    @Suppress("DEPRECATION")
     private fun getWiFiNetAddress(): NetInterface {
         XLog.d(getLog("getWiFiNetAddress", "Invoked"))
 

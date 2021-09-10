@@ -6,7 +6,7 @@
     <string name="error_ip_address_not_found">No s\'ha trobat l\'adreça IP. \nTproveu de desactivar \n"Utilitzeu només WiFi\n" a la configuració.</string>
     <string name="error_wrong_image_format">El sistema retorna la imatge en un format desconegut. No hi ha cap correcció disponible. Excusa.</string>
     <string name="error_exit">Encès</string>
-    <string name="app_activity_collecting_logs">S\'estan recopilant registres d\'aplicacions ...</string>
+    <string name="app_activity_collecting_logs">S\'estan recopilant registres d\'aplicacions …</string>
     <string name="app_activity_send_logs">Envieu registres al desenvolupador</string>
 
     <string name="bottom_menu_stream">Stream</string>
@@ -71,7 +71,7 @@
     <string name="pref_settings_image">Imatge</string>
     <string name="pref_resize">Canviar la mida de la imatge</string>
     <string name="pref_resize_summary">Canvieu la mida de la imatge abans d’enviar-la al client</string>
-    <string name="pref_resize_dialog_text">"Definiu el percentatge d’escala de la imatge. \nVvalors: 10-150 (valor per defecte: 50) \nMida de la pantalla: %1$dx%2$d"</string>
+    <string name="pref_resize_dialog_text">"Definiu el percentatge d’escala de la imatge. \nVvalors: 10–150 (valor per defecte: 50) \nMida de la pantalla: %1$dx%2$d"</string>
     <string name="pref_resize_dialog_result">Mida de la imatge: %1$dx%2$d</string>
     <string name="pref_rotate">Gireu la imatge en sentit horari</string>
     <string name="pref_rotate_summary">Gireu la imatge abans d\'enviar-la al client</string>
@@ -95,7 +95,7 @@
     <string name="pref_wifi_only_summary">Executeu el servidor només a la interfície Wi-Fi</string>
     <string name="pref_server_port">Port del servidor</string>
     <string name="pref_server_port_summary">Estableix el port per a les connexions entrants</string>
-    <string name="pref_server_port_dialog">Definiu el port del servidor per a les connexions entrants. \nValors: 1025-65535 (valor per defecte: 8080)</string>
+    <string name="pref_server_port_dialog">Definiu el port del servidor per a les connexions entrants. \nValors: 1025–65535 (valor per defecte: 8080)</string>
     <string name="pref_logging">Activa els registres d\'aplicacions</string>
     <string name="pref_logging_summary">Recopileu registres d\'aplicacions</string>
 
@@ -103,6 +103,6 @@
     <string name="about_fragment_developer_name">Desenvolupat per Dmitriy Krivoruchko</string>
     <string name="about_fragment_rate_app">Valora l\'aplicació</string>
     <string name="about_fragment_write_email">Envieu un correu electrònic al desenvolupador</string>
-    <string name="about_fragment_email_chooser_header">S\'està enviant el correu electrònic ...</string>
+    <string name="about_fragment_email_chooser_header">S\'està enviant el correu electrònic …</string>
     <string name="about_fragment_app_sources">Codis font de l\'aplicació</string>
 </resources>

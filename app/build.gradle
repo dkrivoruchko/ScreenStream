@@ -87,8 +87,8 @@ dependencies {
 
     implementation(project(":data"))
 
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.5.1")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.5.1")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.5.2")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.5.2")
 
     implementation("androidx.core:core-ktx:1.6.0")
     implementation("androidx.activity:activity-ktx:1.3.1")
@@ -97,6 +97,7 @@ dependencies {
     implementation("androidx.constraintlayout:constraintlayout:2.1.0")
     implementation("androidx.recyclerview:recyclerview:1.2.1")
     implementation("com.google.android.material:material:1.4.0")
+    implementation("androidx.window:window:1.0.0-beta02")
 
     implementation("androidx.navigation:navigation-fragment-ktx:2.4.0-alpha08")
     implementation("androidx.navigation:navigation-ui-ktx:2.4.0-alpha08")
@@ -115,7 +116,7 @@ dependencies {
     implementation("com.github.iamironz:binaryprefs:1.0.1")
     implementation("com.elvishew:xlog:1.11.0")
 
-    firebaseImplementation("com.google.android.play:core:1.10.0")
+    firebaseImplementation("com.google.android.play:core:1.10.1")
     firebaseImplementation("com.google.android.play:core-ktx:1.8.1") {
         exclude group: "org.jetbrains.kotlin"
         exclude group: "org.jetbrains.kotlinx"
