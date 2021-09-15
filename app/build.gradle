@@ -126,6 +126,7 @@ dependencies {
     firebaseImplementation("com.google.firebase:firebase-analytics:19.0.1")
     firebaseImplementation("com.google.firebase:firebase-crashlytics:18.2.1")
     firebaseImplementation("com.google.android.gms:play-services-ads:20.3.0")
+    firebaseImplementation("androidx.work:work-runtime:2.7.0-beta01") // Temp fix for AdMob Android 12
 
     debugImplementation("com.squareup.leakcanary:leakcanary-android:2.7")
 }
