@@ -15,7 +15,7 @@ class ColorCircleView @JvmOverloads constructor(
 
     private val fillPaint = Paint()
     private val strokePaint = Paint()
-    private val borderWidth = resources.getDimension(R.dimen.color_circle_view_border)
+    private val borderWidth = resources.getDimension(com.afollestad.materialdialogs.color.R.dimen.color_circle_view_border)
 
     init {
         setWillNotDraw(false)

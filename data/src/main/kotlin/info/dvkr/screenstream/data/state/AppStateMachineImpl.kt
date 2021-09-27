@@ -24,12 +24,11 @@ import kotlinx.coroutines.flow.*
 import java.util.concurrent.LinkedBlockingDeque
 
 class AppStateMachineImpl(
-    context: Context,
+    private val context: Context,
     private val settingsReadOnly: SettingsReadOnly,
     private val onEffect: suspend (AppStateMachine.Effect) -> Unit
 ) : AppStateMachine {
 
-    private val appContext = context.applicationContext
     private val coroutineExceptionHandler = CoroutineExceptionHandler { _, throwable ->
         XLog.e(getLog("onCoroutineException"), throwable)
         onError(FatalError.CoroutineException)
@@ -51,7 +50,7 @@ class AppStateMachineImpl(
     private val networkHelper = NetworkHelper(context)
     private val notificationBitmap = NotificationBitmap(context)
     private val httpServer = HttpServer(
-        appContext, coroutineScope, settingsReadOnly, bitmapStateFlow.asStateFlow(),
+        context, coroutineScope, settingsReadOnly, bitmapStateFlow.asStateFlow(),
         notificationBitmap.getNotificationBitmap(NotificationBitmap.Type.ADDRESS_BLOCKED)
     )
 
@@ -103,6 +102,7 @@ class AppStateMachineImpl(
             try {
                 _eventDeque.addLast(event)
                 _eventSharedFlow.tryEmit(event) || throw IllegalStateException("_eventSharedFlow IsFull")
+                XLog.d(getLog("sendEvent", _eventDeque.toString()))
             } catch (th: Throwable) {
                 XLog.e(getLog("sendEvent", _eventDeque.toString()))
                 XLog.e(getLog("sendEvent"), th)
@@ -117,7 +117,7 @@ class AppStateMachineImpl(
 
     private var streamState = StreamState()
     private var previousStreamState = StreamState()
-    private val _eventSharedFlow = MutableSharedFlow<AppStateMachine.Event>(extraBufferCapacity = 8)
+    private val _eventSharedFlow = MutableSharedFlow<AppStateMachine.Event>(replay = 5, extraBufferCapacity = 8)
     private val _eventDeque = LinkedBlockingDeque<AppStateMachine.Event>()
 
     init {
@@ -148,9 +148,10 @@ class AppStateMachineImpl(
 
                     if (streamState.isPublicStatePublishRequired(previousStreamState)) onEffect(streamState.toPublicState())
 
-                    _eventDeque.pollFirst()
                     XLog.i(this@AppStateMachineImpl.getLog("eventSharedFlow.onEach", "New state:${streamState.state}"))
                 }
+                _eventDeque.pollFirst()
+                XLog.d(getLog("eventSharedFlow.onEach.done", _eventDeque.toString()))
             }
                 .catch { cause ->
                     XLog.e(this@AppStateMachineImpl.getLog("eventSharedFlow.catch"), cause)
@@ -290,7 +291,7 @@ class AppStateMachineImpl(
 
         val mediaProjection = projectionManager.getMediaProjection(Activity.RESULT_OK, intent)
         mediaProjection.registerCallback(projectionCallback, Handler(Looper.getMainLooper()))
-        val bitmapCapture = BitmapCapture(appContext, settingsReadOnly, mediaProjection, bitmapStateFlow, ::onError)
+        val bitmapCapture = BitmapCapture(context, settingsReadOnly, mediaProjection, bitmapStateFlow, ::onError)
         bitmapCapture.start()
 
         return streamState.copy(

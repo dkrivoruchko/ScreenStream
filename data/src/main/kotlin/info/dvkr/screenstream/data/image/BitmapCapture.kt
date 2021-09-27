@@ -1,7 +1,9 @@
 package info.dvkr.screenstream.data.image
 
 import android.annotation.SuppressLint
+import android.content.ComponentCallbacks
 import android.content.Context
+import android.content.res.Configuration
 import android.graphics.*
 import android.hardware.display.DisplayManager
 import android.hardware.display.VirtualDisplay
@@ -38,20 +40,12 @@ import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
 
 class BitmapCapture(
-    private val applicationContext: Context,
+    private val context: Context,
     private val settingsReadOnly: SettingsReadOnly,
     private val mediaProjection: MediaProjection,
     private val bitmapStateFlow: MutableStateFlow<Bitmap>,
     private val onError: (AppError) -> Unit
 ) {
-
-    private val coroutineExceptionHandler = CoroutineExceptionHandler { _, throwable ->
-        XLog.e(getLog("onCoroutineException"), throwable)
-        onError(FatalError.CoroutineException)
-    }
-
-    private val coroutineScope = CoroutineScope(Job() + Dispatchers.Default + coroutineExceptionHandler)
-
     private enum class State { INIT, STARTED, DESTROYED, ERROR }
 
     @Volatile
@@ -63,12 +57,12 @@ class BitmapCapture(
     private val imageThreadHandler: Handler by lazy { Handler(imageThread.looper) }
 
     private val display: Display by lazy {
-        ContextCompat.getSystemService(applicationContext, DisplayManager::class.java)!!
+        ContextCompat.getSystemService(context, DisplayManager::class.java)!!
             .getDisplay(Display.DEFAULT_DISPLAY)
     }
 
     @RequiresApi(Build.VERSION_CODES.S)
-    private fun windowContext(): Context = applicationContext.createDisplayContext(display)
+    private fun windowContext(): Context = context.createDisplayContext(display)
         .createWindowContext(WindowManager.LayoutParams.TYPE_APPLICATION, null)
 
     private fun getDensityDpiCompat(): Int =
@@ -117,6 +111,15 @@ class BitmapCapture(
         }
     }
 
+    private val componentCallback = object : ComponentCallbacks {
+        override fun onConfigurationChanged(newConfig: Configuration) {
+            XLog.d(this@BitmapCapture.getLog("ComponentCallbacks", "Configuration changed"))
+            if (state == State.STARTED) restart()
+        }
+
+        override fun onLowMemory() = Unit
+    }
+
     init {
         XLog.d(getLog("init"))
         settingsReadOnly.registerChangeListener(settingsListener)
@@ -151,27 +154,7 @@ class BitmapCapture(
     fun start() {
         XLog.d(getLog("start"))
         requireState(State.INIT)
-
         startDisplayCapture()
-
-        if (state == State.STARTED)
-            coroutineScope.launch {
-                val rotation = display.rotation
-                var previous = rotation == Surface.ROTATION_0 || rotation == Surface.ROTATION_180
-                var current: Boolean
-
-                XLog.d(this@BitmapCapture.getLog("Start", "Rotation detector started"))
-                while (isActive) {
-                    delay(250)
-                    val newRotation = display.rotation
-                    current = newRotation == Surface.ROTATION_0 || newRotation == Surface.ROTATION_180
-                    if (previous != current) {
-                        XLog.d(this@BitmapCapture.getLog("Start", "Rotation detected"))
-                        previous = current
-                        if (state == State.STARTED) restart()
-                    }
-                }
-            }
     }
 
     @Synchronized
@@ -182,9 +165,7 @@ class BitmapCapture(
             return
         }
         requireState(State.STARTED, State.ERROR)
-        coroutineScope.cancel(CancellationException("BitmapCapture.destroy"))
         state = State.DESTROYED
-        settingsReadOnly.unregisterChangeListener(settingsListener)
         stopDisplayCapture()
         imageThread.quit()
     }
@@ -251,9 +232,14 @@ class BitmapCapture(
             XLog.w(getLog("startDisplayCapture", ex.toString()))
             onError(FixableError.CastSecurityException)
         }
+
+        if (state == State.STARTED)
+            context.registerComponentCallbacks(componentCallback)
     }
 
     private fun stopDisplayCapture() {
+        context.unregisterComponentCallbacks(componentCallback)
+
         virtualDisplay?.release()
         imageReader?.close()
 
