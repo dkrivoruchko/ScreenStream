@@ -25,7 +25,7 @@ abstract class BaseApp : Application() {
             .build()
     }
 
-    var lastAdLoadTime: Long = 0
+    val lastAdLoadTimeMap: MutableMap<String, Long> = mutableMapOf()
 
     abstract fun initLogger()
 

@@ -18,6 +18,13 @@ abstract class AdFragment(@LayoutRes contentLayoutId: Int) : Fragment(contentLay
 
     private var adView: AdView? = null
     private lateinit var adSize: AdSize
+    private val ads: MutableMap<String, Long> by lazy(LazyThreadSafetyMode.NONE) {
+        (requireActivity().application as BaseApp).lastAdLoadTimeMap.apply {
+            putIfAbsent(BuildConfig.AD_UNIT_ID_A, 0)
+            putIfAbsent(BuildConfig.AD_UNIT_ID_B, 0)
+            putIfAbsent(BuildConfig.AD_UNIT_ID_C, 0)
+        }
+    }
 
     fun loadAdOnViewCreated(adViewContainer: FrameLayout) {
         if (::adSize.isInitialized) loadAd(adViewContainer)
@@ -40,14 +47,16 @@ abstract class AdFragment(@LayoutRes contentLayoutId: Int) : Fragment(contentLay
     private fun loadAd(adViewContainer: FrameLayout) {
         adViewContainer.minimumHeight = adSize.getHeightInPixels(requireActivity())
         viewLifecycleOwner.lifecycleScope.launchWhenStarted {
-            delay((requireActivity().application as BaseApp).lastAdLoadTime + 61_000 - System.currentTimeMillis())
+            val currentAd = ads.filter { it.value + 61_000 - System.currentTimeMillis() <= 0 }.entries.firstOrNull()
+                ?: ads.minByOrNull { it.value }!!
+            while (currentAd.value + 61_000 - System.currentTimeMillis() > 0) delay(100)
             MobileAds.initialize(requireActivity()) {}
             adView = AdView(requireActivity()).also { adView ->
                 adViewContainer.addView(adView)
-                adView.adUnitId = BuildConfig.AD_UNIT_ID
+                adView.adUnitId = currentAd.key
                 adView.adSize = adSize
                 adView.loadAd(AdRequest.Builder().build())
-                (requireActivity().application as BaseApp).lastAdLoadTime = System.currentTimeMillis()
+                ads.replace(currentAd.key, System.currentTimeMillis())
             }
         }
     }
