@@ -76,8 +76,7 @@ class BitmapCapture(
     private fun getScreenSizeCompat(): Point =
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
             @Suppress("DEPRECATION")
-            val metrics = DisplayMetrics().also { display.getMetrics(it) }
-            Point(metrics.widthPixels, metrics.heightPixels)
+            Point().also { display.getRealSize(it) }
         } else {
             val bounds = windowContext().getSystemService(WindowManager::class.java).maximumWindowMetrics.bounds
             Point(bounds.width(), bounds.height())
@@ -173,6 +172,7 @@ class BitmapCapture(
     @SuppressLint("WrongConstant")
     private fun startDisplayCapture() {
         val screenSize = getScreenSizeCompat()
+        val screenSize2 = Point().also { display.getRealSize(it) }
 
         val screenSizeX: Int
         val screenSizeY: Int
