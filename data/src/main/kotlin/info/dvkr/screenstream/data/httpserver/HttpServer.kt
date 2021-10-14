@@ -70,7 +70,7 @@ internal class HttpServer(
         val coroutineExceptionHandler = CoroutineExceptionHandler { _, throwable ->
             XLog.e(getLog("onCoroutineException", throwable.toString()))
             sendEvent(Event.Error(FatalError.HttpServerException))
-            ktorServer?.stop(250, 250)
+            ktorServer?.stop(0, 250)
             ktorServer = null
         }
         val coroutineScope = CoroutineScope(Job() + Dispatchers.Default + coroutineExceptionHandler)
@@ -133,7 +133,7 @@ internal class HttpServer(
         } finally {
             exception?.let {
                 sendEvent(Event.Error(it))
-                ktorServer?.stop(250, 250)
+                ktorServer?.stop(0, 250)
                 ktorServer = null
             }
         }
@@ -145,7 +145,7 @@ internal class HttpServer(
         return CompletableDeferred<Unit>().apply Deferred@{
             ktorServer?.apply {
                 stopDeferred.set(this@Deferred)
-                stop(250, 250)
+                stop(0, 250)
                 ktorServer = null
             } ?: complete(Unit)
         }

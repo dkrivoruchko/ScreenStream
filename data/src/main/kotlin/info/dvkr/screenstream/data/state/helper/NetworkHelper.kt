@@ -34,7 +34,7 @@ class NetworkHelper(context: Context) {
     private fun getNetworkInterfacesWithFallBack(): Enumeration<NetworkInterface> {
         try {
             return NetworkInterface.getNetworkInterfaces()
-        } catch (ex: SocketException) {
+        } catch (ex: Exception) {
             XLog.w(getLog("getNetworkInterfacesWithFallBack.getNetworkInterfaces", ex.toString()))
         }
 

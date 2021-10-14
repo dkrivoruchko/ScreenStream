@@ -7,6 +7,10 @@ import android.net.Network
 import android.os.Build
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.data.other.getLog
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.*
 
 internal sealed class ConnectivityHelper {
     companion object {
@@ -18,9 +22,10 @@ internal sealed class ConnectivityHelper {
         }
     }
 
-    protected lateinit var onConnectionChanged: () -> Unit
+    protected val connectionChangEventFlow =
+        MutableSharedFlow<Network>(extraBufferCapacity = 64, onBufferOverflow = BufferOverflow.DROP_OLDEST)
 
-    abstract fun startListening(onConnectionChanged: () -> Unit)
+    abstract fun startListening(coroutineScope: CoroutineScope, onConnectionChanged: () -> Unit)
     abstract fun stopListening()
 
     @TargetApi(Build.VERSION_CODES.N)
@@ -31,19 +36,30 @@ internal sealed class ConnectivityHelper {
         private val networkCallback = object : ConnectivityManager.NetworkCallback() {
             override fun onAvailable(network: Network) {
                 XLog.d(this@NougatConnectivityHelper.getLog("onAvailable", "Network: $network"))
-                if (::onConnectionChanged.isInitialized) onConnectionChanged.invoke()
+                connectionChangEventFlow.tryEmit(network)
             }
 
             override fun onLost(network: Network) {
                 XLog.d(this@NougatConnectivityHelper.getLog("onLost", "Network: $network"))
-                if (::onConnectionChanged.isInitialized) onConnectionChanged.invoke()
+                connectionChangEventFlow.tryEmit(network)
             }
         }
 
-        override fun startListening(onConnectionChanged: () -> Unit) {
-            this.onConnectionChanged = onConnectionChanged
+        override fun startListening(coroutineScope: CoroutineScope, onConnectionChanged: () -> Unit) {
+            XLog.d(this@NougatConnectivityHelper.getLog("startListening"))
+
+            connectionChangEventFlow.conflate()
+                .onStart {
+                    XLog.d(this@NougatConnectivityHelper.getLog("startListening", "onStart"))
+                    onConnectionChanged.invoke()
+                }
+                .onEach {
+                    XLog.d(this@NougatConnectivityHelper.getLog("onEach", "Network: $it"))
+                    onConnectionChanged.invoke()
+                    delay(250)
+                }.shareIn(coroutineScope, SharingStarted.Eagerly)
+
             connectivityManager.registerDefaultNetworkCallback(networkCallback)
-            onConnectionChanged.invoke()
         }
 
         override fun stopListening() {
@@ -53,7 +69,7 @@ internal sealed class ConnectivityHelper {
 
     @Suppress("Deprecation")
     private class EmptyConnectivityHelper : ConnectivityHelper() {
-        override fun startListening(onConnectionChanged: () -> Unit) {
+        override fun startListening(coroutineScope: CoroutineScope, onConnectionChanged: () -> Unit) {
             XLog.d(this@EmptyConnectivityHelper.getLog("startListening", "Trigger on start address discovery"))
             onConnectionChanged.invoke()
         }

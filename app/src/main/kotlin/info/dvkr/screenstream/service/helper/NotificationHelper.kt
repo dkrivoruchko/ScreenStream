@@ -158,11 +158,12 @@ class NotificationHelper(context: Context) {
             )
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val notificationChannel = notificationManager.getNotificationChannel(CHANNEL_STREAM)
-            builder
-                .setSound(notificationChannel.sound)
-                .setPriority(notificationChannel.importance)
-                .setVibrate(notificationChannel.vibrationPattern)
+            notificationManager.getNotificationChannel(CHANNEL_STREAM)?.let { notificationChannel ->
+                builder
+                    .setSound(notificationChannel.sound)
+                    .setPriority(notificationChannel.importance)
+                    .setVibrate(notificationChannel.vibrationPattern)
+            }
         }
 
         return when (notificationType) {

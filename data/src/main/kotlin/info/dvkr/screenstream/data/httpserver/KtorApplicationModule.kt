@@ -7,11 +7,13 @@ import info.dvkr.screenstream.data.other.randomString
 import io.ktor.application.*
 import io.ktor.features.*
 import io.ktor.http.*
+import io.ktor.http.cio.*
 import io.ktor.http.content.*
 import io.ktor.request.*
 import io.ktor.response.*
 import io.ktor.routing.*
 import io.ktor.server.cio.*
+import io.ktor.util.*
 import io.ktor.utils.io.*
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.cancel
@@ -21,6 +23,7 @@ import java.util.*
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
 
+@OptIn(InternalAPI::class)
 internal fun Application.appModule(
     httpServerFiles: HttpServerFiles,
     clientData: ClientData,
@@ -52,11 +55,11 @@ internal fun Application.appModule(
     }
 
     environment.monitor.subscribe(ApplicationStarted) {
-        XLog.i(getLog("monitor", "ApplicationStarted: ${hashCode()}"))
+        XLog.i(getLog("monitor", "KtorApplicationStarted: ${hashCode()}"))
     }
 
     environment.monitor.subscribe(ApplicationStopped) {
-        XLog.i(getLog("monitor", "ApplicationStopped: ${hashCode()}"))
+        XLog.i(getLog("monitor", "KtorApplicationStopped: ${hashCode()}"))
         it.environment.parentCoroutineContext.cancel()
         clientData.clearStatistics()
         stopDeferred.getAndSet(null)?.complete(Unit)
@@ -75,8 +78,9 @@ internal fun Application.appModule(
             call.respondRedirect(HttpServerFiles.PIN_REQUEST_ADDRESS)
         }
         exception<Throwable> { cause ->
-            XLog.e(getLog("exception<Throwable>"))
-            XLog.e(getLog("exception"), cause)
+            val headers = CIOHeadersResearch.getHeadersAsString(call.request.headers as CIOHeaders)
+            XLog.e(this@appModule.getLog("exception<Throwable>", headers))
+            XLog.e(this@appModule.getLog("exception"), cause)
             sendEvent(HttpServer.Event.Error(FatalError.HttpServerException))
             call.respond(HttpStatusCode.InternalServerError)
         }

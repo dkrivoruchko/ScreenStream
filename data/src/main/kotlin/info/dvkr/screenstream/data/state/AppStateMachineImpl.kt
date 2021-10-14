@@ -164,11 +164,11 @@ class AppStateMachineImpl(
         settingsReadOnly.registerChangeListener(settingsListener)
         broadcastHelper.startListening(
             onScreenOff = { sendEvent(InternalEvent.ScreenOff) },
-            onConnectionChanged = { sendEvent(InternalEvent.RestartServer(RestartReason.ConnectionChanged(""))) }
+            onConnectionChanged = { sendEvent(InternalEvent.RestartServer(RestartReason.ConnectionChanged("BroadcastHelper"))) }
         )
 
-        connectivityHelper.startListening {
-            sendEvent(InternalEvent.RestartServer(RestartReason.ConnectionChanged("")))
+        connectivityHelper.startListening(coroutineScope) {
+            sendEvent(InternalEvent.RestartServer(RestartReason.ConnectionChanged("ConnectivityHelper")))
         }
 
         coroutineScope.launch(CoroutineName("AppStateMachineImpl.httpServer.eventSharedFlow")) {
