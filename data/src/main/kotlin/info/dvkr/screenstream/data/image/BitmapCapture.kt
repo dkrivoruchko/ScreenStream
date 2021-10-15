@@ -172,7 +172,6 @@ class BitmapCapture(
     @SuppressLint("WrongConstant")
     private fun startDisplayCapture() {
         val screenSize = getScreenSizeCompat()
-        val screenSize2 = Point().also { display.getRealSize(it) }
 
         val screenSizeX: Int
         val screenSizeY: Int
