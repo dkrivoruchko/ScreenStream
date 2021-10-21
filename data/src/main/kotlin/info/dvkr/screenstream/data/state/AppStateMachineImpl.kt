@@ -151,7 +151,7 @@ class AppStateMachineImpl(
                     XLog.i(this@AppStateMachineImpl.getLog("eventSharedFlow.onEach", "New state:${streamState.state}"))
                 }
                 _eventDeque.pollFirst()
-                XLog.d(getLog("eventSharedFlow.onEach.done", _eventDeque.toString()))
+                XLog.d(this@AppStateMachineImpl.getLog("eventSharedFlow.onEach.done", _eventDeque.toString()))
             }
                 .catch { cause ->
                     XLog.e(this@AppStateMachineImpl.getLog("eventSharedFlow.catch"), cause)
@@ -267,7 +267,7 @@ class AppStateMachineImpl(
         XLog.d(getLog("startServer"))
         require(streamState.netInterfaces.isNotEmpty())
 
-        httpServer.stop().await()
+        withTimeoutOrNull(300) { httpServer.stop().await() }
         httpServer.start(streamState.netInterfaces)
         bitmapStateFlow.tryEmit(notificationBitmap.getNotificationBitmap(NotificationBitmap.Type.START))
 
@@ -351,7 +351,7 @@ class AppStateMachineImpl(
                 bitmapStateFlow.tryEmit(notificationBitmap.getNotificationBitmap(NotificationBitmap.Type.NEW_ADDRESS))
         }
 
-        httpServer.stop().await()
+        withTimeoutOrNull(300) { httpServer.stop().await() }
 
         if (state.state == StreamState.State.ERROR)
             sendEvent(AppStateMachine.Event.RecoverError)

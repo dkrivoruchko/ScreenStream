@@ -104,7 +104,7 @@ class TileActionService : TileService() {
                 label = getString(R.string.app_name)
                 contentDescription = getString(R.string.app_name)
                 state = Tile.STATE_INACTIVE
-                updateTile()
+                runCatching { updateTile() }
             }
         } else if (isStreaming.not()) {
             qsTile?.apply {
@@ -120,7 +120,7 @@ class TileActionService : TileService() {
                 label = getString(R.string.notification_stop)
                 contentDescription = getString(R.string.notification_stop)
                 state = Tile.STATE_ACTIVE
-                updateTile()
+                runCatching { updateTile() }
             }
         }
     }
