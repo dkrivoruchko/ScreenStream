@@ -53,6 +53,7 @@ class AppStateMachineImpl(
         context, coroutineScope, settingsReadOnly, bitmapStateFlow.asStateFlow(),
         notificationBitmap.getNotificationBitmap(NotificationBitmap.Type.ADDRESS_BLOCKED)
     )
+    private var mediaProjectionIntent: Intent? = null
 
 
     internal sealed class InternalEvent : AppStateMachine.Event() {
@@ -277,7 +278,12 @@ class AppStateMachineImpl(
     private fun startStream(streamState: StreamState): StreamState {
         XLog.d(getLog("startStream"))
 
-        return streamState.copy(state = StreamState.State.PERMISSION_PENDING)
+        return if (mediaProjectionIntent != null) {
+            sendEvent(AppStateMachine.Event.StartProjection(mediaProjectionIntent!!))
+            streamState
+        } else {
+            streamState.copy(state = StreamState.State.PERMISSION_PENDING)
+        }
     }
 
     private fun castPermissionsDenied(streamState: StreamState): StreamState {
@@ -289,6 +295,7 @@ class AppStateMachineImpl(
     private fun startProjection(streamState: StreamState, intent: Intent): StreamState {
         XLog.d(getLog("startProjection"))
 
+        mediaProjectionIntent = intent
         val mediaProjection = projectionManager.getMediaProjection(Activity.RESULT_OK, intent)
         mediaProjection.registerCallback(projectionCallback, Handler(Looper.getMainLooper()))
         val bitmapCapture = BitmapCapture(context, settingsReadOnly, mediaProjection, bitmapStateFlow, ::onError)
