@@ -50,7 +50,7 @@ interface Settings : SettingsReadOnly {
         const val AUTO_START_STOP = false
         const val NOTIFY_SLOW_CONNECTIONS = true
 
-        const val HTML_ENABLE_BUTTONS = true
+        const val HTML_ENABLE_BUTTONS = false
         const val HTML_BACK_COLOR = -16777216 // "ff000000".toLong(radix = 16).toInt()
 
         const val VR_MODE_DISABLE = 0

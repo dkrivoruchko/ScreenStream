@@ -268,7 +268,11 @@ class AppStateMachineImpl(
         XLog.d(getLog("startServer"))
         require(streamState.netInterfaces.isNotEmpty())
 
-        withTimeoutOrNull(300) { httpServer.stop().await() }
+        withTimeoutOrNull(300) {
+            XLog.e(this@AppStateMachineImpl.getLog("startServer", "httpServer.stop().await()...."))
+            httpServer.stop().await()
+            XLog.e(this@AppStateMachineImpl.getLog("startServer", "httpServer.stop().await()....DONE"))
+        }
         httpServer.start(streamState.netInterfaces)
         bitmapStateFlow.tryEmit(notificationBitmap.getNotificationBitmap(NotificationBitmap.Type.START))
 
@@ -292,12 +296,16 @@ class AppStateMachineImpl(
         return streamState.copy(state = StreamState.State.SERVER_STARTED)
     }
 
-    private fun startProjection(streamState: StreamState, intent: Intent): StreamState {
+    private suspend fun startProjection(streamState: StreamState, intent: Intent): StreamState {
         XLog.d(getLog("startProjection"))
 
         mediaProjectionIntent = intent
-        val mediaProjection = projectionManager.getMediaProjection(Activity.RESULT_OK, intent)
-        mediaProjection.registerCallback(projectionCallback, Handler(Looper.getMainLooper()))
+        val mediaProjection = withContext(Dispatchers.Main) {
+            delay(500)
+            projectionManager.getMediaProjection(Activity.RESULT_OK, intent).apply {
+                registerCallback(projectionCallback, Handler(Looper.getMainLooper()))
+            }
+        }
         val bitmapCapture = BitmapCapture(context, settingsReadOnly, mediaProjection, bitmapStateFlow, ::onError)
         bitmapCapture.start()
 
@@ -358,7 +366,11 @@ class AppStateMachineImpl(
                 bitmapStateFlow.tryEmit(notificationBitmap.getNotificationBitmap(NotificationBitmap.Type.NEW_ADDRESS))
         }
 
-        withTimeoutOrNull(300) { httpServer.stop().await() }
+        withTimeoutOrNull(300) {
+            XLog.e(this@AppStateMachineImpl.getLog("restartServer", " httpServer.stop().await()...."))
+            httpServer.stop().await()
+            XLog.e(this@AppStateMachineImpl.getLog("restartServer", " httpServer.stop().await()....DONE"))
+        }
 
         if (state.state == StreamState.State.ERROR)
             sendEvent(AppStateMachine.Event.RecoverError)

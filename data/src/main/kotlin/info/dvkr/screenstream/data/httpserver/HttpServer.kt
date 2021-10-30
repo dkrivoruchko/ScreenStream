@@ -68,10 +68,12 @@ internal class HttpServer(
         XLog.d(getLog("startServer"))
 
         val coroutineExceptionHandler = CoroutineExceptionHandler { _, throwable ->
-            XLog.e(getLog("onCoroutineException", throwable.toString()))
-            sendEvent(Event.Error(FatalError.HttpServerException))
+            XLog.e(getLog("onCoroutineException", throwable.toString()), throwable)
+            XLog.d(getLog("onCoroutineException", "ktorServer: ${ktorServer?.hashCode()}"))
             ktorServer?.stop(0, 250)
             ktorServer = null
+            if (throwable is BindException) sendEvent(Event.Error(FixableError.AddressInUseException))
+            else sendEvent(Event.Error(FatalError.HttpServerException))
         }
         val coroutineScope = CoroutineScope(Job() + Dispatchers.Default + coroutineExceptionHandler)
 
@@ -146,8 +148,10 @@ internal class HttpServer(
             ktorServer?.apply {
                 stopDeferred.set(this@Deferred)
                 stop(0, 250)
+                XLog.d(this@HttpServer.getLog("stopServer", "Deferred: ktorServer: ${ktorServer.hashCode()}"))
                 ktorServer = null
             } ?: complete(Unit)
+            XLog.d(this@HttpServer.getLog("stopServer", "Deferred"))
         }
     }
 
