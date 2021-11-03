@@ -55,8 +55,12 @@ abstract class PermissionActivity(@LayoutRes contentLayoutId: Int) : ServiceActi
                         val projectionManager =
                             getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
                         try {
+//                            val dm = getSystemService(Context.DISPLAY_SERVICE) as DisplayManager
+//                            val options = ActivityOptions.makeBasic()
+//                            options.launchDisplayId = dm.displays[1].displayId
+                            val createScreenCaptureIntent = projectionManager.createScreenCaptureIntent()
                             startActivityForResult(
-                                projectionManager.createScreenCaptureIntent(), SCREEN_CAPTURE_REQUEST_CODE
+                                createScreenCaptureIntent, SCREEN_CAPTURE_REQUEST_CODE//,options.toBundle()
                             )
                         } catch (ex: ActivityNotFoundException) {
                             showErrorDialog(

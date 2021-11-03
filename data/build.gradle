@@ -31,7 +31,7 @@ dependencies {
     implementation("androidx.core:core:1.7.0")
     implementation("androidx.window:window:1.0.0-beta03")
 
-    implementation("io.ktor:ktor-server-cio:1.6.4")
+    implementation("io.ktor:ktor-server-cio:1.6.5")
 
     implementation("com.github.iamironz:binaryprefs:1.0.1")
     implementation('com.elvishew:xlog:1.11.0')
