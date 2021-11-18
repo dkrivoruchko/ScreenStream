@@ -114,9 +114,7 @@ class StreamFragment : AdFragment(R.layout.fragment_stream) {
                         clipboard?.setPrimaryClip(
                             ClipData.newPlainText(tvItemDeviceAddress.text, tvItemDeviceAddress.text)
                         )
-                        Toast.makeText(
-                            requireContext().applicationContext, R.string.stream_fragment_copied, Toast.LENGTH_LONG
-                        ).show()
+                        Toast.makeText(requireContext(), R.string.stream_fragment_copied, Toast.LENGTH_LONG).show()
                     }
                     ivItemDeviceAddressShare.setOnClickListener { shareAddress(fullAddress) }
                     ivItemDeviceAddressQr.setOnClickListener { showQrCode(fullAddress) }

@@ -1,6 +1,7 @@
 package info.dvkr.screenstream
 
 import android.os.StrictMode
+import androidx.fragment.app.strictmode.FragmentStrictMode
 import com.elvishew.xlog.LogConfiguration
 import com.elvishew.xlog.XLog
 import com.elvishew.xlog.printer.AndroidPrinter
@@ -24,6 +25,16 @@ class ScreenStreamApp : BaseApp() {
                 .penaltyLog()
                 .build()
         )
+
+        FragmentStrictMode.defaultPolicy =
+            FragmentStrictMode.Policy.Builder()
+                .detectFragmentReuse()
+                .detectFragmentTagUsage()
+                .detectRetainInstanceUsage()
+                .detectSetUserVisibleHint()
+                .detectTargetFragmentUsage()
+                .detectWrongFragmentContainer()
+                .build()
 
         val logConfiguration = LogConfiguration.Builder().tag("SSApp").build()
         XLog.init(logConfiguration, AndroidPrinter(), filePrinter)

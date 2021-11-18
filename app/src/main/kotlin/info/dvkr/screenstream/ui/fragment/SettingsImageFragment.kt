@@ -183,7 +183,7 @@ class SettingsImageFragment : Fragment(R.layout.fragment_settings_image) {
 
                         with(tietDialogSettingsResize) {
                             addTextChangedListener(SimpleTextWatcher { text ->
-                                val isValid = text.length in 2..3 && text.toString().toInt() in 10..150
+                                val isValid = text.length in 2..3 && text.toString().toIntOrNull() ?: -1 in 10..150
                                 this@Dialog.setActionButtonEnabled(WhichButton.POSITIVE, isValid)
                                 val newResizeFactor =
                                     (if (isValid) text.toString().toInt() else settings.resizeFactor) / 100f
@@ -303,10 +303,10 @@ class SettingsImageFragment : Fragment(R.layout.fragment_settings_image) {
         dialog: MaterialDialog,
         topView: EditText, bottomView: EditText, leftView: EditText, rightView: EditText, errorView: TextView
     ) {
-        val topCrop = topView.text.let { if (it.isNullOrBlank()) -1 else it.toString().toInt() }
-        val bottomCrop = bottomView.text.let { if (it.isNullOrBlank()) -1 else it.toString().toInt() }
-        val leftCrop = leftView.text.let { if (it.isNullOrBlank()) -1 else it.toString().toInt() }
-        val rightCrop = rightView.text.let { if (it.isNullOrBlank()) -1 else it.toString().toInt() }
+        val topCrop = topView.text.let { if (it.isNullOrBlank()) -1 else it.toString().toIntOrNull() ?: -1 }
+        val bottomCrop = bottomView.text.let { if (it.isNullOrBlank()) -1 else it.toString().toIntOrNull() ?: -1 }
+        val leftCrop = leftView.text.let { if (it.isNullOrBlank()) -1 else it.toString().toIntOrNull() ?: -1 }
+        val rightCrop = rightView.text.let { if (it.isNullOrBlank()) -1 else it.toString().toIntOrNull() ?: -1 }
 
         if (topCrop >= 0 && bottomCrop >= 0 && leftCrop >= 0 && rightCrop >= 0) {
             dialog.setActionButtonEnabled(WhichButton.POSITIVE, true)

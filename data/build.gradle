@@ -21,15 +21,16 @@ android {
 
     kotlinOptions {
         jvmTarget = JavaVersion.VERSION_1_8.toString()
+        freeCompilerArgs += "-Xopt-in=kotlin.RequiresOptIn"
     }
 }
 
 dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.5.2")
-    implementation("org.jetbrains.kotlin:kotlin-reflect:1.5.31")
+    implementation("org.jetbrains.kotlin:kotlin-reflect:1.6.0")
 
     implementation("androidx.core:core:1.7.0")
-    implementation("androidx.window:window:1.0.0-beta03")
+    implementation("androidx.window:window:1.0.0-beta04")
 
     implementation("io.ktor:ktor-server-cio:1.6.5")
 
