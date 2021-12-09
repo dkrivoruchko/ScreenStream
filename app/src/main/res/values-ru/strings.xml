@@ -85,6 +85,8 @@
     <string name="pref_detect_slow_connections_summary">Определять и уведомлять о медленных клиентах</string>
     <string name="pref_html_buttons">Включить кнопки веб-страницы</string>
     <string name="pref_html_buttons_summary">Показывать кнопки управления на веб-странице</string>
+    <string name="pref_html_show_press_start">Показывать \"Нажмите СТАРТ для старта трансляции\"</string>
+    <string name="pref_html_show_press_start_summary">Показывать \"Нажмите СТАРТ для старта трансляции\" на веб-странице</string>
     <string name="pref_html_back_color">Цвет фона веб-страницы</string>
     <string name="pref_html_back_color_summary">Выбрать цвет фона веб-странцы</string>
     <string name="pref_html_back_color_title">Выберите цвет фона</string>

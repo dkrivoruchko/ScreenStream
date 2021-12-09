@@ -7,9 +7,10 @@ import info.dvkr.screenstream.data.R
 import info.dvkr.screenstream.data.httpserver.HttpServerFiles
 import info.dvkr.screenstream.data.other.getFileFromAssets
 import info.dvkr.screenstream.data.other.getLog
+import info.dvkr.screenstream.data.settings.SettingsReadOnly
 
 
-class NotificationBitmap(context: Context) {
+class NotificationBitmap(context: Context, private val settingsReadOnly: SettingsReadOnly) {
 
     enum class Type { START, RELOAD_PAGE, NEW_ADDRESS, ADDRESS_BLOCKED }
 
@@ -38,18 +39,25 @@ class NotificationBitmap(context: Context) {
     }
 
     private fun generateImage(message: String, logo: Bitmap): Bitmap {
-        val bitmap: Bitmap = Bitmap.createBitmap(640, 400, Bitmap.Config.ARGB_8888)
-        val canvas = Canvas(bitmap)
-        canvas.drawRGB(25, 118, 159)
-        val paint = Paint(Paint.ANTI_ALIAS_FLAG)
-        canvas.drawBitmap(logo, 192f, 16f, paint)
+        val bitmap: Bitmap
+        if (settingsReadOnly.htmlShowPressStart) {
+            bitmap = Bitmap.createBitmap(640, 400, Bitmap.Config.ARGB_8888)
+            val canvas = Canvas(bitmap)
+            canvas.drawRGB(25, 118, 159)
+            val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+            canvas.drawBitmap(logo, 192f, 16f, paint)
 
-        paint.textSize = 24f
-        paint.color = Color.WHITE
-        val bounds = Rect()
-        paint.getTextBounds(message, 0, message.length, bounds)
-        val x = (bitmap.width - bounds.width()) / 2f
-        canvas.drawText(message, x, 324f, paint)
+            paint.textSize = 24f
+            paint.color = Color.WHITE
+            val bounds = Rect()
+            paint.getTextBounds(message, 0, message.length, bounds)
+            val x = (bitmap.width - bounds.width()) / 2f
+            canvas.drawText(message, x, 324f, paint)
+        } else {
+            bitmap = Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888)
+            val canvas = Canvas(bitmap)
+            canvas.drawColor(settingsReadOnly.htmlBackColor)
+        }
         return bitmap
     }
 }

@@ -11,6 +11,7 @@ interface SettingsReadOnly {
     val notifySlowConnections: Boolean
 
     val htmlEnableButtons: Boolean
+    val htmlShowPressStart: Boolean
     val htmlBackColor: Int
 
     val vrMode: Int

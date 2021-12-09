@@ -31,6 +31,9 @@ class SettingsImpl(private val preferences: Preferences) : Settings {
     override var htmlEnableButtons: Boolean
             by bindPreference(preferences, Settings.Key.HTML_ENABLE_BUTTONS, Settings.Default.HTML_ENABLE_BUTTONS)
 
+    override var htmlShowPressStart: Boolean
+            by bindPreference(preferences, Settings.Key.HTML_SHOW_PRESS_START, Settings.Default.HTML_SHOW_PRESS_START)
+
     override var htmlBackColor: Int
             by bindPreference(preferences, Settings.Key.HTML_BACK_COLOR, Settings.Default.HTML_BACK_COLOR)
 

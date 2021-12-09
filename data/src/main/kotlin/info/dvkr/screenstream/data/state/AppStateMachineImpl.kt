@@ -48,7 +48,7 @@ class AppStateMachineImpl(
     private val broadcastHelper = BroadcastHelper.getInstance(context)
     private val connectivityHelper: ConnectivityHelper = ConnectivityHelper.getInstance(context)
     private val networkHelper = NetworkHelper(context)
-    private val notificationBitmap = NotificationBitmap(context)
+    private val notificationBitmap = NotificationBitmap(context, settingsReadOnly)
     private val httpServer = HttpServer(
         context, coroutineScope, settingsReadOnly, bitmapStateFlow.asStateFlow(),
         notificationBitmap.getNotificationBitmap(NotificationBitmap.Type.ADDRESS_BLOCKED)

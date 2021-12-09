@@ -137,6 +137,13 @@ class SettingsInterfaceFragment : Fragment(R.layout.fragment_settings_interface)
             binding.clFragmentSettingsHtmlButtons.setOnClickListener { performClick() }
         }
 
+        // Interface - Web page show "Press START on device"
+        with(binding.cbFragmentSettingsHtmlPressStart) {
+            isChecked = settings.htmlShowPressStart
+            setOnClickListener { settings.htmlShowPressStart = isChecked }
+            binding.clFragmentSettingsHtmlPressStart.setOnClickListener { performClick() }
+        }
+
         // Interface - Web page HTML Back color
         binding.vFragmentSettingsHtmlBackColor.color = settings.htmlBackColor
         binding.vFragmentSettingsHtmlBackColor.border =

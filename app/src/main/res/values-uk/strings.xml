@@ -85,7 +85,9 @@
     <string name="pref_detect_slow_connections">Повідомляти про повільне з\'єднання</string>
     <string name="pref_detect_slow_connections_summary">Визначати та повідомляти про повільні підключення клієнтів</string>
     <string name="pref_html_buttons">Увімкнути кнопки веб сторінки</string>
-    <string name="pref_html_buttons_summary">Показати кнопки веб сторінки</string>
+    <string name="pref_html_buttons_summary">Показувати кнопки веб сторінки</string>
+    <string name="pref_html_show_press_start">Показувати \"Натисніть ПОЧАТИ щоб почати передачу\"</string>
+    <string name="pref_html_show_press_start_summary">Показувати \"Натисніть ПОЧАТИ щоб почати передачу\" на веб сторінці</string>
     <string name="pref_html_back_color">Задній фон веб сторінки</string>
     <string name="pref_html_back_color_summary">Встановити задній фон веб сторінки</string>
     <string name="pref_html_back_color_title">Вибрати задній фон</string>

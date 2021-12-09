@@ -12,6 +12,7 @@ interface Settings : SettingsReadOnly {
         const val NOTIFY_SLOW_CONNECTIONS = "PREF_KEY_NOTIFY_SLOW_CONNECTIONS"
 
         const val HTML_ENABLE_BUTTONS = "PREF_KEY_HTML_ENABLE_BUTTONS"
+        const val HTML_SHOW_PRESS_START = "PREF_KEY_HTML_SHOW_PRESS_START"
         const val HTML_BACK_COLOR = "PREF_KEY_HTML_BACK_COLOR"
 
         const val VR_MODE = "PREF_KEY_VR_MODE"
@@ -51,6 +52,7 @@ interface Settings : SettingsReadOnly {
         const val NOTIFY_SLOW_CONNECTIONS = true
 
         const val HTML_ENABLE_BUTTONS = false
+        const val HTML_SHOW_PRESS_START = true
         const val HTML_BACK_COLOR = -16777216 // "ff000000".toLong(radix = 16).toInt()
 
         const val VR_MODE_DISABLE = 0
@@ -100,6 +102,7 @@ interface Settings : SettingsReadOnly {
     override var notifySlowConnections: Boolean
 
     override var htmlEnableButtons: Boolean
+    override var htmlShowPressStart: Boolean
     override var htmlBackColor: Int
 
     override var vrMode: Int
