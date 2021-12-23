@@ -26,11 +26,11 @@ android {
 }
 
 dependencies {
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.5.2")
-    implementation("org.jetbrains.kotlin:kotlin-reflect:1.6.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.0")
+    implementation("org.jetbrains.kotlin:kotlin-reflect:1.6.10")
 
     implementation("androidx.core:core:1.7.0")
-    implementation("androidx.window:window:1.0.0-beta04")
+    implementation("androidx.window:window:1.0.0-rc01")
 
     implementation("io.ktor:ktor-server-cio:1.6.7")
 

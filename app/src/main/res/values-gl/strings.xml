@@ -6,7 +6,7 @@
     <string name="error_ip_address_not_found">Non se atopou o enderezo IP.\nProba a deshabilitar \"Use WiFi só\" na configuración.</string>
     <string name="error_wrong_image_format">O sistema devolve a imaxe nun formato descoñecido. Non hai corrección dispoñible. Desculpa.</string>
     <string name="error_exit">Saír</string>
-    <string name="app_activity_collecting_logs">Recollendo rexistros de aplicacións ...</string>
+    <string name="app_activity_collecting_logs">Recollendo rexistros de aplicacións …</string>
     <string name="app_activity_send_logs">Envía rexistros ao creador</string>
 
     <string name="bottom_menu_stream">Stream</string>
@@ -103,6 +103,6 @@
     <string name="about_fragment_developer_name">Desenvolvido por Dmitriy Krivoruchko</string>
     <string name="about_fragment_rate_app">Valora a aplicación</string>
     <string name="about_fragment_write_email">Envíe un correo electrónico ao creador</string>
-    <string name="about_fragment_email_chooser_header">Enviando correo electrónico ...</string>
+    <string name="about_fragment_email_chooser_header">Enviando correo electrónico …</string>
     <string name="about_fragment_app_sources">Códigos fonte da aplicación</string>
 </resources>
