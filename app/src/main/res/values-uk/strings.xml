@@ -14,7 +14,7 @@
     <string name="app_activity_send_logs_dialog_neutral">Зупинити збір діагностичної інформації</string>
 
     <string name="app_update_activity_dialog_title">Доступне оновлення</string>
-    <string name="app_update_activity_dialog_message">Оновлення завантажено. Перезапустити зараз?</string>
+    <string name="app_update_activity_dialog_message">Оновлення завантажено. Перезапустити додаток зараз?</string>
     <string name="app_update_activity_dialog_restart">Перезапустити</string>
 
     <string name="bottom_menu_stream">Потік</string>
@@ -24,13 +24,13 @@
     <string name="bottom_menu_about">Інформація</string>
     <string name="bottom_menu_exit">Вихід</string>
 
-    <string name="stream_fragment_current_traffic">Швидкість трафіку: %1$,.2f Mbit/s</string>
+    <string name="stream_fragment_current_traffic">Трафік: %1$,.2f Mbit/s</string>
     <string name="stream_fragment_connected_clients">Підключено клієнтів: %1$d</string>
     <string name="stream_fragment_no_address">Адресу не знайдено</string>
     <string name="stream_fragment_interface">Інтерфейс: %1$s</string>
     <string name="stream_fragment_copied">Скопійовано</string>
-    <string name="stream_fragment_no_web_browser_found">Веб оглядача не знайдено</string>
-    <string name="stream_fragment_external_app_error">Помилка зовнішньої програми</string>
+    <string name="stream_fragment_no_web_browser_found">Не знайдено веб-браузер</string>
+    <string name="stream_fragment_external_app_error">Помилка зовнішнього додатку</string>
     <string name="stream_fragment_share_address">Поділитись адресою пристрою</string>
     <string name="stream_fragment_pin">ПІН код: %1$s</string>
     <string name="stream_fragment_pin_disabled">ПІН код вимкнено</string>
@@ -62,7 +62,7 @@
 
     <string name="toast_slow_client_connection">Виявлено повільне клієнтське з\'єднання</string>
 
-    <string name="pref_settings_interface">Відображення</string>
+    <string name="pref_settings_interface">Інтерфейс</string>
     <string name="pref_night_mode">Чорна тема</string>
     <string-array name="pref_night_mode_options_api21_28">
         <item>Завжди</item>
@@ -88,31 +88,33 @@
     <string name="pref_html_buttons_summary">Показувати кнопки веб сторінки</string>
     <string name="pref_html_show_press_start">Показувати \"Натисніть ПОЧАТИ щоб почати передачу\"</string>
     <string name="pref_html_show_press_start_summary">Показувати \"Натисніть ПОЧАТИ щоб почати передачу\" на веб сторінці</string>
-    <string name="pref_html_back_color">Задній фон веб сторінки</string>
-    <string name="pref_html_back_color_summary">Встановити задній фон веб сторінки</string>
-    <string name="pref_html_back_color_title">Вибрати задній фон</string>
-    <string name="pref_settings_image">Картинка</string>
+    <string name="pref_html_back_color">Колір фону веб-сторінки</string>
+    <string name="pref_html_back_color_summary">Вибрати колір фону веб-сторінки</string>
+    <string name="pref_html_back_color_title">Вибрати колір фону</string>
+    <string name="pref_settings_image">Зображення</string>
     <string name="pref_vr_mode">Режим віртуальної реальності</string>
     <string name="pref_vr_mode_summary">Захоплювати лише половину екрану</string>
     <string-array name="pref_vr_mode_options">
         <item>Використоувати ліву частину</item>
         <item>Використоувати праву частину</item>
     </string-array>
-    <string name="pref_crop">Обрізати картинку</string>
-    <string name="pref_crop_summary">Обрізати картинку перед надсиланням на клієнт</string>
+    <string name="pref_crop">Обрізати зображення</string>
+    <string name="pref_crop_summary">Обрізати зображення перед надсиланням на клієнт</string>
     <string name="pref_crop_dialog_crop_top">Обрізати верх:</string>
     <string name="pref_crop_dialog_crop_bottom">Обрізати низ:</string>
     <string name="pref_crop_dialog_crop_left">Обрізати зліва:</string>
     <string name="pref_crop_dialog_crop_right">Обрізати справа:</string>
     <string name="pref_crop_dialog_pixels">пікселі</string>
-    <string name="pref_crop_dialog_warning_message">Обрізання картинки буде проігноровано якщо результатом буде пуста картинка</string>
+    <string name="pref_crop_dialog_warning_message">Обрізання зображення буде проігноровано якщо результатом буде пусте зображення</string>
     <string name="pref_crop_dialog_error_message">Введіть коректні величини обрізання</string>
-    <string name="pref_resize">Змінити розмір картинки</string>
-    <string name="pref_resize_summary">Змінити розмір картинки перед надсиланням на клієнт</string>
+    <string name="pref_grayscale">Режим відтінків сірого</string>
+    <string name="pref_grayscale_summary">Переводити зображення у градації сірого перед відправкою</string>
+    <string name="pref_resize">Змінити розмір зображення</string>
+    <string name="pref_resize_summary">Змінити розмір зображення перед надсиланням на клієнт</string>
     <string name="pref_resize_dialog_text">Встановіть фактор зміни розміру у відсотках.\nВеличини: 10–150 (За замовчуванням: 50)\nРозмір екрану: %1$dx%2$d</string>
-    <string name="pref_resize_dialog_result">Розмір картинки: %1$dx%2$d</string>
-    <string name="pref_rotate">Повернути картинку за годинниковаою стрілкою</string>
-    <string name="pref_rotate_summary">Повернути картинку перед надсиланням на клієнт</string>
+    <string name="pref_resize_dialog_result">Розмір зображення: %1$dx%2$d</string>
+    <string name="pref_rotate">Повернути зображення за годинниковаою стрілкою</string>
+    <string name="pref_rotate_summary">Повернути зображення перед надсиланням на клієнт</string>
     <string name="pref_fps">Встановити ліміт кадрів на секунду</string>
     <string name="pref_fps_summary">Встановити максимальний ліміт кадрів на секунду</string>
     <string name="pref_fps_dialog">Встановити ліміт кадрів на секунду.\nВеличини: 1–60 (За замовчуванням: 30)</string>
@@ -131,25 +133,25 @@
     <string name="pref_set_pin">Встановити ПІН код</string>
     <string name="pref_set_pin_summary">Ввести ПІН код вручну</string>
     <string name="pref_set_pin_dialog">Введіть ПІН код.\nЗа замовчуванням: 0000</string>
-    <string name="pref_block_address">Заблокувати IP адресу</string>
+    <string name="pref_block_address">Блокувати IP адресу</string>
     <string name="pref_block_address_summary">Заблокувати клієнтську IP адресу після 5 невірних спроб протягом 5 хвилин</string>
     <string name="pref_settings_advanced">Розширені</string>
     <string name="pref_wifi_only">Використоувати лише WiFi</string>
-    <string name="pref_wifi_only_summary">Використоувати лише WiFi для серверу</string>
+    <string name="pref_wifi_only_summary">Запускати сервер лише на WiFi інтерфейсі</string>
     <string name="pref_enable_ipv6">Увімкнути підтримку IPv6</string>
-    <string name="pref_enable_ipv6_summary">Увімкнути підтримку IPv6 для серверних адрес</string>
+    <string name="pref_enable_ipv6_summary">Запускати сервер також на IPv6 адресах</string>
     <string name="pref_enable_localhost">Увімкнути localhost</string>
-    <string name="pref_enable_localhost_summary">Увімкнути localhost для серверних адрес</string>
+    <string name="pref_enable_localhost_summary">Запускати сервер також на localhost адресах</string>
     <string name="pref_localhost_only">Використоувати лише localhost</string>
-    <string name="pref_localhost_only_summary">Використоувати лише localhost для серверних адрес</string>
+    <string name="pref_localhost_only_summary">Запускати сервер лише на localhost адресах</string>
     <string name="pref_server_port">Порт сервера</string>
     <string name="pref_server_port_summary">Встановити порт для вхідних підключень</string>
     <string name="pref_server_port_dialog">Встановити порт для вхідних підключень.\nВеличини: 1025–65535\n(За замовчуванням: 8080)</string>
     <string name="pref_logging">Увімкнути діагностичну інформацію</string>
-    <string name="pref_logging_summary">Зібрати діагностичну інформацію</string>
+    <string name="pref_logging_summary">Збирати діагностичну інформацію</string>
 
     <string name="about_fragment_app_version">Версія: %1$s</string>
-    <string name="about_fragment_developer_name">Розроблено Дмитром Криворучком</string>
+    <string name="about_fragment_developer_name">Розробник Дмитро Криворучко</string>
     <string name="about_fragment_rate_app">Оцінити додаток</string>
     <string name="about_fragment_write_email">Написати електронного листа розробнику</string>
     <string name="about_fragment_write_email_dialog">Написати електронного листа розробнику?</string>

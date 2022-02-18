@@ -88,7 +88,7 @@
     <string name="pref_html_show_press_start">Показывать \"Нажмите СТАРТ для старта трансляции\"</string>
     <string name="pref_html_show_press_start_summary">Показывать \"Нажмите СТАРТ для старта трансляции\" на веб-странице</string>
     <string name="pref_html_back_color">Цвет фона веб-страницы</string>
-    <string name="pref_html_back_color_summary">Выбрать цвет фона веб-странцы</string>
+    <string name="pref_html_back_color_summary">Выбрать цвет фона веб-страницы</string>
     <string name="pref_html_back_color_title">Выберите цвет фона</string>
     <string name="pref_settings_image">Изображение</string>
     <string name="pref_vr_mode">Режим виртуальной реальности</string>
@@ -106,6 +106,8 @@
     <string name="pref_crop_dialog_pixels">пикселей</string>
     <string name="pref_crop_dialog_warning_message">Обрезка будет проигнорирована если приведет к пустому изображению</string>
     <string name="pref_crop_dialog_error_message">Введите верные значения</string>
+    <string name="pref_grayscale">Pежим оттенков серого</string>
+    <string name="pref_grayscale_summary">Переводить изображение в градации серого перед отправкой</string>
     <string name="pref_resize">Размер изображения</string>
     <string name="pref_resize_summary">Изменять размер изображения перед отправкой</string>
     <string name="pref_resize_dialog_text">Установите коэффициент масштабирования изображения в процентах.\nЗначения: 10–150 (По умолчанию: 50)\nРазмер экрана: %1$dx%2$d</string>
@@ -136,11 +138,11 @@
     <string name="pref_wifi_only">Использовать только WiFi</string>
     <string name="pref_wifi_only_summary">Запускать сервер только на WiFi интерфейсе</string>
     <string name="pref_enable_ipv6">Включить поддержку IPv6</string>
-    <string name="pref_enable_ipv6_summary">Запускать сервер и на IPv6 адресах</string>
-    <string name="pref_enable_localhost">Слушать local host</string>
-    <string name="pref_enable_localhost_summary">Запускать сервер и на local host адресах</string>
-    <string name="pref_localhost_only">Слушать только local host</string>
-    <string name="pref_localhost_only_summary">Запускать сервер только на local host адресах</string>
+    <string name="pref_enable_ipv6_summary">Запускать сервер также на IPv6 адресах</string>
+    <string name="pref_enable_localhost">Слушать localhost</string>
+    <string name="pref_enable_localhost_summary">Запускать сервер также на localhost адресах</string>
+    <string name="pref_localhost_only">Слушать только localhost</string>
+    <string name="pref_localhost_only_summary">Запускать сервер только на localhost адресах</string>
     <string name="pref_server_port">Порт сервера</string>
     <string name="pref_server_port_summary">Установить порт для входяших подключений</string>
     <string name="pref_server_port_dialog">Установите порт сервера для входящих подключений.\nЗначения: 1025–65535\n(По умолчанию: 8080)</string>
