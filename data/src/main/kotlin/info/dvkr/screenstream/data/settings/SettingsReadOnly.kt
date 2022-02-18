@@ -20,6 +20,7 @@ interface SettingsReadOnly {
     val imageCropBottom: Int
     val imageCropLeft: Int
     val imageCropRight: Int
+    val imageGrayscale: Boolean
     val jpegQuality: Int
     val resizeFactor: Int
     val rotation: Int

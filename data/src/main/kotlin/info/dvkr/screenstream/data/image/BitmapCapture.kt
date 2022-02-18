@@ -32,7 +32,6 @@ import info.dvkr.screenstream.data.model.FixableError
 import info.dvkr.screenstream.data.other.getLog
 import info.dvkr.screenstream.data.settings.Settings
 import info.dvkr.screenstream.data.settings.SettingsReadOnly
-import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -289,7 +288,8 @@ class BitmapCapture(
                 cleanBitmap.copyPixelsFromBuffer(mBuf)
 
                 val croppedBitmap = getCroppedBitmap(cleanBitmap)
-                val upsizedBitmap = getUpsizedAndRotadedBitmap(croppedBitmap)
+                val grayScaleBitmap = getGrayScaleBitmap(croppedBitmap)
+                val upsizedBitmap = getUpsizedAndRotatedBitmap(grayScaleBitmap)
 
                 bitmapStateFlow.tryEmit(upsizedBitmap)
             }
@@ -315,7 +315,8 @@ class BitmapCapture(
 
                         val cleanBitmap = getCleanBitmap(image)
                         val croppedBitmap = getCroppedBitmap(cleanBitmap)
-                        val upsizedBitmap = getUpsizedAndRotadedBitmap(croppedBitmap)
+                        val grayScaleBitmap = getGrayScaleBitmap(croppedBitmap)
+                        val upsizedBitmap = getUpsizedAndRotatedBitmap(grayScaleBitmap)
 
                         image.close()
                         bitmapStateFlow.tryEmit(upsizedBitmap)
@@ -404,8 +405,21 @@ class BitmapCapture(
         }
     }
 
-    private fun getUpsizedAndRotadedBitmap(bitmap: Bitmap): Bitmap {
+    private fun getUpsizedAndRotatedBitmap(bitmap: Bitmap): Bitmap {
         if (matrix.get().isIdentity) return bitmap
         return Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix.get(), false)
+    }
+
+    private fun getGrayScaleBitmap(bitmap: Bitmap): Bitmap {
+        if (settingsReadOnly.imageGrayscale == Settings.Default.IMAGE_GRAYSCALE) return bitmap
+
+        val paint = Paint().apply {
+            colorFilter = ColorMatrixColorFilter(ColorMatrix().apply { setSaturation(0f) })
+        }
+
+        val bmpGrayscale = Bitmap.createBitmap(bitmap.width, bitmap.height, Bitmap.Config.ARGB_8888)
+        Canvas(bmpGrayscale).apply { drawBitmap(bitmap, 0f, 0f, paint) }
+
+        return bmpGrayscale
     }
 }

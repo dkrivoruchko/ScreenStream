@@ -56,6 +56,9 @@ class SettingsImpl(private val preferences: Preferences) : Settings {
     override var imageCropRight: Int
             by bindPreference(preferences, Settings.Key.IMAGE_CROP_RIGHT, Settings.Default.IMAGE_CROP_RIGHT)
 
+    override var imageGrayscale: Boolean
+            by bindPreference(preferences, Settings.Key.IMAGE_GRAYSCALE, Settings.Default.IMAGE_GRAYSCALE)
+
     override var jpegQuality: Int
             by bindPreference(preferences, Settings.Key.JPEG_QUALITY, Settings.Default.JPEG_QUALITY)
 

@@ -211,6 +211,13 @@ class SettingsImageFragment : Fragment(R.layout.fragment_settings_image) {
                 }
         }
 
+        // Image - Grayscale
+        with(binding.cbFragmentSettingsGrayscaleImage) {
+            isChecked = settings.imageGrayscale
+            setOnClickListener { settings.imageGrayscale = isChecked }
+            binding.clFragmentSettingsGrayscaleImage.setOnClickListener { performClick() }
+        }
+
         // Image - Rotation
         binding.tvFragmentSettingsRotationValue.text = getString(R.string.pref_rotate_value, settings.rotation)
         binding.clFragmentSettingsRotation.setOnClickListener {

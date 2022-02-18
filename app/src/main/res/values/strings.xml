@@ -109,6 +109,8 @@
     <string name="pref_crop_dialog_pixels">pixels</string>
     <string name="pref_crop_dialog_warning_message">Crop will be ignored if result is an empty image</string>
     <string name="pref_crop_dialog_error_message">Enter valid crop values</string>
+    <string name="pref_grayscale">Grayscale mode</string>
+    <string name="pref_grayscale_summary">Grayscale image before sending to client</string>
     <string name="pref_resize">Resize image</string>
     <string name="pref_resize_summary">Resize image before sending to client</string>
     <string name="pref_resize_value" translatable="false">%1$d%%</string>

@@ -21,6 +21,7 @@ interface Settings : SettingsReadOnly {
         const val IMAGE_CROP_BOTTOM = "PREF_KEY_IMAGE_CROP_BOTTOM"
         const val IMAGE_CROP_LEFT = "PREF_KEY_IMAGE_CROP_LEFT"
         const val IMAGE_CROP_RIGHT = "PREF_KEY_IMAGE_CROP_RIGHT"
+        const val IMAGE_GRAYSCALE = "PREF_KEY_IMAGE_GRAYSCALE"
         const val JPEG_QUALITY = "PREF_KEY_JPEG_QUALITY"
         const val RESIZE_FACTOR = "PREF_KEY_RESIZE_FACTOR"
         const val ROTATION = "PREF_KEY_ROTATION"
@@ -63,6 +64,7 @@ interface Settings : SettingsReadOnly {
         const val IMAGE_CROP_BOTTOM = 0
         const val IMAGE_CROP_LEFT = 0
         const val IMAGE_CROP_RIGHT = 0
+        const val IMAGE_GRAYSCALE = false
         const val JPEG_QUALITY = 80
         const val RESIZE_FACTOR = 50
         const val ROTATION = Values.ROTATION_0
@@ -111,6 +113,7 @@ interface Settings : SettingsReadOnly {
     override var imageCropBottom: Int
     override var imageCropLeft: Int
     override var imageCropRight: Int
+    override var imageGrayscale: Boolean
     override var jpegQuality: Int
     override var resizeFactor: Int
     override var rotation: Int
