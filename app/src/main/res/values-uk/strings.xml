@@ -17,7 +17,7 @@
     <string name="app_update_activity_dialog_message">Оновлення завантажено. Перезапустити додаток зараз?</string>
     <string name="app_update_activity_dialog_restart">Перезапустити</string>
 
-    <string name="bottom_menu_stream">Потік</string>
+    <string name="bottom_menu_stream">Трансляція</string>
     <string name="bottom_menu_settings">Налаштування</string>
     <string name="bottom_menu_start">Почати</string>
     <string name="bottom_menu_stop">Зупитини</string>
@@ -56,8 +56,8 @@
     <string name="notification_press_start">Натисніть ПОЧАТИ щоб почати передачу</string>
     <string name="notification_start">ПОЧАТИ</string>
     <string name="notification_exit">Вихід</string>
-    <string name="notification_stream">Потік…</string>
-    <string name="notification_press_stop">Натисніть СТОП щоб зупинити потік</string>
+    <string name="notification_stream">Трансляція…</string>
+    <string name="notification_press_stop">Натисніть СТОП щоб зупинити трансляцію</string>
     <string name="notification_stop">СТОП</string>
 
     <string name="toast_slow_client_connection">Виявлено повільне клієнтське з\'єднання</string>
@@ -76,18 +76,20 @@
     </string-array>
     <string name="pref_notification">Налаштування повідомлень пристрою</string>
     <string name="pref_notification_summary">Перейти в системні налаштування повідомлень</string>
-    <string name="pref_stop_on_sleep">Зупинити потік при засинанні пристрою</string>
-    <string name="pref_stop_on_sleep_summary">Зупинити потік при вимкненні екрану</string>
-    <string name="pref_start_on_boot">Почати потік при завантаженні додатку</string>
-    <string name="pref_start_on_boot_summary">Почати потік при завантаженні пристрою</string>
-    <string name="pref_auto_start_stop">Атоматично Починати/Зупиняти потік</string>
-    <string name="pref_auto_start_stop_summary">Атоматично Починати/Зупиняти потік при підключенні/відключенні клієнтів</string>
+    <string name="pref_keep_awake">Тримати пристрій активним</string>
+    <string name="pref_keep_awake_summary">Тримати пристрій та екран активними під час трансляції</string>
+    <string name="pref_stop_on_sleep">Зупиняти трансляцію при засинанні пристрою</string>
+    <string name="pref_stop_on_sleep_summary">Зупиняти трансляцію при вимкненні екрану</string>
+    <string name="pref_start_on_boot">Починати трансляцію при завантаженні додатку</string>
+    <string name="pref_start_on_boot_summary">Починати трансляцію при завантаженні пристрою</string>
+    <string name="pref_auto_start_stop">Атоматично Починати/Зупиняти трансляцію</string>
+    <string name="pref_auto_start_stop_summary">Атоматично Починати/Зупиняти трансляцію при підключенні/відключенні клієнтів</string>
     <string name="pref_detect_slow_connections">Повідомляти про повільне з\'єднання</string>
     <string name="pref_detect_slow_connections_summary">Визначати та повідомляти про повільні підключення клієнтів</string>
     <string name="pref_html_buttons">Увімкнути кнопки веб сторінки</string>
     <string name="pref_html_buttons_summary">Показувати кнопки веб сторінки</string>
-    <string name="pref_html_show_press_start">Показувати \"Натисніть ПОЧАТИ щоб почати передачу\"</string>
-    <string name="pref_html_show_press_start_summary">Показувати \"Натисніть ПОЧАТИ щоб почати передачу\" на веб сторінці</string>
+    <string name="pref_html_show_press_start">Показувати \"Натисніть ПОЧАТИ на пристрої\"</string>
+    <string name="pref_html_show_press_start_summary">Показувати \"Натисніть ПОЧАТИ на пристрої\" на веб сторінці</string>
     <string name="pref_html_back_color">Колір фону веб-сторінки</string>
     <string name="pref_html_back_color_summary">Вибрати колір фону веб-сторінки</string>
     <string name="pref_html_back_color_title">Вибрати колір фону</string>
@@ -123,13 +125,13 @@
     <string name="pref_jpeg_quality_dialog">Встановити якість компресії JPEG.\nВеличини: 10–100 (За замовчуванням: 80)</string>
     <string name="pref_settings_security">Безпека</string>
     <string name="pref_enable_pin">Увімкнути ПІН код</string>
-    <string name="pref_enable_pin_summary">Захистити потік ПІН кодом</string>
-    <string name="pref_hide_pin">Автоматично ховати ПІН код при початку потоку</string>
-    <string name="pref_hide_pin_summary">Замаскувати ПІН код під час потоку</string>
+    <string name="pref_enable_pin_summary">Захистити трансляцію ПІН кодом</string>
+    <string name="pref_hide_pin">Ховати ПІН код при початку трансляції</string>
+    <string name="pref_hide_pin_summary">Замаскувати ПІН код під час трансляції</string>
     <string name="pref_new_pin_on_start">Новий ПІН код при старті</string>
     <string name="pref_new_pin_on_start_summary">Створювати новий ПІН код при старті додатку</string>
     <string name="pref_auto_change_pin">Автоматично змінювати ПІН код</string>
-    <string name="pref_auto_change_pin_summary">Створювати новий ПІН код для кожного нового потоку</string>
+    <string name="pref_auto_change_pin_summary">Створювати новий ПІН код для кожної нової трансляції</string>
     <string name="pref_set_pin">Встановити ПІН код</string>
     <string name="pref_set_pin_summary">Ввести ПІН код вручну</string>
     <string name="pref_set_pin_dialog">Введіть ПІН код.\nЗа замовчуванням: 0000</string>

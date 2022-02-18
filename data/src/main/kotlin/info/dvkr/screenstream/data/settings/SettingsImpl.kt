@@ -15,6 +15,9 @@ class SettingsImpl(private val preferences: Preferences) : Settings {
     override var nightMode: Int
             by bindPreference(preferences, Settings.Key.NIGHT_MODE, Settings.Default.NIGHT_MODE)
 
+    override var keepAwake: Boolean
+            by bindPreference(preferences, Settings.Key.KEEP_AWAKE, Settings.Default.KEEP_AWAKE)
+
     override var stopOnSleep: Boolean
             by bindPreference(preferences, Settings.Key.STOP_ON_SLEEP, Settings.Default.STOP_ON_SLEEP)
 

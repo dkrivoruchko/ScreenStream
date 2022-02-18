@@ -1,5 +1,6 @@
 package info.dvkr.screenstream.data.state
 
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
@@ -8,11 +9,14 @@ import android.media.projection.MediaProjection
 import android.media.projection.MediaProjectionManager
 import android.os.Handler
 import android.os.Looper
+import android.os.PowerManager
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.data.httpserver.HttpServer
 import info.dvkr.screenstream.data.image.BitmapCapture
 import info.dvkr.screenstream.data.image.NotificationBitmap
-import info.dvkr.screenstream.data.model.*
+import info.dvkr.screenstream.data.model.AppError
+import info.dvkr.screenstream.data.model.FatalError
+import info.dvkr.screenstream.data.model.FixableError
 import info.dvkr.screenstream.data.other.getLog
 import info.dvkr.screenstream.data.settings.Settings
 import info.dvkr.screenstream.data.settings.SettingsReadOnly
@@ -55,6 +59,8 @@ class AppStateMachineImpl(
     )
     private var mediaProjectionIntent: Intent? = null
 
+    private val powerManager = context.getSystemService(Context.POWER_SERVICE) as PowerManager
+    private var wakeLock: PowerManager.WakeLock? = null
 
     internal sealed class InternalEvent : AppStateMachine.Event() {
         object DiscoverAddress : InternalEvent()
@@ -217,10 +223,17 @@ class AppStateMachineImpl(
         broadcastHelper.stopListening()
         connectivityHelper.stopListening()
         coroutineScope.cancel()
+
+        mediaProjectionIntent = null
+
+        wakeLock?.release()
+        wakeLock = null
     }
 
     private fun onError(appError: AppError) {
         XLog.e(getLog("onError", "AppError: $appError"))
+        wakeLock?.release()
+        wakeLock = null
         sendEvent(InternalEvent.ComponentError(appError))
     }
 
@@ -231,6 +244,9 @@ class AppStateMachineImpl(
             streamState.mediaProjection?.unregisterCallback(projectionCallback)
             streamState.mediaProjection?.stop()
         }
+
+        wakeLock?.release()
+        wakeLock = null
 
         return streamState.copy(mediaProjection = null, bitmapCapture = null)
     }
@@ -308,6 +324,14 @@ class AppStateMachineImpl(
         }
         val bitmapCapture = BitmapCapture(context, settingsReadOnly, mediaProjection, bitmapStateFlow, ::onError)
         bitmapCapture.start()
+
+        if (settingsReadOnly.keepAwake) {
+            @Suppress("DEPRECATION")
+            @SuppressLint("WakelockTimeout")
+            wakeLock = powerManager.newWakeLock(
+                PowerManager.SCREEN_DIM_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP, "ScreenStream::StreamingTag"
+            ).apply { acquire() }
+        }
 
         return streamState.copy(
             state = StreamState.State.STREAMING,

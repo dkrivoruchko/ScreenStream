@@ -6,7 +6,7 @@
     <string name="image_generator_address_blocked">Клієнтську адресу заблоковано</string>
 
     <!--HTML text-->
-    <string name="html_stream_require_pin">Цей потік вимагає ПІН код</string>
+    <string name="html_stream_require_pin">Ця трансляція вимагає ПІН код</string>
     <string name="html_enter_pin">Введіть ПІН код:\u0020</string>
     <string name="html_submit_text">Підтвердити</string>
     <string name="html_wrong_pin">Невірний ПІН код!</string>

@@ -78,6 +78,8 @@
     </string-array>
     <string name="pref_notification">Device notification settings</string>
     <string name="pref_notification_summary">Open system notification settings</string>
+    <string name="pref_keep_awake">Keep device awake</string>
+    <string name="pref_keep_awake_summary">Keep device and screen awake while streaming</string>
     <string name="pref_stop_on_sleep">Stop stream on sleep</string>
     <string name="pref_stop_on_sleep_summary">Stop stream if screen turns off</string>
     <string name="pref_start_on_boot">Start stream on boot</string>

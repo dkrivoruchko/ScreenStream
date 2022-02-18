@@ -75,6 +75,8 @@
     </string-array>
     <string name="pref_notification">Настройки уведомлений устройства</string>
     <string name="pref_notification_summary">Открыть настройки уведомлений системы</string>
+    <string name="pref_keep_awake">Держать устройство активным</string>
+    <string name="pref_keep_awake_summary">Держать устройство и экран активными при трансляции</string>
     <string name="pref_stop_on_sleep">Останавливать при выключении</string>
     <string name="pref_stop_on_sleep_summary">Останавливать трансляцию, если выключится экран</string>
     <string name="pref_start_on_boot">Начинать при загрузке</string>

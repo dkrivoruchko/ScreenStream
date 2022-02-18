@@ -97,6 +97,13 @@ class SettingsInterfaceFragment : Fragment(R.layout.fragment_settings_interface)
             binding.vFragmentSettingsNotification.visibility = View.GONE
         }
 
+        // Interface - Keep awake
+        with(binding.cbFragmentSettingsKeepAwake) {
+            isChecked = settings.keepAwake
+            setOnClickListener { settings.keepAwake = isChecked }
+            binding.clFragmentSettingsKeepAwake.setOnClickListener { performClick() }
+        }
+
         // Interface - Stop on sleep
         with(binding.cbFragmentSettingsStopOnSleep) {
             isChecked = settings.stopOnSleep
