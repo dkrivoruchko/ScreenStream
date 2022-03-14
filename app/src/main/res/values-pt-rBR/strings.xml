@@ -10,7 +10,7 @@
     <string name="app_activity_collecting_logs">Captando os logs do app…</string>
     <string name="app_activity_send_logs">Enviar os logs ao desenvolvedor</string>
     <string name="app_activity_send_logs_dialog_title">Enviar os logs via e-mail ao desenvolvedor</string>
-    <string name="app_activity_send_logs_dialog_message">Por favor adicione a descrição sobre problema:</string>
+    <string name="app_activity_send_logs_dialog_message">Por favor adicione a descrição do problema:</string>
     <string name="app_activity_send_logs_dialog_neutral">Parar de registrar os logs</string>
 
     <string name="app_update_activity_dialog_title">Atualização disponível</string>
@@ -43,10 +43,10 @@
     <string name="item_device_address_description_open_address">Abrir o endereço</string>
     <string name="item_device_address_description_copy_address">Copiar o endereço</string>
     <string name="item_device_address_description_share_address">Compartilhe o endereço</string>
-    <string name="item_device_address_description_qr_address">Mostrar o endereço como código QR</string>
+    <string name="item_device_address_description_qr_address">Mostrar o endereço via código QR</string>
 
-    <string name="permission_activity_error_title_activity_not_found">Diálogo com erro da permissão</string>
-    <string name="permission_activity_error_activity_not_found">Falha no Android. NÃO selecione \"Não mostar novamente\" no diálogo que solicita permissões para capturar a tela. Se você já fez isso, reinstale o app.</string>
+    <string name="permission_activity_error_title_activity_not_found">Aviso com erro da permissão</string>
+    <string name="permission_activity_error_activity_not_found">Falha no Android. NÃO selecione \"Não mostar novamente\" no aviso que solicita permissões para capturar a tela. Se você já fez isso, reinstale o app.</string>
     <string name="permission_activity_cast_permission_required_title">Permissão necessária</string>
     <string name="permission_activity_cast_permission_required">ScreenStream requer permissão do ScreenCast para capturar a tela.</string>
     <string name="permission_activity_error_title">Erro</string>
@@ -76,6 +76,8 @@
     </string-array>
     <string name="pref_notification">Configuração de notificações</string>
     <string name="pref_notification_summary">Abrir a configuração de notificações do sistema</string>
+    <string name="pref_keep_awake">Manter dispositivo ativo</string>
+    <string name="pref_keep_awake_summary">Mantenha o dispositivo e a tela acessíveis durante a transmissão</string>
     <string name="pref_stop_on_sleep">Parar a transmissão ao suspender</string>
     <string name="pref_stop_on_sleep_summary">Parar a transmissão quando a tela for desligada</string>
     <string name="pref_start_on_boot">Começar ao iniciar</string>
@@ -107,6 +109,8 @@
     <string name="pref_crop_dialog_pixels">pixéis</string>
     <string name="pref_crop_dialog_warning_message">Efeito de redimensionar será ignorado se o resultado for uma imagem vazia</string>
     <string name="pref_crop_dialog_error_message">Digite os valores válidos para redimensionar</string>
+    <string name="pref_grayscale">Modo de tons de cinza</string>
+    <string name="pref_grayscale_summary">Fazer a imagem unicolor antes de enviá-la ao cliente</string>
     <string name="pref_resize">Redimensionar a imagem</string>
     <string name="pref_resize_summary">Redimensionar a imagem antes de enviar para o cliente</string>
     <string name="pref_resize_dialog_text">Defina o fator de redimensionamento da imagem em porcentagem.\nValores: 10–150 (Padrão: 50)\nTamanho da tela: %1$dx%2$d</string>
@@ -116,12 +120,12 @@
     <string name="pref_fps">Limite de quadros por segundo</string>
     <string name="pref_fps_summary">Definir o máximo de quadros por segundo</string>
     <string name="pref_fps_dialog">Defina o máximo de quadros por segundo.\nValores: 1–60 (Padrão: 30)</string>
-    <string name="pref_jpeg_quality">Qualidade de compressão JPEG</string>
-    <string name="pref_jpeg_quality_summary">Definir qualidade de compressão JPEG</string>
-    <string name="pref_jpeg_quality_dialog">Defina a qualidade de compressão JPEG.\nValores: 10–100 (Padrão: 80)</string>
+    <string name="pref_jpeg_quality">Qualidade da compressão JPEG</string>
+    <string name="pref_jpeg_quality_summary">Definir qualidade da compressão JPEG</string>
+    <string name="pref_jpeg_quality_dialog">Defina a qualidade da compressão JPEG.\nValores: 10–100 (Padrão: 80)</string>
     <string name="pref_settings_security">Segurança</string>
     <string name="pref_enable_pin">Ativar o Pin</string>
-    <string name="pref_enable_pin_summary">Proteger o acesso à transmissão com o Pin</string>
+    <string name="pref_enable_pin_summary">Proteger o acesso à transmissão com Pin</string>
     <string name="pref_hide_pin">Não mostrar o Pin no início da transmissão</string>
     <string name="pref_hide_pin_summary">Mostrar asteriscos em vez do Pin durante a transmissão</string>
     <string name="pref_new_pin_on_start">Novo Pin ao iniciar</string>
@@ -131,12 +135,12 @@
     <string name="pref_set_pin">Definir o Pin</string>
     <string name="pref_set_pin_summary">Digitar o Pin manualmente</string>
     <string name="pref_set_pin_dialog">Digite o Pin.\nPadrão: 0000</string>
-    <string name="pref_block_address">Bloquear o endereço de IP</string>
-    <string name="pref_block_address_summary">Bloquear por 5 minutos o endereço de IP do cliente após 5 tentativas erradas</string>
+    <string name="pref_block_address">Bloquear o endereço IP</string>
+    <string name="pref_block_address_summary">Bloquear por 5 minutos o endereço IP do cliente após 5 tentativas erradas</string>
     <string name="pref_settings_advanced">Avançado</string>
     <string name="pref_wifi_only">Use apenas WiFi</string>
     <string name="pref_wifi_only_summary">Execute o servidor apenas na interface Wi-Fi</string>
-    <string name="pref_enable_ipv6">Habilitar suporte IPv6</string>
+    <string name="pref_enable_ipv6">Habilitar suporte para IPv6</string>
     <string name="pref_enable_ipv6_summary">Também execute o servidor em endereços IPv6</string>
     <string name="pref_enable_localhost">Habilitar host local</string>
     <string name="pref_enable_localhost_summary">Também execute o servidor em endereços de host local</string>
