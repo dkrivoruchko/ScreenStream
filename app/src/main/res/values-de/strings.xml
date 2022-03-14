@@ -146,4 +146,18 @@
     <string name="about_fragment_email_chooser_header">E-Mail wird gesendet…</string>
     <string name="about_fragment_app_sources">App-Quelltext</string>
     <string name="about_fragment_privacy_policy">Datenschutzrichtlinien</string>
+    <string name="stream_fragment_client_blocked">Blockiert</string>
+    <string name="item_device_address_description_open_address">Adresse öffnen</string>
+    <string name="item_device_address_description_copy_address">Adresse kopieren</string>
+    <string name="item_device_address_description_share_address">Adresse teilen</string>
+    <string name="item_device_address_description_qr_address">Adresse als QR-Code anzeigen</string>
+    <string name="pref_keep_awake">Gerät aktiviert lassen</string>
+    <string name="pref_keep_awake_summary">Gerät und Bildschirm aktiviert lassen</string>
+    <string name="pref_html_show_press_start">\"Press START on device\" anzeigen</string>
+    <string name="pref_html_show_press_start_summary">\"Press START on device\" auf der Webseite anzeigen</string>
+    <string name="pref_grayscale">Schwarzweiß-Modus</string>
+    <string name="pref_grayscale_summary">Bild in schwarzweiß konvertieren vor dem Senden an den Client</string>
+    <string name="pref_block_address">IP-Adresse blockieren</string>
+    <string name="pref_block_address_summary">IP-Adresse für 5 Minuten blockieren nach 5 PIN-Eingabeversuchen</string>
+    <string name="about_fragment_license">Lizenz</string>
 </resources>
