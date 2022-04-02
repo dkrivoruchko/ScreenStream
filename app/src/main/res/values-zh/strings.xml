@@ -39,10 +39,10 @@
     <string name="stream_fragment_client_disconnected">连接已断开</string>
     <string name="stream_fragment_client_slow_network">慢速连接</string>
     <string name="stream_fragment_client_connected">已连接</string>
-	<string name="stream_fragment_client_blocked">已拦截</string>
+    <string name="stream_fragment_client_blocked">已拦截</string>
 
     <string name="item_device_address">设备地址:</string>
-	<string name="item_device_address_description_open_address">打开地址</string>
+    <string name="item_device_address_description_open_address">打开地址</string>
     <string name="item_device_address_description_copy_address">复制地址</string>
     <string name="item_device_address_description_share_address">分享地址</string>
     <string name="item_device_address_description_qr_address">将地址分享为二维码</string>
@@ -145,7 +145,7 @@
     <string name="pref_set_pin">设置 pin</string>
     <string name="pref_set_pin_summary">手动输入 pin</string>
     <string name="pref_set_pin_dialog">输入pin。\n默认: 0000</string>
-	<string name="pref_block_address">拦截 IP 地址</string>
+    <string name="pref_block_address">拦截 IP 地址</string>
     <string name="pref_block_address_summary">输错 pin 码 5 次后阻止客户端 IP 地址5分钟</string>
     <string name="pref_settings_advanced">高级</string>
     <string name="pref_wifi_only">只使用WIFI</string>
