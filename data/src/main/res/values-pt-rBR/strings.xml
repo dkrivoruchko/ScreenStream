@@ -1,15 +1,15 @@
 <resources>
     <!--BitmapNotification-->
-    <string name="image_generator_press_start">Pressione INICIAR no dispositivo</string>
+    <string name="image_generator_press_start">Clique no INICIAR em dispositivo</string>
     <string name="image_generator_go_to_new_address">Por favor, vá para novo endereço</string>
     <string name="image_generator_reload_this_page">Por favor recarregue esta página</string>
     <string name="image_generator_address_blocked">Endereço do cliente bloqueado</string>
 
     <!--HTML text-->
-    <string name="html_stream_require_pin">Este stream requer PIN para acessá-lo</string>
-    <string name="html_enter_pin">Digite pin: \u0020</string>
-    <string name="html_submit_text">Enviar</string>
-    <string name="html_wrong_pin">Pin errado!</string>
+    <string name="html_stream_require_pin">Precisa do Pin para ver esta transmissão</string>
+    <string name="html_enter_pin">Digite o Pin: \u0020</string>
+    <string name="html_submit_text">Submeter</string>
+    <string name="html_wrong_pin">Pin incorreto!</string>
     <string name="html_address_blocked">Endereço do cliente bloqueado</string>
 
 </resources>
