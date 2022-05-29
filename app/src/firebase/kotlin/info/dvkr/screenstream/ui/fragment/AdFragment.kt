@@ -54,7 +54,7 @@ abstract class AdFragment(@LayoutRes contentLayoutId: Int) : Fragment(contentLay
             adView = AdView(requireActivity()).also { adView ->
                 adViewContainer.addView(adView)
                 adView.adUnitId = currentAd.key
-                adView.adSize = adSize
+                adView.setAdSize(adSize)
                 adView.loadAd(AdRequest.Builder().build())
                 ads.replace(currentAd.key, System.currentTimeMillis())
             }
