@@ -20,6 +20,9 @@ import info.dvkr.screenstream.R
 import info.dvkr.screenstream.data.other.getLog
 import info.dvkr.screenstream.data.settings.Settings
 import info.dvkr.screenstream.databinding.FragmentSettingsSecurityBinding
+import info.dvkr.screenstream.service.ServiceMessage
+import info.dvkr.screenstream.service.helper.IntentAction
+import info.dvkr.screenstream.ui.activity.ServiceActivity
 import info.dvkr.screenstream.ui.enableDisableViewWithChildren
 import info.dvkr.screenstream.ui.viewBinding
 import kotlinx.coroutines.flow.first
@@ -31,9 +34,23 @@ class SettingsSecurityFragment : Fragment(R.layout.fragment_settings_security) {
 
     private val settings: Settings by inject()
     private val binding by viewBinding { fragment -> FragmentSettingsSecurityBinding.bind(fragment.requireView()) }
+    private var isStreaming: Boolean = false
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
+        (requireActivity() as ServiceActivity).getServiceMessageLiveData()
+            .observe(viewLifecycleOwner) { serviceMessage ->
+                if (serviceMessage is ServiceMessage.ServiceState) {
+                    viewLifecycleOwner.lifecycleScope.launchWhenCreated {
+                        isStreaming = serviceMessage.isStreaming
+                        binding.tvFragmentSettingsSetPinValue.text =
+                            if (isStreaming && settings.hidePinOnStartFlow.first()) "*" else settings.pinFlow.first()
+                    }
+                }
+            }
+
+        IntentAction.GetServiceState.sendToAppService(requireContext())
 
         // Security - Enable pin
         viewLifecycleOwner.lifecycleScope.launchWhenCreated {
@@ -97,7 +114,12 @@ class SettingsSecurityFragment : Fragment(R.layout.fragment_settings_security) {
 
         // Security - Set pin
         viewLifecycleOwner.lifecycleScope.launchWhenCreated {
-            settings.pinFlow.onEach { binding.tvFragmentSettingsSetPinValue.text = it }.launchIn(this)
+            settings.pinFlow
+                .onEach {
+                    binding.tvFragmentSettingsSetPinValue.text =
+                        if (isStreaming && settings.hidePinOnStartFlow.first()) "*" else it
+                }
+                .launchIn(this)
         }
         binding.clFragmentSettingsSetPin.setOnClickListener {
             viewLifecycleOwner.lifecycleScope.launchWhenCreated {
