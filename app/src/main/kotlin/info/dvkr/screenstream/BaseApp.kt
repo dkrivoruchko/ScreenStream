@@ -32,6 +32,10 @@ abstract class BaseApp : Application() {
     override fun onCreate() {
         super.onCreate()
 
+        initLogger()
+
+        this.getSharedPreferences("logging.xml", MODE_PRIVATE)
+
         startKoin {
             androidLogger(Level.ERROR)
             androidContext(this@BaseApp)
@@ -44,6 +48,19 @@ abstract class BaseApp : Application() {
 //            defaultHandler?.uncaughtException(thread, throwable)
 //        }
 
-        initLogger()
+    }
+
+    internal val sharedPreferences by lazy(LazyThreadSafetyMode.NONE) {
+        getSharedPreferences("logging.xml", MODE_PRIVATE)
+    }
+
+    internal var isLoggingOn: Boolean
+        get() = sharedPreferences.getBoolean(LOGGING_ON_KEY, false)
+        set(value) {
+            sharedPreferences.edit().putBoolean(LOGGING_ON_KEY, value).commit()
+        }
+
+    internal companion object {
+        const val LOGGING_ON_KEY = "loggingOn"
     }
 }

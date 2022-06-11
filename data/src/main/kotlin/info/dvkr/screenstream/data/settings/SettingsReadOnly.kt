@@ -40,7 +40,6 @@ interface SettingsReadOnly {
     val serverPortFlow: Flow<Int>
 
     val loggingVisibleFlow: Flow<Boolean>
-    val loggingOnFlow: Flow<Boolean>
 
-    val lastIAURequestTimeStampFlow: Flow<Long>
+    val lastUpdateRequestMillisFlow: Flow<Long>
 }

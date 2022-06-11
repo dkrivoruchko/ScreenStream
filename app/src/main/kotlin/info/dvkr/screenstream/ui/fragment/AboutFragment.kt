@@ -8,6 +8,7 @@ import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.elvishew.xlog.XLog
+import info.dvkr.screenstream.BaseApp
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.data.other.getLog
 import info.dvkr.screenstream.data.settings.Settings
@@ -38,9 +39,10 @@ class AboutFragment : Fragment(R.layout.fragment_about) {
 
         binding.tvFragmentAboutVersion.setOnClickListener {
             viewLifecycleOwner.lifecycleScope.launchWhenCreated {
-                if (settings.loggingOnFlow.first()) return@launchWhenCreated
+                if (settings.loggingVisibleFlow.first()) return@launchWhenCreated
                 settingsLoggingVisibleCounter++
                 if (settingsLoggingVisibleCounter >= 5) {
+                    (requireActivity().application as BaseApp).isLoggingOn = true
                     settings.setLoggingVisible(true)
                     Toast.makeText(requireContext(), "Logging option enabled", Toast.LENGTH_LONG).show()
                     binding.tvFragmentAboutVersion.setOnClickListener(null)

@@ -16,6 +16,7 @@ import com.afollestad.materialdialogs.input.getInputField
 import com.afollestad.materialdialogs.input.input
 import com.afollestad.materialdialogs.lifecycle.lifecycleOwner
 import com.elvishew.xlog.XLog
+import info.dvkr.screenstream.BaseApp
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.data.other.getLog
 import info.dvkr.screenstream.data.settings.Settings
@@ -27,6 +28,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.android.ext.android.inject
 
@@ -135,12 +137,12 @@ class SettingsAdvancedFragment : Fragment(R.layout.fragment_settings_advanced) {
             val loggingVisible = settings.loggingVisibleFlow.first()
             binding.vFragmentSettingsLogging.visibility = if (loggingVisible) View.VISIBLE else View.GONE
             binding.clFragmentSettingsLogging.visibility = if (loggingVisible) View.VISIBLE else View.GONE
-            binding.cbFragmentSettingsLogging.isChecked = settings.loggingOnFlow.first()
+            binding.cbFragmentSettingsLogging.isChecked = (requireActivity().application as BaseApp).isLoggingOn
         }
         binding.cbFragmentSettingsLogging.setOnClickListener {
-            viewLifecycleOwner.lifecycleScope.launchWhenCreated {
-                settings.setLoggingOn(binding.cbFragmentSettingsLogging.isChecked)
-                if (binding.cbFragmentSettingsLogging.isChecked.not()) {
+            (requireActivity().application as BaseApp).isLoggingOn = binding.cbFragmentSettingsLogging.isChecked
+            if (binding.cbFragmentSettingsLogging.isChecked.not()) {
+                viewLifecycleOwner.lifecycleScope.launch {
                     withContext(Dispatchers.IO) { cleanLogFiles(requireContext().applicationContext) }
                 }
             }

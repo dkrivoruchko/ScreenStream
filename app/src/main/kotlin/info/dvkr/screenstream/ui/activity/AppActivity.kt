@@ -5,12 +5,12 @@ import android.animation.PropertyValuesHolder
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
 import android.os.Bundle
 import android.text.InputType
 import android.view.View
 import android.view.animation.OvershootInterpolator
 import androidx.core.content.ContextCompat
-import androidx.lifecycle.lifecycleScope
 import androidx.navigation.findNavController
 import androidx.navigation.ui.setupWithNavController
 import com.afollestad.materialdialogs.LayoutMode
@@ -22,6 +22,7 @@ import com.afollestad.materialdialogs.input.getInputField
 import com.afollestad.materialdialogs.input.input
 import com.afollestad.materialdialogs.lifecycle.lifecycleOwner
 import com.elvishew.xlog.XLog
+import info.dvkr.screenstream.BaseApp
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.data.other.getLog
 import info.dvkr.screenstream.databinding.ActivityAppBinding
@@ -29,9 +30,6 @@ import info.dvkr.screenstream.logging.sendLogsInEmail
 import info.dvkr.screenstream.service.ServiceMessage
 import info.dvkr.screenstream.service.helper.IntentAction
 import info.dvkr.screenstream.ui.viewBinding
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.launch
 
 class AppActivity : PermissionActivity(R.layout.activity_app) {
 
@@ -50,10 +48,15 @@ class AppActivity : PermissionActivity(R.layout.activity_app) {
     private val alpha = PropertyValuesHolder.ofFloat(View.ALPHA, 0f, 1f)
     private var lastServiceMessage: ServiceMessage.ServiceState? = null
 
+    private val prefListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+        if (key == BaseApp.LOGGING_ON_KEY) setLogging()
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        settings.loggingOnFlow.onEach { setLogging(it) }.launchIn(lifecycleScope)
+        setLogging()
         routeIntentAction(intent)
+        (application as BaseApp).sharedPreferences.registerOnSharedPreferenceChangeListener(prefListener)
     }
 
     override fun onPostCreate(savedInstanceState: Bundle?) {
@@ -74,6 +77,11 @@ class AppActivity : PermissionActivity(R.layout.activity_app) {
         routeIntentAction(intent)
     }
 
+    override fun onDestroy() {
+        (application as BaseApp).sharedPreferences.unregisterOnSharedPreferenceChangeListener(prefListener)
+        super.onDestroy()
+    }
+
     private fun routeIntentAction(intent: Intent?) {
         val intentAction = IntentAction.fromIntent(intent)
         intentAction != null || return
@@ -85,7 +93,8 @@ class AppActivity : PermissionActivity(R.layout.activity_app) {
     }
 
     @SuppressLint("CheckResult")
-    private fun setLogging(loggingOn: Boolean) {
+    private fun setLogging() {
+        val loggingOn = (application as BaseApp).isLoggingOn
         binding.llActivityAppLogs.visibility = if (loggingOn) View.VISIBLE else View.GONE
         binding.vActivityAppLogs.visibility = if (loggingOn) View.VISIBLE else View.GONE
         if (loggingOn)
@@ -106,7 +115,7 @@ class AppActivity : PermissionActivity(R.layout.activity_app) {
                     }
                     @Suppress("DEPRECATION")
                     neutralButton(R.string.app_activity_send_logs_dialog_neutral) {
-                        lifecycleScope.launch { settings.setLoggingOn(false) }
+                        (application as BaseApp).isLoggingOn = false
                     }
                     setActionButtonEnabled(WhichButton.NEGATIVE, false)
                 }

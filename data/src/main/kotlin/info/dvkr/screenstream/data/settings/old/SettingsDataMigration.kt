@@ -4,17 +4,13 @@ import android.content.Context
 import androidx.datastore.core.DataMigration
 import androidx.datastore.preferences.core.Preferences
 import com.elvishew.xlog.XLog
-import com.ironz.binaryprefs.BinaryPreferencesBuilder
 import info.dvkr.screenstream.data.other.getLog
 import info.dvkr.screenstream.data.settings.Settings
 import java.io.File
 
-class SettingsDataMigration(private val appContext: Context) : DataMigration<Preferences> {
-
-    private val binaryPreferences: com.ironz.binaryprefs.Preferences = BinaryPreferencesBuilder(appContext)
-        .supportInterProcess(true)
-        .exceptionHandler { ex -> XLog.e(ex) }
-        .build()
+class SettingsDataMigration(
+    private val appContext: Context,
+    private val binaryPreferences: com.ironz.binaryprefs.Preferences) : DataMigration<Preferences> {
 
     override suspend fun shouldMigrate(currentData: Preferences): Boolean {
         val shouldMigrate = binaryPreferences.keys().isNullOrEmpty().not()
@@ -128,13 +124,6 @@ class SettingsDataMigration(private val appContext: Context) : DataMigration<Pre
 
             if (settingsOld.loggingVisible != Settings.Default.LOGGING_VISIBLE)
                 currentMutablePrefs[Settings.Key.LOGGING_VISIBLE] = settingsOld.loggingVisible
-
-            if (settingsOld.loggingOn != Settings.Default.LOGGING_ON)
-                currentMutablePrefs[Settings.Key.LOGGING_ON] = settingsOld.loggingOn
-
-
-            if (settingsOld.lastIAURequestTimeStamp != Settings.Default.LAST_IAU_REQUEST_TIMESTAMP)
-                currentMutablePrefs[Settings.Key.LAST_IAU_REQUEST_TIMESTAMP] = settingsOld.lastIAURequestTimeStamp
         }
 
         return currentMutablePrefs.toPreferences()

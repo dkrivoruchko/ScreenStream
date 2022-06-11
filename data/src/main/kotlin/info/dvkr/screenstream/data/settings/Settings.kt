@@ -45,9 +45,8 @@ interface Settings : SettingsReadOnly {
         val LOCAL_HOST_ONLY = booleanPreferencesKey("LOCAL_HOST_ONLY")
         val SERVER_PORT = intPreferencesKey("SERVER_PORT")
         val LOGGING_VISIBLE = booleanPreferencesKey("LOGGING_VISIBLE")
-        val LOGGING_ON = booleanPreferencesKey("LOGGING_ON")
 
-        val LAST_IAU_REQUEST_TIMESTAMP = longPreferencesKey("LAST_IAU_REQUEST_TIMESTAMP")
+        val LAST_UPDATE_REQUEST_MILLIS = longPreferencesKey("LAST_UPDATE_REQUEST_MILLIS")
     }
 
     object Default {
@@ -89,7 +88,6 @@ interface Settings : SettingsReadOnly {
         const val LOCAL_HOST_ONLY = false
         const val SERVER_PORT = 8080
         const val LOGGING_VISIBLE = false
-        const val LOGGING_ON = false
 
         const val LAST_IAU_REQUEST_TIMESTAMP = 0L
     }
@@ -139,7 +137,6 @@ interface Settings : SettingsReadOnly {
     suspend fun setServerPort(value: Int)
 
     suspend fun setLoggingVisible(value: Boolean)
-    suspend fun setLoggingOn(value: Boolean)
 
-    suspend fun setLastIAURequestTimeStamp(value: Long)
+    suspend fun setLastUpdateRequestMillis(value: Long)
 }

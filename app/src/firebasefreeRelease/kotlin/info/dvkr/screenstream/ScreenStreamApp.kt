@@ -13,7 +13,7 @@ class ScreenStreamApp : BaseApp() {
             .logLevel(LogLevel.DEBUG)
             .tag("SSApp")
             .addInterceptor(object : AbstractFilterInterceptor() {
-                override fun reject(log: LogItem): Boolean = settingsReadOnly.loggingOn.not()
+                override fun reject(log: LogItem): Boolean = isLoggingOn
             })
             .build()
 

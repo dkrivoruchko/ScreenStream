@@ -1,6 +1,5 @@
 package info.dvkr.screenstream.ui.activity
 
-import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
 import androidx.annotation.LayoutRes
@@ -10,89 +9,71 @@ import com.afollestad.materialdialogs.callbacks.onDismiss
 import com.afollestad.materialdialogs.lifecycle.lifecycleOwner
 import com.elvishew.xlog.XLog
 import com.google.android.play.core.appupdate.AppUpdateManagerFactory
-import com.google.android.play.core.install.model.AppUpdateType
 import com.google.android.play.core.ktx.AppUpdateResult
 import com.google.android.play.core.ktx.isFlexibleUpdateAllowed
 import com.google.android.play.core.ktx.requestUpdateFlow
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.data.other.getLog
 import info.dvkr.screenstream.data.settings.Settings
-import kotlinx.coroutines.CoroutineExceptionHandler
-import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
 
 abstract class AppUpdateActivity(@LayoutRes contentLayoutId: Int) : BaseActivity(contentLayoutId) {
 
     companion object {
-        private const val APP_UPDATE_PENDING_KEY = "info.dvkr.screenstream.key.APP_UPDATE_PENDING"
         private const val APP_UPDATE_FLEXIBLE_REQUEST_CODE = 15
+        private const val APP_UPDATE_REQUEST_TIMEOUT = 8 * 60 * 60 * 1000L  // 8 hours. Don't need exact time frame
     }
 
     protected val settings: Settings by inject()
-
-    private val appUpdateManager by lazy { AppUpdateManagerFactory.create(this) }
-    private var isAppUpdatePending: Boolean = false
     private var appUpdateConfirmationDialog: MaterialDialog? = null
-    private val exceptionHandler = CoroutineExceptionHandler { _, throwable ->
-        XLog.w(getLog("onCoroutineException", throwable.toString()))
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        isAppUpdatePending = savedInstanceState?.getBoolean(APP_UPDATE_PENDING_KEY) ?: false
-        XLog.d(getLog("onCreate", "isAppUpdatePending: $isAppUpdatePending"))
-
-        lifecycleScope.launch(exceptionHandler) {
-            appUpdateManager.requestUpdateFlow().onEach { updateResult ->
-                ensureActive()
-                if (isAppUpdatePending.not() && isIAURequestTimeoutPassed() &&
-                    updateResult is AppUpdateResult.Available && updateResult.updateInfo.isFlexibleUpdateAllowed
-                ) {
-                    XLog.d(this@AppUpdateActivity.getLog("AppUpdateManager", "startUpdateFlowForResult"))
-                    isAppUpdatePending = true
-                    appUpdateManager.startUpdateFlowForResult(
-                        updateResult.updateInfo,
-                        AppUpdateType.FLEXIBLE,
-                        this@AppUpdateActivity,
-                        APP_UPDATE_FLEXIBLE_REQUEST_CODE
-                    )
+        AppUpdateManagerFactory.create(this).requestUpdateFlow().onEach { appUpdateResult ->
+            when (appUpdateResult) {
+                AppUpdateResult.NotAvailable -> {
+                    XLog.v(getLog("AppUpdateResult.NotAvailable"))
                 }
-
-                if (updateResult is AppUpdateResult.Downloaded && isIAURequestTimeoutPassed()) showUpdateConfirmationDialog()
+                is AppUpdateResult.Available -> {
+                    XLog.d(getLog("AppUpdateResult.Available"))
+                    if (appUpdateResult.updateInfo.isFlexibleUpdateAllowed) {
+                        XLog.d(getLog("AppUpdateResult.Available", "FlexibleUpdateAllowed"))
+                        val lastRequestMillisPassed =
+                            System.currentTimeMillis() - settings.lastUpdateRequestMillisFlow.first()
+                        if (lastRequestMillisPassed >= APP_UPDATE_REQUEST_TIMEOUT) {
+                            XLog.d(getLog("AppUpdateResult.Available", "startFlexibleUpdate"))
+                            settings.setLastUpdateRequestMillis(System.currentTimeMillis())
+                            appUpdateResult.startFlexibleUpdate(this, APP_UPDATE_FLEXIBLE_REQUEST_CODE)
+                        }
+                    }
+                }
+                is AppUpdateResult.InProgress -> {
+                    XLog.v(getLog("AppUpdateResult.InProgress", appUpdateResult.installState.toString()))
+                }
+                is AppUpdateResult.Downloaded -> {
+                    XLog.d(getLog("AppUpdateResult.Downloaded"))
+                    showUpdateConfirmationDialog(appUpdateResult)
+                }
             }
-                .catch { cause -> XLog.e(getLog("AppUpdateManager.catch: $cause")) }
-                .collect()
         }
+            .catch { cause -> XLog.e(getLog("AppUpdateManager.requestUpdateFlow.catch: $cause"), cause) }
+            .launchIn(lifecycleScope)
     }
 
-    override fun onSaveInstanceState(outState: Bundle) {
-        XLog.d(getLog("onSaveInstanceState", "isAppUpdatePending: $isAppUpdatePending"))
-        outState.putBoolean(APP_UPDATE_PENDING_KEY, isAppUpdatePending)
-        super.onSaveInstanceState(outState)
-    }
-
+    @Suppress("DEPRECATION")
+    @Deprecated("Deprecated in Java")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        if (requestCode == APP_UPDATE_FLEXIBLE_REQUEST_CODE) {
-            isAppUpdatePending = false
-            if (resultCode == Activity.RESULT_OK) {
-                XLog.d(getLog("onActivityResult", "Update permitted"))
-            } else {
-                XLog.d(getLog("onActivityResult", "Update canceled"))
-                lifecycleScope.launchWhenCreated { settings.setLastIAURequestTimeStamp(System.currentTimeMillis()) }
-            }
-        } else {
-            super.onActivityResult(requestCode, resultCode, data)
-        }
+        requestCode != APP_UPDATE_FLEXIBLE_REQUEST_CODE || return
+        super.onActivityResult(requestCode, resultCode, data)
     }
 
-    private fun showUpdateConfirmationDialog() {
-        XLog.d(getLog("showUpdateConfirmationDialog", "Invoked"))
+    private fun showUpdateConfirmationDialog(appUpdateResult: AppUpdateResult.Downloaded) {
+        XLog.d(getLog("showUpdateConfirmationDialog"))
 
         appUpdateConfirmationDialog?.dismiss()
 
@@ -102,16 +83,12 @@ abstract class AppUpdateActivity(@LayoutRes contentLayoutId: Int) : BaseActivity
             title(R.string.app_update_activity_dialog_title)
             message(R.string.app_update_activity_dialog_message)
             positiveButton(R.string.app_update_activity_dialog_restart) {
-                XLog.d(this@AppUpdateActivity.getLog("showUpdateConfirmationDialog", "positiveAction"))
                 dismiss()
-                appUpdateManager.completeUpdate()
+                onUpdateConfirmationDialogClick(appUpdateResult, true)
             }
             negativeButton(android.R.string.cancel) {
-                lifecycleScope.launchWhenCreated {
-                    XLog.d(this@AppUpdateActivity.getLog("showUpdateConfirmationDialog", "negativeAction"))
-                    dismiss()
-                    settings.setLastIAURequestTimeStamp(System.currentTimeMillis())
-                }
+                dismiss()
+                onUpdateConfirmationDialogClick(appUpdateResult, false)
             }
             cancelable(false)
             cancelOnTouchOutside(false)
@@ -120,7 +97,10 @@ abstract class AppUpdateActivity(@LayoutRes contentLayoutId: Int) : BaseActivity
         }
     }
 
-    private suspend fun isIAURequestTimeoutPassed(): Boolean =
-        // 8 hours. Don't need exact time frame
-        System.currentTimeMillis() - settings.lastIAURequestTimeStampFlow.first() >= 8 * 60 * 60 * 1000L
+    private fun onUpdateConfirmationDialogClick(appUpdateResult: AppUpdateResult.Downloaded, isPositive: Boolean) {
+        lifecycleScope.launchWhenStarted {
+            XLog.d(this@AppUpdateActivity.getLog("onUpdateConfirmationDialogClick", "isPositive: $isPositive"))
+            if (isPositive) appUpdateResult.completeUpdate()
+        }
+    }
 }

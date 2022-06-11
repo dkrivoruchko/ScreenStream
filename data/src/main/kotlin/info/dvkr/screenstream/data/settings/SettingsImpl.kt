@@ -1,6 +1,5 @@
 package info.dvkr.screenstream.data.settings
 
-import android.os.Build
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
@@ -9,9 +8,7 @@ import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.data.other.getLog
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.runBlocking
 import java.io.IOException
 
 class SettingsImpl(private val dataStore: DataStore<Preferences>): Settings {
@@ -116,20 +113,8 @@ class SettingsImpl(private val dataStore: DataStore<Preferences>): Settings {
     override val loggingVisibleFlow: Flow<Boolean> = getCatching(Settings.Key.LOGGING_VISIBLE, Settings.Default.LOGGING_VISIBLE)
     override suspend fun setLoggingVisible(value: Boolean) = setValue(Settings.Key.LOGGING_VISIBLE, value)
 
-    override val loggingOnFlow: Flow<Boolean> = getCatching(Settings.Key.LOGGING_ON, Settings.Default.LOGGING_ON )
-    override suspend fun setLoggingOn(value: Boolean) = setValue(Settings.Key.LOGGING_ON, value)
-
-
-    override val lastIAURequestTimeStampFlow: Flow<Long> = getCatching(Settings.Key.LAST_IAU_REQUEST_TIMESTAMP, Settings.Default.LAST_IAU_REQUEST_TIMESTAMP)
-    override suspend fun setLastIAURequestTimeStamp(value: Long) = setValue(Settings.Key.LAST_IAU_REQUEST_TIMESTAMP, value)
-
-    init {
-        // Update from 28 to 29
-        runBlocking {
-            if (Build.VERSION.SDK_INT == Build.VERSION_CODES.Q && nightModeFlow.first() == 3) setNightMode(-1)
-            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q && nightModeFlow.first() == -1) setNightMode(3)
-        }
-    }
+    override val lastUpdateRequestMillisFlow: Flow<Long> = getCatching(Settings.Key.LAST_UPDATE_REQUEST_MILLIS, Settings.Default.LAST_IAU_REQUEST_TIMESTAMP)
+    override suspend fun setLastUpdateRequestMillis(value: Long) = setValue(Settings.Key.LAST_UPDATE_REQUEST_MILLIS, value)
 
     private fun <T> getCatching(key: Preferences.Key<T>, default: T): Flow<T> = dataStore.data.catch { cause ->
         if (cause is IOException) {
