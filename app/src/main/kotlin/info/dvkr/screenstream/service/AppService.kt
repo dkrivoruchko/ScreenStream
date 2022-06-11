@@ -17,16 +17,27 @@ import info.dvkr.screenstream.data.model.AppError
 import info.dvkr.screenstream.data.model.FatalError
 import info.dvkr.screenstream.data.model.HttpClient
 import info.dvkr.screenstream.data.other.getLog
+import info.dvkr.screenstream.data.other.randomPin
 import info.dvkr.screenstream.data.settings.Settings
-import info.dvkr.screenstream.data.settings.SettingsReadOnly
 import info.dvkr.screenstream.data.state.AppStateMachine
 import info.dvkr.screenstream.data.state.AppStateMachineImpl
 import info.dvkr.screenstream.databinding.ToastSlowConnectionBinding
 import info.dvkr.screenstream.service.helper.IntentAction
 import info.dvkr.screenstream.service.helper.NotificationHelper
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineExceptionHandler
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.BufferOverflow
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import org.koin.android.ext.android.inject
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
@@ -114,8 +125,8 @@ class AppService : Service() {
             is AppStateMachine.Effect.Statistic ->
                 when (effect) {
                     is AppStateMachine.Effect.Statistic.Clients -> {
-                        if (settings.autoStartStop) checkAutoStartStop(effect.clients)
-                        if (settings.notifySlowConnections) checkForSlowClients(effect.clients)
+                        if (settings.autoStartStopFlow.first()) checkAutoStartStop(effect.clients)
+                        if (settings.notifySlowConnectionsFlow.first()) checkForSlowClients(effect.clients)
                         sendMessageToActivities(ServiceMessage.Clients(effect.clients))
                     }
 
@@ -137,9 +148,11 @@ class AppService : Service() {
         notificationHelper.createNotificationChannel()
         notificationHelper.showForegroundNotification(this, NotificationHelper.NotificationType.START)
 
-        settings.autoChangePinOnStart()
+        coroutineScope.launch {
+            if (settings.enablePinFlow.first() && settings.newPinOnAppStartFlow.first()) settings.setPin(randomPin())
+        }
 
-        appStateMachine = AppStateMachineImpl(this, settings as SettingsReadOnly, ::onEffect)
+        appStateMachine = AppStateMachineImpl(this, settings, ::onEffect)
 
         isRunning = true
     }

@@ -1,207 +1,151 @@
 package info.dvkr.screenstream.data.settings
 
-import android.content.SharedPreferences
 import android.os.Build
-import com.ironz.binaryprefs.Preferences
-import com.ironz.binaryprefs.PreferencesEditor
-import java.util.*
-import kotlin.properties.ReadWriteProperty
-import kotlin.random.Random
-import kotlin.reflect.KProperty
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.emptyPreferences
+import com.elvishew.xlog.XLog
+import info.dvkr.screenstream.data.other.getLog
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.runBlocking
+import java.io.IOException
+
+class SettingsImpl(private val dataStore: DataStore<Preferences>): Settings {
+
+    override val nightModeFlow: Flow<Int> = getCatching(Settings.Key.NIGHT_MODE, Settings.Default.NIGHT_MODE)
+    override suspend fun setNightMode(value: Int) = setValue(Settings.Key.NIGHT_MODE, value)
+
+    override val keepAwakeFlow: Flow<Boolean> = getCatching(Settings.Key.KEEP_AWAKE, Settings.Default.KEEP_AWAKE)
+    override suspend fun setKeepAwake(value: Boolean) = setValue(Settings.Key.KEEP_AWAKE, value)
+
+    override val stopOnSleepFlow: Flow<Boolean> = getCatching(Settings.Key.STOP_ON_SLEEP, Settings.Default.STOP_ON_SLEEP)
+    override suspend fun setStopOnSleep(value: Boolean) = setValue(Settings.Key.STOP_ON_SLEEP, value)
+
+    override val startOnBootFlow: Flow<Boolean> = getCatching(Settings.Key.START_ON_BOOT, Settings.Default.START_ON_BOOT)
+    override suspend fun setStartOnBoot(value: Boolean) = setValue(Settings.Key.START_ON_BOOT, value)
+
+    override val autoStartStopFlow: Flow<Boolean> = getCatching(Settings.Key.AUTO_START_STOP, Settings.Default.AUTO_START_STOP)
+    override suspend fun setAutoStartStop(value: Boolean) = setValue(Settings.Key.AUTO_START_STOP, value)
+
+    override val notifySlowConnectionsFlow: Flow<Boolean> = getCatching(Settings.Key.NOTIFY_SLOW_CONNECTIONS, Settings.Default.NOTIFY_SLOW_CONNECTIONS)
+    override suspend fun setNotifySlowConnections(value: Boolean) = setValue(Settings.Key.NOTIFY_SLOW_CONNECTIONS, value)
+
+    override val htmlEnableButtonsFlow: Flow<Boolean> = getCatching(Settings.Key.HTML_ENABLE_BUTTONS, Settings.Default.HTML_ENABLE_BUTTONS)
+    override suspend fun setHtmlEnableButtons(value: Boolean) = setValue(Settings.Key.HTML_ENABLE_BUTTONS, value)
+
+    override val htmlShowPressStartFlow: Flow<Boolean> = getCatching(Settings.Key.HTML_SHOW_PRESS_START, Settings.Default.HTML_SHOW_PRESS_START)
+    override suspend fun setHtmlShowPressStart(value: Boolean) = setValue(Settings.Key.HTML_SHOW_PRESS_START, value)
+
+    override val htmlBackColorFlow: Flow<Int> = getCatching(Settings.Key.HTML_BACK_COLOR, Settings.Default.HTML_BACK_COLOR)
+    override suspend fun setHtmlBackColor(value: Int) = setValue(Settings.Key.HTML_BACK_COLOR, value)
 
 
-class SettingsImpl(private val preferences: Preferences) : Settings {
+    override val vrModeFlow: Flow<Int> = getCatching(Settings.Key.VR_MODE, Settings.Default.VR_MODE_DISABLE)
+    override suspend fun setVrMode(value: Int) = setValue(Settings.Key.VR_MODE, value)
 
-    override var nightMode: Int
-            by bindPreference(preferences, Settings.Key.NIGHT_MODE, Settings.Default.NIGHT_MODE)
+    override val imageCropFlow: Flow<Boolean> = getCatching(Settings.Key.IMAGE_CROP, Settings.Default.IMAGE_CROP)
+    override suspend fun setImageCrop(value: Boolean) = setValue(Settings.Key.IMAGE_CROP, value)
 
-    override var keepAwake: Boolean
-            by bindPreference(preferences, Settings.Key.KEEP_AWAKE, Settings.Default.KEEP_AWAKE)
+    override val imageCropTopFlow: Flow<Int> = getCatching(Settings.Key.IMAGE_CROP_TOP, Settings.Default.IMAGE_CROP_TOP)
+    override suspend fun setImageCropTop(value: Int) = setValue(Settings.Key.IMAGE_CROP_TOP, value)
 
-    override var stopOnSleep: Boolean
-            by bindPreference(preferences, Settings.Key.STOP_ON_SLEEP, Settings.Default.STOP_ON_SLEEP)
+    override val imageCropBottomFlow: Flow<Int> = getCatching(Settings.Key.IMAGE_CROP_BOTTOM, Settings.Default.IMAGE_CROP_BOTTOM)
+    override suspend fun setImageCropBottom(value: Int) = setValue(Settings.Key.IMAGE_CROP_BOTTOM, value)
 
-    override var startOnBoot: Boolean
-            by bindPreference(preferences, Settings.Key.START_ON_BOOT, Settings.Default.START_ON_BOOT)
+    override val imageCropLeftFlow: Flow<Int> = getCatching(Settings.Key.IMAGE_CROP_LEFT, Settings.Default.IMAGE_CROP_LEFT)
+    override suspend fun setImageCropLeft(value: Int) = setValue(Settings.Key.IMAGE_CROP_LEFT, value)
 
-    override var autoStartStop: Boolean
-            by bindPreference(preferences, Settings.Key.AUTO_START_STOP, Settings.Default.AUTO_START_STOP)
+    override val imageCropRightFlow: Flow<Int> = getCatching(Settings.Key.IMAGE_CROP_RIGHT, Settings.Default.IMAGE_CROP_RIGHT)
+    override suspend fun setImageCropRight(value: Int) = setValue(Settings.Key.IMAGE_CROP_RIGHT, value)
 
-    override var notifySlowConnections: Boolean
-            by bindPreference(preferences, Settings.Key.NOTIFY_SLOW_CONNECTIONS, Settings.Default.NOTIFY_SLOW_CONNECTIONS)
+    override val imageGrayscaleFlow: Flow<Boolean> = getCatching(Settings.Key.IMAGE_GRAYSCALE, Settings.Default.IMAGE_GRAYSCALE)
+    override suspend fun setImageGrayscale(value: Boolean) = setValue(Settings.Key.IMAGE_GRAYSCALE, value)
 
+    override val jpegQualityFlow: Flow<Int> = getCatching(Settings.Key.JPEG_QUALITY, Settings.Default.JPEG_QUALITY)
+    override suspend fun setJpegQuality(value: Int) = setValue(Settings.Key.JPEG_QUALITY, value)
 
-    override var htmlEnableButtons: Boolean
-            by bindPreference(preferences, Settings.Key.HTML_ENABLE_BUTTONS, Settings.Default.HTML_ENABLE_BUTTONS)
+    override val resizeFactorFlow: Flow<Int> = getCatching(Settings.Key.RESIZE_FACTOR, Settings.Default.RESIZE_FACTOR)
+    override suspend fun setResizeFactor(value: Int) = setValue(Settings.Key.RESIZE_FACTOR, value)
 
-    override var htmlShowPressStart: Boolean
-            by bindPreference(preferences, Settings.Key.HTML_SHOW_PRESS_START, Settings.Default.HTML_SHOW_PRESS_START)
+    override val rotationFlow: Flow<Int> = getCatching(Settings.Key.ROTATION, Settings.Default.ROTATION)
+    override suspend fun setRotation(value: Int) = setValue(Settings.Key.ROTATION, value)
 
-    override var htmlBackColor: Int
-            by bindPreference(preferences, Settings.Key.HTML_BACK_COLOR, Settings.Default.HTML_BACK_COLOR)
-
-
-    override var vrMode: Int
-            by bindPreference(preferences, Settings.Key.VR_MODE, Settings.Default.VR_MODE_DISABLE)
-
-    override var imageCrop: Boolean
-            by bindPreference(preferences, Settings.Key.IMAGE_CROP, Settings.Default.IMAGE_CROP)
-
-    override var imageCropTop: Int
-            by bindPreference(preferences, Settings.Key.IMAGE_CROP_TOP, Settings.Default.IMAGE_CROP_TOP)
-
-    override var imageCropBottom: Int
-            by bindPreference(preferences, Settings.Key.IMAGE_CROP_BOTTOM, Settings.Default.IMAGE_CROP_BOTTOM)
-
-    override var imageCropLeft: Int
-            by bindPreference(preferences, Settings.Key.IMAGE_CROP_LEFT, Settings.Default.IMAGE_CROP_LEFT)
-
-    override var imageCropRight: Int
-            by bindPreference(preferences, Settings.Key.IMAGE_CROP_RIGHT, Settings.Default.IMAGE_CROP_RIGHT)
-
-    override var imageGrayscale: Boolean
-            by bindPreference(preferences, Settings.Key.IMAGE_GRAYSCALE, Settings.Default.IMAGE_GRAYSCALE)
-
-    override var jpegQuality: Int
-            by bindPreference(preferences, Settings.Key.JPEG_QUALITY, Settings.Default.JPEG_QUALITY)
-
-    override var resizeFactor: Int
-            by bindPreference(preferences, Settings.Key.RESIZE_FACTOR, Settings.Default.RESIZE_FACTOR)
-
-    override var rotation: Int
-            by bindPreference(preferences, Settings.Key.ROTATION, Settings.Default.ROTATION)
-
-    override var maxFPS: Int
-            by bindPreference(preferences, Settings.Key.MAX_FPS, Settings.Default.MAX_FPS)
+    override val maxFPSFlow: Flow<Int> = getCatching(Settings.Key.MAX_FPS, Settings.Default.MAX_FPS)
+    override suspend fun setMaxFPS(value: Int) = setValue(Settings.Key.MAX_FPS, value)
 
 
-    override var enablePin: Boolean
-            by bindPreference(preferences, Settings.Key.ENABLE_PIN, Settings.Default.ENABLE_PIN)
+    override val enablePinFlow: Flow<Boolean> = getCatching(Settings.Key.ENABLE_PIN, Settings.Default.ENABLE_PIN)
+    override suspend fun setEnablePin(value: Boolean) = setValue(Settings.Key.ENABLE_PIN, value)
 
-    override var hidePinOnStart: Boolean
-            by bindPreference(preferences, Settings.Key.HIDE_PIN_ON_START, Settings.Default.HIDE_PIN_ON_START)
+    override val hidePinOnStartFlow: Flow<Boolean> = getCatching(Settings.Key.HIDE_PIN_ON_START, Settings.Default.HIDE_PIN_ON_START)
+    override suspend fun setHidePinOnStart(value: Boolean) = setValue(Settings.Key.HIDE_PIN_ON_START, value)
 
-    override var newPinOnAppStart: Boolean
-            by bindPreference(preferences, Settings.Key.NEW_PIN_ON_APP_START, Settings.Default.NEW_PIN_ON_APP_START)
+    override val newPinOnAppStartFlow: Flow<Boolean> = getCatching(Settings.Key.NEW_PIN_ON_APP_START, Settings.Default.NEW_PIN_ON_APP_START)
+    override suspend fun setNewPinOnAppStart(value: Boolean) = setValue(Settings.Key.NEW_PIN_ON_APP_START, value)
 
-    override var autoChangePin: Boolean
-            by bindPreference(preferences, Settings.Key.AUTO_CHANGE_PIN, Settings.Default.AUTO_CHANGE_PIN)
+    override val autoChangePinFlow: Flow<Boolean> = getCatching(Settings.Key.AUTO_CHANGE_PIN, Settings.Default.AUTO_CHANGE_PIN)
+    override suspend fun setAutoChangePin(value: Boolean) = setValue(Settings.Key.AUTO_CHANGE_PIN, value)
 
-    override var pin: String
-            by bindPreference(preferences, Settings.Key.PIN, Settings.Default.PIN)
+    override val pinFlow: Flow<String> = getCatching(Settings.Key.PIN, Settings.Default.PIN)
+    override suspend fun setPin(value: String) = setValue(Settings.Key.PIN, value)
 
-    override var blockAddress: Boolean
-            by bindPreference(preferences, Settings.Key.BLOCK_ADDRESS, Settings.Default.BLOCK_ADDRESS)
-
-
-    override var useWiFiOnly: Boolean
-            by bindPreference(preferences, Settings.Key.USE_WIFI_ONLY, Settings.Default.USE_WIFI_ONLY)
-
-    override var enableIPv6: Boolean
-            by bindPreference(preferences, Settings.Key.ENABLE_IPV6, Settings.Default.ENABLE_IPV6)
-
-    override var enableLocalHost: Boolean
-            by bindPreference(preferences, Settings.Key.ENABLE_LOCAL_HOST, Settings.Default.ENABLE_LOCAL_HOST)
-
-    override var localHostOnly: Boolean
-            by bindPreference(preferences, Settings.Key.LOCAL_HOST_ONLY, Settings.Default.LOCAL_HOST_ONLY)
-
-    override var severPort: Int
-            by bindPreference(preferences, Settings.Key.SERVER_PORT, Settings.Default.SERVER_PORT)
-
-    override var loggingVisible: Boolean
-            by bindPreference(preferences, Settings.Key.LOGGING_VISIBLE, Settings.Default.LOGGING_VISIBLE)
-
-    override var loggingOn: Boolean
-            by bindPreference(preferences, Settings.Key.LOGGING_ON, Settings.Default.LOGGING_ON)
+    override val blockAddressFlow: Flow<Boolean> = getCatching(Settings.Key.BLOCK_ADDRESS, Settings.Default.BLOCK_ADDRESS)
+    override suspend fun setBlockAddress(value: Boolean) = setValue(Settings.Key.BLOCK_ADDRESS, value)
 
 
-    override var lastIAURequestTimeStamp: Long
-            by bindPreference(preferences, Settings.Key.LAST_IAU_REQUEST_TIMESTAMP, Settings.Default.LAST_IAU_REQUEST_TIMESTAMP)
+    override val useWiFiOnlyFlow: Flow<Boolean> = getCatching(Settings.Key.USE_WIFI_ONLY, Settings.Default.USE_WIFI_ONLY)
+    override suspend fun setUseWiFiOnly(value: Boolean) = setValue(Settings.Key.USE_WIFI_ONLY, value)
 
-    override fun autoChangePinOnStart() {
-        if (enablePin && newPinOnAppStart) pin = randomPin()
-    }
+    override val enableIPv6Flow: Flow<Boolean> = getCatching(Settings.Key.ENABLE_IPV6, Settings.Default.ENABLE_IPV6)
+    override suspend fun setEnableIPv6(value: Boolean) = setValue(Settings.Key.ENABLE_IPV6, value)
 
-    override fun checkAndChangeAutoChangePinOnStop(): Boolean =
-        if (enablePin && autoChangePin) {
-            pin = randomPin(); true
-        } else {
-            false
-        }
+    override val enableLocalHostFlow: Flow<Boolean> = getCatching(Settings.Key.ENABLE_LOCAL_HOST, Settings.Default.ENABLE_LOCAL_HOST)
+    override suspend fun setEnableLocalHost(value: Boolean) = setValue(Settings.Key.ENABLE_LOCAL_HOST, value)
+
+    override val localHostOnlyFlow: Flow<Boolean> = getCatching(Settings.Key.LOCAL_HOST_ONLY, Settings.Default.LOCAL_HOST_ONLY)
+    override suspend fun setLocalHostOnly(value: Boolean) = setValue(Settings.Key.LOCAL_HOST_ONLY, value)
+
+    override val serverPortFlow: Flow<Int> = getCatching(Settings.Key.SERVER_PORT, Settings.Default.SERVER_PORT)
+    override suspend fun setServerPort(value: Int) = setValue(Settings.Key.SERVER_PORT, value)
+
+
+    override val loggingVisibleFlow: Flow<Boolean> = getCatching(Settings.Key.LOGGING_VISIBLE, Settings.Default.LOGGING_VISIBLE)
+    override suspend fun setLoggingVisible(value: Boolean) = setValue(Settings.Key.LOGGING_VISIBLE, value)
+
+    override val loggingOnFlow: Flow<Boolean> = getCatching(Settings.Key.LOGGING_ON, Settings.Default.LOGGING_ON )
+    override suspend fun setLoggingOn(value: Boolean) = setValue(Settings.Key.LOGGING_ON, value)
+
+
+    override val lastIAURequestTimeStampFlow: Flow<Long> = getCatching(Settings.Key.LAST_IAU_REQUEST_TIMESTAMP, Settings.Default.LAST_IAU_REQUEST_TIMESTAMP)
+    override suspend fun setLastIAURequestTimeStamp(value: Long) = setValue(Settings.Key.LAST_IAU_REQUEST_TIMESTAMP, value)
 
     init {
         // Update from 28 to 29
-        if (Build.VERSION.SDK_INT == Build.VERSION_CODES.Q && nightMode == 3) nightMode = -1
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q && nightMode == -1) nightMode = 3
-    }
-
-    private val changeListenerSet = Collections.synchronizedSet(HashSet<SettingsReadOnly.OnSettingsChangeListener>())
-
-    private val preferenceChangeListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
-        synchronized(changeListenerSet) {
-            changeListenerSet.forEach { listener -> listener.onSettingsChanged(key) }
+        runBlocking {
+            if (Build.VERSION.SDK_INT == Build.VERSION_CODES.Q && nightModeFlow.first() == 3) setNightMode(-1)
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q && nightModeFlow.first() == -1) setNightMode(3)
         }
     }
 
-    override fun registerChangeListener(listener: SettingsReadOnly.OnSettingsChangeListener) {
-        synchronized(changeListenerSet) {
-            if (changeListenerSet.isEmpty()) {
-                changeListenerSet.add(listener)
-                preferences.registerOnSharedPreferenceChangeListener(preferenceChangeListener)
-            } else {
-                changeListenerSet.add(listener)
-            }
+    private fun <T> getCatching(key: Preferences.Key<T>, default: T): Flow<T> = dataStore.data.catch { cause ->
+        if (cause is IOException) {
+            XLog.e(this@SettingsImpl.getLog("getCatching [${key.name}]"), cause)
+            emit(emptyPreferences())
+        } else {
+            XLog.e(this@SettingsImpl.getLog("getCatching [${key.name}]"), cause)
+            throw cause
+        }
+    }.map { it[key] ?: default }
+
+    private suspend fun <T> setValue(key: Preferences.Key<T>, value: T) {
+        try {
+            dataStore.edit { it[key] = value }
+        } catch (cause: IOException) {
+            XLog.e(this@SettingsImpl.getLog("setValue [${key.name}]"), cause)
         }
     }
-
-    override fun unregisterChangeListener(listener: SettingsReadOnly.OnSettingsChangeListener) {
-        synchronized(changeListenerSet) {
-            changeListenerSet.remove(listener)
-
-            if (changeListenerSet.isEmpty()) {
-                preferences.unregisterOnSharedPreferenceChangeListener(preferenceChangeListener)
-            }
-        }
-    }
-
-    private fun randomPin(): String = Random.nextInt(10).toString() + Random.nextInt(10).toString() +
-            Random.nextInt(10).toString() + Random.nextInt(10).toString() +
-            Random.nextInt(10).toString() + Random.nextInt(10).toString()
-
-    private class PreferenceDelegate<T>(
-        private val preferences: Preferences,
-        private val key: String,
-        private val defaultValue: T,
-        private val getter: Preferences.(String, T) -> T,
-        private val setter: PreferencesEditor.(String, T) -> PreferencesEditor
-    ) : ReadWriteProperty<Any, T> {
-        override fun getValue(thisRef: Any, property: KProperty<*>): T =
-            preferences.getter(key, defaultValue)
-
-        override fun setValue(thisRef: Any, property: KProperty<*>, value: T) {
-            preferences.edit().setter(key, value).commit()
-        }
-    }
-
-    @Suppress("UNCHECKED_CAST")
-    internal fun <T> bindPreference(preferences: Preferences, key: String, defaultValue: T): ReadWriteProperty<Any, T> =
-        when (defaultValue) {
-            is Boolean -> PreferenceDelegate(
-                preferences, key, defaultValue, Preferences::getBoolean, PreferencesEditor::putBoolean
-            )
-            is Int -> PreferenceDelegate(
-                preferences, key, defaultValue, Preferences::getInt, PreferencesEditor::putInt
-            )
-            is Long -> PreferenceDelegate(
-                preferences, key, defaultValue, Preferences::getLong, PreferencesEditor::putLong
-            )
-            is Float -> PreferenceDelegate(
-                preferences, key, defaultValue, Preferences::getFloat, PreferencesEditor::putFloat
-            )
-            is String -> PreferenceDelegate(
-                preferences, key, defaultValue, Preferences::getString, PreferencesEditor::putString
-            )
-            else -> throw IllegalArgumentException("Unsupported preference type")
-        } as ReadWriteProperty<Any, T>
 }

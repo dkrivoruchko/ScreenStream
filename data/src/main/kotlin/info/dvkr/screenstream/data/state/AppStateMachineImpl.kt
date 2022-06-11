@@ -18,8 +18,8 @@ import info.dvkr.screenstream.data.model.AppError
 import info.dvkr.screenstream.data.model.FatalError
 import info.dvkr.screenstream.data.model.FixableError
 import info.dvkr.screenstream.data.other.getLog
+import info.dvkr.screenstream.data.other.randomPin
 import info.dvkr.screenstream.data.settings.Settings
-import info.dvkr.screenstream.data.settings.SettingsReadOnly
 import info.dvkr.screenstream.data.state.helper.BroadcastHelper
 import info.dvkr.screenstream.data.state.helper.ConnectivityHelper
 import info.dvkr.screenstream.data.state.helper.NetworkHelper
@@ -29,7 +29,7 @@ import java.util.concurrent.LinkedBlockingDeque
 
 class AppStateMachineImpl(
     private val context: Context,
-    private val settingsReadOnly: SettingsReadOnly,
+    private val settings: Settings,
     private val onEffect: suspend (AppStateMachine.Effect) -> Unit
 ) : AppStateMachine {
 
@@ -52,11 +52,8 @@ class AppStateMachineImpl(
     private val broadcastHelper = BroadcastHelper.getInstance(context)
     private val connectivityHelper: ConnectivityHelper = ConnectivityHelper.getInstance(context)
     private val networkHelper = NetworkHelper(context)
-    private val notificationBitmap = NotificationBitmap(context, settingsReadOnly)
-    private val httpServer = HttpServer(
-        context, coroutineScope, settingsReadOnly, bitmapStateFlow.asStateFlow(),
-        notificationBitmap.getNotificationBitmap(NotificationBitmap.Type.ADDRESS_BLOCKED)
-    )
+    private val notificationBitmap = NotificationBitmap(context, settings)
+    private val httpServer = HttpServer(context, coroutineScope, settings, bitmapStateFlow.asStateFlow(), notificationBitmap)
     private var mediaProjectionIntent: Intent? = null
 
     private val powerManager = context.getSystemService(Context.POWER_SERVICE) as PowerManager
@@ -80,23 +77,6 @@ class AppStateMachineImpl(
         class NetworkSettingsChanged(msg: String) : RestartReason(msg)
 
         override fun toString(): String = "${javaClass.simpleName}[$msg]"
-    }
-
-    private val settingsListener = object : SettingsReadOnly.OnSettingsChangeListener {
-        override fun onSettingsChanged(key: String) {
-            if (key in arrayOf(
-                    Settings.Key.HTML_ENABLE_BUTTONS, Settings.Key.HTML_BACK_COLOR,
-                    Settings.Key.ENABLE_PIN, Settings.Key.PIN, Settings.Key.BLOCK_ADDRESS
-                )
-            ) sendEvent(InternalEvent.RestartServer(RestartReason.SettingsChanged(key)))
-
-            if (key in arrayOf(
-                    Settings.Key.USE_WIFI_ONLY, Settings.Key.ENABLE_IPV6,
-                    Settings.Key.ENABLE_LOCAL_HOST, Settings.Key.LOCAL_HOST_ONLY, Settings.Key.SERVER_PORT
-                )
-            )
-                sendEvent(InternalEvent.RestartServer(RestartReason.NetworkSettingsChanged(key)))
-        }
     }
 
     override fun sendEvent(event: AppStateMachine.Event, timeout: Long) {
@@ -168,7 +148,37 @@ class AppStateMachineImpl(
                 .collect()
         }
 
-        settingsReadOnly.registerChangeListener(settingsListener)
+        settings.htmlEnableButtonsFlow.listenForChange(coroutineScope) {
+            sendEvent(InternalEvent.RestartServer(RestartReason.SettingsChanged(Settings.Key.HTML_ENABLE_BUTTONS.name)))
+        }
+        settings.htmlBackColorFlow.listenForChange(coroutineScope) {
+            sendEvent(InternalEvent.RestartServer(RestartReason.SettingsChanged(Settings.Key.HTML_BACK_COLOR.name)))
+        }
+        settings.enablePinFlow.listenForChange(coroutineScope) {
+            sendEvent(InternalEvent.RestartServer(RestartReason.SettingsChanged(Settings.Key.ENABLE_PIN.name)))
+        }
+        settings.pinFlow.listenForChange(coroutineScope) {
+            sendEvent(InternalEvent.RestartServer(RestartReason.SettingsChanged(Settings.Key.PIN.name)))
+        }
+        settings.blockAddressFlow.listenForChange(coroutineScope) {
+            sendEvent(InternalEvent.RestartServer(RestartReason.SettingsChanged(Settings.Key.BLOCK_ADDRESS.name)))
+        }
+        settings.useWiFiOnlyFlow.listenForChange(coroutineScope) {
+            sendEvent(InternalEvent.RestartServer(RestartReason.NetworkSettingsChanged(Settings.Key.USE_WIFI_ONLY.name)))
+        }
+        settings.enableIPv6Flow.listenForChange(coroutineScope) {
+            sendEvent(InternalEvent.RestartServer(RestartReason.NetworkSettingsChanged(Settings.Key.ENABLE_IPV6.name)))
+        }
+        settings.enableLocalHostFlow.listenForChange(coroutineScope) {
+            sendEvent(InternalEvent.RestartServer(RestartReason.NetworkSettingsChanged(Settings.Key.ENABLE_LOCAL_HOST.name)))
+        }
+        settings.localHostOnlyFlow.listenForChange(coroutineScope) {
+            sendEvent(InternalEvent.RestartServer(RestartReason.NetworkSettingsChanged(Settings.Key.LOCAL_HOST_ONLY.name)))
+        }
+        settings.serverPortFlow.listenForChange(coroutineScope) {
+            sendEvent(InternalEvent.RestartServer(RestartReason.NetworkSettingsChanged(Settings.Key.SERVER_PORT.name)))
+        }
+
         broadcastHelper.startListening(
             onScreenOff = { sendEvent(InternalEvent.ScreenOff) },
             onConnectionChanged = { sendEvent(InternalEvent.RestartServer(RestartReason.ConnectionChanged("BroadcastHelper"))) }
@@ -219,7 +229,6 @@ class AppStateMachineImpl(
         XLog.d(getLog("destroy"))
         sendEvent(InternalEvent.Destroy)
         httpServer.destroy().await()
-        settingsReadOnly.unregisterChangeListener(settingsListener)
         broadcastHelper.stopListening()
         connectivityHelper.stopListening()
         coroutineScope.cancel()
@@ -251,12 +260,12 @@ class AppStateMachineImpl(
         return streamState.copy(mediaProjection = null, bitmapCapture = null)
     }
 
-    private fun discoverAddress(streamState: StreamState): StreamState {
+    private suspend fun discoverAddress(streamState: StreamState): StreamState {
         XLog.d(getLog("discoverAddress"))
 
         val netInterfaces = networkHelper.getNetInterfaces(
-            settingsReadOnly.useWiFiOnly, settingsReadOnly.enableIPv6,
-            settingsReadOnly.enableLocalHost, settingsReadOnly.localHostOnly
+            settings.useWiFiOnlyFlow.first(), settings.enableIPv6Flow.first(),
+            settings.enableLocalHostFlow.first(), settings.localHostOnlyFlow.first()
         )
         if (netInterfaces.isEmpty())
             return if (streamState.httpServerAddressAttempt < 3) {
@@ -322,10 +331,10 @@ class AppStateMachineImpl(
                 registerCallback(projectionCallback, Handler(Looper.getMainLooper()))
             }
         }
-        val bitmapCapture = BitmapCapture(context, settingsReadOnly, mediaProjection, bitmapStateFlow, ::onError)
+        val bitmapCapture = BitmapCapture(context, settings, mediaProjection, bitmapStateFlow, ::onError)
         bitmapCapture.start()
 
-        if (settingsReadOnly.keepAwake) {
+        if (settings.keepAwakeFlow.first()) {
             @Suppress("DEPRECATION")
             @SuppressLint("WakelockTimeout")
             wakeLock = powerManager.newWakeLock(
@@ -340,20 +349,23 @@ class AppStateMachineImpl(
         )
     }
 
-    private fun stopStream(streamState: StreamState): StreamState {
+    private suspend fun stopStream(streamState: StreamState): StreamState {
         XLog.d(getLog("stopStream"))
 
         val state = stopProjection(streamState)
-        if (settingsReadOnly.checkAndChangeAutoChangePinOnStop().not())
+        if (settings.enablePinFlow.first() && settings.autoChangePinFlow.first()){
+            settings.setPin(randomPin())
+        } else {
             bitmapStateFlow.tryEmit(notificationBitmap.getNotificationBitmap(NotificationBitmap.Type.START))
+        }
 
         return state.copy(state = StreamState.State.SERVER_STARTED)
     }
 
-    private fun screenOff(streamState: StreamState): StreamState {
+    private suspend fun screenOff(streamState: StreamState): StreamState {
         XLog.d(getLog("screenOff"))
 
-        return if (settingsReadOnly.stopOnSleep && streamState.isStreaming()) stopStream(streamState)
+        return if (settings.stopOnSleepFlow.first() && streamState.isStreaming()) stopStream(streamState)
         else streamState
     }
 
@@ -363,7 +375,7 @@ class AppStateMachineImpl(
         return stopProjection(streamState).copy(state = StreamState.State.DESTROYED)
     }
 
-    private fun startStopFromWebPage(streamState: StreamState): StreamState {
+    private suspend fun startStopFromWebPage(streamState: StreamState): StreamState {
         XLog.d(getLog("startStopFromWebPage"))
 
         if (streamState.isStreaming()) return stopStream(streamState)
@@ -428,4 +440,7 @@ class AppStateMachineImpl(
         onEffect(streamState.toPublicState())
         return streamState
     }
+
+    private fun <T> Flow<T>.listenForChange(scope: CoroutineScope, action: suspend (T) -> Unit) =
+        distinctUntilChanged().drop(1).onEach { action(it) }.launchIn(scope)
 }

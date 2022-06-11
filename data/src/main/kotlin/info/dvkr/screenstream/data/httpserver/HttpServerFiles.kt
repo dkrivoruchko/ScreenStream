@@ -7,6 +7,7 @@ import info.dvkr.screenstream.data.other.getFileFromAssets
 import info.dvkr.screenstream.data.other.getLog
 import info.dvkr.screenstream.data.other.randomString
 import info.dvkr.screenstream.data.settings.SettingsReadOnly
+import kotlinx.coroutines.flow.first
 import java.nio.charset.StandardCharsets
 
 class HttpServerFiles(context: Context, private val settingsReadOnly: SettingsReadOnly) {
@@ -67,25 +68,25 @@ class HttpServerFiles(context: Context, private val settingsReadOnly: SettingsRe
     private val baseAddressBlockedHtml: String =
         String(applicationContext.getFileFromAssets(ADDRESS_BLOCKED_HTML), StandardCharsets.UTF_8)
 
-    var htmlEnableButtons: Boolean = settingsReadOnly.htmlEnableButtons
-    var htmlBackColor: Int = settingsReadOnly.htmlBackColor
-    var pin: String = settingsReadOnly.pin
-    var streamAddress: String = configureStreamAddress()
-    var jpegFallbackAddress: String = configureJpegFallbackAddress()
-    var indexHtml: String = configureIndexHtml(streamAddress)
-    var pinRequestHtml: String = configurePinRequestHtml()
-    var pinRequestErrorHtml: String = configurePinRequestErrorHtml()
-    var addressBlockedHtml: String = configureAddressBlockedHtml()
+    var htmlEnableButtons: Boolean = false
+    var htmlBackColor: Int = 0
+    lateinit var pin: String
+    lateinit var streamAddress: String
+    lateinit var jpegFallbackAddress: String
+    lateinit var indexHtml: String
+    lateinit var pinRequestHtml: String
+    lateinit var pinRequestErrorHtml: String
+    lateinit var addressBlockedHtml: String
 
-    private var enablePin: Boolean = settingsReadOnly.enablePin
+    private var enablePin: Boolean = false
 
-    fun configure() {
+    suspend fun configure() {
         XLog.d(getLog("configure"))
 
-        htmlEnableButtons = settingsReadOnly.htmlEnableButtons
-        htmlBackColor = settingsReadOnly.htmlBackColor
-        enablePin = settingsReadOnly.enablePin
-        pin = settingsReadOnly.pin
+        htmlEnableButtons = settingsReadOnly.htmlEnableButtonsFlow.first()
+        htmlBackColor = settingsReadOnly.htmlBackColorFlow.first()
+        enablePin = settingsReadOnly.enablePinFlow.first()
+        pin = settingsReadOnly.pinFlow.first()
         streamAddress = configureStreamAddress()
         jpegFallbackAddress = configureJpegFallbackAddress()
         indexHtml = configureIndexHtml(streamAddress)

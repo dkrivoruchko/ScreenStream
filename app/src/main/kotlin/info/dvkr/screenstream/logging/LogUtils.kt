@@ -9,6 +9,7 @@ import com.elvishew.xlog.LogUtils
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.data.other.getLog
+import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import java.io.File
@@ -17,8 +18,9 @@ internal fun Context.getLogFolder(): String = this.cacheDir.absolutePath
 internal fun Context.getLogZipFolder(): String = "${this.filesDir.absolutePath}/logs/"
 internal fun Context.getLogZipFile(): String = this.getLogZipFolder() + "logs.zip"
 
+@OptIn(DelicateCoroutinesApi::class)
 @Suppress("BlockingMethodInNonBlockingContext")
-internal fun sendLogsInEmail(context: Context, text:String) {
+internal fun sendLogsInEmail(context: Context, text: String) {
     GlobalScope.launch {
         LogUtils.compress(context.getLogFolder(), context.getLogZipFile())
 

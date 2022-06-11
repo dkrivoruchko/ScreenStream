@@ -6,12 +6,14 @@ import android.os.Bundle
 import android.view.View
 import android.widget.Toast
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.data.other.getLog
 import info.dvkr.screenstream.data.settings.Settings
 import info.dvkr.screenstream.databinding.FragmentAboutBinding
 import info.dvkr.screenstream.ui.viewBinding
+import kotlinx.coroutines.flow.first
 import org.koin.android.ext.android.inject
 
 class AboutFragment : Fragment(R.layout.fragment_about) {
@@ -35,10 +37,14 @@ class AboutFragment : Fragment(R.layout.fragment_about) {
         }
 
         binding.tvFragmentAboutVersion.setOnClickListener {
-            settingsLoggingVisibleCounter++
-            if (settingsLoggingVisibleCounter >= 5) {
-                settings.loggingVisible = true
-                Toast.makeText(requireContext(), "Logging option enabled", Toast.LENGTH_LONG).show()
+            viewLifecycleOwner.lifecycleScope.launchWhenCreated {
+                if (settings.loggingOnFlow.first()) return@launchWhenCreated
+                settingsLoggingVisibleCounter++
+                if (settingsLoggingVisibleCounter >= 5) {
+                    settings.setLoggingVisible(true)
+                    Toast.makeText(requireContext(), "Logging option enabled", Toast.LENGTH_LONG).show()
+                    binding.tvFragmentAboutVersion.setOnClickListener(null)
+                }
             }
         }
 

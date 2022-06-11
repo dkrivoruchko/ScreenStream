@@ -43,38 +43,37 @@ abstract class PermissionActivity(@LayoutRes contentLayoutId: Int) : ServiceActi
     override fun onServiceMessage(serviceMessage: ServiceMessage) {
         super.onServiceMessage(serviceMessage)
 
-        when (serviceMessage) {
-            is ServiceMessage.ServiceState -> {
-                if (serviceMessage.isWaitingForPermission) {
-                    if (isCastPermissionsPending) {
-                        XLog.i(getLog("onServiceMessage", "Ignoring: isCastPermissionsPending == true"))
-                    } else {
-                        isCastPermissionsPending = true
-                        permissionsErrorDialog?.dismiss()
-                        permissionsErrorDialog = null
-                        val projectionManager =
-                            getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
-                        try {
+        if (serviceMessage is ServiceMessage.ServiceState) {
+            if (serviceMessage.isWaitingForPermission) {
+                if (isCastPermissionsPending) {
+                    XLog.i(getLog("onServiceMessage", "Ignoring: isCastPermissionsPending == true"))
+                } else {
+                    isCastPermissionsPending = true
+                    permissionsErrorDialog?.dismiss()
+                    permissionsErrorDialog = null
+                    val projectionManager =
+                        getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
+                    try {
 //                            val dm = getSystemService(Context.DISPLAY_SERVICE) as DisplayManager
 //                            val options = ActivityOptions.makeBasic()
 //                            options.launchDisplayId = dm.displays[1].displayId
-                            val createScreenCaptureIntent = projectionManager.createScreenCaptureIntent()
-                            startActivityForResult(
-                                createScreenCaptureIntent, SCREEN_CAPTURE_REQUEST_CODE//,options.toBundle()
-                            )
-                        } catch (ex: ActivityNotFoundException) {
-                            showErrorDialog(
-                                R.string.permission_activity_error_title_activity_not_found,
-                                R.string.permission_activity_error_activity_not_found
-                            )
-                        }
+                        val createScreenCaptureIntent = projectionManager.createScreenCaptureIntent()
+                        startActivityForResult(
+                            createScreenCaptureIntent, SCREEN_CAPTURE_REQUEST_CODE//,options.toBundle()
+                        )
+                    } catch (ex: ActivityNotFoundException) {
+                        showErrorDialog(
+                            R.string.permission_activity_error_title_activity_not_found,
+                            R.string.permission_activity_error_activity_not_found
+                        )
                     }
-                } else {
-                    isCastPermissionsPending = false
                 }
+            } else {
+                isCastPermissionsPending = false
             }
         }
     }
+
     @Suppress("DEPRECATION")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         if (requestCode == SCREEN_CAPTURE_REQUEST_CODE) {

@@ -13,6 +13,7 @@ import android.widget.Toast
 import androidx.appcompat.widget.AppCompatImageView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
@@ -26,7 +27,12 @@ import info.dvkr.screenstream.data.model.AppError
 import info.dvkr.screenstream.data.model.FatalError
 import info.dvkr.screenstream.data.model.FixableError
 import info.dvkr.screenstream.data.model.HttpClient
-import info.dvkr.screenstream.data.other.*
+import info.dvkr.screenstream.data.other.asString
+import info.dvkr.screenstream.data.other.bytesToMbit
+import info.dvkr.screenstream.data.other.getLog
+import info.dvkr.screenstream.data.other.getQRBitmap
+import info.dvkr.screenstream.data.other.setColorSpan
+import info.dvkr.screenstream.data.other.setUnderlineSpan
 import info.dvkr.screenstream.data.settings.SettingsReadOnly
 import info.dvkr.screenstream.databinding.FragmentStreamBinding
 import info.dvkr.screenstream.databinding.ItemClientBinding
@@ -35,6 +41,7 @@ import info.dvkr.screenstream.service.ServiceMessage
 import info.dvkr.screenstream.service.helper.IntentAction
 import info.dvkr.screenstream.ui.activity.ServiceActivity
 import info.dvkr.screenstream.ui.viewBinding
+import kotlinx.coroutines.flow.first
 import org.koin.android.ext.android.inject
 
 class StreamFragment : AdFragment(R.layout.fragment_stream) {
@@ -75,13 +82,15 @@ class StreamFragment : AdFragment(R.layout.fragment_stream) {
         XLog.d(getLog("onStart", "Invoked"))
 
         (requireActivity() as ServiceActivity).getServiceMessageLiveData()
-            .observe(this, { serviceMessage ->
+            .observe(this) { serviceMessage ->
                 when (serviceMessage) {
-                    is ServiceMessage.ServiceState -> onServiceStateMessage(serviceMessage)
+                    is ServiceMessage.ServiceState ->
+                        viewLifecycleOwner.lifecycleScope.launchWhenStarted { onServiceStateMessage(serviceMessage) }
                     is ServiceMessage.Clients -> onClientsMessage(serviceMessage)
                     is ServiceMessage.TrafficHistory -> onTrafficHistoryMessage(serviceMessage)
+                    else -> Unit
                 }
-            })
+            }
 
         IntentAction.GetServiceState.sendToAppService(requireContext())
     }
@@ -91,7 +100,7 @@ class StreamFragment : AdFragment(R.layout.fragment_stream) {
         httpClientAdapter = null
     }
 
-    private fun onServiceStateMessage(serviceMessage: ServiceMessage.ServiceState) {
+    private suspend fun onServiceStateMessage(serviceMessage: ServiceMessage.ServiceState) {
         // Interfaces
         binding.llFragmentStreamAddresses.removeAllViews()
         if (serviceMessage.netInterfaces.isEmpty()) {
@@ -106,7 +115,8 @@ class StreamFragment : AdFragment(R.layout.fragment_stream) {
                 with(ItemDeviceAddressBinding.inflate(layoutInflater, binding.llFragmentStreamAddresses, false)) {
                     tvItemDeviceAddressName.text = getString(R.string.stream_fragment_interface, netInterface.name)
 
-                    val fullAddress = "http://${netInterface.address.asString()}:${settingsReadOnly.severPort}"
+                    val fullAddress =
+                        "http://${netInterface.address.asString()}:${settingsReadOnly.serverPortFlow.first()}"
                     tvItemDeviceAddress.text = fullAddress.setUnderlineSpan()
                     tvItemDeviceAddress.setOnClickListener { openInBrowser(fullAddress) }
                     ivItemDeviceAddressOpenExternal.setOnClickListener { openInBrowser(fullAddress) }
@@ -124,14 +134,15 @@ class StreamFragment : AdFragment(R.layout.fragment_stream) {
         }
 
         // Hide pin on Start
-        if (settingsReadOnly.enablePin) {
-            val pinText = if (serviceMessage.isStreaming && settingsReadOnly.hidePinOnStart)
-                getString(R.string.stream_fragment_pin, "****")
-            else
-                getString(R.string.stream_fragment_pin, settingsReadOnly.pin)
-
-            binding.tvFragmentStreamPin.text =
-                pinText.setColorSpan(colorAccent, pinText.length - settingsReadOnly.pin.length)
+        if (settingsReadOnly.enablePinFlow.first()) {
+            if (serviceMessage.isStreaming && settingsReadOnly.hidePinOnStartFlow.first()) {
+                val pinText = getString(R.string.stream_fragment_pin, "*")
+                binding.tvFragmentStreamPin.text = pinText.setColorSpan(colorAccent, pinText.length - 1)
+            } else {
+                val pinText = getString(R.string.stream_fragment_pin, settingsReadOnly.pinFlow.first())
+                binding.tvFragmentStreamPin.text =
+                    pinText.setColorSpan(colorAccent, pinText.length - settingsReadOnly.pinFlow.first().length)
+            }
         } else {
             binding.tvFragmentStreamPin.setText(R.string.stream_fragment_pin_disabled)
         }
@@ -140,7 +151,7 @@ class StreamFragment : AdFragment(R.layout.fragment_stream) {
     }
 
     private fun onClientsMessage(serviceMessage: ServiceMessage.Clients) {
-        val clientsCount = serviceMessage.clients.filter { it.isDisconnected.not() }.count()
+        val clientsCount = serviceMessage.clients.count { it.isDisconnected.not() }
         binding.tvFragmentStreamClientsHeader.text = getString(R.string.stream_fragment_connected_clients).run {
             format(clientsCount).setColorSpan(colorAccent, indexOf('%'))
         }

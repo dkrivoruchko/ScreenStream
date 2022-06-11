@@ -8,6 +8,8 @@ import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.data.other.getLog
 import info.dvkr.screenstream.data.settings.SettingsReadOnly
 import info.dvkr.screenstream.service.helper.IntentAction
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
@@ -18,7 +20,7 @@ class BootReceiver : BroadcastReceiver(), KoinComponent {
     override fun onReceive(context: Context, intent: Intent) {
         XLog.d(getLog("onReceive", "Invoked"))
 
-        if (settingsReadOnly.startOnBoot.not()) Runtime.getRuntime().exit(0)
+        if (runBlocking { settingsReadOnly.startOnBootFlow.first().not() }) Runtime.getRuntime().exit(0)
 
         if (
             intent.action == "android.intent.action.BOOT_COMPLETED" ||

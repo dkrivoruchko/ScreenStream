@@ -1,59 +1,46 @@
 package info.dvkr.screenstream.data.settings
 
-import androidx.annotation.MainThread
-
+import kotlinx.coroutines.flow.Flow
 
 interface SettingsReadOnly {
-    val nightMode: Int
-    val keepAwake: Boolean
-    val stopOnSleep: Boolean
-    val startOnBoot: Boolean
-    val autoStartStop: Boolean
-    val notifySlowConnections: Boolean
+    val nightModeFlow: Flow<Int>
 
-    val htmlEnableButtons: Boolean
-    val htmlShowPressStart: Boolean
-    val htmlBackColor: Int
+    val keepAwakeFlow: Flow<Boolean>
+    val stopOnSleepFlow: Flow<Boolean>
+    val startOnBootFlow: Flow<Boolean>
+    val autoStartStopFlow: Flow<Boolean>
+    val notifySlowConnectionsFlow: Flow<Boolean>
+    val htmlEnableButtonsFlow: Flow<Boolean>
+    val htmlShowPressStartFlow: Flow<Boolean>
+    val htmlBackColorFlow: Flow<Int>
 
-    val vrMode: Int
-    val imageCrop: Boolean
-    val imageCropTop: Int
-    val imageCropBottom: Int
-    val imageCropLeft: Int
-    val imageCropRight: Int
-    val imageGrayscale: Boolean
-    val jpegQuality: Int
-    val resizeFactor: Int
-    val rotation: Int
-    val maxFPS: Int
+    val vrModeFlow: Flow<Int>
+    val imageCropFlow: Flow<Boolean>
+    val imageCropTopFlow: Flow<Int>
+    val imageCropBottomFlow: Flow<Int>
+    val imageCropLeftFlow: Flow<Int>
+    val imageCropRightFlow: Flow<Int>
+    val imageGrayscaleFlow: Flow<Boolean>
+    val jpegQualityFlow: Flow<Int>
+    val resizeFactorFlow: Flow<Int>
+    val rotationFlow: Flow<Int>
+    val maxFPSFlow: Flow<Int>
 
-    val enablePin: Boolean
-    val hidePinOnStart: Boolean
-    val newPinOnAppStart: Boolean
-    val autoChangePin: Boolean
-    val pin: String
-    val blockAddress: Boolean
+    val enablePinFlow: Flow<Boolean>
+    val hidePinOnStartFlow: Flow<Boolean>
+    val newPinOnAppStartFlow: Flow<Boolean>
+    val autoChangePinFlow: Flow<Boolean>
+    val pinFlow: Flow<String>
+    val blockAddressFlow: Flow<Boolean>
 
-    val useWiFiOnly: Boolean
-    val enableIPv6: Boolean
-    val enableLocalHost: Boolean
-    val localHostOnly: Boolean
-    val severPort: Int
-    val loggingVisible: Boolean
-    val loggingOn: Boolean
+    val useWiFiOnlyFlow: Flow<Boolean>
+    val enableIPv6Flow: Flow<Boolean>
+    val enableLocalHostFlow: Flow<Boolean>
+    val localHostOnlyFlow: Flow<Boolean>
+    val serverPortFlow: Flow<Int>
 
-    val lastIAURequestTimeStamp: Long
+    val loggingVisibleFlow: Flow<Boolean>
+    val loggingOnFlow: Flow<Boolean>
 
-    fun autoChangePinOnStart()
-
-    fun checkAndChangeAutoChangePinOnStop(): Boolean
-
-    interface OnSettingsChangeListener {
-        @MainThread
-        fun onSettingsChanged(key: String)
-    }
-
-    fun registerChangeListener(listener: OnSettingsChangeListener)
-
-    fun unregisterChangeListener(listener: OnSettingsChangeListener)
+    val lastIAURequestTimeStampFlow: Flow<Long>
 }

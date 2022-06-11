@@ -8,16 +8,16 @@ object StateToEventMatrix {
 
     fun skippEvent(state: StreamState.State, event: AppStateMachine.Event): Boolean {
         val action = matrix[state]?.get(event::class.java)
-        require(action != null) { getLog("skippEvent", "Unknown Sate-Event pair [$state, $event]") }
+        require(action != null) { getLog("skipEvent", "Unknown Sate-Event pair [$state, $event]") }
 
         return when (action) {
             Action.Process -> {
-                XLog.i(getLog("skippEvent", "Accepting: [State:$state, Event:$event]"))
+                XLog.i(getLog("skipEvent", "Accepting: [State:$state, Event:$event]"))
                 false
             }
 
             Action.Skipp -> {
-                XLog.w(getLog("skippEvent", "Skipping: [State:$state, Event:$event]"))
+                XLog.w(getLog("skipEvent", "Skipping: [State:$state, Event:$event]"))
                 true
             }
 

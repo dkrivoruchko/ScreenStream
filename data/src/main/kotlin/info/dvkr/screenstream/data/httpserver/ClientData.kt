@@ -7,7 +7,15 @@ import info.dvkr.screenstream.data.other.asString
 import info.dvkr.screenstream.data.other.getLog
 import info.dvkr.screenstream.data.other.toByteArray
 import info.dvkr.screenstream.data.settings.SettingsReadOnly
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineName
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import java.net.InetSocketAddress
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
@@ -95,8 +103,8 @@ internal class ClientData(
     private val trafficHistory: LinkedList<TrafficPoint> = LinkedList<TrafficPoint>()
     private val statisticScope = CoroutineScope(Job() + Dispatchers.Default)
 
-    internal var enablePin: Boolean = settingsReadOnly.enablePin
-    internal var blockAddress: Boolean = settingsReadOnly.blockAddress
+    internal var enablePin: Boolean = false
+    internal var blockAddress: Boolean = false
 
     internal fun onConnected(id: Long, ipAddress: InetSocketAddress?, fallbackHost: String) {
         if (clients[id] == null) clients[id] = ConnectedClient(id, ipAddress, fallbackHost)
@@ -132,11 +140,11 @@ internal class ClientData(
 
     internal fun clearStatistics() = clients.clear()
 
-    internal fun configure() {
+    internal suspend fun configure() {
         XLog.d(getLog("configure"))
 
-        enablePin = settingsReadOnly.enablePin
-        blockAddress = settingsReadOnly.blockAddress
+        enablePin = settingsReadOnly.enablePinFlow.first()
+        blockAddress = settingsReadOnly.blockAddressFlow.first()
     }
 
     internal fun destroy() {
@@ -151,11 +159,14 @@ internal class ClientData(
         (0..TRAFFIC_HISTORY_SECONDS + 1).forEach { i -> trafficHistory.addLast(TrafficPoint(i * 1000 + past, 0)) }
 
         statisticScope.launch(CoroutineName("ClientStatistic.SendStatistic timer")) {
+            enablePin = settingsReadOnly.enablePinFlow.first()
+            blockAddress = settingsReadOnly.blockAddressFlow.first()
+
             while (isActive) {
                 val now = System.currentTimeMillis()
                 clients.values.removeAll { it.removeFromStatistics(now) }
 
-                val trafficAtNow = clients.values.map { it.sendBytes }.sum()
+                val trafficAtNow = clients.values.sumOf { it.sendBytes }
                 clients.values.forEach { it.clearSendBytes() }
                 trafficHistory.removeFirst()
                 trafficHistory.addLast(TrafficPoint(now, trafficAtNow))

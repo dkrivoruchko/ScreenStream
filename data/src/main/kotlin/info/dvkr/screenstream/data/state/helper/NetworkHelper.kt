@@ -77,7 +77,7 @@ class NetworkHelper(context: Context) {
 
         val netInterfaceList = mutableListOf<NetInterface>()
 
-        getNetworkInterfacesWithFallBack().asSequence().filterNotNull()
+        getNetworkInterfacesWithFallBack().asSequence()
             .flatMap { networkInterface ->
                 networkInterface.inetAddresses.asSequence().filterNotNull()
                     .filter { !it.isLinkLocalAddress && !it.isMulticastAddress }

@@ -11,6 +11,7 @@ import android.view.inputmethod.EditorInfo
 import android.widget.EditText
 import android.widget.TextView
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
 import androidx.window.layout.WindowMetricsCalculator
 import com.afollestad.materialdialogs.LayoutMode
 import com.afollestad.materialdialogs.MaterialDialog
@@ -27,35 +28,18 @@ import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.data.other.getLog
 import info.dvkr.screenstream.data.settings.Settings
-import info.dvkr.screenstream.data.settings.SettingsReadOnly
 import info.dvkr.screenstream.databinding.DialogSettingsCropBinding
 import info.dvkr.screenstream.databinding.DialogSettingsResizeBinding
 import info.dvkr.screenstream.databinding.FragmentSettingsImageBinding
 import info.dvkr.screenstream.ui.viewBinding
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import org.koin.android.ext.android.inject
 
 class SettingsImageFragment : Fragment(R.layout.fragment_settings_image) {
 
     private val settings: Settings by inject()
-    private val settingsListener = object : SettingsReadOnly.OnSettingsChangeListener {
-        override fun onSettingsChanged(key: String) = when (key) {
-            Settings.Key.RESIZE_FACTOR ->
-                binding.tvFragmentSettingsResizeImageValue.text =
-                    getString(R.string.pref_resize_value, settings.resizeFactor)
-
-            Settings.Key.ROTATION ->
-                binding.tvFragmentSettingsRotationValue.text = getString(R.string.pref_rotate_value, settings.rotation)
-
-            Settings.Key.MAX_FPS ->
-                binding.tvFragmentSettingsFpsValue.text = settings.maxFPS.toString()
-
-            Settings.Key.JPEG_QUALITY ->
-                binding.tvFragmentSettingsJpegQualityValue.text = settings.jpegQuality.toString()
-
-            else -> Unit
-        }
-    }
-
     private val screenBounds: Rect by lazy {
         WindowMetricsCalculator.getOrCreate().computeMaximumWindowMetrics(requireActivity()).bounds
     }
@@ -73,35 +57,47 @@ class SettingsImageFragment : Fragment(R.layout.fragment_settings_image) {
         super.onViewCreated(view, savedInstanceState)
 
         // Image - VR mode
-        with(binding.cbFragmentSettingsVrMode) {
-            isChecked = isVRModeEnabled()
-            setOnClickListener {
-                if (isVRModeEnabled()) settings.vrMode = Settings.Default.VR_MODE_DISABLE
-                else {
-                    isChecked = false
+        viewLifecycleOwner.lifecycleScope.launchWhenCreated {
+            binding.cbFragmentSettingsVrMode.isChecked = isVRModeEnabled()
+        }
+        binding.cbFragmentSettingsVrMode.setOnClickListener {
+            viewLifecycleOwner.lifecycleScope.launchWhenCreated {
+                if (isVRModeEnabled()) {
+                    settings.setVrMode(Settings.Default.VR_MODE_DISABLE)
+                } else {
+                    binding.cbFragmentSettingsVrMode.isChecked = false
                     MaterialDialog(requireActivity(), BottomSheet(LayoutMode.WRAP_CONTENT)).show {
                         lifecycleOwner(viewLifecycleOwner)
                         title(R.string.pref_vr_mode)
                         icon(R.drawable.ic_settings_vr_mode_24dp)
                         listItemsSingleChoice(R.array.pref_vr_mode_options) { _, index, _ ->
-                            settings.vrMode = index + 1
-                            isChecked = isVRModeEnabled()
+                            viewLifecycleOwner.lifecycleScope.launchWhenCreated {
+                                settings.setVrMode(index + 1)
+                                binding.cbFragmentSettingsVrMode.isChecked = isVRModeEnabled()
+                            }
                         }
                         positiveButton(android.R.string.ok)
                         negativeButton(android.R.string.cancel)
                     }
                 }
             }
-            binding.clFragmentSettingsVrMode.setOnClickListener { performClick() }
         }
+        binding.clFragmentSettingsVrMode.setOnClickListener { binding.cbFragmentSettingsVrMode.performClick() }
 
         // Image - Crop image
-        with(binding.cbFragmentSettingsCropImage) {
-            isChecked = settings.imageCrop
-            setOnClickListener {
-                if (settings.imageCrop) settings.imageCrop = false
-                else {
-                    isChecked = false
+        viewLifecycleOwner.lifecycleScope.launchWhenCreated {
+            binding.cbFragmentSettingsCropImage.isChecked = settings.imageCropFlow.first()
+        }
+        binding.cbFragmentSettingsCropImage.setOnClickListener {
+            viewLifecycleOwner.lifecycleScope.launchWhenCreated {
+                if (settings.imageCropFlow.first()) {
+                    settings.setImageCrop(false)
+                } else {
+                    binding.cbFragmentSettingsCropImage.isChecked = false
+                    val topCrop = settings.imageCropTopFlow.first()
+                    val bottomCrop = settings.imageCropBottomFlow.first()
+                    val leftCrop = settings.imageCropLeftFlow.first()
+                    val rightCrop = settings.imageCropRightFlow.first()
                     MaterialDialog(requireActivity(), BottomSheet(LayoutMode.WRAP_CONTENT))
                         .lifecycleOwner(viewLifecycleOwner)
                         .title(R.string.pref_crop)
@@ -109,29 +105,34 @@ class SettingsImageFragment : Fragment(R.layout.fragment_settings_image) {
                         .customView(R.layout.dialog_settings_crop, scrollable = true)
                         .positiveButton(android.R.string.ok) { dialog ->
                             DialogSettingsCropBinding.bind(dialog.getCustomView()).apply {
-                                val newTopCrop = tietDialogSettingsCropTop.text.toString().toInt()
-                                if (newTopCrop != settings.imageCropTop) settings.imageCropTop = newTopCrop
-                                val newBottomCrop = tietDialogSettingsCropBottom.text.toString().toInt()
-                                if (newBottomCrop != settings.imageCropBottom) settings.imageCropBottom = newBottomCrop
-                                val newLeftCrop = tietDialogSettingsCropLeft.text.toString().toInt()
-                                if (newLeftCrop != settings.imageCropLeft) settings.imageCropLeft = newLeftCrop
-                                val newRightCrop = tietDialogSettingsCropRight.text.toString().toInt()
-                                if (newRightCrop != settings.imageCropRight) settings.imageCropRight = newRightCrop
+                                viewLifecycleOwner.lifecycleScope.launchWhenCreated {
+                                    val newTopCrop = tietDialogSettingsCropTop.text.toString().toInt()
+                                    val newBottomCrop = tietDialogSettingsCropBottom.text.toString().toInt()
+                                    val newLeftCrop = tietDialogSettingsCropLeft.text.toString().toInt()
+                                    val newRightCrop = tietDialogSettingsCropRight.text.toString().toInt()
 
-                                settings.imageCrop = newTopCrop + newBottomCrop + newLeftCrop + newRightCrop != 0
-                                binding.cbFragmentSettingsCropImage.isChecked = settings.imageCrop
+                                    if (newTopCrop != topCrop) settings.setImageCropTop(newTopCrop)
+                                    if (newBottomCrop != bottomCrop) settings.setImageCropBottom(newBottomCrop)
+                                    if (newLeftCrop != leftCrop) settings.setImageCropLeft(newLeftCrop)
+                                    if (newRightCrop != rightCrop) settings.setImageCropRight(newRightCrop)
+
+                                    val newImageCrop =
+                                        newTopCrop + newBottomCrop + newLeftCrop + newRightCrop != 0
+                                    binding.cbFragmentSettingsCropImage.isChecked = newImageCrop
+                                    settings.setImageCrop(newImageCrop)
+                                }
                             }
                         }
                         .negativeButton(android.R.string.cancel)
                         .apply Dialog@{
                             DialogSettingsCropBinding.bind(getCustomView()).apply {
-                                tietDialogSettingsCropTop.setText(settings.imageCropTop.toString())
-                                tietDialogSettingsCropBottom.setText(settings.imageCropBottom.toString())
-                                tietDialogSettingsCropLeft.setText(settings.imageCropLeft.toString())
-                                tietDialogSettingsCropRight.setText(settings.imageCropRight.toString())
+                                tietDialogSettingsCropTop.setText(topCrop.toString())
+                                tietDialogSettingsCropBottom.setText(bottomCrop.toString())
+                                tietDialogSettingsCropLeft.setText(leftCrop.toString())
+                                tietDialogSettingsCropRight.setText(rightCrop.toString())
 
                                 try {
-                                    tietDialogSettingsCropTop.setSelection(settings.imageCropTop.toString().length)
+                                    tietDialogSettingsCropTop.setSelection(topCrop.toString().length)
                                 } catch (ignore: Throwable) {
                                 }
 
@@ -154,157 +155,192 @@ class SettingsImageFragment : Fragment(R.layout.fragment_settings_image) {
                         }
                 }
             }
-            binding.clFragmentSettingsCropImage.setOnClickListener { performClick() }
         }
+        binding.clFragmentSettingsCropImage.setOnClickListener { binding.cbFragmentSettingsCropImage.performClick() }
 
-        // Image - Resize factor
-        binding.tvFragmentSettingsResizeImageValue.text = getString(R.string.pref_resize_value, settings.resizeFactor)
-        val resizePictureSizeString = getString(R.string.pref_resize_dialog_result)
-        binding.clFragmentSettingsResizeImage.setOnClickListener {
-            MaterialDialog(requireActivity(), BottomSheet(LayoutMode.WRAP_CONTENT))
-                .lifecycleOwner(viewLifecycleOwner)
-                .title(R.string.pref_resize)
-                .icon(R.drawable.ic_settings_resize_24dp)
-                .customView(R.layout.dialog_settings_resize, scrollable = true)
-                .positiveButton(android.R.string.ok) { dialog ->
-                    DialogSettingsResizeBinding.bind(dialog.getCustomView()).apply {
-                        val newResizeFactor = tietDialogSettingsResize.text.toString().toInt()
-                        if (newResizeFactor != settings.resizeFactor) settings.resizeFactor = newResizeFactor
-                    }
-                }
-                .negativeButton(android.R.string.cancel)
-                .apply Dialog@{
-                    DialogSettingsResizeBinding.bind(getCustomView()).apply {
-                        tvDialogSettingsResizeContent.text =
-                            getString(R.string.pref_resize_dialog_text, screenBounds.width(), screenBounds.height())
-
-                        tiDialogSettingsResize.isCounterEnabled = true
-                        tiDialogSettingsResize.counterMaxLength = 3
-
-                        with(tietDialogSettingsResize) {
-                            addTextChangedListener(SimpleTextWatcher { text ->
-                                val isValid = text.length in 2..3 && text.toString().toIntOrNull() ?: -1 in 10..150
-                                this@Dialog.setActionButtonEnabled(WhichButton.POSITIVE, isValid)
-                                val newResizeFactor =
-                                    (if (isValid) text.toString().toInt() else settings.resizeFactor) / 100f
-
-                                tvDialogSettingsResizeResult.text = resizePictureSizeString.format(
-                                    (screenBounds.width() * newResizeFactor).toInt(),
-                                    (screenBounds.height() * newResizeFactor).toInt()
-                                )
-                            })
-                            setText(settings.resizeFactor.toString())
-                            try {
-                                setSelection(settings.resizeFactor.toString().length)
-                            } catch (ignore: Throwable) {
-                            }
-                            filters = arrayOf<InputFilter>(InputFilter.LengthFilter(3))
-                        }
-
-                        tvDialogSettingsResizeResult.text = resizePictureSizeString.format(
-                            (screenBounds.width() * settings.resizeFactor / 100f).toInt(),
-                            (screenBounds.height() * settings.resizeFactor / 100f).toInt()
-                        )
-
-                        show()
-                    }
-                }
-        }
 
         // Image - Grayscale
-        with(binding.cbFragmentSettingsGrayscaleImage) {
-            isChecked = settings.imageGrayscale
-            setOnClickListener { settings.imageGrayscale = isChecked }
-            binding.clFragmentSettingsGrayscaleImage.setOnClickListener { performClick() }
+        viewLifecycleOwner.lifecycleScope.launchWhenCreated {
+            binding.cbFragmentSettingsGrayscaleImage.isChecked = settings.imageGrayscaleFlow.first()
+        }
+        binding.cbFragmentSettingsGrayscaleImage.setOnClickListener {
+            viewLifecycleOwner.lifecycleScope.launchWhenCreated {
+                settings.setImageGrayscale(binding.cbFragmentSettingsGrayscaleImage.isChecked)
+            }
+        }
+        binding.clFragmentSettingsGrayscaleImage.setOnClickListener { binding.cbFragmentSettingsGrayscaleImage.performClick() }
+
+
+        // Image - Resize factor
+        viewLifecycleOwner.lifecycleScope.launchWhenCreated {
+            settings.resizeFactorFlow
+                .onEach { binding.tvFragmentSettingsResizeImageValue.text = getString(R.string.pref_resize_value, it) }
+                .launchIn(this)
+        }
+        binding.clFragmentSettingsResizeImage.setOnClickListener {
+            viewLifecycleOwner.lifecycleScope.launchWhenCreated {
+                val resizeFactor = settings.resizeFactorFlow.first()
+                val resizePictureSizeString = getString(R.string.pref_resize_dialog_result)
+                MaterialDialog(requireActivity(), BottomSheet(LayoutMode.WRAP_CONTENT))
+                    .lifecycleOwner(viewLifecycleOwner)
+                    .title(R.string.pref_resize)
+                    .icon(R.drawable.ic_settings_resize_24dp)
+                    .customView(R.layout.dialog_settings_resize, scrollable = true)
+                    .positiveButton(android.R.string.ok) { dialog ->
+                        DialogSettingsResizeBinding.bind(dialog.getCustomView()).apply {
+                            val newResizeFactor = tietDialogSettingsResize.text.toString().toInt()
+                            if (newResizeFactor != resizeFactor)
+                                viewLifecycleOwner.lifecycleScope.launchWhenCreated {
+                                    settings.setResizeFactor(newResizeFactor)
+                                }
+                        }
+                    }
+                    .negativeButton(android.R.string.cancel)
+                    .apply Dialog@{
+                        DialogSettingsResizeBinding.bind(getCustomView()).apply {
+                            tvDialogSettingsResizeContent.text =
+                                getString(R.string.pref_resize_dialog_text, screenBounds.width(), screenBounds.height())
+
+                            tiDialogSettingsResize.isCounterEnabled = true
+                            tiDialogSettingsResize.counterMaxLength = 3
+
+                            with(tietDialogSettingsResize) {
+                                addTextChangedListener(SimpleTextWatcher { text ->
+                                    val isValid = text.length in 2..3 && (text.toString().toIntOrNull() ?: -1) in 10..150
+                                    this@Dialog.setActionButtonEnabled(WhichButton.POSITIVE, isValid)
+                                    val newResizeFactor =
+                                        (if (isValid) text.toString().toInt() else resizeFactor) / 100f
+
+                                    tvDialogSettingsResizeResult.text = resizePictureSizeString.format(
+                                        (screenBounds.width() * newResizeFactor).toInt(),
+                                        (screenBounds.height() * newResizeFactor).toInt()
+                                    )
+                                })
+                                setText(resizeFactor.toString())
+                                try {
+                                    setSelection(resizeFactor.toString().length)
+                                } catch (ignore: Throwable) {
+                                }
+                                filters = arrayOf<InputFilter>(InputFilter.LengthFilter(3))
+                            }
+
+                            tvDialogSettingsResizeResult.text = resizePictureSizeString.format(
+                                (screenBounds.width() * resizeFactor / 100f).toInt(),
+                                (screenBounds.height() * resizeFactor / 100f).toInt()
+                            )
+
+                            show()
+                        }
+                    }
+            }
         }
 
         // Image - Rotation
-        binding.tvFragmentSettingsRotationValue.text = getString(R.string.pref_rotate_value, settings.rotation)
+        viewLifecycleOwner.lifecycleScope.launchWhenCreated {
+            settings.rotationFlow
+                .onEach { binding.tvFragmentSettingsRotationValue.text = getString(R.string.pref_rotate_value, it) }
+                .launchIn(this)
+        }
         binding.clFragmentSettingsRotation.setOnClickListener {
-            val indexOld = rotationList.first { it.second == settings.rotation }.first
-            MaterialDialog(requireActivity(), BottomSheet(LayoutMode.WRAP_CONTENT)).show {
-                lifecycleOwner(viewLifecycleOwner)
-                title(R.string.pref_rotate)
-                icon(R.drawable.ic_settings_rotation_24dp)
-                listItemsSingleChoice(R.array.pref_rotate_options, initialSelection = indexOld) { _, index, _ ->
-                    settings.rotation = rotationList.firstOrNull { item -> item.first == index }?.second
-                        ?: throw IllegalArgumentException("Unknown rotation index")
+            viewLifecycleOwner.lifecycleScope.launchWhenCreated {
+                val rotation = settings.rotationFlow.first()
+                val indexOld = rotationList.first { it.second == rotation }.first
+                MaterialDialog(requireActivity(), BottomSheet(LayoutMode.WRAP_CONTENT)).show {
+                    lifecycleOwner(viewLifecycleOwner)
+                    title(R.string.pref_rotate)
+                    icon(R.drawable.ic_settings_rotation_24dp)
+                    listItemsSingleChoice(R.array.pref_rotate_options, initialSelection = indexOld) { _, index, _ ->
+                        val newRotation = rotationList.firstOrNull { item -> item.first == index }?.second
+                            ?: throw IllegalArgumentException("Unknown rotation index")
+                        viewLifecycleOwner.lifecycleScope.launchWhenCreated { settings.setRotation(newRotation) }
+                    }
+                    positiveButton(android.R.string.ok)
+                    negativeButton(android.R.string.cancel)
                 }
-                positiveButton(android.R.string.ok)
-                negativeButton(android.R.string.cancel)
             }
         }
 
         // Image - Max FPS
-        binding.tvFragmentSettingsFpsValue.text = settings.maxFPS.toString()
+        viewLifecycleOwner.lifecycleScope.launchWhenCreated {
+            settings.maxFPSFlow.onEach { binding.tvFragmentSettingsFpsValue.text = it.toString() }.launchIn(this)
+        }
         binding.clFragmentSettingsFps.setOnClickListener {
-            MaterialDialog(requireActivity(), BottomSheet(LayoutMode.WRAP_CONTENT)).show {
-                lifecycleOwner(viewLifecycleOwner)
-                title(R.string.pref_fps)
-                icon(R.drawable.ic_settings_fps_24dp)
-                message(R.string.pref_fps_dialog)
-                input(
-                    prefill = settings.maxFPS.toString(),
-                    inputType = InputType.TYPE_CLASS_NUMBER,
-                    maxLength = 2,
-                    waitForPositiveButton = false
-                ) { dialog, text ->
-                    val isValid = text.length in 1..2 && text.toString().toInt() in 1..60
-                    dialog.setActionButtonEnabled(WhichButton.POSITIVE, isValid)
+            viewLifecycleOwner.lifecycleScope.launchWhenCreated {
+                val maxFPS = settings.maxFPSFlow.first()
+                MaterialDialog(requireActivity(), BottomSheet(LayoutMode.WRAP_CONTENT)).show {
+                    lifecycleOwner(viewLifecycleOwner)
+                    title(R.string.pref_fps)
+                    icon(R.drawable.ic_settings_fps_24dp)
+                    message(R.string.pref_fps_dialog)
+                    input(
+                        prefill = maxFPS.toString(),
+                        inputType = InputType.TYPE_CLASS_NUMBER,
+                        maxLength = 2,
+                        waitForPositiveButton = false
+                    ) { dialog, text ->
+                        val isValid = text.length in 1..2 && text.toString().toInt() in 1..60
+                        dialog.setActionButtonEnabled(WhichButton.POSITIVE, isValid)
+                    }
+                    positiveButton(android.R.string.ok) { dialog ->
+                        val newValue = dialog.getInputField().text?.toString()?.toInt() ?: maxFPS
+                        if (maxFPS != newValue)
+                            viewLifecycleOwner.lifecycleScope.launchWhenCreated { settings.setMaxFPS(newValue) }
+                    }
+                    negativeButton(android.R.string.cancel)
+                    getInputField().filters = arrayOf<InputFilter>(InputFilter.LengthFilter(2))
+                    getInputField().imeOptions = EditorInfo.IME_FLAG_NO_EXTRACT_UI
                 }
-                positiveButton(android.R.string.ok) { dialog ->
-                    val newValue = dialog.getInputField().text?.toString()?.toInt() ?: settings.maxFPS
-                    if (settings.maxFPS != newValue) settings.maxFPS = newValue
-                }
-                negativeButton(android.R.string.cancel)
-                getInputField().filters = arrayOf<InputFilter>(InputFilter.LengthFilter(2))
-                getInputField().imeOptions = EditorInfo.IME_FLAG_NO_EXTRACT_UI
             }
         }
 
-
         // Image - Jpeg Quality
-        binding.tvFragmentSettingsJpegQualityValue.text = settings.jpegQuality.toString()
+        viewLifecycleOwner.lifecycleScope.launchWhenCreated {
+            settings.jpegQualityFlow
+                .onEach { binding.tvFragmentSettingsJpegQualityValue.text = it.toString() }
+                .launchIn(this)
+        }
         binding.clFragmentSettingsJpegQuality.setOnClickListener {
-            MaterialDialog(requireActivity(), BottomSheet(LayoutMode.WRAP_CONTENT)).show {
-                lifecycleOwner(viewLifecycleOwner)
-                title(R.string.pref_jpeg_quality)
-                icon(R.drawable.ic_settings_high_quality_24dp)
-                message(R.string.pref_jpeg_quality_dialog)
-                input(
-                    prefill = settings.jpegQuality.toString(),
-                    inputType = InputType.TYPE_CLASS_NUMBER,
-                    maxLength = 3,
-                    waitForPositiveButton = false
-                ) { dialog, text ->
-                    val isValid = text.length in 2..3 && text.toString().toInt() in 10..100
-                    dialog.setActionButtonEnabled(WhichButton.POSITIVE, isValid)
+            viewLifecycleOwner.lifecycleScope.launchWhenCreated {
+                val jpegQuality = settings.jpegQualityFlow.first()
+                MaterialDialog(requireActivity(), BottomSheet(LayoutMode.WRAP_CONTENT)).show {
+                    lifecycleOwner(viewLifecycleOwner)
+                    title(R.string.pref_jpeg_quality)
+                    icon(R.drawable.ic_settings_high_quality_24dp)
+                    message(R.string.pref_jpeg_quality_dialog)
+                    input(
+                        prefill = jpegQuality.toString(),
+                        inputType = InputType.TYPE_CLASS_NUMBER,
+                        maxLength = 3,
+                        waitForPositiveButton = false
+                    ) { dialog, text ->
+                        val isValid = text.length in 2..3 && text.toString().toInt() in 10..100
+                        dialog.setActionButtonEnabled(WhichButton.POSITIVE, isValid)
+                    }
+                    positiveButton(android.R.string.ok) { dialog ->
+                        val newValue = dialog.getInputField().text?.toString()?.toInt() ?: jpegQuality
+                        if (jpegQuality != newValue)
+                            viewLifecycleOwner.lifecycleScope.launchWhenCreated { settings.setJpegQuality(newValue) }
+                    }
+                    negativeButton(android.R.string.cancel)
+                    getInputField().filters = arrayOf<InputFilter>(InputFilter.LengthFilter(3))
+                    getInputField().imeOptions = EditorInfo.IME_FLAG_NO_EXTRACT_UI
                 }
-                positiveButton(android.R.string.ok) { dialog ->
-                    val newValue = dialog.getInputField().text?.toString()?.toInt() ?: settings.jpegQuality
-                    if (settings.jpegQuality != newValue) settings.jpegQuality = newValue
-                }
-                negativeButton(android.R.string.cancel)
-                getInputField().filters = arrayOf<InputFilter>(InputFilter.LengthFilter(3))
-                getInputField().imeOptions = EditorInfo.IME_FLAG_NO_EXTRACT_UI
             }
         }
     }
 
     override fun onStart() {
         super.onStart()
-        settings.registerChangeListener(settingsListener)
         XLog.d(getLog("onStart", "Invoked"))
     }
 
     override fun onStop() {
         XLog.d(getLog("onStop", "Invoked"))
-        settings.unregisterChangeListener(settingsListener)
         super.onStop()
     }
 
-    private fun isVRModeEnabled(): Boolean =
-        settings.vrMode in arrayOf(Settings.Default.VR_MODE_RIGHT, Settings.Default.VR_MODE_LEFT)
+    private suspend fun isVRModeEnabled(): Boolean =
+        settings.vrModeFlow.first() in arrayOf(Settings.Default.VR_MODE_RIGHT, Settings.Default.VR_MODE_LEFT)
 
     private fun validateCropValues(
         dialog: MaterialDialog,

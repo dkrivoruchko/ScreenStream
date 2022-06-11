@@ -3,24 +3,41 @@ package info.dvkr.screenstream.data.httpserver
 import android.content.Context
 import android.graphics.Bitmap
 import com.elvishew.xlog.XLog
-import info.dvkr.screenstream.data.model.*
+import info.dvkr.screenstream.data.image.NotificationBitmap
+import info.dvkr.screenstream.data.model.AppError
+import info.dvkr.screenstream.data.model.FatalError
+import info.dvkr.screenstream.data.model.FixableError
+import info.dvkr.screenstream.data.model.HttpClient
+import info.dvkr.screenstream.data.model.NetInterface
+import info.dvkr.screenstream.data.model.TrafficPoint
 import info.dvkr.screenstream.data.other.getLog
 import info.dvkr.screenstream.data.settings.SettingsReadOnly
-import io.ktor.application.*
-import io.ktor.features.*
-import io.ktor.http.*
-import io.ktor.http.content.*
-import io.ktor.response.*
-import io.ktor.routing.*
 import io.ktor.server.cio.*
 import io.ktor.server.engine.*
-import io.ktor.utils.io.*
-import kotlinx.coroutines.*
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineExceptionHandler
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.conflate
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.shareIn
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import java.io.ByteArrayOutputStream
 import java.io.IOException
 import java.net.BindException
-import java.util.*
 import java.util.concurrent.atomic.AtomicReference
 
 internal class HttpServer(
@@ -28,7 +45,7 @@ internal class HttpServer(
     private val parentCoroutineScope: CoroutineScope,
     private val settingsReadOnly: SettingsReadOnly,
     private val bitmapStateFlow: StateFlow<Bitmap>,
-    private val addressBlockedBitmap: Bitmap
+    private val notificationBitmap: NotificationBitmap
 ) {
 
     sealed class Event {
@@ -53,11 +70,7 @@ internal class HttpServer(
     private val httpServerFiles: HttpServerFiles = HttpServerFiles(applicationContext, settingsReadOnly)
     private val clientData: ClientData = ClientData(settingsReadOnly) { sendEvent(it) }
     private val stopDeferred: AtomicReference<CompletableDeferred<Unit>?> = AtomicReference(null)
-    private val blockedJPEG: ByteArray by lazy {
-        ByteArrayOutputStream().apply {
-            addressBlockedBitmap.compress(Bitmap.CompressFormat.JPEG, 100, this)
-        }.toByteArray()
-    }
+    private lateinit var blockedJPEG: ByteArray
 
     private var ktorServer: CIOApplicationEngine? = null
 
@@ -81,13 +94,20 @@ internal class HttpServer(
         }
         val coroutineScope = CoroutineScope(Job() + Dispatchers.Default + coroutineExceptionHandler)
 
+        runBlocking(coroutineScope.coroutineContext) {
+            blockedJPEG = ByteArrayOutputStream().apply {
+                notificationBitmap.getNotificationBitmap(NotificationBitmap.Type.ADDRESS_BLOCKED)
+                    .compress(Bitmap.CompressFormat.JPEG, 100, this)
+            }.toByteArray()
+        }
+
         val resultJpegStream = ByteArrayOutputStream()
         val lastJPEG: AtomicReference<ByteArray> = AtomicReference(ByteArray(0))
 
         val mjpegSharedFlow = bitmapStateFlow
             .map { bitmap ->
                 resultJpegStream.reset()
-                bitmap.compress(Bitmap.CompressFormat.JPEG, settingsReadOnly.jpegQuality, resultJpegStream)
+                bitmap.compress(Bitmap.CompressFormat.JPEG, settingsReadOnly.jpegQualityFlow.first(), resultJpegStream)
                 resultJpegStream.toByteArray()
             }
             .flatMapLatest { jpeg ->
@@ -102,8 +122,10 @@ internal class HttpServer(
             .conflate()
             .shareIn(coroutineScope, SharingStarted.Eagerly, 1)
 
-        httpServerFiles.configure()
-        clientData.configure()
+        runBlocking(coroutineScope.coroutineContext) {
+            httpServerFiles.configure()
+            clientData.configure()
+        }
 
         val environment = applicationEngineEnvironment {
             parentCoroutineContext = coroutineScope.coroutineContext
@@ -116,7 +138,7 @@ internal class HttpServer(
             serverAddresses.forEach { netInterface ->
                 connector {
                     host = netInterface.address.hostAddress!!
-                    port = settingsReadOnly.severPort
+                    port = runBlocking(parentCoroutineContext) { settingsReadOnly.serverPortFlow.first() }
                 }
             }
         }

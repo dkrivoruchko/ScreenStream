@@ -48,6 +48,7 @@ class TileActionService : TileService() {
                                         is ServiceMessage.FinishActivity -> {
                                             isStreaming = false; updateTile()
                                         }
+                                        else -> Unit
                                     }
                                 }
                                 .catch { cause -> XLog.e(this@TileActionService.getLog("onServiceMessage"), cause) }

@@ -1,13 +1,19 @@
 package info.dvkr.screenstream.data.image
 
 import android.content.Context
-import android.graphics.*
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Paint
+import android.graphics.Rect
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.data.R
 import info.dvkr.screenstream.data.httpserver.HttpServerFiles
 import info.dvkr.screenstream.data.other.getFileFromAssets
 import info.dvkr.screenstream.data.other.getLog
 import info.dvkr.screenstream.data.settings.SettingsReadOnly
+import kotlinx.coroutines.flow.first
 
 
 class NotificationBitmap(context: Context, private val settingsReadOnly: SettingsReadOnly) {
@@ -25,7 +31,7 @@ class NotificationBitmap(context: Context, private val settingsReadOnly: Setting
         logo = Bitmap.createScaledBitmap(logoBitmap, 256, 256, false)
     }
 
-    fun getNotificationBitmap(notificationType: Type): Bitmap {
+    suspend fun getNotificationBitmap(notificationType: Type): Bitmap {
         XLog.d(getLog("getNotificationBitmap", "Type: $notificationType"))
 
         val message = when (notificationType) {
@@ -38,9 +44,9 @@ class NotificationBitmap(context: Context, private val settingsReadOnly: Setting
         return generateImage(message, logo)
     }
 
-    private fun generateImage(message: String, logo: Bitmap): Bitmap {
+    private suspend fun generateImage(message: String, logo: Bitmap): Bitmap {
         val bitmap: Bitmap
-        if (settingsReadOnly.htmlShowPressStart) {
+        if (settingsReadOnly.htmlShowPressStartFlow.first()) {
             bitmap = Bitmap.createBitmap(640, 400, Bitmap.Config.ARGB_8888)
             val canvas = Canvas(bitmap)
             canvas.drawRGB(25, 118, 159)
@@ -56,7 +62,7 @@ class NotificationBitmap(context: Context, private val settingsReadOnly: Setting
         } else {
             bitmap = Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888)
             val canvas = Canvas(bitmap)
-            canvas.drawColor(settingsReadOnly.htmlBackColor)
+            canvas.drawColor(settingsReadOnly.htmlBackColorFlow.first())
         }
         return bitmap
     }

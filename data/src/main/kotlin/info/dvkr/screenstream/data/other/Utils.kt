@@ -12,6 +12,7 @@ import java.net.Inet6Address
 import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.nio.ByteBuffer
+import kotlin.random.Random
 
 fun Any.getLog(tag: String? = "", msg: String? = "Invoked") =
     "${this.javaClass.simpleName}#${this.hashCode()}.$tag@${Thread.currentThread().name}: $msg"
@@ -67,3 +68,8 @@ fun String.getQRBitmap(size: Int): Bitmap? =
         XLog.e(getLog("String.getQRBitmap", ex.toString()))
         null
     }
+
+
+fun randomPin(): String = Random.nextInt(10).toString() + Random.nextInt(10).toString() +
+        Random.nextInt(10).toString() + Random.nextInt(10).toString() +
+        Random.nextInt(10).toString() + Random.nextInt(10).toString()

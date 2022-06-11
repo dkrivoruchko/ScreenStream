@@ -34,3 +34,8 @@
 -keep class io.ktor.application.Application
 -keep class kotlin.reflect.jvm.internal.**
 -keep class kotlin.text.RegexOption
+
+#datastore-preferences
+-keepclassmembers class * extends androidx.datastore.preferences.protobuf.GeneratedMessageLite {
+    <fields>;
+}

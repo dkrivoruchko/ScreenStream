@@ -21,19 +21,19 @@ android {
 
     kotlinOptions {
         jvmTarget = JavaVersion.VERSION_1_8.toString()
-        freeCompilerArgs += "-Xopt-in=kotlin.RequiresOptIn"
     }
 }
 
 dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.2")
-    implementation("org.jetbrains.kotlin:kotlin-reflect:1.6.21")
+    implementation("org.jetbrains.kotlin:kotlin-reflect:1.7.0")
 
-    implementation("androidx.core:core:1.7.0")
+    implementation("androidx.core:core:1.8.0")
     implementation("androidx.window:window:1.0.0")
 
     implementation("io.ktor:ktor-server-cio:1.6.8")
 
-    implementation("com.github.iamironz:binaryprefs:1.0.1")
+    implementation("com.github.iamironz:binaryprefs:1.0.1") //Migrating to datastore
+    implementation("androidx.datastore:datastore-preferences:1.0.0")
     implementation("com.elvishew:xlog:1.11.0")
 }

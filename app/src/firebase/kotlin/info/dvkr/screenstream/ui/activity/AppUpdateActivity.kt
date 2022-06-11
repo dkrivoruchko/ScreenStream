@@ -21,6 +21,7 @@ import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
@@ -83,7 +84,7 @@ abstract class AppUpdateActivity(@LayoutRes contentLayoutId: Int) : BaseActivity
                 XLog.d(getLog("onActivityResult", "Update permitted"))
             } else {
                 XLog.d(getLog("onActivityResult", "Update canceled"))
-                settings.lastIAURequestTimeStamp = System.currentTimeMillis()
+                lifecycleScope.launchWhenCreated { settings.setLastIAURequestTimeStamp(System.currentTimeMillis()) }
             }
         } else {
             super.onActivityResult(requestCode, resultCode, data)
@@ -106,9 +107,11 @@ abstract class AppUpdateActivity(@LayoutRes contentLayoutId: Int) : BaseActivity
                 appUpdateManager.completeUpdate()
             }
             negativeButton(android.R.string.cancel) {
-                XLog.d(this@AppUpdateActivity.getLog("showUpdateConfirmationDialog", "negativeAction"))
-                dismiss()
-                settings.lastIAURequestTimeStamp = System.currentTimeMillis()
+                lifecycleScope.launchWhenCreated {
+                    XLog.d(this@AppUpdateActivity.getLog("showUpdateConfirmationDialog", "negativeAction"))
+                    dismiss()
+                    settings.setLastIAURequestTimeStamp(System.currentTimeMillis())
+                }
             }
             cancelable(false)
             cancelOnTouchOutside(false)
@@ -117,7 +120,7 @@ abstract class AppUpdateActivity(@LayoutRes contentLayoutId: Int) : BaseActivity
         }
     }
 
-    private fun isIAURequestTimeoutPassed(): Boolean =
+    private suspend fun isIAURequestTimeoutPassed(): Boolean =
         // 8 hours. Don't need exact time frame
-        System.currentTimeMillis() - settings.lastIAURequestTimeStamp >= 8 * 60 * 60 * 1000L
+        System.currentTimeMillis() - settings.lastIAURequestTimeStampFlow.first() >= 8 * 60 * 60 * 1000L
 }

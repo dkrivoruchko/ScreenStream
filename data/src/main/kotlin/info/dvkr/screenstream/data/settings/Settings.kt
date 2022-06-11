@@ -1,49 +1,53 @@
 package info.dvkr.screenstream.data.settings
 
 import android.os.Build
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
 
 interface Settings : SettingsReadOnly {
 
     object Key {
-        const val NIGHT_MODE = "PREF_KEY_NIGHT_MODE_V2"
-        const val KEEP_AWAKE = "PREF_KEY_KEEP_AWAKE"
-        const val STOP_ON_SLEEP = "PREF_KEY_STOP_ON_SLEEP"
-        const val START_ON_BOOT = "PREF_KEY_START_ON_BOOT"
-        const val AUTO_START_STOP = "PREF_KEY_AUTO_START_STOP"
-        const val NOTIFY_SLOW_CONNECTIONS = "PREF_KEY_NOTIFY_SLOW_CONNECTIONS"
+        val NIGHT_MODE = intPreferencesKey("NIGHT_MODE")
+        val KEEP_AWAKE = booleanPreferencesKey("KEEP_AWAKE")
+        val STOP_ON_SLEEP = booleanPreferencesKey("TOP_ON_SLEEP")
+        val START_ON_BOOT = booleanPreferencesKey("START_ON_BOOT")
+        val AUTO_START_STOP = booleanPreferencesKey("AUTO_START_STOP")
+        val NOTIFY_SLOW_CONNECTIONS = booleanPreferencesKey("NOTIFY_SLOW_CONNECTIONS")
 
-        const val HTML_ENABLE_BUTTONS = "PREF_KEY_HTML_ENABLE_BUTTONS"
-        const val HTML_SHOW_PRESS_START = "PREF_KEY_HTML_SHOW_PRESS_START"
-        const val HTML_BACK_COLOR = "PREF_KEY_HTML_BACK_COLOR"
+        val HTML_ENABLE_BUTTONS = booleanPreferencesKey("HTML_ENABLE_BUTTONS")
+        val HTML_SHOW_PRESS_START = booleanPreferencesKey("HTML_SHOW_PRESS_START")
+        val HTML_BACK_COLOR = intPreferencesKey("HTML_BACK_COLOR")
 
-        const val VR_MODE = "PREF_KEY_VR_MODE"
-        const val IMAGE_CROP = "PREF_KEY_IMAGE_CROP"
-        const val IMAGE_CROP_TOP = "PREF_KEY_IMAGE_CROP_TOP"
-        const val IMAGE_CROP_BOTTOM = "PREF_KEY_IMAGE_CROP_BOTTOM"
-        const val IMAGE_CROP_LEFT = "PREF_KEY_IMAGE_CROP_LEFT"
-        const val IMAGE_CROP_RIGHT = "PREF_KEY_IMAGE_CROP_RIGHT"
-        const val IMAGE_GRAYSCALE = "PREF_KEY_IMAGE_GRAYSCALE"
-        const val JPEG_QUALITY = "PREF_KEY_JPEG_QUALITY"
-        const val RESIZE_FACTOR = "PREF_KEY_RESIZE_FACTOR"
-        const val ROTATION = "PREF_KEY_ROTATION"
-        const val MAX_FPS = "PREF_KEY_MAX_FPS_2"
+        val VR_MODE = intPreferencesKey("VR_MODE")
+        val IMAGE_CROP = booleanPreferencesKey("IMAGE_CROP")
+        val IMAGE_CROP_TOP = intPreferencesKey("IMAGE_CROP_TOP")
+        val IMAGE_CROP_BOTTOM = intPreferencesKey("IMAGE_CROP_BOTTOM")
+        val IMAGE_CROP_LEFT = intPreferencesKey("IMAGE_CROP_LEFT")
+        val IMAGE_CROP_RIGHT = intPreferencesKey("IMAGE_CROP_RIGHT")
+        val IMAGE_GRAYSCALE = booleanPreferencesKey("IMAGE_GRAYSCALE")
+        val JPEG_QUALITY = intPreferencesKey("JPEG_QUALITY")
+        val RESIZE_FACTOR = intPreferencesKey("RESIZE_FACTOR")
+        val ROTATION = intPreferencesKey("ROTATION")
+        val MAX_FPS = intPreferencesKey("MAX_FPS")
 
-        const val ENABLE_PIN = "PREF_KEY_ENABLE_PIN"
-        const val HIDE_PIN_ON_START = "PREF_KEY_HIDE_PIN_ON_START"
-        const val NEW_PIN_ON_APP_START = "PREF_KEY_NEW_PIN_ON_APP_START"
-        const val AUTO_CHANGE_PIN = "PREF_KEY_AUTO_CHANGE_PIN"
-        const val PIN = "PREF_KEY_SET_PIN"
-        const val BLOCK_ADDRESS = "PREF_KEY_BLOCK_ADDRESS"
+        val ENABLE_PIN = booleanPreferencesKey("ENABLE_PIN")
+        val HIDE_PIN_ON_START = booleanPreferencesKey("HIDE_PIN_ON_START")
+        val NEW_PIN_ON_APP_START = booleanPreferencesKey("NEW_PIN_ON_APP_START")
+        val AUTO_CHANGE_PIN = booleanPreferencesKey("AUTO_CHANGE_PIN")
+        val PIN = stringPreferencesKey("PIN")
+        val BLOCK_ADDRESS = booleanPreferencesKey("BLOCK_ADDRESS")
 
-        const val USE_WIFI_ONLY = "PREF_KEY_USE_WIFI_ONLY"
-        const val ENABLE_IPV6 = "PREF_KEY_ENABLE_IPV6"
-        const val ENABLE_LOCAL_HOST = "PREF_KEY_ENABLE_LOCAL_HOST"
-        const val LOCAL_HOST_ONLY = "PREF_KEY_LOCAL_HOST_ONLY"
-        const val SERVER_PORT = "PREF_KEY_SERVER_PORT"
-        const val LOGGING_VISIBLE = "PREF_KEY_LOGGING_VISIBLE"
-        const val LOGGING_ON = "PREF_KEY_LOGGING_ON"
+        val USE_WIFI_ONLY = booleanPreferencesKey("USE_WIFI_ONLY")
+        val ENABLE_IPV6 = booleanPreferencesKey("ENABLE_IPV6")
+        val ENABLE_LOCAL_HOST = booleanPreferencesKey("ENABLE_LOCAL_HOST")
+        val LOCAL_HOST_ONLY = booleanPreferencesKey("LOCAL_HOST_ONLY")
+        val SERVER_PORT = intPreferencesKey("SERVER_PORT")
+        val LOGGING_VISIBLE = booleanPreferencesKey("LOGGING_VISIBLE")
+        val LOGGING_ON = booleanPreferencesKey("LOGGING_ON")
 
-        const val LAST_IAU_REQUEST_TIMESTAMP = "PREF_KEY_LAST_IAU_REQUEST_TIMESTAMP"
+        val LAST_IAU_REQUEST_TIMESTAMP = longPreferencesKey("LAST_IAU_REQUEST_TIMESTAMP")
     }
 
     object Default {
@@ -99,43 +103,43 @@ interface Settings : SettingsReadOnly {
         const val ROTATION_270 = 270
     }
 
-    override var nightMode: Int
-    override var keepAwake: Boolean
-    override var stopOnSleep: Boolean
-    override var startOnBoot: Boolean
-    override var autoStartStop: Boolean
-    override var notifySlowConnections: Boolean
+    suspend fun setNightMode(value: Int)
+    suspend fun setKeepAwake(value: Boolean)
+    suspend fun setStopOnSleep(value: Boolean)
+    suspend fun setStartOnBoot(value: Boolean)
+    suspend fun setAutoStartStop(value: Boolean)
+    suspend fun setNotifySlowConnections(value: Boolean)
+    suspend fun setHtmlEnableButtons(value: Boolean)
+    suspend fun setHtmlShowPressStart(value: Boolean)
+    suspend fun setHtmlBackColor(value: Int)
 
-    override var htmlEnableButtons: Boolean
-    override var htmlShowPressStart: Boolean
-    override var htmlBackColor: Int
+    suspend fun setVrMode(value: Int)
+    suspend fun setImageCrop(value: Boolean)
+    suspend fun setImageCropTop(value: Int)
+    suspend fun setImageCropBottom(value: Int)
+    suspend fun setImageCropLeft(value: Int)
+    suspend fun setImageCropRight(value: Int)
+    suspend fun setImageGrayscale(value: Boolean)
+    suspend fun setJpegQuality(value: Int)
+    suspend fun setResizeFactor(value: Int)
+    suspend fun setRotation(value: Int)
+    suspend fun setMaxFPS(value: Int)
 
-    override var vrMode: Int
-    override var imageCrop: Boolean
-    override var imageCropTop: Int
-    override var imageCropBottom: Int
-    override var imageCropLeft: Int
-    override var imageCropRight: Int
-    override var imageGrayscale: Boolean
-    override var jpegQuality: Int
-    override var resizeFactor: Int
-    override var rotation: Int
-    override var maxFPS: Int
+    suspend fun setEnablePin(value: Boolean)
+    suspend fun setHidePinOnStart(value: Boolean)
+    suspend fun setNewPinOnAppStart(value: Boolean)
+    suspend fun setAutoChangePin(value: Boolean)
+    suspend fun setPin(value: String)
+    suspend fun setBlockAddress(value: Boolean)
 
-    override var enablePin: Boolean
-    override var hidePinOnStart: Boolean
-    override var newPinOnAppStart: Boolean
-    override var autoChangePin: Boolean
-    override var pin: String
-    override var blockAddress: Boolean
+    suspend fun setUseWiFiOnly(value: Boolean)
+    suspend fun setEnableIPv6(value: Boolean)
+    suspend fun setEnableLocalHost(value: Boolean)
+    suspend fun setLocalHostOnly(value: Boolean)
+    suspend fun setServerPort(value: Int)
 
-    override var useWiFiOnly: Boolean
-    override var enableIPv6: Boolean
-    override var enableLocalHost: Boolean
-    override var localHostOnly: Boolean
-    override var severPort: Int
-    override var loggingVisible: Boolean
-    override var loggingOn: Boolean
+    suspend fun setLoggingVisible(value: Boolean)
+    suspend fun setLoggingOn(value: Boolean)
 
-    override var lastIAURequestTimeStamp: Long
+    suspend fun setLastIAURequestTimeStamp(value: Long)
 }

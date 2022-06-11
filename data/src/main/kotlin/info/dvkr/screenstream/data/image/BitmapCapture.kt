@@ -4,7 +4,15 @@ import android.annotation.SuppressLint
 import android.content.ComponentCallbacks
 import android.content.Context
 import android.content.res.Configuration
-import android.graphics.*
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.ColorMatrix
+import android.graphics.ColorMatrixColorFilter
+import android.graphics.Matrix
+import android.graphics.Paint
+import android.graphics.PixelFormat
+import android.graphics.Point
+import android.graphics.SurfaceTexture
 import android.hardware.display.DisplayManager
 import android.hardware.display.VirtualDisplay
 import android.media.Image
@@ -32,9 +40,19 @@ import info.dvkr.screenstream.data.model.FixableError
 import info.dvkr.screenstream.data.other.getLog
 import info.dvkr.screenstream.data.settings.Settings
 import info.dvkr.screenstream.data.settings.SettingsReadOnly
+import kotlinx.coroutines.CoroutineExceptionHandler
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
 
@@ -99,15 +117,21 @@ class BitmapCapture(
     private val matrix = AtomicReference(Matrix())
     private val resizeFactor = AtomicInteger(Settings.Values.RESIZE_DISABLED)
     private val rotation = AtomicInteger(Settings.Values.ROTATION_0)
+    private val maxFPS = AtomicInteger(Settings.Default.MAX_FPS)
+    private val vrMode = AtomicInteger(Settings.Default.VR_MODE_DISABLE)
+    private val imageCrop = AtomicBoolean(Settings.Default.IMAGE_CROP)
+    private val imageCropTop = AtomicInteger(Settings.Default.IMAGE_CROP_TOP)
+    private val imageCropBottom = AtomicInteger(Settings.Default.IMAGE_CROP_BOTTOM)
+    private val imageCropLeft = AtomicInteger(Settings.Default.IMAGE_CROP_LEFT)
+    private val imageCropRight = AtomicInteger(Settings.Default.IMAGE_CROP_RIGHT)
+    private val imageGrayscale = AtomicBoolean(Settings.Default.IMAGE_GRAYSCALE)
 
-    private val settingsListener = object : SettingsReadOnly.OnSettingsChangeListener {
-        override fun onSettingsChanged(key: String) {
-            when (key) {
-                Settings.Key.RESIZE_FACTOR, Settings.Key.ROTATION ->
-                    setMatrix(settingsReadOnly.resizeFactor, settingsReadOnly.rotation)
-            }
-        }
+    private val coroutineExceptionHandler = CoroutineExceptionHandler { _, throwable ->
+        XLog.e(getLog("onCoroutineException"), throwable)
+        onError(FatalError.CoroutineException)
     }
+
+    private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default + coroutineExceptionHandler)
 
     private val componentCallback = object : ComponentCallbacks {
         override fun onConfigurationChanged(newConfig: Configuration) {
@@ -120,8 +144,20 @@ class BitmapCapture(
 
     init {
         XLog.d(getLog("init"))
-        settingsReadOnly.registerChangeListener(settingsListener)
-        setMatrix(settingsReadOnly.resizeFactor, settingsReadOnly.rotation)
+
+        updateMatrix()
+
+        settingsReadOnly.resizeFactorFlow.listenForChange(coroutineScope) { if (resizeFactor.getAndSet(it) != it) updateMatrix() }
+        settingsReadOnly.rotationFlow.listenForChange(coroutineScope) { if (rotation.getAndSet(it) != it) updateMatrix() }
+        settingsReadOnly.maxFPSFlow.listenForChange(coroutineScope) { maxFPS.set(it) }
+        settingsReadOnly.vrModeFlow.listenForChange(coroutineScope) { vrMode.set(it) }
+        settingsReadOnly.imageCropFlow.listenForChange(coroutineScope) { imageCrop.set(it) }
+        settingsReadOnly.imageCropTopFlow.listenForChange(coroutineScope) { imageCropTop.set(it) }
+        settingsReadOnly.imageCropBottomFlow.listenForChange(coroutineScope) { imageCropBottom.set(it) }
+        settingsReadOnly.imageCropLeftFlow.listenForChange(coroutineScope) { imageCropLeft.set(it) }
+        settingsReadOnly.imageCropRightFlow.listenForChange(coroutineScope) { imageCropRight.set(it) }
+        settingsReadOnly.imageGrayscaleFlow.listenForChange(coroutineScope) { imageGrayscale.set(it) }
+
         imageThread.start()
     }
 
@@ -131,18 +167,15 @@ class BitmapCapture(
     }
 
     @Synchronized
-    private fun setMatrix(newResizeFactor: Int, newRotation: Int) {
-        (newResizeFactor != resizeFactor.get() || newRotation != rotation.get()) || return
-        resizeFactor.set(newResizeFactor)
-        rotation.set(newRotation)
-
+    private fun updateMatrix() {
+        XLog.d(getLog("updateMatrix"))
         val newMatrix = Matrix()
 
-        if (newResizeFactor > Settings.Values.RESIZE_DISABLED)
-            newMatrix.postScale(newResizeFactor / 100f, newResizeFactor / 100f)
+        if (resizeFactor.get() > Settings.Values.RESIZE_DISABLED)
+            newMatrix.postScale(resizeFactor.get() / 100f, resizeFactor.get() / 100f)
 
-        if (newRotation != Settings.Values.ROTATION_0)
-            newMatrix.postRotate(newRotation.toFloat())
+        if (rotation.get() != Settings.Values.ROTATION_0)
+            newMatrix.postRotate(rotation.get().toFloat())
 
         matrix.set(newMatrix)
         if (state == State.STARTED) restart()
@@ -162,6 +195,7 @@ class BitmapCapture(
             XLog.w(getLog("destroy", "Already destroyed"))
             return
         }
+        coroutineScope.cancel()
         requireState(State.STARTED, State.ERROR)
         state = State.DESTROYED
         stopDisplayCapture()
@@ -184,7 +218,7 @@ class BitmapCapture(
         }
 
         if (fallback.not()) {
-            imageListener = ImageListener(settingsReadOnly)
+            imageListener = ImageListener()
             imageReader = ImageReader.newInstance(screenSizeX, screenSizeY, PixelFormat.RGBA_8888, 2)
                 .apply { setOnImageAvailableListener(imageListener, imageThreadHandler) }
         } else {
@@ -193,7 +227,7 @@ class BitmapCapture(
                 mConsumerSide = OffscreenSurface(mEglCore, screenSizeX, screenSizeY)
                 mConsumerSide!!.makeCurrent()
 
-                fallbackFrameListener = FallbackFrameListener(settingsReadOnly, screenSizeX, screenSizeY)
+                fallbackFrameListener = FallbackFrameListener(screenSizeX, screenSizeY)
                 mBuf = ByteBuffer.allocate(screenSizeX * screenSizeY * 4).apply { order(ByteOrder.nativeOrder()) }
                 mScreen = FullFrameRect(Texture2dProgram(Texture2dProgram.ProgramType.TEXTURE_EXT))
                 mTextureId = mScreen!!.createTextureObject()
@@ -261,8 +295,9 @@ class BitmapCapture(
 
     /** https://stackoverflow.com/a/34741581 **/
     private inner class FallbackFrameListener(
-        private val settingsReadOnly: SettingsReadOnly, private val width: Int, private val height: Int
+        private val width: Int, private val height: Int
     ) : SurfaceTexture.OnFrameAvailableListener {
+
         override fun onFrameAvailable(surfaceTexture: SurfaceTexture?) {
             synchronized(this@BitmapCapture) {
                 if (state != State.STARTED || this != fallbackFrameListener) return
@@ -271,7 +306,7 @@ class BitmapCapture(
                 mTexture!!.updateTexImage()
 
                 val now = System.currentTimeMillis()
-                ((now - lastImageMillis) >= (1000 / settingsReadOnly.maxFPS)) || return
+                ((now - lastImageMillis) >= (1000 / maxFPS.get())) || return
                 lastImageMillis = now
 
                 FloatArray(16).let { matrix ->
@@ -296,9 +331,7 @@ class BitmapCapture(
         }
     }
 
-    private inner class ImageListener(
-        private val settingsReadOnly: SettingsReadOnly,
-    ) : ImageReader.OnImageAvailableListener {
+    private inner class ImageListener : ImageReader.OnImageAvailableListener {
 
         override fun onImageAvailable(reader: ImageReader) {
             synchronized(this@BitmapCapture) {
@@ -307,7 +340,7 @@ class BitmapCapture(
                 try {
                     reader.acquireLatestImage()?.let { image ->
                         val now = System.currentTimeMillis()
-                        if ((now - lastImageMillis) < (1000 / settingsReadOnly.maxFPS)) {
+                        if ((now - lastImageMillis) < (1000 / maxFPS.get())) {
                             image.close()
                             return
                         }
@@ -356,48 +389,47 @@ class BitmapCapture(
     }
 
     private fun getCroppedBitmap(bitmap: Bitmap): Bitmap {
-        if (settingsReadOnly.vrMode == Settings.Default.VR_MODE_DISABLE && settingsReadOnly.imageCrop.not())
-            return bitmap
+        if (vrMode.get() == Settings.Default.VR_MODE_DISABLE && imageCrop.get().not()) return bitmap
 
-        var imageLeft: Int = 0
-        var imageRight: Int = bitmap.width
+        var imageLeft = 0
+        var imageRight = bitmap.width
 
-        when (settingsReadOnly.vrMode) {
+        when (vrMode.get()) {
             Settings.Default.VR_MODE_LEFT -> imageRight = bitmap.width / 2
             Settings.Default.VR_MODE_RIGHT -> imageLeft = bitmap.width / 2
         }
 
-        var imageCropLeft: Int = 0
-        var imageCropRight = 0
-        var imageCropTop: Int = 0
-        var imageCropBottom: Int = 0
-        if (settingsReadOnly.imageCrop)
+        var imageCropLeftResult = 0
+        var imageCropRightResult = 0
+        var imageCropTopResult = 0
+        var imageCropBottomResult = 0
+        if (imageCrop.get())
             when {
                 resizeFactor.get() < Settings.Values.RESIZE_DISABLED -> {
                     val scale = resizeFactor.get() / 100f
-                    imageCropLeft = (settingsReadOnly.imageCropLeft * scale).toInt()
-                    imageCropRight = (settingsReadOnly.imageCropRight * scale).toInt()
-                    imageCropTop = (settingsReadOnly.imageCropTop * scale).toInt()
-                    imageCropBottom = (settingsReadOnly.imageCropBottom * scale).toInt()
+                    imageCropLeftResult = (imageCropLeft.get() * scale).toInt()
+                    imageCropRightResult = (imageCropRight.get() * scale).toInt()
+                    imageCropTopResult = (imageCropTop.get() * scale).toInt()
+                    imageCropBottomResult = (imageCropBottom.get() * scale).toInt()
                 }
                 else -> {
-                    imageCropLeft = settingsReadOnly.imageCropLeft
-                    imageCropRight = settingsReadOnly.imageCropRight
-                    imageCropTop = settingsReadOnly.imageCropTop
-                    imageCropBottom = settingsReadOnly.imageCropBottom
+                    imageCropLeftResult = imageCropLeft.get()
+                    imageCropRightResult = imageCropRight.get()
+                    imageCropTopResult = imageCropTop.get()
+                    imageCropBottomResult = imageCropBottom.get()
                 }
             }
 
-        if (imageLeft + imageRight - imageCropLeft - imageCropRight <= 0 ||
-            bitmap.height - imageCropTop - imageCropBottom <= 0
+        if (imageLeft + imageRight - imageCropLeftResult - imageCropRightResult <= 0 ||
+            bitmap.height - imageCropTopResult - imageCropBottomResult <= 0
         )
             return bitmap
 
         return try {
             Bitmap.createBitmap(
-                bitmap, imageLeft + imageCropLeft, imageCropTop,
-                imageRight - imageLeft - imageCropLeft - imageCropRight,
-                bitmap.height - imageCropTop - imageCropBottom
+                bitmap, imageLeft + imageCropLeftResult, imageCropTopResult,
+                imageRight - imageLeft - imageCropLeftResult - imageCropRightResult,
+                bitmap.height - imageCropTopResult - imageCropBottomResult
             )
         } catch (ex: IllegalArgumentException) {
             XLog.w(this@BitmapCapture.getLog("getCroppedBitmap", ex.toString()))
@@ -411,7 +443,7 @@ class BitmapCapture(
     }
 
     private fun getGrayScaleBitmap(bitmap: Bitmap): Bitmap {
-        if (settingsReadOnly.imageGrayscale == Settings.Default.IMAGE_GRAYSCALE) return bitmap
+        if (imageGrayscale.get() == Settings.Default.IMAGE_GRAYSCALE) return bitmap
 
         val paint = Paint().apply {
             colorFilter = ColorMatrixColorFilter(ColorMatrix().apply { setSaturation(0f) })
@@ -422,4 +454,7 @@ class BitmapCapture(
 
         return bmpGrayscale
     }
+
+    private fun <T> Flow<T>.listenForChange(scope: CoroutineScope, action: suspend (T) -> Unit) =
+        distinctUntilChanged().onEach { action(it) }.launchIn(scope)
 }
