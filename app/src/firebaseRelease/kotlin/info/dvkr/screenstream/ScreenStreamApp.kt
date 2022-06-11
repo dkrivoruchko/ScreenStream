@@ -6,7 +6,6 @@ import com.elvishew.xlog.LogLevel
 import com.elvishew.xlog.XLog
 import com.elvishew.xlog.interceptor.AbstractFilterInterceptor
 import com.elvishew.xlog.internal.util.StackTraceUtil
-import com.elvishew.xlog.printer.AndroidPrinter
 import com.google.firebase.crashlytics.FirebaseCrashlytics
 
 class ScreenStreamApp : BaseApp() {
