@@ -20,6 +20,7 @@ val baseKoinModule = module {
     single<com.ironz.binaryprefs.Preferences> {
         BinaryPreferencesBuilder(androidApplication())
             .supportInterProcess(true)
+            .memoryCacheMode(BinaryPreferencesBuilder.MemoryCacheMode.EAGER)
             .exceptionHandler { ex -> XLog.e(ex) }
             .build()
     }

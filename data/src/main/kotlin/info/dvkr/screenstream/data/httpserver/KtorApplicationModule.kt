@@ -4,24 +4,30 @@ import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.data.model.FatalError
 import info.dvkr.screenstream.data.other.getLog
 import info.dvkr.screenstream.data.other.randomString
-import io.ktor.application.*
-import io.ktor.features.*
 import io.ktor.http.*
 import io.ktor.http.cio.*
 import io.ktor.http.content.*
-import io.ktor.response.*
-import io.ktor.routing.*
+import io.ktor.server.application.*
 import io.ktor.server.cio.*
-import io.ktor.util.*
+import io.ktor.server.plugins.defaultheaders.*
+import io.ktor.server.plugins.statuspages.*
+import io.ktor.server.response.*
+import io.ktor.server.routing.*
 import io.ktor.utils.io.*
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.conflate
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onCompletion
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.onStart
 import java.net.InetSocketAddress
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
 
-@OptIn(InternalAPI::class)
 internal fun Application.appModule(
     httpServerFiles: HttpServerFiles,
     clientData: ClientData,
@@ -66,16 +72,17 @@ internal fun Application.appModule(
     install(DefaultHeaders) { header(HttpHeaders.CacheControl, "no-cache") }
 
     install(StatusPages) {
-        status(HttpStatusCode.NotFound) {
+        status(HttpStatusCode.NotFound) { call, _ ->
             call.respondRedirect(HttpServerFiles.ROOT_ADDRESS, permanent = true)
         }
-        status(HttpStatusCode.Forbidden) {
+        status(HttpStatusCode.Forbidden) { call, _ ->
             call.respondRedirect(HttpServerFiles.CLIENT_BLOCKED_ADDRESS)
         }
-        status(HttpStatusCode.Unauthorized) {
+        status(HttpStatusCode.Unauthorized) { call, _ ->
             call.respondRedirect(HttpServerFiles.PIN_REQUEST_ADDRESS)
         }
-        exception<Throwable> { cause ->
+        exception<Throwable> { call, cause ->
+            if (cause is CancellationException) return@exception
             val headers = CIOHeadersResearch.getHeadersAsString(call.request.headers as CIOHeaders)
             XLog.e(this@appModule.getLog("exception<Throwable>", headers))
             XLog.e(this@appModule.getLog("exception"), cause)
@@ -84,7 +91,7 @@ internal fun Application.appModule(
         }
     }
 
-    install(Routing) {
+    routing {
         route(HttpServerFiles.ROOT_ADDRESS) {
 
             handle {

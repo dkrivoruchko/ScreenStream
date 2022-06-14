@@ -31,9 +31,12 @@
 -keep class com.google.firebase.crashlytics.** { *; }
 
 #KTOR
--keep class io.ktor.application.Application
+-keep class io.ktor.server.application.Application
 -keep class kotlin.reflect.jvm.internal.**
 -keep class kotlin.text.RegexOption
+-dontwarn java.lang.management.ManagementFactory
+-dontwarn java.lang.management.RuntimeMXBean
+-dontwarn org.slf4j.impl.StaticLoggerBinder
 
 #datastore-preferences
 -keepclassmembers class * extends androidx.datastore.preferences.protobuf.GeneratedMessageLite {

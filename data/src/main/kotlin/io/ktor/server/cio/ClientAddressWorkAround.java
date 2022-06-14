@@ -3,11 +3,11 @@ package io.ktor.server.cio;
 import java.lang.reflect.Field;
 import java.net.InetSocketAddress;
 
-import io.ktor.request.ApplicationRequest;
-import io.ktor.routing.RoutingApplicationRequest;
+import io.ktor.server.request.ApplicationRequest;
+import io.ktor.server.routing.RoutingApplicationRequest;
 
 // Waiting for https://youtrack.jetbrains.com/issue/KTOR-430 to get port also
-// Tested on ktor-server-cio:1.5.3. May broke on other versions
+// Tested on ktor-server-cio:2.0.2. May broke on other versions
 public class ClientAddressWorkAround {
     public static InetSocketAddress getInetSocketAddress(ApplicationRequest request) {
         try {
