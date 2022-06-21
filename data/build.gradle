@@ -25,7 +25,7 @@ android {
 }
 
 dependencies {
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.2")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.3")
     implementation("org.jetbrains.kotlin:kotlin-reflect:1.7.0")
 
     implementation("androidx.core:core:1.8.0")

@@ -227,6 +227,9 @@ class AppStateMachineImpl(
 
     override suspend fun destroy() {
         XLog.d(getLog("destroy"))
+        wakeLock?.release()
+        wakeLock = null
+
         sendEvent(InternalEvent.Destroy)
         httpServer.destroy().await()
         broadcastHelper.stopListening()
@@ -234,9 +237,6 @@ class AppStateMachineImpl(
         coroutineScope.cancel()
 
         mediaProjectionIntent = null
-
-        wakeLock?.release()
-        wakeLock = null
     }
 
     private fun onError(appError: AppError) {
@@ -322,7 +322,7 @@ class AppStateMachineImpl(
     }
 
     private suspend fun startProjection(streamState: StreamState, intent: Intent): StreamState {
-        XLog.d(getLog("startProjection"))
+        XLog.d(getLog("startProjection", "Intent: ${intent?.toString()}"))
 
         mediaProjectionIntent = intent
         val mediaProjection = withContext(Dispatchers.Main) {

@@ -12,8 +12,8 @@ android {
         applicationId = "info.dvkr.screenstream"
         minSdkVersion(21)
         targetSdkVersion(32)
-        versionCode = 30900
-        versionName = "3.9.0"
+        versionCode = 30902
+        versionName = "3.9.2"
         resConfigs 'en', 'ru', 'pt-rBR', 'zh-rTW', 'fr-rFR', 'fa', 'it', 'pl', 'hi', 'de', 'sk', 'es', 'ar', 'ja', 'gl', 'ca', 'uk', 'nl'
 
         vectorDrawables.useSupportLibrary = true
@@ -91,8 +91,8 @@ dependencies {
 
     implementation(project(":data"))
 
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.2")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.2")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.3")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.3")
 
     implementation("androidx.core:core-ktx:1.8.0")
     implementation("androidx.activity:activity-ktx:1.4.0")

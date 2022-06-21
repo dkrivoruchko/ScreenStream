@@ -37,31 +37,31 @@ abstract class AppUpdateActivity(@LayoutRes contentLayoutId: Int) : BaseActivity
         AppUpdateManagerFactory.create(this).requestUpdateFlow().onEach { appUpdateResult ->
             when (appUpdateResult) {
                 AppUpdateResult.NotAvailable -> {
-                    XLog.v(getLog("AppUpdateResult.NotAvailable"))
+                    XLog.v(this@AppUpdateActivity.getLog("AppUpdateResult.NotAvailable"))
                 }
                 is AppUpdateResult.Available -> {
-                    XLog.d(getLog("AppUpdateResult.Available"))
+                    XLog.d(this@AppUpdateActivity.getLog("AppUpdateResult.Available"))
                     if (appUpdateResult.updateInfo.isFlexibleUpdateAllowed) {
-                        XLog.d(getLog("AppUpdateResult.Available", "FlexibleUpdateAllowed"))
+                        XLog.d(this@AppUpdateActivity.getLog("AppUpdateResult.Available", "FlexibleUpdateAllowed"))
                         val lastRequestMillisPassed =
                             System.currentTimeMillis() - settings.lastUpdateRequestMillisFlow.first()
                         if (lastRequestMillisPassed >= APP_UPDATE_REQUEST_TIMEOUT) {
-                            XLog.d(getLog("AppUpdateResult.Available", "startFlexibleUpdate"))
+                            XLog.d(this@AppUpdateActivity.getLog("AppUpdateResult.Available", "startFlexibleUpdate"))
                             settings.setLastUpdateRequestMillis(System.currentTimeMillis())
                             appUpdateResult.startFlexibleUpdate(this, APP_UPDATE_FLEXIBLE_REQUEST_CODE)
                         }
                     }
                 }
                 is AppUpdateResult.InProgress -> {
-                    XLog.v(getLog("AppUpdateResult.InProgress", appUpdateResult.installState.toString()))
+                    XLog.v(this@AppUpdateActivity.getLog("AppUpdateResult.InProgress", appUpdateResult.installState.toString()))
                 }
                 is AppUpdateResult.Downloaded -> {
-                    XLog.d(getLog("AppUpdateResult.Downloaded"))
+                    XLog.d(this@AppUpdateActivity.getLog("AppUpdateResult.Downloaded"))
                     showUpdateConfirmationDialog(appUpdateResult)
                 }
             }
         }
-            .catch { cause -> XLog.e(getLog("AppUpdateManager.requestUpdateFlow.catch: $cause"), cause) }
+            .catch { cause -> XLog.e(this@AppUpdateActivity.getLog("AppUpdateManager.requestUpdateFlow.catch: $cause"), cause) }
             .launchIn(lifecycleScope)
     }
 

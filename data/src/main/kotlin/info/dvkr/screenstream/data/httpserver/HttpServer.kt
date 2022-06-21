@@ -84,13 +84,13 @@ internal class HttpServer(
         XLog.d(getLog("startServer"))
 
         val coroutineExceptionHandler = CoroutineExceptionHandler { _, throwable ->
-            XLog.e(getLog("onCoroutineException", throwable.toString()), throwable)
             XLog.d(getLog("onCoroutineException", "ktorServer: ${ktorServer?.hashCode()}"))
+            XLog.e(getLog("onCoroutineException", throwable.toString()), throwable)
+            if (throwable is IOException) return@CoroutineExceptionHandler
             ktorServer?.stop(0, 250)
             ktorServer = null
             when (throwable) {
                 is BindException -> sendEvent(Event.Error(FixableError.AddressInUseException))
-                is IOException -> Unit // Ignore
                 else -> sendEvent(Event.Error(FatalError.HttpServerException))
             }
         }

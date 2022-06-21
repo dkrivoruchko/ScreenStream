@@ -74,6 +74,7 @@ abstract class PermissionActivity(@LayoutRes contentLayoutId: Int) : ServiceActi
         }
     }
 
+    @Deprecated("Deprecated in Java")
     @Suppress("DEPRECATION")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         if (requestCode == SCREEN_CAPTURE_REQUEST_CODE) {
