@@ -24,6 +24,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.onStart
+import java.io.IOException
 import java.net.InetSocketAddress
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
@@ -82,6 +83,7 @@ internal fun Application.appModule(
             call.respondRedirect(HttpServerFiles.PIN_REQUEST_ADDRESS)
         }
         exception<Throwable> { call, cause ->
+            if (cause is IOException) return@exception
             if (cause is CancellationException) return@exception
             val headers = CIOHeadersResearch.getHeadersAsString(call.request.headers as CIOHeaders)
             XLog.e(this@appModule.getLog("exception<Throwable>", headers))

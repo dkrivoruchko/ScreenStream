@@ -14,6 +14,7 @@ import info.dvkr.screenstream.data.other.getLog
 import info.dvkr.screenstream.data.settings.SettingsReadOnly
 import io.ktor.server.cio.*
 import io.ktor.server.engine.*
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
@@ -84,9 +85,10 @@ internal class HttpServer(
         XLog.d(getLog("startServer"))
 
         val coroutineExceptionHandler = CoroutineExceptionHandler { _, throwable ->
+            if (throwable is IOException) return@CoroutineExceptionHandler
+            if (throwable is CancellationException) return@CoroutineExceptionHandler
             XLog.d(getLog("onCoroutineException", "ktorServer: ${ktorServer?.hashCode()}"))
             XLog.e(getLog("onCoroutineException", throwable.toString()), throwable)
-            if (throwable is IOException) return@CoroutineExceptionHandler
             ktorServer?.stop(0, 250)
             ktorServer = null
             when (throwable) {
@@ -132,11 +134,7 @@ internal class HttpServer(
         val environment = applicationEngineEnvironment {
             parentCoroutineContext = coroutineScope.coroutineContext
             watchPaths = emptyList() // Fix for java.lang.ClassNotFoundException: java.nio.file.FileSystems for API < 26
-            module {
-                appModule(
-                    httpServerFiles, clientData, mjpegSharedFlow, lastJPEG, blockedJPEG, stopDeferred
-                ) { sendEvent(it) }
-            }
+            module { appModule(httpServerFiles, clientData, mjpegSharedFlow, lastJPEG, blockedJPEG, stopDeferred) { sendEvent(it) } }
             serverAddresses.forEach { netInterface ->
                 connector {
                     host = netInterface.address.hostAddress!!

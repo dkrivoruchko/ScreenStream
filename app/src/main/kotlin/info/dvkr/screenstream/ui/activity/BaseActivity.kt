@@ -1,6 +1,5 @@
 package info.dvkr.screenstream.ui.activity
 
-import android.content.Intent
 import android.os.Bundle
 import androidx.annotation.LayoutRes
 import androidx.appcompat.app.AppCompatActivity
@@ -11,12 +10,6 @@ abstract class BaseActivity(@LayoutRes contentLayoutId: Int) : AppCompatActivity
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         XLog.d(getLog("onCreate", "Invoked"))
-    }
-
-    @Suppress("DEPRECATION")
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        XLog.e(getLog("onActivityResult"), IllegalStateException("Unknown requestCode: $requestCode"))
-        super.onActivityResult(requestCode, resultCode, data)
     }
 
     override fun onStart() {
