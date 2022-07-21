@@ -225,13 +225,13 @@ class AppStateMachineImpl(
         }
     }
 
-    override suspend fun destroy() {
+    override fun destroy() {
         XLog.d(getLog("destroy"))
         wakeLock?.release()
         wakeLock = null
 
         sendEvent(InternalEvent.Destroy)
-        httpServer.destroy().await()
+        runBlocking(coroutineScope.coroutineContext) { withTimeout(1000) { httpServer.destroy().await() } }
         broadcastHelper.stopListening()
         connectivityHelper.stopListening()
         coroutineScope.cancel()
@@ -322,38 +322,44 @@ class AppStateMachineImpl(
     }
 
     private suspend fun startProjection(streamState: StreamState, intent: Intent): StreamState {
-        XLog.d(getLog("startProjection", "Intent: ${intent?.toString()}"))
+        XLog.d(getLog("startProjection", "Intent: $intent"))
 
-        mediaProjectionIntent = intent
-        val mediaProjection = withContext(Dispatchers.Main) {
-            delay(500)
-            projectionManager.getMediaProjection(Activity.RESULT_OK, intent).apply {
-                registerCallback(projectionCallback, Handler(Looper.getMainLooper()))
+        try {
+            val mediaProjection = withContext(Dispatchers.Main) {
+                delay(500)
+                projectionManager.getMediaProjection(Activity.RESULT_OK, intent).apply {
+                    registerCallback(projectionCallback, Handler(Looper.getMainLooper()))
+                }
             }
-        }
-        val bitmapCapture = BitmapCapture(context, settings, mediaProjection, bitmapStateFlow, ::onError)
-        bitmapCapture.start()
+            mediaProjectionIntent = intent
+            val bitmapCapture = BitmapCapture(context, settings, mediaProjection, bitmapStateFlow, ::onError)
+            bitmapCapture.start()
 
-        if (settings.keepAwakeFlow.first()) {
-            @Suppress("DEPRECATION")
-            @SuppressLint("WakelockTimeout")
-            wakeLock = powerManager.newWakeLock(
-                PowerManager.SCREEN_DIM_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP, "ScreenStream::StreamingTag"
-            ).apply { acquire() }
-        }
+            if (settings.keepAwakeFlow.first()) {
+                @Suppress("DEPRECATION")
+                @SuppressLint("WakelockTimeout")
+                wakeLock = powerManager.newWakeLock(
+                    PowerManager.SCREEN_DIM_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP, "ScreenStream::StreamingTag"
+                ).apply { acquire() }
+            }
 
-        return streamState.copy(
-            state = StreamState.State.STREAMING,
-            mediaProjection = mediaProjection,
-            bitmapCapture = bitmapCapture
-        )
+            return streamState.copy(
+                state = StreamState.State.STREAMING,
+                mediaProjection = mediaProjection,
+                bitmapCapture = bitmapCapture
+            )
+        } catch (cause: Throwable) {
+            XLog.e(getLog("startProjection"), cause)
+        }
+        mediaProjectionIntent = null
+        return streamState.copy(state = StreamState.State.ERROR, appError = FixableError.CastSecurityException)
     }
 
     private suspend fun stopStream(streamState: StreamState): StreamState {
         XLog.d(getLog("stopStream"))
 
         val state = stopProjection(streamState)
-        if (settings.enablePinFlow.first() && settings.autoChangePinFlow.first()){
+        if (settings.enablePinFlow.first() && settings.autoChangePinFlow.first()) {
             settings.setPin(randomPin())
         } else {
             bitmapStateFlow.tryEmit(notificationBitmap.getNotificationBitmap(NotificationBitmap.Type.START))

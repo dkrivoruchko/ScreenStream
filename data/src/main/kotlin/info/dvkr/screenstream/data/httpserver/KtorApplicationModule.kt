@@ -85,6 +85,7 @@ internal fun Application.appModule(
         exception<Throwable> { call, cause ->
             if (cause is IOException) return@exception
             if (cause is CancellationException) return@exception
+            if (cause is IllegalArgumentException) return@exception
             val headers = CIOHeadersResearch.getHeadersAsString(call.request.headers as CIOHeaders)
             XLog.e(this@appModule.getLog("exception<Throwable>", headers))
             XLog.e(this@appModule.getLog("exception"), cause)

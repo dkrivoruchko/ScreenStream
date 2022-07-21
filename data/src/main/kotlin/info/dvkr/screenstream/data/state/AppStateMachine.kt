@@ -39,5 +39,5 @@ interface AppStateMachine {
 
     fun sendEvent(event: Event, timeout: Long = 0)
 
-    suspend fun destroy()
+    fun destroy()
 }

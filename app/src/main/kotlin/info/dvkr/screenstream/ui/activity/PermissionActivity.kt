@@ -6,6 +6,7 @@ import android.os.Bundle
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.LayoutRes
 import androidx.annotation.StringRes
+import androidx.core.content.ContextCompat
 import com.afollestad.materialdialogs.MaterialDialog
 import com.afollestad.materialdialogs.callbacks.onDismiss
 import com.afollestad.materialdialogs.lifecycle.lifecycleOwner
@@ -70,7 +71,7 @@ abstract class PermissionActivity(@LayoutRes contentLayoutId: Int) : ServiceActi
             permissionsErrorDialog?.dismiss()
             isCastPermissionsPending = true
             try {
-                val projectionManager = getSystemService(MediaProjectionManager::class.java)
+                val projectionManager = ContextCompat.getSystemService(this, MediaProjectionManager::class.java)!!
                 startMediaProjection.launch(projectionManager.createScreenCaptureIntent())
             } catch (ignore: ActivityNotFoundException) {
                 IntentAction.CastPermissionsDenied.sendToAppService(this@PermissionActivity)

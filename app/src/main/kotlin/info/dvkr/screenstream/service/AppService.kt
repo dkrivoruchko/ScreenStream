@@ -219,7 +219,7 @@ class AppService : Service() {
     override fun onDestroy() {
         XLog.d(getLog("onDestroy"))
         isRunning = false
-        runBlocking(coroutineScope.coroutineContext) { withTimeout(2000) { appStateMachine?.destroy() } }
+        appStateMachine?.destroy()
         appStateMachine = null
         coroutineScope.cancel(CancellationException("AppService.destroy"))
         stopForeground(true)
