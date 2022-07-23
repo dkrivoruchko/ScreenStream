@@ -23,8 +23,30 @@ import info.dvkr.screenstream.data.settings.Settings
 import info.dvkr.screenstream.data.state.helper.BroadcastHelper
 import info.dvkr.screenstream.data.state.helper.ConnectivityHelper
 import info.dvkr.screenstream.data.state.helper.NetworkHelper
-import kotlinx.coroutines.*
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.CoroutineExceptionHandler
+import kotlinx.coroutines.CoroutineName
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.withTimeoutOrNull
 import java.util.concurrent.LinkedBlockingDeque
 
 class AppStateMachineImpl(
@@ -231,7 +253,11 @@ class AppStateMachineImpl(
         wakeLock = null
 
         sendEvent(InternalEvent.Destroy)
-        runBlocking(coroutineScope.coroutineContext) { withTimeout(1000) { httpServer.destroy().await() } }
+        try {
+            runBlocking(coroutineScope.coroutineContext) { withTimeout(1000) { httpServer.destroy().await() } }
+        } catch (cause: Throwable) {
+            XLog.e(getLog("destroy"), cause)
+        }
         broadcastHelper.stopListening()
         connectivityHelper.stopListening()
         coroutineScope.cancel()
