@@ -71,10 +71,7 @@ internal fun Application.appModule(
         stopDeferred.getAndSet(null)?.complete(Unit)
     }
 
-    install(DefaultHeaders) {
-        header(HttpHeaders.CacheControl, "no-cache")
-        header(HttpHeaders.AccessControlAllowOrigin, "*")
-    }
+    install(DefaultHeaders) { header(HttpHeaders.CacheControl, "no-cache") }
     install(CORS) {
         allowHeader(HttpHeaders.AccessControlAllowOrigin)
         anyHost()
