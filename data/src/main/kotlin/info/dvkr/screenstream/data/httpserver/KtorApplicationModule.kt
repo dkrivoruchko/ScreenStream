@@ -9,6 +9,7 @@ import io.ktor.http.cio.*
 import io.ktor.http.content.*
 import io.ktor.server.application.*
 import io.ktor.server.cio.*
+import io.ktor.server.plugins.cors.routing.*
 import io.ktor.server.plugins.defaultheaders.*
 import io.ktor.server.plugins.statuspages.*
 import io.ktor.server.response.*
@@ -70,7 +71,14 @@ internal fun Application.appModule(
         stopDeferred.getAndSet(null)?.complete(Unit)
     }
 
-    install(DefaultHeaders) { header(HttpHeaders.CacheControl, "no-cache") }
+    install(DefaultHeaders) {
+        header(HttpHeaders.CacheControl, "no-cache")
+        header(HttpHeaders.AccessControlAllowOrigin, "*")
+    }
+    install(CORS) {
+        allowHeader(HttpHeaders.AccessControlAllowOrigin)
+        anyHost()
+    }
 
     install(StatusPages) {
         status(HttpStatusCode.NotFound) { call, _ ->
