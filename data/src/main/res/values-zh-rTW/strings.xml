@@ -3,10 +3,12 @@
     <string name="image_generator_press_start">在裝置上按下開始串流</string>
     <string name="image_generator_go_to_new_address">請連接到新位址</string>
     <string name="image_generator_reload_this_page">請重新整理此頁面</string>
+    <string name="image_generator_address_blocked">用戶端位址已被封禁</string>
 
     <!--HTML text-->
     <string name="html_stream_require_pin">此串流需要PIN以觀看</string>
     <string name="html_enter_pin">輸入pin：\u0020</string>
     <string name="html_submit_text">傳送</string>
     <string name="html_wrong_pin">pin錯誤！</string>
+    <string name="html_address_blocked">用戶端位址已被封禁</string>
 </resources>

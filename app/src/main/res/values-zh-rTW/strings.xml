@@ -7,6 +7,16 @@
     <string name="error_wrong_image_format">系統回傳無效的影像格式。無可用解決方案</string>
     <string name="error_exit">離開</string>
 
+    <string name="app_activity_collecting_logs">正在收集應用日誌…</string>
+    <string name="app_activity_send_logs">把日誌發送給開發者</string>
+    <string name="app_activity_send_logs_dialog_title">把日誌通過電子郵件發送給開發者</string>
+    <string name="app_activity_send_logs_dialog_message">請添加問題描述：</string>
+    <string name="app_activity_send_logs_dialog_neutral">停止記錄日誌</string>
+
+    <string name="app_update_activity_dialog_title">有新版本可用</string>
+    <string name="app_update_activity_dialog_message">更新已下載完畢，是否想現在重啓應用？</string>
+    <string name="app_update_activity_dialog_restart">重啓應用</string>
+
     <string name="bottom_menu_stream">主畫面</string>
     <string name="bottom_menu_settings">設定</string>
     <string name="bottom_menu_start">開始</string>
@@ -17,22 +27,30 @@
     <string name="stream_fragment_current_traffic">流量：%1$,.2f Mbit/s</string>
     <string name="stream_fragment_connected_clients">已連接用戶端數：%1$d</string>
     <string name="stream_fragment_no_address">找不到位址</string>
-    <string name="stream_fragment_interface">Interface: %1$s</string>
+    <string name="stream_fragment_interface">端口: %1$s</string>
     <string name="stream_fragment_copied">已複製</string>
+    <string name="stream_fragment_no_web_browser_found">未找到瀏覽器</string>
+    <string name="stream_fragment_external_app_error">外部應用錯誤</string>
+    <string name="stream_fragment_share_address">分享設備位址</string>
     <string name="stream_fragment_pin">PIN: %1$s</string>
     <string name="stream_fragment_pin_disabled">停用PIN</string>
     <string name="stream_fragment_client_disconnected">已斷線</string>
     <string name="stream_fragment_client_slow_network">網路不佳</string>
     <string name="stream_fragment_client_connected">已連接</string>
+    <string name="stream_fragment_client_blocked">已封鎖</string>
 
     <string name="item_device_address">本機位址：</string>
+    <string name="item_device_address_description_open_address">打開位址</string>
+    <string name="item_device_address_description_copy_address">複製位址</string>
+    <string name="item_device_address_description_share_address">分享位址</string>
+    <string name="item_device_address_description_qr_address">展示位址或二維碼</string>
 
     <string name="permission_activity_error_title_activity_not_found">取得權限錯誤</string>
     <string name="permission_activity_error_activity_not_found">此為Android漏洞。在提示對話窗中請勿勾選\"不要再顯示\"選項。如果已勾選，請移除本程式後重新安裝。</string>
     <string name="permission_activity_cast_permission_required_title">權限被拒</string>
     <string name="permission_activity_cast_permission_required">需要螢幕錄製的權限以捕捉畫面。</string>
     <string name="permission_activity_error_title">錯誤</string>
-    <string name="permission_activity_error_unknown">Unknown error</string>
+    <string name="permission_activity_error_unknown">未知錯誤</string>
 
     <string name="notification_ready_to_stream">已準備好串流</string>
     <string name="notification_press_start">請按下開始</string>
@@ -45,18 +63,63 @@
     <string name="toast_slow_client_connection">偵測到用戶端網路速度不佳</string>
 
     <string name="pref_settings_interface">界面</string>
+    <string name="pref_night_mode">夜間模式</string>
+    <string-array name="pref_night_mode_options_api21_28">
+        <item>總是</item>
+        <item>由電池保護來決定</item>
+        <item>不用</item>
+    </string-array>
+    <string-array name="pref_night_mode_options_api29">
+        <item>總是</item>
+        <item>自動 (跟隨系統設置)</item>
+        <item>不用</item>
+    </string-array>
+    <string name="pref_notification">設備通知設置</string>
+    <string name="pref_notification_summary">打開系統通知設置</string>
+    <string name="pref_keep_awake">保持設備喚醒狀態</string>
+    <string name="pref_keep_awake_summary">播出視頻流的時候保持設備喚醒並且屏幕常亮</string>
     <string name="pref_stop_on_sleep">睡眠時停止</string>
     <string name="pref_stop_on_sleep_summary">當螢幕待機關閉時停止串流</string>
     <string name="pref_start_on_boot">開機時啟動</string>
     <string name="pref_start_on_boot_summary">開機後自動開始串流</string>
+    <string name="pref_auto_start_stop">自動 開始/停止 串流</string>
+    <string name="pref_auto_start_stop_summary">在客戶端 連接/斷開 的時候自動 開始/停止 串流</string>
+    <string name="pref_detect_slow_connections">顯示慢速連接通知</string>
+    <string name="pref_detect_slow_connections_summary">偵測並通知慢速連接的客戶端</string>
+    <string name="pref_html_buttons">啓用網頁按鈕</string>
+    <string name="pref_html_buttons_summary">在網頁上顯示控制按鈕</string>
+    <string name="pref_html_show_press_start">顯示 \"請按設備上的 開始 按鈕\"</string>
+    <string name="pref_html_show_press_start_summary">在網頁上顯示 \"請按設備上的 開始 按鈕\"</string>
     <string name="pref_html_back_color">背景色</string>
     <string name="pref_html_back_color_summary">設定串流頁面背景色</string>
     <string name="pref_html_back_color_title">選擇背景色</string>
     <string name="pref_settings_image">畫面</string>
+    <string name="pref_vr_mode">虛擬實境模式</string>
+    <string name="pref_vr_mode_summary">截取半個屏幕</string>
+    <string-array name="pref_vr_mode_options">
+        <item>使用左半邊</item>
+        <item>使用右半邊</item>
+    </string-array>
+    <string name="pref_crop">剪裁畫面</string>
+    <string name="pref_crop_summary">傳送剪裁過的畫面到用戶端</string>
+    <string name="pref_crop_dialog_crop_top">頂部剪裁:</string>
+    <string name="pref_crop_dialog_crop_bottom">底部剪裁:</string>
+    <string name="pref_crop_dialog_crop_left">左側剪裁:</string>
+    <string name="pref_crop_dialog_crop_right">右側剪裁:</string>
+    <string name="pref_crop_dialog_pixels">畫素</string>
+    <string name="pref_crop_dialog_warning_message">如果剪裁的結果是一張空圖片，那麼剪裁參數將被忽略</string>
+    <string name="pref_crop_dialog_error_message">請輸入有效的剪裁參數</string>
+    <string name="pref_grayscale">灰度模式</string>
+    <string name="pref_grayscale_summary">傳送剪黑白畫面到用戶端</string>
     <string name="pref_resize">縮放畫面</string>
     <string name="pref_resize_summary">傳送縮放過的畫面到用戶端</string>
     <string name="pref_resize_dialog_text">設置縮放百分比。\n範圍： 10–150 (預設： 50)\n螢幕解析度： %1$dx%2$d</string>
     <string name="pref_resize_dialog_result">畫面大小 size： %1$dx%2$d</string>
+    <string name="pref_rotate">順時針旋轉畫面</string>
+    <string name="pref_rotate_summary">傳送順時針旋轉過的畫面到用戶端</string>
+    <string name="pref_fps">畫面幀率限制</string>
+    <string name="pref_fps_summary">設置每秒最大畫面數</string>
+    <string name="pref_fps_dialog">設置每秒最大畫面數。\n範圍: 1–60 (預設: 30)</string>
     <string name="pref_jpeg_quality">JPEG壓縮品質</string>
     <string name="pref_jpeg_quality_summary">設定JPEG壓縮品質</string>
     <string name="pref_jpeg_quality_dialog">設定JPEG壓縮品質。\n範圍： 10–100 (Default： 80)</string>
@@ -72,17 +135,30 @@
     <string name="pref_set_pin">設定pin</string>
     <string name="pref_set_pin_summary">手動輸入pin</string>
     <string name="pref_set_pin_dialog">輸入pin。\n預設： 0000</string>
+    <string name="pref_block_address">封禁 IP 位址</string>
+    <string name="pref_block_address_summary">如果用戶端在 5 分鐘內輸錯了 5 次 pin，就會被封鎖</string>
     <string name="pref_settings_advanced">進階</string>
     <string name="pref_wifi_only">僅使用WiFi</string>
     <string name="pref_wifi_only_summary">串流伺服器僅使用WiFi傳輸</string>
+    <string name="pref_enable_ipv6">啓用 IPv6 支援</string>
+    <string name="pref_enable_ipv6_summary">同時在 IPv6 位址下播出串流</string>
+    <string name="pref_enable_localhost">啓用本地主機</string>
+    <string name="pref_enable_localhost_summary">同時在本地主機播出串流</string>
+    <string name="pref_localhost_only">僅使用本地主機</string>
+    <string name="pref_localhost_only_summary">僅使用本地主機播出串流</string>
     <string name="pref_server_port">伺服器連接埠</string>
     <string name="pref_server_port_summary">設定連接埠</string>
     <string name="pref_server_port_dialog">設定連入使用的連接埠號。\n範圍： 1025–65535 (預設： 8080)</string>
+    <string name="pref_logging">启用应用日志</string>
+    <string name="pref_logging_summary">收集应用日志</string>
 
     <string name="about_fragment_app_version">版本：%1$s</string>
     <string name="about_fragment_developer_name">由Dmitriy Krivoruchko開發</string>
     <string name="about_fragment_rate_app">給評分</string>
     <string name="about_fragment_write_email">寄信給開發者</string>
+    <string name="about_fragment_write_email_dialog">想要給開發者寄一封電子郵件嗎？</string>
     <string name="about_fragment_email_chooser_header">發送郵件…</string>
     <string name="about_fragment_app_sources">應用程式原始碼</string>
+    <string name="about_fragment_privacy_policy">隱私策略</string>
+    <string name="about_fragment_license">許可證</string>
 </resources>
