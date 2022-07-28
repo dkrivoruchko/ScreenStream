@@ -36,8 +36,6 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withTimeout
 import org.koin.android.ext.android.inject
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
@@ -49,9 +47,15 @@ class AppService : Service() {
 
         fun getAppServiceIntent(context: Context): Intent = Intent(context.applicationContext, AppService::class.java)
 
-        fun startService(context: Context, intent: Intent) = context.startService(intent)
+        fun startService(context: Context, intent: Intent) {
+            runCatching { context.startService(intent) }
+                .onFailure { XLog.e(getLog("startService", "Failed to start Service"), it) }
+        }
 
-        fun startForeground(context: Context, intent: Intent) = ContextCompat.startForegroundService(context, intent)
+        fun startForeground(context: Context, intent: Intent) {
+            runCatching { ContextCompat.startForegroundService(context, intent) }
+                .onFailure { XLog.e(getLog("startForeground", "Failed to start Foreground Service"), it) }
+        }
     }
 
     class AppServiceBinder(private val serviceMessageSharedFlow: MutableSharedFlow<ServiceMessage>) : Binder() {

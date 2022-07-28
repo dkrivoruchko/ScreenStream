@@ -66,7 +66,7 @@ class TileActionService : TileService() {
                     isBound = false
                 }
             }
-            bindService(AppService.getAppServiceIntent(this), serviceConnection!!, Context.BIND_AUTO_CREATE)
+            serviceConnection?.let { bindService(AppService.getAppServiceIntent(this), it, Context.BIND_AUTO_CREATE) }
         } else {
             isStreaming = false
             updateTile()
@@ -80,6 +80,7 @@ class TileActionService : TileService() {
             coroutineScope?.cancel()
             coroutineScope = null
             serviceConnection?.let { unbindService(it) }
+            serviceConnection = null
             isBound = false
         }
         isStreaming = false

@@ -4,6 +4,7 @@ package info.dvkr.screenstream.receiver
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.data.other.getLog
 import info.dvkr.screenstream.data.settings.SettingsReadOnly
@@ -18,15 +19,20 @@ class BootReceiver : BroadcastReceiver(), KoinComponent {
     private val settingsReadOnly: SettingsReadOnly by inject()
 
     override fun onReceive(context: Context, intent: Intent) {
-        XLog.d(getLog("onReceive", "Invoked"))
+        XLog.d(getLog("onReceive", "Invoked: (SDK: ${Build.VERSION.SDK_INT}) Intent Action: ${intent.action}"))
 
-        if (runBlocking { settingsReadOnly.startOnBootFlow.first().not() }) Runtime.getRuntime().exit(0)
-
-        if (
-            intent.action == "android.intent.action.BOOT_COMPLETED" ||
-            intent.action == "android.intent.action.QUICKBOOT_POWERON"
-        ) {
-            IntentAction.StartOnBoot.sendToAppService(context)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            if (intent.action != Intent.ACTION_BOOT_COMPLETED) {
+                Runtime.getRuntime().exit(0)
+                return
+            }
         }
+
+        if (runBlocking { settingsReadOnly.startOnBootFlow.first().not() }) {
+            Runtime.getRuntime().exit(0)
+            return
+        }
+
+        IntentAction.StartOnBoot.sendToAppService(context)
     }
 }

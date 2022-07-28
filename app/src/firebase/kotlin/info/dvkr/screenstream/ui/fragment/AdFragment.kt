@@ -31,13 +31,16 @@ abstract class AdFragment(@LayoutRes contentLayoutId: Int) : Fragment(contentLay
         else adViewContainer.viewTreeObserver.addOnGlobalLayoutListener(
             object : ViewTreeObserver.OnGlobalLayoutListener {
                 override fun onGlobalLayout() {
+                    adViewContainer.viewTreeObserver.removeOnGlobalLayoutListener(this)
+
                     var adWidthPixels = adViewContainer.width.toFloat()
-                    if (adWidthPixels == 0f) adWidthPixels = WindowMetricsCalculator.getOrCreate()
-                        .computeCurrentWindowMetrics(requireActivity()).bounds.width().toFloat()
+                    activity?.let {
+                        if (adWidthPixels == 0f) adWidthPixels = WindowMetricsCalculator.getOrCreate()
+                            .computeCurrentWindowMetrics(it).bounds.width().toFloat()
+                    } ?: return // Not attached to an activity.
+
                     val adWidth = (adWidthPixels / resources.displayMetrics.density).toInt()
                     adSize = AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(requireContext(), adWidth)
-
-                    adViewContainer.viewTreeObserver.removeOnGlobalLayoutListener(this)
                     loadAd(adViewContainer)
                 }
             }
