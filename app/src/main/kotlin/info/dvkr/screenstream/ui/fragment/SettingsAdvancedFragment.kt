@@ -69,7 +69,7 @@ class SettingsAdvancedFragment : Fragment(R.layout.fragment_settings_advanced) {
         // Advanced - Enable Local host
         viewLifecycleOwner.lifecycleScope.launchWhenCreated {
             binding.cbFragmentSettingsEnableLocalhost.isChecked = settings.enableLocalHostFlow.first()
-            binding.clFragmentSettingsLocalhostOnly.enableDisableViewWithChildren(binding.cbFragmentSettingsEnableLocalhost.isChecked) //TODO
+            binding.clFragmentSettingsLocalhostOnly.enableDisableViewWithChildren(binding.cbFragmentSettingsEnableLocalhost.isChecked)
         }
         binding.cbFragmentSettingsEnableLocalhost.setOnClickListener {
             viewLifecycleOwner.lifecycleScope.launchWhenCreated {
@@ -152,11 +152,11 @@ class SettingsAdvancedFragment : Fragment(R.layout.fragment_settings_advanced) {
 
     override fun onStart() {
         super.onStart()
-        XLog.d(getLog("onStart", "Invoked"))
+        XLog.d(getLog("onStart"))
     }
 
     override fun onStop() {
-        XLog.d(getLog("onStop", "Invoked"))
+        XLog.d(getLog("onStop"))
         super.onStop()
     }
 }

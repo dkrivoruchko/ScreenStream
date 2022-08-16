@@ -29,7 +29,6 @@ val baseKoinModule = module {
         PreferenceDataStoreFactory.create(
             corruptionHandler = ReplaceFileCorruptionHandler { ex -> XLog.e(ex); emptyPreferences() },
             migrations = listOf(SettingsDataMigration(androidApplication(), get())),
-//            scope = CoroutineScope(Dispatchers.IO + SupervisorJob()),
             produceFile = { androidApplication().preferencesDataStoreFile("user_settings") }
         )
     }
