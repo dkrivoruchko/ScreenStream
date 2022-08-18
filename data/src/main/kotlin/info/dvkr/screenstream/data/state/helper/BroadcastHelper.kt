@@ -10,7 +10,12 @@ import android.net.wifi.WifiManager
 import android.os.Build
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.data.other.getLog
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 internal sealed class BroadcastHelper(context: Context) {
 
@@ -34,7 +39,10 @@ internal sealed class BroadcastHelper(context: Context) {
     fun startListening(onScreenOff: () -> Unit, onConnectionChanged: () -> Unit) {
         this.onScreenOff = onScreenOff
         this.onConnectionChanged = onConnectionChanged
-        applicationContext.registerReceiver(broadcastReceiver, intentFilter)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
+            applicationContext.registerReceiver(broadcastReceiver, intentFilter, Context.RECEIVER_NOT_EXPORTED)
+        else
+            applicationContext.registerReceiver(broadcastReceiver, intentFilter)
     }
 
     fun stopListening() {

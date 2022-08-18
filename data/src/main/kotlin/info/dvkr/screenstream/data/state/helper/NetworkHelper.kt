@@ -8,7 +8,11 @@ import androidx.core.content.ContextCompat
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.data.model.NetInterface
 import info.dvkr.screenstream.data.other.getLog
-import java.net.*
+import java.net.Inet4Address
+import java.net.Inet6Address
+import java.net.InetAddress
+import java.net.NetworkInterface
+import java.net.SocketException
 import java.util.*
 
 @SuppressLint("WifiManagerPotentialLeak")
@@ -24,6 +28,7 @@ class NetworkHelper(context: Context) {
         Regex("softap\\.?\\d")
     )
 
+    @SuppressLint("DiscouragedApi")
     private val wifiRegexArray: Array<Regex> =
         Resources.getSystem().getIdentifier("config_tether_wifi_regexs", "array", "android").let { tetherId ->
             context.applicationContext.resources.getStringArray(tetherId).map { it.toRegex() }.toTypedArray()
@@ -82,7 +87,7 @@ class NetworkHelper(context: Context) {
                 networkInterface.inetAddresses.asSequence().filterNotNull()
                     .filter { !it.isLinkLocalAddress && !it.isMulticastAddress }
                     .filter { enableLocalHost || it.isLoopbackAddress.not() }
-                    .filter { localHostOnly.not() || it.isLoopbackAddress}
+                    .filter { localHostOnly.not() || it.isLoopbackAddress }
                     .filter { (it is Inet4Address) || (enableIPv6 && (it is Inet6Address)) }
                     .map { if (it is Inet6Address) Inet6Address.getByAddress(it.address) else it }
                     .map { NetInterface(networkInterface.displayName, it) }

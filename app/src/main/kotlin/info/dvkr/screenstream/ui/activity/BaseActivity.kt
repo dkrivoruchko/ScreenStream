@@ -9,31 +9,31 @@ import info.dvkr.screenstream.data.other.getLog
 abstract class BaseActivity(@LayoutRes contentLayoutId: Int) : AppCompatActivity(contentLayoutId) {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        XLog.d(getLog("onCreate", "Invoked"))
+        XLog.d(getLog("onCreate"))
     }
 
     override fun onStart() {
         super.onStart()
-        XLog.d(getLog("onStart", "Invoked"))
+        XLog.d(getLog("onStart"))
     }
 
     override fun onResume() {
         super.onResume()
-        XLog.d(getLog("onResume", "Invoked"))
+        XLog.d(getLog("onResume"))
     }
 
     override fun onPause() {
-        XLog.d(getLog("onPause", "Invoked"))
+        XLog.d(getLog("onPause"))
         super.onPause()
     }
 
     override fun onStop() {
-        XLog.d(getLog("onStop", "Invoked"))
+        XLog.d(getLog("onStop"))
         super.onStop()
     }
 
     override fun onDestroy() {
-        XLog.d(getLog("onDestroy", "Invoked"))
+        XLog.d(getLog("onDestroy"))
         super.onDestroy()
     }
 }

@@ -42,7 +42,7 @@
 
     <string name="permission_activity_error_title_activity_not_found">Chyba prístupov</string>
     <string name="permission_activity_error_activity_not_found">Chyba Androidu. Neťukajte na \"Viac nezobrazovať\" pri nastavovaní práv na zachytávanie obrazovky. Ak ste už zaškrtli, preinštalujte aplikáciu.</string>
-    <string name="permission_activity_cast_permission_required_title">Je potrebné povolenie</string>
+    <string name="permission_activity_permission_required_title">Je potrebné povolenie</string>
     <string name="permission_activity_cast_permission_required">Aplikácia ScreenStream vyžaduje povolenie na zdielanie obrazovky, aby mohla nahrávať obrazovku.</string>
     <string name="permission_activity_error_title">Chyba</string>
     <string name="permission_activity_error_unknown">Neznáma chyba</string>

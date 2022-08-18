@@ -6,6 +6,7 @@ import info.dvkr.screenstream.data.other.getLog
 import info.dvkr.screenstream.data.other.randomString
 import io.ktor.http.*
 import io.ktor.http.cio.*
+import io.ktor.http.cio.internals.*
 import io.ktor.http.content.*
 import io.ktor.server.application.*
 import io.ktor.server.cio.*
@@ -17,14 +18,7 @@ import io.ktor.server.routing.*
 import io.ktor.utils.io.*
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.conflate
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.onCompletion
-import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.flow.*
 import java.io.IOException
 import java.net.InetSocketAddress
 import java.util.concurrent.atomic.AtomicLong
@@ -200,6 +194,12 @@ internal fun Application.appModule(
                             .map { Pair(emmitCounter.incrementAndGet(), it) }
                             .conflate()
                             .onEach { (emmitCounter, jpeg) ->
+                                if (channel.isClosedForWrite) {
+                                    XLog.d(this@appModule.getLog("onEach", "IsClosedForWrite: Client: $clientId"))
+                                    coroutineContext.cancel()
+                                    return@onEach
+                                }
+
                                 if (emmitCounter - collectCounter.incrementAndGet() >= 5) {
                                     XLog.i(this@appModule.getLog("onEach", "Slow connection. Client: $clientId"))
                                     collectCounter.set(emmitCounter)

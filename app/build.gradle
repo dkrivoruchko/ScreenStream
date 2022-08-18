@@ -5,16 +5,18 @@ apply plugin: "com.google.gms.google-services"
 apply plugin: "com.google.firebase.crashlytics"
 
 android {
-    compileSdkVersion(32)
-    buildToolsVersion("32.0.0")
+    compileSdkVersion(33)
+    buildToolsVersion("33.0.0")
 
     defaultConfig {
         applicationId = "info.dvkr.screenstream"
         minSdkVersion(21)
-        targetSdkVersion(32)
-        versionCode = 30906
-        versionName = "3.9.6"
-        resConfigs 'en', 'ru', 'pt-rBR', 'zh-rTW', 'fr-rFR', 'fa', 'it', 'pl', 'hi', 'de', 'sk', 'es', 'ar', 'ja', 'gl', 'ca', 'uk', 'nl'
+        targetSdkVersion(33)
+        versionCode = 31000
+        versionName = "3.10.0"
+
+        // Don't forget to update xml/locales_config.xml
+        resConfigs 'en', 'ar', 'ca', 'de', 'es', 'fa', 'fr-rFR', 'gl', 'hi', 'it', 'ja', 'nl', 'pl', 'pt-rBR', 'ru', 'sk', 'uk', 'zh', 'zh-rTW'
 
         vectorDrawables.useSupportLibrary = true
     }
@@ -87,6 +89,8 @@ android {
 }
 
 dependencies {
+    // TODO waiting for Android Studio Dolphin release
+    // https://developer.android.com/about/versions/13/features#core-libraries
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:1.1.5")
 
     implementation(project(":data"))
@@ -94,13 +98,13 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.4")
 
-    implementation("androidx.core:core-ktx:1.8.0")
-    implementation("androidx.activity:activity-ktx:1.5.1")
-    implementation("androidx.fragment:fragment-ktx:1.5.1")
-    implementation("androidx.appcompat:appcompat:1.5.0-rc01")
+    implementation("androidx.core:core-ktx:1.9.0-beta01")
+    implementation("androidx.activity:activity-ktx:1.6.0-beta01")
+    implementation("androidx.fragment:fragment-ktx:1.5.2")
+    implementation("androidx.appcompat:appcompat:1.6.0-beta01")
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
     implementation("androidx.recyclerview:recyclerview:1.2.1")
-    implementation("com.google.android.material:material:1.6.1")
+    implementation("com.google.android.material:material:1.7.0-beta01")
     implementation("androidx.window:window:1.0.0")
 
     implementation("androidx.navigation:navigation-fragment-ktx:2.5.1")

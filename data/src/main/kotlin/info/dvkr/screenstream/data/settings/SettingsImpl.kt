@@ -116,6 +116,9 @@ class SettingsImpl(private val dataStore: DataStore<Preferences>): Settings {
     override val lastUpdateRequestMillisFlow: Flow<Long> = getCatching(Settings.Key.LAST_UPDATE_REQUEST_MILLIS, Settings.Default.LAST_IAU_REQUEST_TIMESTAMP)
     override suspend fun setLastUpdateRequestMillis(value: Long) = setValue(Settings.Key.LAST_UPDATE_REQUEST_MILLIS, value)
 
+    override val addTileAsked: Flow<Boolean> = getCatching(Settings.Key.ADD_TILE_ASKED, Settings.Default.ADD_TILE_ASKED)
+    override suspend fun setAddTileAsked(value: Boolean) = setValue(Settings.Key.ADD_TILE_ASKED, value)
+
     private fun <T> getCatching(key: Preferences.Key<T>, default: T): Flow<T> = dataStore.data.catch { cause ->
         if (cause is IOException) {
             XLog.e(this@SettingsImpl.getLog("getCatching [${key.name}]"), cause)

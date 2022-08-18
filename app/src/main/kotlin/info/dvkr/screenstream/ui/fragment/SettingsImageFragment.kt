@@ -331,11 +331,11 @@ class SettingsImageFragment : Fragment(R.layout.fragment_settings_image) {
 
     override fun onStart() {
         super.onStart()
-        XLog.d(getLog("onStart", "Invoked"))
+        XLog.d(getLog("onStart"))
     }
 
     override fun onStop() {
-        XLog.d(getLog("onStop", "Invoked"))
+        XLog.d(getLog("onStop"))
         super.onStop()
     }
 

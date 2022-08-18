@@ -47,7 +47,7 @@
 
     <string name="permission_activity_error_title_activity_not_found">Błąd dostępu do okna dialogowego</string>
     <string name="permission_activity_error_activity_not_found">Błąd systemu Android. Nie sprawdzaj \"Nie pokazuj ponownie\" w oknie dialogowym żądania uprawnień, aby przechwycić ekran. Jeśli już to zrobiłeś, przeinstaluj aplikację.</string>
-    <string name="permission_activity_cast_permission_required_title">Wymaga pozwolenia</string>
+    <string name="permission_activity_permission_required_title">Wymaga pozwolenia</string>
     <string name="permission_activity_cast_permission_required">Aplikacja ScreenStream wymaga uprawnień dostępu do Przesyłanie ekranu celem przechwytywania ekranu.</string>
     <string name="permission_activity_error_title">Błąd</string>
     <string name="permission_activity_error_unknown">Nieznany błąd</string>

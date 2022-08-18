@@ -46,7 +46,7 @@
 
     <string name="permission_activity_error_title_activity_not_found">Fehler mit Berechtigungsdialog</string>
     <string name="permission_activity_error_activity_not_found">Android-Fehler. Deaktivieren Sie \"Nicht mehr anzeigen\" auf dem Berechtigungsdialog um den Bildschirm aufzunehmen. Wenn sie dies bereits getan haben, installieren Sie die App neu.</string>
-    <string name="permission_activity_cast_permission_required_title">Berechtigung benötigt</string>
+    <string name="permission_activity_permission_required_title">Berechtigung benötigt</string>
     <string name="permission_activity_cast_permission_required">ScreenStream App benötigt die ScreenCast-Berechtigung um den Bildschirm aufzunehmen.</string>
     <string name="permission_activity_error_title">Fehler</string>
     <string name="permission_activity_error_unknown">Unbekannter Fehler</string>

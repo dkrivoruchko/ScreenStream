@@ -29,7 +29,7 @@
 
     <string name="permission_activity_error_title_activity_not_found">خطای پنجره مجوز</string>
     <string name="permission_activity_error_activity_not_found">مشکل اندرویدی. در پنجره تعاملی برای گرفتن تصویر صفحه، گزینه «دیگر نشان نده» را فعال نکنید. اگر چنین کرده‌اید، برنامه را از اول نصب کنید.</string>
-    <string name="permission_activity_cast_permission_required_title">جواز دسترسی نیاز است</string>
+    <string name="permission_activity_permission_required_title">جواز دسترسی نیاز است</string>
     <string name="permission_activity_cast_permission_required">ScreenStream application requires Screen Cast permission to capture screen.</string>
     <string name="permission_activity_error_title">خطا</string>
     <string name="permission_activity_error_unknown">خطای غیرمنتظره</string>

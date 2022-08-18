@@ -47,10 +47,13 @@
 
     <string name="permission_activity_error_title_activity_not_found">Помилка діалогу дозволів</string>
     <string name="permission_activity_error_activity_not_found">Помилка в системі Android. Не натискайте \"Не показувати знову\" на діалозі дозволу поділитись екраном. Якщо ж це уже зроблено, будь ласка, видаліть та встановіть ще раз додаток.</string>
-    <string name="permission_activity_cast_permission_required_title">Дозвіл обов\'язковий</string>
+    <string name="permission_activity_permission_required_title">Дозвіл обов\'язковий</string>
     <string name="permission_activity_cast_permission_required">ScreenStream додаток вимагає дозвіл Screen Cast щоб записувати екран.</string>
     <string name="permission_activity_error_title">Помилка</string>
     <string name="permission_activity_error_unknown">Невідома помилка</string>
+    <string name="permission_activity_allow_notifications">Додатку потрібен дозвіл на надсилання сповіщень, щоб мати можливість запустити службу потокового передавання. Дозвольте надсилати сповіщення.</string>
+    <string name="permission_activity_allow_notifications_settings">Додатку потрібен дозвіл на надсилання сповіщень, щоб мати можливість запустити службу потокового передавання. Дозвольте надсилання сповіщень у налаштуваннях програми.</string>
+    <string name="permission_activity_notification_settings">Відкрити налаштування</string>
 
     <string name="notification_ready_to_stream">Готовий до початку передачі</string>
     <string name="notification_press_start">Натисніть ПОЧАТИ щоб почати передачу</string>
@@ -63,6 +66,8 @@
     <string name="toast_slow_client_connection">Виявлено повільне клієнтське з\'єднання</string>
 
     <string name="pref_settings_interface">Інтерфейс</string>
+    <string name="pref_locale">Мова додадку</string>
+    <string name="pref_locale_summary">Перейти до налаштувань мови додатку</string>
     <string name="pref_night_mode">Чорна тема</string>
     <string-array name="pref_night_mode_options_api21_28">
         <item>Завжди</item>

@@ -42,7 +42,7 @@
 
     <string name="permission_activity_error_title_activity_not_found">権限ダイアログエラー</string>
     <string name="permission_activity_error_activity_not_found">Androidのバグです。 画面をキャプチャするために、権限要求ダイアログで「今後表示しない」にチェックを入れないでください。 既にそうした場合は、アプリを再インストールしてください。</string>
-    <string name="permission_activity_cast_permission_required_title">権限が必要です</string>
+    <string name="permission_activity_permission_required_title">権限が必要です</string>
     <string name="permission_activity_cast_permission_required">ScreenStreamアプリでは画面をキャプチャするためにスクリーン キャスト権限が必要です。</string>
     <string name="permission_activity_error_title">エラー</string>
     <string name="permission_activity_error_unknown">不明なエラー</string>

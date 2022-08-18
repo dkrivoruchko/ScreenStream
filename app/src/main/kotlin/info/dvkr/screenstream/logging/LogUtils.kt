@@ -2,6 +2,7 @@ package info.dvkr.screenstream.logging
 
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import androidx.core.content.FileProvider
@@ -30,7 +31,12 @@ internal fun sendLogsInEmail(context: Context, text: String) {
 
         var version = ""
         try {
-            version = context.packageManager.getPackageInfo(context.packageName, 0).versionName
+            version = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                context.packageManager.getPackageInfo(context.packageName, PackageManager.PackageInfoFlags.of(0)).versionName
+            } else {
+                @Suppress("DEPRECATION")
+                context.packageManager.getPackageInfo(context.packageName, 0).versionName
+            }
         } catch (t: Throwable) {
             XLog.e(getLog("sendLogsInEmail", "getPackageInfo"), t)
         }

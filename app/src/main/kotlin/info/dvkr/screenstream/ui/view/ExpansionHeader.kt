@@ -5,6 +5,7 @@ import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
 import android.animation.ObjectAnimator
 import android.content.Context
+import android.os.Build
 import android.os.Bundle
 import android.os.Parcelable
 import android.util.AttributeSet
@@ -145,7 +146,13 @@ class ExpansionHeader @JvmOverloads constructor(
 
             expansionLayoutInitialised = false
 
-            super.onRestoreInstanceState(state.getParcelable("super"))
+            val parcelable: Parcelable? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                state.getParcelable("super", Parcelable::class.java)
+            } else {
+                @Suppress("DEPRECATION")
+                state.getParcelable("super")
+            }
+            super.onRestoreInstanceState(parcelable)
         } else {
             super.onRestoreInstanceState(state)
         }

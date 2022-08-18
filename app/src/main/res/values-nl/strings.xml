@@ -47,7 +47,7 @@
 
     <string name="permission_activity_error_title_activity_not_found">Toestemmingen fout</string>
     <string name="permission_activity_error_activity_not_found">Android bug. Niet controleren \"Niet meer tonen\" Bij de toestemmingen, geef toestemming om het scherm op te nemen. Als je dit al gedaan hebt, download de app opnieuw.</string>
-    <string name="permission_activity_cast_permission_required_title">Toestemming nodig</string>
+    <string name="permission_activity_permission_required_title">Toestemming nodig</string>
     <string name="permission_activity_cast_permission_required">ScreenStream app heeft Scherm Delen toestemming nodig om je scherm op te nemen.</string>
     <string name="permission_activity_error_title">Fout</string>
     <string name="permission_activity_error_unknown">Onbekende fout</string>

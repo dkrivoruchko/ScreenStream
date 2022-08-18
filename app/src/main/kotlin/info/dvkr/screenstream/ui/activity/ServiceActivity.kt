@@ -5,45 +5,58 @@ import android.content.Context
 import android.content.ServiceConnection
 import android.os.Bundle
 import android.os.IBinder
+import android.os.RemoteException
 import androidx.annotation.CallSuper
 import androidx.annotation.LayoutRes
 import androidx.appcompat.app.AppCompatDelegate
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.coroutineScope
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.flowWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.data.other.getLog
-import info.dvkr.screenstream.service.AppService
+import info.dvkr.screenstream.service.ForegroundService
 import info.dvkr.screenstream.service.ServiceMessage
 import info.dvkr.screenstream.service.helper.IntentAction
-import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 
 abstract class ServiceActivity(@LayoutRes contentLayoutId: Int) : AppUpdateActivity(contentLayoutId) {
 
-    private val serviceMessageLiveData = MutableLiveData<ServiceMessage>()
-    private var serviceMessageFlowJob: Job? = null
     private var isBound: Boolean = false
+    private var serviceMessageFlowJob: Job? = null
+
+    private val _serviceMessageFlow = MutableStateFlow<ServiceMessage?>(null)
+    internal val serviceMessageFlow: StateFlow<ServiceMessage?> = _serviceMessageFlow.asStateFlow()
 
     private val serviceConnection = object : ServiceConnection {
-        override fun onServiceConnected(name: ComponentName?, service: IBinder) {
+        override fun onServiceConnected(name: ComponentName?, binder: IBinder) {
             XLog.d(this@ServiceActivity.getLog("onServiceConnected"))
-            serviceMessageFlowJob =
-                lifecycle.coroutineScope.launch(CoroutineName("ServiceActivity.ServiceMessageFlow")) {
-                    (service as AppService.AppServiceBinder).getServiceMessageFlow()
-                        .onEach { serviceMessage ->
-                            XLog.v(this@ServiceActivity.getLog("onServiceMessage", "$serviceMessage"))
-                            serviceMessageLiveData.value = serviceMessage
+
+            try {
+                val foregroundServiceBinder = binder as ForegroundService.ForegroundServiceBinder
+
+                serviceMessageFlowJob = lifecycleScope.launch {
+                    foregroundServiceBinder.serviceMessageFlow
+                        .filterNotNull()
+                        .onEach { serviceMessage -> onServiceMessage(serviceMessage) }
+                        .catch { cause ->
+                            XLog.e(this@ServiceActivity.getLog("onServiceConnected.serviceMessageFlow: $cause"))
+                            XLog.e(this@ServiceActivity.getLog("onServiceConnected.serviceMessageFlow"), cause)
                         }
-                        .catch { cause -> XLog.e(this@ServiceActivity.getLog("onServiceMessage"), cause) }
                         .collect()
                 }
+            } catch (cause: RemoteException) {
+                XLog.e(this@ServiceActivity.getLog("onServiceConnected", "Failed to bind"), cause)
+                return
+            }
 
             isBound = true
             IntentAction.GetServiceState.sendToAppService(this@ServiceActivity)
@@ -58,16 +71,17 @@ abstract class ServiceActivity(@LayoutRes contentLayoutId: Int) : AppUpdateActiv
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        lifecycleScope.launchWhenCreated {
-            settings.nightModeFlow.onEach { AppCompatDelegate.setDefaultNightMode(it) }.launchIn(this)
-        }
+        settings.nightModeFlow
+            .flowWithLifecycle(lifecycle, Lifecycle.State.CREATED)
+            .onEach { AppCompatDelegate.setDefaultNightMode(it) }
+            .launchIn(lifecycleScope)
+
         super.onCreate(savedInstanceState)
     }
 
     override fun onStart() {
         super.onStart()
-        serviceMessageLiveData.observe(this) { message -> message?.let { onServiceMessage(it) } }
-        bindService(AppService.getAppServiceIntent(this), serviceConnection, Context.BIND_AUTO_CREATE)
+        bindService(ForegroundService.getForegroundServiceIntent(this), serviceConnection, Context.BIND_AUTO_CREATE)
     }
 
     override fun onResume() {
@@ -88,8 +102,12 @@ abstract class ServiceActivity(@LayoutRes contentLayoutId: Int) : AppUpdateActiv
 
     @CallSuper
     open fun onServiceMessage(serviceMessage: ServiceMessage) {
-        if (serviceMessage is ServiceMessage.FinishActivity) finishAndRemoveTask()
-    }
+        XLog.v(getLog("onServiceMessage", "$serviceMessage"))
 
-    fun getServiceMessageLiveData(): LiveData<ServiceMessage> = serviceMessageLiveData
+        _serviceMessageFlow.tryEmit(serviceMessage)
+
+        if (serviceMessage is ServiceMessage.FinishActivity) {
+            finishAndRemoveTask()
+        }
+    }
 }

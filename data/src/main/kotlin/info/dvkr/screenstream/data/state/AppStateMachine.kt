@@ -26,7 +26,7 @@ interface AppStateMachine {
         data class PublicState(
             val isStreaming: Boolean,
             val isBusy: Boolean,
-            val isWaitingForPermission: Boolean,
+            val waitingForPermission: Boolean,
             val netInterfaces: List<NetInterface>,
             val appError: AppError?
         ) : Effect()

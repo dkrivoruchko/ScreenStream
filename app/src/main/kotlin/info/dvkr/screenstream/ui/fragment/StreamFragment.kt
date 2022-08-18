@@ -5,6 +5,7 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -13,6 +14,7 @@ import android.widget.Toast
 import androidx.appcompat.widget.AppCompatImageView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.flowWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.DiffUtil
@@ -41,7 +43,10 @@ import info.dvkr.screenstream.service.ServiceMessage
 import info.dvkr.screenstream.service.helper.IntentAction
 import info.dvkr.screenstream.ui.activity.ServiceActivity
 import info.dvkr.screenstream.ui.viewBinding
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import org.koin.android.ext.android.inject
 
 class StreamFragment : AdFragment(R.layout.fragment_stream) {
@@ -75,22 +80,24 @@ class StreamFragment : AdFragment(R.layout.fragment_stream) {
             httpClientAdapter = HttpClientAdapter().apply { setHasStableIds(true) }
             adapter = httpClientAdapter
         }
+
+        (requireActivity() as ServiceActivity).serviceMessageFlow
+            .flowWithLifecycle(viewLifecycleOwner.lifecycle, Lifecycle.State.STARTED)
+            .filterNotNull()
+            .onEach { serviceMessage ->
+                when (serviceMessage) {
+                    is ServiceMessage.ServiceState -> onServiceStateMessage(serviceMessage)
+                    is ServiceMessage.Clients -> onClientsMessage(serviceMessage)
+                    is ServiceMessage.TrafficHistory -> onTrafficHistoryMessage(serviceMessage)
+                    is ServiceMessage.FinishActivity -> Unit
+                }
+            }
+            .launchIn(viewLifecycleOwner.lifecycleScope)
     }
 
     override fun onStart() {
         super.onStart()
-        XLog.d(getLog("onStart", "Invoked"))
-
-        (requireActivity() as ServiceActivity).getServiceMessageLiveData()
-            .observe(this) { serviceMessage ->
-                when (serviceMessage) {
-                    is ServiceMessage.ServiceState ->
-                        viewLifecycleOwner.lifecycleScope.launchWhenStarted { onServiceStateMessage(serviceMessage) }
-                    is ServiceMessage.Clients -> onClientsMessage(serviceMessage)
-                    is ServiceMessage.TrafficHistory -> onTrafficHistoryMessage(serviceMessage)
-                    else -> Unit
-                }
-            }
+        XLog.d(getLog("onStart"))
 
         IntentAction.GetServiceState.sendToAppService(requireContext())
     }
@@ -124,7 +131,8 @@ class StreamFragment : AdFragment(R.layout.fragment_stream) {
                         clipboard?.setPrimaryClip(
                             ClipData.newPlainText(tvItemDeviceAddress.text, tvItemDeviceAddress.text)
                         )
-                        Toast.makeText(requireContext(), R.string.stream_fragment_copied, Toast.LENGTH_LONG).show()
+                        if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.S_V2)
+                            Toast.makeText(requireContext(), R.string.stream_fragment_copied, Toast.LENGTH_LONG).show()
                     }
                     ivItemDeviceAddressShare.setOnClickListener { shareAddress(fullAddress) }
                     ivItemDeviceAddressQr.setOnClickListener { showQrCode(fullAddress) }
