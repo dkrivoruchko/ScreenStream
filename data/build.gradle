@@ -2,12 +2,12 @@ apply plugin: "com.android.library"
 apply plugin: "kotlin-android"
 
 android {
-    compileSdkVersion(32)
-    buildToolsVersion("32.0.0")
+    compileSdkVersion(33)
+    buildToolsVersion("33.0.0")
 
     defaultConfig {
         minSdkVersion(21)
-        targetSdkVersion(32)
+        targetSdkVersion(33)
     }
 
     compileOptions {
@@ -28,13 +28,14 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4")
     implementation("org.jetbrains.kotlin:kotlin-reflect:1.7.10")
 
-    implementation("androidx.core:core:1.8.0")
+    //noinspection KtxExtensionAvailable
+    implementation("androidx.core:core:1.9.0-beta01")
     implementation("androidx.window:window:1.0.0")
 
-    implementation("io.ktor:ktor-server-cio:2.0.3")
-    implementation("io.ktor:ktor-server-default-headers:2.0.3")
-    implementation("io.ktor:ktor-server-status-pages:2.0.3")
-    implementation("io.ktor:ktor-server-cors:2.0.3")
+    implementation("io.ktor:ktor-server-cio:2.1.0")
+    implementation("io.ktor:ktor-server-default-headers:2.1.0")
+    implementation("io.ktor:ktor-server-status-pages:2.1.0")
+    implementation("io.ktor:ktor-server-cors:2.1.0")
 
     implementation("com.github.iamironz:binaryprefs:1.0.1") //Migrating to datastore
     implementation("androidx.datastore:datastore-preferences:1.0.0")

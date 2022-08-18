@@ -23,7 +23,7 @@
     <string name="bottom_menu_about">Инфо</string>
     <string name="bottom_menu_exit">Выход</string>
 
-    <string name="stream_fragment_current_traffic">Траффик: %1$,.2f Мбит/с</string>
+    <string name="stream_fragment_current_traffic">Трафик: %1$,.2f Мбит/с</string>
     <string name="stream_fragment_connected_clients">Подключено клиентов: %1$d</string>
     <string name="stream_fragment_no_address">Адреса не найдены</string>
     <string name="stream_fragment_interface">Интерфейс: %1$s</string>
@@ -46,10 +46,13 @@
 
     <string name="permission_activity_error_title_activity_not_found">Ошибка диалога доступа</string>
     <string name="permission_activity_error_activity_not_found">Баг Андроида. Не отмечайте \"Больше не показывать\" в диалоге запроса доступа к изображению экрана. Если вы уже отметили, переустановите приложение.</string>
-    <string name="permission_activity_cast_permission_required_title">Требуется разрешение</string>
+    <string name="permission_activity_permission_required_title">Требуется разрешение</string>
     <string name="permission_activity_cast_permission_required">Приложению ScreenStream требуется разрешение на доступ к изображению экрана устройства.</string>
     <string name="permission_activity_error_title">Ошибка</string>
     <string name="permission_activity_error_unknown">Неизвестная ошибка</string>
+    <string name="permission_activity_allow_notifications">Приложению требуется разрешение на отправку уведомлений, чтобы запустить службу потоковой передачи. Пожалуйста, разрешите отправку уведомлений.</string>
+    <string name="permission_activity_allow_notifications_settings">Приложению требуется разрешение на отправку уведомлений, чтобы запустить службу потоковой передачи. Пожалуйста, разрешите отправку уведомлений в настройках приложения.</string>
+    <string name="permission_activity_notification_settings">Открыть настройки</string>
 
     <string name="notification_ready_to_stream">Готов к трансляции</string>
     <string name="notification_press_start">Нажмите СТАРТ для старта трансляции</string>
@@ -62,6 +65,8 @@
     <string name="toast_slow_client_connection">Обнаружено медленное соединение</string>
 
     <string name="pref_settings_interface">Интерфейс</string>
+    <string name="pref_locale">Язык приложения</string>
+    <string name="pref_locale_summary">Открыть настройки языка приложения</string>
     <string name="pref_night_mode">Темная тема</string>
     <string-array name="pref_night_mode_options_api21_28">
         <item>Всегда</item>

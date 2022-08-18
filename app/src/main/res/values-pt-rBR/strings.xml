@@ -47,7 +47,7 @@
 
     <string name="permission_activity_error_title_activity_not_found">Aviso com erro da permissão</string>
     <string name="permission_activity_error_activity_not_found">Falha no Android. NÃO escolha \"Não mostar novamente\" em aviso que solicita permissões para capturar a tela. Se você já fez isso, reinstale o app.</string>
-    <string name="permission_activity_cast_permission_required_title">Permissão necessária</string>
+    <string name="permission_activity_permission_required_title">Permissão necessária</string>
     <string name="permission_activity_cast_permission_required">ScreenStream requer permissão do ScreenCast para capturar a tela.</string>
     <string name="permission_activity_error_title">Erro</string>
     <string name="permission_activity_error_unknown">Erro desconhecido</string>

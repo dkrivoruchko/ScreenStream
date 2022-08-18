@@ -1,10 +1,9 @@
-package io.ktor.server.cio;
+package io.ktor.http.cio.internals;
 
 import java.lang.reflect.Field;
 
 import io.ktor.http.cio.CIOHeaders;
 import io.ktor.http.cio.HttpHeadersMap;
-import io.ktor.http.cio.internals.CharArrayBuilder;
 
 public class CIOHeadersResearch {
     public static String getHeadersAsString(CIOHeaders headers) {

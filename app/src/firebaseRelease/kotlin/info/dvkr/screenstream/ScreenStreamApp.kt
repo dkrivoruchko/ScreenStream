@@ -13,7 +13,7 @@ class ScreenStreamApp : BaseApp() {
     override fun initLogger() {
 
         val logConfiguration = LogConfiguration.Builder()
-            .logLevel(LogLevel.DEBUG)
+            .logLevel(LogLevel.VERBOSE)
             .tag("SSApp")
             .throwableFormatter {
                 FirebaseCrashlytics.getInstance().recordException(it)

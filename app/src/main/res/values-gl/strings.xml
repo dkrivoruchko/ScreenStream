@@ -32,7 +32,7 @@
 
     <string name="permission_activity_error_title_activity_not_found">Erro de diálogo de permiso</string>
     <string name="permission_activity_error_activity_not_found">Erro de Android. Non comprobe \"Non volvas a mostrar\" no diálogo de solicitude de dereitos para capturar a pantalla. Se xa o fixeches, reinstale a aplicación.</string>
-    <string name="permission_activity_cast_permission_required_title">Permiso necesario</string>
+    <string name="permission_activity_permission_required_title">Permiso necesario</string>
     <string name="permission_activity_cast_permission_required">ScreenStream a aplicación require o permiso de Screen Cast para capturar a pantalla.</string>
     <string name="permission_activity_error_title">Erro</string>
     <string name="permission_activity_error_unknown">Erro inesperado</string>

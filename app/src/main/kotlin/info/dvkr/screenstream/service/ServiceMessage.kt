@@ -9,7 +9,7 @@ sealed class ServiceMessage {
     object FinishActivity : ServiceMessage()
 
     data class ServiceState(
-        val isStreaming: Boolean, val isBusy: Boolean, val isWaitingForPermission: Boolean,
+        val isStreaming: Boolean, val isBusy: Boolean, val waitingForCastPermission: Boolean,
         val netInterfaces: List<NetInterface>,
         val appError: AppError?
     ) : ServiceMessage()

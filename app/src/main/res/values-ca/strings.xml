@@ -32,7 +32,7 @@
 
     <string name="permission_activity_error_title_activity_not_found">Error de diàleg de permisos</string>
     <string name="permission_activity_error_activity_not_found">Error d\'Android. No marqueu \n"No es mostri més\n" al quadre de diàleg de sol·licitud de drets per capturar la pantalla. Si ja ho heu fet, torneu a instal·lar l\'aplicació.</string>
-    <string name="permission_activity_cast_permission_required_title">Es requereix permís</string>
+    <string name="permission_activity_permission_required_title">Es requereix permís</string>
     <string name="permission_activity_cast_permission_required">L\'aplicació ScreenStream requereix el permís de ScreenCast per capturar la pantalla.</string>
     <string name="permission_activity_error_title">Errada</string>
     <string name="permission_activity_error_unknown">Error inesperat</string>

@@ -1,7 +1,9 @@
 package info.dvkr.screenstream.ui.fragment
 
 import android.content.ActivityNotFoundException
+import android.content.Intent
 import android.graphics.Color
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.view.View
@@ -56,6 +58,23 @@ class SettingsInterfaceFragment : Fragment(R.layout.fragment_settings_interface)
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
+        // Interface - Locale
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            binding.clFragmentSettingsLocale.setOnClickListener {
+                try {
+                    startActivity(
+                        Intent(android.provider.Settings.ACTION_APP_LOCALE_SETTINGS)
+                            .setData(Uri.fromParts("package", requireContext().packageName, null))
+                    )
+                } catch (ignore: ActivityNotFoundException) {
+                }
+            }
+        } else {
+            // TODO Maybe add for API < 33 https://developer.android.com/about/versions/13/features/app-languages
+            binding.clFragmentSettingsLocale.visibility = View.GONE
+            binding.vFragmentSettingsLocale.visibility = View.GONE
+        }
 
         // Interface - Night mode
         viewLifecycleOwner.lifecycleScope.launchWhenCreated {
@@ -131,20 +150,15 @@ class SettingsInterfaceFragment : Fragment(R.layout.fragment_settings_interface)
         binding.clFragmentSettingsStartOnBoot.setOnClickListener { binding.cbFragmentSettingsStartOnBoot.performClick() }
 
         // Interface - Auto start stop
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            binding.clFragmentSettingsAutoStartStop.visibility = View.GONE
-            binding.vFragmentSettingsAutoStartStop.visibility = View.GONE
-        } else {
-            viewLifecycleOwner.lifecycleScope.launchWhenCreated {
-                binding.cbFragmentSettingsAutoStartStop.isChecked = settings.autoStartStopFlow.first()
-            }
-            binding.cbFragmentSettingsAutoStartStop.setOnClickListener {
-                viewLifecycleOwner.lifecycleScope.launchWhenCreated {
-                    settings.setAutoStartStop(binding.cbFragmentSettingsAutoStartStop.isChecked)
-                }
-            }
-            binding.clFragmentSettingsAutoStartStop.setOnClickListener { binding.cbFragmentSettingsAutoStartStop.performClick() }
+        viewLifecycleOwner.lifecycleScope.launchWhenCreated {
+            binding.cbFragmentSettingsAutoStartStop.isChecked = settings.autoStartStopFlow.first()
         }
+        binding.cbFragmentSettingsAutoStartStop.setOnClickListener {
+            viewLifecycleOwner.lifecycleScope.launchWhenCreated {
+                settings.setAutoStartStop(binding.cbFragmentSettingsAutoStartStop.isChecked)
+            }
+        }
+        binding.clFragmentSettingsAutoStartStop.setOnClickListener { binding.cbFragmentSettingsAutoStartStop.performClick() }
 
         // Interface - Notify slow connections
         viewLifecycleOwner.lifecycleScope.launchWhenCreated {
@@ -210,11 +224,11 @@ class SettingsInterfaceFragment : Fragment(R.layout.fragment_settings_interface)
 
     override fun onStart() {
         super.onStart()
-        XLog.d(getLog("onStart", "Invoked"))
+        XLog.d(getLog("onStart"))
     }
 
     override fun onStop() {
-        XLog.d(getLog("onStop", "Invoked"))
+        XLog.d(getLog("onStop"))
         super.onStop()
     }
 }

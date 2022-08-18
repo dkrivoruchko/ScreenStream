@@ -1,7 +1,9 @@
 package info.dvkr.screenstream.ui.fragment
 
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.view.View
 import android.widget.Toast
@@ -31,7 +33,12 @@ class AboutFragment : Fragment(R.layout.fragment_about) {
         val packageName = requireContext().packageName
 
         runCatching {
-            version = requireContext().packageManager.getPackageInfo(packageName, 0).versionName
+            version = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                requireContext().packageManager.getPackageInfo(packageName, PackageManager.PackageInfoFlags.of(0)).versionName
+            } else {
+                @Suppress("DEPRECATION")
+                requireContext().packageManager.getPackageInfo(packageName, 0).versionName
+            }
             binding.tvFragmentAboutVersion.text = getString(R.string.about_fragment_app_version, version)
         }.onFailure {
             XLog.e(getLog("onViewCreated", "getPackageInfo"), it)

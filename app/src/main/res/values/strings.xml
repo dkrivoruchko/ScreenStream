@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name" translatable="false">ScreenStream</string>
+    <string name="app_name" translatable="false">Screen Stream</string>
 
     <string name="error_title">Error</string>
     <string name="error_port_in_use">Port already in use. Choose another one.</string>
@@ -49,10 +49,13 @@
 
     <string name="permission_activity_error_title_activity_not_found">Permission dialog error</string>
     <string name="permission_activity_error_activity_not_found">Android bug. Don\'t check \"Don\'t show again\" at the rights request dialogue to capture the screen. If you already did so, reinstall the app.</string>
-    <string name="permission_activity_cast_permission_required_title">Permission required</string>
+    <string name="permission_activity_permission_required_title">Permission required</string>
     <string name="permission_activity_cast_permission_required">ScreenStream application requires Screen Cast permission to capture screen.</string>
     <string name="permission_activity_error_title">Error</string>
     <string name="permission_activity_error_unknown">Unknown error</string>
+    <string name="permission_activity_allow_notifications">Application require permission to send notifications to be able to start streaming service. Please allow sending notifications.</string>
+    <string name="permission_activity_allow_notifications_settings">Application require permission to send notifications to be able to start streaming service. Please allow sending notifications in application settings.</string>
+    <string name="permission_activity_notification_settings">Open settings</string>
 
     <string name="notification_ready_to_stream">Ready to stream</string>
     <string name="notification_press_start">Press START to begin stream</string>
@@ -65,6 +68,8 @@
     <string name="toast_slow_client_connection">Slow client connection detected</string>
 
     <string name="pref_settings_interface">Interface</string>
+    <string name="pref_locale">Application language</string>
+    <string name="pref_locale_summary">Open application language settings</string>
     <string name="pref_night_mode">Dark theme</string>
     <string-array name="pref_night_mode_options_api21_28">
         <item>Always</item>

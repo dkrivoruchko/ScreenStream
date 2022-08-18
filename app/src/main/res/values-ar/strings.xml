@@ -36,7 +36,7 @@
     <string name="item_device_address">عنوان الجهاز</string>
     <string name="permission_activity_error_title_activity_not_found">خطأ في إذن </string>
     <string name="permission_activity_error_activity_not_found"> خلل اندرويد .لا تحقق في طلب الحقوق لالتقاط الشاشة إذا قمت بذلك بالفعل ، فأعد تثبيت التطبيق</string>
-    <string name="permission_activity_cast_permission_required_title">إذن مطلوب</string>
+    <string name="permission_activity_permission_required_title">إذن مطلوب</string>
     <string name="permission_activity_cast_permission_required">يتطلب التطبيق إذن سكرينكست  لالتقاط الشاشة </string>
     <string name="permission_activity_error_title">خطأ</string>
     <string name="permission_activity_error_unknown">خطأ غير معروف</string>

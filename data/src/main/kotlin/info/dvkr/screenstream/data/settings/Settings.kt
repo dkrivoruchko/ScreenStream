@@ -47,6 +47,7 @@ interface Settings : SettingsReadOnly {
         val LOGGING_VISIBLE = booleanPreferencesKey("LOGGING_VISIBLE")
 
         val LAST_UPDATE_REQUEST_MILLIS = longPreferencesKey("LAST_UPDATE_REQUEST_MILLIS")
+        val ADD_TILE_ASKED = booleanPreferencesKey("ADD_TILE_ASKED")
     }
 
     object Default {
@@ -90,6 +91,7 @@ interface Settings : SettingsReadOnly {
         const val LOGGING_VISIBLE = false
 
         const val LAST_IAU_REQUEST_TIMESTAMP = 0L
+        const val ADD_TILE_ASKED = false
     }
 
     object Values {
@@ -139,4 +141,5 @@ interface Settings : SettingsReadOnly {
     suspend fun setLoggingVisible(value: Boolean)
 
     suspend fun setLastUpdateRequestMillis(value: Long)
+    suspend fun setAddTileAsked(value: Boolean)
 }

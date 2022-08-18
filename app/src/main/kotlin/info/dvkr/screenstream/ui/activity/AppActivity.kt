@@ -6,11 +6,13 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
+import android.os.Build
 import android.os.Bundle
 import android.text.InputType
 import android.view.View
 import android.view.animation.OvershootInterpolator
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.findNavController
 import androidx.navigation.ui.setupWithNavController
 import com.afollestad.materialdialogs.LayoutMode
@@ -28,17 +30,17 @@ import info.dvkr.screenstream.data.other.getLog
 import info.dvkr.screenstream.databinding.ActivityAppBinding
 import info.dvkr.screenstream.logging.sendLogsInEmail
 import info.dvkr.screenstream.service.ServiceMessage
+import info.dvkr.screenstream.service.TileActionService
 import info.dvkr.screenstream.service.helper.IntentAction
 import info.dvkr.screenstream.ui.viewBinding
+import kotlinx.coroutines.flow.first
 
-class AppActivity : PermissionActivity(R.layout.activity_app) {
+class AppActivity : CastPermissionActivity(R.layout.activity_app) {
 
     companion object {
-        fun getAppActivityIntent(context: Context): Intent =
-            Intent(context.applicationContext, AppActivity::class.java)
+        fun getAppActivityIntent(context: Context): Intent = Intent(context, AppActivity::class.java)
 
-        fun getStartIntent(context: Context): Intent =
-            getAppActivityIntent(context)
+        fun getStartIntent(context: Context): Intent = getAppActivityIntent(context)
     }
 
     private val binding by viewBinding { activity -> ActivityAppBinding.bind(activity.findViewById(R.id.container)) }
@@ -57,6 +59,14 @@ class AppActivity : PermissionActivity(R.layout.activity_app) {
         setLogging()
         routeIntentAction(intent)
         (application as BaseApp).sharedPreferences.registerOnSharedPreferenceChangeListener(prefListener)
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            lifecycleScope.launchWhenResumed {
+                if (isNotificationPermissionGranted().not() || settings.addTileAsked.first()) return@launchWhenResumed
+                settings.setAddTileAsked(true)
+                TileActionService.askToAddTile(this@AppActivity)
+            }
+        }
     }
 
     override fun onPostCreate(savedInstanceState: Bundle?) {
@@ -83,8 +93,7 @@ class AppActivity : PermissionActivity(R.layout.activity_app) {
     }
 
     private fun routeIntentAction(intent: Intent?) {
-        val intentAction = IntentAction.fromIntent(intent)
-        intentAction != null || return
+        val intentAction = IntentAction.fromIntent(intent) ?: return
         XLog.d(getLog("routeIntentAction", "IntentAction: $intentAction"))
 
         if (intentAction is IntentAction.StartStream) {

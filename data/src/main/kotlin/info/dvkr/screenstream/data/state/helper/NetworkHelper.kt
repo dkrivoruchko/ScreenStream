@@ -28,6 +28,7 @@ class NetworkHelper(context: Context) {
         Regex("softap\\.?\\d")
     )
 
+    @SuppressLint("DiscouragedApi")
     private val wifiRegexArray: Array<Regex> =
         Resources.getSystem().getIdentifier("config_tether_wifi_regexs", "array", "android").let { tetherId ->
             context.applicationContext.resources.getStringArray(tetherId).map { it.toRegex() }.toTypedArray()

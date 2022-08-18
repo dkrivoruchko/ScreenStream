@@ -32,7 +32,7 @@
 
     <string name="permission_activity_error_title_activity_not_found">Erreur du dialogue d\'autorisation</string>
     <string name="permission_activity_error_activity_not_found">Bug Android. Veuillez ne pas sélectionner \"Ne plus demander\" dans le dialogue de demande de permission de capture d\'écran. Si vous l\'avez déjà fait, réinstallez l\'application.</string>
-    <string name="permission_activity_cast_permission_required_title">Permission requise</string>
+    <string name="permission_activity_permission_required_title">Permission requise</string>
     <string name="permission_activity_cast_permission_required">L\'application requiert l\'autorisation Cast pour capturer l\'écran.</string>
     <string name="permission_activity_error_title">Erreur</string>
     <string name="permission_activity_error_unknown">Erreur inconnue</string>

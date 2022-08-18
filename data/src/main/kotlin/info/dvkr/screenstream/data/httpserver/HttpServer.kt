@@ -150,7 +150,7 @@ internal class HttpServer(
         var exception: AppError? = null
         try {
             ktorServer?.start(false)
-        } catch (ignore: kotlinx.coroutines.CancellationException) {
+        } catch (ignore: CancellationException) {
         } catch (ex: BindException) {
             XLog.w(getLog("startServer", ex.toString()))
             exception = FixableError.AddressInUseException

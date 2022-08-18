@@ -1,6 +1,8 @@
 package info.dvkr.screenstream.service
 
+import android.annotation.SuppressLint
 import android.annotation.TargetApi
+import android.app.StatusBarManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
@@ -10,17 +12,38 @@ import android.os.Build
 import android.os.IBinder
 import android.service.quicksettings.Tile
 import android.service.quicksettings.TileService
+import androidx.annotation.RequiresApi
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.data.other.getLog
 import info.dvkr.screenstream.service.helper.IntentAction
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineName
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
 
 @TargetApi(Build.VERSION_CODES.N)
 class TileActionService : TileService() {
+
+    internal companion object {
+
+        @SuppressLint("WrongConstant")
+        @RequiresApi(Build.VERSION_CODES.TIRAMISU)
+        internal fun askToAddTile(context: Context) {
+            XLog.d(getLog("askToAddTile"))
+            (context.getSystemService(Context.STATUS_BAR_SERVICE) as StatusBarManager).requestAddTileService(
+                ComponentName(context, TileActionService::class.java),
+                context.getString(R.string.app_name),
+                Icon.createWithResource(context, R.drawable.ic_tile_default_24dp),
+                {}, {}
+            )
+        }
+    }
 
     private var coroutineScope: CoroutineScope? = null
     private var serviceConnection: ServiceConnection? = null
@@ -29,28 +52,27 @@ class TileActionService : TileService() {
 
     override fun onStartListening() {
         super.onStartListening()
-        XLog.d(getLog("onStartListening", " isRunning:${AppService.isRunning}, isBound:$isBound"))
+        XLog.d(getLog("onStartListening", " isRunning:${ForegroundService.isRunning}, isBound:$isBound"))
 
-        if (AppService.isRunning && isBound.not()) {
+        if (ForegroundService.isRunning && isBound.not()) {
             serviceConnection = object : ServiceConnection {
-                override fun onServiceConnected(name: ComponentName?, service: IBinder) {
+                override fun onServiceConnected(name: ComponentName?, binder: IBinder) {
                     XLog.d(this@TileActionService.getLog("onServiceConnected"))
                     coroutineScope?.cancel()
                     coroutineScope = CoroutineScope(Job() + Dispatchers.Main.immediate).apply {
                         launch(CoroutineName("TileActionService.ServiceMessageFlow")) {
-                            (service as AppService.AppServiceBinder).getServiceMessageFlow()
-                                .onEach { serviceMessage ->
-                                    XLog.d(this@TileActionService.getLog("onServiceMessage", "$serviceMessage"))
-                                    when (serviceMessage) {
-                                        is ServiceMessage.ServiceState -> {
-                                            isStreaming = serviceMessage.isStreaming; updateTile()
-                                        }
-                                        is ServiceMessage.FinishActivity -> {
-                                            isStreaming = false; updateTile()
-                                        }
-                                        else -> Unit
+                            (binder as ForegroundService.ForegroundServiceBinder).serviceMessageFlow.onEach { serviceMessage ->
+                                XLog.d(this@TileActionService.getLog("onServiceMessage", "$serviceMessage"))
+                                when (serviceMessage) {
+                                    is ServiceMessage.ServiceState -> {
+                                        isStreaming = serviceMessage.isStreaming; updateTile()
                                     }
+                                    is ServiceMessage.FinishActivity -> {
+                                        isStreaming = false; updateTile()
+                                    }
+                                    else -> Unit
                                 }
+                            }
                                 .catch { cause -> XLog.e(this@TileActionService.getLog("onServiceMessage"), cause) }
                                 .collect()
                         }
@@ -66,7 +88,7 @@ class TileActionService : TileService() {
                     isBound = false
                 }
             }
-            serviceConnection?.let { bindService(AppService.getAppServiceIntent(this), it, Context.BIND_AUTO_CREATE) }
+            serviceConnection?.let { bindService(ForegroundService.getForegroundServiceIntent(this), it, Context.BIND_AUTO_CREATE) }
         } else {
             isStreaming = false
             updateTile()
@@ -89,7 +111,7 @@ class TileActionService : TileService() {
 
     override fun onClick() {
         super.onClick()
-        XLog.d(getLog("onClick", "isRunning:${AppService.isRunning}, isStreaming: $isStreaming"))
+        XLog.d(getLog("onClick", "isRunning:${ForegroundService.isRunning}, isStreaming: $isStreaming"))
         if (isStreaming)
             IntentAction.StopStream.sendToAppService(applicationContext)
         else
@@ -99,8 +121,8 @@ class TileActionService : TileService() {
     }
 
     private fun updateTile() {
-        XLog.d(getLog("updateTile", "isRunning:${AppService.isRunning}, isStreaming: $isStreaming"))
-        if (AppService.isRunning.not()) {
+        XLog.d(getLog("updateTile", "isRunning:${ForegroundService.isRunning}, isStreaming: $isStreaming"))
+        if (ForegroundService.isRunning.not()) {
             qsTile?.apply {
                 icon = Icon.createWithResource(this@TileActionService, R.drawable.ic_tile_default_24dp)
                 label = getString(R.string.app_name)

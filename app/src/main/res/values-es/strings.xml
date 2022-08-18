@@ -42,7 +42,7 @@
 
     <string name="permission_activity_error_title_activity_not_found">Permission dialog error</string>
     <string name="permission_activity_error_activity_not_found">Android bug. No marque \"No mostrar otra vez\" en el cuadro donde se solicitan los derechos para capturar la pantalla. Si lo considera, reinstale la aplicación.</string>
-    <string name="permission_activity_cast_permission_required_title">Permission required</string>
+    <string name="permission_activity_permission_required_title">Permission required</string>
     <string name="permission_activity_cast_permission_required">WIMO solicita permiso para capturar pantalla.</string>
     <string name="permission_activity_error_title">Error</string>
     <string name="permission_activity_error_unknown">Error desconocido</string>

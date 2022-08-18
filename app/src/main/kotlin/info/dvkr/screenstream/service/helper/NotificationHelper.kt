@@ -3,6 +3,7 @@ package info.dvkr.screenstream.service.helper
 import android.app.*
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ServiceInfo
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.appcompat.content.res.AppCompatResources
@@ -26,10 +27,8 @@ class NotificationHelper(context: Context) {
     enum class NotificationType(val id: Int) { START(10), STOP(11), ERROR(50) }
 
     private val applicationContext: Context = context.applicationContext
-    private val notificationManager =
-        applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-    private val flagImmutable =
-        if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.LOLLIPOP_MR1) 0 else PendingIntent.FLAG_IMMUTABLE
+    private val notificationManager = applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+    private val flagImmutable = if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.LOLLIPOP_MR1) 0 else PendingIntent.FLAG_IMMUTABLE
 
     private var currentNotificationType: NotificationType? = null
 
@@ -67,7 +66,12 @@ class NotificationHelper(context: Context) {
 
     fun showForegroundNotification(service: Service, notificationType: NotificationType) {
         if (currentNotificationType != notificationType) {
-            service.startForeground(notificationType.id, getForegroundNotification(notificationType))
+            val notification = getForegroundNotification(notificationType)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                service.startForeground(notificationType.id, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION)
+            } else {
+                service.startForeground(notificationType.id, notification)
+            }
             currentNotificationType = notificationType
         }
     }
@@ -152,10 +156,9 @@ class NotificationHelper(context: Context) {
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setLargeIcon(AppCompatResources.getDrawable(applicationContext, R.drawable.logo)?.toBitmap())
             .setContentIntent(
-                PendingIntent.getActivity(
-                    applicationContext, 0, AppActivity.getStartIntent(applicationContext), flagImmutable
-                )
+                PendingIntent.getActivity(applicationContext, 0, AppActivity.getStartIntent(applicationContext), flagImmutable)
             )
+            .setOngoing(true)
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             notificationManager.getNotificationChannel(CHANNEL_STREAM)?.let { notificationChannel ->

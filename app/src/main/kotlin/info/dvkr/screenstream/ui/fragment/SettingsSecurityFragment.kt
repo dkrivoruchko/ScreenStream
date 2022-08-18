@@ -6,6 +6,8 @@ import android.text.InputType
 import android.view.View
 import android.view.inputmethod.EditorInfo
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.flowWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import com.afollestad.materialdialogs.LayoutMode
 import com.afollestad.materialdialogs.MaterialDialog
@@ -25,6 +27,7 @@ import info.dvkr.screenstream.service.helper.IntentAction
 import info.dvkr.screenstream.ui.activity.ServiceActivity
 import info.dvkr.screenstream.ui.enableDisableViewWithChildren
 import info.dvkr.screenstream.ui.viewBinding
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
@@ -39,18 +42,17 @@ class SettingsSecurityFragment : Fragment(R.layout.fragment_settings_security) {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        (requireActivity() as ServiceActivity).getServiceMessageLiveData()
-            .observe(viewLifecycleOwner) { serviceMessage ->
+        (requireActivity() as ServiceActivity).serviceMessageFlow
+            .flowWithLifecycle(viewLifecycleOwner.lifecycle, Lifecycle.State.STARTED)
+            .filterNotNull()
+            .onEach { serviceMessage ->
                 if (serviceMessage is ServiceMessage.ServiceState) {
-                    viewLifecycleOwner.lifecycleScope.launchWhenCreated {
-                        isStreaming = serviceMessage.isStreaming
-                        binding.tvFragmentSettingsSetPinValue.text =
-                            if (isStreaming && settings.hidePinOnStartFlow.first()) "*" else settings.pinFlow.first()
-                    }
+                    isStreaming = serviceMessage.isStreaming
+                    binding.tvFragmentSettingsSetPinValue.text =
+                        if (isStreaming && settings.hidePinOnStartFlow.first()) "*" else settings.pinFlow.first()
                 }
             }
-
-        IntentAction.GetServiceState.sendToAppService(requireContext())
+            .launchIn(viewLifecycleOwner.lifecycleScope)
 
         // Security - Enable pin
         viewLifecycleOwner.lifecycleScope.launchWhenCreated {
@@ -164,11 +166,13 @@ class SettingsSecurityFragment : Fragment(R.layout.fragment_settings_security) {
 
     override fun onStart() {
         super.onStart()
-        XLog.d(getLog("onStart", "Invoked"))
+        XLog.d(getLog("onStart"))
+
+        IntentAction.GetServiceState.sendToAppService(requireContext())
     }
 
     override fun onStop() {
-        XLog.d(getLog("onStop", "Invoked"))
+        XLog.d(getLog("onStop"))
         super.onStop()
     }
 

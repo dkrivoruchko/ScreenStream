@@ -42,4 +42,5 @@ interface SettingsReadOnly {
     val loggingVisibleFlow: Flow<Boolean>
 
     val lastUpdateRequestMillisFlow: Flow<Long>
+    val addTileAsked: Flow<Boolean>
 }

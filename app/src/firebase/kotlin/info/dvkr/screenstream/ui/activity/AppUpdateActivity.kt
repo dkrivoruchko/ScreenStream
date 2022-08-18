@@ -61,7 +61,7 @@ abstract class AppUpdateActivity(@LayoutRes contentLayoutId: Int) : BaseActivity
                 }
             }
         }
-            .catch { cause -> XLog.e(this@AppUpdateActivity.getLog("AppUpdateManager.requestUpdateFlow.catch: $cause"), cause) }
+            .catch { cause -> XLog.e(this@AppUpdateActivity.getLog("AppUpdateManager.requestUpdateFlow.catch: $cause")) }
             .launchIn(lifecycleScope)
     }
 

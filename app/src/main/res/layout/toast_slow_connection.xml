@@ -7,7 +7,7 @@
     android:orientation="horizontal"
     android:padding="8dp">
 
-    <androidx.appcompat.widget.AppCompatImageView
+    <ImageView
         android:id="@+id/iv_toast_slow_connection"
         android:layout_width="24dp"
         android:layout_height="24dp"

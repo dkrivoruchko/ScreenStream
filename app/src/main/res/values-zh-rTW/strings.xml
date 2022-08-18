@@ -47,7 +47,7 @@
 
     <string name="permission_activity_error_title_activity_not_found">取得權限錯誤</string>
     <string name="permission_activity_error_activity_not_found">此為Android漏洞。在提示對話窗中請勿勾選\"不要再顯示\"選項。如果已勾選，請移除本程式後重新安裝。</string>
-    <string name="permission_activity_cast_permission_required_title">權限被拒</string>
+    <string name="permission_activity_permission_required_title">權限被拒</string>
     <string name="permission_activity_cast_permission_required">需要螢幕錄製的權限以捕捉畫面。</string>
     <string name="permission_activity_error_title">錯誤</string>
     <string name="permission_activity_error_unknown">未知錯誤</string>

@@ -47,7 +47,7 @@
 
     <string name="permission_activity_error_title_activity_not_found">权限弹窗错误</string>
     <string name="permission_activity_error_activity_not_found">安卓的问题。试试不要勾选获取屏幕弹窗右边的 \"不再显示\"。如果你已经这么做过了，请尝试重新安装这个应用。</string>
-    <string name="permission_activity_cast_permission_required_title">需要权限</string>
+    <string name="permission_activity_permission_required_title">需要权限</string>
     <string name="permission_activity_cast_permission_required">ScreenStream 需要获取屏幕权限来正常运行。</string>
     <string name="permission_activity_error_title">错误</string>
     <string name="permission_activity_error_unknown">未知错误</string>
