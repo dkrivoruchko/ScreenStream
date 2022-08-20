@@ -27,7 +27,6 @@ import info.dvkr.screenstream.service.helper.IntentAction
 import info.dvkr.screenstream.ui.activity.ServiceActivity
 import info.dvkr.screenstream.ui.enableDisableViewWithChildren
 import info.dvkr.screenstream.ui.viewBinding
-import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
@@ -44,7 +43,6 @@ class SettingsSecurityFragment : Fragment(R.layout.fragment_settings_security) {
 
         (requireActivity() as ServiceActivity).serviceMessageFlow
             .flowWithLifecycle(viewLifecycleOwner.lifecycle, Lifecycle.State.STARTED)
-            .filterNotNull()
             .onEach { serviceMessage ->
                 if (serviceMessage is ServiceMessage.ServiceState) {
                     isStreaming = serviceMessage.isStreaming

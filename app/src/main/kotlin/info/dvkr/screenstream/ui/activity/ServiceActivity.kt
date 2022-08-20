@@ -18,14 +18,7 @@ import info.dvkr.screenstream.service.ForegroundService
 import info.dvkr.screenstream.service.ServiceMessage
 import info.dvkr.screenstream.service.helper.IntentAction
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.filterNotNull
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
 abstract class ServiceActivity(@LayoutRes contentLayoutId: Int) : AppUpdateActivity(contentLayoutId) {
@@ -33,8 +26,8 @@ abstract class ServiceActivity(@LayoutRes contentLayoutId: Int) : AppUpdateActiv
     private var isBound: Boolean = false
     private var serviceMessageFlowJob: Job? = null
 
-    private val _serviceMessageFlow = MutableStateFlow<ServiceMessage?>(null)
-    internal val serviceMessageFlow: StateFlow<ServiceMessage?> = _serviceMessageFlow.asStateFlow()
+    private val _serviceMessageFlow = MutableSharedFlow<ServiceMessage>()
+    internal val serviceMessageFlow: SharedFlow<ServiceMessage> = _serviceMessageFlow.asSharedFlow()
 
     private val serviceConnection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, binder: IBinder) {
@@ -45,8 +38,10 @@ abstract class ServiceActivity(@LayoutRes contentLayoutId: Int) : AppUpdateActiv
 
                 serviceMessageFlowJob = lifecycleScope.launch {
                     foregroundServiceBinder.serviceMessageFlow
-                        .filterNotNull()
-                        .onEach { serviceMessage -> onServiceMessage(serviceMessage) }
+                        .onEach { serviceMessage ->
+                            _serviceMessageFlow.emit(serviceMessage)
+                            onServiceMessage(serviceMessage)
+                        }
                         .catch { cause ->
                             XLog.e(this@ServiceActivity.getLog("onServiceConnected.serviceMessageFlow: $cause"))
                             XLog.e(this@ServiceActivity.getLog("onServiceConnected.serviceMessageFlow"), cause)
@@ -103,8 +98,6 @@ abstract class ServiceActivity(@LayoutRes contentLayoutId: Int) : AppUpdateActiv
     @CallSuper
     open fun onServiceMessage(serviceMessage: ServiceMessage) {
         XLog.v(getLog("onServiceMessage", "$serviceMessage"))
-
-        _serviceMessageFlow.tryEmit(serviceMessage)
 
         if (serviceMessage is ServiceMessage.FinishActivity) {
             finishAndRemoveTask()

@@ -7,7 +7,6 @@ import android.content.Intent
 import android.graphics.Bitmap
 import android.media.projection.MediaProjection
 import android.media.projection.MediaProjectionManager
-import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.os.PowerManager
@@ -32,7 +31,7 @@ import java.util.concurrent.LinkedBlockingDeque
 class AppStateMachineImpl(
     private val serviceContext: Context,
     private val settings: Settings,
-    private val effectSharedFlow: MutableStateFlow<AppStateMachine.Effect?>,
+    private val effectSharedFlow: MutableSharedFlow<AppStateMachine.Effect>,
     private val onSlowConnectionDetected: () -> Unit
 ) : AppStateMachine {
 
@@ -99,7 +98,7 @@ class AppStateMachineImpl(
             XLog.e(getLog("sendEvent", "Pending events => $eventDeque"), cause)
             coroutineScope.launch(NonCancellable) {
                 streamState = componentError(streamState, FatalError.ChannelException, true)
-                effectSharedFlow.tryEmit(streamState.toPublicState())
+                effectSharedFlow.emit(streamState.toPublicState())
             }
         }
     }
@@ -140,7 +139,7 @@ class AppStateMachineImpl(
                         else -> throw IllegalArgumentException("Unknown AppStateMachine.Event: $event")
                     }
 
-                    if (streamState.isPublicStatePublishRequired(previousStreamState)) effectSharedFlow.tryEmit(streamState.toPublicState())
+                    if (streamState.isPublicStatePublishRequired(previousStreamState)) effectSharedFlow.emit(streamState.toPublicState())
 
                     XLog.i(this@AppStateMachineImpl.getLog("eventSharedFlow.onEach", "New state:${streamState.state}"))
                 }
@@ -150,7 +149,7 @@ class AppStateMachineImpl(
                 .catch { cause ->
                     XLog.e(this@AppStateMachineImpl.getLog("eventSharedFlow.catch"), cause)
                     streamState = componentError(streamState, FatalError.CoroutineException, true)
-                    effectSharedFlow.tryEmit(streamState.toPublicState())
+                    effectSharedFlow.emit(streamState.toPublicState())
                 }
                 .collect()
         }
@@ -209,13 +208,13 @@ class AppStateMachineImpl(
                     is HttpServer.Event.Statistic ->
                         when (event) {
                             is HttpServer.Event.Statistic.Clients -> {
+                                effectSharedFlow.emit(AppStateMachine.Effect.Statistic.Clients(event.clients))
                                 if (settings.autoStartStopFlow.first()) checkAutoStartStop(event.clients)
                                 if (settings.notifySlowConnectionsFlow.first()) checkForSlowClients(event.clients)
-                                effectSharedFlow.tryEmit(AppStateMachine.Effect.Statistic.Clients(event.clients))
                             }
 
                             is HttpServer.Event.Statistic.Traffic ->
-                                effectSharedFlow.tryEmit(AppStateMachine.Effect.Statistic.Traffic(event.traffic))
+                                effectSharedFlow.emit(AppStateMachine.Effect.Statistic.Traffic(event.traffic))
                         }
 
                     is HttpServer.Event.Error -> onError(event.error)
@@ -423,13 +422,13 @@ class AppStateMachineImpl(
 
         when (reason) {
             is RestartReason.ConnectionChanged ->
-                effectSharedFlow.tryEmit(AppStateMachine.Effect.ConnectionChanged)
+                effectSharedFlow.emit(AppStateMachine.Effect.ConnectionChanged)
 
             is RestartReason.SettingsChanged ->
-                bitmapStateFlow.tryEmit(notificationBitmap.getNotificationBitmap(NotificationBitmap.Type.RELOAD_PAGE))
+                bitmapStateFlow.emit(notificationBitmap.getNotificationBitmap(NotificationBitmap.Type.RELOAD_PAGE))
 
             is RestartReason.NetworkSettingsChanged ->
-                bitmapStateFlow.tryEmit(notificationBitmap.getNotificationBitmap(NotificationBitmap.Type.NEW_ADDRESS))
+                bitmapStateFlow.emit(notificationBitmap.getNotificationBitmap(NotificationBitmap.Type.NEW_ADDRESS))
         }
 
         withTimeoutOrNull(300) { httpServer.stop().await() }
@@ -463,7 +462,7 @@ class AppStateMachineImpl(
     private suspend fun requestPublicState(streamState: StreamState): StreamState {
         XLog.d(getLog("requestPublicState"))
 
-        effectSharedFlow.tryEmit(streamState.toPublicState())
+        effectSharedFlow.emit(streamState.toPublicState())
         return streamState
     }
 

@@ -5,8 +5,6 @@ import info.dvkr.screenstream.data.model.FatalError
 import info.dvkr.screenstream.data.other.getLog
 import info.dvkr.screenstream.data.other.randomString
 import io.ktor.http.*
-import io.ktor.http.cio.*
-import io.ktor.http.cio.internals.*
 import io.ktor.http.content.*
 import io.ktor.server.application.*
 import io.ktor.server.cio.*
@@ -85,8 +83,7 @@ internal fun Application.appModule(
             if (cause is IOException) return@exception
             if (cause is CancellationException) return@exception
             if (cause is IllegalArgumentException) return@exception
-            val headers = CIOHeadersResearch.getHeadersAsString(call.request.headers as CIOHeaders)
-            XLog.e(this@appModule.getLog("exception<Throwable>", headers))
+            XLog.e(this@appModule.getLog("exception<Throwable>", cause.toString()))
             XLog.e(this@appModule.getLog("exception"), cause)
             sendEvent(HttpServer.Event.Error(FatalError.HttpServerException))
             call.respond(HttpStatusCode.InternalServerError)

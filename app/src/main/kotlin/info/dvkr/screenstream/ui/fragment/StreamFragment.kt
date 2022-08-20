@@ -29,12 +29,7 @@ import info.dvkr.screenstream.data.model.AppError
 import info.dvkr.screenstream.data.model.FatalError
 import info.dvkr.screenstream.data.model.FixableError
 import info.dvkr.screenstream.data.model.HttpClient
-import info.dvkr.screenstream.data.other.asString
-import info.dvkr.screenstream.data.other.bytesToMbit
-import info.dvkr.screenstream.data.other.getLog
-import info.dvkr.screenstream.data.other.getQRBitmap
-import info.dvkr.screenstream.data.other.setColorSpan
-import info.dvkr.screenstream.data.other.setUnderlineSpan
+import info.dvkr.screenstream.data.other.*
 import info.dvkr.screenstream.data.settings.SettingsReadOnly
 import info.dvkr.screenstream.databinding.FragmentStreamBinding
 import info.dvkr.screenstream.databinding.ItemClientBinding
@@ -43,7 +38,6 @@ import info.dvkr.screenstream.service.ServiceMessage
 import info.dvkr.screenstream.service.helper.IntentAction
 import info.dvkr.screenstream.ui.activity.ServiceActivity
 import info.dvkr.screenstream.ui.viewBinding
-import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
@@ -83,7 +77,6 @@ class StreamFragment : AdFragment(R.layout.fragment_stream) {
 
         (requireActivity() as ServiceActivity).serviceMessageFlow
             .flowWithLifecycle(viewLifecycleOwner.lifecycle, Lifecycle.State.STARTED)
-            .filterNotNull()
             .onEach { serviceMessage ->
                 when (serviceMessage) {
                     is ServiceMessage.ServiceState -> onServiceStateMessage(serviceMessage)

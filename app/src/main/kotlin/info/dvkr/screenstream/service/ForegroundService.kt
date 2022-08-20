@@ -4,11 +4,14 @@ import android.annotation.SuppressLint
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.hardware.display.DisplayManager
 import android.os.Binder
 import android.os.Build
 import android.os.IBinder
 import android.os.RemoteException
+import android.view.Display
 import android.view.LayoutInflater
+import android.view.WindowManager
 import android.widget.Toast
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.content.ContextCompat
@@ -43,12 +46,12 @@ class ForegroundService : Service() {
     }
 
     internal object ForegroundServiceBinder : Binder() {
-        private val serviceMessageStateFlow = MutableStateFlow<ServiceMessage?>(null)
+        private val serviceMessageSharedFlow = MutableSharedFlow<ServiceMessage>()
 
-        internal val serviceMessageFlow: StateFlow<ServiceMessage?> = serviceMessageStateFlow.asStateFlow()
+        internal val serviceMessageFlow: SharedFlow<ServiceMessage> = serviceMessageSharedFlow.asSharedFlow()
 
-        internal fun sendMessage(serviceMessage: ServiceMessage) = try {
-            serviceMessageStateFlow.tryEmit(serviceMessage)
+        internal suspend fun sendMessage(serviceMessage: ServiceMessage) = try {
+            serviceMessageSharedFlow.emit(serviceMessage)
         } catch (cause: RemoteException) {
             XLog.d(getLog("sendMessage", "Failed to send message: $serviceMessage: $cause"))
             XLog.e(getLog("sendMessage", "Failed to send message: $serviceMessage"), cause)
@@ -56,7 +59,7 @@ class ForegroundService : Service() {
     }
 
     private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
-    private val effectFlow = MutableStateFlow<AppStateMachine.Effect?>(null)
+    private val effectFlow = MutableSharedFlow<AppStateMachine.Effect>(extraBufferCapacity = 8)
 
     private val settings: Settings by inject()
     private val notificationHelper: NotificationHelper by inject()
@@ -81,7 +84,7 @@ class ForegroundService : Service() {
         notificationHelper.createNotificationChannel()
         notificationHelper.showForegroundNotification(this, NotificationHelper.NotificationType.START)
 
-        effectFlow.filterNotNull().onEach { effect ->
+        effectFlow.onEach { effect ->
             if (effect !is AppStateMachine.Effect.Statistic)
                 XLog.d(this@ForegroundService.getLog("onEffect", "Effect: $effect"))
 
@@ -150,7 +153,7 @@ class ForegroundService : Service() {
 
                 notificationHelper.hideErrorNotification()
                 stopForeground(true)
-                ForegroundServiceBinder.sendMessage(ServiceMessage.FinishActivity)
+                coroutineScope.launch { ForegroundServiceBinder.sendMessage(ServiceMessage.FinishActivity) }
                 this@ForegroundService.stopSelf()
             }
 
@@ -184,10 +187,10 @@ class ForegroundService : Service() {
 
         isRunning = false
 
-        coroutineScope.cancel()
-
         appStateMachine?.destroy()
         appStateMachine = null
+
+        coroutineScope.cancel()
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             stopForeground(STOP_FOREGROUND_REMOVE)
@@ -213,13 +216,26 @@ class ForegroundService : Service() {
     }
 
     @Suppress("DEPRECATION")
+    private val windowContext: Context by lazy(LazyThreadSafetyMode.NONE) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+            this
+        } else {
+            val display = ContextCompat.getSystemService(this, DisplayManager::class.java)!!
+                .getDisplay(Display.DEFAULT_DISPLAY)
+
+            this.createDisplayContext(display)
+                .createWindowContext(WindowManager.LayoutParams.TYPE_TOAST, null)
+        }
+    }
+
+    @Suppress("DEPRECATION")
     private fun showSlowConnectionToast() {
         coroutineScope.launch {
-            val layoutInflater = ContextCompat.getSystemService(this@ForegroundService, LayoutInflater::class.java)!!
+            val layoutInflater = ContextCompat.getSystemService(windowContext, LayoutInflater::class.java)!!
             val binding = ToastSlowConnectionBinding.inflate(layoutInflater)
-            val drawable = AppCompatResources.getDrawable(this@ForegroundService, R.drawable.ic_notification_small_24dp)
+            val drawable = AppCompatResources.getDrawable(windowContext, R.drawable.ic_notification_small_24dp)
             binding.ivToastSlowConnection.setImageDrawable(drawable)
-            Toast(this@ForegroundService).apply { view = binding.root; duration = Toast.LENGTH_LONG }.show()
+            Toast(windowContext).apply { view = binding.root; duration = Toast.LENGTH_LONG }.show()
         }
     }
 }
