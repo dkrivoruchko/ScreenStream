@@ -36,12 +36,21 @@ class ForegroundService : Service() {
         @Volatile
         var isRunning: Boolean = false
 
+        @JvmStatic
         fun getForegroundServiceIntent(context: Context): Intent = Intent(context, ForegroundService::class.java)
 
+        @JvmStatic
         fun startForeground(context: Context, intent: Intent) {
-            XLog.e(getLog("startForeground"))
+            XLog.d(getLog("startForeground", intent.extras?.toString()))
             runCatching { ContextCompat.startForegroundService(context, intent) }
                 .onFailure { XLog.e(getLog("startForeground", "Failed to start Foreground Service"), it) }
+        }
+
+        @JvmStatic
+        fun startService(context: Context, intent: Intent) {
+            XLog.d(getLog("startService", intent.extras?.toString()))
+            runCatching { context.startService(intent) }
+                .onFailure { XLog.e(getLog("startService", "Failed to start Service"), it) }
         }
     }
 

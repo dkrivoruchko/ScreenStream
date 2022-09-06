@@ -10,6 +10,7 @@ import android.content.ServiceConnection
 import android.graphics.drawable.Icon
 import android.os.Build
 import android.os.IBinder
+import android.os.RemoteException
 import android.service.quicksettings.Tile
 import android.service.quicksettings.TileService
 import androidx.annotation.RequiresApi
@@ -53,24 +54,35 @@ class TileActionService : TileService() {
             serviceConnection = object : ServiceConnection {
                 override fun onServiceConnected(name: ComponentName?, binder: IBinder) {
                     XLog.d(this@TileActionService.getLog("onServiceConnected"))
-                    coroutineScope?.cancel()
-                    coroutineScope = CoroutineScope(Job() + Dispatchers.Main.immediate).apply {
-                        launch(CoroutineName("TileActionService.ServiceMessageFlow")) {
-                            (binder as ForegroundService.ForegroundServiceBinder).serviceMessageFlow.onEach { serviceMessage ->
-                                XLog.d(this@TileActionService.getLog("onServiceMessage", "$serviceMessage"))
-                                when (serviceMessage) {
-                                    is ServiceMessage.ServiceState -> {
-                                        isStreaming = serviceMessage.isStreaming; updateTile()
+
+                    try {
+                        val foregroundServiceBinder = binder as ForegroundService.ForegroundServiceBinder
+
+                        coroutineScope?.cancel()
+                        coroutineScope = CoroutineScope(Job() + Dispatchers.Main.immediate)
+                        coroutineScope!!.launch {
+                            foregroundServiceBinder.serviceMessageFlow
+                                .onEach { serviceMessage ->
+                                    XLog.d(this@TileActionService.getLog("onServiceMessage", "$serviceMessage"))
+                                    when (serviceMessage) {
+                                        is ServiceMessage.ServiceState -> {
+                                            isStreaming = serviceMessage.isStreaming; updateTile()
+                                        }
+                                        is ServiceMessage.FinishActivity -> {
+                                            isStreaming = false; updateTile()
+                                        }
+                                        else -> Unit
                                     }
-                                    is ServiceMessage.FinishActivity -> {
-                                        isStreaming = false; updateTile()
-                                    }
-                                    else -> Unit
                                 }
-                            }
-                                .catch { cause -> XLog.e(this@TileActionService.getLog("onServiceMessage"), cause) }
+                                .catch { cause ->
+                                    XLog.e(this@TileActionService.getLog("onServiceConnected.serviceMessageFlow: $cause"))
+                                    XLog.e(this@TileActionService.getLog("onServiceConnected.serviceMessageFlow"), cause)
+                                }
                                 .collect()
                         }
+                    } catch (cause: RemoteException) {
+                        XLog.e(this@TileActionService.getLog("onServiceConnected", "Failed to bind"), cause)
+                        return
                     }
                     isBound = true
                     IntentAction.GetServiceState.sendToAppService(this@TileActionService)
@@ -83,7 +95,8 @@ class TileActionService : TileService() {
                     isBound = false
                 }
             }
-            serviceConnection?.let { bindService(ForegroundService.getForegroundServiceIntent(this), it, Context.BIND_AUTO_CREATE) }
+
+            bindService(ForegroundService.getForegroundServiceIntent(this), serviceConnection!!, Context.BIND_AUTO_CREATE)
         } else {
             isStreaming = false
             updateTile()

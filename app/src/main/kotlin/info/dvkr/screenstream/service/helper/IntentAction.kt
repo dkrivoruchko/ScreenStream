@@ -27,7 +27,10 @@ internal sealed class IntentAction : Parcelable {
         AppActivity.getAppActivityIntent(context).putExtra(EXTRA_PARCELABLE, this@IntentAction)
 
     internal fun sendToAppService(context: Context) =
-        ForegroundService.startForeground(context, this.toAppServiceIntent(context))
+        if (ForegroundService.isRunning)
+            ForegroundService.startService(context, this.toAppServiceIntent(context))
+        else
+            ForegroundService.startForeground(context, this.toAppServiceIntent(context))
 
     @Parcelize object GetServiceState : IntentAction()
     @Parcelize object StartStream : IntentAction()

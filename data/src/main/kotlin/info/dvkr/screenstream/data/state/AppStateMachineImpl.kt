@@ -257,7 +257,7 @@ class AppStateMachineImpl(
         try {
             runBlocking(coroutineScope.coroutineContext) { withTimeout(1000) { httpServer.destroy().await() } }
         } catch (cause: Throwable) {
-            XLog.e(getLog("destroy"), cause)
+            XLog.e(getLog("destroy", cause.toString()))
         }
         broadcastHelper.stopListening()
         connectivityHelper.stopListening()
