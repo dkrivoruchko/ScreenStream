@@ -5,10 +5,8 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.hardware.display.DisplayManager
-import android.os.Binder
 import android.os.Build
 import android.os.IBinder
-import android.os.RemoteException
 import android.view.Display
 import android.view.LayoutInflater
 import android.view.WindowManager
@@ -52,19 +50,15 @@ class ForegroundService : Service() {
             runCatching { context.startService(intent) }
                 .onFailure { XLog.e(getLog("startService", "Failed to start Service"), it) }
         }
-    }
 
-    internal object ForegroundServiceBinder : Binder() {
+        @JvmStatic
         private val serviceMessageSharedFlow = MutableSharedFlow<ServiceMessage>()
 
+        @JvmStatic
         internal val serviceMessageFlow: SharedFlow<ServiceMessage> = serviceMessageSharedFlow.asSharedFlow()
 
-        internal suspend fun sendMessage(serviceMessage: ServiceMessage) = try {
-            serviceMessageSharedFlow.emit(serviceMessage)
-        } catch (cause: RemoteException) {
-            XLog.d(getLog("sendMessage", "Failed to send message: $serviceMessage: $cause"))
-            XLog.e(getLog("sendMessage", "Failed to send message: $serviceMessage"), cause)
-        }
+        @JvmStatic
+        internal suspend fun sendMessage(serviceMessage: ServiceMessage) = serviceMessageSharedFlow.emit(serviceMessage)
     }
 
     private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
@@ -76,15 +70,7 @@ class ForegroundService : Service() {
     private var appStateMachine: AppStateMachine? = null
     private var appErrorPrevious: AppError? = null
 
-    override fun onBind(intent: Intent?): IBinder {
-        XLog.e(getLog("onBind"))
-        return ForegroundServiceBinder
-    }
-
-    override fun onUnbind(intent: Intent?): Boolean {
-        XLog.e(getLog("onUnbind"))
-        return super.onUnbind(intent)
-    }
+    override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -101,10 +87,9 @@ class ForegroundService : Service() {
                 is AppStateMachine.Effect.ConnectionChanged -> Unit  // TODO Notify user about restart reason
 
                 is AppStateMachine.Effect.PublicState -> {
-                    ForegroundServiceBinder.sendMessage(
+                    sendMessage(
                         ServiceMessage.ServiceState(
-                            effect.isStreaming, effect.isBusy, effect.waitingForPermission,
-                            effect.netInterfaces, effect.appError
+                            effect.isStreaming, effect.isBusy, effect.waitingForPermission, effect.netInterfaces, effect.appError
                         )
                     )
 
@@ -116,11 +101,9 @@ class ForegroundService : Service() {
                 }
 
                 is AppStateMachine.Effect.Statistic -> {
-                    if (effect is AppStateMachine.Effect.Statistic.Clients)
-                        ForegroundServiceBinder.sendMessage(ServiceMessage.Clients(effect.clients))
+                    if (effect is AppStateMachine.Effect.Statistic.Clients) sendMessage(ServiceMessage.Clients(effect.clients))
 
-                    if (effect is AppStateMachine.Effect.Statistic.Traffic)
-                        ForegroundServiceBinder.sendMessage(ServiceMessage.TrafficHistory(effect.traffic))
+                    if (effect is AppStateMachine.Effect.Statistic.Traffic) sendMessage(ServiceMessage.TrafficHistory(effect.traffic))
                 }
             }
         }
@@ -162,7 +145,7 @@ class ForegroundService : Service() {
 
                 notificationHelper.hideErrorNotification()
                 stopForeground(true)
-                coroutineScope.launch { ForegroundServiceBinder.sendMessage(ServiceMessage.FinishActivity) }
+                coroutineScope.launch { sendMessage(ServiceMessage.FinishActivity) }
                 this@ForegroundService.stopSelf()
             }
 

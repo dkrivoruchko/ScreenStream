@@ -5,6 +5,7 @@ apply plugin: "com.google.gms.google-services"
 apply plugin: "com.google.firebase.crashlytics"
 
 android {
+    namespace "info.dvkr.screenstream"
     compileSdkVersion(33)
     buildToolsVersion("33.0.0")
 
@@ -12,12 +13,13 @@ android {
         applicationId = "info.dvkr.screenstream"
         minSdkVersion(21)
         targetSdkVersion(33)
-        versionCode = 31001
-        versionName = "3.10.1"
+        versionCode = 31002
+        versionName = "3.10.2"
 
         // Don't forget to update xml/locales_config.xml
         resConfigs 'en', 'ar', 'ca', 'de', 'es', 'fa', 'fr-rFR', 'gl', 'hi', 'it', 'ja', 'nl', 'pl', 'pt-rBR', 'ru', 'sk', 'uk', 'zh', 'zh-rTW'
 
+        // https://medium.com/@crafty/no-if-you-do-that-then-you-cant-use-newer-features-on-older-platforms-e-g-fa595333c0a4
         vectorDrawables.useSupportLibrary = true
     }
 
@@ -62,8 +64,8 @@ android {
 
     compileOptions {
         coreLibraryDesugaringEnabled = true
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
     }
 
     sourceSets {
@@ -79,36 +81,35 @@ android {
     }
     packagingOptions {
         resources {
-            excludes += ['META-INF/INDEX.LIST']
+            excludes += ["META-INF/INDEX.LIST"]
         }
     }
 
     kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_1_8.toString()
+        jvmTarget = JavaVersion.VERSION_11.toString()
     }
+    
 }
 
 dependencies {
-    // TODO waiting for Android Studio Dolphin release
-    // https://developer.android.com/about/versions/13/features#core-libraries
-    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:1.1.5")
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:1.2.2")
 
     implementation(project(":data"))
 
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.4")
 
-    implementation("androidx.core:core-ktx:1.9.0-rc01")
-    implementation("androidx.activity:activity-ktx:1.6.0-rc01")
-    implementation("androidx.fragment:fragment-ktx:1.5.2")
-    implementation("androidx.appcompat:appcompat:1.6.0-beta01")
+    implementation("androidx.core:core-ktx:1.9.0")
+    implementation("androidx.activity:activity-ktx:1.6.0")
+    implementation("androidx.fragment:fragment-ktx:1.5.3")
+    implementation("androidx.appcompat:appcompat:1.6.0-rc01")
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
     implementation("androidx.recyclerview:recyclerview:1.2.1")
     implementation("com.google.android.material:material:1.7.0-rc01")
     implementation("androidx.window:window:1.0.0")
 
-    implementation("androidx.navigation:navigation-fragment-ktx:2.5.1")
-    implementation("androidx.navigation:navigation-ui-ktx:2.5.1")
+    implementation("androidx.navigation:navigation-fragment-ktx:2.5.2")
+    implementation("androidx.navigation:navigation-ui-ktx:2.5.2")
     implementation("androidx.lifecycle:lifecycle-livedata:2.5.1")
     implementation("androidx.lifecycle:lifecycle-common:2.5.1")
 
@@ -120,7 +121,7 @@ dependencies {
     implementation(fileTree("libs/bottomsheets-release.aar"))
 //    implementation("com.afollestad.material-dialogs:bottomsheets:3.3.0")
 
-    implementation("io.insert-koin:koin-android:3.2.0")
+    implementation("io.insert-koin:koin-android:3.2.2")
     implementation("com.github.iamironz:binaryprefs:1.0.1") //Migrating to datastore
     implementation("androidx.datastore:datastore-preferences:1.0.0")
     implementation("com.elvishew:xlog:1.11.0")
@@ -130,7 +131,7 @@ dependencies {
     }
     firebaseImplementation("com.google.firebase:firebase-analytics:21.1.1")
     firebaseImplementation("com.google.firebase:firebase-crashlytics:18.2.13")
-    firebaseImplementation("com.google.android.gms:play-services-ads:21.1.0")
+    firebaseImplementation("com.google.android.gms:play-services-ads:21.2.0")
 
 //    debugImplementation("com.squareup.leakcanary:leakcanary-android:2.9.1")
 }

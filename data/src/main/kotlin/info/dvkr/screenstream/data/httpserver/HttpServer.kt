@@ -4,39 +4,13 @@ import android.content.Context
 import android.graphics.Bitmap
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.data.image.NotificationBitmap
-import info.dvkr.screenstream.data.model.AppError
-import info.dvkr.screenstream.data.model.FatalError
-import info.dvkr.screenstream.data.model.FixableError
-import info.dvkr.screenstream.data.model.HttpClient
-import info.dvkr.screenstream.data.model.NetInterface
-import info.dvkr.screenstream.data.model.TrafficPoint
+import info.dvkr.screenstream.data.model.*
 import info.dvkr.screenstream.data.other.getLog
 import info.dvkr.screenstream.data.settings.SettingsReadOnly
 import io.ktor.server.cio.*
 import io.ktor.server.engine.*
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.CoroutineExceptionHandler
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.currentCoroutineContext
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asSharedFlow
-import kotlinx.coroutines.flow.conflate
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.shareIn
-import kotlinx.coroutines.isActive
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.*
 import java.io.ByteArrayOutputStream
 import java.io.IOException
 import java.net.BindException
@@ -85,7 +59,7 @@ internal class HttpServer(
         XLog.d(getLog("startServer"))
 
         val coroutineExceptionHandler = CoroutineExceptionHandler { _, throwable ->
-            if (throwable is IOException) return@CoroutineExceptionHandler
+            if (throwable is IOException && throwable !is BindException) return@CoroutineExceptionHandler
             if (throwable is CancellationException) return@CoroutineExceptionHandler
             XLog.d(getLog("onCoroutineException", "ktorServer: ${ktorServer?.hashCode()}"))
             XLog.e(getLog("onCoroutineException", throwable.toString()), throwable)

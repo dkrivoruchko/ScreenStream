@@ -2,6 +2,7 @@ apply plugin: "com.android.library"
 apply plugin: "kotlin-android"
 
 android {
+    namespace "info.dvkr.screenstream.data"
     compileSdkVersion(33)
     buildToolsVersion("33.0.0")
 
@@ -11,8 +12,8 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
     }
 
     sourceSets {
@@ -20,7 +21,7 @@ android {
     }
 
     kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_1_8.toString()
+        jvmTarget = JavaVersion.VERSION_11.toString()
     }
 }
 
@@ -29,13 +30,13 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-reflect:1.7.10")
 
     //noinspection KtxExtensionAvailable
-    implementation("androidx.core:core:1.9.0-rc01")
+    implementation("androidx.core:core:1.9.0")
     implementation("androidx.window:window:1.0.0")
 
-    implementation("io.ktor:ktor-server-cio:2.1.0")
-    implementation("io.ktor:ktor-server-default-headers:2.1.0")
-    implementation("io.ktor:ktor-server-status-pages:2.1.0")
-    implementation("io.ktor:ktor-server-cors:2.1.0")
+    implementation("io.ktor:ktor-server-cio:2.1.1")
+    implementation("io.ktor:ktor-server-default-headers:2.1.1")
+    implementation("io.ktor:ktor-server-status-pages:2.1.1")
+    implementation("io.ktor:ktor-server-cors:2.1.1")
 
     implementation("com.github.iamironz:binaryprefs:1.0.1") //Migrating to datastore
     implementation("androidx.datastore:datastore-preferences:1.0.0")
