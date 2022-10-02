@@ -13,8 +13,8 @@ import com.google.android.play.core.ktx.AppUpdateResult
 import com.google.android.play.core.ktx.isFlexibleUpdateAllowed
 import com.google.android.play.core.ktx.requestUpdateFlow
 import info.dvkr.screenstream.R
-import info.dvkr.screenstream.data.other.getLog
-import info.dvkr.screenstream.data.settings.Settings
+import info.dvkr.screenstream.common.getLog
+import info.dvkr.screenstream.common.settings.AppSettings
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
@@ -28,7 +28,7 @@ abstract class AppUpdateActivity(@LayoutRes contentLayoutId: Int) : BaseActivity
         private const val APP_UPDATE_REQUEST_TIMEOUT = 8 * 60 * 60 * 1000L  // 8 hours. Don't need exact time frame
     }
 
-    protected val settings: Settings by inject()
+    protected val appSettings: AppSettings by inject()
     private var appUpdateConfirmationDialog: MaterialDialog? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -44,10 +44,10 @@ abstract class AppUpdateActivity(@LayoutRes contentLayoutId: Int) : BaseActivity
                     if (appUpdateResult.updateInfo.isFlexibleUpdateAllowed) {
                         XLog.d(this@AppUpdateActivity.getLog("AppUpdateResult.Available", "FlexibleUpdateAllowed"))
                         val lastRequestMillisPassed =
-                            System.currentTimeMillis() - settings.lastUpdateRequestMillisFlow.first()
+                            System.currentTimeMillis() - appSettings.lastUpdateRequestMillisFlow.first()
                         if (lastRequestMillisPassed >= APP_UPDATE_REQUEST_TIMEOUT) {
                             XLog.d(this@AppUpdateActivity.getLog("AppUpdateResult.Available", "startFlexibleUpdate"))
-                            settings.setLastUpdateRequestMillis(System.currentTimeMillis())
+                            appSettings.setLastUpdateRequestMillis(System.currentTimeMillis())
                             appUpdateResult.startFlexibleUpdate(this, APP_UPDATE_FLEXIBLE_REQUEST_CODE)
                         }
                     }

@@ -15,12 +15,14 @@ import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.content.ContextCompat
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.R
-import info.dvkr.screenstream.data.model.AppError
-import info.dvkr.screenstream.data.other.getLog
-import info.dvkr.screenstream.data.settings.Settings
-import info.dvkr.screenstream.data.state.AppStateMachine
-import info.dvkr.screenstream.data.state.AppStateMachineImpl
+import info.dvkr.screenstream.common.AppStateMachine
+import info.dvkr.screenstream.common.getLog
+import info.dvkr.screenstream.common.settings.AppSettings
 import info.dvkr.screenstream.databinding.ToastSlowConnectionBinding
+import info.dvkr.screenstream.mjpeg.model.AppError
+import info.dvkr.screenstream.mjpeg.model.MjpegPublicState
+import info.dvkr.screenstream.mjpeg.settings.MjpegSettings
+import info.dvkr.screenstream.mjpeg.state.MjpegStateMachine
 import info.dvkr.screenstream.service.helper.IntentAction
 import info.dvkr.screenstream.service.helper.NotificationHelper
 import kotlinx.coroutines.*
@@ -64,7 +66,8 @@ class ForegroundService : Service() {
     private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private val effectFlow = MutableSharedFlow<AppStateMachine.Effect>(extraBufferCapacity = 8)
 
-    private val settings: Settings by inject()
+    private val appSettings: AppSettings by inject()
+    private val mjpegSettings: MjpegSettings by inject()
     private val notificationHelper: NotificationHelper by inject()
 
     private var appStateMachine: AppStateMachine? = null
@@ -87,17 +90,19 @@ class ForegroundService : Service() {
                 is AppStateMachine.Effect.ConnectionChanged -> Unit  // TODO Notify user about restart reason
 
                 is AppStateMachine.Effect.PublicState -> {
-                    sendMessage(
-                        ServiceMessage.ServiceState(
-                            effect.isStreaming, effect.isBusy, effect.waitingForPermission, effect.netInterfaces, effect.appError
+                    if (effect is MjpegPublicState) {
+                        sendMessage(
+                            ServiceMessage.ServiceState(
+                                effect.isStreaming, effect.isBusy, effect.waitingForCastPermission, effect.netInterfaces, effect.appError
+                            )
                         )
-                    )
 
-                    val notificationType = if (effect.isStreaming) NotificationHelper.NotificationType.STOP
-                    else NotificationHelper.NotificationType.START
-                    notificationHelper.showForegroundNotification(this@ForegroundService, notificationType)
+                        val notificationType = if (effect.isStreaming) NotificationHelper.NotificationType.STOP
+                        else NotificationHelper.NotificationType.START
+                        notificationHelper.showForegroundNotification(this@ForegroundService, notificationType)
 
-                    onError(effect.appError)
+                        onError(effect.appError)
+                    }
                 }
 
                 is AppStateMachine.Effect.Statistic -> {
@@ -109,7 +114,7 @@ class ForegroundService : Service() {
         }
             .launchIn(coroutineScope)
 
-        appStateMachine = AppStateMachineImpl(this, settings, effectFlow, ::showSlowConnectionToast)
+        appStateMachine = MjpegStateMachine(this, appSettings, mjpegSettings, effectFlow, ::showSlowConnectionToast)
 
         isRunning = true
     }

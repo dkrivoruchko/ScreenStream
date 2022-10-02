@@ -12,8 +12,8 @@ import androidx.lifecycle.lifecycleScope
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.BaseApp
 import info.dvkr.screenstream.R
-import info.dvkr.screenstream.data.other.getLog
-import info.dvkr.screenstream.data.settings.Settings
+import info.dvkr.screenstream.common.getLog
+import info.dvkr.screenstream.common.settings.AppSettings
 import info.dvkr.screenstream.databinding.FragmentAboutBinding
 import info.dvkr.screenstream.ui.viewBinding
 import kotlinx.coroutines.flow.first
@@ -21,7 +21,7 @@ import org.koin.android.ext.android.inject
 
 class AboutFragment : Fragment(R.layout.fragment_about) {
 
-    private val settings: Settings by inject()
+    private val appSettings: AppSettings by inject()
     private var settingsLoggingVisibleCounter: Int = 0
     private var version: String = ""
 
@@ -46,11 +46,11 @@ class AboutFragment : Fragment(R.layout.fragment_about) {
 
         binding.tvFragmentAboutVersion.setOnClickListener {
             viewLifecycleOwner.lifecycleScope.launchWhenCreated {
-                if (settings.loggingVisibleFlow.first()) return@launchWhenCreated
+                if (appSettings.loggingVisibleFlow.first()) return@launchWhenCreated
                 settingsLoggingVisibleCounter++
                 if (settingsLoggingVisibleCounter >= 5) {
                     (requireActivity().application as BaseApp).isLoggingOn = true
-                    settings.setLoggingVisible(true)
+                    appSettings.setLoggingVisible(true)
                     Toast.makeText(requireContext(), "Logging option enabled", Toast.LENGTH_LONG).show()
                     binding.tvFragmentAboutVersion.setOnClickListener(null)
                 }

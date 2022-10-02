@@ -6,13 +6,13 @@ import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.preferencesDataStoreFile
 import com.elvishew.xlog.XLog
 import com.ironz.binaryprefs.BinaryPreferencesBuilder
-import info.dvkr.screenstream.data.settings.Settings
-import info.dvkr.screenstream.data.settings.SettingsImpl
-import info.dvkr.screenstream.data.settings.SettingsReadOnly
-import info.dvkr.screenstream.data.settings.old.SettingsDataMigration
+import info.dvkr.screenstream.common.settings.AppSettings
+import info.dvkr.screenstream.common.settings.AppSettingsImpl
+import info.dvkr.screenstream.di.migration.SettingsDataMigration
+import info.dvkr.screenstream.mjpeg.settings.MjpegSettings
+import info.dvkr.screenstream.mjpeg.settings.MjpegSettingsImpl
 import info.dvkr.screenstream.service.helper.NotificationHelper
 import org.koin.android.ext.koin.androidApplication
-import org.koin.dsl.bind
 import org.koin.dsl.module
 
 val baseKoinModule = module {
@@ -33,7 +33,9 @@ val baseKoinModule = module {
         )
     }
 
-    single<Settings> { SettingsImpl(get()) } bind SettingsReadOnly::class
+    single<AppSettings> { AppSettingsImpl(get()) }
+
+    single<MjpegSettings> { MjpegSettingsImpl(get()) }
 
     single { NotificationHelper(androidApplication()) }
 }

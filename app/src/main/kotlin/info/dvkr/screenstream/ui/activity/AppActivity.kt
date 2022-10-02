@@ -26,7 +26,7 @@ import com.afollestad.materialdialogs.lifecycle.lifecycleOwner
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.BaseApp
 import info.dvkr.screenstream.R
-import info.dvkr.screenstream.data.other.getLog
+import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.databinding.ActivityAppBinding
 import info.dvkr.screenstream.logging.sendLogsInEmail
 import info.dvkr.screenstream.service.ServiceMessage
@@ -62,8 +62,8 @@ class AppActivity : CastPermissionActivity(R.layout.activity_app) {
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             lifecycleScope.launchWhenResumed {
-                if (isNotificationPermissionGranted().not() || settings.addTileAsked.first()) return@launchWhenResumed
-                settings.setAddTileAsked(true)
+                if (isNotificationPermissionGranted().not() || appSettings.addTileAsked.first()) return@launchWhenResumed
+                appSettings.setAddTileAsked(true)
                 TileActionService.askToAddTile(this@AppActivity)
             }
         }

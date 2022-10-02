@@ -18,10 +18,11 @@ import com.afollestad.materialdialogs.lifecycle.lifecycleOwner
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.BaseApp
 import info.dvkr.screenstream.R
-import info.dvkr.screenstream.data.other.getLog
-import info.dvkr.screenstream.data.settings.Settings
+import info.dvkr.screenstream.common.getLog
+import info.dvkr.screenstream.common.settings.AppSettings
 import info.dvkr.screenstream.databinding.FragmentSettingsAdvancedBinding
 import info.dvkr.screenstream.logging.cleanLogFiles
+import info.dvkr.screenstream.mjpeg.settings.MjpegSettings
 import info.dvkr.screenstream.ui.enableDisableViewWithChildren
 import info.dvkr.screenstream.ui.viewBinding
 import kotlinx.coroutines.Dispatchers
@@ -34,7 +35,8 @@ import org.koin.android.ext.android.inject
 
 class SettingsAdvancedFragment : Fragment(R.layout.fragment_settings_advanced) {
 
-    private val settings: Settings by inject()
+    private val appSettings: AppSettings by inject()
+    private val mjpegSettings: MjpegSettings by inject()
     private val binding by viewBinding { fragment -> FragmentSettingsAdvancedBinding.bind(fragment.requireView()) }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -42,14 +44,14 @@ class SettingsAdvancedFragment : Fragment(R.layout.fragment_settings_advanced) {
 
         // Advanced - Use WiFi Only
         viewLifecycleOwner.lifecycleScope.launchWhenCreated {
-            binding.cbFragmentSettingsUseWifiOnly.isChecked = settings.useWiFiOnlyFlow.first()
-            val enableLocalHost = settings.enableLocalHostFlow.first()
-            val localHostOnly = settings.localHostOnlyFlow.first()
+            binding.cbFragmentSettingsUseWifiOnly.isChecked = mjpegSettings.useWiFiOnlyFlow.first()
+            val enableLocalHost = mjpegSettings.enableLocalHostFlow.first()
+            val localHostOnly = mjpegSettings.localHostOnlyFlow.first()
             binding.cbFragmentSettingsUseWifiOnly.enableDisableViewWithChildren((enableLocalHost && localHostOnly).not())
         }
         binding.cbFragmentSettingsUseWifiOnly.setOnClickListener {
             viewLifecycleOwner.lifecycleScope.launchWhenCreated {
-                settings.setUseWiFiOnly(binding.cbFragmentSettingsUseWifiOnly.isChecked)
+                mjpegSettings.setUseWiFiOnly(binding.cbFragmentSettingsUseWifiOnly.isChecked)
             }
         }
         binding.clFragmentSettingsUseWifiOnly.setOnClickListener { binding.cbFragmentSettingsUseWifiOnly.performClick() }
@@ -57,25 +59,25 @@ class SettingsAdvancedFragment : Fragment(R.layout.fragment_settings_advanced) {
 
         // Advanced - Enable IPv6 support
         viewLifecycleOwner.lifecycleScope.launchWhenCreated {
-            binding.cbFragmentSettingsEnableIpv6.isChecked = settings.enableIPv6Flow.first()
+            binding.cbFragmentSettingsEnableIpv6.isChecked = mjpegSettings.enableIPv6Flow.first()
         }
         binding.cbFragmentSettingsEnableIpv6.setOnClickListener {
             viewLifecycleOwner.lifecycleScope.launchWhenCreated {
-                settings.setEnableIPv6(binding.cbFragmentSettingsEnableIpv6.isChecked)
+                mjpegSettings.setEnableIPv6(binding.cbFragmentSettingsEnableIpv6.isChecked)
             }
         }
         binding.clFragmentSettingsEnableIpv6.setOnClickListener { binding.cbFragmentSettingsEnableIpv6.performClick() }
 
         // Advanced - Enable Local host
         viewLifecycleOwner.lifecycleScope.launchWhenCreated {
-            binding.cbFragmentSettingsEnableLocalhost.isChecked = settings.enableLocalHostFlow.first()
+            binding.cbFragmentSettingsEnableLocalhost.isChecked = mjpegSettings.enableLocalHostFlow.first()
             binding.clFragmentSettingsLocalhostOnly.enableDisableViewWithChildren(binding.cbFragmentSettingsEnableLocalhost.isChecked)
         }
         binding.cbFragmentSettingsEnableLocalhost.setOnClickListener {
             viewLifecycleOwner.lifecycleScope.launchWhenCreated {
                 val enableLocalHost = binding.cbFragmentSettingsEnableLocalhost.isChecked
-                settings.setEnableLocalHost(enableLocalHost)
-                val localHostOnly = settings.localHostOnlyFlow.first()
+                mjpegSettings.setEnableLocalHost(enableLocalHost)
+                val localHostOnly = mjpegSettings.localHostOnlyFlow.first()
                 binding.clFragmentSettingsLocalhostOnly.enableDisableViewWithChildren(enableLocalHost)
                 binding.clFragmentSettingsUseWifiOnly.enableDisableViewWithChildren((enableLocalHost && localHostOnly).not())
             }
@@ -84,14 +86,14 @@ class SettingsAdvancedFragment : Fragment(R.layout.fragment_settings_advanced) {
 
         // Advanced - Local host only
         viewLifecycleOwner.lifecycleScope.launchWhenCreated {
-            binding.cbFragmentSettingsLocalhostOnly.isChecked = settings.localHostOnlyFlow.first()
-            binding.clFragmentSettingsLocalhostOnly.enableDisableViewWithChildren(settings.enableLocalHostFlow.first())
+            binding.cbFragmentSettingsLocalhostOnly.isChecked = mjpegSettings.localHostOnlyFlow.first()
+            binding.clFragmentSettingsLocalhostOnly.enableDisableViewWithChildren(mjpegSettings.enableLocalHostFlow.first())
         }
         binding.cbFragmentSettingsLocalhostOnly.setOnClickListener {
             viewLifecycleOwner.lifecycleScope.launchWhenCreated {
                 val localHostOnly = binding.cbFragmentSettingsLocalhostOnly.isChecked
-                settings.setLocalHostOnly(localHostOnly)
-                val enableLocalHost = settings.enableLocalHostFlow.first()
+                mjpegSettings.setLocalHostOnly(localHostOnly)
+                val enableLocalHost = mjpegSettings.enableLocalHostFlow.first()
                 binding.clFragmentSettingsUseWifiOnly.enableDisableViewWithChildren((enableLocalHost && localHostOnly).not())
             }
         }
@@ -99,13 +101,13 @@ class SettingsAdvancedFragment : Fragment(R.layout.fragment_settings_advanced) {
 
         // Advanced - Server port
         viewLifecycleOwner.lifecycleScope.launchWhenCreated {
-            settings.serverPortFlow
+            mjpegSettings.serverPortFlow
                 .onEach { binding.tvFragmentSettingsServerPortValue.text = it.toString() }
                 .launchIn(this)
         }
         binding.clFragmentSettingsServerPort.setOnClickListener {
             viewLifecycleOwner.lifecycleScope.launchWhenCreated {
-                val serverPort = settings.serverPortFlow.first()
+                val serverPort = mjpegSettings.serverPortFlow.first()
                 MaterialDialog(requireActivity(), BottomSheet(LayoutMode.WRAP_CONTENT)).show {
                     lifecycleOwner(viewLifecycleOwner)
                     title(R.string.pref_server_port)
@@ -123,7 +125,7 @@ class SettingsAdvancedFragment : Fragment(R.layout.fragment_settings_advanced) {
                     positiveButton(android.R.string.ok) { dialog ->
                         val newValue = dialog.getInputField().text?.toString()?.toInt() ?: serverPort
                         if (serverPort != newValue)
-                            viewLifecycleOwner.lifecycleScope.launchWhenCreated { settings.setServerPort(newValue) }
+                            viewLifecycleOwner.lifecycleScope.launchWhenCreated { mjpegSettings.setServerPort(newValue) }
                     }
                     negativeButton(android.R.string.cancel)
                     getInputField().filters = arrayOf<InputFilter>(InputFilter.LengthFilter(5))
@@ -134,7 +136,7 @@ class SettingsAdvancedFragment : Fragment(R.layout.fragment_settings_advanced) {
 
         // Advanced - Enable application logs
         viewLifecycleOwner.lifecycleScope.launchWhenCreated {
-            val loggingVisible = settings.loggingVisibleFlow.first()
+            val loggingVisible = appSettings.loggingVisibleFlow.first()
             binding.vFragmentSettingsLogging.visibility = if (loggingVisible) View.VISIBLE else View.GONE
             binding.clFragmentSettingsLogging.visibility = if (loggingVisible) View.VISIBLE else View.GONE
             binding.cbFragmentSettingsLogging.isChecked = (requireActivity().application as BaseApp).isLoggingOn

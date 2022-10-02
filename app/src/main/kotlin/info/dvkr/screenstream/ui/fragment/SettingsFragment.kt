@@ -7,7 +7,7 @@ import androidx.viewpager2.adapter.FragmentStateAdapter
 import com.elvishew.xlog.XLog
 import com.google.android.material.tabs.TabLayoutMediator
 import info.dvkr.screenstream.R
-import info.dvkr.screenstream.data.other.getLog
+import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.databinding.FragmentSettingsBinding
 import info.dvkr.screenstream.ui.viewBinding
 

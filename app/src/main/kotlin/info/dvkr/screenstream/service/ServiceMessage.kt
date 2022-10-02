@@ -1,9 +1,9 @@
 package info.dvkr.screenstream.service
 
-import info.dvkr.screenstream.data.model.AppError
-import info.dvkr.screenstream.data.model.HttpClient
-import info.dvkr.screenstream.data.model.NetInterface
-import info.dvkr.screenstream.data.model.TrafficPoint
+import info.dvkr.screenstream.common.Client
+import info.dvkr.screenstream.common.TrafficPoint
+import info.dvkr.screenstream.mjpeg.model.AppError
+import info.dvkr.screenstream.mjpeg.model.NetInterface
 
 sealed class ServiceMessage {
     object FinishActivity : ServiceMessage()
@@ -14,7 +14,7 @@ sealed class ServiceMessage {
         val appError: AppError?
     ) : ServiceMessage()
 
-    data class Clients(val clients: List<HttpClient>) : ServiceMessage()
+    data class Clients(val clients: List<Client>) : ServiceMessage()
     data class TrafficHistory(val trafficHistory: List<TrafficPoint>) : ServiceMessage() {
         override fun toString(): String = javaClass.simpleName
     }

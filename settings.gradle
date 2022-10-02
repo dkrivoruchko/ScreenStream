@@ -7,5 +7,6 @@ dependencyResolutionManagement {
     }
 }
 
+include ":common"
+include ":mjpeg"
 include ":app"
-include ":data"

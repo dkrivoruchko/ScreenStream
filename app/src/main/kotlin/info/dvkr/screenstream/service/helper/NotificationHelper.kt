@@ -12,10 +12,10 @@ import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.toBitmap
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.R
-import info.dvkr.screenstream.data.model.AppError
-import info.dvkr.screenstream.data.model.FatalError
-import info.dvkr.screenstream.data.model.FixableError
-import info.dvkr.screenstream.data.other.getLog
+import info.dvkr.screenstream.common.getLog
+import info.dvkr.screenstream.mjpeg.model.AppError
+import info.dvkr.screenstream.mjpeg.model.FatalError
+import info.dvkr.screenstream.mjpeg.model.FixableError
 import info.dvkr.screenstream.ui.activity.AppActivity
 
 class NotificationHelper(context: Context) {

@@ -6,8 +6,8 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import com.elvishew.xlog.XLog
-import info.dvkr.screenstream.data.other.getLog
-import info.dvkr.screenstream.data.settings.SettingsReadOnly
+import info.dvkr.screenstream.common.getLog
+import info.dvkr.screenstream.common.settings.AppSettings
 import info.dvkr.screenstream.service.helper.IntentAction
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -16,7 +16,7 @@ import org.koin.core.component.inject
 
 class BootReceiver : BroadcastReceiver(), KoinComponent {
 
-    private val settingsReadOnly: SettingsReadOnly by inject()
+    private val appSettings: AppSettings by inject()
 
     override fun onReceive(context: Context, intent: Intent) {
         XLog.d(getLog("onReceive", "Invoked: (SDK: ${Build.VERSION.SDK_INT}) Intent Action: ${intent.action}"))
@@ -28,7 +28,7 @@ class BootReceiver : BroadcastReceiver(), KoinComponent {
             }
         }
 
-        if (runBlocking { settingsReadOnly.startOnBootFlow.first().not() }) {
+        if (runBlocking { appSettings.startOnBootFlow.first().not() }) {
             Runtime.getRuntime().exit(0)
             return
         }
