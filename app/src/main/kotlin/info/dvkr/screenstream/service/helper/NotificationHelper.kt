@@ -12,10 +12,12 @@ import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.toBitmap
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.R
+import info.dvkr.screenstream.common.AppError
 import info.dvkr.screenstream.common.getLog
-import info.dvkr.screenstream.mjpeg.model.AppError
-import info.dvkr.screenstream.mjpeg.model.FatalError
-import info.dvkr.screenstream.mjpeg.model.FixableError
+import info.dvkr.screenstream.mjpeg.AddressInUseException
+import info.dvkr.screenstream.mjpeg.AddressNotFoundException
+import info.dvkr.screenstream.mjpeg.BitmapFormatException
+import info.dvkr.screenstream.mjpeg.CastSecurityException
 import info.dvkr.screenstream.ui.activity.AppActivity
 
 class NotificationHelper(context: Context) {
@@ -80,13 +82,13 @@ class NotificationHelper(context: Context) {
         notificationManager.cancel(NotificationType.ERROR.id)
 
         val message: String = when (appError) {
-            is FixableError.AddressInUseException ->
+            is AddressInUseException ->
                 applicationContext.getString(R.string.error_port_in_use)
-            is FixableError.CastSecurityException ->
+            is CastSecurityException ->
                 applicationContext.getString(R.string.error_invalid_media_projection)
-            is FixableError.AddressNotFoundException ->
+            is AddressNotFoundException ->
                 applicationContext.getString(R.string.error_ip_address_not_found)
-            is FatalError.BitmapFormatException ->
+            is BitmapFormatException ->
                 applicationContext.getString(R.string.error_wrong_image_format)
             else -> appError.toString()
         }
@@ -107,7 +109,7 @@ class NotificationHelper(context: Context) {
                 )
             )
 
-        if (appError is FixableError)
+        if (appError is AppError.FixableError)
             builder.addAction(
                 NotificationCompat.Action(
                     null,

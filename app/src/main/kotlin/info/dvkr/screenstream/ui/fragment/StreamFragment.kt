@@ -30,12 +30,13 @@ import com.afollestad.materialdialogs.customview.customView
 import com.afollestad.materialdialogs.lifecycle.lifecycleOwner
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.R
+import info.dvkr.screenstream.common.AppError
 import info.dvkr.screenstream.common.asString
 import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.databinding.FragmentStreamBinding
 import info.dvkr.screenstream.databinding.ItemClientBinding
 import info.dvkr.screenstream.databinding.ItemDeviceAddressBinding
-import info.dvkr.screenstream.mjpeg.model.*
+import info.dvkr.screenstream.mjpeg.*
 import info.dvkr.screenstream.mjpeg.settings.MjpegSettings
 import info.dvkr.screenstream.service.ServiceMessage
 import info.dvkr.screenstream.service.helper.IntentAction
@@ -229,10 +230,10 @@ class StreamFragment : AdFragment(R.layout.fragment_stream) {
         } else {
             XLog.d(getLog("showError", appError.toString()))
             binding.tvFragmentStreamError.text = when (appError) {
-                is FixableError.AddressInUseException -> getString(R.string.error_port_in_use)
-                is FixableError.CastSecurityException -> getString(R.string.error_invalid_media_projection)
-                is FixableError.AddressNotFoundException -> getString(R.string.error_ip_address_not_found)
-                is FatalError.BitmapFormatException -> getString(R.string.error_wrong_image_format)
+                is AddressInUseException -> getString(R.string.error_port_in_use)
+                is CastSecurityException -> getString(R.string.error_invalid_media_projection)
+                is AddressNotFoundException -> getString(R.string.error_ip_address_not_found)
+                is BitmapFormatException -> getString(R.string.error_wrong_image_format)
                 else -> appError.toString()
             }
             binding.tvFragmentStreamError.visibility = View.VISIBLE

@@ -26,10 +26,12 @@ import com.android.grafika.gles.FullFrameRect
 import com.android.grafika.gles.OffscreenSurface
 import com.android.grafika.gles.Texture2dProgram
 import com.elvishew.xlog.XLog
+import info.dvkr.screenstream.common.AppError
 import info.dvkr.screenstream.common.getLog
-import info.dvkr.screenstream.mjpeg.model.AppError
-import info.dvkr.screenstream.mjpeg.model.FatalError
-import info.dvkr.screenstream.mjpeg.model.FixableError
+import info.dvkr.screenstream.mjpeg.BitmapCaptureException
+import info.dvkr.screenstream.mjpeg.BitmapFormatException
+import info.dvkr.screenstream.mjpeg.CastSecurityException
+import info.dvkr.screenstream.mjpeg.CoroutineException
 import info.dvkr.screenstream.mjpeg.settings.MjpegSettings
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
@@ -111,7 +113,7 @@ class BitmapCapture(
 
     private val coroutineExceptionHandler = CoroutineExceptionHandler { _, throwable ->
         XLog.e(getLog("onCoroutineException"), throwable)
-        onError(FatalError.CoroutineException)
+        onError(CoroutineException)
     }
 
     private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default + coroutineExceptionHandler)
@@ -224,7 +226,7 @@ class BitmapCapture(
             } catch (cause: Throwable) {
                 XLog.w(this@BitmapCapture.getLog("startDisplayCapture", cause.toString()))
                 state = State.ERROR
-                onError(FatalError.BitmapFormatException)
+                onError(BitmapFormatException)
             }
         }
 
@@ -245,7 +247,7 @@ class BitmapCapture(
         } catch (ex: SecurityException) {
             state = State.ERROR
             XLog.w(getLog("startDisplayCapture", ex.toString()))
-            onError(FixableError.CastSecurityException)
+            onError(CastSecurityException)
         }
 
         if (state == State.STARTED)
@@ -351,7 +353,7 @@ class BitmapCapture(
                 } catch (throwable: Throwable) {
                     XLog.e(this@BitmapCapture.getLog("outBitmapChannel"), throwable)
                     state = State.ERROR
-                    onError(FatalError.BitmapCaptureException)
+                    onError(BitmapCaptureException)
                 }
             }
         }

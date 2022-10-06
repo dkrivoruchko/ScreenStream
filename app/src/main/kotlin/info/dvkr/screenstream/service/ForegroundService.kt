@@ -15,12 +15,12 @@ import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.content.ContextCompat
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.R
+import info.dvkr.screenstream.common.AppError
 import info.dvkr.screenstream.common.AppStateMachine
 import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.common.settings.AppSettings
 import info.dvkr.screenstream.databinding.ToastSlowConnectionBinding
-import info.dvkr.screenstream.mjpeg.model.AppError
-import info.dvkr.screenstream.mjpeg.model.MjpegPublicState
+import info.dvkr.screenstream.mjpeg.MjpegPublicState
 import info.dvkr.screenstream.mjpeg.settings.MjpegSettings
 import info.dvkr.screenstream.mjpeg.state.MjpegStateMachine
 import info.dvkr.screenstream.service.helper.IntentAction

@@ -11,17 +11,14 @@ import android.os.Handler
 import android.os.Looper
 import android.os.PowerManager
 import com.elvishew.xlog.XLog
+import info.dvkr.screenstream.common.AppError
 import info.dvkr.screenstream.common.AppStateMachine
 import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.common.settings.AppSettings
+import info.dvkr.screenstream.mjpeg.*
 import info.dvkr.screenstream.mjpeg.httpserver.HttpServer
 import info.dvkr.screenstream.mjpeg.image.BitmapCapture
 import info.dvkr.screenstream.mjpeg.image.NotificationBitmap
-import info.dvkr.screenstream.mjpeg.model.AppError
-import info.dvkr.screenstream.mjpeg.model.FatalError
-import info.dvkr.screenstream.mjpeg.model.FixableError
-import info.dvkr.screenstream.mjpeg.model.MjpegClient
-import info.dvkr.screenstream.mjpeg.randomPin
 import info.dvkr.screenstream.mjpeg.settings.MjpegSettings
 import info.dvkr.screenstream.mjpeg.state.helper.BroadcastHelper
 import info.dvkr.screenstream.mjpeg.state.helper.ConnectivityHelper
@@ -40,7 +37,7 @@ class MjpegStateMachine(
 
     private val coroutineExceptionHandler = CoroutineExceptionHandler { _, throwable ->
         XLog.e(getLog("onCoroutineException"), throwable)
-        onError(FatalError.CoroutineException)
+        onError(CoroutineException)
     }
 
     private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default + coroutineExceptionHandler)
@@ -100,7 +97,7 @@ class MjpegStateMachine(
         }.onFailure { cause ->
             XLog.e(getLog("sendEvent", "Pending events => $eventDeque"), cause)
             coroutineScope.launch(NonCancellable) {
-                streamState = componentError(streamState, FatalError.ChannelException, true)
+                streamState = componentError(streamState, ChannelException, true)
                 effectSharedFlow.emit(streamState.toPublicState())
             }
         }
@@ -151,7 +148,7 @@ class MjpegStateMachine(
             }
                 .catch { cause ->
                     XLog.e(this@MjpegStateMachine.getLog("eventSharedFlow.catch"), cause)
-                    streamState = componentError(streamState, FatalError.CoroutineException, true)
+                    streamState = componentError(streamState, CoroutineException, true)
                     effectSharedFlow.emit(streamState.toPublicState())
                 }
                 .collect()
@@ -225,7 +222,7 @@ class MjpegStateMachine(
             }
                 .catch { cause ->
                     XLog.e(this@MjpegStateMachine.getLog("httpServer.eventSharedFlow.catch"), cause)
-                    onError(FatalError.CoroutineException)
+                    onError(CoroutineException)
                 }
                 .collect()
         }
@@ -307,7 +304,7 @@ class MjpegStateMachine(
                     state = StreamState.State.ERROR,
                     netInterfaces = emptyList(),
                     httpServerAddressAttempt = 0,
-                    appError = FixableError.AddressNotFoundException
+                    appError = AddressNotFoundException
                 )
             }
 
@@ -378,7 +375,7 @@ class MjpegStateMachine(
             XLog.e(getLog("startProjection"), cause)
         }
         mediaProjectionIntent = null
-        return streamState.copy(state = StreamState.State.ERROR, appError = FixableError.CastSecurityException)
+        return streamState.copy(state = StreamState.State.ERROR, appError = CastSecurityException)
     }
 
     private suspend fun stopStream(streamState: StreamState): StreamState {

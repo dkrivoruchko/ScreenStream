@@ -2,6 +2,11 @@ package info.dvkr.screenstream.common
 
 import android.content.Intent
 
+sealed class AppError : Throwable() {
+    open class FatalError : AppError()
+    open class FixableError : AppError()
+}
+
 interface Client
 interface TrafficPoint
 

@@ -1,10 +1,10 @@
 package info.dvkr.screenstream.mjpeg.state
 
 import android.media.projection.MediaProjection
+import info.dvkr.screenstream.common.AppError
+import info.dvkr.screenstream.mjpeg.MjpegPublicState
+import info.dvkr.screenstream.mjpeg.NetInterface
 import info.dvkr.screenstream.mjpeg.image.BitmapCapture
-import info.dvkr.screenstream.mjpeg.model.AppError
-import info.dvkr.screenstream.mjpeg.model.MjpegPublicState
-import info.dvkr.screenstream.mjpeg.model.NetInterface
 
 
 data class StreamState(

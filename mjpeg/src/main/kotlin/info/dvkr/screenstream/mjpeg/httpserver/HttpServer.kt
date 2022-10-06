@@ -3,9 +3,10 @@ package info.dvkr.screenstream.mjpeg.httpserver
 import android.content.Context
 import android.graphics.Bitmap
 import com.elvishew.xlog.XLog
+import info.dvkr.screenstream.common.AppError
 import info.dvkr.screenstream.common.getLog
+import info.dvkr.screenstream.mjpeg.*
 import info.dvkr.screenstream.mjpeg.image.NotificationBitmap
-import info.dvkr.screenstream.mjpeg.model.*
 import info.dvkr.screenstream.mjpeg.settings.MjpegSettings
 import io.ktor.server.cio.*
 import io.ktor.server.engine.*
@@ -66,8 +67,8 @@ internal class HttpServer(
             ktorServer?.stop(0, 250)
             ktorServer = null
             when (throwable) {
-                is BindException -> sendEvent(Event.Error(FixableError.AddressInUseException))
-                else -> sendEvent(Event.Error(FatalError.HttpServerException))
+                is BindException -> sendEvent(Event.Error(AddressInUseException))
+                else -> sendEvent(Event.Error(HttpServerException))
             }
         }
         val coroutineScope = CoroutineScope(Job() + Dispatchers.Default + coroutineExceptionHandler)
@@ -127,11 +128,11 @@ internal class HttpServer(
         } catch (ignore: CancellationException) {
         } catch (ex: BindException) {
             XLog.w(getLog("startServer", ex.toString()))
-            exception = FixableError.AddressInUseException
+            exception = AddressInUseException
         } catch (throwable: Throwable) {
             XLog.e(getLog("startServer >>>"))
             XLog.e(getLog("startServer"), throwable)
-            exception = FatalError.HttpServerException
+            exception = HttpServerException
         } finally {
             exception?.let {
                 sendEvent(Event.Error(it))

@@ -2,7 +2,7 @@ package info.dvkr.screenstream.mjpeg.httpserver
 
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.common.getLog
-import info.dvkr.screenstream.mjpeg.model.FatalError
+import info.dvkr.screenstream.mjpeg.HttpServerException
 import info.dvkr.screenstream.mjpeg.randomString
 import io.ktor.http.*
 import io.ktor.http.content.*
@@ -85,7 +85,7 @@ internal fun Application.appModule(
             if (cause is IllegalArgumentException) return@exception
             XLog.e(this@appModule.getLog("exception<Throwable>", cause.toString()))
             XLog.e(this@appModule.getLog("exception"), cause)
-            sendEvent(HttpServer.Event.Error(FatalError.HttpServerException))
+            sendEvent(HttpServer.Event.Error(HttpServerException))
             call.respond(HttpStatusCode.InternalServerError)
         }
     }

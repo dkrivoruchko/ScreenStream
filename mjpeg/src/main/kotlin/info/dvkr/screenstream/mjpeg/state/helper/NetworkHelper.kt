@@ -7,7 +7,7 @@ import android.net.wifi.WifiManager
 import androidx.core.content.ContextCompat
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.common.getLog
-import info.dvkr.screenstream.mjpeg.model.NetInterface
+import info.dvkr.screenstream.mjpeg.NetInterface
 import java.net.*
 import java.util.*
 

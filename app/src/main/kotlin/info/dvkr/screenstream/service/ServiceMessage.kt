@@ -1,9 +1,9 @@
 package info.dvkr.screenstream.service
 
+import info.dvkr.screenstream.common.AppError
 import info.dvkr.screenstream.common.Client
 import info.dvkr.screenstream.common.TrafficPoint
-import info.dvkr.screenstream.mjpeg.model.AppError
-import info.dvkr.screenstream.mjpeg.model.NetInterface
+import info.dvkr.screenstream.mjpeg.NetInterface
 
 sealed class ServiceMessage {
     object FinishActivity : ServiceMessage()

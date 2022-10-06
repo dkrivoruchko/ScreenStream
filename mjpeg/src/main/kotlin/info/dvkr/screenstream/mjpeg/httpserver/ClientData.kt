@@ -3,8 +3,8 @@ package info.dvkr.screenstream.mjpeg.httpserver
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.common.asString
 import info.dvkr.screenstream.common.getLog
-import info.dvkr.screenstream.mjpeg.model.MjpegClient
-import info.dvkr.screenstream.mjpeg.model.MjpegTrafficPoint
+import info.dvkr.screenstream.mjpeg.MjpegClient
+import info.dvkr.screenstream.mjpeg.MjpegTrafficPoint
 import info.dvkr.screenstream.mjpeg.settings.MjpegSettings
 import info.dvkr.screenstream.mjpeg.toByteArray
 import kotlinx.coroutines.*
@@ -80,8 +80,7 @@ internal class ClientData(
         fun removeFromStatistics(now: Long): Boolean = isDisconnected && (holdUntil <= now)
 
         @Synchronized
-        fun toHttpClient() =
-            MjpegClient(id, ipAddress?.asString() ?: fallbackHost, isSlowConnection, isDisconnected, isBlocked)
+        fun toHttpClient() = MjpegClient(id, ipAddress?.asString() ?: fallbackHost, isSlowConnection, isDisconnected, isBlocked)
     }
 
     internal companion object {
