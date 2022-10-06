@@ -9,7 +9,7 @@ import androidx.core.content.FileProvider
 import com.elvishew.xlog.LogUtils
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.R
-import info.dvkr.screenstream.data.other.getLog
+import info.dvkr.screenstream.common.getLog
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch

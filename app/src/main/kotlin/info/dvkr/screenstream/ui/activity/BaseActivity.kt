@@ -4,9 +4,10 @@ import android.os.Bundle
 import androidx.annotation.LayoutRes
 import androidx.appcompat.app.AppCompatActivity
 import com.elvishew.xlog.XLog
-import info.dvkr.screenstream.data.other.getLog
+import info.dvkr.screenstream.common.getLog
 
 abstract class BaseActivity(@LayoutRes contentLayoutId: Int) : AppCompatActivity(contentLayoutId) {
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         XLog.d(getLog("onCreate"))

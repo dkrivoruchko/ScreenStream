@@ -12,7 +12,7 @@ import com.afollestad.materialdialogs.MaterialDialog
 import com.afollestad.materialdialogs.lifecycle.lifecycleOwner
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.R
-import info.dvkr.screenstream.data.other.getLog
+import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.service.helper.NotificationHelper
 import org.koin.android.ext.android.inject
 

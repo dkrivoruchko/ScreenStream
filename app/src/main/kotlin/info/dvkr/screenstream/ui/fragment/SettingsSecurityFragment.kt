@@ -19,9 +19,9 @@ import com.afollestad.materialdialogs.input.input
 import com.afollestad.materialdialogs.lifecycle.lifecycleOwner
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.R
-import info.dvkr.screenstream.data.other.getLog
-import info.dvkr.screenstream.data.settings.Settings
+import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.databinding.FragmentSettingsSecurityBinding
+import info.dvkr.screenstream.mjpeg.settings.MjpegSettings
 import info.dvkr.screenstream.service.ServiceMessage
 import info.dvkr.screenstream.service.helper.IntentAction
 import info.dvkr.screenstream.ui.activity.ServiceActivity
@@ -34,7 +34,7 @@ import org.koin.android.ext.android.inject
 
 class SettingsSecurityFragment : Fragment(R.layout.fragment_settings_security) {
 
-    private val settings: Settings by inject()
+    private val mjpegSettings: MjpegSettings by inject()
     private val binding by viewBinding { fragment -> FragmentSettingsSecurityBinding.bind(fragment.requireView()) }
     private var isStreaming: Boolean = false
 
@@ -47,7 +47,7 @@ class SettingsSecurityFragment : Fragment(R.layout.fragment_settings_security) {
                 if (serviceMessage is ServiceMessage.ServiceState) {
                     isStreaming = serviceMessage.isStreaming
                     binding.tvFragmentSettingsSetPinValue.text =
-                        if (isStreaming && settings.hidePinOnStartFlow.first()) "*" else settings.pinFlow.first()
+                        if (isStreaming && mjpegSettings.hidePinOnStartFlow.first()) "*" else mjpegSettings.pinFlow.first()
                 }
             }
             .launchIn(viewLifecycleOwner.lifecycleScope)
@@ -55,7 +55,7 @@ class SettingsSecurityFragment : Fragment(R.layout.fragment_settings_security) {
         // Security - Enable pin
         viewLifecycleOwner.lifecycleScope.launchWhenCreated {
             with(binding.cbFragmentSettingsEnablePin) {
-                isChecked = settings.enablePinFlow.first()
+                isChecked = mjpegSettings.enablePinFlow.first()
                 binding.clFragmentSettingsHidePinOnStart.enableDisableViewWithChildren(isChecked)
                 binding.clFragmentSettingsNewPinOnAppStart.enableDisableViewWithChildren(isChecked)
                 binding.clFragmentSettingsAutoChangePin.enableDisableViewWithChildren(isChecked)
@@ -63,7 +63,7 @@ class SettingsSecurityFragment : Fragment(R.layout.fragment_settings_security) {
                 binding.clFragmentSettingsBlockAddress.enableDisableViewWithChildren(isChecked)
                 setOnClickListener {
                     viewLifecycleOwner.lifecycleScope.launchWhenCreated {
-                        settings.setEnablePin(isChecked)
+                        mjpegSettings.setEnablePin(isChecked)
                         binding.clFragmentSettingsHidePinOnStart.enableDisableViewWithChildren(isChecked)
                         binding.clFragmentSettingsNewPinOnAppStart.enableDisableViewWithChildren(isChecked)
                         binding.clFragmentSettingsAutoChangePin.enableDisableViewWithChildren(isChecked)
@@ -77,23 +77,23 @@ class SettingsSecurityFragment : Fragment(R.layout.fragment_settings_security) {
 
         // Security - Hide pin on start
         viewLifecycleOwner.lifecycleScope.launchWhenCreated {
-            binding.cbFragmentSettingsHidePinOnStart.isChecked = settings.hidePinOnStartFlow.first()
+            binding.cbFragmentSettingsHidePinOnStart.isChecked = mjpegSettings.hidePinOnStartFlow.first()
         }
         binding.cbFragmentSettingsHidePinOnStart.setOnClickListener {
             viewLifecycleOwner.lifecycleScope.launchWhenCreated {
-                settings.setHidePinOnStart(binding.cbFragmentSettingsHidePinOnStart.isChecked)
+                mjpegSettings.setHidePinOnStart(binding.cbFragmentSettingsHidePinOnStart.isChecked)
             }
         }
         binding.clFragmentSettingsHidePinOnStart.setOnClickListener { binding.cbFragmentSettingsHidePinOnStart.performClick() }
 
         // Security - New pin on app start
         viewLifecycleOwner.lifecycleScope.launchWhenCreated {
-            binding.cbFragmentSettingsNewPinOnAppStart.isChecked = settings.newPinOnAppStartFlow.first()
+            binding.cbFragmentSettingsNewPinOnAppStart.isChecked = mjpegSettings.newPinOnAppStartFlow.first()
             binding.clFragmentSettingsSetPin.enableDisableViewWithChildren(canEnableSetPin())
         }
         binding.cbFragmentSettingsNewPinOnAppStart.setOnClickListener {
             viewLifecycleOwner.lifecycleScope.launchWhenCreated {
-                settings.setNewPinOnAppStart(binding.cbFragmentSettingsNewPinOnAppStart.isChecked)
+                mjpegSettings.setNewPinOnAppStart(binding.cbFragmentSettingsNewPinOnAppStart.isChecked)
                 binding.clFragmentSettingsSetPin.enableDisableViewWithChildren(canEnableSetPin())
             }
         }
@@ -101,12 +101,12 @@ class SettingsSecurityFragment : Fragment(R.layout.fragment_settings_security) {
 
         // Security - Auto change pin
         viewLifecycleOwner.lifecycleScope.launchWhenCreated {
-            binding.cbFragmentSettingsAutoChangePin.isChecked = settings.autoChangePinFlow.first()
+            binding.cbFragmentSettingsAutoChangePin.isChecked = mjpegSettings.autoChangePinFlow.first()
             binding.clFragmentSettingsSetPin.enableDisableViewWithChildren(canEnableSetPin())
         }
         binding.cbFragmentSettingsAutoChangePin.setOnClickListener {
             viewLifecycleOwner.lifecycleScope.launchWhenCreated {
-                settings.setAutoChangePin(binding.cbFragmentSettingsAutoChangePin.isChecked)
+                mjpegSettings.setAutoChangePin(binding.cbFragmentSettingsAutoChangePin.isChecked)
                 binding.clFragmentSettingsSetPin.enableDisableViewWithChildren(canEnableSetPin())
             }
         }
@@ -114,16 +114,16 @@ class SettingsSecurityFragment : Fragment(R.layout.fragment_settings_security) {
 
         // Security - Set pin
         viewLifecycleOwner.lifecycleScope.launchWhenCreated {
-            settings.pinFlow
+            mjpegSettings.pinFlow
                 .onEach {
                     binding.tvFragmentSettingsSetPinValue.text =
-                        if (isStreaming && settings.hidePinOnStartFlow.first()) "*" else it
+                        if (isStreaming && mjpegSettings.hidePinOnStartFlow.first()) "*" else it
                 }
                 .launchIn(this)
         }
         binding.clFragmentSettingsSetPin.setOnClickListener {
             viewLifecycleOwner.lifecycleScope.launchWhenCreated {
-                val pin = settings.pinFlow.first()
+                val pin = mjpegSettings.pinFlow.first()
                 MaterialDialog(requireActivity(), BottomSheet(LayoutMode.WRAP_CONTENT)).show {
                     lifecycleOwner(viewLifecycleOwner)
                     title(R.string.pref_set_pin)
@@ -141,7 +141,7 @@ class SettingsSecurityFragment : Fragment(R.layout.fragment_settings_security) {
                     positiveButton(android.R.string.ok) { dialog ->
                         val newValue = dialog.getInputField().text?.toString() ?: pin
                         if (pin != newValue)
-                            viewLifecycleOwner.lifecycleScope.launchWhenCreated { settings.setPin(newValue) }
+                            viewLifecycleOwner.lifecycleScope.launchWhenCreated { mjpegSettings.setPin(newValue) }
                     }
                     negativeButton(android.R.string.cancel)
                     getInputField().filters = arrayOf<InputFilter>(InputFilter.LengthFilter(6))
@@ -152,11 +152,11 @@ class SettingsSecurityFragment : Fragment(R.layout.fragment_settings_security) {
 
         // Security - Block address
         viewLifecycleOwner.lifecycleScope.launchWhenCreated {
-            binding.cbFragmentSettingsBlockAddress.isChecked = settings.blockAddressFlow.first()
+            binding.cbFragmentSettingsBlockAddress.isChecked = mjpegSettings.blockAddressFlow.first()
         }
         binding.cbFragmentSettingsBlockAddress.setOnClickListener {
             viewLifecycleOwner.lifecycleScope.launchWhenCreated {
-                settings.setBlockAddress(binding.cbFragmentSettingsBlockAddress.isChecked)
+                mjpegSettings.setBlockAddress(binding.cbFragmentSettingsBlockAddress.isChecked)
             }
         }
         binding.clFragmentSettingsBlockAddress.setOnClickListener { binding.cbFragmentSettingsBlockAddress.performClick() }

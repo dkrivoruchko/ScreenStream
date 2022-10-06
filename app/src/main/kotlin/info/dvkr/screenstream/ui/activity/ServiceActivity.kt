@@ -9,7 +9,7 @@ import androidx.lifecycle.flowWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.elvishew.xlog.XLog
-import info.dvkr.screenstream.data.other.getLog
+import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.service.ForegroundService
 import info.dvkr.screenstream.service.ServiceMessage
 import info.dvkr.screenstream.service.helper.IntentAction
@@ -26,7 +26,7 @@ abstract class ServiceActivity(@LayoutRes contentLayoutId: Int) : AppUpdateActiv
     internal val serviceMessageFlow: SharedFlow<ServiceMessage> = _serviceMessageFlow.asSharedFlow()
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        settings.nightModeFlow
+        appSettings.nightModeFlow
             .flowWithLifecycle(lifecycle, Lifecycle.State.CREATED)
             .onEach { AppCompatDelegate.setDefaultNightMode(it) }
             .launchIn(lifecycleScope)

@@ -13,8 +13,8 @@ android {
         applicationId = "info.dvkr.screenstream"
         minSdkVersion(21)
         targetSdkVersion(33)
-        versionCode = 31002
-        versionName = "3.10.2"
+        versionCode = 31003
+        versionName = "3.10.3"
 
         // Don't forget to update xml/locales_config.xml
         resConfigs 'en', 'ar', 'ca', 'de', 'es', 'fa', 'fr-rFR', 'gl', 'hi', 'it', 'ja', 'nl', 'pl', 'pt-rBR', 'ru', 'sk', 'uk', 'zh', 'zh-rTW'
@@ -79,6 +79,7 @@ android {
         firebasefreeDebug.java.srcDirs += "src/firebasefreeDebug/kotlin"
         firebasefreeRelease.java.srcDirs += "src/firebasefreeRelease/kotlin"
     }
+
     packagingOptions {
         resources {
             excludes += ["META-INF/INDEX.LIST"]
@@ -87,17 +88,16 @@ android {
 
     kotlinOptions {
         jvmTarget = JavaVersion.VERSION_11.toString()
+        languageVersion = JavaVersion.VERSION_1_8.toString()
     }
-    
+
 }
 
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:1.2.2")
 
-    implementation(project(":data"))
-
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.4")
+    implementation(project(":common"))
+    implementation(project(":mjpeg"))
 
     implementation("androidx.core:core-ktx:1.9.0")
     implementation("androidx.activity:activity-ktx:1.6.0")
@@ -123,8 +123,6 @@ dependencies {
 
     implementation("io.insert-koin:koin-android:3.2.2")
     implementation("com.github.iamironz:binaryprefs:1.0.1") //Migrating to datastore
-    implementation("androidx.datastore:datastore-preferences:1.0.0")
-    implementation("com.elvishew:xlog:1.11.0")
 
     firebaseImplementation("com.google.android.play:app-update-ktx:2.0.0") {
         exclude group: "com.android.support"

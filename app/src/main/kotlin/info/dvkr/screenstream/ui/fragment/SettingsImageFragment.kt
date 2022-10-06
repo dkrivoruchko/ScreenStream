@@ -26,11 +26,11 @@ import com.afollestad.materialdialogs.lifecycle.lifecycleOwner
 import com.afollestad.materialdialogs.list.listItemsSingleChoice
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.R
-import info.dvkr.screenstream.data.other.getLog
-import info.dvkr.screenstream.data.settings.Settings
+import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.databinding.DialogSettingsCropBinding
 import info.dvkr.screenstream.databinding.DialogSettingsResizeBinding
 import info.dvkr.screenstream.databinding.FragmentSettingsImageBinding
+import info.dvkr.screenstream.mjpeg.settings.MjpegSettings
 import info.dvkr.screenstream.ui.viewBinding
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
@@ -39,16 +39,16 @@ import org.koin.android.ext.android.inject
 
 class SettingsImageFragment : Fragment(R.layout.fragment_settings_image) {
 
-    private val settings: Settings by inject()
+    private val mjpegSettings: MjpegSettings by inject()
     private val screenBounds: Rect by lazy {
         WindowMetricsCalculator.getOrCreate().computeMaximumWindowMetrics(requireActivity()).bounds
     }
 
     private val rotationList = listOf(
-        0 to Settings.Values.ROTATION_0,
-        1 to Settings.Values.ROTATION_90,
-        2 to Settings.Values.ROTATION_180,
-        3 to Settings.Values.ROTATION_270
+        0 to MjpegSettings.Values.ROTATION_0,
+        1 to MjpegSettings.Values.ROTATION_90,
+        2 to MjpegSettings.Values.ROTATION_180,
+        3 to MjpegSettings.Values.ROTATION_270
     )
 
     private val binding by viewBinding { fragment -> FragmentSettingsImageBinding.bind(fragment.requireView()) }
@@ -63,7 +63,7 @@ class SettingsImageFragment : Fragment(R.layout.fragment_settings_image) {
         binding.cbFragmentSettingsVrMode.setOnClickListener {
             viewLifecycleOwner.lifecycleScope.launchWhenCreated {
                 if (isVRModeEnabled()) {
-                    settings.setVrMode(Settings.Default.VR_MODE_DISABLE)
+                    mjpegSettings.setVrMode(MjpegSettings.Default.VR_MODE_DISABLE)
                 } else {
                     binding.cbFragmentSettingsVrMode.isChecked = false
                     MaterialDialog(requireActivity(), BottomSheet(LayoutMode.WRAP_CONTENT)).show {
@@ -72,7 +72,7 @@ class SettingsImageFragment : Fragment(R.layout.fragment_settings_image) {
                         icon(R.drawable.ic_settings_vr_mode_24dp)
                         listItemsSingleChoice(R.array.pref_vr_mode_options) { _, index, _ ->
                             viewLifecycleOwner.lifecycleScope.launchWhenCreated {
-                                settings.setVrMode(index + 1)
+                                mjpegSettings.setVrMode(index + 1)
                                 binding.cbFragmentSettingsVrMode.isChecked = isVRModeEnabled()
                             }
                         }
@@ -86,18 +86,18 @@ class SettingsImageFragment : Fragment(R.layout.fragment_settings_image) {
 
         // Image - Crop image
         viewLifecycleOwner.lifecycleScope.launchWhenCreated {
-            binding.cbFragmentSettingsCropImage.isChecked = settings.imageCropFlow.first()
+            binding.cbFragmentSettingsCropImage.isChecked = mjpegSettings.imageCropFlow.first()
         }
         binding.cbFragmentSettingsCropImage.setOnClickListener {
             viewLifecycleOwner.lifecycleScope.launchWhenCreated {
-                if (settings.imageCropFlow.first()) {
-                    settings.setImageCrop(false)
+                if (mjpegSettings.imageCropFlow.first()) {
+                    mjpegSettings.setImageCrop(false)
                 } else {
                     binding.cbFragmentSettingsCropImage.isChecked = false
-                    val topCrop = settings.imageCropTopFlow.first()
-                    val bottomCrop = settings.imageCropBottomFlow.first()
-                    val leftCrop = settings.imageCropLeftFlow.first()
-                    val rightCrop = settings.imageCropRightFlow.first()
+                    val topCrop = mjpegSettings.imageCropTopFlow.first()
+                    val bottomCrop = mjpegSettings.imageCropBottomFlow.first()
+                    val leftCrop = mjpegSettings.imageCropLeftFlow.first()
+                    val rightCrop = mjpegSettings.imageCropRightFlow.first()
                     MaterialDialog(requireActivity(), BottomSheet(LayoutMode.WRAP_CONTENT))
                         .lifecycleOwner(viewLifecycleOwner)
                         .title(R.string.pref_crop)
@@ -111,15 +111,15 @@ class SettingsImageFragment : Fragment(R.layout.fragment_settings_image) {
                                     val newLeftCrop = tietDialogSettingsCropLeft.text.toString().toInt()
                                     val newRightCrop = tietDialogSettingsCropRight.text.toString().toInt()
 
-                                    if (newTopCrop != topCrop) settings.setImageCropTop(newTopCrop)
-                                    if (newBottomCrop != bottomCrop) settings.setImageCropBottom(newBottomCrop)
-                                    if (newLeftCrop != leftCrop) settings.setImageCropLeft(newLeftCrop)
-                                    if (newRightCrop != rightCrop) settings.setImageCropRight(newRightCrop)
+                                    if (newTopCrop != topCrop) mjpegSettings.setImageCropTop(newTopCrop)
+                                    if (newBottomCrop != bottomCrop) mjpegSettings.setImageCropBottom(newBottomCrop)
+                                    if (newLeftCrop != leftCrop) mjpegSettings.setImageCropLeft(newLeftCrop)
+                                    if (newRightCrop != rightCrop) mjpegSettings.setImageCropRight(newRightCrop)
 
                                     val newImageCrop =
                                         newTopCrop + newBottomCrop + newLeftCrop + newRightCrop != 0
                                     binding.cbFragmentSettingsCropImage.isChecked = newImageCrop
-                                    settings.setImageCrop(newImageCrop)
+                                    mjpegSettings.setImageCrop(newImageCrop)
                                 }
                             }
                         }
@@ -161,11 +161,11 @@ class SettingsImageFragment : Fragment(R.layout.fragment_settings_image) {
 
         // Image - Grayscale
         viewLifecycleOwner.lifecycleScope.launchWhenCreated {
-            binding.cbFragmentSettingsGrayscaleImage.isChecked = settings.imageGrayscaleFlow.first()
+            binding.cbFragmentSettingsGrayscaleImage.isChecked = mjpegSettings.imageGrayscaleFlow.first()
         }
         binding.cbFragmentSettingsGrayscaleImage.setOnClickListener {
             viewLifecycleOwner.lifecycleScope.launchWhenCreated {
-                settings.setImageGrayscale(binding.cbFragmentSettingsGrayscaleImage.isChecked)
+                mjpegSettings.setImageGrayscale(binding.cbFragmentSettingsGrayscaleImage.isChecked)
             }
         }
         binding.clFragmentSettingsGrayscaleImage.setOnClickListener { binding.cbFragmentSettingsGrayscaleImage.performClick() }
@@ -173,13 +173,13 @@ class SettingsImageFragment : Fragment(R.layout.fragment_settings_image) {
 
         // Image - Resize factor
         viewLifecycleOwner.lifecycleScope.launchWhenCreated {
-            settings.resizeFactorFlow
+            mjpegSettings.resizeFactorFlow
                 .onEach { binding.tvFragmentSettingsResizeImageValue.text = getString(R.string.pref_resize_value, it) }
                 .launchIn(this)
         }
         binding.clFragmentSettingsResizeImage.setOnClickListener {
             viewLifecycleOwner.lifecycleScope.launchWhenCreated {
-                val resizeFactor = settings.resizeFactorFlow.first()
+                val resizeFactor = mjpegSettings.resizeFactorFlow.first()
                 val resizePictureSizeString = getString(R.string.pref_resize_dialog_result)
                 MaterialDialog(requireActivity(), BottomSheet(LayoutMode.WRAP_CONTENT))
                     .lifecycleOwner(viewLifecycleOwner)
@@ -191,7 +191,7 @@ class SettingsImageFragment : Fragment(R.layout.fragment_settings_image) {
                             val newResizeFactor = tietDialogSettingsResize.text.toString().toInt()
                             if (newResizeFactor != resizeFactor)
                                 viewLifecycleOwner.lifecycleScope.launchWhenCreated {
-                                    settings.setResizeFactor(newResizeFactor)
+                                    mjpegSettings.setResizeFactor(newResizeFactor)
                                 }
                         }
                     }
@@ -237,13 +237,13 @@ class SettingsImageFragment : Fragment(R.layout.fragment_settings_image) {
 
         // Image - Rotation
         viewLifecycleOwner.lifecycleScope.launchWhenCreated {
-            settings.rotationFlow
+            mjpegSettings.rotationFlow
                 .onEach { binding.tvFragmentSettingsRotationValue.text = getString(R.string.pref_rotate_value, it) }
                 .launchIn(this)
         }
         binding.clFragmentSettingsRotation.setOnClickListener {
             viewLifecycleOwner.lifecycleScope.launchWhenCreated {
-                val rotation = settings.rotationFlow.first()
+                val rotation = mjpegSettings.rotationFlow.first()
                 val indexOld = rotationList.first { it.second == rotation }.first
                 MaterialDialog(requireActivity(), BottomSheet(LayoutMode.WRAP_CONTENT)).show {
                     lifecycleOwner(viewLifecycleOwner)
@@ -252,7 +252,7 @@ class SettingsImageFragment : Fragment(R.layout.fragment_settings_image) {
                     listItemsSingleChoice(R.array.pref_rotate_options, initialSelection = indexOld) { _, index, _ ->
                         val newRotation = rotationList.firstOrNull { item -> item.first == index }?.second
                             ?: throw IllegalArgumentException("Unknown rotation index")
-                        viewLifecycleOwner.lifecycleScope.launchWhenCreated { settings.setRotation(newRotation) }
+                        viewLifecycleOwner.lifecycleScope.launchWhenCreated { mjpegSettings.setRotation(newRotation) }
                     }
                     positiveButton(android.R.string.ok)
                     negativeButton(android.R.string.cancel)
@@ -262,11 +262,11 @@ class SettingsImageFragment : Fragment(R.layout.fragment_settings_image) {
 
         // Image - Max FPS
         viewLifecycleOwner.lifecycleScope.launchWhenCreated {
-            settings.maxFPSFlow.onEach { binding.tvFragmentSettingsFpsValue.text = it.toString() }.launchIn(this)
+            mjpegSettings.maxFPSFlow.onEach { binding.tvFragmentSettingsFpsValue.text = it.toString() }.launchIn(this)
         }
         binding.clFragmentSettingsFps.setOnClickListener {
             viewLifecycleOwner.lifecycleScope.launchWhenCreated {
-                val maxFPS = settings.maxFPSFlow.first()
+                val maxFPS = mjpegSettings.maxFPSFlow.first()
                 MaterialDialog(requireActivity(), BottomSheet(LayoutMode.WRAP_CONTENT)).show {
                     lifecycleOwner(viewLifecycleOwner)
                     title(R.string.pref_fps)
@@ -284,7 +284,7 @@ class SettingsImageFragment : Fragment(R.layout.fragment_settings_image) {
                     positiveButton(android.R.string.ok) { dialog ->
                         val newValue = dialog.getInputField().text?.toString()?.toInt() ?: maxFPS
                         if (maxFPS != newValue)
-                            viewLifecycleOwner.lifecycleScope.launchWhenCreated { settings.setMaxFPS(newValue) }
+                            viewLifecycleOwner.lifecycleScope.launchWhenCreated { mjpegSettings.setMaxFPS(newValue) }
                     }
                     negativeButton(android.R.string.cancel)
                     getInputField().filters = arrayOf<InputFilter>(InputFilter.LengthFilter(2))
@@ -295,13 +295,13 @@ class SettingsImageFragment : Fragment(R.layout.fragment_settings_image) {
 
         // Image - Jpeg Quality
         viewLifecycleOwner.lifecycleScope.launchWhenCreated {
-            settings.jpegQualityFlow
+            mjpegSettings.jpegQualityFlow
                 .onEach { binding.tvFragmentSettingsJpegQualityValue.text = it.toString() }
                 .launchIn(this)
         }
         binding.clFragmentSettingsJpegQuality.setOnClickListener {
             viewLifecycleOwner.lifecycleScope.launchWhenCreated {
-                val jpegQuality = settings.jpegQualityFlow.first()
+                val jpegQuality = mjpegSettings.jpegQualityFlow.first()
                 MaterialDialog(requireActivity(), BottomSheet(LayoutMode.WRAP_CONTENT)).show {
                     lifecycleOwner(viewLifecycleOwner)
                     title(R.string.pref_jpeg_quality)
@@ -319,7 +319,7 @@ class SettingsImageFragment : Fragment(R.layout.fragment_settings_image) {
                     positiveButton(android.R.string.ok) { dialog ->
                         val newValue = dialog.getInputField().text?.toString()?.toInt() ?: jpegQuality
                         if (jpegQuality != newValue)
-                            viewLifecycleOwner.lifecycleScope.launchWhenCreated { settings.setJpegQuality(newValue) }
+                            viewLifecycleOwner.lifecycleScope.launchWhenCreated { mjpegSettings.setJpegQuality(newValue) }
                     }
                     negativeButton(android.R.string.cancel)
                     getInputField().filters = arrayOf<InputFilter>(InputFilter.LengthFilter(3))
@@ -340,7 +340,7 @@ class SettingsImageFragment : Fragment(R.layout.fragment_settings_image) {
     }
 
     private suspend fun isVRModeEnabled(): Boolean =
-        settings.vrModeFlow.first() in arrayOf(Settings.Default.VR_MODE_RIGHT, Settings.Default.VR_MODE_LEFT)
+        mjpegSettings.vrModeFlow.first() in arrayOf(MjpegSettings.Default.VR_MODE_RIGHT, MjpegSettings.Default.VR_MODE_LEFT)
 
     private fun validateCropValues(
         dialog: MaterialDialog,

@@ -4,9 +4,14 @@ import android.content.ActivityNotFoundException
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Intent
+import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.text.Spannable
+import android.text.SpannableString
+import android.text.style.ForegroundColorSpan
+import android.text.style.UnderlineSpan
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -25,19 +30,19 @@ import com.afollestad.materialdialogs.customview.customView
 import com.afollestad.materialdialogs.lifecycle.lifecycleOwner
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.R
-import info.dvkr.screenstream.data.model.AppError
-import info.dvkr.screenstream.data.model.FatalError
-import info.dvkr.screenstream.data.model.FixableError
-import info.dvkr.screenstream.data.model.HttpClient
-import info.dvkr.screenstream.data.other.*
-import info.dvkr.screenstream.data.settings.SettingsReadOnly
+import info.dvkr.screenstream.common.AppError
+import info.dvkr.screenstream.common.asString
+import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.databinding.FragmentStreamBinding
 import info.dvkr.screenstream.databinding.ItemClientBinding
 import info.dvkr.screenstream.databinding.ItemDeviceAddressBinding
+import info.dvkr.screenstream.mjpeg.*
+import info.dvkr.screenstream.mjpeg.settings.MjpegSettings
 import info.dvkr.screenstream.service.ServiceMessage
 import info.dvkr.screenstream.service.helper.IntentAction
 import info.dvkr.screenstream.ui.activity.ServiceActivity
 import info.dvkr.screenstream.ui.viewBinding
+import io.nayuki.qrcodegen.QrCode
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
@@ -45,16 +50,24 @@ import org.koin.android.ext.android.inject
 
 class StreamFragment : AdFragment(R.layout.fragment_stream) {
 
-    private val colorAccent by lazy { ContextCompat.getColor(requireContext(), R.color.colorAccent) }
-    private val clipboard: ClipboardManager? by lazy {
+    private val colorAccent by lazy(LazyThreadSafetyMode.NONE) { ContextCompat.getColor(requireContext(), R.color.colorAccent) }
+    private val clipboard: ClipboardManager? by lazy(LazyThreadSafetyMode.NONE) {
         ContextCompat.getSystemService(requireContext(), ClipboardManager::class.java)
     }
 
-    private val settingsReadOnly: SettingsReadOnly by inject()
+    private val mjpegSettings: MjpegSettings by inject()
     private var httpClientAdapter: HttpClientAdapter? = null
     private var errorPrevious: AppError? = null
 
     private val binding by viewBinding { fragment -> FragmentStreamBinding.bind(fragment.requireView()) }
+
+    private fun String.setColorSpan(color: Int, start: Int = 0, end: Int = this.length) = SpannableString(this).apply {
+        setSpan(ForegroundColorSpan(color), start, end, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+    }
+
+    private fun String.setUnderlineSpan(start: Int = 0, end: Int = this.length) = SpannableString(this).apply {
+        setSpan(UnderlineSpan(), start, end, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+    }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -116,7 +129,7 @@ class StreamFragment : AdFragment(R.layout.fragment_stream) {
                     tvItemDeviceAddressName.text = getString(R.string.stream_fragment_interface, netInterface.name)
 
                     val fullAddress =
-                        "http://${netInterface.address.asString()}:${settingsReadOnly.serverPortFlow.first()}"
+                        "http://${netInterface.address.asString()}:${mjpegSettings.serverPortFlow.first()}"
                     tvItemDeviceAddress.text = fullAddress.setUnderlineSpan()
                     tvItemDeviceAddress.setOnClickListener { openInBrowser(fullAddress) }
                     ivItemDeviceAddressOpenExternal.setOnClickListener { openInBrowser(fullAddress) }
@@ -135,14 +148,14 @@ class StreamFragment : AdFragment(R.layout.fragment_stream) {
         }
 
         // Hide pin on Start
-        if (settingsReadOnly.enablePinFlow.first()) {
-            if (serviceMessage.isStreaming && settingsReadOnly.hidePinOnStartFlow.first()) {
+        if (mjpegSettings.enablePinFlow.first()) {
+            if (serviceMessage.isStreaming && mjpegSettings.hidePinOnStartFlow.first()) {
                 val pinText = getString(R.string.stream_fragment_pin, "*")
                 binding.tvFragmentStreamPin.text = pinText.setColorSpan(colorAccent, pinText.length - 1)
             } else {
-                val pinText = getString(R.string.stream_fragment_pin, settingsReadOnly.pinFlow.first())
+                val pinText = getString(R.string.stream_fragment_pin, mjpegSettings.pinFlow.first())
                 binding.tvFragmentStreamPin.text =
-                    pinText.setColorSpan(colorAccent, pinText.length - settingsReadOnly.pinFlow.first().length)
+                    pinText.setColorSpan(colorAccent, pinText.length - mjpegSettings.pinFlow.first().length)
             }
         } else {
             binding.tvFragmentStreamPin.setText(R.string.stream_fragment_pin_disabled)
@@ -152,21 +165,23 @@ class StreamFragment : AdFragment(R.layout.fragment_stream) {
     }
 
     private fun onClientsMessage(serviceMessage: ServiceMessage.Clients) {
-        val clientsCount = serviceMessage.clients.count { it.isDisconnected.not() }
+        val clientsCount = serviceMessage.clients.count { (it as MjpegClient).isDisconnected.not() }
         binding.tvFragmentStreamClientsHeader.text = getString(R.string.stream_fragment_connected_clients).run {
             format(clientsCount).setColorSpan(colorAccent, indexOf('%'))
         }
-        httpClientAdapter?.submitList(serviceMessage.clients)
+        httpClientAdapter?.submitList(serviceMessage.clients.map { it as MjpegClient })
     }
+
+    private fun Long.bytesToMbit() = (this * 8).toFloat() / 1024 / 1024
 
     private fun onTrafficHistoryMessage(serviceMessage: ServiceMessage.TrafficHistory) {
         binding.tvFragmentStreamTrafficHeader.text = getString(R.string.stream_fragment_current_traffic).run {
-            val lastTrafficPoint = serviceMessage.trafficHistory.lastOrNull() ?: return@run "0"
+            val lastTrafficPoint = serviceMessage.trafficHistory.lastOrNull() as? MjpegTrafficPoint ?: return@run "0"
             format(lastTrafficPoint.bytes.bytesToMbit()).setColorSpan(colorAccent, indexOf('%'))
         }
 
         binding.trafficGraphFragmentStream.setDataPoints(
-            serviceMessage.trafficHistory.map { Pair(it.time, it.bytes.bytesToMbit()) }
+            serviceMessage.trafficHistory.map { it as MjpegTrafficPoint }.map { Pair(it.time, it.bytes.bytesToMbit()) }
         )
     }
 
@@ -215,10 +230,10 @@ class StreamFragment : AdFragment(R.layout.fragment_stream) {
         } else {
             XLog.d(getLog("showError", appError.toString()))
             binding.tvFragmentStreamError.text = when (appError) {
-                is FixableError.AddressInUseException -> getString(R.string.error_port_in_use)
-                is FixableError.CastSecurityException -> getString(R.string.error_invalid_media_projection)
-                is FixableError.AddressNotFoundException -> getString(R.string.error_ip_address_not_found)
-                is FatalError.BitmapFormatException -> getString(R.string.error_wrong_image_format)
+                is AddressInUseException -> getString(R.string.error_port_in_use)
+                is CastSecurityException -> getString(R.string.error_invalid_media_projection)
+                is AddressNotFoundException -> getString(R.string.error_ip_address_not_found)
+                is BitmapFormatException -> getString(R.string.error_wrong_image_format)
                 else -> appError.toString()
             }
             binding.tvFragmentStreamError.visibility = View.VISIBLE
@@ -227,10 +242,10 @@ class StreamFragment : AdFragment(R.layout.fragment_stream) {
         errorPrevious = appError
     }
 
-    private class HttpClientAdapter : ListAdapter<HttpClient, HttpClientViewHolder>(
-        object : DiffUtil.ItemCallback<HttpClient>() {
-            override fun areItemsTheSame(oldItem: HttpClient, newItem: HttpClient): Boolean = oldItem.id == newItem.id
-            override fun areContentsTheSame(oldItem: HttpClient, newItem: HttpClient): Boolean = oldItem == newItem
+    private class HttpClientAdapter : ListAdapter<MjpegClient, HttpClientViewHolder>(
+        object : DiffUtil.ItemCallback<MjpegClient>() {
+            override fun areItemsTheSame(oldItem: MjpegClient, newItem: MjpegClient): Boolean = oldItem.id == newItem.id
+            override fun areContentsTheSame(oldItem: MjpegClient, newItem: MjpegClient): Boolean = oldItem == newItem
         }
     ) {
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) =
@@ -247,7 +262,7 @@ class StreamFragment : AdFragment(R.layout.fragment_stream) {
         private val colorError by lazy { ContextCompat.getColor(binding.root.context, R.color.colorError) }
         private val colorAccent by lazy { ContextCompat.getColor(binding.root.context, R.color.colorAccent) }
 
-        fun bind(product: HttpClient) = with(product) {
+        fun bind(product: MjpegClient) = with(product) {
             binding.tvClientItemAddress.text = clientAddress
             with(binding.tvClientItemStatus) {
                 when {
@@ -271,4 +286,22 @@ class StreamFragment : AdFragment(R.layout.fragment_stream) {
             }
         }
     }
+
+    private fun String.getQRBitmap(size: Int): Bitmap? =
+        try {
+            val qrCode = QrCode.encodeText(this, QrCode.Ecc.MEDIUM)
+            val scale = size / qrCode.size
+            val pixels = IntArray(size * size).apply { fill(0xFFFFFFFF.toInt()) }
+            for (y in 0 until size)
+                for (x in 0 until size)
+                    if (qrCode.getModule(x / scale, y / scale)) pixels[y * size + x] = 0xFF000000.toInt()
+
+            val border = 16
+            Bitmap.createBitmap(size + border, size + border, Bitmap.Config.ARGB_8888).apply {
+                setPixels(pixels, 0, size, border, border, size, size)
+            }
+        } catch (ex: Exception) {
+            XLog.e(getLog("String.getQRBitmap", ex.toString()))
+            null
+        }
 }

@@ -8,12 +8,13 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.drawable.Icon
 import android.os.Build
+import android.os.IBinder
 import android.service.quicksettings.Tile
 import android.service.quicksettings.TileService
 import androidx.annotation.RequiresApi
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.R
-import info.dvkr.screenstream.data.other.getLog
+import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.service.helper.IntentAction
 import kotlinx.coroutines.*
 
@@ -37,6 +38,10 @@ class TileActionService : TileService() {
 
     private var coroutineScope: CoroutineScope? = null
     private var isStreaming: Boolean = false
+
+    override fun onBind(intent: Intent?): IBinder? {
+        return runCatching { super.onBind(intent) }.getOrNull()
+    }
 
     override fun onStartListening() {
         super.onStartListening()
