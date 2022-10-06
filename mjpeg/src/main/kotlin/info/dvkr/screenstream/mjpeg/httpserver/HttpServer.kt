@@ -62,7 +62,7 @@ internal class HttpServer(
         val coroutineExceptionHandler = CoroutineExceptionHandler { _, throwable ->
             if (throwable is IOException && throwable !is BindException) return@CoroutineExceptionHandler
             if (throwable is CancellationException) return@CoroutineExceptionHandler
-            XLog.d(getLog("onCoroutineException", "ktorServer: ${ktorServer?.hashCode()}"))
+            XLog.d(getLog("onCoroutineException", "ktorServer: ${ktorServer?.hashCode()}: $throwable"))
             XLog.e(getLog("onCoroutineException", throwable.toString()), throwable)
             ktorServer?.stop(0, 250)
             ktorServer = null

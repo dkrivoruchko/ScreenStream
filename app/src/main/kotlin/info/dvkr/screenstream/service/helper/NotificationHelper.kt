@@ -135,7 +135,7 @@ class NotificationHelper(context: Context) {
             )
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val notificationChannel = notificationManager.getNotificationChannel(CHANNEL_ERROR)
+            val notificationChannel = notificationManager.getNotificationChannel(CHANNEL_ERROR)!!
             builder
                 .setSound(notificationChannel.sound)
                 .setPriority(notificationChannel.importance)
