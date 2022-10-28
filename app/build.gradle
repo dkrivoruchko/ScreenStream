@@ -100,16 +100,16 @@ dependencies {
     implementation(project(":mjpeg"))
 
     implementation("androidx.core:core-ktx:1.9.0")
-    implementation("androidx.activity:activity-ktx:1.6.0")
-    implementation("androidx.fragment:fragment-ktx:1.5.3")
+    implementation("androidx.activity:activity-ktx:1.6.1")
+    implementation("androidx.fragment:fragment-ktx:1.5.4")
     implementation("androidx.appcompat:appcompat:1.6.0-rc01")
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
     implementation("androidx.recyclerview:recyclerview:1.2.1")
-    implementation("com.google.android.material:material:1.7.0-rc01")
+    implementation("com.google.android.material:material:1.7.0")
     implementation("androidx.window:window:1.0.0")
 
-    implementation("androidx.navigation:navigation-fragment-ktx:2.5.2")
-    implementation("androidx.navigation:navigation-ui-ktx:2.5.2")
+    implementation("androidx.navigation:navigation-fragment-ktx:2.5.3")
+    implementation("androidx.navigation:navigation-ui-ktx:2.5.3")
     implementation("androidx.lifecycle:lifecycle-livedata:2.5.1")
     implementation("androidx.lifecycle:lifecycle-common:2.5.1")
 
@@ -121,15 +121,15 @@ dependencies {
     implementation(fileTree("libs/bottomsheets-release.aar"))
 //    implementation("com.afollestad.material-dialogs:bottomsheets:3.3.0")
 
-    implementation("io.insert-koin:koin-android:3.2.2")
+    implementation("io.insert-koin:koin-android:3.3.0")
     implementation("com.github.iamironz:binaryprefs:1.0.1") //Migrating to datastore
 
     firebaseImplementation("com.google.android.play:app-update-ktx:2.0.0") {
         exclude group: "com.android.support"
     }
-    firebaseImplementation("com.google.firebase:firebase-analytics:21.1.1")
-    firebaseImplementation("com.google.firebase:firebase-crashlytics:18.2.13")
-    firebaseImplementation("com.google.android.gms:play-services-ads:21.2.0")
+    firebaseImplementation("com.google.firebase:firebase-analytics:21.2.0")
+    firebaseImplementation("com.google.firebase:firebase-crashlytics:18.3.1")
+    firebaseImplementation("com.google.android.gms:play-services-ads:21.3.0")
 
 //    debugImplementation("com.squareup.leakcanary:leakcanary-android:2.9.1")
 }

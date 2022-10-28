@@ -29,7 +29,7 @@ android {
 dependencies {
     implementation(project(":common"))
 
-    implementation("org.jetbrains.kotlin:kotlin-reflect:1.7.10")
+    implementation("org.jetbrains.kotlin:kotlin-reflect:1.7.20")
 
     //noinspection KtxExtensionAvailable
     implementation("androidx.core:core:1.9.0")

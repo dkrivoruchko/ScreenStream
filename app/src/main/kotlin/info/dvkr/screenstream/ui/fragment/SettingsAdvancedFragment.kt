@@ -7,11 +7,13 @@ import android.view.View
 import android.view.inputmethod.EditorInfo
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
+import androidx.window.layout.WindowMetricsCalculator
 import com.afollestad.materialdialogs.LayoutMode
 import com.afollestad.materialdialogs.MaterialDialog
 import com.afollestad.materialdialogs.WhichButton
 import com.afollestad.materialdialogs.actions.setActionButtonEnabled
 import com.afollestad.materialdialogs.bottomsheets.BottomSheet
+import com.afollestad.materialdialogs.bottomsheets.setPeekHeight
 import com.afollestad.materialdialogs.input.getInputField
 import com.afollestad.materialdialogs.input.input
 import com.afollestad.materialdialogs.lifecycle.lifecycleOwner
@@ -109,6 +111,7 @@ class SettingsAdvancedFragment : Fragment(R.layout.fragment_settings_advanced) {
             viewLifecycleOwner.lifecycleScope.launchWhenCreated {
                 val serverPort = mjpegSettings.serverPortFlow.first()
                 MaterialDialog(requireActivity(), BottomSheet(LayoutMode.WRAP_CONTENT)).show {
+                    adjustPeekHeight()
                     lifecycleOwner(viewLifecycleOwner)
                     title(R.string.pref_server_port)
                     icon(R.drawable.ic_settings_http_24dp)
@@ -160,5 +163,12 @@ class SettingsAdvancedFragment : Fragment(R.layout.fragment_settings_advanced) {
     override fun onStop() {
         XLog.d(getLog("onStop"))
         super.onStop()
+    }
+
+    private fun MaterialDialog.adjustPeekHeight(): MaterialDialog {
+        val metrics = WindowMetricsCalculator.getOrCreate().computeCurrentWindowMetrics(requireActivity())
+        val heightDp = metrics.bounds.height() / resources.displayMetrics.density
+        if (heightDp < 480f) setPeekHeight(metrics.bounds.height())
+        return this
     }
 }

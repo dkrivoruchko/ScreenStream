@@ -11,9 +11,11 @@ import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
+import androidx.window.layout.WindowMetricsCalculator
 import com.afollestad.materialdialogs.LayoutMode
 import com.afollestad.materialdialogs.MaterialDialog
 import com.afollestad.materialdialogs.bottomsheets.BottomSheet
+import com.afollestad.materialdialogs.bottomsheets.setPeekHeight
 import com.afollestad.materialdialogs.color.ColorPalette
 import com.afollestad.materialdialogs.color.colorChooser
 import com.afollestad.materialdialogs.lifecycle.lifecycleOwner
@@ -90,6 +92,7 @@ class SettingsInterfaceFragment : Fragment(R.layout.fragment_settings_interface)
                 val nightMode = appSettings.nightModeFlow.first()
                 val indexOld = nightModeList.first { it.second == nightMode }.first
                 MaterialDialog(requireActivity(), BottomSheet(LayoutMode.WRAP_CONTENT)).show {
+                    adjustPeekHeight()
                     lifecycleOwner(viewLifecycleOwner)
                     title(R.string.pref_night_mode)
                     icon(R.drawable.ic_settings_night_mode_24dp)
@@ -232,5 +235,12 @@ class SettingsInterfaceFragment : Fragment(R.layout.fragment_settings_interface)
     override fun onStop() {
         XLog.d(getLog("onStop"))
         super.onStop()
+    }
+
+    private fun MaterialDialog.adjustPeekHeight(): MaterialDialog {
+        val metrics = WindowMetricsCalculator.getOrCreate().computeCurrentWindowMetrics(requireActivity())
+        val heightDp = metrics.bounds.height() / resources.displayMetrics.density
+        if (heightDp < 480f) setPeekHeight(metrics.bounds.height())
+        return this
     }
 }

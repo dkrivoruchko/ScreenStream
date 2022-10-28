@@ -18,6 +18,7 @@ import com.afollestad.materialdialogs.MaterialDialog
 import com.afollestad.materialdialogs.WhichButton
 import com.afollestad.materialdialogs.actions.setActionButtonEnabled
 import com.afollestad.materialdialogs.bottomsheets.BottomSheet
+import com.afollestad.materialdialogs.bottomsheets.setPeekHeight
 import com.afollestad.materialdialogs.customview.customView
 import com.afollestad.materialdialogs.customview.getCustomView
 import com.afollestad.materialdialogs.input.getInputField
@@ -67,6 +68,7 @@ class SettingsImageFragment : Fragment(R.layout.fragment_settings_image) {
                 } else {
                     binding.cbFragmentSettingsVrMode.isChecked = false
                     MaterialDialog(requireActivity(), BottomSheet(LayoutMode.WRAP_CONTENT)).show {
+                        adjustPeekHeight()
                         lifecycleOwner(viewLifecycleOwner)
                         title(R.string.pref_vr_mode)
                         icon(R.drawable.ic_settings_vr_mode_24dp)
@@ -99,6 +101,7 @@ class SettingsImageFragment : Fragment(R.layout.fragment_settings_image) {
                     val leftCrop = mjpegSettings.imageCropLeftFlow.first()
                     val rightCrop = mjpegSettings.imageCropRightFlow.first()
                     MaterialDialog(requireActivity(), BottomSheet(LayoutMode.WRAP_CONTENT))
+                        .adjustPeekHeight()
                         .lifecycleOwner(viewLifecycleOwner)
                         .title(R.string.pref_crop)
                         .icon(R.drawable.ic_settings_crop_24dp)
@@ -182,6 +185,7 @@ class SettingsImageFragment : Fragment(R.layout.fragment_settings_image) {
                 val resizeFactor = mjpegSettings.resizeFactorFlow.first()
                 val resizePictureSizeString = getString(R.string.pref_resize_dialog_result)
                 MaterialDialog(requireActivity(), BottomSheet(LayoutMode.WRAP_CONTENT))
+                    .adjustPeekHeight()
                     .lifecycleOwner(viewLifecycleOwner)
                     .title(R.string.pref_resize)
                     .icon(R.drawable.ic_settings_resize_24dp)
@@ -246,6 +250,7 @@ class SettingsImageFragment : Fragment(R.layout.fragment_settings_image) {
                 val rotation = mjpegSettings.rotationFlow.first()
                 val indexOld = rotationList.first { it.second == rotation }.first
                 MaterialDialog(requireActivity(), BottomSheet(LayoutMode.WRAP_CONTENT)).show {
+                    adjustPeekHeight()
                     lifecycleOwner(viewLifecycleOwner)
                     title(R.string.pref_rotate)
                     icon(R.drawable.ic_settings_rotation_24dp)
@@ -268,6 +273,7 @@ class SettingsImageFragment : Fragment(R.layout.fragment_settings_image) {
             viewLifecycleOwner.lifecycleScope.launchWhenCreated {
                 val maxFPS = mjpegSettings.maxFPSFlow.first()
                 MaterialDialog(requireActivity(), BottomSheet(LayoutMode.WRAP_CONTENT)).show {
+                    adjustPeekHeight()
                     lifecycleOwner(viewLifecycleOwner)
                     title(R.string.pref_fps)
                     icon(R.drawable.ic_settings_fps_24dp)
@@ -303,6 +309,7 @@ class SettingsImageFragment : Fragment(R.layout.fragment_settings_image) {
             viewLifecycleOwner.lifecycleScope.launchWhenCreated {
                 val jpegQuality = mjpegSettings.jpegQualityFlow.first()
                 MaterialDialog(requireActivity(), BottomSheet(LayoutMode.WRAP_CONTENT)).show {
+                    adjustPeekHeight()
                     lifecycleOwner(viewLifecycleOwner)
                     title(R.string.pref_jpeg_quality)
                     icon(R.drawable.ic_settings_high_quality_24dp)
@@ -337,6 +344,13 @@ class SettingsImageFragment : Fragment(R.layout.fragment_settings_image) {
     override fun onStop() {
         XLog.d(getLog("onStop"))
         super.onStop()
+    }
+
+    private fun MaterialDialog.adjustPeekHeight(): MaterialDialog {
+        val metrics = WindowMetricsCalculator.getOrCreate().computeCurrentWindowMetrics(requireActivity())
+        val heightDp = metrics.bounds.height() / resources.displayMetrics.density
+        if (heightDp < 480f) setPeekHeight(metrics.bounds.height())
+        return this
     }
 
     private suspend fun isVRModeEnabled(): Boolean =
