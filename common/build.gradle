@@ -22,7 +22,6 @@ android {
 
     kotlinOptions {
         jvmTarget = JavaVersion.VERSION_11.toString()
-        languageVersion = JavaVersion.VERSION_1_8.toString()
     }
 }
 
