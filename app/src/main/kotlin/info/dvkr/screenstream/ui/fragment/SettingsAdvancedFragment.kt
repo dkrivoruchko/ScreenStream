@@ -122,11 +122,11 @@ class SettingsAdvancedFragment : Fragment(R.layout.fragment_settings_advanced) {
                         maxLength = 5,
                         waitForPositiveButton = false
                     ) { dialog, text ->
-                        val isValid = text.length in 4..5 && text.toString().toInt() in 1025..65535
+                        val isValid = text.length in 4..5 && (text.toString().toIntOrNull() ?: -1) in 1025..65535
                         dialog.setActionButtonEnabled(WhichButton.POSITIVE, isValid)
                     }
                     positiveButton(android.R.string.ok) { dialog ->
-                        val newValue = dialog.getInputField().text?.toString()?.toInt() ?: serverPort
+                        val newValue = dialog.getInputField().text?.toString()?.toIntOrNull() ?: serverPort
                         if (serverPort != newValue)
                             viewLifecycleOwner.lifecycleScope.launchWhenCreated { mjpegSettings.setServerPort(newValue) }
                     }

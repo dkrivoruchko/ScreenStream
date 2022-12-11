@@ -48,7 +48,7 @@ class NetworkHelper(context: Context) {
                     if (netList.isNotEmpty()) return Collections.enumeration(netList)
                     return@forEach
                 }
-            } catch (ex: SocketException) {
+            } catch (ex: Exception) {
                 XLog.e(getLog("getNetworkInterfacesWithFallBack.getByIndex#$index:", ex.toString()))
             }
         }
@@ -63,7 +63,7 @@ class NetworkHelper(context: Context) {
                     if (networkInterfaceIndexed != null) netList.add(networkInterfaceIndexed)
                 }
 
-            } catch (ex: SocketException) {
+            } catch (ex: Exception) {
                 XLog.e(getLog("getNetworkInterfacesWithFallBack.commonName#$commonName:", ex.toString()))
             }
         }

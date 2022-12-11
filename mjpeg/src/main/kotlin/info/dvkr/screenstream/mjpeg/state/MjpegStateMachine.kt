@@ -230,6 +230,7 @@ class MjpegStateMachine(
 
     private var slowClients: List<MjpegClient> = emptyList()
 
+    @Synchronized
     private fun checkForSlowClients(clients: List<MjpegClient>) {
         val currentSlowConnections = clients.filter { it.isSlowConnection }.toList()
         if (slowClients.containsAll(currentSlowConnections).not()) onSlowConnectionDetected()
@@ -248,10 +249,16 @@ class MjpegStateMachine(
         }
     }
 
+    private fun releaseWakeLock() {
+        synchronized(this) {
+            if (wakeLock?.isHeld == true) wakeLock?.release()
+            wakeLock = null
+        }
+    }
+
     override fun destroy() {
         XLog.d(getLog("destroy"))
-        wakeLock?.release()
-        wakeLock = null
+        releaseWakeLock()
 
         sendEvent(InternalEvent.Destroy)
         try {
@@ -268,8 +275,7 @@ class MjpegStateMachine(
 
     private fun onError(appError: AppError) {
         XLog.e(getLog("onError", "AppError: $appError"))
-        wakeLock?.release()
-        wakeLock = null
+        releaseWakeLock()
         sendEvent(InternalEvent.ComponentError(appError))
     }
 
@@ -281,8 +287,7 @@ class MjpegStateMachine(
             streamState.mediaProjection?.stop()
         }
 
-        wakeLock?.release()
-        wakeLock = null
+        releaseWakeLock()
 
         return streamState.copy(mediaProjection = null, bitmapCapture = null)
     }
@@ -359,11 +364,14 @@ class MjpegStateMachine(
             bitmapCapture.start()
 
             if (appSettings.keepAwakeFlow.first()) {
-                @Suppress("DEPRECATION")
-                @SuppressLint("WakelockTimeout")
-                wakeLock = powerManager.newWakeLock(
-                    PowerManager.SCREEN_DIM_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP, "ScreenStream::StreamingTag"
-                ).apply { acquire() }
+                synchronized(this) {
+                    @Suppress("DEPRECATION")
+                    @SuppressLint("WakelockTimeout")
+                    wakeLock = powerManager.newWakeLock(
+                        PowerManager.SCREEN_DIM_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP, "ScreenStream::StreamingTag"
+                    )
+                        .apply { acquire() }
+                }
             }
 
             return streamState.copy(

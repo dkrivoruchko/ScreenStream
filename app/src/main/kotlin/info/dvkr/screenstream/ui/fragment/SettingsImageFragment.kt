@@ -109,18 +109,17 @@ class SettingsImageFragment : Fragment(R.layout.fragment_settings_image) {
                         .positiveButton(android.R.string.ok) { dialog ->
                             DialogSettingsCropBinding.bind(dialog.getCustomView()).apply {
                                 viewLifecycleOwner.lifecycleScope.launchWhenCreated {
-                                    val newTopCrop = tietDialogSettingsCropTop.text.toString().toInt()
-                                    val newBottomCrop = tietDialogSettingsCropBottom.text.toString().toInt()
-                                    val newLeftCrop = tietDialogSettingsCropLeft.text.toString().toInt()
-                                    val newRightCrop = tietDialogSettingsCropRight.text.toString().toInt()
+                                    val newTopCrop = tietDialogSettingsCropTop.text.toString().toIntOrNull() ?: topCrop
+                                    val newBottomCrop = tietDialogSettingsCropBottom.text.toString().toIntOrNull() ?: bottomCrop
+                                    val newLeftCrop = tietDialogSettingsCropLeft.text.toString().toIntOrNull() ?: leftCrop
+                                    val newRightCrop = tietDialogSettingsCropRight.text.toString().toIntOrNull() ?: rightCrop
 
                                     if (newTopCrop != topCrop) mjpegSettings.setImageCropTop(newTopCrop)
                                     if (newBottomCrop != bottomCrop) mjpegSettings.setImageCropBottom(newBottomCrop)
                                     if (newLeftCrop != leftCrop) mjpegSettings.setImageCropLeft(newLeftCrop)
                                     if (newRightCrop != rightCrop) mjpegSettings.setImageCropRight(newRightCrop)
 
-                                    val newImageCrop =
-                                        newTopCrop + newBottomCrop + newLeftCrop + newRightCrop != 0
+                                    val newImageCrop = newTopCrop + newBottomCrop + newLeftCrop + newRightCrop != 0
                                     binding.cbFragmentSettingsCropImage.isChecked = newImageCrop
                                     mjpegSettings.setImageCrop(newImageCrop)
                                 }
@@ -194,9 +193,7 @@ class SettingsImageFragment : Fragment(R.layout.fragment_settings_image) {
                         DialogSettingsResizeBinding.bind(dialog.getCustomView()).apply {
                             val newResizeFactor = tietDialogSettingsResize.text.toString().toInt()
                             if (newResizeFactor != resizeFactor)
-                                viewLifecycleOwner.lifecycleScope.launchWhenCreated {
-                                    mjpegSettings.setResizeFactor(newResizeFactor)
-                                }
+                                viewLifecycleOwner.lifecycleScope.launchWhenCreated { mjpegSettings.setResizeFactor(newResizeFactor) }
                         }
                     }
                     .negativeButton(android.R.string.cancel)
@@ -212,8 +209,7 @@ class SettingsImageFragment : Fragment(R.layout.fragment_settings_image) {
                                 addTextChangedListener(SimpleTextWatcher { text ->
                                     val isValid = text.length in 2..3 && (text.toString().toIntOrNull() ?: -1) in 10..150
                                     this@Dialog.setActionButtonEnabled(WhichButton.POSITIVE, isValid)
-                                    val newResizeFactor =
-                                        (if (isValid) text.toString().toInt() else resizeFactor) / 100f
+                                    val newResizeFactor = (if (isValid) text.toString().toInt() else resizeFactor) / 100f
 
                                     tvDialogSettingsResizeResult.text = resizePictureSizeString.format(
                                         (screenBounds.width() * newResizeFactor).toInt(),
@@ -284,11 +280,11 @@ class SettingsImageFragment : Fragment(R.layout.fragment_settings_image) {
                         maxLength = 2,
                         waitForPositiveButton = false
                     ) { dialog, text ->
-                        val isValid = text.length in 1..2 && text.toString().toInt() in 1..60
+                        val isValid = text.length in 1..2 && (text.toString().toIntOrNull() ?: -1) in 1..60
                         dialog.setActionButtonEnabled(WhichButton.POSITIVE, isValid)
                     }
                     positiveButton(android.R.string.ok) { dialog ->
-                        val newValue = dialog.getInputField().text?.toString()?.toInt() ?: maxFPS
+                        val newValue = dialog.getInputField().text?.toString()?.toIntOrNull() ?: maxFPS
                         if (maxFPS != newValue)
                             viewLifecycleOwner.lifecycleScope.launchWhenCreated { mjpegSettings.setMaxFPS(newValue) }
                     }
@@ -320,11 +316,11 @@ class SettingsImageFragment : Fragment(R.layout.fragment_settings_image) {
                         maxLength = 3,
                         waitForPositiveButton = false
                     ) { dialog, text ->
-                        val isValid = text.length in 2..3 && text.toString().toInt() in 10..100
+                        val isValid = text.length in 2..3 && (text.toString().toIntOrNull() ?: -1) in 10..100
                         dialog.setActionButtonEnabled(WhichButton.POSITIVE, isValid)
                     }
                     positiveButton(android.R.string.ok) { dialog ->
-                        val newValue = dialog.getInputField().text?.toString()?.toInt() ?: jpegQuality
+                        val newValue = dialog.getInputField().text?.toString()?.toIntOrNull() ?: jpegQuality
                         if (jpegQuality != newValue)
                             viewLifecycleOwner.lifecycleScope.launchWhenCreated { mjpegSettings.setJpegQuality(newValue) }
                     }

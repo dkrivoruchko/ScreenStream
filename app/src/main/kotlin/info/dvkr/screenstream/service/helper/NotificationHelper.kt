@@ -67,14 +67,18 @@ class NotificationHelper(context: Context) {
             .putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, applicationContext.packageName)
 
     fun showForegroundNotification(service: Service, notificationType: NotificationType) {
+        XLog.d(getLog("showForegroundNotification", "Service:${service.hashCode()}, NotificationType: $notificationType"))
         if (currentNotificationType != notificationType) {
             val notification = getForegroundNotification(notificationType)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                XLog.d(getLog("showForegroundNotification", "service.startForeground.Q: Service:${service.hashCode()}, NotificationType: $notificationType"))
                 service.startForeground(notificationType.id, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION)
             } else {
+                XLog.d(getLog("showForegroundNotification", "service.startForeground: Service:${service.hashCode()}, NotificationType: $notificationType"))
                 service.startForeground(notificationType.id, notification)
             }
             currentNotificationType = notificationType
+            XLog.d(getLog("showForegroundNotification", "service.startForeground: Service:${service.hashCode()}, currentNotificationType: $currentNotificationType"))
         }
     }
 
@@ -135,11 +139,12 @@ class NotificationHelper(context: Context) {
             )
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val notificationChannel = notificationManager.getNotificationChannel(CHANNEL_ERROR)!!
-            builder
-                .setSound(notificationChannel.sound)
-                .setPriority(notificationChannel.importance)
-                .setVibrate(notificationChannel.vibrationPattern)
+            notificationManager.getNotificationChannel(CHANNEL_ERROR)?.let { notificationChannel ->
+                builder
+                    .setSound(notificationChannel.sound)
+                    .setPriority(notificationChannel.importance)
+                    .setVibrate(notificationChannel.vibrationPattern)
+            }
         }
 
         notificationManager.notify(NotificationType.ERROR.id, builder.build())
