@@ -3,13 +3,15 @@ package info.dvkr.screenstream.mjpeg.httpserver
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.mjpeg.HttpServerException
+import info.dvkr.screenstream.mjpeg.httpserver.ClientData.Companion.clientId
 import info.dvkr.screenstream.mjpeg.randomString
 import io.ktor.http.*
 import io.ktor.http.content.*
 import io.ktor.server.application.*
-import io.ktor.server.cio.*
+import io.ktor.server.plugins.*
 import io.ktor.server.plugins.cors.routing.*
 import io.ktor.server.plugins.defaultheaders.*
+import io.ktor.server.plugins.forwardedheaders.*
 import io.ktor.server.plugins.statuspages.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
@@ -18,7 +20,6 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.*
 import java.io.IOException
-import java.net.InetSocketAddress
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
 
@@ -68,6 +69,7 @@ internal fun Application.appModule(
         allowHeader(HttpHeaders.AccessControlAllowOrigin)
         anyHost()
     }
+    install(ForwardedHeaders)
 
     install(StatusPages) {
         status(HttpStatusCode.NotFound) { call, _ ->
@@ -92,163 +94,133 @@ internal fun Application.appModule(
 
     routing {
         route(HttpServerFiles.ROOT_ADDRESS) {
-
             handle {
-                if (clientData.enablePin.not()) {
-                    call.respondText(httpServerFiles.indexHtml, ContentType.Text.Html)
-                } else {
-                    val ipAddress: InetSocketAddress? = ClientAddressWorkAround.getInetSocketAddress(call.request)
-                    val fallbackHost = call.request.local.remoteHost
-                    val clientId = ClientData.getId(ipAddress, fallbackHost)
+                when {
+                    clientData.enablePin.not() -> call.respondText(httpServerFiles.indexHtml, ContentType.Text.Html)
+                    clientData.isAddressBlocked(call.request.origin) -> call.respond(HttpStatusCode.Forbidden)
+                    clientData.isClientAuthorized(call.request.origin) -> call.respondText(httpServerFiles.indexHtml, ContentType.Text.Html)
+                    else -> call.respond(HttpStatusCode.Unauthorized)
+                }
+            }
+        }
 
-                    if (clientData.isAddressBlocked(ipAddress, fallbackHost)) {
-                        call.respond(HttpStatusCode.Forbidden)
-                    } else {
-                        if (clientData.isClientAuthorized(clientId)) {
+        get(HttpServerFiles.PIN_REQUEST_ADDRESS) {
+            when {
+                clientData.enablePin.not() -> call.respond(HttpStatusCode.NotFound)
+                clientData.isAddressBlocked(call.request.origin) -> call.respond(HttpStatusCode.Forbidden)
+                else -> {
+                    clientData.onConnected(call.request.origin)
+                    when (call.request.queryParameters[HttpServerFiles.PIN_PARAMETER]) {
+                        httpServerFiles.pin -> {
+                            clientData.onPinCheck(call.request.origin, true)
                             call.respondText(httpServerFiles.indexHtml, ContentType.Text.Html)
-                        } else {
-                            call.respond(HttpStatusCode.Unauthorized)
                         }
-                    }
-                }
-            }
-
-            get(HttpServerFiles.PIN_REQUEST_ADDRESS) {
-                if (clientData.enablePin.not()) {
-                    call.respond(HttpStatusCode.NotFound)
-                } else {
-                    val ipAddress: InetSocketAddress? = ClientAddressWorkAround.getInetSocketAddress(call.request)
-                    val fallbackHost = call.request.local.remoteHost
-                    val clientId = ClientData.getId(ipAddress, fallbackHost)
-
-                    if (clientData.isAddressBlocked(ipAddress, fallbackHost)) {
-                        call.respond(HttpStatusCode.Forbidden)
-                    } else {
-                        clientData.onConnected(clientId, ipAddress, fallbackHost)
-
-                        when (call.request.queryParameters[HttpServerFiles.PIN_PARAMETER]) {
-                            httpServerFiles.pin -> {
-                                clientData.onPinCheck(clientId, true)
-                                call.respondText(httpServerFiles.indexHtml, ContentType.Text.Html)
-                            }
-                            null -> {
-                                call.respondText(httpServerFiles.pinRequestHtml, ContentType.Text.Html)
-                            }
-                            else -> {
-                                clientData.onPinCheck(clientId, false)
-
-                                if (clientData.isClientBlocked(clientId)) {
-                                    call.respond(HttpStatusCode.Forbidden)
-                                } else {
-                                    call.respondText(httpServerFiles.pinRequestErrorHtml, ContentType.Text.Html)
-                                }
+                        null -> call.respondText(httpServerFiles.pinRequestHtml, ContentType.Text.Html)
+                        else -> {
+                            clientData.onPinCheck(call.request.origin, false)
+                            when {
+                                clientData.isClientBlocked(call.request.origin) -> call.respond(HttpStatusCode.Forbidden)
+                                else -> call.respondText(httpServerFiles.pinRequestErrorHtml, ContentType.Text.Html)
                             }
                         }
                     }
                 }
             }
+        }
 
-            get(HttpServerFiles.CLIENT_BLOCKED_ADDRESS) {
-                if (clientData.enablePin && clientData.blockAddress) {
-                    call.respondText(httpServerFiles.addressBlockedHtml, ContentType.Text.Html)
-                } else {
-                    call.respond(HttpStatusCode.NotFound)
-                }
+        get(HttpServerFiles.CLIENT_BLOCKED_ADDRESS) {
+            if (clientData.enablePin && clientData.blockAddress) {
+                call.respondText(httpServerFiles.addressBlockedHtml, ContentType.Text.Html)
+            } else {
+                call.respond(HttpStatusCode.NotFound)
+            }
+        }
+
+        get(httpServerFiles.streamAddress) {
+            if (clientData.isClientAllowed(call.request.origin).not()) {
+                call.respond(HttpStatusCode.NotFound)
+                return@get
             }
 
-            get(httpServerFiles.streamAddress) {
-                val ipAddress: InetSocketAddress? = ClientAddressWorkAround.getInetSocketAddress(call.request)
-                val fallbackHost = call.request.local.remoteHost
-                val clientId = ClientData.getId(ipAddress, fallbackHost)
+            call.respond(object : OutgoingContent.WriteChannelContent() {
+                override val status: HttpStatusCode = HttpStatusCode.OK
 
-                if (clientData.isClientAllowed(clientId, ipAddress, fallbackHost).not()) {
-                    call.respond(HttpStatusCode.NotFound)
-                    return@get
-                }
+                override val contentType: ContentType = contentType
 
-                call.respond(object : OutgoingContent.WriteChannelContent() {
-                    override val status: HttpStatusCode = HttpStatusCode.OK
+                override suspend fun writeTo(channel: ByteWriteChannel) {
+                    val emmitCounter = AtomicLong(0L)
+                    val collectCounter = AtomicLong(0L)
+                    val clientId = call.request.origin.clientId
 
-                    override val contentType: ContentType = contentType
+                    mjpegSharedFlow
+                        .onStart {
+                            XLog.d(this@appModule.getLog("onStart", "Client: $clientId"))
+                            clientData.onConnected(call.request.origin)
 
-                    override suspend fun writeTo(channel: ByteWriteChannel) {
-                        val emmitCounter = AtomicLong(0L)
-                        val collectCounter = AtomicLong(0L)
-
-                        mjpegSharedFlow
-                            .onStart {
-                                XLog.d(this@appModule.getLog("onStart", "Client: $clientId"))
-                                clientData.onConnected(clientId, ipAddress, fallbackHost)
-
-                                channel.writeFully(jpegBoundary, 0, jpegBoundary.size)
-                                val totalSize = writeMJPEGFrame(channel, lastJPEG.get())
-                                clientData.onNextBytes(clientId, totalSize)
+                            channel.writeFully(jpegBoundary, 0, jpegBoundary.size)
+                            val totalSize = writeMJPEGFrame(channel, lastJPEG.get())
+                            clientData.onNextBytes(call.request.origin, totalSize)
+                        }
+                        .onCompletion {
+                            XLog.d(this@appModule.getLog("onCompletion", "Client: $clientId"))
+                            clientData.onDisconnected(call.request.origin)
+                        }
+                        .map { Pair(emmitCounter.incrementAndGet(), it) }
+                        .conflate()
+                        .onEach { (emmitCounter, jpeg) ->
+                            if (channel.isClosedForWrite) {
+                                XLog.d(this@appModule.getLog("onEach", "IsClosedForWrite: Client: $clientId"))
+                                coroutineContext.cancel()
+                                return@onEach
                             }
-                            .onCompletion {
-                                XLog.d(this@appModule.getLog("onCompletion", "Client: $clientId"))
-                                clientData.onDisconnected(clientId)
+
+                            if (emmitCounter - collectCounter.incrementAndGet() >= 5) {
+                                XLog.i(this@appModule.getLog("onEach", "Slow connection. Client: $clientId"))
+                                collectCounter.set(emmitCounter)
+                                clientData.onSlowConnection(call.request.origin)
                             }
-                            .map { Pair(emmitCounter.incrementAndGet(), it) }
-                            .conflate()
-                            .onEach { (emmitCounter, jpeg) ->
-                                if (channel.isClosedForWrite) {
-                                    XLog.d(this@appModule.getLog("onEach", "IsClosedForWrite: Client: $clientId"))
-                                    coroutineContext.cancel()
-                                    return@onEach
-                                }
 
-                                if (emmitCounter - collectCounter.incrementAndGet() >= 5) {
-                                    XLog.i(this@appModule.getLog("onEach", "Slow connection. Client: $clientId"))
-                                    collectCounter.set(emmitCounter)
-                                    clientData.onSlowConnection(clientId)
-                                }
-
-                                val totalSize = if (clientData.isClientAllowed(clientId, ipAddress, fallbackHost)) {
-                                    writeMJPEGFrame(channel, jpeg)
-                                } else {
-                                    writeMJPEGFrame(channel, blockedJPEG)
-                                }
-
-                                clientData.onNextBytes(clientId, totalSize)
+                            val totalSize = if (clientData.isClientAllowed(call.request.origin)) {
+                                writeMJPEGFrame(channel, jpeg)
+                            } else {
+                                writeMJPEGFrame(channel, blockedJPEG)
                             }
-                            .catch { /* Empty intentionally */ }
-                            .collect()
-                    }
-                })
-            }
 
-            get(httpServerFiles.jpegFallbackAddress) {
-                val ipAddress: InetSocketAddress? = ClientAddressWorkAround.getInetSocketAddress(call.request)
-
-                if (clientData.isAddressBlocked(ipAddress, call.request.local.remoteHost)) {
-                    call.respondBytes(blockedJPEG, ContentType.Image.JPEG)
-                } else {
-                    call.respondBytes(lastJPEG.get(), ContentType.Image.JPEG)
+                            clientData.onNextBytes(call.request.origin, totalSize)
+                        }
+                        .catch { /* Empty intentionally */ }
+                        .collect()
                 }
-            }
+            })
+        }
 
-            get(HttpServerFiles.START_STOP_ADDRESS) {
-                if (httpServerFiles.htmlEnableButtons && clientData.enablePin.not())
-                    sendEvent(HttpServer.Event.Action.StartStopRequest)
+        get(httpServerFiles.jpegFallbackAddress) {
+            if (clientData.isAddressBlocked(call.request.origin)) {
+                call.respondBytes(blockedJPEG, ContentType.Image.JPEG)
+            } else {
+                call.respondBytes(lastJPEG.get(), ContentType.Image.JPEG)
+            }
+        }
 
-                call.respondText("")
-            }
+        get(HttpServerFiles.START_STOP_ADDRESS) {
+            if (httpServerFiles.htmlEnableButtons && clientData.enablePin.not()) sendEvent(HttpServer.Event.Action.StartStopRequest)
+            call.respondText("")
+        }
 
-            get(HttpServerFiles.FAVICON_PNG) {
-                call.respondBytes(httpServerFiles.faviconPng, ContentType.Image.PNG)
-            }
-            get(HttpServerFiles.LOGO_PNG) {
-                call.respondBytes(httpServerFiles.logoPng, ContentType.Image.PNG)
-            }
-            get(HttpServerFiles.FULLSCREEN_ON_PNG) {
-                call.respondBytes(httpServerFiles.fullscreenOnPng, ContentType.Image.PNG)
-            }
-            get(HttpServerFiles.FULLSCREEN_OFF_PNG) {
-                call.respondBytes(httpServerFiles.fullscreenOffPng, ContentType.Image.PNG)
-            }
-            get(HttpServerFiles.START_STOP_PNG) {
-                call.respondBytes(httpServerFiles.startStopPng, ContentType.Image.PNG)
-            }
+        get(HttpServerFiles.FAVICON_PNG) {
+            call.respondBytes(httpServerFiles.faviconPng, ContentType.Image.PNG)
+        }
+        get(HttpServerFiles.LOGO_PNG) {
+            call.respondBytes(httpServerFiles.logoPng, ContentType.Image.PNG)
+        }
+        get(HttpServerFiles.FULLSCREEN_ON_PNG) {
+            call.respondBytes(httpServerFiles.fullscreenOnPng, ContentType.Image.PNG)
+        }
+        get(HttpServerFiles.FULLSCREEN_OFF_PNG) {
+            call.respondBytes(httpServerFiles.fullscreenOffPng, ContentType.Image.PNG)
+        }
+        get(HttpServerFiles.START_STOP_PNG) {
+            call.respondBytes(httpServerFiles.startStopPng, ContentType.Image.PNG)
         }
     }
 }

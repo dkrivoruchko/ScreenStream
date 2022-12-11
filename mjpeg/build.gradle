@@ -28,16 +28,17 @@ android {
 dependencies {
     implementation(project(":common"))
 
-    implementation("org.jetbrains.kotlin:kotlin-reflect:1.7.20")
+    implementation("org.jetbrains.kotlin:kotlin-reflect:1.7.21")
 
     //noinspection KtxExtensionAvailable
     implementation("androidx.core:core:1.9.0")
     implementation("androidx.window:window:1.0.0")
 
-    implementation("io.ktor:ktor-server-cio:2.1.3")
-    implementation("io.ktor:ktor-server-default-headers:2.1.3")
-    implementation("io.ktor:ktor-server-status-pages:2.1.3")
-    implementation("io.ktor:ktor-server-cors:2.1.3")
+    implementation("io.ktor:ktor-server-cio:2.2.1")
+    implementation("io.ktor:ktor-server-default-headers:2.2.1")
+    implementation("io.ktor:ktor-server-forwarded-header:2.2.1")
+    implementation("io.ktor:ktor-server-status-pages:2.2.1")
+    implementation("io.ktor:ktor-server-cors:2.2.1")
 
     implementation("com.github.iamironz:binaryprefs:1.0.1") //Migrating to datastore
 }

@@ -1,15 +1,13 @@
 package info.dvkr.screenstream.mjpeg.httpserver
 
 import com.elvishew.xlog.XLog
-import info.dvkr.screenstream.common.asString
 import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.mjpeg.MjpegClient
 import info.dvkr.screenstream.mjpeg.MjpegTrafficPoint
 import info.dvkr.screenstream.mjpeg.settings.MjpegSettings
-import info.dvkr.screenstream.mjpeg.toByteArray
+import io.ktor.http.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.first
-import java.net.InetSocketAddress
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 
@@ -18,10 +16,10 @@ internal class ClientData(
     private val onHttpSeverEvent: (HttpServer.Event) -> Unit
 ) {
 
-    private data class ConnectedClient(
+    internal data class ConnectedClient(
         val id: Long,
-        val ipAddress: InetSocketAddress?,
-        val fallbackHost: String,
+        val address: String,
+        val port: Int,
         var pinCheckAttempt: Int = 0,
         var isPinValidated: Boolean = false,
         var isBlocked: Boolean = false,
@@ -31,7 +29,13 @@ internal class ClientData(
         var holdUntil: Long = 0
     ) {
 
-        private companion object {
+        internal companion object {
+            internal fun fromRequestConnectionPoint(rcp: RequestConnectionPoint): ConnectedClient =
+                ConnectedClient(getClientId(rcp), rcp.remoteAddress, rcp.remotePort)
+
+            internal fun getClientId(rcp: RequestConnectionPoint): Long =
+                "${rcp.remoteAddress}:${rcp.remotePort}".hashCode().toLong()
+
             private const val CLIENT_DISCONNECT_HOLD_TIME_MILLIS = 5 * 1000
 
             private const val DEFAULT_WRONG_PIN_MAX_COUNT = 5
@@ -80,13 +84,12 @@ internal class ClientData(
         fun removeFromStatistics(now: Long): Boolean = isDisconnected && (holdUntil <= now)
 
         @Synchronized
-        fun toHttpClient() = MjpegClient(id, ipAddress?.asString() ?: fallbackHost, isSlowConnection, isDisconnected, isBlocked)
+        fun toHttpClient() = MjpegClient(id, "$address:$port", isSlowConnection, isDisconnected, isBlocked)
     }
 
     internal companion object {
-        fun getId(address: InetSocketAddress?, fallback: String): Long =
-            address?.address?.address?.plus(address.port.toByteArray())?.contentHashCode()?.toLong()
-                ?: fallback.hashCode().toLong()
+        val RequestConnectionPoint.clientId: Long
+            get() = ConnectedClient.getClientId(this)
 
         private const val TRAFFIC_HISTORY_SECONDS = 30
     }
@@ -98,37 +101,28 @@ internal class ClientData(
     internal var enablePin: Boolean = false
     internal var blockAddress: Boolean = false
 
-    internal fun onConnected(id: Long, ipAddress: InetSocketAddress?, fallbackHost: String) {
-        if (clients[id] == null) clients[id] = ConnectedClient(id, ipAddress, fallbackHost)
+    internal fun onConnected(rcp: RequestConnectionPoint) {
+        if (clients[rcp.clientId] == null) clients[rcp.clientId] = ConnectedClient.fromRequestConnectionPoint(rcp)
     }
 
-    internal fun onDisconnected(id: Long) = clients[id]?.setDisconnected()
+    internal fun onDisconnected(rcp: RequestConnectionPoint) = clients[rcp.clientId]?.setDisconnected()
 
-    internal fun onPinCheck(id: Long, isPinValid: Boolean) = clients[id]?.onPinCheck(isPinValid, blockAddress)
+    internal fun onPinCheck(rcp: RequestConnectionPoint, isPinValid: Boolean) = clients[rcp.clientId]?.onPinCheck(isPinValid, blockAddress)
 
-    internal fun isClientAuthorized(id: Long): Boolean = clients[id]?.isPinValidated ?: false
+    internal fun isClientAuthorized(rcp: RequestConnectionPoint): Boolean = clients[rcp.clientId]?.isPinValidated ?: false
 
-    internal fun isClientBlocked(id: Long): Boolean = enablePin && blockAddress && (clients[id]?.isBlocked ?: false)
+    internal fun isClientBlocked(rcp: RequestConnectionPoint): Boolean =
+        enablePin && blockAddress && (clients[rcp.clientId]?.isBlocked ?: false)
 
-    internal fun isAddressBlocked(ipAddress: InetSocketAddress?, fallbackHost: String): Boolean {
-        if (enablePin.not() || blockAddress.not()) return false
+    internal fun isAddressBlocked(rcp: RequestConnectionPoint): Boolean =
+        enablePin && blockAddress && clients.filter { it.value.address == rcp.remoteAddress && it.value.isBlocked }.isNotEmpty()
 
-        val hostAddress = ipAddress?.address?.hostAddress
-        return if (hostAddress != null) {
-            clients.filter { it.value.ipAddress?.address?.hostAddress == hostAddress && it.value.isBlocked }
-                .isNotEmpty()
-        } else {
-            clients.filter { it.value.fallbackHost == fallbackHost && it.value.isBlocked }.isNotEmpty()
-        }
-    }
+    internal fun isClientAllowed(rcp: RequestConnectionPoint): Boolean =
+        enablePin.not() || blockAddress.not() || (isClientAuthorized(rcp) && isAddressBlocked(rcp).not())
 
-    internal fun isClientAllowed(id: Long, ipAddress: InetSocketAddress?, fallbackHost: String): Boolean =
-        enablePin.not() || blockAddress.not() ||
-                (isAddressBlocked(ipAddress, fallbackHost).not() && isClientAuthorized(id))
+    internal fun onNextBytes(rcp: RequestConnectionPoint, bytesCount: Int) = clients[rcp.clientId]?.appendBytes(bytesCount)
 
-    internal fun onNextBytes(id: Long, bytesCount: Int) = clients[id]?.appendBytes(bytesCount)
-
-    internal fun onSlowConnection(id: Long) = clients[id]?.setSlowConnection()
+    internal fun onSlowConnection(rcp: RequestConnectionPoint) = clients[rcp.clientId]?.setSlowConnection()
 
     internal fun clearStatistics() = clients.clear()
 
