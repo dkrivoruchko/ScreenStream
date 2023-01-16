@@ -4,7 +4,7 @@ apply plugin: "kotlin-android"
 android {
     namespace "info.dvkr.screenstream.common"
     compileSdkVersion(33)
-    buildToolsVersion("33.0.0")
+    buildToolsVersion("33.0.1")
 
     defaultConfig {
         minSdkVersion(21)

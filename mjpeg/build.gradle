@@ -4,7 +4,7 @@ apply plugin: "kotlin-android"
 android {
     namespace "info.dvkr.screenstream.mjpeg"
     compileSdkVersion(33)
-    buildToolsVersion("33.0.0")
+    buildToolsVersion("33.0.1")
 
     defaultConfig {
         minSdkVersion(21)
@@ -37,6 +37,4 @@ dependencies {
     implementation("io.ktor:ktor-server-forwarded-header:2.2.2")
     implementation("io.ktor:ktor-server-status-pages:2.2.2")
     implementation("io.ktor:ktor-server-cors:2.2.2")
-
-    implementation("com.github.iamironz:binaryprefs:1.0.1") //Migrating to datastore
 }

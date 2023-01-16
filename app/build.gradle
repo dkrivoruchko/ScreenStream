@@ -7,7 +7,7 @@ apply plugin: "com.google.firebase.crashlytics"
 android {
     namespace "info.dvkr.screenstream"
     compileSdkVersion(33)
-    buildToolsVersion("33.0.0")
+    buildToolsVersion("33.0.1")
 
     defaultConfig {
         applicationId = "info.dvkr.screenstream"
@@ -93,7 +93,7 @@ android {
 }
 
 dependencies {
-    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:1.2.2")
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.0")
 
     implementation(project(":common"))
     implementation(project(":mjpeg"))
@@ -101,7 +101,7 @@ dependencies {
     implementation("androidx.core:core-ktx:1.9.0")
     implementation("androidx.activity:activity-ktx:1.6.1")
     implementation("androidx.fragment:fragment-ktx:1.5.5")
-    implementation("androidx.appcompat:appcompat:1.6.0-rc01")
+    implementation("androidx.appcompat:appcompat:1.6.0")
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
     implementation("androidx.recyclerview:recyclerview:1.2.1")
     implementation("com.google.android.material:material:1.7.0")
