@@ -1,10 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="app_name" translatable="false">Screen Stream</string>
+
     <string name="error_title">Błąd</string>
-    <string name="error_port_in_use">Port jest już w użyciu. Wybierz inny.</string>
-    <string name="error_invalid_media_projection">Błąd bezpieczeństwa: nieprawidłowa projekcja mediów. Spróbuj ponownie.</string>
+    <string name="error_port_in_use">Port w użyciu. Wybierz inny.</string>
+    <string name="error_invalid_media_projection">Błąd bezpieczeństwa: nieprawidłowa projekcja multimediów. Spróbuj ponownie.</string>
     <string name="error_ip_address_not_found">Nie znaleziono adresu IP. \nSpróbuj wyłączyć \"Używaj tylko WiFi\" w ustawieniach.</string>
-    <string name="error_wrong_image_format">System nadaje obrazowi niewłaściwy format. Nie ma rozwiązania tego problemu.</string>
+    <string name="error_wrong_image_format">System nadaje obrazowi niewłaściwy format. Brak rozwiązania tego problemu.</string>
     <string name="error_exit">Zamknij</string>
 
     <string name="app_activity_collecting_logs">Trwa zbieranie dzienników aplikacji…</string>
@@ -46,36 +48,43 @@
     <string name="item_device_address_description_qr_address">Pokaż adres jako kod QR</string>
 
     <string name="permission_activity_error_title_activity_not_found">Błąd dostępu do okna dialogowego</string>
-    <string name="permission_activity_error_activity_not_found">Błąd systemu Android. Nie sprawdzaj \"Nie pokazuj ponownie\" w oknie dialogowym żądania uprawnień, aby przechwycić ekran. Jeśli już to zrobiłeś, przeinstaluj aplikację.</string>
+    <string name="permission_activity_error_activity_not_found">Błąd systemu Android. Nie zaznaczaj opcji \"Nie pokazuj ponownie\" w oknie dialogowym żądania uprawnień, aby przechwycić ekran. Jeśli już to zrobiłeś, przeinstaluj aplikację.</string>
     <string name="permission_activity_permission_required_title">Wymaga pozwolenia</string>
     <string name="permission_activity_cast_permission_required">Aplikacja ScreenStream wymaga uprawnień dostępu do Przesyłanie ekranu celem przechwytywania ekranu.</string>
     <string name="permission_activity_error_title">Błąd</string>
     <string name="permission_activity_error_unknown">Nieznany błąd</string>
+	<string name="permission_activity_allow_notifications">Aplikacja wymaga uprawnień do wysyłania powiadomień, aby móc uruchomić usługę przesyłania strumieniowego. Zezwól na wysyłanie powiadomień.</string>
+	<string name="permission_activity_allow_notifications_settings">Aplikacja wymaga uprawnień do wysyłania powiadomień, aby móc uruchomić usługę przesyłania strumieniowego. Zezwól na wysyłanie powiadomień w ustawieniach aplikacji.</string>
+    <string name="permission_activity_notification_settings">Otwórz ustawienia</string>
 
     <string name="notification_ready_to_stream">Gotowy do transmisji</string>
-    <string name="notification_press_start">Naciśnij START, aby rozpocząć transmisję</string>
-    <string name="notification_start">Start</string>
+    <string name="notification_press_start">Naciśnij Uruchom, aby rozpocząć transmisję</string>
+    <string name="notification_start">Uruchom</string>
     <string name="notification_exit">Zamknij</string>
     <string name="notification_stream">Przesyłanie…</string>
-    <string name="notification_press_stop">Naciśnij STOP, aby zakończyć transmisję</string>
-    <string name="notification_stop">Stop</string>
+    <string name="notification_press_stop">Naciśnij Zatrzymaj, aby zakończyć transmisję</string>
+    <string name="notification_stop">Zatrzymaj</string>
 
     <string name="toast_slow_client_connection">Wykryto wolne połączenie klienta</string>
 
     <string name="pref_settings_interface">Wygląd</string>
+	<string name="pref_locale">Język aplikacji</string>
+    <string name="pref_locale_summary">Otwiera ustawienia języka aplikacji</string>
     <string name="pref_night_mode">Ciemny motyw</string>
     <string-array name="pref_night_mode_options_api21_28">
         <item>Zawsze</item>
-        <item>Ustawiony przez Oszczędzanie baterii</item>
+        <item>Ustaw przez Oszczędzanie baterii</item>
         <item>Nigdy</item>
     </string-array>
     <string-array name="pref_night_mode_options_api29">
         <item>Zawsze</item>
-        <item>Automatycznie (podążaj za systemem)</item>
+        <item>Automatyczny (zgodny z systemem)</item>
         <item>Nigdy</item>
     </string-array>
     <string name="pref_notification">Ustawienia powiadomień</string>
     <string name="pref_notification_summary">Otwiera ustawienia powiadomień systemu</string>
+	<string name="pref_keep_awake">Utrzymuj urządzenie w stanie czuwania</string>
+    <string name="pref_keep_awake_summary">Nie wyłączaj urządzenia i ekranu podczas przesyłania strumieniowego</string>
     <string name="pref_stop_on_sleep">Zatrzymaj transmisję podczas uśpienia</string>
     <string name="pref_stop_on_sleep_summary">Zatrzymuje transmisję, jeśli ekran się wyłączy</string>
     <string name="pref_start_on_boot">Uruchom transmisję przy starcie</string>
@@ -86,6 +95,8 @@
     <string name="pref_detect_slow_connections_summary">Wykrywa i powiadamia o powolnym połączeniu klienta</string>
     <string name="pref_html_buttons">Włącz przyciski strony internetowej</string>
     <string name="pref_html_buttons_summary">Pokazuje przyciski sterujące na stronie internetowej</string>
+	<string name="pref_html_show_press_start">Pokaż \"Naciśnij Uruchom na urządzeniu\"</string>
+    <string name="pref_html_show_press_start_summary">Pokaż \"Naciśnij Uruchom na urządzeniu\" na stronie internetowej</string>
     <string name="pref_html_back_color">Kolor tła strony internetowej</string>
     <string name="pref_html_back_color_summary">Ustawia kolor tła strony internetowej</string>
     <string name="pref_html_back_color_title">Wybierz kolor tła</string>
@@ -105,12 +116,22 @@
     <string name="pref_crop_dialog_pixels">pikseli</string>
     <string name="pref_crop_dialog_warning_message">Przycięcie zostanie zignorowane, jeśli wynikiem będzie pusty obraz</string>
     <string name="pref_crop_dialog_error_message">Wprowadź prawidłowe wartości przycięcia</string>
+	<string name="pref_grayscale">Tryb skali szarości</string>
+    <string name="pref_grayscale_summary">Ustawia obraz w skali szarości przed wysłaniem</string>
     <string name="pref_resize">Zmiana rozmiaru obrazu</string>
     <string name="pref_resize_summary">Zmienia rozmiar obrazu przed wysłaniem</string>
+	<string name="pref_resize_value" translatable="false">%1$d%%</string>
     <string name="pref_resize_dialog_text">Ustaw współczynnik zmiany rozmiaru obrazu w procentach.\nWartość: 10–150 (Domyślnie: 50)\nRozmiar ekranu: %1$dx%2$d</string>
     <string name="pref_resize_dialog_result">Rozmiar obrazu: %1$dx%2$d</string>
     <string name="pref_rotate">Obróć zdjęcie zgodnie z ruchem wskazówek zegara</string>
     <string name="pref_rotate_summary">Obraca obraz przed wysłaniem</string>
+	<string name="pref_rotate_value" translatable="false">%1$d\u00B0</string>
+    <string-array name="pref_rotate_options" translatable="false">
+        <item>0\u00B0</item>
+        <item>90\u00B0</item>
+        <item>180\u00B0</item>
+        <item>270\u00B0</item>
+    </string-array>
     <string name="pref_fps">Ogranicz liczbę klatek na sekundę</string>
     <string name="pref_fps_summary">Ustawia maksymalną liczbę klatek na sekundę</string>
     <string name="pref_fps_dialog">Ustaw maksymalną liczbę klatek na sekundę.\nWartość: 1–60 (Domyślnie: 30)</string>
@@ -121,7 +142,7 @@
     <string name="pref_enable_pin">Użyj kodu PIN</string>
     <string name="pref_enable_pin_summary">Chroni dostęp do transmisji za pomocą kodu PIN</string>
     <string name="pref_hide_pin">Automatycznie ukryj kod PIN podczas uruchamiania transmisji</string>
-    <string name="pref_hide_pin_summary">Pokazuje gwiazdki zamiast kodu PIN</string>
+    <string name="pref_hide_pin_summary">Pokazuje gwiazdki zamiast kodu PIN podczas transmisji</string>
     <string name="pref_new_pin_on_start">Nowy kod PIN podczas uruchamiania</string>
     <string name="pref_new_pin_on_start_summary">Wygeneruje nowy kod PIN podczas uruchomienia aplikacji</string>
     <string name="pref_auto_change_pin">Automatyczna zmiana kodu PIN</string>
@@ -130,28 +151,29 @@
     <string name="pref_set_pin_summary">Tworzenie kodu PIN</string>
     <string name="pref_set_pin_dialog">Wprowadź kod PIN.\nDomyślnie: 0000</string>
     <string name="pref_block_address">Zablokuj adres IP</string>
-    <string name="pref_block_address_summary">Blokuj przez 5 minut adres IP klienta po 5 próbach podania błędnego kodu PIN</string>
+    <string name="pref_block_address_summary">Blokuje przez 5 minut adres IP klienta po 5 próbach podania błędnego kodu PIN</string>
     <string name="pref_settings_advanced">Zaawansowane</string>
-    <string name="pref_wifi_only">Używaj tylko Wi-Fi</string>
+    <string name="pref_wifi_only">Użyj tylko WiFi</string>
     <string name="pref_wifi_only_summary">Uruchamia serwer tylko poprzez połączenie WiFi</string>
     <string name="pref_enable_ipv6">Włącz obsługę protokołu IPv6</string>
-    <string name="pref_enable_ipv6_summary">Uruchamia także serwer na adresach IPv6</string>
+    <string name="pref_enable_ipv6_summary">Uruchamia serwer na adresach IPv6</string>
     <string name="pref_enable_localhost">Włącz host lokalny </string>
     <string name="pref_enable_localhost_summary">Uruchamia serwer na lokalnych adresach hostów</string>
     <string name="pref_localhost_only">Tylko host lokalny</string>
-    <string name="pref_localhost_only_summary">Uruchom serwer tylko na lokalnych adresach hostów</string>
+    <string name="pref_localhost_only_summary">Uruchamia serwer tylko na lokalnych adresach hostów</string>
     <string name="pref_server_port">Port serwera</string>
     <string name="pref_server_port_summary">Ustawianie portu dla połączeń przychodzących</string>
     <string name="pref_server_port_dialog">Ustaw numer portu serwera dla połączeń przychodzących.\nWartość: 1025–65535\n(Domyślnie: 8080)</string>
     <string name="pref_logging">Włącz dzienniki aplikacji</string>
     <string name="pref_logging_summary">Zbieraj dzienniki aplikacji</string>
 
-    <string name="about_fragment_app_version">Wersja: %1$s</string>
+    <string name="about_fragment_app_name" translatable="false">Screen Stream over HTTP</string>
+	<string name="about_fragment_app_version">Wersja: %1$s</string>
     <string name="about_fragment_developer_name">Programista Dmitriy Krivoruchko</string>
     <string name="about_fragment_rate_app">Oceń aplikację</string>
     <string name="about_fragment_write_email">Napisz e-mail do autora</string>
     <string name="about_fragment_write_email_dialog">Wysłać e-mail do autora?</string>
-    <string name="about_fragment_email_chooser_header">Wysłam wiadomość e-mail…</string>
+    <string name="about_fragment_email_chooser_header">Wysyłam wiadomość e-mail…</string>
     <string name="about_fragment_app_sources">Kod źródłowy aplikacji</string>
     <string name="about_fragment_privacy_policy">Polityka prywatności</string>
     <string name="about_fragment_license">Licencja</string>
