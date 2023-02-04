@@ -13,8 +13,8 @@ android {
         applicationId = "info.dvkr.screenstream"
         minSdkVersion(21)
         targetSdkVersion(33)
-        versionCode = 31005
-        versionName = "3.10.5"
+        versionCode = 31006
+        versionName = "3.10.6"
 
         // Don't forget to update xml/locales_config.xml
         resConfigs 'en', 'ar', 'ca', 'de', 'es', 'fa', 'fr-rFR', 'gl', 'hi', 'it', 'ja', 'nl', 'pl', 'pt-rBR', 'ru', 'sk', 'uk', 'zh', 'zh-rTW'
@@ -93,7 +93,7 @@ android {
 }
 
 dependencies {
-    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.0")
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.2")
 
     implementation(project(":common"))
     implementation(project(":mjpeg"))
@@ -104,7 +104,7 @@ dependencies {
     implementation("androidx.appcompat:appcompat:1.6.0")
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
     implementation("androidx.recyclerview:recyclerview:1.2.1")
-    implementation("com.google.android.material:material:1.7.0")
+    implementation("com.google.android.material:material:1.8.0")
     implementation("androidx.window:window:1.0.0")
 
     implementation("androidx.navigation:navigation-fragment-ktx:2.5.3")
@@ -125,8 +125,8 @@ dependencies {
 
     firebaseImplementation("com.google.android.play:app-update-ktx:2.0.1")
     firebaseImplementation("com.google.firebase:firebase-analytics:21.2.0")
-    firebaseImplementation("com.google.firebase:firebase-crashlytics:18.3.2")
-    firebaseImplementation("com.google.android.gms:play-services-ads:21.4.0")
+    firebaseImplementation("com.google.firebase:firebase-crashlytics:18.3.3")
+    firebaseImplementation("com.google.android.gms:play-services-ads:21.5.0")
 
 //    debugImplementation("com.squareup.leakcanary:leakcanary-android:2.9.1")
 }
