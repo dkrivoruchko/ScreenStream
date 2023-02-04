@@ -1,7 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name" translatable="false">Screen Stream</string>
-
     <string name="error_title">Błąd</string>
     <string name="error_port_in_use">Port w użyciu. Wybierz inny.</string>
     <string name="error_invalid_media_projection">Błąd bezpieczeństwa: nieprawidłowa projekcja multimediów. Spróbuj ponownie.</string>
@@ -53,8 +51,8 @@
     <string name="permission_activity_cast_permission_required">Aplikacja ScreenStream wymaga uprawnień dostępu do Przesyłanie ekranu celem przechwytywania ekranu.</string>
     <string name="permission_activity_error_title">Błąd</string>
     <string name="permission_activity_error_unknown">Nieznany błąd</string>
-	<string name="permission_activity_allow_notifications">Aplikacja wymaga uprawnień do wysyłania powiadomień, aby móc uruchomić usługę przesyłania strumieniowego. Zezwól na wysyłanie powiadomień.</string>
-	<string name="permission_activity_allow_notifications_settings">Aplikacja wymaga uprawnień do wysyłania powiadomień, aby móc uruchomić usługę przesyłania strumieniowego. Zezwól na wysyłanie powiadomień w ustawieniach aplikacji.</string>
+    <string name="permission_activity_allow_notifications">Aplikacja wymaga uprawnień do wysyłania powiadomień, aby móc uruchomić usługę przesyłania strumieniowego. Zezwól na wysyłanie powiadomień.</string>
+    <string name="permission_activity_allow_notifications_settings">Aplikacja wymaga uprawnień do wysyłania powiadomień, aby móc uruchomić usługę przesyłania strumieniowego. Zezwól na wysyłanie powiadomień w ustawieniach aplikacji.</string>
     <string name="permission_activity_notification_settings">Otwórz ustawienia</string>
 
     <string name="notification_ready_to_stream">Gotowy do transmisji</string>
@@ -68,7 +66,7 @@
     <string name="toast_slow_client_connection">Wykryto wolne połączenie klienta</string>
 
     <string name="pref_settings_interface">Wygląd</string>
-	<string name="pref_locale">Język aplikacji</string>
+    <string name="pref_locale">Język aplikacji</string>
     <string name="pref_locale_summary">Otwiera ustawienia języka aplikacji</string>
     <string name="pref_night_mode">Ciemny motyw</string>
     <string-array name="pref_night_mode_options_api21_28">
@@ -83,7 +81,7 @@
     </string-array>
     <string name="pref_notification">Ustawienia powiadomień</string>
     <string name="pref_notification_summary">Otwiera ustawienia powiadomień systemu</string>
-	<string name="pref_keep_awake">Utrzymuj urządzenie w stanie czuwania</string>
+    <string name="pref_keep_awake">Utrzymuj urządzenie w stanie czuwania</string>
     <string name="pref_keep_awake_summary">Nie wyłączaj urządzenia i ekranu podczas przesyłania strumieniowego</string>
     <string name="pref_stop_on_sleep">Zatrzymaj transmisję podczas uśpienia</string>
     <string name="pref_stop_on_sleep_summary">Zatrzymuje transmisję, jeśli ekran się wyłączy</string>
@@ -95,7 +93,7 @@
     <string name="pref_detect_slow_connections_summary">Wykrywa i powiadamia o powolnym połączeniu klienta</string>
     <string name="pref_html_buttons">Włącz przyciski strony internetowej</string>
     <string name="pref_html_buttons_summary">Pokazuje przyciski sterujące na stronie internetowej</string>
-	<string name="pref_html_show_press_start">Pokaż \"Naciśnij Uruchom na urządzeniu\"</string>
+    <string name="pref_html_show_press_start">Pokaż \"Naciśnij Uruchom na urządzeniu\"</string>
     <string name="pref_html_show_press_start_summary">Pokaż \"Naciśnij Uruchom na urządzeniu\" na stronie internetowej</string>
     <string name="pref_html_back_color">Kolor tła strony internetowej</string>
     <string name="pref_html_back_color_summary">Ustawia kolor tła strony internetowej</string>
@@ -116,22 +114,14 @@
     <string name="pref_crop_dialog_pixels">pikseli</string>
     <string name="pref_crop_dialog_warning_message">Przycięcie zostanie zignorowane, jeśli wynikiem będzie pusty obraz</string>
     <string name="pref_crop_dialog_error_message">Wprowadź prawidłowe wartości przycięcia</string>
-	<string name="pref_grayscale">Tryb skali szarości</string>
+    <string name="pref_grayscale">Tryb skali szarości</string>
     <string name="pref_grayscale_summary">Ustawia obraz w skali szarości przed wysłaniem</string>
     <string name="pref_resize">Zmiana rozmiaru obrazu</string>
     <string name="pref_resize_summary">Zmienia rozmiar obrazu przed wysłaniem</string>
-	<string name="pref_resize_value" translatable="false">%1$d%%</string>
     <string name="pref_resize_dialog_text">Ustaw współczynnik zmiany rozmiaru obrazu w procentach.\nWartość: 10–150 (Domyślnie: 50)\nRozmiar ekranu: %1$dx%2$d</string>
     <string name="pref_resize_dialog_result">Rozmiar obrazu: %1$dx%2$d</string>
     <string name="pref_rotate">Obróć zdjęcie zgodnie z ruchem wskazówek zegara</string>
     <string name="pref_rotate_summary">Obraca obraz przed wysłaniem</string>
-	<string name="pref_rotate_value" translatable="false">%1$d\u00B0</string>
-    <string-array name="pref_rotate_options" translatable="false">
-        <item>0\u00B0</item>
-        <item>90\u00B0</item>
-        <item>180\u00B0</item>
-        <item>270\u00B0</item>
-    </string-array>
     <string name="pref_fps">Ogranicz liczbę klatek na sekundę</string>
     <string name="pref_fps_summary">Ustawia maksymalną liczbę klatek na sekundę</string>
     <string name="pref_fps_dialog">Ustaw maksymalną liczbę klatek na sekundę.\nWartość: 1–60 (Domyślnie: 30)</string>
@@ -167,8 +157,7 @@
     <string name="pref_logging">Włącz dzienniki aplikacji</string>
     <string name="pref_logging_summary">Zbieraj dzienniki aplikacji</string>
 
-    <string name="about_fragment_app_name" translatable="false">Screen Stream over HTTP</string>
-	<string name="about_fragment_app_version">Wersja: %1$s</string>
+    <string name="about_fragment_app_version">Wersja: %1$s</string>
     <string name="about_fragment_developer_name">Programista Dmitriy Krivoruchko</string>
     <string name="about_fragment_rate_app">Oceń aplikację</string>
     <string name="about_fragment_write_email">Napisz e-mail do autora</string>
