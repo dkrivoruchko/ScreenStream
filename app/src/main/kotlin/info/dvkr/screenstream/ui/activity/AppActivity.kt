@@ -136,7 +136,7 @@ class AppActivity : CastPermissionActivity(R.layout.activity_app) {
     override fun onServiceMessage(serviceMessage: ServiceMessage) {
         super.onServiceMessage(serviceMessage)
 
-        if (serviceMessage is ServiceMessage.ServiceState) {
+        if (serviceMessage is ServiceMessage.ServiceState.MjpegServiceState) {
             lastServiceMessage != serviceMessage || return
             XLog.d(this@AppActivity.getLog("onServiceMessage", "$serviceMessage"))
 
@@ -166,7 +166,7 @@ class AppActivity : CastPermissionActivity(R.layout.activity_app) {
                 }
             }
 
-            if (serviceMessage.isStreaming != lastServiceMessage?.isStreaming) {
+            if (serviceMessage.isStreaming != (lastServiceMessage as? ServiceMessage.ServiceState.MjpegServiceState)?.isStreaming) {
                 ObjectAnimator.ofPropertyValuesHolder(binding.fabActivityAppStartStop, scaleX, scaleY, alpha)
                     .apply { interpolator = OvershootInterpolator(); duration = 750 }
                     .start()
@@ -174,5 +174,49 @@ class AppActivity : CastPermissionActivity(R.layout.activity_app) {
 
             lastServiceMessage = serviceMessage
         }
+
+
+        if (serviceMessage is ServiceMessage.ServiceState.WebRTCServiceState) {
+            lastServiceMessage != serviceMessage || return
+            XLog.d(this@AppActivity.getLog("onServiceMessage", "$serviceMessage"))
+
+            binding.bottomNavigationActivityApp.menu.findItem(R.id.menu_fab).title =
+                if (serviceMessage.isStreaming) getString(R.string.bottom_menu_stop)
+                else getString(R.string.bottom_menu_start)
+
+            with(binding.fabActivityAppStartStop) {
+                visibility = View.VISIBLE
+                if (serviceMessage.isBusy) {
+                    isEnabled = false
+                    backgroundTintList =
+                        ContextCompat.getColorStateList(this@AppActivity, R.color.colorIconDisabled)
+                } else {
+                    isEnabled = true
+                    backgroundTintList = ContextCompat.getColorStateList(this@AppActivity, R.color.colorAccent)
+                }
+
+
+                if (serviceMessage.isStreaming) {
+                    setImageResource(R.drawable.ic_fab_stop_24dp)
+                    setOnClickListener { IntentAction.StopStream.sendToAppService(this@AppActivity) }
+                    contentDescription = getString(R.string.bottom_menu_stop)
+                } else {
+                    setImageResource(R.drawable.ic_fab_start_24dp)
+                    setOnClickListener { IntentAction.StartStream.sendToAppService(this@AppActivity) }
+                    contentDescription = getString(R.string.bottom_menu_start)
+                }
+            }
+
+            if (serviceMessage.isStreaming != (lastServiceMessage as? ServiceMessage.ServiceState.WebRTCServiceState)?.isStreaming) {
+                ObjectAnimator.ofPropertyValuesHolder(binding.fabActivityAppStartStop, scaleX, scaleY, alpha)
+                    .apply {
+                        interpolator = OvershootInterpolator()
+                        duration = 750
+                    }.start()
+            }
+
+            lastServiceMessage = serviceMessage
+        }
+
     }
 }

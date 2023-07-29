@@ -1,13 +1,22 @@
 package info.dvkr.screenstream.common
 
+import android.content.Context
 import android.content.Intent
+import androidx.annotation.StringRes
 
-sealed class AppError : Throwable() {
-    open class FatalError : AppError()
-    open class FixableError : AppError()
+sealed class AppError(@StringRes open val id: Int) : Throwable() {
+    open class FatalError(@StringRes id: Int=0) : AppError(id)
+    open class FixableError(@StringRes id: Int) : AppError(id)
+
+    open fun toString(context: Context): String = if (id != 0) context.getString(id) else toString()
 }
 
-interface Client
+interface Client {
+    val id: Long
+    val clientAddress: String
+    override fun equals(other: Any?): Boolean
+}
+
 interface TrafficPoint
 
 interface AppStateMachine {
@@ -17,6 +26,8 @@ interface AppStateMachine {
         object CastPermissionsDenied : Event()
         class StartProjection(val intent: Intent) : Event()
         object StopStream : Event()
+        object GetNewStreamId : Event()
+        object CreateNewStreamPassword : Event()
         object RequestPublicState : Event()
         object RecoverError : Event()
 

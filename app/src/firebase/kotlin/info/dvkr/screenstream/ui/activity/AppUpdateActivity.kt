@@ -65,6 +65,7 @@ abstract class AppUpdateActivity(@LayoutRes contentLayoutId: Int) : BaseActivity
             .launchIn(lifecycleScope)
     }
 
+    //TODO with new permissions activyty do we need this?
     @Suppress("DEPRECATION")
     @Deprecated("Deprecated in Java")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {

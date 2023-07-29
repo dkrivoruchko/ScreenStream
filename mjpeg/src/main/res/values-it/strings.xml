@@ -1,4 +1,9 @@
 <resources>
+    <string name="error_port_in_use">Porta già in uso. Scegline un\'altra.</string>
+    <string name="error_invalid_media_projection">Errore di sicurezza: protezione multimedia non valida. Riprova.</string>
+    <string name="error_ip_address_not_found">Indirizzo IP non trovato.\nProva a disattivare \"Usa solo WiFi\" nelle impostazioni.</string>
+    <string name="error_wrong_image_format">Il sistema restituisce l\'immagine in un formato sconosciuto. Nessuna soluzione disponibile. Spiacente.</string>
+
     <!--BitmapNotification-->
     <string name="image_generator_press_start">Premi AVVIA nel dispositivo</string>
     <string name="image_generator_go_to_new_address">Vai al nuovo indirizzo</string>

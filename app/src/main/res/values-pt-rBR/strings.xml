@@ -1,10 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="error_title">Erro</string>
-    <string name="error_port_in_use">Porta já em uso. Escolha outra.</string>
-    <string name="error_invalid_media_projection">Erro de segurança: projeção de mídia inválida. Tente mais uma vez.</string>
-    <string name="error_ip_address_not_found">Endereço do IP não encontrado.\nTente desativar \"Use apenas WiFi\" em Configurações.</string>
-    <string name="error_wrong_image_format">O sistema retorna a imagem em formato desconhecido. Nenhuma solução disponível. Desculpa.</string>
     <string name="error_exit">Sair</string>
 
     <string name="app_activity_collecting_logs">Captando logs do app…</string>

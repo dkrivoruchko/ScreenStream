@@ -11,8 +11,8 @@
     <application
         android:name=".ScreenStreamApp"
         android:allowBackup="true"
-        android:fullBackupContent="@xml/backup_rules"
         android:dataExtractionRules="@xml/backup_rules_api31"
+        android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:largeHeap="true"
@@ -32,6 +32,9 @@
         <meta-data
             android:name="com.google.android.gms.ads.flag.OPTIMIZE_AD_LOADING"
             android:value="true" />
+        <meta-data
+            android:name="com.google.android.gms.ads.DELAY_APP_MEASUREMENT_INIT"
+            android:value="true"/>
 
         <activity
             android:name=".ui.activity.AppActivity"
@@ -48,7 +51,7 @@
         <service
             android:name=".service.ForegroundService"
             android:exported="false"
-            android:foregroundServiceType="mediaProjection"
+            android:foregroundServiceType="mediaProjection|microphone"
             tools:targetApi="q" />
 
         <service
@@ -81,9 +84,5 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/filepaths" />
         </provider>
-
-        <receiver
-            android:name="com.ironz.binaryprefs.dump.DumpReceiver"
-            tools:node="remove" />
     </application>
 </manifest>

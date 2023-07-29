@@ -1,4 +1,9 @@
 <resources>
+    <string name="error_port_in_use">ポートは既に使用されています。 他のポートを選択してください。</string>
+    <string name="error_invalid_media_projection">セキュリティエラー: メディアプロジェクションが無効です。 もう一度お試しください。</string>
+    <string name="error_ip_address_not_found">IPアドレスがありません。\n設定の「WiFiのみ使用する」を無効にしてみてください。</string>
+    <string name="error_wrong_image_format">システムが画像を不明な形式で返します。 修正できません。 ごめんなさい。</string>
+
     <!--BitmapNotification-->
     <string name="image_generator_press_start">端末で 開始 を押してください</string>
     <string name="image_generator_go_to_new_address">新しいアドレスへ移動してください</string>

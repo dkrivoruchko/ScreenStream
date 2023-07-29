@@ -21,7 +21,7 @@
     </style>
 
     <style name="Theme.App.DayNight" parent="Theme.App.DayNightBase">
-        <item name="android:statusBarColor">@color/colorStatusBar</item>
+        <item name="android:windowLightStatusBar">true</item>
     </style>
 
     <style name="AppCheckBox" parent="Widget.MaterialComponents.CompoundButton.CheckBox">

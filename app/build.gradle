@@ -1,43 +1,31 @@
-apply plugin: "com.android.application"
-apply plugin: "kotlin-android"
-apply plugin: "kotlin-parcelize"
-apply plugin: "com.google.gms.google-services"
-apply plugin: "com.google.firebase.crashlytics"
+plugins {
+    id "com.android.application"
+    id "org.jetbrains.kotlin.android"
+    id "org.jetbrains.kotlin.plugin.parcelize"
+    id "com.google.gms.google-services"
+    id "com.google.firebase.crashlytics"
+}
 
 android {
     namespace "info.dvkr.screenstream"
-    compileSdkVersion(33)
-    buildToolsVersion("33.0.1")
+    ndkVersion("25.2.9519653")
+
+    apply from: rootProject.file("signing.gradle")
 
     defaultConfig {
         applicationId = "info.dvkr.screenstream"
-        minSdkVersion(21)
+        minSdkVersion(23)
         targetSdkVersion(33)
-        versionCode = 31006
-        versionName = "3.10.6"
+        versionCode = 40000
+        versionName = "4.0.0"
 
         // Don't forget to update xml/locales_config.xml
-        resConfigs 'en', 'ar', 'ca', 'de', 'es', 'fa', 'fr-rFR', 'gl', 'hi', 'it', 'ja', 'nl', 'pl', 'pt-rBR', 'ru', 'sk', 'uk', 'zh', 'zh-rTW'
+        resourceConfigurations += ['en', 'ar', 'ca', 'de', 'es', 'fa', 'fr-rFR', 'gl', 'hi', 'it', 'ja', 'nl', 'pl', 'pt-rBR', 'ru', 'sk', 'uk', 'zh', 'zh-rTW']
 
         // https://medium.com/@crafty/no-if-you-do-that-then-you-cant-use-newer-features-on-older-platforms-e-g-fa595333c0a4
         vectorDrawables.useSupportLibrary = true
-    }
-
-    buildTypes {
-        getByName("debug") {
-            applicationIdSuffix ".dev"
-            minifyEnabled = false
-            shrinkResources = false
-            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-        }
-        getByName("release") {
-            minifyEnabled = true
-            shrinkResources = true
-            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-
-            packagingOptions {
-                exclude("DebugProbesKt.bin")
-            }
+        ndk {
+            abiFilters 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64'
         }
     }
 
@@ -46,6 +34,29 @@ android {
     if (localProperties.exists() && localProperties.isFile()) {
         localProperties.withInputStream { localProps.load(it) }
     }
+
+    buildTypes {
+        getByName("debug") {
+            signingConfig signingConfigs.debugsign
+            applicationIdSuffix ".dev"
+            minifyEnabled = false
+            shrinkResources = false
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            buildConfigField "String", "SIGNALING_SERVER", localProps.getProperty("SIGNALING_SERVER_DEV", "")
+            buildConfigField "String", "CLOUD_PROJECT_NUMBER", localProps.getProperty("CLOUD_PROJECT_NUMBER_DEV", "")
+        }
+        getByName("release") {
+            minifyEnabled = true
+            shrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            buildConfigField "String", "SIGNALING_SERVER", localProps.getProperty("SIGNALING_SERVER_RELEASE", "")
+            buildConfigField "String", "CLOUD_PROJECT_NUMBER", localProps.getProperty("CLOUD_PROJECT_NUMBER_RELEASE", "")
+            packagingOptions {
+                exclude("DebugProbesKt.bin")
+            }
+        }
+    }
+
     flavorDimensions("default")
     productFlavors {
         create("firebase") {
@@ -60,7 +71,9 @@ android {
         }
     }
 
-    buildFeatures.viewBinding = true
+    buildFeatures {
+        viewBinding = true
+    }
 
     compileOptions {
         coreLibraryDesugaringEnabled = true
@@ -88,29 +101,28 @@ android {
 
     kotlinOptions {
         jvmTarget = JavaVersion.VERSION_11.toString()
+        languageVersion = "1.9"
     }
-
 }
 
 dependencies {
-    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.2")
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.3")
 
     implementation(project(":common"))
     implementation(project(":mjpeg"))
+    implementation(project(":webrtc"))
 
-    implementation("androidx.core:core-ktx:1.9.0")
-    implementation("androidx.activity:activity-ktx:1.6.1")
-    implementation("androidx.fragment:fragment-ktx:1.5.5")
-    implementation("androidx.appcompat:appcompat:1.6.0")
+    implementation("androidx.core:core-ktx:1.10.1")
+    implementation('androidx.activity:activity-ktx:1.7.2')
+    implementation("androidx.fragment:fragment-ktx:1.6.1")
+    implementation("androidx.appcompat:appcompat:1.6.1")
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
-    implementation("androidx.recyclerview:recyclerview:1.2.1")
-    implementation("com.google.android.material:material:1.8.0")
-    implementation("androidx.window:window:1.0.0")
+    implementation("androidx.recyclerview:recyclerview:1.3.0")
+    implementation("com.google.android.material:material:1.9.0")
+    implementation("androidx.window:window:1.1.0")
 
-    implementation("androidx.navigation:navigation-fragment-ktx:2.5.3")
-    implementation("androidx.navigation:navigation-ui-ktx:2.5.3")
-    implementation("androidx.lifecycle:lifecycle-livedata:2.5.1")
-    implementation("androidx.lifecycle:lifecycle-common:2.5.1")
+    implementation("androidx.navigation:navigation-fragment-ktx:2.6.0")
+    implementation("androidx.navigation:navigation-ui-ktx:2.6.0")
 
     implementation("com.afollestad.material-dialogs:core:3.3.0")
     implementation("com.afollestad.material-dialogs:color:3.3.0")
@@ -120,15 +132,15 @@ dependencies {
     implementation(fileTree("libs/bottomsheets-release.aar"))
 //    implementation("com.afollestad.material-dialogs:bottomsheets:3.3.0")
 
-    implementation("io.insert-koin:koin-android:3.3.2")
-    implementation("com.github.iamironz:binaryprefs:1.0.1") //Migrating to datastore
+    implementation('io.insert-koin:koin-android:3.4.3')
 
-    firebaseImplementation("com.google.android.play:app-update-ktx:2.0.1")
-    firebaseImplementation("com.google.firebase:firebase-analytics:21.2.0")
-    firebaseImplementation("com.google.firebase:firebase-crashlytics:18.3.3")
-    firebaseImplementation("com.google.android.gms:play-services-ads:21.5.0")
+    firebaseImplementation("com.google.android.gms:play-services-basement:18.2.0")
+    firebaseImplementation("com.google.android.play:app-update-ktx:2.1.0")
+    firebaseImplementation("com.google.firebase:firebase-analytics:21.3.0")
+    firebaseImplementation("com.google.firebase:firebase-crashlytics:18.4.0")
+    firebaseImplementation("com.google.android.gms:play-services-ads:22.2.0")
 
-//    debugImplementation("com.squareup.leakcanary:leakcanary-android:2.9.1")
+//    debugImplementation("com.squareup.leakcanary:leakcanary-android:2.12")
 }
 
 project.tasks.all {

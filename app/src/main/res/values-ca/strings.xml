@@ -1,10 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="error_title">Errada</string>
-    <string name="error_port_in_use">Porta ja en ús. Trieu-ne un altre.</string>
-    <string name="error_invalid_media_projection">Error de seguretat: projecció de suports no vàlida. Prova-ho una vegada més.</string>
-    <string name="error_ip_address_not_found">No s\'ha trobat l\'adreça IP. \nTproveu de desactivar \n"Utilitzeu només WiFi\n" a la configuració.</string>
-    <string name="error_wrong_image_format">El sistema retorna la imatge en un format desconegut. No hi ha cap correcció disponible. Excusa.</string>
     <string name="error_exit">Encès</string>
     <string name="app_activity_collecting_logs">S\'estan recopilant registres d\'aplicacions …</string>
     <string name="app_activity_send_logs">Envieu registres al desenvolupador</string>

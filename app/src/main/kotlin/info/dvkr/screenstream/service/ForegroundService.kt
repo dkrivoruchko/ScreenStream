@@ -1,9 +1,11 @@
 package info.dvkr.screenstream.service
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.hardware.display.DisplayManager
 import android.os.Build
 import android.os.IBinder
@@ -18,6 +20,7 @@ import info.dvkr.screenstream.R
 import info.dvkr.screenstream.common.AppError
 import info.dvkr.screenstream.common.AppStateMachine
 import info.dvkr.screenstream.common.getLog
+import info.dvkr.screenstream.common.listenForChange
 import info.dvkr.screenstream.common.settings.AppSettings
 import info.dvkr.screenstream.databinding.ToastSlowConnectionBinding
 import info.dvkr.screenstream.mjpeg.MjpegPublicState
@@ -25,6 +28,10 @@ import info.dvkr.screenstream.mjpeg.settings.MjpegSettings
 import info.dvkr.screenstream.mjpeg.state.MjpegStateMachine
 import info.dvkr.screenstream.service.helper.IntentAction
 import info.dvkr.screenstream.service.helper.NotificationHelper
+import info.dvkr.screenstream.webrtc.WebRtcEnvironment
+import info.dvkr.screenstream.webrtc.WebRtcHandlerThread
+import info.dvkr.screenstream.webrtc.WebRtcPublicState
+import info.dvkr.screenstream.webrtc.WebRtcSettings
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import org.koin.android.ext.android.inject
@@ -68,6 +75,8 @@ class ForegroundService : Service() {
 
     private val appSettings: AppSettings by inject()
     private val mjpegSettings: MjpegSettings by inject()
+    private val webrtcSettings: WebRtcSettings by inject()
+    private val webRTCEnvironment: WebRtcEnvironment by inject()
     private val notificationHelper: NotificationHelper by inject()
 
     private var appStateMachine: AppStateMachine? = null
@@ -80,7 +89,29 @@ class ForegroundService : Service() {
         XLog.d(getLog("onCreate"))
 
         notificationHelper.createNotificationChannel()
+        //todo check if device is not locked
         notificationHelper.showForegroundNotification(this, NotificationHelper.NotificationType.START)
+
+        appSettings.streamModeFlow.listenForChange(coroutineScope, 0) { mode ->
+            XLog.d(getLog("onCreate", "streamModeFlow.onEach.mode: $mode"))
+            appStateMachine?.destroy()
+
+            appStateMachine = when (mode) {
+                AppSettings.Values.STREAM_MODE_WEBRTC -> {
+                    if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_DENIED)
+                        webrtcSettings.setEnableMic(false)
+
+                    WebRtcHandlerThread(this, appSettings, webRTCEnvironment, webrtcSettings, effectFlow).apply { start() }
+                }
+
+                AppSettings.Values.STREAM_MODE_MJPEG ->
+                    MjpegStateMachine(this, appSettings, mjpegSettings, effectFlow, ::showSlowConnectionToast)
+
+                else -> throw IllegalStateException("Unexpected stream mode: $mode")
+            }
+
+            isRunning = true
+        }
 
         effectFlow.onEach { effect ->
             if (effect !is AppStateMachine.Effect.Statistic)
@@ -92,8 +123,24 @@ class ForegroundService : Service() {
                 is AppStateMachine.Effect.PublicState -> {
                     if (effect is MjpegPublicState) {
                         sendMessage(
-                            ServiceMessage.ServiceState(
-                                effect.isStreaming, effect.isBusy, effect.waitingForCastPermission, effect.netInterfaces, effect.appError
+                            ServiceMessage.ServiceState.MjpegServiceState(
+                                effect.isStreaming, effect.isBusy, effect.waitingForCastPermission,
+                                effect.netInterfaces, effect.appError
+                            )
+                        )
+
+                        val notificationType = if (effect.isStreaming) NotificationHelper.NotificationType.STOP
+                        else NotificationHelper.NotificationType.START
+                        notificationHelper.showForegroundNotification(this@ForegroundService, notificationType)
+
+                        onError(effect.appError)
+                    }
+
+                    if (effect is WebRtcPublicState) {
+                        sendMessage(
+                            ServiceMessage.ServiceState.WebRTCServiceState(
+                                effect.isStreaming, effect.isBusy, effect.permissionWaiting,
+                                effect.streamId, effect.streamPassword, effect.appError
                             )
                         )
 
@@ -113,10 +160,6 @@ class ForegroundService : Service() {
             }
         }
             .launchIn(coroutineScope)
-
-        appStateMachine = MjpegStateMachine(this, appSettings, mjpegSettings, effectFlow, ::showSlowConnectionToast)
-
-        isRunning = true
     }
 
     @Suppress("DEPRECATION")
@@ -142,6 +185,14 @@ class ForegroundService : Service() {
                     sendBroadcast(Intent(Intent.ACTION_CLOSE_SYSTEM_DIALOGS))
 
                 appStateMachine?.sendEvent(AppStateMachine.Event.StopStream)
+            }
+
+            IntentAction.GetNewStreamId -> {
+                appStateMachine?.sendEvent(AppStateMachine.Event.GetNewStreamId)
+            }
+
+            IntentAction.CreateNewStreamPassword -> {
+                appStateMachine?.sendEvent(AppStateMachine.Event.CreateNewStreamPassword)
             }
 
             IntentAction.Exit -> {

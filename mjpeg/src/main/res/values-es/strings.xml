@@ -1,4 +1,9 @@
 <resources>
+    <string name="error_port_in_use">Puerto en uso. Escoja otro por favor.</string>
+    <string name="error_invalid_media_projection">Error de seguridad: Proyección de medios no válida. Intente nuevamente.</string>
+    <string name="error_ip_address_not_found">Dirección IP no encontrada.\nIntente deshabilitar \"Use solo WiFi\" en Opciones.</string>
+    <string name="error_wrong_image_format">El sistema devuelve la imagen en formato desconocido. No hay soluciones disponibles. Lo sentimos.</string>
+
     <!--BitmapNotification-->
     <string name="image_generator_press_start">Presiona Iniciar en la pantalla</string>
     <string name="image_generator_go_to_new_address">Vaya a la dirección</string>

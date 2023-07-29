@@ -246,6 +246,7 @@
         </androidx.constraintlayout.widget.ConstraintLayout>
 
         <View
+            android:id="@+id/v_fragment_settings_keep_awake"
             android:layout_width="match_parent"
             android:layout_height="1dp"
             android:layout_marginTop="2dp"
@@ -514,6 +515,7 @@
         </androidx.constraintlayout.widget.ConstraintLayout>
 
         <View
+            android:id="@+id/iv_fragment_settings_html_buttons_divider"
             android:layout_width="match_parent"
             android:layout_height="1dp"
             android:layout_marginTop="2dp"
@@ -581,6 +583,7 @@
         </androidx.constraintlayout.widget.ConstraintLayout>
 
         <View
+            android:id="@+id/v_fragment_settings_html_press_start_divider"
             android:layout_width="match_parent"
             android:layout_height="1dp"
             android:layout_marginTop="2dp"
@@ -648,6 +651,7 @@
         </androidx.constraintlayout.widget.ConstraintLayout>
 
         <View
+            android:id="@+id/v_fragment_settings_html_back_color_divider"
             android:layout_width="match_parent"
             android:layout_height="1dp"
             android:layout_marginTop="2dp"

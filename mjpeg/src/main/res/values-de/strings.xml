@@ -1,4 +1,9 @@
 <resources>
+    <string name="error_port_in_use">Port wird bereits genutzt. Bitte wählen Sie einen anderen Port.</string>
+    <string name="error_invalid_media_projection">Sicherheitsfehler: Ungültige Medien-Projektion. Bitte versuchen Sie es erneut.</string>
+    <string name="error_ip_address_not_found">IP-Adresse nicht gefunden\nVersuchen Sie \"Nur über WLAN\" in den Einstellungen zu deaktivieren.</string>
+    <string name="error_wrong_image_format">Das System liefert ein Bild in einem ungültigen Format zurück. Keine Fehlerbehebung verfügbar. Entschuldigung.</string>
+
     <!--BitmapNotification-->
     <string name="image_generator_press_start">Auf dem Gerät START tippen</string>
     <string name="image_generator_go_to_new_address">Bitte neue Adresse aufrufen</string>

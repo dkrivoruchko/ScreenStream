@@ -2,9 +2,9 @@ package info.dvkr.screenstream.mjpeg.httpserver
 
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.common.getLog
+import info.dvkr.screenstream.common.randomString
 import info.dvkr.screenstream.mjpeg.HttpServerException
 import info.dvkr.screenstream.mjpeg.httpserver.ClientData.Companion.clientId
-import info.dvkr.screenstream.mjpeg.randomString
 import io.ktor.http.*
 import io.ktor.http.content.*
 import io.ktor.server.application.*

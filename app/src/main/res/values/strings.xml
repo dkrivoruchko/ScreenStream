@@ -3,10 +3,7 @@
     <string name="app_name" translatable="false">Screen Stream</string>
 
     <string name="error_title">Error</string>
-    <string name="error_port_in_use">Port already in use. Choose another one.</string>
-    <string name="error_invalid_media_projection">Security error: Invalid media projection. Try one more time.</string>
-    <string name="error_ip_address_not_found">IP address not found.\nTry to disable \"Use WiFi only\" in settings.</string>
-    <string name="error_wrong_image_format">System returns image in unknown format. No fix available. Sorry.</string>
+    <string name="error_retry">Retry</string>
     <string name="error_exit">Exit</string>
 
     <string name="app_activity_collecting_logs">Collecting application logs…</string>
@@ -26,6 +23,43 @@
     <string name="bottom_menu_about">About</string>
     <string name="bottom_menu_exit">Exit</string>
 
+    <string name="stream_fragment_select_stream_mode">Select stream mode:</string>
+    <string name="stream_fragment_mode_global">Global mode (WebRTC)</string>
+    <string name="stream_fragment_mode_global_description">Global mode description</string>
+    <string name="stream_fragment_mode_global_details">
+- Powered by WebRTC technology\n\n
+- End-to-end encrypted communication\n\n
+- Stream protection with password\n\n
+- Can send video and audio\n\n
+- Connect to stream using its unique ID and password\n\n
+- Require Internet connection to send and receive stream\n\n
+- Individual data transmission for each client (more clients you have, more Internet bandwidth you need)
+</string>
+    <string name="stream_fragment_mode_local">Local mode (MJPEG)</string>
+    <string name="stream_fragment_mode_local_description">Local mode description</string>
+    <string name="stream_fragment_mode_local_details">
+- Powered by MJPEG standard\n\n
+- No encryption (only Pin)\n\n
+- Can send video only (as a stream of independent images)\n\n
+- Can work within a local network without Internet connection\n\n
+- Embedded HTTP server\n\n
+- Clients connect via web browser using the IP address provided by the app\n\n
+- Highly customizable\n\n
+- Individual data transmission for each client (more clients you have, more notwork bandwidth you need)
+</string>
+    <string name="stream_fragment_mode_global_get_new_id_description">Get new stream id</string>
+    <string name="stream_fragment_mode_global_show_password_description">Show stream password</string>
+    <string name="stream_fragment_mode_global_create_new_password_description">Create new stream password</string>
+    <string name="stream_fragment_mode_global_server_address">Access stream at:\n%1$s</string>
+    <string name="stream_fragment_mode_global_stream_id_getting">Getting Stream ID…</string>
+    <string name="stream_fragment_mode_global_stream_id">Stream ID: %1$s</string>
+    <string name="stream_fragment_mode_global_stream_password">Stream password: %1$s</string>
+    <string name="stream_fragment_mode_global_mic_off">Mic off</string>
+    <string name="stream_fragment_mode_global_mic_on">Mic on</string>
+    <string name="stream_fragment_mode_global_audio_permission_title">Allow audio recording</string>
+    <string name="stream_fragment_mode_global_audio_permission_message">Permission to record audio is necessary for the application to stream audio content.\n\nWithout granting this permission, the stream will be without audio.</string>
+    <string name="stream_fragment_mode_global_audio_permission_message_settings">Granting microphone access in application permissions is necessary for the application to stream audio content.\n\nWithout granting this permission, the stream will be conducted without any audio.</string>
+
     <string name="stream_fragment_current_traffic">Traffic: %1$,.2f Mbit/s</string>
     <string name="stream_fragment_connected_clients">Connected clients: %1$d</string>
     <string name="stream_fragment_no_address">No address found</string>
@@ -42,6 +76,7 @@
     <string name="stream_fragment_client_blocked">Blocked</string>
 
     <string name="item_device_address">Device address:</string>
+    <string name="item_stream_address">Stream address:</string>
     <string name="item_device_address_description_open_address">Open address</string>
     <string name="item_device_address_description_copy_address">Copy address</string>
     <string name="item_device_address_description_share_address">Share address</string>
@@ -53,8 +88,8 @@
     <string name="permission_activity_cast_permission_required">ScreenStream application requires Screen Cast permission to capture screen.</string>
     <string name="permission_activity_error_title">Error</string>
     <string name="permission_activity_error_unknown">Unknown error</string>
-    <string name="permission_activity_allow_notifications">Application require permission to send notifications to be able to start streaming service. Please allow sending notifications.</string>
-    <string name="permission_activity_allow_notifications_settings">Application require permission to send notifications to be able to start streaming service. Please allow sending notifications in application settings.</string>
+    <string name="permission_activity_allow_notifications">Application require permission to send notifications to be able to start streaming service.\n\nPlease allow sending notifications.</string>
+    <string name="permission_activity_allow_notifications_settings">Application require permission to send notifications to be able to start streaming service.\n\nPlease allow sending notifications in application settings.</string>
     <string name="permission_activity_notification_settings">Open settings</string>
 
     <string name="notification_ready_to_stream">Ready to stream</string>
@@ -169,12 +204,14 @@
 
     <string name="about_fragment_app_name" translatable="false">Screen Stream over HTTP</string>
     <string name="about_fragment_app_version">Version: %1$s</string>
-    <string name="about_fragment_developer_name">Developed by Dmitriy Krivoruchko</string>
+    <string name="about_fragment_developer_name">Developed by Dmytro Kryvoruchko</string>
     <string name="about_fragment_rate_app">Rate app</string>
     <string name="about_fragment_write_email">Write email to developer</string>
     <string name="about_fragment_write_email_dialog">Write email to developer?</string>
     <string name="about_fragment_email_chooser_header">Sending email…</string>
     <string name="about_fragment_app_sources">Application sources</string>
+    <string name="about_fragment_terms_conditions">Terms and Conditions</string>
     <string name="about_fragment_privacy_policy">Privacy policy</string>
+    <string name="about_fragment_consent_revocation">Consent revocation</string>
     <string name="about_fragment_license">License</string>
 </resources>

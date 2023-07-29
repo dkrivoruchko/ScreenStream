@@ -3,9 +3,9 @@ package info.dvkr.screenstream.mjpeg.httpserver
 import android.content.Context
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.common.getLog
+import info.dvkr.screenstream.common.randomString
 import info.dvkr.screenstream.mjpeg.R
 import info.dvkr.screenstream.mjpeg.getFileFromAssets
-import info.dvkr.screenstream.mjpeg.randomString
 import info.dvkr.screenstream.mjpeg.settings.MjpegSettings
 import kotlinx.coroutines.flow.first
 import java.nio.charset.StandardCharsets

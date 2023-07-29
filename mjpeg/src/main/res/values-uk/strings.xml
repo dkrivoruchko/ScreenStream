@@ -1,4 +1,9 @@
 <resources>
+    <string name="error_port_in_use">Порт уже у використанні. Виберіть інший.</string>
+    <string name="error_invalid_media_projection">Помилка безпеки: Неправильна проекція медіа. Спробуйте ще раз.</string>
+    <string name="error_ip_address_not_found">IP адресу не знайдено.\nСпробуйте вимкнути \"Використоувати лише WiFi\" у налаштуваннях.</string>
+    <string name="error_wrong_image_format">Система повертає картинку у невідомому форматі. Неможливо виправити. Перепрошуємо.</string>
+
     <!--BitmapNotification-->
     <string name="image_generator_press_start">Натисніть ПОЧАТИ на пристрої</string>
     <string name="image_generator_go_to_new_address">Будь ласка, перейдіть за новою адресою</string>

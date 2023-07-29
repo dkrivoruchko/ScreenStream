@@ -6,12 +6,12 @@ import com.elvishew.xlog.LogLevel
 import com.elvishew.xlog.XLog
 import com.elvishew.xlog.interceptor.AbstractFilterInterceptor
 import com.elvishew.xlog.internal.util.StackTraceUtil
+import com.google.android.gms.ads.MobileAds
 import com.google.firebase.crashlytics.FirebaseCrashlytics
 
 class ScreenStreamApp : BaseApp() {
 
     override fun initLogger() {
-
         val logConfiguration = LogConfiguration.Builder()
             .logLevel(LogLevel.VERBOSE)
             .tag("SSApp")
@@ -28,5 +28,9 @@ class ScreenStreamApp : BaseApp() {
             .build()
 
         XLog.init(logConfiguration, filePrinter)
+    }
+
+    override fun initAd() {
+        MobileAds.initialize(this)
     }
 }

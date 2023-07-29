@@ -9,16 +9,16 @@ import java.net.InetAddress
 object CoroutineException : AppError.FatalError()
 object ChannelException : AppError.FatalError()
 object HttpServerException : AppError.FatalError()
-object BitmapFormatException : AppError.FatalError()
+object BitmapFormatException : AppError.FatalError(R.string.error_wrong_image_format)
 object BitmapCaptureException : AppError.FatalError()
 
-object AddressInUseException : AppError.FixableError()
-object CastSecurityException : AppError.FixableError()
-object AddressNotFoundException : AppError.FixableError()
+object AddressInUseException : AppError.FixableError(R.string.error_port_in_use)
+object CastSecurityException : AppError.FixableError(R.string.error_invalid_media_projection)
+object AddressNotFoundException : AppError.FixableError(R.string.error_ip_address_not_found)
 
 data class MjpegClient(
-    val id: Long,
-    val clientAddress: String,
+    override val id: Long,
+    override val clientAddress: String,
     val isSlowConnection: Boolean,
     val isDisconnected: Boolean,
     val isBlocked: Boolean

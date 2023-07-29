@@ -55,7 +55,11 @@ class TileActionService : TileService() {
                     ForegroundService.serviceMessageFlow.collect { serviceMessage ->
                         XLog.d(this@TileActionService.getLog("onServiceMessage", "$serviceMessage"))
                         when (serviceMessage) {
-                            is ServiceMessage.ServiceState -> {
+                            is ServiceMessage.ServiceState.MjpegServiceState -> {
+                                isStreaming = serviceMessage.isStreaming
+                                updateTile()
+                            }
+                            is ServiceMessage.ServiceState.WebRTCServiceState -> {
                                 isStreaming = serviceMessage.isStreaming
                                 updateTile()
                             }

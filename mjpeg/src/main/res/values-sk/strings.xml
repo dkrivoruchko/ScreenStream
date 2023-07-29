@@ -1,4 +1,9 @@
 <resources>
+    <string name="error_port_in_use">Port sa už používa. Zadajte iný.</string>
+    <string name="error_invalid_media_projection">Bezpečnostná chyba: Neplatná projekcia média. Skúse to znova.</string>
+    <string name="error_ip_address_not_found">IP adresa sa nenašla.\nSkúste zakázať \"Iba cez WiFi\" v nastaveniach.</string>
+    <string name="error_wrong_image_format">System vrátil obrázok v neznámom formáte. Prepáčte, ale zatiaľ to nedokážem opraviť.</string>
+
     <!--BitmapNotification-->
     <string name="image_generator_press_start">Ťuknite na ŠTART na zariadení</string>
     <string name="image_generator_go_to_new_address">Prosím, choďte na novú adresu</string>

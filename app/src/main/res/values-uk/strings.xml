@@ -1,10 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="error_title">Помилка</string>
-    <string name="error_port_in_use">Порт уже у використанні. Виберіть інший.</string>
-    <string name="error_invalid_media_projection">Помилка безпеки: Неправильна проекція медіа. Спробуйте ще раз.</string>
-    <string name="error_ip_address_not_found">IP адресу не знайдено.\nСпробуйте вимкнути \"Використоувати лише WiFi\" у налаштуваннях.</string>
-    <string name="error_wrong_image_format">Система повертає картинку у невідомому форматі. Неможливо виправити. Перепрошуємо.</string>
+    <string name="error_retry">Повторити</string>
     <string name="error_exit">Вихід</string>
 
     <string name="app_activity_collecting_logs">Зібрати діагностичну інформацію…</string>
@@ -24,6 +21,42 @@
     <string name="bottom_menu_about">Інформація</string>
     <string name="bottom_menu_exit">Вихід</string>
 
+    <string name="stream_fragment_select_stream_mode">Виберіть режим трансляції:</string>
+    <string name="stream_fragment_mode_global">Глобальний режим (WebRTC)</string>
+    <string name="stream_fragment_mode_global_description">Опис глобального режиму</string>
+    <string name="stream_fragment_mode_global_details">
+- Працює на основі технології WebRTC\n\n
+- Захищена комунікація з повним шифруванням\n\n
+- Захист трансляції за допомогою пароля\n\n
+- Можливість надсилання відео та аудіо\n\n
+- Підключення до трансляції за допомогою унікального ідентифікатора та пароля\n\n
+- Для надсилання та отримання трансляції необхідне підключення до Інтернету\n\n
+- Індивідуальна передача даних для кожного клієнта (чим більше клієнтів, тим більш швидкий Інтернет потрібен)
+</string>
+    <string name="stream_fragment_mode_local">Локальний режим (MJPEG)</string>
+    <string name="stream_fragment_mode_local_description">Опис локального режиму</string>
+    <string name="stream_fragment_mode_local_details">
+- Працює на основі стандарту MJPEG\n\n
+- Відсутність шифрування (тільки PIN-код)\n\n
+- Можливість надсилання лише відео (як потік незалежних зображень)\n\n
+- Можливість працювати в локальній мережі без наяності Інтернету\n\n
+- Вбудований HTTP-сервер\n\n
+- Клієнти підключаються через веб-браузер, використовуючи IP-адресу, надану програмою\n\n
+- Багадо доступніх налаштувань\n\n
+- Індивідуальна передача даних для кожного клієнта (чим більше клієнтів, тим більша потрібна пропускна здатність мережі)
+</string>
+    <string name="stream_fragment_mode_global_get_new_id_description">Отримати новий ID трансляції</string>
+    <string name="stream_fragment_mode_global_show_password_description">Показати пароль трансляції</string>
+    <string name="stream_fragment_mode_global_create_new_password_description">Створити новий пароль для трансляції</string>
+    <string name="stream_fragment_mode_global_server_address">Трансляція доступна за адресою:\n%1$s</string>
+    <string name="stream_fragment_mode_global_stream_id_getting">Отримання ID трансляції…</string>
+    <string name="stream_fragment_mode_global_stream_id">ID трансляції: %1$s</string>
+    <string name="stream_fragment_mode_global_stream_password">Пароль трансляції: %1$s</string>
+    <string name="stream_fragment_mode_global_mic_off">Mікрофон</string>
+    <string name="stream_fragment_mode_global_mic_on">Mікрофон</string>
+    <string name="stream_fragment_mode_global_audio_permission_title">Дозволити запис аудіо</string>
+    <string name="stream_fragment_mode_global_audio_permission_message">Для додатку необхідний дозвіл на запис аудіо для трансляції аудіовмісту.\nБез надання цього дозволу трансляція буде без звуку.</string>
+    <string name="stream_fragment_mode_global_audio_permission_message_settings">Надання доступу до мікрофону у налаштуваннях додатку є необхідним для трансляції аудіовмісту.\n\nБез надання цього дозволу трансляція буде проводитись без звуку.</string>
     <string name="stream_fragment_current_traffic">Трафік: %1$,.2f Mbit/s</string>
     <string name="stream_fragment_connected_clients">Підключено клієнтів: %1$d</string>
     <string name="stream_fragment_no_address">Адресу не знайдено</string>
@@ -40,6 +73,7 @@
     <string name="stream_fragment_client_blocked">Заблоковано</string>
 
     <string name="item_device_address">Адреса пристрою:</string>
+    <string name="item_stream_address">Адреса трансляції:</string>
     <string name="item_device_address_description_open_address">Відкрити адресу</string>
     <string name="item_device_address_description_copy_address">Скопіювати адресу</string>
     <string name="item_device_address_description_share_address">Поділитись адресою</string>

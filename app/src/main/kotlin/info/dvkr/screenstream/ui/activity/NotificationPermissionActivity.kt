@@ -16,7 +16,6 @@ import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.service.helper.NotificationHelper
 import org.koin.android.ext.android.inject
 
-
 abstract class NotificationPermissionActivity(@LayoutRes contentLayoutId: Int) : ServiceActivity(contentLayoutId) {
 
     private val notificationHelper: NotificationHelper by inject()
@@ -34,6 +33,8 @@ abstract class NotificationPermissionActivity(@LayoutRes contentLayoutId: Int) :
 
     override fun onStart() {
         super.onStart()
+        //todo val notificationManager = applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        //todo notificationManager.areNotificationsEnabled()
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && isNotificationPermissionGranted().not()) {
             requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)

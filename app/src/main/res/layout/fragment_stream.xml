@@ -12,19 +12,305 @@
         android:layout_height="wrap_content"
         android:layout_marginBottom="@dimen/fragments_margin_bottom">
 
-        <androidx.appcompat.widget.AppCompatTextView
-            android:id="@+id/tv_fragment_stream_error"
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/cl_fragment_stream_mode"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
+            android:paddingStart="16dp"
+            android:paddingTop="8dp"
+            android:paddingEnd="16dp"
+            android:paddingBottom="8dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent">
+
+            <androidx.appcompat.widget.AppCompatTextView
+                android:id="@+id/tv_fragment_stream_mode"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/stream_fragment_select_stream_mode"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <com.google.android.material.radiobutton.MaterialRadioButton
+                android:id="@+id/rb_fragment_stream_webrtc_mode"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:maxLines="1"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
+                android:text="@string/stream_fragment_mode_global"
+                android:textAppearance="?android:attr/textAppearanceListItem"
+                android:textColor="@color/colorSettingsHeader"
+                app:layout_constraintEnd_toStartOf="@id/b_fragment_stream_webrtc_mode_details"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/tv_fragment_stream_mode" />
+
+            <androidx.appcompat.widget.AppCompatImageButton
+                android:id="@+id/b_fragment_stream_webrtc_mode_details"
+                style="?attr/toolbarNavigationButtonStyle"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:contentDescription="@string/stream_fragment_mode_global_description"
+                android:elevation="2dp"
+                android:tint="@color/colorAccent"
+                app:layout_constraintBottom_toBottomOf="@id/rb_fragment_stream_webrtc_mode"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="@id/rb_fragment_stream_webrtc_mode"
+                app:srcCompat="@drawable/ic_mode_details_24dp" />
+
+            <com.google.android.material.radiobutton.MaterialRadioButton
+                android:id="@+id/rb_fragment_stream_mjpeg_mode"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:maxLines="1"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
+                android:text="@string/stream_fragment_mode_local"
+                android:textAppearance="?android:attr/textAppearanceListItem"
+                android:textColor="@color/colorSettingsHeader"
+                app:layout_constraintEnd_toStartOf="@id/b_fragment_stream_mjpeg_mode_details"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/rb_fragment_stream_webrtc_mode" />
+
+            <androidx.appcompat.widget.AppCompatImageButton
+                android:id="@+id/b_fragment_stream_mjpeg_mode_details"
+                style="?attr/toolbarNavigationButtonStyle"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:contentDescription="@string/stream_fragment_mode_local_description"
+                android:elevation="2dp"
+                android:tint="@color/colorAccent"
+                app:layout_constraintBottom_toBottomOf="@id/rb_fragment_stream_mjpeg_mode"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="@id/rb_fragment_stream_mjpeg_mode"
+                app:srcCompat="@drawable/ic_mode_details_24dp" />
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/cl_fragment_stream_error"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
             android:background="@drawable/error_background"
-            android:padding="16dp"
-            android:textColor="@color/colorErrorText"
+            android:paddingBottom="8dp"
             android:visibility="gone"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            tools:text="@string/error_ip_address_not_found" />
+            app:layout_constraintTop_toBottomOf="@id/cl_fragment_stream_mode">
+
+            <androidx.appcompat.widget.AppCompatTextView
+                android:id="@+id/tv_fragment_stream_error"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:padding="16dp"
+                android:textColor="@color/colorErrorText"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                tools:text="@string/error_ip_address_not_found" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/b_fragment_stream_error"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="16dp"
+                android:text="@string/error_retry"
+                android:textColor="@color/colorErrorText"
+                android:textSize="12sp"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/tv_fragment_stream_error"
+                app:strokeColor="@color/colorErrorText" />
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/cl_fragment_stream_webrtc_mode"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:background="@color/colorBackgroundSecondary"
+            android:paddingStart="16dp"
+            android:paddingTop="8dp"
+            android:paddingEnd="16dp"
+            android:paddingBottom="8dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/cl_fragment_stream_error">
+
+            <androidx.appcompat.widget.AppCompatTextView
+                android:id="@+id/tv_webrtc_address"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:breakStrategy="high_quality"
+                android:gravity="center_horizontal"
+                android:textAppearance="?android:attr/textAppearanceMedium"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                tools:text="Access stream at: https://screenstream.win" />
+
+            <androidx.appcompat.widget.AppCompatTextView
+                android:id="@+id/tv_webrtc_stream_id"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:gravity="center_vertical"
+                android:maxLines="1"
+                android:minHeight="48dp"
+                android:textAppearance="?android:attr/textAppearanceMedium"
+                app:layout_constraintEnd_toStartOf="@id/iv_webrtc_stream_id_get_new"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/tv_webrtc_address"
+                tools:text="Stream ID: 87979578" />
+
+            <androidx.appcompat.widget.AppCompatImageView
+                android:id="@+id/iv_webrtc_stream_id_get_new"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_marginStart="8dp"
+                android:background="?android:selectableItemBackgroundBorderless"
+                android:clickable="true"
+                android:contentDescription="@string/stream_fragment_mode_global_get_new_id_description"
+                android:focusable="true"
+                android:padding="12dp"
+                app:layout_constraintBottom_toBottomOf="@id/tv_webrtc_stream_id"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toEndOf="@id/tv_webrtc_stream_id"
+                app:layout_constraintTop_toTopOf="@id/tv_webrtc_stream_id"
+                app:srcCompat="@drawable/ic_refresh_24dp" />
+
+            <androidx.appcompat.widget.AppCompatTextView
+                android:id="@+id/tv_webrtc_stream_password"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:gravity="center_vertical"
+                android:maxLines="1"
+                android:minHeight="48dp"
+                android:textAppearance="?android:attr/textAppearanceMedium"
+                app:layout_constraintEnd_toStartOf="@id/iv_webrtc_stream_password_show"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/tv_webrtc_stream_id"
+                tools:text="Stream password: 87979578" />
+
+            <androidx.appcompat.widget.AppCompatImageView
+                android:id="@+id/iv_webrtc_stream_password_show"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_marginStart="8dp"
+                android:background="?android:selectableItemBackgroundBorderless"
+                android:clickable="true"
+                android:contentDescription="@string/stream_fragment_mode_global_show_password_description"
+                android:focusable="true"
+                android:padding="12dp"
+                app:layout_constraintBottom_toBottomOf="@id/tv_webrtc_stream_password"
+                app:layout_constraintEnd_toStartOf="@id/iv_webrtc_stream_password_make_new"
+                app:layout_constraintStart_toEndOf="@id/tv_webrtc_stream_password"
+                app:layout_constraintTop_toTopOf="@id/tv_webrtc_stream_password"
+                app:srcCompat="@drawable/ic_eye_outline_24dp" />
+
+            <androidx.appcompat.widget.AppCompatImageView
+                android:id="@+id/iv_webrtc_stream_password_make_new"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_marginStart="8dp"
+                android:background="?android:selectableItemBackgroundBorderless"
+                android:clickable="true"
+                android:contentDescription="@string/stream_fragment_mode_global_create_new_password_description"
+                android:focusable="true"
+                android:padding="12dp"
+                app:layout_constraintBottom_toBottomOf="@id/tv_webrtc_stream_password"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toEndOf="@id/iv_webrtc_stream_password_show"
+                app:layout_constraintTop_toTopOf="@id/tv_webrtc_stream_password"
+                app:srcCompat="@drawable/ic_refresh_24dp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/b_webrtc_stream_mic"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:paddingStart="4dp"
+                android:paddingEnd="6dp"
+                android:textSize="12sp"
+                app:icon="@drawable/ic_mic_off_24dp"
+                app:layout_constraintBottom_toBottomOf="@id/iv_webrtc_stream_address_open_external"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="@id/iv_webrtc_stream_address_open_external"
+                tools:text="@string/stream_fragment_mode_global_mic_off" />
+
+            <androidx.appcompat.widget.AppCompatImageView
+                android:id="@+id/iv_webrtc_stream_address_open_external"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_marginTop="8dp"
+                android:layout_marginEnd="4dp"
+                android:layout_marginBottom="2dp"
+                android:background="?android:selectableItemBackgroundBorderless"
+                android:clickable="true"
+                android:contentDescription="@string/item_device_address_description_open_address"
+                android:focusable="true"
+                android:padding="12dp"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toStartOf="@id/iv_webrtc_stream_address_copy"
+                app:layout_constraintTop_toBottomOf="@id/tv_webrtc_stream_password"
+                app:srcCompat="@drawable/ic_open_in_new_24dp" />
+
+            <androidx.appcompat.widget.AppCompatImageView
+                android:id="@+id/iv_webrtc_stream_address_copy"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_marginStart="8dp"
+                android:layout_marginTop="8dp"
+                android:layout_marginEnd="8dp"
+                android:layout_marginBottom="2dp"
+                android:background="?android:selectableItemBackgroundBorderless"
+                android:clickable="true"
+                android:contentDescription="@string/item_device_address_description_copy_address"
+                android:focusable="true"
+                android:padding="12dp"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toStartOf="@id/iv_webrtc_stream_address_share"
+                app:layout_constraintTop_toBottomOf="@id/tv_webrtc_stream_password"
+                app:srcCompat="@drawable/ic_copy_24dp" />
+
+            <androidx.appcompat.widget.AppCompatImageView
+                android:id="@+id/iv_webrtc_stream_address_share"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_marginStart="8dp"
+                android:layout_marginTop="8dp"
+                android:layout_marginEnd="8dp"
+                android:layout_marginBottom="2dp"
+                android:background="?android:selectableItemBackgroundBorderless"
+                android:clickable="true"
+                android:contentDescription="@string/item_device_address_description_share_address"
+                android:focusable="true"
+                android:padding="12dp"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toStartOf="@id/iv_webrtc_stream_address_qr"
+                app:layout_constraintTop_toBottomOf="@id/tv_webrtc_stream_password"
+                app:srcCompat="@drawable/ic_share_24dp" />
+
+            <androidx.appcompat.widget.AppCompatImageView
+                android:id="@+id/iv_webrtc_stream_address_qr"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_marginStart="8dp"
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="2dp"
+                android:background="?android:selectableItemBackgroundBorderless"
+                android:clickable="true"
+                android:contentDescription="@string/item_device_address_description_qr_address"
+                android:focusable="true"
+                android:padding="12dp"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/tv_webrtc_stream_password"
+                app:srcCompat="@drawable/ic_qrcode_24dp" />
+        </androidx.constraintlayout.widget.ConstraintLayout>
 
         <LinearLayout
             android:id="@+id/ll_fragment_stream_addresses"
@@ -33,7 +319,7 @@
             android:orientation="vertical"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/tv_fragment_stream_error" />
+            app:layout_constraintTop_toBottomOf="@id/cl_fragment_stream_webrtc_mode" />
 
         <TextView
             android:id="@+id/tv_fragment_stream_pin"
@@ -54,9 +340,9 @@
         <FrameLayout
             android:id="@+id/fl_fragment_stream_ad_view_container"
             android:layout_width="match_parent"
+            android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
             android:layout_marginBottom="8dp"
-            android:layout_height="wrap_content"
             app:layout_constraintTop_toBottomOf="@id/tv_fragment_stream_pin" />
 
         <LinearLayout

@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="error_port_in_use">Poort is al in gebruik, kies een andere.</string>
+    <string name="error_invalid_media_projection">Beveilig fout: Ongeldige media projectie. Probeer het nogmaals.</string>
+    <string name="error_ip_address_not_found">IP adres niet gevonden.\n Probeer \"Gebruik alleen WiFi\" Uit te zetten in de instellingen.</string>
+    <string name="error_wrong_image_format">Systeem maakt een frame in een onbekend formaat. Geen oplossing mogelijk. Sorry.</string>
+
     <!--BitmapNotification-->
     <string name="image_generator_press_start">Druk START op het toestel</string>
     <string name="image_generator_go_to_new_address">Ga naar het nieuwe adres</string>

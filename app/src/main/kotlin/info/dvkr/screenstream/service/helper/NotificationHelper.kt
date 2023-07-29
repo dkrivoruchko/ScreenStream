@@ -14,10 +14,6 @@ import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.common.AppError
 import info.dvkr.screenstream.common.getLog
-import info.dvkr.screenstream.mjpeg.AddressInUseException
-import info.dvkr.screenstream.mjpeg.AddressNotFoundException
-import info.dvkr.screenstream.mjpeg.BitmapFormatException
-import info.dvkr.screenstream.mjpeg.CastSecurityException
 import info.dvkr.screenstream.ui.activity.AppActivity
 
 class NotificationHelper(context: Context) {
@@ -30,7 +26,6 @@ class NotificationHelper(context: Context) {
 
     private val applicationContext: Context = context.applicationContext
     private val notificationManager = applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-    private val flagImmutable = if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.LOLLIPOP_MR1) 0 else PendingIntent.FLAG_IMMUTABLE
 
     private var currentNotificationType: NotificationType? = null
 
@@ -71,32 +66,40 @@ class NotificationHelper(context: Context) {
         if (currentNotificationType != notificationType) {
             val notification = getForegroundNotification(notificationType)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                XLog.d(getLog("showForegroundNotification", "service.startForeground.Q: Service:${service.hashCode()}, NotificationType: $notificationType"))
-                service.startForeground(notificationType.id, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION)
+                XLog.d(
+                    getLog(
+                        "showForegroundNotification",
+                        "service.startForeground.Q: Service:${service.hashCode()}, NotificationType: $notificationType"
+                    )
+                )
+                service.startForeground(
+                    notificationType.id,
+                    notification,
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION
+                ) //ServiceInfo.FOREGROUND_SERVICE_TYPE_MANIFEST
             } else {
-                XLog.d(getLog("showForegroundNotification", "service.startForeground: Service:${service.hashCode()}, NotificationType: $notificationType"))
+                XLog.d(
+                    getLog(
+                        "showForegroundNotification",
+                        "service.startForeground: Service:${service.hashCode()}, NotificationType: $notificationType"
+                    )
+                )
                 service.startForeground(notificationType.id, notification)
             }
             currentNotificationType = notificationType
-            XLog.d(getLog("showForegroundNotification", "service.startForeground: Service:${service.hashCode()}, currentNotificationType: $currentNotificationType"))
+            XLog.d(
+                getLog(
+                    "showForegroundNotification",
+                    "service.startForeground: Service:${service.hashCode()}, currentNotificationType: $currentNotificationType"
+                )
+            )
         }
     }
 
     fun showErrorNotification(appError: AppError) {
         notificationManager.cancel(NotificationType.ERROR.id)
 
-        val message: String = when (appError) {
-            is AddressInUseException ->
-                applicationContext.getString(R.string.error_port_in_use)
-            is CastSecurityException ->
-                applicationContext.getString(R.string.error_invalid_media_projection)
-            is AddressNotFoundException ->
-                applicationContext.getString(R.string.error_ip_address_not_found)
-            is BitmapFormatException ->
-                applicationContext.getString(R.string.error_wrong_image_format)
-            else -> appError.toString()
-        }
-
+        val message = appError.toString(applicationContext)
         val builder = NotificationCompat.Builder(applicationContext, CHANNEL_ERROR)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setCategory(Notification.CATEGORY_ERROR)
@@ -109,7 +112,7 @@ class NotificationHelper(context: Context) {
             .setColor(ContextCompat.getColor(applicationContext, R.color.colorError))
             .setContentIntent(
                 PendingIntent.getActivity(
-                    applicationContext, 0, AppActivity.getStartIntent(applicationContext), flagImmutable
+                    applicationContext, 0, AppActivity.getStartIntent(applicationContext), PendingIntent.FLAG_IMMUTABLE
                 )
             )
 
@@ -117,11 +120,11 @@ class NotificationHelper(context: Context) {
             builder.addAction(
                 NotificationCompat.Action(
                     null,
-                    applicationContext.getString(android.R.string.ok),
+                    applicationContext.getString(R.string.error_retry),
                     PendingIntent.getService(
                         applicationContext, 5,
                         IntentAction.RecoverError.toAppServiceIntent(applicationContext),
-                        flagImmutable or PendingIntent.FLAG_UPDATE_CURRENT
+                        PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
                     )
                 )
             )
@@ -133,7 +136,7 @@ class NotificationHelper(context: Context) {
                     PendingIntent.getService(
                         applicationContext, 5,
                         IntentAction.Exit.toAppServiceIntent(applicationContext),
-                        flagImmutable or PendingIntent.FLAG_UPDATE_CURRENT
+                        PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
                     )
                 )
             )
@@ -163,7 +166,9 @@ class NotificationHelper(context: Context) {
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setLargeIcon(AppCompatResources.getDrawable(applicationContext, R.drawable.logo)?.toBitmap())
             .setContentIntent(
-                PendingIntent.getActivity(applicationContext, 0, AppActivity.getStartIntent(applicationContext), flagImmutable)
+                PendingIntent.getActivity(
+                    applicationContext, 0, AppActivity.getStartIntent(applicationContext), PendingIntent.FLAG_IMMUTABLE
+                )
             )
             .setOngoing(true)
 
@@ -188,7 +193,7 @@ class NotificationHelper(context: Context) {
                         PendingIntent.getActivity(
                             applicationContext, 1,
                             IntentAction.StartStream.toAppActivityIntent(applicationContext),
-                            flagImmutable or PendingIntent.FLAG_UPDATE_CURRENT
+                            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
                         )
                     )
                 )
@@ -199,7 +204,7 @@ class NotificationHelper(context: Context) {
                         PendingIntent.getService(
                             applicationContext, 3,
                             IntentAction.Exit.toAppServiceIntent(applicationContext),
-                            flagImmutable or PendingIntent.FLAG_UPDATE_CURRENT
+                            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
                         )
                     )
                 )
@@ -216,7 +221,7 @@ class NotificationHelper(context: Context) {
                         PendingIntent.getService(
                             applicationContext, 2,
                             IntentAction.StopStream.toAppServiceIntent(applicationContext),
-                            flagImmutable or PendingIntent.FLAG_UPDATE_CURRENT
+                            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
                         )
                     )
                 )

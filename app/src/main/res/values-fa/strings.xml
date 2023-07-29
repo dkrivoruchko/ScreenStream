@@ -1,10 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="error_title">خطا</string>
-    <string name="error_port_in_use">این درگاه در حال استفاده است. درگاه دیگری انتخاب کنید.</string>
-    <string name="error_invalid_media_projection">خطای امنیتی: نمایش‌دهنده رسانه نامعتبر. یک بار دیگر تلاش کنید.</string>
-    <string name="error_ip_address_not_found">نشانی IP یافت نشد</string>
-    <string name="error_wrong_image_format">سیستم، تصویری با قالب ناشناخته برگردانده است. راه‌حلی وجود ندارد. ببخشید.</string>
     <string name="error_exit">خروج</string>
 
     <string name="bottom_menu_stream">جریان</string>

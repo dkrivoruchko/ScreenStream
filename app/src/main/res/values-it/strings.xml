@@ -1,10 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="error_title">Errore</string>
-    <string name="error_port_in_use">Porta già in uso. Scegline un\'altra.</string>
-    <string name="error_invalid_media_projection">Errore di sicurezza: protezione multimedia non valida. Riprova.</string>
-    <string name="error_ip_address_not_found">Indirizzo IP non trovato.\nProva a disattivare \"Usa solo WiFi\" nelle impostazioni.</string>
-    <string name="error_wrong_image_format">Il sistema restituisce l\'immagine in un formato sconosciuto. Nessuna soluzione disponibile. Spiacente.</string>
     <string name="error_exit">Esci</string>
 
     <string name="app_activity_collecting_logs">Recupero del registro dell\'app…</string>

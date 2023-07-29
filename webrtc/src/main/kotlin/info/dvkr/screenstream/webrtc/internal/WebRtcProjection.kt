@@ -1,0 +1,184 @@
+package info.dvkr.screenstream.webrtc.internal
+
+import android.content.ComponentCallbacks
+import android.content.Context
+import android.content.Intent
+import android.content.res.Configuration
+import android.graphics.Point
+import android.hardware.display.DisplayManager
+import android.media.projection.MediaProjection
+import android.os.Build
+import android.view.Display
+import android.view.WindowManager
+import androidx.annotation.MainThread
+import androidx.core.content.ContextCompat
+import com.elvishew.xlog.XLog
+import info.dvkr.screenstream.common.getLog
+import info.dvkr.screenstream.common.listenForChange
+import info.dvkr.screenstream.webrtc.WebRtcSettings
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import org.webrtc.*
+import org.webrtc.audio.JavaAudioDeviceModule
+import java.util.*
+
+internal class WebRtcProjection(
+    private val serviceContext: Context,
+    webRtcSettings: WebRtcSettings,
+    dispatcher: CoroutineDispatcher
+) {
+
+    private enum class AudioCodec { OPUS }
+    private enum class VideoCodec(val priority: Int) { VP8(1), VP9(2), H264(3)/* , AV1(4)*/; }
+
+    private val coroutineScope = CoroutineScope(SupervisorJob() + dispatcher)
+    private val displayManager = ContextCompat.getSystemService(serviceContext, DisplayManager::class.java)!!
+    private val audioDeviceModule = JavaAudioDeviceModule.builder(serviceContext).createAudioDeviceModule()
+    private val rootEglBase: EglBase = EglBase.create()
+
+    internal val peerConnectionFactory: PeerConnectionFactory
+    internal val videoCodecs: List<RtpCapabilities.CodecCapability>
+    internal val audioCodecs: List<RtpCapabilities.CodecCapability>
+
+    private val lock = Any()
+
+    private var screenCapturer: ScreenCapturerAndroid? = null
+    private var surfaceTextureHelper: SurfaceTextureHelper? = null
+    private var videoSource: VideoSource? = null
+    private var audioSource: AudioSource? = null
+
+    internal var localMediaSteam: LocalMediaSteam? = null
+    internal var isRunning: Boolean = false
+
+    init {
+        XLog.d(getLog("init"))
+
+        val initializationOptions = PeerConnectionFactory.InitializationOptions.builder(serviceContext)
+            .setInjectableLogger({ p0, _, _ -> XLog.e(this@WebRtcProjection.getLog("WebRTCLogger", p0)) }, Logging.Severity.LS_NONE)
+            .createInitializationOptions()
+
+        PeerConnectionFactory.initialize(initializationOptions)
+
+        peerConnectionFactory = PeerConnectionFactory.builder()
+            .setOptions(PeerConnectionFactory.Options())
+            .setVideoDecoderFactory(WrappedVideoDecoderFactory(rootEglBase.eglBaseContext))
+            .setVideoEncoderFactory(DefaultVideoEncoderFactory(rootEglBase.eglBaseContext, true, false))
+            .setAudioDeviceModule(audioDeviceModule)
+            .createPeerConnectionFactory()
+
+        val hardwareSupportedCodecs = HardwareVideoEncoderFactory(rootEglBase.eglBaseContext, true, true)
+            .supportedCodecs.map { it.name }
+
+        videoCodecs = peerConnectionFactory.getRtpSenderCapabilities(MediaStreamTrack.MediaType.MEDIA_TYPE_VIDEO)
+            .codecs.filter { it.isSupportedVideo() }.sortedByDescending { it.priority(it.name in hardwareSupportedCodecs) }
+
+        audioCodecs = peerConnectionFactory.getRtpSenderCapabilities(MediaStreamTrack.MediaType.MEDIA_TYPE_AUDIO)
+            .codecs.filter { it.isSupportedAudio() }
+
+        webRtcSettings.enableMicFlow.listenForChange(coroutineScope, 0) { enableMic ->
+            XLog.d(this@WebRtcProjection.getLog("enableMicFlow", "$enableMic"))
+            audioDeviceModule.setMicrophoneMute(enableMic.not())
+        }
+    }
+
+    private fun RtpCapabilities.CodecCapability.isSupportedVideo(): Boolean = VideoCodec.entries.any { it.name == name.uppercase() }
+    private fun RtpCapabilities.CodecCapability.isSupportedAudio(): Boolean = AudioCodec.entries.any { it.name == name.uppercase() }
+    private fun RtpCapabilities.CodecCapability.priority(isHardwareSupported: Boolean): Int =
+        VideoCodec.entries.first { it.name == name.uppercase() }.let { if (isHardwareSupported) it.priority + 10 else it.priority }
+
+    private val componentCallback = object : ComponentCallbacks {
+        @MainThread
+        override fun onConfigurationChanged(newConfig: Configuration) {
+            synchronized(lock) {
+                XLog.i(this@WebRtcProjection.getLog("ComponentCallback", "Configuration changed"))
+                screenCapturer?.apply {
+                    val screeSize = getScreenSizeCompat()
+                    changeCaptureFormat(screeSize.x, screeSize.y, 30)
+                }
+            }
+        }
+
+        override fun onLowMemory() = Unit
+    }
+
+    internal fun start(streamId: StreamId, intent: Intent, projectionCallback: MediaProjection.Callback) {
+        synchronized(lock) {
+            XLog.d(getLog("start"))
+
+            screenCapturer = ScreenCapturerAndroid(intent, projectionCallback)
+            surfaceTextureHelper = SurfaceTextureHelper.create("ScreenStreamSurfaceTexture", rootEglBase.eglBaseContext)
+            videoSource = peerConnectionFactory.createVideoSource(screenCapturer!!.isScreencast)
+            screenCapturer!!.initialize(surfaceTextureHelper, serviceContext, videoSource!!.capturerObserver)
+
+            val screeSize = getScreenSizeCompat()
+            screenCapturer!!.startCapture(screeSize.x, screeSize.y, 30)
+
+            audioSource = peerConnectionFactory.createAudioSource(MediaConstraints())
+
+            serviceContext.registerComponentCallbacks(componentCallback)
+
+            val mediaStreamId = MediaStreamId.create(streamId)
+            localMediaSteam = LocalMediaSteam(
+                mediaStreamId,
+                peerConnectionFactory.createVideoTrack("VideoTrack@$mediaStreamId", videoSource),
+                peerConnectionFactory.createAudioTrack("AudioTrack@$mediaStreamId", audioSource)
+            )
+
+            isRunning = true
+            XLog.d(getLog("start", "MediaStreamId: $mediaStreamId"))
+        }
+    }
+
+    internal fun stop() {
+        synchronized(lock) {
+            XLog.d(getLog("stop"))
+
+            serviceContext.unregisterComponentCallbacks(componentCallback)
+
+            screenCapturer?.stopCapture()
+            screenCapturer?.dispose()
+            screenCapturer = null
+
+            surfaceTextureHelper?.dispose()
+            surfaceTextureHelper = null
+
+            localMediaSteam?.videoTrack?.dispose()
+            localMediaSteam?.audioTrack?.dispose()
+            localMediaSteam = null
+
+            audioSource?.dispose()
+            audioSource = null
+
+            videoSource?.dispose()
+            videoSource = null
+
+            isRunning = false
+        }
+    }
+
+    internal fun destroy() {
+        XLog.d(getLog("destroy"))
+
+        stop()
+        coroutineScope.cancel()
+        rootEglBase.release()
+    }
+
+    @Suppress("DEPRECATION")
+    private fun getScreenSizeCompat(): Point {
+        val display = displayManager.getDisplay(Display.DEFAULT_DISPLAY)
+
+        return if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+            Point().also { display.getRealSize(it) }
+        } else {
+            val displayContext = serviceContext.createDisplayContext(display)
+            //TODO read docs for createWindowContext. createWindowContext very expensive
+            val windowContext = displayContext.createWindowContext(WindowManager.LayoutParams.TYPE_APPLICATION, null)
+            val windowManager = windowContext.getSystemService(WindowManager::class.java)
+            val bounds = windowManager.maximumWindowMetrics.bounds
+            Point(bounds.width(), bounds.height())
+        }
+    }
+}

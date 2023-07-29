@@ -1,10 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="error_title">错误</string>
-    <string name="error_port_in_use">端口已占用，请换一个</string>
-    <string name="error_invalid_media_projection">安全错误：无效店媒体投射，请再试一次。</string>
-    <string name="error_ip_address_not_found">未找到 IP 地址.\n请尝试禁用设置中的 \"只用 WiFi\" 。</string>
-    <string name="error_wrong_image_format">系统返回的图片格式无法识别。很抱歉尚无解决办法。</string>
     <string name="error_exit">退出</string>
 
     <string name="app_activity_collecting_logs">正在收集应用日志…</string>

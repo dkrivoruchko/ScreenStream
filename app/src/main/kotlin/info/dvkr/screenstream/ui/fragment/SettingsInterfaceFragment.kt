@@ -121,15 +121,20 @@ class SettingsInterfaceFragment : Fragment(R.layout.fragment_settings_interface)
         }
 
         // Interface - Keep awake
-        viewLifecycleOwner.lifecycleScope.launchWhenCreated {
-            binding.cbFragmentSettingsKeepAwake.isChecked = appSettings.keepAwakeFlow.first()
-        }
-        binding.cbFragmentSettingsKeepAwake.setOnClickListener {
+        if (Build.MANUFACTURER !in listOf("OnePlus", "OPPO")) {
             viewLifecycleOwner.lifecycleScope.launchWhenCreated {
-                appSettings.setKeepAwake(binding.cbFragmentSettingsKeepAwake.isChecked)
+                binding.cbFragmentSettingsKeepAwake.isChecked = appSettings.keepAwakeFlow.first()
             }
+            binding.cbFragmentSettingsKeepAwake.setOnClickListener {
+                viewLifecycleOwner.lifecycleScope.launchWhenCreated {
+                    appSettings.setKeepAwake(binding.cbFragmentSettingsKeepAwake.isChecked)
+                }
+            }
+            binding.clFragmentSettingsKeepAwake.setOnClickListener { binding.cbFragmentSettingsKeepAwake.performClick() }
+        } else {
+            binding.clFragmentSettingsKeepAwake.visibility = View.GONE
+            binding.vFragmentSettingsKeepAwake.visibility = View.GONE
         }
-        binding.clFragmentSettingsKeepAwake.setOnClickListener { binding.cbFragmentSettingsKeepAwake.performClick() }
 
         // Interface - Stop on sleep
         viewLifecycleOwner.lifecycleScope.launchWhenCreated {
@@ -167,7 +172,12 @@ class SettingsInterfaceFragment : Fragment(R.layout.fragment_settings_interface)
 
         // Interface - Notify slow connections
         viewLifecycleOwner.lifecycleScope.launchWhenCreated {
-            binding.cbFragmentSettingsNotifySlowConnections.isChecked = mjpegSettings.notifySlowConnectionsFlow.first()
+            if (appSettings.streamModeFlow.first() == AppSettings.Values.STREAM_MODE_WEBRTC) {
+                binding.clFragmentSettingsNotifySlowConnections.visibility = View.GONE
+                binding.vFragmentSettingsAutoStartStop.visibility = View.GONE
+            } else {
+                binding.cbFragmentSettingsNotifySlowConnections.isChecked = mjpegSettings.notifySlowConnectionsFlow.first()
+            }
         }
         binding.cbFragmentSettingsNotifySlowConnections.setOnClickListener {
             viewLifecycleOwner.lifecycleScope.launchWhenCreated {
@@ -178,7 +188,12 @@ class SettingsInterfaceFragment : Fragment(R.layout.fragment_settings_interface)
 
         // Interface - Web page Image buttons
         viewLifecycleOwner.lifecycleScope.launchWhenCreated {
-            binding.cbFragmentSettingsHtmlButtons.isChecked = mjpegSettings.htmlEnableButtonsFlow.first()
+            if (appSettings.streamModeFlow.first() == AppSettings.Values.STREAM_MODE_WEBRTC) {
+                binding.clFragmentSettingsHtmlButtons.visibility = View.GONE
+                binding.ivFragmentSettingsHtmlButtonsDivider.visibility = View.GONE
+            } else {
+                binding.cbFragmentSettingsHtmlButtons.isChecked = mjpegSettings.htmlEnableButtonsFlow.first()
+            }
         }
         binding.cbFragmentSettingsHtmlButtons.setOnClickListener {
             viewLifecycleOwner.lifecycleScope.launchWhenCreated {
@@ -189,7 +204,12 @@ class SettingsInterfaceFragment : Fragment(R.layout.fragment_settings_interface)
 
         // Interface - Web page show "Press START on device"
         viewLifecycleOwner.lifecycleScope.launchWhenCreated {
-            binding.cbFragmentSettingsHtmlPressStart.isChecked = mjpegSettings.htmlShowPressStartFlow.first()
+            if (appSettings.streamModeFlow.first() == AppSettings.Values.STREAM_MODE_WEBRTC) {
+                binding.clFragmentSettingsHtmlPressStart.visibility = View.GONE
+                binding.vFragmentSettingsHtmlPressStartDivider.visibility = View.GONE
+            } else {
+                binding.cbFragmentSettingsHtmlPressStart.isChecked = mjpegSettings.htmlShowPressStartFlow.first()
+            }
         }
         binding.cbFragmentSettingsHtmlPressStart.setOnClickListener {
             viewLifecycleOwner.lifecycleScope.launchWhenCreated {
@@ -200,10 +220,15 @@ class SettingsInterfaceFragment : Fragment(R.layout.fragment_settings_interface)
 
         // Interface - Web page HTML Back color
         viewLifecycleOwner.lifecycleScope.launchWhenCreated {
-            mjpegSettings.htmlBackColorFlow.onEach {
-                binding.vFragmentSettingsHtmlBackColor.color = it
-                binding.vFragmentSettingsHtmlBackColor.border = ContextCompat.getColor(requireContext(), R.color.textColorPrimary)
-            }.launchIn(this)
+            if (appSettings.streamModeFlow.first() == AppSettings.Values.STREAM_MODE_WEBRTC) {
+                binding.clFragmentSettingsHtmlBackColor.visibility = View.GONE
+                binding.vFragmentSettingsHtmlBackColorDivider.visibility = View.GONE
+            } else {
+                mjpegSettings.htmlBackColorFlow.onEach {
+                    binding.vFragmentSettingsHtmlBackColor.color = it
+                    binding.vFragmentSettingsHtmlBackColor.border = ContextCompat.getColor(requireContext(), R.color.textColorPrimary)
+                }.launchIn(this)
+            }
         }
         binding.clFragmentSettingsHtmlBackColor.setOnClickListener {
             viewLifecycleOwner.lifecycleScope.launchWhenCreated {

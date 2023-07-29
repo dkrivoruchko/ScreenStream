@@ -1,23 +1,34 @@
 package info.dvkr.screenstream.ui.fragment
 
+import android.Manifest
+import android.annotation.SuppressLint
 import android.content.ActivityNotFoundException
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
+import android.graphics.Typeface
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.text.Spannable
 import android.text.SpannableString
 import android.text.style.ForegroundColorSpan
+import android.text.style.StyleSpan
+import android.text.style.TypefaceSpan
 import android.text.style.UnderlineSpan
 import android.view.LayoutInflater
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.StringRes
 import androidx.appcompat.widget.AppCompatImageView
 import androidx.core.content.ContextCompat
+import androidx.core.content.res.ResourcesCompat
+import androidx.core.view.isVisible
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.flowWithLifecycle
 import androidx.lifecycle.lifecycleScope
@@ -31,22 +42,31 @@ import com.afollestad.materialdialogs.lifecycle.lifecycleOwner
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.common.AppError
-import info.dvkr.screenstream.common.asString
+import info.dvkr.screenstream.common.Client
 import info.dvkr.screenstream.common.getLog
+import info.dvkr.screenstream.common.listenForChange
+import info.dvkr.screenstream.common.settings.AppSettings
 import info.dvkr.screenstream.databinding.FragmentStreamBinding
 import info.dvkr.screenstream.databinding.ItemClientBinding
-import info.dvkr.screenstream.databinding.ItemDeviceAddressBinding
-import info.dvkr.screenstream.mjpeg.*
+import info.dvkr.screenstream.databinding.ItemMjpegAddressBinding
+import info.dvkr.screenstream.mjpeg.MjpegClient
+import info.dvkr.screenstream.mjpeg.MjpegTrafficPoint
 import info.dvkr.screenstream.mjpeg.settings.MjpegSettings
 import info.dvkr.screenstream.service.ServiceMessage
 import info.dvkr.screenstream.service.helper.IntentAction
 import info.dvkr.screenstream.ui.activity.ServiceActivity
 import info.dvkr.screenstream.ui.viewBinding
+import info.dvkr.screenstream.webrtc.WebRtcEnvironment
+import info.dvkr.screenstream.webrtc.WebRtcPublicClient
+import info.dvkr.screenstream.webrtc.WebRtcSettings
 import io.nayuki.qrcodegen.QrCode
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
+import java.net.Inet6Address
+import java.net.InetAddress
 
 class StreamFragment : AdFragment(R.layout.fragment_stream) {
 
@@ -55,24 +75,66 @@ class StreamFragment : AdFragment(R.layout.fragment_stream) {
         ContextCompat.getSystemService(requireContext(), ClipboardManager::class.java)
     }
 
+    private val appSettings: AppSettings by inject()
     private val mjpegSettings: MjpegSettings by inject()
+    private val webrtcSettings: WebRtcSettings by inject()
+    private val webRTCEnvironment: WebRtcEnvironment by inject()
     private var httpClientAdapter: HttpClientAdapter? = null
     private var errorPrevious: AppError? = null
 
     private val binding by viewBinding { fragment -> FragmentStreamBinding.bind(fragment.requireView()) }
 
-    private fun String.setColorSpan(color: Int, start: Int = 0, end: Int = this.length) = SpannableString(this).apply {
-        setSpan(ForegroundColorSpan(color), start, end, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
-    }
+    private val requestPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
+        XLog.i(getLog("requestPermissionLauncher", "registerForActivityResult: $isGranted"))
 
-    private fun String.setUnderlineSpan(start: Int = 0, end: Int = this.length) = SpannableString(this).apply {
-        setSpan(UnderlineSpan(), start, end, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+        viewLifecycleOwner.lifecycleScope.launchWhenCreated {
+            webrtcSettings.setEnableMic(isGranted)
+            if (isGranted) return@launchWhenCreated
+            // This is first time we get Deny
+            if (shouldShowRequestPermissionRationale(Manifest.permission.RECORD_AUDIO)) return@launchWhenCreated
+            XLog.i(this@StreamFragment.getLog("requestPermissionLauncher", "shouldShowRequestPermissionRationale: false"))
+
+            if (webrtcSettings.micPermissionDeniedFlow.first().not()) {
+                XLog.i(this@StreamFragment.getLog("requestPermissionLauncher", "micPermissionDenied: false"))
+                webrtcSettings.setMicPermissionDenied(true)
+            } else {
+                XLog.i(this@StreamFragment.getLog("requestPermissionLauncher", "Show permissions settings dialog"))
+                MaterialDialog(requireContext()).show {
+                    lifecycleOwner(viewLifecycleOwner)
+                    icon(R.drawable.ic_permission_dialog_24dp)
+                    title(R.string.stream_fragment_mode_global_audio_permission_title)
+                    message(R.string.stream_fragment_mode_global_audio_permission_message_settings)
+                    positiveButton(R.string.permission_activity_notification_settings) {
+                        try {
+                            val i = Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                addCategory(Intent.CATEGORY_DEFAULT)
+                                data = Uri.parse("package:${requireContext().packageName}")
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                addFlags(Intent.FLAG_ACTIVITY_NO_HISTORY)
+                                addFlags(Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS)
+                            }
+                            startActivity(i)
+                        } catch (ignore: ActivityNotFoundException) {
+                        }
+                    }
+                    cancelable(false)
+                    cancelOnTouchOutside(false)
+                }
+            }
+        }
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
         loadAdOnViewCreated(binding.flFragmentStreamAdViewContainer)
+
+        binding.clFragmentStreamWebrtcMode.isVisible = false
+        binding.llFragmentStreamAddresses.isVisible = false
+        binding.llFragmentStreamAddresses.removeAllViews()
+        binding.tvFragmentStreamPin.isVisible = false
+        binding.llFragmentStreamTraffic.isVisible = false
+        binding.llFragmentStreamClients.isVisible = true
 
         binding.tvFragmentStreamTrafficHeader.text = getString(R.string.stream_fragment_current_traffic).run {
             format(0.0).setColorSpan(colorAccent, indexOf('%'))
@@ -88,6 +150,38 @@ class StreamFragment : AdFragment(R.layout.fragment_stream) {
             adapter = httpClientAdapter
         }
 
+        binding.rbFragmentStreamWebrtcMode.setOnClickListener {
+            viewLifecycleOwner.lifecycleScope.launch { appSettings.setStreamMode(AppSettings.Values.STREAM_MODE_WEBRTC) }
+        }
+
+        binding.bFragmentStreamWebrtcModeDetails.setOnClickListener {
+            MaterialDialog(requireContext()).show {
+                lifecycleOwner(viewLifecycleOwner)
+                icon(R.drawable.ic_permission_dialog_24dp)
+                title(R.string.stream_fragment_mode_global)
+                message(R.string.stream_fragment_mode_global_details)
+                positiveButton(android.R.string.ok)
+            }
+        }
+
+        binding.rbFragmentStreamMjpegMode.setOnClickListener {
+            viewLifecycleOwner.lifecycleScope.launch { appSettings.setStreamMode(AppSettings.Values.STREAM_MODE_MJPEG) }
+        }
+
+        binding.bFragmentStreamMjpegModeDetails.setOnClickListener {
+            MaterialDialog(requireContext()).show {
+                lifecycleOwner(viewLifecycleOwner)
+                icon(R.drawable.ic_permission_dialog_24dp)
+                title(R.string.stream_fragment_mode_local)
+                message(R.string.stream_fragment_mode_local_details)
+                positiveButton(android.R.string.ok)
+            }
+        }
+
+        binding.bFragmentStreamError.setOnClickListener {
+            IntentAction.RecoverError.sendToAppService(requireContext())
+        }
+
         (requireActivity() as ServiceActivity).serviceMessageFlow
             .flowWithLifecycle(viewLifecycleOwner.lifecycle, Lifecycle.State.STARTED)
             .onEach { serviceMessage ->
@@ -99,6 +193,65 @@ class StreamFragment : AdFragment(R.layout.fragment_stream) {
                 }
             }
             .launchIn(viewLifecycleOwner.lifecycleScope)
+
+        appSettings.streamModeFlow.listenForChange(viewLifecycleOwner.lifecycleScope, 0) { mode ->
+            binding.rbFragmentStreamWebrtcMode.isChecked = mode == AppSettings.Values.STREAM_MODE_WEBRTC
+            binding.rbFragmentStreamMjpegMode.isChecked = mode == AppSettings.Values.STREAM_MODE_MJPEG
+            binding.clFragmentStreamWebrtcMode.isVisible = mode == AppSettings.Values.STREAM_MODE_WEBRTC
+            binding.llFragmentStreamAddresses.isVisible = mode == AppSettings.Values.STREAM_MODE_MJPEG
+            binding.llFragmentStreamAddresses.removeAllViews()
+            binding.tvFragmentStreamPin.isVisible = mode == AppSettings.Values.STREAM_MODE_MJPEG
+            binding.llFragmentStreamTraffic.isVisible = mode == AppSettings.Values.STREAM_MODE_MJPEG
+            binding.llFragmentStreamClients.isVisible = true
+        }
+
+        webrtcSettings.enableMicFlow.listenForChange(viewLifecycleOwner.lifecycleScope, 0) { enable ->
+            if (enable) {
+                binding.bWebrtcStreamMic.text = getString(R.string.stream_fragment_mode_global_mic_on)
+                binding.bWebrtcStreamMic.icon = ContextCompat.getDrawable(requireContext(), R.drawable.ic_mic_on_24dp)
+                binding.bWebrtcStreamMic.iconTint = ContextCompat.getColorStateList(requireContext(), R.color.colorError)
+            } else {
+                binding.bWebrtcStreamMic.text = getString(R.string.stream_fragment_mode_global_mic_off)
+                binding.bWebrtcStreamMic.icon = ContextCompat.getDrawable(requireContext(), R.drawable.ic_mic_off_24dp)
+                binding.bWebrtcStreamMic.iconTint = null
+            }
+        }
+
+        binding.bWebrtcStreamMic.setOnClickListener {
+            viewLifecycleOwner.lifecycleScope.launchWhenCreated {
+                val enableMic = webrtcSettings.enableMicFlow.first()
+
+                if (enableMic) {
+                    webrtcSettings.setEnableMic(false)
+                    return@launchWhenCreated
+                }
+
+                val permission = ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.RECORD_AUDIO)
+                when {
+                    permission == PackageManager.PERMISSION_GRANTED -> webrtcSettings.setEnableMic(true)
+                    shouldShowRequestPermissionRationale(Manifest.permission.RECORD_AUDIO) -> {
+                        XLog.i(this@StreamFragment.getLog("onViewCreated", "shouldShowRequestPermissionRationale: true"))
+                        MaterialDialog(requireContext()).show {
+                            lifecycleOwner(viewLifecycleOwner)
+                            icon(R.drawable.ic_permission_dialog_24dp)
+                            title(R.string.stream_fragment_mode_global_audio_permission_title)
+                            message(R.string.stream_fragment_mode_global_audio_permission_message)
+                            positiveButton(android.R.string.ok) {
+                                XLog.i(this@StreamFragment.getLog("onViewCreated", "launch requestPermissionLauncher"))
+                                requestPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                            }
+                            cancelable(false)
+                            cancelOnTouchOutside(false)
+                        }
+                    }
+
+                    else -> {
+                        XLog.i(this@StreamFragment.getLog("onViewCreated", "launch requestPermissionLauncher"))
+                        requestPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                    }
+                }
+            }
+        }
     }
 
     override fun onStart() {
@@ -113,63 +266,156 @@ class StreamFragment : AdFragment(R.layout.fragment_stream) {
         httpClientAdapter = null
     }
 
+    private fun InetAddress.asString(): String = if (this is Inet6Address) "[${this.hostAddress}]" else this.hostAddress ?: ""
+
+    @SuppressLint("ClickableViewAccessibility")
     private suspend fun onServiceStateMessage(serviceMessage: ServiceMessage.ServiceState) {
-        // Interfaces
-        binding.llFragmentStreamAddresses.removeAllViews()
-        if (serviceMessage.netInterfaces.isEmpty()) {
-            with(ItemDeviceAddressBinding.inflate(layoutInflater, binding.llFragmentStreamAddresses, false)) {
-                tvItemDeviceAddressName.text = ""
-                tvItemDeviceAddress.setText(R.string.stream_fragment_no_address)
-                tvItemDeviceAddress.setTextColor(ContextCompat.getColor(requireContext(), R.color.textColorPrimary))
-                binding.llFragmentStreamAddresses.addView(this.root)
+        when (serviceMessage) {
+            is ServiceMessage.ServiceState.MjpegServiceState -> {
+                binding.llFragmentStreamAddresses.removeAllViews()
+
+                if (serviceMessage.netInterfaces.isEmpty()) {
+                    with(ItemMjpegAddressBinding.inflate(layoutInflater, binding.llFragmentStreamAddresses, false)) {
+                        tvItemDeviceAddressName.text = ""
+                        tvItemDeviceAddress.setText(R.string.stream_fragment_no_address)
+                        tvItemDeviceAddress.setTextColor(ContextCompat.getColor(requireContext(), R.color.textColorPrimary))
+                        binding.llFragmentStreamAddresses.addView(this.root)
+                    }
+                } else {
+                    serviceMessage.netInterfaces.sortedBy { it.address.asString() }.forEach { netInterface ->
+                        with(ItemMjpegAddressBinding.inflate(layoutInflater, binding.llFragmentStreamAddresses, false)) {
+                            tvItemDeviceAddressName.text = getString(R.string.stream_fragment_interface, netInterface.name)
+                            val fullAddress = "http://${netInterface.address.asString()}:${mjpegSettings.serverPortFlow.first()}"
+                            tvItemDeviceAddress.text = fullAddress.setUnderlineSpan()
+                            tvItemDeviceAddress.setOnClickListener { openInBrowser(fullAddress) }
+                            ivItemDeviceAddressOpenExternal.setOnClickListener { openInBrowser(fullAddress) }
+                            ivItemDeviceAddressCopy.setOnClickListener {
+                                clipboard?.setPrimaryClip(ClipData.newPlainText(tvItemDeviceAddress.text, tvItemDeviceAddress.text))
+                                if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.S_V2)
+                                    Toast.makeText(requireContext(), R.string.stream_fragment_copied, Toast.LENGTH_LONG).show()
+                            }
+                            ivItemDeviceAddressShare.setOnClickListener { shareAddress(fullAddress) }
+                            ivItemDeviceAddressQr.setOnClickListener { showQrCode(fullAddress) }
+                            binding.llFragmentStreamAddresses.addView(this.root)
+                        }
+                    }
+                }
+
+                // Hide pin on Start
+                if (mjpegSettings.enablePinFlow.first()) {
+                    if (serviceMessage.isStreaming && mjpegSettings.hidePinOnStartFlow.first()) {
+                        val pinText = getString(R.string.stream_fragment_pin, "*")
+                        binding.tvFragmentStreamPin.text = pinText.setColorSpan(colorAccent, pinText.length - 1)
+                    } else {
+                        val pinText = getString(R.string.stream_fragment_pin, mjpegSettings.pinFlow.first())
+                        binding.tvFragmentStreamPin.text =
+                            pinText.setColorSpan(colorAccent, pinText.length - mjpegSettings.pinFlow.first().length)
+                    }
+                } else {
+                    binding.tvFragmentStreamPin.setText(R.string.stream_fragment_pin_disabled)
+                }
+
+                showError(serviceMessage.appError)
             }
-        } else {
-            serviceMessage.netInterfaces.sortedBy { it.address.asString() }.forEach { netInterface ->
-                with(ItemDeviceAddressBinding.inflate(layoutInflater, binding.llFragmentStreamAddresses, false)) {
-                    tvItemDeviceAddressName.text = getString(R.string.stream_fragment_interface, netInterface.name)
+
+            is ServiceMessage.ServiceState.WebRTCServiceState -> {
+                binding.tvWebrtcStreamId.isVisible = serviceMessage.streamId.isNotEmpty()
+                binding.tvWebrtcStreamPassword.isVisible = serviceMessage.streamId.isNotEmpty()
+                binding.ivWebrtcStreamIdGetNew.isVisible = serviceMessage.streamId.isNotEmpty() && serviceMessage.isStreaming.not()
+                binding.ivWebrtcStreamPasswordMakeNew.isVisible = serviceMessage.streamId.isNotEmpty() && serviceMessage.isStreaming.not()
+                binding.ivWebrtcStreamPasswordShow.isVisible = serviceMessage.streamId.isNotEmpty() && serviceMessage.isStreaming
+                binding.bWebrtcStreamMic.isVisible = serviceMessage.streamId.isNotEmpty()
+                binding.ivWebrtcStreamAddressOpenExternal.isVisible = serviceMessage.streamId.isNotEmpty()
+                binding.ivWebrtcStreamAddressCopy.isVisible = serviceMessage.streamId.isNotEmpty()
+                binding.ivWebrtcStreamAddressShare.isVisible = serviceMessage.streamId.isNotEmpty()
+                binding.ivWebrtcStreamAddressQr.isVisible = serviceMessage.streamId.isNotEmpty()
+
+                if (serviceMessage.streamId.isEmpty()) {
+                    binding.tvWebrtcAddress.text = getString(R.string.stream_fragment_mode_global_stream_id_getting)
+                    binding.ivWebrtcStreamIdGetNew.setOnClickListener(null)
+                    binding.ivWebrtcStreamPasswordMakeNew.setOnClickListener(null)
+                    binding.ivWebrtcStreamPasswordShow.setOnClickListener(null)
+                    binding.ivWebrtcStreamAddressOpenExternal.setOnClickListener(null)
+                    binding.ivWebrtcStreamAddressCopy.setOnClickListener(null)
+                    binding.ivWebrtcStreamAddressShare.setOnClickListener(null)
+                    binding.ivWebrtcStreamAddressQr.setOnClickListener(null)
+                } else {
+                    binding.tvWebrtcAddress.text =
+                        stringSpan(R.string.stream_fragment_mode_global_server_address, webRTCEnvironment.signalingServerUrl)
+
+                    binding.tvWebrtcStreamId.text =
+                        stringSpan(R.string.stream_fragment_mode_global_stream_id, serviceMessage.streamId, true)
+
+                    binding.tvWebrtcStreamPassword.text = stringSpan(
+                        R.string.stream_fragment_mode_global_stream_password,
+                        if (serviceMessage.isStreaming) "*" else serviceMessage.streamPassword,
+                        true
+                    )
+
+                    binding.ivWebrtcStreamIdGetNew.setOnClickListener {
+                        IntentAction.GetNewStreamId.sendToAppService(requireContext()) //maybe notify user that this will disconnect all clients
+                    }
+
+                    binding.ivWebrtcStreamPasswordMakeNew.setOnClickListener {
+                        IntentAction.CreateNewStreamPassword.sendToAppService(requireContext())  //maybe notify user that this will disconnect all clients
+                    }
+
+                    binding.ivWebrtcStreamPasswordShow.setOnTouchListener { _, event ->
+                        when (event.action) {
+                            MotionEvent.ACTION_DOWN -> binding.tvWebrtcStreamPassword.text =
+                                stringSpan(R.string.stream_fragment_mode_global_stream_password, serviceMessage.streamPassword, true)
+
+                            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> binding.tvWebrtcStreamPassword.text =
+                                stringSpan(R.string.stream_fragment_mode_global_stream_password, "*", true)
+                        }
+                        true
+                    }
 
                     val fullAddress =
-                        "http://${netInterface.address.asString()}:${mjpegSettings.serverPortFlow.first()}"
-                    tvItemDeviceAddress.text = fullAddress.setUnderlineSpan()
-                    tvItemDeviceAddress.setOnClickListener { openInBrowser(fullAddress) }
-                    ivItemDeviceAddressOpenExternal.setOnClickListener { openInBrowser(fullAddress) }
-                    ivItemDeviceAddressCopy.setOnClickListener {
-                        clipboard?.setPrimaryClip(
-                            ClipData.newPlainText(tvItemDeviceAddress.text, tvItemDeviceAddress.text)
-                        )
+                        webRTCEnvironment.signalingServerUrl + "/?id=${serviceMessage.streamId}&p=${serviceMessage.streamPassword}"
+
+                    binding.ivWebrtcStreamAddressOpenExternal.setOnClickListener { openInBrowser(fullAddress) }
+                    binding.ivWebrtcStreamAddressCopy.setOnClickListener {
+                        clipboard?.setPrimaryClip(ClipData.newPlainText(fullAddress, fullAddress))
                         if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.S_V2)
                             Toast.makeText(requireContext(), R.string.stream_fragment_copied, Toast.LENGTH_LONG).show()
                     }
-                    ivItemDeviceAddressShare.setOnClickListener { shareAddress(fullAddress) }
-                    ivItemDeviceAddressQr.setOnClickListener { showQrCode(fullAddress) }
-                    binding.llFragmentStreamAddresses.addView(this.root)
+                    binding.ivWebrtcStreamAddressShare.setOnClickListener { shareAddress(fullAddress) }
+                    binding.ivWebrtcStreamAddressQr.setOnClickListener { showQrCode(fullAddress) }
                 }
+
+                showError(serviceMessage.appError)
             }
         }
+    }
 
-        // Hide pin on Start
-        if (mjpegSettings.enablePinFlow.first()) {
-            if (serviceMessage.isStreaming && mjpegSettings.hidePinOnStartFlow.first()) {
-                val pinText = getString(R.string.stream_fragment_pin, "*")
-                binding.tvFragmentStreamPin.text = pinText.setColorSpan(colorAccent, pinText.length - 1)
-            } else {
-                val pinText = getString(R.string.stream_fragment_pin, mjpegSettings.pinFlow.first())
-                binding.tvFragmentStreamPin.text =
-                    pinText.setColorSpan(colorAccent, pinText.length - mjpegSettings.pinFlow.first().length)
-            }
-        } else {
-            binding.tvFragmentStreamPin.setText(R.string.stream_fragment_pin_disabled)
-        }
-
-        showError(serviceMessage.appError)
+    private fun stringSpan(@StringRes resId: Int, suffix: String, monoFont: Boolean = false): SpannableString {
+        val string = getString(resId, suffix)
+        return string
+            .setColorSpan(colorAccent, string.length - suffix.length)
+            .setBoldSpan(string.length - suffix.length)
+            .let { if (monoFont) it.setMonoFontSpan(string.length - suffix.length) else it }
     }
 
     private fun onClientsMessage(serviceMessage: ServiceMessage.Clients) {
-        val clientsCount = serviceMessage.clients.count { (it as MjpegClient).isDisconnected.not() }
-        binding.tvFragmentStreamClientsHeader.text = getString(R.string.stream_fragment_connected_clients).run {
-            format(clientsCount).setColorSpan(colorAccent, indexOf('%'))
+        if (serviceMessage.clients.firstOrNull() is MjpegClient) {
+            val clientsCount = serviceMessage.clients.count { (it as MjpegClient).isDisconnected.not() }
+            binding.tvFragmentStreamClientsHeader.text = getString(R.string.stream_fragment_connected_clients).run {
+                format(clientsCount).setColorSpan(colorAccent, indexOf('%'))
+            }
+            httpClientAdapter?.submitList(serviceMessage.clients.map { it as MjpegClient })
+        } else if (serviceMessage.clients.firstOrNull() is WebRtcPublicClient) {
+            val clientsCount = serviceMessage.clients.count()
+            binding.tvFragmentStreamClientsHeader.text = getString(R.string.stream_fragment_connected_clients).run {
+                format(clientsCount).setColorSpan(colorAccent, indexOf('%'))
+            }
+            httpClientAdapter?.submitList(serviceMessage.clients.map { it as WebRtcPublicClient })
+        } else {
+            binding.tvFragmentStreamClientsHeader.text = getString(R.string.stream_fragment_connected_clients).run {
+                format(0).setColorSpan(colorAccent, indexOf('%'))
+            }
+            httpClientAdapter?.submitList(emptyList())
         }
-        httpClientAdapter?.submitList(serviceMessage.clients.map { it as MjpegClient })
     }
 
     private fun Long.bytesToMbit() = (this * 8).toFloat() / 1024 / 1024
@@ -189,14 +435,10 @@ class StreamFragment : AdFragment(R.layout.fragment_stream) {
         try {
             startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(fullAddress)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
         } catch (ex: ActivityNotFoundException) {
-            Toast.makeText(
-                requireContext().applicationContext, R.string.stream_fragment_no_web_browser_found, Toast.LENGTH_LONG
-            ).show()
+            Toast.makeText(requireContext().applicationContext, R.string.stream_fragment_no_web_browser_found, Toast.LENGTH_LONG).show()
             XLog.w(getLog("openInBrowser", ex.toString()))
         } catch (ex: SecurityException) {
-            Toast.makeText(
-                requireContext().applicationContext, R.string.stream_fragment_external_app_error, Toast.LENGTH_LONG
-            ).show()
+            Toast.makeText(requireContext().applicationContext, R.string.stream_fragment_external_app_error, Toast.LENGTH_LONG).show()
             XLog.w(getLog("openInBrowser", ex.toString()))
         }
     }
@@ -226,26 +468,20 @@ class StreamFragment : AdFragment(R.layout.fragment_stream) {
         errorPrevious != appError || return
 
         if (appError == null) {
-            binding.tvFragmentStreamError.visibility = View.GONE
+            binding.clFragmentStreamError.visibility = View.GONE
         } else {
             XLog.d(getLog("showError", appError.toString()))
-            binding.tvFragmentStreamError.text = when (appError) {
-                is AddressInUseException -> getString(R.string.error_port_in_use)
-                is CastSecurityException -> getString(R.string.error_invalid_media_projection)
-                is AddressNotFoundException -> getString(R.string.error_ip_address_not_found)
-                is BitmapFormatException -> getString(R.string.error_wrong_image_format)
-                else -> appError.toString()
-            }
-            binding.tvFragmentStreamError.visibility = View.VISIBLE
+            binding.tvFragmentStreamError.text = appError.toString(requireContext())
+            binding.clFragmentStreamError.visibility = View.VISIBLE
         }
 
         errorPrevious = appError
     }
 
-    private class HttpClientAdapter : ListAdapter<MjpegClient, HttpClientViewHolder>(
-        object : DiffUtil.ItemCallback<MjpegClient>() {
-            override fun areItemsTheSame(oldItem: MjpegClient, newItem: MjpegClient): Boolean = oldItem.id == newItem.id
-            override fun areContentsTheSame(oldItem: MjpegClient, newItem: MjpegClient): Boolean = oldItem == newItem
+    private class HttpClientAdapter : ListAdapter<Client, HttpClientViewHolder>(
+        object : DiffUtil.ItemCallback<Client>() {
+            override fun areItemsTheSame(oldItem: Client, newItem: Client): Boolean = oldItem.id == newItem.id
+            override fun areContentsTheSame(oldItem: Client, newItem: Client): Boolean = oldItem == newItem
         }
     ) {
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) =
@@ -262,28 +498,41 @@ class StreamFragment : AdFragment(R.layout.fragment_stream) {
         private val colorError by lazy { ContextCompat.getColor(binding.root.context, R.color.colorError) }
         private val colorAccent by lazy { ContextCompat.getColor(binding.root.context, R.color.colorAccent) }
 
-        fun bind(product: MjpegClient) = with(product) {
-            binding.tvClientItemAddress.text = clientAddress
-            with(binding.tvClientItemStatus) {
-                when {
-                    isBlocked -> {
-                        setText(R.string.stream_fragment_client_blocked)
-                        setTextColor(colorError)
-                    }
-                    isDisconnected -> {
-                        setText(R.string.stream_fragment_client_disconnected)
-                        setTextColor(textColorPrimary)
-                    }
-                    isSlowConnection -> {
-                        setText(R.string.stream_fragment_client_slow_network)
-                        setTextColor(colorError)
-                    }
-                    else -> {
-                        setText(R.string.stream_fragment_client_connected)
-                        setTextColor(colorAccent)
+        fun bind(product: Client) = when (product) {
+            is MjpegClient -> with(product) {
+                binding.tvClientItemAddress.text = clientAddress
+                with(binding.tvClientItemStatus) {
+                    when {
+                        isBlocked -> {
+                            setText(R.string.stream_fragment_client_blocked)
+                            setTextColor(colorError)
+                        }
+
+                        isDisconnected -> {
+                            setText(R.string.stream_fragment_client_disconnected)
+                            setTextColor(textColorPrimary)
+                        }
+
+                        isSlowConnection -> {
+                            setText(R.string.stream_fragment_client_slow_network)
+                            setTextColor(colorError)
+                        }
+
+                        else -> {
+                            setText(R.string.stream_fragment_client_connected)
+                            setTextColor(colorAccent)
+                        }
                     }
                 }
             }
+
+            is WebRtcPublicClient -> with(product) {
+                binding.tvClientItemAddress.text = clientAddress
+                binding.tvClientItemStatus.setText(R.string.stream_fragment_client_connected)
+                binding.tvClientItemStatus.setTextColor(colorAccent)
+            }
+
+            else -> throw IllegalArgumentException("Unexpected Client class: ${product::class.java}")
         }
     }
 
@@ -304,4 +553,28 @@ class StreamFragment : AdFragment(R.layout.fragment_stream) {
             XLog.e(getLog("String.getQRBitmap", ex.toString()))
             null
         }
+
+    private fun String.setColorSpan(color: Int, start: Int = 0, end: Int = this.length) = SpannableString(this).apply {
+        setSpan(ForegroundColorSpan(color), start, end, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+    }
+
+    private fun SpannableString.setBoldSpan(start: Int = 0, end: Int = this.length) = SpannableString(this).apply {
+        setSpan(StyleSpan(Typeface.BOLD), start, end, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+    }
+
+    private val typeface by lazy(LazyThreadSafetyMode.NONE) {
+        Typeface.create(ResourcesCompat.getFont(requireContext(), R.font.mono), Typeface.BOLD)
+    }
+
+    private fun SpannableString.setMonoFontSpan(start: Int = 0, end: Int = this.length) = SpannableString(this).apply {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            setSpan(TypefaceSpan(typeface), start, end, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+        } else {
+            setSpan(TypefaceSpan("monospace"), start, end, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+        }
+    }
+
+    private fun String.setUnderlineSpan(start: Int = 0, end: Int = this.length) = SpannableString(this).apply {
+        setSpan(UnderlineSpan(), start, end, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+    }
 }

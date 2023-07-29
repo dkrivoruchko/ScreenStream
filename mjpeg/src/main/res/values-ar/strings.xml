@@ -1,4 +1,9 @@
 <resources>
+    <string name="error_port_in_use"> المنفذ قيد الاستخدام. اختر واحد اخر </string>
+    <string name="error_invalid_media_projection"> خطآ امني : إسقاط وسائل الاعلام غير صحيح. حاول مرة أخرى  </string>
+    <string name="error_ip_address_not_found"> عنوان الانترنت غير موجود \n حاول تعطيل \"استخدام واي فاي فقط\" في الاعدادات   </string>
+    <string name="error_wrong_image_format">يقوم النظام بإرجاع الصورة بتنسيق غير معروف .لا يوجد إصلاح المتاحة .آسف</string>
+
     <!--BitmapNotification-->
     <string name="image_generator_press_start">اضغط على بدء على الجهاز</string>
     <string name="image_generator_go_to_new_address">يرجى الذهاب إلى عنوان جديد</string>

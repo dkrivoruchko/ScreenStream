@@ -1,4 +1,9 @@
 <resources>
+    <string name="error_port_in_use">端口已占用，请换一个</string>
+    <string name="error_invalid_media_projection">安全错误：无效店媒体投射，请再试一次。</string>
+    <string name="error_ip_address_not_found">未找到 IP 地址.\n请尝试禁用设置中的 \"只用 WiFi\" 。</string>
+    <string name="error_wrong_image_format">系统返回的图片格式无法识别。很抱歉尚无解决办法。</string>
+
     <!--BitmapNotification-->
     <string name="image_generator_press_start">请按设备上的 开始 按钮</string>
     <string name="image_generator_go_to_new_address">请访问新地址</string>

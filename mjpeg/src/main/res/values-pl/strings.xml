@@ -1,4 +1,9 @@
 <resources>
+    <string name="error_port_in_use">Port w użyciu. Wybierz inny.</string>
+    <string name="error_invalid_media_projection">Błąd bezpieczeństwa: nieprawidłowa projekcja multimediów. Spróbuj ponownie.</string>
+    <string name="error_ip_address_not_found">Nie znaleziono adresu IP. \nSpróbuj wyłączyć \"Używaj tylko WiFi\" w ustawieniach.</string>
+    <string name="error_wrong_image_format">System nadaje obrazowi niewłaściwy format. Brak rozwiązania tego problemu.</string>
+
     <!--BitmapNotification-->
     <string name="image_generator_press_start">Naciśnij START na urządzeniu</string>
     <string name="image_generator_go_to_new_address">Przejdź do nowego adresu</string>

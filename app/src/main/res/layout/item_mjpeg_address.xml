@@ -12,7 +12,7 @@
     android:paddingBottom="8dp">
 
     <androidx.appcompat.widget.AppCompatTextView
-        android:id="@+id/tv_item_device_address_header"
+        android:id="@+id/tv_item_stream_address_header"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="@string/item_device_address"
@@ -30,7 +30,7 @@
         android:textStyle="bold"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/tv_item_device_address_header"
+        app:layout_constraintTop_toBottomOf="@id/tv_item_stream_address_header"
         tools:text="http://192.168.300.234:8080" />
 
     <androidx.appcompat.widget.AppCompatTextView

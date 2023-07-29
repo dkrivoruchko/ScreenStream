@@ -35,6 +35,8 @@ internal sealed class IntentAction : Parcelable {
     @Parcelize object GetServiceState : IntentAction()
     @Parcelize object StartStream : IntentAction()
     @Parcelize object StopStream : IntentAction()
+    @Parcelize object GetNewStreamId : IntentAction()
+    @Parcelize object CreateNewStreamPassword : IntentAction()
     @Parcelize object Exit : IntentAction()
     @Parcelize data class CastIntent(val intent: Intent) : IntentAction()
     @Parcelize object CastPermissionsDenied : IntentAction()

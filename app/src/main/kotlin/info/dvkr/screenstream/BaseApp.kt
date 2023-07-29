@@ -25,6 +25,7 @@ abstract class BaseApp : Application() {
     val lastAdLoadTimeMap: MutableMap<String, Long> = mutableMapOf()
 
     abstract fun initLogger()
+    abstract fun initAd()
 
     override fun onCreate() {
         super.onCreate()
@@ -43,6 +44,7 @@ abstract class BaseApp : Application() {
 //            defaultHandler?.uncaughtException(thread, throwable)
 //        }
 
+        initAd()
     }
 
     internal val sharedPreferences by lazy(LazyThreadSafetyMode.NONE) {

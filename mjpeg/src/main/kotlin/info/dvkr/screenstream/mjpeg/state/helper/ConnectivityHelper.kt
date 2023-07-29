@@ -67,7 +67,6 @@ internal sealed class ConnectivityHelper {
         }
     }
 
-    @Suppress("Deprecation")
     private class EmptyConnectivityHelper : ConnectivityHelper() {
         override fun startListening(coroutineScope: CoroutineScope, onConnectionChanged: () -> Unit) {
             XLog.d(this@EmptyConnectivityHelper.getLog("startListening", "Trigger on start address discovery"))

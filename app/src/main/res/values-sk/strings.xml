@@ -1,10 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="error_title">Chyba</string>
-    <string name="error_port_in_use">Port sa už používa. Zadajte iný.</string>
-    <string name="error_invalid_media_projection">Bezpečnostná chyba: Neplatná projekcia média. Skúse to znova.</string>
-    <string name="error_ip_address_not_found">IP adresa sa nenašla.\nSkúste zakázať \"Iba cez WiFi\" v nastaveniach.</string>
-    <string name="error_wrong_image_format">System vrátil obrázok v neznámom formáte. Prepáčte, ale zatiaľ to nedokážem opraviť.</string>
     <string name="error_exit">Ukončiť</string>
 
     <string name="app_activity_collecting_logs">Získavajú sa záznamy aplikácie…</string>

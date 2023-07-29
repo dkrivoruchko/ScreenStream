@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.Flow
 interface AppSettings {
 
     object Key {
+        val STREAM_MODE = intPreferencesKey("STREAM_MODE")
         val NIGHT_MODE = intPreferencesKey("NIGHT_MODE")
         val KEEP_AWAKE = booleanPreferencesKey("KEEP_AWAKE")
         val STOP_ON_SLEEP = booleanPreferencesKey("TOP_ON_SLEEP")
@@ -22,6 +23,7 @@ interface AppSettings {
     }
 
     object Default {
+        const val STREAM_MODE = Values.STREAM_MODE_WEBRTC
         var NIGHT_MODE = if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.P) 3 else -1
         const val KEEP_AWAKE = false
         const val STOP_ON_SLEEP = false
@@ -33,6 +35,14 @@ interface AppSettings {
         const val LAST_IAU_REQUEST_TIMESTAMP = 0L
         const val ADD_TILE_ASKED = false
     }
+
+    object Values {
+        const val STREAM_MODE_WEBRTC = 0
+        const val STREAM_MODE_MJPEG = 1
+    }
+
+    val streamModeFlow: Flow<Int>
+    suspend fun setStreamMode(value: Int)
 
     val nightModeFlow: Flow<Int>
     suspend fun setNightMode(value: Int)

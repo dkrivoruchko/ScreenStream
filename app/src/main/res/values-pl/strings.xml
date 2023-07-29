@@ -1,10 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="error_title">Błąd</string>
-    <string name="error_port_in_use">Port w użyciu. Wybierz inny.</string>
-    <string name="error_invalid_media_projection">Błąd bezpieczeństwa: nieprawidłowa projekcja multimediów. Spróbuj ponownie.</string>
-    <string name="error_ip_address_not_found">Nie znaleziono adresu IP. \nSpróbuj wyłączyć \"Używaj tylko WiFi\" w ustawieniach.</string>
-    <string name="error_wrong_image_format">System nadaje obrazowi niewłaściwy format. Brak rozwiązania tego problemu.</string>
     <string name="error_exit">Zamknij</string>
 
     <string name="app_activity_collecting_logs">Trwa zbieranie dzienników aplikacji…</string>

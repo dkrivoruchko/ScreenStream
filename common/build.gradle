@@ -1,13 +1,13 @@
-apply plugin: "com.android.library"
-apply plugin: "kotlin-android"
+plugins {
+    id "com.android.library"
+    id "org.jetbrains.kotlin.android"
+}
 
 android {
     namespace "info.dvkr.screenstream.common"
-    compileSdkVersion(33)
-    buildToolsVersion("33.0.1")
 
     defaultConfig {
-        minSdkVersion(21)
+        minSdkVersion(23)
         targetSdkVersion(33)
     }
 
@@ -22,12 +22,13 @@ android {
 
     kotlinOptions {
         jvmTarget = JavaVersion.VERSION_11.toString()
+        languageVersion = "1.9"
     }
 }
 
 dependencies {
-    api("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4")
-    api("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.4")
+    api("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
+    api("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
 
     api("androidx.datastore:datastore-preferences:1.0.0")
 

@@ -15,6 +15,7 @@ import info.dvkr.screenstream.R
 import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.common.settings.AppSettings
 import info.dvkr.screenstream.databinding.FragmentAboutBinding
+import info.dvkr.screenstream.ui.activity.AdActivity
 import info.dvkr.screenstream.ui.viewBinding
 import kotlinx.coroutines.flow.first
 import org.koin.android.ext.android.inject
@@ -67,14 +68,23 @@ class AboutFragment : Fragment(R.layout.fragment_about) {
             openStringUrl("https://github.com/dkrivoruchko/ScreenStream")
         }
 
+        binding.bFragmentTermsConditions.setOnClickListener {
+            openStringUrl("https://github.com/dkrivoruchko/ScreenStream/blob/master/TermsConditions.md")
+        }
+
         binding.bFragmentPrivacyPolicy.setOnClickListener {
             openStringUrl("https://github.com/dkrivoruchko/ScreenStream/blob/master/PrivacyPolicy.md")
+        }
+
+        if ((requireActivity() as AdActivity).isConsentEnabled) {
+            binding.bFragmentConsentRevocation.setOnClickListener { (requireActivity() as AdActivity).showConsentForm() }
+        } else {
+            binding.bFragmentConsentRevocation.visibility = View.GONE
         }
 
         binding.bFragmentLicense.setOnClickListener {
             openStringUrl("https://github.com/dkrivoruchko/ScreenStream/blob/master/LICENSE")
         }
-
     }
 
     private fun openStringUrl(url: String, onFailure: () -> Unit = {}) {

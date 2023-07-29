@@ -1,10 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="error_title">Ошибка</string>
-    <string name="error_port_in_use">Порт уже используется. Выберите другой.</string>
-    <string name="error_invalid_media_projection">Ошибка безопасности: Недопустимая проекция медиа. Попробуйте еще раз.</string>
-    <string name="error_ip_address_not_found">IP адрес не найден.\nПопробуйте отключить \"Использовать только WiFi\" в настройках.</string>
-    <string name="error_wrong_image_format">Система отдает изображение в неверном формате. Решения проблемы нет.</string>
+    <string name="error_retry">Повторить</string>
     <string name="error_exit">Выход</string>
     <string name="app_activity_collecting_logs">Идет логирование…</string>
     <string name="app_activity_send_logs">Отправить лог разработчику</string>
@@ -23,6 +20,42 @@
     <string name="bottom_menu_about">Инфо</string>
     <string name="bottom_menu_exit">Выход</string>
 
+    <string name="stream_fragment_select_stream_mode">Выберите режим трансляции:</string>
+    <string name="stream_fragment_mode_global">Глобальный режим (WebRTC)</string>
+    <string name="stream_fragment_mode_global_description">Описание глобального режима</string>
+    <string name="stream_fragment_mode_global_details">
+- Работает на технологии WebRTC\n\n
+- Сквозное шифрованние данных\n\n
+- Защита трансляции паролем\n\n
+- Может передавать видео и аудио\n\n
+- Подключение к трансляции с использованием уникального идентификатора и пароля\n\n
+- Для отправки и приема трансляции требуется подключение к Интернету\n\n
+- Индивидуальная передача данных для каждого клиента (чем больше клиентов, тем больше требуется пропускной способности Интернета)
+</string>
+    <string name="stream_fragment_mode_local">Локальный режим (MJPEG)</string>
+    <string name="stream_fragment_mode_local_description">Описание локального режима</string>
+    <string name="stream_fragment_mode_local_details">
+- Работает на стандарте MJPEG\n\n
+- Без шифрования (только PIN-код)\n\n
+- Может передавать только видео (в виде потока отдельных изображений)\n\n
+- Может работать в локальной сети без подключения к Интернету\n\n
+- Встроенный HTTP-сервер\n\n
+- Клиенты подключаются через веб-браузер, используя IP-адрес, предоставленный приложением\n\n
+- Множество настроек\n\n
+- Индивидуальная передача данных для каждого клиента (чем больше клиентов, тем больше требуется пропускной способности сети)
+</string>
+    <string name="stream_fragment_mode_global_get_new_id_description">Получить новый ID трансляции</string>
+    <string name="stream_fragment_mode_global_show_password_description">Показать пароль трансляции</string>
+    <string name="stream_fragment_mode_global_create_new_password_description">Создать новый пароль трансляции</string>
+    <string name="stream_fragment_mode_global_server_address">Доступ к трансляции по адресу:\n%1$s</string>
+    <string name="stream_fragment_mode_global_stream_id_getting">Получение ID трансляции…</string>
+    <string name="stream_fragment_mode_global_stream_id">Id трансляции: %1$s</string>
+    <string name="stream_fragment_mode_global_stream_password">Пароль трансляции: %1$s</string>
+    <string name="stream_fragment_mode_global_mic_off">Микрофон</string>
+    <string name="stream_fragment_mode_global_mic_on">Микрофон</string>
+    <string name="stream_fragment_mode_global_audio_permission_title">Разрешить запись аудио</string>
+    <string name="stream_fragment_mode_global_audio_permission_message">Необходимо разрешение на запись аудио для работы приложения со звуком.\n\nБез предоставления этого разрешения трансляция будет без звука.</string>
+    <string name="stream_fragment_mode_global_audio_permission_message_settings">Необходимо предоставить доступ к микрофону в настройках разрешений приложения для работы со звуком.\n\nБез предоставления этого разрешения трансляция будет проводиться без звука.</string>
     <string name="stream_fragment_current_traffic">Трафик: %1$,.2f Мбит/с</string>
     <string name="stream_fragment_connected_clients">Подключено клиентов: %1$d</string>
     <string name="stream_fragment_no_address">Адреса не найдены</string>

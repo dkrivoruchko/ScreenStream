@@ -1,3 +1,16 @@
+pluginManagement {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+
+    }
+}
+
+plugins {
+    id "com.android.settings" version '8.0.2'
+}
+
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
@@ -9,4 +22,10 @@ dependencyResolutionManagement {
 
 include ":common"
 include ":mjpeg"
+include ":webrtc"
 include ":app"
+
+android {
+    compileSdk 33
+    buildToolsVersion "33.0.2"
+}

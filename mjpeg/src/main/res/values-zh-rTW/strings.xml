@@ -1,4 +1,9 @@
 <resources>
+    <string name="error_port_in_use">該連接埠正被使用中。請換一個試試</string>
+    <string name="error_invalid_media_projection">安全性錯誤：無效的螢幕投射。請重試</string>
+    <string name="error_ip_address_not_found">找不到IP位址</string>
+    <string name="error_wrong_image_format">系統回傳無效的影像格式。無可用解決方案</string>
+
     <!--BitmapNotification-->
     <string name="image_generator_press_start">在裝置上按下開始串流</string>
     <string name="image_generator_go_to_new_address">請連接到新位址</string>

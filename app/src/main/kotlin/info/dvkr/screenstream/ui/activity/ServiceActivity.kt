@@ -17,7 +17,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
-abstract class ServiceActivity(@LayoutRes contentLayoutId: Int) : AppUpdateActivity(contentLayoutId) {
+abstract class ServiceActivity(@LayoutRes contentLayoutId: Int) : AdActivity(contentLayoutId) {
 
     private var isBound: Boolean = false
     private var serviceMessageFlowJob: Job? = null

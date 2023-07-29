@@ -46,7 +46,7 @@ class SettingsSecurityFragment : Fragment(R.layout.fragment_settings_security) {
         (requireActivity() as ServiceActivity).serviceMessageFlow
             .flowWithLifecycle(viewLifecycleOwner.lifecycle, Lifecycle.State.STARTED)
             .onEach { serviceMessage ->
-                if (serviceMessage is ServiceMessage.ServiceState) {
+                if (serviceMessage is ServiceMessage.ServiceState.MjpegServiceState) {
                     isStreaming = serviceMessage.isStreaming
                     binding.tvFragmentSettingsSetPinValue.text =
                         if (isStreaming && mjpegSettings.hidePinOnStartFlow.first()) "*" else mjpegSettings.pinFlow.first()

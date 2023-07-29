@@ -80,9 +80,9 @@ Dmitriy Krivoruchko - <dkrivoruchko@gmail.com>
 
 If there are any issues or ideas feel free to contact me.
 
-## Privacy Policy
+## Privacy Policy and Terms & Conditions
 
-App [privacy policy](https://github.com/dkrivoruchko/ScreenStream/blob/master/PrivacyPolicy.md)
+App [Privacy Policy](https://github.com/dkrivoruchko/ScreenStream/blob/master/PrivacyPolicy.md) and [Terms & Conditions](https://github.com/dkrivoruchko/ScreenStream/blob/master/TermsConditions.md)
 
 ## License
 

@@ -19,4 +19,6 @@ class ScreenStreamApp : BaseApp() {
 
         XLog.init(logConfiguration, filePrinter)
     }
+
+    override fun initAd() {}
 }

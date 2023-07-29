@@ -1,4 +1,9 @@
 <resources>
+    <string name="error_port_in_use">Porta já em uso. Escolha outra.</string>
+    <string name="error_invalid_media_projection">Erro de segurança: projeção de mídia inválida. Tente mais uma vez.</string>
+    <string name="error_ip_address_not_found">Endereço do IP não encontrado.\nTente desativar \"Use apenas WiFi\" em Configurações.</string>
+    <string name="error_wrong_image_format">O sistema retorna a imagem em formato desconhecido. Nenhuma solução disponível. Desculpa.</string>
+
     <!--BitmapNotification-->
     <string name="image_generator_press_start">Clique no INICIAR em dispositivo</string>
     <string name="image_generator_go_to_new_address">Por favor, vá para novo endereço</string>

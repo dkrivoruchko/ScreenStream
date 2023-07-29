@@ -56,29 +56,40 @@ abstract class CastPermissionActivity(@LayoutRes contentLayoutId: Int) : Notific
     override fun onServiceMessage(serviceMessage: ServiceMessage) {
         super.onServiceMessage(serviceMessage)
 
-        if (serviceMessage is ServiceMessage.ServiceState) {
-            if (serviceMessage.waitingForCastPermission.not()) {
+        if (serviceMessage is ServiceMessage.ServiceState.MjpegServiceState) {
+            if (serviceMessage.waitingForCastPermission) {
+                requestCastPermission()
+            } else {
                 castPermissionsPending = false
-                return
             }
+        }
 
-            if (castPermissionsPending) {
-                XLog.i(getLog("onServiceMessage", "Ignoring: castPermissionsPending == true"))
-                return
+        if (serviceMessage is ServiceMessage.ServiceState.WebRTCServiceState) {
+            if (serviceMessage.waitingForCastPermission) {
+                requestCastPermission()
+            } else {
+                castPermissionsPending = false
             }
+        }
+    }
 
-            permissionsErrorDialog?.dismiss()
-            castPermissionsPending = true
-            try {
-                val projectionManager = ContextCompat.getSystemService(this, MediaProjectionManager::class.java)!!
-                startMediaProjection.launch(projectionManager.createScreenCaptureIntent())
-            } catch (ignore: ActivityNotFoundException) {
-                IntentAction.CastPermissionsDenied.sendToAppService(this@CastPermissionActivity)
-                showErrorDialog(
-                    R.string.permission_activity_error_title_activity_not_found,
-                    R.string.permission_activity_error_activity_not_found
-                )
-            }
+    private fun requestCastPermission() {
+        if (castPermissionsPending) {
+            XLog.i(getLog("onServiceMessage", "Ignoring: castPermissionsPending == true"))
+            return
+        }
+
+        permissionsErrorDialog?.dismiss()
+        castPermissionsPending = true
+        try {
+            val projectionManager = ContextCompat.getSystemService(this, MediaProjectionManager::class.java)!!
+            startMediaProjection.launch(projectionManager.createScreenCaptureIntent())
+        } catch (ignore: ActivityNotFoundException) {
+            IntentAction.CastPermissionsDenied.sendToAppService(this@CastPermissionActivity)
+            showErrorDialog(
+                R.string.permission_activity_error_title_activity_not_found,
+                R.string.permission_activity_error_activity_not_found
+            )
         }
     }
 

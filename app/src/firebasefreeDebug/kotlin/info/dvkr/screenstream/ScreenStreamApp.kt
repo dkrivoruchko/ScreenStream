@@ -1,5 +1,6 @@
 package info.dvkr.screenstream
 
+import android.os.Build
 import android.os.StrictMode
 import androidx.fragment.app.strictmode.FragmentStrictMode
 import com.elvishew.xlog.LogConfiguration
@@ -21,7 +22,18 @@ class ScreenStreamApp : BaseApp() {
 
         StrictMode.setVmPolicy(
             StrictMode.VmPolicy.Builder()
-                .detectAll()
+                .detectLeakedSqlLiteObjects()
+                .detectActivityLeaks()
+                .detectLeakedClosableObjects()
+                .detectLeakedRegistrationObjects()
+                .detectFileUriExposure()
+                .detectCleartextNetwork()
+                .apply {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) detectContentUriWithoutPermission() //detectUntaggedSockets()
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) detectCredentialProtectedWhileLocked()
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) detectIncorrectContextUse()
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) detectUnsafeIntentLaunch()
+                }
                 .penaltyLog()
                 .build()
         )
@@ -39,4 +51,6 @@ class ScreenStreamApp : BaseApp() {
         val logConfiguration = LogConfiguration.Builder().tag("SSApp").build()
         XLog.init(logConfiguration, AndroidPrinter(), filePrinter)
     }
+
+    override fun initAd() {}
 }

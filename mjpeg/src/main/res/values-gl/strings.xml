@@ -1,4 +1,9 @@
 <resources>
+    <string name="error_port_in_use">Porta xa en uso. Elixe outro.</string>
+    <string name="error_invalid_media_projection">Erro de seguridade: proxección de medios non válida. Proba unha vez máis.</string>
+    <string name="error_ip_address_not_found">Non se atopou o enderezo IP.\nProba a deshabilitar \"Use WiFi só\" na configuración.</string>
+    <string name="error_wrong_image_format">O sistema devolve a imaxe nun formato descoñecido. Non hai corrección dispoñible. Desculpa.</string>
+
     <!--BitmapNotification-->
     <string name="image_generator_press_start">Pulse START no dispositivo</string>
     <string name="image_generator_go_to_new_address">Ve a nova dirección</string>
