@@ -32,7 +32,7 @@
 - Stream protection with password\n\n
 - Can send video and audio\n\n
 - Connect to stream using its unique ID and password\n\n
-- Require Internet connection to send and receive stream\n\n
+- Requires an internet connection to send and receive stream\n\n
 - Individual data transmission for each client (more clients you have, more Internet bandwidth you need)
 </string>
     <string name="stream_fragment_mode_local">Local mode (MJPEG)</string>
@@ -43,7 +43,7 @@
 - Can send video only (as a stream of independent images)\n\n
 - Can work within a local network without Internet connection\n\n
 - Embedded HTTP server\n\n
-- Clients connect via web browser using the IP address provided by the app\n\n
+- Clients connect via web browser using the app's provided IP address\n\n
 - Highly customizable\n\n
 - Individual data transmission for each client (more clients you have, more notwork bandwidth you need)
 </string>
