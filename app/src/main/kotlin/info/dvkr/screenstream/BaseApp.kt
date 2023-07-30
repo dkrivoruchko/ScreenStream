@@ -24,6 +24,7 @@ abstract class BaseApp : Application() {
 
     val lastAdLoadTimeMap: MutableMap<String, Long> = mutableMapOf()
 
+    abstract val isAdEnabled: Boolean
     abstract fun initLogger()
     abstract fun initAd()
 

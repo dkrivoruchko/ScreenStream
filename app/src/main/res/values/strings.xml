@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name" translatable="false">Screen Stream</string>
+    <string name="app_name" translatable="false">ScreenStream</string>
 
     <string name="error_title">Error</string>
     <string name="error_retry">Retry</string>
@@ -43,7 +43,7 @@
 - Can send video only (as a stream of independent images)\n\n
 - Can work within a local network without Internet connection\n\n
 - Embedded HTTP server\n\n
-- Clients connect via web browser using the app's provided IP address\n\n
+- Clients connect via web browser using the app\'s provided IP address\n\n
 - Highly customizable\n\n
 - Individual data transmission for each client (more clients you have, more notwork bandwidth you need)
 </string>
@@ -202,7 +202,7 @@
     <string name="pref_logging">Enable application logs</string>
     <string name="pref_logging_summary">Collect application logs</string>
 
-    <string name="about_fragment_app_name" translatable="false">Screen Stream over HTTP</string>
+    <string name="about_fragment_app_name" translatable="false">ScreenStream</string>
     <string name="about_fragment_app_version">Version: %1$s</string>
     <string name="about_fragment_developer_name">Developed by Dmytro Kryvoruchko</string>
     <string name="about_fragment_rate_app">Rate app</string>

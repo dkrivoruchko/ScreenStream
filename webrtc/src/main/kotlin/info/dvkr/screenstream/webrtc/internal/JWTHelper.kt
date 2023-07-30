@@ -18,7 +18,7 @@ import java.security.interfaces.ECPublicKey
 import java.security.spec.ECGenParameterSpec
 import java.security.spec.X509EncodedKeySpec
 import java.time.ZonedDateTime
-import java.util.*
+import java.util.Date
 import javax.security.auth.x500.X500Principal
 
 internal object JWTHelper {

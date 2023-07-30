@@ -5,11 +5,26 @@ import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.mjpeg.MjpegClient
 import info.dvkr.screenstream.mjpeg.MjpegTrafficPoint
 import info.dvkr.screenstream.mjpeg.settings.MjpegSettings
-import io.ktor.http.*
-import kotlinx.coroutines.*
+import io.ktor.http.RequestConnectionPoint
+import kotlinx.coroutines.CoroutineName
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
-import java.util.*
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
+import java.util.LinkedList
 import java.util.concurrent.ConcurrentHashMap
+import kotlin.collections.filter
+import kotlin.collections.forEach
+import kotlin.collections.isNotEmpty
+import kotlin.collections.map
+import kotlin.collections.removeAll
+import kotlin.collections.set
+import kotlin.collections.sortedBy
+import kotlin.collections.sumOf
 
 internal class ClientData(
     private val mjpegSettings: MjpegSettings,

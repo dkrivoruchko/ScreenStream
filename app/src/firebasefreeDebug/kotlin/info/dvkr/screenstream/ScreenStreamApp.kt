@@ -8,6 +8,10 @@ import com.elvishew.xlog.XLog
 import com.elvishew.xlog.printer.AndroidPrinter
 
 class ScreenStreamApp : BaseApp() {
+
+    override val isAdEnabled: Boolean
+        get() = false
+
     override fun initLogger() {
         System.setProperty("kotlinx.coroutines.debug", "on")
 

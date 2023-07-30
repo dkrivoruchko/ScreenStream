@@ -2,7 +2,9 @@ package info.dvkr.screenstream.logging
 
 import com.elvishew.xlog.printer.file.naming.FileNameGenerator
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Date
+import java.util.Locale
+import java.util.TimeZone
 
 internal class DateSuffixFileNameGenerator(private val suffix: String) : FileNameGenerator {
     private val localDateFormat: ThreadLocal<SimpleDateFormat> = object : ThreadLocal<SimpleDateFormat>() {

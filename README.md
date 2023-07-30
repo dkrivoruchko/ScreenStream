@@ -3,13 +3,14 @@
 
 The Android mobile application enables users to view their device screen directly in their web browser.<br>To access this feature, no additional software is required other than the mobile application itself, a web browser, and an internet connection (for Global mode).
 
-Google Play version contains ads, F-Droid, AAPKS or FirebaseFree versions are Ad-free.
+Google Play versions supports both **Global mode (WebRTC)** and **Local mode (MJPEG)** with ads included.<br>
+Versions from F-Droid, AAPKS, or FirebaseFree builds in GitHub Releases are Ad-free and support only **Local mode (MJPEG)**.
 
 <a href='https://play.google.com/store/apps/details?id=info.dvkr.screenstream'><img alt='Get it on Google Play' src='https://play.google.com/intl/en_us/badges/images/generic/en_badge_web_generic.png' height="100"/></a> <a href="https://f-droid.org/packages/info.dvkr.screenstream/" target="_blank"><img src="https://f-droid.org/badge/get-it-on.png" alt="Get it on F-Droid" height="100"/></a> <a href="https://aapks.com/apk/screen-stream/"><img src="https://aapks.com/get.png" alt="Get it on AAPKs" height="100"/></a>
 
 ## Description
 
-ScreenStream offers two work modes: **Global mode** and **Local mode**. Both modes aim to stream the Android device screen but function differently. They are independent of each other, with unique functionalities, restrictions, and customization options. The application uses Android [MediaProjection](https://developer.android.com/reference/android/media/projection/MediaProjection) feature and requires Android 6.0 or higher.
+ScreenStream offers two work modes: **Global mode** (in Google Play Store version only) and **Local mode**. Both modes aim to stream the Android device screen but function differently. They are independent of each other, with unique functionalities, restrictions, and customization options. The application uses Android [MediaProjection](https://developer.android.com/reference/android/media/projection/MediaProjection) feature and requires Android 6.0 or higher.
 
 Important Warnings:
 
@@ -19,7 +20,7 @@ Important Warnings:
 
 - **Video Streaming Limitation**: The app is not designed for streaming video, particularly HD video. While it will function, the stream quality may not meet your expectations.
 
-### Global mode (WebRTC)
+### Global mode (WebRTC) / in Google Play version only /
 
 Global mode in the ScreenStream application is built on WebRTC technology and relies on an external signaling server to facilitate communication between the streaming host (the app) and the streaming client, which is a web browser equipped with the ScreenStream [Web Client](https://screenstream.io).
 

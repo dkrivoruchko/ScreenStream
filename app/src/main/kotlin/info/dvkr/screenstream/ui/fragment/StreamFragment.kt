@@ -40,6 +40,7 @@ import com.afollestad.materialdialogs.MaterialDialog
 import com.afollestad.materialdialogs.customview.customView
 import com.afollestad.materialdialogs.lifecycle.lifecycleOwner
 import com.elvishew.xlog.XLog
+import info.dvkr.screenstream.BaseApp
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.common.AppError
 import info.dvkr.screenstream.common.Client
@@ -150,8 +151,12 @@ class StreamFragment : AdFragment(R.layout.fragment_stream) {
             adapter = httpClientAdapter
         }
 
-        binding.rbFragmentStreamWebrtcMode.setOnClickListener {
-            viewLifecycleOwner.lifecycleScope.launch { appSettings.setStreamMode(AppSettings.Values.STREAM_MODE_WEBRTC) }
+        if ((requireActivity().applicationContext as BaseApp).isAdEnabled) {
+            binding.rbFragmentStreamWebrtcMode.setOnClickListener {
+                viewLifecycleOwner.lifecycleScope.launch { appSettings.setStreamMode(AppSettings.Values.STREAM_MODE_WEBRTC) }
+            }
+        } else {
+            binding.rbFragmentStreamWebrtcMode.isEnabled = false
         }
 
         binding.bFragmentStreamWebrtcModeDetails.setOnClickListener {

@@ -3,10 +3,6 @@ package info.dvkr.screenstream.mjpeg
 import android.content.Context
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.common.getLog
-import java.net.Inet6Address
-import java.net.InetAddress
-import java.net.InetSocketAddress
-import java.nio.ByteBuffer
 import kotlin.random.Random
 
 internal fun Context.getFileFromAssets(fileName: String): ByteArray {

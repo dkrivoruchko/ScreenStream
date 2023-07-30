@@ -3,7 +3,7 @@ package info.dvkr.screenstream.mjpeg.state
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.common.AppStateMachine
 import info.dvkr.screenstream.common.getLog
-import java.util.*
+import java.util.EnumMap
 
 object StateToEventMatrix {
 

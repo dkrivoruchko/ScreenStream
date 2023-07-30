@@ -1,7 +1,11 @@
 package info.dvkr.screenstream.ui.view
 
 import android.content.Context
-import android.graphics.*
+import android.graphics.Color
+import android.graphics.Path
+import android.graphics.Point
+import android.graphics.PorterDuff
+import android.graphics.PorterDuffColorFilter
 import android.graphics.drawable.ShapeDrawable
 import android.graphics.drawable.shapes.PathShape
 import android.util.AttributeSet

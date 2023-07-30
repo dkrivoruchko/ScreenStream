@@ -1,15 +1,13 @@
 package info.dvkr.screenstream
 
-import android.os.Build
-import android.os.StrictMode
-import androidx.fragment.app.strictmode.FragmentStrictMode
 import com.elvishew.xlog.LogConfiguration
 import com.elvishew.xlog.XLog
 import com.elvishew.xlog.printer.AndroidPrinter
-import com.google.android.gms.ads.MobileAds
-import com.google.android.gms.ads.RequestConfiguration
 
 class ScreenStreamApp : BaseApp() {
+
+    override val isAdEnabled: Boolean
+        get() = true
 
     override fun initLogger() {
         System.setProperty("kotlinx.coroutines.debug", "on")
