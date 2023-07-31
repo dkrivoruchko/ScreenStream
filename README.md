@@ -1,7 +1,7 @@
 ![](screenshots/about_image_full.png)
 # ScreenStream
 
-The Android mobile application enables users to view their device screen directly in their web browser.<br>To access this feature, no additional software is required other than the mobile application itself, a web browser, and an internet connection (for Global mode).
+ScreenStream is a user-friendly Android application that allows users to easily share their device screen and view it directly in a web browser. No additional software is required other than the ScreenStream itself, a web browser, and an internet connection (for Global mode).
 
 Google Play versions supports both **Global mode (WebRTC)** and **Local mode (MJPEG)** with ads included.<br>
 Versions from F-Droid, AAPKS, or FirebaseFree builds in GitHub Releases are Ad-free and support only **Local mode (MJPEG)**.
@@ -10,15 +10,19 @@ Versions from F-Droid, AAPKS, or FirebaseFree builds in GitHub Releases are Ad-f
 
 ## Description
 
-ScreenStream offers two work modes: **Global mode** (in Google Play Store version only) and **Local mode**. Both modes aim to stream the Android device screen but function differently. They are independent of each other, with unique functionalities, restrictions, and customization options. The application uses Android [MediaProjection](https://developer.android.com/reference/android/media/projection/MediaProjection) feature and requires Android 6.0 or higher.
+ScreenStream offers two work modes: **Global mode** (in Google Play Store version only) and **Local mode**. Both modes aim to stream the Android device screen but function differently. They are independent of each other, with unique functionalities, restrictions, and customization options.
+
+In both modes the number of clients is not directly limited, but it's important to keep in mind that each client consumes CPU resources and bandwidth for data transmission.
+
+The application uses Android [MediaProjection](https://developer.android.com/reference/android/media/projection/MediaProjection) feature and requires Android 6.0 or higher.
 
 Important Warnings:
 
-- **High Traffic on Mobile Networks: Be cautious when streaming via mobile 3G/4G/5G/LTE networks, as it may result in excessive data usage**.
+- **High Traffic on Mobile Networks**: Use caution when streaming via mobile 3G/4G/5G/LTE networks to avoid excessive data usage.
 
-- **Delay in Streaming**: This app is not a real-time streaming solution. Expect a delay of at least 0.5-1 second or more on slow devices, poor internet or network connection, or when the device is under heavy CPU load due to other applications.
+- **Delay in Streaming**: Expect a delay of at least 0.5-1 second or more in certain conditions: slow device, poor internet or network connection, or when the device is under heavy CPU load due to other applications.
 
-- **Video Streaming Limitation**: The app is not designed for streaming video, particularly HD video. While it will function, the stream quality may not meet your expectations.
+- **Video Streaming Limitation**: ScreenStream is not designed for streaming video, particularly HD video. While it will function, the stream quality may not meet your expectations.
 
 ### Global mode (WebRTC) / in Google Play version only /
 
@@ -31,11 +35,9 @@ The Global mode was introduced in app version 4 and offers the following functio
 - End-to-end encrypted communication.
 - Stream protection with password.
 - Supports both video and audio streaming.
-- Connect to stream using its unique ID and password.
-- Requires an internet connection to send and receive stream.
+- Connect using unique stream ID and password.
+- Requires an internet connection for streaming.
 - Individual data transmission for each client, with more clients requiring increased internet bandwidth to maintain optimal performance.
-
-The number of clients is not directly limited, but it's important to keep in mind that each client consumes CPU resources and bandwidth for data transmission.
 
 ### Local mode (MJPEG)
 
@@ -48,15 +50,13 @@ In Local mode, the app processes each frame independently, one-by-one, enabling 
 The Local mode offers the following functionality:
 - Powered by MJPEG standard.
 - Utilizes PIN for security (no encryption).
-- Sends video as a stream of independent images (no audio).
-- Functions within a local network without requiring an internet connection.
+- Sends video as a series of independent images (no audio).
+- Works without an internet connection within your local network.
 - Embedded HTTP server.
 - Works with WiFi and/or mobile networks, supporting IPv4 and IPv6.
 - Clients connect via web browser using the app's provided IP address.
 - Highly customizable.
 - Individual data transmission for each client, with more clients requiring increased internet bandwidth to maintain optimal performance.
-
-The number of clients is not directly limited, but it's important to keep in mind that each client consumes CPU resources and bandwidth for data transmission.
 
 **WARNING:** Please be aware that certain cell operators may block incoming connections to your device for security reasons. Consequently, even if your device has an IP address from a cell operator, connecting to the device using this IP address may not be possible.
 

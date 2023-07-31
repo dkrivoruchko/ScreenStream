@@ -27,25 +27,26 @@
     <string name="stream_fragment_mode_global">Global mode (WebRTC)</string>
     <string name="stream_fragment_mode_global_description">Global mode description</string>
     <string name="stream_fragment_mode_global_details">
-- Powered by WebRTC technology\n\n
-- End-to-end encrypted communication\n\n
-- Stream protection with password\n\n
-- Can send video and audio\n\n
-- Connect to stream using its unique ID and password\n\n
-- Requires an internet connection to send and receive stream\n\n
-- Individual data transmission for each client (more clients you have, more Internet bandwidth you need)
+- Powered by WebRTC technology.\n\n
+- End-to-end encrypted communication.\n\n
+- Stream protection with password.\n\n
+- Can send video and audio.\n\n
+- Connect using unique stream ID and password.\n\n
+- Requires an internet connection for streaming.\n\n
+- Individual data transmission for each client (more clients you have, more Internet bandwidth you need).
 </string>
     <string name="stream_fragment_mode_local">Local mode (MJPEG)</string>
     <string name="stream_fragment_mode_local_description">Local mode description</string>
     <string name="stream_fragment_mode_local_details">
-- Powered by MJPEG standard\n\n
-- No encryption (only Pin)\n\n
-- Can send video only (as a stream of independent images)\n\n
-- Can work within a local network without Internet connection\n\n
-- Embedded HTTP server\n\n
-- Clients connect via web browser using the app\'s provided IP address\n\n
-- Highly customizable\n\n
-- Individual data transmission for each client (more clients you have, more notwork bandwidth you need)
+- Powered by MJPEG standard.\n\n
+- Utilizes PIN for security (no encryption).\n\n
+- Sends video as a series of independent images (no audio).\n\n
+- Works without an internet connection within your local network.\n\n
+- Embedded HTTP server.\n\n
+- Works with WiFi and/or mobile networks, supporting IPv4 and IPv6.\n\n
+- Clients connect via web browser using the app\'s provided IP address.\n\n
+- Highly customizable.\n\n
+- Individual data transmission for each client (more clients you have, more notwork bandwidth you need).
 </string>
     <string name="stream_fragment_mode_global_get_new_id_description">Get new stream id</string>
     <string name="stream_fragment_mode_global_show_password_description">Show stream password</string>
