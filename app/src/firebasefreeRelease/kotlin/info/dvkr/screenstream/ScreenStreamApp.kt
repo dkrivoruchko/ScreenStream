@@ -8,6 +8,9 @@ import com.elvishew.xlog.interceptor.AbstractFilterInterceptor
 
 class ScreenStreamApp : BaseApp() {
 
+    override val isAdEnabled: Boolean
+        get() = false
+
     override fun initLogger() {
         val logConfiguration = LogConfiguration.Builder()
             .logLevel(LogLevel.VERBOSE)

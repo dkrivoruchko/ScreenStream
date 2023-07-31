@@ -143,7 +143,7 @@ dependencies {
 //    debugImplementation("com.squareup.leakcanary:leakcanary-android:2.12")
 }
 
-project.tasks.all {
+project.tasks.configureEach {
     if (name.startsWith("injectCrashlyticsMappingFileIdFirebasefree")) enabled = false
     if (name.startsWith("processFirebasefree") && name.endsWith("GoogleServices")) enabled = false
 }

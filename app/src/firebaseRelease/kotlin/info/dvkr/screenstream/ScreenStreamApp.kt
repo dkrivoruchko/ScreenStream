@@ -11,6 +11,9 @@ import com.google.firebase.crashlytics.FirebaseCrashlytics
 
 class ScreenStreamApp : BaseApp() {
 
+    override val isAdEnabled: Boolean
+        get() = true
+
     override fun initLogger() {
         val logConfiguration = LogConfiguration.Builder()
             .logLevel(LogLevel.VERBOSE)
