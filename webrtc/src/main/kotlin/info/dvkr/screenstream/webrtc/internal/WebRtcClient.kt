@@ -24,7 +24,6 @@ import org.webrtc.RtpReceiver
 import org.webrtc.RtpTransceiver
 import org.webrtc.SdpObserver
 import org.webrtc.SessionDescription
-import java.util.*
 
 internal class WebRtcClient(
     internal val clientId: ClientId,
@@ -270,18 +269,12 @@ internal class WebRtcClient(
         private val listener: WebRTCPeerConnectionObserverEventListener,
     ) : PeerConnection.Observer {
 
-        private val hostIceCandidates = Collections.synchronizedList(ArrayList<IceCandidate>(16))
-
         override fun onSignalingChange(signalingState: SignalingState?) {
             XLog.v(getLog("onSignalingChange", "Client: $clientId => $signalingState"))
         }
 
         override fun onIceConnectionChange(iceConnectionState: IceConnectionState?) {
             XLog.v(getLog("onIceConnectionChange", "Client: $clientId => $iceConnectionState"))
-            if (iceConnectionState == IceConnectionState.CHECKING) {
-                listener.onHostCandidates(hostIceCandidates.toList())
-                hostIceCandidates.clear()
-            }
         }
 
         override fun onStandardizedIceConnectionChange(newState: IceConnectionState?) {
@@ -305,7 +298,7 @@ internal class WebRtcClient(
 
         override fun onIceCandidate(iceCandidate: IceCandidate) {
             XLog.v(getLog("onIceCandidate", "Client: $clientId => ${iceCandidate.sdp}"))
-            hostIceCandidates.add(iceCandidate)
+            listener.onHostCandidates(listOf(iceCandidate))
         }
 
         override fun onIceCandidatesRemoved(iceCandidates: Array<out IceCandidate>?) {
