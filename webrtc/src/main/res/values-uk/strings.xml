@@ -2,7 +2,6 @@
 <resources>
     <string name="webrtc_error_play_integrity_update_play_store">Будь ласка, оновіть Google Play Store</string>
     <string name="webrtc_error_play_integrity_install_play_store">Будь ласка, встановіть або увімкніть Google Play Store</string>
-    <string name="webrtc_error_play_integrity_signin_play_store">Будь ласка, увійдіть в Google Play Store</string>
     <string name="webrtc_error_play_integrity_install_play_service">Будь ласка, встановіть або увімкніть Play Services</string>
     <string name="webrtc_error_play_integrity_update_play_service">Будь ласка, оновіть Google Play services</string>
     <string name="webrtc_error_check_network">Будь ласка, перевірте підключення до інтернету</string>

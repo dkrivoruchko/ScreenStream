@@ -20,7 +20,6 @@ import info.dvkr.screenstream.R
 import info.dvkr.screenstream.common.AppError
 import info.dvkr.screenstream.common.AppStateMachine
 import info.dvkr.screenstream.common.getLog
-import info.dvkr.screenstream.common.listenForChange
 import info.dvkr.screenstream.common.settings.AppSettings
 import info.dvkr.screenstream.databinding.ToastSlowConnectionBinding
 import info.dvkr.screenstream.mjpeg.MjpegPublicState
@@ -32,6 +31,7 @@ import info.dvkr.screenstream.webrtc.WebRtcEnvironment
 import info.dvkr.screenstream.webrtc.WebRtcHandlerThread
 import info.dvkr.screenstream.webrtc.WebRtcPublicState
 import info.dvkr.screenstream.webrtc.WebRtcSettings
+import info.dvkr.screenstream.webrtc.StandardIntegrityManagerWrapper
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import org.koin.android.ext.android.inject
@@ -92,7 +92,9 @@ class ForegroundService : Service() {
         //todo check if device is not locked
         notificationHelper.showForegroundNotification(this, NotificationHelper.NotificationType.START)
 
-        appSettings.streamModeFlow.listenForChange(coroutineScope, 0) { mode ->
+        StandardIntegrityManagerWrapper.initManager(this)
+
+        appSettings.streamModeFlow.distinctUntilChanged().onEach { mode ->
             XLog.d(getLog("onCreate", "streamModeFlow.onEach.mode: $mode"))
             appStateMachine?.destroy()
 
@@ -112,6 +114,11 @@ class ForegroundService : Service() {
 
             isRunning = true
         }
+            .catch {
+                XLog.e(getLog("onCreate", "streamModeFlow.onEach.catch: ${it.message}"), it)
+                onError(AppError.FixableError(0, it.message))
+            }
+            .launchIn(coroutineScope)
 
         effectFlow.onEach { effect ->
             if (effect !is AppStateMachine.Effect.Statistic)

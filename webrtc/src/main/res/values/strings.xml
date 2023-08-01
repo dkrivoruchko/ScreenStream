@@ -2,7 +2,6 @@
 <resources>
     <string name="webrtc_error_play_integrity_update_play_store">Please update Google Play Store</string>
     <string name="webrtc_error_play_integrity_install_play_store">Please install or enable Google Play Store</string>
-    <string name="webrtc_error_play_integrity_signin_play_store">Please sign in to the Google Play Store</string>
     <string name="webrtc_error_play_integrity_install_play_service">Please install or enable Play Services</string>
     <string name="webrtc_error_play_integrity_update_play_service">Please update Google Play services</string>
     <string name="webrtc_error_check_network">Please check for Internet connectivity</string>

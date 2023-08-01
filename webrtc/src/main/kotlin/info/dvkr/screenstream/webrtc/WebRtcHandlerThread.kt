@@ -70,7 +70,7 @@ public class WebRtcHandlerThread(
         .readTimeout(30, TimeUnit.SECONDS)
         .writeTimeout(30, TimeUnit.SECONDS)
         .build()
-    private val playIntegrity = PlayIntegrity(serviceContext, environment, okHttpClient)
+    private val playIntegrity = PlayIntegrity(environment, okHttpClient)
 
     private val connectivityManager: ConnectivityManager = serviceContext.getSystemService(ConnectivityManager::class.java)
     private val powerManager: PowerManager = serviceContext.getSystemService(PowerManager::class.java)
@@ -109,30 +109,28 @@ public class WebRtcHandlerThread(
     }
 
     private sealed class InternalEvent(val neverIgnore: Boolean = false) : AppStateMachine.Event() {
-        object GetToken : InternalEvent(true)
+        data class GetToken(internal val forceUpdate: Boolean) : InternalEvent(true)
         data class OpenSocket(internal val token: PlayIntegrityToken) : InternalEvent(true)
-        object StreamCreate : InternalEvent(true)
+        data object StreamCreate : InternalEvent(true)
         data class StreamCreated(internal val streamId: StreamId) : InternalEvent(true)
         data class ClientJoin(internal val clientId: ClientId) : InternalEvent()
         data class ClientLeave(internal val clientId: ClientId) : InternalEvent()
         data class SendHostOffer(internal val clientId: ClientId, internal val offer: Offer) : InternalEvent()
         data class SetClientAnswer(internal val clientId: ClientId, internal val answer: Answer) : InternalEvent()
-        data class SendHostCandidates(internal val clientId: ClientId, internal val candidates: List<IceCandidate>) : InternalEvent() {
-            override fun toString(): String = "SendHostCandidates(clientId=$clientId, Candidates: ${candidates.size})"
+        data class SendHostCandidate(internal val clientId: ClientId, internal val candidate: IceCandidate) : InternalEvent() {
+            override fun toString(): String = "SendHostCandidate(clientId=$clientId)"
         }
 
-        data class SetClientCandidates(internal val clientId: ClientId, internal val candidates: List<IceCandidate>) : InternalEvent() {
-            override fun toString(): String = "SetClientCandidates(clientId=$clientId, Candidates: ${candidates.size})"
+        data class SetClientCandidate(internal val clientId: ClientId, internal val candidate: IceCandidate) : InternalEvent() {
+            override fun toString(): String = "SetClientCandidate(clientId=$clientId)"
         }
 
         data class RemoveClient(internal val clientId: ClientId, internal val notifyServer: Boolean) : InternalEvent()
-        object Restart : InternalEvent(true)
+        data object Restart : InternalEvent(true)
         data class Destroy(internal val latch: CountDownLatch) : InternalEvent(true)
         data class SocketSignalingError(internal val error: SocketSignaling.Errors) : InternalEvent(true)
-        object PublishClients : InternalEvent(true)
-        object ScreenOff : InternalEvent(true)
-
-        override fun toString(): String = javaClass.simpleName
+        data object PublishClients : InternalEvent(true)
+        data object ScreenOff : InternalEvent(true)
     }
 
     private val streamPasswordValidator = object : SocketSignaling.StreamPasswordValidator {
@@ -149,9 +147,14 @@ public class WebRtcHandlerThread(
             sendEvent(InternalEvent.StreamCreate)
         }
 
+        override fun onTokenExpired() {
+            XLog.d(this@WebRtcHandlerThread.getLog("SocketSignaling.onTokenExpired"))
+            sendEvent(InternalEvent.GetToken(true))
+        }
+
         override fun onSocketDisconnected(reason: String) {
             XLog.d(this@WebRtcHandlerThread.getLog("SocketSignaling.onSocketDisconnected", reason))
-            sendEvent(InternalEvent.GetToken)
+            sendEvent(InternalEvent.GetToken(false))
         }
 
         override fun onStreamCreated(streamId: StreamId) {
@@ -187,9 +190,9 @@ public class WebRtcHandlerThread(
             sendEvent(InternalEvent.SetClientAnswer(clientId, answer))
         }
 
-        override fun onClientCandidates(clientId: ClientId, candidates: List<IceCandidate>) {
-            XLog.d(this@WebRtcHandlerThread.getLog("SocketSignaling.onClientCandidates", "$clientId"))
-            sendEvent(InternalEvent.SetClientCandidates(clientId, candidates))
+        override fun onClientCandidate(clientId: ClientId, candidate: IceCandidate) {
+            XLog.d(this@WebRtcHandlerThread.getLog("SocketSignaling.onClientCandidate", "$clientId"))
+            sendEvent(InternalEvent.SetClientCandidate(clientId, candidate))
         }
 
         override fun onError(cause: SocketSignaling.Errors) {
@@ -204,9 +207,9 @@ public class WebRtcHandlerThread(
             sendEvent(InternalEvent.SendHostOffer(clientId, offer))
         }
 
-        override fun onHostCandidates(clientId: ClientId, candidates: List<IceCandidate>) {
-            XLog.d(this@WebRtcHandlerThread.getLog("WebRTCClient.onHostCandidates", "Client: $clientId, Candidates: ${candidates.size}"))
-            sendEvent(InternalEvent.SendHostCandidates(clientId, candidates))
+        override fun onHostCandidate(clientId: ClientId, candidate: IceCandidate) {
+            XLog.d(this@WebRtcHandlerThread.getLog("WebRTCClient.onHostCandidate", "Client: $clientId"))
+            sendEvent(InternalEvent.SendHostCandidate(clientId, candidate))
         }
 
         override fun onClientAddress(clientId: ClientId) {
@@ -270,7 +273,7 @@ public class WebRtcHandlerThread(
 
         networkAvailable.onEach {
             XLog.d(getLog("init", "networkAvailable: $it"))
-            if (it) sendEvent(InternalEvent.GetToken)
+            if (it) sendEvent(InternalEvent.GetToken(false))
         }.launchIn(coroutineScope)
 
         webRtcSettings.enableMicFlow.listenForChange(coroutineScope, 0) { enableMic ->
@@ -383,8 +386,8 @@ public class WebRtcHandlerThread(
                 else {
                     if (appError is WebRtcError.NetworkError) appError = null
                     coroutineScope.launch {
-                        runCatching { withContext(Dispatchers.IO) { playIntegrity.getTokenWithRetries() } }
-                            .onSuccess { token -> sendEvent(InternalEvent.OpenSocket(PlayIntegrityToken(token))) }
+                        runCatching { withContext(Dispatchers.IO) { playIntegrity.getTokenWithRetries(event.forceUpdate) } }
+                            .onSuccess { token -> sendEvent(InternalEvent.OpenSocket(token)) }
                             .onFailure { cause ->  // will crash app if not WebRtcError or CancellationException
                                 networkAvailable.value = false
                                 if (cause is WebRtcError) appError = cause else throw cause
@@ -482,17 +485,16 @@ public class WebRtcHandlerThread(
                     XLog.w(getLog("SetClientAnswer", "Not streaming. Ignoring."))
                 }
 
-            is InternalEvent.SendHostCandidates ->
-                if (event.candidates.isEmpty()) {
-                    XLog.w(getLog("SendHostCandidates", "Client ${event.clientId}. Empty candidates"))
-                    sendEvent(InternalEvent.RemoveClient(event.clientId, true))
+            is InternalEvent.SendHostCandidate ->
+                if (isStreaming()) {
+                    signaling!!.sendHostCandidates(event.clientId, event.candidate)
                 } else {
-                    signaling!!.sendHostCandidates(event.clientId, event.candidates)
+                    XLog.w(getLog("SendHostCandidate", "Not streaming. Ignoring."))
                 }
 
-            is InternalEvent.SetClientCandidates ->
+            is InternalEvent.SetClientCandidate ->
                 if (isStreaming()) {
-                    clients[event.clientId]?.setClientCandidates(projection!!.localMediaSteam!!.id, event.candidates) ?: run {
+                    clients[event.clientId]?.setClientCandidate(projection!!.localMediaSteam!!.id, event.candidate) ?: run {
                         XLog.w(getLog("SetClientCandidates", "Client ${event.clientId} not found"))
                         sendEvent(InternalEvent.RemoveClient(event.clientId, true))
                     }
@@ -546,7 +548,7 @@ public class WebRtcHandlerThread(
 
                 when (event) {
                     is AppStateMachine.Event.RecoverError,
-                    is InternalEvent.Restart -> sendEvent(InternalEvent.GetToken)
+                    is InternalEvent.Restart -> sendEvent(InternalEvent.GetToken(true))
 
                     is InternalEvent.Destroy -> event.latch.countDown()
                 }

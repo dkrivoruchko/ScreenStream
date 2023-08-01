@@ -34,15 +34,25 @@ public data class WebRtcPublicState(
 public data class WebRtcPublicClient(override val id: Long, override val clientAddress: String) : Client
 
 public sealed class WebRtcError(@StringRes id: Int) : AppError.FixableError(id) {
-    public data class PlayIntegrityUserActionError(val code: Int, override val message: String?, @StringRes override val id: Int) : WebRtcError(id)
-    public data class PlayIntegrityUserNotifyError(val code: Int, override val message: String?) : WebRtcError(R.string.webrtc_error_unspecified)
-    public data class NetworkError(val code: Int, override val message: String?, override val cause: Throwable?) : WebRtcError(R.string.webrtc_error_check_network) {
+    public data class PlayIntegrityUserActionError(val code: Int, override val message: String?, @StringRes override val id: Int) :
+        WebRtcError(id)
+
+    public data class PlayIntegrityUserNotifyError(val code: Int, override val message: String?) :
+        WebRtcError(R.string.webrtc_error_unspecified)
+
+    public data class NetworkError(val code: Int, override val message: String?, override val cause: Throwable?) :
+        WebRtcError(R.string.webrtc_error_check_network) {
         override fun toString(context: Context): String = context.getString(id) + "\n[$code] : $message"
     }
+
     public data class SocketError(override val message: String?, override val cause: Throwable?) :
-        WebRtcError(R.string.webrtc_error_unspecified) { override fun toString(context: Context): String = context.getString(id) + " [$message] : ${cause?.message}"
+        WebRtcError(R.string.webrtc_error_unspecified) {
+        override fun toString(context: Context): String =
+            context.getString(id) + " [$message] : ${if (cause?.message != null) cause.message else ""} "
     }
-    public data class UnknownError(override val cause: Throwable?) : WebRtcError(R.string.webrtc_error_unspecified) {
+
+    public data class UnknownError(override val cause: Throwable?) :
+        WebRtcError(R.string.webrtc_error_unspecified) {
         override fun toString(context: Context): String = context.getString(id) + " [${cause?.message}]"
     }
 }

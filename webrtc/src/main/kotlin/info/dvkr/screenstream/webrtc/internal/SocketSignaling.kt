@@ -4,6 +4,7 @@ import androidx.annotation.AnyThread
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.webrtc.WebRtcEnvironment
+import info.dvkr.screenstream.webrtc.internal.SocketSignaling.Payload.ERROR_TOKEN_VERIFICATION_FAILED
 import io.socket.client.Ack
 import io.socket.client.AckWithTimeout
 import io.socket.client.IO
@@ -63,6 +64,9 @@ internal class SocketSignaling(
         fun onSocketConnected()
 
         @AnyThread
+        fun onTokenExpired()
+
+        @AnyThread
         fun onSocketDisconnected(reason: String)
 
         @AnyThread
@@ -84,7 +88,7 @@ internal class SocketSignaling(
         fun onClientAnswer(clientId: ClientId, answer: Answer)
 
         @AnyThread
-        fun onClientCandidates(clientId: ClientId, candidates: List<IceCandidate>)
+        fun onClientCandidate(clientId: ClientId, candidate: IceCandidate)
 
         @AnyThread
         fun onError(cause: Errors)
@@ -103,11 +107,11 @@ internal class SocketSignaling(
         const val STREAM_START = "STREAM:START"
         const val STREAM_STOP = "STREAM:STOP"
         const val HOST_OFFER = "HOST:OFFER"
-        const val HOST_CANDIDATES = "HOST:CANDIDATES"
+        const val HOST_CANDIDATE = "HOST:CANDIDATE"
         const val STREAM_JOIN = "STREAM:JOIN"
         const val STREAM_LEAVE = "STREAM:LEAVE"
         const val CLIENT_ANSWER = "CLIENT:ANSWER"
-        const val CLIENT_CANDIDATES = "CLIENT:CANDIDATES"
+        const val CLIENT_CANDIDATE = "CLIENT:CANDIDATE"
         const val REMOVE_CLIENT = "REMOVE:CLIENT"
     }
 
@@ -123,7 +127,6 @@ internal class SocketSignaling(
         const val CLIENT_ID = "clientId"
         const val OFFER = "offer"
         const val ANSWER = "answer"
-        const val CANDIDATES = "candidates"
 
         const val CANDIDATE = "candidate"
         const val SPD_INDEX = "sdpMLineIndex"
@@ -168,7 +171,8 @@ internal class SocketSignaling(
             on(Socket.EVENT_CONNECT_ERROR) { args -> // Auto or User reconnect
                 XLog.e(this@SocketSignaling.getLog(Socket.EVENT_CONNECT_ERROR + "[${socketId()}]", args.contentToString()))
                 val message = (args?.firstOrNull() as? JSONObject)?.optString(Payload.MESSAGE) ?: ""
-                eventListener.onError(Errors.SocketAuthError.fromMessage(message) ?: Errors.SocketConnectError(message))
+                if (message.startsWith("$ERROR_TOKEN_VERIFICATION_FAILED:TOKEN_EXPIRED")) eventListener.onTokenExpired()
+                else eventListener.onError(Errors.SocketAuthError.fromMessage(message) ?: Errors.SocketConnectError(message))
             }
             on(Event.SOCKET_ERROR) { args -> // Server always disconnects socket on this event. User reconnect
                 XLog.e(this@SocketSignaling.getLog(Event.SOCKET_ERROR + "[${socketId()}]", args.contentToString()))
@@ -262,16 +266,16 @@ internal class SocketSignaling(
             }
         }
 
-        currentSocket.on(Event.CLIENT_CANDIDATES) { args ->
-            XLog.v(getLog("onStreamCreated[${socketId()}]", "[${Event.CLIENT_CANDIDATES}] Payload: ${args.contentToString()}"))
+        currentSocket.on(Event.CLIENT_CANDIDATE) { args ->
+            XLog.v(getLog("onStreamCreated[${socketId()}]", "[${Event.CLIENT_CANDIDATE}] Payload: ${args.contentToString()}"))
             val payload = SocketPayload.fromPayload(args)
-            if (payload.clientId.isEmpty() || payload.candidates.isEmpty()) {
-                val msg = "[${Event.CLIENT_CANDIDATES}] ClientId or Candidates is empty"
+            if (payload.clientId.isEmpty() || payload.candidate == null) {
+                val msg = "[${Event.CLIENT_CANDIDATE}] ClientId or Candidate is empty"
                 XLog.e(getLog("onStreamCreated", msg), IllegalArgumentException("onStreamCreated: $msg"))
                 payload.sendErrorAck(Payload.ERROR_EMPTY_OR_BAD_DATA)
             } else {
                 payload.sendOkAck()
-                eventListener.onClientCandidates(payload.clientId, payload.candidates)
+                eventListener.onClientCandidate(payload.clientId, payload.candidate!!)
             }
         }
 
@@ -295,7 +299,7 @@ internal class SocketSignaling(
         val currentSocket = socket ?: return
         currentSocket.connected() || return
 
-        currentSocket.off(Event.STREAM_JOIN).off(Event.CLIENT_ANSWER).off(Event.CLIENT_CANDIDATES).off(Event.STREAM_LEAVE)
+        currentSocket.off(Event.STREAM_JOIN).off(Event.CLIENT_ANSWER).off(Event.CLIENT_CANDIDATE).off(Event.STREAM_LEAVE)
 
         currentSocket.emit(Event.STREAM_REMOVE, arrayOf(), object : AckWithTimeout(5000) {
             override fun onSuccess(args: Array<Any?>?) { // Callback may never be called
@@ -401,8 +405,8 @@ internal class SocketSignaling(
         })
     }
 
-    internal fun sendHostCandidates(clientId: ClientId, candidates: List<IceCandidate>) {
-        XLog.d(getLog("sendHostCandidates[${socketId()}]", "Client: $clientId, Count: ${candidates.size}"))
+    internal fun sendHostCandidates(clientId: ClientId, candidate: IceCandidate) {
+        XLog.d(getLog("sendHostCandidates[${socketId()}]", "Client: $clientId"))
 
         val currentSocket = socket ?: return
         currentSocket.connected() || return
@@ -412,9 +416,9 @@ internal class SocketSignaling(
 
         val data = JSONObject()
             .put(Payload.CLIENT_ID, clientId.value)
-            .put(Payload.CANDIDATES, JSONArray(candidates.map { it.toJsonObject() }))
+            .put(Payload.CANDIDATE, candidate.toJsonObject())
 
-        currentSocket.emit(Event.HOST_CANDIDATES, arrayOf(data), object : AckWithTimeout(5000) {
+        currentSocket.emit(Event.HOST_CANDIDATE, arrayOf(data), object : AckWithTimeout(5000) {
             override fun onSuccess(args: Array<Any?>?) { // Callback may never be called
                 XLog.v(this@SocketSignaling.getLog("sendHostCandidates[${socketId()}]", "Response: ${args.contentToString()}"))
                 when (val status = SocketAck.fromAck(args).status) {
@@ -432,7 +436,7 @@ internal class SocketSignaling(
             }
 
             override fun onTimeout() {
-                val msg = "[${Event.HOST_CANDIDATES}] => Timeout"
+                val msg = "[${Event.HOST_CANDIDATE}] => Timeout"
                 XLog.e(this@SocketSignaling.getLog("sendHostCandidates[${socketId()}]", msg), IllegalStateException(msg))
             }
         })
@@ -488,23 +492,29 @@ internal class SocketSignaling(
         val streamId: StreamId = json?.optString(Payload.STREAM_ID)?.let { StreamId(it) } ?: StreamId.EMPTY
     }
 
-    private class SocketPayload(json: JSONObject?, private val ack: Ack?) {
+    private class SocketPayload(private val json: JSONObject?, private val ack: Ack?) {
         companion object {
             internal fun fromPayload(payload: Array<Any?>?): SocketPayload =
                 SocketPayload(payload?.firstOrNull() as? JSONObject, payload?.lastOrNull() as? Ack)
         }
 
-        val clientId: ClientId = json?.optString(Payload.CLIENT_ID)?.let { ClientId(it) } ?: ClientId("")
+        val clientId: ClientId by lazy(LazyThreadSafetyMode.NONE) {
+            json?.optString(Payload.CLIENT_ID)?.let { ClientId(it) } ?: ClientId("")
+        }
 
-        val passwordHash: String = json?.optString(Payload.PASSWORD_HASH) ?: ""
+        val passwordHash: String by lazy(LazyThreadSafetyMode.NONE) {
+            json?.optString(Payload.PASSWORD_HASH) ?: ""
+        }
 
-        val answer: Answer = json?.optString(Payload.ANSWER)?.let { Answer(it) } ?: Answer("")
+        val answer: Answer by lazy(LazyThreadSafetyMode.NONE) {
+            json?.optString(Payload.ANSWER)?.let { Answer(it) } ?: Answer("")
+        }
 
-        val candidates: List<IceCandidate> = runCatching {
-            val jsonArray = json?.optJSONArray(Payload.CANDIDATES) ?: return@runCatching emptyList()
-            List(jsonArray.length()) { index -> jsonArray.getJSONObject(index).toIceCandidate() }
-        }.onFailure { XLog.e(getLog("SocketPayload", "[${Event.CLIENT_CANDIDATES}] Json error: ${it.message}"), it) }
-            .getOrDefault(emptyList())
+        val candidate: IceCandidate? by lazy(LazyThreadSafetyMode.NONE) {
+            runCatching { json?.getJSONObject(Payload.CANDIDATE)?.toIceCandidate() }
+                .onFailure { XLog.e(getLog("SocketPayload", "[${Event.CLIENT_CANDIDATE}] Json error: ${it.message}"), it) }
+                .getOrDefault(null)
+        }
 
         fun sendOkAck() = ack?.call(JSONObject().put(Payload.STATUS, Payload.OK))
 

@@ -38,7 +38,7 @@ internal class WebRtcClient(
         fun onHostOffer(clientId: ClientId, offer: Offer)
 
         @AnyThread
-        fun onHostCandidates(clientId: ClientId, candidates: List<IceCandidate>)
+        fun onHostCandidate(clientId: ClientId, candidate: IceCandidate)
 
         @AnyThread
         fun onClientAddress(clientId: ClientId)
@@ -98,9 +98,9 @@ internal class WebRtcClient(
 
         val connectionObserver = WebRTCPeerConnectionObserver(clientId, object : WebRTCPeerConnectionObserverEventListener {
             @WorkerThread
-            override fun onHostCandidates(candidates: List<IceCandidate>) {
-                XLog.d(this@WebRtcClient.getLog("onHostCandidates", "MediaStream: $mediaStreamId, Client: $clientId. Candidate count: ${candidates.size}"))
-                if (mediaStreamId == currentMediaStreamId) eventListener.onHostCandidates(clientId, candidates)
+            override fun onHostCandidate(candidate: IceCandidate) {
+                XLog.d(this@WebRtcClient.getLog("onHostCandidate", "MediaStream: $mediaStreamId, Client: $clientId"))
+                if (mediaStreamId == currentMediaStreamId) eventListener.onHostCandidate(clientId, candidate)
                 else XLog.w(this@WebRtcClient.getLog("onHostCandidates", "Expecting '$mediaStreamId' but is '$currentMediaStreamId'. Ignoring"))
             }
 
@@ -210,15 +210,15 @@ internal class WebRtcClient(
     }
 
     @Synchronized
-    internal fun setClientCandidates(mediaStreamId: MediaStreamId, candidates: List<IceCandidate>) {
-        XLog.d(getLog("setClientCandidates", "MediaStreamId: $mediaStreamId, Client: $clientId. Candidates size: ${candidates.size}"))
+    internal fun setClientCandidate(mediaStreamId: MediaStreamId, candidate: IceCandidate) {
+        XLog.d(getLog("setClientCandidate", "MediaStreamId: $mediaStreamId, Client: $clientId"))
 
         if (currentMediaStreamId != mediaStreamId) {
             XLog.w(getLog("setClientCandidates", "Expecting '$mediaStreamId' but is '$currentMediaStreamId'. Ignoring"))
             return
         }
 
-        candidates.forEach { peerConnection!!.addIceCandidate(it) }
+        peerConnection!!.addIceCandidate(candidate)
     }
 
     @WorkerThread
@@ -255,7 +255,7 @@ internal class WebRtcClient(
 
     private interface WebRTCPeerConnectionObserverEventListener {
         @WorkerThread
-        fun onHostCandidates(candidates: List<IceCandidate>)
+        fun onHostCandidate(candidate: IceCandidate)
 
         @WorkerThread
         fun onSelectedCandidatePairChanged(event: CandidatePairChangeEvent)
@@ -298,7 +298,7 @@ internal class WebRtcClient(
 
         override fun onIceCandidate(iceCandidate: IceCandidate) {
             XLog.v(getLog("onIceCandidate", "Client: $clientId => ${iceCandidate.sdp}"))
-            listener.onHostCandidates(listOf(iceCandidate))
+            listener.onHostCandidate(iceCandidate)
         }
 
         override fun onIceCandidatesRemoved(iceCandidates: Array<out IceCandidate>?) {

@@ -4,11 +4,11 @@ import android.content.Context
 import android.content.Intent
 import androidx.annotation.StringRes
 
-sealed class AppError(@StringRes open val id: Int) : Throwable() {
-    open class FatalError(@StringRes id: Int=0) : AppError(id)
-    open class FixableError(@StringRes id: Int) : AppError(id)
+sealed class AppError(@StringRes open val id: Int, override val message: String? = null) : Throwable() {
+    open class FatalError(@StringRes id: Int = 0) : AppError(id)
+    open class FixableError(@StringRes id: Int, override val message: String? = null) : AppError(id)
 
-    open fun toString(context: Context): String = if (id != 0) context.getString(id) else toString()
+    open fun toString(context: Context): String = if (id != 0) context.getString(id) else message ?: toString()
 }
 
 interface Client {
@@ -22,20 +22,21 @@ interface TrafficPoint
 interface AppStateMachine {
 
     open class Event {
-        object StartStream : Event()
-        object CastPermissionsDenied : Event()
-        class StartProjection(val intent: Intent) : Event()
-        object StopStream : Event()
-        object GetNewStreamId : Event()
-        object CreateNewStreamPassword : Event()
-        object RequestPublicState : Event()
-        object RecoverError : Event()
+        data object StartStream : Event()
+        data object CastPermissionsDenied : Event()
+        class StartProjection(val intent: Intent) : Event() {
+            override fun toString(): String = javaClass.simpleName
+        }
 
-        override fun toString(): String = javaClass.simpleName
+        data object StopStream : Event()
+        data object GetNewStreamId : Event()
+        data object CreateNewStreamPassword : Event()
+        data object RequestPublicState : Event()
+        data object RecoverError : Event()
     }
 
     sealed class Effect {
-        object ConnectionChanged : Effect()
+        data object ConnectionChanged : Effect()
         abstract class PublicState : Effect()
         sealed class Statistic : Effect() {
             class Clients(val clients: List<Client>) : Statistic()
