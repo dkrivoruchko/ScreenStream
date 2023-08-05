@@ -3,6 +3,7 @@ package info.dvkr.screenstream.ui.activity
 import android.os.Bundle
 import androidx.annotation.LayoutRes
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.app.AppCompatDelegate
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.common.getLog
 
@@ -10,6 +11,7 @@ abstract class BaseActivity(@LayoutRes contentLayoutId: Int) : AppCompatActivity
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        AppCompatDelegate.setApplicationLocales(AppCompatDelegate.getApplicationLocales())
         XLog.d(getLog("onCreate"))
     }
 

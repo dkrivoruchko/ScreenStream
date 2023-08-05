@@ -312,7 +312,7 @@ class BitmapCapture(
                 GLES20.glReadPixels(0, 0, width, height, GLES20.GL_RGBA, GLES20.GL_UNSIGNED_BYTE, mBuf)
                 mBuf!!.rewind()
                 val cleanBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
-                cleanBitmap.copyPixelsFromBuffer(mBuf)
+                cleanBitmap.copyPixelsFromBuffer(mBuf!!)
 
                 val croppedBitmap = getCroppedBitmap(cleanBitmap)
                 val grayScaleBitmap = getGrayScaleBitmap(croppedBitmap)

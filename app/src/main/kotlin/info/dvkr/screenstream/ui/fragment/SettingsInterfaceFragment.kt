@@ -75,7 +75,6 @@ class SettingsInterfaceFragment : Fragment(R.layout.fragment_settings_interface)
                 }
             }
         } else {
-            // TODO Maybe add for API < 33 https://developer.android.com/about/versions/13/features/app-languages
             binding.clFragmentSettingsLocale.visibility = View.GONE
             binding.vFragmentSettingsLocale.visibility = View.GONE
         }

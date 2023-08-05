@@ -38,7 +38,7 @@ dependencies {
         exclude group: 'org.json', module: 'json'
     }
     implementation("com.squareup.okhttp3:okhttp:4.10.0")
-    implementation("com.squareup.okio:okio:3.4.0")
+    implementation("com.squareup.okio:okio:3.5.0")
 
     implementation("androidx.fragment:fragment:1.6.1")
     implementation("com.google.android.gms:play-services-basement:18.2.0")
