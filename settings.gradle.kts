@@ -3,12 +3,7 @@ pluginManagement {
         google()
         mavenCentral()
         gradlePluginPortal()
-
     }
-}
-
-plugins {
-    id "com.android.settings" version "8.1.0"
 }
 
 dependencyResolutionManagement {
@@ -16,16 +11,13 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-        maven { url = uri("https://jitpack.io") }
+//        maven { url = uri("https://jitpack.io") }
     }
 }
 
-include ":common"
-include ":mjpeg"
-include ":webrtc"
-include ":app"
+rootProject.name = "ScreenStream"
 
-android {
-    compileSdk 33
-    buildToolsVersion "33.0.2"
-}
+include(":common")
+include(":mjpeg")
+include(":webrtc")
+include(":app")

@@ -1,23 +1,20 @@
 plugins {
-    id "com.android.library"
-    id "org.jetbrains.kotlin.android"
+    id("com.android.library")
+    id("org.jetbrains.kotlin.android")
 }
 
 android {
-    namespace "info.dvkr.screenstream.mjpeg"
+    namespace = "info.dvkr.screenstream.mjpeg"
+    compileSdk = 33
+    buildToolsVersion = "33.0.2"
 
     defaultConfig {
-        minSdkVersion(23)
-        targetSdkVersion(33)
+        minSdk = 23
     }
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
-    }
-
-    sourceSets {
-        main.java.srcDirs += "src/main/kotlin"
     }
 
     kotlinOptions {
@@ -29,8 +26,8 @@ android {
 dependencies {
     implementation(project(":common"))
 
+    //noinspection KtxExtensionAvailable
     implementation("androidx.core:core:1.10.1")
-    implementation("androidx.window:window:1.1.0")
 
     implementation("org.jetbrains.kotlin:kotlin-reflect:1.9.0")
 

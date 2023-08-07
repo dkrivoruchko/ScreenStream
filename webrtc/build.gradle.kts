@@ -1,24 +1,21 @@
 plugins {
-    id "com.android.library"
-    id "org.jetbrains.kotlin.android"
+    id("com.android.library")
+    id("org.jetbrains.kotlin.android")
 }
 
 android {
-    namespace "info.dvkr.screenstream.webrtc"
+    namespace = "info.dvkr.screenstream.webrtc"
+    compileSdk = 33
+    buildToolsVersion = "33.0.2"
 
     defaultConfig {
-        minSdkVersion(23)
-        targetSdkVersion(33)
+        minSdk = 23
     }
 
     compileOptions {
-        coreLibraryDesugaringEnabled = true
+        isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
-    }
-
-    sourceSets {
-        main.java.srcDirs += "src/main/kotlin"
     }
 
     kotlinOptions {
@@ -29,21 +26,22 @@ android {
 
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.3")
-
     implementation(project(":common"))
 
+    //noinspection KtxExtensionAvailable
     implementation("androidx.core:core:1.10.1")
+
     implementation("io.github.webrtc-sdk:android:114.5735.02")
-    implementation("io.socket:socket.io-client:2.1.0") {
-        exclude group: 'org.json', module: 'json'
-    }
+    implementation("io.socket:socket.io-client:2.1.0") { exclude("org.json", "json") }
     implementation("com.squareup.okhttp3:okhttp:4.10.0")
     implementation("com.squareup.okio:okio:3.5.0")
 
-    implementation("androidx.fragment:fragment:1.6.1")
     implementation("com.google.android.gms:play-services-basement:18.2.0")
     implementation("com.google.android.play:integrity:1.2.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
+}
 
-    implementation("com.squareup.okhttp3:logging-interceptor:4.10.0")
+configurations.implementation {
+    exclude("androidx.collection", "collection")
+    exclude("androidx.fragment", "fragment")
 }

@@ -57,3 +57,11 @@
 -dontwarn org.openjsse.javax.net.ssl.SSLParameters
 -dontwarn org.openjsse.javax.net.ssl.SSLSocket
 -dontwarn org.openjsse.net.ssl.OpenJSSE
+
+-dontwarn com.android.grafika.gles.EglCore
+-dontwarn com.android.grafika.gles.FullFrameRect
+-dontwarn com.android.grafika.gles.OffscreenSurface
+-dontwarn com.android.grafika.gles.Texture2dProgram$ProgramType
+-dontwarn com.android.grafika.gles.Texture2dProgram
+-dontwarn io.nayuki.qrcodegen.QrCode$Ecc
+-dontwarn io.nayuki.qrcodegen.QrCode
