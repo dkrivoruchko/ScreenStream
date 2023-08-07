@@ -10,9 +10,11 @@ import info.dvkr.screenstream.webrtc.WebRtcEnvironment
 import info.dvkr.screenstream.webrtc.WebRtcError
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.supervisorScope
 import kotlinx.coroutines.suspendCancellableCoroutine
 import okhttp3.*
 import java.io.IOException
+import java.net.UnknownHostException
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.math.pow
@@ -84,8 +86,9 @@ internal class PlayIntegrity(
         .build()
 
     @Throws(WebRtcError::class)
-    internal suspend fun getTokenWithRetries(forceUpdate: Boolean): PlayIntegrityToken =
+    internal suspend fun getTokenWithRetries(forceUpdate: Boolean): PlayIntegrityToken = supervisorScope {
         withRetries(3, 5000L, 2.0) { getToken(forceUpdate, okHttpClient, it) }
+    }
 
     @Throws(WebRtcError::class)
     private suspend fun getToken(forceUpdate: Boolean, okHttpClient: OkHttpClient, attempt: Int): PlayIntegrityToken {
@@ -114,7 +117,8 @@ internal class PlayIntegrity(
         try {
             operation(0)
         } catch (cause: Throwable) {
-            XLog.d(getLog("withRetries", "Attempt: 0"), cause)
+            if (cause !is UnknownHostException && cause !is CancellationException) XLog.d(getLog("withRetries", "Attempt: 0"), cause)
+            else XLog.d(getLog("withRetries", "Attempt: 0 => ${cause.message}"))
             if (cause is CancellationException || maxRetries <= 0) throw cause
             if (cause is WebRtcError.NetworkError && (cause.code == 0 || cause.code in 500..599)) throw cause
             if (cause is StandardIntegrityException && cause.errorCode !in RETRY_INTEGRITY_ERRORS) throw cause.toWebRtcError()
@@ -128,7 +132,8 @@ internal class PlayIntegrity(
             delay(startDelayMs * (expBackoffBase.pow(attempt - 1).toLong()))
             operation(attempt)
         } catch (cause: Throwable) {
-            XLog.d(getLog("retryWithAttempt", "Attempt: $attempt"), cause)
+            if (cause !is UnknownHostException && cause !is CancellationException) XLog.d(getLog("retryWithAttempt", "Attempt: $attempt"), cause)
+            else XLog.d(getLog("retryWithAttempt", "Attempt: $attempt => ${cause.message}"))
             if (cause is CancellationException || attempt >= maxRetries) throw cause
             if (cause is WebRtcError.NetworkError && (cause.code == 0 || cause.code in 500..599)) throw cause
             if (cause is StandardIntegrityException && cause.errorCode !in RETRY_INTEGRITY_ERRORS) throw cause.toWebRtcError()

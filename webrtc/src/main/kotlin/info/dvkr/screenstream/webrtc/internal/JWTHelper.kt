@@ -65,20 +65,24 @@ internal object JWTHelper {
 
     @Throws
     internal fun createKey() {
-        XLog.d(getLog("createKey", "Key alias: $KEY_ALIAS"))
+        runCatching {
+            XLog.d(getLog("createKey", "Key alias: $KEY_ALIAS"))
 
-        val parameterSpec = KeyGenParameterSpec.Builder(KEY_ALIAS, KeyProperties.PURPOSE_SIGN)
-            .setCertificateSubject(X500Principal("CN=$KEY_ALIAS"))
-            .setAlgorithmParameterSpec(ECGenParameterSpec("secp256r1"))
-            .setDigests(KeyProperties.DIGEST_SHA256)
-            .setCertificateNotBefore(Date.from(ZonedDateTime.now().minusDays(1).toInstant()))
-            .setCertificateNotAfter(Date.from(ZonedDateTime.now().plusYears(10).toInstant()))
-            .build()
+            val parameterSpec = KeyGenParameterSpec.Builder(KEY_ALIAS, KeyProperties.PURPOSE_SIGN)
+                .setCertificateSubject(X500Principal("CN=$KEY_ALIAS"))
+                .setAlgorithmParameterSpec(ECGenParameterSpec("secp256r1"))
+                .setDigests(KeyProperties.DIGEST_SHA256)
+                .setCertificateNotBefore(Date.from(ZonedDateTime.now().minusDays(1).toInstant()))
+                .setCertificateNotAfter(Date.from(ZonedDateTime.now().plusYears(10).toInstant()))
+                .build()
 
-        KeyPairGenerator.getInstance(KeyProperties.KEY_ALGORITHM_EC, ANDROID_KEY_STORE).run {
-            initialize(parameterSpec)
-            generateKeyPair()
+            KeyPairGenerator.getInstance(KeyProperties.KEY_ALGORITHM_EC, ANDROID_KEY_STORE).run {
+                initialize(parameterSpec)
+                generateKeyPair()
+            }
         }
+            .onFailure { XLog.e(getLog("createKey", "Key alias: $KEY_ALIAS"), it) }
+            .getOrThrow()
     }
 
     @Throws

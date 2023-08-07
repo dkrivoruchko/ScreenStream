@@ -50,6 +50,7 @@ internal class WebRtcProjection(
     private var audioSource: AudioSource? = null
 
     internal var localMediaSteam: LocalMediaSteam? = null
+    internal var isStopped: Boolean = true
     internal var isRunning: Boolean = false
 
     init {
@@ -92,6 +93,10 @@ internal class WebRtcProjection(
         @MainThread
         override fun onConfigurationChanged(newConfig: Configuration) {
             synchronized(lock) {
+                if (isStopped || isRunning.not()) {
+                    XLog.i(this@WebRtcProjection.getLog("ComponentCallback", "Configuration changed. Ignoring: isStopped=$isStopped, isRunning=$isRunning"))
+                    return
+                }
                 XLog.i(this@WebRtcProjection.getLog("ComponentCallback", "Configuration changed"))
                 screenCapturer?.apply {
                     val screeSize = getScreenSizeCompat()
@@ -103,11 +108,17 @@ internal class WebRtcProjection(
         override fun onLowMemory() = Unit
     }
 
-    internal fun start(streamId: StreamId, intent: Intent, projectionCallback: MediaProjection.Callback) {
+    internal fun start(streamId: StreamId, intent: Intent, mediaProjectionCallbackOnStop: () -> Unit) {
         synchronized(lock) {
             XLog.d(getLog("start"))
 
-            screenCapturer = ScreenCapturerAndroid(intent, projectionCallback)
+            screenCapturer = ScreenCapturerAndroid(intent, object : MediaProjection.Callback() {
+                override fun onStop() {
+                    XLog.i(this@WebRtcProjection.getLog("MediaProjection.Callback", "onStop"))
+                    synchronized(lock) { isStopped = true }
+                    mediaProjectionCallbackOnStop.invoke()
+                }
+            })
             surfaceTextureHelper = SurfaceTextureHelper.create("ScreenStreamSurfaceTexture", rootEglBase.eglBaseContext)
             videoSource = peerConnectionFactory.createVideoSource(screenCapturer!!.isScreencast)
             screenCapturer!!.initialize(surfaceTextureHelper, serviceContext, videoSource!!.capturerObserver)
@@ -126,6 +137,7 @@ internal class WebRtcProjection(
                 peerConnectionFactory.createAudioTrack("AudioTrack@$mediaStreamId", audioSource)
             )
 
+            isStopped = false
             isRunning = true
             XLog.d(getLog("start", "MediaStreamId: $mediaStreamId"))
         }
@@ -154,6 +166,7 @@ internal class WebRtcProjection(
             videoSource?.dispose()
             videoSource = null
 
+            isStopped = true
             isRunning = false
         }
     }

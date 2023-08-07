@@ -169,7 +169,7 @@ internal class SocketSignaling(
                 eventListener.onSocketDisconnected(args.contentToString())
             }
             on(Socket.EVENT_CONNECT_ERROR) { args -> // Auto or User reconnect
-                XLog.e(this@SocketSignaling.getLog(Socket.EVENT_CONNECT_ERROR + "[${socketId()}]", args.contentToString()))
+                XLog.e(this@SocketSignaling.getLog(Socket.EVENT_CONNECT_ERROR, args.contentToString()))
                 val message = (args?.firstOrNull() as? JSONObject)?.optString(Payload.MESSAGE) ?: ""
                 if (message.startsWith("$ERROR_TOKEN_VERIFICATION_FAILED:TOKEN_EXPIRED")) eventListener.onTokenExpired()
                 else eventListener.onError(Errors.SocketAuthError.fromMessage(message) ?: Errors.SocketConnectError(message))
@@ -226,9 +226,8 @@ internal class SocketSignaling(
             }
 
             override fun onTimeout() {
-                val msg = "[${Event.STREAM_CREATE}] => Timeout"
-                XLog.e(this@SocketSignaling.getLog("sendStreamCreate[${socketId()}]", "$msg Data: $data"))
-                eventListener.onError(Errors.StreamCreateError(msg, IllegalStateException(msg)))
+                XLog.w(this@SocketSignaling.getLog("sendStreamCreate[${socketId()}]", "[${Event.STREAM_CREATE}] => Timeout. Data: $data"))
+                eventListener.onError(Errors.StreamCreateError("[${Event.STREAM_CREATE}] => Timeout", IllegalStateException("[${Event.STREAM_CREATE}] => Timeout")))
             }
         })
     }
@@ -313,8 +312,7 @@ internal class SocketSignaling(
             }
 
             override fun onTimeout() {
-                val msg = "[${Event.STREAM_REMOVE}] => Timeout"
-                XLog.e(this@SocketSignaling.getLog("sendStreamRemove[${socketId()}]", msg), IllegalStateException(msg))
+                XLog.w(this@SocketSignaling.getLog("sendStreamRemove[${socketId()}]", "[${Event.STREAM_REMOVE}] => Timeout"))
                 eventListener.onStreamRemoved()
             }
         })
@@ -343,9 +341,8 @@ internal class SocketSignaling(
             }
 
             override fun onTimeout() {
-                val msg = "[${Event.STREAM_START}] => Timeout"
-                XLog.e(this@SocketSignaling.getLog("sendStreamStart[${socketId()}]", msg), IllegalStateException(msg))
-                eventListener.onError(Errors.StreamStartError(msg, IllegalStateException(msg)))
+                XLog.w(this@SocketSignaling.getLog("sendStreamStart[${socketId()}]", "[${Event.STREAM_START}] => Timeout"))
+                eventListener.onError(Errors.StreamStartError("[${Event.STREAM_START}] => Timeout", IllegalStateException("[${Event.STREAM_START}] => Timeout")))
             }
         })
     }
@@ -399,8 +396,7 @@ internal class SocketSignaling(
             }
 
             override fun onTimeout() {
-                val msg = "[${Event.HOST_OFFER}] => Timeout"
-                XLog.e(this@SocketSignaling.getLog("sendHostOffer[${socketId()}]", msg), IllegalStateException(msg))
+                XLog.w(this@SocketSignaling.getLog("sendHostOffer[${socketId()}]", "[${Event.HOST_OFFER}] => Timeout"))
             }
         })
     }
@@ -436,8 +432,7 @@ internal class SocketSignaling(
             }
 
             override fun onTimeout() {
-                val msg = "[${Event.HOST_CANDIDATE}] => Timeout"
-                XLog.e(this@SocketSignaling.getLog("sendHostCandidates[${socketId()}]", msg), IllegalStateException(msg))
+                XLog.w(this@SocketSignaling.getLog("sendHostCandidates[${socketId()}]", "[${Event.HOST_CANDIDATE}] => Timeout"))
             }
         })
     }
@@ -468,8 +463,7 @@ internal class SocketSignaling(
             }
 
             override fun onTimeout() {
-                val msg = "[${Event.REMOVE_CLIENT}] => Timeout"
-                XLog.e(this@SocketSignaling.getLog("sendRemoveClients[${socketId()}]", msg), IllegalStateException(msg))
+                XLog.w(this@SocketSignaling.getLog("sendRemoveClients[${socketId()}]", "[${Event.REMOVE_CLIENT}] => Timeout"))
             }
         })
     }

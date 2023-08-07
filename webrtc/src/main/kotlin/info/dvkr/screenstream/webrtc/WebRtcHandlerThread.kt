@@ -7,7 +7,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
-import android.media.projection.MediaProjection
 import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
@@ -74,13 +73,6 @@ public class WebRtcHandlerThread(
 
     private val connectivityManager: ConnectivityManager = serviceContext.getSystemService(ConnectivityManager::class.java)
     private val powerManager: PowerManager = serviceContext.getSystemService(PowerManager::class.java)
-
-    private val projectionCallback = object : MediaProjection.Callback() {
-        override fun onStop() {
-            XLog.i(this@WebRtcHandlerThread.getLog("MediaProjection.Callback", "onStop"))
-            sendEvent(AppStateMachine.Event.StopStream)
-        }
-    }
 
     private val pendingEventDeque = LinkedBlockingDeque<AppStateMachine.Event>()
 
@@ -307,7 +299,7 @@ public class WebRtcHandlerThread(
         }
         if (event is InternalEvent.Destroy) pendingDestroy = true
 
-        if (event is AppStateMachine.Event.RequestPublicState || event is AppStateMachine.Event.RecoverError) return true
+        if (event is AppStateMachine.Event.StopStream || event is AppStateMachine.Event.RequestPublicState || event is AppStateMachine.Event.RecoverError) return true
 
         if (appError != null && appError !is WebRtcError.NetworkError) {
             XLog.w(getLog("allowEvent", "App error present: Ignoring event => $event"))
@@ -465,7 +457,10 @@ public class WebRtcHandlerThread(
                 isAudioPermissionGrantedOnStart =
                     ContextCompat.checkSelfPermission(serviceContext, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
 
-                projection!!.start(streamId, event.intent, projectionCallback)
+                projection!!.start(streamId, event.intent) {
+                    XLog.i(this@WebRtcHandlerThread.getLog("StartProjection", "MediaProjectionCallback.onStop"))
+                    sendEvent(AppStateMachine.Event.StopStream)
+                }
                 takeWakeLock()
                 signaling!!.sendStreamStart()
                 clients.values.forEach { it.start(projection!!.localMediaSteam!!) }
