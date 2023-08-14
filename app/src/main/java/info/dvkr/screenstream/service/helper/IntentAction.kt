@@ -43,5 +43,9 @@ internal sealed class IntentAction : Parcelable {
     @Parcelize object StartOnBoot : IntentAction()
     @Parcelize object RecoverError : IntentAction()
 
+    @Parcelize object ApplicationOnStart : IntentAction()
+    @Parcelize object ApplicationOnStop : IntentAction()
+    @Parcelize object ApplicationModeChanged : IntentAction()
+
     override fun toString(): String = javaClass.simpleName
 }

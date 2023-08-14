@@ -153,7 +153,10 @@ class StreamFragment : AdFragment(R.layout.fragment_stream) {
 
         if ((requireActivity().applicationContext as BaseApp).isAdEnabled) {
             binding.rbFragmentStreamWebrtcMode.setOnClickListener {
-                viewLifecycleOwner.lifecycleScope.launch { appSettings.setStreamMode(AppSettings.Values.STREAM_MODE_WEBRTC) }
+                viewLifecycleOwner.lifecycleScope.launch {
+                    appSettings.setStreamMode(AppSettings.Values.STREAM_MODE_WEBRTC)
+                    IntentAction.ApplicationModeChanged.sendToAppService(requireContext())
+                }
             }
         } else {
             binding.rbFragmentStreamWebrtcMode.isEnabled = false
@@ -170,7 +173,10 @@ class StreamFragment : AdFragment(R.layout.fragment_stream) {
         }
 
         binding.rbFragmentStreamMjpegMode.setOnClickListener {
-            viewLifecycleOwner.lifecycleScope.launch { appSettings.setStreamMode(AppSettings.Values.STREAM_MODE_MJPEG) }
+            viewLifecycleOwner.lifecycleScope.launch {
+                appSettings.setStreamMode(AppSettings.Values.STREAM_MODE_MJPEG)
+                IntentAction.ApplicationModeChanged.sendToAppService(requireContext())
+            }
         }
 
         binding.bFragmentStreamMjpegModeDetails.setOnClickListener {

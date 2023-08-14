@@ -43,8 +43,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import okhttp3.ConnectionPool
 import okhttp3.ConnectionSpec
 import okhttp3.OkHttpClient
 import org.webrtc.IceCandidate
@@ -60,11 +62,14 @@ public class WebRtcHandlerThread(
     private val effectSharedFlow: MutableSharedFlow<AppStateMachine.Effect>
 ) : AppStateMachine, HandlerThread("WebRTC-HT", android.os.Process.THREAD_PRIORITY_DISPLAY) {
 
+    override val mode: Int = AppSettings.Values.STREAM_MODE_WEBRTC
+
     private val handler: Handler by lazy(LazyThreadSafetyMode.NONE) { Handler(looper) }
     private val coroutineDispatcher: CoroutineDispatcher by lazy(LazyThreadSafetyMode.NONE) { handler.asCoroutineDispatcher("WebRTC-HTDispatcher") }
     private val coroutineScope by lazy(LazyThreadSafetyMode.NONE) { CoroutineScope(SupervisorJob() + coroutineDispatcher) }
 
     private val okHttpClient = OkHttpClient.Builder().connectionSpecs(listOf(ConnectionSpec.RESTRICTED_TLS))
+        .connectionPool(ConnectionPool(0, 5,  TimeUnit.MINUTES)) //[com.google.android.gms.internal.ads.ok: timeout]
         .connectTimeout(30, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
         .writeTimeout(30, TimeUnit.SECONDS)
@@ -266,16 +271,22 @@ public class WebRtcHandlerThread(
         networkAvailable.onEach {
             XLog.d(getLog("init", "networkAvailable: $it"))
             if (it) sendEvent(InternalEvent.GetToken(false))
+            else sendEvent(AppStateMachine.Event.StopStream)
         }.launchIn(coroutineScope)
 
-        webRtcSettings.enableMicFlow.listenForChange(coroutineScope, 0) { enableMic ->
-            XLog.d(getLog("enableMicFlow", "$enableMic"))
-            if (isStreaming() && isAudioPermissionGrantedOnStart.not() && enableMic) {
-                XLog.i(getLog("enableMicFlow", "StopStream & StartStream"))
-                sendEvent(AppStateMachine.Event.StopStream)
-                sendEvent(AppStateMachine.Event.StartStream, 500)
+        webRtcSettings.enableMicFlow
+            .onStart {
+                val micPermission = ContextCompat.checkSelfPermission(serviceContext, Manifest.permission.RECORD_AUDIO)
+                if (micPermission == PackageManager.PERMISSION_DENIED) webRtcSettings.setEnableMic(false)
             }
-        }
+            .listenForChange(coroutineScope, 0) { enableMic ->
+                XLog.d(this@WebRtcHandlerThread.getLog("enableMicFlow", "$enableMic"))
+                if (isStreaming() && isAudioPermissionGrantedOnStart.not() && enableMic) {
+                    XLog.i(this@WebRtcHandlerThread.getLog("enableMicFlow", "StopStream & StartStream"))
+                    sendEvent(AppStateMachine.Event.StopStream)
+                    sendEvent(AppStateMachine.Event.StartStream, 500)
+                }
+            }
     }
 
     private var pendingDestroy: Boolean = false
@@ -338,6 +349,15 @@ public class WebRtcHandlerThread(
         handler.postDelayed({ processEvent(event) }, timeout)
 
         XLog.d(getLog("sendEvent", "Pending events: $pendingEventDeque"))
+    }
+
+    override fun pauseRequest(): Boolean = if (isStreaming()) {
+        XLog.d(getLog("pauseRequest", "isStreaming = true. Ignoring"))
+        false
+    } else {
+        XLog.d(getLog("pauseRequest", "isStreaming = false. Destroying"))
+        destroy()
+        true
     }
 
     override fun destroy() {
@@ -444,15 +464,17 @@ public class WebRtcHandlerThread(
             }
 
             is AppStateMachine.Event.StartStream ->
-                if (mediaProjectionIntent != null) sendEvent(AppStateMachine.Event.StartProjection(mediaProjectionIntent!!))
-                else waitingForPermission = true
+                if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.TIRAMISU && mediaProjectionIntent != null)
+                    sendEvent(AppStateMachine.Event.StartProjection(mediaProjectionIntent!!))
+                else
+                    waitingForPermission = true
 
             is AppStateMachine.Event.CastPermissionsDenied -> waitingForPermission = false
 
             is AppStateMachine.Event.StartProjection -> if (isStreaming()) {
                 XLog.w(getLog("StartProjection", "Already streaming. Ignoring."))
             } else {
-                mediaProjectionIntent = event.intent
+                if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.TIRAMISU) mediaProjectionIntent = event.intent
                 waitingForPermission = false
                 isAudioPermissionGrantedOnStart =
                     ContextCompat.checkSelfPermission(serviceContext, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED

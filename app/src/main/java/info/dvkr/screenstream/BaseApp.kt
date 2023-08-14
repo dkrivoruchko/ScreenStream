@@ -1,12 +1,21 @@
 package info.dvkr.screenstream
 
 import android.app.Application
+import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.ProcessLifecycleOwner
 import com.elvishew.xlog.flattener.ClassicFlattener
 import com.elvishew.xlog.printer.file.FilePrinter
 import com.elvishew.xlog.printer.file.clean.FileLastModifiedCleanStrategy
 import info.dvkr.screenstream.di.baseKoinModule
 import info.dvkr.screenstream.logging.DateSuffixFileNameGenerator
 import info.dvkr.screenstream.logging.getLogFolder
+import info.dvkr.screenstream.service.helper.IntentAction
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import org.koin.android.ext.koin.androidContext
 import org.koin.android.ext.koin.androidLogger
 import org.koin.core.context.startKoin
@@ -23,6 +32,8 @@ abstract class BaseApp : Application() {
     }
 
     val lastAdLoadTimeMap: MutableMap<String, Long> = mutableMapOf()
+
+    private var pauseJob: Job? = null
 
     abstract val isAdEnabled: Boolean
     abstract fun initLogger()
@@ -46,6 +57,21 @@ abstract class BaseApp : Application() {
 //        }
 
         initAd()
+
+        ProcessLifecycleOwner.get().lifecycle.addObserver(object : DefaultLifecycleObserver {
+            override fun onStart(owner: LifecycleOwner) {
+                pauseJob?.cancel()
+                pauseJob = null
+                IntentAction.ApplicationOnStart.sendToAppService(this@BaseApp)
+            }
+
+            override fun onStop(owner: LifecycleOwner) {
+                pauseJob = GlobalScope.launch(Dispatchers.Main.immediate) {
+                    delay(10 * 60 * 1_000)
+                    IntentAction.ApplicationOnStop.sendToAppService(this@BaseApp)
+                }
+            }
+        })
     }
 
     internal val sharedPreferences by lazy(LazyThreadSafetyMode.NONE) {

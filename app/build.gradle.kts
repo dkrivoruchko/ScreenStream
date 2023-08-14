@@ -21,16 +21,16 @@ android {
     }
 
     namespace = "info.dvkr.screenstream"
-    compileSdk = 33
-    buildToolsVersion = "33.0.2"
+    compileSdk = 34
+    buildToolsVersion = "34.0.0"
     ndkVersion = "25.2.9519653"
 
     defaultConfig {
         applicationId = "info.dvkr.screenstream"
         minSdk = 23
         targetSdk = 33
-        versionCode = 40002
-        versionName = "4.0.2"
+        versionCode = 40004
+        versionName = "4.0.4"
 
         // https://medium.com/@crafty/no-if-you-do-that-then-you-cant-use-newer-features-on-older-platforms-e-g-fa595333c0a4
         vectorDrawables.useSupportLibrary = true
@@ -109,7 +109,7 @@ dependencies {
     implementation("androidx.recyclerview:recyclerview:1.3.1")
     implementation("com.google.android.material:material:1.9.0")
     implementation("androidx.window:window:1.1.0")
-
+    implementation("androidx.lifecycle:lifecycle-process:2.6.1")
     implementation("androidx.navigation:navigation-fragment-ktx:2.6.0")
     implementation("androidx.navigation:navigation-ui-ktx:2.6.0")
 

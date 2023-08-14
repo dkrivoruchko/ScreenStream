@@ -5,8 +5,8 @@ plugins {
 
 android {
     namespace = "info.dvkr.screenstream.common"
-    compileSdk = 33
-    buildToolsVersion = "33.0.2"
+    compileSdk = 34
+    buildToolsVersion = "34.0.0"
 
     defaultConfig {
         minSdk = 23

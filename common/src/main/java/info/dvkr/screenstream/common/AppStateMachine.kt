@@ -44,7 +44,11 @@ interface AppStateMachine {
         }
     }
 
+    val mode: Int
+
     fun sendEvent(event: Event, timeout: Long = 0)
+
+    fun pauseRequest(): Boolean
 
     fun destroy()
 }

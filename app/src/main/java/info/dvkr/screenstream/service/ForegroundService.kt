@@ -1,11 +1,9 @@
 package info.dvkr.screenstream.service
 
-import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Service
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.hardware.display.DisplayManager
 import android.os.Build
 import android.os.IBinder
@@ -94,32 +92,6 @@ class ForegroundService : Service() {
 
         StandardIntegrityManagerWrapper.initManager(this)
 
-        appSettings.streamModeFlow.distinctUntilChanged().onEach { mode ->
-            XLog.d(getLog("onCreate", "streamModeFlow.onEach.mode: $mode"))
-            appStateMachine?.destroy()
-
-            appStateMachine = when (mode) {
-                AppSettings.Values.STREAM_MODE_WEBRTC -> {
-                    if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_DENIED)
-                        webrtcSettings.setEnableMic(false)
-
-                    WebRtcHandlerThread(this, appSettings, webRTCEnvironment, webrtcSettings, effectFlow).apply { start() }
-                }
-
-                AppSettings.Values.STREAM_MODE_MJPEG ->
-                    MjpegStateMachine(this, appSettings, mjpegSettings, effectFlow, ::showSlowConnectionToast)
-
-                else -> throw IllegalStateException("Unexpected stream mode: $mode")
-            }
-
-            isRunning = true
-        }
-            .catch {
-                XLog.e(getLog("onCreate", "streamModeFlow.onEach.catch: ${it.message}"), it)
-                onError(AppError.FixableError(0, it.message))
-            }
-            .launchIn(coroutineScope)
-
         effectFlow.onEach { effect ->
             if (effect !is AppStateMachine.Effect.Statistic)
                 XLog.d(this@ForegroundService.getLog("onEffect", "Effect: $effect"))
@@ -167,6 +139,8 @@ class ForegroundService : Service() {
             }
         }
             .launchIn(coroutineScope)
+
+        isRunning = true
     }
 
     @Suppress("DEPRECATION")
@@ -232,6 +206,26 @@ class ForegroundService : Service() {
                 notificationHelper.hideErrorNotification()
                 appStateMachine?.sendEvent(AppStateMachine.Event.RecoverError)
             }
+
+            IntentAction.ApplicationOnStart, IntentAction.ApplicationModeChanged -> coroutineScope.launch {
+                val mode = appSettings.streamModeFlow.first()
+                XLog.d(this@ForegroundService.getLog(intentAction.toString(), "mode: $mode, current: ${appStateMachine?.mode}"))
+                if (appStateMachine?.mode == mode) return@launch
+
+                appStateMachine?.destroy()
+                appStateMachine = when (mode) {
+                    AppSettings.Values.STREAM_MODE_WEBRTC ->
+                        WebRtcHandlerThread(this@ForegroundService, appSettings, webRTCEnvironment, webrtcSettings, effectFlow)
+                            .apply { start() }
+
+                    AppSettings.Values.STREAM_MODE_MJPEG ->
+                        MjpegStateMachine(this@ForegroundService, appSettings, mjpegSettings, effectFlow, ::showSlowConnectionToast)
+
+                    else -> throw IllegalStateException("Unexpected stream mode: $mode")
+                }
+            }
+
+            IntentAction.ApplicationOnStop -> if (appStateMachine?.pauseRequest() == true) appStateMachine = null
         }
 
         return START_NOT_STICKY

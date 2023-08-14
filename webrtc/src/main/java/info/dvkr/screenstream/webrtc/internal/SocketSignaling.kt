@@ -246,8 +246,7 @@ internal class SocketSignaling(
                 payload.sendOkAck()
                 eventListener.onClientJoin(payload.clientId)
             } else {
-                val msg = "[${Event.STREAM_JOIN}] Wrong stream password"
-                XLog.w(getLog("onStreamCreated", msg), IllegalArgumentException("onStreamCreated: $msg"))
+                XLog.w(getLog("onStreamCreated", "[${Event.STREAM_JOIN}] Wrong stream password"))
                 payload.sendErrorAck(Payload.ERROR_WRONG_STREAM_PASSWORD)
             }
         }

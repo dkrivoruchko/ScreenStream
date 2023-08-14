@@ -35,6 +35,8 @@ class MjpegStateMachine(
     private val onSlowConnectionDetected: () -> Unit
 ) : AppStateMachine {
 
+    override val mode: Int = AppSettings.Values.STREAM_MODE_MJPEG
+
     private val coroutineExceptionHandler = CoroutineExceptionHandler { _, throwable ->
         XLog.e(getLog("onCoroutineException"), throwable)
         onError(CoroutineException)
@@ -254,6 +256,11 @@ class MjpegStateMachine(
             if (wakeLock?.isHeld == true) wakeLock?.release()
             wakeLock = null
         }
+    }
+
+    override fun pauseRequest(): Boolean {
+        XLog.d(getLog("pauseRequest", "Ignoring"))
+        return false
     }
 
     override fun destroy() {

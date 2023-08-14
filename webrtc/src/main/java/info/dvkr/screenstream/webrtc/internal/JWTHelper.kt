@@ -17,8 +17,6 @@ import java.security.Signature
 import java.security.interfaces.ECPublicKey
 import java.security.spec.ECGenParameterSpec
 import java.security.spec.X509EncodedKeySpec
-import java.time.ZonedDateTime
-import java.util.Date
 import javax.security.auth.x500.X500Principal
 
 internal object JWTHelper {
@@ -72,8 +70,6 @@ internal object JWTHelper {
                 .setCertificateSubject(X500Principal("CN=$KEY_ALIAS"))
                 .setAlgorithmParameterSpec(ECGenParameterSpec("secp256r1"))
                 .setDigests(KeyProperties.DIGEST_SHA256)
-                .setCertificateNotBefore(Date.from(ZonedDateTime.now().minusDays(1).toInstant()))
-                .setCertificateNotAfter(Date.from(ZonedDateTime.now().plusYears(10).toInstant()))
                 .build()
 
             KeyPairGenerator.getInstance(KeyProperties.KEY_ALGORITHM_EC, ANDROID_KEY_STORE).run {
