@@ -45,13 +45,15 @@ object StateToEventMatrix {
             MjpegStateMachine.InternalEvent.RestartServer::class.java to Action.Process,
             MjpegStateMachine.InternalEvent.ScreenOff::class.java to Action.Skipp,
             MjpegStateMachine.InternalEvent.Destroy::class.java to Action.Process,
+            MjpegStateMachine.InternalEvent.RestartCapture::class.java to Action.Skipp,
 
             AppStateMachine.Event.StartStream::class.java to Action.Skipp,
             AppStateMachine.Event.CastPermissionsDenied::class.java to Action.Skipp,
             AppStateMachine.Event.StartProjection::class.java to Action.Error,
             AppStateMachine.Event.StopStream::class.java to Action.Error,
             AppStateMachine.Event.RequestPublicState::class.java to Action.Process,
-            AppStateMachine.Event.RecoverError::class.java to Action.Skipp
+            AppStateMachine.Event.RecoverError::class.java to Action.Skipp,
+            AppStateMachine.Event.UpdateNotification::class.java to Action.Process
         )
 
         matrix[StreamState.State.ADDRESS_DISCOVERED] = mapOf(
@@ -62,13 +64,15 @@ object StateToEventMatrix {
             MjpegStateMachine.InternalEvent.RestartServer::class.java to Action.Process,
             MjpegStateMachine.InternalEvent.ScreenOff::class.java to Action.Skipp,
             MjpegStateMachine.InternalEvent.Destroy::class.java to Action.Process,
+            MjpegStateMachine.InternalEvent.RestartCapture::class.java to Action.Skipp,
 
             AppStateMachine.Event.StartStream::class.java to Action.Skipp,
             AppStateMachine.Event.CastPermissionsDenied::class.java to Action.Skipp,
             AppStateMachine.Event.StartProjection::class.java to Action.Skipp,
             AppStateMachine.Event.StopStream::class.java to Action.Skipp,
             AppStateMachine.Event.RequestPublicState::class.java to Action.Process,
-            AppStateMachine.Event.RecoverError::class.java to Action.Process
+            AppStateMachine.Event.RecoverError::class.java to Action.Process,
+            AppStateMachine.Event.UpdateNotification::class.java to Action.Process
         )
 
         matrix[StreamState.State.SERVER_STARTED] = mapOf(
@@ -79,13 +83,15 @@ object StateToEventMatrix {
             MjpegStateMachine.InternalEvent.RestartServer::class.java to Action.Process,
             MjpegStateMachine.InternalEvent.ScreenOff::class.java to Action.Skipp,
             MjpegStateMachine.InternalEvent.Destroy::class.java to Action.Process,
+            MjpegStateMachine.InternalEvent.RestartCapture::class.java to Action.Skipp,
 
             AppStateMachine.Event.StartStream::class.java to Action.Process,
             AppStateMachine.Event.CastPermissionsDenied::class.java to Action.Skipp,
             AppStateMachine.Event.StartProjection::class.java to Action.Process,
             AppStateMachine.Event.StopStream::class.java to Action.Skipp,
             AppStateMachine.Event.RequestPublicState::class.java to Action.Process,
-            AppStateMachine.Event.RecoverError::class.java to Action.Process
+            AppStateMachine.Event.RecoverError::class.java to Action.Process,
+            AppStateMachine.Event.UpdateNotification::class.java to Action.Process
         )
 
         matrix[StreamState.State.PERMISSION_PENDING] = mapOf(
@@ -96,13 +102,15 @@ object StateToEventMatrix {
             MjpegStateMachine.InternalEvent.RestartServer::class.java to Action.Process,
             MjpegStateMachine.InternalEvent.ScreenOff::class.java to Action.Skipp,
             MjpegStateMachine.InternalEvent.Destroy::class.java to Action.Process,
+            MjpegStateMachine.InternalEvent.RestartCapture::class.java to Action.Skipp,
 
             AppStateMachine.Event.StartStream::class.java to Action.Skipp,
             AppStateMachine.Event.CastPermissionsDenied::class.java to Action.Process,
             AppStateMachine.Event.StartProjection::class.java to Action.Process,
             AppStateMachine.Event.StopStream::class.java to Action.Skipp,
             AppStateMachine.Event.RequestPublicState::class.java to Action.Process,
-            AppStateMachine.Event.RecoverError::class.java to Action.Process
+            AppStateMachine.Event.RecoverError::class.java to Action.Process,
+            AppStateMachine.Event.UpdateNotification::class.java to Action.Process
         )
 
         matrix[StreamState.State.STREAMING] = mapOf(
@@ -113,13 +121,15 @@ object StateToEventMatrix {
             MjpegStateMachine.InternalEvent.RestartServer::class.java to Action.Process,
             MjpegStateMachine.InternalEvent.ScreenOff::class.java to Action.Process,
             MjpegStateMachine.InternalEvent.Destroy::class.java to Action.Process,
+            MjpegStateMachine.InternalEvent.RestartCapture::class.java to Action.Process,
 
             AppStateMachine.Event.StartStream::class.java to Action.Skipp,
             AppStateMachine.Event.CastPermissionsDenied::class.java to Action.Skipp,
             AppStateMachine.Event.StartProjection::class.java to Action.Skipp,
             AppStateMachine.Event.StopStream::class.java to Action.Process,
             AppStateMachine.Event.RequestPublicState::class.java to Action.Process,
-            AppStateMachine.Event.RecoverError::class.java to Action.Process
+            AppStateMachine.Event.RecoverError::class.java to Action.Process,
+            AppStateMachine.Event.UpdateNotification::class.java to Action.Process
         )
 
         matrix[StreamState.State.RESTART_PENDING] = mapOf(
@@ -130,13 +140,15 @@ object StateToEventMatrix {
             MjpegStateMachine.InternalEvent.RestartServer::class.java to Action.Skipp,
             MjpegStateMachine.InternalEvent.ScreenOff::class.java to Action.Skipp,
             MjpegStateMachine.InternalEvent.Destroy::class.java to Action.Process,
+            MjpegStateMachine.InternalEvent.RestartCapture::class.java to Action.Skipp,
 
             AppStateMachine.Event.StartStream::class.java to Action.Skipp,
             AppStateMachine.Event.CastPermissionsDenied::class.java to Action.Skipp,
             AppStateMachine.Event.StartProjection::class.java to Action.Skipp,
             AppStateMachine.Event.StopStream::class.java to Action.Skipp,
             AppStateMachine.Event.RequestPublicState::class.java to Action.Process,
-            AppStateMachine.Event.RecoverError::class.java to Action.Process
+            AppStateMachine.Event.RecoverError::class.java to Action.Process,
+            AppStateMachine.Event.UpdateNotification::class.java to Action.Process
         )
 
         matrix[StreamState.State.ERROR] = mapOf(
@@ -147,13 +159,15 @@ object StateToEventMatrix {
             MjpegStateMachine.InternalEvent.RestartServer::class.java to Action.Process,
             MjpegStateMachine.InternalEvent.ScreenOff::class.java to Action.Skipp,
             MjpegStateMachine.InternalEvent.Destroy::class.java to Action.Process,
+            MjpegStateMachine.InternalEvent.RestartCapture::class.java to Action.Skipp,
 
             AppStateMachine.Event.StartStream::class.java to Action.Skipp,
             AppStateMachine.Event.CastPermissionsDenied::class.java to Action.Skipp,
             AppStateMachine.Event.StartProjection::class.java to Action.Skipp,
             AppStateMachine.Event.StopStream::class.java to Action.Skipp,
             AppStateMachine.Event.RequestPublicState::class.java to Action.Process,
-            AppStateMachine.Event.RecoverError::class.java to Action.Process
+            AppStateMachine.Event.RecoverError::class.java to Action.Process,
+            AppStateMachine.Event.UpdateNotification::class.java to Action.Process
         )
 
         matrix[StreamState.State.DESTROYED] = mapOf(
@@ -164,13 +178,15 @@ object StateToEventMatrix {
             MjpegStateMachine.InternalEvent.RestartServer::class.java to Action.Skipp,
             MjpegStateMachine.InternalEvent.ScreenOff::class.java to Action.Skipp,
             MjpegStateMachine.InternalEvent.Destroy::class.java to Action.Skipp,
+            MjpegStateMachine.InternalEvent.RestartCapture::class.java to Action.Skipp,
 
             AppStateMachine.Event.StartStream::class.java to Action.Skipp,
             AppStateMachine.Event.CastPermissionsDenied::class.java to Action.Skipp,
             AppStateMachine.Event.StartProjection::class.java to Action.Skipp,
             AppStateMachine.Event.StopStream::class.java to Action.Skipp,
             AppStateMachine.Event.RequestPublicState::class.java to Action.Skipp,
-            AppStateMachine.Event.RecoverError::class.java to Action.Skipp
+            AppStateMachine.Event.RecoverError::class.java to Action.Skipp,
+            AppStateMachine.Event.UpdateNotification::class.java to Action.Process
         )
     }
 }

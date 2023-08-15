@@ -380,6 +380,7 @@
         </androidx.constraintlayout.widget.ConstraintLayout>
 
         <View
+            android:id="@+id/v_fragment_settings_start_on_boot"
             android:layout_width="match_parent"
             android:layout_height="1dp"
             android:layout_marginTop="2dp"

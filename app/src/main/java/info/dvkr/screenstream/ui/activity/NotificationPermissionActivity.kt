@@ -1,29 +1,32 @@
 package info.dvkr.screenstream.ui.activity
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.ActivityNotFoundException
-import android.content.pm.PackageManager
 import android.os.Build
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.LayoutRes
 import androidx.annotation.RequiresApi
-import androidx.core.content.ContextCompat
 import com.afollestad.materialdialogs.MaterialDialog
 import com.afollestad.materialdialogs.lifecycle.lifecycleOwner
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.R
+import info.dvkr.screenstream.common.NotificationHelper
 import info.dvkr.screenstream.common.getLog
-import info.dvkr.screenstream.service.helper.NotificationHelper
+import info.dvkr.screenstream.service.helper.IntentAction
 import org.koin.android.ext.android.inject
 
 abstract class NotificationPermissionActivity(@LayoutRes contentLayoutId: Int) : ServiceActivity(contentLayoutId) {
 
-    private val notificationHelper: NotificationHelper by inject()
+    protected val notificationHelper: NotificationHelper by inject()
 
     private val requestPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
         XLog.d(getLog("requestPermissionLauncher", "registerForActivityResult: $isGranted"))
 
-        if (isGranted || Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return@registerForActivityResult
+        if (isGranted || Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+            IntentAction.UpdateNotification.sendToAppService(this)
+            return@registerForActivityResult
+        }
 
         val deniedAndDisabled = shouldShowRequestPermissionRationale(Manifest.permission.POST_NOTIFICATIONS).not()
         XLog.d(getLog("requestPermissionLauncher", "deniedAndDisabled: $deniedAndDisabled"))
@@ -31,19 +34,13 @@ abstract class NotificationPermissionActivity(@LayoutRes contentLayoutId: Int) :
         showMandatoryDialog(deniedAndDisabled)
     }
 
+    @SuppressLint("InlinedApi")
     override fun onStart() {
         super.onStart()
-        //todo val notificationManager = applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        //todo notificationManager.areNotificationsEnabled()
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && isNotificationPermissionGranted().not()) {
+        if (notificationHelper.isNotificationPermissionGranted(this).not()) {
             requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
     }
-
-    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
-    protected fun isNotificationPermissionGranted(): Boolean =
-        ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
 
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     private fun showMandatoryDialog(showSettings: Boolean) {

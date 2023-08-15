@@ -1,16 +1,13 @@
 package info.dvkr.screenstream.webrtc.internal
 
-import android.content.ComponentCallbacks
 import android.content.Context
 import android.content.Intent
-import android.content.res.Configuration
 import android.graphics.Point
 import android.hardware.display.DisplayManager
 import android.media.projection.MediaProjection
 import android.os.Build
 import android.view.Display
 import android.view.WindowManager
-import androidx.annotation.MainThread
 import androidx.core.content.ContextCompat
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.common.getLog
@@ -89,25 +86,6 @@ internal class WebRtcProjection(
     private fun RtpCapabilities.CodecCapability.priority(isHardwareSupported: Boolean): Int =
         VideoCodec.entries.first { it.name == name.uppercase() }.let { if (isHardwareSupported) it.priority + 10 else it.priority }
 
-    private val componentCallback = object : ComponentCallbacks {
-        @MainThread
-        override fun onConfigurationChanged(newConfig: Configuration) {
-            synchronized(lock) {
-                if (isStopped || isRunning.not()) {
-                    XLog.i(this@WebRtcProjection.getLog("ComponentCallback", "Configuration changed. Ignoring: isStopped=$isStopped, isRunning=$isRunning"))
-                    return
-                }
-                XLog.i(this@WebRtcProjection.getLog("ComponentCallback", "Configuration changed"))
-                screenCapturer?.apply {
-                    val screeSize = getScreenSizeCompat()
-                    changeCaptureFormat(screeSize.x, screeSize.y, 30)
-                }
-            }
-        }
-
-        override fun onLowMemory() = Unit
-    }
-
     internal fun start(streamId: StreamId, intent: Intent, mediaProjectionCallbackOnStop: () -> Unit) {
         synchronized(lock) {
             XLog.d(getLog("start"))
@@ -128,8 +106,6 @@ internal class WebRtcProjection(
 
             audioSource = peerConnectionFactory.createAudioSource(MediaConstraints())
 
-            serviceContext.registerComponentCallbacks(componentCallback)
-
             val mediaStreamId = MediaStreamId.create(streamId)
             localMediaSteam = LocalMediaSteam(
                 mediaStreamId,
@@ -143,11 +119,23 @@ internal class WebRtcProjection(
         }
     }
 
+    internal fun changeCaptureFormat() {
+        synchronized(lock) {
+            if (isStopped || isRunning.not()) {
+                XLog.i(this@WebRtcProjection.getLog("changeCaptureFormat", "Ignoring: isStopped=$isStopped, isRunning=$isRunning"))
+                return
+            }
+            XLog.d(this@WebRtcProjection.getLog("changeCaptureFormat"))
+            screenCapturer?.apply {
+                val screeSize = getScreenSizeCompat()
+                changeCaptureFormat(screeSize.x, screeSize.y, 30)
+            }
+        }
+    }
+
     internal fun stop() {
         synchronized(lock) {
             XLog.d(getLog("stop"))
-
-            serviceContext.unregisterComponentCallbacks(componentCallback)
 
             screenCapturer?.stopCapture()
             screenCapturer?.dispose()

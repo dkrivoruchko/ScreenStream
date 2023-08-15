@@ -1,9 +1,7 @@
 package info.dvkr.screenstream.mjpeg.image
 
 import android.annotation.SuppressLint
-import android.content.ComponentCallbacks
 import android.content.Context
-import android.content.res.Configuration
 import android.graphics.*
 import android.hardware.display.DisplayManager
 import android.hardware.display.VirtualDisplay
@@ -118,15 +116,6 @@ class BitmapCapture(
 
     private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default + coroutineExceptionHandler)
 
-    private val componentCallback = object : ComponentCallbacks {
-        override fun onConfigurationChanged(newConfig: Configuration) {
-            XLog.d(this@BitmapCapture.getLog("ComponentCallbacks", "Configuration changed"))
-            if (state == State.STARTED) restart()
-        }
-
-        override fun onLowMemory() = Unit
-    }
-
     init {
         XLog.d(getLog("init"))
 
@@ -167,14 +156,14 @@ class BitmapCapture(
     }
 
     @Synchronized
-    fun start() {
+    internal fun start(): Boolean {
         XLog.d(getLog("start"))
         requireState(State.INIT)
-        startDisplayCapture()
+        return startDisplayCapture()
     }
 
     @Synchronized
-    fun destroy() {
+    internal fun destroy() {
         XLog.d(getLog("destroy"))
         if (state == State.DESTROYED) {
             XLog.w(getLog("destroy", "Already destroyed"))
@@ -188,7 +177,7 @@ class BitmapCapture(
     }
 
     @SuppressLint("WrongConstant")
-    private fun startDisplayCapture() {
+    private fun startDisplayCapture(): Boolean {
         val screenSize = getScreenSizeCompat()
 
         val screenSizeX: Int
@@ -250,13 +239,10 @@ class BitmapCapture(
             onError(CastSecurityException)
         }
 
-        if (state == State.STARTED)
-            context.registerComponentCallbacks(componentCallback)
+        return state == State.STARTED
     }
 
     private fun stopDisplayCapture() {
-        context.unregisterComponentCallbacks(componentCallback)
-
         virtualDisplay?.release()
         virtualDisplay = null
         imageReader?.surface?.release() // For some reason imageReader.close() does not release surface
@@ -274,7 +260,7 @@ class BitmapCapture(
     }
 
     @Synchronized
-    private fun restart() {
+    internal fun restart() {
         XLog.d(getLog("restart", "Start"))
         if (state != State.STARTED) {
             XLog.d(getLog("restart", "Ignored"))
@@ -404,6 +390,7 @@ class BitmapCapture(
                     imageCropTopResult = (imageCropTop.get() * scale).toInt()
                     imageCropBottomResult = (imageCropBottom.get() * scale).toInt()
                 }
+
                 else -> {
                     imageCropLeftResult = imageCropLeft.get()
                     imageCropRightResult = imageCropRight.get()

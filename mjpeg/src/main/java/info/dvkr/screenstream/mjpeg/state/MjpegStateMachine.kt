@@ -2,17 +2,22 @@ package info.dvkr.screenstream.mjpeg.state
 
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.app.Service
+import android.content.ComponentCallbacks
 import android.content.Context
 import android.content.Intent
+import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.media.projection.MediaProjection
 import android.media.projection.MediaProjectionManager
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.os.PowerManager
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.common.AppError
 import info.dvkr.screenstream.common.AppStateMachine
+import info.dvkr.screenstream.common.NotificationHelper
 import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.common.settings.AppSettings
 import info.dvkr.screenstream.mjpeg.*
@@ -28,7 +33,8 @@ import kotlinx.coroutines.flow.*
 import java.util.concurrent.LinkedBlockingDeque
 
 class MjpegStateMachine(
-    private val serviceContext: Context,
+    private val service: Service,
+    private val notificationHelper: NotificationHelper,
     private val appSettings: AppSettings,
     private val mjpegSettings: MjpegSettings,
     private val effectSharedFlow: MutableSharedFlow<AppStateMachine.Effect>,
@@ -45,7 +51,7 @@ class MjpegStateMachine(
     private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default + coroutineExceptionHandler)
 
     private val bitmapStateFlow = MutableStateFlow(Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888))
-    private val projectionManager = serviceContext.getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
+    private val projectionManager = service.getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
     private val projectionCallback = object : MediaProjection.Callback() {
         override fun onStop() {
             XLog.i(this@MjpegStateMachine.getLog("MediaProjection.Callback", "onStop"))
@@ -53,26 +59,25 @@ class MjpegStateMachine(
         }
     }
 
-    private val broadcastHelper = BroadcastHelper.getInstance(serviceContext)
-    private val connectivityHelper: ConnectivityHelper = ConnectivityHelper.getInstance(serviceContext)
-    private val networkHelper = NetworkHelper(serviceContext)
-    private val notificationBitmap = NotificationBitmap(serviceContext, mjpegSettings)
-    private val httpServer = HttpServer(serviceContext, coroutineScope, mjpegSettings, bitmapStateFlow.asStateFlow(), notificationBitmap)
+    private val broadcastHelper = BroadcastHelper.getInstance(service)
+    private val connectivityHelper: ConnectivityHelper = ConnectivityHelper.getInstance(service)
+    private val networkHelper = NetworkHelper(service)
+    private val notificationBitmap = NotificationBitmap(service, mjpegSettings)
+    private val httpServer = HttpServer(service, coroutineScope, mjpegSettings, bitmapStateFlow.asStateFlow(), notificationBitmap)
     private var mediaProjectionIntent: Intent? = null
 
-    private val powerManager = serviceContext.getSystemService(Context.POWER_SERVICE) as PowerManager
+    private val powerManager = service.getSystemService(Context.POWER_SERVICE) as PowerManager
     private var wakeLock: PowerManager.WakeLock? = null
 
     internal sealed class InternalEvent : AppStateMachine.Event() {
-        object DiscoverAddress : InternalEvent()
-        object StartServer : InternalEvent()
+        data object DiscoverAddress : InternalEvent()
+        data object StartServer : InternalEvent()
         data class ComponentError(val appError: AppError) : InternalEvent()
-        object StartStopFromWebPage : InternalEvent()
+        data object StartStopFromWebPage : InternalEvent()
         data class RestartServer(val reason: RestartReason) : InternalEvent()
-        object ScreenOff : InternalEvent()
-        object Destroy : InternalEvent()
-
-        override fun toString(): String = javaClass.simpleName
+        data object ScreenOff : InternalEvent()
+        data object Destroy : InternalEvent()
+        data object RestartCapture : InternalEvent()
     }
 
     internal sealed class RestartReason(private val msg: String) {
@@ -110,8 +115,24 @@ class MjpegStateMachine(
     private val eventSharedFlow = MutableSharedFlow<AppStateMachine.Event>(replay = 5, extraBufferCapacity = 8)
     private val eventDeque = LinkedBlockingDeque<AppStateMachine.Event>()
 
+    private val componentCallback = object : ComponentCallbacks {
+        override fun onConfigurationChanged(newConfig: Configuration) {
+            XLog.d(this@MjpegStateMachine.getLog("ComponentCallbacks", "Configuration changed"))
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                sendEvent(InternalEvent.RestartCapture)
+            } else {
+                sendEvent(AppStateMachine.Event.StopStream)
+                sendEvent(AppStateMachine.Event.StartStream, 500) //TODO Add autorestart to settings?
+            }
+        }
+
+        override fun onLowMemory() = Unit
+    }
+
     init {
         XLog.d(getLog("init"))
+
+        notificationHelper.showNotification(service, NotificationHelper.NotificationType.START)
 
         coroutineScope.launch {
             if (mjpegSettings.enablePinFlow.first() && mjpegSettings.newPinOnAppStartFlow.first())
@@ -131,6 +152,7 @@ class MjpegStateMachine(
                         is InternalEvent.RestartServer -> restartServer(streamState, event.reason)
                         is InternalEvent.ScreenOff -> screenOff(streamState)
                         is InternalEvent.Destroy -> destroy(streamState)
+                        is InternalEvent.RestartCapture -> restartCapture(streamState)
 
                         is AppStateMachine.Event.StartStream -> startStream(streamState)
                         is AppStateMachine.Event.CastPermissionsDenied -> castPermissionsDenied(streamState)
@@ -138,6 +160,7 @@ class MjpegStateMachine(
                         is AppStateMachine.Event.StopStream -> stopStream(streamState)
                         is AppStateMachine.Event.RequestPublicState -> requestPublicState(streamState)
                         is AppStateMachine.Event.RecoverError -> recoverError(streamState)
+                        is AppStateMachine.Event.UpdateNotification -> updateNotification(streamState)
                         else -> throw IllegalArgumentException("Unknown AppStateMachine.Event: $event")
                     }
 
@@ -276,7 +299,7 @@ class MjpegStateMachine(
         broadcastHelper.stopListening()
         connectivityHelper.stopListening()
         coroutineScope.cancel()
-
+        notificationHelper.clearNotification(service)
         mediaProjectionIntent = null
     }
 
@@ -289,6 +312,8 @@ class MjpegStateMachine(
     private fun stopProjection(streamState: StreamState): StreamState {
         XLog.d(getLog("stopProjection"))
         if (streamState.isStreaming()) {
+            notificationHelper.showNotification(service, NotificationHelper.NotificationType.START)
+            service.unregisterComponentCallbacks(componentCallback)
             streamState.bitmapCapture?.destroy()
             streamState.mediaProjection?.unregisterCallback(projectionCallback)
             streamState.mediaProjection?.stop()
@@ -342,7 +367,7 @@ class MjpegStateMachine(
     private fun startStream(streamState: StreamState): StreamState {
         XLog.d(getLog("startStream"))
 
-        return if (mediaProjectionIntent != null) {
+        return if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE && mediaProjectionIntent != null) {
             sendEvent(AppStateMachine.Event.StartProjection(mediaProjectionIntent!!))
             streamState
         } else {
@@ -362,13 +387,14 @@ class MjpegStateMachine(
         try {
             val mediaProjection = withContext(Dispatchers.Main) {
                 delay(500)
+                notificationHelper.showNotification(service, NotificationHelper.NotificationType.STOP)
                 projectionManager.getMediaProjection(Activity.RESULT_OK, intent).apply {
                     registerCallback(projectionCallback, Handler(Looper.getMainLooper()))
                 }
             }
-            mediaProjectionIntent = intent
-            val bitmapCapture = BitmapCapture(serviceContext, mjpegSettings, mediaProjection, bitmapStateFlow, ::onError)
-            bitmapCapture.start()
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) mediaProjectionIntent = intent
+            val bitmapCapture = BitmapCapture(service, mjpegSettings, mediaProjection, bitmapStateFlow, ::onError)
+            if (bitmapCapture.start()) service.registerComponentCallbacks(componentCallback)
 
             if (appSettings.keepAwakeFlow.first()) {
                 synchronized(this) {
@@ -387,6 +413,7 @@ class MjpegStateMachine(
                 bitmapCapture = bitmapCapture
             )
         } catch (cause: Throwable) {
+            notificationHelper.showNotification(service, NotificationHelper.NotificationType.START)
             XLog.e(getLog("startProjection"), cause)
         }
         mediaProjectionIntent = null
@@ -417,6 +444,14 @@ class MjpegStateMachine(
         XLog.d(getLog("destroy"))
 
         return stopProjection(streamState).copy(state = StreamState.State.DESTROYED)
+    }
+
+    private fun restartCapture(streamState: StreamState): StreamState {
+        XLog.d(getLog("restartCapture"))
+
+        streamState.bitmapCapture?.restart()
+
+        return streamState
     }
 
     private suspend fun startStopFromWebPage(streamState: StreamState): StreamState {
@@ -472,6 +507,16 @@ class MjpegStateMachine(
 
         sendEvent(InternalEvent.DiscoverAddress)
         return streamState.copy(state = StreamState.State.RESTART_PENDING, appError = null)
+    }
+
+    private fun updateNotification(streamState: StreamState): StreamState {
+        XLog.d(getLog("updateNotification"))
+
+        if (streamState.isStreaming().not()) {
+            notificationHelper.showNotification(service, NotificationHelper.NotificationType.START)
+        }
+
+        return streamState
     }
 
     private suspend fun requestPublicState(streamState: StreamState): StreamState {

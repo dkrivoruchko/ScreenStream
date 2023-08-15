@@ -62,7 +62,7 @@ class AppActivity : CastPermissionActivity(R.layout.activity_app) {
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             lifecycleScope.launchWhenResumed {
-                if (isNotificationPermissionGranted().not() || appSettings.addTileAsked.first()) return@launchWhenResumed
+                if (notificationHelper.isNotificationPermissionGranted(this@AppActivity).not() || appSettings.addTileAsked.first()) return@launchWhenResumed
                 appSettings.setAddTileAsked(true)
                 TileActionService.askToAddTile(this@AppActivity)
             }

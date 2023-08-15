@@ -2,11 +2,14 @@ package info.dvkr.screenstream.webrtc
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.app.Service
 import android.content.BroadcastReceiver
+import android.content.ComponentCallbacks
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
+import android.content.res.Configuration
 import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
@@ -15,10 +18,12 @@ import android.os.Build
 import android.os.Handler
 import android.os.HandlerThread
 import android.os.PowerManager
+import androidx.annotation.MainThread
 import androidx.core.content.ContextCompat
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.common.AppError
 import info.dvkr.screenstream.common.AppStateMachine
+import info.dvkr.screenstream.common.NotificationHelper
 import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.common.listenForChange
 import info.dvkr.screenstream.common.settings.AppSettings
@@ -55,7 +60,8 @@ import java.util.concurrent.LinkedBlockingDeque
 import java.util.concurrent.TimeUnit
 
 public class WebRtcHandlerThread(
-    private val serviceContext: Context,
+    private val service: Service,
+    private val notificationHelper: NotificationHelper,
     private val appSettings: AppSettings,
     private val environment: WebRtcEnvironment,
     private val webRtcSettings: WebRtcSettings,
@@ -69,15 +75,15 @@ public class WebRtcHandlerThread(
     private val coroutineScope by lazy(LazyThreadSafetyMode.NONE) { CoroutineScope(SupervisorJob() + coroutineDispatcher) }
 
     private val okHttpClient = OkHttpClient.Builder().connectionSpecs(listOf(ConnectionSpec.RESTRICTED_TLS))
-        .connectionPool(ConnectionPool(0, 5,  TimeUnit.MINUTES)) //[com.google.android.gms.internal.ads.ok: timeout]
+        .connectionPool(ConnectionPool(0, 5, TimeUnit.MINUTES)) //[com.google.android.gms.internal.ads.ok: timeout]
         .connectTimeout(30, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
         .writeTimeout(30, TimeUnit.SECONDS)
         .build()
     private val playIntegrity = PlayIntegrity(environment, okHttpClient)
 
-    private val connectivityManager: ConnectivityManager = serviceContext.getSystemService(ConnectivityManager::class.java)
-    private val powerManager: PowerManager = serviceContext.getSystemService(PowerManager::class.java)
+    private val connectivityManager: ConnectivityManager = service.getSystemService(ConnectivityManager::class.java)
+    private val powerManager: PowerManager = service.getSystemService(PowerManager::class.java)
 
     private val pendingEventDeque = LinkedBlockingDeque<AppStateMachine.Event>()
 
@@ -249,6 +255,25 @@ public class WebRtcHandlerThread(
         }
     }
 
+    private val componentCallback = object : ComponentCallbacks {
+        @MainThread
+        override fun onConfigurationChanged(newConfig: Configuration) {
+            if (isStreaming().not()) {
+                XLog.i(this@WebRtcHandlerThread.getLog("ComponentCallback", "Configuration changed. Ignoring: Not streaming"))
+                return
+            }
+            XLog.i(this@WebRtcHandlerThread.getLog("ComponentCallback", "Configuration changed"))
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                projection!!.changeCaptureFormat()
+            } else {
+                sendEvent(AppStateMachine.Event.StopStream)
+                sendEvent(AppStateMachine.Event.StartStream, 500) //TODO Add autorestart to settings?
+            }
+        }
+
+        override fun onLowMemory() = Unit
+    }
+
     init {
         XLog.d(getLog("init"))
     }
@@ -257,11 +282,13 @@ public class WebRtcHandlerThread(
         super.start()
         XLog.d(getLog("start"))
 
+        notificationHelper.showNotification(service, NotificationHelper.NotificationType.START)
+
         val intentFilter = IntentFilter().apply { addAction(Intent.ACTION_SCREEN_OFF) }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
-            serviceContext.registerReceiver(broadcastReceiver, intentFilter, Context.RECEIVER_NOT_EXPORTED)
+            service.registerReceiver(broadcastReceiver, intentFilter, Context.RECEIVER_NOT_EXPORTED)
         else
-            serviceContext.registerReceiver(broadcastReceiver, intentFilter)
+            service.registerReceiver(broadcastReceiver, intentFilter)
 
         connectivityManager.registerNetworkCallback(
             NetworkRequest.Builder().addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET).build(),
@@ -276,7 +303,7 @@ public class WebRtcHandlerThread(
 
         webRtcSettings.enableMicFlow
             .onStart {
-                val micPermission = ContextCompat.checkSelfPermission(serviceContext, Manifest.permission.RECORD_AUDIO)
+                val micPermission = ContextCompat.checkSelfPermission(service, Manifest.permission.RECORD_AUDIO)
                 if (micPermission == PackageManager.PERMISSION_DENIED) webRtcSettings.setEnableMic(false)
             }
             .listenForChange(coroutineScope, 0) { enableMic ->
@@ -310,7 +337,7 @@ public class WebRtcHandlerThread(
         }
         if (event is InternalEvent.Destroy) pendingDestroy = true
 
-        if (event is AppStateMachine.Event.StopStream || event is AppStateMachine.Event.RequestPublicState || event is AppStateMachine.Event.RecoverError) return true
+        if (event is AppStateMachine.Event.StopStream || event is AppStateMachine.Event.RequestPublicState || event is AppStateMachine.Event.RecoverError || event is AppStateMachine.Event.UpdateNotification) return true
 
         if (appError != null && appError !is WebRtcError.NetworkError) {
             XLog.w(getLog("allowEvent", "App error present: Ignoring event => $event"))
@@ -363,7 +390,8 @@ public class WebRtcHandlerThread(
     override fun destroy() {
         XLog.d(getLog("destroy"))
 
-        serviceContext.unregisterReceiver(broadcastReceiver)
+        notificationHelper.clearNotification(service)
+        service.unregisterReceiver(broadcastReceiver)
         connectivityManager.unregisterNetworkCallback(networkCallback)
         coroutineScope.cancel()
 
@@ -427,7 +455,9 @@ public class WebRtcHandlerThread(
                     if (isStreaming()) {
                         signaling!!.sendStreamStop()
                         clients.values.forEach { it.stop() }
+                        service.unregisterComponentCallbacks(componentCallback)
                         projection!!.stop()
+                        notificationHelper.showNotification(service, NotificationHelper.NotificationType.START)
                     }
 
                     signaling!!.sendRemoveClients(clients.values.map { it.clientId })
@@ -436,7 +466,7 @@ public class WebRtcHandlerThread(
                 }
 
                 streamId = event.streamId
-                projection = projection ?: WebRtcProjection(serviceContext, webRtcSettings, coroutineDispatcher)
+                projection = projection ?: WebRtcProjection(service, webRtcSettings, coroutineDispatcher)
             }
 
             is InternalEvent.ClientJoin -> {
@@ -464,7 +494,7 @@ public class WebRtcHandlerThread(
             }
 
             is AppStateMachine.Event.StartStream ->
-                if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.TIRAMISU && mediaProjectionIntent != null)
+                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE && mediaProjectionIntent != null)
                     sendEvent(AppStateMachine.Event.StartProjection(mediaProjectionIntent!!))
                 else
                     waitingForPermission = true
@@ -474,15 +504,17 @@ public class WebRtcHandlerThread(
             is AppStateMachine.Event.StartProjection -> if (isStreaming()) {
                 XLog.w(getLog("StartProjection", "Already streaming. Ignoring."))
             } else {
-                if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.TIRAMISU) mediaProjectionIntent = event.intent
+                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) mediaProjectionIntent = event.intent
                 waitingForPermission = false
                 isAudioPermissionGrantedOnStart =
-                    ContextCompat.checkSelfPermission(serviceContext, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
+                    ContextCompat.checkSelfPermission(service, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
 
+                notificationHelper.showNotification(service, NotificationHelper.NotificationType.STOP)
                 projection!!.start(streamId, event.intent) {
                     XLog.i(this@WebRtcHandlerThread.getLog("StartProjection", "MediaProjectionCallback.onStop"))
                     sendEvent(AppStateMachine.Event.StopStream)
                 }
+                service.registerComponentCallbacks(componentCallback)
                 takeWakeLock()
                 signaling!!.sendStreamStart()
                 clients.values.forEach { it.start(projection!!.localMediaSteam!!) }
@@ -530,7 +562,9 @@ public class WebRtcHandlerThread(
                     releaseWakeLock()
                     signaling!!.sendStreamStop()
                     clients.values.forEach { it.stop() }
+                    service.unregisterComponentCallbacks(componentCallback)
                     projection!!.stop()
+                    notificationHelper.showNotification(service, NotificationHelper.NotificationType.START)
                 } else {
                     XLog.w(getLog("StopStream", "Not streaming. Ignoring."))
                 }
@@ -543,7 +577,9 @@ public class WebRtcHandlerThread(
                 if (isStreaming()) {
                     signaling!!.sendStreamStop()
                     clients.values.forEach { it.stop() }
+                    service.unregisterComponentCallbacks(componentCallback)
                     projection!!.stop()
+                    notificationHelper.showNotification(service, NotificationHelper.NotificationType.START)
                 }
 
                 signaling?.destroy()
@@ -613,6 +649,11 @@ public class WebRtcHandlerThread(
                 effectSharedFlow.tryEmit(AppStateMachine.Effect.Statistic.Clients(clients.values.map { it.toPublic() }))
             }
 
+            is AppStateMachine.Event.UpdateNotification -> {
+                if (isStreaming().not())
+                    notificationHelper.showNotification(service, NotificationHelper.NotificationType.START)
+            }
+
             else -> throw IllegalArgumentException("Unknown WebRTCHandlerThread.Event: $event")
         }
 
@@ -643,5 +684,5 @@ public class WebRtcHandlerThread(
     }
 
     private fun getStateString(): String =
-        "Pending D/S/ID: $pendingDestroy/$pendingSocket/$pendingStreamId, Socket:${signaling?.socketId()}, StreamId:$streamId, Streaming:${isStreaming()}, WFP:$waitingForPermission, Clients:${clients.size}"
+        "Pending Dest/Sock/ID: $pendingDestroy/$pendingSocket/$pendingStreamId, Socket:${signaling?.socketId()}, StreamId:$streamId, Streaming:${isStreaming()}, WFP:$waitingForPermission, Clients:${clients.size}"
 }

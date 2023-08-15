@@ -1,8 +1,10 @@
 package info.dvkr.screenstream.service.helper
 
+import android.Manifest
 import android.app.*
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.content.pm.ServiceInfo
 import android.os.Build
 import androidx.annotation.RequiresApi
@@ -13,23 +15,29 @@ import androidx.core.graphics.drawable.toBitmap
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.common.AppError
+import info.dvkr.screenstream.common.NotificationHelper
 import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.ui.activity.AppActivity
 
-class NotificationHelper(context: Context) {
+class NotificationHelperImpl(context: Context) : NotificationHelper {
     companion object {
         private const val CHANNEL_STREAM = "info.dvkr.screenstream.NOTIFICATION_CHANNEL_START_STOP"
         private const val CHANNEL_ERROR = "info.dvkr.screenstream.NOTIFICATION_CHANNEL_ERROR"
     }
 
-    enum class NotificationType(val id: Int) { START(10), STOP(11), ERROR(50) }
-
     private val applicationContext: Context = context.applicationContext
     private val notificationManager = applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
-    private var currentNotificationType: NotificationType? = null
+    private var currentNotificationType: NotificationHelper.NotificationType? = null
 
-    fun createNotificationChannel() {
+    //todo val notificationManager = applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+    //todo notificationManager.areNotificationsEnabled()
+
+    init {
+        createNotificationChannel()
+    }
+
+    override fun createNotificationChannel() {
         currentNotificationType = null
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             notificationManager.deleteNotificationChannel("info.dvkr.screenstream.service.NOTIFICATION_CHANNEL_01")
@@ -57,47 +65,72 @@ class NotificationHelper(context: Context) {
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
-    fun getNotificationSettingsIntent(): Intent =
+    override fun getNotificationSettingsIntent(): Intent =
         Intent(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS)
             .putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, applicationContext.packageName)
 
-    fun showForegroundNotification(service: Service, notificationType: NotificationType) {
-        XLog.d(getLog("showForegroundNotification", "Service:${service.hashCode()}, NotificationType: $notificationType"))
-        if (currentNotificationType != notificationType) {
-            val notification = getForegroundNotification(notificationType)
+    override fun isNotificationPermissionGranted(context: Context): Boolean =
+        Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+                ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+
+    override fun showNotification(service: Service, notificationType: NotificationHelper.NotificationType) {
+        val message = "Service:${service.hashCode()}, NotificationType: $notificationType."
+
+        if (ContextCompat.checkSelfPermission(service, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+            XLog.d(getLog("showNotification", "$message No permission granted. Ignoring."))
+            return
+        }
+
+        if (currentNotificationType == notificationType) {
+            XLog.d(getLog("showNotification", "$message Same as current. Ignoring."))
+            return
+        }
+        XLog.d(getLog("showNotification", "Service:${service.hashCode()}, NotificationType: $notificationType"))
+
+        clearNotification(service)
+
+        val notification = getNotification(notificationType)
+
+        if (notificationType == NotificationHelper.NotificationType.START) {
+            XLog.d(getLog("showNotification", "$message Show"))
+            notificationManager.notify(notificationType.id, notification)
+        }
+
+        if (notificationType == NotificationHelper.NotificationType.STOP) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                XLog.d(
-                    getLog(
-                        "showForegroundNotification",
-                        "service.startForeground.Q: Service:${service.hashCode()}, NotificationType: $notificationType"
-                    )
-                )
-                service.startForeground(
-                    notificationType.id,
-                    notification,
-                    ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION
-                ) //ServiceInfo.FOREGROUND_SERVICE_TYPE_MANIFEST
+                XLog.d(getLog("showNotification", "$message startForeground on Q"))
+                if (ContextCompat.checkSelfPermission(service, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED)
+                    service.startForeground(notificationType.id, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MANIFEST)
+                else
+                    service.startForeground(notificationType.id, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION)
             } else {
-                XLog.d(
-                    getLog(
-                        "showForegroundNotification",
-                        "service.startForeground: Service:${service.hashCode()}, NotificationType: $notificationType"
-                    )
-                )
+                XLog.d(getLog("showNotification", "$message startForeground"))
                 service.startForeground(notificationType.id, notification)
             }
-            currentNotificationType = notificationType
-            XLog.d(
-                getLog(
-                    "showForegroundNotification",
-                    "service.startForeground: Service:${service.hashCode()}, currentNotificationType: $currentNotificationType"
-                )
-            )
+        }
+
+        currentNotificationType = notificationType
+    }
+
+    override fun clearNotification(service: Service) {
+        XLog.d(getLog("clearNotification", "Service:${service.hashCode()}, NotificationType: $currentNotificationType"))
+
+        currentNotificationType?.let {
+            if (it == NotificationHelper.NotificationType.START) {
+                XLog.d(getLog("clearNotification", "Service:${service.hashCode()}, NotificationType: $it. Cancel it"))
+                notificationManager.cancel(it.id)
+            }
+
+            if (it == NotificationHelper.NotificationType.STOP) {
+                XLog.d(getLog("clearNotification", "Service:${service.hashCode()}, NotificationType: $it. StopForeground"))
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) service.stopForeground(Service.STOP_FOREGROUND_REMOVE)
+                else service.stopForeground(true)
+            }
         }
     }
 
-    fun showErrorNotification(appError: AppError) {
-        notificationManager.cancel(NotificationType.ERROR.id)
+    override fun showErrorNotification(appError: AppError) {
+        notificationManager.cancel(NotificationHelper.NotificationType.ERROR.id)
 
         val message = appError.toString(applicationContext)
         val builder = NotificationCompat.Builder(applicationContext, CHANNEL_ERROR)
@@ -150,15 +183,15 @@ class NotificationHelper(context: Context) {
             }
         }
 
-        notificationManager.notify(NotificationType.ERROR.id, builder.build())
+        notificationManager.notify(NotificationHelper.NotificationType.ERROR.id, builder.build())
     }
 
-    fun hideErrorNotification() {
-        notificationManager.cancel(NotificationType.ERROR.id)
+    override fun hideErrorNotification() {
+        notificationManager.cancel(NotificationHelper.NotificationType.ERROR.id)
     }
 
-    private fun getForegroundNotification(notificationType: NotificationType): Notification {
-        XLog.d(getLog("getForegroundNotification", "NotificationType: $notificationType"))
+    private fun getNotification(notificationType: NotificationHelper.NotificationType): Notification {
+        XLog.d(getLog("getNotification", "NotificationType: $notificationType"))
 
         val builder = NotificationCompat.Builder(applicationContext, CHANNEL_STREAM)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
@@ -182,7 +215,7 @@ class NotificationHelper(context: Context) {
         }
 
         return when (notificationType) {
-            NotificationType.START -> builder
+            NotificationHelper.NotificationType.START -> builder
                 .setContentTitle(applicationContext.getString(R.string.notification_ready_to_stream))
                 .setContentText(applicationContext.getString(R.string.notification_press_start))
                 .setSmallIcon(R.drawable.ic_notification_small_24dp)
@@ -210,7 +243,7 @@ class NotificationHelper(context: Context) {
                 )
                 .build()
 
-            NotificationType.STOP -> builder
+            NotificationHelper.NotificationType.STOP -> builder
                 .setContentTitle(applicationContext.getString(R.string.notification_stream))
                 .setContentText(applicationContext.getString(R.string.notification_press_stop))
                 .setSmallIcon(R.drawable.ic_notification_small_anim_24dp)

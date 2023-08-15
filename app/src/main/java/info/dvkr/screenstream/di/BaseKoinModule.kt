@@ -6,12 +6,13 @@ import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.preferencesDataStoreFile
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.BuildConfig
+import info.dvkr.screenstream.common.NotificationHelper
 import info.dvkr.screenstream.common.settings.AppSettings
 import info.dvkr.screenstream.common.settings.AppSettingsImpl
 import info.dvkr.screenstream.di.migration.SettingsMigration
 import info.dvkr.screenstream.mjpeg.settings.MjpegSettings
 import info.dvkr.screenstream.mjpeg.settings.MjpegSettingsImpl
-import info.dvkr.screenstream.service.helper.NotificationHelper
+import info.dvkr.screenstream.service.helper.NotificationHelperImpl
 import info.dvkr.screenstream.webrtc.WebRtcEnvironment
 import info.dvkr.screenstream.webrtc.WebRtcSettings
 import info.dvkr.screenstream.webrtc.WebRtcSettingsImpl
@@ -44,6 +45,5 @@ val baseKoinModule = module {
         )
     }
 
-    single { NotificationHelper(androidApplication()) }
-
+    single<NotificationHelper> { NotificationHelperImpl(androidApplication()) }
 }

@@ -2,6 +2,7 @@ package info.dvkr.screenstream.ui.activity
 
 import android.content.ActivityNotFoundException
 import android.media.projection.MediaProjectionManager
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.LayoutRes
@@ -83,7 +84,15 @@ abstract class CastPermissionActivity(@LayoutRes contentLayoutId: Int) : Notific
         castPermissionsPending = true
         try {
             val projectionManager = ContextCompat.getSystemService(this, MediaProjectionManager::class.java)!!
-            startMediaProjection.launch(projectionManager.createScreenCaptureIntent())
+            val intent = if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                projectionManager.createScreenCaptureIntent()
+            } else {
+                projectionManager.createScreenCaptureIntent()
+                //TODO   MediaProjectionConfig.createConfigForDefaultDisplay()
+                //TODO   MediaProjectionConfig.createConfigForUserChoice()
+            }
+
+            startMediaProjection.launch(intent)
         } catch (ignore: ActivityNotFoundException) {
             IntentAction.CastPermissionsDenied.sendToAppService(this@CastPermissionActivity)
             showErrorDialog(

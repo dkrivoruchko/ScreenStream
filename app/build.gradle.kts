@@ -28,7 +28,7 @@ android {
     defaultConfig {
         applicationId = "info.dvkr.screenstream"
         minSdk = 23
-        targetSdk = 33
+        targetSdk = 34
         versionCode = 40004
         versionName = "4.0.4"
 
@@ -110,8 +110,8 @@ dependencies {
     implementation("com.google.android.material:material:1.9.0")
     implementation("androidx.window:window:1.1.0")
     implementation("androidx.lifecycle:lifecycle-process:2.6.1")
-    implementation("androidx.navigation:navigation-fragment-ktx:2.6.0")
-    implementation("androidx.navigation:navigation-ui-ktx:2.6.0")
+    implementation("androidx.navigation:navigation-fragment-ktx:2.7.0")
+    implementation("androidx.navigation:navigation-ui-ktx:2.7.0")
 
     implementation("com.afollestad.material-dialogs:core:3.3.0")
     implementation("com.afollestad.material-dialogs:color:3.3.0")
