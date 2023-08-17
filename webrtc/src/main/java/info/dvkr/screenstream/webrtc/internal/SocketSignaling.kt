@@ -171,8 +171,14 @@ internal class SocketSignaling(
             on(Socket.EVENT_CONNECT_ERROR) { args -> // Auto or User reconnect
                 XLog.e(this@SocketSignaling.getLog(Socket.EVENT_CONNECT_ERROR, args.contentToString()))
                 val message = (args?.firstOrNull() as? JSONObject)?.optString(Payload.MESSAGE) ?: ""
-                if (message.startsWith("$ERROR_TOKEN_VERIFICATION_FAILED:TOKEN_EXPIRED")) eventListener.onTokenExpired()
-                else eventListener.onError(Errors.SocketAuthError.fromMessage(message) ?: Errors.SocketConnectError(message))
+                if (message.startsWith("$ERROR_TOKEN_VERIFICATION_FAILED:TOKEN_EXPIRED")) {
+                    val timeout = message.drop("$ERROR_TOKEN_VERIFICATION_FAILED:TOKEN_EXPIRED".length)
+                    XLog.d(this@SocketSignaling.getLog("openSocket", "TOKEN_EXPIRED"), IllegalStateException("TOKEN_EXPIRED:$timeout"))
+                    eventListener.onTokenExpired()
+                } else if (message.startsWith("$ERROR_TOKEN_VERIFICATION_FAILED:WRONG_APP_VERDICT")) {
+                    XLog.d(this@SocketSignaling.getLog("openSocket", "WRONG_APP_VERDICT"), IllegalStateException("WRONG_APP_VERDICT"))
+                    eventListener.onError(Errors.SocketAuthError.fromMessage(message) ?: Errors.SocketConnectError(message))
+                } else eventListener.onError(Errors.SocketAuthError.fromMessage(message) ?: Errors.SocketConnectError(message))
             }
             on(Event.SOCKET_ERROR) { args -> // Server always disconnects socket on this event. User reconnect
                 XLog.e(this@SocketSignaling.getLog(Event.SOCKET_ERROR + "[${socketId()}]", args.contentToString()))
@@ -227,7 +233,12 @@ internal class SocketSignaling(
 
             override fun onTimeout() {
                 XLog.w(this@SocketSignaling.getLog("sendStreamCreate[${socketId()}]", "[${Event.STREAM_CREATE}] => Timeout. Data: $data"))
-                eventListener.onError(Errors.StreamCreateError("[${Event.STREAM_CREATE}] => Timeout", IllegalStateException("[${Event.STREAM_CREATE}] => Timeout")))
+                eventListener.onError(
+                    Errors.StreamCreateError(
+                        "[${Event.STREAM_CREATE}] => Timeout",
+                        IllegalStateException("[${Event.STREAM_CREATE}] => Timeout")
+                    )
+                )
             }
         })
     }
@@ -335,13 +346,21 @@ internal class SocketSignaling(
                         eventListener.onClientNotFound(clientId!!)
                     }
 
-                    else -> XLog.e(this@SocketSignaling.getLog("sendStreamStart", status), IllegalArgumentException("sendStreamStart => $status"))
+                    else -> XLog.e(
+                        this@SocketSignaling.getLog("sendStreamStart", status),
+                        IllegalArgumentException("sendStreamStart => $status")
+                    )
                 }
             }
 
             override fun onTimeout() {
                 XLog.w(this@SocketSignaling.getLog("sendStreamStart[${socketId()}]", "[${Event.STREAM_START}] => Timeout"))
-                eventListener.onError(Errors.StreamStartError("[${Event.STREAM_START}] => Timeout", IllegalStateException("[${Event.STREAM_START}] => Timeout")))
+                eventListener.onError(
+                    Errors.StreamStartError(
+                        "[${Event.STREAM_START}] => Timeout",
+                        IllegalStateException("[${Event.STREAM_START}] => Timeout")
+                    )
+                )
             }
         })
     }

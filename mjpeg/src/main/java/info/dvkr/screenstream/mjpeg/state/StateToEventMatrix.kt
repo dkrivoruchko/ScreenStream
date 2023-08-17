@@ -45,7 +45,7 @@ object StateToEventMatrix {
             MjpegStateMachine.InternalEvent.RestartServer::class.java to Action.Process,
             MjpegStateMachine.InternalEvent.ScreenOff::class.java to Action.Skipp,
             MjpegStateMachine.InternalEvent.Destroy::class.java to Action.Process,
-            MjpegStateMachine.InternalEvent.RestartCapture::class.java to Action.Skipp,
+            MjpegStateMachine.InternalEvent.ConfigurationChange::class.java to Action.Skipp,
 
             AppStateMachine.Event.StartStream::class.java to Action.Skipp,
             AppStateMachine.Event.CastPermissionsDenied::class.java to Action.Skipp,
@@ -64,7 +64,7 @@ object StateToEventMatrix {
             MjpegStateMachine.InternalEvent.RestartServer::class.java to Action.Process,
             MjpegStateMachine.InternalEvent.ScreenOff::class.java to Action.Skipp,
             MjpegStateMachine.InternalEvent.Destroy::class.java to Action.Process,
-            MjpegStateMachine.InternalEvent.RestartCapture::class.java to Action.Skipp,
+            MjpegStateMachine.InternalEvent.ConfigurationChange::class.java to Action.Skipp,
 
             AppStateMachine.Event.StartStream::class.java to Action.Skipp,
             AppStateMachine.Event.CastPermissionsDenied::class.java to Action.Skipp,
@@ -83,7 +83,7 @@ object StateToEventMatrix {
             MjpegStateMachine.InternalEvent.RestartServer::class.java to Action.Process,
             MjpegStateMachine.InternalEvent.ScreenOff::class.java to Action.Skipp,
             MjpegStateMachine.InternalEvent.Destroy::class.java to Action.Process,
-            MjpegStateMachine.InternalEvent.RestartCapture::class.java to Action.Skipp,
+            MjpegStateMachine.InternalEvent.ConfigurationChange::class.java to Action.Skipp,
 
             AppStateMachine.Event.StartStream::class.java to Action.Process,
             AppStateMachine.Event.CastPermissionsDenied::class.java to Action.Skipp,
@@ -102,7 +102,7 @@ object StateToEventMatrix {
             MjpegStateMachine.InternalEvent.RestartServer::class.java to Action.Process,
             MjpegStateMachine.InternalEvent.ScreenOff::class.java to Action.Skipp,
             MjpegStateMachine.InternalEvent.Destroy::class.java to Action.Process,
-            MjpegStateMachine.InternalEvent.RestartCapture::class.java to Action.Skipp,
+            MjpegStateMachine.InternalEvent.ConfigurationChange::class.java to Action.Skipp,
 
             AppStateMachine.Event.StartStream::class.java to Action.Skipp,
             AppStateMachine.Event.CastPermissionsDenied::class.java to Action.Process,
@@ -121,7 +121,7 @@ object StateToEventMatrix {
             MjpegStateMachine.InternalEvent.RestartServer::class.java to Action.Process,
             MjpegStateMachine.InternalEvent.ScreenOff::class.java to Action.Process,
             MjpegStateMachine.InternalEvent.Destroy::class.java to Action.Process,
-            MjpegStateMachine.InternalEvent.RestartCapture::class.java to Action.Process,
+            MjpegStateMachine.InternalEvent.ConfigurationChange::class.java to Action.Process,
 
             AppStateMachine.Event.StartStream::class.java to Action.Skipp,
             AppStateMachine.Event.CastPermissionsDenied::class.java to Action.Skipp,
@@ -140,7 +140,7 @@ object StateToEventMatrix {
             MjpegStateMachine.InternalEvent.RestartServer::class.java to Action.Skipp,
             MjpegStateMachine.InternalEvent.ScreenOff::class.java to Action.Skipp,
             MjpegStateMachine.InternalEvent.Destroy::class.java to Action.Process,
-            MjpegStateMachine.InternalEvent.RestartCapture::class.java to Action.Skipp,
+            MjpegStateMachine.InternalEvent.ConfigurationChange::class.java to Action.Skipp,
 
             AppStateMachine.Event.StartStream::class.java to Action.Skipp,
             AppStateMachine.Event.CastPermissionsDenied::class.java to Action.Skipp,
@@ -159,7 +159,7 @@ object StateToEventMatrix {
             MjpegStateMachine.InternalEvent.RestartServer::class.java to Action.Process,
             MjpegStateMachine.InternalEvent.ScreenOff::class.java to Action.Skipp,
             MjpegStateMachine.InternalEvent.Destroy::class.java to Action.Process,
-            MjpegStateMachine.InternalEvent.RestartCapture::class.java to Action.Skipp,
+            MjpegStateMachine.InternalEvent.ConfigurationChange::class.java to Action.Skipp,
 
             AppStateMachine.Event.StartStream::class.java to Action.Skipp,
             AppStateMachine.Event.CastPermissionsDenied::class.java to Action.Skipp,
@@ -178,7 +178,7 @@ object StateToEventMatrix {
             MjpegStateMachine.InternalEvent.RestartServer::class.java to Action.Skipp,
             MjpegStateMachine.InternalEvent.ScreenOff::class.java to Action.Skipp,
             MjpegStateMachine.InternalEvent.Destroy::class.java to Action.Skipp,
-            MjpegStateMachine.InternalEvent.RestartCapture::class.java to Action.Skipp,
+            MjpegStateMachine.InternalEvent.ConfigurationChange::class.java to Action.Skipp,
 
             AppStateMachine.Event.StartStream::class.java to Action.Skipp,
             AppStateMachine.Event.CastPermissionsDenied::class.java to Action.Skipp,

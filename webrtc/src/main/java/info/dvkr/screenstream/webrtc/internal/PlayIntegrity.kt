@@ -87,14 +87,14 @@ internal class PlayIntegrity(
 
     @Throws(WebRtcError::class)
     internal suspend fun getTokenWithRetries(forceUpdate: Boolean): PlayIntegrityToken = supervisorScope {
-        withRetries(3, 5000L, 2.0) { getToken(forceUpdate, okHttpClient, it) }
+        withRetries("getToken", 3, 5000L, 2.0) { getToken(forceUpdate, okHttpClient, it) }
     }
 
     @Throws(WebRtcError::class)
     private suspend fun getToken(forceUpdate: Boolean, okHttpClient: OkHttpClient, attempt: Int): PlayIntegrityToken {
         XLog.d(getLog("getToken", "Attempt: $attempt"))
 
-        val nonce = withRetries(3, 2000L, 1.02) { getNonce(okHttpClient, it) }
+        val nonce = withRetries("getNonce", 3, 2000L, 1.02) { getNonce(okHttpClient, it) }
         StandardIntegrityManagerWrapper.prepareIntegrityToken(environment, forceUpdate)
         val playIntegrityToken = StandardIntegrityManagerWrapper.getPlayIntegrityToken(nonce)
 
@@ -112,13 +112,15 @@ internal class PlayIntegrity(
     }.getOrElse { throw if (it is CancellationException) it else WebRtcError.NetworkError(0, it.message, it) }
 
     private suspend inline fun <T> withRetries(
-        maxRetries: Int, startDelayMs: Long, expBackoffBase: Double, noinline operation: suspend (Int) -> T
+        tag: String, maxRetries: Int, startDelayMs: Long, expBackoffBase: Double, noinline operation: suspend (Int) -> T
     ): T =
         try {
             operation(0)
         } catch (cause: Throwable) {
-            if (cause !is UnknownHostException && cause !is CancellationException) XLog.d(getLog("withRetries", "Attempt: 0"), cause)
-            else XLog.d(getLog("withRetries", "Attempt: 0 => ${cause.message}"))
+            if (cause.cause !is UnknownHostException && cause !is CancellationException)
+                XLog.d(getLog("withRetries.$tag", "Attempt: 0 -> ${cause.message}"), cause)
+            else
+                XLog.d(getLog("withRetries.$tag", "Attempt: 0 => ${cause.message}"))
             if (cause is CancellationException || maxRetries <= 0) throw cause
             if (cause is WebRtcError.NetworkError && (cause.code == 0 || cause.code in 500..599)) throw cause
             if (cause is StandardIntegrityException && cause.errorCode !in RETRY_INTEGRITY_ERRORS) throw cause.toWebRtcError()
@@ -132,8 +134,10 @@ internal class PlayIntegrity(
             delay(startDelayMs * (expBackoffBase.pow(attempt - 1).toLong()))
             operation(attempt)
         } catch (cause: Throwable) {
-            if (cause !is UnknownHostException && cause !is CancellationException) XLog.d(getLog("retryWithAttempt", "Attempt: $attempt"), cause)
-            else XLog.d(getLog("retryWithAttempt", "Attempt: $attempt => ${cause.message}"))
+            if (cause.cause !is UnknownHostException && cause !is CancellationException)
+                XLog.d(getLog("retryWithAttempt", "Attempt: $attempt -> ${cause.message}"), cause)
+            else
+                XLog.d(getLog("retryWithAttempt", "Attempt: $attempt => ${cause.message}"))
             if (cause is CancellationException || attempt >= maxRetries) throw cause
             if (cause is WebRtcError.NetworkError && (cause.code == 0 || cause.code in 500..599)) throw cause
             if (cause is StandardIntegrityException && cause.errorCode !in RETRY_INTEGRITY_ERRORS) throw cause.toWebRtcError()

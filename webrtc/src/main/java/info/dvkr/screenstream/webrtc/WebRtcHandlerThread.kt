@@ -8,6 +8,7 @@ import android.content.ComponentCallbacks
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.net.ConnectivityManager
@@ -88,6 +89,7 @@ public class WebRtcHandlerThread(
     private val pendingEventDeque = LinkedBlockingDeque<AppStateMachine.Event>()
 
     // All vars must be read/write on this (WebRTC-HT) thread
+    private var deviceConfiguration = Configuration(service.resources.configuration)
     private var lastPublicStreamState: WebRtcPublicState? = null
     private var socketErrorRetryAttempts = 0
     private var signaling: SocketSignaling? = null
@@ -134,6 +136,7 @@ public class WebRtcHandlerThread(
         data class SocketSignalingError(internal val error: SocketSignaling.Errors) : InternalEvent(true)
         data object PublishClients : InternalEvent(true)
         data object ScreenOff : InternalEvent(true)
+        data class ConfigurationChange(internal val newConfig: Configuration) : InternalEvent(true) //todo ignore?
     }
 
     private val streamPasswordValidator = object : SocketSignaling.StreamPasswordValidator {
@@ -258,17 +261,7 @@ public class WebRtcHandlerThread(
     private val componentCallback = object : ComponentCallbacks {
         @MainThread
         override fun onConfigurationChanged(newConfig: Configuration) {
-            if (isStreaming().not()) {
-                XLog.i(this@WebRtcHandlerThread.getLog("ComponentCallback", "Configuration changed. Ignoring: Not streaming"))
-                return
-            }
-            XLog.i(this@WebRtcHandlerThread.getLog("ComponentCallback", "Configuration changed"))
-            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                projection!!.changeCaptureFormat()
-            } else {
-                sendEvent(AppStateMachine.Event.StopStream)
-                sendEvent(AppStateMachine.Event.StartStream, 500) //TODO Add autorestart to settings?
-            }
+            sendEvent(InternalEvent.ConfigurationChange(newConfig))
         }
 
         override fun onLowMemory() = Unit
@@ -642,6 +635,28 @@ public class WebRtcHandlerThread(
 
             is InternalEvent.ScreenOff -> coroutineScope.launch {
                 if (appSettings.stopOnSleepFlow.first() && isStreaming()) sendEvent(AppStateMachine.Event.StopStream)
+            }
+
+            is InternalEvent.ConfigurationChange -> {
+                if (isStreaming()) {
+                    val configDiff = deviceConfiguration.diff(event.newConfig)
+                    if (
+                        configDiff and ActivityInfo.CONFIG_ORIENTATION != 0 || configDiff and ActivityInfo.CONFIG_SCREEN_LAYOUT != 0 ||
+                        configDiff and ActivityInfo.CONFIG_SCREEN_SIZE != 0 || configDiff and ActivityInfo.CONFIG_DENSITY != 0
+                    ) {
+                        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                            projection!!.changeCaptureFormat()
+                        } else { //TODO Add auto restart to settings?
+                            sendEvent(AppStateMachine.Event.StopStream)
+                            sendEvent(AppStateMachine.Event.StartStream, 500)
+                        }
+                    } else {
+                        XLog.d(getLog("ConfigurationChange", "No change relevant for streaming. Ignoring."))
+                    }
+                } else {
+                    XLog.d(getLog("ConfigurationChange", "Not streaming. Ignoring."))
+                }
+                deviceConfiguration = Configuration(event.newConfig)
             }
 
             is AppStateMachine.Event.RequestPublicState -> {

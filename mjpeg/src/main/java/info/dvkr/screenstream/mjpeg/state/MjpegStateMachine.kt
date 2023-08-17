@@ -6,6 +6,7 @@ import android.app.Service
 import android.content.ComponentCallbacks
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ActivityInfo
 import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.media.projection.MediaProjection
@@ -14,6 +15,7 @@ import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.os.PowerManager
+import androidx.annotation.MainThread
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.common.AppError
 import info.dvkr.screenstream.common.AppStateMachine
@@ -50,6 +52,7 @@ class MjpegStateMachine(
 
     private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default + coroutineExceptionHandler)
 
+    private var deviceConfiguration = Configuration(service.resources.configuration)
     private val bitmapStateFlow = MutableStateFlow(Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888))
     private val projectionManager = service.getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
     private val projectionCallback = object : MediaProjection.Callback() {
@@ -72,12 +75,12 @@ class MjpegStateMachine(
     internal sealed class InternalEvent : AppStateMachine.Event() {
         data object DiscoverAddress : InternalEvent()
         data object StartServer : InternalEvent()
-        data class ComponentError(val appError: AppError) : InternalEvent()
+        data class ComponentError(internal val appError: AppError) : InternalEvent()
         data object StartStopFromWebPage : InternalEvent()
-        data class RestartServer(val reason: RestartReason) : InternalEvent()
+        data class RestartServer(internal val reason: RestartReason) : InternalEvent()
         data object ScreenOff : InternalEvent()
         data object Destroy : InternalEvent()
-        data object RestartCapture : InternalEvent()
+        data class ConfigurationChange(internal val newConfig: Configuration) : InternalEvent()
     }
 
     internal sealed class RestartReason(private val msg: String) {
@@ -116,14 +119,9 @@ class MjpegStateMachine(
     private val eventDeque = LinkedBlockingDeque<AppStateMachine.Event>()
 
     private val componentCallback = object : ComponentCallbacks {
+        @MainThread
         override fun onConfigurationChanged(newConfig: Configuration) {
-            XLog.d(this@MjpegStateMachine.getLog("ComponentCallbacks", "Configuration changed"))
-            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                sendEvent(InternalEvent.RestartCapture)
-            } else {
-                sendEvent(AppStateMachine.Event.StopStream)
-                sendEvent(AppStateMachine.Event.StartStream, 500) //TODO Add autorestart to settings?
-            }
+            sendEvent(InternalEvent.ConfigurationChange(newConfig))
         }
 
         override fun onLowMemory() = Unit
@@ -152,7 +150,7 @@ class MjpegStateMachine(
                         is InternalEvent.RestartServer -> restartServer(streamState, event.reason)
                         is InternalEvent.ScreenOff -> screenOff(streamState)
                         is InternalEvent.Destroy -> destroy(streamState)
-                        is InternalEvent.RestartCapture -> restartCapture(streamState)
+                        is InternalEvent.ConfigurationChange -> configurationChange(streamState, event.newConfig)
 
                         is AppStateMachine.Event.StartStream -> startStream(streamState)
                         is AppStateMachine.Event.CastPermissionsDenied -> castPermissionsDenied(streamState)
@@ -446,10 +444,26 @@ class MjpegStateMachine(
         return stopProjection(streamState).copy(state = StreamState.State.DESTROYED)
     }
 
-    private fun restartCapture(streamState: StreamState): StreamState {
-        XLog.d(getLog("restartCapture"))
-
-        streamState.bitmapCapture?.restart()
+    private fun configurationChange(streamState: StreamState, newConfig: Configuration): StreamState {
+        if (streamState.isStreaming()) {
+            val configDiff = deviceConfiguration.diff(newConfig)
+            if (
+                configDiff and ActivityInfo.CONFIG_ORIENTATION != 0 || configDiff and ActivityInfo.CONFIG_SCREEN_LAYOUT != 0 ||
+                configDiff and ActivityInfo.CONFIG_SCREEN_SIZE != 0 || configDiff and ActivityInfo.CONFIG_DENSITY != 0
+            ) {
+                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                    streamState.bitmapCapture?.restart()
+                } else { //TODO Add auto restart to settings?
+                    sendEvent(AppStateMachine.Event.StopStream)
+                    sendEvent(AppStateMachine.Event.StartStream, 500)
+                }
+            } else {
+                XLog.d(getLog("configurationChange", "No change relevant for streaming. Ignoring."))
+            }
+        } else {
+            XLog.d(getLog("configurationChange", "Not streaming. Ignoring."))
+        }
+        deviceConfiguration = Configuration(newConfig)
 
         return streamState
     }
