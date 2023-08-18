@@ -7,6 +7,7 @@ import android.content.ComponentCallbacks
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ActivityInfo
+import android.content.pm.ServiceInfo
 import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.media.projection.MediaProjection
@@ -383,13 +384,21 @@ class MjpegStateMachine(
         XLog.d(getLog("startProjection", "Intent: $intent"))
 
         try {
-            val mediaProjection = withContext(Dispatchers.Main) {
-                delay(500)
-                notificationHelper.showNotification(service, NotificationHelper.NotificationType.STOP)
-                projectionManager.getMediaProjection(Activity.RESULT_OK, intent).apply {
-                    registerCallback(projectionCallback, Handler(Looper.getMainLooper()))
+            notificationHelper.showNotification(service, NotificationHelper.NotificationType.STOP)
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) { // waiting for correct service state
+                for (i in 0..10) {
+                    if (service.foregroundServiceType and ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION != 0) break
+                    delay(500)
                 }
+                if (service.foregroundServiceType and ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION == 0)
+                    throw IllegalStateException("Service is not FOREGROUND. Give up.")
             }
+
+            val mediaProjection = projectionManager.getMediaProjection(Activity.RESULT_OK, intent).apply {
+                registerCallback(projectionCallback, Handler(Looper.getMainLooper()))
+            }
+
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) mediaProjectionIntent = intent
             val bitmapCapture = BitmapCapture(service, mjpegSettings, mediaProjection, bitmapStateFlow, ::onError)
             if (bitmapCapture.start()) service.registerComponentCallbacks(componentCallback)
@@ -405,11 +414,7 @@ class MjpegStateMachine(
                 }
             }
 
-            return streamState.copy(
-                state = StreamState.State.STREAMING,
-                mediaProjection = mediaProjection,
-                bitmapCapture = bitmapCapture
-            )
+            return streamState.copy(state = StreamState.State.STREAMING, mediaProjection = mediaProjection, bitmapCapture = bitmapCapture)
         } catch (cause: Throwable) {
             notificationHelper.showNotification(service, NotificationHelper.NotificationType.START)
             XLog.e(getLog("startProjection"), cause)

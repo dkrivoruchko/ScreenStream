@@ -10,6 +10,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
+import android.content.pm.ServiceInfo
 import android.content.res.Configuration
 import android.net.ConnectivityManager
 import android.net.Network
@@ -96,6 +97,7 @@ public class WebRtcHandlerThread(
     private var streamId: StreamId = StreamId.EMPTY
     private var streamPassword: StreamPassword = StreamPassword.EMPTY
     private var waitingForPermission: Boolean = false
+    private var waitingForForegroundService: Boolean = false
     private var mediaProjectionIntent: Intent? = null
     private var projection: WebRtcProjection? = null
     private var isAudioPermissionGrantedOnStart: Boolean = false
@@ -105,7 +107,8 @@ public class WebRtcHandlerThread(
 
     private fun isStreaming(): Boolean = projection?.isRunning ?: false
     private fun isNotStreaming(): Boolean = isStreaming().not()
-    private fun isBusy(): Boolean = signaling?.socketId() == null || streamId.isEmpty() || waitingForPermission
+    private fun isBusy(): Boolean =
+        signaling?.socketId() == null || streamId.isEmpty() || waitingForPermission || waitingForForegroundService
 
     private fun createAndSendPublicState(force: Boolean) {
         val publicState = WebRtcPublicState(isStreaming(), isBusy(), waitingForPermission, streamId.value, streamPassword.value, appError)
@@ -118,6 +121,8 @@ public class WebRtcHandlerThread(
         data class OpenSocket(internal val token: PlayIntegrityToken) : InternalEvent(true)
         data object StreamCreate : InternalEvent(true)
         data class StreamCreated(internal val streamId: StreamId) : InternalEvent(true)
+        data class WaitForForegroundService(internal val counter: Int, internal val intent: Intent) : InternalEvent()
+        data class StartProjection(internal val intent: Intent) : InternalEvent()
         data class ClientJoin(internal val clientId: ClientId) : InternalEvent()
         data class ClientLeave(internal val clientId: ClientId) : InternalEvent()
         data class SendHostOffer(internal val clientId: ClientId, internal val offer: Offer) : InternalEvent()
@@ -136,7 +141,7 @@ public class WebRtcHandlerThread(
         data class SocketSignalingError(internal val error: SocketSignaling.Errors) : InternalEvent(true)
         data object PublishClients : InternalEvent(true)
         data object ScreenOff : InternalEvent(true)
-        data class ConfigurationChange(internal val newConfig: Configuration) : InternalEvent(true) //todo ignore?
+        data class ConfigurationChange(internal val newConfig: Configuration) : InternalEvent(true)
     }
 
     private val streamPasswordValidator = object : SocketSignaling.StreamPasswordValidator {
@@ -495,18 +500,48 @@ public class WebRtcHandlerThread(
             is AppStateMachine.Event.CastPermissionsDenied -> waitingForPermission = false
 
             is AppStateMachine.Event.StartProjection -> if (isStreaming()) {
+                waitingForPermission = false
                 XLog.w(getLog("StartProjection", "Already streaming. Ignoring."))
             } else {
-                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) mediaProjectionIntent = event.intent
                 waitingForPermission = false
-                isAudioPermissionGrantedOnStart =
-                    ContextCompat.checkSelfPermission(service, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
 
                 notificationHelper.showNotification(service, NotificationHelper.NotificationType.STOP)
+
+                when {
+                    Build.VERSION.SDK_INT < Build.VERSION_CODES.Q ->
+                        sendEvent(InternalEvent.StartProjection(event.intent))
+
+                    service.foregroundServiceType and ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION != 0 ->
+                        sendEvent(InternalEvent.StartProjection(event.intent))
+
+                    else -> {
+                        waitingForForegroundService = true
+                        sendEvent(InternalEvent.WaitForForegroundService(10, event.intent))
+                    }
+                }
+            }
+
+            is InternalEvent.WaitForForegroundService -> @SuppressLint("NewApi") {
+                if (service.foregroundServiceType and ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION != 0) {
+                    waitingForForegroundService = false
+                    sendEvent(InternalEvent.StartProjection(event.intent))
+                } else if (event.counter > 0)
+                    sendEvent(InternalEvent.WaitForForegroundService(event.counter - 1, event.intent), 500)
+                else {
+                    notificationHelper.showNotification(service, NotificationHelper.NotificationType.START)
+                    waitingForForegroundService = false
+                    throw IllegalStateException("Service is not FOREGROUND. Give up.")
+                }
+            }
+
+            is InternalEvent.StartProjection -> {
+                isAudioPermissionGrantedOnStart =
+                    ContextCompat.checkSelfPermission(service, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
                 projection!!.start(streamId, event.intent) {
                     XLog.i(this@WebRtcHandlerThread.getLog("StartProjection", "MediaProjectionCallback.onStop"))
                     sendEvent(AppStateMachine.Event.StopStream)
                 }
+                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) mediaProjectionIntent = event.intent
                 service.registerComponentCallbacks(componentCallback)
                 takeWakeLock()
                 signaling!!.sendStreamStart()
@@ -699,5 +734,5 @@ public class WebRtcHandlerThread(
     }
 
     private fun getStateString(): String =
-        "Pending Dest/Sock/ID: $pendingDestroy/$pendingSocket/$pendingStreamId, Socket:${signaling?.socketId()}, StreamId:$streamId, Streaming:${isStreaming()}, WFP:$waitingForPermission, Clients:${clients.size}"
+        "Pending Dest/Sock/ID: $pendingDestroy/$pendingSocket/$pendingStreamId, Socket:${signaling?.socketId()}, StreamId:$streamId, Streaming:${isStreaming()}, WFP:$waitingForPermission, WFFS: $waitingForForegroundService, Clients:${clients.size}"
 }

@@ -24,10 +24,7 @@ interface AppStateMachine {
     open class Event {
         data object StartStream : Event()
         data object CastPermissionsDenied : Event()
-        class StartProjection(val intent: Intent) : Event() {
-            override fun toString(): String = javaClass.simpleName
-        }
-
+        data class StartProjection(val intent: Intent) : Event()
         data object StopStream : Event()
         data object GetNewStreamId : Event()
         data object CreateNewStreamPassword : Event()
