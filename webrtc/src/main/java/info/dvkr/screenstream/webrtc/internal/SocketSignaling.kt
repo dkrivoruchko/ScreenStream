@@ -157,7 +157,7 @@ internal class SocketSignaling(
             .setReconnection(false) //On Socket.EVENT_DISCONNECT or Socket.EVENT_CONNECT_ERROR or Event.SOCKET_ERROR. Auto or User reconnect
             .setPath(environment.socketPath).setTransports(arrayOf(WebSocket.NAME))
             .setAuth(mapOf(Payload.WEB_SOCKET_AUTH_TOKEN to token.value)).build()
-            .apply { callFactory = okHttpClient; webSocketFactory = okHttpClient }
+// TODO           .apply { callFactory = okHttpClient; webSocketFactory = okHttpClient }
 
         socket = IO.socket(environment.signalingServerUrl, options).apply {
             on(Socket.EVENT_CONNECT) {

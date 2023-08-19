@@ -9,6 +9,7 @@ public interface NotificationHelper {
 
     fun createNotificationChannel()
     fun getNotificationSettingsIntent(): Intent
+    fun areNotificationsEnabled(context: Context): Boolean
     fun isNotificationPermissionGranted(context: Context): Boolean
     fun showNotification(service: Service, notificationType: NotificationType)
     fun clearNotification(service: Service)

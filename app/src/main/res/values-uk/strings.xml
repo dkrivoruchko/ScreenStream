@@ -85,8 +85,10 @@
     <string name="permission_activity_cast_permission_required">ScreenStream додаток вимагає дозвіл Screen Cast щоб записувати екран.</string>
     <string name="permission_activity_error_title">Помилка</string>
     <string name="permission_activity_error_unknown">Невідома помилка</string>
-    <string name="permission_activity_allow_notifications">Додатку потрібен дозвіл на надсилання сповіщень, щоб мати можливість запустити службу потокового передавання. Дозвольте надсилати сповіщення.</string>
-    <string name="permission_activity_allow_notifications_settings">Додатку потрібен дозвіл на надсилання сповіщень, щоб мати можливість запустити службу потокового передавання. Дозвольте надсилання сповіщень у налаштуваннях програми.</string>
+    <string name="permission_activity_notifications_required_title">Потрібні сповіщення</string>
+    <string name="permission_activity_enable_notifications">Для запуску служби потокової передачі потрібно включити сповіщення в додатку.\n\nБудь ласка, включіть сповіщення в налаштуваннях додатку.</string>
+    <string name="permission_activity_allow_notifications">Додатку потрібен дозвіл на надсилання сповіщень, щоб мати можливість запустити службу потокової передачі. Дозвольте надсилати сповіщення.</string>
+    <string name="permission_activity_allow_notifications_settings">Додатку потрібен дозвіл на надсилання сповіщень, щоб мати можливість запустити службу потокової передачі. Дозвольте надсилання сповіщень у налаштуваннях додатку.</string>
     <string name="permission_activity_notification_settings">Відкрити налаштування</string>
 
     <string name="notification_ready_to_stream">Готовий до початку передачі</string>

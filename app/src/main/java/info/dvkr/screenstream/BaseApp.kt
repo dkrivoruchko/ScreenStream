@@ -10,6 +10,7 @@ import com.elvishew.xlog.printer.file.clean.FileLastModifiedCleanStrategy
 import info.dvkr.screenstream.di.baseKoinModule
 import info.dvkr.screenstream.logging.DateSuffixFileNameGenerator
 import info.dvkr.screenstream.logging.getLogFolder
+import info.dvkr.screenstream.service.ForegroundService
 import info.dvkr.screenstream.service.helper.IntentAction
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
@@ -68,7 +69,7 @@ abstract class BaseApp : Application() {
             override fun onStop(owner: LifecycleOwner) {
                 pauseJob = GlobalScope.launch(Dispatchers.Main.immediate) {
                     delay(10 * 60 * 1_000)
-                    IntentAction.ApplicationOnStop.sendToAppService(this@BaseApp)
+                    if (ForegroundService.isRunning) IntentAction.ApplicationOnStop.sendToAppService(this@BaseApp)
                 }
             }
         })

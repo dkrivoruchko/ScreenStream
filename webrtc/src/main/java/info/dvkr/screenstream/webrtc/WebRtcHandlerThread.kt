@@ -108,7 +108,7 @@ public class WebRtcHandlerThread(
     private fun isStreaming(): Boolean = projection?.isRunning ?: false
     private fun isNotStreaming(): Boolean = isStreaming().not()
     private fun isBusy(): Boolean =
-        signaling?.socketId() == null || streamId.isEmpty() || waitingForPermission || waitingForForegroundService
+        signaling?.socketId() == null || streamId.isEmpty() || waitingForPermission || waitingForForegroundService || appError != null
 
     private fun createAndSendPublicState(force: Boolean) {
         val publicState = WebRtcPublicState(isStreaming(), isBusy(), waitingForPermission, streamId.value, streamPassword.value, appError)

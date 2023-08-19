@@ -89,6 +89,8 @@
     <string name="permission_activity_cast_permission_required">ScreenStream application requires Screen Cast permission to capture screen.</string>
     <string name="permission_activity_error_title">Error</string>
     <string name="permission_activity_error_unknown">Unknown error</string>
+    <string name="permission_activity_notifications_required_title">Notifications required</string>
+    <string name="permission_activity_enable_notifications">Application require notifications to be enabled to start streaming service.\n\nPlease enable notifications in application settings.</string>
     <string name="permission_activity_allow_notifications">Application require permission to send notifications to be able to start streaming service.\n\nPlease allow sending notifications.</string>
     <string name="permission_activity_allow_notifications_settings">Application require permission to send notifications to be able to start streaming service.\n\nPlease allow sending notifications in application settings.</string>
     <string name="permission_activity_notification_settings">Open settings</string>

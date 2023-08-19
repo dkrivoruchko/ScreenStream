@@ -83,6 +83,8 @@
     <string name="permission_activity_cast_permission_required">Приложению ScreenStream требуется разрешение на доступ к изображению экрана устройства.</string>
     <string name="permission_activity_error_title">Ошибка</string>
     <string name="permission_activity_error_unknown">Неизвестная ошибка</string>
+    <string name="permission_activity_notifications_required_title">Необходимы уведомления</string>
+    <string name="permission_activity_enable_notifications">Для запуска службы потоковой передачи требуется включить уведомления в приложении.\n\nПожалуйста, включите уведомления в настройках приложения.</string>
     <string name="permission_activity_allow_notifications">Приложению требуется разрешение на отправку уведомлений, чтобы запустить службу потоковой передачи. Пожалуйста, разрешите отправку уведомлений.</string>
     <string name="permission_activity_allow_notifications_settings">Приложению требуется разрешение на отправку уведомлений, чтобы запустить службу потоковой передачи. Пожалуйста, разрешите отправку уведомлений в настройках приложения.</string>
     <string name="permission_activity_notification_settings">Открыть настройки</string>

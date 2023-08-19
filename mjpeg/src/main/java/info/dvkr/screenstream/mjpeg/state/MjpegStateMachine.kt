@@ -387,10 +387,7 @@ class MjpegStateMachine(
             notificationHelper.showNotification(service, NotificationHelper.NotificationType.STOP)
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) { // waiting for correct service state
-                for (i in 0..10) {
-                    if (service.foregroundServiceType and ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION != 0) break
-                    delay(500)
-                }
+                delay(250)
                 if (service.foregroundServiceType and ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION == 0)
                     throw IllegalStateException("Service is not FOREGROUND. Give up.")
             }

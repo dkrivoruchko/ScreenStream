@@ -31,20 +31,24 @@ abstract class NotificationPermissionActivity(@LayoutRes contentLayoutId: Int) :
         val deniedAndDisabled = shouldShowRequestPermissionRationale(Manifest.permission.POST_NOTIFICATIONS).not()
         XLog.d(getLog("requestPermissionLauncher", "deniedAndDisabled: $deniedAndDisabled"))
 
-        showMandatoryDialog(deniedAndDisabled)
+        showPermissionsMandatoryDialog(deniedAndDisabled)
     }
 
     @SuppressLint("InlinedApi")
     override fun onStart() {
         super.onStart()
-        if (notificationHelper.isNotificationPermissionGranted(this).not()) {
-            requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        when {
+            notificationHelper.isNotificationPermissionGranted(this).not() ->
+                requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+
+            notificationHelper.areNotificationsEnabled(this).not() ->
+                showNotificationMandatoryDialog()
         }
     }
 
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
-    private fun showMandatoryDialog(showSettings: Boolean) {
-        XLog.d(getLog("showMandatoryDialog", "showSettings: $showSettings"))
+    private fun showPermissionsMandatoryDialog(showSettings: Boolean) {
+        XLog.d(getLog("showPermissionsMandatoryDialog", "showSettings: $showSettings"))
 
         MaterialDialog(this).show {
             lifecycleOwner(this@NotificationPermissionActivity)
@@ -56,12 +60,33 @@ abstract class NotificationPermissionActivity(@LayoutRes contentLayoutId: Int) :
                     try {
                         startActivity(notificationHelper.getNotificationSettingsIntent())
                     } catch (cause: ActivityNotFoundException) {
-                        XLog.e(getLog("showMandatoryDialog", "showSettings: $showSettings: $cause"), cause)
+                        XLog.e(getLog("showPermissionsMandatoryDialog", "showSettings: $showSettings: $cause"), cause)
                     }
                 }
             } else {
                 message(R.string.permission_activity_allow_notifications)
                 positiveButton(android.R.string.ok) { requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS) }
+            }
+            cancelable(false)
+            cancelOnTouchOutside(false)
+        }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.Q)
+    private fun showNotificationMandatoryDialog() {
+        XLog.d(getLog("showNotificationMandatoryDialog"))
+
+        MaterialDialog(this).show {
+            lifecycleOwner(this@NotificationPermissionActivity)
+            icon(R.drawable.ic_permission_dialog_24dp)
+            title(R.string.permission_activity_notifications_required_title)
+            message(R.string.permission_activity_enable_notifications)
+            positiveButton(R.string.permission_activity_notification_settings) {
+                try {
+                    startActivity(notificationHelper.getNotificationSettingsIntent())
+                } catch (cause: ActivityNotFoundException) {
+                    XLog.e(getLog("showNotificationMandatoryDialog", "$cause"), cause)
+                }
             }
             cancelable(false)
             cancelOnTouchOutside(false)

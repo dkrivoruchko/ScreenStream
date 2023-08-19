@@ -30,9 +30,6 @@ class NotificationHelperImpl(context: Context) : NotificationHelper {
 
     private var currentNotificationType: NotificationHelper.NotificationType? = null
 
-    //todo val notificationManager = applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-    //todo notificationManager.areNotificationsEnabled()
-
     init {
         createNotificationChannel()
     }
@@ -69,9 +66,18 @@ class NotificationHelperImpl(context: Context) : NotificationHelper {
         Intent(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS)
             .putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, applicationContext.packageName)
 
-    override fun isNotificationPermissionGranted(context: Context): Boolean =
-        Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+    override fun areNotificationsEnabled(context: Context): Boolean {
+        val result = Build.VERSION.SDK_INT < Build.VERSION_CODES.Q || notificationManager.areNotificationsEnabled()
+        XLog.d(getLog("areNotificationsEnabled", "$result"))
+        return result
+    }
+
+    override fun isNotificationPermissionGranted(context: Context): Boolean {
+        val result = Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
                 ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+        XLog.d(getLog("isNotificationPermissionGranted", "$result"))
+        return result
+    }
 
     override fun showNotification(service: Service, notificationType: NotificationHelper.NotificationType) {
         val message = "Service:${service.hashCode()}, NotificationType: $notificationType."

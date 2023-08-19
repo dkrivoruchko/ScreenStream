@@ -25,11 +25,11 @@ import info.dvkr.screenstream.mjpeg.MjpegPublicState
 import info.dvkr.screenstream.mjpeg.settings.MjpegSettings
 import info.dvkr.screenstream.mjpeg.state.MjpegStateMachine
 import info.dvkr.screenstream.service.helper.IntentAction
+import info.dvkr.screenstream.webrtc.StandardIntegrityManagerWrapper
 import info.dvkr.screenstream.webrtc.WebRtcEnvironment
 import info.dvkr.screenstream.webrtc.WebRtcHandlerThread
 import info.dvkr.screenstream.webrtc.WebRtcPublicState
 import info.dvkr.screenstream.webrtc.WebRtcSettings
-import info.dvkr.screenstream.webrtc.StandardIntegrityManagerWrapper
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import org.koin.android.ext.android.inject
