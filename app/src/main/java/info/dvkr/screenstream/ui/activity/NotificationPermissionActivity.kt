@@ -11,22 +11,18 @@ import com.afollestad.materialdialogs.MaterialDialog
 import com.afollestad.materialdialogs.lifecycle.lifecycleOwner
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.R
-import info.dvkr.screenstream.common.NotificationHelper
 import info.dvkr.screenstream.common.getLog
-import info.dvkr.screenstream.service.helper.IntentAction
+import info.dvkr.screenstream.service.helper.NotificationHelper
 import org.koin.android.ext.android.inject
 
 abstract class NotificationPermissionActivity(@LayoutRes contentLayoutId: Int) : ServiceActivity(contentLayoutId) {
 
-    protected val notificationHelper: NotificationHelper by inject()
+    private val notificationHelper: NotificationHelper by inject()
 
     private val requestPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
         XLog.d(getLog("requestPermissionLauncher", "registerForActivityResult: $isGranted"))
 
-        if (isGranted || Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
-            IntentAction.UpdateNotification.sendToAppService(this)
-            return@registerForActivityResult
-        }
+        if (isGranted || Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return@registerForActivityResult
 
         val deniedAndDisabled = shouldShowRequestPermissionRationale(Manifest.permission.POST_NOTIFICATIONS).not()
         XLog.d(getLog("requestPermissionLauncher", "deniedAndDisabled: $deniedAndDisabled"))
@@ -38,10 +34,10 @@ abstract class NotificationPermissionActivity(@LayoutRes contentLayoutId: Int) :
     override fun onStart() {
         super.onStart()
         when {
-            notificationHelper.isNotificationPermissionGranted(this).not() ->
+            notificationHelper.isNotificationPermissionGranted().not() ->
                 requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
 
-            notificationHelper.areNotificationsEnabled(this).not() ->
+            notificationHelper.areNotificationsEnabled().not() ->
                 showNotificationMandatoryDialog()
         }
     }

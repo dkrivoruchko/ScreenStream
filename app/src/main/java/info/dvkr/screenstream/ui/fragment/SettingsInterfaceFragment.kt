@@ -22,11 +22,11 @@ import com.afollestad.materialdialogs.lifecycle.lifecycleOwner
 import com.afollestad.materialdialogs.list.listItemsSingleChoice
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.R
-import info.dvkr.screenstream.common.NotificationHelper
 import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.common.settings.AppSettings
 import info.dvkr.screenstream.databinding.FragmentSettingsInterfaceBinding
 import info.dvkr.screenstream.mjpeg.settings.MjpegSettings
+import info.dvkr.screenstream.service.helper.NotificationHelper
 import info.dvkr.screenstream.ui.viewBinding
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
@@ -146,38 +146,11 @@ class SettingsInterfaceFragment : Fragment(R.layout.fragment_settings_interface)
         }
         binding.clFragmentSettingsStopOnSleep.setOnClickListener { binding.cbFragmentSettingsStopOnSleep.performClick() }
 
-        // Interface - StartService on boot
-        viewLifecycleOwner.lifecycleScope.launchWhenCreated {
-            binding.cbFragmentSettingsStartOnBoot.isChecked = appSettings.startOnBootFlow.first()
-        }
-        binding.cbFragmentSettingsStartOnBoot.setOnClickListener {
-            viewLifecycleOwner.lifecycleScope.launchWhenCreated {
-                appSettings.setStartOnBoot(binding.cbFragmentSettingsStartOnBoot.isChecked)
-            }
-        }
-        binding.clFragmentSettingsStartOnBoot.setOnClickListener { binding.cbFragmentSettingsStartOnBoot.performClick() }
-
-        // Interface - Auto start stop
-        viewLifecycleOwner.lifecycleScope.launchWhenCreated {
-            if (appSettings.streamModeFlow.first() == AppSettings.Values.STREAM_MODE_WEBRTC) {
-                binding.clFragmentSettingsAutoStartStop.visibility = View.GONE
-                binding.vFragmentSettingsStartOnBoot.visibility = View.GONE
-            } else {
-                binding.cbFragmentSettingsAutoStartStop.isChecked = appSettings.autoStartStopFlow.first()
-            }
-        }
-        binding.cbFragmentSettingsAutoStartStop.setOnClickListener {
-            viewLifecycleOwner.lifecycleScope.launchWhenCreated {
-                appSettings.setAutoStartStop(binding.cbFragmentSettingsAutoStartStop.isChecked)
-            }
-        }
-        binding.clFragmentSettingsAutoStartStop.setOnClickListener { binding.cbFragmentSettingsAutoStartStop.performClick() }
-
         // Interface - Notify slow connections
         viewLifecycleOwner.lifecycleScope.launchWhenCreated {
             if (appSettings.streamModeFlow.first() == AppSettings.Values.STREAM_MODE_WEBRTC) {
                 binding.clFragmentSettingsNotifySlowConnections.visibility = View.GONE
-                binding.vFragmentSettingsAutoStartStop.visibility = View.GONE
+                binding.vFragmentSettingsStopOnSleep.visibility = View.GONE
             } else {
                 binding.cbFragmentSettingsNotifySlowConnections.isChecked = mjpegSettings.notifySlowConnectionsFlow.first()
             }

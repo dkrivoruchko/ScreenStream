@@ -48,12 +48,8 @@
     <string name="permission_activity_error_title">Erro</string>
     <string name="permission_activity_error_unknown">Erro desconhecido</string>
 
-    <string name="notification_ready_to_stream">Pronto para transmitir</string>
-    <string name="notification_press_start">Clique no INICIAR para começar a transmitir</string>
-    <string name="notification_start">Iniciar</string>
-    <string name="notification_exit">Sair</string>
-    <string name="notification_stream">Transmitindo…</string>
-    <string name="notification_press_stop">Clique no PARAR para terminar a transmissão</string>
+    <string name="notification_streaming_title">Transmitindo…</string>
+    <string name="notification_streaming_content">Clique no PARAR para terminar a transmissão</string>
     <string name="notification_stop">Parar</string>
 
     <string name="toast_slow_client_connection">Detectada conexão lenta do cliente</string>
@@ -76,10 +72,6 @@
     <string name="pref_keep_awake_summary">Mantenha o dispositivo e a tela acessíveis durante a transmissão</string>
     <string name="pref_stop_on_sleep">Parar transmissão ao suspender</string>
     <string name="pref_stop_on_sleep_summary">Parar transmissão quando a tela for desligada</string>
-    <string name="pref_start_on_boot">Começar ao iniciar</string>
-    <string name="pref_start_on_boot_summary">Começar transmitir assim que o dispositivo for iniciado</string>
-    <string name="pref_auto_start_stop">Começar/Parar automaticamente a transmissão</string>
-    <string name="pref_auto_start_stop_summary">Começar/Parar automaticamente a transmissão ao conectar cliente</string>
     <string name="pref_detect_slow_connections">Notificar sobre conexões lentas</string>
     <string name="pref_detect_slow_connections_summary">Detectar e notificar sobre conexões lentas do cliente</string>
     <string name="pref_html_buttons">Mostrar botões no site</string>

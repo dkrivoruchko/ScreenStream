@@ -36,12 +36,8 @@
     <string name="permission_activity_cast_permission_required">يتطلب التطبيق إذن سكرينكست  لالتقاط الشاشة </string>
     <string name="permission_activity_error_title">خطأ</string>
     <string name="permission_activity_error_unknown">خطأ غير معروف</string>
-    <string name="notification_ready_to_stream">جاهز للبث </string>
-    <string name="notification_press_start">اضغط على بدء على الجهاز</string>
-    <string name="notification_start">ابدأ</string>
-    <string name="notification_exit">خروج</string>
-    <string name="notification_stream">…بث</string>
-    <string name="notification_press_stop">اضغط على وقف لإنهاء بث</string>
+    <string name="notification_streaming_title">…بث</string>
+    <string name="notification_streaming_content">اضغط على وقف لإنهاء بث</string>
     <string name="notification_stop">وقف</string>
     <string name="toast_slow_client_connection">تم اكتشاف اتصال عميل بطيء</string>
     <string name="pref_settings_interface">واجهه المستخدم</string>
@@ -60,10 +56,6 @@
     <string name="pref_notification_summary">افتح إعدادات التنبيه</string>
     <string name="pref_stop_on_sleep">وقف البث عند النوم </string>
     <string name="pref_stop_on_sleep_summary">وقف البث عندإيقاف الشاشة </string>
-    <string name="pref_start_on_boot">بدءالبث عندبداية</string>
-    <string name="pref_start_on_boot_summary">بدءالبث بعد بداية</string>
-    <string name="pref_auto_start_stop">بدء تلقائي / إيقاف بدءالبث</string>
-    <string name="pref_auto_start_stop_summary">بدء تلقائي / إيقاف بدءالبث </string>
     <string name="pref_detect_slow_connections">إبلاغ عن اتصالات بطيئة</string>
     <string name="pref_detect_slow_connections_summary">كشف وإعلام لاتصالات العملاء بطيئة</string>
     <string name="pref_html_buttons">تمكين أزرار صفحة الويب</string>

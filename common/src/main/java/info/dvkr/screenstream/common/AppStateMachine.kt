@@ -30,7 +30,6 @@ interface AppStateMachine {
         data object CreateNewStreamPassword : Event()
         data object RequestPublicState : Event()
         data object RecoverError : Event()
-        data object UpdateNotification : Event()
     }
 
     sealed class Effect {

@@ -1,5 +1,6 @@
 package info.dvkr.screenstream.webrtc.internal
 
+import android.os.Build
 import androidx.annotation.AnyThread
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.common.getLog
@@ -148,16 +149,17 @@ internal class SocketSignaling(
     }
 
     @Throws(IllegalArgumentException::class)
-    internal fun openSocket(token: PlayIntegrityToken) {
+    internal fun openSocket(token: PlayIntegrityToken, gmsVersionName: String) {
         XLog.d(getLog("openSocket"))
 
         require(socket == null)
 
+        val device = "${Build.MANUFACTURER}:${Build.MODEL}:API${Build.VERSION.SDK_INT}:$gmsVersionName"
         val options = IO.Options.builder()
             .setReconnection(false) //On Socket.EVENT_DISCONNECT or Socket.EVENT_CONNECT_ERROR or Event.SOCKET_ERROR. Auto or User reconnect
             .setPath(environment.socketPath).setTransports(arrayOf(WebSocket.NAME))
-            .setAuth(mapOf(Payload.WEB_SOCKET_AUTH_TOKEN to token.value)).build()
-// TODO           .apply { callFactory = okHttpClient; webSocketFactory = okHttpClient }
+            .setAuth(mapOf(Payload.WEB_SOCKET_AUTH_TOKEN to token.value, "device" to device)).build()
+            .apply { callFactory = okHttpClient; webSocketFactory = okHttpClient }
 
         socket = IO.socket(environment.signalingServerUrl, options).apply {
             on(Socket.EVENT_CONNECT) {
@@ -172,8 +174,7 @@ internal class SocketSignaling(
                 XLog.e(this@SocketSignaling.getLog(Socket.EVENT_CONNECT_ERROR, args.contentToString()))
                 val message = (args?.firstOrNull() as? JSONObject)?.optString(Payload.MESSAGE) ?: ""
                 if (message.startsWith("$ERROR_TOKEN_VERIFICATION_FAILED:TOKEN_EXPIRED")) {
-                    val timeout = message.drop("$ERROR_TOKEN_VERIFICATION_FAILED:TOKEN_EXPIRED".length)
-                    XLog.d(this@SocketSignaling.getLog("openSocket", "TOKEN_EXPIRED"), IllegalStateException("TOKEN_EXPIRED:$timeout"))
+                    XLog.d(this@SocketSignaling.getLog("openSocket", "TOKEN_EXPIRED"), IllegalStateException("TOKEN_EXPIRED"))
                     eventListener.onTokenExpired()
                 } else if (message.startsWith("$ERROR_TOKEN_VERIFICATION_FAILED:WRONG_APP_VERDICT")) {
                     XLog.d(this@SocketSignaling.getLog("openSocket", "WRONG_APP_VERDICT"), IllegalStateException("WRONG_APP_VERDICT"))

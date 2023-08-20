@@ -13,13 +13,10 @@ interface AppSettings {
         val NIGHT_MODE = intPreferencesKey("NIGHT_MODE")
         val KEEP_AWAKE = booleanPreferencesKey("KEEP_AWAKE")
         val STOP_ON_SLEEP = booleanPreferencesKey("TOP_ON_SLEEP")
-        val START_ON_BOOT = booleanPreferencesKey("START_ON_BOOT")
-        val AUTO_START_STOP = booleanPreferencesKey("AUTO_START_STOP")
 
         val LOGGING_VISIBLE = booleanPreferencesKey("LOGGING_VISIBLE")
 
         val LAST_UPDATE_REQUEST_MILLIS = longPreferencesKey("LAST_UPDATE_REQUEST_MILLIS")
-        val ADD_TILE_ASKED = booleanPreferencesKey("ADD_TILE_ASKED")
     }
 
     object Default {
@@ -27,13 +24,10 @@ interface AppSettings {
         var NIGHT_MODE = if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.P) 3 else -1
         const val KEEP_AWAKE = false
         const val STOP_ON_SLEEP = false
-        const val START_ON_BOOT = false
-        const val AUTO_START_STOP = false
 
         const val LOGGING_VISIBLE = false
 
         const val LAST_IAU_REQUEST_TIMESTAMP = 0L
-        const val ADD_TILE_ASKED = false
     }
 
     object Values {
@@ -53,12 +47,6 @@ interface AppSettings {
     val stopOnSleepFlow: Flow<Boolean>
     suspend fun setStopOnSleep(value: Boolean)
 
-    val startOnBootFlow: Flow<Boolean>
-    suspend fun setStartOnBoot(value: Boolean)
-
-    val autoStartStopFlow: Flow<Boolean>
-    suspend fun setAutoStartStop(value: Boolean)
-
 
     val loggingVisibleFlow: Flow<Boolean>
     suspend fun setLoggingVisible(value: Boolean)
@@ -66,7 +54,4 @@ interface AppSettings {
 
     val lastUpdateRequestMillisFlow: Flow<Long>
     suspend fun setLastUpdateRequestMillis(value: Long)
-
-    val addTileAsked: Flow<Boolean>
-    suspend fun setAddTileAsked(value: Boolean)
 }

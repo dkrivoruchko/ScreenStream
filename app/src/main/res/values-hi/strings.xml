@@ -37,12 +37,8 @@
     <string name="permission_activity_error_title">त्रुटि</string>
     <string name="permission_activity_error_unknown">अज्ञात त्रुटि</string>
 
-    <string name="notification_ready_to_stream">स्ट्रीम करने के लिए तैयार है</string>
-    <string name="notification_press_start">स्ट्रीम शुरू करने के लिए START दबाएं</string>
-    <string name="notification_start">शुरु</string>
-    <string name="notification_exit">निकास</string>
-    <string name="notification_stream">प्रवाह…</string>
-    <string name="notification_press_stop">धारा समाप्त करने के लिए STOP दबाएँ</string>
+    <string name="notification_streaming_title">प्रवाह…</string>
+    <string name="notification_streaming_content">धारा समाप्त करने के लिए STOP दबाएँ</string>
     <string name="notification_stop">रुकें</string>
 
     <string name="toast_slow_client_connection">धीमी क्लाइंट कनेक्शन का पता चला</string>
@@ -63,10 +59,6 @@
     <string name="pref_notification_summary">सिस्टम अधिसूचना सेटिंग्स खोलें</string>
     <string name="pref_stop_on_sleep">नींद पर धारा रोकें</string>
     <string name="pref_stop_on_sleep_summary">यदि स्क्रीन बंद हो जाती है तो स्ट्रीम को रोकें</string>
-    <string name="pref_start_on_boot">बूट पर स्ट्रीम शुरू करें</string>
-    <string name="pref_start_on_boot_summary">डिवाइस बूट के बाद स्टार्ट स्ट्रीम</string>
-    <string name="pref_auto_start_stop">ऑटो स्टार्ट/ स्टॉप स्ट्रीमिंग</string>
-    <string name="pref_auto_start_stop_summary">ऑटो स्टार्ट / स्टॉप स्ट्रीमिंग क्लाइंट कनेक्ट / डिस्कनेक्ट करें</string>
     <string name="pref_detect_slow_connections">धीमे कनेक्शन के लिए सूचित करें</string>
     <string name="pref_detect_slow_connections_summary">धीमी क्लाइंट कनेक्शन के लिए पता लगाएँ और सूचित करें</string>
     <string name="pref_html_buttons">वेब पेज बटन सक्षम करें</string>

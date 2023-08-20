@@ -2,7 +2,6 @@ package info.dvkr.screenstream.webrtc
 
 import android.Manifest
 import android.annotation.SuppressLint
-import android.app.Service
 import android.content.BroadcastReceiver
 import android.content.ComponentCallbacks
 import android.content.Context
@@ -25,7 +24,7 @@ import androidx.core.content.ContextCompat
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.common.AppError
 import info.dvkr.screenstream.common.AppStateMachine
-import info.dvkr.screenstream.common.NotificationHelper
+import info.dvkr.screenstream.common.ForegroundService
 import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.common.listenForChange
 import info.dvkr.screenstream.common.settings.AppSettings
@@ -53,7 +52,6 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import okhttp3.ConnectionPool
 import okhttp3.ConnectionSpec
 import okhttp3.OkHttpClient
 import org.webrtc.IceCandidate
@@ -62,8 +60,7 @@ import java.util.concurrent.LinkedBlockingDeque
 import java.util.concurrent.TimeUnit
 
 public class WebRtcHandlerThread(
-    private val service: Service,
-    private val notificationHelper: NotificationHelper,
+    private val service: ForegroundService,
     private val appSettings: AppSettings,
     private val environment: WebRtcEnvironment,
     private val webRtcSettings: WebRtcSettings,
@@ -72,12 +69,19 @@ public class WebRtcHandlerThread(
 
     override val mode: Int = AppSettings.Values.STREAM_MODE_WEBRTC
 
+    private val versionName = runCatching {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            service.packageManager.getPackageInfo("com.google.android.gms", PackageManager.PackageInfoFlags.of(0)).versionName
+        } else {
+            service.packageManager.getPackageInfo("com.google.android.gms", 0).versionName
+        }
+    }.getOrDefault("-")
+
     private val handler: Handler by lazy(LazyThreadSafetyMode.NONE) { Handler(looper) }
     private val coroutineDispatcher: CoroutineDispatcher by lazy(LazyThreadSafetyMode.NONE) { handler.asCoroutineDispatcher("WebRTC-HTDispatcher") }
     private val coroutineScope by lazy(LazyThreadSafetyMode.NONE) { CoroutineScope(SupervisorJob() + coroutineDispatcher) }
 
     private val okHttpClient = OkHttpClient.Builder().connectionSpecs(listOf(ConnectionSpec.RESTRICTED_TLS))
-        .connectionPool(ConnectionPool(0, 5, TimeUnit.MINUTES)) //[com.google.android.gms.internal.ads.ok: timeout]
         .connectTimeout(30, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
         .writeTimeout(30, TimeUnit.SECONDS)
@@ -280,8 +284,6 @@ public class WebRtcHandlerThread(
         super.start()
         XLog.d(getLog("start"))
 
-        notificationHelper.showNotification(service, NotificationHelper.NotificationType.START)
-
         val intentFilter = IntentFilter().apply { addAction(Intent.ACTION_SCREEN_OFF) }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
             service.registerReceiver(broadcastReceiver, intentFilter, Context.RECEIVER_NOT_EXPORTED)
@@ -335,7 +337,7 @@ public class WebRtcHandlerThread(
         }
         if (event is InternalEvent.Destroy) pendingDestroy = true
 
-        if (event is AppStateMachine.Event.StopStream || event is AppStateMachine.Event.RequestPublicState || event is AppStateMachine.Event.RecoverError || event is AppStateMachine.Event.UpdateNotification) return true
+        if (event is AppStateMachine.Event.StopStream || event is AppStateMachine.Event.RequestPublicState || event is AppStateMachine.Event.RecoverError) return true
 
         if (appError != null && appError !is WebRtcError.NetworkError) {
             XLog.w(getLog("allowEvent", "App error present: Ignoring event => $event"))
@@ -388,7 +390,6 @@ public class WebRtcHandlerThread(
     override fun destroy() {
         XLog.d(getLog("destroy"))
 
-        notificationHelper.clearNotification(service)
         service.unregisterReceiver(broadcastReceiver)
         connectivityManager.unregisterNetworkCallback(networkCallback)
         coroutineScope.cancel()
@@ -413,6 +414,7 @@ public class WebRtcHandlerThread(
         appError = null
         lastPublicStreamState = null
         pendingEventDeque.clear()
+        service.hideForegroundNotification()
     }
 
     private fun processEvent(event: AppStateMachine.Event) = runCatching {
@@ -438,7 +440,7 @@ public class WebRtcHandlerThread(
             is InternalEvent.OpenSocket -> {
                 signaling?.destroy()
                 signaling = SocketSignaling(environment, okHttpClient, ssEventListener, streamPasswordValidator)
-                    .apply { openSocket(event.token) }
+                    .apply { openSocket(event.token, versionName) }
             }
 
             is InternalEvent.StreamCreate -> {
@@ -455,7 +457,7 @@ public class WebRtcHandlerThread(
                         clients.values.forEach { it.stop() }
                         service.unregisterComponentCallbacks(componentCallback)
                         projection!!.stop()
-                        notificationHelper.showNotification(service, NotificationHelper.NotificationType.START)
+                        service.hideForegroundNotification()
                     }
 
                     signaling!!.sendRemoveClients(clients.values.map { it.clientId })
@@ -505,7 +507,7 @@ public class WebRtcHandlerThread(
             } else {
                 waitingForPermission = false
 
-                notificationHelper.showNotification(service, NotificationHelper.NotificationType.STOP)
+                service.showForegroundNotification()
 
                 when {
                     Build.VERSION.SDK_INT < Build.VERSION_CODES.Q ->
@@ -528,7 +530,7 @@ public class WebRtcHandlerThread(
                 } else if (event.counter > 0)
                     sendEvent(InternalEvent.WaitForForegroundService(event.counter - 1, event.intent), 500)
                 else {
-                    notificationHelper.showNotification(service, NotificationHelper.NotificationType.START)
+                    service.hideForegroundNotification()
                     waitingForForegroundService = false
                     throw IllegalStateException("Service is not FOREGROUND. Give up.")
                 }
@@ -592,7 +594,7 @@ public class WebRtcHandlerThread(
                     clients.values.forEach { it.stop() }
                     service.unregisterComponentCallbacks(componentCallback)
                     projection!!.stop()
-                    notificationHelper.showNotification(service, NotificationHelper.NotificationType.START)
+                    service.hideForegroundNotification()
                 } else {
                     XLog.w(getLog("StopStream", "Not streaming. Ignoring."))
                 }
@@ -607,7 +609,6 @@ public class WebRtcHandlerThread(
                     clients.values.forEach { it.stop() }
                     service.unregisterComponentCallbacks(componentCallback)
                     projection!!.stop()
-                    notificationHelper.showNotification(service, NotificationHelper.NotificationType.START)
                 }
 
                 signaling?.destroy()
@@ -625,6 +626,7 @@ public class WebRtcHandlerThread(
                 projection = null
                 clients = HashMap()
                 appError = null
+                service.hideForegroundNotification()
                 if (event is AppStateMachine.Event.RecoverError) socketErrorRetryAttempts = 0
 
                 when (event) {
@@ -697,11 +699,6 @@ public class WebRtcHandlerThread(
             is AppStateMachine.Event.RequestPublicState -> {
                 createAndSendPublicState(true)
                 effectSharedFlow.tryEmit(AppStateMachine.Effect.Statistic.Clients(clients.values.map { it.toPublic() }))
-            }
-
-            is AppStateMachine.Event.UpdateNotification -> {
-                if (isStreaming().not())
-                    notificationHelper.showNotification(service, NotificationHelper.NotificationType.START)
             }
 
             else -> throw IllegalArgumentException("Unknown WebRTCHandlerThread.Event: $event")

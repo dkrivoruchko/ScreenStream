@@ -33,12 +33,8 @@
     <string name="permission_activity_error_title">Errada</string>
     <string name="permission_activity_error_unknown">Error inesperat</string>
 
-    <string name="notification_ready_to_stream">A punt per emetre</string>
-    <string name="notification_press_start">Premeu Començar per iniciar la reproducció</string>
-    <string name="notification_start">Començar</string>
-    <string name="notification_exit">Sortiu</string>
-    <string name="notification_stream">Stream…</string>
-    <string name="notification_press_stop">Premeu Atura per finalitzar la reproducció</string>
+    <string name="notification_streaming_title">Stream…</string>
+    <string name="notification_streaming_content">Premeu Atura per finalitzar la reproducció</string>
     <string name="notification_stop">Atura</string>
 
     <string name="toast_slow_client_connection">S\'ha detectat una connexió de client lenta </string>
@@ -57,8 +53,6 @@
     </string-array>
     <string name="pref_stop_on_sleep">Parar em sleep</string>
     <string name="pref_stop_on_sleep_summary">Atura la reproducció si la pantalla està apagada</string>
-    <string name="pref_start_on_boot">Comenceu a l’inici</string>
-    <string name="pref_start_on_boot_summary">Inicieu la reproducció tan aviat com s\'iniciï el dispositiu</string>
     <string name="pref_html_buttons">Activa els botons de pàgina web</string>
     <string name="pref_html_buttons_summary">Mostra els botons de control a la pàgina web</string>
     <string name="pref_html_back_color">Color de fons de la pàgina</string>

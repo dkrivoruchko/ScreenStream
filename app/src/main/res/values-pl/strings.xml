@@ -51,12 +51,8 @@
     <string name="permission_activity_allow_notifications_settings">Aplikacja wymaga uprawnień do wysyłania powiadomień, aby móc uruchomić usługę przesyłania strumieniowego. Zezwól na wysyłanie powiadomień w ustawieniach aplikacji.</string>
     <string name="permission_activity_notification_settings">Otwórz ustawienia</string>
 
-    <string name="notification_ready_to_stream">Gotowy do transmisji</string>
-    <string name="notification_press_start">Naciśnij Uruchom, aby rozpocząć transmisję</string>
-    <string name="notification_start">Uruchom</string>
-    <string name="notification_exit">Zamknij</string>
-    <string name="notification_stream">Przesyłanie…</string>
-    <string name="notification_press_stop">Naciśnij Zatrzymaj, aby zakończyć transmisję</string>
+    <string name="notification_streaming_title">Przesyłanie…</string>
+    <string name="notification_streaming_content">Naciśnij Zatrzymaj, aby zakończyć transmisję</string>
     <string name="notification_stop">Zatrzymaj</string>
 
     <string name="toast_slow_client_connection">Wykryto wolne połączenie klienta</string>
@@ -81,10 +77,6 @@
     <string name="pref_keep_awake_summary">Nie wyłączaj urządzenia i ekranu podczas przesyłania strumieniowego</string>
     <string name="pref_stop_on_sleep">Zatrzymaj transmisję podczas uśpienia</string>
     <string name="pref_stop_on_sleep_summary">Zatrzymuje transmisję, jeśli ekran się wyłączy</string>
-    <string name="pref_start_on_boot">Uruchom transmisję przy starcie</string>
-    <string name="pref_start_on_boot_summary">Uruchamia transmisję po uruchomieniu urządzenia</string>
-    <string name="pref_auto_start_stop">Automatyczne uruchamianie/zatrzymywanie transmisji</string>
-    <string name="pref_auto_start_stop_summary">Automatycznie uruchamia/zatrzymuje transmisję, łączy/rozłącza klienta</string>
     <string name="pref_detect_slow_connections">Powiadamianie o powolnych połączeniach</string>
     <string name="pref_detect_slow_connections_summary">Wykrywa i powiadamia o powolnym połączeniu klienta</string>
     <string name="pref_html_buttons">Włącz przyciski strony internetowej</string>

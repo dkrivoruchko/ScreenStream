@@ -18,19 +18,10 @@ class AppSettingsImpl(private val dataStore: DataStore<Preferences>) : AppSettin
     override val stopOnSleepFlow: Flow<Boolean> = dataStore.getCatching(AppSettings.Key.STOP_ON_SLEEP, AppSettings.Default.STOP_ON_SLEEP)
     override suspend fun setStopOnSleep(value: Boolean) = dataStore.setValue(AppSettings.Key.STOP_ON_SLEEP, value)
 
-    override val startOnBootFlow: Flow<Boolean> = dataStore.getCatching(AppSettings.Key.START_ON_BOOT, AppSettings.Default.START_ON_BOOT)
-    override suspend fun setStartOnBoot(value: Boolean) = dataStore.setValue(AppSettings.Key.START_ON_BOOT, value)
-
-    override val autoStartStopFlow: Flow<Boolean> = dataStore.getCatching(AppSettings.Key.AUTO_START_STOP, AppSettings.Default.AUTO_START_STOP)
-    override suspend fun setAutoStartStop(value: Boolean) = dataStore.setValue(AppSettings.Key.AUTO_START_STOP, value)
-
 
     override val loggingVisibleFlow: Flow<Boolean> = dataStore.getCatching(AppSettings.Key.LOGGING_VISIBLE, AppSettings.Default.LOGGING_VISIBLE)
     override suspend fun setLoggingVisible(value: Boolean) = dataStore.setValue(AppSettings.Key.LOGGING_VISIBLE, value)
 
     override val lastUpdateRequestMillisFlow: Flow<Long> = dataStore.getCatching(AppSettings.Key.LAST_UPDATE_REQUEST_MILLIS, AppSettings.Default.LAST_IAU_REQUEST_TIMESTAMP)
     override suspend fun setLastUpdateRequestMillis(value: Long) = dataStore.setValue(AppSettings.Key.LAST_UPDATE_REQUEST_MILLIS, value)
-
-    override val addTileAsked: Flow<Boolean> = dataStore.getCatching(AppSettings.Key.ADD_TILE_ASKED, AppSettings.Default.ADD_TILE_ASKED)
-    override suspend fun setAddTileAsked(value: Boolean) = dataStore.setValue(AppSettings.Key.ADD_TILE_ASKED, value)
 }

@@ -53,7 +53,6 @@ object StateToEventMatrix {
             AppStateMachine.Event.StopStream::class.java to Action.Error,
             AppStateMachine.Event.RequestPublicState::class.java to Action.Process,
             AppStateMachine.Event.RecoverError::class.java to Action.Skipp,
-            AppStateMachine.Event.UpdateNotification::class.java to Action.Process
         )
 
         matrix[StreamState.State.ADDRESS_DISCOVERED] = mapOf(
@@ -72,7 +71,6 @@ object StateToEventMatrix {
             AppStateMachine.Event.StopStream::class.java to Action.Skipp,
             AppStateMachine.Event.RequestPublicState::class.java to Action.Process,
             AppStateMachine.Event.RecoverError::class.java to Action.Process,
-            AppStateMachine.Event.UpdateNotification::class.java to Action.Process
         )
 
         matrix[StreamState.State.SERVER_STARTED] = mapOf(
@@ -91,7 +89,6 @@ object StateToEventMatrix {
             AppStateMachine.Event.StopStream::class.java to Action.Skipp,
             AppStateMachine.Event.RequestPublicState::class.java to Action.Process,
             AppStateMachine.Event.RecoverError::class.java to Action.Process,
-            AppStateMachine.Event.UpdateNotification::class.java to Action.Process
         )
 
         matrix[StreamState.State.PERMISSION_PENDING] = mapOf(
@@ -110,7 +107,6 @@ object StateToEventMatrix {
             AppStateMachine.Event.StopStream::class.java to Action.Skipp,
             AppStateMachine.Event.RequestPublicState::class.java to Action.Process,
             AppStateMachine.Event.RecoverError::class.java to Action.Process,
-            AppStateMachine.Event.UpdateNotification::class.java to Action.Process
         )
 
         matrix[StreamState.State.STREAMING] = mapOf(
@@ -129,7 +125,6 @@ object StateToEventMatrix {
             AppStateMachine.Event.StopStream::class.java to Action.Process,
             AppStateMachine.Event.RequestPublicState::class.java to Action.Process,
             AppStateMachine.Event.RecoverError::class.java to Action.Process,
-            AppStateMachine.Event.UpdateNotification::class.java to Action.Process
         )
 
         matrix[StreamState.State.RESTART_PENDING] = mapOf(
@@ -148,7 +143,6 @@ object StateToEventMatrix {
             AppStateMachine.Event.StopStream::class.java to Action.Skipp,
             AppStateMachine.Event.RequestPublicState::class.java to Action.Process,
             AppStateMachine.Event.RecoverError::class.java to Action.Process,
-            AppStateMachine.Event.UpdateNotification::class.java to Action.Process
         )
 
         matrix[StreamState.State.ERROR] = mapOf(
@@ -167,7 +161,6 @@ object StateToEventMatrix {
             AppStateMachine.Event.StopStream::class.java to Action.Skipp,
             AppStateMachine.Event.RequestPublicState::class.java to Action.Process,
             AppStateMachine.Event.RecoverError::class.java to Action.Process,
-            AppStateMachine.Event.UpdateNotification::class.java to Action.Process
         )
 
         matrix[StreamState.State.DESTROYED] = mapOf(
@@ -186,7 +179,6 @@ object StateToEventMatrix {
             AppStateMachine.Event.StopStream::class.java to Action.Skipp,
             AppStateMachine.Event.RequestPublicState::class.java to Action.Skipp,
             AppStateMachine.Event.RecoverError::class.java to Action.Skipp,
-            AppStateMachine.Event.UpdateNotification::class.java to Action.Process
         )
     }
 }

@@ -43,12 +43,8 @@
     <string name="permission_activity_error_title">エラー</string>
     <string name="permission_activity_error_unknown">不明なエラー</string>
 
-    <string name="notification_ready_to_stream">ストリームする準備ができました</string>
-    <string name="notification_press_start">開始を押してストリームを開始します</string>
-    <string name="notification_start">開始</string>
-    <string name="notification_exit">終了</string>
-    <string name="notification_stream">ストリーム中…</string>
-    <string name="notification_press_stop">停止を押してストリームを停止します</string>
+    <string name="notification_streaming_title">ストリーム中…</string>
+    <string name="notification_streaming_content">停止を押してストリームを停止します</string>
     <string name="notification_stop">停止</string>
 
     <string name="toast_slow_client_connection">遅いクライアント接続が検出されました</string>
@@ -69,10 +65,6 @@
     <string name="pref_notification_summary">システムの通知設定を開きます</string>
     <string name="pref_stop_on_sleep">スリープ時にストリームを停止</string>
     <string name="pref_stop_on_sleep_summary">画面がオフになったらストリームを停止します</string>
-    <string name="pref_start_on_boot">起動時にストリームを開始</string>
-    <string name="pref_start_on_boot_summary">端末が起動した時にストリームを開始します</string>
-    <string name="pref_auto_start_stop">ストリーミングの自動開始/停止</string>
-    <string name="pref_auto_start_stop_summary">クライアントが接続/切断した時にストリーミングを自動開始/停止します</string>
     <string name="pref_detect_slow_connections">遅い接続を通知する</string>
     <string name="pref_detect_slow_connections_summary">遅いクライアント接続を検出して通知します</string>
     <string name="pref_html_buttons">Webページのボタンを有効化</string>

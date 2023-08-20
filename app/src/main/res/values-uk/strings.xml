@@ -91,12 +91,8 @@
     <string name="permission_activity_allow_notifications_settings">Додатку потрібен дозвіл на надсилання сповіщень, щоб мати можливість запустити службу потокової передачі. Дозвольте надсилання сповіщень у налаштуваннях додатку.</string>
     <string name="permission_activity_notification_settings">Відкрити налаштування</string>
 
-    <string name="notification_ready_to_stream">Готовий до початку передачі</string>
-    <string name="notification_press_start">Натисніть ПОЧАТИ щоб почати передачу</string>
-    <string name="notification_start">ПОЧАТИ</string>
-    <string name="notification_exit">Вихід</string>
-    <string name="notification_stream">Трансляція…</string>
-    <string name="notification_press_stop">Натисніть СТОП щоб зупинити трансляцію</string>
+    <string name="notification_streaming_title">Трансляція…</string>
+    <string name="notification_streaming_content">Натисніть СТОП щоб зупинити трансляцію</string>
     <string name="notification_stop">СТОП</string>
 
     <string name="toast_slow_client_connection">Виявлено повільне клієнтське з\'єднання</string>
@@ -121,10 +117,6 @@
     <string name="pref_keep_awake_summary">Тримати пристрій та екран активними під час трансляції</string>
     <string name="pref_stop_on_sleep">Зупиняти трансляцію при засинанні пристрою</string>
     <string name="pref_stop_on_sleep_summary">Зупиняти трансляцію при вимкненні екрану</string>
-    <string name="pref_start_on_boot">Починати трансляцію при завантаженні додатку</string>
-    <string name="pref_start_on_boot_summary">Починати трансляцію при завантаженні пристрою</string>
-    <string name="pref_auto_start_stop">Атоматично Починати/Зупиняти трансляцію</string>
-    <string name="pref_auto_start_stop_summary">Атоматично Починати/Зупиняти трансляцію при підключенні/відключенні клієнтів</string>
     <string name="pref_detect_slow_connections">Повідомляти про повільне з\'єднання</string>
     <string name="pref_detect_slow_connections_summary">Визначати та повідомляти про повільні підключення клієнтів</string>
     <string name="pref_html_buttons">Увімкнути кнопки веб сторінки</string>

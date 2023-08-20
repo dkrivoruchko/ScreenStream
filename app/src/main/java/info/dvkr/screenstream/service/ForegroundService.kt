@@ -1,7 +1,6 @@
 package info.dvkr.screenstream.service
 
 import android.annotation.SuppressLint
-import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.hardware.display.DisplayManager
@@ -17,7 +16,6 @@ import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.common.AppError
 import info.dvkr.screenstream.common.AppStateMachine
-import info.dvkr.screenstream.common.NotificationHelper
 import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.common.settings.AppSettings
 import info.dvkr.screenstream.databinding.ToastSlowConnectionBinding
@@ -25,6 +23,7 @@ import info.dvkr.screenstream.mjpeg.MjpegPublicState
 import info.dvkr.screenstream.mjpeg.settings.MjpegSettings
 import info.dvkr.screenstream.mjpeg.state.MjpegStateMachine
 import info.dvkr.screenstream.service.helper.IntentAction
+import info.dvkr.screenstream.service.helper.NotificationHelper
 import info.dvkr.screenstream.webrtc.StandardIntegrityManagerWrapper
 import info.dvkr.screenstream.webrtc.WebRtcEnvironment
 import info.dvkr.screenstream.webrtc.WebRtcHandlerThread
@@ -34,7 +33,7 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import org.koin.android.ext.android.inject
 
-class ForegroundService : Service() {
+class ForegroundService : info.dvkr.screenstream.common.ForegroundService() {
 
     internal companion object {
         @JvmStatic
@@ -195,19 +194,17 @@ class ForegroundService : Service() {
                 appStateMachine?.destroy()
                 appStateMachine = when (mode) {
                     AppSettings.Values.STREAM_MODE_WEBRTC ->
-                        WebRtcHandlerThread(this@ForegroundService, notificationHelper, appSettings, webRTCEnvironment, webrtcSettings, effectFlow).apply { start() }
+                        WebRtcHandlerThread(this@ForegroundService, appSettings, webRTCEnvironment, webrtcSettings, effectFlow)
+                            .apply { start() }
 
                     AppSettings.Values.STREAM_MODE_MJPEG ->
-                        MjpegStateMachine(this@ForegroundService, notificationHelper, appSettings, mjpegSettings, effectFlow, ::showSlowConnectionToast)
+                        MjpegStateMachine(this@ForegroundService, appSettings, mjpegSettings, effectFlow, ::showSlowConnectionToast)
 
                     else -> throw IllegalStateException("Unexpected stream mode: $mode")
                 }
             }
 
             IntentAction.ApplicationOnStop -> if (appStateMachine?.pauseRequest() == true) appStateMachine = null
-
-            IntentAction.UpdateNotification ->
-                appStateMachine?.sendEvent(AppStateMachine.Event.UpdateNotification)
         }
 
         return START_NOT_STICKY
@@ -232,6 +229,14 @@ class ForegroundService : Service() {
 
         XLog.d(getLog("onDestroy", "Done"))
         super.onDestroy()
+    }
+
+    override fun showForegroundNotification() {
+        notificationHelper.showForegroundNotification(this)
+    }
+
+    override fun hideForegroundNotification() {
+        notificationHelper.hideForegroundNotification(this)
     }
 
     private fun onError(appError: AppError?) {

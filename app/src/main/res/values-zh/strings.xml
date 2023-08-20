@@ -48,12 +48,8 @@
     <string name="permission_activity_error_title">错误</string>
     <string name="permission_activity_error_unknown">未知错误</string>
 
-    <string name="notification_ready_to_stream">已准备好视频流</string>
-    <string name="notification_press_start">请按 开始 来播出视频流</string>
-    <string name="notification_start">开始</string>
-    <string name="notification_exit">退出</string>
-    <string name="notification_stream">播送中</string>
-    <string name="notification_press_stop">请按 停止 来中止视频流</string>
+    <string name="notification_streaming_title">播送中</string>
+    <string name="notification_streaming_content">请按 停止 来中止视频流</string>
     <string name="notification_stop">停止</string>
 
     <string name="toast_slow_client_connection">检测到慢速客户端连接</string>
@@ -76,10 +72,6 @@
     <string name="pref_keep_awake_summary">播出视频流的时候保持设备唤醒并且屏幕常亮</string>
     <string name="pref_stop_on_sleep">设备休眠的时候停止视频流</string>
     <string name="pref_stop_on_sleep_summary">屏幕关闭的时候停止视频流</string>
-    <string name="pref_start_on_boot">开机自动启动播出视频流</string>
-    <string name="pref_start_on_boot_summary">设备启动后自动开始播出视频流</string>
-    <string name="pref_auto_start_stop">自动 开始/停止 视频流</string>
-    <string name="pref_auto_start_stop_summary">在客户端 连接/断开 的时候自动 开始/停止 视频流</string>
     <string name="pref_detect_slow_connections">显示慢速连接通知</string>
     <string name="pref_detect_slow_connections_summary">侦测并通知慢速连接的客户端</string>
     <string name="pref_html_buttons">启用网页按钮</string>

@@ -33,12 +33,8 @@
     <string name="permission_activity_error_title">Erreur</string>
     <string name="permission_activity_error_unknown">Erreur inconnue</string>
 
-    <string name="notification_ready_to_stream">Prêt à diffuser</string>
-    <string name="notification_press_start">Appuyez sur Démarrer pour démarrer la diffusion</string>
-    <string name="notification_start">Démarrer</string>
-    <string name="notification_exit">Quitter</string>
-    <string name="notification_stream">Diffusion…</string>
-    <string name="notification_press_stop">Appuyez sur Arrêtez pour arrêter la diffusion</string>
+    <string name="notification_streaming_title">Diffusion…</string>
+    <string name="notification_streaming_content">Appuyez sur Arrêtez pour arrêter la diffusion</string>
     <string name="notification_stop">Arrêtez</string>
 
     <string name="toast_slow_client_connection">Client avec connection lente détecté</string>
@@ -57,8 +53,6 @@
     </string-array>
     <string name="pref_stop_on_sleep">Arrêter en veille</string>
     <string name="pref_stop_on_sleep_summary">Arrête la diffusion si l\'écran s\'éteint</string>
-    <string name="pref_start_on_boot">Diffuser au démarrage</string>
-    <string name="pref_start_on_boot_summary">Lance la diffusion après le démarrage de l\'appareil</string>
     <string name="pref_html_buttons">Activer les boutons de page Web</string>
     <string name="pref_html_buttons_summary">Afficher les boutons de contrôle sur la page Web</string>
     <string name="pref_html_back_color">Couleur d\'arrière-plan de la page</string>

@@ -48,12 +48,8 @@
     <string name="permission_activity_error_title">錯誤</string>
     <string name="permission_activity_error_unknown">未知錯誤</string>
 
-    <string name="notification_ready_to_stream">已準備好串流</string>
-    <string name="notification_press_start">請按下開始</string>
-    <string name="notification_start">開始</string>
-    <string name="notification_exit">離開</string>
-    <string name="notification_stream">串流…</string>
-    <string name="notification_press_stop">按下停止以結束串流</string>
+    <string name="notification_streaming_title">串流…</string>
+    <string name="notification_streaming_content">按下停止以結束串流</string>
     <string name="notification_stop">停止</string>
 
     <string name="toast_slow_client_connection">偵測到用戶端網路速度不佳</string>
@@ -76,10 +72,6 @@
     <string name="pref_keep_awake_summary">播出視頻流的時候保持設備喚醒並且屏幕常亮</string>
     <string name="pref_stop_on_sleep">睡眠時停止</string>
     <string name="pref_stop_on_sleep_summary">當螢幕待機關閉時停止串流</string>
-    <string name="pref_start_on_boot">開機時啟動</string>
-    <string name="pref_start_on_boot_summary">開機後自動開始串流</string>
-    <string name="pref_auto_start_stop">自動 開始/停止 串流</string>
-    <string name="pref_auto_start_stop_summary">在客戶端 連接/斷開 的時候自動 開始/停止 串流</string>
     <string name="pref_detect_slow_connections">顯示慢速連接通知</string>
     <string name="pref_detect_slow_connections_summary">偵測並通知慢速連接的客戶端</string>
     <string name="pref_html_buttons">啓用網頁按鈕</string>

@@ -2,7 +2,6 @@ package info.dvkr.screenstream.mjpeg.state
 
 import android.annotation.SuppressLint
 import android.app.Activity
-import android.app.Service
 import android.content.ComponentCallbacks
 import android.content.Context
 import android.content.Intent
@@ -20,7 +19,7 @@ import androidx.annotation.MainThread
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.common.AppError
 import info.dvkr.screenstream.common.AppStateMachine
-import info.dvkr.screenstream.common.NotificationHelper
+import info.dvkr.screenstream.common.ForegroundService
 import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.common.settings.AppSettings
 import info.dvkr.screenstream.mjpeg.*
@@ -36,8 +35,7 @@ import kotlinx.coroutines.flow.*
 import java.util.concurrent.LinkedBlockingDeque
 
 class MjpegStateMachine(
-    private val service: Service,
-    private val notificationHelper: NotificationHelper,
+    private val service: ForegroundService,
     private val appSettings: AppSettings,
     private val mjpegSettings: MjpegSettings,
     private val effectSharedFlow: MutableSharedFlow<AppStateMachine.Effect>,
@@ -131,8 +129,6 @@ class MjpegStateMachine(
     init {
         XLog.d(getLog("init"))
 
-        notificationHelper.showNotification(service, NotificationHelper.NotificationType.START)
-
         coroutineScope.launch {
             if (mjpegSettings.enablePinFlow.first() && mjpegSettings.newPinOnAppStartFlow.first())
                 mjpegSettings.setPin(randomPin())
@@ -159,7 +155,6 @@ class MjpegStateMachine(
                         is AppStateMachine.Event.StopStream -> stopStream(streamState)
                         is AppStateMachine.Event.RequestPublicState -> requestPublicState(streamState)
                         is AppStateMachine.Event.RecoverError -> recoverError(streamState)
-                        is AppStateMachine.Event.UpdateNotification -> updateNotification(streamState)
                         else -> throw IllegalArgumentException("Unknown AppStateMachine.Event: $event")
                     }
 
@@ -233,7 +228,6 @@ class MjpegStateMachine(
                         when (event) {
                             is HttpServer.Event.Statistic.Clients -> {
                                 effectSharedFlow.emit(AppStateMachine.Effect.Statistic.Clients(event.clients))
-                                if (appSettings.autoStartStopFlow.first()) checkAutoStartStop(event.clients)
                                 if (mjpegSettings.notifySlowConnectionsFlow.first()) checkForSlowClients(event.clients)
                             }
 
@@ -261,18 +255,6 @@ class MjpegStateMachine(
         slowClients = currentSlowConnections
     }
 
-    private fun checkAutoStartStop(clients: List<MjpegClient>) {
-        if (clients.isNotEmpty() && streamState.isStreaming().not()) {
-            XLog.d(getLog("checkAutoStartStop", "Auto starting"))
-            sendEvent(AppStateMachine.Event.StartStream)
-        }
-
-        if (clients.isEmpty() && streamState.isStreaming()) {
-            XLog.d(getLog("checkAutoStartStop", "Auto stopping"))
-            sendEvent(AppStateMachine.Event.StopStream)
-        }
-    }
-
     private fun releaseWakeLock() {
         synchronized(this) {
             if (wakeLock?.isHeld == true) wakeLock?.release()
@@ -298,7 +280,7 @@ class MjpegStateMachine(
         broadcastHelper.stopListening()
         connectivityHelper.stopListening()
         coroutineScope.cancel()
-        notificationHelper.clearNotification(service)
+        service.hideForegroundNotification()
         mediaProjectionIntent = null
     }
 
@@ -311,7 +293,7 @@ class MjpegStateMachine(
     private fun stopProjection(streamState: StreamState): StreamState {
         XLog.d(getLog("stopProjection"))
         if (streamState.isStreaming()) {
-            notificationHelper.showNotification(service, NotificationHelper.NotificationType.START)
+            service.hideForegroundNotification()
             service.unregisterComponentCallbacks(componentCallback)
             streamState.bitmapCapture?.destroy()
             streamState.mediaProjection?.unregisterCallback(projectionCallback)
@@ -384,7 +366,7 @@ class MjpegStateMachine(
         XLog.d(getLog("startProjection", "Intent: $intent"))
 
         try {
-            notificationHelper.showNotification(service, NotificationHelper.NotificationType.STOP)
+            service.showForegroundNotification()
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) { // waiting for correct service state
                 delay(250)
@@ -413,7 +395,7 @@ class MjpegStateMachine(
 
             return streamState.copy(state = StreamState.State.STREAMING, mediaProjection = mediaProjection, bitmapCapture = bitmapCapture)
         } catch (cause: Throwable) {
-            notificationHelper.showNotification(service, NotificationHelper.NotificationType.START)
+            service.hideForegroundNotification()
             XLog.e(getLog("startProjection"), cause)
         }
         mediaProjectionIntent = null
@@ -523,16 +505,6 @@ class MjpegStateMachine(
 
         sendEvent(InternalEvent.DiscoverAddress)
         return streamState.copy(state = StreamState.State.RESTART_PENDING, appError = null)
-    }
-
-    private fun updateNotification(streamState: StreamState): StreamState {
-        XLog.d(getLog("updateNotification"))
-
-        if (streamState.isStreaming().not()) {
-            notificationHelper.showNotification(service, NotificationHelper.NotificationType.START)
-        }
-
-        return streamState
     }
 
     private suspend fun requestPublicState(streamState: StreamState): StreamState {

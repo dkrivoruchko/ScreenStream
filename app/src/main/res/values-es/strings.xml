@@ -43,12 +43,8 @@
     <string name="permission_activity_error_title">Error</string>
     <string name="permission_activity_error_unknown">Error desconocido</string>
 
-    <string name="notification_ready_to_stream">Listo para transmitir</string>
-    <string name="notification_press_start">Presione Iniciar para transmitir</string>
-    <string name="notification_start">Iniciar</string>
-    <string name="notification_exit">Salir</string>
-    <string name="notification_stream">Transmitiendo…</string>
-    <string name="notification_press_stop">Presione Detener para terminar la transmisión</string>
+    <string name="notification_streaming_title">Transmitiendo…</string>
+    <string name="notification_streaming_content">Presione Detener para terminar la transmisión</string>
     <string name="notification_stop">Detener</string>
 
     <string name="toast_slow_client_connection">Conexión lenta detectada</string>
@@ -69,10 +65,6 @@
     <string name="pref_notification_summary">Abrir opciones de notificación del sistema</string>
     <string name="pref_stop_on_sleep">Detener transmisión al dormir</string>
     <string name="pref_stop_on_sleep_summary">Detener transmisión si la apaga la pantalla</string>
-    <string name="pref_start_on_boot">Iniciar transmisión al arranque</string>
-    <string name="pref_start_on_boot_summary">Iniciar transmisión despues del arranque</string>
-    <string name="pref_auto_start_stop">Auto Iniciar/Detener transmisión</string>
-    <string name="pref_auto_start_stop_summary">Auto Iniciar/Detener transmisión cuando el cliente se conecte/desconecte</string>
     <string name="pref_detect_slow_connections">Notificar conexiones lentas</string>
     <string name="pref_detect_slow_connections_summary">Detectar y notificar las conexiones lentas</string>
     <string name="pref_html_buttons">Habilitar botones en la Página Web</string>
