@@ -24,7 +24,6 @@ import info.dvkr.screenstream.mjpeg.settings.MjpegSettings
 import info.dvkr.screenstream.mjpeg.state.MjpegStateMachine
 import info.dvkr.screenstream.service.helper.IntentAction
 import info.dvkr.screenstream.service.helper.NotificationHelper
-import info.dvkr.screenstream.webrtc.StandardIntegrityManagerWrapper
 import info.dvkr.screenstream.webrtc.WebRtcEnvironment
 import info.dvkr.screenstream.webrtc.WebRtcHandlerThread
 import info.dvkr.screenstream.webrtc.WebRtcPublicState
@@ -77,8 +76,6 @@ class ForegroundService : info.dvkr.screenstream.common.ForegroundService() {
     override fun onCreate() {
         super.onCreate()
         XLog.d(getLog("onCreate"))
-
-        StandardIntegrityManagerWrapper.initManager(this)
 
         effectFlow.onEach { effect ->
             if (effect !is AppStateMachine.Effect.Statistic)

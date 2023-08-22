@@ -1,83 +1,38 @@
 package info.dvkr.screenstream.webrtc.internal
 
+import android.content.Context
+import androidx.annotation.AnyThread
 import com.elvishew.xlog.XLog
+import com.google.android.play.core.integrity.IntegrityManagerFactory
 import com.google.android.play.core.integrity.StandardIntegrityException
+import com.google.android.play.core.integrity.StandardIntegrityManager
 import com.google.android.play.core.integrity.model.StandardIntegrityErrorCode
 import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.webrtc.R
-import info.dvkr.screenstream.webrtc.StandardIntegrityManagerWrapper
 import info.dvkr.screenstream.webrtc.WebRtcEnvironment
 import info.dvkr.screenstream.webrtc.WebRtcError
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.supervisorScope
-import kotlinx.coroutines.suspendCancellableCoroutine
-import okhttp3.*
+import okhttp3.CacheControl
+import okhttp3.Call
+import okhttp3.Callback
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.Response
 import java.io.IOException
-import java.net.UnknownHostException
-import kotlin.coroutines.resume
-import kotlin.coroutines.resumeWithException
-import kotlin.math.pow
+import java.util.concurrent.CancellationException
 
-internal class PlayIntegrity(
-    private val environment: WebRtcEnvironment,
-    private val okHttpClient: OkHttpClient
-) {
+internal class PlayIntegrity(serviceContext: Context, private val environment: WebRtcEnvironment, private val okHttpClient: OkHttpClient) {
 
     internal companion object {
+        @JvmStatic
+        private var standardIntegrityManager: StandardIntegrityManager? = null
 
-        // No retry. Ask for user action
-        private val USER_ACTION_INTEGRITY_ERRORS = listOf(
-            StandardIntegrityErrorCode.API_NOT_AVAILABLE, // Integrity API is not available. Integrity API is not enabled, or the Play Store version might be old.
-            StandardIntegrityErrorCode.PLAY_STORE_VERSION_OUTDATED, // Play Store app needs to be updated.
-            StandardIntegrityErrorCode.CANNOT_BIND_TO_SERVICE, // Binding to the service in the Play Store has failed.
-            StandardIntegrityErrorCode.PLAY_STORE_NOT_FOUND, // No official Play Store app was found on the device.
-            StandardIntegrityErrorCode.PLAY_SERVICES_NOT_FOUND, // Play services is unavailable or needs to be updated.
-            StandardIntegrityErrorCode.PLAY_SERVICES_VERSION_OUTDATED, // Play services needs to be updated.
-            StandardIntegrityErrorCode.NETWORK_ERROR, // No available network was found.
-        )
+        @JvmStatic
+        private var integrityTokenProvider: StandardIntegrityManager.StandardIntegrityTokenProvider? = null
+    }
 
-        // Retry failed. Notify user
-        private val USER_NOTIFY_INTEGRITY_ERRORS = listOf(
-            StandardIntegrityErrorCode.TOO_MANY_REQUESTS, // The calling app is making too many requests to the API and has been throttled.
-            StandardIntegrityErrorCode.GOOGLE_SERVER_UNAVAILABLE, // Unknown internal Google server error.
-            StandardIntegrityErrorCode.INTERNAL_ERROR // Unknown internal error.
-        )
-
-        // No retry. Force app crash
-        private val CRITICAL_INTEGRITY_ERRORS = listOf(
-            StandardIntegrityErrorCode.CLOUD_PROJECT_NUMBER_IS_INVALID,
-            StandardIntegrityErrorCode.APP_NOT_INSTALLED,
-            StandardIntegrityErrorCode.APP_UID_MISMATCH
-        )
-
-        // App will retry
-        private val RETRY_INTEGRITY_ERRORS = listOf(
-            StandardIntegrityErrorCode.NETWORK_ERROR,
-            StandardIntegrityErrorCode.GOOGLE_SERVER_UNAVAILABLE,
-            StandardIntegrityErrorCode.INTERNAL_ERROR
-        )
-
-        private fun StandardIntegrityException.toWebRtcError(): WebRtcError = when (errorCode) {
-            in USER_ACTION_INTEGRITY_ERRORS -> {
-                val id = when (errorCode) {
-                    StandardIntegrityErrorCode.API_NOT_AVAILABLE,
-                    StandardIntegrityErrorCode.PLAY_STORE_VERSION_OUTDATED,
-                    StandardIntegrityErrorCode.CANNOT_BIND_TO_SERVICE -> R.string.webrtc_error_play_integrity_update_play_store
-
-                    StandardIntegrityErrorCode.PLAY_STORE_NOT_FOUND -> R.string.webrtc_error_play_integrity_install_play_store
-                    StandardIntegrityErrorCode.PLAY_SERVICES_NOT_FOUND -> R.string.webrtc_error_play_integrity_install_play_service
-                    StandardIntegrityErrorCode.PLAY_SERVICES_VERSION_OUTDATED -> R.string.webrtc_error_play_integrity_update_play_service
-                    StandardIntegrityErrorCode.NETWORK_ERROR -> R.string.webrtc_error_check_network
-                    else -> throw this // Intentionally crash the app
-                }
-                WebRtcError.PlayIntegrityUserActionError(errorCode, message, id)
-            }
-
-            in USER_NOTIFY_INTEGRITY_ERRORS -> WebRtcError.PlayIntegrityUserNotifyError(errorCode, message)
-            in CRITICAL_INTEGRITY_ERRORS -> throw this // Intentionally crash the app
-            else -> WebRtcError.PlayIntegrityUserNotifyError(errorCode, message)
-        }
+    init {
+        XLog.d(getLog("init"))
+        if (standardIntegrityManager == null) standardIntegrityManager = IntegrityManagerFactory.createStandard(serviceContext)
     }
 
     private val nonceRequest = Request.Builder()
@@ -85,77 +40,156 @@ internal class PlayIntegrity(
         .cacheControl(CacheControl.Builder().noCache().noStore().build())
         .build()
 
-    @Throws(WebRtcError::class)
-    internal suspend fun getTokenWithRetries(forceUpdate: Boolean): PlayIntegrityToken = supervisorScope {
-        withRetries("getToken", 3, 5000L, 2.0) { getToken(forceUpdate, okHttpClient, it) }
-    }
-
-    @Throws(WebRtcError::class)
-    private suspend fun getToken(forceUpdate: Boolean, okHttpClient: OkHttpClient, attempt: Int): PlayIntegrityToken {
-        XLog.d(getLog("getToken", "Attempt: $attempt"))
-
-        val nonce = withRetries("getNonce", 3, 2000L, 1.02) { getNonce(okHttpClient, it) }
-        StandardIntegrityManagerWrapper.prepareIntegrityToken(environment, forceUpdate)
-        val playIntegrityToken = StandardIntegrityManagerWrapper.getPlayIntegrityToken(nonce)
-
-        XLog.d(getLog("getToken", "Attempt: $attempt. Got token"))
-        return playIntegrityToken
-    }
-
-    @Throws(WebRtcError.NetworkError::class)
-    private suspend fun getNonce(okHttpClient: OkHttpClient, attempt: Int): String = runCatching {
-        XLog.d(getLog("getNonce", "Attempt: $attempt"))
-        okHttpClient.newCall(nonceRequest).await().use { response ->
-            if (response.isSuccessful.not()) throw WebRtcError.NetworkError(response.code, response.message, null)
-            response.body!!.string().also { nonce -> XLog.d(getLog("getNonce", "Attempt: $attempt. Got nonce: $nonce")) }
-        }
-    }.getOrElse { throw if (it is CancellationException) it else WebRtcError.NetworkError(0, it.message, it) }
-
-    private suspend inline fun <T> withRetries(
-        tag: String, maxRetries: Int, startDelayMs: Long, expBackoffBase: Double, noinline operation: suspend (Int) -> T
-    ): T =
-        try {
-            operation(0)
-        } catch (cause: Throwable) {
-            if (cause.cause !is UnknownHostException && cause !is CancellationException)
-                XLog.d(getLog("withRetries.$tag", "Attempt: 0 -> ${cause.message}"), cause)
-            else
-                XLog.d(getLog("withRetries.$tag", "Attempt: 0 => ${cause.message}"))
-            if (cause is CancellationException || maxRetries <= 0) throw cause
-            if (cause is WebRtcError.NetworkError && (cause.code == 0 || cause.code in 500..599)) throw cause
-            if (cause is StandardIntegrityException && cause.errorCode !in RETRY_INTEGRITY_ERRORS) throw cause.toWebRtcError()
-            retryWithAttempt(1, maxRetries, startDelayMs, expBackoffBase, operation)
-        }
-
-    private suspend fun <T> retryWithAttempt(
-        attempt: Int, maxRetries: Int, startDelayMs: Long, expBackoffBase: Double, operation: suspend (Int) -> T
-    ): T =
-        try {
-            delay(startDelayMs * (expBackoffBase.pow(attempt - 1).toLong()))
-            operation(attempt)
-        } catch (cause: Throwable) {
-            if (cause.cause !is UnknownHostException && cause !is CancellationException)
-                XLog.d(getLog("retryWithAttempt", "Attempt: $attempt -> ${cause.message}"), cause)
-            else
-                XLog.d(getLog("retryWithAttempt", "Attempt: $attempt => ${cause.message}"))
-            if (cause is CancellationException || attempt >= maxRetries) throw cause
-            if (cause is WebRtcError.NetworkError && (cause.code == 0 || cause.code in 500..599)) throw cause
-            if (cause is StandardIntegrityException && cause.errorCode !in RETRY_INTEGRITY_ERRORS) throw cause.toWebRtcError()
-            retryWithAttempt(attempt + 1, maxRetries, startDelayMs, expBackoffBase, operation)
-        }
-
-    private suspend fun Call.await(): Response = suspendCancellableCoroutine { continuation ->
-        enqueue(object : Callback {
+    internal fun getNonce(callback: Result<String>.() -> Unit) {
+        okHttpClient.newCall(nonceRequest).enqueue(object : Callback {
             override fun onResponse(call: Call, response: Response) {
-                continuation.resume(response)
+                runCatching {
+                    if (response.isSuccessful) response.use { it.body!!.string() }
+                    else throw WebRtcError.NetworkError(response.code, response.message, null)
+                }.onFailure {
+                    XLog.w(this@PlayIntegrity.getLog("getNonce", "Read failed: ${it.message}"))
+                    callback(Result.failure(if (it is WebRtcError.NetworkError) it else WebRtcError.NetworkError(0, it.message, it)))
+                }.onSuccess {
+                    XLog.d(this@PlayIntegrity.getLog("getNonce", "Got nonce: $it"))
+                    callback(Result.success(it))
+                }
             }
 
             override fun onFailure(call: Call, e: IOException) {
-                if (continuation.isCancelled) return
-                continuation.resumeWithException(e)
+                XLog.w(this@PlayIntegrity.getLog("getNonce", "onFailure: ${e.message}"))
+                callback(Result.failure(WebRtcError.NetworkError(-1, e.message, e)))
             }
         })
+    }
 
-        continuation.invokeOnCancellation { runCatching { cancel() } }
+    internal fun getToken(nonce: String, forceUpdate: Boolean, callback: Result<PlayIntegrityToken>.() -> Unit) {
+        XLog.d(getLog("getToken"))
+
+        prepareIntegrityToken(forceUpdate) {
+            onSuccess {
+                integrityTokenProvider = it
+                getPlayIntegrityToken(it, nonce, callback)
+            }
+            onFailure { callback(Result.failure(it)) }
+        }
+    }
+
+    private fun prepareIntegrityToken(
+        forceUpdate: Boolean,
+        callback: Result<StandardIntegrityManager.StandardIntegrityTokenProvider>.() -> Unit
+    ) {
+        if (forceUpdate.not()) integrityTokenProvider?.let {
+            XLog.d(getLog("prepareIntegrityToken", "forceUpdate: $forceUpdate. Skipping"))
+            callback(Result.success(it))
+            return
+        }
+
+        XLog.d(getLog("prepareIntegrityToken", "forceUpdate: $forceUpdate"))
+
+        val prepareTokenRequest = StandardIntegrityManager.PrepareIntegrityTokenRequest.builder()
+            .setCloudProjectNumber(environment.cloudProjectNumber)
+            .build()
+
+        requireNotNull(standardIntegrityManager).prepareIntegrityToken(prepareTokenRequest).addOnCompleteListener {
+            //  @MainThread
+            val e = it.exception
+            when {
+                e != null -> {
+                    XLog.e(getLog("prepareIntegrityToken", "Failed: ${e.message}"), e)
+                    callback(Result.failure(if (e is StandardIntegrityException) e.toWebRtcError() else e))
+                }
+
+                it.isCanceled -> {
+                    XLog.w(getLog("prepareIntegrityToken", "Canceled"), CancellationException("prepareIntegrityToken.canceled"))
+                    callback(Result.failure(CancellationException("prepareIntegrityToken.canceled")))
+                }
+
+                else -> {
+                    XLog.d(getLog("prepareIntegrityToken", "IntegrityTokenProvider updated"))
+                    callback(Result.success(it.result))
+                }
+            }
+        }
+    }
+
+    @AnyThread
+    private fun getPlayIntegrityToken(
+        tokenProvider: StandardIntegrityManager.StandardIntegrityTokenProvider,
+        requestHash: String,
+        callback: Result<PlayIntegrityToken>.() -> Unit
+    ) {
+        XLog.d(getLog("getPlayIntegrityToken", "requestHash: $requestHash"))
+
+        val tokenRequest = StandardIntegrityManager.StandardIntegrityTokenRequest.builder()
+            .setRequestHash(requestHash)
+            .build()
+
+        tokenProvider.request(tokenRequest).addOnCompleteListener {
+            //  @MainThread
+            val e = it.exception
+            when {
+                e != null -> {
+                    XLog.e(getLog("getPlayIntegrityToken", "Failed: ${e.message}"), e)
+                    callback(Result.failure(if (e is StandardIntegrityException) e.toWebRtcError() else e))
+                }
+
+                it.isCanceled -> {
+                    XLog.w(getLog("getPlayIntegrityToken", "Canceled"), CancellationException("getPlayIntegrityToken.canceled"))
+                    callback(Result.failure(CancellationException("getPlayIntegrityToken.canceled")))
+                }
+
+                else -> {
+                    val integrityToken = PlayIntegrityToken(it.result.token())
+                    XLog.d(getLog("getPlayIntegrityToken", "Success: $integrityToken"))
+                    callback(Result.success(integrityToken))
+                }
+            }
+        }
+    }
+
+    private fun StandardIntegrityException.toWebRtcError(): WebRtcError = when (errorCode) {
+        StandardIntegrityErrorCode.API_NOT_AVAILABLE -> // Integrity API is not available. Integrity API is not enabled, or the Play Store version might be old.
+            WebRtcError.PlayIntegrityError(errorCode, false, message, R.string.webrtc_error_play_integrity_update_play_store)
+
+        StandardIntegrityErrorCode.PLAY_STORE_NOT_FOUND -> // No official Play Store app was found on the device.
+            WebRtcError.PlayIntegrityError(errorCode, false, message, R.string.webrtc_error_play_integrity_install_play_store)
+
+        StandardIntegrityErrorCode.NETWORK_ERROR -> // No available network was found.
+            WebRtcError.PlayIntegrityError(errorCode, true, message, R.string.webrtc_error_check_network)
+
+        StandardIntegrityErrorCode.APP_NOT_INSTALLED ->
+            WebRtcError.PlayIntegrityError(errorCode, false, message)
+
+        StandardIntegrityErrorCode.PLAY_SERVICES_NOT_FOUND -> // Play services is unavailable or needs to be updated.
+            WebRtcError.PlayIntegrityError(errorCode, false, message, R.string.webrtc_error_play_integrity_install_play_service)
+
+        StandardIntegrityErrorCode.APP_UID_MISMATCH ->
+            WebRtcError.PlayIntegrityError(errorCode, false, message)
+
+        StandardIntegrityErrorCode.TOO_MANY_REQUESTS -> // The calling app is making too many requests to the API and has been throttled.
+            WebRtcError.PlayIntegrityError(errorCode, false, message)
+
+        StandardIntegrityErrorCode.CANNOT_BIND_TO_SERVICE -> // Binding to the service in the Play Store has failed.
+            WebRtcError.PlayIntegrityError(errorCode, false, message, R.string.webrtc_error_play_integrity_update_play_store)
+
+        StandardIntegrityErrorCode.GOOGLE_SERVER_UNAVAILABLE -> // Unknown internal Google server error.
+            WebRtcError.PlayIntegrityError(errorCode, true, message)
+
+        StandardIntegrityErrorCode.PLAY_STORE_VERSION_OUTDATED -> // Play Store app needs to be updated.
+            WebRtcError.PlayIntegrityError(errorCode, false, message, R.string.webrtc_error_play_integrity_update_play_store)
+
+        StandardIntegrityErrorCode.PLAY_SERVICES_VERSION_OUTDATED -> // Play services needs to be updated.
+            WebRtcError.PlayIntegrityError(errorCode, false, message, R.string.webrtc_error_play_integrity_update_play_service)
+
+        StandardIntegrityErrorCode.CLOUD_PROJECT_NUMBER_IS_INVALID ->
+            WebRtcError.PlayIntegrityError(errorCode, false, message)
+
+        StandardIntegrityErrorCode.REQUEST_HASH_TOO_LONG ->
+            WebRtcError.PlayIntegrityError(errorCode, false, message)
+
+        StandardIntegrityErrorCode.INTERNAL_ERROR -> // Unknown internal error.
+            WebRtcError.PlayIntegrityError(errorCode, true, message)
+
+        else -> WebRtcError.PlayIntegrityError(errorCode, false, message) // Unknown error code
     }
 }

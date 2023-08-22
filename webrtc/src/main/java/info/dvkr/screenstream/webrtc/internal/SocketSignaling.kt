@@ -197,14 +197,20 @@ internal class SocketSignaling(
         val currentSocket = socket ?: return
         currentSocket.connected() || return
 
+        //TODO
         val data = runCatching { JSONObject().put("jwt", JWTHelper.createJWT(environment, streamId.value)) }
             .recoverCatching {
+                XLog.e(getLog("sendStreamCreate[${socketId()}]", "createJWT: ${it.message}"))
                 XLog.e(getLog("sendStreamCreate[${socketId()}]", "createJWT: ${it.message}"), it)
                 JWTHelper.removeKey()
                 JWTHelper.createKey()
                 JSONObject().put("jwt", JWTHelper.createJWT(environment, streamId.value))
             }
-            .onFailure { eventListener.onError(Errors.StreamCreateError("createJWT error: ${it.message}", it)) }
+            .onFailure {
+                XLog.e(getLog("sendStreamCreate[${socketId()}]", "createJWT.2: ${it.message}"))
+                XLog.e(getLog("sendStreamCreate[${socketId()}]", "createJWT.2: ${it.message}"), it)
+                eventListener.onError(Errors.StreamCreateError("createJWT error: ${it.message}", it))
+            }
             .getOrNull() ?: return
 
         currentSocket.emit(Event.STREAM_CREATE, arrayOf(data), object : AckWithTimeout(5000) {

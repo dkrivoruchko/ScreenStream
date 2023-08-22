@@ -246,13 +246,19 @@ class MjpegStateMachine(
         }
     }
 
+    @Volatile
     private var slowClients: List<MjpegClient> = emptyList()
 
     @Synchronized
     private fun checkForSlowClients(clients: List<MjpegClient>) {
-        val currentSlowConnections = clients.filter { it.isSlowConnection }.toList()
-        if (slowClients.containsAll(currentSlowConnections).not()) onSlowConnectionDetected()
-        slowClients = currentSlowConnections
+        runCatching {
+            val currentSlowConnections = clients.filter { it.isSlowConnection }.toList()
+            if (slowClients.containsAll(currentSlowConnections).not()) onSlowConnectionDetected()
+            slowClients = currentSlowConnections
+        }.onFailure {
+            XLog.i(getLog("checkForSlowClients", "Error"), it)
+            slowClients = emptyList()
+        }
     }
 
     private fun releaseWakeLock() {

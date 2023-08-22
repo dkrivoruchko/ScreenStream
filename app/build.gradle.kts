@@ -29,8 +29,8 @@ android {
         applicationId = "info.dvkr.screenstream"
         minSdk = 23
         targetSdk = 34
-        versionCode = 40007
-        versionName = "4.0.7"
+        versionCode = 40008
+        versionName = "4.0.8"
 
         // https://medium.com/@crafty/no-if-you-do-that-then-you-cant-use-newer-features-on-older-platforms-e-g-fa595333c0a4
         vectorDrawables.useSupportLibrary = true
@@ -127,7 +127,7 @@ dependencies {
     "firebaseImplementation"("com.google.android.play:app-update-ktx:2.1.0")
     "firebaseImplementation"("com.google.firebase:firebase-analytics:21.3.0")
     "firebaseImplementation"("com.google.firebase:firebase-crashlytics:18.4.0")
-    "firebaseImplementation"("com.google.android.gms:play-services-ads:22.2.0")
+    "firebaseImplementation"("com.google.android.gms:play-services-ads:22.3.0")
 
 //    debugImplementation("com.squareup.leakcanary:leakcanary-android:2.12")
 }

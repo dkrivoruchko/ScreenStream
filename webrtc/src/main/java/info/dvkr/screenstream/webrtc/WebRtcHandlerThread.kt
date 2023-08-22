@@ -40,7 +40,6 @@ import info.dvkr.screenstream.webrtc.internal.WebRtcClient
 import info.dvkr.screenstream.webrtc.internal.WebRtcProjection
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.android.asCoroutineDispatcher
 import kotlinx.coroutines.cancel
@@ -51,13 +50,13 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import okhttp3.ConnectionSpec
 import okhttp3.OkHttpClient
 import org.webrtc.IceCandidate
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.LinkedBlockingDeque
 import java.util.concurrent.TimeUnit
+import kotlin.math.pow
 
 public class WebRtcHandlerThread(
     private val service: ForegroundService,
@@ -86,7 +85,8 @@ public class WebRtcHandlerThread(
         .readTimeout(30, TimeUnit.SECONDS)
         .writeTimeout(30, TimeUnit.SECONDS)
         .build()
-    private val playIntegrity = PlayIntegrity(environment, okHttpClient)
+
+    private val playIntegrity = PlayIntegrity(service, environment, okHttpClient)
 
     private val connectivityManager: ConnectivityManager = service.getSystemService(ConnectivityManager::class.java)
     private val powerManager: PowerManager = service.getSystemService(PowerManager::class.java)
@@ -121,7 +121,8 @@ public class WebRtcHandlerThread(
     }
 
     private sealed class InternalEvent(val neverIgnore: Boolean = false) : AppStateMachine.Event() {
-        data class GetToken(internal val forceUpdate: Boolean) : InternalEvent(true)
+        data class GetNonce(internal val attempt: Int, internal val forceUpdate: Boolean) : InternalEvent(true)
+        data class GetToken(internal val nonce: String, internal val attempt: Int, internal val forceUpdate: Boolean) : InternalEvent(true)
         data class OpenSocket(internal val token: PlayIntegrityToken) : InternalEvent(true)
         data object StreamCreate : InternalEvent(true)
         data class StreamCreated(internal val streamId: StreamId) : InternalEvent(true)
@@ -164,12 +165,12 @@ public class WebRtcHandlerThread(
 
         override fun onTokenExpired() {
             XLog.d(this@WebRtcHandlerThread.getLog("SocketSignaling.onTokenExpired"))
-            sendEvent(InternalEvent.GetToken(true))
+            sendEvent(InternalEvent.GetNonce(0, true))
         }
 
         override fun onSocketDisconnected(reason: String) {
             XLog.d(this@WebRtcHandlerThread.getLog("SocketSignaling.onSocketDisconnected", reason))
-            sendEvent(InternalEvent.GetToken(false))
+            sendEvent(InternalEvent.GetNonce(0, false))
         }
 
         override fun onStreamCreated(streamId: StreamId) {
@@ -297,7 +298,7 @@ public class WebRtcHandlerThread(
 
         networkAvailable.onEach {
             XLog.d(getLog("init", "networkAvailable: $it"))
-            if (it) sendEvent(InternalEvent.GetToken(false))
+            if (it) sendEvent(InternalEvent.GetNonce(0, false))
             else sendEvent(AppStateMachine.Event.StopStream)
         }.launchIn(coroutineScope)
 
@@ -316,11 +317,13 @@ public class WebRtcHandlerThread(
             }
     }
 
+    @Volatile
     private var pendingDestroy: Boolean = false
     private var pendingSocket: Boolean = true
     private var pendingStreamId: Boolean = true
 
     private val pendingSocketEvents = listOf(
+        InternalEvent.GetNonce::class,
         InternalEvent.GetToken::class,
         InternalEvent.OpenSocket::class,
         InternalEvent.Restart::class,
@@ -421,18 +424,49 @@ public class WebRtcHandlerThread(
         XLog.d(getLog("processEvent", "Event [$event] Current state: [${getStateString()}]"))
 
         when (event) {
+            is InternalEvent.GetNonce -> {
+                appError = null
+                playIntegrity.getNonce {
+                    // OkHttp thread
+                    if (pendingDestroy) return@getNonce
+                    onSuccess { nonce -> sendEvent(InternalEvent.GetToken(nonce, 0, event.forceUpdate)) }
+                    onFailure { cause ->
+                        if (cause is WebRtcError.NetworkError && cause.isNonRetryable()) {
+                            networkAvailable.value = false
+                            appError = cause
+                            sendEvent(AppStateMachine.Event.RequestPublicState)
+                        } else if (event.attempt >= 3) {
+                            networkAvailable.value = false
+                            if (cause is WebRtcError) appError = cause else throw cause
+                            sendEvent(AppStateMachine.Event.RequestPublicState)
+                        } else {
+                            val attempt = event.attempt + 1
+                            val delay = (2000L * (1.5).pow(attempt - 1)).toLong()
+                            sendEvent(InternalEvent.GetNonce(attempt, event.forceUpdate), delay)
+                        }
+                    }
+                }
+            }
+
             is InternalEvent.GetToken -> {
-                if (appError is WebRtcError.SocketError) XLog.d(getLog("processEvent", "Event [$event] appError: [${appError}]. Ignoring"))
-                else {
-                    if (appError is WebRtcError.NetworkError) appError = null
-                    coroutineScope.launch {
-                        runCatching { withContext(Dispatchers.IO) { playIntegrity.getTokenWithRetries(event.forceUpdate) } }
-                            .onSuccess { token -> sendEvent(InternalEvent.OpenSocket(token)) }
-                            .onFailure { cause ->  // will crash app if not WebRtcError or CancellationException
-                                networkAvailable.value = false
-                                if (cause is WebRtcError) appError = cause else throw cause
-                                sendEvent(AppStateMachine.Event.RequestPublicState)
-                            }
+                appError = null
+                playIntegrity.getToken(event.nonce, event.forceUpdate) {
+                    // MainThread
+                    if (pendingDestroy) return@getToken
+                    onSuccess { token -> sendEvent(InternalEvent.OpenSocket(token)) }
+                    onFailure { cause ->
+                        if (cause is WebRtcError.PlayIntegrityError && cause.isAutoRetryable.not()) {
+                            appError = cause
+                            sendEvent(AppStateMachine.Event.RequestPublicState)
+                        } else if (event.attempt >= 3) {
+                            networkAvailable.value = false
+                            if (cause is WebRtcError) appError = cause else throw cause
+                            sendEvent(AppStateMachine.Event.RequestPublicState)
+                        } else {
+                            val attempt = event.attempt + 1
+                            val delay = (5000L * (2.00).pow(attempt - 1)).toLong()
+                            sendEvent(InternalEvent.GetToken(event.nonce, attempt, event.forceUpdate), delay)
+                        }
                     }
                 }
             }
@@ -631,7 +665,7 @@ public class WebRtcHandlerThread(
 
                 when (event) {
                     is AppStateMachine.Event.RecoverError,
-                    is InternalEvent.Restart -> sendEvent(InternalEvent.GetToken(true))
+                    is InternalEvent.Restart -> sendEvent(InternalEvent.GetNonce(0, true))
 
                     is InternalEvent.Destroy -> event.latch.countDown()
                 }

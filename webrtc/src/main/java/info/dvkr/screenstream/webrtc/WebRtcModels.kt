@@ -34,14 +34,13 @@ public data class WebRtcPublicState(
 public data class WebRtcPublicClient(override val id: Long, override val clientAddress: String) : Client
 
 public sealed class WebRtcError(@StringRes id: Int) : AppError.FixableError(id) {
-    public data class PlayIntegrityUserActionError(val code: Int, override val message: String?, @StringRes override val id: Int) :
-        WebRtcError(id)
-
-    public data class PlayIntegrityUserNotifyError(val code: Int, override val message: String?) :
-        WebRtcError(R.string.webrtc_error_unspecified)
+    public data class PlayIntegrityError(
+        val code: Int, val isAutoRetryable: Boolean, override val message: String?, @StringRes override val id: Int = R.string.webrtc_error_unspecified
+    ) : WebRtcError(id)
 
     public data class NetworkError(val code: Int, override val message: String?, override val cause: Throwable?) :
         WebRtcError(R.string.webrtc_error_check_network) {
+        internal fun isNonRetryable(): Boolean = code < 0 || code in 500..599
         override fun toString(context: Context): String = context.getString(id) + "\n[$code] : $message"
     }
 

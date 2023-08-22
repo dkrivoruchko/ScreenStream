@@ -3,7 +3,9 @@ package info.dvkr.screenstream.webrtc.internal
 import android.os.Build
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
+import android.text.TextUtils
 import android.util.Base64
+import android.view.View
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.webrtc.WebRtcEnvironment
@@ -17,6 +19,7 @@ import java.security.Signature
 import java.security.interfaces.ECPublicKey
 import java.security.spec.ECGenParameterSpec
 import java.security.spec.X509EncodedKeySpec
+import java.util.Locale
 import javax.security.auth.x500.X500Principal
 
 internal object JWTHelper {
@@ -30,7 +33,8 @@ internal object JWTHelper {
 
     init {
         XLog.d(getLog("init", "Key alias: $KEY_ALIAS"))
-        if (keyStore.containsAlias(KEY_ALIAS).not()) createKey()
+        runCatching { if (keyStore.containsAlias(KEY_ALIAS).not()) createKey() }
+            .onFailure { XLog.e(getLog("init", "Filed to create key: $it"), it) }
     }
 
     @Throws
@@ -63,8 +67,15 @@ internal object JWTHelper {
 
     @Throws
     internal fun createKey() {
+        // Workaround for known date parsing issue in KeyPairGenerator class https://issuetracker.google.com/issues/37095309
+        val currentLocale = Locale.getDefault()
+        val applyFix = Build.VERSION.SDK_INT == Build.VERSION_CODES.M &&
+                TextUtils.getLayoutDirectionFromLocale(currentLocale) == View.LAYOUT_DIRECTION_RTL
+
         runCatching {
-            XLog.d(getLog("createKey", "Key alias: $KEY_ALIAS"))
+            XLog.d(getLog("createKey", "Key alias: $KEY_ALIAS, applyFix: $applyFix"))
+
+            if (applyFix) Locale.setDefault(Locale.ENGLISH)
 
             val parameterSpec = KeyGenParameterSpec.Builder(KEY_ALIAS, KeyProperties.PURPOSE_SIGN)
                 .setCertificateSubject(X500Principal("CN=$KEY_ALIAS"))
@@ -76,8 +87,13 @@ internal object JWTHelper {
                 initialize(parameterSpec)
                 generateKeyPair()
             }
+
+            if (applyFix) Locale.setDefault(currentLocale)
         }
-            .onFailure { XLog.e(getLog("createKey", "Key alias: $KEY_ALIAS"), it) }
+            .onFailure {
+                if (applyFix) Locale.setDefault(currentLocale)
+                XLog.e(getLog("createKey", "Key alias: $KEY_ALIAS"), it)
+            }
             .getOrThrow()
     }
 
@@ -86,6 +102,14 @@ internal object JWTHelper {
         XLog.d(getLog("remove", "Key alias: $KEY_ALIAS"))
         keyStore.deleteEntry(KEY_ALIAS)
     }
+
+//    private fun setLocale(locale: Locale) {
+//        Locale.setDefault(locale)
+//        val resources: Resources = context.getResources()
+//        val config = resources.configuration
+//        config.locale = locale
+//        resources.updateConfiguration(config, resources.displayMetrics)
+//    }
 
     private val ByteArray.toBase64UrlSafeNoPadding
         inline get() : String = Base64.encodeToString(this, Base64.NO_WRAP or Base64.URL_SAFE or Base64.NO_PADDING)
