@@ -27,6 +27,18 @@ internal class WebRtcProjection(
     dispatcher: CoroutineDispatcher
 ) {
 
+    private companion object {
+        @JvmStatic
+        private val audioMediaConstraints = MediaConstraints().apply {
+            optional.add(MediaConstraints.KeyValuePair("googEchoCancellation", "true"))
+            optional.add(MediaConstraints.KeyValuePair("googEchoCancellation", "true"))
+            optional.add(MediaConstraints.KeyValuePair("googAutoGainControl", "true"))
+            optional.add(MediaConstraints.KeyValuePair("googHighpassFilter", "true"))
+            optional.add(MediaConstraints.KeyValuePair("googNoiseSuppression", "true"))
+            optional.add(MediaConstraints.KeyValuePair("googTypingNoiseDetection", "true"))
+        }
+    }
+
     private enum class AudioCodec { OPUS }
     private enum class VideoCodec(val priority: Int) { VP8(1), VP9(2), H264(3)/* , AV1(4)*/; }
 
@@ -104,7 +116,7 @@ internal class WebRtcProjection(
             val screeSize = getScreenSizeCompat()
             screenCapturer!!.startCapture(screeSize.x, screeSize.y, 30)
 
-            audioSource = peerConnectionFactory.createAudioSource(MediaConstraints())
+            audioSource = peerConnectionFactory.createAudioSource(audioMediaConstraints)
 
             val mediaStreamId = MediaStreamId.create(streamId)
             localMediaSteam = LocalMediaSteam(

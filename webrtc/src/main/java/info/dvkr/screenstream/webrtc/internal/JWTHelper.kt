@@ -103,14 +103,6 @@ internal object JWTHelper {
         keyStore.deleteEntry(KEY_ALIAS)
     }
 
-//    private fun setLocale(locale: Locale) {
-//        Locale.setDefault(locale)
-//        val resources: Resources = context.getResources()
-//        val config = resources.configuration
-//        config.locale = locale
-//        resources.updateConfiguration(config, resources.displayMetrics)
-//    }
-
     private val ByteArray.toBase64UrlSafeNoPadding
         inline get() : String = Base64.encodeToString(this, Base64.NO_WRAP or Base64.URL_SAFE or Base64.NO_PADDING)
 

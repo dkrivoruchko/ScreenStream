@@ -5,7 +5,9 @@ import android.content.Context
 import android.content.Intent
 import android.hardware.display.DisplayManager
 import android.os.Build
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
 import android.view.Display
 import android.view.LayoutInflater
 import android.view.WindowManager
@@ -44,10 +46,16 @@ class ForegroundService : info.dvkr.screenstream.common.ForegroundService() {
 
         @JvmStatic
         fun startService(context: Context, intent: Intent) {
-            XLog.d(getLog("startService", intent.extras?.toString()))
-            runCatching { context.startService(intent) }
-                .onFailure { XLog.e(getLog("startService", "Failed to start Service"), it) }
+            XLog.d(getLog("startService", "Post intent: ${intent.extras}"))
+            handler.post { //to make sure that app is in foreground state
+                XLog.d(getLog("startService", "Run intent: ${intent.extras}"))
+                runCatching { context.startService(intent) }
+                    .onFailure { XLog.e(getLog("startService", "Failed to start Service"), it) }
+            }
         }
+
+        @JvmStatic
+        private val handler = Handler(Looper.getMainLooper())
 
         @JvmStatic
         private val serviceMessageSharedFlow = MutableSharedFlow<ServiceMessage>()
@@ -244,6 +252,7 @@ class ForegroundService : info.dvkr.screenstream.common.ForegroundService() {
             notificationHelper.hideErrorNotification()
         } else {
             XLog.e(this@ForegroundService.getLog("onError", "AppError: $appError"))
+            XLog.e(this@ForegroundService.getLog("onError", "AppError: $appError"), appError)
             notificationHelper.showErrorNotification(appError)
         }
     }

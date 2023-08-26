@@ -29,8 +29,8 @@ android {
         applicationId = "info.dvkr.screenstream"
         minSdk = 23
         targetSdk = 34
-        versionCode = 40008
-        versionName = "4.0.8"
+        versionCode = 40009
+        versionName = "4.0.9"
 
         // https://medium.com/@crafty/no-if-you-do-that-then-you-cant-use-newer-features-on-older-platforms-e-g-fa595333c0a4
         vectorDrawables.useSupportLibrary = true
@@ -110,8 +110,8 @@ dependencies {
     implementation("com.google.android.material:material:1.9.0")
     implementation("androidx.window:window:1.1.0")
     implementation("androidx.lifecycle:lifecycle-process:2.6.1")
-    implementation("androidx.navigation:navigation-fragment-ktx:2.7.0")
-    implementation("androidx.navigation:navigation-ui-ktx:2.7.0")
+    implementation("androidx.navigation:navigation-fragment-ktx:2.7.1")
+    implementation("androidx.navigation:navigation-ui-ktx:2.7.1")
 
     implementation("com.afollestad.material-dialogs:core:3.3.0")
     implementation("com.afollestad.material-dialogs:color:3.3.0")
@@ -126,7 +126,7 @@ dependencies {
     "firebaseImplementation"("com.google.android.gms:play-services-basement:18.2.0")
     "firebaseImplementation"("com.google.android.play:app-update-ktx:2.1.0")
     "firebaseImplementation"("com.google.firebase:firebase-analytics:21.3.0")
-    "firebaseImplementation"("com.google.firebase:firebase-crashlytics:18.4.0")
+    "firebaseImplementation"("com.google.firebase:firebase-crashlytics:18.4.1")
     "firebaseImplementation"("com.google.android.gms:play-services-ads:22.3.0")
 
 //    debugImplementation("com.squareup.leakcanary:leakcanary-android:2.12")

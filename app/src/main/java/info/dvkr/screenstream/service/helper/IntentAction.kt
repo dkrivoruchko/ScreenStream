@@ -5,7 +5,6 @@ import android.content.Intent
 import android.os.Build
 import android.os.Parcelable
 import info.dvkr.screenstream.service.ForegroundService
-import info.dvkr.screenstream.ui.activity.AppActivity
 import kotlinx.parcelize.Parcelize
 
 internal sealed class IntentAction : Parcelable {
@@ -23,26 +22,21 @@ internal sealed class IntentAction : Parcelable {
     internal fun toAppServiceIntent(context: Context): Intent =
         ForegroundService.getForegroundServiceIntent(context).putExtra(EXTRA_PARCELABLE, this@IntentAction)
 
-    internal fun toAppActivityIntent(context: Context): Intent =
-        AppActivity.getAppActivityIntent(context).putExtra(EXTRA_PARCELABLE, this@IntentAction)
-
     internal fun sendToAppService(context: Context) =
         ForegroundService.startService(context, this.toAppServiceIntent(context))
 
-    @Parcelize object GetServiceState : IntentAction()
-    @Parcelize object StartStream : IntentAction()
-    @Parcelize object StopStream : IntentAction()
-    @Parcelize object GetNewStreamId : IntentAction()
-    @Parcelize object CreateNewStreamPassword : IntentAction()
-    @Parcelize object Exit : IntentAction()
+    @Parcelize data object GetServiceState : IntentAction()
+    @Parcelize data object StartStream : IntentAction()
+    @Parcelize data object StopStream : IntentAction()
+    @Parcelize data object GetNewStreamId : IntentAction()
+    @Parcelize data object CreateNewStreamPassword : IntentAction()
+    @Parcelize data object Exit : IntentAction()
     @Parcelize data class CastIntent(val intent: Intent) : IntentAction()
-    @Parcelize object CastPermissionsDenied : IntentAction()
-    @Parcelize object StartOnBoot : IntentAction()
-    @Parcelize object RecoverError : IntentAction()
+    @Parcelize data object CastPermissionsDenied : IntentAction()
+    @Parcelize data object StartOnBoot : IntentAction()
+    @Parcelize data object RecoverError : IntentAction()
 
-    @Parcelize object ApplicationOnStart : IntentAction()
-    @Parcelize object ApplicationOnStop : IntentAction()
-    @Parcelize object ApplicationModeChanged : IntentAction()
-
-    override fun toString(): String = javaClass.simpleName
+    @Parcelize data object ApplicationOnStart : IntentAction()
+    @Parcelize data object ApplicationOnStop : IntentAction()
+    @Parcelize data object ApplicationModeChanged : IntentAction()
 }

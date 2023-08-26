@@ -8,6 +8,7 @@ import info.dvkr.screenstream.webrtc.WebRtcPublicClient
 import org.webrtc.CandidatePairChangeEvent
 import org.webrtc.DataChannel
 import org.webrtc.IceCandidate
+import org.webrtc.IceCandidateErrorEvent
 import org.webrtc.MediaConstraints
 import org.webrtc.MediaStream
 import org.webrtc.MediaStreamTrack
@@ -51,6 +52,7 @@ internal class WebRtcClient(
     }
 
     private companion object {
+        @JvmStatic
         private val iceServers = listOf(
             IceServer.builder("stun:stun.l.google.com:19302").createIceServer(),
             IceServer.builder("stun:stun1.l.google.com:19302").createIceServer(),
@@ -59,14 +61,16 @@ internal class WebRtcClient(
             IceServer.builder("stun:stun4.l.google.com:19302").createIceServer()
         )
 
-        private val rtcConfig = RTCConfiguration(iceServers).apply {
+        @JvmStatic
+        private val rtcConfig = RTCConfiguration(iceServers.asSequence().shuffled().take(2).toList()).apply {
             tcpCandidatePolicy = PeerConnection.TcpCandidatePolicy.DISABLED
-            bundlePolicy = PeerConnection.BundlePolicy.MAXBUNDLE
-            iceCandidatePoolSize = 8
         }
 
+        @JvmStatic
         private val regexIPv4 = "^(([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])(\\.(?!\$)|\$)){4}\$".toRegex()
+        @JvmStatic
         private val regexIPv6Standard = "^(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}\$".toRegex()
+        @JvmStatic
         private val regexIPv6Compressed = "^((?:[0-9A-Fa-f]{1,4}(?::[0-9A-Fa-f]{1,4})*)?)::((?:[0-9A-Fa-f]{1,4}(?::[0-9A-Fa-f]{1,4})*)?)\$".toRegex()
     }
 
@@ -79,6 +83,7 @@ internal class WebRtcClient(
     @Volatile
     private var clientAddress: String = "-"
 
+    // TODO Add Stats
     init {
         XLog.d(getLog("init", "Client: $clientId"))
     }
@@ -145,11 +150,8 @@ internal class WebRtcClient(
             override fun onCreateFailure(s: String?) =
                 eventListener.onError(clientId, IllegalStateException("Client: $clientId. createHostOffer.onCreateFailure: $s"))
 
-            override fun onSetSuccess() =
-                eventListener.onError(clientId, IllegalStateException("Unexpected: createHostOffer.onSetSuccess. Client:$clientId"))
-
-            override fun onSetFailure(s: String?) =
-                eventListener.onError(clientId, IllegalStateException("Unexpected: createHostOffer.onSetFailure. Client:$clientId"))
+            override fun onSetSuccess() = Unit
+            override fun onSetFailure(s: String?) = Unit
         },
             MediaConstraints().apply {
                 mandatory.add(MediaConstraints.KeyValuePair("OfferToReceiveVideo", "false"))
@@ -186,27 +188,17 @@ internal class WebRtcClient(
         XLog.d(getLog("setClientAnswer", "MediaStreamId: $mediaStreamId, Client: $clientId"))
 
         if (currentMediaStreamId != mediaStreamId) {
-            XLog.w(getLog("setClientAnswer", "Requesting '$mediaStreamId' but current is '$currentMediaStreamId'. Ignoring"))
+            val msg = "Requesting '$mediaStreamId' but current is '$currentMediaStreamId'. Ignoring"
+            XLog.w(getLog("setClientAnswer", msg), IllegalStateException("setClientAnswer: $msg"))
             return
         }
 
-        peerConnection!!.setRemoteDescription(
-            object : SdpObserver {
-                override fun onSetSuccess() =
-                    XLog.d(this@WebRtcClient.getLog("setClientAnswer.setRemoteDescription", "onSetSuccess. Client: $clientId "))
+        val sdpObserver = getSdpObserver {
+            onSuccess { XLog.d(this@WebRtcClient.getLog("setClientAnswer.setRemoteDescription", "onSuccess. Client: $clientId ")) }
+            onFailure { eventListener.onError(clientId, IllegalStateException("Client: $clientId. setClientAnswer.onFailure: ${it.message}")) }
+        }
 
-                override fun onSetFailure(s: String?) =
-                    eventListener.onError(clientId, IllegalStateException("Client: $clientId. setClientAnswer.onSetFailure: $s"))
-
-                override fun onCreateSuccess(sessionDescription: SessionDescription?) =
-                    eventListener.onError(clientId, IllegalStateException("Unexpected: setClientAnswer.onCreateSuccess. Client: $clientId"))
-
-                override fun onCreateFailure(s: String?) =
-                    eventListener.onError(clientId, IllegalStateException("Unexpected: setClientAnswer.onCreateFailure. Client: $clientId"))
-
-            },
-            answer.asSessionDescription()
-        )
+        peerConnection!!.setRemoteDescription(sdpObserver, answer.asSessionDescription())
     }
 
     @Synchronized
@@ -214,7 +206,8 @@ internal class WebRtcClient(
         XLog.d(getLog("setClientCandidate", "MediaStreamId: $mediaStreamId, Client: $clientId"))
 
         if (currentMediaStreamId != mediaStreamId) {
-            XLog.w(getLog("setClientCandidates", "Expecting '$mediaStreamId' but is '$currentMediaStreamId'. Ignoring"))
+            val msg = "Expecting '$mediaStreamId' but is '$currentMediaStreamId'. Ignoring"
+            XLog.w(getLog("setClientCandidates", msg), IllegalStateException("setClientCandidate: $msg"))
             return
         }
 
@@ -226,31 +219,30 @@ internal class WebRtcClient(
         XLog.d(getLog("setHostOffer", "MediaStreamId: $mediaStreamId, Client: $clientId"))
 
         if (currentMediaStreamId != mediaStreamId) {
-            XLog.w(getLog("setHostOffer", "Requesting '$mediaStreamId' but current is '$currentMediaStreamId'. Ignoring"))
+            val msg = "Requesting '$mediaStreamId' but current is '$currentMediaStreamId'. Ignoring"
+            XLog.w(getLog("setHostOffer", msg), IllegalStateException("setHostOffer: $msg"))
             return
         }
 
-        peerConnection!!.setLocalDescription(
-            object : SdpObserver {
-                override fun onSetSuccess() {
-                    XLog.d(this@WebRtcClient.getLog("setHostOffer", "onSetSuccess. Client: $clientId"))
-                    if (currentMediaStreamId == mediaStreamId)
-                        eventListener.onHostOffer(clientId, Offer(sessionDescription.description))
-                    else
-                        XLog.w(this@WebRtcClient.getLog("setHostOffer", "Requesting '$mediaStreamId' but current is '$currentMediaStreamId'. Ignoring"))
+        val sdpObserver = getSdpObserver {
+            onSuccess {
+                XLog.d(this@WebRtcClient.getLog("setHostOffer", "onSuccess. Client: $clientId"))
+                if (currentMediaStreamId == mediaStreamId) eventListener.onHostOffer(clientId, Offer(sessionDescription.description))
+                else {
+                    val msg = "Requesting '$mediaStreamId' but current is '$currentMediaStreamId'. Ignoring"
+                    XLog.w(this@WebRtcClient.getLog("setHostOffer", msg), IllegalStateException("setHostOffer.onSuccess: $msg"))
                 }
+            }
+            onFailure { eventListener.onError(clientId, IllegalStateException("Client: $clientId. setHostOffer.onFailure: ${it.message}")) }
+        }
+        peerConnection!!.setLocalDescription(sdpObserver, sessionDescription)
+    }
 
-                override fun onSetFailure(s: String?) =
-                    eventListener.onError(clientId, IllegalStateException("Client: $clientId. setHostOffer.onSetFailure: $s"))
-
-                override fun onCreateSuccess(sessionDescription: SessionDescription?) =
-                    eventListener.onError(clientId, IllegalStateException("Unexpected: setHostOffer.onCreateSuccess. Client: $clientId"))
-
-                override fun onCreateFailure(s: String?) =
-                    eventListener.onError(clientId, IllegalStateException("Unexpected: setHostOffer.onCreateFailure. Client: $clientId"))
-            },
-            sessionDescription
-        )
+    private inline fun getSdpObserver(crossinline callback: Result<Unit>.() -> Unit): SdpObserver = object : SdpObserver {
+        override fun onSetSuccess() = callback(Result.success(Unit))
+        override fun onSetFailure(s: String?) = callback(Result.failure(RuntimeException(s)))
+        override fun onCreateSuccess(p0: SessionDescription?) = Unit
+        override fun onCreateFailure(p0: String?) = Unit
     }
 
     private interface WebRTCPeerConnectionObserverEventListener {
@@ -275,6 +267,7 @@ internal class WebRtcClient(
 
         override fun onIceConnectionChange(iceConnectionState: IceConnectionState?) {
             XLog.v(getLog("onIceConnectionChange", "Client: $clientId => $iceConnectionState"))
+            //stats
         }
 
         override fun onStandardizedIceConnectionChange(newState: IceConnectionState?) {
@@ -301,13 +294,17 @@ internal class WebRtcClient(
             listener.onHostCandidate(iceCandidate)
         }
 
+        override fun onIceCandidateError(event: IceCandidateErrorEvent?) {
+            XLog.e(getLog("onIceCandidateError", "Client: $clientId"), IllegalStateException("onIceCandidateError: ${event?.asString()}"))
+        }
+
         override fun onIceCandidatesRemoved(iceCandidates: Array<out IceCandidate>?) {
             XLog.v(getLog("onIceCandidatesRemoved", "Client: $clientId => $iceCandidates"))
         }
 
         override fun onSelectedCandidatePairChanged(event: CandidatePairChangeEvent) {
             super.onSelectedCandidatePairChanged(event)
-            XLog.v(getLog("onSelectedCandidatePairChanged", "Client: $clientId => $event"))
+            XLog.v(getLog("onSelectedCandidatePairChanged", "Client: $clientId"))
             listener.onSelectedCandidatePairChanged(event)
         }
 
@@ -324,7 +321,7 @@ internal class WebRtcClient(
         }
 
         override fun onRenegotiationNeeded() {
-            XLog.v(getLog("onRenegotiationNeeded", "Client: $clientId"))
+            XLog.e(getLog("onRenegotiationNeeded", "Client: $clientId"), IllegalStateException("onRenegotiationNeeded"))
         }
 
         override fun onAddTrack(rtpReceiver: RtpReceiver?, mediaStreams: Array<out MediaStream>?) {
@@ -335,6 +332,13 @@ internal class WebRtcClient(
             super.onTrack(transceiver)
             XLog.v(getLog("onTrack", "Client: $clientId => $transceiver"))
         }
+
+        override fun onRemoveTrack(receiver: RtpReceiver?) {
+            XLog.v(getLog("onRemoveTrack", "Client: $clientId => $receiver"))
+        }
+
+        private fun IceCandidateErrorEvent.asString(): String =
+            "IceCandidateErrorEvent(errorCode=$errorCode, $errorText, address=$address, port=$port, url=$url)"
     }
 
     override fun equals(other: Any?): Boolean = when {

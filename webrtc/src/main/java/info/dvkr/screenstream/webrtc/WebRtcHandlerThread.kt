@@ -140,7 +140,7 @@ public class WebRtcHandlerThread(
             override fun toString(): String = "SetClientCandidate(clientId=$clientId)"
         }
 
-        data class RemoveClient(internal val clientId: ClientId, internal val notifyServer: Boolean) : InternalEvent()
+        data class RemoveClient(internal val clientId: ClientId, internal val notifyServer: Boolean, internal val reason: String) : InternalEvent()
         data object Restart : InternalEvent(true)
         data class Destroy(internal val latch: CountDownLatch) : InternalEvent(true)
         data class SocketSignalingError(internal val error: SocketSignaling.Errors) : InternalEvent(true)
@@ -195,9 +195,9 @@ public class WebRtcHandlerThread(
             sendEvent(InternalEvent.PublishClients)
         }
 
-        override fun onClientNotFound(clientId: ClientId) {
+        override fun onClientNotFound(clientId: ClientId, reason: String) {
             XLog.d(this@WebRtcHandlerThread.getLog("SocketSignaling.onClientNotFound", "$clientId"))
-            sendEvent(InternalEvent.RemoveClient(clientId, false))
+            sendEvent(InternalEvent.RemoveClient(clientId, false, reason))
             sendEvent(InternalEvent.PublishClients)
         }
 
@@ -235,13 +235,13 @@ public class WebRtcHandlerThread(
 
         override fun onClientDisconnected(clientId: ClientId) {
             XLog.d(this@WebRtcHandlerThread.getLog("WebRTCClient.onClientDisconnected", "Client: $clientId"))
-            sendEvent(InternalEvent.RemoveClient(clientId, true))
+            sendEvent(InternalEvent.RemoveClient(clientId, true, "onClientDisconnected"))
             sendEvent(InternalEvent.PublishClients)
         }
 
         override fun onError(clientId: ClientId, cause: Throwable) {
             XLog.e(this@WebRtcHandlerThread.getLog("WebRTCClient.onError", "Client: $clientId"), cause)
-            sendEvent(InternalEvent.RemoveClient(clientId, true))
+            sendEvent(InternalEvent.RemoveClient(clientId, true, "onError:${cause.message}"))
             sendEvent(InternalEvent.PublishClients)
         }
     }
@@ -494,7 +494,7 @@ public class WebRtcHandlerThread(
                         service.hideForegroundNotification()
                     }
 
-                    signaling!!.sendRemoveClients(clients.values.map { it.clientId })
+                    signaling!!.sendRemoveClients(clients.values.map { it.clientId }, "StreamCreated")
                     clients = HashMap()
                     streamPassword = StreamPassword.generateNew()
                 }
@@ -592,7 +592,7 @@ public class WebRtcHandlerThread(
                 if (isStreaming()) {
                     clients[event.clientId]?.setClientAnswer(projection!!.localMediaSteam!!.id, event.answer) ?: run {
                         XLog.w(getLog("SetClientAnswer", "Client ${event.clientId} not found"))
-                        sendEvent(InternalEvent.RemoveClient(event.clientId, true))
+                        sendEvent(InternalEvent.RemoveClient(event.clientId, true, "SetClientAnswer"))
                     }
                 } else {
                     XLog.w(getLog("SetClientAnswer", "Not streaming. Ignoring."))
@@ -609,7 +609,7 @@ public class WebRtcHandlerThread(
                 if (isStreaming()) {
                     clients[event.clientId]?.setClientCandidate(projection!!.localMediaSteam!!.id, event.candidate) ?: run {
                         XLog.w(getLog("SetClientCandidates", "Client ${event.clientId} not found"))
-                        sendEvent(InternalEvent.RemoveClient(event.clientId, true))
+                        sendEvent(InternalEvent.RemoveClient(event.clientId, true, "SetClientCandidate"))
                     }
                 } else {
                     XLog.w(getLog("SetClientCandidates", "Not streaming. Ignoring."))
@@ -618,7 +618,7 @@ public class WebRtcHandlerThread(
             is InternalEvent.RemoveClient -> {
                 clients[event.clientId]?.stop()
                 clients.remove(event.clientId)
-                if (event.notifyServer) signaling?.sendRemoveClients(listOf(event.clientId))
+                if (event.notifyServer) signaling?.sendRemoveClients(listOf(event.clientId), "RemoveClient:${event.reason}")
             }
 
             is AppStateMachine.Event.StopStream ->
@@ -683,7 +683,7 @@ public class WebRtcHandlerThread(
 
             is AppStateMachine.Event.CreateNewStreamPassword ->
                 if (isNotStreaming()) {
-                    signaling!!.sendRemoveClients(clients.values.map { it.clientId })
+                    signaling!!.sendRemoveClients(clients.values.map { it.clientId }, "CreateNewStreamPassword")
                     clients = HashMap()
                     streamPassword = StreamPassword.generateNew()
                 } else {
@@ -742,6 +742,7 @@ public class WebRtcHandlerThread(
         pendingEventDeque.pollFirst()
         XLog.d(getLog("processEvent", "Done [$event] New state: [${getStateString()}] Pending events: $pendingEventDeque"))
     }.onFailure { cause ->
+        XLog.e(getLog("processEvent.onFailure", cause.message)) //todo
         XLog.e(getLog("processEvent.onFailure", cause.message), cause)
         releaseWakeLock()
         appError = WebRtcError.UnknownError(cause)

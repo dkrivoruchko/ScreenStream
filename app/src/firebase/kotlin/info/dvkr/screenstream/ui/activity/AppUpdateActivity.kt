@@ -39,6 +39,7 @@ abstract class AppUpdateActivity(@LayoutRes contentLayoutId: Int) : BaseActivity
                 AppUpdateResult.NotAvailable -> {
                     XLog.v(this@AppUpdateActivity.getLog("AppUpdateResult.NotAvailable"))
                 }
+
                 is AppUpdateResult.Available -> {
                     XLog.d(this@AppUpdateActivity.getLog("AppUpdateResult.Available"))
                     if (appUpdateResult.updateInfo.isFlexibleUpdateAllowed) {
@@ -52,16 +53,21 @@ abstract class AppUpdateActivity(@LayoutRes contentLayoutId: Int) : BaseActivity
                         }
                     }
                 }
+
                 is AppUpdateResult.InProgress -> {
                     XLog.v(this@AppUpdateActivity.getLog("AppUpdateResult.InProgress", appUpdateResult.installState.toString()))
                 }
+
                 is AppUpdateResult.Downloaded -> {
                     XLog.d(this@AppUpdateActivity.getLog("AppUpdateResult.Downloaded"))
                     showUpdateConfirmationDialog(appUpdateResult)
                 }
             }
         }
-            .catch { cause -> XLog.e(this@AppUpdateActivity.getLog("AppUpdateManager.requestUpdateFlow.catch: $cause")) }
+            .catch { cause ->
+                XLog.e(this@AppUpdateActivity.getLog("AppUpdateManager.requestUpdateFlow.catch: $cause"))
+                XLog.e(this@AppUpdateActivity.getLog("AppUpdateManager.requestUpdateFlow.catch: $cause"), cause)
+            }
             .launchIn(lifecycleScope)
     }
 

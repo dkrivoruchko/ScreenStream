@@ -4,9 +4,11 @@ import android.app.Application
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
+import com.elvishew.xlog.XLog
 import com.elvishew.xlog.flattener.ClassicFlattener
 import com.elvishew.xlog.printer.file.FilePrinter
 import com.elvishew.xlog.printer.file.clean.FileLastModifiedCleanStrategy
+import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.di.baseKoinModule
 import info.dvkr.screenstream.logging.DateSuffixFileNameGenerator
 import info.dvkr.screenstream.logging.getLogFolder
@@ -61,6 +63,7 @@ abstract class BaseApp : Application() {
 
         ProcessLifecycleOwner.get().lifecycle.addObserver(object : DefaultLifecycleObserver {
             override fun onStart(owner: LifecycleOwner) {
+                XLog.d(this@BaseApp.getLog("onStart"))
                 pauseJob?.cancel()
                 pauseJob = null
                 IntentAction.ApplicationOnStart.sendToAppService(this@BaseApp)
@@ -69,6 +72,7 @@ abstract class BaseApp : Application() {
             override fun onStop(owner: LifecycleOwner) {
                 pauseJob = GlobalScope.launch(Dispatchers.Main.immediate) {
                     delay(10 * 60 * 1_000)
+                    XLog.d(this@BaseApp.getLog("onCreate", "ProcessLifecycleOwner.onStop + 10 minutes"))
                     if (ForegroundService.isRunning) IntentAction.ApplicationOnStop.sendToAppService(this@BaseApp)
                 }
             }
