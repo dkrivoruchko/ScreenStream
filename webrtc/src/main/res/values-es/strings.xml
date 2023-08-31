@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="webrtc_error_play_integrity_update_play_store">Por favor, actualiza Google Play Store</string>
+    <string name="webrtc_error_play_integrity_install_play_store">Por favor, instala o habilita la Google Play Store oficial</string>
+    <string name="webrtc_error_play_integrity_install_play_service">Por favor, instala o habilita los Servicios de Play</string>
+    <string name="webrtc_error_play_integrity_update_play_service">Por favor, actualiza los servicios de Google Play</string>
+    <string name="webrtc_error_check_network">Por favor, verifica la conectividad a Internet</string>
+    <string name="webrtc_error_unspecified">Algo salió mal. Por favor, intenta nuevamente más tarde.</string>
+</resources>

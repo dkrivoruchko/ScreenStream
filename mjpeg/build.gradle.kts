@@ -29,7 +29,7 @@ dependencies {
     //noinspection KtxExtensionAvailable
     implementation("androidx.core:core:1.10.1")
 
-    implementation("org.jetbrains.kotlin:kotlin-reflect:1.9.0")
+    implementation("org.jetbrains.kotlin:kotlin-reflect:1.9.10")
 
     implementation("io.ktor:ktor-server-cio:2.3.3")
     implementation("io.ktor:ktor-server-default-headers:2.3.3")

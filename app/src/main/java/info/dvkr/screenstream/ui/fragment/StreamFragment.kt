@@ -18,6 +18,7 @@ import android.text.style.ForegroundColorSpan
 import android.text.style.StyleSpan
 import android.text.style.TypefaceSpan
 import android.text.style.UnderlineSpan
+import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
@@ -511,6 +512,7 @@ class StreamFragment : AdFragment(R.layout.fragment_stream) {
 
         fun bind(product: Client) = when (product) {
             is MjpegClient -> with(product) {
+                binding.tvClientItemId.text = ""
                 binding.tvClientItemAddress.text = clientAddress
                 with(binding.tvClientItemStatus) {
                     when {
@@ -538,7 +540,9 @@ class StreamFragment : AdFragment(R.layout.fragment_stream) {
             }
 
             is WebRtcPublicClient -> with(product) {
+                binding.tvClientItemId.text = "${publicId.substring(0, 4)}-${publicId.substring(4)}"
                 binding.tvClientItemAddress.text = clientAddress
+                binding.tvClientItemAddress.gravity = Gravity.CENTER_HORIZONTAL
                 binding.tvClientItemStatus.setText(R.string.stream_fragment_client_connected)
                 binding.tvClientItemStatus.setTextColor(colorAccent)
             }

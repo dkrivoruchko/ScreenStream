@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="webrtc_error_play_integrity_update_play_store">請更新 Google Play 商店</string>
+    <string name="webrtc_error_play_integrity_install_play_store">請安裝或啟用官方的 Google Play 商店</string>
+    <string name="webrtc_error_play_integrity_install_play_service">請安裝或啟用 Play Services</string>
+    <string name="webrtc_error_play_integrity_update_play_service">請更新 Google Play 服務</string>
+    <string name="webrtc_error_check_network">請檢查網路連線</string>
+    <string name="webrtc_error_unspecified">出了些問題。請稍後再試。</string>
+</resources>

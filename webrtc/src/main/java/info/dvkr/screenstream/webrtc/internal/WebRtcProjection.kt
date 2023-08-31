@@ -40,7 +40,7 @@ internal class WebRtcProjection(
     }
 
     private enum class AudioCodec { OPUS }
-    private enum class VideoCodec(val priority: Int) { VP8(1), VP9(2), H264(3)/* , AV1(4)*/; }
+    private enum class VideoCodec(val priority: Int) { VP8(1), VP9(2), H264(3), H265(4); }
 
     private val coroutineScope = CoroutineScope(SupervisorJob() + dispatcher)
     private val displayManager = ContextCompat.getSystemService(serviceContext, DisplayManager::class.java)!!
@@ -86,6 +86,9 @@ internal class WebRtcProjection(
 
         audioCodecs = peerConnectionFactory.getRtpSenderCapabilities(MediaStreamTrack.MediaType.MEDIA_TYPE_AUDIO)
             .codecs.filter { it.isSupportedAudio() }
+
+        XLog.e(getLog("init", "Device supported codes: video: [${videoCodecs.joinToString { it.name }}] hardwareVideo: [${hardwareSupportedCodecs.joinToString()}] audio: [${audioCodecs.joinToString { it.name }}]"))
+        XLog.e(getLog("init", "Device supported codes"), IllegalStateException("Device supported codes"))
 
         webRtcSettings.enableMicFlow.listenForChange(coroutineScope, 0) { enableMic ->
             XLog.d(this@WebRtcProjection.getLog("enableMicFlow", "$enableMic"))

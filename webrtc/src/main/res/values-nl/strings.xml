@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="webrtc_error_play_integrity_update_play_store">Werk Google Play Store bij</string>
+    <string name="webrtc_error_play_integrity_install_play_store">Installeer of activeer de officiële Google Play Store</string>
+    <string name="webrtc_error_play_integrity_install_play_service">Installeer of activeer Play Services</string>
+    <string name="webrtc_error_play_integrity_update_play_service">Werk Google Play-services bij</string>
+    <string name="webrtc_error_check_network">Controleer de internetverbinding</string>
+    <string name="webrtc_error_unspecified">Er is iets misgegaan. Probeer het later opnieuw.</string>
+</resources>

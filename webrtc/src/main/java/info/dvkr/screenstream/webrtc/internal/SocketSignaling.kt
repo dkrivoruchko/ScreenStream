@@ -24,7 +24,7 @@ internal class SocketSignaling(
     private val environment: WebRtcEnvironment,
     private val okHttpClient: OkHttpClient,
     private val eventListener: EventListener,
-    private val streamPasswordValidator: StreamPasswordValidator
+    private val passwordValidator: PasswordValidator
 ) {
 
     internal sealed class Errors(internal val retry: Boolean) : Exception() {
@@ -61,42 +61,21 @@ internal class SocketSignaling(
     }
 
     internal interface EventListener {
-        @AnyThread
         fun onSocketConnected()
-
-        @AnyThread
         fun onTokenExpired()
-
-        @AnyThread
         fun onSocketDisconnected(reason: String)
-
-        @AnyThread
         fun onStreamCreated(streamId: StreamId)
-
-        @AnyThread
         fun onStreamRemoved()
-
-        @AnyThread
         fun onClientJoin(clientId: ClientId)
-
-        @AnyThread
         fun onClientLeave(clientId: ClientId)
-
-        @AnyThread
         fun onClientNotFound(clientId: ClientId, reason: String)
-
-        @AnyThread
         fun onClientAnswer(clientId: ClientId, answer: Answer)
-
-        @AnyThread
         fun onClientCandidate(clientId: ClientId, candidate: IceCandidate)
-
-        @AnyThread
+        fun onHostOfferConfirmed(clientId: ClientId)
         fun onError(cause: Errors)
     }
 
-    internal interface StreamPasswordValidator {
-        @AnyThread
+    internal interface PasswordValidator {
         fun isPasswordValid(clientId: ClientId, passwordHash: String): Boolean
     }
 
@@ -129,6 +108,7 @@ internal class SocketSignaling(
         const val OFFER = "offer"
         const val ANSWER = "answer"
 
+        const val CANDIDATES = "candidates"
         const val CANDIDATE = "candidate"
         const val SPD_INDEX = "sdpMLineIndex"
         const val SPD_MID = "sdpMid"
@@ -174,7 +154,7 @@ internal class SocketSignaling(
                 XLog.e(this@SocketSignaling.getLog(Socket.EVENT_CONNECT_ERROR, args.contentToString()))
                 val message = (args?.firstOrNull() as? JSONObject)?.optString(Payload.MESSAGE) ?: ""
                 if (message.startsWith("$ERROR_TOKEN_VERIFICATION_FAILED:TOKEN_EXPIRED")) {
-                    XLog.d(this@SocketSignaling.getLog("openSocket", "TOKEN_EXPIRED"), IllegalStateException("TOKEN_EXPIRED"))
+                    XLog.d(this@SocketSignaling.getLog("openSocket", "TOKEN_EXPIRED"))
                     eventListener.onTokenExpired()
                 } else if (message.startsWith("$ERROR_TOKEN_VERIFICATION_FAILED:WRONG_APP_VERDICT")) {
                     XLog.d(this@SocketSignaling.getLog("openSocket", "WRONG_APP_VERDICT"), IllegalStateException("WRONG_APP_VERDICT"))
@@ -197,20 +177,13 @@ internal class SocketSignaling(
         val currentSocket = socket ?: return
         currentSocket.connected() || return
 
-        //TODO
         val data = runCatching { JSONObject().put("jwt", JWTHelper.createJWT(environment, streamId.value)) }
             .recoverCatching {
-                XLog.e(getLog("sendStreamCreate[${socketId()}]", "createJWT: ${it.message}"))
-                XLog.e(getLog("sendStreamCreate[${socketId()}]", "createJWT: ${it.message}"), it)
                 JWTHelper.removeKey()
                 JWTHelper.createKey()
                 JSONObject().put("jwt", JWTHelper.createJWT(environment, streamId.value))
             }
-            .onFailure {
-                XLog.e(getLog("sendStreamCreate[${socketId()}]", "createJWT.2: ${it.message}"))
-                XLog.e(getLog("sendStreamCreate[${socketId()}]", "createJWT.2: ${it.message}"), it)
-                eventListener.onError(Errors.StreamCreateError("createJWT error: ${it.message}", it))
-            }
+            .onFailure { eventListener.onError(Errors.StreamCreateError("createJWT error: ${it.message}", it)) }
             .getOrNull() ?: return
 
         currentSocket.emit(Event.STREAM_CREATE, arrayOf(data), object : AckWithTimeout(5000) {
@@ -256,7 +229,7 @@ internal class SocketSignaling(
                 val msg = "[${Event.STREAM_JOIN}] ClientId is empty"
                 XLog.e(getLog("onStreamCreated", msg), IllegalArgumentException("onStreamCreated: $msg"))
                 payload.sendErrorAck(Payload.ERROR_EMPTY_OR_BAD_DATA)
-            } else if (streamPasswordValidator.isPasswordValid(payload.clientId, payload.passwordHash)) {
+            } else if (passwordValidator.isPasswordValid(payload.clientId, payload.passwordHash)) {
                 payload.sendOkAck()
                 eventListener.onClientJoin(payload.clientId)
             } else {
@@ -344,6 +317,7 @@ internal class SocketSignaling(
                 XLog.v(this@SocketSignaling.getLog("sendStreamStart[${socketId()}]", "Response: ${args.contentToString()}"))
                 when (val status = SocketAck.fromAck(args).status) {
                     Payload.OK -> XLog.d(this@SocketSignaling.getLog("sendStreamStart[${socketId()}]", "OK"))
+
                     Payload.ERROR_NO_CLIENT_FOUND -> {
                         XLog.d(this@SocketSignaling.getLog("sendStreamStart[${socketId()}]", "Client: $clientId => $status"))
                         eventListener.onClientNotFound(clientId!!, "STREAM_START")
@@ -396,7 +370,11 @@ internal class SocketSignaling(
             override fun onSuccess(args: Array<Any?>?) { // Callback may never be called
                 XLog.v(this@SocketSignaling.getLog("sendHostOffer[${socketId()}]", "Response: ${args.contentToString()}"))
                 when (val status = SocketAck.fromAck(args).status) {
-                    Payload.OK -> XLog.d(this@SocketSignaling.getLog("sendHostOffer[${socketId()}]", "Client: $clientId => OK"))
+                    Payload.OK -> {
+                        XLog.d(this@SocketSignaling.getLog("sendHostOffer[${socketId()}]", "Client: $clientId => OK"))
+                        eventListener.onHostOfferConfirmed(clientId)
+                    }
+
                     Payload.ERROR_NO_CLIENT_FOUND -> {
                         XLog.d(this@SocketSignaling.getLog("sendHostOffer[${socketId()}]", "Client: $clientId => $status"))
                         eventListener.onClientNotFound(clientId, "HOST_OFFER")
@@ -409,11 +387,12 @@ internal class SocketSignaling(
             override fun onTimeout() {
                 val msg = "[${Event.HOST_OFFER}] => Timeout"
                 XLog.w(this@SocketSignaling.getLog("sendHostOffer[${socketId()}]", msg), IllegalStateException(msg))
+                eventListener.onClientNotFound(clientId, "HOST_OFFER => Timeout")
             }
         })
     }
 
-    internal fun sendHostCandidates(clientId: ClientId, candidate: IceCandidate) {
+    internal fun sendHostCandidates(clientId: ClientId, candidates: List<IceCandidate>) {
         XLog.d(getLog("sendHostCandidates[${socketId()}]", "Client: $clientId"))
 
         val currentSocket = socket ?: return
@@ -424,13 +403,14 @@ internal class SocketSignaling(
 
         val data = JSONObject()
             .put(Payload.CLIENT_ID, clientId.value)
-            .put(Payload.CANDIDATE, candidate.toJsonObject())
+            .put(Payload.CANDIDATES, JSONArray(candidates.map { it.toJsonObject() }.toTypedArray()))
 
         currentSocket.emit(Event.HOST_CANDIDATE, arrayOf(data), object : AckWithTimeout(5000) {
             override fun onSuccess(args: Array<Any?>?) { // Callback may never be called
                 XLog.v(this@SocketSignaling.getLog("sendHostCandidates[${socketId()}]", "Response: ${args.contentToString()}"))
                 when (val status = SocketAck.fromAck(args).status) {
                     Payload.OK -> XLog.d(this@SocketSignaling.getLog("sendHostCandidates[${socketId()}]", "Client: $clientId => OK"))
+
                     Payload.ERROR_NO_CLIENT_FOUND -> {
                         XLog.d(this@SocketSignaling.getLog("sendHostCandidates[${socketId()}]", "Client: $clientId => $status"))
                         eventListener.onClientNotFound(clientId, "HOST_CANDIDATE")
@@ -443,6 +423,7 @@ internal class SocketSignaling(
             override fun onTimeout() {
                 val msg = "[${Event.HOST_CANDIDATE}] => Timeout"
                 XLog.w(this@SocketSignaling.getLog("sendHostCandidates[${socketId()}]", msg), IllegalStateException(msg))
+                eventListener.onClientNotFound(clientId, "HOST_CANDIDATE => Timeout")
             }
         })
     }

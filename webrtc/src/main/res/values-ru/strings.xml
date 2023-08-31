@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="webrtc_error_play_integrity_update_play_store">Пожалуйста, обновите Google Play Store</string>
-    <string name="webrtc_error_play_integrity_install_play_store">Пожалуйста, установите или включите Google Play Store</string>
+    <string name="webrtc_error_play_integrity_install_play_store">Пожалуйста, установите или включите официальный Google Play Store</string>
     <string name="webrtc_error_play_integrity_install_play_service">Пожалуйста, установите или включите Play Services</string>
     <string name="webrtc_error_play_integrity_update_play_service">Пожалуйста, обновите Google Play services</string>
     <string name="webrtc_error_check_network">Пожалуйста, проверьте подключение к интернету</string>

@@ -16,9 +16,7 @@ internal value class PlayIntegrityToken(internal val value: String) {
 internal value class Answer(private val description: String) {
     internal fun isEmpty(): Boolean = description.isBlank()
     internal fun asSessionDescription(): SessionDescription = SessionDescription(SessionDescription.Type.ANSWER, description)
-    override fun toString(): String = description.indexOf("sha-256", ignoreCase = true).let {
-        runCatching { description.subSequence(it + 8, it + 8 + 95).toString() }.getOrDefault("EMPTY")
-    }
+    override fun toString(): String = "*"
 }
 
 @JvmInline
@@ -29,9 +27,7 @@ internal value class ClientId(internal val value: String) {
 
 @JvmInline
 internal value class Offer(internal val description: String) {
-    override fun toString(): String = description.indexOf("sha-256", ignoreCase = true).let {
-        runCatching { description.subSequence(it + 8, it + 8 + 95).toString() }.getOrDefault("EMPTY")
-    }
+    override fun toString(): String = "*"
 }
 
 @JvmInline
