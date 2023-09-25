@@ -1,20 +1,138 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="error_port_in_use">Poort is al in gebruik, kies een andere.</string>
-    <string name="error_invalid_media_projection">Beveilig fout: Ongeldige media projectie. Probeer het nogmaals.</string>
-    <string name="error_ip_address_not_found">IP adres niet gevonden.\n Probeer \"Gebruik alleen WiFi\" Uit te zetten in de instellingen.</string>
-    <string name="error_wrong_image_format">Systeem maakt een frame in een onbekend formaat. Geen oplossing mogelijk. Sorry.</string>
+    <string name="mjpeg_error_recover">Herstellen</string>
+
+    <string name="mjpeg_stream_fragment_mode_local">Lokale modus (MJPEG)</string>
+    <string name="mjpeg_stream_fragment_mode_local_description">Beschrijving van lokale modus</string>
+    <string name="mjpeg_stream_fragment_mode_local_details">
+- Aangedreven door de MJPEG-standaard.\n\n
+- Maakt gebruik van PIN voor beveiliging (geen versleuteling).\n\n
+- Verstuurt video als een reeks onafhankelijke beelden (geen audio).\n\n
+- Werkt zonder internetverbinding binnen uw lokale netwerk.\n\n
+- Ingebouwde HTTP-server.\n\n
+- Werkt met WiFi en/of mobiele netwerken, ondersteunt IPv4 en IPv6.\n\n
+- Klanten verbinden via een webbrowser met het IP-adres dat de app verstrekt.\n\n
+- Zeer aanpasbaar.\n\n
+- Individuele gegevensoverdracht voor elke klant (hoe meer klanten u heeft, hoe meer netwerkbandbreedte u nodig heeft).
+</string>
+
+    <string name="mjpeg_item_device_address">Toestel adres:</string>
+    <string name="mjpeg_stream_fragment_no_address">Geen adres gevonden</string>
+    <string name="mjpeg_stream_fragment_interface">Interface: %1$s</string>
+    <string name="mjpeg_stream_fragment_copied">gekopieerd</string>
+    <string name="mjpeg_stream_fragment_no_web_browser_found">Geen webbrowser gevonden</string>
+    <string name="mjpeg_stream_fragment_external_app_error">Externe applicatie fout</string>
+    <string name="mjpeg_stream_fragment_share_address">Deel toestel adres</string>
+    <string name="mjpeg_item_device_address_description_open_address">Open adressen</string>
+    <string name="mjpeg_item_device_address_description_copy_address">Copieer adres</string>
+    <string name="mjpeg_item_device_address_description_share_address">Deel adres</string>
+    <string name="mjpeg_item_device_address_description_qr_address">Toon adres als QR-code</string>
+    <string name="mjpeg_pref_settings">Stroominstellingen</string>
+    <string name="mjpeg_stream_fragment_pin">Pin: %1$s</string>
+    <string name="mjpeg_stream_fragment_pin_disabled">Pin is uit</string>
+    <string name="mjpeg_stream_fragment_current_traffic">Internetverkeer: %1$,.2f Mbit/s</string>
+    <string name="mjpeg_stream_fragment_connected_clients">Verbonden clients: %1$d</string>
+    <string name="mjpeg_stream_fragment_client_disconnected">Niet verbonden</string>
+    <string name="mjpeg_stream_fragment_client_slow_network">Slome verbinding</string>
+    <string name="mjpeg_stream_fragment_client_connected">Verbonden</string>
+    <string name="mjpeg_stream_fragment_client_blocked">Geblokeerd</string>
+
+    <string name="mjpeg_stream_fragment_cast_permission_activity_not_found_title">Toestemmingen fout</string>
+    <string name="mjpeg_stream_fragment_cast_permission_activity_not_found">Android bug. Niet controleren \"Niet meer tonen\" Bij de toestemmingen, geef toestemming om het scherm op te nemen. Als je dit al gedaan hebt, download de app opnieuw.</string>
+    <string name="mjpeg_stream_fragment_cast_permission_required_title">Toestemming vereist</string>
+    <string name="mjpeg_stream_fragment_cast_permission_required">ScreenStream app heeft Scherm Delen toestemming nodig om je scherm op te nemen.</string>
+
+    <string name="mjpeg_toast_slow_client_connection">Slome client verbinding gedetecteerd</string>
+
+    <string name="mjpeg_pref_settings_interface">Interface</string>
+    <string name="mjpeg_pref_keep_awake">Apparaat actief houden</string>
+    <string name="mjpeg_pref_keep_awake_summary">Houd het apparaat en het scherm actief tijdens het streamen</string>
+    <string name="mjpeg_pref_stop_on_sleep">Stop stream bij slaapmodus</string>
+    <string name="mjpeg_pref_stop_on_sleep_summary">Stop stream als het scherm word uitgezet</string>
+    <string name="mjpeg_pref_detect_slow_connections">Meld slome verbindingen</string>
+    <string name="mjpeg_pref_detect_slow_connections_summary">Meld slome client verbindingen</string>
+    <string name="mjpeg_pref_html_buttons">Zet pagina knoppen aan</string>
+    <string name="mjpeg_pref_html_buttons_summary">Laat controle knoppen zien op pagina</string>
+    <string name="mjpeg_pref_html_show_press_start">Toon \"Druk op START op het apparaat\"</string>
+    <string name="mjpeg_pref_html_show_press_start_summary">Toon \"Druk op START op het apparaat\" op de webpagina</string>
+    <string name="mjpeg_pref_html_back_color">Pagina achtergrond kleur</string>
+    <string name="mjpeg_pref_html_back_color_summary">Stel de pagina achtergrond kleur in</string>
+    <string name="mjpeg_pref_html_back_color_title">Selecteer pagina achtergrond kleur</string>
+
+    <string name="mjpeg_pref_settings_image">Beeld</string>
+    <string name="mjpeg_pref_vr_mode">Virtual Reality modus</string>
+    <string name="mjpeg_pref_vr_mode_summary">Neem het halve scherm op</string>
+    <string-array name="mjpeg_pref_vr_mode_options">
+        <item>Gebruik linker deel</item>
+        <item>Gebruik rechter deel</item>
+    </string-array>
+    <string name="mjpeg_pref_crop">Snij het beeld bij</string>
+    <string name="mjpeg_pref_crop_summary">Snij het beeld bij voor het sturen naar de client</string>
+    <string name="mjpeg_pref_crop_dialog_crop_top">Bijsnijden vanaf boven:</string>
+    <string name="mjpeg_pref_crop_dialog_crop_bottom">Bijsnijden vanaf beneden:</string>
+    <string name="mjpeg_pref_crop_dialog_crop_left">Bijsnijden vanaf links:</string>
+    <string name="mjpeg_pref_crop_dialog_crop_right">Bijsnijden vanaf rechts:</string>
+    <string name="mjpeg_pref_crop_dialog_pixels">pixels</string>
+    <string name="mjpeg_pref_crop_dialog_warning_message">Bijsnijden word niet gebruikt wanneer het scherm leeg is</string>
+    <string name="mjpeg_pref_crop_dialog_error_message">Vul de juiste bijsnijdings waardes in.</string>
+    <string name="mjpeg_pref_grayscale">Grijswaardenmodus</string>
+    <string name="mjpeg_pref_grayscale_summary">Beeld in grijswaarden voordat het naar de client wordt verzonden</string>
+    <string name="mjpeg_pref_resize">Formaat van beeld weizigen</string>
+    <string name="mjpeg_pref_resize_summary">Formaat weizigen voor het sturen naar de client</string>
+    <string name="mjpeg_pref_resize_dialog_text">Waarde van formaat weizigen in procenten invullen.\nWaardes: 10–150 (Standaard: 50)\nScherm maat: %1$dx%2$d</string>
+    <string name="mjpeg_pref_resize_dialog_result">Beeld maat: %1$dx%2$d</string>
+    <string name="mjpeg_pref_rotate">Draai het scherm om</string>
+    <string name="mjpeg_pref_rotate_summary">Draai het scherm om voor het sturen naar de client</string>
+    <string name="mjpeg_pref_fps">Limiteer beelden per seconden (FPS)</string>
+    <string name="mjpeg_pref_fps_summary">Maximum beelden per seconden (FPS)</string>
+    <string name="mjpeg_pref_fps_dialog">Stel het maximum beelden per seconden in (FPS).\nWaardes: 1–60 (Standaard: 30)</string>
+    <string name="mjpeg_pref_jpeg_quality">JPEG compressie kwaliteit</string>
+    <string name="mjpeg_pref_jpeg_quality_summary">Stel JPEG compressie kwaliteit in</string>
+    <string name="mjpeg_pref_jpeg_quality_dialog">Stel JPEG compressie kwaliteit.\nWaardes: 10–100 (Standaard: 80)</string>
+
+    <string name="mjpeg_pref_settings_security">Beveiliging</string>
+    <string name="mjpeg_pref_enable_pin">Zet pin aan</string>
+    <string name="mjpeg_pref_enable_pin_summary">Beveilig stream met PIN</string>
+    <string name="mjpeg_pref_hide_pin">Verberg de PIN met de start van de stream</string>
+    <string name="mjpeg_pref_hide_pin_summary">Toon sterretjes (*) in plaats van nummers als stream aan is</string>
+    <string name="mjpeg_pref_new_pin_on_start">Nieuwe pin met start</string>
+    <string name="mjpeg_pref_new_pin_on_start_summary">Genereer een nieuwe pin met start van applicatie</string>
+    <string name="mjpeg_pref_auto_change_pin">Verander de pin automatisch</string>
+    <string name="mjpeg_pref_auto_change_pin_summary">Genereer een nieuwe pin voor elke nieuwe stream</string>
+    <string name="mjpeg_pref_set_pin">Stel de pin in</string>
+    <string name="mjpeg_pref_set_pin_summary">Stel de pin handmatig in</string>
+    <string name="mjpeg_pref_set_pin_dialog">Voeg de pin in.\nStandaard: 000000</string>
+    <string name="mjpeg_pref_block_address">Blokkeer IP adressen</string>
+    <string name="mjpeg_pref_block_address_summary">Blok IP adressen na 5 foute pogingen voor 5 minuten</string>
+
+    <string name="mjpeg_pref_settings_advanced">Overigen</string>
+    <string name="mjpeg_pref_wifi_only">Gebruik alleen WiFI</string>
+    <string name="mjpeg_pref_wifi_only_summary">Zet de server alleen aan met een WiFi verbinding</string>
+    <string name="mjpeg_pref_enable_ipv6">Zet de IPv6 ondersteuning aan</string>
+    <string name="mjpeg_pref_enable_ipv6_summary">Zet de server ook aan op IPv6 verbindingen</string>
+    <string name="mjpeg_pref_enable_localhost">Schakel lokale host aan (localhost)</string>
+    <string name="mjpeg_pref_enable_localhost_summary">Zet de server ook aan op de lokale host</string>
+    <string name="mjpeg_pref_localhost_only">Alleen localhost</string>
+    <string name="mjpeg_pref_localhost_only_summary">Steld de server in voor alleen lokale host verbindingen</string>
+    <string name="mjpeg_pref_server_port">Server poort</string>
+    <string name="mjpeg_pref_server_port_summary">Stel welke poort gebruikt mag worden voor verbindingen in</string>
+    <string name="mjpeg_pref_server_port_dialog">Stel de server poort in voor inkomende verbindingen.\nWaardes: 1025–65535\n(Standaard: 8080)</string>
+
+    <string name="mjpeg_error_port_in_use">Poort is al in gebruik, kies een andere.</string>
+    <string name="mjpeg_error_invalid_media_projection">Beveilig fout: Ongeldige media projectie. Probeer het nogmaals.</string>
+    <string name="mjpeg_error_ip_address_not_found">IP adres niet gevonden.\n Probeer \"Gebruik alleen WiFi\" Uit te zetten in de instellingen.</string>
+    <string name="mjpeg_error_wrong_image_format">Systeem maakt een frame in een onbekend formaat. Geen oplossing mogelijk. Sorry.</string>
+    <string name="mjpeg_error_unspecified">Er is iets misgegaan. Probeer het later opnieuw.</string>
 
     <!--BitmapNotification-->
-    <string name="image_generator_press_start">Druk START op het toestel</string>
-    <string name="image_generator_go_to_new_address">Ga naar het nieuwe adres</string>
-    <string name="image_generator_reload_this_page">Herlaad deze pagina</string>
-    <string name="image_generator_address_blocked">Uw adres is geblokeerd</string>
+    <string name="mjpeg_image_generator_press_start">Druk START op het toestel</string>
+    <string name="mjpeg_image_generator_go_to_new_address">Ga naar het nieuwe adres</string>
+    <string name="mjpeg_image_generator_address_blocked">Uw adres is geblokeerd</string>
 
     <!--HTML text-->
-    <string name="html_stream_require_pin">Deze stream is beveiligd met een PIN</string>
-    <string name="html_enter_pin">Vul de pin in:\u0020</string>
-    <string name="html_submit_text">Verstuur</string>
-    <string name="html_wrong_pin">Verkeerde pin!</string>
-    <string name="html_address_blocked">Uw adres is geblokeerd door te veel pogenigen</string>
+    <string name="mjpeg_html_stream_require_pin">Deze stream is beveiligd met een PIN</string>
+    <string name="mjpeg_html_enter_pin">Vul de pin in:\u0020</string>
+    <string name="mjpeg_html_submit_text">Verstuur</string>
+    <string name="mjpeg_html_wrong_pin">Verkeerde pin!</string>
+    <string name="mjpeg_html_address_blocked">Uw adres is geblokeerd door te veel pogenigen</string>
 </resources>

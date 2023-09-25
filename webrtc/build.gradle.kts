@@ -1,6 +1,10 @@
+import java.util.Properties
+
 plugins {
     id("com.android.library")
     id("org.jetbrains.kotlin.android")
+    id("org.jetbrains.kotlin.plugin.parcelize")
+    id("com.google.devtools.ksp")
 }
 
 android {
@@ -12,6 +16,20 @@ android {
         minSdk = 23
     }
 
+    val localProps = Properties().apply { file("../local.properties").inputStream().use { load(it) } }
+
+    buildTypes {
+        debug {
+            buildConfigField("String", "SIGNALING_SERVER", localProps.getProperty("SIGNALING_SERVER_DEV"))
+            buildConfigField("String", "CLOUD_PROJECT_NUMBER", localProps.getProperty("CLOUD_PROJECT_NUMBER_DEV"))
+        }
+
+        release {
+            buildConfigField("String", "SIGNALING_SERVER", localProps.getProperty("SIGNALING_SERVER_RELEASE"))
+            buildConfigField("String", "CLOUD_PROJECT_NUMBER", localProps.getProperty("CLOUD_PROJECT_NUMBER_RELEASE"))
+        }
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
@@ -20,16 +38,16 @@ android {
     kotlinOptions {
         jvmTarget = JavaVersion.VERSION_11.toString()
         languageVersion = "1.9"
+        freeCompilerArgs += "-Xexplicit-api=strict"
     }
 }
 
 dependencies {
     implementation(project(":common"))
 
-    //noinspection KtxExtensionAvailable
-    implementation("androidx.core:core:1.10.1")
+    ksp("io.insert-koin:koin-ksp-compiler:1.3.0")
 
-    implementation("io.github.webrtc-sdk:android:114.5735.02")
+    implementation("io.github.webrtc-sdk:android:114.5735.05")
     implementation("io.socket:socket.io-client:2.1.0")
     implementation("com.squareup.okhttp3:okhttp:4.10.0")
     implementation("com.squareup.okio:okio:3.5.0")
@@ -39,7 +57,5 @@ dependencies {
 }
 
 configurations.implementation {
-    exclude("androidx.collection", "collection")
-    exclude("androidx.fragment", "fragment")
     exclude("org.json", "json")
 }

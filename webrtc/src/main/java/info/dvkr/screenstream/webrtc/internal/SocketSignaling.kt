@@ -1,10 +1,8 @@
 package info.dvkr.screenstream.webrtc.internal
 
 import android.os.Build
-import androidx.annotation.AnyThread
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.common.getLog
-import info.dvkr.screenstream.webrtc.WebRtcEnvironment
 import info.dvkr.screenstream.webrtc.internal.SocketSignaling.Payload.ERROR_TOKEN_VERIFICATION_FAILED
 import io.socket.client.Ack
 import io.socket.client.AckWithTimeout
@@ -24,15 +22,18 @@ internal class SocketSignaling(
     private val environment: WebRtcEnvironment,
     private val okHttpClient: OkHttpClient,
     private val eventListener: EventListener,
-    private val passwordValidator: PasswordValidator
+    private val passwordVerifier: PasswordVerifier
 ) {
 
-    internal sealed class Errors(internal val retry: Boolean) : Exception() {
+    internal interface PasswordVerifier {
+        fun isValid(clientId: ClientId, passwordHash: String) : Boolean
+    }
 
+    internal sealed class Errors(internal val retry: Boolean) : Exception() {
         internal class SocketAuthError(override val message: String, retry: Boolean = false) : Errors(retry) {
             internal companion object {
                 internal fun fromMessage(message: String): SocketAuthError? {
-                    val error = message.removePrefix(Payload.ERROR_TOKEN_VERIFICATION_FAILED + ':')
+                    val error = message.removePrefix("$ERROR_TOKEN_VERIFICATION_FAILED:")
                     if (message == error) return null // Not this error
 
                     return when { // Must be identical to server values
@@ -73,10 +74,6 @@ internal class SocketSignaling(
         fun onClientCandidate(clientId: ClientId, candidate: IceCandidate)
         fun onHostOfferConfirmed(clientId: ClientId)
         fun onError(cause: Errors)
-    }
-
-    internal interface PasswordValidator {
-        fun isPasswordValid(clientId: ClientId, passwordHash: String): Boolean
     }
 
     // Must be identical to server values
@@ -122,6 +119,9 @@ internal class SocketSignaling(
 
     @Volatile
     private var socket: Socket? = null
+
+    // Inline Only
+    @Suppress("NOTHING_TO_INLINE")
     internal inline fun socketId(): String? = socket?.id()
 
     init {
@@ -186,7 +186,7 @@ internal class SocketSignaling(
             .onFailure { eventListener.onError(Errors.StreamCreateError("createJWT error: ${it.message}", it)) }
             .getOrNull() ?: return
 
-        currentSocket.emit(Event.STREAM_CREATE, arrayOf(data), object : AckWithTimeout(5000) {
+        currentSocket.emit(Event.STREAM_CREATE, arrayOf(data), object : AckWithTimeout(10_000) {
             override fun onSuccess(args: Array<Any?>?) { // Callback may never be called
                 val msgV = "[${Event.STREAM_CREATE}] Response: ${args.contentToString()}"
                 XLog.v(this@SocketSignaling.getLog("sendStreamCreate[${socketId()}]", msgV))
@@ -229,7 +229,7 @@ internal class SocketSignaling(
                 val msg = "[${Event.STREAM_JOIN}] ClientId is empty"
                 XLog.e(getLog("onStreamCreated", msg), IllegalArgumentException("onStreamCreated: $msg"))
                 payload.sendErrorAck(Payload.ERROR_EMPTY_OR_BAD_DATA)
-            } else if (passwordValidator.isPasswordValid(payload.clientId, payload.passwordHash)) {
+            } else if (passwordVerifier.isValid(payload.clientId, payload.passwordHash)) {
                 payload.sendOkAck()
                 eventListener.onClientJoin(payload.clientId)
             } else {
@@ -286,7 +286,7 @@ internal class SocketSignaling(
 
         currentSocket.off(Event.STREAM_JOIN).off(Event.CLIENT_ANSWER).off(Event.CLIENT_CANDIDATE).off(Event.STREAM_LEAVE)
 
-        currentSocket.emit(Event.STREAM_REMOVE, arrayOf(), object : AckWithTimeout(5000) {
+        currentSocket.emit(Event.STREAM_REMOVE, arrayOf(), object : AckWithTimeout(10_000) {
             override fun onSuccess(args: Array<Any?>?) { // Callback may never be called
                 val msg = "[${Event.STREAM_REMOVE}] Response: ${args.contentToString()}"
                 XLog.v(this@SocketSignaling.getLog("sendStreamRemove[${socketId()}]", msg))
@@ -312,7 +312,7 @@ internal class SocketSignaling(
 
         val data = JSONObject().put(Payload.CLIENT_ID, clientId?.value ?: "ALL")
 
-        currentSocket.emit(Event.STREAM_START, arrayOf(data), object : AckWithTimeout(5000) {
+        currentSocket.emit(Event.STREAM_START, arrayOf(data), object : AckWithTimeout(10_000) {
             override fun onSuccess(args: Array<Any?>?) { // Callback may never be called
                 XLog.v(this@SocketSignaling.getLog("sendStreamStart[${socketId()}]", "Response: ${args.contentToString()}"))
                 when (val status = SocketAck.fromAck(args).status) {
@@ -366,7 +366,7 @@ internal class SocketSignaling(
 
         val data = JSONObject().put(Payload.CLIENT_ID, clientId.value).put(Payload.OFFER, offer.description)
 
-        currentSocket.emit(Event.HOST_OFFER, arrayOf(data), object : AckWithTimeout(5000) {
+        currentSocket.emit(Event.HOST_OFFER, arrayOf(data), object : AckWithTimeout(10_000) {
             override fun onSuccess(args: Array<Any?>?) { // Callback may never be called
                 XLog.v(this@SocketSignaling.getLog("sendHostOffer[${socketId()}]", "Response: ${args.contentToString()}"))
                 when (val status = SocketAck.fromAck(args).status) {
@@ -405,7 +405,7 @@ internal class SocketSignaling(
             .put(Payload.CLIENT_ID, clientId.value)
             .put(Payload.CANDIDATES, JSONArray(candidates.map { it.toJsonObject() }.toTypedArray()))
 
-        currentSocket.emit(Event.HOST_CANDIDATE, arrayOf(data), object : AckWithTimeout(5000) {
+        currentSocket.emit(Event.HOST_CANDIDATE, arrayOf(data), object : AckWithTimeout(10_000) {
             override fun onSuccess(args: Array<Any?>?) { // Callback may never be called
                 XLog.v(this@SocketSignaling.getLog("sendHostCandidates[${socketId()}]", "Response: ${args.contentToString()}"))
                 when (val status = SocketAck.fromAck(args).status) {
@@ -443,15 +443,12 @@ internal class SocketSignaling(
             .put(Payload.CLIENT_ID, JSONArray(clientIds.map { it.value }))
             .put("reason", reason)
 
-        currentSocket.emit(Event.REMOVE_CLIENT, arrayOf(data), object : AckWithTimeout(5000) {
+        currentSocket.emit(Event.REMOVE_CLIENT, arrayOf(data), object : AckWithTimeout(10_000) {
             override fun onSuccess(args: Array<Any?>?) { // Callback may never be called
                 XLog.v(this@SocketSignaling.getLog("sendRemoveClients[${socketId()}]", "Response: ${args.contentToString()}"))
                 when (val status = SocketAck.fromAck(args).status) {
                     Payload.OK -> XLog.d(this@SocketSignaling.getLog("sendRemoveClients[${socketId()}]", "OK"))
-                    else -> XLog.e(
-                        this@SocketSignaling.getLog("sendRemoveClients", status),
-                        IllegalArgumentException("sendRemoveClients => $status")
-                    )
+                    else -> XLog.e(this@SocketSignaling.getLog("sendRemoveClients", status), IllegalArgumentException("sendRemoveClients => $status"))
                 }
             }
 

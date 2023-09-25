@@ -2,7 +2,6 @@ package info.dvkr.screenstream.webrtc.internal
 
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.common.getLog
-import info.dvkr.screenstream.webrtc.WebRtcPublicClient
 import org.webrtc.CandidatePairChangeEvent
 import org.webrtc.DataChannel
 import org.webrtc.IceCandidate
@@ -23,6 +22,8 @@ import org.webrtc.RtpReceiver
 import org.webrtc.RtpTransceiver
 import org.webrtc.SdpObserver
 import org.webrtc.SessionDescription
+import java.util.Collections
+import java.util.concurrent.atomic.AtomicReference
 import java.util.zip.CRC32
 
 internal class WebRtcClient(
@@ -46,10 +47,10 @@ internal class WebRtcClient(
     private enum class State { CREATED, PENDING_OFFER, PENDING_OFFER_ACCEPT, OFFER_ACCEPTED }
 
     private val id: String = "${clientId.value}#$publicId"
-    private val pendingIceCandidates: MutableList<IceCandidate> = mutableListOf()
+    private val pendingIceCandidates: MutableList<IceCandidate> = Collections.synchronizedList(mutableListOf())
 
-    private var state: State = State.CREATED
-    private var clientAddress: String = "-"
+    private val state: AtomicReference<State> = AtomicReference(State.CREATED)
+    private val clientAddress: AtomicReference<String> = AtomicReference("-")
 
     @Volatile
     private var mediaStreamId: MediaStreamId? = null
@@ -61,11 +62,11 @@ internal class WebRtcClient(
         XLog.d(getLog("init", "Client: $id"))
     }
 
-    @Synchronized // WebRTC-HT thread
+    // WebRTC-HT thread
     internal fun start(mediaStream: LocalMediaSteam) {
         XLog.d(getLog("start", "Client: $id, mediaStream: ${mediaStream.id}"))
 
-        if (state != State.CREATED) {
+        if (state.get() != State.CREATED) {
             val msg = "Wrong client $id state: $state, expecting: ${State.CREATED}"
             XLog.w(getLog("start", msg), IllegalStateException("start: $msg"))
             stop()
@@ -81,6 +82,10 @@ internal class WebRtcClient(
             }
             //setBitrate(200_000, 4_000_000, 8_000_000) doesn't work
         }
+
+        mediaStreamId = mediaStream.id
+        pendingIceCandidates.clear()
+        state.set(State.PENDING_OFFER)
 
         XLog.d(getLog("start", "createOffer: Client: $id, mediaStream: ${mediaStream.id}"))
         peerConnection!!.createOffer(object : SdpObserver {
@@ -102,13 +107,9 @@ internal class WebRtcClient(
                 mandatory.add(MediaConstraints.KeyValuePair("OfferToReceiveAudio", "false"))
             }
         )
-
-        mediaStreamId = mediaStream.id
-        pendingIceCandidates.clear()
-        state = State.PENDING_OFFER
     }
 
-    @Synchronized // WebRTC-HT thread
+    // WebRTC-HT thread
     internal fun stop() {
         XLog.d(getLog("stop", "Client: $clientId"))
 
@@ -116,49 +117,45 @@ internal class WebRtcClient(
         peerConnection = null
         mediaStreamId = null
         pendingIceCandidates.clear()
-        clientAddress = "-"
-        state = State.CREATED
+        clientAddress.set("-")
+        state.set(State.CREATED)
     }
 
-    @Synchronized // WebRTC-HT thread
-    internal fun toPublic(): WebRtcPublicClient = WebRtcPublicClient(id.hashCode().toLong(), clientAddress, publicId)
+    // WebRTC-HT thread
+    internal fun toClient(): WebRtcState.Client = WebRtcState.Client(clientId.value, publicId, clientAddress.get())
 
     // Signaling thread
     private fun setHostOffer(mediaStreamId: MediaStreamId, sessionDescription: SessionDescription) {
-        synchronized(this@WebRtcClient) {
-            if (state != State.PENDING_OFFER) {
-                val msg = "Wrong client $id state: $state, expecting: ${State.PENDING_OFFER}"
-                XLog.w(getLog("setHostOffer", msg), IllegalStateException("setHostOffer: $msg"))
-                eventListener.onError(clientId, IllegalStateException("setHostOffer: $msg"))
-                return
-            }
-
-            XLog.d(getLog("setHostOffer", "Client: $id, mediaStreamId: $mediaStreamId"))
+        if (state.get() != State.PENDING_OFFER) {
+            val msg = "Wrong client $id state: $state, expecting: ${State.PENDING_OFFER}"
+            XLog.w(getLog("setHostOffer", msg), IllegalStateException("setHostOffer: $msg"))
+            eventListener.onError(clientId, IllegalStateException("setHostOffer: $msg"))
+            return
         }
+
+        XLog.d(getLog("setHostOffer", "Client: $id, mediaStreamId: $mediaStreamId"))
 
         peerConnection!!.setLocalDescription(getSdpObserver {
             // Signaling thread
             onSuccess {
-                synchronized(this@WebRtcClient) {
-                    XLog.d(this@WebRtcClient.getLog("setHostOffer", "onSuccess. Client: $id"))
-                    if (state != State.PENDING_OFFER) {
-                        val msg = "Wrong client $id state: $state, expecting: ${State.PENDING_OFFER}"
-                        XLog.w(this@WebRtcClient.getLog("setHostOffer.onSuccess", msg), IllegalStateException("setHostOffer.onSuccess: $msg"))
-                        eventListener.onError(clientId, IllegalStateException("setHostOffer.onSuccess: $msg"))
-                    } else {
-                        state = State.PENDING_OFFER_ACCEPT
-                        eventListener.onHostOffer(clientId, Offer(sessionDescription.description))
-                    }
+                XLog.d(this@WebRtcClient.getLog("setHostOffer", "onSuccess. Client: $id"))
+                if (state.get() != State.PENDING_OFFER) {
+                    val msg = "Wrong client $id state: $state, expecting: ${State.PENDING_OFFER}"
+                    XLog.w(this@WebRtcClient.getLog("setHostOffer.onSuccess", msg), IllegalStateException("setHostOffer.onSuccess: $msg"))
+                    eventListener.onError(clientId, IllegalStateException("setHostOffer.onSuccess: $msg"))
+                } else {
+                    state.set(State.PENDING_OFFER_ACCEPT)
+                    eventListener.onHostOffer(clientId, Offer(sessionDescription.description))
                 }
             }
             onFailure { eventListener.onError(clientId, IllegalStateException("Client: $id. setHostOffer.onFailure: ${it.message}")) }
         }, sessionDescription)
     }
 
-    @Synchronized // Signaling thread
+    // Signaling thread
     private fun onHostCandidate(candidate: IceCandidate) {
         val msg = "Client: $id, MediaStream: $mediaStreamId, State: $state"
-        when (state) {
+        when (state.get()) {
             State.CREATED, State.PENDING_OFFER -> {
                 XLog.w(this@WebRtcClient.getLog("onHostCandidate", "$msg. Ignoring"), IllegalStateException("onHostCandidate: $msg"))
                 eventListener.onError(clientId, IllegalStateException("Client: $id. onHostCandidate: $msg"))
@@ -175,18 +172,20 @@ internal class WebRtcClient(
                 pendingIceCandidates.clear()
                 eventListener.onHostCandidates(clientId, list)
             }
+
+            else -> Unit // Nothing
         }
     }
 
-    @Synchronized // WebRTC-HT thread
+    // WebRTC-HT thread
     internal fun onHostOfferConfirmed() {
-        if (state != State.PENDING_OFFER_ACCEPT) {
+        if (state.get() != State.PENDING_OFFER_ACCEPT) {
             val msg = "Wrong client $id state: $state, expecting: ${State.PENDING_OFFER_ACCEPT}"
             XLog.w(getLog("onHostOfferConfirmed", msg), IllegalStateException("onHostOfferConfirmed: $msg"))
             eventListener.onError(clientId, IllegalStateException("onHostOfferConfirmed: $msg"))
         } else {
             XLog.d(getLog("onHostOfferConfirmed", "Client: $id"))
-            state = State.OFFER_ACCEPTED
+            state.set(State.OFFER_ACCEPTED)
             val list = pendingIceCandidates.toList()
             pendingIceCandidates.clear()
             eventListener.onHostCandidates(clientId, list)
@@ -195,22 +194,20 @@ internal class WebRtcClient(
 
     // WebRTC-HT thread
     internal fun setClientAnswer(mediaStreamId: MediaStreamId, answer: Answer) {
-        synchronized(this@WebRtcClient) {
-            if (state != State.OFFER_ACCEPTED) {
-                val msg = "Wrong client $id state: $state, expecting: ${State.OFFER_ACCEPTED}"
-                XLog.w(getLog("setClientAnswer", msg), IllegalStateException("setClientAnswer: $msg"))
-                eventListener.onError(clientId, IllegalStateException("setClientAnswer: $msg"))
-                return
-            }
+        if (state.get() != State.OFFER_ACCEPTED) {
+            val msg = "Wrong client $id state: $state, expecting: ${State.OFFER_ACCEPTED}"
+            XLog.w(getLog("setClientAnswer", msg), IllegalStateException("setClientAnswer: $msg"))
+            eventListener.onError(clientId, IllegalStateException("setClientAnswer: $msg"))
+            return
+        }
 
-            XLog.d(getLog("setClientAnswer", "Client: $id, mediaStreamId: $mediaStreamId"))
+        XLog.d(getLog("setClientAnswer", "Client: $id, mediaStreamId: $mediaStreamId"))
 
-            if (this.mediaStreamId != mediaStreamId) {
-                val msg = "Requesting '$mediaStreamId' but current is '${this.mediaStreamId}'."
-                XLog.w(getLog("setClientAnswer", msg), IllegalStateException("setClientAnswer: $msg"))
-                eventListener.onError(clientId, IllegalStateException("setClientAnswer: $msg"))
-                return
-            }
+        if (this.mediaStreamId != mediaStreamId) {
+            val msg = "Requesting '$mediaStreamId' but current is '${this.mediaStreamId}'."
+            XLog.w(getLog("setClientAnswer", msg), IllegalStateException("setClientAnswer: $msg"))
+            eventListener.onError(clientId, IllegalStateException("setClientAnswer: $msg"))
+            return
         }
 
         peerConnection!!.setRemoteDescription(getSdpObserver {
@@ -222,43 +219,41 @@ internal class WebRtcClient(
 
     // WebRTC-HT thread
     internal fun setClientCandidate(mediaStreamId: MediaStreamId, candidate: IceCandidate) {
-        synchronized(this@WebRtcClient) {
-            if (state != State.OFFER_ACCEPTED) {
-                val msg = "Wrong client $id state: $state, expecting: ${State.OFFER_ACCEPTED}"
-                XLog.w(getLog("setClientCandidate", msg), IllegalStateException("setClientCandidate: $msg"))
-                eventListener.onError(clientId, IllegalStateException("setClientCandidate: $msg"))
-                return
-            }
+        if (state.get() != State.OFFER_ACCEPTED) {
+            val msg = "Wrong client $id state: $state, expecting: ${State.OFFER_ACCEPTED}"
+            XLog.w(getLog("setClientCandidate", msg), IllegalStateException("setClientCandidate: $msg"))
+            eventListener.onError(clientId, IllegalStateException("setClientCandidate: $msg"))
+            return
+        }
 
-            XLog.d(getLog("setClientCandidate", "Client: $id, mediaStreamId: $mediaStreamId"))
+        XLog.d(getLog("setClientCandidate", "Client: $id, mediaStreamId: $mediaStreamId"))
 
-            if (this.mediaStreamId != mediaStreamId) {
-                val msg = "Requesting '$mediaStreamId' but current is '${this.mediaStreamId}'."
-                XLog.w(getLog("setClientCandidate", msg), IllegalStateException("setClientCandidate: $msg"))
-                eventListener.onError(clientId, IllegalStateException("setClientCandidate: $msg"))
-                return
-            }
+        if (this.mediaStreamId != mediaStreamId) {
+            val msg = "Requesting '$mediaStreamId' but current is '${this.mediaStreamId}'."
+            XLog.w(getLog("setClientCandidate", msg), IllegalStateException("setClientCandidate: $msg"))
+            eventListener.onError(clientId, IllegalStateException("setClientCandidate: $msg"))
+            return
         }
 
         peerConnection!!.addIceCandidate(candidate)
     }
 
-    @Synchronized // Signaling thread
+    // Signaling thread
     private fun onCandidatePairChanged(event: CandidatePairChangeEvent) {
         val msg = "Client: $id, MediaStream: $mediaStreamId, State: $state"
 
-        if (state == State.OFFER_ACCEPTED) {
+        if (state.get() == State.OFFER_ACCEPTED) {
             XLog.d(this@WebRtcClient.getLog("onCandidatePairChanged", msg))
-            clientAddress = event.runCatching { remote.sdp.split(' ', limit = 6).drop(4).first() }
+            clientAddress.set(event.runCatching { remote.sdp.split(' ', limit = 6).drop(4).first() }
                 .map { if (regexIPv4.matches(it) || regexIPv6Standard.matches(it) || regexIPv6Compressed.matches(it)) it else "-" }
-                .getOrElse { "-" }
+                .getOrElse { "-" })
             eventListener.onClientAddress(clientId)
         } else {
             XLog.d(this@WebRtcClient.getLog("onCandidatePairChanged", "Ignoring"), IllegalStateException("onCandidatePairChanged: $msg"))
         }
     }
 
-    @Synchronized // Signaling thread
+    // Signaling thread
     private fun onPeerDisconnected() {
         val msg = "Client: $id, MediaStream: '$mediaStreamId', State: $state"
         XLog.d(this@WebRtcClient.getLog("onPeersDisconnected", msg))
@@ -382,7 +377,6 @@ internal class WebRtcClient(
         private val regexIPv6Standard = "^(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}\$".toRegex()
 
         @JvmStatic
-        private val regexIPv6Compressed =
-            "^((?:[0-9A-Fa-f]{1,4}(?::[0-9A-Fa-f]{1,4})*)?)::((?:[0-9A-Fa-f]{1,4}(?::[0-9A-Fa-f]{1,4})*)?)\$".toRegex()
+        private val regexIPv6Compressed = "^((?:[0-9A-Fa-f]{1,4}(?::[0-9A-Fa-f]{1,4})*)?)::((?:[0-9A-Fa-f]{1,4}(?::[0-9A-Fa-f]{1,4})*)?)\$".toRegex()
     }
 }

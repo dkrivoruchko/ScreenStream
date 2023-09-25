@@ -1,6 +1,8 @@
 plugins {
     id("com.android.library")
     id("org.jetbrains.kotlin.android")
+    id("org.jetbrains.kotlin.plugin.parcelize")
+    id("com.google.devtools.ksp")
 }
 
 android {
@@ -20,20 +22,24 @@ android {
     kotlinOptions {
         jvmTarget = JavaVersion.VERSION_11.toString()
         languageVersion = "1.9"
+        freeCompilerArgs += "-Xexplicit-api=strict"
     }
 }
 
 dependencies {
     implementation(project(":common"))
 
-    //noinspection KtxExtensionAvailable
-    implementation("androidx.core:core:1.10.1")
+    ksp("io.insert-koin:koin-ksp-compiler:1.3.0")
+
+    // Temp fix for https://github.com/afollestad/material-dialogs/issues/1825
+    compileOnly(fileTree("libs/bottomsheets-release.aar"))
 
     implementation("org.jetbrains.kotlin:kotlin-reflect:1.9.10")
 
-    implementation("io.ktor:ktor-server-cio:2.3.3")
-    implementation("io.ktor:ktor-server-default-headers:2.3.3")
-    implementation("io.ktor:ktor-server-forwarded-header:2.3.3")
-    implementation("io.ktor:ktor-server-status-pages:2.3.3")
-    implementation("io.ktor:ktor-server-cors:2.3.3")
+    implementation("io.ktor:ktor-server-cio:2.3.4")
+    implementation("io.ktor:ktor-server-default-headers:2.3.4")
+    implementation("io.ktor:ktor-server-forwarded-header:2.3.4")
+    implementation("io.ktor:ktor-server-status-pages:2.3.4")
+    implementation("io.ktor:ktor-server-cors:2.3.4")
+    implementation("io.ktor:ktor-server-websockets:2.3.4")
 }

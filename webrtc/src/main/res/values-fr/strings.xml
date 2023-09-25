@@ -1,9 +1,60 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="webrtc_error_play_integrity_update_play_store">Veuillez mettre à jour le Google Play Store</string>
-    <string name="webrtc_error_play_integrity_install_play_store">Veuillez installer ou activer le Google Play Store officiel</string>
+    <string name="webrtc_error_recover">Récupérer</string>
+
+    <string name="webrtc_stream_fragment_mode_global">Mode global (WebRTC)</string>
+    <string name="webrtc_stream_fragment_mode_global_description">Description du mode global</string>
+    <string name="webrtc_stream_fragment_mode_global_details">
+- Alimenté par la technologie WebRTC.\n\n
+- Communication chiffrée de bout en bout.\n\n
+- Protection du flux par mot de passe.\n\n
+- Peut envoyer de la vidéo et de l\'audio.\n\n
+- Connectez-vous en utilisant une ID de flux unique et un mot de passe.\n\n
+- Nécessite une connexion Internet pour la diffusion en continu.\n\n
+- Transmission de données individuelle pour chaque client (plus vous avez de clients, plus vous avez besoin de bande passante Internet).
+</string>
+
+    <string name="webrtc_stream_fragment_server_address">Accéder au flux à l\'adresse :\n%1$s</string>
+    <string name="webrtc_stream_fragment_stream_id_getting">Obtention de l\'ID du flux…</string>
+    <string name="webrtc_stream_fragment_stream_id">ID du flux : %1$s</string>
+    <string name="webrtc_stream_fragment_stream_password">Mot de passe du flux: %1$s</string>
+    <string name="webrtc_stream_fragment_mic_off">Microphone désactivé</string>
+    <string name="webrtc_stream_fragment_mic_on">Microphone activé</string>
+    <string name="webrtc_stream_fragment_show_password_description">Afficher le mot de passe du flux</string>
+    <string name="webrtc_stream_fragment_get_new_id_description">Obtenir une nouvelle ID de flux</string>
+    <string name="webrtc_stream_fragment_create_new_password_description">Créer un nouveau mot de passe du flux</string>
+    <string name="webrtc_stream_fragment_open_address_description">Ouvrir l\'adresse</string>
+    <string name="webrtc_stream_fragment_copy_address_description">Copier l\'adresse</string>
+    <string name="webrtc_stream_fragment_share_address_description">Partager l\'adresse</string>
+    <string name="webrtc_stream_fragment_qr_address_description">Afficher l\'adresse sous forme de code QR</string>
+    <string name="webrtc_stream_fragment_copied">Copié</string>
+    <string name="webrtc_stream_fragment_connected_clients">Clients connectés : %1$d</string>
+    <string name="webrtc_stream_fragment_no_web_browser_found">Aucun navigateur web trouvé</string>
+    <string name="webrtc_stream_fragment_external_app_error">Erreur d\'application externe</string>
+    <string name="webrtc_stream_fragment_share_address">Partager l\'adresse du dispositif</string>
+
+    <string name="webrtc_pref_settings">Paramètres du flux</string>
+    <string name="webrtc_pref_keep_awake">Mantener el dispositivo activo</string>
+    <string name="webrtc_pref_keep_awake_summary">Mantener el dispositivo y la pantalla activos mientras se transmite</string>
+    <string name="webrtc_pref_stop_on_sleep">Arrêter en veille</string>
+    <string name="webrtc_pref_stop_on_sleep_summary">Arrête la diffusion si l\'écran s\'éteint</string>
+
+    <string name="webrtc_stream_fragment_audio_permission_title">Autoriser l\'enregistrement audio</string>
+    <string name="webrtc_stream_fragment_audio_permission_message">L\'autorisation d\'enregistrer l\'audio est nécessaire pour que l\'application puisse diffuser du contenu audio.\n\nSans cette autorisation, la diffusion se fera sans audio.</string>
+    <string name="webrtc_stream_fragment_audio_permission_message_settings">L\'accès au microphone dans les autorisations de l\'application est nécessaire pour que l\'application puisse diffuser du contenu audio.\n\nSans cette autorisation, la diffusion se fera sans audio.</string>
+    <string name="webrtc_stream_fragment_audio_permission_open_settings">Ouvrir les paramètres</string>
+
+    <string name="webrtc_stream_fragment_cast_permission_activity_not_found_title">Erreur de dialogue d\'autorisation</string>
+    <string name="webrtc_stream_fragment_cast_permission_activity_not_found">Erreur Android. Ne cochez pas la case \"Ne plus afficher\" dans la boîte de dialogue de demande d\'autorisation pour la capture d\'écran. Si vous l\'avez déjà fait, réinstallez l\'application.</string>
+    <string name="webrtc_stream_fragment_cast_permission_required_title">Autorisation requise</string>
+    <string name="webrtc_stream_fragment_cast_permission_required">L\'application ScreenStream requiert l\'autorisation de diffusion de l\'écran (Screen Cast).</string>
+
+    <string name="webrtc_item_client_disconnect">Déconnexion</string>
+
+    <string name="webrtc_error_play_integrity_update_play_store">Veuillez mettre à jour Google Play Store</string>
+    <string name="webrtc_error_play_integrity_install_play_store">Veuillez installer ou activer Google Play Store officiel</string>
     <string name="webrtc_error_play_integrity_install_play_service">Veuillez installer ou activer les Services Google Play</string>
-    <string name="webrtc_error_play_integrity_update_play_service">Veuillez mettre à jour les services Google Play</string>
+    <string name="webrtc_error_play_integrity_update_play_service">Veuillez mettre à jour les Services Google Play</string>
     <string name="webrtc_error_check_network">Veuillez vérifier la connectivité à Internet</string>
-    <string name="webrtc_error_unspecified">Quelque chose s\'est mal passé. Veuillez réessayer ultérieurement.</string>
+    <string name="webrtc_error_unspecified">Une erreur s\'est produite. Veuillez réessayer ultérieurement.</string>
 </resources>

@@ -8,8 +8,12 @@ import com.elvishew.xlog.interceptor.AbstractFilterInterceptor
 import com.elvishew.xlog.internal.util.StackTraceUtil
 import com.google.android.gms.ads.MobileAds
 import com.google.firebase.crashlytics.FirebaseCrashlytics
+import info.dvkr.screenstream.mjpeg.MjpegKoinModule
+import info.dvkr.screenstream.webrtc.WebRtcKoinModule
+import org.koin.core.module.Module
+import org.koin.ksp.generated.module
 
-class ScreenStreamApp : BaseApp() {
+public class ScreenStreamApp : BaseApp() {
 
     override val isAdEnabled: Boolean
         get() = true
@@ -36,4 +40,6 @@ class ScreenStreamApp : BaseApp() {
     override fun initAd() {
         MobileAds.initialize(this)
     }
+
+    override val streamingModules: Array<Module> = arrayOf(MjpegKoinModule().module, WebRtcKoinModule().module)
 }

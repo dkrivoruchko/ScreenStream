@@ -1,157 +1,69 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="error_title">Błąd</string>
-    <string name="error_exit">Zamknij</string>
+    <string name="app_error_title">Błąd</string>
+    <string name="app_error_recover">Odzyskaj</string>
 
-    <string name="app_activity_collecting_logs">Trwa zbieranie dzienników aplikacji…</string>
-    <string name="app_activity_send_logs">Wyślij dzienniki do programisty</string>
-    <string name="app_activity_send_logs_dialog_title">Wyślij dzienniki e-mailem do programisty</string>
-    <string name="app_activity_send_logs_dialog_message">Dodaj opis problemu:</string>
-    <string name="app_activity_send_logs_dialog_neutral">Zatrzymaj rejestrowanie</string>
+    <string name="app_activity_logs_collecting">Trwa zbieranie dzienników aplikacji…</string>
+    <string name="app_activity_logs_send">Wyślij dzienniki do programisty</string>
+    <string name="app_activity_logs_send_dialog_title">Wyślij dzienniki e-mailem do programisty</string>
+    <string name="app_activity_logs_send_dialog_message">Dodaj opis problemu:</string>
+    <string name="app_activity_logs_send_dialog_neutral">Zatrzymaj rejestrowanie</string>
 
-    <string name="app_update_activity_dialog_title">Dostępna aktualizacja</string>
-    <string name="app_update_activity_dialog_message">Pobrano aktualizację. Zrestartować aplikację?</string>
-    <string name="app_update_activity_dialog_restart">Uruchom ponownie</string>
+    <string name="app_activity_update_dialog_title">Dostępna aktualizacja</string>
+    <string name="app_activity_update_dialog_message">Pobrano aktualizację. Zrestartować aplikację?</string>
+    <string name="app_activity_update_dialog_restart">Uruchom ponownie</string>
 
-    <string name="bottom_menu_stream">Transmisja</string>
-    <string name="bottom_menu_settings">Ustawienia</string>
-    <string name="bottom_menu_start">Uruchom</string>
-    <string name="bottom_menu_stop">Zatrzymaj</string>
-    <string name="bottom_menu_about">O aplikacji</string>
-    <string name="bottom_menu_exit">Zamknij</string>
+    <string name="app_bottom_menu_stream">Transmisja</string>
+    <string name="app_bottom_menu_settings">Ustawienia</string>
+    <string name="app_bottom_menu_start">Uruchom</string>
+    <string name="app_bottom_menu_stop">Zatrzymaj</string>
+    <string name="app_bottom_menu_about">O aplikacji</string>
+    <string name="app_bottom_menu_exit">Zamknij</string>
 
-    <string name="stream_fragment_current_traffic">Ruch: %1$,.2f Mbit/s</string>
-    <string name="stream_fragment_connected_clients">Połączeni klienci: %1$d</string>
-    <string name="stream_fragment_no_address">Nie znaleziono adresu</string>
-    <string name="stream_fragment_interface">Łącze: %1$s</string>
-    <string name="stream_fragment_copied">Skopiowano</string>
-    <string name="stream_fragment_no_web_browser_found">Nie znaleziono przeglądarki internetowej</string>
-    <string name="stream_fragment_external_app_error">Błąd aplikacji zewnętrznej</string>
-    <string name="stream_fragment_share_address">Udostępnij adres urządzenia</string>
-    <string name="stream_fragment_pin">Kod PIN: %1$s</string>
-    <string name="stream_fragment_pin_disabled">Kod PIN jest wyłączony</string>
-    <string name="stream_fragment_client_disconnected">Rozłączony</string>
-    <string name="stream_fragment_client_slow_network">Wolne połączenie</string>
-    <string name="stream_fragment_client_connected">Połączony</string>
-    <string name="stream_fragment_client_blocked">Zablokowany</string>
+    <string name="app_fragment_stream_select_stream_mode">Wybierz tryb strumienia:</string>
 
-    <string name="item_device_address">Adres urządzenia:</string>
-    <string name="item_device_address_description_open_address">Otwórz adres</string>
-    <string name="item_device_address_description_copy_address">Skopiuj adres</string>
-    <string name="item_device_address_description_share_address">Udostępnij adres</string>
-    <string name="item_device_address_description_qr_address">Pokaż adres jako kod QR</string>
-
-    <string name="permission_activity_error_title_activity_not_found">Błąd dostępu do okna dialogowego</string>
-    <string name="permission_activity_error_activity_not_found">Błąd systemu Android. Nie zaznaczaj opcji \"Nie pokazuj ponownie\" w oknie dialogowym żądania uprawnień, aby przechwycić ekran. Jeśli już to zrobiłeś, przeinstaluj aplikację.</string>
-    <string name="permission_activity_permission_required_title">Wymaga pozwolenia</string>
-    <string name="permission_activity_cast_permission_required">Aplikacja ScreenStream wymaga uprawnień dostępu do Przesyłanie ekranu celem przechwytywania ekranu.</string>
     <string name="permission_activity_error_title">Błąd</string>
     <string name="permission_activity_error_unknown">Nieznany błąd</string>
-    <string name="permission_activity_allow_notifications">Aplikacja wymaga uprawnień do wysyłania powiadomień, aby móc uruchomić usługę przesyłania strumieniowego. Zezwól na wysyłanie powiadomień.</string>
-    <string name="permission_activity_allow_notifications_settings">Aplikacja wymaga uprawnień do wysyłania powiadomień, aby móc uruchomić usługę przesyłania strumieniowego. Zezwól na wysyłanie powiadomień w ustawieniach aplikacji.</string>
-    <string name="permission_activity_notification_settings">Otwórz ustawienia</string>
+    <string name="app_activity_permission_permission_required_title">Wymaga pozwolenia</string>
+    <string name="app_activity_permission_notifications_required_title">Wymagane powiadomienia</string>
+    <string name="app_activity_permission_enable_notifications">Aplikacja wymaga włączonych powiadomień, aby rozpocząć usługę przesyłania strumieniowego.\n\nProszę włączyć powiadomienia w ustawieniach aplikacji.</string>
+    <string name="app_activity_permission_allow_notifications">Aplikacja wymaga zgody na wysyłanie powiadomień, aby rozpocząć usługę przesyłania strumieniowego.\n\nProszę zezwolić na wysyłanie powiadomień.</string>
+    <string name="app_activity_permission_allow_notifications_settings">Aplikacja wymaga zgody na wysyłanie powiadomień, aby rozpocząć usługę przesyłania strumieniowego.\n\nProszę zezwolić na wysyłanie powiadomień w ustawieniach aplikacji.</string>
+    <string name="app_activity_permission_notification_settings">Otwórz ustawienia</string>
 
-    <string name="notification_streaming_title">Przesyłanie…</string>
-    <string name="notification_streaming_content">Naciśnij Zatrzymaj, aby zakończyć transmisję</string>
-    <string name="notification_stop">Zatrzymaj</string>
+    <string name="app_notification_channel_streaming">Powiadomienia o przesyłaniu</string>
+    <string name="app_notification_channel_error">Powiadomienia o błędach</string>
+    <string name="app_notification_streaming_title">Transmisja…</string>
+    <string name="app_notification_streaming_content">Naciśnij STOP, aby zakończyć transmisję</string>
+    <string name="app_notification_stop">Stop</string>
 
-    <string name="toast_slow_client_connection">Wykryto wolne połączenie klienta</string>
-
-    <string name="pref_settings_interface">Wygląd</string>
-    <string name="pref_locale">Język aplikacji</string>
-    <string name="pref_locale_summary">Otwiera ustawienia języka aplikacji</string>
-    <string name="pref_night_mode">Ciemny motyw</string>
-    <string-array name="pref_night_mode_options_api21_28">
+    <string name="app_pref_locale">Język aplikacji</string>
+    <string name="app_pref_locale_summary">Otwiera ustawienia języka aplikacji</string>
+    <string name="app_pref_night_mode">Ciemny motyw</string>
+    <string-array name="app_pref_night_mode_options_api21_28">
         <item>Zawsze</item>
         <item>Ustaw przez Oszczędzanie baterii</item>
         <item>Nigdy</item>
     </string-array>
-    <string-array name="pref_night_mode_options_api29">
+    <string-array name="app_pref_night_mode_options_api29">
         <item>Zawsze</item>
         <item>Automatyczny (zgodny z systemem)</item>
         <item>Nigdy</item>
     </string-array>
-    <string name="pref_notification">Ustawienia powiadomień</string>
-    <string name="pref_notification_summary">Otwiera ustawienia powiadomień systemu</string>
-    <string name="pref_keep_awake">Utrzymuj urządzenie w stanie czuwania</string>
-    <string name="pref_keep_awake_summary">Nie wyłączaj urządzenia i ekranu podczas przesyłania strumieniowego</string>
-    <string name="pref_stop_on_sleep">Zatrzymaj transmisję podczas uśpienia</string>
-    <string name="pref_stop_on_sleep_summary">Zatrzymuje transmisję, jeśli ekran się wyłączy</string>
-    <string name="pref_detect_slow_connections">Powiadamianie o powolnych połączeniach</string>
-    <string name="pref_detect_slow_connections_summary">Wykrywa i powiadamia o powolnym połączeniu klienta</string>
-    <string name="pref_html_buttons">Włącz przyciski strony internetowej</string>
-    <string name="pref_html_buttons_summary">Pokazuje przyciski sterujące na stronie internetowej</string>
-    <string name="pref_html_show_press_start">Pokaż \"Naciśnij Uruchom na urządzeniu\"</string>
-    <string name="pref_html_show_press_start_summary">Pokaż \"Naciśnij Uruchom na urządzeniu\" na stronie internetowej</string>
-    <string name="pref_html_back_color">Kolor tła strony internetowej</string>
-    <string name="pref_html_back_color_summary">Ustawia kolor tła strony internetowej</string>
-    <string name="pref_html_back_color_title">Wybierz kolor tła</string>
-    <string name="pref_settings_image">Obraz</string>
-    <string name="pref_vr_mode">Tryb wirtualnej rzeczywistości</string>
-    <string name="pref_vr_mode_summary">Przechwytuje zawartość z połowy ekranu</string>
-    <string-array name="pref_vr_mode_options">
-        <item>Użyj lewej części</item>
-        <item>Użyj prawej części</item>
-    </string-array>
-    <string name="pref_crop">Przytnij zdjęcie</string>
-    <string name="pref_crop_summary">Przycina obraz przed wysłaniem</string>
-    <string name="pref_crop_dialog_crop_top">Przytnij górę:</string>
-    <string name="pref_crop_dialog_crop_bottom">Przytnij dół:</string>
-    <string name="pref_crop_dialog_crop_left">Przytnij z lewej:</string>
-    <string name="pref_crop_dialog_crop_right">Przytnij z prawej:</string>
-    <string name="pref_crop_dialog_pixels">pikseli</string>
-    <string name="pref_crop_dialog_warning_message">Przycięcie zostanie zignorowane, jeśli wynikiem będzie pusty obraz</string>
-    <string name="pref_crop_dialog_error_message">Wprowadź prawidłowe wartości przycięcia</string>
-    <string name="pref_grayscale">Tryb skali szarości</string>
-    <string name="pref_grayscale_summary">Ustawia obraz w skali szarości przed wysłaniem</string>
-    <string name="pref_resize">Zmiana rozmiaru obrazu</string>
-    <string name="pref_resize_summary">Zmienia rozmiar obrazu przed wysłaniem</string>
-    <string name="pref_resize_dialog_text">Ustaw współczynnik zmiany rozmiaru obrazu w procentach.\nWartość: 10–150 (Domyślnie: 50)\nRozmiar ekranu: %1$dx%2$d</string>
-    <string name="pref_resize_dialog_result">Rozmiar obrazu: %1$dx%2$d</string>
-    <string name="pref_rotate">Obróć zdjęcie zgodnie z ruchem wskazówek zegara</string>
-    <string name="pref_rotate_summary">Obraca obraz przed wysłaniem</string>
-    <string name="pref_fps">Ogranicz liczbę klatek na sekundę</string>
-    <string name="pref_fps_summary">Ustawia maksymalną liczbę klatek na sekundę</string>
-    <string name="pref_fps_dialog">Ustaw maksymalną liczbę klatek na sekundę.\nWartość: 1–60 (Domyślnie: 30)</string>
-    <string name="pref_jpeg_quality">Jakość kompresji JPEG</string>
-    <string name="pref_jpeg_quality_summary">Ustawia jakość kompresji JPEG</string>
-    <string name="pref_jpeg_quality_dialog">Ustaw jakość kompresji JPEG.\nWartość: 10–100 (Domyślnie: 80)</string>
-    <string name="pref_settings_security">Bezpieczeństwo</string>
-    <string name="pref_enable_pin">Użyj kodu PIN</string>
-    <string name="pref_enable_pin_summary">Chroni dostęp do transmisji za pomocą kodu PIN</string>
-    <string name="pref_hide_pin">Automatycznie ukryj kod PIN podczas uruchamiania transmisji</string>
-    <string name="pref_hide_pin_summary">Pokazuje gwiazdki zamiast kodu PIN podczas transmisji</string>
-    <string name="pref_new_pin_on_start">Nowy kod PIN podczas uruchamiania</string>
-    <string name="pref_new_pin_on_start_summary">Wygeneruje nowy kod PIN podczas uruchomienia aplikacji</string>
-    <string name="pref_auto_change_pin">Automatyczna zmiana kodu PIN</string>
-    <string name="pref_auto_change_pin_summary">Wygeneruje kod PIN dla każdej nowej transmisji</string>
-    <string name="pref_set_pin">Ustaw kod PIN</string>
-    <string name="pref_set_pin_summary">Tworzenie kodu PIN</string>
-    <string name="pref_set_pin_dialog">Wprowadź kod PIN.\nDomyślnie: 0000</string>
-    <string name="pref_block_address">Zablokuj adres IP</string>
-    <string name="pref_block_address_summary">Blokuje przez 5 minut adres IP klienta po 5 próbach podania błędnego kodu PIN</string>
-    <string name="pref_settings_advanced">Zaawansowane</string>
-    <string name="pref_wifi_only">Użyj tylko WiFi</string>
-    <string name="pref_wifi_only_summary">Uruchamia serwer tylko poprzez połączenie WiFi</string>
-    <string name="pref_enable_ipv6">Włącz obsługę protokołu IPv6</string>
-    <string name="pref_enable_ipv6_summary">Uruchamia serwer na adresach IPv6</string>
-    <string name="pref_enable_localhost">Włącz host lokalny </string>
-    <string name="pref_enable_localhost_summary">Uruchamia serwer na lokalnych adresach hostów</string>
-    <string name="pref_localhost_only">Tylko host lokalny</string>
-    <string name="pref_localhost_only_summary">Uruchamia serwer tylko na lokalnych adresach hostów</string>
-    <string name="pref_server_port">Port serwera</string>
-    <string name="pref_server_port_summary">Ustawianie portu dla połączeń przychodzących</string>
-    <string name="pref_server_port_dialog">Ustaw numer portu serwera dla połączeń przychodzących.\nWartość: 1025–65535\n(Domyślnie: 8080)</string>
-    <string name="pref_logging">Włącz dzienniki aplikacji</string>
-    <string name="pref_logging_summary">Zbieraj dzienniki aplikacji</string>
+    <string name="app_pref_notification">Ustawienia powiadomień</string>
+    <string name="app_pref_notification_summary">Otwiera ustawienia powiadomień systemu</string>
+    <string name="app_pref_logging">Włącz dzienniki aplikacji</string>
+    <string name="app_pref_logging_summary">Zbieraj dzienniki aplikacji</string>
 
-    <string name="about_fragment_app_version">Wersja: %1$s</string>
-    <string name="about_fragment_developer_name">Programista Dmitriy Krivoruchko</string>
-    <string name="about_fragment_rate_app">Oceń aplikację</string>
-    <string name="about_fragment_write_email">Napisz e-mail do autora</string>
-    <string name="about_fragment_write_email_dialog">Wysłać e-mail do autora?</string>
-    <string name="about_fragment_email_chooser_header">Wysyłam wiadomość e-mail…</string>
-    <string name="about_fragment_app_sources">Kod źródłowy aplikacji</string>
-    <string name="about_fragment_privacy_policy">Polityka prywatności</string>
-    <string name="about_fragment_license">Licencja</string>
+    <string name="app_about_fragment_app_version">Wersja: %1$s</string>
+    <string name="app_about_fragment_developer_name">Programista Dmytro Kryvoruchko</string>
+    <string name="app_about_fragment_rate_app">Oceń aplikację</string>
+    <string name="app_about_fragment_write_email">Napisz e-mail do autora</string>
+    <string name="app_about_fragment_write_email_dialog">Wysłać e-mail do autora?</string>
+    <string name="app_about_fragment_email_chooser_header">Wysyłam wiadomość e-mail…</string>
+    <string name="app_about_fragment_app_sources">Kod źródłowy aplikacji</string>
+    <string name="app_about_fragment_terms_conditions">Regulamin</string>
+    <string name="app_about_fragment_privacy_policy">Polityka prywatności</string>
+    <string name="app_about_fragment_consent_revocation">Wycofanie zgody</string>
+    <string name="app_about_fragment_license">Licencja</string>
 </resources>

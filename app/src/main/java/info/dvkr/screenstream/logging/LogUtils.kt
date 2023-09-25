@@ -53,7 +53,7 @@ internal fun sendLogsInEmail(context: Context, text: String) {
 
         context.startActivity(
             Intent.createChooser(
-                emailIntent, context.getString(R.string.about_fragment_email_chooser_header)
+                emailIntent, context.getString(R.string.app_about_fragment_email_chooser_header)
             )
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         )

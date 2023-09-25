@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_error_title">Erro</string>
+    <string name="app_error_recover">Recuperar</string>
+
+    <string name="app_activity_logs_collecting">Coletando logs do aplicativo…</string>
+    <string name="app_activity_logs_send">Enviar logs para o desenvolvedor</string>
+    <string name="app_activity_logs_send_dialog_title">Enviar logs por e-mail para o desenvolvedor</string>
+    <string name="app_activity_logs_send_dialog_message">Por favor, adicione uma descrição do problema:</string>
+    <string name="app_activity_logs_send_dialog_neutral">Parar o registro</string>
+
+    <string name="app_activity_update_dialog_title">Atualização disponível</string>
+    <string name="app_activity_update_dialog_message">Uma atualização foi baixada. Reiniciar o aplicativo agora?</string>
+    <string name="app_activity_update_dialog_restart">Reiniciar</string>
+
+    <string name="app_bottom_menu_stream">Transmissão</string>
+    <string name="app_bottom_menu_settings">Configurações</string>
+    <string name="app_bottom_menu_start">Iniciar</string>
+    <string name="app_bottom_menu_stop">Parar</string>
+    <string name="app_bottom_menu_about">Sobre</string>
+    <string name="app_bottom_menu_exit">Sair</string>
+
+    <string name="app_fragment_stream_select_stream_mode">Selecionar modo de transmissão:</string>
+
+    <string name="permission_activity_error_title">Erro</string>
+    <string name="permission_activity_error_unknown">Erro desconhecido</string>
+    <string name="app_activity_permission_permission_required_title">Permissão necessária</string>
+    <string name="app_activity_permission_notifications_required_title">Notificações necessárias</string>
+    <string name="app_activity_permission_enable_notifications">O aplicativo requer notificações ativadas para iniciar o serviço de transmissão.\n\nPor favor, ative as notificações nas configurações do aplicativo.</string>
+    <string name="app_activity_permission_allow_notifications">O aplicativo requer permissão para enviar notificações para iniciar o serviço de transmissão.\n\nPor favor, permita o envio de notificações.</string>
+    <string name="app_activity_permission_allow_notifications_settings">O aplicativo requer permissão para enviar notificações para iniciar o serviço de transmissão.\n\nPor favor, permita o envio de notificações nas configurações do aplicativo.</string>
+    <string name="app_activity_permission_notification_settings">Abrir configurações</string>
+
+    <string name="app_notification_channel_streaming">Notificações de streaming</string>
+    <string name="app_notification_channel_error">Notificações de erro</string>
+    <string name="app_notification_streaming_title">Transmitindo…</string>
+    <string name="app_notification_streaming_content">Pressione PARAR para encerrar a transmissão</string>
+    <string name="app_notification_stop">Parar</string>
+
+    <string name="app_pref_locale">Idioma do aplicativo</string>
+    <string name="app_pref_locale_summary">Abrir configurações de idioma do aplicativo</string>
+    <string name="app_pref_night_mode">Tema escuro</string>
+    <string-array name="app_pref_night_mode_options_api21_28">
+        <item>Sempre</item>
+        <item>Definido pelo Economizador de bateria</item>
+        <item>Nunca</item>
+    </string-array>
+    <string-array name="app_pref_night_mode_options_api29">
+        <item>Sempre</item>
+        <item>Automático (seguir sistema)</item>
+        <item>Nunca</item>
+    </string-array>
+    <string name="app_pref_notification">Configurações de notificação do dispositivo</string>
+    <string name="app_pref_notification_summary">Abrir configurações de notificação do sistema</string>
+    <string name="app_pref_logging">Ativar logs do aplicativo</string>
+    <string name="app_pref_logging_summary">Coletar logs do aplicativo</string>
+
+    <string name="app_about_fragment_app_version">Versão: %1$s</string>
+    <string name="app_about_fragment_developer_name">Desenvolvido por Dmytro Kryvoruchko</string>
+    <string name="app_about_fragment_rate_app">Avaliar o aplicativo</string>
+    <string name="app_about_fragment_write_email">Escrever um e-mail para o desenvolvedor</string>
+    <string name="app_about_fragment_write_email_dialog">Escrever um e-mail para o desenvolvedor?</string>
+    <string name="app_about_fragment_email_chooser_header">Enviando e-mail…</string>
+    <string name="app_about_fragment_app_sources">Fontes do aplicativo</string>
+    <string name="app_about_fragment_terms_conditions">Termos e Condições</string>
+    <string name="app_about_fragment_privacy_policy">Política de Privacidade</string>
+    <string name="app_about_fragment_consent_revocation">Revogação de Consentimento</string>
+    <string name="app_about_fragment_license">Licença</string>
+</resources>

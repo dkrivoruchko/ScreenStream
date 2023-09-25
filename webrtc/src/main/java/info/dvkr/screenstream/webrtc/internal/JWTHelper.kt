@@ -8,7 +8,6 @@ import android.util.Base64
 import android.view.View
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.common.getLog
-import info.dvkr.screenstream.webrtc.WebRtcEnvironment
 import org.json.JSONObject
 import java.security.KeyFactory
 import java.security.KeyPairGenerator

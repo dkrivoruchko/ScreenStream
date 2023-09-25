@@ -4,8 +4,6 @@
     android:installLocation="auto">
 
     <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
@@ -35,7 +33,7 @@
             android:value="true" />
 
         <activity
-            android:name=".ui.activity.AppActivity"
+            android:name=".activity.AppActivity"
             android:exported="true"
             android:launchMode="singleTask"
             android:windowSoftInputMode="adjustResize">
@@ -45,11 +43,6 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
-        <service
-            android:name=".service.ForegroundService"
-            android:exported="false"
-            android:foregroundServiceType="mediaProjection|microphone" />
 
         <service
             android:name="androidx.appcompat.app.AppLocalesMetadataHolderService"

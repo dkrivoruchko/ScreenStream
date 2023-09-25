@@ -11,21 +11,19 @@ import android.view.WindowManager
 import androidx.core.content.ContextCompat
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.common.getLog
-import info.dvkr.screenstream.common.listenForChange
 import info.dvkr.screenstream.webrtc.WebRtcSettings
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import org.webrtc.*
 import org.webrtc.audio.JavaAudioDeviceModule
 import java.util.*
 
-internal class WebRtcProjection(
-    private val serviceContext: Context,
-    webRtcSettings: WebRtcSettings,
-    dispatcher: CoroutineDispatcher
-) {
+internal class WebRtcProjection(private val serviceContext: Context) {
 
     private companion object {
         @JvmStatic
@@ -42,9 +40,8 @@ internal class WebRtcProjection(
     private enum class AudioCodec { OPUS }
     private enum class VideoCodec(val priority: Int) { VP8(1), VP9(2), H264(3), H265(4); }
 
-    private val coroutineScope = CoroutineScope(SupervisorJob() + dispatcher)
     private val displayManager = ContextCompat.getSystemService(serviceContext, DisplayManager::class.java)!!
-    private val audioDeviceModule = JavaAudioDeviceModule.builder(serviceContext).createAudioDeviceModule()
+    private val audioDeviceModule = JavaAudioDeviceModule.builder(serviceContext).createAudioDeviceModule() // TODO Leaks Context
     private val rootEglBase: EglBase = EglBase.create()
 
     internal val peerConnectionFactory: PeerConnectionFactory
@@ -86,20 +83,17 @@ internal class WebRtcProjection(
 
         audioCodecs = peerConnectionFactory.getRtpSenderCapabilities(MediaStreamTrack.MediaType.MEDIA_TYPE_AUDIO)
             .codecs.filter { it.isSupportedAudio() }
-
-        XLog.e(getLog("init", "Device supported codes: video: [${videoCodecs.joinToString { it.name }}] hardwareVideo: [${hardwareSupportedCodecs.joinToString()}] audio: [${audioCodecs.joinToString { it.name }}]"))
-        XLog.e(getLog("init", "Device supported codes"), IllegalStateException("Device supported codes"))
-
-        webRtcSettings.enableMicFlow.listenForChange(coroutineScope, 0) { enableMic ->
-            XLog.d(this@WebRtcProjection.getLog("enableMicFlow", "$enableMic"))
-            audioDeviceModule.setMicrophoneMute(enableMic.not())
-        }
     }
 
     private fun RtpCapabilities.CodecCapability.isSupportedVideo(): Boolean = VideoCodec.entries.any { it.name == name.uppercase() }
     private fun RtpCapabilities.CodecCapability.isSupportedAudio(): Boolean = AudioCodec.entries.any { it.name == name.uppercase() }
     private fun RtpCapabilities.CodecCapability.priority(isHardwareSupported: Boolean): Int =
         VideoCodec.entries.first { it.name == name.uppercase() }.let { if (isHardwareSupported) it.priority + 10 else it.priority }
+
+    internal fun setMicrophoneMute(mute: Boolean) {
+        XLog.d(this@WebRtcProjection.getLog("setMicrophoneMute", "$mute"))
+        audioDeviceModule.setMicrophoneMute(mute)
+    }
 
     internal fun start(streamId: StreamId, intent: Intent, mediaProjectionCallbackOnStop: () -> Unit) {
         synchronized(lock) {
@@ -176,10 +170,9 @@ internal class WebRtcProjection(
 
     internal fun destroy() {
         XLog.d(getLog("destroy"))
-
         stop()
-        coroutineScope.cancel()
         rootEglBase.release()
+        audioDeviceModule.release()
     }
 
     @Suppress("DEPRECATION")

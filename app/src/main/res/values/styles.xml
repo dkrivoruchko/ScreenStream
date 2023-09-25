@@ -16,8 +16,9 @@
         <item name="checkboxStyle">@style/AppCheckBox</item>
 
         // Material dialog
-        <item name="md_color_title">@color/textColorSecondary</item>
+        <item name="md_color_title">@color/textColorPrimary</item>
         <item name="md_color_content">@color/textColorPrimary</item>
+        <item name="md_background_color">@color/mdBackground</item>
     </style>
 
     <style name="Theme.App.DayNight" parent="Theme.App.DayNightBase">

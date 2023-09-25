@@ -1,19 +1,138 @@
 <resources>
-    <string name="error_port_in_use">Port w użyciu. Wybierz inny.</string>
-    <string name="error_invalid_media_projection">Błąd bezpieczeństwa: nieprawidłowa projekcja multimediów. Spróbuj ponownie.</string>
-    <string name="error_ip_address_not_found">Nie znaleziono adresu IP. \nSpróbuj wyłączyć \"Używaj tylko WiFi\" w ustawieniach.</string>
-    <string name="error_wrong_image_format">System nadaje obrazowi niewłaściwy format. Brak rozwiązania tego problemu.</string>
+    <string name="mjpeg_error_recover">Odzyskaj</string>
+
+    <string name="mjpeg_stream_fragment_mode_local">Tryb lokalny (MJPEG)</string>
+    <string name="mjpeg_stream_fragment_mode_local_description">Opis trybu lokalnego</string>
+    <string name="mjpeg_stream_fragment_mode_local_details">
+- Zasilany standardem MJPEG.\n\n
+- Wykorzystuje PIN do zabezpieczenia (brak szyfrowania).\n\n
+- Wysyła wideo jako serię niezależnych obrazów (brak dźwięku).\n\n
+- Działa bez połączenia internetowego w ramach sieci lokalnej.\n\n
+- Wbudowany serwer HTTP.\n\n
+- Działa z sieciami WiFi i/lub sieciami komórkowymi, obsługując IPv4 i IPv6.\n\n
+- Klienci łączą się za pośrednictwem przeglądarki internetowej, używając dostarczonego przez aplikację adresu IP.\n\n
+- Możliwość pełnej personalizacji.\n\n
+- Indywidualna transmisja danych dla każdego klienta (im więcej klientów, tym większe zapotrzebowanie na przepustowość sieci).
+</string>
+
+    <string name="mjpeg_item_device_address">Adres urządzenia:</string>
+
+    <string name="mjpeg_stream_fragment_no_address">Nie znaleziono adresu</string>
+    <string name="mjpeg_stream_fragment_interface">Łącze: %1$s</string>
+    <string name="mjpeg_stream_fragment_copied">Skopiowano</string>
+    <string name="mjpeg_stream_fragment_no_web_browser_found">Nie znaleziono przeglądarki internetowej</string>
+    <string name="mjpeg_stream_fragment_external_app_error">Błąd aplikacji zewnętrznej</string>
+    <string name="mjpeg_stream_fragment_share_address">Udostępnij adres urządzenia</string>
+    <string name="mjpeg_item_device_address_description_open_address">Otwórz adres</string>
+    <string name="mjpeg_item_device_address_description_copy_address">Skopiuj adres</string>
+    <string name="mjpeg_item_device_address_description_share_address">Udostępnij adres</string>
+    <string name="mjpeg_item_device_address_description_qr_address">Pokaż adres jako kod QR</string>
+    <string name="mjpeg_pref_settings">Ustawienia strumienia</string>
+    <string name="mjpeg_stream_fragment_pin">Kod PIN: %1$s</string>
+    <string name="mjpeg_stream_fragment_pin_disabled">Kod PIN jest wyłączony</string>
+    <string name="mjpeg_stream_fragment_current_traffic">Ruch: %1$,.2f Mbit/s</string>
+    <string name="mjpeg_stream_fragment_connected_clients">Połączeni klienci: %1$d</string>
+    <string name="mjpeg_stream_fragment_client_disconnected">Rozłączony</string>
+    <string name="mjpeg_stream_fragment_client_slow_network">Wolne połączenie</string>
+    <string name="mjpeg_stream_fragment_client_connected">Połączony</string>
+    <string name="mjpeg_stream_fragment_client_blocked">Zablokowany</string>
+
+    <string name="mjpeg_stream_fragment_cast_permission_activity_not_found_title">Błąd dostępu do okna dialogowego</string>
+    <string name="mjpeg_stream_fragment_cast_permission_activity_not_found">Błąd systemu Android. Nie zaznaczaj opcji \"Nie pokazuj ponownie\" w oknie dialogowym żądania uprawnień, aby przechwycić ekran. Jeśli już to zrobiłeś, przeinstaluj aplikację.</string>
+    <string name="mjpeg_stream_fragment_cast_permission_required_title">Wymagane uprawnienia</string>
+    <string name="mjpeg_stream_fragment_cast_permission_required">Aplikacja ScreenStream wymaga uprawnień dostępu do Przesyłanie ekranu celem przechwytywania ekranu.</string>
+
+    <string name="mjpeg_toast_slow_client_connection">Wykryto wolne połączenie klienta</string>
+
+    <string name="mjpeg_pref_settings_interface">Wygląd</string>
+    <string name="mjpeg_pref_keep_awake">Utrzymuj urządzenie w stanie czuwania</string>
+    <string name="mjpeg_pref_keep_awake_summary">Nie wyłączaj urządzenia i ekranu podczas przesyłania strumieniowego</string>
+    <string name="mjpeg_pref_stop_on_sleep">Zatrzymaj transmisję podczas uśpienia</string>
+    <string name="mjpeg_pref_stop_on_sleep_summary">Zatrzymuje transmisję, jeśli ekran się wyłączy</string>
+    <string name="mjpeg_pref_detect_slow_connections">Powiadamianie o powolnych połączeniach</string>
+    <string name="mjpeg_pref_detect_slow_connections_summary">Wykrywa i powiadamia o powolnym połączeniu klienta</string>
+    <string name="mjpeg_pref_html_buttons">Włącz przyciski strony internetowej</string>
+    <string name="mjpeg_pref_html_buttons_summary">Pokazuje przyciski sterujące na stronie internetowej</string>
+    <string name="mjpeg_pref_html_show_press_start">Pokaż \"Naciśnij Uruchom na urządzeniu\"</string>
+    <string name="mjpeg_pref_html_show_press_start_summary">Pokaż \"Naciśnij Uruchom na urządzeniu\" na stronie internetowej</string>
+    <string name="mjpeg_pref_html_back_color">Kolor tła strony internetowej</string>
+    <string name="mjpeg_pref_html_back_color_summary">Ustawia kolor tła strony internetowej</string>
+    <string name="mjpeg_pref_html_back_color_title">Wybierz kolor tła</string>
+
+    <string name="mjpeg_pref_settings_image">Obraz</string>
+    <string name="mjpeg_pref_vr_mode">Tryb wirtualnej rzeczywistości</string>
+    <string name="mjpeg_pref_vr_mode_summary">Przechwytuje zawartość z połowy ekranu</string>
+    <string-array name="mjpeg_pref_vr_mode_options">
+        <item>Użyj lewej części</item>
+        <item>Użyj prawej części</item>
+    </string-array>
+    <string name="mjpeg_pref_crop">Przytnij zdjęcie</string>
+    <string name="mjpeg_pref_crop_summary">Przycina obraz przed wysłaniem</string>
+    <string name="mjpeg_pref_crop_dialog_crop_top">Przytnij górę:</string>
+    <string name="mjpeg_pref_crop_dialog_crop_bottom">Przytnij dół:</string>
+    <string name="mjpeg_pref_crop_dialog_crop_left">Przytnij z lewej:</string>
+    <string name="mjpeg_pref_crop_dialog_crop_right">Przytnij z prawej:</string>
+    <string name="mjpeg_pref_crop_dialog_pixels">pikseli</string>
+    <string name="mjpeg_pref_crop_dialog_warning_message">Przycięcie zostanie zignorowane, jeśli wynikiem będzie pusty obraz</string>
+    <string name="mjpeg_pref_crop_dialog_error_message">Wprowadź prawidłowe wartości przycięcia</string>
+    <string name="mjpeg_pref_grayscale">Tryb skali szarości</string>
+    <string name="mjpeg_pref_grayscale_summary">Ustawia obraz w skali szarości przed wysłaniem</string>
+    <string name="mjpeg_pref_resize">Zmiana rozmiaru obrazu</string>
+    <string name="mjpeg_pref_resize_summary">Zmienia rozmiar obrazu przed wysłaniem</string>
+    <string name="mjpeg_pref_resize_dialog_text">Ustaw współczynnik zmiany rozmiaru obrazu w procentach.\nWartość: 10–150 (Domyślnie: 50)\nRozmiar ekranu: %1$dx%2$d</string>
+    <string name="mjpeg_pref_resize_dialog_result">Rozmiar obrazu: %1$dx%2$d</string>
+    <string name="mjpeg_pref_rotate">Obróć zdjęcie zgodnie z ruchem wskazówek zegara</string>
+    <string name="mjpeg_pref_rotate_summary">Obraca obraz przed wysłaniem</string>
+    <string name="mjpeg_pref_fps">Ogranicz liczbę klatek na sekundę</string>
+    <string name="mjpeg_pref_fps_summary">Ustawia maksymalną liczbę klatek na sekundę</string>
+    <string name="mjpeg_pref_fps_dialog">Ustaw maksymalną liczbę klatek na sekundę.\nWartość: 1–60 (Domyślnie: 30)</string>
+    <string name="mjpeg_pref_jpeg_quality">Jakość kompresji JPEG</string>
+    <string name="mjpeg_pref_jpeg_quality_summary">Ustawia jakość kompresji JPEG</string>
+    <string name="mjpeg_pref_jpeg_quality_dialog">Ustaw jakość kompresji JPEG.\nWartość: 10–100 (Domyślnie: 80)</string>
+
+    <string name="mjpeg_pref_settings_security">Bezpieczeństwo</string>
+    <string name="mjpeg_pref_enable_pin">Użyj kodu PIN</string>
+    <string name="mjpeg_pref_enable_pin_summary">Chroni dostęp do transmisji za pomocą kodu PIN</string>
+    <string name="mjpeg_pref_hide_pin">Automatycznie ukryj kod PIN podczas uruchamiania transmisji</string>
+    <string name="mjpeg_pref_hide_pin_summary">Pokazuje gwiazdki zamiast kodu PIN podczas transmisji</string>
+    <string name="mjpeg_pref_new_pin_on_start">Nowy kod PIN podczas uruchamiania</string>
+    <string name="mjpeg_pref_new_pin_on_start_summary">Wygeneruje nowy kod PIN podczas uruchomienia aplikacji</string>
+    <string name="mjpeg_pref_auto_change_pin">Automatyczna zmiana kodu PIN</string>
+    <string name="mjpeg_pref_auto_change_pin_summary">Wygeneruje kod PIN dla każdej nowej transmisji</string>
+    <string name="mjpeg_pref_set_pin">Ustaw kod PIN</string>
+    <string name="mjpeg_pref_set_pin_summary">Tworzenie kodu PIN</string>
+    <string name="mjpeg_pref_set_pin_dialog">Wprowadź kod PIN.\nDomyślnie: 000000</string>
+    <string name="mjpeg_pref_block_address">Zablokuj adres IP</string>
+    <string name="mjpeg_pref_block_address_summary">Blokuje przez 5 minut adres IP klienta po 5 próbach podania błędnego kodu PIN</string>
+
+    <string name="mjpeg_pref_settings_advanced">Zaawansowane</string>
+    <string name="mjpeg_pref_wifi_only">Użyj tylko WiFi</string>
+    <string name="mjpeg_pref_wifi_only_summary">Uruchamia serwer tylko poprzez połączenie WiFi</string>
+    <string name="mjpeg_pref_enable_ipv6">Włącz obsługę protokołu IPv6</string>
+    <string name="mjpeg_pref_enable_ipv6_summary">Uruchamia serwer na adresach IPv6</string>
+    <string name="mjpeg_pref_enable_localhost">Włącz host lokalny </string>
+    <string name="mjpeg_pref_enable_localhost_summary">Uruchamia serwer na lokalnych adresach hostów</string>
+    <string name="mjpeg_pref_localhost_only">Tylko host lokalny</string>
+    <string name="mjpeg_pref_localhost_only_summary">Uruchamia serwer tylko na lokalnych adresach hostów</string>
+    <string name="mjpeg_pref_server_port">Port serwera</string>
+    <string name="mjpeg_pref_server_port_summary">Ustawianie portu dla połączeń przychodzących</string>
+    <string name="mjpeg_pref_server_port_dialog">Ustaw numer portu serwera dla połączeń przychodzących.\nWartość: 1025–65535\n(Domyślnie: 8080)</string>
+
+    <string name="mjpeg_error_port_in_use">Port w użyciu. Wybierz inny.</string>
+    <string name="mjpeg_error_invalid_media_projection">Błąd bezpieczeństwa: nieprawidłowa projekcja multimediów. Spróbuj ponownie.</string>
+    <string name="mjpeg_error_ip_address_not_found">Nie znaleziono adresu IP. \nSpróbuj wyłączyć \"Używaj tylko WiFi\" w ustawieniach.</string>
+    <string name="mjpeg_error_wrong_image_format">System nadaje obrazowi niewłaściwy format. Brak rozwiązania tego problemu.</string>
+    <string name="mjpeg_error_unspecified">Coś poszło nie tak. Proszę spróbować ponownie później.</string>
 
     <!--BitmapNotification-->
-    <string name="image_generator_press_start">Naciśnij START na urządzeniu</string>
-    <string name="image_generator_go_to_new_address">Przejdź do nowego adresu</string>
-    <string name="image_generator_reload_this_page">Załaduj ponownie tę stronę</string>
-    <string name="image_generator_address_blocked">Adres klienta zablokowany</string>
+    <string name="mjpeg_image_generator_press_start">Naciśnij START na urządzeniu</string>
+    <string name="mjpeg_image_generator_go_to_new_address">Przejdź do nowego adresu</string>
+    <string name="mjpeg_image_generator_address_blocked">Adres klienta zablokowany</string>
 
     <!--HTML text-->
-    <string name="html_stream_require_pin">Transmisja wymaga kodu PIN</string>
-    <string name="html_enter_pin">Wpisz kod PIN:\u0020</string>
-    <string name="html_submit_text">Zatwierdź</string>
-    <string name="html_wrong_pin">Błędny kod PIN!</string>
-    <string name="html_address_blocked">Adres klienta zablokowany</string>
+    <string name="mjpeg_html_stream_require_pin">Transmisja wymaga kodu PIN</string>
+    <string name="mjpeg_html_enter_pin">Wpisz kod PIN:\u0020</string>
+    <string name="mjpeg_html_submit_text">Zatwierdź</string>
+    <string name="mjpeg_html_wrong_pin">Błędny kod PIN!</string>
+    <string name="mjpeg_html_address_blocked">Adres klienta zablokowany</string>
 </resources>

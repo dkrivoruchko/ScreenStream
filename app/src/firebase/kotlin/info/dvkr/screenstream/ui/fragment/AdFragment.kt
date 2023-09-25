@@ -18,8 +18,9 @@ import info.dvkr.screenstream.BuildConfig
 import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.ui.activity.AdActivity
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
-abstract class AdFragment(@LayoutRes contentLayoutId: Int) : Fragment(contentLayoutId) {
+public abstract class AdFragment(@LayoutRes contentLayoutId: Int) : Fragment(contentLayoutId) {
 
     private var adView: AdView? = null
     private lateinit var adSize: AdSize
@@ -31,8 +32,8 @@ abstract class AdFragment(@LayoutRes contentLayoutId: Int) : Fragment(contentLay
         }
     }
 
-    fun loadAdOnViewCreated(adViewContainer: FrameLayout) {
-        viewLifecycleOwner.lifecycleScope.launchWhenStarted {
+    public fun loadAdOnViewCreated(adViewContainer: FrameLayout) {
+        viewLifecycleOwner.lifecycleScope.launch {
             val showADs = (requireActivity() as AdActivity).canShowADsDeferred.await()
             when {
                 showADs.not() -> Log.i("loadAdOnViewCreated", "showADs: $showADs")
@@ -65,7 +66,7 @@ abstract class AdFragment(@LayoutRes contentLayoutId: Int) : Fragment(contentLay
 
     private fun loadAd(adViewContainer: FrameLayout) {
         adViewContainer.minimumHeight = adSize.getHeightInPixels(requireActivity())
-        viewLifecycleOwner.lifecycleScope.launchWhenStarted {
+        viewLifecycleOwner.lifecycleScope.launch {
             val currentAd =
                 ads.filter { it.value + 61_000 - System.currentTimeMillis() <= 0 }.entries.firstOrNull() ?: ads.minByOrNull { it.value }!!
             while (currentAd.value + 61_000 - System.currentTimeMillis() > 0) delay(100)

@@ -14,7 +14,7 @@ import info.dvkr.screenstream.BuildConfig
 import info.dvkr.screenstream.common.getLog
 import kotlinx.coroutines.CompletableDeferred
 
-abstract class AdActivity(@LayoutRes contentLayoutId: Int) : AppUpdateActivity(contentLayoutId) {
+public abstract class AdActivity(@LayoutRes contentLayoutId: Int) : AppUpdateActivity(contentLayoutId) {
 
     internal val isConsentEnabled
         get() = consentInformation.consentStatus == ConsentInformation.ConsentStatus.REQUIRED ||

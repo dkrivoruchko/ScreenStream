@@ -1,9 +1,60 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="webrtc_error_play_integrity_update_play_store">请更新 Google Play 商店</string>
-    <string name="webrtc_error_play_integrity_install_play_store">请安装或启用官方 Google Play 商店</string>
-    <string name="webrtc_error_play_integrity_install_play_service">请安装或启用 Play 服务</string>
-    <string name="webrtc_error_play_integrity_update_play_service">请更新 Google Play 服务</string>
+    <string name="webrtc_error_recover">恢复</string>
+
+    <string name="webrtc_stream_fragment_mode_global">全局模式（WebRTC）</string>
+    <string name="webrtc_stream_fragment_mode_global_description">全局模式说明</string>
+    <string name="webrtc_stream_fragment_mode_global_details">
+- 基于WebRTC技术。\n\n
+- 端对端加密通信。\n\n
+- 使用密码保护流。\n\n
+- 可以发送视频和音频。\n\n
+- 使用唯一的流ID和密码连接。\n\n
+- 流媒体需要互联网连接。\n\n
+- 每个客户端的数据传输独立（客户端越多，需要的互联网带宽越多）。
+</string>
+
+    <string name="webrtc_stream_fragment_server_address">在以下地址访问流：\n%1$s</string>
+    <string name="webrtc_stream_fragment_stream_id_getting">获取流ID中…</string>
+    <string name="webrtc_stream_fragment_stream_id">流ID：%1$s</string>
+    <string name="webrtc_stream_fragment_stream_password">流密码：%1$s</string>
+    <string name="webrtc_stream_fragment_mic_off">麦克风关闭</string>
+    <string name="webrtc_stream_fragment_mic_on">麦克风开启</string>
+    <string name="webrtc_stream_fragment_show_password_description">显示流密码</string>
+    <string name="webrtc_stream_fragment_get_new_id_description">获取新流ID</string>
+    <string name="webrtc_stream_fragment_create_new_password_description">创建新流密码</string>
+    <string name="webrtc_stream_fragment_open_address_description">打开地址</string>
+    <string name="webrtc_stream_fragment_copy_address_description">复制地址</string>
+    <string name="webrtc_stream_fragment_share_address_description">分享地址</string>
+    <string name="webrtc_stream_fragment_qr_address_description">以QR码形式显示地址</string>
+    <string name="webrtc_stream_fragment_copied">已复制</string>
+    <string name="webrtc_stream_fragment_connected_clients">已连接客户端：%1$d</string>
+    <string name="webrtc_stream_fragment_no_web_browser_found">未找到Web浏览器</string>
+    <string name="webrtc_stream_fragment_external_app_error">外部应用程序错误</string>
+    <string name="webrtc_stream_fragment_share_address">分享设备地址</string>
+
+    <string name="webrtc_pref_settings">流设置</string>
+    <string name="webrtc_pref_keep_awake">保持设备唤醒状态</string>
+    <string name="webrtc_pref_keep_awake_summary">播出视频流的时候保持设备唤醒并且屏幕常亮</string>
+    <string name="webrtc_pref_stop_on_sleep">设备休眠的时候停止视频流</string>
+    <string name="webrtc_pref_stop_on_sleep_summary">屏幕关闭的时候停止视频流</string>
+    
+    <string name="webrtc_stream_fragment_audio_permission_title">允许录制音频</string>
+    <string name="webrtc_stream_fragment_audio_permission_message">应用程序需要录制音频的权限以进行音频流传输。\n\n未授予此权限，将没有音频。</string>
+    <string name="webrtc_stream_fragment_audio_permission_message_settings">在应用程序权限中授予麦克风访问权限对于进行音频流传输是必要的。\n\n未授予此权限，将导致音频无法传输。</string>
+    <string name="webrtc_stream_fragment_audio_permission_open_settings">打开设置</string>
+
+    <string name="webrtc_stream_fragment_cast_permission_activity_not_found_title">权限对话框错误</string>
+    <string name="webrtc_stream_fragment_cast_permission_activity_not_found">Android错误。在屏幕捕获权限请求对话框中不要选中“不再显示”。如果已经这样做，请重新安装应用程序。</string>
+    <string name="webrtc_stream_fragment_cast_permission_required_title">需要权限</string>
+    <string name="webrtc_stream_fragment_cast_permission_required">ScreenStream应用程序需要屏幕投射权限来捕获屏幕。</string>
+
+    <string name="webrtc_item_client_disconnect">断开连接</string>
+
+    <string name="webrtc_error_play_integrity_update_play_store">请更新Google Play商店</string>
+    <string name="webrtc_error_play_integrity_install_play_store">请安装或启用官方的Google Play商店</string>
+    <string name="webrtc_error_play_integrity_install_play_service">请安装或启用Play服务</string>
+    <string name="webrtc_error_play_integrity_update_play_service">请更新Google Play服务</string>
     <string name="webrtc_error_check_network">请检查互联网连接</string>
-    <string name="webrtc_error_unspecified">出现问题，请稍后重试。</string>
+    <string name="webrtc_error_unspecified">出了些问题，请稍后重试。</string>
 </resources>

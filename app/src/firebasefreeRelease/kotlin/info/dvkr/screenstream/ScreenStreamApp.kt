@@ -5,8 +5,11 @@ import com.elvishew.xlog.LogItem
 import com.elvishew.xlog.LogLevel
 import com.elvishew.xlog.XLog
 import com.elvishew.xlog.interceptor.AbstractFilterInterceptor
+import info.dvkr.screenstream.mjpeg.MjpegKoinModule
+import org.koin.core.module.Module
+import org.koin.ksp.generated.module
 
-class ScreenStreamApp : BaseApp() {
+public class ScreenStreamApp : BaseApp() {
 
     override val isAdEnabled: Boolean
         get() = false
@@ -24,4 +27,6 @@ class ScreenStreamApp : BaseApp() {
     }
 
     override fun initAd() {}
+
+    override val streamingModules: Array<Module> = arrayOf(MjpegKoinModule().module)
 }

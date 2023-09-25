@@ -49,23 +49,163 @@
     </style>
 </head>
 
-<body onmousemove="onMouseMove()">
-    <img id="stream" src="SCREEN_STREAM_ADDRESS" onerror="streamFallback()" />
+<body>
+    <img id="stream" />
+
     <div id="buttons">
         <input type="image" id="fullscreen" src="/fullscreen-on.png" onclick="toggleFullscreen()" />
         <input type="image" src="/start-stop.png" onclick="toggleStartStop()" />
     </div>
-    <script>
-        if ("undefined" != typeof history.pushState) { var o = { Title: "Screen Stream", Url: "/" }; history.pushState(o, o.Title, o.Url) }
 
-        var enableButtons = ENABLE_BUTTONS;
-        if (enableButtons) document.getElementById('buttons').style.visibility = 'visible';
-        var buttonsHideFunction = function () { document.getElementById('buttons').style.visibility = 'hidden'; }
+    <script>
+        const url = "SCREEN_STREAM_ADDRESS";
+        const stream = document.getElementById("stream");
+
+        let connectErrorCounter = 0;
+        let fallbackCounter = 0;
+        let showStreamTimer = null;
+
+        async function defaultMJPEG(url, elem) {
+            console.debug("defaultMJPEG:", url);
+            return new Promise((resolve, reject) => {
+                elem.onload = () => { elem.onload = null; resolve(); }
+                elem.onerror = (e) => { elem.onerror = null; reject(); }
+                elem.src = url;
+            });
+        }
+
+        async function fallbackMJPEG(url, elem) {
+            console.debug("fallbackMJPEG");
+            try {
+                elem.onload = () => { URL.revokeObjectURL(elem.src); };
+
+                const SOI = new Uint8Array([0xFF, 0xD8, 0xFF]);
+                const EOI = new Uint8Array([0xFF, 0xF9]);
+                const lengthRegex = /Content-Length:\s*(\d+)/i;
+
+                const response = await fetch(url);
+                if (!response.ok) throw Error(`${response.status}: ${response.statusText}`);
+                if (response.redirected) {
+                    window.location.replace(response.url);
+                    throw Error(`Redirected: ${response.status}: ${response.statusText} : ${response.url}`);
+                }
+
+                const reader = response.body.getReader();
+                const movingBuffer = [0, 0, 0];
+                let headers = '';
+                let contentLength = 0;
+                let imageBuffer = null;
+                let bytesRead = 0;
+
+                while (true) {
+                    const { done, value } = await reader.read();
+
+                    for (let i = 0; i < value.length; i++) {
+                        movingBuffer.push(value[i]);
+                        movingBuffer.shift();
+
+                        if (movingBuffer[0] === SOI[0] && movingBuffer[1] === SOI[1] && movingBuffer[2] === SOI[2]) {
+                            contentLength = headers.match(lengthRegex)[1];
+                            imageBuffer = new Uint8Array(new ArrayBuffer(contentLength));
+                            imageBuffer[bytesRead++] = movingBuffer[0];
+                            imageBuffer[bytesRead++] = movingBuffer[1];
+                            imageBuffer[bytesRead++] = movingBuffer[2];
+                            continue
+                        }
+
+                        if (contentLength <= 0) {
+                            headers += String.fromCharCode(value[i]);
+                        } else if (bytesRead < contentLength) {
+                            imageBuffer[bytesRead++] = value[i];
+                        } else {
+                            elem.src = URL.createObjectURL(new Blob([imageBuffer], { type: "image/jpeg" }));
+                            contentLength = 0;
+                            bytesRead = 0;
+                            headers = '';
+                        }
+                    }
+
+                    if (done) {
+                        elem.onload = null;
+                        return;
+                    }
+                }
+            } catch (e) {
+                elem.onload = null;
+                stream.style.visibility = 'hidden';
+                console.error("fallbackMJPEG", e);
+            }
+        };
+
+        async function showStream() {
+            console.debug("showStream");
+            if (fallbackCounter > 2) {
+                stream.src = null;
+                stream.style.visibility = 'visible';
+                fallbackMJPEG(url, stream);
+            } else {
+                try {
+                    await defaultMJPEG(url, stream);
+                    fallbackCounter = 0;
+                    stream.style.visibility = 'visible';
+                } catch (e) {
+                    console.debug("showStream.error");
+                    fallbackCounter++;
+                    showStreamTimer = setTimeout(() => { showStream() }, 150);
+                }
+            }
+        }
+
+        function reConnect(reason) {
+            console.debug("reConnect: ", reason);
+
+            clearTimeout(showStreamTimer);
+            showStreamTimer = null;
+
+            fallbackCounter = 0;
+            connectErrorCounter++;
+            if (connectErrorCounter > 100) {
+                console.debug("reConnect: Give up");
+            } else {
+                setTimeout(() => { connect() }, connectErrorCounter > 10 ? 20000 : Math.pow(1.5, connectErrorCounter - 1) * 500);
+            }
+        }
+
+        function connect() {
+            console.debug("connect");
+            stream.style.visibility = 'hidden';
+            try {
+                const socket = new WebSocket(`ws://${window.location.host}/monitor`);
+                socket.onopen = async () => { connectErrorCounter = 0; await showStream(); }
+                socket.onclose = () => { reConnect("connect.onclose"); }
+            } catch (e) {
+                reConnect("connect.catch: " + e)
+            }
+        }
+
+        connect();
+
+        // setTimeout(() => { if (!stream.complete) streamFallback() }, 2000);
+        // function streamFallback() {
+        //     const baseurl = url.split(".mjpeg")[0];
+        //     setInterval(() => { stream.src = baseurl + ".jpeg?t=" + Math.random() }, 500);
+        // }
+
+        if (typeof history.pushState != "undefined") {
+            const o = { Title: "Screen Stream", Url: "/" };
+            history.pushState(o, o.Title, o.Url)
+        }
+    </script>
+    <script>
+        const enableButtons = ENABLE_BUTTONS;
+        const buttons = document.getElementById('buttons')
+        if (enableButtons) buttons.style.visibility = 'visible';
+        const buttonsHideFunction = () => { buttons.style.visibility = 'hidden'; }
         var hideTimeout = setTimeout(buttonsHideFunction, 1500);
 
-        function onMouseMove() {
+        window.onmousemove = () => {
             if (!enableButtons) return
-            document.getElementById('buttons').style.visibility = 'visible';
+            buttons.style.visibility = 'visible';
             clearTimeout(hideTimeout)
             hideTimeout = setTimeout(buttonsHideFunction, 1000);
         }
@@ -75,23 +215,9 @@
         }
 
         function fullScreenHandler() {
-            var fullscreenInput = document.getElementById("fullscreen");
+            const fullscreenInput = document.getElementById("fullscreen");
             if (isFullscreen()) fullscreenInput.src = "/fullscreen-off.png"; else fullscreenInput.src = "/fullscreen-on.png";
         }
-
-        function streamFallback() { //mjpeg -> jpeg fallback
-            var baseurl = "SCREEN_STREAM_ADDRESS".split(".mjpeg")[0];
-
-            function streamStillUpdate() { // refresh the image
-                stream.src = baseurl + ".jpeg?t=" + Math.random();
-            }
-
-            setInterval(streamStillUpdate, 500);
-        }
-
-        setTimeout( function () { // check if the mjpeg image could be loaded, otherwise use the jpeg fallback
-            if (!document.getElementById("stream").complete) streamFallback();
-        }, 2000);
 
         document.addEventListener("fullscreenchange", fullScreenHandler);
         document.addEventListener("webkitfullscreenchange", fullScreenHandler);
@@ -99,14 +225,14 @@
         document.addEventListener("MSFullscreenChange", fullScreenHandler);
 
         function toggleFullscreen() {
-            var element = document.documentElement;
+            const element = document.documentElement;
             element.requestFullScreen = element.requestFullScreen || element.webkitRequestFullScreen || element.mozRequestFullScreen || function () { return false; };
             document.cancelFullScreen = document.cancelFullScreen || document.webkitCancelFullScreen || document.mozCancelFullScreen || function () { return false; };
             isFullscreen() ? document.cancelFullScreen() : element.requestFullScreen();
         }
 
         function toggleStartStop() {
-            var xmlHttp = new XMLHttpRequest();
+            const xmlHttp = new XMLHttpRequest();
             xmlHttp.open("GET", window.location.origin + "/start-stop", true);
             xmlHttp.send(null);
         }

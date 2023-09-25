@@ -1,19 +1,137 @@
 <resources>
-    <string name="error_port_in_use">端口已占用，请换一个</string>
-    <string name="error_invalid_media_projection">安全错误：无效店媒体投射，请再试一次。</string>
-    <string name="error_ip_address_not_found">未找到 IP 地址.\n请尝试禁用设置中的 \"只用 WiFi\" 。</string>
-    <string name="error_wrong_image_format">系统返回的图片格式无法识别。很抱歉尚无解决办法。</string>
+    <string name="mjpeg_error_recover">恢复</string>
+
+    <string name="mjpeg_stream_fragment_mode_local">本地模式（MJPEG）</string>
+    <string name="mjpeg_stream_fragment_mode_local_description">本地模式描述</string>
+    <string name="mjpeg_stream_fragment_mode_local_details">
+- 基于MJPEG标准。\n\n
+- 使用PIN码进行安全性（无加密）。\n\n
+- 以一系列独立图像的形式发送视频（无音频）。\n\n
+- 在您的本地网络中无需互联网连接即可工作。\n\n
+- 嵌入式HTTP服务器。\n\n
+- 支持WiFi和/或移动网络，支持IPv4和IPv6。\n\n
+- 客户端通过Web浏览器连接，使用应用程序提供的IP地址。\n\n
+- 高度可定制。\n\n
+- 每个客户端的个别数据传输（客户端越多，需要的网络带宽越多）。
+</string>
+
+    <string name="mjpeg_item_device_address">设备地址：</string>
+    <string name="mjpeg_stream_fragment_no_address">未发现地址</string>
+    <string name="mjpeg_stream_fragment_interface">端口: %1$s</string>
+    <string name="mjpeg_stream_fragment_copied">已复制</string>
+    <string name="mjpeg_stream_fragment_no_web_browser_found">未找到浏览器</string>
+    <string name="mjpeg_stream_fragment_external_app_error">外部应用错误</string>
+    <string name="mjpeg_stream_fragment_share_address">分享设备地址</string>
+    <string name="mjpeg_item_device_address_description_open_address">打开地址</string>
+    <string name="mjpeg_item_device_address_description_copy_address">复制地址</string>
+    <string name="mjpeg_item_device_address_description_share_address">分享地址</string>
+    <string name="mjpeg_item_device_address_description_qr_address">展示地址或二维码</string>
+    <string name="mjpeg_pref_settings">流设置</string>
+    <string name="mjpeg_stream_fragment_pin">Pin: %1$s</string>
+    <string name="mjpeg_stream_fragment_pin_disabled">已禁用 Pin</string>
+    <string name="mjpeg_stream_fragment_current_traffic">流量: %1$,.2f Mbit/s</string>
+    <string name="mjpeg_stream_fragment_connected_clients">已连接设备: %1$d</string>
+    <string name="mjpeg_stream_fragment_client_disconnected">已断开</string>
+    <string name="mjpeg_stream_fragment_client_slow_network">低速连接</string>
+    <string name="mjpeg_stream_fragment_client_connected">已连接</string>
+    <string name="mjpeg_stream_fragment_client_blocked">已封锁</string>
+
+    <string name="mjpeg_stream_fragment_cast_permission_activity_not_found_title">权限弹窗错误</string>
+    <string name="mjpeg_stream_fragment_cast_permission_activity_not_found">安卓的问题。试试不要勾选获取屏幕弹窗右边的 \"不再显示\"。如果你已经这么做过了，请尝试重新安装这个应用。</string>
+    <string name="mjpeg_stream_fragment_cast_permission_required_title">需要权限</string>
+    <string name="mjpeg_stream_fragment_cast_permission_required">ScreenStream 需要获取屏幕权限来正常运行。</string>
+
+    <string name="mjpeg_toast_slow_client_connection">检测到慢速客户端连接</string>
+
+    <string name="mjpeg_pref_settings_interface">端口</string>
+    <string name="mjpeg_pref_keep_awake">保持设备唤醒状态</string>
+    <string name="mjpeg_pref_keep_awake_summary">播出视频流的时候保持设备唤醒并且屏幕常亮</string>
+    <string name="mjpeg_pref_stop_on_sleep">设备休眠的时候停止视频流</string>
+    <string name="mjpeg_pref_stop_on_sleep_summary">屏幕关闭的时候停止视频流</string>
+    <string name="mjpeg_pref_detect_slow_connections">显示慢速连接通知</string>
+    <string name="mjpeg_pref_detect_slow_connections_summary">侦测并通知慢速连接的客户端</string>
+    <string name="mjpeg_pref_html_buttons">启用网页按钮</string>
+    <string name="mjpeg_pref_html_buttons_summary">在网页上显示控制按钮</string>
+    <string name="mjpeg_pref_html_show_press_start">显示 \"请按设备上的 开始 按钮\"</string>
+    <string name="mjpeg_pref_html_show_press_start_summary">在网页上显示 \"请按设备上的 开始 按钮\"</string>
+    <string name="mjpeg_pref_html_back_color">网页背景颜色</string>
+    <string name="mjpeg_pref_html_back_color_summary">设置网页的背景颜色</string>
+    <string name="mjpeg_pref_html_back_color_title">选择背景颜色</string>
+
+    <string name="mjpeg_pref_settings_image">图像</string>
+    <string name="mjpeg_pref_vr_mode">虚拟现实模式</string>
+    <string name="mjpeg_pref_vr_mode_summary">截取半个屏幕</string>
+    <string-array name="mjpeg_pref_vr_mode_options">
+        <item>使用左半边</item>
+        <item>使用右半边</item>
+    </string-array>
+    <string name="mjpeg_pref_crop">剪裁图像</string>
+    <string name="mjpeg_pref_crop_summary">播出前先剪裁图像</string>
+    <string name="mjpeg_pref_crop_dialog_crop_top">顶部剪裁:</string>
+    <string name="mjpeg_pref_crop_dialog_crop_bottom">底部剪裁:</string>
+    <string name="mjpeg_pref_crop_dialog_crop_left">左侧剪裁:</string>
+    <string name="mjpeg_pref_crop_dialog_crop_right">右侧剪裁:</string>
+    <string name="mjpeg_pref_crop_dialog_pixels">像素</string>
+    <string name="mjpeg_pref_crop_dialog_warning_message">如果剪裁的结果是一张空图片，那么剪裁参数将被忽略</string>
+    <string name="mjpeg_pref_crop_dialog_error_message">请输入有效的剪裁参数</string>
+    <string name="mjpeg_pref_grayscale">灰度模式</string>
+    <string name="mjpeg_pref_grayscale_summary">播出前先将图像转成黑白的</string>
+    <string name="mjpeg_pref_resize">缩放图像</string>
+    <string name="mjpeg_pref_resize_summary">播出前先将图像尺寸进行缩放</string>
+    <string name="mjpeg_pref_resize_dialog_text">设置图像缩放的百分比。\n取值: 10–150 (默认: 50)\n屏幕尺寸: %1$dx%2$d</string>
+    <string name="mjpeg_pref_resize_dialog_result">图像尺寸: %1$dx%2$d</string>
+    <string name="mjpeg_pref_rotate">顺时针旋转图像</string>
+    <string name="mjpeg_pref_rotate_summary">播出前先将图像顺时针旋转</string>
+    <string name="mjpeg_pref_fps">画面帧率限制</string>
+    <string name="mjpeg_pref_fps_summary">设置每秒最大画面数</string>
+    <string name="mjpeg_pref_fps_dialog">设置每秒最大画面数。\n取值: 1–60 (默认: 30)</string>
+    <string name="mjpeg_pref_jpeg_quality">JPEG 压缩质量</string>
+    <string name="mjpeg_pref_jpeg_quality_summary">设置 JPEG 压缩质量</string>
+    <string name="mjpeg_pref_jpeg_quality_dialog">设置 JPEG 压缩质量。\n取值: 10–100 (默认: 80)</string>
+
+    <string name="mjpeg_pref_settings_security">安全</string>
+    <string name="mjpeg_pref_enable_pin">启用 pin</string>
+    <string name="mjpeg_pref_enable_pin_summary">使用 pin 来保护视频流</string>
+    <string name="mjpeg_pref_hide_pin">视频流开始的时候自动隐藏 pin</string>
+    <string name="mjpeg_pref_hide_pin_summary">播出视频流的时候用星号来展示 pin</string>
+    <string name="mjpeg_pref_new_pin_on_start">每次启动都用新 pin</string>
+    <string name="mjpeg_pref_new_pin_on_start_summary">每次应用启动后都生产一个新 pin</string>
+    <string name="mjpeg_pref_auto_change_pin">自动更换 pin</string>
+    <string name="mjpeg_pref_auto_change_pin_summary">给每一个新的视频流都生成一个新 pin</string>
+    <string name="mjpeg_pref_set_pin">设置 pin</string>
+    <string name="mjpeg_pref_set_pin_summary">手动输入 pin</string>
+    <string name="mjpeg_pref_set_pin_dialog">输入 pin.\n默认: 000000</string>
+    <string name="mjpeg_pref_block_address">封禁 IP 地址</string>
+    <string name="mjpeg_pref_block_address_summary">如果客户端在 5 分钟内输错了 5 次 pin，就会被封锁</string>
+
+    <string name="mjpeg_pref_settings_advanced">高级</string>
+    <string name="mjpeg_pref_wifi_only">只用 WiFi</string>
+    <string name="mjpeg_pref_wifi_only_summary">只在  WiFi 网络下使用</string>
+    <string name="mjpeg_pref_enable_ipv6">启用 IPv6 支持</string>
+    <string name="mjpeg_pref_enable_ipv6_summary">同时在 IPv6 地址下播出视频流</string>
+    <string name="mjpeg_pref_enable_localhost">启用本地主机</string>
+    <string name="mjpeg_pref_enable_localhost_summary">同时在本地主机播出视频流</string>
+    <string name="mjpeg_pref_localhost_only">只在本地主机播出</string>
+    <string name="mjpeg_pref_localhost_only_summary">只在本地主机播出视频流</string>
+    <string name="mjpeg_pref_server_port">服务器端口</string>
+    <string name="mjpeg_pref_server_port_summary">设置用来连接视频流的端口号</string>
+    <string name="mjpeg_pref_server_port_dialog">设置用来连接视频流的端口号。\n取值: 1025–65535\n(默认: 8080)</string>
+
+    <string name="mjpeg_error_port_in_use">端口已占用，请换一个</string>
+    <string name="mjpeg_error_invalid_media_projection">安全错误：无效店媒体投射，请再试一次。</string>
+    <string name="mjpeg_error_ip_address_not_found">未找到 IP 地址.\n请尝试禁用设置中的 \"只用 WiFi\" 。</string>
+    <string name="mjpeg_error_wrong_image_format">系统返回的图片格式无法识别。很抱歉尚无解决办法。</string>
+    <string name="mjpeg_error_unspecified">出现了问题。请稍后再试。</string>
 
     <!--BitmapNotification-->
-    <string name="image_generator_press_start">请按设备上的 开始 按钮</string>
-    <string name="image_generator_go_to_new_address">请访问新地址</string>
-    <string name="image_generator_reload_this_page">请刷新页面</string>
-    <string name="image_generator_address_blocked">本客户端已被封禁</string>
+    <string name="mjpeg_image_generator_press_start">请按设备上的 开始 按钮</string>
+    <string name="mjpeg_image_generator_go_to_new_address">请访问新地址</string>
+    <string name="mjpeg_image_generator_address_blocked">本客户端已被封禁</string>
 
     <!--HTML text-->
-    <string name="html_stream_require_pin">这个视频流需要 PIN 码才能访问</string>
-    <string name="html_enter_pin">输入 PIN:\u0020</string>
-    <string name="html_submit_text">提交</string>
-    <string name="html_wrong_pin">PIN 码错误！</string>
-    <string name="html_address_blocked">客户端地址被封禁</string>
+    <string name="mjpeg_html_stream_require_pin">这个视频流需要 PIN 码才能访问</string>
+    <string name="mjpeg_html_enter_pin">输入 PIN:\u0020</string>
+    <string name="mjpeg_html_submit_text">提交</string>
+    <string name="mjpeg_html_wrong_pin">PIN 码错误！</string>
+    <string name="mjpeg_html_address_blocked">客户端地址被封禁</string>
 </resources>

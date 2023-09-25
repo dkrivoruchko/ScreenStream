@@ -1,17 +1,137 @@
 <resources>
-    <string name="error_port_in_use">ポートは既に使用されています。 他のポートを選択してください。</string>
-    <string name="error_invalid_media_projection">セキュリティエラー: メディアプロジェクションが無効です。 もう一度お試しください。</string>
-    <string name="error_ip_address_not_found">IPアドレスがありません。\n設定の「WiFiのみ使用する」を無効にしてみてください。</string>
-    <string name="error_wrong_image_format">システムが画像を不明な形式で返します。 修正できません。 ごめんなさい。</string>
+    <string name="mjpeg_error_recover">リカバリ</string>
+
+    <string name="mjpeg_stream_fragment_mode_local">ローカルモード（MJPEG）</string>
+    <string name="mjpeg_stream_fragment_mode_local_description">ローカルモードの説明</string>
+    <string name="mjpeg_stream_fragment_mode_local_details">
+- MJPEG標準によって動作します。\n\n
+- セキュリティのためにPINを使用します（暗号化はありません）。\n\n
+- 音声のない独立した画像のシリーズとしてビデオを送信します。\n\n
+- ローカルネットワーク内でインターネット接続なしで動作します。\n\n
+- 埋め込み型HTTPサーバーを備えています。\n\n
+- WiFiおよび/またはモバイルネットワークをサポートし、IPv4およびIPv6をサポートします。\n\n
+- クライアントは、アプリが提供するIPアドレスを使用してWebブラウザを介して接続します。\n\n
+- 高度にカスタマイズ可能です。\n\n
+- 各クライアントごとの個別のデータ送信（クライアントが多いほど、ネットワーク帯域幅が必要です）。
+</string>
+
+    <string name="mjpeg_item_device_address">端末のアドレス:</string>
+    <string name="mjpeg_stream_fragment_no_address">アドレスがありません</string>
+    <string name="mjpeg_stream_fragment_interface">インターフェース: %1$s</string>
+    <string name="mjpeg_stream_fragment_copied">コピーしました</string>
+    <string name="mjpeg_stream_fragment_no_web_browser_found">Webブラウザがありません</string>
+    <string name="mjpeg_stream_fragment_external_app_error">外部アプリケーションエラー</string>
+    <string name="mjpeg_stream_fragment_share_address">端末のアドレスを共有する</string>
+    <string name="mjpeg_item_device_address_description_open_address">アドレスを開く</string>
+    <string name="mjpeg_item_device_address_description_copy_address">アドレスをコピー</string>
+    <string name="mjpeg_item_device_address_description_share_address">アドレスを共有</string>
+    <string name="mjpeg_item_device_address_description_qr_address">アドレスをQRコードで表示</string>
+    <string name="mjpeg_pref_settings">ストリーム設定</string>
+    <string name="mjpeg_stream_fragment_pin">PIN: %1$s</string>
+    <string name="mjpeg_stream_fragment_pin_disabled">PINは無効です</string>
+    <string name="mjpeg_stream_fragment_current_traffic">トラフィック: %1$,.2f Mbit/s</string>
+    <string name="mjpeg_stream_fragment_connected_clients">接続中のクライアント数: %1$d</string>
+    <string name="mjpeg_stream_fragment_client_disconnected">切断しました</string>
+    <string name="mjpeg_stream_fragment_client_slow_network">遅い接続</string>
+    <string name="mjpeg_stream_fragment_client_connected">接続しました</string>
+    <string name="mjpeg_stream_fragment_client_blocked">ブロック済み</string>
+
+    <string name="mjpeg_stream_fragment_cast_permission_activity_not_found_title">権限ダイアログエラー</string>
+    <string name="mjpeg_stream_fragment_cast_permission_activity_not_found">Androidのバグです。 画面をキャプチャするために、権限要求ダイアログで「今後表示しない」にチェックを入れないでください。 既にそうした場合は、アプリを再インストールしてください。</string>
+    <string name="mjpeg_stream_fragment_cast_permission_required_title">許可が必要です</string>
+    <string name="mjpeg_stream_fragment_cast_permission_required">ScreenStreamアプリでは画面をキャプチャするためにスクリーン キャスト権限が必要です。</string>
+
+    <string name="mjpeg_toast_slow_client_connection">遅いクライアント接続が検出されました</string>
+
+    <string name="mjpeg_pref_settings_interface">インターフェース</string>
+    <string name="mjpeg_pref_keep_awake">デバイスを起きたままにする</string>
+    <string name="mjpeg_pref_keep_awake_summary">ストリーミング中にデバイスと画面を起きたままに保つ</string>
+    <string name="mjpeg_pref_stop_on_sleep">スリープ時にストリームを停止</string>
+    <string name="mjpeg_pref_stop_on_sleep_summary">画面がオフになったらストリームを停止します</string>
+    <string name="mjpeg_pref_detect_slow_connections">遅い接続を通知する</string>
+    <string name="mjpeg_pref_detect_slow_connections_summary">遅いクライアント接続を検出して通知します</string>
+    <string name="mjpeg_pref_html_buttons">Webページのボタンを有効化</string>
+    <string name="mjpeg_pref_html_buttons_summary">Webページにコントロールボタンを表示します</string>
+    <string name="mjpeg_pref_html_show_press_start">「デバイスでスタートボタンを押してください」と表示</string>
+    <string name="mjpeg_pref_html_show_press_start_summary">Webページに「デバイスでスタートボタンを押してください」と表示</string>
+    <string name="mjpeg_pref_html_back_color">Webページの背景色</string>
+    <string name="mjpeg_pref_html_back_color_summary">Webページの背景色を設定します</string>
+    <string name="mjpeg_pref_html_back_color_title">背景色を選択してください</string>
+
+    <string name="mjpeg_pref_settings_image">画像</string>
+    <string name="mjpeg_pref_vr_mode">VRモード</string>
+    <string name="mjpeg_pref_vr_mode_summary">画面の半分をキャプチャします</string>
+    <string-array name="mjpeg_pref_vr_mode_options">
+        <item>左部分を使用する</item>
+        <item>右部分を使用する</item>
+    </string-array>
+    <string name="mjpeg_pref_crop">画像の切り抜き</string>
+    <string name="mjpeg_pref_crop_summary">クライアントに送信する前に画像を切り抜きます</string>
+    <string name="mjpeg_pref_crop_dialog_crop_top">上部分の切り抜き:</string>
+    <string name="mjpeg_pref_crop_dialog_crop_bottom">下部分の切り抜き:</string>
+    <string name="mjpeg_pref_crop_dialog_crop_left">左部分の切り抜き:</string>
+    <string name="mjpeg_pref_crop_dialog_crop_right">右部分の切り抜き:</string>
+    <string name="mjpeg_pref_crop_dialog_pixels">ピクセル</string>
+    <string name="mjpeg_pref_crop_dialog_warning_message">結果が空の画像の場合は切り抜きは無視されます</string>
+    <string name="mjpeg_pref_crop_dialog_error_message">有効な切り抜き値を入力してください</string>
+    <string name="mjpeg_pref_grayscale">グレースケールモード</string>
+    <string name="mjpeg_pref_grayscale_summary">クライアントに送信する前に画像をグレースケールに変換</string>
+    <string name="mjpeg_pref_resize">画像のリサイズ</string>
+    <string name="mjpeg_pref_resize_summary">クライアントに送信する前に画像サイズを変更します</string>
+    <string name="mjpeg_pref_resize_dialog_text">画像のリサイズ率をパーセントで指定してください。\n値: 10–150 (初期値: 50)\n画面サイズ: %1$dx%2$d</string>
+    <string name="mjpeg_pref_resize_dialog_result">画像サイズ: %1$dx%2$d</string>
+    <string name="mjpeg_pref_rotate">時計回りに画像を回転する</string>
+    <string name="mjpeg_pref_rotate_summary">クライアントに送信する前に画像を回転します</string>
+    <string name="mjpeg_pref_fps">FPSリミット</string>
+    <string name="mjpeg_pref_fps_summary">最大FPSを設定します</string>
+    <string name="mjpeg_pref_fps_dialog">最大FPSを指定してください.\n値: 1–60 (初期値: 30)</string>
+    <string name="mjpeg_pref_jpeg_quality">JPEG圧縮の品質</string>
+    <string name="mjpeg_pref_jpeg_quality_summary">JPEG圧縮の品質を設定します</string>
+    <string name="mjpeg_pref_jpeg_quality_dialog">JPEG圧縮の品質を指定してください。\n値: 10–100 (初期値: 80)</string>
+
+    <string name="mjpeg_pref_settings_security">セキュリティ</string>
+    <string name="mjpeg_pref_enable_pin">PINを有効化</string>
+    <string name="mjpeg_pref_enable_pin_summary">ストリームへのアクセスをPINで保護します</string>
+    <string name="mjpeg_pref_hide_pin">ストリームの開始時に自動でPINを非表示にする</string>
+    <string name="mjpeg_pref_hide_pin_summary">ストリーミング中にPINの代わりにアスタリスクを表示します</string>
+    <string name="mjpeg_pref_new_pin_on_start">アプリ開始時に新しいPINを生成する</string>
+    <string name="mjpeg_pref_new_pin_on_start_summary">アプリケーションの開始時に新しいPINを生成します</string>
+    <string name="mjpeg_pref_auto_change_pin">PINの自動変更</string>
+    <string name="mjpeg_pref_auto_change_pin_summary">新しいストリームを開始する度に新しいPINを生成します</string>
+    <string name="mjpeg_pref_set_pin">PINを設定</string>
+    <string name="mjpeg_pref_set_pin_summary">手動でPINを設定します</string>
+    <string name="mjpeg_pref_set_pin_dialog">PINを入力してください。\n初期値: 000000</string>
+    <string name="mjpeg_pref_block_address">IPアドレスをブロック</string>
+    <string name="mjpeg_pref_block_address_summary">5回の誤ったPIN試行後、5分間クライアントのIPアドレスをブロック</string>
+
+    <string name="mjpeg_pref_settings_advanced">高度</string>
+    <string name="mjpeg_pref_wifi_only">WiFiのみ使用する</string>
+    <string name="mjpeg_pref_wifi_only_summary">WiFiインターフェースでのみサーバーを実行します</string>
+    <string name="mjpeg_pref_enable_ipv6">IPv6の有効化</string>
+    <string name="mjpeg_pref_enable_ipv6_summary">IPv6アドレスでもサーバーを実行します</string>
+    <string name="mjpeg_pref_enable_localhost">ローカルホストを有効化</string>
+    <string name="mjpeg_pref_enable_localhost_summary">ローカルホストでもサーバーを実行します</string>
+    <string name="mjpeg_pref_localhost_only">ローカルホストのみ</string>
+    <string name="mjpeg_pref_localhost_only_summary">サーバーをローカルホストのアドレスのみで実行</string>
+    <string name="mjpeg_pref_server_port">サーバー ポート</string>
+    <string name="mjpeg_pref_server_port_summary">接続を待ち受けるポートを設定します</string>
+    <string name="mjpeg_pref_server_port_dialog">接続を待ち受けるポートを設定してください。\n値: 1025–65535\n(初期値: 8080)</string>
+
+    <string name="mjpeg_error_port_in_use">ポートは既に使用されています。 他のポートを選択してください。</string>
+    <string name="mjpeg_error_invalid_media_projection">セキュリティエラー: メディアプロジェクションが無効です。 もう一度お試しください。</string>
+    <string name="mjpeg_error_ip_address_not_found">IPアドレスがありません。\n設定の「WiFiのみ使用する」を無効にしてみてください。</string>
+    <string name="mjpeg_error_wrong_image_format">システムが画像を不明な形式で返します。 修正できません。 ごめんなさい。</string>
+    <string name="mjpeg_error_unspecified">何か問題が発生しました。後で再試行してください。</string>
 
     <!--BitmapNotification-->
-    <string name="image_generator_press_start">端末で 開始 を押してください</string>
-    <string name="image_generator_go_to_new_address">新しいアドレスへ移動してください</string>
-    <string name="image_generator_reload_this_page">このページを再読み込みしてください</string>
+    <string name="mjpeg_image_generator_press_start">端末で 開始 を押してください</string>
+    <string name="mjpeg_image_generator_go_to_new_address">新しいアドレスへ移動してください</string>
+    <string name="mjpeg_image_generator_address_blocked">クライアントアドレスがブロックされました</string>
 
     <!--HTML テキスト-->
-    <string name="html_stream_require_pin">このストリームにアクセスするにはPINが必要です</string>
-    <string name="html_enter_pin">PINを入力:\u0020</string>
-    <string name="html_submit_text">送信</string>
-    <string name="html_wrong_pin">PINが間違っています!</string>
+    <string name="mjpeg_html_stream_require_pin">このストリームにアクセスするにはPINが必要です</string>
+    <string name="mjpeg_html_enter_pin">PINを入力:\u0020</string>
+    <string name="mjpeg_html_submit_text">送信</string>
+    <string name="mjpeg_html_wrong_pin">PINが間違っています!</string>
+    <string name="mjpeg_html_address_blocked">クライアントアドレスがブロックされました</string>
 </resources>

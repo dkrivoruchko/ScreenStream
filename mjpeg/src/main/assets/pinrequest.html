@@ -10,7 +10,7 @@
         html {
             height: 80%
         }
-    
+
         html {
             display: table;
             margin: auto;
@@ -18,14 +18,14 @@
             font-family: sans-serif;
             font-size: larger
         }
-    
+
         body {
             display: table-cell;
             vertical-align: middle;
             background: black;
             text-align: center
         }
-        
+
         button {
             background-color: #19769F;
             border: none;
@@ -43,7 +43,7 @@
     <img src="logo.png" height="256" width="256" />
     <p>STREAM_REQUIRE_PIN</p>
     <form action=/pinrequest autocomplete=off>ENTER_PIN
-        <input autofocus maxlength=6 name=pin pattern=[0-9]{4-6} required size=6 type=password>
+        <input autofocus maxlength=6 name=pin pattern=[0-9]{4,6} required size=6 type=password autocomplete="off">
         <button type=submit>SUBMIT_TEXT</button>
     </form>
     <p style=color:red;font-weight:700>WRONG_PIN_MESSAGE</p>

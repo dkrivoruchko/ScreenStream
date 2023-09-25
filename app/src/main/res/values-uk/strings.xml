@@ -1,197 +1,69 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="error_title">Помилка</string>
-    <string name="error_retry">Повторити</string>
-    <string name="error_exit">Вихід</string>
+    <string name="app_error_title">Помилка</string>
+    <string name="app_error_recover">Відновити</string>
 
-    <string name="app_activity_collecting_logs">Зібрати діагностичну інформацію…</string>
-    <string name="app_activity_send_logs">Надіслати діагностичну інформацію до розробника</string>
-    <string name="app_activity_send_logs_dialog_title">Надіслати діагностичну інформацію до розробника електронним листом</string>
-    <string name="app_activity_send_logs_dialog_message">Будь ласка, додайте опис проблеми:</string>
-    <string name="app_activity_send_logs_dialog_neutral">Зупинити збір діагностичної інформації</string>
+    <string name="app_activity_logs_collecting">Зібрати діагностичну інформацію…</string>
+    <string name="app_activity_logs_send">Надіслати діагностичну інформацію до розробника</string>
+    <string name="app_activity_logs_send_dialog_title">Надіслати діагностичну інформацію до розробника електронним листом</string>
+    <string name="app_activity_logs_send_dialog_message">Будь ласка, додайте опис проблеми:</string>
+    <string name="app_activity_logs_send_dialog_neutral">Зупинити збір діагностичної інформації</string>
 
-    <string name="app_update_activity_dialog_title">Доступне оновлення</string>
-    <string name="app_update_activity_dialog_message">Оновлення завантажено. Перезапустити додаток зараз?</string>
-    <string name="app_update_activity_dialog_restart">Перезапустити</string>
+    <string name="app_activity_update_dialog_title">Доступне оновлення</string>
+    <string name="app_activity_update_dialog_message">Оновлення завантажено. Перезапустити додаток зараз?</string>
+    <string name="app_activity_update_dialog_restart">Перезапустити</string>
 
-    <string name="bottom_menu_stream">Трансляція</string>
-    <string name="bottom_menu_settings">Налаштування</string>
-    <string name="bottom_menu_start">Почати</string>
-    <string name="bottom_menu_stop">Зупитини</string>
-    <string name="bottom_menu_about">Інформація</string>
-    <string name="bottom_menu_exit">Вихід</string>
+    <string name="app_bottom_menu_stream">Трансляція</string>
+    <string name="app_bottom_menu_settings">Налаштування</string>
+    <string name="app_bottom_menu_start">Почати</string>
+    <string name="app_bottom_menu_stop">Зупитини</string>
+    <string name="app_bottom_menu_about">Інформація</string>
+    <string name="app_bottom_menu_exit">Вихід</string>
 
-    <string name="stream_fragment_select_stream_mode">Виберіть режим трансляції:</string>
-    <string name="stream_fragment_mode_global">Глобальний режим (WebRTC)</string>
-    <string name="stream_fragment_mode_global_description">Опис глобального режиму</string>
-    <string name="stream_fragment_mode_global_details">
-- Працює на основі технології WebRTC\n\n
-- Захищена комунікація з повним шифруванням\n\n
-- Захист трансляції за допомогою пароля\n\n
-- Можливість надсилання відео та аудіо\n\n
-- Підключення до трансляції за допомогою унікального ідентифікатора та пароля\n\n
-- Для надсилання та отримання трансляції необхідне підключення до Інтернету\n\n
-- Індивідуальна передача даних для кожного клієнта (чим більше клієнтів, тим більш швидкий Інтернет потрібен)
-</string>
-    <string name="stream_fragment_mode_local">Локальний режим (MJPEG)</string>
-    <string name="stream_fragment_mode_local_description">Опис локального режиму</string>
-    <string name="stream_fragment_mode_local_details">
-- Працює на основі стандарту MJPEG\n\n
-- Відсутність шифрування (тільки PIN-код)\n\n
-- Можливість надсилання лише відео (як потік незалежних зображень)\n\n
-- Можливість працювати в локальній мережі без наяності Інтернету\n\n
-- Вбудований HTTP-сервер\n\n
-- Клієнти підключаються через веб-браузер, використовуючи IP-адресу, надану програмою\n\n
-- Багадо доступніх налаштувань\n\n
-- Індивідуальна передача даних для кожного клієнта (чим більше клієнтів, тим більша потрібна пропускна здатність мережі)
-</string>
-    <string name="stream_fragment_mode_global_get_new_id_description">Отримати новий ID трансляції</string>
-    <string name="stream_fragment_mode_global_show_password_description">Показати пароль трансляції</string>
-    <string name="stream_fragment_mode_global_create_new_password_description">Створити новий пароль для трансляції</string>
-    <string name="stream_fragment_mode_global_server_address">Трансляція доступна за адресою:\n%1$s</string>
-    <string name="stream_fragment_mode_global_stream_id_getting">Отримання ID трансляції…</string>
-    <string name="stream_fragment_mode_global_stream_id">ID трансляції: %1$s</string>
-    <string name="stream_fragment_mode_global_stream_password">Пароль трансляції: %1$s</string>
-    <string name="stream_fragment_mode_global_mic_off">Mікрофон</string>
-    <string name="stream_fragment_mode_global_mic_on">Mікрофон</string>
-    <string name="stream_fragment_mode_global_audio_permission_title">Дозволити запис аудіо</string>
-    <string name="stream_fragment_mode_global_audio_permission_message">Для додатку необхідний дозвіл на запис аудіо для трансляції аудіовмісту.\nБез надання цього дозволу трансляція буде без звуку.</string>
-    <string name="stream_fragment_mode_global_audio_permission_message_settings">Надання доступу до мікрофону у налаштуваннях додатку є необхідним для трансляції аудіовмісту.\n\nБез надання цього дозволу трансляція буде проводитись без звуку.</string>
-    <string name="stream_fragment_current_traffic">Трафік: %1$,.2f Mbit/s</string>
-    <string name="stream_fragment_connected_clients">Підключено клієнтів: %1$d</string>
-    <string name="stream_fragment_no_address">Адресу не знайдено</string>
-    <string name="stream_fragment_interface">Інтерфейс: %1$s</string>
-    <string name="stream_fragment_copied">Скопійовано</string>
-    <string name="stream_fragment_no_web_browser_found">Не знайдено веб-браузер</string>
-    <string name="stream_fragment_external_app_error">Помилка зовнішнього додатку</string>
-    <string name="stream_fragment_share_address">Поділитись адресою пристрою</string>
-    <string name="stream_fragment_pin">ПІН код: %1$s</string>
-    <string name="stream_fragment_pin_disabled">ПІН код вимкнено</string>
-    <string name="stream_fragment_client_disconnected">Роз\'єднано</string>
-    <string name="stream_fragment_client_slow_network">Повільне підключення</string>
-    <string name="stream_fragment_client_connected">Підключено</string>
-    <string name="stream_fragment_client_blocked">Заблоковано</string>
+    <string name="app_fragment_stream_select_stream_mode">Виберіть режим трансляції:</string>
 
-    <string name="item_device_address">Адреса пристрою:</string>
-    <string name="item_stream_address">Адреса трансляції:</string>
-    <string name="item_device_address_description_open_address">Відкрити адресу</string>
-    <string name="item_device_address_description_copy_address">Скопіювати адресу</string>
-    <string name="item_device_address_description_share_address">Поділитись адресою</string>
-    <string name="item_device_address_description_qr_address">Показати QR-код адреси</string>
-
-    <string name="permission_activity_error_title_activity_not_found">Помилка діалогу дозволів</string>
-    <string name="permission_activity_error_activity_not_found">Помилка в системі Android. Не натискайте \"Не показувати знову\" на діалозі дозволу поділитись екраном. Якщо ж це уже зроблено, будь ласка, видаліть та встановіть ще раз додаток.</string>
-    <string name="permission_activity_permission_required_title">Дозвіл обов\'язковий</string>
-    <string name="permission_activity_cast_permission_required">ScreenStream додаток вимагає дозвіл Screen Cast щоб записувати екран.</string>
+    <string name="app_activity_permission_permission_required_title">Дозвіл обов\'язковий</string>
     <string name="permission_activity_error_title">Помилка</string>
     <string name="permission_activity_error_unknown">Невідома помилка</string>
-    <string name="permission_activity_notifications_required_title">Потрібні сповіщення</string>
-    <string name="permission_activity_enable_notifications">Для запуску служби потокової передачі потрібно включити сповіщення в додатку.\n\nБудь ласка, включіть сповіщення в налаштуваннях додатку.</string>
-    <string name="permission_activity_allow_notifications">Додатку потрібен дозвіл на надсилання сповіщень, щоб мати можливість запустити службу потокової передачі. Дозвольте надсилати сповіщення.</string>
-    <string name="permission_activity_allow_notifications_settings">Додатку потрібен дозвіл на надсилання сповіщень, щоб мати можливість запустити службу потокової передачі. Дозвольте надсилання сповіщень у налаштуваннях додатку.</string>
-    <string name="permission_activity_notification_settings">Відкрити налаштування</string>
+    <string name="app_activity_permission_notifications_required_title">Потрібні сповіщення</string>
+    <string name="app_activity_permission_enable_notifications">Для запуску служби потокової передачі потрібно включити сповіщення в додатку.\n\nБудь ласка, включіть сповіщення в налаштуваннях додатку.</string>
+    <string name="app_activity_permission_allow_notifications">Додатку потрібен дозвіл на надсилання сповіщень, щоб мати можливість запустити службу потокової передачі. Дозвольте надсилати сповіщення.</string>
+    <string name="app_activity_permission_allow_notifications_settings">Додатку потрібен дозвіл на надсилання сповіщень, щоб мати можливість запустити службу потокової передачі. Дозвольте надсилання сповіщень у налаштуваннях додатку.</string>
+    <string name="app_activity_permission_notification_settings">Відкрити налаштування</string>
 
-    <string name="notification_streaming_title">Трансляція…</string>
-    <string name="notification_streaming_content">Натисніть СТОП щоб зупинити трансляцію</string>
-    <string name="notification_stop">СТОП</string>
+    <string name="app_notification_channel_streaming">Сповіщення про трансляцію</string>
+    <string name="app_notification_channel_error">Сповіщення про помилки</string>
+    <string name="app_notification_streaming_title">Трансляція…</string>
+    <string name="app_notification_streaming_content">Натисніть СТОП щоб зупинити трансляцію</string>
+    <string name="app_notification_stop">СТОП</string>
 
-    <string name="toast_slow_client_connection">Виявлено повільне клієнтське з\'єднання</string>
-
-    <string name="pref_settings_interface">Інтерфейс</string>
-    <string name="pref_locale">Мова додадку</string>
-    <string name="pref_locale_summary">Перейти до налаштувань мови додатку</string>
-    <string name="pref_night_mode">Чорна тема</string>
-    <string-array name="pref_night_mode_options_api21_28">
+    <string name="app_pref_locale">Мова додадку</string>
+    <string name="app_pref_locale_summary">Перейти до налаштувань мови додатку</string>
+    <string name="app_pref_night_mode">Чорна тема</string>
+    <string-array name="app_pref_night_mode_options_api21_28">
         <item>Завжди</item>
         <item>Налаштовано Збереженням Енергії</item>
         <item>Ніколи</item>
     </string-array>
-    <string-array name="pref_night_mode_options_api29">
+    <string-array name="app_pref_night_mode_options_api29">
         <item>Завжди</item>
         <item>Автоматично (так само як в системі)</item>
         <item>Ніколи</item>
     </string-array>
-    <string name="pref_notification">Налаштування повідомлень пристрою</string>
-    <string name="pref_notification_summary">Перейти в системні налаштування повідомлень</string>
-    <string name="pref_keep_awake">Тримати пристрій активним</string>
-    <string name="pref_keep_awake_summary">Тримати пристрій та екран активними під час трансляції</string>
-    <string name="pref_stop_on_sleep">Зупиняти трансляцію при засинанні пристрою</string>
-    <string name="pref_stop_on_sleep_summary">Зупиняти трансляцію при вимкненні екрану</string>
-    <string name="pref_detect_slow_connections">Повідомляти про повільне з\'єднання</string>
-    <string name="pref_detect_slow_connections_summary">Визначати та повідомляти про повільні підключення клієнтів</string>
-    <string name="pref_html_buttons">Увімкнути кнопки веб сторінки</string>
-    <string name="pref_html_buttons_summary">Показувати кнопки веб сторінки</string>
-    <string name="pref_html_show_press_start">Показувати \"Натисніть ПОЧАТИ на пристрої\"</string>
-    <string name="pref_html_show_press_start_summary">Показувати \"Натисніть ПОЧАТИ на пристрої\" на веб сторінці</string>
-    <string name="pref_html_back_color">Колір фону веб-сторінки</string>
-    <string name="pref_html_back_color_summary">Вибрати колір фону веб-сторінки</string>
-    <string name="pref_html_back_color_title">Вибрати колір фону</string>
-    <string name="pref_settings_image">Зображення</string>
-    <string name="pref_vr_mode">Режим віртуальної реальності</string>
-    <string name="pref_vr_mode_summary">Захоплювати лише половину екрану</string>
-    <string-array name="pref_vr_mode_options">
-        <item>Використоувати ліву частину</item>
-        <item>Використоувати праву частину</item>
-    </string-array>
-    <string name="pref_crop">Обрізати зображення</string>
-    <string name="pref_crop_summary">Обрізати зображення перед надсиланням на клієнт</string>
-    <string name="pref_crop_dialog_crop_top">Обрізати верх:</string>
-    <string name="pref_crop_dialog_crop_bottom">Обрізати низ:</string>
-    <string name="pref_crop_dialog_crop_left">Обрізати зліва:</string>
-    <string name="pref_crop_dialog_crop_right">Обрізати справа:</string>
-    <string name="pref_crop_dialog_pixels">пікселі</string>
-    <string name="pref_crop_dialog_warning_message">Обрізання зображення буде проігноровано якщо результатом буде пусте зображення</string>
-    <string name="pref_crop_dialog_error_message">Введіть коректні величини обрізання</string>
-    <string name="pref_grayscale">Режим відтінків сірого</string>
-    <string name="pref_grayscale_summary">Переводити зображення у градації сірого перед відправкою</string>
-    <string name="pref_resize">Змінити розмір зображення</string>
-    <string name="pref_resize_summary">Змінити розмір зображення перед надсиланням на клієнт</string>
-    <string name="pref_resize_dialog_text">Встановіть фактор зміни розміру у відсотках.\nВеличини: 10–150 (За замовчуванням: 50)\nРозмір екрану: %1$dx%2$d</string>
-    <string name="pref_resize_dialog_result">Розмір зображення: %1$dx%2$d</string>
-    <string name="pref_rotate">Повернути зображення за годинниковаою стрілкою</string>
-    <string name="pref_rotate_summary">Повернути зображення перед надсиланням на клієнт</string>
-    <string name="pref_fps">Встановити ліміт кадрів на секунду</string>
-    <string name="pref_fps_summary">Встановити максимальний ліміт кадрів на секунду</string>
-    <string name="pref_fps_dialog">Встановити ліміт кадрів на секунду.\nВеличини: 1–60 (За замовчуванням: 30)</string>
-    <string name="pref_jpeg_quality">Якість компресії JPEG</string>
-    <string name="pref_jpeg_quality_summary">Встановити якість компресії JPEG</string>
-    <string name="pref_jpeg_quality_dialog">Встановити якість компресії JPEG.\nВеличини: 10–100 (За замовчуванням: 80)</string>
-    <string name="pref_settings_security">Безпека</string>
-    <string name="pref_enable_pin">Увімкнути ПІН код</string>
-    <string name="pref_enable_pin_summary">Захистити трансляцію ПІН кодом</string>
-    <string name="pref_hide_pin">Ховати ПІН код при початку трансляції</string>
-    <string name="pref_hide_pin_summary">Замаскувати ПІН код під час трансляції</string>
-    <string name="pref_new_pin_on_start">Новий ПІН код при старті</string>
-    <string name="pref_new_pin_on_start_summary">Створювати новий ПІН код при старті додатку</string>
-    <string name="pref_auto_change_pin">Автоматично змінювати ПІН код</string>
-    <string name="pref_auto_change_pin_summary">Створювати новий ПІН код для кожної нової трансляції</string>
-    <string name="pref_set_pin">Встановити ПІН код</string>
-    <string name="pref_set_pin_summary">Ввести ПІН код вручну</string>
-    <string name="pref_set_pin_dialog">Введіть ПІН код.\nЗа замовчуванням: 0000</string>
-    <string name="pref_block_address">Блокувати IP адресу</string>
-    <string name="pref_block_address_summary">Заблокувати клієнтську IP адресу після 5 невірних спроб протягом 5 хвилин</string>
-    <string name="pref_settings_advanced">Розширені</string>
-    <string name="pref_wifi_only">Використоувати лише WiFi</string>
-    <string name="pref_wifi_only_summary">Запускати сервер лише на WiFi інтерфейсі</string>
-    <string name="pref_enable_ipv6">Увімкнути підтримку IPv6</string>
-    <string name="pref_enable_ipv6_summary">Запускати сервер також на IPv6 адресах</string>
-    <string name="pref_enable_localhost">Увімкнути localhost</string>
-    <string name="pref_enable_localhost_summary">Запускати сервер також на localhost адресах</string>
-    <string name="pref_localhost_only">Використоувати лише localhost</string>
-    <string name="pref_localhost_only_summary">Запускати сервер лише на localhost адресах</string>
-    <string name="pref_server_port">Порт сервера</string>
-    <string name="pref_server_port_summary">Встановити порт для вхідних підключень</string>
-    <string name="pref_server_port_dialog">Встановити порт для вхідних підключень.\nВеличини: 1025–65535\n(За замовчуванням: 8080)</string>
-    <string name="pref_logging">Увімкнути діагностичну інформацію</string>
-    <string name="pref_logging_summary">Збирати діагностичну інформацію</string>
+    <string name="app_pref_notification">Налаштування повідомлень пристрою</string>
+    <string name="app_pref_notification_summary">Перейти в системні налаштування повідомлень</string>
+    <string name="app_pref_logging">Увімкнути діагностичну інформацію</string>
+    <string name="app_pref_logging_summary">Збирати діагностичну інформацію</string>
 
-    <string name="about_fragment_app_version">Версія: %1$s</string>
-    <string name="about_fragment_developer_name">Розробник Дмитро Криворучко</string>
-    <string name="about_fragment_rate_app">Оцінити додаток</string>
-    <string name="about_fragment_write_email">Написати електронного листа розробнику</string>
-    <string name="about_fragment_write_email_dialog">Написати електронного листа розробнику?</string>
-    <string name="about_fragment_email_chooser_header">Надсилання листа…</string>
-    <string name="about_fragment_app_sources">Вихідний код додатку</string>
-    <string name="about_fragment_privacy_policy">Політика приватності</string>
-    <string name="about_fragment_license">Ліцензія</string>
+    <string name="app_about_fragment_app_version">Версія: %1$s</string>
+    <string name="app_about_fragment_developer_name">Розробник Дмитро Криворучко</string>
+    <string name="app_about_fragment_rate_app">Оцінити додаток</string>
+    <string name="app_about_fragment_write_email">Написати електронного листа розробнику</string>
+    <string name="app_about_fragment_write_email_dialog">Написати електронного листа розробнику?</string>
+    <string name="app_about_fragment_email_chooser_header">Надсилання листа…</string>
+    <string name="app_about_fragment_app_sources">Вихідний код додатку</string>
+    <string name="app_about_fragment_terms_conditions">Умови та Положення</string>
+    <string name="app_about_fragment_privacy_policy">Політика приватності</string>
+    <string name="app_about_fragment_consent_revocation">Відкликання згоди</string>
+    <string name="app_about_fragment_license">Ліцензія</string>
 </resources>

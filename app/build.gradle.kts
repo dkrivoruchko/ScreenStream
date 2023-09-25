@@ -6,6 +6,7 @@ plugins {
     id("org.jetbrains.kotlin.plugin.parcelize")
     id("com.google.gms.google-services")
     id("com.google.firebase.crashlytics")
+    id("com.google.devtools.ksp")
 }
 
 android {
@@ -29,8 +30,8 @@ android {
         applicationId = "info.dvkr.screenstream"
         minSdk = 23
         targetSdk = 34
-        versionCode = 40010
-        versionName = "4.0.10"
+        versionCode = 40012
+        versionName = "4.0.12"
 
         // https://medium.com/@crafty/no-if-you-do-that-then-you-cant-use-newer-features-on-older-platforms-e-g-fa595333c0a4
         vectorDrawables.useSupportLibrary = true
@@ -49,16 +50,12 @@ android {
             signingConfig = signingConfigs.getByName("debug")
             applicationIdSuffix = ".dev"
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            buildConfigField("String", "SIGNALING_SERVER", localProps.getProperty("SIGNALING_SERVER_DEV"))
-            buildConfigField("String", "CLOUD_PROJECT_NUMBER", localProps.getProperty("CLOUD_PROJECT_NUMBER_DEV"))
         }
 
         release {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            buildConfigField("String", "SIGNALING_SERVER", localProps.getProperty("SIGNALING_SERVER_RELEASE"))
-            buildConfigField("String", "CLOUD_PROJECT_NUMBER", localProps.getProperty("CLOUD_PROJECT_NUMBER_RELEASE"))
         }
     }
 
@@ -78,8 +75,13 @@ android {
         }
     }
 
-    buildFeatures {
-        viewBinding = true
+    applicationVariants.all {
+        val variantName = name
+        sourceSets {
+            getByName("main") {
+                java.srcDir(File("build/generated/ksp/$variantName/kotlin"))
+            }
+        }
     }
 
     compileOptions {
@@ -91,43 +93,29 @@ android {
     kotlinOptions {
         jvmTarget = JavaVersion.VERSION_11.toString()
         languageVersion = "1.9"
+        freeCompilerArgs += "-Xexplicit-api=strict"
     }
 }
 
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.3")
 
-    implementation(project(":common"))
-    implementation(project(":mjpeg"))
-    implementation(project(":webrtc"))
+    ksp("io.insert-koin:koin-ksp-compiler:1.3.0")
 
-    implementation("androidx.core:core-ktx:1.10.1")
-    implementation("androidx.activity:activity-ktx:1.7.2")
-    implementation("androidx.fragment:fragment-ktx:1.6.1")
-    implementation("androidx.appcompat:appcompat:1.6.1")
-    implementation("androidx.constraintlayout:constraintlayout:2.1.4")
-    implementation("androidx.recyclerview:recyclerview:1.3.1")
-    implementation("com.google.android.material:material:1.9.0")
-    implementation("androidx.window:window:1.1.0")
-    implementation("androidx.lifecycle:lifecycle-process:2.6.1")
-    implementation("androidx.navigation:navigation-fragment-ktx:2.7.1")
-    implementation("androidx.navigation:navigation-ui-ktx:2.7.1")
+    implementation("androidx.lifecycle:lifecycle-process:2.6.2")
+    implementation("androidx.navigation:navigation-fragment-ktx:2.7.3")
+    implementation("androidx.navigation:navigation-ui-ktx:2.7.3")
 
-    implementation("com.afollestad.material-dialogs:core:3.3.0")
-    implementation("com.afollestad.material-dialogs:color:3.3.0")
-    implementation("com.afollestad.material-dialogs:input:3.3.0")
-    implementation("com.afollestad.material-dialogs:lifecycle:3.3.0")
     // Temp fix for https://github.com/afollestad/material-dialogs/issues/1825
     implementation(fileTree("libs/bottomsheets-release.aar"))
-//    implementation("com.afollestad.material-dialogs:bottomsheets:3.3.0")
 
-    implementation("io.insert-koin:koin-android:3.4.3")
-
-    "firebaseImplementation"("com.google.android.gms:play-services-basement:18.2.0")
+    implementation(project(":common"))
+    implementation(project(":mjpeg"))
+    "firebaseImplementation"(project(":webrtc"))
     "firebaseImplementation"("com.google.android.play:app-update-ktx:2.1.0")
     "firebaseImplementation"("com.google.firebase:firebase-analytics:21.3.0")
-    "firebaseImplementation"("com.google.firebase:firebase-crashlytics:18.4.1")
-    "firebaseImplementation"("com.google.android.gms:play-services-ads:22.3.0")
+    "firebaseImplementation"("com.google.firebase:firebase-crashlytics:18.4.3")
+    "firebaseImplementation"("com.google.android.gms:play-services-ads:22.4.0")
 
 //    debugImplementation("com.squareup.leakcanary:leakcanary-android:2.12")
 }

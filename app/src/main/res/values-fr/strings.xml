@@ -1,98 +1,69 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="error_title">Erreur</string>
-    <string name="error_exit">Exit</string>
-    <string name="app_activity_collecting_logs">Collecte des journaux d\'application…</string>
-    <string name="app_activity_send_logs">Envoyer des journaux au développeur</string>
+    <string name="app_error_title">Erreur</string>
+    <string name="app_error_recover">Récupérer</string>
 
-    <string name="bottom_menu_stream">Diffusion</string>
-    <string name="bottom_menu_settings">Réglages</string>
-    <string name="bottom_menu_start">Démarrer</string>
-    <string name="bottom_menu_stop">Arrêtez</string>
-    <string name="bottom_menu_about">À propos de</string>
-    <string name="bottom_menu_exit">Quitter</string>
+    <string name="app_activity_logs_collecting">Collecte des journaux d\'application…</string>
+    <string name="app_activity_logs_send">Envoyer des journaux au développeur</string>
+    <string name="app_activity_logs_send_dialog_title">Envoyer les journaux par e-mail au développeur</string>
+    <string name="app_activity_logs_send_dialog_message">Veuillez ajouter une description du problème:</string>
+    <string name="app_activity_logs_send_dialog_neutral">Arrêter l\'enregistrement</string>
 
-    <string name="stream_fragment_current_traffic">Trafic : %1$,.2f Mbit/s</string>
-    <string name="stream_fragment_connected_clients">Clients connectés : %1$d</string>
-    <string name="stream_fragment_no_address">Pas d\'adresse trouvée</string>
-    <string name="stream_fragment_interface">Interface: %1$s</string>
-    <string name="stream_fragment_copied">Copied</string>
-    <string name="stream_fragment_no_web_browser_found">Aucun navigateur Web trouvé</string>
-    <string name="stream_fragment_pin">Code: %1$s</string>
-    <string name="stream_fragment_pin_disabled">Le code est désactivé</string>
-    <string name="stream_fragment_client_disconnected">Déconnecté</string>
-    <string name="stream_fragment_client_slow_network">Connection lente</string>
-    <string name="stream_fragment_client_connected">Connecté</string>
+    <string name="app_activity_update_dialog_title">Mise à jour disponible</string>
+    <string name="app_activity_update_dialog_message">Une mise à jour vient d\'être téléchargée. Redémarrer l\'application maintenant?</string>
+    <string name="app_activity_update_dialog_restart">Redémarrer</string>
 
-    <string name="item_device_address">Adresse de l\'appareil:</string>
+    <string name="app_bottom_menu_stream">Diffusion</string>
+    <string name="app_bottom_menu_settings">Réglages</string>
+    <string name="app_bottom_menu_start">Démarrer</string>
+    <string name="app_bottom_menu_stop">Arrêtez</string>
+    <string name="app_bottom_menu_about">À propos de</string>
+    <string name="app_bottom_menu_exit">Quitter</string>
 
-    <string name="permission_activity_error_title_activity_not_found">Erreur du dialogue d\'autorisation</string>
-    <string name="permission_activity_error_activity_not_found">Bug Android. Veuillez ne pas sélectionner \"Ne plus demander\" dans le dialogue de demande de permission de capture d\'écran. Si vous l\'avez déjà fait, réinstallez l\'application.</string>
-    <string name="permission_activity_permission_required_title">Permission requise</string>
-    <string name="permission_activity_cast_permission_required">L\'application requiert l\'autorisation Cast pour capturer l\'écran.</string>
+    <string name="app_fragment_stream_select_stream_mode">Sélectionnez le mode de flux:</string>
+
     <string name="permission_activity_error_title">Erreur</string>
     <string name="permission_activity_error_unknown">Erreur inconnue</string>
+    <string name="app_activity_permission_permission_required_title">Permission requise</string>
+    <string name="app_activity_permission_notifications_required_title">Notifications requises</string>
+    <string name="app_activity_permission_enable_notifications">L\'application nécessite l\'activation des notifications pour démarrer le service de streaming.\n\nVeuillez activer les notifications dans les paramètres de l\'application.</string>
+    <string name="app_activity_permission_allow_notifications">L\'application nécessite l\'autorisation d\'envoyer des notifications pour pouvoir démarrer le service de streaming.\n\nVeuillez autoriser l\'envoi de notifications.</string>
+    <string name="app_activity_permission_allow_notifications_settings">L\'application nécessite l\'autorisation d\'envoyer des notifications pour pouvoir démarrer le service de streaming.\n\nVeuillez autoriser l\'envoi de notifications dans les paramètres de l\'application.</string>
+    <string name="app_activity_permission_notification_settings">Ouvrir les paramètres</string>
 
-    <string name="notification_streaming_title">Diffusion…</string>
-    <string name="notification_streaming_content">Appuyez sur Arrêtez pour arrêter la diffusion</string>
-    <string name="notification_stop">Arrêtez</string>
+    <string name="app_notification_channel_streaming">Notifications de diffusion</string>
+    <string name="app_notification_channel_error">Notifications d\'erreur</string>
+    <string name="app_notification_streaming_title">Diffusion…</string>
+    <string name="app_notification_streaming_content">Appuyez sur Arrêtez pour arrêter la diffusion</string>
+    <string name="app_notification_stop">Arrêtez</string>
 
-    <string name="toast_slow_client_connection">Client avec connection lente détecté</string>
-
-    <string name="pref_settings_interface">Interface</string>
-    <string name="pref_night_mode">Thème sombre</string>
-    <string-array name="pref_night_mode_options_api21_28">
+    <string name="app_pref_locale">Langue de l\'application</string>
+    <string name="app_pref_locale_summary">Ouvrir les paramètres de langue de l\'application</string>
+    <string name="app_pref_night_mode">Thème sombre</string>
+    <string-array name="app_pref_night_mode_options_api21_28">
         <item>Toujours</item>
         <item>Économiseur de batterie seulement</item>
         <item>Jamais</item>
     </string-array>
-    <string-array name="pref_night_mode_options_api29">
+    <string-array name="app_pref_night_mode_options_api29">
         <item>Toujours</item>
         <item>Automatiquement (système de suivi)</item>
         <item>Jamais</item>
     </string-array>
-    <string name="pref_stop_on_sleep">Arrêter en veille</string>
-    <string name="pref_stop_on_sleep_summary">Arrête la diffusion si l\'écran s\'éteint</string>
-    <string name="pref_html_buttons">Activer les boutons de page Web</string>
-    <string name="pref_html_buttons_summary">Afficher les boutons de contrôle sur la page Web</string>
-    <string name="pref_html_back_color">Couleur d\'arrière-plan de la page</string>
-    <string name="pref_html_back_color_summary">Définir la couleur d\'arrière-plan de la page Web</string>
-    <string name="pref_html_back_color_title">Selection de la couleur d\'arrière-plan</string>
-    <string name="pref_settings_image">Image</string>
-    <string name="pref_resize">Redimensionnement</string>
-    <string name="pref_resize_summary">Redimensionne l\'image pour l\'envoi au client</string>
-    <string name="pref_resize_dialog_text">Définissez le pourcentage de redimensionnement de l\'image.\nValeurs : 10–150 (par défaut : 50)\nDéfinition de l\'écran : %1$dx%2$d</string>
-    <string name="pref_resize_dialog_result">Définition de l\'image : %1$dx%2$d</string>
-    <string name="pref_rotate">Faire pivoter l\'image</string>
-    <string name="pref_rotate_summary">Faire pivoter l\'image pour l\'envoi au client</string>
-    <string name="pref_jpeg_quality">Qualité de la compression JPEG</string>
-    <string name="pref_jpeg_quality_summary">Définir la qualité de la compression JPEG</string>
-    <string name="pref_jpeg_quality_dialog">Set la qualité de compression JPEG.\nValeurs : 10–100 (par défaut : 80)</string>
-    <string name="pref_settings_security">Sécurité</string>
-    <string name="pref_enable_pin">Activer le code</string>
-    <string name="pref_enable_pin_summary">Protège l\'accès au flux avec un code</string>
-    <string name="pref_hide_pin">Masquer le code au démarrage de la diffusion</string>
-    <string name="pref_hide_pin_summary">Montre des astérisques au lieu du code pendant la diffusion</string>
-    <string name="pref_new_pin_on_start">Nouveau code au démarrage</string>
-    <string name="pref_new_pin_on_start_summary">Génère une nouveau code au démarrage de l\'application</string>
-    <string name="pref_auto_change_pin">Changement automatique du code</string>
-    <string name="pref_auto_change_pin_summary">Génère un nouveau code pour chaque nouvelle diffusion</string>
-    <string name="pref_set_pin">Code</string>
-    <string name="pref_set_pin_summary">Définir manuellement le code</string>
-    <string name="pref_set_pin_dialog">Entrez un code.\nPar défaut : 0000</string>
-    <string name="pref_settings_advanced">Avancé</string>
-    <string name="pref_wifi_only">WiFi uniquement</string>
-    <string name="pref_wifi_only_summary">Le serveur ne fonctionne que sur WiFi</string>
-    <string name="pref_server_port">Port d\'écoute</string>
-    <string name="pref_server_port_summary">Définir un port pour les connections entrantes</string>
-    <string name="pref_server_port_dialog">Définissez un port pour les connections entrantes.\nValeurs : 1025–65535\n(par défaut : 8080)</string>
-    <string name="pref_logging">Activer les journaux d\'application</string>
-    <string name="pref_logging_summary">Collecter les journaux d\'application</string>
+    <string name="app_pref_notification">Paramètres de notification de l\'appareil</string>
+    <string name="app_pref_notification_summary">Ouvrir les paramètres de notification du système</string>
+    <string name="app_pref_logging">Activer les journaux d\'application</string>
+    <string name="app_pref_logging_summary">Collecter les journaux d\'application</string>
 
-    <string name="about_fragment_app_version">Version: %1$s</string>
-    <string name="about_fragment_developer_name">Développé par Dmitriy Krivoruchko</string>
-    <string name="about_fragment_rate_app">Évaluer l\'application</string>
-    <string name="about_fragment_write_email">Envoyer un courriel au développeur</string>
-    <string name="about_fragment_email_chooser_header">Envoi du courriel…</string>
-    <string name="about_fragment_app_sources">Code source de l\'application</string>
+    <string name="app_about_fragment_app_version">Version: %1$s</string>
+    <string name="app_about_fragment_developer_name">Développé par Dmytro Kryvoruchko</string>
+    <string name="app_about_fragment_rate_app">Évaluer l\'application</string>
+    <string name="app_about_fragment_write_email">Envoyer un courriel au développeur</string>
+    <string name="app_about_fragment_write_email_dialog">Écrire un e-mail au développeur?</string>
+    <string name="app_about_fragment_email_chooser_header">Envoi du courriel…</string>
+    <string name="app_about_fragment_app_sources">Code source de l\'application</string>
+    <string name="app_about_fragment_terms_conditions">Conditions générales</string>
+    <string name="app_about_fragment_privacy_policy">Politique de confidentialité</string>
+    <string name="app_about_fragment_consent_revocation">Révocation du consentement</string>
+    <string name="app_about_fragment_license">Licence</string>
 </resources>

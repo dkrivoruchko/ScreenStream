@@ -1,17 +1,137 @@
 <resources>
-    <string name="error_port_in_use">Puerto en uso. Escoja otro por favor.</string>
-    <string name="error_invalid_media_projection">Error de seguridad: Proyección de medios no válida. Intente nuevamente.</string>
-    <string name="error_ip_address_not_found">Dirección IP no encontrada.\nIntente deshabilitar \"Use solo WiFi\" en Opciones.</string>
-    <string name="error_wrong_image_format">El sistema devuelve la imagen en formato desconocido. No hay soluciones disponibles. Lo sentimos.</string>
+    <string name="mjpeg_error_recover">Recuperar</string>
+
+    <string name="mjpeg_stream_fragment_mode_local">Modo local (MJPEG)</string>
+    <string name="mjpeg_stream_fragment_mode_local_description">Descripción del modo local</string>
+    <string name="mjpeg_stream_fragment_mode_local_details">
+- Impulsado por el estándar MJPEG.\n\n
+- Utiliza el PIN para la seguridad (sin cifrado).\n\n
+- Envía video como una serie de imágenes independientes (sin audio).\n\n
+- Funciona sin conexión a Internet dentro de su red local.\n\n
+- Servidor HTTP incorporado.\n\n
+- Funciona con redes WiFi y/o móviles, compatible con IPv4 e IPv6.\n\n
+- Los clientes se conectan a través del navegador web utilizando la dirección IP proporcionada por la aplicación.\n\n
+- Altamente personalizable.\n\n
+- Transmisión de datos individual para cada cliente (cuantos más clientes tenga, más ancho de banda de red necesitará).
+</string>
+
+    <string name="mjpeg_item_device_address">Dirección local:</string>
+    <string name="mjpeg_stream_fragment_no_address">Dirección no encontrada</string>
+    <string name="mjpeg_stream_fragment_interface">Interfaz: %1$s</string>
+    <string name="mjpeg_stream_fragment_copied">Copiado</string>
+    <string name="mjpeg_stream_fragment_no_web_browser_found">Navegador web no encontrado</string>
+    <string name="mjpeg_stream_fragment_external_app_error">Error externo en aplicación</string>
+    <string name="mjpeg_stream_fragment_share_address">Compartir dirección</string>
+    <string name="mjpeg_item_device_address_description_open_address">Abrir dirección</string>
+    <string name="mjpeg_item_device_address_description_copy_address">Copiar dirección</string>
+    <string name="mjpeg_item_device_address_description_share_address">Compartir dirección</string>
+    <string name="mjpeg_item_device_address_description_qr_address">Mostrar dirección como código QR</string>
+    <string name="mjpeg_pref_settings">Configuración de transmisión</string>
+    <string name="mjpeg_stream_fragment_pin">Pin: %1$s</string>
+    <string name="mjpeg_stream_fragment_pin_disabled">PIN deshabilitado</string>
+    <string name="mjpeg_stream_fragment_current_traffic">Tráfico: %1$,.2f Mbit/s</string>
+    <string name="mjpeg_stream_fragment_connected_clients">Clientes conectados: %1$d</string>
+    <string name="mjpeg_stream_fragment_client_disconnected">Desconectado</string>
+    <string name="mjpeg_stream_fragment_client_slow_network">Conexión lenta</string>
+    <string name="mjpeg_stream_fragment_client_connected">Conectado</string>
+    <string name="mjpeg_stream_fragment_client_blocked">Bloqueado</string>
+
+    <string name="mjpeg_stream_fragment_cast_permission_activity_not_found_title">Permission dialog error</string>
+    <string name="mjpeg_stream_fragment_cast_permission_activity_not_found">Android bug. No marque \"No mostrar otra vez\" en el cuadro donde se solicitan los derechos para capturar la pantalla. Si lo considera, reinstale la aplicación.</string>
+    <string name="mjpeg_stream_fragment_cast_permission_required_title">Permiso requerido</string>
+    <string name="mjpeg_stream_fragment_cast_permission_required">WIMO solicita permiso para capturar pantalla.</string>
+
+    <string name="mjpeg_toast_slow_client_connection">Conexión lenta detectada</string>
+
+    <string name="mjpeg_pref_settings_interface">Interfaz</string>
+    <string name="mjpeg_pref_keep_awake">Mantener el dispositivo activo</string>
+    <string name="mjpeg_pref_keep_awake_summary">Mantener el dispositivo y la pantalla activos durante la transmisión</string>
+    <string name="mjpeg_pref_stop_on_sleep">Detener transmisión al dormir</string>
+    <string name="mjpeg_pref_stop_on_sleep_summary">Detener transmisión si la apaga la pantalla</string>
+    <string name="mjpeg_pref_detect_slow_connections">Notificar conexiones lentas</string>
+    <string name="mjpeg_pref_detect_slow_connections_summary">Detectar y notificar las conexiones lentas</string>
+    <string name="mjpeg_pref_html_buttons">Habilitar botones en la Página Web</string>
+    <string name="mjpeg_pref_html_buttons_summary">Mostrar botones de control en la Página Web</string>
+    <string name="mjpeg_pref_html_show_press_start">Mostrar "Presiona INICIAR en el dispositivo"</string>
+    <string name="mjpeg_pref_html_show_press_start_summary">Mostrar "Presiona INICIAR en el dispositivo" en la página web</string>
+    <string name="mjpeg_pref_html_back_color">Color de fondo de la Página Web</string>
+    <string name="mjpeg_pref_html_back_color_summary">Poner color de fondo de la Página Web</string>
+    <string name="mjpeg_pref_html_back_color_title">Seleccionar color de fondo</string>
+
+    <string name="mjpeg_pref_settings_image">Imagen</string>
+    <string name="mjpeg_pref_vr_mode">Modo Realidad Virtual</string>
+    <string name="mjpeg_pref_vr_mode_summary">Capturar contenido en modo de realidad aumentada</string>
+    <string-array name="mjpeg_pref_vr_mode_options">
+        <item>Usar región izquierda</item>
+        <item>Usar región derecha</item>
+    </string-array>
+    <string name="mjpeg_pref_crop">Cortar imagen</string>
+    <string name="mjpeg_pref_crop_summary">Cortar imagen antes de enviar al cliente</string>
+    <string name="mjpeg_pref_crop_dialog_crop_top">Cortar borde superior:</string>
+    <string name="mjpeg_pref_crop_dialog_crop_bottom">Cortar borde inferior:</string>
+    <string name="mjpeg_pref_crop_dialog_crop_left">Cortar borde izquierdo:</string>
+    <string name="mjpeg_pref_crop_dialog_crop_right">Cortar borde derecho:</string>
+    <string name="mjpeg_pref_crop_dialog_pixels">píxeles</string>
+    <string name="mjpeg_pref_crop_dialog_warning_message">Cortar se ignora si el resultado es una imagen vacía</string>
+    <string name="mjpeg_pref_crop_dialog_error_message">Introdusca un valor válido para el corte</string>
+    <string name="mjpeg_pref_grayscale">Modo de escala de grises</string>
+    <string name="mjpeg_pref_grayscale_summary">Imagen en escala de grises antes de enviar al cliente</string>
+    <string name="mjpeg_pref_resize">Redimensionar la imagen</string>
+    <string name="mjpeg_pref_resize_summary">Redimensionar la imagen antes de enviar al cliente</string>
+    <string name="mjpeg_pref_resize_dialog_text">Establesca un factor de aumento de la imagen en porciento.\nValores: 10–150 (Por defecto: 50)\nTamaño: %1$dx%2$d</string>
+    <string name="mjpeg_pref_resize_dialog_result">Tamaño de imagen: %1$dx%2$d</string>
+    <string name="mjpeg_pref_rotate">Rotar imagen en sentido del reloj</string>
+    <string name="mjpeg_pref_rotate_summary">Rotar imagen antes de enviar al cliente</string>
+    <string name="mjpeg_pref_fps">Limitar cuadros por segundo</string>
+    <string name="mjpeg_pref_fps_summary">Establecer el máximo de cuadros por segundo</string>
+    <string name="mjpeg_pref_fps_dialog">Establecer el máximo de cuadros por segundo.\nValores: 1–60 (Predeterminado: 30)</string>
+    <string name="mjpeg_pref_jpeg_quality">Calidad de compresión JPEG</string>
+    <string name="mjpeg_pref_jpeg_quality_summary">Ajuste la calidad de compresión JPEG</string>
+    <string name="mjpeg_pref_jpeg_quality_dialog">Ajuste la calidad de compresión JPEG.\nValores: 10–100 (Por defecto: 80)</string>
+
+    <string name="mjpeg_pref_settings_security">Seguridad</string>
+    <string name="mjpeg_pref_enable_pin">Habilitar PIN</string>
+    <string name="mjpeg_pref_enable_pin_summary">Proteger acceso a transmisión mediante PIN</string>
+    <string name="mjpeg_pref_hide_pin">Auto ocultar el PIN al iniciar la transmisión</string>
+    <string name="mjpeg_pref_hide_pin_summary">Mostrar asteriscos en vez del PIN mientras transmite</string>
+    <string name="mjpeg_pref_new_pin_on_start">PIN nuevo al iniciar</string>
+    <string name="mjpeg_pref_new_pin_on_start_summary">Generar nuevo PIN al iniciar la aplicación</string>
+    <string name="mjpeg_pref_auto_change_pin">Auto cambiar PIN</string>
+    <string name="mjpeg_pref_auto_change_pin_summary">Generar un PIN nuevo por cada transmisión</string>
+    <string name="mjpeg_pref_set_pin">Ponga el PIN</string>
+    <string name="mjpeg_pref_set_pin_summary">Introdusca el PIN manualmente</string>
+    <string name="mjpeg_pref_set_pin_dialog">Introdusca PIN.\nPor defecto: 000000</string>
+    <string name="mjpeg_pref_block_address">Bloquear dirección IP</string>
+    <string name="mjpeg_pref_block_address_summary">Bloquear la dirección IP del cliente después de 5 intentos de PIN incorrectos durante 5 minutos</string>
+
+    <string name="mjpeg_pref_settings_advanced">Avanzado</string>
+    <string name="mjpeg_pref_wifi_only">Usar sólo WiFi</string>
+    <string name="mjpeg_pref_wifi_only_summary">Correr servidor sólo por WiFi</string>
+    <string name="mjpeg_pref_enable_ipv6">Habilitar soporte IPv6</string>
+    <string name="mjpeg_pref_enable_ipv6_summary">Correr servidor en direcciones IPv6 también</string>
+    <string name="mjpeg_pref_enable_localhost">Habilitar localhost</string>
+    <string name="mjpeg_pref_enable_localhost_summary">Ejecutar el servidor también en direcciones de localhost</string>
+    <string name="mjpeg_pref_localhost_only">Solo localhost</string>
+    <string name="mjpeg_pref_localhost_only_summary">Ejecutar el servidor solo en direcciones de localhost</string>
+    <string name="mjpeg_pref_server_port">Puerto del Servidor</string>
+    <string name="mjpeg_pref_server_port_summary">Puerto para conexiones entrantes</string>
+    <string name="mjpeg_pref_server_port_dialog">Puerto para conexiones entrantes.\nValores: 1025–65535\n(Por defecto: 8080)</string>
+
+    <string name="mjpeg_error_port_in_use">Puerto en uso. Escoja otro por favor.</string>
+    <string name="mjpeg_error_invalid_media_projection">Error de seguridad: Proyección de medios no válida. Intente nuevamente.</string>
+    <string name="mjpeg_error_ip_address_not_found">Dirección IP no encontrada.\nIntente deshabilitar \"Use solo WiFi\" en Opciones.</string>
+    <string name="mjpeg_error_wrong_image_format">El sistema devuelve la imagen en formato desconocido. No hay soluciones disponibles. Lo sentimos.</string>
+    <string name="mjpeg_error_unspecified">Algo salió mal. Por favor, inténtalo de nuevo más tarde.</string>
 
     <!--BitmapNotification-->
-    <string name="image_generator_press_start">Presiona Iniciar en la pantalla</string>
-    <string name="image_generator_go_to_new_address">Vaya a la dirección</string>
-    <string name="image_generator_reload_this_page">Recarga esta página</string>
+    <string name="mjpeg_image_generator_press_start">Presiona Iniciar en la pantalla</string>
+    <string name="mjpeg_image_generator_go_to_new_address">Vaya a la dirección</string>
+    <string name="mjpeg_image_generator_address_blocked">Dirección del cliente bloqueada</string>
 
     <!--HTML text-->
-    <string name="html_stream_require_pin">Necesitas un PIN para acceder</string>
-    <string name="html_enter_pin">Introdusca el PIN:\u0020</string>
-    <string name="html_submit_text">Enviar</string>
-    <string name="html_wrong_pin">PIN incorrecto!</string>
+    <string name="mjpeg_html_stream_require_pin">Necesitas un PIN para acceder</string>
+    <string name="mjpeg_html_enter_pin">Introdusca el PIN:\u0020</string>
+    <string name="mjpeg_html_submit_text">Enviar</string>
+    <string name="mjpeg_html_wrong_pin">PIN incorrecto!</string>
+    <string name="mjpeg_html_address_blocked">Dirección del cliente bloqueada</string>
 </resources>

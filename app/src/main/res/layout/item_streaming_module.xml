@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal">
+
+    <com.google.android.material.radiobutton.MaterialRadioButton
+        android:id="@+id/rb_item_streaming_module"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:button="@null"
+        android:buttonTint="@color/colorAccent"
+        android:maxLines="1"
+        android:paddingStart="8dp"
+        android:paddingEnd="8dp"
+        android:textAppearance="?android:attr/textAppearanceListItem"
+        android:textColor="@color/colorSettingsHeader"
+        tools:text="Streaming module name" />
+
+    <androidx.appcompat.widget.AppCompatImageButton
+        android:id="@+id/b_item_streaming_module_details"
+        style="?attr/toolbarNavigationButtonStyle"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:tint="@color/colorAccent"
+        app:srcCompat="@drawable/ic_mode_details_24dp"
+        tools:contentDescription="Streaming module description" />
+</LinearLayout>

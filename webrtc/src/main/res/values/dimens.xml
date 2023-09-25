@@ -1,0 +1,20 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <dimen name="fab_size_normal">56dp</dimen>
+
+    <dimen name="fragments_margin_bottom">72dp</dimen>
+    <dimen name="fragment_stream_fab_margin_bottom">36dp</dimen>
+    <dimen name="fragment_stream_qrcode_size">256dp</dimen>
+    <dimen name="fragment_settings_item_start_end">16dp</dimen>
+    <dimen name="fragment_settings_item_min_height">72dp</dimen>
+    <dimen name="fragment_settings_item_margin_end">52dp</dimen>
+
+    // Fix for https://github.com/material-components/material-components-android/issues/139
+    <dimen name="design_bottom_navigation_text_size" tools:override="true">12sp</dimen>
+    <dimen name="design_bottom_navigation_active_text_size" tools:override="true">12sp</dimen>
+
+    <dimen name="fragment_stream_color_graph_line_width">2dp</dimen>
+    <dimen name="fragment_stream_color_graph_guideline_width">0.4dp</dimen>
+    <dimen name="fragment_stream_color_graph_guideline_dash_length">4dp</dimen>
+    <dimen name="fragment_stream_color_graph_mark_text_size">14sp</dimen>
+    <dimen name="fragment_stream_color_graph_mark_text_padding">4dp</dimen>
+</resources>

@@ -1,19 +1,137 @@
 <resources>
-    <string name="error_port_in_use">Порт уже у використанні. Виберіть інший.</string>
-    <string name="error_invalid_media_projection">Помилка безпеки: Неправильна проекція медіа. Спробуйте ще раз.</string>
-    <string name="error_ip_address_not_found">IP адресу не знайдено.\nСпробуйте вимкнути \"Використоувати лише WiFi\" у налаштуваннях.</string>
-    <string name="error_wrong_image_format">Система повертає картинку у невідомому форматі. Неможливо виправити. Перепрошуємо.</string>
+    <string name="mjpeg_error_recover">Відновити</string>
+
+    <string name="mjpeg_stream_fragment_mode_local">Локальний режим (MJPEG)</string>
+    <string name="mjpeg_stream_fragment_mode_local_description">Опис локального режиму</string>
+    <string name="mjpeg_stream_fragment_mode_local_details">
+- Працює на основі стандарту MJPEG\n\n
+- Відсутність шифрування (тільки PIN-код)\n\n
+- Можливість надсилання лише відео (як потік незалежних зображень)\n\n
+- Можливість працювати в локальній мережі без наяності Інтернету\n\n
+- Вбудований HTTP-сервер\n\n
+- Клієнти підключаються через веб-браузер, використовуючи IP-адресу, надану додатком\n\n
+- Багадо доступніх налаштувань\n\n
+- Індивідуальна передача даних для кожного клієнта (чим більше клієнтів, тим більша потрібна пропускна здатність мережі)
+</string>
+
+    <string name="mjpeg_item_device_address">Адреса пристрою:</string>
+
+    <string name="mjpeg_stream_fragment_no_address">Адресу не знайдено</string>
+    <string name="mjpeg_stream_fragment_interface">Інтерфейс: %1$s</string>
+    <string name="mjpeg_stream_fragment_copied">Скопійовано</string>
+    <string name="mjpeg_stream_fragment_no_web_browser_found">Не знайдено веб-браузер</string>
+    <string name="mjpeg_stream_fragment_external_app_error">Помилка зовнішнього додатку</string>
+    <string name="mjpeg_stream_fragment_share_address">Поділитись адресою пристрою</string>
+    <string name="mjpeg_item_device_address_description_open_address">Відкрити адресу</string>
+    <string name="mjpeg_item_device_address_description_copy_address">Скопіювати адресу</string>
+    <string name="mjpeg_item_device_address_description_share_address">Поділитись адресою</string>
+    <string name="mjpeg_item_device_address_description_qr_address">Показати QR-код адреси</string>
+    <string name="mjpeg_pref_settings">Налаштування трансляції</string>
+    <string name="mjpeg_stream_fragment_pin">ПІН код: %1$s</string>
+    <string name="mjpeg_stream_fragment_pin_disabled">ПІН код вимкнено</string>
+    <string name="mjpeg_stream_fragment_current_traffic">Трафік: %1$,.2f Mbit/s</string>
+    <string name="mjpeg_stream_fragment_connected_clients">Підключено клієнтів: %1$d</string>
+    <string name="mjpeg_stream_fragment_client_disconnected">Роз\'єднано</string>
+    <string name="mjpeg_stream_fragment_client_slow_network">Повільне підключення</string>
+    <string name="mjpeg_stream_fragment_client_connected">Підключено</string>
+    <string name="mjpeg_stream_fragment_client_blocked">Заблоковано</string>
+
+    <string name="mjpeg_stream_fragment_cast_permission_activity_not_found_title">Помилка діалогу дозволів</string>
+    <string name="mjpeg_stream_fragment_cast_permission_activity_not_found">Помилка в системі Android. Не натискайте \"Не показувати знову\" на діалозі дозволу поділитись екраном. Якщо ж це уже зроблено, будь ласка, видаліть та встановіть ще раз додаток.</string>
+    <string name="mjpeg_stream_fragment_cast_permission_required_title">Потрібен дозвіл</string>
+    <string name="mjpeg_stream_fragment_cast_permission_required">ScreenStream додаток вимагає дозвіл Screen Cast щоб записувати екран.</string>
+
+    <string name="mjpeg_toast_slow_client_connection">Виявлено повільне клієнтське з\'єднання</string>
+
+    <string name="mjpeg_pref_settings_interface">Інтерфейс</string>
+    <string name="mjpeg_pref_keep_awake">Тримати пристрій активним</string>
+    <string name="mjpeg_pref_keep_awake_summary">Тримати пристрій та екран активними під час трансляції</string>
+    <string name="mjpeg_pref_stop_on_sleep">Зупиняти трансляцію при засинанні пристрою</string>
+    <string name="mjpeg_pref_stop_on_sleep_summary">Зупиняти трансляцію при вимкненні екрану</string>
+    <string name="mjpeg_pref_detect_slow_connections">Повідомляти про повільне з\'єднання</string>
+    <string name="mjpeg_pref_detect_slow_connections_summary">Визначати та повідомляти про повільні підключення клієнтів</string>
+    <string name="mjpeg_pref_html_buttons">Увімкнути кнопки веб сторінки</string>
+    <string name="mjpeg_pref_html_buttons_summary">Показувати кнопки веб сторінки</string>
+    <string name="mjpeg_pref_html_show_press_start">Показувати \"Натисніть ПОЧАТИ на пристрої\"</string>
+    <string name="mjpeg_pref_html_show_press_start_summary">Показувати \"Натисніть ПОЧАТИ на пристрої\" на веб сторінці</string>
+    <string name="mjpeg_pref_html_back_color">Колір фону веб-сторінки</string>
+    <string name="mjpeg_pref_html_back_color_summary">Вибрати колір фону веб-сторінки</string>
+    <string name="mjpeg_pref_html_back_color_title">Вибрати колір фону</string>
+
+    <string name="mjpeg_pref_settings_image">Зображення</string>
+    <string name="mjpeg_pref_vr_mode">Режим віртуальної реальності</string>
+    <string name="mjpeg_pref_vr_mode_summary">Захоплювати лише половину екрану</string>
+    <string-array name="mjpeg_pref_vr_mode_options">
+        <item>Використоувати ліву частину</item>
+        <item>Використоувати праву частину</item>
+    </string-array>
+    <string name="mjpeg_pref_crop">Обрізати зображення</string>
+    <string name="mjpeg_pref_crop_summary">Обрізати зображення перед надсиланням на клієнт</string>
+    <string name="mjpeg_pref_crop_dialog_crop_top">Обрізати верх:</string>
+    <string name="mjpeg_pref_crop_dialog_crop_bottom">Обрізати низ:</string>
+    <string name="mjpeg_pref_crop_dialog_crop_left">Обрізати зліва:</string>
+    <string name="mjpeg_pref_crop_dialog_crop_right">Обрізати справа:</string>
+    <string name="mjpeg_pref_crop_dialog_pixels">пікселі</string>
+    <string name="mjpeg_pref_crop_dialog_warning_message">Обрізання зображення буде проігноровано якщо результатом буде пусте зображення</string>
+    <string name="mjpeg_pref_crop_dialog_error_message">Введіть коректні величини обрізання</string>
+    <string name="mjpeg_pref_grayscale">Режим відтінків сірого</string>
+    <string name="mjpeg_pref_grayscale_summary">Переводити зображення у градації сірого перед відправкою</string>
+    <string name="mjpeg_pref_resize">Змінити розмір зображення</string>
+    <string name="mjpeg_pref_resize_summary">Змінити розмір зображення перед надсиланням на клієнт</string>
+    <string name="mjpeg_pref_resize_dialog_text">Встановіть фактор зміни розміру у відсотках.\nВеличини: 10–150 (За замовчуванням: 50)\nРозмір екрану: %1$dx%2$d</string>
+    <string name="mjpeg_pref_resize_dialog_result">Розмір зображення: %1$dx%2$d</string>
+    <string name="mjpeg_pref_rotate">Повернути зображення за годинниковаою стрілкою</string>
+    <string name="mjpeg_pref_rotate_summary">Повернути зображення перед надсиланням на клієнт</string>
+    <string name="mjpeg_pref_fps">Встановити ліміт кадрів на секунду</string>
+    <string name="mjpeg_pref_fps_summary">Встановити максимальний ліміт кадрів за секунду</string>
+    <string name="mjpeg_pref_fps_dialog">Встановити ліміт кадрів на секунду.\nВеличини: 1–60 (За замовчуванням: 30)</string>
+    <string name="mjpeg_pref_jpeg_quality">Якість компресії JPEG</string>
+    <string name="mjpeg_pref_jpeg_quality_summary">Встановити якість компресії JPEG</string>
+    <string name="mjpeg_pref_jpeg_quality_dialog">Встановити якість компресії JPEG.\nВеличини: 10–100 (За замовчуванням: 80)</string>
+
+    <string name="mjpeg_pref_settings_security">Безпека</string>
+    <string name="mjpeg_pref_enable_pin">Увімкнути ПІН код</string>
+    <string name="mjpeg_pref_enable_pin_summary">Захистити трансляцію ПІН кодом</string>
+    <string name="mjpeg_pref_hide_pin">Ховати ПІН код при початку трансляції</string>
+    <string name="mjpeg_pref_hide_pin_summary">Замаскувати ПІН код під час трансляції</string>
+    <string name="mjpeg_pref_new_pin_on_start">Новий ПІН код при старті</string>
+    <string name="mjpeg_pref_new_pin_on_start_summary">Створювати новий ПІН код при старті додатку</string>
+    <string name="mjpeg_pref_auto_change_pin">Автоматично змінювати ПІН код</string>
+    <string name="mjpeg_pref_auto_change_pin_summary">Створювати новий ПІН код для кожної нової трансляції</string>
+    <string name="mjpeg_pref_set_pin">Встановити ПІН код</string>
+    <string name="mjpeg_pref_set_pin_summary">Ввести ПІН код вручну</string>
+    <string name="mjpeg_pref_set_pin_dialog">Введіть ПІН код.\nЗа замовчуванням: 000000</string>
+    <string name="mjpeg_pref_block_address">Блокувати IP адресу</string>
+    <string name="mjpeg_pref_block_address_summary">Заблокувати клієнтську IP адресу після 5 невірних спроб протягом 5 хвилин</string>
+
+    <string name="mjpeg_pref_settings_advanced">Розширені</string>
+    <string name="mjpeg_pref_wifi_only">Використоувати лише WiFi</string>
+    <string name="mjpeg_pref_wifi_only_summary">Запускати сервер лише на WiFi інтерфейсі</string>
+    <string name="mjpeg_pref_enable_ipv6">Увімкнути підтримку IPv6</string>
+    <string name="mjpeg_pref_enable_ipv6_summary">Запускати сервер також на IPv6 адресах</string>
+    <string name="mjpeg_pref_enable_localhost">Увімкнути localhost</string>
+    <string name="mjpeg_pref_enable_localhost_summary">Запускати сервер також на localhost адресах</string>
+    <string name="mjpeg_pref_localhost_only">Використоувати лише localhost</string>
+    <string name="mjpeg_pref_localhost_only_summary">Запускати сервер лише на localhost адресах</string>
+    <string name="mjpeg_pref_server_port">Порт сервера</string>
+    <string name="mjpeg_pref_server_port_summary">Встановити порт для вхідних підключень</string>
+    <string name="mjpeg_pref_server_port_dialog">Встановити порт для вхідних підключень.\nВеличини: 1025–65535\n(За замовчуванням: 8080)</string>
+
+    <string name="mjpeg_error_port_in_use">Порт уже у використанні. Виберіть інший.</string>
+    <string name="mjpeg_error_invalid_media_projection">Помилка безпеки: Неправильна проекція медіа. Спробуйте ще раз.</string>
+    <string name="mjpeg_error_ip_address_not_found">IP адресу не знайдено.\nСпробуйте вимкнути \"Використоувати лише WiFi\" у налаштуваннях.</string>
+    <string name="mjpeg_error_wrong_image_format">Система повертає картинку у невідомому форматі. Неможливо виправити. Перепрошуємо.</string>
+    <string name="mjpeg_error_unspecified">Щось пішло не так. Спробуйте ще раз пізніше.</string>
 
     <!--BitmapNotification-->
-    <string name="image_generator_press_start">Натисніть ПОЧАТИ на пристрої</string>
-    <string name="image_generator_go_to_new_address">Будь ласка, перейдіть за новою адресою</string>
-    <string name="image_generator_reload_this_page">Будь ласка, перезавантажте цю сторінку</string>
-    <string name="image_generator_address_blocked">Клієнтську адресу заблоковано</string>
+    <string name="mjpeg_image_generator_press_start">Натисніть ПОЧАТИ на пристрої</string>
+    <string name="mjpeg_image_generator_go_to_new_address">Будь ласка, перейдіть за новою адресою</string>
+    <string name="mjpeg_image_generator_address_blocked">Клієнтську адресу заблоковано</string>
 
     <!--HTML text-->
-    <string name="html_stream_require_pin">Ця трансляція вимагає ПІН код</string>
-    <string name="html_enter_pin">Введіть ПІН код:\u0020</string>
-    <string name="html_submit_text">Підтвердити</string>
-    <string name="html_wrong_pin">Невірний ПІН код!</string>
-    <string name="html_address_blocked">Клієнтську адресу заблоковано</string>
+    <string name="mjpeg_html_stream_require_pin">Ця трансляція вимагає ПІН-код</string>
+    <string name="mjpeg_html_enter_pin">Введіть ПІН-код:\u0020</string>
+    <string name="mjpeg_html_submit_text">Підтвердити</string>
+    <string name="mjpeg_html_wrong_pin">Невірний ПІН-код!</string>
+    <string name="mjpeg_html_address_blocked">Клієнтську адресу заблоковано</string>
 </resources>
