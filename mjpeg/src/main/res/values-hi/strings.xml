@@ -29,6 +29,8 @@
     <string name="mjpeg_pref_settings">स्ट्रीम सेटिंग्स</string>
     <string name="mjpeg_stream_fragment_pin">पिन:%1$s</string>
     <string name="mjpeg_stream_fragment_pin_disabled">पिन अक्षम है</string>
+    <string name="mjpeg_stream_fragment_show_pin_description">स्ट्रीम पिन दिखाएं</string>
+    <string name="mjpeg_stream_fragment_create_new_pin_description">नई स्ट्रीम पिन बनाएं</string>
     <string name="mjpeg_stream_fragment_current_traffic">ट्रैफ़िक:%1$,.2f Mbit/s</string>
     <string name="mjpeg_stream_fragment_connected_clients">कनेक्टेड क्लाइंट:%1$d</string>
     <string name="mjpeg_stream_fragment_client_disconnected">डिस्कनेक्ट किया गया</string>

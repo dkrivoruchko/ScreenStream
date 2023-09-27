@@ -58,7 +58,6 @@ public class MjpegService : Service() {
 
     override fun onDestroy() {
         XLog.d(getLog("onDestroy"))
-        XLog.d(getLog("onDestroy"), IllegalArgumentException("WebRtcService:onDestroy")) //TODO Need prod logs
         streamingModulesManager.deactivate(MjpegStreamingModule.Id)
         super.onDestroy()
     }

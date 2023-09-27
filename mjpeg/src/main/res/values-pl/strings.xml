@@ -30,6 +30,8 @@
     <string name="mjpeg_pref_settings">Ustawienia strumienia</string>
     <string name="mjpeg_stream_fragment_pin">Kod PIN: %1$s</string>
     <string name="mjpeg_stream_fragment_pin_disabled">Kod PIN jest wyłączony</string>
+    <string name="mjpeg_stream_fragment_show_pin_description">Pokaż kod PIN transmisji</string>
+    <string name="mjpeg_stream_fragment_create_new_pin_description">Utwórz nowy kod PIN transmisji</string>
     <string name="mjpeg_stream_fragment_current_traffic">Ruch: %1$,.2f Mbit/s</string>
     <string name="mjpeg_stream_fragment_connected_clients">Połączeni klienci: %1$d</string>
     <string name="mjpeg_stream_fragment_client_disconnected">Rozłączony</string>

@@ -29,6 +29,8 @@
     <string name="mjpeg_pref_settings">Configuración de transmisión</string>
     <string name="mjpeg_stream_fragment_pin">Pin: %1$s</string>
     <string name="mjpeg_stream_fragment_pin_disabled">PIN deshabilitado</string>
+    <string name="mjpeg_stream_fragment_show_pin_description">Mostrar PIN del flujo</string>
+    <string name="mjpeg_stream_fragment_create_new_pin_description">Crear un nuevo PIN de flujo</string>
     <string name="mjpeg_stream_fragment_current_traffic">Tráfico: %1$,.2f Mbit/s</string>
     <string name="mjpeg_stream_fragment_connected_clients">Clientes conectados: %1$d</string>
     <string name="mjpeg_stream_fragment_client_disconnected">Desconectado</string>

@@ -41,6 +41,7 @@ internal open class MjpegEvent(@JvmField val priority: Int) : StreamingModule.Ap
     internal data class CreateStreamingService(val service: Service) : MjpegEvent(Priority.NONE)
     internal data object CastPermissionsDenied : MjpegEvent(Priority.RECOVER_IGNORE)
     internal data class StartProjection(val intent: Intent) : MjpegEvent(Priority.RECOVER_IGNORE)
+    internal data object CreateNewPin : MjpegEvent(Priority.DESTROY_IGNORE)
 }
 
 internal data class MjpegState(

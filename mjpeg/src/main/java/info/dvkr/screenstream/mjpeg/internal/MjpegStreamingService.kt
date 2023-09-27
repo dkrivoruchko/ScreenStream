@@ -449,6 +449,16 @@ internal class MjpegStreamingService(
 
                 is InternalEvent.Traffic -> traffic = event.traffic
 
+                is MjpegEvent.CreateNewPin -> {
+                    if (destroyPending) {
+                        XLog.i(getLog("CreateNewPin", "DestroyPending. Ignoring"), IllegalStateException("CreateNewPin: DestroyPending"))
+                    } else if (isStreaming) {
+                        XLog.i(getLog("CreateNewPin", "Streaming. Ignoring."), IllegalStateException("CreateNewPin: Streaming."))
+                    } else runBlocking {
+                        if (mjpegSettings.enablePinFlow.first()) mjpegSettings.setPin(randomPin()) // will restart server
+                    }
+                }
+
                 else -> throw IllegalArgumentException("Unknown MjpegEvent: ${event::class.java}")
             }
         } catch (cause: Throwable) {

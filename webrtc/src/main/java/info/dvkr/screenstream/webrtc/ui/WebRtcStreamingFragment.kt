@@ -80,7 +80,7 @@ public class WebRtcStreamingFragment : Fragment(R.layout.fragment_webrtc_stream)
     private val binding by viewBinding { fragment -> FragmentWebrtcStreamBinding.bind(fragment.requireView()) }
 
     private val webRtcStreamingModule: WebRtcStreamingModule by inject(named(WebRtcKoinQualifier), LazyThreadSafetyMode.NONE)
-    private val webRtcSettings: WebRtcSettings by webRtcStreamingModule.scope.inject(mode = LazyThreadSafetyMode.NONE)
+    private val webRtcSettings: WebRtcSettings by lazy(LazyThreadSafetyMode.NONE) { webRtcStreamingModule.scope.get() }
 
     private val colorAccent by lazy(LazyThreadSafetyMode.NONE) { ContextCompat.getColor(requireContext(), R.color.colorAccent) }
     private val clipboard: ClipboardManager? by lazy(LazyThreadSafetyMode.NONE) {

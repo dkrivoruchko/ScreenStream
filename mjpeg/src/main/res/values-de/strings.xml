@@ -29,6 +29,8 @@
     <string name="mjpeg_pref_settings">Stream-Einstellungen</string>
     <string name="mjpeg_stream_fragment_pin">PIN: %1$s</string>
     <string name="mjpeg_stream_fragment_pin_disabled">PIN ist deaktiviert</string>
+    <string name="mjpeg_stream_fragment_show_pin_description">Stream-PIN anzeigen</string>
+    <string name="mjpeg_stream_fragment_create_new_pin_description">Neuen Stream-PIN erstellen</string>
     <string name="mjpeg_stream_fragment_current_traffic">Netzwerkverkehr: %1$,.2f Mbit/s</string>
     <string name="mjpeg_stream_fragment_connected_clients">Verbundene Geräte: %1$d</string>
     <string name="mjpeg_stream_fragment_client_disconnected">Verbindung getrennt</string>

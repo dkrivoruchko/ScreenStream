@@ -29,6 +29,8 @@
     <string name="mjpeg_pref_settings">串流設定</string>
     <string name="mjpeg_stream_fragment_pin">PIN: %1$s</string>
     <string name="mjpeg_stream_fragment_pin_disabled">停用PIN</string>
+    <string name="mjpeg_stream_fragment_show_pin_description">顯示串流 PIN 碼</string>
+    <string name="mjpeg_stream_fragment_create_new_pin_description">建立新的串流 PIN 碼</string>
     <string name="mjpeg_stream_fragment_current_traffic">流量：%1$,.2f Mbit/s</string>
     <string name="mjpeg_stream_fragment_connected_clients">已連接用戶端數：%1$d</string>
     <string name="mjpeg_stream_fragment_client_disconnected">已斷線</string>

@@ -29,6 +29,8 @@
     <string name="mjpeg_pref_settings">流设置</string>
     <string name="mjpeg_stream_fragment_pin">Pin: %1$s</string>
     <string name="mjpeg_stream_fragment_pin_disabled">已禁用 Pin</string>
+    <string name="mjpeg_stream_fragment_show_pin_description">显示流PIN码</string>
+    <string name="mjpeg_stream_fragment_create_new_pin_description">创建新的流PIN码</string>
     <string name="mjpeg_stream_fragment_current_traffic">流量: %1$,.2f Mbit/s</string>
     <string name="mjpeg_stream_fragment_connected_clients">已连接设备: %1$d</string>
     <string name="mjpeg_stream_fragment_client_disconnected">已断开</string>

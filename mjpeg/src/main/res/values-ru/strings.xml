@@ -28,6 +28,8 @@
     <string name="mjpeg_pref_settings">Настройки трансляции</string>
     <string name="mjpeg_stream_fragment_pin">PIN-код: %1$s</string>
     <string name="mjpeg_stream_fragment_pin_disabled">PIN-код выключен</string>
+    <string name="mjpeg_stream_fragment_show_pin_description">Показать PIN-код трансляции</string>
+    <string name="mjpeg_stream_fragment_create_new_pin_description">Создать новый PIN-код трансляции</string>
     <string name="mjpeg_stream_fragment_current_traffic">Трафик: %1$,.2f Мбит/с</string>
     <string name="mjpeg_stream_fragment_connected_clients">Подключено клиентов: %1$d</string>
     <string name="mjpeg_stream_fragment_client_disconnected">Отключен</string>

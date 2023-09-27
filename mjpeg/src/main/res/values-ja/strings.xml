@@ -29,6 +29,8 @@
     <string name="mjpeg_pref_settings">ストリーム設定</string>
     <string name="mjpeg_stream_fragment_pin">PIN: %1$s</string>
     <string name="mjpeg_stream_fragment_pin_disabled">PINは無効です</string>
+    <string name="mjpeg_stream_fragment_show_pin_description">ストリームPINを表示</string>
+    <string name="mjpeg_stream_fragment_create_new_pin_description">新しいストリームPINを作成</string>
     <string name="mjpeg_stream_fragment_current_traffic">トラフィック: %1$,.2f Mbit/s</string>
     <string name="mjpeg_stream_fragment_connected_clients">接続中のクライアント数: %1$d</string>
     <string name="mjpeg_stream_fragment_client_disconnected">切断しました</string>

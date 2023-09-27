@@ -66,26 +66,65 @@
         android:text="@string/mjpeg_pref_settings"
         android:textSize="12sp"
         app:icon="@drawable/mjpeg_ic_stream_settings"
-        app:layout_constraintBottom_toTopOf="@id/tv_fragment_stream_pin"
+        app:layout_constraintBottom_toTopOf="@id/cl_fragment_stream_pin"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/ll_fragment_stream_addresses" />
 
-    <TextView
-        android:id="@+id/tv_fragment_stream_pin"
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/cl_fragment_stream_pin"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:background="@color/colorBackgroundSecondary"
-        android:gravity="center"
         android:paddingTop="8dp"
         android:paddingBottom="8dp"
-        android:textAppearance="?android:attr/textAppearanceMedium"
         app:layout_constraintBottom_toTopOf="@id/ll_fragment_stream_traffic"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/b_fragment_stream_settings"
-        tools:text="Pin: 5676" />
+        app:layout_constraintTop_toBottomOf="@id/b_fragment_stream_settings">
+
+        <TextView
+            android:id="@+id/tv_fragment_stream_pin"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@color/colorBackgroundSecondary"
+            android:textAppearance="?android:attr/textAppearanceMedium"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            tools:text="Pin: 567687" />
+
+        <androidx.appcompat.widget.AppCompatImageView
+            android:id="@+id/iv_fragment_stream_pin_show"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="16dp"
+            android:background="?android:selectableItemBackgroundBorderless"
+            android:clickable="true"
+            android:contentDescription="@string/mjpeg_stream_fragment_show_pin_description"
+            android:focusable="true"
+            android:padding="8dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@id/iv_fragment_stream_pin_make_new"
+            app:layout_constraintTop_toTopOf="parent"
+            app:srcCompat="@drawable/mjpeg_ic_eye_outline_24dp" />
+
+        <androidx.appcompat.widget.AppCompatImageView
+            android:id="@+id/iv_fragment_stream_pin_make_new"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="?android:selectableItemBackgroundBorderless"
+            android:clickable="true"
+            android:contentDescription="@string/mjpeg_stream_fragment_create_new_pin_description"
+            android:focusable="true"
+            android:padding="8dp"
+            android:layout_marginEnd="16dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:srcCompat="@drawable/mjpeg_ic_refresh_24dp" />
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
     <LinearLayout
         android:id="@+id/ll_fragment_stream_traffic"
@@ -98,7 +137,7 @@
         app:layout_constraintBottom_toTopOf="@id/ll_fragment_stream_clients"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/tv_fragment_stream_pin">
+        app:layout_constraintTop_toBottomOf="@id/cl_fragment_stream_pin">
 
         <info.dvkr.screenstream.common.view.ExpansionHeader
             android:layout_width="match_parent"

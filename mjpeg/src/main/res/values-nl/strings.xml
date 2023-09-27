@@ -30,6 +30,8 @@
     <string name="mjpeg_pref_settings">Stroominstellingen</string>
     <string name="mjpeg_stream_fragment_pin">Pin: %1$s</string>
     <string name="mjpeg_stream_fragment_pin_disabled">Pin is uit</string>
+    <string name="mjpeg_stream_fragment_show_pin_description">Toon stream-pincode</string>
+    <string name="mjpeg_stream_fragment_create_new_pin_description">Nieuwe stream-pincode maken</string>
     <string name="mjpeg_stream_fragment_current_traffic">Internetverkeer: %1$,.2f Mbit/s</string>
     <string name="mjpeg_stream_fragment_connected_clients">Verbonden clients: %1$d</string>
     <string name="mjpeg_stream_fragment_client_disconnected">Niet verbonden</string>

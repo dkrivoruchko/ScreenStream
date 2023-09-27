@@ -14,6 +14,7 @@ import android.text.SpannableString
 import android.text.style.ForegroundColorSpan
 import android.text.style.UnderlineSpan
 import android.view.LayoutInflater
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
@@ -23,6 +24,7 @@ import androidx.annotation.StringRes
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.AppCompatImageView
 import androidx.core.content.ContextCompat
+import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.flowWithLifecycle
@@ -69,7 +71,7 @@ public class MjpegStreamingFragment : Fragment(R.layout.fragment_mjpeg_stream) {
     private val binding by viewBinding { fragment -> FragmentMjpegStreamBinding.bind(fragment.requireView()) }
 
     private val mjpegStreamingModule: MjpegStreamingModule by inject(named(MjpegKoinQualifier), LazyThreadSafetyMode.NONE)
-    private val mjpegSettings: MjpegSettings by mjpegStreamingModule.scope.inject(mode = LazyThreadSafetyMode.NONE)
+    private val mjpegSettings: MjpegSettings by lazy(LazyThreadSafetyMode.NONE) { mjpegStreamingModule.scope.get() }
 
     private val colorAccent by lazy(LazyThreadSafetyMode.NONE) { ContextCompat.getColor(requireContext(), R.color.colorAccent) }
     private val clipboard: ClipboardManager? by lazy(LazyThreadSafetyMode.NONE) {
@@ -207,17 +209,42 @@ public class MjpegStreamingFragment : Fragment(R.layout.fragment_mjpeg_stream) {
             }
         }
 
+
+        val enablePin = mjpegSettings.enablePinFlow.first()
+        binding.ivFragmentStreamPinShow.isVisible = enablePin && state.isStreaming
+        binding.ivFragmentStreamPinMakeNew.isVisible = enablePin && state.isStreaming.not()
+
+        val pin = mjpegSettings.pinFlow.first()
+        binding.ivFragmentStreamPinShow.setOnTouchListener { _, event ->
+            when (event.action) {
+                MotionEvent.ACTION_DOWN ->  {
+                    val pinText = getString(R.string.mjpeg_stream_fragment_pin, pin)
+                    binding.tvFragmentStreamPin.text = pinText.setColorSpan(colorAccent, pinText.length - pin.length)
+                }
+
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                    val pinText = getString(R.string.mjpeg_stream_fragment_pin, "*")
+                    binding.tvFragmentStreamPin.text = pinText.setColorSpan(colorAccent, pinText.length - 1)
+                }
+            }
+            true
+        }
+
         // Hide pin on Start
-        if (mjpegSettings.enablePinFlow.first()) {
+        if (enablePin) {
             if (state.isStreaming && mjpegSettings.hidePinOnStartFlow.first()) {
                 val pinText = getString(R.string.mjpeg_stream_fragment_pin, "*")
                 binding.tvFragmentStreamPin.text = pinText.setColorSpan(colorAccent, pinText.length - 1)
             } else {
-                val pinText = getString(R.string.mjpeg_stream_fragment_pin, mjpegSettings.pinFlow.first())
-                binding.tvFragmentStreamPin.text = pinText.setColorSpan(colorAccent, pinText.length - mjpegSettings.pinFlow.first().length)
+                val pinText = getString(R.string.mjpeg_stream_fragment_pin, pin)
+                binding.tvFragmentStreamPin.text = pinText.setColorSpan(colorAccent, pinText.length - pin.length)
+            }
+            binding.ivFragmentStreamPinMakeNew.setOnClickListener {//TODO notify user that this will disconnect all clients
+                mjpegStreamingModule.sendEvent(MjpegEvent.CreateNewPin)
             }
         } else {
             binding.tvFragmentStreamPin.setText(R.string.mjpeg_stream_fragment_pin_disabled)
+            binding.ivFragmentStreamPinMakeNew.setOnClickListener(null)
         }
 
         val clientsCount = state.clients.count { it.state != MjpegState.Client.State.DISCONNECTED }
