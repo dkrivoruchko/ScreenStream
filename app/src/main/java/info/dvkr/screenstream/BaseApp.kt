@@ -65,6 +65,9 @@ public abstract class BaseApp : Application() {
             XLog.i(this@BaseApp.getLog("onCreate", "Set module: $newModuleId"))
         }
 
+        XLog.i(getLog("onCreate", "Activating: $newModuleId"))
+        streamingModulesManager.activate(newModuleId, this)
+
         ProcessLifecycleOwner.get().lifecycle.addObserver(object : DefaultLifecycleObserver {
             override fun onStart(owner: LifecycleOwner) {
                 XLog.d(this@BaseApp.getLog("ProcessLifecycleOwner", "onStart"))

@@ -108,6 +108,7 @@ public class WebRtcStreamingModule : StreamingModule {
             is WebRtcEvent.CreateStreamingService -> if (_scope == null) {
                 XLog.e(getLog("sendEvent", "Scope already destroyed. Stopping Service."))
                 event.service.stopSelf()
+                _streamingServiceIsActive.value = false
             } else {
                 scope.get<WebRtcStreamingService> { parametersOf(scope, event.service) }.start()
                 _streamingServiceIsActive.value = true

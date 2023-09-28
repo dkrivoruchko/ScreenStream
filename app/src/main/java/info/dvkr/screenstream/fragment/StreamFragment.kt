@@ -4,14 +4,17 @@ import android.os.Bundle
 import android.view.View
 import androidx.core.view.isVisible
 import androidx.lifecycle.lifecycleScope
+import com.elvishew.xlog.XLog
 import com.google.android.material.radiobutton.MaterialRadioButton
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.common.StreamingModulesManager
+import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.common.view.viewBinding
 import info.dvkr.screenstream.databinding.FragmentStreamBinding
 import info.dvkr.screenstream.databinding.ItemStreamingModuleBinding
 import info.dvkr.screenstream.settings.AppSettings
 import info.dvkr.screenstream.ui.fragment.AdFragment
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
@@ -28,7 +31,7 @@ public class StreamFragment : AdFragment(R.layout.fragment_stream) {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-
+        XLog.d(getLog("onViewCreated"))
         binding.llFragmentStreamMode.isVisible = streamingModulesManager.modules.isNotEmpty()
 
         streamingModulesManager.modules.forEach { module ->
@@ -64,20 +67,21 @@ public class StreamFragment : AdFragment(R.layout.fragment_stream) {
             }.launchIn(viewLifecycleOwner.lifecycleScope)
         }
 
-        streamingModulesManager.activeModuleStateFlow.filterNotNull().onEach { activeModule ->
-            val currentFragment = childFragmentManager.findFragmentById(R.id.fcv_fragment_stream_mode)
-            when {
-                currentFragment == null -> childFragmentManager.beginTransaction()
+        streamingModulesManager.activeModuleStateFlow
+            .filterNotNull()
+            .filter { it.id.value != childFragmentManager.findFragmentById(R.id.fcv_fragment_stream_mode)?.tag }
+            .onEach { activeModule ->
+                XLog.d(getLog("onViewCreated","Fragment replace from : ${childFragmentManager.findFragmentById(R.id.fcv_fragment_stream_mode)?.tag} to ${activeModule.id.value}"))
+                childFragmentManager.beginTransaction()
                     .replace(R.id.fcv_fragment_stream_mode, activeModule.getFragmentClass(), null, activeModule.id.value)
                     .commitAllowingStateLoss()
-
-                currentFragment.tag != activeModule.id.value -> childFragmentManager.beginTransaction()
-                    .remove(currentFragment)
-                    .replace(R.id.fcv_fragment_stream_mode, activeModule.getFragmentClass(), null, activeModule.id.value)
-                    .commitAllowingStateLoss()
-            }
-        }.launchIn(viewLifecycleOwner.lifecycleScope)
+            }.launchIn(viewLifecycleOwner.lifecycleScope)
 
         loadAdOnViewCreated(binding.flFragmentStreamAdViewContainer)
+    }
+
+    override fun onDestroyView() {
+        XLog.d(getLog("onDestroyView"))
+        super.onDestroyView()
     }
 }
