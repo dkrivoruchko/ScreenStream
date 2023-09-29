@@ -183,7 +183,7 @@ internal class ClientData(private val mjpegSettings: MjpegSettings, private val 
                     publishedClients.addAll(clients)
                 }
 
-                sendEvent(MjpegStreamingService.InternalEvent.Traffic(trafficHistory.sortedBy { it.time }))
+                sendEvent(MjpegStreamingService.InternalEvent.Traffic(now, trafficHistory.sortedBy { it.time }))
 
                 delay(1000)
             }

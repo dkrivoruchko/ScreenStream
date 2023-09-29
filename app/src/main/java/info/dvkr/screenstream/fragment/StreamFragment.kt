@@ -3,6 +3,9 @@ package info.dvkr.screenstream.fragment
 import android.os.Bundle
 import android.view.View
 import androidx.core.view.isVisible
+import androidx.fragment.app.commit
+import androidx.fragment.app.commitNow
+import androidx.lifecycle.flowWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import com.elvishew.xlog.XLog
 import com.google.android.material.radiobutton.MaterialRadioButton
@@ -17,6 +20,7 @@ import info.dvkr.screenstream.ui.fragment.AdFragment
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
@@ -71,11 +75,20 @@ public class StreamFragment : AdFragment(R.layout.fragment_stream) {
             .filterNotNull()
             .filter { it.id.value != childFragmentManager.findFragmentById(R.id.fcv_fragment_stream_mode)?.tag }
             .onEach { activeModule ->
-                XLog.d(getLog("onViewCreated","Fragment replace from : ${childFragmentManager.findFragmentById(R.id.fcv_fragment_stream_mode)?.tag} to ${activeModule.id.value}"))
-                childFragmentManager.beginTransaction()
-                    .replace(R.id.fcv_fragment_stream_mode, activeModule.getFragmentClass(), null, activeModule.id.value)
-                    .commitAllowingStateLoss()
-            }.launchIn(viewLifecycleOwner.lifecycleScope)
+                XLog.d(getLog("onEach","Fragment replace from : ${childFragmentManager.findFragmentById(R.id.fcv_fragment_stream_mode)?.tag} to ${activeModule.id.value}"))
+
+                childFragmentManager.commit(allowStateLoss = true) {
+                    replace(R.id.fcv_fragment_stream_mode, activeModule.getFragmentClass(), null, activeModule.id.value)
+                }
+            }
+            .onCompletion {
+                childFragmentManager.findFragmentById(R.id.fcv_fragment_stream_mode)?.let {
+                    XLog.d(this@StreamFragment.getLog("onCompletion","Fragment remove: ${it.tag}"))
+                    childFragmentManager.commitNow(allowStateLoss = true) { remove(it) }
+                }
+            }
+            .flowWithLifecycle(viewLifecycleOwner.lifecycle)
+            .launchIn(viewLifecycleOwner.lifecycleScope)
 
         loadAdOnViewCreated(binding.flFragmentStreamAdViewContainer)
     }

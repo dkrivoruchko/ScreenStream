@@ -28,7 +28,7 @@ public class ScreenStreamApp : BaseApp() {
             }
             .addInterceptor(object : AbstractFilterInterceptor() {
                 override fun reject(log: LogItem): Boolean {
-                    if (log.level >= LogLevel.DEBUG) FirebaseCrashlytics.getInstance().log(log.msg)
+                    FirebaseCrashlytics.getInstance().log(log.msg)
                     return isLoggingOn
                 }
             })

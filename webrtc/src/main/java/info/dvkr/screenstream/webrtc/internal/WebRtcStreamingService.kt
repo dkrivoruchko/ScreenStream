@@ -276,7 +276,7 @@ internal class WebRtcStreamingService(
         XLog.d(getLog("start"))
 
         monitorScope.launch {
-            repeat(Int.MAX_VALUE) {counter->
+            repeat(Int.MAX_VALUE) { counter ->
                 val marker = AtomicBoolean(false)
                 sendEvent(InternalEvent.Monitor(counter, marker))
                 delay(1000)
@@ -383,8 +383,8 @@ internal class WebRtcStreamingService(
             pendingEvents.removeAll { it.priority == WebRtcEvent.Priority.DESTROY_IGNORE }
         }
 
-        handler.sendMessageDelayed(handler.obtainMessage(event.priority, event), timeout)
         pendingEvents.add(event)
+        handler.sendMessageDelayed(handler.obtainMessage(event.priority, event), timeout)
         XLog.d(getLog("sendEvent", "Pending events: $pendingEvents"))
     }
 
@@ -395,7 +395,9 @@ internal class WebRtcStreamingService(
 
         if (event is InternalEvent.Monitor) {
             event.marker.set(true)
-            pendingEvents.removeFirstOrNull()
+            runCatching { pendingEvents.removeAt(0) }
+                .onSuccess { XLog.d(getLog("handleMessage", "Removed [$it]")) }
+                .onFailure { XLog.e(getLog("handleMessage", "No messages to remove [$event]"), IllegalStateException("No messages to remove [$event]")) }
             return true
         }
 
@@ -412,6 +414,8 @@ internal class WebRtcStreamingService(
             currentError.set(WebRtcError.UnknownError(cause))
         } finally {
             runCatching { pendingEvents.removeAt(0) }
+                .onSuccess { XLog.d(getLog("handleMessage", "Removed [$it]")) }
+                .onFailure { XLog.e(getLog("handleMessage", "No messages to remove [$event]"), IllegalStateException("No messages to remove [$event]")) }
             XLog.d(getLog("handleMessage", "Done [$event] New state: [${getStateString()}] Pending events: $pendingEvents"))
             publishState()
         }

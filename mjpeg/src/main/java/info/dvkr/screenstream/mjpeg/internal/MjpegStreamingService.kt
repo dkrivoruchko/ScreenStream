@@ -44,6 +44,7 @@ import org.koin.core.parameter.parametersOf
 import java.util.Collections
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.random.Random
 
 @Scope(MjpegKoinScope::class)
@@ -73,6 +74,7 @@ internal class MjpegStreamingService(
         HttpServer(service, mjpegSettings, bitmapStateFlow.asStateFlow(), notificationBitmap, ::sendEvent)
     }
 
+    private val monitorScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val pendingEvents = Collections.synchronizedList(mutableListOf<MjpegEvent>()) // For logging only
 
     // All Volatiles vars must be write on this (WebRTC-HT) thread
@@ -110,9 +112,11 @@ internal class MjpegStreamingService(
         internal data class Error(@JvmField val error: MjpegError) : InternalEvent(Priority.RECOVER_IGNORE)
 
         internal data class Destroy(@JvmField val latch: CountDownLatch) : InternalEvent(Priority.DESTROY_IGNORE)
-        internal data class Traffic(@JvmField val traffic: List<MjpegState.TrafficPoint>) : InternalEvent(Priority.DESTROY_IGNORE) {
-            override fun toString(): String = Traffic::class.java.simpleName
+        internal data class Traffic(@JvmField val time: Long, @JvmField val traffic: List<MjpegState.TrafficPoint>) : InternalEvent(Priority.DESTROY_IGNORE) {
+            override fun toString(): String = "Traffic(time=$time)"
         }
+
+        data class Monitor(@JvmField val counter: Int, @JvmField val marker: AtomicBoolean) : InternalEvent(Priority.DESTROY_IGNORE)
     }
 
     internal sealed class RestartReason(private val msg: String) {
@@ -143,6 +147,16 @@ internal class MjpegStreamingService(
     override fun start() {
         super.start()
         XLog.d(getLog("start"))
+
+        monitorScope.launch {
+            repeat(Int.MAX_VALUE) { counter ->
+                val marker = AtomicBoolean(false)
+                sendEvent(InternalEvent.Monitor(counter, marker))
+                delay(1000)
+                if (marker.get().not())
+                    XLog.e(this@MjpegStreamingService.getLog("LOCK @:$counter"), IllegalArgumentException("LOCK @:$counter"))
+            }
+        }
 
         sendEvent(InternalEvent.InitState())
 
@@ -201,6 +215,7 @@ internal class MjpegStreamingService(
         broadcastHelper.stopListening()
         connectivityHelper.stopListening()
         coroutineScope.cancel()
+        monitorScope.cancel()
 
         val latch = CountDownLatch(1)
         sendEvent(InternalEvent.Destroy(latch))
@@ -256,8 +271,8 @@ internal class MjpegStreamingService(
             pendingEvents.removeAll { it.priority == MjpegEvent.Priority.DESTROY_IGNORE }
         }
 
-        handler.sendMessageDelayed(handler.obtainMessage(event.priority, event), timeout)
         pendingEvents.add(event)
+        handler.sendMessageDelayed(handler.obtainMessage(event.priority, event), timeout)
         XLog.d(getLog("sendEvent", "Pending events: $pendingEvents"))
     }
 
@@ -459,6 +474,8 @@ internal class MjpegStreamingService(
                     }
                 }
 
+                is InternalEvent.Monitor -> event.marker.set(true)
+
                 else -> throw IllegalArgumentException("Unknown MjpegEvent: ${event::class.java}")
             }
         } catch (cause: Throwable) {
@@ -471,6 +488,8 @@ internal class MjpegStreamingService(
             currentError = MjpegError.UnknownError(cause)
         } finally {
             runCatching { pendingEvents.removeAt(0) }
+                .onSuccess { XLog.d(getLog("processEvent", "Removed [$it]")) }
+                .onFailure { XLog.e(getLog("handleMessage", "No messages to remove [$event]"), IllegalStateException("No messages to remove [$event]")) }
             XLog.d(getLog("processEvent", "Done [$event] New state: [${getStateString()}] Pending events: $pendingEvents"))
             publishState()
         }
