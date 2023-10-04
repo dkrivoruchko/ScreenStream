@@ -125,15 +125,14 @@
     <string name="mjpeg_error_wrong_image_format">सिस्टम अज्ञात प्रारूप में छवि लौटाता है। कोई फिक्स उपलब्ध नहीं। माफ़ कीजिये।</string>
     <string name="mjpeg_error_unspecified">कुछ गलत हो गया है। कृपया बाद में पुनः प्रयास करें।</string>
 
-    <!--BitmapNotification-->
-    <string name="mjpeg_image_generator_press_start">डिवाइस पर स्टार्ट दबाएं</string>
-    <string name="mjpeg_image_generator_go_to_new_address">कृपया नए पते पर जाएं</string>
-    <string name="mjpeg_image_generator_address_blocked">क्लाइंट का पता ब्लॉक किया गया है</string>
+    <string name="mjpeg_start_image_text">उपकरण पर स्ट्रीम शुरू करें</string>
 
     <!--HTML text-->
+    <string name="mjpeg_html_stream_connecting">कनेक्ट करने की कोशिश</string>
     <string name="mjpeg_html_stream_require_pin">इस स्ट्रीम को एक पिन की आवश्यकता है ताकि इसका उपयोग किया जा सके</string>
     <string name="mjpeg_html_enter_pin">पिन डालें:\u0020</string>
-    <string name="mjpeg_html_submit_text">सबमिट</string>
+    <string name="mjpeg_html_submit_pin">सबमिट</string>
     <string name="mjpeg_html_wrong_pin">गलत पिन!</string>
     <string name="mjpeg_html_address_blocked">क्लाइंट का पता ब्लॉक किया गया है</string>
+    <string name="mjpeg_html_error_unspecified">कुछ गड़बड़ हो गई है। &lt;br&gt; कृपया पृष्ठ पुनः लोड करें और पुनः प्रयास करें।</string>
 </resources>

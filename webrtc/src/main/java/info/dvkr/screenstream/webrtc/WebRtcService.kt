@@ -13,8 +13,6 @@ import info.dvkr.screenstream.webrtc.internal.WebRtcEvent
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import org.koin.android.ext.android.inject
-import org.koin.core.qualifier.named
-import kotlin.jvm.Throws
 
 @RestrictTo(RestrictTo.Scope.LIBRARY)
 public class WebRtcService : Service() {
@@ -30,7 +28,6 @@ public class WebRtcService : Service() {
     }
 
     private val streamingModulesManager: StreamingModulesManager by inject(mode = LazyThreadSafetyMode.NONE)
-    private val webRtcStreamingModule: WebRtcStreamingModule by inject(named(WebRtcKoinQualifier), LazyThreadSafetyMode.NONE)
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -48,9 +45,9 @@ public class WebRtcService : Service() {
 
 
         when (webRtcEvent) {
-            is WebRtcEvent.Intentable.StartService -> webRtcStreamingModule.sendEvent(WebRtcEvent.CreateStreamingService(this))
-            is WebRtcEvent.Intentable.StopStream -> webRtcStreamingModule.sendEvent(webRtcEvent)
-            WebRtcEvent.Intentable.RecoverError -> webRtcStreamingModule.sendEvent(webRtcEvent)
+            is WebRtcEvent.Intentable.StartService -> streamingModulesManager.sendEvent(WebRtcEvent.CreateStreamingService(this))
+            is WebRtcEvent.Intentable.StopStream -> streamingModulesManager.sendEvent(webRtcEvent)
+            WebRtcEvent.Intentable.RecoverError -> streamingModulesManager.sendEvent(webRtcEvent)
         }
 
         return START_NOT_STICKY

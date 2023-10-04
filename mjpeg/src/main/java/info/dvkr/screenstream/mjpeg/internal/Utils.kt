@@ -9,7 +9,6 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
-import kotlin.random.Random
 
 internal fun Context.getFileFromAssets(fileName: String): ByteArray {
     XLog.d(getLog("getFileFromAssets", fileName))

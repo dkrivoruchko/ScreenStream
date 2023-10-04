@@ -1,10 +1,11 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
     <meta charset=utf-8>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ScreenStream</title>
-    <link href="/favicon.png" rel="shortcut icon" type="image/x-icon">
+    <link rel="icon" type="image/x-icon" sizes="any" href="/favicon.ico">
     <style>
         body,
         html {
@@ -14,14 +15,32 @@
             border: 0;
             overflow: hidden;
             display: block;
-            font-family: sans-serif
+            font-family: sans-serif;
+            font-size: 16px
         }
 
         body {
-            background: BACKGROUND_COLOR
+            background-color: BACKGROUND_COLOR
         }
 
-        img {
+        #connectDiv,
+        #pinDiv,
+        #blockedDiv,
+        #errorDiv {
+            min-width: 350px;
+            border-radius: 16px;
+            color: #eee;
+            top: 45%;
+            left: 50%;
+            padding: 40px 40px 30px;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            position: absolute;
+            box-shadow: 0 0 8px 8px rgba(0, 0, 0, .2);
+            background-color: #132b42;
+        }
+
+        #streamDiv img {
             position: absolute;
             top: 0;
             bottom: 0;
@@ -29,55 +48,408 @@
             right: 0;
             margin: auto;
             max-height: 100vh;
-            max-width: 100%
+            max-width: 100%;
         }
 
-        div {
+        #buttonsDiv {
             visibility: hidden;
             top: 16px;
             left: 16px;
             width: 100%;
             text-align: center;
             position: absolute;
-            z-index: 9999;
+            z-index: 10;
         }
 
-        input {
-            background-color: #19769F;
+        #pinDiv input {
+            background-color: #FFF;
             padding: 4px;
+            width: 4em;
+            font-family: monospace;
+        }
+
+        #pinDiv button {
+            background-color: #19769F;
+            border-radius: 6px;
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block
+        }
+
+        @media screen and (max-width:850px) {
+
+            #connectDiv,
+            #pinDiv,
+            #blockedDiv {
+                padding: 30px;
+                width: 55%
+            }
+        }
+
+        @media screen and (max-width:650px) {
+
+            #connectDiv,
+            #pinDiv,
+            #blockedDiv,
+            #errorDiv {
+                padding: 30px 20px;
+                width: 85%
+            }
+        }
+
+        .loading {
+            margin: 20px 0 10px 0;
+        }
+
+        .loading span {
+            display: inline-block;
+            vertical-align: middle;
+            width: .6em;
+            height: .6em;
+            margin: .19em;
+            background: #fff;
+            border-radius: .6em;
+            animation: loading 1s infinite alternate
+        }
+
+        .loading span:nth-of-type(2) {
+            background: #fff;
+            animation-delay: .2s
+        }
+
+        .loading span:nth-of-type(3) {
+            background: #fff;
+            animation-delay: .4s
+        }
+
+        .loading span:nth-of-type(4) {
+            background: #fff;
+            animation-delay: .6s
+        }
+
+        .loading span:nth-of-type(5) {
+            background: #fff;
+            animation-delay: .8s
+        }
+
+        .loading span:nth-of-type(6) {
+            background: #fff;
+            animation-delay: 1s
+        }
+
+        .loading span:nth-of-type(7) {
+            background: #fff;
+            animation-delay: 1.2s
+        }
+
+        @keyframes loading {
+            0% {
+                opacity: 0
+            }
+
+            100% {
+                opacity: 1
+            }
         }
     </style>
+    <script type="text/javascript" src="https://www.datadoghq-browser-agent.com/us1/v4/datadog-logs.js" crossorigin="anonymous"></script>
+    <script>
+        window.DD_LOGS &&
+            DD_LOGS.init({
+                clientToken: "pub26fc6543f9239240ed8ae545593f921f",
+                site: "datadoghq.com",
+                forwardConsoleLogs: ["info", "warn", "error"],
+                forwardReports: "all",
+                service: '%DD_SERVICE%',
+            });
+        window.DD_LOGS && DD_LOGS.logger.setHandler(DD_HANDLER);
+        window.DD_LOGS && DD_LOGS.setGlobalContextProperty('version', '%APP_VERSION%');
+    </script>
 </head>
 
 <body>
-    <img id="stream" />
+    <div id="connectDiv">
+        <img src="logo.png" height="256" width="256" />
+        <p style="font-weight:500">%CONNECTING%</p>
+        <div class="loading">
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+    </div>
 
-    <div id="buttons">
-        <input type="image" id="fullscreen" src="/fullscreen-on.png" onclick="toggleFullscreen()" />
-        <input type="image" src="/start-stop.png" onclick="toggleStartStop()" />
+    <div id="streamDiv"><img id="stream" /></div>
+
+    <div id="buttonsDiv">
+        <input type="image" id="fullscreen" src="data:image/webp;base64,UklGRmIAAABXRUJQVlA4TFUAAAAvI8AIECcw//M//wKBFG52gQ4Ag1UkSa2WIAAJ1OIABWn9qyK+8B/Rf6Nt2ySorN2+wP8NJC0QSZqRKMkDRZK9IY0hL/hCgV/5lVudfeGZ3x19/PcCAA==" onclick="toggleFullscreen()" />
+        <input type="image" src="data:image/webp;base64,UklGRqAAAABXRUJQVlA4TJMAAAAvI8AIEHU4jiTJUfDf6ULDDOpbMRE9RLAJALZJ5x0HuWqgf8+JEZDAy1kZERIX0QAGerImwJ+fgH6AxD4z6sxMbnFA+Pv+/EnUJPnfERjoEATsEC5ihzBZOoSbrUPCQHcIhO8QGOgQBHwTMGAdhLdu0ZZxs3q9gjnWcRKtQ0DrYMA6CG8dAX1Q95MZu6vu7ubW7w4A" onclick="toggleStartStop()" />
+    </div>
+
+    <div id="pinDiv" style="visibility: hidden;">
+        <img src="logo.png" height="256" width="256" />
+        <p>%STREAM_REQUIRE_PIN%</p>
+        <form action="" id="pinForm" autocomplete="off">
+            <label for="pin">%ENTER_PIN%</label>
+            <input id="pin" autofocus maxlength="6" pattern="[0-9]{4,6}" required type="password" autocomplete="off">
+            <button id="sendPin" type="submit">%SUBMIT_PIN%</button>
+        </form>
+        <p id="pinWrongMsg" style="color:red;font-weight:700">%WRONG_PIN_MESSAGE%</p>
+    </div>
+
+    <div id="blockedDiv" style="visibility: hidden;">
+        <img src="logo.png" height="256" width="256" />
+        <p style=color:red;font-weight:600>%ADDRESS_BLOCKED%</p>
+    </div>
+
+    <div id="errorDiv" style="visibility: hidden;">
+        <img src="logo.png" height="256" width="256" />
+        <p style=color:red;font-weight:600>%ERROR%</p>
     </div>
 
     <script>
-        const url = "SCREEN_STREAM_ADDRESS";
-        const stream = document.getElementById("stream");
+        const clientId = generateRandomString(16);
+        window.DD_LOGS && DD_LOGS.setGlobalContextProperty('clientId', clientId);
 
+        let enableButtons = ENABLE_BUTTONS;
+        const buttonsDiv = document.getElementById('buttonsDiv')
+        if (enableButtons) buttonsDiv.style.visibility = 'visible';
+        const buttonsHideFunction = () => { buttonsDiv.style.visibility = 'hidden'; }
+        let hideTimeout = setTimeout(buttonsHideFunction, 1500);
+
+        window.onmousemove = () => {
+            if (!enableButtons) return
+            buttonsDiv.style.visibility = 'visible';
+            clearTimeout(hideTimeout)
+            hideTimeout = setTimeout(buttonsHideFunction, 1000);
+        }
+
+        function isFullscreen() {
+            return document.webkitIsFullScreen || document.mozFullScreen || false;
+        }
+
+        const fullscreenInput = document.getElementById("fullscreen");
+        function fullScreenHandler() {
+            if (isFullscreen()) fullscreenInput.src = "data:image/webp;base64,UklGRkoAAABXRUJQVlA4TD4AAAAvI8AIEBcw//M//wKCoudMD/gICtq2kTwQR2IoDsSBnIb0PgAR/Z8AHxwWkOrY7FQdW56dnapjD6k4NiwfBA==";
+            else fullscreenInput.src = "data:image/webp;base64,UklGRmIAAABXRUJQVlA4TFUAAAAvI8AIECcw//M//wKBFG52gQ4Ag1UkSa2WIAAJ1OIABWn9qyK+8B/Rf6Nt2ySorN2+wP8NJC0QSZqRKMkDRZK9IY0hL/hCgV/5lVudfeGZ3x19/PcCAA==";
+        }
+
+        document.addEventListener("fullscreenchange", fullScreenHandler);
+        document.addEventListener("webkitfullscreenchange", fullScreenHandler);
+        document.addEventListener("mozfullscreenchange", fullScreenHandler);
+        document.addEventListener("MSFullscreenChange", fullScreenHandler);
+
+        function fullScreen(element) {
+            if (element.requestFullscreen) element.requestFullscreen(); else if (element.webkitrequestFullscreen) element.webkitRequestFullscreen(); else if (element.mozRequestFullscreen) element.mozRequestFullScreen();
+        }
+
+        function fullScreenCancel() {
+            if (document.requestFullscreen) document.requestFullscreen(); else if (document.webkitRequestFullscreen) document.webkitRequestFullscreen(); else if (document.mozRequestFullscreen) document.mozRequestFullScreen();
+        }
+
+        function toggleFullscreen() {
+            isFullscreen() ? fullScreenCancel() : fullScreen(document.documentElement);
+        }
+
+        function toggleStartStop() {
+            const xmlHttp = new XMLHttpRequest();
+            xmlHttp.open("GET", window.location.origin + "/start-stop", true);
+            xmlHttp.send(null);
+        }
+
+        const streamDiv = document.getElementById("streamDiv");
+        const stream = document.getElementById("stream");
+        const connectDiv = document.getElementById("connectDiv");
+        const pinDiv = document.getElementById("pinDiv");
+        const pin = document.getElementById("pin");
+        const sendPin = document.getElementById("sendPin");
+        const pinWrongMsg = document.getElementById("pinWrongMsg");
+        const blockedDiv = document.getElementById("blockedDiv");
+        const errorDiv = document.getElementById("errorDiv");
+
+        sendPin.addEventListener('click', (e) => {
+            e.preventDefault();
+            const pinHash = sha256(clientId + pin.value);
+            if (socket) socket.send(JSON.stringify({ type: "PIN", data: pinHash }));
+        });
+
+        let socket = null;
         let connectErrorCounter = 0;
         let fallbackCounter = 0;
         let showStreamTimer = null;
 
-        async function defaultMJPEG(url, elem) {
-            console.debug("defaultMJPEG:", url);
-            return new Promise((resolve, reject) => {
-                elem.onload = () => { elem.onload = null; resolve(); }
-                elem.onerror = (e) => { elem.onerror = null; reject(); }
-                elem.src = url;
-            });
+        function connect() {
+            window.DD_LOGS && DD_LOGS.logger.debug("connect: " + connectErrorCounter);
+
+            connectDiv.style.visibility = 'visible';
+            pinDiv.style.visibility = 'hidden';
+            blockedDiv.style.visibility = 'hidden';
+            pinWrongMsg.style.visibility = "inherit";
+            streamDiv.style.visibility = 'hidden';
+            errorDiv.style.visibility = 'hidden';
+            stream.src = '';
+
+            try {
+                socket = new WebSocket(`ws://${window.location.host}/socket?clientId=${clientId}`);
+
+                socket.onopen = async () => {
+                    connectErrorCounter = 0;
+                    socket.send(JSON.stringify({ type: "CONNECT" }));
+                    // socket.send(JSON.stringify({ type: "HEARTBEAT", data: clientId }));
+                    connectDiv.style.visibility = 'hidden';
+                }
+
+                socket.onclose = () => { reConnect("connect: socket.onclose"); }
+
+                socket.onmessage = (e) => {
+                    window.DD_LOGS && DD_LOGS.logger.debug("socket.onmessage", { data: e.data });
+                    const data = JSON.parse(e.data);
+
+                    if (data.type === "HEARTBEAT") {
+                        // heartbeat();
+                        return;
+                    }
+
+                    if (data.type === "STREAM_ADDRESS") {
+                        pinDiv.style.visibility = 'hidden';
+                        blockedDiv.style.visibility = 'hidden';
+                        pinWrongMsg.style.visibility = "inherit";
+
+                        showStream(data.data + `?clientId=${clientId}`);
+                        return;
+                    }
+
+                    if (data.type === "UNAUTHORIZED") {
+                        if (data.data === "ADDRESS_BLOCKED") {
+                            pinDiv.style.visibility = 'hidden';
+                            blockedDiv.style.visibility = 'visible';
+                            pinWrongMsg.style.visibility = "inherit";
+                            return;
+                        }
+
+                        pinDiv.style.visibility = 'visible';
+                        blockedDiv.style.visibility = 'hidden';
+
+                        if (data.data === "WRONG_PIN") {
+                            pin.value = "";
+                            pinWrongMsg.style.visibility = 'visible';
+                        } else {
+                            pinWrongMsg.style.visibility = 'hidden';
+                            if (pin.value) sendPin.click();
+                        }
+
+                        return;
+                    }
+
+                    if (data.type === "RELOAD") {
+                        location.reload();
+                        return;
+                    }
+
+                    if (data.type === "SETTINGS") {
+                        document.body.style.backgroundColor = data.data.backColor;
+
+                        if (enableButtons != data.data.enableButtons) {
+                            enableButtons = data.data.enableButtons;
+                            if (enableButtons) {
+                                buttonsDiv.style.visibility = 'visible';
+                                hideTimeout = setTimeout(buttonsHideFunction, 1500);
+                            } else {
+                                clearTimeout(hideTimeout);
+                                buttonsDiv.style.visibility = 'hidden';
+                            }
+                        }
+
+                        return;
+                    }
+                    window.DD_LOGS && DD_LOGS.logger.error("socket.onmessage. Unknown data:", { data: e.data });
+                }
+            } catch (e) {
+                reConnect("connect.catch: " + e);
+            }
         }
 
-        async function fallbackMJPEG(url, elem) {
-            console.debug("fallbackMJPEG");
+        // let heartbeatTimeout = null;
+        // function heartbeat() {
+        //     clearTimeout(heartbeatTimeout);
+
+        //     if (!socket) return;
+        //     if (socket.readyState !== WebSocket.OPEN) return;
+
+        //     setTimeout(() => {
+        //         if (!socket) return;
+        //         if (socket.readyState !== WebSocket.OPEN) return;
+
+        //         heartbeatTimeout = setTimeout(() => {
+        //             if (!socket) return;
+        //             if (socket.readyState !== WebSocket.OPEN) return;
+        //             socket.close();
+        //         }, 2000);
+
+        //         socket.send(JSON.stringify({ type: "HEARTBEAT", data: clientId }));
+        //     }, 1000);
+        // }
+
+        function reConnect(reason) {
+            window.DD_LOGS && DD_LOGS.logger.debug("reConnect", { data: reason });
+
+            // clearTimeout(heartbeatTimeout);
+
+            connectDiv.style.visibility = 'visible';
+            pinDiv.style.visibility = 'hidden';
+            blockedDiv.style.visibility = 'hidden';
+            pinWrongMsg.style.visibility = "inherit";
+            errorDiv.style.visibility = 'hidden';
+
+            clearTimeout(showStreamTimer);
+            showStreamTimer = null;
+
+            fallbackCounter = 0;
+            connectErrorCounter++;
+            if (connectErrorCounter > 100) {
+                window.DD_LOGS && DD_LOGS.logger.info("reConnect: Give up");
+            } else {
+                setTimeout(() => { connect() }, connectErrorCounter > 10 ? 10000 : Math.pow(1.4, connectErrorCounter - 1) * 500);
+            }
+        }
+
+        function showStream(url) {
+            window.DD_LOGS && DD_LOGS.logger.debug("showStream", { data: url });
+
+            streamDiv.style.visibility = 'hidden';
+            stream.src = '';
+
+            if (fallbackCounter > 2) {
+                window.DD_LOGS && DD_LOGS.logger.debug("showStream: Load via fallback", { data: url });
+                fallback(url);
+            } else {
+                new Promise((resolve, reject) => {
+                    window.DD_LOGS && DD_LOGS.logger.debug("showStream: Load via default", { data: url });
+                    stream.onload = () => { stream.onload = null; stream.onerror = null; resolve(); }
+                    stream.onerror = (e) => { stream.onerror = null; stream.onload = null; reject(e); }
+                    stream.src = url;
+                }).then(() => {
+                    fallbackCounter = 0;
+                    streamDiv.style.visibility = 'visible';
+                }).catch((error) => {
+                    window.DD_LOGS && DD_LOGS.logger.error("showStream: Default error", { data: error });
+                    fallbackCounter++;
+                    showStreamTimer = setTimeout(() => { showStream(url) }, 150);
+                });
+            }
+        }
+
+        async function fallback(url) {
+            streamDiv.style.visibility = 'visible';
+
             try {
-                elem.onload = () => { URL.revokeObjectURL(elem.src); };
+                stream.onload = () => { URL.revokeObjectURL(stream.src); };
 
                 const SOI = new Uint8Array([0xFF, 0xD8, 0xFF]);
                 const EOI = new Uint8Array([0xFF, 0xF9]);
@@ -85,10 +457,7 @@
 
                 const response = await fetch(url);
                 if (!response.ok) throw Error(`${response.status}: ${response.statusText}`);
-                if (response.redirected) {
-                    window.location.replace(response.url);
-                    throw Error(`Redirected: ${response.status}: ${response.statusText} : ${response.url}`);
-                }
+                if (response.redirected) throw Error(`Redirected: ${response.status}: ${response.statusText} : ${response.url}`);
 
                 const reader = response.body.getReader();
                 const movingBuffer = [0, 0, 0];
@@ -118,124 +487,48 @@
                         } else if (bytesRead < contentLength) {
                             imageBuffer[bytesRead++] = value[i];
                         } else {
-                            elem.src = URL.createObjectURL(new Blob([imageBuffer], { type: "image/jpeg" }));
+                            stream.src = URL.createObjectURL(new Blob([imageBuffer], { type: "image/jpeg" }));
                             contentLength = 0;
                             bytesRead = 0;
                             headers = '';
                         }
                     }
 
-                    if (done) {
-                        elem.onload = null;
-                        return;
-                    }
+                    if (done) return;
                 }
-            } catch (e) {
-                elem.onload = null;
-                stream.style.visibility = 'hidden';
-                console.error("fallbackMJPEG", e);
+            } catch (error) {
+                streamDiv.style.visibility = 'hidden';
+                window.DD_LOGS && DD_LOGS.logger.error("fallback", { data: error.message });
+                errorDiv.style.visibility = 'visible';
+            } finally {
+                stream.onload = null;
             }
+        }
+
+        function generateRandomString(length) {
+            let result = '';
+            const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+            const charactersLength = characters.length;
+            for (let i = 0; i < length; i++) {
+                result += characters.charAt(Math.floor(Math.random() * charactersLength));
+            }
+            return result;
         };
 
-        async function showStream() {
-            console.debug("showStream");
-            if (fallbackCounter > 2) {
-                stream.src = null;
-                stream.style.visibility = 'visible';
-                fallbackMJPEG(url, stream);
-            } else {
-                try {
-                    await defaultMJPEG(url, stream);
-                    fallbackCounter = 0;
-                    stream.style.visibility = 'visible';
-                } catch (e) {
-                    console.debug("showStream.error");
-                    fallbackCounter++;
-                    showStreamTimer = setTimeout(() => { showStream() }, 150);
-                }
-            }
+        // https://github.com/username1565/sha256
+        const sha256 = function a(b) { function c(a, b) { return a >>> b | a << 32 - b } for (var d, e, f = Math.pow, g = f(2, 32), h = "length", i = "", j = [], k = 8 * b[h], l = a.h = a.h || [], m = a.k = a.k || [], n = m[h], o = {}, p = 2; 64 > n; p++)if (!o[p]) { for (d = 0; 313 > d; d += p)o[d] = p; l[n] = f(p, .5) * g | 0, m[n++] = f(p, 1 / 3) * g | 0 } for (b += "\x80"; b[h] % 64 - 56;)b += "\x00"; for (d = 0; d < b[h]; d++) { if (e = b.charCodeAt(d), e >> 8) return; j[d >> 2] |= e << (3 - d) % 4 * 8 } for (j[j[h]] = k / g | 0, j[j[h]] = k, e = 0; e < j[h];) { var q = j.slice(e, e += 16), r = l; for (l = l.slice(0, 8), d = 0; 64 > d; d++) { var s = q[d - 15], t = q[d - 2], u = l[0], v = l[4], w = l[7] + (c(v, 6) ^ c(v, 11) ^ c(v, 25)) + (v & l[5] ^ ~v & l[6]) + m[d] + (q[d] = 16 > d ? q[d] : q[d - 16] + (c(s, 7) ^ c(s, 18) ^ s >>> 3) + q[d - 7] + (c(t, 17) ^ c(t, 19) ^ t >>> 10) | 0), x = (c(u, 2) ^ c(u, 13) ^ c(u, 22)) + (u & l[1] ^ u & l[2] ^ l[1] & l[2]); l = [w + x | 0].concat(l), l[4] = l[4] + w | 0 } for (d = 0; 8 > d; d++)l[d] = l[d] + r[d] | 0 } for (d = 0; 8 > d; d++)for (e = 3; e + 1; e--) { var y = l[d] >> 8 * e & 255; i += (16 > y ? 0 : "") + y.toString(16) } return i };
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', connect);
+        } else {
+            connect();
         }
-
-        function reConnect(reason) {
-            console.debug("reConnect: ", reason);
-
-            clearTimeout(showStreamTimer);
-            showStreamTimer = null;
-
-            fallbackCounter = 0;
-            connectErrorCounter++;
-            if (connectErrorCounter > 100) {
-                console.debug("reConnect: Give up");
-            } else {
-                setTimeout(() => { connect() }, connectErrorCounter > 10 ? 20000 : Math.pow(1.5, connectErrorCounter - 1) * 500);
-            }
-        }
-
-        function connect() {
-            console.debug("connect");
-            stream.style.visibility = 'hidden';
-            try {
-                const socket = new WebSocket(`ws://${window.location.host}/monitor`);
-                socket.onopen = async () => { connectErrorCounter = 0; await showStream(); }
-                socket.onclose = () => { reConnect("connect.onclose"); }
-            } catch (e) {
-                reConnect("connect.catch: " + e)
-            }
-        }
-
-        connect();
 
         // setTimeout(() => { if (!stream.complete) streamFallback() }, 2000);
         // function streamFallback() {
         //     const baseurl = url.split(".mjpeg")[0];
         //     setInterval(() => { stream.src = baseurl + ".jpeg?t=" + Math.random() }, 500);
         // }
-
-        if (typeof history.pushState != "undefined") {
-            const o = { Title: "Screen Stream", Url: "/" };
-            history.pushState(o, o.Title, o.Url)
-        }
-    </script>
-    <script>
-        const enableButtons = ENABLE_BUTTONS;
-        const buttons = document.getElementById('buttons')
-        if (enableButtons) buttons.style.visibility = 'visible';
-        const buttonsHideFunction = () => { buttons.style.visibility = 'hidden'; }
-        var hideTimeout = setTimeout(buttonsHideFunction, 1500);
-
-        window.onmousemove = () => {
-            if (!enableButtons) return
-            buttons.style.visibility = 'visible';
-            clearTimeout(hideTimeout)
-            hideTimeout = setTimeout(buttonsHideFunction, 1000);
-        }
-
-        function isFullscreen() {
-            return document.webkitIsFullScreen || document.mozFullScreen || false;
-        }
-
-        function fullScreenHandler() {
-            const fullscreenInput = document.getElementById("fullscreen");
-            if (isFullscreen()) fullscreenInput.src = "/fullscreen-off.png"; else fullscreenInput.src = "/fullscreen-on.png";
-        }
-
-        document.addEventListener("fullscreenchange", fullScreenHandler);
-        document.addEventListener("webkitfullscreenchange", fullScreenHandler);
-        document.addEventListener("mozfullscreenchange", fullScreenHandler);
-        document.addEventListener("MSFullscreenChange", fullScreenHandler);
-
-        function toggleFullscreen() {
-            const element = document.documentElement;
-            element.requestFullScreen = element.requestFullScreen || element.webkitRequestFullScreen || element.mozRequestFullScreen || function () { return false; };
-            document.cancelFullScreen = document.cancelFullScreen || document.webkitCancelFullScreen || document.mozCancelFullScreen || function () { return false; };
-            isFullscreen() ? document.cancelFullScreen() : element.requestFullScreen();
-        }
-
-        function toggleStartStop() {
-            const xmlHttp = new XMLHttpRequest();
-            xmlHttp.open("GET", window.location.origin + "/start-stop", true);
-            xmlHttp.send(null);
-        }
     </script>
 </body>
 

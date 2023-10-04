@@ -124,15 +124,14 @@
     <string name="mjpeg_error_wrong_image_format">Система отдает изображение в неверном формате. Решения проблемы нет.</string>
     <string name="mjpeg_error_unspecified">Что-то пошло не так. Пожалуйста, попробуйте позже.</string>
 
-    <!--BitmapNotification-->
-    <string name="mjpeg_image_generator_press_start">Нажмите СТАРТ на устройстве</string>
-    <string name="mjpeg_image_generator_go_to_new_address">Пройдите по новому адресу</string>
-    <string name="mjpeg_image_generator_address_blocked">Адрес клиента заблокирован</string>
+    <string name="mjpeg_start_image_text">Запустите поток на устройстве</string>
 
     <!--HTML text-->
+    <string name="mjpeg_html_stream_connecting">Попытка подключения</string>
     <string name="mjpeg_html_stream_require_pin">Эта трансляция требует PIN-код для доступа к ней</string>
     <string name="mjpeg_html_enter_pin">Введите PIN-код:\u0020</string>
-    <string name="mjpeg_html_submit_text">Отправить</string>
+    <string name="mjpeg_html_submit_pin">Отправить</string>
     <string name="mjpeg_html_wrong_pin">Неверный PIN-код!</string>
     <string name="mjpeg_html_address_blocked">Адрес клиента заблокирован</string>
+    <string name="mjpeg_html_error_unspecified">Что-то пошло не так. &lt;br&gt; Пожалуйста, перезагрузите страницу и попробуйте еще раз.</string>
 </resources>

@@ -50,7 +50,7 @@ dependencies {
     implementation("io.github.webrtc-sdk:android:114.5735.05")
     implementation("io.socket:socket.io-client:2.1.0")
     implementation("com.squareup.okhttp3:okhttp:4.10.0")
-    implementation("com.squareup.okio:okio:3.5.0")
+    implementation("com.squareup.okio:okio:3.6.0")
 
     implementation("com.google.android.gms:play-services-basement:18.2.0")
     implementation("com.google.android.play:integrity:1.2.0")

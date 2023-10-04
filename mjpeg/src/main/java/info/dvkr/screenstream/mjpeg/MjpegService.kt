@@ -13,8 +13,6 @@ import info.dvkr.screenstream.mjpeg.internal.MjpegEvent
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import org.koin.android.ext.android.inject
-import org.koin.core.qualifier.named
-import kotlin.jvm.Throws
 
 @RestrictTo(RestrictTo.Scope.LIBRARY)
 public class MjpegService : Service() {
@@ -30,7 +28,6 @@ public class MjpegService : Service() {
     }
 
     private val streamingModulesManager: StreamingModulesManager by inject(mode = LazyThreadSafetyMode.NONE)
-    private val mjpegStreamingModule: MjpegStreamingModule by inject(named(MjpegKoinQualifier), LazyThreadSafetyMode.NONE)
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -47,9 +44,9 @@ public class MjpegService : Service() {
         XLog.d(getLog("onStartCommand", "MjpegEvent: $mjpegEvent"))
 
         when (mjpegEvent) {
-            is MjpegEvent.Intentable.StartService -> mjpegStreamingModule.sendEvent(MjpegEvent.CreateStreamingService(this))
-            is MjpegEvent.Intentable.StopStream -> mjpegStreamingModule.sendEvent(mjpegEvent)
-            MjpegEvent.Intentable.RecoverError -> mjpegStreamingModule.sendEvent(mjpegEvent)
+            is MjpegEvent.Intentable.StartService -> streamingModulesManager.sendEvent(MjpegEvent.CreateStreamingService(this))
+            is MjpegEvent.Intentable.StopStream -> streamingModulesManager.sendEvent(mjpegEvent)
+            MjpegEvent.Intentable.RecoverError -> streamingModulesManager.sendEvent(mjpegEvent)
         }
 
 

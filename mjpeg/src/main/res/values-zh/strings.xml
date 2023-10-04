@@ -125,15 +125,14 @@
     <string name="mjpeg_error_wrong_image_format">系统返回的图片格式无法识别。很抱歉尚无解决办法。</string>
     <string name="mjpeg_error_unspecified">出现了问题。请稍后再试。</string>
 
-    <!--BitmapNotification-->
-    <string name="mjpeg_image_generator_press_start">请按设备上的 开始 按钮</string>
-    <string name="mjpeg_image_generator_go_to_new_address">请访问新地址</string>
-    <string name="mjpeg_image_generator_address_blocked">本客户端已被封禁</string>
+    <string name="mjpeg_start_image_text">在设备上开始流</string>
 
     <!--HTML text-->
+    <string name="mjpeg_html_stream_connecting">尝试连接</string>
     <string name="mjpeg_html_stream_require_pin">这个视频流需要 PIN 码才能访问</string>
     <string name="mjpeg_html_enter_pin">输入 PIN:\u0020</string>
-    <string name="mjpeg_html_submit_text">提交</string>
+    <string name="mjpeg_html_submit_pin">提交</string>
     <string name="mjpeg_html_wrong_pin">PIN 码错误！</string>
     <string name="mjpeg_html_address_blocked">客户端地址被封禁</string>
+    <string name="mjpeg_html_error_unspecified">出现问题。&lt;br&gt; 请重新加载页面并重试。</string>
 </resources>

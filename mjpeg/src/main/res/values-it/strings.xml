@@ -125,15 +125,14 @@
     <string name="mjpeg_error_wrong_image_format">Il sistema restituisce l\'immagine in un formato sconosciuto. Nessuna soluzione disponibile. Spiacente.</string>
     <string name="mjpeg_error_unspecified">Qualcosa è andato storto. Per favore, riprova più tardi.</string>
 
-    <!--BitmapNotification-->
-    <string name="mjpeg_image_generator_press_start">Premi AVVIA nel dispositivo</string>
-    <string name="mjpeg_image_generator_go_to_new_address">Vai al nuovo indirizzo</string>
-    <string name="mjpeg_image_generator_address_blocked">Indirizzo client bloccato</string>
+    <string name="mjpeg_start_image_text">Avvia lo streaming sul dispositivo</string>
 
     <!--HTML text-->
+    <string name="mjpeg_html_stream_connecting">Tentativo di connessione</string>
     <string name="mjpeg_html_stream_require_pin">L\'accesso a questa trasmissione richiede un PIN</string>
     <string name="mjpeg_html_enter_pin">Inserisci pin:\u0020</string>
-    <string name="mjpeg_html_submit_text">Invia</string>
+    <string name="mjpeg_html_submit_pin">Invia</string>
     <string name="mjpeg_html_wrong_pin">Pin errato!</string>
     <string name="mjpeg_html_address_blocked">Indirizzo client bloccato</string>
+    <string name="mjpeg_html_error_unspecified">Qualcosa è andato storto. &lt;br&gt; Si prega di ricaricare la pagina e riprovare.</string>
 </resources>

@@ -113,7 +113,7 @@ public class MjpegSettingsFragment : BottomSheetDialogFragment(R.layout.fragment
         }
         binding.clFragmentSettingsNotifySlowConnections.setOnClickListener { binding.cbFragmentSettingsNotifySlowConnections.performClick() }
 
-        // Interface - Web page Image buttons
+        // Interface - Web page Image buttons //TODO disable if pin enabled
         viewLifecycleOwner.lifecycleScope.launch {
             binding.cbFragmentSettingsHtmlButtons.isChecked = mjpegSettings.htmlEnableButtonsFlow.first()
         }

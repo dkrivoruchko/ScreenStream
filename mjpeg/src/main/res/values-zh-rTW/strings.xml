@@ -125,15 +125,14 @@
     <string name="mjpeg_error_wrong_image_format">系統回傳無效的影像格式。無可用解決方案</string>
     <string name="mjpeg_error_unspecified">出現問題。請稍後再試。</string>
 
-    <!--BitmapNotification-->
-    <string name="mjpeg_image_generator_press_start">在裝置上按下開始串流</string>
-    <string name="mjpeg_image_generator_go_to_new_address">請連接到新位址</string>
-    <string name="mjpeg_image_generator_address_blocked">用戶端位址已被封禁</string>
+    <string name="mjpeg_start_image_text">在設備上開始串流</string>
 
     <!--HTML text-->
+    <string name="mjpeg_html_stream_connecting">嘗試連接</string>
     <string name="mjpeg_html_stream_require_pin">此串流需要PIN以觀看</string>
     <string name="mjpeg_html_enter_pin">輸入pin：\u0020</string>
-    <string name="mjpeg_html_submit_text">傳送</string>
+    <string name="mjpeg_html_submit_pin">傳送</string>
     <string name="mjpeg_html_wrong_pin">pin錯誤！</string>
     <string name="mjpeg_html_address_blocked">用戶端位址已被封禁</string>
+    <string name="mjpeg_html_error_unspecified">出現問題。&lt;br&gt; 請重新載入頁面並重試。</string>
 </resources>

@@ -133,15 +133,14 @@
     <string name="mjpeg_error_wrong_image_format">System returns image in unknown format. No fix available. Sorry.</string>
     <string name="mjpeg_error_unspecified">Something went wrong. Please try again later.</string>
 
-    <!--BitmapNotification-->
-    <string name="mjpeg_image_generator_press_start">Press START on device</string>
-    <string name="mjpeg_image_generator_go_to_new_address">Please go to new address</string>
-    <string name="mjpeg_image_generator_address_blocked">Client address blocked</string>
+    <string name="mjpeg_start_image_text">Start stream on device</string>
 
     <!--HTML text-->
+    <string name="mjpeg_html_stream_connecting">Trying to connect</string>
     <string name="mjpeg_html_stream_require_pin">This stream requires PIN to access it</string>
     <string name="mjpeg_html_enter_pin">Enter pin:\u0020</string>
-    <string name="mjpeg_html_submit_text">Submit</string>
+    <string name="mjpeg_html_submit_pin">Submit</string>
     <string name="mjpeg_html_wrong_pin">Wrong pin!</string>
     <string name="mjpeg_html_address_blocked">Client address blocked</string>
+    <string name="mjpeg_html_error_unspecified">Something went wrong. &lt;br&gt; Please reload page and try again.</string>
 </resources>

@@ -57,7 +57,7 @@ public abstract class AdFragment(@LayoutRes contentLayoutId: Int) : Fragment(con
 
                     val adWidth = (adWidthPixels / resources.displayMetrics.density).toInt()
                     adSize = AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(requireActivity(), adWidth)
-                    loadAd(adViewContainer)
+                    if (view != null) loadAd(adViewContainer)
                 }
             }
         )

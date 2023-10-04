@@ -9,6 +9,11 @@ import android.content.pm.ActivityInfo
 import android.content.pm.ServiceInfo
 import android.content.res.Configuration
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Paint
+import android.graphics.Rect
 import android.hardware.display.DisplayManager
 import android.media.projection.MediaProjection
 import android.media.projection.MediaProjectionManager
@@ -31,7 +36,6 @@ import info.dvkr.screenstream.common.NotificationsManager
 import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.mjpeg.*
 import info.dvkr.screenstream.mjpeg.databinding.ToastMjpegSlowConnectionBinding
-import info.dvkr.screenstream.mjpeg.internal.server.HttpServer
 import kotlinx.coroutines.*
 import kotlinx.coroutines.android.asCoroutineDispatcher
 import kotlinx.coroutines.flow.*
@@ -68,10 +72,22 @@ internal class MjpegStreamingService(
     private val broadcastHelper = BroadcastHelper.getInstance(service)
     private val connectivityHelper = ConnectivityHelper.getInstance(service)
     private val networkHelper: NetworkHelper by inject(mode = LazyThreadSafetyMode.NONE) { parametersOf(service) }
-    private val notificationBitmap: NotificationBitmap by inject(mode = LazyThreadSafetyMode.NONE) { parametersOf(service) }
     private val bitmapStateFlow = MutableStateFlow(Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888))
     private val httpServer by lazy(mode = LazyThreadSafetyMode.NONE) {
-        HttpServer(service, mjpegSettings, bitmapStateFlow.asStateFlow(), notificationBitmap, ::sendEvent)
+        HttpServer(service, mjpegSettings, bitmapStateFlow.asStateFlow(), ::sendEvent)
+    }
+    private val startBitmap: Bitmap by lazy(mode = LazyThreadSafetyMode.NONE) {
+        val bitmap = Bitmap.createBitmap(600, 400, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap).apply { drawRGB(19, 43, 66) }  // #132B42
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { textSize = 24f; color = Color.WHITE }
+        val logo = service.getFileFromAssets("logo.png")
+            .run { BitmapFactory.decodeByteArray(this, 0, size) }
+            .let { Bitmap.createScaledBitmap(it, 256, 256, true) }
+        canvas.drawBitmap(logo, 172f, 16f, paint)
+        val message = service.getString(R.string.mjpeg_start_image_text)
+        val bounds = Rect().apply { paint.getTextBounds(message, 0, message.length, this) }
+        canvas.drawText(message, (bitmap.width - bounds.width()) / 2f, 324f, paint)
+        bitmap
     }
 
     private val monitorScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -152,7 +168,7 @@ internal class MjpegStreamingService(
             repeat(Int.MAX_VALUE) { counter ->
                 val marker = AtomicBoolean(false)
                 sendEvent(InternalEvent.Monitor(counter, marker))
-                delay(1000)
+                delay(3000)
                 if (marker.get().not())
                     XLog.e(this@MjpegStreamingService.getLog("LOCK @:$counter"), IllegalArgumentException("LOCK @:$counter"))
             }
@@ -173,12 +189,6 @@ internal class MjpegStreamingService(
             sendEvent(InternalEvent.RestartServer(RestartReason.ConnectionChanged("ConnectivityHelper")))
         }
 
-        mjpegSettings.htmlEnableButtonsFlow.listenForChange(coroutineScope, 1) {
-            sendEvent(InternalEvent.RestartServer(RestartReason.SettingsChanged(MjpegSettings.Key.HTML_ENABLE_BUTTONS.name)))
-        }
-        mjpegSettings.htmlBackColorFlow.listenForChange(coroutineScope, 1) {
-            sendEvent(InternalEvent.RestartServer(RestartReason.SettingsChanged(MjpegSettings.Key.HTML_BACK_COLOR.name)))
-        }
         mjpegSettings.enablePinFlow.listenForChange(coroutineScope, 1) {
             sendEvent(InternalEvent.RestartServer(RestartReason.SettingsChanged(MjpegSettings.Key.ENABLE_PIN.name)))
         }
@@ -242,9 +252,7 @@ internal class MjpegStreamingService(
     @Synchronized
     internal fun sendEvent(event: MjpegEvent, timeout: Long = 0) {
         if (destroyPending) {
-            val msg = "Pending destroy: Ignoring event => $event"
-            XLog.w(getLog("sendEvent", msg))
-            XLog.d(getLog("sendEvent", msg), IllegalStateException("allowEvent: $msg"))
+            XLog.w(getLog("sendEvent", "Pending destroy: Ignoring event => $event"))
             return
         }
         if (event is InternalEvent.Destroy) destroyPending = true
@@ -327,11 +335,10 @@ internal class MjpegStreamingService(
                 is InternalEvent.StartServer -> {
                     check(pendingServer) { "MjpegEvent.StartStream: server is already started" }
 
-                    runBlocking { withTimeoutOrNull(300) { httpServer.stop().await() } }
+                    runBlocking { withTimeoutOrNull(300) { httpServer.stop(false).await() } }
                     httpServer.start(event.interfaces.toList())
 
-                    if (runBlocking { mjpegSettings.htmlShowPressStartFlow.first() })
-                        bitmapStateFlow.value = notificationBitmap.getNotificationBitmap(NotificationBitmap.Type.START)
+                    if (runBlocking { mjpegSettings.htmlShowPressStartFlow.first() }) bitmapStateFlow.value = startBitmap
 
                     netInterfaces = event.interfaces
                     pendingServer = false
@@ -399,8 +406,7 @@ internal class MjpegStreamingService(
                             mjpegSettings.setPin(randomPin())
                     }
 
-                    if (runBlocking { mjpegSettings.htmlShowPressStartFlow.first() })
-                        bitmapStateFlow.value = notificationBitmap.getNotificationBitmap(NotificationBitmap.Type.START)
+                    if (runBlocking { mjpegSettings.htmlShowPressStartFlow.first() }) bitmapStateFlow.value = startBitmap
                 }
 
                 is InternalEvent.ScreenOff -> if (isStreaming && runBlocking { mjpegSettings.stopOnSleepFlow.first() })
@@ -431,7 +437,7 @@ internal class MjpegStreamingService(
                         XLog.d(getLog("processEvent", "RestartServer: No running server."))
                         if (currentError == MjpegError.AddressNotFoundException) currentError = null
                     } else {
-                        runBlocking { withTimeoutOrNull(300) { httpServer.stop().await() } }
+                        runBlocking { withTimeoutOrNull(300) { httpServer.stop(event.reason is RestartReason.SettingsChanged).await() } }
                         sendEvent(InternalEvent.InitState(false))
                     }
                     sendEvent(InternalEvent.DiscoverAddress(0))
@@ -439,7 +445,7 @@ internal class MjpegStreamingService(
 
                 is MjpegEvent.Intentable.RecoverError -> {
                     stopStream()
-                    runBlocking { withTimeoutOrNull(300) { httpServer.stop().await() } }
+                    runBlocking { withTimeoutOrNull(300) { httpServer.stop(true).await() } }
                     sendEvent(InternalEvent.InitState(true))
                     sendEvent(InternalEvent.DiscoverAddress(0))
                 }
@@ -448,7 +454,6 @@ internal class MjpegStreamingService(
                     stopStream()
                     runBlocking { withTimeoutOrNull(300) { httpServer.destroy().await() } }
                     currentError = null
-                    event.latch.countDown()
                 }
 
                 is InternalEvent.Error -> currentError = event.error
@@ -491,6 +496,7 @@ internal class MjpegStreamingService(
                 .onSuccess { XLog.d(getLog("processEvent", "Removed [$it]")) }
                 .onFailure { XLog.e(getLog("handleMessage", "No messages to remove [$event]"), IllegalStateException("No messages to remove [$event]")) }
             XLog.d(getLog("processEvent", "Done [$event] New state: [${getStateString()}] Pending events: $pendingEvents"))
+            if (event is InternalEvent.Destroy) event.latch.countDown()
             publishState()
         }
 

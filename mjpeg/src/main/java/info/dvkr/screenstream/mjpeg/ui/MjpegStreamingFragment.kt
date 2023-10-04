@@ -217,7 +217,7 @@ public class MjpegStreamingFragment : Fragment(R.layout.fragment_mjpeg_stream) {
         val pin = mjpegSettings.pinFlow.first()
         binding.ivFragmentStreamPinShow.setOnTouchListener { _, event ->
             when (event.action) {
-                MotionEvent.ACTION_DOWN ->  {
+                MotionEvent.ACTION_DOWN -> {
                     val pinText = getString(R.string.mjpeg_stream_fragment_pin, pin)
                     binding.tvFragmentStreamPin.text = pinText.setColorSpan(colorAccent, pinText.length - pin.length)
                 }

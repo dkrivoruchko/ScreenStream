@@ -234,7 +234,10 @@ internal class WebRtcStreamingService(
         }
 
         override fun onError(clientId: ClientId, cause: Throwable) {
-            XLog.e(this@WebRtcStreamingService.getLog("WebRTCClient.onError", "Client: $clientId"), cause)
+            if (cause.message?.startsWith("onPeerDisconnected") == true)
+                XLog.e(this@WebRtcStreamingService.getLog("WebRTCClient.onError", "Client: $clientId: ${cause.message}"))
+            else
+                XLog.e(this@WebRtcStreamingService.getLog("WebRTCClient.onError", "Client: $clientId"), cause)
             sendEvent(WebRtcEvent.RemoveClient(clientId, true, "onError:${cause.message}"))
         }
     }
@@ -279,7 +282,7 @@ internal class WebRtcStreamingService(
             repeat(Int.MAX_VALUE) { counter ->
                 val marker = AtomicBoolean(false)
                 sendEvent(InternalEvent.Monitor(counter, marker))
-                delay(1000)
+                delay(3000)
                 if (marker.get().not())
                     XLog.e(this@WebRtcStreamingService.getLog("LOCK @:$counter"), IllegalArgumentException("LOCK @:$counter"))
             }
@@ -354,9 +357,7 @@ internal class WebRtcStreamingService(
     @Synchronized
     internal fun sendEvent(event: WebRtcEvent, timeout: Long = 0) {
         if (destroyPending) {
-            val msg = "Pending destroy: Ignoring event => $event"
-            XLog.i(getLog("sendEvent", msg))
-            XLog.d(getLog("sendEvent", msg), IllegalStateException("allowEvent: $msg"))
+            XLog.i(getLog("sendEvent", "Pending destroy: Ignoring event => $event"))
             return
         }
         if (event is InternalEvent.Destroy) destroyPending = true
@@ -417,6 +418,7 @@ internal class WebRtcStreamingService(
                 .onSuccess { XLog.d(getLog("handleMessage", "Removed [$it]")) }
                 .onFailure { XLog.e(getLog("handleMessage", "No messages to remove [$event]"), IllegalStateException("No messages to remove [$event]")) }
             XLog.d(getLog("handleMessage", "Done [$event] New state: [${getStateString()}] Pending events: $pendingEvents"))
+            if (event is InternalEvent.Destroy) event.latch.countDown()
             publishState()
         }
 
@@ -555,7 +557,7 @@ internal class WebRtcStreamingService(
                 if (currentStreamId.isEmpty().not() && currentStreamId != event.streamId) { // We got new streamId while we have another one
                     //TODO maybe notify user and clients?
                     stopStream()
-                    requireNotNull(signaling).sendRemoveClients(clients.values.map { it.clientId }, "StreamCreated: New StreamID")
+                    requireNotNull(signaling).sendRemoveClients(clients.map { it.value.clientId }, "StreamCreated: New StreamID")
                     clients = HashMap()
                     currentStreamPassword = StreamPassword.EMPTY
                 }
@@ -652,7 +654,7 @@ internal class WebRtcStreamingService(
                 service.registerComponentCallbacks(componentCallback)
 
                 requireNotNull(signaling).sendStreamStart()
-                clients.values.forEach { it.start(prj.localMediaSteam!!) }
+                clients.forEach { it.value.start(prj.localMediaSteam!!) }
 
                 @Suppress("DEPRECATION")
                 @SuppressLint("WakelockTimeout")
@@ -841,7 +843,6 @@ internal class WebRtcStreamingService(
                 signaling?.destroy()
                 projection?.destroy()
                 currentError.set(null)
-                event.latch.countDown()
             }
 
             is WebRtcEvent.GetNewStreamId -> {
@@ -873,7 +874,7 @@ internal class WebRtcStreamingService(
                     return
                 }
 
-                requireNotNull(signaling).sendRemoveClients(clients.values.map { it.clientId }, "CreateNewStreamPassword")
+                requireNotNull(signaling).sendRemoveClients(clients.map { it.value.clientId }, "CreateNewStreamPassword")
                 clients = HashMap()
                 currentStreamPassword = StreamPassword.generateNew()
             }
@@ -897,7 +898,7 @@ internal class WebRtcStreamingService(
 
             service.unregisterComponentCallbacks(componentCallback)
             requireNotNull(signaling).sendStreamStop()
-            clients.values.forEach { it.stop() }
+            clients.forEach { it.value.stop() }
             requireNotNull(projection).stop()
             notificationsManager.hideForegroundNotification(service)
         } else {
@@ -920,7 +921,7 @@ internal class WebRtcStreamingService(
             currentStreamPassword.value,
             waitingForPermission,
             isStreaming(),
-            clients.values.map { it.toClient() },
+            clients.map { it.value.toClient() },
             currentError.get()
         )
 

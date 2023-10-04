@@ -126,15 +126,14 @@
     <string name="mjpeg_error_wrong_image_format">System nadaje obrazowi niewłaściwy format. Brak rozwiązania tego problemu.</string>
     <string name="mjpeg_error_unspecified">Coś poszło nie tak. Proszę spróbować ponownie później.</string>
 
-    <!--BitmapNotification-->
-    <string name="mjpeg_image_generator_press_start">Naciśnij START na urządzeniu</string>
-    <string name="mjpeg_image_generator_go_to_new_address">Przejdź do nowego adresu</string>
-    <string name="mjpeg_image_generator_address_blocked">Adres klienta zablokowany</string>
+    <string name="mjpeg_start_image_text">Uruchom strumień na urządzeniu</string>
 
     <!--HTML text-->
+    <string name="mjpeg_html_stream_connecting">Próba połączenia</string>
     <string name="mjpeg_html_stream_require_pin">Transmisja wymaga kodu PIN</string>
     <string name="mjpeg_html_enter_pin">Wpisz kod PIN:\u0020</string>
-    <string name="mjpeg_html_submit_text">Zatwierdź</string>
+    <string name="mjpeg_html_submit_pin">Zatwierdź</string>
     <string name="mjpeg_html_wrong_pin">Błędny kod PIN!</string>
     <string name="mjpeg_html_address_blocked">Adres klienta zablokowany</string>
+    <string name="mjpeg_html_error_unspecified">Coś poszło nie tak. &lt;br&gt; Proszę odświeżyć stronę i spróbować ponownie.</string>
 </resources>

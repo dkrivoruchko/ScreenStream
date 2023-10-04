@@ -50,7 +50,7 @@ public interface MjpegSettings {
 
         public const val HTML_ENABLE_BUTTONS: Boolean = false
         public const val HTML_SHOW_PRESS_START: Boolean = true
-        public const val HTML_BACK_COLOR: Int = -16777216 // "ff000000".toLong(radix = 16).toInt()
+        public const val HTML_BACK_COLOR: Int = -16248292 // "ff08121C".toLong(radix = 16).toInt()
 
         public const val VR_MODE_DISABLE: Int = 0
         public const val VR_MODE_LEFT: Int = 1

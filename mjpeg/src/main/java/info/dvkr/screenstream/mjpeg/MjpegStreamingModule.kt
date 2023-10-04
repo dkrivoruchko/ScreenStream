@@ -109,9 +109,11 @@ public class MjpegStreamingModule : StreamingModule {
             }
 
             is MjpegEvent.CreateStreamingService -> if (_scope == null) {
-                XLog.e(getLog("sendEvent", "Scope already destroyed. Stopping Service."))
+                XLog.e(getLog("sendEvent", "Scope already destroyed. Stopping Service"), IllegalStateException("Scope already destroyed. Stopping Service"))
                 event.service.stopSelf()
                 _streamingServiceIsActive.value = false
+            } else if (streamingServiceIsActive.value) {
+                XLog.e(getLog("sendEvent", "Service already started. Ignoring"), IllegalStateException("Service already started. Ignoring"))
             } else {
                 scope.get<MjpegStreamingService> { parametersOf(scope, event.service) }.start()
                 _streamingServiceIsActive.value = true

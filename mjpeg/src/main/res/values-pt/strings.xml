@@ -126,15 +126,14 @@
     <string name="mjpeg_error_wrong_image_format">O sistema retorna a imagem em um formato desconhecido. Não há correção disponível. Desculpe.</string>
     <string name="mjpeg_error_unspecified">Algo deu errado. Tente novamente mais tarde.</string>
 
-    <!--BitmapNotification-->
-    <string name="mjpeg_image_generator_press_start">Pressione INICIAR no dispositivo</string>
-    <string name="mjpeg_image_generator_go_to_new_address">Por favor, vá para o novo endereço</string>
-    <string name="mjpeg_image_generator_address_blocked">Endereço do cliente bloqueado</string>
+    <string name="mjpeg_start_image_text">Iniciar transmissão no dispositivo</string>
 
     <!--HTML text-->
+    <string name="mjpeg_html_stream_connecting">Tentando conectar</string>
     <string name="mjpeg_html_stream_require_pin">Esta transmissão requer um PIN para acessá-la</string>
     <string name="mjpeg_html_enter_pin">Inserir PIN:\u0020</string>
-    <string name="mjpeg_html_submit_text">Enviar</string>
+    <string name="mjpeg_html_submit_pin">Enviar</string>
     <string name="mjpeg_html_wrong_pin">PIN incorreto!</string>
     <string name="mjpeg_html_address_blocked">Endereço do cliente bloqueado</string>
+    <string name="mjpeg_html_error_unspecified">Algo deu errado. &lt;br&gt; Por favor, recarregue a página e tente novamente.</string>
 </resources>

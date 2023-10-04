@@ -125,15 +125,14 @@
     <string name="mjpeg_error_wrong_image_format">Le système fournit une image dans un format inconnu. Pas de solution, désolé.</string>
     <string name="mjpeg_error_unspecified">Algo salió mal. Por favor, inténtalo de nuevo más tarde.</string>
 
-    <!--BitmapNotification-->
-    <string name="mjpeg_image_generator_press_start">Appuyez sur Démarrer sur l\'appareil</string>
-    <string name="mjpeg_image_generator_go_to_new_address">Veuillez vous rendre à la nouvelle adresse</string>
-    <string name="mjpeg_image_generator_address_blocked">Dirección del cliente bloqueada</string>
+    <string name="mjpeg_start_image_text">Démarrer la diffusion sur l\'appareil</string>
 
     <!--HTML text-->
+    <string name="mjpeg_html_stream_connecting">Tentative de connexion</string>
     <string name="mjpeg_html_stream_require_pin">Ce flux requiert un code pour y accéder</string>
     <string name="mjpeg_html_enter_pin">Code :\u0020</string>
-    <string name="mjpeg_html_submit_text">Soumettre</string>
+    <string name="mjpeg_html_submit_pin">Soumettre</string>
     <string name="mjpeg_html_wrong_pin">Mauvais code!</string>
     <string name="mjpeg_html_address_blocked">Dirección del cliente bloqueada</string>
+    <string name="mjpeg_html_error_unspecified">Quelque chose s\'est mal passé. &lt;br&gt; Veuillez recharger la page et réessayer.</string>
 </resources>

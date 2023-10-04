@@ -1,9 +1,7 @@
 package info.dvkr.screenstream.fragment
 
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.net.Uri
-import android.os.Build
 import android.os.Bundle
 import android.view.View
 import android.widget.Toast
@@ -11,6 +9,7 @@ import androidx.fragment.app.Fragment
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.BaseApp
 import info.dvkr.screenstream.R
+import info.dvkr.screenstream.common.getAppVersion
 import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.common.view.viewBinding
 import info.dvkr.screenstream.databinding.FragmentAboutBinding
@@ -23,19 +22,7 @@ public class AboutFragment : Fragment(R.layout.fragment_about) {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        val packageName = requireContext().packageName
-        var version: String
-        runCatching {
-            version = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                requireContext().packageManager.getPackageInfo(packageName, PackageManager.PackageInfoFlags.of(0)).versionName
-            } else {
-                @Suppress("DEPRECATION")
-                requireContext().packageManager.getPackageInfo(packageName, 0).versionName
-            }
-            binding.tvFragmentAboutVersion.text = getString(R.string.app_about_fragment_app_version, version)
-        }.onFailure {
-            XLog.e(getLog("onViewCreated", "getPackageInfo"), it)
-        }
+        binding.tvFragmentAboutVersion.text = getString(R.string.app_about_fragment_app_version, requireContext().getAppVersion())
 
         var settingsLoggingVisibleCounter = 0
         binding.tvFragmentAboutVersion.setOnClickListener {
@@ -49,6 +36,7 @@ public class AboutFragment : Fragment(R.layout.fragment_about) {
         }
 
         binding.bFragmentAboutRate.setOnClickListener {
+            val packageName = it.context.packageName
             openStringUrl("market://details?id=$packageName") {
                 openStringUrl("https://play.google.com/store/apps/details?id=$packageName")
             }

@@ -125,16 +125,15 @@
     <string name="mjpeg_error_wrong_image_format">يقوم النظام بإرجاع الصورة بتنسيق غير معروف .لا يوجد إصلاح المتاحة .آسف</string>
     <string name="mjpeg_error_unspecified">حدث خطأ ما. يرجى المحاولة مرة أخرى في وقت لاحق.</string>
 
-    <!--BitmapNotification-->
-    <string name="mjpeg_image_generator_press_start">اضغط على بدء على الجهاز</string>
-    <string name="mjpeg_image_generator_go_to_new_address">يرجى الذهاب إلى عنوان جديد</string>
-    <string name="mjpeg_image_generator_address_blocked">يرجى إعادة تحميل هذه الصفحة</string>
+    <string name="mjpeg_start_image_text">بدء التيار على الجهاز</string>
 
     <!--HTML text-->
+    <string name="mjpeg_html_stream_connecting">محاولة الاتصال</string>
     <string name="mjpeg_html_stream_require_pin">يتطلب هذا البث الرقم السري للدخول إليه</string>
     <string name="mjpeg_html_enter_pin"> \u0020: أدخل الرقم السري</string>
-    <string name="mjpeg_html_submit_text">إرسال</string>
+    <string name="mjpeg_html_submit_pin">إرسال</string>
     <string name="mjpeg_html_wrong_pin">رقم سري خطأ!</string>
     <string name="mjpeg_html_address_blocked">تم حظر عنوان العميل</string>
+    <string name="mjpeg_html_error_unspecified">حدث خطأ ما. &lt;br&gt; يرجى إعادة تحميل الصفحة والمحاولة مرة أخرى.</string>
 </resources>
 

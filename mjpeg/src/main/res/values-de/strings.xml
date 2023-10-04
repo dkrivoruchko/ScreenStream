@@ -125,15 +125,14 @@
     <string name="mjpeg_error_wrong_image_format">Das System liefert ein Bild in einem ungültigen Format zurück. Keine Fehlerbehebung verfügbar. Entschuldigung.</string>
     <string name="mjpeg_error_unspecified">Etwas ist schiefgegangen. Bitte versuchen Sie es später erneut.</string>
 
-    <!--BitmapNotification-->
-    <string name="mjpeg_image_generator_press_start">Auf dem Gerät START tippen</string>
-    <string name="mjpeg_image_generator_go_to_new_address">Bitte neue Adresse aufrufen</string>
-    <string name="mjpeg_image_generator_address_blocked">Client-Adresse blockiert</string>
+    <string name="mjpeg_start_image_text">Stream auf Gerät starten</string>
 
     <!--HTML text-->
+    <string name="mjpeg_html_stream_connecting">Versuche zu verbinden</string>
     <string name="mjpeg_html_stream_require_pin">Dieser Stream benötigt einen Pin für den Zugriff</string>
     <string name="mjpeg_html_enter_pin">Pin eingeben:\u0020</string>
-    <string name="mjpeg_html_submit_text">Senden</string>
+    <string name="mjpeg_html_submit_pin">Senden</string>
     <string name="mjpeg_html_wrong_pin">Falscher Pin!</string>
     <string name="mjpeg_html_address_blocked">Client-Adresse blockiert</string>
+    <string name="mjpeg_html_error_unspecified">Etwas ist schiefgelaufen. &lt;br&gt; Bitte laden Sie die Seite neu und versuchen Sie es erneut.</string>
 </resources>

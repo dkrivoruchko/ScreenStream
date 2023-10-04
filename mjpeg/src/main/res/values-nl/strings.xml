@@ -126,15 +126,14 @@
     <string name="mjpeg_error_wrong_image_format">Systeem maakt een frame in een onbekend formaat. Geen oplossing mogelijk. Sorry.</string>
     <string name="mjpeg_error_unspecified">Er is iets misgegaan. Probeer het later opnieuw.</string>
 
-    <!--BitmapNotification-->
-    <string name="mjpeg_image_generator_press_start">Druk START op het toestel</string>
-    <string name="mjpeg_image_generator_go_to_new_address">Ga naar het nieuwe adres</string>
-    <string name="mjpeg_image_generator_address_blocked">Uw adres is geblokeerd</string>
+    <string name="mjpeg_start_image_text">Stream starten op apparaat</string>
 
     <!--HTML text-->
+    <string name="mjpeg_html_stream_connecting">Proberen te verbinden</string>
     <string name="mjpeg_html_stream_require_pin">Deze stream is beveiligd met een PIN</string>
     <string name="mjpeg_html_enter_pin">Vul de pin in:\u0020</string>
-    <string name="mjpeg_html_submit_text">Verstuur</string>
+    <string name="mjpeg_html_submit_pin">Verstuur</string>
     <string name="mjpeg_html_wrong_pin">Verkeerde pin!</string>
     <string name="mjpeg_html_address_blocked">Uw adres is geblokeerd door te veel pogenigen</string>
+    <string name="mjpeg_html_error_unspecified">Er is iets misgegaan. &lt;br&gt; Vernieuw de pagina en probeer het opnieuw.</string>
 </resources>
