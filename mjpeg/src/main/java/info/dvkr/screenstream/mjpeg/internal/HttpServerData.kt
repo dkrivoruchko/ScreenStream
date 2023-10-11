@@ -25,6 +25,7 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
+import java.util.concurrent.atomic.AtomicReference
 import kotlin.collections.set
 
 internal class HttpServerData(private val sendEvent: (MjpegEvent) -> Unit) {
@@ -44,16 +45,24 @@ internal class HttpServerData(private val sendEvent: (MjpegEvent) -> Unit) {
 
     private class Client(
         val id: String,
-        val address: String,
-        val port: Int,
-        val session: DefaultWebSocketSession?,
         val pinCheckAttempt: AtomicInteger = AtomicInteger(0),
         val isPinValidated: AtomicBoolean = AtomicBoolean(false),
-        val isSlowConnection: AtomicBoolean = AtomicBoolean(false),
-        val isDisconnected: AtomicBoolean = AtomicBoolean(false),
-        val transferBytes: AtomicLong = AtomicLong(0),
-        val holdUntil: AtomicLong = AtomicLong(0)
+        val session: AtomicReference<DefaultWebSocketSession?> = AtomicReference(null),
+        val connectionsMap: ConcurrentHashMap<String, Connection> = ConcurrentHashMap<String, Connection>()
     ) {
+
+        private class Connection(
+            val address: String,
+            val port: String,
+            val isSlowConnection: AtomicBoolean = AtomicBoolean(false),
+            val isDisconnected: AtomicBoolean = AtomicBoolean(false),
+            val transferBytes: AtomicLong = AtomicLong(0),
+            val holdUntil: AtomicLong = AtomicLong(0)
+        )
+
+        fun addNewConnection(address: String, port: String) {
+            connectionsMap["$address:$port"] = Connection(address, port)
+        }
 
         fun onPinCheck(isPinValid: Boolean, blockAddress: Boolean): Boolean {
             isPinValidated.set(isPinValid)
@@ -65,26 +74,46 @@ internal class HttpServerData(private val sendEvent: (MjpegEvent) -> Unit) {
             }
         }
 
-        fun setDisconnected() {
-            isDisconnected.set(true)
-            holdUntil.set(System.currentTimeMillis() + DISCONNECT_HOLD_TIME_MILLIS)
+        fun setDisconnected(address: String, port: String) {
+            connectionsMap["$address:$port"]?.apply {
+                isDisconnected.set(true)
+                holdUntil.set(System.currentTimeMillis() + DISCONNECT_HOLD_TIME_MILLIS)
+            }
         }
 
-        fun isAuthorized() = isPinValidated.get()
-        fun setSlowConnection() = if (isDisconnected.get().not()) isSlowConnection.set(true) else Unit
-        fun appendBytes(bytesCount: Int): Long = transferBytes.addAndGet(bytesCount.toLong())
-        fun getBytes(): Long = transferBytes.getAndSet(0)
-        fun canRemove(now: Long): Boolean = isDisconnected.get() && (holdUntil.get() <= now)
+        fun isDisconnected(address: String, port: String): Boolean = connectionsMap["$address:$port"]?.isDisconnected?.get() ?: true
 
-        fun toMjpegClient(isAddressBlocked: Boolean) = MjpegState.Client(
-            id, "$address:$port",
-            when {
-                isAddressBlocked -> MjpegState.Client.State.BLOCKED
-                isDisconnected.get() -> MjpegState.Client.State.DISCONNECTED
-                isSlowConnection.get() -> MjpegState.Client.State.SLOW_CONNECTION
-                else -> MjpegState.Client.State.CONNECTED
+        fun isAuthorized() = isPinValidated.get()
+
+        fun setSlowConnection(address: String, port: String) {
+            connectionsMap["$address:$port"]?.apply { if (isDisconnected.get().not()) isSlowConnection.set(true) }
+        }
+
+        fun appendBytes(address: String, port: String, bytesCount: Int) {
+            connectionsMap["$address:$port"]?.apply { transferBytes.addAndGet(bytesCount.toLong()) }
+        }
+
+        fun getBytes(): Long = connectionsMap.map { it.value.transferBytes.getAndSet(0) }.sum()
+
+        fun canRemove(now: Long): Boolean {
+            connectionsMap.filter { it.value.isDisconnected.get() && it.value.holdUntil.get() <= now }
+                .forEach { connectionsMap.remove(it.key) }
+            return connectionsMap.isEmpty() && session.get() == null
+        }
+
+        fun toMjpegClients(blockedAddresses: Map<String, Long>): List<MjpegState.Client> {
+            return connectionsMap.map { (_, connection) ->
+                MjpegState.Client(
+                    "$id:${connection.address}:${connection.port}", "${connection.address}:${connection.port}",
+                    when {
+                        blockedAddresses.containsKey(connection.address) -> MjpegState.Client.State.BLOCKED
+                        connection.isDisconnected.get() -> MjpegState.Client.State.DISCONNECTED
+                        connection.isSlowConnection.get() -> MjpegState.Client.State.SLOW_CONNECTION
+                        else -> MjpegState.Client.State.CONNECTED
+                    }
+                )
             }
-        )
+        }
 
         override fun equals(other: Any?): Boolean {
             if (this === other) return true
@@ -148,8 +177,7 @@ internal class HttpServerData(private val sendEvent: (MjpegEvent) -> Unit) {
                 trafficHistory.addLast(MjpegState.TrafficPoint(now, trafficAtNow))
                 sendEvent(MjpegStreamingService.InternalEvent.Traffic(now, trafficHistory.sortedBy { it.time }))
 
-                val clients =
-                    clientsList.map { c -> c.toMjpegClient(blockedAddresses.any { it.key == c.address }) }.sortedBy { it.clientAddress }
+                val clients = clientsList.flatMap { c -> c.toMjpegClients(blockedAddresses) }.sortedBy { it.clientAddress }
                 if (clients.size != publishedClients.size || clients.any { c ->
                         publishedClients.find { it.id == c.id }?.equals(c) != true
                     }) {
@@ -163,27 +191,37 @@ internal class HttpServerData(private val sendEvent: (MjpegEvent) -> Unit) {
         }
     }
 
-    internal fun setConnected(clientId: String, remoteAddress: String, remotePort: Int, session: DefaultWebSocketSession? = null) {
-        val client = clients[clientId]
-        if (client == null || client.isDisconnected.get()) clients[clientId] = Client(clientId, remoteAddress, remotePort, session)
+    internal fun addClient(clientId: String, session: DefaultWebSocketSession) {
+        val client = clients[clientId] ?: run { Client(clientId).also { clients[clientId] = it } }
+        client.session.set(session)
     }
 
-    internal fun setDisconnected(clientId: String) = clients[clientId]?.setDisconnected() ?: run {
-        XLog.w(getLog("disconnected", "No client found: $clientId"), IllegalStateException("disconnected: No client found: $clientId"))
+    internal fun removeSocket(clientId: String) {
+        clients[clientId]?.session?.set(null)
     }
 
-    internal fun isDisconnected(clientId: String): Boolean = clients[clientId]?.isDisconnected?.get() ?: true
+    internal fun addConnected(clientId: String, remoteAddress: String, remotePort: Int) {
+        val client = clients[clientId] ?: run { Client(clientId).also { clients[clientId] = it } }
+        client.addNewConnection(remoteAddress, remotePort.toString())
+    }
 
-    internal fun isPinValid(clientId: String, pinHash: String?): Boolean {
-        val client = clients[clientId] ?: run {
-            XLog.w(getLog("isPinValid", "No client found: $clientId"), IllegalStateException("isPinValid: No client found: $clientId"))
-            return false
+    internal fun setDisconnected(clientId: String, remoteAddress: String, remotePort: Int) {
+        clients[clientId]?.setDisconnected(remoteAddress, remotePort.toString()) ?: run {
+            XLog.w(getLog("disconnected", "No client found: $clientId"), IllegalStateException("disconnected: No client found: $clientId"))
         }
+    }
+
+    internal fun isDisconnected(clientId: String, remoteAddress: String, remotePort: Int): Boolean {
+        return clients[clientId]?.isDisconnected(remoteAddress, remotePort.toString()) ?: true
+    }
+
+    internal fun isPinValid(clientId: String, remoteAddress: String, pinHash: String?): Boolean {
+        val client = clients[clientId] ?: run { Client(clientId).also { clients[clientId] = it } }
 
         @OptIn(ExperimentalStdlibApi::class)
         val isPinValid = (clientId + pin).encodeToByteArray().toSHA256Bytes().toHexString() == pinHash
         val blockAddress = client.onPinCheck(isPinValid, blockAddress)
-        if (blockAddress) blockedAddresses[client.address] = System.currentTimeMillis() + ADDRESS_BLOCK_TIME_MILLIS
+        if (blockAddress) blockedAddresses[remoteAddress] = System.currentTimeMillis() + ADDRESS_BLOCK_TIME_MILLIS
         return isPinValid
     }
 
@@ -196,20 +234,21 @@ internal class HttpServerData(private val sendEvent: (MjpegEvent) -> Unit) {
     internal fun isClientAllowed(clientId: String, remoteAddress: String): Boolean =
         isClientAuthorized(clientId) && isAddressBlocked(remoteAddress).not()
 
-    internal fun setNextBytes(clientId: String, bytesCount: Int) = clients[clientId]?.appendBytes(bytesCount) ?: run {
-        XLog.w(getLog("setNextBytes", "No client found: $clientId"), IllegalStateException("setNextBytes: No client found: $clientId"))
+    internal fun setNextBytes(clientId: String, remoteAddress: String, remotePort: Int, bytesCount: Int) {
+        clients[clientId]?.appendBytes(remoteAddress, remotePort.toString(), bytesCount) ?: run {
+            XLog.w(getLog("setNextBytes", "No client found: $clientId"), IllegalStateException("setNextBytes: No client found: $clientId"))
+        }
     }
 
-    internal fun setSlowConnection(clientId: String) = clients[clientId]?.setSlowConnection() ?: run {
-        XLog.w(getLog("setSlowConnection", "No client found: $clientId"), IllegalStateException("setSlowConnection: No client found: $clientId"))
+    internal fun setSlowConnection(clientId: String, remoteAddress: String, remotePort: Int) {
+        clients[clientId]?.setSlowConnection(remoteAddress, remotePort.toString()) ?: run {
+            XLog.w(getLog("setSlowConnection", "No client found: $clientId"), IllegalStateException("setSlowConnection: No client found: $clientId"))
+        }
     }
 
     internal fun notifyClients(type: String, data: Any? = null) {
-        runBlocking {
-            clients.mapNotNull { it.value.session }.forEach { session ->
-                if (session.isActive) session.send(JSONObject().put("type", type).put("data", data).toString())
-            }
-        }
+        val message = JSONObject().put("type", type).put("data", data).toString()
+        runBlocking { clients.forEach { (_, client) -> client.session.get()?.run { if (isActive) send(message) } } }
     }
 
     internal fun clear() {

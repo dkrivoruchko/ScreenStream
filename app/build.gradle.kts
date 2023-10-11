@@ -30,8 +30,8 @@ android {
         applicationId = "info.dvkr.screenstream"
         minSdk = 23
         targetSdk = 34
-        versionCode = 40016
-        versionName = "4.0.16"
+        versionCode = 40017
+        versionName = "4.0.17"
 
         // https://medium.com/@crafty/no-if-you-do-that-then-you-cant-use-newer-features-on-older-platforms-e-g-fa595333c0a4
         vectorDrawables.useSupportLibrary = true
@@ -103,8 +103,8 @@ dependencies {
     ksp("io.insert-koin:koin-ksp-compiler:1.3.0")
 
     implementation("androidx.lifecycle:lifecycle-process:2.6.2")
-    implementation("androidx.navigation:navigation-fragment-ktx:2.7.3")
-    implementation("androidx.navigation:navigation-ui-ktx:2.7.3")
+    implementation("androidx.navigation:navigation-fragment-ktx:2.7.4")
+    implementation("androidx.navigation:navigation-ui-ktx:2.7.4")
 
     // Temp fix for https://github.com/afollestad/material-dialogs/issues/1825
     implementation(fileTree("libs/bottomsheets-release.aar"))

@@ -18,6 +18,7 @@ import android.net.NetworkRequest
 import android.os.Build
 import android.os.Handler
 import android.os.HandlerThread
+import android.os.Looper
 import android.os.Message
 import android.os.PowerManager
 import androidx.annotation.AnyThread
@@ -53,7 +54,6 @@ import org.koin.core.annotation.Scoped
 import org.koin.core.component.KoinScopeComponent
 import org.koin.core.component.inject
 import org.webrtc.IceCandidate
-import java.util.Collections
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
@@ -83,7 +83,7 @@ internal class WebRtcStreamingService(
     private val connectivityManager: ConnectivityManager = service.getSystemService(ConnectivityManager::class.java)
 
     private val notificationsManager: NotificationsManager by inject()
-
+    private val mainHandler: Handler by lazy(LazyThreadSafetyMode.NONE) { Handler(Looper.getMainLooper()) }
     private val handler: Handler by lazy(LazyThreadSafetyMode.NONE) { Handler(looper, this) }
     private val coroutineDispatcher: CoroutineDispatcher by lazy(LazyThreadSafetyMode.NONE) { handler.asCoroutineDispatcher("WebRTC-HT_Dispatcher") }
     private val coroutineScope by lazy(LazyThreadSafetyMode.NONE) { CoroutineScope(SupervisorJob() + coroutineDispatcher) }
@@ -97,7 +97,6 @@ internal class WebRtcStreamingService(
     private val playIntegrity = PlayIntegrity(service, environment, okHttpClient)
 
     private val monitorScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
-    private val pendingEvents = Collections.synchronizedList(mutableListOf<WebRtcEvent>()) // For logging only
 
     private val currentError: AtomicReference<WebRtcError?> = AtomicReference(null)
 
@@ -340,7 +339,6 @@ internal class WebRtcStreamingService(
         }
 
         handler.removeCallbacksAndMessages(null)
-        pendingEvents.clear()
 
         notificationsManager.hideForegroundNotification(service)
         notificationsManager.hideErrorNotification()
@@ -367,26 +365,18 @@ internal class WebRtcStreamingService(
 
         if (event is WebRtcEvent.Intentable.StopStream) {
             handler.removeMessages(WebRtcEvent.Priority.STOP_IGNORE)
-            pendingEvents.removeAll { it.priority == WebRtcEvent.Priority.STOP_IGNORE }
         }
         if (event is WebRtcEvent.Intentable.RecoverError) {
             handler.removeMessages(WebRtcEvent.Priority.STOP_IGNORE)
             handler.removeMessages(WebRtcEvent.Priority.RECOVER_IGNORE)
-            pendingEvents.removeAll { it.priority == WebRtcEvent.Priority.STOP_IGNORE }
-            pendingEvents.removeAll { it.priority == WebRtcEvent.Priority.RECOVER_IGNORE }
         }
         if (event is InternalEvent.Destroy) {
             handler.removeMessages(WebRtcEvent.Priority.STOP_IGNORE)
             handler.removeMessages(WebRtcEvent.Priority.RECOVER_IGNORE)
             handler.removeMessages(WebRtcEvent.Priority.DESTROY_IGNORE)
-            pendingEvents.removeAll { it.priority == WebRtcEvent.Priority.STOP_IGNORE }
-            pendingEvents.removeAll { it.priority == WebRtcEvent.Priority.RECOVER_IGNORE }
-            pendingEvents.removeAll { it.priority == WebRtcEvent.Priority.DESTROY_IGNORE }
         }
 
-        pendingEvents.add(event)
         handler.sendMessageDelayed(handler.obtainMessage(event.priority, event), timeout)
-        XLog.d(getLog("sendEvent", "Pending events: $pendingEvents"))
     }
 
     override fun handleMessage(msg: Message): Boolean {
@@ -396,9 +386,6 @@ internal class WebRtcStreamingService(
 
         if (event is InternalEvent.Monitor) {
             event.marker.set(true)
-            runCatching { pendingEvents.removeAt(0) }
-                .onSuccess { XLog.d(getLog("handleMessage", "Removed [$it]")) }
-                .onFailure { XLog.e(getLog("handleMessage", "No messages to remove [$event]"), IllegalStateException("No messages to remove [$event]")) }
             return true
         }
 
@@ -414,10 +401,7 @@ internal class WebRtcStreamingService(
 
             currentError.set(WebRtcError.UnknownError(cause))
         } finally {
-            runCatching { pendingEvents.removeAt(0) }
-                .onSuccess { XLog.d(getLog("handleMessage", "Removed [$it]")) }
-                .onFailure { XLog.e(getLog("handleMessage", "No messages to remove [$event]"), IllegalStateException("No messages to remove [$event]")) }
-            XLog.d(getLog("handleMessage", "Done [$event] New state: [${getStateString()}] Pending events: $pendingEvents"))
+            XLog.d(getLog("handleMessage", "Done [$event] New state: [${getStateString()}]"))
             if (event is InternalEvent.Destroy) event.latch.countDown()
             publishState()
         }
@@ -931,9 +915,14 @@ internal class WebRtcStreamingService(
         if (previousError != currentError.get()) {
             previousError = currentError.get()
             previousError?.let {
+                XLog.e(getLog("publishState", it.message), it)
                 val message = it.toString(service)
-                notificationsManager.showErrorNotification(service, message, WebRtcEvent.Intentable.RecoverError.toIntent(service))
-            } ?: run { notificationsManager.hideErrorNotification() }
+                mainHandler.post {
+                    notificationsManager.showErrorNotification(service, message, WebRtcEvent.Intentable.RecoverError.toIntent(service))
+                }
+            } ?: mainHandler.post {
+                notificationsManager.hideErrorNotification()
+            }
         }
     }
 }

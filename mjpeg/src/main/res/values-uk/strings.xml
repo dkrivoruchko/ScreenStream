@@ -125,7 +125,7 @@
     <string name="mjpeg_error_wrong_image_format">Система повертає картинку у невідомому форматі. Неможливо виправити. Перепрошуємо.</string>
     <string name="mjpeg_error_unspecified">Щось пішло не так. Спробуйте ще раз пізніше.</string>
 
-    <string name="mjpeg_start_image_text">Розпочніть потік на пристрої</string>
+    <string name="mjpeg_start_image_text">Розпочніть трансляцію на пристрої</string>
 
     <!--HTML text-->
     <string name="mjpeg_html_stream_connecting">Спроба підключення</string>

@@ -124,7 +124,7 @@
     <string name="mjpeg_error_wrong_image_format">Система отдает изображение в неверном формате. Решения проблемы нет.</string>
     <string name="mjpeg_error_unspecified">Что-то пошло не так. Пожалуйста, попробуйте позже.</string>
 
-    <string name="mjpeg_start_image_text">Запустите поток на устройстве</string>
+    <string name="mjpeg_start_image_text">Запустите трансляцию на устройстве</string>
 
     <!--HTML text-->
     <string name="mjpeg_html_stream_connecting">Попытка подключения</string>

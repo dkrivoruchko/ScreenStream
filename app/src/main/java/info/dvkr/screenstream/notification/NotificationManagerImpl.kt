@@ -78,7 +78,7 @@ internal class NotificationManagerImpl(context: Context) : NotificationsManager 
                 getLog("showStreamingNotification", "Service: $serviceName. No permission granted. Ignoring."),
                 IllegalStateException("showStreamingNotification: Service: $serviceName. No permission granted. Ignoring.")
             )
-            return //TODO Need prod logs
+            return
         }
 
         XLog.d(getLog("showForegroundNotification", "Service: $serviceName"))
@@ -139,7 +139,7 @@ internal class NotificationManagerImpl(context: Context) : NotificationsManager 
                 getLog("showErrorNotification", "No permission granted. Ignoring."),
                 IllegalStateException("showErrorNotification:  No permission granted. Ignoring.")
             )
-            return //TODO Need prod logs
+            return
         }
 
         XLog.d(getLog("showErrorNotification"))

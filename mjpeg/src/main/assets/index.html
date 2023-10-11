@@ -83,7 +83,8 @@
 
             #connectDiv,
             #pinDiv,
-            #blockedDiv {
+            #blockedDiv,
+            #errorDiv {
                 padding: 30px;
                 width: 55%
             }
@@ -213,15 +214,17 @@
         <p style=color:red;font-weight:600>%ERROR%</p>
     </div>
 
+    <script type="text/javascript" src="/script.js"></script>
     <script>
-        const clientId = generateRandomString(16);
+        "use strict";
+        const clientId = RandomString(16);
         window.DD_LOGS && DD_LOGS.setGlobalContextProperty('clientId', clientId);
 
-        let enableButtons = ENABLE_BUTTONS;
+        var enableButtons = ENABLE_BUTTONS;
         const buttonsDiv = document.getElementById('buttonsDiv')
         if (enableButtons) buttonsDiv.style.visibility = 'visible';
         const buttonsHideFunction = () => { buttonsDiv.style.visibility = 'hidden'; }
-        let hideTimeout = setTimeout(buttonsHideFunction, 1500);
+        var hideTimeout = setTimeout(buttonsHideFunction, 1500);
 
         window.onmousemove = () => {
             if (!enableButtons) return
@@ -275,18 +278,16 @@
 
         sendPin.addEventListener('click', (e) => {
             e.preventDefault();
-            const pinHash = sha256(clientId + pin.value);
-            if (socket) socket.send(JSON.stringify({ type: "PIN", data: pinHash }));
+            const pinHash = SHA256(clientId + pin.value);
+            if (websocket) websocket.send(JSON.stringify({ type: "PIN", data: pinHash }));
         });
 
-        let socket = null;
-        let connectErrorCounter = 0;
-        let fallbackCounter = 0;
-        let showStreamTimer = null;
+        var websocket = null;
+        var fallbackMJPEGCounter = 0;
+        var fallbackMJPEG = null;
+        var showStreamTimeoutId = null;
 
         function connect() {
-            window.DD_LOGS && DD_LOGS.logger.debug("connect: " + connectErrorCounter);
-
             connectDiv.style.visibility = 'visible';
             pinDiv.style.visibility = 'hidden';
             blockedDiv.style.visibility = 'hidden';
@@ -295,129 +296,87 @@
             errorDiv.style.visibility = 'hidden';
             stream.src = '';
 
-            try {
-                socket = new WebSocket(`ws://${window.location.host}/socket?clientId=${clientId}`);
+            websocket = new WebsocketHeartbeat({ url: `ws://${window.location.host}/socket?clientId=${clientId}` });
 
-                socket.onopen = async () => {
-                    connectErrorCounter = 0;
-                    socket.send(JSON.stringify({ type: "CONNECT" }));
-                    // socket.send(JSON.stringify({ type: "HEARTBEAT", data: clientId }));
-                    connectDiv.style.visibility = 'hidden';
+            websocket.onopen = () => {
+                websocket.send(JSON.stringify({ type: "CONNECT" }));
+                connectDiv.style.visibility = 'hidden';
+            };
+
+            websocket.onreconnect = () => {
+                window.DD_LOGS && DD_LOGS.logger.debug("reConnect");
+
+                connectDiv.style.visibility = 'visible';
+                pinDiv.style.visibility = 'hidden';
+                blockedDiv.style.visibility = 'hidden';
+                pinWrongMsg.style.visibility = "inherit";
+                streamDiv.style.visibility = 'hidden';
+                errorDiv.style.visibility = 'hidden';
+                stream.src = '';
+
+                fallbackMJPEGCounter = 0;
+                clearTimeout(showStreamTimeoutId);
+            };
+
+            websocket.onmessage = (msg) => {
+                const message = JSON.parse(msg.data);
+                if (message.type === "HEARTBEAT") return;
+
+                window.DD_LOGS && DD_LOGS.logger.debug("websocket.onmessage", { message: msg.data });
+
+                if (message.type === "STREAM_ADDRESS") {
+                    pinDiv.style.visibility = 'hidden';
+                    blockedDiv.style.visibility = 'hidden';
+                    pinWrongMsg.style.visibility = "inherit";
+                    showStream(message.data + `?clientId=${clientId}`);
+                    return;
                 }
 
-                socket.onclose = () => { reConnect("connect: socket.onclose"); }
-
-                socket.onmessage = (e) => {
-                    window.DD_LOGS && DD_LOGS.logger.debug("socket.onmessage", { data: e.data });
-                    const data = JSON.parse(e.data);
-
-                    if (data.type === "HEARTBEAT") {
-                        // heartbeat();
-                        return;
-                    }
-
-                    if (data.type === "STREAM_ADDRESS") {
+                if (message.type === "UNAUTHORIZED") {
+                    if (message.data === "ADDRESS_BLOCKED") {
                         pinDiv.style.visibility = 'hidden';
-                        blockedDiv.style.visibility = 'hidden';
+                        blockedDiv.style.visibility = 'visible';
                         pinWrongMsg.style.visibility = "inherit";
-
-                        showStream(data.data + `?clientId=${clientId}`);
                         return;
                     }
 
-                    if (data.type === "UNAUTHORIZED") {
-                        if (data.data === "ADDRESS_BLOCKED") {
-                            pinDiv.style.visibility = 'hidden';
-                            blockedDiv.style.visibility = 'visible';
-                            pinWrongMsg.style.visibility = "inherit";
-                            return;
-                        }
+                    pinDiv.style.visibility = 'visible';
+                    blockedDiv.style.visibility = 'hidden';
 
-                        pinDiv.style.visibility = 'visible';
-                        blockedDiv.style.visibility = 'hidden';
-
-                        if (data.data === "WRONG_PIN") {
-                            pin.value = "";
-                            pinWrongMsg.style.visibility = 'visible';
-                        } else {
-                            pinWrongMsg.style.visibility = 'hidden';
-                            if (pin.value) sendPin.click();
-                        }
-
-                        return;
+                    if (message.data === "WRONG_PIN") {
+                        pin.value = "";
+                        pinWrongMsg.style.visibility = 'visible';
+                    } else {
+                        pinWrongMsg.style.visibility = 'hidden';
+                        if (pin.value) sendPin.click();
                     }
-
-                    if (data.type === "RELOAD") {
-                        location.reload();
-                        return;
-                    }
-
-                    if (data.type === "SETTINGS") {
-                        document.body.style.backgroundColor = data.data.backColor;
-
-                        if (enableButtons != data.data.enableButtons) {
-                            enableButtons = data.data.enableButtons;
-                            if (enableButtons) {
-                                buttonsDiv.style.visibility = 'visible';
-                                hideTimeout = setTimeout(buttonsHideFunction, 1500);
-                            } else {
-                                clearTimeout(hideTimeout);
-                                buttonsDiv.style.visibility = 'hidden';
-                            }
-                        }
-
-                        return;
-                    }
-                    window.DD_LOGS && DD_LOGS.logger.error("socket.onmessage. Unknown data:", { data: e.data });
+                    return;
                 }
-            } catch (e) {
-                reConnect("connect.catch: " + e);
-            }
-        }
 
-        // let heartbeatTimeout = null;
-        // function heartbeat() {
-        //     clearTimeout(heartbeatTimeout);
+                if (message.type === "RELOAD") {
+                    location.reload();
+                    return;
+                }
 
-        //     if (!socket) return;
-        //     if (socket.readyState !== WebSocket.OPEN) return;
+                if (message.type === "SETTINGS") {
+                    document.body.style.backgroundColor = message.data.backColor;
 
-        //     setTimeout(() => {
-        //         if (!socket) return;
-        //         if (socket.readyState !== WebSocket.OPEN) return;
+                    if (enableButtons != message.data.enableButtons) {
+                        enableButtons = message.data.enableButtons;
+                        if (enableButtons) {
+                            buttonsDiv.style.visibility = 'visible';
+                            hideTimeout = setTimeout(buttonsHideFunction, 1500);
+                        } else {
+                            clearTimeout(hideTimeout);
+                            buttonsDiv.style.visibility = 'hidden';
+                        }
+                    }
+                    return;
+                }
 
-        //         heartbeatTimeout = setTimeout(() => {
-        //             if (!socket) return;
-        //             if (socket.readyState !== WebSocket.OPEN) return;
-        //             socket.close();
-        //         }, 2000);
-
-        //         socket.send(JSON.stringify({ type: "HEARTBEAT", data: clientId }));
-        //     }, 1000);
-        // }
-
-        function reConnect(reason) {
-            window.DD_LOGS && DD_LOGS.logger.debug("reConnect", { data: reason });
-
-            // clearTimeout(heartbeatTimeout);
-
-            connectDiv.style.visibility = 'visible';
-            pinDiv.style.visibility = 'hidden';
-            blockedDiv.style.visibility = 'hidden';
-            pinWrongMsg.style.visibility = "inherit";
-            errorDiv.style.visibility = 'hidden';
-
-            clearTimeout(showStreamTimer);
-            showStreamTimer = null;
-
-            fallbackCounter = 0;
-            connectErrorCounter++;
-            if (connectErrorCounter > 100) {
-                window.DD_LOGS && DD_LOGS.logger.info("reConnect: Give up");
-            } else {
-                setTimeout(() => { connect() }, connectErrorCounter > 10 ? 10000 : Math.pow(1.4, connectErrorCounter - 1) * 500);
-            }
-        }
+                window.DD_LOGS && DD_LOGS.logger.error("websocket.onmessage. Unknown data:", { message: e.data });
+            };
+        };
 
         function showStream(url) {
             window.DD_LOGS && DD_LOGS.logger.debug("showStream", { data: url });
@@ -425,9 +384,22 @@
             streamDiv.style.visibility = 'hidden';
             stream.src = '';
 
-            if (fallbackCounter > 2) {
+            clearTimeout(showStreamTimeoutId);
+            if (fallbackMJPEG) fallbackMJPEG.stop();
+            fallbackMJPEG = null;
+
+            if (fallbackMJPEGCounter > 2) {
                 window.DD_LOGS && DD_LOGS.logger.debug("showStream: Load via fallback", { data: url });
-                fallback(url);
+
+                streamDiv.style.visibility = 'visible';
+                fallbackMJPEG = new MJPEG_JS({ img: stream, url });
+                fallbackMJPEG.onerror = (error) => {
+                    streamDiv.style.visibility = 'hidden';
+                    window.DD_LOGS && DD_LOGS.logger.error("fallback", { data: error.message });
+                    errorDiv.style.visibility = 'visible';
+                    fallbackMJPEG = null;
+                };
+                fallbackMJPEG.load();
             } else {
                 new Promise((resolve, reject) => {
                     window.DD_LOGS && DD_LOGS.logger.debug("showStream: Load via default", { data: url });
@@ -435,94 +407,21 @@
                     stream.onerror = (e) => { stream.onerror = null; stream.onload = null; reject(e); }
                     stream.src = url;
                 }).then(() => {
-                    fallbackCounter = 0;
+                    fallbackMJPEGCounter = 0;
                     streamDiv.style.visibility = 'visible';
                 }).catch((error) => {
                     window.DD_LOGS && DD_LOGS.logger.error("showStream: Default error", { data: error });
-                    fallbackCounter++;
-                    showStreamTimer = setTimeout(() => { showStream(url) }, 150);
+                    fallbackMJPEGCounter++;
+                    showStreamTimeoutId = setTimeout(() => showStream(url), 150);
                 });
             }
-        }
-
-        async function fallback(url) {
-            streamDiv.style.visibility = 'visible';
-
-            try {
-                stream.onload = () => { URL.revokeObjectURL(stream.src); };
-
-                const SOI = new Uint8Array([0xFF, 0xD8, 0xFF]);
-                const EOI = new Uint8Array([0xFF, 0xF9]);
-                const lengthRegex = /Content-Length:\s*(\d+)/i;
-
-                const response = await fetch(url);
-                if (!response.ok) throw Error(`${response.status}: ${response.statusText}`);
-                if (response.redirected) throw Error(`Redirected: ${response.status}: ${response.statusText} : ${response.url}`);
-
-                const reader = response.body.getReader();
-                const movingBuffer = [0, 0, 0];
-                let headers = '';
-                let contentLength = 0;
-                let imageBuffer = null;
-                let bytesRead = 0;
-
-                while (true) {
-                    const { done, value } = await reader.read();
-
-                    for (let i = 0; i < value.length; i++) {
-                        movingBuffer.push(value[i]);
-                        movingBuffer.shift();
-
-                        if (movingBuffer[0] === SOI[0] && movingBuffer[1] === SOI[1] && movingBuffer[2] === SOI[2]) {
-                            contentLength = headers.match(lengthRegex)[1];
-                            imageBuffer = new Uint8Array(new ArrayBuffer(contentLength));
-                            imageBuffer[bytesRead++] = movingBuffer[0];
-                            imageBuffer[bytesRead++] = movingBuffer[1];
-                            imageBuffer[bytesRead++] = movingBuffer[2];
-                            continue
-                        }
-
-                        if (contentLength <= 0) {
-                            headers += String.fromCharCode(value[i]);
-                        } else if (bytesRead < contentLength) {
-                            imageBuffer[bytesRead++] = value[i];
-                        } else {
-                            stream.src = URL.createObjectURL(new Blob([imageBuffer], { type: "image/jpeg" }));
-                            contentLength = 0;
-                            bytesRead = 0;
-                            headers = '';
-                        }
-                    }
-
-                    if (done) return;
-                }
-            } catch (error) {
-                streamDiv.style.visibility = 'hidden';
-                window.DD_LOGS && DD_LOGS.logger.error("fallback", { data: error.message });
-                errorDiv.style.visibility = 'visible';
-            } finally {
-                stream.onload = null;
-            }
-        }
-
-        function generateRandomString(length) {
-            let result = '';
-            const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-            const charactersLength = characters.length;
-            for (let i = 0; i < length; i++) {
-                result += characters.charAt(Math.floor(Math.random() * charactersLength));
-            }
-            return result;
         };
-
-        // https://github.com/username1565/sha256
-        const sha256 = function a(b) { function c(a, b) { return a >>> b | a << 32 - b } for (var d, e, f = Math.pow, g = f(2, 32), h = "length", i = "", j = [], k = 8 * b[h], l = a.h = a.h || [], m = a.k = a.k || [], n = m[h], o = {}, p = 2; 64 > n; p++)if (!o[p]) { for (d = 0; 313 > d; d += p)o[d] = p; l[n] = f(p, .5) * g | 0, m[n++] = f(p, 1 / 3) * g | 0 } for (b += "\x80"; b[h] % 64 - 56;)b += "\x00"; for (d = 0; d < b[h]; d++) { if (e = b.charCodeAt(d), e >> 8) return; j[d >> 2] |= e << (3 - d) % 4 * 8 } for (j[j[h]] = k / g | 0, j[j[h]] = k, e = 0; e < j[h];) { var q = j.slice(e, e += 16), r = l; for (l = l.slice(0, 8), d = 0; 64 > d; d++) { var s = q[d - 15], t = q[d - 2], u = l[0], v = l[4], w = l[7] + (c(v, 6) ^ c(v, 11) ^ c(v, 25)) + (v & l[5] ^ ~v & l[6]) + m[d] + (q[d] = 16 > d ? q[d] : q[d - 16] + (c(s, 7) ^ c(s, 18) ^ s >>> 3) + q[d - 7] + (c(t, 17) ^ c(t, 19) ^ t >>> 10) | 0), x = (c(u, 2) ^ c(u, 13) ^ c(u, 22)) + (u & l[1] ^ u & l[2] ^ l[1] & l[2]); l = [w + x | 0].concat(l), l[4] = l[4] + w | 0 } for (d = 0; 8 > d; d++)l[d] = l[d] + r[d] | 0 } for (d = 0; 8 > d; d++)for (e = 3; e + 1; e--) { var y = l[d] >> 8 * e & 255; i += (16 > y ? 0 : "") + y.toString(16) } return i };
 
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', connect);
         } else {
             connect();
-        }
+        };
 
         // setTimeout(() => { if (!stream.complete) streamFallback() }, 2000);
         // function streamFallback() {

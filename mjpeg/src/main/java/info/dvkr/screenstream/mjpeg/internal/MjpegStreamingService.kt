@@ -45,7 +45,6 @@ import org.koin.core.annotation.Scoped
 import org.koin.core.component.KoinScopeComponent
 import org.koin.core.component.inject
 import org.koin.core.parameter.parametersOf
-import java.util.Collections
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
@@ -64,7 +63,7 @@ internal class MjpegStreamingService(
     private val projectionManager = service.getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
 
     private val notificationsManager: NotificationsManager by inject()
-
+    private val mainHandler: Handler by lazy(LazyThreadSafetyMode.NONE) { Handler(Looper.getMainLooper()) }
     private val handler: Handler by lazy(LazyThreadSafetyMode.NONE) { Handler(looper, this) }
     private val coroutineDispatcher: CoroutineDispatcher by lazy(LazyThreadSafetyMode.NONE) { handler.asCoroutineDispatcher("MJPEG-HT_Dispatcher") }
     private val coroutineScope by lazy(LazyThreadSafetyMode.NONE) { CoroutineScope(SupervisorJob() + coroutineDispatcher) }
@@ -76,7 +75,7 @@ internal class MjpegStreamingService(
     private val httpServer by lazy(mode = LazyThreadSafetyMode.NONE) {
         HttpServer(service, mjpegSettings, bitmapStateFlow.asStateFlow(), ::sendEvent)
     }
-    private val startBitmap: Bitmap by lazy(mode = LazyThreadSafetyMode.NONE) {
+    private val startBitmap: Bitmap by lazy(mode = LazyThreadSafetyMode.NONE) { //TODO make it size of screen
         val bitmap = Bitmap.createBitmap(600, 400, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap).apply { drawRGB(19, 43, 66) }  // #132B42
         val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { textSize = 24f; color = Color.WHITE }
@@ -91,7 +90,6 @@ internal class MjpegStreamingService(
     }
 
     private val monitorScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
-    private val pendingEvents = Collections.synchronizedList(mutableListOf<MjpegEvent>()) // For logging only
 
     // All Volatiles vars must be write on this (WebRTC-HT) thread
     @Volatile
@@ -121,7 +119,9 @@ internal class MjpegStreamingService(
         internal data object StartStream : InternalEvent(Priority.RESTART_IGNORE)
         internal data object StartStopFromWebPage : InternalEvent(Priority.RESTART_IGNORE)
         internal data object ScreenOff : InternalEvent(Priority.RESTART_IGNORE)
-        internal data class ConfigurationChange(@JvmField val newConfig: Configuration) : InternalEvent(Priority.RESTART_IGNORE)
+        internal data class ConfigurationChange(@JvmField val newConfig: Configuration) : InternalEvent(Priority.RESTART_IGNORE) {
+            override fun toString(): String = "ConfigurationChange"
+        }
         internal data class Clients(@JvmField val clients: List<MjpegState.Client>) : InternalEvent(Priority.RESTART_IGNORE)
         internal data class RestartServer(@JvmField val reason: RestartReason) : InternalEvent(Priority.RESTART_IGNORE)
 
@@ -231,12 +231,11 @@ internal class MjpegStreamingService(
         sendEvent(InternalEvent.Destroy(latch))
 
         runCatching {
-            if (latch.await(500, TimeUnit.MILLISECONDS).not())
+            if (latch.await(1000, TimeUnit.MILLISECONDS).not())
                 XLog.w(getLog("destroy", "Timeout"), IllegalStateException("destroy: Timeout"))
         }
 
         handler.removeCallbacksAndMessages(null)
-        pendingEvents.clear()
 
         notificationsManager.hideForegroundNotification(service)
         notificationsManager.hideErrorNotification()
@@ -262,26 +261,18 @@ internal class MjpegStreamingService(
 
         if (event is InternalEvent.RestartServer) {
             handler.removeMessages(MjpegEvent.Priority.RESTART_IGNORE)
-            pendingEvents.removeAll { it.priority == MjpegEvent.Priority.RESTART_IGNORE }
         }
         if (event is MjpegEvent.Intentable.RecoverError) {
             handler.removeMessages(MjpegEvent.Priority.RESTART_IGNORE)
             handler.removeMessages(MjpegEvent.Priority.RECOVER_IGNORE)
-            pendingEvents.removeAll { it.priority == MjpegEvent.Priority.RESTART_IGNORE }
-            pendingEvents.removeAll { it.priority == MjpegEvent.Priority.RECOVER_IGNORE }
         }
         if (event is InternalEvent.Destroy) {
             handler.removeMessages(MjpegEvent.Priority.RESTART_IGNORE)
             handler.removeMessages(MjpegEvent.Priority.RECOVER_IGNORE)
             handler.removeMessages(MjpegEvent.Priority.DESTROY_IGNORE)
-            pendingEvents.removeAll { it.priority == MjpegEvent.Priority.RESTART_IGNORE }
-            pendingEvents.removeAll { it.priority == MjpegEvent.Priority.RECOVER_IGNORE }
-            pendingEvents.removeAll { it.priority == MjpegEvent.Priority.DESTROY_IGNORE }
         }
 
-        pendingEvents.add(event)
         handler.sendMessageDelayed(handler.obtainMessage(event.priority, event), timeout)
-        XLog.d(getLog("sendEvent", "Pending events: $pendingEvents"))
     }
 
     override fun handleMessage(msg: Message): Boolean {
@@ -492,10 +483,7 @@ internal class MjpegStreamingService(
 
             currentError = MjpegError.UnknownError(cause)
         } finally {
-            runCatching { pendingEvents.removeAt(0) }
-                .onSuccess { XLog.d(getLog("processEvent", "Removed [$it]")) }
-                .onFailure { XLog.e(getLog("handleMessage", "No messages to remove [$event]"), IllegalStateException("No messages to remove [$event]")) }
-            XLog.d(getLog("processEvent", "Done [$event] New state: [${getStateString()}] Pending events: $pendingEvents"))
+            XLog.d(getLog("processEvent", "Done [$event] New state: [${getStateString()}]"))
             if (event is InternalEvent.Destroy) event.latch.countDown()
             publishState()
         }
@@ -532,7 +520,7 @@ internal class MjpegStreamingService(
     // Inline Only
     @Suppress("NOTHING_TO_INLINE")
     private inline fun publishState() {
-        val isBusy = pendingServer || destroyPending || currentError != null
+        val isBusy = pendingServer || destroyPending || waitingForPermission ||currentError != null
         val state = MjpegState(isBusy, waitingForPermission, isStreaming, netInterfaces, clients.toList(), traffic.toList(), currentError)
 
         mjpegStateFlowProvider.mutableMjpegStateFlow.value = state
@@ -541,9 +529,12 @@ internal class MjpegStreamingService(
         if (previousError != currentError) {
             previousError = currentError
             currentError?.let {
+                XLog.e(getLog("publishState", it.message ?: it::class.java.simpleName), it)
                 val message = it.toString(service)
-                notificationsManager.showErrorNotification(service, message, MjpegEvent.Intentable.RecoverError.toIntent(service))
-            } ?: run {
+                mainHandler.post {
+                    notificationsManager.showErrorNotification(service, message, MjpegEvent.Intentable.RecoverError.toIntent(service))
+                }
+            } ?: mainHandler.post {
                 notificationsManager.hideErrorNotification()
             }
         }
@@ -558,8 +549,6 @@ internal class MjpegStreamingService(
             service.createDisplayContext(display).createWindowContext(WindowManager.LayoutParams.TYPE_TOAST, null)
         }
     }
-
-    private val mainHandler by lazy(LazyThreadSafetyMode.NONE) { Handler(Looper.getMainLooper()) }
 
     @Suppress("DEPRECATION")
     private fun showSlowConnectionToast() {
