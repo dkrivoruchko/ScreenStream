@@ -39,8 +39,8 @@
     <string name="mjpeg_stream_fragment_client_connected">Połączony</string>
     <string name="mjpeg_stream_fragment_client_blocked">Zablokowany</string>
 
-    <string name="mjpeg_stream_fragment_cast_permission_activity_not_found_title">Błąd dostępu do okna dialogowego</string>
-    <string name="mjpeg_stream_fragment_cast_permission_activity_not_found">Błąd systemu Android. Nie zaznaczaj opcji \"Nie pokazuj ponownie\" w oknie dialogowym żądania uprawnień, aby przechwycić ekran. Jeśli już to zrobiłeś, przeinstaluj aplikację.</string>
+    <string name="mjpeg_stream_fragment_cast_permission_error_title">Błąd uprawnień</string>
+    <string name="mjpeg_stream_fragment_cast_permission_error">System nie obsługuje funkcji rzutowania</string>
     <string name="mjpeg_stream_fragment_cast_permission_required_title">Wymagane uprawnienia</string>
     <string name="mjpeg_stream_fragment_cast_permission_required">Aplikacja ScreenStream wymaga uprawnień dostępu do Przesyłanie ekranu celem przechwytywania ekranu.</string>
 

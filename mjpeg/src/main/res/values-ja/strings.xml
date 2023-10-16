@@ -38,8 +38,8 @@
     <string name="mjpeg_stream_fragment_client_connected">接続しました</string>
     <string name="mjpeg_stream_fragment_client_blocked">ブロック済み</string>
 
-    <string name="mjpeg_stream_fragment_cast_permission_activity_not_found_title">権限ダイアログエラー</string>
-    <string name="mjpeg_stream_fragment_cast_permission_activity_not_found">Androidのバグです。 画面をキャプチャするために、権限要求ダイアログで「今後表示しない」にチェックを入れないでください。 既にそうした場合は、アプリを再インストールしてください。</string>
+    <string name="mjpeg_stream_fragment_cast_permission_error_title">許可エラー</string>
+    <string name="mjpeg_stream_fragment_cast_permission_error">システムはキャスト機能をサポートしていません</string>
     <string name="mjpeg_stream_fragment_cast_permission_required_title">許可が必要です</string>
     <string name="mjpeg_stream_fragment_cast_permission_required">ScreenStreamアプリでは画面をキャプチャするためにスクリーン キャスト権限が必要です。</string>
 

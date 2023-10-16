@@ -38,8 +38,8 @@
     <string name="mjpeg_stream_fragment_client_connected">जुड़ा हुआ</string>
     <string name="mjpeg_stream_fragment_client_blocked">अवरुद्ध</string>
 
-    <string name="mjpeg_stream_fragment_cast_permission_activity_not_found_title">अनुमति संवाद त्रुटि</string>
-    <string name="mjpeg_stream_fragment_cast_permission_activity_not_found">Android बग। स्क्रीन पर कब्जा करने के लिए राइट्स रिक्वेस्ट डायलॉग पर \"टी चेक\" फिर से शो न करें। यदि आपने पहले से ही ऐसा किया है, तो ऐप को फिर से इंस्टॉल करें।</string>
+    <string name="mjpeg_stream_fragment_cast_permission_error_title">अनुमति त्रुटि</string>
+    <string name="mjpeg_stream_fragment_cast_permission_error">सिस्टम कास्ट कार्यक्षमता का समर्थन नहीं करता</string>
     <string name="mjpeg_stream_fragment_cast_permission_required_title">अनुमति आवश्यक</string>
     <string name="mjpeg_stream_fragment_cast_permission_required">स्क्रीनस्ट्रीम एप्लिकेशन को स्क्रीन पर कब्जा करने के लिए स्क्रीन कास्ट की अनुमति की आवश्यकता होती है।</string>
 

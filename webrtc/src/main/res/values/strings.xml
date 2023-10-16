@@ -44,8 +44,8 @@
     <string name="webrtc_stream_fragment_audio_permission_message_settings">Granting microphone access in application permissions is necessary for the application to stream audio content.\n\nWithout granting this permission, the stream will be conducted without any audio.</string>
     <string name="webrtc_stream_fragment_audio_permission_open_settings">Open settings</string>
 
-    <string name="webrtc_stream_fragment_cast_permission_activity_not_found_title">Permission dialog error</string>
-    <string name="webrtc_stream_fragment_cast_permission_activity_not_found">Android bug. Don\'t check \"Don\'t show again\" at the rights request dialogue to capture the screen. If you already did so, reinstall the app.</string>
+    <string name="webrtc_stream_fragment_cast_permission_error_title">Permission error</string>
+    <string name="webrtc_stream_fragment_cast_permission_error">System does not support cast functionality</string>
     <string name="webrtc_stream_fragment_cast_permission_required_title">Permission required</string>
     <string name="webrtc_stream_fragment_cast_permission_required">ScreenStream application requires Screen Cast permission to capture screen.</string>
 

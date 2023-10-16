@@ -38,8 +38,8 @@
     <string name="mjpeg_stream_fragment_client_connected">Connecté</string>
     <string name="mjpeg_stream_fragment_client_blocked">Bloqueado</string>
 
-    <string name="mjpeg_stream_fragment_cast_permission_activity_not_found_title">Erreur du dialogue d\'autorisation</string>
-    <string name="mjpeg_stream_fragment_cast_permission_activity_not_found">Bug Android. Veuillez ne pas sélectionner \"Ne plus demander\" dans le dialogue de demande de permission de capture d\'écran. Si vous l\'avez déjà fait, réinstallez l\'application.</string>
+    <string name="mjpeg_stream_fragment_cast_permission_error_title">Erreur de permission</string>
+    <string name="mjpeg_stream_fragment_cast_permission_error">Le système ne prend pas en charge la fonction de diffusion</string>
     <string name="mjpeg_stream_fragment_cast_permission_required_title">Permiso necesario</string>
     <string name="mjpeg_stream_fragment_cast_permission_required">L\'application requiert l\'autorisation Cast pour capturer l\'écran.</string>
 

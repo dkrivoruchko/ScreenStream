@@ -50,8 +50,7 @@ public abstract class AppUpdateActivity(@LayoutRes contentLayoutId: Int) : BaseA
                     XLog.d(this@AppUpdateActivity.getLog("AppUpdateResult.Available"))
                     if (appUpdateResult.updateInfo.isFlexibleUpdateAllowed) {
                         XLog.d(this@AppUpdateActivity.getLog("AppUpdateResult.Available", "FlexibleUpdateAllowed"))
-                        val lastRequestMillisPassed =
-                            System.currentTimeMillis() - appSettings.lastUpdateRequestMillisFlow.first()
+                        val lastRequestMillisPassed = System.currentTimeMillis() - appSettings.lastUpdateRequestMillisFlow.first()
                         if (lastRequestMillisPassed >= APP_UPDATE_REQUEST_TIMEOUT) {
                             XLog.d(this@AppUpdateActivity.getLog("AppUpdateResult.Available", "startFlexibleUpdate"))
                             appSettings.setLastUpdateRequestMillis(System.currentTimeMillis())
@@ -70,7 +69,7 @@ public abstract class AppUpdateActivity(@LayoutRes contentLayoutId: Int) : BaseA
                 }
             }
         }
-            .catch { cause -> XLog.e(this@AppUpdateActivity.getLog("AppUpdateManager.requestUpdateFlow.catch: $cause"), cause) }
+            .catch { cause -> XLog.i(this@AppUpdateActivity.getLog("AppUpdateManager.requestUpdateFlow.catch: $cause")) }
             .launchIn(lifecycleScope)
     }
 

@@ -44,8 +44,8 @@
     <string name="webrtc_stream_fragment_audio_permission_message_settings">Udzielanie dostępu do mikrofonu w uprawnieniach aplikacji jest niezbędne, aby aplikacja mogła przesyłać treści dźwiękowe.\n\nBez udzielenia tego zezwolenia strumień będzie przeprowadzany bez dźwięku.</string>
     <string name="webrtc_stream_fragment_audio_permission_open_settings">Otwórz ustawienia</string>
 
-    <string name="webrtc_stream_fragment_cast_permission_activity_not_found_title">Błąd dialogu uprawnień</string>
-    <string name="webrtc_stream_fragment_cast_permission_activity_not_found">Błąd Androida. Nie zaznaczaj \"Nie pokazuj ponownie\" w dialogu prośby o prawa do przechwytywania ekranu. Jeśli już to zrobiłeś, ponownie zainstaluj aplikację.</string>
+    <string name="webrtc_stream_fragment_cast_permission_error_title">Błąd uprawnienia</string>
+    <string name="webrtc_stream_fragment_cast_permission_error">System nie obsługuje funkcji rzutowania</string>
     <string name="webrtc_stream_fragment_cast_permission_required_title">Wymagane uprawnienia</string>
     <string name="webrtc_stream_fragment_cast_permission_required">Aplikacja ScreenStream wymaga uprawnień do rzutowania ekranu w celu przechwycenia ekranu.</string>
 

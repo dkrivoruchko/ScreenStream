@@ -7,6 +7,7 @@ import android.content.Intent
 import android.os.IBinder
 import androidx.annotation.RestrictTo
 import com.elvishew.xlog.XLog
+import info.dvkr.screenstream.common.NotificationsManager
 import info.dvkr.screenstream.common.StreamingModulesManager
 import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.mjpeg.internal.MjpegEvent
@@ -28,6 +29,7 @@ public class MjpegService : Service() {
     }
 
     private val streamingModulesManager: StreamingModulesManager by inject(mode = LazyThreadSafetyMode.NONE)
+    private val notificationsManager: NotificationsManager by inject(mode = LazyThreadSafetyMode.NONE)
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -43,12 +45,17 @@ public class MjpegService : Service() {
         }
         XLog.d(getLog("onStartCommand", "MjpegEvent: $mjpegEvent"))
 
-        when (mjpegEvent) {
+        val success = when (mjpegEvent) {
             is MjpegEvent.Intentable.StartService -> streamingModulesManager.sendEvent(MjpegEvent.CreateStreamingService(this))
             is MjpegEvent.Intentable.StopStream -> streamingModulesManager.sendEvent(mjpegEvent)
             MjpegEvent.Intentable.RecoverError -> streamingModulesManager.sendEvent(mjpegEvent)
         }
 
+        if (success.not()) { // No active module
+            notificationsManager.hideForegroundNotification(this)
+            notificationsManager.hideErrorNotification()
+            stopSelf()
+        }
 
         return START_NOT_STICKY
     }

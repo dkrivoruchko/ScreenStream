@@ -38,8 +38,8 @@
     <string name="mjpeg_stream_fragment_client_connected">Підключено</string>
     <string name="mjpeg_stream_fragment_client_blocked">Заблоковано</string>
 
-    <string name="mjpeg_stream_fragment_cast_permission_activity_not_found_title">Помилка діалогу дозволів</string>
-    <string name="mjpeg_stream_fragment_cast_permission_activity_not_found">Помилка в системі Android. Не натискайте \"Не показувати знову\" на діалозі дозволу поділитись екраном. Якщо ж це уже зроблено, будь ласка, видаліть та встановіть ще раз додаток.</string>
+    <string name="mjpeg_stream_fragment_cast_permission_error_title">Помилка</string>
+    <string name="mjpeg_stream_fragment_cast_permission_error">Система не підтримує функцію трансляції</string>
     <string name="mjpeg_stream_fragment_cast_permission_required_title">Потрібен дозвіл</string>
     <string name="mjpeg_stream_fragment_cast_permission_required">ScreenStream додаток вимагає дозвіл Screen Cast щоб записувати екран.</string>
 

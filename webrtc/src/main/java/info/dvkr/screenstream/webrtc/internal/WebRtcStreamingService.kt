@@ -560,14 +560,13 @@ internal class WebRtcStreamingService(
 
                 val prj = requireNotNull(projection)
 
-                val client = clients[event.clientId] ?: WebRtcClient(
-                    event.clientId, prj.peerConnectionFactory, prj.videoCodecs, prj.audioCodecs, webRtcClientEventListener
-                )
+                clients[event.clientId]?.stop()
 
-                clients[client.clientId] = client
+                clients[event.clientId] =
+                    WebRtcClient(event.clientId, prj.peerConnectionFactory, prj.videoCodecs, prj.audioCodecs, webRtcClientEventListener)
 
                 if (isStreaming()) {
-                    client.start(prj.localMediaSteam!!)
+                    clients[event.clientId]?.start(prj.localMediaSteam!!)
                     requireNotNull(signaling).sendStreamStart(event.clientId)
                 }
             }
@@ -840,7 +839,7 @@ internal class WebRtcStreamingService(
                     return
                 }
 
-                requireNotNull(signaling).sendStreamRemove()
+                requireNotNull(signaling).sendStreamRemove(currentStreamId)
                 clients = HashMap()
                 currentStreamId = StreamId.EMPTY
                 currentStreamPassword = StreamPassword.EMPTY

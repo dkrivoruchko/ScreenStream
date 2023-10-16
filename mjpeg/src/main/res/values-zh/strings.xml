@@ -38,8 +38,8 @@
     <string name="mjpeg_stream_fragment_client_connected">已连接</string>
     <string name="mjpeg_stream_fragment_client_blocked">已封锁</string>
 
-    <string name="mjpeg_stream_fragment_cast_permission_activity_not_found_title">权限弹窗错误</string>
-    <string name="mjpeg_stream_fragment_cast_permission_activity_not_found">安卓的问题。试试不要勾选获取屏幕弹窗右边的 \"不再显示\"。如果你已经这么做过了，请尝试重新安装这个应用。</string>
+    <string name="mjpeg_stream_fragment_cast_permission_error_title">权限错误</string>
+    <string name="mjpeg_stream_fragment_cast_permission_error">系统不支持投放功能</string>
     <string name="mjpeg_stream_fragment_cast_permission_required_title">需要权限</string>
     <string name="mjpeg_stream_fragment_cast_permission_required">ScreenStream 需要获取屏幕权限来正常运行。</string>
 

@@ -38,8 +38,8 @@
     <string name="mjpeg_stream_fragment_client_connected">Connesso</string>
     <string name="mjpeg_stream_fragment_client_blocked">Bloccato</string>
 
-    <string name="mjpeg_stream_fragment_cast_permission_activity_not_found_title">Errore finestra autorizzazione</string>
-    <string name="mjpeg_stream_fragment_cast_permission_activity_not_found">Errore di Android. Non selezionare \"Non mostrare più\" quando richiesto da Registra Schermo. Se l\'hai già fatto reinstalla l\'app.</string>
+    <string name="mjpeg_stream_fragment_cast_permission_error_title">Errore di autorizzazione</string>
+    <string name="mjpeg_stream_fragment_cast_permission_error">Il sistema non supporta la funzionalità di trasmissione</string>
     <string name="mjpeg_stream_fragment_cast_permission_required_title">Permesso richiesto</string>
     <string name="mjpeg_stream_fragment_cast_permission_required">L\'applicazione richiede l\'autorizzazione di registrazione per catturare lo schermo.</string>
 

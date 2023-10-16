@@ -39,8 +39,8 @@
     <string name="mjpeg_stream_fragment_client_connected">Verbonden</string>
     <string name="mjpeg_stream_fragment_client_blocked">Geblokeerd</string>
 
-    <string name="mjpeg_stream_fragment_cast_permission_activity_not_found_title">Toestemmingen fout</string>
-    <string name="mjpeg_stream_fragment_cast_permission_activity_not_found">Android bug. Niet controleren \"Niet meer tonen\" Bij de toestemmingen, geef toestemming om het scherm op te nemen. Als je dit al gedaan hebt, download de app opnieuw.</string>
+    <string name="mjpeg_stream_fragment_cast_permission_error_title">Toestemmingsfout</string>
+    <string name="mjpeg_stream_fragment_cast_permission_error">Het systeem ondersteunt geen cast-functionaliteit</string>
     <string name="mjpeg_stream_fragment_cast_permission_required_title">Toestemming vereist</string>
     <string name="mjpeg_stream_fragment_cast_permission_required">ScreenStream app heeft Scherm Delen toestemming nodig om je scherm op te nemen.</string>
 

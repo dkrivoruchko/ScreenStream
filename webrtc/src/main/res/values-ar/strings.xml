@@ -44,8 +44,8 @@
     <string name="webrtc_stream_fragment_audio_permission_message_settings">إذن الوصول إلى الميكروفون في إعدادات التطبيق ضروري للبث الصوتي.\n\nبدون هذا الإذن، سيتم البث بدون أي صوت.</string>
     <string name="webrtc_stream_fragment_audio_permission_open_settings">فتح الإعدادات</string>
 
-    <string name="webrtc_stream_fragment_cast_permission_activity_not_found_title">خطأ في مربع الحوار للإذن</string>
-    <string name="webrtc_stream_fragment_cast_permission_activity_not_found">خلل في Android. لا تقم بتحديد "عدم إظهار مرة أخرى" في مربع حوار طلب الصلاحيات لالتقاط الشاشة. إذا قمت بذلك بالفعل، أعد تثبيت التطبيق.</string>
+    <string name="webrtc_stream_fragment_cast_permission_error_title">خطأ في الإذن</string>
+    <string name="webrtc_stream_fragment_cast_permission_error">النظام لا يدعم وظيفة الإلقاء</string>
     <string name="webrtc_stream_fragment_cast_permission_required_title">الصلاحية مطلوبة</string>
     <string name="webrtc_stream_fragment_cast_permission_required">تطبيق ScreenStream يتطلب صلاحية البث على الشاشة.</string>
 

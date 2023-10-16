@@ -69,7 +69,7 @@ public class AboutFragment : Fragment(R.layout.fragment_about) {
         runCatching {
             startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
         }.onFailure {
-            XLog.e(getLog("openStringUrl", url), it)
+            XLog.w(getLog("openStringUrl", url))
             runCatching { onFailure.invoke() }
         }
     }

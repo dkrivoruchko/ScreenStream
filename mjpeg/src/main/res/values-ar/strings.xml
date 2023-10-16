@@ -38,8 +38,8 @@
     <string name="mjpeg_stream_fragment_client_connected">متصل</string>
     <string name="mjpeg_stream_fragment_client_blocked">محظور</string>
 
-    <string name="mjpeg_stream_fragment_cast_permission_activity_not_found_title">خطأ في إذن </string>
-    <string name="mjpeg_stream_fragment_cast_permission_activity_not_found"> خلل اندرويد .لا تحقق في طلب الحقوق لالتقاط الشاشة إذا قمت بذلك بالفعل ، فأعد تثبيت التطبيق</string>
+    <string name="mjpeg_stream_fragment_cast_permission_error_title">خطأ في الإذن</string>
+    <string name="mjpeg_stream_fragment_cast_permission_error">النظام لا يدعم وظيفة البث</string>
     <string name="mjpeg_stream_fragment_cast_permission_required_title">إذن مطلوب</string>
     <string name="mjpeg_stream_fragment_cast_permission_required">يتطلب التطبيق إذن سكرينكست  لالتقاط الشاشة </string>
 

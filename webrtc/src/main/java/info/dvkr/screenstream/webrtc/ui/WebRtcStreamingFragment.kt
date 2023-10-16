@@ -241,13 +241,12 @@ public class WebRtcStreamingFragment : Fragment(R.layout.fragment_webrtc_stream)
                 //TODO   MediaProjectionConfig.createConfigForDefaultDisplay()
                 //TODO   MediaProjectionConfig.createConfigForUserChoice()
             }
-
             startMediaProjection.launch(intent)
-        } catch (ignore: ActivityNotFoundException) {
-            XLog.w(getLog("requestCastPermission", "ActivityNotFoundException"), ignore) //TODO Expected for Android 5 only
+        } catch (cause: Throwable) {
+            XLog.w(getLog("requestCastPermission", "requestCastPermission: $cause"), cause)
             showErrorDialog(
-                R.string.webrtc_stream_fragment_cast_permission_activity_not_found_title,
-                R.string.webrtc_stream_fragment_cast_permission_activity_not_found
+                R.string.webrtc_stream_fragment_cast_permission_error_title,
+                R.string.webrtc_stream_fragment_cast_permission_error
             )
         }
     }

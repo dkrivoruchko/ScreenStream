@@ -278,8 +278,8 @@ internal class SocketSignaling(
         }
     }
 
-    internal fun sendStreamRemove() {
-        XLog.d(getLog("sendStreamRemove[${socketId()}]"))
+    internal fun sendStreamRemove(currentStreamId: StreamId) {
+        XLog.d(getLog("sendStreamRemove[${socketId()}]", "currentStreamId: $currentStreamId"))
 
         val currentSocket = socket ?: return
         currentSocket.connected() || return
@@ -305,7 +305,7 @@ internal class SocketSignaling(
     }
 
     internal fun sendStreamStart(clientId: ClientId? = null) {
-        XLog.d(getLog("sendStreamStart[${socketId()}]"))
+        XLog.d(getLog("sendStreamStart[${socketId()}]", "ClientId: ${clientId ?: "ALL"}"))
 
         val currentSocket = socket ?: return
         currentSocket.connected() || return

@@ -7,6 +7,7 @@ import android.content.Intent
 import android.os.IBinder
 import androidx.annotation.RestrictTo
 import com.elvishew.xlog.XLog
+import info.dvkr.screenstream.common.NotificationsManager
 import info.dvkr.screenstream.common.StreamingModulesManager
 import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.webrtc.internal.WebRtcEvent
@@ -28,6 +29,7 @@ public class WebRtcService : Service() {
     }
 
     private val streamingModulesManager: StreamingModulesManager by inject(mode = LazyThreadSafetyMode.NONE)
+    private val notificationsManager: NotificationsManager by inject(mode = LazyThreadSafetyMode.NONE)
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -44,10 +46,16 @@ public class WebRtcService : Service() {
         XLog.d(getLog("onStartCommand", "WebRtcEvent: $webRtcEvent"))
 
 
-        when (webRtcEvent) {
+        val success = when (webRtcEvent) {
             is WebRtcEvent.Intentable.StartService -> streamingModulesManager.sendEvent(WebRtcEvent.CreateStreamingService(this))
             is WebRtcEvent.Intentable.StopStream -> streamingModulesManager.sendEvent(webRtcEvent)
             WebRtcEvent.Intentable.RecoverError -> streamingModulesManager.sendEvent(webRtcEvent)
+        }
+
+        if (success.not()) { // No active module
+            notificationsManager.hideForegroundNotification(this)
+            notificationsManager.hideErrorNotification()
+            stopSelf()
         }
 
         return START_NOT_STICKY

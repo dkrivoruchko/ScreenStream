@@ -38,8 +38,8 @@
     <string name="mjpeg_stream_fragment_client_connected">Conectado</string>
     <string name="mjpeg_stream_fragment_client_blocked">Bloqueado</string>
 
-    <string name="mjpeg_stream_fragment_cast_permission_activity_not_found_title">Erro no diálogo de permissão</string>
-    <string name="mjpeg_stream_fragment_cast_permission_activity_not_found">Bug no Android. Não marque a opção \"Não mostrar novamente\" no diálogo de solicitação de direitos para capturar a tela. Se você já o fez, reinstale o aplicativo.</string>
+    <string name="mjpeg_stream_fragment_cast_permission_error_title">Erro de permissão</string>
+    <string name="mjpeg_stream_fragment_cast_permission_error">O sistema não suporta a funcionalidade de transmissão</string>
     <string name="mjpeg_stream_fragment_cast_permission_required_title">Permissão necessária</string>
     <string name="mjpeg_stream_fragment_cast_permission_required">O aplicativo ScreenStream requer permissão de transmissão de tela para capturar a tela.</string>
 

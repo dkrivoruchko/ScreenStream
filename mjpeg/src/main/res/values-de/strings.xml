@@ -38,8 +38,8 @@
     <string name="mjpeg_stream_fragment_client_connected">Verbunden</string>
     <string name="mjpeg_stream_fragment_client_blocked">Blockiert</string>
 
-    <string name="mjpeg_stream_fragment_cast_permission_activity_not_found_title">Fehler mit Berechtigungsdialog</string>
-    <string name="mjpeg_stream_fragment_cast_permission_activity_not_found">Android-Fehler. Deaktivieren Sie \"Nicht mehr anzeigen\" auf dem Berechtigungsdialog um den Bildschirm aufzunehmen. Wenn sie dies bereits getan haben, installieren Sie die App neu.</string>
+    <string name="mjpeg_stream_fragment_cast_permission_error_title">Berechtigungsfehler</string>
+    <string name="mjpeg_stream_fragment_cast_permission_error">Das System unterstützt keine Cast-Funktionalität</string>
     <string name="mjpeg_stream_fragment_cast_permission_required_title">Berechtigung erforderlich</string>
     <string name="mjpeg_stream_fragment_cast_permission_required">ScreenStream App benötigt die ScreenCast-Berechtigung um den Bildschirm aufzunehmen.</string>
 

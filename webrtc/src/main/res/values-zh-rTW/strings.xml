@@ -44,8 +44,8 @@
     <string name="webrtc_stream_fragment_audio_permission_message_settings">在應用程式權限中授予麥克風訪問權限對於進行音訊串流是必要的。\n\n未授予此權限，串流將不包括音訊。</string>
     <string name="webrtc_stream_fragment_audio_permission_open_settings">打開設定</string>
 
-    <string name="webrtc_stream_fragment_cast_permission_activity_not_found_title">權限對話框錯誤</string>
-    <string name="webrtc_stream_fragment_cast_permission_activity_not_found">Android 中的錯誤。請不要在權限請求對話框中選中「不再顯示」以捕捉屏幕。如果已經這樣做，請重新安裝應用程式。</string>
+    <string name="webrtc_stream_fragment_cast_permission_error_title">權限錯誤</string>
+    <string name="webrtc_stream_fragment_cast_permission_error">系統不支援投射功能</string>
     <string name="webrtc_stream_fragment_cast_permission_required_title">需要權限</string>
     <string name="webrtc_stream_fragment_cast_permission_required">ScreenStream 應用程式需要屏幕投射權限以捕捉屏幕。</string>
 

@@ -44,8 +44,8 @@
     <string name="webrtc_stream_fragment_audio_permission_message_settings">Conceder acceso al micrófono en los permisos de la aplicación es necesario para que la aplicación pueda transmitir contenido de audio.\n\nSin otorgar este permiso, la transmisión se realizará sin audio alguno.</string>
     <string name="webrtc_stream_fragment_audio_permission_open_settings">Abrir configuración</string>
 
-    <string name="webrtc_stream_fragment_cast_permission_activity_not_found_title">Error de diálogo de permisos</string>
-    <string name="webrtc_stream_fragment_cast_permission_activity_not_found">Error de Android. No seleccione \"No mostrar de nuevo\" en el cuadro de diálogo de solicitud de permisos para capturar la pantalla. Si ya lo hizo, reinstale la aplicación.</string>
+    <string name="webrtc_stream_fragment_cast_permission_error_title">Error de permiso</string>
+    <string name="webrtc_stream_fragment_cast_permission_error">El sistema no admite la funcionalidad de transmisión</string>
     <string name="webrtc_stream_fragment_cast_permission_required_title">Permiso requerido</string>
     <string name="webrtc_stream_fragment_cast_permission_required">La aplicación ScreenStream requiere permiso de transmisión de pantalla (Screen Cast).</string>
 

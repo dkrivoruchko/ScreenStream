@@ -38,8 +38,8 @@
     <string name="mjpeg_stream_fragment_client_connected">Connected</string>
     <string name="mjpeg_stream_fragment_client_blocked">Blocked</string>
 
-    <string name="mjpeg_stream_fragment_cast_permission_activity_not_found_title">Permission dialog error</string>
-    <string name="mjpeg_stream_fragment_cast_permission_activity_not_found">Android bug. Don\'t check \"Don\'t show again\" at the rights request dialogue to capture the screen. If you already did so, reinstall the app.</string>
+    <string name="mjpeg_stream_fragment_cast_permission_error_title">Permission error</string>
+    <string name="mjpeg_stream_fragment_cast_permission_error">System does not support cast functionality</string>
     <string name="mjpeg_stream_fragment_cast_permission_required_title">Permission required</string>
     <string name="mjpeg_stream_fragment_cast_permission_required">ScreenStream application requires Screen Cast permission to capture screen.</string>
 

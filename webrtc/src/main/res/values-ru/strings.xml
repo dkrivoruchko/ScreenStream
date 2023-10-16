@@ -44,8 +44,8 @@
     <string name="webrtc_stream_fragment_audio_permission_message_settings">Необходимо предоставить доступ к микрофону в настройках разрешений приложения для работы со звуком.\n\nБез предоставления этого разрешения трансляция будет проводиться без звука.</string>
     <string name="webrtc_stream_fragment_audio_permission_open_settings">Открыть настройки</string>
 
-    <string name="webrtc_stream_fragment_cast_permission_activity_not_found_title">Ошибка диалога разрешений</string>
-    <string name="webrtc_stream_fragment_cast_permission_activity_not_found">Ошибка Android. Не устанавливайте флажок \"Не показывать снова\" в диалоге запроса разрешений для захвата экрана. Если уже это сделали, переустановите приложение.</string>
+    <string name="webrtc_stream_fragment_cast_permission_error_title">Ошибка</string>
+    <string name="webrtc_stream_fragment_cast_permission_error">Система не поддерживает функцию трансляции</string>
     <string name="webrtc_stream_fragment_cast_permission_required_title">Требуется разрешение</string>
     <string name="webrtc_stream_fragment_cast_permission_required">Приложению ScreenStream требуется разрешение на захват экрана (Screen Cast) для работы.</string>
 

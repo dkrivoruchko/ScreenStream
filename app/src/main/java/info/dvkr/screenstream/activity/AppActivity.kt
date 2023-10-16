@@ -119,7 +119,7 @@ public class AppActivity : NotificationPermissionActivity(R.layout.activity_app)
             binding.bottomNavigationActivityApp.setupWithNavController(this)
             addOnDestinationChangedListener { _, destination, _ ->
                 if (destination.id == R.id.nav_exitFragment) {
-                    streamingModulesManager.sendEvent(StreamingModule.AppEvent.Exit { finishAndRemoveTask() })
+                    streamingModulesManager.sendEvent(StreamingModule.AppEvent.Exit { finish() })
                 }
             }
         }

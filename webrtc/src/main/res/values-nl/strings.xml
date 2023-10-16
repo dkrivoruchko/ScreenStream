@@ -44,9 +44,9 @@
     <string name="webrtc_stream_fragment_audio_permission_message_settings">Toegang tot de microfoon verlenen in app-permissies is noodzakelijk voor de toepassing om audio-inhoud te streamen.\n\nZonder deze toestemming zal de stream zonder audio worden uitgevoerd.</string>
     <string name="webrtc_stream_fragment_audio_permission_open_settings">Instellingen openen</string>
 
-    <string name="webrtc_stream_fragment_cast_permission_activity_not_found_title">Fout bij machtigingsdialoog</string>
-    <string name="webrtc_stream_fragment_cast_permission_activity_not_found">Android-bug. Vink \"Niet meer weergeven\" niet aan in het rechtenverzoekdialoog om het scherm vast te leggen. Als je dit al hebt gedaan, installeer de app opnieuw.</string>
-    <string name="webrtc_stream_fragment_cast_permission_required_title">Vereiste toestemming</string>
+    <string name="webrtc_stream_fragment_cast_permission_error_title">Toestemmingsfout</string>
+    <string name="webrtc_stream_fragment_cast_permission_error">Systeem ondersteunt geen cast-functionaliteit</string>
+   <string name="webrtc_stream_fragment_cast_permission_required_title">Vereiste toestemming</string>
     <string name="webrtc_stream_fragment_cast_permission_required">De ScreenStream-applicatie vereist toestemming voor schermafdrukken om het scherm vast te leggen.</string>
 
     <string name="webrtc_item_client_disconnect">Verbinding verbreken</string>

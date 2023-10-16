@@ -44,8 +44,8 @@
     <string name="webrtc_stream_fragment_audio_permission_message_settings">在应用程序权限中授予麦克风访问权限对于进行音频流传输是必要的。\n\n未授予此权限，将导致音频无法传输。</string>
     <string name="webrtc_stream_fragment_audio_permission_open_settings">打开设置</string>
 
-    <string name="webrtc_stream_fragment_cast_permission_activity_not_found_title">权限对话框错误</string>
-    <string name="webrtc_stream_fragment_cast_permission_activity_not_found">Android错误。在屏幕捕获权限请求对话框中不要选中“不再显示”。如果已经这样做，请重新安装应用程序。</string>
+    <string name="webrtc_stream_fragment_cast_permission_error_title">权限错误</string>
+    <string name="webrtc_stream_fragment_cast_permission_error">系统不支持投射功能</string>
     <string name="webrtc_stream_fragment_cast_permission_required_title">需要权限</string>
     <string name="webrtc_stream_fragment_cast_permission_required">ScreenStream应用程序需要屏幕投射权限来捕获屏幕。</string>
 

@@ -37,8 +37,8 @@
     <string name="mjpeg_stream_fragment_client_connected">Подключен</string>
     <string name="mjpeg_stream_fragment_client_blocked">Заблокирован</string>
 
-    <string name="mjpeg_stream_fragment_cast_permission_activity_not_found_title">Ошибка диалога доступа</string>
-    <string name="mjpeg_stream_fragment_cast_permission_activity_not_found">Баг Андроида. Не отмечайте \"Больше не показывать\" в диалоге запроса доступа к изображению экрана. Если вы уже отметили, переустановите приложение.</string>
+    <string name="mjpeg_stream_fragment_cast_permission_error_title">Ошибка</string>
+    <string name="mjpeg_stream_fragment_cast_permission_error">Система не поддерживает функцию трансляции</string>
     <string name="mjpeg_stream_fragment_cast_permission_required_title">Требуется разрешение</string>
     <string name="mjpeg_stream_fragment_cast_permission_required">Приложению ScreenStream требуется разрешение на доступ к изображению экрана устройства.</string>
 

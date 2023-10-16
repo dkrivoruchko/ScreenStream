@@ -54,7 +54,6 @@ internal class HttpServer(
 ) {
     private val favicon: ByteArray = context.getFileFromAssets("favicon.ico")
     private val logoPng: ByteArray = context.getFileFromAssets("logo.png")
-    private val scriptJs: ByteArray = context.getFileFromAssets("script.js")
     private val baseIndexHtml = String(context.getFileFromAssets("index.html"), StandardCharsets.UTF_8)
         .replace("%CONNECTING%", context.getString(R.string.mjpeg_html_stream_connecting))
         .replace("%STREAM_REQUIRE_PIN%", context.getString(R.string.mjpeg_html_stream_require_pin))
@@ -75,8 +74,7 @@ internal class HttpServer(
     private val coroutineExceptionHandler = CoroutineExceptionHandler { _, throwable ->
         if (throwable is IOException && throwable !is BindException) return@CoroutineExceptionHandler
         if (throwable is CancellationException) return@CoroutineExceptionHandler
-        XLog.d(getLog("onCoroutineException", "ktorServer: ${ktorServer?.hashCode()}: $throwable"))
-        XLog.e(getLog("onCoroutineException", throwable.toString()), throwable)
+        XLog.w(getLog("coroutineExceptionHandler", "coroutineExceptionHandler: $throwable"), throwable)
         ktorServer?.stop(0, 250)
         ktorServer = null
         when (throwable) {
@@ -99,13 +97,14 @@ internal class HttpServer(
 
         runBlocking(coroutineScope.coroutineContext) { serverData.configure(mjpegSettings) }
 
+        mjpegSettings.htmlBackColorFlow.onEach { htmlBackColor ->
+            indexHtml.set(baseIndexHtml.replace("BACKGROUND_COLOR", "#%06X".format(0xFFFFFF and htmlBackColor)))
+        }.launchIn(coroutineScope)
+
         mjpegSettings.htmlEnableButtonsFlow.combineTransform(mjpegSettings.htmlBackColorFlow) { htmlEnableButtons, htmlBackColor ->
-            emit(Pair(htmlEnableButtons, htmlBackColor))
-        }.distinctUntilChanged().onEach { (htmlEnableButtons, htmlBackColor) ->
-            val enableButtons = htmlEnableButtons && serverData.enablePin.not()
-            val backColor = "#%06X".format(0xFFFFFF and htmlBackColor)
+            emit(Pair(htmlEnableButtons && serverData.enablePin.not(), "#%06X".format(0xFFFFFF and htmlBackColor)))
+        }.distinctUntilChanged().onEach { (enableButtons, backColor) ->
             serverData.notifyClients("SETTINGS", JSONObject().put("enableButtons", enableButtons).put("backColor", backColor))
-            indexHtml.set(baseIndexHtml.replace("ENABLE_BUTTONS", enableButtons.toString()).replace("BACKGROUND_COLOR", backColor))
         }.launchIn(coroutineScope)
 
         val resultJpegStream = ByteArrayOutputStream()
@@ -230,7 +229,6 @@ internal class HttpServer(
             get("/") { call.respondText(indexHtml.get(), ContentType.Text.Html) }
             get("favicon.ico") { call.respondBytes(favicon, ContentType.Image.XIcon) }
             get("logo.png") { call.respondBytes(logoPng, ContentType.Image.PNG) }
-            get("script.js") { call.respondBytes(scriptJs, ContentType.Text.JavaScript) }
             get("start-stop") {
                 if (mjpegSettings.htmlEnableButtonsFlow.first() && serverData.enablePin.not())
                     sendEvent(MjpegStreamingService.InternalEvent.StartStopFromWebPage)
@@ -254,18 +252,21 @@ internal class HttpServer(
                             .onFailure { XLog.e(this@appModule.getLog("fromFrameText", it.message), it) }
                             .getOrNull() ?: continue
 
+                        val enableButtons = mjpegSettings.htmlEnableButtonsFlow.first() && serverData.enablePin.not()
+                        val streamData = JSONObject().put("enableButtons", enableButtons).put("streamAddress", serverData.streamAddress)
+
                         when (val type = msg.optString("type").uppercase()) {
                             "HEARTBEAT" -> send("HEARTBEAT", msg.optString("data"))
 
                             "CONNECT" -> when {
-                                mjpegSettings.enablePinFlow.first().not() -> send("STREAM_ADDRESS", serverData.streamAddress)
+                                mjpegSettings.enablePinFlow.first().not() -> send("STREAM_ADDRESS", streamData)
                                 serverData.isAddressBlocked(remoteAddress) -> send("UNAUTHORIZED", "ADDRESS_BLOCKED")
-                                serverData.isClientAuthorized(clientId) -> send("STREAM_ADDRESS", serverData.streamAddress)
+                                serverData.isClientAuthorized(clientId) -> send("STREAM_ADDRESS", streamData)
                                 else -> send("UNAUTHORIZED", null)
                             }
 
                             "PIN" -> when {
-                                serverData.isPinValid(clientId, remoteAddress, msg.optString("data")) -> send("STREAM_ADDRESS", serverData.streamAddress)
+                                serverData.isPinValid(clientId, remoteAddress, msg.optString("data")) -> send("STREAM_ADDRESS", streamData)
                                 serverData.isAddressBlocked(remoteAddress) -> send("UNAUTHORIZED", "ADDRESS_BLOCKED")
                                 else -> send("UNAUTHORIZED", "WRONG_PIN")
                             }
@@ -276,8 +277,9 @@ internal class HttpServer(
                             }
                         }
                     }
-//                } catch (ignore: CancellationException) {
+                } catch (ignore: CancellationException) {
                 } catch (cause: Exception) {
+                    XLog.e(this@appModule.getLog("socket", "catch: ${cause.localizedMessage}"))
                     XLog.e(this@appModule.getLog("socket", "catch: ${cause.localizedMessage}"), cause)
                 } finally {
                     XLog.i(this@appModule.getLog("socket", "finally: $clientId"))

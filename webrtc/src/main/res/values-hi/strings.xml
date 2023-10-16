@@ -44,8 +44,8 @@
     <string name="webrtc_stream_fragment_audio_permission_message_settings">ऐप्लिकेशन अनुमतियों में माइक्रोफ़ोन एक्सेस देना आवश्यक है, ताकि ऐप्लिकेशन ऑडियो सामग्री स्ट्रीम कर सके।\n\nइस अनुमति को देने के बिना, स्ट्रीम में कोई ऑडियो नहीं होगा।</string>
     <string name="webrtc_stream_fragment_audio_permission_open_settings">सेटिंग्स खोलें</string>
 
-    <string name="webrtc_stream_fragment_cast_permission_activity_not_found_title">अनुमति डायलॉग त्रुटि</string>
-    <string name="webrtc_stream_fragment_cast_permission_activity_not_found">Android त्रुटि। स्क्रीन कैस्ट के लिए अनुमति अनुरोध डायलॉग में "फिर से न दिखाएं" को न चुनें। यदि आपने पहले से कर दिया है, तो एप्लिकेशन को पुनः स्थापित करें।</string>
+    <string name="webrtc_stream_fragment_cast_permission_error_title">अनुमति त्रुटि</string>
+    <string name="webrtc_stream_fragment_cast_permission_error">सिस्टम कास्ट की फ़ंक्शनैलिटी का समर्थन नहीं करता है</string>
     <string name="webrtc_stream_fragment_cast_permission_required_title">आवश्यक अनुमति</string>
     <string name="webrtc_stream_fragment_cast_permission_required">ScreenStream एप्लिकेशन को स्क्रीन कैस्ट अनुमति की आवश्यकता है।</string>
 

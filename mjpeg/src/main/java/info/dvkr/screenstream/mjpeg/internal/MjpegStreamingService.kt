@@ -114,7 +114,7 @@ internal class MjpegStreamingService(
 
     internal sealed class InternalEvent(priority: Int) : MjpegEvent(priority) {
         internal data class InitState(@JvmField val clearIntent: Boolean = true) : InternalEvent(Priority.RESTART_IGNORE)
-        internal data class DiscoverAddress(@JvmField val attempt: Int) : InternalEvent(Priority.RESTART_IGNORE)
+        internal data class DiscoverAddress(@JvmField val reason: String, @JvmField val attempt: Int) : InternalEvent(Priority.RESTART_IGNORE)
         internal data class StartServer(@JvmField val interfaces: List<MjpegState.NetInterface>) : InternalEvent(Priority.RESTART_IGNORE)
         internal data object StartStream : InternalEvent(Priority.RESTART_IGNORE)
         internal data object StartStopFromWebPage : InternalEvent(Priority.RESTART_IGNORE)
@@ -231,7 +231,7 @@ internal class MjpegStreamingService(
         sendEvent(InternalEvent.Destroy(latch))
 
         runCatching {
-            if (latch.await(1000, TimeUnit.MILLISECONDS).not())
+            if (latch.await(1500, TimeUnit.MILLISECONDS).not())
                 XLog.w(getLog("destroy", "Timeout"), IllegalStateException("destroy: Timeout"))
         }
 
@@ -313,7 +313,7 @@ internal class MjpegStreamingService(
                         sendEvent(InternalEvent.StartServer(newInterfaces))
                     } else {
                         if (event.attempt < 3) {
-                            sendEvent(InternalEvent.DiscoverAddress(event.attempt + 1), 1000)
+                            sendEvent(InternalEvent.DiscoverAddress(event.reason, event.attempt + 1), 1000)
                         } else {
                             netInterfaces = emptyList()
                             clients = emptyList()
@@ -324,9 +324,7 @@ internal class MjpegStreamingService(
                 }
 
                 is InternalEvent.StartServer -> {
-                    check(pendingServer) { "MjpegEvent.StartStream: server is already started" }
-
-                    runBlocking { withTimeoutOrNull(300) { httpServer.stop(false).await() } }
+                    if (pendingServer.not()) runBlocking { httpServer.stop(false).await() }
                     httpServer.start(event.interfaces.toList())
 
                     if (runBlocking { mjpegSettings.htmlShowPressStartFlow.first() }) bitmapStateFlow.value = startBitmap
@@ -431,14 +429,14 @@ internal class MjpegStreamingService(
                         runBlocking { withTimeoutOrNull(300) { httpServer.stop(event.reason is RestartReason.SettingsChanged).await() } }
                         sendEvent(InternalEvent.InitState(false))
                     }
-                    sendEvent(InternalEvent.DiscoverAddress(0))
+                    sendEvent(InternalEvent.DiscoverAddress("RestartServer",0))
                 }
 
                 is MjpegEvent.Intentable.RecoverError -> {
                     stopStream()
                     runBlocking { withTimeoutOrNull(300) { httpServer.stop(true).await() } }
                     sendEvent(InternalEvent.InitState(true))
-                    sendEvent(InternalEvent.DiscoverAddress(0))
+                    sendEvent(InternalEvent.DiscoverAddress("RecoverError",0))
                 }
 
                 is InternalEvent.Destroy -> {
@@ -515,7 +513,7 @@ internal class MjpegStreamingService(
     // Inline Only
     @Suppress("NOTHING_TO_INLINE")
     private inline fun getStateString() =
-        "Pending Dest/Server: $destroyPending/$pendingServer, Streaming:$isStreaming, WFP:$waitingForPermission, Clients:${clients.size}"
+        "Pending Dest/Server: $destroyPending/$pendingServer, Streaming:$isStreaming, WFP:$waitingForPermission, Clients:${clients.size}, Error:${currentError}"
 
     // Inline Only
     @Suppress("NOTHING_TO_INLINE")

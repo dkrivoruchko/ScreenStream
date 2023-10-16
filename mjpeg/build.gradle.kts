@@ -14,6 +14,10 @@ android {
         minSdk = 23
     }
 
+    androidResources {
+        ignoreAssetsPattern = "!js"
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11

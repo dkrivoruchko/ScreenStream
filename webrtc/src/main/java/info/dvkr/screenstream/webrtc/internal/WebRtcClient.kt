@@ -306,7 +306,7 @@ internal class WebRtcClient(
         }
 
         override fun onIceCandidateError(event: IceCandidateErrorEvent?) {
-            XLog.v(getLog("onIceCandidateError", "Client: $clientId}"))
+            XLog.v(getLog("onIceCandidateError", "Client: $clientId"))
         }
 
         override fun onIceCandidatesRemoved(iceCandidates: Array<out IceCandidate>?) {

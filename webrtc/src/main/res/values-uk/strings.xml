@@ -44,8 +44,8 @@
     <string name="webrtc_stream_fragment_audio_permission_message_settings">Надання доступу до мікрофону у налаштуваннях додатку є необхідним для трансляції аудіовмісту.\n\nБез надання цього дозволу трансляція буде проводитись без звуку.</string>
     <string name="webrtc_stream_fragment_audio_permission_open_settings">Відкрити налаштування</string>
 
-    <string name="webrtc_stream_fragment_cast_permission_activity_not_found_title">Помилка діалогу дозволів</string>
-    <string name="webrtc_stream_fragment_cast_permission_activity_not_found">Помилка Android. Не встановлюйте позначку \"Не показувати знову\" у діалозі запиту прав для захоплення екрану. Якщо ви вже це зробили, перевстановіть додаток.</string>
+    <string name="webrtc_stream_fragment_cast_permission_error_title">Помилка дозволу</string>
+    <string name="webrtc_stream_fragment_cast_permission_error">Система не підтримує функціональність трансляції</string>
     <string name="webrtc_stream_fragment_cast_permission_required_title">Потрібне дозвіл</string>
     <string name="webrtc_stream_fragment_cast_permission_required">Додаток ScreenStream потребує дозволу на захоплення екрану (Screen Cast).</string>
 

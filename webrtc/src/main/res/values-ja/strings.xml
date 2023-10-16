@@ -44,8 +44,8 @@
     <string name="webrtc_stream_fragment_audio_permission_message_settings">アプリケーションのアクセス許可でマイクへのアクセスを許可することは、アプリケーションがオーディオコンテンツをストリーミングするために必要です。\n\nこの許可を付与しないと、オーディオのないストリームが行われます。</string>
     <string name="webrtc_stream_fragment_audio_permission_open_settings">設定を開く</string>
 
-    <string name="webrtc_stream_fragment_cast_permission_activity_not_found_title">許可ダイアログエラー</string>
-    <string name="webrtc_stream_fragment_cast_permission_activity_not_found">Androidのバグ。画面をキャプチャするための権限リクエストダイアログで「今後表示しない」をチェックしないでください。すでに行った場合、アプリを再インストールしてください。</string>
+    <string name="webrtc_stream_fragment_cast_permission_error_title">許可エラー</string>
+    <string name="webrtc_stream_fragment_cast_permission_error">システムはキャスト機能をサポートしていません</string>
     <string name="webrtc_stream_fragment_cast_permission_required_title">必要な許可</string>
     <string name="webrtc_stream_fragment_cast_permission_required">ScreenStreamアプリケーションは画面キャスト許可が必要です。</string>
 
