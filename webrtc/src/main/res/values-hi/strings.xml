@@ -56,5 +56,6 @@
     <string name="webrtc_error_play_integrity_install_play_service">कृपया Google Play सेवाएं स्थापित करें या सक्षम करें</string>
     <string name="webrtc_error_play_integrity_update_play_service">कृपया Google Play सेवाएं अपडेट करें</string>
     <string name="webrtc_error_check_network">कृपया इंटरनेट कनेक्टिविटी की जांच करें</string>
+    <string name="webrtc_notification_permission_required">ऐप्लिकेशन को स्ट्रीमिंग सेवा शुरू करने के लिए सूचनाओं को सक्षम करने की आवश्यकता है।\n\nकृपया ऐप्लिकेशन की सेटिंग्स में सूचनाओं को सक्षम करें।</string>
     <string name="webrtc_error_unspecified">कुछ गड़बड़ हो गई है। कृपया बाद में पुनः प्रयास करें।</string>
 </resources>

@@ -11,6 +11,7 @@ android {
     namespace = "info.dvkr.screenstream.webrtc"
     compileSdk = 34
     buildToolsVersion = "34.0.0"
+    ndkVersion = "26.1.10909125"
 
     defaultConfig {
         minSdk = 23
@@ -49,8 +50,7 @@ dependencies {
 
     implementation("io.github.webrtc-sdk:android:114.5735.05")
     implementation("io.socket:socket.io-client:2.1.0")
-    implementation("com.squareup.okhttp3:okhttp:4.10.0")
-    implementation("com.squareup.okio:okio:3.6.0")
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
 
     implementation("com.google.android.gms:play-services-basement:18.2.0")
     implementation("com.google.android.play:integrity:1.2.0")

@@ -121,8 +121,9 @@
 
     <string name="mjpeg_error_port_in_use">端口已占用，请换一个</string>
     <string name="mjpeg_error_invalid_media_projection">安全错误：无效店媒体投射，请再试一次。</string>
-    <string name="mjpeg_error_ip_address_not_found">未找到 IP 地址.\n请尝试禁用设置中的 \"只用 WiFi\" 。</string>
+    <string name="mjpeg_error_ip_address_not_found">找不到 IP 地址。\n尝试在流设置中禁用 \"只用 WiFi\"。</string>
     <string name="mjpeg_error_wrong_image_format">系统返回的图片格式无法识别。很抱歉尚无解决办法。</string>
+    <string name="mjpeg_error_notification_permission_required">应用需要启用通知以开始流媒体服务。\n\n请在应用设置中启用通知。</string>
     <string name="mjpeg_error_unspecified">出现了问题。请稍后再试。</string>
 
     <string name="mjpeg_start_image_text">在设备上开始流</string>

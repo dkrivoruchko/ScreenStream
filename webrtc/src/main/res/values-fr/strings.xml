@@ -56,5 +56,6 @@
     <string name="webrtc_error_play_integrity_install_play_service">Veuillez installer ou activer les Services Google Play</string>
     <string name="webrtc_error_play_integrity_update_play_service">Veuillez mettre à jour les Services Google Play</string>
     <string name="webrtc_error_check_network">Veuillez vérifier la connectivité à Internet</string>
+    <string name="webrtc_notification_permission_required">La aplicación requiere que las notificaciones estén habilitadas para iniciar el servicio de transmisión.\n\nPor favor, habilite las notificaciones en la configuración de la aplicación.</string>
     <string name="webrtc_error_unspecified">Une erreur s\'est produite. Veuillez réessayer ultérieurement.</string>
 </resources>

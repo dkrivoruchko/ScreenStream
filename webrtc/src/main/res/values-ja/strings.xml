@@ -56,5 +56,6 @@
     <string name="webrtc_error_play_integrity_install_play_service">Play Servicesをインストールまたは有効にしてください</string>
     <string name="webrtc_error_play_integrity_update_play_service">Google Playサービスを更新してください</string>
     <string name="webrtc_error_check_network">インターネット接続を確認してください</string>
+    <string name="webrtc_notification_permission_required">アプリケーションはストリーミングサービスを開始するために通知の有効化が必要です。\n\nアプリケーションの設定で通知を有効にしてください。</string>
     <string name="webrtc_error_unspecified">何かがうまくいかなかったようです。後で再試行してください。</string>
 </resources>

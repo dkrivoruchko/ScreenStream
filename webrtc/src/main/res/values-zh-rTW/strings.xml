@@ -56,5 +56,6 @@
     <string name="webrtc_error_play_integrity_install_play_service">請安裝或啟用 Play 服務</string>
     <string name="webrtc_error_play_integrity_update_play_service">請更新 Google Play 服務</string>
     <string name="webrtc_error_check_network">請檢查互聯網連接</string>
+    <string name="webrtc_notification_permission_required">應用程式需要啟用通知以開始串流服務。\n\n請在應用程式設定中啟用通知。</string>
     <string name="webrtc_error_unspecified">出現了一些問題，請稍後再試。</string>
 </resources>

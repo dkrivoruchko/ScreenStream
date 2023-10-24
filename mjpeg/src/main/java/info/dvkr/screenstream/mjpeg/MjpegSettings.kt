@@ -44,7 +44,7 @@ public interface MjpegSettings {
     }
 
     public object Default {
-        public const val KEEP_AWAKE: Boolean = false
+        public const val KEEP_AWAKE: Boolean = true
         public const val STOP_ON_SLEEP: Boolean = false
         public const val NOTIFY_SLOW_CONNECTIONS: Boolean = false
 

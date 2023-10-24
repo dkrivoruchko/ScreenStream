@@ -80,7 +80,6 @@
     <string name="mjpeg_pref_grayscale_summary">Converter a imagem em escala de cinza antes de enviá-la para o cliente</string>
     <string name="mjpeg_pref_resize">Redimensionar imagem</string>
     <string name="mjpeg_pref_resize_summary">Redimensionar a imagem antes de enviá-la para o cliente</string>
-    <string name="mjpeg_pref_resize_value" translatable="false">%1$d%%</string>
     <string name="mjpeg_pref_resize_dialog_text">Defina o fator de redimensionamento da imagem em porcentagem.\nValores: 10–150 (Padrão: 50)\nTamanho da tela: %1$dx%2$d</string>
     <string name="mjpeg_pref_resize_dialog_result">Tamanho da imagem: %1$dx%2$d</string>
     <string name="mjpeg_pref_rotate">Girar imagem no sentido horário</string>
@@ -122,8 +121,9 @@
 
     <string name="mjpeg_error_port_in_use">Porta já em uso. Escolha outra.</string>
     <string name="mjpeg_error_invalid_media_projection">Erro de segurança: Projeção de mídia inválida. Tente novamente.</string>
-    <string name="mjpeg_error_ip_address_not_found">Endereço IP não encontrado.\nTente desativar "Usar apenas Wi-Fi" nas configurações.</string>
+    <string name="mjpeg_error_ip_address_not_found">Endereço IP não encontrado.\nTente desativar \"Usar apenas Wi-Fi\" nas configurações de transmissão.</string>
     <string name="mjpeg_error_wrong_image_format">O sistema retorna a imagem em um formato desconhecido. Não há correção disponível. Desculpe.</string>
+    <string name="mjpeg_error_notification_permission_required">O aplicativo requer notificações ativadas para iniciar o serviço de transmissão.\n\nPor favor, ative as notificações nas configurações do aplicativo.</string>
     <string name="mjpeg_error_unspecified">Algo deu errado. Tente novamente mais tarde.</string>
 
     <string name="mjpeg_start_image_text">Iniciar transmissão no dispositivo</string>

@@ -121,8 +121,9 @@
 
     <string name="mjpeg_error_port_in_use">Port déjà utilisé. Sélectionnez une autre valeur.</string>
     <string name="mjpeg_error_invalid_media_projection">Erreur de sécurité : projection de média invalide. Veuillez re-essayer.</string>
-    <string name="mjpeg_error_ip_address_not_found">Adresse IP non trouvée.\nEssayez de désactiver le \"WiFi uniquement\" dans les paramètres.</string>
+    <string name="mjpeg_error_ip_address_not_found">Adresse IP introuvable.\nEssayez de désactiver \"WiFi uniquement\" dans les paramètres du flux.</string>
     <string name="mjpeg_error_wrong_image_format">Le système fournit une image dans un format inconnu. Pas de solution, désolé.</string>
+    <string name="mjpeg_error_notification_permission_required">La aplicación requiere que las notificaciones estén habilitadas para iniciar el servicio de transmisión.\n\nPor favor, habilite las notificaciones en la configuración de la aplicación.</string>
     <string name="mjpeg_error_unspecified">Algo salió mal. Por favor, inténtalo de nuevo más tarde.</string>
 
     <string name="mjpeg_start_image_text">Démarrer la diffusion sur l\'appareil</string>

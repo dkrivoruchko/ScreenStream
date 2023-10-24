@@ -8,9 +8,11 @@ import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.common.randomString
 import info.dvkr.screenstream.mjpeg.*
 import info.dvkr.screenstream.mjpeg.internal.HttpServerData.Companion.getClientId
+import io.ktor.http.CacheControl
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
+import io.ktor.http.content.CachingOptions
 import io.ktor.http.content.OutgoingContent
 import io.ktor.server.application.Application
 import io.ktor.server.application.ApplicationStarted
@@ -19,7 +21,11 @@ import io.ktor.server.application.call
 import io.ktor.server.application.install
 import io.ktor.server.cio.*
 import io.ktor.server.engine.*
-import io.ktor.server.plugins.cors.routing.CORS
+import io.ktor.server.http.content.staticResources
+import io.ktor.server.plugins.cachingheaders.CachingHeaders
+import io.ktor.server.plugins.compression.Compression
+import io.ktor.server.plugins.compression.deflate
+import io.ktor.server.plugins.compression.gzip
 import io.ktor.server.plugins.defaultheaders.DefaultHeaders
 import io.ktor.server.plugins.forwardedheaders.ForwardedHeaders
 import io.ktor.server.plugins.origin
@@ -72,14 +78,19 @@ internal class HttpServer(
     private val stopDeferredRelay: AtomicReference<CompletableDeferred<Unit>?> = AtomicReference(null)
 
     private val coroutineExceptionHandler = CoroutineExceptionHandler { _, throwable ->
-        if (throwable is IOException && throwable !is BindException) return@CoroutineExceptionHandler
         if (throwable is CancellationException) return@CoroutineExceptionHandler
-        XLog.w(getLog("coroutineExceptionHandler", "coroutineExceptionHandler: $throwable"), throwable)
+        if (throwable is IOException && throwable !is BindException) return@CoroutineExceptionHandler
         ktorServer?.stop(0, 250)
         ktorServer = null
         when (throwable) {
-            is BindException -> sendEvent(MjpegStreamingService.InternalEvent.Error(MjpegError.AddressInUseException))
-            else -> sendEvent(MjpegStreamingService.InternalEvent.Error(MjpegError.HttpServerException))
+            is BindException -> {
+                XLog.w(getLog("coroutineExceptionHandler", "coroutineExceptionHandler: $throwable"))
+                sendEvent(MjpegStreamingService.InternalEvent.Error(MjpegError.AddressInUseException))
+            }
+            else -> {
+                XLog.w(getLog("coroutineExceptionHandler", "coroutineExceptionHandler: $throwable"), throwable)
+                sendEvent(MjpegStreamingService.InternalEvent.Error(MjpegError.HttpServerException))
+            }
         }
     }
 
@@ -176,6 +187,7 @@ internal class HttpServer(
         }
     }
 
+    // TODO rethink it
     internal fun stop(reloadClients: Boolean): CompletableDeferred<Unit> =
         CompletableDeferred<Unit>().apply Deferred@{
             XLog.d(this@HttpServer.getLog("stopServer", "reloadClients: $reloadClients"))
@@ -206,11 +218,12 @@ internal class HttpServer(
         val contentType = ContentType.parse("multipart/x-mixed-replace; boundary=$multipartBoundary")
         val jpegBoundary = "--$multipartBoundary\r\n".toByteArray()
 
-        install(DefaultHeaders) { header(HttpHeaders.CacheControl, "no-cache") }
-        install(CORS) {
-            allowHeader(HttpHeaders.AccessControlAllowOrigin)
-            anyHost()
+        install(Compression) {
+            gzip()
+            deflate()
         }
+        install(CachingHeaders) { options { _, _ -> CachingOptions(CacheControl.NoStore(CacheControl.Visibility.Private)) } }
+        install(DefaultHeaders) { header(HttpHeaders.AccessControlAllowOrigin, "*") }
         install(ForwardedHeaders)
         install(WebSockets)
         install(StatusPages) {

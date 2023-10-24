@@ -88,6 +88,8 @@ internal sealed class WebRtcError(@StringRes open val id: Int, override val mess
             context.getString(id) + " [$message] : ${if (cause?.message != null) cause.message else ""} "
     }
 
+    internal data object NotificationPermissionRequired : WebRtcError(R.string.webrtc_notification_permission_required)
+
     internal data class UnknownError(override val cause: Throwable?) :
         WebRtcError(R.string.webrtc_error_unspecified) {
         override fun toString(context: Context): String = context.getString(id) + " [${cause?.message}]"

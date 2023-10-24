@@ -93,6 +93,7 @@ internal class PlayIntegrity(serviceContext: Context, private val environment: W
             val e = it.exception
             when {
                 e != null -> {
+                    XLog.e(getLog("prepareIntegrityToken", "Failed: ${e.message}\n${e.stackTrace}")) //TODO
                     XLog.e(getLog("prepareIntegrityToken", "Failed: ${e.message}"), e)
                     callback(Result.failure(if (e is StandardIntegrityException) e.toWebRtcError() else e))
                 }

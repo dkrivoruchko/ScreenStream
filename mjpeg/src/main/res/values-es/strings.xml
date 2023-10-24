@@ -121,8 +121,9 @@
 
     <string name="mjpeg_error_port_in_use">Puerto en uso. Escoja otro por favor.</string>
     <string name="mjpeg_error_invalid_media_projection">Error de seguridad: Proyección de medios no válida. Intente nuevamente.</string>
-    <string name="mjpeg_error_ip_address_not_found">Dirección IP no encontrada.\nIntente deshabilitar \"Use solo WiFi\" en Opciones.</string>
+    <string name="mjpeg_error_ip_address_not_found">Dirección IP no encontrada.\nIntente desactivar \"Usar solo WiFi\" en la configuración de la transmisión.</string>
     <string name="mjpeg_error_wrong_image_format">El sistema devuelve la imagen en formato desconocido. No hay soluciones disponibles. Lo sentimos.</string>
+    <string name="mjpeg_error_notification_permission_required">La aplicación requiere que las notificaciones estén habilitadas para iniciar el servicio de transmisión.\n\nPor favor, habilite las notificaciones en la configuración de la aplicación.</string>
     <string name="mjpeg_error_unspecified">Algo salió mal. Por favor, inténtalo de nuevo más tarde.</string>
 
     <string name="mjpeg_start_image_text">Iniciar transmisión en el dispositivo</string>

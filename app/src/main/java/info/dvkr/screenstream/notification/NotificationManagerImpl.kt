@@ -25,6 +25,8 @@ internal class NotificationManagerImpl(context: Context) : NotificationsManager 
     private companion object {
         private const val CHANNEL_STREAMING = "info.dvkr.screenstream.NOTIFICATION_CHANNEL_STREAMING"
         private const val CHANNEL_ERROR = "info.dvkr.screenstream.NOTIFICATION_CHANNEL_ERROR"
+        private const val NOTIFICATION_FOREGROUND_ID = 11
+        private const val NOTIFICATION_ERROR_ID = 50
     }
 
     private val notificationManager = context.applicationContext.getSystemService(NotificationManager::class.java)
@@ -70,20 +72,14 @@ internal class NotificationManagerImpl(context: Context) : NotificationsManager 
                 ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED)
             .also { XLog.d(getLog("isNotificationPermissionGranted", "$it")) }
 
+    @Throws(NotificationsManager.NotificationPermissionRequired::class)
     override fun showForegroundNotification(service: Service, stopIntent: Intent) {
         val serviceName = service::class.java.simpleName + "#" + service.hashCode()
-
-        if (isNotificationPermissionGranted(service).not()) {
-            XLog.e(
-                getLog("showStreamingNotification", "Service: $serviceName. No permission granted. Ignoring."),
-                IllegalStateException("showStreamingNotification: Service: $serviceName. No permission granted. Ignoring.")
-            )
-            return
-        }
-
         XLog.d(getLog("showForegroundNotification", "Service: $serviceName"))
 
         hideForegroundNotification(service)
+
+        if (isNotificationPermissionGranted(service).not()) throw NotificationsManager.NotificationPermissionRequired
 
         val appContext = service.applicationContext
 
@@ -116,24 +112,32 @@ internal class NotificationManagerImpl(context: Context) : NotificationsManager 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             XLog.d(getLog("showForegroundNotification", "Service: $serviceName. StartForeground on Q"))
             if (ContextCompat.checkSelfPermission(service, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED)
-                service.startForeground(11, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MANIFEST)
+                service.startForeground(NOTIFICATION_FOREGROUND_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MANIFEST)
             else
-                service.startForeground(11, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION)
+                service.startForeground(NOTIFICATION_FOREGROUND_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION)
         } else {
             XLog.d(getLog("showForegroundNotification", "Service: $serviceName}. StartForeground"))
-            service.startForeground(11, notification)
+            service.startForeground(NOTIFICATION_FOREGROUND_ID, notification)
         }
     }
 
     @Suppress("DEPRECATION")
     override fun hideForegroundNotification(service: Service) {
         val serviceName = service::class.java.simpleName + "#" + service.hashCode()
-        XLog.d(getLog("hideForegroundNotification", "Service: $serviceName"))
+        val isActive = isActive(NOTIFICATION_FOREGROUND_ID)
+        XLog.d(getLog("hideForegroundNotification", "Service: $serviceName, isActive: $isActive"))
+        if (isActive.not()) return
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) service.stopForeground(Service.STOP_FOREGROUND_REMOVE)
         else service.stopForeground(true)
+        if (isActive(NOTIFICATION_FOREGROUND_ID)) {
+            XLog.d(getLog("hideForegroundNotification.done", "isActive"), IllegalStateException("hideForegroundNotification.done: isActive"))
+        } else XLog.d(getLog("hideForegroundNotification", "Done"))
     }
 
     override fun showErrorNotification(context: Context, message: String, recoverIntent: Intent) {
+        XLog.d(getLog("showErrorNotification"))
+        hideErrorNotification()
+
         if (isNotificationPermissionGranted(context).not()) {
             XLog.e(
                 getLog("showErrorNotification", "No permission granted. Ignoring."),
@@ -141,10 +145,6 @@ internal class NotificationManagerImpl(context: Context) : NotificationsManager 
             )
             return
         }
-
-        XLog.d(getLog("showErrorNotification"))
-
-        hideErrorNotification()
 
         val appContext = context.applicationContext
 
@@ -176,11 +176,21 @@ internal class NotificationManagerImpl(context: Context) : NotificationsManager 
                 }
             }
 
-        notificationManager.notify(50, builder.build())
+        notificationManager.notify(NOTIFICATION_ERROR_ID, builder.build())
     }
 
     override fun hideErrorNotification() {
-        XLog.d(getLog("hideErrorNotification"))
-        notificationManager.cancel(50)
+        val isActive = isActive(NOTIFICATION_ERROR_ID)
+        XLog.d(getLog("hideErrorNotification", "isActive: $isActive"))
+        if (isActive) notificationManager.cancel(NOTIFICATION_ERROR_ID)
+        if (isActive(NOTIFICATION_ERROR_ID)) {
+            XLog.d(getLog("hideErrorNotification.done", "isActive"), IllegalStateException("hideErrorNotification.done: isActive"))
+        } else XLog.d(getLog("hideErrorNotification", "Done"))
+    }
+
+    private fun isActive(id: Int): Boolean {
+        val isActive = notificationManager.activeNotifications.firstOrNull { it.id == id } != null
+        XLog.d(getLog("isActive", "Id: $id, isActive: $isActive"))
+        return isActive
     }
 }

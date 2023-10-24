@@ -56,5 +56,6 @@
     <string name="webrtc_error_play_integrity_install_play_service">Per favore, installa o abilita i Play Services</string>
     <string name="webrtc_error_play_integrity_update_play_service">Per favore, aggiorna i Google Play services</string>
     <string name="webrtc_error_check_network">Per favore, verifica la connettività Internet</string>
+    <string name="webrtc_notification_permission_required">L\'applicazione richiede che le notifiche siano abilitate per avviare il servizio di streaming.\n\nSi prega di abilitare le notifiche nelle impostazioni dell\'applicazione.</string>
     <string name="webrtc_error_unspecified">Qualcosa è andato storto. Per favore, riprova più tardi.</string>
 </resources>

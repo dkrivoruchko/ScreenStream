@@ -1,7 +1,7 @@
 package info.dvkr.screenstream.mjpeg
 
+import android.app.ActivityManager
 import android.app.Service
-import android.app.ServiceStartNotAllowedException
 import android.content.Context
 import android.content.Intent
 import android.os.IBinder
@@ -21,11 +21,16 @@ public class MjpegService : Service() {
     internal companion object {
         internal fun getIntent(context: Context): Intent = Intent(context, MjpegService::class.java)
 
-        @Throws(ServiceStartNotAllowedException::class)
+        @Throws(IllegalStateException::class)
         internal fun startService(context: Context, intent: Intent) {
             XLog.d(getLog("MjpegService.startService", "Run intent: ${intent.extras}"))
+            val importance = ActivityManager.RunningAppProcessInfo().also { ActivityManager.getMyMemoryState(it) }.importance
+            XLog.i(getLog("MjpegService.startService", "RunningAppProcessInfo.importance: $importance"))
+            XLog.d(getLog("MjpegService.startService"), RuntimeException("RunningAppProcessInfo.importance: $importance"))
             context.startService(intent)
         }
+        //ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND
+        //ActivityManager.RunningAppProcessInfo.IMPORTANCE_VISIBLE
     }
 
     private val streamingModulesManager: StreamingModulesManager by inject(mode = LazyThreadSafetyMode.NONE)
@@ -52,6 +57,7 @@ public class MjpegService : Service() {
         }
 
         if (success.not()) { // No active module
+            XLog.w(getLog("onStartCommand", "No active module"))
             notificationsManager.hideForegroundNotification(this)
             notificationsManager.hideErrorNotification()
             stopSelf()

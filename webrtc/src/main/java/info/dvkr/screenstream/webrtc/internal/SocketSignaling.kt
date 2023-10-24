@@ -25,12 +25,12 @@ internal class SocketSignaling(
     private val passwordVerifier: PasswordVerifier
 ) {
 
-    internal interface PasswordVerifier {
+    internal fun interface PasswordVerifier {
         fun isValid(clientId: ClientId, passwordHash: String) : Boolean
     }
 
-    internal sealed class Errors(internal val retry: Boolean) : Exception() {
-        internal class SocketAuthError(override val message: String, retry: Boolean = false) : Errors(retry) {
+    internal sealed class Error(internal val retry: Boolean, internal val log: Boolean) : Exception() {
+        internal class SocketAuthError(override val message: String, retry: Boolean = false) : Error(retry, false) {
             internal companion object {
                 internal fun fromMessage(message: String): SocketAuthError? {
                     val error = message.removePrefix("$ERROR_TOKEN_VERIFICATION_FAILED:")
@@ -55,10 +55,10 @@ internal class SocketSignaling(
             }
         }
 
-        internal class SocketCheckError(override val message: String) : Errors(false)
-        internal class SocketConnectError(override val message: String) : Errors(true)
-        internal class StreamCreateError(override val message: String, override val cause: Throwable) : Errors(true)
-        internal class StreamStartError(override val message: String, override val cause: Throwable) : Errors(true)
+        internal class SocketCheckError(override val message: String) : Error(false, true)
+        internal class SocketConnectError(override val message: String) : Error(true, false)
+        internal class StreamCreateError(override val message: String, override val cause: Throwable) : Error(true, true)
+        internal class StreamStartError(override val message: String, override val cause: Throwable) : Error(true, true)
     }
 
     internal interface EventListener {
@@ -73,7 +73,7 @@ internal class SocketSignaling(
         fun onClientAnswer(clientId: ClientId, answer: Answer)
         fun onClientCandidate(clientId: ClientId, candidate: IceCandidate)
         fun onHostOfferConfirmed(clientId: ClientId)
-        fun onError(cause: Errors)
+        fun onError(cause: Error)
     }
 
     // Must be identical to server values
@@ -158,13 +158,14 @@ internal class SocketSignaling(
                     eventListener.onTokenExpired()
                 } else if (message.startsWith("$ERROR_TOKEN_VERIFICATION_FAILED:WRONG_APP_VERDICT")) {
                     XLog.d(this@SocketSignaling.getLog("openSocket", "WRONG_APP_VERDICT"), IllegalStateException("WRONG_APP_VERDICT"))
-                    eventListener.onError(Errors.SocketAuthError.fromMessage(message) ?: Errors.SocketConnectError(message))
-                } else eventListener.onError(Errors.SocketAuthError.fromMessage(message) ?: Errors.SocketConnectError(message))
+                    eventListener.onError(Error.SocketAuthError.fromMessage(message) ?: Error.SocketConnectError(message))
+                } else
+                    eventListener.onError(Error.SocketAuthError.fromMessage(message) ?: Error.SocketConnectError(message))
             }
             on(Event.SOCKET_ERROR) { args -> // Server always disconnects socket on this event. User reconnect
                 XLog.e(this@SocketSignaling.getLog(Event.SOCKET_ERROR + "[${socketId()}]", args.contentToString()))
                 val message = (args?.firstOrNull() as? JSONObject)?.optString(Payload.STATUS) ?: ""
-                eventListener.onError(Errors.SocketCheckError(message))
+                eventListener.onError(Error.SocketCheckError(message))
                 SocketPayload.fromPayload(args).sendOkAck()
             }
             open()
@@ -183,7 +184,7 @@ internal class SocketSignaling(
                 JWTHelper.createKey()
                 JSONObject().put("jwt", JWTHelper.createJWT(environment, streamId.value))
             }
-            .onFailure { eventListener.onError(Errors.StreamCreateError("createJWT error: ${it.message}", it)) }
+            .onFailure { eventListener.onError(Error.StreamCreateError("createJWT error: ${it.message}", it)) }
             .getOrNull() ?: return
 
         currentSocket.emit(Event.STREAM_CREATE, arrayOf(data), object : AckWithTimeout(10_000) {
@@ -195,13 +196,13 @@ internal class SocketSignaling(
                     ack.status != Payload.OK -> {
                         val msg = "[${Event.STREAM_CREATE}] => ${ack.status}"
                         XLog.e(this@SocketSignaling.getLog("sendStreamCreate[${socketId()}]", "$msg Data: $data"))
-                        eventListener.onError(Errors.StreamCreateError(msg, IllegalStateException(msg)))
+                        eventListener.onError(Error.StreamCreateError(msg, IllegalStateException(msg)))
                     }
 
                     ack.streamId.isEmpty() -> {
                         val msg = "[${Event.STREAM_CREATE}] => StreamId is empty"
                         XLog.e(this@SocketSignaling.getLog("sendStreamCreate[${socketId()}]", "$msg Data: $data"))
-                        eventListener.onError(Errors.StreamCreateError(msg, IllegalStateException(msg)))
+                        eventListener.onError(Error.StreamCreateError(msg, IllegalStateException(msg)))
                     }
 
                     else -> {
@@ -212,9 +213,9 @@ internal class SocketSignaling(
             }
 
             override fun onTimeout() {
-                val msg = "[${Event.STREAM_CREATE}] => Timeout. Data: $data"
-                XLog.w(this@SocketSignaling.getLog("sendStreamCreate[${socketId()}]", msg), IllegalStateException(msg))
-                eventListener.onError(Errors.StreamCreateError("[${Event.STREAM_CREATE}] => Timeout", IllegalStateException("[${Event.STREAM_CREATE}] => Timeout")))
+                val msg = "[${Event.STREAM_CREATE}] => Timeout"
+                XLog.w(this@SocketSignaling.getLog("sendStreamCreate[${socketId()}]", msg))
+                eventListener.onError(Error.StreamCreateError(msg, IllegalStateException(msg)))
             }
         })
     }
@@ -320,17 +321,17 @@ internal class SocketSignaling(
 
                     Payload.ERROR_NO_CLIENT_FOUND -> {
                         XLog.d(this@SocketSignaling.getLog("sendStreamStart[${socketId()}]", "Client: $clientId => $status"))
-                        eventListener.onClientNotFound(clientId!!, "STREAM_START")
+                        eventListener.onClientNotFound(clientId!!, "[${Event.STREAM_START}]")
                     }
-
+                    //TODO Prod logs
                     else -> XLog.e(this@SocketSignaling.getLog("sendStreamStart", status), IllegalArgumentException("sendStreamStart => $status"))
                 }
             }
 
             override fun onTimeout() {
                 val msg = "[${Event.STREAM_START}] => Timeout"
-                XLog.w(this@SocketSignaling.getLog("sendStreamStart[${socketId()}]", msg), IllegalStateException(msg))
-                eventListener.onError(Errors.StreamStartError("[${Event.STREAM_START}] => Timeout", IllegalStateException("[${Event.STREAM_START}] => Timeout")))
+                XLog.w(this@SocketSignaling.getLog("sendStreamStart[${socketId()}]", msg))
+                eventListener.onError(Error.StreamStartError(msg, IllegalStateException(msg)))
             }
         })
     }
@@ -377,17 +378,16 @@ internal class SocketSignaling(
 
                     Payload.ERROR_NO_CLIENT_FOUND -> {
                         XLog.d(this@SocketSignaling.getLog("sendHostOffer[${socketId()}]", "Client: $clientId => $status"))
-                        eventListener.onClientNotFound(clientId, "HOST_OFFER")
+                        eventListener.onClientNotFound(clientId, "[${Event.HOST_OFFER}]")
                     }
-
+                    // TODO Prod logs
                     else -> XLog.e(this@SocketSignaling.getLog("sendHostOffer[${socketId()}]", "Client: $clientId => $status. Data: $data"), IllegalArgumentException("sendHostOffer => $status"))
                 }
             }
 
             override fun onTimeout() {
-                val msg = "[${Event.HOST_OFFER}] => Timeout"
-                XLog.w(this@SocketSignaling.getLog("sendHostOffer[${socketId()}]", msg), IllegalStateException(msg))
-                eventListener.onClientNotFound(clientId, "HOST_OFFER => Timeout")
+                XLog.w(this@SocketSignaling.getLog("sendHostOffer[${socketId()}]", "[${Event.HOST_OFFER}] => Timeout"))
+                eventListener.onClientNotFound(clientId, "[${Event.HOST_OFFER}] => Timeout")
             }
         })
     }
@@ -413,17 +413,16 @@ internal class SocketSignaling(
 
                     Payload.ERROR_NO_CLIENT_FOUND -> {
                         XLog.d(this@SocketSignaling.getLog("sendHostCandidates[${socketId()}]", "Client: $clientId => $status"))
-                        eventListener.onClientNotFound(clientId, "HOST_CANDIDATE")
+                        eventListener.onClientNotFound(clientId, "[${Event.HOST_CANDIDATE}]")
                     }
-
+                    // TODO Prod logs
                     else -> XLog.e(this@SocketSignaling.getLog("sendHostCandidates[${socketId()}]", "Client: $clientId => $status. Data: $data"), IllegalArgumentException("sendHostCandidates => $status"))
                 }
             }
 
             override fun onTimeout() {
-                val msg = "[${Event.HOST_CANDIDATE}] => Timeout"
-                XLog.w(this@SocketSignaling.getLog("sendHostCandidates[${socketId()}]", msg), IllegalStateException(msg))
-                eventListener.onClientNotFound(clientId, "HOST_CANDIDATE => Timeout")
+                XLog.w(this@SocketSignaling.getLog("sendHostCandidates[${socketId()}]", "[${Event.HOST_CANDIDATE}] => Timeout"))
+                eventListener.onClientNotFound(clientId, "[${Event.HOST_CANDIDATE}] => Timeout")
             }
         })
     }
@@ -453,8 +452,7 @@ internal class SocketSignaling(
             }
 
             override fun onTimeout() {
-                val msg = "[${Event.REMOVE_CLIENT}] => Timeout"
-                XLog.w(this@SocketSignaling.getLog("sendRemoveClients[${socketId()}]", msg), IllegalStateException(msg))
+                XLog.w(this@SocketSignaling.getLog("sendRemoveClients[${socketId()}]", "[${Event.REMOVE_CLIENT}] => Timeout"))
             }
         })
     }

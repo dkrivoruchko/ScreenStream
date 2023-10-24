@@ -25,7 +25,7 @@ public interface WebRtcSettings {
         public const val ENABLE_MIC: Boolean = false
         public const val MIC_PERMISSION_DENIED: Boolean = false
 
-        public const val KEEP_AWAKE: Boolean = false
+        public const val KEEP_AWAKE: Boolean = true
         public const val STOP_ON_SLEEP: Boolean = false
     }
 

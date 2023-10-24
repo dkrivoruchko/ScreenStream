@@ -122,8 +122,9 @@
 
     <string name="mjpeg_error_port_in_use">Port w użyciu. Wybierz inny.</string>
     <string name="mjpeg_error_invalid_media_projection">Błąd bezpieczeństwa: nieprawidłowa projekcja multimediów. Spróbuj ponownie.</string>
-    <string name="mjpeg_error_ip_address_not_found">Nie znaleziono adresu IP. \nSpróbuj wyłączyć \"Używaj tylko WiFi\" w ustawieniach.</string>
+    <string name="mjpeg_error_ip_address_not_found">Nie znaleziono adresu IP.\nSpróbuj wyłączyć opcję \"Użyj tylko WiFi\" w ustawieniach strumienia.</string>
     <string name="mjpeg_error_wrong_image_format">System nadaje obrazowi niewłaściwy format. Brak rozwiązania tego problemu.</string>
+    <string name="mjpeg_error_notification_permission_required">Aplikacja wymaga włączonych powiadomień, aby rozpocząć usługę przesyłania strumieniowego.\n\nProszę włączyć powiadomienia w ustawieniach aplikacji.</string>
     <string name="mjpeg_error_unspecified">Coś poszło nie tak. Proszę spróbować ponownie później.</string>
 
     <string name="mjpeg_start_image_text">Uruchom strumień na urządzeniu</string>

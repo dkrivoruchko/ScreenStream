@@ -56,8 +56,7 @@ public class StreamingModulesManager(modules: List<StreamingModule>) {
         modules.firstOrNull { it.id == id }?.let { module ->
             XLog.d(getLog("deactivate", module.id.toString()))
             module.destroyStreamingService()
-            if (_activeModuleStateFlow.value?.id == module.id)
-                _activeModuleStateFlow.value = null
+            if (_activeModuleStateFlow.value?.id == module.id) _activeModuleStateFlow.value = null
         } ?: XLog.d(getLog("deactivate", "Module $id not found. Ignoring"))
     }
 
@@ -68,9 +67,11 @@ public class StreamingModulesManager(modules: List<StreamingModule>) {
         check(Looper.getMainLooper().isCurrentThread) { "Only main thread allowed" }
 
         return _activeModuleStateFlow.value?.sendEvent(event)?.let { true } ?: run {
-            val exception = IllegalStateException("StreamingModulesManager.sendEvent $event. No active module.")
-            XLog.e(getLog("sendEvent", "Event $event. No active module."), exception)
             if (event is StreamingModule.AppEvent.Exit) event.callback()
+            else {
+                val exception = IllegalStateException("StreamingModulesManager.sendEvent $event. No active module.")
+                XLog.e(getLog("sendEvent", "Event $event. No active module."), exception)
+            }
             false
         }
     }

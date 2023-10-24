@@ -96,8 +96,6 @@ function connect() {
     };
 
     websocket.onreconnect = () => {
-        window.DD_LOGS && DD_LOGS.logger.debug("reConnect");
-
         connectDiv.style.visibility = 'visible';
         pinDiv.style.visibility = 'hidden';
         blockedDiv.style.visibility = 'hidden';
@@ -114,7 +112,7 @@ function connect() {
         const message = JSON.parse(msg.data);
         if (message.type === "HEARTBEAT") return;
 
-        window.DD_LOGS && DD_LOGS.logger.debug("websocket.onmessage", { message: msg.data });
+        window.DD_LOGS && DD_LOGS.logger.debug("websocket.onmessage", { data: msg.data });
 
         if (message.type === "STREAM_ADDRESS") {
             pinDiv.style.visibility = 'hidden';
@@ -162,8 +160,6 @@ function connect() {
 }
 
 function showStream(url) {
-    window.DD_LOGS && DD_LOGS.logger.debug("showStream", { data: url });
-
     streamDiv.style.visibility = 'hidden';
     stream.src = '';
     errorDiv.style.visibility = 'hidden';
@@ -173,12 +169,12 @@ function showStream(url) {
     fallbackMJPEG = null;
 
     if (fallbackMJPEGCounter > 2) {
-        window.DD_LOGS && DD_LOGS.logger.debug("showStream: Load via fallback", { data: url });
+        window.DD_LOGS && DD_LOGS.logger.info("showStream", { mode: "fallback", streamAddress: url });
 
         streamDiv.style.visibility = 'visible';
         fallbackMJPEG = new MJPEG_JS(stream, url);
         fallbackMJPEG.onerror = (error) => {
-            window.DD_LOGS && DD_LOGS.logger.error("fallback", { data: error.message });
+            window.DD_LOGS && DD_LOGS.logger.info("showStream", { mode: "fallback", result: "error", errorMessage: error.message });
             fallbackMJPEG = null;
             if (error.message == "network error") {
                 return;
@@ -186,18 +182,22 @@ function showStream(url) {
             streamDiv.style.visibility = 'hidden';
             errorDiv.style.visibility = 'visible';
         };
+        fallbackMJPEG.onload = () => {
+            window.DD_LOGS && DD_LOGS.logger.info("showStream", { mode: "fallback", result: "ok" });
+        };
         fallbackMJPEG.load();
     } else {
         new Promise((resolve, reject) => {
-            window.DD_LOGS && DD_LOGS.logger.debug("showStream: Load via default", { data: url });
+            window.DD_LOGS && DD_LOGS.logger.debug("showStream", { mode: "default", streamAddress: url });
             stream.onload = () => { stream.onload = null; stream.onerror = null; resolve(); }
             stream.onerror = (e) => { stream.onerror = null; stream.onload = null; reject(e); }
             stream.src = url;
         }).then(() => {
             fallbackMJPEGCounter = 0;
             streamDiv.style.visibility = 'visible';
+            window.DD_LOGS && DD_LOGS.logger.info("showStream", { mode: "default", result: "ok" });
         }).catch((error) => {
-            window.DD_LOGS && DD_LOGS.logger.error("showStream: Default error", { data: error });
+            window.DD_LOGS && DD_LOGS.logger.info("showStream", { mode: "default", result: "error" });
             fallbackMJPEGCounter++;
             showStreamTimeoutId = setTimeout(() => showStream(url), 150);
         });
@@ -222,6 +222,7 @@ function MJPEG_JS(img, url) {
     this.SOI = new Uint8Array([0xFF, 0xD8, 0xFF]);
     this.lengthRegex = /Content-Length:\s*(\d+)/i;
 
+    this.onload = () => { };
     this.onerror = () => { };
 }
 MJPEG_JS.prototype.stop = function () {
@@ -278,6 +279,8 @@ MJPEG_JS.prototype.load = function () {
             if (this.terminate) throw Error("Stopped");
             if (!response.ok) throw Error(`${response.status}: ${response.statusText}`);
             if (response.redirected) throw Error(`Redirected: ${response.status}: ${response.statusText} : ${response.url}`);
+
+            this.onload();
 
             this.opts.img.onload = () => { URL.revokeObjectURL(this.opts.img.src); };
 
@@ -344,7 +347,7 @@ WebsocketHeartbeat.prototype.reconnect = function () {
     }, this.opts.reconnectTimeout);
 }
 WebsocketHeartbeat.prototype.send = function (msg) {
-    this.ws.send(msg);
+    if (this.ws.readyState === WebSocket.OPEN) this.ws.send(msg);
 }
 WebsocketHeartbeat.prototype.heartCheck = function () {
     clearTimeout(this.pingTimeoutId);

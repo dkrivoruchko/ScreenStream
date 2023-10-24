@@ -81,13 +81,10 @@ public class MjpegStreamingModule : StreamingModule {
         check(Looper.getMainLooper().isCurrentThread) { "Only main thread allowed" }
 
         if (_scope != null) destroyStreamingService()
-
-        val newScope = MjpegKoinScope().scope
-        newScope.get<MjpegStateFlowProvider> { parametersOf(mutableAppStateFlow, MutableStateFlow(MjpegState())) }
+        _scope = MjpegKoinScope().scope.also { newScope ->
+            newScope.get<MjpegStateFlowProvider> { parametersOf(mutableAppStateFlow, MutableStateFlow(MjpegState())) }
+        }
         MjpegService.startService(context, MjpegEvent.Intentable.StartService.toIntent(context))
-        _scope = newScope
-
-        XLog.d(getLog("createStreamingService", "Done"))
     }
 
     @MainThread

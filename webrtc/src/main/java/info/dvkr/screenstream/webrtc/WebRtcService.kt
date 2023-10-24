@@ -1,5 +1,6 @@
 package info.dvkr.screenstream.webrtc
 
+import android.app.ActivityManager
 import android.app.Service
 import android.app.ServiceStartNotAllowedException
 import android.content.Context
@@ -24,6 +25,9 @@ public class WebRtcService : Service() {
         @Throws(ServiceStartNotAllowedException::class)
         internal fun startService(context: Context, intent: Intent) {
             XLog.d(getLog("WebRtcService.startService", "Run intent: ${intent.extras}"))
+            val importance = ActivityManager.RunningAppProcessInfo().also { ActivityManager.getMyMemoryState(it) }.importance
+            XLog.i(getLog("MjpegService.startService", "RunningAppProcessInfo.importance: $importance"))
+            XLog.d(getLog("MjpegService.startService"), RuntimeException("RunningAppProcessInfo.importance: $importance"))
             context.startService(intent)
         }
     }
@@ -53,6 +57,7 @@ public class WebRtcService : Service() {
         }
 
         if (success.not()) { // No active module
+            XLog.w(getLog("onStartCommand", "No active module"))
             notificationsManager.hideForegroundNotification(this)
             notificationsManager.hideErrorNotification()
             stopSelf()

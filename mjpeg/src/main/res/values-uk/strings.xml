@@ -121,8 +121,9 @@
 
     <string name="mjpeg_error_port_in_use">Порт уже у використанні. Виберіть інший.</string>
     <string name="mjpeg_error_invalid_media_projection">Помилка безпеки: Неправильна проекція медіа. Спробуйте ще раз.</string>
-    <string name="mjpeg_error_ip_address_not_found">IP адресу не знайдено.\nСпробуйте вимкнути \"Використоувати лише WiFi\" у налаштуваннях.</string>
+    <string name="mjpeg_error_ip_address_not_found">IP-адресу не знайдено.\nСпробуйте вимкнути \"Використовувати лише WiFi\" в налаштуваннях трансляції.</string>
     <string name="mjpeg_error_wrong_image_format">Система повертає картинку у невідомому форматі. Неможливо виправити. Перепрошуємо.</string>
+    <string name="mjpeg_error_notification_permission_required">Для запуску служби потокової передачі потрібно включити сповіщення в додатку.\n\nБудь ласка, включіть сповіщення в налаштуваннях додатку.</string>
     <string name="mjpeg_error_unspecified">Щось пішло не так. Спробуйте ще раз пізніше.</string>
 
     <string name="mjpeg_start_image_text">Розпочніть трансляцію на пристрої</string>

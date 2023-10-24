@@ -304,7 +304,6 @@
                 connectDiv.style.visibility = 'hidden';
             };
             websocket.onreconnect = function () {
-                window.DD_LOGS && DD_LOGS.logger.debug("reConnect");
                 connectDiv.style.visibility = 'visible';
                 pinDiv.style.visibility = 'hidden';
                 blockedDiv.style.visibility = 'hidden';
@@ -319,7 +318,7 @@
                 var message = JSON.parse(msg.data);
                 if (message.type === "HEARTBEAT") return;
                 window.DD_LOGS && DD_LOGS.logger.debug("websocket.onmessage", {
-                    message: msg.data
+                    data: msg.data
                 });
                 if (message.type === "STREAM_ADDRESS") {
                     pinDiv.style.visibility = 'hidden';
@@ -362,9 +361,6 @@
             };
         }
         function showStream(url) {
-            window.DD_LOGS && DD_LOGS.logger.debug("showStream", {
-                data: url
-            });
             streamDiv.style.visibility = 'hidden';
             stream.src = '';
             errorDiv.style.visibility = 'hidden';
@@ -372,14 +368,17 @@
             if (fallbackMJPEG) fallbackMJPEG.stop();
             fallbackMJPEG = null;
             if (fallbackMJPEGCounter > 2) {
-                window.DD_LOGS && DD_LOGS.logger.debug("showStream: Load via fallback", {
-                    data: url
+                window.DD_LOGS && DD_LOGS.logger.info("showStream", {
+                    mode: "fallback",
+                    streamAddress: url
                 });
                 streamDiv.style.visibility = 'visible';
                 fallbackMJPEG = new MJPEG_JS(stream, url);
                 fallbackMJPEG.onerror = function (error) {
-                    window.DD_LOGS && DD_LOGS.logger.error("fallback", {
-                        data: error.message
+                    window.DD_LOGS && DD_LOGS.logger.info("showStream", {
+                        mode: "fallback",
+                        result: "error",
+                        errorMessage: error.message
                     });
                     fallbackMJPEG = null;
                     if (error.message == "network error") {
@@ -388,11 +387,18 @@
                     streamDiv.style.visibility = 'hidden';
                     errorDiv.style.visibility = 'visible';
                 };
+                fallbackMJPEG.onload = function () {
+                    window.DD_LOGS && DD_LOGS.logger.info("showStream", {
+                        mode: "fallback",
+                        result: "ok"
+                    });
+                };
                 fallbackMJPEG.load();
             } else {
                 new Promise(function (resolve, reject) {
-                    window.DD_LOGS && DD_LOGS.logger.debug("showStream: Load via default", {
-                        data: url
+                    window.DD_LOGS && DD_LOGS.logger.debug("showStream", {
+                        mode: "default",
+                        streamAddress: url
                     });
                     stream.onload = function () {
                         stream.onload = null;
@@ -408,9 +414,14 @@
                 }).then(function () {
                     fallbackMJPEGCounter = 0;
                     streamDiv.style.visibility = 'visible';
+                    window.DD_LOGS && DD_LOGS.logger.info("showStream", {
+                        mode: "default",
+                        result: "ok"
+                    });
                 })["catch"](function (error) {
-                    window.DD_LOGS && DD_LOGS.logger.error("showStream: Default error", {
-                        data: error
+                    window.DD_LOGS && DD_LOGS.logger.info("showStream", {
+                        mode: "default",
+                        result: "error"
                     });
                     fallbackMJPEGCounter++;
                     showStreamTimeoutId = setTimeout(function () {
@@ -439,6 +450,7 @@
             this.terminate = false;
             this.SOI = new Uint8Array([0xFF, 0xD8, 0xFF]);
             this.lengthRegex = /Content-Length:\s*(\d+)/i;
+            this.onload = function () { };
             this.onerror = function () { };
         }
         MJPEG_JS.prototype.stop = function () {
@@ -494,6 +506,7 @@
                 if (_this2.terminate) throw Error("Stopped");
                 if (!response.ok) throw Error("".concat(response.status, ": ").concat(response.statusText));
                 if (response.redirected) throw Error("Redirected: ".concat(response.status, ": ").concat(response.statusText, " : ").concat(response.url));
+                _this2.onload();
                 _this2.opts.img.onload = function () {
                     URL.revokeObjectURL(_this2.opts.img.src);
                 };
@@ -567,7 +580,7 @@
             }, this.opts.reconnectTimeout);
         };
         WebsocketHeartbeat.prototype.send = function (msg) {
-            this.ws.send(msg);
+            if (this.ws.readyState === WebSocket.OPEN) this.ws.send(msg);
         };
         WebsocketHeartbeat.prototype.heartCheck = function () {
             var _this5 = this;

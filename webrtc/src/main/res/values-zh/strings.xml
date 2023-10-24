@@ -56,5 +56,6 @@
     <string name="webrtc_error_play_integrity_install_play_service">请安装或启用Play服务</string>
     <string name="webrtc_error_play_integrity_update_play_service">请更新Google Play服务</string>
     <string name="webrtc_error_check_network">请检查互联网连接</string>
+    <string name="webrtc_notification_permission_required">应用需要启用通知以开始流媒体服务。\n\n请在应用设置中启用通知。</string>
     <string name="webrtc_error_unspecified">出了些问题，请稍后重试。</string>
 </resources>

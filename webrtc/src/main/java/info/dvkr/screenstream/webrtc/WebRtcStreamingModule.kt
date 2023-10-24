@@ -80,11 +80,10 @@ public class WebRtcStreamingModule : StreamingModule {
         check(Looper.getMainLooper().isCurrentThread) { "Only main thread allowed" }
 
         if (_scope != null) destroyStreamingService()
-
-        val newScope = WebRtcKoinScope().scope
-        newScope.get<WebRtcStateFlowProvider> { parametersOf(mutableAppStateFlow, MutableStateFlow(WebRtcState())) }
+        _scope = WebRtcKoinScope().scope.also { newScope ->
+            newScope.get<WebRtcStateFlowProvider> { parametersOf(mutableAppStateFlow, MutableStateFlow(WebRtcState())) }
+        }
         WebRtcService.startService(context, WebRtcEvent.Intentable.StartService.toIntent(context))
-        _scope = newScope
     }
 
     @MainThread

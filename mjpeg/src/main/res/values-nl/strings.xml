@@ -108,7 +108,7 @@
     <string name="mjpeg_pref_block_address_summary">Blok IP adressen na 5 foute pogingen voor 5 minuten</string>
 
     <string name="mjpeg_pref_settings_advanced">Overigen</string>
-    <string name="mjpeg_pref_wifi_only">Gebruik alleen WiFI</string>
+    <string name="mjpeg_pref_wifi_only">Gebruik alleen WiFi</string>
     <string name="mjpeg_pref_wifi_only_summary">Zet de server alleen aan met een WiFi verbinding</string>
     <string name="mjpeg_pref_enable_ipv6">Zet de IPv6 ondersteuning aan</string>
     <string name="mjpeg_pref_enable_ipv6_summary">Zet de server ook aan op IPv6 verbindingen</string>
@@ -122,8 +122,9 @@
 
     <string name="mjpeg_error_port_in_use">Poort is al in gebruik, kies een andere.</string>
     <string name="mjpeg_error_invalid_media_projection">Beveilig fout: Ongeldige media projectie. Probeer het nogmaals.</string>
-    <string name="mjpeg_error_ip_address_not_found">IP adres niet gevonden.\n Probeer \"Gebruik alleen WiFi\" Uit te zetten in de instellingen.</string>
+    <string name="mjpeg_error_ip_address_not_found">IP-adres niet gevonden.\nProbeer \"Gebruik alleen WiFi\" uit te schakelen in de streaminstellingen.</string>
     <string name="mjpeg_error_wrong_image_format">Systeem maakt een frame in een onbekend formaat. Geen oplossing mogelijk. Sorry.</string>
+    <string name="mjpeg_error_notification_permission_required">De applicatie vereist dat meldingen zijn ingeschakeld om de streamingdienst te starten.\n\nSchakel meldingen in in de applicatie-instellingen.</string>
     <string name="mjpeg_error_unspecified">Er is iets misgegaan. Probeer het later opnieuw.</string>
 
     <string name="mjpeg_start_image_text">Stream starten op apparaat</string>

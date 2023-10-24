@@ -56,5 +56,6 @@
     <string name="webrtc_error_play_integrity_install_play_service">Proszę zainstalować lub włączyć usługi Google Play</string>
     <string name="webrtc_error_play_integrity_update_play_service">Proszę zaktualizować usługi Google Play</string>
     <string name="webrtc_error_check_network">Proszę sprawdzić połączenie z internetem</string>
+    <string name="webrtc_notification_permission_required">Aplikacja wymaga włączonych powiadomień, aby rozpocząć usługę przesyłania strumieniowego.\n\nProszę włączyć powiadomienia w ustawieniach aplikacji.</string>
     <string name="webrtc_error_unspecified">Coś poszło nie tak. Proszę spróbować ponownie później.</string>
 </resources>

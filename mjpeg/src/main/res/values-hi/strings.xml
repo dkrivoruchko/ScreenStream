@@ -121,8 +121,9 @@
 
     <string name="mjpeg_error_port_in_use">पोर्ट पहले से ही उपयोग में है। कोई दूसरा चुनें।</string>
     <string name="mjpeg_error_invalid_media_projection">सुरक्षा त्रुटि: अमान्य मीडिया प्रक्षेपण। एक बार और कोशिश करें।</string>
-    <string name="mjpeg_error_ip_address_not_found">IP पता नहीं मिला। \n सेटिंग में \"केवल वाईफाई का उपयोग करें\" को निष्क्रिय करने की कोशिश करें।</string>
+    <string name="mjpeg_error_ip_address_not_found">IP पता नहीं मिला।\nप्रवाह सेटिंग्स में \"वाईफाई का ही इस्तेमाल करें\" को अक्षम करने का प्रयास करें।</string>
     <string name="mjpeg_error_wrong_image_format">सिस्टम अज्ञात प्रारूप में छवि लौटाता है। कोई फिक्स उपलब्ध नहीं। माफ़ कीजिये।</string>
+    <string name="mjpeg_error_notification_permission_required">ऐप्लिकेशन को स्ट्रीमिंग सेवा शुरू करने के लिए सूचनाओं को सक्षम करने की आवश्यकता है।\n\nकृपया ऐप्लिकेशन की सेटिंग्स में सूचनाओं को सक्षम करें।</string>
     <string name="mjpeg_error_unspecified">कुछ गलत हो गया है। कृपया बाद में पुनः प्रयास करें।</string>
 
     <string name="mjpeg_start_image_text">उपकरण पर स्ट्रीम शुरू करें</string>

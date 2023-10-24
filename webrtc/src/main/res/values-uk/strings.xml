@@ -56,5 +56,6 @@
     <string name="webrtc_error_play_integrity_install_play_service">Будь ласка, встановіть або увімкніть Play Services</string>
     <string name="webrtc_error_play_integrity_update_play_service">Будь ласка, оновіть Google Play Services</string>
     <string name="webrtc_error_check_network">Будь ласка, перевірте підключення до інтернету</string>
+    <string name="webrtc_notification_permission_required">Для запуску служби потокової передачі потрібно включити сповіщення в додатку.\n\nБудь ласка, включіть сповіщення в налаштуваннях додатку.</string>
     <string name="webrtc_error_unspecified">Сталася помилка. Будь ласка, спробуйте ще раз пізніше.</string>
 </resources>

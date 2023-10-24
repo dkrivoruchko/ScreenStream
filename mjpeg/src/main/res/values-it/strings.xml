@@ -121,8 +121,9 @@
 
     <string name="mjpeg_error_port_in_use">Porta già in uso. Scegline un\'altra.</string>
     <string name="mjpeg_error_invalid_media_projection">Errore di sicurezza: protezione multimedia non valida. Riprova.</string>
-    <string name="mjpeg_error_ip_address_not_found">Indirizzo IP non trovato.\nProva a disattivare \"Usa solo WiFi\" nelle impostazioni.</string>
+    <string name="mjpeg_error_ip_address_not_found">Indirizzo IP non trovato.\nProva a disabilitare \"Usa solo WiFi\" nelle impostazioni di streaming.</string>
     <string name="mjpeg_error_wrong_image_format">Il sistema restituisce l\'immagine in un formato sconosciuto. Nessuna soluzione disponibile. Spiacente.</string>
+    <string name="mjpeg_error_notification_permission_required">L\'applicazione richiede che le notifiche siano abilitate per avviare il servizio di streaming.\n\nSi prega di abilitare le notifiche nelle impostazioni dell\'applicazione.</string>
     <string name="mjpeg_error_unspecified">Qualcosa è andato storto. Per favore, riprova più tardi.</string>
 
     <string name="mjpeg_start_image_text">Avvia lo streaming sul dispositivo</string>

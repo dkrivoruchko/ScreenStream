@@ -231,7 +231,7 @@ internal class MjpegStreamingService(
         sendEvent(InternalEvent.Destroy(latch))
 
         runCatching {
-            if (latch.await(1500, TimeUnit.MILLISECONDS).not())
+            if (latch.await(3000, TimeUnit.MILLISECONDS).not())
                 XLog.w(getLog("destroy", "Timeout"), IllegalStateException("destroy: Timeout"))
         }
 
@@ -298,7 +298,7 @@ internal class MjpegStreamingService(
                 }
 
                 is InternalEvent.DiscoverAddress -> {
-                    check(pendingServer) { "MjpegEvent.StartStream: server is already started" }
+                    if (pendingServer.not()) runBlocking { httpServer.stop(false).await() }
 
                     val (useWiFiOnly, enableIPv6) = runBlocking {
                         Pair(mjpegSettings.useWiFiOnlyFlow.first(), mjpegSettings.enableIPv6Flow.first())
@@ -351,41 +351,55 @@ internal class MjpegStreamingService(
 
                 is MjpegEvent.CastPermissionsDenied -> waitingForPermission = false
 
-                is MjpegEvent.StartProjection -> {
-                    waitingForPermission = false
-                    check(pendingServer.not()) { "MjpegEvent.StartProjection: server is not ready" }
-                    check(isStreaming.not()) { "MjpegEvent.StartProjection: Already streaming" }
+                is MjpegEvent.StartProjection ->
+                    if (pendingServer) {
+                        waitingForPermission = false
+                        XLog.w(
+                            getLog("MjpegEvent.StartProjection", "Server is not ready. Ignoring"),
+                            IllegalStateException("MjpegEvent.StartProjection: Server is not ready. Ignoring")
+                        )
+                    } else {
+                        waitingForPermission = false
+                        check(isStreaming.not()) { "MjpegEvent.StartProjection: Already streaming" }
 
-                    notificationsManager.showForegroundNotification(
-                        service, MjpegEvent.Intentable.StopStream("User action: Notification").toIntent(service)
-                    )
-
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q)
-                        check(service.foregroundServiceType and ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION != 0) {
-                            "MjpegEvent.StartProjection: Service is not FOREGROUND"
+                        var notificationOk = false
+                        try {
+                            notificationsManager.showForegroundNotification(
+                                service, MjpegEvent.Intentable.StopStream("User action: Notification").toIntent(service)
+                            )
+                            notificationOk = true
+                        } catch (cause: NotificationsManager.NotificationPermissionRequired) {
+                            sendEvent(InternalEvent.Error(MjpegError.NotificationPermissionRequired))
                         }
 
-                    val mediaProjection = projectionManager.getMediaProjection(Activity.RESULT_OK, event.intent).apply {
-                        registerCallback(projectionCallback, Handler(Looper.getMainLooper()))
-                    }
+                        if (notificationOk) {
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q)
+                                check(service.foregroundServiceType and ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION != 0) {
+                                    "MjpegEvent.StartProjection: Service is not FOREGROUND"
+                                }
 
-                    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) mediaProjectionIntent = event.intent
-                    val bitmapCapture = BitmapCapture(service, mjpegSettings, mediaProjection, bitmapStateFlow) { error ->
-                        sendEvent(InternalEvent.Error(error))
-                    }
-                    if (bitmapCapture.start()) service.registerComponentCallbacks(componentCallback)
+                            val mediaProjection = projectionManager.getMediaProjection(Activity.RESULT_OK, event.intent).apply {
+                                registerCallback(projectionCallback, Handler(Looper.getMainLooper()))
+                            }
 
-                    @Suppress("DEPRECATION")
-                    @SuppressLint("WakelockTimeout")
-                    if (runBlocking { mjpegSettings.keepAwakeFlow.first() }) {
-                        val flags = PowerManager.SCREEN_DIM_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP
-                        wakeLock = powerManager.newWakeLock(flags, "ScreenStream::MJPEG-Tag").apply { acquire() }
-                    }
+                            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) mediaProjectionIntent = event.intent
+                            val bitmapCapture = BitmapCapture(service, mjpegSettings, mediaProjection, bitmapStateFlow) { error ->
+                                sendEvent(InternalEvent.Error(error))
+                            }
+                            if (bitmapCapture.start()) service.registerComponentCallbacks(componentCallback)
 
-                    this.isStreaming = true
-                    this.mediaProjection = mediaProjection
-                    this.bitmapCapture = bitmapCapture
-                }
+                            @Suppress("DEPRECATION")
+                            @SuppressLint("WakelockTimeout")
+                            if (runBlocking { Build.MANUFACTURER !in listOf("OnePlus", "OPPO") && mjpegSettings.keepAwakeFlow.first() }) {
+                                val flags = PowerManager.SCREEN_DIM_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP
+                                wakeLock = powerManager.newWakeLock(flags, "ScreenStream::MJPEG-Tag").apply { acquire() }
+                            }
+
+                            this.isStreaming = true
+                            this.mediaProjection = mediaProjection
+                            this.bitmapCapture = bitmapCapture
+                        }
+                    }
 
                 is MjpegEvent.Intentable.StopStream -> {
                     stopStream()
@@ -426,7 +440,7 @@ internal class MjpegStreamingService(
                         XLog.d(getLog("processEvent", "RestartServer: No running server."))
                         if (currentError == MjpegError.AddressNotFoundException) currentError = null
                     } else {
-                        runBlocking { withTimeoutOrNull(300) { httpServer.stop(event.reason is RestartReason.SettingsChanged).await() } }
+                        runBlocking { httpServer.stop(event.reason is RestartReason.SettingsChanged).await() }
                         sendEvent(InternalEvent.InitState(false))
                     }
                     sendEvent(InternalEvent.DiscoverAddress("RestartServer",0))
@@ -434,14 +448,18 @@ internal class MjpegStreamingService(
 
                 is MjpegEvent.Intentable.RecoverError -> {
                     stopStream()
-                    runBlocking { withTimeoutOrNull(300) { httpServer.stop(true).await() } }
+                    runBlocking { httpServer.stop(true).await() }
+
+                    handler.removeMessages(MjpegEvent.Priority.RESTART_IGNORE)
+                    handler.removeMessages(MjpegEvent.Priority.RECOVER_IGNORE)
+
                     sendEvent(InternalEvent.InitState(true))
                     sendEvent(InternalEvent.DiscoverAddress("RecoverError",0))
                 }
 
                 is InternalEvent.Destroy -> {
                     stopStream()
-                    runBlocking { withTimeoutOrNull(300) { httpServer.destroy().await() } }
+                    runBlocking { httpServer.destroy().await() }
                     currentError = null
                 }
 
@@ -476,8 +494,8 @@ internal class MjpegStreamingService(
             XLog.e(getLog("processEvent.catch", cause.message))
             XLog.e(getLog("processEvent.catch", cause.message), cause)
 
-            wakeLock?.apply { if (isHeld) release() }
-            wakeLock = null
+            mediaProjectionIntent = null
+            stopStream()
 
             currentError = MjpegError.UnknownError(cause)
         } finally {
@@ -493,21 +511,22 @@ internal class MjpegStreamingService(
     @Suppress("NOTHING_TO_INLINE")
     private inline fun stopStream() {
         if (isStreaming) {
-            wakeLock?.apply { if (isHeld) release() }
-            wakeLock = null
-
             service.unregisterComponentCallbacks(componentCallback)
             bitmapCapture?.destroy()
             bitmapCapture = null
             mediaProjection?.unregisterCallback(projectionCallback)
             mediaProjection?.stop()
             mediaProjection = null
-            notificationsManager.hideForegroundNotification(service)
 
             isStreaming = false
         } else {
             XLog.d(getLog("stopStream", "Not streaming. Ignoring."))
         }
+
+        wakeLock?.apply { if (isHeld) release() }
+        wakeLock = null
+
+        notificationsManager.hideForegroundNotification(service)
     }
 
     // Inline Only
@@ -527,7 +546,8 @@ internal class MjpegStreamingService(
         if (previousError != currentError) {
             previousError = currentError
             currentError?.let {
-                XLog.e(getLog("publishState", it.message ?: it::class.java.simpleName), it)
+                if (it !is MjpegError.AddressNotFoundException)
+                    XLog.e(getLog("publishState", it.message ?: it::class.java.simpleName), it)
                 val message = it.toString(service)
                 mainHandler.post {
                     notificationsManager.showErrorNotification(service, message, MjpegEvent.Intentable.RecoverError.toIntent(service))

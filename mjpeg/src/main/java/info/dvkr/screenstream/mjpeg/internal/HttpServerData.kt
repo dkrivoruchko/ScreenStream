@@ -206,9 +206,7 @@ internal class HttpServerData(private val sendEvent: (MjpegEvent) -> Unit) {
     }
 
     internal fun setDisconnected(clientId: String, remoteAddress: String, remotePort: Int) {
-        clients[clientId]?.setDisconnected(remoteAddress, remotePort.toString()) ?: run {
-            XLog.w(getLog("disconnected", "No client found: $clientId"), IllegalStateException("disconnected: No client found: $clientId"))
-        }
+        clients[clientId]?.setDisconnected(remoteAddress, remotePort.toString())
     }
 
     internal fun isDisconnected(clientId: String, remoteAddress: String, remotePort: Int): Boolean {

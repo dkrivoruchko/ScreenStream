@@ -12,13 +12,8 @@ import kotlinx.coroutines.flow.onEach
 
 internal fun Context.getFileFromAssets(fileName: String): ByteArray {
     XLog.d(getLog("getFileFromAssets", fileName))
-
-    assets.open(fileName).use { inputStream ->
-        val fileBytes = ByteArray(inputStream.available())
-        inputStream.read(fileBytes)
-        fileBytes.isNotEmpty() || throw IllegalStateException("$fileName is empty")
-        return fileBytes
-    }
+    return assets.open(fileName).use { inputStream -> inputStream.readBytes() }
+        .also { if (it.isEmpty()) throw IllegalStateException("$fileName is empty") }
 }
 
 internal fun <T> Flow<T>.listenForChange(scope: CoroutineScope, drop: Int = 0, action: suspend (T) -> Unit) =

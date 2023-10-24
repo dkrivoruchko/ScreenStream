@@ -56,5 +56,6 @@
     <string name="webrtc_error_play_integrity_install_play_service">الرجاء تثبيت أو تمكين خدمات Google Play</string>
     <string name="webrtc_error_play_integrity_update_play_service">الرجاء تحديث خدمات Google Play</string>
     <string name="webrtc_error_check_network">الرجاء التحقق من توافر الاتصال بالإنترنت</string>
+    <string name="webrtc_notification_permission_required">التطبيق يتطلب تمكين الإشعارات لبدء خدمة البث.\n\nيرجى تمكين الإشعارات في إعدادات التطبيق.</string>
     <string name="webrtc_error_unspecified">حدث خطأ ما. يرجى المحاولة مرة أخرى في وقت لاحق.</string>
 </resources>

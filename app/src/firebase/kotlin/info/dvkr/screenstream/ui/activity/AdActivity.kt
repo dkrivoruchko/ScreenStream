@@ -17,8 +17,9 @@ import kotlinx.coroutines.CompletableDeferred
 public abstract class AdActivity(@LayoutRes contentLayoutId: Int) : AppUpdateActivity(contentLayoutId) {
 
     internal val isConsentEnabled
-        get() = consentInformation.consentStatus == ConsentInformation.ConsentStatus.REQUIRED ||
-                consentInformation.consentStatus == ConsentInformation.ConsentStatus.OBTAINED
+        get() = ::consentForm.isInitialized && consentInformation.consentStatus in listOf(
+            ConsentInformation.ConsentStatus.REQUIRED, ConsentInformation.ConsentStatus.OBTAINED
+        )
 
     internal val canShowADsDeferred = CompletableDeferred<Boolean>()
 
@@ -29,9 +30,7 @@ public abstract class AdActivity(@LayoutRes contentLayoutId: Int) : AppUpdateAct
         super.onCreate(savedInstanceState)
 
         val params = if (BuildConfig.DEBUG) {
-            MobileAds.setRequestConfiguration(
-                RequestConfiguration.Builder().setTestDeviceIds(listOf("5AB91FDDF0C332D6E9CAE926E585FBD3")).build()
-            )
+            MobileAds.setRequestConfiguration(RequestConfiguration.Builder().setTestDeviceIds(listOf("5AB91FDDF0C332D6E9CAE926E585FBD3")).build())
 
             val debugSettings = ConsentDebugSettings.Builder(this)
                 .setDebugGeography(ConsentDebugSettings.DebugGeography.DEBUG_GEOGRAPHY_NOT_EEA)
@@ -82,6 +81,7 @@ public abstract class AdActivity(@LayoutRes contentLayoutId: Int) : AppUpdateAct
     }
 
     internal fun showConsentForm() {
-        consentForm.show(this) { checkIfCanShowADs(); loadForm() }
+        if (::consentForm.isInitialized) consentForm.show(this) { checkIfCanShowADs(); loadForm() }
+        else XLog.e(getLog("showConsentForm", "Form not available"), IllegalStateException("showConsentForm: Form not available"))
     }
 }
