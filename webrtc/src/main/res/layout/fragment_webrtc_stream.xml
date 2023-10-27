@@ -51,7 +51,7 @@
         android:paddingTop="8dp"
         android:paddingEnd="16dp"
         android:paddingBottom="8dp"
-        app:layout_constraintBottom_toTopOf="@id/b_fragment_stream_settings"
+        app:layout_constraintBottom_toTopOf="@id/flow_webrtc_stream_settings"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/cl_fragment_stream_error">
@@ -144,21 +144,6 @@
             app:layout_constraintTop_toTopOf="@id/tv_webrtc_stream_password"
             app:srcCompat="@drawable/webrtc_ic_refresh_24dp" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/b_webrtc_stream_mic"
-            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:paddingStart="4dp"
-            android:paddingEnd="6dp"
-            android:textSize="12sp"
-            app:icon="@drawable/webrtc_ic_mic_off_24dp"
-            app:layout_constraintBottom_toTopOf="@id/iv_webrtc_stream_address_open_external"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/tv_webrtc_stream_password"
-            tools:text="@string/webrtc_stream_fragment_mic_off" />
-
         <androidx.appcompat.widget.AppCompatImageView
             android:id="@+id/iv_webrtc_stream_address_open_external"
             android:layout_width="48dp"
@@ -173,7 +158,7 @@
             android:padding="12dp"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toStartOf="@id/iv_webrtc_stream_address_copy"
-            app:layout_constraintTop_toBottomOf="@id/b_webrtc_stream_mic"
+            app:layout_constraintTop_toBottomOf="@id/tv_webrtc_stream_password"
             app:srcCompat="@drawable/webrtc_ic_open_in_new_24dp" />
 
         <androidx.appcompat.widget.AppCompatImageView
@@ -191,7 +176,7 @@
             android:padding="12dp"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toStartOf="@id/iv_webrtc_stream_address_share"
-            app:layout_constraintTop_toBottomOf="@id/b_webrtc_stream_mic"
+            app:layout_constraintTop_toBottomOf="@id/tv_webrtc_stream_password"
             app:srcCompat="@drawable/webrtc_ic_copy_24dp" />
 
         <androidx.appcompat.widget.AppCompatImageView
@@ -209,7 +194,7 @@
             android:padding="12dp"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toStartOf="@id/iv_webrtc_stream_address_qr"
-            app:layout_constraintTop_toBottomOf="@id/b_webrtc_stream_mic"
+            app:layout_constraintTop_toBottomOf="@id/tv_webrtc_stream_password"
             app:srcCompat="@drawable/webrtc_ic_share_24dp" />
 
         <androidx.appcompat.widget.AppCompatImageView
@@ -226,9 +211,30 @@
             android:padding="12dp"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/b_webrtc_stream_mic"
+            app:layout_constraintTop_toBottomOf="@id/tv_webrtc_stream_password"
             app:srcCompat="@drawable/webrtc_ic_qrcode_24dp" />
     </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <androidx.constraintlayout.helper.widget.Flow
+        android:id="@+id/flow_webrtc_stream_settings"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:constraint_referenced_ids="b_webrtc_stream_mic,b_fragment_stream_settings"
+        app:flow_horizontalGap="8dp"
+        app:flow_wrapMode="aligned"
+        app:layout_constraintBottom_toTopOf="@id/ll_fragment_stream_clients"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/cl_fragment_stream_webrtc_main" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/b_webrtc_stream_mic"
+        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="12sp"
+        app:icon="@drawable/webrtc_ic_mic_off_24dp"
+        tools:text="@string/webrtc_stream_fragment_mic_off" />
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/b_fragment_stream_settings"
@@ -237,11 +243,7 @@
         android:layout_height="wrap_content"
         android:text="@string/webrtc_pref_settings"
         android:textSize="12sp"
-        app:icon="@drawable/webrtc_ic_stream_settings"
-        app:layout_constraintBottom_toTopOf="@id/ll_fragment_stream_clients"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/cl_fragment_stream_webrtc_main" />
+        app:icon="@drawable/webrtc_ic_stream_settings" />
 
     <LinearLayout
         android:id="@+id/ll_fragment_stream_clients"
@@ -254,7 +256,7 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/b_fragment_stream_settings">
+        app:layout_constraintTop_toBottomOf="@id/flow_webrtc_stream_settings">
 
         <info.dvkr.screenstream.common.view.ExpansionHeader
             android:layout_width="match_parent"

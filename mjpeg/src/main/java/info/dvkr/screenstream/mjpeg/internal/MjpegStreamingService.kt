@@ -364,9 +364,11 @@ internal class MjpegStreamingService(
 
                         var notificationOk = false
                         try {
-                            notificationsManager.showForegroundNotification(
-                                service, MjpegEvent.Intentable.StopStream("User action: Notification").toIntent(service)
-                            )
+                            runBlocking(Dispatchers.Main) {
+                                notificationsManager.showForegroundNotification(
+                                    service, MjpegEvent.Intentable.StopStream("User action: Notification").toIntent(service)
+                                )
+                            }
                             notificationOk = true
                         } catch (cause: NotificationsManager.NotificationPermissionRequired) {
                             sendEvent(InternalEvent.Error(MjpegError.NotificationPermissionRequired))
@@ -526,7 +528,7 @@ internal class MjpegStreamingService(
         wakeLock?.apply { if (isHeld) release() }
         wakeLock = null
 
-        notificationsManager.hideForegroundNotification(service)
+        mainHandler.post { notificationsManager.hideForegroundNotification(service) }
     }
 
     // Inline Only

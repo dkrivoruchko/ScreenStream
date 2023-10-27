@@ -34,10 +34,8 @@ import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.common.view.viewBinding
 import info.dvkr.screenstream.databinding.ActivityAppBinding
 import info.dvkr.screenstream.logging.sendLogsInEmail
-import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.onEach
 import org.koin.android.ext.android.inject
 
@@ -101,13 +99,14 @@ public class AppActivity : NotificationPermissionActivity(R.layout.activity_app)
 
         }.launchIn(lifecycleScope)
 
-        appSettings.streamingModuleFlow.distinctUntilChanged()
-            .filter { it != streamingModulesManager.activeModuleStateFlow.value?.id }
+        appSettings.streamingModuleFlow
             .onEach { moduleId ->
-                XLog.i(this@AppActivity.getLog("streamingModuleFlow.onEach:", "Activating: $moduleId"))
-                if (moduleId.isDefined()) streamingModulesManager.activate(moduleId, this)
+                XLog.i(this@AppActivity.getLog("streamingModuleFlow.onEach:", "$moduleId"))
+                if (moduleId.isDefined())
+                    runCatching { streamingModulesManager.activate(moduleId, this) }
+                        .onFailure { XLog.e(this@AppActivity.getLog("streamingModuleFlow.onFailure:", it.message), it) }
             }
-            .catch { XLog.e(this@AppActivity.getLog("streamingModuleFlow.catch:", it.message), it) }
+            .onCompletion { XLog.i(this@AppActivity.getLog("streamingModuleFlow.onCompletion")) }
             .flowWithLifecycle(lifecycle)
             .launchIn(lifecycleScope)
     }

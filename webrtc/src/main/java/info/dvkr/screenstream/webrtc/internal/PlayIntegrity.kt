@@ -16,7 +16,6 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
 import java.io.IOException
-import java.util.concurrent.CancellationException
 
 internal class PlayIntegrity(serviceContext: Context, private val environment: WebRtcEnvironment, private val okHttpClient: OkHttpClient) {
 
@@ -88,27 +87,14 @@ internal class PlayIntegrity(serviceContext: Context, private val environment: W
             .setCloudProjectNumber(environment.cloudProjectNumber)
             .build()
 
-        requireNotNull(standardIntegrityManager).prepareIntegrityToken(prepareTokenRequest).addOnCompleteListener {
-            //  @MainThread
-            val e = it.exception
-            when {
-                e != null -> {
-                    XLog.e(getLog("prepareIntegrityToken", "Failed: ${e.message}\n${e.stackTrace}")) //TODO
-                    XLog.e(getLog("prepareIntegrityToken", "Failed: ${e.message}"), e)
-                    callback(Result.failure(if (e is StandardIntegrityException) e.toWebRtcError() else e))
-                }
-
-                it.isCanceled -> {
-                    XLog.w(getLog("prepareIntegrityToken", "Canceled"), CancellationException("prepareIntegrityToken.canceled"))
-                    callback(Result.failure(CancellationException("prepareIntegrityToken.canceled")))
-                }
-
-                else -> {
-                    XLog.d(getLog("prepareIntegrityToken", "IntegrityTokenProvider updated"))
-                    callback(Result.success(it.result))
-                }
+        requireNotNull(standardIntegrityManager).prepareIntegrityToken(prepareTokenRequest)
+            .addOnSuccessListener { tokenProvider -> // @MainThread
+                XLog.d(getLog("prepareIntegrityToken", "IntegrityTokenProvider updated"))
+                callback(Result.success(tokenProvider))
+            }.addOnFailureListener { error -> // @MainThread
+                XLog.e(getLog("prepareIntegrityToken", "Failed: ${error.message}"))
+                callback(Result.failure((error as? StandardIntegrityException)?.toWebRtcError() ?: error))
             }
-        }
     }
 
     @AnyThread
@@ -123,27 +109,15 @@ internal class PlayIntegrity(serviceContext: Context, private val environment: W
             .setRequestHash(requestHash)
             .build()
 
-        tokenProvider.request(tokenRequest).addOnCompleteListener {
-            //  @MainThread
-            val e = it.exception
-            when {
-                e != null -> {
-                    XLog.e(getLog("getPlayIntegrityToken", "Failed: ${e.message}"), e)
-                    callback(Result.failure(if (e is StandardIntegrityException) e.toWebRtcError() else e))
-                }
-
-                it.isCanceled -> {
-                    XLog.w(getLog("getPlayIntegrityToken", "Canceled"), CancellationException("getPlayIntegrityToken.canceled"))
-                    callback(Result.failure(CancellationException("getPlayIntegrityToken.canceled")))
-                }
-
-                else -> {
-                    val integrityToken = PlayIntegrityToken(it.result.token())
-                    XLog.d(getLog("getPlayIntegrityToken", "Success: $integrityToken"))
-                    callback(Result.success(integrityToken))
-                }
+        tokenProvider.request(tokenRequest)
+            .addOnSuccessListener { response -> // @MainThread
+                val integrityToken = PlayIntegrityToken(response.token())
+                XLog.d(getLog("getPlayIntegrityToken", "Success: $integrityToken"))
+                callback(Result.success(integrityToken))
+            }.addOnFailureListener { error -> // @MainThread
+                XLog.e(getLog("getPlayIntegrityToken", "Failed: ${error.message}"))
+                callback(Result.failure((error as? StandardIntegrityException)?.toWebRtcError() ?: error))
             }
-        }
     }
 
     private fun StandardIntegrityException.toWebRtcError(): WebRtcError = when (errorCode) {

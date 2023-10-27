@@ -7,7 +7,9 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.pm.ServiceInfo
 import android.os.Build
+import android.os.Looper
 import android.provider.Settings
+import androidx.annotation.MainThread
 import androidx.annotation.RequiresApi
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.app.NotificationCompat
@@ -72,8 +74,11 @@ internal class NotificationManagerImpl(context: Context) : NotificationsManager 
                 ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED)
             .also { XLog.d(getLog("isNotificationPermissionGranted", "$it")) }
 
+    @MainThread
     @Throws(NotificationsManager.NotificationPermissionRequired::class)
     override fun showForegroundNotification(service: Service, stopIntent: Intent) {
+        check(Looper.getMainLooper().isCurrentThread) { "Only main thread allowed" }
+
         val serviceName = service::class.java.simpleName + "#" + service.hashCode()
         XLog.d(getLog("showForegroundNotification", "Service: $serviceName"))
 
@@ -121,8 +126,11 @@ internal class NotificationManagerImpl(context: Context) : NotificationsManager 
         }
     }
 
+    @MainThread
     @Suppress("DEPRECATION")
     override fun hideForegroundNotification(service: Service) {
+        check(Looper.getMainLooper().isCurrentThread) { "Only main thread allowed" }
+
         val serviceName = service::class.java.simpleName + "#" + service.hashCode()
         val isActive = isActive(NOTIFICATION_FOREGROUND_ID)
         XLog.d(getLog("hideForegroundNotification", "Service: $serviceName, isActive: $isActive"))
@@ -134,8 +142,11 @@ internal class NotificationManagerImpl(context: Context) : NotificationsManager 
         } else XLog.d(getLog("hideForegroundNotification", "Done"))
     }
 
+    @MainThread
     override fun showErrorNotification(context: Context, message: String, recoverIntent: Intent) {
         XLog.d(getLog("showErrorNotification"))
+        check(Looper.getMainLooper().isCurrentThread) { "Only main thread allowed" }
+
         hideErrorNotification()
 
         if (isNotificationPermissionGranted(context).not()) {
@@ -179,7 +190,10 @@ internal class NotificationManagerImpl(context: Context) : NotificationsManager 
         notificationManager.notify(NOTIFICATION_ERROR_ID, builder.build())
     }
 
+    @MainThread
     override fun hideErrorNotification() {
+        check(Looper.getMainLooper().isCurrentThread) { "Only main thread allowed" }
+
         val isActive = isActive(NOTIFICATION_ERROR_ID)
         XLog.d(getLog("hideErrorNotification", "isActive: $isActive"))
         if (isActive) notificationManager.cancel(NOTIFICATION_ERROR_ID)

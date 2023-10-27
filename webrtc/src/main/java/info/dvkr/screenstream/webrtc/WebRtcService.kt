@@ -26,8 +26,9 @@ public class WebRtcService : Service() {
         internal fun startService(context: Context, intent: Intent) {
             XLog.d(getLog("WebRtcService.startService", "Run intent: ${intent.extras}"))
             val importance = ActivityManager.RunningAppProcessInfo().also { ActivityManager.getMyMemoryState(it) }.importance
-            XLog.i(getLog("MjpegService.startService", "RunningAppProcessInfo.importance: $importance"))
-            XLog.d(getLog("MjpegService.startService"), RuntimeException("RunningAppProcessInfo.importance: $importance"))
+            if (importance != ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND) {
+                XLog.i(getLog("MjpegService.startService", "RunningAppProcessInfo.importance: $importance"))
+            }
             context.startService(intent)
         }
     }

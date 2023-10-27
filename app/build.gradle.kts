@@ -29,8 +29,8 @@ android {
         applicationId = "info.dvkr.screenstream"
         minSdk = 23
         targetSdk = 34
-        versionCode = 40020
-        versionName = "4.0.20"
+        versionCode = 40021
+        versionName = "4.0.21"
 
         // https://medium.com/@crafty/no-if-you-do-that-then-you-cant-use-newer-features-on-older-platforms-e-g-fa595333c0a4
         vectorDrawables.useSupportLibrary = true
@@ -113,7 +113,7 @@ dependencies {
     "firebaseImplementation"(project(":webrtc"))
     "firebaseImplementation"("com.google.android.play:app-update-ktx:2.1.0")
     "firebaseImplementation"("com.google.firebase:firebase-analytics:21.4.0")
-    "firebaseImplementation"("com.google.firebase:firebase-crashlytics:18.5.0")
+    "firebaseImplementation"("com.google.firebase:firebase-crashlytics:18.5.1")
     "firebaseImplementation"("com.google.android.gms:play-services-ads:22.4.0")
 
 //    debugImplementation("com.squareup.leakcanary:leakcanary-android:2.12")

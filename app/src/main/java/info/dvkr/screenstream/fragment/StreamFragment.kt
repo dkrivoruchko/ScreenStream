@@ -3,9 +3,7 @@ package info.dvkr.screenstream.fragment
 import android.os.Bundle
 import android.view.View
 import androidx.core.view.isVisible
-import androidx.fragment.app.commit
 import androidx.fragment.app.commitNow
-import androidx.lifecycle.flowWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import com.elvishew.xlog.XLog
 import com.google.android.material.radiobutton.MaterialRadioButton
@@ -19,8 +17,6 @@ import info.dvkr.screenstream.settings.AppSettings
 import info.dvkr.screenstream.ui.fragment.AdFragment
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.onEach
@@ -52,9 +48,6 @@ public class StreamFragment : AdFragment(R.layout.fragment_stream) {
                     if (streamingModulesManager.activeModuleStateFlow.value?.id == module.id) return@setOnClickListener
                     rbItemStreamingModule.isChecked = false
                     rbItemStreamingModule.setButtonDrawable(R.drawable.ic_radiobox_unchecked_24dp)
-                    streamingModulesManager.modules.forEach { module ->
-                        binding.llFragmentStreamModeItems.findViewWithTag<MaterialRadioButton>(module.id.value).isEnabled = false
-                    }
                     viewLifecycleOwner.lifecycleScope.launch { appSettings.setStreamingModule(module.id) }
                 }
                 bItemStreamingModuleDetails.contentDescription = module.getContentDescription(requireContext())
@@ -68,10 +61,6 @@ public class StreamFragment : AdFragment(R.layout.fragment_stream) {
                     isChecked = isServiceActive
                     setButtonDrawable(if (isServiceActive) R.drawable.ic_radiobox_checked_24dp else R.drawable.ic_radiobox_unchecked_24dp)
                 }
-                if (isServiceActive)
-                    streamingModulesManager.modules.forEach { module ->
-                        binding.llFragmentStreamModeItems.findViewWithTag<MaterialRadioButton>(module.id.value).isEnabled = true
-                    }
             }.launchIn(viewLifecycleOwner.lifecycleScope)
         }
 
@@ -103,23 +92,24 @@ public class StreamFragment : AdFragment(R.layout.fragment_stream) {
         XLog.d(getLog("onStart"))
         // Android 6 fix
         job = viewLifecycleOwner.lifecycleScope.launch {
-            streamingModulesManager.activeModuleStateFlow
-                .filterNotNull()
-                .filter { it.id.value != childFragmentManager.findFragmentById(R.id.fcv_fragment_stream_mode)?.tag }
-                .onEach { activeModule ->
-                    XLog.d(getLog("onEach", "Fragment replace from : ${childFragmentManager.findFragmentById(R.id.fcv_fragment_stream_mode)?.tag} to ${activeModule.id.value}"))
+            streamingModulesManager.activeModuleStateFlow.onEach { activeModule ->
+                XLog.d(this@StreamFragment.getLog("activeModuleStateFlow.onEach", "${activeModule?.id?.value}"))
 
-                    childFragmentManager.commit(allowStateLoss = true) {
-                        replace(R.id.fcv_fragment_stream_mode, activeModule.getFragmentClass(), null, activeModule.id.value)
+                val currentFragment = childFragmentManager.findFragmentById(R.id.fcv_fragment_stream_mode)
+                XLog.d(this@StreamFragment.getLog("activeModuleStateFlow.onEach", "Fragment remove: ${currentFragment?.tag}"))
+                currentFragment?.let { childFragmentManager.commitNow(allowStateLoss = true) { remove(it) } }
+
+                if (activeModule != null) {
+                    XLog.d(this@StreamFragment.getLog("activeModuleStateFlow.onEach", "Fragment add: ${activeModule.id.value}"))
+                    childFragmentManager.commitNow(allowStateLoss = true) {
+                        add(R.id.fcv_fragment_stream_mode, activeModule.getFragmentClass(), null, activeModule.id.value)
                     }
                 }
-                .onCompletion {
-                    childFragmentManager.findFragmentById(R.id.fcv_fragment_stream_mode)?.let {
-                        XLog.d(this@StreamFragment.getLog("onCompletion", "Fragment remove: ${it.tag}"))
-                        childFragmentManager.commitNow(allowStateLoss = true) { remove(it) }
-                    }
-                }
-                .collect()
+            }.onCompletion {
+                val currentFragment = childFragmentManager.findFragmentById(R.id.fcv_fragment_stream_mode)
+                XLog.d(this@StreamFragment.getLog("activeModuleStateFlow.onCompletion", "Fragment remove: ${currentFragment?.tag}"))
+                currentFragment?.let { childFragmentManager.commitNow(allowStateLoss = true) { remove(it) } }
+            }.collect()
         }
     }
 

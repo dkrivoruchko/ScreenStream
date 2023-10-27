@@ -313,6 +313,7 @@ internal class BitmapCapture(
                     }
                 } catch (ex: UnsupportedOperationException) {
                     XLog.d(this@BitmapCapture.getLog("Unsupported image format, switching to fallback image reader"), ex)
+                    XLog.d(this@BitmapCapture.getLog("onImageAvailable"), RuntimeException("Unsupported image format, switching to fallback image reader", ex))
                     fallback = true
                     if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) restart()
                     else {

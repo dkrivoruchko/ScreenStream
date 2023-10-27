@@ -452,8 +452,10 @@ internal class WebRtcStreamingService(
                     if (destroyPending) return@getNonce
                     onSuccess { nonce -> sendEvent(InternalEvent.GetToken(nonce, 0, event.forceTokenUpdate)) }
                     onFailure { cause ->
-                        if (cause !is WebRtcError.NetworkError) throw IllegalStateException("Unexpected error", cause)
-                        if (cause.isNonRetryable() || event.attempt >= 3) {
+                        if (cause !is WebRtcError.NetworkError) {
+                            currentError.set(WebRtcError.UnknownError(cause))
+                            sendEvent(WebRtcEvent.UpdateState)
+                        } else if (cause.isNonRetryable() || event.attempt >= 3) {
                             networkAvailable.value = false
                             currentError.set(cause)
                             sendEvent(WebRtcEvent.UpdateState)
@@ -474,7 +476,7 @@ internal class WebRtcStreamingService(
 
                 currentError.get()?.let { error ->
                     if (error !is WebRtcError.PlayIntegrityError || error.isAutoRetryable.not()) {
-                        XLog.w(getLog("GetToken", "Error present. Ignoring. [$error]"))
+                        XLog.w(getLog("GetToken", "Error present. Ignoring. [$error]")) //TODO Prod logs
                         XLog.w(getLog("GetToken", "Error present. Ignoring. [$error]"), error)
                         return
                     }
@@ -486,17 +488,29 @@ internal class WebRtcStreamingService(
                     if (destroyPending) return@getToken
                     onSuccess { token -> sendEvent(InternalEvent.OpenSocket(token)) }
                     onFailure { cause ->
-                        if (cause is WebRtcError.PlayIntegrityError && cause.isAutoRetryable.not()) {
-                            currentError.set(cause)
-                            sendEvent(WebRtcEvent.UpdateState)
-                        } else if (event.attempt >= 3) {
-                            networkAvailable.value = false
-                            if (cause is WebRtcError) currentError.set(cause) else throw cause //TODO throw:Wait for prod logs
-                            sendEvent(WebRtcEvent.UpdateState)
-                        } else {
-                            val attempt = event.attempt + 1
-                            val delay = (5000L * (2.00).pow(attempt - 1)).toLong()
-                            sendEvent(InternalEvent.GetToken(event.nonce, attempt, event.forceUpdate), delay)
+                        when {
+                            cause !is WebRtcError.PlayIntegrityError -> {
+                                XLog.i(this@WebRtcStreamingService.getLog("getToken", "Got error. Stopping: ${cause.message}"))
+                                currentError.set(WebRtcError.UnknownError(cause))
+                                sendEvent(WebRtcEvent.UpdateState)
+                            }
+                            cause.isAutoRetryable.not() -> {
+                                XLog.i(this@WebRtcStreamingService.getLog("getToken", "Got error. Stopping: ${cause.message}"))
+                                currentError.set(cause)
+                                sendEvent(WebRtcEvent.UpdateState)
+                            }
+                            event.attempt >= 3 -> {
+                                XLog.i(this@WebRtcStreamingService.getLog("getToken", "Got error. Max attempts. Stopping: ${cause.message}"))
+                                networkAvailable.value = false
+                                currentError.set(cause)
+                                sendEvent(WebRtcEvent.UpdateState)
+                            }
+                            else -> {
+                                XLog.i(this@WebRtcStreamingService.getLog("getToken", "Got error. Retrying: ${cause.message}"))
+                                val attempt = event.attempt + 1
+                                val delay = (5000L * (2.00).pow(attempt - 1)).toLong()
+                                sendEvent(InternalEvent.GetToken(event.nonce, attempt, event.forceUpdate), delay)
+                            }
                         }
                     }
                 }
@@ -621,9 +635,11 @@ internal class WebRtcStreamingService(
 
                 var notificationOk = false
                 try {
-                    notificationsManager.showForegroundNotification(
-                        service, WebRtcEvent.Intentable.StopStream("User action: Notification").toIntent(service)
-                    )
+                    runBlocking(Dispatchers.Main) {
+                        notificationsManager.showForegroundNotification(
+                            service, WebRtcEvent.Intentable.StopStream("User action: Notification").toIntent(service)
+                        )
+                    }
                     notificationOk = true
                 } catch (cause: NotificationsManager.NotificationPermissionRequired) {
                     currentError.set(WebRtcError.NotificationPermissionRequired)
@@ -902,7 +918,7 @@ internal class WebRtcStreamingService(
         }
         wakeLock?.apply { if (isHeld) release() }
         wakeLock = null
-        notificationsManager.hideForegroundNotification(service)
+        mainHandler.post { notificationsManager.hideForegroundNotification(service) }
     }
 
     // Inline Only
@@ -930,8 +946,7 @@ internal class WebRtcStreamingService(
         if (previousError != currentError.get()) {
             previousError = currentError.get()
             previousError?.let {
-                if (it !is WebRtcError.NetworkError)
-                    XLog.e(getLog("publishState", it.message), it)
+                if (it !is WebRtcError.NetworkError) XLog.e(getLog("publishState", it.message), it)
                 val message = it.toString(service)
                 mainHandler.post {
                     notificationsManager.showErrorNotification(service, message, WebRtcEvent.Intentable.RecoverError.toIntent(service))
