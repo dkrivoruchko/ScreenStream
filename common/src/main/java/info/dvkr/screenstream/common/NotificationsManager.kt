@@ -17,8 +17,8 @@ public interface NotificationsManager {
     public fun hideForegroundNotification(service: Service)
 
     @MainThread
-    public fun showErrorNotification(context: Context, message: String, recoverIntent: Intent)
+    public fun showErrorNotification(context: Context, notificationId: Int, message: String, recoverIntent: Intent)
 
     @MainThread
-    public fun hideErrorNotification()
+    public fun hideErrorNotification(notificationId: Int)
 }

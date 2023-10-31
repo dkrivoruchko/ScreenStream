@@ -37,6 +37,10 @@ public class WebRtcStreamingModule : StreamingModule {
     override val streamingServiceIsActive: StateFlow<Boolean>
         get() = _streamingServiceIsActive.asStateFlow()
 
+    private val _webRtcStateFlow: MutableStateFlow<WebRtcState?> = MutableStateFlow(null)
+    internal val webRtcStateFlow: StateFlow<WebRtcState?>
+        get() = _webRtcStateFlow.asStateFlow()
+
     @MainThread
     @Throws(IllegalStateException::class)
     override fun getName(context: Context): String {
@@ -68,21 +72,23 @@ public class WebRtcStreamingModule : StreamingModule {
     @MainThread
     override fun getFragmentClass(): Class<out Fragment> = WebRtcStreamingFragment::class.java
 
-    private var _scope: Scope? = null
+    internal val webRtcSettings: WebRtcSettings
+        get() = requireNotNull(_scope).get()
 
-    internal val scope: Scope
-        get() = requireNotNull(_scope)
+    private var _scope: Scope? = null
 
     @MainThread
     @Throws(IllegalStateException::class)
-    override fun createStreamingService(context: Context, mutableAppStateFlow: MutableStateFlow<StreamingModule.AppState>) {
+    override fun createStreamingService(context: Context) {
         XLog.d(getLog("createStreamingService"))
         check(Looper.getMainLooper().isCurrentThread) { "Only main thread allowed" }
 
-        if (_scope != null) destroyStreamingService()
-        _scope = WebRtcKoinScope().scope.also { newScope ->
-            newScope.get<WebRtcStateFlowProvider> { parametersOf(mutableAppStateFlow, MutableStateFlow(WebRtcState())) }
+        if (_scope != null) {
+            XLog.e(getLog("createStreamingService", "Scope exists"), IllegalStateException("Scope exists"))
+            destroyStreamingService()
         }
+        _scope = WebRtcKoinScope().scope
+        _webRtcStateFlow.value = WebRtcState()
         WebRtcService.startService(context, WebRtcEvent.Intentable.StartService.toIntent(context))
     }
 
@@ -94,10 +100,10 @@ public class WebRtcStreamingModule : StreamingModule {
 
         when (event) {
             is StreamingModule.AppEvent.StartStream ->
-                scope.get<WebRtcStreamingService>().sendEvent(WebRtcStreamingService.InternalEvent.StartStream)
+                requireNotNull(_scope).get<WebRtcStreamingService>().sendEvent(WebRtcStreamingService.InternalEvent.StartStream)
 
             is StreamingModule.AppEvent.StopStream ->
-                scope.get<WebRtcStreamingService>().sendEvent(WebRtcEvent.Intentable.StopStream("User action: Button"))
+                requireNotNull(_scope).get<WebRtcStreamingService>().sendEvent(WebRtcEvent.Intentable.StopStream("User action: Button"))
 
             is StreamingModule.AppEvent.Exit -> {
                 if (_scope != null) destroyStreamingService()
@@ -111,11 +117,11 @@ public class WebRtcStreamingModule : StreamingModule {
             } else if (streamingServiceIsActive.value) {
                 XLog.e(getLog("sendEvent", "Service already started. Ignoring"), IllegalStateException("Service already started. Ignoring"))
             } else {
-                scope.get<WebRtcStreamingService> { parametersOf(scope, event.service) }.start()
+                requireNotNull(_scope).get<WebRtcStreamingService> { parametersOf(event.service, _webRtcStateFlow) }.start()
                 _streamingServiceIsActive.value = true
             }
 
-            else -> scope.get<WebRtcStreamingService>().sendEvent(event as WebRtcEvent)
+            else -> requireNotNull(_scope).get<WebRtcStreamingService>().sendEvent(event as WebRtcEvent)
         }
     }
 
@@ -125,8 +131,9 @@ public class WebRtcStreamingModule : StreamingModule {
         XLog.d(getLog("destroyStreamingService"))
         check(Looper.getMainLooper().isCurrentThread) { "Only main thread allowed" }
 
-        if (_streamingServiceIsActive.value) scope.get<WebRtcStreamingService>().destroy()
+        if (_streamingServiceIsActive.value) requireNotNull(_scope).get<WebRtcStreamingService>().destroy()
         _streamingServiceIsActive.value = false
+        _webRtcStateFlow.value = null
         _scope?.close()
         _scope = null
 

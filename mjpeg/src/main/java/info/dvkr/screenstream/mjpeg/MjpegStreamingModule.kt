@@ -38,6 +38,10 @@ public class MjpegStreamingModule : StreamingModule {
     override val streamingServiceIsActive: StateFlow<Boolean>
         get() = _streamingServiceIsActive.asStateFlow()
 
+    private val _mjpegStateFlow: MutableStateFlow<MjpegState?> = MutableStateFlow(null)
+    internal val mjpegStateFlow: StateFlow<MjpegState?>
+        get() = _mjpegStateFlow.asStateFlow()
+
     @MainThread
     @Throws(IllegalStateException::class)
     override fun getName(context: Context): String {
@@ -69,21 +73,23 @@ public class MjpegStreamingModule : StreamingModule {
     @MainThread
     override fun getFragmentClass(): Class<out Fragment> = MjpegStreamingFragment::class.java
 
-    private var _scope: Scope? = null
+    internal val mjpegSettings: MjpegSettings
+        get() = requireNotNull(_scope).get()
 
-    internal val scope: Scope
-        get() = requireNotNull(_scope)
+    private var _scope: Scope? = null
 
     @MainThread
     @Throws(IllegalStateException::class)
-    override fun createStreamingService(context: Context, mutableAppStateFlow: MutableStateFlow<StreamingModule.AppState>) {
+    override fun createStreamingService(context: Context) {
         XLog.d(getLog("createStreamingService"))
         check(Looper.getMainLooper().isCurrentThread) { "Only main thread allowed" }
 
-        if (_scope != null) destroyStreamingService()
-        _scope = MjpegKoinScope().scope.also { newScope ->
-            newScope.get<MjpegStateFlowProvider> { parametersOf(mutableAppStateFlow, MutableStateFlow(MjpegState())) }
+        if (_scope != null) {
+            XLog.e(getLog("createStreamingService", "Scope exists"), IllegalStateException("Scope exists"))
+            destroyStreamingService()
         }
+        _scope = MjpegKoinScope().scope
+        _mjpegStateFlow.value = MjpegState()
         MjpegService.startService(context, MjpegEvent.Intentable.StartService.toIntent(context))
     }
 
@@ -95,10 +101,10 @@ public class MjpegStreamingModule : StreamingModule {
 
         when (event) {
             is StreamingModule.AppEvent.StartStream ->
-                scope.get<MjpegStreamingService>().sendEvent(MjpegStreamingService.InternalEvent.StartStream)
+                requireNotNull(_scope).get<MjpegStreamingService>().sendEvent(MjpegStreamingService.InternalEvent.StartStream)
 
             is StreamingModule.AppEvent.StopStream ->
-                scope.get<MjpegStreamingService>().sendEvent(MjpegEvent.Intentable.StopStream("User action: Button"))
+                requireNotNull(_scope).get<MjpegStreamingService>().sendEvent(MjpegEvent.Intentable.StopStream("User action: Button"))
 
             is StreamingModule.AppEvent.Exit -> {
                 if (_scope != null) destroyStreamingService()
@@ -112,11 +118,11 @@ public class MjpegStreamingModule : StreamingModule {
             } else if (streamingServiceIsActive.value) {
                 XLog.e(getLog("sendEvent", "Service already started. Ignoring"), IllegalStateException("Service already started. Ignoring"))
             } else {
-                scope.get<MjpegStreamingService> { parametersOf(scope, event.service) }.start()
+                requireNotNull(_scope).get<MjpegStreamingService> { parametersOf(event.service, _mjpegStateFlow) }.start()
                 _streamingServiceIsActive.value = true
             }
 
-            else -> scope.get<MjpegStreamingService>().sendEvent(event as MjpegEvent)
+            else -> requireNotNull(_scope).get<MjpegStreamingService>().sendEvent(event as MjpegEvent)
         }
     }
 
@@ -126,8 +132,9 @@ public class MjpegStreamingModule : StreamingModule {
         XLog.d(getLog("destroyStreamingService"))
         check(Looper.getMainLooper().isCurrentThread) { "Only main thread allowed" }
 
-        if (_streamingServiceIsActive.value) scope.get<MjpegStreamingService>().destroy()
+        if (_streamingServiceIsActive.value) requireNotNull(_scope).get<MjpegStreamingService>().destroy()
         _streamingServiceIsActive.value = false
+        _mjpegStateFlow.value = null
         _scope?.close()
         _scope = null
 

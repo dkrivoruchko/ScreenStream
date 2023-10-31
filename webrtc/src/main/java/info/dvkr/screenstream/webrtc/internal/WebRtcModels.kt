@@ -57,6 +57,7 @@ internal data class WebRtcState(
     @JvmField val signalingServerUrl: String = "",
     @JvmField val streamId: String = "",
     @JvmField val streamPassword: String = "",
+    @JvmField val enableMic: Boolean = false,
     @JvmField val waitingCastPermission: Boolean = false,
     @JvmField val isStreaming: Boolean = false,
     @JvmField val clients: List<Client> = emptyList(),

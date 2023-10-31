@@ -22,10 +22,6 @@ public class StreamingModulesManager(modules: List<StreamingModule>) {
     public val activeModuleStateFlow: StateFlow<StreamingModule?>
         get() = _activeModuleStateFlow.asStateFlow()
 
-    private val _appStateFlow = MutableStateFlow(StreamingModule.AppState())
-    public val appStateFlow: StateFlow<StreamingModule.AppState>
-        get() = _appStateFlow.asStateFlow()
-
     @MainThread
     @Throws(IllegalArgumentException::class, IllegalStateException::class)
     public fun activate(id: StreamingModule.Id, context: Context) {
@@ -43,7 +39,7 @@ public class StreamingModulesManager(modules: List<StreamingModule>) {
         deactivate(_activeModuleStateFlow.value?.id ?: StreamingModule.Id.UNDEFINED)
 
         modules.first { it.id == id }.let { module ->
-            module.createStreamingService(context, _appStateFlow)
+            module.createStreamingService(context)
             _activeModuleStateFlow.value = module
         }
     }

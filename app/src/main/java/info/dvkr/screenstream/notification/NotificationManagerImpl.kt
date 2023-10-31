@@ -28,7 +28,6 @@ internal class NotificationManagerImpl(context: Context) : NotificationsManager 
         private const val CHANNEL_STREAMING = "info.dvkr.screenstream.NOTIFICATION_CHANNEL_STREAMING"
         private const val CHANNEL_ERROR = "info.dvkr.screenstream.NOTIFICATION_CHANNEL_ERROR"
         private const val NOTIFICATION_FOREGROUND_ID = 11
-        private const val NOTIFICATION_ERROR_ID = 50
     }
 
     private val notificationManager = context.applicationContext.getSystemService(NotificationManager::class.java)
@@ -138,16 +137,16 @@ internal class NotificationManagerImpl(context: Context) : NotificationsManager 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) service.stopForeground(Service.STOP_FOREGROUND_REMOVE)
         else service.stopForeground(true)
         if (isActive(NOTIFICATION_FOREGROUND_ID)) {
-            XLog.d(getLog("hideForegroundNotification.done", "isActive"), IllegalStateException("hideForegroundNotification.done: isActive"))
+            XLog.d(getLog("hideForegroundNotification.done", "isActive"), IllegalStateException("hideForegroundNotification.done: isActive: $serviceName"))
         } else XLog.d(getLog("hideForegroundNotification", "Done"))
     }
 
     @MainThread
-    override fun showErrorNotification(context: Context, message: String, recoverIntent: Intent) {
+    override fun showErrorNotification(context: Context, notificationId: Int, message: String, recoverIntent: Intent) {
         XLog.d(getLog("showErrorNotification"))
         check(Looper.getMainLooper().isCurrentThread) { "Only main thread allowed" }
 
-        hideErrorNotification()
+        hideErrorNotification(notificationId)
 
         if (isNotificationPermissionGranted(context).not()) {
             XLog.e(
@@ -187,18 +186,18 @@ internal class NotificationManagerImpl(context: Context) : NotificationsManager 
                 }
             }
 
-        notificationManager.notify(NOTIFICATION_ERROR_ID, builder.build())
+        notificationManager.notify(notificationId, builder.build())
     }
 
     @MainThread
-    override fun hideErrorNotification() {
+    override fun hideErrorNotification(notificationId: Int) {
         check(Looper.getMainLooper().isCurrentThread) { "Only main thread allowed" }
 
-        val isActive = isActive(NOTIFICATION_ERROR_ID)
-        XLog.d(getLog("hideErrorNotification", "isActive: $isActive"))
-        if (isActive) notificationManager.cancel(NOTIFICATION_ERROR_ID)
-        if (isActive(NOTIFICATION_ERROR_ID)) {
-            XLog.d(getLog("hideErrorNotification.done", "isActive"), IllegalStateException("hideErrorNotification.done: isActive"))
+        val isActive = isActive(notificationId)
+        XLog.d(getLog("hideErrorNotification", "isActive: $isActive, $notificationId"))
+        if (isActive) notificationManager.cancel(notificationId)
+        if (isActive(notificationId)) {
+            XLog.d(getLog("hideErrorNotification.done", "isActive"), IllegalStateException("hideErrorNotification.done: isActive: $notificationId"))
         } else XLog.d(getLog("hideErrorNotification", "Done"))
     }
 

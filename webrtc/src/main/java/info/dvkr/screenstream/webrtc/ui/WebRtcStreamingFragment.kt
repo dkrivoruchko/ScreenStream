@@ -51,8 +51,6 @@ import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.common.view.viewBinding
 import info.dvkr.screenstream.webrtc.R
 import info.dvkr.screenstream.webrtc.WebRtcKoinQualifier
-import info.dvkr.screenstream.webrtc.WebRtcSettings
-import info.dvkr.screenstream.webrtc.WebRtcStateFlowProvider
 import info.dvkr.screenstream.webrtc.WebRtcStreamingModule
 import info.dvkr.screenstream.webrtc.databinding.FragmentWebrtcStreamBinding
 import info.dvkr.screenstream.webrtc.databinding.ItemWebrtcClientBinding
@@ -61,11 +59,12 @@ import info.dvkr.screenstream.webrtc.internal.WebRtcError
 import info.dvkr.screenstream.webrtc.internal.WebRtcEvent
 import info.dvkr.screenstream.webrtc.internal.WebRtcState
 import io.nayuki.qrcodegen.QrCode
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
 import org.koin.core.qualifier.named
@@ -80,7 +79,6 @@ public class WebRtcStreamingFragment : Fragment(R.layout.fragment_webrtc_stream)
     private val binding by viewBinding { fragment -> FragmentWebrtcStreamBinding.bind(fragment.requireView()) }
 
     private val webRtcStreamingModule: WebRtcStreamingModule by inject(named(WebRtcKoinQualifier), LazyThreadSafetyMode.NONE)
-    private val webRtcSettings: WebRtcSettings by lazy(LazyThreadSafetyMode.NONE) { webRtcStreamingModule.scope.get() }
 
     private val colorAccent by lazy(LazyThreadSafetyMode.NONE) { ContextCompat.getColor(requireContext(), R.color.colorAccent) }
     private val clipboard: ClipboardManager? by lazy(LazyThreadSafetyMode.NONE) {
@@ -94,6 +92,7 @@ public class WebRtcStreamingFragment : Fragment(R.layout.fragment_webrtc_stream)
         XLog.i(getLog("requestPermissionLauncher", "registerForActivityResult: $isGranted"))
 
         viewLifecycleOwner.lifecycleScope.launch {
+            val webRtcSettings = webRtcStreamingModule.webRtcSettings
             webRtcSettings.setEnableMic(isGranted)
             if (isGranted) return@launch
             // This is first time we get Deny
@@ -164,25 +163,17 @@ public class WebRtcStreamingFragment : Fragment(R.layout.fragment_webrtc_stream)
             webRtcStreamingModule.sendEvent(WebRtcEvent.Intentable.RecoverError)
         }
 
-        webRtcStreamingModule.scope.get<WebRtcStateFlowProvider>().mutableWebRtcStateFlow.asStateFlow()
-            .flowWithLifecycle(viewLifecycleOwner.lifecycle, Lifecycle.State.STARTED)
+        webRtcStreamingModule.webRtcStateFlow
+            .onStart { XLog.i(this@WebRtcStreamingFragment.getLog("webRtcStreamingModule.webRtcStateFlow.onStart")) }
+            .filterNotNull()
             .onEach { state -> onWebRtcState(state) }
+            .onCompletion { XLog.i(this@WebRtcStreamingFragment.getLog("webRtcStreamingModule.webRtcStateFlow.onCompletion")) }
+            .flowWithLifecycle(viewLifecycleOwner.lifecycle, Lifecycle.State.STARTED)
             .launchIn(viewLifecycleOwner.lifecycleScope)
-
-        webRtcSettings.enableMicFlow.distinctUntilChanged().onEach { enable ->
-            if (enable) {
-                binding.bWebrtcStreamMic.text = getString(R.string.webrtc_stream_fragment_mic_on)
-                binding.bWebrtcStreamMic.icon = ContextCompat.getDrawable(requireContext(), R.drawable.webrtc_ic_mic_on_24dp)
-                binding.bWebrtcStreamMic.iconTint = ContextCompat.getColorStateList(requireContext(), R.color.colorError)
-            } else {
-                binding.bWebrtcStreamMic.text = getString(R.string.webrtc_stream_fragment_mic_off)
-                binding.bWebrtcStreamMic.icon = ContextCompat.getDrawable(requireContext(), R.drawable.webrtc_ic_mic_off_24dp)
-                binding.bWebrtcStreamMic.iconTint = null
-            }
-        }.launchIn(viewLifecycleOwner.lifecycleScope)
 
         binding.bWebrtcStreamMic.setOnClickListener {
             viewLifecycleOwner.lifecycleScope.launch {
+                val webRtcSettings = webRtcStreamingModule.webRtcSettings
                 if (webRtcSettings.enableMicFlow.first()) {
                     webRtcSettings.setEnableMic(false)
                     return@launch
@@ -332,6 +323,16 @@ public class WebRtcStreamingFragment : Fragment(R.layout.fragment_webrtc_stream)
             binding.ivWebrtcStreamAddressQr.setOnClickListener { showQrCode(fullAddress) }
         }
 
+        if (state.enableMic) {
+            binding.bWebrtcStreamMic.text = getString(R.string.webrtc_stream_fragment_mic_on)
+            binding.bWebrtcStreamMic.icon = ContextCompat.getDrawable(requireContext(), R.drawable.webrtc_ic_mic_on_24dp)
+            binding.bWebrtcStreamMic.iconTint = ContextCompat.getColorStateList(requireContext(), R.color.colorError)
+        } else {
+            binding.bWebrtcStreamMic.text = getString(R.string.webrtc_stream_fragment_mic_off)
+            binding.bWebrtcStreamMic.icon = ContextCompat.getDrawable(requireContext(), R.drawable.webrtc_ic_mic_off_24dp)
+            binding.bWebrtcStreamMic.iconTint = null
+        }
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             binding.bWebrtcStreamMic.isEnabled = state.isStreaming.not() //TODO Icon is not dimmed
         }
@@ -459,5 +460,4 @@ public class WebRtcStreamingFragment : Fragment(R.layout.fragment_webrtc_stream)
             setSpan(TypefaceSpan("monospace"), start, end, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
         }
     }
-
 }

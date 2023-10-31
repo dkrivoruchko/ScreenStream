@@ -41,8 +41,6 @@ import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.common.view.viewBinding
 import info.dvkr.screenstream.mjpeg.MjpegKoinQualifier
-import info.dvkr.screenstream.mjpeg.MjpegSettings
-import info.dvkr.screenstream.mjpeg.MjpegStateFlowProvider
 import info.dvkr.screenstream.mjpeg.MjpegStreamingModule
 import info.dvkr.screenstream.mjpeg.R
 import info.dvkr.screenstream.mjpeg.databinding.FragmentMjpegStreamBinding
@@ -52,10 +50,12 @@ import info.dvkr.screenstream.mjpeg.internal.MjpegError
 import info.dvkr.screenstream.mjpeg.internal.MjpegEvent
 import info.dvkr.screenstream.mjpeg.internal.MjpegState
 import io.nayuki.qrcodegen.QrCode
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.onStart
 import org.koin.android.ext.android.inject
 import org.koin.core.qualifier.named
 import java.net.Inet6Address
@@ -71,7 +71,6 @@ public class MjpegStreamingFragment : Fragment(R.layout.fragment_mjpeg_stream) {
     private val binding by viewBinding { fragment -> FragmentMjpegStreamBinding.bind(fragment.requireView()) }
 
     private val mjpegStreamingModule: MjpegStreamingModule by inject(named(MjpegKoinQualifier), LazyThreadSafetyMode.NONE)
-    private val mjpegSettings: MjpegSettings by lazy(LazyThreadSafetyMode.NONE) { mjpegStreamingModule.scope.get() }
 
     private val colorAccent by lazy(LazyThreadSafetyMode.NONE) { ContextCompat.getColor(requireContext(), R.color.colorAccent) }
     private val clipboard: ClipboardManager? by lazy(LazyThreadSafetyMode.NONE) {
@@ -115,9 +114,12 @@ public class MjpegStreamingFragment : Fragment(R.layout.fragment_mjpeg_stream) {
             mjpegStreamingModule.sendEvent(MjpegEvent.Intentable.RecoverError)
         }
 
-        mjpegStreamingModule.scope.get<MjpegStateFlowProvider>().mutableMjpegStateFlow.asStateFlow()
-            .flowWithLifecycle(viewLifecycleOwner.lifecycle, Lifecycle.State.STARTED)
+        mjpegStreamingModule.mjpegStateFlow
+            .onStart { XLog.i(this@MjpegStreamingFragment.getLog("mjpegStreamingModule.mjpegStateFlow.onStart")) }
+            .filterNotNull()
             .onEach { state -> onMjpegState(state) }
+            .onCompletion { XLog.i(this@MjpegStreamingFragment.getLog("mjpegStreamingModule.mjpegStateFlow.onCompletion")) }
+            .flowWithLifecycle(viewLifecycleOwner.lifecycle, Lifecycle.State.STARTED)
             .launchIn(viewLifecycleOwner.lifecycleScope)
     }
 
@@ -177,6 +179,8 @@ public class MjpegStreamingFragment : Fragment(R.layout.fragment_mjpeg_stream) {
     @SuppressLint("ClickableViewAccessibility")
     private suspend fun onMjpegState(state: MjpegState) {
         XLog.d(getLog("onMjpegState", state.toString()))
+
+        val mjpegSettings = mjpegStreamingModule.mjpegSettings
 
         if (state.waitingCastPermission) requestCastPermission() else castPermissionsPending = false
 

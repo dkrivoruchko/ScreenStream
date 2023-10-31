@@ -8,14 +8,13 @@ import androidx.core.content.ContextCompat
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.mjpeg.MjpegKoinScope
-import org.koin.core.annotation.InjectedParam
 import org.koin.core.annotation.Scope
 import java.net.*
 import java.util.*
 
 @Scope(MjpegKoinScope::class)
 @SuppressLint("WifiManagerPotentialLeak")
-internal class NetworkHelper(@InjectedParam context: Context) {
+internal class NetworkHelper(context: Context) {
 
     private val networkInterfaceCommonNameArray =
         arrayOf("lo", "eth", "lan", "wlan", "en", "p2p", "net", "ppp", "wigig", "ap", "rmnet", "rmnet_data")

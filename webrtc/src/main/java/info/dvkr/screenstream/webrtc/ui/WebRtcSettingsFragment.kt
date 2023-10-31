@@ -8,7 +8,6 @@ import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import info.dvkr.screenstream.common.view.viewBinding
 import info.dvkr.screenstream.webrtc.R
 import info.dvkr.screenstream.webrtc.WebRtcKoinQualifier
-import info.dvkr.screenstream.webrtc.WebRtcSettings
 import info.dvkr.screenstream.webrtc.WebRtcStreamingModule
 import info.dvkr.screenstream.webrtc.databinding.FragmentWebrtcSettingsBinding
 import kotlinx.coroutines.flow.first
@@ -24,13 +23,14 @@ public class WebRtcSettingsFragment : BottomSheetDialogFragment(R.layout.fragmen
 
     private val binding by viewBinding { fragment -> FragmentWebrtcSettingsBinding.bind(fragment.requireView()) }
 
-    private val mjpegStreamingModule: WebRtcStreamingModule by inject(named(WebRtcKoinQualifier), LazyThreadSafetyMode.NONE)
-    private val webRtcSettings: WebRtcSettings by mjpegStreamingModule.scope.inject(mode = LazyThreadSafetyMode.NONE)
+    private val webRtcStreamingModule: WebRtcStreamingModule by inject(named(WebRtcKoinQualifier), LazyThreadSafetyMode.NONE)
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
         binding.bFragmentSettingsClose.setOnClickListener { dismissAllowingStateLoss() }
+
+        val webRtcSettings = webRtcStreamingModule.webRtcSettings
 
         // Interface - Keep awake
         if (Build.MANUFACTURER !in listOf("OnePlus", "OPPO")) {

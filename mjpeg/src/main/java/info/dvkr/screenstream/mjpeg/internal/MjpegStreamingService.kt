@@ -32,6 +32,7 @@ import androidx.annotation.MainThread
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.content.ContextCompat
 import com.elvishew.xlog.XLog
+import info.dvkr.screenstream.common.AppStateFlowProvider
 import info.dvkr.screenstream.common.NotificationsManager
 import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.mjpeg.*
@@ -42,9 +43,6 @@ import kotlinx.coroutines.flow.*
 import org.koin.core.annotation.InjectedParam
 import org.koin.core.annotation.Scope
 import org.koin.core.annotation.Scoped
-import org.koin.core.component.KoinScopeComponent
-import org.koin.core.component.inject
-import org.koin.core.parameter.parametersOf
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
@@ -53,24 +51,22 @@ import kotlin.random.Random
 @Scope(MjpegKoinScope::class)
 @Scoped(binds = [MjpegStreamingService::class])
 internal class MjpegStreamingService(
-    @InjectedParam override val scope: org.koin.core.scope.Scope,
     @InjectedParam private val service: MjpegService,
-    private val mjpegSettings: MjpegSettings,
-    private val mjpegStateFlowProvider: MjpegStateFlowProvider,
-) : HandlerThread("MJPEG-HT", android.os.Process.THREAD_PRIORITY_DISPLAY), Handler.Callback, KoinScopeComponent {
+    @InjectedParam private val mutableMjpegStateFlow: MutableStateFlow<MjpegState>,
+    private val appStateFlowProvider: AppStateFlowProvider,
+    private val notificationsManager: NotificationsManager,
+    private val networkHelper: NetworkHelper,
+    private val mjpegSettings: MjpegSettings
+) : HandlerThread("MJPEG-HT", android.os.Process.THREAD_PRIORITY_DISPLAY), Handler.Callback {
 
     private val powerManager: PowerManager = service.getSystemService(PowerManager::class.java)
     private val projectionManager = service.getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
-
-    private val notificationsManager: NotificationsManager by inject()
     private val mainHandler: Handler by lazy(LazyThreadSafetyMode.NONE) { Handler(Looper.getMainLooper()) }
     private val handler: Handler by lazy(LazyThreadSafetyMode.NONE) { Handler(looper, this) }
     private val coroutineDispatcher: CoroutineDispatcher by lazy(LazyThreadSafetyMode.NONE) { handler.asCoroutineDispatcher("MJPEG-HT_Dispatcher") }
     private val coroutineScope by lazy(LazyThreadSafetyMode.NONE) { CoroutineScope(SupervisorJob() + coroutineDispatcher) }
-
     private val broadcastHelper = BroadcastHelper.getInstance(service)
     private val connectivityHelper = ConnectivityHelper.getInstance(service)
-    private val networkHelper: NetworkHelper by inject(mode = LazyThreadSafetyMode.NONE) { parametersOf(service) }
     private val bitmapStateFlow = MutableStateFlow(Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888))
     private val httpServer by lazy(mode = LazyThreadSafetyMode.NONE) {
         HttpServer(service, mjpegSettings, bitmapStateFlow.asStateFlow(), ::sendEvent)
@@ -237,8 +233,7 @@ internal class MjpegStreamingService(
 
         handler.removeCallbacksAndMessages(null)
 
-        notificationsManager.hideForegroundNotification(service)
-        notificationsManager.hideErrorNotification()
+        notificationsManager.hideErrorNotification(MjpegService.NOTIFICATION_ERROR_ID)
 
         service.stopSelf()
 
@@ -445,7 +440,7 @@ internal class MjpegStreamingService(
                         runBlocking { httpServer.stop(event.reason is RestartReason.SettingsChanged).await() }
                         sendEvent(InternalEvent.InitState(false))
                     }
-                    sendEvent(InternalEvent.DiscoverAddress("RestartServer",0))
+                    sendEvent(InternalEvent.DiscoverAddress("RestartServer", 0))
                 }
 
                 is MjpegEvent.Intentable.RecoverError -> {
@@ -456,7 +451,7 @@ internal class MjpegStreamingService(
                     handler.removeMessages(MjpegEvent.Priority.RECOVER_IGNORE)
 
                     sendEvent(InternalEvent.InitState(true))
-                    sendEvent(InternalEvent.DiscoverAddress("RecoverError",0))
+                    sendEvent(InternalEvent.DiscoverAddress("RecoverError", 0))
                 }
 
                 is InternalEvent.Destroy -> {
@@ -539,11 +534,11 @@ internal class MjpegStreamingService(
     // Inline Only
     @Suppress("NOTHING_TO_INLINE")
     private inline fun publishState() {
-        val isBusy = pendingServer || destroyPending || waitingForPermission ||currentError != null
+        val isBusy = pendingServer || destroyPending || waitingForPermission || currentError != null
         val state = MjpegState(isBusy, waitingForPermission, isStreaming, netInterfaces, clients.toList(), traffic.toList(), currentError)
 
-        mjpegStateFlowProvider.mutableMjpegStateFlow.value = state
-        mjpegStateFlowProvider.mutableAppStateFlow.value = state.toAppState()
+        mutableMjpegStateFlow.value = state
+        appStateFlowProvider.mutableAppStateFlow.value = state.toAppState()
 
         if (previousError != currentError) {
             previousError = currentError
@@ -552,10 +547,10 @@ internal class MjpegStreamingService(
                     XLog.e(getLog("publishState", it.message ?: it::class.java.simpleName), it)
                 val message = it.toString(service)
                 mainHandler.post {
-                    notificationsManager.showErrorNotification(service, message, MjpegEvent.Intentable.RecoverError.toIntent(service))
+                    notificationsManager.showErrorNotification(service, MjpegService.NOTIFICATION_ERROR_ID, message, MjpegEvent.Intentable.RecoverError.toIntent(service))
                 }
             } ?: mainHandler.post {
-                notificationsManager.hideErrorNotification()
+                notificationsManager.hideErrorNotification(MjpegService.NOTIFICATION_ERROR_ID)
             }
         }
     }

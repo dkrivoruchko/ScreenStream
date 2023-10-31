@@ -32,6 +32,8 @@ public class MjpegService : Service() {
         }
         //ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND
         //ActivityManager.RunningAppProcessInfo.IMPORTANCE_VISIBLE
+
+        internal const val NOTIFICATION_ERROR_ID = 60
     }
 
     private val streamingModulesManager: StreamingModulesManager by inject(mode = LazyThreadSafetyMode.NONE)
@@ -59,8 +61,7 @@ public class MjpegService : Service() {
 
         if (success.not()) { // No active module
             XLog.w(getLog("onStartCommand", "No active module"))
-            notificationsManager.hideForegroundNotification(this)
-            notificationsManager.hideErrorNotification()
+            notificationsManager.hideErrorNotification(NOTIFICATION_ERROR_ID)
             stopSelf()
         }
 
@@ -70,6 +71,7 @@ public class MjpegService : Service() {
     override fun onDestroy() {
         XLog.d(getLog("onDestroy"))
         streamingModulesManager.deactivate(MjpegStreamingModule.Id)
+        notificationsManager.hideForegroundNotification(this)
         super.onDestroy()
     }
 }

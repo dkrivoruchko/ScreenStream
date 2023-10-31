@@ -31,6 +31,8 @@ public class WebRtcService : Service() {
             }
             context.startService(intent)
         }
+
+        internal const val NOTIFICATION_ERROR_ID = 50
     }
 
     private val streamingModulesManager: StreamingModulesManager by inject(mode = LazyThreadSafetyMode.NONE)
@@ -59,8 +61,7 @@ public class WebRtcService : Service() {
 
         if (success.not()) { // No active module
             XLog.w(getLog("onStartCommand", "No active module"))
-            notificationsManager.hideForegroundNotification(this)
-            notificationsManager.hideErrorNotification()
+            notificationsManager.hideErrorNotification(NOTIFICATION_ERROR_ID)
             stopSelf()
         }
 
@@ -70,6 +71,7 @@ public class WebRtcService : Service() {
     override fun onDestroy() {
         XLog.d(getLog("onDestroy"))
         streamingModulesManager.deactivate(WebRtcStreamingModule.Id)
+        notificationsManager.hideForegroundNotification(this)
         super.onDestroy()
     }
 }

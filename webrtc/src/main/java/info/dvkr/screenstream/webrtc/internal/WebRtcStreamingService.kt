@@ -25,12 +25,12 @@ import androidx.annotation.AnyThread
 import androidx.annotation.MainThread
 import androidx.core.content.ContextCompat
 import com.elvishew.xlog.XLog
+import info.dvkr.screenstream.common.AppStateFlowProvider
 import info.dvkr.screenstream.common.NotificationsManager
 import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.webrtc.WebRtcKoinScope
 import info.dvkr.screenstream.webrtc.WebRtcService
 import info.dvkr.screenstream.webrtc.WebRtcSettings
-import info.dvkr.screenstream.webrtc.WebRtcStateFlowProvider
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -51,8 +51,6 @@ import okhttp3.OkHttpClient
 import org.koin.core.annotation.InjectedParam
 import org.koin.core.annotation.Scope
 import org.koin.core.annotation.Scoped
-import org.koin.core.component.KoinScopeComponent
-import org.koin.core.component.inject
 import org.webrtc.IceCandidate
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
@@ -64,12 +62,13 @@ import kotlin.math.pow
 @Scope(WebRtcKoinScope::class)
 @Scoped(binds = [WebRtcStreamingService::class])
 internal class WebRtcStreamingService(
-    @InjectedParam override val scope: org.koin.core.scope.Scope,
     @InjectedParam private val service: WebRtcService,
+    @InjectedParam private val mutableWebRtcStateFlow: MutableStateFlow<WebRtcState>,
+    private val appStateFlowProvider: AppStateFlowProvider,
+    private val notificationsManager: NotificationsManager,
     private val environment: WebRtcEnvironment,
-    private val webRtcSettings: WebRtcSettings,
-    private val webRtcStateFlowProvider: WebRtcStateFlowProvider
-) : HandlerThread("WebRTC-HT", android.os.Process.THREAD_PRIORITY_DISPLAY), Handler.Callback, KoinScopeComponent {
+    private val webRtcSettings: WebRtcSettings
+) : HandlerThread("WebRTC-HT", android.os.Process.THREAD_PRIORITY_DISPLAY), Handler.Callback {
 
     private val versionName = runCatching {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -81,13 +80,10 @@ internal class WebRtcStreamingService(
 
     private val powerManager: PowerManager = service.getSystemService(PowerManager::class.java)
     private val connectivityManager: ConnectivityManager = service.getSystemService(ConnectivityManager::class.java)
-
-    private val notificationsManager: NotificationsManager by inject()
     private val mainHandler: Handler by lazy(LazyThreadSafetyMode.NONE) { Handler(Looper.getMainLooper()) }
     private val handler: Handler by lazy(LazyThreadSafetyMode.NONE) { Handler(looper, this) }
     private val coroutineDispatcher: CoroutineDispatcher by lazy(LazyThreadSafetyMode.NONE) { handler.asCoroutineDispatcher("WebRTC-HT_Dispatcher") }
     private val coroutineScope by lazy(LazyThreadSafetyMode.NONE) { CoroutineScope(SupervisorJob() + coroutineDispatcher) }
-
     private val okHttpClient = OkHttpClient.Builder().connectionSpecs(listOf(ConnectionSpec.RESTRICTED_TLS))
         .connectTimeout(30, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
@@ -95,9 +91,7 @@ internal class WebRtcStreamingService(
         .build()
 
     private val playIntegrity = PlayIntegrity(service, environment, okHttpClient)
-
     private val monitorScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
-
     private val currentError: AtomicReference<WebRtcError?> = AtomicReference(null)
 
     // All Volatile vars must be write on this (WebRTC-HT) thread
@@ -110,6 +104,7 @@ internal class WebRtcStreamingService(
     private var deviceConfiguration: Configuration = Configuration(service.resources.configuration)
     private var socketErrorRetryAttempts: Int = 0
     private var signaling: SocketSignaling? = null
+    private var enableMic: Boolean = false
     private var waitingForPermission: Boolean = false
     private var mediaProjectionIntent: Intent? = null
     private var projection: WebRtcProjection? = null
@@ -339,8 +334,7 @@ internal class WebRtcStreamingService(
 
         handler.removeCallbacksAndMessages(null)
 
-        notificationsManager.hideForegroundNotification(service)
-        notificationsManager.hideErrorNotification()
+        notificationsManager.hideErrorNotification(WebRtcService.NOTIFICATION_ERROR_ID)
 
         service.stopSelf()
 
@@ -551,7 +545,7 @@ internal class WebRtcStreamingService(
                 if (currentStreamId.isEmpty().not() && currentStreamId != event.streamId) { // We got new streamId while we have another one
                     //TODO maybe notify user and clients?
                     stopStream()
-                    requireNotNull(signaling){ "signaling==null" }
+                    requireNotNull(signaling) { "signaling==null" }
                         .sendRemoveClients(clients.map { it.value.clientId }, "StreamCreated: New StreamID")
                     clients = HashMap()
                     currentStreamPassword = StreamPassword.EMPTY
@@ -575,7 +569,7 @@ internal class WebRtcStreamingService(
                     return
                 }
 
-                val prj =  projection!!
+                val prj = projection!!
 
                 clients[event.clientId]?.stop()
 
@@ -813,6 +807,7 @@ internal class WebRtcStreamingService(
                     return
                 }
 
+                enableMic = event.enableMic
                 projection?.setMicrophoneMute(event.enableMic.not())
 
                 if (isStreaming() && isAudioPermissionGrantedOnStart.not() && event.enableMic) {
@@ -916,8 +911,10 @@ internal class WebRtcStreamingService(
         } else {
             XLog.d(getLog("stopStream", "Not streaming. Ignoring."))
         }
+
         wakeLock?.apply { if (isHeld) release() }
         wakeLock = null
+
         mainHandler.post { notificationsManager.hideForegroundNotification(service) }
     }
 
@@ -934,14 +931,15 @@ internal class WebRtcStreamingService(
             environment.signalingServerUrl,
             currentStreamId.value,
             currentStreamPassword.value,
+            enableMic,
             waitingForPermission,
             isStreaming(),
             clients.map { it.value.toClient() },
             currentError.get()
         )
 
-        webRtcStateFlowProvider.mutableWebRtcStateFlow.value = state
-        webRtcStateFlowProvider.mutableAppStateFlow.value = state.toAppState()
+        mutableWebRtcStateFlow.value = state
+        appStateFlowProvider.mutableAppStateFlow.value = state.toAppState()
 
         if (previousError != currentError.get()) {
             previousError = currentError.get()
@@ -949,10 +947,10 @@ internal class WebRtcStreamingService(
                 if (it !is WebRtcError.NetworkError) XLog.e(getLog("publishState", it.message), it)
                 val message = it.toString(service)
                 mainHandler.post {
-                    notificationsManager.showErrorNotification(service, message, WebRtcEvent.Intentable.RecoverError.toIntent(service))
+                    notificationsManager.showErrorNotification(service, WebRtcService.NOTIFICATION_ERROR_ID, message, WebRtcEvent.Intentable.RecoverError.toIntent(service))
                 }
             } ?: mainHandler.post {
-                notificationsManager.hideErrorNotification()
+                notificationsManager.hideErrorNotification(WebRtcService.NOTIFICATION_ERROR_ID)
             }
         }
     }

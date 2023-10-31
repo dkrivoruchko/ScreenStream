@@ -4,7 +4,6 @@ import android.content.Context
 import androidx.annotation.MainThread
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.LifecycleOwner
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
 public interface StreamingModule {
@@ -49,7 +48,7 @@ public interface StreamingModule {
 
     @MainThread
     @Throws(IllegalStateException::class)
-    public fun createStreamingService(context: Context, mutableAppStateFlow: MutableStateFlow<AppState>)
+    public fun createStreamingService(context: Context)
 
     @MainThread
     @Throws(IllegalStateException::class)

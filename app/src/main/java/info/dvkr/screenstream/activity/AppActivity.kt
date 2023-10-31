@@ -28,6 +28,7 @@ import com.afollestad.materialdialogs.lifecycle.lifecycleOwner
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.BaseApp
 import info.dvkr.screenstream.R
+import info.dvkr.screenstream.common.AppStateFlowProvider
 import info.dvkr.screenstream.common.StreamingModule
 import info.dvkr.screenstream.common.StreamingModulesManager
 import info.dvkr.screenstream.common.getLog
@@ -47,6 +48,7 @@ public class AppActivity : NotificationPermissionActivity(R.layout.activity_app)
 
     private val binding by viewBinding { activity -> ActivityAppBinding.bind(activity.findViewById(R.id.container)) }
 
+    private val appStateFlowProvider: AppStateFlowProvider by inject(mode = LazyThreadSafetyMode.NONE)
     private val streamingModulesManager: StreamingModulesManager by inject(mode = LazyThreadSafetyMode.NONE)
 
     private var lastIsStreaming: Boolean = false
@@ -67,7 +69,7 @@ public class AppActivity : NotificationPermissionActivity(R.layout.activity_app)
 
         baseApp.sharedPreferences.registerOnSharedPreferenceChangeListener(prefListener)
 
-        streamingModulesManager.appStateFlow.onEach { state ->
+        appStateFlowProvider.appStateFlow.onEach { state ->
             XLog.d(getLog("onCreate", "streamingModulesManager.stateFlow.onEach: $state"))
 
             binding.bottomNavigationActivityApp.menu.findItem(R.id.menu_fab).title =

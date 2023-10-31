@@ -35,13 +35,12 @@ import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import info.dvkr.screenstream.common.view.viewBinding
 import info.dvkr.screenstream.mjpeg.MjpegKoinQualifier
 import info.dvkr.screenstream.mjpeg.MjpegSettings
-import info.dvkr.screenstream.mjpeg.MjpegStateFlowProvider
 import info.dvkr.screenstream.mjpeg.MjpegStreamingModule
 import info.dvkr.screenstream.mjpeg.R
 import info.dvkr.screenstream.mjpeg.databinding.DialogMjpegSettingsCropBinding
 import info.dvkr.screenstream.mjpeg.databinding.DialogMjpegSettingsResizeBinding
 import info.dvkr.screenstream.mjpeg.databinding.FragmentMjpegSettingsBinding
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
@@ -59,7 +58,6 @@ public class MjpegSettingsFragment : BottomSheetDialogFragment(R.layout.fragment
     private val binding by viewBinding { fragment -> FragmentMjpegSettingsBinding.bind(fragment.requireView()) }
 
     private val mjpegStreamingModule: MjpegStreamingModule by inject(named(MjpegKoinQualifier), LazyThreadSafetyMode.NONE)
-    private val mjpegSettings: MjpegSettings by mjpegStreamingModule.scope.inject(mode = LazyThreadSafetyMode.NONE)
 
     private val screenBounds: Rect by lazy { WindowMetricsCalculator.getOrCreate().computeMaximumWindowMetrics(requireActivity()).bounds }
 
@@ -74,6 +72,8 @@ public class MjpegSettingsFragment : BottomSheetDialogFragment(R.layout.fragment
         super.onViewCreated(view, savedInstanceState)
 
         binding.bFragmentSettingsClose.setOnClickListener { dismissAllowingStateLoss() }
+
+        val mjpegSettings = mjpegStreamingModule.mjpegSettings
 
         // Interface - Keep awake
         if (Build.MANUFACTURER !in listOf("OnePlus", "OPPO")) {
@@ -490,7 +490,7 @@ public class MjpegSettingsFragment : BottomSheetDialogFragment(R.layout.fragment
         binding.clFragmentSettingsAutoChangePin.setOnClickListener { binding.cbFragmentSettingsAutoChangePin.performClick() }
 
         // Security - Set pin
-        mjpegStreamingModule.scope.get<MjpegStateFlowProvider>().mutableMjpegStateFlow.asStateFlow().onEach { state ->
+        mjpegStreamingModule.mjpegStateFlow.filterNotNull().onEach { state ->
             binding.tvFragmentSettingsSetPinValue.text =
                 if (state.isStreaming && mjpegSettings.hidePinOnStartFlow.first()) "*" else mjpegSettings.pinFlow.first()
         }.launchIn(viewLifecycleOwner.lifecycleScope)
@@ -637,7 +637,7 @@ public class MjpegSettingsFragment : BottomSheetDialogFragment(R.layout.fragment
     }
 
     private suspend fun isVRModeEnabled(): Boolean =
-        mjpegSettings.vrModeFlow.first() in arrayOf(MjpegSettings.Default.VR_MODE_RIGHT, MjpegSettings.Default.VR_MODE_LEFT)
+        mjpegStreamingModule.mjpegSettings.vrModeFlow.first() in arrayOf(MjpegSettings.Default.VR_MODE_RIGHT, MjpegSettings.Default.VR_MODE_LEFT)
 
     private fun validateCropValues(
         dialog: MaterialDialog,
