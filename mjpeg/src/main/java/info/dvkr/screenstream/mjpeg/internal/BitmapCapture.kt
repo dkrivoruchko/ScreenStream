@@ -105,11 +105,18 @@ internal class BitmapCapture(
     init {
         XLog.d(getLog("init"))
 
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) runBlocking {
+            resizeFactor.getAndSet(mjpegSettings.resizeFactorFlow.first())
+            rotation.getAndSet(mjpegSettings.rotationFlow.first())
+        }
+
         updateMatrix()
 
-        if (state == State.STARTED && Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            mjpegSettings.resizeFactorFlow.listenForChange(coroutineScope) { if (resizeFactor.getAndSet(it) != it) updateMatrix() }
-            mjpegSettings.rotationFlow.listenForChange(coroutineScope) { if (rotation.getAndSet(it) != it) updateMatrix() }
+        mjpegSettings.resizeFactorFlow.listenForChange(coroutineScope) {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE && resizeFactor.getAndSet(it) != it) updateMatrix()
+        }
+        mjpegSettings.rotationFlow.listenForChange(coroutineScope) {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE && rotation.getAndSet(it) != it) updateMatrix()
         }
         mjpegSettings.maxFPSFlow.listenForChange(coroutineScope) { maxFPS.set(it) }
         mjpegSettings.vrModeFlow.listenForChange(coroutineScope) { vrMode.set(it) }

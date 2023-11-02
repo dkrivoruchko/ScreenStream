@@ -4,7 +4,9 @@ import android.os.Build
 import android.os.Bundle
 import android.view.View
 import androidx.lifecycle.lifecycleScope
+import com.elvishew.xlog.XLog
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
+import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.common.view.viewBinding
 import info.dvkr.screenstream.webrtc.R
 import info.dvkr.screenstream.webrtc.WebRtcKoinQualifier
@@ -27,6 +29,7 @@ public class WebRtcSettingsFragment : BottomSheetDialogFragment(R.layout.fragmen
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        XLog.d(getLog("onViewCreated"))
 
         binding.bFragmentSettingsClose.setOnClickListener { dismissAllowingStateLoss() }
 
@@ -58,5 +61,10 @@ public class WebRtcSettingsFragment : BottomSheetDialogFragment(R.layout.fragmen
             }
         }
         binding.clFragmentSettingsStopOnSleep.setOnClickListener { binding.cbFragmentSettingsStopOnSleep.performClick() }
+    }
+
+    override fun onDestroyView() {
+        XLog.d(getLog("onDestroyView"))
+        super.onDestroyView()
     }
 }

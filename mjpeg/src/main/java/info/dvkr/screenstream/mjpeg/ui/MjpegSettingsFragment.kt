@@ -31,7 +31,9 @@ import com.afollestad.materialdialogs.input.getInputField
 import com.afollestad.materialdialogs.input.input
 import com.afollestad.materialdialogs.lifecycle.lifecycleOwner
 import com.afollestad.materialdialogs.list.listItemsSingleChoice
+import com.elvishew.xlog.XLog
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
+import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.common.view.viewBinding
 import info.dvkr.screenstream.mjpeg.MjpegKoinQualifier
 import info.dvkr.screenstream.mjpeg.MjpegSettings
@@ -70,6 +72,7 @@ public class MjpegSettingsFragment : BottomSheetDialogFragment(R.layout.fragment
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        XLog.d(getLog("onViewCreated"))
 
         binding.bFragmentSettingsClose.setOnClickListener { dismissAllowingStateLoss() }
 
@@ -627,6 +630,11 @@ public class MjpegSettingsFragment : BottomSheetDialogFragment(R.layout.fragment
                 }
             }
         }
+    }
+
+    override fun onDestroyView() {
+        XLog.d(getLog("onDestroyView"))
+        super.onDestroyView()
     }
 
     private fun MaterialDialog.adjustPeekHeight(): MaterialDialog {

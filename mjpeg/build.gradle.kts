@@ -38,7 +38,7 @@ dependencies {
     // Temp fix for https://github.com/afollestad/material-dialogs/issues/1825
     compileOnly(fileTree("libs/bottomsheets-release.aar"))
 
-    implementation("org.jetbrains.kotlin:kotlin-reflect:1.9.10")
+    implementation("org.jetbrains.kotlin:kotlin-reflect:1.9.20")
 
     implementation("io.ktor:ktor-server-cio:2.3.5")
     implementation("io.ktor:ktor-server-compression:2.3.5")

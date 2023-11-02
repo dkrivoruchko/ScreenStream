@@ -38,6 +38,7 @@ import com.afollestad.materialdialogs.callbacks.onDismiss
 import com.afollestad.materialdialogs.customview.customView
 import com.afollestad.materialdialogs.lifecycle.lifecycleOwner
 import com.elvishew.xlog.XLog
+import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.common.view.viewBinding
 import info.dvkr.screenstream.mjpeg.MjpegKoinQualifier
@@ -130,6 +131,7 @@ public class MjpegStreamingFragment : Fragment(R.layout.fragment_mjpeg_stream) {
 
     override fun onDestroyView() {
         XLog.d(getLog("onDestroyView"))
+        (childFragmentManager.findFragmentByTag(MjpegSettingsFragment.TAG) as? BottomSheetDialogFragment)?.dismissAllowingStateLoss()
         super.onDestroyView()
         httpClientAdapter = null
     }
