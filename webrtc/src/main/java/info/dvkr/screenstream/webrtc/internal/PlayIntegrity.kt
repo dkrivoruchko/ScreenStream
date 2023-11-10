@@ -1,6 +1,7 @@
 package info.dvkr.screenstream.webrtc.internal
 
 import android.content.Context
+import android.os.RemoteException
 import androidx.annotation.AnyThread
 import com.elvishew.xlog.XLog
 import com.google.android.play.core.integrity.IntegrityManagerFactory
@@ -116,7 +117,12 @@ internal class PlayIntegrity(serviceContext: Context, private val environment: W
                 callback(Result.success(integrityToken))
             }.addOnFailureListener { error -> // @MainThread
                 XLog.e(getLog("getPlayIntegrityToken", "Failed: ${error.message}"))
-                callback(Result.failure((error as? StandardIntegrityException)?.toWebRtcError() ?: error))
+                val cause = when (error) {
+                    is StandardIntegrityException -> error.toWebRtcError()
+                    is RemoteException -> WebRtcError.PlayIntegrityError(StandardIntegrityErrorCode.INTERNAL_ERROR, true, error.message)
+                    else -> error
+                }
+                callback(Result.failure(cause))
             }
     }
 

@@ -11,14 +11,14 @@ import com.afollestad.materialdialogs.MaterialDialog
 import com.afollestad.materialdialogs.lifecycle.lifecycleOwner
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.R
+import info.dvkr.screenstream.common.NotificationHelper
 import info.dvkr.screenstream.common.getLog
-import info.dvkr.screenstream.notification.NotificationManagerImpl
 import info.dvkr.screenstream.ui.activity.AdActivity
 import org.koin.android.ext.android.inject
 
 public abstract class NotificationPermissionActivity(@LayoutRes contentLayoutId: Int) : AdActivity(contentLayoutId) {
 
-    private val notificationManagerImpl: NotificationManagerImpl by inject(mode = LazyThreadSafetyMode.NONE)
+    private val notificationHelper: NotificationHelper by inject(mode = LazyThreadSafetyMode.NONE)
 
     private val requestPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
         XLog.d(getLog("requestPermissionLauncher", "registerForActivityResult: $isGranted"))
@@ -35,10 +35,10 @@ public abstract class NotificationPermissionActivity(@LayoutRes contentLayoutId:
     override fun onStart() {
         super.onStart()
         when {
-            notificationManagerImpl.isNotificationPermissionGranted(this).not() ->
+            notificationHelper.notificationPermissionGranted(this).not() ->
                 requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
 
-            notificationManagerImpl.areNotificationsEnabled().not() ->
+            notificationHelper.areNotificationsEnabled().not() ->
                 showNotificationMandatoryDialog()
         }
     }
@@ -55,7 +55,7 @@ public abstract class NotificationPermissionActivity(@LayoutRes contentLayoutId:
                 message(R.string.app_activity_permission_allow_notifications_settings)
                 positiveButton(R.string.app_activity_permission_notification_settings) {
                     try {
-                        startActivity(notificationManagerImpl.getNotificationSettingsIntent(this@NotificationPermissionActivity))
+                        startActivity(notificationHelper.getNotificationSettingsIntent(this@NotificationPermissionActivity))
                     } catch (cause: ActivityNotFoundException) { //TODO Need prod logs
                         XLog.e(getLog("showPermissionsMandatoryDialog", "showSettings: $showSettings: $cause"), cause)
                     }
@@ -80,7 +80,7 @@ public abstract class NotificationPermissionActivity(@LayoutRes contentLayoutId:
             message(R.string.app_activity_permission_enable_notifications)
             positiveButton(R.string.app_activity_permission_notification_settings) {
                 try {
-                    startActivity(notificationManagerImpl.getNotificationSettingsIntent(this@NotificationPermissionActivity))
+                    startActivity(notificationHelper.getNotificationSettingsIntent(this@NotificationPermissionActivity))
                 } catch (cause: ActivityNotFoundException) { //TODO Need prod logs
                     XLog.e(getLog("showNotificationMandatoryDialog", "$cause"), cause)
                 }

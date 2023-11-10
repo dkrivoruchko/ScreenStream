@@ -1,22 +1,17 @@
 package info.dvkr.screenstream.mjpeg
 
 import android.app.ActivityManager
-import android.app.Service
 import android.content.Context
 import android.content.Intent
-import android.os.IBinder
-import androidx.annotation.RestrictTo
 import com.elvishew.xlog.XLog
-import info.dvkr.screenstream.common.NotificationsManager
-import info.dvkr.screenstream.common.StreamingModulesManager
+import info.dvkr.screenstream.common.AbstractService
 import info.dvkr.screenstream.common.getLog
+import info.dvkr.screenstream.mjpeg.internal.MjpegError
 import info.dvkr.screenstream.mjpeg.internal.MjpegEvent
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
-import org.koin.android.ext.android.inject
 
-@RestrictTo(RestrictTo.Scope.LIBRARY)
-public class MjpegService : Service() {
+public class MjpegService : AbstractService() {
 
     internal companion object {
         internal fun getIntent(context: Context): Intent = Intent(context, MjpegService::class.java)
@@ -32,19 +27,10 @@ public class MjpegService : Service() {
         }
         //ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND
         //ActivityManager.RunningAppProcessInfo.IMPORTANCE_VISIBLE
-
-        internal const val NOTIFICATION_ERROR_ID = 60
     }
 
-    private val streamingModulesManager: StreamingModulesManager by inject(mode = LazyThreadSafetyMode.NONE)
-    private val notificationsManager: NotificationsManager by inject(mode = LazyThreadSafetyMode.NONE)
-
-    override fun onBind(intent: Intent?): IBinder? = null
-
-    override fun onCreate() {
-        super.onCreate()
-        XLog.d(getLog("onCreate"))
-    }
+    override val notificationIdForeground: Int = 100
+    override val notificationIdError: Int = 110
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val mjpegEvent = MjpegEvent.Intentable.fromIntent(intent) ?: run {
@@ -60,8 +46,7 @@ public class MjpegService : Service() {
         }
 
         if (success.not()) { // No active module
-            XLog.w(getLog("onStartCommand", "No active module"))
-            notificationsManager.hideErrorNotification(NOTIFICATION_ERROR_ID)
+            XLog.w(getLog("onStartCommand", "No active module. Stop self"))
             stopSelf()
         }
 
@@ -71,7 +56,25 @@ public class MjpegService : Service() {
     override fun onDestroy() {
         XLog.d(getLog("onDestroy"))
         streamingModulesManager.deactivate(MjpegStreamingModule.Id)
-        notificationsManager.hideForegroundNotification(this)
         super.onDestroy()
+    }
+
+    @Throws(MjpegError.NotificationPermissionRequired::class, IllegalStateException::class)
+    internal fun startForeground() {
+        XLog.d(getLog("startForeground"))
+
+        if (notificationHelper.notificationPermissionGranted(this).not()) throw MjpegError.NotificationPermissionRequired
+
+        val stopIntent = MjpegEvent.Intentable.StopStream("MjpegService. User action: Notification").toIntent(this)
+        startForeground(stopIntent)
+    }
+
+    internal fun showErrorNotification(error: MjpegError) {
+        XLog.d(getLog("showErrorNotification", "${error.javaClass.simpleName} ${error.cause?.stackTrace}"))
+        XLog.e(getLog("showErrorNotification"), error) //TODO Wait for prod logs
+
+        val message = error.toString(this)
+        val recoverIntent = MjpegEvent.Intentable.RecoverError.toIntent(this)
+        showErrorNotification(message, recoverIntent)
     }
 }

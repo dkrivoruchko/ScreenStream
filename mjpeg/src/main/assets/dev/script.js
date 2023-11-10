@@ -169,12 +169,12 @@ function showStream(url) {
     fallbackMJPEG = null;
 
     if (fallbackMJPEGCounter > 2) {
-        window.DD_LOGS && DD_LOGS.logger.info("showStream", { mode: "fallback", streamAddress: url });
+        window.DD_LOGS && DD_LOGS.logger.debug("showStream", { mode: "fallback", streamAddress: url });
 
         streamDiv.style.visibility = 'visible';
         fallbackMJPEG = new MJPEG_JS(stream, url);
         fallbackMJPEG.onerror = (error) => {
-            window.DD_LOGS && DD_LOGS.logger.info("showStream", { mode: "fallback", result: "error", errorMessage: error.message });
+            window.DD_LOGS && DD_LOGS.logger.debug("showStream", { mode: "fallback", result: "error", errorMessage: error.message });
             fallbackMJPEG = null;
             if (error.message == "network error") {
                 return;
@@ -183,7 +183,7 @@ function showStream(url) {
             errorDiv.style.visibility = 'visible';
         };
         fallbackMJPEG.onload = () => {
-            window.DD_LOGS && DD_LOGS.logger.info("showStream", { mode: "fallback", result: "ok" });
+            window.DD_LOGS && DD_LOGS.logger.debug("showStream", { mode: "fallback", result: "ok" });
         };
         fallbackMJPEG.load();
     } else {
@@ -195,9 +195,9 @@ function showStream(url) {
         }).then(() => {
             fallbackMJPEGCounter = 0;
             streamDiv.style.visibility = 'visible';
-            window.DD_LOGS && DD_LOGS.logger.info("showStream", { mode: "default", result: "ok" });
+            window.DD_LOGS && DD_LOGS.logger.debug("showStream", { mode: "default", result: "ok" });
         }).catch((error) => {
-            window.DD_LOGS && DD_LOGS.logger.info("showStream", { mode: "default", result: "error" });
+            window.DD_LOGS && DD_LOGS.logger.debug("showStream", { mode: "default", result: "error" });
             fallbackMJPEGCounter++;
             showStreamTimeoutId = setTimeout(() => showStream(url), 150);
         });

@@ -40,11 +40,11 @@ dependencies {
 
     implementation("org.jetbrains.kotlin:kotlin-reflect:1.9.20")
 
-    implementation("io.ktor:ktor-server-cio:2.3.5")
-    implementation("io.ktor:ktor-server-compression:2.3.5")
-    implementation("io.ktor:ktor-server-caching-headers:2.3.5")
-    implementation("io.ktor:ktor-server-default-headers:2.3.5")
-    implementation("io.ktor:ktor-server-forwarded-header:2.3.5")
-    implementation("io.ktor:ktor-server-websockets:2.3.5")
-    implementation("io.ktor:ktor-server-status-pages:2.3.5")
+    implementation("io.ktor:ktor-server-cio:2.3.6")
+    implementation("io.ktor:ktor-server-compression:2.3.6")
+    implementation("io.ktor:ktor-server-caching-headers:2.3.6")
+    implementation("io.ktor:ktor-server-default-headers:2.3.6")
+    implementation("io.ktor:ktor-server-forwarded-header:2.3.6")
+    implementation("io.ktor:ktor-server-websockets:2.3.6")
+    implementation("io.ktor:ktor-server-status-pages:2.3.6")
 }

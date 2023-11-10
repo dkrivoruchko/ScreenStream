@@ -9,7 +9,6 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
-import android.content.pm.ServiceInfo
 import android.content.res.Configuration
 import android.net.ConnectivityManager
 import android.net.Network
@@ -18,7 +17,6 @@ import android.net.NetworkRequest
 import android.os.Build
 import android.os.Handler
 import android.os.HandlerThread
-import android.os.Looper
 import android.os.Message
 import android.os.PowerManager
 import androidx.annotation.AnyThread
@@ -26,7 +24,6 @@ import androidx.annotation.MainThread
 import androidx.core.content.ContextCompat
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.common.AppStateFlowProvider
-import info.dvkr.screenstream.common.NotificationsManager
 import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.webrtc.WebRtcKoinScope
 import info.dvkr.screenstream.webrtc.WebRtcService
@@ -65,7 +62,6 @@ internal class WebRtcStreamingService(
     @InjectedParam private val service: WebRtcService,
     @InjectedParam private val mutableWebRtcStateFlow: MutableStateFlow<WebRtcState>,
     private val appStateFlowProvider: AppStateFlowProvider,
-    private val notificationsManager: NotificationsManager,
     private val environment: WebRtcEnvironment,
     private val webRtcSettings: WebRtcSettings
 ) : HandlerThread("WebRTC-HT", android.os.Process.THREAD_PRIORITY_DISPLAY), Handler.Callback {
@@ -80,7 +76,6 @@ internal class WebRtcStreamingService(
 
     private val powerManager: PowerManager = service.getSystemService(PowerManager::class.java)
     private val connectivityManager: ConnectivityManager = service.getSystemService(ConnectivityManager::class.java)
-    private val mainHandler: Handler by lazy(LazyThreadSafetyMode.NONE) { Handler(Looper.getMainLooper()) }
     private val handler: Handler by lazy(LazyThreadSafetyMode.NONE) { Handler(looper, this) }
     private val coroutineDispatcher: CoroutineDispatcher by lazy(LazyThreadSafetyMode.NONE) { handler.asCoroutineDispatcher("WebRTC-HT_Dispatcher") }
     private val coroutineScope by lazy(LazyThreadSafetyMode.NONE) { CoroutineScope(SupervisorJob() + coroutineDispatcher) }
@@ -328,13 +323,11 @@ internal class WebRtcStreamingService(
         sendEvent(InternalEvent.Destroy(latch))
 
         runCatching {
-            if (latch.await(3000, TimeUnit.MILLISECONDS).not())
-                XLog.w(getLog("destroy", "Timeout"), IllegalStateException("destroy: Timeout"))
+            if (latch.await(5, TimeUnit.SECONDS).not())
+                XLog.w(getLog("destroy", "Timeout"), IllegalStateException("destroy: Timeout 5"))
         }
 
         handler.removeCallbacksAndMessages(null)
-
-        notificationsManager.hideErrorNotification(WebRtcService.NOTIFICATION_ERROR_ID)
 
         service.stopSelf()
 
@@ -386,13 +379,13 @@ internal class WebRtcStreamingService(
             XLog.d(getLog("handleMessage", "Event [$event] Current state: [${getStateString()}]"))
             processEvent(event)
         } catch (cause: Throwable) {
-            XLog.e(getLog("handleMessage.catch", cause.message))
-            XLog.e(getLog("handleMessage.catch", cause.message), cause)
+            XLog.e(getLog("handleMessage.catch", cause.toString()))
+            XLog.e(getLog("handleMessage.catch", cause.toString()), cause)
 
             mediaProjectionIntent = null
             stopStream()
 
-            currentError.set(WebRtcError.UnknownError(cause))
+            if (cause is WebRtcError) currentError.set(cause) else currentError.set(WebRtcError.UnknownError(cause))
         } finally {
             XLog.d(getLog("handleMessage", "Done [$event] New state: [${getStateString()}]"))
             if (event is InternalEvent.Destroy) event.latch.countDown()
@@ -435,7 +428,7 @@ internal class WebRtcStreamingService(
                 currentError.get()?.let { error ->
                     if (error !is WebRtcError.NetworkError || error.isNonRetryable()) {
                         XLog.w(getLog("GetNonce", "Error present. Ignoring. [$error]"))
-                        XLog.w(getLog("GetNonce", "Error present. Ignoring. [$error]"), error) //TODO need prod logs
+                        XLog.w(getLog("GetNonce", "Error present. Ignoring. [$error]"), RuntimeException("GetNonce: Error present. Ignoring. [$error]", error))
                         return
                     }
                     currentError.set(null)
@@ -464,14 +457,14 @@ internal class WebRtcStreamingService(
 
             is InternalEvent.GetToken -> {
                 if (destroyPending) {
-                    XLog.i(getLog("GetToken", "DestroyPending. Ignoring"), IllegalStateException("GetToken: DestroyPending"))
+                    XLog.i(getLog("GetToken", "DestroyPending. Ignoring"))
                     return
                 }
 
                 currentError.get()?.let { error ->
                     if (error !is WebRtcError.PlayIntegrityError || error.isAutoRetryable.not()) {
-                        XLog.w(getLog("GetToken", "Error present. Ignoring. [$error]")) //TODO Prod logs
-                        XLog.w(getLog("GetToken", "Error present. Ignoring. [$error]"), error)
+                        XLog.w(getLog("GetToken", "Error present. Ignoring. [$error]"))
+                        XLog.w(getLog("GetToken", "Error present. Ignoring. [$error]"), RuntimeException("GetToken: Error present. Ignoring. [$error]", error))
                         return
                     }
                     currentError.set(null)
@@ -523,7 +516,7 @@ internal class WebRtcStreamingService(
 
             is InternalEvent.StreamCreate -> {
                 if (destroyPending) {
-                    XLog.i(getLog("StreamCreate", "DestroyPending. Ignoring"), IllegalStateException("StreamCreate: DestroyPending"))
+                    XLog.i(getLog("StreamCreate", "DestroyPending. Ignoring"))
                     return
                 }
 
@@ -533,7 +526,7 @@ internal class WebRtcStreamingService(
 
             is InternalEvent.StreamCreated -> {
                 if (destroyPending) {
-                    XLog.i(getLog("StreamCreated", "DestroyPending. Ignoring"), IllegalStateException("StreamCreated: DestroyPending"))
+                    XLog.i(getLog("StreamCreated", "DestroyPending. Ignoring"))
                     return
                 }
 
@@ -565,7 +558,7 @@ internal class WebRtcStreamingService(
                 }
 
                 if (projection == null) {
-                    XLog.i(getLog("ClientJoin", "projection == null. Ignoring"), IllegalStateException("ClientJoin: projection == null. Ignoring"))
+                    XLog.i(getLog("ClientJoin", "projection == null. Ignoring"))
                     return
                 }
 
@@ -597,7 +590,7 @@ internal class WebRtcStreamingService(
 
             is InternalEvent.SocketSignalingError -> {
                 if (destroyPending) {
-                    XLog.i(getLog("SocketSignalingError", "DestroyPending. Ignoring"), IllegalStateException("SocketSignalingError: DestroyPending"))
+                    XLog.i(getLog("SocketSignalingError", "DestroyPending. Ignoring"))
                     return
                 }
 
@@ -627,47 +620,28 @@ internal class WebRtcStreamingService(
                 waitingForPermission = false
                 check(isStreaming().not()) { "WebRtcEvent.StartProjection: Already streaming" }
 
-                var notificationOk = false
-                try {
-                    runBlocking(Dispatchers.Main) {
-                        notificationsManager.showForegroundNotification(
-                            service, WebRtcEvent.Intentable.StopStream("User action: Notification").toIntent(service)
-                        )
-                    }
-                    notificationOk = true
-                } catch (cause: NotificationsManager.NotificationPermissionRequired) {
-                    currentError.set(WebRtcError.NotificationPermissionRequired)
-                    sendEvent(WebRtcEvent.UpdateState)
+                service.startForeground()
+
+                isAudioPermissionGrantedOnStart = ContextCompat.checkSelfPermission(service, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
+
+                val prj = requireNotNull(projection)
+                prj.start(currentStreamId, event.intent) {
+                    XLog.i(this@WebRtcStreamingService.getLog("StartProjection", "MediaProjectionCallback.onStop"))
+                    sendEvent(WebRtcEvent.Intentable.StopStream("MediaProjectionCallback.onStop"))
                 }
 
-                if (notificationOk) {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q)
-                        check(service.foregroundServiceType and ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION != 0) {
-                            "WebRtcEvent.StartProjection: Service is not FOREGROUND"
-                        }
+                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) mediaProjectionIntent = event.intent
 
-                    isAudioPermissionGrantedOnStart =
-                        ContextCompat.checkSelfPermission(service, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
+                service.registerComponentCallbacks(componentCallback)
 
-                    val prj = requireNotNull(projection)
-                    prj.start(currentStreamId, event.intent) {
-                        XLog.i(this@WebRtcStreamingService.getLog("StartProjection", "MediaProjectionCallback.onStop"))
-                        sendEvent(WebRtcEvent.Intentable.StopStream("MediaProjectionCallback.onStop"))
-                    }
+                requireNotNull(signaling).sendStreamStart()
+                clients.forEach { it.value.start(prj.localMediaSteam!!) }
 
-                    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) mediaProjectionIntent = event.intent
-
-                    service.registerComponentCallbacks(componentCallback)
-
-                    requireNotNull(signaling).sendStreamStart()
-                    clients.forEach { it.value.start(prj.localMediaSteam!!) }
-
-                    @Suppress("DEPRECATION")
-                    @SuppressLint("WakelockTimeout")
-                    if (runBlocking { Build.MANUFACTURER !in listOf("OnePlus", "OPPO") && webRtcSettings.keepAwakeFlow.first() }) {
-                        val flags = PowerManager.SCREEN_DIM_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP
-                        wakeLock = powerManager.newWakeLock(flags, "ScreenStream::WebRTC-Tag").apply { acquire() }
-                    }
+                @Suppress("DEPRECATION")
+                @SuppressLint("WakelockTimeout")
+                if (runBlocking { Build.MANUFACTURER !in listOf("OnePlus", "OPPO") && webRtcSettings.keepAwakeFlow.first() }) {
+                    val flags = PowerManager.SCREEN_DIM_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP
+                    wakeLock = powerManager.newWakeLock(flags, "ScreenStream::WebRTC-Tag").apply { acquire() }
                 }
             }
 
@@ -675,7 +649,7 @@ internal class WebRtcStreamingService(
 
             is WebRtcEvent.Intentable.RecoverError -> {
                 if (destroyPending) {
-                    XLog.i(getLog("RecoverError", "DestroyPending. Ignoring"), IllegalStateException("RecoverError: DestroyPending"))
+                    XLog.i(getLog("RecoverError", "DestroyPending. Ignoring"))
                     return
                 }
 
@@ -876,8 +850,7 @@ internal class WebRtcStreamingService(
 
             is WebRtcEvent.CreateNewPassword -> {
                 if (destroyPending) {
-                    XLog.i(getLog("CreateNewPassword", "DestroyPending. Ignoring"), IllegalStateException("CreateNewPassword: DestroyPending"))
-                    return
+                    XLog.i(getLog("CreateNewPassword", "DestroyPending. Ignoring"), IllegalStateException("CreateNewPassword: DestroyPending")); return
                 }
 
                 if (isStreaming()) {
@@ -915,7 +888,7 @@ internal class WebRtcStreamingService(
         wakeLock?.apply { if (isHeld) release() }
         wakeLock = null
 
-        mainHandler.post { notificationsManager.hideForegroundNotification(service) }
+        service.stopForeground()
     }
 
     // Inline Only
@@ -943,15 +916,7 @@ internal class WebRtcStreamingService(
 
         if (previousError != currentError.get()) {
             previousError = currentError.get()
-            previousError?.let {
-                if (it !is WebRtcError.NetworkError) XLog.e(getLog("publishState", it.message), it)
-                val message = it.toString(service)
-                mainHandler.post {
-                    notificationsManager.showErrorNotification(service, WebRtcService.NOTIFICATION_ERROR_ID, message, WebRtcEvent.Intentable.RecoverError.toIntent(service))
-                }
-            } ?: mainHandler.post {
-                notificationsManager.hideErrorNotification(WebRtcService.NOTIFICATION_ERROR_ID)
-            }
+            previousError?.let { service.showErrorNotification(it) } ?: service.hideErrorNotification()
         }
     }
 }

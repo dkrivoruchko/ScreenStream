@@ -6,7 +6,6 @@ import android.content.ComponentCallbacks
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ActivityInfo
-import android.content.pm.ServiceInfo
 import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -33,7 +32,6 @@ import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.content.ContextCompat
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.common.AppStateFlowProvider
-import info.dvkr.screenstream.common.NotificationsManager
 import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.mjpeg.*
 import info.dvkr.screenstream.mjpeg.databinding.ToastMjpegSlowConnectionBinding
@@ -54,7 +52,6 @@ internal class MjpegStreamingService(
     @InjectedParam private val service: MjpegService,
     @InjectedParam private val mutableMjpegStateFlow: MutableStateFlow<MjpegState>,
     private val appStateFlowProvider: AppStateFlowProvider,
-    private val notificationsManager: NotificationsManager,
     private val networkHelper: NetworkHelper,
     private val mjpegSettings: MjpegSettings
 ) : HandlerThread("MJPEG-HT", android.os.Process.THREAD_PRIORITY_DISPLAY), Handler.Callback {
@@ -227,13 +224,11 @@ internal class MjpegStreamingService(
         sendEvent(InternalEvent.Destroy(latch))
 
         runCatching {
-            if (latch.await(3000, TimeUnit.MILLISECONDS).not())
-                XLog.w(getLog("destroy", "Timeout"), IllegalStateException("destroy: Timeout"))
+            if (latch.await(5, TimeUnit.SECONDS).not())
+                XLog.w(getLog("destroy", "Timeout"), IllegalStateException("destroy: Timeout 5"))
         }
 
         handler.removeCallbacksAndMessages(null)
-
-        notificationsManager.hideErrorNotification(MjpegService.NOTIFICATION_ERROR_ID)
 
         service.stopSelf()
 
@@ -357,45 +352,28 @@ internal class MjpegStreamingService(
                         waitingForPermission = false
                         check(isStreaming.not()) { "MjpegEvent.StartProjection: Already streaming" }
 
-                        var notificationOk = false
-                        try {
-                            runBlocking(Dispatchers.Main) {
-                                notificationsManager.showForegroundNotification(
-                                    service, MjpegEvent.Intentable.StopStream("User action: Notification").toIntent(service)
-                                )
-                            }
-                            notificationOk = true
-                        } catch (cause: NotificationsManager.NotificationPermissionRequired) {
-                            sendEvent(InternalEvent.Error(MjpegError.NotificationPermissionRequired))
+                        service.startForeground()
+
+                        val mediaProjection = projectionManager.getMediaProjection(Activity.RESULT_OK, event.intent).apply {
+                            registerCallback(projectionCallback, Handler(Looper.getMainLooper()))
                         }
 
-                        if (notificationOk) {
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q)
-                                check(service.foregroundServiceType and ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION != 0) {
-                                    "MjpegEvent.StartProjection: Service is not FOREGROUND"
-                                }
-
-                            val mediaProjection = projectionManager.getMediaProjection(Activity.RESULT_OK, event.intent).apply {
-                                registerCallback(projectionCallback, Handler(Looper.getMainLooper()))
-                            }
-
-                            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) mediaProjectionIntent = event.intent
-                            val bitmapCapture = BitmapCapture(service, mjpegSettings, mediaProjection, bitmapStateFlow) { error ->
-                                sendEvent(InternalEvent.Error(error))
-                            }
-                            if (bitmapCapture.start()) service.registerComponentCallbacks(componentCallback)
-
-                            @Suppress("DEPRECATION")
-                            @SuppressLint("WakelockTimeout")
-                            if (runBlocking { Build.MANUFACTURER !in listOf("OnePlus", "OPPO") && mjpegSettings.keepAwakeFlow.first() }) {
-                                val flags = PowerManager.SCREEN_DIM_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP
-                                wakeLock = powerManager.newWakeLock(flags, "ScreenStream::MJPEG-Tag").apply { acquire() }
-                            }
-
-                            this.isStreaming = true
-                            this.mediaProjection = mediaProjection
-                            this.bitmapCapture = bitmapCapture
+                        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) mediaProjectionIntent = event.intent
+                        val bitmapCapture = BitmapCapture(service, mjpegSettings, mediaProjection, bitmapStateFlow) { error ->
+                            sendEvent(InternalEvent.Error(error))
                         }
+                        if (bitmapCapture.start()) service.registerComponentCallbacks(componentCallback)
+
+                        @Suppress("DEPRECATION")
+                        @SuppressLint("WakelockTimeout")
+                        if (runBlocking { Build.MANUFACTURER !in listOf("OnePlus", "OPPO") && mjpegSettings.keepAwakeFlow.first() }) {
+                            val flags = PowerManager.SCREEN_DIM_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP
+                            wakeLock = powerManager.newWakeLock(flags, "ScreenStream::MJPEG-Tag").apply { acquire() }
+                        }
+
+                        this.isStreaming = true
+                        this.mediaProjection = mediaProjection
+                        this.bitmapCapture = bitmapCapture
                     }
 
                 is MjpegEvent.Intentable.StopStream -> {
@@ -488,13 +466,13 @@ internal class MjpegStreamingService(
                 else -> throw IllegalArgumentException("Unknown MjpegEvent: ${event::class.java}")
             }
         } catch (cause: Throwable) {
-            XLog.e(getLog("processEvent.catch", cause.message))
-            XLog.e(getLog("processEvent.catch", cause.message), cause)
+            XLog.e(getLog("processEvent.catch", cause.toString()))
+            XLog.e(getLog("processEvent.catch", cause.toString()), cause)
 
             mediaProjectionIntent = null
             stopStream()
 
-            currentError = MjpegError.UnknownError(cause)
+            currentError = if (cause is MjpegError) cause else MjpegError.UnknownError(cause)
         } finally {
             XLog.d(getLog("processEvent", "Done [$event] New state: [${getStateString()}]"))
             if (event is InternalEvent.Destroy) event.latch.countDown()
@@ -523,7 +501,7 @@ internal class MjpegStreamingService(
         wakeLock?.apply { if (isHeld) release() }
         wakeLock = null
 
-        mainHandler.post { notificationsManager.hideForegroundNotification(service) }
+        service.stopForeground()
     }
 
     // Inline Only
@@ -542,16 +520,7 @@ internal class MjpegStreamingService(
 
         if (previousError != currentError) {
             previousError = currentError
-            currentError?.let {
-                if (it !is MjpegError.AddressNotFoundException)
-                    XLog.e(getLog("publishState", it.message ?: it::class.java.simpleName), it)
-                val message = it.toString(service)
-                mainHandler.post {
-                    notificationsManager.showErrorNotification(service, MjpegService.NOTIFICATION_ERROR_ID, message, MjpegEvent.Intentable.RecoverError.toIntent(service))
-                }
-            } ?: mainHandler.post {
-                notificationsManager.hideErrorNotification(MjpegService.NOTIFICATION_ERROR_ID)
-            }
+            currentError?.let { service.showErrorNotification(it) } ?: service.hideErrorNotification()
         }
     }
 

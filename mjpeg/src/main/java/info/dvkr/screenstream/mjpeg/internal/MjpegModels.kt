@@ -76,7 +76,7 @@ internal sealed class MjpegError(@StringRes open val id: Int, override val messa
     internal data class BitmapCaptureException(override val cause: Throwable?) : MjpegError(R.string.mjpeg_error_unspecified) {
         override fun toString(context: Context): String = context.getString(id) + " [${cause?.message}]"
     }
-    internal data object NotificationPermissionRequired : MjpegError(R.string.mjpeg_error_notification_permission_required)
+    internal data object NotificationPermissionRequired : MjpegError(R.string.mjpeg_error_notification_permission_required) //TODO update error with settings button
     internal data class UnknownError(override val cause: Throwable?) : MjpegError(R.string.mjpeg_error_unspecified) {
         override fun toString(context: Context): String = context.getString(id) + " [${cause?.message}]"
     }

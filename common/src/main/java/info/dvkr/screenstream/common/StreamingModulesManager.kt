@@ -10,7 +10,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import org.koin.core.annotation.Single
 
 @Single
-public class StreamingModulesManager(modules: List<StreamingModule>) {
+public class StreamingModulesManager(modules: List<StreamingModule>, private val appStateFlowProvider: AppStateFlowProvider) {
     @JvmField
     public val modules: List<StreamingModule> = modules.sortedByDescending { it.priority }
 
@@ -37,6 +37,8 @@ public class StreamingModulesManager(modules: List<StreamingModule>) {
         }
 
         deactivate(_activeModuleStateFlow.value?.id ?: StreamingModule.Id.UNDEFINED)
+
+        appStateFlowProvider.mutableAppStateFlow.value = StreamingModule.AppState()
 
         modules.first { it.id == id }.let { module ->
             module.createStreamingService(context)

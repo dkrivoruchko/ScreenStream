@@ -106,7 +106,10 @@ public class AppActivity : NotificationPermissionActivity(R.layout.activity_app)
                 XLog.i(this@AppActivity.getLog("streamingModuleFlow.onEach:", "$moduleId"))
                 if (moduleId.isDefined())
                     runCatching { streamingModulesManager.activate(moduleId, this) }
-                        .onFailure { XLog.e(this@AppActivity.getLog("streamingModuleFlow.onFailure:", it.message), it) }
+                        .onFailure {
+                            XLog.e(this@AppActivity.getLog("streamingModuleFlow.onFailure:", it.toString()))
+                            XLog.e(this@AppActivity.getLog("streamingModuleFlow.onFailure:", it.message), it)
+                        }
             }
             .onCompletion { XLog.i(this@AppActivity.getLog("streamingModuleFlow.onCompletion")) }
             .flowWithLifecycle(lifecycle)

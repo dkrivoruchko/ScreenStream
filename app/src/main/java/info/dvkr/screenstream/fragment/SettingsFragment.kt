@@ -19,11 +19,11 @@ import com.afollestad.materialdialogs.list.listItemsSingleChoice
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.BaseApp
 import info.dvkr.screenstream.R
+import info.dvkr.screenstream.common.NotificationHelper
 import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.common.view.viewBinding
 import info.dvkr.screenstream.databinding.FragmentSettingsBinding
 import info.dvkr.screenstream.logging.cleanLogFiles
-import info.dvkr.screenstream.notification.NotificationManagerImpl
 import info.dvkr.screenstream.settings.AppSettings
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -36,7 +36,7 @@ import org.koin.android.ext.android.inject
 public class SettingsFragment : Fragment(R.layout.fragment_settings) {
 
     private val appSettings: AppSettings by inject(mode = LazyThreadSafetyMode.NONE)
-    private val notificationManagerImpl: NotificationManagerImpl by inject(mode = LazyThreadSafetyMode.NONE)
+    private val notificationHelper: NotificationHelper by inject(mode = LazyThreadSafetyMode.NONE)
 
     private val nightModeList = if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.P)
         listOf(
@@ -104,7 +104,7 @@ public class SettingsFragment : Fragment(R.layout.fragment_settings) {
         // Device notification settings
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             binding.clFragmentSettingsNotification.setOnClickListener {
-                startActivityCatching(notificationManagerImpl.getNotificationSettingsIntent(requireContext()))
+                startActivityCatching(notificationHelper.getNotificationSettingsIntent(requireContext()))
             }
         } else {
             binding.clFragmentSettingsNotification.visibility = View.GONE

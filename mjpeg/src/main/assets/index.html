@@ -158,12 +158,19 @@
     </style>
     <script type="text/javascript" src="https://www.datadoghq-browser-agent.com/us1/v4/datadog-logs.js" crossorigin="anonymous"></script>
     <script>
+        "use strict";
+
         window.DD_LOGS && DD_LOGS.init({
             clientToken: "pub26fc6543f9239240ed8ae545593f921f",
             site: "datadoghq.com",
             forwardConsoleLogs: ["info", "warn", "error"],
             forwardReports: "all",
             service: '%DD_SERVICE%',
+            beforeSend: function beforeSend(log) {
+                if (log.result === "error" && (log.errorMessage.startsWith("Fetch error GET") || log.errorMessage.startsWith("XHR error GET"))) {
+                    return false;
+                }
+            }
         });
         window.DD_LOGS && DD_LOGS.logger.setHandler(DD_HANDLER);
         window.DD_LOGS && DD_LOGS.setGlobalContextProperty('version', '%APP_VERSION%');

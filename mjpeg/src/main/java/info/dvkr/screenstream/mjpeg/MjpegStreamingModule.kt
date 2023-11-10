@@ -32,7 +32,7 @@ public class MjpegStreamingModule : StreamingModule {
 
     override val id: StreamingModule.Id = Id
 
-    override val priority: Int = 10
+    override val priority: Int = 20
 
     private val _streamingServiceIsActive: MutableStateFlow<Boolean> = MutableStateFlow(false)
     override val streamingServiceIsActive: StateFlow<Boolean>
@@ -122,7 +122,9 @@ public class MjpegStreamingModule : StreamingModule {
                 _streamingServiceIsActive.value = true
             }
 
-            else -> requireNotNull(_scope).get<MjpegStreamingService>().sendEvent(event as MjpegEvent)
+            is MjpegEvent -> requireNotNull(_scope).get<MjpegStreamingService>().sendEvent(event)
+
+            else -> XLog.e(getLog("sendEvent", "Unexpected event: $event"), IllegalArgumentException("Unexpected event: $event"))
         }
     }
 

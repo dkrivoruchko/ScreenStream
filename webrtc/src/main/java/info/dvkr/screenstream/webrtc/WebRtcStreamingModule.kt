@@ -31,7 +31,7 @@ public class WebRtcStreamingModule : StreamingModule {
 
     override val id: StreamingModule.Id = Id
 
-    override val priority: Int = 20
+    override val priority: Int = 10
 
     private val _streamingServiceIsActive: MutableStateFlow<Boolean> = MutableStateFlow(false)
     override val streamingServiceIsActive: StateFlow<Boolean>
@@ -121,7 +121,9 @@ public class WebRtcStreamingModule : StreamingModule {
                 _streamingServiceIsActive.value = true
             }
 
-            else -> requireNotNull(_scope).get<WebRtcStreamingService>().sendEvent(event as WebRtcEvent)
+            is WebRtcEvent -> requireNotNull(_scope).get<WebRtcStreamingService>().sendEvent(event)
+
+            else -> XLog.e(getLog("sendEvent", "Unexpected event: $event"), IllegalArgumentException("Unexpected event: $event"))
         }
     }
 
