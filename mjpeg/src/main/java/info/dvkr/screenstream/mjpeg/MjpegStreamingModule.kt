@@ -88,14 +88,16 @@ public class MjpegStreamingModule : StreamingModule {
             XLog.e(getLog("createStreamingService", "Scope exists"), IllegalStateException("Scope exists"))
             destroyStreamingService()
         }
+
+        MjpegService.startService(context, MjpegEvent.Intentable.StartService.toIntent(context))
+
         _scope = MjpegKoinScope().scope
         _mjpegStateFlow.value = MjpegState()
-        MjpegService.startService(context, MjpegEvent.Intentable.StartService.toIntent(context))
     }
 
     @MainThread
     @Throws(IllegalStateException::class)
-    override fun sendEvent(event: StreamingModule.AppEvent) {
+    override fun sendEvent(event: StreamingModule.AppEvent): Boolean {
         XLog.d(getLog("sendEvent", "Event $event"))
         check(Looper.getMainLooper().isCurrentThread) { "Only main thread allowed" }
 
@@ -107,7 +109,7 @@ public class MjpegStreamingModule : StreamingModule {
                 requireNotNull(_scope).get<MjpegStreamingService>().sendEvent(MjpegEvent.Intentable.StopStream("User action: Button"))
 
             is StreamingModule.AppEvent.Exit -> {
-                if (_scope != null) destroyStreamingService()
+                destroyStreamingService()
                 event.callback()
             }
 
@@ -124,8 +126,12 @@ public class MjpegStreamingModule : StreamingModule {
 
             is MjpegEvent -> requireNotNull(_scope).get<MjpegStreamingService>().sendEvent(event)
 
-            else -> XLog.e(getLog("sendEvent", "Unexpected event: $event"), IllegalArgumentException("Unexpected event: $event"))
+            else -> {
+                XLog.e(getLog("sendEvent", "Unexpected event: $event"), IllegalArgumentException("Unexpected event: $event"))
+                return false
+            }
         }
+        return true
     }
 
     @MainThread

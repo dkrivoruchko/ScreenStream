@@ -32,13 +32,13 @@ dependencies {
 
     api("androidx.lifecycle:lifecycle-runtime-ktx:2.6.2")
     api("androidx.core:core-ktx:1.12.0")
-    api("androidx.activity:activity-ktx:1.8.0")
+    api("androidx.activity:activity-ktx:1.8.1")
     api("androidx.fragment:fragment-ktx:1.6.2")
     api("androidx.appcompat:appcompat:1.6.1")
     api("androidx.constraintlayout:constraintlayout:2.1.4")
     api("androidx.recyclerview:recyclerview:1.3.2")
     api("com.google.android.material:material:1.11.0-beta01")
-    api("androidx.window:window:1.1.0")
+    api("androidx.window:window:1.2.0")
 
     api("com.afollestad.material-dialogs:core:3.3.0")
     api("com.afollestad.material-dialogs:color:3.3.0")

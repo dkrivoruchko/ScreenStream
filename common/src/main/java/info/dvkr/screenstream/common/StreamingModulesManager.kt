@@ -64,7 +64,7 @@ public class StreamingModulesManager(modules: List<StreamingModule>, private val
         XLog.d(getLog("sendEvent", "Event $event"))
         check(Looper.getMainLooper().isCurrentThread) { "Only main thread allowed" }
 
-        return _activeModuleStateFlow.value?.sendEvent(event)?.let { true } ?: run {
+        return _activeModuleStateFlow.value?.sendEvent(event) ?: run {
             if (event is StreamingModule.AppEvent.Exit) event.callback()
             else {
                 val exception = IllegalStateException("StreamingModulesManager.sendEvent $event. No active module.")

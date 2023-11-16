@@ -87,14 +87,16 @@ public class WebRtcStreamingModule : StreamingModule {
             XLog.e(getLog("createStreamingService", "Scope exists"), IllegalStateException("Scope exists"))
             destroyStreamingService()
         }
+
+        WebRtcService.startService(context, WebRtcEvent.Intentable.StartService.toIntent(context))
+
         _scope = WebRtcKoinScope().scope
         _webRtcStateFlow.value = WebRtcState()
-        WebRtcService.startService(context, WebRtcEvent.Intentable.StartService.toIntent(context))
     }
 
     @MainThread
     @Throws(IllegalStateException::class)
-    override fun sendEvent(event: StreamingModule.AppEvent) {
+    override fun sendEvent(event: StreamingModule.AppEvent): Boolean {
         XLog.d(getLog("sendEvent", "Event $event"))
         check(Looper.getMainLooper().isCurrentThread) { "Only main thread allowed" }
 
@@ -106,7 +108,7 @@ public class WebRtcStreamingModule : StreamingModule {
                 requireNotNull(_scope).get<WebRtcStreamingService>().sendEvent(WebRtcEvent.Intentable.StopStream("User action: Button"))
 
             is StreamingModule.AppEvent.Exit -> {
-                if (_scope != null) destroyStreamingService()
+                destroyStreamingService()
                 event.callback()
             }
 
@@ -123,8 +125,12 @@ public class WebRtcStreamingModule : StreamingModule {
 
             is WebRtcEvent -> requireNotNull(_scope).get<WebRtcStreamingService>().sendEvent(event)
 
-            else -> XLog.e(getLog("sendEvent", "Unexpected event: $event"), IllegalArgumentException("Unexpected event: $event"))
+            else -> {
+                XLog.e(getLog("sendEvent", "Unexpected event: $event"), IllegalArgumentException("Unexpected event: $event"))
+                return false
+            }
         }
+        return true
     }
 
     @MainThread

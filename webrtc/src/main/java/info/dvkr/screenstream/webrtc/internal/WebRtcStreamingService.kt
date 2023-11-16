@@ -41,6 +41,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import okhttp3.ConnectionSpec
@@ -271,7 +272,7 @@ internal class WebRtcStreamingService(
                 val marker = AtomicBoolean(false)
                 sendEvent(InternalEvent.Monitor(counter, marker))
                 delay(3000)
-                if (marker.get().not())
+                if (isActive && marker.get().not())
                     XLog.e(this@WebRtcStreamingService.getLog("LOCK @:$counter"), IllegalArgumentException("LOCK @:$counter"))
             }
         }

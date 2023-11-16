@@ -161,8 +161,8 @@ internal class MjpegStreamingService(
             repeat(Int.MAX_VALUE) { counter ->
                 val marker = AtomicBoolean(false)
                 sendEvent(InternalEvent.Monitor(counter, marker))
-                delay(3000)
-                if (marker.get().not())
+                delay(5000)
+                if (isActive && marker.get().not())
                     XLog.e(this@MjpegStreamingService.getLog("LOCK @:$counter"), IllegalArgumentException("LOCK @:$counter"))
             }
         }
@@ -288,7 +288,7 @@ internal class MjpegStreamingService(
                 }
 
                 is InternalEvent.DiscoverAddress -> {
-                    if (pendingServer.not()) runBlocking { httpServer.stop(false).await() }
+                    if (pendingServer.not()) runBlocking { httpServer.stop(false) }
 
                     val (useWiFiOnly, enableIPv6) = runBlocking {
                         Pair(mjpegSettings.useWiFiOnlyFlow.first(), mjpegSettings.enableIPv6Flow.first())
@@ -314,7 +314,7 @@ internal class MjpegStreamingService(
                 }
 
                 is InternalEvent.StartServer -> {
-                    if (pendingServer.not()) runBlocking { httpServer.stop(false).await() }
+                    if (pendingServer.not()) runBlocking { httpServer.stop(false) }
                     httpServer.start(event.interfaces.toList())
 
                     if (runBlocking { mjpegSettings.htmlShowPressStartFlow.first() }) bitmapStateFlow.value = startBitmap
@@ -415,7 +415,7 @@ internal class MjpegStreamingService(
                         XLog.d(getLog("processEvent", "RestartServer: No running server."))
                         if (currentError == MjpegError.AddressNotFoundException) currentError = null
                     } else {
-                        runBlocking { httpServer.stop(event.reason is RestartReason.SettingsChanged).await() }
+                        runBlocking { httpServer.stop(event.reason is RestartReason.SettingsChanged) }
                         sendEvent(InternalEvent.InitState(false))
                     }
                     sendEvent(InternalEvent.DiscoverAddress("RestartServer", 0))
@@ -423,7 +423,7 @@ internal class MjpegStreamingService(
 
                 is MjpegEvent.Intentable.RecoverError -> {
                     stopStream()
-                    runBlocking { httpServer.stop(true).await() }
+                    runBlocking { httpServer.stop(true) }
 
                     handler.removeMessages(MjpegEvent.Priority.RESTART_IGNORE)
                     handler.removeMessages(MjpegEvent.Priority.RECOVER_IGNORE)
@@ -434,7 +434,7 @@ internal class MjpegStreamingService(
 
                 is InternalEvent.Destroy -> {
                     stopStream()
-                    runBlocking { httpServer.destroy().await() }
+                    runBlocking { httpServer.destroy() }
                     currentError = null
                 }
 

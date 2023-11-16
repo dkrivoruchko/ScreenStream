@@ -52,7 +52,7 @@ public interface StreamingModule {
 
     @MainThread
     @Throws(IllegalStateException::class)
-    public fun sendEvent(event: AppEvent)
+    public fun sendEvent(event: AppEvent): Boolean
 
     @MainThread
     @Throws(IllegalStateException::class)

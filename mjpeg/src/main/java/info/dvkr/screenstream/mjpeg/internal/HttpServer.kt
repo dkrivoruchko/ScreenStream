@@ -21,7 +21,6 @@ import io.ktor.server.application.call
 import io.ktor.server.application.install
 import io.ktor.server.cio.*
 import io.ktor.server.engine.*
-import io.ktor.server.http.content.staticResources
 import io.ktor.server.plugins.cachingheaders.CachingHeaders
 import io.ktor.server.plugins.compression.Compression
 import io.ktor.server.plugins.compression.deflate
@@ -75,27 +74,26 @@ internal class HttpServer(
     private val indexHtml: AtomicReference<String> = AtomicReference("")
     private val lastJPEG: AtomicReference<ByteArray> = AtomicReference(ByteArray(0))
     private val serverData: HttpServerData = HttpServerData(sendEvent)
-    private val stopDeferredRelay: AtomicReference<CompletableDeferred<Unit>?> = AtomicReference(null)
+    private val ktorServer: AtomicReference<Pair<CIOApplicationEngine, CompletableDeferred<Unit>>> = AtomicReference(null)
 
-    private val coroutineExceptionHandler = CoroutineExceptionHandler { _, throwable ->
-        if (throwable is CancellationException) return@CoroutineExceptionHandler
-        if (throwable is IOException && throwable !is BindException) return@CoroutineExceptionHandler
-        ktorServer?.stop(0, 250)
-        ktorServer = null
-        when (throwable) {
-            is BindException -> {
-                XLog.w(getLog("coroutineExceptionHandler", "coroutineExceptionHandler: $throwable"))
-                sendEvent(MjpegStreamingService.InternalEvent.Error(MjpegError.AddressInUseException))
-            }
-            else -> {
-                XLog.w(getLog("coroutineExceptionHandler", "coroutineExceptionHandler: $throwable"), throwable)
-                sendEvent(MjpegStreamingService.InternalEvent.Error(MjpegError.HttpServerException))
-            }
-        }
-    }
-
-    @Volatile
-    private var ktorServer: CIOApplicationEngine? = null
+//    private val coroutineExceptionHandler = CoroutineExceptionHandler { _, throwable ->
+//        XLog.e(getLog("coroutineExceptionHandler", "coroutineExceptionHandler: $throwable"), throwable)
+//
+//        if (throwable is CancellationException) return@CoroutineExceptionHandler
+//        if (throwable is IOException && throwable !is BindException) return@CoroutineExceptionHandler
+//        ktorServer?.stop(0, 250)
+//        ktorServer = null
+//        when (throwable) {
+//            is BindException -> {
+//                XLog.w(getLog("coroutineExceptionHandler", "coroutineExceptionHandler: $throwable"))
+//                sendEvent(MjpegStreamingService.InternalEvent.Error(MjpegError.AddressInUseException))
+//            }
+//            else -> {
+//                XLog.w(getLog("coroutineExceptionHandler", "coroutineExceptionHandler: $throwable"), throwable)
+//                sendEvent(MjpegStreamingService.InternalEvent.Error(MjpegError.HttpServerException))
+//            }
+//        }
+//    }
 
     init {
         XLog.d(getLog("init"))
@@ -104,7 +102,7 @@ internal class HttpServer(
     internal fun start(serverAddresses: List<MjpegState.NetInterface>) {
         XLog.d(getLog("startServer"))
 
-        val coroutineScope = CoroutineScope(Job() + Dispatchers.Default + coroutineExceptionHandler)
+        val coroutineScope = CoroutineScope(Job() + Dispatchers.Default)
 
         runBlocking(coroutineScope.coroutineContext) { serverData.configure(mjpegSettings) }
 
@@ -141,18 +139,25 @@ internal class HttpServer(
             .conflate()
             .shareIn(coroutineScope, SharingStarted.Eagerly, 1)
 
+        val serverPort = runBlocking { mjpegSettings.serverPortFlow.first() }
         val server = embeddedServer(CIO, applicationEngineEnvironment {
-            parentCoroutineContext = coroutineScope.coroutineContext
+            parentCoroutineContext = CoroutineExceptionHandler { _, throwable ->
+                XLog.e(this@HttpServer.getLog("parentCoroutineContext", "coroutineExceptionHandler: $throwable"), throwable)
+            }
             module { appModule(mjpegSharedFlow) }
             serverAddresses.forEach { netInterface ->
                 connector {
                     host = netInterface.address.hostAddress!!
-                    port = runBlocking(parentCoroutineContext) { mjpegSettings.serverPortFlow.first() }
+                    port = serverPort
                 }
             }
         }) {
             connectionIdleTimeoutSeconds = 10
+            shutdownGracePeriod = 0
+            shutdownTimeout = 500
         }
+
+        ktorServer.set(server to CompletableDeferred())
 
         server.environment.monitor.subscribe(ApplicationStarted) {
             XLog.i(getLog("monitor", "KtorStarted: ${it.hashCode()}"))
@@ -160,51 +165,51 @@ internal class HttpServer(
 
         server.environment.monitor.subscribe(ApplicationStopped) {
             XLog.i(getLog("monitor", "KtorStopped: ${it.hashCode()}"))
-            it.environment.parentCoroutineContext.cancel()
+            ktorServer.get().second.complete(Unit) //TODO may be null
+            coroutineScope.cancel()
             serverData.clear()
-            stopDeferredRelay.getAndSet(null)?.complete(Unit)
         }
 
-        var exception: MjpegError? = null
         try {
             server.start(false)
-        } catch (ignore: CancellationException) {
-        } catch (ex: BindException) {
-            XLog.w(getLog("startServer.BindException", ex.toString()))
-            exception = MjpegError.AddressInUseException
-        } catch (throwable: Throwable) {
-            XLog.e(getLog("startServer.Throwable", throwable.toString()))
-            XLog.e(getLog("startServer.Throwable"), throwable)
-            exception = MjpegError.HttpServerException
-        } finally {
-            exception?.let {
-                sendEvent(MjpegStreamingService.InternalEvent.Error(it))
-                server.stop(0, 250)
-                ktorServer = null
-            } ?: run {
-                ktorServer = server
+        } catch (cause: CancellationException) {
+            if (cause.cause is BindException) {
+                XLog.w(getLog("startServer.BindException", cause.cause.toString()))
+                sendEvent(MjpegStreamingService.InternalEvent.Error(MjpegError.AddressInUseException))
+            } else {
+                XLog.w(getLog("startServer.CancellationException", cause.toString())) //TODO Need real logs
+                XLog.w(getLog("startServer.CancellationException", cause.toString()), cause)
+                sendEvent(MjpegStreamingService.InternalEvent.Error(MjpegError.HttpServerException))
             }
+        } catch (cause: Throwable) {
+            XLog.e(getLog("startServer.Throwable", cause.toString())) //TODO Need real logs
+            XLog.e(getLog("startServer.Throwable"), cause)
+            sendEvent(MjpegStreamingService.InternalEvent.Error(MjpegError.HttpServerException))
         }
+        XLog.d(getLog("startServer", "Done. Ktor: ${server.application.hashCode()} "))
     }
 
-    // TODO rethink it
-    internal fun stop(reloadClients: Boolean): CompletableDeferred<Unit> =
-        CompletableDeferred<Unit>().apply Deferred@{
-            XLog.d(this@HttpServer.getLog("stopServer", "reloadClients: $reloadClients"))
-            ktorServer?.apply {
-                stopDeferredRelay.set(this@Deferred)
-                if (reloadClients) serverData.notifyClients("RELOAD")
-                stop(0, 250)
-                XLog.d(this@HttpServer.getLog("stopServer", "Deferred: ktorServer: ${ktorServer?.hashCode()}"))
-                ktorServer = null
-            } ?: complete(Unit)
-            XLog.d(this@HttpServer.getLog("stopServer", "Done"))
-        }
+    internal suspend fun stop(reloadClients: Boolean) {
+        XLog.d(getLog("stopServer", "reloadClients: $reloadClients"))
 
-    internal fun destroy(): CompletableDeferred<Unit> {
+        CoroutineScope(Dispatchers.Default).launch {
+            ktorServer.getAndSet(null)?.let { (server, stopJob) ->
+                if (stopJob.isActive) {
+                    if (reloadClients) serverData.notifyClients("RELOAD")
+                    val hashCode = server.application.hashCode()
+                    XLog.i(this@HttpServer.getLog("stopServer", "Ktor: $hashCode"))
+                    server.stop(0, 500)
+                    XLog.i(this@HttpServer.getLog("stopServer", "Done. Ktor: $hashCode"))
+                }
+            }
+            XLog.d(this@HttpServer.getLog("stopServer", "Done"))
+        }.join()
+    }
+
+    internal suspend fun destroy() {
         XLog.d(getLog("destroy"))
         serverData.destroy()
-        return stop(false)
+        stop(false)
     }
 
     private suspend fun DefaultWebSocketSession.send(type: String, data: Any?) {

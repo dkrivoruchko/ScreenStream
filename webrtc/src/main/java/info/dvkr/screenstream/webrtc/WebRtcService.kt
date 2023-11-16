@@ -11,6 +11,7 @@ import info.dvkr.screenstream.webrtc.internal.WebRtcError
 import info.dvkr.screenstream.webrtc.internal.WebRtcEvent
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
+import java.net.UnknownHostException
 
 public class WebRtcService : AbstractService() {
 
@@ -21,9 +22,7 @@ public class WebRtcService : AbstractService() {
         internal fun startService(context: Context, intent: Intent) {
             XLog.d(getLog("WebRtcService.startService", "Run intent: ${intent.extras}"))
             val importance = ActivityManager.RunningAppProcessInfo().also { ActivityManager.getMyMemoryState(it) }.importance
-            if (importance != ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND) {
-                XLog.i(getLog("MjpegService.startService", "RunningAppProcessInfo.importance: $importance"))
-            }
+            XLog.i(getLog("MjpegService.startService", "RunningAppProcessInfo.importance: $importance"))
             context.startService(intent)
         }
     }
@@ -70,8 +69,12 @@ public class WebRtcService : AbstractService() {
     }
 
     internal fun showErrorNotification(error: WebRtcError) {
-        XLog.d(getLog("showErrorNotification", "${error.javaClass.simpleName} ${error.cause?.stackTrace}"))
-        XLog.e(getLog("showErrorNotification"), error) //TODO Wait for prod logs
+        if (error is WebRtcError.NetworkError && error.cause is UnknownHostException) {
+            XLog.i(getLog("showErrorNotification", "${error.javaClass.simpleName} ${error.cause}"))
+        } else {
+            XLog.d(getLog("showErrorNotification", "${error.javaClass.simpleName} ${error.cause}"))
+            XLog.e(getLog("showErrorNotification"), error) //TODO Wait for prod logs
+        }
 
         val message = error.toString(this)
         val recoverIntent = WebRtcEvent.Intentable.RecoverError.toIntent(this)

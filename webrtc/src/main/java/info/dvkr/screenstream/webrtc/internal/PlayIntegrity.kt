@@ -94,7 +94,12 @@ internal class PlayIntegrity(serviceContext: Context, private val environment: W
                 callback(Result.success(tokenProvider))
             }.addOnFailureListener { error -> // @MainThread
                 XLog.e(getLog("prepareIntegrityToken", "Failed: ${error.message}"))
-                callback(Result.failure((error as? StandardIntegrityException)?.toWebRtcError() ?: error))
+                val cause = when (error) {
+                    is StandardIntegrityException -> error.toWebRtcError()
+                    is RemoteException -> WebRtcError.PlayIntegrityError(StandardIntegrityErrorCode.INTERNAL_ERROR, true, error.message)
+                    else -> error
+                }
+                callback(Result.failure(cause))
             }
     }
 
@@ -164,6 +169,12 @@ internal class PlayIntegrity(serviceContext: Context, private val environment: W
             WebRtcError.PlayIntegrityError(errorCode, false, message)
 
         StandardIntegrityErrorCode.REQUEST_HASH_TOO_LONG ->
+            WebRtcError.PlayIntegrityError(errorCode, false, message)
+
+        StandardIntegrityErrorCode.CLIENT_TRANSIENT_ERROR ->
+            WebRtcError.PlayIntegrityError(errorCode, true, message)
+
+        StandardIntegrityErrorCode.INTEGRITY_TOKEN_PROVIDER_INVALID ->
             WebRtcError.PlayIntegrityError(errorCode, false, message)
 
         StandardIntegrityErrorCode.INTERNAL_ERROR -> // Unknown internal error.

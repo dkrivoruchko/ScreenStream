@@ -20,13 +20,9 @@ public class MjpegService : AbstractService() {
         internal fun startService(context: Context, intent: Intent) {
             XLog.d(getLog("MjpegService.startService", "Run intent: ${intent.extras}"))
             val importance = ActivityManager.RunningAppProcessInfo().also { ActivityManager.getMyMemoryState(it) }.importance
-            if (importance != ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND) {
-                XLog.i(getLog("MjpegService.startService", "RunningAppProcessInfo.importance: $importance"))
-            }
+            XLog.i(getLog("MjpegService.startService", "RunningAppProcessInfo.importance: $importance"))
             context.startService(intent)
         }
-        //ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND
-        //ActivityManager.RunningAppProcessInfo.IMPORTANCE_VISIBLE
     }
 
     override val notificationIdForeground: Int = 100
@@ -70,8 +66,12 @@ public class MjpegService : AbstractService() {
     }
 
     internal fun showErrorNotification(error: MjpegError) {
-        XLog.d(getLog("showErrorNotification", "${error.javaClass.simpleName} ${error.cause?.stackTrace}"))
-        XLog.e(getLog("showErrorNotification"), error) //TODO Wait for prod logs
+        if (error is MjpegError.AddressNotFoundException || error is MjpegError.AddressInUseException) {
+            XLog.i(getLog("showErrorNotification", "${error.javaClass.simpleName} ${error.cause}"))
+        } else {
+            XLog.i(getLog("showErrorNotification", "${error.javaClass.simpleName} ${error.cause}"))
+            XLog.e(getLog("showErrorNotification"), error) //TODO Wait for prod logs
+        }
 
         val message = error.toString(this)
         val recoverIntent = MjpegEvent.Intentable.RecoverError.toIntent(this)
