@@ -11,6 +11,7 @@ import info.dvkr.screenstream.webrtc.internal.WebRtcError
 import info.dvkr.screenstream.webrtc.internal.WebRtcEvent
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
+import java.net.ConnectException
 import java.net.UnknownHostException
 
 public class WebRtcService : AbstractService() {
@@ -31,12 +32,15 @@ public class WebRtcService : AbstractService() {
     override val notificationIdError: Int = 210
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        val webRtcEvent = WebRtcEvent.Intentable.fromIntent(intent) ?: run {
-            XLog.e(getLog("onStartCommand", "intent = null"), IllegalArgumentException("WebRtcService.onStartCommand: intent = null"))
+        if (intent == null) {
+            XLog.e(getLog("onStartCommand"), IllegalArgumentException("WebRtcService.onStartCommand: intent = null"))
             return START_NOT_STICKY
         }
-        XLog.d(getLog("onStartCommand", "WebRtcEvent: $webRtcEvent"))
-
+        val webRtcEvent = WebRtcEvent.Intentable.fromIntent(intent) ?: run {
+            XLog.e(getLog("onStartCommand"), IllegalArgumentException("WebRtcService.onStartCommand: WebRtcEvent = null, startId: $startId, $intent"))
+            return START_NOT_STICKY
+        }
+        XLog.d(getLog("onStartCommand", "WebRtcEvent: $webRtcEvent, startId: $startId"))
 
         val success = when (webRtcEvent) {
             is WebRtcEvent.Intentable.StartService -> streamingModulesManager.sendEvent(WebRtcEvent.CreateStreamingService(this))
@@ -45,7 +49,7 @@ public class WebRtcService : AbstractService() {
         }
 
         if (success.not()) { // No active module
-            XLog.w(getLog("onStartCommand", "No active module. Stop self"))
+            XLog.w(getLog("onStartCommand", "No active module. Stop self, startId: $startId"))
             stopSelf()
         }
 
@@ -69,7 +73,7 @@ public class WebRtcService : AbstractService() {
     }
 
     internal fun showErrorNotification(error: WebRtcError) {
-        if (error is WebRtcError.NetworkError && error.cause is UnknownHostException) {
+        if (error is WebRtcError.NetworkError && (error.cause is UnknownHostException || error.cause is ConnectException) ) {
             XLog.i(getLog("showErrorNotification", "${error.javaClass.simpleName} ${error.cause}"))
         } else {
             XLog.d(getLog("showErrorNotification", "${error.javaClass.simpleName} ${error.cause}"))

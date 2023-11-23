@@ -31,9 +31,9 @@ internal open class WebRtcEvent(@JvmField val priority: Int) : StreamingModule.A
             private const val EXTRA_PARCELABLE = "EXTRA_PARCELABLE"
 
             @Suppress("DEPRECATION")
-            internal fun fromIntent(intent: Intent?): Intentable? =
-                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) intent?.getParcelableExtra(EXTRA_PARCELABLE)
-                else intent?.getParcelableExtra(EXTRA_PARCELABLE, Intentable::class.java)
+            internal fun fromIntent(intent: Intent): Intentable? =
+                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) intent.getParcelableExtra(EXTRA_PARCELABLE)
+                else intent.getParcelableExtra(EXTRA_PARCELABLE, Intentable::class.java)
         }
 
         @Parcelize internal data object StartService : Intentable(Priority.NONE)

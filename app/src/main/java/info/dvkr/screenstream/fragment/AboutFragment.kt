@@ -54,10 +54,10 @@ public class AboutFragment : Fragment(R.layout.fragment_about) {
             openStringUrl("https://github.com/dkrivoruchko/ScreenStream/blob/master/PrivacyPolicy.md")
         }
 
-        if ((requireActivity() as AdActivity).isConsentEnabled) {
-            binding.bFragmentConsentRevocation.setOnClickListener { (requireActivity() as AdActivity).showConsentForm() }
+        if ((requireActivity() as AdActivity).isPrivacyOptionsRequired) {
+            binding.bFragmentPrivacyOptions.setOnClickListener { (requireActivity() as AdActivity).showPrivacyOptionsForm() }
         } else {
-            binding.bFragmentConsentRevocation.visibility = View.GONE
+            binding.bFragmentPrivacyOptions.visibility = View.GONE
         }
 
         binding.bFragmentLicense.setOnClickListener {

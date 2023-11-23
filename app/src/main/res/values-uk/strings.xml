@@ -64,6 +64,6 @@
     <string name="app_about_fragment_app_sources">Вихідний код додатку</string>
     <string name="app_about_fragment_terms_conditions">Умови та Положення</string>
     <string name="app_about_fragment_privacy_policy">Політика приватності</string>
-    <string name="app_about_fragment_consent_revocation">Відкликання згоди</string>
+    <string name="app_about_fragment_privacy_options">Налаштування конфіденційності</string>
     <string name="app_about_fragment_license">Ліцензія</string>
 </resources>

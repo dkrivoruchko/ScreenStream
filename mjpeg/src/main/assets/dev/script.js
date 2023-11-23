@@ -75,9 +75,8 @@ sendPin.addEventListener('click', (e) => {
 });
 
 var websocket = null;
-var fallbackMJPEGCounter = 0;
-var fallbackMJPEG = null;
 var showStreamTimeoutId = null;
+var MJPEGErrorCounter = 0;
 
 function connect() {
     connectDiv.style.visibility = 'visible';
@@ -103,8 +102,8 @@ function connect() {
         streamDiv.style.visibility = 'hidden';
         errorDiv.style.visibility = 'hidden';
         stream.src = '';
+        MJPEGErrorCounter = 0;
 
-        fallbackMJPEGCounter = 0;
         clearTimeout(showStreamTimeoutId);
     };
 
@@ -165,139 +164,34 @@ function showStream(url) {
     errorDiv.style.visibility = 'hidden';
 
     clearTimeout(showStreamTimeoutId);
-    if (fallbackMJPEG) fallbackMJPEG.stop();
-    fallbackMJPEG = null;
 
-    if (fallbackMJPEGCounter > 2) {
-        window.DD_LOGS && DD_LOGS.logger.debug("showStream", { mode: "fallback", streamAddress: url });
-
+    new Promise((resolve, reject) => {
+        window.DD_LOGS && DD_LOGS.logger.debug("showStream", { mode: "default", streamAddress: url });
+        stream.onload = () => { stream.onload = null; stream.onerror = null; resolve(); }
+        stream.onerror = (e) => { stream.onerror = null; stream.onload = null; reject(e); }
+        stream.src = url;
+    }).then(() => {
+        MJPEGErrorCounter = 0;
         streamDiv.style.visibility = 'visible';
-        fallbackMJPEG = new MJPEG_JS(stream, url);
-        fallbackMJPEG.onerror = (error) => {
-            window.DD_LOGS && DD_LOGS.logger.debug("showStream", { mode: "fallback", result: "error", errorMessage: error.message });
-            fallbackMJPEG = null;
-            if (error.message == "network error") {
-                return;
-            }
-            streamDiv.style.visibility = 'hidden';
-            errorDiv.style.visibility = 'visible';
-        };
-        fallbackMJPEG.onload = () => {
-            window.DD_LOGS && DD_LOGS.logger.debug("showStream", { mode: "fallback", result: "ok" });
-        };
-        fallbackMJPEG.load();
-    } else {
-        new Promise((resolve, reject) => {
-            window.DD_LOGS && DD_LOGS.logger.debug("showStream", { mode: "default", streamAddress: url });
-            stream.onload = () => { stream.onload = null; stream.onerror = null; resolve(); }
-            stream.onerror = (e) => { stream.onerror = null; stream.onload = null; reject(e); }
-            stream.src = url;
-        }).then(() => {
-            fallbackMJPEGCounter = 0;
+        window.DD_LOGS && DD_LOGS.logger.debug("showStream", { mode: "default", result: "ok" });
+    }).catch((error) => {
+        window.DD_LOGS && DD_LOGS.logger.debug("showStream", { mode: "default", result: "error" });
+        MJPEGErrorCounter++;
+        if (MJPEGErrorCounter > 5) {
             streamDiv.style.visibility = 'visible';
-            window.DD_LOGS && DD_LOGS.logger.debug("showStream", { mode: "default", result: "ok" });
-        }).catch((error) => {
-            window.DD_LOGS && DD_LOGS.logger.debug("showStream", { mode: "default", result: "error" });
-            fallbackMJPEGCounter++;
-            showStreamTimeoutId = setTimeout(() => showStream(url), 150);
-        });
-    }
+            var splitUrl = url.split(".mjpeg");
+            var baseUrl = splitUrl[0] + ".jpeg" + splitUrl[1] + "&t=";
+            setInterval(() => { stream.src = baseUrl + Math.random() }, 500);
+        } else {
+            showStreamTimeoutId = setTimeout(() => showStream(url), 200);
+        }
+    });
 }
 
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', connect);
 } else {
     connect();
-}
-
-// setTimeout(() => { if (!stream.complete) streamFallback() }, 2000);
-// function streamFallback() {
-//     const baseurl = url.split(".mjpeg")[0];
-//     setInterval(() => { stream.src = baseurl + ".jpeg?t=" + Math.random() }, 500);
-// }
-
-function MJPEG_JS(img, url) {
-    this.opts = { img, url };
-    this.terminate = false;
-    this.SOI = new Uint8Array([0xFF, 0xD8, 0xFF]);
-    this.lengthRegex = /Content-Length:\s*(\d+)/i;
-
-    this.onload = () => { };
-    this.onerror = () => { };
-}
-MJPEG_JS.prototype.stop = function () {
-    this.terminate = true;
-}
-MJPEG_JS.prototype.clean = function () {
-    this.opts.img.onload = null;
-    this.reader = null;
-    this.response = null;
-    this.movingBuffer = null;
-    this.headers = null;
-    this.imageBuffer = null;
-}
-MJPEG_JS.prototype.read = function (result) {
-    if (this.terminate) throw Error("Stopped");
-    if (result.done) throw Error("Done");
-
-    for (var i = 0; i < result.value.length; i++) {
-        this.movingBuffer.push(result.value[i]);
-        this.movingBuffer.shift();
-
-        if (this.movingBuffer[0] === this.SOI[0] && this.movingBuffer[1] === this.SOI[1] && this.movingBuffer[2] === this.SOI[2]) {
-            this.contentLength = this.headers.match(this.lengthRegex)[1];
-            this.imageBuffer = new Uint8Array(new ArrayBuffer(this.contentLength));
-            this.imageBuffer[this.bytesRead++] = this.movingBuffer[0];
-            this.imageBuffer[this.bytesRead++] = this.movingBuffer[1];
-            this.imageBuffer[this.bytesRead++] = this.movingBuffer[2];
-            continue;
-        }
-
-        if (this.contentLength <= 0) {
-            this.headers += String.fromCharCode(result.value[i]);
-        } else if (this.bytesRead < this.contentLength) {
-            this.imageBuffer[this.bytesRead++] = result.value[i];
-        } else {
-            this.opts.img.src = URL.createObjectURL(new Blob([this.imageBuffer], { type: "image/jpeg" }));
-            this.contentLength = 0;
-            this.imageBuffer = null;
-            this.bytesRead = 0;
-            this.headers = '';
-        }
-    }
-
-    this.reader.read()
-        .then(result => this.read(result))
-        .catch(error => {
-            this.onerror(error);
-            this.clean();
-        });
-}
-MJPEG_JS.prototype.load = function () {
-    fetch(this.opts.url)
-        .then(response => {
-            if (this.terminate) throw Error("Stopped");
-            if (!response.ok) throw Error(`${response.status}: ${response.statusText}`);
-            if (response.redirected) throw Error(`Redirected: ${response.status}: ${response.statusText} : ${response.url}`);
-
-            this.onload();
-
-            this.opts.img.onload = () => { URL.revokeObjectURL(this.opts.img.src); };
-
-            this.movingBuffer = [0, 0, 0];
-            this.headers = '';
-            this.contentLength = 0;
-            this.imageBuffer = null;
-            this.bytesRead = 0;
-
-            this.reader = response.body.getReader();
-            return this.reader.read();
-        })
-        .then(result => this.read(result))
-        .catch(error => {
-            this.onerror(error);
-            this.clean();
-        });
 }
 
 // https://github.com/zimv/websocket-heartbeat-js

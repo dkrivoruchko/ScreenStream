@@ -8,28 +8,20 @@ import android.hardware.display.VirtualDisplay
 import android.media.Image
 import android.media.ImageReader
 import android.media.projection.MediaProjection
-import android.opengl.GLES20
 import android.os.Build
 import android.os.Handler
 import android.os.HandlerThread
 import android.os.Process
 import android.util.DisplayMetrics
 import android.view.Display
-import android.view.Surface
 import android.view.WindowManager
 import androidx.annotation.RequiresApi
 import androidx.core.content.ContextCompat
-import com.android.grafika.gles.EglCore
-import com.android.grafika.gles.FullFrameRect
-import com.android.grafika.gles.OffscreenSurface
-import com.android.grafika.gles.Texture2dProgram
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.mjpeg.MjpegSettings
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
-import java.nio.ByteBuffer
-import java.nio.ByteOrder
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
@@ -77,16 +69,6 @@ internal class BitmapCapture(
     private var imageReader: ImageReader? = null
     private var lastImageMillis: Long = 0L
     private var virtualDisplay: VirtualDisplay? = null
-
-    private var fallback: Boolean = false
-    private var fallbackFrameListener: FallbackFrameListener? = null
-    private var mEglCore: EglCore? = null
-    private var mProducerSide: Surface? = null
-    private var mTexture: SurfaceTexture? = null
-    private var mTextureId = 0
-    private var mConsumerSide: OffscreenSurface? = null
-    private var mScreen: FullFrameRect? = null
-    private var mBuf: ByteBuffer? = null
 
     private val matrix = AtomicReference(Matrix())
     private val resizeFactor = AtomicInteger(MjpegSettings.Values.RESIZE_DISABLED)
@@ -185,41 +167,14 @@ internal class BitmapCapture(
             screenSizeY = screenSize.y
         }
 
-        if (fallback.not()) {
-            imageListener = ImageListener()
-            imageReader = ImageReader.newInstance(screenSizeX, screenSizeY, PixelFormat.RGBA_8888, 2)
-                .apply { setOnImageAvailableListener(imageListener, imageThreadHandler) }
-        } else {
-            try {
-                mEglCore = EglCore(null, EglCore.FLAG_TRY_GLES3 or EglCore.FLAG_RECORDABLE)
-                mConsumerSide = OffscreenSurface(mEglCore, screenSizeX, screenSizeY)
-                mConsumerSide!!.makeCurrent()
-
-                fallbackFrameListener = FallbackFrameListener(screenSizeX, screenSizeY)
-                mBuf = ByteBuffer.allocate(screenSizeX * screenSizeY * 4).apply { order(ByteOrder.nativeOrder()) }
-                mScreen = FullFrameRect(Texture2dProgram(Texture2dProgram.ProgramType.TEXTURE_EXT))
-                mTextureId = mScreen!!.createTextureObject()
-                mTexture = SurfaceTexture(mTextureId, false).apply {
-                    setDefaultBufferSize(screenSizeX, screenSizeY)
-                    setOnFrameAvailableListener(fallbackFrameListener, imageThreadHandler)
-                }
-                mProducerSide = Surface(mTexture)
-
-                mEglCore!!.makeNothingCurrent()
-            } catch (cause: Throwable) {
-                XLog.w(getLog("startDisplayCapture", cause.toString()), cause)
-                state = State.ERROR
-                onError(MjpegError.BitmapFormatException)
-                return false
-            }
-        }
-
+        imageListener = ImageListener()
+        imageReader = ImageReader.newInstance(screenSizeX, screenSizeY, PixelFormat.RGBA_8888, 2)
+            .apply { setOnImageAvailableListener(imageListener, imageThreadHandler) }
         try {
             val densityDpi = getDensityDpiCompat()
-            val surface = if (fallback.not()) imageReader?.surface else mProducerSide
             virtualDisplay = mediaProjection.createVirtualDisplay(
                 "ScreenStreamVirtualDisplay", screenSizeX, screenSizeY, densityDpi,
-                DisplayManager.VIRTUAL_DISPLAY_FLAG_PRESENTATION, surface, null, imageThreadHandler
+                DisplayManager.VIRTUAL_DISPLAY_FLAG_PRESENTATION, imageReader!!.surface, null, imageThreadHandler
             )
             state = State.STARTED
         } catch (ex: SecurityException) {
@@ -237,15 +192,6 @@ internal class BitmapCapture(
         imageReader?.surface?.release() // For some reason imageReader.close() does not release surface
         imageReader?.close()
         imageReader = null
-
-        mProducerSide?.release()
-        mProducerSide = null
-        mTexture?.release()
-        mTexture = null
-        mConsumerSide?.release()
-        mConsumerSide = null
-        mEglCore?.release()
-        mEglCore = null
     }
 
     @Synchronized
@@ -260,46 +206,11 @@ internal class BitmapCapture(
         }
     }
 
-    // https://stackoverflow.com/a/34741581
-    private inner class FallbackFrameListener(private val width: Int, private val height: Int) : SurfaceTexture.OnFrameAvailableListener {
-        override fun onFrameAvailable(surfaceTexture: SurfaceTexture?) {
-            synchronized(this@BitmapCapture) {
-                if (state != State.STARTED || this != fallbackFrameListener) return
-
-                mConsumerSide!!.makeCurrent()
-                mTexture!!.updateTexImage()
-
-                val now = System.currentTimeMillis()
-                ((now - lastImageMillis) >= (1000 / maxFPS.get())) || return
-                lastImageMillis = now
-
-                FloatArray(16).let { matrix ->
-                    mTexture!!.getTransformMatrix(matrix)
-                    mScreen!!.drawFrame(mTextureId, matrix)
-                }
-
-                mConsumerSide!!.swapBuffers()
-
-                mBuf!!.rewind()
-                GLES20.glReadPixels(0, 0, width, height, GLES20.GL_RGBA, GLES20.GL_UNSIGNED_BYTE, mBuf)
-                mBuf!!.rewind()
-                val cleanBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
-                cleanBitmap.copyPixelsFromBuffer(mBuf!!)
-
-                val croppedBitmap = getCroppedBitmap(cleanBitmap)
-                val grayScaleBitmap = getGrayScaleBitmap(croppedBitmap)
-                val upsizedBitmap = getUpsizedAndRotatedBitmap(grayScaleBitmap)
-
-                bitmapStateFlow.tryEmit(upsizedBitmap)
-            }
-        }
-    }
-
     private inner class ImageListener : ImageReader.OnImageAvailableListener {
 
         override fun onImageAvailable(reader: ImageReader) {
             synchronized(this@BitmapCapture) {
-                if (state != State.STARTED || this != imageListener || fallback) return
+                if (state != State.STARTED || this != imageListener) return
 
                 try {
                     reader.acquireLatestImage()?.let { image ->
@@ -317,15 +228,6 @@ internal class BitmapCapture(
 
                         image.close()
                         bitmapStateFlow.tryEmit(upsizedBitmap)
-                    }
-                } catch (ex: UnsupportedOperationException) {
-                    XLog.d(this@BitmapCapture.getLog("Unsupported image format, switching to fallback image reader"), ex)
-                    XLog.d(this@BitmapCapture.getLog("onImageAvailable"), RuntimeException("Unsupported image format, switching to fallback image reader", ex))
-                    fallback = true
-                    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) restart()
-                    else {
-                        state = State.ERROR
-                        onError(MjpegError.BitmapCaptureException(ex))
                     }
                 } catch (throwable: Throwable) {
                     XLog.e(this@BitmapCapture.getLog("outBitmapChannel"), throwable)

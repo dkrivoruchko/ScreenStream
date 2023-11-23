@@ -65,7 +65,7 @@
     <string name="app_about_fragment_app_sources">App-Quelltext</string>
     <string name="app_about_fragment_terms_conditions">Nutzungsbedingungen</string>
     <string name="app_about_fragment_privacy_policy">Datenschutzrichtlinie</string>
-    <string name="app_about_fragment_consent_revocation">Widerruf der Einwilligung</string>
+    <string name="app_about_fragment_privacy_options">Datenschutzoptionen</string>
     <string name="app_about_fragment_license">Lizenz</string>
 
 </resources>

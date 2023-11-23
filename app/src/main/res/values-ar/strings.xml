@@ -64,6 +64,6 @@
     <string name="app_about_fragment_app_sources">مصادر التطبيق</string>
     <string name="app_about_fragment_terms_conditions">الشروط والأحكام</string>
     <string name="app_about_fragment_privacy_policy">سياسة الخصوصية</string>
-    <string name="app_about_fragment_consent_revocation">سحب الاعتراف</string>
+    <string name="app_about_fragment_privacy_options">خيارات الخصوصية</string>
     <string name="app_about_fragment_license">الترخيص</string>
 </resources>

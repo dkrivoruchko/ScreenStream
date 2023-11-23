@@ -34,7 +34,7 @@ public abstract class AdFragment(@LayoutRes contentLayoutId: Int) : Fragment(con
 
     public fun loadAdOnViewCreated(adViewContainer: FrameLayout) {
         viewLifecycleOwner.lifecycleScope.launch {
-            val showADs = (requireActivity() as AdActivity).canShowADsDeferred.await()
+            val showADs = (requireActivity() as AdActivity).adsInitializedDeferred.await()
             when {
                 showADs.not() -> Log.i("loadAdOnViewCreated", "showADs: $showADs")
                 ::adSize.isInitialized -> loadAd(adViewContainer)

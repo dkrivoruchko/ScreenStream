@@ -344,10 +344,7 @@ internal class MjpegStreamingService(
                 is MjpegEvent.StartProjection ->
                     if (pendingServer) {
                         waitingForPermission = false
-                        XLog.w(
-                            getLog("MjpegEvent.StartProjection", "Server is not ready. Ignoring"),
-                            IllegalStateException("MjpegEvent.StartProjection: Server is not ready. Ignoring")
-                        )
+                        XLog.w(getLog("MjpegEvent.StartProjection", "Server is not ready. Ignoring"))
                     } else {
                         waitingForPermission = false
                         check(isStreaming.not()) { "MjpegEvent.StartProjection: Already streaming" }

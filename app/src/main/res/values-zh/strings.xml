@@ -64,6 +64,6 @@
     <string name="app_about_fragment_app_sources">应用源码</string>
     <string name="app_about_fragment_terms_conditions">条款和条件</string>
     <string name="app_about_fragment_privacy_policy">隐私政策</string>
-    <string name="app_about_fragment_consent_revocation">撤销同意</string>
+    <string name="app_about_fragment_privacy_options">隐私选项</string>
     <string name="app_about_fragment_license">许可协议</string>
 </resources>

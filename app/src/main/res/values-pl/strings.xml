@@ -64,6 +64,6 @@
     <string name="app_about_fragment_app_sources">Kod źródłowy aplikacji</string>
     <string name="app_about_fragment_terms_conditions">Regulamin</string>
     <string name="app_about_fragment_privacy_policy">Polityka prywatności</string>
-    <string name="app_about_fragment_consent_revocation">Wycofanie zgody</string>
+    <string name="app_about_fragment_privacy_options">Opcje prywatności</string>
     <string name="app_about_fragment_license">Licencja</string>
 </resources>

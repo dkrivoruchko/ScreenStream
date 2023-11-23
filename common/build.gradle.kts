@@ -37,7 +37,7 @@ dependencies {
     api("androidx.appcompat:appcompat:1.6.1")
     api("androidx.constraintlayout:constraintlayout:2.1.4")
     api("androidx.recyclerview:recyclerview:1.3.2")
-    api("com.google.android.material:material:1.11.0-beta01")
+    api("com.google.android.material:material:1.11.0-rc01")
     api("androidx.window:window:1.2.0")
 
     api("com.afollestad.material-dialogs:core:3.3.0")

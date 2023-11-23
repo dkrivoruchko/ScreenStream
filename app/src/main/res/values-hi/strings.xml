@@ -64,6 +64,6 @@
     <string name="app_about_fragment_app_sources">आवेदन के स्रोत</string>
     <string name="app_about_fragment_terms_conditions">शर्तें और नियम</string>
     <string name="app_about_fragment_privacy_policy">गोपनीयता नीति</string>
-    <string name="app_about_fragment_consent_revocation">सहमति प्रतिपादन</string>
+    <string name="app_about_fragment_privacy_options">गोपनीयता विकल्प</string>
     <string name="app_about_fragment_license">लाइसेंस</string>
 </resources>

@@ -64,6 +64,6 @@
     <string name="app_about_fragment_app_sources">Applicatie bronnen</string>
     <string name="app_about_fragment_terms_conditions">Algemene Voorwaarden</string>
     <string name="app_about_fragment_privacy_policy">Privacybeleid</string>
-    <string name="app_about_fragment_consent_revocation">Intrekken van toestemming</string>
+    <string name="app_about_fragment_privacy_options">Privacyopties</string>
     <string name="app_about_fragment_license">Licentie</string>
 </resources>

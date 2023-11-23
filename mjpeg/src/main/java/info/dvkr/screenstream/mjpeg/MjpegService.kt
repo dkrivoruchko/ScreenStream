@@ -29,11 +29,15 @@ public class MjpegService : AbstractService() {
     override val notificationIdError: Int = 110
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        val mjpegEvent = MjpegEvent.Intentable.fromIntent(intent) ?: run {
-            XLog.e(getLog("onStartCommand", "intent = null"), IllegalArgumentException("MjpegService.onStartCommand: intent = null"))
+        if (intent == null) {
+            XLog.e(getLog("onStartCommand"), IllegalArgumentException("MjpegService.onStartCommand: intent = null"))
             return START_NOT_STICKY
         }
-        XLog.d(getLog("onStartCommand", "MjpegEvent: $mjpegEvent"))
+        val mjpegEvent = MjpegEvent.Intentable.fromIntent(intent) ?: run {
+            XLog.e(getLog("onStartCommand"), IllegalArgumentException("MjpegService.onStartCommand: MjpegEvent = null, startId: $startId, $intent"))
+            return START_NOT_STICKY
+        }
+        XLog.d(getLog("onStartCommand", "MjpegEvent: $mjpegEvent, startId: $startId"))
 
         val success = when (mjpegEvent) {
             is MjpegEvent.Intentable.StartService -> streamingModulesManager.sendEvent(MjpegEvent.CreateStreamingService(this))
@@ -42,7 +46,7 @@ public class MjpegService : AbstractService() {
         }
 
         if (success.not()) { // No active module
-            XLog.w(getLog("onStartCommand", "No active module. Stop self"))
+            XLog.w(getLog("onStartCommand", "No active module. Stop self, startId: $startId"))
             stopSelf()
         }
 

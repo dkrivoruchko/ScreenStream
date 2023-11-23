@@ -64,6 +64,6 @@
     <string name="app_about_fragment_app_sources">Исходный код приложения</string>
     <string name="app_about_fragment_terms_conditions">Условия использования</string>
     <string name="app_about_fragment_privacy_policy">Политика конфиденциальности</string>
-    <string name="app_about_fragment_consent_revocation">Отзыв согласия</string>
+    <string name="app_about_fragment_privacy_options">Опции конфиденциальности</string>
     <string name="app_about_fragment_license">Лицензия</string>
 </resources>

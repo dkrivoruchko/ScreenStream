@@ -64,6 +64,6 @@
     <string name="app_about_fragment_app_sources">アプリケーションのソースコード</string>
     <string name="app_about_fragment_terms_conditions">利用規約</string>
     <string name="app_about_fragment_privacy_policy">プライバシーポリシー</string>
-    <string name="app_about_fragment_consent_revocation">同意取り消し</string>
+    <string name="app_about_fragment_privacy_options">プライバシーオプション</string>
     <string name="app_about_fragment_license">ライセンス</string>
 </resources>

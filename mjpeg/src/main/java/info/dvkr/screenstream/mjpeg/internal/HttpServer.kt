@@ -66,7 +66,7 @@ internal class HttpServer(
         .replace("%SUBMIT_PIN%", context.getString(R.string.mjpeg_html_submit_pin))
         .replace("%WRONG_PIN_MESSAGE%", context.getString(R.string.mjpeg_html_wrong_pin))
         .replace("%ADDRESS_BLOCKED%", context.getString(R.string.mjpeg_html_address_blocked))
-        .replace("%ERROR%", context.getString(R.string.mjpeg_html_error_unspecified))
+        .replace("%ERROR%", context.getString(R.string.mjpeg_html_error_unspecified)) //TODO not used
         .replace("%DD_SERVICE%", if (BuildConfig.DEBUG) "MJPEG_Client-DEV" else "MJPEG_Client-PROD")
         .replace("DD_HANDLER", if (BuildConfig.DEBUG) "[\"http\", \"console\"]" else "[\"http\"]")
         .replace("%APP_VERSION%", context.getAppVersion())
@@ -174,13 +174,16 @@ internal class HttpServer(
             server.start(false)
         } catch (cause: CancellationException) {
             if (cause.cause is BindException) {
-                XLog.w(getLog("startServer.BindException", cause.cause.toString()))
+                XLog.w(getLog("startServer.CancellationException.BindException", cause.cause.toString()))
                 sendEvent(MjpegStreamingService.InternalEvent.Error(MjpegError.AddressInUseException))
             } else {
                 XLog.w(getLog("startServer.CancellationException", cause.toString())) //TODO Need real logs
                 XLog.w(getLog("startServer.CancellationException", cause.toString()), cause)
                 sendEvent(MjpegStreamingService.InternalEvent.Error(MjpegError.HttpServerException))
             }
+        } catch (cause: BindException) {
+            XLog.w(getLog("startServer.BindException", cause.toString()))
+            sendEvent(MjpegStreamingService.InternalEvent.Error(MjpegError.AddressInUseException))
         } catch (cause: Throwable) {
             XLog.e(getLog("startServer.Throwable", cause.toString())) //TODO Need real logs
             XLog.e(getLog("startServer.Throwable"), cause)
@@ -233,13 +236,11 @@ internal class HttpServer(
         install(WebSockets)
         install(StatusPages) {
             exception<Throwable> { call, cause ->
-                if (cause is IOException) return@exception
-                if (cause is CancellationException) return@exception
-                if (cause is IllegalArgumentException) return@exception
+                if (cause is IOException || cause is IllegalArgumentException || cause is IllegalStateException) return@exception
                 XLog.e(this@appModule.getLog("exception<Throwable>", cause.toString()))
-                XLog.e(this@appModule.getLog("exception"), RuntimeException(">>>>>>>>>", cause)) //TODO Need real logs
+                XLog.e(this@appModule.getLog("exception"), RuntimeException("Throwable", cause))
                 sendEvent(MjpegStreamingService.InternalEvent.Error(MjpegError.HttpServerException))
-                call.respond(HttpStatusCode.InternalServerError)
+                call.respondText(text = "500: $cause", status = HttpStatusCode.InternalServerError)
             }
         }
 
@@ -254,7 +255,16 @@ internal class HttpServer(
             }
             get(serverData.jpegFallbackAddress) {
                 if (serverData.isAddressBlocked(call.request.origin.remoteAddress)) call.respond(HttpStatusCode.Forbidden)
-                else call.respondBytes(lastJPEG.get(), ContentType.Image.JPEG)
+                else {
+                    val clientId = call.request.queryParameters["clientId"] ?: "-"
+                    val remoteAddress = call.request.origin.remoteAddress
+                    val remotePort = call.request.origin.remotePort
+                    serverData.addConnected(clientId, remoteAddress, remotePort)
+                    val bytes = lastJPEG.get()
+                    call.respondBytes(bytes, ContentType.Image.JPEG)
+                    serverData.setNextBytes(clientId, remoteAddress, remotePort, bytes.size)
+                    serverData.setDisconnected(clientId, remoteAddress, remotePort)
+                }
             }
 
             webSocket("/socket") {
@@ -297,8 +307,8 @@ internal class HttpServer(
                     }
                 } catch (ignore: CancellationException) {
                 } catch (cause: Exception) {
-                    XLog.e(this@appModule.getLog("socket", "catch: ${cause.localizedMessage}"))
-                    XLog.e(this@appModule.getLog("socket", "catch: ${cause.localizedMessage}"), cause)
+                    XLog.w(this@appModule.getLog("socket", "catch: ${cause.localizedMessage}"))
+                    XLog.w(this@appModule.getLog("socket", "catch: ${cause.localizedMessage}"), cause)
                 } finally {
                     XLog.i(this@appModule.getLog("socket", "finally: $clientId"))
                     serverData.removeSocket(clientId)

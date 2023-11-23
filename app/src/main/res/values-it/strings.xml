@@ -64,6 +64,6 @@
     <string name="app_about_fragment_app_sources">Sorgenti dell\'applicazione</string>
     <string name="app_about_fragment_terms_conditions">Termini e Condizioni</string>
     <string name="app_about_fragment_privacy_policy">Informativa sulla Privacy</string>
-    <string name="app_about_fragment_consent_revocation">Revoca del Consenso</string>
+    <string name="app_about_fragment_privacy_options">Opzioni privacy</string>
     <string name="app_about_fragment_license">Licenza</string>
 </resources>
