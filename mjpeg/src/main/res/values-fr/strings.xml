@@ -1,0 +1,139 @@
+<resources>
+    <string name="mjpeg_error_recover">Recuperar</string>
+
+    <string name="mjpeg_stream_fragment_mode_local">Modo local (MJPEG)</string>
+    <string name="mjpeg_stream_fragment_mode_local_description">Descripción del modo local</string>
+    <string name="mjpeg_stream_fragment_mode_local_details">
+- Basado en el estándar MJPEG.\n\n
+- Utiliza PIN para seguridad (sin encriptación).\n\n
+- Envía video como una serie de imágenes independientes (sin audio).\n\n
+- Funciona sin conexión a Internet dentro de su red local.\n\n
+- Servidor HTTP incorporado.\n\n
+- Funciona con redes WiFi y/o móviles, compatible con IPv4 e IPv6.\n\n
+- Los clientes se conectan a través del navegador web utilizando la dirección IP proporcionada por la aplicación.\n\n
+- Altamente personalizable.\n\n
+- Transmisión de datos individual para cada cliente (cuantos más clientes tenga, más ancho de banda de red necesitará).
+</string>
+
+    <string name="mjpeg_item_device_address">Adresse de l\'appareil:</string>
+    <string name="mjpeg_stream_fragment_no_address">Pas d\'adresse trouvée</string>
+    <string name="mjpeg_stream_fragment_interface">Interface: %1$s</string>
+    <string name="mjpeg_stream_fragment_copied">Copied</string>
+    <string name="mjpeg_stream_fragment_no_web_browser_found">Aucun navigateur Web trouvé</string>
+    <string name="mjpeg_stream_fragment_external_app_error">Error de aplicación externa</string>
+    <string name="mjpeg_stream_fragment_share_address">Compartir dirección del dispositivo</string>
+    <string name="mjpeg_item_device_address_description_open_address">Abrir dirección</string>
+    <string name="mjpeg_item_device_address_description_copy_address">Copiar dirección</string>
+    <string name="mjpeg_item_device_address_description_share_address">Compartir dirección</string>
+    <string name="mjpeg_item_device_address_description_qr_address">Mostrar dirección como código QR</string>
+    <string name="mjpeg_pref_settings">Configuración de transmisión</string>
+    <string name="mjpeg_stream_fragment_pin">Code: %1$s</string>
+    <string name="mjpeg_stream_fragment_pin_disabled">Le code est désactivé</string>
+    <string name="mjpeg_stream_fragment_show_pin_description">Afficher le code PIN du flux</string>
+    <string name="mjpeg_stream_fragment_create_new_pin_description">Créer un nouveau code PIN de flux</string>
+    <string name="mjpeg_stream_fragment_current_traffic">Trafic : %1$,.2f Mbit/s</string>
+    <string name="mjpeg_stream_fragment_connected_clients">Clients connectés : %1$d</string>
+    <string name="mjpeg_stream_fragment_client_disconnected">Déconnecté</string>
+    <string name="mjpeg_stream_fragment_client_slow_network">Connection lente</string>
+    <string name="mjpeg_stream_fragment_client_connected">Connecté</string>
+    <string name="mjpeg_stream_fragment_client_blocked">Bloqueado</string>
+
+    <string name="mjpeg_stream_fragment_cast_permission_error_title">Erreur de permission</string>
+    <string name="mjpeg_stream_fragment_cast_permission_error">Le système ne prend pas en charge la fonction de diffusion</string>
+    <string name="mjpeg_stream_fragment_cast_permission_required_title">Permiso necesario</string>
+    <string name="mjpeg_stream_fragment_cast_permission_required">L\'application requiert l\'autorisation Cast pour capturer l\'écran.</string>
+
+    <string name="mjpeg_toast_slow_client_connection">Client avec connection lente détecté</string>
+
+    <string name="mjpeg_pref_settings_interface">Interface</string>
+    <string name="mjpeg_pref_keep_awake">Mantener el dispositivo activo</string>
+    <string name="mjpeg_pref_keep_awake_summary">Mantener el dispositivo y la pantalla activos mientras se transmite</string>
+    <string name="mjpeg_pref_stop_on_sleep">Arrêter en veille</string>
+    <string name="mjpeg_pref_stop_on_sleep_summary">Arrête la diffusion si l\'écran s\'éteint</string>
+    <string name="mjpeg_pref_detect_slow_connections">Notificar conexiones lentas</string>
+    <string name="mjpeg_pref_detect_slow_connections_summary">Detectar y notificar conexiones lentas de los clientes</string>
+    <string name="mjpeg_pref_html_buttons">Activer les boutons de page Web</string>
+    <string name="mjpeg_pref_html_buttons_summary">Afficher les boutons de contrôle sur la page Web</string>
+    <string name="mjpeg_pref_html_show_press_start">Mostrar \"Presionar INICIAR en el dispositivo\"</string>
+    <string name="mjpeg_pref_html_show_press_start_summary">Mostrar \"Presionar INICIAR en el dispositivo\" en la página web</string>
+    <string name="mjpeg_pref_html_back_color">Couleur d\'arrière-plan de la page</string>
+    <string name="mjpeg_pref_html_back_color_summary">Définir la couleur d\'arrière-plan de la page Web</string>
+    <string name="mjpeg_pref_html_back_color_title">Selection de la couleur d\'arrière-plan</string>
+
+    <string name="mjpeg_pref_settings_image">Image</string>
+    <string name="mjpeg_pref_vr_mode">Modo de realidad virtual</string>
+    <string name="mjpeg_pref_vr_mode_summary">Capturar contenido de la mitad de la pantalla</string>
+    <string-array name="mjpeg_pref_vr_mode_options">
+        <item>Usar la parte izquierda</item>
+        <item>Usar la parte derecha</item>
+    </string-array>
+    <string name="mjpeg_pref_crop">Recortar imagen</string>
+    <string name="mjpeg_pref_crop_summary">Recortar imagen antes de enviarla al cliente</string>
+    <string name="mjpeg_pref_crop_dialog_crop_top">Recortar parte superior:</string>
+    <string name="mjpeg_pref_crop_dialog_crop_bottom">Recortar parte inferior:</string>
+    <string name="mjpeg_pref_crop_dialog_crop_left">Recortar lado izquierdo:</string>
+    <string name="mjpeg_pref_crop_dialog_crop_right">Recortar lado derecho:</string>
+    <string name="mjpeg_pref_crop_dialog_pixels">píxeles</string>
+    <string name="mjpeg_pref_crop_dialog_warning_message">El recorte se ignorará si el resultado es una imagen vacía</string>
+    <string name="mjpeg_pref_crop_dialog_error_message">Ingrese valores de recorte válidos</string>
+    <string name="mjpeg_pref_grayscale">Modo de escala de grises</string>
+    <string name="mjpeg_pref_grayscale_summary">Convertir a escala de grises antes de enviar la imagen al cliente</string>
+    <string name="mjpeg_pref_resize">Redimensionnement</string>
+    <string name="mjpeg_pref_resize_summary">Redimensionne l\'image pour l\'envoi au client</string>
+    <string name="mjpeg_pref_resize_dialog_text">Définissez le pourcentage de redimensionnement de l\'image.\nValeurs : 10–150 (par défaut : 50)\nDéfinition de l\'écran : %1$dx%2$d</string>
+    <string name="mjpeg_pref_resize_dialog_result">Définition de l\'image : %1$dx%2$d</string>
+    <string name="mjpeg_pref_rotate">Faire pivoter l\'image</string>
+    <string name="mjpeg_pref_rotate_summary">Faire pivoter l\'image pour l\'envoi au client</string>
+    <string name="mjpeg_pref_fps">Limitar cuadros por segundo</string>
+    <string name="mjpeg_pref_fps_summary">Establecer el máximo de cuadros por segundo</string>
+    <string name="mjpeg_pref_fps_dialog">Establecer el máximo de cuadros por segundo.\nValores: 1–60 (Predeterminado: 30)</string>
+    <string name="mjpeg_pref_jpeg_quality">Qualité de la compression JPEG</string>
+    <string name="mjpeg_pref_jpeg_quality_summary">Définir la qualité de la compression JPEG</string>
+    <string name="mjpeg_pref_jpeg_quality_dialog">Set la qualité de compression JPEG.\nValeurs : 10–100 (par défaut : 80)</string>
+
+    <string name="mjpeg_pref_settings_security">Sécurité</string>
+    <string name="mjpeg_pref_enable_pin">Activer le code</string>
+    <string name="mjpeg_pref_enable_pin_summary">Protège l\'accès au flux avec un code</string>
+    <string name="mjpeg_pref_hide_pin">Masquer le code au démarrage de la diffusion</string>
+    <string name="mjpeg_pref_hide_pin_summary">Montre des astérisques au lieu du code pendant la diffusion</string>
+    <string name="mjpeg_pref_new_pin_on_start">Nouveau code au démarrage</string>
+    <string name="mjpeg_pref_new_pin_on_start_summary">Génère une nouveau code au démarrage de l\'application</string>
+    <string name="mjpeg_pref_auto_change_pin">Changement automatique du code</string>
+    <string name="mjpeg_pref_auto_change_pin_summary">Génère un nouveau code pour chaque nouvelle diffusion</string>
+    <string name="mjpeg_pref_set_pin">Code</string>
+    <string name="mjpeg_pref_set_pin_summary">Définir manuellement le code</string>
+    <string name="mjpeg_pref_set_pin_dialog">Entrez un code.\nPar défaut : 000000</string>
+    <string name="mjpeg_pref_block_address">Bloquear dirección IP</string>
+    <string name="mjpeg_pref_block_address_summary">Bloquear la dirección IP del cliente después de 5 intentos fallidos de PIN durante 5 minutos</string>
+
+    <string name="mjpeg_pref_settings_advanced">Avancé</string>
+    <string name="mjpeg_pref_wifi_only">WiFi uniquement</string>
+    <string name="mjpeg_pref_wifi_only_summary">Le serveur ne fonctionne que sur WiFi</string>
+    <string name="mjpeg_pref_enable_ipv6">Habilitar soporte para IPv6</string>
+    <string name="mjpeg_pref_enable_ipv6_summary">Ejecutar el servidor en direcciones IPv6 también</string>
+    <string name="mjpeg_pref_enable_localhost">Habilitar el servidor local</string>
+    <string name="mjpeg_pref_enable_localhost_summary">Ejecutar el servidor en direcciones locales también</string>
+    <string name="mjpeg_pref_localhost_only">Solo servidor local</string>
+    <string name="mjpeg_pref_localhost_only_summary">Ejecutar el servidor solo en direcciones locales</string>
+    <string name="mjpeg_pref_server_port">Port d\'écoute</string>
+    <string name="mjpeg_pref_server_port_summary">Définir un port pour les connections entrantes</string>
+    <string name="mjpeg_pref_server_port_dialog">Définissez un port pour les connections entrantes.\nValeurs : 1025–65535\n(par défaut : 8080)</string>
+
+    <string name="mjpeg_error_port_in_use">Port déjà utilisé. Sélectionnez une autre valeur.</string>
+    <string name="mjpeg_error_invalid_media_projection">Erreur de sécurité : projection de média invalide. Veuillez re-essayer.</string>
+    <string name="mjpeg_error_ip_address_not_found">Adresse IP introuvable.\nEssayez de désactiver \"WiFi uniquement\" dans les paramètres du flux.</string>
+    <string name="mjpeg_error_wrong_image_format">Le système fournit une image dans un format inconnu. Pas de solution, désolé.</string>
+    <string name="mjpeg_error_notification_permission_required">La aplicación requiere que las notificaciones estén habilitadas para iniciar el servicio de transmisión.\n\nPor favor, habilite las notificaciones en la configuración de la aplicación.</string>
+    <string name="mjpeg_error_unspecified">Algo salió mal. Por favor, inténtalo de nuevo más tarde.</string>
+
+    <string name="mjpeg_start_image_text">Démarrer la diffusion sur l\'appareil</string>
+
+    <!--HTML text-->
+    <string name="mjpeg_html_stream_connecting">Tentative de connexion</string>
+    <string name="mjpeg_html_stream_require_pin">Ce flux requiert un code pour y accéder</string>
+    <string name="mjpeg_html_enter_pin">Code :\u0020</string>
+    <string name="mjpeg_html_submit_pin">Soumettre</string>
+    <string name="mjpeg_html_wrong_pin">Mauvais code!</string>
+    <string name="mjpeg_html_address_blocked">Dirección del cliente bloqueada</string>
+    <string name="mjpeg_html_error_unspecified">Quelque chose s\'est mal passé. &lt;br&gt; Veuillez recharger la page et réessayer.</string>
+</resources>

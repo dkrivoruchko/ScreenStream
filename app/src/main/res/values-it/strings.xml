@@ -1,158 +1,69 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="error_title">Errore</string>
-    <string name="error_port_in_use">Porta già in uso. Scegline un\'altra.</string>
-    <string name="error_invalid_media_projection">Errore di sicurezza: protezione multimedia non valida. Riprova.</string>
-    <string name="error_ip_address_not_found">Indirizzo IP non trovato.\nProva a disattivare \"Usa solo WiFi\" nelle impostazioni.</string>
-    <string name="error_wrong_image_format">Il sistema restituisce l\'immagine in un formato sconosciuto. Nessuna soluzione disponibile. Spiacente.</string>
-    <string name="error_exit">Esci</string>
+    <string name="app_error_title">Errore</string>
+    <string name="app_error_recover">Ripristina</string>
 
-    <string name="app_activity_collecting_logs">Recupero del registro dell\'app…</string>
-    <string name="app_activity_send_logs">Invia registro allo sviluppatore</string>
-    <string name="app_activity_send_logs_dialog_title">Invia registro via email allo sviluppatore</string>
-    <string name="app_activity_send_logs_dialog_message">Aggiungi una descrizione del problema:</string>
-    <string name="app_activity_send_logs_dialog_neutral">Ferma il registro</string>
+    <string name="app_activity_logs_collecting">Recupero del registro dell\'app…</string>
+    <string name="app_activity_logs_send">Invia registro allo sviluppatore</string>
+    <string name="app_activity_logs_send_dialog_title">Invia registro via email allo sviluppatore</string>
+    <string name="app_activity_logs_send_dialog_message">Aggiungi una descrizione del problema:</string>
+    <string name="app_activity_logs_send_dialog_neutral">Ferma il registro</string>
 
-    <string name="app_update_activity_dialog_title">Aggiornamento disponibile</string>
-    <string name="app_update_activity_dialog_message">È stato scaricato un aggiornamento. Riavviare l\'app adesso?</string>
-    <string name="app_update_activity_dialog_restart">Restart</string>
+    <string name="app_activity_update_dialog_title">Aggiornamento disponibile</string>
+    <string name="app_activity_update_dialog_message">È stato scaricato un aggiornamento. Riavviare l\'app adesso?</string>
+    <string name="app_activity_update_dialog_restart">Restart</string>
 
-    <string name="bottom_menu_stream">Trasmissione</string>
-    <string name="bottom_menu_settings">Impostazioni</string>
-    <string name="bottom_menu_start">Avvia</string>
-    <string name="bottom_menu_stop">Ferma</string>
-    <string name="bottom_menu_about">Al riguardo</string>
-    <string name="bottom_menu_exit">Esci</string>
+    <string name="app_bottom_menu_stream">Trasmissione</string>
+    <string name="app_bottom_menu_settings">Impostazioni</string>
+    <string name="app_bottom_menu_start">Avvia</string>
+    <string name="app_bottom_menu_stop">Ferma</string>
+    <string name="app_bottom_menu_about">Al riguardo</string>
+    <string name="app_bottom_menu_exit">Esci</string>
 
-    <string name="stream_fragment_current_traffic">Traffico: %1$,.2f Mbit/s</string>
-    <string name="stream_fragment_connected_clients">Client connessi: %1$d</string>
-    <string name="stream_fragment_no_address">Nessun indirizzo trovato</string>
-    <string name="stream_fragment_interface">Interfaccia: %1$s</string>
-    <string name="stream_fragment_copied">Copiato</string>
-    <string name="stream_fragment_no_web_browser_found">Nessun browser web trovato</string>
-    <string name="stream_fragment_external_app_error">Errore applicazione esterna</string>
-    <string name="stream_fragment_share_address">Condividi indirizzo dispositivo</string>
-    <string name="stream_fragment_pin">Pin: %1$s</string>
-    <string name="stream_fragment_pin_disabled">Pin disattivato</string>
-    <string name="stream_fragment_client_disconnected">Disconnesso</string>
-    <string name="stream_fragment_client_slow_network">Connessione lenta</string>
-    <string name="stream_fragment_client_connected">Connesso</string>
-    <string name="stream_fragment_client_blocked">Bloccato</string>
+    <string name="app_fragment_stream_select_stream_mode">Seleziona la modalità di streaming:</string>
 
-    <string name="item_device_address">Indirizzo del dispositivo:</string>
-    <string name="item_device_address_description_open_address">Apri indirizzo</string>
-    <string name="item_device_address_description_copy_address">Copia indirizzo</string>
-    <string name="item_device_address_description_share_address">Condividi indirizzo</string>
-    <string name="item_device_address_description_qr_address">Mostra indirizzo come codice QR</string>
-
-    <string name="permission_activity_error_title_activity_not_found">Errore finestra autorizzazione</string>
-    <string name="permission_activity_error_activity_not_found">Errore di Android. Non selezionare \"Non mostrare più\" quando richiesto da Registra Schermo. Se l\'hai già fatto reinstalla l\'app.</string>
-    <string name="permission_activity_permission_required_title">Richiesta autorizzazione</string>
-    <string name="permission_activity_cast_permission_required">L\'applicazione richiede l\'autorizzazione di registrazione per catturare lo schermo.</string>
     <string name="permission_activity_error_title">Errore</string>
     <string name="permission_activity_error_unknown">Errore sconosciuto</string>
+    <string name="app_activity_permission_permission_required_title">Richiesta autorizzazione</string>
+    <string name="app_activity_permission_notifications_required_title">Notifiche richieste</string>
+    <string name="app_activity_permission_enable_notifications">L\'applicazione richiede che le notifiche siano abilitate per avviare il servizio di streaming.\n\nSi prega di abilitare le notifiche nelle impostazioni dell\'applicazione.</string>
+    <string name="app_activity_permission_allow_notifications">L\'applicazione richiede il permesso di inviare notifiche per poter avviare il servizio di streaming.\n\nSi prega di concedere il permesso di inviare notifiche.</string>
+    <string name="app_activity_permission_allow_notifications_settings">L\'applicazione richiede il permesso di inviare notifiche per poter avviare il servizio di streaming.\n\nSi prega di concedere il permesso di inviare notifiche nelle impostazioni dell\'applicazione.</string>
+    <string name="app_activity_permission_notification_settings">Apri impostazioni</string>
 
-    <string name="notification_ready_to_stream">Pronto a trasmettere</string>
-    <string name="notification_press_start">Premi AVVIA per iniziare la trasmissione</string>
-    <string name="notification_start">Avvia</string>
-    <string name="notification_exit">Esci</string>
-    <string name="notification_stream">Trasmissione…</string>
-    <string name="notification_press_stop">Premi FERMA per interrompere la trasmissione</string>
-    <string name="notification_stop">Ferma</string>
+    <string name="app_notification_channel_streaming">Notifiche di streaming</string>
+    <string name="app_notification_channel_error">Notifiche di errore</string>
+    <string name="app_notification_streaming_title">Trasmissione…</string>
+    <string name="app_notification_streaming_content">Premi FERMA per interrompere la trasmissione</string>
+    <string name="app_notification_stop">Ferma</string>
 
-    <string name="toast_slow_client_connection">Rilevata connessione lenta del client</string>
-
-    <string name="pref_settings_interface">Interfaccia</string>
-    <string name="pref_night_mode">Tema scuro</string>
-    <string-array name="pref_night_mode_options_api21_28">
+    <string name="app_pref_locale">Lingua dell\'applicazione</string>
+    <string name="app_pref_locale_summary">Apri le impostazioni della lingua dell\'applicazione</string>
+    <string name="app_pref_night_mode">Tema scuro</string>
+    <string-array name="app_pref_night_mode_options_api21_28">
         <item>Sempre</item>
         <item>Solo risparmio batteria</item>
         <item>Mai</item>
     </string-array>
-    <string-array name="pref_night_mode_options_api29">
+    <string-array name="app_pref_night_mode_options_api29">
         <item>Sempre</item>
         <item>Automaticamente (segui il sistema)</item>
         <item>Mai</item>
     </string-array>
-    <string name="pref_notification">Impostazioni di notifica del dispositivo</string>
-    <string name="pref_notification_summary">Apri impostazioni di notifica di sistema</string>
-    <string name="pref_stop_on_sleep">Interrompi a schermo spento</string>
-    <string name="pref_stop_on_sleep_summary">Interrompi la trasmissione quando lo schermo si spegne</string>
-    <string name="pref_start_on_boot">Esegui all\'avvio</string>
-    <string name="pref_start_on_boot_summary">Avvia la trasmissione quando accendi il dispositivo</string>
-    <string name="pref_auto_start_stop">Auto Avvia/Ferma trasmissione</string>
-    <string name="pref_auto_start_stop_summary">Auto Avvia/Ferma la trasmissione alla connessione/disconnessione dei client</string>
-    <string name="pref_detect_slow_connections">Notifica connessioni lente</string>
-    <string name="pref_detect_slow_connections_summary">Rileva e notifica connessioni lente</string>
-    <string name="pref_html_buttons">Attiva i pulsanti della pagina web</string>
-    <string name="pref_html_buttons_summary">Mostra pulsanti di controllo nella pagina web</string>
-    <string name="pref_html_back_color">Colore di sfondo pagina</string>
-    <string name="pref_html_back_color_summary">Imposta il colore di sfondo della pagina web</string>
-    <string name="pref_html_back_color_title">Seleziona colore di sfondo</string>
-    <string name="pref_settings_image">Immagine</string>
-    <string name="pref_vr_mode">Modalità realtà virtuale</string>
-    <string name="pref_vr_mode_summary">Cattura contenuto da metà schermo</string>
-    <string-array name="pref_vr_mode_options">
-        <item>Usa parte sinistra</item>
-        <item>Usa parte destra</item>
-    </string-array>
-    <string name="pref_crop">Ritaglia immagine</string>
-    <string name="pref_crop_summary">Ritaglia l\'immagine prima di inviarla al client</string>
-    <string name="pref_crop_dialog_crop_top">Ritaglia in cima:</string>
-    <string name="pref_crop_dialog_crop_bottom">Ritaglia in fondo:</string>
-    <string name="pref_crop_dialog_crop_left">Ritaglia a sinistra:</string>
-    <string name="pref_crop_dialog_crop_right">Ritaglia a destra:</string>
-    <string name="pref_crop_dialog_pixels">pixel</string>
-    <string name="pref_crop_dialog_warning_message">Il ritaglio verrà ignorato se il risultato è un\'immagine vuota</string>
-    <string name="pref_crop_dialog_error_message">Inserisci valori di ritaglio validi</string>
-    <string name="pref_resize">Ridimensiona immagine</string>
-    <string name="pref_resize_summary">Ridimensiona l\'immagine prima di inviarla al client</string>
-    <string name="pref_resize_dialog_text">Imposta la percentuale di ridimensionamento.\nValori: 10–150 (Predefinita: 50)\nDimensione schermo: %1$dx%2$d</string>
-    <string name="pref_resize_dialog_result">Dimensione immagine: %1$dx%2$d</string>
-    <string name="pref_rotate">Ruota immagine in senso orario</string>
-    <string name="pref_rotate_summary">Ruota l\'immagine prima di inviarla al client</string>
-    <string name="pref_fps">Limita frame al secondo</string>
-    <string name="pref_fps_summary">Imposta i frame al secondo massimi</string>
-    <string name="pref_fps_dialog">Imposta i frame al secondo massimi.\nValori: 1–60 (Predefiniti: 30)</string>
-    <string name="pref_jpeg_quality">Qualità di compressione JPEG</string>
-    <string name="pref_jpeg_quality_summary">Imposta la qualità di compressione JPEG</string>
-    <string name="pref_jpeg_quality_dialog">Imposta la qualità di compressione JPEG. Valori: 10–100 (predefinito: 80)</string>
-    <string name="pref_settings_security">Sicurezza</string>
-    <string name="pref_enable_pin">Attiva pin</string>
-    <string name="pref_enable_pin_summary">Proteggi l\'accesso alla trasmissione con un pin</string>
-    <string name="pref_hide_pin">Nascondi pin quando la trasmissione inizia</string>
-    <string name="pref_hide_pin_summary">Mostra asterischi invece del pin quando trasmetti</string>
-    <string name="pref_new_pin_on_start">Nuovo pin all\'avvio</string>
-    <string name="pref_new_pin_on_start_summary">Genera un nuovo pin all\'avvio dell\'applicazione</string>
-    <string name="pref_auto_change_pin">Cambia automaticamente pin</string>
-    <string name="pref_auto_change_pin_summary">Genera un nuovo pin per ogni nuova trasmissione</string>
-    <string name="pref_set_pin">Imposta pin</string>
-    <string name="pref_set_pin_summary">Inserisci pin manualmente</string>
-    <string name="pref_set_pin_dialog">Inserisci pin.\nPredefinito: 0000</string>
-    <string name="pref_block_address">Blocca indirizzo IP</string>
-    <string name="pref_block_address_summary">Blocca indirizzo IP del client dopo 5 tentativi falliti del pin</string>
-    <string name="pref_settings_advanced">Avanzate</string>
-    <string name="pref_wifi_only">Usa solo WiFi</string>
-    <string name="pref_wifi_only_summary">Avvia il server solo con interfaccia WiFi</string>
-    <string name="pref_enable_ipv6">Attiva supporto IPv6</string>
-    <string name="pref_enable_ipv6_summary">Avvia il server anche su indirizzi IPv6</string>
-    <string name="pref_enable_localhost">Attiva localhost</string>
-    <string name="pref_enable_localhost_summary">Avvia il server anche su indirizzi in localhost</string>
-    <string name="pref_localhost_only">Solo localhost</string>
-    <string name="pref_localhost_only_summary">Avvia il server solo su indirizzi localhost</string>
-    <string name="pref_server_port">Porta server</string>
-    <string name="pref_server_port_summary">Imposta la porta per le connessioni in ingresso</string>
-    <string name="pref_server_port_dialog">Imposta la porta per le connessione in ingresso.\nValori: 1025–65535 (predefinita: 8080)</string>
-    <string name="pref_logging">Attiva registro dell\'applicazione</string>
-    <string name="pref_logging_summary">Raccogli il registro dell\'applicazione</string>
+    <string name="app_pref_notification">Impostazioni di notifica del dispositivo</string>
+    <string name="app_pref_notification_summary">Apri impostazioni di notifica di sistema</string>
+    <string name="app_pref_logging">Attiva registro dell\'applicazione</string>
+    <string name="app_pref_logging_summary">Raccogli il registro dell\'applicazione</string>
 
-    <string name="about_fragment_app_version">Versione: %1$s</string>
-    <string name="about_fragment_developer_name">Sviluppato da Dmitriy Krivoruchko</string>
-    <string name="about_fragment_rate_app">Valuta l\'app</string>
-    <string name="about_fragment_write_email">Scrivi email allo sviluppatore</string>
-    <string name="about_fragment_write_email_dialog">Scrivere un\'email allo sviluppatore?</string>
-    <string name="about_fragment_email_chooser_header">Invio dell\'email…</string>
-    <string name="about_fragment_app_sources">Sorgenti dell\'applicazione</string>
-    <string name="about_fragment_privacy_policy">Informativa sulla privacy</string>
-    <string name="about_fragment_license">Licenza</string>
+    <string name="app_about_fragment_app_version">Versione: %1$s</string>
+    <string name="app_about_fragment_developer_name">Sviluppato da Dmytro Kryvoruchko</string>
+    <string name="app_about_fragment_rate_app">Valuta l\'app</string>
+    <string name="app_about_fragment_write_email">Scrivi email allo sviluppatore</string>
+    <string name="app_about_fragment_write_email_dialog">Scrivere un\'email allo sviluppatore?</string>
+    <string name="app_about_fragment_email_chooser_header">Invio dell\'email…</string>
+    <string name="app_about_fragment_app_sources">Sorgenti dell\'applicazione</string>
+    <string name="app_about_fragment_terms_conditions">Termini e Condizioni</string>
+    <string name="app_about_fragment_privacy_policy">Informativa sulla Privacy</string>
+    <string name="app_about_fragment_privacy_options">Opzioni privacy</string>
+    <string name="app_about_fragment_license">Licenza</string>
 </resources>

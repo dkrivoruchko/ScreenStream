@@ -1,0 +1,139 @@
+<resources>
+    <string name="mjpeg_error_recover">Recuperar</string>
+
+    <string name="mjpeg_stream_fragment_mode_local">Modo local (MJPEG)</string>
+    <string name="mjpeg_stream_fragment_mode_local_description">Descrição do modo local</string>
+    <string name="mjpeg_stream_fragment_mode_local_details">
+- Alimentado pelo padrão MJPEG.\n\n
+- Utiliza PIN para segurança (sem criptografia).\n\n
+- Envia vídeo como uma série de imagens independentes (sem áudio).\n\n
+- Funciona sem conexão com a Internet dentro da sua rede local.\n\n
+- Servidor HTTP incorporado.\n\n
+- Funciona com redes WiFi e/ou móveis, com suporte para IPv4 e IPv6.\n\n
+- Os clientes se conectam via navegador da web usando o endereço IP fornecido pelo aplicativo.\n\n
+- Altamente personalizável.\n\n
+- Transmissão de dados individual para cada cliente (quanto mais clientes você tem, mais largura de banda de rede você precisa).
+</string>
+
+    <string name="mjpeg_item_device_address">Endereço do dispositivo:</string>
+    <string name="mjpeg_stream_fragment_no_address">Nenhum endereço encontrado</string>
+    <string name="mjpeg_stream_fragment_interface">Interface: %1$s</string>
+    <string name="mjpeg_stream_fragment_copied">Copiado</string>
+    <string name="mjpeg_stream_fragment_no_web_browser_found">Nenhum navegador da web encontrado</string>
+    <string name="mjpeg_stream_fragment_external_app_error">Erro na aplicação externa</string>
+    <string name="mjpeg_stream_fragment_share_address">Compartilhar endereço do dispositivo</string>
+    <string name="mjpeg_item_device_address_description_open_address">Abrir endereço</string>
+    <string name="mjpeg_item_device_address_description_copy_address">Copiar endereço</string>
+    <string name="mjpeg_item_device_address_description_share_address">Compartilhar endereço</string>
+    <string name="mjpeg_item_device_address_description_qr_address">Mostrar endereço como código QR</string>
+    <string name="mjpeg_pref_settings">Configurações do fluxo</string>
+    <string name="mjpeg_stream_fragment_pin">PIN: %1$s</string>
+    <string name="mjpeg_stream_fragment_pin_disabled">PIN desativado</string>
+    <string name="mjpeg_stream_fragment_show_pin_description">Mostrar PIN do fluxo</string>
+    <string name="mjpeg_stream_fragment_create_new_pin_description">Criar novo PIN do fluxo</string>
+    <string name="mjpeg_stream_fragment_current_traffic">Tráfego: %1$,.2f Mbit/s</string>
+    <string name="mjpeg_stream_fragment_connected_clients">Clientes conectados: %1$d</string>
+    <string name="mjpeg_stream_fragment_client_disconnected">Desconectado</string>
+    <string name="mjpeg_stream_fragment_client_slow_network">Conexão lenta</string>
+    <string name="mjpeg_stream_fragment_client_connected">Conectado</string>
+    <string name="mjpeg_stream_fragment_client_blocked">Bloqueado</string>
+
+    <string name="mjpeg_stream_fragment_cast_permission_error_title">Erro de permissão</string>
+    <string name="mjpeg_stream_fragment_cast_permission_error">O sistema não suporta a funcionalidade de transmissão</string>
+    <string name="mjpeg_stream_fragment_cast_permission_required_title">Permissão necessária</string>
+    <string name="mjpeg_stream_fragment_cast_permission_required">O aplicativo ScreenStream requer permissão de transmissão de tela para capturar a tela.</string>
+
+    <string name="mjpeg_toast_slow_client_connection">Detetada conexão lenta do cliente</string>
+
+    <string name="mjpeg_pref_settings_interface">Interface</string>
+    <string name="mjpeg_pref_keep_awake">Manter o dispositivo ativo</string>
+    <string name="mjpeg_pref_keep_awake_summary">Manter o dispositivo e a tela ativos durante a transmissão</string>
+    <string name="mjpeg_pref_stop_on_sleep">Parar a transmissão ao adormecer</string>
+    <string name="mjpeg_pref_stop_on_sleep_summary">Parar a transmissão quando a tela se desligar</string>
+    <string name="mjpeg_pref_detect_slow_connections">Notificar sobre conexões lentas</string>
+    <string name="mjpeg_pref_detect_slow_connections_summary">Detectar e notificar sobre conexões lentas dos clientes</string>
+    <string name="mjpeg_pref_html_buttons">Ativar botões da página da web</string>
+    <string name="mjpeg_pref_html_buttons_summary">Mostrar botões de controle na página da web</string>
+    <string name="mjpeg_pref_html_show_press_start">Mostrar "Pressione INICIAR no dispositivo"</string>
+    <string name="mjpeg_pref_html_show_press_start_summary">Mostrar "Pressione INICIAR no dispositivo" na página da web</string>
+    <string name="mjpeg_pref_html_back_color">Cor de fundo da página da web</string>
+    <string name="mjpeg_pref_html_back_color_summary">Definir a cor de fundo da página da web</string>
+    <string name="mjpeg_pref_html_back_color_title">Selecionar a cor de fundo</string>
+
+    <string name="mjpeg_pref_settings_image">Imagem</string>
+    <string name="mjpeg_pref_vr_mode">Modo de realidade virtual</string>
+    <string name="mjpeg_pref_vr_mode_summary">Capturar conteúdo da metade da tela</string>
+    <string-array name="mjpeg_pref_vr_mode_options">
+        <item>Usar a parte esquerda</item>
+        <item>Usar a parte direita</item>
+    </string-array>
+    <string name="mjpeg_pref_crop">Recortar imagem</string>
+    <string name="mjpeg_pref_crop_summary">Recortar a imagem antes de enviá-la para o cliente</string>
+    <string name="mjpeg_pref_crop_dialog_crop_top">Recortar superior:</string>
+    <string name="mjpeg_pref_crop_dialog_crop_bottom">Recortar inferior:</string>
+    <string name="mjpeg_pref_crop_dialog_crop_left">Recortar à esquerda:</string>
+    <string name="mjpeg_pref_crop_dialog_crop_right">Recortar à direita:</string>
+    <string name="mjpeg_pref_crop_dialog_pixels">pixels</string>
+    <string name="mjpeg_pref_crop_dialog_warning_message">O recorte será ignorado se o resultado for uma imagem vazia</string>
+    <string name="mjpeg_pref_crop_dialog_error_message">Digite valores de recorte válidos</string>
+    <string name="mjpeg_pref_grayscale">Modo de escala de cinza</string>
+    <string name="mjpeg_pref_grayscale_summary">Converter a imagem em escala de cinza antes de enviá-la para o cliente</string>
+    <string name="mjpeg_pref_resize">Redimensionar imagem</string>
+    <string name="mjpeg_pref_resize_summary">Redimensionar a imagem antes de enviá-la para o cliente</string>
+    <string name="mjpeg_pref_resize_dialog_text">Defina o fator de redimensionamento da imagem em porcentagem.\nValores: 10–150 (Padrão: 50)\nTamanho da tela: %1$dx%2$d</string>
+    <string name="mjpeg_pref_resize_dialog_result">Tamanho da imagem: %1$dx%2$d</string>
+    <string name="mjpeg_pref_rotate">Girar imagem no sentido horário</string>
+    <string name="mjpeg_pref_rotate_summary">Girar a imagem antes de enviá-la para o cliente</string>
+    <string name="mjpeg_pref_fps">Limitar quadros por segundo</string>
+    <string name="mjpeg_pref_fps_summary">Definir o número máximo de quadros por segundo</string>
+    <string name="mjpeg_pref_fps_dialog">Defina o número máximo de quadros por segundo.\nValores: 1–60 (Padrão: 30)</string>
+    <string name="mjpeg_pref_jpeg_quality">Qualidade de compressão JPEG</string>
+    <string name="mjpeg_pref_jpeg_quality_summary">Definir a qualidade de compressão JPEG</string>
+    <string name="mjpeg_pref_jpeg_quality_dialog">Defina a qualidade de compressão JPEG.\nValores: 10–100 (Padrão: 80)</string>
+
+    <string name="mjpeg_pref_settings_security">Segurança</string>
+    <string name="mjpeg_pref_enable_pin">Ativar PIN</string>
+    <string name="mjpeg_pref_enable_pin_summary">Proteger o acesso à transmissão com um PIN</string>
+    <string name="mjpeg_pref_hide_pin">Ocultar automaticamente o PIN no início da transmissão</string>
+    <string name="mjpeg_pref_hide_pin_summary">Mostrar asteriscos em vez do PIN durante a transmissão</string>
+    <string name="mjpeg_pref_new_pin_on_start">Novo PIN no início</string>
+    <string name="mjpeg_pref_new_pin_on_start_summary">Gerar um novo PIN no início do aplicativo</string>
+    <string name="mjpeg_pref_auto_change_pin">Alterar automaticamente o PIN</string>
+    <string name="mjpeg_pref_auto_change_pin_summary">Gerar um novo PIN para cada nova transmissão</string>
+    <string name="mjpeg_pref_set_pin">Definir PIN</string>
+    <string name="mjpeg_pref_set_pin_summary">Inserir o PIN manualmente</string>
+    <string name="mjpeg_pref_set_pin_dialog">Inserir o PIN.\nPadrão: 000000</string>
+    <string name="mjpeg_pref_block_address">Bloquear endereço IP</string>
+    <string name="mjpeg_pref_block_address_summary">Bloquear o endereço IP do cliente após 5 tentativas erradas de PIN por 5 minutos</string>
+
+    <string name="mjpeg_pref_settings_advanced">Avançado</string>
+    <string name="mjpeg_pref_wifi_only">Usar apenas Wi-Fi</string>
+    <string name="mjpeg_pref_wifi_only_summary">Executar o servidor apenas na interface Wi-Fi</string>
+    <string name="mjpeg_pref_enable_ipv6">Ativar suporte ao IPv6</string>
+    <string name="mjpeg_pref_enable_ipv6_summary">Executar o servidor em endereços IPv6 também</string>
+    <string name="mjpeg_pref_enable_localhost">Ativar host local</string>
+    <string name="mjpeg_pref_enable_localhost_summary">Executar o servidor também em endereços de host local</string>
+    <string name="mjpeg_pref_localhost_only">Apenas host local</string>
+    <string name="mjpeg_pref_localhost_only_summary">Executar o servidor apenas em endereços de host local</string>
+    <string name="mjpeg_pref_server_port">Porta do servidor</string>
+    <string name="mjpeg_pref_server_port_summary">Definir a porta para conexões de entrada</string>
+    <string name="mjpeg_pref_server_port_dialog">Definir a porta do servidor para conexões de entrada.\nValores: 1025–65535\n(Padrão: 8080)</string>
+
+    <string name="mjpeg_error_port_in_use">Porta já em uso. Escolha outra.</string>
+    <string name="mjpeg_error_invalid_media_projection">Erro de segurança: Projeção de mídia inválida. Tente novamente.</string>
+    <string name="mjpeg_error_ip_address_not_found">Endereço IP não encontrado.\nTente desativar \"Usar apenas Wi-Fi\" nas configurações de transmissão.</string>
+    <string name="mjpeg_error_wrong_image_format">O sistema retorna a imagem em um formato desconhecido. Não há correção disponível. Desculpe.</string>
+    <string name="mjpeg_error_notification_permission_required">O aplicativo requer notificações ativadas para iniciar o serviço de transmissão.\n\nPor favor, ative as notificações nas configurações do aplicativo.</string>
+    <string name="mjpeg_error_unspecified">Algo deu errado. Tente novamente mais tarde.</string>
+
+    <string name="mjpeg_start_image_text">Iniciar transmissão no dispositivo</string>
+
+    <!--HTML text-->
+    <string name="mjpeg_html_stream_connecting">Tentando conectar</string>
+    <string name="mjpeg_html_stream_require_pin">Esta transmissão requer um PIN para acessá-la</string>
+    <string name="mjpeg_html_enter_pin">Inserir PIN:\u0020</string>
+    <string name="mjpeg_html_submit_pin">Enviar</string>
+    <string name="mjpeg_html_wrong_pin">PIN incorreto!</string>
+    <string name="mjpeg_html_address_blocked">Endereço do cliente bloqueado</string>
+    <string name="mjpeg_html_error_unspecified">Algo deu errado. &lt;br&gt; Por favor, recarregue a página e tente novamente.</string>
+</resources>

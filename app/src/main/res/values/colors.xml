@@ -6,8 +6,9 @@
     <color name="textColorPrimary">#5F6368</color>
     <color name="textColorSecondary">#3C4043</color>
     <color name="textColorTertiary">#9AA0A6</color>
+    <color name="mdBackground">#FFFFFF</color>
 
-    <color name="colorStatusBar">#5F6368</color>
+    <color name="colorStatusBar">#FFFFFF</color>
     <color name="colorNavigationBar">#0F0F0F</color>
     <color name="colorWindowBackgroundStart">#FFFFFF</color>
     <color name="colorWindowBackgroundEnd">#F6F6F6</color>

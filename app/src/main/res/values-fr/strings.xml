@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_error_title">Erreur</string>
+    <string name="app_error_recover">Récupérer</string>
+
+    <string name="app_activity_logs_collecting">Collecte des journaux d\'application…</string>
+    <string name="app_activity_logs_send">Envoyer des journaux au développeur</string>
+    <string name="app_activity_logs_send_dialog_title">Envoyer les journaux par e-mail au développeur</string>
+    <string name="app_activity_logs_send_dialog_message">Veuillez ajouter une description du problème:</string>
+    <string name="app_activity_logs_send_dialog_neutral">Arrêter l\'enregistrement</string>
+
+    <string name="app_activity_update_dialog_title">Mise à jour disponible</string>
+    <string name="app_activity_update_dialog_message">Une mise à jour vient d\'être téléchargée. Redémarrer l\'application maintenant?</string>
+    <string name="app_activity_update_dialog_restart">Redémarrer</string>
+
+    <string name="app_bottom_menu_stream">Diffusion</string>
+    <string name="app_bottom_menu_settings">Réglages</string>
+    <string name="app_bottom_menu_start">Démarrer</string>
+    <string name="app_bottom_menu_stop">Arrêtez</string>
+    <string name="app_bottom_menu_about">À propos de</string>
+    <string name="app_bottom_menu_exit">Quitter</string>
+
+    <string name="app_fragment_stream_select_stream_mode">Sélectionnez le mode de flux:</string>
+
+    <string name="permission_activity_error_title">Erreur</string>
+    <string name="permission_activity_error_unknown">Erreur inconnue</string>
+    <string name="app_activity_permission_permission_required_title">Permission requise</string>
+    <string name="app_activity_permission_notifications_required_title">Notifications requises</string>
+    <string name="app_activity_permission_enable_notifications">L\'application nécessite l\'activation des notifications pour démarrer le service de streaming.\n\nVeuillez activer les notifications dans les paramètres de l\'application.</string>
+    <string name="app_activity_permission_allow_notifications">L\'application nécessite l\'autorisation d\'envoyer des notifications pour pouvoir démarrer le service de streaming.\n\nVeuillez autoriser l\'envoi de notifications.</string>
+    <string name="app_activity_permission_allow_notifications_settings">L\'application nécessite l\'autorisation d\'envoyer des notifications pour pouvoir démarrer le service de streaming.\n\nVeuillez autoriser l\'envoi de notifications dans les paramètres de l\'application.</string>
+    <string name="app_activity_permission_notification_settings">Ouvrir les paramètres</string>
+
+    <string name="app_notification_channel_streaming">Notifications de diffusion</string>
+    <string name="app_notification_channel_error">Notifications d\'erreur</string>
+    <string name="app_notification_streaming_title">Diffusion…</string>
+    <string name="app_notification_streaming_content">Appuyez sur Arrêtez pour arrêter la diffusion</string>
+    <string name="app_notification_stop">Arrêtez</string>
+
+    <string name="app_pref_locale">Langue de l\'application</string>
+    <string name="app_pref_locale_summary">Ouvrir les paramètres de langue de l\'application</string>
+    <string name="app_pref_night_mode">Thème sombre</string>
+    <string-array name="app_pref_night_mode_options_api21_28">
+        <item>Toujours</item>
+        <item>Économiseur de batterie seulement</item>
+        <item>Jamais</item>
+    </string-array>
+    <string-array name="app_pref_night_mode_options_api29">
+        <item>Toujours</item>
+        <item>Automatiquement (système de suivi)</item>
+        <item>Jamais</item>
+    </string-array>
+    <string name="app_pref_notification">Paramètres de notification de l\'appareil</string>
+    <string name="app_pref_notification_summary">Ouvrir les paramètres de notification du système</string>
+    <string name="app_pref_logging">Activer les journaux d\'application</string>
+    <string name="app_pref_logging_summary">Collecter les journaux d\'application</string>
+
+    <string name="app_about_fragment_app_version">Version: %1$s</string>
+    <string name="app_about_fragment_developer_name">Développé par Dmytro Kryvoruchko</string>
+    <string name="app_about_fragment_rate_app">Évaluer l\'application</string>
+    <string name="app_about_fragment_write_email">Envoyer un courriel au développeur</string>
+    <string name="app_about_fragment_write_email_dialog">Écrire un e-mail au développeur?</string>
+    <string name="app_about_fragment_email_chooser_header">Envoi du courriel…</string>
+    <string name="app_about_fragment_app_sources">Code source de l\'application</string>
+    <string name="app_about_fragment_terms_conditions">Conditions générales</string>
+    <string name="app_about_fragment_privacy_policy">Politique de confidentialité</string>
+    <string name="app_about_fragment_privacy_options">Options de confidentialité</string>
+    <string name="app_about_fragment_license">Licence</string>
+</resources>

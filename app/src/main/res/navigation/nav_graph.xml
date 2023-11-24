@@ -6,18 +6,18 @@
 
     <fragment
         android:id="@+id/nav_streamFragment"
-        android:name="info.dvkr.screenstream.ui.fragment.StreamFragment"
+        android:name="info.dvkr.screenstream.fragment.StreamFragment"
         android:label="StreamFragment" />
     <fragment
         android:id="@+id/nav_settingsFragment"
-        android:name="info.dvkr.screenstream.ui.fragment.SettingsFragment"
+        android:name="info.dvkr.screenstream.fragment.SettingsFragment"
         android:label="SettingsFragment" />
     <fragment
         android:id="@+id/nav_aboutFragment"
-        android:name="info.dvkr.screenstream.ui.fragment.AboutFragment"
+        android:name="info.dvkr.screenstream.fragment.AboutFragment"
         android:label="AboutFragment" />
     <fragment
         android:id="@+id/nav_exitFragment"
-        android:name="info.dvkr.screenstream.ui.fragment.ExitFragment"
+        android:name="info.dvkr.screenstream.fragment.ExitFragment"
         android:label="ExitFragment" />
 </navigation>

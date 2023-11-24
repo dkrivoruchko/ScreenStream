@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="webrtc_error_recover">Wiederherstellen</string>
+
+    <string name="webrtc_stream_fragment_mode_global">Globaler Modus (WebRTC)</string>
+    <string name="webrtc_stream_fragment_mode_global_description">Beschreibung des globalen Modus</string>
+    <string name="webrtc_stream_fragment_mode_global_details">
+- Unterstützt von WebRTC-Technologie.\n\n
+- Ende-zu-Ende-verschlüsselte Kommunikation.\n\n
+- Stream-Schutz mit Passwort.\n\n
+- Kann Video und Audio senden.\n\n
+- Verbindung über eindeutige Stream-ID und Passwort.\n\n
+- Erfordert eine Internetverbindung für das Streaming.\n\n
+- Einzelne Datenübertragung für jeden Client (je mehr Clients Sie haben, desto mehr Internetbandbreite wird benötigt).
+</string>
+
+    <string name="webrtc_stream_fragment_server_address">Zugriff auf den Stream unter:\n%1$s</string>
+    <string name="webrtc_stream_fragment_stream_id_getting">Stream-ID wird abgerufen…</string>
+    <string name="webrtc_stream_fragment_stream_id">Stream-ID: %1$s</string>
+    <string name="webrtc_stream_fragment_stream_password">Stream-Passwort: %1$s</string>
+    <string name="webrtc_stream_fragment_mic_off">Mikrofon aus</string>
+    <string name="webrtc_stream_fragment_mic_on">Mikrofon an</string>
+    <string name="webrtc_stream_fragment_show_password_description">Stream-Passwort anzeigen</string>
+    <string name="webrtc_stream_fragment_get_new_id_description">Neue Stream-ID abrufen</string>
+    <string name="webrtc_stream_fragment_create_new_password_description">Neues Stream-Passwort erstellen</string>
+    <string name="webrtc_stream_fragment_open_address_description">Adresse öffnen</string>
+    <string name="webrtc_stream_fragment_copy_address_description">Adresse kopieren</string>
+    <string name="webrtc_stream_fragment_share_address_description">Adresse teilen</string>
+    <string name="webrtc_stream_fragment_qr_address_description">Adresse als QR-Code anzeigen</string>
+    <string name="webrtc_stream_fragment_copied">Kopiert</string>
+    <string name="webrtc_stream_fragment_connected_clients">Verbundene Clients: %1$d</string>
+    <string name="webrtc_stream_fragment_no_web_browser_found">Kein Webbrowser gefunden</string>
+    <string name="webrtc_stream_fragment_external_app_error">Fehler bei externer Anwendung</string>
+    <string name="webrtc_stream_fragment_share_address">Geräteadresse teilen</string>
+
+    <string name="webrtc_pref_settings">Stream-Einstellungen</string>
+    <string name="webrtc_pref_keep_awake">Gerät aktiviert lassen</string>
+    <string name="webrtc_pref_keep_awake_summary">Gerät und Bildschirm aktiviert lassen</string>
+    <string name="webrtc_pref_stop_on_sleep">Stream im Standby-Modus stoppen</string>
+    <string name="webrtc_pref_stop_on_sleep_summary">Stream stoppen, wenn der Bildschirm ausgeschaltet wird</string>
+    
+    <string name="webrtc_stream_fragment_audio_permission_title">Audioaufnahme erlauben</string>
+    <string name="webrtc_stream_fragment_audio_permission_message">Die Erlaubnis zur Aufnahme von Audio ist erforderlich, damit die Anwendung Audioinhalte streamen kann.\n\nOhne diese Erlaubnis erfolgt der Stream ohne Audio.</string>
+    <string name="webrtc_stream_fragment_audio_permission_message_settings">Die Mikrofonberechtigung in den Anwendungsberechtigungen zu gewähren, ist erforderlich, damit die Anwendung Audioinhalte streamen kann.\n\nOhne diese Erlaubnis erfolgt der Stream ohne jeglichen Ton.</string>
+    <string name="webrtc_stream_fragment_audio_permission_open_settings">Einstellungen öffnen</string>
+
+    <string name="webrtc_stream_fragment_cast_permission_error_title">Berechtigungsfehler</string>
+    <string name="webrtc_stream_fragment_cast_permission_error">Das System unterstützt keine Cast-Funktionalität</string>
+    <string name="webrtc_stream_fragment_cast_permission_required_title">Berechtigung erforderlich</string>
+    <string name="webrtc_stream_fragment_cast_permission_required">Die Anwendung ScreenStream erfordert die Berechtigung zur Bildschirmübertragung (Screen Cast).</string>
+
+    <string name="webrtc_item_client_disconnect">Trennen</string>
+
+    <string name="webrtc_error_play_integrity_update_play_store">Bitte aktualisieren Sie den Google Play Store</string>
+    <string name="webrtc_error_play_integrity_install_play_store">Bitte installieren oder aktivieren Sie den offiziellen Google Play Store</string>
+    <string name="webrtc_error_play_integrity_install_play_service">Bitte installieren oder aktivieren Sie Google Play-Dienste</string>
+    <string name="webrtc_error_play_integrity_update_play_service">Bitte aktualisieren Sie Google Play-Dienste</string>
+    <string name="webrtc_error_check_network">Bitte überprüfen Sie die Internetverbindung</string>
+    <string name="webrtc_notification_permission_required">Die Anwendung erfordert, dass Benachrichtigungen aktiviert sind, um den Streaming-Dienst zu starten.\n\nBitte aktivieren Sie Benachrichtigungen in den Anwendungseinstellungen.</string>
+    <string name="webrtc_error_unspecified">Etwas ist schiefgelaufen. Bitte versuchen Sie es später erneut.</string>
+</resources>

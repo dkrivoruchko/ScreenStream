@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="webrtc_error_recover">Herstellen</string>
+
+    <string name="webrtc_stream_fragment_mode_global">Wereldwijde modus (WebRTC)</string>
+    <string name="webrtc_stream_fragment_mode_global_description">Beschrijving van de wereldwijde modus</string>
+    <string name="webrtc_stream_fragment_mode_global_details">
+- Aangedreven door WebRTC-technologie.\n\n
+- Eind-tot-eind versleutelde communicatie.\n\n
+- Streambeveiliging met wachtwoord.\n\n
+- Kan video en audio verzenden.\n\n
+- Verbinding maken met unieke stream-ID en wachtwoord.\n\n
+- Vereist een internetverbinding voor streamen.\n\n
+- Individuele gegevensoverdracht voor elke client (hoe meer cliënten je hebt, hoe meer internetbandbreedte je nodig hebt).
+</string>
+
+    <string name="webrtc_stream_fragment_server_address">Toegang tot stream op:\n%1$s</string>
+    <string name="webrtc_stream_fragment_stream_id_getting">Stream-ID ophalen…</string>
+    <string name="webrtc_stream_fragment_stream_id">Stream-ID: %1$s</string>
+    <string name="webrtc_stream_fragment_stream_password">Streamwachtwoord: %1$s</string>
+    <string name="webrtc_stream_fragment_mic_off">Microfoon uit</string>
+    <string name="webrtc_stream_fragment_mic_on">Microfoon aan</string>
+    <string name="webrtc_stream_fragment_show_password_description">Toon streamwachtwoord</string>
+    <string name="webrtc_stream_fragment_get_new_id_description">Nieuwe stream-ID ophalen</string>
+    <string name="webrtc_stream_fragment_create_new_password_description">Nieuw streamwachtwoord aanmaken</string>
+    <string name="webrtc_stream_fragment_open_address_description">Adres openen</string>
+    <string name="webrtc_stream_fragment_copy_address_description">Adres kopiëren</string>
+    <string name="webrtc_stream_fragment_share_address_description">Adres delen</string>
+    <string name="webrtc_stream_fragment_qr_address_description">Toon adres als QR-code</string>
+    <string name="webrtc_stream_fragment_copied">Gekopieerd</string>
+    <string name="webrtc_stream_fragment_connected_clients">Aangesloten clients: %1$d</string>
+    <string name="webrtc_stream_fragment_no_web_browser_found">Geen webbrowser gevonden</string>
+    <string name="webrtc_stream_fragment_external_app_error">Fout bij externe toepassing</string>
+    <string name="webrtc_stream_fragment_share_address">Apparaatadres delen</string>
+
+    <string name="webrtc_pref_settings">Streaminstellingen</string>
+    <string name="webrtc_pref_keep_awake">Apparaat actief houden</string>
+    <string name="webrtc_pref_keep_awake_summary">Houd het apparaat en het scherm actief tijdens het streamen</string>
+    <string name="webrtc_pref_stop_on_sleep">Stop stream bij slaapmodus</string>
+    <string name="webrtc_pref_stop_on_sleep_summary">Stop stream als het scherm word uitgezet</string>
+    
+    <string name="webrtc_stream_fragment_audio_permission_title">Audio-opname toestaan</string>
+    <string name="webrtc_stream_fragment_audio_permission_message">Toestemming om audio op te nemen is noodzakelijk voor de toepassing om audio-inhoud te streamen.\n\nZonder deze toestemming zal de stream zonder audio zijn.</string>
+    <string name="webrtc_stream_fragment_audio_permission_message_settings">Toegang tot de microfoon verlenen in app-permissies is noodzakelijk voor de toepassing om audio-inhoud te streamen.\n\nZonder deze toestemming zal de stream zonder audio worden uitgevoerd.</string>
+    <string name="webrtc_stream_fragment_audio_permission_open_settings">Instellingen openen</string>
+
+    <string name="webrtc_stream_fragment_cast_permission_error_title">Toestemmingsfout</string>
+    <string name="webrtc_stream_fragment_cast_permission_error">Systeem ondersteunt geen cast-functionaliteit</string>
+   <string name="webrtc_stream_fragment_cast_permission_required_title">Vereiste toestemming</string>
+    <string name="webrtc_stream_fragment_cast_permission_required">De ScreenStream-applicatie vereist toestemming voor schermafdrukken om het scherm vast te leggen.</string>
+
+    <string name="webrtc_item_client_disconnect">Verbinding verbreken</string>
+
+    <string name="webrtc_error_play_integrity_update_play_store">Werk alsjeblieft de Google Play Store bij</string>
+    <string name="webrtc_error_play_integrity_install_play_store">Installeer of activeer alsjeblieft de officiële Google Play Store</string>
+    <string name="webrtc_error_play_integrity_install_play_service">Installeer of activeer alsjeblieft Play Services</string>
+    <string name="webrtc_error_play_integrity_update_play_service">Werk alsjeblieft Google Play-services bij</string>
+    <string name="webrtc_error_check_network">Controleer alsjeblieft de internetverbinding</string>
+    <string name="webrtc_notification_permission_required">De applicatie vereist dat meldingen zijn ingeschakeld om de streamingdienst te starten.\n\nSchakel meldingen in in de applicatie-instellingen.</string>
+    <string name="webrtc_error_unspecified">Er is iets misgegaan. Probeer het later alsjeblieft opnieuw.</string>
+</resources>

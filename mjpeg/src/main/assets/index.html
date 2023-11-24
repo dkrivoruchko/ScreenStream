@@ -1,10 +1,11 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
     <meta charset=utf-8>
-    <title>Screen Stream</title>
-    <link href="/favicon.png" rel="shortcut icon" type="image/x-icon">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ScreenStream</title>
+    <link rel="icon" type="image/x-icon" sizes="any" href="/favicon.ico">
     <style>
         body,
         html {
@@ -14,14 +15,32 @@
             border: 0;
             overflow: hidden;
             display: block;
-            font-family: sans-serif
+            font-family: sans-serif;
+            font-size: 16px
         }
 
         body {
-            background: BACKGROUND_COLOR
+            background-color: BACKGROUND_COLOR
         }
 
-        img {
+        #connectDiv,
+        #pinDiv,
+        #blockedDiv,
+        #errorDiv {
+            min-width: 350px;
+            border-radius: 16px;
+            color: #eee;
+            top: 45%;
+            left: 50%;
+            padding: 40px 40px 30px;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            position: absolute;
+            box-shadow: 0 0 8px 8px rgba(0, 0, 0, .2);
+            background-color: #132b42;
+        }
+
+        #streamDiv img {
             position: absolute;
             top: 0;
             bottom: 0;
@@ -29,86 +48,522 @@
             right: 0;
             margin: auto;
             max-height: 100vh;
-            max-width: 100%
+            max-width: 100%;
         }
 
-        div {
+        #buttonsDiv {
             visibility: hidden;
             top: 16px;
             left: 16px;
             width: 100%;
             text-align: center;
             position: absolute;
-            z-index: 9999;
+            z-index: 10;
         }
 
-        input {
-            background-color: #19769F;
+        #pinDiv input {
+            background-color: #FFF;
             padding: 4px;
+            width: 4em;
+            font-family: monospace;
+        }
+
+        #pinDiv button {
+            background-color: #19769F;
+            border-radius: 6px;
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block
+        }
+
+        @media screen and (max-width:850px) {
+
+            #connectDiv,
+            #pinDiv,
+            #blockedDiv,
+            #errorDiv {
+                padding: 30px;
+                width: 55%
+            }
+        }
+
+        @media screen and (max-width:650px) {
+
+            #connectDiv,
+            #pinDiv,
+            #blockedDiv,
+            #errorDiv {
+                padding: 30px 20px;
+                width: 85%
+            }
+        }
+
+        .loading {
+            margin: 20px 0 10px 0;
+        }
+
+        .loading span {
+            display: inline-block;
+            vertical-align: middle;
+            width: .6em;
+            height: .6em;
+            margin: .19em;
+            background: #fff;
+            border-radius: .6em;
+            animation: loading 1s infinite alternate
+        }
+
+        .loading span:nth-of-type(2) {
+            background: #fff;
+            animation-delay: .2s
+        }
+
+        .loading span:nth-of-type(3) {
+            background: #fff;
+            animation-delay: .4s
+        }
+
+        .loading span:nth-of-type(4) {
+            background: #fff;
+            animation-delay: .6s
+        }
+
+        .loading span:nth-of-type(5) {
+            background: #fff;
+            animation-delay: .8s
+        }
+
+        .loading span:nth-of-type(6) {
+            background: #fff;
+            animation-delay: 1s
+        }
+
+        .loading span:nth-of-type(7) {
+            background: #fff;
+            animation-delay: 1.2s
+        }
+
+        @keyframes loading {
+            0% {
+                opacity: 0
+            }
+
+            100% {
+                opacity: 1
+            }
         }
     </style>
+    <script type="text/javascript" src="https://www.datadoghq-browser-agent.com/us1/v4/datadog-logs.js" crossorigin="anonymous"></script>
+    <script>
+        "use strict";
+
+        window.DD_LOGS && DD_LOGS.init({
+            clientToken: "pub26fc6543f9239240ed8ae545593f921f",
+            site: "datadoghq.com",
+            forwardConsoleLogs: ["info", "warn", "error"],
+            forwardReports: "all",
+            service: '%DD_SERVICE%'
+        });
+        window.DD_LOGS && DD_LOGS.logger.setHandler(DD_HANDLER);
+        window.DD_LOGS && DD_LOGS.setGlobalContextProperty('version', '%APP_VERSION%');
+    </script>
 </head>
 
-<body onmousemove="onMouseMove()">
-    <img id="stream" src="SCREEN_STREAM_ADDRESS" onerror="streamFallback()" />
-    <div id="buttons">
-        <input type="image" id="fullscreen" src="/fullscreen-on.png" onclick="toggleFullscreen()" />
-        <input type="image" src="/start-stop.png" onclick="toggleStartStop()" />
+<body>
+    <div id="connectDiv">
+        <img src="logo.png" height="256" width="256" />
+        <p style="font-weight:500">%CONNECTING%</p>
+        <div class="loading">
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
     </div>
+
+    <div id="streamDiv"><img id="stream" /></div>
+
+    <div id="buttonsDiv">
+        <input type="image" id="fullscreen" src="data:image/webp;base64,UklGRmIAAABXRUJQVlA4TFUAAAAvI8AIECcw//M//wKBFG52gQ4Ag1UkSa2WIAAJ1OIABWn9qyK+8B/Rf6Nt2ySorN2+wP8NJC0QSZqRKMkDRZK9IY0hL/hCgV/5lVudfeGZ3x19/PcCAA==" onclick="toggleFullscreen()" />
+        <input type="image" src="data:image/webp;base64,UklGRqAAAABXRUJQVlA4TJMAAAAvI8AIEHU4jiTJUfDf6ULDDOpbMRE9RLAJALZJ5x0HuWqgf8+JEZDAy1kZERIX0QAGerImwJ+fgH6AxD4z6sxMbnFA+Pv+/EnUJPnfERjoEATsEC5ihzBZOoSbrUPCQHcIhO8QGOgQBHwTMGAdhLdu0ZZxs3q9gjnWcRKtQ0DrYMA6CG8dAX1Q95MZu6vu7ubW7w4A" onclick="toggleStartStop()" />
+    </div>
+
+    <div id="pinDiv" style="visibility: hidden;">
+        <img src="logo.png" height="256" width="256" />
+        <p>%STREAM_REQUIRE_PIN%</p>
+        <form action="" id="pinForm" autocomplete="off">
+            <label for="pin">%ENTER_PIN%</label>
+            <input id="pin" autofocus maxlength="6" pattern="[0-9]{4,6}" required type="password" autocomplete="off">
+            <button id="sendPin" type="submit">%SUBMIT_PIN%</button>
+        </form>
+        <p id="pinWrongMsg" style="color:red;font-weight:700">%WRONG_PIN_MESSAGE%</p>
+    </div>
+
+    <div id="blockedDiv" style="visibility: hidden;">
+        <img src="logo.png" height="256" width="256" />
+        <p style=color:red;font-weight:600>%ADDRESS_BLOCKED%</p>
+    </div>
+
+    <div id="errorDiv" style="visibility: hidden;">
+        <img src="logo.png" height="256" width="256" />
+        <p style=color:red;font-weight:600>%ERROR%</p>
+    </div>
+
     <script>
-        if ("undefined" != typeof history.pushState) { var o = { Title: "Screen Stream", Url: "/" }; history.pushState(o, o.Title, o.Url) }
+        "use strict";
 
-        var enableButtons = ENABLE_BUTTONS;
-        if (enableButtons) document.getElementById('buttons').style.visibility = 'visible';
-        var buttonsHideFunction = function () { document.getElementById('buttons').style.visibility = 'hidden'; }
+        var clientId = RandomString(16);
+        window.DD_LOGS && DD_LOGS.setGlobalContextProperty('clientId', clientId);
+        var buttonsDiv = document.getElementById('buttonsDiv');
+        var streamDiv = document.getElementById("streamDiv");
+        var stream = document.getElementById("stream");
+        var connectDiv = document.getElementById("connectDiv");
+        var pinDiv = document.getElementById("pinDiv");
+        var pin = document.getElementById("pin");
+        var sendPin = document.getElementById("sendPin");
+        var pinWrongMsg = document.getElementById("pinWrongMsg");
+        var blockedDiv = document.getElementById("blockedDiv");
+        var errorDiv = document.getElementById("errorDiv");
+        var enableButtons = false;
+        var buttonsHideFunction = function buttonsHideFunction() {
+            buttonsDiv.style.visibility = 'hidden';
+        };
         var hideTimeout = setTimeout(buttonsHideFunction, 1500);
-
-        function onMouseMove() {
-            if (!enableButtons) return
-            document.getElementById('buttons').style.visibility = 'visible';
-            clearTimeout(hideTimeout)
-            hideTimeout = setTimeout(buttonsHideFunction, 1000);
+        function configureButtons(enable) {
+            if (enableButtons != enable) {
+                enableButtons = enable;
+                if (enableButtons) {
+                    buttonsDiv.style.visibility = 'visible';
+                    hideTimeout = setTimeout(buttonsHideFunction, 1500);
+                } else {
+                    clearTimeout(hideTimeout);
+                    buttonsDiv.style.visibility = 'hidden';
+                }
+            }
         }
-
+        window.onmousemove = function () {
+            if (!enableButtons) return;
+            buttonsDiv.style.visibility = 'visible';
+            clearTimeout(hideTimeout);
+            hideTimeout = setTimeout(buttonsHideFunction, 1000);
+        };
         function isFullscreen() {
             return document.webkitIsFullScreen || document.mozFullScreen || false;
         }
-
+        var fullscreenInput = document.getElementById("fullscreen");
         function fullScreenHandler() {
-            var fullscreenInput = document.getElementById("fullscreen");
-            if (isFullscreen()) fullscreenInput.src = "/fullscreen-off.png"; else fullscreenInput.src = "/fullscreen-on.png";
+            if (isFullscreen()) fullscreenInput.src = "data:image/webp;base64,UklGRkoAAABXRUJQVlA4TD4AAAAvI8AIEBcw//M//wKCoudMD/gICtq2kTwQR2IoDsSBnIb0PgAR/Z8AHxwWkOrY7FQdW56dnapjD6k4NiwfBA=="; else fullscreenInput.src = "data:image/webp;base64,UklGRmIAAABXRUJQVlA4TFUAAAAvI8AIECcw//M//wKBFG52gQ4Ag1UkSa2WIAAJ1OIABWn9qyK+8B/Rf6Nt2ySorN2+wP8NJC0QSZqRKMkDRZK9IY0hL/hCgV/5lVudfeGZ3x19/PcCAA==";
         }
-
-        function streamFallback() { //mjpeg -> jpeg fallback
-            var baseurl = "SCREEN_STREAM_ADDRESS".split(".mjpeg")[0];
-
-            function streamStillUpdate() { // refresh the image
-                stream.src = baseurl + ".jpeg?t=" + Math.random();
-            }
-
-            setInterval(streamStillUpdate, 500);
-        }
-
-        setTimeout( function () { // check if the mjpeg image could be loaded, otherwise use the jpeg fallback
-            if (!document.getElementById("stream").complete) streamFallback();
-        }, 2000);
-
         document.addEventListener("fullscreenchange", fullScreenHandler);
         document.addEventListener("webkitfullscreenchange", fullScreenHandler);
         document.addEventListener("mozfullscreenchange", fullScreenHandler);
         document.addEventListener("MSFullscreenChange", fullScreenHandler);
-
-        function toggleFullscreen() {
-            var element = document.documentElement;
-            element.requestFullScreen = element.requestFullScreen || element.webkitRequestFullScreen || element.mozRequestFullScreen || function () { return false; };
-            document.cancelFullScreen = document.cancelFullScreen || document.webkitCancelFullScreen || document.mozCancelFullScreen || function () { return false; };
-            isFullscreen() ? document.cancelFullScreen() : element.requestFullScreen();
+        function fullScreen(element) {
+            if (element.requestFullscreen) element.requestFullscreen(); else if (element.webkitrequestFullscreen) element.webkitRequestFullscreen(); else if (element.mozRequestFullscreen) element.mozRequestFullScreen();
         }
-
+        function fullScreenCancel() {
+            if (document.requestFullscreen) document.requestFullscreen(); else if (document.webkitRequestFullscreen) document.webkitRequestFullscreen(); else if (document.mozRequestFullscreen) document.mozRequestFullScreen();
+        }
+        function toggleFullscreen() {
+            isFullscreen() ? fullScreenCancel() : fullScreen(document.documentElement);
+        }
         function toggleStartStop() {
             var xmlHttp = new XMLHttpRequest();
             xmlHttp.open("GET", window.location.origin + "/start-stop", true);
             xmlHttp.send(null);
+        }
+        sendPin.addEventListener('click', function (e) {
+            e.preventDefault();
+            var pinHash = SHA256(clientId + pin.value);
+            if (websocket) websocket.send(JSON.stringify({
+                type: "PIN",
+                data: pinHash
+            }));
+        });
+        var websocket = null;
+        var showStreamTimeoutId = null;
+        var MJPEGErrorCounter = 0;
+        function connect() {
+            connectDiv.style.visibility = 'visible';
+            pinDiv.style.visibility = 'hidden';
+            blockedDiv.style.visibility = 'hidden';
+            pinWrongMsg.style.visibility = "inherit";
+            streamDiv.style.visibility = 'hidden';
+            errorDiv.style.visibility = 'hidden';
+            stream.src = '';
+            websocket = new WebsocketHeartbeat("ws://".concat(window.location.host, "/socket?clientId=").concat(clientId));
+            websocket.onopen = function () {
+                websocket.send(JSON.stringify({
+                    type: "CONNECT"
+                }));
+                connectDiv.style.visibility = 'hidden';
+            };
+            websocket.onreconnect = function () {
+                connectDiv.style.visibility = 'visible';
+                pinDiv.style.visibility = 'hidden';
+                blockedDiv.style.visibility = 'hidden';
+                pinWrongMsg.style.visibility = "inherit";
+                streamDiv.style.visibility = 'hidden';
+                errorDiv.style.visibility = 'hidden';
+                stream.src = '';
+                MJPEGErrorCounter = 0;
+                clearTimeout(showStreamTimeoutId);
+            };
+            websocket.onmessage = function (msg) {
+                var message = JSON.parse(msg.data);
+                if (message.type === "HEARTBEAT") return;
+                window.DD_LOGS && DD_LOGS.logger.debug("websocket.onmessage", {
+                    data: msg.data
+                });
+                if (message.type === "STREAM_ADDRESS") {
+                    pinDiv.style.visibility = 'hidden';
+                    blockedDiv.style.visibility = 'hidden';
+                    pinWrongMsg.style.visibility = "inherit";
+                    showStream(message.data.streamAddress + "?clientId=".concat(clientId));
+                    configureButtons(message.data.enableButtons);
+                    return;
+                }
+                if (message.type === "UNAUTHORIZED") {
+                    if (message.data === "ADDRESS_BLOCKED") {
+                        pinDiv.style.visibility = 'hidden';
+                        blockedDiv.style.visibility = 'visible';
+                        pinWrongMsg.style.visibility = "inherit";
+                        return;
+                    }
+                    pinDiv.style.visibility = 'visible';
+                    blockedDiv.style.visibility = 'hidden';
+                    if (message.data === "WRONG_PIN") {
+                        pin.value = "";
+                        pinWrongMsg.style.visibility = 'visible';
+                    } else {
+                        pinWrongMsg.style.visibility = 'hidden';
+                        if (pin.value) sendPin.click();
+                    }
+                    return;
+                }
+                if (message.type === "RELOAD") {
+                    location.reload();
+                    return;
+                }
+                if (message.type === "SETTINGS") {
+                    document.body.style.backgroundColor = message.data.backColor;
+                    configureButtons(message.data.enableButtons);
+                    return;
+                }
+                window.DD_LOGS && DD_LOGS.logger.error("websocket.onmessage. Unknown data:", {
+                    message: e.data
+                });
+            };
+        }
+        function showStream(url) {
+            streamDiv.style.visibility = 'hidden';
+            stream.src = '';
+            errorDiv.style.visibility = 'hidden';
+            clearTimeout(showStreamTimeoutId);
+            new Promise(function (resolve, reject) {
+                window.DD_LOGS && DD_LOGS.logger.debug("showStream", {
+                    mode: "default",
+                    streamAddress: url
+                });
+                stream.onload = function () {
+                    stream.onload = null;
+                    stream.onerror = null;
+                    resolve();
+                };
+                stream.onerror = function (e) {
+                    stream.onerror = null;
+                    stream.onload = null;
+                    reject(e);
+                };
+                stream.src = url;
+            }).then(function () {
+                MJPEGErrorCounter = 0;
+                streamDiv.style.visibility = 'visible';
+                window.DD_LOGS && DD_LOGS.logger.debug("showStream", {
+                    mode: "default",
+                    result: "ok"
+                });
+            })["catch"](function (error) {
+                window.DD_LOGS && DD_LOGS.logger.debug("showStream", {
+                    mode: "default",
+                    result: "error"
+                });
+                MJPEGErrorCounter++;
+                if (MJPEGErrorCounter > 5) {
+                    streamDiv.style.visibility = 'visible';
+                    var splitUrl = url.split(".mjpeg");
+                    var baseUrl = splitUrl[0] + ".jpeg" + splitUrl[1] + "&t=";
+                    setInterval(function () {
+                        stream.src = baseUrl + Math.random();
+                    }, 500);
+                } else {
+                    showStreamTimeoutId = setTimeout(function () {
+                        return showStream(url);
+                    }, 200);
+                }
+            });
+        }
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', connect);
+        } else {
+            connect();
+        }
+
+        // https://github.com/zimv/websocket-heartbeat-js
+        function WebsocketHeartbeat(url) {
+            this.opts = {
+                url: url,
+                pingTimeout: 1000,
+                pongTimeout: 1000,
+                reconnectTimeout: 2000,
+                pingMsg: JSON.stringify({
+                    type: "HEARTBEAT"
+                })
+            };
+            this.ws = null;
+            this.onclose = function () { };
+            this.onerror = function () { };
+            this.onopen = function () { };
+            this.onmessage = function () { };
+            this.onreconnect = function () { };
+            this.createWebSocket();
+        }
+        WebsocketHeartbeat.prototype.createWebSocket = function () {
+            var _this = this;
+            try {
+                this.ws = new WebSocket(this.opts.url);
+                this.ws.onclose = function (e) {
+                    _this.onclose(e);
+                    _this.reconnect();
+                };
+                this.ws.onerror = function (e) {
+                    _this.onerror(e);
+                    _this.reconnect();
+                };
+                this.ws.onopen = function (e) {
+                    _this.onopen(e);
+                    _this.heartCheck();
+                };
+                this.ws.onmessage = function (event) {
+                    _this.onmessage(event);
+                    _this.heartCheck();
+                };
+            } catch (e) {
+                this.onerror(e);
+                this.reconnect();
+            }
+        };
+        WebsocketHeartbeat.prototype.reconnect = function () {
+            var _this2 = this;
+            if (this.lockReconnect || this.forbidReconnect) return;
+            this.lockReconnect = true;
+            this.onreconnect();
+            setTimeout(function () {
+                _this2.createWebSocket();
+                _this2.lockReconnect = false;
+            }, this.opts.reconnectTimeout);
+        };
+        WebsocketHeartbeat.prototype.send = function (msg) {
+            if (this.ws.readyState === WebSocket.OPEN) this.ws.send(msg);
+        };
+        WebsocketHeartbeat.prototype.heartCheck = function () {
+            var _this3 = this;
+            clearTimeout(this.pingTimeoutId);
+            clearTimeout(this.pongTimeoutId);
+            if (this.forbidReconnect) return;
+            this.pingTimeoutId = setTimeout(function () {
+                if (_this3.ws.readyState === WebSocket.OPEN) _this3.ws.send(_this3.opts.pingMsg);
+                _this3.pongTimeoutId = setTimeout(function () {
+                    _this3.ws.onclose = null;
+                    try {
+                        _this3.ws.close();
+                    } catch (ignore) { }
+                    _this3.reconnect();
+                }, _this3.opts.pongTimeout);
+            }, this.opts.pingTimeout);
+        };
+        WebsocketHeartbeat.prototype.close = function () {
+            this.forbidReconnect = true;
+            clearTimeout(this.pingTimeoutId);
+            clearTimeout(this.pongTimeoutId);
+            this.ws.onclose = null;
+            try {
+                this.ws.close();
+            } catch (ignore) { }
+        };
+
+        // https://github.com/username1565/sha256
+        function SHA256(ascii) {
+            function rightRotate(value, amount) {
+                return value >>> amount | value << 32 - amount;
+            }
+            var maxWord = Math.pow(2, 32);
+            var i, j;
+            var result = '';
+            var asciiBitLength = ascii['length'] * 8;
+            var words = [],
+                hash = [],
+                k = [];
+            var primeCounter = 0;
+            var isComposite = {};
+            for (var candidate = 2; primeCounter < 64; candidate++) {
+                if (!isComposite[candidate]) {
+                    for (i = 0; i < 313; i += candidate) {
+                        isComposite[i] = candidate;
+                    }
+                    hash[primeCounter] = Math.pow(candidate, .5) * maxWord | 0;
+                    k[primeCounter++] = Math.pow(candidate, 1 / 3) * maxWord | 0;
+                }
+            }
+            ascii += '\x80';
+            while (ascii['length'] % 64 - 56) ascii += '\x00';
+            for (i = 0; i < ascii['length']; i++) {
+                j = ascii.charCodeAt(i);
+                if (j >> 8) return;
+                words[i >> 2] |= j << (3 - i) % 4 * 8;
+            }
+            words[words['length']] = asciiBitLength / maxWord | 0;
+            words[words['length']] = asciiBitLength;
+            for (j = 0; j < words['length'];) {
+                var w = words.slice(j, j += 16);
+                var oldHash = hash;
+                hash = hash.slice(0, 8);
+                for (i = 0; i < 64; i++) {
+                    var w15 = w[i - 15],
+                        w2 = w[i - 2];
+                    var a = hash[0],
+                        e = hash[4];
+                    var temp1 = hash[7] + (rightRotate(e, 6) ^ rightRotate(e, 11) ^ rightRotate(e, 25)) + (e & hash[5] ^ ~e & hash[6]) + k[i] + (w[i] = i < 16 ? w[i] : w[i - 16] + (rightRotate(w15, 7) ^ rightRotate(w15, 18) ^ w15 >>> 3) + w[i - 7] + (rightRotate(w2, 17) ^ rightRotate(w2, 19) ^ w2 >>> 10) | 0);
+                    var temp2 = (rightRotate(a, 2) ^ rightRotate(a, 13) ^ rightRotate(a, 22)) + (a & hash[1] ^ a & hash[2] ^ hash[1] & hash[2]);
+                    hash = [temp1 + temp2 | 0].concat(hash);
+                    hash[4] = hash[4] + temp1 | 0;
+                }
+                for (i = 0; i < 8; i++) {
+                    hash[i] = hash[i] + oldHash[i] | 0;
+                }
+            }
+            for (i = 0; i < 8; i++) {
+                for (j = 3; j + 1; j--) {
+                    var b = hash[i] >> j * 8 & 255;
+                    result += (b < 16 ? 0 : '') + b.toString(16);
+                }
+            }
+            return result;
+        }
+        function RandomString(length) {
+            var result = '';
+            var characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+            var charactersLength = characters.length;
+            for (var i = 0; i < length; i++) {
+                result += characters.charAt(Math.floor(Math.random() * charactersLength));
+            }
+            return result;
         }
     </script>
 </body>

@@ -1,39 +1,68 @@
 ![](screenshots/about_image_full.png)
-# Screen Stream over HTTP
-An Android mobile app for viewing device screen in your web browser.
+# ScreenStream
 
-> *Developed by [Dmitriy Krivoruchko](dkrivoruchko@gmail.com)* &middot; If there are any issues or ideas feel free to contact me.
-----
+ScreenStream is a user-friendly Android application that allows users to easily share their device screen and view it directly in a web browser. No additional software is required other than the ScreenStream itself, a web browser, and an internet connection (for Global mode).
 
-The application allows viewing the device screen in your web browser. The main idea is to show your device screen during presentations and demos.
-No need of any additional software except for this app and a web browser. Google Play version contains Ads, F-Droid, AAPKS or FirebaseFree versions are Ad-free.
+Google Play versions supports both **Global mode (WebRTC)** and **Local mode (MJPEG)** with ads included.<br>
+Versions from F-Droid, AAPKS, or FirebaseFree builds in GitHub Releases are Ad-free and support only **Local mode (MJPEG)**.
 
 <a href='https://play.google.com/store/apps/details?id=info.dvkr.screenstream'><img alt='Get it on Google Play' src='https://play.google.com/intl/en_us/badges/images/generic/en_badge_web_generic.png' height="100"/></a> <a href="https://f-droid.org/packages/info.dvkr.screenstream/" target="_blank"><img src="https://f-droid.org/badge/get-it-on.png" alt="Get it on F-Droid" height="100"/></a> <a href="https://aapks.com/apk/screen-stream/"><img src="https://aapks.com/get.png" alt="Get it on AAPKs" height="100"/></a>
 
-Read this in other languages (outdated): [正體中文](README.zh-tw.md)
+## Description
 
-It uses MJPEG to encode screen images and send them through the network. So it works with any desktop or mobile browser which supports MJPEG (Chrome, Safari, EDGE, Firefox).
+ScreenStream offers two work modes: **Global mode** (in Google Play Store version only) and **Local mode**. Both modes aim to stream the Android device screen but function differently. They are independent of each other, with unique functionalities, restrictions, and customization options.
 
-The application works via WiFi and/or 3G/LTE network.<br>
-Support for IPv4 and IPv6.<br>
-Fast and stable WiFi recommended because of high traffic and low network delay requirement.
-No Internet required, however, there must be a network connection between the client and the device.
+In both modes the number of clients is not directly limited, but it's important to keep in mind that each client consumes CPU resources and bandwidth for data transmission.
 
-The number of client connections is unlimited, but be aware that each of them requires some CPU resources and bandwidth to send data.
+The application uses Android [MediaProjection](https://developer.android.com/reference/android/media/projection/MediaProjection) feature and requires Android 6.0 or higher.
 
-Application uses Android Cast feature and requires at least Android 5.0 to run.
+Important Warnings:
 
-**WARNING:** This is not a real time streaming app. Expected delay is at least 0.5-1 second or more on slow devices, bad WiFi or on heavy CPU load by other apps.<br>
-**WARNING:** This app is not designed for streaming video, especially HD video. Use Chromecast instead.<br>
-**WARNING:** This app does NOT support SOUND streaming, because MJPEG does not support sound.<br>
-**WARNING:** Some cell operators may block incoming connections to your device for security reasons, so, even if the device has an IP address from a cell operator, you may not be able to connect to the device on this IP address.<br>
-**WARNING:** Some WiFi networks (mostly public/guest) block connections between its clients for security reasons, so you may not be able to connect to the device via WiFi. For example, a laptop and a phone in this such a WiFi network will not be able to connect to each other.
+- **High Traffic on Mobile Networks**: Use caution when streaming via mobile 3G/4G/5G/LTE networks to avoid excessive data usage.
 
-### Known problems
+- **Delay in Streaming**: Expect a delay of at least 0.5-1 second or more in certain conditions: slow device, poor internet or network connection, or when the device is under heavy CPU load due to other applications.
 
-1. On some devices no notification icon showing but notification is present. Android bug: 213309.
+- **Video Streaming Limitation**: ScreenStream is not designed for streaming video, particularly HD video. While it will function, the stream quality may not meet your expectations.
 
-### Screenshots
+### Global mode (WebRTC) / in Google Play version only /
+
+Global mode in the ScreenStream application is built on WebRTC technology and relies on an external signaling server to facilitate communication between the streaming host (the app) and the streaming client, which is a web browser equipped with the ScreenStream [Web Client](https://screenstream.io).
+
+Both the signaling server and the web client for ScreenStream are open-source and available in the [ScreenStreamWeb](https://github.com/dkrivoruchko/ScreenStreamWeb) repository. These components can be accessed publicly at https://screenstream.io. The system is designed to function seamlessly with any desktop or mobile browser that supports WebRTC, such as Chrome, Safari, EDGE, Firefox, and others.
+
+The Global mode was introduced in app version 4 and offers the following functionality:
+- Powered by WebRTC technology.
+- End-to-end encrypted communication.
+- Stream protection with password.
+- Supports both video and audio streaming.
+- Connect using unique stream ID and password.
+- Requires an internet connection for streaming.
+- Individual data transmission for each client, with more clients requiring increased internet bandwidth to maintain optimal performance.
+
+### Local mode (MJPEG)
+
+Local mode in the ScreenStream application is built on the MJPEG standard and utilizes an embedded HTTP server within the app. As a result, an internet connection is not required; instead, it can function on a local network, such as Wi-Fi, device HotSpot, Network-over-USB, or any other network between the client's web browser and the Android device with the ScreenStream app.
+
+For optimal performance, a fast and stable network connection is recommended due to high traffic and low network delay requirements.
+
+In Local mode, the app processes each frame independently, one-by-one, enabling additional image transformations such as cropping, resizing, rotating, and more before sending the image to the client's web browser. 
+
+The Local mode offers the following functionality:
+- Powered by MJPEG standard.
+- Utilizes PIN for security (no encryption).
+- Sends video as a series of independent images (no audio).
+- Works without an internet connection within your local network.
+- Embedded HTTP server.
+- Works with WiFi and/or mobile networks, supporting IPv4 and IPv6.
+- Clients connect via web browser using the app's provided IP address.
+- Highly customizable.
+- Individual data transmission for each client, with more clients requiring increased internet bandwidth to maintain optimal performance.
+
+**WARNING:** Please be aware that certain cell operators may block incoming connections to your device for security reasons. Consequently, even if your device has an IP address from a cell operator, connecting to the device using this IP address may not be possible.
+
+**WARNING:** Some WiFi networks, particularly public or guest networks, may block connections between its clients for security reasons. In such cases, connecting to the device via WiFi might not be feasible. For instance, a laptop and a phone within such a WiFi network will not be able to connect to each other.
+
+## Screenshots
 
 ![](screenshots/screenshot_1.png)&nbsp;
 ![](screenshots/screenshot_2.png)<br>
@@ -49,47 +78,32 @@ Application uses Android Cast feature and requires at least Android 5.0 to run.
 ![](screenshots/screenshot_12.png)
 
 
-## Features and libraries
-
-Version 3.x based on Clean Architecture, Single Activity and MVI patterns and use:
-* [Kotlin](https://kotlinlang.org)
-* [Kotlin coroutines](https://github.com/Kotlin/kotlinx.coroutines)
-* [Android Jetpack libraries](https://developer.android.com/jetpack/)
-* [Koin](https://github.com/Ekito/koin)
-* [Material Dialogs](https://github.com/afollestad/material-dialogs)
-* [Binary Preferences](https://github.com/iamironz/binaryprefs)
-* [Ktor](https://ktor.io/)
-* [Firebase Crashlytics](https://firebase.google.com/docs/crashlytics)
-* [xLog](https://github.com/elvishew/xLog)
-* [LeakCanary](https://github.com/square/leakcanary)
-
 ## Contribution
 
-If you want to contribute with translation, you have to translate this 2 files:
+To contribute with translation, kindly translate the following three files:
 
-1. https://github.com/dkrivoruchko/ScreenStream/blob/master/app/src/main/res/values/strings.xml and
-2. https://github.com/dkrivoruchko/ScreenStream/blob/master/data/src/main/res/values/strings.xml
+1. https://github.com/dkrivoruchko/ScreenStream/blob/master/app/src/main/res/values/strings.xml
+1. https://github.com/dkrivoruchko/ScreenStream/blob/master/mjpeg/src/main/res/values/strings.xml
+1. https://github.com/dkrivoruchko/ScreenStream/blob/master/webrtc/src/main/res/values/strings.xml
 
-Then, please, [make a pull request](https://help.github.com/en/articles/creating-a-pull-request) or send those 2 files to the developer via e-mail <dkrivoruchko@gmail.com> as an attachment.
+Then, please, [make a pull request](https://help.github.com/en/articles/creating-a-pull-request) or send those translated files to the developer via e-mail <dkrivoruchko@gmail.com> as an attachment.
 
-Your contribution is much appreciated. Thank you.
+Your contribution is valuable and will help improve the accessibility of the application. Thank you for your efforts!
 
 ## Developed By
 
-Dmitriy Krivoruchko - <dkrivoruchko@gmail.com>
+Developed by [Dmytro Kryvoruchko](dkrivoruchko@gmail.com). If there are any issues or ideas, feel free to contact me.
 
-If there are any issues or ideas feel free to contact me.
+## Privacy Policy and Terms & Conditions
 
-## Privacy Policy
-
-App [privacy policy](https://github.com/dkrivoruchko/ScreenStream/blob/master/PrivacyPolicy.md)
+App [Privacy Policy](https://github.com/dkrivoruchko/ScreenStream/blob/master/PrivacyPolicy.md) and [Terms & Conditions](https://github.com/dkrivoruchko/ScreenStream/blob/master/TermsConditions.md)
 
 ## License
 
 ```
 The MIT License (MIT)
 
-Copyright (c) 2016 Dmitriy Krivoruchko
+Copyright (c) 2016 Dmytro Kryvoruchko
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

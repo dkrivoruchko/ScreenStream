@@ -1,20 +1,26 @@
 package info.dvkr.screenstream.ui.fragment
 
+import android.util.Log
 import android.view.ViewTreeObserver
 import android.widget.FrameLayout
 import androidx.annotation.LayoutRes
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.window.layout.WindowMetricsCalculator
+import com.elvishew.xlog.XLog
+import com.google.android.gms.ads.AdListener
 import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.AdSize
 import com.google.android.gms.ads.AdView
-import com.google.android.gms.ads.MobileAds
+import com.google.android.gms.ads.LoadAdError
 import info.dvkr.screenstream.BaseApp
 import info.dvkr.screenstream.BuildConfig
+import info.dvkr.screenstream.common.getLog
+import info.dvkr.screenstream.ui.activity.AdActivity
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
-abstract class AdFragment(@LayoutRes contentLayoutId: Int) : Fragment(contentLayoutId) {
+public abstract class AdFragment(@LayoutRes contentLayoutId: Int) : Fragment(contentLayoutId) {
 
     private var adView: AdView? = null
     private lateinit var adSize: AdSize
@@ -26,9 +32,19 @@ abstract class AdFragment(@LayoutRes contentLayoutId: Int) : Fragment(contentLay
         }
     }
 
-    fun loadAdOnViewCreated(adViewContainer: FrameLayout) {
-        if (::adSize.isInitialized) loadAd(adViewContainer)
-        else adViewContainer.viewTreeObserver.addOnGlobalLayoutListener(
+    public fun loadAdOnViewCreated(adViewContainer: FrameLayout) {
+        viewLifecycleOwner.lifecycleScope.launch {
+            val showADs = (requireActivity() as AdActivity).adsInitializedDeferred.await()
+            when {
+                showADs.not() -> Log.i("loadAdOnViewCreated", "showADs: $showADs")
+                ::adSize.isInitialized -> loadAd(adViewContainer)
+                else -> calculateADsSize(adViewContainer)
+            }
+        }
+    }
+
+    private fun calculateADsSize(adViewContainer: FrameLayout) {
+        adViewContainer.viewTreeObserver.addOnGlobalLayoutListener(
             object : ViewTreeObserver.OnGlobalLayoutListener {
                 override fun onGlobalLayout() {
                     adViewContainer.viewTreeObserver.removeOnGlobalLayoutListener(this)
@@ -40,24 +56,29 @@ abstract class AdFragment(@LayoutRes contentLayoutId: Int) : Fragment(contentLay
                     } ?: return // Not attached to an activity.
 
                     val adWidth = (adWidthPixels / resources.displayMetrics.density).toInt()
-                    adSize = AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(requireContext(), adWidth)
-                    loadAd(adViewContainer)
+                    adSize = AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(requireActivity(), adWidth)
+                    if (view != null) loadAd(adViewContainer)
                 }
             }
         )
+        adViewContainer.requestLayout()
     }
 
     private fun loadAd(adViewContainer: FrameLayout) {
         adViewContainer.minimumHeight = adSize.getHeightInPixels(requireActivity())
-        viewLifecycleOwner.lifecycleScope.launchWhenStarted {
-            val currentAd = ads.filter { it.value + 61_000 - System.currentTimeMillis() <= 0 }.entries.firstOrNull()
-                ?: ads.minByOrNull { it.value }!!
+        viewLifecycleOwner.lifecycleScope.launch {
+            val currentAd =
+                ads.filter { it.value + 61_000 - System.currentTimeMillis() <= 0 }.entries.firstOrNull() ?: ads.minByOrNull { it.value }!!
             while (currentAd.value + 61_000 - System.currentTimeMillis() > 0) delay(100)
-            MobileAds.initialize(requireActivity()) {}
             adView = AdView(requireActivity()).also { adView ->
-                adViewContainer.addView(adView)
                 adView.adUnitId = currentAd.key
                 adView.setAdSize(adSize)
+                adViewContainer.addView(adView)
+                adView.adListener = object : AdListener() {
+                    override fun onAdFailedToLoad(adError: LoadAdError) {
+                        XLog.e(this@AdFragment.getLog("onAdFailedToLoad", adError.toString()), adError.cause)
+                    }
+                }
                 adView.loadAd(AdRequest.Builder().build())
                 ads.replace(currentAd.key, System.currentTimeMillis())
             }

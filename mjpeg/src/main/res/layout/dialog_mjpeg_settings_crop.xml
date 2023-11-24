@@ -1,0 +1,199 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <TextView
+        android:id="@+id/tv_dialog_settings_crop_error_message"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="16dp"
+        android:gravity="center"
+        android:text="@string/mjpeg_pref_crop_dialog_warning_message"
+        android:textColor="@color/colorError"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/guideline_dialog_settings_crop"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        app:layout_constraintGuide_percent="0.4" />
+
+    <TextView
+        android:id="@+id/tv_dialog_settings_crop_top"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:paddingStart="8dp"
+        android:paddingEnd="8dp"
+        android:text="@string/mjpeg_pref_crop_dialog_crop_top"
+        app:layout_constraintBottom_toBottomOf="@id/ti_dialog_settings_crop_top"
+        app:layout_constraintEnd_toStartOf="@id/guideline_dialog_settings_crop"
+        app:layout_constraintTop_toTopOf="@id/ti_dialog_settings_crop_top" />
+
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/ti_dialog_settings_crop_top"
+        android:layout_width="96dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:gravity="start|center_vertical"
+        app:hintEnabled="false"
+        app:layout_constraintStart_toEndOf="@id/guideline_dialog_settings_crop"
+        app:layout_constraintTop_toBottomOf="@id/tv_dialog_settings_crop_error_message">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/tiet_dialog_settings_crop_top"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:imeOptions="flagNoExtractUi"
+            android:inputType="number"
+            android:maxLength="6"
+            android:singleLine="true" />
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <TextView
+        android:id="@+id/tv_dialog_settings_crop_top_pixels"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:paddingStart="8dp"
+        android:paddingEnd="8dp"
+        android:text="@string/mjpeg_pref_crop_dialog_pixels"
+        app:layout_constraintBottom_toBottomOf="@id/ti_dialog_settings_crop_top"
+        app:layout_constraintStart_toEndOf="@id/ti_dialog_settings_crop_top"
+        app:layout_constraintTop_toTopOf="@id/ti_dialog_settings_crop_top" />
+
+    <TextView
+        android:id="@+id/tv_dialog_settings_crop_bottom"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:paddingStart="8dp"
+        android:paddingEnd="8dp"
+        android:text="@string/mjpeg_pref_crop_dialog_crop_bottom"
+        app:layout_constraintBottom_toBottomOf="@id/ti_dialog_settings_crop_bottom"
+        app:layout_constraintEnd_toStartOf="@id/guideline_dialog_settings_crop"
+        app:layout_constraintTop_toTopOf="@id/ti_dialog_settings_crop_bottom" />
+
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/ti_dialog_settings_crop_bottom"
+        android:layout_width="96dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:layout_marginBottom="4dp"
+        android:gravity="start|center_vertical"
+        app:hintEnabled="false"
+        app:layout_constraintStart_toEndOf="@id/guideline_dialog_settings_crop"
+        app:layout_constraintTop_toBottomOf="@id/ti_dialog_settings_crop_top">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/tiet_dialog_settings_crop_bottom"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:imeOptions="flagNoExtractUi"
+            android:inputType="number"
+            android:maxLength="6"
+            android:singleLine="true" />
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <TextView
+        android:id="@+id/tv_dialog_settings_crop_top_bottom"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:paddingStart="8dp"
+        android:paddingEnd="8dp"
+        android:text="@string/mjpeg_pref_crop_dialog_pixels"
+        app:layout_constraintBottom_toBottomOf="@id/ti_dialog_settings_crop_bottom"
+        app:layout_constraintStart_toEndOf="@id/ti_dialog_settings_crop_bottom"
+        app:layout_constraintTop_toTopOf="@id/ti_dialog_settings_crop_bottom" />
+
+    <TextView
+        android:id="@+id/tv_dialog_settings_crop_left"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:paddingStart="8dp"
+        android:paddingEnd="8dp"
+        android:text="@string/mjpeg_pref_crop_dialog_crop_left"
+        app:layout_constraintBottom_toBottomOf="@id/ti_dialog_settings_crop_left"
+        app:layout_constraintEnd_toStartOf="@id/guideline_dialog_settings_crop"
+        app:layout_constraintTop_toTopOf="@id/ti_dialog_settings_crop_left" />
+
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/ti_dialog_settings_crop_left"
+        android:layout_width="96dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:layout_marginBottom="4dp"
+        android:gravity="start|center_vertical"
+        app:hintEnabled="false"
+        app:layout_constraintStart_toEndOf="@id/guideline_dialog_settings_crop"
+        app:layout_constraintTop_toBottomOf="@id/ti_dialog_settings_crop_bottom">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/tiet_dialog_settings_crop_left"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:imeOptions="flagNoExtractUi"
+            android:inputType="number"
+            android:maxLength="6"
+            android:singleLine="true" />
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <TextView
+        android:id="@+id/tv_dialog_settings_crop_top_left"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:paddingStart="8dp"
+        android:paddingEnd="8dp"
+        android:text="@string/mjpeg_pref_crop_dialog_pixels"
+        app:layout_constraintBottom_toBottomOf="@id/ti_dialog_settings_crop_left"
+        app:layout_constraintStart_toEndOf="@id/ti_dialog_settings_crop_left"
+        app:layout_constraintTop_toTopOf="@id/ti_dialog_settings_crop_left" />
+
+    <TextView
+        android:id="@+id/tv_dialog_settings_crop_right"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:paddingStart="8dp"
+        android:paddingEnd="8dp"
+        android:text="@string/mjpeg_pref_crop_dialog_crop_right"
+        app:layout_constraintBottom_toBottomOf="@id/ti_dialog_settings_crop_right"
+        app:layout_constraintEnd_toStartOf="@id/guideline_dialog_settings_crop"
+        app:layout_constraintTop_toTopOf="@id/ti_dialog_settings_crop_right" />
+
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/ti_dialog_settings_crop_right"
+        android:layout_width="96dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:layout_marginBottom="4dp"
+        android:gravity="start|center_vertical"
+        app:hintEnabled="false"
+        app:layout_constraintStart_toEndOf="@id/guideline_dialog_settings_crop"
+        app:layout_constraintTop_toBottomOf="@id/ti_dialog_settings_crop_left">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/tiet_dialog_settings_crop_right"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:imeOptions="flagNoExtractUi"
+            android:inputType="number"
+            android:maxLength="6"
+            android:singleLine="true" />
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <TextView
+        android:id="@+id/tv_dialog_settings_crop_top_right"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:paddingStart="8dp"
+        android:paddingEnd="8dp"
+        android:text="@string/mjpeg_pref_crop_dialog_pixels"
+        app:layout_constraintBottom_toBottomOf="@id/ti_dialog_settings_crop_right"
+        app:layout_constraintStart_toEndOf="@id/ti_dialog_settings_crop_right"
+        app:layout_constraintTop_toTopOf="@id/ti_dialog_settings_crop_right" />
+</androidx.constraintlayout.widget.ConstraintLayout>

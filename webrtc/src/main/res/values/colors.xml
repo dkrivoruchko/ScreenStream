@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorPrimary">#00A389</color>
+    <color name="colorPrimaryDark">#FFFFFF</color>
+    <color name="colorAccent">#00A389</color>
+    <color name="textColorPrimary">#5F6368</color>
+    <color name="textColorSecondary">#3C4043</color>
+    <color name="textColorTertiary">#9AA0A6</color>
+
+    <color name="colorStatusBar">#FFFFFF</color>
+    <color name="colorNavigationBar">#0F0F0F</color>
+    <color name="colorWindowBackgroundStart">#FFFFFF</color>
+    <color name="colorWindowBackgroundEnd">#F6F6F6</color>
+
+    <color name="colorBackgroundSecondary">#F4F4F4</color>
+    <color name="colorBackgroundTertiary">#F4F4F4</color>
+
+    <color name="colorAddressIcon">@color/textColorPrimary</color>
+    <color name="colorIcon">@color/textColorSecondary</color>
+    <color name="colorIconDisabled">@color/textColorTertiary</color>
+    <color name="colorSettingsHeader">@color/textColorSecondary</color>
+    <color name="colorSettingsSummary">@color/textColorPrimary</color>
+
+    <color name="colorNavigationIconsChecked">@color/colorAccent</color>
+    <color name="colorNavigationIconsUnchecked">@color/textColorPrimary</color>
+    <color name="colorNavigationBackground">#FDFDFD</color>
+
+    <color name="colorClientDivider">#FFFFFF</color>
+    <color name="colorSettingsDivider">#E0E0E0</color>
+
+    <color name="colorError">#D2283D</color>
+    <color name="colorErrorText">#FFFFFF</color>
+    <color name="colorErrorBackgroundStart">#FB334C</color>
+    <color name="colorErrorBackgroundEnd">#D2283D</color>
+
+    <color name="colorGraphGradientStart">#9F00A389</color>
+    <color name="colorGraphGradientEnd">#0800A389</color>
+    <color name="colorGraphGuideline">#9AA0A6</color>
+</resources>

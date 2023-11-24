@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="webrtc_error_recover">استعادة</string>
+
+    <string name="webrtc_stream_fragment_mode_global">الوضع العالمي (WebRTC)</string>
+    <string name="webrtc_stream_fragment_mode_global_description">وصف الوضع العالمي</string>
+    <string name="webrtc_stream_fragment_mode_global_details">
+- مدعوم بتقنية WebRTC.\n\n
+- اتصال مشفر من جهة إلى أخرى.\n\n
+- حماية التيار بكلمة مرور.\n\n
+- يمكن إرسال الفيديو والصوت.\n\n
+- الاتصال باستخدام معرف تيار فريد وكلمة مرور.\n\n
+- يتطلب اتصالًا بالإنترنت للبث.\n\n
+- نقل البيانات الفردية لكل عميل (كلما زاد عدد العملاء، زاد استخدام عرض النطاق الترددي على الإنترنت).
+</string>
+
+    <string name="webrtc_stream_fragment_server_address">الوصول إلى التيار على:\n%1$s</string>
+    <string name="webrtc_stream_fragment_stream_id_getting">الحصول على معرف التيار…</string>
+    <string name="webrtc_stream_fragment_stream_id">معرف التيار: %1$s</string>
+    <string name="webrtc_stream_fragment_stream_password">كلمة مرور التيار: %1$s</string>
+    <string name="webrtc_stream_fragment_mic_off">إيقاف الميكروفون</string>
+    <string name="webrtc_stream_fragment_mic_on">تشغيل الميكروفون</string>
+    <string name="webrtc_stream_fragment_show_password_description">عرض كلمة المرور للتيار</string>
+    <string name="webrtc_stream_fragment_get_new_id_description">الحصول على معرف تيار جديد</string>
+    <string name="webrtc_stream_fragment_create_new_password_description">إنشاء كلمة مرور جديدة للتيار</string>
+    <string name="webrtc_stream_fragment_open_address_description">فتح العنوان</string>
+    <string name="webrtc_stream_fragment_copy_address_description">نسخ العنوان</string>
+    <string name="webrtc_stream_fragment_share_address_description">مشاركة العنوان</string>
+    <string name="webrtc_stream_fragment_qr_address_description">عرض العنوان على شكل رمز الاستجابة السريعة (QR)</string>
+    <string name="webrtc_stream_fragment_copied">تم النسخ</string>
+    <string name="webrtc_stream_fragment_connected_clients">العملاء المتصلين: %1$d</string>
+    <string name="webrtc_stream_fragment_no_web_browser_found">لم يتم العثور على متصفح الويب</string>
+    <string name="webrtc_stream_fragment_external_app_error">خطأ في التطبيق الخارجي</string>
+    <string name="webrtc_stream_fragment_share_address">مشاركة عنوان الجهاز</string>
+
+    <string name="webrtc_pref_settings">إعدادات التيار</string>
+    <string name="webrtc_pref_keep_awake">إبقاء الجهاز مستيقظًا</string>
+    <string name="webrtc_pref_keep_awake_summary">إبقاء الجهاز والشاشة مستيقظة أثناء البث</string>
+    <string name="webrtc_pref_stop_on_sleep">وقف البث عند النوم </string>
+    <string name="webrtc_pref_stop_on_sleep_summary">وقف البث عندإيقاف الشاشة </string>
+    
+    <string name="webrtc_stream_fragment_audio_permission_title">السماح بتسجيل الصوت</string>
+    <string name="webrtc_stream_fragment_audio_permission_message">إذن تسجيل الصوت ضروري لتطبيق البث الصوتي.\n\nبدون هذا الإذن، سيتم البث بدون صوت.</string>
+    <string name="webrtc_stream_fragment_audio_permission_message_settings">إذن الوصول إلى الميكروفون في إعدادات التطبيق ضروري للبث الصوتي.\n\nبدون هذا الإذن، سيتم البث بدون أي صوت.</string>
+    <string name="webrtc_stream_fragment_audio_permission_open_settings">فتح الإعدادات</string>
+
+    <string name="webrtc_stream_fragment_cast_permission_error_title">خطأ في الإذن</string>
+    <string name="webrtc_stream_fragment_cast_permission_error">النظام لا يدعم وظيفة الإلقاء</string>
+    <string name="webrtc_stream_fragment_cast_permission_required_title">الصلاحية مطلوبة</string>
+    <string name="webrtc_stream_fragment_cast_permission_required">تطبيق ScreenStream يتطلب صلاحية البث على الشاشة.</string>
+
+    <string name="webrtc_item_client_disconnect">قطع الاتصال</string>
+
+    <string name="webrtc_error_play_integrity_update_play_store">الرجاء تحديث متجر Google Play</string>
+    <string name="webrtc_error_play_integrity_install_play_store">الرجاء تثبيت أو تمكين متجر Google Play الرسمي</string>
+    <string name="webrtc_error_play_integrity_install_play_service">الرجاء تثبيت أو تمكين خدمات Google Play</string>
+    <string name="webrtc_error_play_integrity_update_play_service">الرجاء تحديث خدمات Google Play</string>
+    <string name="webrtc_error_check_network">الرجاء التحقق من توافر الاتصال بالإنترنت</string>
+    <string name="webrtc_notification_permission_required">التطبيق يتطلب تمكين الإشعارات لبدء خدمة البث.\n\nيرجى تمكين الإشعارات في إعدادات التطبيق.</string>
+    <string name="webrtc_error_unspecified">حدث خطأ ما. يرجى المحاولة مرة أخرى في وقت لاحق.</string>
+</resources>

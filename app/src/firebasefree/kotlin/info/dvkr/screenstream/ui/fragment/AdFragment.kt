@@ -6,9 +6,9 @@ import androidx.annotation.LayoutRes
 import androidx.fragment.app.Fragment
 
 
-abstract class AdFragment(@LayoutRes contentLayoutId: Int) : Fragment(contentLayoutId) {
+public abstract class AdFragment(@LayoutRes contentLayoutId: Int) : Fragment(contentLayoutId) {
 
-    fun loadAdOnViewCreated(adViewContainer: FrameLayout) {
+    public fun loadAdOnViewCreated(adViewContainer: FrameLayout) {
         adViewContainer.visibility = View.GONE
     }
 }

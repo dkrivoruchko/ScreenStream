@@ -5,184 +5,54 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:fillViewport="true"
-    tools:context=".ui.activity.AppActivity">
+    tools:context=".activity.AppActivity">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginBottom="@dimen/fragments_margin_bottom">
 
-        <androidx.appcompat.widget.AppCompatTextView
-            android:id="@+id/tv_fragment_stream_error"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:background="@drawable/error_background"
-            android:padding="16dp"
-            android:textColor="@color/colorErrorText"
-            android:visibility="gone"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            tools:text="@string/error_ip_address_not_found" />
-
         <LinearLayout
-            android:id="@+id/ll_fragment_stream_addresses"
-            android:layout_width="0dp"
+            android:id="@+id/ll_fragment_stream_mode"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/tv_fragment_stream_error" />
-
-        <TextView
-            android:id="@+id/tv_fragment_stream_pin"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:background="@color/colorBackgroundSecondary"
-            android:gravity="center"
+            android:paddingStart="16dp"
             android:paddingTop="8dp"
+            android:paddingEnd="16dp"
             android:paddingBottom="8dp"
-            android:textAppearance="?android:attr/textAppearanceMedium"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_bias="0.0"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/ll_fragment_stream_addresses"
-            tools:text="Pin: 5676" />
+            app:layout_constraintTop_toTopOf="parent">
+
+            <androidx.appcompat.widget.AppCompatTextView
+                android:id="@+id/tv_fragment_stream_mode"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/app_fragment_stream_select_stream_mode" />
+
+            <LinearLayout
+                android:id="@+id/ll_fragment_stream_mode_items"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+        </LinearLayout>
 
         <FrameLayout
             android:id="@+id/fl_fragment_stream_ad_view_container"
             android:layout_width="match_parent"
+            android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
             android:layout_marginBottom="8dp"
-            android:layout_height="wrap_content"
-            app:layout_constraintTop_toBottomOf="@id/tv_fragment_stream_pin" />
+            app:layout_constraintTop_toBottomOf="@id/ll_fragment_stream_mode" />
 
-        <LinearLayout
-            android:id="@+id/ll_fragment_stream_traffic"
+        <androidx.fragment.app.FragmentContainerView
+            android:id="@+id/fcv_fragment_stream_mode"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:layout_marginBottom="8dp"
-            android:background="@color/colorBackgroundSecondary"
-            android:orientation="vertical"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/fl_fragment_stream_ad_view_container">
-
-            <info.dvkr.screenstream.ui.view.ExpansionHeader
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                app:expansion_headerIndicator="@id/iv_fragment_stream_traffic"
-                app:expansion_layout="@id/el_fragment_stream_traffic">
-
-                <androidx.appcompat.widget.AppCompatImageView
-                    android:id="@+id/iv_fragment_stream_traffic"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center_vertical|start"
-                    android:layout_marginStart="16dp"
-                    android:adjustViewBounds="true"
-                    app:srcCompat="@drawable/ic_expansion_header_indicator_24dp" />
-
-                <androidx.appcompat.widget.AppCompatTextView
-                    android:id="@+id/tv_fragment_stream_traffic_header"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:gravity="center"
-                    android:paddingTop="8dp"
-                    android:paddingBottom="8dp"
-                    android:textAppearance="?android:attr/textAppearanceMedium"
-                    tools:text="Traffic: 5.69Mbit/s" />
-            </info.dvkr.screenstream.ui.view.ExpansionHeader>
-
-            <info.dvkr.screenstream.ui.view.ExpansionLayout
-                android:id="@+id/el_fragment_stream_traffic"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical">
-
-                    <View
-                        android:layout_width="match_parent"
-                        android:layout_height="1dp"
-                        android:background="@color/colorClientDivider" />
-
-                    <info.dvkr.screenstream.ui.view.TrafficGraph
-                        android:id="@+id/traffic_graph_fragment_stream"
-                        android:layout_width="match_parent"
-                        android:layout_height="168dp"
-                        android:layout_marginStart="8dp"
-                        android:layout_marginEnd="8dp"
-                        android:paddingBottom="8dp" />
-                </LinearLayout>
-            </info.dvkr.screenstream.ui.view.ExpansionLayout>
-        </LinearLayout>
-
-        <LinearLayout
-            android:id="@+id/ll_fragment_stream_clients"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:layout_marginBottom="8dp"
-            android:background="@color/colorBackgroundSecondary"
-            android:orientation="vertical"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/ll_fragment_stream_traffic">
-
-            <info.dvkr.screenstream.ui.view.ExpansionHeader
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                app:expansion_headerIndicator="@id/iv_fragment_stream_clients"
-                app:expansion_layout="@id/el_fragment_stream_clients">
-
-                <androidx.appcompat.widget.AppCompatImageView
-                    android:id="@+id/iv_fragment_stream_clients"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center_vertical|start"
-                    android:layout_marginStart="16dp"
-                    android:adjustViewBounds="true"
-                    app:srcCompat="@drawable/ic_expansion_header_indicator_24dp" />
-
-                <androidx.appcompat.widget.AppCompatTextView
-                    android:id="@+id/tv_fragment_stream_clients_header"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:gravity="center"
-                    android:paddingTop="8dp"
-                    android:paddingBottom="8dp"
-                    android:textAppearance="?android:attr/textAppearanceMedium"
-                    tools:text="Connected clients: 2" />
-            </info.dvkr.screenstream.ui.view.ExpansionHeader>
-
-            <info.dvkr.screenstream.ui.view.ExpansionLayout
-                android:id="@+id/el_fragment_stream_clients"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical">
-
-                    <View
-                        android:layout_width="match_parent"
-                        android:layout_height="1dp"
-                        android:background="@color/colorClientDivider" />
-
-                    <androidx.recyclerview.widget.RecyclerView
-                        android:id="@+id/rv_fragment_stream_clients"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager" />
-                </LinearLayout>
-            </info.dvkr.screenstream.ui.view.ExpansionLayout>
-        </LinearLayout>
+            app:layout_constraintTop_toBottomOf="@id/fl_fragment_stream_ad_view_container" />
     </androidx.constraintlayout.widget.ConstraintLayout>
 </androidx.core.widget.NestedScrollView>
