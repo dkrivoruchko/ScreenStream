@@ -1,17 +1,13 @@
 pluginManagement {
-    repositories {
-        google()
-        mavenCentral()
-        gradlePluginPortal()
-    }
+    repositories.google()
+    repositories.mavenCentral()
+    repositories.gradlePluginPortal()
 }
 
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
-    repositories {
-        google()
-        mavenCentral()
-    }
+    repositories.mavenCentral()
+    repositories.google()
 }
 
 rootProject.name = "ScreenStream"

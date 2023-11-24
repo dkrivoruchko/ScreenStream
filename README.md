@@ -75,9 +75,7 @@ The Local mode offers the following functionality:
 ![](screenshots/screenshot_9.png)&nbsp;
 ![](screenshots/screenshot_10.png)<br>
 ![](screenshots/screenshot_11.png)&nbsp;
-![](screenshots/screenshot_12.png)<br>
-![](screenshots/screenshot_13.png)&nbsp;
-![](screenshots/screenshot_14.png)
+![](screenshots/screenshot_12.png)
 
 
 ## Contribution

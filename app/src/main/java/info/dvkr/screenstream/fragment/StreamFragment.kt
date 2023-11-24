@@ -64,26 +64,6 @@ public class StreamFragment : AdFragment(R.layout.fragment_stream) {
             }.launchIn(viewLifecycleOwner.lifecycleScope)
         }
 
-//        streamingModulesManager.activeModuleStateFlow
-//            .filterNotNull()
-//            .filter { it.id.value != childFragmentManager.findFragmentById(R.id.fcv_fragment_stream_mode)?.tag }
-//            .onEach { activeModule ->
-//                XLog.d(getLog("onEach", "Fragment replace from : ${childFragmentManager.findFragmentById(R.id.fcv_fragment_stream_mode)?.tag} to ${activeModule.id.value}"))
-//
-//                childFragmentManager.commit(allowStateLoss = true) {
-//                    replace(R.id.fcv_fragment_stream_mode, activeModule.getFragmentClass(), null, activeModule.id.value)
-//                }
-//            }
-//            .onCompletion {
-//                childFragmentManager.findFragmentById(R.id.fcv_fragment_stream_mode)?.let {
-//                    XLog.d(this@StreamFragment.getLog("onCompletion", "Fragment remove: ${it.tag}"))
-//                    childFragmentManager.commitNow(allowStateLoss = true) { remove(it) }
-//                }
-//            }
-//            // Android 6. viewLifecycleOwner.lifecycle emits "onPause" AND "onStop" at once. That breaks the logic.
-//            .flowWithLifecycle(viewLifecycleOwner.lifecycle)
-//            .launchIn(viewLifecycleOwner.lifecycleScope)
-
         loadAdOnViewCreated(binding.flFragmentStreamAdViewContainer)
     }
 

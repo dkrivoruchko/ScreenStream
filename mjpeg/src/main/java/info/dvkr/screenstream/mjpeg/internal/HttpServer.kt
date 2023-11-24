@@ -189,7 +189,7 @@ internal class HttpServer(
             XLog.e(getLog("startServer.Throwable"), cause)
             sendEvent(MjpegStreamingService.InternalEvent.Error(MjpegError.HttpServerException))
         }
-        XLog.d(getLog("startServer", "Done. Ktor: ${server.application.hashCode()} "))
+        XLog.d(getLog("startServer", "Done. Ktor: ${server.appHashCode()} "))
     }
 
     internal suspend fun stop(reloadClients: Boolean) {
@@ -199,7 +199,7 @@ internal class HttpServer(
             ktorServer.getAndSet(null)?.let { (server, stopJob) ->
                 if (stopJob.isActive) {
                     if (reloadClients) serverData.notifyClients("RELOAD")
-                    val hashCode = server.application.hashCode()
+                    val hashCode = server.appHashCode()
                     XLog.i(this@HttpServer.getLog("stopServer", "Ktor: $hashCode"))
                     server.stop(0, 500)
                     XLog.i(this@HttpServer.getLog("stopServer", "Done. Ktor: $hashCode"))
@@ -214,6 +214,8 @@ internal class HttpServer(
         serverData.destroy()
         stop(false)
     }
+
+    private fun CIOApplicationEngine.appHashCode(): Int = runCatching { application.hashCode() }.getOrDefault(0)
 
     private suspend fun DefaultWebSocketSession.send(type: String, data: Any?) {
         if (isActive) send(JSONObject().put("type", type).apply { if (data != null) put("data", data) }.toString())
