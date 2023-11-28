@@ -76,25 +76,6 @@ internal class HttpServer(
     private val serverData: HttpServerData = HttpServerData(sendEvent)
     private val ktorServer: AtomicReference<Pair<CIOApplicationEngine, CompletableDeferred<Unit>>> = AtomicReference(null)
 
-//    private val coroutineExceptionHandler = CoroutineExceptionHandler { _, throwable ->
-//        XLog.e(getLog("coroutineExceptionHandler", "coroutineExceptionHandler: $throwable"), throwable)
-//
-//        if (throwable is CancellationException) return@CoroutineExceptionHandler
-//        if (throwable is IOException && throwable !is BindException) return@CoroutineExceptionHandler
-//        ktorServer?.stop(0, 250)
-//        ktorServer = null
-//        when (throwable) {
-//            is BindException -> {
-//                XLog.w(getLog("coroutineExceptionHandler", "coroutineExceptionHandler: $throwable"))
-//                sendEvent(MjpegStreamingService.InternalEvent.Error(MjpegError.AddressInUseException))
-//            }
-//            else -> {
-//                XLog.w(getLog("coroutineExceptionHandler", "coroutineExceptionHandler: $throwable"), throwable)
-//                sendEvent(MjpegStreamingService.InternalEvent.Error(MjpegError.HttpServerException))
-//            }
-//        }
-//    }
-
     init {
         XLog.d(getLog("init"))
     }

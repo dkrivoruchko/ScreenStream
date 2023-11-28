@@ -57,7 +57,7 @@ public abstract class AdActivity(@LayoutRes contentLayoutId: Int) : AppUpdateAct
     private fun consentGatheringComplete(formError: FormError?) {
         if (formError != null) {
             adsInitializedDeferred.complete(false)
-            XLog.w(getLog("consentGatheringComplete"), IllegalStateException("consentGatheringComplete: ${formError.errorCode} ${formError.message}"))
+            XLog.w(getLog("consentGatheringComplete: ${formError.errorCode} ${formError.message}"))
         }
 
         if (consentInformation.canRequestAds()) initADs()
@@ -73,7 +73,7 @@ public abstract class AdActivity(@LayoutRes contentLayoutId: Int) : AppUpdateAct
     internal fun showPrivacyOptionsForm() {
         UserMessagingPlatform.showPrivacyOptionsForm(this) { formError ->
             if (formError != null) {
-                XLog.w(getLog("showPrivacyOptionsForm"), IllegalStateException("showPrivacyOptionsForm: ${formError.errorCode} ${formError.message}"))
+                XLog.w(getLog("showPrivacyOptionsForm: ${formError.errorCode} ${formError.message}"))
             }
         }
     }

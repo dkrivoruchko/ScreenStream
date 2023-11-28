@@ -61,9 +61,8 @@ internal class MjpegStreamingService(
     private val mainHandler: Handler by lazy(LazyThreadSafetyMode.NONE) { Handler(Looper.getMainLooper()) }
     private val handler: Handler by lazy(LazyThreadSafetyMode.NONE) { Handler(looper, this) }
     private val coroutineDispatcher: CoroutineDispatcher by lazy(LazyThreadSafetyMode.NONE) { handler.asCoroutineDispatcher("MJPEG-HT_Dispatcher") }
-    private val coroutineScope by lazy(LazyThreadSafetyMode.NONE) { CoroutineScope(SupervisorJob() + coroutineDispatcher) }
-    private val broadcastHelper = BroadcastHelper.getInstance(service)
-    private val connectivityHelper = ConnectivityHelper.getInstance(service)
+    private val supervisorJob = SupervisorJob()
+    private val coroutineScope by lazy(LazyThreadSafetyMode.NONE) { CoroutineScope(supervisorJob + coroutineDispatcher) }
     private val bitmapStateFlow = MutableStateFlow(Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888))
     private val httpServer by lazy(mode = LazyThreadSafetyMode.NONE) {
         HttpServer(service, mjpegSettings, bitmapStateFlow.asStateFlow(), ::sendEvent)
@@ -129,7 +128,7 @@ internal class MjpegStreamingService(
     }
 
     internal sealed class RestartReason(private val msg: String) {
-        class ConnectionChanged(msg: String) : RestartReason(msg)
+        object ConnectionChanged : RestartReason("")
         class SettingsChanged(msg: String) : RestartReason(msg)
         class NetworkSettingsChanged(msg: String) : RestartReason(msg)
 
@@ -173,14 +172,11 @@ internal class MjpegStreamingService(
             if (mjpegSettings.enablePinFlow.first() && mjpegSettings.newPinOnAppStartFlow.first()) mjpegSettings.setPin(randomPin())
         }
 
-        broadcastHelper.startListening(
+        service.startListening(
+            supervisorJob,
             onScreenOff = { sendEvent(InternalEvent.ScreenOff) },
-            onConnectionChanged = { sendEvent(InternalEvent.RestartServer(RestartReason.ConnectionChanged("BroadcastHelper"))) }
+            onConnectionChanged = { sendEvent(InternalEvent.RestartServer(RestartReason.ConnectionChanged)) }
         )
-
-        connectivityHelper.startListening(coroutineScope) {
-            sendEvent(InternalEvent.RestartServer(RestartReason.ConnectionChanged("ConnectivityHelper")))
-        }
 
         mjpegSettings.enablePinFlow.listenForChange(coroutineScope, 1) {
             sendEvent(InternalEvent.RestartServer(RestartReason.SettingsChanged(MjpegSettings.Key.ENABLE_PIN.name)))
@@ -215,10 +211,8 @@ internal class MjpegStreamingService(
         wakeLock?.apply { if (isHeld) release() }
         wakeLock = null
 
-        broadcastHelper.stopListening()
-        connectivityHelper.stopListening()
-        coroutineScope.cancel()
         monitorScope.cancel()
+        supervisorJob.cancel()
 
         val latch = CountDownLatch(1)
         sendEvent(InternalEvent.Destroy(latch))

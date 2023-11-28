@@ -79,7 +79,7 @@ internal sealed class WebRtcError(@StringRes open val id: Int, override val mess
 
     internal data class NetworkError(val code: Int, override val message: String?, override val cause: Throwable?) :
         WebRtcError(R.string.webrtc_error_check_network) {
-        internal fun isNonRetryable(): Boolean = code in 500..599
+        internal fun isNonRetryable(): Boolean = code in 500..599 || code == -1
         override fun toString(context: Context): String = context.getString(id) + ":\n$message ${if (code > 0) "[$code]" else ""}"
     }
 
