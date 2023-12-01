@@ -1,12 +1,13 @@
 import java.util.Properties
 
+@Suppress("DSL_SCOPE_VIOLATION") // TODO: Remove once KTIJ-19369 is fixed
 plugins {
-    id("com.android.application")
-    id("org.jetbrains.kotlin.android")
-    id("org.jetbrains.kotlin.plugin.parcelize")
-    id("com.google.gms.google-services")
-    id("com.google.firebase.crashlytics")
-    id("com.google.devtools.ksp")
+    alias(libs.plugins.androidApplication)
+    alias(libs.plugins.kotlinAndroid)
+    alias(libs.plugins.kotlinParcelize)
+    alias(libs.plugins.ksp)
+    alias(libs.plugins.googleServices)
+    alias(libs.plugins.firebaseCrashlytics)
 }
 
 android {
@@ -40,6 +41,11 @@ android {
 
     androidResources {
         generateLocaleConfig = true
+    }
+
+    buildFeatures {
+        buildConfig = true
+        viewBinding = true
     }
 
     val localProps = Properties().apply { file("../local.properties").inputStream().use { load(it) } }
@@ -91,19 +97,18 @@ android {
 
     kotlinOptions {
         jvmTarget = JavaVersion.VERSION_11.toString()
-        languageVersion = "1.9"
         freeCompilerArgs += "-Xexplicit-api=strict"
     }
 }
 
 dependencies {
-    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
+    coreLibraryDesugaring(libs.android.tools.desugar)
 
-    ksp("io.insert-koin:koin-ksp-compiler:1.3.0")
+    ksp(libs.koin.ksp)
 
-    implementation("androidx.lifecycle:lifecycle-process:2.6.2")
-    implementation("androidx.navigation:navigation-fragment-ktx:2.7.5")
-    implementation("androidx.navigation:navigation-ui-ktx:2.7.5")
+    implementation(libs.androidx.lifecycle.process)
+    implementation(libs.androidx.navigation.fragment)
+    implementation(libs.androidx.navigation.ui)
 
     // Temp fix for https://github.com/afollestad/material-dialogs/issues/1825
     implementation(fileTree("libs/bottomsheets-release.aar"))
@@ -111,10 +116,10 @@ dependencies {
     implementation(project(":common"))
     implementation(project(":mjpeg"))
     "firebaseImplementation"(project(":webrtc"))
-    "firebaseImplementation"("com.google.android.play:app-update-ktx:2.1.0")
-    "firebaseImplementation"("com.google.firebase:firebase-analytics:21.5.0")
-    "firebaseImplementation"("com.google.firebase:firebase-crashlytics:18.6.0")
-    "firebaseImplementation"("com.google.android.gms:play-services-ads:22.5.0")
+    "firebaseImplementation"(libs.play.app.update)
+    "firebaseImplementation"(libs.play.services.ads)
+    "firebaseImplementation"(libs.firebase.analytics)
+    "firebaseImplementation"(libs.firebase.crashlytics)
 
 //    debugImplementation("com.squareup.leakcanary:leakcanary-android:2.12")
 }

@@ -68,7 +68,7 @@ internal fun Context.startListening(serviceJob: Job, onScreenOff: () -> Unit, on
 
     serviceJob.invokeOnCompletion {
         XLog.d(getLog("invokeOnCompletion", "unregisterBroadcastReceiver"))
-        unregisterReceiver(broadcastReceiver)
+        runCatching { unregisterReceiver(broadcastReceiver) }
     }
 
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {

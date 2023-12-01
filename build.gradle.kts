@@ -1,13 +1,19 @@
 buildscript {
     dependencies {
-        classpath("com.android.tools:r8:8.1.72")
-        classpath("com.google.gms:google-services:4.4.0")
-        classpath("com.google.firebase:firebase-crashlytics-gradle:2.9.9")
+        classpath(libs.android.tools.r8)
+        classpath(libs.google.services)
+        classpath(libs.firebase.crashlytics.gradle)
     }
 }
+
+@Suppress("DSL_SCOPE_VIOLATION") // TODO: Remove once KTIJ-19369 is fixed
 plugins {
-    id("com.android.application") version "8.1.4" apply false
-    id("com.android.library") version "8.1.4" apply false
-    id("org.jetbrains.kotlin.android") version "1.9.21" apply false
-    id("com.google.devtools.ksp") version "1.9.21-1.0.15" apply false
+    alias(libs.plugins.androidApplication) apply false
+    alias(libs.plugins.androidLibrary) apply false
+    alias(libs.plugins.kotlinAndroid) apply false
+    alias(libs.plugins.kotlinParcelize) apply false
+    alias(libs.plugins.ksp) apply false
+    alias(libs.plugins.googleServices) apply false
+    alias(libs.plugins.firebaseCrashlytics) apply false
 }
+true // Needed to make the Suppress annotation work for the plugins block

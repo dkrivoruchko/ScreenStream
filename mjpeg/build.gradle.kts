@@ -1,8 +1,9 @@
+@Suppress("DSL_SCOPE_VIOLATION") // TODO: Remove once KTIJ-19369 is fixed
 plugins {
-    id("com.android.library")
-    id("org.jetbrains.kotlin.android")
-    id("org.jetbrains.kotlin.plugin.parcelize")
-    id("com.google.devtools.ksp")
+    alias(libs.plugins.androidLibrary)
+    alias(libs.plugins.kotlinAndroid)
+    alias(libs.plugins.kotlinParcelize)
+    alias(libs.plugins.ksp)
 }
 
 android {
@@ -12,6 +13,11 @@ android {
 
     defaultConfig {
         minSdk = 23
+    }
+
+    buildFeatures {
+        buildConfig = true
+        viewBinding = true
     }
 
     androidResources {
@@ -25,7 +31,6 @@ android {
 
     kotlinOptions {
         jvmTarget = JavaVersion.VERSION_11.toString()
-        languageVersion = "1.9"
         freeCompilerArgs += "-Xexplicit-api=strict"
     }
 }
@@ -33,16 +38,16 @@ android {
 dependencies {
     implementation(project(":common"))
 
-    ksp("io.insert-koin:koin-ksp-compiler:1.3.0")
+    ksp(libs.koin.ksp)
 
     // Temp fix for https://github.com/afollestad/material-dialogs/issues/1825
     compileOnly(fileTree("libs/bottomsheets-release.aar"))
 
-    implementation("io.ktor:ktor-server-cio:2.3.6")
-    implementation("io.ktor:ktor-server-compression:2.3.6")
-    implementation("io.ktor:ktor-server-caching-headers:2.3.6")
-    implementation("io.ktor:ktor-server-default-headers:2.3.6")
-    implementation("io.ktor:ktor-server-forwarded-header:2.3.6")
-    implementation("io.ktor:ktor-server-websockets:2.3.6")
-    implementation("io.ktor:ktor-server-status-pages:2.3.6")
+    implementation(libs.ktor.server.cio)
+    implementation(libs.ktor.server.compression)
+    implementation(libs.ktor.server.caching.headers)
+    implementation(libs.ktor.server.default.headers)
+    implementation(libs.ktor.server.forwarded.header)
+    implementation(libs.ktor.server.websockets)
+    implementation(libs.ktor.server.status.pages)
 }

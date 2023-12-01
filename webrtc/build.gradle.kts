@@ -1,10 +1,11 @@
 import java.util.Properties
 
+@Suppress("DSL_SCOPE_VIOLATION") // TODO: Remove once KTIJ-19369 is fixed
 plugins {
-    id("com.android.library")
-    id("org.jetbrains.kotlin.android")
-    id("org.jetbrains.kotlin.plugin.parcelize")
-    id("com.google.devtools.ksp")
+    alias(libs.plugins.androidLibrary)
+    alias(libs.plugins.kotlinAndroid)
+    alias(libs.plugins.kotlinParcelize)
+    alias(libs.plugins.ksp)
 }
 
 android {
@@ -15,6 +16,11 @@ android {
 
     defaultConfig {
         minSdk = 23
+    }
+
+    buildFeatures {
+        buildConfig = true
+        viewBinding = true
     }
 
     val localProps = Properties().apply { file("../local.properties").inputStream().use { load(it) } }
@@ -38,7 +44,6 @@ android {
 
     kotlinOptions {
         jvmTarget = JavaVersion.VERSION_11.toString()
-        languageVersion = "1.9"
         freeCompilerArgs += "-Xexplicit-api=strict"
     }
 }
@@ -46,16 +51,12 @@ android {
 dependencies {
     implementation(project(":common"))
 
-    ksp("io.insert-koin:koin-ksp-compiler:1.3.0")
+    ksp(libs.koin.ksp)
 
-    implementation("io.github.webrtc-sdk:android:114.5735.06")
-    implementation("io.socket:socket.io-client:2.1.0")
-    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation(libs.webrtc)
+    implementation(libs.socket) { exclude("org.json", "json") }
+    implementation(libs.okhttp)
 
-    implementation("com.google.android.gms:play-services-basement:18.2.0")
-    implementation("com.google.android.play:integrity:1.3.0")
-}
-
-configurations.implementation {
-    exclude("org.json", "json")
+    implementation(libs.play.services.basement)
+    implementation(libs.play.integrity)
 }
