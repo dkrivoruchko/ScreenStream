@@ -2,7 +2,6 @@ package info.dvkr.screenstream.activity
 
 import android.Manifest
 import android.annotation.SuppressLint
-import android.content.ActivityNotFoundException
 import android.os.Build
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.LayoutRes
@@ -54,11 +53,7 @@ public abstract class NotificationPermissionActivity(@LayoutRes contentLayoutId:
             if (showSettings) {
                 message(R.string.app_activity_permission_allow_notifications_settings)
                 positiveButton(R.string.app_activity_permission_notification_settings) {
-                    try {
-                        startActivity(notificationHelper.getNotificationSettingsIntent(this@NotificationPermissionActivity))
-                    } catch (cause: ActivityNotFoundException) { //TODO Need prod logs
-                        XLog.e(getLog("showPermissionsMandatoryDialog", "showSettings: $showSettings: $cause"), cause)
-                    }
+                    startActivity(notificationHelper.getNotificationSettingsIntent(this@NotificationPermissionActivity))
                 }
             } else {
                 message(R.string.app_activity_permission_allow_notifications)
@@ -79,11 +74,7 @@ public abstract class NotificationPermissionActivity(@LayoutRes contentLayoutId:
             title(R.string.app_activity_permission_notifications_required_title)
             message(R.string.app_activity_permission_enable_notifications)
             positiveButton(R.string.app_activity_permission_notification_settings) {
-                try {
-                    startActivity(notificationHelper.getNotificationSettingsIntent(this@NotificationPermissionActivity))
-                } catch (cause: ActivityNotFoundException) { //TODO Need prod logs
-                    XLog.e(getLog("showNotificationMandatoryDialog", "$cause"), cause)
-                }
+                startActivity(notificationHelper.getNotificationSettingsIntent(this@NotificationPermissionActivity))
             }
             cancelable(false)
             cancelOnTouchOutside(false)

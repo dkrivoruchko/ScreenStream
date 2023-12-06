@@ -6,8 +6,8 @@ pluginManagement {
 
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
-    repositories.mavenCentral()
     repositories.google()
+    repositories.mavenCentral()
 }
 
 rootProject.name = "ScreenStream"

@@ -122,7 +122,6 @@
     <string name="mjpeg_error_port_in_use"> المنفذ قيد الاستخدام. اختر واحد اخر </string>
     <string name="mjpeg_error_invalid_media_projection"> خطآ امني : إسقاط وسائل الاعلام غير صحيح. حاول مرة أخرى  </string>
     <string name="mjpeg_error_ip_address_not_found">عنوان IP غير موجود.\nحاول تعطيل \"استخدام واي فاي فقط\" في إعدادات البث.</string>
-    <string name="mjpeg_error_wrong_image_format">يقوم النظام بإرجاع الصورة بتنسيق غير معروف .لا يوجد إصلاح المتاحة .آسف</string>
     <string name="mjpeg_error_notification_permission_required">يتطلب التطبيق تمكين الإشعارات لبدء خدمة البث.\n\يرجى تمكين الإشعارات في إعدادات التطبيق.</string>
     <string name="mjpeg_error_unspecified">حدث خطأ ما. من فضلك حاول مرة أخرى لاحقا.</string>
 

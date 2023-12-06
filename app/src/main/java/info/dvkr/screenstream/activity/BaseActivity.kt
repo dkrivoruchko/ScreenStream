@@ -6,7 +6,6 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.common.getLog
-import org.koin.androidx.fragment.android.setupKoinFragmentFactory
 
 public abstract class BaseActivity(@LayoutRes contentLayoutId: Int) : AppCompatActivity(contentLayoutId) {
 

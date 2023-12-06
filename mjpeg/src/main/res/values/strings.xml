@@ -130,7 +130,6 @@
     <string name="mjpeg_error_port_in_use">Port already in use. Choose another one.</string>
     <string name="mjpeg_error_invalid_media_projection">Security error: Invalid media projection. Try one more time.</string>
     <string name="mjpeg_error_ip_address_not_found">IP address not found.\nTry to disable \"Use WiFi only\" in stream settings.</string>
-    <string name="mjpeg_error_wrong_image_format">System returns image in unknown format. No fix available. Sorry.</string>
     <string name="mjpeg_error_notification_permission_required">Application require notifications to be enabled to start streaming service.\n\nPlease enable notifications in application settings.</string>
     <string name="mjpeg_error_unspecified">Something went wrong. Please try again later.</string>
 

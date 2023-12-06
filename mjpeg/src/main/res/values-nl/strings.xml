@@ -123,7 +123,6 @@
     <string name="mjpeg_error_port_in_use">Poort is al in gebruik, kies een andere.</string>
     <string name="mjpeg_error_invalid_media_projection">Beveilig fout: Ongeldige media projectie. Probeer het nogmaals.</string>
     <string name="mjpeg_error_ip_address_not_found">IP-adres niet gevonden.\nProbeer \"Gebruik alleen WiFi\" uit te schakelen in de streaminstellingen.</string>
-    <string name="mjpeg_error_wrong_image_format">Systeem maakt een frame in een onbekend formaat. Geen oplossing mogelijk. Sorry.</string>
     <string name="mjpeg_error_notification_permission_required">De applicatie vereist dat meldingen zijn ingeschakeld om de streamingdienst te starten.\n\nSchakel meldingen in in de applicatie-instellingen.</string>
     <string name="mjpeg_error_unspecified">Er is iets misgegaan. Probeer het later opnieuw.</string>
 

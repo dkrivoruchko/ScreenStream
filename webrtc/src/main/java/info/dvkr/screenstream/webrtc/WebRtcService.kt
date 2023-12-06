@@ -33,7 +33,8 @@ public class WebRtcService : AbstractService() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent == null) {
-            XLog.e(getLog("onStartCommand"), IllegalArgumentException("WebRtcService.onStartCommand: intent = null"))
+            stopSelfResult(startId)
+            XLog.e(getLog("onStartCommand"), IllegalArgumentException("WebRtcService.onStartCommand: intent = null. Stop self, startId: $startId"))
             return START_NOT_STICKY
         }
         val webRtcEvent = WebRtcEvent.Intentable.fromIntent(intent) ?: run {
@@ -76,8 +77,7 @@ public class WebRtcService : AbstractService() {
         if (error is WebRtcError.NetworkError && (error.cause is UnknownHostException || error.cause is ConnectException) ) {
             XLog.i(getLog("showErrorNotification", "${error.javaClass.simpleName} ${error.cause}"))
         } else {
-            XLog.d(getLog("showErrorNotification", "${error.javaClass.simpleName} ${error.cause}"))
-            XLog.e(getLog("showErrorNotification"), error) //TODO Wait for prod logs
+            XLog.e(getLog("showErrorNotification"), error)
         }
 
         val message = error.toString(this)

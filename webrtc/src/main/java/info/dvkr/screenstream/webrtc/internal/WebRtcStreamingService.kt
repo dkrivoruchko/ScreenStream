@@ -532,7 +532,7 @@ internal class WebRtcStreamingService(
                 }
 
                 check(signaling != null) { "StreamCreated: signaling is null" }
-                require(event.streamId.isEmpty().not()) //TODO Wait for prod logs
+                require(event.streamId.isEmpty().not())
 
                 runBlocking { webRtcSettings.setLastStreamId(event.streamId.value) }
 
@@ -547,7 +547,6 @@ internal class WebRtcStreamingService(
 
                 currentStreamId = event.streamId
                 if (currentStreamPassword.isEmpty()) currentStreamPassword = StreamPassword.generateNew()
-                //TODO Throws UnsatisfiedLinkError: dlopen failed: library "libjingle_peerconnection_so.so" not found
                 projection = projection ?: WebRtcProjection(service)
                 projection!!.setMicrophoneMute(runBlocking { webRtcSettings.enableMicFlow.first().not() })
             }

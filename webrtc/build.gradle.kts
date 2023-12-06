@@ -54,6 +54,7 @@ dependencies {
     ksp(libs.koin.ksp)
 
     implementation(libs.webrtc)
+    implementation(libs.relinker)
     implementation(libs.socket) { exclude("org.json", "json") }
     implementation(libs.okhttp)
 

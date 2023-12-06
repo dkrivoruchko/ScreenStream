@@ -10,18 +10,23 @@ import android.view.Display
 import android.view.WindowManager
 import androidx.core.content.ContextCompat
 import com.elvishew.xlog.XLog
+import com.getkeepsafe.relinker.ReLinker
 import info.dvkr.screenstream.common.getLog
-import info.dvkr.screenstream.webrtc.WebRtcSettings
-import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
-import org.webrtc.*
+import org.webrtc.AudioSource
+import org.webrtc.DefaultVideoEncoderFactory
+import org.webrtc.EglBase
+import org.webrtc.HardwareVideoEncoderFactory
+import org.webrtc.Logging
+import org.webrtc.MediaConstraints
+import org.webrtc.MediaStreamTrack
+import org.webrtc.NativeLibraryLoader
+import org.webrtc.PeerConnectionFactory
+import org.webrtc.RtpCapabilities
+import org.webrtc.ScreenCapturerAndroid
+import org.webrtc.SurfaceTextureHelper
+import org.webrtc.VideoSource
+import org.webrtc.WrappedVideoDecoderFactory
 import org.webrtc.audio.JavaAudioDeviceModule
-import java.util.*
 
 internal class WebRtcProjection(private val serviceContext: Context) {
 
@@ -63,6 +68,10 @@ internal class WebRtcProjection(private val serviceContext: Context) {
         XLog.d(getLog("init"))
 
         val initializationOptions = PeerConnectionFactory.InitializationOptions.builder(serviceContext)
+            .setNativeLibraryLoader(NativeLibraryLoader { name ->
+                ReLinker.log { XLog.i(this@WebRtcProjection.getLog("ReLinker", it)) }.loadLibrary(serviceContext, name)
+                return@NativeLibraryLoader true
+            })
             .setInjectableLogger({ p0, _, _ -> XLog.e(this@WebRtcProjection.getLog("WebRTCLogger", p0)) }, Logging.Severity.LS_NONE)
             .createInitializationOptions()
 

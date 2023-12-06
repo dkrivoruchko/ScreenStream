@@ -14,6 +14,7 @@ material-dialogs = "3.3.0"
 xlog = "1.11.0"
 ktor = "2.3.6"
 webrtc = "114.5735.06"
+relinker = "1.4.5"
 socket = "2.1.0"
 okhttp = "4.12.0"
 
@@ -66,6 +67,7 @@ ktor-server-websockets = { module = "io.ktor:ktor-server-websockets", version.re
 ktor-server-status-pages = { module = "io.ktor:ktor-server-status-pages", version.ref = "ktor" }
 
 webrtc = { module = "io.github.webrtc-sdk:android", version.ref = "webrtc" }
+relinker = { module = "com.getkeepsafe.relinker:relinker", version.ref = "relinker" }
 socket = { module = "io.socket:socket.io-client", version.ref = "socket" }
 okhttp = { module = "com.squareup.okhttp3:okhttp", version.ref = "okhttp" }
 

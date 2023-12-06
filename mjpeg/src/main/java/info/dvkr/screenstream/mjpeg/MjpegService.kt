@@ -30,7 +30,8 @@ public class MjpegService : AbstractService() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent == null) {
-            XLog.e(getLog("onStartCommand"), IllegalArgumentException("MjpegService.onStartCommand: intent = null"))
+            stopSelfResult(startId)
+            XLog.e(getLog("onStartCommand"), IllegalArgumentException("MjpegService.onStartCommand: intent = null. Stop self, startId: $startId"))
             return START_NOT_STICKY
         }
         val mjpegEvent = MjpegEvent.Intentable.fromIntent(intent) ?: run {
@@ -73,8 +74,7 @@ public class MjpegService : AbstractService() {
         if (error is MjpegError.AddressNotFoundException || error is MjpegError.AddressInUseException) {
             XLog.i(getLog("showErrorNotification", "${error.javaClass.simpleName} ${error.cause}"))
         } else {
-            XLog.i(getLog("showErrorNotification", "${error.javaClass.simpleName} ${error.cause}"))
-            XLog.e(getLog("showErrorNotification"), error) //TODO Wait for prod logs
+            XLog.e(getLog("showErrorNotification"), error)
         }
 
         val message = error.toString(this)

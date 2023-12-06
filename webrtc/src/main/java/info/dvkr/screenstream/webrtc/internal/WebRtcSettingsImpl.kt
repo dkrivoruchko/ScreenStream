@@ -10,8 +10,8 @@ import androidx.datastore.preferences.preferencesDataStoreFile
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.common.getCatching
 import info.dvkr.screenstream.common.setValue
-import info.dvkr.screenstream.webrtc.WebRtcSettings
 import info.dvkr.screenstream.webrtc.WebRtcKoinScope
+import info.dvkr.screenstream.webrtc.WebRtcSettings
 import kotlinx.coroutines.flow.Flow
 import org.koin.core.annotation.Scope
 

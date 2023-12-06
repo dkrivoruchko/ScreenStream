@@ -122,7 +122,6 @@
     <string name="mjpeg_error_port_in_use">該連接埠正被使用中。請換一個試試</string>
     <string name="mjpeg_error_invalid_media_projection">安全性錯誤：無效的螢幕投射。請重試</string>
     <string name="mjpeg_error_ip_address_not_found">找不到 IP 地址。\n請嘗試在串流設定中停用「僅使用WiFi」。</string>
-    <string name="mjpeg_error_wrong_image_format">系統回傳無效的影像格式。無可用解決方案</string>
     <string name="mjpeg_error_notification_permission_required">應用程式需要啟用通知以開始串流服務。\n\n請在應用程式設定中啟用通知。</string>
     <string name="mjpeg_error_unspecified">出現問題。請稍後再試。</string>
 

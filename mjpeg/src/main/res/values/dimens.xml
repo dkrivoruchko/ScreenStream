@@ -1,4 +1,4 @@
-<resources xmlns:tools="http://schemas.android.com/tools">
+<resources>
     <dimen name="fab_size_normal">56dp</dimen>
 
     <dimen name="fragments_margin_bottom">72dp</dimen>

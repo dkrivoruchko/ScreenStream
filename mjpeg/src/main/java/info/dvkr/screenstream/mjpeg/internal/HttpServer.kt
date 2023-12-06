@@ -146,7 +146,7 @@ internal class HttpServer(
 
         server.environment.monitor.subscribe(ApplicationStopped) {
             XLog.i(getLog("monitor", "KtorStopped: ${it.hashCode()}"))
-            ktorServer.get().second.complete(Unit) //TODO may be null
+            ktorServer.get().second.complete(Unit)
             coroutineScope.cancel()
             serverData.clear()
         }
@@ -158,7 +158,6 @@ internal class HttpServer(
                 XLog.w(getLog("startServer.CancellationException.BindException", cause.cause.toString()))
                 sendEvent(MjpegStreamingService.InternalEvent.Error(MjpegError.AddressInUseException))
             } else {
-                XLog.w(getLog("startServer.CancellationException", cause.toString())) //TODO Need real logs
                 XLog.w(getLog("startServer.CancellationException", cause.toString()), cause)
                 sendEvent(MjpegStreamingService.InternalEvent.Error(MjpegError.HttpServerException))
             }
@@ -166,7 +165,6 @@ internal class HttpServer(
             XLog.w(getLog("startServer.BindException", cause.toString()))
             sendEvent(MjpegStreamingService.InternalEvent.Error(MjpegError.AddressInUseException))
         } catch (cause: Throwable) {
-            XLog.e(getLog("startServer.Throwable", cause.toString())) //TODO Need real logs
             XLog.e(getLog("startServer.Throwable"), cause)
             sendEvent(MjpegStreamingService.InternalEvent.Error(MjpegError.HttpServerException))
         }
@@ -220,7 +218,6 @@ internal class HttpServer(
         install(StatusPages) {
             exception<Throwable> { call, cause ->
                 if (cause is IOException || cause is IllegalArgumentException || cause is IllegalStateException) return@exception
-                XLog.e(this@appModule.getLog("exception<Throwable>", cause.toString()))
                 XLog.e(this@appModule.getLog("exception"), RuntimeException("Throwable", cause))
                 sendEvent(MjpegStreamingService.InternalEvent.Error(MjpegError.HttpServerException))
                 call.respondText(text = "500: $cause", status = HttpStatusCode.InternalServerError)
@@ -290,7 +287,6 @@ internal class HttpServer(
                     }
                 } catch (ignore: CancellationException) {
                 } catch (cause: Exception) {
-                    XLog.w(this@appModule.getLog("socket", "catch: ${cause.localizedMessage}"))
                     XLog.w(this@appModule.getLog("socket", "catch: ${cause.localizedMessage}"), cause)
                 } finally {
                     XLog.i(this@appModule.getLog("socket", "finally: $clientId"))
