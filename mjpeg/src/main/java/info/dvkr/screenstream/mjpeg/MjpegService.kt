@@ -10,6 +10,8 @@ import info.dvkr.screenstream.mjpeg.internal.MjpegError
 import info.dvkr.screenstream.mjpeg.internal.MjpegEvent
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
+import org.koin.android.ext.android.inject
+import org.koin.core.qualifier.named
 
 public class MjpegService : AbstractService() {
 
@@ -28,26 +30,29 @@ public class MjpegService : AbstractService() {
     override val notificationIdForeground: Int = 100
     override val notificationIdError: Int = 110
 
+    private val mjpegStreamingModule: MjpegStreamingModule by inject(named(MjpegKoinQualifier), LazyThreadSafetyMode.NONE)
+
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent == null) {
-            stopSelfResult(startId)
             XLog.e(getLog("onStartCommand"), IllegalArgumentException("MjpegService.onStartCommand: intent = null. Stop self, startId: $startId"))
+            stopSelfResult(startId)
             return START_NOT_STICKY
         }
+        XLog.d(getLog("onStartCommand", "MjpegEvent.intent: ${intent.extras}"))
         val mjpegEvent = MjpegEvent.Intentable.fromIntent(intent) ?: run {
             XLog.e(getLog("onStartCommand"), IllegalArgumentException("MjpegService.onStartCommand: MjpegEvent = null, startId: $startId, $intent"))
             return START_NOT_STICKY
         }
         XLog.d(getLog("onStartCommand", "MjpegEvent: $mjpegEvent, startId: $startId"))
 
-        val success = when (mjpegEvent) {
-            is MjpegEvent.Intentable.StartService -> streamingModulesManager.sendEvent(MjpegEvent.CreateStreamingService(this))
-            is MjpegEvent.Intentable.StopStream -> streamingModulesManager.sendEvent(mjpegEvent)
-            MjpegEvent.Intentable.RecoverError -> streamingModulesManager.sendEvent(mjpegEvent)
-        }
-
-        if (success.not()) { // No active module
-            XLog.w(getLog("onStartCommand", "No active module. Stop self, startId: $startId"))
+        if (streamingModulesManager.isActivate(MjpegStreamingModule.Id)) {
+            when (mjpegEvent) {
+                is MjpegEvent.Intentable.StartService -> mjpegStreamingModule.sendEvent(MjpegEvent.CreateStreamingService(this))
+                is MjpegEvent.Intentable.StopStream -> mjpegStreamingModule.sendEvent(mjpegEvent)
+                MjpegEvent.Intentable.RecoverError -> mjpegStreamingModule.sendEvent(mjpegEvent)
+            }
+        } else {
+            XLog.w(getLog("onStartCommand", "Not active module. Stop self, startId: $startId"))
             stopSelf()
         }
 
@@ -56,7 +61,7 @@ public class MjpegService : AbstractService() {
 
     override fun onDestroy() {
         XLog.d(getLog("onDestroy"))
-        streamingModulesManager.deactivate(MjpegStreamingModule.Id)
+        runBlocking { streamingModulesManager.deactivate(MjpegStreamingModule.Id) }
         super.onDestroy()
     }
 

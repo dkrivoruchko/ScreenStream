@@ -7,6 +7,7 @@ import com.elvishew.xlog.XLog
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.runBlocking
 import org.koin.core.annotation.Single
 
 @Single
@@ -24,14 +25,26 @@ public class StreamingModulesManager(modules: List<StreamingModule>, private val
 
     @MainThread
     @Throws(IllegalArgumentException::class, IllegalStateException::class)
-    public fun activate(id: StreamingModule.Id, context: Context) {
+    public fun isActivate(id: StreamingModule.Id): Boolean {
+        XLog.d(getLog("isActivate", id.toString()))
+
+        check(Looper.getMainLooper().isCurrentThread) { "Only main thread allowed" }
+        require(id.isDefined()) { "Wrong Streaming module id: $id" }
+        require(hasModule(id)) { "No streaming module found: $id" }
+
+        return _activeModuleStateFlow.value?.id == id
+    }
+
+    @MainThread
+    @Throws(IllegalArgumentException::class, IllegalStateException::class)
+    public suspend fun activate(id: StreamingModule.Id, context: Context) {
         XLog.d(getLog("activate", id.toString()))
 
         check(Looper.getMainLooper().isCurrentThread) { "Only main thread allowed" }
         require(id.isDefined()) { "Wrong Streaming module id: $id" }
         require(hasModule(id)) { "No streaming module found: $id" }
 
-        if (_activeModuleStateFlow.value?.id == id) {
+        if (isActivate(id)) {
             XLog.i(getLog("activate", "Streaming module already active: $id. Ignoring"))
             return
         }
@@ -48,29 +61,30 @@ public class StreamingModulesManager(modules: List<StreamingModule>, private val
 
     @MainThread
     @Throws(IllegalStateException::class)
-    public fun deactivate(id: StreamingModule.Id) {
+    public suspend fun deactivate(id: StreamingModule.Id) {
         check(Looper.getMainLooper().isCurrentThread) { "Only main thread allowed" }
 
         modules.firstOrNull { it.id == id }?.let { module ->
             XLog.d(getLog("deactivate", module.id.toString()))
             module.destroyStreamingService()
-            if (_activeModuleStateFlow.value?.id == module.id) _activeModuleStateFlow.value = null
+            if (isActivate(module.id)) _activeModuleStateFlow.value = null
         } ?: XLog.d(getLog("deactivate", "Module $id not found. Ignoring"))
     }
 
     @MainThread
     @Throws(IllegalStateException::class)
-    public fun sendEvent(event: StreamingModule.AppEvent): Boolean {
+    public fun sendEvent(event: StreamingModule.AppEvent) {
         XLog.d(getLog("sendEvent", "Event $event"))
         check(Looper.getMainLooper().isCurrentThread) { "Only main thread allowed" }
 
-        return _activeModuleStateFlow.value?.sendEvent(event) ?: run {
-            if (event is StreamingModule.AppEvent.Exit) event.callback()
-            else {
+        if (event is StreamingModule.AppEvent.Exit) {
+            activeModuleStateFlow.value?.let { module -> runBlocking { module.destroyStreamingService() } }
+            event.callback()
+        } else {
+            _activeModuleStateFlow.value?.sendEvent(event) ?: run {
                 val exception = IllegalStateException("StreamingModulesManager.sendEvent $event. No active module.")
                 XLog.e(getLog("sendEvent", "Event $event. No active module."), exception)
             }
-            false
         }
     }
 }

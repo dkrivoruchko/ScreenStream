@@ -11,6 +11,8 @@ import info.dvkr.screenstream.webrtc.internal.WebRtcError
 import info.dvkr.screenstream.webrtc.internal.WebRtcEvent
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
+import org.koin.android.ext.android.inject
+import org.koin.core.qualifier.named
 import java.net.ConnectException
 import java.net.UnknownHostException
 
@@ -31,26 +33,29 @@ public class WebRtcService : AbstractService() {
     override val notificationIdForeground: Int = 200
     override val notificationIdError: Int = 210
 
+    private val webRtcStreamingModule: WebRtcStreamingModule by inject(named(WebRtcKoinQualifier), LazyThreadSafetyMode.NONE)
+
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent == null) {
-            stopSelfResult(startId)
             XLog.e(getLog("onStartCommand"), IllegalArgumentException("WebRtcService.onStartCommand: intent = null. Stop self, startId: $startId"))
+            stopSelfResult(startId)
             return START_NOT_STICKY
         }
+        XLog.d(getLog("onStartCommand", "WebRtcEvent.intent: ${intent.extras}"))
         val webRtcEvent = WebRtcEvent.Intentable.fromIntent(intent) ?: run {
             XLog.e(getLog("onStartCommand"), IllegalArgumentException("WebRtcService.onStartCommand: WebRtcEvent = null, startId: $startId, $intent"))
             return START_NOT_STICKY
         }
         XLog.d(getLog("onStartCommand", "WebRtcEvent: $webRtcEvent, startId: $startId"))
 
-        val success = when (webRtcEvent) {
-            is WebRtcEvent.Intentable.StartService -> streamingModulesManager.sendEvent(WebRtcEvent.CreateStreamingService(this))
-            is WebRtcEvent.Intentable.StopStream -> streamingModulesManager.sendEvent(webRtcEvent)
-            WebRtcEvent.Intentable.RecoverError -> streamingModulesManager.sendEvent(webRtcEvent)
-        }
-
-        if (success.not()) { // No active module
-            XLog.w(getLog("onStartCommand", "No active module. Stop self, startId: $startId"))
+        if (streamingModulesManager.isActivate(WebRtcStreamingModule.Id)) {
+            when (webRtcEvent) {
+                is WebRtcEvent.Intentable.StartService -> webRtcStreamingModule.sendEvent(WebRtcEvent.CreateStreamingService(this))
+                is WebRtcEvent.Intentable.StopStream -> webRtcStreamingModule.sendEvent(webRtcEvent)
+                WebRtcEvent.Intentable.RecoverError -> webRtcStreamingModule.sendEvent(webRtcEvent)
+            }
+        } else {
+            XLog.w(getLog("onStartCommand", "Not active module. Stop self, startId: $startId"))
             stopSelf()
         }
 
@@ -59,7 +64,7 @@ public class WebRtcService : AbstractService() {
 
     override fun onDestroy() {
         XLog.d(getLog("onDestroy"))
-        streamingModulesManager.deactivate(WebRtcStreamingModule.Id)
+        runBlocking { streamingModulesManager.deactivate(WebRtcStreamingModule.Id) }
         super.onDestroy()
     }
 
@@ -74,7 +79,7 @@ public class WebRtcService : AbstractService() {
     }
 
     internal fun showErrorNotification(error: WebRtcError) {
-        if (error is WebRtcError.NetworkError && (error.cause is UnknownHostException || error.cause is ConnectException) ) {
+        if (error is WebRtcError.NetworkError && (error.cause is UnknownHostException || error.cause is ConnectException)) {
             XLog.i(getLog("showErrorNotification", "${error.javaClass.simpleName} ${error.cause}"))
         } else {
             XLog.e(getLog("showErrorNotification"), error)

@@ -47,6 +47,7 @@ import org.json.JSONObject
 import java.io.ByteArrayOutputStream
 import java.io.IOException
 import java.net.BindException
+import java.net.SocketException
 import java.nio.charset.StandardCharsets
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
@@ -154,8 +155,8 @@ internal class HttpServer(
         try {
             server.start(false)
         } catch (cause: CancellationException) {
-            if (cause.cause is BindException) {
-                XLog.w(getLog("startServer.CancellationException.BindException", cause.cause.toString()))
+            if (cause.cause is SocketException) {
+                XLog.w(getLog("startServer.CancellationException.SocketException", cause.cause.toString()))
                 sendEvent(MjpegStreamingService.InternalEvent.Error(MjpegError.AddressInUseException))
             } else {
                 XLog.w(getLog("startServer.CancellationException", cause.toString()), cause)
@@ -255,10 +256,7 @@ internal class HttpServer(
                 try {
                     for (frame in incoming) {
                         frame as? Frame.Text ?: continue
-
-                        val msg = runCatching { JSONObject(frame.readText()) }
-                            .onFailure { XLog.e(this@appModule.getLog("fromFrameText", it.message), it) }
-                            .getOrNull() ?: continue
+                        val msg = runCatching { JSONObject(frame.readText()) }.getOrNull() ?: continue
 
                         val enableButtons = mjpegSettings.htmlEnableButtonsFlow.first() && serverData.enablePin.not()
                         val streamData = JSONObject().put("enableButtons", enableButtons).put("streamAddress", serverData.streamAddress)

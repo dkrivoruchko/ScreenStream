@@ -17,7 +17,7 @@ import org.webrtc.SessionDescription
 import org.webrtc.VideoTrack
 import java.security.MessageDigest
 
-internal open class WebRtcEvent(@JvmField val priority: Int) : StreamingModule.AppEvent() {
+internal open class WebRtcEvent(@JvmField val priority: Int) {
 
     internal object Priority {
         internal const val NONE: Int = -1

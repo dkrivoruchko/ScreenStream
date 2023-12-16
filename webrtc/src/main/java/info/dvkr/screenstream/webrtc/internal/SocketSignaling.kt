@@ -26,7 +26,7 @@ internal class SocketSignaling(
 ) {
 
     internal fun interface PasswordVerifier {
-        fun isValid(clientId: ClientId, passwordHash: String) : Boolean
+        fun isValid(clientId: ClientId, passwordHash: String): Boolean
     }
 
     internal sealed class Error(internal val retry: Boolean, internal val log: Boolean) : Exception() {
@@ -240,7 +240,7 @@ internal class SocketSignaling(
         }
 
         currentSocket.on(Event.CLIENT_ANSWER) { args ->
-            XLog.v(getLog("onStreamCreated[${socketId()}]", "[${Event.CLIENT_ANSWER}] Payload: ${args.contentToString()}"))
+            XLog.v(getLog("onStreamCreated[${socketId()}]", "[${Event.CLIENT_ANSWER}]"))
             val payload = SocketPayload.fromPayload(args)
             if (payload.clientId.isEmpty() || payload.answer.isEmpty()) {
                 val msg = "[${Event.CLIENT_ANSWER}] ClientId or Answer is empty"
@@ -253,7 +253,7 @@ internal class SocketSignaling(
         }
 
         currentSocket.on(Event.CLIENT_CANDIDATE) { args ->
-            XLog.v(getLog("onStreamCreated[${socketId()}]", "[${Event.CLIENT_CANDIDATE}] Payload: ${args.contentToString()}"))
+            XLog.v(getLog("onStreamCreated[${socketId()}]", "[${Event.CLIENT_CANDIDATE}]"))
             val payload = SocketPayload.fromPayload(args)
             if (payload.clientId.isEmpty() || payload.candidate == null) {
                 val msg = "[${Event.CLIENT_CANDIDATE}] ClientId or Candidate is empty"
@@ -323,8 +323,8 @@ internal class SocketSignaling(
                         XLog.d(this@SocketSignaling.getLog("sendStreamStart[${socketId()}]", "Client: $clientId => $status"))
                         eventListener.onClientNotFound(clientId!!, "[${Event.STREAM_START}]")
                     }
-                    //TODO Prod logs
-                    else -> XLog.e(this@SocketSignaling.getLog("sendStreamStart", status), IllegalArgumentException("sendStreamStart => $status"))
+
+                    else -> throw IllegalArgumentException("sendStreamStart => $status")
                 }
             }
 
@@ -380,8 +380,8 @@ internal class SocketSignaling(
                         XLog.d(this@SocketSignaling.getLog("sendHostOffer[${socketId()}]", "Client: $clientId => $status"))
                         eventListener.onClientNotFound(clientId, "[${Event.HOST_OFFER}]")
                     }
-                    // TODO Prod logs
-                    else -> XLog.e(this@SocketSignaling.getLog("sendHostOffer[${socketId()}]", "Client: $clientId => $status. Data: $data"), IllegalArgumentException("sendHostOffer => $status"))
+
+                    else -> throw IllegalArgumentException("sendHostOffer => $status")
                 }
             }
 
@@ -415,8 +415,8 @@ internal class SocketSignaling(
                         XLog.d(this@SocketSignaling.getLog("sendHostCandidates[${socketId()}]", "Client: $clientId => $status"))
                         eventListener.onClientNotFound(clientId, "[${Event.HOST_CANDIDATE}]")
                     }
-                    // TODO Prod logs
-                    else -> XLog.e(this@SocketSignaling.getLog("sendHostCandidates[${socketId()}]", "Client: $clientId => $status. Data: $data"), IllegalArgumentException("sendHostCandidates => $status"))
+
+                    else -> throw IllegalArgumentException("sendHostCandidates => $status")
                 }
             }
 
@@ -447,7 +447,7 @@ internal class SocketSignaling(
                 XLog.v(this@SocketSignaling.getLog("sendRemoveClients[${socketId()}]", "Response: ${args.contentToString()}"))
                 when (val status = SocketAck.fromAck(args).status) {
                     Payload.OK -> XLog.d(this@SocketSignaling.getLog("sendRemoveClients[${socketId()}]", "OK"))
-                    else -> XLog.e(this@SocketSignaling.getLog("sendRemoveClients", status), IllegalArgumentException("sendRemoveClients => $status"))
+                    else -> throw IllegalArgumentException("sendRemoveClients => $status")
                 }
             }
 

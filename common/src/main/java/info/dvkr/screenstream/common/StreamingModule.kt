@@ -29,7 +29,7 @@ public interface StreamingModule {
 
     public val priority: Int
 
-    public val streamingServiceIsActive: StateFlow<Boolean>
+    public val streamingServiceIsReady: StateFlow<Boolean>
 
     @MainThread
     @Throws(IllegalStateException::class)
@@ -52,9 +52,9 @@ public interface StreamingModule {
 
     @MainThread
     @Throws(IllegalStateException::class)
-    public fun sendEvent(event: AppEvent): Boolean
+    public fun sendEvent(event: AppEvent)
 
     @MainThread
     @Throws(IllegalStateException::class)
-    public fun destroyStreamingService()
+    public suspend fun destroyStreamingService()
 }

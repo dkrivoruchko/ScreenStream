@@ -34,30 +34,27 @@ public class MjpegStreamingModule : StreamingModule {
 
     override val priority: Int = 20
 
-    private val _streamingServiceIsActive: MutableStateFlow<Boolean> = MutableStateFlow(false)
-    override val streamingServiceIsActive: StateFlow<Boolean>
-        get() = _streamingServiceIsActive.asStateFlow()
+    private val _streamingServiceIsReady: MutableStateFlow<Boolean> = MutableStateFlow(false)
+    override val streamingServiceIsReady: StateFlow<Boolean>
+        get() = _streamingServiceIsReady.asStateFlow()
 
     private val _mjpegStateFlow: MutableStateFlow<MjpegState?> = MutableStateFlow(null)
     internal val mjpegStateFlow: StateFlow<MjpegState?>
         get() = _mjpegStateFlow.asStateFlow()
 
     @MainThread
-    @Throws(IllegalStateException::class)
     override fun getName(context: Context): String {
         check(Looper.getMainLooper().isCurrentThread) { "Only main thread allowed" }
         return context.getString(R.string.mjpeg_stream_fragment_mode_local)
     }
 
     @MainThread
-    @Throws(IllegalStateException::class)
     override fun getContentDescription(context: Context): String {
         check(Looper.getMainLooper().isCurrentThread) { "Only main thread allowed" }
         return context.getString(R.string.mjpeg_stream_fragment_mode_local_description)
     }
 
     @MainThread
-    @Throws(IllegalStateException::class)
     override fun showDescriptionDialog(context: Context, lifecycleOwner: LifecycleOwner) {
         check(Looper.getMainLooper().isCurrentThread) { "Only main thread allowed" }
 
@@ -84,67 +81,67 @@ public class MjpegStreamingModule : StreamingModule {
         XLog.d(getLog("createStreamingService"))
         check(Looper.getMainLooper().isCurrentThread) { "Only main thread allowed" }
 
-        if (_scope != null) {
-            XLog.e(getLog("createStreamingService", "Scope exists"), IllegalStateException("Scope exists"))
-            destroyStreamingService()
+        if (_streamingServiceIsReady.value) {
+            XLog.e(getLog("createStreamingService", "Already ready"), IllegalStateException("Already ready"))
+            return
         }
 
         MjpegService.startService(context, MjpegEvent.Intentable.StartService.toIntent(context))
-
-        _scope = MjpegKoinScope().scope
-        _mjpegStateFlow.value = MjpegState()
     }
 
     @MainThread
     @Throws(IllegalStateException::class)
-    override fun sendEvent(event: StreamingModule.AppEvent): Boolean {
+    override fun sendEvent(event: StreamingModule.AppEvent) {
         XLog.d(getLog("sendEvent", "Event $event"))
         check(Looper.getMainLooper().isCurrentThread) { "Only main thread allowed" }
 
         when (event) {
-            is StreamingModule.AppEvent.StartStream ->
-                requireNotNull(_scope).get<MjpegStreamingService>().sendEvent(MjpegStreamingService.InternalEvent.StartStream)
-
-            is StreamingModule.AppEvent.StopStream ->
-                requireNotNull(_scope).get<MjpegStreamingService>().sendEvent(MjpegEvent.Intentable.StopStream("User action: Button"))
-
-            is StreamingModule.AppEvent.Exit -> {
-                destroyStreamingService()
-                event.callback()
-            }
-
-            is MjpegEvent.CreateStreamingService -> if (_scope == null) {
-                XLog.e(getLog("sendEvent", "Scope already destroyed. Stopping Service"), IllegalStateException("Scope already destroyed. Stopping Service"))
-                event.service.stopSelf()
-                _streamingServiceIsActive.value = false
-            } else if (streamingServiceIsActive.value) {
-                XLog.e(getLog("sendEvent", "Service already started. Ignoring"), IllegalStateException("Service already started. Ignoring"))
-            } else {
-                requireNotNull(_scope).get<MjpegStreamingService> { parametersOf(event.service, _mjpegStateFlow) }.start()
-                _streamingServiceIsActive.value = true
-            }
-
-            is MjpegEvent -> requireNotNull(_scope).get<MjpegStreamingService>().sendEvent(event)
-
-            else -> {
-                XLog.e(getLog("sendEvent", "Unexpected event: $event"), IllegalArgumentException("Unexpected event: $event"))
-                return false
-            }
+            is StreamingModule.AppEvent.StartStream -> sendEvent(MjpegStreamingService.InternalEvent.StartStream)
+            is StreamingModule.AppEvent.StopStream -> sendEvent(MjpegEvent.Intentable.StopStream("User action: Button"))
+            else -> XLog.e(getLog("sendEvent", "Unexpected event: $event"), IllegalArgumentException("Unexpected event: $event"))
         }
-        return true
     }
 
     @MainThread
     @Throws(IllegalStateException::class)
-    override fun destroyStreamingService() {
+    internal fun sendEvent(event: MjpegEvent) {
+        XLog.d(getLog("sendEvent", "Event $event"))
+        check(Looper.getMainLooper().isCurrentThread) { "Only main thread allowed" }
+
+        when (event) {
+            is MjpegEvent.CreateStreamingService -> if (_streamingServiceIsReady.value) {
+                XLog.e(getLog("sendEvent", "Service already started. Ignoring"), IllegalStateException("Service already started. Ignoring"))
+                checkNotNull(_scope)
+            } else {
+                check(_scope == null)
+
+                val scope = MjpegKoinScope().scope
+                _scope = scope
+                _mjpegStateFlow.value = MjpegState()
+                scope.get<MjpegStreamingService> { parametersOf(event.service, _mjpegStateFlow) }.start()
+                _streamingServiceIsReady.value = true
+            }
+
+            else -> if (_streamingServiceIsReady.value)
+                requireNotNull(_scope).get<MjpegStreamingService>().sendEvent(event)
+            else
+                XLog.e(getLog("sendEvent", "Module not active. Ignoring"), IllegalStateException("$event: Module not active. Ignoring"))
+        }
+    }
+
+    @MainThread
+    @Throws(IllegalStateException::class)
+    override suspend fun destroyStreamingService() {
         XLog.d(getLog("destroyStreamingService"))
         check(Looper.getMainLooper().isCurrentThread) { "Only main thread allowed" }
 
-        if (_streamingServiceIsActive.value) requireNotNull(_scope).get<MjpegStreamingService>().destroy()
-        _streamingServiceIsActive.value = false
-        _mjpegStateFlow.value = null
-        _scope?.close()
-        _scope = null
+        _scope?.let { scope ->
+            scope.get<MjpegStreamingService>().destroyService()
+            _mjpegStateFlow.value = null
+            scope.close()
+            _scope = null
+            _streamingServiceIsReady.value = false
+        } ?: XLog.i(getLog("destroyStreamingService", "Scope is null"))
 
         XLog.d(getLog("destroyStreamingService", "Done"))
     }

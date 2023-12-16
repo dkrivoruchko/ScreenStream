@@ -56,7 +56,7 @@ public class StreamFragment : AdFragment(R.layout.fragment_stream) {
         }
 
         streamingModulesManager.modules.forEach { module ->
-            module.streamingServiceIsActive.onEach { isServiceActive ->
+            module.streamingServiceIsReady.onEach { isServiceActive ->
                 binding.llFragmentStreamModeItems.findViewWithTag<MaterialRadioButton>(module.id.value)?.apply {
                     isChecked = isServiceActive
                     setButtonDrawable(if (isServiceActive) R.drawable.ic_radiobox_checked_24dp else R.drawable.ic_radiobox_unchecked_24dp)

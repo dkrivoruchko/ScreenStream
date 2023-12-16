@@ -33,30 +33,27 @@ public class WebRtcStreamingModule : StreamingModule {
 
     override val priority: Int = 10
 
-    private val _streamingServiceIsActive: MutableStateFlow<Boolean> = MutableStateFlow(false)
-    override val streamingServiceIsActive: StateFlow<Boolean>
-        get() = _streamingServiceIsActive.asStateFlow()
+    private val _streamingServiceIsReady: MutableStateFlow<Boolean> = MutableStateFlow(false)
+    override val streamingServiceIsReady: StateFlow<Boolean>
+        get() = _streamingServiceIsReady.asStateFlow()
 
     private val _webRtcStateFlow: MutableStateFlow<WebRtcState?> = MutableStateFlow(null)
     internal val webRtcStateFlow: StateFlow<WebRtcState?>
         get() = _webRtcStateFlow.asStateFlow()
 
     @MainThread
-    @Throws(IllegalStateException::class)
     override fun getName(context: Context): String {
         check(Looper.getMainLooper().isCurrentThread) { "Only main thread allowed" }
         return context.getString(R.string.webrtc_stream_fragment_mode_global)
     }
 
     @MainThread
-    @Throws(IllegalStateException::class)
     override fun getContentDescription(context: Context): String {
         check(Looper.getMainLooper().isCurrentThread) { "Only main thread allowed" }
         return context.getString(R.string.webrtc_stream_fragment_mode_global_description)
     }
 
     @MainThread
-    @Throws(IllegalStateException::class)
     override fun showDescriptionDialog(context: Context, lifecycleOwner: LifecycleOwner) {
         check(Looper.getMainLooper().isCurrentThread) { "Only main thread allowed" }
 
@@ -83,67 +80,67 @@ public class WebRtcStreamingModule : StreamingModule {
         XLog.d(getLog("createStreamingService"))
         check(Looper.getMainLooper().isCurrentThread) { "Only main thread allowed" }
 
-        if (_scope != null) {
-            XLog.e(getLog("createStreamingService", "Scope exists"), IllegalStateException("Scope exists"))
-            destroyStreamingService()
+        if (_streamingServiceIsReady.value) {
+            XLog.e(getLog("createStreamingService", "Already ready"), IllegalStateException("Already ready"))
+            return
         }
 
         WebRtcService.startService(context, WebRtcEvent.Intentable.StartService.toIntent(context))
-
-        _scope = WebRtcKoinScope().scope
-        _webRtcStateFlow.value = WebRtcState()
     }
 
     @MainThread
     @Throws(IllegalStateException::class)
-    override fun sendEvent(event: StreamingModule.AppEvent): Boolean {
+    override fun sendEvent(event: StreamingModule.AppEvent) {
         XLog.d(getLog("sendEvent", "Event $event"))
         check(Looper.getMainLooper().isCurrentThread) { "Only main thread allowed" }
 
         when (event) {
-            is StreamingModule.AppEvent.StartStream ->
-                requireNotNull(_scope).get<WebRtcStreamingService>().sendEvent(WebRtcStreamingService.InternalEvent.StartStream)
-
-            is StreamingModule.AppEvent.StopStream ->
-                requireNotNull(_scope).get<WebRtcStreamingService>().sendEvent(WebRtcEvent.Intentable.StopStream("User action: Button"))
-
-            is StreamingModule.AppEvent.Exit -> {
-                destroyStreamingService()
-                event.callback()
-            }
-
-            is WebRtcEvent.CreateStreamingService -> if (_scope == null) {
-                XLog.e(getLog("sendEvent", "Scope already destroyed. Stopping Service"), IllegalStateException("Scope already destroyed. Stopping Service"))
-                event.service.stopSelf()
-                _streamingServiceIsActive.value = false
-            } else if (streamingServiceIsActive.value) {
-                XLog.e(getLog("sendEvent", "Service already started. Ignoring"), IllegalStateException("Service already started. Ignoring"))
-            } else {
-                requireNotNull(_scope).get<WebRtcStreamingService> { parametersOf(event.service, _webRtcStateFlow) }.start()
-                _streamingServiceIsActive.value = true
-            }
-
-            is WebRtcEvent -> requireNotNull(_scope).get<WebRtcStreamingService>().sendEvent(event)
-
-            else -> {
-                XLog.e(getLog("sendEvent", "Unexpected event: $event"), IllegalArgumentException("Unexpected event: $event"))
-                return false
-            }
+            is StreamingModule.AppEvent.StartStream -> sendEvent(WebRtcStreamingService.InternalEvent.StartStream)
+            is StreamingModule.AppEvent.StopStream -> sendEvent(WebRtcEvent.Intentable.StopStream("User action: Button"))
+            else -> XLog.e(getLog("sendEvent", "Unexpected event: $event"), IllegalArgumentException("Unexpected event: $event"))
         }
-        return true
     }
 
     @MainThread
     @Throws(IllegalStateException::class)
-    override fun destroyStreamingService() {
+    internal fun sendEvent(event: WebRtcEvent) {
+        XLog.d(getLog("sendEvent", "Event $event"))
+        check(Looper.getMainLooper().isCurrentThread) { "Only main thread allowed" }
+
+        when (event) {
+            is WebRtcEvent.CreateStreamingService -> if (streamingServiceIsReady.value) {
+                XLog.e(getLog("sendEvent", "Service already started. Ignoring"), IllegalStateException("Service already started. Ignoring"))
+                checkNotNull(_scope)
+            } else {
+                check(_scope == null)
+
+                val scope = WebRtcKoinScope().scope
+                _scope = scope
+                _webRtcStateFlow.value = WebRtcState()
+                scope.get<WebRtcStreamingService> { parametersOf(event.service, _webRtcStateFlow) }.start()
+                _streamingServiceIsReady.value = true
+            }
+
+            else -> if (_streamingServiceIsReady.value)
+                requireNotNull(_scope).get<WebRtcStreamingService>().sendEvent(event)
+            else
+                XLog.e(getLog("sendEvent", "Module not active. Ignoring"), IllegalStateException("$event: Module not active. Ignoring"))
+        }
+    }
+
+    @MainThread
+    @Throws(IllegalStateException::class)
+    override suspend fun destroyStreamingService() {
         XLog.d(getLog("destroyStreamingService"))
         check(Looper.getMainLooper().isCurrentThread) { "Only main thread allowed" }
 
-        if (_streamingServiceIsActive.value) requireNotNull(_scope).get<WebRtcStreamingService>().destroy()
-        _streamingServiceIsActive.value = false
-        _webRtcStateFlow.value = null
-        _scope?.close()
-        _scope = null
+        _scope?.let { scope ->
+            scope.get<WebRtcStreamingService>().destroyService()
+            _webRtcStateFlow.value = null
+            scope.close()
+            _scope = null
+            _streamingServiceIsReady.value = false
+        } ?: XLog.i(getLog("destroyStreamingService", "Scope is null"))
 
         XLog.d(getLog("destroyStreamingService", "Done"))
     }

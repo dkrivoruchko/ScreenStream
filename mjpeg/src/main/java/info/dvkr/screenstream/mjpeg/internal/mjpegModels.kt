@@ -12,7 +12,7 @@ import info.dvkr.screenstream.mjpeg.R
 import kotlinx.parcelize.Parcelize
 import java.net.InetAddress
 
-internal open class MjpegEvent(@JvmField val priority: Int) : StreamingModule.AppEvent() {
+internal open class MjpegEvent(@JvmField val priority: Int) {
 
     internal object Priority {
         internal const val NONE: Int = -1

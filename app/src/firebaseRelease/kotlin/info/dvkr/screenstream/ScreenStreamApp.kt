@@ -8,6 +8,7 @@ import com.elvishew.xlog.interceptor.AbstractFilterInterceptor
 import com.elvishew.xlog.internal.util.StackTraceUtil
 import com.google.android.gms.ads.MobileAds
 import com.google.firebase.crashlytics.FirebaseCrashlytics
+import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.mjpeg.MjpegKoinModule
 import info.dvkr.screenstream.webrtc.WebRtcKoinModule
 import org.koin.core.module.Module
@@ -38,7 +39,8 @@ public class ScreenStreamApp : BaseApp() {
     }
 
     override fun initAd() {
-        MobileAds.initialize(this)
+        runCatching { MobileAds.initialize(this) }
+            .onFailure { XLog.e(getLog("initAd", it.message), it) }
     }
 
     override val streamingModules: Array<Module> = arrayOf(MjpegKoinModule().module, WebRtcKoinModule().module)

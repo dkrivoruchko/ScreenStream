@@ -28,9 +28,11 @@ import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.webrtc.WebRtcKoinScope
 import info.dvkr.screenstream.webrtc.WebRtcService
 import info.dvkr.screenstream.webrtc.WebRtcSettings
+import kotlinx.coroutines.CompletableJob
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.android.asCoroutineDispatcher
 import kotlinx.coroutines.cancel
@@ -44,13 +46,13 @@ import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeoutOrNull
 import okhttp3.ConnectionSpec
 import okhttp3.OkHttpClient
 import org.koin.core.annotation.InjectedParam
 import org.koin.core.annotation.Scope
 import org.koin.core.annotation.Scoped
 import org.webrtc.IceCandidate
-import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
@@ -133,7 +135,7 @@ internal class WebRtcStreamingService(
         data class EnableMic(val enableMic: Boolean) : InternalEvent(Priority.STOP_IGNORE)
         data class ConfigurationChange(val newConfig: Configuration) : InternalEvent(Priority.STOP_IGNORE)
 
-        data class Destroy(val latch: CountDownLatch) : InternalEvent(Priority.DESTROY_IGNORE)
+        data class Destroy(val destroyJob: CompletableJob) : InternalEvent(Priority.DESTROY_IGNORE)
 
         data class Monitor(val counter: Int, val marker: AtomicBoolean) : InternalEvent(Priority.DESTROY_IGNORE)
     }
@@ -309,23 +311,21 @@ internal class WebRtcStreamingService(
     }
 
     @MainThread
-    override fun destroy() {
-        XLog.d(getLog("destroy"))
+    suspend fun destroyService() {
+        XLog.d(getLog("destroyService"))
 
         wakeLock?.apply { if (isHeld) release() }
         wakeLock = null
 
-        service.unregisterReceiver(broadcastReceiver)
+        runCatching { service.unregisterReceiver(broadcastReceiver) }
         connectivityManager.unregisterNetworkCallback(networkCallback)
         coroutineScope.cancel()
         monitorScope.cancel()
 
-        val latch = CountDownLatch(1)
-        sendEvent(InternalEvent.Destroy(latch))
-
-        runCatching {
-            if (latch.await(5, TimeUnit.SECONDS).not())
-                XLog.w(getLog("destroy", "Timeout"), IllegalStateException("destroy: Timeout 5"))
+        val destroyJob = Job()
+        sendEvent(InternalEvent.Destroy(destroyJob))
+        withTimeoutOrNull(3000) { destroyJob.join() } ?: run {
+            XLog.w(getLog("destroyService", "Timeout"), IllegalStateException("destroy: Timeout 3"))
         }
 
         handler.removeCallbacksAndMessages(null)
@@ -389,7 +389,7 @@ internal class WebRtcStreamingService(
             if (cause is WebRtcError) currentError.set(cause) else currentError.set(WebRtcError.UnknownError(cause))
         } finally {
             XLog.d(getLog("handleMessage", "Done [$event] New state: [${getStateString()}]"))
-            if (event is InternalEvent.Destroy) event.latch.countDown()
+            if (event is InternalEvent.Destroy) event.destroyJob.complete()
             publishState()
         }
 
@@ -427,13 +427,13 @@ internal class WebRtcStreamingService(
                 }
 
                 currentError.get()?.let { error ->
-                    if (error !is WebRtcError.NetworkError || error.isNonRetryable()) {
+                    if (error !is WebRtcError.NetworkError) {
                         XLog.w(getLog("GetNonce", "Error present. Ignoring. [$error]"))
                         XLog.w(getLog("GetNonce", "Error present. Ignoring. [$error]"), RuntimeException("GetNonce: Error present. Ignoring. [$error]", error))
                         return
                     }
-                    currentError.set(null)
                 }
+                currentError.set(null)
 
                 playIntegrity.getNonce {
                     // OkHttp thread
@@ -465,11 +465,10 @@ internal class WebRtcStreamingService(
                 currentError.get()?.let { error ->
                     if (error !is WebRtcError.PlayIntegrityError || error.isAutoRetryable.not()) {
                         XLog.w(getLog("GetToken", "Error present. Ignoring. [$error]"))
-                        XLog.w(getLog("GetToken", "Error present. Ignoring. [$error]"), RuntimeException("GetToken: Error present. Ignoring. [$error]", error))
                         return
                     }
-                    currentError.set(null)
                 }
+                currentError.set(null)
 
                 playIntegrity.getToken(event.nonce, event.forceUpdate) {
                     // MainThread

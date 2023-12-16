@@ -41,8 +41,6 @@ import kotlinx.coroutines.flow.*
 import org.koin.core.annotation.InjectedParam
 import org.koin.core.annotation.Scope
 import org.koin.core.annotation.Scoped
-import java.util.concurrent.CountDownLatch
-import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.random.Random
 
@@ -105,26 +103,26 @@ internal class MjpegStreamingService(
     // All vars must be read/write on this (WebRTC-HT) thread
 
     internal sealed class InternalEvent(priority: Int) : MjpegEvent(priority) {
-        internal data class InitState(@JvmField val clearIntent: Boolean = true) : InternalEvent(Priority.RESTART_IGNORE)
-        internal data class DiscoverAddress(@JvmField val reason: String, @JvmField val attempt: Int) : InternalEvent(Priority.RESTART_IGNORE)
-        internal data class StartServer(@JvmField val interfaces: List<MjpegState.NetInterface>) : InternalEvent(Priority.RESTART_IGNORE)
-        internal data object StartStream : InternalEvent(Priority.RESTART_IGNORE)
-        internal data object StartStopFromWebPage : InternalEvent(Priority.RESTART_IGNORE)
-        internal data object ScreenOff : InternalEvent(Priority.RESTART_IGNORE)
-        internal data class ConfigurationChange(@JvmField val newConfig: Configuration) : InternalEvent(Priority.RESTART_IGNORE) {
+        data class InitState(val clearIntent: Boolean = true) : InternalEvent(Priority.RESTART_IGNORE)
+        data class DiscoverAddress(val reason: String, val attempt: Int) : InternalEvent(Priority.RESTART_IGNORE)
+        data class StartServer(val interfaces: List<MjpegState.NetInterface>) : InternalEvent(Priority.RESTART_IGNORE)
+        data object StartStream : InternalEvent(Priority.RESTART_IGNORE)
+        data object StartStopFromWebPage : InternalEvent(Priority.RESTART_IGNORE)
+        data object ScreenOff : InternalEvent(Priority.RESTART_IGNORE)
+        data class ConfigurationChange(val newConfig: Configuration) : InternalEvent(Priority.RESTART_IGNORE) {
             override fun toString(): String = "ConfigurationChange"
         }
-        internal data class Clients(@JvmField val clients: List<MjpegState.Client>) : InternalEvent(Priority.RESTART_IGNORE)
-        internal data class RestartServer(@JvmField val reason: RestartReason) : InternalEvent(Priority.RESTART_IGNORE)
+        data class Clients(val clients: List<MjpegState.Client>) : InternalEvent(Priority.RESTART_IGNORE)
+        data class RestartServer(val reason: RestartReason) : InternalEvent(Priority.RESTART_IGNORE)
 
-        internal data class Error(@JvmField val error: MjpegError) : InternalEvent(Priority.RECOVER_IGNORE)
+        data class Error(val error: MjpegError) : InternalEvent(Priority.RECOVER_IGNORE)
 
-        internal data class Destroy(@JvmField val latch: CountDownLatch) : InternalEvent(Priority.DESTROY_IGNORE)
-        internal data class Traffic(@JvmField val time: Long, @JvmField val traffic: List<MjpegState.TrafficPoint>) : InternalEvent(Priority.DESTROY_IGNORE) {
+        data class Destroy(val destroyJob: CompletableJob) : InternalEvent(Priority.DESTROY_IGNORE)
+        data class Traffic(val time: Long, val traffic: List<MjpegState.TrafficPoint>) : InternalEvent(Priority.DESTROY_IGNORE) {
             override fun toString(): String = "Traffic(time=$time)"
         }
 
-        data class Monitor(@JvmField val counter: Int, @JvmField val marker: AtomicBoolean) : InternalEvent(Priority.DESTROY_IGNORE)
+        data class Monitor(val counter: Int, val marker: AtomicBoolean) : InternalEvent(Priority.DESTROY_IGNORE)
     }
 
     internal sealed class RestartReason(private val msg: String) {
@@ -205,8 +203,8 @@ internal class MjpegStreamingService(
     }
 
     @MainThread
-    override fun destroy() {
-        XLog.d(getLog("destroy"))
+    suspend fun destroyService() {
+        XLog.d(getLog("destroyService"))
 
         wakeLock?.apply { if (isHeld) release() }
         wakeLock = null
@@ -214,12 +212,10 @@ internal class MjpegStreamingService(
         monitorScope.cancel()
         supervisorJob.cancel()
 
-        val latch = CountDownLatch(1)
-        sendEvent(InternalEvent.Destroy(latch))
-
-        runCatching {
-            if (latch.await(5, TimeUnit.SECONDS).not())
-                XLog.w(getLog("destroy", "Timeout"), IllegalStateException("destroy: Timeout 5"))
+        val destroyJob = Job()
+        sendEvent(InternalEvent.Destroy(destroyJob))
+        withTimeoutOrNull(3000) { destroyJob.join() } ?: run {
+            XLog.w(getLog("destroyService", "Timeout"), IllegalStateException("destroy: Timeout 3"))
         }
 
         handler.removeCallbacksAndMessages(null)
@@ -466,7 +462,7 @@ internal class MjpegStreamingService(
             currentError = if (cause is MjpegError) cause else MjpegError.UnknownError(cause)
         } finally {
             XLog.d(getLog("processEvent", "Done [$event] New state: [${getStateString()}]"))
-            if (event is InternalEvent.Destroy) event.latch.countDown()
+            if (event is InternalEvent.Destroy) event.destroyJob.complete()
             publishState()
         }
 
@@ -516,23 +512,23 @@ internal class MjpegStreamingService(
     }
 
     @Suppress("DEPRECATION")
-    private val windowContext: Context by lazy(LazyThreadSafetyMode.NONE) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
-            service
-        } else {
-            val display = ContextCompat.getSystemService(service, DisplayManager::class.java)!!.getDisplay(Display.DEFAULT_DISPLAY)
-            service.createDisplayContext(display).createWindowContext(WindowManager.LayoutParams.TYPE_TOAST, null)
-        }
-    }
-
-    @Suppress("DEPRECATION")
     private fun showSlowConnectionToast() {
         mainHandler.post {
-            val layoutInflater = ContextCompat.getSystemService(windowContext, LayoutInflater::class.java)!!
-            val binding = ToastMjpegSlowConnectionBinding.inflate(layoutInflater)
-            val drawable = AppCompatResources.getDrawable(windowContext, R.drawable.mjpeg_ic_toast_24dp)
-            binding.ivToastSlowConnection.setImageDrawable(drawable)
-            Toast(windowContext).apply { view = binding.root; duration = Toast.LENGTH_LONG }.show()
+            runCatching {
+                val windowContext = if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+                    service
+                } else {
+                    val display = ContextCompat.getSystemService(service, DisplayManager::class.java)!!.getDisplay(Display.DEFAULT_DISPLAY)
+                    service.createDisplayContext(display).createWindowContext(WindowManager.LayoutParams.TYPE_TOAST, null)
+                }
+
+                val layoutInflater = ContextCompat.getSystemService(windowContext, LayoutInflater::class.java)!!
+                val binding = ToastMjpegSlowConnectionBinding.inflate(layoutInflater)
+                val drawable = AppCompatResources.getDrawable(windowContext, R.drawable.mjpeg_ic_toast_24dp)
+                binding.ivToastSlowConnection.setImageDrawable(drawable)
+                Toast(windowContext).apply { view = binding.root; duration = Toast.LENGTH_LONG }.show()
+            }
+                .onFailure { XLog.w(getLog("showSlowConnectionToast", it.message), it) }
         }
     }
 
