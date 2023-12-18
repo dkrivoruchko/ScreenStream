@@ -14,9 +14,11 @@ import info.dvkr.screenstream.webrtc.internal.WebRtcEvent
 import info.dvkr.screenstream.webrtc.internal.WebRtcState
 import info.dvkr.screenstream.webrtc.internal.WebRtcStreamingService
 import info.dvkr.screenstream.webrtc.ui.WebRtcStreamingFragment
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.withContext
 import org.koin.core.annotation.Named
 import org.koin.core.annotation.Single
 import org.koin.core.parameter.parametersOf
@@ -75,9 +77,7 @@ public class WebRtcStreamingModule : StreamingModule {
     private var _scope: Scope? = null
 
     @MainThread
-    @Throws(IllegalStateException::class)
     override fun createStreamingService(context: Context) {
-        XLog.d(getLog("createStreamingService"))
         check(Looper.getMainLooper().isCurrentThread) { "Only main thread allowed" }
 
         if (_streamingServiceIsReady.value) {
@@ -85,27 +85,26 @@ public class WebRtcStreamingModule : StreamingModule {
             return
         }
 
+        XLog.d(getLog("createStreamingService"))
+
         WebRtcService.startService(context, WebRtcEvent.Intentable.StartService.toIntent(context))
     }
 
     @MainThread
-    @Throws(IllegalStateException::class)
     override fun sendEvent(event: StreamingModule.AppEvent) {
-        XLog.d(getLog("sendEvent", "Event $event"))
         check(Looper.getMainLooper().isCurrentThread) { "Only main thread allowed" }
+        XLog.d(getLog("sendEvent", "Event $event"))
 
         when (event) {
             is StreamingModule.AppEvent.StartStream -> sendEvent(WebRtcStreamingService.InternalEvent.StartStream)
             is StreamingModule.AppEvent.StopStream -> sendEvent(WebRtcEvent.Intentable.StopStream("User action: Button"))
-            else -> XLog.e(getLog("sendEvent", "Unexpected event: $event"), IllegalArgumentException("Unexpected event: $event"))
         }
     }
 
     @MainThread
-    @Throws(IllegalStateException::class)
     internal fun sendEvent(event: WebRtcEvent) {
-        XLog.d(getLog("sendEvent", "Event $event"))
         check(Looper.getMainLooper().isCurrentThread) { "Only main thread allowed" }
+        XLog.d(getLog("sendEvent", "Event $event"))
 
         when (event) {
             is WebRtcEvent.CreateStreamingService -> if (streamingServiceIsReady.value) {
@@ -129,13 +128,12 @@ public class WebRtcStreamingModule : StreamingModule {
     }
 
     @MainThread
-    @Throws(IllegalStateException::class)
     override suspend fun destroyStreamingService() {
-        XLog.d(getLog("destroyStreamingService"))
         check(Looper.getMainLooper().isCurrentThread) { "Only main thread allowed" }
+        XLog.d(getLog("destroyStreamingService"))
 
         _scope?.let { scope ->
-            scope.get<WebRtcStreamingService>().destroyService()
+            withContext(NonCancellable) { scope.get<WebRtcStreamingService>().destroyService() }
             _webRtcStateFlow.value = null
             scope.close()
             _scope = null

@@ -14,9 +14,11 @@ import info.dvkr.screenstream.mjpeg.internal.MjpegEvent
 import info.dvkr.screenstream.mjpeg.internal.MjpegState
 import info.dvkr.screenstream.mjpeg.internal.MjpegStreamingService
 import info.dvkr.screenstream.mjpeg.ui.MjpegStreamingFragment
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.withContext
 import org.koin.core.annotation.Named
 import org.koin.core.annotation.Single
 import org.koin.core.parameter.parametersOf
@@ -76,9 +78,7 @@ public class MjpegStreamingModule : StreamingModule {
     private var _scope: Scope? = null
 
     @MainThread
-    @Throws(IllegalStateException::class)
     override fun createStreamingService(context: Context) {
-        XLog.d(getLog("createStreamingService"))
         check(Looper.getMainLooper().isCurrentThread) { "Only main thread allowed" }
 
         if (_streamingServiceIsReady.value) {
@@ -86,27 +86,26 @@ public class MjpegStreamingModule : StreamingModule {
             return
         }
 
+        XLog.d(getLog("createStreamingService"))
+
         MjpegService.startService(context, MjpegEvent.Intentable.StartService.toIntent(context))
     }
 
     @MainThread
-    @Throws(IllegalStateException::class)
     override fun sendEvent(event: StreamingModule.AppEvent) {
-        XLog.d(getLog("sendEvent", "Event $event"))
         check(Looper.getMainLooper().isCurrentThread) { "Only main thread allowed" }
+        XLog.d(getLog("sendEvent", "Event $event"))
 
         when (event) {
             is StreamingModule.AppEvent.StartStream -> sendEvent(MjpegStreamingService.InternalEvent.StartStream)
             is StreamingModule.AppEvent.StopStream -> sendEvent(MjpegEvent.Intentable.StopStream("User action: Button"))
-            else -> XLog.e(getLog("sendEvent", "Unexpected event: $event"), IllegalArgumentException("Unexpected event: $event"))
         }
     }
 
     @MainThread
-    @Throws(IllegalStateException::class)
     internal fun sendEvent(event: MjpegEvent) {
-        XLog.d(getLog("sendEvent", "Event $event"))
         check(Looper.getMainLooper().isCurrentThread) { "Only main thread allowed" }
+        XLog.d(getLog("sendEvent", "Event $event"))
 
         when (event) {
             is MjpegEvent.CreateStreamingService -> if (_streamingServiceIsReady.value) {
@@ -130,13 +129,12 @@ public class MjpegStreamingModule : StreamingModule {
     }
 
     @MainThread
-    @Throws(IllegalStateException::class)
     override suspend fun destroyStreamingService() {
-        XLog.d(getLog("destroyStreamingService"))
         check(Looper.getMainLooper().isCurrentThread) { "Only main thread allowed" }
+        XLog.d(getLog("destroyStreamingService"))
 
         _scope?.let { scope ->
-            scope.get<MjpegStreamingService>().destroyService()
+            withContext(NonCancellable) { scope.get<MjpegStreamingService>().destroyService() }
             _mjpegStateFlow.value = null
             scope.close()
             _scope = null

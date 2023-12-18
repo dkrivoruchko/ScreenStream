@@ -82,8 +82,7 @@ internal class MjpegStreamingService(
     private val monitorScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     // All Volatiles vars must be write on this (WebRTC-HT) thread
-    @Volatile
-    private var wakeLock: PowerManager.WakeLock? = null
+    @Volatile private var wakeLock: PowerManager.WakeLock? = null
     // All Volatiles vars must be write on this (WebRTC-HT) thread
 
     // All vars must be read/write on this (WebRTC-HT) thread
@@ -207,8 +206,6 @@ internal class MjpegStreamingService(
         XLog.d(getLog("destroyService"))
 
         wakeLock?.apply { if (isHeld) release() }
-        wakeLock = null
-
         monitorScope.cancel()
         supervisorJob.cancel()
 
@@ -255,203 +252,13 @@ internal class MjpegStreamingService(
         handler.sendMessageDelayed(handler.obtainMessage(event.priority, event), timeout)
     }
 
-    override fun handleMessage(msg: Message): Boolean {
+    override fun handleMessage(msg: Message): Boolean = runBlocking(Dispatchers.Unconfined) {
         XLog.v(getLog("handleMessage", "Message: $msg"))
 
         val event: MjpegEvent = msg.obj as MjpegEvent
         try {
-            XLog.d(getLog("processEvent", "Event [$event] Current state: [${getStateString()}]"))
-            when (event) {
-                is InternalEvent.InitState -> {
-                    pendingServer = true
-                    deviceConfiguration = Configuration(service.resources.configuration)
-                    netInterfaces = emptyList()
-                    clients = emptyList()
-                    slowClients = emptyList()
-                    isStreaming = false
-                    waitingForPermission = false
-                    if (event.clearIntent) mediaProjectionIntent = null
-                    mediaProjection = null
-                    bitmapCapture = null
-
-                    currentError = null
-                }
-
-                is InternalEvent.DiscoverAddress -> {
-                    if (pendingServer.not()) runBlocking { httpServer.stop(false) }
-
-                    val (useWiFiOnly, enableIPv6) = runBlocking {
-                        Pair(mjpegSettings.useWiFiOnlyFlow.first(), mjpegSettings.enableIPv6Flow.first())
-                    }
-                    val (enableLocalHost, localHostOnly) = runBlocking {
-                        Pair(mjpegSettings.enableLocalHostFlow.first(), mjpegSettings.localHostOnlyFlow.first())
-                    }
-
-                    val newInterfaces = networkHelper.getNetInterfaces(useWiFiOnly, enableIPv6, enableLocalHost, localHostOnly)
-
-                    if (newInterfaces.isNotEmpty()) {
-                        sendEvent(InternalEvent.StartServer(newInterfaces))
-                    } else {
-                        if (event.attempt < 3) {
-                            sendEvent(InternalEvent.DiscoverAddress(event.reason, event.attempt + 1), 1000)
-                        } else {
-                            netInterfaces = emptyList()
-                            clients = emptyList()
-                            slowClients = emptyList()
-                            currentError = MjpegError.AddressNotFoundException
-                        }
-                    }
-                }
-
-                is InternalEvent.StartServer -> {
-                    if (pendingServer.not()) runBlocking { httpServer.stop(false) }
-                    httpServer.start(event.interfaces.toList())
-
-                    if (runBlocking { mjpegSettings.htmlShowPressStartFlow.first() }) bitmapStateFlow.value = startBitmap
-
-                    netInterfaces = event.interfaces
-                    pendingServer = false
-                }
-
-                is InternalEvent.StartStopFromWebPage -> when {
-                    isStreaming -> sendEvent(MjpegEvent.Intentable.StopStream("StartStopFromWebPage"))
-                    pendingServer.not() && currentError == null -> waitingForPermission = true
-                }
-
-                is InternalEvent.StartStream -> {
-                    check(pendingServer.not()) { "MjpegEvent.StartStream: server is not ready" }
-
-                    mediaProjectionIntent?.let {
-                        check(Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) { "MjpegEvent.StartStream: UPSIDE_DOWN_CAKE" }
-                        sendEvent(MjpegEvent.StartProjection(it))
-                    } ?: run {
-                        waitingForPermission = true
-                    }
-                }
-
-                is MjpegEvent.CastPermissionsDenied -> waitingForPermission = false
-
-                is MjpegEvent.StartProjection ->
-                    if (pendingServer) {
-                        waitingForPermission = false
-                        XLog.w(getLog("MjpegEvent.StartProjection", "Server is not ready. Ignoring"))
-                    } else {
-                        waitingForPermission = false
-                        check(isStreaming.not()) { "MjpegEvent.StartProjection: Already streaming" }
-
-                        service.startForeground()
-
-                        val mediaProjection = projectionManager.getMediaProjection(Activity.RESULT_OK, event.intent).apply {
-                            registerCallback(projectionCallback, Handler(Looper.getMainLooper()))
-                        }
-
-                        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) mediaProjectionIntent = event.intent
-                        val bitmapCapture = BitmapCapture(service, mjpegSettings, mediaProjection, bitmapStateFlow) { error ->
-                            sendEvent(InternalEvent.Error(error))
-                        }
-                        if (bitmapCapture.start()) service.registerComponentCallbacks(componentCallback)
-
-                        @Suppress("DEPRECATION")
-                        @SuppressLint("WakelockTimeout")
-                        if (runBlocking { Build.MANUFACTURER !in listOf("OnePlus", "OPPO") && mjpegSettings.keepAwakeFlow.first() }) {
-                            val flags = PowerManager.SCREEN_DIM_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP
-                            wakeLock = powerManager.newWakeLock(flags, "ScreenStream::MJPEG-Tag").apply { acquire() }
-                        }
-
-                        this.isStreaming = true
-                        this.mediaProjection = mediaProjection
-                        this.bitmapCapture = bitmapCapture
-                    }
-
-                is MjpegEvent.Intentable.StopStream -> {
-                    stopStream()
-
-                    runBlocking {
-                        if (mjpegSettings.enablePinFlow.first() && mjpegSettings.autoChangePinFlow.first())
-                            mjpegSettings.setPin(randomPin())
-                    }
-
-                    if (runBlocking { mjpegSettings.htmlShowPressStartFlow.first() }) bitmapStateFlow.value = startBitmap
-                }
-
-                is InternalEvent.ScreenOff -> if (isStreaming && runBlocking { mjpegSettings.stopOnSleepFlow.first() })
-                    sendEvent(MjpegEvent.Intentable.StopStream("ScreenOff"))
-
-                is InternalEvent.ConfigurationChange -> {
-                    if (isStreaming) {
-                        val configDiff = deviceConfiguration.diff(event.newConfig)
-                        if (
-                            configDiff and ActivityInfo.CONFIG_ORIENTATION != 0 || configDiff and ActivityInfo.CONFIG_SCREEN_LAYOUT != 0 ||
-                            configDiff and ActivityInfo.CONFIG_SCREEN_SIZE != 0 || configDiff and ActivityInfo.CONFIG_DENSITY != 0
-                        ) {
-                            //TODO Maybe add user settings about stop on config/network/change
-                            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) bitmapCapture?.restart()
-                            else sendEvent(MjpegEvent.Intentable.StopStream("ConfigurationChange"))
-                        } else {
-                            XLog.d(getLog("configurationChange", "No change relevant for streaming. Ignoring."))
-                        }
-                    } else {
-                        XLog.d(getLog("configurationChange", "Not streaming. Ignoring."))
-                    }
-                    deviceConfiguration = Configuration(event.newConfig)
-                }
-
-                is InternalEvent.RestartServer -> {
-                    stopStream()
-                    if (pendingServer) {
-                        XLog.d(getLog("processEvent", "RestartServer: No running server."))
-                        if (currentError == MjpegError.AddressNotFoundException) currentError = null
-                    } else {
-                        runBlocking { httpServer.stop(event.reason is RestartReason.SettingsChanged) }
-                        sendEvent(InternalEvent.InitState(false))
-                    }
-                    sendEvent(InternalEvent.DiscoverAddress("RestartServer", 0))
-                }
-
-                is MjpegEvent.Intentable.RecoverError -> {
-                    stopStream()
-                    runBlocking { httpServer.stop(true) }
-
-                    handler.removeMessages(MjpegEvent.Priority.RESTART_IGNORE)
-                    handler.removeMessages(MjpegEvent.Priority.RECOVER_IGNORE)
-
-                    sendEvent(InternalEvent.InitState(true))
-                    sendEvent(InternalEvent.DiscoverAddress("RecoverError", 0))
-                }
-
-                is InternalEvent.Destroy -> {
-                    stopStream()
-                    runBlocking { httpServer.destroy() }
-                    currentError = null
-                }
-
-                is InternalEvent.Error -> currentError = event.error
-
-                is InternalEvent.Clients -> {
-                    clients = event.clients
-                    if (runBlocking { mjpegSettings.notifySlowConnectionsFlow.first() }) {
-                        val currentSlowClients = event.clients.filter { it.state == MjpegState.Client.State.SLOW_CONNECTION }.toList()
-                        if (slowClients.containsAll(currentSlowClients).not()) showSlowConnectionToast()
-                        slowClients = currentSlowClients
-                    }
-                }
-
-                is InternalEvent.Traffic -> traffic = event.traffic
-
-                is MjpegEvent.CreateNewPin -> {
-                    if (destroyPending) {
-                        XLog.i(getLog("CreateNewPin", "DestroyPending. Ignoring"), IllegalStateException("CreateNewPin: DestroyPending"))
-                    } else if (isStreaming) {
-                        XLog.i(getLog("CreateNewPin", "Streaming. Ignoring."), IllegalStateException("CreateNewPin: Streaming."))
-                    } else runBlocking {
-                        if (mjpegSettings.enablePinFlow.first()) mjpegSettings.setPin(randomPin()) // will restart server
-                    }
-                }
-
-                is InternalEvent.Monitor -> event.marker.set(true)
-
-                else -> throw IllegalArgumentException("Unknown MjpegEvent: ${event::class.java}")
-            }
+            XLog.d(getLog("handleMessage", "Event [$event] Current state: [${getStateString()}]"))
+            processEvent(event)
         } catch (cause: Throwable) {
             XLog.e(getLog("processEvent.catch", cause.toString()))
             XLog.e(getLog("processEvent.catch", cause.toString()), cause)
@@ -466,7 +273,196 @@ internal class MjpegStreamingService(
             publishState()
         }
 
-        return true
+        true
+    }
+
+    // On MJPEG-HT only
+    private suspend fun processEvent(event: MjpegEvent) {
+        when (event) {
+            is InternalEvent.InitState -> {
+                pendingServer = true
+                deviceConfiguration = Configuration(service.resources.configuration)
+                netInterfaces = emptyList()
+                clients = emptyList()
+                slowClients = emptyList()
+                isStreaming = false
+                waitingForPermission = false
+                if (event.clearIntent) mediaProjectionIntent = null
+                mediaProjection = null
+                bitmapCapture = null
+
+                currentError = null
+            }
+
+            is InternalEvent.DiscoverAddress -> {
+                if (pendingServer.not()) httpServer.stop(false)
+
+                val newInterfaces = networkHelper.getNetInterfaces(
+                    mjpegSettings.useWiFiOnlyFlow.first(),
+                    mjpegSettings.enableIPv6Flow.first(),
+                    mjpegSettings.enableLocalHostFlow.first(),
+                    mjpegSettings.localHostOnlyFlow.first()
+                )
+
+                if (newInterfaces.isNotEmpty()) {
+                    sendEvent(InternalEvent.StartServer(newInterfaces))
+                } else {
+                    if (event.attempt < 3) {
+                        sendEvent(InternalEvent.DiscoverAddress(event.reason, event.attempt + 1), 1000)
+                    } else {
+                        netInterfaces = emptyList()
+                        clients = emptyList()
+                        slowClients = emptyList()
+                        currentError = MjpegError.AddressNotFoundException
+                    }
+                }
+            }
+
+            is InternalEvent.StartServer -> {
+                if (pendingServer.not()) httpServer.stop(false)
+                httpServer.start(event.interfaces.toList())
+
+                if (mjpegSettings.htmlShowPressStartFlow.first()) bitmapStateFlow.value = startBitmap
+
+                netInterfaces = event.interfaces
+                pendingServer = false
+            }
+
+            is InternalEvent.StartStopFromWebPage -> when {
+                isStreaming -> sendEvent(MjpegEvent.Intentable.StopStream("StartStopFromWebPage"))
+                pendingServer.not() && currentError == null -> waitingForPermission = true
+            }
+
+            is InternalEvent.StartStream -> {
+                check(pendingServer.not()) { "MjpegEvent.StartStream: server is not ready" }
+
+                mediaProjectionIntent?.let {
+                    check(Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) { "MjpegEvent.StartStream: UPSIDE_DOWN_CAKE" }
+                    sendEvent(MjpegEvent.StartProjection(it))
+                } ?: run {
+                    waitingForPermission = true
+                }
+            }
+
+            is MjpegEvent.CastPermissionsDenied -> waitingForPermission = false
+
+            is MjpegEvent.StartProjection ->
+                if (pendingServer) {
+                    waitingForPermission = false
+                    XLog.w(getLog("MjpegEvent.StartProjection", "Server is not ready. Ignoring"))
+                } else {
+                    waitingForPermission = false
+                    check(isStreaming.not()) { "MjpegEvent.StartProjection: Already streaming" }
+
+                    service.startForeground()
+
+                    val mediaProjection = projectionManager.getMediaProjection(Activity.RESULT_OK, event.intent).apply {
+                        registerCallback(projectionCallback, Handler(Looper.getMainLooper()))
+                    }
+
+                    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) mediaProjectionIntent = event.intent
+                    val bitmapCapture = BitmapCapture(service, mjpegSettings, mediaProjection, bitmapStateFlow) { error ->
+                        sendEvent(InternalEvent.Error(error))
+                    }
+                    if (bitmapCapture.start()) service.registerComponentCallbacks(componentCallback)
+
+                    @Suppress("DEPRECATION")
+                    @SuppressLint("WakelockTimeout")
+                    if (Build.MANUFACTURER !in listOf("OnePlus", "OPPO") && mjpegSettings.keepAwakeFlow.first()) {
+                        val flags = PowerManager.SCREEN_DIM_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP
+                        wakeLock = powerManager.newWakeLock(flags, "ScreenStream::MJPEG-Tag").apply { acquire() }
+                    }
+
+                    this@MjpegStreamingService.isStreaming = true
+                    this@MjpegStreamingService.mediaProjection = mediaProjection
+                    this@MjpegStreamingService.bitmapCapture = bitmapCapture
+                }
+
+            is MjpegEvent.Intentable.StopStream -> {
+                stopStream()
+
+                if (mjpegSettings.enablePinFlow.first() && mjpegSettings.autoChangePinFlow.first()) mjpegSettings.setPin(randomPin())
+                if (mjpegSettings.htmlShowPressStartFlow.first()) bitmapStateFlow.value = startBitmap
+            }
+
+            is InternalEvent.ScreenOff -> if (isStreaming && mjpegSettings.stopOnSleepFlow.first())
+                sendEvent(MjpegEvent.Intentable.StopStream("ScreenOff"))
+
+            is InternalEvent.ConfigurationChange -> {
+                if (isStreaming) {
+                    val configDiff = deviceConfiguration.diff(event.newConfig)
+                    if (
+                        configDiff and ActivityInfo.CONFIG_ORIENTATION != 0 || configDiff and ActivityInfo.CONFIG_SCREEN_LAYOUT != 0 ||
+                        configDiff and ActivityInfo.CONFIG_SCREEN_SIZE != 0 || configDiff and ActivityInfo.CONFIG_DENSITY != 0
+                    ) {
+                        //TODO Maybe add user settings about stop on config/network/change
+                        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) bitmapCapture?.restart()
+                        else sendEvent(MjpegEvent.Intentable.StopStream("ConfigurationChange"))
+                    } else {
+                        XLog.d(getLog("configurationChange", "No change relevant for streaming. Ignoring."))
+                    }
+                } else {
+                    XLog.d(getLog("configurationChange", "Not streaming. Ignoring."))
+                }
+                deviceConfiguration = Configuration(event.newConfig)
+            }
+
+            is InternalEvent.RestartServer -> {
+                stopStream()
+                if (pendingServer) {
+                    XLog.d(getLog("processEvent", "RestartServer: No running server."))
+                    if (currentError == MjpegError.AddressNotFoundException) currentError = null
+                } else {
+                    httpServer.stop(event.reason is RestartReason.SettingsChanged)
+                    sendEvent(InternalEvent.InitState(false))
+                }
+                sendEvent(InternalEvent.DiscoverAddress("RestartServer", 0))
+            }
+
+            is MjpegEvent.Intentable.RecoverError -> {
+                stopStream()
+                httpServer.stop(true)
+
+                handler.removeMessages(MjpegEvent.Priority.RESTART_IGNORE)
+                handler.removeMessages(MjpegEvent.Priority.RECOVER_IGNORE)
+
+                sendEvent(InternalEvent.InitState(true))
+                sendEvent(InternalEvent.DiscoverAddress("RecoverError", 0))
+            }
+
+            is InternalEvent.Destroy -> {
+                stopStream()
+                httpServer.destroy()
+                currentError = null
+            }
+
+            is InternalEvent.Error -> currentError = event.error
+
+            is InternalEvent.Clients -> {
+                clients = event.clients
+                if (mjpegSettings.notifySlowConnectionsFlow.first()) {
+                    val currentSlowClients = event.clients.filter { it.state == MjpegState.Client.State.SLOW_CONNECTION }.toList()
+                    if (slowClients.containsAll(currentSlowClients).not()) showSlowConnectionToast()
+                    slowClients = currentSlowClients
+                }
+            }
+
+            is InternalEvent.Traffic -> traffic = event.traffic
+
+            is MjpegEvent.CreateNewPin -> when {
+                destroyPending -> XLog.i(
+                    getLog("CreateNewPin", "DestroyPending. Ignoring"),
+                    IllegalStateException("CreateNewPin: DestroyPending")
+                )
+
+                isStreaming -> XLog.i(getLog("CreateNewPin", "Streaming. Ignoring."), IllegalStateException("CreateNewPin: Streaming."))
+                mjpegSettings.enablePinFlow.first() -> mjpegSettings.setPin(randomPin()) // will restart server
+            }
+
+            is InternalEvent.Monitor -> event.marker.set(true)
+
+            else -> throw IllegalArgumentException("Unknown MjpegEvent: ${event::class.java}")
+        }
     }
 
     // Inline Only

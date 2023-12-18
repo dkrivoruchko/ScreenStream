@@ -81,12 +81,12 @@ internal class HttpServer(
         XLog.d(getLog("init"))
     }
 
-    internal fun start(serverAddresses: List<MjpegState.NetInterface>) {
+    internal suspend fun start(serverAddresses: List<MjpegState.NetInterface>) {
         XLog.d(getLog("startServer"))
 
-        val coroutineScope = CoroutineScope(Job() + Dispatchers.Default)
+        serverData.configure(mjpegSettings)
 
-        runBlocking(coroutineScope.coroutineContext) { serverData.configure(mjpegSettings) }
+        val coroutineScope = CoroutineScope(Job() + Dispatchers.Default)
 
         mjpegSettings.htmlBackColorFlow.onEach { htmlBackColor ->
             indexHtml.set(baseIndexHtml.replace("BACKGROUND_COLOR", "#%06X".format(0xFFFFFF and htmlBackColor)))
@@ -121,7 +121,7 @@ internal class HttpServer(
             .conflate()
             .shareIn(coroutineScope, SharingStarted.Eagerly, 1)
 
-        val serverPort = runBlocking { mjpegSettings.serverPortFlow.first() }
+        val serverPort = mjpegSettings.serverPortFlow.first()
         val server = embeddedServer(CIO, applicationEngineEnvironment {
             parentCoroutineContext = CoroutineExceptionHandler { _, throwable ->
                 XLog.e(this@HttpServer.getLog("parentCoroutineContext", "coroutineExceptionHandler: $throwable"), throwable)
@@ -172,21 +172,20 @@ internal class HttpServer(
         XLog.d(getLog("startServer", "Done. Ktor: ${server.appHashCode()} "))
     }
 
-    internal suspend fun stop(reloadClients: Boolean) {
+    internal suspend fun stop(reloadClients: Boolean) = coroutineScope {
         XLog.d(getLog("stopServer", "reloadClients: $reloadClients"))
-
-        CoroutineScope(Dispatchers.Default).launch {
+        launch(Dispatchers.Default) {
             ktorServer.getAndSet(null)?.let { (server, stopJob) ->
                 if (stopJob.isActive) {
-                    if (reloadClients) serverData.notifyClients("RELOAD")
+                    if (reloadClients) serverData.notifyClients("RELOAD", timeout = 250)
                     val hashCode = server.appHashCode()
                     XLog.i(this@HttpServer.getLog("stopServer", "Ktor: $hashCode"))
-                    server.stop(0, 500)
+                    server.stop(250, 500)
                     XLog.i(this@HttpServer.getLog("stopServer", "Done. Ktor: $hashCode"))
                 }
             }
             XLog.d(this@HttpServer.getLog("stopServer", "Done"))
-        }.join()
+        }
     }
 
     internal suspend fun destroy() {

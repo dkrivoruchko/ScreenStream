@@ -17,7 +17,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.supervisorScope
+import kotlinx.coroutines.withTimeoutOrNull
 import org.json.JSONObject
 import java.security.MessageDigest
 import java.util.LinkedList
@@ -244,9 +245,13 @@ internal class HttpServerData(private val sendEvent: (MjpegEvent) -> Unit) {
         }
     }
 
-    internal fun notifyClients(type: String, data: Any? = null) {
+    internal suspend fun notifyClients(type: String, data: Any? = null, timeout: Long = 2000) = supervisorScope {
         val message = JSONObject().put("type", type).put("data", data).toString()
-        runBlocking { clients.forEach { (_, client) -> client.session.get()?.run { if (isActive) send(message) } } }
+        withTimeoutOrNull(timeout) {
+            clients.forEach { (_, client) ->
+                client.session.get()?.let { socketSession -> if (socketSession.isActive) launch { socketSession.send(message) } }
+            }
+        }
     }
 
     internal fun clear() {

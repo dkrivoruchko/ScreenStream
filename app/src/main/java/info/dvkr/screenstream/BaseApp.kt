@@ -54,15 +54,13 @@ public abstract class BaseApp : Application() {
             modules(defaultModule, CommonKoinModule().module, *streamingModules)
         }
 
-        val currentModuleId = runBlocking { appSettings.streamingModuleFlow.first() }
-        val newModuleId = if (streamingModulesManager.hasModule(currentModuleId)) currentModuleId else
-            streamingModulesManager.getDefaultModuleId()
-
-        if (newModuleId.isDefined().not()) throw IllegalStateException("No streaming module available")
-
-        if (newModuleId != currentModuleId) {
-            runBlocking { appSettings.setStreamingModule(newModuleId) }
-            XLog.i(this@BaseApp.getLog("onCreate", "Set module: $newModuleId"))
+        runBlocking {
+            val currentModuleId = appSettings.streamingModuleFlow.first()
+            if (streamingModulesManager.hasModule(currentModuleId).not()) {
+                val defaultModuleId = streamingModulesManager.getDefaultModuleId()
+                appSettings.setStreamingModule(defaultModuleId)
+                XLog.i(this@BaseApp.getLog("onCreate", "Set module: $defaultModuleId"))
+            }
         }
 
         ProcessLifecycleOwner.get().lifecycle.addObserver(object : DefaultLifecycleObserver {

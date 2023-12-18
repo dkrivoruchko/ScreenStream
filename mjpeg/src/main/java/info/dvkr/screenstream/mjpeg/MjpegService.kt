@@ -53,7 +53,7 @@ public class MjpegService : AbstractService() {
             }
         } else {
             XLog.w(getLog("onStartCommand", "Not active module. Stop self, startId: $startId"))
-            stopSelf()
+            stopSelf(startId)
         }
 
         return START_NOT_STICKY

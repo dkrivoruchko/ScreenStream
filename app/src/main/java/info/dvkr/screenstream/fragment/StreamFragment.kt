@@ -45,7 +45,7 @@ public class StreamFragment : AdFragment(R.layout.fragment_stream) {
                 rbItemStreamingModule.isChecked = false
                 rbItemStreamingModule.setButtonDrawable(R.drawable.ic_radiobox_unchecked_24dp)
                 rbItemStreamingModule.setOnClickListener {
-                    if (streamingModulesManager.activeModuleStateFlow.value?.id == module.id) return@setOnClickListener
+                    if (streamingModulesManager.isActivate(module.id)) return@setOnClickListener
                     rbItemStreamingModule.isChecked = false
                     rbItemStreamingModule.setButtonDrawable(R.drawable.ic_radiobox_unchecked_24dp)
                     viewLifecycleOwner.lifecycleScope.launch { appSettings.setStreamingModule(module.id) }

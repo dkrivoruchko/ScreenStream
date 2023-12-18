@@ -38,6 +38,7 @@ import info.dvkr.screenstream.logging.sendLogsInEmail
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
 
 public class AppActivity : NotificationPermissionActivity(R.layout.activity_app) {
@@ -104,12 +105,8 @@ public class AppActivity : NotificationPermissionActivity(R.layout.activity_app)
         appSettings.streamingModuleFlow
             .onEach { moduleId ->
                 XLog.i(this@AppActivity.getLog("streamingModuleFlow.onEach:", "$moduleId"))
-                if (moduleId.isDefined())
-                    runCatching { streamingModulesManager.activate(moduleId, this) }
-                        .onFailure {
-                            XLog.e(this@AppActivity.getLog("streamingModuleFlow.onFailure:", it.toString()))
-                            XLog.e(this@AppActivity.getLog("streamingModuleFlow.onFailure:", it.message), it)
-                        }
+                runCatching { streamingModulesManager.activate(moduleId, this) }
+                    .onFailure { XLog.e(this@AppActivity.getLog("streamingModuleFlow.onFailure:", it.message), it) }
             }
             .onCompletion { XLog.i(this@AppActivity.getLog("streamingModuleFlow.onCompletion")) }
             .flowWithLifecycle(lifecycle)
@@ -122,8 +119,9 @@ public class AppActivity : NotificationPermissionActivity(R.layout.activity_app)
         with(findNavController(R.id.fr_activity_app_nav_host_fragment)) {
             binding.bottomNavigationActivityApp.setupWithNavController(this)
             addOnDestinationChangedListener { _, destination, _ ->
-                if (destination.id == R.id.nav_exitFragment) {
-                    streamingModulesManager.sendEvent(StreamingModule.AppEvent.Exit { finish() })
+                if (destination.id == R.id.nav_exitFragment) lifecycleScope.launch {
+                    streamingModulesManager.deactivate()
+                    finish()
                 }
             }
         }

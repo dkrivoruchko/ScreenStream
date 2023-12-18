@@ -58,7 +58,6 @@ import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.math.pow
 
-
 @Scope(WebRtcKoinScope::class)
 @Scoped(binds = [WebRtcStreamingService::class])
 internal class WebRtcStreamingService(
@@ -315,8 +314,6 @@ internal class WebRtcStreamingService(
         XLog.d(getLog("destroyService"))
 
         wakeLock?.apply { if (isHeld) release() }
-        wakeLock = null
-
         runCatching { service.unregisterReceiver(broadcastReceiver) }
         connectivityManager.unregisterNetworkCallback(networkCallback)
         coroutineScope.cancel()
@@ -366,16 +363,10 @@ internal class WebRtcStreamingService(
         handler.sendMessageDelayed(handler.obtainMessage(event.priority, event), timeout)
     }
 
-    override fun handleMessage(msg: Message): Boolean {
+    override fun handleMessage(msg: Message): Boolean = runBlocking(Dispatchers.Unconfined) {
         XLog.v(getLog("handleMessage", "Message: $msg"))
 
         val event: WebRtcEvent = msg.obj as WebRtcEvent
-
-        if (event is InternalEvent.Monitor) {
-            event.marker.set(true)
-            return true
-        }
-
         try {
             XLog.d(getLog("handleMessage", "Event [$event] Current state: [${getStateString()}]"))
             processEvent(event)
@@ -393,12 +384,14 @@ internal class WebRtcStreamingService(
             publishState()
         }
 
-        return true
+        true
     }
 
     // On WebRTC-HT only
-    private fun processEvent(event: WebRtcEvent) {
+    private suspend fun processEvent(event: WebRtcEvent) {
         when (event) {
+            is InternalEvent.Monitor -> event.marker.set(true)
+
             is InternalEvent.InitState -> {
                 if (destroyPending) {
                     XLog.i(getLog("InitState", "DestroyPending. Ignoring"), IllegalStateException("InitState: DestroyPending"))
@@ -520,7 +513,7 @@ internal class WebRtcStreamingService(
                     return
                 }
 
-                val currentStreamId = runBlocking { StreamId(webRtcSettings.lastStreamIdFlow.first()) }
+                val currentStreamId = StreamId(webRtcSettings.lastStreamIdFlow.first())
                 requireNotNull(signaling).sendStreamCreate(currentStreamId)
             }
 
@@ -533,7 +526,7 @@ internal class WebRtcStreamingService(
                 check(signaling != null) { "StreamCreated: signaling is null" }
                 require(event.streamId.isEmpty().not())
 
-                runBlocking { webRtcSettings.setLastStreamId(event.streamId.value) }
+                webRtcSettings.setLastStreamId(event.streamId.value)
 
                 if (currentStreamId.isEmpty().not() && currentStreamId != event.streamId) { // We got new streamId while we have another one
                     //TODO maybe notify user and clients?
@@ -547,7 +540,7 @@ internal class WebRtcStreamingService(
                 currentStreamId = event.streamId
                 if (currentStreamPassword.isEmpty()) currentStreamPassword = StreamPassword.generateNew()
                 projection = projection ?: WebRtcProjection(service)
-                projection!!.setMicrophoneMute(runBlocking { webRtcSettings.enableMicFlow.first().not() })
+                projection!!.setMicrophoneMute(webRtcSettings.enableMicFlow.first().not())
             }
 
             is InternalEvent.ClientJoin -> {
@@ -562,11 +555,8 @@ internal class WebRtcStreamingService(
                 }
 
                 val prj = projection!!
-
                 clients[event.clientId]?.stop()
-
-                clients[event.clientId] =
-                    WebRtcClient(event.clientId, prj.peerConnectionFactory, prj.videoCodecs, prj.audioCodecs, webRtcClientEventListener)
+                clients[event.clientId] = WebRtcClient(event.clientId, prj.peerConnectionFactory, prj.videoCodecs, prj.audioCodecs, webRtcClientEventListener)
 
                 if (isStreaming()) {
                     clients[event.clientId]?.start(prj.localMediaSteam!!)
@@ -638,7 +628,7 @@ internal class WebRtcStreamingService(
 
                 @Suppress("DEPRECATION")
                 @SuppressLint("WakelockTimeout")
-                if (runBlocking { Build.MANUFACTURER !in listOf("OnePlus", "OPPO") && webRtcSettings.keepAwakeFlow.first() }) {
+                if (Build.MANUFACTURER !in listOf("OnePlus", "OPPO") && webRtcSettings.keepAwakeFlow.first()) {
                     val flags = PowerManager.SCREEN_DIM_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP
                     wakeLock = powerManager.newWakeLock(flags, "ScreenStream::WebRTC-Tag").apply { acquire() }
                 }
@@ -770,8 +760,7 @@ internal class WebRtcStreamingService(
                     return
                 }
 
-                if (runBlocking { webRtcSettings.stopOnSleepFlow.first() })
-                    sendEvent(WebRtcEvent.Intentable.StopStream("ScreenOff"))
+                if (webRtcSettings.stopOnSleepFlow.first()) sendEvent(WebRtcEvent.Intentable.StopStream("ScreenOff"))
             }
 
             is InternalEvent.EnableMic -> {
@@ -844,12 +833,13 @@ internal class WebRtcStreamingService(
                 clients = HashMap()
                 currentStreamId = StreamId.EMPTY
                 currentStreamPassword = StreamPassword.EMPTY
-                coroutineScope.launch { webRtcSettings.setLastStreamId(StreamId.EMPTY.value) }
+                webRtcSettings.setLastStreamId(StreamId.EMPTY.value)
             }
 
             is WebRtcEvent.CreateNewPassword -> {
                 if (destroyPending) {
-                    XLog.i(getLog("CreateNewPassword", "DestroyPending. Ignoring"), IllegalStateException("CreateNewPassword: DestroyPending")); return
+                    XLog.i(getLog("CreateNewPassword", "DestroyPending. Ignoring"), IllegalStateException("CreateNewPassword: DestroyPending"))
+                    return
                 }
 
                 if (isStreaming()) {

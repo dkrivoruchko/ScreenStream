@@ -18,7 +18,7 @@ public interface AppSettings {
     }
 
     public object Default {
-        public val STREAMING_MODULE: StreamingModule.Id = StreamingModule.Id.UNDEFINED
+        public val STREAMING_MODULE: StreamingModule.Id = StreamingModule.Id("_NONE_")
         public var NIGHT_MODE: Int = if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.P) 3 else -1
 
         public const val LAST_IAU_REQUEST_TIMESTAMP: Long = 0L
