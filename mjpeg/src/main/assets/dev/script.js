@@ -1,7 +1,8 @@
 const clientId = RandomString(16);
-window.DD_LOGS && DD_LOGS.setGlobalContextProperty('clientId', clientId);
+window.DD_LOGS && DD_LOGS.setGlobalContextProperty("clientId", clientId);
 
-const buttonsDiv = document.getElementById('buttonsDiv')
+const buttonsDiv = document.getElementById("buttonsDiv")
+const buttonPiP = document.getElementById("PiP")
 const streamDiv = document.getElementById("streamDiv");
 const stream = document.getElementById("stream");
 const connectDiv = document.getElementById("connectDiv");
@@ -11,55 +12,66 @@ const sendPin = document.getElementById("sendPin");
 const pinWrongMsg = document.getElementById("pinWrongMsg");
 const blockedDiv = document.getElementById("blockedDiv");
 const errorDiv = document.getElementById("errorDiv");
+const pipStreamDiv = document.getElementById("pipStreamDiv");
 
 var enableButtons = false;
-const buttonsHideFunction = () => { buttonsDiv.style.visibility = 'hidden'; }
+const buttonsHideFunction = () => { buttonsDiv.style.visibility = "hidden"; }
 var hideTimeout = setTimeout(buttonsHideFunction, 1500);
 function configureButtons(enable) {
     if (enableButtons != enable) {
         enableButtons = enable;
         if (enableButtons) {
-            buttonsDiv.style.visibility = 'visible';
+            buttonsDiv.style.visibility = "visible";
             hideTimeout = setTimeout(buttonsHideFunction, 1500);
         } else {
             clearTimeout(hideTimeout);
-            buttonsDiv.style.visibility = 'hidden';
+            buttonsDiv.style.visibility = "hidden";
         }
     }
 }
+if (!document.pictureInPictureEnabled) buttonPiP.style.display = "none";
 
 window.onmousemove = () => {
     if (!enableButtons) return
-    buttonsDiv.style.visibility = 'visible';
+    buttonsDiv.style.visibility = "visible";
     clearTimeout(hideTimeout)
     hideTimeout = setTimeout(buttonsHideFunction, 1000);
 }
 
-function isFullscreen() {
-    return document.webkitIsFullScreen || document.mozFullScreen || false;
-}
-
 const fullscreenInput = document.getElementById("fullscreen");
-function fullScreenHandler() {
-    if (isFullscreen()) fullscreenInput.src = "data:image/webp;base64,UklGRkoAAABXRUJQVlA4TD4AAAAvI8AIEBcw//M//wKCoudMD/gICtq2kTwQR2IoDsSBnIb0PgAR/Z8AHxwWkOrY7FQdW56dnapjD6k4NiwfBA==";
-    else fullscreenInput.src = "data:image/webp;base64,UklGRmIAAABXRUJQVlA4TFUAAAAvI8AIECcw//M//wKBFG52gQ4Ag1UkSa2WIAAJ1OIABWn9qyK+8B/Rf6Nt2ySorN2+wP8NJC0QSZqRKMkDRZK9IY0hL/hCgV/5lVudfeGZ3x19/PcCAA==";
+
+function isFullscreen() {
+    return document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement || null;
 }
 
-document.addEventListener("fullscreenchange", fullScreenHandler);
-document.addEventListener("webkitfullscreenchange", fullScreenHandler);
-document.addEventListener("mozfullscreenchange", fullScreenHandler);
-document.addEventListener("MSFullscreenChange", fullScreenHandler);
+function fullScreenHandler() {
+    if (isFullscreen()) fullscreenInput.src = "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23FFF' d='M14,14H19V16H16V19H14V14M5,14H10V19H8V16H5V14M8,5H10V10H5V8H8V5M19,8V10H14V5H16V8H19Z' /%3E%3C/svg%3E";
+    else fullscreenInput.src = "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23FFF' d='M5,5H10V7H7V10H5V5M14,5H19V10H17V7H14V5M17,14H19V19H14V17H17V14M10,17V19H5V14H7V17H10Z' /%3E%3C/svg%3E";
+}
+
+function isFullscreenEnabled() {
+    return document.fullscreenEnabled || document.webkitFullscreenEnabled || document.mozFullScreenEnabled || document.msFullscreenEnabled || false;
+}
+
+if (isFullscreenEnabled()) {
+    document.addEventListener("fullscreenchange", fullScreenHandler);
+    document.addEventListener("webkitfullscreenchange", fullScreenHandler);
+    document.addEventListener("mozfullscreenchange", fullScreenHandler);
+    document.addEventListener("MSFullscreenChange", fullScreenHandler);
+} else {
+    fullscreenInput.style.visibility = "hidden";
+}
 
 function fullScreen(element) {
-    if (element.requestFullscreen) element.requestFullscreen(); else if (element.webkitrequestFullscreen) element.webkitRequestFullscreen(); else if (element.mozRequestFullscreen) element.mozRequestFullScreen();
+    if (element.requestFullscreen) element.requestFullscreen(); else if (element.webkitRequestFullscreen) element.webkitRequestFullscreen(); else if (element.mozRequestFullScreen) element.mozRequestFullScreen(); else if (element.msRequestFullscreen) element.msRequestFullscreen();
 }
 
-function fullScreenCancel() {
-    if (document.requestFullscreen) document.requestFullscreen(); else if (document.webkitRequestFullscreen) document.webkitRequestFullscreen(); else if (document.mozRequestFullscreen) document.mozRequestFullScreen();
+function fullScreenExit() {
+    if (document.exitFullscreen) document.exitFullscreen(); else if (document.webkitExitFullscreen) document.webkitExitFullscreen(); else if (document.mozCancelFullScreen) document.mozCancelFullScreen(); else if (document.msExitFullscreen) document.msExitFullscreen();
 }
 
 function toggleFullscreen() {
-    isFullscreen() ? fullScreenCancel() : fullScreen(document.documentElement);
+    isFullscreen() ? fullScreenExit() : fullScreen(document.documentElement);
 }
 
 function toggleStartStop() {
@@ -68,7 +80,7 @@ function toggleStartStop() {
     xmlHttp.send(null);
 }
 
-sendPin.addEventListener('click', (e) => {
+sendPin.addEventListener("click", (e) => {
     e.preventDefault();
     const pinHash = SHA256(clientId + pin.value);
     if (websocket) websocket.send(JSON.stringify({ type: "PIN", data: pinHash }));
@@ -79,29 +91,29 @@ var showStreamTimeoutId = null;
 var MJPEGErrorCounter = 0;
 
 function connect() {
-    connectDiv.style.visibility = 'visible';
-    pinDiv.style.visibility = 'hidden';
-    blockedDiv.style.visibility = 'hidden';
+    connectDiv.style.visibility = "visible";
+    pinDiv.style.visibility = "hidden";
+    blockedDiv.style.visibility = "hidden";
     pinWrongMsg.style.visibility = "inherit";
-    streamDiv.style.visibility = 'hidden';
-    errorDiv.style.visibility = 'hidden';
-    stream.src = '';
+    streamDiv.style.visibility = "hidden";
+    errorDiv.style.visibility = "hidden";
+    stream.src = "";
 
     websocket = new WebsocketHeartbeat(`ws://${window.location.host}/socket?clientId=${clientId}`);
 
     websocket.onopen = () => {
         websocket.send(JSON.stringify({ type: "CONNECT" }));
-        connectDiv.style.visibility = 'hidden';
+        connectDiv.style.visibility = "hidden";
     };
 
     websocket.onreconnect = () => {
-        connectDiv.style.visibility = 'visible';
-        pinDiv.style.visibility = 'hidden';
-        blockedDiv.style.visibility = 'hidden';
+        connectDiv.style.visibility = "visible";
+        pinDiv.style.visibility = "hidden";
+        blockedDiv.style.visibility = "hidden";
         pinWrongMsg.style.visibility = "inherit";
-        streamDiv.style.visibility = 'hidden';
-        errorDiv.style.visibility = 'hidden';
-        stream.src = '';
+        streamDiv.style.visibility = "hidden";
+        errorDiv.style.visibility = "hidden";
+        stream.src = "";
         MJPEGErrorCounter = 0;
 
         clearTimeout(showStreamTimeoutId);
@@ -114,8 +126,8 @@ function connect() {
         window.DD_LOGS && DD_LOGS.logger.debug("websocket.onmessage", { data: msg.data });
 
         if (message.type === "STREAM_ADDRESS") {
-            pinDiv.style.visibility = 'hidden';
-            blockedDiv.style.visibility = 'hidden';
+            pinDiv.style.visibility = "hidden";
+            blockedDiv.style.visibility = "hidden";
             pinWrongMsg.style.visibility = "inherit";
             showStream(message.data.streamAddress + `?clientId=${clientId}`);
             configureButtons(message.data.enableButtons);
@@ -124,20 +136,20 @@ function connect() {
 
         if (message.type === "UNAUTHORIZED") {
             if (message.data === "ADDRESS_BLOCKED") {
-                pinDiv.style.visibility = 'hidden';
-                blockedDiv.style.visibility = 'visible';
+                pinDiv.style.visibility = "hidden";
+                blockedDiv.style.visibility = "visible";
                 pinWrongMsg.style.visibility = "inherit";
                 return;
             }
 
-            pinDiv.style.visibility = 'visible';
-            blockedDiv.style.visibility = 'hidden';
+            pinDiv.style.visibility = "visible";
+            blockedDiv.style.visibility = "hidden";
 
             if (message.data === "WRONG_PIN") {
                 pin.value = "";
-                pinWrongMsg.style.visibility = 'visible';
+                pinWrongMsg.style.visibility = "visible";
             } else {
-                pinWrongMsg.style.visibility = 'hidden';
+                pinWrongMsg.style.visibility = "hidden";
                 if (pin.value) sendPin.click();
             }
             return;
@@ -159,9 +171,9 @@ function connect() {
 }
 
 function showStream(url) {
-    streamDiv.style.visibility = 'hidden';
-    stream.src = '';
-    errorDiv.style.visibility = 'hidden';
+    streamDiv.style.visibility = "hidden";
+    stream.src = "";
+    errorDiv.style.visibility = "hidden";
 
     clearTimeout(showStreamTimeoutId);
 
@@ -172,13 +184,13 @@ function showStream(url) {
         stream.src = url;
     }).then(() => {
         MJPEGErrorCounter = 0;
-        streamDiv.style.visibility = 'visible';
+        streamDiv.style.visibility = "visible";
         window.DD_LOGS && DD_LOGS.logger.debug("showStream", { mode: "default", result: "ok" });
     }).catch((error) => {
         window.DD_LOGS && DD_LOGS.logger.debug("showStream", { mode: "default", result: "error" });
         MJPEGErrorCounter++;
         if (MJPEGErrorCounter > 5) {
-            streamDiv.style.visibility = 'visible';
+            streamDiv.style.visibility = "visible";
             var splitUrl = url.split(".mjpeg");
             var baseUrl = splitUrl[0] + ".jpeg" + splitUrl[1] + "&t=";
             setInterval(() => { stream.src = baseUrl + Math.random() }, 500);
@@ -188,8 +200,56 @@ function showStream(url) {
     });
 }
 
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', connect);
+var drawIntervalId = null;
+
+function togglePiP() {
+    if (document.pictureInPictureElement) {
+        document.exitPictureInPicture();
+    } else {
+        const canvas = document.createElement("canvas");
+        canvas.style.display = "none";
+        pipStreamDiv.appendChild(canvas);
+
+        const videoElement = document.createElement("video");
+        videoElement.controls = false;
+        videoElement.muted = true;
+        videoElement.autoplay = true;
+        videoElement.srcObject = canvas.captureStream();
+
+        videoElement.addEventListener("leavepictureinpicture", () => {
+            clearInterval(drawIntervalId);
+            while (pipStreamDiv.firstChild) pipStreamDiv.removeChild(pipStreamDiv.lastChild);
+        });
+
+        videoElement.addEventListener("loadedmetadata", () => {
+            videoElement.requestPictureInPicture()
+                .then(() => drawIntervalId = setInterval(drawMJPEGStream, 32))
+                .catch(error => {
+                    window.DD_LOGS && DD_LOGS.logger.error("PiP.requestPictureInPicture:", { message: error });
+                    while (pipStreamDiv.firstChild) pipStreamDiv.removeChild(pipStreamDiv.lastChild);
+                    buttonPiP.style.display = "none";
+                });
+        });
+
+        pipStreamDiv.appendChild(videoElement);
+
+        const context = canvas.getContext("2d");
+
+        function drawMJPEGStream() {
+            const { naturalWidth, naturalHeight } = stream;
+            if (canvas.width != naturalWidth || canvas.height != naturalHeight) {
+                canvas.width = naturalWidth;
+                canvas.height = naturalHeight;
+            }
+            context.drawImage(stream, 0, 0);
+        }
+
+        drawMJPEGStream();
+    }
+}
+
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", connect);
 } else {
     connect();
 }
@@ -273,8 +333,8 @@ function SHA256(ascii) {
 
     var maxWord = Math.pow(2, 32);
     var i, j;
-    var result = '';
-    var asciiBitLength = ascii['length'] * 8;
+    var result = "";
+    var asciiBitLength = ascii["length"] * 8;
     var words = [], hash = [], k = [];
     var primeCounter = 0;
 
@@ -289,17 +349,17 @@ function SHA256(ascii) {
         }
     }
 
-    ascii += '\x80';
-    while (ascii['length'] % 64 - 56) ascii += '\x00';
-    for (i = 0; i < ascii['length']; i++) {
+    ascii += "\x80";
+    while (ascii["length"] % 64 - 56) ascii += "\x00";
+    for (i = 0; i < ascii["length"]; i++) {
         j = ascii.charCodeAt(i);
         if (j >> 8) return;
         words[i >> 2] |= j << ((3 - i) % 4) * 8;
     }
-    words[words['length']] = ((asciiBitLength / maxWord) | 0);
-    words[words['length']] = (asciiBitLength)
+    words[words["length"]] = ((asciiBitLength / maxWord) | 0);
+    words[words["length"]] = (asciiBitLength)
 
-    for (j = 0; j < words['length'];) {
+    for (j = 0; j < words["length"];) {
         var w = words.slice(j, j += 16);
         var oldHash = hash;
         hash = hash.slice(0, 8);
@@ -333,15 +393,15 @@ function SHA256(ascii) {
     for (i = 0; i < 8; i++) {
         for (j = 3; j + 1; j--) {
             var b = (hash[i] >> (j * 8)) & 255;
-            result += ((b < 16) ? 0 : '') + b.toString(16);
+            result += ((b < 16) ? 0 : "") + b.toString(16);
         }
     }
     return result;
 }
 
 function RandomString(length) {
-    var result = '';
-    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    var result = "";
+    const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
     const charactersLength = characters.length;
     for (var i = 0; i < length; i++) {
         result += characters.charAt(Math.floor(Math.random() * charactersLength));
