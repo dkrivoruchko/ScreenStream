@@ -68,7 +68,7 @@ internal class HttpServer(
         .replace("%WRONG_PIN_MESSAGE%", context.getString(R.string.mjpeg_html_wrong_pin))
         .replace("%ADDRESS_BLOCKED%", context.getString(R.string.mjpeg_html_address_blocked))
         .replace("%ERROR%", context.getString(R.string.mjpeg_html_error_unspecified)) //TODO not used
-        .replace("%DD_SERVICE%", if (BuildConfig.DEBUG) "MJPEG_Client-DEV" else "MJPEG_Client-PROD")
+        .replace("%DD_SERVICE%", if (BuildConfig.DEBUG) "mjpeg_client:dev" else "mjpeg_client:prod")
         .replace("DD_HANDLER", if (BuildConfig.DEBUG) "[\"http\", \"console\"]" else "[\"http\"]")
         .replace("%APP_VERSION%", context.getAppVersion())
 
@@ -317,6 +317,7 @@ internal class HttpServer(
                             .onStart {
                                 XLog.i(this@appModule.getLog("onStart", "Client: $clientId:$remotePort"))
                                 serverData.addConnected(clientId, remoteAddress, remotePort)
+                                channel.writeFully(jpegBoundary, 0, jpegBoundary.size)
                             }
                             .onCompletion {
                                 XLog.i(this@appModule.getLog("onCompletion", "Client: $clientId:$remotePort"))

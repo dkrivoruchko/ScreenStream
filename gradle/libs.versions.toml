@@ -1,14 +1,14 @@
 [versions]
 agp = "8.2.0"
-kotlin = "1.9.21"
-ksp = "1.9.21-1.0.16"
+kotlin = "1.9.22"
+ksp = "1.9.22-1.0.16"
 android-tools-r8 = "8.2.33"
 android-tools-desugar = "2.0.4"
 google-services = "4.4.0"
 crashlytics-gradle = "2.9.9"
 
 kotlinx-coroutines = "1.7.3"
-koin-android = "3.5.0"
+koin-android = "3.5.3"
 koin-ksp = "1.3.0"
 material-dialogs = "3.3.0"
 xlog = "1.11.0"
