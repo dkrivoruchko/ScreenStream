@@ -13,7 +13,7 @@ koin-ksp = "1.3.0"
 material-dialogs = "3.3.0"
 xlog = "1.11.0"
 ktor = "2.3.7"
-webrtc = "114.5735.06"
+webrtc = "114.5735.07"
 socket = "2.1.0"
 okhttp = "4.12.0"
 

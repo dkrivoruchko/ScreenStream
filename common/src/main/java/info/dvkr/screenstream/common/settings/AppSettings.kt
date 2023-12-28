@@ -1,11 +1,11 @@
-package info.dvkr.screenstream.settings
+package info.dvkr.screenstream.common.settings
 
 import android.os.Build
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
-import info.dvkr.screenstream.common.StreamingModule
+import info.dvkr.screenstream.common.module.StreamingModule
 import kotlinx.coroutines.flow.Flow
 
 public interface AppSettings {

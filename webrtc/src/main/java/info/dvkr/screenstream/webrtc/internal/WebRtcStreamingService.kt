@@ -23,10 +23,11 @@ import androidx.annotation.AnyThread
 import androidx.annotation.MainThread
 import androidx.core.content.ContextCompat
 import com.elvishew.xlog.XLog
+import info.dvkr.screenstream.common.AppState
 import info.dvkr.screenstream.common.AppStateFlowProvider
 import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.webrtc.WebRtcKoinScope
-import info.dvkr.screenstream.webrtc.WebRtcService
+import info.dvkr.screenstream.webrtc.WebRtcModuleService
 import info.dvkr.screenstream.webrtc.WebRtcSettings
 import kotlinx.coroutines.CompletableJob
 import kotlinx.coroutines.CoroutineDispatcher
@@ -61,7 +62,7 @@ import kotlin.math.pow
 @Scope(WebRtcKoinScope::class)
 @Scoped(binds = [WebRtcStreamingService::class])
 internal class WebRtcStreamingService(
-    @InjectedParam private val service: WebRtcService,
+    @InjectedParam private val service: WebRtcModuleService,
     @InjectedParam private val mutableWebRtcStateFlow: MutableStateFlow<WebRtcState>,
     private val appStateFlowProvider: AppStateFlowProvider,
     private val environment: WebRtcEnvironment,
@@ -278,6 +279,8 @@ internal class WebRtcStreamingService(
             }
         }
 
+        appStateFlowProvider.mutableAppStateFlow.value = AppState()
+        mutableWebRtcStateFlow.value = WebRtcState()
         sendEvent(InternalEvent.InitState)
 
         val intentFilter = IntentFilter().apply { addAction(Intent.ACTION_SCREEN_OFF) }
@@ -364,22 +367,22 @@ internal class WebRtcStreamingService(
     }
 
     override fun handleMessage(msg: Message): Boolean = runBlocking(Dispatchers.Unconfined) {
-        XLog.v(getLog("handleMessage", "Message: $msg"))
+        XLog.v(this@WebRtcStreamingService.getLog("handleMessage", "Message: $msg"))
 
         val event: WebRtcEvent = msg.obj as WebRtcEvent
         try {
-            XLog.d(getLog("handleMessage", "Event [$event] Current state: [${getStateString()}]"))
+            XLog.d(this@WebRtcStreamingService.getLog("handleMessage", "Event [$event] Current state: [${getStateString()}]"))
             processEvent(event)
         } catch (cause: Throwable) {
-            XLog.e(getLog("handleMessage.catch", cause.toString()))
-            XLog.e(getLog("handleMessage.catch", cause.toString()), cause)
+            XLog.e(this@WebRtcStreamingService.getLog("handleMessage.catch", cause.toString()))
+            XLog.e(this@WebRtcStreamingService.getLog("handleMessage.catch", cause.toString()), cause)
 
             mediaProjectionIntent = null
             stopStream()
 
             if (cause is WebRtcError) currentError.set(cause) else currentError.set(WebRtcError.UnknownError(cause))
         } finally {
-            XLog.d(getLog("handleMessage", "Done [$event] New state: [${getStateString()}]"))
+            XLog.d(this@WebRtcStreamingService.getLog("handleMessage", "Done [$event] New state: [${getStateString()}]"))
             if (event is InternalEvent.Destroy) event.destroyJob.complete()
             publishState()
         }

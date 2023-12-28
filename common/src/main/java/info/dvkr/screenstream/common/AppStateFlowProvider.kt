@@ -7,6 +7,6 @@ import org.koin.core.annotation.Single
 
 @Single
 public class AppStateFlowProvider(
-    public val mutableAppStateFlow: MutableStateFlow<StreamingModule.AppState> = MutableStateFlow(StreamingModule.AppState()),
-    public val appStateFlow: StateFlow<StreamingModule.AppState> = mutableAppStateFlow.asStateFlow()
+    public val mutableAppStateFlow: MutableStateFlow<AppState> = MutableStateFlow(AppState()),
+    public val appStateFlow: StateFlow<AppState> = mutableAppStateFlow.asStateFlow()
 )

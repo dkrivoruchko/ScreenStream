@@ -1,16 +1,15 @@
 package info.dvkr.screenstream.webrtc.internal
 
-import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.Parcelable
 import android.util.Base64
 import androidx.annotation.StringRes
-import info.dvkr.screenstream.common.StreamingModule
+import info.dvkr.screenstream.common.AppState
 import info.dvkr.screenstream.common.randomString
 import info.dvkr.screenstream.webrtc.R
-import info.dvkr.screenstream.webrtc.WebRtcService
+import info.dvkr.screenstream.webrtc.WebRtcModuleService
 import kotlinx.parcelize.Parcelize
 import org.webrtc.AudioTrack
 import org.webrtc.SessionDescription
@@ -40,10 +39,9 @@ internal open class WebRtcEvent(@JvmField val priority: Int) {
         @Parcelize internal data class StopStream(val reason: String) : Intentable(Priority.RECOVER_IGNORE)
         @Parcelize internal data object RecoverError : Intentable(Priority.RECOVER_IGNORE)
 
-        internal fun toIntent(context: Context): Intent = WebRtcService.getIntent(context).putExtra(EXTRA_PARCELABLE, this)
+        internal fun toIntent(context: Context): Intent = WebRtcModuleService.getIntent(context).putExtra(EXTRA_PARCELABLE, this)
     }
 
-    internal data class CreateStreamingService( val service: Service) : WebRtcEvent(Priority.NONE)
     internal data object GetNewStreamId : WebRtcEvent(Priority.DESTROY_IGNORE)
     internal data object CreateNewPassword : WebRtcEvent(Priority.DESTROY_IGNORE)
     internal data class StartProjection(val intent: Intent) : WebRtcEvent(Priority.RECOVER_IGNORE)
@@ -65,7 +63,7 @@ internal data class WebRtcState(
 ) {
     internal data class Client(@JvmField val id: String, @JvmField val publicId: String, @JvmField val clientAddress: String)
 
-    internal fun toAppState() = StreamingModule.AppState(isBusy, isStreaming)
+    internal fun toAppState() = AppState(isBusy, isStreaming)
 
     override fun toString(): String =
         "WebRtcState(isBusy=$isBusy, streamId='$streamId', wCP=$waitingCastPermission, isStreaming=$isStreaming, clients=${clients.size}, error=$error)"

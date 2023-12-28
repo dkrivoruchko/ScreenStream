@@ -10,14 +10,9 @@ import com.elvishew.xlog.flattener.ClassicFlattener
 import com.elvishew.xlog.printer.file.FilePrinter
 import com.elvishew.xlog.printer.file.clean.FileLastModifiedCleanStrategy
 import info.dvkr.screenstream.common.CommonKoinModule
-import info.dvkr.screenstream.common.StreamingModulesManager
 import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.logging.DateSuffixFileNameGenerator
 import info.dvkr.screenstream.logging.getLogFolder
-import info.dvkr.screenstream.settings.AppSettings
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
-import org.koin.android.ext.android.inject
 import org.koin.android.ext.koin.androidContext
 import org.koin.android.ext.koin.androidLogger
 import org.koin.core.context.startKoin
@@ -37,9 +32,6 @@ public abstract class BaseApp : Application() {
 
     internal val lastAdLoadTimeMap: MutableMap<String, Long> = mutableMapOf()
 
-    private val appSettings: AppSettings by inject(mode = LazyThreadSafetyMode.NONE)
-    private val streamingModulesManager: StreamingModulesManager by inject(mode = LazyThreadSafetyMode.NONE)
-
     override fun onCreate() {
         super.onCreate()
 
@@ -52,15 +44,6 @@ public abstract class BaseApp : Application() {
             androidLogger(Level.ERROR)
             androidContext(this@BaseApp)
             modules(defaultModule, CommonKoinModule().module, *streamingModules)
-        }
-
-        runBlocking {
-            val currentModuleId = appSettings.streamingModuleFlow.first()
-            if (streamingModulesManager.hasModule(currentModuleId).not()) {
-                val defaultModuleId = streamingModulesManager.getDefaultModuleId()
-                appSettings.setStreamingModule(defaultModuleId)
-                XLog.i(this@BaseApp.getLog("onCreate", "Set module: $defaultModuleId"))
-            }
         }
 
         ProcessLifecycleOwner.get().lifecycle.addObserver(object : DefaultLifecycleObserver {

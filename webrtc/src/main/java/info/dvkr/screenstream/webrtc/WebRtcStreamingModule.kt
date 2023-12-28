@@ -1,5 +1,6 @@
 package info.dvkr.screenstream.webrtc
 
+import android.app.Service
 import android.content.Context
 import android.os.Looper
 import androidx.annotation.MainThread
@@ -8,40 +9,52 @@ import androidx.lifecycle.LifecycleOwner
 import com.afollestad.materialdialogs.MaterialDialog
 import com.afollestad.materialdialogs.lifecycle.lifecycleOwner
 import com.elvishew.xlog.XLog
-import info.dvkr.screenstream.common.StreamingModule
+import info.dvkr.screenstream.common.AppEvent
 import info.dvkr.screenstream.common.getLog
+import info.dvkr.screenstream.common.module.StreamingModule
 import info.dvkr.screenstream.webrtc.internal.WebRtcEvent
 import info.dvkr.screenstream.webrtc.internal.WebRtcState
 import info.dvkr.screenstream.webrtc.internal.WebRtcStreamingService
 import info.dvkr.screenstream.webrtc.ui.WebRtcStreamingFragment
+import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.withContext
 import org.koin.core.annotation.Named
 import org.koin.core.annotation.Single
 import org.koin.core.parameter.parametersOf
-import org.koin.core.scope.Scope
 
 @Single
 @Named(WebRtcKoinQualifier)
 public class WebRtcStreamingModule : StreamingModule {
-    internal companion object {
-        internal val Id: StreamingModule.Id = StreamingModule.Id("WEBRTC")
+
+    public companion object {
+        public val Id: StreamingModule.Id = StreamingModule.Id("WEBRTC")
     }
 
     override val id: StreamingModule.Id = Id
 
     override val priority: Int = 10
 
-    private val _streamingServiceIsReady: MutableStateFlow<Boolean> = MutableStateFlow(false)
-    override val streamingServiceIsReady: StateFlow<Boolean>
-        get() = _streamingServiceIsReady.asStateFlow()
+    private val _streamingServiceState: MutableStateFlow<StreamingModule.State> = MutableStateFlow(StreamingModule.State.Initiated)
+    override val isRunning: Flow<Boolean>
+        get() = _streamingServiceState.asStateFlow().map { it is StreamingModule.State.Running }
 
     private val _webRtcStateFlow: MutableStateFlow<WebRtcState?> = MutableStateFlow(null)
     internal val webRtcStateFlow: StateFlow<WebRtcState?>
         get() = _webRtcStateFlow.asStateFlow()
+
+    init {
+        _streamingServiceState
+            .onEach { XLog.i(getLog("init", "State: $it")) }
+            .launchIn(GlobalScope)
+    }
 
     @MainThread
     override fun getName(context: Context): String {
@@ -72,32 +85,48 @@ public class WebRtcStreamingModule : StreamingModule {
     override fun getFragmentClass(): Class<out Fragment> = WebRtcStreamingFragment::class.java
 
     internal val webRtcSettings: WebRtcSettings
-        get() = requireNotNull(_scope).get()
-
-    private var _scope: Scope? = null
-
-    @MainThread
-    override fun createStreamingService(context: Context) {
-        check(Looper.getMainLooper().isCurrentThread) { "Only main thread allowed" }
-
-        if (_streamingServiceIsReady.value) {
-            XLog.e(getLog("createStreamingService", "Already ready"), IllegalStateException("Already ready"))
-            return
+        get() = when (val state = _streamingServiceState.value) {
+            is StreamingModule.State.Running -> state.scope.get<WebRtcSettings>()
+            else -> throw RuntimeException("Unexpected state: $state")
         }
 
-        XLog.d(getLog("createStreamingService"))
+    @MainThread
+    override fun startModule(context: Context) {
+        check(Looper.getMainLooper().isCurrentThread) { "Only main thread allowed" }
 
-        WebRtcService.startService(context, WebRtcEvent.Intentable.StartService.toIntent(context))
+        XLog.d(getLog("startModule"))
+
+        when (val state = _streamingServiceState.value) {
+            StreamingModule.State.Initiated -> {
+                WebRtcModuleService.startService(context, WebRtcEvent.Intentable.StartService.toIntent(context))
+                _streamingServiceState.value = StreamingModule.State.PendingStart
+            }
+
+            else -> throw RuntimeException("Unexpected state: $state")
+        }
     }
 
     @MainThread
-    override fun sendEvent(event: StreamingModule.AppEvent) {
+    internal fun onServiceStart(service: Service) {
+        when (val state = _streamingServiceState.value) {
+            StreamingModule.State.PendingStart -> {
+                val scope = WebRtcKoinScope().scope
+                _streamingServiceState.value = StreamingModule.State.Running(scope)
+                scope.get<WebRtcStreamingService> { parametersOf(service, _webRtcStateFlow) }.start()
+            }
+
+            else -> throw RuntimeException("Unexpected state: $state")
+        }
+    }
+
+    @MainThread
+    override fun sendEvent(event: AppEvent) {
         check(Looper.getMainLooper().isCurrentThread) { "Only main thread allowed" }
         XLog.d(getLog("sendEvent", "Event $event"))
 
         when (event) {
-            is StreamingModule.AppEvent.StartStream -> sendEvent(WebRtcStreamingService.InternalEvent.StartStream)
-            is StreamingModule.AppEvent.StopStream -> sendEvent(WebRtcEvent.Intentable.StopStream("User action: Button"))
+            is AppEvent.StartStream -> sendEvent(WebRtcStreamingService.InternalEvent.StartStream)
+            is AppEvent.StopStream -> sendEvent(WebRtcEvent.Intentable.StopStream("User action: Button"))
         }
     }
 
@@ -106,40 +135,36 @@ public class WebRtcStreamingModule : StreamingModule {
         check(Looper.getMainLooper().isCurrentThread) { "Only main thread allowed" }
         XLog.d(getLog("sendEvent", "Event $event"))
 
-        when (event) {
-            is WebRtcEvent.CreateStreamingService -> if (streamingServiceIsReady.value) {
-                XLog.e(getLog("sendEvent", "Service already started. Ignoring"), IllegalStateException("Service already started. Ignoring"))
-                checkNotNull(_scope)
-            } else {
-                check(_scope == null)
-
-                val scope = WebRtcKoinScope().scope
-                _scope = scope
-                _webRtcStateFlow.value = WebRtcState()
-                scope.get<WebRtcStreamingService> { parametersOf(event.service, _webRtcStateFlow) }.start()
-                _streamingServiceIsReady.value = true
-            }
-
-            else -> if (_streamingServiceIsReady.value)
-                requireNotNull(_scope).get<WebRtcStreamingService>().sendEvent(event)
-            else
-                XLog.e(getLog("sendEvent", "Module not active. Ignoring"), IllegalStateException("$event: Module not active. Ignoring"))
+        when (val state = _streamingServiceState.value) {
+            is StreamingModule.State.Running -> state.scope.get<WebRtcStreamingService>().sendEvent(event)
+            else -> throw RuntimeException("Unexpected state: $state")
         }
     }
 
     @MainThread
-    override suspend fun destroyStreamingService() {
+    override suspend fun stopModule() {
         check(Looper.getMainLooper().isCurrentThread) { "Only main thread allowed" }
-        XLog.d(getLog("destroyStreamingService"))
+        XLog.d(getLog("stopModule"))
 
-        _scope?.let { scope ->
-            withContext(NonCancellable) { scope.get<WebRtcStreamingService>().destroyService() }
-            _webRtcStateFlow.value = null
-            scope.close()
-            _scope = null
-            _streamingServiceIsReady.value = false
-        } ?: XLog.i(getLog("destroyStreamingService", "Scope is null"))
+        when (val state = _streamingServiceState.value) {
+            StreamingModule.State.Initiated -> XLog.d(getLog("stopModule", "Already stopped (Initiated). Ignoring"))
 
-        XLog.d(getLog("destroyStreamingService", "Done"))
+            StreamingModule.State.PendingStart -> {
+                XLog.d(getLog("stopModule", "Not started (PendingStart)"))
+                _streamingServiceState.value = StreamingModule.State.Initiated
+            }
+
+            is StreamingModule.State.Running -> {
+                _streamingServiceState.value = StreamingModule.State.PendingStop
+                withContext(NonCancellable) { state.scope.get<WebRtcStreamingService>().destroyService() }
+                _webRtcStateFlow.value = null
+                state.scope.close()
+                _streamingServiceState.value = StreamingModule.State.Initiated
+            }
+
+            StreamingModule.State.PendingStop -> throw RuntimeException("Unexpected state: $state")
+        }
+
+        XLog.d(getLog("stopModule", "Done"))
     }
 }

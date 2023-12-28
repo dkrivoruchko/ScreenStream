@@ -24,7 +24,7 @@ import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.common.view.viewBinding
 import info.dvkr.screenstream.databinding.FragmentSettingsBinding
 import info.dvkr.screenstream.logging.cleanLogFiles
-import info.dvkr.screenstream.settings.AppSettings
+import info.dvkr.screenstream.common.settings.AppSettings
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn

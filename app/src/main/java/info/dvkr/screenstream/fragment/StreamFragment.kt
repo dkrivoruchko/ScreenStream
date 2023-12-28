@@ -8,12 +8,11 @@ import androidx.lifecycle.lifecycleScope
 import com.elvishew.xlog.XLog
 import com.google.android.material.radiobutton.MaterialRadioButton
 import info.dvkr.screenstream.R
-import info.dvkr.screenstream.common.StreamingModulesManager
 import info.dvkr.screenstream.common.getLog
+import info.dvkr.screenstream.common.module.StreamingModulesManager
 import info.dvkr.screenstream.common.view.viewBinding
 import info.dvkr.screenstream.databinding.FragmentStreamBinding
 import info.dvkr.screenstream.databinding.ItemStreamingModuleBinding
-import info.dvkr.screenstream.settings.AppSettings
 import info.dvkr.screenstream.ui.fragment.AdFragment
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.collect
@@ -29,7 +28,6 @@ public class StreamFragment : AdFragment(R.layout.fragment_stream) {
     private val binding by viewBinding { fragment -> FragmentStreamBinding.bind(fragment.requireView()) }
 
     private val streamingModulesManager: StreamingModulesManager by inject(mode = LazyThreadSafetyMode.NONE)
-    private val appSettings: AppSettings by inject(mode = LazyThreadSafetyMode.NONE)
 
     private var job: Job? = null
 
@@ -45,10 +43,10 @@ public class StreamFragment : AdFragment(R.layout.fragment_stream) {
                 rbItemStreamingModule.isChecked = false
                 rbItemStreamingModule.setButtonDrawable(R.drawable.ic_radiobox_unchecked_24dp)
                 rbItemStreamingModule.setOnClickListener {
-                    if (streamingModulesManager.isActivate(module.id)) return@setOnClickListener
+                    if (streamingModulesManager.isActive(module.id)) return@setOnClickListener
                     rbItemStreamingModule.isChecked = false
                     rbItemStreamingModule.setButtonDrawable(R.drawable.ic_radiobox_unchecked_24dp)
-                    viewLifecycleOwner.lifecycleScope.launch { appSettings.setStreamingModule(module.id) }
+                    viewLifecycleOwner.lifecycleScope.launch { streamingModulesManager.selectStreamingModule(module.id) }
                 }
                 bItemStreamingModuleDetails.contentDescription = module.getContentDescription(requireContext())
                 bItemStreamingModuleDetails.setOnClickListener { module.showDescriptionDialog(requireContext(), viewLifecycleOwner) }
@@ -56,10 +54,10 @@ public class StreamFragment : AdFragment(R.layout.fragment_stream) {
         }
 
         streamingModulesManager.modules.forEach { module ->
-            module.streamingServiceIsReady.onEach { isServiceActive ->
+            module.isRunning.onEach { isRunning ->
                 binding.llFragmentStreamModeItems.findViewWithTag<MaterialRadioButton>(module.id.value)?.apply {
-                    isChecked = isServiceActive
-                    setButtonDrawable(if (isServiceActive) R.drawable.ic_radiobox_checked_24dp else R.drawable.ic_radiobox_unchecked_24dp)
+                    isChecked = isRunning
+                    setButtonDrawable(if (isRunning) R.drawable.ic_radiobox_checked_24dp else R.drawable.ic_radiobox_unchecked_24dp)
                 }
             }.launchIn(viewLifecycleOwner.lifecycleScope)
         }

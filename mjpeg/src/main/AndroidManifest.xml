@@ -13,7 +13,7 @@
 
     <application>
         <service
-            android:name=".MjpegService"
+            android:name=".MjpegModuleService"
             android:enabled="true"
             android:exported="false"
             android:foregroundServiceType="mediaProjection" />

@@ -1,13 +1,12 @@
 package info.dvkr.screenstream.mjpeg.internal
 
-import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.Parcelable
 import androidx.annotation.StringRes
-import info.dvkr.screenstream.common.StreamingModule
-import info.dvkr.screenstream.mjpeg.MjpegService
+import info.dvkr.screenstream.common.AppState
+import info.dvkr.screenstream.mjpeg.MjpegModuleService
 import info.dvkr.screenstream.mjpeg.R
 import kotlinx.parcelize.Parcelize
 import java.net.InetAddress
@@ -35,10 +34,9 @@ internal open class MjpegEvent(@JvmField val priority: Int) {
         @Parcelize internal data class StopStream(val reason: String) : Intentable(Priority.RESTART_IGNORE)
         @Parcelize internal data object RecoverError : Intentable(Priority.RECOVER_IGNORE)
 
-        internal fun toIntent(context: Context): Intent = MjpegService.getIntent(context).putExtra(EXTRA_PARCELABLE, this)
+        internal fun toIntent(context: Context): Intent = MjpegModuleService.getIntent(context).putExtra(EXTRA_PARCELABLE, this)
     }
 
-    internal data class CreateStreamingService(val service: Service) : MjpegEvent(Priority.NONE)
     internal data object CastPermissionsDenied : MjpegEvent(Priority.RECOVER_IGNORE)
     internal data class StartProjection(val intent: Intent) : MjpegEvent(Priority.RECOVER_IGNORE)
     internal data object CreateNewPin : MjpegEvent(Priority.DESTROY_IGNORE)
@@ -61,7 +59,7 @@ internal data class MjpegState(
 
     internal data class TrafficPoint(@JvmField val time: Long, @JvmField val MBytes: Float)
 
-    internal fun toAppState() = StreamingModule.AppState(isBusy, isStreaming)
+    internal fun toAppState() = AppState(isBusy, isStreaming)
 
     override fun toString(): String =
         "MjpegState(isBusy=$isBusy, waitingCastPermission=$waitingCastPermission, isStreaming=$isStreaming, netInterfaces=$netInterfaces, clients=${clients.size}, error=$error)"

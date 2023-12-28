@@ -52,12 +52,14 @@
         }
 
         #buttonsDiv {
+            background-color: #08121C;
             visibility: hidden;
-            top: 16px;
-            left: 16px;
-            width: 100%;
-            text-align: center;
+            left: 50%;
+            padding: 8px 16px;
+            transform: translateX(-50%);
             position: absolute;
+            border-radius: 0 0 8px 8px;
+            box-shadow: 0 0 4px 4px rgba(8, 18, 28, .2);
             z-index: 10;
         }
 
@@ -168,7 +170,7 @@
             }
         }
     </style>
-    <script type="text/javascript" src="https://www.datadoghq-browser-agent.com/us1/v4/datadog-logs.js" crossorigin="anonymous"></script>
+    <script type="text/javascript" src="https://www.datadoghq-browser-agent.com/us1/v5/datadog-logs.js" crossorigin="anonymous"></script>
     <script>
         "use strict";
 
@@ -339,6 +341,9 @@
                 stream.src = "";
                 MJPEGErrorCounter = 0;
                 clearTimeout(showStreamTimeoutId);
+                if (document.pictureInPictureElement) {
+                    document.exitPictureInPicture();
+                }
             };
             websocket.onmessage = function (msg) {
                 var message = JSON.parse(msg.data);

@@ -28,18 +28,20 @@ import com.afollestad.materialdialogs.lifecycle.lifecycleOwner
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.BaseApp
 import info.dvkr.screenstream.R
+import info.dvkr.screenstream.common.AppEvent
 import info.dvkr.screenstream.common.AppStateFlowProvider
-import info.dvkr.screenstream.common.StreamingModule
-import info.dvkr.screenstream.common.StreamingModulesManager
 import info.dvkr.screenstream.common.getLog
+import info.dvkr.screenstream.common.module.StreamingModulesManager
 import info.dvkr.screenstream.common.view.viewBinding
 import info.dvkr.screenstream.databinding.ActivityAppBinding
 import info.dvkr.screenstream.logging.sendLogsInEmail
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
+import kotlin.coroutines.cancellation.CancellationException
 
 public class AppActivity : NotificationPermissionActivity(R.layout.activity_app) {
 
@@ -85,11 +87,11 @@ public class AppActivity : NotificationPermissionActivity(R.layout.activity_app)
 
                 if (state.isStreaming) {
                     setImageResource(R.drawable.ic_fab_stop_24dp)
-                    setOnClickListener { streamingModulesManager.sendEvent(StreamingModule.AppEvent.StopStream); isEnabled = false }
+                    setOnClickListener { streamingModulesManager.sendEvent(AppEvent.StopStream); isEnabled = false }
                     contentDescription = getString(R.string.app_bottom_menu_stop)
                 } else {
                     setImageResource(R.drawable.ic_fab_start_24dp)
-                    setOnClickListener { streamingModulesManager.sendEvent(StreamingModule.AppEvent.StartStream); isEnabled = false }
+                    setOnClickListener { streamingModulesManager.sendEvent(AppEvent.StartStream); isEnabled = false }
                     contentDescription = getString(R.string.app_bottom_menu_start)
                 }
             }
@@ -102,13 +104,19 @@ public class AppActivity : NotificationPermissionActivity(R.layout.activity_app)
 
         }.launchIn(lifecycleScope)
 
-        appSettings.streamingModuleFlow
+        streamingModulesManager.selectedModuleIdFlow
             .onEach { moduleId ->
                 XLog.i(this@AppActivity.getLog("streamingModuleFlow.onEach:", "$moduleId"))
-                runCatching { streamingModulesManager.activate(moduleId, this) }
-                    .onFailure { XLog.e(this@AppActivity.getLog("streamingModuleFlow.onFailure:", it.message), it) }
+                streamingModulesManager.startModule(moduleId, this)
             }
-            .onCompletion { XLog.i(this@AppActivity.getLog("streamingModuleFlow.onCompletion")) }
+            .catch {
+                if (it is IllegalStateException) XLog.i(this@AppActivity.getLog("streamingModuleFlow.catch: ${it.message}"), it)
+                else throw it
+            }
+            .onCompletion { cause ->
+                if (cause == null || cause is CancellationException) XLog.i(this@AppActivity.getLog("streamingModuleFlow.onCompletion"))
+                else XLog.e(this@AppActivity.getLog("streamingModuleFlow.onCompletion: ${cause.message}"), cause)
+            }
             .flowWithLifecycle(lifecycle)
             .launchIn(lifecycleScope)
     }
@@ -120,7 +128,7 @@ public class AppActivity : NotificationPermissionActivity(R.layout.activity_app)
             binding.bottomNavigationActivityApp.setupWithNavController(this)
             addOnDestinationChangedListener { _, destination, _ ->
                 if (destination.id == R.id.nav_exitFragment) lifecycleScope.launch {
-                    streamingModulesManager.deactivate()
+                    streamingModulesManager.stopModule()
                     finish()
                 }
             }

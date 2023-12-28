@@ -31,6 +31,7 @@ import androidx.annotation.MainThread
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.content.ContextCompat
 import com.elvishew.xlog.XLog
+import info.dvkr.screenstream.common.AppState
 import info.dvkr.screenstream.common.AppStateFlowProvider
 import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.mjpeg.*
@@ -47,7 +48,7 @@ import kotlin.random.Random
 @Scope(MjpegKoinScope::class)
 @Scoped(binds = [MjpegStreamingService::class])
 internal class MjpegStreamingService(
-    @InjectedParam private val service: MjpegService,
+    @InjectedParam private val service: MjpegModuleService,
     @InjectedParam private val mutableMjpegStateFlow: MutableStateFlow<MjpegState>,
     private val appStateFlowProvider: AppStateFlowProvider,
     private val networkHelper: NetworkHelper,
@@ -163,6 +164,8 @@ internal class MjpegStreamingService(
             }
         }
 
+        appStateFlowProvider.mutableAppStateFlow.value = AppState()
+        mutableMjpegStateFlow.value = MjpegState()
         sendEvent(InternalEvent.InitState())
 
         coroutineScope.launch {
@@ -253,22 +256,22 @@ internal class MjpegStreamingService(
     }
 
     override fun handleMessage(msg: Message): Boolean = runBlocking(Dispatchers.Unconfined) {
-        XLog.v(getLog("handleMessage", "Message: $msg"))
+        XLog.v(this@MjpegStreamingService.getLog("handleMessage", "Message: $msg"))
 
         val event: MjpegEvent = msg.obj as MjpegEvent
         try {
-            XLog.d(getLog("handleMessage", "Event [$event] Current state: [${getStateString()}]"))
+            XLog.d(this@MjpegStreamingService.getLog("handleMessage", "Event [$event] Current state: [${getStateString()}]"))
             processEvent(event)
         } catch (cause: Throwable) {
-            XLog.e(getLog("processEvent.catch", cause.toString()))
-            XLog.e(getLog("processEvent.catch", cause.toString()), cause)
+            XLog.e(this@MjpegStreamingService.getLog("processEvent.catch", cause.toString()))
+            XLog.e(this@MjpegStreamingService.getLog("processEvent.catch", cause.toString()), cause)
 
             mediaProjectionIntent = null
             stopStream()
 
             currentError = if (cause is MjpegError) cause else MjpegError.UnknownError(cause)
         } finally {
-            XLog.d(getLog("processEvent", "Done [$event] New state: [${getStateString()}]"))
+            XLog.d(this@MjpegStreamingService.getLog("processEvent", "Done [$event] New state: [${getStateString()}]"))
             if (event is InternalEvent.Destroy) event.destroyJob.complete()
             publishState()
         }

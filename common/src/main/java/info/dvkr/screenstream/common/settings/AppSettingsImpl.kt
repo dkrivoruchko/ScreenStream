@@ -1,4 +1,4 @@
-package info.dvkr.screenstream.settings
+package info.dvkr.screenstream.common.settings
 
 import android.content.Context
 import androidx.datastore.core.DataStore
@@ -8,7 +8,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.preferencesDataStoreFile
 import com.elvishew.xlog.XLog
-import info.dvkr.screenstream.common.StreamingModule
+import info.dvkr.screenstream.common.module.StreamingModule
 import info.dvkr.screenstream.common.getCatching
 import info.dvkr.screenstream.common.setValue
 import kotlinx.coroutines.flow.Flow

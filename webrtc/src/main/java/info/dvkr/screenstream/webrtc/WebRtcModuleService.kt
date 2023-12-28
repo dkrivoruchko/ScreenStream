@@ -5,7 +5,7 @@ import android.app.ServiceStartNotAllowedException
 import android.content.Context
 import android.content.Intent
 import com.elvishew.xlog.XLog
-import info.dvkr.screenstream.common.AbstractService
+import info.dvkr.screenstream.common.module.AbstractModuleService
 import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.webrtc.internal.WebRtcError
 import info.dvkr.screenstream.webrtc.internal.WebRtcEvent
@@ -16,16 +16,16 @@ import org.koin.core.qualifier.named
 import java.net.ConnectException
 import java.net.UnknownHostException
 
-public class WebRtcService : AbstractService() {
+public class WebRtcModuleService : AbstractModuleService() {
 
     internal companion object {
-        internal fun getIntent(context: Context): Intent = Intent(context, WebRtcService::class.java)
+        internal fun getIntent(context: Context): Intent = Intent(context, WebRtcModuleService::class.java)
 
         @Throws(ServiceStartNotAllowedException::class)
         internal fun startService(context: Context, intent: Intent) {
-            XLog.d(getLog("WebRtcService.startService", "Run intent: ${intent.extras}"))
+            XLog.d(getLog("WebRtcModuleService.startService", "Run intent: ${intent.extras}"))
             val importance = ActivityManager.RunningAppProcessInfo().also { ActivityManager.getMyMemoryState(it) }.importance
-            XLog.i(getLog("MjpegService.startService", "RunningAppProcessInfo.importance: $importance"))
+            XLog.i(getLog("WebRtcModuleService.startService", "RunningAppProcessInfo.importance: $importance"))
             context.startService(intent)
         }
     }
@@ -37,20 +37,20 @@ public class WebRtcService : AbstractService() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent == null) {
-            XLog.e(getLog("onStartCommand"), IllegalArgumentException("WebRtcService.onStartCommand: intent = null. Stop self, startId: $startId"))
+            XLog.e(getLog("onStartCommand"), IllegalArgumentException("WebRtcModuleService.onStartCommand: intent = null. Stop self, startId: $startId"))
             stopSelfResult(startId)
             return START_NOT_STICKY
         }
         XLog.d(getLog("onStartCommand", "WebRtcEvent.intent: ${intent.extras}"))
         val webRtcEvent = WebRtcEvent.Intentable.fromIntent(intent) ?: run {
-            XLog.e(getLog("onStartCommand"), IllegalArgumentException("WebRtcService.onStartCommand: WebRtcEvent = null, startId: $startId, $intent"))
+            XLog.e(getLog("onStartCommand"), IllegalArgumentException("WebRtcModuleService.onStartCommand: WebRtcEvent = null, startId: $startId, $intent"))
             return START_NOT_STICKY
         }
         XLog.d(getLog("onStartCommand", "WebRtcEvent: $webRtcEvent, startId: $startId"))
 
-        if (streamingModulesManager.isActivate(WebRtcStreamingModule.Id)) {
+        if (streamingModulesManager.isActive(WebRtcStreamingModule.Id)) {
             when (webRtcEvent) {
-                is WebRtcEvent.Intentable.StartService -> webRtcStreamingModule.sendEvent(WebRtcEvent.CreateStreamingService(this))
+                is WebRtcEvent.Intentable.StartService -> webRtcStreamingModule.onServiceStart(this)
                 is WebRtcEvent.Intentable.StopStream -> webRtcStreamingModule.sendEvent(webRtcEvent)
                 WebRtcEvent.Intentable.RecoverError -> webRtcStreamingModule.sendEvent(webRtcEvent)
             }
@@ -64,7 +64,7 @@ public class WebRtcService : AbstractService() {
 
     override fun onDestroy() {
         XLog.d(getLog("onDestroy"))
-        runBlocking { streamingModulesManager.deactivate(WebRtcStreamingModule.Id) }
+        runBlocking { streamingModulesManager.stopModule(WebRtcStreamingModule.Id) }
         super.onDestroy()
     }
 
@@ -74,7 +74,7 @@ public class WebRtcService : AbstractService() {
 
         if (notificationHelper.notificationPermissionGranted(this).not()) throw WebRtcError.NotificationPermissionRequired
 
-        val stopIntent = WebRtcEvent.Intentable.StopStream("WebRtcService. User action: Notification").toIntent(this)
+        val stopIntent = WebRtcEvent.Intentable.StopStream("WebRtcModuleService. User action: Notification").toIntent(this)
         startForeground(stopIntent)
     }
 

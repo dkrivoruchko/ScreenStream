@@ -15,7 +15,7 @@ import com.google.android.play.core.ktx.requestUpdateFlow
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.activity.BaseActivity
 import info.dvkr.screenstream.common.getLog
-import info.dvkr.screenstream.settings.AppSettings
+import info.dvkr.screenstream.common.settings.AppSettings
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn

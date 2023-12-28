@@ -48,7 +48,7 @@ public interface MjpegSettings {
         public const val STOP_ON_SLEEP: Boolean = false
         public const val NOTIFY_SLOW_CONNECTIONS: Boolean = false
 
-        public const val HTML_ENABLE_BUTTONS: Boolean = false
+        public const val HTML_ENABLE_BUTTONS: Boolean = true
         public const val HTML_SHOW_PRESS_START: Boolean = true
         public const val HTML_BACK_COLOR: Int = -16248292 // "ff08121C".toLong(radix = 16).toInt()
 

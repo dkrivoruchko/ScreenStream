@@ -1,4 +1,4 @@
-package info.dvkr.screenstream.common
+package info.dvkr.screenstream.common.module
 
 import android.Manifest
 import android.app.Service
@@ -10,9 +10,11 @@ import android.os.IBinder
 import androidx.core.app.ServiceCompat
 import androidx.core.content.ContextCompat
 import com.elvishew.xlog.XLog
+import info.dvkr.screenstream.common.NotificationHelper
+import info.dvkr.screenstream.common.getLog
 import org.koin.android.ext.android.inject
 
-public abstract class AbstractService : Service() {
+public abstract class AbstractModuleService : Service() {
 
     protected abstract val notificationIdForeground: Int
     protected abstract val notificationIdError: Int

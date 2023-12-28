@@ -117,6 +117,10 @@ function connect() {
         MJPEGErrorCounter = 0;
 
         clearTimeout(showStreamTimeoutId);
+
+        if (document.pictureInPictureElement) {
+            document.exitPictureInPicture();
+        }
     };
 
     websocket.onmessage = (msg) => {
