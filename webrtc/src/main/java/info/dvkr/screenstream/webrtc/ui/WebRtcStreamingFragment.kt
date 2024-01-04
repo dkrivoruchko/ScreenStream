@@ -60,7 +60,7 @@ import info.dvkr.screenstream.webrtc.internal.WebRtcError
 import info.dvkr.screenstream.webrtc.internal.WebRtcEvent
 import info.dvkr.screenstream.webrtc.internal.WebRtcState
 import io.nayuki.qrcodegen.QrCode
-import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.combineTransform
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onCompletion
@@ -164,9 +164,10 @@ public class WebRtcStreamingFragment : Fragment(R.layout.fragment_webrtc_stream)
             webRtcStreamingModule.sendEvent(WebRtcEvent.Intentable.RecoverError)
         }
 
-        webRtcStreamingModule.webRtcStateFlow
+        webRtcStreamingModule.webRtcStateFlow.combineTransform(webRtcStreamingModule.isRunning) { webRtcState, isRunning ->
+            if (webRtcState != null && isRunning) emit(webRtcState)
+        }
             .onStart { XLog.i(this@WebRtcStreamingFragment.getLog("webRtcStreamingModule.webRtcStateFlow.onStart")) }
-            .filterNotNull()
             .onEach { state -> onWebRtcState(state) }
             .onCompletion { XLog.i(this@WebRtcStreamingFragment.getLog("webRtcStreamingModule.webRtcStateFlow.onCompletion")) }
             .flowWithLifecycle(viewLifecycleOwner.lifecycle, Lifecycle.State.STARTED)

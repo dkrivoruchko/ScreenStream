@@ -51,7 +51,7 @@ import info.dvkr.screenstream.mjpeg.internal.MjpegError
 import info.dvkr.screenstream.mjpeg.internal.MjpegEvent
 import info.dvkr.screenstream.mjpeg.internal.MjpegState
 import io.nayuki.qrcodegen.QrCode
-import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.combineTransform
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onCompletion
@@ -115,9 +115,10 @@ public class MjpegStreamingFragment : Fragment(R.layout.fragment_mjpeg_stream) {
             mjpegStreamingModule.sendEvent(MjpegEvent.Intentable.RecoverError)
         }
 
-        mjpegStreamingModule.mjpegStateFlow
+        mjpegStreamingModule.mjpegStateFlow.combineTransform(mjpegStreamingModule.isRunning) { mjpegState, isRunning ->
+            if (mjpegState != null && isRunning) emit(mjpegState)
+        }
             .onStart { XLog.i(this@MjpegStreamingFragment.getLog("mjpegStreamingModule.mjpegStateFlow.onStart")) }
-            .filterNotNull()
             .onEach { state -> onMjpegState(state) }
             .onCompletion { XLog.i(this@MjpegStreamingFragment.getLog("mjpegStreamingModule.mjpegStateFlow.onCompletion")) }
             .flowWithLifecycle(viewLifecycleOwner.lifecycle, Lifecycle.State.STARTED)

@@ -47,6 +47,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import org.koin.android.ext.android.inject
 import org.koin.core.qualifier.named
 
@@ -73,6 +74,13 @@ public class MjpegSettingsFragment : BottomSheetDialogFragment(R.layout.fragment
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         XLog.d(getLog("onViewCreated"))
+
+        if (runBlocking { mjpegStreamingModule.isRunning.first() }.not()) {
+            dismissAllowingStateLoss()
+            return
+        }
+
+        mjpegStreamingModule.isRunning.onEach { if (it.not()) dismissAllowingStateLoss() }.launchIn(viewLifecycleOwner.lifecycleScope)
 
         binding.bFragmentSettingsClose.setOnClickListener { dismissAllowingStateLoss() }
 

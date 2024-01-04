@@ -13,7 +13,10 @@ import info.dvkr.screenstream.webrtc.WebRtcKoinQualifier
 import info.dvkr.screenstream.webrtc.WebRtcStreamingModule
 import info.dvkr.screenstream.webrtc.databinding.FragmentWebrtcSettingsBinding
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import org.koin.android.ext.android.inject
 import org.koin.core.qualifier.named
 
@@ -30,6 +33,13 @@ public class WebRtcSettingsFragment : BottomSheetDialogFragment(R.layout.fragmen
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         XLog.d(getLog("onViewCreated"))
+
+        if (runBlocking { webRtcStreamingModule.isRunning.first() }.not()) {
+            dismissAllowingStateLoss()
+            return
+        }
+
+        webRtcStreamingModule.isRunning.onEach { if (it.not()) dismissAllowingStateLoss() }.launchIn(viewLifecycleOwner.lifecycleScope)
 
         binding.bFragmentSettingsClose.setOnClickListener { dismissAllowingStateLoss() }
 
