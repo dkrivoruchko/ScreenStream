@@ -2,7 +2,7 @@ package info.dvkr.screenstream.ui.activity
 
 import androidx.annotation.LayoutRes
 import info.dvkr.screenstream.activity.BaseActivity
-import info.dvkr.screenstream.settings.AppSettings
+import info.dvkr.screenstream.common.settings.AppSettings
 import org.koin.android.ext.android.inject
 
 public abstract class AppUpdateActivity(@LayoutRes contentLayoutId: Int) : BaseActivity(contentLayoutId) {
