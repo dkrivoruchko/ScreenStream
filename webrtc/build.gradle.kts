@@ -23,7 +23,11 @@ android {
         viewBinding = true
     }
 
-    val localProps = Properties().apply { file("../local.properties").inputStream().use { load(it) } }
+    val localProps = Properties()
+    val localProperties = File(rootProject.rootDir, "local.properties")
+    if (localProperties.exists() && localProperties.isFile) {
+        localProperties.inputStream().use { localProps.load(it) }
+    }
 
     buildTypes {
         debug {

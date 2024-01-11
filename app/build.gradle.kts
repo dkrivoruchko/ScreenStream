@@ -48,7 +48,11 @@ android {
         viewBinding = true
     }
 
-    val localProps = Properties().apply { file("../local.properties").inputStream().use { load(it) } }
+    val localProps = Properties()
+    val localProperties = File(rootProject.rootDir, "local.properties")
+    if (localProperties.exists() && localProperties.isFile) {
+        localProperties.inputStream().use { localProps.load(it) }
+    }
 
     buildTypes {
         debug {
@@ -72,7 +76,7 @@ android {
             buildConfigField("String", "AD_UNIT_ID_B", localProps.getProperty("ad.unitIdB", ""))
             buildConfigField("String", "AD_UNIT_ID_C", localProps.getProperty("ad.unitIdC", ""))
         }
-        create("firebaseFree") {
+        create("firebasefree") {
             manifestPlaceholders += mapOf("adMobPubId" to "")
             configure<com.google.firebase.crashlytics.buildtools.gradle.CrashlyticsExtension> {
                 mappingFileUploadEnabled = false
@@ -126,5 +130,5 @@ dependencies {
 
 project.tasks.configureEach {
     if (name.startsWith("injectCrashlyticsMappingFileIdFirebaseFree")) enabled = false
-    if (name.startsWith("processFirebaseFree") && name.endsWith("GoogleServices")) enabled = false
+    if (name.startsWith("processFirebasefree") && name.endsWith("GoogleServices")) enabled = false
 }
