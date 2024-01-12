@@ -204,40 +204,48 @@ function showStream(url) {
     });
 }
 
-var drawIntervalId = null;
+var drawTimeoutId = null;
 
 function togglePiP() {
     if (document.pictureInPictureElement) {
         document.exitPictureInPicture();
     } else {
-        const canvas = document.createElement("canvas");
+        var canvas = document.createElement("canvas");
         canvas.style.display = "none";
         pipStreamDiv.appendChild(canvas);
 
-        const videoElement = document.createElement("video");
+        var videoElement = document.createElement("video");
         videoElement.controls = false;
         videoElement.muted = true;
         videoElement.autoplay = true;
         videoElement.srcObject = canvas.captureStream();
 
         videoElement.addEventListener("leavepictureinpicture", () => {
-            clearInterval(drawIntervalId);
+            clearTimeout(drawTimeoutId);
             while (pipStreamDiv.firstChild) pipStreamDiv.removeChild(pipStreamDiv.lastChild);
+            videoElement.srcObject = null;
+            videoElement = null;
+            canvas = null;
+            context = null;
         });
 
         videoElement.addEventListener("loadedmetadata", () => {
             videoElement.requestPictureInPicture()
-                .then(() => drawIntervalId = setInterval(drawMJPEGStream, 32))
                 .catch(error => {
+                    clearTimeout(drawTimeoutId);
                     window.DD_LOGS && DD_LOGS.logger.error("PiP.requestPictureInPicture:", { message: error });
                     while (pipStreamDiv.firstChild) pipStreamDiv.removeChild(pipStreamDiv.lastChild);
                     buttonPiP.style.display = "none";
+                    videoElement.srcObject = null;
+                    videoElement = null;
+                    canvas = null;
+                    context = null;
                 });
         });
 
         pipStreamDiv.appendChild(videoElement);
 
-        const context = canvas.getContext("2d");
+        var context = canvas.getContext("2d");
 
         function drawMJPEGStream() {
             const { naturalWidth, naturalHeight } = stream;
@@ -246,6 +254,7 @@ function togglePiP() {
                 canvas.height = naturalHeight;
             }
             context.drawImage(stream, 0, 0);
+            drawTimeoutId = setTimeout(drawMJPEGStream, 32);
         }
 
         drawMJPEGStream();

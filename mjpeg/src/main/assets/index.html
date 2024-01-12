@@ -439,7 +439,7 @@
                 }
             });
         }
-        var drawIntervalId = null;
+        var drawTimeoutId = null;
         function togglePiP() {
             if (document.pictureInPictureElement) {
                 document.exitPictureInPicture();
@@ -452,6 +452,7 @@
                         canvas.height = naturalHeight;
                     }
                     context.drawImage(stream, 0, 0);
+                    drawTimeoutId = setTimeout(drawMJPEGStream, 32);
                 };
                 var canvas = document.createElement("canvas");
                 canvas.style.display = "none";
@@ -462,18 +463,25 @@
                 videoElement.autoplay = true;
                 videoElement.srcObject = canvas.captureStream();
                 videoElement.addEventListener("leavepictureinpicture", function () {
-                    clearInterval(drawIntervalId);
+                    clearTimeout(drawTimeoutId);
                     while (pipStreamDiv.firstChild) pipStreamDiv.removeChild(pipStreamDiv.lastChild);
+                    videoElement.srcObject = null;
+                    videoElement = null;
+                    canvas = null;
+                    context = null;
                 });
                 videoElement.addEventListener("loadedmetadata", function () {
-                    videoElement.requestPictureInPicture().then(function () {
-                        return drawIntervalId = setInterval(drawMJPEGStream, 32);
-                    })["catch"](function (error) {
+                    videoElement.requestPictureInPicture()["catch"](function (error) {
+                        clearTimeout(drawTimeoutId);
                         window.DD_LOGS && DD_LOGS.logger.error("PiP.requestPictureInPicture:", {
                             message: error
                         });
                         while (pipStreamDiv.firstChild) pipStreamDiv.removeChild(pipStreamDiv.lastChild);
                         buttonPiP.style.display = "none";
+                        videoElement.srcObject = null;
+                        videoElement = null;
+                        canvas = null;
+                        context = null;
                     });
                 });
                 pipStreamDiv.appendChild(videoElement);
