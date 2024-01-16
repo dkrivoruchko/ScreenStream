@@ -1,69 +1,73 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_error_title">错误</string>
+    <string name="app_name" translatable="false">Screen Stream</string>
+
+    <string name="error_title"> 错误 </string>
     <string name="app_error_recover">恢复</string>
 
-    <string name="app_activity_logs_collecting">正在收集应用日志…</string>
-    <string name="app_activity_logs_send">把日志发送给开发者</string>
-    <string name="app_activity_logs_send_dialog_title">把日志通过电子邮件发送给开发者</string>
-    <string name="app_activity_logs_send_dialog_message">请添加问题描述：</string>
-    <string name="app_activity_logs_send_dialog_neutral">停止记录日志</string>
+    <string name="app_activity_collecting_logs"> 正在收集程序日志…</string>
+    <string name="app_activity_send_logs"> 把日志发送给开发者 </string>
+    <string name="app_activity_send_logs_dialog_title"> 把日志通过电子邮件发送给开发者 </string>
+    <string name="app_activity_send_logs_dialog_message">请添加问题描述：</string>
+    <string name="app_activity_send_logs_dialog_neutral">停止记录日志</string>
 
-    <string name="app_activity_update_dialog_title">有新版本</string>
-    <string name="app_activity_update_dialog_message">更新已下载完毕，是否想现在重启应用？</string>
-    <string name="app_activity_update_dialog_restart">重启应用</string>
+    <string name="app_update_activity_dialog_title"> 有新版本 </string>
+    <string name="app_update_activity_dialog_message"> 更新已下载完毕，是否想现在重启程序？</string>
+    <string name="app_update_activity_dialog_restart"> 重启程序 </string>
 
-    <string name="app_bottom_menu_stream">视频流</string>
-    <string name="app_bottom_menu_settings">设置</string>
-    <string name="app_bottom_menu_start">开始</string>
-    <string name="app_bottom_menu_stop">停止</string>
-    <string name="app_bottom_menu_about">关于</string>
-    <string name="app_bottom_menu_exit">退出</string>
+    <string name="bottom_menu_stream"> 流 </string>
+    <string name="bottom_menu_settings">设置</string>
+    <string name="bottom_menu_start">开始</string>
+    <string name="bottom_menu_stop">停止</string>
+    <string name="bottom_menu_about">关于</string>
+    <string name="bottom_menu_exit">退出</string>
 
     <string name="app_fragment_stream_select_stream_mode">选择流模式：</string>
 
     <string name="permission_activity_error_title">错误</string>
     <string name="permission_activity_error_unknown">未知错误</string>
     <string name="app_activity_permission_permission_required_title">需要权限</string>
-    <string name="app_activity_permission_notifications_required_title">需要通知权限</string>
-    <string name="app_activity_permission_enable_notifications">应用需要启用通知以开始流媒体服务。\n\n请在应用设置中启用通知。</string>
-    <string name="app_activity_permission_allow_notifications">应用需要发送通知的权限以启动流媒体服务。\n\n请允许发送通知。</string>
-    <string name="app_activity_permission_allow_notifications_settings">应用需要发送通知的权限以启动流媒体服务。\n\n请在应用设置中允许发送通知。</string>
+    <string name="app_activity_permission_notifications_required_title">需要通知</string>
+    <string name="app_activity_permission_enable_notifications">要启动流服务，程序需要发送通知的权限。\n\n请在程序设置中启用通知。</string>
+    <string name="app_activity_permission_allow_notifications">要能启动流服务，程序需要发送通知的权限。\n\n请允许发送通知。</string>
+    <string name="app_activity_permission_allow_notifications_settings">为了能启动流服务，程序需要发送通知的权限。\n\n请在程序设置中允许发送通知。</string>
     <string name="app_activity_permission_notification_settings">打开设置</string>
 
-    <string name="app_notification_channel_streaming">流媒体通知</string>
+    <string name="app_notification_channel_streaming">流通知</string>
     <string name="app_notification_channel_error">错误通知</string>
-    <string name="app_notification_streaming_title">播送中</string>
-    <string name="app_notification_streaming_content">请按 停止 来中止视频流</string>
+    <string name="app_notification_streaming_title">播送中…</string>
+    <string name="app_notification_streaming_content">按下“停止”结束播送</string>
     <string name="app_notification_stop">停止</string>
 
-    <string name="app_pref_locale">应用语言</string>
-    <string name="app_pref_locale_summary">打开应用语言设置</string>
-    <string name="app_pref_night_mode">夜间模式</string>
+    <string name="app_pref_locale">程序语言</string>
+    <string name="app_pref_locale_summary">打开程序语言设置</string>
+    <string name="app_pref_night_mode">深色主题</string>
     <string-array name="app_pref_night_mode_options_api21_28">
-        <item>总是</item>
-        <item>由电池保护来决定</item>
-        <item>不用</item>
+            <item>始终</item>
+            <item>由节电器设置</item>
+            <item>从不</item>
     </string-array>
     <string-array name="app_pref_night_mode_options_api29">
-        <item>总是</item>
-        <item>自动 (跟随系统设置)</item>
-        <item>不用</item>
+            <item>始终</item>
+            <item>自动（跟随系统）</item>
+            <item>从不</item>
     </string-array>
-    <string name="app_pref_notification">设备通知设置</string>
+    <string name="app_pref_notification">打开设备通知设置</string>
     <string name="app_pref_notification_summary">打开系统通知设置</string>
-    <string name="app_pref_logging">启用应用日志</string>
-    <string name="app_pref_logging_summary">收集应用日志</string>
+    <string name="app_pref_logging">启用程序日志</string>
+    <string name="app_pref_logging_summary">收集程序日志</string>
 
-    <string name="app_about_fragment_app_version">版本: %1$s</string>
-    <string name="app_about_fragment_developer_name">由 Dmytro Kryvoruchko 开发</string>
-    <string name="app_about_fragment_rate_app">给应用打分</string>
-    <string name="app_about_fragment_write_email">给开发者写邮件</string>
-    <string name="app_about_fragment_write_email_dialog">想要给开发者发一封电子邮件吗？</string>
-    <string name="app_about_fragment_email_chooser_header">正在发送电子邮件……</string>
-    <string name="app_about_fragment_app_sources">应用源码</string>
+    <string name="app_about_fragment_app_name" translatable="false">ScreenStream</string>
+    <string name="app_about_fragment_app_version">版本：%1$s</string>
+    <string name="app_about_fragment_developer_name">开发者：Dmytro Kryvoruchko</string>
+    <string name="app_about_fragment_rate_app">评价程序</string>
+    <string name="app_about_fragment_write_email">给开发者写电子邮件</string>
+    <string name="app_about_fragment_write_email_dialog">要给开发者写电子邮件吗？</string>
+    <string name="app_about_fragment_email_chooser_header">正在发送电子邮件…</string>
+    <string name="app_about_fragment_app_sources">程序源码</string>
     <string name="app_about_fragment_terms_conditions">条款和条件</string>
     <string name="app_about_fragment_privacy_policy">隐私政策</string>
     <string name="app_about_fragment_privacy_options">隐私选项</string>
-    <string name="app_about_fragment_license">许可协议</string>
+    <string name="app_about_fragment_license">许可</string>
 </resources>
+
