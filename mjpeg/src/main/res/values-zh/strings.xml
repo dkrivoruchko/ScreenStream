@@ -46,9 +46,9 @@
     <string name="mjpeg_toast_slow_client_connection">检测到慢速客户端连接</string>
 
     <string name="mjpeg_pref_settings_interface">接口</string>
-    <string name="mjpeg_pref_keep_awake">保持设备清醒</string>
+    <string name="mjpeg_pref_keep_awake">保持设备唤醒状态</string>
     <string name="mjpeg_pref_keep_awake_summary">播送时保持设备活跃，屏幕不熄灭</string>
-    <string name="mjpeg_pref_stop_on_sleep">睡眠时停止播送</string>
+    <string name="mjpeg_pref_stop_on_sleep">休眠时停止播送</string>
     <string name="mjpeg_pref_stop_on_sleep_summary">若屏幕熄灭停止播送</string>
     <string name="mjpeg_pref_detect_slow_connections">提示慢速连接</string>
     <string name="mjpeg_pref_detect_slow_connections_summary">检测并提示慢速客户端连接</string>
@@ -101,7 +101,7 @@
 
     <string name="mjpeg_pref_settings_security">安全性</string>
     <string name="mjpeg_pref_enable_pin">启用 pin 码</string>
-    <string name="mjpeg_pref_enable_pin_summary">用 pin 码保护对视频流的访问</string>
+    <string name="mjpeg_pref_enable_pin_summary">用 pin 码保护对流的访问</string>
     <string name="mjpeg_pref_hide_pin">播送开始时隐藏 pin 码</string>
     <string name="mjpeg_pref_hide_pin_summary">播送时显示星号而非 pin 码</string>
     <string name="mjpeg_pref_new_pin_on_start">启动时生成新的 pin 码</string>
