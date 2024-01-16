@@ -398,9 +398,7 @@ internal class MjpegStreamingService(
                         configDiff and ActivityInfo.CONFIG_ORIENTATION != 0 || configDiff and ActivityInfo.CONFIG_SCREEN_LAYOUT != 0 ||
                         configDiff and ActivityInfo.CONFIG_SCREEN_SIZE != 0 || configDiff and ActivityInfo.CONFIG_DENSITY != 0
                     ) {
-                        //TODO Maybe add user settings about stop on config/network/change
-                        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) bitmapCapture?.restart()
-                        else sendEvent(MjpegEvent.Intentable.StopStream("ConfigurationChange"))
+                        bitmapCapture?.resize()
                     } else {
                         XLog.d(getLog("configurationChange", "No change relevant for streaming. Ignoring."))
                     }

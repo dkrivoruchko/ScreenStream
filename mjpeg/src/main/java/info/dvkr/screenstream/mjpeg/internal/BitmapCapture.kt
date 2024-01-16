@@ -48,21 +48,28 @@ internal class BitmapCapture(
     private fun windowContext(): Context = context.createDisplayContext(display)
         .createWindowContext(WindowManager.LayoutParams.TYPE_APPLICATION, null)
 
+    @Suppress("DEPRECATION")
     private fun getDensityDpiCompat(): Int =
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
-            @Suppress("DEPRECATION")
             DisplayMetrics().also { display.getMetrics(it) }.densityDpi
         } else {
             windowContext().resources.configuration.densityDpi
         }
 
-    private fun getScreenSizeCompat(): Point =
+    @Suppress("DEPRECATION")
+    private fun getScreenSizeCompatResized(): Pair<Int, Int> =
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
-            @Suppress("DEPRECATION")
             Point().also { display.getRealSize(it) }
         } else {
             val bounds = windowContext().getSystemService(WindowManager::class.java).maximumWindowMetrics.bounds
             Point(bounds.width(), bounds.height())
+        }.let { point ->
+            if (resizeFactor.get() < MjpegSettings.Values.RESIZE_DISABLED) {
+                val scale = resizeFactor.get() / 100f
+                Pair((point.x * scale).toInt(), (point.y * scale).toInt())
+            } else {
+                Pair(point.x, point.y)
+            }
         }
 
     private var imageListener: ImageListener? = null
@@ -87,17 +94,8 @@ internal class BitmapCapture(
     init {
         XLog.d(getLog("init"))
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) runBlocking {
-            resizeFactor.getAndSet(mjpegSettings.resizeFactorFlow.first())
-            rotation.getAndSet(mjpegSettings.rotationFlow.first())
-        }
-
-        updateMatrix()
-
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            mjpegSettings.resizeFactorFlow.listenForChange(coroutineScope) { if (resizeFactor.getAndSet(it) != it) updateMatrix() }
-            mjpegSettings.rotationFlow.listenForChange(coroutineScope) { if (rotation.getAndSet(it) != it) updateMatrix() }
-        }
+        mjpegSettings.resizeFactorFlow.listenForChange(coroutineScope) { if (resizeFactor.getAndSet(it) != it) updateMatrix() }
+        mjpegSettings.rotationFlow.listenForChange(coroutineScope) { if (rotation.getAndSet(it) != it) updateMatrix() }
         mjpegSettings.maxFPSFlow.listenForChange(coroutineScope) { maxFPS.set(it) }
         mjpegSettings.vrModeFlow.listenForChange(coroutineScope) { vrMode.set(it) }
         mjpegSettings.imageCropFlow.listenForChange(coroutineScope) { imageCrop.set(it) }
@@ -126,7 +124,6 @@ internal class BitmapCapture(
             newMatrix.postRotate(rotation.get().toFloat())
 
         matrix.set(newMatrix)
-        restart()
     }
 
     @Synchronized
@@ -152,24 +149,14 @@ internal class BitmapCapture(
 
     @SuppressLint("WrongConstant")
     private fun startDisplayCapture(): Boolean {
-        val screenSize = getScreenSizeCompat()
-
-        val screenSizeX: Int
-        val screenSizeY: Int
-        if (resizeFactor.get() < MjpegSettings.Values.RESIZE_DISABLED) {
-            val scale = resizeFactor.get() / 100f
-            screenSizeX = (screenSize.x * scale).toInt()
-            screenSizeY = (screenSize.y * scale).toInt()
-        } else {
-            screenSizeX = screenSize.x
-            screenSizeY = screenSize.y
-        }
+        val (screenSizeX, screenSizeY) = getScreenSizeCompatResized()
+        val densityDpi = getDensityDpiCompat()
 
         imageListener = ImageListener()
         imageReader = ImageReader.newInstance(screenSizeX, screenSizeY, PixelFormat.RGBA_8888, 2)
             .apply { setOnImageAvailableListener(imageListener, imageThreadHandler) }
+
         try {
-            val densityDpi = getDensityDpiCompat()
             virtualDisplay = mediaProjection.createVirtualDisplay(
                 "ScreenStreamVirtualDisplay", screenSizeX, screenSizeY, densityDpi,
                 DisplayManager.VIRTUAL_DISPLAY_FLAG_PRESENTATION, imageReader!!.surface, null, imageThreadHandler
@@ -193,15 +180,34 @@ internal class BitmapCapture(
     }
 
     @Synchronized
-    internal fun restart() {
-        XLog.d(getLog("restart", "Start"))
+    internal fun resize() {
+        XLog.d(getLog("resize", "Start"))
+
         if (state != State.STARTED) {
-            XLog.d(getLog("restart", "Ignored"))
-        } else {
-            stopDisplayCapture()
-            startDisplayCapture()
-            XLog.d(getLog("restart", "End"))
+            XLog.d(getLog("resize", "Ignored"))
+            return
         }
+
+        imageReader?.surface?.release() // For some reason imageReader.close() does not release surface
+        imageReader?.close()
+        imageReader = null
+
+        val (screenSizeX, screenSizeY) = getScreenSizeCompatResized()
+        val densityDpi = getDensityDpiCompat()
+
+        imageListener = ImageListener()
+        imageReader = ImageReader.newInstance(screenSizeX, screenSizeY, PixelFormat.RGBA_8888, 2)
+            .apply { setOnImageAvailableListener(imageListener, imageThreadHandler) }
+        try {
+            virtualDisplay?.resize(screenSizeX, screenSizeY, densityDpi)
+            virtualDisplay?.surface = imageReader!!.surface
+        } catch (ex: SecurityException) {
+            state = State.ERROR
+            XLog.w(getLog("resize", ex.toString()), ex)
+            onError(MjpegError.CastSecurityException)
+        }
+
+        XLog.d(getLog("resize", "End"))
     }
 
     private inner class ImageListener : ImageReader.OnImageAvailableListener {
