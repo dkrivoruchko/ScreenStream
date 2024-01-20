@@ -5,7 +5,6 @@ import android.app.Service
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.pm.ServiceInfo
-import android.os.Build
 import android.os.IBinder
 import androidx.core.app.ServiceCompat
 import androidx.core.content.ContextCompat
@@ -43,9 +42,6 @@ public abstract class AbstractModuleService : Service() {
         else ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION
 
         ServiceCompat.startForeground(this, notificationIdForeground, notification, serviceType)
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && foregroundServiceType and ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION == 0)
-            throw IllegalStateException("MjpegService is not FOREGROUND")
     }
 
     public fun stopForeground() {
@@ -58,7 +54,7 @@ public abstract class AbstractModuleService : Service() {
         hideErrorNotification()
 
         if (notificationHelper.notificationPermissionGranted(this).not()) {
-            XLog.e(getLog("showErrorNotification"), IllegalStateException("showErrorNotification: No permission granted. Ignoring."))
+            XLog.e(getLog("showErrorNotification", "No permission granted. Ignoring."))
             return
         }
 

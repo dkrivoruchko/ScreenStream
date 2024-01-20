@@ -37,15 +37,12 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.android.asCoroutineDispatcher
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.onStart
-import kotlinx.coroutines.isActive
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeoutOrNull
 import okhttp3.ConnectionSpec
@@ -55,7 +52,6 @@ import org.koin.core.annotation.Scope
 import org.koin.core.annotation.Scoped
 import org.webrtc.IceCandidate
 import java.util.concurrent.TimeUnit
-import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.math.pow
 
@@ -89,7 +85,6 @@ internal class WebRtcStreamingService(
         .build()
 
     private val playIntegrity = PlayIntegrity(service, environment, okHttpClient)
-    private val monitorScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val currentError: AtomicReference<WebRtcError?> = AtomicReference(null)
 
     // All Volatile vars must be write on this (WebRTC-HT) thread
@@ -136,8 +131,6 @@ internal class WebRtcStreamingService(
         data class ConfigurationChange(val newConfig: Configuration) : InternalEvent(Priority.STOP_IGNORE)
 
         data class Destroy(val destroyJob: CompletableJob) : InternalEvent(Priority.DESTROY_IGNORE)
-
-        data class Monitor(val counter: Int, val marker: AtomicBoolean) : InternalEvent(Priority.DESTROY_IGNORE)
     }
 
     private val passwordVerifier = SocketSignaling.PasswordVerifier { clientId, passwordHash ->
@@ -269,16 +262,6 @@ internal class WebRtcStreamingService(
         super.start()
         XLog.d(getLog("start"))
 
-        monitorScope.launch {
-            repeat(Int.MAX_VALUE) { counter ->
-                val marker = AtomicBoolean(false)
-                sendEvent(InternalEvent.Monitor(counter, marker))
-                delay(3000)
-                if (isActive && marker.get().not())
-                    XLog.e(this@WebRtcStreamingService.getLog("LOCK @:$counter"), IllegalArgumentException("LOCK @:$counter"))
-            }
-        }
-
         appStateFlowProvider.mutableAppStateFlow.value = AppState()
         mutableWebRtcStateFlow.value = WebRtcState()
         sendEvent(InternalEvent.InitState)
@@ -320,7 +303,6 @@ internal class WebRtcStreamingService(
         runCatching { service.unregisterReceiver(broadcastReceiver) }
         connectivityManager.unregisterNetworkCallback(networkCallback)
         coroutineScope.cancel()
-        monitorScope.cancel()
 
         val destroyJob = Job()
         sendEvent(InternalEvent.Destroy(destroyJob))
@@ -393,8 +375,6 @@ internal class WebRtcStreamingService(
     // On WebRTC-HT only
     private suspend fun processEvent(event: WebRtcEvent) {
         when (event) {
-            is InternalEvent.Monitor -> event.marker.set(true)
-
             is InternalEvent.InitState -> {
                 if (destroyPending) {
                     XLog.i(getLog("InitState", "DestroyPending. Ignoring"), IllegalStateException("InitState: DestroyPending"))
@@ -501,7 +481,7 @@ internal class WebRtcStreamingService(
 
             is InternalEvent.OpenSocket -> {
                 if (destroyPending) {
-                    XLog.i(getLog("OpenSocket", "DestroyPending. Ignoring"), IllegalStateException("OpenSocket: DestroyPending"))
+                    XLog.i(getLog("OpenSocket", "DestroyPending. Ignoring"))
                     return
                 }
 
@@ -768,7 +748,7 @@ internal class WebRtcStreamingService(
 
             is InternalEvent.EnableMic -> {
                 if (destroyPending) {
-                    XLog.i(getLog("EnableMic", "DestroyPending. Ignoring"), IllegalStateException("EnableMic: DestroyPending"))
+                    XLog.i(getLog("EnableMic", "DestroyPending. Ignoring"))
                     return
                 }
 
@@ -846,7 +826,7 @@ internal class WebRtcStreamingService(
                 }
 
                 if (isStreaming()) {
-                    XLog.i(getLog("CreateNewPassword", "Streaming. Ignoring."), IllegalStateException("CreateNewPassword: Streaming."))
+                    XLog.i(getLog("CreateNewPassword", "Streaming. Ignoring."))
                     return
                 }
 

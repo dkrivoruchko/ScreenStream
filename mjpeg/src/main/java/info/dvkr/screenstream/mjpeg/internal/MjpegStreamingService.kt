@@ -42,7 +42,6 @@ import kotlinx.coroutines.flow.*
 import org.koin.core.annotation.InjectedParam
 import org.koin.core.annotation.Scope
 import org.koin.core.annotation.Scoped
-import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.random.Random
 
 @Scope(MjpegKoinScope::class)
@@ -79,8 +78,6 @@ internal class MjpegStreamingService(
         canvas.drawText(message, (bitmap.width - bounds.width()) / 2f, 324f, paint)
         bitmap
     }
-
-    private val monitorScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     // All Volatiles vars must be write on this (WebRTC-HT) thread
     @Volatile private var wakeLock: PowerManager.WakeLock? = null
@@ -121,8 +118,6 @@ internal class MjpegStreamingService(
         data class Traffic(val time: Long, val traffic: List<MjpegState.TrafficPoint>) : InternalEvent(Priority.DESTROY_IGNORE) {
             override fun toString(): String = "Traffic(time=$time)"
         }
-
-        data class Monitor(val counter: Int, val marker: AtomicBoolean) : InternalEvent(Priority.DESTROY_IGNORE)
     }
 
     internal sealed class RestartReason(private val msg: String) {
@@ -153,16 +148,6 @@ internal class MjpegStreamingService(
     override fun start() {
         super.start()
         XLog.d(getLog("start"))
-
-        monitorScope.launch {
-            repeat(Int.MAX_VALUE) { counter ->
-                val marker = AtomicBoolean(false)
-                sendEvent(InternalEvent.Monitor(counter, marker))
-                delay(5000)
-                if (isActive && marker.get().not())
-                    XLog.e(this@MjpegStreamingService.getLog("LOCK @:$counter"), IllegalArgumentException("LOCK @:$counter"))
-            }
-        }
 
         appStateFlowProvider.mutableAppStateFlow.value = AppState()
         mutableMjpegStateFlow.value = MjpegState()
@@ -209,7 +194,6 @@ internal class MjpegStreamingService(
         XLog.d(getLog("destroyService"))
 
         wakeLock?.apply { if (isHeld) release() }
-        monitorScope.cancel()
         supervisorJob.cancel()
 
         val destroyJob = Job()
@@ -459,8 +443,6 @@ internal class MjpegStreamingService(
                 isStreaming -> XLog.i(getLog("CreateNewPin", "Streaming. Ignoring."), IllegalStateException("CreateNewPin: Streaming."))
                 mjpegSettings.enablePinFlow.first() -> mjpegSettings.setPin(randomPin()) // will restart server
             }
-
-            is InternalEvent.Monitor -> event.marker.set(true)
 
             else -> throw IllegalArgumentException("Unknown MjpegEvent: ${event::class.java}")
         }
