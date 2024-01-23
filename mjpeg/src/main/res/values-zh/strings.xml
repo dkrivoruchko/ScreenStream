@@ -80,18 +80,10 @@
     <string name="mjpeg_pref_grayscale_summary">发送到客户端前对图片进行灰度处理</string>
     <string name="mjpeg_pref_resize">调整图片尺寸</string>
     <string name="mjpeg_pref_resize_summary">发送到客户端前调整图片尺寸</string>
-    <string name="mjpeg_pref_resize_value" translatable="false">%1$d%%</string>
     <string name="mjpeg_pref_resize_dialog_text">设置图片尺寸调整的百分比率\n值：10–150 （默认：50）\n屏幕尺寸：%1$dx%2$d</string>
     <string name="mjpeg_pref_resize_dialog_result">图片尺寸： %1$dx%2$d</string>
     <string name="mjpeg_pref_rotate">顺时针旋转图片</string>
     <string name="mjpeg_pref_rotate_summary">发送到客户端前先旋转图片</string>
-    <string name="mjpeg_pref_rotate_value" translatable="false">%1$d\u00B0</string>
-    <string-array name="mjpeg_pref_rotate_options" translatable="false">
-        <item>0\u00B0</item>
-        <item>90\u00B0</item>
-        <item>180\u00B0</item>
-        <item>270\u00B0</item>
-    </string-array>
     <string name="mjpeg_pref_fps">限制每秒帧数</string>
     <string name="mjpeg_pref_fps_summary">设置每秒最大帧数</string>
     <string name="mjpeg_pref_fps_dialog">设置每秒最大帧数。\n值： 1–60 （默认：30）</string>
