@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="webrtc_error_recover">Recover</string>
+    <string name="webrtc_error_recover">恢复</string>
 
     <string name="webrtc_stream_fragment_mode_global">全局模式（WebRTC）</string>
     <string name="webrtc_stream_fragment_mode_global_description">全局模式</string>
@@ -46,15 +46,15 @@
 
     <string name="webrtc_stream_fragment_cast_permission_error_title">权限错误</string>
     <string name="webrtc_stream_fragment_cast_permission_error">系统不支持投屏功能</string>
-    <string name="webrtc_stream_fragment_cast_permission_required_title">权限时必需的</string>
+    <string name="webrtc_stream_fragment_cast_permission_required_title">权限是必需的</string>
     <string name="webrtc_stream_fragment_cast_permission_required">ScreenStream 需要投屏权限来捕获屏幕</string>
 
     <string name="webrtc_item_client_disconnect">断开连接</string>
 
-    <string name="webrtc_error_play_integrity_update_play_store">请更新 Google Play Store</string>
-    <string name="webrtc_error_play_integrity_install_play_store">请安装或启用官方 Google Play Store</string>
-    <string name="webrtc_error_play_integrity_install_play_service">请安装或启用 Play Services</string>
-    <string name="webrtc_error_play_integrity_update_play_service">请更新 Google Play Services</string>
+    <string name="webrtc_error_play_integrity_update_play_store">请更新 Google Play 商店</string>
+    <string name="webrtc_error_play_integrity_install_play_store">请安装或启用官方 Google Play 商店</string>
+    <string name="webrtc_error_play_integrity_install_play_service">请安装或启用 Play 服务</string>
+    <string name="webrtc_error_play_integrity_update_play_service">请更新 Google Play 服务</string>
     <string name="webrtc_error_check_network">请检查互联网连接</string>
     <string name="webrtc_notification_permission_required">需要授予通知权限程序才能启动流服务。\n\n请在程序设置中启用通知。</string>
     <string name="webrtc_error_unspecified">出错了。请稍后再试。</string>
