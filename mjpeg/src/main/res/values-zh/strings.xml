@@ -47,9 +47,9 @@
 
     <string name="mjpeg_pref_settings_interface">接口</string>
     <string name="mjpeg_pref_keep_awake">保持设备唤醒状态</string>
-    <string name="mjpeg_pref_keep_awake_summary">播送时保持设备活跃，屏幕不熄灭</string>
-    <string name="mjpeg_pref_stop_on_sleep">休眠时停止播送</string>
-    <string name="mjpeg_pref_stop_on_sleep_summary">若屏幕熄灭停止播送</string>
+    <string name="mjpeg_pref_keep_awake_summary">传输时保持设备活跃，屏幕不熄灭</string>
+    <string name="mjpeg_pref_stop_on_sleep">休眠时停止传输</string>
+    <string name="mjpeg_pref_stop_on_sleep_summary">若屏幕熄灭停止传输</string>
     <string name="mjpeg_pref_detect_slow_connections">提示慢速连接</string>
     <string name="mjpeg_pref_detect_slow_connections_summary">检测并提示慢速客户端连接</string>
     <string name="mjpeg_pref_html_buttons">启用网页按钮</string>
@@ -80,10 +80,18 @@
     <string name="mjpeg_pref_grayscale_summary">发送到客户端前对图片进行灰度处理</string>
     <string name="mjpeg_pref_resize">调整图片尺寸</string>
     <string name="mjpeg_pref_resize_summary">发送到客户端前调整图片尺寸</string>
+    <string name="mjpeg_pref_resize_value" translatable="false">%1$d%%</string>
     <string name="mjpeg_pref_resize_dialog_text">设置图片尺寸调整的百分比率\n值：10–150 （默认：50）\n屏幕尺寸：%1$dx%2$d</string>
     <string name="mjpeg_pref_resize_dialog_result">图片尺寸： %1$dx%2$d</string>
     <string name="mjpeg_pref_rotate">顺时针旋转图片</string>
     <string name="mjpeg_pref_rotate_summary">发送到客户端前先旋转图片</string>
+    <string name="mjpeg_pref_rotate_value" translatable="false">%1$d\u00B0</string>
+    <string-array name="mjpeg_pref_rotate_options" translatable="false">
+        <item>0\u00B0</item>
+        <item>90\u00B0</item>
+        <item>180\u00B0</item>
+        <item>270\u00B0</item>
+    </string-array>
     <string name="mjpeg_pref_fps">限制每秒帧数</string>
     <string name="mjpeg_pref_fps_summary">设置每秒最大帧数</string>
     <string name="mjpeg_pref_fps_dialog">设置每秒最大帧数。\n值： 1–60 （默认：30）</string>
@@ -94,8 +102,8 @@
     <string name="mjpeg_pref_settings_security">安全性</string>
     <string name="mjpeg_pref_enable_pin">启用 pin 码</string>
     <string name="mjpeg_pref_enable_pin_summary">用 pin 码保护对流的访问</string>
-    <string name="mjpeg_pref_hide_pin">播送开始时隐藏 pin 码</string>
-    <string name="mjpeg_pref_hide_pin_summary">播送时显示星号而非 pin 码</string>
+    <string name="mjpeg_pref_hide_pin">传输开始时隐藏 pin 码</string>
+    <string name="mjpeg_pref_hide_pin_summary">传输时显示星号而非 pin 码</string>
     <string name="mjpeg_pref_new_pin_on_start">启动时生成新的 pin 码</string>
     <string name="mjpeg_pref_new_pin_on_start_summary">程序启动时生成新 pin 码</string>
     <string name="mjpeg_pref_auto_change_pin">自动更改 pin 码</string>
@@ -112,7 +120,7 @@
     <string name="mjpeg_pref_enable_ipv6">启用 IPv6 支持</string>
     <string name="mjpeg_pref_enable_ipv6_summary">在 IPv6 地址上同样运行服务器</string>
     <string name="mjpeg_pref_enable_localhost">启用本地主机</string>
-    <string name="mjpeg_pref_enable_localhost_summary">在本地主机地址上同样运行 IPv6 服务器</string>
+    <string name="mjpeg_pref_enable_localhost_summary">在本地主机地址上同样运行服务器</string>
     <string name="mjpeg_pref_localhost_only">仅本地主机</string>
     <string name="mjpeg_pref_localhost_only_summary">只在本地主机地址上运行服务器</string>
     <string name="mjpeg_pref_server_port">服务器端口</string>
@@ -120,12 +128,12 @@
     <string name="mjpeg_pref_server_port_dialog">设置传入连接的服务器端口。\n值的范围：1025–65535\n（默认：8080）</string>
 
     <string name="mjpeg_error_port_in_use">此端口已被占用。请另选一个。</string>
-    <string name="mjpeg_error_invalid_media_projection">安全错误：无效的媒体保护。请再试一次。</string>
+    <string name="mjpeg_error_invalid_media_projection">安全错误：无效的媒体投影。请再试一次。</string>
     <string name="mjpeg_error_ip_address_not_found">没找到 IP 地址。\n试着在流设置中停用 \"仅使用 WiFi\" 。</string>
     <string name="mjpeg_error_notification_permission_required">要能启动流服务，程序需要发送通知。 \n\n请在程序设置中启用通知。</string>
     <string name="mjpeg_error_unspecified">出错了。请稍后再试。</string>
 
-    <string name="mjpeg_start_image_text">在设备上开始播送</string>
+    <string name="mjpeg_start_image_text">在设备上开始传输</string>
 
     <!--HTML text-->
     <string name="mjpeg_html_stream_connecting">尝试连接中</string>

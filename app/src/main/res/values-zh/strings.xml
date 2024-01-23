@@ -1,24 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_error_title">错误</string>
+    <string name="app_name" translatable="false">Screen Stream</string>
+
+    <string name="error_title"> 错误 </string>
     <string name="app_error_recover">恢复</string>
 
-    <string name="app_activity_logs_collecting">正在收集程序日志…</string>
-    <string name="app_activity_logs_send">把日志发送给开发者</string>
-    <string name="app_activity_logs_send_dialog_title">把日志通过电子邮件发送给开发者</string>
-    <string name="app_activity_logs_send_dialog_message">请添加问题描述：</string>
-    <string name="app_activity_logs_send_dialog_neutral">停止记录日志</string>
+    <string name="app_activity_collecting_logs"> 正在收集程序日志…</string>
+    <string name="app_activity_send_logs"> 把日志发送给开发者 </string>
+    <string name="app_activity_send_logs_dialog_title"> 把日志通过电子邮件发送给开发者 </string>
+    <string name="app_activity_send_logs_dialog_message">请添加问题描述：</string>
+    <string name="app_activity_send_logs_dialog_neutral">停止记录日志</string>
 
-    <string name="app_activity_update_dialog_title">有新版本</string>
-    <string name="app_activity_update_dialog_message">更新已下载完毕，是否想现在重启程序？</string>
-    <string name="app_activity_update_dialog_restart">重启程序 </string>
+    <string name="app_update_activity_dialog_title"> 有新版本 </string>
+    <string name="app_update_activity_dialog_message"> 更新已下载完毕，是否想现在重启程序？</string>
+    <string name="app_update_activity_dialog_restart"> 重启程序 </string>
 
-    <string name="app_bottom_menu_stream">流</string>
-    <string name="app_bottom_menu_settings">设置</string>
-    <string name="app_bottom_menu_start">开始</string>
-    <string name="app_bottom_menu_stop">停止</string>
-    <string name="app_bottom_menu_about">关于</string>
-    <string name="app_bottom_menu_exit">退出</string>
+    <string name="bottom_menu_stream"> 流 </string>
+    <string name="bottom_menu_settings">设置</string>
+    <string name="bottom_menu_start">开始</string>
+    <string name="bottom_menu_stop">停止</string>
+    <string name="bottom_menu_about">关于</string>
+    <string name="bottom_menu_exit">退出</string>
 
     <string name="app_fragment_stream_select_stream_mode">选择流模式：</string>
 
@@ -33,28 +35,29 @@
 
     <string name="app_notification_channel_streaming">流通知</string>
     <string name="app_notification_channel_error">错误通知</string>
-    <string name="app_notification_streaming_title">播送中…</string>
-    <string name="app_notification_streaming_content">按下“停止”结束播送</string>
+    <string name="app_notification_streaming_title">传输中…</string>
+    <string name="app_notification_streaming_content">按下“停止”结束传输</string>
     <string name="app_notification_stop">停止</string>
 
     <string name="app_pref_locale">程序语言</string>
     <string name="app_pref_locale_summary">打开程序语言设置</string>
     <string name="app_pref_night_mode">深色主题</string>
     <string-array name="app_pref_night_mode_options_api21_28">
-        <item>始终</item>
-        <item>由节电器设置</item>
-        <item>从不</item>
+            <item>始终</item>
+            <item>由节电器设置</item>
+            <item>从不</item>
     </string-array>
     <string-array name="app_pref_night_mode_options_api29">
-        <item>始终</item>
-        <item>自动（跟随系统）</item>
-        <item>从不</item>
+            <item>始终</item>
+            <item>自动（跟随系统）</item>
+            <item>从不</item>
     </string-array>
     <string name="app_pref_notification">打开设备通知设置</string>
     <string name="app_pref_notification_summary">打开系统通知设置</string>
     <string name="app_pref_logging">启用程序日志</string>
     <string name="app_pref_logging_summary">收集程序日志</string>
 
+    <string name="app_about_fragment_app_name" translatable="false">ScreenStream</string>
     <string name="app_about_fragment_app_version">版本：%1$s</string>
     <string name="app_about_fragment_developer_name">开发者：Dmytro Kryvoruchko</string>
     <string name="app_about_fragment_rate_app">评价程序</string>
@@ -67,3 +70,4 @@
     <string name="app_about_fragment_privacy_options">隐私选项</string>
     <string name="app_about_fragment_license">许可</string>
 </resources>
+
