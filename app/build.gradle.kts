@@ -57,7 +57,6 @@ android {
             applicationIdSuffix = ".dev"
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
-
         release {
             isMinifyEnabled = true
             isShrinkResources = true
@@ -75,7 +74,6 @@ android {
             dimension = "Default"
             val localProps = Properties()
             File(rootProject.rootDir, "local.properties").apply { if (exists() && isFile) inputStream().use { localProps.load(it) } }
-
             manifestPlaceholders += mapOf("adMobPubId" to localProps.getProperty("ad.pubId", "\"\""))
             buildConfigField("String", "AD_UNIT_IDS", localProps.getProperty("ad.unitIds", "\"[]\""))
         }
@@ -99,6 +97,8 @@ android {
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
+            excludes += "custom.config.*"
+            excludes += "DebugProbesKt.bin"
         }
     }
 }

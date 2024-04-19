@@ -43,8 +43,6 @@ dependencies {
 
     ksp(libs.koin.ksp)
 
-    implementation(libs.kotlin.reflect)
-
     implementation(libs.ktor.server.cio)
     implementation(libs.ktor.server.compression)
     implementation(libs.ktor.server.caching.headers)
@@ -52,4 +50,8 @@ dependencies {
     implementation(libs.ktor.server.forwarded.header)
     implementation(libs.ktor.server.websockets)
     implementation(libs.ktor.server.status.pages)
+}
+
+configurations.all {
+    exclude("org.fusesource.jansi", "jansi")
 }

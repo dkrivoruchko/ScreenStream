@@ -73,7 +73,6 @@ processPhoenix = { module = "com.jakewharton:process-phoenix", version.ref = "pr
 xlog = { module = "com.elvishew:xlog", version.ref = "xlog" }
 
 #MJPEG
-kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect", version.ref = "kotlin" }
 ktor-server-cio = { module = "io.ktor:ktor-server-cio", version.ref = "ktor" }
 ktor-server-compression = { module = "io.ktor:ktor-server-compression", version.ref = "ktor" }
 ktor-server-caching-headers = { module = "io.ktor:ktor-server-caching-headers", version.ref = "ktor" }
