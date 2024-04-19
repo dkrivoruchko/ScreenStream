@@ -3,33 +3,28 @@
     <string name="app_error_title">Error</string>
     <string name="app_error_recover">تعافى</string>
 
-    <string name="app_activity_logs_collecting">جمع سجلات التطبيقات…</string>
-    <string name="app_activity_logs_send">أرسل السجلات إلى المطور</string>
-    <string name="app_activity_logs_send_dialog_title">أرسل السجلات في البريد الإلكتروني إلى المطور</string>
-    <string name="app_activity_logs_send_dialog_message">يرجى إضافة وصف المشكلة:</string>
-    <string name="app_activity_logs_send_dialog_neutral">توقف عن تسجيل الدخول</string>
+    <string name="app_logs_collecting">جمع سجلات التطبيقات…</string>
+    <string name="app_logs_send_title">أرسل السجلات إلى المطور</string>
+    <string name="app_logs_send_message">يرجى إضافة وصف المشكلة:</string>
+    <string name="app_logs_send">إرسال</string>
+    <string name="app_logs_enabled">تم تمكين تسجيل البيانات</string>
+    <string name="app_logs_disabled">تم تعطيل تسجيل البيانات</string>
+    <string name="app_logs_stop">توقف عن تسجيل الدخول</string>
 
     <string name="app_activity_update_dialog_title">التحديث متاح</string>
     <string name="app_activity_update_dialog_message">تم تنزيل تحديث للتو. أعد تشغيل التطبيق الآن؟</string>
     <string name="app_activity_update_dialog_restart">اسْتَأْنَفَ</string>
 
-    <string name="app_bottom_menu_stream">بث</string>
-    <string name="app_bottom_menu_settings">الإعدادات</string>
-    <string name="app_bottom_menu_start">بداية</string>
-    <string name="app_bottom_menu_stop">توقف</string>
-    <string name="app_bottom_menu_about">حول</string>
-    <string name="app_bottom_menu_exit">خروج</string>
+    <string name="app_tab_stream">بث</string>
+    <string name="app_tab_settings">الإعدادات</string>
+    <string name="app_tab_about">حول</string>
 
-    <string name="app_fragment_stream_select_stream_mode">حدد وضع البث:</string>
+    <string name="app_tab_stream_select_mode">حدد وضع البث:</string>
 
-    <string name="permission_activity_error_title">خَطَأ</string>
-    <string name="permission_activity_error_unknown">خطأ غير معروف</string>
-    <string name="app_activity_permission_permission_required_title">الإذن مطلوب</string>
-    <string name="app_activity_permission_notifications_required_title">الإشعارات المطلوبة</string>
-    <string name="app_activity_permission_enable_notifications">يتطلب التطبيق تمكين الإشعارات لبدء خدمة البث.\n\يرجى تمكين الإشعارات في إعدادات التطبيق.</string>
-    <string name="app_activity_permission_allow_notifications">يتطلب التطبيق إذنا لإرسال إشعارات لتتمكن من بدء خدمة البث.\n\يرجى السماح بإرسال الإشعارات.</string>
-    <string name="app_activity_permission_allow_notifications_settings">يتطلب التطبيق إذنا لإرسال إشعارات لتتمكن من بدء خدمة البث.\n\يرجى السماح بإرسال الإشعارات في إعدادات التطبيق.</string>
-    <string name="app_activity_permission_notification_settings">افتح الإعدادات</string>
+    <string name="app_permission_required_title">الإذن مطلوب</string>
+    <string name="app_permission_allow_notifications">يتطلب التطبيق إذنا لإرسال إشعارات لتتمكن من بدء خدمة البث.\n\يرجى السماح بإرسال الإشعارات.</string>
+    <string name="app_permission_allow_notifications_settings">يتطلب التطبيق إذنا لإرسال إشعارات لتتمكن من بدء خدمة البث.\n\يرجى السماح بإرسال الإشعارات في إعدادات التطبيق.</string>
+    <string name="app_permission_notification_settings">افتح الإعدادات</string>
 
     <string name="app_notification_channel_streaming">إشعارات البث</string>
     <string name="app_notification_channel_error">Error إشعارات</string>
@@ -37,8 +32,14 @@
     <string name="app_notification_streaming_content">اضغط على توقف لإنهاء البث</string>
     <string name="app_notification_stop">توقف</string>
 
+    <string name="app_pref_settings_search">بحث الإعدادات</string>
+    <string name="app_pref_search">بحث</string>
+    <string name="app_pref_close">إغلاق</string>
+    <string name="app_pref_back">رجوع</string>
+    <string name="app_pref_settings">إعدادات التطبيق</string>
     <string name="app_pref_locale">لغة التطبيق</string>
     <string name="app_pref_locale_summary">افتح إعدادات لغة التطبيق</string>
+    <string name="app_pref_locale_default">الافتراضي للنظام</string>
     <string name="app_pref_night_mode">موضوع مظلم</string>
     <string-array name="app_pref_night_mode_options_api21_28">
         <item>دائما</item>
@@ -50,20 +51,21 @@
         <item>تلقائيا (اتبع النظام)</item>
         <item>لا … قط</item>
     </string-array>
+    <string name="app_pref_dynamic_theme">اللون الديناميكي</string>
+    <string name="app_pref_dynamic_theme_summary">ضبط المظهر استنادًا إلى ألوان خلفية سطح المكتب الخاصة بك</string>
     <string name="app_pref_notification">إعدادات إشعار الجهاز</string>
     <string name="app_pref_notification_summary">افتح إعدادات إشعار النظام</string>
     <string name="app_pref_logging">تمكين سجلات التطبيقات</string>
     <string name="app_pref_logging_summary">جمع سجلات التطبيقات</string>
 
-    <string name="app_about_fragment_app_version">Version: %1$s</string>
-    <string name="app_about_fragment_developer_name">تم تطويره بواسطة دميترو كريفوروشكو</string>
-    <string name="app_about_fragment_rate_app">تطبيق السعر</string>
-    <string name="app_about_fragment_write_email">اكتب بريدا إلكترونيا إلى المطور</string>
-    <string name="app_about_fragment_write_email_dialog">اكتب بريدا إلكترونيا إلى المطور؟</string>
-    <string name="app_about_fragment_email_chooser_header">إرسال بريد إلكتروني…</string>
-    <string name="app_about_fragment_app_sources">مصادر التطبيق</string>
-    <string name="app_about_fragment_terms_conditions">الشروط والأحكام</string>
-    <string name="app_about_fragment_privacy_policy">سياسة الخصوصية</string>
-    <string name="app_about_fragment_privacy_options">خيارات الخصوصية</string>
-    <string name="app_about_fragment_license">رخص</string>
+    <string name="app_tab_about_app_version">Version: %1$s</string>
+    <string name="app_tab_about_developer_name">تم تطويره بواسطة دميترو كريفوروشكو</string>
+    <string name="app_tab_about_rate_app">تطبيق السعر</string>
+    <string name="app_tab_about_write_email">اكتب بريدا إلكترونيا إلى المطور</string>
+    <string name="app_tab_about_email_chooser_header">إرسال بريد إلكتروني…</string>
+    <string name="app_tab_about_app_sources">مصادر التطبيق</string>
+    <string name="app_tab_about_terms_conditions">الشروط والأحكام</string>
+    <string name="app_tab_about_privacy_policy">سياسة الخصوصية</string>
+    <string name="app_tab_about_privacy_options">خيارات الخصوصية</string>
+    <string name="app_tab_about_license">رخص</string>
 </resources>

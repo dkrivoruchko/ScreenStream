@@ -5,14 +5,14 @@ import android.content.Context
 import android.content.Intent
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.common.getLog
-import info.dvkr.screenstream.common.module.AbstractModuleService
-import info.dvkr.screenstream.mjpeg.internal.MjpegError
+import info.dvkr.screenstream.common.module.StreamingModuleService
 import info.dvkr.screenstream.mjpeg.internal.MjpegEvent
+import info.dvkr.screenstream.mjpeg.ui.MjpegError
 import kotlinx.coroutines.runBlocking
 import org.koin.android.ext.android.inject
 import org.koin.core.qualifier.named
 
-public class MjpegModuleService : AbstractModuleService() {
+public class MjpegModuleService : StreamingModuleService() {
 
     internal companion object {
         internal fun getIntent(context: Context): Intent = Intent(context, MjpegModuleService::class.java)
@@ -43,7 +43,7 @@ public class MjpegModuleService : AbstractModuleService() {
         }
         XLog.d(getLog("onStartCommand", "MjpegEvent: $mjpegEvent, startId: $startId"))
 
-        if (streamingModulesManager.isActive(MjpegStreamingModule.Id)) {
+        if (streamingModuleManager.isActive(MjpegStreamingModule.Id)) {
             when (mjpegEvent) {
                 is MjpegEvent.Intentable.StartService -> mjpegStreamingModule.onServiceStart(this)
                 is MjpegEvent.Intentable.StopStream -> mjpegStreamingModule.sendEvent(mjpegEvent)
@@ -59,7 +59,7 @@ public class MjpegModuleService : AbstractModuleService() {
 
     override fun onDestroy() {
         XLog.d(getLog("onDestroy"))
-        runBlocking { streamingModulesManager.stopModule(MjpegStreamingModule.Id) }
+        runBlocking { streamingModuleManager.stopModule(MjpegStreamingModule.Id) }
         super.onDestroy()
     }
 
@@ -67,21 +67,26 @@ public class MjpegModuleService : AbstractModuleService() {
     internal fun startForeground() {
         XLog.d(getLog("startForeground"))
 
-        if (notificationHelper.notificationPermissionGranted(this).not()) throw MjpegError.NotificationPermissionRequired
-
-        val stopIntent = MjpegEvent.Intentable.StopStream("MjpegModuleService. User action: Notification").toIntent(this)
-        startForeground(stopIntent)
+        if (notificationHelper.notificationPermissionGranted(this) && notificationHelper.foregroundNotificationsEnabled()) {
+            val stopIntent = MjpegEvent.Intentable.StopStream("MjpegModuleService. User action: Notification").toIntent(this)
+            startForeground(stopIntent)
+        } else {
+            throw MjpegError.NotificationPermissionRequired
+        }
     }
 
     internal fun showErrorNotification(error: MjpegError) {
-        if (error is MjpegError.AddressNotFoundException || error is MjpegError.AddressInUseException) {
+        if (error is MjpegError.NotificationPermissionRequired) return
+
+        if (error in listOf(MjpegError.AddressNotFoundException, MjpegError.AddressInUseException)) {
             XLog.i(getLog("showErrorNotification", "${error.javaClass.simpleName} ${error.cause}"))
         } else {
             XLog.e(getLog("showErrorNotification"), error)
         }
 
-        val message = error.toString(this)
-        val recoverIntent = MjpegEvent.Intentable.RecoverError.toIntent(this)
-        showErrorNotification(message, recoverIntent)
+        showErrorNotification(
+            message = error.toString(this),
+            recoverIntent = MjpegEvent.Intentable.RecoverError.toIntent(this)
+        )
     }
 }

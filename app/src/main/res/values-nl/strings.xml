@@ -3,33 +3,28 @@
     <string name="app_error_title">Fout</string>
     <string name="app_error_recover">Herstellen</string>
 
-    <string name="app_activity_logs_collecting">Logboek word opgeslagen…</string>
-    <string name="app_activity_logs_send">Stuur het logboek naar de developers</string>
-    <string name="app_activity_logs_send_dialog_title">Stuur het logboek via mail naar de developers</string>
-    <string name="app_activity_logs_send_dialog_message">Beschrijf de fout:</string>
-    <string name="app_activity_logs_send_dialog_neutral">Stop met loggen</string>
+    <string name="app_logs_collecting">Logboek word opgeslagen…</string>
+    <string name="app_logs_send_title">Stuur het logboek naar de developers</string>
+    <string name="app_logs_send_message">Beschrijf de fout:</string>
+    <string name="app_logs_send">Verzenden</string>
+    <string name="app_logs_enabled">Loggen ingeschakeld</string>
+    <string name="app_logs_disabled">Loggen uitgeschakeld</string>
+    <string name="app_logs_stop">Stop met loggen</string>
 
     <string name="app_activity_update_dialog_title">Update beschikbaar</string>
     <string name="app_activity_update_dialog_message">Een update is zojuist gedownload. Herstart de app</string>
     <string name="app_activity_update_dialog_restart">Herstart</string>
 
-    <string name="app_bottom_menu_stream">Stream</string>
-    <string name="app_bottom_menu_settings">Instellingen</string>
-    <string name="app_bottom_menu_start">Start</string>
-    <string name="app_bottom_menu_stop">Stop</string>
-    <string name="app_bottom_menu_about">Informatie</string>
-    <string name="app_bottom_menu_exit">Sluiten</string>
+    <string name="app_tab_stream">Stream</string>
+    <string name="app_tab_settings">Instellingen</string>
+    <string name="app_tab_about">Informatie</string>
 
-    <string name="app_fragment_stream_select_stream_mode">Selecteer streammodus:</string>
+    <string name="app_tab_stream_select_mode">Selecteer streammodus:</string>
 
-    <string name="permission_activity_error_title">Fout</string>
-    <string name="permission_activity_error_unknown">Onbekende fout</string>
-    <string name="app_activity_permission_permission_required_title">Toestemming nodig</string>
-    <string name="app_activity_permission_notifications_required_title">Meldingen vereist</string>
-    <string name="app_activity_permission_enable_notifications">De applicatie vereist dat meldingen zijn ingeschakeld om de streamingdienst te starten.\n\nSchakel meldingen in in de applicatie-instellingen.</string>
-    <string name="app_activity_permission_allow_notifications">De applicatie vereist toestemming om meldingen te versturen om de streamingdienst te kunnen starten.\n\nGeef toestemming voor het versturen van meldingen.</string>
-    <string name="app_activity_permission_allow_notifications_settings">De applicatie vereist toestemming om meldingen te versturen om de streamingdienst te kunnen starten.\n\nGeef toestemming voor het versturen van meldingen in de applicatie-instellingen.</string>
-    <string name="app_activity_permission_notification_settings">Instellingen openen</string>
+    <string name="app_permission_required_title">Toestemming nodig</string>
+    <string name="app_permission_allow_notifications">De applicatie vereist toestemming om meldingen te versturen om de streamingdienst te kunnen starten.\n\nGeef toestemming voor het versturen van meldingen.</string>
+    <string name="app_permission_allow_notifications_settings">De applicatie vereist toestemming om meldingen te versturen om de streamingdienst te kunnen starten.\n\nGeef toestemming voor het versturen van meldingen in de applicatie-instellingen.</string>
+    <string name="app_permission_notification_settings">Instellingen openen</string>
 
     <string name="app_notification_channel_streaming">Meldingen voor streaming</string>
     <string name="app_notification_channel_error">Foutmeldingen</string>
@@ -37,8 +32,14 @@
     <string name="app_notification_streaming_content">Druk op STOP om de stream te stoppen</string>
     <string name="app_notification_stop">Stop</string>
 
+    <string name="app_pref_settings_search">Instellingen zoeken</string>
+    <string name="app_pref_search">Zoeken</string>
+    <string name="app_pref_close">Sluiten</string>
+    <string name="app_pref_back">Terug</string>
+    <string name="app_pref_settings">Applicatie-instellingen</string>
     <string name="app_pref_locale">Applicatietaal</string>
     <string name="app_pref_locale_summary">Open applicatietaalinstellingen</string>
+    <string name="app_pref_locale_default">Standaard systeemtaal</string>
     <string name="app_pref_night_mode">Donker modus</string>
     <string-array name="app_pref_night_mode_options_api21_28">
         <item>Altijd</item>
@@ -50,20 +51,21 @@
         <item>Automatisch (via systeem)</item>
         <item>Nooit</item>
     </string-array>
+    <string name="app_pref_dynamic_theme">Dynamische kleur</string>
+    <string name="app_pref_dynamic_theme_summary">Pas het uiterlijk aan op basis van de kleuren van uw achtergrond</string>
     <string name="app_pref_notification">Toestel notificatie instellingen</string>
     <string name="app_pref_notification_summary">Open notificatie instellingen</string>
     <string name="app_pref_logging">Zet applicatie loggen aan</string>
     <string name="app_pref_logging_summary">Totaal logboek opsomming</string>
 
-    <string name="app_about_fragment_app_version">Versie: %1$s</string>
-    <string name="app_about_fragment_developer_name">Gemaakt door Dmytro Kryvoruchko</string>
-    <string name="app_about_fragment_rate_app">Beoordeel de app</string>
-    <string name="app_about_fragment_write_email">Schrijf een email naar de developer</string>
-    <string name="app_about_fragment_write_email_dialog">Stuur een mail naar de developer?</string>
-    <string name="app_about_fragment_email_chooser_header">Mail word verzonden…</string>
-    <string name="app_about_fragment_app_sources">Applicatie bronnen</string>
-    <string name="app_about_fragment_terms_conditions">Algemene Voorwaarden</string>
-    <string name="app_about_fragment_privacy_policy">Privacybeleid</string>
-    <string name="app_about_fragment_privacy_options">Privacyopties</string>
-    <string name="app_about_fragment_license">Licentie</string>
+    <string name="app_tab_about_app_version">Versie: %1$s</string>
+    <string name="app_tab_about_developer_name">Gemaakt door Dmytro Kryvoruchko</string>
+    <string name="app_tab_about_rate_app">Beoordeel de app</string>
+    <string name="app_tab_about_write_email">Schrijf een email naar de developer</string>
+    <string name="app_tab_about_email_chooser_header">Mail word verzonden…</string>
+    <string name="app_tab_about_app_sources">Applicatie bronnen</string>
+    <string name="app_tab_about_terms_conditions">Algemene Voorwaarden</string>
+    <string name="app_tab_about_privacy_policy">Privacybeleid</string>
+    <string name="app_tab_about_privacy_options">Privacyopties</string>
+    <string name="app_tab_about_license">Licentie</string>
 </resources>

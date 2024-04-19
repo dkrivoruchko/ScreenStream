@@ -11,9 +11,10 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.LinearGradient
 import android.graphics.Paint
 import android.graphics.Rect
-import android.hardware.display.DisplayManager
+import android.graphics.Shader
 import android.media.projection.MediaProjection
 import android.media.projection.MediaProjectionManager
 import android.os.Build
@@ -22,23 +23,30 @@ import android.os.HandlerThread
 import android.os.Looper
 import android.os.Message
 import android.os.PowerManager
-import android.view.Display
-import android.view.LayoutInflater
-import android.view.WindowManager
 import android.widget.Toast
 import androidx.annotation.AnyThread
 import androidx.annotation.MainThread
-import androidx.appcompat.content.res.AppCompatResources
-import androidx.core.content.ContextCompat
 import com.elvishew.xlog.XLog
-import info.dvkr.screenstream.common.AppState
-import info.dvkr.screenstream.common.AppStateFlowProvider
 import info.dvkr.screenstream.common.getLog
-import info.dvkr.screenstream.mjpeg.*
-import info.dvkr.screenstream.mjpeg.databinding.ToastMjpegSlowConnectionBinding
-import kotlinx.coroutines.*
+import info.dvkr.screenstream.mjpeg.MjpegKoinScope
+import info.dvkr.screenstream.mjpeg.MjpegModuleService
+import info.dvkr.screenstream.mjpeg.R
+import info.dvkr.screenstream.mjpeg.settings.MjpegSettings
+import info.dvkr.screenstream.mjpeg.ui.MjpegError
+import info.dvkr.screenstream.mjpeg.ui.MjpegState
+import kotlinx.coroutines.CompletableJob
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.android.asCoroutineDispatcher
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeoutOrNull
 import org.koin.core.annotation.InjectedParam
 import org.koin.core.annotation.Scope
 import org.koin.core.annotation.Scoped
@@ -49,7 +57,6 @@ import kotlin.random.Random
 internal class MjpegStreamingService(
     @InjectedParam private val service: MjpegModuleService,
     @InjectedParam private val mutableMjpegStateFlow: MutableStateFlow<MjpegState>,
-    private val appStateFlowProvider: AppStateFlowProvider,
     private val networkHelper: NetworkHelper,
     private val mjpegSettings: MjpegSettings
 ) : HandlerThread("MJPEG-HT", android.os.Process.THREAD_PRIORITY_DISPLAY), Handler.Callback {
@@ -65,28 +72,16 @@ internal class MjpegStreamingService(
     private val httpServer by lazy(mode = LazyThreadSafetyMode.NONE) {
         HttpServer(service, mjpegSettings, bitmapStateFlow.asStateFlow(), ::sendEvent)
     }
-    private val startBitmap: Bitmap by lazy(mode = LazyThreadSafetyMode.NONE) { //TODO make it size of screen
-        val bitmap = Bitmap.createBitmap(600, 400, Bitmap.Config.ARGB_8888)
-        val canvas = Canvas(bitmap).apply { drawRGB(19, 43, 66) }  // #132B42
-        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { textSize = 24f; color = Color.WHITE }
-        val logo = service.getFileFromAssets("logo.png")
-            .run { BitmapFactory.decodeByteArray(this, 0, size) }
-            .let { Bitmap.createScaledBitmap(it, 256, 256, true) }
-        canvas.drawBitmap(logo, 172f, 16f, paint)
-        val message = service.getString(R.string.mjpeg_start_image_text)
-        val bounds = Rect().apply { paint.getTextBounds(message, 0, message.length, this) }
-        canvas.drawText(message, (bitmap.width - bounds.width()) / 2f, 324f, paint)
-        bitmap
-    }
 
     // All Volatiles vars must be write on this (WebRTC-HT) thread
     @Volatile private var wakeLock: PowerManager.WakeLock? = null
     // All Volatiles vars must be write on this (WebRTC-HT) thread
 
     // All vars must be read/write on this (WebRTC-HT) thread
+    private var startBitmap: Bitmap? = null
     private var pendingServer: Boolean = true
     private var deviceConfiguration: Configuration = Configuration(service.resources.configuration)
-    private var netInterfaces: List<MjpegState.NetInterface> = emptyList()
+    private var netInterfaces: List<MjpegNetInterface> = emptyList()
     private var clients: List<MjpegState.Client> = emptyList()
     private var slowClients: List<MjpegState.Client> = emptyList()
     private var traffic: List<MjpegState.TrafficPoint> = emptyList()
@@ -102,7 +97,7 @@ internal class MjpegStreamingService(
     internal sealed class InternalEvent(priority: Int) : MjpegEvent(priority) {
         data class InitState(val clearIntent: Boolean = true) : InternalEvent(Priority.RESTART_IGNORE)
         data class DiscoverAddress(val reason: String, val attempt: Int) : InternalEvent(Priority.RESTART_IGNORE)
-        data class StartServer(val interfaces: List<MjpegState.NetInterface>) : InternalEvent(Priority.RESTART_IGNORE)
+        data class StartServer(val interfaces: List<MjpegNetInterface>) : InternalEvent(Priority.RESTART_IGNORE)
         data object StartStream : InternalEvent(Priority.RESTART_IGNORE)
         data object StartStopFromWebPage : InternalEvent(Priority.RESTART_IGNORE)
         data object ScreenOff : InternalEvent(Priority.RESTART_IGNORE)
@@ -111,6 +106,7 @@ internal class MjpegStreamingService(
         }
         data class Clients(val clients: List<MjpegState.Client>) : InternalEvent(Priority.RESTART_IGNORE)
         data class RestartServer(val reason: RestartReason) : InternalEvent(Priority.RESTART_IGNORE)
+        data object UpdateStartBitmap : InternalEvent(Priority.RESTART_IGNORE)
 
         data class Error(val error: MjpegError) : InternalEvent(Priority.RECOVER_IGNORE)
 
@@ -149,12 +145,13 @@ internal class MjpegStreamingService(
         super.start()
         XLog.d(getLog("start"))
 
-        appStateFlowProvider.mutableAppStateFlow.value = AppState()
         mutableMjpegStateFlow.value = MjpegState()
         sendEvent(InternalEvent.InitState())
 
         coroutineScope.launch {
-            if (mjpegSettings.enablePinFlow.first() && mjpegSettings.newPinOnAppStartFlow.first()) mjpegSettings.setPin(randomPin())
+            if (mjpegSettings.data.value.enablePin && mjpegSettings.data.value.newPinOnAppStart) {
+                mjpegSettings.updateData { copy(pin = randomPin()) }
+            }
         }
 
         service.startListening(
@@ -163,28 +160,31 @@ internal class MjpegStreamingService(
             onConnectionChanged = { sendEvent(InternalEvent.RestartServer(RestartReason.ConnectionChanged)) }
         )
 
-        mjpegSettings.enablePinFlow.listenForChange(coroutineScope, 1) {
+        mjpegSettings.data.map { it.htmlBackColor }.listenForChange(coroutineScope, 1) {
+            sendEvent(InternalEvent.UpdateStartBitmap)
+        }
+        mjpegSettings.data.map { it.enablePin }.listenForChange(coroutineScope, 1) {
             sendEvent(InternalEvent.RestartServer(RestartReason.SettingsChanged(MjpegSettings.Key.ENABLE_PIN.name)))
         }
-        mjpegSettings.pinFlow.listenForChange(coroutineScope, 1) {
+        mjpegSettings.data.map { it.pin }.listenForChange(coroutineScope, 1) {
             sendEvent(InternalEvent.RestartServer(RestartReason.SettingsChanged(MjpegSettings.Key.PIN.name)))
         }
-        mjpegSettings.blockAddressFlow.listenForChange(coroutineScope, 1) {
+        mjpegSettings.data.map { it.blockAddress }.listenForChange(coroutineScope, 1) {
             sendEvent(InternalEvent.RestartServer(RestartReason.SettingsChanged(MjpegSettings.Key.BLOCK_ADDRESS.name)))
         }
-        mjpegSettings.useWiFiOnlyFlow.listenForChange(coroutineScope, 1) {
+        mjpegSettings.data.map { it.useWiFiOnly }.listenForChange(coroutineScope, 1) {
             sendEvent(InternalEvent.RestartServer(RestartReason.NetworkSettingsChanged(MjpegSettings.Key.USE_WIFI_ONLY.name)))
         }
-        mjpegSettings.enableIPv6Flow.listenForChange(coroutineScope, 1) {
+        mjpegSettings.data.map { it.enableIPv6 }.listenForChange(coroutineScope, 1) {
             sendEvent(InternalEvent.RestartServer(RestartReason.NetworkSettingsChanged(MjpegSettings.Key.ENABLE_IPV6.name)))
         }
-        mjpegSettings.enableLocalHostFlow.listenForChange(coroutineScope, 1) {
+        mjpegSettings.data.map { it.enableLocalHost }.listenForChange(coroutineScope, 1) {
             sendEvent(InternalEvent.RestartServer(RestartReason.NetworkSettingsChanged(MjpegSettings.Key.ENABLE_LOCAL_HOST.name)))
         }
-        mjpegSettings.localHostOnlyFlow.listenForChange(coroutineScope, 1) {
+        mjpegSettings.data.map { it.localHostOnly }.listenForChange(coroutineScope, 1) {
             sendEvent(InternalEvent.RestartServer(RestartReason.NetworkSettingsChanged(MjpegSettings.Key.LOCAL_HOST_ONLY.name)))
         }
-        mjpegSettings.serverPortFlow.listenForChange(coroutineScope, 1) {
+        mjpegSettings.data.map { it.serverPort }.listenForChange(coroutineScope, 1) {
             sendEvent(InternalEvent.RestartServer(RestartReason.NetworkSettingsChanged(MjpegSettings.Key.SERVER_PORT.name)))
         }
     }
@@ -285,10 +285,10 @@ internal class MjpegStreamingService(
                 if (pendingServer.not()) httpServer.stop(false)
 
                 val newInterfaces = networkHelper.getNetInterfaces(
-                    mjpegSettings.useWiFiOnlyFlow.first(),
-                    mjpegSettings.enableIPv6Flow.first(),
-                    mjpegSettings.enableLocalHostFlow.first(),
-                    mjpegSettings.localHostOnlyFlow.first()
+                    mjpegSettings.data.value.useWiFiOnly,
+                    mjpegSettings.data.value.enableIPv6,
+                    mjpegSettings.data.value.enableLocalHost,
+                    mjpegSettings.data.value.localHostOnly
                 )
 
                 if (newInterfaces.isNotEmpty()) {
@@ -309,7 +309,7 @@ internal class MjpegStreamingService(
                 if (pendingServer.not()) httpServer.stop(false)
                 httpServer.start(event.interfaces.toList())
 
-                if (mjpegSettings.htmlShowPressStartFlow.first()) bitmapStateFlow.value = startBitmap
+                if (mjpegSettings.data.value.htmlShowPressStart) bitmapStateFlow.value = getStartBitmap()
 
                 netInterfaces = event.interfaces
                 pendingServer = false
@@ -355,7 +355,7 @@ internal class MjpegStreamingService(
 
                     @Suppress("DEPRECATION")
                     @SuppressLint("WakelockTimeout")
-                    if (Build.MANUFACTURER !in listOf("OnePlus", "OPPO") && mjpegSettings.keepAwakeFlow.first()) {
+                    if (Build.MANUFACTURER !in listOf("OnePlus", "OPPO") && mjpegSettings.data.value.keepAwake) {
                         val flags = PowerManager.SCREEN_DIM_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP
                         wakeLock = powerManager.newWakeLock(flags, "ScreenStream::MJPEG-Tag").apply { acquire() }
                     }
@@ -368,11 +368,13 @@ internal class MjpegStreamingService(
             is MjpegEvent.Intentable.StopStream -> {
                 stopStream()
 
-                if (mjpegSettings.enablePinFlow.first() && mjpegSettings.autoChangePinFlow.first()) mjpegSettings.setPin(randomPin())
-                if (mjpegSettings.htmlShowPressStartFlow.first()) bitmapStateFlow.value = startBitmap
+                if (mjpegSettings.data.value.enablePin && mjpegSettings.data.value.autoChangePin)
+                    mjpegSettings.updateData { copy(pin = randomPin()) }
+
+                if (mjpegSettings.data.value.htmlShowPressStart) bitmapStateFlow.value = getStartBitmap()
             }
 
-            is InternalEvent.ScreenOff -> if (isStreaming && mjpegSettings.stopOnSleepFlow.first())
+            is InternalEvent.ScreenOff -> if (isStreaming && mjpegSettings.data.value.stopOnSleep)
                 sendEvent(MjpegEvent.Intentable.StopStream("ScreenOff"))
 
             is InternalEvent.ConfigurationChange -> {
@@ -394,6 +396,7 @@ internal class MjpegStreamingService(
 
             is InternalEvent.RestartServer -> {
                 stopStream()
+                waitingForPermission = false
                 if (pendingServer) {
                     XLog.d(getLog("processEvent", "RestartServer: No running server."))
                     if (currentError == MjpegError.AddressNotFoundException) currentError = null
@@ -402,6 +405,11 @@ internal class MjpegStreamingService(
                     sendEvent(InternalEvent.InitState(false))
                 }
                 sendEvent(InternalEvent.DiscoverAddress("RestartServer", 0))
+            }
+
+            InternalEvent.UpdateStartBitmap -> {
+                startBitmap = null
+                if (isStreaming.not() && mjpegSettings.data.value.htmlShowPressStart) bitmapStateFlow.value = getStartBitmap()
             }
 
             is MjpegEvent.Intentable.RecoverError -> {
@@ -425,9 +433,11 @@ internal class MjpegStreamingService(
 
             is InternalEvent.Clients -> {
                 clients = event.clients
-                if (mjpegSettings.notifySlowConnectionsFlow.first()) {
+                if (mjpegSettings.data.value.notifySlowConnections) {
                     val currentSlowClients = event.clients.filter { it.state == MjpegState.Client.State.SLOW_CONNECTION }.toList()
-                    if (slowClients.containsAll(currentSlowClients).not()) showSlowConnectionToast()
+                    if (slowClients.containsAll(currentSlowClients).not()) {
+                        mainHandler.post { Toast.makeText(service, R.string.mjpeg_slow_client_connection, Toast.LENGTH_LONG).show() }
+                    }
                     slowClients = currentSlowClients
                 }
             }
@@ -441,7 +451,7 @@ internal class MjpegStreamingService(
                 )
 
                 isStreaming -> XLog.i(getLog("CreateNewPin", "Streaming. Ignoring."), IllegalStateException("CreateNewPin: Streaming."))
-                mjpegSettings.enablePinFlow.first() -> mjpegSettings.setPin(randomPin()) // will restart server
+                mjpegSettings.data.value.enablePin -> mjpegSettings.updateData { copy(pin = randomPin()) } // will restart server
             }
 
             else -> throw IllegalArgumentException("Unknown MjpegEvent: ${event::class.java}")
@@ -478,11 +488,20 @@ internal class MjpegStreamingService(
     // Inline Only
     @Suppress("NOTHING_TO_INLINE")
     private inline fun publishState() {
-        val isBusy = pendingServer || destroyPending || waitingForPermission || currentError != null
-        val state = MjpegState(isBusy, waitingForPermission, isStreaming, netInterfaces, clients.toList(), traffic.toList(), currentError)
+        val state = MjpegState(
+            isBusy = pendingServer || destroyPending || waitingForPermission || currentError != null,
+            serverNetInterfaces = netInterfaces.map {
+                MjpegState.ServerNetInterface(it.name, "http://${it.address.asString()}:${mjpegSettings.data.value.serverPort}")
+            }.sortedBy { it.fullAddress },
+            waitingCastPermission = waitingForPermission,
+            isStreaming = isStreaming,
+            pin = MjpegState.Pin(mjpegSettings.data.value.enablePin, mjpegSettings.data.value.pin, mjpegSettings.data.value.hidePinOnStart),
+            clients = clients.toList(),
+            traffic = traffic.toList(),
+            error = currentError
+        )
 
         mutableMjpegStateFlow.value = state
-        appStateFlowProvider.mutableAppStateFlow.value = state.toAppState()
 
         if (previousError != currentError) {
             previousError = currentError
@@ -490,28 +509,28 @@ internal class MjpegStreamingService(
         }
     }
 
-    @Suppress("DEPRECATION")
-    private fun showSlowConnectionToast() {
-        mainHandler.post {
-            runCatching {
-                val windowContext = if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
-                    service
-                } else {
-                    val display = ContextCompat.getSystemService(service, DisplayManager::class.java)!!.getDisplay(Display.DEFAULT_DISPLAY)
-                    service.createDisplayContext(display).createWindowContext(WindowManager.LayoutParams.TYPE_TOAST, null)
-                }
-
-                val layoutInflater = ContextCompat.getSystemService(windowContext, LayoutInflater::class.java)!!
-                val binding = ToastMjpegSlowConnectionBinding.inflate(layoutInflater)
-                val drawable = AppCompatResources.getDrawable(windowContext, R.drawable.mjpeg_ic_toast_24dp)
-                binding.ivToastSlowConnection.setImageDrawable(drawable)
-                Toast(windowContext).apply { view = binding.root; duration = Toast.LENGTH_LONG }.show()
-            }
-                .onFailure { XLog.w(getLog("showSlowConnectionToast", it.message), it) }
-        }
-    }
-
     private fun randomPin(): String = Random.nextInt(10).toString() + Random.nextInt(10).toString() +
             Random.nextInt(10).toString() + Random.nextInt(10).toString() +
             Random.nextInt(10).toString() + Random.nextInt(10).toString()
+
+    private fun getStartBitmap(): Bitmap {
+        startBitmap?.let { return it }
+
+        val bitmap = Bitmap.createBitmap(600, 400, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap).apply {
+            drawColor(mjpegSettings.data.value.htmlBackColor)
+            val shader = LinearGradient(0F, 0F, 0F, 400F, Color.parseColor("#144A74"), Color.parseColor("#001D34"), Shader.TileMode.CLAMP);
+            drawRoundRect(0F, 0F, 600F, 400F, 32F, 32F, Paint().apply { setShader(shader) })
+        }
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { textSize = 24f; color = Color.WHITE }
+        val logo = service.getFileFromAssets("logo.png")
+            .run { BitmapFactory.decodeByteArray(this, 0, size) }
+            .let { Bitmap.createScaledBitmap(it, 256, 256, true) }
+        canvas.drawBitmap(logo, 172f, 16f, paint)
+        val message = service.getString(R.string.mjpeg_start_image_text)
+        val bounds = Rect().apply { paint.getTextBounds(message, 0, message.length, this) }
+        canvas.drawText(message, (bitmap.width - bounds.width()) / 2f, 324f, paint)
+        startBitmap = bitmap
+        return bitmap
+    }
 }

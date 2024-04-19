@@ -6,8 +6,11 @@ import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.common.getAppVersion
 import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.common.randomString
-import info.dvkr.screenstream.mjpeg.*
+import info.dvkr.screenstream.mjpeg.BuildConfig
+import info.dvkr.screenstream.mjpeg.R
 import info.dvkr.screenstream.mjpeg.internal.HttpServerData.Companion.getClientId
+import info.dvkr.screenstream.mjpeg.settings.MjpegSettings
+import info.dvkr.screenstream.mjpeg.ui.MjpegError
 import io.ktor.http.CacheControl
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
@@ -19,8 +22,11 @@ import io.ktor.server.application.ApplicationStarted
 import io.ktor.server.application.ApplicationStopped
 import io.ktor.server.application.call
 import io.ktor.server.application.install
-import io.ktor.server.cio.*
-import io.ktor.server.engine.*
+import io.ktor.server.cio.CIO
+import io.ktor.server.cio.CIOApplicationEngine
+import io.ktor.server.engine.applicationEngineEnvironment
+import io.ktor.server.engine.connector
+import io.ktor.server.engine.embeddedServer
 import io.ktor.server.plugins.cachingheaders.CachingHeaders
 import io.ktor.server.plugins.compression.Compression
 import io.ktor.server.plugins.compression.deflate
@@ -41,8 +47,36 @@ import io.ktor.websocket.DefaultWebSocketSession
 import io.ktor.websocket.Frame
 import io.ktor.websocket.readText
 import io.ktor.websocket.send
-import kotlinx.coroutines.*
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineExceptionHandler
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.conflate
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onCompletion
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.flow.shareIn
+import kotlinx.coroutines.flow.takeWhile
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import org.json.JSONObject
 import java.io.ByteArrayOutputStream
 import java.io.IOException
@@ -59,7 +93,7 @@ internal class HttpServer(
     private val sendEvent: (MjpegEvent) -> Unit
 ) {
     private val favicon: ByteArray = context.getFileFromAssets("favicon.ico")
-    private val logoPng: ByteArray = context.getFileFromAssets("logo.png")
+    private val logoSvg: ByteArray = context.getFileFromAssets("logo.svg")
     private val baseIndexHtml = String(context.getFileFromAssets("index.html"), StandardCharsets.UTF_8)
         .replace("%CONNECTING%", context.getString(R.string.mjpeg_html_stream_connecting))
         .replace("%STREAM_REQUIRE_PIN%", context.getString(R.string.mjpeg_html_stream_require_pin))
@@ -81,22 +115,26 @@ internal class HttpServer(
         XLog.d(getLog("init"))
     }
 
-    internal suspend fun start(serverAddresses: List<MjpegState.NetInterface>) {
+    internal suspend fun start(serverAddresses: List<MjpegNetInterface>) {
         XLog.d(getLog("startServer"))
 
         serverData.configure(mjpegSettings)
 
         val coroutineScope = CoroutineScope(Job() + Dispatchers.Default)
 
-        mjpegSettings.htmlBackColorFlow.onEach { htmlBackColor ->
-            indexHtml.set(baseIndexHtml.replace("BACKGROUND_COLOR", "#%06X".format(0xFFFFFF and htmlBackColor)))
-        }.launchIn(coroutineScope)
+        mjpegSettings.data
+            .map { it.htmlBackColor }
+            .distinctUntilChanged()
+            .onEach { htmlBackColor -> indexHtml.set(baseIndexHtml.replace("BACKGROUND_COLOR", htmlBackColor.toColorHexString())) }
+            .launchIn(coroutineScope)
 
-        mjpegSettings.htmlEnableButtonsFlow.combineTransform(mjpegSettings.htmlBackColorFlow) { htmlEnableButtons, htmlBackColor ->
-            emit(Pair(htmlEnableButtons && serverData.enablePin.not(), "#%06X".format(0xFFFFFF and htmlBackColor)))
-        }.distinctUntilChanged().onEach { (enableButtons, backColor) ->
-            serverData.notifyClients("SETTINGS", JSONObject().put("enableButtons", enableButtons).put("backColor", backColor))
-        }.launchIn(coroutineScope)
+        mjpegSettings.data
+            .map { Pair(it.htmlEnableButtons && serverData.enablePin.not(), it.htmlBackColor.toColorHexString()) }
+            .distinctUntilChanged()
+            .onEach { (enableButtons, backColor) ->
+                serverData.notifyClients("SETTINGS", JSONObject().put("enableButtons", enableButtons).put("backColor", backColor))
+            }
+            .launchIn(coroutineScope)
 
         val resultJpegStream = ByteArrayOutputStream()
         lastJPEG.set(ByteArray(0))
@@ -105,7 +143,7 @@ internal class HttpServer(
         val mjpegSharedFlow = bitmapStateFlow
             .map { bitmap ->
                 resultJpegStream.reset()
-                bitmap.compress(Bitmap.CompressFormat.JPEG, mjpegSettings.jpegQualityFlow.first(), resultJpegStream)
+                bitmap.compress(Bitmap.CompressFormat.JPEG, mjpegSettings.data.value.jpegQuality, resultJpegStream)
                 resultJpegStream.toByteArray()
             }
             .filter { it.isNotEmpty() }
@@ -121,7 +159,7 @@ internal class HttpServer(
             .conflate()
             .shareIn(coroutineScope, SharingStarted.Eagerly, 1)
 
-        val serverPort = mjpegSettings.serverPortFlow.first()
+        val serverPort = mjpegSettings.data.value.serverPort
         val server = embeddedServer(CIO, applicationEngineEnvironment {
             parentCoroutineContext = CoroutineExceptionHandler { _, throwable ->
                 XLog.e(this@HttpServer.getLog("parentCoroutineContext", "coroutineExceptionHandler: $throwable"), throwable)
@@ -227,9 +265,9 @@ internal class HttpServer(
         routing {
             get("/") { call.respondText(indexHtml.get(), ContentType.Text.Html) }
             get("favicon.ico") { call.respondBytes(favicon, ContentType.Image.XIcon) }
-            get("logo.png") { call.respondBytes(logoPng, ContentType.Image.PNG) }
+            get("logo.svg") { call.respondBytes(logoSvg, ContentType.Image.SVG) }
             get("start-stop") {
-                if (mjpegSettings.htmlEnableButtonsFlow.first() && serverData.enablePin.not())
+                if (mjpegSettings.data.value.htmlEnableButtons && serverData.enablePin.not())
                     sendEvent(MjpegStreamingService.InternalEvent.StartStopFromWebPage)
                 call.respond(HttpStatusCode.NoContent)
             }
@@ -257,14 +295,14 @@ internal class HttpServer(
                         frame as? Frame.Text ?: continue
                         val msg = runCatching { JSONObject(frame.readText()) }.getOrNull() ?: continue
 
-                        val enableButtons = mjpegSettings.htmlEnableButtonsFlow.first() && serverData.enablePin.not()
+                        val enableButtons = mjpegSettings.data.value.htmlEnableButtons && serverData.enablePin.not()
                         val streamData = JSONObject().put("enableButtons", enableButtons).put("streamAddress", serverData.streamAddress)
 
                         when (val type = msg.optString("type").uppercase()) {
                             "HEARTBEAT" -> send("HEARTBEAT", msg.optString("data"))
 
                             "CONNECT" -> when {
-                                mjpegSettings.enablePinFlow.first().not() -> send("STREAM_ADDRESS", streamData)
+                                mjpegSettings.data.value.enablePin.not() -> send("STREAM_ADDRESS", streamData)
                                 serverData.isAddressBlocked(remoteAddress) -> send("UNAUTHORIZED", "ADDRESS_BLOCKED")
                                 serverData.isClientAuthorized(clientId) -> send("STREAM_ADDRESS", streamData)
                                 else -> send("UNAUTHORIZED", null)

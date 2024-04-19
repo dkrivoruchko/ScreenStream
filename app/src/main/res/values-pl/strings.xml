@@ -3,33 +3,28 @@
     <string name="app_error_title">Błąd</string>
     <string name="app_error_recover">Odzyskaj</string>
 
-    <string name="app_activity_logs_collecting">Trwa zbieranie dzienników aplikacji…</string>
-    <string name="app_activity_logs_send">Wyślij dzienniki do programisty</string>
-    <string name="app_activity_logs_send_dialog_title">Wyślij dzienniki e-mailem do programisty</string>
-    <string name="app_activity_logs_send_dialog_message">Dodaj opis problemu:</string>
-    <string name="app_activity_logs_send_dialog_neutral">Zatrzymaj rejestrowanie</string>
+    <string name="app_logs_collecting">Trwa zbieranie dzienników aplikacji…</string>
+    <string name="app_logs_send_title">Wyślij dzienniki do programisty</string>
+    <string name="app_logs_send_message">Dodaj opis problemu:</string>
+    <string name="app_logs_send">Wyślij</string>
+    <string name="app_logs_enabled">Logowanie włączone</string>
+    <string name="app_logs_disabled">Logowanie wyłączone</string>
+    <string name="app_logs_stop">Zatrzymaj rejestrowanie</string>
 
     <string name="app_activity_update_dialog_title">Dostępna aktualizacja</string>
     <string name="app_activity_update_dialog_message">Pobrano aktualizację. Zrestartować aplikację?</string>
     <string name="app_activity_update_dialog_restart">Uruchom ponownie</string>
 
-    <string name="app_bottom_menu_stream">Transmisja</string>
-    <string name="app_bottom_menu_settings">Ustawienia</string>
-    <string name="app_bottom_menu_start">Uruchom</string>
-    <string name="app_bottom_menu_stop">Zatrzymaj</string>
-    <string name="app_bottom_menu_about">O aplikacji</string>
-    <string name="app_bottom_menu_exit">Zamknij</string>
+    <string name="app_tab_stream">Transmisja</string>
+    <string name="app_tab_settings">Ustawienia</string>
+    <string name="app_tab_about">O aplikacji</string>
 
-    <string name="app_fragment_stream_select_stream_mode">Wybierz tryb strumienia:</string>
+    <string name="app_tab_stream_select_mode">Wybierz tryb strumienia:</string>
 
-    <string name="permission_activity_error_title">Błąd</string>
-    <string name="permission_activity_error_unknown">Nieznany błąd</string>
-    <string name="app_activity_permission_permission_required_title">Wymaga pozwolenia</string>
-    <string name="app_activity_permission_notifications_required_title">Wymagane powiadomienia</string>
-    <string name="app_activity_permission_enable_notifications">Aplikacja wymaga włączonych powiadomień, aby rozpocząć usługę przesyłania strumieniowego.\n\nProszę włączyć powiadomienia w ustawieniach aplikacji.</string>
-    <string name="app_activity_permission_allow_notifications">Aplikacja wymaga zgody na wysyłanie powiadomień, aby rozpocząć usługę przesyłania strumieniowego.\n\nProszę zezwolić na wysyłanie powiadomień.</string>
-    <string name="app_activity_permission_allow_notifications_settings">Aplikacja wymaga zgody na wysyłanie powiadomień, aby rozpocząć usługę przesyłania strumieniowego.\n\nProszę zezwolić na wysyłanie powiadomień w ustawieniach aplikacji.</string>
-    <string name="app_activity_permission_notification_settings">Otwórz ustawienia</string>
+    <string name="app_permission_required_title">Wymaga pozwolenia</string>
+    <string name="app_permission_allow_notifications">Aplikacja wymaga zgody na wysyłanie powiadomień, aby rozpocząć usługę przesyłania strumieniowego.\n\nProszę zezwolić na wysyłanie powiadomień.</string>
+    <string name="app_permission_allow_notifications_settings">Aplikacja wymaga zgody na wysyłanie powiadomień, aby rozpocząć usługę przesyłania strumieniowego.\n\nProszę zezwolić na wysyłanie powiadomień w ustawieniach aplikacji.</string>
+    <string name="app_permission_notification_settings">Otwórz ustawienia</string>
 
     <string name="app_notification_channel_streaming">Powiadomienia o przesyłaniu</string>
     <string name="app_notification_channel_error">Powiadomienia o błędach</string>
@@ -37,8 +32,14 @@
     <string name="app_notification_streaming_content">Naciśnij STOP, aby zakończyć transmisję</string>
     <string name="app_notification_stop">Stop</string>
 
+    <string name="app_pref_settings_search">Wyszukiwanie ustawień</string>
+    <string name="app_pref_search">Szukaj</string>
+    <string name="app_pref_close">Zamknij</string>
+    <string name="app_pref_back">Powrót</string>
+    <string name="app_pref_settings">Ustawienia aplikacji</string>
     <string name="app_pref_locale">Język aplikacji</string>
     <string name="app_pref_locale_summary">Otwiera ustawienia języka aplikacji</string>
+    <string name="app_pref_locale_default">Domyślny dla systemu</string>
     <string name="app_pref_night_mode">Ciemny motyw</string>
     <string-array name="app_pref_night_mode_options_api21_28">
         <item>Zawsze</item>
@@ -50,20 +51,21 @@
         <item>Automatyczny (zgodny z systemem)</item>
         <item>Nigdy</item>
     </string-array>
+    <string name="app_pref_dynamic_theme">Dynamiczny kolor</string>
+    <string name="app_pref_dynamic_theme_summary">Dostosuj wygląd na podstawie kolorów tapety</string>
     <string name="app_pref_notification">Ustawienia powiadomień</string>
     <string name="app_pref_notification_summary">Otwiera ustawienia powiadomień systemu</string>
     <string name="app_pref_logging">Włącz dzienniki aplikacji</string>
     <string name="app_pref_logging_summary">Zbieraj dzienniki aplikacji</string>
 
-    <string name="app_about_fragment_app_version">Wersja: %1$s</string>
-    <string name="app_about_fragment_developer_name">Programista Dmytro Kryvoruchko</string>
-    <string name="app_about_fragment_rate_app">Oceń aplikację</string>
-    <string name="app_about_fragment_write_email">Napisz e-mail do autora</string>
-    <string name="app_about_fragment_write_email_dialog">Wysłać e-mail do autora?</string>
-    <string name="app_about_fragment_email_chooser_header">Wysyłam wiadomość e-mail…</string>
-    <string name="app_about_fragment_app_sources">Kod źródłowy aplikacji</string>
-    <string name="app_about_fragment_terms_conditions">Regulamin</string>
-    <string name="app_about_fragment_privacy_policy">Polityka prywatności</string>
-    <string name="app_about_fragment_privacy_options">Opcje prywatności</string>
-    <string name="app_about_fragment_license">Licencja</string>
+    <string name="app_tab_about_app_version">Wersja: %1$s</string>
+    <string name="app_tab_about_developer_name">Programista Dmytro Kryvoruchko</string>
+    <string name="app_tab_about_rate_app">Oceń aplikację</string>
+    <string name="app_tab_about_write_email">Napisz e-mail do autora</string>
+    <string name="app_tab_about_email_chooser_header">Wysyłam wiadomość e-mail…</string>
+    <string name="app_tab_about_app_sources">Kod źródłowy aplikacji</string>
+    <string name="app_tab_about_terms_conditions">Regulamin</string>
+    <string name="app_tab_about_privacy_policy">Polityka prywatności</string>
+    <string name="app_tab_about_privacy_options">Opcje prywatności</string>
+    <string name="app_tab_about_license">Licencja</string>
 </resources>

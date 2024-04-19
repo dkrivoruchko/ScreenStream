@@ -1,9 +1,9 @@
+import com.google.gms.googleservices.GoogleServicesPlugin
 import java.util.Properties
 
 plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.kotlinAndroid)
-    alias(libs.plugins.kotlinParcelize)
     alias(libs.plugins.ksp)
     alias(libs.plugins.googleServices)
     alias(libs.plugins.firebaseCrashlytics)
@@ -22,15 +22,15 @@ android {
     }
 
     namespace = "info.dvkr.screenstream"
-    compileSdk = 34
-    buildToolsVersion = "34.0.0"
+    compileSdk = rootProject.extra["compileSdkVersion"] as Int
+    buildToolsVersion = rootProject.extra["buildToolsVersion"] as String
 
     defaultConfig {
         applicationId = "info.dvkr.screenstream"
-        minSdk = 23
-        targetSdk = 34
-        versionCode = 40031
-        versionName = "4.0.31"
+        minSdk = rootProject.extra["minSdkVersion"] as Int
+        targetSdk = rootProject.extra["targetSdkVersion"] as Int
+        versionCode = 41000
+        versionName = "4.1.0"
 
         // https://medium.com/@crafty/no-if-you-do-that-then-you-cant-use-newer-features-on-older-platforms-e-g-fa595333c0a4
         vectorDrawables.useSupportLibrary = true
@@ -44,13 +44,11 @@ android {
 
     buildFeatures {
         buildConfig = true
-        viewBinding = true
+        compose = true
     }
 
-    val localProps = Properties()
-    val localProperties = File(rootProject.rootDir, "local.properties")
-    if (localProperties.exists() && localProperties.isFile) {
-        localProperties.inputStream().use { localProps.load(it) }
+    composeOptions {
+        kotlinCompilerExtensionVersion = rootProject.extra["composeCompilerVersion"] as String
     }
 
     buildTypes {
@@ -69,27 +67,22 @@ android {
 
     flavorDimensions += listOf("Default")
     productFlavors {
-        create("firebase") {
-            manifestPlaceholders += mapOf("adMobPubId" to localProps.getProperty("ad.pubId"))
-            buildConfigField("String", "AD_UNIT_ID_A", localProps.getProperty("ad.unitIdA", ""))
-            buildConfigField("String", "AD_UNIT_ID_B", localProps.getProperty("ad.unitIdB", ""))
-            buildConfigField("String", "AD_UNIT_ID_C", localProps.getProperty("ad.unitIdC", ""))
-        }
-        create("firebasefree") {
+        create("FOSS") {
+            dimension = "Default"
             manifestPlaceholders += mapOf("adMobPubId" to "")
-            configure<com.google.firebase.crashlytics.buildtools.gradle.CrashlyticsExtension> {
-                mappingFileUploadEnabled = false
-            }
+        }
+        create("nonFOSS") {
+            dimension = "Default"
+            val localProps = Properties()
+            File(rootProject.rootDir, "local.properties").apply { if (exists() && isFile) inputStream().use { localProps.load(it) } }
+
+            manifestPlaceholders += mapOf("adMobPubId" to localProps.getProperty("ad.pubId", "\"\""))
+            buildConfigField("String", "AD_UNIT_IDS", localProps.getProperty("ad.unitIds", "\"[]\""))
         }
     }
 
-    applicationVariants.all {
-        val variantName = name
-        sourceSets {
-            getByName("main") {
-                java.srcDir(File("build/generated/ksp/$variantName/kotlin"))
-            }
-        }
+    googleServices {
+        missingGoogleServicesStrategy = GoogleServicesPlugin.MissingGoogleServicesStrategy.IGNORE
     }
 
     compileOptions {
@@ -102,6 +95,12 @@ android {
         jvmTarget = JavaVersion.VERSION_11.toString()
         freeCompilerArgs += "-Xexplicit-api=strict"
     }
+
+    packaging {
+        resources {
+            excludes += "/META-INF/{AL2.0,LGPL2.1}"
+        }
+    }
 }
 
 dependencies {
@@ -109,25 +108,27 @@ dependencies {
 
     ksp(libs.koin.ksp)
 
-    implementation(libs.androidx.lifecycle.process)
-    implementation(libs.androidx.navigation.fragment)
-    implementation(libs.androidx.navigation.ui)
-
-    // Temp fix for https://github.com/afollestad/material-dialogs/issues/1825
-    implementation(fileTree("libs/bottomsheets-release.aar"))
-
     implementation(project(":common"))
+
+    implementation(libs.androidx.core.splashscreen)
+    implementation(libs.processPhoenix)
+
+    implementation("androidx.compose.material3:material3-adaptive-navigation-suite:1.0.0-alpha06")
+    implementation("androidx.compose.material3.adaptive:adaptive-layout:1.0.0-alpha11")
+    implementation("androidx.compose.material3.adaptive:adaptive-navigation:1.0.0-alpha11")
+
+    // MJPEG
     implementation(project(":mjpeg"))
-    "firebaseImplementation"(project(":webrtc"))
-    "firebaseImplementation"(libs.play.app.update)
-    "firebaseImplementation"(libs.play.services.ads)
-    "firebaseImplementation"(libs.firebase.analytics)
-    "firebaseImplementation"(libs.firebase.crashlytics)
 
-//    debugImplementation("com.squareup.leakcanary:leakcanary-android:2.12")
-}
+    // nonFOSS-WebRTC
+    "nonFOSSImplementation"(project(":webrtc"))
+    "nonFOSSImplementation"(libs.play.services.tasks)
+    "nonFOSSImplementation"(libs.play.app.update)
+    "nonFOSSImplementation"(libs.play.services.ads)
+    "nonFOSSImplementation"(libs.firebase.analytics)
+    "nonFOSSImplementation"(libs.firebase.crashlytics)
 
-project.tasks.configureEach {
-    if (name.startsWith("injectCrashlyticsMappingFileIdFirebaseFree")) enabled = false
-    if (name.startsWith("processFirebasefree") && name.endsWith("GoogleServices")) enabled = false
+    implementation(libs.androidx.compose.ui.tooling.preview)
+    debugImplementation(libs.androidx.compose.ui.tooling)
+//    debugImplementation("com.squareup.leakcanary:leakcanary-android:2.13")
 }

@@ -9,8 +9,12 @@ import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.mjpeg.MjpegKoinScope
 import org.koin.core.annotation.Scope
-import java.net.*
-import java.util.*
+import java.net.Inet4Address
+import java.net.Inet6Address
+import java.net.InetAddress
+import java.net.NetworkInterface
+import java.util.Collections
+import java.util.Enumeration
 
 @Scope(MjpegKoinScope::class)
 @SuppressLint("WifiManagerPotentialLeak")
@@ -75,10 +79,10 @@ internal class NetworkHelper(context: Context) {
 
     fun getNetInterfaces(
         useWiFiOnly: Boolean, enableIPv6: Boolean, enableLocalHost: Boolean, localHostOnly: Boolean
-    ): List<MjpegState.NetInterface> {
+    ): List<MjpegNetInterface> {
         XLog.d(getLog("getNetInterfaces", "Invoked"))
 
-        val netInterfaceList = mutableListOf<MjpegState.NetInterface>()
+        val netInterfaceList = mutableListOf<MjpegNetInterface>()
 
         getNetworkInterfacesWithFallBack().asSequence()
             .flatMap { networkInterface ->
@@ -88,7 +92,7 @@ internal class NetworkHelper(context: Context) {
                     .filter { localHostOnly.not() || it.isLoopbackAddress }
                     .filter { (it is Inet4Address) || (enableIPv6 && (it is Inet6Address)) }
                     .map { if (it is Inet6Address) Inet6Address.getByAddress(it.address) else it }
-                    .map { MjpegState.NetInterface(networkInterface.displayName, it) }
+                    .map { MjpegNetInterface(networkInterface.displayName, it) }
             }
             .filter { netInterface ->
                 (enableLocalHost && netInterface.address.isLoopbackAddress) || useWiFiOnly.not() || (
@@ -107,12 +111,12 @@ internal class NetworkHelper(context: Context) {
     private fun wifiConnected() = wifiManager.connectionInfo.ipAddress != 0
 
     @Suppress("DEPRECATION")
-    private fun getWiFiNetAddress(): MjpegState.NetInterface {
+    private fun getWiFiNetAddress(): MjpegNetInterface {
         XLog.d(getLog("getWiFiNetAddress", "Invoked"))
 
         val ipInt = wifiManager.connectionInfo.ipAddress
         val ipByteArray = ByteArray(4) { i -> (ipInt.shr(i * 8).and(255)).toByte() }
         val inet4Address = InetAddress.getByAddress(ipByteArray) as Inet4Address
-        return MjpegState.NetInterface("wlan0", inet4Address)
+        return MjpegNetInterface("wlan0", inet4Address)
     }
 }

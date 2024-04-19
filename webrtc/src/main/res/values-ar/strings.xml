@@ -1,53 +1,55 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="webrtc_error_recover">تعافى</string>
+    <string name="webrtc_error_open_settings">افتح الإعدادات</string>
 
-    <string name="webrtc_stream_fragment_mode_global">الوضع العالمي (WebRTC)</string>
-    <string name="webrtc_stream_fragment_mode_global_description">وصف الوضع العالمي</string>
-    <string name="webrtc_stream_fragment_mode_global_details">
-- مدعوم من تقنية WebRTC.\n\n
-- اتصال مشفر من طرف إلى طرف.\n\n
-- حماية البث بكلمة مرور.\n\n
-- يمكنه إرسال الفيديو والصوت.\n\n
-- قم بالاتصال باستخدام معرف التدفق الفريد وكلمة المرور.\n\n
-- يتطلب اتصالا بالإنترنت للبث.\n\n
+    <string name="webrtc_stream_mode">الوضع العالمي (WebRTC)</string>
+    <string name="webrtc_stream_mode_description">وصف الوضع العالمي</string>
+    <string name="webrtc_stream_mode_details">
+- مدعوم من تقنية WebRTC.\n
+- اتصال مشفر من طرف إلى طرف.\n
+- حماية البث بكلمة مرور.\n
+- يمكنه إرسال الفيديو والصوت.\n
+- قم بالاتصال باستخدام معرف التدفق الفريد وكلمة المرور.\n
+- يتطلب اتصالا بالإنترنت للبث.\n
 - نقل البيانات الفردية لكل عميل (المزيد من العملاء لديك، والمزيد من عرض النطاق الترددي للإنترنت الذي تحتاجه).
 </string>
 
-    <string name="webrtc_stream_fragment_server_address">الوصول إلى البث في:\n%1$s</string>
-    <string name="webrtc_stream_fragment_stream_id_getting">الحصول على معرف البث…</string>
-    <string name="webrtc_stream_fragment_stream_id">معرف البث: %1$s</string>
-    <string name="webrtc_stream_fragment_stream_password">كلمة مرور البث: %1$s</string>
-    <string name="webrtc_stream_fragment_mic_off">الميكروفون مطفئ</string>
-    <string name="webrtc_stream_fragment_mic_on">الميكروفون قيد التشغيل</string>
-    <string name="webrtc_stream_fragment_show_password_description">أظهر كلمة مرور البث</string>
-    <string name="webrtc_stream_fragment_get_new_id_description">احصل على معرف بث جديد</string>
-    <string name="webrtc_stream_fragment_create_new_password_description">قم بإنشاء كلمة مرور جديدة للبث</string>
-    <string name="webrtc_stream_fragment_open_address_description">عنوان مفتوح</string>
-    <string name="webrtc_stream_fragment_copy_address_description">نسخ العنوان</string>
-    <string name="webrtc_stream_fragment_share_address_description">عنوان المشاركة</string>
-    <string name="webrtc_stream_fragment_qr_address_description">أظهر العنوان كرمز QR</string>
-    <string name="webrtc_stream_fragment_copied">تم نسخه</string>
-    <string name="webrtc_stream_fragment_connected_clients">العملاء المتصلون: %1$d</string>
-    <string name="webrtc_stream_fragment_no_web_browser_found">لم يتم العثور على متصفح ويب</string>
-    <string name="webrtc_stream_fragment_external_app_error">خطأ في التطبيق الخارجي</string>
-    <string name="webrtc_stream_fragment_share_address">شارك عنوان الجهاز</string>
+    <string name="webrtc_stream_server_address">الوصول إلى البث في:\n%1$s</string>
+    <string name="webrtc_stream_stream_id_getting">الحصول على معرف البث…</string>
+    <string name="webrtc_stream_stream_id">معرف البث: %1$s</string>
+    <string name="webrtc_stream_stream_password">كلمة مرور البث: %1$s</string>
+    <string name="webrtc_stream_mic_off">الميكروفون مطفئ</string>
+    <string name="webrtc_stream_mic_on">الميكروفون قيد التشغيل</string>
+    <string name="webrtc_stream_description_show_password">أظهر كلمة مرور البث</string>
+    <string name="webrtc_stream_description_get_new_id">احصل على معرف بث جديد</string>
+    <string name="webrtc_stream_description_create_password">قم بإنشاء كلمة مرور جديدة للبث</string>
+    <string name="webrtc_stream_description_open_address">عنوان مفتوح</string>
+    <string name="webrtc_stream_description_copy_address">نسخ العنوان</string>
+    <string name="webrtc_stream_description_share_address">عنوان المشاركة</string>
+    <string name="webrtc_stream_description_qr_address">أظهر العنوان كرمز QR</string>
+    <string name="webrtc_stream_description_qr">رمز الاستجابة السريعة</string>
+    <string name="webrtc_stream_copied">تم نسخه</string>
+    <string name="webrtc_stream_connected_clients">العملاء المتصلون: %1$d</string>
+    <string name="webrtc_stream_no_web_browser_found">لم يتم العثور على متصفح ويب</string>
+    <string name="webrtc_stream_external_app_error">خطأ في التطبيق الخارجي</string>
+    <string name="webrtc_stream_share_address">شارك عنوان الجهاز</string>
+    <string name="webrtc_stream_start">بدء التيار</string>
+    <string name="webrtc_stream_stop">توقف التيار</string>
 
-    <string name="webrtc_pref_settings">إعدادات البث</string>
+    <string name="webrtc_pref_header">إعدادات الوضع العالمي (WebRTC)</string>
     <string name="webrtc_pref_keep_awake">أبق الجهاز مستيقظا</string>
     <string name="webrtc_pref_keep_awake_summary">حافظ على الجهاز والشاشة مستيقظا أثناء البث</string>
     <string name="webrtc_pref_stop_on_sleep">توقف عن البث أثناء النوم</string>
     <string name="webrtc_pref_stop_on_sleep_summary">أوقف البث إذا تم إيقاف تشغيل الشاشة</string>
 
-    <string name="webrtc_stream_fragment_audio_permission_title">اسمح بالتسجيل الصوتي</string>
-    <string name="webrtc_stream_fragment_audio_permission_message">الإذن بتسجيل الصوت ضروري لتطبيق بث المحتوى الصوتي.\n\بدون منح هذا الإذن، سيكون البث بدون صوت.</string>
-    <string name="webrtc_stream_fragment_audio_permission_message_settings">يعد منح الوصول إلى الميكروفون في أذونات التطبيق أمرا ضروريا للتطبيق لبث المحتوى الصوتي.\n\بدون منح هذا الإذن، سيتم إجراء البث بدون أي صوت.</string>
-    <string name="webrtc_stream_fragment_audio_permission_open_settings">افتح الإعدادات</string>
+    <string name="webrtc_stream_audio_permission_title">اسمح بالتسجيل الصوتي</string>
+    <string name="webrtc_stream_audio_permission_message">الإذن بتسجيل الصوت ضروري لتطبيق بث المحتوى الصوتي.\n\بدون منح هذا الإذن، سيكون البث بدون صوت.</string>
+    <string name="webrtc_stream_audio_permission_message_settings">يعد منح الوصول إلى الميكروفون في أذونات التطبيق أمرا ضروريا للتطبيق لبث المحتوى الصوتي.\n\بدون منح هذا الإذن، سيتم إجراء البث بدون أي صوت.</string>
+    <string name="webrtc_stream_audio_permission_open_settings">افتح الإعدادات</string>
 
-    <string name="webrtc_stream_fragment_cast_permission_error_title">خطأ في الإذن</string>
-    <string name="webrtc_stream_fragment_cast_permission_error">النظام لا يدعم وظائف الصب</string>
-    <string name="webrtc_stream_fragment_cast_permission_required_title">الإذن مطلوب</string>
-    <string name="webrtc_stream_fragment_cast_permission_required">يتطلب تطبيق ستريم الشاشة إذن ستريم الشاشة لالتقاط الشاشة.</string>
+    <string name="webrtc_stream_cast_permission_required_title">الإذن مطلوب</string>
+    <string name="webrtc_stream_cast_permission_required">يتطلب تطبيق ستريم الشاشة إذن ستريم الشاشة لالتقاط الشاشة.</string>
 
     <string name="webrtc_item_client_disconnect">فصل</string>
 
@@ -56,6 +58,6 @@
     <string name="webrtc_error_play_integrity_install_play_service">يرجى تثبيت أو تمكين خدمات اللعب</string>
     <string name="webrtc_error_play_integrity_update_play_service">يرجى تحديث خدمات جوجل بلاي</string>
     <string name="webrtc_error_check_network">الرجاء التحقق من توافر الاتصال بالإنترنت</string>
-    <string name="webrtc_notification_permission_required">يتطلب التطبيق تمكين الإشعارات لبدء خدمة البث.\n\يرجى تمكين الإشعارات في إعدادات التطبيق.</string>
+    <string name="webrtc_notification_permission_required">يتطلب التطبيق تمكين الإشعارات لبدء خدمة البث.\nيرجى تمكين الإشعارات في إعدادات التطبيق.</string>
     <string name="webrtc_error_unspecified">حدث خطأ ما. من فضلك حاول مرة أخرى لاحقا.</string>
 </resources>

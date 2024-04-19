@@ -2,13 +2,12 @@ package info.dvkr.screenstream.webrtc.internal
 
 import android.content.Context
 import android.content.Intent
-import android.graphics.Point
 import android.hardware.display.DisplayManager
 import android.media.projection.MediaProjection
 import android.os.Build
 import android.view.Display
 import android.view.WindowManager
-import androidx.core.content.ContextCompat
+import androidx.window.layout.WindowMetricsCalculator
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.common.getLog
 import org.webrtc.AudioSource
@@ -43,7 +42,15 @@ internal class WebRtcProjection(private val serviceContext: Context) {
     private enum class AudioCodec { OPUS }
     private enum class VideoCodec(val priority: Int) { VP8(1), VP9(2), H264(3), H265(4); }
 
-    private val displayManager = ContextCompat.getSystemService(serviceContext, DisplayManager::class.java)!!
+    private val windowContext by lazy {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            val defaultDisplay = serviceContext.getSystemService(DisplayManager::class.java).getDisplay(Display.DEFAULT_DISPLAY)
+            serviceContext.createDisplayContext(defaultDisplay).createWindowContext(WindowManager.LayoutParams.TYPE_APPLICATION, null)
+        } else {
+            serviceContext
+        }
+    }
+
     private val audioDeviceModule = JavaAudioDeviceModule.builder(serviceContext).createAudioDeviceModule() // TODO Leaks Context
     private val rootEglBase: EglBase = EglBase.create()
 
@@ -113,8 +120,8 @@ internal class WebRtcProjection(private val serviceContext: Context) {
             videoSource = peerConnectionFactory.createVideoSource(screenCapturer!!.isScreencast)
             screenCapturer!!.initialize(surfaceTextureHelper, serviceContext, videoSource!!.capturerObserver)
 
-            val screeSize = getScreenSizeCompat()
-            screenCapturer!!.startCapture(screeSize.x, screeSize.y, 30)
+            val screeSize = WindowMetricsCalculator.getOrCreate().computeMaximumWindowMetrics(windowContext).bounds
+            screenCapturer!!.startCapture(screeSize.width(), screeSize.height(), 30)
 
             audioSource = peerConnectionFactory.createAudioSource(audioMediaConstraints)
 
@@ -139,8 +146,8 @@ internal class WebRtcProjection(private val serviceContext: Context) {
             }
             XLog.d(this@WebRtcProjection.getLog("changeCaptureFormat"))
             screenCapturer?.apply {
-                val screeSize = getScreenSizeCompat()
-                changeCaptureFormat(screeSize.x, screeSize.y, 30)
+                val screeSize = WindowMetricsCalculator.getOrCreate().computeMaximumWindowMetrics(windowContext).bounds
+                changeCaptureFormat(screeSize.width(), screeSize.height(), 30)
             }
         }
     }
@@ -176,21 +183,5 @@ internal class WebRtcProjection(private val serviceContext: Context) {
         stop()
         rootEglBase.release()
         audioDeviceModule.release()
-    }
-
-    @Suppress("DEPRECATION")
-    private fun getScreenSizeCompat(): Point {
-        val display = displayManager.getDisplay(Display.DEFAULT_DISPLAY)
-
-        return if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
-            Point().also { display.getRealSize(it) }
-        } else {
-            val displayContext = serviceContext.createDisplayContext(display)
-            //TODO read docs for createWindowContext. createWindowContext very expensive
-            val windowContext = displayContext.createWindowContext(WindowManager.LayoutParams.TYPE_APPLICATION, null)
-            val windowManager = windowContext.getSystemService(WindowManager::class.java)
-            val bounds = windowManager.maximumWindowMetrics.bounds
-            Point(bounds.width(), bounds.height())
-        }
     }
 }

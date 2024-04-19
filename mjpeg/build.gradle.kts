@@ -1,4 +1,3 @@
-@Suppress("DSL_SCOPE_VIOLATION") // TODO: Remove once KTIJ-19369 is fixed
 plugins {
     alias(libs.plugins.androidLibrary)
     alias(libs.plugins.kotlinAndroid)
@@ -8,20 +7,20 @@ plugins {
 
 android {
     namespace = "info.dvkr.screenstream.mjpeg"
-    compileSdk = 34
-    buildToolsVersion = "34.0.0"
+    compileSdk = rootProject.extra["compileSdkVersion"] as Int
+    buildToolsVersion = rootProject.extra["buildToolsVersion"] as String
 
     defaultConfig {
-        minSdk = 23
+        minSdk = rootProject.extra["minSdkVersion"] as Int
     }
 
     buildFeatures {
         buildConfig = true
-        viewBinding = true
+        compose = true
     }
 
-    androidResources {
-        ignoreAssetsPattern = "!dev"
+    composeOptions {
+        kotlinCompilerExtensionVersion = rootProject.extra["composeCompilerVersion"] as String
     }
 
     compileOptions {
@@ -33,6 +32,10 @@ android {
         jvmTarget = JavaVersion.VERSION_11.toString()
         freeCompilerArgs += "-Xexplicit-api=strict"
     }
+
+    androidResources {
+        ignoreAssetsPattern = "!dev"
+    }
 }
 
 dependencies {
@@ -40,8 +43,7 @@ dependencies {
 
     ksp(libs.koin.ksp)
 
-    // Temp fix for https://github.com/afollestad/material-dialogs/issues/1825
-    compileOnly(fileTree("libs/bottomsheets-release.aar"))
+    implementation(libs.kotlin.reflect)
 
     implementation(libs.ktor.server.cio)
     implementation(libs.ktor.server.compression)

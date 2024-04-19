@@ -1,51 +1,54 @@
 <resources>
     <string name="mjpeg_error_recover">تعافى</string>
+    <string name="mjpeg_error_open_settings">افتح الإعدادات</string>
 
-    <string name="mjpeg_stream_fragment_mode_local">الوضع المحلي (MJPEG)</string>
-    <string name="mjpeg_stream_fragment_mode_local_description">وصف الوضع المحلي</string>
-    <string name="mjpeg_stream_fragment_mode_local_details">
-- مدعوم من معيار MJPEG.\n\n
-- يستخدم رقم التعريف الشخصي للأمن (بدون تشفير).\n\n
-- يرسل الفيديو كسلسلة من الصور المستقلة (بدون صوت).\n\n
-- يعمل بدون اتصال بالإنترنت داخل شبكتك المحلية.\n\n
-- خادم HTTP مضمن.\n\n
-- يعمل مع شبكات WiFi و/أو شبكات الهاتف المحمول، ويدعم IPv4 وIPv6.\n\n
-- يتصل العملاء عبر متصفح الويب باستخدام عنوان IP المقدم من التطبيق.\n\n
-- قابل للتخصيص بدرجة كبيرة.\n\n
+    <string name="mjpeg_stream_mode">الوضع المحلي (MJPEG)</string>
+    <string name="mjpeg_stream_mode_description">وصف الوضع المحلي</string>
+    <string name="mjpeg_stream_mode_details">
+- مدعوم من معيار MJPEG.\n
+- يستخدم رقم التعريف الشخصي للأمن (بدون تشفير).\n
+- يرسل الفيديو كسلسلة من الصور المستقلة (بدون صوت).\n
+- يعمل بدون اتصال بالإنترنت داخل شبكتك المحلية.\n
+- خادم HTTP مضمن.\n
+- يعمل مع شبكات WiFi و/أو شبكات الهاتف المحمول، ويدعم IPv4 وIPv6.\n
+- يتصل العملاء عبر متصفح الويب باستخدام عنوان IP المقدم من التطبيق.\n
+- قابل للتخصيص بدرجة كبيرة.\n
 - نقل البيانات الفردية لكل عميل (المزيد من العملاء لديك، والمزيد من عرض النطاق الترددي الذي تحتاجه).
 </string>
 
-    <string name="mjpeg_item_device_address">عنوان الجهاز:</string>
-    <string name="mjpeg_stream_fragment_no_address">لم يتم العثور على عنوان</string>
-    <string name="mjpeg_stream_fragment_interface">واجهة: %1$s</string>
-    <string name="mjpeg_stream_fragment_copied">تم نسخه</string>
-    <string name="mjpeg_stream_fragment_no_web_browser_found">لم يتم العثور على متصفح ويب</string>
-    <string name="mjpeg_stream_fragment_external_app_error">خطأ في التطبيق الخارجي</string>
-    <string name="mjpeg_stream_fragment_share_address">شارك عنوان الجهاز</string>
-    <string name="mjpeg_item_device_address_description_open_address">عنوان مفتوح</string>
-    <string name="mjpeg_item_device_address_description_copy_address">نسخ العنوان</string>
-    <string name="mjpeg_item_device_address_description_share_address">مشاركة العنوان</string>
-    <string name="mjpeg_item_device_address_description_qr_address">عرض العنوان كرمز الاستجابة السريعة (QR)</string>
-    <string name="mjpeg_pref_settings">إعدادات البث</string>
-    <string name="mjpeg_stream_fragment_pin">الرقم السري: %1$s</string>
-    <string name="mjpeg_stream_fragment_pin_disabled">تم تعطيل الرمز السري</string>
-    <string name="mjpeg_stream_fragment_show_pin_description">عرض رمز البث المباشر</string>
-    <string name="mjpeg_stream_fragment_create_new_pin_description">إنشاء رمز جديد للبث المباشر</string>
-    <string name="mjpeg_stream_fragment_current_traffic"> عدد الزيارات : %1$,.2f  ميغابت / ثانية </string>
-    <string name="mjpeg_stream_fragment_connected_clients">عملاء متصلون: %1$d</string>
-    <string name="mjpeg_stream_fragment_client_disconnected">انقطع الاتصال</string>
-    <string name="mjpeg_stream_fragment_client_slow_network">اتصال بطيء</string>
-    <string name="mjpeg_stream_fragment_client_connected">متصل</string>
-    <string name="mjpeg_stream_fragment_client_blocked">محظور</string>
+    <string name="mjpeg_item_address">عنوان الجهاز:</string>
+    <string name="mjpeg_stream_no_address">لم يتم العثور على عنوان</string>
+    <string name="mjpeg_stream_interface">واجهة: %1$s</string>
+    <string name="mjpeg_stream_copied">تم نسخه</string>
+    <string name="mjpeg_stream_no_web_browser_found">لم يتم العثور على متصفح ويب</string>
+    <string name="mjpeg_stream_external_app_error">خطأ في التطبيق الخارجي</string>
+    <string name="mjpeg_stream_share_address">شارك عنوان الجهاز</string>
+    <string name="mjpeg_item_address_description_open_address">عنوان مفتوح</string>
+    <string name="mjpeg_item_address_description_copy_address">نسخ العنوان</string>
+    <string name="mjpeg_item_address_description_share_address">مشاركة العنوان</string>
+    <string name="mjpeg_item_address_description_qr_address">عرض العنوان كرمز الاستجابة السريعة (QR)</string>
+    <string name="mjpeg_item_address_description_qr">رمز الاستجابة السريعة</string>
+    <string name="mjpeg_stream_pin">الرقم السري: %1$s</string>
+    <string name="mjpeg_stream_pin_disabled">تم تعطيل الرمز السري</string>
+    <string name="mjpeg_stream_description_show_pin">عرض رمز البث المباشر</string>
+    <string name="mjpeg_stream_description_create_pin">إنشاء رمز جديد للبث المباشر</string>
+    <string name="mjpeg_stream_current_traffic"> عدد الزيارات : %1$,.2f  ميغابت / ثانية </string>
+    <string name="mjpeg_stream_traffic_graph">رسم بياني لحركة المرور</string>
+    <string name="mjpeg_stream_connected_clients">عملاء متصلون: %1$d</string>
+    <string name="mjpeg_stream_client_disconnected">انقطع الاتصال</string>
+    <string name="mjpeg_stream_client_slow_network">اتصال بطيء</string>
+    <string name="mjpeg_stream_client_connected">متصل</string>
+    <string name="mjpeg_stream_client_blocked">محظور</string>
+    <string name="mjpeg_stream_start">بدء التيار</string>
+    <string name="mjpeg_stream_stop">توقف التيار</string>
 
-    <string name="mjpeg_stream_fragment_cast_permission_error_title">خطأ في الإذن</string>
-    <string name="mjpeg_stream_fragment_cast_permission_error">النظام لا يدعم وظيفة البث</string>
-    <string name="mjpeg_stream_fragment_cast_permission_required_title">إذن مطلوب</string>
-    <string name="mjpeg_stream_fragment_cast_permission_required">يتطلب التطبيق إذن سكرينكست  لالتقاط الشاشة </string>
+    <string name="mjpeg_stream_cast_permission_required_title">إذن مطلوب</string>
+    <string name="mjpeg_stream_cast_permission_required">يتطلب التطبيق إذن سكرينكست  لالتقاط الشاشة </string>
 
-    <string name="mjpeg_toast_slow_client_connection">تم اكتشاف اتصال عميل بطيء</string>
+    <string name="mjpeg_slow_client_connection">تم اكتشاف اتصال عميل بطيء</string>
 
-    <string name="mjpeg_pref_settings_interface">واجهه المستخدم</string>
+    <string name="mjpeg_pref_header">إعدادات الوضع المحلي (MJPEG)</string>
+    <string name="mjpeg_pref_settings_general">عام</string>
     <string name="mjpeg_pref_keep_awake">إبقاء الجهاز مستيقظًا</string>
     <string name="mjpeg_pref_keep_awake_summary">إبقاء الجهاز والشاشة مستيقظة أثناء البث</string>
     <string name="mjpeg_pref_stop_on_sleep">وقف البث عند النوم </string>
@@ -64,32 +67,33 @@
     <string name="mjpeg_pref_vr_mode">وضع الواقع الافتراضي</string>
     <string name="mjpeg_pref_vr_mode_summary">التقاط المحتوى من نصف الشاشة</string>
     <string-array name="mjpeg_pref_vr_mode_options">
+        <item>تعطيل</item>
         <item>استخدام الجزء الأيسر</item>
         <item>استخدام الجزء الصحيح</item>
     </string-array>
     <string name="mjpeg_pref_crop">قص الصوره</string>
     <string name="mjpeg_pref_crop_summary">قص الصورة قبل إرسالها إلى العميل</string>
-    <string name="mjpeg_pref_crop_dialog_crop_top">قص الجزء العلوي</string>
-    <string name="mjpeg_pref_crop_dialog_crop_bottom">قص الجزء السفلي</string>
-    <string name="mjpeg_pref_crop_dialog_crop_left">قص جزء الأيسر</string>
-    <string name="mjpeg_pref_crop_dialog_crop_right">قص الجزء الأيمن</string>
-    <string name="mjpeg_pref_crop_dialog_pixels">بكسل</string>
-    <string name="mjpeg_pref_crop_dialog_warning_message">سيتم تجاهل قص إذا كانت النتيجة هي صورة فارغة</string>
-    <string name="mjpeg_pref_crop_dialog_error_message">أدخل قيم قص صالحة</string>
+    <string name="mjpeg_pref_crop_top">قص الجزء العلوي</string>
+    <string name="mjpeg_pref_crop_bottom">قص الجزء السفلي</string>
+    <string name="mjpeg_pref_crop_left">قص جزء الأيسر</string>
+    <string name="mjpeg_pref_crop_right">قص الجزء الأيمن</string>
+    <string name="mjpeg_pref_crop_pixels">بكسل</string>
+    <string name="mjpeg_pref_crop_warning">سيتم تجاهل قص إذا كانت النتيجة هي صورة فارغة</string>
+    <string name="mjpeg_pref_crop_error">أدخل قيم قص صالحة</string>
     <string name="mjpeg_pref_grayscale">وضع الألوان الرمادي</string>
     <string name="mjpeg_pref_grayscale_summary">تحويل الصورة إلى الألوان الرمادية قبل إرسالها إلى العميل</string>
     <string name="mjpeg_pref_resize">تغيير حجم الصورة</string>
     <string name="mjpeg_pref_resize_summary">تغيير حجم الصورة قبل إرسالها إلى العميل</string>
-    <string name="mjpeg_pref_resize_dialog_text">تعيين عامل تغيير حجم الصورة في المئةالقيم: 10–150</string>
-    <string name="mjpeg_pref_resize_dialog_result">%1$dx%2$d حجم الصورة</string>
+    <string name="mjpeg_pref_resize_text">قم بتعيين عامل تغيير حجم الصورة بالنسبة المئوية.\nالقيم: 10–150\nالافتراضي: 50\nحجم الشاشة: %1$dx%2$d</string>
+    <string name="mjpeg_pref_resize_result">%1$dx%2$d حجم الصورة</string>
     <string name="mjpeg_pref_rotate">تدوير الصورة في اتجاه عقارب الساعة</string>
     <string name="mjpeg_pref_rotate_summary">تدوير الصورة قبل إرسالها إلى العميل</string>
     <string name="mjpeg_pref_fps">الحد من صور في الثانية الواحدة</string>
     <string name="mjpeg_pref_fps_summary">اضبط أقصى صور في الثانية</string>
-    <string name="mjpeg_pref_fps_dialog">عيّن الحد الأقصى للصور في الثانية. \n القيم: 1–60 (افتراضيًا: 30)</string>
+    <string name="mjpeg_pref_fps_text">عيّن الحد الأقصى للصور في الثانية. \n القيم: 1–60\nافتراضيًا: 30</string>
     <string name="mjpeg_pref_jpeg_quality">جودة ضغط JPEG</string>
     <string name="mjpeg_pref_jpeg_quality_summary">اضبط جودة ضغط JPEG</string>
-    <string name="mjpeg_pref_jpeg_quality_dialog">اضبط جودة ضغط JPEG. القيم: 10–100 (الافتراضي: 80)</string>
+    <string name="mjpeg_pref_jpeg_quality_text">اضبط جودة ضغط JPEG. القيم: 10–100\nالافتراضي: 80</string>
 
     <string name="mjpeg_pref_settings_security">الحماية</string>
     <string name="mjpeg_pref_enable_pin">تمكين الرمز السري</string>
@@ -102,7 +106,7 @@
     <string name="mjpeg_pref_auto_change_pin_summary">إنشاء رمز سري جديد لكل بث جديد</string>
     <string name="mjpeg_pref_set_pin">ضبط الرمز السري</string>
     <string name="mjpeg_pref_set_pin_summary">أدخل الرمز السري يدويًا</string>
-    <string name="mjpeg_pref_set_pin_dialog">أدخل الرمز السري. افتراضيا: 000000</string>
+    <string name="mjpeg_pref_set_pin_text">أدخل الرمز السري.\n افتراضيا: 000000</string>
     <string name="mjpeg_pref_block_address">حظر عنوان الآي بي</string>
     <string name="mjpeg_pref_block_address_summary">حظر عنوان الآي بي للعميل بعد 5 محاولات خاطئة لرمز الPIN لمدة 5 دقائق</string>
 
@@ -117,12 +121,12 @@
     <string name="mjpeg_pref_localhost_only_summary">تشغيل الخادم على عناوين المضيف المحلي فقط</string>
     <string name="mjpeg_pref_server_port">منفذ سيرفر</string>
     <string name="mjpeg_pref_server_port_summary">تعيين منفذ للاتصالات الواردة</string>
-    <string name="mjpeg_pref_server_port_dialog">تعيين منفذ سيرفر للاتصالات الواردة. القيم: 1025–65535 (الافتراضي: 8080)</string>
+    <string name="mjpeg_pref_server_port_text">تعيين منفذ سيرفر للاتصالات الواردة.\n القيم: 1025–65535 \nالافتراضي: 8080</string>
 
     <string name="mjpeg_error_port_in_use"> المنفذ قيد الاستخدام. اختر واحد اخر </string>
     <string name="mjpeg_error_invalid_media_projection"> خطآ امني : إسقاط وسائل الاعلام غير صحيح. حاول مرة أخرى  </string>
     <string name="mjpeg_error_ip_address_not_found">عنوان IP غير موجود.\nحاول تعطيل \"استخدام واي فاي فقط\" في إعدادات البث.</string>
-    <string name="mjpeg_error_notification_permission_required">يتطلب التطبيق تمكين الإشعارات لبدء خدمة البث.\n\يرجى تمكين الإشعارات في إعدادات التطبيق.</string>
+    <string name="mjpeg_error_notification_permission_required">يتطلب التطبيق تمكين الإشعارات لبدء خدمة البث.\nيرجى تمكين الإشعارات في إعدادات التطبيق.</string>
     <string name="mjpeg_error_unspecified">حدث خطأ ما. من فضلك حاول مرة أخرى لاحقا.</string>
 
     <string name="mjpeg_start_image_text">ابدأ البث على الجهاز</string>

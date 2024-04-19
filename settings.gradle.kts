@@ -12,7 +12,7 @@ dependencyResolutionManagement {
 
 rootProject.name = "ScreenStream"
 
+include(":app")
 include(":common")
 include(":mjpeg")
 include(":webrtc")
-include(":app")

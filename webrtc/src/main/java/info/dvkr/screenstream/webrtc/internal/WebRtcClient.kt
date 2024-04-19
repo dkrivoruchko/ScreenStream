@@ -2,6 +2,7 @@ package info.dvkr.screenstream.webrtc.internal
 
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.common.getLog
+import info.dvkr.screenstream.webrtc.ui.WebRtcState
 import org.webrtc.CandidatePairChangeEvent
 import org.webrtc.DataChannel
 import org.webrtc.IceCandidate
@@ -50,7 +51,7 @@ internal class WebRtcClient(
     private val pendingIceCandidates: MutableList<IceCandidate> = Collections.synchronizedList(mutableListOf())
 
     private val state: AtomicReference<State> = AtomicReference(State.CREATED)
-    private val clientAddress: AtomicReference<String> = AtomicReference("-")
+    private val clientAddress: AtomicReference<String> = AtomicReference("-") //TODO
 
     @Volatile
     private var mediaStreamId: MediaStreamId? = null

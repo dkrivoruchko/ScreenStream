@@ -1,51 +1,54 @@
 <resources>
     <string name="mjpeg_error_recover">Ripristina</string>
+    <string name="mjpeg_error_open_settings">Apri impostazioni</string>
 
-    <string name="mjpeg_stream_fragment_mode_local">Modalità locale (MJPEG)</string>
-    <string name="mjpeg_stream_fragment_mode_local_description">Descrizione della modalità locale</string>
-    <string name="mjpeg_stream_fragment_mode_local_details">
-- Alimentato dallo standard MJPEG.\n\n
-- Utilizza il PIN per la sicurezza (nessuna crittografia).\n\n
-- Invia il video come una serie di immagini indipendenti (senza audio).\n\n
-- Funziona senza una connessione Internet all\'interno della tua rete locale.\n\n
-- Server HTTP integrato.\n\n
-- Funziona con reti WiFi e/o reti mobili, supportando IPv4 e IPv6.\n\n
-- I client si connettono tramite un browser web utilizzando l\'indirizzo IP fornito dall\'app.\n\n
-- Altamente personalizzabile.\n\n
+    <string name="mjpeg_stream_mode">Modalità locale (MJPEG)</string>
+    <string name="mjpeg_stream_mode_description">Descrizione della modalità locale</string>
+    <string name="mjpeg_stream_mode_details">
+- Alimentato dallo standard MJPEG.\n
+- Utilizza il PIN per la sicurezza (nessuna crittografia).\n
+- Invia il video come una serie di immagini indipendenti (senza audio).\n
+- Funziona senza una connessione Internet all\'interno della tua rete locale.\n
+- Server HTTP integrato.\n
+- Funziona con reti WiFi e/o reti mobili, supportando IPv4 e IPv6.\n
+- I client si connettono tramite un browser web utilizzando l\'indirizzo IP fornito dall\'app.\n
+- Altamente personalizzabile.\n
 - Trasmissione dati individuale per ogni cliente (più clienti hai, maggiore è la larghezza di banda di rete richiesta).
 </string>
 
-    <string name="mjpeg_item_device_address">Indirizzo del dispositivo:</string>
-    <string name="mjpeg_stream_fragment_no_address">Nessun indirizzo trovato</string>
-    <string name="mjpeg_stream_fragment_interface">Interfaccia: %1$s</string>
-    <string name="mjpeg_stream_fragment_copied">Copiato</string>
-    <string name="mjpeg_stream_fragment_no_web_browser_found">Nessun browser web trovato</string>
-    <string name="mjpeg_stream_fragment_external_app_error">Errore applicazione esterna</string>
-    <string name="mjpeg_stream_fragment_share_address">Condividi indirizzo dispositivo</string>
-    <string name="mjpeg_item_device_address_description_open_address">Apri indirizzo</string>
-    <string name="mjpeg_item_device_address_description_copy_address">Copia indirizzo</string>
-    <string name="mjpeg_item_device_address_description_share_address">Condividi indirizzo</string>
-    <string name="mjpeg_item_device_address_description_qr_address">Mostra indirizzo come codice QR</string>
-    <string name="mjpeg_pref_settings">Impostazioni dello streaming</string>
-    <string name="mjpeg_stream_fragment_pin">Pin: %1$s</string>
-    <string name="mjpeg_stream_fragment_pin_disabled">Pin disattivato</string>
-    <string name="mjpeg_stream_fragment_show_pin_description">Mostra pin dello streaming</string>
-    <string name="mjpeg_stream_fragment_create_new_pin_description">Crea nuovo pin dello streaming</string>
-    <string name="mjpeg_stream_fragment_current_traffic">Traffico: %1$,.2f Mbit/s</string>
-    <string name="mjpeg_stream_fragment_connected_clients">Client connessi: %1$d</string>
-    <string name="mjpeg_stream_fragment_client_disconnected">Disconnesso</string>
-    <string name="mjpeg_stream_fragment_client_slow_network">Connessione lenta</string>
-    <string name="mjpeg_stream_fragment_client_connected">Connesso</string>
-    <string name="mjpeg_stream_fragment_client_blocked">Bloccato</string>
+    <string name="mjpeg_item_address">Indirizzo del dispositivo:</string>
+    <string name="mjpeg_stream_no_address">Nessun indirizzo trovato</string>
+    <string name="mjpeg_stream_interface">Interfaccia: %1$s</string>
+    <string name="mjpeg_stream_copied">Copiato</string>
+    <string name="mjpeg_stream_no_web_browser_found">Nessun browser web trovato</string>
+    <string name="mjpeg_stream_external_app_error">Errore applicazione esterna</string>
+    <string name="mjpeg_stream_share_address">Condividi indirizzo dispositivo</string>
+    <string name="mjpeg_item_address_description_open_address">Apri indirizzo</string>
+    <string name="mjpeg_item_address_description_copy_address">Copia indirizzo</string>
+    <string name="mjpeg_item_address_description_share_address">Condividi indirizzo</string>
+    <string name="mjpeg_item_address_description_qr_address">Mostra indirizzo come codice QR</string>
+    <string name="mjpeg_item_address_description_qr">Codice QR</string>
+    <string name="mjpeg_stream_pin">Pin: %1$s</string>
+    <string name="mjpeg_stream_pin_disabled">Pin disattivato</string>
+    <string name="mjpeg_stream_description_show_pin">Mostra pin dello streaming</string>
+    <string name="mjpeg_stream_description_create_pin">Crea nuovo pin dello streaming</string>
+    <string name="mjpeg_stream_current_traffic">Traffico: %1$,.2f Mbit/s</string>
+    <string name="mjpeg_stream_traffic_graph">Grafico del traffico</string>
+    <string name="mjpeg_stream_connected_clients">Client connessi: %1$d</string>
+    <string name="mjpeg_stream_client_disconnected">Disconnesso</string>
+    <string name="mjpeg_stream_client_slow_network">Connessione lenta</string>
+    <string name="mjpeg_stream_client_connected">Connesso</string>
+    <string name="mjpeg_stream_client_blocked">Bloccato</string>
+    <string name="mjpeg_stream_start">Avvia lo streaming</string>
+    <string name="mjpeg_stream_stop">Arresta lo streaming</string>
 
-    <string name="mjpeg_stream_fragment_cast_permission_error_title">Errore di autorizzazione</string>
-    <string name="mjpeg_stream_fragment_cast_permission_error">Il sistema non supporta la funzionalità di trasmissione</string>
-    <string name="mjpeg_stream_fragment_cast_permission_required_title">Permesso richiesto</string>
-    <string name="mjpeg_stream_fragment_cast_permission_required">L\'applicazione richiede l\'autorizzazione di registrazione per catturare lo schermo.</string>
+    <string name="mjpeg_stream_cast_permission_required_title">Permesso richiesto</string>
+    <string name="mjpeg_stream_cast_permission_required">L\'applicazione richiede l\'autorizzazione di registrazione per catturare lo schermo.</string>
 
-    <string name="mjpeg_toast_slow_client_connection">Rilevata connessione lenta del client</string>
+    <string name="mjpeg_slow_client_connection">Rilevata connessione lenta del client</string>
 
-    <string name="mjpeg_pref_settings_interface">Interfaccia</string>
+    <string name="mjpeg_pref_header">Impostazioni modalità locale (MJPEG)</string>
+    <string name="mjpeg_pref_settings_general">Generale</string>
     <string name="mjpeg_pref_keep_awake">Mantieni il dispositivo attivo</string>
     <string name="mjpeg_pref_keep_awake_summary">Mantieni il dispositivo e lo schermo attivi durante lo streaming</string>
     <string name="mjpeg_pref_stop_on_sleep">Interrompi a schermo spento</string>
@@ -64,32 +67,33 @@
     <string name="mjpeg_pref_vr_mode">Modalità realtà virtuale</string>
     <string name="mjpeg_pref_vr_mode_summary">Cattura contenuto da metà schermo</string>
     <string-array name="mjpeg_pref_vr_mode_options">
+        <item>Disabilita</item>
         <item>Usa parte sinistra</item>
         <item>Usa parte destra</item>
     </string-array>
     <string name="mjpeg_pref_crop">Ritaglia immagine</string>
     <string name="mjpeg_pref_crop_summary">Ritaglia l\'immagine prima di inviarla al client</string>
-    <string name="mjpeg_pref_crop_dialog_crop_top">Ritaglia in cima:</string>
-    <string name="mjpeg_pref_crop_dialog_crop_bottom">Ritaglia in fondo:</string>
-    <string name="mjpeg_pref_crop_dialog_crop_left">Ritaglia a sinistra:</string>
-    <string name="mjpeg_pref_crop_dialog_crop_right">Ritaglia a destra:</string>
-    <string name="mjpeg_pref_crop_dialog_pixels">pixel</string>
-    <string name="mjpeg_pref_crop_dialog_warning_message">Il ritaglio verrà ignorato se il risultato è un\'immagine vuota</string>
-    <string name="mjpeg_pref_crop_dialog_error_message">Inserisci valori di ritaglio validi</string>
+    <string name="mjpeg_pref_crop_top">Ritaglia in cima:</string>
+    <string name="mjpeg_pref_crop_bottom">Ritaglia in fondo:</string>
+    <string name="mjpeg_pref_crop_left">Ritaglia a sinistra:</string>
+    <string name="mjpeg_pref_crop_right">Ritaglia a destra:</string>
+    <string name="mjpeg_pref_crop_pixels">pixel</string>
+    <string name="mjpeg_pref_crop_warning">Il ritaglio verrà ignorato se il risultato è un\'immagine vuota</string>
+    <string name="mjpeg_pref_crop_error">Inserisci valori di ritaglio validi</string>
     <string name="mjpeg_pref_grayscale">Modalità scala di grigi</string>
     <string name="mjpeg_pref_grayscale_summary">Immagine in scala di grigi prima dell\'invio al cliente</string>
     <string name="mjpeg_pref_resize">Ridimensiona immagine</string>
     <string name="mjpeg_pref_resize_summary">Ridimensiona l\'immagine prima di inviarla al client</string>
-    <string name="mjpeg_pref_resize_dialog_text">Imposta la percentuale di ridimensionamento.\nValori: 10–150 (Predefinita: 50)\nDimensione schermo: %1$dx%2$d</string>
-    <string name="mjpeg_pref_resize_dialog_result">Dimensione immagine: %1$dx%2$d</string>
+    <string name="mjpeg_pref_resize_text">Imposta la percentuale di ridimensionamento.\nValori: 10–150\nPredefinita: 50\nDimensione schermo: %1$dx%2$d</string>
+    <string name="mjpeg_pref_resize_result">Dimensione immagine: %1$dx%2$d</string>
     <string name="mjpeg_pref_rotate">Ruota immagine in senso orario</string>
     <string name="mjpeg_pref_rotate_summary">Ruota l\'immagine prima di inviarla al client</string>
     <string name="mjpeg_pref_fps">Limita frame al secondo</string>
     <string name="mjpeg_pref_fps_summary">Imposta i frame al secondo massimi</string>
-    <string name="mjpeg_pref_fps_dialog">Imposta i frame al secondo massimi.\nValori: 1–60 (Predefiniti: 30)</string>
+    <string name="mjpeg_pref_fps_text">Imposta i frame al secondo massimi.\nValori: 1–60\nPredefiniti: 30</string>
     <string name="mjpeg_pref_jpeg_quality">Qualità di compressione JPEG</string>
     <string name="mjpeg_pref_jpeg_quality_summary">Imposta la qualità di compressione JPEG</string>
-    <string name="mjpeg_pref_jpeg_quality_dialog">Imposta la qualità di compressione JPEG. Valori: 10–100 (predefinito: 80)</string>
+    <string name="mjpeg_pref_jpeg_quality_text">Imposta la qualità di compressione JPEG. Valori: 10–100\nPredefinito: 80</string>
 
     <string name="mjpeg_pref_settings_security">Sicurezza</string>
     <string name="mjpeg_pref_enable_pin">Attiva pin</string>
@@ -102,7 +106,7 @@
     <string name="mjpeg_pref_auto_change_pin_summary">Genera un nuovo pin per ogni nuova trasmissione</string>
     <string name="mjpeg_pref_set_pin">Imposta pin</string>
     <string name="mjpeg_pref_set_pin_summary">Inserisci pin manualmente</string>
-    <string name="mjpeg_pref_set_pin_dialog">Inserisci pin.\nPredefinito: 0000</string>
+    <string name="mjpeg_pref_set_pin_text">Inserisci pin.\nPredefinito: 0000</string>
     <string name="mjpeg_pref_block_address">Blocca indirizzo IP</string>
     <string name="mjpeg_pref_block_address_summary">Blocca indirizzo IP del client dopo 5 tentativi falliti del pin</string>
 
@@ -117,12 +121,12 @@
     <string name="mjpeg_pref_localhost_only_summary">Avvia il server solo su indirizzi localhost</string>
     <string name="mjpeg_pref_server_port">Porta server</string>
     <string name="mjpeg_pref_server_port_summary">Imposta la porta per le connessioni in ingresso</string>
-    <string name="mjpeg_pref_server_port_dialog">Imposta la porta per le connessione in ingresso.\nValori: 1025–65535 (predefinita: 8080)</string>
+    <string name="mjpeg_pref_server_port_text">Imposta la porta per le connessione in ingresso.\nValori: 1025–65535\nPredefinita: 8080</string>
 
     <string name="mjpeg_error_port_in_use">Porta già in uso. Scegline un\'altra.</string>
     <string name="mjpeg_error_invalid_media_projection">Errore di sicurezza: protezione multimedia non valida. Riprova.</string>
     <string name="mjpeg_error_ip_address_not_found">Indirizzo IP non trovato.\nProva a disabilitare \"Usa solo WiFi\" nelle impostazioni di streaming.</string>
-    <string name="mjpeg_error_notification_permission_required">L\'applicazione richiede che le notifiche siano abilitate per avviare il servizio di streaming.\n\nSi prega di abilitare le notifiche nelle impostazioni dell\'applicazione.</string>
+    <string name="mjpeg_error_notification_permission_required">L\'applicazione richiede che le notifiche siano abilitate per avviare il servizio di streaming.\nSi prega di abilitare le notifiche nelle impostazioni dell\'applicazione.</string>
     <string name="mjpeg_error_unspecified">Qualcosa è andato storto. Per favore, riprova più tardi.</string>
 
     <string name="mjpeg_start_image_text">Avvia lo streaming sul dispositivo</string>

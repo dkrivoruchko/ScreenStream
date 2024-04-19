@@ -2,7 +2,13 @@ package info.dvkr.screenstream.mjpeg.internal
 
 import android.annotation.SuppressLint
 import android.content.Context
-import android.graphics.*
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.ColorMatrix
+import android.graphics.ColorMatrixColorFilter
+import android.graphics.Matrix
+import android.graphics.Paint
+import android.graphics.PixelFormat
 import android.hardware.display.DisplayManager
 import android.hardware.display.VirtualDisplay
 import android.media.Image
@@ -15,19 +21,23 @@ import android.os.Process
 import android.util.DisplayMetrics
 import android.view.Display
 import android.view.WindowManager
-import androidx.annotation.RequiresApi
-import androidx.core.content.ContextCompat
+import androidx.window.layout.WindowMetricsCalculator
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.common.getLog
-import info.dvkr.screenstream.mjpeg.MjpegSettings
-import kotlinx.coroutines.*
-import kotlinx.coroutines.flow.*
+import info.dvkr.screenstream.mjpeg.settings.MjpegSettings
+import info.dvkr.screenstream.mjpeg.ui.MjpegError
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.MutableStateFlow
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
 
+
 internal class BitmapCapture(
-    private val context: Context,
+    private val serviceContext: Context,
     private val mjpegSettings: MjpegSettings,
     private val mediaProjection: MediaProjection,
     private val bitmapStateFlow: MutableStateFlow<Bitmap>,
@@ -35,40 +45,36 @@ internal class BitmapCapture(
 ) {
     private enum class State { INIT, STARTED, DESTROYED, ERROR }
 
-    @Volatile
-    private var state: State = State.INIT
+    @Volatile private var state: State = State.INIT
 
     private val imageThread: HandlerThread by lazy { HandlerThread("BitmapCapture", Process.THREAD_PRIORITY_BACKGROUND) }
     private val imageThreadHandler: Handler by lazy { Handler(imageThread.looper) }
-    private val display: Display by lazy {
-        ContextCompat.getSystemService(context, DisplayManager::class.java)!!.getDisplay(Display.DEFAULT_DISPLAY)
+    private val defaultDisplay: Display = serviceContext.getSystemService(DisplayManager::class.java).getDisplay(Display.DEFAULT_DISPLAY)
+    private val windowContext: Context by lazy {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            serviceContext.createDisplayContext(defaultDisplay).createWindowContext(WindowManager.LayoutParams.TYPE_APPLICATION, null)
+        } else {
+            serviceContext
+        }
     }
 
-    @RequiresApi(Build.VERSION_CODES.S)
-    private fun windowContext(): Context = context.createDisplayContext(display)
-        .createWindowContext(WindowManager.LayoutParams.TYPE_APPLICATION, null)
-
     @Suppress("DEPRECATION")
-    private fun getDensityDpiCompat(): Int =
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
-            DisplayMetrics().also { display.getMetrics(it) }.densityDpi
-        } else {
-            windowContext().resources.configuration.densityDpi
+    private fun getDensityDpiCompat(): Int = when {
+        Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE -> {
+            val windowManager = windowContext.getSystemService(WindowManager::class.java)
+            (DisplayMetrics.DENSITY_DEFAULT * windowManager.maximumWindowMetrics.density).toInt()
         }
 
-    @Suppress("DEPRECATION")
-    private fun getScreenSizeCompatResized(): Pair<Int, Int> =
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
-            Point().also { display.getRealSize(it) }
-        } else {
-            val bounds = windowContext().getSystemService(WindowManager::class.java).maximumWindowMetrics.bounds
-            Point(bounds.width(), bounds.height())
-        }.let { point ->
+        else -> DisplayMetrics().also { defaultDisplay.getMetrics(it) }.densityDpi
+    }
+
+    private fun getScreenSizeResized(): Pair<Int, Int> =
+        WindowMetricsCalculator.getOrCreate().computeMaximumWindowMetrics(windowContext).bounds.let { bounds ->
             if (resizeFactor.get() < MjpegSettings.Values.RESIZE_DISABLED) {
                 val scale = resizeFactor.get() / 100f
-                Pair((point.x * scale).toInt(), (point.y * scale).toInt())
+                Pair((bounds.width() * scale).toInt(), (bounds.height() * scale).toInt())
             } else {
-                Pair(point.x, point.y)
+                Pair(bounds.width(), bounds.height())
             }
         }
 
@@ -94,16 +100,18 @@ internal class BitmapCapture(
     init {
         XLog.d(getLog("init"))
 
-        mjpegSettings.resizeFactorFlow.listenForChange(coroutineScope) { if (resizeFactor.getAndSet(it) != it) updateMatrix() }
-        mjpegSettings.rotationFlow.listenForChange(coroutineScope) { if (rotation.getAndSet(it) != it) updateMatrix() }
-        mjpegSettings.maxFPSFlow.listenForChange(coroutineScope) { maxFPS.set(it) }
-        mjpegSettings.vrModeFlow.listenForChange(coroutineScope) { vrMode.set(it) }
-        mjpegSettings.imageCropFlow.listenForChange(coroutineScope) { imageCrop.set(it) }
-        mjpegSettings.imageCropTopFlow.listenForChange(coroutineScope) { imageCropTop.set(it) }
-        mjpegSettings.imageCropBottomFlow.listenForChange(coroutineScope) { imageCropBottom.set(it) }
-        mjpegSettings.imageCropLeftFlow.listenForChange(coroutineScope) { imageCropLeft.set(it) }
-        mjpegSettings.imageCropRightFlow.listenForChange(coroutineScope) { imageCropRight.set(it) }
-        mjpegSettings.imageGrayscaleFlow.listenForChange(coroutineScope) { imageGrayscale.set(it) }
+        mjpegSettings.data.listenForChange(coroutineScope) { data ->
+            if (resizeFactor.getAndSet(data.resizeFactor) != data.resizeFactor) updateMatrix()
+            if (rotation.getAndSet(data.rotation) != data.rotation) updateMatrix()
+            maxFPS.set(data.maxFPS)
+            vrMode.set(data.vrMode)
+            imageCrop.set(data.imageCrop)
+            imageCropTop.set(data.imageCropTop)
+            imageCropBottom.set(data.imageCropBottom)
+            imageCropLeft.set(data.imageCropLeft)
+            imageCropRight.set(data.imageCropRight)
+            imageGrayscale.set(data.imageGrayscale)
+        }
 
         imageThread.start()
     }
@@ -149,7 +157,7 @@ internal class BitmapCapture(
 
     @SuppressLint("WrongConstant")
     private fun startDisplayCapture(): Boolean {
-        val (screenSizeX, screenSizeY) = getScreenSizeCompatResized()
+        val (screenSizeX, screenSizeY) = getScreenSizeResized()
         val densityDpi = getDensityDpiCompat()
 
         imageListener = ImageListener()
@@ -192,7 +200,7 @@ internal class BitmapCapture(
         imageReader?.close()
         imageReader = null
 
-        val (screenSizeX, screenSizeY) = getScreenSizeCompatResized()
+        val (screenSizeX, screenSizeY) = getScreenSizeResized()
         val densityDpi = getDensityDpiCompat()
 
         imageListener = ImageListener()
@@ -263,7 +271,7 @@ internal class BitmapCapture(
     }
 
     private fun getCroppedBitmap(bitmap: Bitmap): Bitmap {
-        if (vrMode.get() == MjpegSettings.Default.VR_MODE_DISABLE && imageCrop.get().not()) return bitmap
+        if (vrMode.get() <= MjpegSettings.Default.VR_MODE_DISABLE && imageCrop.get().not()) return bitmap
 
         var imageLeft = 0
         var imageRight = bitmap.width

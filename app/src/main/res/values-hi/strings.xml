@@ -3,33 +3,28 @@
     <string name="app_error_title">त्रुटि</string>
     <string name="app_error_recover">पुनर्प्राप्त करें</string>
 
-    <string name="app_activity_logs_collecting">एप्लिकेशन लॉग एकत्रित कर रहा है …</string>
-    <string name="app_activity_logs_send">डेवलपर को लॉग भेजें</string>
-    <string name="app_activity_logs_send_dialog_title">डेवलपर को ईमेल में लॉग भेजें</string>
-    <string name="app_activity_logs_send_dialog_message">कृपया समस्या विवरण जोड़ें:</string>
-    <string name="app_activity_logs_send_dialog_neutral">लॉगिंग बंद करें</string>
+    <string name="app_logs_collecting">एप्लिकेशन लॉग एकत्रित कर रहा है …</string>
+    <string name="app_logs_send_title">डेवलपर को लॉग भेजें</string>
+    <string name="app_logs_send_message">कृपया समस्या विवरण जोड़ें:</string>
+    <string name="app_logs_send">भेजें</string>
+    <string name="app_logs_enabled">लॉगिंग सक्षम</string>
+    <string name="app_logs_disabled">लॉगिंग अक्षम</string>
+    <string name="app_logs_stop">लॉगिंग बंद करें</string>
 
     <string name="app_activity_update_dialog_title">अपडेट उपलब्ध है</string>
     <string name="app_activity_update_dialog_message">एक अपडेट अभी डाउनलोड की गई है। क्या आप अब ऐप्लिकेशन को फिर से चालना चाहेंगे?</string>
     <string name="app_activity_update_dialog_restart">रीस्टार्ट करें</string>
 
-    <string name="app_bottom_menu_stream">प्रवाह</string>
-    <string name="app_bottom_menu_settings">सेटिंग्स</string>
-    <string name="app_bottom_menu_start">शुरु</string>
-    <string name="app_bottom_menu_stop">रुकें</string>
-    <string name="app_bottom_menu_about">विषय में</string>
-    <string name="app_bottom_menu_exit">प्रस्थान</string>
+    <string name="app_tab_stream">प्रवाह</string>
+    <string name="app_tab_settings">सेटिंग्स</string>
+    <string name="app_tab_about">विषय में</string>
 
-    <string name="app_fragment_stream_select_stream_mode">स्ट्रीम मोड चुनें:</string>
+    <string name="app_tab_stream_select_mode">स्ट्रीम मोड चुनें:</string>
 
-    <string name="permission_activity_error_title">त्रुटि</string>
-    <string name="permission_activity_error_unknown">अज्ञात त्रुटि</string>
-    <string name="app_activity_permission_permission_required_title">अनुमति आवश्यक है</string>
-    <string name="app_activity_permission_notifications_required_title">अधिसूचनाएँ आवश्यक</string>
-    <string name="app_activity_permission_enable_notifications">ऐप्लिकेशन को स्ट्रीमिंग सेवा शुरू करने के लिए सूचनाओं को सक्षम करने की आवश्यकता है।\n\nकृपया ऐप्लिकेशन की सेटिंग्स में सूचनाओं को सक्षम करें।</string>
-    <string name="app_activity_permission_allow_notifications">स्ट्रीमिंग सेवा शुरू करने के लिए ऐप्लिकेशन को सूचनाओं भेजने की अनुमति की आवश्यकता है।\n\nकृपया सूचनाएँ भेजने की अनुमति दें।</string>
-    <string name="app_activity_permission_allow_notifications_settings">स्ट्रीमिंग सेवा शुरू करने के लिए ऐप्लिकेशन को सूचनाएँ भेजने की अनुमति की आवश्यकता है।\n\nकृपया ऐप्लिकेशन की सेटिंग्स में सूचनाओं को भेजने की अनुमति दें।</string>
-    <string name="app_activity_permission_notification_settings">सेटिंग्स खोलें</string>
+    <string name="app_permission_required_title">अनुमति आवश्यक है</string>
+    <string name="app_permission_allow_notifications">स्ट्रीमिंग सेवा शुरू करने के लिए ऐप्लिकेशन को सूचनाओं भेजने की अनुमति की आवश्यकता है।\n\nकृपया सूचनाएँ भेजने की अनुमति दें।</string>
+    <string name="app_permission_allow_notifications_settings">स्ट्रीमिंग सेवा शुरू करने के लिए ऐप्लिकेशन को सूचनाएँ भेजने की अनुमति की आवश्यकता है।\n\nकृपया ऐप्लिकेशन की सेटिंग्स में सूचनाओं को भेजने की अनुमति दें।</string>
+    <string name="app_permission_notification_settings">सेटिंग्स खोलें</string>
 
     <string name="app_notification_channel_streaming">स्ट्रीमिंग सूचनाएँ</string>
     <string name="app_notification_channel_error">त्रुटि सूचनाएँ</string>
@@ -37,8 +32,14 @@
     <string name="app_notification_streaming_content">धारा समाप्त करने के लिए STOP दबाएँ</string>
     <string name="app_notification_stop">रुकें</string>
 
+    <string name="app_pref_settings_search">सेटिंग्स खोजें</string>
+    <string name="app_pref_search">खोज</string>
+    <string name="app_pref_close">बंद करें</string>
+    <string name="app_pref_back">पीछे</string>
+    <string name="app_pref_settings">एप्लिकेशन सेटिंग्स</string>
     <string name="app_pref_locale">ऐप्लिकेशन भाषा</string>
     <string name="app_pref_locale_summary">ऐप्लिकेशन भाषा सेटिंग्स खोलें</string>
+    <string name="app_pref_locale_default">सिस्टम डिफ़ॉल्ट</string>
     <string name="app_pref_night_mode">डार्क थीम</string>
     <string-array name="app_pref_night_mode_options_api21_28">
         <item>हमेशा</item>
@@ -50,20 +51,21 @@
         <item>स्वचालित रूप से (सिस्टम का अनुसरण करें)</item>
         <item>कभी नहीँ</item>
     </string-array>
+    <string name="app_pref_dynamic_theme">डायनामिक रंग</string>
+    <string name="app_pref_dynamic_theme_summary">अपने वॉलपेपर के रंगों के आधार पर दिखावट को समायोजित करें</string>
     <string name="app_pref_notification">डिवाइस अधिसूचना सेटिंग्स</string>
     <string name="app_pref_notification_summary">सिस्टम अधिसूचना सेटिंग्स खोलें</string>
     <string name="app_pref_logging">एप्लिकेशन लॉग सक्षम करें</string>
     <string name="app_pref_logging_summary">आवेदन पत्र एकत्र करें</string>
 
-    <string name="app_about_fragment_app_version">संस्करण: %1$s</string>
-    <string name="app_about_fragment_developer_name">दिमित्री Dmytro Krivoruchko द्वारा विकसित</string>
-    <string name="app_about_fragment_rate_app">एप्लिकेशन का मूल्यांकन करें</string>
-    <string name="app_about_fragment_write_email">डेवलपर को ईमेल लिखें</string>
-    <string name="app_about_fragment_write_email_dialog">डेवलपर को ईमेल लिखें?</string>
-    <string name="app_about_fragment_email_chooser_header">ईमेल भेज रहा हूं…</string>
-    <string name="app_about_fragment_app_sources">आवेदन के स्रोत</string>
-    <string name="app_about_fragment_terms_conditions">शर्तें और नियम</string>
-    <string name="app_about_fragment_privacy_policy">गोपनीयता नीति</string>
-    <string name="app_about_fragment_privacy_options">गोपनीयता विकल्प</string>
-    <string name="app_about_fragment_license">लाइसेंस</string>
+    <string name="app_tab_about_app_version">संस्करण: %1$s</string>
+    <string name="app_tab_about_developer_name">दिमित्री Dmytro Krivoruchko द्वारा विकसित</string>
+    <string name="app_tab_about_rate_app">एप्लिकेशन का मूल्यांकन करें</string>
+    <string name="app_tab_about_write_email">डेवलपर को ईमेल लिखें</string>
+    <string name="app_tab_about_email_chooser_header">ईमेल भेज रहा हूं…</string>
+    <string name="app_tab_about_app_sources">आवेदन के स्रोत</string>
+    <string name="app_tab_about_terms_conditions">शर्तें और नियम</string>
+    <string name="app_tab_about_privacy_policy">गोपनीयता नीति</string>
+    <string name="app_tab_about_privacy_options">गोपनीयता विकल्प</string>
+    <string name="app_tab_about_license">लाइसेंस</string>
 </resources>

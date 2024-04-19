@@ -5,33 +5,28 @@
     <string name="app_error_title">Error</string>
     <string name="app_error_recover">Recover</string>
 
-    <string name="app_activity_logs_collecting">Collecting application logs…</string>
-    <string name="app_activity_logs_send">Send logs to developer</string>
-    <string name="app_activity_logs_send_dialog_title">Send logs in email to developer</string>
-    <string name="app_activity_logs_send_dialog_message">Please add issue description:</string>
-    <string name="app_activity_logs_send_dialog_neutral">Stop logging</string>
+    <string name="app_logs_collecting">Collecting application logs…</string>
+    <string name="app_logs_send_title">Send logs to developer</string>
+    <string name="app_logs_send_message">Please add issue description:</string>
+    <string name="app_logs_send">Send</string>
+    <string name="app_logs_enabled">Logging enabled</string>
+    <string name="app_logs_disabled">Logging disabled</string>
+    <string name="app_logs_stop">Stop logging</string>
 
     <string name="app_activity_update_dialog_title">Update available</string>
     <string name="app_activity_update_dialog_message">An update has just been downloaded. Restart app now?</string>
     <string name="app_activity_update_dialog_restart">Restart</string>
 
-    <string name="app_bottom_menu_stream">Stream</string>
-    <string name="app_bottom_menu_settings">Settings</string>
-    <string name="app_bottom_menu_start">Start</string>
-    <string name="app_bottom_menu_stop">Stop</string>
-    <string name="app_bottom_menu_about">About</string>
-    <string name="app_bottom_menu_exit">Exit</string>
+    <string name="app_tab_stream">Stream</string>
+    <string name="app_tab_settings">Settings</string>
+    <string name="app_tab_about">About</string>
 
-    <string name="app_fragment_stream_select_stream_mode">Select stream mode:</string>
+    <string name="app_tab_stream_select_mode">Select stream mode:</string>
 
-    <string name="permission_activity_error_title">Error</string>
-    <string name="permission_activity_error_unknown">Unknown error</string>
-    <string name="app_activity_permission_permission_required_title">Permission required</string>
-    <string name="app_activity_permission_notifications_required_title">Notifications required</string>
-    <string name="app_activity_permission_enable_notifications">Application require notifications to be enabled to start streaming service.\n\nPlease enable notifications in application settings.</string>
-    <string name="app_activity_permission_allow_notifications">Application require permission to send notifications to be able to start streaming service.\n\nPlease allow sending notifications.</string>
-    <string name="app_activity_permission_allow_notifications_settings">Application require permission to send notifications to be able to start streaming service.\n\nPlease allow sending notifications in application settings.</string>
-    <string name="app_activity_permission_notification_settings">Open settings</string>
+    <string name="app_permission_required_title">Permission required</string>
+    <string name="app_permission_allow_notifications">Application require permission to send notifications to be able to start streaming service.\n\nPlease allow sending notifications.</string>
+    <string name="app_permission_allow_notifications_settings">Application require permission to send notifications to be able to start streaming service.\n\nPlease allow sending notifications in application settings.</string>
+    <string name="app_permission_notification_settings">Open settings</string>
 
     <string name="app_notification_channel_streaming">Streaming notifications</string>
     <string name="app_notification_channel_error">Error notifications</string>
@@ -39,8 +34,14 @@
     <string name="app_notification_streaming_content">Press STOP to finish stream</string>
     <string name="app_notification_stop">Stop</string>
 
+    <string name="app_pref_settings_search">Settings search</string>
+    <string name="app_pref_search">Search</string>
+    <string name="app_pref_close">Close</string>
+    <string name="app_pref_back">Back</string>
+    <string name="app_pref_settings">Application settings</string>
     <string name="app_pref_locale">Application language</string>
     <string name="app_pref_locale_summary">Open application language settings</string>
+    <string name="app_pref_locale_default">System default</string>
     <string name="app_pref_night_mode">Dark theme</string>
     <string-array name="app_pref_night_mode_options_api21_28">
         <item>Always</item>
@@ -52,21 +53,21 @@
         <item>Automatically (follow system)</item>
         <item>Never</item>
     </string-array>
+    <string name="app_pref_dynamic_theme">Dynamic color</string>
+    <string name="app_pref_dynamic_theme_summary">Adjust the appearance based on your wallpaper\'s colors</string>
     <string name="app_pref_notification">Device notification settings</string>
     <string name="app_pref_notification_summary">Open system notification settings</string>
     <string name="app_pref_logging">Enable application logs</string>
     <string name="app_pref_logging_summary">Collect application logs</string>
 
-    <string name="app_about_fragment_app_name" translatable="false">ScreenStream</string>
-    <string name="app_about_fragment_app_version">Version: %1$s</string>
-    <string name="app_about_fragment_developer_name">Developed by Dmytro Kryvoruchko</string>
-    <string name="app_about_fragment_rate_app">Rate app</string>
-    <string name="app_about_fragment_write_email">Write email to developer</string>
-    <string name="app_about_fragment_write_email_dialog">Write email to developer?</string>
-    <string name="app_about_fragment_email_chooser_header">Sending email…</string>
-    <string name="app_about_fragment_app_sources">Application sources</string>
-    <string name="app_about_fragment_terms_conditions">Terms and Conditions</string>
-    <string name="app_about_fragment_privacy_policy">Privacy policy</string>
-    <string name="app_about_fragment_privacy_options">Privacy options</string>
-    <string name="app_about_fragment_license">License</string>
+    <string name="app_tab_about_app_version">Version: %1$s</string>
+    <string name="app_tab_about_developer_name">Developed by Dmytro Kryvoruchko</string>
+    <string name="app_tab_about_rate_app">Rate app</string>
+    <string name="app_tab_about_write_email">Write email to developer</string>
+    <string name="app_tab_about_email_chooser_header">Sending email…</string>
+    <string name="app_tab_about_app_sources">Application sources</string>
+    <string name="app_tab_about_terms_conditions">Terms and Conditions</string>
+    <string name="app_tab_about_privacy_policy">Privacy policy</string>
+    <string name="app_tab_about_privacy_options">Privacy options</string>
+    <string name="app_tab_about_license">License</string>
 </resources>
