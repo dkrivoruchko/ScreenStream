@@ -8,11 +8,9 @@ Versions from F-Droid, AAPKS are Ad-free and support only **Local mode (MJPEG)**
 
 <a href='https://play.google.com/store/apps/details?id=info.dvkr.screenstream'><img alt='Get it on Google Play' src='https://play.google.com/intl/en_us/badges/images/generic/en_badge_web_generic.png' height="100"/></a> <a href="https://f-droid.org/packages/info.dvkr.screenstream/" target="_blank"><img src="https://f-droid.org/badge/get-it-on.png" alt="Get it on F-Droid" height="100"/></a> <a href="https://aapks.com/apk/screen-stream/"><img src="https://aapks.com/get.png" alt="Get it on AAPKs" height="100"/></a>
 
-## Table of contents
-
  * [Stream modes](#stream-modes)
    + [Local mode (MJPEG)](#local-mode-mjpeg)
-   + [Global mode (WebRTC)](#global-mode-webrtc--in-google-play-version-only)
+   + [Global mode (WebRTC)](#global-mode-webrtc)
  * [Screenshots](#screenshots)
  * [Contribution](#contribution)
  * [Developer](#developed-by)
@@ -56,15 +54,11 @@ The Local mode offers the following functionality:
 
 > [!NOTE]
 >
-> Please be aware that certain cell operators may block incoming connections to your device for security reasons. Consequently, even if your device has an IP address from a cell operator, connecting to the device using this IP address may not be possible.
-
-> [!NOTE]
+> - Please be aware that certain cell operators may block incoming connections to your device for security reasons. Consequently, even if your device has an IP address from a cell operator, connecting to the device using this IP address may not be possible.
 >
-> Some WiFi networks, particularly public or guest networks, may block connections between its clients for security reasons. In such cases, connecting to the device via WiFi might not be feasible. For instance, a laptop and a phone within such a WiFi network will not be able to connect to each other.
+> - Some WiFi networks, particularly public or guest networks, may block connections between its clients for security reasons. In such cases, connecting to the device via WiFi might not be feasible. For instance, a laptop and a phone within such a WiFi network will not be able to connect to each other.
 
-![](screenshots/screenshot_lm_d.png)&nbsp;![](screenshots/screenshot_lm_d_about.png)
-
-### Global mode (WebRTC) / in Google Play version only /
+### Global mode (WebRTC)
 
 Global mode in the ScreenStream application is built on WebRTC technology and relies on an external signaling server to facilitate communication between the streaming host (the app) and the streaming client, which is a web browser equipped with the ScreenStream [Web Client](https://screenstream.io).
 
@@ -79,10 +73,13 @@ The Global mode was introduced in app version 4 and offers the following functio
 - Requires an internet connection for streaming.
 - Individual data transmission for each client, with more clients requiring increased internet bandwidth to maintain optimal performance.
 
-![](screenshots/screenshot_gm_d.png)&nbsp;![](screenshots/screenshot_gm_d_about.png)
+> [!NOTE]
+> Global mode (WebRTC) only available in Google Play version
 
 ## Screenshots
 
+![](screenshots/screenshot_lm_d.png)&nbsp;![](screenshots/screenshot_lm_d_about.png)<br>
+![](screenshots/screenshot_gm_d.png)&nbsp;![](screenshots/screenshot_gm_d_about.png)<br>
 ![](screenshots/screenshot_settings_1_d.png)&nbsp;![](screenshots/screenshot_settings_1_l.png)<br>
 ![](screenshots/screenshot_settings_2_d.png)&nbsp;![](screenshots/screenshot_settings_2_l.png)<br>
 ![](screenshots/screenshot_settings_3_d.png)&nbsp;![](screenshots/screenshot_settings_3_l.png)<br>
