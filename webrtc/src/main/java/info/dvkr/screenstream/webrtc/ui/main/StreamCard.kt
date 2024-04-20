@@ -20,6 +20,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.MutatePriority
 import androidx.compose.foundation.MutatorMutex
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
@@ -71,6 +72,7 @@ import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -131,11 +133,23 @@ internal fun StreamCard(
                 style = MaterialTheme.typography.titleMedium
             )
         } else {
+            val context = LocalContext.current
             Text(
-                text = stringResource(id = R.string.webrtc_stream_server_address, signalingServerUrl.value),
+                text = stringResource(id = R.string.webrtc_stream_server_address, signalingServerUrl.value)
+                    .stylePlaceholder(signalingServerUrl.value, SpanStyle(color = MaterialTheme.colorScheme.primary)),
                 modifier = Modifier
-                    .padding(12.dp)
-                    .fillMaxWidth(),
+                    .padding(vertical = 16.dp)
+                    .clickable(role = Role.Button) {
+                        context.openStringUrl(fullAddress.value) { error ->
+                            val messageId = when (error) {
+                                is ActivityNotFoundException -> R.string.webrtc_stream_no_web_browser_found
+                                else -> R.string.webrtc_stream_external_app_error
+                            }
+                            Toast.makeText(context, messageId, Toast.LENGTH_LONG).show()
+                        }
+                    }
+                    .padding(horizontal = 12.dp)
+                    .align(alignment = Alignment.CenterHorizontally),
                 textAlign = TextAlign.Center,
                 fontSize = 18.sp,
                 style = MaterialTheme.typography.titleMedium

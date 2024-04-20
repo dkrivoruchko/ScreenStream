@@ -107,9 +107,7 @@ private fun AddressCard(
                             is ActivityNotFoundException -> R.string.mjpeg_stream_no_web_browser_found
                             else -> R.string.mjpeg_stream_external_app_error
                         }
-                        Toast
-                            .makeText(context, messageId, Toast.LENGTH_LONG)
-                            .show()
+                        Toast.makeText(context, messageId, Toast.LENGTH_LONG).show()
                     }
                 },
             color = MaterialTheme.colorScheme.primary,

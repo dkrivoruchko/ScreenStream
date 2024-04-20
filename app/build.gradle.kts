@@ -111,11 +111,10 @@ dependencies {
     implementation(project(":common"))
 
     implementation(libs.androidx.core.splashscreen)
+    implementation(libs.androidx.compose.material3.adaptive.navigation.suite)
+    implementation(libs.androidx.compose.material3.adaptive.layout)
+    implementation(libs.androidx.compose.material3.adaptive.navigation)
     implementation(libs.processPhoenix)
-
-    implementation("androidx.compose.material3:material3-adaptive-navigation-suite:1.0.0-alpha06")
-    implementation("androidx.compose.material3.adaptive:adaptive-layout:1.0.0-alpha11")
-    implementation("androidx.compose.material3.adaptive:adaptive-navigation:1.0.0-alpha11")
 
     // MJPEG
     implementation(project(":mjpeg"))

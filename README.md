@@ -4,40 +4,36 @@
 ScreenStream is a user-friendly Android application that allows users to easily share their device screen and view it directly in a web browser. No additional software is required other than the ScreenStream itself, a web browser, and an internet connection (for Global mode).
 
 Google Play versions supports both **Global mode (WebRTC)** and **Local mode (MJPEG)** with ads included.<br>
-Versions from F-Droid, AAPKS, or FirebaseFree builds in GitHub Releases are Ad-free and support only **Local mode (MJPEG)**.
+Versions from F-Droid, AAPKS are Ad-free and support only **Local mode (MJPEG)**.
 
 <a href='https://play.google.com/store/apps/details?id=info.dvkr.screenstream'><img alt='Get it on Google Play' src='https://play.google.com/intl/en_us/badges/images/generic/en_badge_web_generic.png' height="100"/></a> <a href="https://f-droid.org/packages/info.dvkr.screenstream/" target="_blank"><img src="https://f-droid.org/badge/get-it-on.png" alt="Get it on F-Droid" height="100"/></a> <a href="https://aapks.com/apk/screen-stream/"><img src="https://aapks.com/get.png" alt="Get it on AAPKs" height="100"/></a>
 
-## Description
+## Table of contents
 
-ScreenStream offers two work modes: **Global mode** (in Google Play Store version only) and **Local mode**. Both modes aim to stream the Android device screen but function differently. They are independent of each other, with unique functionalities, restrictions, and customization options.
+ * [Stream modes](#stream-modes)
+   + [Local mode (MJPEG)](#local-mode-mjpeg)
+   + [Global mode (WebRTC)](#global-mode-webrtc--in-google-play-version-only)
+ * [Screenshots](#screenshots)
+ * [Contribution](#contribution)
+ * [Developer](#developed-by)
+ * [Privacy Policy and Terms & Conditions](#privacy-policy-and-terms--conditions)
+ * [License](#license)
+
+## Stream modes
+
+ScreenStream offers two stream modes: **Global mode (WebRTC)** (in [Google Play Store](https://play.google.com/store/apps/details?id=info.dvkr.screenstream) version only) and **Local mode (MJPEG)**. Both modes aim to stream the Android device screen but function differently. They are independent of each other, with unique functionalities, restrictions, and customization options.
 
 In both modes the number of clients is not directly limited, but it's important to keep in mind that each client consumes CPU resources and bandwidth for data transmission.
 
 The application uses Android [MediaProjection](https://developer.android.com/reference/android/media/projection/MediaProjection) feature and requires Android 6.0 or higher.
 
-Important Warnings:
-
-- **High Traffic on Mobile Networks**: Use caution when streaming via mobile 3G/4G/5G/LTE networks to avoid excessive data usage.
-
-- **Delay in Streaming**: Expect a delay of at least 0.5-1 second or more in certain conditions: slow device, poor internet or network connection, or when the device is under heavy CPU load due to other applications.
-
-- **Video Streaming Limitation**: ScreenStream is not designed for streaming video, particularly HD video. While it will function, the stream quality may not meet your expectations.
-
-### Global mode (WebRTC) / in Google Play version only /
-
-Global mode in the ScreenStream application is built on WebRTC technology and relies on an external signaling server to facilitate communication between the streaming host (the app) and the streaming client, which is a web browser equipped with the ScreenStream [Web Client](https://screenstream.io).
-
-Both the signaling server and the web client for ScreenStream are open-source and available in the [ScreenStreamWeb](https://github.com/dkrivoruchko/ScreenStreamWeb) repository. These components can be accessed publicly at https://screenstream.io. The system is designed to function seamlessly with any desktop or mobile browser that supports WebRTC, such as Chrome, Safari, EDGE, Firefox, and others.
-
-The Global mode was introduced in app version 4 and offers the following functionality:
-- Powered by WebRTC technology.
-- End-to-end encrypted communication.
-- Stream protection with password.
-- Supports both video and audio streaming.
-- Connect using unique stream ID and password.
-- Requires an internet connection for streaming.
-- Individual data transmission for each client, with more clients requiring increased internet bandwidth to maintain optimal performance.
+> [!WARNING]
+>
+> - **High Traffic on Mobile Networks**: Use caution when streaming via mobile 3G/4G/5G/LTE networks to avoid excessive data usage.
+> 
+> - **Delay in Streaming**: Expect a delay of at least 0.5-1 second or more in certain conditions: slow device, poor internet or network connection, or when the device is under heavy CPU load due to other applications.
+> 
+> - **Video Streaming Limitation**: ScreenStream is not designed for streaming video, particularly HD video. While it will function, the stream quality may not meet your expectations.
 
 ### Local mode (MJPEG)
 
@@ -58,25 +54,40 @@ The Local mode offers the following functionality:
 - Highly customizable.
 - Individual data transmission for each client, with more clients requiring increased internet bandwidth to maintain optimal performance.
 
-**WARNING:** Please be aware that certain cell operators may block incoming connections to your device for security reasons. Consequently, even if your device has an IP address from a cell operator, connecting to the device using this IP address may not be possible.
+> [!NOTE]
+>
+> Please be aware that certain cell operators may block incoming connections to your device for security reasons. Consequently, even if your device has an IP address from a cell operator, connecting to the device using this IP address may not be possible.
 
-**WARNING:** Some WiFi networks, particularly public or guest networks, may block connections between its clients for security reasons. In such cases, connecting to the device via WiFi might not be feasible. For instance, a laptop and a phone within such a WiFi network will not be able to connect to each other.
+> [!NOTE]
+>
+> Some WiFi networks, particularly public or guest networks, may block connections between its clients for security reasons. In such cases, connecting to the device via WiFi might not be feasible. For instance, a laptop and a phone within such a WiFi network will not be able to connect to each other.
+
+![](screenshots/screenshot_lm_d.png)&nbsp;![](screenshots/screenshot_lm_d_about.png)
+
+### Global mode (WebRTC) / in Google Play version only /
+
+Global mode in the ScreenStream application is built on WebRTC technology and relies on an external signaling server to facilitate communication between the streaming host (the app) and the streaming client, which is a web browser equipped with the ScreenStream [Web Client](https://screenstream.io).
+
+Both the signaling server and the web client for ScreenStream are open-source and available in the [ScreenStreamWeb](https://github.com/dkrivoruchko/ScreenStreamWeb) repository. These components can be accessed publicly at https://screenstream.io. The system is designed to function seamlessly with any desktop or mobile browser that supports WebRTC, such as Chrome, Safari, EDGE, Firefox, and others.
+
+The Global mode was introduced in app version 4 and offers the following functionality:
+- Powered by WebRTC technology.
+- End-to-end encrypted communication.
+- Stream protection with password.
+- Supports both video and audio streaming.
+- Connect using unique stream ID and password.
+- Requires an internet connection for streaming.
+- Individual data transmission for each client, with more clients requiring increased internet bandwidth to maintain optimal performance.
+
+![](screenshots/screenshot_gm_d.png)&nbsp;![](screenshots/screenshot_gm_d_about.png)
 
 ## Screenshots
 
-![](screenshots/screenshot_1.png)&nbsp;
-![](screenshots/screenshot_2.png)<br>
-![](screenshots/screenshot_3.png)&nbsp;
-![](screenshots/screenshot_4.png)<br>
-![](screenshots/screenshot_5.png)&nbsp;
-![](screenshots/screenshot_6.png)<br>
-![](screenshots/screenshot_7.png)&nbsp;
-![](screenshots/screenshot_8.png)<br>
-![](screenshots/screenshot_9.png)&nbsp;
-![](screenshots/screenshot_10.png)<br>
-![](screenshots/screenshot_11.png)&nbsp;
-![](screenshots/screenshot_12.png)
-
+![](screenshots/screenshot_settings_1_d.png)&nbsp;![](screenshots/screenshot_settings_1_l.png)<br>
+![](screenshots/screenshot_settings_2_d.png)&nbsp;![](screenshots/screenshot_settings_2_l.png)<br>
+![](screenshots/screenshot_settings_3_d.png)&nbsp;![](screenshots/screenshot_settings_3_l.png)<br>
+![](screenshots/screenshot_settings_4_d.png)&nbsp;![](screenshots/screenshot_settings_4_l.png)<br>
+![](screenshots/screenshot_about_d.png)
 
 ## Contribution
 
