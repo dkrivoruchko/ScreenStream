@@ -4,6 +4,7 @@ import android.app.Application
 import android.os.Build
 import android.os.StrictMode
 import com.elvishew.xlog.LogConfiguration
+import com.jakewharton.processphoenix.ProcessPhoenix
 import info.dvkr.screenstream.logger.AppLogger
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.context.startKoin
@@ -18,6 +19,8 @@ public abstract class BaseApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
+
+        if (ProcessPhoenix.isPhoenixProcess(this)) return
 
         if (BuildConfig.DEBUG) {
             StrictMode.setThreadPolicy(

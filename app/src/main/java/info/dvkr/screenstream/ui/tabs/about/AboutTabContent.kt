@@ -56,6 +56,7 @@ public fun AboutTabContent(
             painter = painterResource(id = R.drawable.logo),
             contentDescription = null,
             modifier = Modifier
+                .padding(top = 8.dp)
                 .size(104.dp)
                 .clip(MaterialTheme.shapes.medium)
         )

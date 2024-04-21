@@ -111,7 +111,7 @@ private fun PinUI(
         }
 
         Text(
-            text = pin.value,
+            text = pin.value, //TODO Hide while streaming
             modifier = Modifier
                 .defaultMinSize(minWidth = 52.dp)
                 .padding(end = 6.dp),

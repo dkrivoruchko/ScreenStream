@@ -55,7 +55,6 @@ android {
         debug {
             signingConfig = signingConfigs.getByName("debug")
             applicationIdSuffix = ".dev"
-            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
         release {
             isMinifyEnabled = true
@@ -66,11 +65,11 @@ android {
 
     flavorDimensions += listOf("Default")
     productFlavors {
-        create("FOSS") {
+        create("FDroid") {
             dimension = "Default"
             manifestPlaceholders += mapOf("adMobPubId" to "")
         }
-        create("nonFOSS") {
+        create("PlayStore") {
             dimension = "Default"
             val localProps = Properties()
             File(rootProject.rootDir, "local.properties").apply { if (exists() && isFile) inputStream().use { localProps.load(it) } }
@@ -119,13 +118,13 @@ dependencies {
     // MJPEG
     implementation(project(":mjpeg"))
 
-    // nonFOSS-WebRTC
-    "nonFOSSImplementation"(project(":webrtc"))
-    "nonFOSSImplementation"(libs.play.services.tasks)
-    "nonFOSSImplementation"(libs.play.app.update)
-    "nonFOSSImplementation"(libs.play.services.ads)
-    "nonFOSSImplementation"(libs.firebase.analytics)
-    "nonFOSSImplementation"(libs.firebase.crashlytics)
+    // PlayStore-WebRTC
+    "PlayStoreImplementation"(project(":webrtc"))
+    "PlayStoreImplementation"(libs.play.services.tasks)
+    "PlayStoreImplementation"(libs.play.app.update)
+    "PlayStoreImplementation"(libs.play.services.ads)
+    "PlayStoreImplementation"(libs.firebase.analytics)
+    "PlayStoreImplementation"(libs.firebase.crashlytics)
 
     implementation(libs.androidx.compose.ui.tooling.preview)
     debugImplementation(libs.androidx.compose.ui.tooling)
