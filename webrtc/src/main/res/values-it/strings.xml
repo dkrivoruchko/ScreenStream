@@ -1,53 +1,55 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="webrtc_error_recover">Ripristina</string>
+    <string name="webrtc_error_open_settings">Apri impostazioni</string>
 
-    <string name="webrtc_stream_fragment_mode_global">Modalità globale (WebRTC)</string>
-    <string name="webrtc_stream_fragment_mode_global_description">Descrizione della modalità globale</string>
-    <string name="webrtc_stream_fragment_mode_global_details">
-- Alimentato dalla tecnologia WebRTC.\n\n
-- Comunicazione crittografata end-to-end.\n\n
-- Protezione dello stream con password.\n\n
-- Possibilità di inviare video e audio.\n\n
-- Connessione tramite ID stream unico e password.\n\n
-- Richiede una connessione Internet per lo streaming.\n\n
+    <string name="webrtc_stream_mode">Modalità globale (WebRTC)</string>
+    <string name="webrtc_stream_mode_description">Descrizione della modalità globale</string>
+    <string name="webrtc_stream_mode_details">
+- Alimentato dalla tecnologia WebRTC.\n
+- Comunicazione crittografata end-to-end.\n
+- Protezione dello stream con password.\n
+- Possibilità di inviare video e audio.\n
+- Connessione tramite ID stream unico e password.\n
+- Richiede una connessione Internet per lo streaming.\n
 - Trasmissione dati individuale per ciascun cliente (più clienti hai, più larghezza di banda Internet è necessaria).
 </string>
 
-    <string name="webrtc_stream_fragment_server_address">Accedi allo stream su:\n%1$s</string>
-    <string name="webrtc_stream_fragment_stream_id_getting">Ottenimento ID Stream…</string>
-    <string name="webrtc_stream_fragment_stream_id">ID Stream: %1$s</string>
-    <string name="webrtc_stream_fragment_stream_password">Password dello stream: %1$s</string>
-    <string name="webrtc_stream_fragment_mic_off">Microfono spento</string>
-    <string name="webrtc_stream_fragment_mic_on">Microfono acceso</string>
-    <string name="webrtc_stream_fragment_show_password_description">Mostra password dello stream</string>
-    <string name="webrtc_stream_fragment_get_new_id_description">Ottieni un nuovo ID stream</string>
-    <string name="webrtc_stream_fragment_create_new_password_description">Crea una nuova password dello stream</string>
-    <string name="webrtc_stream_fragment_open_address_description">Apri indirizzo</string>
-    <string name="webrtc_stream_fragment_copy_address_description">Copia indirizzo</string>
-    <string name="webrtc_stream_fragment_share_address_description">Condividi indirizzo</string>
-    <string name="webrtc_stream_fragment_qr_address_description">Mostra indirizzo come codice QR</string>
-    <string name="webrtc_stream_fragment_copied">Copiato</string>
-    <string name="webrtc_stream_fragment_connected_clients">Client connessi: %1$d</string>
-    <string name="webrtc_stream_fragment_no_web_browser_found">Nessun browser web trovato</string>
-    <string name="webrtc_stream_fragment_external_app_error">Errore dell\'applicazione esterna</string>
-    <string name="webrtc_stream_fragment_share_address">Condividi l\'indirizzo del dispositivo</string>
+    <string name="webrtc_stream_server_address">Accedi allo stream su:\n%1$s</string>
+    <string name="webrtc_stream_stream_id_getting">Ottenimento ID Stream…</string>
+    <string name="webrtc_stream_stream_id">ID Stream: %1$s</string>
+    <string name="webrtc_stream_stream_password">Password dello stream: %1$s</string>
+    <string name="webrtc_stream_mic_off">Microfono spento</string>
+    <string name="webrtc_stream_mic_on">Microfono acceso</string>
+    <string name="webrtc_stream_description_show_password">Mostra password dello stream</string>
+    <string name="webrtc_stream_description_get_new_id">Ottieni un nuovo ID stream</string>
+    <string name="webrtc_stream_description_create_password">Crea una nuova password dello stream</string>
+    <string name="webrtc_stream_description_open_address">Apri indirizzo</string>
+    <string name="webrtc_stream_description_copy_address">Copia indirizzo</string>
+    <string name="webrtc_stream_description_share_address">Condividi indirizzo</string>
+    <string name="webrtc_stream_description_qr_address">Mostra indirizzo come codice QR</string>
+    <string name="webrtc_stream_description_qr">Codice QR</string>
+    <string name="webrtc_stream_copied">Copiato</string>
+    <string name="webrtc_stream_connected_clients">Client connessi: %1$d</string>
+    <string name="webrtc_stream_no_web_browser_found">Nessun browser web trovato</string>
+    <string name="webrtc_stream_external_app_error">Errore dell\'applicazione esterna</string>
+    <string name="webrtc_stream_share_address">Condividi l\'indirizzo del dispositivo</string>
+    <string name="webrtc_stream_start">Avvia lo streaming</string>
+    <string name="webrtc_stream_stop">Arresta lo streaming</string>
 
-    <string name="webrtc_pref_settings">Impostazioni dello streaming</string>
+    <string name="webrtc_pref_header">Impostazioni modalità globale (WebRTC)</string>
     <string name="webrtc_pref_keep_awake">Mantieni il dispositivo attivo</string>
     <string name="webrtc_pref_keep_awake_summary">Mantieni il dispositivo e lo schermo attivi durante lo streaming</string>
     <string name="webrtc_pref_stop_on_sleep">Interrompi a schermo spento</string>
     <string name="webrtc_pref_stop_on_sleep_summary">Interrompi la trasmissione quando lo schermo si spegne</string>
     
-    <string name="webrtc_stream_fragment_audio_permission_title">Consenti la registrazione audio</string>
-    <string name="webrtc_stream_fragment_audio_permission_message">È necessario il permesso per registrare l\'audio per l\'applicazione per lo streaming audio.\n\nSenza concedere questo permesso, lo streaming sarà senza audio.</string>
-    <string name="webrtc_stream_fragment_audio_permission_message_settings">È necessario concedere l\'accesso al microfono nelle autorizzazioni dell\'applicazione per lo streaming audio.\n\nSenza concedere questo permesso, lo streaming sarà condotto senza audio.</string>
-    <string name="webrtc_stream_fragment_audio_permission_open_settings">Apri le impostazioni</string>
+    <string name="webrtc_stream_audio_permission_title">Consenti la registrazione audio</string>
+    <string name="webrtc_stream_audio_permission_message">È necessario il permesso per registrare l\'audio per l\'applicazione per lo streaming audio.\n\nSenza concedere questo permesso, lo streaming sarà senza audio.</string>
+    <string name="webrtc_stream_audio_permission_message_settings">È necessario concedere l\'accesso al microfono nelle autorizzazioni dell\'applicazione per lo streaming audio.\n\nSenza concedere questo permesso, lo streaming sarà condotto senza audio.</string>
+    <string name="webrtc_stream_audio_permission_open_settings">Apri le impostazioni</string>
 
-    <string name="webrtc_stream_fragment_cast_permission_error_title">Errore di autorizzazione</string>
-    <string name="webrtc_stream_fragment_cast_permission_error">Il sistema non supporta la funzionalità di trasmissione</string>
-    <string name="webrtc_stream_fragment_cast_permission_required_title">Permesso richiesto</string>
-    <string name="webrtc_stream_fragment_cast_permission_required">L\'applicazione ScreenStream richiede il permesso Screen Cast per catturare lo schermo.</string>
+    <string name="webrtc_stream_cast_permission_required_title">Permesso richiesto</string>
+    <string name="webrtc_stream_cast_permission_required">L\'applicazione ScreenStream richiede il permesso Screen Cast per catturare lo schermo.</string>
 
     <string name="webrtc_item_client_disconnect">Disconnetti</string>
 
@@ -56,6 +58,6 @@
     <string name="webrtc_error_play_integrity_install_play_service">Per favore, installa o abilita i Play Services</string>
     <string name="webrtc_error_play_integrity_update_play_service">Per favore, aggiorna i Google Play services</string>
     <string name="webrtc_error_check_network">Per favore, verifica la connettività Internet</string>
-    <string name="webrtc_notification_permission_required">L\'applicazione richiede che le notifiche siano abilitate per avviare il servizio di streaming.\n\nSi prega di abilitare le notifiche nelle impostazioni dell\'applicazione.</string>
+    <string name="webrtc_notification_permission_required">L\'applicazione richiede che le notifiche siano abilitate per avviare il servizio di streaming.\nSi prega di abilitare le notifiche nelle impostazioni dell\'applicazione.</string>
     <string name="webrtc_error_unspecified">Qualcosa è andato storto. Per favore, riprova più tardi.</string>
 </resources>

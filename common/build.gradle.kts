@@ -1,4 +1,3 @@
-@Suppress("DSL_SCOPE_VIOLATION") // TODO: Remove once KTIJ-19369 is fixed
 plugins {
     alias(libs.plugins.androidLibrary)
     alias(libs.plugins.kotlinAndroid)
@@ -7,15 +6,19 @@ plugins {
 
 android {
     namespace = "info.dvkr.screenstream.common"
-    compileSdk = 34
-    buildToolsVersion = "34.0.0"
+    compileSdk = rootProject.extra["compileSdkVersion"] as Int
+    buildToolsVersion = rootProject.extra["buildToolsVersion"] as String
 
     defaultConfig {
-        minSdk = 23
+        minSdk = rootProject.extra["minSdkVersion"] as Int
     }
 
     buildFeatures {
-        viewBinding = true
+        compose = true
+    }
+
+    composeOptions {
+        kotlinCompilerExtensionVersion = rootProject.extra["composeCompilerVersion"] as String
     }
 
     compileOptions {
@@ -33,25 +36,22 @@ dependencies {
     api(libs.kotlinx.coroutines.core)
     api(libs.kotlinx.coroutines.android)
 
-    api(libs.koin.android)
+    api(libs.androidx.core.ktx)
+    api(libs.androidx.activity.compose)
+    api(libs.androidx.appcompat)
+    api(libs.androidx.lifecycle.runtime.compose)
+    api(libs.androidx.window)
+    api(libs.androidx.datastore.preferences)
+
+    api(platform(libs.androidx.compose.bom))
+    api(libs.androidx.compose.ui)
+    api(libs.androidx.compose.material3)
+    api(libs.androidx.compose.material3.window)
+    api(libs.androidx.compose.material.icons.extended)
+
+    api(libs.koin.android.compose)
     api(libs.koin.annotations)
     ksp(libs.koin.ksp)
-
-    api(libs.androidx.core.ktx)
-    api(libs.androidx.activity.ktx)
-    api(libs.androidx.fragment.ktx)
-    api(libs.androidx.lifecycle.runtime.ktx)
-    api(libs.androidx.appcompat)
-    api(libs.androidx.recyclerview)
-    api(libs.androidx.window)
-    api(libs.androidx.constraintlayout)
-    api(libs.androidx.datastore.preferences)
-    api(libs.material)
-
-    api(libs.material.dialogs.core)
-    api(libs.material.dialogs.color)
-    api(libs.material.dialogs.input)
-    api(libs.material.dialogs.lifecycle)
 
     api(libs.xlog)
 }

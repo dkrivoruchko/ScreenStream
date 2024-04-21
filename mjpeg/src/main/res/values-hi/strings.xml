@@ -1,51 +1,54 @@
 <resources>
     <string name="mjpeg_error_recover">पुनर्प्राप्त करें</string>
+    <string name="mjpeg_error_open_settings">सेटिंग्स खोलें</string>
 
-    <string name="mjpeg_stream_fragment_mode_local">स्थानीय मोड (MJPEG)</string>
-    <string name="mjpeg_stream_fragment_mode_local_description">स्थानीय मोड विवरण</string>
-    <string name="mjpeg_stream_fragment_mode_local_details">
-- MJPEG मानक द्वारा संचालित।\n\n
-- सुरक्षा के लिए पिन का उपयोग करता है (कोई एन्क्रिप्शन नहीं)।\n\n
-- वीडियो को अलग-अलग छवियों के रूप में भेजता है (कोई ऑडियो नहीं)।\n\n
-- आपके स्थानीय नेटवर्क के भीतर इंटरनेट कनेक्शन के बिना काम करता है।\n\n
-- एम्बेडेड HTTP सर्वर।\n\n
-- WiFi और/या मोबाइल नेटवर्क के साथ काम करता है, IPv4 और IPv6 का समर्थन करता है।\n\n
-- क्लाइंट्स एप्लिकेशन द्वारा प्रदान किए गए IP पते का उपयोग करके वेब ब्राउज़र के माध्यम से कनेक्ट करते हैं।\n\n
-- उच्च रूपरेखित।\n\n
+    <string name="mjpeg_stream_mode">स्थानीय मोड (MJPEG)</string>
+    <string name="mjpeg_stream_mode_description">स्थानीय मोड विवरण</string>
+    <string name="mjpeg_stream_mode_details">
+- MJPEG मानक द्वारा संचालित।\n
+- सुरक्षा के लिए पिन का उपयोग करता है (कोई एन्क्रिप्शन नहीं)।\n
+- वीडियो को अलग-अलग छवियों के रूप में भेजता है (कोई ऑडियो नहीं)।\n
+- आपके स्थानीय नेटवर्क के भीतर इंटरनेट कनेक्शन के बिना काम करता है।\n
+- एम्बेडेड HTTP सर्वर।\n
+- WiFi और/या मोबाइल नेटवर्क के साथ काम करता है, IPv4 और IPv6 का समर्थन करता है।\n
+- क्लाइंट्स एप्लिकेशन द्वारा प्रदान किए गए IP पते का उपयोग करके वेब ब्राउज़र के माध्यम से कनेक्ट करते हैं।\n
+- उच्च रूपरेखित।\n
 - प्रत्येक क्लाइंट के लिए व्यक्तिगत डेटा प्रसारण (जितने अधिक क्लाइंट्स होते हैं, उतना अधिक नेटवर्क बैंडविड्थ की आवश्यकता होती है)।
 </string>
 
-    <string name="mjpeg_item_device_address">डिवाइस पता:</string>
-    <string name="mjpeg_stream_fragment_no_address">कोई पता नहीं मिला</string>
-    <string name="mjpeg_stream_fragment_interface">इंटरफ़ेस:%1$s</string>
-    <string name="mjpeg_stream_fragment_copied">नक़ल किया गया</string>
-    <string name="mjpeg_stream_fragment_no_web_browser_found">कोई वेब ब्राउज़र नहीं मिला</string>
-    <string name="mjpeg_stream_fragment_external_app_error">बाहरी अनुप्रयोग त्रुटि</string>
-    <string name="mjpeg_stream_fragment_share_address">डिवाइस पता साझा करें</string>
-    <string name="mjpeg_item_device_address_description_open_address">पता खोलें</string>
-    <string name="mjpeg_item_device_address_description_copy_address">पता कॉपी करें</string>
-    <string name="mjpeg_item_device_address_description_share_address">पता साझा करें</string>
-    <string name="mjpeg_item_device_address_description_qr_address">पता QR कोड के रूप में दिखाएं</string>
-    <string name="mjpeg_pref_settings">स्ट्रीम सेटिंग्स</string>
-    <string name="mjpeg_stream_fragment_pin">पिन:%1$s</string>
-    <string name="mjpeg_stream_fragment_pin_disabled">पिन अक्षम है</string>
-    <string name="mjpeg_stream_fragment_show_pin_description">स्ट्रीम पिन दिखाएं</string>
-    <string name="mjpeg_stream_fragment_create_new_pin_description">नई स्ट्रीम पिन बनाएं</string>
-    <string name="mjpeg_stream_fragment_current_traffic">ट्रैफ़िक:%1$,.2f Mbit/s</string>
-    <string name="mjpeg_stream_fragment_connected_clients">कनेक्टेड क्लाइंट:%1$d</string>
-    <string name="mjpeg_stream_fragment_client_disconnected">डिस्कनेक्ट किया गया</string>
-    <string name="mjpeg_stream_fragment_client_slow_network">धीमी गति का कनेक्सन</string>
-    <string name="mjpeg_stream_fragment_client_connected">जुड़ा हुआ</string>
-    <string name="mjpeg_stream_fragment_client_blocked">अवरुद्ध</string>
+    <string name="mjpeg_item_address">डिवाइस पता:</string>
+    <string name="mjpeg_stream_no_address">कोई पता नहीं मिला</string>
+    <string name="mjpeg_stream_interface">इंटरफ़ेस:%1$s</string>
+    <string name="mjpeg_stream_copied">नक़ल किया गया</string>
+    <string name="mjpeg_stream_no_web_browser_found">कोई वेब ब्राउज़र नहीं मिला</string>
+    <string name="mjpeg_stream_external_app_error">बाहरी अनुप्रयोग त्रुटि</string>
+    <string name="mjpeg_stream_share_address">डिवाइस पता साझा करें</string>
+    <string name="mjpeg_item_address_description_open_address">पता खोलें</string>
+    <string name="mjpeg_item_address_description_copy_address">पता कॉपी करें</string>
+    <string name="mjpeg_item_address_description_share_address">पता साझा करें</string>
+    <string name="mjpeg_item_address_description_qr_address">पता QR कोड के रूप में दिखाएं</string>
+    <string name="mjpeg_item_address_description_qr">क्यूआर कोड</string>
+    <string name="mjpeg_stream_pin">पिन:%1$s</string>
+    <string name="mjpeg_stream_pin_disabled">पिन अक्षम है</string>
+    <string name="mjpeg_stream_description_show_pin">स्ट्रीम पिन दिखाएं</string>
+    <string name="mjpeg_stream_description_create_pin">नई स्ट्रीम पिन बनाएं</string>
+    <string name="mjpeg_stream_current_traffic">ट्रैफ़िक:%1$,.2f Mbit/s</string>
+    <string name="mjpeg_stream_traffic_graph">ट्रैफिक ग्राफ़</string>
+    <string name="mjpeg_stream_connected_clients">कनेक्टेड क्लाइंट:%1$d</string>
+    <string name="mjpeg_stream_client_disconnected">डिस्कनेक्ट किया गया</string>
+    <string name="mjpeg_stream_client_slow_network">धीमी गति का कनेक्सन</string>
+    <string name="mjpeg_stream_client_connected">जुड़ा हुआ</string>
+    <string name="mjpeg_stream_client_blocked">अवरुद्ध</string>
+    <string name="mjpeg_stream_start">स्ट्रीम शुरू करें</string>
+    <string name="mjpeg_stream_stop">स्ट्रीम बंद करें</string>
 
-    <string name="mjpeg_stream_fragment_cast_permission_error_title">अनुमति त्रुटि</string>
-    <string name="mjpeg_stream_fragment_cast_permission_error">सिस्टम कास्ट कार्यक्षमता का समर्थन नहीं करता</string>
-    <string name="mjpeg_stream_fragment_cast_permission_required_title">अनुमति आवश्यक</string>
-    <string name="mjpeg_stream_fragment_cast_permission_required">स्क्रीनस्ट्रीम एप्लिकेशन को स्क्रीन पर कब्जा करने के लिए स्क्रीन कास्ट की अनुमति की आवश्यकता होती है।</string>
+    <string name="mjpeg_stream_cast_permission_required_title">अनुमति आवश्यक</string>
+    <string name="mjpeg_stream_cast_permission_required">स्क्रीनस्ट्रीम एप्लिकेशन को स्क्रीन पर कब्जा करने के लिए स्क्रीन कास्ट की अनुमति की आवश्यकता होती है।</string>
 
-    <string name="mjpeg_toast_slow_client_connection">धीमी क्लाइंट कनेक्शन का पता चला</string>
+    <string name="mjpeg_slow_client_connection">धीमी क्लाइंट कनेक्शन का पता चला</string>
 
-    <string name="mjpeg_pref_settings_interface">इंटरफेस</string>
+    <string name="mjpeg_pref_header">स्थानीय मोड (MJPEG) सेटिंग्स</string>
+    <string name="mjpeg_pref_settings_general">सामान्य</string>
     <string name="mjpeg_pref_keep_awake">डिवाइस जागरूक रखें</string>
     <string name="mjpeg_pref_keep_awake_summary">स्ट्रीमिंग के दौरान डिवाइस और स्क्रीन को जागरूक रखें</string>
     <string name="mjpeg_pref_stop_on_sleep">नींद पर धारा रोकें</string>
@@ -64,32 +67,33 @@
     <string name="mjpeg_pref_vr_mode">आभासी वास्तविकता मोड</string>
     <string name="mjpeg_pref_vr_mode_summary">आधे स्क्रीन से सामग्री कैप्चर करें</string>
     <string-array name="mjpeg_pref_vr_mode_options">
+        <item>अक्षम</item>
         <item>बाईं भाग का उपयोग करें</item>
         <item>दाईं भाग का उपयोग करें</item>
     </string-array>
     <string name="mjpeg_pref_crop">छवि काटें</string>
     <string name="mjpeg_pref_crop_summary">ग्राहक को भेजने से पहले छवि काटें</string>
-    <string name="mjpeg_pref_crop_dialog_crop_top">ऊपर से काटें:</string>
-    <string name="mjpeg_pref_crop_dialog_crop_bottom">नीचे से काटें:</string>
-    <string name="mjpeg_pref_crop_dialog_crop_left">बाएं से काटें:</string>
-    <string name="mjpeg_pref_crop_dialog_crop_right">दाएं से काटें:</string>
-    <string name="mjpeg_pref_crop_dialog_pixels">पिक्सल</string>
-    <string name="mjpeg_pref_crop_dialog_warning_message">छवि खाली होने पर काटें नजरअंदाज कर दिया जाएगा</string>
-    <string name="mjpeg_pref_crop_dialog_error_message">मान्य काटें मूल्य दर्ज करें</string>
+    <string name="mjpeg_pref_crop_top">ऊपर से काटें:</string>
+    <string name="mjpeg_pref_crop_bottom">नीचे से काटें:</string>
+    <string name="mjpeg_pref_crop_left">बाएं से काटें:</string>
+    <string name="mjpeg_pref_crop_right">दाएं से काटें:</string>
+    <string name="mjpeg_pref_crop_pixels">पिक्सल</string>
+    <string name="mjpeg_pref_crop_warning">छवि खाली होने पर काटें नजरअंदाज कर दिया जाएगा</string>
+    <string name="mjpeg_pref_crop_error">मान्य काटें मूल्य दर्ज करें</string>
     <string name="mjpeg_pref_grayscale">ग्रेस्केल मोड</string>
     <string name="mjpeg_pref_grayscale_summary">ग्रेस्केल छवि को ग्राहक को भेजने से पहले</string>
     <string name="mjpeg_pref_resize">चित्र को पुनर्कार करें</string>
     <string name="mjpeg_pref_resize_summary">क्लाइंट को भेजने से पहले छवि का आकार बदलें</string>
-    <string name="mjpeg_pref_resize_dialog_text">छवि का आकार प्रतिशत में फैक्टर का आकार बदलें। \n आकार: 10–150 (डिफ़ॉल्ट: 50) \n स्क्रीन आकार: %1$dx%2$d</string>
-    <string name="mjpeg_pref_resize_dialog_result">चित्र का आकार: %1$dx%2$d</string>
+    <string name="mjpeg_pref_resize_text">छवि का आकार प्रतिशत में फैक्टर का आकार बदलें।\nआकार: 10–150\nडिफ़ॉल्ट: 50\nस्क्रीन आकार: %1$dx%2$d</string>
+    <string name="mjpeg_pref_resize_result">चित्र का आकार: %1$dx%2$d</string>
     <string name="mjpeg_pref_rotate">छवि को दक्षिणावर्त घुमाएँ</string>
     <string name="mjpeg_pref_rotate_summary">क्लाइंट को भेजने से पहले छवि को घुमाएं</string>
     <string name="mjpeg_pref_fps">प्रति सेकंड फ्रेम सीमित करें</string>
     <string name="mjpeg_pref_fps_summary">अधिकतम प्रति सेकंड फ्रेम सेट करें</string>
-    <string name="mjpeg_pref_fps_dialog">अधिकतम प्रति सेकंड फ्रेम सेट करें।\nमूल्य: 1–60 (डिफ़ॉल्ट: 30)</string>
+    <string name="mjpeg_pref_fps_text">अधिकतम प्रति सेकंड फ्रेम सेट करें।\nमूल्य: 1–60\nडिफ़ॉल्ट: 30</string>
     <string name="mjpeg_pref_jpeg_quality">JPEG संपीड़न गुणवत्ता</string>
     <string name="mjpeg_pref_jpeg_quality_summary">JPEG संपीड़न गुणवत्ता सेट करें</string>
-    <string name="mjpeg_pref_jpeg_quality_dialog">JPEG संपीड़न गुणवत्ता सेट करें। \nValues: 10–100 (डिफ़ॉल्ट: 80)</string>
+    <string name="mjpeg_pref_jpeg_quality_text">JPEG संपीड़न गुणवत्ता सेट करें।\nमूल्य: 10–100\nडिफ़ॉल्ट: 80</string>
 
     <string name="mjpeg_pref_settings_security">सुरक्षा</string>
     <string name="mjpeg_pref_enable_pin">पिन सक्षम करें</string>
@@ -102,7 +106,7 @@
     <string name="mjpeg_pref_auto_change_pin_summary">प्रत्येक नई स्ट्रीम के लिए नया पिन जनरेट करें</string>
     <string name="mjpeg_pref_set_pin">पिन सेट करें</string>
     <string name="mjpeg_pref_set_pin_summary">पिन मैन्युअल रूप से दर्ज करें</string>
-    <string name="mjpeg_pref_set_pin_dialog">पिन दर्ज करें। \n संदर्भ: 000000</string>
+    <string name="mjpeg_pref_set_pin_text">पिन दर्ज करें।\nसंदर्भ: 000000</string>
     <string name="mjpeg_pref_block_address">IP पता अवरुद्ध करें</string>
     <string name="mjpeg_pref_block_address_summary">5 गलत PIN प्रयासों के बाद 5 मिनट के लिए क्लाइंट का IP पता अवरुद्ध करें</string>
 
@@ -117,12 +121,12 @@
     <string name="mjpeg_pref_localhost_only_summary">सर्वर को केवल स्थानीय होस्ट पतों पर चलाएं</string>
     <string name="mjpeg_pref_server_port">सर्वर पोर्ट</string>
     <string name="mjpeg_pref_server_port_summary">आने वाले कनेक्शन के लिए पोर्ट सेट करें</string>
-    <string name="mjpeg_pref_server_port_dialog">आने वाले कनेक्शन के लिए सर्वर पोर्ट सेट करें। \nValues: 1025–65535 \n(डिफ़ॉल्ट: 8080)</string>
+    <string name="mjpeg_pref_server_port_text">आने वाले कनेक्शन के लिए सर्वर पोर्ट सेट करें।\nमूल्य: 1025–65535\nडिफ़ॉल्ट: 8080</string>
 
     <string name="mjpeg_error_port_in_use">पोर्ट पहले से ही उपयोग में है। कोई दूसरा चुनें।</string>
     <string name="mjpeg_error_invalid_media_projection">सुरक्षा त्रुटि: अमान्य मीडिया प्रक्षेपण। एक बार और कोशिश करें।</string>
     <string name="mjpeg_error_ip_address_not_found">IP पता नहीं मिला।\nप्रवाह सेटिंग्स में \"वाईफाई का ही इस्तेमाल करें\" को अक्षम करने का प्रयास करें।</string>
-    <string name="mjpeg_error_notification_permission_required">ऐप्लिकेशन को स्ट्रीमिंग सेवा शुरू करने के लिए सूचनाओं को सक्षम करने की आवश्यकता है।\n\nकृपया ऐप्लिकेशन की सेटिंग्स में सूचनाओं को सक्षम करें।</string>
+    <string name="mjpeg_error_notification_permission_required">ऐप्लिकेशन को स्ट्रीमिंग सेवा शुरू करने के लिए सूचनाओं को सक्षम करने की आवश्यकता है।\nकृपया ऐप्लिकेशन की सेटिंग्स में सूचनाओं को सक्षम करें।</string>
     <string name="mjpeg_error_unspecified">कुछ गलत हो गया है। कृपया बाद में पुनः प्रयास करें।</string>
 
     <string name="mjpeg_start_image_text">उपकरण पर स्ट्रीम शुरू करें</string>

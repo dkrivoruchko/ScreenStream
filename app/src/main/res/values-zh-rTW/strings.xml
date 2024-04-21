@@ -3,33 +3,28 @@
     <string name="app_error_title">錯誤</string>
     <string name="app_error_recover">復原</string>
 
-    <string name="app_activity_logs_collecting">正在收集應用日誌…</string>
-    <string name="app_activity_logs_send">把日誌發送給開發者</string>
-    <string name="app_activity_logs_send_dialog_title">把日誌通過電子郵件發送給開發者</string>
-    <string name="app_activity_logs_send_dialog_message">請添加問題描述：</string>
-    <string name="app_activity_logs_send_dialog_neutral">停止記錄日誌</string>
+    <string name="app_logs_collecting">正在收集應用日誌…</string>
+    <string name="app_logs_send_title">把日誌發送給開發者</string>
+    <string name="app_logs_send_message">請添加問題描述：</string>
+    <string name="app_logs_send">發送</string>
+    <string name="app_logs_enabled">啟用記錄</string>
+    <string name="app_logs_disabled">停用記錄</string>
+    <string name="app_logs_stop">停止記錄日誌</string>
 
     <string name="app_activity_update_dialog_title">有新版本可用</string>
     <string name="app_activity_update_dialog_message">更新已下載完畢，是否想現在重啓應用？</string>
     <string name="app_activity_update_dialog_restart">重啓應用</string>
 
-    <string name="app_bottom_menu_stream">主畫面</string>
-    <string name="app_bottom_menu_settings">設定</string>
-    <string name="app_bottom_menu_start">開始</string>
-    <string name="app_bottom_menu_stop">停止</string>
-    <string name="app_bottom_menu_about">關於</string>
-    <string name="app_bottom_menu_exit">離開</string>
+    <string name="app_tab_stream">主畫面</string>
+    <string name="app_tab_settings">設定</string>
+    <string name="app_tab_about">關於</string>
 
-    <string name="app_fragment_stream_select_stream_mode">選擇串流模式：</string>
+    <string name="app_tab_stream_select_mode">選擇串流模式：</string>
 
-    <string name="permission_activity_error_title">錯誤</string>
-    <string name="permission_activity_error_unknown">未知錯誤</string>
-    <string name="app_activity_permission_permission_required_title">權限被拒</string>
-    <string name="app_activity_permission_notifications_required_title">需要通知權限</string>
-    <string name="app_activity_permission_enable_notifications">應用程式需要啟用通知以開始串流服務。\n\n請在應用程式設定中啟用通知。</string>
-    <string name="app_activity_permission_allow_notifications">應用程式需要發送通知的權限以啟用串流服務。\n\n請允許發送通知。</string>
-    <string name="app_activity_permission_allow_notifications_settings">應用程式需要發送通知的權限以啟用串流服務。\n\n請在應用程式設定中允許發送通知。</string>
-    <string name="app_activity_permission_notification_settings">開啟設定</string>
+    <string name="app_permission_required_title">權限被拒</string>
+    <string name="app_permission_allow_notifications">應用程式需要發送通知的權限以啟用串流服務。\n\n請允許發送通知。</string>
+    <string name="app_permission_allow_notifications_settings">應用程式需要發送通知的權限以啟用串流服務。\n\n請在應用程式設定中允許發送通知。</string>
+    <string name="app_permission_notification_settings">開啟設定</string>
 
     <string name="app_notification_channel_streaming">串流通知</string>
     <string name="app_notification_channel_error">錯誤通知</string>
@@ -37,8 +32,14 @@
     <string name="app_notification_streaming_content">按下停止以結束串流</string>
     <string name="app_notification_stop">停止</string>
 
+    <string name="app_pref_settings_search">設定搜尋</string>>
+    <string name="app_pref_search">搜索</string>
+    <string name="app_pref_close">關閉</string>
+    <string name="app_pref_back">返回</string>
+    <string name="app_pref_settings">應用程式設置</string>
     <string name="app_pref_locale">應用程式語言</string>
     <string name="app_pref_locale_summary">開啟應用程式語言設定</string>
+    <string name="app_pref_locale_default">系統預設</string>
     <string name="app_pref_night_mode">夜間模式</string>
     <string-array name="app_pref_night_mode_options_api21_28">
         <item>總是</item>
@@ -50,20 +51,21 @@
         <item>自動 (跟隨系統設置)</item>
         <item>不用</item>
     </string-array>
+    <string name="app_pref_dynamic_theme">動態顏色</string>
+    <string name="app_pref_dynamic_theme_summary">根據您的桌布顏色調整外觀</string>
     <string name="app_pref_notification">設備通知設置</string>
     <string name="app_pref_notification_summary">打開系統通知設置</string>
     <string name="app_pref_logging">启用应用日志</string>
     <string name="app_pref_logging_summary">收集应用日志</string>
 
-    <string name="app_about_fragment_app_version">版本：%1$s</string>
-    <string name="app_about_fragment_developer_name">由Dmytro Kryvoruchko開發</string>
-    <string name="app_about_fragment_rate_app">給評分</string>
-    <string name="app_about_fragment_write_email">寄信給開發者</string>
-    <string name="app_about_fragment_write_email_dialog">想要給開發者寄一封電子郵件嗎？</string>
-    <string name="app_about_fragment_email_chooser_header">發送郵件…</string>
-    <string name="app_about_fragment_app_sources">應用程式原始碼</string>
-    <string name="app_about_fragment_terms_conditions">使用條款和條件</string>
-    <string name="app_about_fragment_privacy_policy">隱私政策</string>
-    <string name="app_about_fragment_privacy_options">隱私選項</string>
-    <string name="app_about_fragment_license">許可證</string>
+    <string name="app_tab_about_app_version">版本：%1$s</string>
+    <string name="app_tab_about_developer_name">由Dmytro Kryvoruchko開發</string>
+    <string name="app_tab_about_rate_app">給評分</string>
+    <string name="app_tab_about_write_email">寄信給開發者</string>
+    <string name="app_tab_about_email_chooser_header">發送郵件…</string>
+    <string name="app_tab_about_app_sources">應用程式原始碼</string>
+    <string name="app_tab_about_terms_conditions">使用條款和條件</string>
+    <string name="app_tab_about_privacy_policy">隱私政策</string>
+    <string name="app_tab_about_privacy_options">隱私選項</string>
+    <string name="app_tab_about_license">許可證</string>
 </resources>

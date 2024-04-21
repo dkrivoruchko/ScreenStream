@@ -32,12 +32,19 @@
             color: #eee;
             top: 45%;
             left: 50%;
-            padding: 40px 40px 30px;
+            padding: 30px;
             transform: translate(-50%, -50%);
             text-align: center;
             position: absolute;
             box-shadow: 0 0 8px 8px rgba(0, 0, 0, .2);
-            background-color: #132b42;
+            background: linear-gradient(#144A74, #001D34);
+        }
+
+        .logo {
+            width: 160px;
+            height: 160px;
+            -webkit-filter: drop-shadow(3px 3px 2px rgba(0, 0, 0, .4));
+            filter: drop-shadow(3px 3px 2px rgba(0, 0, 0, .4));
         }
 
         #streamDiv img {
@@ -71,7 +78,7 @@
         }
 
         #pinDiv button {
-            background-color: #19769F;
+            background-color: #32628D;
             border-radius: 6px;
             border: none;
             color: white;
@@ -94,7 +101,6 @@
         }
 
         @media screen and (max-width:850px) {
-
             #connectDiv,
             #pinDiv,
             #blockedDiv,
@@ -105,7 +111,6 @@
         }
 
         @media screen and (max-width:650px) {
-
             #connectDiv,
             #pinDiv,
             #blockedDiv,
@@ -188,7 +193,7 @@
 
 <body>
     <div id="connectDiv">
-        <img src="logo.png" height="256" width="256" />
+        <img src="logo.svg" class="logo"/>
         <p style="font-weight:500">%CONNECTING%</p>
         <div class="loading">
             <span></span>
@@ -210,7 +215,7 @@
     </div>
 
     <div id="pinDiv" style="visibility: hidden;">
-        <img src="logo.png" height="256" width="256" />
+        <img src="logo.svg" class="logo"/>
         <p>%STREAM_REQUIRE_PIN%</p>
         <form action="" id="pinForm" autocomplete="off">
             <label for="pin">%ENTER_PIN%</label>
@@ -221,12 +226,12 @@
     </div>
 
     <div id="blockedDiv" style="visibility: hidden;">
-        <img src="logo.png" height="256" width="256" />
+        <img src="logo.svg" class="logo"/>
         <p style=color:red;font-weight:600>%ADDRESS_BLOCKED%</p>
     </div>
 
     <div id="errorDiv" style="visibility: hidden;">
-        <img src="logo.png" height="256" width="256" />
+        <img src="logo.svg" class="logo"/>
         <p style=color:red;font-weight:600>%ERROR%</p>
     </div>
 

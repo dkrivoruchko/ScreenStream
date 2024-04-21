@@ -3,33 +3,28 @@
     <string name="app_error_title">Error</string>
     <string name="app_error_recover">Recuperar</string>
 
-    <string name="app_activity_logs_collecting">Generando los registros…</string>
-    <string name="app_activity_logs_send">Enviar registros al desarrollador</string>
-    <string name="app_activity_logs_send_dialog_title">Enviar registros por correo al desarrollador</string>
-    <string name="app_activity_logs_send_dialog_message">Añada su descripción del problema:</string>
-    <string name="app_activity_logs_send_dialog_neutral">Detener registros</string>
+    <string name="app_logs_collecting">Generando los registros…</string>
+    <string name="app_logs_send_title">Enviar registros al desarrollador</string>
+    <string name="app_logs_send_message">Añada su descripción del problema:</string>
+    <string name="app_logs_send">Enviar</string>
+    <string name="app_logs_enabled">Registro habilitado</string>
+    <string name="app_logs_disabled">Registro deshabilitado</string>
+    <string name="app_logs_stop">Detener registros</string>
 
     <string name="app_activity_update_dialog_title">Actualización disponible</string>
     <string name="app_activity_update_dialog_message">Una actualización se acaba de descargar. Desea reiniciar la aplicación?</string>
     <string name="app_activity_update_dialog_restart">Reiniciar</string>
 
-    <string name="app_bottom_menu_stream">Transmitir</string>
-    <string name="app_bottom_menu_settings">Opciones</string>
-    <string name="app_bottom_menu_start">Iniciar</string>
-    <string name="app_bottom_menu_stop">Detener</string>
-    <string name="app_bottom_menu_about">Acerca de</string>
-    <string name="app_bottom_menu_exit">Salir</string>
+    <string name="app_tab_stream">Transmitir</string>
+    <string name="app_tab_settings">Opciones</string>
+    <string name="app_tab_about">Acerca de</string>
 
-    <string name="app_fragment_stream_select_stream_mode">Seleccionar modo de transmisión:</string>
+    <string name="app_tab_stream_select_mode">Seleccionar modo de transmisión:</string>
 
-    <string name="permission_activity_error_title">Error</string>
-    <string name="permission_activity_error_unknown">Error desconocido</string>
-    <string name="app_activity_permission_permission_required_title">Permission required</string>
-    <string name="app_activity_permission_notifications_required_title">Notificaciones requeridas</string>
-    <string name="app_activity_permission_enable_notifications">La aplicación requiere que las notificaciones estén habilitadas para iniciar el servicio de transmisión.\n\nPor favor, habilite las notificaciones en la configuración de la aplicación.</string>
-    <string name="app_activity_permission_allow_notifications">La aplicación requiere permiso para enviar notificaciones para poder iniciar el servicio de transmisión.\n\nPor favor, permita el envío de notificaciones.</string>
-    <string name="app_activity_permission_allow_notifications_settings">La aplicación requiere permiso para enviar notificaciones para poder iniciar el servicio de transmisión.\n\nPor favor, permita el envío de notificaciones en la configuración de la aplicación.</string>
-    <string name="app_activity_permission_notification_settings">Abrir configuración</string>
+    <string name="app_permission_required_title">Permission required</string>
+    <string name="app_permission_allow_notifications">La aplicación requiere permiso para enviar notificaciones para poder iniciar el servicio de transmisión.\n\nPor favor, permita el envío de notificaciones.</string>
+    <string name="app_permission_allow_notifications_settings">La aplicación requiere permiso para enviar notificaciones para poder iniciar el servicio de transmisión.\n\nPor favor, permita el envío de notificaciones en la configuración de la aplicación.</string>
+    <string name="app_permission_notification_settings">Abrir configuración</string>
 
     <string name="app_notification_channel_streaming">Notificaciones de transmisión</string>
     <string name="app_notification_channel_error">Notificaciones de error</string>
@@ -37,8 +32,14 @@
     <string name="app_notification_streaming_content">Presione Detener para terminar la transmisión</string>
     <string name="app_notification_stop">Detener</string>
 
+    <string name="app_pref_settings_search">Búsqueda de configuraciones</string>
+    <string name="app_pref_search">Buscar</string>
+    <string name="app_pref_close">Cerrar</string>
+    <string name="app_pref_back">Atrás</string>
+    <string name="app_pref_settings">Configuración de la aplicación</string>
     <string name="app_pref_locale">Idioma de la aplicación</string>
     <string name="app_pref_locale_summary">Abrir configuración de idioma de la aplicación</string>
+    <string name="app_pref_locale_default">Predeterminado del sistema</string>
     <string name="app_pref_night_mode">Tema oscuro</string>
     <string-array name="app_pref_night_mode_options_api21_28">
         <item>Siempre</item>
@@ -50,20 +51,21 @@
         <item>Automático (Como en el Sistema)</item>
         <item>Nunca</item>
     </string-array>
+    <string name="app_pref_dynamic_theme">Color dinámico</string>
+    <string name="app_pref_dynamic_theme_summary">Ajustar la apariencia según los colores de su fondo de pantalla</string>
     <string name="app_pref_notification">Opciones de notificación</string>
     <string name="app_pref_notification_summary">Abrir opciones de notificación del sistema</string>
     <string name="app_pref_logging">Habilitar registros</string>
     <string name="app_pref_logging_summary">Generando los registros</string>
 
-    <string name="app_about_fragment_app_version">Versión: %1$s</string>
-    <string name="app_about_fragment_developer_name">Desarrollado por Dmytro Kryvoruchko</string>
-    <string name="app_about_fragment_rate_app">Valore la aplicación</string>
-    <string name="app_about_fragment_write_email">Escribir al desarrollador</string>
-    <string name="app_about_fragment_write_email_dialog">Desea escribir al desarrollador?</string>
-    <string name="app_about_fragment_email_chooser_header">Enviando correo…</string>
-    <string name="app_about_fragment_app_sources">Fuentes de la aplicación</string>
-    <string name="app_about_fragment_terms_conditions">Términos y condiciones</string>
-    <string name="app_about_fragment_privacy_policy">Política de privacidad</string>
-    <string name="app_about_fragment_privacy_options">Opciones de privacidad</string>
-    <string name="app_about_fragment_license">Licencia</string>
+    <string name="app_tab_about_app_version">Versión: %1$s</string>
+    <string name="app_tab_about_developer_name">Desarrollado por Dmytro Kryvoruchko</string>
+    <string name="app_tab_about_rate_app">Valore la aplicación</string>
+    <string name="app_tab_about_write_email">Escribir al desarrollador</string>
+    <string name="app_tab_about_email_chooser_header">Enviando correo…</string>
+    <string name="app_tab_about_app_sources">Fuentes de la aplicación</string>
+    <string name="app_tab_about_terms_conditions">Términos y condiciones</string>
+    <string name="app_tab_about_privacy_policy">Política de privacidad</string>
+    <string name="app_tab_about_privacy_options">Opciones de privacidad</string>
+    <string name="app_tab_about_license">Licencia</string>
 </resources>

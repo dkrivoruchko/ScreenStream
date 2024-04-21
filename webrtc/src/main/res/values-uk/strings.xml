@@ -1,53 +1,55 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="webrtc_error_recover">Відновити</string>
+    <string name="webrtc_error_open_settings">Відкрити налаштування</string>
 
-    <string name="webrtc_stream_fragment_mode_global">Глобальний режим (WebRTC)</string>
-    <string name="webrtc_stream_fragment_mode_global_description">Опис глобального режиму</string>
-    <string name="webrtc_stream_fragment_mode_global_details">
-- Працює на основі технології WebRTC\n\n
-- Захищена комунікація з повним шифруванням\n\n
-- Захист трансляції за допомогою пароля\n\n
-- Можливість надсилання відео та аудіо\n\n
-- Підключення до трансляції за допомогою унікального ідентифікатора та пароля\n\n
-- Для надсилання та отримання трансляції необхідне підключення до Інтернету\n\n
+    <string name="webrtc_stream_mode">Глобальний режим (WebRTC)</string>
+    <string name="webrtc_stream_mode_description">Опис глобального режиму</string>
+    <string name="webrtc_stream_mode_details">
+- Працює на основі технології WebRTC\n
+- Захищена комунікація з повним шифруванням\n
+- Захист трансляції за допомогою пароля\n
+- Можливість надсилання відео та аудіо\n
+- Підключення до трансляції за допомогою унікального ідентифікатора та пароля\n
+- Для надсилання та отримання трансляції необхідне підключення до Інтернету\n
 - Індивідуальна передача даних для кожного клієнта (чим більше клієнтів, тим більш швидкий Інтернет потрібен)
 </string>
 
-    <string name="webrtc_stream_fragment_server_address">Трансляція доступна за адресою:\n%1$s</string>
-    <string name="webrtc_stream_fragment_stream_id_getting">Отримання ID трансляції…</string>
-    <string name="webrtc_stream_fragment_stream_id">ID трансляції: %1$s</string>
-    <string name="webrtc_stream_fragment_stream_password">Пароль трансляції: %1$s</string>
-    <string name="webrtc_stream_fragment_mic_off">Мікрофон вимкнено</string>
-    <string name="webrtc_stream_fragment_mic_on">Мікрофон увімкнено</string>
-    <string name="webrtc_stream_fragment_get_new_id_description">Отримати новий ID трансляції</string>
-    <string name="webrtc_stream_fragment_show_password_description">Показати пароль трансляції</string>
-    <string name="webrtc_stream_fragment_create_new_password_description">Створити новий пароль для трансляції</string>
-    <string name="webrtc_stream_fragment_open_address_description">Відкрити адресу</string>
-    <string name="webrtc_stream_fragment_copy_address_description">Скопіювати адресу</string>
-    <string name="webrtc_stream_fragment_share_address_description">Поділитись адресою</string>
-    <string name="webrtc_stream_fragment_qr_address_description">Показати QR-код адреси</string>
-    <string name="webrtc_stream_fragment_copied">Скопійовано</string>
-    <string name="webrtc_stream_fragment_connected_clients">Підключені клієнти: %1$d</string>
-    <string name="webrtc_stream_fragment_no_web_browser_found">Веб-браузер не знайдено</string>
-    <string name="webrtc_stream_fragment_external_app_error">Помилка зовнішньої програми</string>
-    <string name="webrtc_stream_fragment_share_address">Поділитися адресою пристрою</string>
+    <string name="webrtc_stream_server_address">Трансляція доступна за адресою:\n%1$s</string>
+    <string name="webrtc_stream_stream_id_getting">Отримання ID трансляції…</string>
+    <string name="webrtc_stream_stream_id">ID трансляції: %1$s</string>
+    <string name="webrtc_stream_stream_password">Пароль трансляції: %1$s</string>
+    <string name="webrtc_stream_mic_off">Мікрофон вимкнено</string>
+    <string name="webrtc_stream_mic_on">Мікрофон увімкнено</string>
+    <string name="webrtc_stream_description_get_new_id">Отримати новий ID трансляції</string>
+    <string name="webrtc_stream_description_show_password">Показати пароль трансляції</string>
+    <string name="webrtc_stream_description_create_password">Створити новий пароль для трансляції</string>
+    <string name="webrtc_stream_description_open_address">Відкрити адресу</string>
+    <string name="webrtc_stream_description_copy_address">Скопіювати адресу</string>
+    <string name="webrtc_stream_description_share_address">Поділитись адресою</string>
+    <string name="webrtc_stream_description_qr_address">Показати QR-код адреси</string>
+    <string name="webrtc_stream_description_qr">QR-код</string>
+    <string name="webrtc_stream_copied">Скопійовано</string>
+    <string name="webrtc_stream_connected_clients">Підключені клієнти: %1$d</string>
+    <string name="webrtc_stream_no_web_browser_found">Веб-браузер не знайдено</string>
+    <string name="webrtc_stream_external_app_error">Помилка зовнішньої програми</string>
+    <string name="webrtc_stream_share_address">Поділитися адресою пристрою</string>
+    <string name="webrtc_stream_start">Почати трансляцію</string>
+    <string name="webrtc_stream_stop">Зупинити трансляцію</string>
 
-    <string name="webrtc_pref_settings">Налаштування потоку</string>
+    <string name="webrtc_pref_header">Налаштування глобального режиму (WebRTC)</string>
     <string name="webrtc_pref_keep_awake">Тримати пристрій активним</string>
     <string name="webrtc_pref_keep_awake_summary">Тримати пристрій та екран активними під час трансляції</string>
     <string name="webrtc_pref_stop_on_sleep">Зупиняти трансляцію при засинанні пристрою</string>
     <string name="webrtc_pref_stop_on_sleep_summary">Зупиняти трансляцію при вимкненні екрану</string>
     
-    <string name="webrtc_stream_fragment_audio_permission_title">Дозволити запис аудіо</string>
-    <string name="webrtc_stream_fragment_audio_permission_message">Для додатку необхідний дозвіл на запис аудіо для трансляції аудіовмісту.\nБез надання цього дозволу трансляція буде без звуку.</string>
-    <string name="webrtc_stream_fragment_audio_permission_message_settings">Надання доступу до мікрофону у налаштуваннях додатку є необхідним для трансляції аудіовмісту.\n\nБез надання цього дозволу трансляція буде проводитись без звуку.</string>
-    <string name="webrtc_stream_fragment_audio_permission_open_settings">Відкрити налаштування</string>
+    <string name="webrtc_stream_audio_permission_title">Дозволити запис аудіо</string>
+    <string name="webrtc_stream_audio_permission_message">Для додатку необхідний дозвіл на запис аудіо для трансляції аудіовмісту.\nБез надання цього дозволу трансляція буде без звуку.</string>
+    <string name="webrtc_stream_audio_permission_message_settings">Надання доступу до мікрофону у налаштуваннях додатку є необхідним для трансляції аудіовмісту.\n\nБез надання цього дозволу трансляція буде проводитись без звуку.</string>
+    <string name="webrtc_stream_audio_permission_open_settings">Відкрити налаштування</string>
 
-    <string name="webrtc_stream_fragment_cast_permission_error_title">Помилка дозволу</string>
-    <string name="webrtc_stream_fragment_cast_permission_error">Система не підтримує функціональність трансляції</string>
-    <string name="webrtc_stream_fragment_cast_permission_required_title">Потрібне дозвіл</string>
-    <string name="webrtc_stream_fragment_cast_permission_required">Додаток ScreenStream потребує дозволу на захоплення екрану (Screen Cast).</string>
+    <string name="webrtc_stream_cast_permission_required_title">Потрібне дозвіл</string>
+    <string name="webrtc_stream_cast_permission_required">Додаток ScreenStream потребує дозволу на захоплення екрану (Screen Cast).</string>
 
     <string name="webrtc_item_client_disconnect">Відключити</string>
 
@@ -56,6 +58,6 @@
     <string name="webrtc_error_play_integrity_install_play_service">Будь ласка, встановіть або увімкніть Play Services</string>
     <string name="webrtc_error_play_integrity_update_play_service">Будь ласка, оновіть Google Play Services</string>
     <string name="webrtc_error_check_network">Будь ласка, перевірте підключення до інтернету</string>
-    <string name="webrtc_notification_permission_required">Для запуску служби потокової передачі потрібно включити сповіщення в додатку.\n\nБудь ласка, включіть сповіщення в налаштуваннях додатку.</string>
+    <string name="webrtc_notification_permission_required">Для запуску служби потокової передачі потрібно включити сповіщення в додатку.\nБудь ласка, включіть сповіщення в налаштуваннях додатку.</string>
     <string name="webrtc_error_unspecified">Сталася помилка. Будь ласка, спробуйте ще раз пізніше.</string>
 </resources>

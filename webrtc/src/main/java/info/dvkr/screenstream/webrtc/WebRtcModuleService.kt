@@ -5,10 +5,10 @@ import android.app.ServiceStartNotAllowedException
 import android.content.Context
 import android.content.Intent
 import com.elvishew.xlog.XLog
-import info.dvkr.screenstream.common.module.AbstractModuleService
 import info.dvkr.screenstream.common.getLog
-import info.dvkr.screenstream.webrtc.internal.WebRtcError
+import info.dvkr.screenstream.common.module.StreamingModuleService
 import info.dvkr.screenstream.webrtc.internal.WebRtcEvent
+import info.dvkr.screenstream.webrtc.ui.WebRtcError
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import org.koin.android.ext.android.inject
@@ -16,7 +16,7 @@ import org.koin.core.qualifier.named
 import java.net.ConnectException
 import java.net.UnknownHostException
 
-public class WebRtcModuleService : AbstractModuleService() {
+public class WebRtcModuleService : StreamingModuleService() {
 
     internal companion object {
         internal fun getIntent(context: Context): Intent = Intent(context, WebRtcModuleService::class.java)
@@ -48,7 +48,7 @@ public class WebRtcModuleService : AbstractModuleService() {
         }
         XLog.d(getLog("onStartCommand", "WebRtcEvent: $webRtcEvent, startId: $startId"))
 
-        if (streamingModulesManager.isActive(WebRtcStreamingModule.Id)) {
+        if (streamingModuleManager.isActive(WebRtcStreamingModule.Id)) {
             when (webRtcEvent) {
                 is WebRtcEvent.Intentable.StartService -> webRtcStreamingModule.onServiceStart(this)
                 is WebRtcEvent.Intentable.StopStream -> webRtcStreamingModule.sendEvent(webRtcEvent)
@@ -64,7 +64,7 @@ public class WebRtcModuleService : AbstractModuleService() {
 
     override fun onDestroy() {
         XLog.d(getLog("onDestroy"))
-        runBlocking { streamingModulesManager.stopModule(WebRtcStreamingModule.Id) }
+        runBlocking { streamingModuleManager.stopModule(WebRtcStreamingModule.Id) }
         super.onDestroy()
     }
 
@@ -72,21 +72,26 @@ public class WebRtcModuleService : AbstractModuleService() {
     internal fun startForeground() {
         XLog.d(getLog("startForeground"))
 
-        if (notificationHelper.notificationPermissionGranted(this).not()) throw WebRtcError.NotificationPermissionRequired
-
-        val stopIntent = WebRtcEvent.Intentable.StopStream("WebRtcModuleService. User action: Notification").toIntent(this)
-        startForeground(stopIntent)
+        if (notificationHelper.notificationPermissionGranted(this) && notificationHelper.foregroundNotificationsEnabled()) {
+            val stopIntent = WebRtcEvent.Intentable.StopStream("WebRtcModuleService. User action: Notification").toIntent(this)
+            startForeground(stopIntent)
+        } else {
+            throw WebRtcError.NotificationPermissionRequired
+        }
     }
 
     internal fun showErrorNotification(error: WebRtcError) {
+        if (error is WebRtcError.NotificationPermissionRequired) return
+
         if (error is WebRtcError.NetworkError && (error.cause is UnknownHostException || error.cause is ConnectException)) {
             XLog.i(getLog("showErrorNotification", "${error.javaClass.simpleName} ${error.cause}"))
         } else {
             XLog.e(getLog("showErrorNotification"), error)
         }
 
-        val message = error.toString(this)
-        val recoverIntent = WebRtcEvent.Intentable.RecoverError.toIntent(this)
-        showErrorNotification(message, recoverIntent)
+        showErrorNotification(
+            message = error.toString(this),
+            recoverIntent = WebRtcEvent.Intentable.RecoverError.toIntent(this)
+        )
     }
 }

@@ -1,7 +1,6 @@
 buildscript {
     dependencies {
         classpath(libs.android.tools.r8)
-        classpath(libs.google.services)
         classpath(libs.firebase.crashlytics.gradle)
     }
 }
@@ -15,3 +14,9 @@ plugins {
     alias(libs.plugins.googleServices) apply false
     alias(libs.plugins.firebaseCrashlytics) apply false
 }
+
+val minSdkVersion by extra(23)
+val targetSdkVersion by extra(34)
+val compileSdkVersion by extra(34)
+val buildToolsVersion by extra("34.0.0")
+val composeCompilerVersion by extra("1.5.12")

@@ -3,33 +3,28 @@
     <string name="app_error_title">Ошибка</string>
     <string name="app_error_recover">Восстановить</string>
 
-    <string name="app_activity_logs_collecting">Идет логирование…</string>
-    <string name="app_activity_logs_send">Отправить лог разработчику</string>
-    <string name="app_activity_logs_send_dialog_title">Отправить лог разработчику</string>
-    <string name="app_activity_logs_send_dialog_message">Опишите проблему:</string>
-    <string name="app_activity_logs_send_dialog_neutral">Остановить логирование</string>
+    <string name="app_logs_collecting">Идет логирование…</string>
+    <string name="app_logs_send_title">Отправить лог разработчику</string>
+    <string name="app_logs_send_message">Опишите проблему:</string>
+    <string name="app_logs_send">Отправить</string>
+    <string name="app_logs_enabled">Включено логирование</string>
+    <string name="app_logs_disabled">Отключено логирование</string>
+    <string name="app_logs_stop">Остановить логирование</string>
 
     <string name="app_activity_update_dialog_title">Доступно обновление</string>
     <string name="app_activity_update_dialog_message">Обновление было только что загружено. Перезапустить приложение сейчас?</string>
     <string name="app_activity_update_dialog_restart">Перезапустить</string>
 
-    <string name="app_bottom_menu_stream">Главная</string>
-    <string name="app_bottom_menu_settings">Настройки</string>
-    <string name="app_bottom_menu_start">Старт</string>
-    <string name="app_bottom_menu_stop">Стоп</string>
-    <string name="app_bottom_menu_about">Инфо</string>
-    <string name="app_bottom_menu_exit">Выход</string>
+    <string name="app_tab_stream">Главная</string>
+    <string name="app_tab_settings">Настройки</string>
+    <string name="app_tab_about">Инфо</string>
 
-    <string name="app_fragment_stream_select_stream_mode">Выберите режим трансляции:</string>
+    <string name="app_tab_stream_select_mode">Выберите режим трансляции:</string>
 
-    <string name="permission_activity_error_title">Ошибка</string>
-    <string name="permission_activity_error_unknown">Неизвестная ошибка</string>
-    <string name="app_activity_permission_permission_required_title">Требуется разрешение</string>
-    <string name="app_activity_permission_notifications_required_title">Необходимы уведомления</string>
-    <string name="app_activity_permission_enable_notifications">Для запуска службы потоковой передачи требуется включить уведомления в приложении.\n\nПожалуйста, включите уведомления в настройках приложения.</string>
-    <string name="app_activity_permission_allow_notifications">Приложению требуется разрешение на отправку уведомлений, чтобы запустить службу потоковой передачи. Пожалуйста, разрешите отправку уведомлений.</string>
-    <string name="app_activity_permission_allow_notifications_settings">Приложению требуется разрешение на отправку уведомлений, чтобы запустить службу потоковой передачи. Пожалуйста, разрешите отправку уведомлений в настройках приложения.</string>
-    <string name="app_activity_permission_notification_settings">Открыть настройки</string>
+    <string name="app_permission_required_title">Требуется разрешение</string>
+    <string name="app_permission_allow_notifications">Приложению требуется разрешение на отправку уведомлений, чтобы запустить службу потоковой передачи. Пожалуйста, разрешите отправку уведомлений.</string>
+    <string name="app_permission_allow_notifications_settings">Приложению требуется разрешение на отправку уведомлений, чтобы запустить службу потоковой передачи. Пожалуйста, разрешите отправку уведомлений в настройках приложения.</string>
+    <string name="app_permission_notification_settings">Открыть настройки</string>
 
     <string name="app_notification_channel_streaming">Уведомления о трансляции</string>
     <string name="app_notification_channel_error">Уведомления об ошибках</string>
@@ -37,8 +32,14 @@
     <string name="app_notification_streaming_content">Нажмите ОСТАНОВИТЬ для окончания</string>
     <string name="app_notification_stop">Остановить</string>
 
+    <string name="app_pref_settings_search">Поиск настроек</string>
+    <string name="app_pref_search">Поиск</string>
+    <string name="app_pref_close">Закрыть</string>
+    <string name="app_pref_back">Назад</string>
+    <string name="app_pref_settings">Настройки приложения</string>
     <string name="app_pref_locale">Язык приложения</string>
     <string name="app_pref_locale_summary">Открыть настройки языка приложения</string>
+    <string name="app_pref_locale_default">Системные настройки</string>
     <string name="app_pref_night_mode">Темная тема</string>
     <string-array name="app_pref_night_mode_options_api21_28">
         <item>Всегда</item>
@@ -50,20 +51,21 @@
         <item>Автоматически (следовать за системой)</item>
         <item>Никогда</item>
     </string-array>
+    <string name="app_pref_dynamic_theme">Динамический цвет</string>
+    <string name="app_pref_dynamic_theme_summary">Настройте внешний вид на основе цветов вашего фона</string>
     <string name="app_pref_notification">Настройки уведомлений устройства</string>
     <string name="app_pref_notification_summary">Открыть настройки уведомлений системы</string>
     <string name="app_pref_logging">Включить логирование</string>
     <string name="app_pref_logging_summary">Собирать логи приложения</string>
 
-    <string name="app_about_fragment_app_version">Версия: %1$s</string>
-    <string name="app_about_fragment_developer_name">Разработчик Дмитрий Криворучко</string>
-    <string name="app_about_fragment_rate_app">Оценить приложение</string>
-    <string name="app_about_fragment_write_email">Написать Email разработчику</string>
-    <string name="app_about_fragment_write_email_dialog">Написать Email разработчику?</string>
-    <string name="app_about_fragment_email_chooser_header">Отправка письма…</string>
-    <string name="app_about_fragment_app_sources">Исходный код приложения</string>
-    <string name="app_about_fragment_terms_conditions">Условия использования</string>
-    <string name="app_about_fragment_privacy_policy">Политика конфиденциальности</string>
-    <string name="app_about_fragment_privacy_options">Опции конфиденциальности</string>
-    <string name="app_about_fragment_license">Лицензия</string>
+    <string name="app_tab_about_app_version">Версия: %1$s</string>
+    <string name="app_tab_about_developer_name">Разработчик Дмитрий Криворучко</string>
+    <string name="app_tab_about_rate_app">Оценить приложение</string>
+    <string name="app_tab_about_write_email">Написать Email разработчику</string>
+    <string name="app_tab_about_email_chooser_header">Отправка письма…</string>
+    <string name="app_tab_about_app_sources">Исходный код приложения</string>
+    <string name="app_tab_about_terms_conditions">Условия использования</string>
+    <string name="app_tab_about_privacy_policy">Политика конфиденциальности</string>
+    <string name="app_tab_about_privacy_options">Опции конфиденциальности</string>
+    <string name="app_tab_about_license">Лицензия</string>
 </resources>

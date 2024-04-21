@@ -23,12 +23,12 @@ import androidx.annotation.AnyThread
 import androidx.annotation.MainThread
 import androidx.core.content.ContextCompat
 import com.elvishew.xlog.XLog
-import info.dvkr.screenstream.common.AppState
-import info.dvkr.screenstream.common.AppStateFlowProvider
 import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.webrtc.WebRtcKoinScope
 import info.dvkr.screenstream.webrtc.WebRtcModuleService
-import info.dvkr.screenstream.webrtc.WebRtcSettings
+import info.dvkr.screenstream.webrtc.settings.WebRtcSettings
+import info.dvkr.screenstream.webrtc.ui.WebRtcError
+import info.dvkr.screenstream.webrtc.ui.WebRtcState
 import kotlinx.coroutines.CompletableJob
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -39,8 +39,8 @@ import kotlinx.coroutines.android.asCoroutineDispatcher
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.runBlocking
@@ -60,7 +60,6 @@ import kotlin.math.pow
 internal class WebRtcStreamingService(
     @InjectedParam private val service: WebRtcModuleService,
     @InjectedParam private val mutableWebRtcStateFlow: MutableStateFlow<WebRtcState>,
-    private val appStateFlowProvider: AppStateFlowProvider,
     private val environment: WebRtcEnvironment,
     private val webRtcSettings: WebRtcSettings
 ) : HandlerThread("WebRTC-HT", android.os.Process.THREAD_PRIORITY_DISPLAY), Handler.Callback {
@@ -262,7 +261,6 @@ internal class WebRtcStreamingService(
         super.start()
         XLog.d(getLog("start"))
 
-        appStateFlowProvider.mutableAppStateFlow.value = AppState()
         mutableWebRtcStateFlow.value = WebRtcState()
         sendEvent(InternalEvent.InitState)
 
@@ -286,13 +284,14 @@ internal class WebRtcStreamingService(
             else sendEvent(WebRtcEvent.Intentable.StopStream("networkAvailableFlow: false"))
         }.launchIn(coroutineScope)
 
-        webRtcSettings.enableMicFlow.distinctUntilChanged().onStart {
-            val micPermission = ContextCompat.checkSelfPermission(service, Manifest.permission.RECORD_AUDIO)
-            if (micPermission == PackageManager.PERMISSION_DENIED) webRtcSettings.setEnableMic(false)
-        }.onEach { enableMic ->
-            XLog.d(this@WebRtcStreamingService.getLog("enableMicFlow", "$enableMic"))
-            sendEvent(InternalEvent.EnableMic(enableMic))
-        }.launchIn(coroutineScope)
+        webRtcSettings.data.map { it.enableMic }.distinctUntilChanged()
+            .onStart {
+                val micPermission = ContextCompat.checkSelfPermission(service, Manifest.permission.RECORD_AUDIO)
+                if (micPermission == PackageManager.PERMISSION_DENIED) webRtcSettings.updateData { copy(enableMic = false) }
+            }.onEach { enableMic ->
+                XLog.d(this@WebRtcStreamingService.getLog("enableMicFlow", "$enableMic"))
+                sendEvent(InternalEvent.EnableMic(enableMic))
+            }.launchIn(coroutineScope)
     }
 
     @MainThread
@@ -457,17 +456,20 @@ internal class WebRtcStreamingService(
                                 currentError.set(WebRtcError.UnknownError(cause))
                                 sendEvent(WebRtcEvent.UpdateState)
                             }
+
                             cause.isAutoRetryable.not() -> {
                                 XLog.i(this@WebRtcStreamingService.getLog("getToken", "Got error. Stopping: ${cause.message}"))
                                 currentError.set(cause)
                                 sendEvent(WebRtcEvent.UpdateState)
                             }
+
                             event.attempt >= 3 -> {
                                 XLog.i(this@WebRtcStreamingService.getLog("getToken", "Got error. Max attempts. Stopping: ${cause.message}"))
                                 networkAvailable.value = false
                                 currentError.set(cause)
                                 sendEvent(WebRtcEvent.UpdateState)
                             }
+
                             else -> {
                                 XLog.i(this@WebRtcStreamingService.getLog("getToken", "Got error. Retrying: ${cause.message}"))
                                 val attempt = event.attempt + 1
@@ -496,7 +498,7 @@ internal class WebRtcStreamingService(
                     return
                 }
 
-                val currentStreamId = StreamId(webRtcSettings.lastStreamIdFlow.first())
+                val currentStreamId = StreamId(webRtcSettings.data.value.lastStreamId)
                 requireNotNull(signaling).sendStreamCreate(currentStreamId)
             }
 
@@ -509,7 +511,7 @@ internal class WebRtcStreamingService(
                 check(signaling != null) { "StreamCreated: signaling is null" }
                 require(event.streamId.isEmpty().not())
 
-                webRtcSettings.setLastStreamId(event.streamId.value)
+                webRtcSettings.updateData { copy(lastStreamId = event.streamId.value) }
 
                 if (currentStreamId.isEmpty().not() && currentStreamId != event.streamId) { // We got new streamId while we have another one
                     //TODO maybe notify user and clients?
@@ -523,7 +525,7 @@ internal class WebRtcStreamingService(
                 currentStreamId = event.streamId
                 if (currentStreamPassword.isEmpty()) currentStreamPassword = StreamPassword.generateNew()
                 projection = projection ?: WebRtcProjection(service)
-                projection!!.setMicrophoneMute(webRtcSettings.enableMicFlow.first().not())
+                projection!!.setMicrophoneMute(webRtcSettings.data.value.enableMic.not())
             }
 
             is InternalEvent.ClientJoin -> {
@@ -539,7 +541,8 @@ internal class WebRtcStreamingService(
 
                 val prj = projection!!
                 clients[event.clientId]?.stop()
-                clients[event.clientId] = WebRtcClient(event.clientId, prj.peerConnectionFactory, prj.videoCodecs, prj.audioCodecs, webRtcClientEventListener)
+                clients[event.clientId] =
+                    WebRtcClient(event.clientId, prj.peerConnectionFactory, prj.videoCodecs, prj.audioCodecs, webRtcClientEventListener)
 
                 if (isStreaming()) {
                     clients[event.clientId]?.start(prj.localMediaSteam!!)
@@ -594,7 +597,8 @@ internal class WebRtcStreamingService(
 
                 service.startForeground()
 
-                isAudioPermissionGrantedOnStart = ContextCompat.checkSelfPermission(service, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
+                isAudioPermissionGrantedOnStart =
+                    ContextCompat.checkSelfPermission(service, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
 
                 val prj = requireNotNull(projection)
                 prj.start(currentStreamId, event.intent) {
@@ -611,7 +615,7 @@ internal class WebRtcStreamingService(
 
                 @Suppress("DEPRECATION")
                 @SuppressLint("WakelockTimeout")
-                if (Build.MANUFACTURER !in listOf("OnePlus", "OPPO") && webRtcSettings.keepAwakeFlow.first()) {
+                if (Build.MANUFACTURER !in listOf("OnePlus", "OPPO") && webRtcSettings.data.value.keepAwake) {
                     val flags = PowerManager.SCREEN_DIM_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP
                     wakeLock = powerManager.newWakeLock(flags, "ScreenStream::WebRTC-Tag").apply { acquire() }
                 }
@@ -743,7 +747,7 @@ internal class WebRtcStreamingService(
                     return
                 }
 
-                if (webRtcSettings.stopOnSleepFlow.first()) sendEvent(WebRtcEvent.Intentable.StopStream("ScreenOff"))
+                if (webRtcSettings.data.value.stopOnSleep) sendEvent(WebRtcEvent.Intentable.StopStream("ScreenOff"))
             }
 
             is InternalEvent.EnableMic -> {
@@ -816,7 +820,7 @@ internal class WebRtcStreamingService(
                 clients = HashMap()
                 currentStreamId = StreamId.EMPTY
                 currentStreamPassword = StreamPassword.EMPTY
-                webRtcSettings.setLastStreamId(StreamId.EMPTY.value)
+                webRtcSettings.updateData { copy(lastStreamId = StreamId.EMPTY.value) }
             }
 
             is WebRtcEvent.CreateNewPassword -> {
@@ -884,7 +888,6 @@ internal class WebRtcStreamingService(
         )
 
         mutableWebRtcStateFlow.value = state
-        appStateFlowProvider.mutableAppStateFlow.value = state.toAppState()
 
         if (previousError != currentError.get()) {
             previousError = currentError.get()

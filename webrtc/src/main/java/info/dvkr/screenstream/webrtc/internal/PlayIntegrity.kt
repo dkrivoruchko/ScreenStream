@@ -10,6 +10,7 @@ import com.google.android.play.core.integrity.StandardIntegrityManager
 import com.google.android.play.core.integrity.model.StandardIntegrityErrorCode
 import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.webrtc.R
+import info.dvkr.screenstream.webrtc.ui.WebRtcError
 import okhttp3.CacheControl
 import okhttp3.Call
 import okhttp3.Callback

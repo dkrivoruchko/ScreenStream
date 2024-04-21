@@ -1,6 +1,5 @@
 import java.util.Properties
 
-@Suppress("DSL_SCOPE_VIOLATION") // TODO: Remove once KTIJ-19369 is fixed
 plugins {
     alias(libs.plugins.androidLibrary)
     alias(libs.plugins.kotlinAndroid)
@@ -10,34 +9,34 @@ plugins {
 
 android {
     namespace = "info.dvkr.screenstream.webrtc"
-    compileSdk = 34
-    buildToolsVersion = "34.0.0"
-    ndkVersion = "26.1.10909125"
+    compileSdk = rootProject.extra["compileSdkVersion"] as Int
+    buildToolsVersion = rootProject.extra["buildToolsVersion"] as String
 
     defaultConfig {
-        minSdk = 23
+        minSdk = rootProject.extra["minSdkVersion"] as Int
     }
 
     buildFeatures {
         buildConfig = true
-        viewBinding = true
+        compose = true
+    }
+
+    composeOptions {
+        kotlinCompilerExtensionVersion = rootProject.extra["composeCompilerVersion"] as String
     }
 
     val localProps = Properties()
-    val localProperties = File(rootProject.rootDir, "local.properties")
-    if (localProperties.exists() && localProperties.isFile) {
-        localProperties.inputStream().use { localProps.load(it) }
-    }
+    File(rootProject.rootDir, "local.properties").apply { if (exists() && isFile) inputStream().use { localProps.load(it) } }
 
     buildTypes {
         debug {
-            buildConfigField("String", "SIGNALING_SERVER", localProps.getProperty("SIGNALING_SERVER_DEV"))
-            buildConfigField("String", "CLOUD_PROJECT_NUMBER", localProps.getProperty("CLOUD_PROJECT_NUMBER_DEV"))
+            buildConfigField("String", "SIGNALING_SERVER", localProps.getProperty("SIGNALING_SERVER_DEV", "\"\""))
+            buildConfigField("String", "CLOUD_PROJECT_NUMBER", localProps.getProperty("CLOUD_PROJECT_NUMBER_DEV", "\"\""))
         }
 
         release {
-            buildConfigField("String", "SIGNALING_SERVER", localProps.getProperty("SIGNALING_SERVER_RELEASE"))
-            buildConfigField("String", "CLOUD_PROJECT_NUMBER", localProps.getProperty("CLOUD_PROJECT_NUMBER_RELEASE"))
+            buildConfigField("String", "SIGNALING_SERVER", localProps.getProperty("SIGNALING_SERVER_RELEASE", "\"\""))
+            buildConfigField("String", "CLOUD_PROJECT_NUMBER", localProps.getProperty("CLOUD_PROJECT_NUMBER_RELEASE", "\"\""))
         }
     }
 
@@ -57,10 +56,15 @@ dependencies {
 
     ksp(libs.koin.ksp)
 
-    implementation(libs.webrtc)
-    implementation(libs.socket) { exclude("org.json", "json") }
-    implementation(libs.okhttp)
-
-    implementation(libs.play.services.basement)
+    implementation(libs.play.services.tasks)
     implementation(libs.play.integrity)
+
+    implementation(libs.webrtc)
+    implementation(libs.socket)
+    implementation(libs.okhttp)
+}
+
+configurations.all {
+    exclude("androidx.fragment", "fragment")
+    exclude("org.json", "json")
 }

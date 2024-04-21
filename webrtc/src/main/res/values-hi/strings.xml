@@ -1,53 +1,55 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="webrtc_error_recover">पुनर्प्राप्ति</string>
+    <string name="webrtc_error_open_settings">सेटिंग्स खोलें</string>
 
-    <string name="webrtc_stream_fragment_mode_global">वैश्विक मोड (WebRTC)</string>
-    <string name="webrtc_stream_fragment_mode_global_description">वैश्विक मोड का विवरण</string>
-    <string name="webrtc_stream_fragment_mode_global_details">
-- WebRTC प्रौद्योगिकी द्वारा संचालित।\n\n
-- एंड-टू-एंड एन्क्रिप्टेड संचार।\n\n
-- पासवर्ड के साथ स्ट्रीम सुरक्षा।\n\n
-- वीडियो और ऑडियो भेज सकते हैं।\n\n
-- एकदिवसीय स्ट्रीम आईडी और पासवर्ड का उपयोग करें।\n\n
-- स्ट्रीमिंग के लिए इंटरनेट कनेक्शन की आवश्यकता है।\n\n
+    <string name="webrtc_stream_mode">वैश्विक मोड (WebRTC)</string>
+    <string name="webrtc_stream_mode_description">वैश्विक मोड का विवरण</string>
+    <string name="webrtc_stream_mode_details">
+- WebRTC प्रौद्योगिकी द्वारा संचालित।\n
+- एंड-टू-एंड एन्क्रिप्टेड संचार।\n
+- पासवर्ड के साथ स्ट्रीम सुरक्षा।\n
+- वीडियो और ऑडियो भेज सकते हैं।\n
+- एकदिवसीय स्ट्रीम आईडी और पासवर्ड का उपयोग करें।\n
+- स्ट्रीमिंग के लिए इंटरनेट कनेक्शन की आवश्यकता है।\n
 - प्रत्येक ग्राहक के लिए व्यक्तिगत डेटा प्रसारण (जितने अधिक ग्राहक होते हैं, उतना अधिक इंटरनेट बैंडविड्थ की आवश्यकता होती है)।
 </string>
 
-    <string name="webrtc_stream_fragment_server_address">पते पर पहुंचें:\n%1$s</string>
-    <string name="webrtc_stream_fragment_stream_id_getting">स्ट्रीम आईडी प्राप्त कर रहा है…</string>
-    <string name="webrtc_stream_fragment_stream_id">स्ट्रीम आईडी: %1$s</string>
-    <string name="webrtc_stream_fragment_stream_password">स्ट्रीम पासवर्ड: %1$s</string>
-    <string name="webrtc_stream_fragment_mic_off">माइक्रोफ़ोन बंद</string>
-    <string name="webrtc_stream_fragment_mic_on">माइक्रोफ़ोन चालू</string>
-    <string name="webrtc_stream_fragment_show_password_description">स्ट्रीम पासवर्ड दिखाएं</string>
-    <string name="webrtc_stream_fragment_get_new_id_description">नई स्ट्रीम आईडी प्राप्त करें</string>
-    <string name="webrtc_stream_fragment_create_new_password_description">नया स्ट्रीम पासवर्ड बनाएं</string>
-    <string name="webrtc_stream_fragment_open_address_description">पता खोलें</string>
-    <string name="webrtc_stream_fragment_copy_address_description">पता कॉपी करें</string>
-    <string name="webrtc_stream_fragment_share_address_description">पता साझा करें</string>
-    <string name="webrtc_stream_fragment_qr_address_description">पता QR-कोड के रूप में दिखाएं</string>
-    <string name="webrtc_stream_fragment_copied">कॉपी किया गया</string>
-    <string name="webrtc_stream_fragment_connected_clients">कनेक्टेड ग्राहक: %1$d</string>
-    <string name="webrtc_stream_fragment_no_web_browser_found">कोई वेब ब्राउज़र नहीं मिला</string>
-    <string name="webrtc_stream_fragment_external_app_error">बाहरी एप्लिकेशन त्रुटि</string>
-    <string name="webrtc_stream_fragment_share_address">डिवाइस पता साझा करें</string>
+    <string name="webrtc_stream_server_address">पते पर पहुंचें:\n%1$s</string>
+    <string name="webrtc_stream_stream_id_getting">स्ट्रीम आईडी प्राप्त कर रहा है…</string>
+    <string name="webrtc_stream_stream_id">स्ट्रीम आईडी: %1$s</string>
+    <string name="webrtc_stream_stream_password">स्ट्रीम पासवर्ड: %1$s</string>
+    <string name="webrtc_stream_mic_off">माइक्रोफ़ोन बंद</string>
+    <string name="webrtc_stream_mic_on">माइक्रोफ़ोन चालू</string>
+    <string name="webrtc_stream_description_show_password">स्ट्रीम पासवर्ड दिखाएं</string>
+    <string name="webrtc_stream_description_get_new_id">नई स्ट्रीम आईडी प्राप्त करें</string>
+    <string name="webrtc_stream_description_create_password">नया स्ट्रीम पासवर्ड बनाएं</string>
+    <string name="webrtc_stream_description_open_address">पता खोलें</string>
+    <string name="webrtc_stream_description_copy_address">पता कॉपी करें</string>
+    <string name="webrtc_stream_description_share_address">पता साझा करें</string>
+    <string name="webrtc_stream_description_qr_address">पता QR-कोड के रूप में दिखाएं</string>
+    <string name="webrtc_stream_description_qr">क्यूआर कोड</string>
+    <string name="webrtc_stream_copied">कॉपी किया गया</string>
+    <string name="webrtc_stream_connected_clients">कनेक्टेड ग्राहक: %1$d</string>
+    <string name="webrtc_stream_no_web_browser_found">कोई वेब ब्राउज़र नहीं मिला</string>
+    <string name="webrtc_stream_external_app_error">बाहरी एप्लिकेशन त्रुटि</string>
+    <string name="webrtc_stream_share_address">डिवाइस पता साझा करें</string>
+    <string name="webrtc_stream_start">स्ट्रीम शुरू करें</string>
+    <string name="webrtc_stream_stop">स्ट्रीम बंद करें</string>
 
-    <string name="webrtc_pref_settings">स्ट्रीम सेटिंग्स</string>
+    <string name="webrtc_pref_header">वैश्विक मोड (WebRTC) सेटिंग्स</string>
     <string name="webrtc_pref_keep_awake">डिवाइस जागरूक रखें</string>
     <string name="webrtc_pref_keep_awake_summary">स्ट्रीमिंग के दौरान डिवाइस और स्क्रीन को जागरूक रखें</string>
     <string name="webrtc_pref_stop_on_sleep">नींद पर धारा रोकें</string>
     <string name="webrtc_pref_stop_on_sleep_summary">यदि स्क्रीन बंद हो जाती है तो स्ट्रीम को रोकें</string>
     
-    <string name="webrtc_stream_fragment_audio_permission_title">ऑडियो रिकॉर्डिंग अनुमति दें</string>
-    <string name="webrtc_stream_fragment_audio_permission_message">ऐप्लिकेशन को ऑडियो सामग्री स्ट्रीम करने के लिए ऑडियो रिकॉर्डिंग की अनुमति की आवश्यकता है।\n\nइस अनुमति को देने के बिना, स्ट्रीम ऑडियो के बिना होगा।</string>
-    <string name="webrtc_stream_fragment_audio_permission_message_settings">ऐप्लिकेशन अनुमतियों में माइक्रोफ़ोन एक्सेस देना आवश्यक है, ताकि ऐप्लिकेशन ऑडियो सामग्री स्ट्रीम कर सके।\n\nइस अनुमति को देने के बिना, स्ट्रीम में कोई ऑडियो नहीं होगा।</string>
-    <string name="webrtc_stream_fragment_audio_permission_open_settings">सेटिंग्स खोलें</string>
+    <string name="webrtc_stream_audio_permission_title">ऑडियो रिकॉर्डिंग अनुमति दें</string>
+    <string name="webrtc_stream_audio_permission_message">ऐप्लिकेशन को ऑडियो सामग्री स्ट्रीम करने के लिए ऑडियो रिकॉर्डिंग की अनुमति की आवश्यकता है।\n\nइस अनुमति को देने के बिना, स्ट्रीम ऑडियो के बिना होगा।</string>
+    <string name="webrtc_stream_audio_permission_message_settings">ऐप्लिकेशन अनुमतियों में माइक्रोफ़ोन एक्सेस देना आवश्यक है, ताकि ऐप्लिकेशन ऑडियो सामग्री स्ट्रीम कर सके।\n\nइस अनुमति को देने के बिना, स्ट्रीम में कोई ऑडियो नहीं होगा।</string>
+    <string name="webrtc_stream_audio_permission_open_settings">सेटिंग्स खोलें</string>
 
-    <string name="webrtc_stream_fragment_cast_permission_error_title">अनुमति त्रुटि</string>
-    <string name="webrtc_stream_fragment_cast_permission_error">सिस्टम कास्ट की फ़ंक्शनैलिटी का समर्थन नहीं करता है</string>
-    <string name="webrtc_stream_fragment_cast_permission_required_title">आवश्यक अनुमति</string>
-    <string name="webrtc_stream_fragment_cast_permission_required">ScreenStream एप्लिकेशन को स्क्रीन कैस्ट अनुमति की आवश्यकता है।</string>
+    <string name="webrtc_stream_cast_permission_required_title">आवश्यक अनुमति</string>
+    <string name="webrtc_stream_cast_permission_required">ScreenStream एप्लिकेशन को स्क्रीन कैस्ट अनुमति की आवश्यकता है।</string>
 
     <string name="webrtc_item_client_disconnect">डिस्कनेक्ट</string>
 
@@ -56,6 +58,6 @@
     <string name="webrtc_error_play_integrity_install_play_service">कृपया Google Play सेवाएं स्थापित करें या सक्षम करें</string>
     <string name="webrtc_error_play_integrity_update_play_service">कृपया Google Play सेवाएं अपडेट करें</string>
     <string name="webrtc_error_check_network">कृपया इंटरनेट कनेक्टिविटी की जांच करें</string>
-    <string name="webrtc_notification_permission_required">ऐप्लिकेशन को स्ट्रीमिंग सेवा शुरू करने के लिए सूचनाओं को सक्षम करने की आवश्यकता है।\n\nकृपया ऐप्लिकेशन की सेटिंग्स में सूचनाओं को सक्षम करें।</string>
+    <string name="webrtc_notification_permission_required">ऐप्लिकेशन को स्ट्रीमिंग सेवा शुरू करने के लिए सूचनाओं को सक्षम करने की आवश्यकता है।\nकृपया ऐप्लिकेशन की सेटिंग्स में सूचनाओं को सक्षम करें।</string>
     <string name="webrtc_error_unspecified">कुछ गड़बड़ हो गई है। कृपया बाद में पुनः प्रयास करें।</string>
 </resources>

@@ -2,5 +2,11 @@
 <full-backup-content>
     <include
         domain="file"
-        path="./datastore/user_settings.preferences_pb" />
+        path="./datastore/app_settings.preferences_pb" />
+    <include
+        domain="file"
+        path="./datastore/MJPEG_settings.preferences_pb" />
+    <include
+        domain="file"
+        path="./datastore/WebRTC_settings.preferences_pb" />
 </full-backup-content>

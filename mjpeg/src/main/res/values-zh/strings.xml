@@ -1,51 +1,54 @@
 <resources>
     <string name="mjpeg_error_recover">恢复</string>
+    <string name="mjpeg_error_open_settings">打开设置</string>
 
-    <string name="mjpeg_stream_fragment_mode_local">本地模式 (MJPEG)</string>
-    <string name="mjpeg_stream_fragment_mode_local_description">本地模式描述</string>
-    <string name="mjpeg_stream_fragment_mode_local_details">
-- 由 MJPEG 标准驱动\n\n
-- 使用 PIN 码增强安全性 （无加密）\n\n
-- 以一系列独立图片的形式发送视频（无声音）\n\n
-- 本地网络下，即使没有互联网连接也可运行\n\n
-- 内嵌 HTTP 服务器\n\n
-- 可在 WiFi 和/或移动网络下工作，支持 IPv4 和 IPv6\n\n
-- 客户端使用本程序提供的 IP 地址，通过网络浏览器进行连接\n\n
-- 定制程度高\n\n
+    <string name="mjpeg_stream_mode">本地模式 (MJPEG)</string>
+    <string name="mjpeg_stream_mode_description">本地模式描述</string>
+    <string name="mjpeg_stream_mode_details">
+- 由 MJPEG 标准驱动\n
+- 使用 PIN 码增强安全性 （无加密）\n
+- 以一系列独立图片的形式发送视频（无声音）\n
+- 本地网络下，即使没有互联网连接也可运行\n
+- 内嵌 HTTP 服务器\n
+- 可在 WiFi 和/或移动网络下工作，支持 IPv4 和 IPv6\n
+- 客户端使用本程序提供的 IP 地址，通过网络浏览器进行连接\n
+- 定制程度高\n
 - 每个客户端单独的数据传输 （拥有的客户端越多，所需的带宽也越多)
 </string>
 
-    <string name="mjpeg_item_device_address">设备地址：</string>
-    <string name="mjpeg_stream_fragment_no_address">未找到地址</string>
-    <string name="mjpeg_stream_fragment_interface">接口： %1$s</string>
-    <string name="mjpeg_stream_fragment_copied">已复制</string>
-    <string name="mjpeg_stream_fragment_no_web_browser_found">没找到网络浏览器</string>
-    <string name="mjpeg_stream_fragment_external_app_error">外部程序错误</string>
-    <string name="mjpeg_stream_fragment_share_address">分享设备地址</string>
-    <string name="mjpeg_item_device_address_description_open_address">打开地址</string>
-    <string name="mjpeg_item_device_address_description_copy_address">复制地址</string>
-    <string name="mjpeg_item_device_address_description_share_address">分享地址</string>
-    <string name="mjpeg_item_device_address_description_qr_address">以二维码形式显示地址</string>
-    <string name="mjpeg_pref_settings">流设置</string>
-    <string name="mjpeg_stream_fragment_pin">Pin 码：%1$s</string>
-    <string name="mjpeg_stream_fragment_pin_disabled">停用了 Pin 码</string>
-    <string name="mjpeg_stream_fragment_show_pin_description">显示 Pin 码</string>
-    <string name="mjpeg_stream_fragment_create_new_pin_description">新建 Pin 码</string>
-    <string name="mjpeg_stream_fragment_current_traffic">网速： %1$,.2f Mbit/s</string>
-    <string name="mjpeg_stream_fragment_connected_clients">已连接的客户端：%1$d</string>
-    <string name="mjpeg_stream_fragment_client_disconnected">连接已断开</string>
-    <string name="mjpeg_stream_fragment_client_slow_network">慢速连接</string>
-    <string name="mjpeg_stream_fragment_client_connected">已连接</string>
-    <string name="mjpeg_stream_fragment_client_blocked">已拦截</string>
+    <string name="mjpeg_item_address">设备地址：</string>
+    <string name="mjpeg_stream_no_address">未找到地址</string>
+    <string name="mjpeg_stream_interface">接口： %1$s</string>
+    <string name="mjpeg_stream_copied">已复制</string>
+    <string name="mjpeg_stream_no_web_browser_found">没找到网络浏览器</string>
+    <string name="mjpeg_stream_external_app_error">外部程序错误</string>
+    <string name="mjpeg_stream_share_address">分享设备地址</string>
+    <string name="mjpeg_item_address_description_open_address">打开地址</string>
+    <string name="mjpeg_item_address_description_copy_address">复制地址</string>
+    <string name="mjpeg_item_address_description_share_address">分享地址</string>
+    <string name="mjpeg_item_address_description_qr_address">以二维码形式显示地址</string>
+    <string name="mjpeg_item_address_description_qr">二维码</string>
+    <string name="mjpeg_stream_pin">Pin 码：%1$s</string>
+    <string name="mjpeg_stream_pin_disabled">停用了 Pin 码</string>
+    <string name="mjpeg_stream_description_show_pin">显示 Pin 码</string>
+    <string name="mjpeg_stream_description_create_pin">新建 Pin 码</string>
+    <string name="mjpeg_stream_current_traffic">网速： %1$,.2f Mbit/s</string>
+    <string name="mjpeg_stream_traffic_graph">流量图</string>
+    <string name="mjpeg_stream_connected_clients">已连接的客户端：%1$d</string>
+    <string name="mjpeg_stream_client_disconnected">连接已断开</string>
+    <string name="mjpeg_stream_client_slow_network">慢速连接</string>
+    <string name="mjpeg_stream_client_connected">已连接</string>
+    <string name="mjpeg_stream_client_blocked">已拦截</string>
+    <string name="mjpeg_stream_start">开始流</string>
+    <string name="mjpeg_stream_stop">停止流</string>
 
-    <string name="mjpeg_stream_fragment_cast_permission_error_title">权限错误</string>
-    <string name="mjpeg_stream_fragment_cast_permission_error">系统不支持投屏功能</string>
-    <string name="mjpeg_stream_fragment_cast_permission_required_title">需要权限</string>
-    <string name="mjpeg_stream_fragment_cast_permission_required">ScreenStream 程序需要投屏权限来捕捉屏幕。</string>
+    <string name="mjpeg_stream_cast_permission_required_title">需要权限</string>
+    <string name="mjpeg_stream_cast_permission_required">ScreenStream 程序需要投屏权限来捕捉屏幕。</string>
 
-    <string name="mjpeg_toast_slow_client_connection">检测到慢速客户端连接</string>
+    <string name="mjpeg_slow_client_connection">检测到慢速客户端连接</string>
 
-    <string name="mjpeg_pref_settings_interface">接口</string>
+    <string name="mjpeg_pref_header">本地模式（MJPEG）设置</string>
+    <string name="mjpeg_pref_settings_general">一般</string>
     <string name="mjpeg_pref_keep_awake">保持设备唤醒状态</string>
     <string name="mjpeg_pref_keep_awake_summary">传输时保持设备活跃，屏幕不熄灭</string>
     <string name="mjpeg_pref_stop_on_sleep">休眠时停止传输</string>
@@ -64,32 +67,33 @@
     <string name="mjpeg_pref_vr_mode">虚拟现实模式</string>
     <string name="mjpeg_pref_vr_mode_summary">从半个屏幕捕获内容</string>
     <string-array name="mjpeg_pref_vr_mode_options">
+        <item>禁用</item>
         <item>使用左半部分</item>
         <item>使用右半部分</item>
     </string-array>
     <string name="mjpeg_pref_crop">裁剪图片</string>
     <string name="mjpeg_pref_crop_summary">发送到客户端前裁剪图片</string>
-    <string name="mjpeg_pref_crop_dialog_crop_top">裁剪顶部：</string>
-    <string name="mjpeg_pref_crop_dialog_crop_bottom">裁剪底部：</string>
-    <string name="mjpeg_pref_crop_dialog_crop_left">裁剪左边：</string>
-    <string name="mjpeg_pref_crop_dialog_crop_right">裁剪右边：</string>
-    <string name="mjpeg_pref_crop_dialog_pixels">像素</string>
-    <string name="mjpeg_pref_crop_dialog_warning_message">如果裁剪结果是空白图片，那么裁剪操作将被忽略</string>
-    <string name="mjpeg_pref_crop_dialog_error_message">输入有效的裁剪值</string>
+    <string name="mjpeg_pref_crop_top">裁剪顶部：</string>
+    <string name="mjpeg_pref_crop_bottom">裁剪底部：</string>
+    <string name="mjpeg_pref_crop_left">裁剪左边：</string>
+    <string name="mjpeg_pref_crop_right">裁剪右边：</string>
+    <string name="mjpeg_pref_crop_pixels">像素</string>
+    <string name="mjpeg_pref_crop_warning">如果裁剪结果是空白图片，那么裁剪操作将被忽略</string>
+    <string name="mjpeg_pref_crop_error">输入有效的裁剪值</string>
     <string name="mjpeg_pref_grayscale">灰度模式</string>
     <string name="mjpeg_pref_grayscale_summary">发送到客户端前对图片进行灰度处理</string>
     <string name="mjpeg_pref_resize">调整图片尺寸</string>
     <string name="mjpeg_pref_resize_summary">发送到客户端前调整图片尺寸</string>
-    <string name="mjpeg_pref_resize_dialog_text">设置图片尺寸调整的百分比率\n值：10–150 （默认：50）\n屏幕尺寸：%1$dx%2$d</string>
-    <string name="mjpeg_pref_resize_dialog_result">图片尺寸： %1$dx%2$d</string>
+    <string name="mjpeg_pref_resize_text">设置图片尺寸调整的百分比率\n值：10–150\n默认：50\n屏幕尺寸：%1$dx%2$d</string>
+    <string name="mjpeg_pref_resize_result">图片尺寸： %1$dx%2$d</string>
     <string name="mjpeg_pref_rotate">顺时针旋转图片</string>
     <string name="mjpeg_pref_rotate_summary">发送到客户端前先旋转图片</string>
     <string name="mjpeg_pref_fps">限制每秒帧数</string>
     <string name="mjpeg_pref_fps_summary">设置每秒最大帧数</string>
-    <string name="mjpeg_pref_fps_dialog">设置每秒最大帧数。\n值： 1–60 （默认：30）</string>
+    <string name="mjpeg_pref_fps_text">设置每秒最大帧数。\n值： 1–60\n默认：30</string>
     <string name="mjpeg_pref_jpeg_quality">JPEG 压缩质量</string>
     <string name="mjpeg_pref_jpeg_quality_summary">设置 JPEG 压缩质量</string>
-    <string name="mjpeg_pref_jpeg_quality_dialog">设置 JPEG 压缩质量。\n值：10–100 （默认：80）</string>
+    <string name="mjpeg_pref_jpeg_quality_text">设置 JPEG 压缩质量。\n值：10–100\n默认：80</string>
 
     <string name="mjpeg_pref_settings_security">安全性</string>
     <string name="mjpeg_pref_enable_pin">启用 pin 码</string>
@@ -102,7 +106,7 @@
     <string name="mjpeg_pref_auto_change_pin_summary">为每个新流生成新的 pin 码</string>
     <string name="mjpeg_pref_set_pin">设置 pin 码</string>
     <string name="mjpeg_pref_set_pin_summary">手动输入 pin 码</string>
-    <string name="mjpeg_pref_set_pin_dialog">输入 pin 码。\n默认：000000</string>
+    <string name="mjpeg_pref_set_pin_text">输入 pin 码。\n默认：000000</string>
     <string name="mjpeg_pref_block_address">拦截 IP 地址</string>
     <string name="mjpeg_pref_block_address_summary">5 次错误的 pin 码尝试后，拦截客户端 IP 5 分钟</string>
 
@@ -117,12 +121,12 @@
     <string name="mjpeg_pref_localhost_only_summary">只在本地主机地址上运行服务器</string>
     <string name="mjpeg_pref_server_port">服务器端口</string>
     <string name="mjpeg_pref_server_port_summary">设置传入连接的端口</string>
-    <string name="mjpeg_pref_server_port_dialog">设置传入连接的服务器端口。\n值的范围：1025–65535\n（默认：8080）</string>
+    <string name="mjpeg_pref_server_port_text">设置传入连接的服务器端口。\n值的范围：1025–65535\n默认：8080</string>
 
     <string name="mjpeg_error_port_in_use">此端口已被占用。请另选一个。</string>
     <string name="mjpeg_error_invalid_media_projection">安全错误：无效的媒体投影。请再试一次。</string>
     <string name="mjpeg_error_ip_address_not_found">没找到 IP 地址。\n试着在流设置中停用 \"仅使用 WiFi\" 。</string>
-    <string name="mjpeg_error_notification_permission_required">要能启动流服务，程序需要发送通知。 \n\n请在程序设置中启用通知。</string>
+    <string name="mjpeg_error_notification_permission_required">要能启动流服务，程序需要发送通知。 \n请在程序设置中启用通知。</string>
     <string name="mjpeg_error_unspecified">出错了。请稍后再试。</string>
 
     <string name="mjpeg_start_image_text">在设备上开始传输</string>

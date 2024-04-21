@@ -1,51 +1,54 @@
 <resources>
     <string name="mjpeg_error_recover">Recover</string>
+    <string name="mjpeg_error_open_settings">Open settings</string>
 
-    <string name="mjpeg_stream_fragment_mode_local">Local mode (MJPEG)</string>
-    <string name="mjpeg_stream_fragment_mode_local_description">Local mode description</string>
-    <string name="mjpeg_stream_fragment_mode_local_details">
-- Powered by MJPEG standard.\n\n
-- Utilizes PIN for security (no encryption).\n\n
-- Sends video as a series of independent images (no audio).\n\n
-- Works without an internet connection within your local network.\n\n
-- Embedded HTTP server.\n\n
-- Works with WiFi and/or mobile networks, supporting IPv4 and IPv6.\n\n
-- Clients connect via web browser using the app\'s provided IP address.\n\n
-- Highly customizable.\n\n
+    <string name="mjpeg_stream_mode">Local mode (MJPEG)</string>
+    <string name="mjpeg_stream_mode_description">Local mode description</string>
+    <string name="mjpeg_stream_mode_details">
+- Powered by MJPEG standard.\n
+- Utilizes PIN for security (no encryption).\n
+- Sends video as a series of independent images (no audio).\n
+- Works without an internet connection within your local network.\n
+- Embedded HTTP server.\n
+- Works with WiFi and/or mobile networks, supporting IPv4 and IPv6.\n
+- Clients connect via web browser using the app\'s provided IP address.\n
+- Highly customizable.\n
 - Individual data transmission for each client (more clients you have, more notwork bandwidth you need).
 </string>
 
-    <string name="mjpeg_item_device_address">Device address:</string>
-    <string name="mjpeg_stream_fragment_no_address">No address found</string>
-    <string name="mjpeg_stream_fragment_interface">Interface: %1$s</string>
-    <string name="mjpeg_stream_fragment_copied">Copied</string>
-    <string name="mjpeg_stream_fragment_no_web_browser_found">No web browser found</string>
-    <string name="mjpeg_stream_fragment_external_app_error">External application error</string>
-    <string name="mjpeg_stream_fragment_share_address">Share device address</string>
-    <string name="mjpeg_item_device_address_description_open_address">Open address</string>
-    <string name="mjpeg_item_device_address_description_copy_address">Copy address</string>
-    <string name="mjpeg_item_device_address_description_share_address">Share address</string>
-    <string name="mjpeg_item_device_address_description_qr_address">Show address as QR-code</string>
-    <string name="mjpeg_pref_settings">Stream settings</string>
-    <string name="mjpeg_stream_fragment_pin">Pin: %1$s</string>
-    <string name="mjpeg_stream_fragment_pin_disabled">Pin disabled</string>
-    <string name="mjpeg_stream_fragment_show_pin_description">Show stream pin</string>
-    <string name="mjpeg_stream_fragment_create_new_pin_description">Create new stream pin</string>
-    <string name="mjpeg_stream_fragment_current_traffic">Traffic: %1$,.2f Mbit/s</string>
-    <string name="mjpeg_stream_fragment_connected_clients">Connected clients: %1$d</string>
-    <string name="mjpeg_stream_fragment_client_disconnected">Disconnected</string>
-    <string name="mjpeg_stream_fragment_client_slow_network">Slow connection</string>
-    <string name="mjpeg_stream_fragment_client_connected">Connected</string>
-    <string name="mjpeg_stream_fragment_client_blocked">Blocked</string>
+    <string name="mjpeg_item_address">Device address:</string>
+    <string name="mjpeg_stream_no_address">No address found</string>
+    <string name="mjpeg_stream_interface">Interface: %1$s</string>
+    <string name="mjpeg_stream_copied">Copied</string>
+    <string name="mjpeg_stream_no_web_browser_found">No web browser found</string>
+    <string name="mjpeg_stream_external_app_error">External application error</string>
+    <string name="mjpeg_stream_share_address">Share device address</string>
+    <string name="mjpeg_item_address_description_open_address">Open address</string>
+    <string name="mjpeg_item_address_description_copy_address">Copy address</string>
+    <string name="mjpeg_item_address_description_share_address">Share address</string>
+    <string name="mjpeg_item_address_description_qr_address">Show address as QR-code</string>
+    <string name="mjpeg_item_address_description_qr">QR-code</string>
+    <string name="mjpeg_stream_pin">Pin: %1$s</string>
+    <string name="mjpeg_stream_pin_disabled">Pin disabled</string>
+    <string name="mjpeg_stream_description_show_pin">Show stream pin</string>
+    <string name="mjpeg_stream_description_create_pin">Create new stream pin</string>
+    <string name="mjpeg_stream_current_traffic">Traffic: %1$,.2f Mbit/s</string>
+    <string name="mjpeg_stream_traffic_graph">Traffic graph</string>
+    <string name="mjpeg_stream_connected_clients">Connected clients: %1$d</string>
+    <string name="mjpeg_stream_client_disconnected">Disconnected</string>
+    <string name="mjpeg_stream_client_slow_network">Slow connection</string>
+    <string name="mjpeg_stream_client_connected">Connected</string>
+    <string name="mjpeg_stream_client_blocked">Blocked</string>
+    <string name="mjpeg_stream_start">Start stream</string>
+    <string name="mjpeg_stream_stop">Stop stream</string>
 
-    <string name="mjpeg_stream_fragment_cast_permission_error_title">Permission error</string>
-    <string name="mjpeg_stream_fragment_cast_permission_error">System does not support cast functionality</string>
-    <string name="mjpeg_stream_fragment_cast_permission_required_title">Permission required</string>
-    <string name="mjpeg_stream_fragment_cast_permission_required">ScreenStream application requires Screen Cast permission to capture screen.</string>
+    <string name="mjpeg_stream_cast_permission_required_title">Permission required</string>
+    <string name="mjpeg_stream_cast_permission_required">ScreenStream application requires Screen Cast permission to capture screen.</string>
 
-    <string name="mjpeg_toast_slow_client_connection">Slow client connection detected</string>
+    <string name="mjpeg_slow_client_connection">Slow client connection detected</string>
 
-    <string name="mjpeg_pref_settings_interface">Interface</string>
+    <string name="mjpeg_pref_header">Local mode (MJPEG) settings</string>
+    <string name="mjpeg_pref_settings_general">General</string>
     <string name="mjpeg_pref_keep_awake">Keep device awake</string>
     <string name="mjpeg_pref_keep_awake_summary">Keep device and screen awake while streaming</string>
     <string name="mjpeg_pref_stop_on_sleep">Stop stream on sleep</string>
@@ -64,25 +67,26 @@
     <string name="mjpeg_pref_vr_mode">Virtual reality mode</string>
     <string name="mjpeg_pref_vr_mode_summary">Capture content from half screen</string>
     <string-array name="mjpeg_pref_vr_mode_options">
+        <item>Disable</item>
         <item>Use left part</item>
         <item>Use right part</item>
     </string-array>
     <string name="mjpeg_pref_crop">Crop image</string>
     <string name="mjpeg_pref_crop_summary">Crop image before sending to client</string>
-    <string name="mjpeg_pref_crop_dialog_crop_top">Crop top:</string>
-    <string name="mjpeg_pref_crop_dialog_crop_bottom">Crop bottom:</string>
-    <string name="mjpeg_pref_crop_dialog_crop_left">Crop left:</string>
-    <string name="mjpeg_pref_crop_dialog_crop_right">Crop right:</string>
-    <string name="mjpeg_pref_crop_dialog_pixels">pixels</string>
-    <string name="mjpeg_pref_crop_dialog_warning_message">Crop will be ignored if result is an empty image</string>
-    <string name="mjpeg_pref_crop_dialog_error_message">Enter valid crop values</string>
+    <string name="mjpeg_pref_crop_top">Crop top:</string>
+    <string name="mjpeg_pref_crop_bottom">Crop bottom:</string>
+    <string name="mjpeg_pref_crop_left">Crop left:</string>
+    <string name="mjpeg_pref_crop_right">Crop right:</string>
+    <string name="mjpeg_pref_crop_pixels">pixels</string>
+    <string name="mjpeg_pref_crop_warning">Crop will be ignored if result is an empty image</string>
+    <string name="mjpeg_pref_crop_error">Enter valid crop values</string>
     <string name="mjpeg_pref_grayscale">Grayscale mode</string>
     <string name="mjpeg_pref_grayscale_summary">Grayscale image before sending to client</string>
     <string name="mjpeg_pref_resize">Resize image</string>
     <string name="mjpeg_pref_resize_summary">Resize image before sending to client</string>
     <string name="mjpeg_pref_resize_value" translatable="false">%1$d%%</string>
-    <string name="mjpeg_pref_resize_dialog_text">Set image resize factor in percent.\nValues: 10–150 (Default: 50)\nScreen size: %1$dx%2$d</string>
-    <string name="mjpeg_pref_resize_dialog_result">Picture size: %1$dx%2$d</string>
+    <string name="mjpeg_pref_resize_text">Set image resize factor in percent.\nValues: 10–150\nDefault: 50\nScreen size: %1$dx%2$d</string>
+    <string name="mjpeg_pref_resize_result">Picture size: %1$dx%2$d</string>
     <string name="mjpeg_pref_rotate">Rotate image clockwise</string>
     <string name="mjpeg_pref_rotate_summary">Rotate image before sending to client</string>
     <string name="mjpeg_pref_rotate_value" translatable="false">%1$d\u00B0</string>
@@ -94,10 +98,10 @@
     </string-array>
     <string name="mjpeg_pref_fps">Limit frames per second</string>
     <string name="mjpeg_pref_fps_summary">Set maximum frames per second</string>
-    <string name="mjpeg_pref_fps_dialog">Set maximum frames per second.\nValues: 1–60 (Default: 30)</string>
+    <string name="mjpeg_pref_fps_text">Set maximum frames per second.\nValues: 1–60\nDefault: 30</string>
     <string name="mjpeg_pref_jpeg_quality">JPEG compression quality</string>
     <string name="mjpeg_pref_jpeg_quality_summary">Set JPEG compression quality</string>
-    <string name="mjpeg_pref_jpeg_quality_dialog">Set JPEG compression quality.\nValues: 10–100 (Default: 80)</string>
+    <string name="mjpeg_pref_jpeg_quality_text">Set JPEG compression quality.\nValues: 10–100\nDefault: 80</string>
 
     <string name="mjpeg_pref_settings_security">Security</string>
     <string name="mjpeg_pref_enable_pin">Enable pin</string>
@@ -110,7 +114,7 @@
     <string name="mjpeg_pref_auto_change_pin_summary">Generate new pin for each new stream</string>
     <string name="mjpeg_pref_set_pin">Set pin</string>
     <string name="mjpeg_pref_set_pin_summary">Enter pin manually</string>
-    <string name="mjpeg_pref_set_pin_dialog">Enter pin.\nDefault: 000000</string>
+    <string name="mjpeg_pref_set_pin_text">Enter pin.\nDefault: 000000</string>
     <string name="mjpeg_pref_block_address">Block IP address</string>
     <string name="mjpeg_pref_block_address_summary">Block client IP address after 5 wrong pin attempts for 5 minutes</string>
 
@@ -125,12 +129,12 @@
     <string name="mjpeg_pref_localhost_only_summary">Run server on local host addresses only</string>
     <string name="mjpeg_pref_server_port">Server port</string>
     <string name="mjpeg_pref_server_port_summary">Set port for incoming connections</string>
-    <string name="mjpeg_pref_server_port_dialog">Set server port for incoming connections.\nValues: 1025–65535\n(Default: 8080)</string>
+    <string name="mjpeg_pref_server_port_text">Set server port for incoming connections.\nValues: 1025–65535\nDefault: 8080</string>
 
     <string name="mjpeg_error_port_in_use">Port already in use. Choose another one.</string>
     <string name="mjpeg_error_invalid_media_projection">Security error: Invalid media projection. Try one more time.</string>
     <string name="mjpeg_error_ip_address_not_found">IP address not found.\nTry to disable \"Use WiFi only\" in stream settings.</string>
-    <string name="mjpeg_error_notification_permission_required">Application require notifications to be enabled to start streaming service.\n\nPlease enable notifications in application settings.</string>
+    <string name="mjpeg_error_notification_permission_required">Application require notifications to be enabled to start streaming service.\nPlease enable notifications in application settings.</string>
     <string name="mjpeg_error_unspecified">Something went wrong. Please try again later.</string>
 
     <string name="mjpeg_start_image_text">Start stream on device</string>

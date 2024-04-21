@@ -3,33 +3,28 @@
     <string name="app_error_title">エラー</string>
     <string name="app_error_recover">回復</string>
 
-    <string name="app_activity_logs_collecting">アプリケーションログを収集しています…</string>
-    <string name="app_activity_logs_send">開発者にログを送る</string>
-    <string name="app_activity_logs_send_dialog_title">Eメールで開発者にログを送る</string>
-    <string name="app_activity_logs_send_dialog_message">問題の説明を追加してください:</string>
-    <string name="app_activity_logs_send_dialog_neutral">ログの収集を停止</string>
+    <string name="app_logs_collecting">アプリケーションログを収集しています…</string>
+    <string name="app_logs_send_title">開発者にログを送る</string>
+    <string name="app_logs_send_message">問題の説明を追加してください:</string>
+    <string name="app_logs_send">送信</string>
+    <string name="app_logs_enabled">記録が有効になっています</string>
+    <string name="app_logs_disabled">記録が無効になっています</string>
+    <string name="app_logs_stop">ログの収集を停止</string>
 
     <string name="app_activity_update_dialog_title">更新が利用可能</string>
     <string name="app_activity_update_dialog_message">アップデートをダウンロードしました。 今すぐアプリを再起動しますか?</string>
     <string name="app_activity_update_dialog_restart">再起動</string>
 
-    <string name="app_bottom_menu_stream">ストリーム</string>
-    <string name="app_bottom_menu_settings">設定</string>
-    <string name="app_bottom_menu_start">開始</string>
-    <string name="app_bottom_menu_stop">停止</string>
-    <string name="app_bottom_menu_about">情報</string>
-    <string name="app_bottom_menu_exit">終了</string>
+    <string name="app_tab_stream">ストリーム</string>
+    <string name="app_tab_settings">設定</string>
+    <string name="app_tab_about">情報</string>
 
-    <string name="app_fragment_stream_select_stream_mode">ストリームモードを選択：</string>
+    <string name="app_tab_stream_select_mode">ストリームモードを選択：</string>
 
-    <string name="permission_activity_error_title">エラー</string>
-    <string name="permission_activity_error_unknown">不明なエラー</string>
-    <string name="app_activity_permission_permission_required_title">権限が必要です</string>
-    <string name="app_activity_permission_notifications_required_title">通知が必要です</string>
-    <string name="app_activity_permission_enable_notifications">アプリケーションはストリーミングサービスを開始するために通知の有効化が必要です。\n\nアプリケーションの設定で通知を有効にしてください。</string>
-    <string name="app_activity_permission_allow_notifications">アプリケーションは通知を送信する許可が必要です。\n\n通知の送信を許可してください。</string>
-    <string name="app_activity_permission_allow_notifications_settings">アプリケーションは通知を送信する許可が必要です。\n\nアプリケーションの設定で通知の送信を許可してください。</string>
-    <string name="app_activity_permission_notification_settings">設定を開く</string>
+    <string name="app_permission_required_title">権限が必要です</string>
+    <string name="app_permission_allow_notifications">アプリケーションは通知を送信する許可が必要です。\n\n通知の送信を許可してください。</string>
+    <string name="app_permission_allow_notifications_settings">アプリケーションは通知を送信する許可が必要です。\n\nアプリケーションの設定で通知の送信を許可してください。</string>
+    <string name="app_permission_notification_settings">設定を開く</string>
 
     <string name="app_notification_channel_streaming">ストリーミング通知</string>
     <string name="app_notification_channel_error">エラー通知</string>
@@ -37,8 +32,14 @@
     <string name="app_notification_streaming_content">停止を押してストリームを停止します</string>
     <string name="app_notification_stop">停止</string>
 
+    <string name="app_pref_settings_search">設定検索</string>
+    <string name="app_pref_search">検索</string>
+    <string name="app_pref_close">閉じる</string>
+    <string name="app_pref_back">戻る</string>
+    <string name="app_pref_settings">アプリケーション設定</string>
     <string name="app_pref_locale">アプリケーション言語</string>
     <string name="app_pref_locale_summary">アプリケーション言語設定を開く</string>
+    <string name="app_pref_locale_default">システムデフォルト</string>
     <string name="app_pref_night_mode">ダークテーマ</string>
     <string-array name="app_pref_night_mode_options_api21_28">
         <item>常時オン</item>
@@ -50,20 +51,21 @@
         <item>自動 (システムに従う)</item>
         <item>オフ</item>
     </string-array>
+    <string name="app_pref_dynamic_theme">ダイナミックカラー</string>
+    <string name="app_pref_dynamic_theme_summary">壁紙の色に基づいて外観を調整します</string>
     <string name="app_pref_notification">端末の通知設定</string>
     <string name="app_pref_notification_summary">システムの通知設定を開きます</string>
     <string name="app_pref_logging">アプリケーションログを有効化</string>
     <string name="app_pref_logging_summary">アプリケーションログを収集します</string>
 
-    <string name="app_about_fragment_app_version">バージョン: %1$s</string>
-    <string name="app_about_fragment_developer_name">開発者: Dmytro Kryvoruchko</string>
-    <string name="app_about_fragment_rate_app">アプリを評価</string>
-    <string name="app_about_fragment_write_email">開発者へEメールを書く</string>
-    <string name="app_about_fragment_write_email_dialog">開発者へEメールを書きますか?</string>
-    <string name="app_about_fragment_email_chooser_header">Eメールを送信中…</string>
-    <string name="app_about_fragment_app_sources">アプリケーションのソースコード</string>
-    <string name="app_about_fragment_terms_conditions">利用規約</string>
-    <string name="app_about_fragment_privacy_policy">プライバシーポリシー</string>
-    <string name="app_about_fragment_privacy_options">プライバシーオプション</string>
-    <string name="app_about_fragment_license">ライセンス</string>
+    <string name="app_tab_about_app_version">バージョン: %1$s</string>
+    <string name="app_tab_about_developer_name">開発者: Dmytro Kryvoruchko</string>
+    <string name="app_tab_about_rate_app">アプリを評価</string>
+    <string name="app_tab_about_write_email">開発者へEメールを書く</string>
+    <string name="app_tab_about_email_chooser_header">Eメールを送信中…</string>
+    <string name="app_tab_about_app_sources">アプリケーションのソースコード</string>
+    <string name="app_tab_about_terms_conditions">利用規約</string>
+    <string name="app_tab_about_privacy_policy">プライバシーポリシー</string>
+    <string name="app_tab_about_privacy_options">プライバシーオプション</string>
+    <string name="app_tab_about_license">ライセンス</string>
 </resources>
