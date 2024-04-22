@@ -57,8 +57,8 @@
     <string name="mjpeg_pref_detect_slow_connections_summary">Rileva e notifica connessioni lente</string>
     <string name="mjpeg_pref_html_buttons">Attiva i pulsanti della pagina web</string>
     <string name="mjpeg_pref_html_buttons_summary">Mostra pulsanti di controllo nella pagina web</string>
-    <string name="mjpeg_pref_html_show_press_start">Mostra \"Premi START sul dispositivo\"</string>
-    <string name="mjpeg_pref_html_show_press_start_summary">Mostra \"Premi START sul dispositivo\" sulla pagina web</string>
+    <string name="mjpeg_pref_html_show_press_start">Mostra \"Avvia lo streaming sul dispositivo\"</string>
+    <string name="mjpeg_pref_html_show_press_start_summary">Mostra \"Avvia lo streaming sul dispositivo\" sulla pagina web</string>
     <string name="mjpeg_pref_html_back_color">Colore di sfondo pagina</string>
     <string name="mjpeg_pref_html_back_color_summary">Imposta il colore di sfondo della pagina web</string>
     <string name="mjpeg_pref_html_back_color_title">Seleziona colore di sfondo</string>

@@ -58,8 +58,8 @@
     <string name="mjpeg_pref_detect_slow_connections_summary">Wykrywa i powiadamia o powolnym połączeniu klienta</string>
     <string name="mjpeg_pref_html_buttons">Włącz przyciski strony internetowej</string>
     <string name="mjpeg_pref_html_buttons_summary">Pokazuje przyciski sterujące na stronie internetowej</string>
-    <string name="mjpeg_pref_html_show_press_start">Pokaż \"Naciśnij Uruchom na urządzeniu\"</string>
-    <string name="mjpeg_pref_html_show_press_start_summary">Pokaż \"Naciśnij Uruchom na urządzeniu\" na stronie internetowej</string>
+    <string name="mjpeg_pref_html_show_press_start">Pokaż \"Uruchom strumień na urządzeniu\"</string>
+    <string name="mjpeg_pref_html_show_press_start_summary">Pokaż \"Uruchom strumień na urządzeniu\" na stronie internetowej</string>
     <string name="mjpeg_pref_html_back_color">Kolor tła strony internetowej</string>
     <string name="mjpeg_pref_html_back_color_summary">Ustawia kolor tła strony internetowej</string>
     <string name="mjpeg_pref_html_back_color_title">Wybierz kolor tła</string>

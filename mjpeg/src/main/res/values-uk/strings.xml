@@ -57,8 +57,8 @@
     <string name="mjpeg_pref_detect_slow_connections_summary">Визначати та повідомляти про повільні підключення клієнтів</string>
     <string name="mjpeg_pref_html_buttons">Увімкнути кнопки веб сторінки</string>
     <string name="mjpeg_pref_html_buttons_summary">Показувати кнопки веб сторінки</string>
-    <string name="mjpeg_pref_html_show_press_start">Показувати \"Натисніть ПОЧАТИ на пристрої\"</string>
-    <string name="mjpeg_pref_html_show_press_start_summary">Показувати \"Натисніть ПОЧАТИ на пристрої\" на веб сторінці</string>
+    <string name="mjpeg_pref_html_show_press_start">Показувати \"Розпочніть трансляцію на пристрої\"</string>
+    <string name="mjpeg_pref_html_show_press_start_summary">Показувати \"Розпочніть трансляцію на пристрої\" на веб сторінці</string>
     <string name="mjpeg_pref_html_back_color">Колір фону веб-сторінки</string>
     <string name="mjpeg_pref_html_back_color_summary">Вибрати колір фону веб-сторінки</string>
     <string name="mjpeg_pref_html_back_color_title">Вибрати колір фону</string>

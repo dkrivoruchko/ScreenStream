@@ -57,8 +57,8 @@
     <string name="mjpeg_pref_detect_slow_connections_summary">偵測並通知慢速連接的客戶端</string>
     <string name="mjpeg_pref_html_buttons">啓用網頁按鈕</string>
     <string name="mjpeg_pref_html_buttons_summary">在網頁上顯示控制按鈕</string>
-    <string name="mjpeg_pref_html_show_press_start">顯示 \"請按設備上的 開始 按鈕\"</string>
-    <string name="mjpeg_pref_html_show_press_start_summary">在網頁上顯示 \"請按設備上的 開始 按鈕\"</string>
+    <string name="mjpeg_pref_html_show_press_start">顯示 \"在設備上開始串流\"</string>
+    <string name="mjpeg_pref_html_show_press_start_summary">在網頁上顯示 \"在設備上開始串流\"</string>
     <string name="mjpeg_pref_html_back_color">背景色</string>
     <string name="mjpeg_pref_html_back_color_summary">設定串流頁面背景色</string>
     <string name="mjpeg_pref_html_back_color_title">選擇背景色</string>

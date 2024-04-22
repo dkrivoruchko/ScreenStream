@@ -57,8 +57,8 @@
     <string name="mjpeg_pref_detect_slow_connections_summary">Detect and notify for slow client connections</string>
     <string name="mjpeg_pref_html_buttons">Enable web page buttons</string>
     <string name="mjpeg_pref_html_buttons_summary">Show control buttons on web page</string>
-    <string name="mjpeg_pref_html_show_press_start">Show \"Press START on device\"</string>
-    <string name="mjpeg_pref_html_show_press_start_summary">Show \"Press START on device\" on web page</string>
+    <string name="mjpeg_pref_html_show_press_start">Show \"Start stream on device\"</string>
+    <string name="mjpeg_pref_html_show_press_start_summary">Show \"Start stream on device\" on web page</string>
     <string name="mjpeg_pref_html_back_color">Web page background color</string>
     <string name="mjpeg_pref_html_back_color_summary">Set web page background color</string>
     <string name="mjpeg_pref_html_back_color_title">Select background color</string>

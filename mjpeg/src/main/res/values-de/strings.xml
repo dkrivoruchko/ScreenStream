@@ -57,8 +57,8 @@
     <string name="mjpeg_pref_detect_slow_connections_summary">Schlechte Verbindung von Geräten erkennen und diese benachrichtigen</string>
     <string name="mjpeg_pref_html_buttons">Schaltflächen auf Webseite anzeigen</string>
     <string name="mjpeg_pref_html_buttons_summary">Kontoll-Schaltflächen auf der Webseite anzeigen/verstecken</string>
-    <string name="mjpeg_pref_html_show_press_start">\"Auf dem Gerät START tippen\" anzeigen</string>
-    <string name="mjpeg_pref_html_show_press_start_summary">\"Auf dem Gerät START tippen\" auf der Webseite anzeigen</string>
+    <string name="mjpeg_pref_html_show_press_start">\"Stream auf Gerät starten\" anzeigen</string>
+    <string name="mjpeg_pref_html_show_press_start_summary">\"Stream auf Gerät starten\" auf der Webseite anzeigen</string>
     <string name="mjpeg_pref_html_back_color">Hintergrundfarbe der Webseite</string>
     <string name="mjpeg_pref_html_back_color_summary">Hintergrundfarbe der Webseite setzen</string>
     <string name="mjpeg_pref_html_back_color_title">Hintergrundfarbe wählen</string>

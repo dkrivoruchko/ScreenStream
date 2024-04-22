@@ -57,8 +57,8 @@
     <string name="mjpeg_pref_detect_slow_connections_summary">धीमी क्लाइंट कनेक्शन के लिए पता लगाएँ और सूचित करें</string>
     <string name="mjpeg_pref_html_buttons">वेब पेज बटन सक्षम करें</string>
     <string name="mjpeg_pref_html_buttons_summary">वेब पेज पर नियंत्रण बटन दिखाएं</string>
-    <string name="mjpeg_pref_html_show_press_start">\"डिवाइस पर स्टार्ट दबाएं\" दिखाएं</string>
-    <string name="mjpeg_pref_html_show_press_start_summary">वेब पृष्ठ पर \"डिवाइस पर स्टार्ट दबाएं\" दिखाएं</string>
+    <string name="mjpeg_pref_html_show_press_start">\"उपकरण पर स्ट्रीम शुरू करें\" दिखाएं</string>
+    <string name="mjpeg_pref_html_show_press_start_summary">वेब पृष्ठ पर \"उपकरण पर स्ट्रीम शुरू करें\" दिखाएं</string>
     <string name="mjpeg_pref_html_back_color">वेब पेज पृष्ठभूमि का रंग</string>
     <string name="mjpeg_pref_html_back_color_summary">वेब पेज बैकग्राउंड कलर सेट करें</string>
     <string name="mjpeg_pref_html_back_color_title">पृष्ठभूमि का रंग चुनें</string>

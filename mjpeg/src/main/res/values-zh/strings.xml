@@ -57,8 +57,8 @@
     <string name="mjpeg_pref_detect_slow_connections_summary">检测并提示慢速客户端连接</string>
     <string name="mjpeg_pref_html_buttons">启用网页按钮</string>
     <string name="mjpeg_pref_html_buttons_summary">在网页上显示操控按钮</string>
-    <string name="mjpeg_pref_html_show_press_start">显示 \"在设备上按下“开始”按钮\"</string>
-    <string name="mjpeg_pref_html_show_press_start_summary">在网页上显示 \"在设备上按下“开始”按钮\"</string>
+    <string name="mjpeg_pref_html_show_press_start">显示 \"在设备上开始传输\"</string>
+    <string name="mjpeg_pref_html_show_press_start_summary">在网页上显示 \"在设备上开始传输\"</string>
     <string name="mjpeg_pref_html_back_color">网页背景色</string>
     <string name="mjpeg_pref_html_back_color_summary">设置网页背景色</string>
     <string name="mjpeg_pref_html_back_color_title">选择背景色</string>

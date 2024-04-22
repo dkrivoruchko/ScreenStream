@@ -58,8 +58,8 @@
     <string name="mjpeg_pref_detect_slow_connections_summary">Meld slome client verbindingen</string>
     <string name="mjpeg_pref_html_buttons">Zet pagina knoppen aan</string>
     <string name="mjpeg_pref_html_buttons_summary">Laat controle knoppen zien op pagina</string>
-    <string name="mjpeg_pref_html_show_press_start">Toon \"Druk op START op het apparaat\"</string>
-    <string name="mjpeg_pref_html_show_press_start_summary">Toon \"Druk op START op het apparaat\" op de webpagina</string>
+    <string name="mjpeg_pref_html_show_press_start">Toon \"Stream starten op apparaat\"</string>
+    <string name="mjpeg_pref_html_show_press_start_summary">Toon \"Stream starten op apparaat\" op de webpagina</string>
     <string name="mjpeg_pref_html_back_color">Pagina achtergrond kleur</string>
     <string name="mjpeg_pref_html_back_color_summary">Stel de pagina achtergrond kleur in</string>
     <string name="mjpeg_pref_html_back_color_title">Selecteer pagina achtergrond kleur</string>

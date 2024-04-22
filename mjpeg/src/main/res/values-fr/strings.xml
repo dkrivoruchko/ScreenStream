@@ -57,8 +57,8 @@
     <string name="mjpeg_pref_detect_slow_connections_summary">Détecter et notifier les connexions client lentes</string>
     <string name="mjpeg_pref_html_buttons">Activer les boutons de la page web</string>
     <string name="mjpeg_pref_html_buttons_summary">Afficher les boutons de contrôle sur la page web</string>
-    <string name="mjpeg_pref_html_show_press_start">Afficher \"Appuyez sur DÉMARRER sur le dispositif\"</string>
-    <string name="mjpeg_pref_html_show_press_start_summary">Afficher \"Appuyez sur DÉMARRER sur le dispositif\" sur la page web</string>
+    <string name="mjpeg_pref_html_show_press_start">Afficher \"Démarrer le flux sur l\'appareil\"</string>
+    <string name="mjpeg_pref_html_show_press_start_summary">Afficher \"Démarrer le flux sur l\'appareil\" sur la page web</string>
     <string name="mjpeg_pref_html_back_color">Couleur de fond de la page web</string>
     <string name="mjpeg_pref_html_back_color_summary">Définir la couleur de fond de la page web</string>
     <string name="mjpeg_pref_html_back_color_title">Sélectionner la couleur de fond</string>

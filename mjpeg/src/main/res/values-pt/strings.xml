@@ -57,8 +57,8 @@
     <string name="mjpeg_pref_detect_slow_connections_summary">Detectar e notificar sobre conexões lentas dos clientes</string>
     <string name="mjpeg_pref_html_buttons">Ativar botões da página da web</string>
     <string name="mjpeg_pref_html_buttons_summary">Mostrar botões de controle na página da web</string>
-    <string name="mjpeg_pref_html_show_press_start">Mostrar "Pressione INICIAR no dispositivo"</string>
-    <string name="mjpeg_pref_html_show_press_start_summary">Mostrar "Pressione INICIAR no dispositivo" na página da web</string>
+    <string name="mjpeg_pref_html_show_press_start">Mostrar "Iniciar transmissão no dispositivo"</string>
+    <string name="mjpeg_pref_html_show_press_start_summary">Mostrar "Iniciar transmissão no dispositivo" na página da web</string>
     <string name="mjpeg_pref_html_back_color">Cor de fundo da página da web</string>
     <string name="mjpeg_pref_html_back_color_summary">Definir a cor de fundo da página da web</string>
     <string name="mjpeg_pref_html_back_color_title">Selecionar a cor de fundo</string>
