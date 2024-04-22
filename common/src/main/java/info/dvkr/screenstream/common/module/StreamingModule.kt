@@ -31,6 +31,8 @@ public interface StreamingModule {
 
     public val isRunning: Flow<Boolean>
 
+    public val isStreaming: Flow<Boolean>
+
     @get:StringRes
     public val nameResource: Int
 

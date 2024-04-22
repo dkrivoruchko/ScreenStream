@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import info.dvkr.screenstream.common.ModuleSettings
+import info.dvkr.screenstream.common.module.StreamingModuleManager
 import info.dvkr.screenstream.mjpeg.R
 import info.dvkr.screenstream.mjpeg.settings.MjpegSettings
 import kotlinx.coroutines.CoroutineScope
@@ -72,7 +73,8 @@ internal object Pin : ModuleSettings.Item {
 private fun PinUI(
     horizontalPadding: Dp,
     onDetailShow: () -> Unit,
-    mjpegSettings: MjpegSettings = koinInject()
+    mjpegSettings: MjpegSettings = koinInject(),
+    streamingModulesManager: StreamingModuleManager = koinInject()
 ) {
     val mjpegSettingsState = mjpegSettings.data.collectAsStateWithLifecycle()
     val pin = remember { derivedStateOf { mjpegSettingsState.value.pin } }
@@ -110,8 +112,11 @@ private fun PinUI(
             )
         }
 
+        val activeModule = streamingModulesManager.activeModuleStateFlow.collectAsStateWithLifecycle()
+        val isStreaming = activeModule.value?.isStreaming?.collectAsStateWithLifecycle(false)
+
         Text(
-            text = pin.value, //TODO Hide while streaming
+            text = if (isStreaming?.value == true) "*" else pin.value,
             modifier = Modifier
                 .defaultMinSize(minWidth = 52.dp)
                 .padding(end = 6.dp),

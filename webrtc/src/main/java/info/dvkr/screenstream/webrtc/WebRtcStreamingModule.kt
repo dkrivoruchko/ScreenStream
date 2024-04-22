@@ -43,8 +43,12 @@ public class WebRtcStreamingModule : StreamingModule {
     override val moduleSettings: ModuleSettings = WebRtcModuleSettings
 
     private val _streamingServiceState: MutableStateFlow<StreamingModule.State> = MutableStateFlow(StreamingModule.State.Initiated)
+
     override val isRunning: Flow<Boolean>
         get() = _streamingServiceState.map { it is StreamingModule.State.Running }
+
+    override val isStreaming: Flow<Boolean>
+        get() = _webRtcStateFlow.map { it.isStreaming }
 
     private val _webRtcStateFlow: MutableStateFlow<WebRtcState> = MutableStateFlow(WebRtcState())
 

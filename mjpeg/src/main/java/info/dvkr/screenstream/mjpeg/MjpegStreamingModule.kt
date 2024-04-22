@@ -43,8 +43,12 @@ public class MjpegStreamingModule : StreamingModule {
     override val moduleSettings: ModuleSettings = MjpegModuleSettings
 
     private val _streamingServiceState: MutableStateFlow<StreamingModule.State> = MutableStateFlow(StreamingModule.State.Initiated)
+
     override val isRunning: Flow<Boolean>
         get() = _streamingServiceState.map { it is StreamingModule.State.Running }
+
+    override val isStreaming: Flow<Boolean>
+        get() = _mjpegStateFlow.map { it.isStreaming }
 
     private val _mjpegStateFlow: MutableStateFlow<MjpegState> = MutableStateFlow(MjpegState())
 
