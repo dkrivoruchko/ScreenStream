@@ -53,6 +53,8 @@
     <string name="mjpeg_pref_keep_awake_summary">Maintenir l\'éveil du dispositif et de l\'écran pendant la diffusion</string>
     <string name="mjpeg_pref_stop_on_sleep">Arrêter le flux en veille</string>
     <string name="mjpeg_pref_stop_on_sleep_summary">Arrêter le flux lorsque l\'écran s\'éteint</string>
+    <string name="mjpeg_pref_stop_on_configuration">Arrêter le flux en cas de changement de configuration</string>
+    <string name="mjpeg_pref_stop_on_configuration_summary">Arrêter le streaming lorsque la configuration de streaming change</string>
     <string name="mjpeg_pref_detect_slow_connections">Notifier pour les connexions lentes</string>
     <string name="mjpeg_pref_detect_slow_connections_summary">Détecter et notifier les connexions client lentes</string>
     <string name="mjpeg_pref_html_buttons">Activer les boutons de la page web</string>

@@ -54,6 +54,8 @@
     <string name="mjpeg_pref_keep_awake_summary">Nie wyłączaj urządzenia i ekranu podczas przesyłania strumieniowego</string>
     <string name="mjpeg_pref_stop_on_sleep">Zatrzymaj transmisję podczas uśpienia</string>
     <string name="mjpeg_pref_stop_on_sleep_summary">Zatrzymuje transmisję, jeśli ekran się wyłączy</string>
+    <string name="mjpeg_pref_stop_on_configuration">Zatrzymaj przesyłanie przy zmianie konfiguracji</string>
+    <string name="mjpeg_pref_stop_on_configuration_summary">Zatrzymaj przesyłanie przy zmianie konfiguracji przesyłania</string>
     <string name="mjpeg_pref_detect_slow_connections">Powiadamianie o powolnych połączeniach</string>
     <string name="mjpeg_pref_detect_slow_connections_summary">Wykrywa i powiadamia o powolnym połączeniu klienta</string>
     <string name="mjpeg_pref_html_buttons">Włącz przyciski strony internetowej</string>

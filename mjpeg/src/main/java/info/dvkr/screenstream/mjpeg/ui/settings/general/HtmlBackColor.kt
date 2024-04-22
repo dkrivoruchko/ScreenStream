@@ -68,7 +68,7 @@ import org.koin.compose.koinInject
 
 internal object HtmlBackColor : ModuleSettings.Item {
     override val id: String = MjpegSettings.Key.HTML_BACK_COLOR.name
-    override val position: Int = 5
+    override val position: Int = 6
     override val available: Boolean = true
 
     override fun has(resources: Resources, text: String): Boolean = with(resources) {

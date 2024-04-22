@@ -53,6 +53,8 @@
     <string name="mjpeg_pref_keep_awake_summary">Keep device and screen awake while streaming</string>
     <string name="mjpeg_pref_stop_on_sleep">Stop stream on sleep</string>
     <string name="mjpeg_pref_stop_on_sleep_summary">Stop stream if screen turns off</string>
+    <string name="mjpeg_pref_stop_on_configuration">Stop stream on configuration change</string>
+    <string name="mjpeg_pref_stop_on_configuration_summary">Stop streaming when streaming configuration changes</string>
     <string name="mjpeg_pref_detect_slow_connections">Notify for slow connections</string>
     <string name="mjpeg_pref_detect_slow_connections_summary">Detect and notify for slow client connections</string>
     <string name="mjpeg_pref_html_buttons">Enable web page buttons</string>

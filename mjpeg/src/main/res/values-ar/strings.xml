@@ -53,6 +53,8 @@
     <string name="mjpeg_pref_keep_awake_summary">إبقاء الجهاز والشاشة مستيقظة أثناء البث</string>
     <string name="mjpeg_pref_stop_on_sleep">وقف البث عند النوم </string>
     <string name="mjpeg_pref_stop_on_sleep_summary">وقف البث عندإيقاف الشاشة </string>
+    <string name="mjpeg_pref_stop_on_configuration">توقف عن البث عند تغيير التكوين</string>
+    <string name="mjpeg_pref_stop_on_configuration_summary">توقف البث عند تغيير تكوين البث</string>
     <string name="mjpeg_pref_detect_slow_connections">إبلاغ عن اتصالات بطيئة</string>
     <string name="mjpeg_pref_detect_slow_connections_summary">كشف وإعلام لاتصالات العملاء بطيئة</string>
     <string name="mjpeg_pref_html_buttons">تمكين أزرار صفحة الويب</string>

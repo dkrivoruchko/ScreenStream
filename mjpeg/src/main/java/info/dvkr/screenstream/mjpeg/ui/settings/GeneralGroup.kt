@@ -17,13 +17,14 @@ import info.dvkr.screenstream.mjpeg.ui.settings.general.HtmlEnableButtons
 import info.dvkr.screenstream.mjpeg.ui.settings.general.HtmlShowPressStart
 import info.dvkr.screenstream.mjpeg.ui.settings.general.KeepAwake
 import info.dvkr.screenstream.mjpeg.ui.settings.general.NotifySlowConnections
+import info.dvkr.screenstream.mjpeg.ui.settings.general.StopOnConfigurationChange
 import info.dvkr.screenstream.mjpeg.ui.settings.general.StopOnSleep
 
 public object GeneralGroup : ModuleSettings.Group {
     override val id: String = "GENERAL"
     override val position: Int = 0
     override val items: List<ModuleSettings.Item> =
-        listOf(KeepAwake, StopOnSleep, NotifySlowConnections, HtmlEnableButtons, HtmlShowPressStart, HtmlBackColor)
+        listOf(KeepAwake, StopOnSleep, StopOnConfigurationChange, NotifySlowConnections, HtmlEnableButtons, HtmlShowPressStart, HtmlBackColor)
             .filter { it.available }.sortedBy { it.position }
 
     @Composable

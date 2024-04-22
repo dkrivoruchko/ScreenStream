@@ -33,7 +33,7 @@ import org.koin.compose.koinInject
 
 internal object HtmlShowPressStart : ModuleSettings.Item {
     override val id: String = MjpegSettings.Key.HTML_SHOW_PRESS_START.name
-    override val position: Int = 4
+    override val position: Int = 5
     override val available: Boolean = true
 
     override fun has(resources: Resources, text: String): Boolean = with(resources) {

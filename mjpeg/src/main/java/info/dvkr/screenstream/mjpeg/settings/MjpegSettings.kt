@@ -13,6 +13,7 @@ public interface MjpegSettings {
     public object Key {
         public val KEEP_AWAKE: Preferences.Key<Boolean> = booleanPreferencesKey("KEEP_AWAKE")
         public val STOP_ON_SLEEP: Preferences.Key<Boolean> = booleanPreferencesKey("STOP_ON_SLEEP")
+        public val STOP_ON_CONFIGURATION_CHANGE: Preferences.Key<Boolean> = booleanPreferencesKey("STOP_ON_CONFIGURATION_CHANGE")
         public val NOTIFY_SLOW_CONNECTIONS: Preferences.Key<Boolean> = booleanPreferencesKey("NOTIFY_SLOW_CONNECTIONS")
 
         public val HTML_ENABLE_BUTTONS: Preferences.Key<Boolean> = booleanPreferencesKey("HTML_ENABLE_BUTTONS")
@@ -48,6 +49,7 @@ public interface MjpegSettings {
     public object Default {
         public const val KEEP_AWAKE: Boolean = true
         public const val STOP_ON_SLEEP: Boolean = false
+        public const val STOP_ON_CONFIGURATION_CHANGE: Boolean = false
         public const val NOTIFY_SLOW_CONNECTIONS: Boolean = false
 
         public const val HTML_ENABLE_BUTTONS: Boolean = true
@@ -95,6 +97,7 @@ public interface MjpegSettings {
     public data class Data(
         public val keepAwake: Boolean = Default.KEEP_AWAKE,
         public val stopOnSleep: Boolean = Default.STOP_ON_SLEEP,
+        public val stopOnConfigurationChange: Boolean = Default.STOP_ON_CONFIGURATION_CHANGE,
         public val notifySlowConnections: Boolean = Default.NOTIFY_SLOW_CONNECTIONS,
         public val htmlEnableButtons: Boolean = Default.HTML_ENABLE_BUTTONS,
         public val htmlShowPressStart: Boolean = Default.HTML_SHOW_PRESS_START,

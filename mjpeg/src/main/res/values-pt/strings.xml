@@ -53,6 +53,8 @@
     <string name="mjpeg_pref_keep_awake_summary">Manter o dispositivo e a tela ativos durante a transmissão</string>
     <string name="mjpeg_pref_stop_on_sleep">Parar a transmissão ao adormecer</string>
     <string name="mjpeg_pref_stop_on_sleep_summary">Parar a transmissão quando a tela se desligar</string>
+    <string name="mjpeg_pref_stop_on_configuration">Parar transmissão na mudança de configuração</string>
+    <string name="mjpeg_pref_stop_on_configuration_summary">Parar a transmissão quando a configuração de transmissão mudar</string>
     <string name="mjpeg_pref_detect_slow_connections">Notificar sobre conexões lentas</string>
     <string name="mjpeg_pref_detect_slow_connections_summary">Detectar e notificar sobre conexões lentas dos clientes</string>
     <string name="mjpeg_pref_html_buttons">Ativar botões da página da web</string>

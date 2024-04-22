@@ -53,6 +53,8 @@
     <string name="mjpeg_pref_keep_awake_summary">Mantieni il dispositivo e lo schermo attivi durante lo streaming</string>
     <string name="mjpeg_pref_stop_on_sleep">Interrompi a schermo spento</string>
     <string name="mjpeg_pref_stop_on_sleep_summary">Interrompi la trasmissione quando lo schermo si spegne</string>
+    <string name="mjpeg_pref_stop_on_configuration">Arresta lo streaming alla modifica della configurazione</string>
+    <string name="mjpeg_pref_stop_on_configuration_summary">Arresta lo streaming quando cambia la configurazione dello streaming</string>
     <string name="mjpeg_pref_detect_slow_connections">Notifica connessioni lente</string>
     <string name="mjpeg_pref_detect_slow_connections_summary">Rileva e notifica connessioni lente</string>
     <string name="mjpeg_pref_html_buttons">Attiva i pulsanti della pagina web</string>

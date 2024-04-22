@@ -395,14 +395,23 @@ internal class MjpegStreamingService(
             }
 
             is InternalEvent.RestartServer -> {
-                stopStream()
+                if (mjpegSettings.data.value.stopOnConfigurationChange) stopStream()
+
                 waitingForPermission = false
                 if (pendingServer) {
                     XLog.d(getLog("processEvent", "RestartServer: No running server."))
                     if (currentError == MjpegError.AddressNotFoundException) currentError = null
                 } else {
                     httpServer.stop(event.reason is RestartReason.SettingsChanged)
-                    sendEvent(InternalEvent.InitState(false))
+                    if (mjpegSettings.data.value.stopOnConfigurationChange) {
+                        sendEvent(InternalEvent.InitState(false))
+                    } else {
+                        pendingServer = true
+                        netInterfaces = emptyList()
+                        clients = emptyList()
+                        slowClients = emptyList()
+                        currentError = null
+                    }
                 }
                 sendEvent(InternalEvent.DiscoverAddress("RestartServer", 0))
             }

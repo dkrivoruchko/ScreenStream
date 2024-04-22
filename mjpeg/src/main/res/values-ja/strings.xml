@@ -53,6 +53,8 @@
     <string name="mjpeg_pref_keep_awake_summary">ストリーミング中にデバイスと画面を起きたままに保つ</string>
     <string name="mjpeg_pref_stop_on_sleep">スリープ時にストリームを停止</string>
     <string name="mjpeg_pref_stop_on_sleep_summary">画面がオフになったらストリームを停止します</string>
+    <string name="mjpeg_pref_stop_on_configuration">構成変更時にストリームを停止</string>
+    <string name="mjpeg_pref_stop_on_configuration_summary">ストリーミング構成が変更されたときにストリーミングを停止します</string>
     <string name="mjpeg_pref_detect_slow_connections">遅い接続を通知する</string>
     <string name="mjpeg_pref_detect_slow_connections_summary">遅いクライアント接続を検出して通知します</string>
     <string name="mjpeg_pref_html_buttons">Webページのボタンを有効化</string>

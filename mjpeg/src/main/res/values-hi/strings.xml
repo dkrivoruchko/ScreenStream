@@ -53,6 +53,8 @@
     <string name="mjpeg_pref_keep_awake_summary">स्ट्रीमिंग के दौरान डिवाइस और स्क्रीन को जागरूक रखें</string>
     <string name="mjpeg_pref_stop_on_sleep">नींद पर धारा रोकें</string>
     <string name="mjpeg_pref_stop_on_sleep_summary">यदि स्क्रीन बंद हो जाती है तो स्ट्रीम को रोकें</string>
+    <string name="mjpeg_pref_stop_on_configuration">कॉन्फ़िगरेशन परिवर्तन पर स्ट्रीम बंद करें</string>
+    <string name="mjpeg_pref_stop_on_configuration_summary">स्ट्रीमिंग कॉन्फ़िगरेशन में परिवर्तन होने पर स्ट्रीमिंग बंद करें</string>
     <string name="mjpeg_pref_detect_slow_connections">धीमे कनेक्शन के लिए सूचित करें</string>
     <string name="mjpeg_pref_detect_slow_connections_summary">धीमी क्लाइंट कनेक्शन के लिए पता लगाएँ और सूचित करें</string>
     <string name="mjpeg_pref_html_buttons">वेब पेज बटन सक्षम करें</string>

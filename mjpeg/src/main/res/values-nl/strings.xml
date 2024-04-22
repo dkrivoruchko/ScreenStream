@@ -54,6 +54,8 @@
     <string name="mjpeg_pref_keep_awake_summary">Houd het apparaat en het scherm actief tijdens het streamen</string>
     <string name="mjpeg_pref_stop_on_sleep">Stop stream bij slaapmodus</string>
     <string name="mjpeg_pref_stop_on_sleep_summary">Stop stream als het scherm word uitgezet</string>
+    <string name="mjpeg_pref_stop_on_configuration">Stream stoppen bij configuratiewijziging</string>
+    <string name="mjpeg_pref_stop_on_configuration_summary">Stop met streamen wanneer de streamconfiguratie verandert</string>
     <string name="mjpeg_pref_detect_slow_connections">Meld slome verbindingen</string>
     <string name="mjpeg_pref_detect_slow_connections_summary">Meld slome client verbindingen</string>
     <string name="mjpeg_pref_html_buttons">Zet pagina knoppen aan</string>

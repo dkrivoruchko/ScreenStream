@@ -34,7 +34,7 @@ import org.koin.compose.koinInject
 
 internal object HtmlEnableButtons : ModuleSettings.Item {
     override val id: String = MjpegSettings.Key.HTML_ENABLE_BUTTONS.name
-    override val position: Int = 3
+    override val position: Int = 4
     override val available: Boolean = true
 
     override fun has(resources: Resources, text: String): Boolean = with(resources) {

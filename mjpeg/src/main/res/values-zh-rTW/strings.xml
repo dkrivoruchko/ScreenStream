@@ -53,6 +53,8 @@
     <string name="mjpeg_pref_keep_awake_summary">播出視頻流的時候保持設備喚醒並且屏幕常亮</string>
     <string name="mjpeg_pref_stop_on_sleep">睡眠時停止</string>
     <string name="mjpeg_pref_stop_on_sleep_summary">當螢幕待機關閉時停止串流</string>
+    <string name="mjpeg_pref_stop_on_configuration">配置更改时停止串流</string>
+    <string name="mjpeg_pref_stop_on_configuration_summary">当串流配置更改时停止串流</string>
     <string name="mjpeg_pref_detect_slow_connections">顯示慢速連接通知</string>
     <string name="mjpeg_pref_detect_slow_connections_summary">偵測並通知慢速連接的客戶端</string>
     <string name="mjpeg_pref_html_buttons">啓用網頁按鈕</string>

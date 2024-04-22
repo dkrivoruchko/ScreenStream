@@ -53,6 +53,8 @@
     <string name="mjpeg_pref_keep_awake_summary">Тримати пристрій та екран активними під час трансляції</string>
     <string name="mjpeg_pref_stop_on_sleep">Зупиняти трансляцію при засинанні пристрою</string>
     <string name="mjpeg_pref_stop_on_sleep_summary">Зупиняти трансляцію при вимкненні екрану</string>
+    <string name="mjpeg_pref_stop_on_configuration">Зупинити трансляцію при зміні конфігурації</string>
+    <string name="mjpeg_pref_stop_on_configuration_summary">Зупинити стрімування при зміні конфігурації</string>
     <string name="mjpeg_pref_detect_slow_connections">Повідомляти про повільне з\'єднання</string>
     <string name="mjpeg_pref_detect_slow_connections_summary">Визначати та повідомляти про повільні підключення клієнтів</string>
     <string name="mjpeg_pref_html_buttons">Увімкнути кнопки веб сторінки</string>

@@ -55,6 +55,9 @@ internal class MjpegSettingsImpl(
                 if (newSettings.stopOnSleep != MjpegSettings.Default.STOP_ON_SLEEP)
                     set(MjpegSettings.Key.STOP_ON_SLEEP, newSettings.stopOnSleep)
 
+                if (newSettings.stopOnConfigurationChange != MjpegSettings.Default.STOP_ON_CONFIGURATION_CHANGE)
+                    set(MjpegSettings.Key.STOP_ON_CONFIGURATION_CHANGE, newSettings.stopOnConfigurationChange)
+
                 if (newSettings.notifySlowConnections != MjpegSettings.Default.NOTIFY_SLOW_CONNECTIONS)
                     set(MjpegSettings.Key.NOTIFY_SLOW_CONNECTIONS, newSettings.notifySlowConnections)
 
@@ -142,6 +145,7 @@ internal class MjpegSettingsImpl(
     private fun Preferences.toMjpegSettings(): MjpegSettings.Data = MjpegSettings.Data(
         keepAwake = this[MjpegSettings.Key.KEEP_AWAKE] ?: MjpegSettings.Default.KEEP_AWAKE,
         stopOnSleep = this[MjpegSettings.Key.STOP_ON_SLEEP] ?: MjpegSettings.Default.STOP_ON_SLEEP,
+        stopOnConfigurationChange = this[MjpegSettings.Key.STOP_ON_CONFIGURATION_CHANGE] ?: MjpegSettings.Default.STOP_ON_CONFIGURATION_CHANGE,
         notifySlowConnections = this[MjpegSettings.Key.NOTIFY_SLOW_CONNECTIONS] ?: MjpegSettings.Default.NOTIFY_SLOW_CONNECTIONS,
         htmlEnableButtons = this[MjpegSettings.Key.HTML_ENABLE_BUTTONS] ?: MjpegSettings.Default.HTML_ENABLE_BUTTONS,
         htmlShowPressStart = this[MjpegSettings.Key.HTML_SHOW_PRESS_START] ?: MjpegSettings.Default.HTML_SHOW_PRESS_START,
