@@ -50,4 +50,7 @@ public interface StreamingModule {
 
     @MainThread
     public suspend fun stopModule()
+
+    @MainThread
+    public fun stopStream(reason: String)
 }

@@ -32,6 +32,9 @@
     <string name="app_notification_streaming_content">Presione Detener para terminar la transmisión</string>
     <string name="app_notification_stop">Detener</string>
 
+    <string name="app_tile_start">Iniciar</string>
+    <string name="app_tile_stop">Detener</string>
+
     <string name="app_pref_settings_search">Búsqueda de configuraciones</string>
     <string name="app_pref_search">Buscar</string>
     <string name="app_pref_close">Cerrar</string>

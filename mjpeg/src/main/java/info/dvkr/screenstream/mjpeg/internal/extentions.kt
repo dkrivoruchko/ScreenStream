@@ -102,7 +102,7 @@ internal fun Context.startListening(serviceJob: Job, onScreenOff: () -> Unit, on
             }
         }
 
-        val connectivityManager = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val connectivityManager = getSystemService(ConnectivityManager::class.java)
 
         connectivityManager.registerDefaultNetworkCallback(networkCallback)
 

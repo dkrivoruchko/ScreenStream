@@ -48,6 +48,7 @@ import info.dvkr.screenstream.common.ui.conditional
 import info.dvkr.screenstream.logger.AppLogger
 import info.dvkr.screenstream.logger.CollectingLogsUi
 import info.dvkr.screenstream.notification.NotificationPermission
+import info.dvkr.screenstream.tile.TileActionService
 import info.dvkr.screenstream.ui.tabs.ScreenStreamTab
 import info.dvkr.screenstream.ui.tabs.about.AboutTab
 import info.dvkr.screenstream.ui.tabs.settings.SettingsTab
@@ -55,7 +56,7 @@ import info.dvkr.screenstream.ui.tabs.stream.StreamTab
 import kotlinx.coroutines.flow.StateFlow
 
 @Composable
-public fun ScreenStreamContent(
+internal fun ScreenStreamContent(
     updateFlow: StateFlow<((Boolean) -> Unit)?>,
     modifier: Modifier = Modifier,
     isLoggingOn: Boolean = AppLogger.isLoggingOn
@@ -83,6 +84,7 @@ public fun ScreenStreamContent(
 
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
         NotificationPermission()
+        TileActionService.AddTileRequest()
     }
 }
 
@@ -154,7 +156,7 @@ private fun MainContent(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun AppUpdateRequestUI(
+private fun AppUpdateRequestUI(
     onConfirmButtonClick: () -> Unit,
     onDismissButtonClick: () -> Unit,
 ) {

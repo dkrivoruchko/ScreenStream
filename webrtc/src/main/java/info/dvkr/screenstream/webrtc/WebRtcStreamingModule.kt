@@ -99,17 +99,6 @@ public class WebRtcStreamingModule : StreamingModule {
     }
 
     @MainThread
-    internal fun sendEvent(event: WebRtcEvent) {
-        XLog.d(getLog("sendEvent", "Event $event"))
-        check(Looper.getMainLooper().isCurrentThread) { "Only main thread allowed" }
-
-        when (val state = _streamingServiceState.value) {
-            is StreamingModule.State.Running -> state.scope.get<WebRtcStreamingService>().sendEvent(event)
-            else -> throw RuntimeException("Unexpected state: $state")
-        }
-    }
-
-    @MainThread
     override suspend fun stopModule() {
         XLog.d(getLog("stopModule"))
         check(Looper.getMainLooper().isCurrentThread) { "Only main thread allowed" }
@@ -134,5 +123,21 @@ public class WebRtcStreamingModule : StreamingModule {
         }
 
         XLog.d(getLog("stopModule", "Done"))
+    }
+
+    override fun stopStream(reason: String) {
+        XLog.d(getLog("stopStream", "reason $reason"))
+        sendEvent(WebRtcEvent.Intentable.StopStream(reason))
+    }
+
+    @MainThread
+    internal fun sendEvent(event: WebRtcEvent) {
+        XLog.d(getLog("sendEvent", "Event $event"))
+        check(Looper.getMainLooper().isCurrentThread) { "Only main thread allowed" }
+
+        when (val state = _streamingServiceState.value) {
+            is StreamingModule.State.Running -> state.scope.get<WebRtcStreamingService>().sendEvent(event)
+            else -> throw RuntimeException("Unexpected state: $state")
+        }
     }
 }

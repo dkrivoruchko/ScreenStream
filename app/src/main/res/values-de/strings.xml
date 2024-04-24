@@ -32,6 +32,9 @@
     <string name="app_notification_streaming_content">Tippen Sie STOPP um den Stream zu stoppen</string>
     <string name="app_notification_stop">Stopp</string>
 
+    <string name="app_tile_start">Start</string>
+    <string name="app_tile_stop">Stopp</string>
+
     <string name="app_pref_settings_search">Einstellungen suchen</string>
     <string name="app_pref_search">Suche</string>
     <string name="app_pref_close">Schließen</string>

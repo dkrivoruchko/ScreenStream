@@ -15,12 +15,16 @@ public interface AppSettings {
         public val STREAMING_MODULE: Preferences.Key<String> = stringPreferencesKey("STREAMING_MODULE")
         public val NIGHT_MODE: Preferences.Key<Int> = intPreferencesKey("NIGHT_MODE")
         public val DYNAMIC_THEME: Preferences.Key<Boolean> = booleanPreferencesKey("DYNAMIC_THEME")
+
+        public val ADD_TILE_ASKED: Preferences.Key<Boolean> = booleanPreferencesKey("ADD_TILE_ASKED")
     }
 
     public object Default {
         public val STREAMING_MODULE: StreamingModule.Id = StreamingModule.Id("_NONE_")
-        public var NIGHT_MODE: Int = AppCompatDelegate.MODE_NIGHT_UNSPECIFIED
-        public var DYNAMIC_THEME: Boolean = true
+        public const val NIGHT_MODE: Int = AppCompatDelegate.MODE_NIGHT_UNSPECIFIED
+        public const val DYNAMIC_THEME: Boolean = true
+
+        public const val ADD_TILE_ASKED: Boolean = false
     }
 
     @Immutable
@@ -28,6 +32,7 @@ public interface AppSettings {
         public val streamingModule: StreamingModule.Id = Default.STREAMING_MODULE,
         public val nightMode: Int = Default.NIGHT_MODE,
         public val dynamicTheme: Boolean = Default.DYNAMIC_THEME,
+        public val addTileAsked: Boolean = Default.ADD_TILE_ASKED,
     )
 
     public val data: StateFlow<Data>

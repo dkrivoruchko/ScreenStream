@@ -25,7 +25,7 @@ internal class ScreenCapturerAndroid(
     private val capturerObserver: CapturerObserver,
     private val mediaProjectionCallback: MediaProjection.Callback
 ) : VideoCapturer, VideoSink {
-    private val mediaProjectionManager = applicationContext.getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
+    private val mediaProjectionManager = applicationContext.getSystemService(MediaProjectionManager::class.java)
 
     private var mediaProjection: MediaProjection? = null
     private var virtualDisplay: VirtualDisplay? = null

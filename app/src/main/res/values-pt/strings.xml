@@ -32,6 +32,9 @@
     <string name="app_notification_streaming_content">Pressione PARAR para encerrar a transmissão</string>
     <string name="app_notification_stop">Parar</string>
 
+    <string name="app_tile_start">Iniciar</string>
+    <string name="app_tile_stop">Parar</string>
+
     <string name="app_pref_settings_search">Pesquisar configurações</string>
     <string name="app_pref_search">Pesquisar</string>
     <string name="app_pref_close">Fechar</string>

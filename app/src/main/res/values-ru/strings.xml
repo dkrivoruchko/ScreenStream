@@ -32,6 +32,9 @@
     <string name="app_notification_streaming_content">Нажмите ОСТАНОВИТЬ для окончания</string>
     <string name="app_notification_stop">Остановить</string>
 
+    <string name="app_tile_start">Запустить</string>
+    <string name="app_tile_stop">Остановить</string>
+
     <string name="app_pref_settings_search">Поиск настроек</string>
     <string name="app_pref_search">Поиск</string>
     <string name="app_pref_close">Закрыть</string>

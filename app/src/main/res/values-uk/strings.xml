@@ -30,7 +30,10 @@
     <string name="app_notification_channel_error">Сповіщення про помилки</string>
     <string name="app_notification_streaming_title">Трансляція…</string>
     <string name="app_notification_streaming_content">Натисніть СТОП щоб зупинити трансляцію</string>
-    <string name="app_notification_stop">СТОП</string>
+    <string name="app_notification_stop">Стоп</string>
+
+    <string name="app_tile_start">Старт</string>
+    <string name="app_tile_stop">Стоп</string>
 
     <string name="app_pref_settings_search">Пошук налаштувань</string>
     <string name="app_pref_search">Пошук</string>

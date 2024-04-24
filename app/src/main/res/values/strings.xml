@@ -34,6 +34,9 @@
     <string name="app_notification_streaming_content">Press STOP to finish stream</string>
     <string name="app_notification_stop">Stop</string>
 
+    <string name="app_tile_start">Start</string>
+    <string name="app_tile_stop">Stop</string>
+
     <string name="app_pref_settings_search">Settings search</string>
     <string name="app_pref_search">Search</string>
     <string name="app_pref_close">Close</string>

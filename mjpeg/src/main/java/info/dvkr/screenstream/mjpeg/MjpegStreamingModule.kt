@@ -127,6 +127,11 @@ public class MjpegStreamingModule : StreamingModule {
         XLog.d(getLog("stopModule", "Done"))
     }
 
+    override fun stopStream(reason: String) {
+        XLog.d(getLog("stopStream", "reason: $reason"))
+        sendEvent(MjpegEvent.Intentable.StopStream(reason))
+    }
+
     @MainThread
     internal fun sendEvent(event: MjpegEvent) {
         XLog.d(getLog("sendEvent", "Event $event"))
