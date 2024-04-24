@@ -2,9 +2,7 @@ package info.dvkr.screenstream.common.ui
 
 import android.app.Activity
 import android.content.Intent
-import android.media.projection.MediaProjectionConfig
 import android.media.projection.MediaProjectionManager
-import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material.icons.Icons
@@ -21,7 +19,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.core.content.ContextCompat
 
 @Composable
 public fun MediaProjectionPermission(
@@ -30,7 +27,7 @@ public fun MediaProjectionPermission(
     onPermissionDenied: () -> Unit,
     requiredDialogTitle: String,
     requiredDialogText: String,
-    modifier: Modifier = Modifier,
+    modifier: Modifier = Modifier
 ) {
     val mediaProjectionRequested = rememberSaveable { mutableStateOf(false) }
     val showMediaProjectionPermissionErrorDialog = rememberSaveable { mutableStateOf(false) }
@@ -51,17 +48,9 @@ public fun MediaProjectionPermission(
     if (requestCastPermission && mediaProjectionRequested.value.not()) {
         val context = LocalContext.current
         LaunchedEffect(true) {
-            val projectionManager = ContextCompat.getSystemService(context, MediaProjectionManager::class.java)!!
-            val intent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                // TODO https://developer.android.com/reference/android/media/projection/package-summary
-                // TODO MediaProjectionConfig.createConfigForDefaultDisplay()
-                // https://developer.android.com/about/versions/14/features/partial-screen-sharing#media_projection_callbacks
-                // https://developer.android.com/about/versions/14/behavior-changes-14#media-projection-consent
-                projectionManager.createScreenCaptureIntent(MediaProjectionConfig.createConfigForUserChoice())
-            } else {
-                projectionManager.createScreenCaptureIntent()
-            }
-            mediaProjectionPermissionLauncher.launch(intent)
+            // TODO media projection for multi-display devices
+            val mediaProjectionManager = context.getSystemService(MediaProjectionManager::class.java)
+            mediaProjectionPermissionLauncher.launch(mediaProjectionManager.createScreenCaptureIntent())
 
             showMediaProjectionPermissionErrorDialog.value = false
             mediaProjectionRequested.value = true

@@ -606,9 +606,10 @@ internal class WebRtcStreamingService(
                     sendEvent(WebRtcEvent.Intentable.StopStream("MediaProjectionCallback.onStop"))
                 }
 
-                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) mediaProjectionIntent = event.intent
-
-                service.registerComponentCallbacks(componentCallback)
+                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                    mediaProjectionIntent = event.intent
+                    service.registerComponentCallbacks(componentCallback)
+                }
 
                 requireNotNull(signaling).sendStreamStart()
                 clients.forEach { it.value.start(prj.localMediaSteam!!) }
@@ -787,9 +788,7 @@ internal class WebRtcStreamingService(
                     configDiff and ActivityInfo.CONFIG_ORIENTATION != 0 || configDiff and ActivityInfo.CONFIG_SCREEN_LAYOUT != 0 ||
                     configDiff and ActivityInfo.CONFIG_SCREEN_SIZE != 0 || configDiff and ActivityInfo.CONFIG_DENSITY != 0
                 ) {
-                    //TODO Maybe add user settings about stop on config/network/change
-                    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) projection!!.changeCaptureFormat()
-                    else sendEvent(WebRtcEvent.Intentable.StopStream("ConfigurationChange"))
+                    projection!!.changeCaptureFormat()
                 } else {
                     XLog.d(getLog("ConfigurationChange", "No change relevant for streaming. Ignoring."))
                 }
@@ -853,7 +852,9 @@ internal class WebRtcStreamingService(
     @Suppress("NOTHING_TO_INLINE")
     private inline fun stopStream() {
         if (isStreaming()) {
-            service.unregisterComponentCallbacks(componentCallback)
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                service.unregisterComponentCallbacks(componentCallback)
+            }
             requireNotNull(signaling).sendStreamStop()
             clients.forEach { it.value.stop() }
             requireNotNull(projection).stop()

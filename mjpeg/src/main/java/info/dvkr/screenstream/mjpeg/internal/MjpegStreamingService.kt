@@ -104,6 +104,7 @@ internal class MjpegStreamingService(
         data class ConfigurationChange(val newConfig: Configuration) : InternalEvent(Priority.RESTART_IGNORE) {
             override fun toString(): String = "ConfigurationChange"
         }
+        data class CapturedContentResize(val width: Int, val height: Int) : InternalEvent(Priority.RESTART_IGNORE)
         data class Clients(val clients: List<MjpegState.Client>) : InternalEvent(Priority.RESTART_IGNORE)
         data class RestartServer(val reason: RestartReason) : InternalEvent(Priority.RESTART_IGNORE)
         data object UpdateStartBitmap : InternalEvent(Priority.RESTART_IGNORE)
@@ -133,6 +134,16 @@ internal class MjpegStreamingService(
         override fun onStop() {
             XLog.i(this@MjpegStreamingService.getLog("MediaProjection.Callback", "onStop"))
             sendEvent(MjpegEvent.Intentable.StopStream("MediaProjection.Callback"))
+        }
+
+        // TODO https://android-developers.googleblog.com/2024/03/enhanced-screen-sharing-capabilities-in-android-14.html
+        override fun onCapturedContentVisibilityChanged(isVisible: Boolean) {
+            XLog.i(this@MjpegStreamingService.getLog("MediaProjection.Callback", "onCapturedContentVisibilityChanged: $isVisible"))
+        }
+
+        override fun onCapturedContentResize(width: Int, height: Int) {
+            XLog.i(this@MjpegStreamingService.getLog("MediaProjection.Callback", "onCapturedContentResize: width: $width, height: $height"))
+            sendEvent(InternalEvent.CapturedContentResize(width, height))
         }
     }
 
@@ -343,15 +354,21 @@ internal class MjpegStreamingService(
 
                     service.startForeground()
 
+                    // TODO Starting from Android R, if your application requests the SYSTEM_ALERT_WINDOW permission, and the user has
+                    //  not explicitly denied it, the permission will be automatically granted until the projection is stopped.
+                    //  The permission allows your app to display user controls on top of the screen being captured.
                     val mediaProjection = projectionManager.getMediaProjection(Activity.RESULT_OK, event.intent).apply {
                         registerCallback(projectionCallback, Handler(Looper.getMainLooper()))
                     }
 
-                    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) mediaProjectionIntent = event.intent
                     val bitmapCapture = BitmapCapture(service, mjpegSettings, mediaProjection, bitmapStateFlow) { error ->
                         sendEvent(InternalEvent.Error(error))
                     }
-                    if (bitmapCapture.start()) service.registerComponentCallbacks(componentCallback)
+                    val captureStarted = bitmapCapture.start()
+                    if (captureStarted && Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                        mediaProjectionIntent = event.intent
+                        service.registerComponentCallbacks(componentCallback)
+                    }
 
                     @Suppress("DEPRECATION")
                     @SuppressLint("WakelockTimeout")
@@ -386,12 +403,20 @@ internal class MjpegStreamingService(
                     ) {
                         bitmapCapture?.resize()
                     } else {
-                        XLog.d(getLog("configurationChange", "No change relevant for streaming. Ignoring."))
+                        XLog.d(getLog("ConfigurationChange", "No change relevant for streaming. Ignoring."))
                     }
                 } else {
-                    XLog.d(getLog("configurationChange", "Not streaming. Ignoring."))
+                    XLog.d(getLog("ConfigurationChange", "Not streaming. Ignoring."))
                 }
                 deviceConfiguration = Configuration(event.newConfig)
+            }
+
+            is InternalEvent.CapturedContentResize -> {
+                if (isStreaming) {
+                    bitmapCapture?.resize(event.width, event.height)
+                } else {
+                    XLog.d(getLog("CapturedContentResize", "Not streaming. Ignoring."))
+                }
             }
 
             is InternalEvent.RestartServer -> {
@@ -471,7 +496,9 @@ internal class MjpegStreamingService(
     @Suppress("NOTHING_TO_INLINE")
     private inline fun stopStream() {
         if (isStreaming) {
-            service.unregisterComponentCallbacks(componentCallback)
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                service.unregisterComponentCallbacks(componentCallback)
+            }
             bitmapCapture?.destroy()
             bitmapCapture = null
             mediaProjection?.unregisterCallback(projectionCallback)
@@ -528,7 +555,7 @@ internal class MjpegStreamingService(
         val bitmap = Bitmap.createBitmap(600, 400, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap).apply {
             drawColor(mjpegSettings.data.value.htmlBackColor)
-            val shader = LinearGradient(0F, 0F, 0F, 400F, Color.parseColor("#144A74"), Color.parseColor("#001D34"), Shader.TileMode.CLAMP);
+            val shader = LinearGradient(0F, 0F, 0F, 400F, Color.parseColor("#144A74"), Color.parseColor("#001D34"), Shader.TileMode.CLAMP)
             drawRoundRect(0F, 0F, 600F, 400F, 32F, 32F, Paint().apply { setShader(shader) })
         }
         val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { textSize = 24f; color = Color.WHITE }

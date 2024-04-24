@@ -2,11 +2,7 @@ package info.dvkr.screenstream.webrtc.internal
 
 import android.content.Context
 import android.content.Intent
-import android.hardware.display.DisplayManager
 import android.media.projection.MediaProjection
-import android.os.Build
-import android.view.Display
-import android.view.WindowManager
 import androidx.window.layout.WindowMetricsCalculator
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.common.getLog
@@ -19,7 +15,6 @@ import org.webrtc.MediaConstraints
 import org.webrtc.MediaStreamTrack
 import org.webrtc.PeerConnectionFactory
 import org.webrtc.RtpCapabilities
-import org.webrtc.ScreenCapturerAndroid
 import org.webrtc.SurfaceTextureHelper
 import org.webrtc.VideoSource
 import org.webrtc.WrappedVideoDecoderFactory
@@ -42,15 +37,6 @@ internal class WebRtcProjection(private val serviceContext: Context) {
     private enum class AudioCodec { OPUS }
     private enum class VideoCodec(val priority: Int) { VP8(1), VP9(2), H264(3), H265(4); }
 
-    private val windowContext by lazy {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            val defaultDisplay = serviceContext.getSystemService(DisplayManager::class.java).getDisplay(Display.DEFAULT_DISPLAY)
-            serviceContext.createDisplayContext(defaultDisplay).createWindowContext(WindowManager.LayoutParams.TYPE_APPLICATION, null)
-        } else {
-            serviceContext
-        }
-    }
-
     private val audioDeviceModule = JavaAudioDeviceModule.builder(serviceContext).createAudioDeviceModule() // TODO Leaks Context
     private val rootEglBase: EglBase = EglBase.create()
 
@@ -61,7 +47,6 @@ internal class WebRtcProjection(private val serviceContext: Context) {
     private val lock = Any()
 
     private var screenCapturer: ScreenCapturerAndroid? = null
-    private var surfaceTextureHelper: SurfaceTextureHelper? = null
     private var videoSource: VideoSource? = null
     private var audioSource: AudioSource? = null
 
@@ -109,21 +94,34 @@ internal class WebRtcProjection(private val serviceContext: Context) {
         synchronized(lock) {
             XLog.d(getLog("start"))
 
-            screenCapturer = ScreenCapturerAndroid(intent, object : MediaProjection.Callback() {
+            videoSource = peerConnectionFactory.createVideoSource(true)
+            audioSource = peerConnectionFactory.createAudioSource(audioMediaConstraints)
+
+            screenCapturer = ScreenCapturerAndroid(
+                serviceContext,
+                intent,
+                SurfaceTextureHelper.create("ScreenStreamSurfaceTexture", rootEglBase.eglBaseContext),
+                videoSource!!.capturerObserver,
+                object : MediaProjection.Callback() {
                 override fun onStop() {
                     XLog.i(this@WebRtcProjection.getLog("MediaProjection.Callback", "onStop"))
                     synchronized(lock) { isStopped = true }
                     mediaProjectionCallbackOnStop.invoke()
                 }
-            })
-            surfaceTextureHelper = SurfaceTextureHelper.create("ScreenStreamSurfaceTexture", rootEglBase.eglBaseContext)
-            videoSource = peerConnectionFactory.createVideoSource(screenCapturer!!.isScreencast)
-            screenCapturer!!.initialize(surfaceTextureHelper, serviceContext, videoSource!!.capturerObserver)
 
-            val screeSize = WindowMetricsCalculator.getOrCreate().computeMaximumWindowMetrics(windowContext).bounds
-            screenCapturer!!.startCapture(screeSize.width(), screeSize.height(), 30)
+                // TODO https://android-developers.googleblog.com/2024/03/enhanced-screen-sharing-capabilities-in-android-14.html
+                override fun onCapturedContentVisibilityChanged(isVisible: Boolean) {
+                    XLog.i(this@WebRtcProjection.getLog("MediaProjection.Callback", "onCapturedContentVisibilityChanged: $isVisible"))
+                }
 
-            audioSource = peerConnectionFactory.createAudioSource(audioMediaConstraints)
+                override fun onCapturedContentResize(width: Int, height: Int) {
+                    XLog.i(this@WebRtcProjection.getLog("MediaProjection.Callback", "onCapturedContentResize: width: $width, height: $height"))
+                    changeCaptureFormat(width, height)
+                }
+            }).apply {
+                val screeSize = WindowMetricsCalculator.getOrCreate().computeMaximumWindowMetrics(serviceContext).bounds
+                startCapture(screeSize.width(), screeSize.height(), 0)
+            }
 
             val mediaStreamId = MediaStreamId.create(streamId)
             localMediaSteam = LocalMediaSteam(
@@ -139,15 +137,20 @@ internal class WebRtcProjection(private val serviceContext: Context) {
     }
 
     internal fun changeCaptureFormat() {
+        val screeSize = WindowMetricsCalculator.getOrCreate().computeMaximumWindowMetrics(serviceContext).bounds
+        changeCaptureFormat(screeSize.width(), screeSize.height())
+    }
+
+    internal fun changeCaptureFormat(width: Int, height: Int) {
         synchronized(lock) {
             if (isStopped || isRunning.not()) {
                 XLog.i(this@WebRtcProjection.getLog("changeCaptureFormat", "Ignoring: isStopped=$isStopped, isRunning=$isRunning"))
                 return
             }
-            XLog.d(this@WebRtcProjection.getLog("changeCaptureFormat"))
+            XLog.d(this@WebRtcProjection.getLog("changeCaptureFormat", "width:$width, height:$height"))
             screenCapturer?.apply {
-                val screeSize = WindowMetricsCalculator.getOrCreate().computeMaximumWindowMetrics(windowContext).bounds
-                changeCaptureFormat(screeSize.width(), screeSize.height(), 30)
+                val screeSize = WindowMetricsCalculator.getOrCreate().computeMaximumWindowMetrics(serviceContext).bounds
+                changeCaptureFormat(screeSize.width(), screeSize.height(), 0)
             }
         }
     }
@@ -159,9 +162,6 @@ internal class WebRtcProjection(private val serviceContext: Context) {
             screenCapturer?.stopCapture()
             screenCapturer?.dispose()
             screenCapturer = null
-
-            surfaceTextureHelper?.dispose()
-            surfaceTextureHelper = null
 
             localMediaSteam?.videoTrack?.dispose()
             localMediaSteam?.audioTrack?.dispose()

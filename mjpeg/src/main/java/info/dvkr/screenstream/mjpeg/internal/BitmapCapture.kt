@@ -9,18 +9,15 @@ import android.graphics.ColorMatrixColorFilter
 import android.graphics.Matrix
 import android.graphics.Paint
 import android.graphics.PixelFormat
+import android.graphics.Rect
 import android.hardware.display.DisplayManager
 import android.hardware.display.VirtualDisplay
 import android.media.Image
 import android.media.ImageReader
 import android.media.projection.MediaProjection
-import android.os.Build
 import android.os.Handler
 import android.os.HandlerThread
 import android.os.Process
-import android.util.DisplayMetrics
-import android.view.Display
-import android.view.WindowManager
 import androidx.window.layout.WindowMetricsCalculator
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.common.getLog
@@ -35,7 +32,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
 
-
+// https://developer.android.com/media/grow/media-projection
 internal class BitmapCapture(
     private val serviceContext: Context,
     private val mjpegSettings: MjpegSettings,
@@ -47,36 +44,14 @@ internal class BitmapCapture(
 
     @Volatile private var state: State = State.INIT
 
+    private var currentWidth: Int = 0
+    private var currentHeight: Int = 0
+
     private val imageThread: HandlerThread by lazy { HandlerThread("BitmapCapture", Process.THREAD_PRIORITY_BACKGROUND) }
     private val imageThreadHandler: Handler by lazy { Handler(imageThread.looper) }
-    private val defaultDisplay: Display = serviceContext.getSystemService(DisplayManager::class.java).getDisplay(Display.DEFAULT_DISPLAY)
-    private val windowContext: Context by lazy {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            serviceContext.createDisplayContext(defaultDisplay).createWindowContext(WindowManager.LayoutParams.TYPE_APPLICATION, null)
-        } else {
-            serviceContext
-        }
-    }
 
-    @Suppress("DEPRECATION")
-    private fun getDensityDpiCompat(): Int = when {
-        Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE -> {
-            val windowManager = windowContext.getSystemService(WindowManager::class.java)
-            (DisplayMetrics.DENSITY_DEFAULT * windowManager.maximumWindowMetrics.density).toInt()
-        }
-
-        else -> DisplayMetrics().also { defaultDisplay.getMetrics(it) }.densityDpi
-    }
-
-    private fun getScreenSizeResized(): Pair<Int, Int> =
-        WindowMetricsCalculator.getOrCreate().computeMaximumWindowMetrics(windowContext).bounds.let { bounds ->
-            if (resizeFactor.get() < MjpegSettings.Values.RESIZE_DISABLED) {
-                val scale = resizeFactor.get() / 100f
-                Pair((bounds.width() * scale).toInt(), (bounds.height() * scale).toInt())
-            } else {
-                Pair(bounds.width(), bounds.height())
-            }
-        }
+    private fun getDensity(): Int = serviceContext.resources.configuration.densityDpi
+    private fun getScreenSize(): Rect = WindowMetricsCalculator.getOrCreate().computeMaximumWindowMetrics(serviceContext).bounds
 
     private var imageListener: ImageListener? = null
     private var imageReader: ImageReader? = null
@@ -125,7 +100,7 @@ internal class BitmapCapture(
         XLog.d(getLog("updateMatrix"))
         val newMatrix = Matrix()
 
-        if (resizeFactor.get() > MjpegSettings.Values.RESIZE_DISABLED)
+        if (resizeFactor.get() != MjpegSettings.Values.RESIZE_DISABLED)
             newMatrix.postScale(resizeFactor.get() / 100f, resizeFactor.get() / 100f)
 
         if (rotation.get() != MjpegSettings.Values.ROTATION_0)
@@ -157,17 +132,17 @@ internal class BitmapCapture(
 
     @SuppressLint("WrongConstant")
     private fun startDisplayCapture(): Boolean {
-        val (screenSizeX, screenSizeY) = getScreenSizeResized()
-        val densityDpi = getDensityDpiCompat()
+        val screenSize = getScreenSize()
 
         imageListener = ImageListener()
-        imageReader = ImageReader.newInstance(screenSizeX, screenSizeY, PixelFormat.RGBA_8888, 2)
+        imageReader = ImageReader.newInstance(screenSize.width(), screenSize.height(), PixelFormat.RGBA_8888, 2)
             .apply { setOnImageAvailableListener(imageListener, imageThreadHandler) }
 
         try {
             virtualDisplay = mediaProjection.createVirtualDisplay(
-                "ScreenStreamVirtualDisplay", screenSizeX, screenSizeY, densityDpi,
-                DisplayManager.VIRTUAL_DISPLAY_FLAG_PRESENTATION, imageReader!!.surface, null, imageThreadHandler
+                "ScreenStreamVirtualDisplay", screenSize.width(), screenSize.height(), getDensity(),
+                DisplayManager.VIRTUAL_DISPLAY_FLAG_PRESENTATION,
+                imageReader!!.surface, null, imageThreadHandler
             )
             state = State.STARTED
         } catch (ex: SecurityException) {
@@ -175,6 +150,9 @@ internal class BitmapCapture(
             XLog.w(getLog("startDisplayCapture", ex.toString()), ex)
             onError(MjpegError.CastSecurityException)
         }
+
+        currentWidth = screenSize.width()
+        currentHeight = screenSize.height()
 
         return state == State.STARTED
     }
@@ -189,10 +167,21 @@ internal class BitmapCapture(
 
     @Synchronized
     internal fun resize() {
-        XLog.d(getLog("resize", "Start"))
+        val screenSize = getScreenSize()
+        resize(screenSize.width(), screenSize.height())
+    }
+
+    @Synchronized
+    internal fun resize(width: Int, height: Int) {
+        XLog.d(getLog("resize", "Start (width: $width, height: $height)"))
 
         if (state != State.STARTED) {
             XLog.d(getLog("resize", "Ignored"))
+            return
+        }
+
+        if (currentWidth == width && currentHeight == height) {
+            XLog.i(getLog("resize", "Same width and height. Ignored"))
             return
         }
 
@@ -200,20 +189,20 @@ internal class BitmapCapture(
         imageReader?.close()
         imageReader = null
 
-        val (screenSizeX, screenSizeY) = getScreenSizeResized()
-        val densityDpi = getDensityDpiCompat()
-
         imageListener = ImageListener()
-        imageReader = ImageReader.newInstance(screenSizeX, screenSizeY, PixelFormat.RGBA_8888, 2)
+        imageReader = ImageReader.newInstance(width, height, PixelFormat.RGBA_8888, 2)
             .apply { setOnImageAvailableListener(imageListener, imageThreadHandler) }
         try {
-            virtualDisplay?.resize(screenSizeX, screenSizeY, densityDpi)
+            virtualDisplay?.resize(width, height, getDensity())
             virtualDisplay?.surface = imageReader!!.surface
         } catch (ex: SecurityException) {
             state = State.ERROR
             XLog.w(getLog("resize", ex.toString()), ex)
             onError(MjpegError.CastSecurityException)
         }
+
+        currentWidth = width
+        currentHeight = height
 
         XLog.d(getLog("resize", "End"))
     }
@@ -236,10 +225,10 @@ internal class BitmapCapture(
                         val cleanBitmap = getCleanBitmap(image)
                         val croppedBitmap = getCroppedBitmap(cleanBitmap)
                         val grayScaleBitmap = getGrayScaleBitmap(croppedBitmap)
-                        val upsizedBitmap = getUpsizedAndRotatedBitmap(grayScaleBitmap)
+                        val resizedBitmap = getResizedAndRotatedBitmap(grayScaleBitmap)
 
                         image.close()
-                        bitmapStateFlow.tryEmit(upsizedBitmap)
+                        bitmapStateFlow.tryEmit(resizedBitmap)
                     }
                 } catch (throwable: Throwable) {
                     XLog.e(this@BitmapCapture.getLog("outBitmapChannel"), throwable)
@@ -273,44 +262,21 @@ internal class BitmapCapture(
     private fun getCroppedBitmap(bitmap: Bitmap): Bitmap {
         if (vrMode.get() <= MjpegSettings.Default.VR_MODE_DISABLE && imageCrop.get().not()) return bitmap
 
-        var imageLeft = 0
-        var imageRight = bitmap.width
+        val imageLeft = if (vrMode.get() == MjpegSettings.Default.VR_MODE_RIGHT) bitmap.width / 2 else 0
+        val imageRight = if (vrMode.get() == MjpegSettings.Default.VR_MODE_LEFT) bitmap.width / 2 else bitmap.width
 
-        when (vrMode.get()) {
-            MjpegSettings.Default.VR_MODE_LEFT -> imageRight = bitmap.width / 2
-            MjpegSettings.Default.VR_MODE_RIGHT -> imageLeft = bitmap.width / 2
-        }
+        val imageCropLeft = if (imageCrop.get()) this.imageCropLeft.get() else 0
+        val imageCropRight = if (imageCrop.get()) this.imageCropRight.get() else 0
+        val imageCropTop = if (imageCrop.get()) this.imageCropTop.get() else 0
+        val imageCropBottom = if (imageCrop.get()) this.imageCropBottom.get() else 0
 
-        var imageCropLeftResult = 0
-        var imageCropRightResult = 0
-        var imageCropTopResult = 0
-        var imageCropBottomResult = 0
-        if (imageCrop.get())
-            when {
-                resizeFactor.get() < MjpegSettings.Values.RESIZE_DISABLED -> {
-                    val scale = resizeFactor.get() / 100f
-                    imageCropLeftResult = (imageCropLeft.get() * scale).toInt()
-                    imageCropRightResult = (imageCropRight.get() * scale).toInt()
-                    imageCropTopResult = (imageCropTop.get() * scale).toInt()
-                    imageCropBottomResult = (imageCropBottom.get() * scale).toInt()
-                }
-
-                else -> {
-                    imageCropLeftResult = imageCropLeft.get()
-                    imageCropRightResult = imageCropRight.get()
-                    imageCropTopResult = imageCropTop.get()
-                    imageCropBottomResult = imageCropBottom.get()
-                }
-            }
-
-        if (imageLeft + imageRight - imageCropLeftResult - imageCropRightResult <= 0 || bitmap.height - imageCropTopResult - imageCropBottomResult <= 0)
-            return bitmap
+        if (imageLeft + imageRight - imageCropLeft - imageCropRight <= 0 || bitmap.height - imageCropTop - imageCropBottom <= 0) return bitmap
 
         return try {
             Bitmap.createBitmap(
-                bitmap, imageLeft + imageCropLeftResult, imageCropTopResult,
-                imageRight - imageLeft - imageCropLeftResult - imageCropRightResult,
-                bitmap.height - imageCropTopResult - imageCropBottomResult
+                bitmap, imageLeft + imageCropLeft, imageCropTop,
+                imageRight - imageLeft - imageCropLeft - imageCropRight,
+                bitmap.height - imageCropTop - imageCropBottom
             )
         } catch (ex: IllegalArgumentException) {
             XLog.w(this@BitmapCapture.getLog("getCroppedBitmap", ex.toString()), ex)
@@ -318,7 +284,7 @@ internal class BitmapCapture(
         }
     }
 
-    private fun getUpsizedAndRotatedBitmap(bitmap: Bitmap): Bitmap {
+    private fun getResizedAndRotatedBitmap(bitmap: Bitmap): Bitmap {
         if (matrix.get().isIdentity) return bitmap
         return Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix.get(), false)
     }

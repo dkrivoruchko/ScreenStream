@@ -14,6 +14,7 @@
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:largeHeap="true"
+        android:resizeableActivity="true"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.ScreenStream.Starting"
@@ -36,6 +37,9 @@
             android:name="info.dvkr.screenstream.SingleActivity"
             android:exported="true"
             android:windowSoftInputMode="adjustResize">
+            <layout
+                android:minWidth="320dp"
+                android:minHeight="320dp" />
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
