@@ -17,7 +17,6 @@ import io.nayuki.qrcodegen.QrCode
 public fun Any.getLog(tag: String? = "", msg: String? = "Invoked"): String =
     "${this.javaClass.simpleName}#${this.hashCode()}.$tag@${Thread.currentThread().name}: $msg"
 
-//TODO Improve it for WebRTC password
 public fun randomString(size: Int, allowCapitalLetters: Boolean = false): String {
     val symbols = ('0'..'9') + ('a'..'z') + if (allowCapitalLetters) ('A'..'Z') else emptyList()
     return String(CharArray(size) { symbols.random() })

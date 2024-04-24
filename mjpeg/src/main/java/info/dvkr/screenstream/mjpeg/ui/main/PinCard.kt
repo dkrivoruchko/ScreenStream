@@ -23,6 +23,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import info.dvkr.screenstream.common.ui.RobotoMonoBold
 import info.dvkr.screenstream.common.ui.stylePlaceholder
 import info.dvkr.screenstream.mjpeg.R
 import info.dvkr.screenstream.mjpeg.ui.MjpegState
@@ -66,14 +67,14 @@ internal fun PinCard(
                     } else {
                         Text(
                             text = stringResource(id = R.string.mjpeg_stream_pin, pinState.value.pin)
-                                .stylePlaceholder(pinState.value.pin, SpanStyle(fontWeight = FontWeight.Bold)),
+                                .stylePlaceholder(pinState.value.pin, SpanStyle(fontWeight = FontWeight.Bold, fontFamily = RobotoMonoBold)),
                             modifier = Modifier.align(Alignment.Center)
                         )
                     }
                 } else {
                     Text(
                         text = stringResource(id = R.string.mjpeg_stream_pin, pinState.value.pin)
-                            .stylePlaceholder(pinState.value.pin, SpanStyle(fontWeight = FontWeight.Bold)),
+                            .stylePlaceholder(pinState.value.pin, SpanStyle(fontWeight = FontWeight.Bold, fontFamily = RobotoMonoBold)),
                         modifier = Modifier.align(Alignment.Center)
                     )
                     IconButton(

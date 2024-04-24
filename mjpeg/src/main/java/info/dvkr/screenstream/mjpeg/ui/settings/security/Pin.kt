@@ -31,6 +31,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
@@ -41,6 +42,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import info.dvkr.screenstream.common.ModuleSettings
 import info.dvkr.screenstream.common.module.StreamingModuleManager
+import info.dvkr.screenstream.common.ui.RobotoMonoBold
 import info.dvkr.screenstream.mjpeg.R
 import info.dvkr.screenstream.mjpeg.settings.MjpegSettings
 import kotlinx.coroutines.CoroutineScope
@@ -121,6 +123,8 @@ private fun PinUI(
                 .defaultMinSize(minWidth = 52.dp)
                 .padding(end = 6.dp),
             color = MaterialTheme.colorScheme.primary,
+            fontWeight = FontWeight.Bold,
+            fontFamily = RobotoMonoBold,
             textAlign = TextAlign.Center,
             maxLines = 1
         )

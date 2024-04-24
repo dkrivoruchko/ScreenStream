@@ -36,6 +36,7 @@ public class SingleActivity : AppUpdateActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
+        XLog.d(this@SingleActivity.getLog("Bug workaround", "${window.decorView}"))
         super.onCreate(savedInstanceState)
 
         setContent {

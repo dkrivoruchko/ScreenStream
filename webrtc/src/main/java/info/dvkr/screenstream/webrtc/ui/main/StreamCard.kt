@@ -90,6 +90,7 @@ import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.common.isPermissionGranted
 import info.dvkr.screenstream.common.openStringUrl
 import info.dvkr.screenstream.common.shouldShowPermissionRationale
+import info.dvkr.screenstream.common.ui.RobotoMonoBold
 import info.dvkr.screenstream.common.ui.stylePlaceholder
 import info.dvkr.screenstream.webrtc.R
 import info.dvkr.screenstream.webrtc.settings.WebRtcSettings
@@ -164,7 +165,7 @@ internal fun StreamCard(
             ) {
                 Text(
                     text = stringResource(id = R.string.webrtc_stream_stream_id, streamId.value)
-                        .stylePlaceholder(streamId.value, SpanStyle(fontWeight = FontWeight.Bold)),
+                        .stylePlaceholder(streamId.value, SpanStyle(fontWeight = FontWeight.Bold, fontFamily = RobotoMonoBold)),
                     modifier = Modifier.weight(1F)
                 )
 
@@ -194,7 +195,7 @@ internal fun StreamCard(
 
                 Text(
                     text = stringResource(id = R.string.webrtc_stream_stream_password, text.value)
-                        .stylePlaceholder(text.value, SpanStyle(fontWeight = FontWeight.Bold)),
+                        .stylePlaceholder(text.value, SpanStyle(fontWeight = FontWeight.Bold, fontFamily = RobotoMonoBold)),
                     modifier = Modifier.weight(1F)
                 )
 
