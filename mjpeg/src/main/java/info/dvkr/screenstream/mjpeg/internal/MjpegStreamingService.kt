@@ -320,7 +320,7 @@ internal class MjpegStreamingService(
                 if (pendingServer.not()) httpServer.stop(false)
                 httpServer.start(event.interfaces.toList())
 
-                if (mjpegSettings.data.value.htmlShowPressStart) bitmapStateFlow.value = getStartBitmap()
+                if (isStreaming.not() && mjpegSettings.data.value.htmlShowPressStart) bitmapStateFlow.value = getStartBitmap()
 
                 netInterfaces = event.interfaces
                 pendingServer = false
@@ -332,8 +332,6 @@ internal class MjpegStreamingService(
             }
 
             is InternalEvent.StartStream -> {
-                check(pendingServer.not()) { "MjpegEvent.StartStream: server is not ready" }
-
                 mediaProjectionIntent?.let {
                     check(Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) { "MjpegEvent.StartStream: UPSIDE_DOWN_CAKE" }
                     sendEvent(MjpegEvent.StartProjection(it))
