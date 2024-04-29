@@ -70,14 +70,11 @@ public class WebRtcModuleService : StreamingModuleService() {
 
     @Throws(WebRtcError.NotificationPermissionRequired::class, IllegalStateException::class)
     internal fun startForeground() {
-        XLog.d(getLog("startForeground"))
+        XLog.d(getLog("startForeground", "foregroundNotificationsEnabled: ${notificationHelper.foregroundNotificationsEnabled()}"))
 
-        if (notificationHelper.notificationPermissionGranted(this) && notificationHelper.foregroundNotificationsEnabled()) {
-            val stopIntent = WebRtcEvent.Intentable.StopStream("WebRtcModuleService. User action: Notification").toIntent(this)
-            startForeground(stopIntent)
-        } else {
-            throw WebRtcError.NotificationPermissionRequired
-        }
+        if (notificationHelper.notificationPermissionGranted(this).not()) throw WebRtcError.NotificationPermissionRequired
+
+        startForeground(WebRtcEvent.Intentable.StopStream("WebRtcModuleService. User action: Notification").toIntent(this))
     }
 
     internal fun showErrorNotification(error: WebRtcError) {

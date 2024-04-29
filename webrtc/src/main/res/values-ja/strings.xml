@@ -19,8 +19,6 @@
     <string name="webrtc_stream_stream_id_getting">ストリームIDを取得中…</string>
     <string name="webrtc_stream_stream_id">ストリームID: %1$s</string>
     <string name="webrtc_stream_stream_password">ストリームパスワード: %1$s</string>
-    <string name="webrtc_stream_mic_off">マイクオフ</string>
-    <string name="webrtc_stream_mic_on">マイクオン</string>
     <string name="webrtc_stream_description_show_password">ストリームパスワードを表示</string>
     <string name="webrtc_stream_description_get_new_id">新しいストリームIDを取得</string>
     <string name="webrtc_stream_description_create_password">新しいストリームパスワードを作成</string>
@@ -30,6 +28,9 @@
     <string name="webrtc_stream_description_qr_address">QRコードとしてアドレスを表示</string>
     <string name="webrtc_stream_description_qr">QRコード</string>
     <string name="webrtc_stream_copied">コピーしました</string>
+    <string name="webrtc_stream_audio_select">オーディオソースを選択：</string>
+    <string name="webrtc_stream_audio_mic">マイク</string>
+    <string name="webrtc_stream_audio_device">デバイスオーディオ</string>
     <string name="webrtc_stream_connected_clients">接続されたクライアント: %1$d</string>
     <string name="webrtc_stream_no_web_browser_found">Webブラウザが見つかりません</string>
     <string name="webrtc_stream_external_app_error">外部アプリケーションエラー</string>

@@ -19,8 +19,6 @@
     <string name="webrtc_stream_stream_id_getting">Получение ID трансляции…</string>
     <string name="webrtc_stream_stream_id">ID трансляции: %1$s</string>
     <string name="webrtc_stream_stream_password">Пароль трансляции: %1$s</string>
-    <string name="webrtc_stream_mic_off">Микрофон выключен</string>
-    <string name="webrtc_stream_mic_on">Микрофон включен</string>
     <string name="webrtc_stream_description_show_password">Показать пароль трансляции</string>
     <string name="webrtc_stream_description_get_new_id">Получить новый ID трансляции</string>
     <string name="webrtc_stream_description_create_password">Создать новый пароль трансляции</string>
@@ -30,6 +28,9 @@
     <string name="webrtc_stream_description_qr_address">Показать адрес как QR-код</string>
     <string name="webrtc_stream_description_qr">QR-код</string>
     <string name="webrtc_stream_copied">Скопировано</string>
+    <string name="webrtc_stream_audio_select">Выберите аудиоисточники:</string>
+    <string name="webrtc_stream_audio_mic">Микрофон</string>
+    <string name="webrtc_stream_audio_device">Аудио устройства</string>
     <string name="webrtc_stream_connected_clients">Подключенные клиенты: %1$d</string>
     <string name="webrtc_stream_no_web_browser_found">Не найден веб-браузер</string>
     <string name="webrtc_stream_external_app_error">Ошибка внешнего приложения</string>

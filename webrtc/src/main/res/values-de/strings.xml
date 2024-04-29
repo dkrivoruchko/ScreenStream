@@ -19,8 +19,6 @@
     <string name="webrtc_stream_stream_id_getting">Stream-ID wird abgerufen…</string>
     <string name="webrtc_stream_stream_id">Stream-ID: %1$s</string>
     <string name="webrtc_stream_stream_password">Stream-Passwort: %1$s</string>
-    <string name="webrtc_stream_mic_off">Mikrofon aus</string>
-    <string name="webrtc_stream_mic_on">Mikrofon an</string>
     <string name="webrtc_stream_description_show_password">Stream-Passwort anzeigen</string>
     <string name="webrtc_stream_description_get_new_id">Neue Stream-ID abrufen</string>
     <string name="webrtc_stream_description_create_password">Neues Stream-Passwort erstellen</string>
@@ -30,6 +28,9 @@
     <string name="webrtc_stream_description_qr_address">Adresse als QR-Code anzeigen</string>
     <string name="webrtc_stream_description_qr">QR-Code</string>
     <string name="webrtc_stream_copied">Kopiert</string>
+    <string name="webrtc_stream_audio_select">Audioquellen auswählen:</string>
+    <string name="webrtc_stream_audio_mic">Mikrofon</string>
+    <string name="webrtc_stream_audio_device">Geräteaudio</string>
     <string name="webrtc_stream_connected_clients">Verbundene Clients: %1$d</string>
     <string name="webrtc_stream_no_web_browser_found">Kein Webbrowser gefunden</string>
     <string name="webrtc_stream_external_app_error">Fehler bei externer Anwendung</string>

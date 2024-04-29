@@ -11,7 +11,6 @@ internal data class WebRtcState(
     val signalingServerUrl: String = "",
     val streamId: String = "",
     val streamPassword: String = "",
-    val enableMic: Boolean = false,
     val waitingCastPermission: Boolean = false,
     val isStreaming: Boolean = false,
     val clients: List<Client> = emptyList(),
@@ -21,7 +20,7 @@ internal data class WebRtcState(
     internal data class Client(val id: String, val publicId: String, val address: String)
 
     override fun toString(): String =
-        "WebRtcState(isBusy=$isBusy, streamId='$streamId', enableMic=$enableMic wCP=$waitingCastPermission, isStreaming=$isStreaming, clients=${clients.size}, error=$error)"
+        "WebRtcState(isBusy=$isBusy, streamId='$streamId', wCP=$waitingCastPermission, isStreaming=$isStreaming, clients=${clients.size}, error=$error)"
 }
 
 @Immutable

@@ -34,6 +34,7 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.android.asCoroutineDispatcher
 import kotlinx.coroutines.cancel
@@ -42,8 +43,9 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import okhttp3.ConnectionSpec
 import okhttp3.OkHttpClient
@@ -96,7 +98,6 @@ internal class WebRtcStreamingService(
     private var deviceConfiguration: Configuration = Configuration(service.resources.configuration)
     private var socketErrorRetryAttempts: Int = 0
     private var signaling: SocketSignaling? = null
-    private var enableMic: Boolean = false
     private var waitingForPermission: Boolean = false
     private var mediaProjectionIntent: Intent? = null
     private var projection: WebRtcProjection? = null
@@ -127,6 +128,7 @@ internal class WebRtcStreamingService(
         }
         data object ScreenOff : InternalEvent(Priority.STOP_IGNORE)
         data class EnableMic(val enableMic: Boolean) : InternalEvent(Priority.STOP_IGNORE)
+        data class EnableDeviceAudio(val enableDeviceAudio: Boolean) : InternalEvent(Priority.STOP_IGNORE)
         data class ConfigurationChange(val newConfig: Configuration) : InternalEvent(Priority.STOP_IGNORE)
 
         data class Destroy(val destroyJob: CompletableJob) : InternalEvent(Priority.DESTROY_IGNORE)
@@ -285,13 +287,27 @@ internal class WebRtcStreamingService(
         }.launchIn(coroutineScope)
 
         webRtcSettings.data.map { it.enableMic }.distinctUntilChanged()
-            .onStart {
-                val micPermission = ContextCompat.checkSelfPermission(service, Manifest.permission.RECORD_AUDIO)
-                if (micPermission == PackageManager.PERMISSION_DENIED) webRtcSettings.updateData { copy(enableMic = false) }
-            }.onEach { enableMic ->
+            .onEach { enableMic ->
                 XLog.d(this@WebRtcStreamingService.getLog("enableMicFlow", "$enableMic"))
                 sendEvent(InternalEvent.EnableMic(enableMic))
             }.launchIn(coroutineScope)
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            webRtcSettings.data.map { it.enableDeviceAudio }.distinctUntilChanged()
+                .onEach { enableDeviceAudio ->
+                    XLog.d(this@WebRtcStreamingService.getLog("enableDeviceAudioFlow", "$enableDeviceAudio"))
+                    sendEvent(InternalEvent.EnableDeviceAudio(enableDeviceAudio))
+                }.launchIn(coroutineScope)
+        }
+
+        val recordAudioPermission = ContextCompat.checkSelfPermission(service, Manifest.permission.RECORD_AUDIO)
+        if (recordAudioPermission == PackageManager.PERMISSION_DENIED) {
+            coroutineScope.launch {
+                withContext(NonCancellable) {
+                    webRtcSettings.updateData { copy(enableMic = false, enableDeviceAudio = false) }
+                }
+            }
+        }
     }
 
     @MainThread
@@ -526,6 +542,9 @@ internal class WebRtcStreamingService(
                 if (currentStreamPassword.isEmpty()) currentStreamPassword = StreamPassword.generateNew()
                 projection = projection ?: WebRtcProjection(service)
                 projection!!.setMicrophoneMute(webRtcSettings.data.value.enableMic.not())
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    projection!!.setDeviceAudioMute(webRtcSettings.data.value.enableDeviceAudio.not())
+                }
             }
 
             is InternalEvent.ClientJoin -> {
@@ -757,16 +776,36 @@ internal class WebRtcStreamingService(
                     return
                 }
 
-                enableMic = event.enableMic
                 projection?.setMicrophoneMute(event.enableMic.not())
 
                 if (isStreaming() && isAudioPermissionGrantedOnStart.not() && event.enableMic) {
                     if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                        XLog.i(this@WebRtcStreamingService.getLog("enableMicFlow", "StopStream & StartStream"))
-                        sendEvent(WebRtcEvent.Intentable.StopStream("enableMicFlow"))
+                        XLog.i(this@WebRtcStreamingService.getLog("EnableMic", "StopStream & StartStream"))
+                        sendEvent(WebRtcEvent.Intentable.StopStream("EnableMic"))
                         sendEvent(InternalEvent.StartStream, 500)
                     } else {
                         // Ignore. Button disabled on UI
+                    }
+                }
+            }
+
+            is InternalEvent.EnableDeviceAudio -> {
+                if (destroyPending) {
+                    XLog.i(getLog("EnableDeviceAudio", "DestroyPending. Ignoring"))
+                    return
+                }
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    projection?.setDeviceAudioMute(event.enableDeviceAudio.not())
+
+                    if (isStreaming() && isAudioPermissionGrantedOnStart.not() && event.enableDeviceAudio) {
+                        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                            XLog.i(this@WebRtcStreamingService.getLog("EnableDeviceAudio", "StopStream & StartStream"))
+                            sendEvent(WebRtcEvent.Intentable.StopStream("EnableDeviceAudio"))
+                            sendEvent(InternalEvent.StartStream, 500)
+                        } else {
+                            // Ignore. Button disabled on UI
+                        }
                     }
                 }
             }
@@ -881,7 +920,6 @@ internal class WebRtcStreamingService(
             environment.signalingServerUrl,
             currentStreamId.value,
             currentStreamPassword.value,
-            enableMic,
             waitingForPermission,
             isStreaming(),
             clients.map { it.value.toClient() },

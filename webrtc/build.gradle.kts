@@ -59,7 +59,8 @@ dependencies {
     implementation(libs.play.services.tasks)
     implementation(libs.play.integrity)
 
-    implementation(libs.webrtc)
+//    implementation(libs.webrtc)
+    implementation("io.getstream:stream-webrtc-android:1.1.2")
     implementation(libs.socket)
     implementation(libs.okhttp)
 }

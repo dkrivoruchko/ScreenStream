@@ -19,8 +19,6 @@
     <string name="webrtc_stream_stream_id_getting">الحصول على معرف البث…</string>
     <string name="webrtc_stream_stream_id">معرف البث: %1$s</string>
     <string name="webrtc_stream_stream_password">كلمة مرور البث: %1$s</string>
-    <string name="webrtc_stream_mic_off">الميكروفون مطفئ</string>
-    <string name="webrtc_stream_mic_on">الميكروفون قيد التشغيل</string>
     <string name="webrtc_stream_description_show_password">أظهر كلمة مرور البث</string>
     <string name="webrtc_stream_description_get_new_id">احصل على معرف بث جديد</string>
     <string name="webrtc_stream_description_create_password">قم بإنشاء كلمة مرور جديدة للبث</string>
@@ -30,6 +28,9 @@
     <string name="webrtc_stream_description_qr_address">أظهر العنوان كرمز QR</string>
     <string name="webrtc_stream_description_qr">رمز الاستجابة السريعة</string>
     <string name="webrtc_stream_copied">تم نسخه</string>
+    <string name="webrtc_stream_audio_select">حدد مصادر الصوت:</string>
+    <string name="webrtc_stream_audio_mic">الميكروفون</string>
+    <string name="webrtc_stream_audio_device">صوت الجهاز</string>
     <string name="webrtc_stream_connected_clients">العملاء المتصلون: %1$d</string>
     <string name="webrtc_stream_no_web_browser_found">لم يتم العثور على متصفح ويب</string>
     <string name="webrtc_stream_external_app_error">خطأ في التطبيق الخارجي</string>

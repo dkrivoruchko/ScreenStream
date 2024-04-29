@@ -19,8 +19,6 @@
     <string name="webrtc_stream_stream_id_getting">Ottenimento ID Stream…</string>
     <string name="webrtc_stream_stream_id">ID Stream: %1$s</string>
     <string name="webrtc_stream_stream_password">Password dello stream: %1$s</string>
-    <string name="webrtc_stream_mic_off">Microfono spento</string>
-    <string name="webrtc_stream_mic_on">Microfono acceso</string>
     <string name="webrtc_stream_description_show_password">Mostra password dello stream</string>
     <string name="webrtc_stream_description_get_new_id">Ottieni un nuovo ID stream</string>
     <string name="webrtc_stream_description_create_password">Crea una nuova password dello stream</string>
@@ -30,6 +28,9 @@
     <string name="webrtc_stream_description_qr_address">Mostra indirizzo come codice QR</string>
     <string name="webrtc_stream_description_qr">Codice QR</string>
     <string name="webrtc_stream_copied">Copiato</string>
+    <string name="webrtc_stream_audio_select">Seleziona le sorgenti audio:</string>
+    <string name="webrtc_stream_audio_mic">Microfono</string>
+    <string name="webrtc_stream_audio_device">Audio del dispositivo</string>
     <string name="webrtc_stream_connected_clients">Client connessi: %1$d</string>
     <string name="webrtc_stream_no_web_browser_found">Nessun browser web trovato</string>
     <string name="webrtc_stream_external_app_error">Errore dell\'applicazione esterna</string>

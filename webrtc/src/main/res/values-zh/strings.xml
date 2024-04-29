@@ -19,8 +19,6 @@
     <string name="webrtc_stream_stream_id_getting">正在获取流 ID…</string>
     <string name="webrtc_stream_stream_id">流 ID：%1$s</string>
     <string name="webrtc_stream_stream_password">流密码： %1$s</string>
-    <string name="webrtc_stream_mic_off">麦克风关闭</string>
-    <string name="webrtc_stream_mic_on">麦克风开启</string>
     <string name="webrtc_stream_description_show_password">显示流密码</string>
     <string name="webrtc_stream_description_get_new_id">获取新的流 ID</string>
     <string name="webrtc_stream_description_create_password">创建新的流密码</string>
@@ -30,6 +28,9 @@
     <string name="webrtc_stream_description_qr_address">以二维码形式显示地址</string>
     <string name="webrtc_stream_description_qr">二维码</string>
     <string name="webrtc_stream_copied">已复制</string>
+    <string name="webrtc_stream_audio_select">选择音频来源：</string>
+    <string name="webrtc_stream_audio_mic">麦克风</string>
+    <string name="webrtc_stream_audio_device">设备音频</string>
     <string name="webrtc_stream_connected_clients">已连接的客户端： %1$d</string>
     <string name="webrtc_stream_no_web_browser_found">未找到网络浏览器</string>
     <string name="webrtc_stream_external_app_error">外部程序错误</string>

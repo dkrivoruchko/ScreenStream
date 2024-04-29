@@ -19,8 +19,6 @@
     <string name="webrtc_stream_stream_id_getting">Obteniendo ID de flujo…</string>
     <string name="webrtc_stream_stream_id">ID de flujo: %1$s</string>
     <string name="webrtc_stream_stream_password">Contraseña del flujo: %1$s</string>
-    <string name="webrtc_stream_mic_off">Micrófono apagado</string>
-    <string name="webrtc_stream_mic_on">Micrófono encendido</string>
     <string name="webrtc_stream_description_show_password">Mostrar contraseña del flujo</string>
     <string name="webrtc_stream_description_get_new_id">Obtener nueva ID de flujo</string>
     <string name="webrtc_stream_description_create_password">Crear nueva contraseña del flujo</string>
@@ -30,6 +28,9 @@
     <string name="webrtc_stream_description_qr_address">Mostrar dirección como código QR</string>
     <string name="webrtc_stream_description_qr">Código QR</string>
     <string name="webrtc_stream_copied">Copiado</string>
+    <string name="webrtc_stream_audio_select">Seleccionar fuentes de audio:</string>
+    <string name="webrtc_stream_audio_mic">Micrófono</string>
+    <string name="webrtc_stream_audio_device">Audio del dispositivo</string>
     <string name="webrtc_stream_connected_clients">Clientes conectados: %1$d</string>
     <string name="webrtc_stream_no_web_browser_found">No se encontró navegador web</string>
     <string name="webrtc_stream_external_app_error">Error de aplicación externa</string>

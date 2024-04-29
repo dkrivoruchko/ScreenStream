@@ -65,14 +65,11 @@ public class MjpegModuleService : StreamingModuleService() {
 
     @Throws(MjpegError.NotificationPermissionRequired::class, IllegalStateException::class)
     internal fun startForeground() {
-        XLog.d(getLog("startForeground"))
+        XLog.d(getLog("startForeground", "foregroundNotificationsEnabled: ${notificationHelper.foregroundNotificationsEnabled()}"))
 
-        if (notificationHelper.notificationPermissionGranted(this) && notificationHelper.foregroundNotificationsEnabled()) {
-            val stopIntent = MjpegEvent.Intentable.StopStream("MjpegModuleService. User action: Notification").toIntent(this)
-            startForeground(stopIntent)
-        } else {
-            throw MjpegError.NotificationPermissionRequired
-        }
+        if (notificationHelper.notificationPermissionGranted(this).not()) throw MjpegError.NotificationPermissionRequired
+
+        startForeground(MjpegEvent.Intentable.StopStream("MjpegModuleService. User action: Notification").toIntent(this))
     }
 
     internal fun showErrorNotification(error: MjpegError) {

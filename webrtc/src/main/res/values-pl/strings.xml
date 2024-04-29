@@ -19,8 +19,6 @@
     <string name="webrtc_stream_stream_id_getting">Pobieranie ID strumienia…</string>
     <string name="webrtc_stream_stream_id">ID strumienia: %1$s</string>
     <string name="webrtc_stream_stream_password">Hasło strumienia: %1$s</string>
-    <string name="webrtc_stream_mic_off">Wycisz mikrofon</string>
-    <string name="webrtc_stream_mic_on">Włącz mikrofon</string>
     <string name="webrtc_stream_description_show_password">Pokaż hasło strumienia</string>
     <string name="webrtc_stream_description_get_new_id">Pobierz nowy ID strumienia</string>
     <string name="webrtc_stream_description_create_password">Utwórz nowe hasło strumienia</string>
@@ -30,6 +28,9 @@
     <string name="webrtc_stream_description_qr_address">Pokaż adres jako kod QR</string>
     <string name="webrtc_stream_description_qr">Kod QR</string>
     <string name="webrtc_stream_copied">Skopiowano</string>
+    <string name="webrtc_stream_audio_select">Wybierz źródła audio:</string>
+    <string name="webrtc_stream_audio_mic">Mikrofon</string>
+    <string name="webrtc_stream_audio_device">Audio urządzenia</string>
     <string name="webrtc_stream_connected_clients">Podłączonych klientów: %1$d</string>
     <string name="webrtc_stream_no_web_browser_found">Nie znaleziono przeglądarki internetowej</string>
     <string name="webrtc_stream_external_app_error">Błąd zewnętrznej aplikacji</string>

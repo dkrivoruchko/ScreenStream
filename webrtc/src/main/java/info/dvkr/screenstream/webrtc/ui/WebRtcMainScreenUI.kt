@@ -29,6 +29,7 @@ import info.dvkr.screenstream.common.ui.MediaProjectionPermission
 import info.dvkr.screenstream.webrtc.R
 import info.dvkr.screenstream.webrtc.internal.WebRtcEvent
 import info.dvkr.screenstream.webrtc.internal.WebRtcStreamingService
+import info.dvkr.screenstream.webrtc.ui.main.AudioCard
 import info.dvkr.screenstream.webrtc.ui.main.ClientsCard
 import info.dvkr.screenstream.webrtc.ui.main.ErrorCard
 import info.dvkr.screenstream.webrtc.ui.main.StreamCard
@@ -74,6 +75,13 @@ internal fun WebRtcMainScreenUI(
                     webRtcState = webRtcState,
                     onGetNewStreamId = { sendEvent(WebRtcEvent.GetNewStreamId) }, //TODO notify user that this will disconnect all clients
                     onCreateNewPassword = { sendEvent(WebRtcEvent.CreateNewPassword) }, //TODO notify user that this will disconnect all clients
+                    modifier = Modifier.padding(8.dp)
+                )
+            }
+
+            item(key = "AUDIO") {
+                AudioCard(
+                    webRtcState = webRtcState,
                     modifier = Modifier.padding(8.dp)
                 )
             }
