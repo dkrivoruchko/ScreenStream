@@ -151,7 +151,7 @@ private fun AudioSource(
 }
 
 @Composable
-private fun RequestPermission( //TODO Optimize
+private fun RequestPermission(
     permission: String = Manifest.permission.RECORD_AUDIO,
     onResult: (Boolean) -> Unit
 ) {
@@ -191,7 +191,7 @@ private fun RequestPermission( //TODO Optimize
 
     if (showRationaleDialog.value) {
         AlertDialog(
-            onDismissRequest = { },
+            onDismissRequest = {},
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -257,7 +257,7 @@ private fun RequestPermission( //TODO Optimize
             },
             icon = { Icon(Icons.Default.Mic, contentDescription = null) },
             title = { Text(text = stringResource(id = R.string.webrtc_stream_audio_permission_title)) },
-            text = { Text(text = stringResource(id = R.string.webrtc_stream_audio_permission_message_settings)) }, //TODO
+            text = { Text(text = stringResource(id = R.string.webrtc_stream_audio_permission_message_settings)) },
             shape = MaterialTheme.shapes.large,
             properties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false)
         )

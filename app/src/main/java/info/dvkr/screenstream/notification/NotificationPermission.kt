@@ -74,10 +74,12 @@ internal fun NotificationPermission(
         AlertDialog(
             onDismissRequest = {},
             confirmButton = {
-                TextButton(onClick = {
-                    showRationaleDialog.value = false
-                    requestPermissionLauncher.launch(permission)
-                }) {
+                TextButton(
+                    onClick = {
+                        showRationaleDialog.value = false
+                        requestPermissionLauncher.launch(permission)
+                    }
+                ) {
                     Text(text = stringResource(id = android.R.string.ok))
                 }
             },
@@ -93,10 +95,12 @@ internal fun NotificationPermission(
         AlertDialog(
             onDismissRequest = {},
             confirmButton = {
-                TextButton(onClick = {
-                    showSettingsDialog.value = false
-                    context.startActivity(notificationHelper.getNotificationSettingsIntent())
-                }) {
+                TextButton(
+                    onClick = {
+                        showSettingsDialog.value = false
+                        context.startActivity(notificationHelper.getNotificationSettingsIntent())
+                    }
+                ) {
                     Text(text = stringResource(id = R.string.app_permission_notification_settings))
                 }
             },
