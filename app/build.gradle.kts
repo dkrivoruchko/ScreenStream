@@ -4,6 +4,7 @@ import java.util.Properties
 plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.kotlinAndroid)
+    alias(libs.plugins.compose)
     alias(libs.plugins.ksp)
     alias(libs.plugins.googleServices)
     alias(libs.plugins.firebaseCrashlytics)
@@ -29,8 +30,8 @@ android {
         applicationId = "info.dvkr.screenstream"
         minSdk = rootProject.extra["minSdkVersion"] as Int
         targetSdk = rootProject.extra["targetSdkVersion"] as Int
-        versionCode = 41002
-        versionName = "4.1.2"
+        versionCode = 41003
+        versionName = "4.1.3"
 
         // https://medium.com/@crafty/no-if-you-do-that-then-you-cant-use-newer-features-on-older-platforms-e-g-fa595333c0a4
         vectorDrawables.useSupportLibrary = true
@@ -44,11 +45,6 @@ android {
 
     buildFeatures {
         buildConfig = true
-        compose = true
-    }
-
-    composeOptions {
-        kotlinCompilerExtensionVersion = rootProject.extra["composeCompilerVersion"] as String
     }
 
     buildTypes {

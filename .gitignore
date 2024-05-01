@@ -37,3 +37,5 @@ captures/
 # Intellij
 *.iml
 .idea
+
+.kotlin/

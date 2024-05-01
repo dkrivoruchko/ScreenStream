@@ -1,7 +1,7 @@
 [versions]
-agp = "8.3.2"
-kotlin = "1.9.23"
-ksp = "1.9.23-1.0.20"
+agp = "8.4.0"
+kotlin = "2.0.0-RC2"
+ksp = "2.0.0-RC2-1.0.20"
 android-tools-r8 = "8.3.37"
 android-tools-desugar = "2.0.4"
 
@@ -105,6 +105,7 @@ androidApplication = { id = "com.android.application", version.ref = "agp" }
 androidLibrary = { id = "com.android.library", version.ref = "agp" }
 kotlinAndroid = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlinParcelize = { id = "org.jetbrains.kotlin.plugin.parcelize", version.ref = "kotlin" }
+compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 
 #PlayStore

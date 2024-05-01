@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.androidLibrary)
     alias(libs.plugins.kotlinAndroid)
+    alias(libs.plugins.compose)
     alias(libs.plugins.ksp)
 }
 
@@ -11,14 +12,6 @@ android {
 
     defaultConfig {
         minSdk = rootProject.extra["minSdkVersion"] as Int
-    }
-
-    buildFeatures {
-        compose = true
-    }
-
-    composeOptions {
-        kotlinCompilerExtensionVersion = rootProject.extra["composeCompilerVersion"] as String
     }
 
     compileOptions {
