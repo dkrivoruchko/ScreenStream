@@ -36,10 +36,6 @@ import java.util.TimeZone
 internal object AppLogger {
 
     private lateinit var sharedPreferences: SharedPreferences
-    private lateinit var logFolder: String
-    private lateinit var logZipFolder: String
-    private lateinit var logZipFile: String
-    private lateinit var filePrinter: FilePrinter
 
     @Volatile
     internal var isLoggingOn: Boolean = false
@@ -50,15 +46,6 @@ internal object AppLogger {
         sharedPreferences = context.getSharedPreferences("info.dvkr.screenstream_logging", Application.MODE_PRIVATE)
         isLoggingOn = sharedPreferences.getBoolean("loggingOn", false)
 
-        logFolder = context.cacheDir.absolutePath + "/logs/"
-        logZipFolder = context.filesDir.absolutePath + "/logs/"
-        logZipFile = logZipFolder + "logs.zip"
-        filePrinter = FilePrinter.Builder(logFolder)
-            .fileNameGenerator(DateSuffixFileNameGenerator(context.hashCode().toString()))
-            .cleanStrategy(FileLastModifiedCleanStrategy(86400000)) // One day
-            .flattener(ClassicFlattener())
-            .build()
-
         val logConfiguration = LogConfiguration.Builder()
             .tag("SSApp")
             .apply { configureLogger(this) }
@@ -66,7 +53,14 @@ internal object AppLogger {
 
         var printers = emptyArray<Printer>()
         if (BuildConfig.DEBUG) printers = printers.plus(AndroidPrinter())
-        if (isLoggingOn) printers = printers.plus(filePrinter)
+        if (isLoggingOn) {
+            val filePrinter = FilePrinter.Builder(context.logFolder)
+                .fileNameGenerator(DateSuffixFileNameGenerator(context.hashCode().toString()))
+                .cleanStrategy(FileLastModifiedCleanStrategy(86400000)) // One day
+                .flattener(ClassicFlattener())
+                .build()
+            printers = printers.plus(filePrinter)
+        }
 
         XLog.init(logConfiguration, *printers)
     }
@@ -79,7 +73,7 @@ internal object AppLogger {
         isLoggingOn = true
         Toast.makeText(context, context.getString(R.string.app_logs_enabled), Toast.LENGTH_LONG).show()
         GlobalScope.launch {
-            cleanLogFiles()
+            cleanLogFiles(context)
             sharedPreferences.edit().putBoolean("loggingOn", true).commit()
         }.invokeOnCompletion {
             ProcessPhoenix.triggerRebirth(context)
@@ -95,7 +89,7 @@ internal object AppLogger {
         Toast.makeText(context, context.getString(R.string.app_logs_disabled), Toast.LENGTH_LONG).show()
         GlobalScope.launch {
             sharedPreferences.edit().putBoolean("loggingOn", false).commit()
-            cleanLogFiles()
+            cleanLogFiles(context)
         }.invokeOnCompletion {
             ProcessPhoenix.triggerRebirth(context)
         }
@@ -103,7 +97,11 @@ internal object AppLogger {
 
     @MainThread
     internal suspend fun sendLogsInEmail(context: Context, text: String) {
-        withContext(Dispatchers.Default) { LogUtils.compress(logFolder, logZipFile) }
+        val logZipFile = withContext(Dispatchers.Default) {
+            val logZipFile = context.logZipFile
+            LogUtils.compress(context.logFolder, logZipFile)
+            logZipFile
+        }
 
         val fileUri = FileProvider.getUriForFile(context, "info.dvkr.screenstream.fileprovider", File(logZipFile))
         val version = context.getAppVersion()
@@ -124,10 +122,19 @@ internal object AppLogger {
         }
     }
 
-    private fun cleanLogFiles() {
-        runCatching { File(logFolder).let { if (it.exists()) it.deleteRecursively() } }
-        runCatching { File(logZipFolder).let { if (it.exists()) it.deleteRecursively() } }
+    private fun cleanLogFiles(context: Context) {
+        runCatching { File(context.logFolder).let { if (it.exists()) it.deleteRecursively() } }
+        runCatching { File(context.logZipFolder).let { if (it.exists()) it.deleteRecursively() } }
     }
+
+    private val Context.logFolder: String
+        get() = cacheDir.absolutePath + "/logs/"
+
+    private val Context.logZipFolder: String
+        get() = filesDir.absolutePath + "/logs/"
+
+    private val Context.logZipFile: String
+        get() = logZipFolder + "logs.zip"
 
     private class DateSuffixFileNameGenerator(private val suffix: String) : FileNameGenerator {
         private val localDateFormat: ThreadLocal<SimpleDateFormat> = object : ThreadLocal<SimpleDateFormat>() {

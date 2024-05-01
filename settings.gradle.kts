@@ -1,13 +1,23 @@
 pluginManagement {
-    repositories.google()
-    repositories.mavenCentral()
-    repositories.gradlePluginPortal()
+    repositories {
+        google {
+            content {
+                includeGroupByRegex("com\\.android.*")
+                includeGroupByRegex("com\\.google.*")
+                includeGroupByRegex("androidx.*")
+            }
+        }
+        mavenCentral()
+        gradlePluginPortal()
+    }
 }
 
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
-    repositories.google()
-    repositories.mavenCentral()
+    repositories {
+        google()
+        mavenCentral()
+    }
 }
 
 rootProject.name = "ScreenStream"
