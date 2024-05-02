@@ -22,11 +22,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
-import androidx.compose.material3.adaptive.navigationsuite.ExperimentalMaterial3AdaptiveNavigationSuiteApi
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffold
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteType
-import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
@@ -43,6 +41,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.window.core.layout.WindowWidthSizeClass
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.common.ui.conditional
 import info.dvkr.screenstream.logger.AppLogger
@@ -89,7 +88,6 @@ internal fun ScreenStreamContent(
 }
 
 @Composable
-@OptIn(ExperimentalMaterial3AdaptiveNavigationSuiteApi::class, ExperimentalMaterial3AdaptiveApi::class)
 private fun MainContent(
     modifier: Modifier = Modifier,
     tabs: Array<ScreenStreamTab> = arrayOf(StreamTab, SettingsTab, AboutTab)
@@ -101,7 +99,7 @@ private fun MainContent(
     val layoutType = with(currentWindowAdaptiveInfo()) {
         when {
             windowPosture.isTabletop -> NavigationSuiteType.NavigationBar
-            windowSizeClass.widthSizeClass != WindowWidthSizeClass.Compact -> NavigationSuiteType.NavigationRail
+            windowSizeClass.windowWidthSizeClass != WindowWidthSizeClass.COMPACT -> NavigationSuiteType.NavigationRail
             else -> NavigationSuiteType.NavigationBar
         }
     }

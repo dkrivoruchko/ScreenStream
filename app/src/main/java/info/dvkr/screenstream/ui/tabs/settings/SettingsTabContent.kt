@@ -26,17 +26,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
-import androidx.compose.material3.adaptive.collectFoldingFeaturesAsState
+import androidx.compose.material3.adaptive.WindowAdaptiveInfo
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.material3.adaptive.layout.AnimatedPane
 import androidx.compose.material3.adaptive.layout.ListDetailPaneScaffold
 import androidx.compose.material3.adaptive.layout.ListDetailPaneScaffoldRole
-import androidx.compose.material3.adaptive.layout.PaneScaffoldDirective
+import androidx.compose.material3.adaptive.layout.calculatePaneScaffoldDirective
 import androidx.compose.material3.adaptive.navigation.ThreePaneScaffoldNavigator
 import androidx.compose.material3.adaptive.navigation.rememberListDetailPaneScaffoldNavigator
-import androidx.compose.material3.adaptive.separatingVerticalHingeBounds
-import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
-import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
-import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
@@ -62,14 +59,11 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.window.layout.FoldingFeature
+import androidx.window.core.layout.WindowWidthSizeClass
 import info.dvkr.screenstream.AdaptiveBanner
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.common.ModuleSettings
-import info.dvkr.screenstream.common.findActivity
 import info.dvkr.screenstream.common.module.StreamingModuleManager
-import info.dvkr.screenstream.ui.WindowAdaptiveInfo
-import info.dvkr.screenstream.ui.currentWindowAdaptiveInfo
 import info.dvkr.screenstream.ui.tabs.settings.app.AppModuleSettings
 import org.koin.compose.koinInject
 
@@ -97,14 +91,16 @@ internal fun SettingsTabContent(
         }
     }
 
-    val panePreferredWidth = calculatePanePreferredWidth(boundsInWindow)
-    val scaffoldNavigator = rememberListDetailPaneScaffoldNavigator(calculatePaneScaffoldDirective())
+    val windowAdaptiveInfo = currentWindowAdaptiveInfo()
+    val listPanePreferredWidth = calculateListPanePreferredWidth(windowAdaptiveInfo, boundsInWindow)
+    val scaffoldDirective = calculatePaneScaffoldDirective(windowAdaptiveInfo).copy(horizontalPartitionSpacerSize = 0.dp)
+    val scaffoldNavigator = rememberListDetailPaneScaffoldNavigator(scaffoldDirective)
 
     ListDetailPaneScaffold(
         directive = scaffoldNavigator.scaffoldDirective,
         value = scaffoldNavigator.scaffoldValue,
         listPane = {
-            AnimatedPane(modifier = Modifier.preferredWidth(panePreferredWidth)) {
+            AnimatedPane(modifier = Modifier.preferredWidth(listPanePreferredWidth)) {
                 SettingsListPane(
                     settingsListState = settingsListState,
                     onDetailShow = { (moduleId, settingsGroupId, settingsItemId) ->
@@ -341,41 +337,20 @@ private fun SettingsListSearch(
 }
 
 @Composable
-@OptIn(ExperimentalMaterial3AdaptiveApi::class)
-private fun calculatePaneScaffoldDirective(
-    windowAdaptiveInfo: WindowAdaptiveInfo = currentWindowAdaptiveInfo(),
-): PaneScaffoldDirective = PaneScaffoldDirective(
-    maxHorizontalPartitions = when (windowAdaptiveInfo.windowSizeClass.widthSizeClass) {
-        WindowWidthSizeClass.Compact, WindowWidthSizeClass.Medium -> 1
-        else -> 2
-    },
-    horizontalPartitionSpacerSize = 0.dp,
-    maxVerticalPartitions = 1,
-    verticalPartitionSpacerSize = 0.dp,
-    defaultPanePreferredWidth = 0.dp,
-    excludedBounds = windowAdaptiveInfo.windowPosture.separatingVerticalHingeBounds
-)
-
-@Composable
-@OptIn(ExperimentalMaterial3WindowSizeClassApi::class, ExperimentalMaterial3AdaptiveApi::class)
-private fun calculatePanePreferredWidth(boundsInWindow: Rect): Dp {
+private fun calculateListPanePreferredWidth(
+    windowAdaptiveInfo: WindowAdaptiveInfo,
+    boundsInWindow: Rect
+): Dp {
     if (boundsInWindow.isEmpty) return 360.dp
+    val hinge = windowAdaptiveInfo.windowPosture.hingeList.firstOrNull()
+    return when {
+        hinge == null || hinge.isFlat ->
+            when (windowAdaptiveInfo.windowSizeClass.windowWidthSizeClass) {
+                WindowWidthSizeClass.EXPANDED -> with(LocalDensity.current) { (boundsInWindow.width / 2).toDp() }
+                else -> 360.dp
+            }
 
-    val foldingFeature = collectFoldingFeaturesAsState().value.firstOrNull()
-
-    return if (foldingFeature?.state != FoldingFeature.State.HALF_OPENED) {
-        val windowSizeClass = calculateWindowSizeClass(LocalContext.current.findActivity())
-        if (windowSizeClass.widthSizeClass == WindowWidthSizeClass.Expanded) {
-            with(LocalDensity.current) { (boundsInWindow.width / 2).toDp() }
-        } else {
-            360.dp
-        }
-    } else {
-        if (foldingFeature.orientation == FoldingFeature.Orientation.VERTICAL) {
-            //BookPosture
-            with(LocalDensity.current) { (foldingFeature.bounds.left - boundsInWindow.left).toDp() }
-        } else {
-            360.dp
-        }
+        hinge.isVertical -> with(LocalDensity.current) { (hinge.bounds.left - boundsInWindow.left).toDp() } // BookPosture
+        else -> 360.dp
     }
 }
