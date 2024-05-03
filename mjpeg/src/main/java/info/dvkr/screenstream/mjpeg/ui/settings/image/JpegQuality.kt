@@ -42,9 +42,7 @@ import info.dvkr.screenstream.common.ModuleSettings
 import info.dvkr.screenstream.mjpeg.R
 import info.dvkr.screenstream.mjpeg.settings.MjpegSettings
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import org.koin.compose.koinInject
 
 internal object JpegQuality : ModuleSettings.Item {
@@ -160,7 +158,7 @@ private fun JpegQualityDetailUI(
                         currentJpegQuality.value = textField.copy(text = newJpegQuality.toString())
                         isError.value = false
                         if (jpegQuality.value != newJpegQuality) {
-                            scope.launch { withContext(NonCancellable) { mjpegSettings.updateData { copy(jpegQuality = newJpegQuality) } } }
+                            scope.launch { mjpegSettings.updateData { copy(jpegQuality = newJpegQuality) } }
                         }
                     }
                 },
@@ -173,7 +171,7 @@ private fun JpegQualityDetailUI(
                 singleLine = true,
             )
 
-            LaunchedEffect(true) { focusRequester.requestFocus() }
+            LaunchedEffect(Unit) { focusRequester.requestFocus() }
         }
     }
 }

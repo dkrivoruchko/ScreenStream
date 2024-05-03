@@ -105,11 +105,7 @@ internal fun WebRtcMainScreenUI(
                 else sendEvent(WebRtcStreamingService.InternalEvent.StartStream)
             },
             modifier = Modifier
-                .padding(
-                    start = 16.dp,
-                    end = 16.dp,
-                    bottom = 8.dp
-                )
+                .padding(start = 16.dp, end = 16.dp, bottom = 8.dp)
                 .align(alignment = Alignment.BottomCenter),
             enabled = isBusy.value.not(),
             shape = MaterialTheme.shapes.medium,

@@ -41,9 +41,7 @@ import info.dvkr.screenstream.common.module.StreamingModuleManager
 import info.dvkr.screenstream.common.settings.AppSettings
 import info.dvkr.screenstream.common.ui.ExpandableCard
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import org.koin.compose.koinInject
 
 @Composable
@@ -118,13 +116,7 @@ private fun StreamingModuleSelector(
             ModuleSelectorRow(
                 module = module,
                 selectedModuleId = selectedModuleId.value,
-                onModuleSelect = { moduleId ->
-                    scope.launch {
-                        withContext(NonCancellable) {
-                            streamingModulesManager.selectStreamingModule(moduleId)
-                        }
-                    }
-                },
+                onModuleSelect = { moduleId -> scope.launch { streamingModulesManager.selectStreamingModule(moduleId) } },
                 modifier = Modifier.fillMaxWidth()
             )
         }

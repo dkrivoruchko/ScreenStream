@@ -26,9 +26,7 @@ import info.dvkr.screenstream.common.ModuleSettings
 import info.dvkr.screenstream.webrtc.R
 import info.dvkr.screenstream.webrtc.settings.WebRtcSettings
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import org.koin.compose.koinInject
 
 internal object StopOnSleep : ModuleSettings.Item {
@@ -59,7 +57,7 @@ private fun StopOnSleepUI(
         modifier = Modifier
             .toggleable(
                 value = stopOnSleep.value,
-                onValueChange = { scope.launch { withContext(NonCancellable) { webRtcSettings.updateData { copy(stopOnSleep = it) } } } }
+                onValueChange = { scope.launch { webRtcSettings.updateData { copy(stopOnSleep = it) } } }
             )
             .padding(start = horizontalPadding + 16.dp, end = horizontalPadding + 10.dp),
         verticalAlignment = Alignment.CenterVertically

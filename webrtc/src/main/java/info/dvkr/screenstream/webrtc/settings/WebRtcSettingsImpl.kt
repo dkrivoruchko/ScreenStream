@@ -12,11 +12,13 @@ import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.common.getLog
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.withContext
 import org.koin.core.annotation.Single
 import java.io.IOException
 
@@ -42,7 +44,7 @@ internal class WebRtcSettingsImpl(
             WebRtcSettings.Data()
         )
 
-    override suspend fun updateData(transform: WebRtcSettings.Data.() -> WebRtcSettings.Data) {
+    override suspend fun updateData(transform: WebRtcSettings.Data.() -> WebRtcSettings.Data) = withContext(NonCancellable + Dispatchers.IO) {
         dataStore.edit { preferences ->
             val newSettings = transform.invoke(preferences.toWebRtcSettings())
 
@@ -72,6 +74,7 @@ internal class WebRtcSettingsImpl(
                     set(WebRtcSettings.Key.STOP_ON_SLEEP, newSettings.stopOnSleep)
             }
         }
+        Unit
     }
 
     private fun Preferences.toWebRtcSettings(): WebRtcSettings.Data = WebRtcSettings.Data(

@@ -42,9 +42,7 @@ import info.dvkr.screenstream.common.ModuleSettings
 import info.dvkr.screenstream.mjpeg.R
 import info.dvkr.screenstream.mjpeg.settings.MjpegSettings
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import org.koin.compose.koinInject
 
 internal object MaxFPS : ModuleSettings.Item {
@@ -160,7 +158,7 @@ private fun MaxFpsDetailUI(
                         currentMaxFPS.value = textField.copy(text = newMaxFPS.toString())
                         isError.value = false
                         if (maxFPS.value != newMaxFPS) {
-                            scope.launch { withContext(NonCancellable) { mjpegSettings.updateData { copy(maxFPS = newMaxFPS) } } }
+                            scope.launch { mjpegSettings.updateData { copy(maxFPS = newMaxFPS) } }
                         }
                     }
                 },
@@ -173,7 +171,7 @@ private fun MaxFpsDetailUI(
                 singleLine = true,
             )
 
-            LaunchedEffect(true) { focusRequester.requestFocus() }
+            LaunchedEffect(Unit) { focusRequester.requestFocus() }
         }
     }
 }

@@ -43,9 +43,7 @@ import info.dvkr.screenstream.common.ModuleSettings
 import info.dvkr.screenstream.mjpeg.R
 import info.dvkr.screenstream.mjpeg.settings.MjpegSettings
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import org.koin.compose.koinInject
 
 internal object ServerPort : ModuleSettings.Item {
@@ -84,7 +82,7 @@ private fun ServerPortUI(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
-            imageVector = remember { Icon_Http },
+            imageVector = Icon_Http,
             contentDescription = stringResource(id = R.string.mjpeg_pref_server_port),
             modifier = Modifier.padding(end = 16.dp)
         )
@@ -158,7 +156,7 @@ private fun ServerPortDetailUI(
                         currentServerPort.value = textField.copy(text = newServerPort.toString())
                         isError.value = false
                         if (serverPort.value != newServerPort) {
-                            scope.launch { withContext(NonCancellable) { mjpegSettings.updateData { copy(serverPort = newServerPort) } } }
+                            scope.launch { mjpegSettings.updateData { copy(serverPort = newServerPort) } }
                         }
                     }
                 },
@@ -171,7 +169,7 @@ private fun ServerPortDetailUI(
                 singleLine = true,
             )
 
-            LaunchedEffect(true) { focusRequester.requestFocus() }
+            LaunchedEffect(Unit) { focusRequester.requestFocus() }
         }
     }
 }

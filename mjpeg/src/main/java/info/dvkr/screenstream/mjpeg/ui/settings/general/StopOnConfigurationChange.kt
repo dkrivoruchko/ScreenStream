@@ -26,9 +26,7 @@ import info.dvkr.screenstream.common.ModuleSettings
 import info.dvkr.screenstream.mjpeg.R
 import info.dvkr.screenstream.mjpeg.settings.MjpegSettings
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import org.koin.compose.koinInject
 
 internal object StopOnConfigurationChange : ModuleSettings.Item {
@@ -60,7 +58,7 @@ private fun StopOnConfigurationChangeUI(
         modifier = Modifier
             .toggleable(
                 value = stopOnConfigurationChange.value,
-                onValueChange = { scope.launch { withContext(NonCancellable) { mjpegSettings.updateData { copy(stopOnConfigurationChange = it) } } } }
+                onValueChange = { scope.launch { mjpegSettings.updateData { copy(stopOnConfigurationChange = it) } } }
             )
             .padding(start = horizontalPadding + 16.dp, end = horizontalPadding + 10.dp),
         verticalAlignment = Alignment.CenterVertically

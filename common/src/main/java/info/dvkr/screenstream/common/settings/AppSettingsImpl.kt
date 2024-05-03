@@ -13,11 +13,13 @@ import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.common.module.StreamingModule
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.withContext
 import org.koin.core.annotation.Single
 import java.io.IOException
 
@@ -41,7 +43,7 @@ internal class AppSettingsImpl(context: Context) : AppSettings {
             AppSettings.Data()
         )
 
-    override suspend fun updateData(transform: AppSettings.Data.() -> AppSettings.Data) {
+    override suspend fun updateData(transform: AppSettings.Data.() -> AppSettings.Data) = withContext(NonCancellable + Dispatchers.IO) {
         dataStore.edit { preferences ->
             val newSettings = transform.invoke(preferences.toAppSettings())
 
@@ -61,6 +63,7 @@ internal class AppSettingsImpl(context: Context) : AppSettings {
                     set(AppSettings.Key.ADD_TILE_ASKED, newSettings.addTileAsked)
             }
         }
+        Unit
     }
 
     private fun Preferences.toAppSettings(): AppSettings.Data = AppSettings.Data(

@@ -37,9 +37,7 @@ import info.dvkr.screenstream.common.ModuleSettings
 import info.dvkr.screenstream.mjpeg.R
 import info.dvkr.screenstream.mjpeg.settings.MjpegSettings
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import org.koin.compose.koinInject
 
 internal object Rotation : ModuleSettings.Item {
@@ -149,7 +147,7 @@ private fun RotationDetailUI(
                             onClick = {
                                 val newRotation = Rotation.getRotationByIndex(index)
                                 if (newRotation != rotation.value) {
-                                    scope.launch { withContext(NonCancellable) { mjpegSettings.updateData { copy(rotation = newRotation) } } }
+                                    scope.launch { mjpegSettings.updateData { copy(rotation = newRotation) } }
                                 }
                             },
                             role = Role.RadioButton

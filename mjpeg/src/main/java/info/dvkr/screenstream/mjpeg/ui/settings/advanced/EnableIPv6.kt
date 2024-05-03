@@ -27,9 +27,7 @@ import info.dvkr.screenstream.common.ModuleSettings
 import info.dvkr.screenstream.mjpeg.R
 import info.dvkr.screenstream.mjpeg.settings.MjpegSettings
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import org.koin.compose.koinInject
 
 internal object EnableIPv6 : ModuleSettings.Item {
@@ -60,13 +58,13 @@ private fun EnableIPv6UI(
         modifier = Modifier
             .toggleable(
                 value = enableIPv6.value,
-                onValueChange = { scope.launch { withContext(NonCancellable) { mjpegSettings.updateData { copy(enableIPv6 = it) } } } }
+                onValueChange = { scope.launch { mjpegSettings.updateData { copy(enableIPv6 = it) } } }
             )
             .padding(start = horizontalPadding + 16.dp, end = horizontalPadding + 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
-            imageVector = remember { Icon_Ipv6 },
+            imageVector = Icon_Ipv6,
             contentDescription = stringResource(id = R.string.mjpeg_pref_enable_ipv6),
             modifier = Modifier.padding(end = 16.dp)
         )

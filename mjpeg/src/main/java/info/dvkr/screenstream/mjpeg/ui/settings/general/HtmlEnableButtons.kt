@@ -24,12 +24,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import info.dvkr.screenstream.common.ModuleSettings
+import info.dvkr.screenstream.common.ui.conditional
 import info.dvkr.screenstream.mjpeg.R
 import info.dvkr.screenstream.mjpeg.settings.MjpegSettings
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import org.koin.compose.koinInject
 
 internal object HtmlEnableButtons : ModuleSettings.Item {
@@ -62,10 +61,10 @@ private fun HtmlEnableButtonsUI(
             .toggleable(
                 value = htmlEnableButtons.value,
                 enabled = enablePin.value.not(),
-                onValueChange = { scope.launch { withContext(NonCancellable) { mjpegSettings.updateData { copy(htmlEnableButtons = it) } } } }
+                onValueChange = { scope.launch { mjpegSettings.updateData { copy(htmlEnableButtons = it) } } }
             )
             .padding(start = horizontalPadding + 16.dp, end = horizontalPadding + 10.dp)
-            .then(if (enablePin.value.not()) Modifier else Modifier.alpha(0.5F)),
+            .conditional(enablePin.value) { alpha(0.5F) },
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(

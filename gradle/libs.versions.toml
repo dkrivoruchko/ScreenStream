@@ -38,8 +38,8 @@ okhttp = "4.12.0"
 #PlayStore-App
 play-app-update = "2.1.0"
 play-services-ads = "23.0.0"
-firebase-analytics = "21.6.2"
-firebase-crashlytics = "18.6.4"
+firebase-analytics = "22.0.0"
+firebase-crashlytics = "19.0.0"
 google-services = "4.4.1"
 crashlytics-gradle = "2.9.9"
 

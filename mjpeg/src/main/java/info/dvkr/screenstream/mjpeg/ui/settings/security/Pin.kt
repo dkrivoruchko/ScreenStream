@@ -43,12 +43,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import info.dvkr.screenstream.common.ModuleSettings
 import info.dvkr.screenstream.common.module.StreamingModuleManager
 import info.dvkr.screenstream.common.ui.RobotoMonoBold
+import info.dvkr.screenstream.common.ui.conditional
 import info.dvkr.screenstream.mjpeg.R
 import info.dvkr.screenstream.mjpeg.settings.MjpegSettings
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import org.koin.compose.koinInject
 
 internal object Pin : ModuleSettings.Item {
@@ -91,7 +90,7 @@ private fun PinUI(
         modifier = Modifier
             .clickable(enabled = enabled.value, role = Role.Button) { onDetailShow.invoke() }
             .padding(start = horizontalPadding + 16.dp, end = horizontalPadding + 10.dp)
-            .then(if (enabled.value) Modifier else Modifier.alpha(0.5F)),
+            .conditional(enabled.value.not()) { alpha(0.5F) },
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
@@ -143,7 +142,7 @@ private fun PinDetailUI(
     val currentPin = remember { mutableStateOf(TextFieldValue(text = pin.value, selection = TextRange(pin.value.length))) }
 
     val focusRequester = remember { FocusRequester() }
-    LaunchedEffect(true) { focusRequester.requestFocus() }
+    LaunchedEffect(Unit) { focusRequester.requestFocus() }
 
     val isError = remember { mutableStateOf(false) }
 
@@ -177,7 +176,7 @@ private fun PinDetailUI(
                     } else {
                         isError.value = false
                         if (pin.value != newPinText) {
-                            scope.launch { withContext(NonCancellable) { mjpegSettings.updateData { copy(pin = newPinText) } } }
+                            scope.launch { mjpegSettings.updateData { copy(pin = newPinText) } }
                         }
                     }
                 },

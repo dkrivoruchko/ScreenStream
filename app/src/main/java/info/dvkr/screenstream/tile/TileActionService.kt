@@ -47,7 +47,7 @@ public class TileActionService : TileService() {
         @RequiresApi(Build.VERSION_CODES.TIRAMISU)
         internal fun AddTileRequest(appSettings: AppSettings = koinInject()) {
             val context = LocalContext.current
-            LaunchedEffect(true) {
+            LaunchedEffect(Unit) {
                 if (appSettings.data.value.addTileAsked.not() && context.isPermissionGranted(Manifest.permission.POST_NOTIFICATIONS)) {
                     appSettings.updateData { copy(addTileAsked = true) }
                     addTileRequest(context)

@@ -1,5 +1,6 @@
 package info.dvkr.screenstream.mjpeg.ui.main
 
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -48,9 +49,10 @@ internal fun TrafficCard(
     ExpandableCard(
         headerContent = {
             val currentTraffic = remember { derivedStateOf { mjpegState.value.traffic.lastOrNull()?.MBytes ?: 0F } }
+            val locale = AppCompatDelegate.getApplicationLocales().get(0)
             Text(
                 text = stringResource(id = R.string.mjpeg_stream_current_traffic, currentTraffic.value)
-                    .stylePlaceholder(String.format("%1$,.2f", currentTraffic.value), SpanStyle(fontWeight = FontWeight.Bold)),
+                    .stylePlaceholder(String.format(locale, "%1$,.2f", currentTraffic.value), SpanStyle(fontWeight = FontWeight.Bold)),
                 modifier = Modifier.align(Alignment.Center)
             )
         },

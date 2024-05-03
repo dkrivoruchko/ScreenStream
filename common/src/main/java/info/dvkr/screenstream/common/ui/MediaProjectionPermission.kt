@@ -47,7 +47,7 @@ public fun MediaProjectionPermission(
 
     if (requestCastPermission && mediaProjectionRequested.value.not()) {
         val context = LocalContext.current
-        LaunchedEffect(true) {
+        LaunchedEffect(Unit) {
             // TODO media projection for multi-display devices
             val mediaProjectionManager = context.getSystemService(MediaProjectionManager::class.java)
             mediaProjectionPermissionLauncher.launch(mediaProjectionManager.createScreenCaptureIntent())

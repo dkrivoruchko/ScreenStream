@@ -49,9 +49,7 @@ import info.dvkr.screenstream.webrtc.R
 import info.dvkr.screenstream.webrtc.settings.WebRtcSettings
 import info.dvkr.screenstream.webrtc.ui.WebRtcState
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import org.koin.compose.koinInject
 
 @Composable
@@ -93,10 +91,10 @@ internal fun AudioCard(
             enabled = Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE || isStreaming.value.not(),
             onChange = { enabled ->
                 if (enabled.not() || context.isPermissionGranted(Manifest.permission.RECORD_AUDIO)) {
-                    scope.launch { withContext(NonCancellable) { webRtcSettings.updateData { copy(enableMic = enabled) } } }
+                    scope.launch { webRtcSettings.updateData { copy(enableMic = enabled) } }
                 } else {
                     onPermissionsResult.value = { isGranted ->
-                        scope.launch { withContext(NonCancellable) { webRtcSettings.updateData { copy(enableMic = isGranted) } } }
+                        scope.launch { webRtcSettings.updateData { copy(enableMic = isGranted) } }
                     }
                     showRecordAudioPermission.value = true
                 }
@@ -110,10 +108,10 @@ internal fun AudioCard(
                 enabled = Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE || isStreaming.value.not(),
                 onChange = { enabled ->
                     if (enabled.not() || context.isPermissionGranted(Manifest.permission.RECORD_AUDIO)) {
-                        scope.launch { withContext(NonCancellable) { webRtcSettings.updateData { copy(enableDeviceAudio = enabled) } } }
+                        scope.launch { webRtcSettings.updateData { copy(enableDeviceAudio = enabled) } }
                     } else {
                         onPermissionsResult.value = { isGranted ->
-                            scope.launch { withContext(NonCancellable) { webRtcSettings.updateData { copy(enableDeviceAudio = isGranted) } } }
+                            scope.launch { webRtcSettings.updateData { copy(enableDeviceAudio = isGranted) } }
                         }
                         showRecordAudioPermission.value = true
                     }

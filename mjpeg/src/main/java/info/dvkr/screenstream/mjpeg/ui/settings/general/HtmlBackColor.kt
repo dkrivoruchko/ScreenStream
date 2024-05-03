@@ -61,9 +61,7 @@ import info.dvkr.screenstream.common.ModuleSettings
 import info.dvkr.screenstream.mjpeg.R
 import info.dvkr.screenstream.mjpeg.settings.MjpegSettings
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import org.koin.compose.koinInject
 
 internal object HtmlBackColor : ModuleSettings.Item {
@@ -150,7 +148,7 @@ private fun HtmlBackColorDetailUI(
     val htmlBackColor = remember { derivedStateOf { Color(mjpegSettingsState.value.htmlBackColor) } }
     val onColorChangeState = rememberUpdatedState { color: Color ->
         if (htmlBackColor.value != color) {
-            scope.launch { withContext(NonCancellable) { mjpegSettings.updateData { copy(htmlBackColor = color.toArgb()) } } }
+            scope.launch { mjpegSettings.updateData { copy(htmlBackColor = color.toArgb()) } }
         }
     }
 
@@ -195,7 +193,7 @@ private fun ColorEditorPanel(
     modifier: Modifier = Modifier,
     borderColor: Color = LocalContentColor.current,
 ) {
-    val currentColorString = remember { mutableStateOf("%06X".format(0xFFFFFF and htmlBackColor.toArgb())) }
+    val currentColorString = remember(htmlBackColor) { mutableStateOf("%06X".format(0xFFFFFF and htmlBackColor.toArgb())) }
     val textColor = remember(htmlBackColor) { if (htmlBackColor.luminance() <= 0.5F) Color.White else Color.Black }
     val colorRegexp = remember { "[^0-9a-fA-F]".toRegex() }
     val textMeasurer = rememberTextMeasurer()

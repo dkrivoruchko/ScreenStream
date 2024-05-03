@@ -27,9 +27,7 @@ import info.dvkr.screenstream.R
 import info.dvkr.screenstream.common.ModuleSettings
 import info.dvkr.screenstream.common.settings.AppSettings
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import org.koin.compose.koinInject
 
 internal object DynamicTheme : ModuleSettings.Item {
@@ -60,7 +58,7 @@ private fun DynamicThemeUI(
         modifier = Modifier
             .toggleable(
                 value = dynamicTheme.value,
-                onValueChange = { scope.launch { withContext(NonCancellable) { appSettings.updateData { copy(dynamicTheme = it) } } } }
+                onValueChange = { scope.launch { appSettings.updateData { copy(dynamicTheme = it) } } }
             )
             .padding(start = horizontalPadding + 16.dp, end = horizontalPadding + 10.dp),
         verticalAlignment = Alignment.CenterVertically

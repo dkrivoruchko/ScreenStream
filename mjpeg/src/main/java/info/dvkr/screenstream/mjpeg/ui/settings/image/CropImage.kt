@@ -52,9 +52,7 @@ import info.dvkr.screenstream.common.ModuleSettings
 import info.dvkr.screenstream.mjpeg.R
 import info.dvkr.screenstream.mjpeg.settings.MjpegSettings
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import org.koin.compose.koinInject
 
 internal object CropImage : ModuleSettings.Item {
@@ -132,11 +130,7 @@ private fun CropImageUI(
 
         Switch(
             checked = imageCrop.value,
-            onCheckedChange = {
-                scope.launch {
-                    withContext(NonCancellable) { mjpegSettings.updateData { copy(imageCrop = imageCrop.value.not()) } }
-                }
-            },
+            onCheckedChange = { scope.launch { mjpegSettings.updateData { copy(imageCrop = imageCrop.value.not()) } } },
             modifier = Modifier.scale(0.7F),
         )
     }
@@ -188,30 +182,30 @@ private fun CropImageDetailUI(
 
             CropRow(imageCropTop.value, R.string.mjpeg_pref_crop_top, topError, focusRequester, focusManager) { newTop ->
                 if (imageCropTop.value != newTop) {
-                    scope.launch { withContext(NonCancellable) { mjpegSettings.updateData { copy(imageCropTop = newTop) } } }
+                    scope.launch { mjpegSettings.updateData { copy(imageCropTop = newTop) } }
                 }
             }
 
             CropRow(imageCropBottom.value, R.string.mjpeg_pref_crop_bottom, bottomError, focusRequester, focusManager) { newBottom ->
                 if (imageCropBottom.value != newBottom) {
-                    scope.launch { withContext(NonCancellable) { mjpegSettings.updateData { copy(imageCropBottom = newBottom) } } }
+                    scope.launch { mjpegSettings.updateData { copy(imageCropBottom = newBottom) } }
                 }
             }
 
             CropRow(imageCropLeft.value, R.string.mjpeg_pref_crop_left, leftError, focusRequester, focusManager) { newLeft ->
                 if (imageCropLeft.value != newLeft) {
-                    scope.launch { withContext(NonCancellable) { mjpegSettings.updateData { copy(imageCropLeft = newLeft) } } }
+                    scope.launch { mjpegSettings.updateData { copy(imageCropLeft = newLeft) } }
                 }
             }
 
             CropRow(imageCropRight.value, R.string.mjpeg_pref_crop_right, rightError, focusRequester, focusManager) { newRight ->
                 if (imageCropRight.value != newRight) {
-                    scope.launch { withContext(NonCancellable) { mjpegSettings.updateData { copy(imageCropRight = newRight) } } }
+                    scope.launch { mjpegSettings.updateData { copy(imageCropRight = newRight) } }
                 }
             }
         }
 
-        LaunchedEffect(true) { focusRequester.requestFocus() }
+        LaunchedEffect(Unit) { focusRequester.requestFocus() }
     }
 }
 

@@ -27,9 +27,7 @@ import info.dvkr.screenstream.common.ModuleSettings
 import info.dvkr.screenstream.mjpeg.R
 import info.dvkr.screenstream.mjpeg.settings.MjpegSettings
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import org.koin.compose.koinInject
 
 internal object EnableLocalhost : ModuleSettings.Item {
@@ -60,13 +58,13 @@ private fun EnableLocalhostUI(
         modifier = Modifier
             .toggleable(
                 value = enableLocalHost.value,
-                onValueChange = { scope.launch { withContext(NonCancellable) { mjpegSettings.updateData { copy(enableLocalHost = it) } } } }
+                onValueChange = { scope.launch { mjpegSettings.updateData { copy(enableLocalHost = it) } } }
             )
             .padding(start = horizontalPadding + 16.dp, end = horizontalPadding + 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
-            imageVector = remember { Icon_LocalHost },
+            imageVector = Icon_LocalHost,
             contentDescription = stringResource(id = R.string.mjpeg_pref_enable_localhost),
             modifier = Modifier.padding(end = 16.dp)
         )

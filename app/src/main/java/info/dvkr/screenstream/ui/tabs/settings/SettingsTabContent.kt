@@ -333,7 +333,7 @@ private fun SettingsListSearch(
         singleLine = true
     )
 
-    LaunchedEffect(true) { if (searchVisible.value) focusRequester.requestFocus() }
+    LaunchedEffect(Unit) { if (searchVisible.value) focusRequester.requestFocus() }
 }
 
 @Composable

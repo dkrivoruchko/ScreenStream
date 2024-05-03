@@ -40,9 +40,7 @@ import info.dvkr.screenstream.R
 import info.dvkr.screenstream.common.ModuleSettings
 import info.dvkr.screenstream.common.settings.AppSettings
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import org.koin.compose.koinInject
 
 internal object NightMode : ModuleSettings.Item {
@@ -111,7 +109,7 @@ private fun NightModeUI(
     ) {
 
         Icon(
-            imageVector = remember { Icon_ThemeLightDark },
+            imageVector = Icon_ThemeLightDark,
             contentDescription = stringResource(id = R.string.app_pref_night_mode),
             modifier = Modifier.padding(end = 16.dp)
         )
@@ -161,11 +159,7 @@ private fun NightModeDetailUI(
                             selected = nightModeIndex.value == index,
                             onClick = {
                                 if (nightModeIndex.value != index) {
-                                    scope.launch {
-                                        withContext(NonCancellable) {
-                                            appSettings.updateData { copy(nightMode = NightMode.getNightModeByIndex(index)) }
-                                        }
-                                    }
+                                    scope.launch { appSettings.updateData { copy(nightMode = NightMode.getNightModeByIndex(index)) } }
                                 }
                             },
                             role = Role.RadioButton

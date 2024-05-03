@@ -109,7 +109,7 @@ public fun AboutTabContent(
                     .padding(vertical = 4.dp)
                     .fillMaxWidth()
             ) {
-                Icon(imageVector = remember { Icon_GitHub }, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
+                Icon(imageVector = Icon_GitHub, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
                 Text(text = stringResource(id = R.string.app_tab_about_app_sources), maxLines = 1)
             }
 
@@ -156,7 +156,7 @@ public fun AboutTabContent(
                     .padding(vertical = 4.dp)
                     .fillMaxWidth()
             ) {
-                Icon(imageVector = remember { Icon_License }, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
+                Icon(imageVector = Icon_License, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
                 Text(text = stringResource(id = R.string.app_tab_about_license), maxLines = 1)
             }
         }

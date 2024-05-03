@@ -147,7 +147,7 @@ internal fun CollectingLogsUi(modifier: Modifier = Modifier) {
                     Spacer(Modifier.navigationBarsPadding())
                 }
 
-                LaunchedEffect(true) { focusRequester.requestFocus() }
+                LaunchedEffect(Unit) { focusRequester.requestFocus() }
             }
         }
     }

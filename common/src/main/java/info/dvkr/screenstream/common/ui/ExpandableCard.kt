@@ -65,7 +65,7 @@ public fun ExpandableCard(
 
                 if (expandable) {
                     Icon(
-                        Icons.Default.ChevronRight,
+                        imageVector = Icons.Default.ChevronRight,
                         contentDescription = null,
                         modifier = Modifier
                             .padding(start = 8.dp)
@@ -73,7 +73,7 @@ public fun ExpandableCard(
                             .align(Alignment.CenterStart)
                     )
                     LaunchedEffect(expanded.value) { iconRotation.animateTo(if (expanded.value) 90F else 0F) }
-                    LaunchedEffect(true) { expanded.value = initiallyExpanded }
+                    LaunchedEffect(Unit) { expanded.value = initiallyExpanded }
                 }
             }
         }

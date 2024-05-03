@@ -34,7 +34,6 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.android.asCoroutineDispatcher
 import kotlinx.coroutines.cancel
@@ -45,7 +44,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import okhttp3.ConnectionSpec
 import okhttp3.OkHttpClient
@@ -302,11 +300,7 @@ internal class WebRtcStreamingService(
 
         val recordAudioPermission = ContextCompat.checkSelfPermission(service, Manifest.permission.RECORD_AUDIO)
         if (recordAudioPermission == PackageManager.PERMISSION_DENIED) {
-            coroutineScope.launch {
-                withContext(NonCancellable) {
-                    webRtcSettings.updateData { copy(enableMic = false, enableDeviceAudio = false) }
-                }
-            }
+            coroutineScope.launch { webRtcSettings.updateData { copy(enableMic = false, enableDeviceAudio = false) } }
         }
     }
 

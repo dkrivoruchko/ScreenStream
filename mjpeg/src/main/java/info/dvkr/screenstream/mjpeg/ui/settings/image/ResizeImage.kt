@@ -46,9 +46,7 @@ import info.dvkr.screenstream.common.ModuleSettings
 import info.dvkr.screenstream.mjpeg.R
 import info.dvkr.screenstream.mjpeg.settings.MjpegSettings
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import org.koin.compose.koinInject
 
 internal object ResizeImage : ModuleSettings.Item {
@@ -88,7 +86,7 @@ private fun ResizeImageUI(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
-            imageVector = remember { Icon_Resize },
+            imageVector = Icon_Resize,
             contentDescription = stringResource(id = R.string.mjpeg_pref_resize),
             modifier = Modifier.padding(end = 16.dp)
         )
@@ -172,7 +170,7 @@ private fun ResizeImageDetailUI(
                         currentResizeFactor.value = textField.copy(text = newResize.toString())
                         isError.value = false
                         if (resizeFactor.value != newResize) {
-                            scope.launch { withContext(NonCancellable) { mjpegSettings.updateData { copy(resizeFactor = newResize) } } }
+                            scope.launch { mjpegSettings.updateData { copy(resizeFactor = newResize) } }
                         }
                     }
                 },
@@ -185,7 +183,7 @@ private fun ResizeImageDetailUI(
                 singleLine = true,
             )
 
-            LaunchedEffect(true) { focusRequester.requestFocus() }
+            LaunchedEffect(Unit) { focusRequester.requestFocus() }
 
             Text(
                 text = stringResource(id = R.string.mjpeg_pref_resize_result, resizedWidth.value, resizedHeight.value),

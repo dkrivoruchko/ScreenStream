@@ -31,7 +31,6 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -202,7 +201,7 @@ private fun ShareAddressButton(
 private fun ShowQRCodeButton(
     fullAddress: String
 ) {
-    val showQRDialog = rememberSaveable { mutableStateOf(false) }
+    val showQRDialog = remember { mutableStateOf(false) }
 
     IconButton(onClick = { showQRDialog.value = true }) {
         Icon(

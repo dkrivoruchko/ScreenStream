@@ -178,12 +178,12 @@ private fun AdBox(adMob: AdMob, adSize: AdSize, collapsible: Boolean) {
             .defaultMinSize(minHeight = adSize.height.dp)
     ) {
         val selectedAdUnitId = remember(adSize) { mutableStateOf("") }
-        LaunchedEffect(true) { selectedAdUnitId.value = adMob.getFreeAdUnitId() }
+        LaunchedEffect(Unit) { selectedAdUnitId.value = adMob.getFreeAdUnitId() }
 
         if (selectedAdUnitId.value.isNotBlank()) {
             val adUnitReady = remember { mutableStateOf(false) }
             val adUnitLoaded = remember { mutableStateOf(false) }
-            LaunchedEffect(true) { adUnitReady.value = adMob.waitAdUnitReady(selectedAdUnitId.value) }
+            LaunchedEffect(Unit) { adUnitReady.value = adMob.waitAdUnitReady(selectedAdUnitId.value) }
 
             AndroidView(
                 factory = { ctx ->

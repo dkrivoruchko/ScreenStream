@@ -43,9 +43,7 @@ import info.dvkr.screenstream.common.ModuleSettings
 import info.dvkr.screenstream.mjpeg.R
 import info.dvkr.screenstream.mjpeg.settings.MjpegSettings
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import org.koin.compose.koinInject
 
 internal object VrMode : ModuleSettings.Item {
@@ -90,7 +88,7 @@ private fun VrModeUI(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
-            imageVector = remember { Icon_VirtualReality },
+            imageVector = Icon_VirtualReality,
             contentDescription = stringResource(id = R.string.mjpeg_pref_vr_mode),
             modifier = Modifier.padding(end = 16.dp)
         )
@@ -122,7 +120,7 @@ private fun VrModeUI(
                 if (it && vrMode.value == MjpegSettings.Default.VR_MODE_DISABLE)
                     onDetailShow.invoke()
                 else {
-                    scope.launch { withContext(NonCancellable) { mjpegSettings.updateData { copy(vrMode = -vrMode.value) } } }
+                    scope.launch { mjpegSettings.updateData { copy(vrMode = -vrMode.value) } }
                 }
             },
             modifier = Modifier.scale(0.7F),
@@ -161,7 +159,7 @@ private fun VrModeDetailUI(
                             selected = if (vrMode.value > 0) vrMode.value == index else index == 0,
                             onClick = {
                                 if (vrMode.value != index) {
-                                    scope.launch { withContext(NonCancellable) { mjpegSettings.updateData { copy(vrMode = index) } } }
+                                    scope.launch { mjpegSettings.updateData { copy(vrMode = index) } }
                                 }
                             },
                             role = Role.RadioButton

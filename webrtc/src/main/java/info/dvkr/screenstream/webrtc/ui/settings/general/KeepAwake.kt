@@ -28,9 +28,7 @@ import info.dvkr.screenstream.common.ModuleSettings
 import info.dvkr.screenstream.webrtc.R
 import info.dvkr.screenstream.webrtc.settings.WebRtcSettings
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import org.koin.compose.koinInject
 
 internal object KeepAwake : ModuleSettings.Item {
@@ -61,13 +59,13 @@ private fun KeepAwakeUI(
         modifier = Modifier
             .toggleable(
                 value = keepAwake.value,
-                onValueChange = { scope.launch { withContext(NonCancellable) { webRtcSettings.updateData { copy(keepAwake = it) } } } }
+                onValueChange = { scope.launch { webRtcSettings.updateData { copy(keepAwake = it) } } }
             )
             .padding(start = horizontalPadding + 16.dp, end = horizontalPadding + 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
-            imageVector = remember { Icon_NoSleep },
+            imageVector = Icon_NoSleep,
             contentDescription = stringResource(id = R.string.webrtc_pref_keep_awake),
             modifier = Modifier.padding(end = 16.dp)
         )

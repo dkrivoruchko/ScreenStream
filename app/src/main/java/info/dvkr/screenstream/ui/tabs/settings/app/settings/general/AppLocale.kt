@@ -150,9 +150,7 @@ private fun AppLocaleDetailsUI(
                 selected = appLanguageTag == null
             ) {
                 scope.launch {
-                    withContext(NonCancellable) {
-                        AppCompatDelegate.setApplicationLocales(LocaleListCompat.getEmptyLocaleList())
-                    }
+                    withContext(NonCancellable) { AppCompatDelegate.setApplicationLocales(LocaleListCompat.getEmptyLocaleList()) }
                     onBackClick.invoke()
                 }
             }
@@ -163,9 +161,7 @@ private fun AppLocaleDetailsUI(
                     selected = appLanguageTag == tag
                 ) {
                     scope.launch {
-                        withContext(NonCancellable) {
-                            AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(tag))
-                        }
+                        withContext(NonCancellable) { AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(tag)) }
                         onBackClick.invoke()
                     }
                 }

@@ -25,12 +25,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import info.dvkr.screenstream.common.ModuleSettings
+import info.dvkr.screenstream.common.ui.conditional
 import info.dvkr.screenstream.mjpeg.R
 import info.dvkr.screenstream.mjpeg.settings.MjpegSettings
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import org.koin.compose.koinInject
 
 internal object LocalhostOnly : ModuleSettings.Item {
@@ -56,21 +55,21 @@ private fun LocalhostOnlyUI(
 ) {
     val mjpegSettingsState = mjpegSettings.data.collectAsStateWithLifecycle()
     val localHostOnly = remember { derivedStateOf { mjpegSettingsState.value.localHostOnly } }
-    val enabled = remember { derivedStateOf { mjpegSettingsState.value.enableLocalHost } }
+    val enableLocalHost = remember { derivedStateOf { mjpegSettingsState.value.enableLocalHost } }
 
     Row(
         modifier = Modifier
             .toggleable(
                 value = localHostOnly.value,
-                enabled = enabled.value,
-                onValueChange = { scope.launch { withContext(NonCancellable) { mjpegSettings.updateData { copy(localHostOnly = it) } } } }
+                enabled = enableLocalHost.value,
+                onValueChange = { scope.launch { mjpegSettings.updateData { copy(localHostOnly = it) } } }
             )
             .padding(start = horizontalPadding + 16.dp, end = horizontalPadding + 10.dp)
-            .then(if (enabled.value) Modifier else Modifier.alpha(0.5F)),
+            .conditional(enableLocalHost.value.not()) { alpha(0.5F) },
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
-            imageVector = remember { Icon_LocalhostOnly },
+            imageVector = Icon_LocalhostOnly,
             contentDescription = stringResource(id = R.string.mjpeg_pref_localhost_only),
             modifier = Modifier.padding(end = 16.dp)
         )
