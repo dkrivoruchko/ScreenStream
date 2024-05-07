@@ -2,655 +2,657 @@
 <html lang="en">
 
 <head>
-    <meta charset=utf-8>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ScreenStream</title>
-    <link rel="icon" type="image/x-icon" sizes="any" href="/favicon.ico">
-    <style>
-        body,
-        html {
-            width: 100%;
-            height: 100%;
-            margin: 0;
-            border: 0;
-            overflow: hidden;
-            display: block;
-            font-family: sans-serif;
-            font-size: 16px
-        }
+  <meta charset=utf-8>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ScreenStream</title>
+  <link rel="icon" type="image/x-icon" sizes="any" href="/favicon.ico">
+  <style>
+    body,
+    html {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      border: 0;
+      overflow: hidden;
+      display: block;
+      font-family: sans-serif;
+      font-size: 16px
+    }
 
-        body {
-            background-color: BACKGROUND_COLOR
-        }
+    body {
+      background-color: BACKGROUND_COLOR
+    }
 
-        #connectDiv,
-        #pinDiv,
-        #blockedDiv,
-        #errorDiv {
-            min-width: 350px;
-            border-radius: 16px;
-            color: #eee;
-            top: 45%;
-            left: 50%;
-            padding: 30px;
-            transform: translate(-50%, -50%);
-            text-align: center;
-            position: absolute;
-            box-shadow: 0 0 8px 8px rgba(0, 0, 0, .2);
-            background: linear-gradient(#144A74, #001D34);
-        }
+    #connectDiv,
+    #pinDiv,
+    #blockedDiv,
+    #errorDiv {
+      min-width: 350px;
+      border-radius: 16px;
+      color: #eee;
+      top: 45%;
+      left: 50%;
+      padding: 30px;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      position: absolute;
+      box-shadow: 0 0 8px 8px rgba(0, 0, 0, .2);
+      background: linear-gradient(#144A74, #001D34);
+    }
 
-        .logo {
-            width: 160px;
-            height: 160px;
-            -webkit-filter: drop-shadow(3px 3px 2px rgba(0, 0, 0, .4));
-            filter: drop-shadow(3px 3px 2px rgba(0, 0, 0, .4));
-        }
+    .logo {
+      width: 160px;
+      height: 160px;
+      -webkit-filter: drop-shadow(3px 3px 2px rgba(0, 0, 0, .4));
+      filter: drop-shadow(3px 3px 2px rgba(0, 0, 0, .4));
+    }
 
-        #streamDiv img {
-            position: absolute;
-            top: 0;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            margin: auto;
-            max-height: 100vh;
-            max-width: 100%;
-        }
+    #streamDiv img {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      margin: auto;
+      max-height: 100vh;
+      max-width: 100%;
+    }
 
-        #buttonsDiv {
-            background-color: #08121C;
-            visibility: hidden;
-            left: 50%;
-            padding: 8px 16px;
-            transform: translateX(-50%);
-            position: absolute;
-            border-radius: 0 0 8px 8px;
-            box-shadow: 0 0 4px 4px rgba(8, 18, 28, .2);
-            z-index: 10;
-        }
+    #buttonsDiv {
+      background-color: #08121C;
+      visibility: hidden;
+      left: 50%;
+      padding: 8px 16px;
+      transform: translateX(-50%);
+      position: absolute;
+      border-radius: 0 0 8px 8px;
+      box-shadow: 0 0 4px 4px rgba(8, 18, 28, .2);
+      z-index: 10;
+    }
 
-        #pinDiv input {
-            background-color: #FFF;
-            padding: 4px;
-            width: 4em;
-            font-family: monospace;
-        }
+    #pinDiv input {
+      background-color: #FFF;
+      padding: 4px;
+      width: 4em;
+      font-family: monospace;
+    }
 
-        #pinDiv button {
-            background-color: #32628D;
-            border-radius: 6px;
-            border: none;
-            color: white;
-            padding: 8px 16px;
-            text-align: center;
-            text-decoration: none;
-            display: inline-block
-        }
+    #pinDiv button {
+      background-color: #32628D;
+      border-radius: 6px;
+      border: none;
+      color: white;
+      padding: 8px 16px;
+      text-align: center;
+      text-decoration: none;
+      display: inline-block
+    }
 
-        #pipStreamDiv video {
-            position: absolute;
-            top: 0;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            margin: auto;
-            max-height: 100vh;
-            max-width: 100%;
-            z-index: -10;
-        }
+    #pipStreamDiv video {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      margin: auto;
+      max-height: 100vh;
+      max-width: 100%;
+      z-index: -10;
+    }
 
-        @media screen and (max-width:850px) {
-            #connectDiv,
-            #pinDiv,
-            #blockedDiv,
-            #errorDiv {
-                padding: 30px;
-                width: 55%
-            }
-        }
+    @media screen and (max-width:850px) {
 
-        @media screen and (max-width:650px) {
-            #connectDiv,
-            #pinDiv,
-            #blockedDiv,
-            #errorDiv {
-                padding: 30px 20px;
-                width: 85%
-            }
-        }
+      #connectDiv,
+      #pinDiv,
+      #blockedDiv,
+      #errorDiv {
+        padding: 30px;
+        width: 55%
+      }
+    }
 
-        .loading {
-            margin: 20px 0 10px 0;
-        }
+    @media screen and (max-width:650px) {
 
-        .loading span {
-            display: inline-block;
-            vertical-align: middle;
-            width: .6em;
-            height: .6em;
-            margin: .19em;
-            background: #fff;
-            border-radius: .6em;
-            animation: loading 1s infinite alternate
-        }
+      #connectDiv,
+      #pinDiv,
+      #blockedDiv,
+      #errorDiv {
+        padding: 30px 20px;
+        width: 85%
+      }
+    }
 
-        .loading span:nth-of-type(2) {
-            background: #fff;
-            animation-delay: .2s
-        }
+    .loading {
+      margin: 20px 0 10px 0;
+    }
 
-        .loading span:nth-of-type(3) {
-            background: #fff;
-            animation-delay: .4s
-        }
+    .loading span {
+      display: inline-block;
+      vertical-align: middle;
+      width: .6em;
+      height: .6em;
+      margin: .19em;
+      background: #fff;
+      border-radius: .6em;
+      animation: loading 1s infinite alternate
+    }
 
-        .loading span:nth-of-type(4) {
-            background: #fff;
-            animation-delay: .6s
-        }
+    .loading span:nth-of-type(2) {
+      background: #fff;
+      animation-delay: .2s
+    }
 
-        .loading span:nth-of-type(5) {
-            background: #fff;
-            animation-delay: .8s
-        }
+    .loading span:nth-of-type(3) {
+      background: #fff;
+      animation-delay: .4s
+    }
 
-        .loading span:nth-of-type(6) {
-            background: #fff;
-            animation-delay: 1s
-        }
+    .loading span:nth-of-type(4) {
+      background: #fff;
+      animation-delay: .6s
+    }
 
-        .loading span:nth-of-type(7) {
-            background: #fff;
-            animation-delay: 1.2s
-        }
+    .loading span:nth-of-type(5) {
+      background: #fff;
+      animation-delay: .8s
+    }
 
-        @keyframes loading {
-            0% {
-                opacity: 0
-            }
+    .loading span:nth-of-type(6) {
+      background: #fff;
+      animation-delay: 1s
+    }
 
-            100% {
-                opacity: 1
-            }
-        }
-    </style>
-    <script type="text/javascript" src="https://www.datadoghq-browser-agent.com/us1/v5/datadog-logs.js" crossorigin="anonymous"></script>
-    <script>
-        "use strict";
+    .loading span:nth-of-type(7) {
+      background: #fff;
+      animation-delay: 1.2s
+    }
 
-        window.DD_LOGS && DD_LOGS.init({
-            clientToken: "pub26fc6543f9239240ed8ae545593f921f",
-            site: "datadoghq.com",
-            forwardConsoleLogs: ["info", "warn", "error"],
-            forwardReports: "all",
-            service: '%DD_SERVICE%'
-        });
-        window.DD_LOGS && DD_LOGS.logger.setHandler(DD_HANDLER);
-        window.DD_LOGS && DD_LOGS.setGlobalContextProperty('version', '%APP_VERSION%');
-    </script>
+    @keyframes loading {
+      0% {
+        opacity: 0
+      }
+
+      100% {
+        opacity: 1
+      }
+    }
+  </style>
+  <script type="text/javascript" src="https://www.datadoghq-browser-agent.com/us1/v5/datadog-logs.js" crossorigin="anonymous"></script>
+  <script>
+    "use strict";
+
+    window.DD_LOGS && DD_LOGS.init({
+      clientToken: "pub26fc6543f9239240ed8ae545593f921f",
+      site: "datadoghq.com",
+      forwardConsoleLogs: ["info", "warn", "error"],
+      forwardReports: "all",
+      service: '%DD_SERVICE%'
+    });
+    window.DD_LOGS && DD_LOGS.logger.setHandler(DD_HANDLER);
+    window.DD_LOGS && DD_LOGS.setGlobalContextProperty('version', '%APP_VERSION%');
+  </script>
 </head>
 
 <body>
-    <div id="connectDiv">
-        <img src="logo.svg" class="logo"/>
-        <p style="font-weight:500">%CONNECTING%</p>
-        <div class="loading">
-            <span></span>
-            <span></span>
-            <span></span>
-            <span></span>
-            <span></span>
-            <span></span>
-            <span></span>
-        </div>
+  <div id="connectDiv">
+    <img src="logo.svg" class="logo" />
+    <p style="font-weight:500">%CONNECTING%</p>
+    <div class="loading">
+      <span></span>
+      <span></span>
+      <span></span>
+      <span></span>
+      <span></span>
+      <span></span>
+      <span></span>
     </div>
+  </div>
 
-    <div id="streamDiv"><img id="stream" /></div>
+  <div id="streamDiv"><img id="stream" /></div>
 
-    <div id="buttonsDiv">
-        <input type="image" id="fullscreen" style="width:24px;height:24px;margin:4px;" src="data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23FFF' d='M5,5H10V7H7V10H5V5M14,5H19V10H17V7H14V5M17,14H19V19H14V17H17V14M10,17V19H5V14H7V17H10Z' /%3E%3C/svg%3E" onclick="toggleFullscreen()" />
-        <input type="image" style="width:24px;height:24px;margin:4px;" src="data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23FFF' d='M3,5V19L11,12M13,19H16V5H13M18,5V19H21V5' /%3E%3C/svg%3E" onclick="toggleStartStop()" />
-        <input type="image" id="PiP" style="width:24px;height:24px;margin:4px;" src="data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23FFF' d='M19 11h-8v6h8v-6m4 8V5c0-1.12-.9-2-2-2H3a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h18a2 2 0 0 0 2-2m-2 0H3V4.97h18V19Z'/%3E%3C/svg%3E" onclick="togglePiP()" />
-    </div>
+  <div id="buttonsDiv">
+    <input type="image" id="fullscreen" style="width:24px;height:24px;margin:4px;" src="data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23FFF' d='M5,5H10V7H7V10H5V5M14,5H19V10H17V7H14V5M17,14H19V19H14V17H17V14M10,17V19H5V14H7V17H10Z' /%3E%3C/svg%3E" onclick="toggleFullscreen()" />
+    <input type="image" style="width:24px;height:24px;margin:4px;" src="data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23FFF' d='M3,5V19L11,12M13,19H16V5H13M18,5V19H21V5' /%3E%3C/svg%3E" onclick="toggleStartStop()" />
+    <input type="image" id="PiP" style="width:24px;height:24px;margin:4px;" src="data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23FFF' d='M19 11h-8v6h8v-6m4 8V5c0-1.12-.9-2-2-2H3a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h18a2 2 0 0 0 2-2m-2 0H3V4.97h18V19Z'/%3E%3C/svg%3E" onclick="togglePiP()" />
+  </div>
 
-    <div id="pinDiv" style="visibility: hidden;">
-        <img src="logo.svg" class="logo"/>
-        <p>%STREAM_REQUIRE_PIN%</p>
-        <form action="" id="pinForm" autocomplete="off">
-            <label for="pin">%ENTER_PIN%</label>
-            <input id="pin" autofocus maxlength="6" pattern="[0-9]{4,6}" required type="password" autocomplete="off">
-            <button id="sendPin" type="submit">%SUBMIT_PIN%</button>
-        </form>
-        <p id="pinWrongMsg" style="color:red;font-weight:700">%WRONG_PIN_MESSAGE%</p>
-    </div>
+  <div id="pinDiv" style="visibility: hidden;">
+    <img src="logo.svg" class="logo" />
+    <p>%STREAM_REQUIRE_PIN%</p>
+    <form action="" id="pinForm" autocomplete="off">
+      <label for="pin">%ENTER_PIN%</label>
+      <input id="pin" autofocus maxlength="6" pattern="[0-9]{4,6}" required type="password" autocomplete="off">
+      <button id="sendPin" type="submit">%SUBMIT_PIN%</button>
+    </form>
+    <p id="pinWrongMsg" style="color:red;font-weight:700">%WRONG_PIN_MESSAGE%</p>
+  </div>
 
-    <div id="blockedDiv" style="visibility: hidden;">
-        <img src="logo.svg" class="logo"/>
-        <p style=color:red;font-weight:600>%ADDRESS_BLOCKED%</p>
-    </div>
+  <div id="blockedDiv" style="visibility: hidden;">
+    <img src="logo.svg" class="logo" />
+    <p style=color:red;font-weight:600>%ADDRESS_BLOCKED%</p>
+  </div>
 
-    <div id="errorDiv" style="visibility: hidden;">
-        <img src="logo.svg" class="logo"/>
-        <p style=color:red;font-weight:600>%ERROR%</p>
-    </div>
+  <div id="errorDiv" style="visibility: hidden;">
+    <img src="logo.svg" class="logo" />
+    <p style=color:red;font-weight:600>%ERROR%</p>
+  </div>
 
-    <div id="pipStreamDiv"></div>
+  <div id="pipStreamDiv"></div>
 
-    <script>
-        "use strict";
+  <script>
+    "use strict";
 
-        var clientId = RandomString(16);
-        window.DD_LOGS && DD_LOGS.setGlobalContextProperty("clientId", clientId);
-        var buttonsDiv = document.getElementById("buttonsDiv");
-        var buttonPiP = document.getElementById("PiP");
-        var streamDiv = document.getElementById("streamDiv");
-        var stream = document.getElementById("stream");
-        var connectDiv = document.getElementById("connectDiv");
-        var pinDiv = document.getElementById("pinDiv");
-        var pin = document.getElementById("pin");
-        var sendPin = document.getElementById("sendPin");
-        var pinWrongMsg = document.getElementById("pinWrongMsg");
-        var blockedDiv = document.getElementById("blockedDiv");
-        var errorDiv = document.getElementById("errorDiv");
-        var pipStreamDiv = document.getElementById("pipStreamDiv");
-        var enableButtons = false;
-        var buttonsHideFunction = function buttonsHideFunction() {
-            buttonsDiv.style.visibility = "hidden";
-        };
-        var hideTimeout = setTimeout(buttonsHideFunction, 1500);
-        function configureButtons(enable) {
-            if (enableButtons != enable) {
-                enableButtons = enable;
-                if (enableButtons) {
-                    buttonsDiv.style.visibility = "visible";
-                    hideTimeout = setTimeout(buttonsHideFunction, 1500);
-                } else {
-                    clearTimeout(hideTimeout);
-                    buttonsDiv.style.visibility = "hidden";
-                }
-            }
-        }
-        if (!document.pictureInPictureEnabled) buttonPiP.style.display = "none";
-        window.onmousemove = function () {
-            if (!enableButtons) return;
-            buttonsDiv.style.visibility = "visible";
-            clearTimeout(hideTimeout);
-            hideTimeout = setTimeout(buttonsHideFunction, 1000);
-        };
-        var fullscreenInput = document.getElementById("fullscreen");
-        function isFullscreen() {
-            return document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement || null;
-        }
-        function fullScreenHandler() {
-            if (isFullscreen()) fullscreenInput.src = "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23FFF' d='M14,14H19V16H16V19H14V14M5,14H10V19H8V16H5V14M8,5H10V10H5V8H8V5M19,8V10H14V5H16V8H19Z' /%3E%3C/svg%3E"; else fullscreenInput.src = "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23FFF' d='M5,5H10V7H7V10H5V5M14,5H19V10H17V7H14V5M17,14H19V19H14V17H17V14M10,17V19H5V14H7V17H10Z' /%3E%3C/svg%3E";
-        }
-        function isFullscreenEnabled() {
-            return document.fullscreenEnabled || document.webkitFullscreenEnabled || document.mozFullScreenEnabled || document.msFullscreenEnabled || false;
-        }
-        if (isFullscreenEnabled()) {
-            document.addEventListener("fullscreenchange", fullScreenHandler);
-            document.addEventListener("webkitfullscreenchange", fullScreenHandler);
-            document.addEventListener("mozfullscreenchange", fullScreenHandler);
-            document.addEventListener("MSFullscreenChange", fullScreenHandler);
+    var clientId = RandomString(16);
+    window.DD_LOGS && DD_LOGS.setGlobalContextProperty("clientId", clientId);
+    var buttonsDiv = document.getElementById("buttonsDiv");
+    var buttonPiP = document.getElementById("PiP");
+    var streamDiv = document.getElementById("streamDiv");
+    var stream = document.getElementById("stream");
+    var connectDiv = document.getElementById("connectDiv");
+    var pinDiv = document.getElementById("pinDiv");
+    var pin = document.getElementById("pin");
+    var sendPin = document.getElementById("sendPin");
+    var pinWrongMsg = document.getElementById("pinWrongMsg");
+    var blockedDiv = document.getElementById("blockedDiv");
+    var errorDiv = document.getElementById("errorDiv");
+    var pipStreamDiv = document.getElementById("pipStreamDiv");
+    var enableButtons = false;
+    var buttonsHideFunction = function buttonsHideFunction() {
+      buttonsDiv.style.visibility = "hidden";
+    };
+    var hideTimeout = setTimeout(buttonsHideFunction, 1500);
+    function configureButtons(enable) {
+      if (enableButtons != enable) {
+        enableButtons = enable;
+        if (enableButtons) {
+          buttonsDiv.style.visibility = "visible";
+          hideTimeout = setTimeout(buttonsHideFunction, 1500);
         } else {
-            fullscreenInput.style.visibility = "hidden";
+          clearTimeout(hideTimeout);
+          buttonsDiv.style.visibility = "hidden";
         }
-        function fullScreen(element) {
-            if (element.requestFullscreen) element.requestFullscreen(); else if (element.webkitRequestFullscreen) element.webkitRequestFullscreen(); else if (element.mozRequestFullScreen) element.mozRequestFullScreen(); else if (element.msRequestFullscreen) element.msRequestFullscreen();
+      }
+    }
+    if (!document.pictureInPictureEnabled) buttonPiP.style.display = "none";
+    window.onmousemove = function () {
+      if (!enableButtons) return;
+      buttonsDiv.style.visibility = "visible";
+      clearTimeout(hideTimeout);
+      hideTimeout = setTimeout(buttonsHideFunction, 1000);
+    };
+    var fullscreenInput = document.getElementById("fullscreen");
+    function isFullscreen() {
+      return document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement || null;
+    }
+    function fullScreenHandler() {
+      if (isFullscreen()) fullscreenInput.src = "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23FFF' d='M14,14H19V16H16V19H14V14M5,14H10V19H8V16H5V14M8,5H10V10H5V8H8V5M19,8V10H14V5H16V8H19Z' /%3E%3C/svg%3E"; else fullscreenInput.src = "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23FFF' d='M5,5H10V7H7V10H5V5M14,5H19V10H17V7H14V5M17,14H19V19H14V17H17V14M10,17V19H5V14H7V17H10Z' /%3E%3C/svg%3E";
+    }
+    function isFullscreenEnabled() {
+      return document.fullscreenEnabled || document.webkitFullscreenEnabled || document.mozFullScreenEnabled || document.msFullscreenEnabled || false;
+    }
+    if (isFullscreenEnabled()) {
+      document.addEventListener("fullscreenchange", fullScreenHandler);
+      document.addEventListener("webkitfullscreenchange", fullScreenHandler);
+      document.addEventListener("mozfullscreenchange", fullScreenHandler);
+      document.addEventListener("MSFullscreenChange", fullScreenHandler);
+    } else {
+      fullscreenInput.style.visibility = "hidden";
+    }
+    function fullScreen(element) {
+      if (element.requestFullscreen) element.requestFullscreen(); else if (element.webkitRequestFullscreen) element.webkitRequestFullscreen(); else if (element.mozRequestFullScreen) element.mozRequestFullScreen(); else if (element.msRequestFullscreen) element.msRequestFullscreen();
+    }
+    function fullScreenExit() {
+      if (document.exitFullscreen) document.exitFullscreen(); else if (document.webkitExitFullscreen) document.webkitExitFullscreen(); else if (document.mozCancelFullScreen) document.mozCancelFullScreen(); else if (document.msExitFullscreen) document.msExitFullscreen();
+    }
+    function toggleFullscreen() {
+      isFullscreen() ? fullScreenExit() : fullScreen(document.documentElement);
+    }
+    function toggleStartStop() {
+      var xmlHttp = new XMLHttpRequest();
+      xmlHttp.open("GET", window.location.origin + "/start-stop", true);
+      xmlHttp.send(null);
+    }
+    sendPin.addEventListener("click", function (e) {
+      e.preventDefault();
+      var pinHash = SHA256(clientId + pin.value);
+      if (websocket) websocket.send(JSON.stringify({
+        type: "PIN",
+        data: pinHash
+      }));
+    });
+    var websocket = null;
+    var showStreamTimeoutId = null;
+    var MJPEGErrorCounter = 0;
+    function connect() {
+      connectDiv.style.visibility = "visible";
+      pinDiv.style.visibility = "hidden";
+      blockedDiv.style.visibility = "hidden";
+      pinWrongMsg.style.visibility = "inherit";
+      streamDiv.style.visibility = "hidden";
+      errorDiv.style.visibility = "hidden";
+      stream.src = "";
+      websocket = new WebsocketHeartbeat("ws://".concat(window.location.host, "/socket?clientId=").concat(clientId));
+      websocket.onopen = function () {
+        websocket.send(JSON.stringify({
+          type: "CONNECT"
+        }));
+        connectDiv.style.visibility = "hidden";
+      };
+      websocket.onreconnect = function () {
+        connectDiv.style.visibility = "visible";
+        pinDiv.style.visibility = "hidden";
+        blockedDiv.style.visibility = "hidden";
+        pinWrongMsg.style.visibility = "inherit";
+        streamDiv.style.visibility = "hidden";
+        errorDiv.style.visibility = "hidden";
+        stream.src = "";
+        MJPEGErrorCounter = 0;
+        clearTimeout(showStreamTimeoutId);
+        if (document.pictureInPictureElement) {
+          document.exitPictureInPicture();
         }
-        function fullScreenExit() {
-            if (document.exitFullscreen) document.exitFullscreen(); else if (document.webkitExitFullscreen) document.webkitExitFullscreen(); else if (document.mozCancelFullScreen) document.mozCancelFullScreen(); else if (document.msExitFullscreen) document.msExitFullscreen();
-        }
-        function toggleFullscreen() {
-            isFullscreen() ? fullScreenExit() : fullScreen(document.documentElement);
-        }
-        function toggleStartStop() {
-            var xmlHttp = new XMLHttpRequest();
-            xmlHttp.open("GET", window.location.origin + "/start-stop", true);
-            xmlHttp.send(null);
-        }
-        sendPin.addEventListener("click", function (e) {
-            e.preventDefault();
-            var pinHash = SHA256(clientId + pin.value);
-            if (websocket) websocket.send(JSON.stringify({
-                type: "PIN",
-                data: pinHash
-            }));
+      };
+      websocket.onmessage = function (msg) {
+        var message = JSON.parse(msg.data);
+        if (message.type === "HEARTBEAT") return;
+        window.DD_LOGS && DD_LOGS.logger.debug("websocket.onmessage", {
+          data: msg.data
         });
-        var websocket = null;
-        var showStreamTimeoutId = null;
-        var MJPEGErrorCounter = 0;
-        function connect() {
-            connectDiv.style.visibility = "visible";
+        if (message.type === "STREAM_ADDRESS") {
+          pinDiv.style.visibility = "hidden";
+          blockedDiv.style.visibility = "hidden";
+          pinWrongMsg.style.visibility = "inherit";
+          showStream(message.data.streamAddress + "?clientId=".concat(clientId));
+          configureButtons(message.data.enableButtons);
+          return;
+        }
+        if (message.type === "UNAUTHORIZED") {
+          if (message.data === "ADDRESS_BLOCKED") {
             pinDiv.style.visibility = "hidden";
-            blockedDiv.style.visibility = "hidden";
+            blockedDiv.style.visibility = "visible";
             pinWrongMsg.style.visibility = "inherit";
-            streamDiv.style.visibility = "hidden";
-            errorDiv.style.visibility = "hidden";
-            stream.src = "";
-            websocket = new WebsocketHeartbeat("ws://".concat(window.location.host, "/socket?clientId=").concat(clientId));
-            websocket.onopen = function () {
-                websocket.send(JSON.stringify({
-                    type: "CONNECT"
-                }));
-                connectDiv.style.visibility = "hidden";
-            };
-            websocket.onreconnect = function () {
-                connectDiv.style.visibility = "visible";
-                pinDiv.style.visibility = "hidden";
-                blockedDiv.style.visibility = "hidden";
-                pinWrongMsg.style.visibility = "inherit";
-                streamDiv.style.visibility = "hidden";
-                errorDiv.style.visibility = "hidden";
-                stream.src = "";
-                MJPEGErrorCounter = 0;
-                clearTimeout(showStreamTimeoutId);
-                if (document.pictureInPictureElement) {
-                    document.exitPictureInPicture();
-                }
-            };
-            websocket.onmessage = function (msg) {
-                var message = JSON.parse(msg.data);
-                if (message.type === "HEARTBEAT") return;
-                window.DD_LOGS && DD_LOGS.logger.debug("websocket.onmessage", {
-                    data: msg.data
-                });
-                if (message.type === "STREAM_ADDRESS") {
-                    pinDiv.style.visibility = "hidden";
-                    blockedDiv.style.visibility = "hidden";
-                    pinWrongMsg.style.visibility = "inherit";
-                    showStream(message.data.streamAddress + "?clientId=".concat(clientId));
-                    configureButtons(message.data.enableButtons);
-                    return;
-                }
-                if (message.type === "UNAUTHORIZED") {
-                    if (message.data === "ADDRESS_BLOCKED") {
-                        pinDiv.style.visibility = "hidden";
-                        blockedDiv.style.visibility = "visible";
-                        pinWrongMsg.style.visibility = "inherit";
-                        return;
-                    }
-                    pinDiv.style.visibility = "visible";
-                    blockedDiv.style.visibility = "hidden";
-                    if (message.data === "WRONG_PIN") {
-                        pin.value = "";
-                        pinWrongMsg.style.visibility = "visible";
-                    } else {
-                        pinWrongMsg.style.visibility = "hidden";
-                        if (pin.value) sendPin.click();
-                    }
-                    return;
-                }
-                if (message.type === "RELOAD") {
-                    location.reload();
-                    return;
-                }
-                if (message.type === "SETTINGS") {
-                    document.body.style.backgroundColor = message.data.backColor;
-                    configureButtons(message.data.enableButtons);
-                    return;
-                }
-                window.DD_LOGS && DD_LOGS.logger.error("websocket.onmessage. Unknown data:", {
-                    message: e.data
-                });
-            };
+            return;
+          }
+          pinDiv.style.visibility = "visible";
+          blockedDiv.style.visibility = "hidden";
+          if (message.data === "WRONG_PIN") {
+            pin.value = "";
+            pinWrongMsg.style.visibility = "visible";
+          } else {
+            pinWrongMsg.style.visibility = "hidden";
+            if (pin.value) sendPin.click();
+          }
+          return;
         }
-        function showStream(url) {
-            streamDiv.style.visibility = "hidden";
-            stream.src = "";
-            errorDiv.style.visibility = "hidden";
-            clearTimeout(showStreamTimeoutId);
-            new Promise(function (resolve, reject) {
-                window.DD_LOGS && DD_LOGS.logger.debug("showStream", {
-                    mode: "default",
-                    streamAddress: url
-                });
-                stream.onload = function () {
-                    stream.onload = null;
-                    stream.onerror = null;
-                    resolve();
-                };
-                stream.onerror = function (e) {
-                    stream.onerror = null;
-                    stream.onload = null;
-                    reject(e);
-                };
-                stream.src = url;
-            }).then(function () {
-                MJPEGErrorCounter = 0;
-                streamDiv.style.visibility = "visible";
-                window.DD_LOGS && DD_LOGS.logger.debug("showStream", {
-                    mode: "default",
-                    result: "ok"
-                });
-            })["catch"](function (error) {
-                window.DD_LOGS && DD_LOGS.logger.debug("showStream", {
-                    mode: "default",
-                    result: "error"
-                });
-                MJPEGErrorCounter++;
-                if (MJPEGErrorCounter > 5) {
-                    streamDiv.style.visibility = "visible";
-                    var splitUrl = url.split(".mjpeg");
-                    var baseUrl = splitUrl[0] + ".jpeg" + splitUrl[1] + "&t=";
-                    setInterval(function () {
-                        stream.src = baseUrl + Math.random();
-                    }, 500);
-                } else {
-                    showStreamTimeoutId = setTimeout(function () {
-                        return showStream(url);
-                    }, 200);
-                }
-            });
+        if (message.type === "RELOAD") {
+          location.reload();
+          return;
         }
-        var drawTimeoutId = null;
-        function togglePiP() {
-            if (document.pictureInPictureElement) {
-                document.exitPictureInPicture();
-            } else {
-                var drawMJPEGStream = function drawMJPEGStream() {
-                    var naturalWidth = stream.naturalWidth,
-                        naturalHeight = stream.naturalHeight;
-                    if (canvas.width != naturalWidth || canvas.height != naturalHeight) {
-                        canvas.width = naturalWidth;
-                        canvas.height = naturalHeight;
-                    }
-                    context.drawImage(stream, 0, 0);
-                    drawTimeoutId = setTimeout(drawMJPEGStream, 32);
-                };
-                var canvas = document.createElement("canvas");
-                canvas.style.display = "none";
-                pipStreamDiv.appendChild(canvas);
-                var videoElement = document.createElement("video");
-                videoElement.controls = false;
-                videoElement.muted = true;
-                videoElement.autoplay = true;
-                videoElement.srcObject = canvas.captureStream();
-                videoElement.addEventListener("leavepictureinpicture", function () {
-                    clearTimeout(drawTimeoutId);
-                    while (pipStreamDiv.firstChild) pipStreamDiv.removeChild(pipStreamDiv.lastChild);
-                    videoElement.srcObject = null;
-                    videoElement = null;
-                    canvas = null;
-                    context = null;
-                });
-                videoElement.addEventListener("loadedmetadata", function () {
-                    videoElement.requestPictureInPicture()["catch"](function (error) {
-                        clearTimeout(drawTimeoutId);
-                        window.DD_LOGS && DD_LOGS.logger.error("PiP.requestPictureInPicture:", {
-                            message: error
-                        });
-                        while (pipStreamDiv.firstChild) pipStreamDiv.removeChild(pipStreamDiv.lastChild);
-                        buttonPiP.style.display = "none";
-                        videoElement.srcObject = null;
-                        videoElement = null;
-                        canvas = null;
-                        context = null;
-                    });
-                });
-                pipStreamDiv.appendChild(videoElement);
-                var context = canvas.getContext("2d");
-                drawMJPEGStream();
-            }
+        if (message.type === "SETTINGS") {
+          document.body.style.backgroundColor = message.data.backColor;
+          configureButtons(message.data.enableButtons);
+          return;
         }
-        if (document.readyState === "loading") {
-            document.addEventListener("DOMContentLoaded", connect);
+        window.DD_LOGS && DD_LOGS.logger.error("websocket.onmessage. Unknown data:", {
+          message: e.data
+        });
+      };
+    }
+    function showStream(url) {
+      streamDiv.style.visibility = "hidden";
+      stream.src = "";
+      errorDiv.style.visibility = "hidden";
+      clearTimeout(showStreamTimeoutId);
+      new Promise(function (resolve, reject) {
+        window.DD_LOGS && DD_LOGS.logger.debug("showStream", {
+          mode: "default",
+          streamAddress: url
+        });
+        stream.onload = function () {
+          stream.onload = null;
+          stream.onerror = null;
+          resolve();
+        };
+        stream.onerror = function (e) {
+          stream.onerror = null;
+          stream.onload = null;
+          reject(e);
+        };
+        stream.src = url;
+      }).then(function () {
+        MJPEGErrorCounter = 0;
+        streamDiv.style.visibility = "visible";
+        window.DD_LOGS && DD_LOGS.logger.debug("showStream", {
+          mode: "default",
+          result: "ok"
+        });
+      })["catch"](function (error) {
+        window.DD_LOGS && DD_LOGS.logger.debug("showStream", {
+          mode: "default",
+          result: "error"
+        });
+        MJPEGErrorCounter++;
+        if (MJPEGErrorCounter > 5) {
+          streamDiv.style.visibility = "visible";
+          var splitUrl = url.split(".mjpeg");
+          var baseUrl = splitUrl[0] + ".jpeg" + splitUrl[1] + "&t=";
+          setInterval(function () {
+            stream.src = baseUrl + Math.random();
+          }, 500);
         } else {
-            connect();
+          showStreamTimeoutId = setTimeout(function () {
+            return showStream(url);
+          }, 200);
         }
+      });
+    }
+    var drawTimeoutId = null;
+    function togglePiP() {
+      if (document.pictureInPictureElement) {
+        document.exitPictureInPicture();
+      } else {
+        var drawMJPEGStream = function drawMJPEGStream() {
+          var naturalWidth = stream.naturalWidth,
+            naturalHeight = stream.naturalHeight;
+          if (canvas.width != naturalWidth || canvas.height != naturalHeight) {
+            canvas.width = naturalWidth;
+            canvas.height = naturalHeight;
+          }
+          context.drawImage(stream, 0, 0);
+          drawTimeoutId = setTimeout(drawMJPEGStream, 32);
+        };
+        var canvas = document.createElement("canvas");
+        canvas.style.display = "none";
+        pipStreamDiv.appendChild(canvas);
+        var videoElement = document.createElement("video");
+        videoElement.controls = false;
+        videoElement.muted = true;
+        videoElement.autoplay = true;
+        videoElement.srcObject = canvas.captureStream();
+        videoElement.addEventListener("leavepictureinpicture", function () {
+          clearTimeout(drawTimeoutId);
+          while (pipStreamDiv.firstChild) pipStreamDiv.removeChild(pipStreamDiv.lastChild);
+          videoElement.srcObject = null;
+          videoElement = null;
+          canvas = null;
+          context = null;
+        });
+        videoElement.addEventListener("loadedmetadata", function () {
+          videoElement.requestPictureInPicture()["catch"](function (error) {
+            clearTimeout(drawTimeoutId);
+            window.DD_LOGS && DD_LOGS.logger.error("PiP.requestPictureInPicture:", {
+              message: error
+            });
+            while (pipStreamDiv.firstChild) pipStreamDiv.removeChild(pipStreamDiv.lastChild);
+            buttonPiP.style.display = "none";
+            videoElement.srcObject = null;
+            videoElement = null;
+            canvas = null;
+            context = null;
+          });
+        });
+        pipStreamDiv.appendChild(videoElement);
+        var context = canvas.getContext("2d");
+        drawMJPEGStream();
+      }
+    }
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", connect);
+    } else {
+      connect();
+    }
 
-        // https://github.com/zimv/websocket-heartbeat-js
-        function WebsocketHeartbeat(url) {
-            this.opts = {
-                url: url,
-                pingTimeout: 1000,
-                pongTimeout: 1000,
-                reconnectTimeout: 2000,
-                pingMsg: JSON.stringify({
-                    type: "HEARTBEAT"
-                })
-            };
-            this.ws = null;
-            this.onclose = function () { };
-            this.onerror = function () { };
-            this.onopen = function () { };
-            this.onmessage = function () { };
-            this.onreconnect = function () { };
-            this.createWebSocket();
-        }
-        WebsocketHeartbeat.prototype.createWebSocket = function () {
-            var _this = this;
-            try {
-                this.ws = new WebSocket(this.opts.url);
-                this.ws.onclose = function (e) {
-                    _this.onclose(e);
-                    _this.reconnect();
-                };
-                this.ws.onerror = function (e) {
-                    _this.onerror(e);
-                    _this.reconnect();
-                };
-                this.ws.onopen = function (e) {
-                    _this.onopen(e);
-                    _this.heartCheck();
-                };
-                this.ws.onmessage = function (event) {
-                    _this.onmessage(event);
-                    _this.heartCheck();
-                };
-            } catch (e) {
-                this.onerror(e);
-                this.reconnect();
-            }
+    // https://github.com/zimv/websocket-heartbeat-js
+    function WebsocketHeartbeat(url) {
+      this.opts = {
+        url: url,
+        pingTimeout: 1000,
+        pongTimeout: 1000,
+        reconnectTimeout: 2000,
+        pingMsg: JSON.stringify({
+          type: "HEARTBEAT"
+        })
+      };
+      this.ws = null;
+      this.onclose = function () { };
+      this.onerror = function () { };
+      this.onopen = function () { };
+      this.onmessage = function () { };
+      this.onreconnect = function () { };
+      this.createWebSocket();
+    }
+    WebsocketHeartbeat.prototype.createWebSocket = function () {
+      var _this = this;
+      try {
+        this.ws = new WebSocket(this.opts.url);
+        this.ws.onclose = function (e) {
+          _this.onclose(e);
+          _this.reconnect();
         };
-        WebsocketHeartbeat.prototype.reconnect = function () {
-            var _this2 = this;
-            if (this.lockReconnect || this.forbidReconnect) return;
-            this.lockReconnect = true;
-            this.onreconnect();
-            setTimeout(function () {
-                _this2.createWebSocket();
-                _this2.lockReconnect = false;
-            }, this.opts.reconnectTimeout);
+        this.ws.onerror = function (e) {
+          _this.onerror(e);
+          _this.reconnect();
         };
-        WebsocketHeartbeat.prototype.send = function (msg) {
-            if (this.ws.readyState === WebSocket.OPEN) this.ws.send(msg);
+        this.ws.onopen = function (e) {
+          _this.onopen(e);
+          _this.heartCheck();
         };
-        WebsocketHeartbeat.prototype.heartCheck = function () {
-            var _this3 = this;
-            clearTimeout(this.pingTimeoutId);
-            clearTimeout(this.pongTimeoutId);
-            if (this.forbidReconnect) return;
-            this.pingTimeoutId = setTimeout(function () {
-                if (_this3.ws.readyState === WebSocket.OPEN) _this3.ws.send(_this3.opts.pingMsg);
-                _this3.pongTimeoutId = setTimeout(function () {
-                    _this3.ws.onclose = null;
-                    try {
-                        _this3.ws.close();
-                    } catch (ignore) { }
-                    _this3.reconnect();
-                }, _this3.opts.pongTimeout);
-            }, this.opts.pingTimeout);
+        this.ws.onmessage = function (event) {
+          _this.onmessage(event);
+          _this.heartCheck();
         };
-        WebsocketHeartbeat.prototype.close = function () {
-            this.forbidReconnect = true;
-            clearTimeout(this.pingTimeoutId);
-            clearTimeout(this.pongTimeoutId);
-            this.ws.onclose = null;
-            try {
-                this.ws.close();
-            } catch (ignore) { }
-        };
+      } catch (e) {
+        this.onerror(e);
+        this.reconnect();
+      }
+    };
+    WebsocketHeartbeat.prototype.reconnect = function () {
+      var _this2 = this;
+      if (this.lockReconnect || this.forbidReconnect) return;
+      this.lockReconnect = true;
+      this.onreconnect();
+      setTimeout(function () {
+        _this2.createWebSocket();
+        _this2.lockReconnect = false;
+      }, this.opts.reconnectTimeout);
+    };
+    WebsocketHeartbeat.prototype.send = function (msg) {
+      if (this.ws.readyState === WebSocket.OPEN) this.ws.send(msg);
+    };
+    WebsocketHeartbeat.prototype.heartCheck = function () {
+      var _this3 = this;
+      clearTimeout(this.pingTimeoutId);
+      clearTimeout(this.pongTimeoutId);
+      if (this.forbidReconnect) return;
+      this.pingTimeoutId = setTimeout(function () {
+        if (_this3.ws.readyState === WebSocket.OPEN) _this3.ws.send(_this3.opts.pingMsg);
+        _this3.pongTimeoutId = setTimeout(function () {
+          _this3.ws.onclose = null;
+          try {
+            _this3.ws.close();
+          } catch (ignore) { }
+          _this3.reconnect();
+        }, _this3.opts.pongTimeout);
+      }, this.opts.pingTimeout);
+    };
+    WebsocketHeartbeat.prototype.close = function () {
+      this.forbidReconnect = true;
+      clearTimeout(this.pingTimeoutId);
+      clearTimeout(this.pongTimeoutId);
+      this.ws.onclose = null;
+      try {
+        this.ws.close();
+      } catch (ignore) { }
+    };
 
-        // https://github.com/username1565/sha256
-        function SHA256(ascii) {
-            function rightRotate(value, amount) {
-                return value >>> amount | value << 32 - amount;
-            }
-            var maxWord = Math.pow(2, 32);
-            var i, j;
-            var result = "";
-            var asciiBitLength = ascii["length"] * 8;
-            var words = [],
-                hash = [],
-                k = [];
-            var primeCounter = 0;
-            var isComposite = {};
-            for (var candidate = 2; primeCounter < 64; candidate++) {
-                if (!isComposite[candidate]) {
-                    for (i = 0; i < 313; i += candidate) {
-                        isComposite[i] = candidate;
-                    }
-                    hash[primeCounter] = Math.pow(candidate, .5) * maxWord | 0;
-                    k[primeCounter++] = Math.pow(candidate, 1 / 3) * maxWord | 0;
-                }
-            }
-            ascii += "\x80";
-            while (ascii["length"] % 64 - 56) ascii += "\x00";
-            for (i = 0; i < ascii["length"]; i++) {
-                j = ascii.charCodeAt(i);
-                if (j >> 8) return;
-                words[i >> 2] |= j << (3 - i) % 4 * 8;
-            }
-            words[words["length"]] = asciiBitLength / maxWord | 0;
-            words[words["length"]] = asciiBitLength;
-            for (j = 0; j < words["length"];) {
-                var w = words.slice(j, j += 16);
-                var oldHash = hash;
-                hash = hash.slice(0, 8);
-                for (i = 0; i < 64; i++) {
-                    var w15 = w[i - 15],
-                        w2 = w[i - 2];
-                    var a = hash[0],
-                        e = hash[4];
-                    var temp1 = hash[7] + (rightRotate(e, 6) ^ rightRotate(e, 11) ^ rightRotate(e, 25)) + (e & hash[5] ^ ~e & hash[6]) + k[i] + (w[i] = i < 16 ? w[i] : w[i - 16] + (rightRotate(w15, 7) ^ rightRotate(w15, 18) ^ w15 >>> 3) + w[i - 7] + (rightRotate(w2, 17) ^ rightRotate(w2, 19) ^ w2 >>> 10) | 0);
-                    var temp2 = (rightRotate(a, 2) ^ rightRotate(a, 13) ^ rightRotate(a, 22)) + (a & hash[1] ^ a & hash[2] ^ hash[1] & hash[2]);
-                    hash = [temp1 + temp2 | 0].concat(hash);
-                    hash[4] = hash[4] + temp1 | 0;
-                }
-                for (i = 0; i < 8; i++) {
-                    hash[i] = hash[i] + oldHash[i] | 0;
-                }
-            }
-            for (i = 0; i < 8; i++) {
-                for (j = 3; j + 1; j--) {
-                    var b = hash[i] >> j * 8 & 255;
-                    result += (b < 16 ? 0 : "") + b.toString(16);
-                }
-            }
-            return result;
+    // https://github.com/username1565/sha256
+    function SHA256(ascii) {
+      function rightRotate(value, amount) {
+        return value >>> amount | value << 32 - amount;
+      }
+      var maxWord = Math.pow(2, 32);
+      var i, j;
+      var result = "";
+      var asciiBitLength = ascii["length"] * 8;
+      var words = [],
+        hash = [],
+        k = [];
+      var primeCounter = 0;
+      var isComposite = {};
+      for (var candidate = 2; primeCounter < 64; candidate++) {
+        if (!isComposite[candidate]) {
+          for (i = 0; i < 313; i += candidate) {
+            isComposite[i] = candidate;
+          }
+          hash[primeCounter] = Math.pow(candidate, .5) * maxWord | 0;
+          k[primeCounter++] = Math.pow(candidate, 1 / 3) * maxWord | 0;
         }
-        function RandomString(length) {
-            var result = "";
-            var characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-            var charactersLength = characters.length;
-            for (var i = 0; i < length; i++) {
-                result += characters.charAt(Math.floor(Math.random() * charactersLength));
-            }
-            return result;
+      }
+      ascii += "\x80";
+      while (ascii["length"] % 64 - 56) ascii += "\x00";
+      for (i = 0; i < ascii["length"]; i++) {
+        j = ascii.charCodeAt(i);
+        if (j >> 8) return;
+        words[i >> 2] |= j << (3 - i) % 4 * 8;
+      }
+      words[words["length"]] = asciiBitLength / maxWord | 0;
+      words[words["length"]] = asciiBitLength;
+      for (j = 0; j < words["length"];) {
+        var w = words.slice(j, j += 16);
+        var oldHash = hash;
+        hash = hash.slice(0, 8);
+        for (i = 0; i < 64; i++) {
+          var w15 = w[i - 15],
+            w2 = w[i - 2];
+          var a = hash[0],
+            e = hash[4];
+          var temp1 = hash[7] + (rightRotate(e, 6) ^ rightRotate(e, 11) ^ rightRotate(e, 25)) + (e & hash[5] ^ ~e & hash[6]) + k[i] + (w[i] = i < 16 ? w[i] : w[i - 16] + (rightRotate(w15, 7) ^ rightRotate(w15, 18) ^ w15 >>> 3) + w[i - 7] + (rightRotate(w2, 17) ^ rightRotate(w2, 19) ^ w2 >>> 10) | 0);
+          var temp2 = (rightRotate(a, 2) ^ rightRotate(a, 13) ^ rightRotate(a, 22)) + (a & hash[1] ^ a & hash[2] ^ hash[1] & hash[2]);
+          hash = [temp1 + temp2 | 0].concat(hash);
+          hash[4] = hash[4] + temp1 | 0;
         }
-    </script>
+        for (i = 0; i < 8; i++) {
+          hash[i] = hash[i] + oldHash[i] | 0;
+        }
+      }
+      for (i = 0; i < 8; i++) {
+        for (j = 3; j + 1; j--) {
+          var b = hash[i] >> j * 8 & 255;
+          result += (b < 16 ? 0 : "") + b.toString(16);
+        }
+      }
+      return result;
+    }
+    function RandomString(length) {
+      var result = "";
+      var characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+      var charactersLength = characters.length;
+      for (var i = 0; i < length; i++) {
+        result += characters.charAt(Math.floor(Math.random() * charactersLength));
+      }
+      return result;
+    }
+  </script>
 </body>
 
 </html>
