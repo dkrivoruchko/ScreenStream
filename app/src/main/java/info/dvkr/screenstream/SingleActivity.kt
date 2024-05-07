@@ -23,6 +23,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.onEach
 import org.koin.android.ext.android.inject
+import org.koin.compose.KoinContext
 import kotlin.coroutines.cancellation.CancellationException
 
 public class SingleActivity : AppUpdateActivity() {
@@ -40,11 +41,13 @@ public class SingleActivity : AppUpdateActivity() {
         super.onCreate(savedInstanceState)
 
         setContent {
-            ScreenStreamTheme {
-                ScreenStreamContent(
-                    updateFlow = updateFlow,
-                    modifier = Modifier.safeDrawingPadding()
-                )
+            KoinContext {
+                ScreenStreamTheme {
+                    ScreenStreamContent(
+                        updateFlow = updateFlow,
+                        modifier = Modifier.safeDrawingPadding()
+                    )
+                }
             }
         }
 
