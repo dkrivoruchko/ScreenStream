@@ -7,6 +7,12 @@ import androidx.compose.ui.unit.Dp
 import kotlinx.coroutines.CoroutineScope
 
 public interface ModuleSettings {
+    public class Id(public val moduleId: String, public val groupId: String, public val itemId: String) {
+        public companion object {
+            public val EMPTY: Id = Id("", "", "")
+        }
+    }
+
     public val id: String
     public val groups: List<Group>
 

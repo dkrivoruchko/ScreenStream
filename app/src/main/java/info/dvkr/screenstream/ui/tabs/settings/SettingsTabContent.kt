@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
@@ -37,12 +38,9 @@ import androidx.compose.material3.adaptive.navigation.rememberListDetailPaneScaf
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
-import androidx.compose.runtime.State
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -50,7 +48,6 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.layout.Placeable
 import androidx.compose.ui.layout.SubcomposeLayout
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
@@ -59,42 +56,27 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.window.core.layout.WindowWidthSizeClass
 import info.dvkr.screenstream.AdaptiveBanner
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.common.ModuleSettings
-import info.dvkr.screenstream.common.module.StreamingModuleManager
 import info.dvkr.screenstream.ui.LocalContentBoundsInWindow
-import info.dvkr.screenstream.ui.tabs.settings.app.AppModuleSettings
-import org.koin.compose.koinInject
+import kotlinx.coroutines.flow.StateFlow
+import org.koin.androidx.compose.koinViewModel
 
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @Composable
 internal fun SettingsTabContent(
     modifier: Modifier = Modifier,
-    appModuleSettings: AppModuleSettings = koinInject(),
-    streamingModulesManager: StreamingModuleManager = koinInject(),
+    settingsViewModel: SettingsTabViewModel = koinViewModel()
 ) {
-    val selectedModuleId = rememberSaveable { mutableStateOf("") }
-    val selectedSettingsGroupId = rememberSaveable { mutableStateOf("") }
-    val selectedSettingsItemId = rememberSaveable { mutableStateOf("") }
-
-    val settingsListState = remember(appModuleSettings, streamingModulesManager) {
-        mutableStateOf(listOf(appModuleSettings).plus(streamingModulesManager.modules.map { it.moduleSettings }))
-    }
-
-    val selectedItem = remember(selectedModuleId, selectedSettingsGroupId, selectedSettingsItemId) {
-        derivedStateOf {
-            settingsListState.value.firstOrNull { it.id == selectedModuleId.value }?.groups
-                ?.firstOrNull { it.id == selectedSettingsGroupId.value }?.items
-                ?.firstOrNull { it.id == selectedSettingsItemId.value }
-        }
-    }
-
     val windowAdaptiveInfo = currentWindowAdaptiveInfo()
     val listPanePreferredWidth = calculateListPanePreferredWidth(windowAdaptiveInfo, boundsInWindow = LocalContentBoundsInWindow.current)
     val scaffoldDirective = calculatePaneScaffoldDirective(windowAdaptiveInfo).copy(horizontalPartitionSpacerSize = 0.dp)
     val scaffoldNavigator = rememberListDetailPaneScaffoldNavigator(scaffoldDirective)
+
+    val lazyListState = rememberLazyListState()
 
     ListDetailPaneScaffold(
         directive = scaffoldNavigator.scaffoldDirective,
@@ -102,11 +84,12 @@ internal fun SettingsTabContent(
         listPane = {
             AnimatedPane(modifier = Modifier.preferredWidth(listPanePreferredWidth)) {
                 SettingsListPane(
-                    settingsListState = settingsListState,
-                    onDetailShow = { (moduleId, settingsGroupId, settingsItemId) ->
-                        selectedModuleId.value = moduleId
-                        selectedSettingsGroupId.value = settingsGroupId
-                        selectedSettingsItemId.value = settingsItemId
+                    lazyListState = lazyListState,
+                    settingsListFlow = settingsViewModel.settingsListFlow,
+                    searchTextFlow = settingsViewModel.searchTextFlow,
+                    onSearchTextChange = { text -> settingsViewModel.setSearchText(text) },
+                    onSettingSelected = { moduleSettingsId ->
+                        settingsViewModel.onSettingSelected(moduleSettingsId)
                         scaffoldNavigator.navigateTo(ListDetailPaneScaffoldRole.Detail)
                     }
                 )
@@ -114,6 +97,7 @@ internal fun SettingsTabContent(
         },
         detailPane = {
             AnimatedPane(modifier = Modifier.fillMaxSize()) {
+                val selectedItem = settingsViewModel.selectedItemFlow.collectAsStateWithLifecycle()
                 selectedItem.value?.DetailUI(onBackClick = { if (scaffoldNavigator.canNavigateBack()) scaffoldNavigator.navigateBack() }) { title ->
                     DetailUITitle(scaffoldNavigator, title)
                 }
@@ -164,18 +148,13 @@ private fun DetailUITitle(navigator: ThreePaneScaffoldNavigator<*>, title: Strin
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun SettingsListPane(
-    settingsListState: State<List<ModuleSettings>>,
-    onDetailShow: (Triple<String, String, String>) -> Unit
+    lazyListState: LazyListState,
+    settingsListFlow: StateFlow<List<ModuleSettings>>,
+    searchTextFlow: StateFlow<String>,
+    onSearchTextChange: (String) -> Unit,
+    onSettingSelected: (ModuleSettings.Id) -> Unit
 ) {
-    val resources = LocalContext.current.resources
-    val searchText = rememberSaveable { mutableStateOf("") }
-    val filteredSettings = remember {
-        derivedStateOf {
-            if (searchText.value.isBlank()) settingsListState.value
-            else settingsListState.value.mapNotNull { module -> module.filterBy(resources, searchText.value) }
-        }
-    }
-    val listState = rememberLazyListState()
+    val settingsList = settingsListFlow.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
 
     BoxWithConstraints {
@@ -184,10 +163,7 @@ private fun SettingsListPane(
         Column(modifier = Modifier.fillMaxSize()) {
             AdaptiveBanner(modifier = Modifier.fillMaxWidth())
 
-            SettingsListHeader(
-                horizontalPadding = horizontalPadding,
-                searchText = searchText,
-            )
+            SettingsListHeader(searchTextFlow, onSearchTextChange, horizontalPadding)
 
             HorizontalDivider(modifier = Modifier.fillMaxWidth())
 
@@ -195,9 +171,9 @@ private fun SettingsListPane(
                 modifier = Modifier
                     .fillMaxSize()
                     .imePadding(),
-                state = listState
+                state = lazyListState
             ) {
-                filteredSettings.value.forEach { module ->
+                settingsList.value.forEach { module ->
                     stickyHeader(key = module.id, contentType = "HEADER") {
                         module.TitleUI(
                             horizontalPadding = horizontalPadding,
@@ -222,7 +198,9 @@ private fun SettingsListPane(
                                     settingsItem.ListUI(
                                         horizontalPadding = horizontalPadding,
                                         coroutineScope = scope,
-                                        onDetailShow = { onDetailShow(Triple(module.id, settingsGroup.id, settingsItem.id)) }
+                                        onDetailShow = {
+                                            onSettingSelected(ModuleSettings.Id(module.id, settingsGroup.id, settingsItem.id))
+                                        }
                                     )
                                     if (index != settingsGroup.items.size - 1) {
                                         HorizontalDivider()
@@ -239,10 +217,11 @@ private fun SettingsListPane(
 
 @Composable
 private fun SettingsListHeader(
-    horizontalPadding: Dp = 0.dp,
-    searchText: MutableState<String>,
+    searchTextFlow: StateFlow<String>,
+    onSearchTextChange: (String) -> Unit,
+    horizontalPadding: Dp = 0.dp
 ) {
-    val searchVisible = rememberSaveable { mutableStateOf(false) }
+    val searchVisible = remember { mutableStateOf(searchTextFlow.value.isNotBlank()) }
 
     Crossfade(
         targetState = searchVisible.value,
@@ -253,7 +232,9 @@ private fun SettingsListHeader(
         label = "SearchCrossfade"
     ) { showSearch ->
         SubcomposeLayout { constraints ->
-            val searchPlaceables = subcompose("SettingsListSearch") { SettingsListSearch(searchText, searchVisible) }
+            val searchPlaceables = subcompose("SettingsListSearch") {
+                SettingsListSearch(searchTextFlow, onSearchTextChange, searchVisible)
+            }
                 .map { it.measure(constraints.copy(minWidth = 0, minHeight = 0)) }
 
             var maxWidth = 0
@@ -304,15 +285,21 @@ private fun SettingsListTitle(
 
 @Composable
 private fun SettingsListSearch(
-    searchText: MutableState<String>,
+    searchTextFlow: StateFlow<String>,
+    onSearchTextChange: (String) -> Unit,
     searchVisible: MutableState<Boolean>,
 ) {
+    val searchTextLocalProxy = remember { mutableStateOf(searchTextFlow.value) }
+
     val focusRequester = remember { FocusRequester() }
     val focusManager = LocalFocusManager.current
 
     OutlinedTextField(
-        value = searchText.value,
-        onValueChange = { searchText.value = it },
+        value = searchTextLocalProxy.value,
+        onValueChange = {
+            searchTextLocalProxy.value = it
+            onSearchTextChange.invoke(it)
+        },
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp)
@@ -324,7 +311,8 @@ private fun SettingsListSearch(
                 onClick = {
                     focusManager.clearFocus()
                     searchVisible.value = false
-                    searchText.value = ""
+                    searchTextLocalProxy.value = ""
+                    onSearchTextChange.invoke("")
                 }
             ) {
                 Icon(imageVector = Icons.Default.Close, contentDescription = stringResource(id = R.string.app_pref_close))
