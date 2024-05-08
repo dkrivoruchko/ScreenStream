@@ -25,7 +25,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import info.dvkr.screenstream.common.ui.DoubleClickProtection
 import info.dvkr.screenstream.common.ui.MediaProjectionPermission
+import info.dvkr.screenstream.common.ui.get
 import info.dvkr.screenstream.mjpeg.R
 import info.dvkr.screenstream.mjpeg.internal.MjpegEvent
 import info.dvkr.screenstream.mjpeg.internal.MjpegStreamingService
@@ -48,17 +50,16 @@ internal fun MjpegMainScreenUI(
     val waitingCastPermission = remember { derivedStateOf { mjpegState.value.waitingCastPermission } }
     val error = remember { derivedStateOf { mjpegState.value.error } }
 
-    val lazyVerticalStaggeredGridState = rememberLazyStaggeredGridState()
-
     BoxWithConstraints(modifier = modifier) {
         MediaProjectionPermission(
             requestCastPermission = waitingCastPermission.value,
             onPermissionGranted = { intent -> sendEvent(MjpegEvent.StartProjection(intent)) },
-            onPermissionDenied = { sendEvent(MjpegEvent.CastPermissionsDenied) },
+            onPermissionDenied = { if (waitingCastPermission.value) sendEvent(MjpegEvent.CastPermissionsDenied) },
             requiredDialogTitle = stringResource(id = R.string.mjpeg_stream_cast_permission_required_title),
             requiredDialogText = stringResource(id = R.string.mjpeg_stream_cast_permission_required)
         )
 
+        val lazyVerticalStaggeredGridState = rememberLazyStaggeredGridState()
         LazyVerticalStaggeredGrid(
             columns = remember(maxWidth) { StaggeredGridCells.Fixed(if (maxWidth >= 800.dp) 2 else 1) },
             modifier = Modifier.fillMaxSize(),
@@ -92,10 +93,14 @@ internal fun MjpegMainScreenUI(
             if (error.value != null) lazyVerticalStaggeredGridState.animateScrollToItem(0)
         }
 
+        val doubleClickProtection = remember { DoubleClickProtection.get() }
+
         Button(
             onClick = {
-                if (isStreaming.value) sendEvent(MjpegEvent.Intentable.StopStream("User action: Button"))
-                else sendEvent(MjpegStreamingService.InternalEvent.StartStream)
+                doubleClickProtection.processClick {
+                    if (isStreaming.value) sendEvent(MjpegEvent.Intentable.StopStream("User action: Button"))
+                    else sendEvent(MjpegStreamingService.InternalEvent.StartStream)
+                }
             },
             modifier = Modifier
                 .padding(start = 16.dp, end = 16.dp, bottom = 8.dp)

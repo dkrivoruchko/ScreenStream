@@ -137,7 +137,7 @@ public class WebRtcStreamingModule : StreamingModule {
 
         when (val state = _streamingServiceState.value) {
             is StreamingModule.State.Running -> state.scope.get<WebRtcStreamingService>().sendEvent(event)
-            else -> throw RuntimeException("Unexpected state: $state")
+            else -> throw RuntimeException("Unexpected state: $state for event $event")
         }
     }
 }

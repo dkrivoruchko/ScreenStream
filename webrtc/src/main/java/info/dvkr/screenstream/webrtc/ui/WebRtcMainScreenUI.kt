@@ -25,7 +25,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import info.dvkr.screenstream.common.ui.DoubleClickProtection
 import info.dvkr.screenstream.common.ui.MediaProjectionPermission
+import info.dvkr.screenstream.common.ui.get
 import info.dvkr.screenstream.webrtc.R
 import info.dvkr.screenstream.webrtc.internal.WebRtcEvent
 import info.dvkr.screenstream.webrtc.internal.WebRtcStreamingService
@@ -47,17 +49,16 @@ internal fun WebRtcMainScreenUI(
     val waitingCastPermission = remember { derivedStateOf { webRtcState.value.waitingCastPermission } }
     val error = remember { derivedStateOf { webRtcState.value.error } }
 
-    val lazyVerticalStaggeredGridState = rememberLazyStaggeredGridState()
-
     BoxWithConstraints(modifier = modifier) {
         MediaProjectionPermission(
             requestCastPermission = waitingCastPermission.value,
             onPermissionGranted = { intent -> sendEvent(WebRtcEvent.StartProjection(intent)) },
-            onPermissionDenied = { sendEvent(WebRtcEvent.CastPermissionsDenied) },
+            onPermissionDenied = { if (waitingCastPermission.value) sendEvent(WebRtcEvent.CastPermissionsDenied) },
             requiredDialogTitle = stringResource(id = R.string.webrtc_stream_cast_permission_required_title),
             requiredDialogText = stringResource(id = R.string.webrtc_stream_cast_permission_required)
         )
 
+        val lazyVerticalStaggeredGridState = rememberLazyStaggeredGridState()
         LazyVerticalStaggeredGrid(
             columns = remember(maxWidth) { StaggeredGridCells.Fixed(if (maxWidth >= 800.dp) 2 else 1) },
             modifier = Modifier.fillMaxSize(),
@@ -99,10 +100,14 @@ internal fun WebRtcMainScreenUI(
             if (error.value != null) lazyVerticalStaggeredGridState.animateScrollToItem(0)
         }
 
+        val doubleClickProtection = remember { DoubleClickProtection.get() }
+
         Button(
             onClick = {
-                if (isStreaming.value) sendEvent(WebRtcEvent.Intentable.StopStream("User action: Button"))
-                else sendEvent(WebRtcStreamingService.InternalEvent.StartStream)
+                doubleClickProtection.processClick {
+                    if (isStreaming.value) sendEvent(WebRtcEvent.Intentable.StopStream("User action: Button"))
+                    else sendEvent(WebRtcStreamingService.InternalEvent.StartStream)
+                }
             },
             modifier = Modifier
                 .padding(start = 16.dp, end = 16.dp, bottom = 8.dp)
