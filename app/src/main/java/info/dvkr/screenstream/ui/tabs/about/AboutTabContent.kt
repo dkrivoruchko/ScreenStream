@@ -27,7 +27,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -43,7 +42,6 @@ import org.koin.compose.koinInject
 
 @Composable
 public fun AboutTabContent(
-    boundsInWindow: Rect,
     modifier: Modifier = Modifier,
     adMob: AdMob = koinInject()
 ) {

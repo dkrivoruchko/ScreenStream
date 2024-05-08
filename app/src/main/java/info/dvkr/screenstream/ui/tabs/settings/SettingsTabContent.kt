@@ -64,13 +64,13 @@ import info.dvkr.screenstream.AdaptiveBanner
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.common.ModuleSettings
 import info.dvkr.screenstream.common.module.StreamingModuleManager
+import info.dvkr.screenstream.ui.LocalContentBoundsInWindow
 import info.dvkr.screenstream.ui.tabs.settings.app.AppModuleSettings
 import org.koin.compose.koinInject
 
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @Composable
 internal fun SettingsTabContent(
-    boundsInWindow: Rect,
     modifier: Modifier = Modifier,
     appModuleSettings: AppModuleSettings = koinInject(),
     streamingModulesManager: StreamingModuleManager = koinInject(),
@@ -92,7 +92,7 @@ internal fun SettingsTabContent(
     }
 
     val windowAdaptiveInfo = currentWindowAdaptiveInfo()
-    val listPanePreferredWidth = calculateListPanePreferredWidth(windowAdaptiveInfo, boundsInWindow)
+    val listPanePreferredWidth = calculateListPanePreferredWidth(windowAdaptiveInfo, boundsInWindow = LocalContentBoundsInWindow.current)
     val scaffoldDirective = calculatePaneScaffoldDirective(windowAdaptiveInfo).copy(horizontalPartitionSpacerSize = 0.dp)
     val scaffoldNavigator = rememberListDetailPaneScaffoldNavigator(scaffoldDirective)
 

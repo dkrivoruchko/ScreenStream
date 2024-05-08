@@ -26,7 +26,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -40,21 +39,20 @@ import info.dvkr.screenstream.common.module.StreamingModule
 import info.dvkr.screenstream.common.module.StreamingModuleManager
 import info.dvkr.screenstream.common.settings.AppSettings
 import info.dvkr.screenstream.common.ui.ExpandableCard
+import info.dvkr.screenstream.ui.LocalContentBoundsInWindow
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 
 @Composable
 internal fun StreamTabContent( //TODO Add foldable support
-    boundsInWindow: Rect,
     modifier: Modifier = Modifier,
     streamingModulesManager: StreamingModuleManager = koinInject()
 ) {
     val activeModule = streamingModulesManager.activeModuleStateFlow.collectAsStateWithLifecycle()
-    val density = LocalDensity.current
 
     Column(modifier = modifier) {
-        val with = with(density) { boundsInWindow.width.toDp() }
+        val with = with(LocalDensity.current) { LocalContentBoundsInWindow.current.width.toDp() }
         if (with >= 800.dp) {
             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Column(modifier = Modifier.weight(1F), verticalArrangement = Arrangement.Center) {

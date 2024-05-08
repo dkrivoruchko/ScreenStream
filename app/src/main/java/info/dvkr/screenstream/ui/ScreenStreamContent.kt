@@ -23,15 +23,18 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
+import androidx.compose.material3.adaptive.currentWindowSize
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffold
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteType
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.layout.boundsInWindow
@@ -41,6 +44,8 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.toIntRect
+import androidx.compose.ui.unit.toRect
 import androidx.window.core.layout.WindowWidthSizeClass
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.common.ui.conditional
@@ -87,6 +92,8 @@ internal fun ScreenStreamContent(
     }
 }
 
+internal val LocalContentBoundsInWindow = staticCompositionLocalOf { Rect.Zero }
+
 @Composable
 private fun MainContent(
     modifier: Modifier = Modifier,
@@ -104,7 +111,8 @@ private fun MainContent(
         }
     }
 
-    val contentBoundsInWindow = remember { mutableStateOf(Rect(0F, 0F, 0F, 0F)) }
+    val windowSize = currentWindowSize()
+    val contentBoundsInWindow = remember { mutableStateOf(windowSize.toIntRect().toRect()) }
 
     NavigationSuiteScaffold(
         navigationSuiteItems = {
@@ -137,7 +145,9 @@ private fun MainContent(
             },
             label = "TabContent"
         ) { tabIndex ->
-            tabs[tabIndex].Content(boundsInWindow = contentBoundsInWindow.value, modifier = Modifier.fillMaxSize())
+            CompositionLocalProvider(LocalContentBoundsInWindow provides contentBoundsInWindow.value) {
+                tabs[tabIndex].Content(modifier = Modifier.fillMaxSize())
+            }
         }
     }
 
