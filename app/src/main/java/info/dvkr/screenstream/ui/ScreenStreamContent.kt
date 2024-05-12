@@ -13,6 +13,7 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -20,17 +21,22 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationRail
+import androidx.compose.material3.NavigationRailItem
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.material3.adaptive.currentWindowSize
-import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffold
+import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffoldDefaults
+import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffoldLayout
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteType
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -48,15 +54,14 @@ import androidx.compose.ui.unit.toIntRect
 import androidx.compose.ui.unit.toRect
 import androidx.window.core.layout.WindowWidthSizeClass
 import info.dvkr.screenstream.R
-import info.dvkr.screenstream.common.ui.conditional
 import info.dvkr.screenstream.logger.AppLogger
 import info.dvkr.screenstream.logger.CollectingLogsUi
 import info.dvkr.screenstream.notification.NotificationPermission
 import info.dvkr.screenstream.tile.TileActionService
-import info.dvkr.screenstream.ui.tabs.ScreenStreamTab
-import info.dvkr.screenstream.ui.tabs.about.AboutTab
-import info.dvkr.screenstream.ui.tabs.settings.SettingsTab
-import info.dvkr.screenstream.ui.tabs.stream.StreamTab
+import info.dvkr.screenstream.ui.tabs.AppTabs
+import info.dvkr.screenstream.ui.tabs.about.AboutTabContent
+import info.dvkr.screenstream.ui.tabs.settings.SettingsTabContent
+import info.dvkr.screenstream.ui.tabs.stream.StreamTabContent
 import kotlinx.coroutines.flow.StateFlow
 
 @Composable
@@ -96,12 +101,11 @@ internal val LocalContentBoundsInWindow = staticCompositionLocalOf { Rect.Zero }
 
 @Composable
 private fun MainContent(
-    modifier: Modifier = Modifier,
-    tabs: Array<ScreenStreamTab> = arrayOf(StreamTab, SettingsTab, AboutTab)
+    modifier: Modifier = Modifier
 ) {
-    val selectedTabIndex = rememberSaveable { mutableIntStateOf(0) }
+    val selectedTab = rememberSaveable { mutableStateOf(AppTabs.STREAM) }
 
-    BackHandler(enabled = selectedTabIndex.intValue != 0) { selectedTabIndex.intValue = 0 }
+    BackHandler(enabled = selectedTab.value != AppTabs.STREAM) { selectedTab.value = AppTabs.STREAM }
 
     val layoutType = with(currentWindowAdaptiveInfo()) {
         when {
@@ -114,39 +118,61 @@ private fun MainContent(
     val windowSize = currentWindowSize()
     val contentBoundsInWindow = remember { mutableStateOf(windowSize.toIntRect().toRect()) }
 
-    NavigationSuiteScaffold(
-        navigationSuiteItems = {
-            tabs.forEachIndexed { index, screen ->
-                item(
-                    selected = selectedTabIndex.intValue == index,
-                    onClick = { selectedTabIndex.intValue = index },
-                    icon = {
-                        Icon(
-                            imageVector = if (selectedTabIndex.intValue == index) screen.iconSelected else screen.icon,
-                            contentDescription = null
-                        )
-                    },
-                    modifier = Modifier
-                        .conditional(layoutType == NavigationSuiteType.NavigationRail) { padding(vertical = 8.dp) }
-                        .padding(horizontal = 4.dp),
-                    label = { Text(text = stringResource(screen.labelResId)) }
-                )
-            }
-        },
+    Surface(
         modifier = modifier,
-        layoutType = layoutType
+        color = NavigationSuiteScaffoldDefaults.containerColor,
+        contentColor = NavigationSuiteScaffoldDefaults.contentColor
     ) {
-        AnimatedContent(
-            targetState = selectedTabIndex.intValue,
-            modifier = Modifier.onPlaced { contentBoundsInWindow.value = it.boundsInWindow() },
-            transitionSpec = {
-                fadeIn(animationSpec = tween(300, delayMillis = 90, easing = EaseIn))
-                    .togetherWith(fadeOut(animationSpec = tween(150, easing = EaseOut)))
+        NavigationSuiteScaffoldLayout(
+            navigationSuite = {
+                when (layoutType) {
+                    NavigationSuiteType.NavigationBar -> NavigationBar {
+                        AppTabs.entries.forEach { tab ->
+                            NavigationBarItem(
+                                selected = selectedTab.value == tab,
+                                onClick = { selectedTab.value = tab },
+                                icon = { Icon(imageVector = if (selectedTab.value == tab) tab.iconSelected else tab.icon, null) },
+                                modifier = Modifier.padding(horizontal = 4.dp),
+                                label = { Text(text = stringResource(tab.label)) },
+                            )
+                        }
+                    }
+
+                    NavigationSuiteType.NavigationRail -> NavigationRail {
+                        Spacer(Modifier.weight(0.5f))
+                        AppTabs.entries.forEach { tab ->
+                            NavigationRailItem(
+                                selected = selectedTab.value == tab,
+                                onClick = { selectedTab.value = tab },
+                                icon = { Icon(imageVector = if (selectedTab.value == tab) tab.iconSelected else tab.icon, null) },
+                                modifier = Modifier.padding(vertical = 4.dp),
+                                label = { Text(text = stringResource(tab.label)) }
+                            )
+                        }
+                        Spacer(Modifier.weight(1f))
+                    }
+
+                    else -> throw UnsupportedOperationException("Unsupported NavigationSuiteType: $layoutType")
+                }
             },
-            label = "TabContent"
-        ) { tabIndex ->
-            CompositionLocalProvider(LocalContentBoundsInWindow provides contentBoundsInWindow.value) {
-                tabs[tabIndex].Content(modifier = Modifier.fillMaxSize())
+            layoutType = layoutType
+        ) {
+            AnimatedContent(
+                targetState = selectedTab.value,
+                modifier = Modifier.onPlaced { contentBoundsInWindow.value = it.boundsInWindow() },
+                transitionSpec = {
+                    fadeIn(animationSpec = tween(300, delayMillis = 90, easing = EaseIn))
+                        .togetherWith(fadeOut(animationSpec = tween(150, easing = EaseOut)))
+                },
+                label = "TabContent"
+            ) { tab ->
+                CompositionLocalProvider(LocalContentBoundsInWindow provides contentBoundsInWindow.value) {
+                    when (tab) {
+                        AppTabs.STREAM -> StreamTabContent(modifier = Modifier.fillMaxSize())
+                        AppTabs.SETTINGS -> SettingsTabContent(modifier = Modifier.fillMaxSize())
+                        AppTabs.ABOUT -> AboutTabContent(modifier = Modifier.fillMaxSize())
+                    }
+                }
             }
         }
     }

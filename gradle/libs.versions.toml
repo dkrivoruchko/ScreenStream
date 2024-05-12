@@ -8,7 +8,7 @@ android-tools-desugar = "2.0.4"
 koin-android-compose = "3.5.6"
 koin-ksp = "1.3.1"
 
-kotlinx-coroutines = "1.8.0"
+kotlinx-coroutines = "1.8.1"
 
 androidx-core-ktx = "1.13.1"
 androidx-core-splashscreen = "1.1.0-rc01"
@@ -26,7 +26,7 @@ process-phoenix = "3.0.0"
 xlog = "1.11.0"
 
 #MJPEG
-ktor = "2.3.10"
+ktor = "2.3.11"
 
 #PlayStore-WebRTC
 play-services-tasks = "18.1.0"
@@ -37,7 +37,7 @@ okhttp = "4.12.0"
 
 #PlayStore-App
 play-app-update = "2.1.0"
-play-services-ads = "23.0.0"
+play-services-ads = "23.1.0"
 firebase-analytics = "22.0.0"
 firebase-crashlytics = "19.0.0"
 google-services = "4.4.1"
