@@ -58,7 +58,7 @@ internal object NightMode : ModuleSettings.Item {
         NightModeUI(horizontalPadding, onDetailShow)
 
     @Composable
-    override fun DetailUI(onBackClick: () -> Unit, headerContent: @Composable (String) -> Unit) =
+    override fun DetailUI(headerContent: @Composable (String) -> Unit) =
         NightModeDetailUI(headerContent)
 
     @ArrayRes

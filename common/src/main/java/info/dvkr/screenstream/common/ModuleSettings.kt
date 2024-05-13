@@ -1,13 +1,16 @@
 package info.dvkr.screenstream.common
 
 import android.content.res.Resources
+import android.os.Parcelable
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.parcelize.Parcelize
 
 public interface ModuleSettings {
-    public class Id(public val moduleId: String, public val groupId: String, public val itemId: String) {
+    @Parcelize
+    public class Id(public val moduleId: String, public val groupId: String, public val itemId: String) : Parcelable {
         public companion object {
             public val EMPTY: Id = Id("", "", "")
         }
@@ -69,6 +72,6 @@ public interface ModuleSettings {
         public fun ListUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit)
 
         @Composable
-        public fun DetailUI(onBackClick: () -> Unit, headerContent: @Composable (String) -> Unit): Unit = Unit
+        public fun DetailUI(headerContent: @Composable (String) -> Unit): Unit = Unit
     }
 }

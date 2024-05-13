@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.androidLibrary)
     alias(libs.plugins.kotlinAndroid)
+    alias(libs.plugins.kotlinParcelize)
     alias(libs.plugins.compose)
     alias(libs.plugins.ksp)
 }

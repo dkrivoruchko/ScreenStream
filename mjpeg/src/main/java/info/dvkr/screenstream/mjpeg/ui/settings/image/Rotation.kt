@@ -55,7 +55,7 @@ internal object Rotation : ModuleSettings.Item {
         RotationUI(horizontalPadding, onDetailShow)
 
     @Composable
-    override fun DetailUI(onBackClick: () -> Unit, headerContent: @Composable (String) -> Unit) =
+    override fun DetailUI(headerContent: @Composable (String) -> Unit) =
         RotationDetailUI(headerContent)
 
     internal fun getRotationIndex(rotation: Int): Int = rotationList.first { it.second == rotation }.first

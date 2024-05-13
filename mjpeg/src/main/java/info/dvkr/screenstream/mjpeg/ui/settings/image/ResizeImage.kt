@@ -66,7 +66,7 @@ internal object ResizeImage : ModuleSettings.Item {
         ResizeImageUI(horizontalPadding, onDetailShow)
 
     @Composable
-    override fun DetailUI(onBackClick: () -> Unit, headerContent: @Composable (String) -> Unit) =
+    override fun DetailUI(headerContent: @Composable (String) -> Unit) =
         ResizeImageDetailUI(headerContent)
 }
 

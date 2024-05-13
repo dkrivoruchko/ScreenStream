@@ -63,7 +63,7 @@ internal object VrMode : ModuleSettings.Item {
         VrModeUI(horizontalPadding, coroutineScope, onDetailShow)
 
     @Composable
-    override fun DetailUI(onBackClick: () -> Unit, headerContent: @Composable (String) -> Unit) =
+    override fun DetailUI(headerContent: @Composable (String) -> Unit) =
         VrModeDetailUI(headerContent)
 }
 

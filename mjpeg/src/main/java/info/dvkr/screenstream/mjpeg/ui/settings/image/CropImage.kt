@@ -77,7 +77,7 @@ internal object CropImage : ModuleSettings.Item {
         CropImageUI(horizontalPadding, coroutineScope, onDetailShow)
 
     @Composable
-    override fun DetailUI(onBackClick: () -> Unit, headerContent: @Composable (String) -> Unit) =
+    override fun DetailUI(headerContent: @Composable (String) -> Unit) =
         CropImageDetailUI(headerContent)
 }
 

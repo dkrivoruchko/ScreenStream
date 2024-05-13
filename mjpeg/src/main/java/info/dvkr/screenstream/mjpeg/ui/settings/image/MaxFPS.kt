@@ -61,7 +61,7 @@ internal object MaxFPS : ModuleSettings.Item {
         MaxFpsUI(horizontalPadding, onDetailShow)
 
     @Composable
-    override fun DetailUI(onBackClick: () -> Unit, headerContent: @Composable (String) -> Unit) =
+    override fun DetailUI(headerContent: @Composable (String) -> Unit) =
         MaxFpsDetailUI(headerContent)
 }
 

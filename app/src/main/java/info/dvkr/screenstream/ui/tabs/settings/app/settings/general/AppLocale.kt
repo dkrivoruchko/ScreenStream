@@ -60,8 +60,8 @@ internal object AppLocale : ModuleSettings.Item {
         AppLocaleUI(horizontalPadding, onDetailShow)
 
     @Composable
-    override fun DetailUI(onBackClick: () -> Unit, headerContent: @Composable (String) -> Unit) =
-        AppLocaleDetailsUI(onBackClick, headerContent)
+    override fun DetailUI(headerContent: @Composable (String) -> Unit) =
+        AppLocaleDetailsUI(headerContent)
 }
 
 @Composable
@@ -109,7 +109,6 @@ private fun AppLocaleUI(
 @SuppressLint("DiscouragedApi")
 @Composable
 private fun AppLocaleDetailsUI(
-    onBackClick: () -> Unit,
     headerContent: @Composable (String) -> Unit,
     scope: CoroutineScope = rememberCoroutineScope(),
 ) {
@@ -151,7 +150,6 @@ private fun AppLocaleDetailsUI(
             ) {
                 scope.launch {
                     withContext(NonCancellable) { AppCompatDelegate.setApplicationLocales(LocaleListCompat.getEmptyLocaleList()) }
-                    onBackClick.invoke()
                 }
             }
 
@@ -162,7 +160,6 @@ private fun AppLocaleDetailsUI(
                 ) {
                     scope.launch {
                         withContext(NonCancellable) { AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(tag)) }
-                        onBackClick.invoke()
                     }
                 }
             }

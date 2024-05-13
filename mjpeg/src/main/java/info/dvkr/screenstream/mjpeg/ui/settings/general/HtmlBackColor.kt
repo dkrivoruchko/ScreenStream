@@ -80,7 +80,7 @@ internal object HtmlBackColor : ModuleSettings.Item {
         HtmlBackColorUI(horizontalPadding, onDetailShow)
 
     @Composable
-    override fun DetailUI(onBackClick: () -> Unit, headerContent: @Composable (String) -> Unit) =
+    override fun DetailUI(headerContent: @Composable (String) -> Unit) =
         HtmlBackColorDetailUI(headerContent)
 
     internal val colorPalette = listOf(

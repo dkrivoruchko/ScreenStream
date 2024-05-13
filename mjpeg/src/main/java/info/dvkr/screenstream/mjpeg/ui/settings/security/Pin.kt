@@ -66,7 +66,7 @@ internal object Pin : ModuleSettings.Item {
         PinUI(horizontalPadding, onDetailShow)
 
     @Composable
-    override fun DetailUI(onBackClick: () -> Unit, headerContent: @Composable (String) -> Unit) =
+    override fun DetailUI(headerContent: @Composable (String) -> Unit) =
         PinDetailUI(headerContent)
 }
 

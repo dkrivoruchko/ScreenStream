@@ -40,14 +40,6 @@ internal class SettingsTabViewModel(
     private val _filteredSettings: MutableStateFlow<List<ModuleSettings>> = MutableStateFlow(settingsListFull)
     internal val settingsListFlow: StateFlow<List<ModuleSettings>> = _filteredSettings.asStateFlow()
 
-    private val _selectedSettingId: MutableStateFlow<ModuleSettings.Id> = MutableStateFlow(ModuleSettings.Id.EMPTY)
-    private val _selectedItemFlow: MutableStateFlow<ModuleSettings.Item?> = MutableStateFlow(null)
-    internal val selectedItemFlow: StateFlow<ModuleSettings.Item?> = _selectedItemFlow.asStateFlow()
-
-    internal fun onSettingSelected(id: ModuleSettings.Id) {
-        _selectedSettingId.value = id
-    }
-
     init {
         XLog.d(getLog("init"))
 
@@ -59,13 +51,11 @@ internal class SettingsTabViewModel(
         }
             .onEach { filteredSettings -> _filteredSettings.value = filteredSettings }
             .launchIn(viewModelScope)
-
-        _selectedSettingId.map { settingId ->
-            settingsListFull.firstOrNull { it.id == settingId.moduleId }?.groups
-                ?.firstOrNull { it.id == settingId.groupId }?.items
-                ?.firstOrNull { it.id == settingId.itemId }
-        }
-            .onEach { selectedSettingItem -> _selectedItemFlow.value = selectedSettingItem }
-            .launchIn(viewModelScope)
     }
+
+    internal fun getModuleSettingsItem(settingId: ModuleSettings.Id?): ModuleSettings.Item? =
+        if (settingId == null) null
+        else settingsListFull.firstOrNull { it.id == settingId.moduleId }?.groups
+            ?.firstOrNull { it.id == settingId.groupId }?.items
+            ?.firstOrNull { it.id == settingId.itemId }
 }

@@ -61,7 +61,7 @@ internal object JpegQuality : ModuleSettings.Item {
         JpegQualityUI(horizontalPadding, onDetailShow)
 
     @Composable
-    override fun DetailUI(onBackClick: () -> Unit, headerContent: @Composable (String) -> Unit) =
+    override fun DetailUI(headerContent: @Composable (String) -> Unit) =
         JpegQualityDetailUI(headerContent)
 }
 

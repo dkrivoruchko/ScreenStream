@@ -33,7 +33,6 @@ import androidx.compose.material3.adaptive.layout.AnimatedPane
 import androidx.compose.material3.adaptive.layout.ListDetailPaneScaffold
 import androidx.compose.material3.adaptive.layout.ListDetailPaneScaffoldRole
 import androidx.compose.material3.adaptive.layout.calculatePaneScaffoldDirective
-import androidx.compose.material3.adaptive.navigation.ThreePaneScaffoldNavigator
 import androidx.compose.material3.adaptive.navigation.rememberListDetailPaneScaffoldNavigator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -74,13 +73,15 @@ internal fun SettingsTabContent(
     val windowAdaptiveInfo = currentWindowAdaptiveInfo()
     val listPanePreferredWidth = calculateListPanePreferredWidth(windowAdaptiveInfo, boundsInWindow = LocalContentBoundsInWindow.current)
     val scaffoldDirective = calculatePaneScaffoldDirective(windowAdaptiveInfo).copy(horizontalPartitionSpacerSize = 0.dp)
-    val scaffoldNavigator = rememberListDetailPaneScaffoldNavigator(scaffoldDirective)
+    val navigator = rememberListDetailPaneScaffoldNavigator<ModuleSettings.Id>(scaffoldDirective)
+
+    BackHandler(enabled = navigator.canNavigateBack()) { navigator.navigateBack() }
 
     val lazyListState = rememberLazyListState()
 
     ListDetailPaneScaffold(
-        directive = scaffoldNavigator.scaffoldDirective,
-        value = scaffoldNavigator.scaffoldValue,
+        directive = navigator.scaffoldDirective,
+        value = navigator.scaffoldValue,
         listPane = {
             AnimatedPane(modifier = Modifier.preferredWidth(listPanePreferredWidth)) {
                 SettingsListPane(
@@ -88,32 +89,22 @@ internal fun SettingsTabContent(
                     settingsListFlow = settingsViewModel.settingsListFlow,
                     searchTextFlow = settingsViewModel.searchTextFlow,
                     onSearchTextChange = { text -> settingsViewModel.setSearchText(text) },
-                    onSettingSelected = { moduleSettingsId ->
-                        settingsViewModel.onSettingSelected(moduleSettingsId)
-                        scaffoldNavigator.navigateTo(ListDetailPaneScaffoldRole.Detail)
-                    }
+                    onSettingSelected = { navigator.navigateTo(ListDetailPaneScaffoldRole.Detail, it) }
                 )
             }
         },
         detailPane = {
             AnimatedPane(modifier = Modifier.fillMaxSize()) {
-                val selectedItem = settingsViewModel.selectedItemFlow.collectAsStateWithLifecycle()
-                selectedItem.value?.DetailUI(onBackClick = { if (scaffoldNavigator.canNavigateBack()) scaffoldNavigator.navigateBack() }) { title ->
-                    DetailUITitle(scaffoldNavigator, title)
-                }
+                settingsViewModel.getModuleSettingsItem(navigator.currentDestination?.content)
+                    ?.DetailUI { title -> DetailUITitle(title, navigator.canNavigateBack()) { navigator.navigateBack() } }
             }
         },
         modifier = modifier
     )
 }
 
-@OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @Composable
-private fun DetailUITitle(navigator: ThreePaneScaffoldNavigator<*>, title: String) {
-    val canNavigateBack = remember { navigator.canNavigateBack() }
-
-    BackHandler(enabled = canNavigateBack) { navigator.navigateBack() }
-
+private fun DetailUITitle(title: String, canNavigateBack: Boolean, navigateBack: () -> Unit) {
     if (canNavigateBack) {
         Row(
             modifier = Modifier
@@ -121,7 +112,7 @@ private fun DetailUITitle(navigator: ThreePaneScaffoldNavigator<*>, title: Strin
                 .padding(horizontal = 4.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = { navigator.navigateBack() }) {
+            IconButton(onClick = navigateBack) {
                 Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(id = R.string.app_pref_back))
             }
             Text(
