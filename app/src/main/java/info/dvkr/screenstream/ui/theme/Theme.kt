@@ -108,10 +108,8 @@ internal fun ScreenStreamTheme(
     val dynamicTheme = remember { derivedStateOf { appSettingsState.value.dynamicTheme } }
 
     val colorScheme = when {
-        DynamicTheme.available && dynamicTheme.value ->
-            if (darkTheme) dynamicDarkColorScheme(LocalContext.current)
-            else dynamicLightColorScheme(LocalContext.current)
-
+        DynamicTheme.available && dynamicTheme.value && darkTheme -> dynamicDarkColorScheme(LocalContext.current)
+        DynamicTheme.available && dynamicTheme.value && darkTheme.not() -> dynamicLightColorScheme(LocalContext.current)
         darkTheme -> darkScheme
         else -> lightScheme
     }

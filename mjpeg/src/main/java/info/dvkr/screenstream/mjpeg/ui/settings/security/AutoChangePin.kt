@@ -5,8 +5,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.selection.toggleable
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Autorenew
+import androidx.compose.material.icons.materialIcon
+import androidx.compose.material.icons.materialPath
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
@@ -18,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -67,7 +68,7 @@ private fun AutoChangePinUI(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
-            imageVector = Icons.Filled.Autorenew,
+            imageVector = Icon_Autorenew,
             contentDescription = stringResource(id = R.string.mjpeg_pref_auto_change_pin),
             modifier = Modifier.padding(end = 16.dp)
         )
@@ -91,5 +92,32 @@ private fun AutoChangePinUI(
             onCheckedChange = null,
             modifier = Modifier.scale(0.7F),
         )
+    }
+}
+
+private val Icon_Autorenew: ImageVector = materialIcon(name = "Filled.Autorenew") {
+    materialPath {
+        moveTo(12.0f, 6.0f)
+        verticalLineToRelative(3.0f)
+        lineToRelative(4.0f, -4.0f)
+        lineToRelative(-4.0f, -4.0f)
+        verticalLineToRelative(3.0f)
+        curveToRelative(-4.42f, 0.0f, -8.0f, 3.58f, -8.0f, 8.0f)
+        curveToRelative(0.0f, 1.57f, 0.46f, 3.03f, 1.24f, 4.26f)
+        lineTo(6.7f, 14.8f)
+        curveToRelative(-0.45f, -0.83f, -0.7f, -1.79f, -0.7f, -2.8f)
+        curveToRelative(0.0f, -3.31f, 2.69f, -6.0f, 6.0f, -6.0f)
+        close()
+        moveTo(18.76f, 7.74f)
+        lineTo(17.3f, 9.2f)
+        curveToRelative(0.44f, 0.84f, 0.7f, 1.79f, 0.7f, 2.8f)
+        curveToRelative(0.0f, 3.31f, -2.69f, 6.0f, -6.0f, 6.0f)
+        verticalLineToRelative(-3.0f)
+        lineToRelative(-4.0f, 4.0f)
+        lineToRelative(4.0f, 4.0f)
+        verticalLineToRelative(-3.0f)
+        curveToRelative(4.42f, 0.0f, 8.0f, -3.58f, 8.0f, -8.0f)
+        curveToRelative(0.0f, -1.57f, -0.46f, -3.03f, -1.24f, -4.26f)
+        close()
     }
 }

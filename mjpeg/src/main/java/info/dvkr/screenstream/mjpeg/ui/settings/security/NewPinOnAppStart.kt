@@ -5,8 +5,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.selection.toggleable
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Key
+import androidx.compose.material.icons.materialIcon
+import androidx.compose.material.icons.materialPath
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
@@ -18,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -67,7 +68,7 @@ private fun NewPinOnAppStartUI(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
-            imageVector = Icons.Outlined.Key,
+            imageVector = Icon_Key,
             contentDescription = stringResource(id = R.string.mjpeg_pref_new_pin_on_start),
             modifier = Modifier.padding(end = 16.dp)
         )
@@ -91,5 +92,29 @@ private fun NewPinOnAppStartUI(
             onCheckedChange = null,
             modifier = Modifier.scale(0.7F),
         )
+    }
+}
+
+private val Icon_Key: ImageVector = materialIcon(name = "Outlined.Key") {
+    materialPath {
+        moveTo(21.0f, 10.0f)
+        horizontalLineToRelative(-8.35f)
+        curveTo(11.83f, 7.67f, 9.61f, 6.0f, 7.0f, 6.0f)
+        curveToRelative(-3.31f, 0.0f, -6.0f, 2.69f, -6.0f, 6.0f)
+        reflectiveCurveToRelative(2.69f, 6.0f, 6.0f, 6.0f)
+        curveToRelative(2.61f, 0.0f, 4.83f, -1.67f, 5.65f, -4.0f)
+        horizontalLineTo(13.0f)
+        lineToRelative(2.0f, 2.0f)
+        lineToRelative(2.0f, -2.0f)
+        lineToRelative(2.0f, 2.0f)
+        lineToRelative(4.0f, -4.04f)
+        lineTo(21.0f, 10.0f)
+        close()
+        moveTo(7.0f, 15.0f)
+        curveToRelative(-1.65f, 0.0f, -3.0f, -1.35f, -3.0f, -3.0f)
+        curveToRelative(0.0f, -1.65f, 1.35f, -3.0f, 3.0f, -3.0f)
+        reflectiveCurveToRelative(3.0f, 1.35f, 3.0f, 3.0f)
+        curveTo(10.0f, 13.65f, 8.65f, 15.0f, 7.0f, 15.0f)
+        close()
     }
 }

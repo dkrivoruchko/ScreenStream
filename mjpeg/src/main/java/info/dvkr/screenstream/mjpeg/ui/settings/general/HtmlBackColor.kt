@@ -19,8 +19,8 @@ import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.FormatColorFill
+import androidx.compose.material.icons.materialIcon
+import androidx.compose.material.icons.materialPath
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
@@ -45,6 +45,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -108,7 +109,7 @@ private fun HtmlBackColorUI(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
-            imageVector = Icons.Outlined.FormatColorFill,
+            imageVector = Icon_FormatColorFill,
             contentDescription = stringResource(id = R.string.mjpeg_pref_html_back_color),
             modifier = Modifier.padding(end = 16.dp)
         )
@@ -356,5 +357,39 @@ private fun ColorPalettePanel(
                 }
             }
         }
+    }
+}
+
+private val Icon_FormatColorFill: ImageVector = materialIcon(name = "Outlined.FormatColorFill") {
+    materialPath {
+        moveTo(16.56f, 8.94f)
+        lineTo(7.62f, 0.0f)
+        lineTo(6.21f, 1.41f)
+        lineToRelative(2.38f, 2.38f)
+        lineTo(3.44f, 8.94f)
+        curveToRelative(-0.59f, 0.59f, -0.59f, 1.54f, 0.0f, 2.12f)
+        lineToRelative(5.5f, 5.5f)
+        curveTo(9.23f, 16.85f, 9.62f, 17.0f, 10.0f, 17.0f)
+        reflectiveCurveToRelative(0.77f, -0.15f, 1.06f, -0.44f)
+        lineToRelative(5.5f, -5.5f)
+        curveTo(17.15f, 10.48f, 17.15f, 9.53f, 16.56f, 8.94f)
+        close()
+        moveTo(5.21f, 10.0f)
+        lineTo(10.0f, 5.21f)
+        lineTo(14.79f, 10.0f)
+        horizontalLineTo(5.21f)
+        close()
+        moveTo(19.0f, 11.5f)
+        curveToRelative(0.0f, 0.0f, -2.0f, 2.17f, -2.0f, 3.5f)
+        curveToRelative(0.0f, 1.1f, 0.9f, 2.0f, 2.0f, 2.0f)
+        reflectiveCurveToRelative(2.0f, -0.9f, 2.0f, -2.0f)
+        curveTo(21.0f, 13.67f, 19.0f, 11.5f, 19.0f, 11.5f)
+        close()
+        moveTo(2.0f, 20.0f)
+        horizontalLineToRelative(20.0f)
+        verticalLineToRelative(4.0f)
+        horizontalLineTo(2.0f)
+        verticalLineTo(20.0f)
+        close()
     }
 }

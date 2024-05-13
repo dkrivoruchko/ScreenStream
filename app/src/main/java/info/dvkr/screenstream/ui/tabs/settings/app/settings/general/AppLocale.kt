@@ -17,9 +17,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Translate
+import androidx.compose.material.icons.materialIcon
+import androidx.compose.material.icons.materialPath
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -29,6 +28,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -86,7 +86,7 @@ private fun AppLocaleUI(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
-            imageVector = Icons.Filled.Translate,
+            imageVector = Icon_Translate,
             contentDescription = stringResource(id = R.string.app_pref_locale),
             modifier = Modifier.padding(end = 16.dp)
         )
@@ -194,7 +194,7 @@ private fun LanguageRow(
                     .weight(1F)
             )
             Icon(
-                imageVector = Icons.Default.Check,
+                imageVector = Icon_Check,
                 contentDescription = null,
                 modifier = Modifier.padding(end = 24.dp),
                 tint = MaterialTheme.colorScheme.primary
@@ -202,5 +202,60 @@ private fun LanguageRow(
         } else {
             Text(text = displayLanguage, modifier = Modifier.padding(horizontal = 24.dp))
         }
+    }
+}
+
+private val Icon_Translate: ImageVector = materialIcon(name = "Filled.Translate") {
+    materialPath {
+        moveTo(12.87f, 15.07f)
+        lineToRelative(-2.54f, -2.51f)
+        lineToRelative(0.03f, -0.03f)
+        curveToRelative(1.74f, -1.94f, 2.98f, -4.17f, 3.71f, -6.53f)
+        lineTo(17.0f, 6.0f)
+        lineTo(17.0f, 4.0f)
+        horizontalLineToRelative(-7.0f)
+        lineTo(10.0f, 2.0f)
+        lineTo(8.0f, 2.0f)
+        verticalLineToRelative(2.0f)
+        lineTo(1.0f, 4.0f)
+        verticalLineToRelative(1.99f)
+        horizontalLineToRelative(11.17f)
+        curveTo(11.5f, 7.92f, 10.44f, 9.75f, 9.0f, 11.35f)
+        curveTo(8.07f, 10.32f, 7.3f, 9.19f, 6.69f, 8.0f)
+        horizontalLineToRelative(-2.0f)
+        curveToRelative(0.73f, 1.63f, 1.73f, 3.17f, 2.98f, 4.56f)
+        lineToRelative(-5.09f, 5.02f)
+        lineTo(4.0f, 19.0f)
+        lineToRelative(5.0f, -5.0f)
+        lineToRelative(3.11f, 3.11f)
+        lineToRelative(0.76f, -2.04f)
+        close()
+        moveTo(18.5f, 10.0f)
+        horizontalLineToRelative(-2.0f)
+        lineTo(12.0f, 22.0f)
+        horizontalLineToRelative(2.0f)
+        lineToRelative(1.12f, -3.0f)
+        horizontalLineToRelative(4.75f)
+        lineTo(21.0f, 22.0f)
+        horizontalLineToRelative(2.0f)
+        lineToRelative(-4.5f, -12.0f)
+        close()
+        moveTo(15.88f, 17.0f)
+        lineToRelative(1.62f, -4.33f)
+        lineTo(19.12f, 17.0f)
+        horizontalLineToRelative(-3.24f)
+        close()
+    }
+}
+
+private val Icon_Check: ImageVector = materialIcon(name = "Filled.Check") {
+    materialPath {
+        moveTo(9.0f, 16.17f)
+        lineTo(4.83f, 12.0f)
+        lineToRelative(-1.42f, 1.41f)
+        lineTo(9.0f, 19.0f)
+        lineTo(21.0f, 7.0f)
+        lineToRelative(-1.41f, -1.41f)
+        close()
     }
 }

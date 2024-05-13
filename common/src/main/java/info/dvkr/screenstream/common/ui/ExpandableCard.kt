@@ -14,8 +14,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.materialIcon
+import androidx.compose.material.icons.materialPath
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -27,6 +27,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 
@@ -65,7 +66,7 @@ public fun ExpandableCard(
 
                 if (expandable) {
                     Icon(
-                        imageVector = Icons.Default.ChevronRight,
+                        imageVector = Icon_ChevronRight,
                         contentDescription = null,
                         modifier = Modifier
                             .padding(start = 8.dp)
@@ -82,5 +83,17 @@ public fun ExpandableCard(
                 content.invoke(this)
             }
         }
+    }
+}
+
+private val Icon_ChevronRight: ImageVector = materialIcon(name = "Filled.ChevronRight") {
+    materialPath {
+        moveTo(10.0f, 6.0f)
+        lineTo(8.59f, 7.41f)
+        lineTo(13.17f, 12.0f)
+        lineToRelative(-4.58f, 4.59f)
+        lineTo(10.0f, 18.0f)
+        lineToRelative(6.0f, -6.0f)
+        close()
     }
 }

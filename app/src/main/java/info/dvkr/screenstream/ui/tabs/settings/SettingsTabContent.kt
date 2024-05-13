@@ -16,10 +16,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.materialIcon
+import androidx.compose.material.icons.materialPath
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -45,6 +43,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.Placeable
 import androidx.compose.ui.layout.SubcomposeLayout
 import androidx.compose.ui.platform.LocalDensity
@@ -113,7 +112,7 @@ private fun DetailUITitle(title: String, canNavigateBack: Boolean, navigateBack:
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = navigateBack) {
-                Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(id = R.string.app_pref_back))
+                Icon(imageVector = Icon_ArrowBack, contentDescription = stringResource(id = R.string.app_pref_back))
             }
             Text(
                 text = title,
@@ -269,7 +268,7 @@ private fun SettingsListTitle(
             style = MaterialTheme.typography.headlineSmall
         )
         IconButton(onClick = { searchVisible.value = true }) {
-            Icon(imageVector = Icons.Default.Search, contentDescription = stringResource(id = R.string.app_pref_search))
+            Icon(imageVector = Icon_Search, contentDescription = stringResource(id = R.string.app_pref_search))
         }
     }
 }
@@ -296,7 +295,7 @@ private fun SettingsListSearch(
             .padding(horizontal = 16.dp)
             .focusRequester(focusRequester),
         placeholder = { Text(text = stringResource(id = R.string.app_pref_settings_search)) },
-        leadingIcon = { Icon(imageVector = Icons.Default.Search, contentDescription = stringResource(id = R.string.app_pref_search)) },
+        leadingIcon = { Icon(imageVector = Icon_Search, contentDescription = stringResource(id = R.string.app_pref_search)) },
         trailingIcon = {
             IconButton(
                 onClick = {
@@ -306,7 +305,7 @@ private fun SettingsListSearch(
                     onSearchTextChange.invoke("")
                 }
             ) {
-                Icon(imageVector = Icons.Default.Close, contentDescription = stringResource(id = R.string.app_pref_close))
+                Icon(imageVector = Icon_Close, contentDescription = stringResource(id = R.string.app_pref_close))
             }
         },
         singleLine = true
@@ -331,5 +330,64 @@ private fun calculateListPanePreferredWidth(
 
         hinge.isVertical -> with(LocalDensity.current) { (hinge.bounds.left - boundsInWindow.left).toDp() } // BookPosture
         else -> 360.dp
+    }
+}
+
+private val Icon_Search: ImageVector = materialIcon(name = "Filled.Search") {
+    materialPath {
+        moveTo(15.5f, 14.0f)
+        horizontalLineToRelative(-0.79f)
+        lineToRelative(-0.28f, -0.27f)
+        curveTo(15.41f, 12.59f, 16.0f, 11.11f, 16.0f, 9.5f)
+        curveTo(16.0f, 5.91f, 13.09f, 3.0f, 9.5f, 3.0f)
+        reflectiveCurveTo(3.0f, 5.91f, 3.0f, 9.5f)
+        reflectiveCurveTo(5.91f, 16.0f, 9.5f, 16.0f)
+        curveToRelative(1.61f, 0.0f, 3.09f, -0.59f, 4.23f, -1.57f)
+        lineToRelative(0.27f, 0.28f)
+        verticalLineToRelative(0.79f)
+        lineToRelative(5.0f, 4.99f)
+        lineTo(20.49f, 19.0f)
+        lineToRelative(-4.99f, -5.0f)
+        close()
+        moveTo(9.5f, 14.0f)
+        curveTo(7.01f, 14.0f, 5.0f, 11.99f, 5.0f, 9.5f)
+        reflectiveCurveTo(7.01f, 5.0f, 9.5f, 5.0f)
+        reflectiveCurveTo(14.0f, 7.01f, 14.0f, 9.5f)
+        reflectiveCurveTo(11.99f, 14.0f, 9.5f, 14.0f)
+        close()
+    }
+}
+
+private val Icon_Close: ImageVector = materialIcon(name = "Filled.Close") {
+    materialPath {
+        moveTo(19.0f, 6.41f)
+        lineTo(17.59f, 5.0f)
+        lineTo(12.0f, 10.59f)
+        lineTo(6.41f, 5.0f)
+        lineTo(5.0f, 6.41f)
+        lineTo(10.59f, 12.0f)
+        lineTo(5.0f, 17.59f)
+        lineTo(6.41f, 19.0f)
+        lineTo(12.0f, 13.41f)
+        lineTo(17.59f, 19.0f)
+        lineTo(19.0f, 17.59f)
+        lineTo(13.41f, 12.0f)
+        close()
+    }
+}
+
+private val Icon_ArrowBack: ImageVector = materialIcon(name = "AutoMirrored.Filled.ArrowBack", autoMirror = true) {
+    materialPath {
+        moveTo(20.0f, 11.0f)
+        horizontalLineTo(7.83f)
+        lineToRelative(5.59f, -5.59f)
+        lineTo(12.0f, 4.0f)
+        lineToRelative(-8.0f, 8.0f)
+        lineToRelative(8.0f, 8.0f)
+        lineToRelative(1.41f, -1.41f)
+        lineTo(7.83f, 13.0f)
+        horizontalLineTo(20.0f)
+        verticalLineToRelative(-2.0f)
+        close()
     }
 }

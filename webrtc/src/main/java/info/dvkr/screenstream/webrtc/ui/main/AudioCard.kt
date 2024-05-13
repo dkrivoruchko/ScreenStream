@@ -11,8 +11,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.selection.toggleable
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.materialIcon
+import androidx.compose.material.icons.materialPath
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -30,6 +30,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -210,7 +211,7 @@ private fun RequestPermission(
                     Text(text = stringResource(id = android.R.string.cancel))
                 }
             },
-            icon = { Icon(Icons.Default.Mic, contentDescription = null) },
+            icon = { Icon(Icon_Mic, contentDescription = null) },
             title = { Text(text = stringResource(id = R.string.webrtc_stream_audio_permission_title)) },
             text = { Text(text = stringResource(id = R.string.webrtc_stream_audio_permission_message)) },
             shape = MaterialTheme.shapes.large,
@@ -253,11 +254,35 @@ private fun RequestPermission(
                     Text(text = stringResource(id = android.R.string.cancel))
                 }
             },
-            icon = { Icon(Icons.Default.Mic, contentDescription = null) },
+            icon = { Icon(Icon_Mic, contentDescription = null) },
             title = { Text(text = stringResource(id = R.string.webrtc_stream_audio_permission_title)) },
             text = { Text(text = stringResource(id = R.string.webrtc_stream_audio_permission_message_settings)) },
             shape = MaterialTheme.shapes.large,
             properties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false)
         )
+    }
+}
+
+private val Icon_Mic: ImageVector = materialIcon(name = "Filled.Mic") {
+    materialPath {
+        moveTo(12.0f, 14.0f)
+        curveToRelative(1.66f, 0.0f, 2.99f, -1.34f, 2.99f, -3.0f)
+        lineTo(15.0f, 5.0f)
+        curveToRelative(0.0f, -1.66f, -1.34f, -3.0f, -3.0f, -3.0f)
+        reflectiveCurveTo(9.0f, 3.34f, 9.0f, 5.0f)
+        verticalLineToRelative(6.0f)
+        curveToRelative(0.0f, 1.66f, 1.34f, 3.0f, 3.0f, 3.0f)
+        close()
+        moveTo(17.3f, 11.0f)
+        curveToRelative(0.0f, 3.0f, -2.54f, 5.1f, -5.3f, 5.1f)
+        reflectiveCurveTo(6.7f, 14.0f, 6.7f, 11.0f)
+        lineTo(5.0f, 11.0f)
+        curveToRelative(0.0f, 3.41f, 2.72f, 6.23f, 6.0f, 6.72f)
+        lineTo(11.0f, 21.0f)
+        horizontalLineToRelative(2.0f)
+        verticalLineToRelative(-3.28f)
+        curveToRelative(3.28f, -0.48f, 6.0f, -3.3f, 6.0f, -6.72f)
+        horizontalLineToRelative(-1.7f)
+        close()
     }
 }

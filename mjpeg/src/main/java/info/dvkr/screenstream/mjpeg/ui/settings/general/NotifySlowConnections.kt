@@ -5,8 +5,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.selection.toggleable
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ErrorOutline
+import androidx.compose.material.icons.materialIcon
+import androidx.compose.material.icons.materialPath
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
@@ -17,6 +17,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -63,7 +64,7 @@ private fun NotifySlowConnectionsUI(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
-            imageVector = Icons.Default.ErrorOutline,
+            imageVector = Icon_ErrorOutline,
             contentDescription = stringResource(id = R.string.mjpeg_pref_detect_slow_connections),
             modifier = Modifier.padding(end = 16.dp)
         )
@@ -87,5 +88,32 @@ private fun NotifySlowConnectionsUI(
             onCheckedChange = null,
             modifier = Modifier.scale(0.7F),
         )
+    }
+}
+
+private val Icon_ErrorOutline: ImageVector = materialIcon(name = "Filled.ErrorOutline") {
+    materialPath {
+        moveTo(11.0f, 15.0f)
+        horizontalLineToRelative(2.0f)
+        verticalLineToRelative(2.0f)
+        horizontalLineToRelative(-2.0f)
+        close()
+        moveTo(11.0f, 7.0f)
+        horizontalLineToRelative(2.0f)
+        verticalLineToRelative(6.0f)
+        horizontalLineToRelative(-2.0f)
+        close()
+        moveTo(11.99f, 2.0f)
+        curveTo(6.47f, 2.0f, 2.0f, 6.48f, 2.0f, 12.0f)
+        reflectiveCurveToRelative(4.47f, 10.0f, 9.99f, 10.0f)
+        curveTo(17.52f, 22.0f, 22.0f, 17.52f, 22.0f, 12.0f)
+        reflectiveCurveTo(17.52f, 2.0f, 11.99f, 2.0f)
+        close()
+        moveTo(12.0f, 20.0f)
+        curveToRelative(-4.42f, 0.0f, -8.0f, -3.58f, -8.0f, -8.0f)
+        reflectiveCurveToRelative(3.58f, -8.0f, 8.0f, -8.0f)
+        reflectiveCurveToRelative(8.0f, 3.58f, 8.0f, 8.0f)
+        reflectiveCurveToRelative(-3.58f, 8.0f, -8.0f, 8.0f)
+        close()
     }
 }

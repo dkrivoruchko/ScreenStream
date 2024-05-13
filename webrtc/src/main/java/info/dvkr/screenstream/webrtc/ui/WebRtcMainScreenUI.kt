@@ -8,9 +8,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material.icons.materialIcon
+import androidx.compose.material.icons.materialPath
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -22,6 +21,7 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -123,7 +123,7 @@ internal fun WebRtcMainScreenUI(
             )
         ) {
             Crossfade(targetState = isStreaming.value, label = "StreamingButtonCrossfade") { isStreaming ->
-                Icon(imageVector = if (isStreaming) Icons.Default.Stop else Icons.Default.PlayArrow, contentDescription = null)
+                Icon(imageVector = if (isStreaming) Icon_Stop else Icon_PlayArrow, contentDescription = null)
             }
             Text(
                 text = stringResource(id = if (isStreaming.value) R.string.webrtc_stream_stop else R.string.webrtc_stream_start),
@@ -131,5 +131,24 @@ internal fun WebRtcMainScreenUI(
                 style = MaterialTheme.typography.titleMedium
             )
         }
+    }
+}
+
+private val Icon_Stop: ImageVector = materialIcon(name = "Filled.Stop") {
+    materialPath {
+        moveTo(6.0f, 6.0f)
+        horizontalLineToRelative(12.0f)
+        verticalLineToRelative(12.0f)
+        horizontalLineTo(6.0f)
+        close()
+    }
+}
+
+private val Icon_PlayArrow: ImageVector = materialIcon(name = "Filled.PlayArrow") {
+    materialPath {
+        moveTo(8.0f, 5.0f)
+        verticalLineToRelative(14.0f)
+        lineToRelative(11.0f, -7.0f)
+        close()
     }
 }

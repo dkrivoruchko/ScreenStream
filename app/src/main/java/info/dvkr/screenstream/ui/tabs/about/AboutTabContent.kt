@@ -10,11 +10,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ReceiptLong
-import androidx.compose.material.icons.filled.Policy
-import androidx.compose.material.icons.filled.Receipt
-import androidx.compose.material.icons.filled.Stars
 import androidx.compose.material.icons.materialIcon
 import androidx.compose.material.icons.materialPath
 import androidx.compose.material3.Icon
@@ -97,7 +92,7 @@ public fun AboutTabContent(
                     .padding(vertical = 4.dp)
                     .fillMaxWidth()
             ) {
-                Icon(imageVector = Icons.Default.Stars, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
+                Icon(imageVector = Icon_Stars, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
                 Text(text = stringResource(id = R.string.app_tab_about_rate_app), maxLines = 1)
             }
 
@@ -118,7 +113,7 @@ public fun AboutTabContent(
                     .fillMaxWidth()
             ) {
                 Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ReceiptLong,
+                    imageVector = Icon_ReceiptLong,
                     contentDescription = null,
                     modifier = Modifier.padding(end = 8.dp)
                 )
@@ -131,7 +126,7 @@ public fun AboutTabContent(
                     .padding(vertical = 4.dp)
                     .fillMaxWidth()
             ) {
-                Icon(imageVector = Icons.Default.Policy, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
+                Icon(imageVector = Icon_Policy, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
                 Text(text = stringResource(id = R.string.app_tab_about_privacy_policy), maxLines = 1)
             }
 
@@ -143,7 +138,7 @@ public fun AboutTabContent(
                         .fillMaxWidth()
 
                 ) {
-                    Icon(imageVector = Icons.Default.Receipt, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
+                    Icon(imageVector = Icon_Receipt, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
                     Text(text = stringResource(id = R.string.app_tab_about_privacy_options), maxLines = 1)
                 }
             }
@@ -158,6 +153,29 @@ public fun AboutTabContent(
                 Text(text = stringResource(id = R.string.app_tab_about_license), maxLines = 1)
             }
         }
+    }
+}
+
+private val Icon_Stars: ImageVector = materialIcon(name = "Filled.Stars") {
+    materialPath {
+        moveTo(11.99f, 2.0f)
+        curveTo(6.47f, 2.0f, 2.0f, 6.48f, 2.0f, 12.0f)
+        reflectiveCurveToRelative(4.47f, 10.0f, 9.99f, 10.0f)
+        curveTo(17.52f, 22.0f, 22.0f, 17.52f, 22.0f, 12.0f)
+        reflectiveCurveTo(17.52f, 2.0f, 11.99f, 2.0f)
+        close()
+        moveTo(16.23f, 18.0f)
+        lineTo(12.0f, 15.45f)
+        lineTo(7.77f, 18.0f)
+        lineToRelative(1.12f, -4.81f)
+        lineToRelative(-3.73f, -3.23f)
+        lineToRelative(4.92f, -0.42f)
+        lineTo(12.0f, 5.0f)
+        lineToRelative(1.92f, 4.53f)
+        lineToRelative(4.92f, 0.42f)
+        lineToRelative(-3.73f, 3.23f)
+        lineTo(16.23f, 18.0f)
+        close()
     }
 }
 
@@ -190,6 +208,144 @@ private val Icon_GitHub: ImageVector = materialIcon(name = "GitHub") {
         curveTo(14.5F, 21.27F, 14.66F, 21.59F, 15.17F, 21.5F)
         curveTo(19.14F, 20.16F, 22.0F, 16.42F, 22.0F, 12.0F)
         arcTo(10.0F, 10.0F, 0.0F, false, false, 12.0F, 2.0F)
+        close()
+    }
+}
+
+private val Icon_ReceiptLong: ImageVector = materialIcon(name = "AutoMirrored.Filled.ReceiptLong", autoMirror = true) {
+    materialPath {
+        moveTo(19.5f, 3.5f)
+        lineTo(18.0f, 2.0f)
+        lineToRelative(-1.5f, 1.5f)
+        lineTo(15.0f, 2.0f)
+        lineToRelative(-1.5f, 1.5f)
+        lineTo(12.0f, 2.0f)
+        lineToRelative(-1.5f, 1.5f)
+        lineTo(9.0f, 2.0f)
+        lineTo(7.5f, 3.5f)
+        lineTo(6.0f, 2.0f)
+        verticalLineToRelative(14.0f)
+        horizontalLineTo(3.0f)
+        verticalLineToRelative(3.0f)
+        curveToRelative(0.0f, 1.66f, 1.34f, 3.0f, 3.0f, 3.0f)
+        horizontalLineToRelative(12.0f)
+        curveToRelative(1.66f, 0.0f, 3.0f, -1.34f, 3.0f, -3.0f)
+        verticalLineTo(2.0f)
+        lineTo(19.5f, 3.5f)
+        close()
+        moveTo(19.0f, 19.0f)
+        curveToRelative(0.0f, 0.55f, -0.45f, 1.0f, -1.0f, 1.0f)
+        reflectiveCurveToRelative(-1.0f, -0.45f, -1.0f, -1.0f)
+        verticalLineToRelative(-3.0f)
+        horizontalLineTo(8.0f)
+        verticalLineTo(5.0f)
+        horizontalLineToRelative(11.0f)
+        verticalLineTo(19.0f)
+        close()
+    }
+    materialPath {
+        moveTo(9.0f, 7.0f)
+        horizontalLineToRelative(6.0f)
+        verticalLineToRelative(2.0f)
+        horizontalLineToRelative(-6.0f)
+        close()
+    }
+    materialPath {
+        moveTo(16.0f, 7.0f)
+        horizontalLineToRelative(2.0f)
+        verticalLineToRelative(2.0f)
+        horizontalLineToRelative(-2.0f)
+        close()
+    }
+    materialPath {
+        moveTo(9.0f, 10.0f)
+        horizontalLineToRelative(6.0f)
+        verticalLineToRelative(2.0f)
+        horizontalLineToRelative(-6.0f)
+        close()
+    }
+    materialPath {
+        moveTo(16.0f, 10.0f)
+        horizontalLineToRelative(2.0f)
+        verticalLineToRelative(2.0f)
+        horizontalLineToRelative(-2.0f)
+        close()
+    }
+}
+
+private val Icon_Policy: ImageVector = materialIcon(name = "Filled.Policy") {
+    materialPath {
+        moveTo(21.0f, 5.0f)
+        lineToRelative(-9.0f, -4.0f)
+        lineTo(3.0f, 5.0f)
+        verticalLineToRelative(6.0f)
+        curveToRelative(0.0f, 5.55f, 3.84f, 10.74f, 9.0f, 12.0f)
+        curveToRelative(2.3f, -0.56f, 4.33f, -1.9f, 5.88f, -3.71f)
+        lineToRelative(-3.12f, -3.12f)
+        curveToRelative(-1.94f, 1.29f, -4.58f, 1.07f, -6.29f, -0.64f)
+        curveToRelative(-1.95f, -1.95f, -1.95f, -5.12f, 0.0f, -7.07f)
+        curveToRelative(1.95f, -1.95f, 5.12f, -1.95f, 7.07f, 0.0f)
+        curveToRelative(1.71f, 1.71f, 1.92f, 4.35f, 0.64f, 6.29f)
+        lineToRelative(2.9f, 2.9f)
+        curveTo(20.29f, 15.69f, 21.0f, 13.38f, 21.0f, 11.0f)
+        verticalLineTo(5.0f)
+        close()
+    }
+    materialPath {
+        moveTo(12.0f, 12.0f)
+        moveToRelative(-3.0f, 0.0f)
+        arcToRelative(3.0f, 3.0f, 0.0f, true, true, 6.0f, 0.0f)
+        arcToRelative(3.0f, 3.0f, 0.0f, true, true, -6.0f, 0.0f)
+    }
+}
+
+private val Icon_Receipt: ImageVector = materialIcon(name = "Filled.Receipt") {
+    materialPath {
+        moveTo(18.0f, 17.0f)
+        lineTo(6.0f, 17.0f)
+        verticalLineToRelative(-2.0f)
+        horizontalLineToRelative(12.0f)
+        verticalLineToRelative(2.0f)
+        close()
+        moveTo(18.0f, 13.0f)
+        lineTo(6.0f, 13.0f)
+        verticalLineToRelative(-2.0f)
+        horizontalLineToRelative(12.0f)
+        verticalLineToRelative(2.0f)
+        close()
+        moveTo(18.0f, 9.0f)
+        lineTo(6.0f, 9.0f)
+        lineTo(6.0f, 7.0f)
+        horizontalLineToRelative(12.0f)
+        verticalLineToRelative(2.0f)
+        close()
+        moveTo(3.0f, 22.0f)
+        lineToRelative(1.5f, -1.5f)
+        lineTo(6.0f, 22.0f)
+        lineToRelative(1.5f, -1.5f)
+        lineTo(9.0f, 22.0f)
+        lineToRelative(1.5f, -1.5f)
+        lineTo(12.0f, 22.0f)
+        lineToRelative(1.5f, -1.5f)
+        lineTo(15.0f, 22.0f)
+        lineToRelative(1.5f, -1.5f)
+        lineTo(18.0f, 22.0f)
+        lineToRelative(1.5f, -1.5f)
+        lineTo(21.0f, 22.0f)
+        lineTo(21.0f, 2.0f)
+        lineToRelative(-1.5f, 1.5f)
+        lineTo(18.0f, 2.0f)
+        lineToRelative(-1.5f, 1.5f)
+        lineTo(15.0f, 2.0f)
+        lineToRelative(-1.5f, 1.5f)
+        lineTo(12.0f, 2.0f)
+        lineToRelative(-1.5f, 1.5f)
+        lineTo(9.0f, 2.0f)
+        lineTo(7.5f, 3.5f)
+        lineTo(6.0f, 2.0f)
+        lineTo(4.5f, 3.5f)
+        lineTo(3.0f, 2.0f)
+        verticalLineToRelative(20.0f)
         close()
     }
 }

@@ -100,6 +100,9 @@ private fun TrafficGraph(
 
     LaunchedEffect(currentMaxY) { maxY.floatValue = currentMaxY }
 
+    val yMarkLineColor = LocalContentColor.current.copy(alpha = .5F)
+    val lineColor = MaterialTheme.colorScheme.primary
+
     Row(modifier = modifier.padding(8.dp)) {
         Column(
             modifier = Modifier
@@ -111,18 +114,15 @@ private fun TrafficGraph(
             repeat(yMarksCount + 1) { i -> yLabel.invoke(currentMaxY / yMarksCount * (yMarksCount - i)) }
         }
 
-        val yMarkLineColor = LocalContentColor.current.copy(alpha = .5F)
-        val yMarkLinePathEffect = remember { PathEffect.dashPathEffect(floatArrayOf(8f, 12f), 0f) }
-
-        val lineColor = MaterialTheme.colorScheme.primary
-        val gradientBrush = remember { Brush.verticalGradient(listOf(lineColor.copy(alpha = .6F), lineColor.copy(alpha = 0F))) }
-
         Spacer(
             modifier = Modifier
                 .padding(vertical = 8.dp)
                 .fillMaxSize()
                 .semantics { this.contentDescription = contentDescription }
                 .drawWithCache {
+                    val yMarkLinePathEffect = PathEffect.dashPathEffect(floatArrayOf(8f, 12f), 0f)
+                    val gradientBrush = Brush.verticalGradient(listOf(lineColor.copy(alpha = .6F), lineColor.copy(alpha = 0F)))
+
                     val xStepPx = size.width / (points.value.size - 1)
                     val yStepPx = size.height / currentMaxY
 

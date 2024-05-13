@@ -5,8 +5,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.selection.toggleable
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ControlCamera
+import androidx.compose.material.icons.materialIcon
+import androidx.compose.material.icons.materialPath
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
@@ -18,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -68,7 +69,7 @@ private fun HtmlEnableButtonsUI(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
-            imageVector = Icons.Default.ControlCamera,
+            imageVector = Icon_ControlCamera,
             contentDescription = stringResource(id = R.string.mjpeg_pref_html_buttons),
             modifier = Modifier.padding(end = 16.dp)
         )
@@ -92,5 +93,44 @@ private fun HtmlEnableButtonsUI(
             onCheckedChange = null,
             modifier = Modifier.scale(0.7F),
         )
+    }
+}
+
+private val Icon_ControlCamera: ImageVector = materialIcon(name = "Filled.ControlCamera") {
+    materialPath {
+        moveTo(15.54f, 5.54f)
+        lineTo(13.77f, 7.3f)
+        lineTo(12.0f, 5.54f)
+        lineTo(10.23f, 7.3f)
+        lineTo(8.46f, 5.54f)
+        lineTo(12.0f, 2.0f)
+        close()
+        moveTo(18.46f, 15.54f)
+        lineToRelative(-1.76f, -1.77f)
+        lineTo(18.46f, 12.0f)
+        lineToRelative(-1.76f, -1.77f)
+        lineToRelative(1.76f, -1.77f)
+        lineTo(22.0f, 12.0f)
+        close()
+        moveTo(8.46f, 18.46f)
+        lineToRelative(1.77f, -1.76f)
+        lineTo(12.0f, 18.46f)
+        lineToRelative(1.77f, -1.76f)
+        lineToRelative(1.77f, 1.76f)
+        lineTo(12.0f, 22.0f)
+        close()
+        moveTo(5.54f, 8.46f)
+        lineToRelative(1.76f, 1.77f)
+        lineTo(5.54f, 12.0f)
+        lineToRelative(1.76f, 1.77f)
+        lineToRelative(-1.76f, 1.77f)
+        lineTo(2.0f, 12.0f)
+        close()
+    }
+    materialPath {
+        moveTo(12.0f, 12.0f)
+        moveToRelative(-3.0f, 0.0f)
+        arcToRelative(3.0f, 3.0f, 0.0f, true, true, 6.0f, 0.0f)
+        arcToRelative(3.0f, 3.0f, 0.0f, true, true, -6.0f, 0.0f)
     }
 }

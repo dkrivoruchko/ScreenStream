@@ -5,8 +5,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.selection.toggleable
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Stop
+import androidx.compose.material.icons.materialIcon
+import androidx.compose.material.icons.materialPath
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
@@ -17,6 +17,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -63,7 +64,7 @@ private fun StopOnSleepUI(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
-            imageVector = Icons.Outlined.Stop,
+            imageVector = Icon_Stop,
             contentDescription = stringResource(id = R.string.webrtc_pref_stop_on_sleep),
             modifier = Modifier.padding(end = 16.dp)
         )
@@ -87,5 +88,21 @@ private fun StopOnSleepUI(
             onCheckedChange = null,
             modifier = Modifier.scale(0.7F),
         )
+    }
+}
+
+private val Icon_Stop: ImageVector = materialIcon(name = "Outlined.Stop") {
+    materialPath {
+        moveTo(16.0f, 8.0f)
+        verticalLineToRelative(8.0f)
+        horizontalLineTo(8.0f)
+        verticalLineTo(8.0f)
+        horizontalLineToRelative(8.0f)
+        moveToRelative(2.0f, -2.0f)
+        horizontalLineTo(6.0f)
+        verticalLineToRelative(12.0f)
+        horizontalLineToRelative(12.0f)
+        verticalLineTo(6.0f)
+        close()
     }
 }
