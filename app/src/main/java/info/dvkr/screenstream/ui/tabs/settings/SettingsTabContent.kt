@@ -59,18 +59,18 @@ import androidx.window.core.layout.WindowWidthSizeClass
 import info.dvkr.screenstream.AdaptiveBanner
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.common.ModuleSettings
-import info.dvkr.screenstream.ui.LocalContentBoundsInWindow
 import kotlinx.coroutines.flow.StateFlow
 import org.koin.androidx.compose.koinViewModel
 
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @Composable
 internal fun SettingsTabContent(
+    boundsInWindow: Rect,
     modifier: Modifier = Modifier,
     settingsViewModel: SettingsTabViewModel = koinViewModel()
 ) {
     val windowAdaptiveInfo = currentWindowAdaptiveInfo()
-    val listPanePreferredWidth = calculateListPanePreferredWidth(windowAdaptiveInfo, boundsInWindow = LocalContentBoundsInWindow.current)
+    val listPanePreferredWidth = calculateListPanePreferredWidth(windowAdaptiveInfo, boundsInWindow)
     val scaffoldDirective = calculatePaneScaffoldDirective(windowAdaptiveInfo).copy(horizontalPartitionSpacerSize = 0.dp)
     val navigator = rememberListDetailPaneScaffoldNavigator<ModuleSettings.Id>(scaffoldDirective)
 

@@ -107,12 +107,12 @@ private fun NightModeUI(
             .padding(horizontal = horizontalPadding + 16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-
         Icon(
             imageVector = Icon_ThemeLightDark,
             contentDescription = stringResource(id = R.string.app_pref_night_mode),
             modifier = Modifier.padding(end = 16.dp)
         )
+
         Column(modifier = Modifier.weight(1F)) {
             Text(
                 text = stringResource(id = R.string.app_pref_night_mode),

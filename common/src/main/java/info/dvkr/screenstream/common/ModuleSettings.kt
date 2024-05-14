@@ -3,6 +3,7 @@ package info.dvkr.screenstream.common
 import android.content.res.Resources
 import android.os.Parcelable
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
 import kotlinx.coroutines.CoroutineScope
@@ -10,7 +11,8 @@ import kotlinx.parcelize.Parcelize
 
 public interface ModuleSettings {
     @Parcelize
-    public class Id(public val moduleId: String, public val groupId: String, public val itemId: String) : Parcelable {
+    @Immutable
+    public data class Id(public val moduleId: String, public val groupId: String, public val itemId: String) : Parcelable {
         public companion object {
             public val EMPTY: Id = Id("", "", "")
         }

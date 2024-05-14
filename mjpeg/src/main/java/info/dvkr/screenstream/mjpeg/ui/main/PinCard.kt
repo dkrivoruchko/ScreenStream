@@ -51,7 +51,7 @@ internal fun PinCard(
                         val isPressed = interactionSource.collectIsPressedAsState()
                         val pinText = if (isPressed.value) pinState.value.pin else "*"
                         val text = stringResource(id = R.string.mjpeg_stream_pin, pinText)
-                            .stylePlaceholder(pinText, SpanStyle(fontWeight = FontWeight.Bold))
+                            .stylePlaceholder(pinText, SpanStyle(fontWeight = FontWeight.Bold, fontFamily = RobotoMonoBold))
 
                         Text(text = text, modifier = Modifier.align(Alignment.Center))
                         IconButton(

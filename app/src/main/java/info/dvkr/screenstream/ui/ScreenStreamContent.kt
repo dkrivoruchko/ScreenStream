@@ -34,15 +34,12 @@ import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffo
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffoldLayout
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteType
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onPlaced
 import androidx.compose.ui.platform.LocalView
@@ -97,8 +94,6 @@ internal fun ScreenStreamContent(
     }
 }
 
-internal val LocalContentBoundsInWindow = staticCompositionLocalOf { Rect.Zero }
-
 @Composable
 private fun MainContent(
     modifier: Modifier = Modifier
@@ -116,7 +111,7 @@ private fun MainContent(
     }
 
     val windowSize = currentWindowSize()
-    val contentBoundsInWindow = remember { mutableStateOf(windowSize.toIntRect().toRect()) }
+    val contentBoundsInWindow = remember(windowSize) { mutableStateOf(windowSize.toIntRect().toRect()) }
 
     Surface(
         modifier = modifier,
@@ -166,12 +161,10 @@ private fun MainContent(
                 },
                 label = "TabContent"
             ) { tab ->
-                CompositionLocalProvider(LocalContentBoundsInWindow provides contentBoundsInWindow.value) {
-                    when (tab) {
-                        AppTabs.STREAM -> StreamTabContent(modifier = Modifier.fillMaxSize())
-                        AppTabs.SETTINGS -> SettingsTabContent(modifier = Modifier.fillMaxSize())
-                        AppTabs.ABOUT -> AboutTabContent(modifier = Modifier.fillMaxSize())
-                    }
+                when (tab) {
+                    AppTabs.STREAM -> StreamTabContent(contentBoundsInWindow.value, modifier = Modifier.fillMaxSize())
+                    AppTabs.SETTINGS -> SettingsTabContent(contentBoundsInWindow.value, modifier = Modifier.fillMaxSize())
+                    AppTabs.ABOUT -> AboutTabContent(modifier = Modifier.fillMaxSize())
                 }
             }
         }

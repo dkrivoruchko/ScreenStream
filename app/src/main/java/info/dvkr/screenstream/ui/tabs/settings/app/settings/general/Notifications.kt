@@ -60,6 +60,7 @@ private fun NotificationsUI(
             contentDescription = stringResource(id = R.string.app_pref_notification),
             modifier = Modifier.padding(end = 16.dp)
         )
+
         Column(modifier = Modifier.weight(1.0F)) {
             Text(
                 text = stringResource(id = R.string.app_pref_notification),
