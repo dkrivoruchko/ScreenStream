@@ -1,7 +1,7 @@
 [versions]
 agp = "8.4.0"
-kotlin = "2.0.0-RC2"
-ksp = "2.0.0-RC2-1.0.20"
+kotlin = "2.0.0-RC3"
+ksp = "2.0.0-RC3-1.0.20"
 android-tools-r8 = "8.3.37"
 android-tools-desugar = "2.0.4"
 
@@ -41,7 +41,7 @@ play-services-ads = "23.1.0"
 firebase-analytics = "22.0.0"
 firebase-crashlytics = "19.0.0"
 google-services = "4.4.1"
-crashlytics-gradle = "2.9.9"
+crashlytics-gradle = "3.0.1"
 
 [libraries]
 android-tools-r8 = { module = "com.android.tools:r8", version.ref = "android-tools-r8" }
