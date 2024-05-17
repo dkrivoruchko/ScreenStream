@@ -27,7 +27,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Slider
-import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -172,16 +171,12 @@ private fun HtmlBackColorDetailUI(
             ColorSliderPanel(
                 htmlBackColor = htmlBackColor.value,
                 onColorChangeState = onColorChangeState,
-                modifier = Modifier
-                    .padding(top = 16.dp)
-                    .fillMaxWidth()
+                modifier = Modifier.padding(top = 16.dp).fillMaxWidth()
             )
 
             ColorPalettePanel(
                 onColorChangeState = onColorChangeState,
-                modifier = Modifier
-                    .padding(16.dp)
-                    .fillMaxWidth()
+                modifier = Modifier.padding(16.dp).fillMaxWidth()
             )
         }
     }
@@ -257,7 +252,7 @@ private fun ColorSliderPanel(
                 sliderRed.floatValue = it
                 onColorChangeState.value.invoke(Color(sliderRed.floatValue, sliderGreen.floatValue, sliderBlue.floatValue))
             },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.padding(vertical = 4.dp).fillMaxWidth()
         )
         ColorSlider(
             name = "G",
@@ -267,7 +262,7 @@ private fun ColorSliderPanel(
                 sliderGreen.floatValue = it
                 onColorChangeState.value.invoke(Color(sliderRed.floatValue, sliderGreen.floatValue, sliderBlue.floatValue))
             },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.padding(vertical = 4.dp).fillMaxWidth()
         )
         ColorSlider(
             name = "B",
@@ -277,7 +272,7 @@ private fun ColorSliderPanel(
                 sliderBlue.floatValue = it
                 onColorChangeState.value.invoke(Color(sliderRed.floatValue, sliderGreen.floatValue, sliderBlue.floatValue))
             },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.padding(vertical = 4.dp).fillMaxWidth()
         )
     }
 }
@@ -309,17 +304,16 @@ private fun ColorSlider(
             modifier = Modifier.requiredWidthIn(min = textWidth, max = textWidth),
             textAlign = TextAlign.End
         )
-        Slider(
-            value = sliderValue.floatValue * 255,
-            onValueChange = { sliderValue.floatValue = it / 255 },
-            modifier = Modifier
-                .weight(1F)
-                .padding(horizontal = 8.dp),
-            valueRange = 0F..255F,
-            steps = 256,
-            onValueChangeFinished = { onValueChange(sliderValue.floatValue) },
-            colors = SliderDefaults.colors(thumbColor = color, activeTrackColor = color, inactiveTrackColor = color)
-        )
+        MaterialTheme(colorScheme = MaterialTheme.colorScheme.copy(primary = color)) {
+            Slider(
+                value = sliderValue.floatValue * 255,
+                onValueChange = { sliderValue.floatValue = it / 255 },
+                modifier = Modifier.weight(1F).padding(horizontal = 8.dp),
+                valueRange = 0F..255F,
+                steps = 256,
+                onValueChangeFinished = { onValueChange(sliderValue.floatValue) },
+            )
+        }
         Text(
             text = (sliderValue.floatValue * 255).toInt().toString(),
             modifier = Modifier.requiredWidthIn(min = textWidth, max = textWidth)

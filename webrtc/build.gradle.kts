@@ -45,6 +45,10 @@ android {
         jvmTarget = JavaVersion.VERSION_11.toString()
         freeCompilerArgs += "-Xexplicit-api=strict"
     }
+
+    composeCompiler {
+        enableStrongSkippingMode = true
+    }
 }
 
 dependencies {

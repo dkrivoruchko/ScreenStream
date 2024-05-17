@@ -25,6 +25,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.compose.dropUnlessStarted
 import info.dvkr.screenstream.common.ui.DoubleClickProtection
 import info.dvkr.screenstream.common.ui.MediaProjectionPermission
 import info.dvkr.screenstream.common.ui.get
@@ -96,7 +97,7 @@ internal fun MjpegMainScreenUI(
         val doubleClickProtection = remember { DoubleClickProtection.get() }
 
         Button(
-            onClick = {
+            onClick = dropUnlessStarted {
                 doubleClickProtection.processClick {
                     if (isStreaming.value) sendEvent(MjpegEvent.Intentable.StopStream("User action: Button"))
                     else sendEvent(MjpegStreamingService.InternalEvent.StartStream)

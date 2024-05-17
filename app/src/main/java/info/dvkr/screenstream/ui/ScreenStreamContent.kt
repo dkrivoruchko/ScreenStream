@@ -49,6 +49,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.toIntRect
 import androidx.compose.ui.unit.toRect
+import androidx.lifecycle.compose.dropUnlessStarted
 import androidx.window.core.layout.WindowWidthSizeClass
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.logger.AppLogger
@@ -70,11 +71,7 @@ internal fun ScreenStreamContent(
     if (isLoggingOn) {
         Column(modifier = modifier.fillMaxSize()) {
             CollectingLogsUi(modifier = Modifier.fillMaxWidth())
-            MainContent(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1F)
-            )
+            MainContent(modifier = Modifier.fillMaxWidth().weight(1F))
         }
     } else {
         MainContent(modifier = modifier.fillMaxSize())
@@ -125,7 +122,7 @@ private fun MainContent(
                         AppTabs.entries.forEach { tab ->
                             NavigationBarItem(
                                 selected = selectedTab.value == tab,
-                                onClick = { selectedTab.value = tab },
+                                onClick = dropUnlessStarted { selectedTab.value = tab },
                                 icon = { Icon(imageVector = if (selectedTab.value == tab) tab.iconSelected else tab.icon, null) },
                                 modifier = Modifier.padding(horizontal = 4.dp),
                                 label = { Text(text = stringResource(tab.label)) },
@@ -138,7 +135,7 @@ private fun MainContent(
                         AppTabs.entries.forEach { tab ->
                             NavigationRailItem(
                                 selected = selectedTab.value == tab,
-                                onClick = { selectedTab.value = tab },
+                                onClick = dropUnlessStarted { selectedTab.value = tab },
                                 icon = { Icon(imageVector = if (selectedTab.value == tab) tab.iconSelected else tab.icon, null) },
                                 modifier = Modifier.padding(vertical = 4.dp),
                                 label = { Text(text = stringResource(tab.label)) }
@@ -193,9 +190,7 @@ private fun AppUpdateRequestUI(
         dragHandle = null
     ) {
         Row(
-            modifier = Modifier
-                .padding(16.dp)
-                .fillMaxWidth(),
+            modifier = Modifier.padding(16.dp).fillMaxWidth(),
             horizontalArrangement = Arrangement.Center,
         ) {
             Icon(painter = painterResource(R.drawable.ic_notification_small_24dp), contentDescription = null)
@@ -208,14 +203,10 @@ private fun AppUpdateRequestUI(
         }
         Text(
             text = stringResource(id = R.string.app_activity_update_dialog_message),
-            modifier = Modifier
-                .padding(horizontal = 16.dp)
-                .fillMaxWidth()
+            modifier = Modifier.padding(horizontal = 16.dp).fillMaxWidth()
         )
         Row(
-            modifier = Modifier
-                .padding(end = 16.dp)
-                .fillMaxWidth(),
+            modifier = Modifier.padding(end = 16.dp).fillMaxWidth(),
             horizontalArrangement = Arrangement.End,
         ) {
             TextButton(

@@ -167,7 +167,7 @@ private fun SettingsListPane(
                     stickyHeader(key = module.id, contentType = "HEADER") {
                         module.TitleUI(
                             horizontalPadding = horizontalPadding,
-                            modifier = Modifier.animateItemPlacement()
+                            modifier = Modifier.animateItem()
                         )
                     }
 
@@ -175,7 +175,7 @@ private fun SettingsListPane(
                         item(key = "${module.id}#${settingsGroup.id}", contentType = "HEADER") {
                             settingsGroup.TitleUI(
                                 horizontalPadding = horizontalPadding,
-                                modifier = Modifier.animateItemPlacement()
+                                modifier = Modifier.animateItem()
                             )
                         }
 
@@ -184,7 +184,7 @@ private fun SettingsListPane(
                             key = { _, settingsItem -> "${module.id}#${settingsGroup.id}#${settingsItem.id}" },
                             contentType = { _, _ -> "ITEM" },
                             itemContent = { index, settingsItem ->
-                                Column(modifier = Modifier.animateItemPlacement()) {
+                                Column(modifier = Modifier.animateItem()) {
                                     settingsItem.ListUI(
                                         horizontalPadding = horizontalPadding,
                                         coroutineScope = scope,
