@@ -54,7 +54,7 @@ internal fun MjpegMainScreenUI(
     BoxWithConstraints(modifier = modifier) {
         MediaProjectionPermission(
             requestCastPermission = waitingCastPermission.value,
-            onPermissionGranted = { intent -> sendEvent(MjpegEvent.StartProjection(intent)) },
+            onPermissionGranted = { intent -> if (waitingCastPermission.value) sendEvent(MjpegEvent.StartProjection(intent)) },
             onPermissionDenied = { if (waitingCastPermission.value) sendEvent(MjpegEvent.CastPermissionsDenied) },
             requiredDialogTitle = stringResource(id = R.string.mjpeg_stream_cast_permission_required_title),
             requiredDialogText = stringResource(id = R.string.mjpeg_stream_cast_permission_required)
@@ -62,7 +62,7 @@ internal fun MjpegMainScreenUI(
 
         val lazyVerticalStaggeredGridState = rememberLazyStaggeredGridState()
         LazyVerticalStaggeredGrid(
-            columns = remember(maxWidth) { StaggeredGridCells.Fixed(if (maxWidth >= 800.dp) 2 else 1) },
+            columns = StaggeredGridCells.Fixed(if (maxWidth >= 800.dp) 2 else 1),
             modifier = Modifier.fillMaxSize(),
             state = lazyVerticalStaggeredGridState,
             contentPadding = PaddingValues(start = 8.dp, end = 8.dp, bottom = 64.dp),

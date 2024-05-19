@@ -46,7 +46,7 @@ dependencies {
     api(libs.androidx.compose.material3)
     api(libs.androidx.compose.material3.window)
     api("androidx.compose.foundation:foundation:1.7.0-beta01")
-    api("androidx.compose.material3:material3:1.3.0-beta01")
+//    api("androidx.compose.material3:material3:1.3.0-beta01")
 
     api(libs.koin.android.compose)
     api(libs.koin.annotations)

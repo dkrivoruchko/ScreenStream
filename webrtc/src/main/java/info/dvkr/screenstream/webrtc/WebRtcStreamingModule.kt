@@ -15,14 +15,11 @@ import info.dvkr.screenstream.webrtc.internal.WebRtcStreamingService
 import info.dvkr.screenstream.webrtc.ui.WebRtcMainScreenUI
 import info.dvkr.screenstream.webrtc.ui.WebRtcModuleSettings
 import info.dvkr.screenstream.webrtc.ui.WebRtcState
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.withContext
 import org.koin.core.annotation.Named
 import org.koin.core.annotation.Single
@@ -36,27 +33,18 @@ public class WebRtcStreamingModule : StreamingModule {
         public val Id: StreamingModule.Id = StreamingModule.Id("WEBRTC")
     }
 
-    override val id: StreamingModule.Id = Id
-
-    override val priority: Int = 10
-
-    override val moduleSettings: ModuleSettings = WebRtcModuleSettings
-
     private val _streamingServiceState: MutableStateFlow<StreamingModule.State> = MutableStateFlow(StreamingModule.State.Initiated)
+    private val _webRtcStateFlow: MutableStateFlow<WebRtcState> = MutableStateFlow(WebRtcState())
+
+    override val id: StreamingModule.Id = Id
+    override val priority: Int = 10
+    override val moduleSettings: ModuleSettings = WebRtcModuleSettings
 
     override val isRunning: Flow<Boolean>
         get() = _streamingServiceState.map { it is StreamingModule.State.Running }
 
     override val isStreaming: Flow<Boolean>
         get() = _webRtcStateFlow.map { it.isStreaming }
-
-    private val _webRtcStateFlow: MutableStateFlow<WebRtcState> = MutableStateFlow(WebRtcState())
-
-    init {
-        _streamingServiceState //TODO
-            .onEach { XLog.i(getLog("init", "State: $it")) }
-            .launchIn(GlobalScope)
-    }
 
     override val nameResource: Int = R.string.webrtc_stream_mode
     override val descriptionResource: Int = R.string.webrtc_stream_mode_description

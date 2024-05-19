@@ -209,9 +209,7 @@ internal class MjpegStreamingService(
 
         val destroyJob = Job()
         sendEvent(InternalEvent.Destroy(destroyJob))
-        withTimeoutOrNull(3000) { destroyJob.join() } ?: run {
-            XLog.w(getLog("destroyService", "Timeout"), IllegalStateException("destroy: Timeout 3"))
-        }
+        withTimeoutOrNull(3000) { destroyJob.join() } ?: XLog.w(getLog("destroyService", "Timeout"))
 
         handler.removeCallbacksAndMessages(null)
 

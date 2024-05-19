@@ -53,7 +53,7 @@ internal fun WebRtcMainScreenUI(
     BoxWithConstraints(modifier = modifier) {
         MediaProjectionPermission(
             requestCastPermission = waitingCastPermission.value,
-            onPermissionGranted = { intent -> sendEvent(WebRtcEvent.StartProjection(intent)) },
+            onPermissionGranted = { intent -> if (waitingCastPermission.value) sendEvent(WebRtcEvent.StartProjection(intent)) },
             onPermissionDenied = { if (waitingCastPermission.value) sendEvent(WebRtcEvent.CastPermissionsDenied) },
             requiredDialogTitle = stringResource(id = R.string.webrtc_stream_cast_permission_required_title),
             requiredDialogText = stringResource(id = R.string.webrtc_stream_cast_permission_required)
@@ -61,7 +61,7 @@ internal fun WebRtcMainScreenUI(
 
         val lazyVerticalStaggeredGridState = rememberLazyStaggeredGridState()
         LazyVerticalStaggeredGrid(
-            columns = remember(maxWidth) { StaggeredGridCells.Fixed(if (maxWidth >= 800.dp) 2 else 1) },
+            columns = StaggeredGridCells.Fixed(if (maxWidth >= 800.dp) 2 else 1),
             modifier = Modifier.fillMaxSize(),
             state = lazyVerticalStaggeredGridState,
             contentPadding = PaddingValues(start = 8.dp, end = 8.dp, bottom = 64.dp),

@@ -48,6 +48,11 @@ public class WebRtcModuleService : StreamingModuleService() {
         }
         XLog.d(getLog("onStartCommand", "WebRtcEvent: $webRtcEvent, startId: $startId"))
 
+        if ((flags and START_FLAG_REDELIVERY) != 0) {
+            XLog.e(getLog("onStartCommand"), IllegalArgumentException("WebRtcModuleService.onStartCommand: redelivered intent, WebRtcEvent: $webRtcEvent, startId: $startId, $intent"))
+            return START_NOT_STICKY
+        }
+
         if (streamingModuleManager.isActive(WebRtcStreamingModule.Id)) {
             when (webRtcEvent) {
                 is WebRtcEvent.Intentable.StartService -> webRtcStreamingModule.onServiceStart(this)

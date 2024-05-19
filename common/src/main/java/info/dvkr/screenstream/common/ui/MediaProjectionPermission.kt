@@ -20,6 +20,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import com.elvishew.xlog.XLog
+import info.dvkr.screenstream.common.getLog
 
 @Composable
 public fun MediaProjectionPermission(
@@ -35,6 +37,10 @@ public fun MediaProjectionPermission(
     val mediaProjectionPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult(),
         onResult = { activityResult ->
+            if (requestCastPermission.not()) {
+                XLog.i(activityResult.getLog("MediaProjectionPermission"), IllegalStateException("MediaProjectionPermission: ignoring result"))
+                return@rememberLauncherForActivityResult
+            }
             if (activityResult.resultCode == Activity.RESULT_OK) {
                 onPermissionGranted.invoke(activityResult.data!!)
             } else {

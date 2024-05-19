@@ -15,14 +15,11 @@ import info.dvkr.screenstream.mjpeg.internal.MjpegStreamingService
 import info.dvkr.screenstream.mjpeg.ui.MjpegMainScreenUI
 import info.dvkr.screenstream.mjpeg.ui.MjpegModuleSettings
 import info.dvkr.screenstream.mjpeg.ui.MjpegState
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.withContext
 import org.koin.core.annotation.Named
 import org.koin.core.annotation.Single
@@ -36,27 +33,18 @@ public class MjpegStreamingModule : StreamingModule {
         public val Id: StreamingModule.Id = StreamingModule.Id("MJPEG")
     }
 
-    override val id: StreamingModule.Id = Id
-
-    override val priority: Int = 20
-
-    override val moduleSettings: ModuleSettings = MjpegModuleSettings
-
     private val _streamingServiceState: MutableStateFlow<StreamingModule.State> = MutableStateFlow(StreamingModule.State.Initiated)
+    private val _mjpegStateFlow: MutableStateFlow<MjpegState> = MutableStateFlow(MjpegState())
+
+    override val id: StreamingModule.Id = Id
+    override val priority: Int = 20
+    override val moduleSettings: ModuleSettings = MjpegModuleSettings
 
     override val isRunning: Flow<Boolean>
         get() = _streamingServiceState.map { it is StreamingModule.State.Running }
 
     override val isStreaming: Flow<Boolean>
         get() = _mjpegStateFlow.map { it.isStreaming }
-
-    private val _mjpegStateFlow: MutableStateFlow<MjpegState> = MutableStateFlow(MjpegState())
-
-    init {
-        _streamingServiceState //TODO
-            .onEach { XLog.i(getLog("init", "State: $it")) }
-            .launchIn(GlobalScope)
-    }
 
     override val nameResource: Int = R.string.mjpeg_stream_mode
     override val descriptionResource: Int = R.string.mjpeg_stream_mode_description

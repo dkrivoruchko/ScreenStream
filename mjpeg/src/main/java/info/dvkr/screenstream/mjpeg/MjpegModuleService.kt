@@ -43,6 +43,11 @@ public class MjpegModuleService : StreamingModuleService() {
         }
         XLog.d(getLog("onStartCommand", "MjpegEvent: $mjpegEvent, startId: $startId"))
 
+        if ((flags and START_FLAG_REDELIVERY) != 0) {
+            XLog.e(getLog("onStartCommand"), IllegalArgumentException("MjpegModuleService.onStartCommand: redelivered intent, MjpegEvent: $mjpegEvent, startId: $startId, $intent"))
+            return START_NOT_STICKY
+        }
+
         if (streamingModuleManager.isActive(MjpegStreamingModule.Id)) {
             when (mjpegEvent) {
                 is MjpegEvent.Intentable.StartService -> mjpegStreamingModule.onServiceStart(this)

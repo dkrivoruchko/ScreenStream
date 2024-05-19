@@ -66,7 +66,8 @@ internal fun CollectingLogsUi(modifier: Modifier = Modifier) {
                     modifier = Modifier
                         .weight(1F)
                         .padding(end = 8.dp),
-                    border = ButtonDefaults.outlinedButtonBorder(true).copy(brush = SolidColor(MaterialTheme.colorScheme.onError))
+                    border = ButtonDefaults.outlinedButtonBorder.copy(brush = SolidColor(MaterialTheme.colorScheme.onError))
+// TODO                   border = ButtonDefaults.outlinedButtonBorder(true).copy(brush = SolidColor(MaterialTheme.colorScheme.onError))
                 ) {
                     Text(
                         text = stringResource(id = R.string.app_logs_send_title),
@@ -79,7 +80,9 @@ internal fun CollectingLogsUi(modifier: Modifier = Modifier) {
                     modifier = Modifier
                         .weight(1F)
                         .padding(start = 8.dp),
-                    border = ButtonDefaults.outlinedButtonBorder(true).copy(brush = SolidColor(MaterialTheme.colorScheme.onError))
+                    border = ButtonDefaults.outlinedButtonBorder.copy(brush = SolidColor(MaterialTheme.colorScheme.onError))
+
+// TODO                   border = ButtonDefaults.outlinedButtonBorder(true).copy(brush = SolidColor(MaterialTheme.colorScheme.onError))
                 ) {
                     Text(
                         text = stringResource(id = R.string.app_logs_stop),

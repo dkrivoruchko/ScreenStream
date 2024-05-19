@@ -38,6 +38,7 @@ okhttp = "4.12.0"
 #PlayStore-App
 play-app-update = "2.1.0"
 play-services-ads = "23.1.0"
+webkit = "1.11.0"
 firebase-analytics = "22.0.0"
 firebase-crashlytics = "19.0.0"
 google-services = "4.4.1"
@@ -95,7 +96,8 @@ okhttp = { module = "com.squareup.okhttp3:okhttp", version.ref = "okhttp" }
 
 #PlayStore-App
 play-app-update = { module = "com.google.android.play:app-update-ktx", version.ref = "play-app-update" }
-play-services-ads = { module = "com.google.android.gms:play-services-ads-lite", version.ref = "play-services-ads" }
+play-services-ads = { module = "com.google.android.gms:play-services-ads", version.ref = "play-services-ads" }
+webkit = { module = "androidx.webkit:webkit", version.ref = "webkit" }
 firebase-analytics = { module = "com.google.firebase:firebase-analytics", version.ref = "firebase-analytics" }
 firebase-crashlytics = { module = "com.google.firebase:firebase-crashlytics", version.ref = "firebase-crashlytics" }
 firebase-crashlytics-gradle = { module = "com.google.firebase:firebase-crashlytics-gradle", version.ref = "crashlytics-gradle" }
