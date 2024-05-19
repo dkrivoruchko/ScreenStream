@@ -22,7 +22,7 @@ public interface ModuleSettings {
     public val groups: List<Group>
 
     @Composable
-    public fun TitleUI(horizontalPadding: Dp, modifier: Modifier)
+    public fun TitleUI(modifier: Modifier)
 
     public fun filterBy(resources: Resources, test: String): ModuleSettings? {
         val filteredGroups = groups.mapNotNull { group -> group.filterBy(resources, test) }.ifEmpty { return null }
@@ -33,7 +33,7 @@ public interface ModuleSettings {
             override val groups: List<Group> = filteredGroups
 
             @Composable
-            override fun TitleUI(horizontalPadding: Dp, modifier: Modifier) = this@ModuleSettings.TitleUI(horizontalPadding, modifier)
+            override fun TitleUI(modifier: Modifier) = this@ModuleSettings.TitleUI(modifier)
 
             override fun filterBy(resources: Resources, test: String): ModuleSettings? = null
         }
@@ -45,7 +45,7 @@ public interface ModuleSettings {
         public val items: List<Item>
 
         @Composable
-        public fun TitleUI(horizontalPadding: Dp, modifier: Modifier): Unit = Unit
+        public fun TitleUI(modifier: Modifier): Unit = Unit
 
         public fun filterBy(resources: Resources, text: String): Group? {
             val filteredItems = items.filter { item -> item.has(resources, text) }.ifEmpty { return null }
@@ -56,7 +56,7 @@ public interface ModuleSettings {
                 override val items: List<Item> = filteredItems
 
                 @Composable
-                override fun TitleUI(horizontalPadding: Dp, modifier: Modifier) = this@Group.TitleUI(horizontalPadding, modifier)
+                override fun TitleUI(modifier: Modifier) = this@Group.TitleUI(modifier)
 
                 override fun filterBy(resources: Resources, text: String): Group? = null
             }

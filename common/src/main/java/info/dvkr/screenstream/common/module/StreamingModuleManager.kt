@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.runBlocking
@@ -25,7 +26,9 @@ public class StreamingModuleManager(modules: List<StreamingModule>, private val 
 
     private fun hasModule(id: StreamingModule.Id): Boolean = modules.any { it.id == id }
 
-    public val selectedModuleIdFlow: Flow<StreamingModule.Id> = appSettings.data.map { it.streamingModule }.filter { hasModule(it) }
+    public val selectedModuleIdFlow: Flow<StreamingModule.Id> = appSettings.data
+        .map { it.streamingModule }.filter { hasModule(it) }.distinctUntilChanged()
+
     public suspend fun selectStreamingModule(moduleId: StreamingModule.Id) {
         appSettings.updateData { copy(streamingModule = moduleId) }
     }

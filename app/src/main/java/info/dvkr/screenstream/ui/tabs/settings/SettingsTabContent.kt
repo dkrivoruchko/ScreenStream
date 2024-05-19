@@ -106,9 +106,7 @@ internal fun SettingsTabContent(
 private fun DetailUITitle(title: String, canNavigateBack: Boolean, navigateBack: () -> Unit) {
     if (canNavigateBack) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 4.dp, vertical = 8.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = navigateBack) {
@@ -150,33 +148,32 @@ private fun SettingsListPane(
     BoxWithConstraints {
         val horizontalPadding = if (maxWidth >= 480.dp) 16.dp else 0.dp
 
+        val secondaryContainer = MaterialTheme.colorScheme.secondaryContainer
+        val titleModifier = remember(maxWidth) {
+            Modifier.background(color = secondaryContainer)
+                .padding(horizontal = horizontalPadding + 16.dp, vertical = 8.dp)
+                .fillMaxWidth()
+        }
+
         Column(modifier = Modifier.fillMaxSize()) {
             AdaptiveBanner(modifier = Modifier.fillMaxWidth())
 
-            SettingsListHeader(searchTextFlow, onSearchTextChange, horizontalPadding)
+            SettingsListHeader(searchTextFlow, onSearchTextChange, titleModifier)
 
-            HorizontalDivider(modifier = Modifier.fillMaxWidth())
+            HorizontalDivider()
 
             LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .imePadding(),
+                modifier = Modifier.fillMaxSize().imePadding(),
                 state = lazyListState
             ) {
                 settingsList.value.forEach { module ->
                     stickyHeader(key = module.id, contentType = "HEADER") {
-                        module.TitleUI(
-                            horizontalPadding = horizontalPadding,
-                            modifier = Modifier.animateItem()
-                        )
+                        module.TitleUI(modifier = titleModifier)
                     }
 
                     module.groups.forEach { settingsGroup ->
                         item(key = "${module.id}#${settingsGroup.id}", contentType = "HEADER") {
-                            settingsGroup.TitleUI(
-                                horizontalPadding = horizontalPadding,
-                                modifier = Modifier.animateItem()
-                            )
+                            settingsGroup.TitleUI(modifier = titleModifier)
                         }
 
                         itemsIndexed(
@@ -184,7 +181,7 @@ private fun SettingsListPane(
                             key = { _, settingsItem -> "${module.id}#${settingsGroup.id}#${settingsItem.id}" },
                             contentType = { _, _ -> "ITEM" },
                             itemContent = { index, settingsItem ->
-                                Column(modifier = Modifier.animateItem()) {
+                                Column(modifier = Modifier.fillMaxWidth().animateItem()) {
                                     settingsItem.ItemUI(
                                         horizontalPadding = horizontalPadding,
                                         coroutineScope = scope,
@@ -209,16 +206,13 @@ private fun SettingsListPane(
 private fun SettingsListHeader(
     searchTextFlow: StateFlow<String>,
     onSearchTextChange: (String) -> Unit,
-    horizontalPadding: Dp = 0.dp
+    modifier: Modifier = Modifier
 ) {
     val searchVisible = remember { mutableStateOf(searchTextFlow.value.isNotBlank()) }
 
     Crossfade(
         targetState = searchVisible.value,
-        modifier = Modifier
-            .background(color = MaterialTheme.colorScheme.secondaryContainer)
-            .padding(horizontal = horizontalPadding, vertical = 8.dp)
-            .fillMaxWidth(),
+        modifier = modifier,
         label = "SearchCrossfade"
     ) { showSearch ->
         SubcomposeLayout { constraints ->
@@ -257,14 +251,12 @@ private fun SettingsListTitle(
     searchVisible: MutableState<Boolean>
 ) {
     Row(
-        modifier = Modifier
-            .size(size)
-            .padding(start = 16.dp, end = 12.dp),
+        modifier = Modifier.size(size).padding(start = 16.dp, end = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
             text = stringResource(id = R.string.app_tab_settings),
-            modifier = Modifier.weight(1.0F),
+            modifier = Modifier.weight(1F),
             style = MaterialTheme.typography.headlineSmall
         )
         IconButton(onClick = { searchVisible.value = true }) {
@@ -290,10 +282,7 @@ private fun SettingsListSearch(
             searchTextLocalProxy.value = it
             onSearchTextChange.invoke(it)
         },
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp)
-            .focusRequester(focusRequester),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).focusRequester(focusRequester),
         placeholder = { Text(text = stringResource(id = R.string.app_pref_settings_search)) },
         leadingIcon = { Icon(imageVector = Icon_Search, contentDescription = stringResource(id = R.string.app_pref_search)) },
         trailingIcon = {
