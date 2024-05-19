@@ -56,7 +56,7 @@ internal object AppLocale : ModuleSettings.Item {
     }
 
     @Composable
-    override fun ListUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit) =
+    override fun ItemUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit) =
         AppLocaleUI(horizontalPadding, onDetailShow)
 
     @Composable

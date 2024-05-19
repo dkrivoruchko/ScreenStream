@@ -4,10 +4,13 @@ import android.app.Application
 import android.os.Build
 import android.os.StrictMode
 import com.elvishew.xlog.LogConfiguration
+import com.elvishew.xlog.Logger
 import com.jakewharton.processphoenix.ProcessPhoenix
 import info.dvkr.screenstream.logger.AppLogger
 import org.koin.android.ext.koin.androidContext
+import org.koin.android.logger.AndroidLogger
 import org.koin.core.context.startKoin
+import org.koin.core.logger.Level
 import org.koin.core.module.Module
 import org.koin.ksp.generated.defaultModule
 
@@ -55,6 +58,7 @@ public abstract class BaseApp : Application() {
         AppLogger.init(this, ::configureLogger)
 
         startKoin {
+           printLogger(Level.DEBUG)
             allowOverride(false)
             androidContext(this@BaseApp)
             modules(defaultModule, *streamingModules)

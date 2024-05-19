@@ -40,7 +40,7 @@ internal object EnablePin : ModuleSettings.Item {
     }
 
     @Composable
-    override fun ListUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit) =
+    override fun ItemUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit) =
         EnablePinUI(horizontalPadding, coroutineScope)
 }
 

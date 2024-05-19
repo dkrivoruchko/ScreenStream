@@ -41,7 +41,7 @@ internal object StopOnConfigurationChange : ModuleSettings.Item {
     }
 
     @Composable
-    override fun ListUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit) =
+    override fun ItemUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit) =
         StopOnConfigurationChangeUI(horizontalPadding, coroutineScope)
 }
 

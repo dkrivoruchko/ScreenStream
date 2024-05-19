@@ -58,7 +58,7 @@ internal object ServerPort : ModuleSettings.Item {
     }
 
     @Composable
-    override fun ListUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit) =
+    override fun ItemUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit) =
         ServerPortUI(horizontalPadding, onDetailShow)
 
     @Composable

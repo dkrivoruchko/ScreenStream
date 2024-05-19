@@ -71,7 +71,7 @@ public interface ModuleSettings {
         public fun has(resources: Resources, text: String): Boolean
 
         @Composable
-        public fun ListUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit)
+        public fun ItemUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit)
 
         @Composable
         public fun DetailUI(headerContent: @Composable (String) -> Unit): Unit = Unit

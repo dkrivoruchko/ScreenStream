@@ -148,7 +148,7 @@ private fun SettingsListPane(
     val scope = rememberCoroutineScope()
 
     BoxWithConstraints {
-        val horizontalPadding = remember(maxWidth) { if (maxWidth >= 480.dp) 16.dp else 0.dp }
+        val horizontalPadding = if (maxWidth >= 480.dp) 16.dp else 0.dp
 
         Column(modifier = Modifier.fillMaxSize()) {
             AdaptiveBanner(modifier = Modifier.fillMaxWidth())
@@ -185,7 +185,7 @@ private fun SettingsListPane(
                             contentType = { _, _ -> "ITEM" },
                             itemContent = { index, settingsItem ->
                                 Column(modifier = Modifier.animateItem()) {
-                                    settingsItem.ListUI(
+                                    settingsItem.ItemUI(
                                         horizontalPadding = horizontalPadding,
                                         coroutineScope = scope,
                                         onDetailShow = {

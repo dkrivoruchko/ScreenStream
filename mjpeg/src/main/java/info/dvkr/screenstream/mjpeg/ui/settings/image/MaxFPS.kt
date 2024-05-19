@@ -58,7 +58,7 @@ internal object MaxFPS : ModuleSettings.Item {
     }
 
     @Composable
-    override fun ListUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit) =
+    override fun ItemUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit) =
         MaxFpsUI(horizontalPadding, onDetailShow)
 
     @Composable

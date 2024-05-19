@@ -42,7 +42,7 @@ internal object DynamicTheme : ModuleSettings.Item {
     }
 
     @Composable
-    override fun ListUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit) =
+    override fun ItemUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit) =
         DynamicThemeUI(horizontalPadding, coroutineScope)
 }
 

@@ -42,7 +42,7 @@ internal object AutoChangePin : ModuleSettings.Item {
     }
 
     @Composable
-    override fun ListUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit) =
+    override fun ItemUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit) =
         AutoChangePinUI(horizontalPadding, coroutineScope)
 }
 
