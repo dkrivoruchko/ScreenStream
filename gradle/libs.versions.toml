@@ -1,7 +1,7 @@
 [versions]
-agp = "8.4.0"
-kotlin = "2.0.0-RC3"
-ksp = "2.0.0-RC3-1.0.20"
+agp = "8.4.1"
+kotlin = "2.0.0"
+ksp = "2.0.0-1.0.21"
 android-tools-r8 = "8.3.37"
 android-tools-desugar = "2.0.4"
 
