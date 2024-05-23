@@ -92,7 +92,7 @@
     <string name="mjpeg_pref_rotate_summary">Girar a imagem antes de enviá-la para o cliente</string>
     <string name="mjpeg_pref_fps">Limitar quadros por segundo</string>
     <string name="mjpeg_pref_fps_summary">Definir o número máximo de quadros por segundo</string>
-    <string name="mjpeg_pref_fps_text">Defina o número máximo de quadros por segundo.\nValores: 1–60\nPadrão: 30</string>
+    <string name="mjpeg_pref_fps_text">Defina o número máximo de quadros por segundo.\nValores: 1–120\nPadrão: 30</string>
     <string name="mjpeg_pref_jpeg_quality">Qualidade de compressão JPEG</string>
     <string name="mjpeg_pref_jpeg_quality_summary">Definir a qualidade de compressão JPEG</string>
     <string name="mjpeg_pref_jpeg_quality_text">Defina a qualidade de compressão JPEG.\nValores: 10–100\nPadrão: 80</string>

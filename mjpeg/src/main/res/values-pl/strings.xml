@@ -93,7 +93,7 @@
     <string name="mjpeg_pref_rotate_summary">Obraca obraz przed wysłaniem</string>
     <string name="mjpeg_pref_fps">Ogranicz liczbę klatek na sekundę</string>
     <string name="mjpeg_pref_fps_summary">Ustawia maksymalną liczbę klatek na sekundę</string>
-    <string name="mjpeg_pref_fps_text">Ustaw maksymalną liczbę klatek na sekundę.\nWartość: 1–60\nDomyślnie: 30</string>
+    <string name="mjpeg_pref_fps_text">Ustaw maksymalną liczbę klatek na sekundę.\nWartość: 1–120\nDomyślnie: 30</string>
     <string name="mjpeg_pref_jpeg_quality">Jakość kompresji JPEG</string>
     <string name="mjpeg_pref_jpeg_quality_summary">Ustawia jakość kompresji JPEG</string>
     <string name="mjpeg_pref_jpeg_quality_text">Ustaw jakość kompresji JPEG.\nWartość: 10–100\nDomyślnie: 80</string>

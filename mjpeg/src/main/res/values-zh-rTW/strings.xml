@@ -92,7 +92,7 @@
     <string name="mjpeg_pref_rotate_summary">傳送順時針旋轉過的畫面到用戶端</string>
     <string name="mjpeg_pref_fps">畫面幀率限制</string>
     <string name="mjpeg_pref_fps_summary">設置每秒最大畫面數</string>
-    <string name="mjpeg_pref_fps_text">設置每秒最大畫面數。\n範圍: 1–60\n預設: 30</string>
+    <string name="mjpeg_pref_fps_text">設置每秒最大畫面數。\n範圍: 1–120\n預設: 30</string>
     <string name="mjpeg_pref_jpeg_quality">JPEG壓縮品質</string>
     <string name="mjpeg_pref_jpeg_quality_summary">設定JPEG壓縮品質</string>
     <string name="mjpeg_pref_jpeg_quality_text">設定JPEG壓縮品質。\n範圍： 10–100\n預設： 80</string>

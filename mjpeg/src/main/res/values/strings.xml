@@ -100,7 +100,7 @@
     </string-array>
     <string name="mjpeg_pref_fps">Limit frames per second</string>
     <string name="mjpeg_pref_fps_summary">Set maximum frames per second</string>
-    <string name="mjpeg_pref_fps_text">Set maximum frames per second.\nValues: 1–60\nDefault: 30</string>
+    <string name="mjpeg_pref_fps_text">Set maximum frames per second.\nValues: 1–120\nDefault: 30</string>
     <string name="mjpeg_pref_jpeg_quality">JPEG compression quality</string>
     <string name="mjpeg_pref_jpeg_quality_summary">Set JPEG compression quality</string>
     <string name="mjpeg_pref_jpeg_quality_text">Set JPEG compression quality.\nValues: 10–100\nDefault: 80</string>

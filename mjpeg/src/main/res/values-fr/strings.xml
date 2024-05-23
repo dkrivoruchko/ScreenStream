@@ -92,7 +92,7 @@
     <string name="mjpeg_pref_rotate_summary">Faire pivoter l\'image avant de l\'envoyer au client</string>
     <string name="mjpeg_pref_fps">Limiter les images par seconde</string>
     <string name="mjpeg_pref_fps_summary">Définir le nombre maximum d\'images par seconde</string>
-    <string name="mjpeg_pref_fps_text">Définir le nombre maximum d\'images par seconde.\nValeurs: 1–60\nPar défaut: 30</string>
+    <string name="mjpeg_pref_fps_text">Définir le nombre maximum d\'images par seconde.\nValeurs: 1–120\nPar défaut: 30</string>
     <string name="mjpeg_pref_jpeg_quality">Qualité de compression JPEG</string>
     <string name="mjpeg_pref_jpeg_quality_summary">Définir la qualité de compression JPEG</string>
     <string name="mjpeg_pref_jpeg_quality_text">Définir la qualité de compression JPEG.\nValeurs: 10–100\nPar défaut: 80</string>

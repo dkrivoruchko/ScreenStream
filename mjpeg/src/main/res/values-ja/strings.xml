@@ -92,7 +92,7 @@
     <string name="mjpeg_pref_rotate_summary">クライアントに送信する前に画像を回転します</string>
     <string name="mjpeg_pref_fps">FPSリミット</string>
     <string name="mjpeg_pref_fps_summary">最大FPSを設定します</string>
-    <string name="mjpeg_pref_fps_text">最大FPSを指定してください.\n値: 1–60\n初期値: 30</string>
+    <string name="mjpeg_pref_fps_text">最大FPSを指定してください.\n値: 1–120\n初期値: 30</string>
     <string name="mjpeg_pref_jpeg_quality">JPEG圧縮の品質</string>
     <string name="mjpeg_pref_jpeg_quality_summary">JPEG圧縮の品質を設定します</string>
     <string name="mjpeg_pref_jpeg_quality_text">JPEG圧縮の品質を指定してください。\n値: 10–100\n初期値: 80</string>

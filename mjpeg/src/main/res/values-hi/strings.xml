@@ -92,7 +92,7 @@
     <string name="mjpeg_pref_rotate_summary">क्लाइंट को भेजने से पहले छवि को घुमाएं</string>
     <string name="mjpeg_pref_fps">प्रति सेकंड फ्रेम सीमित करें</string>
     <string name="mjpeg_pref_fps_summary">अधिकतम प्रति सेकंड फ्रेम सेट करें</string>
-    <string name="mjpeg_pref_fps_text">अधिकतम प्रति सेकंड फ्रेम सेट करें।\nमूल्य: 1–60\nडिफ़ॉल्ट: 30</string>
+    <string name="mjpeg_pref_fps_text">अधिकतम प्रति सेकंड फ्रेम सेट करें।\nमूल्य: 1–120\nडिफ़ॉल्ट: 30</string>
     <string name="mjpeg_pref_jpeg_quality">JPEG संपीड़न गुणवत्ता</string>
     <string name="mjpeg_pref_jpeg_quality_summary">JPEG संपीड़न गुणवत्ता सेट करें</string>
     <string name="mjpeg_pref_jpeg_quality_text">JPEG संपीड़न गुणवत्ता सेट करें।\nमूल्य: 10–100\nडिफ़ॉल्ट: 80</string>

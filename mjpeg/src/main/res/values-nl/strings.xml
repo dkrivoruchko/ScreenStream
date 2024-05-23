@@ -93,7 +93,7 @@
     <string name="mjpeg_pref_rotate_summary">Draai het scherm om voor het sturen naar de client</string>
     <string name="mjpeg_pref_fps">Limiteer beelden per seconden (FPS)</string>
     <string name="mjpeg_pref_fps_summary">Maximum beelden per seconden (FPS)</string>
-    <string name="mjpeg_pref_fps_text">Stel het maximum beelden per seconden in (FPS).\nWaardes: 1–60\nStandaard: 30</string>
+    <string name="mjpeg_pref_fps_text">Stel het maximum beelden per seconden in (FPS).\nWaardes: 1–120\nStandaard: 30</string>
     <string name="mjpeg_pref_jpeg_quality">JPEG compressie kwaliteit</string>
     <string name="mjpeg_pref_jpeg_quality_summary">Stel JPEG compressie kwaliteit in</string>
     <string name="mjpeg_pref_jpeg_quality_text">Stel JPEG compressie kwaliteit.\nWaardes: 10–100\nStandaard: 80</string>

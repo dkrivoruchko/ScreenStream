@@ -92,7 +92,7 @@
     <string name="mjpeg_pref_rotate_summary">Ruota l\'immagine prima di inviarla al client</string>
     <string name="mjpeg_pref_fps">Limita frame al secondo</string>
     <string name="mjpeg_pref_fps_summary">Imposta i frame al secondo massimi</string>
-    <string name="mjpeg_pref_fps_text">Imposta i frame al secondo massimi.\nValori: 1–60\nPredefiniti: 30</string>
+    <string name="mjpeg_pref_fps_text">Imposta i frame al secondo massimi.\nValori: 1–120\nPredefiniti: 30</string>
     <string name="mjpeg_pref_jpeg_quality">Qualità di compressione JPEG</string>
     <string name="mjpeg_pref_jpeg_quality_summary">Imposta la qualità di compressione JPEG</string>
     <string name="mjpeg_pref_jpeg_quality_text">Imposta la qualità di compressione JPEG. Valori: 10–100\nPredefinito: 80</string>

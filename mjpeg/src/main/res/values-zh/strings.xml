@@ -92,7 +92,7 @@
     <string name="mjpeg_pref_rotate_summary">发送到客户端前先旋转图片</string>
     <string name="mjpeg_pref_fps">限制每秒帧数</string>
     <string name="mjpeg_pref_fps_summary">设置每秒最大帧数</string>
-    <string name="mjpeg_pref_fps_text">设置每秒最大帧数。\n值： 1–60\n默认：30</string>
+    <string name="mjpeg_pref_fps_text">设置每秒最大帧数。\n值：1–120\n默认：30</string>
     <string name="mjpeg_pref_jpeg_quality">JPEG 压缩质量</string>
     <string name="mjpeg_pref_jpeg_quality_summary">设置 JPEG 压缩质量</string>
     <string name="mjpeg_pref_jpeg_quality_text">设置 JPEG 压缩质量。\n值：10–100\n默认：80</string>

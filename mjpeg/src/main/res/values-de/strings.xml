@@ -92,7 +92,7 @@
     <string name="mjpeg_pref_rotate_summary">Bild vor dem Senden drehen</string>
     <string name="mjpeg_pref_fps">Bilder pro Sekunde begrenzen</string>
     <string name="mjpeg_pref_fps_summary">Maximale Bilder pro Sekunde festlegen</string>
-    <string name="mjpeg_pref_fps_text">Maximale Bilder pro Sekunde festlegen.\nWerte: 1–60\nStandard: 30</string>
+    <string name="mjpeg_pref_fps_text">Maximale Bilder pro Sekunde festlegen.\nWerte: 1–120\nStandard: 30</string>
     <string name="mjpeg_pref_jpeg_quality">JPEG-Kompressionsqualität</string>
     <string name="mjpeg_pref_jpeg_quality_summary">JPEG-Kompressionsqualität festlegen</string>
     <string name="mjpeg_pref_jpeg_quality_text">JPEG-Kompressionsqualität festlegen.\nMögliche Werte: 10–100\nStandard: 80</string>

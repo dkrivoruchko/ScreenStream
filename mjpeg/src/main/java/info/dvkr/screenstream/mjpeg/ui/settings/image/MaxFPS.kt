@@ -151,9 +151,9 @@ private fun MaxFpsDetailUI(
             OutlinedTextField(
                 value = currentMaxFPS.value,
                 onValueChange = { textField ->
-                    val newMaxFPS = textField.text.take(2).toIntOrNull()
-                    if (newMaxFPS == null || newMaxFPS !in 1..60) {
-                        currentMaxFPS.value = textField.copy(text = textField.text.take(2))
+                    val newMaxFPS = textField.text.take(3).toIntOrNull()
+                    if (newMaxFPS == null || newMaxFPS !in 1..120) {
+                        currentMaxFPS.value = textField.copy(text = textField.text.take(3))
                         isError.value = true
                     } else {
                         currentMaxFPS.value = textField.copy(text = newMaxFPS.toString())

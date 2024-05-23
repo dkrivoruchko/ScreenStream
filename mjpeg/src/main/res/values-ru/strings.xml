@@ -91,7 +91,7 @@
     <string name="mjpeg_pref_rotate_summary">Поворачивать изображение перед отправкой</string>
     <string name="mjpeg_pref_fps">Ограничить кадры в секунду</string>
     <string name="mjpeg_pref_fps_summary">Установите максимальное количество кадров в секунду</string>
-    <string name="mjpeg_pref_fps_text">Установите максимальное количество кадров в секунду.\nЗначения: 1–60\nПо умолчанию: 30</string>
+    <string name="mjpeg_pref_fps_text">Установите максимальное количество кадров в секунду.\nЗначения: 1–120\nПо умолчанию: 30</string>
     <string name="mjpeg_pref_jpeg_quality">Качество JPEG</string>
     <string name="mjpeg_pref_jpeg_quality_summary">Установить качество JPEG</string>
     <string name="mjpeg_pref_jpeg_quality_text">Установите качество сжатия JPEG.\nЗначения: 10–100\nПо умолчанию: 80</string>
