@@ -38,6 +38,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -62,34 +63,45 @@ internal object ResizeImage : ModuleSettings.Item {
     }
 
     @Composable
-    override fun ItemUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit) =
-        ResizeImageUI(horizontalPadding, onDetailShow)
+    override fun ItemUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit) {
+        val mjpegSettings = koinInject<MjpegSettings>()
+        val mjpegSettingsState = mjpegSettings.data.collectAsStateWithLifecycle()
+        val resizeFactor = remember { derivedStateOf { mjpegSettingsState.value.resizeFactor } }
+
+        ResizeImageUI(horizontalPadding, resizeFactor.value, onDetailShow)
+    }
 
     @Composable
-    override fun DetailUI(headerContent: @Composable (String) -> Unit) =
-        ResizeImageDetailUI(headerContent)
+    override fun DetailUI(headerContent: @Composable (String) -> Unit) {
+        val mjpegSettings = koinInject<MjpegSettings>()
+        val mjpegSettingsState = mjpegSettings.data.collectAsStateWithLifecycle()
+        val resizeFactor = remember { derivedStateOf { mjpegSettingsState.value.resizeFactor } }
+        val context = LocalContext.current
+        val size = remember { WindowMetricsCalculator.getOrCreate().computeMaximumWindowMetrics(context).bounds.toComposeIntRect().size }
+
+        val scope = rememberCoroutineScope()
+
+        ResizeImageDetailUI(headerContent, resizeFactor.value, size) {
+            if (resizeFactor.value != it) {
+                scope.launch { mjpegSettings.updateData { copy(resizeFactor = it) } }
+            }
+        }
+    }
 }
 
 @Composable
 private fun ResizeImageUI(
     horizontalPadding: Dp,
+    resizeFactor: Int,
     onDetailShow: () -> Unit,
-    mjpegSettings: MjpegSettings = koinInject()
 ) {
-    val mjpegSettingsState = mjpegSettings.data.collectAsStateWithLifecycle()
-    val resizeFactor = remember { derivedStateOf { mjpegSettingsState.value.resizeFactor } }
-
     Row(
         modifier = Modifier
-            .clickable(role = Role.Button) { onDetailShow.invoke() }
+            .clickable(role = Role.Button, onClick = onDetailShow)
             .padding(start = horizontalPadding + 16.dp, end = horizontalPadding + 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(
-            imageVector = Icon_Resize,
-            contentDescription = stringResource(id = R.string.mjpeg_pref_resize),
-            modifier = Modifier.padding(end = 16.dp)
-        )
+        Icon(imageVector = Icon_Resize, contentDescription = null, modifier = Modifier.padding(end = 16.dp))
 
         Column(modifier = Modifier.weight(1F)) {
             Text(
@@ -106,7 +118,7 @@ private fun ResizeImageUI(
         }
 
         Text(
-            text = stringResource(id = R.string.mjpeg_pref_resize_value, resizeFactor.value),
+            text = stringResource(id = R.string.mjpeg_pref_resize_value, resizeFactor),
             modifier = Modifier.defaultMinSize(minWidth = 52.dp),
             color = MaterialTheme.colorScheme.primary,
             textAlign = TextAlign.Center,
@@ -118,25 +130,18 @@ private fun ResizeImageUI(
 @Composable
 private fun ResizeImageDetailUI(
     headerContent: @Composable (String) -> Unit,
-    scope: CoroutineScope = rememberCoroutineScope(),
-    windowMetricsCalculator: WindowMetricsCalculator = WindowMetricsCalculator.getOrCreate(),
-    mjpegSettings: MjpegSettings = koinInject()
+    resizeFactor: Int,
+    size: IntSize,
+    onValueChange: (Int) -> Unit,
 ) {
-
-    val mjpegSettingsState = mjpegSettings.data.collectAsStateWithLifecycle()
-    val resizeFactor = remember { derivedStateOf { mjpegSettingsState.value.resizeFactor } }
-    val currentResizeFactor = remember {
-        val text = resizeFactor.value.toString()
+    val currentResizeFactor = remember(resizeFactor) {
+        val text = resizeFactor.toString()
         mutableStateOf(TextFieldValue(text = text, selection = TextRange(text.length)))
     }
-
-    val context = LocalContext.current
-    val size = remember { windowMetricsCalculator.computeMaximumWindowMetrics(context).bounds.toComposeIntRect().size }
-
-    val resizedWidth = remember { derivedStateOf { (size.width * resizeFactor.value / 100F).toInt() } }
-    val resizedHeight = remember { derivedStateOf { (size.height * resizeFactor.value / 100F).toInt() } }
-
+    val resizedWidth = remember(resizeFactor, size) { derivedStateOf { (size.width * resizeFactor / 100F).toInt() } }
+    val resizedHeight = remember(resizeFactor, size) { derivedStateOf { (size.height * resizeFactor / 100F).toInt() } }
     val isError = remember { mutableStateOf(false) }
+    val focusRequester = remember { FocusRequester() }
 
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -152,12 +157,8 @@ private fun ResizeImageDetailUI(
         ) {
             Text(
                 text = stringResource(id = R.string.mjpeg_pref_resize_text, size.width, size.height),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp),
+                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
             )
-
-            val focusRequester = remember { FocusRequester() }
 
             OutlinedTextField(
                 value = currentResizeFactor.value,
@@ -169,28 +170,21 @@ private fun ResizeImageDetailUI(
                     } else {
                         currentResizeFactor.value = textField.copy(text = newResize.toString())
                         isError.value = false
-                        if (resizeFactor.value != newResize) {
-                            scope.launch { mjpegSettings.updateData { copy(resizeFactor = newResize) } }
-                        }
+                        onValueChange.invoke(newResize)
                     }
                 },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp)
-                    .focusRequester(focusRequester),
+                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp).focusRequester(focusRequester),
                 isError = isError.value,
                 keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
                 singleLine = true,
             )
 
-            LaunchedEffect(Unit) { focusRequester.requestFocus() }
-
             Text(
                 text = stringResource(id = R.string.mjpeg_pref_resize_result, resizedWidth.value, resizedHeight.value),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp),
+                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
             )
+
+            LaunchedEffect(Unit) { focusRequester.requestFocus() }
         }
     }
 }

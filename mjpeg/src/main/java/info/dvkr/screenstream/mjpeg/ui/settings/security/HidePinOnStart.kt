@@ -42,36 +42,33 @@ internal object HidePinOnStart : ModuleSettings.Item {
     }
 
     @Composable
-    override fun ItemUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit) =
-        HidePinOnStartUI(horizontalPadding, coroutineScope)
+    override fun ItemUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit) {
+        val mjpegSettings = koinInject<MjpegSettings>()
+        val mjpegSettingsState = mjpegSettings.data.collectAsStateWithLifecycle()
+        val hidePinOnStart = remember { derivedStateOf { mjpegSettingsState.value.hidePinOnStart } }
+        val enablePin = remember { derivedStateOf { mjpegSettingsState.value.enablePin } }
+
+        HidePinOnStartUI(horizontalPadding, hidePinOnStart.value, enablePin.value) {
+            coroutineScope.launch { mjpegSettings.updateData { copy(hidePinOnStart = it) } }
+        }
+    }
 }
 
 @Composable
 private fun HidePinOnStartUI(
     horizontalPadding: Dp,
-    scope: CoroutineScope,
-    mjpegSettings: MjpegSettings = koinInject()
+    hidePinOnStart: Boolean,
+    enablePin: Boolean,
+    onValueChange: (Boolean) -> Unit
 ) {
-    val mjpegSettingsState = mjpegSettings.data.collectAsStateWithLifecycle()
-    val hidePinOnStart = remember { derivedStateOf { mjpegSettingsState.value.hidePinOnStart } }
-    val enablePin = remember { derivedStateOf { mjpegSettingsState.value.enablePin } }
-
     Row(
         modifier = Modifier
-            .toggleable(
-                value = hidePinOnStart.value,
-                enabled = enablePin.value,
-                onValueChange = { scope.launch { mjpegSettings.updateData { copy(hidePinOnStart = it) } } }
-            )
+            .toggleable(value = hidePinOnStart, enabled = enablePin, onValueChange = onValueChange)
             .padding(start = horizontalPadding + 16.dp, end = horizontalPadding + 10.dp)
-            .conditional(enablePin.value.not()) { alpha(0.5F) },
+            .conditional(enablePin.not()) { alpha(0.5F) },
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(
-            imageVector = Icon_Password,
-            contentDescription = stringResource(id = R.string.mjpeg_pref_hide_pin),
-            modifier = Modifier.padding(end = 16.dp)
-        )
+        Icon(imageVector = Icon_Password, contentDescription = null, modifier = Modifier.padding(end = 16.dp))
 
         Column(modifier = Modifier.weight(1F)) {
             Text(
@@ -87,11 +84,7 @@ private fun HidePinOnStartUI(
             )
         }
 
-        Switch(
-            checked = hidePinOnStart.value,
-            onCheckedChange = null,
-            modifier = Modifier.scale(0.7F),
-        )
+        Switch(checked = hidePinOnStart, onCheckedChange = null, modifier = Modifier.scale(0.7F))
     }
 }
 

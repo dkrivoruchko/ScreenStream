@@ -54,25 +54,37 @@ internal object NightMode : ModuleSettings.Item {
     }
 
     @Composable
-    override fun ItemUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit) =
-        NightModeUI(horizontalPadding, onDetailShow)
+    override fun ItemUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit) {
+        val appSettings = koinInject<AppSettings>()
+        val appSettingsState = appSettings.data.collectAsStateWithLifecycle()
+        val nightModeOptions = stringArrayResource(id = nightModeOptionsRes)
+        val nightModeSummary = remember { derivedStateOf { nightModeOptions[getNightModeIndex(appSettingsState.value.nightMode)] } }
+
+        NightModeUI(horizontalPadding, nightModeSummary.value, onDetailShow)
+    }
 
     @Composable
-    override fun DetailUI(headerContent: @Composable (String) -> Unit) =
-        NightModeDetailUI(headerContent)
+    override fun DetailUI(headerContent: @Composable (String) -> Unit) {
+        val appSettings = koinInject<AppSettings>()
+        val appSettingsState = appSettings.data.collectAsStateWithLifecycle()
+        val nightModeOptions = stringArrayResource(id = nightModeOptionsRes)
+        val nightModeIndex = remember { derivedStateOf { getNightModeIndex(appSettingsState.value.nightMode) } }
+        val scope = rememberCoroutineScope()
+
+        NightModeDetailUI(headerContent, nightModeOptions, nightModeIndex.value) { index ->
+            if (nightModeIndex.value != index) {
+                scope.launch { appSettings.updateData { copy(nightMode = nightModesCompat[index].mode) } }
+            }
+        }
+    }
 
     @ArrayRes
-    internal val nightModeOptionsRes =
-        if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.P)
-            R.array.app_pref_night_mode_options_api21_28
-        else
-            R.array.app_pref_night_mode_options_api29
+    private val nightModeOptionsRes =
+        if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.P) R.array.app_pref_night_mode_options_api21_28
+        else R.array.app_pref_night_mode_options_api29
 
-    internal fun getNightModeIndex(@AppCompatDelegate.NightMode nightMode: Int): Int =
+    private fun getNightModeIndex(@AppCompatDelegate.NightMode nightMode: Int): Int =
         nightModesCompat.firstOrNull { it.mode == nightMode }?.index ?: nightModesCompat[1].index
-
-    @AppCompatDelegate.NightMode
-    internal fun getNightModeByIndex(index: Int): Int = nightModesCompat[index].mode
 
     private data class NightMode(val index: Int, @AppCompatDelegate.NightMode val mode: Int)
 
@@ -94,24 +106,16 @@ internal object NightMode : ModuleSettings.Item {
 @Composable
 private fun NightModeUI(
     horizontalPadding: Dp,
+    nightModeSummary: String,
     onDetailShow: () -> Unit,
-    appSettings: AppSettings = koinInject()
 ) {
-    val appSettingsState = appSettings.data.collectAsStateWithLifecycle()
-    val nightModeOptions = stringArrayResource(id = NightMode.nightModeOptionsRes)
-    val nightModeSummary = remember { derivedStateOf { nightModeOptions[NightMode.getNightModeIndex(appSettingsState.value.nightMode)] } }
-
     Row(
         modifier = Modifier
-            .clickable(role = Role.Button) { onDetailShow.invoke() }
+            .clickable(role = Role.Button, onClick = onDetailShow)
             .padding(horizontal = horizontalPadding + 16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(
-            imageVector = Icon_ThemeLightDark,
-            contentDescription = stringResource(id = R.string.app_pref_night_mode),
-            modifier = Modifier.padding(end = 16.dp)
-        )
+        Icon(imageVector = Icon_ThemeLightDark, contentDescription = null, modifier = Modifier.padding(end = 16.dp))
 
         Column(modifier = Modifier.weight(1F)) {
             Text(
@@ -121,7 +125,7 @@ private fun NightModeUI(
                 style = MaterialTheme.typography.bodyLarge
             )
             Text(
-                text = nightModeSummary.value,
+                text = nightModeSummary,
                 modifier = Modifier.padding(top = 2.dp, bottom = 8.dp),
                 style = MaterialTheme.typography.bodyMedium
             )
@@ -132,13 +136,10 @@ private fun NightModeUI(
 @Composable
 private fun NightModeDetailUI(
     headerContent: @Composable (String) -> Unit,
-    scope: CoroutineScope = rememberCoroutineScope(),
-    appSettings: AppSettings = koinInject()
+    nightModeOptions: Array<String>,
+    nightModeIndex: Int,
+    onSelected: (Int) -> Unit
 ) {
-    val appSettingsState = appSettings.data.collectAsStateWithLifecycle()
-    val nightModeOptions = stringArrayResource(id = NightMode.nightModeOptionsRes)
-    val nightModeIndex = remember { derivedStateOf { NightMode.getNightModeIndex(appSettingsState.value.nightMode) } }
-
     Column(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -155,22 +156,14 @@ private fun NightModeDetailUI(
             nightModeOptions.forEachIndexed { index, text ->
                 Row(
                     modifier = Modifier
-                        .selectable(
-                            selected = nightModeIndex.value == index,
-                            onClick = {
-                                if (nightModeIndex.value != index) {
-                                    scope.launch { appSettings.updateData { copy(nightMode = NightMode.getNightModeByIndex(index)) } }
-                                }
-                            },
-                            role = Role.RadioButton
-                        )
+                        .selectable(selected = nightModeIndex == index, onClick = { onSelected.invoke(index) }, role = Role.RadioButton)
                         .fillMaxWidth()
                         .padding(horizontal = 24.dp)
                         .defaultMinSize(minHeight = 48.dp)
                         .minimumInteractiveComponentSize(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    RadioButton(selected = nightModeIndex.value == index, onClick = null)
+                    RadioButton(selected = nightModeIndex == index, onClick = null)
                     Text(text = text, modifier = Modifier.padding(start = 16.dp))
                 }
             }

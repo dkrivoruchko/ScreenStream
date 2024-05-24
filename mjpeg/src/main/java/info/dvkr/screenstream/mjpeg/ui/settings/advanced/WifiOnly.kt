@@ -43,36 +43,37 @@ internal object WifiOnly : ModuleSettings.Item {
     }
 
     @Composable
-    override fun ItemUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit) =
-        WifiOnlyUI(horizontalPadding, coroutineScope)
+    override fun ItemUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit) {
+        val mjpegSettings = koinInject<MjpegSettings>()
+        val mjpegSettingsState = mjpegSettings.data.collectAsStateWithLifecycle()
+        val useWiFiOnly = remember { derivedStateOf { mjpegSettingsState.value.useWiFiOnly } }
+        val enabled = remember {
+            derivedStateOf { (mjpegSettingsState.value.enableLocalHost && mjpegSettingsState.value.localHostOnly).not() }
+        }
+
+        WifiOnlyUI(horizontalPadding, useWiFiOnly.value, enabled.value) {
+            if (useWiFiOnly.value != it) {
+                coroutineScope.launch { mjpegSettings.updateData { copy(useWiFiOnly = it) } }
+            }
+        }
+    }
 }
 
 @Composable
 private fun WifiOnlyUI(
     horizontalPadding: Dp,
-    scope: CoroutineScope,
-    mjpegSettings: MjpegSettings = koinInject()
+    useWiFiOnly: Boolean,
+    enabled: Boolean,
+    onValueChange: (Boolean) -> Unit
 ) {
-    val mjpegSettingsState = mjpegSettings.data.collectAsStateWithLifecycle()
-    val useWiFiOnly = remember { derivedStateOf { mjpegSettingsState.value.useWiFiOnly } }
-    val enabled = remember { derivedStateOf { (mjpegSettingsState.value.enableLocalHost && mjpegSettingsState.value.localHostOnly).not() } }
-
     Row(
         modifier = Modifier
-            .toggleable(
-                value = useWiFiOnly.value,
-                enabled = enabled.value,
-                onValueChange = { scope.launch { mjpegSettings.updateData { copy(useWiFiOnly = it) } } }
-            )
+            .toggleable(value = useWiFiOnly, enabled = enabled, onValueChange = onValueChange)
             .padding(start = horizontalPadding + 16.dp, end = horizontalPadding + 10.dp)
-            .conditional(enabled.value.not()) { alpha(0.5F) },
+            .conditional(enabled.not()) { alpha(0.5F) },
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(
-            imageVector = Icon_Wifi,
-            contentDescription = stringResource(id = R.string.mjpeg_pref_wifi_only),
-            modifier = Modifier.padding(end = 16.dp)
-        )
+        Icon(imageVector = Icon_Wifi, contentDescription = null, modifier = Modifier.padding(end = 16.dp))
 
         Column(modifier = Modifier.weight(1F)) {
             Text(
@@ -88,11 +89,7 @@ private fun WifiOnlyUI(
             )
         }
 
-        Switch(
-            checked = useWiFiOnly.value,
-            onCheckedChange = null,
-            modifier = Modifier.scale(0.7F),
-        )
+        Switch(checked = useWiFiOnly, onCheckedChange = null, modifier = Modifier.scale(0.7F))
     }
 }
 

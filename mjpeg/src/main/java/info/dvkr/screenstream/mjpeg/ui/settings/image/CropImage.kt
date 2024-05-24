@@ -74,39 +74,56 @@ internal object CropImage : ModuleSettings.Item {
     }
 
     @Composable
-    override fun ItemUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit) =
-        CropImageUI(horizontalPadding, coroutineScope, onDetailShow)
+    override fun ItemUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit) {
+        val mjpegSettings = koinInject<MjpegSettings>()
+        val mjpegSettingsState = mjpegSettings.data.collectAsStateWithLifecycle()
+        val imageCrop = remember { derivedStateOf { mjpegSettingsState.value.imageCrop } }
+
+        CropImageUI(horizontalPadding, imageCrop.value, onDetailShow) {
+            coroutineScope.launch { mjpegSettings.updateData { copy(imageCrop = imageCrop.value.not()) } }
+        }
+    }
 
     @Composable
-    override fun DetailUI(headerContent: @Composable (String) -> Unit) =
-        CropImageDetailUI(headerContent)
+    override fun DetailUI(headerContent: @Composable (String) -> Unit) {
+        val mjpegSettings = koinInject<MjpegSettings>()
+        val mjpegSettingsState = mjpegSettings.data.collectAsStateWithLifecycle()
+        val imageCropTop = remember { derivedStateOf { mjpegSettingsState.value.imageCropTop } }
+        val imageCropBottom = remember { derivedStateOf { mjpegSettingsState.value.imageCropBottom } }
+        val imageCropLeft = remember { derivedStateOf { mjpegSettingsState.value.imageCropLeft } }
+        val imageCropRight = remember { derivedStateOf { mjpegSettingsState.value.imageCropRight } }
+
+        val scope = rememberCoroutineScope()
+
+        CropImageDetailUI(
+            headerContent,
+            imageCropTop.value,
+            imageCropBottom.value,
+            imageCropLeft.value,
+            imageCropRight.value,
+            onNewValueTop = { if (imageCropTop.value != it) scope.launch { mjpegSettings.updateData { copy(imageCropTop = it) } } },
+            onNewValueBottom = { if (imageCropBottom.value != it) scope.launch { mjpegSettings.updateData { copy(imageCropBottom = it) } } },
+            onNewValueLeft = { if (imageCropLeft.value != it) scope.launch { mjpegSettings.updateData { copy(imageCropLeft = it) } } },
+            onNewValueRight = { if (imageCropRight.value != it) scope.launch { mjpegSettings.updateData { copy(imageCropRight = it) } } }
+        )
+    }
 }
 
 @Composable
 private fun CropImageUI(
     horizontalPadding: Dp,
-    scope: CoroutineScope,
+    imageCrop: Boolean,
     onDetailShow: () -> Unit,
-    mjpegSettings: MjpegSettings = koinInject()
+    onValueChange: (Boolean) -> Unit
 ) {
-    val mjpegSettingsState = mjpegSettings.data.collectAsStateWithLifecycle()
-    val imageCrop = remember { derivedStateOf { mjpegSettingsState.value.imageCrop } }
-
     Row(
         modifier = Modifier
-            .toggleable(
-                value = imageCrop.value,
-                onValueChange = { onDetailShow.invoke() }
-            )
+            .toggleable(value = imageCrop, onValueChange = { onDetailShow.invoke() })
             .padding(start = horizontalPadding + 16.dp, end = horizontalPadding + 10.dp)
             .height(IntrinsicSize.Min),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(
-            imageVector = Icon_Crop,
-            contentDescription = stringResource(id = R.string.mjpeg_pref_crop),
-            modifier = Modifier.padding(end = 16.dp)
-        )
+        Icon(imageVector = Icon_Crop, contentDescription = null, modifier = Modifier.padding(end = 16.dp))
 
         Column(modifier = Modifier.weight(1F)) {
             Text(
@@ -122,34 +139,24 @@ private fun CropImageUI(
             )
         }
 
-        VerticalDivider(
-            modifier = Modifier
-                .padding(vertical = 12.dp)
-                .padding(start = 4.dp, end = 8.dp)
-                .fillMaxHeight()
-        )
+        VerticalDivider(modifier = Modifier.padding(vertical = 12.dp).padding(start = 4.dp, end = 8.dp).fillMaxHeight())
 
-        Switch(
-            checked = imageCrop.value,
-            onCheckedChange = { scope.launch { mjpegSettings.updateData { copy(imageCrop = imageCrop.value.not()) } } },
-            modifier = Modifier.scale(0.7F),
-        )
+        Switch(checked = imageCrop, onCheckedChange = onValueChange, modifier = Modifier.scale(0.7F))
     }
 }
 
 @Composable
 private fun CropImageDetailUI(
     headerContent: @Composable (String) -> Unit,
-    scope: CoroutineScope = rememberCoroutineScope(),
-    mjpegSettings: MjpegSettings = koinInject()
+    imageCropTop: Int,
+    imageCropBottom: Int,
+    imageCropLeft: Int,
+    imageCropRight: Int,
+    onNewValueTop: (Int) -> Unit,
+    onNewValueBottom: (Int) -> Unit,
+    onNewValueLeft: (Int) -> Unit,
+    onNewValueRight: (Int) -> Unit
 ) {
-
-    val mjpegSettingsState = mjpegSettings.data.collectAsStateWithLifecycle()
-    val imageCropTop = remember { derivedStateOf { mjpegSettingsState.value.imageCropTop } }
-    val imageCropBottom = remember { derivedStateOf { mjpegSettingsState.value.imageCropBottom } }
-    val imageCropLeft = remember { derivedStateOf { mjpegSettingsState.value.imageCropLeft } }
-    val imageCropRight = remember { derivedStateOf { mjpegSettingsState.value.imageCropRight } }
-
     val topError = remember { mutableStateOf(false) }
     val bottomError = remember { mutableStateOf(false) }
     val leftError = remember { mutableStateOf(false) }
@@ -174,36 +181,15 @@ private fun CropImageDetailUI(
         ) {
             Text(
                 text = if (hasError) stringResource(id = R.string.mjpeg_pref_crop_error) else stringResource(id = R.string.mjpeg_pref_crop_warning),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp),
+                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
                 color = if (hasError) MaterialTheme.colorScheme.error else Color.Unspecified,
                 style = MaterialTheme.typography.bodyLarge
             )
 
-            CropRow(imageCropTop.value, R.string.mjpeg_pref_crop_top, topError, focusRequester, focusManager) { newTop ->
-                if (imageCropTop.value != newTop) {
-                    scope.launch { mjpegSettings.updateData { copy(imageCropTop = newTop) } }
-                }
-            }
-
-            CropRow(imageCropBottom.value, R.string.mjpeg_pref_crop_bottom, bottomError, focusRequester, focusManager) { newBottom ->
-                if (imageCropBottom.value != newBottom) {
-                    scope.launch { mjpegSettings.updateData { copy(imageCropBottom = newBottom) } }
-                }
-            }
-
-            CropRow(imageCropLeft.value, R.string.mjpeg_pref_crop_left, leftError, focusRequester, focusManager) { newLeft ->
-                if (imageCropLeft.value != newLeft) {
-                    scope.launch { mjpegSettings.updateData { copy(imageCropLeft = newLeft) } }
-                }
-            }
-
-            CropRow(imageCropRight.value, R.string.mjpeg_pref_crop_right, rightError, focusRequester, focusManager) { newRight ->
-                if (imageCropRight.value != newRight) {
-                    scope.launch { mjpegSettings.updateData { copy(imageCropRight = newRight) } }
-                }
-            }
+            CropRow(imageCropTop, R.string.mjpeg_pref_crop_top, topError, focusRequester, focusManager, onNewValueTop)
+            CropRow(imageCropBottom, R.string.mjpeg_pref_crop_bottom, bottomError, focusRequester, focusManager, onNewValueBottom)
+            CropRow(imageCropLeft, R.string.mjpeg_pref_crop_left, leftError, focusRequester, focusManager, onNewValueLeft)
+            CropRow(imageCropRight, R.string.mjpeg_pref_crop_right, rightError, focusRequester, focusManager, onNewValueRight)
         }
 
         LaunchedEffect(Unit) { focusRequester.requestFocus() }
@@ -237,10 +223,7 @@ private fun CropRow(
                 onNewValue.invoke(newCrop)
             }
         },
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp)
-            .focusRequester(focusRequester),
+        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp).focusRequester(focusRequester),
         label = {
             Text(
                 text = stringResource(id = labelRes) + " (" + stringResource(id = R.string.mjpeg_pref_crop_pixels) + ")",

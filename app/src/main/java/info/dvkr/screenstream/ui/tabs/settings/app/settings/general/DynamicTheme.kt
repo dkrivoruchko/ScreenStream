@@ -42,33 +42,30 @@ internal object DynamicTheme : ModuleSettings.Item {
     }
 
     @Composable
-    override fun ItemUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit) =
-        DynamicThemeUI(horizontalPadding, coroutineScope)
+    override fun ItemUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit) {
+        val appSettings = koinInject<AppSettings>()
+        val appSettingsState = appSettings.data.collectAsStateWithLifecycle()
+        val dynamicTheme = remember { derivedStateOf { appSettingsState.value.dynamicTheme } }
+
+        DynamicThemeUI(horizontalPadding, dynamicTheme.value) {
+            coroutineScope.launch { appSettings.updateData { copy(dynamicTheme = it) } }
+        }
+    }
 }
 
 @Composable
 private fun DynamicThemeUI(
     horizontalPadding: Dp,
-    scope: CoroutineScope,
-    appSettings: AppSettings = koinInject()
+    dynamicTheme: Boolean,
+    onValueChange: (Boolean) -> Unit
 ) {
-    val appSettingsState = appSettings.data.collectAsStateWithLifecycle()
-    val dynamicTheme = remember { derivedStateOf { appSettingsState.value.dynamicTheme } }
-
     Row(
         modifier = Modifier
-            .toggleable(
-                value = dynamicTheme.value,
-                onValueChange = { scope.launch { appSettings.updateData { copy(dynamicTheme = it) } } }
-            )
+            .toggleable(value = dynamicTheme, onValueChange = onValueChange)
             .padding(start = horizontalPadding + 16.dp, end = horizontalPadding + 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(
-            imageVector = Icon_FilterBAndW,
-            contentDescription = stringResource(id = R.string.app_pref_dynamic_theme),
-            modifier = Modifier.padding(end = 16.dp)
-        )
+        Icon(imageVector = Icon_FilterBAndW, contentDescription = null, modifier = Modifier.padding(end = 16.dp))
 
         Column(modifier = Modifier.weight(1F)) {
             Text(
@@ -84,11 +81,7 @@ private fun DynamicThemeUI(
             )
         }
 
-        Switch(
-            checked = dynamicTheme.value,
-            onCheckedChange = null,
-            modifier = Modifier.scale(0.7F),
-        )
+        Switch(checked = dynamicTheme, onCheckedChange = null, modifier = Modifier.scale(0.7F))
     }
 }
 

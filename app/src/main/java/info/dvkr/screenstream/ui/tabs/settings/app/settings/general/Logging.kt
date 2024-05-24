@@ -39,29 +39,29 @@ internal object Logging : ModuleSettings.Item {
     }
 
     @Composable
-    override fun ItemUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit) =
-        LoggingUI(horizontalPadding)
+    override fun ItemUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit) {
+        val context = LocalContext.current
+        val isLoggingOn = remember { mutableStateOf(AppLogger.isLoggingOn) }
+
+        LoggingUI(horizontalPadding, isLoggingOn.value) {
+            AppLogger.disableLogging(context)
+        }
+    }
 }
 
 @Composable
-private fun LoggingUI(horizontalPadding: Dp) {
-    val context = LocalContext.current
-    val isLoggingOn = remember { mutableStateOf(AppLogger.isLoggingOn) }
-
+private fun LoggingUI(
+    horizontalPadding: Dp,
+    isLoggingOn: Boolean,
+    onValueChange: (Boolean) -> Unit
+) {
     Row(
         modifier = Modifier
-            .toggleable(
-                value = isLoggingOn.value,
-                onValueChange = { AppLogger.disableLogging(context) }
-            )
+            .toggleable(value = isLoggingOn, onValueChange = onValueChange)
             .padding(start = horizontalPadding + 16.dp, end = horizontalPadding + 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(
-            imageVector = Icon_Article,
-            contentDescription = stringResource(id = R.string.app_pref_logging),
-            modifier = Modifier.padding(end = 16.dp)
-        )
+        Icon(imageVector = Icon_Article, contentDescription = null, modifier = Modifier.padding(end = 16.dp))
 
         Column(modifier = Modifier.weight(1F)) {
             Text(
@@ -77,11 +77,7 @@ private fun LoggingUI(horizontalPadding: Dp) {
             )
         }
 
-        Switch(
-            checked = isLoggingOn.value,
-            onCheckedChange = null,
-            modifier = Modifier.scale(0.7F),
-        )
+        Switch(checked = isLoggingOn, onCheckedChange = null, modifier = Modifier.scale(0.7F))
     }
 }
 

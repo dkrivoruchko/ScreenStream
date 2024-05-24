@@ -47,11 +47,7 @@ internal fun ClientsCard(
             MjpegClient(client = client, modifier = Modifier.padding(horizontal = 4.dp))
 
             if (index != mjpegState.value.clients.lastIndex) {
-                HorizontalDivider(
-                    modifier = Modifier
-                        .padding(vertical = 4.dp)
-                        .fillMaxWidth()
-                )
+                HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp).fillMaxWidth())
             }
         }
     }

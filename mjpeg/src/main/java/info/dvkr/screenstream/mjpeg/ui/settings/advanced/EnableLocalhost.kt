@@ -41,33 +41,32 @@ internal object EnableLocalhost : ModuleSettings.Item {
     }
 
     @Composable
-    override fun ItemUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit) =
-        EnableLocalhostUI(horizontalPadding, coroutineScope)
+    override fun ItemUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit) {
+        val mjpegSettings = koinInject<MjpegSettings>()
+        val mjpegSettingsState = mjpegSettings.data.collectAsStateWithLifecycle()
+        val enableLocalHost = remember { derivedStateOf { mjpegSettingsState.value.enableLocalHost } }
+
+        EnableLocalhostUI(horizontalPadding, enableLocalHost.value) {
+            if (enableLocalHost.value != it) {
+                coroutineScope.launch { mjpegSettings.updateData { copy(enableLocalHost = it) } }
+            }
+        }
+    }
 }
 
 @Composable
 private fun EnableLocalhostUI(
     horizontalPadding: Dp,
-    scope: CoroutineScope,
-    mjpegSettings: MjpegSettings = koinInject()
+    enableLocalHost: Boolean,
+    onValueChange: (Boolean) -> Unit
 ) {
-    val mjpegSettingsState = mjpegSettings.data.collectAsStateWithLifecycle()
-    val enableLocalHost = remember { derivedStateOf { mjpegSettingsState.value.enableLocalHost } }
-
     Row(
         modifier = Modifier
-            .toggleable(
-                value = enableLocalHost.value,
-                onValueChange = { scope.launch { mjpegSettings.updateData { copy(enableLocalHost = it) } } }
-            )
+            .toggleable(value = enableLocalHost, onValueChange = onValueChange)
             .padding(start = horizontalPadding + 16.dp, end = horizontalPadding + 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(
-            imageVector = Icon_LocalHost,
-            contentDescription = stringResource(id = R.string.mjpeg_pref_enable_localhost),
-            modifier = Modifier.padding(end = 16.dp)
-        )
+        Icon(imageVector = Icon_LocalHost, contentDescription = null, modifier = Modifier.padding(end = 16.dp))
 
         Column(modifier = Modifier.weight(1F)) {
             Text(
@@ -83,11 +82,7 @@ private fun EnableLocalhostUI(
             )
         }
 
-        Switch(
-            checked = enableLocalHost.value,
-            onCheckedChange = null,
-            modifier = Modifier.scale(0.7F),
-        )
+        Switch(checked = enableLocalHost, onCheckedChange = null, modifier = Modifier.scale(0.7F))
     }
 }
 

@@ -59,39 +59,49 @@ internal object VrMode : ModuleSettings.Item {
     }
 
     @Composable
-    override fun ItemUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit) =
-        VrModeUI(horizontalPadding, coroutineScope, onDetailShow)
+    override fun ItemUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit) {
+        val mjpegSettings = koinInject<MjpegSettings>()
+        val mjpegSettingsState = mjpegSettings.data.collectAsStateWithLifecycle()
+        val vrMode = remember { derivedStateOf { mjpegSettingsState.value.vrMode } }
+
+        VrModeUI(horizontalPadding, vrMode.value, onDetailShow) {
+            coroutineScope.launch { mjpegSettings.updateData { copy(vrMode = it) } }
+        }
+    }
 
     @Composable
-    override fun DetailUI(headerContent: @Composable (String) -> Unit) =
-        VrModeDetailUI(headerContent)
+    override fun DetailUI(headerContent: @Composable (String) -> Unit) {
+        val mjpegSettings = koinInject<MjpegSettings>()
+        val mjpegSettingsState = mjpegSettings.data.collectAsStateWithLifecycle()
+        val vrMode = remember { derivedStateOf { mjpegSettingsState.value.vrMode } }
+
+        val vrModeOptions = stringArrayResource(id = R.array.mjpeg_pref_vr_mode_options)
+
+        val scope = rememberCoroutineScope()
+
+        VrModeDetailUI(headerContent, vrModeOptions, vrMode.value) {
+            if (vrMode.value != it) {
+                scope.launch { mjpegSettings.updateData { copy(vrMode = it) } }
+            }
+        }
+    }
 }
 
 @Composable
 private fun VrModeUI(
     horizontalPadding: Dp,
-    scope: CoroutineScope,
+    vrMode: Int,
     onDetailShow: () -> Unit,
-    mjpegSettings: MjpegSettings = koinInject()
+    onVrModeChange: (Int) -> Unit,
 ) {
-    val mjpegSettingsState = mjpegSettings.data.collectAsStateWithLifecycle()
-    val vrMode = remember { derivedStateOf { mjpegSettingsState.value.vrMode } }
-
     Row(
         modifier = Modifier
-            .toggleable(
-                value = vrMode.value > MjpegSettings.Default.VR_MODE_DISABLE,
-                onValueChange = { onDetailShow.invoke() }
-            )
+            .toggleable(value = vrMode > MjpegSettings.Default.VR_MODE_DISABLE, onValueChange = { onDetailShow.invoke() })
             .padding(start = horizontalPadding + 16.dp, end = horizontalPadding + 10.dp)
             .height(IntrinsicSize.Min),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(
-            imageVector = Icon_VirtualReality,
-            contentDescription = stringResource(id = R.string.mjpeg_pref_vr_mode),
-            modifier = Modifier.padding(end = 16.dp)
-        )
+        Icon(imageVector = Icon_VirtualReality, contentDescription = null, modifier = Modifier.padding(end = 16.dp))
 
         Column(modifier = Modifier.weight(1F)) {
             Text(
@@ -107,20 +117,15 @@ private fun VrModeUI(
             )
         }
 
-        VerticalDivider(
-            modifier = Modifier
-                .padding(vertical = 12.dp)
-                .padding(start = 4.dp, end = 8.dp)
-                .fillMaxHeight()
-        )
+        VerticalDivider(modifier = Modifier.padding(vertical = 12.dp).padding(start = 4.dp, end = 8.dp).fillMaxHeight())
 
         Switch(
-            checked = vrMode.value > MjpegSettings.Default.VR_MODE_DISABLE,
+            checked = vrMode > MjpegSettings.Default.VR_MODE_DISABLE,
             onCheckedChange = {
-                if (it && vrMode.value == MjpegSettings.Default.VR_MODE_DISABLE)
+                if (it && vrMode == MjpegSettings.Default.VR_MODE_DISABLE)
                     onDetailShow.invoke()
                 else {
-                    scope.launch { mjpegSettings.updateData { copy(vrMode = -vrMode.value) } }
+                    onVrModeChange.invoke(-vrMode)
                 }
             },
             modifier = Modifier.scale(0.7F),
@@ -131,14 +136,10 @@ private fun VrModeUI(
 @Composable
 private fun VrModeDetailUI(
     headerContent: @Composable (String) -> Unit,
-    scope: CoroutineScope = rememberCoroutineScope(),
-    mjpegSettings: MjpegSettings = koinInject()
+    vrModeOptions: Array<String>,
+    vrMode: Int,
+    onValueChange: (Int) -> Unit,
 ) {
-    val mjpegSettingsState = mjpegSettings.data.collectAsStateWithLifecycle()
-    val vrMode = remember { derivedStateOf { mjpegSettingsState.value.vrMode } }
-
-    val vrModeOptions = stringArrayResource(id = R.array.mjpeg_pref_vr_mode_options)
-
     Column(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -156,12 +157,8 @@ private fun VrModeDetailUI(
                 Row(
                     modifier = Modifier
                         .selectable(
-                            selected = if (vrMode.value > 0) vrMode.value == index else index == 0,
-                            onClick = {
-                                if (vrMode.value != index) {
-                                    scope.launch { mjpegSettings.updateData { copy(vrMode = index) } }
-                                }
-                            },
+                            selected = if (vrMode > 0) vrMode == index else index == 0,
+                            onClick = { onValueChange.invoke(index) },
                             role = Role.RadioButton
                         )
                         .fillMaxWidth()
@@ -169,7 +166,8 @@ private fun VrModeDetailUI(
                         .minimumInteractiveComponentSize(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    RadioButton(selected = if (vrMode.value > 0) vrMode.value == index else index == 0, onClick = null)
+                    RadioButton(selected = if (vrMode > 0) vrMode == index else index == 0, onClick = null)
+
                     Text(text = text, modifier = Modifier.padding(start = 16.dp))
                 }
             }

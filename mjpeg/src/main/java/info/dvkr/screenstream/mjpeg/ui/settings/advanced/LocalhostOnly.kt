@@ -43,36 +43,35 @@ internal object LocalhostOnly : ModuleSettings.Item {
     }
 
     @Composable
-    override fun ItemUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit) =
-        LocalhostOnlyUI(horizontalPadding, coroutineScope)
+    override fun ItemUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit) {
+        val mjpegSettings = koinInject<MjpegSettings>()
+        val mjpegSettingsState = mjpegSettings.data.collectAsStateWithLifecycle()
+        val localHostOnly = remember { derivedStateOf { mjpegSettingsState.value.localHostOnly } }
+        val enableLocalHost = remember { derivedStateOf { mjpegSettingsState.value.enableLocalHost } }
+
+        LocalhostOnlyUI(horizontalPadding, localHostOnly.value, enableLocalHost.value) {
+            if (localHostOnly.value != it) {
+                coroutineScope.launch { mjpegSettings.updateData { copy(localHostOnly = it) } }
+            }
+        }
+    }
 }
 
 @Composable
 private fun LocalhostOnlyUI(
     horizontalPadding: Dp,
-    scope: CoroutineScope,
-    mjpegSettings: MjpegSettings = koinInject()
+    localHostOnly: Boolean,
+    enableLocalHost: Boolean,
+    onValueChange: (Boolean) -> Unit
 ) {
-    val mjpegSettingsState = mjpegSettings.data.collectAsStateWithLifecycle()
-    val localHostOnly = remember { derivedStateOf { mjpegSettingsState.value.localHostOnly } }
-    val enableLocalHost = remember { derivedStateOf { mjpegSettingsState.value.enableLocalHost } }
-
     Row(
         modifier = Modifier
-            .toggleable(
-                value = localHostOnly.value,
-                enabled = enableLocalHost.value,
-                onValueChange = { scope.launch { mjpegSettings.updateData { copy(localHostOnly = it) } } }
-            )
+            .toggleable(value = localHostOnly, enabled = enableLocalHost, onValueChange = onValueChange)
             .padding(start = horizontalPadding + 16.dp, end = horizontalPadding + 10.dp)
-            .conditional(enableLocalHost.value.not()) { alpha(0.5F) },
+            .conditional(enableLocalHost.not()) { alpha(0.5F) },
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(
-            imageVector = Icon_LocalhostOnly,
-            contentDescription = stringResource(id = R.string.mjpeg_pref_localhost_only),
-            modifier = Modifier.padding(end = 16.dp)
-        )
+        Icon(imageVector = Icon_LocalhostOnly, contentDescription = null, modifier = Modifier.padding(end = 16.dp))
 
         Column(modifier = Modifier.weight(1F)) {
             Text(
@@ -88,11 +87,7 @@ private fun LocalhostOnlyUI(
             )
         }
 
-        Switch(
-            checked = localHostOnly.value,
-            onCheckedChange = null,
-            modifier = Modifier.scale(0.7F),
-        )
+        Switch(checked = localHostOnly, onCheckedChange = null, modifier = Modifier.scale(0.7F))
     }
 }
 

@@ -53,18 +53,13 @@ internal fun ErrorCard(
                         context.startActivity(notificationHelper.getStreamNotificationSettingsIntent())
                     }
                 },
-                modifier = Modifier
-                    .padding(top = 8.dp)
-                    .align(Alignment.End),
+                modifier = Modifier.padding(top = 8.dp).align(Alignment.End),
                 border = ButtonDefaults.outlinedButtonBorder.copy(brush = SolidColor(MaterialTheme.colorScheme.onError))
 //TODO          border = ButtonDefaults.outlinedButtonBorder(true).copy(brush = SolidColor(MaterialTheme.colorScheme.onError))
             ) {
                 val buttonTextId = if (error is WebRtcError.NotificationPermissionRequired) R.string.webrtc_error_open_settings
                 else R.string.webrtc_error_recover
-                Text(
-                    text = stringResource(buttonTextId),
-                    color = MaterialTheme.colorScheme.onError,
-                )
+                Text(text = stringResource(buttonTextId), color = MaterialTheme.colorScheme.onError)
             }
         }
     }

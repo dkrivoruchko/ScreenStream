@@ -58,34 +58,43 @@ internal object JpegQuality : ModuleSettings.Item {
     }
 
     @Composable
-    override fun ItemUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit) =
-        JpegQualityUI(horizontalPadding, onDetailShow)
+    override fun ItemUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit) {
+        val mjpegSettings = koinInject<MjpegSettings>()
+        val mjpegSettingsState = mjpegSettings.data.collectAsStateWithLifecycle()
+        val jpegQuality = remember { derivedStateOf { mjpegSettingsState.value.jpegQuality } }
+
+        JpegQualityUI(horizontalPadding, jpegQuality.value, onDetailShow)
+    }
 
     @Composable
-    override fun DetailUI(headerContent: @Composable (String) -> Unit) =
-        JpegQualityDetailUI(headerContent)
+    override fun DetailUI(headerContent: @Composable (String) -> Unit) {
+        val mjpegSettings = koinInject<MjpegSettings>()
+        val mjpegSettingsState = mjpegSettings.data.collectAsStateWithLifecycle()
+        val jpegQuality = remember { derivedStateOf { mjpegSettingsState.value.jpegQuality } }
+
+        val scope = rememberCoroutineScope()
+
+        JpegQualityDetailUI(headerContent, jpegQuality.value) {
+            if (jpegQuality.value != it) {
+                scope.launch { mjpegSettings.updateData { copy(jpegQuality = it) } }
+            }
+        }
+    }
 }
 
 @Composable
 private fun JpegQualityUI(
     horizontalPadding: Dp,
+    jpegQuality: Int,
     onDetailShow: () -> Unit,
-    mjpegSettings: MjpegSettings = koinInject()
 ) {
-    val mjpegSettingsState = mjpegSettings.data.collectAsStateWithLifecycle()
-    val jpegQuality = remember { derivedStateOf { mjpegSettingsState.value.jpegQuality } }
-
     Row(
         modifier = Modifier
-            .clickable(role = Role.Button) { onDetailShow.invoke() }
+            .clickable(role = Role.Button, onClick = onDetailShow)
             .padding(start = horizontalPadding + 16.dp, end = horizontalPadding + 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(
-            imageVector = Icon_HighQuality,
-            contentDescription = stringResource(id = R.string.mjpeg_pref_jpeg_quality),
-            modifier = Modifier.padding(end = 16.dp)
-        )
+        Icon(imageVector = Icon_HighQuality, contentDescription = null, modifier = Modifier.padding(end = 16.dp))
 
         Column(modifier = Modifier.weight(1F)) {
             Text(
@@ -102,7 +111,7 @@ private fun JpegQualityUI(
         }
 
         Text(
-            text = jpegQuality.value.toString(),
+            text = jpegQuality.toString(),
             modifier = Modifier.defaultMinSize(minWidth = 52.dp),
             color = MaterialTheme.colorScheme.primary,
             textAlign = TextAlign.Center,
@@ -114,18 +123,15 @@ private fun JpegQualityUI(
 @Composable
 private fun JpegQualityDetailUI(
     headerContent: @Composable (String) -> Unit,
-    scope: CoroutineScope = rememberCoroutineScope(),
-    mjpegSettings: MjpegSettings = koinInject()
+    jpegQuality: Int,
+    onValueChange: (Int) -> Unit
 ) {
-
-    val mjpegSettingsState = mjpegSettings.data.collectAsStateWithLifecycle()
-    val jpegQuality = remember { derivedStateOf { mjpegSettingsState.value.jpegQuality } }
-    val currentJpegQuality = remember {
-        val text = jpegQuality.value.toString()
+    val currentJpegQuality = remember(jpegQuality) {
+        val text = jpegQuality.toString()
         mutableStateOf(TextFieldValue(text = text, selection = TextRange(text.length)))
     }
-
     val isError = remember { mutableStateOf(false) }
+    val focusRequester = remember { FocusRequester() }
 
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -141,12 +147,8 @@ private fun JpegQualityDetailUI(
         ) {
             Text(
                 text = stringResource(id = R.string.mjpeg_pref_jpeg_quality_text),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp),
+                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
             )
-
-            val focusRequester = remember { FocusRequester() }
 
             OutlinedTextField(
                 value = currentJpegQuality.value,
@@ -158,15 +160,10 @@ private fun JpegQualityDetailUI(
                     } else {
                         currentJpegQuality.value = textField.copy(text = newJpegQuality.toString())
                         isError.value = false
-                        if (jpegQuality.value != newJpegQuality) {
-                            scope.launch { mjpegSettings.updateData { copy(jpegQuality = newJpegQuality) } }
-                        }
+                        onValueChange.invoke(newJpegQuality)
                     }
                 },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp)
-                    .focusRequester(focusRequester),
+                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp).focusRequester(focusRequester),
                 isError = isError.value,
                 keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
                 singleLine = true,

@@ -42,33 +42,32 @@ internal object KeepAwake : ModuleSettings.Item {
     }
 
     @Composable
-    override fun ItemUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit) =
-        KeepAwakeUI(horizontalPadding, coroutineScope)
+    override fun ItemUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit) {
+        val mjpegSettings = koinInject<MjpegSettings>()
+        val mjpegSettingsState = mjpegSettings.data.collectAsStateWithLifecycle()
+        val keepAwake = remember { derivedStateOf { mjpegSettingsState.value.keepAwake } }
+
+        KeepAwakeUI(horizontalPadding, keepAwake.value) {
+            if (keepAwake.value != it) {
+                coroutineScope.launch { mjpegSettings.updateData { copy(keepAwake = it) } }
+            }
+        }
+    }
 }
 
 @Composable
 private fun KeepAwakeUI(
     horizontalPadding: Dp,
-    scope: CoroutineScope,
-    mjpegSettings: MjpegSettings = koinInject()
+    keepAwake: Boolean,
+    onValueChange: (Boolean) -> Unit
 ) {
-    val mjpegSettingsState = mjpegSettings.data.collectAsStateWithLifecycle()
-    val keepAwake = remember { derivedStateOf { mjpegSettingsState.value.keepAwake } }
-
     Row(
         modifier = Modifier
-            .toggleable(
-                value = keepAwake.value,
-                onValueChange = { scope.launch { mjpegSettings.updateData { copy(keepAwake = it) } } }
-            )
+            .toggleable(value = keepAwake, onValueChange = onValueChange)
             .padding(start = horizontalPadding + 16.dp, end = horizontalPadding + 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(
-            imageVector = Icon_NoSleep,
-            contentDescription = stringResource(id = R.string.mjpeg_pref_keep_awake),
-            modifier = Modifier.padding(end = 16.dp)
-        )
+        Icon(imageVector = Icon_NoSleep, contentDescription = null, modifier = Modifier.padding(end = 16.dp))
 
         Column(modifier = Modifier.weight(1F)) {
             Text(
@@ -84,11 +83,7 @@ private fun KeepAwakeUI(
             )
         }
 
-        Switch(
-            checked = keepAwake.value,
-            onCheckedChange = null,
-            modifier = Modifier.scale(0.7F),
-        )
+        Switch(checked = keepAwake, onCheckedChange = null, modifier = Modifier.scale(0.7F))
     }
 }
 

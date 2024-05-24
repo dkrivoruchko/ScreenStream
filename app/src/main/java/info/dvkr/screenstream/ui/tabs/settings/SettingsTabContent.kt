@@ -149,7 +149,7 @@ private fun SettingsListPane(
         val horizontalPadding = if (maxWidth >= 480.dp) 16.dp else 0.dp
 
         val secondaryContainer = MaterialTheme.colorScheme.secondaryContainer
-        val titleModifier = remember(maxWidth) {
+        val titleModifier = remember(maxWidth, secondaryContainer) {
             Modifier.background(color = secondaryContainer)
                 .padding(horizontal = horizontalPadding + 16.dp, vertical = 8.dp)
                 .fillMaxWidth()

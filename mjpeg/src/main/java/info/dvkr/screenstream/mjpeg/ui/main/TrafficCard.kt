@@ -77,9 +77,7 @@ internal fun TrafficCard(
                 )
             },
             contentDescription = stringResource(id = R.string.mjpeg_stream_traffic_graph),
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(160.dp)
+            modifier = Modifier.fillMaxWidth().height(160.dp)
         )
     }
 }
@@ -105,9 +103,7 @@ private fun TrafficGraph(
 
     Row(modifier = modifier.padding(8.dp)) {
         Column(
-            modifier = Modifier
-                .fillMaxHeight()
-                .padding(end = 4.dp),
+            modifier = Modifier.fillMaxHeight().padding(end = 4.dp),
             verticalArrangement = Arrangement.SpaceBetween,
             horizontalAlignment = Alignment.End
         ) {

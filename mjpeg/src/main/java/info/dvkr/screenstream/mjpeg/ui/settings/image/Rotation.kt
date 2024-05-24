@@ -52,16 +52,31 @@ internal object Rotation : ModuleSettings.Item {
     }
 
     @Composable
-    override fun ItemUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit) =
-        RotationUI(horizontalPadding, onDetailShow)
+    override fun ItemUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit) {
+        val mjpegSettings = koinInject<MjpegSettings>()
+        val mjpegSettingsState = mjpegSettings.data.collectAsStateWithLifecycle()
+        val rotation = remember { derivedStateOf { mjpegSettingsState.value.rotation } }
+
+        RotationUI(horizontalPadding, rotation.value, onDetailShow)
+    }
 
     @Composable
-    override fun DetailUI(headerContent: @Composable (String) -> Unit) =
-        RotationDetailUI(headerContent)
+    override fun DetailUI(headerContent: @Composable (String) -> Unit) {
+        val mjpegSettings = koinInject<MjpegSettings>()
+        val mjpegSettingsState = mjpegSettings.data.collectAsStateWithLifecycle()
+        val rotation = remember { derivedStateOf { mjpegSettingsState.value.rotation } }
+        val rotationIndex = remember { derivedStateOf { rotationList.first { it.second == mjpegSettingsState.value.rotation }.first } }
 
-    internal fun getRotationIndex(rotation: Int): Int = rotationList.first { it.second == rotation }.first
+        val rotationOptions = stringArrayResource(id = R.array.mjpeg_pref_rotate_options)
+        val scope = rememberCoroutineScope()
 
-    internal fun getRotationByIndex(index: Int): Int = rotationList[index].second
+        RotationDetailUI(headerContent, rotationOptions, rotationIndex.value) { index ->
+            val newRotation = rotationList[index].second
+            if (rotation.value != newRotation) {
+                scope.launch { mjpegSettings.updateData { copy(rotation = newRotation) } }
+            }
+        }
+    }
 
     private val rotationList = listOf(
         0 to MjpegSettings.Values.ROTATION_0,
@@ -74,23 +89,16 @@ internal object Rotation : ModuleSettings.Item {
 @Composable
 private fun RotationUI(
     horizontalPadding: Dp,
+    rotation: Int,
     onDetailShow: () -> Unit,
-    mjpegSettings: MjpegSettings = koinInject()
 ) {
-    val mjpegSettingsState = mjpegSettings.data.collectAsStateWithLifecycle()
-    val rotation = remember { derivedStateOf { mjpegSettingsState.value.rotation } }
-
     Row(
         modifier = Modifier
-            .clickable(role = Role.Button) { onDetailShow.invoke() }
+            .clickable(role = Role.Button, onClick = onDetailShow)
             .padding(start = horizontalPadding + 16.dp, end = horizontalPadding + 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(
-            imageVector = Icon_Rotate90DegreesCw,
-            contentDescription = stringResource(id = R.string.mjpeg_pref_rotate),
-            modifier = Modifier.padding(end = 16.dp)
-        )
+        Icon(imageVector = Icon_Rotate90DegreesCw, contentDescription = null, modifier = Modifier.padding(end = 16.dp))
 
         Column(modifier = Modifier.weight(1F)) {
             Text(
@@ -107,7 +115,7 @@ private fun RotationUI(
         }
 
         Text(
-            text = stringResource(id = R.string.mjpeg_pref_rotate_value, rotation.value),
+            text = stringResource(id = R.string.mjpeg_pref_rotate_value, rotation),
             modifier = Modifier.defaultMinSize(minWidth = 52.dp),
             color = MaterialTheme.colorScheme.primary,
             textAlign = TextAlign.Center,
@@ -119,14 +127,10 @@ private fun RotationUI(
 @Composable
 private fun RotationDetailUI(
     headerContent: @Composable (String) -> Unit,
-    scope: CoroutineScope = rememberCoroutineScope(),
-    mjpegSettings: MjpegSettings = koinInject()
+    rotationOptions: Array<String>,
+    rotationIndex: Int,
+    onNewOptionIndex: (Int) -> Unit,
 ) {
-    val mjpegSettingsState = mjpegSettings.data.collectAsStateWithLifecycle()
-    val rotation = remember { derivedStateOf { mjpegSettingsState.value.rotation } }
-
-    val rotationOptions = stringArrayResource(id = R.array.mjpeg_pref_rotate_options)
-
     Column(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -144,13 +148,8 @@ private fun RotationDetailUI(
                 Row(
                     modifier = Modifier
                         .selectable(
-                            selected = Rotation.getRotationIndex(rotation.value) == index,
-                            onClick = {
-                                val newRotation = Rotation.getRotationByIndex(index)
-                                if (newRotation != rotation.value) {
-                                    scope.launch { mjpegSettings.updateData { copy(rotation = newRotation) } }
-                                }
-                            },
+                            selected = rotationIndex == index,
+                            onClick = { onNewOptionIndex.invoke(index) },
                             role = Role.RadioButton
                         )
                         .fillMaxWidth()
@@ -158,7 +157,8 @@ private fun RotationDetailUI(
                         .minimumInteractiveComponentSize(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    RadioButton(selected = Rotation.getRotationIndex(rotation.value) == index, onClick = null)
+                    RadioButton(selected = rotationIndex == index, onClick = null)
+
                     Text(text = text, modifier = Modifier.padding(start = 16.dp))
                 }
             }

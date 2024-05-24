@@ -42,36 +42,35 @@ internal object NewPinOnAppStart : ModuleSettings.Item {
     }
 
     @Composable
-    override fun ItemUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit) =
-        NewPinOnAppStartUI(horizontalPadding, coroutineScope)
+    override fun ItemUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit) {
+        val mjpegSettings = koinInject<MjpegSettings>()
+        val mjpegSettingsState = mjpegSettings.data.collectAsStateWithLifecycle()
+        val newPinOnAppStart = remember { derivedStateOf { mjpegSettingsState.value.newPinOnAppStart } }
+        val enablePin = remember { derivedStateOf { mjpegSettingsState.value.enablePin } }
+
+        NewPinOnAppStartUI(horizontalPadding, newPinOnAppStart.value, enablePin.value) {
+            if (newPinOnAppStart.value != it) {
+                coroutineScope.launch { mjpegSettings.updateData { copy(newPinOnAppStart = it) } }
+            }
+        }
+    }
 }
 
 @Composable
 private fun NewPinOnAppStartUI(
     horizontalPadding: Dp,
-    scope: CoroutineScope,
-    mjpegSettings: MjpegSettings = koinInject()
+    newPinOnAppStart: Boolean,
+    enablePin: Boolean,
+    onValueChange: (Boolean) -> Unit
 ) {
-    val mjpegSettingsState = mjpegSettings.data.collectAsStateWithLifecycle()
-    val newPinOnAppStart = remember { derivedStateOf { mjpegSettingsState.value.newPinOnAppStart } }
-    val enablePin = remember { derivedStateOf { mjpegSettingsState.value.enablePin } }
-
     Row(
         modifier = Modifier
-            .toggleable(
-                value = newPinOnAppStart.value,
-                enabled = enablePin.value,
-                onValueChange = { scope.launch { mjpegSettings.updateData { copy(newPinOnAppStart = it) } } }
-            )
+            .toggleable(value = newPinOnAppStart, enabled = enablePin, onValueChange = onValueChange)
             .padding(start = horizontalPadding + 16.dp, end = horizontalPadding + 10.dp)
-            .conditional(enablePin.value.not()) { alpha(0.5F) },
+            .conditional(enablePin.not()) { alpha(0.5F) },
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(
-            imageVector = Icon_Key,
-            contentDescription = stringResource(id = R.string.mjpeg_pref_new_pin_on_start),
-            modifier = Modifier.padding(end = 16.dp)
-        )
+        Icon(imageVector = Icon_Key, contentDescription = null, modifier = Modifier.padding(end = 16.dp))
 
         Column(modifier = Modifier.weight(1F)) {
             Text(
@@ -87,11 +86,7 @@ private fun NewPinOnAppStartUI(
             )
         }
 
-        Switch(
-            checked = newPinOnAppStart.value,
-            onCheckedChange = null,
-            modifier = Modifier.scale(0.7F),
-        )
+        Switch(checked = newPinOnAppStart, onCheckedChange = null, modifier = Modifier.scale(0.7F))
     }
 }
 

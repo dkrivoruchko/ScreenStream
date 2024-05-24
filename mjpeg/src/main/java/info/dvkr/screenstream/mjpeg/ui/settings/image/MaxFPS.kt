@@ -58,34 +58,43 @@ internal object MaxFPS : ModuleSettings.Item {
     }
 
     @Composable
-    override fun ItemUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit) =
-        MaxFpsUI(horizontalPadding, onDetailShow)
+    override fun ItemUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit) {
+        val mjpegSettings = koinInject<MjpegSettings>()
+        val mjpegSettingsState = mjpegSettings.data.collectAsStateWithLifecycle()
+        val maxFPS = remember { derivedStateOf { mjpegSettingsState.value.maxFPS } }
+
+        MaxFpsUI(horizontalPadding, maxFPS.value, onDetailShow)
+    }
 
     @Composable
-    override fun DetailUI(headerContent: @Composable (String) -> Unit) =
-        MaxFpsDetailUI(headerContent)
+    override fun DetailUI(headerContent: @Composable (String) -> Unit) {
+        val mjpegSettings = koinInject<MjpegSettings>()
+        val mjpegSettingsState = mjpegSettings.data.collectAsStateWithLifecycle()
+        val maxFPS = remember { derivedStateOf { mjpegSettingsState.value.maxFPS } }
+
+        val scope = rememberCoroutineScope()
+
+        MaxFpsDetailUI(headerContent, maxFPS.value) {
+            if (maxFPS.value != it) {
+                scope.launch { mjpegSettings.updateData { copy(maxFPS = it) } }
+            }
+        }
+    }
 }
 
 @Composable
 private fun MaxFpsUI(
     horizontalPadding: Dp,
-    onDetailShow: () -> Unit,
-    mjpegSettings: MjpegSettings = koinInject()
+    maxFPS: Int,
+    onDetailShow: () -> Unit
 ) {
-    val mjpegSettingsState = mjpegSettings.data.collectAsStateWithLifecycle()
-    val maxFPS = remember { derivedStateOf { mjpegSettingsState.value.maxFPS } }
-
     Row(
         modifier = Modifier
-            .clickable(role = Role.Button) { onDetailShow.invoke() }
+            .clickable(role = Role.Button, onClick = onDetailShow)
             .padding(start = horizontalPadding + 16.dp, end = horizontalPadding + 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(
-            imageVector = Icon_Speed,
-            contentDescription = stringResource(id = R.string.mjpeg_pref_fps),
-            modifier = Modifier.padding(end = 16.dp)
-        )
+        Icon(imageVector = Icon_Speed, contentDescription = null, modifier = Modifier.padding(end = 16.dp))
 
         Column(modifier = Modifier.weight(1F)) {
             Text(
@@ -102,7 +111,7 @@ private fun MaxFpsUI(
         }
 
         Text(
-            text = maxFPS.value.toString(),
+            text = maxFPS.toString(),
             modifier = Modifier.defaultMinSize(minWidth = 52.dp),
             color = MaterialTheme.colorScheme.primary,
             textAlign = TextAlign.Center,
@@ -114,18 +123,15 @@ private fun MaxFpsUI(
 @Composable
 private fun MaxFpsDetailUI(
     headerContent: @Composable (String) -> Unit,
-    scope: CoroutineScope = rememberCoroutineScope(),
-    mjpegSettings: MjpegSettings = koinInject()
+    maxFPS: Int,
+    onValueChange: (Int) -> Unit
 ) {
-
-    val mjpegSettingsState = mjpegSettings.data.collectAsStateWithLifecycle()
-    val maxFPS = remember { derivedStateOf { mjpegSettingsState.value.maxFPS } }
-    val currentMaxFPS = remember {
-        val text = maxFPS.value.toString()
+    val currentMaxFPS = remember(maxFPS) {
+        val text = maxFPS.toString()
         mutableStateOf(TextFieldValue(text = text, selection = TextRange(text.length)))
     }
-
     val isError = remember { mutableStateOf(false) }
+    val focusRequester = remember { FocusRequester() }
 
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -141,12 +147,8 @@ private fun MaxFpsDetailUI(
         ) {
             Text(
                 text = stringResource(id = R.string.mjpeg_pref_fps_text),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp),
+                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
             )
-
-            val focusRequester = remember { FocusRequester() }
 
             OutlinedTextField(
                 value = currentMaxFPS.value,
@@ -158,15 +160,10 @@ private fun MaxFpsDetailUI(
                     } else {
                         currentMaxFPS.value = textField.copy(text = newMaxFPS.toString())
                         isError.value = false
-                        if (maxFPS.value != newMaxFPS) {
-                            scope.launch { mjpegSettings.updateData { copy(maxFPS = newMaxFPS) } }
-                        }
+                        onValueChange.invoke(newMaxFPS)
                     }
                 },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp)
-                    .focusRequester(focusRequester),
+                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp).focusRequester(focusRequester),
                 isError = isError.value,
                 keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
                 singleLine = true,

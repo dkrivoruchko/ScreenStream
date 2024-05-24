@@ -145,10 +145,7 @@ private fun OpenInBrowserButton(
             }
         }
     ) {
-        Icon(
-            imageVector = Icon_OpenInNew,
-            contentDescription = stringResource(id = R.string.mjpeg_item_address_description_open_address)
-        )
+        Icon(imageVector = Icon_OpenInNew, contentDescription = stringResource(id = R.string.mjpeg_item_address_description_open_address))
     }
 }
 
@@ -167,10 +164,7 @@ private fun CopyAddressButton(
             }
         }
     ) {
-        Icon(
-            imageVector = Icon_ContentCopy,
-            contentDescription = stringResource(id = R.string.mjpeg_item_address_description_copy_address)
-        )
+        Icon(imageVector = Icon_ContentCopy, contentDescription = stringResource(id = R.string.mjpeg_item_address_description_copy_address))
     }
 }
 
@@ -187,10 +181,7 @@ private fun ShareAddressButton(
             context.startActivity(Intent.createChooser(sharingIntent, shareTitle))
         }
     ) {
-        Icon(
-            imageVector = Icon_Share,
-            contentDescription = stringResource(id = R.string.mjpeg_item_address_description_share_address)
-        )
+        Icon(imageVector = Icon_Share, contentDescription = stringResource(id = R.string.mjpeg_item_address_description_share_address))
     }
 }
 
@@ -202,10 +193,7 @@ private fun ShowQRCodeButton(
     val showQRDialog = remember { mutableStateOf(false) }
 
     IconButton(onClick = { showQRDialog.value = true }) {
-        Icon(
-            imageVector = Icon_QrCode,
-            contentDescription = stringResource(id = R.string.mjpeg_item_address_description_qr_address)
-        )
+        Icon(imageVector = Icon_QrCode, contentDescription = stringResource(id = R.string.mjpeg_item_address_description_qr_address))
     }
 
     if (showQRDialog.value) {

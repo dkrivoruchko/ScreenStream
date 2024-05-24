@@ -42,36 +42,35 @@ internal object BlockAddress : ModuleSettings.Item {
     }
 
     @Composable
-    override fun ItemUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit) =
-        BlockAddressUI(horizontalPadding, coroutineScope)
+    override fun ItemUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit) {
+        val mjpegSettings = koinInject<MjpegSettings>()
+        val mjpegSettingsState = mjpegSettings.data.collectAsStateWithLifecycle()
+        val blockAddress = remember { derivedStateOf { mjpegSettingsState.value.blockAddress } }
+        val enablePin = remember { derivedStateOf { mjpegSettingsState.value.enablePin } }
+
+        BlockAddressUI(horizontalPadding, blockAddress.value, enablePin.value) {
+            if (blockAddress.value != it) {
+                coroutineScope.launch { mjpegSettings.updateData { copy(blockAddress = it) } }
+            }
+        }
+    }
 }
 
 @Composable
 private fun BlockAddressUI(
     horizontalPadding: Dp,
-    scope: CoroutineScope,
-    mjpegSettings: MjpegSettings = koinInject()
+    blockAddress: Boolean,
+    enablePin: Boolean,
+    onValueChange: (Boolean) -> Unit
 ) {
-    val mjpegSettingsState = mjpegSettings.data.collectAsStateWithLifecycle()
-    val blockAddress = remember { derivedStateOf { mjpegSettingsState.value.blockAddress } }
-    val enablePin = remember { derivedStateOf { mjpegSettingsState.value.enablePin } }
-
     Row(
         modifier = Modifier
-            .toggleable(
-                value = blockAddress.value,
-                enabled = enablePin.value,
-                onValueChange = { scope.launch { mjpegSettings.updateData { copy(blockAddress = it) } } }
-            )
+            .toggleable(value = blockAddress, enabled = enablePin, onValueChange = onValueChange)
             .padding(start = horizontalPadding + 16.dp, end = horizontalPadding + 10.dp)
-            .conditional(enablePin.value.not()) { alpha(0.5F) },
+            .conditional(enablePin.not()) { alpha(0.5F) },
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(
-            imageVector = Icon_Block,
-            contentDescription = stringResource(id = R.string.mjpeg_pref_block_address),
-            modifier = Modifier.padding(end = 16.dp)
-        )
+        Icon(imageVector = Icon_Block, contentDescription = null, modifier = Modifier.padding(end = 16.dp))
 
         Column(modifier = Modifier.weight(1F)) {
             Text(
@@ -87,11 +86,7 @@ private fun BlockAddressUI(
             )
         }
 
-        Switch(
-            checked = blockAddress.value,
-            onCheckedChange = null,
-            modifier = Modifier.scale(0.7F),
-        )
+        Switch(checked = blockAddress, onCheckedChange = null, modifier = Modifier.scale(0.7F))
     }
 }
 

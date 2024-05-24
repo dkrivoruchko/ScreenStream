@@ -41,33 +41,32 @@ internal object NotifySlowConnections : ModuleSettings.Item {
     }
 
     @Composable
-    override fun ItemUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit) =
-        NotifySlowConnectionsUI(horizontalPadding, coroutineScope)
+    override fun ItemUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit) {
+        val mjpegSettings = koinInject<MjpegSettings>()
+        val mjpegSettingsState = mjpegSettings.data.collectAsStateWithLifecycle()
+        val notifySlowConnections = remember { derivedStateOf { mjpegSettingsState.value.notifySlowConnections } }
+
+        NotifySlowConnectionsUI(horizontalPadding, notifySlowConnections.value) {
+            if (notifySlowConnections.value != it) {
+                coroutineScope.launch { mjpegSettings.updateData { copy(notifySlowConnections = it) } }
+            }
+        }
+    }
 }
 
 @Composable
 private fun NotifySlowConnectionsUI(
     horizontalPadding: Dp,
-    scope: CoroutineScope,
-    mjpegSettings: MjpegSettings = koinInject()
+    notifySlowConnections: Boolean,
+    onValueChange: (Boolean) -> Unit,
 ) {
-    val mjpegSettingsState = mjpegSettings.data.collectAsStateWithLifecycle()
-    val notifySlowConnections = remember { derivedStateOf { mjpegSettingsState.value.notifySlowConnections } }
-
     Row(
         modifier = Modifier
-            .toggleable(
-                value = notifySlowConnections.value,
-                onValueChange = { scope.launch { mjpegSettings.updateData { copy(notifySlowConnections = it) } } }
-            )
+            .toggleable(value = notifySlowConnections, onValueChange = onValueChange)
             .padding(start = horizontalPadding + 16.dp, end = horizontalPadding + 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(
-            imageVector = Icon_ErrorOutline,
-            contentDescription = stringResource(id = R.string.mjpeg_pref_detect_slow_connections),
-            modifier = Modifier.padding(end = 16.dp)
-        )
+        Icon(imageVector = Icon_ErrorOutline, contentDescription = null, modifier = Modifier.padding(end = 16.dp))
 
         Column(modifier = Modifier.weight(1F)) {
             Text(
@@ -83,11 +82,7 @@ private fun NotifySlowConnectionsUI(
             )
         }
 
-        Switch(
-            checked = notifySlowConnections.value,
-            onCheckedChange = null,
-            modifier = Modifier.scale(0.7F),
-        )
+        Switch(checked = notifySlowConnections, onCheckedChange = null, modifier = Modifier.scale(0.7F))
     }
 }
 

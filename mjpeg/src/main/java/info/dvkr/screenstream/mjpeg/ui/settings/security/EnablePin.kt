@@ -40,33 +40,32 @@ internal object EnablePin : ModuleSettings.Item {
     }
 
     @Composable
-    override fun ItemUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit) =
-        EnablePinUI(horizontalPadding, coroutineScope)
+    override fun ItemUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit) {
+        val mjpegSettings = koinInject<MjpegSettings>()
+        val mjpegSettingsState = mjpegSettings.data.collectAsStateWithLifecycle()
+        val enablePin = remember { derivedStateOf { mjpegSettingsState.value.enablePin } }
+
+        EnablePinUI(horizontalPadding, enablePin.value) {
+            if (enablePin.value != it) {
+                coroutineScope.launch { mjpegSettings.updateData { copy(enablePin = it) } }
+            }
+        }
+    }
 }
 
 @Composable
 private fun EnablePinUI(
     horizontalPadding: Dp,
-    scope: CoroutineScope,
-    mjpegSettings: MjpegSettings = koinInject()
+    enablePin: Boolean,
+    onValueChange: (Boolean) -> Unit
 ) {
-    val mjpegSettingsState = mjpegSettings.data.collectAsStateWithLifecycle()
-    val enablePin = remember { derivedStateOf { mjpegSettingsState.value.enablePin } }
-
     Row(
         modifier = Modifier
-            .toggleable(
-                value = enablePin.value,
-                onValueChange = { scope.launch { mjpegSettings.updateData { copy(enablePin = it) } } }
-            )
+            .toggleable(value = enablePin, onValueChange = onValueChange)
             .padding(start = horizontalPadding + 16.dp, end = horizontalPadding + 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(
-            imageVector = Icon_Pin,
-            contentDescription = stringResource(id = R.string.mjpeg_pref_enable_pin),
-            modifier = Modifier.padding(end = 16.dp)
-        )
+        Icon(imageVector = Icon_Pin, contentDescription = null, modifier = Modifier.padding(end = 16.dp))
 
         Column(modifier = Modifier.weight(1F)) {
             Text(
@@ -82,11 +81,7 @@ private fun EnablePinUI(
             )
         }
 
-        Switch(
-            checked = enablePin.value,
-            onCheckedChange = null,
-            modifier = Modifier.scale(0.7F),
-        )
+        Switch(checked = enablePin, onCheckedChange = null, modifier = Modifier.scale(0.7F))
     }
 }
 

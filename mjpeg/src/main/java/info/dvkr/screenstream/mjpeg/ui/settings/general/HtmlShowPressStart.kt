@@ -41,33 +41,32 @@ internal object HtmlShowPressStart : ModuleSettings.Item {
     }
 
     @Composable
-    override fun ItemUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit) =
-        HtmlShowPressStartUI(horizontalPadding, coroutineScope)
+    override fun ItemUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit) {
+        val mjpegSettings = koinInject<MjpegSettings>()
+        val mjpegSettingsState = mjpegSettings.data.collectAsStateWithLifecycle()
+        val htmlShowPressStart = remember { derivedStateOf { mjpegSettingsState.value.htmlShowPressStart } }
+
+        HtmlShowPressStartUI(horizontalPadding, htmlShowPressStart.value) {
+            if (htmlShowPressStart.value != it) {
+                coroutineScope.launch { mjpegSettings.updateData { copy(htmlShowPressStart = it) } }
+            }
+        }
+    }
 }
 
 @Composable
 private fun HtmlShowPressStartUI(
     horizontalPadding: Dp,
-    scope: CoroutineScope,
-    mjpegSettings: MjpegSettings = koinInject()
+    htmlShowPressStart: Boolean,
+    onValueChange: (Boolean) -> Unit,
 ) {
-    val mjpegSettingsState = mjpegSettings.data.collectAsStateWithLifecycle()
-    val htmlShowPressStart = remember { derivedStateOf { mjpegSettingsState.value.htmlShowPressStart } }
-
     Row(
         modifier = Modifier
-            .toggleable(
-                value = htmlShowPressStart.value,
-                onValueChange = { scope.launch { mjpegSettings.updateData { copy(htmlShowPressStart = it) } } }
-            )
+            .toggleable(value = htmlShowPressStart, onValueChange = onValueChange)
             .padding(start = horizontalPadding + 16.dp, end = horizontalPadding + 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(
-            imageVector = Icon_NotStarted,
-            contentDescription = stringResource(id = R.string.mjpeg_pref_html_show_press_start),
-            modifier = Modifier.padding(end = 16.dp)
-        )
+        Icon(imageVector = Icon_NotStarted, contentDescription = null, modifier = Modifier.padding(end = 16.dp))
 
         Column(modifier = Modifier.weight(1F)) {
             Text(
@@ -83,11 +82,7 @@ private fun HtmlShowPressStartUI(
             )
         }
 
-        Switch(
-            checked = htmlShowPressStart.value,
-            onCheckedChange = null,
-            modifier = Modifier.scale(0.7F),
-        )
+        Switch(checked = htmlShowPressStart, onCheckedChange = null, modifier = Modifier.scale(0.7F))
     }
 }
 

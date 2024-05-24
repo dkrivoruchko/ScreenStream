@@ -41,33 +41,34 @@ internal object Grayscale : ModuleSettings.Item {
     }
 
     @Composable
-    override fun ItemUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit) =
-        GrayscaleUI(horizontalPadding, coroutineScope)
+    override fun ItemUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit) {
+        val mjpegSettings = koinInject<MjpegSettings>()
+        val mjpegSettingsState = mjpegSettings.data.collectAsStateWithLifecycle()
+        val imageGrayscale = remember { derivedStateOf { mjpegSettingsState.value.imageGrayscale } }
+
+        GrayscaleUI(horizontalPadding, imageGrayscale.value) {
+            if (imageGrayscale.value != it) {
+                coroutineScope.launch { mjpegSettings.updateData { copy(imageGrayscale = it) } }
+            }
+        }
+    }
 }
 
 @Composable
 private fun GrayscaleUI(
     horizontalPadding: Dp,
-    scope: CoroutineScope,
-    mjpegSettings: MjpegSettings = koinInject()
+    imageGrayscale: Boolean,
+    onValueChange: (Boolean) -> Unit
 ) {
-    val mjpegSettingsState = mjpegSettings.data.collectAsStateWithLifecycle()
-    val imageGrayscale = remember { derivedStateOf { mjpegSettingsState.value.imageGrayscale } }
+
 
     Row(
         modifier = Modifier
-            .toggleable(
-                value = imageGrayscale.value,
-                onValueChange = { scope.launch { mjpegSettings.updateData { copy(imageGrayscale = it) } } }
-            )
+            .toggleable(value = imageGrayscale, onValueChange = onValueChange)
             .padding(start = horizontalPadding + 16.dp, end = horizontalPadding + 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(
-            imageVector = Icon_FilterBAndW,
-            contentDescription = stringResource(id = R.string.mjpeg_pref_grayscale),
-            modifier = Modifier.padding(end = 16.dp)
-        )
+        Icon(imageVector = Icon_FilterBAndW, contentDescription = null, modifier = Modifier.padding(end = 16.dp))
 
         Column(modifier = Modifier.weight(1F)) {
             Text(
@@ -83,11 +84,7 @@ private fun GrayscaleUI(
             )
         }
 
-        Switch(
-            checked = imageGrayscale.value,
-            onCheckedChange = null,
-            modifier = Modifier.scale(0.7F),
-        )
+        Switch(checked = imageGrayscale, onCheckedChange = null, modifier = Modifier.scale(0.7F))
     }
 }
 

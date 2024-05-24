@@ -30,13 +30,11 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.State
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -76,12 +74,28 @@ internal object HtmlBackColor : ModuleSettings.Item {
     }
 
     @Composable
-    override fun ItemUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit) =
-        HtmlBackColorUI(horizontalPadding, onDetailShow)
+    override fun ItemUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit) {
+        val mjpegSettings = koinInject<MjpegSettings>()
+        val mjpegSettingsState = mjpegSettings.data.collectAsStateWithLifecycle()
+        val htmlBackColor = remember { derivedStateOf { Color(mjpegSettingsState.value.htmlBackColor) } }
+
+        HtmlBackColorUI(horizontalPadding, htmlBackColor.value, onDetailShow)
+    }
 
     @Composable
-    override fun DetailUI(headerContent: @Composable (String) -> Unit) =
-        HtmlBackColorDetailUI(headerContent)
+    override fun DetailUI(headerContent: @Composable (String) -> Unit) {
+        val mjpegSettings = koinInject<MjpegSettings>()
+        val mjpegSettingsState = mjpegSettings.data.collectAsStateWithLifecycle()
+        val htmlBackColor = remember { derivedStateOf { Color(mjpegSettingsState.value.htmlBackColor) } }
+        val scope = rememberCoroutineScope()
+
+        HtmlBackColorDetailUI(headerContent, htmlBackColor.value) { color: Color ->
+            if (htmlBackColor.value != color) {
+                scope.launch { mjpegSettings.updateData { copy(htmlBackColor = color.toArgb()) } }
+            }
+        }
+
+    }
 
     internal val colorPalette = listOf(
         Color("#F44336".toColorInt()), Color("#E91E63".toColorInt()), Color("#9C27B0".toColorInt()), Color("#673AB7".toColorInt()),
@@ -95,23 +109,16 @@ internal object HtmlBackColor : ModuleSettings.Item {
 @Composable
 private fun HtmlBackColorUI(
     horizontalPadding: Dp,
-    onDetailShow: () -> Unit,
-    mjpegSettings: MjpegSettings = koinInject()
+    htmlBackColor: Color,
+    onDetailShow: () -> Unit
 ) {
-    val mjpegSettingsState = mjpegSettings.data.collectAsStateWithLifecycle()
-    val htmlBackColor = remember { derivedStateOf { mjpegSettingsState.value.htmlBackColor } }
-
     Row(
         modifier = Modifier
-            .clickable(role = Role.Button) { onDetailShow.invoke() }
+            .clickable(role = Role.Button, onClick = onDetailShow)
             .padding(start = horizontalPadding + 16.dp, end = horizontalPadding + 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(
-            imageVector = Icon_FormatColorFill,
-            contentDescription = stringResource(id = R.string.mjpeg_pref_html_back_color),
-            modifier = Modifier.padding(end = 16.dp)
-        )
+        Icon(imageVector = Icon_FormatColorFill, contentDescription = null, modifier = Modifier.padding(end = 16.dp))
 
         Column(modifier = Modifier.weight(1F)) {
             Text(
@@ -132,7 +139,7 @@ private fun HtmlBackColorUI(
                 .padding(horizontal = 8.dp)
                 .size(36.dp)
                 .clip(MaterialTheme.shapes.medium)
-                .background(Color(htmlBackColor.value))
+                .background(htmlBackColor)
                 .border(BorderStroke(1.dp, SolidColor(LocalContentColor.current)), MaterialTheme.shapes.medium),
         )
     }
@@ -141,17 +148,9 @@ private fun HtmlBackColorUI(
 @Composable
 private fun HtmlBackColorDetailUI(
     headerContent: @Composable (String) -> Unit,
-    scope: CoroutineScope = rememberCoroutineScope(),
-    mjpegSettings: MjpegSettings = koinInject()
+    htmlBackColor: Color,
+    onColorChange: (Color) -> Unit,
 ) {
-    val mjpegSettingsState = mjpegSettings.data.collectAsStateWithLifecycle()
-    val htmlBackColor = remember { derivedStateOf { Color(mjpegSettingsState.value.htmlBackColor) } }
-    val onColorChangeState = rememberUpdatedState { color: Color ->
-        if (htmlBackColor.value != color) {
-            scope.launch { mjpegSettings.updateData { copy(htmlBackColor = color.toArgb()) } }
-        }
-    }
-
     Column(modifier = Modifier.fillMaxWidth()) {
         headerContent.invoke(stringResource(id = R.string.mjpeg_pref_html_back_color))
 
@@ -161,21 +160,19 @@ private fun HtmlBackColorDetailUI(
                 .verticalScroll(rememberScrollState())
         ) {
             ColorEditorPanel(
-                htmlBackColor = htmlBackColor.value,
-                onColorChangeState = onColorChangeState,
-                modifier = Modifier
-                    .padding(start = 24.dp, top = 8.dp, end = 24.dp, bottom = 4.dp)
-                    .fillMaxWidth()
+                htmlBackColor = htmlBackColor,
+                onColorChange = onColorChange,
+                modifier = Modifier.padding(start = 24.dp, top = 8.dp, end = 24.dp, bottom = 4.dp).fillMaxWidth()
             )
 
             ColorSliderPanel(
-                htmlBackColor = htmlBackColor.value,
-                onColorChangeState = onColorChangeState,
+                htmlBackColor = htmlBackColor,
+                onColorChange = onColorChange,
                 modifier = Modifier.padding(top = 16.dp).fillMaxWidth()
             )
 
             ColorPalettePanel(
-                onColorChangeState = onColorChangeState,
+                onColorChange = onColorChange,
                 modifier = Modifier.padding(16.dp).fillMaxWidth()
             )
         }
@@ -185,7 +182,7 @@ private fun HtmlBackColorDetailUI(
 @Composable
 private fun ColorEditorPanel(
     htmlBackColor: Color,
-    onColorChangeState: State<(Color) -> Unit>,
+    onColorChange: (Color) -> Unit,
     modifier: Modifier = Modifier,
     borderColor: Color = LocalContentColor.current,
 ) {
@@ -197,9 +194,7 @@ private fun ColorEditorPanel(
     val width = remember { with(density) { textMeasurer.measure("000000").size.width.toDp() + 64.dp } }
 
     Surface(
-        modifier = modifier
-            .requiredWidthIn(max = 296.dp)
-            .padding(horizontal = 8.dp),
+        modifier = modifier.requiredWidthIn(max = 296.dp).padding(horizontal = 8.dp),
         shape = MaterialTheme.shapes.medium,
         color = htmlBackColor,
         border = BorderStroke(1.dp, SolidColor(borderColor))
@@ -208,12 +203,9 @@ private fun ColorEditorPanel(
             value = currentColorString.value,
             onValueChange = { newColorString ->
                 currentColorString.value = newColorString.replace(colorRegexp, "").take(6)
-                runCatching { "#${currentColorString.value}".toColorInt() }.getOrNull()
-                    ?.let { onColorChangeState.value.invoke(Color(it)) }
+                runCatching { "#${currentColorString.value}".toColorInt() }.getOrNull()?.let { onColorChange.invoke(Color(it)) }
             },
-            modifier = Modifier
-                .wrapContentWidth(align = Alignment.CenterHorizontally)
-                .width(width),
+            modifier = Modifier.wrapContentWidth(align = Alignment.CenterHorizontally).width(width),
             prefix = { Text(text = "#") },
             keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Ascii, imeAction = ImeAction.Done),
             singleLine = true,
@@ -236,7 +228,7 @@ private fun ColorEditorPanel(
 @Composable
 private fun ColorSliderPanel(
     htmlBackColor: Color,
-    onColorChangeState: State<(Color) -> Unit>,
+    onColorChange: (Color) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val sliderRed = remember(htmlBackColor) { mutableFloatStateOf(htmlBackColor.red) }
@@ -250,7 +242,7 @@ private fun ColorSliderPanel(
             value = sliderRed.floatValue,
             onValueChange = {
                 sliderRed.floatValue = it
-                onColorChangeState.value.invoke(Color(sliderRed.floatValue, sliderGreen.floatValue, sliderBlue.floatValue))
+                onColorChange.invoke(Color(sliderRed.floatValue, sliderGreen.floatValue, sliderBlue.floatValue))
             },
             modifier = Modifier.padding(vertical = 4.dp).fillMaxWidth()
         )
@@ -260,7 +252,7 @@ private fun ColorSliderPanel(
             value = sliderGreen.floatValue,
             onValueChange = {
                 sliderGreen.floatValue = it
-                onColorChangeState.value.invoke(Color(sliderRed.floatValue, sliderGreen.floatValue, sliderBlue.floatValue))
+                onColorChange.invoke(Color(sliderRed.floatValue, sliderGreen.floatValue, sliderBlue.floatValue))
             },
             modifier = Modifier.padding(vertical = 4.dp).fillMaxWidth()
         )
@@ -270,7 +262,7 @@ private fun ColorSliderPanel(
             value = sliderBlue.floatValue,
             onValueChange = {
                 sliderBlue.floatValue = it
-                onColorChangeState.value.invoke(Color(sliderRed.floatValue, sliderGreen.floatValue, sliderBlue.floatValue))
+                onColorChange.invoke(Color(sliderRed.floatValue, sliderGreen.floatValue, sliderBlue.floatValue))
             },
             modifier = Modifier.padding(vertical = 4.dp).fillMaxWidth()
         )
@@ -292,10 +284,7 @@ private fun ColorSlider(
 
     val max = 296.dp + textWidth + textWidth
     Row(
-        modifier = modifier
-            .requiredWidthIn(max = max)
-            .widthIn(max = max)
-            .padding(horizontal = 16.dp),
+        modifier = modifier.requiredWidthIn(max = max).widthIn(max = max).padding(horizontal = 16.dp),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -311,7 +300,7 @@ private fun ColorSlider(
                 modifier = Modifier.weight(1F).padding(horizontal = 8.dp),
                 valueRange = 0F..255F,
                 steps = 256,
-                onValueChangeFinished = { onValueChange(sliderValue.floatValue) },
+                onValueChangeFinished = { onValueChange.invoke(sliderValue.floatValue) },
             )
         }
         Text(
@@ -323,7 +312,7 @@ private fun ColorSlider(
 
 @Composable
 private fun ColorPalettePanel(
-    onColorChangeState: State<(Color) -> Unit>,
+    onColorChange: (Color) -> Unit,
     modifier: Modifier = Modifier,
     borderColor: Color = LocalContentColor.current,
 ) {
@@ -333,9 +322,7 @@ private fun ColorPalettePanel(
     ) {
         HtmlBackColor.colorPalette.chunked(4).forEach { colorsRow ->
             Row(
-                modifier = Modifier
-                    .requiredWidthIn(max = 296.dp)
-                    .widthIn(max = 296.dp),
+                modifier = Modifier.requiredWidthIn(max = 296.dp).widthIn(max = 296.dp),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 colorsRow.forEach { color ->
@@ -346,7 +333,7 @@ private fun ColorPalettePanel(
                             .clip(MaterialTheme.shapes.large)
                             .background(color)
                             .border(BorderStroke(1.dp, SolidColor(borderColor)), MaterialTheme.shapes.large)
-                            .clickable(role = Role.Button, onClick = { onColorChangeState.value.invoke(color) })
+                            .clickable(role = Role.Button, onClick = { onColorChange.invoke(color) })
                     )
                 }
             }

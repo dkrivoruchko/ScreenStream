@@ -41,33 +41,32 @@ internal object EnableIPv6 : ModuleSettings.Item {
     }
 
     @Composable
-    override fun ItemUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit) =
-        EnableIPv6UI(horizontalPadding, coroutineScope)
+    override fun ItemUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit) {
+        val mjpegSettings = koinInject<MjpegSettings>()
+        val mjpegSettingsState = mjpegSettings.data.collectAsStateWithLifecycle()
+        val enableIPv6 = remember { derivedStateOf { mjpegSettingsState.value.enableIPv6 } }
+
+        EnableIPv6UI(horizontalPadding, enableIPv6.value) {
+            if (enableIPv6.value != it) {
+                coroutineScope.launch { mjpegSettings.updateData { copy(enableIPv6 = it) } }
+            }
+        }
+    }
 }
 
 @Composable
 private fun EnableIPv6UI(
     horizontalPadding: Dp,
-    scope: CoroutineScope,
-    mjpegSettings: MjpegSettings = koinInject()
+    enableIPv6: Boolean,
+    onValueChange: (Boolean) -> Unit
 ) {
-    val mjpegSettingsState = mjpegSettings.data.collectAsStateWithLifecycle()
-    val enableIPv6 = remember { derivedStateOf { mjpegSettingsState.value.enableIPv6 } }
-
     Row(
         modifier = Modifier
-            .toggleable(
-                value = enableIPv6.value,
-                onValueChange = { scope.launch { mjpegSettings.updateData { copy(enableIPv6 = it) } } }
-            )
+            .toggleable(value = enableIPv6, onValueChange = onValueChange)
             .padding(start = horizontalPadding + 16.dp, end = horizontalPadding + 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(
-            imageVector = Icon_Ipv6,
-            contentDescription = stringResource(id = R.string.mjpeg_pref_enable_ipv6),
-            modifier = Modifier.padding(end = 16.dp)
-        )
+        Icon(imageVector = Icon_Ipv6, contentDescription = null, modifier = Modifier.padding(end = 16.dp))
 
         Column(modifier = Modifier.weight(1F)) {
             Text(
@@ -83,11 +82,7 @@ private fun EnableIPv6UI(
             )
         }
 
-        Switch(
-            checked = enableIPv6.value,
-            onCheckedChange = null,
-            modifier = Modifier.scale(0.7F),
-        )
+        Switch(checked = enableIPv6, onCheckedChange = null, modifier = Modifier.scale(0.7F))
     }
 }
 

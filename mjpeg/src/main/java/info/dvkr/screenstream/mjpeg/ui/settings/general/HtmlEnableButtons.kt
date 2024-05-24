@@ -43,36 +43,35 @@ internal object HtmlEnableButtons : ModuleSettings.Item {
     }
 
     @Composable
-    override fun ItemUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit) =
-        HtmlEnableButtonsUI(horizontalPadding, coroutineScope)
+    override fun ItemUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit) {
+        val mjpegSettings = koinInject<MjpegSettings>()
+        val mjpegSettingsState = mjpegSettings.data.collectAsStateWithLifecycle()
+        val htmlEnableButtons = remember { derivedStateOf { mjpegSettingsState.value.htmlEnableButtons } }
+        val enablePin = remember { derivedStateOf { mjpegSettingsState.value.enablePin } }
+
+        HtmlEnableButtonsUI(horizontalPadding, htmlEnableButtons.value, enablePin.value) {
+            if (htmlEnableButtons.value != it) {
+                coroutineScope.launch { mjpegSettings.updateData { copy(htmlEnableButtons = it) } }
+            }
+        }
+    }
 }
 
 @Composable
 private fun HtmlEnableButtonsUI(
     horizontalPadding: Dp,
-    scope: CoroutineScope,
-    mjpegSettings: MjpegSettings = koinInject()
+    htmlEnableButtons: Boolean,
+    enablePin: Boolean,
+    onValueChange: (Boolean) -> Unit
 ) {
-    val mjpegSettingsState = mjpegSettings.data.collectAsStateWithLifecycle()
-    val htmlEnableButtons = remember { derivedStateOf { mjpegSettingsState.value.htmlEnableButtons } }
-    val enablePin = remember { derivedStateOf { mjpegSettingsState.value.enablePin } }
-
     Row(
         modifier = Modifier
-            .toggleable(
-                value = htmlEnableButtons.value,
-                enabled = enablePin.value.not(),
-                onValueChange = { scope.launch { mjpegSettings.updateData { copy(htmlEnableButtons = it) } } }
-            )
+            .toggleable(value = htmlEnableButtons, enabled = enablePin.not(), onValueChange = onValueChange)
             .padding(start = horizontalPadding + 16.dp, end = horizontalPadding + 10.dp)
-            .conditional(enablePin.value) { alpha(0.5F) },
+            .conditional(enablePin) { alpha(0.5F) },
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(
-            imageVector = Icon_ControlCamera,
-            contentDescription = stringResource(id = R.string.mjpeg_pref_html_buttons),
-            modifier = Modifier.padding(end = 16.dp)
-        )
+        Icon(imageVector = Icon_ControlCamera, contentDescription = null, modifier = Modifier.padding(end = 16.dp))
 
         Column(modifier = Modifier.weight(1F)) {
             Text(
@@ -88,11 +87,7 @@ private fun HtmlEnableButtonsUI(
             )
         }
 
-        Switch(
-            checked = htmlEnableButtons.value,
-            onCheckedChange = null,
-            modifier = Modifier.scale(0.7F),
-        )
+        Switch(checked = htmlEnableButtons, onCheckedChange = null, modifier = Modifier.scale(0.7F))
     }
 }
 

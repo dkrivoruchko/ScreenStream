@@ -82,9 +82,7 @@ internal fun StreamCard(
         if (streamId.value.isBlank()) {
             Text(
                 text = stringResource(id = R.string.webrtc_stream_stream_id_getting),
-                modifier = Modifier
-                    .padding(12.dp)
-                    .fillMaxWidth(),
+                modifier = Modifier.padding(12.dp).fillMaxWidth(),
                 textAlign = TextAlign.Center,
                 fontSize = 18.sp,
                 style = MaterialTheme.typography.titleMedium
@@ -113,10 +111,7 @@ internal fun StreamCard(
             )
 
             Row(
-                modifier = Modifier
-                    .padding(start = 12.dp)
-                    .fillMaxWidth()
-                    .defaultMinSize(minHeight = 48.dp),
+                modifier = Modifier.padding(start = 12.dp).fillMaxWidth().defaultMinSize(minHeight = 48.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
@@ -140,9 +135,7 @@ internal fun StreamCard(
             }
 
             Row(
-                modifier = Modifier
-                    .padding(start = 12.dp)
-                    .fillMaxWidth(),
+                modifier = Modifier.padding(start = 12.dp).fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 val interactionSource = remember { MutableInteractionSource() }
@@ -208,10 +201,7 @@ private fun OpenInBrowserButton(
             }
         }
     ) {
-        Icon(
-            imageVector = Icon_OpenInNew,
-            contentDescription = stringResource(id = R.string.webrtc_stream_description_open_address)
-        )
+        Icon(imageVector = Icon_OpenInNew, contentDescription = stringResource(id = R.string.webrtc_stream_description_open_address))
     }
 }
 
@@ -228,10 +218,7 @@ private fun CopyAddressButton(
             Toast.makeText(context, R.string.webrtc_stream_copied, Toast.LENGTH_LONG).show()
         }
     }) {
-        Icon(
-            imageVector = Icon_ContentCopy,
-            contentDescription = stringResource(id = R.string.webrtc_stream_description_copy_address)
-        )
+        Icon(imageVector = Icon_ContentCopy, contentDescription = stringResource(id = R.string.webrtc_stream_description_copy_address))
     }
 }
 
@@ -248,10 +235,7 @@ private fun ShareAddressButton(
             context.startActivity(Intent.createChooser(sharingIntent, shareTitle))
         }
     ) {
-        Icon(
-            imageVector = Icon_Share,
-            contentDescription = stringResource(id = R.string.webrtc_stream_description_share_address)
-        )
+        Icon(imageVector = Icon_Share, contentDescription = stringResource(id = R.string.webrtc_stream_description_share_address))
     }
 }
 
@@ -263,10 +247,7 @@ private fun ShowQRCodeButton(
     val showQRDialog = remember { mutableStateOf(false) }
 
     IconButton(onClick = { showQRDialog.value = true }) {
-        Icon(
-            imageVector = Icon_QrCode,
-            contentDescription = stringResource(id = R.string.webrtc_stream_description_qr_address)
-        )
+        Icon(imageVector = Icon_QrCode, contentDescription = stringResource(id = R.string.webrtc_stream_description_qr_address))
     }
 
     if (showQRDialog.value) {

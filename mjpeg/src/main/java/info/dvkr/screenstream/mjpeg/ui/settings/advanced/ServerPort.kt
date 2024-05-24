@@ -58,34 +58,43 @@ internal object ServerPort : ModuleSettings.Item {
     }
 
     @Composable
-    override fun ItemUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit) =
-        ServerPortUI(horizontalPadding, onDetailShow)
+    override fun ItemUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit) {
+        val mjpegSettings = koinInject<MjpegSettings>()
+        val mjpegSettingsState = mjpegSettings.data.collectAsStateWithLifecycle()
+        val serverPort = remember { derivedStateOf { mjpegSettingsState.value.serverPort } }
+
+        ServerPortUI(horizontalPadding, serverPort.value, onDetailShow)
+    }
 
     @Composable
-    override fun DetailUI(headerContent: @Composable (String) -> Unit) =
-        ServerPortDetailUI(headerContent)
+    override fun DetailUI(headerContent: @Composable (String) -> Unit) {
+        val mjpegSettings = koinInject<MjpegSettings>()
+        val mjpegSettingsState = mjpegSettings.data.collectAsStateWithLifecycle()
+        val serverPort = remember { derivedStateOf { mjpegSettingsState.value.serverPort } }
+
+        val scope = rememberCoroutineScope()
+
+        ServerPortDetailUI(headerContent, serverPort.value.toString()) {
+            if (serverPort.value != it) {
+                scope.launch { mjpegSettings.updateData { copy(serverPort = it) } }
+            }
+        }
+    }
 }
 
 @Composable
 private fun ServerPortUI(
     horizontalPadding: Dp,
+    serverPort: Int,
     onDetailShow: () -> Unit,
-    mjpegSettings: MjpegSettings = koinInject()
 ) {
-    val mjpegSettingsState = mjpegSettings.data.collectAsStateWithLifecycle()
-    val serverPort = remember { derivedStateOf { mjpegSettingsState.value.serverPort } }
-
     Row(
         modifier = Modifier
-            .clickable(role = Role.Button) { onDetailShow.invoke() }
+            .clickable(role = Role.Button, onClick = onDetailShow)
             .padding(start = horizontalPadding + 16.dp, end = horizontalPadding + 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(
-            imageVector = Icon_Http,
-            contentDescription = stringResource(id = R.string.mjpeg_pref_server_port),
-            modifier = Modifier.padding(end = 16.dp)
-        )
+        Icon(imageVector = Icon_Http, contentDescription = null, modifier = Modifier.padding(end = 16.dp))
 
         Column(modifier = Modifier.weight(1F)) {
             Text(
@@ -102,7 +111,7 @@ private fun ServerPortUI(
         }
 
         Text(
-            text = serverPort.value.toString(),
+            text = serverPort.toString(),
             modifier = Modifier.defaultMinSize(minWidth = 52.dp),
             color = MaterialTheme.colorScheme.primary,
             textAlign = TextAlign.Center,
@@ -114,17 +123,14 @@ private fun ServerPortUI(
 @Composable
 private fun ServerPortDetailUI(
     headerContent: @Composable (String) -> Unit,
-    scope: CoroutineScope = rememberCoroutineScope(),
-    mjpegSettings: MjpegSettings = koinInject()
+    serverPort: String,
+    onValueChange: (Int) -> Unit
 ) {
-
-    val mjpegSettingsState = mjpegSettings.data.collectAsStateWithLifecycle()
-    val serverPort = remember { derivedStateOf { mjpegSettingsState.value.serverPort } }
-    val currentServerPort = remember {
-        val text = serverPort.value.toString()
-        mutableStateOf(TextFieldValue(text = text, selection = TextRange(text.length)))
+    val currentServerPort = remember(serverPort) {
+        mutableStateOf(TextFieldValue(text = serverPort, selection = TextRange(serverPort.length)))
     }
     val isError = remember { mutableStateOf(false) }
+    val focusRequester = remember { FocusRequester() }
 
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -143,8 +149,6 @@ private fun ServerPortDetailUI(
                 modifier = Modifier.fillMaxWidth()
             )
 
-            val focusRequester = remember { FocusRequester() }
-
             OutlinedTextField(
                 value = currentServerPort.value,
                 onValueChange = { textField ->
@@ -155,23 +159,18 @@ private fun ServerPortDetailUI(
                     } else {
                         currentServerPort.value = textField.copy(text = newServerPort.toString())
                         isError.value = false
-                        if (serverPort.value != newServerPort) {
-                            scope.launch { mjpegSettings.updateData { copy(serverPort = newServerPort) } }
-                        }
+                        onValueChange.invoke(newServerPort)
                     }
                 },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp)
-                    .focusRequester(focusRequester),
+                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp).focusRequester(focusRequester),
                 isError = isError.value,
                 keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
                 singleLine = true,
             )
-
-            LaunchedEffect(Unit) { focusRequester.requestFocus() }
         }
     }
+
+    LaunchedEffect(Unit) { focusRequester.requestFocus() }
 }
 
 private val Icon_Http: ImageVector = materialIcon(name = "Http") {

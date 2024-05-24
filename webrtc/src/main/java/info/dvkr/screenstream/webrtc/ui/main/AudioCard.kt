@@ -72,15 +72,8 @@ internal fun AudioCard(
 
     ExpandableCard(
         headerContent = {
-            Column(
-                modifier = Modifier
-                    .align(Alignment.CenterStart)
-                    .padding(start = 48.dp),
-            ) {
-                Text(
-                    text = stringResource(id = R.string.webrtc_stream_audio_select),
-                    style = MaterialTheme.typography.titleMedium
-                )
+            Column(modifier = Modifier.align(Alignment.CenterStart).padding(start = 48.dp)) {
+                Text(text = stringResource(id = R.string.webrtc_stream_audio_select), style = MaterialTheme.typography.titleMedium)
             }
         },
         modifier = modifier,

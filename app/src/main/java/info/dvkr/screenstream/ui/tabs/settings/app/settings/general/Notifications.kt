@@ -38,28 +38,26 @@ internal object Notifications : ModuleSettings.Item {
     }
 
     @Composable
-    override fun ItemUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit) =
-        NotificationsUI(horizontalPadding)
+    override fun ItemUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit) {
+        val notificationHelper = koinInject<NotificationHelper>()
+        val context = LocalContext.current
+
+        NotificationsUI(horizontalPadding) { context.startActivity(notificationHelper.getNotificationSettingsIntent()) }
+    }
 }
 
 @Composable
 private fun NotificationsUI(
     horizontalPadding: Dp,
-    notificationHelper: NotificationHelper = koinInject()
+    onDetailShow: () -> Unit
 ) {
-    val context = LocalContext.current
-
     Row(
         modifier = Modifier
-            .clickable(role = Role.Button) { context.startActivity(notificationHelper.getNotificationSettingsIntent()) }
+            .clickable(role = Role.Button, onClick = onDetailShow)
             .padding(horizontal = horizontalPadding + 16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(
-            imageVector = Icon_Notifications,
-            contentDescription = stringResource(id = R.string.app_pref_notification),
-            modifier = Modifier.padding(end = 16.dp)
-        )
+        Icon(imageVector = Icon_Notifications, contentDescription = null, modifier = Modifier.padding(end = 16.dp))
 
         Column(modifier = Modifier.weight(1.0F)) {
             Text(

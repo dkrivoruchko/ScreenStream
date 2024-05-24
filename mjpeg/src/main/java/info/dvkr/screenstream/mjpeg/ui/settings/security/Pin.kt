@@ -63,42 +63,55 @@ internal object Pin : ModuleSettings.Item {
     }
 
     @Composable
-    override fun ItemUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit) =
-        PinUI(horizontalPadding, onDetailShow)
+    override fun ItemUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit) {
+        val mjpegSettings = koinInject<MjpegSettings>()
+        val mjpegSettingsState = mjpegSettings.data.collectAsStateWithLifecycle()
+        val pin = remember { derivedStateOf { mjpegSettingsState.value.pin } }
+        val enabled = remember {
+            derivedStateOf {
+                mjpegSettingsState.value.enablePin && mjpegSettingsState.value.newPinOnAppStart.not() && mjpegSettingsState.value.autoChangePin.not()
+            }
+        }
+
+        val streamingModulesManager = koinInject<StreamingModuleManager>()
+        val activeModule = streamingModulesManager.activeModuleStateFlow.collectAsStateWithLifecycle()
+        val isStreaming = activeModule.value?.isStreaming?.collectAsStateWithLifecycle(false)
+
+        PinUI(horizontalPadding, pin.value, enabled.value, isStreaming?.value?.not() ?: true, onDetailShow)
+    }
 
     @Composable
-    override fun DetailUI(headerContent: @Composable (String) -> Unit) =
-        PinDetailUI(headerContent)
+    override fun DetailUI(headerContent: @Composable (String) -> Unit) {
+        val mjpegSettings = koinInject<MjpegSettings>()
+        val mjpegSettingsState = mjpegSettings.data.collectAsStateWithLifecycle()
+        val pin = remember { derivedStateOf { mjpegSettingsState.value.pin } }
+
+        val scope = rememberCoroutineScope()
+
+        PinDetailUI(headerContent, pin.value) {
+            if (pin.value != it) {
+                scope.launch { mjpegSettings.updateData { copy(pin = it) } }
+            }
+        }
+    }
 }
 
 @Composable
 private fun PinUI(
     horizontalPadding: Dp,
+    pin: String,
+    enabled: Boolean,
+    isPinVisible: Boolean,
     onDetailShow: () -> Unit,
-    mjpegSettings: MjpegSettings = koinInject(),
-    streamingModulesManager: StreamingModuleManager = koinInject()
 ) {
-    val mjpegSettingsState = mjpegSettings.data.collectAsStateWithLifecycle()
-    val pin = remember { derivedStateOf { mjpegSettingsState.value.pin } }
-    val enabled = remember {
-        derivedStateOf {
-            val value = mjpegSettingsState.value
-            value.enablePin && value.newPinOnAppStart.not() && value.autoChangePin.not()
-        }
-    }
-
     Row(
         modifier = Modifier
-            .clickable(enabled = enabled.value, role = Role.Button) { onDetailShow.invoke() }
+            .clickable(enabled = enabled, role = Role.Button, onClick = onDetailShow)
             .padding(start = horizontalPadding + 16.dp, end = horizontalPadding + 10.dp)
-            .conditional(enabled.value.not()) { alpha(0.5F) },
+            .conditional(enabled.not()) { alpha(0.5F) },
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(
-            imageVector = Icon_Dialpad,
-            contentDescription = stringResource(id = R.string.mjpeg_pref_set_pin),
-            modifier = Modifier.padding(end = 16.dp)
-        )
+        Icon(imageVector = Icon_Dialpad, contentDescription = null, modifier = Modifier.padding(end = 16.dp))
 
         Column(modifier = Modifier.weight(1F)) {
             Text(
@@ -114,14 +127,9 @@ private fun PinUI(
             )
         }
 
-        val activeModule = streamingModulesManager.activeModuleStateFlow.collectAsStateWithLifecycle()
-        val isStreaming = activeModule.value?.isStreaming?.collectAsStateWithLifecycle(false)
-
         Text(
-            text = if (isStreaming?.value == true) "*" else pin.value,
-            modifier = Modifier
-                .defaultMinSize(minWidth = 52.dp)
-                .padding(end = 6.dp),
+            text = if (isPinVisible) pin else "*",
+            modifier = Modifier.defaultMinSize(minWidth = 52.dp).padding(end = 6.dp),
             color = MaterialTheme.colorScheme.primary,
             fontWeight = FontWeight.Bold,
             fontFamily = RobotoMonoBold,
@@ -134,18 +142,12 @@ private fun PinUI(
 @Composable
 private fun PinDetailUI(
     headerContent: @Composable (String) -> Unit,
-    scope: CoroutineScope = rememberCoroutineScope(),
-    mjpegSettings: MjpegSettings = koinInject()
+    pin: String,
+    onValueChange: (String) -> Unit
 ) {
-
-    val mjpegSettingsState = mjpegSettings.data.collectAsStateWithLifecycle()
-    val pin = remember { derivedStateOf { mjpegSettingsState.value.pin } }
-    val currentPin = remember { mutableStateOf(TextFieldValue(text = pin.value, selection = TextRange(pin.value.length))) }
-
-    val focusRequester = remember { FocusRequester() }
-    LaunchedEffect(Unit) { focusRequester.requestFocus() }
-
+    val currentPin = remember(pin) { mutableStateOf(TextFieldValue(text = pin, selection = TextRange(pin.length))) }
     val isError = remember { mutableStateOf(false) }
+    val focusRequester = remember { FocusRequester() }
 
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -161,9 +163,7 @@ private fun PinDetailUI(
         ) {
             Text(
                 text = stringResource(id = R.string.mjpeg_pref_set_pin_text),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp),
+                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
             )
 
             OutlinedTextField(
@@ -176,21 +176,18 @@ private fun PinDetailUI(
                         isError.value = true
                     } else {
                         isError.value = false
-                        if (pin.value != newPinText) {
-                            scope.launch { mjpegSettings.updateData { copy(pin = newPinText) } }
-                        }
+                        onValueChange.invoke(newPinText)
                     }
                 },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp)
-                    .focusRequester(focusRequester),
+                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp).focusRequester(focusRequester),
                 isError = isError.value,
                 keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
                 singleLine = true,
             )
         }
     }
+
+    LaunchedEffect(Unit) { focusRequester.requestFocus() }
 }
 
 private val Icon_Dialpad: ImageVector = materialIcon(name = "Filled.Dialpad") {

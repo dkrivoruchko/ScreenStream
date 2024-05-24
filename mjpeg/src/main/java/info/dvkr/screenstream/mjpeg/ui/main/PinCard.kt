@@ -36,10 +36,7 @@ internal fun PinCard(
 ) {
     ElevatedCard(modifier = modifier) {
         Box(
-            modifier = Modifier
-                .padding(8.dp)
-                .fillMaxWidth()
-                .minimumInteractiveComponentSize()
+            modifier = Modifier.padding(8.dp).fillMaxWidth().minimumInteractiveComponentSize()
         ) {
             val isStreaming = remember { derivedStateOf { mjpegState.value.isStreaming } }
             val pinState = remember { derivedStateOf { mjpegState.value.pin } }
@@ -88,10 +85,7 @@ internal fun PinCard(
                     }
                 }
             } else {
-                Text(
-                    text = stringResource(id = R.string.mjpeg_stream_pin_disabled),
-                    modifier = Modifier.align(Alignment.Center)
-                )
+                Text(text = stringResource(id = R.string.mjpeg_stream_pin_disabled), modifier = Modifier.align(Alignment.Center))
             }
         }
     }

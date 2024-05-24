@@ -56,12 +56,33 @@ internal object AppLocale : ModuleSettings.Item {
     }
 
     @Composable
-    override fun ItemUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit) =
-        AppLocaleUI(horizontalPadding, onDetailShow)
+    override fun ItemUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit) {
+        val context = LocalContext.current
+
+        AppLocaleUI(horizontalPadding) {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+                onDetailShow.invoke()
+            } else {
+                context.startActivity(
+                    Intent(Settings.ACTION_APP_LOCALE_SETTINGS).setData(Uri.fromParts("package", context.packageName, null))
+                )
+            }
+        }
+    }
 
     @Composable
-    override fun DetailUI(headerContent: @Composable (String) -> Unit) =
-        AppLocaleDetailsUI(headerContent)
+    override fun DetailUI(headerContent: @Composable (String) -> Unit) {
+        val scope = rememberCoroutineScope()
+
+        AppLocaleDetailsUI(headerContent) {
+            scope.launch {
+                withContext(NonCancellable) {
+                    if (it != null) AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(it))
+                    else AppCompatDelegate.setApplicationLocales(LocaleListCompat.getEmptyLocaleList())
+                }
+            }
+        }
+    }
 }
 
 @Composable
@@ -69,27 +90,13 @@ private fun AppLocaleUI(
     horizontalPadding: Dp,
     onDetailShow: () -> Unit
 ) {
-    val context = LocalContext.current
-
     Row(
         modifier = Modifier
-            .clickable(role = Role.Button) {
-                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
-                    onDetailShow.invoke()
-                } else {
-                    context.startActivity(
-                        Intent(Settings.ACTION_APP_LOCALE_SETTINGS).setData(Uri.fromParts("package", context.packageName, null))
-                    )
-                }
-            }
+            .clickable(role = Role.Button, onClick = onDetailShow)
             .padding(horizontal = horizontalPadding + 16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(
-            imageVector = Icon_Translate,
-            contentDescription = stringResource(id = R.string.app_pref_locale),
-            modifier = Modifier.padding(end = 16.dp)
-        )
+        Icon(imageVector = Icon_Translate, contentDescription = null, modifier = Modifier.padding(end = 16.dp))
 
         Column(modifier = Modifier.weight(1.0F)) {
             Text(
@@ -111,7 +118,7 @@ private fun AppLocaleUI(
 @Composable
 private fun AppLocaleDetailsUI(
     headerContent: @Composable (String) -> Unit,
-    scope: CoroutineScope = rememberCoroutineScope(),
+    onLanguageSelected: (String?) -> Unit
 ) {
     val context = LocalContext.current
     val appLanguageTag = remember { AppCompatDelegate.getApplicationLocales().get(0)?.toLanguageTag() }
@@ -147,22 +154,16 @@ private fun AppLocaleDetailsUI(
         ) {
             LanguageRow(
                 displayLanguage = stringResource(id = R.string.app_pref_locale_default),
-                selected = appLanguageTag == null
-            ) {
-                scope.launch {
-                    withContext(NonCancellable) { AppCompatDelegate.setApplicationLocales(LocaleListCompat.getEmptyLocaleList()) }
-                }
-            }
+                selected = appLanguageTag == null,
+                onClick = { onLanguageSelected.invoke(null) }
+            )
 
             languageTags.forEach { (tag, displayLanguage) ->
                 LanguageRow(
                     displayLanguage = displayLanguage,
-                    selected = appLanguageTag == tag
-                ) {
-                    scope.launch {
-                        withContext(NonCancellable) { AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(tag)) }
-                    }
-                }
+                    selected = appLanguageTag == tag,
+                    onClick = { onLanguageSelected.invoke(tag) }
+                )
             }
         }
     }
@@ -177,23 +178,14 @@ private fun LanguageRow(
     Row(
         modifier = Modifier
             .padding(vertical = 4.dp)
-            .selectable(
-                selected = selected,
-                onClick = { onClick.invoke() },
-                role = Role.RadioButton
-            )
+            .selectable(selected = selected, onClick = onClick, role = Role.RadioButton)
             .fillMaxWidth()
             .defaultMinSize(minHeight = 48.dp)
             .minimumInteractiveComponentSize(),
         verticalAlignment = Alignment.CenterVertically
     ) {
         if (selected) {
-            Text(
-                text = displayLanguage,
-                modifier = Modifier
-                    .padding(start = 24.dp)
-                    .weight(1F)
-            )
+            Text(text = displayLanguage, modifier = Modifier.padding(start = 24.dp).weight(1F))
             Icon(
                 imageVector = Icon_Check,
                 contentDescription = null,

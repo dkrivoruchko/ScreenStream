@@ -41,33 +41,32 @@ internal object StopOnSleep : ModuleSettings.Item {
     }
 
     @Composable
-    override fun ItemUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit) =
-        StopOnSleepUI(horizontalPadding, coroutineScope)
+    override fun ItemUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit) {
+        val webRtcSettings = koinInject<WebRtcSettings>()
+        val webRtcSettingsState = webRtcSettings.data.collectAsStateWithLifecycle()
+        val stopOnSleep = remember { derivedStateOf { webRtcSettingsState.value.stopOnSleep } }
+
+        StopOnSleepUI(horizontalPadding, stopOnSleep.value) {
+            if (stopOnSleep.value != it) {
+                coroutineScope.launch { webRtcSettings.updateData { copy(stopOnSleep = it) } }
+            }
+        }
+    }
 }
 
 @Composable
 private fun StopOnSleepUI(
     horizontalPadding: Dp,
-    scope: CoroutineScope,
-    webRtcSettings: WebRtcSettings = koinInject()
+    stopOnSleep: Boolean,
+    onValueChange: (Boolean) -> Unit
 ) {
-    val webRtcSettingsState = webRtcSettings.data.collectAsStateWithLifecycle()
-    val stopOnSleep = remember { derivedStateOf { webRtcSettingsState.value.stopOnSleep } }
-
     Row(
         modifier = Modifier
-            .toggleable(
-                value = stopOnSleep.value,
-                onValueChange = { scope.launch { webRtcSettings.updateData { copy(stopOnSleep = it) } } }
-            )
+            .toggleable(value = stopOnSleep, onValueChange = onValueChange)
             .padding(start = horizontalPadding + 16.dp, end = horizontalPadding + 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(
-            imageVector = Icon_Stop,
-            contentDescription = stringResource(id = R.string.webrtc_pref_stop_on_sleep),
-            modifier = Modifier.padding(end = 16.dp)
-        )
+        Icon(imageVector = Icon_Stop, contentDescription = null, modifier = Modifier.padding(end = 16.dp))
 
         Column(modifier = Modifier.weight(1F)) {
             Text(
@@ -83,11 +82,7 @@ private fun StopOnSleepUI(
             )
         }
 
-        Switch(
-            checked = stopOnSleep.value,
-            onCheckedChange = null,
-            modifier = Modifier.scale(0.7F),
-        )
+        Switch(checked = stopOnSleep, onCheckedChange = null, modifier = Modifier.scale(0.7F))
     }
 }
 

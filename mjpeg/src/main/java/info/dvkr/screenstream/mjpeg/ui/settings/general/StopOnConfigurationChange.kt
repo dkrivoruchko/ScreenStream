@@ -41,34 +41,34 @@ internal object StopOnConfigurationChange : ModuleSettings.Item {
     }
 
     @Composable
-    override fun ItemUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit) =
-        StopOnConfigurationChangeUI(horizontalPadding, coroutineScope)
-}
+    override fun ItemUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit) {
+        val mjpegSettings = koinInject<MjpegSettings>()
+        val mjpegSettingsState = mjpegSettings.data.collectAsStateWithLifecycle()
+        val stopOnConfigurationChange = remember { derivedStateOf { mjpegSettingsState.value.stopOnConfigurationChange } }
 
+        StopOnConfigurationChangeUI(horizontalPadding, stopOnConfigurationChange.value) {
+            if (stopOnConfigurationChange.value != it) {
+                coroutineScope.launch {
+                    mjpegSettings.updateData { copy(stopOnConfigurationChange = it) }
+                }
+            }
+        }
+    }
+}
 
 @Composable
 private fun StopOnConfigurationChangeUI(
     horizontalPadding: Dp,
-    scope: CoroutineScope,
-    mjpegSettings: MjpegSettings = koinInject()
+    stopOnConfigurationChange: Boolean,
+    onValueChange: (Boolean) -> Unit
 ) {
-    val mjpegSettingsState = mjpegSettings.data.collectAsStateWithLifecycle()
-    val stopOnConfigurationChange = remember { derivedStateOf { mjpegSettingsState.value.stopOnConfigurationChange } }
-
     Row(
         modifier = Modifier
-            .toggleable(
-                value = stopOnConfigurationChange.value,
-                onValueChange = { scope.launch { mjpegSettings.updateData { copy(stopOnConfigurationChange = it) } } }
-            )
+            .toggleable(value = stopOnConfigurationChange, onValueChange = onValueChange)
             .padding(start = horizontalPadding + 16.dp, end = horizontalPadding + 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(
-            imageVector = Icon_VideoSettings,
-            contentDescription = stringResource(id = R.string.mjpeg_pref_stop_on_configuration),
-            modifier = Modifier.padding(end = 16.dp)
-        )
+        Icon(imageVector = Icon_VideoSettings, contentDescription = null, modifier = Modifier.padding(end = 16.dp))
 
         Column(modifier = Modifier.weight(1F)) {
             Text(
@@ -84,11 +84,7 @@ private fun StopOnConfigurationChangeUI(
             )
         }
 
-        Switch(
-            checked = stopOnConfigurationChange.value,
-            onCheckedChange = null,
-            modifier = Modifier.scale(0.7F),
-        )
+        Switch(checked = stopOnConfigurationChange, onCheckedChange = null, modifier = Modifier.scale(0.7F))
     }
 }
 
