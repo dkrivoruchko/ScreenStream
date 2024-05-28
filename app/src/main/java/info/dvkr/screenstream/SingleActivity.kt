@@ -58,16 +58,16 @@ public class SingleActivity : AppUpdateActivity() {
 
         streamingModulesManager.selectedModuleIdFlow
             .onEach { moduleId ->
-                XLog.i(this@SingleActivity.getLog("streamingModuleFlow.onEach:", "$moduleId"))
+                XLog.i(this@SingleActivity.getLog("selectedModuleIdFlow.onEach:", "$moduleId"))
                 streamingModulesManager.startModule(moduleId, this)
             }
             .catch {
-                if (it is IllegalStateException) XLog.i(this@SingleActivity.getLog("streamingModuleFlow.catch: ${it.message}"), it)
+                if (it is IllegalStateException) XLog.i(this@SingleActivity.getLog("selectedModuleIdFlow.catch: ${it.message}"), it)
                 else throw it
             }
             .onCompletion { cause ->
-                if (cause == null || cause is CancellationException) XLog.i(this@SingleActivity.getLog("streamingModuleFlow.onCompletion"))
-                else XLog.e(this@SingleActivity.getLog("streamingModuleFlow.onCompletion: ${cause.message}"), cause)
+                if (cause == null || cause is CancellationException) XLog.i(this@SingleActivity.getLog("selectedModuleIdFlow.onCompletion"))
+                else XLog.e(this@SingleActivity.getLog("selectedModuleIdFlow.onCompletion: ${cause.message}"), cause)
             }
             .flowWithLifecycle(lifecycle)
             .launchIn(lifecycleScope)

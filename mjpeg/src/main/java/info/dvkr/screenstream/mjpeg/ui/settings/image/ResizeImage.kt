@@ -183,10 +183,10 @@ private fun ResizeImageDetailUI(
                 text = stringResource(id = R.string.mjpeg_pref_resize_result, resizedWidth.value, resizedHeight.value),
                 modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
             )
-
-            LaunchedEffect(Unit) { focusRequester.requestFocus() }
         }
     }
+
+    LaunchedEffect(Unit) { focusRequester.requestFocus() }
 }
 
 private val Icon_Resize: ImageVector = materialIcon(name = "Resize") {

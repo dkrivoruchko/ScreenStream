@@ -3,8 +3,10 @@ package info.dvkr.screenstream.mjpeg.ui
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
@@ -119,9 +121,9 @@ internal fun MjpegMainScreenUI(
             Crossfade(targetState = isStreaming.value, label = "StreamingButtonCrossfade") { isStreaming ->
                 Icon(imageVector = if (isStreaming) Icon_Stop else Icon_PlayArrow, contentDescription = null)
             }
+            Spacer(modifier = Modifier.size(ButtonDefaults.IconSpacing))
             Text(
                 text = stringResource(id = if (isStreaming.value) R.string.mjpeg_stream_stop else R.string.mjpeg_stream_start),
-                modifier = Modifier.padding(start = 8.dp),
                 style = MaterialTheme.typography.titleMedium
             )
         }

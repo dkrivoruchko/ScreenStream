@@ -168,10 +168,10 @@ private fun MaxFpsDetailUI(
                 keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
                 singleLine = true,
             )
-
-            LaunchedEffect(Unit) { focusRequester.requestFocus() }
         }
     }
+
+    LaunchedEffect(Unit) { focusRequester.requestFocus() }
 }
 
 private val Icon_Speed: ImageVector = materialIcon(name = "Filled.Speed") {

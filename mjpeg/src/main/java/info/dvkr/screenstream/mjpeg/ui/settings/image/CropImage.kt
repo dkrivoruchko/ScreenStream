@@ -191,9 +191,9 @@ private fun CropImageDetailUI(
             CropRow(imageCropLeft, R.string.mjpeg_pref_crop_left, leftError, focusRequester, focusManager, onNewValueLeft)
             CropRow(imageCropRight, R.string.mjpeg_pref_crop_right, rightError, focusRequester, focusManager, onNewValueRight)
         }
-
-        LaunchedEffect(Unit) { focusRequester.requestFocus() }
     }
+
+    LaunchedEffect(Unit) { focusRequester.requestFocus() }
 }
 
 @Composable
