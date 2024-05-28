@@ -3,7 +3,6 @@ package info.dvkr.screenstream.mjpeg.internal
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.ComponentCallbacks
-import android.content.Context
 import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.content.res.Configuration
@@ -61,25 +60,22 @@ internal class MjpegStreamingService(
     private val mjpegSettings: MjpegSettings
 ) : HandlerThread("MJPEG-HT", android.os.Process.THREAD_PRIORITY_DISPLAY), Handler.Callback {
 
-    private val powerManager: PowerManager = service.getSystemService(PowerManager::class.java)
-    private val projectionManager = service.getSystemService(MediaProjectionManager::class.java)
+    private val powerManager: PowerManager = service.application.getSystemService(PowerManager::class.java)
+    private val projectionManager = service.application.getSystemService(MediaProjectionManager::class.java)
     private val mainHandler: Handler by lazy(LazyThreadSafetyMode.NONE) { Handler(Looper.getMainLooper()) }
     private val handler: Handler by lazy(LazyThreadSafetyMode.NONE) { Handler(looper, this) }
     private val coroutineDispatcher: CoroutineDispatcher by lazy(LazyThreadSafetyMode.NONE) { handler.asCoroutineDispatcher("MJPEG-HT_Dispatcher") }
     private val supervisorJob = SupervisorJob()
     private val coroutineScope by lazy(LazyThreadSafetyMode.NONE) { CoroutineScope(supervisorJob + coroutineDispatcher) }
     private val bitmapStateFlow = MutableStateFlow(Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888))
-    private val httpServer by lazy(mode = LazyThreadSafetyMode.NONE) {
-        HttpServer(service, mjpegSettings, bitmapStateFlow.asStateFlow(), ::sendEvent)
-    }
 
     // All Volatiles vars must be write on this (WebRTC-HT) thread
     @Volatile private var wakeLock: PowerManager.WakeLock? = null
     // All Volatiles vars must be write on this (WebRTC-HT) thread
 
     // All vars must be read/write on this (WebRTC-HT) thread
+    private var httpServer: HttpServer? = null
     private var startBitmap: Bitmap? = null
-    private var pendingServer: Boolean = true
     private var deviceConfiguration: Configuration = Configuration(service.resources.configuration)
     private var netInterfaces: List<MjpegNetInterface> = emptyList()
     private var clients: List<MjpegState.Client> = emptyList()
@@ -276,7 +272,6 @@ internal class MjpegStreamingService(
     private suspend fun processEvent(event: MjpegEvent) {
         when (event) {
             is InternalEvent.InitState -> {
-                pendingServer = true
                 deviceConfiguration = Configuration(service.resources.configuration)
                 netInterfaces = emptyList()
                 clients = emptyList()
@@ -291,7 +286,8 @@ internal class MjpegStreamingService(
             }
 
             is InternalEvent.DiscoverAddress -> {
-                if (pendingServer.not()) httpServer.stop(false)
+                httpServer?.stop(false)
+                httpServer = null
 
                 val newInterfaces = networkHelper.getNetInterfaces(
                     mjpegSettings.data.value.useWiFiOnly,
@@ -315,18 +311,19 @@ internal class MjpegStreamingService(
             }
 
             is InternalEvent.StartServer -> {
-                if (pendingServer.not()) httpServer.stop(false)
-                httpServer.start(event.interfaces.toList())
+                httpServer?.stop(false)
+
+                httpServer = HttpServer(service, mjpegSettings, bitmapStateFlow.asStateFlow(), ::sendEvent)
+                    .apply { start(event.interfaces.toList()) }
 
                 if (isStreaming.not() && mjpegSettings.data.value.htmlShowPressStart) bitmapStateFlow.value = getStartBitmap()
 
                 netInterfaces = event.interfaces
-                pendingServer = false
             }
 
             is InternalEvent.StartStopFromWebPage -> when {
                 isStreaming -> sendEvent(MjpegEvent.Intentable.StopStream("StartStopFromWebPage"))
-                pendingServer.not() && currentError == null -> waitingForPermission = true
+                httpServer != null && currentError == null -> waitingForPermission = true
             }
 
             is InternalEvent.StartStream -> {
@@ -341,7 +338,7 @@ internal class MjpegStreamingService(
             is MjpegEvent.CastPermissionsDenied -> waitingForPermission = false
 
             is MjpegEvent.StartProjection ->
-                if (pendingServer) {
+                if (httpServer == null) {
                     waitingForPermission = false
                     XLog.w(getLog("MjpegEvent.StartProjection", "Server is not ready. Ignoring"))
                 } else {
@@ -419,15 +416,15 @@ internal class MjpegStreamingService(
                 if (mjpegSettings.data.value.stopOnConfigurationChange) stopStream()
 
                 waitingForPermission = false
-                if (pendingServer) {
+                if (httpServer == null) {
                     XLog.d(getLog("processEvent", "RestartServer: No running server."))
                     if (currentError == MjpegError.AddressNotFoundException) currentError = null
                 } else {
-                    httpServer.stop(event.reason is RestartReason.SettingsChanged)
+                    httpServer?.stop(event.reason is RestartReason.SettingsChanged)
+                    httpServer = null
                     if (mjpegSettings.data.value.stopOnConfigurationChange) {
                         sendEvent(InternalEvent.InitState(false))
                     } else {
-                        pendingServer = true
                         netInterfaces = emptyList()
                         clients = emptyList()
                         slowClients = emptyList()
@@ -444,7 +441,8 @@ internal class MjpegStreamingService(
 
             is MjpegEvent.Intentable.RecoverError -> {
                 stopStream()
-                httpServer.stop(true)
+                httpServer?.stop(true)
+                httpServer = null
 
                 handler.removeMessages(MjpegEvent.Priority.RESTART_IGNORE)
                 handler.removeMessages(MjpegEvent.Priority.RECOVER_IGNORE)
@@ -455,7 +453,8 @@ internal class MjpegStreamingService(
 
             is InternalEvent.Destroy -> {
                 stopStream()
-                httpServer.destroy()
+                httpServer?.destroy()
+                httpServer = null
                 currentError = null
             }
 
@@ -515,13 +514,13 @@ internal class MjpegStreamingService(
     // Inline Only
     @Suppress("NOTHING_TO_INLINE")
     private inline fun getStateString() =
-        "Pending Dest/Server: $destroyPending/$pendingServer, Streaming:$isStreaming, WFP:$waitingForPermission, Clients:${clients.size}, Error:${currentError}"
+        "Pending Dest: $destroyPending, Server: ${httpServer?.hashCode()}, Streaming:$isStreaming, WFP:$waitingForPermission, Clients:${clients.size}, Error:${currentError}"
 
     // Inline Only
     @Suppress("NOTHING_TO_INLINE")
     private inline fun publishState() {
         val state = MjpegState(
-            isBusy = pendingServer || destroyPending || waitingForPermission || currentError != null,
+            isBusy = httpServer == null || destroyPending || waitingForPermission || currentError != null,
             serverNetInterfaces = netInterfaces.map {
                 MjpegState.ServerNetInterface(it.name, "http://${it.address.asString()}:${mjpegSettings.data.value.serverPort}")
             }.sortedBy { it.fullAddress },

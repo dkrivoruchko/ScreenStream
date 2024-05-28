@@ -24,6 +24,7 @@ material3-adaptive = "1.0.0-beta01"
 
 process-phoenix = "3.0.0"
 xlog = "1.11.0"
+leakcanary = "2.14"
 
 #MJPEG
 ktor = "2.3.11"
@@ -77,6 +78,7 @@ androidx-compose-ui-tooling = { module = "androidx.compose.ui:ui-tooling" }
 
 processPhoenix = { module = "com.jakewharton:process-phoenix", version.ref = "process-phoenix" }
 xlog = { module = "com.elvishew:xlog", version.ref = "xlog" }
+leakcanary-android = { module = "com.squareup.leakcanary:leakcanary-android", version.ref = "leakcanary" }
 
 #MJPEG
 ktor-server-cio = { module = "io.ktor:ktor-server-cio", version.ref = "ktor" }

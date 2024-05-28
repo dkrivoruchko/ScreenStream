@@ -185,9 +185,9 @@ internal class HttpServer(
 
         server.environment.monitor.subscribe(ApplicationStopped) {
             XLog.i(getLog("monitor", "KtorStopped: ${it.hashCode()}"))
-            ktorServer.get().second.complete(Unit)
             coroutineScope.cancel()
             serverData.clear()
+            ktorServer.get()?.second?.complete(Unit)
         }
 
         try {

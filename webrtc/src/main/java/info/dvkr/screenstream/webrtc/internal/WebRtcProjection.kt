@@ -19,7 +19,6 @@ import org.webrtc.AudioSource
 import org.webrtc.DefaultVideoEncoderFactory
 import org.webrtc.EglBase
 import org.webrtc.HardwareVideoEncoderFactory
-import org.webrtc.Logging
 import org.webrtc.MediaConstraints
 import org.webrtc.MediaStreamTrack
 import org.webrtc.PeerConnectionFactory
@@ -50,10 +49,12 @@ internal class WebRtcProjection(private val serviceContext: Context) : AudioReco
     private enum class AudioCodec { OPUS }
     private enum class VideoCodec(val priority: Int) { VP8(1), VP9(2), H264(3), H265(4); }
 
-    private val mediaProjectionManager = serviceContext.getSystemService(MediaProjectionManager::class.java)
+    private val mediaProjectionManager = serviceContext.applicationContext.getSystemService(MediaProjectionManager::class.java)
 
     private val rootEglBase: EglBase = EglBase.create()
-    private val audioDeviceModule = JavaAudioDeviceModule.builder(serviceContext).setAudioRecordDataCallback(this).createAudioDeviceModule()
+    private val audioDeviceModule = JavaAudioDeviceModule.builder(serviceContext.applicationContext)
+        .setAudioRecordDataCallback(this)
+        .createAudioDeviceModule()
     internal val peerConnectionFactory: PeerConnectionFactory
     internal val videoCodecs: List<RtpCapabilities.CodecCapability>
     internal val audioCodecs: List<RtpCapabilities.CodecCapability>
@@ -74,8 +75,7 @@ internal class WebRtcProjection(private val serviceContext: Context) : AudioReco
     init {
         XLog.d(getLog("init"))
 
-        val initializationOptions = PeerConnectionFactory.InitializationOptions.builder(serviceContext)
-            .setInjectableLogger({ p0, _, _ -> XLog.e(this@WebRtcProjection.getLog("WebRTCLogger", p0)) }, Logging.Severity.LS_NONE)
+        val initializationOptions = PeerConnectionFactory.InitializationOptions.builder(serviceContext.applicationContext)
             .createInitializationOptions()
 
         PeerConnectionFactory.initialize(initializationOptions)
@@ -235,10 +235,10 @@ internal class WebRtcProjection(private val serviceContext: Context) : AudioReco
     internal fun destroy() {
         XLog.d(getLog("destroy"))
         stop()
+        peerConnectionFactory.dispose()
         rootEglBase.release()
         audioDeviceModule.release()
     }
-
 
     @SuppressLint("MissingPermission")
     @RequiresApi(Build.VERSION_CODES.Q)

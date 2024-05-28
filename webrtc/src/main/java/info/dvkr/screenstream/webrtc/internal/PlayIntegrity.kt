@@ -31,7 +31,9 @@ internal class PlayIntegrity(serviceContext: Context, private val environment: W
 
     init {
         XLog.d(getLog("init"))
-        if (standardIntegrityManager == null) standardIntegrityManager = IntegrityManagerFactory.createStandard(serviceContext)
+        if (standardIntegrityManager == null) {
+            standardIntegrityManager = IntegrityManagerFactory.createStandard(serviceContext.applicationContext)
+        }
     }
 
     private val nonceRequest = Request.Builder()

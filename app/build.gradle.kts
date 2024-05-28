@@ -128,6 +128,5 @@ dependencies {
     "PlayStoreImplementation"(libs.firebase.analytics)
     "PlayStoreImplementation"(libs.firebase.crashlytics)
 
-//    implementation("androidx.compose.runtime:runtime-tracing:1.0.0-beta01")
-//    debugImplementation("com.squareup.leakcanary:leakcanary-android:2.13")
+    debugImplementation(libs.leakcanary.android)
 }

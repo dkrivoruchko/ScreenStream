@@ -72,8 +72,8 @@ internal class WebRtcStreamingService(
         }
     }.getOrDefault("-")
 
-    private val powerManager: PowerManager = service.getSystemService(PowerManager::class.java)
-    private val connectivityManager: ConnectivityManager = service.getSystemService(ConnectivityManager::class.java)
+    private val powerManager: PowerManager = service.application.getSystemService(PowerManager::class.java)
+    private val connectivityManager: ConnectivityManager = service.application.getSystemService(ConnectivityManager::class.java)
     private val handler: Handler by lazy(LazyThreadSafetyMode.NONE) { Handler(looper, this) }
     private val coroutineDispatcher: CoroutineDispatcher by lazy(LazyThreadSafetyMode.NONE) { handler.asCoroutineDispatcher("WebRTC-HT_Dispatcher") }
     private val coroutineScope by lazy(LazyThreadSafetyMode.NONE) { CoroutineScope(SupervisorJob() + coroutineDispatcher) }
@@ -831,7 +831,9 @@ internal class WebRtcStreamingService(
                 stopStream()
 
                 signaling?.destroy()
+                signaling = null
                 projection?.destroy()
+                projection = null
                 currentError.set(null)
             }
 
