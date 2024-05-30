@@ -82,21 +82,22 @@ internal fun SettingsTabContent(
         directive = navigator.scaffoldDirective,
         value = navigator.scaffoldValue,
         listPane = {
-            AnimatedPane(modifier = Modifier.preferredWidth(listPanePreferredWidth)) {
+//            AnimatedPane(modifier = Modifier.preferredWidth(listPanePreferredWidth)) { //TODO Crash @ material3-adaptive = "1.0.0-beta02"
                 SettingsListPane(
                     lazyListState = lazyListState,
                     settingsListFlow = settingsViewModel.settingsListFlow,
                     searchTextFlow = settingsViewModel.searchTextFlow,
                     onSearchTextChange = { text -> settingsViewModel.setSearchText(text) },
-                    onSettingSelected = { navigator.navigateTo(ListDetailPaneScaffoldRole.Detail, it) }
+                    onSettingSelected = { navigator.navigateTo(ListDetailPaneScaffoldRole.Detail, it) },
+                    modifier = Modifier.preferredWidth(listPanePreferredWidth)
                 )
-            }
+//            }
         },
         detailPane = {
-            AnimatedPane(modifier = Modifier.fillMaxSize()) {
+//            AnimatedPane(modifier = Modifier.fillMaxSize()) { TODO Crash @ material3-adaptive = "1.0.0-beta02"
                 settingsViewModel.getModuleSettingsItem(navigator.currentDestination?.content)
                     ?.DetailUI { title -> DetailUITitle(title, navigator.canNavigateBack()) { navigator.navigateBack() } }
-            }
+//            }
         },
         modifier = modifier
     )
@@ -140,12 +141,13 @@ private fun SettingsListPane(
     settingsListFlow: StateFlow<List<ModuleSettings>>,
     searchTextFlow: StateFlow<String>,
     onSearchTextChange: (String) -> Unit,
-    onSettingSelected: (ModuleSettings.Id) -> Unit
+    onSettingSelected: (ModuleSettings.Id) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val settingsList = settingsListFlow.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
 
-    BoxWithConstraints {
+    BoxWithConstraints(modifier) {
         val horizontalPadding = if (maxWidth >= 480.dp) 16.dp else 0.dp
 
         val secondaryContainer = MaterialTheme.colorScheme.secondaryContainer

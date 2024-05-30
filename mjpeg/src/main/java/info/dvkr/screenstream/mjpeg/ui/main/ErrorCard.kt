@@ -54,8 +54,7 @@ internal fun ErrorCard(
                     }
                 },
                 modifier = Modifier.padding(top = 8.dp).align(Alignment.End),
-                border = ButtonDefaults.outlinedButtonBorder.copy(brush = SolidColor(MaterialTheme.colorScheme.onError))
-//TODO          border = ButtonDefaults.outlinedButtonBorder(true).copy(brush = SolidColor(MaterialTheme.colorScheme.onError))
+                border = ButtonDefaults.outlinedButtonBorder(true).copy(brush = SolidColor(MaterialTheme.colorScheme.onError))
             ) {
                 val buttonTextId = if (error is MjpegError.NotificationPermissionRequired) R.string.mjpeg_error_open_settings
                 else R.string.mjpeg_error_recover
