@@ -28,6 +28,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.dropUnlessStarted
+import com.elvishew.xlog.XLog
+import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.common.ui.DoubleClickProtection
 import info.dvkr.screenstream.common.ui.MediaProjectionPermission
 import info.dvkr.screenstream.common.ui.get
@@ -56,8 +58,14 @@ internal fun MjpegMainScreenUI(
     BoxWithConstraints(modifier = modifier) {
         MediaProjectionPermission(
             requestCastPermission = waitingCastPermission.value,
-            onPermissionGranted = { intent -> if (waitingCastPermission.value) sendEvent(MjpegEvent.StartProjection(intent)) },
-            onPermissionDenied = { if (waitingCastPermission.value) sendEvent(MjpegEvent.CastPermissionsDenied) },
+            onPermissionGranted = { intent ->
+                if (waitingCastPermission.value) sendEvent(MjpegEvent.StartProjection(intent))
+                else XLog.i(getLog("MjpegMainScreenUI"), IllegalStateException("onPermissionGranted: ignoring result"))
+            },
+            onPermissionDenied = {
+                if (waitingCastPermission.value) sendEvent(MjpegEvent.CastPermissionsDenied)
+                else XLog.i(getLog("MjpegMainScreenUI"), IllegalStateException("onPermissionDenied: ignoring result"))
+            },
             requiredDialogTitle = stringResource(id = R.string.mjpeg_stream_cast_permission_required_title),
             requiredDialogText = stringResource(id = R.string.mjpeg_stream_cast_permission_required)
         )

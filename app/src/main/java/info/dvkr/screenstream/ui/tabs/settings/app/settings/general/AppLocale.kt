@@ -25,7 +25,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -39,9 +38,6 @@ import androidx.core.os.LocaleListCompat
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.common.ModuleSettings
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.NonCancellable
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import org.xmlpull.v1.XmlPullParser
 import java.util.Locale
 
@@ -72,15 +68,9 @@ internal object AppLocale : ModuleSettings.Item {
 
     @Composable
     override fun DetailUI(headerContent: @Composable (String) -> Unit) {
-        val scope = rememberCoroutineScope()
-
         AppLocaleDetailsUI(headerContent) {
-            scope.launch {
-                withContext(NonCancellable) {
-                    if (it != null) AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(it))
-                    else AppCompatDelegate.setApplicationLocales(LocaleListCompat.getEmptyLocaleList())
-                }
-            }
+            if (it != null) AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(it))
+            else AppCompatDelegate.setApplicationLocales(LocaleListCompat.getEmptyLocaleList())
         }
     }
 }
