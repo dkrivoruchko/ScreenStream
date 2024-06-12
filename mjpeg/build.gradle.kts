@@ -15,10 +15,6 @@ android {
         minSdk = rootProject.extra["minSdkVersion"] as Int
     }
 
-    buildFeatures {
-        buildConfig = true
-    }
-
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11

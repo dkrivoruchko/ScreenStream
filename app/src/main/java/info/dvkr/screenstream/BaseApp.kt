@@ -1,6 +1,7 @@
 package info.dvkr.screenstream
 
 import android.app.Application
+import android.content.pm.ApplicationInfo
 import android.os.Build
 import android.os.StrictMode
 import com.elvishew.xlog.LogConfiguration
@@ -22,7 +23,7 @@ public abstract class BaseApp : Application() {
 
         if (ProcessPhoenix.isPhoenixProcess(this)) return
 
-        if (BuildConfig.DEBUG) {
+        if (applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0) {
             StrictMode.setThreadPolicy(
                 StrictMode.ThreadPolicy.Builder()
                     .detectAll()

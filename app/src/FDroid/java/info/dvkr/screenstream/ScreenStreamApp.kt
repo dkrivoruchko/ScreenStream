@@ -1,5 +1,6 @@
 package info.dvkr.screenstream
 
+import android.content.pm.ApplicationInfo
 import com.elvishew.xlog.LogConfiguration
 import com.elvishew.xlog.LogItem
 import com.elvishew.xlog.interceptor.AbstractFilterInterceptor
@@ -12,7 +13,7 @@ import org.koin.ksp.generated.module
 public class ScreenStreamApp : BaseApp() {
 
     override fun configureLogger(builder: LogConfiguration.Builder) {
-        if (BuildConfig.DEBUG) return
+        if (applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0) return
 
         builder.addInterceptor(object : AbstractFilterInterceptor() {
             override fun reject(log: LogItem): Boolean = AppLogger.isLoggingOn

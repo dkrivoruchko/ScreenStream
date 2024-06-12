@@ -1,12 +1,12 @@
 package info.dvkr.screenstream.mjpeg.internal
 
 import android.content.Context
+import android.content.pm.ApplicationInfo
 import android.graphics.Bitmap
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.common.getAppVersion
 import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.common.randomString
-import info.dvkr.screenstream.mjpeg.BuildConfig
 import info.dvkr.screenstream.mjpeg.R
 import info.dvkr.screenstream.mjpeg.internal.HttpServerData.Companion.getClientId
 import info.dvkr.screenstream.mjpeg.settings.MjpegSettings
@@ -92,6 +92,7 @@ internal class HttpServer(
     private val bitmapStateFlow: StateFlow<Bitmap>,
     private val sendEvent: (MjpegEvent) -> Unit
 ) {
+    private val debuggable = context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0
     private val favicon: ByteArray = context.getFileFromAssets("favicon.ico")
     private val logoSvg: ByteArray = context.getFileFromAssets("logo.svg")
     private val baseIndexHtml = String(context.getFileFromAssets("index.html"), StandardCharsets.UTF_8)
@@ -102,8 +103,8 @@ internal class HttpServer(
         .replace("%WRONG_PIN_MESSAGE%", context.getString(R.string.mjpeg_html_wrong_pin))
         .replace("%ADDRESS_BLOCKED%", context.getString(R.string.mjpeg_html_address_blocked))
         .replace("%ERROR%", context.getString(R.string.mjpeg_html_error_unspecified)) //TODO not used
-        .replace("%DD_SERVICE%", if (BuildConfig.DEBUG) "mjpeg_client:dev" else "mjpeg_client:prod")
-        .replace("DD_HANDLER", if (BuildConfig.DEBUG) "[\"http\", \"console\"]" else "[\"http\"]")
+        .replace("%DD_SERVICE%", if (debuggable) "mjpeg_client:dev" else "mjpeg_client:prod")
+        .replace("DD_HANDLER", if (debuggable) "[\"http\", \"console\"]" else "[\"http\"]")
         .replace("%APP_VERSION%", context.getAppVersion())
 
     private val indexHtml: AtomicReference<String> = AtomicReference("")

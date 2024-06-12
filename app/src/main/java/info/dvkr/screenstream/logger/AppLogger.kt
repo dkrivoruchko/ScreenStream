@@ -5,6 +5,7 @@ import android.app.Application
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
+import android.content.pm.ApplicationInfo
 import android.os.Build
 import android.widget.Toast
 import androidx.annotation.MainThread
@@ -19,7 +20,6 @@ import com.elvishew.xlog.printer.file.FilePrinter
 import com.elvishew.xlog.printer.file.clean.FileLastModifiedCleanStrategy
 import com.elvishew.xlog.printer.file.naming.FileNameGenerator
 import com.jakewharton.processphoenix.ProcessPhoenix
-import info.dvkr.screenstream.BuildConfig
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.common.getAppVersion
 import kotlinx.coroutines.DelicateCoroutinesApi
@@ -52,7 +52,7 @@ internal object AppLogger {
             .build()
 
         var printers = emptyArray<Printer>()
-        if (BuildConfig.DEBUG) printers = printers.plus(AndroidPrinter())
+        if (context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0) printers = printers.plus(AndroidPrinter())
         if (isLoggingOn) {
             val filePrinter = FilePrinter.Builder(context.logFolder)
                 .fileNameGenerator(DateSuffixFileNameGenerator(context.hashCode().toString()))

@@ -2,6 +2,7 @@ package info.dvkr.screenstream
 
 import android.app.Activity
 import android.content.Context
+import android.content.pm.ApplicationInfo
 import android.os.Bundle
 import android.view.View
 import androidx.compose.foundation.layout.Box
@@ -88,7 +89,7 @@ public class AdMob(private val context: Context) {
 
     public val initialized: MutableState<Boolean> = mutableStateOf(false)
 
-    private val consentRequestParameters = if (BuildConfig.DEBUG) {
+    private val consentRequestParameters = if (context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0) {
         val hashedId = "203640674D72D8AD3E73BDFC4AD236B2"
         MobileAds.setRequestConfiguration(RequestConfiguration.Builder().setTestDeviceIds(listOf(hashedId)).build())
         ConsentRequestParameters.Builder()
