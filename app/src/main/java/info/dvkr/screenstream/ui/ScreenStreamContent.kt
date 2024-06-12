@@ -22,6 +22,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarDefaults
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationRail
 import androidx.compose.material3.NavigationRailItem
@@ -40,6 +41,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onPlaced
 import androidx.compose.ui.platform.LocalView
@@ -167,12 +169,17 @@ private fun MainContent(
         }
     }
 
-    if (layoutType != NavigationSuiteType.NavigationBar) {
-        val view = LocalView.current
-        if (view.isInEditMode.not()) {
-            val color = MaterialTheme.colorScheme.background
-            SideEffect {
-                (view.context as ComponentActivity).enableEdgeToEdge(statusBarColor = color, navigationBarColor = color)
+    val view = LocalView.current
+    if (view.isInEditMode.not()) {
+        val statusBarColor = MaterialTheme.colorScheme.background
+
+        val navigationBarColor = if (layoutType != NavigationSuiteType.NavigationBar) MaterialTheme.colorScheme.background
+        else NavigationBarDefaults.containerColor
+
+        SideEffect {
+            (view.context as ComponentActivity).apply {
+                enableEdgeToEdge(statusBarColor = statusBarColor, navigationBarColor = navigationBarColor)
+                window.decorView.setBackgroundColor(statusBarColor.toArgb())
             }
         }
     }

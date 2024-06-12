@@ -1,24 +1,17 @@
 package info.dvkr.screenstream.ui.theme
 
-import androidx.activity.ComponentActivity
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBarDefaults
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
-import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalView
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import info.dvkr.screenstream.common.settings.AppSettings
-import info.dvkr.screenstream.ui.enableEdgeToEdge
 import info.dvkr.screenstream.ui.tabs.settings.app.settings.general.DynamicTheme
 import org.koin.compose.koinInject
 
@@ -112,17 +105,6 @@ internal fun ScreenStreamTheme(
         DynamicTheme.available && dynamicTheme.value && darkTheme.not() -> dynamicLightColorScheme(LocalContext.current)
         darkTheme -> darkScheme
         else -> lightScheme
-    }
-
-    val view = LocalView.current
-    if (view.isInEditMode.not()) {
-        SideEffect {
-            val navigationBarColor = colorScheme.surfaceColorAtElevation(NavigationBarDefaults.Elevation)
-            (view.context as ComponentActivity).apply {
-                enableEdgeToEdge(statusBarColor = colorScheme.background, navigationBarColor = navigationBarColor)
-                window.decorView.setBackgroundColor(colorScheme.background.toArgb())
-            }
-        }
     }
 
     MaterialTheme(colorScheme = colorScheme, typography = AppTypography, content = content)
