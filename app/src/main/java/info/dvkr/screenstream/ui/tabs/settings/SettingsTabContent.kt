@@ -82,7 +82,7 @@ internal fun SettingsTabContent(
         directive = navigator.scaffoldDirective,
         value = navigator.scaffoldValue,
         listPane = {
-//            AnimatedPane(modifier = Modifier.preferredWidth(listPanePreferredWidth)) { //TODO Crash @ material3-adaptive = "1.0.0-beta02"
+            AnimatedPane(modifier = Modifier.preferredWidth(listPanePreferredWidth)) {
                 SettingsListPane(
                     lazyListState = lazyListState,
                     settingsListFlow = settingsViewModel.settingsListFlow,
@@ -91,13 +91,13 @@ internal fun SettingsTabContent(
                     onSettingSelected = { navigator.navigateTo(ListDetailPaneScaffoldRole.Detail, it) },
                     modifier = Modifier.preferredWidth(listPanePreferredWidth)
                 )
-//            }
+            }
         },
         detailPane = {
-//            AnimatedPane(modifier = Modifier.fillMaxSize()) { TODO Crash @ material3-adaptive = "1.0.0-beta02"
+            AnimatedPane(modifier = Modifier.fillMaxSize()) {
                 settingsViewModel.getModuleSettingsItem(navigator.currentDestination?.content)
                     ?.DetailUI { title -> DetailUITitle(title, navigator.canNavigateBack()) { navigator.navigateBack() } }
-//            }
+            }
         },
         modifier = modifier
     )
