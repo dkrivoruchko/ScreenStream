@@ -15,7 +15,7 @@ import org.koin.core.qualifier.named
 public class MjpegModuleService : StreamingModuleService() {
 
     internal companion object {
-        internal fun getIntent(context: Context): Intent = Intent(context, MjpegModuleService::class.java)
+        internal fun getIntent(context: Context): Intent = Intent(context, MjpegModuleService::class.java).addIntentId()
 
         internal fun startService(context: Context, intent: Intent) {
             XLog.d(getLog("MjpegModuleService.startService", "Run intent: ${intent.extras}"))
@@ -36,7 +36,13 @@ public class MjpegModuleService : StreamingModuleService() {
             stopSelfResult(startId)
             return START_NOT_STICKY
         }
-        XLog.d(getLog("onStartCommand", "MjpegEvent.intent: ${intent.extras}"))
+        XLog.d(getLog("onStartCommand", "MjpegModuleService.INTENT_ID: ${intent.getStringExtra(INTENT_ID)}"))
+
+        if (isDuplicateIntent(intent)) {
+            XLog.w(getLog("onStartCommand"), IllegalArgumentException("MjpegModuleService.onStartCommand: duplicate intent, startId: $startId, $intent"))
+            return START_NOT_STICKY
+        }
+
         val mjpegEvent = MjpegEvent.Intentable.fromIntent(intent) ?: run {
             XLog.e(getLog("onStartCommand"), IllegalArgumentException("MjpegModuleService.onStartCommand: MjpegEvent = null, startId: $startId, $intent"))
             return START_NOT_STICKY

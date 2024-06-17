@@ -41,7 +41,13 @@ public class WebRtcModuleService : StreamingModuleService() {
             stopSelfResult(startId)
             return START_NOT_STICKY
         }
-        XLog.d(getLog("onStartCommand", "WebRtcEvent.intent: ${intent.extras}"))
+        XLog.d(getLog("onStartCommand", "WebRtcModuleService.INTENT_ID: ${intent.getStringExtra(INTENT_ID)}"))
+
+        if (isDuplicateIntent(intent)) {
+            XLog.w(getLog("onStartCommand"), IllegalArgumentException("WebRtcModuleService.onStartCommand: duplicate intent, startId: $startId, $intent"))
+            return START_NOT_STICKY
+        }
+
         val webRtcEvent = WebRtcEvent.Intentable.fromIntent(intent) ?: run {
             XLog.e(getLog("onStartCommand"), IllegalArgumentException("WebRtcModuleService.onStartCommand: WebRtcEvent = null, startId: $startId, $intent"))
             return START_NOT_STICKY

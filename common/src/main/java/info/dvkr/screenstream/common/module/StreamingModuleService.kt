@@ -12,6 +12,7 @@ import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.common.isPermissionGranted
 import info.dvkr.screenstream.common.notification.NotificationHelper
 import org.koin.android.ext.android.inject
+import java.util.UUID
 
 public abstract class StreamingModuleService : Service() {
 
@@ -20,6 +21,14 @@ public abstract class StreamingModuleService : Service() {
 
     protected val streamingModuleManager: StreamingModuleManager by inject(mode = LazyThreadSafetyMode.NONE)
     protected val notificationHelper: NotificationHelper by inject(mode = LazyThreadSafetyMode.NONE)
+
+    protected val processedIntents: MutableSet<String> = mutableSetOf()
+
+    protected companion object {
+        public const val INTENT_ID: String = "info.dvkr.screenstream.intent.ID"
+
+        public fun Intent.addIntentId(): Intent = putExtra(INTENT_ID, UUID.randomUUID().toString())
+    }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -32,6 +41,24 @@ public abstract class StreamingModuleService : Service() {
         stopForeground()
         hideErrorNotification()
         super.onDestroy()
+    }
+
+    protected fun isDuplicateIntent(intent: Intent): Boolean {
+        val id = intent.getStringExtra(INTENT_ID)
+        return when {
+            id == null -> {
+                XLog.e(getLog("isDuplicateIntent"), IllegalArgumentException("No intent ID provided"))
+                false
+            }
+            processedIntents.contains(id) -> {
+                XLog.e(getLog("isDuplicateIntent"), IllegalArgumentException("Duplicate intent ID: $id"))
+                true
+            }
+            else -> {
+                processedIntents.add(id)
+                false
+            }
+        }
     }
 
     @SuppressLint("InlinedApi")
