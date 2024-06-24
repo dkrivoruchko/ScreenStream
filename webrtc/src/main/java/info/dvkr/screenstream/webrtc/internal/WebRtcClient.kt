@@ -19,6 +19,7 @@ import org.webrtc.PeerConnection.RTCConfiguration
 import org.webrtc.PeerConnection.SignalingState
 import org.webrtc.PeerConnectionFactory
 import org.webrtc.RtpCapabilities
+import org.webrtc.RtpParameters
 import org.webrtc.RtpReceiver
 import org.webrtc.RtpTransceiver
 import org.webrtc.SdpObserver
@@ -78,7 +79,14 @@ internal class WebRtcClient(
             addTrack(mediaStream.videoTrack)
             addTrack(mediaStream.audioTrack)
             transceivers.forEach {
-                if (it.mediaType == MediaStreamTrack.MediaType.MEDIA_TYPE_VIDEO) it.setCodecPreferences(videoCodecs)
+                if (it.mediaType == MediaStreamTrack.MediaType.MEDIA_TYPE_VIDEO) {
+                    it.setCodecPreferences(videoCodecs)
+                    it.sender.parameters = it.sender.parameters.apply {
+                        //TODO A user settings can be introduced for this
+                        //TODO Deprecated. Migrate to contentHint once available: https://developer.mozilla.org/en-US/docs/Web/API/MediaStreamTrack/contentHint
+                        degradationPreference = RtpParameters.DegradationPreference.BALANCED
+                    }
+                }
                 if (it.mediaType == MediaStreamTrack.MediaType.MEDIA_TYPE_AUDIO) it.setCodecPreferences(audioCodecs)
             }
             //setBitrate(200_000, 4_000_000, 8_000_000) doesn't work
