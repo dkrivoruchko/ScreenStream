@@ -61,12 +61,12 @@ internal class NotificationHelperImpl(context: Context) : NotificationHelper {
 
     override fun foregroundNotificationsEnabled(): Boolean = (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q || (
             notificationManager.areNotificationsEnabled() &&
-                    notificationManager.getNotificationChannel(CHANNEL_STREAMING).importance > NotificationManager.IMPORTANCE_NONE
+                    (notificationManager.getNotificationChannel(CHANNEL_STREAMING)?.importance ?: 0) > NotificationManager.IMPORTANCE_NONE
             )).also { XLog.d(getLog("foregroundNotificationsEnabled", "$it")) }
 
     override fun errorNotificationsEnabled(): Boolean = (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q || (
             notificationManager.areNotificationsEnabled() &&
-                    notificationManager.getNotificationChannel(CHANNEL_ERROR).importance > NotificationManager.IMPORTANCE_NONE
+                    (notificationManager.getNotificationChannel(CHANNEL_ERROR)?.importance ?: 0) > NotificationManager.IMPORTANCE_NONE
             )).also { XLog.d(getLog("errorNotificationsEnabled", "$it")) }
 
     @RequiresApi(Build.VERSION_CODES.O)
