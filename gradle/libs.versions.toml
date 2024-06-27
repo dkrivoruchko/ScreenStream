@@ -20,7 +20,7 @@ androidx-datastore-preferences = "1.1.1"
 
 compose-bom = "2024.06.00"
 material3-adaptive-navigation-suite = "1.0.0-alpha07"
-material3-adaptive = "1.0.0-beta03"
+material3-adaptive = "1.0.0-beta04"
 
 process-phoenix = "3.0.0"
 xlog = "1.11.0"
