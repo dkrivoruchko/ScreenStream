@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="app_name">Flux d\'écran</string>
     <string name="app_error_title">Erreur</string>
     <string name="app_error_recover">Récupérer</string>
 

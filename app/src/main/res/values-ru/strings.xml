@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="app_name">Экранный поток</string>
     <string name="app_error_title">Ошибка</string>
     <string name="app_error_recover">Восстановить</string>
 

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="app_name">स्क्रीन स्ट्रीम</string>
     <string name="app_error_title">त्रुटि</string>
     <string name="app_error_recover">पुनर्प्राप्त करें</string>
 

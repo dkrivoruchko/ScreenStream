@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="webrtc_error_recover">ማገገም</string>
+    <string name="webrtc_error_open_settings">ቅንብሮችን ይክፈቱ</string>
+    <string name="webrtc_stream_mode">ሁለንተናዊ ሁነታ (WebRTC)</string>
+    <string name="webrtc_stream_mode_description">የአለምአቀፍ ሁነታ መግለጫ</string>
+    <string name="webrtc_stream_mode_details">
+        - በWebRTC ቴክኖሎጂ የተጎላበተ።\n
+        - ከጫፍ እስከ ጫፍ የተመሰጠረ ግንኙነት።\n
+        - በይለፍ ቃል የዥረት ጥበቃ።\n
+        - ቪዲዮ እና ድምጽ መላክ ይችላል.\n
+        - ልዩ የዥረት መታወቂያ እና የይለፍ ቃል በመጠቀም ይገናኙ።\n
+        - ለመልቀቅ የበይነመረብ ግንኙነት ይፈልጋል።\n
+        - ለእያንዳንዱ ደንበኛ የግለሰብ ውሂብ ማስተላለፍ (ብዙ ደንበኞች አሉዎት ፣ ብዙ የበይነመረብ ባንድዊድዝ ያስፈልግዎታል)።
+    </string>
+    <string name="webrtc_stream_server_address">ዥረት ይድረሱበት በ፡ %1$s</string>
+    <string name="webrtc_stream_stream_id_getting">የዥረት መታወቂያ በማግኘት ላይ…</string>
+    <string name="webrtc_stream_stream_id">የዥረት መታወቂያ፡ %1$s</string>
+    <string name="webrtc_stream_stream_password">የዥረት ይለፍ ቃል፡ %1$s</string>
+    <string name="webrtc_stream_description_show_password">የዥረት ይለፍ ቃል አሳይ</string>
+    <string name="webrtc_stream_description_get_new_id">አዲስ የዥረት መታወቂያ ያግኙ</string>
+    <string name="webrtc_stream_description_create_password">አዲስ የዥረት ይለፍ ቃል ይፍጠሩ</string>
+    <string name="webrtc_stream_description_open_address">አድራሻ ክፈት</string>
+    <string name="webrtc_stream_description_copy_address">አድራሻ ቅዳ</string>
+    <string name="webrtc_stream_description_share_address">አድራሻ አጋራ</string>
+    <string name="webrtc_stream_description_qr_address">አድራሻ እንደ QR-code አሳይ</string>
+    <string name="webrtc_stream_description_qr">QR-code</string>
+    <string name="webrtc_stream_copied">ተገልብጧል</string>
+    <string name="webrtc_stream_audio_select">የድምጽ ምንጮችን ይምረጡ፡-</string>
+    <string name="webrtc_stream_audio_mic">ማይክሮፎን</string>
+    <string name="webrtc_stream_audio_device">የመሣሪያ ኦዲዮ</string>
+    <string name="webrtc_stream_connected_clients">የተገናኙ ደንበኞች፡ %1$d</string>
+    <string name="webrtc_stream_no_web_browser_found">ምንም የድር አሳሽ አልተገኘም።</string>
+    <string name="webrtc_stream_external_app_error">የውጫዊ መተግበሪያ ስህተት</string>
+    <string name="webrtc_stream_share_address">የመሣሪያ አድራሻ አጋራ</string>
+    <string name="webrtc_stream_start">ጅረት ጀምር</string>
+    <string name="webrtc_stream_stop">ዥረት አቁም</string>
+    <string name="webrtc_pref_header">ሁለንተናዊ ሁነታ (WebRTC) ቅንብሮች</string>
+    <string name="webrtc_pref_keep_awake">መሳሪያውን ነቅተው ይጠብቁ</string>
+    <string name="webrtc_pref_keep_awake_summary">በዥረት በሚለቀቁበት ጊዜ መሳሪያውን እና ማያ ገጹን ነቅተው ይጠብቁ</string>
+    <string name="webrtc_pref_stop_on_sleep">በእንቅልፍ ላይ ዥረት ያቁሙ</string>
+    <string name="webrtc_pref_stop_on_sleep_summary">ማያ ገጹ ከጠፋ ዥረቱን ያቁሙ</string>
+    <string name="webrtc_stream_audio_permission_title">የድምጽ ቀረጻ ፍቀድ</string>
+    <string name="webrtc_stream_audio_permission_message">የድምጽ ይዘትን ለማሰራጨት ኦዲዮን የመቅዳት ፍቃድ አስፈላጊ ነው።  ይህን ፈቃድ ሳይሰጥ፣ ዥረቱ ኦዲዮ የሌለው ይሆናል።</string>
+    <string name="webrtc_stream_audio_permission_message_settings">የድምጽ ይዘትን ለመልቀቅ ለመተግበሪያው የማይክሮፎን መዳረሻ በመተግበሪያ ፈቃዶች መስጠት አስፈላጊ ነው።  ይህን ፈቃድ ሳይሰጥ፣ ዥረቱ ያለ ምንም ኦዲዮ ይካሄዳል።</string>
+    <string name="webrtc_stream_audio_permission_message_settings">የድምጽ ይዘትን ለመልቀቅ ለመተግበሪያው የማይክሮፎን መዳረሻ በመተግበሪያ ፈቃዶች መስጠት አስፈላጊ ነው።  ይህን ፈቃድ ሳይሰጥ፣ ዥረቱ ያለ ምንም ኦዲዮ ይካሄዳል።</string>
+    <string name="webrtc_stream_audio_permission_open_settings">ቅንብሮችን ይክፈቱ</string>
+    <string name="webrtc_stream_cast_permission_required_title">ፍቃድ ያስፈልጋል</string>
+    <string name="webrtc_stream_cast_permission_required">የScreenStream መተግበሪያ ስክሪን ለመያዝ የስክሪን ውሰድ ፍቃድ ያስፈልገዋል።</string>
+    <string name="webrtc_item_client_disconnect">ግንኙነት አቋርጥ</string>
+    <string name="webrtc_error_play_integrity_update_play_store">እባክዎ ጎግል ፕሌይ ስቶርን ያዘምኑ</string>
+    <string name="webrtc_error_play_integrity_install_play_store">እባክዎ ይፋዊ ጎግል ፕሌይ ስቶርን ይጫኑ ወይም ያንቁ</string>
+    <string name="webrtc_error_play_integrity_install_play_service">እባክዎ የPlay አገልግሎቶችን ይጫኑ ወይም ያንቁ</string>
+    <string name="webrtc_error_play_integrity_update_play_service">እባክህ Google Play አገልግሎቶችን አዘምን</string>
+    <string name="webrtc_error_check_network">እባክዎ የበይነመረብ ግንኙነትን ያረጋግጡ</string>
+    <string name="webrtc_notification_permission_required">ትግበራ የዥረት አገልግሎት ለመጀመር ማሳወቂያዎችን መንቃት ያስፈልገዋል። እባክዎ በመተግበሪያ ቅንብሮች ውስጥ ማሳወቂያዎችን ያንቁ።</string>
+    <string name="webrtc_error_unspecified">የሆነ ስህተት ተከስቷል። እባክዎ ቆየት ብለው ይሞክሩ።</string>
+</resources>

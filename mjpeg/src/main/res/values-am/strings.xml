@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="mjpeg_error_recover">ማገገም</string>
+    <string name="mjpeg_error_open_settings">ቅንብሮችን ይክፈቱ</string>
+    <string name="mjpeg_stream_mode">የአካባቢ ሁነታ (MJPEG)</string>
+    <string name="mjpeg_stream_mode_description">የአካባቢ ሁነታ መግለጫ</string>
+    <string name="mjpeg_stream_mode_details">
+
+        - በMJPEG ደረጃ የተጎላበተ።\n
+        - ለደህንነት ፒን ይጠቀማል (ምስጠራ የለም)።\n
+        - ቪዲዮን እንደ ተከታታይ ገለልተኛ ምስሎች ይልካል (ድምጽ የለም)።\n
+        - በአከባቢዎ አውታረመረብ ውስጥ ያለ የበይነመረብ ግንኙነት ይሰራል።\n
+        - የተከተተ HTTP አገልጋይ።\n
+        - ከ WiFi እና/ወይም የሞባይል አውታረ መረቦች ጋር ይሰራል፣ IPv4 እና IPv6 ን ይደግፋል።\n
+        - ደንበኞች በመተግበሪያው የቀረበውን የአይፒ አድራሻ በመጠቀም በድር አሳሽ ይገናኛሉ።  - በከፍተኛ ሁኔታ ሊበጅ የሚችል።\n
+        - ለእያንዳንዱ ደንበኛ የግለሰብ ውሂብ ማስተላለፍ (ብዙ ደንበኞች አሉዎት ፣ ብዙ የማይሰራ ባንድዊድዝ ያስፈልግዎታል)።\n
+
+    </string>
+    <string name="mjpeg_item_address">የመሣሪያ አድራሻ፡-</string>
+    <string name="mjpeg_stream_no_address">ምንም አድራሻ አልተገኘም።</string>
+    <string name="mjpeg_stream_interface">በይነገጽ፡ %1$s</string>
+    <string name="mjpeg_stream_copied">ተገልብጧል</string>
+    <string name="mjpeg_stream_no_web_browser_found">ምንም የድር አሳሽ አልተገኘም።</string>
+    <string name="mjpeg_stream_external_app_error">የውጫዊ መተግበሪያ ስህተት</string>
+    <string name="mjpeg_stream_share_address">የመሣሪያ አድራሻ አጋራ</string>
+    <string name="mjpeg_item_address_description_open_address">አድራሻ ክፈት</string>
+    <string name="mjpeg_item_address_description_copy_address">አድራሻ ቅዳ</string>
+    <string name="mjpeg_item_address_description_share_address">አድራሻ አጋራ</string>
+    <string name="mjpeg_item_address_description_qr_address">አድራሻ እንደ QR-code አሳይ</string>
+    <string name="mjpeg_item_address_description_qr">QR-code</string>
+    <string name="mjpeg_stream_pin">ፒን፡ %1$s</string>
+    <string name="mjpeg_stream_pin_disabled">ፒን ተሰናክሏል።</string>
+    <string name="mjpeg_stream_description_show_pin">የዥረት ፒን አሳይ</string>
+    <string name="mjpeg_stream_description_create_pin">አዲስ የዥረት ፒን ይፍጠሩ</string>
+    <string name="mjpeg_stream_current_traffic">ትራፊክ፡ %1$፣.2f Mbit/s</string>
+    <string name="mjpeg_stream_traffic_graph">የትራፊክ ግራፍ</string>
+    <string name="mjpeg_stream_connected_clients">የተገናኙ ደንበኞች፡ %1$d</string>
+    <string name="mjpeg_stream_client_disconnected">ግንኙነቱ ተቋርጧል</string>
+    <string name="mjpeg_stream_client_slow_network">ቀርፋፋ ግንኙነት</string>
+    <string name="mjpeg_stream_client_connected">ተገናኝቷል።</string>
+    <string name="mjpeg_stream_client_blocked">ታግዷል</string>
+    <string name="mjpeg_stream_start">ጅረት ጀምር</string>
+    <string name="mjpeg_stream_stop">ዥረት አቁም</string>
+    <string name="mjpeg_stream_cast_permission_required_title">ፍቃድ ያስፈልጋል</string>
+    <string name="mjpeg_stream_cast_permission_required">የስክሪን ዥረት መተግበሪያ ስክሪን ለመያዝ የስክሪን ውሰድ ፍቃድ ያስፈልገዋል።</string>
+    <string name="mjpeg_slow_client_connection">ቀርፋፋ የደንበኛ ግንኙነት ተገኝቷል</string>
+    <string name="mjpeg_pref_header">የአካባቢ ሁነታ (MJPEG) ቅንብሮች</string>
+    <string name="mjpeg_pref_settings_general">አጠቃላይ</string>
+    <string name="mjpeg_pref_keep_awake">መሳሪያውን ነቅተው ይጠብቁ</string>
+    <string name="mjpeg_pref_keep_awake_summary">በዥረት በሚለቀቁበት ጊዜ መሳሪያውን እና ማያ ገጹን ነቅተው ይጠብቁ</string>
+    <string name="mjpeg_pref_stop_on_sleep">በእንቅልፍ ላይ ዥረት ያቁሙ</string>
+    <string name="mjpeg_pref_stop_on_sleep_summary">ማያ ገጹ ከጠፋ ዥረቱን ያቁሙ</string>
+    <string name="mjpeg_pref_stop_on_configuration">በውቅረት ለውጥ ላይ ዥረት ያቁሙ</string>
+    <string name="mjpeg_pref_stop_on_configuration_summary">በውቅረት ለውጥ ላይ ዥረት ያቁሙ</string>
+    <string name="mjpeg_pref_detect_slow_connections">ለዝግተኛ ግንኙነቶች አሳውቅ</string>
+    <string name="mjpeg_pref_detect_slow_connections_summary">ለዘገየ የደንበኛ ግንኙነቶችን ፈልግ እና አሳውቅ</string>
+    <string name="mjpeg_pref_html_buttons">የድረ-ገጽ አዝራሮችን አንቃ</string>
+    <string name="mjpeg_pref_html_buttons_summary">በድረ-ገጽ ላይ የመቆጣጠሪያ አዝራሮችን አሳይ</string>
+    <string name="mjpeg_pref_html_show_press_start">\"በመሣሪያ ላይ ዥረት ጀምር\" አሳይ</string>
+    <string name="mjpeg_pref_html_show_press_start_summary">በድረ-ገጽ ላይ \"በመሣሪያ ላይ ዥረት ጀምር\" የሚለውን አሳይ</string>
+    <string name="mjpeg_pref_html_back_color">የድረ-ገጽ ዳራ ቀለም</string>
+    <string name="mjpeg_pref_html_back_color_summary">የድረ-ገጽ ዳራ ቀለም አዘጋጅ</string>
+    <string name="mjpeg_pref_html_back_color_title">የጀርባ ቀለም ይምረጡ</string>
+    <string name="mjpeg_pref_settings_image">ምስል</string>
+    <string name="mjpeg_pref_vr_mode">ምናባዊ እውነታ ሁነታ</string>
+    <string name="mjpeg_pref_vr_mode_summary">ይዘትን ከግማሽ ማያ ገጽ ያንሱ</string>
+    <string name="mjpeg_pref_crop">ምስል ይከርክሙ</string>
+    <string name="mjpeg_pref_crop_summary">ወደ ደንበኛ ከመላክዎ በፊት ምስል ይከርክሙ</string>
+    <string name="mjpeg_pref_crop_top">ከላይ ይከርክሙ፡</string>
+    <string name="mjpeg_pref_crop_bottom">ከታች ይከርክሙ;</string>
+    <string name="mjpeg_pref_crop_left">ወደ ግራ ይከርክሙ፡</string>
+    <string name="mjpeg_pref_crop_right">ወደ ቀኝ ይከርክሙ፡</string>
+    <string name="mjpeg_pref_crop_pixels">ፒክስሎች</string>
+    <string name="mjpeg_pref_crop_warning">ውጤቱ ባዶ ምስል ከሆነ ሰብል ችላ ይባላል</string>
+    <string name="mjpeg_pref_crop_error">ትክክለኛ የሰብል ዋጋዎችን ያስገቡ</string>
+    <string name="mjpeg_pref_grayscale">የግራጫ ሁነታ</string>
+    <string name="mjpeg_pref_grayscale_summary">ወደ ደንበኛ ከመላክዎ በፊት ግራጫማ ምስል</string>
+    <string name="mjpeg_pref_resize">የምስል መጠን ቀይር</string>
+    <string name="mjpeg_pref_resize_summary">ወደ ደንበኛ ከመላክዎ በፊት የምስሉን መጠን ይለውጡ</string>
+    <string name="mjpeg_pref_resize_text">የምስል መጠን መጠንን በመቶኛ ያዘጋጁ። ዋጋዎች: 10-150 ነባሪ፡ 50 የማያ መጠን፡ %1$dx%2$d</string>
+    <string name="mjpeg_pref_resize_result">የሥዕል መጠን፡ %1$dx%2$d</string>
+    <string name="mjpeg_pref_rotate">ምስሉን በሰዓት አቅጣጫ አሽከርክር</string>
+    <string name="mjpeg_pref_rotate_summary">ወደ ደንበኛ ከመላክዎ በፊት ምስሉን ያሽከርክሩ</string>
+    <string name="mjpeg_pref_fps">ክፈፎች በሰከንድ ይገድቡ</string>
+    <string name="mjpeg_pref_fps_summary">በሰከንድ ከፍተኛውን ፍሬሞች ያዘጋጁ</string>
+    <string name="mjpeg_pref_fps_text">በሰከንድ ከፍተኛውን ፍሬሞች ያዘጋጁ። ዋጋ፡ 1–120 ነባሪ፡ 30</string>
+    <string name="mjpeg_pref_jpeg_quality">JPEG መጭመቂያ ጥራት</string>
+    <string name="mjpeg_pref_jpeg_quality_summary">የ JPEG መጭመቂያ ጥራት ያዘጋጁ</string>
+    <string name="mjpeg_pref_jpeg_quality_text">የ JPEG መጭመቂያ ጥራት ያዘጋጁ። ዋጋዎች: 10-100 ነባሪ፡ 80</string>
+    <string name="mjpeg_pref_settings_security">ደህንነት</string>
+    <string name="mjpeg_pref_enable_pin">ፒን አንቃ</string>
+    <string name="mjpeg_pref_enable_pin_summary">የዥረት መዳረሻን በፒን ጠብቅ</string>
+    <string name="mjpeg_pref_hide_pin">በዥረት ጅምር ላይ ፒን በራስ-ሰር ደብቅ</string>
+    <string name="mjpeg_pref_hide_pin_summary">በሚለቀቁበት ጊዜ ከፒን ይልቅ ኮከቦችን አሳይ</string>
+    <string name="mjpeg_pref_new_pin_on_start">አዲስ ፒን ሲጀመር</string>
+    <string name="mjpeg_pref_new_pin_on_start_summary">በመተግበሪያ ጅምር ላይ አዲስ ፒን ይፍጠሩ</string>
+    <string name="mjpeg_pref_auto_change_pin">ፒን በራስ-ሰር ቀይር</string>
+    <string name="mjpeg_pref_auto_change_pin_summary">ለእያንዳንዱ አዲስ ዥረት አዲስ ፒን ይፍጠሩ</string>
+    <string name="mjpeg_pref_set_pin">ፒን አዘጋጅ</string>
+    <string name="mjpeg_pref_set_pin_summary">ፒን እራስዎ ያስገቡ</string>
+    <string name="mjpeg_pref_set_pin_text">ፒን አስገባ። ነባሪ፡ 000000</string>
+    <string name="mjpeg_pref_block_address">የአይፒ አድራሻን አግድ</string>
+    <string name="mjpeg_pref_block_address_summary">ከ 5 የተሳሳቱ የፒን ሙከራዎች ለ 5 ደቂቃዎች በኋላ የደንበኛ አይፒ አድራሻን አግድ</string>
+    <string name="mjpeg_pref_settings_advanced">የላቀ</string>
+    <string name="mjpeg_pref_wifi_only">ዋይፋይን ብቻ ተጠቀም</string>
+    <string name="mjpeg_pref_wifi_only_summary">አገልጋይን በዋይፋይ በይነገጽ ብቻ ያሂዱ</string>
+    <string name="mjpeg_pref_enable_ipv6">የIPv6 ድጋፍን አንቃ</string>
+    <string name="mjpeg_pref_enable_ipv6_summary">አገልጋይን በIPv6 አድራሻዎች ላይ ያሂዱ</string>
+    <string name="mjpeg_pref_enable_localhost">የአካባቢ አስተናጋጅ አንቃ</string>
+    <string name="mjpeg_pref_enable_localhost_summary">አገልጋይን በአከባቢ አስተናጋጅ አድራሻዎች ያሂዱ</string>
+    <string name="mjpeg_pref_localhost_only">የአካባቢ አስተናጋጅ ብቻ</string>
+    <string name="mjpeg_pref_localhost_only_summary">አገልጋይን በአካባቢያዊ አስተናጋጅ አድራሻዎች ብቻ ያሂዱ</string>
+    <string name="mjpeg_pref_server_port">የአገልጋይ ወደብ</string>
+    <string name="mjpeg_pref_server_port_summary">ለገቢ ግንኙነቶች ወደብ ያዘጋጁ</string>
+    <string name="mjpeg_pref_server_port_text">ለመጪ ግንኙነቶች የአገልጋይ ወደብ ያዘጋጁ። ዋጋ፡ 1025–65535 ነባሪ፡ 8080</string>
+    <string name="mjpeg_error_port_in_use">ወደብ አስቀድሞ ጥቅም ላይ ውሏል። ሌላ ይምረጡ።</string>
+    <string name="mjpeg_error_invalid_media_projection">የደህንነት ስህተት፡ ልክ ያልሆነ የሚዲያ ትንበያ። አንድ ተጨማሪ ጊዜ ይሞክሩ።</string>
+    <string name="mjpeg_error_ip_address_not_found">የአይ ፒ አድራሻ አልተገኘም። በዥረት ቅንጅቶች ውስጥ \"ዋይ ፋይን ብቻ ተጠቀም\" ለማሰናከል ይሞክሩ።</string>
+    <string name="mjpeg_error_notification_permission_required">ትግበራ የዥረት አገልግሎት ለመጀመር ማሳወቂያዎችን መንቃት ያስፈልገዋል። እባክዎ በመተግበሪያ ቅንብሮች ውስጥ ማሳወቂያዎችን ያንቁ።</string>
+    <string name="mjpeg_error_unspecified">የሆነ ስህተት ተከስቷል። እባክዎ ቆየት ብለው ይሞክሩ።</string>
+    <string name="mjpeg_start_image_text">በመሣሪያው ላይ ዥረት ይጀምሩ</string>
+    <string name="mjpeg_html_stream_connecting">ለመገናኘት በመሞከር ላይ</string>
+    <string name="mjpeg_html_stream_require_pin">ይህ ዥረት እሱን ለማግኘት ፒን ያስፈልገዋል</string>
+    <string name="mjpeg_html_enter_pin">ፒን አስገባ፡\\u0020</string>
+    <string name="mjpeg_html_submit_pin">አስገባ</string>
+    <string name="mjpeg_html_wrong_pin">የተሳሳተ ፒን!</string>
+    <string name="mjpeg_html_address_blocked">የደንበኛ አድራሻ ታግዷል</string>
+    <string name="mjpeg_html_error_unspecified">የሆነ ስህተት ተከስቷል። &lt;br&gt; እባክዎ ገጹን እንደገና ይጫኑ እና እንደገና ይሞክሩ።</string>
+    <string name="mjpeg_pref_resize_value">%1$d%%</string>
+    <string name="mjpeg_pref_rotate_value">%1$d\\u00B0</string>
+</resources>

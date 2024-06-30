@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="mjpeg_error_recover">აღდგენა</string>
+    <string name="mjpeg_error_open_settings">გახსენით პარამეტრები</string>
+    <string name="mjpeg_stream_mode">ლოკალური რეჟიმი (MJPEG)</string>
+    <string name="mjpeg_stream_mode_description">ადგილობრივი რეჟიმის აღწერა</string>
+    <string name="mjpeg_stream_mode_details">
+        - უზრუნველყოფილია MJPEG სტანდარტით.\n
+        - იყენებს PIN-ს უსაფრთხოებისთვის (დაშიფვრის გარეშე).\n
+        - აგზავნის ვიდეოს დამოუკიდებელი სურათების სერიის სახით (აუდიო გარეშე).\n
+        - მუშაობს ინტერნეტის გარეშე თქვენს ლოკალურ ქსელში.\\n - ჩაშენებული HTTP სერვერი.\n
+        - მუშაობს WiFi და/ან მობილურ ქსელებთან, მხარს უჭერს IPv4 და IPv6.\n
+        - კლიენტები უკავშირდებიან ვებ ბრაუზერს აპის მითითებული IP მისამართის გამოყენებით.\n
+        - ძალიან რეგულირებადი.\n
+        - ინდივიდუალური მონაცემთა გადაცემა თითოეული კლიენტისთვის (უფრო მეტი კლიენტი გყავთ, მეტი არასამუშაო გამტარობა გჭირდებათ).
+    </string>
+    <string name="mjpeg_item_address">მოწყობილობის მისამართი:</string>
+    <string name="mjpeg_stream_no_address">მისამართი ვერ მოიძებნა</string>
+    <string name="mjpeg_stream_interface">ინტერფეისი: %1$s</string>
+    <string name="mjpeg_stream_copied">კოპირებულია</string>
+    <string name="mjpeg_stream_no_web_browser_found">ვებ ბრაუზერი ვერ მოიძებნა</string>
+    <string name="mjpeg_stream_external_app_error">გარე განაცხადის შეცდომა</string>
+    <string name="mjpeg_stream_share_address">მოწყობილობის მისამართის გაზიარება</string>
+    <string name="mjpeg_item_address_description_open_address">გახსენი მისამართი</string>
+    <string name="mjpeg_item_address_description_copy_address">დააკოპირეთ მისამართი</string>
+    <string name="mjpeg_item_address_description_share_address">გააზიარე მისამართი</string>
+    <string name="mjpeg_item_address_description_qr_address">მისამართის QR კოდის სახით ჩვენება</string>
+    <string name="mjpeg_item_address_description_qr">Ქრ კოდი</string>
+    <string name="mjpeg_stream_pin">პინი: %1$s</string>
+    <string name="mjpeg_stream_pin_disabled">პინი გამორთულია</string>
+    <string name="mjpeg_stream_description_show_pin">ნაკადის პინის ჩვენება</string>
+    <string name="mjpeg_stream_description_create_pin">შექმენით ახალი ნაკადის პინი</string>
+    <string name="mjpeg_stream_current_traffic">ტრაფიკი: %1$,.2f მბიტ/წმ</string>
+    <string name="mjpeg_stream_traffic_graph">მოძრაობის გრაფიკი</string>
+    <string name="mjpeg_stream_connected_clients">დაკავშირებული კლიენტები: %1$d</string>
+    <string name="mjpeg_stream_client_disconnected">გათიშულია</string>
+    <string name="mjpeg_stream_client_slow_network">ნელი კავშირი</string>
+    <string name="mjpeg_stream_client_connected">დაკავშირებულია</string>
+    <string name="mjpeg_stream_client_blocked">დაბლოკილია</string>
+    <string name="mjpeg_stream_start">სტრიმინგის დაწყება</string>
+    <string name="mjpeg_stream_stop">შეაჩერე ნაკადი</string>
+    <string name="mjpeg_stream_cast_permission_required_title">საჭიროა ნებართვა</string>
+    <string name="mjpeg_stream_cast_permission_required">ScreenStream აპლიკაცია მოითხოვს Screen Cast ნებართვას ეკრანის გადასაღებად.</string>
+    <string name="mjpeg_slow_client_connection">აღმოჩენილია კლიენტის ნელი კავშირი</string>
+    <string name="mjpeg_pref_header">ლოკალური რეჟიმის (MJPEG) პარამეტრები</string>
+    <string name="mjpeg_pref_settings_general">გენერალი</string>
+    <string name="mjpeg_pref_keep_awake">შეინახეთ მოწყობილობა ფხიზლად</string>
+    <string name="mjpeg_pref_keep_awake_summary">შეინახეთ მოწყობილობა და ეკრანი ფხიზლად სტრიმინგის დროს</string>
+    <string name="mjpeg_pref_stop_on_sleep">შეაჩერე ნაკადი ძილის დროს</string>
+    <string name="mjpeg_pref_stop_on_sleep_summary">შეაჩერე ნაკადი, თუ ეკრანი გამორთულია</string>
+    <string name="mjpeg_pref_stop_on_configuration">ნაკადის შეჩერება კონფიგურაციის შეცვლაზე</string>
+    <string name="mjpeg_pref_stop_on_configuration_summary">სტრიმინგის შეწყვეტა, როდესაც სტრიმინგის კონფიგურაცია იცვლება</string>
+    <string name="mjpeg_pref_detect_slow_connections">შეატყობინეთ ნელი კავშირების შესახებ</string>
+    <string name="mjpeg_pref_detect_slow_connections_summary">აღმოაჩინეთ და შეატყობინეთ კლიენტის ნელი კავშირების შესახებ</string>
+    <string name="mjpeg_pref_html_buttons">ვებ გვერდის ღილაკების ჩართვა</string>
+    <string name="mjpeg_pref_html_buttons_summary">საკონტროლო ღილაკების ჩვენება ვებ გვერდზე</string>
+    <string name="mjpeg_pref_html_show_press_start">აჩვენე \"სტრიმინგის დაწყება მოწყობილობაზე\"</string>
+    <string name="mjpeg_pref_html_show_press_start_summary">აჩვენეთ \"სტრიმინგის დაწყება მოწყობილობაზე\" ვებ გვერდზე</string>
+    <string name="mjpeg_pref_html_back_color">ვებ გვერდის ფონის ფერი</string>
+    <string name="mjpeg_pref_html_back_color_summary">დააყენეთ ვებ გვერდის ფონის ფერი</string>
+    <string name="mjpeg_pref_html_back_color_title">აირჩიეთ ფონის ფერი</string>
+    <string name="mjpeg_pref_settings_image">გამოსახულება</string>
+    <string name="mjpeg_pref_vr_mode">ვირტუალური რეალობის რეჟიმი</string>
+    <string name="mjpeg_pref_vr_mode_summary">გადაიღეთ შინაარსი ნახევარი ეკრანიდან</string>
+    <string name="mjpeg_pref_crop">სურათის ამოჭრა</string>
+    <string name="mjpeg_pref_crop_summary">სურათის ამოჭრა კლიენტისთვის გაგზავნამდე</string>
+    <string name="mjpeg_pref_crop_top">მოჭრილი ზედა:</string>
+    <string name="mjpeg_pref_crop_bottom">ქვედა მოჭრა:</string>
+    <string name="mjpeg_pref_crop_left">ჩამოჭრა მარცხნივ:</string>
+    <string name="mjpeg_pref_crop_right">ჩამოჭრა მარჯვნივ:</string>
+    <string name="mjpeg_pref_crop_pixels">პიქსელები</string>
+    <string name="mjpeg_pref_crop_warning">ჩამოჭრა იგნორირებული იქნება, თუ შედეგი ცარიელი სურათია</string>
+    <string name="mjpeg_pref_crop_error">შეიყვანეთ მოსავლის სწორი მნიშვნელობები</string>
+    <string name="mjpeg_pref_grayscale">რუხი ფერის რეჟიმი</string>
+    <string name="mjpeg_pref_grayscale_summary">რუხი ფერის სურათი კლიენტისთვის გაგზავნამდე</string>
+    <string name="mjpeg_pref_resize">სურათის ზომის შეცვლა</string>
+    <string name="mjpeg_pref_resize_summary">შეცვალეთ სურათის ზომა კლიენტისთვის გაგზავნამდე</string>
+    <string name="mjpeg_pref_resize_value">%1$d%%</string>
+    <string name="mjpeg_pref_resize_text">დააყენეთ სურათის ზომის შეცვლის ფაქტორი პროცენტებში. ღირებულებები: 10–150 ნაგულისხმევი: 50 ეკრანის ზომა: %1$dx%2$d</string>
+    <string name="mjpeg_pref_resize_result">სურათის ზომა: %1$dx%2$d</string>
+    <string name="mjpeg_pref_rotate">სურათის როტაცია საათის ისრის მიმართულებით</string>
+    <string name="mjpeg_pref_rotate_summary">დაატრიალეთ სურათი კლიენტისთვის გაგზავნამდე</string>
+    <string name="mjpeg_pref_rotate_value">%1$d\\u00B0</string>
+    <string name="mjpeg_pref_fps">შეზღუდეთ კადრები წამში</string>
+    <string name="mjpeg_pref_fps_summary">დააყენეთ მაქსიმალური კადრები წამში</string>
+    <string name="mjpeg_pref_fps_text">დააყენეთ მაქსიმალური კადრები წამში. ღირებულებები: 1–120 ნაგულისხმევი: 30</string>
+    <string name="mjpeg_pref_jpeg_quality">JPEG შეკუმშვის ხარისხი</string>
+    <string name="mjpeg_pref_jpeg_quality_summary">დააყენეთ JPEG შეკუმშვის ხარისხი</string>
+    <string name="mjpeg_pref_jpeg_quality_text">დააყენეთ JPEG შეკუმშვის ხარისხი. ღირებულებები: 10–100 ნაგულისხმევი: 80</string>
+    <string name="mjpeg_pref_settings_security">უსაფრთხოება</string>
+    <string name="mjpeg_pref_enable_pin">ჩართეთ პინი</string>
+    <string name="mjpeg_pref_enable_pin_summary">დაიცავით ნაკადზე წვდომა პინით</string>
+    <string name="mjpeg_pref_hide_pin">ავტომატური დამალვის პინი ნაკადის დაწყებისას</string>
+    <string name="mjpeg_pref_hide_pin_summary">სტრიმინგის დროს აჩვენეთ ვარსკვლავები დამაგრების ნაცვლად</string>
+    <string name="mjpeg_pref_new_pin_on_start">ახალი პინი დაწყებისას</string>
+    <string name="mjpeg_pref_new_pin_on_start_summary">შექმენით ახალი პინი განაცხადის დაწყებისას</string>
+    <string name="mjpeg_pref_auto_change_pin">ავტომატური შეცვლა პინი</string>
+    <string name="mjpeg_pref_auto_change_pin_summary">შექმენით ახალი პინი ყოველი ახალი ნაკადისთვის</string>
+    <string name="mjpeg_pref_set_pin">პინის დაყენება</string>
+    <string name="mjpeg_pref_set_pin_summary">შეიყვანეთ პინი ხელით</string>
+    <string name="mjpeg_pref_set_pin_text">შეიყვანეთ პინი. ნაგულისხმევი: 000000</string>
+    <string name="mjpeg_pref_block_address">IP მისამართის დაბლოკვა</string>
+    <string name="mjpeg_pref_block_address_summary">დაბლოკეთ კლიენტის IP მისამართი 5 არასწორი პინის მცდელობის შემდეგ 5 წუთის განმავლობაში</string>
+    <string name="mjpeg_pref_settings_advanced">Მოწინავე</string>
+    <string name="mjpeg_pref_wifi_only">გამოიყენეთ მხოლოდ WiFi</string>
+    <string name="mjpeg_pref_wifi_only_summary">სერვერის გაშვება მხოლოდ WiFi ინტერფეისით</string>
+    <string name="mjpeg_pref_enable_ipv6">ჩართეთ IPv6 მხარდაჭერა</string>
+    <string name="mjpeg_pref_enable_ipv6_summary">ასევე გაუშვით სერვერი IPv6 მისამართებზე</string>
+    <string name="mjpeg_pref_enable_localhost">ადგილობრივი ჰოსტის ჩართვა</string>
+    <string name="mjpeg_pref_enable_localhost_summary">გაუშვით სერვერი ლოკალური ჰოსტის მისამართებზეც</string>
+    <string name="mjpeg_pref_localhost_only">მხოლოდ ადგილობრივი მასპინძელი</string>
+    <string name="mjpeg_pref_localhost_only_summary">სერვერის გაშვება მხოლოდ ლოკალური ჰოსტის მისამართებზე</string>
+    <string name="mjpeg_pref_server_port">Სერვერის პორტი</string>
+    <string name="mjpeg_pref_server_port_summary">დააყენეთ პორტი შემომავალი კავშირებისთვის</string>
+    <string name="mjpeg_pref_server_port_text">დააყენეთ სერვერის პორტი შემომავალი კავშირებისთვის. ღირებულებები: 1025–65535 ნაგულისხმევი: 8080</string>
+    <string name="mjpeg_error_port_in_use">პორტი უკვე გამოიყენება. აირჩიე სხვა.</string>
+    <string name="mjpeg_error_invalid_media_projection">უსაფრთხოების შეცდომა: არასწორი მედია პროექცია. სცადე კიდევ ერთხელ.</string>
+    <string name="mjpeg_error_ip_address_not_found">IP მისამართი ვერ მოიძებნა. სცადეთ გამორთოთ \"მხოლოდ WiFi-ის გამოყენება\" ნაკადის პარამეტრებში.</string>
+    <string name="mjpeg_error_notification_permission_required">აპლიკაცია მოითხოვს შეტყობინებების ჩართვას სტრიმინგის სერვისის დასაწყებად. გთხოვთ, ჩართოთ შეტყობინებები აპლიკაციის პარამეტრებში.</string>
+    <string name="mjpeg_error_unspecified">Რაღაც არასწორად წავიდა. Გთხოვთ სცადოთ მოგვიანებით.</string>
+    <string name="mjpeg_start_image_text">დაიწყეთ ნაკადი მოწყობილობაზე</string>
+    <string name="mjpeg_html_stream_connecting">დაკავშირებას ცდილობს</string>
+    <string name="mjpeg_html_stream_require_pin">ეს ნაკადი მასზე წვდომისთვის PIN-ს მოითხოვს</string>
+    <string name="mjpeg_html_enter_pin">შეიყვანეთ პინი:\\u0020</string>
+    <string name="mjpeg_html_submit_pin">გაგზავნა</string>
+    <string name="mjpeg_html_wrong_pin">არასწორი ქინძისთავი!</string>
+    <string name="mjpeg_html_address_blocked">კლიენტის მისამართი დაბლოკილია</string>
+    <string name="mjpeg_html_error_unspecified">Რაღაც არასწორად წავიდა. &lt;br&gt; გთხოვთ, გადატვირთოთ გვერდი და სცადოთ ხელახლა.</string>
+</resources>

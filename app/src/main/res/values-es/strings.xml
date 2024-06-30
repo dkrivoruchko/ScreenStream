@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="app_name">Transmisión de pantalla</string>
     <string name="app_error_title">Error</string>
     <string name="app_error_recover">Recuperar</string>
 
