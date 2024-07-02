@@ -1,3 +1,4 @@
+import com.google.firebase.crashlytics.buildtools.gradle.CrashlyticsExtension
 import com.google.gms.googleservices.GoogleServicesPlugin
 import java.util.Properties
 
@@ -25,6 +26,7 @@ android {
     namespace = "info.dvkr.screenstream"
     compileSdk = rootProject.extra["compileSdkVersion"] as Int
     buildToolsVersion = rootProject.extra["buildToolsVersion"] as String
+    ndkVersion = "26.3.11579264"
 
     defaultConfig {
         applicationId = "info.dvkr.screenstream"
@@ -56,6 +58,9 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            configure<CrashlyticsExtension> {
+                nativeSymbolUploadEnabled = true
+            }
         }
     }
 
@@ -127,6 +132,7 @@ dependencies {
     "PlayStoreImplementation"(libs.webkit)
     "PlayStoreImplementation"(libs.firebase.analytics)
     "PlayStoreImplementation"(libs.firebase.crashlytics)
+    "PlayStoreImplementation"(libs.firebase.crashlytics.ndk)
 
 //    debugImplementation(libs.leakcanary.android)
 }
