@@ -47,11 +47,11 @@ public abstract class StreamingModuleService : Service() {
         val id = intent.getStringExtra(INTENT_ID)
         return when {
             id == null -> {
-                XLog.e(getLog("isDuplicateIntent"), IllegalArgumentException("No intent ID provided"))
+                XLog.w(getLog("isDuplicateIntent", "No intent ID provided"))
                 false
             }
             processedIntents.contains(id) -> {
-                XLog.e(getLog("isDuplicateIntent"), IllegalArgumentException("Duplicate intent ID: $id"))
+                XLog.w(getLog("isDuplicateIntent", "Duplicate intent ID: $id"))
                 true
             }
             else -> {
