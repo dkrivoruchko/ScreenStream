@@ -76,12 +76,10 @@
     <string name="mjpeg_pref_grayscale_summary">Mijozga yuborishdan oldin kul rangdagi rasm</string>
     <string name="mjpeg_pref_resize">Rasm hajmini o\'zgartirish</string>
     <string name="mjpeg_pref_resize_summary">Mijozga yuborishdan oldin rasm hajmini o\'zgartiring</string>
-    <string name="mjpeg_pref_resize_value">%1$d%%</string>
     <string name="mjpeg_pref_resize_text">Rasm hajmini o\'zgartirish koeffitsientini foizda o\'rnating. Qiymatlar: 10–150 Standart: 50 Ekran hajmi: %1$dx%2$d</string>
     <string name="mjpeg_pref_resize_result">Rasm hajmi: %1$dx%2$d</string>
     <string name="mjpeg_pref_rotate">Rasmni soat yo\'nalishi bo\'yicha aylantiring</string>
     <string name="mjpeg_pref_rotate_summary">Mijozga yuborishdan oldin tasvirni aylantiring</string>
-    <string name="mjpeg_pref_rotate_value">%1$d\\u00B0</string>
     <string name="mjpeg_pref_fps">soniyasiga kadrlar sonini cheklang</string>
     <string name="mjpeg_pref_fps_summary">Bir soniyada maksimal kvadratlarni o\'rnating</string>
     <string name="mjpeg_pref_fps_text">Bir soniyada maksimal kvadratlarni o\'rnating. Qiymatlar: 1–120 Standart: 30</string>

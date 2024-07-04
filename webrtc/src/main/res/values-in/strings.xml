@@ -52,4 +52,5 @@
     <string name="webrtc_error_play_integrity_update_play_service">Harap perbarui Layanan Google Play</string>
     <string name="webrtc_error_check_network">Silakan periksa konektivitas Internet</string>
     <string name="webrtc_notification_permission_required">Aplikasi memerlukan pemberitahuan untuk diaktifkan untuk memulai layanan streaming. Harap aktifkan notifikasi di pengaturan aplikasi.</string>
+    <string name="webrtc_error_unspecified">Ada yang salah. Silakan coba lagi nanti.</string>
 </resources>

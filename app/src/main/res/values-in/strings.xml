@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Aliran Layar</string>
     <string name="app_error_title">Kesalahan</string>
     <string name="app_error_recover">Pulih</string>
     <string name="app_logs_collecting">Mengumpulkan log aplikasi…</string>

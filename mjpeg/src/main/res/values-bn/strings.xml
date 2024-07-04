@@ -76,12 +76,10 @@
     <string name="mjpeg_pref_grayscale_summary">ক্লায়েন্টকে পাঠানোর আগে গ্রেস্কেল চিত্র</string>
     <string name="mjpeg_pref_resize">চিত্রের আকার পরিবর্তন করুন</string>
     <string name="mjpeg_pref_resize_summary">ক্লায়েন্টকে পাঠানোর আগে চিত্রের আকার পরিবর্তন করুন</string>
-    <string name="mjpeg_pref_resize_value">%1$d%%</string>
     <string name="mjpeg_pref_resize_text">শতাংশে ইমেজ রিসাইজ ফ্যাক্টর সেট করুন। মান: 10-150 ডিফল্ট: 50 স্ক্রিনের আকার: %1$dx%2$d</string>
     <string name="mjpeg_pref_resize_result">ছবির আকার: %1$dx%2$d</string>
     <string name="mjpeg_pref_rotate">ছবি ঘড়ির কাঁটার দিকে ঘোরান</string>
     <string name="mjpeg_pref_rotate_summary">ক্লায়েন্টকে পাঠানোর আগে চিত্রটি ঘোরান</string>
-    <string name="mjpeg_pref_rotate_value">%1$d\\u00B0</string>
     <string name="mjpeg_pref_fps">প্রতি সেকেন্ডে ফ্রেম সীমিত করুন</string>
     <string name="mjpeg_pref_fps_summary">প্রতি সেকেন্ডে সর্বোচ্চ ফ্রেম সেট করুন</string>
     <string name="mjpeg_pref_fps_text">প্রতি সেকেন্ডে সর্বোচ্চ ফ্রেম সেট করুন। মান: 1-120 ডিফল্ট: 30</string>

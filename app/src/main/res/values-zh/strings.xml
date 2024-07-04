@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">屏幕流</string>
     <string name="app_error_title">错误</string>
     <string name="app_error_recover">恢复</string>
 

@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">স্ক্রিনস্ট্রিম</string>
     <string name="app_error_title">ত্রুটি</string>
     <string name="app_error_recover">পুনরুদ্ধার করুন</string>
     <string name="app_logs_collecting">অ্যাপ্লিকেশন লগ সংগ্রহ করা হচ্ছে...</string>

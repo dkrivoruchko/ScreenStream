@@ -76,12 +76,10 @@
     <string name="mjpeg_pref_grayscale_summary">Gambar grayscale sadurunge dikirim menyang klien</string>
     <string name="mjpeg_pref_resize">Ngowahi ukuran gambar</string>
     <string name="mjpeg_pref_resize_summary">Ganti ukuran gambar sadurunge dikirim menyang klien</string>
-    <string name="mjpeg_pref_resize_value">%1$d%%</string>
     <string name="mjpeg_pref_resize_text">Setel faktor pangowahan ukuran gambar ing persen. Nilai: 10–150 Default: 50 Ukuran layar: %1$dx%2$d</string>
     <string name="mjpeg_pref_resize_result">Ukuran gambar: %1$dx%2$d</string>
     <string name="mjpeg_pref_rotate">Puter gambar searah jarum jam</string>
     <string name="mjpeg_pref_rotate_summary">Puter gambar sadurunge dikirim menyang klien</string>
-    <string name="mjpeg_pref_rotate_value">%1$d\\u00B0</string>
     <string name="mjpeg_pref_fps">Watesan pigura per detik</string>
     <string name="mjpeg_pref_fps_summary">Setel pigura maksimum saben detik</string>
     <string name="mjpeg_pref_fps_text">Setel pigura maksimum saben detik. Nilai: 1–120 Default: 30</string>

@@ -126,6 +126,4 @@
     <string name="mjpeg_html_wrong_pin">የተሳሳተ ፒን!</string>
     <string name="mjpeg_html_address_blocked">የደንበኛ አድራሻ ታግዷል</string>
     <string name="mjpeg_html_error_unspecified">የሆነ ስህተት ተከስቷል። &lt;br&gt; እባክዎ ገጹን እንደገና ይጫኑ እና እንደገና ይሞክሩ።</string>
-    <string name="mjpeg_pref_resize_value">%1$d%%</string>
-    <string name="mjpeg_pref_rotate_value">%1$d\\u00B0</string>
 </resources>

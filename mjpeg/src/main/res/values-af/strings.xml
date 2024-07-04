@@ -78,12 +78,10 @@
     <string name="mjpeg_pref_grayscale_summary">Grysskaal-prent voordat dit aan kliënt gestuur word</string>
     <string name="mjpeg_pref_resize">Verander grootte van prent</string>
     <string name="mjpeg_pref_resize_summary">Verander grootte van prent voordat dit na kliënt gestuur word</string>
-    <string name="mjpeg_pref_resize_value">%1$d%%</string>
     <string name="mjpeg_pref_resize_text">Stel beeldveranderingsfaktor in persentasie. Waardes: 10–150 Verstek: 50 Skermgrootte: %1$dx%2$d</string>
     <string name="mjpeg_pref_resize_result">Prentgrootte: %1$dx%2$d</string>
     <string name="mjpeg_pref_rotate">Draai prent kloksgewys</string>
     <string name="mjpeg_pref_rotate_summary">Draai prent voordat dit na kliënt gestuur word</string>
-    <string name="mjpeg_pref_rotate_value">%1$d\\u00B0</string>
     <string name="mjpeg_pref_fps">Beperk rame per sekonde</string>
     <string name="mjpeg_pref_fps_summary">Stel maksimum rame per sekonde</string>
     <string name="mjpeg_pref_fps_text">Stel maksimum rame per sekonde. Waardes: 1–120 Verstek: 30</string>
