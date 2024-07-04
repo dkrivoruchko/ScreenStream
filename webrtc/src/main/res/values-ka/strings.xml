@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="webrtc_error_recover">აღდგენა</string>
+    <string name="webrtc_error_open_settings">გახსენით პარამეტრები</string>
+    <string name="webrtc_stream_mode">გლობალური რეჟიმი (WebRTC)</string>
+    <string name="webrtc_stream_mode_description">გლობალური რეჟიმის აღწერა</string>
+    <string name="webrtc_stream_mode_details">
+        - უზრუნველყოფილია WebRTC ტექნოლოგიით.\n
+        - ბოლოდან ბოლომდე დაშიფრული კომუნიკაცია.\n
+        - ნაკადის დაცვა პაროლით.\n
+        - შეუძლია ვიდეო და აუდიოს გაგზავნა.\n
+        - დაკავშირება უნიკალური ნაკადის ID და პაროლის გამოყენებით.\n
+        - სტრიმინგისთვის საჭიროა ინტერნეტ კავშირი.\n
+        - ინდივიდუალური მონაცემთა გადაცემა თითოეული კლიენტისთვის (უფრო მეტი კლიენტი გყავთ, მეტი ინტერნეტ გამტარობა გჭირდებათ).
+    </string>
+    <string name="webrtc_stream_server_address">ნაკადზე წვდომა აქ: %1$s</string>
+    <string name="webrtc_stream_stream_id_getting">მიმდინარეობს ნაკადის ID-ის მიღება…</string>
+    <string name="webrtc_stream_stream_id">ნაკადის ID: %1$s</string>
+    <string name="webrtc_stream_stream_password">სტრიმინგის პაროლი: %1$s</string>
+    <string name="webrtc_stream_description_show_password">ნაკადის პაროლის ჩვენება</string>
+    <string name="webrtc_stream_description_get_new_id">მიიღეთ ახალი ნაკადის ID</string>
+    <string name="webrtc_stream_description_create_password">შექმენით ახალი ნაკადის პაროლი</string>
+    <string name="webrtc_stream_description_open_address">გახსენი მისამართი</string>
+    <string name="webrtc_stream_description_copy_address">დააკოპირეთ მისამართი</string>
+    <string name="webrtc_stream_description_share_address">გააზიარე მისამართი</string>
+    <string name="webrtc_stream_description_qr_address">მისამართის QR კოდის სახით ჩვენება</string>
+    <string name="webrtc_stream_description_qr">Ქრ კოდი</string>
+    <string name="webrtc_stream_copied">კოპირებულია</string>
+    <string name="webrtc_stream_audio_select">აირჩიეთ აუდიო წყაროები:</string>
+    <string name="webrtc_stream_audio_mic">მიკროფონი</string>
+    <string name="webrtc_stream_audio_device">მოწყობილობის აუდიო</string>
+    <string name="webrtc_stream_connected_clients">დაკავშირებული კლიენტები: %1$d</string>
+    <string name="webrtc_stream_no_web_browser_found">ვებ ბრაუზერი ვერ მოიძებნა</string>
+    <string name="webrtc_stream_external_app_error">გარე განაცხადის შეცდომა</string>
+    <string name="webrtc_stream_share_address">მოწყობილობის მისამართის გაზიარება</string>
+    <string name="webrtc_stream_start">სტრიმინგის დაწყება</string>
+    <string name="webrtc_stream_stop">შეაჩერე ნაკადი</string>
+    <string name="webrtc_pref_header">გლობალური რეჟიმის (WebRTC) პარამეტრები</string>
+    <string name="webrtc_pref_keep_awake">შეინახეთ მოწყობილობა ფხიზლად</string>
+    <string name="webrtc_pref_keep_awake_summary">შეინახეთ მოწყობილობა და ეკრანი ფხიზლად სტრიმინგის დროს</string>
+    <string name="webrtc_pref_stop_on_sleep">შეაჩერე ნაკადი ძილის დროს</string>
+    <string name="webrtc_pref_stop_on_sleep_summary">შეაჩერე ნაკადი, თუ ეკრანი გამორთულია</string>
+    <string name="webrtc_stream_audio_permission_title">აუდიო ჩაწერის დაშვება</string>
+    <string name="webrtc_stream_audio_permission_message">აუდიოს ჩაწერის ნებართვა აუცილებელია, რომ აპლიკაციამ აუდიო კონტენტის სტრიმინგისთვის შეძლოს.  ამ ნებართვის მინიჭების გარეშე, ნაკადი აუდიოს გარეშე იქნება.</string>
+    <string name="webrtc_stream_audio_permission_message_settings">აპლიკაციის ნებართვებში მიკროფონის წვდომის მინიჭება აუცილებელია იმისათვის, რომ აპლიკაციამ აუდიო კონტენტის სტრიმინგისთვის შეძლოს.  ამ ნებართვის მინიჭების გარეშე, სტრიმინგი განხორციელდება აუდიოს გარეშე.</string>
+    <string name="webrtc_stream_audio_permission_open_settings">გახსენით პარამეტრები</string>
+    <string name="webrtc_stream_cast_permission_required_title">საჭიროა ნებართვა</string>
+    <string name="webrtc_stream_cast_permission_required">ScreenStream აპლიკაცია მოითხოვს Screen Cast ნებართვას ეკრანის გადასაღებად.</string>
+    <string name="webrtc_item_client_disconnect">გათიშვა</string>
+    <string name="webrtc_error_play_integrity_update_play_store">გთხოვთ განაახლოთ Google Play Store</string>
+    <string name="webrtc_error_play_integrity_install_play_store">გთხოვთ დააინსტალიროთ ან ჩართოთ ოფიციალური Google Play Store</string>
+    <string name="webrtc_error_play_integrity_install_play_service">გთხოვთ, დააინსტალიროთ ან ჩართოთ Play Services</string>
+    <string name="webrtc_error_play_integrity_update_play_service">გთხოვთ განაახლოთ Google Play Services</string>
+    <string name="webrtc_error_check_network">გთხოვთ, შეამოწმოთ ინტერნეტთან დაკავშირება</string>
+    <string name="webrtc_notification_permission_required">აპლიკაცია მოითხოვს შეტყობინებების ჩართვას სტრიმინგის სერვისის დასაწყებად. გთხოვთ, ჩართოთ შეტყობინებები აპლიკაციის პარამეტრებში.</string>
+    <string name="webrtc_error_unspecified">Რაღაც არასწორად წავიდა. Გთხოვთ სცადოთ მოგვიანებით.</string>
+</resources>
