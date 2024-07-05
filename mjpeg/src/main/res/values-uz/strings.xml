@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="mjpeg_error_recover">Qayta tiklash</string>
+    <string name="mjpeg_error_open_settings">Sozlamalarni oching</string>
+    <string name="mjpeg_stream_mode">Mahalliy rejim (MJPEG)</string>
+    <string name="mjpeg_stream_mode_description">Mahalliy rejim tavsifi</string>
+    <string name="mjpeg_stream_mode_details">
+        - MJPEG standarti asosida ishlaydi.\n
+        - Xavfsizlik uchun PIN-koddan foydalanadi (shifrlashsiz).\n
+        - Videoni mustaqil tasvirlar seriyasi sifatida yuboradi (audiosiz).\n
+        - Mahalliy tarmoq ichida internetga ulanmasdan ishlaydi.\n
+        - O\'rnatilgan HTTP serveri.\n
+        - IPv4 va IPv6 ni qo\'llab-quvvatlaydigan WiFi va/yoki mobil tarmoqlar bilan ishlaydi.\n
+        - Mijozlar ilova tomonidan taqdim etilgan IP-manzil yordamida veb-brauzer orqali ulanadi.\n
+        - Yuqori darajada moslashtirilgan.\n
+        - Har bir mijoz uchun individual ma\'lumotlarni uzatish (sizda ko\'proq mijozlar bor, sizga ko\'proq tarmoqli kengligi kerak).
+    </string>
+    <string name="mjpeg_item_address">Qurilma manzili:</string>
+    <string name="mjpeg_stream_no_address">Hech qanday manzil topilmadi</string>
+    <string name="mjpeg_stream_interface">Interfeys: %1$s</string>
+    <string name="mjpeg_stream_copied">Ko‘chirildi</string>
+    <string name="mjpeg_stream_no_web_browser_found">Hech qanday veb-brauzer topilmadi</string>
+    <string name="mjpeg_stream_external_app_error">Tashqi dastur xatosi</string>
+    <string name="mjpeg_stream_share_address">Qurilma manzilini ulashing</string>
+    <string name="mjpeg_item_address_description_open_address">Ochiq manzil</string>
+    <string name="mjpeg_item_address_description_copy_address">Manzilni nusxalash</string>
+    <string name="mjpeg_item_address_description_share_address">Manzilni ulashish</string>
+    <string name="mjpeg_item_address_description_qr_address">Manzilni QR-kod sifatida ko\'rsatish</string>
+    <string name="mjpeg_item_address_description_qr">QR-kod</string>
+    <string name="mjpeg_stream_pin">Pin: %1$s</string>
+    <string name="mjpeg_stream_pin_disabled">Pin o\'chirilgan</string>
+    <string name="mjpeg_stream_description_show_pin">Oqim pinini ko‘rsatish</string>
+    <string name="mjpeg_stream_description_create_pin">Yangi oqim pinini yarating</string>
+    <string name="mjpeg_stream_current_traffic">Trafik: %1$,.2f Mbit/s</string>
+    <string name="mjpeg_stream_traffic_graph">Trafik grafigi</string>
+    <string name="mjpeg_stream_connected_clients">Ulangan mijozlar: %1$d</string>
+    <string name="mjpeg_stream_client_disconnected">Ulanmagan</string>
+    <string name="mjpeg_stream_client_slow_network">" Sekin ulanish"</string>
+    <string name="mjpeg_stream_client_connected">Ulangan</string>
+    <string name="mjpeg_stream_client_blocked">Bloklangan</string>
+    <string name="mjpeg_stream_start">Oqimni boshlash</string>
+    <string name="mjpeg_stream_stop">Oqimni to‘xtatish</string>
+    <string name="mjpeg_stream_cast_permission_required_title">Ruxsat talab qilinadi</string>
+    <string name="mjpeg_stream_cast_permission_required">ScreenStream ilovasi ekranni suratga olish uchun Screen Cast ruxsatini talab qiladi.</string>
+    <string name="mjpeg_slow_client_connection">Sekin mijoz ulanishi aniqlandi</string>
+    <string name="mjpeg_pref_header">Mahalliy rejim (MJPEG) sozlamalari</string>
+    <string name="mjpeg_pref_settings_general">General</string>
+    <string name="mjpeg_pref_keep_awake">Qurilmani hushyor turing</string>
+    <string name="mjpeg_pref_keep_awake_summary">Translatsiya paytida qurilma va ekranni hushyor turing</string>
+    <string name="mjpeg_pref_stop_on_sleep">Uyqu rejimida translatsiyani toʻxtating</string>
+    <string name="mjpeg_pref_stop_on_sleep_summary">Agar ekran oʻchsa, oqimni toʻxtating</string>
+    <string name="mjpeg_pref_stop_on_configuration">Konfiguratsiyani o\'zgartirganda oqimni to\'xtating</string>
+    <string name="mjpeg_pref_stop_on_configuration_summary">Konfiguratsiya o\'zgarganda oqimni to\'xtating</string>
+    <string name="mjpeg_pref_detect_slow_connections">Sekin ulanishlar haqida xabar bering</string>
+    <string name="mjpeg_pref_detect_slow_connections_summary">Mijoz ulanishlarining sekinligini aniqlang va xabardor qiling</string>
+    <string name="mjpeg_pref_html_buttons">Veb-sahifa tugmalarini yoqing</string>
+    <string name="mjpeg_pref_html_buttons_summary">Veb-sahifada boshqaruv tugmalarini ko\'rsatish</string>
+    <string name="mjpeg_pref_html_show_press_start">“Qurilmada oqimni boshlash”ni ko‘rsatish</string>
+    <string name="mjpeg_pref_html_show_press_start_summary">Veb-sahifada \"Qurilmada oqimni boshlash\" ni ko\'rsating</string>
+    <string name="mjpeg_pref_html_back_color">Veb-sahifa fon rangi</string>
+    <string name="mjpeg_pref_html_back_color_summary">Veb-sahifaning fon rangini o\'rnating</string>
+    <string name="mjpeg_pref_html_back_color_title">Fon rangini tanlang</string>
+    <string name="mjpeg_pref_settings_image">Rasm</string>
+    <string name="mjpeg_pref_vr_mode">Virtual haqiqat rejimi</string>
+    <string name="mjpeg_pref_vr_mode_summary">Yarim ekrandan tarkibni yozib oling</string>
+    <string name="mjpeg_pref_crop">Rasmni kesish</string>
+    <string name="mjpeg_pref_crop_summary">Mijozga yuborishdan oldin rasmni kesib oling</string>
+    <string name="mjpeg_pref_crop_top">Kesilgan tepa:</string>
+    <string name="mjpeg_pref_crop_bottom">Pastki qismini kesish:</string>
+    <string name="mjpeg_pref_crop_left">Chapni kesish:</string>
+    <string name="mjpeg_pref_crop_right">O\'ngga kesish:</string>
+    <string name="mjpeg_pref_crop_pixels">piksellar</string>
+    <string name="mjpeg_pref_crop_warning">Agar natija bo\'sh rasm bo\'lsa, kesish hisobga olinmaydi</string>
+    <string name="mjpeg_pref_crop_error">Yaroqli kesish qiymatlarini kiriting</string>
+    <string name="mjpeg_pref_grayscale">Kulrang rejim</string>
+    <string name="mjpeg_pref_grayscale_summary">Mijozga yuborishdan oldin kul rangdagi rasm</string>
+    <string name="mjpeg_pref_resize">Rasm hajmini o\'zgartirish</string>
+    <string name="mjpeg_pref_resize_summary">Mijozga yuborishdan oldin rasm hajmini o\'zgartiring</string>
+    <string name="mjpeg_pref_resize_text">Rasm hajmini o\'zgartirish koeffitsientini foizda o\'rnating. Qiymatlar: 10–150 Standart: 50 Ekran hajmi: %1$dx%2$d</string>
+    <string name="mjpeg_pref_resize_result">Rasm hajmi: %1$dx%2$d</string>
+    <string name="mjpeg_pref_rotate">Rasmni soat yo\'nalishi bo\'yicha aylantiring</string>
+    <string name="mjpeg_pref_rotate_summary">Mijozga yuborishdan oldin tasvirni aylantiring</string>
+    <string name="mjpeg_pref_fps">soniyasiga kadrlar sonini cheklang</string>
+    <string name="mjpeg_pref_fps_summary">Bir soniyada maksimal kvadratlarni o\'rnating</string>
+    <string name="mjpeg_pref_fps_text">Bir soniyada maksimal kvadratlarni o\'rnating. Qiymatlar: 1–120 Standart: 30</string>
+    <string name="mjpeg_pref_jpeg_quality">JPEG siqish sifati</string>
+    <string name="mjpeg_pref_jpeg_quality_summary">JPEG siqish sifatini o\'rnating</string>
+    <string name="mjpeg_pref_jpeg_quality_text">JPEG siqish sifatini o\'rnating. Qiymatlar: 10–100 Standart: 80</string>
+    <string name="mjpeg_pref_settings_security">Xavfsizlik</string>
+    <string name="mjpeg_pref_enable_pin">PIN-kodni yoqish</string>
+    <string name="mjpeg_pref_enable_pin_summary">Oqimga kirishni pin bilan himoyalang</string>
+    <string name="mjpeg_pref_hide_pin">Translatsiya boshlanganda PIN-kodni avtomatik yashirish</string>
+    <string name="mjpeg_pref_hide_pin_summary">Oqim paytida pin oʻrniga yulduzcha koʻrsatilsin</string>
+    <string name="mjpeg_pref_new_pin_on_start">Boshlanishda yangi pin</string>
+    <string name="mjpeg_pref_new_pin_on_start_summary">Ilova ishga tushganda yangi pin yarating</string>
+    <string name="mjpeg_pref_auto_change_pin">PIN-kodni avtomatik o\'zgartirish</string>
+    <string name="mjpeg_pref_auto_change_pin_summary">Har bir yangi oqim uchun yangi pin yarating</string>
+    <string name="mjpeg_pref_set_pin">Pinni o\'rnatish</string>
+    <string name="mjpeg_pref_set_pin_summary">PIN-kodni qo\'lda kiriting</string>
+    <string name="mjpeg_pref_set_pin_text">PIN-kodni kiriting. Standart: 000000</string>
+    <string name="mjpeg_pref_block_address">IP manzilini bloklash</string>
+    <string name="mjpeg_pref_block_address_summary">Mijozning IP-manzilini 5 daqiqa davomida 5 marta noto‘g‘ri urinishdan keyin bloklash</string>
+    <string name="mjpeg_pref_settings_advanced">Murakkab</string>
+    <string name="mjpeg_pref_wifi_only">Faqat Wi-Fi-dan foydalaning</string>
+    <string name="mjpeg_pref_wifi_only_summary">Serverni faqat WiFi interfeysida ishga tushiring</string>
+    <string name="mjpeg_pref_enable_ipv6">IPv6 qo\'llab-quvvatlashini yoqing</string>
+    <string name="mjpeg_pref_enable_ipv6_summary">Serverni IPv6 manzillarida ham ishga tushiring</string>
+    <string name="mjpeg_pref_enable_localhost">Mahalliy xostni yoqing</string>
+    <string name="mjpeg_pref_enable_localhost_summary">Serverni mahalliy xost manzillarida ham ishga tushiring</string>
+    <string name="mjpeg_pref_localhost_only">Faqat mahalliy xost</string>
+    <string name="mjpeg_pref_localhost_only_summary">Serverni faqat mahalliy xost manzillarida ishga tushiring</string>
+    <string name="mjpeg_pref_server_port">Server porti</string>
+    <string name="mjpeg_pref_server_port_summary">Kiruvchi ulanishlar uchun portni o\'rnating</string>
+    <string name="mjpeg_pref_server_port_text">Kiruvchi ulanishlar uchun server portini o\'rnating. Qiymatlar: 1025–65535 Standart: 8080</string>
+    <string name="mjpeg_error_port_in_use">Port allaqachon ishlatilmoqda. Boshqasini tanlang.</string>
+    <string name="mjpeg_error_invalid_media_projection">Xavfsizlik xatosi: media proyeksiyasi yaroqsiz. Yana bir marta urinib ko\'ring.</string>
+    <string name="mjpeg_error_ip_address_not_found">IP manzil topilmadi. Oqim sozlamalarida “Faqat WiFi-dan foydalanish”ni o‘chirib ko‘ring.</string>
+    <string name="mjpeg_error_notification_permission_required">Oqim xizmatini boshlash uchun ilova bildirishnomalarni yoqishni talab qiladi. Iltimos, ilova sozlamalarida bildirishnomalarni yoqing.</string>
+    <string name="mjpeg_error_unspecified">Nimadir noto\'g\'ri bajarildi. Iltimos keyinroq qayta urinib ko\'ring.</string>
+    <string name="mjpeg_start_image_text">Qurilmada oqimni boshlang</string>
+    <string name="mjpeg_html_stream_connecting">Ulanishga urinish</string>
+    <string name="mjpeg_html_stream_require_pin">Bu oqimga kirish uchun PIN kod talab qilinadi</string>
+    <string name="mjpeg_html_enter_pin">PIN-kodni kiriting:\\u0020</string>
+    <string name="mjpeg_html_submit_pin">Yuborish</string>
+    <string name="mjpeg_html_wrong_pin">Noto\'g\'ri pin!</string>
+    <string name="mjpeg_html_address_blocked">Mijoz manzili bloklandi</string>
+    <string name="mjpeg_html_error_unspecified">Nimadir noto\'g\'ri bajarildi. &lt;br&gt; Sahifani qayta yuklang va qaytadan urining.</string>
+
+</resources>

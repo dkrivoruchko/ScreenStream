@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="webrtc_error_recover">Waras</string>
+    <string name="webrtc_error_open_settings">Bukak setelan</string>
+    <string name="webrtc_stream_mode">Mode Global (WebRTC)</string>
+    <string name="webrtc_stream_mode_description">Katrangan mode global</string>
+    <string name="webrtc_stream_mode_details">
+        - Powered by teknologi WebRTC.\n
+        - Komunikasi enkripsi end-to-end.\n
+        - Perlindhungan stream nganggo sandhi.\n
+        - Bisa ngirim video lan audio.\n
+        - Sambungake nggunakake ID stream unik lan sandhi.\n
+        - Mbutuhake sambungan internet kanggo streaming.\n
+        - Transmisi data individu kanggo saben klien (luwih akeh klien sing sampeyan duwe, luwih akeh bandwidth Internet sing dibutuhake).
+    </string>
+    <string name="webrtc_stream_server_address">Akses stream ing: %1$s</string>
+    <string name="webrtc_stream_stream_id_getting">Njupuk ID Stream…</string>
+    <string name="webrtc_stream_stream_id">ID Aliran: %1$s</string>
+    <string name="webrtc_stream_stream_password">Sandi stream: %1$s</string>
+    <string name="webrtc_stream_description_show_password">Tampilake sandi stream</string>
+    <string name="webrtc_stream_description_get_new_id">Entuk ID stream anyar</string>
+    <string name="webrtc_stream_description_create_password">Nggawe sandi stream anyar</string>
+    <string name="webrtc_stream_description_open_address">Bukak alamat</string>
+    <string name="webrtc_stream_description_copy_address">alamat salinan</string>
+    <string name="webrtc_stream_description_share_address">Nuduhake alamat</string>
+    <string name="webrtc_stream_description_qr_address">Tampilake alamat minangka kode QR</string>
+    <string name="webrtc_stream_description_qr">QR-kode</string>
+    <string name="webrtc_stream_copied">Disalin</string>
+    <string name="webrtc_stream_audio_select">Pilih sumber audio:</string>
+    <string name="webrtc_stream_audio_mic">Mikropon</string>
+    <string name="webrtc_stream_audio_device">Audio piranti</string>
+    <string name="webrtc_stream_connected_clients">Klien sing disambungake: %1$d</string>
+    <string name="webrtc_stream_no_web_browser_found">Ora ana browser web sing ditemokake</string>
+    <string name="webrtc_stream_external_app_error">Kesalahan aplikasi eksternal</string>
+    <string name="webrtc_stream_share_address">Nuduhake alamat piranti</string>
+    <string name="webrtc_stream_start">Miwiti stream</string>
+    <string name="webrtc_stream_stop">Stop stream</string>
+    <string name="webrtc_pref_header">Setelan mode global (WebRTC).</string>
+    <string name="webrtc_pref_keep_awake">Tansah piranti siyaga</string>
+    <string name="webrtc_pref_keep_awake_summary">Tansah piranti lan layar siyaga nalika streaming</string>
+    <string name="webrtc_pref_stop_on_sleep">Mungkasi stream nalika turu</string>
+    <string name="webrtc_pref_stop_on_sleep_summary">Mungkasi stream yen layar dipateni</string>
+    <string name="webrtc_stream_audio_permission_title">Ngidini rekaman audio</string>
+    <string name="webrtc_stream_audio_permission_message">Idin kanggo ngrekam audio perlu kanggo aplikasi kanggo stream isi audio.  Tanpa menehi idin iki, stream bakal tanpa audio.</string>
+    <string name="webrtc_stream_audio_permission_message_settings">Menehi akses mikropon ing ijin aplikasi perlu kanggo aplikasi kanggo stream konten audio.  Tanpa menehi ijin iki, stream bakal ditindakake tanpa audio.</string>
+    <string name="webrtc_stream_audio_permission_open_settings">Bukak setelan</string>
+    <string name="webrtc_stream_cast_permission_required_title">Ijin dibutuhake</string>
+    <string name="webrtc_stream_cast_permission_required">Aplikasi ScreenStream mbutuhake ijin Screen Cast kanggo njupuk layar.</string>
+    <string name="webrtc_item_client_disconnect">Pedhot</string>
+    <string name="webrtc_error_play_integrity_update_play_store">Mangga nganyari Google Play Store</string>
+    <string name="webrtc_error_play_integrity_install_play_store">Mangga instal utawa aktifake Google Play Store resmi</string>
+    <string name="webrtc_error_play_integrity_install_play_service">Mangga instal utawa ngaktifake Layanan Play</string>
+    <string name="webrtc_error_play_integrity_update_play_service">Mangga nganyari Layanan Google Play</string>
+    <string name="webrtc_error_check_network">Mangga priksa panyambungan Internet</string>
+    <string name="webrtc_notification_permission_required">Aplikasi mbutuhake kabar supaya bisa diaktifake kanggo miwiti layanan streaming. Mangga aktifake kabar ing setelan aplikasi.</string>
+    <string name="webrtc_error_unspecified">Ana sing salah. Mangga nyoba maneh mengko.</string>
+</resources>

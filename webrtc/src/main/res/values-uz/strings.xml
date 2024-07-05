@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="webrtc_error_recover">Qayta tiklash</string>
+    <string name="webrtc_error_open_settings">Sozlamalarni oching</string>
+    <string name="webrtc_stream_mode">Global rejim (WebRTC)</string>
+    <string name="webrtc_stream_mode_description">Global rejim tavsifi</string>
+    <string name="webrtc_stream_mode_details">
+        - WebRTC texnologiyasi asosida ishlaydi.\n
+        - End-to-end shifrlangan aloqa.\n
+        - Parol bilan oqim himoyasi.\n
+        - Video va audio yuborish mumkin.\n
+        - Noyob oqim identifikatori va parol yordamida ulaning.\n
+        - Striming uchun internet ulanishini talab qiladi.\n
+        - Har bir mijoz uchun individual ma\'lumotlarni uzatish (sizda ko\'proq mijozlar bor, sizga ko\'proq Internet o\'tkazish qobiliyati kerak).</string>
+    <string name="webrtc_stream_server_address">Oqimga kirish: %1$s</string>
+    <string name="webrtc_stream_stream_id_getting">Stream ID olinmoqda…</string>
+    <string name="webrtc_stream_stream_id">Oqim identifikatori: %1$s</string>
+    <string name="webrtc_stream_stream_password">Oqim paroli: %1$s</string>
+    <string name="webrtc_stream_description_show_password">Oqim parolini ko‘rsatish</string>
+    <string name="webrtc_stream_description_get_new_id">Yangi oqim identifikatorini oling</string>
+    <string name="webrtc_stream_description_create_password">Yangi oqim parolini yarating</string>
+    <string name="webrtc_stream_description_open_address">Ochiq manzil</string>
+    <string name="webrtc_stream_description_copy_address">Manzilni nusxalash</string>
+    <string name="webrtc_stream_description_share_address">Manzilni ulashish</string>
+    <string name="webrtc_stream_description_qr_address">Manzilni QR-kod sifatida ko\'rsatish</string>
+    <string name="webrtc_stream_description_qr">QR-kod</string>
+    <string name="webrtc_stream_copied">Ko‘chirildi</string>
+    <string name="webrtc_stream_audio_select">Audio manbalarni tanlang:</string>
+    <string name="webrtc_stream_audio_mic">Mikrofon</string>
+    <string name="webrtc_stream_audio_device">Qurilma audio</string>
+    <string name="webrtc_stream_connected_clients">Ulangan mijozlar: %1$d</string>
+    <string name="webrtc_stream_no_web_browser_found">Hech qanday veb-brauzer topilmadi</string>
+    <string name="webrtc_stream_external_app_error">Tashqi dastur xatosi</string>
+    <string name="webrtc_stream_share_address">Qurilma manzilini ulashing</string>
+    <string name="webrtc_stream_start">Oqimni boshlash</string>
+    <string name="webrtc_stream_stop">Oqimni to‘xtatish</string>
+    <string name="webrtc_pref_header">Global rejim (WebRTC) sozlamalari</string>
+    <string name="webrtc_pref_keep_awake">Qurilmani hushyor turing</string>
+    <string name="webrtc_pref_keep_awake_summary">Translatsiya paytida qurilma va ekranni hushyor turing</string>
+    <string name="webrtc_pref_stop_on_sleep">Uyqu rejimida translatsiyani toʻxtating</string>
+    <string name="webrtc_pref_stop_on_sleep_summary">Agar ekran oʻchsa, oqimni toʻxtating</string>
+    <string name="webrtc_stream_audio_permission_title">Ovoz yozishga ruxsat bering</string>
+    <string name="webrtc_stream_audio_permission_message">Ilova audio kontentni oqimlashi uchun audio yozish uchun ruxsat zarur.  Ushbu ruxsat berilmasa, oqim audiosiz bo\'ladi.</string>
+    <string name="webrtc_stream_audio_permission_message_settings">Ilova ruxsatnomalarida mikrofonga ruxsat berish ilova audio kontentni oqimlashi uchun zarur.  Ushbu ruxsatnomasiz oqim hech qanday audiosiz amalga oshiriladi.</string>
+    <string name="webrtc_stream_audio_permission_open_settings">Sozlamalarni oching</string>
+    <string name="webrtc_stream_cast_permission_required_title">Ruxsat talab qilinadi</string>
+    <string name="webrtc_stream_cast_permission_required">ScreenStream ilovasi ekranni suratga olish uchun Screen Cast ruxsatini talab qiladi.</string>
+    <string name="webrtc_item_client_disconnect">Ulanishni uzing</string>
+    <string name="webrtc_error_play_integrity_update_play_store">Google Play doʻkonini yangilang</string>
+    <string name="webrtc_error_play_integrity_install_play_store">Rasmiy Google Play doʻkonini oʻrnating yoki yoqing</string>
+    <string name="webrtc_error_play_integrity_install_play_service">Play xizmatlarini oʻrnating yoki yoqing</string>
+    <string name="webrtc_error_play_integrity_update_play_service">Google Play xizmatlarini yangilang</string>
+    <string name="webrtc_error_check_network">Iltimos, Internetga ulanishni tekshiring</string>
+    <string name="webrtc_notification_permission_required">Oqim xizmatini boshlash uchun ilova bildirishnomalarni yoqishni talab qiladi. Iltimos, ilova sozlamalarida bildirishnomalarni yoqing.</string>
+    <string name="webrtc_error_unspecified">Nimadir noto\'g\'ri bajarildi. Iltimos keyinroq qayta urinib ko\'ring.</string>
+</resources>

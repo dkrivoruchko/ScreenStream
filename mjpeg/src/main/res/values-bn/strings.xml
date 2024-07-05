@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="mjpeg_error_recover">পুনরুদ্ধার করুন</string>
+    <string name="mjpeg_error_open_settings">ওপেন সেটিংস</string>
+    <string name="mjpeg_stream_mode">স্থানীয় মোড (MJPEG)</string>
+    <string name="mjpeg_stream_mode_description">স্থানীয় মোড বিবরণ</string>
+    <string name="mjpeg_stream_mode_details">
+        - MJPEG মান দ্বারা চালিত.\n
+        - নিরাপত্তার জন্য পিন ব্যবহার করে (কোন এনক্রিপশন নেই)।\n
+        - স্বাধীন চিত্রগুলির একটি সিরিজ হিসাবে ভিডিও পাঠায় (কোনও অডিও নেই)।\n
+        - আপনার স্থানীয় নেটওয়ার্কের মধ্যে ইন্টারনেট সংযোগ ছাড়াই কাজ করে।\n
+        - এমবেডেড HTTP সার্ভার।\n
+        - ওয়াইফাই এবং/অথবা মোবাইল নেটওয়ার্কের সাথে কাজ করে, IPv4 এবং IPv6 সমর্থন করে।\n
+        - ক্লায়েন্টরা অ্যাপের প্রদত্ত আইপি ঠিকানা ব্যবহার করে ওয়েব ব্রাউজারের মাধ্যমে সংযুক্ত হন।\n
+        - অত্যন্ত কাস্টমাইজযোগ্য।\n
+        - প্রতিটি ক্লায়েন্টের জন্য পৃথক ডেটা ট্রান্সমিশন (আপনার আরও বেশি ক্লায়েন্ট আছে, আপনার প্রয়োজন আরও বেশি নটওয়ার্ক ব্যান্ডউইথ)।
+    </string>
+    <string name="mjpeg_item_address">ডিভাইস ঠিকানা:</string>
+    <string name="mjpeg_stream_no_address">কোনো ঠিকানা পাওয়া যায়নি</string>
+    <string name="mjpeg_stream_interface">ইন্টারফেস: %1$s</string>
+    <string name="mjpeg_stream_copied">কপি করা হয়েছে</string>
+    <string name="mjpeg_stream_no_web_browser_found">কোনো ওয়েব ব্রাউজার পাওয়া যায়নি</string>
+    <string name="mjpeg_stream_external_app_error">বহিরাগত অ্যাপ্লিকেশন ত্রুটি</string>
+    <string name="mjpeg_stream_share_address">ডিভাইস ঠিকানা শেয়ার করুন</string>
+    <string name="mjpeg_item_address_description_open_address">ঠিকানা খুলুন</string>
+    <string name="mjpeg_item_address_description_copy_address">ঠিকানা কপি করুন</string>
+    <string name="mjpeg_item_address_description_share_address">ঠিকানা শেয়ার করুন</string>
+    <string name="mjpeg_item_address_description_qr_address">QR-কোড হিসাবে ঠিকানা দেখান</string>
+    <string name="mjpeg_item_address_description_qr">QR-কোড</string>
+    <string name="mjpeg_stream_pin">পিন: %1$s</string>
+    <string name="mjpeg_stream_pin_disabled">পিন নিষ্ক্রিয়</string>
+    <string name="mjpeg_stream_description_show_pin">স্ট্রিম পিন দেখান</string>
+    <string name="mjpeg_stream_description_create_pin">নতুন স্ট্রিম পিন তৈরি করুন</string>
+    <string name="mjpeg_stream_current_traffic">ট্রাফিক: %1$,.2f Mbit/s</string>
+    <string name="mjpeg_stream_traffic_graph">ট্র্যাফিক গ্রাফ</string>
+    <string name="mjpeg_stream_connected_clients">সংযুক্ত ক্লায়েন্ট: %1$d</string>
+    <string name="mjpeg_stream_client_disconnected">সংযোগ বিচ্ছিন্ন</string>
+    <string name="mjpeg_stream_client_slow_network">ধীর গতির সংযোগ</string>
+    <string name="mjpeg_stream_client_connected">সংযুক্ত</string>
+    <string name="mjpeg_stream_client_blocked">অবরুদ্ধ (ব্লক)</string>
+    <string name="mjpeg_stream_start">স্ট্রীম শুরু করুন</string>
+    <string name="mjpeg_stream_stop">স্ট্রীম বন্ধ করুন</string>
+    <string name="mjpeg_stream_cast_permission_required_title">অনুমতি প্রয়োজন</string>
+    <string name="mjpeg_stream_cast_permission_required">স্ক্রিন ক্যাপচার করতে স্ক্রিনস্ট্রিম অ্যাপ্লিকেশনটির স্ক্রিন কাস্টের অনুমতি প্রয়োজন।</string>
+    <string name="mjpeg_slow_client_connection">ধীরগতির ক্লায়েন্ট সংযোগ সনাক্ত করা হয়েছে৷</string>
+    <string name="mjpeg_pref_header">স্থানীয় মোড (MJPEG) সেটিংস</string>
+    <string name="mjpeg_pref_settings_general">সাধারণ</string>
+    <string name="mjpeg_pref_keep_awake">ডিভাইস জাগ্রত রাখুন</string>
+    <string name="mjpeg_pref_keep_awake_summary">স্ট্রিমিং করার সময় ডিভাইস এবং স্ক্রীন সজাগ রাখুন</string>
+    <string name="mjpeg_pref_stop_on_sleep">মোবাইল স্লিপ মোডে স্ট্রিম বন্ধ করুন</string>
+    <string name="mjpeg_pref_stop_on_sleep_summary">স্ক্রিন বন্ধ হলে স্ট্রিম বন্ধ করুন</string>
+    <string name="mjpeg_pref_stop_on_configuration">কনফিগারেশন পরিবর্তনে স্ট্রিম বন্ধ করুন</string>
+    <string name="mjpeg_pref_stop_on_configuration_summary">স্ট্রিমিং কনফিগারেশন পরিবর্তন হলে স্ট্রিমিং বন্ধ করুন</string>
+    <string name="mjpeg_pref_detect_slow_connections">ধীর সংযোগের জন্য বিজ্ঞপ্তি</string>
+    <string name="mjpeg_pref_detect_slow_connections_summary">ধীর ক্লায়েন্ট সংযোগের জন্য সনাক্ত করুন এবং অবহিত করুন</string>
+    <string name="mjpeg_pref_html_buttons">ওয়েব পৃষ্ঠা বোতাম সক্রিয় করুন</string>
+    <string name="mjpeg_pref_html_buttons_summary">ওয়েব পেজে কন্ট্রোল বোতাম দেখান</string>
+    <string name="mjpeg_pref_html_show_press_start">\"ডিভাইসে স্ট্রিম শুরু করুন\" দেখান</string>
+    <string name="mjpeg_pref_html_show_press_start_summary">ওয়েব পৃষ্ঠায় \"ডিভাইসে স্ট্রিম শুরু করুন\" দেখান</string>
+    <string name="mjpeg_pref_html_back_color">ওয়েব পৃষ্ঠার পটভূমির রঙ</string>
+    <string name="mjpeg_pref_html_back_color_summary">ওয়েব পৃষ্ঠার পটভূমির রঙ সেট করুন</string>
+    <string name="mjpeg_pref_html_back_color_title">পটভূমির রঙ নির্বাচন করুন</string>
+    <string name="mjpeg_pref_settings_image">ছবি</string>
+    <string name="mjpeg_pref_vr_mode">ভার্চুয়াল বাস্তবতা মোড</string>
+    <string name="mjpeg_pref_vr_mode_summary">অর্ধ স্ক্রীন থেকে বিষয়বস্তু ক্যাপচার</string>
+    <string name="mjpeg_pref_crop">ফসল ইমেজ</string>
+    <string name="mjpeg_pref_crop_summary">ক্লায়েন্টকে পাঠানোর আগে ছবি ক্রপ করুন</string>
+    <string name="mjpeg_pref_crop_top">ক্রপ টপ:</string>
+    <string name="mjpeg_pref_crop_bottom">ক্রপ শেষের দিক</string>
+    <string name="mjpeg_pref_crop_left">ক্রপ  বামদিকস্থ</string>
+    <string name="mjpeg_pref_crop_right">ক্রপ  দক্ষিণদিক</string>
+    <string name="mjpeg_pref_crop_pixels">পিক্সেল</string>
+    <string name="mjpeg_pref_crop_warning">ফলাফল একটি খালি ছবি হলে ফসল উপেক্ষা করা হবে</string>
+    <string name="mjpeg_pref_crop_error">বৈধ  মান লিখুন</string>
+    <string name="mjpeg_pref_grayscale">গ্রেস্কেল মোড</string>
+    <string name="mjpeg_pref_grayscale_summary">ক্লায়েন্টকে পাঠানোর আগে গ্রেস্কেল চিত্র</string>
+    <string name="mjpeg_pref_resize">চিত্রের আকার পরিবর্তন করুন</string>
+    <string name="mjpeg_pref_resize_summary">ক্লায়েন্টকে পাঠানোর আগে চিত্রের আকার পরিবর্তন করুন</string>
+    <string name="mjpeg_pref_resize_text">শতাংশে ইমেজ রিসাইজ ফ্যাক্টর সেট করুন। মান: 10-150 ডিফল্ট: 50 স্ক্রিনের আকার: %1$dx%2$d</string>
+    <string name="mjpeg_pref_resize_result">ছবির আকার: %1$dx%2$d</string>
+    <string name="mjpeg_pref_rotate">ছবি ঘড়ির কাঁটার দিকে ঘোরান</string>
+    <string name="mjpeg_pref_rotate_summary">ক্লায়েন্টকে পাঠানোর আগে চিত্রটি ঘোরান</string>
+    <string name="mjpeg_pref_fps">প্রতি সেকেন্ডে ফ্রেম সীমিত করুন</string>
+    <string name="mjpeg_pref_fps_summary">প্রতি সেকেন্ডে সর্বোচ্চ ফ্রেম সেট করুন</string>
+    <string name="mjpeg_pref_fps_text">প্রতি সেকেন্ডে সর্বোচ্চ ফ্রেম সেট করুন। মান: 1-120 ডিফল্ট: 30</string>
+    <string name="mjpeg_pref_jpeg_quality">JPEG কম্প্রেশন গুণমান</string>
+    <string name="mjpeg_pref_jpeg_quality_summary">JPEG কম্প্রেশন গুণমান সেট করুন</string>
+    <string name="mjpeg_pref_jpeg_quality_text">JPEG কম্প্রেশন গুণমান সেট করুন। মান: 10-100 ডিফল্ট: 80</string>
+    <string name="mjpeg_pref_settings_security">নিরাপত্তা</string>
+    <string name="mjpeg_pref_enable_pin">পিন সক্ষম করুন</string>
+    <string name="mjpeg_pref_enable_pin_summary">পিন দিয়ে স্ট্রিম অ্যাক্সেস রক্ষা করুন</string>
+    <string name="mjpeg_pref_hide_pin">স্ট্রীম শুরুতে স্বয়ংক্রিয়ভাবে পিন লুকান</string>
+    <string name="mjpeg_pref_hide_pin_summary">স্ট্রিমিং করার সময় পিনের পরিবর্তে তারকাচিহ্ন দেখান</string>
+    <string name="mjpeg_pref_new_pin_on_start">শুরুতে নতুন পিন</string>
+    <string name="mjpeg_pref_new_pin_on_start_summary">অ্যাপ্লিকেশন শুরুতে নতুন পিন তৈরি করুন</string>
+    <string name="mjpeg_pref_auto_change_pin">স্বয়ংক্রিয়ভাবে পিন পরিবর্তন করুন</string>
+    <string name="mjpeg_pref_auto_change_pin_summary">প্রতিটি নতুন স্ট্রিমের জন্য নতুন পিন তৈরি করুন</string>
+    <string name="mjpeg_pref_set_pin">পিন সেট করুন</string>
+    <string name="mjpeg_pref_set_pin_summary">ম্যানুয়ালি পিন লিখুন</string>
+    <string name="mjpeg_pref_set_pin_text">পিন লিখুন। ডিফল্ট: 000000</string>
+    <string name="mjpeg_pref_block_address">IP ঠিকানা ব্লক করুন</string>
+    <string name="mjpeg_pref_block_address_summary">5 মিনিটের জন্য 5টি ভুল পিনের প্রচেষ্টার পরে ক্লায়েন্ট আইপি ঠিকানা ব্লক করুন</string>
+    <string name="mjpeg_pref_settings_advanced">উন্নত</string>
+    <string name="mjpeg_pref_wifi_only">শুধুমাত্র ওয়াইফাই ব্যবহার করুন</string>
+    <string name="mjpeg_pref_wifi_only_summary">শুধুমাত্র ওয়াইফাই ইন্টারফেসে সার্ভার চালান</string>
+    <string name="mjpeg_pref_enable_ipv6">IPv6 সমর্থন সক্ষম করুন</string>
+    <string name="mjpeg_pref_enable_ipv6_summary">IPv6 ঠিকানাগুলিতেও সার্ভার চালান</string>
+    <string name="mjpeg_pref_enable_localhost">স্থানীয় হোস্ট সক্ষম করুন</string>
+    <string name="mjpeg_pref_enable_localhost_summary">স্থানীয় হোস্ট ঠিকানাগুলিতেও সার্ভার চালান</string>
+    <string name="mjpeg_pref_localhost_only">শুধুমাত্র স্থানীয় হোস্ট</string>
+    <string name="mjpeg_pref_localhost_only_summary">শুধুমাত্র স্থানীয় হোস্ট ঠিকানাগুলিতে সার্ভার চালান</string>
+    <string name="mjpeg_pref_server_port">সার্ভারের পোর্ট</string>
+    <string name="mjpeg_pref_server_port_summary">ইনকামিং সংযোগের জন্য পোর্ট সেট করুন</string>
+    <string name="mjpeg_pref_server_port_text">ইনকামিং সংযোগের জন্য সার্ভার পোর্ট সেট করুন। মান: 1025-65535 ডিফল্ট: 8080</string>
+    <string name="mjpeg_error_port_in_use">পোর্ট ইতিমধ্যেই ব্যবহার করা হচ্ছে। অন্য একটি চয়ন করুন.</string>
+    <string name="mjpeg_error_invalid_media_projection">নিরাপত্তা ত্রুটি: অবৈধ মিডিয়া অভিক্ষেপ. আরেক বার চেষ্টা করুন।</string>
+    <string name="mjpeg_error_ip_address_not_found">আইপি ঠিকানা পাওয়া যায়নি. স্ট্রিম সেটিংসে \"শুধু ওয়াইফাই ব্যবহার করুন\" অক্ষম করার চেষ্টা করুন৷</string>
+    <string name="mjpeg_error_notification_permission_required">স্ট্রিমিং পরিষেবা শুরু করতে অ্যাপ্লিকেশানের জন্য বিজ্ঞপ্তিগুলি সক্রিয় করা প্রয়োজন৷ অ্যাপ্লিকেশন সেটিংসে বিজ্ঞপ্তি সক্রিয় করুন.</string>
+    <string name="mjpeg_error_unspecified">কিছু ভুল হয়েছে। অনুগ্রহ করে একটু পরে আবার চেষ্টা করুন।</string>
+    <string name="mjpeg_start_image_text">ডিভাইসে স্ট্রিম শুরু করুন</string>
+    <string name="mjpeg_html_stream_connecting">সংযোগ করার চেষ্টা করছে</string>
+    <string name="mjpeg_html_stream_require_pin">এই স্ট্রীমটি অ্যাক্সেস করতে পিন প্রয়োজন৷</string>
+    <string name="mjpeg_html_enter_pin">পিন লিখুন:\\u0020</string>
+    <string name="mjpeg_html_submit_pin">জমা দিন</string>
+    <string name="mjpeg_html_wrong_pin">ভুল পিন!</string>
+    <string name="mjpeg_html_address_blocked">ক্লায়েন্ট ঠিকানা ব্লক করা হয়েছে</string>
+    <string name="mjpeg_html_error_unspecified">কিছু ভুল হয়েছে। &lt;br&gt; অনুগ্রহ করে পৃষ্ঠা পুনরায় লোড করুন এবং আবার চেষ্টা করুন।</string>
+</resources>

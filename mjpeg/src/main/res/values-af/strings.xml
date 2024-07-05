@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="mjpeg_error_recover">Herstel</string>
+    <string name="mjpeg_error_open_settings">Maak instellings oop</string>
+    <string name="mjpeg_stream_mode">Plaaslike modus (MJPEG)</string>
+    <string name="mjpeg_stream_mode_description">Plaaslike modus beskrywing</string>
+    <string name="mjpeg_stream_mode_details">
+
+- Aangedryf deur MJPEG-standaard.\n
+- Gebruik PIN vir sekuriteit (geen enkripsie).\n
+- Stuur video as \'n reeks onafhanklike beelde (geen oudio).\n
+- Werk sonder \'n internetverbinding binne jou plaaslike netwerk.\n
+- Ingebedde HTTP-bediener.\n
+- Werk met WiFi en/of mobiele netwerke, wat IPv4 en IPv6 ondersteun.\n
+- Kliënte koppel via webblaaier deur die toepassing se verskafde IP-adres te gebruik.\n
+- Hoogs aanpasbaar.\n
+- Individuele data-oordrag vir elke kliënt (meer kliënte wat jy het, meer nie-werk bandwydte wat jy nodig het).
+
+    </string>
+    <string name="mjpeg_item_address">Toesteladres:</string>
+    <string name="mjpeg_stream_no_address">Geen adres gevind nie</string>
+    <string name="mjpeg_stream_interface">Koppelvlak: %1$s</string>
+    <string name="mjpeg_stream_copied">Gekopieer</string>
+    <string name="mjpeg_stream_no_web_browser_found">Geen webblaaier gevind nie</string>
+    <string name="mjpeg_stream_external_app_error">Eksterne toepassingsfout</string>
+    <string name="mjpeg_stream_share_address">Deel toesteladres</string>
+    <string name="mjpeg_item_address_description_open_address">Maak adres oop</string>
+    <string name="mjpeg_item_address_description_copy_address">Kopieer adres</string>
+    <string name="mjpeg_item_address_description_share_address">Deel adres</string>
+    <string name="mjpeg_item_address_description_qr_address">Wys adres as QR-kode</string>
+    <string name="mjpeg_item_address_description_qr">QR kode</string>
+    <string name="mjpeg_stream_pin">Speld: %1$s</string>
+    <string name="mjpeg_stream_pin_disabled">Speld gedeaktiveer</string>
+    <string name="mjpeg_stream_description_show_pin">Wys stroompen</string>
+    <string name="mjpeg_stream_description_create_pin">Skep nuwe stroompen</string>
+    <string name="mjpeg_stream_current_traffic">Verkeer: %1$,.2f Mbit/s</string>
+    <string name="mjpeg_stream_traffic_graph">Verkeer grafiek</string>
+    <string name="mjpeg_stream_connected_clients">Gekoppelde kliënte: %1$d</string>
+    <string name="mjpeg_stream_client_disconnected">Ontkoppel</string>
+    <string name="mjpeg_stream_client_slow_network">Stadige verbinding</string>
+    <string name="mjpeg_stream_client_connected">Gekoppel</string>
+    <string name="mjpeg_stream_client_blocked">Geblokkeer</string>
+    <string name="mjpeg_stream_start">Begin stroom</string>
+    <string name="mjpeg_stream_stop">Stop stroom</string>
+    <string name="mjpeg_stream_cast_permission_required_title">Toestemming vereis</string>
+    <string name="mjpeg_stream_cast_permission_required">ScreenStream-toepassing vereis Screen Cast-toestemming om skerm vas te vang.</string>
+    <string name="mjpeg_slow_client_connection">Stadige kliëntverbinding bespeur</string>
+    <string name="mjpeg_pref_header">Plaaslike modus (MJPEG) instellings</string>
+    <string name="mjpeg_pref_settings_general">Algemeen</string>
+    <string name="mjpeg_pref_keep_awake">Hou toestel wakker</string>
+    <string name="mjpeg_pref_keep_awake_summary">Hou toestel en skerm wakker terwyl dit stroom</string>
+    <string name="mjpeg_pref_stop_on_sleep">Stop stroom op slaap</string>
+    <string name="mjpeg_pref_stop_on_sleep_summary">Stop stroom as die skerm afskakel</string>
+    <string name="mjpeg_pref_stop_on_configuration">Stop stroom met konfigurasieverandering</string>
+    <string name="mjpeg_pref_stop_on_configuration_summary">Hou op stroom wanneer stroomopstelling verander</string>
+    <string name="mjpeg_pref_detect_slow_connections">Stel kennis vir stadige verbindings</string>
+    <string name="mjpeg_pref_detect_slow_connections_summary">Bespeur en stel in kennis vir stadige kliëntverbindings</string>
+    <string name="mjpeg_pref_html_buttons">Aktiveer webbladknoppies</string>
+    <string name="mjpeg_pref_html_buttons_summary">Wys beheerknoppies op webblad</string>
+    <string name="mjpeg_pref_html_show_press_start">Wys \"Begin stroom op toestel\"</string>
+    <string name="mjpeg_pref_html_show_press_start_summary">Wys \"Begin stroom op toestel\" op webblad</string>
+    <string name="mjpeg_pref_html_back_color">Webblad agtergrondkleur</string>
+    <string name="mjpeg_pref_html_back_color_summary">Stel webblad agtergrondkleur</string>
+    <string name="mjpeg_pref_html_back_color_title">Kies agtergrondkleur</string>
+    <string name="mjpeg_pref_settings_image">Beeld</string>
+    <string name="mjpeg_pref_vr_mode">Virtuele werklikheidsmodus</string>
+    <string name="mjpeg_pref_vr_mode_summary">Vang inhoud van halwe skerm af</string>
+    <string name="mjpeg_pref_crop">Sny prent</string>
+    <string name="mjpeg_pref_crop_summary">Sny prent voor dit na kliënt gestuur word</string>
+    <string name="mjpeg_pref_crop_top">Crop top:</string>
+    <string name="mjpeg_pref_crop_bottom">Sny onderkant:</string>
+    <string name="mjpeg_pref_crop_left">Sny links:</string>
+    <string name="mjpeg_pref_crop_right">Sny regs:</string>
+    <string name="mjpeg_pref_crop_pixels">pixels</string>
+    <string name="mjpeg_pref_crop_warning">Sny sal geïgnoreer word as die resultaat \'n leë prent is</string>
+    <string name="mjpeg_pref_crop_error">Voer geldige oeswaardes in</string>
+    <string name="mjpeg_pref_grayscale">Grysskaalmodus</string>
+    <string name="mjpeg_pref_grayscale_summary">Grysskaal-prent voordat dit aan kliënt gestuur word</string>
+    <string name="mjpeg_pref_resize">Verander grootte van prent</string>
+    <string name="mjpeg_pref_resize_summary">Verander grootte van prent voordat dit na kliënt gestuur word</string>
+    <string name="mjpeg_pref_resize_text">Stel beeldveranderingsfaktor in persentasie. Waardes: 10–150 Verstek: 50 Skermgrootte: %1$dx%2$d</string>
+    <string name="mjpeg_pref_resize_result">Prentgrootte: %1$dx%2$d</string>
+    <string name="mjpeg_pref_rotate">Draai prent kloksgewys</string>
+    <string name="mjpeg_pref_rotate_summary">Draai prent voordat dit na kliënt gestuur word</string>
+    <string name="mjpeg_pref_fps">Beperk rame per sekonde</string>
+    <string name="mjpeg_pref_fps_summary">Stel maksimum rame per sekonde</string>
+    <string name="mjpeg_pref_fps_text">Stel maksimum rame per sekonde. Waardes: 1–120 Verstek: 30</string>
+    <string name="mjpeg_pref_jpeg_quality">JPEG kompressie kwaliteit</string>
+    <string name="mjpeg_pref_jpeg_quality_summary">Stel JPEG-kompressiekwaliteit in</string>
+    <string name="mjpeg_pref_jpeg_quality_text">Stel JPEG-kompressiekwaliteit in. Waardes: 10–100 Verstek: 80</string>
+    <string name="mjpeg_pref_settings_security">Sekuriteit</string>
+    <string name="mjpeg_pref_enable_pin">Aktiveer pen</string>
+    <string name="mjpeg_pref_enable_pin_summary">Beskerm toegang tot stroom met pen</string>
+    <string name="mjpeg_pref_hide_pin">Versteek pen outomaties by stroombegin</string>
+    <string name="mjpeg_pref_hide_pin_summary">Wys sterretjies in plaas van speld terwyl jy stroom</string>
+    <string name="mjpeg_pref_new_pin_on_start">Nuwe pen by begin</string>
+    <string name="mjpeg_pref_new_pin_on_start_summary">Genereer nuwe pen wanneer toepassing begin</string>
+    <string name="mjpeg_pref_auto_change_pin">Verander pen outomaties</string>
+    <string name="mjpeg_pref_auto_change_pin_summary">Genereer nuwe pen vir elke nuwe stroom</string>
+    <string name="mjpeg_pref_set_pin">Stel pen</string>
+    <string name="mjpeg_pref_set_pin_summary">Voer pen handmatig in</string>
+    <string name="mjpeg_pref_set_pin_text">Voer pen in. Verstek: 000000</string>
+    <string name="mjpeg_pref_block_address">Blokkeer IP-adres</string>
+    <string name="mjpeg_pref_block_address_summary">Blokkeer die kliënt se IP-adres na 5 verkeerde penpogings vir 5 minute</string>
+    <string name="mjpeg_pref_settings_advanced">Gevorderd</string>
+    <string name="mjpeg_pref_wifi_only">Gebruik slegs WiFi</string>
+    <string name="mjpeg_pref_wifi_only_summary">Begin bediener slegs op WiFi-koppelvlak</string>
+    <string name="mjpeg_pref_enable_ipv6">Aktiveer IPv6-ondersteuning</string>
+    <string name="mjpeg_pref_enable_ipv6_summary">Begin bediener ook op IPv6-adresse</string>
+    <string name="mjpeg_pref_enable_localhost">Aktiveer plaaslike gasheer</string>
+    <string name="mjpeg_pref_enable_localhost_summary">Begin bediener ook op plaaslike gasheeradresse</string>
+    <string name="mjpeg_pref_localhost_only">Slegs plaaslike gasheer</string>
+    <string name="mjpeg_pref_localhost_only_summary">Begin bediener slegs op plaaslike gasheeradresse</string>
+    <string name="mjpeg_pref_server_port">Bedienerpoort</string>
+    <string name="mjpeg_pref_server_port_summary">Stel poort vir inkomende verbindings</string>
+    <string name="mjpeg_pref_server_port_text">Stel bedienerpoort vir inkomende verbindings. Waardes: 1025–65535 Verstek: 8080</string>
+    <string name="mjpeg_error_port_in_use">Poort reeds in gebruik. Kies \'n ander een.</string>
+    <string name="mjpeg_error_invalid_media_projection">Sekuriteitsfout: Ongeldige mediaprojeksie. Probeer nog een keer.</string>
+    <string name="mjpeg_error_ip_address_not_found">IP-adres nie gevind nie. Probeer om \"Gebruik slegs WiFi\" in stroominstellings te deaktiveer.</string>
+    <string name="mjpeg_error_notification_permission_required">Aansoek vereis dat kennisgewings geaktiveer word om stroomdiens te begin. Aktiveer asseblief kennisgewings in toepassinginstellings.</string>
+    <string name="mjpeg_error_unspecified">Iets het verkeerd geloop. Probeer asseblief weer later.</string>
+    <string name="mjpeg_start_image_text">Begin stroom op toestel</string>
+    <string name="mjpeg_html_stream_connecting">Probeer om te koppel</string>
+    <string name="mjpeg_html_stream_require_pin">Hierdie stroom vereis PIN om toegang daartoe te verkry</string>
+    <string name="mjpeg_html_enter_pin">Voer pen in:\\u0020</string>
+    <string name="mjpeg_html_submit_pin">Indien</string>
+    <string name="mjpeg_html_wrong_pin">Verkeerde pen!</string>
+    <string name="mjpeg_html_address_blocked">Kliëntadres geblokkeer</string>
+    <string name="mjpeg_html_error_unspecified">Iets het verkeerd geloop. &lt;br&gt; Herlaai asseblief bladsy en probeer weer.</string>
+
+
+</resources>
