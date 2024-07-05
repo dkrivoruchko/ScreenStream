@@ -2,6 +2,7 @@
 <resources>
     <string name="mjpeg_error_recover">აღდგენა</string>
     <string name="mjpeg_error_open_settings">გახსენით პარამეტრები</string>
+
     <string name="mjpeg_stream_mode">ლოკალური რეჟიმი (MJPEG)</string>
     <string name="mjpeg_stream_mode_description">ადგილობრივი რეჟიმის აღწერა</string>
     <string name="mjpeg_stream_mode_details">
@@ -14,6 +15,7 @@
         - ძალიან რეგულირებადი.\n
         - ინდივიდუალური მონაცემთა გადაცემა თითოეული კლიენტისთვის (უფრო მეტი კლიენტი გყავთ, მეტი არასამუშაო გამტარობა გჭირდებათ).
     </string>
+
     <string name="mjpeg_item_address">მოწყობილობის მისამართი:</string>
     <string name="mjpeg_stream_no_address">მისამართი ვერ მოიძებნა</string>
     <string name="mjpeg_stream_interface">ინტერფეისი: %1$s</string>
@@ -39,9 +41,12 @@
     <string name="mjpeg_stream_client_blocked">დაბლოკილია</string>
     <string name="mjpeg_stream_start">სტრიმინგის დაწყება</string>
     <string name="mjpeg_stream_stop">შეაჩერე ნაკადი</string>
+
     <string name="mjpeg_stream_cast_permission_required_title">საჭიროა ნებართვა</string>
     <string name="mjpeg_stream_cast_permission_required">ScreenStream აპლიკაცია მოითხოვს Screen Cast ნებართვას ეკრანის გადასაღებად.</string>
+
     <string name="mjpeg_slow_client_connection">აღმოჩენილია კლიენტის ნელი კავშირი</string>
+
     <string name="mjpeg_pref_header">ლოკალური რეჟიმის (MJPEG) პარამეტრები</string>
     <string name="mjpeg_pref_settings_general">გენერალი</string>
     <string name="mjpeg_pref_keep_awake">შეინახეთ მოწყობილობა ფხიზლად</string>
@@ -59,6 +64,7 @@
     <string name="mjpeg_pref_html_back_color">ვებ გვერდის ფონის ფერი</string>
     <string name="mjpeg_pref_html_back_color_summary">დააყენეთ ვებ გვერდის ფონის ფერი</string>
     <string name="mjpeg_pref_html_back_color_title">აირჩიეთ ფონის ფერი</string>
+
     <string name="mjpeg_pref_settings_image">გამოსახულება</string>
     <string name="mjpeg_pref_vr_mode">ვირტუალური რეალობის რეჟიმი</string>
     <string name="mjpeg_pref_vr_mode_summary">გადაიღეთ შინაარსი ნახევარი ეკრანიდან</string>
@@ -85,6 +91,7 @@
     <string name="mjpeg_pref_jpeg_quality">JPEG შეკუმშვის ხარისხი</string>
     <string name="mjpeg_pref_jpeg_quality_summary">დააყენეთ JPEG შეკუმშვის ხარისხი</string>
     <string name="mjpeg_pref_jpeg_quality_text">დააყენეთ JPEG შეკუმშვის ხარისხი. ღირებულებები: 10–100 ნაგულისხმევი: 80</string>
+
     <string name="mjpeg_pref_settings_security">უსაფრთხოება</string>
     <string name="mjpeg_pref_enable_pin">ჩართეთ პინი</string>
     <string name="mjpeg_pref_enable_pin_summary">დაიცავით ნაკადზე წვდომა პინით</string>
@@ -99,6 +106,7 @@
     <string name="mjpeg_pref_set_pin_text">შეიყვანეთ პინი. ნაგულისხმევი: 000000</string>
     <string name="mjpeg_pref_block_address">IP მისამართის დაბლოკვა</string>
     <string name="mjpeg_pref_block_address_summary">დაბლოკეთ კლიენტის IP მისამართი 5 არასწორი პინის მცდელობის შემდეგ 5 წუთის განმავლობაში</string>
+
     <string name="mjpeg_pref_settings_advanced">Მოწინავე</string>
     <string name="mjpeg_pref_wifi_only">გამოიყენეთ მხოლოდ WiFi</string>
     <string name="mjpeg_pref_wifi_only_summary">სერვერის გაშვება მხოლოდ WiFi ინტერფეისით</string>
@@ -111,12 +119,15 @@
     <string name="mjpeg_pref_server_port">Სერვერის პორტი</string>
     <string name="mjpeg_pref_server_port_summary">დააყენეთ პორტი შემომავალი კავშირებისთვის</string>
     <string name="mjpeg_pref_server_port_text">დააყენეთ სერვერის პორტი შემომავალი კავშირებისთვის. ღირებულებები: 1025–65535 ნაგულისხმევი: 8080</string>
+
     <string name="mjpeg_error_port_in_use">პორტი უკვე გამოიყენება. აირჩიე სხვა.</string>
     <string name="mjpeg_error_invalid_media_projection">უსაფრთხოების შეცდომა: არასწორი მედია პროექცია. სცადე კიდევ ერთხელ.</string>
     <string name="mjpeg_error_ip_address_not_found">IP მისამართი ვერ მოიძებნა. სცადეთ გამორთოთ \"მხოლოდ WiFi-ის გამოყენება\" ნაკადის პარამეტრებში.</string>
     <string name="mjpeg_error_notification_permission_required">აპლიკაცია მოითხოვს შეტყობინებების ჩართვას სტრიმინგის სერვისის დასაწყებად. გთხოვთ, ჩართოთ შეტყობინებები აპლიკაციის პარამეტრებში.</string>
     <string name="mjpeg_error_unspecified">Რაღაც არასწორად წავიდა. Გთხოვთ სცადოთ მოგვიანებით.</string>
+
     <string name="mjpeg_start_image_text">დაიწყეთ ნაკადი მოწყობილობაზე</string>
+
     <string name="mjpeg_html_stream_connecting">დაკავშირებას ცდილობს</string>
     <string name="mjpeg_html_stream_require_pin">ეს ნაკადი მასზე წვდომისთვის PIN-ს მოითხოვს</string>
     <string name="mjpeg_html_enter_pin">შეიყვანეთ პინი:\\u0020</string>

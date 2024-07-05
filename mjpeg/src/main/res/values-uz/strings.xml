@@ -2,6 +2,7 @@
 <resources>
     <string name="mjpeg_error_recover">Qayta tiklash</string>
     <string name="mjpeg_error_open_settings">Sozlamalarni oching</string>
+
     <string name="mjpeg_stream_mode">Mahalliy rejim (MJPEG)</string>
     <string name="mjpeg_stream_mode_description">Mahalliy rejim tavsifi</string>
     <string name="mjpeg_stream_mode_details">
@@ -15,6 +16,7 @@
         - Yuqori darajada moslashtirilgan.\n
         - Har bir mijoz uchun individual ma\'lumotlarni uzatish (sizda ko\'proq mijozlar bor, sizga ko\'proq tarmoqli kengligi kerak).
     </string>
+
     <string name="mjpeg_item_address">Qurilma manzili:</string>
     <string name="mjpeg_stream_no_address">Hech qanday manzil topilmadi</string>
     <string name="mjpeg_stream_interface">Interfeys: %1$s</string>
@@ -40,9 +42,12 @@
     <string name="mjpeg_stream_client_blocked">Bloklangan</string>
     <string name="mjpeg_stream_start">Oqimni boshlash</string>
     <string name="mjpeg_stream_stop">Oqimni to‘xtatish</string>
+
     <string name="mjpeg_stream_cast_permission_required_title">Ruxsat talab qilinadi</string>
     <string name="mjpeg_stream_cast_permission_required">ScreenStream ilovasi ekranni suratga olish uchun Screen Cast ruxsatini talab qiladi.</string>
+
     <string name="mjpeg_slow_client_connection">Sekin mijoz ulanishi aniqlandi</string>
+
     <string name="mjpeg_pref_header">Mahalliy rejim (MJPEG) sozlamalari</string>
     <string name="mjpeg_pref_settings_general">General</string>
     <string name="mjpeg_pref_keep_awake">Qurilmani hushyor turing</string>
@@ -60,6 +65,7 @@
     <string name="mjpeg_pref_html_back_color">Veb-sahifa fon rangi</string>
     <string name="mjpeg_pref_html_back_color_summary">Veb-sahifaning fon rangini o\'rnating</string>
     <string name="mjpeg_pref_html_back_color_title">Fon rangini tanlang</string>
+
     <string name="mjpeg_pref_settings_image">Rasm</string>
     <string name="mjpeg_pref_vr_mode">Virtual haqiqat rejimi</string>
     <string name="mjpeg_pref_vr_mode_summary">Yarim ekrandan tarkibni yozib oling</string>
@@ -86,6 +92,7 @@
     <string name="mjpeg_pref_jpeg_quality">JPEG siqish sifati</string>
     <string name="mjpeg_pref_jpeg_quality_summary">JPEG siqish sifatini o\'rnating</string>
     <string name="mjpeg_pref_jpeg_quality_text">JPEG siqish sifatini o\'rnating. Qiymatlar: 10–100 Standart: 80</string>
+
     <string name="mjpeg_pref_settings_security">Xavfsizlik</string>
     <string name="mjpeg_pref_enable_pin">PIN-kodni yoqish</string>
     <string name="mjpeg_pref_enable_pin_summary">Oqimga kirishni pin bilan himoyalang</string>
@@ -100,6 +107,7 @@
     <string name="mjpeg_pref_set_pin_text">PIN-kodni kiriting. Standart: 000000</string>
     <string name="mjpeg_pref_block_address">IP manzilini bloklash</string>
     <string name="mjpeg_pref_block_address_summary">Mijozning IP-manzilini 5 daqiqa davomida 5 marta noto‘g‘ri urinishdan keyin bloklash</string>
+
     <string name="mjpeg_pref_settings_advanced">Murakkab</string>
     <string name="mjpeg_pref_wifi_only">Faqat Wi-Fi-dan foydalaning</string>
     <string name="mjpeg_pref_wifi_only_summary">Serverni faqat WiFi interfeysida ishga tushiring</string>
@@ -112,12 +120,15 @@
     <string name="mjpeg_pref_server_port">Server porti</string>
     <string name="mjpeg_pref_server_port_summary">Kiruvchi ulanishlar uchun portni o\'rnating</string>
     <string name="mjpeg_pref_server_port_text">Kiruvchi ulanishlar uchun server portini o\'rnating. Qiymatlar: 1025–65535 Standart: 8080</string>
+
     <string name="mjpeg_error_port_in_use">Port allaqachon ishlatilmoqda. Boshqasini tanlang.</string>
     <string name="mjpeg_error_invalid_media_projection">Xavfsizlik xatosi: media proyeksiyasi yaroqsiz. Yana bir marta urinib ko\'ring.</string>
     <string name="mjpeg_error_ip_address_not_found">IP manzil topilmadi. Oqim sozlamalarida “Faqat WiFi-dan foydalanish”ni o‘chirib ko‘ring.</string>
     <string name="mjpeg_error_notification_permission_required">Oqim xizmatini boshlash uchun ilova bildirishnomalarni yoqishni talab qiladi. Iltimos, ilova sozlamalarida bildirishnomalarni yoqing.</string>
     <string name="mjpeg_error_unspecified">Nimadir noto\'g\'ri bajarildi. Iltimos keyinroq qayta urinib ko\'ring.</string>
+
     <string name="mjpeg_start_image_text">Qurilmada oqimni boshlang</string>
+
     <string name="mjpeg_html_stream_connecting">Ulanishga urinish</string>
     <string name="mjpeg_html_stream_require_pin">Bu oqimga kirish uchun PIN kod talab qilinadi</string>
     <string name="mjpeg_html_enter_pin">PIN-kodni kiriting:\\u0020</string>
@@ -125,5 +136,4 @@
     <string name="mjpeg_html_wrong_pin">Noto\'g\'ri pin!</string>
     <string name="mjpeg_html_address_blocked">Mijoz manzili bloklandi</string>
     <string name="mjpeg_html_error_unspecified">Nimadir noto\'g\'ri bajarildi. &lt;br&gt; Sahifani qayta yuklang va qaytadan urining.</string>
-
 </resources>

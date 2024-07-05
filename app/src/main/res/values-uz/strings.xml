@@ -2,6 +2,7 @@
 <resources>
     <string name="app_error_title">Xato</string>
     <string name="app_error_recover">Qayta tiklash</string>
+
     <string name="app_logs_collecting">Ilova jurnallari yig\'ilmoqda…</string>
     <string name="app_logs_send_title">Jurnallarni ishlab chiquvchiga yuboring</string>
     <string name="app_logs_send_message">Iltimos, muammo tavsifini qo\'shing:</string>
@@ -9,24 +10,31 @@
     <string name="app_logs_enabled">Jurnal yoqilgan</string>
     <string name="app_logs_disabled">Jurnal o\‘chirilgan</string>
     <string name="app_logs_stop">Jurnalni to\'xtating</string>
+
     <string name="app_activity_update_dialog_title">Yangilanish mavjud</string>
     <string name="app_activity_update_dialog_message">Yangilanish endigina yuklab olindi</string>
     <string name="app_activity_update_dialog_restart">Qayta ishga tushirish</string>
+
     <string name="app_tab_stream">Oqim</string>
     <string name="app_tab_settings">Sozlamalar</string>
     <string name="app_tab_about">Haqida</string>
+
     <string name="app_tab_stream_select_mode">Oqim rejimini tanlang:</string>
+
     <string name="app_permission_required_title">Ruxsat talab qilinadi</string>
-    <string name="app_permission_allow_notifications">Striming xizmatini ishga tushirish uchun ilova bildirishnomalarni yuborishga ruxsat talab qiladi.  Iltimos, bildirishnomalarni yuborishga ruxsat bering.</string>
-    <string name="app_permission_allow_notifications_settings">Striming xizmatini ishga tushirish uchun ilova bildirishnomalarni yuborishga ruxsat talab qiladi.  Ilova sozlamalarida bildirishnomalarni yuborishga ruxsat bering.</string>
+    <string name="app_permission_allow_notifications">Striming xizmatini ishga tushirish uchun ilova bildirishnomalarni yuborishga ruxsat talab qiladi. Iltimos, bildirishnomalarni yuborishga ruxsat bering.</string>
+    <string name="app_permission_allow_notifications_settings">Striming xizmatini ishga tushirish uchun ilova bildirishnomalarni yuborishga ruxsat talab qiladi. Ilova sozlamalarida bildirishnomalarni yuborishga ruxsat bering.</string>
     <string name="app_permission_notification_settings">Sozlamalarni oching</string>
+
     <string name="app_notification_channel_streaming">Oqimli bildirishnomalar</string>
     <string name="app_notification_channel_error">Xato bildirishnomalari</string>
     <string name="app_notification_streaming_title">Oqim qilinmoqda…</string>
     <string name="app_notification_streaming_content">Oqimni tugatish uchun STOP tugmasini bosing</string>
     <string name="app_notification_stop">to\'xtating</string>
+
     <string name="app_tile_start">" Boshlash"</string>
     <string name="app_tile_stop">to\'xtating</string>
+
     <string name="app_pref_settings_search">Sozlamalarni qidirish</string>
     <string name="app_pref_search">Qidirmoq</string>
     <string name="app_pref_close">Yopish</string>
@@ -42,6 +50,7 @@
     <string name="app_pref_notification_summary">Tizim bildirishnoma sozlamalarini oching</string>
     <string name="app_pref_logging">Ilova jurnallarini yoqish</string>
     <string name="app_pref_logging_summary">Ilova jurnallarini yig\'ing</string>
+
     <string name="app_tab_about_app_version">Versiya: %1$s</string>
     <string name="app_tab_about_developer_name">Dmitriy Krivoruchko tomonidan ishlab chiqilgan</string>
     <string name="app_tab_about_rate_app">Baholash ilovasi</string>

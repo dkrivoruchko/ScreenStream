@@ -2,6 +2,7 @@
 <resources>
     <string name="webrtc_error_recover">Pulih</string>
     <string name="webrtc_error_open_settings">Buka pengaturan</string>
+
     <string name="webrtc_stream_mode">Modus global (WebRTC)</string>
     <string name="webrtc_stream_mode_description">Deskripsi mode global</string>
     <string name="webrtc_stream_mode_details">
@@ -11,7 +12,9 @@
         - Dapat mengirim video dan audio.\n
         - Hubungkan menggunakan ID aliran unik dan kata sandi.\n
         - Membutuhkan koneksi internet untuk streaming.\n
-        - Transmisi data individual untuk setiap klien (semakin banyak klien yang Anda miliki, semakin banyak bandwidth Internet yang Anda perlukan).</string>
+        - Transmisi data individual untuk setiap klien (semakin banyak klien yang Anda miliki, semakin banyak bandwidth Internet yang Anda perlukan).
+    </string>
+
     <string name="webrtc_stream_server_address">Akses aliran di: %1$s</string>
     <string name="webrtc_stream_stream_id_getting">Mendapatkan ID Aliran…</string>
     <string name="webrtc_stream_stream_id">ID Aliran: %1$s</string>
@@ -34,18 +37,23 @@
     <string name="webrtc_stream_share_address">Bagikan alamat perangkat</string>
     <string name="webrtc_stream_start">Mulai streaming</string>
     <string name="webrtc_stream_stop">Hentikan streaming</string>
+
     <string name="webrtc_pref_header">Pengaturan mode global (WebRTC).</string>
     <string name="webrtc_pref_keep_awake">Jaga agar perangkat tetap terjaga</string>
     <string name="webrtc_pref_keep_awake_summary">Jaga perangkat dan layar tetap aktif saat streaming</string>
     <string name="webrtc_pref_stop_on_sleep">Hentikan streaming saat tidur</string>
     <string name="webrtc_pref_stop_on_sleep_summary">Hentikan streaming jika layar mati</string>
+
     <string name="webrtc_stream_audio_permission_title">Izinkan rekaman audio</string>
     <string name="webrtc_stream_audio_permission_message">Permission to record audio is necessary for the application to stream audio content.  Without granting this permission, the stream will be without audio.</string>
     <string name="webrtc_stream_audio_permission_message_settings">Memberikan akses mikrofon dalam izin aplikasi diperlukan agar aplikasi dapat melakukan streaming konten audio.  Tanpa memberikan izin ini, streaming akan dilakukan tanpa audio apa pun.</string>
     <string name="webrtc_stream_audio_permission_open_settings">Buka pengaturan</string>
+
     <string name="webrtc_stream_cast_permission_required_title">Izin diperlukan</string>
     <string name="webrtc_stream_cast_permission_required">Aplikasi ScreenStream memerlukan izin Screen Cast untuk menangkap layar.</string>
+
     <string name="webrtc_item_client_disconnect">tidak terhubung</string>
+
     <string name="webrtc_error_play_integrity_update_play_store">Harap perbarui Google Play Store</string>
     <string name="webrtc_error_play_integrity_install_play_store">Silakan instal atau aktifkan Google Play Store resmi</string>
     <string name="webrtc_error_play_integrity_install_play_service">Silakan instal atau aktifkan Layanan Play</string>

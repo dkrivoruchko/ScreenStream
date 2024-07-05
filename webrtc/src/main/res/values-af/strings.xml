@@ -2,6 +2,7 @@
 <resources>
     <string name="webrtc_error_recover">Herstel</string>
     <string name="webrtc_error_open_settings">Maak instellings oop</string>
+
     <string name="webrtc_stream_mode">Globale modus (WebRTC)</string>
     <string name="webrtc_stream_mode_description">Globale modus beskrywing</string>
     <string name="webrtc_stream_mode_details">
@@ -13,6 +14,7 @@
         - Vereis \'n internetverbinding vir stroom.\n
         - Individuele data-oordrag vir elke kliënt (meer kliënte wat jy het, meer internet bandwydte wat jy nodig het).
     </string>
+
     <string name="webrtc_stream_server_address">Toegang tot stroom by: %1$s</string>
     <string name="webrtc_stream_stream_id_getting">Kry tans stroom-ID …</string>
     <string name="webrtc_stream_stream_id">Stroom-ID: %1$s</string>
@@ -35,18 +37,23 @@
     <string name="webrtc_stream_share_address">Deel toesteladres</string>
     <string name="webrtc_stream_start">Begin stroom</string>
     <string name="webrtc_stream_stop">Stop stroom</string>
+
     <string name="webrtc_pref_header">Globale modus (WebRTC) instellings</string>
     <string name="webrtc_pref_keep_awake">Hou toestel wakker</string>
     <string name="webrtc_pref_keep_awake_summary">Hou toestel en skerm wakker terwyl dit stroom</string>
     <string name="webrtc_pref_stop_on_sleep">Stop stroom op slaap</string>
     <string name="webrtc_pref_stop_on_sleep_summary">Stop stroom as die skerm afskakel</string>
+
     <string name="webrtc_stream_audio_permission_title">Laat oudio-opname toe</string>
     <string name="webrtc_stream_audio_permission_message">Toestemming om oudio op te neem is nodig vir die toepassing om oudio-inhoud te stroom.  Sonder om hierdie toestemming te verleen, sal die stroom sonder oudio wees.</string>
     <string name="webrtc_stream_audio_permission_message_settings">Om mikrofoontoegang in toepassingstoestemmings te verleen, is nodig vir die toepassing om oudio-inhoud te stroom.  Sonder om hierdie toestemming te verleen, sal die stroom sonder enige oudio uitgevoer word.</string>
     <string name="webrtc_stream_audio_permission_open_settings">Maak instellings oop</string>
+
     <string name="webrtc_stream_cast_permission_required_title">Toestemming vereis</string>
     <string name="webrtc_stream_cast_permission_required">ScreenStream-toepassing vereis Screen Cast-toestemming om skerm vas te vang.</string>
+
     <string name="webrtc_item_client_disconnect">Ontkoppel</string>
+
     <string name="webrtc_error_play_integrity_update_play_store">Dateer asseblief Google Play Winkel op</string>
     <string name="webrtc_error_play_integrity_install_play_store">Installeer of aktiveer asseblief amptelike Google Play Winkel</string>
     <string name="webrtc_error_play_integrity_install_play_service">Installeer of aktiveer asseblief Play Services</string>

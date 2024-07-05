@@ -2,6 +2,7 @@
 <resources>
     <string name="webrtc_error_recover">აღდგენა</string>
     <string name="webrtc_error_open_settings">გახსენით პარამეტრები</string>
+
     <string name="webrtc_stream_mode">გლობალური რეჟიმი (WebRTC)</string>
     <string name="webrtc_stream_mode_description">გლობალური რეჟიმის აღწერა</string>
     <string name="webrtc_stream_mode_details">
@@ -13,6 +14,7 @@
         - სტრიმინგისთვის საჭიროა ინტერნეტ კავშირი.\n
         - ინდივიდუალური მონაცემთა გადაცემა თითოეული კლიენტისთვის (უფრო მეტი კლიენტი გყავთ, მეტი ინტერნეტ გამტარობა გჭირდებათ).
     </string>
+
     <string name="webrtc_stream_server_address">ნაკადზე წვდომა აქ: %1$s</string>
     <string name="webrtc_stream_stream_id_getting">მიმდინარეობს ნაკადის ID-ის მიღება…</string>
     <string name="webrtc_stream_stream_id">ნაკადის ID: %1$s</string>
@@ -35,18 +37,23 @@
     <string name="webrtc_stream_share_address">მოწყობილობის მისამართის გაზიარება</string>
     <string name="webrtc_stream_start">სტრიმინგის დაწყება</string>
     <string name="webrtc_stream_stop">შეაჩერე ნაკადი</string>
+
     <string name="webrtc_pref_header">გლობალური რეჟიმის (WebRTC) პარამეტრები</string>
     <string name="webrtc_pref_keep_awake">შეინახეთ მოწყობილობა ფხიზლად</string>
     <string name="webrtc_pref_keep_awake_summary">შეინახეთ მოწყობილობა და ეკრანი ფხიზლად სტრიმინგის დროს</string>
     <string name="webrtc_pref_stop_on_sleep">შეაჩერე ნაკადი ძილის დროს</string>
     <string name="webrtc_pref_stop_on_sleep_summary">შეაჩერე ნაკადი, თუ ეკრანი გამორთულია</string>
+
     <string name="webrtc_stream_audio_permission_title">აუდიო ჩაწერის დაშვება</string>
-    <string name="webrtc_stream_audio_permission_message">აუდიოს ჩაწერის ნებართვა აუცილებელია, რომ აპლიკაციამ აუდიო კონტენტის სტრიმინგისთვის შეძლოს.  ამ ნებართვის მინიჭების გარეშე, ნაკადი აუდიოს გარეშე იქნება.</string>
-    <string name="webrtc_stream_audio_permission_message_settings">აპლიკაციის ნებართვებში მიკროფონის წვდომის მინიჭება აუცილებელია იმისათვის, რომ აპლიკაციამ აუდიო კონტენტის სტრიმინგისთვის შეძლოს.  ამ ნებართვის მინიჭების გარეშე, სტრიმინგი განხორციელდება აუდიოს გარეშე.</string>
+    <string name="webrtc_stream_audio_permission_message">აუდიოს ჩაწერის ნებართვა აუცილებელია, რომ აპლიკაციამ აუდიო კონტენტის სტრიმინგისთვის შეძლოს. ამ ნებართვის მინიჭების გარეშე, ნაკადი აუდიოს გარეშე იქნება.</string>
+    <string name="webrtc_stream_audio_permission_message_settings">აპლიკაციის ნებართვებში მიკროფონის წვდომის მინიჭება აუცილებელია იმისათვის, რომ აპლიკაციამ აუდიო კონტენტის სტრიმინგისთვის შეძლოს. ამ ნებართვის მინიჭების გარეშე, სტრიმინგი განხორციელდება აუდიოს გარეშე.</string>
     <string name="webrtc_stream_audio_permission_open_settings">გახსენით პარამეტრები</string>
+
     <string name="webrtc_stream_cast_permission_required_title">საჭიროა ნებართვა</string>
     <string name="webrtc_stream_cast_permission_required">ScreenStream აპლიკაცია მოითხოვს Screen Cast ნებართვას ეკრანის გადასაღებად.</string>
+
     <string name="webrtc_item_client_disconnect">გათიშვა</string>
+
     <string name="webrtc_error_play_integrity_update_play_store">გთხოვთ განაახლოთ Google Play Store</string>
     <string name="webrtc_error_play_integrity_install_play_store">გთხოვთ დააინსტალიროთ ან ჩართოთ ოფიციალური Google Play Store</string>
     <string name="webrtc_error_play_integrity_install_play_service">გთხოვთ, დააინსტალიროთ ან ჩართოთ Play Services</string>

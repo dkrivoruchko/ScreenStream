@@ -2,6 +2,7 @@
 <resources>
     <string name="mjpeg_error_recover">পুনরুদ্ধার করুন</string>
     <string name="mjpeg_error_open_settings">ওপেন সেটিংস</string>
+
     <string name="mjpeg_stream_mode">স্থানীয় মোড (MJPEG)</string>
     <string name="mjpeg_stream_mode_description">স্থানীয় মোড বিবরণ</string>
     <string name="mjpeg_stream_mode_details">
@@ -15,6 +16,7 @@
         - অত্যন্ত কাস্টমাইজযোগ্য।\n
         - প্রতিটি ক্লায়েন্টের জন্য পৃথক ডেটা ট্রান্সমিশন (আপনার আরও বেশি ক্লায়েন্ট আছে, আপনার প্রয়োজন আরও বেশি নটওয়ার্ক ব্যান্ডউইথ)।
     </string>
+
     <string name="mjpeg_item_address">ডিভাইস ঠিকানা:</string>
     <string name="mjpeg_stream_no_address">কোনো ঠিকানা পাওয়া যায়নি</string>
     <string name="mjpeg_stream_interface">ইন্টারফেস: %1$s</string>
@@ -40,9 +42,12 @@
     <string name="mjpeg_stream_client_blocked">অবরুদ্ধ (ব্লক)</string>
     <string name="mjpeg_stream_start">স্ট্রীম শুরু করুন</string>
     <string name="mjpeg_stream_stop">স্ট্রীম বন্ধ করুন</string>
+
     <string name="mjpeg_stream_cast_permission_required_title">অনুমতি প্রয়োজন</string>
     <string name="mjpeg_stream_cast_permission_required">স্ক্রিন ক্যাপচার করতে স্ক্রিনস্ট্রিম অ্যাপ্লিকেশনটির স্ক্রিন কাস্টের অনুমতি প্রয়োজন।</string>
+
     <string name="mjpeg_slow_client_connection">ধীরগতির ক্লায়েন্ট সংযোগ সনাক্ত করা হয়েছে৷</string>
+
     <string name="mjpeg_pref_header">স্থানীয় মোড (MJPEG) সেটিংস</string>
     <string name="mjpeg_pref_settings_general">সাধারণ</string>
     <string name="mjpeg_pref_keep_awake">ডিভাইস জাগ্রত রাখুন</string>
@@ -60,6 +65,7 @@
     <string name="mjpeg_pref_html_back_color">ওয়েব পৃষ্ঠার পটভূমির রঙ</string>
     <string name="mjpeg_pref_html_back_color_summary">ওয়েব পৃষ্ঠার পটভূমির রঙ সেট করুন</string>
     <string name="mjpeg_pref_html_back_color_title">পটভূমির রঙ নির্বাচন করুন</string>
+
     <string name="mjpeg_pref_settings_image">ছবি</string>
     <string name="mjpeg_pref_vr_mode">ভার্চুয়াল বাস্তবতা মোড</string>
     <string name="mjpeg_pref_vr_mode_summary">অর্ধ স্ক্রীন থেকে বিষয়বস্তু ক্যাপচার</string>
@@ -86,6 +92,7 @@
     <string name="mjpeg_pref_jpeg_quality">JPEG কম্প্রেশন গুণমান</string>
     <string name="mjpeg_pref_jpeg_quality_summary">JPEG কম্প্রেশন গুণমান সেট করুন</string>
     <string name="mjpeg_pref_jpeg_quality_text">JPEG কম্প্রেশন গুণমান সেট করুন। মান: 10-100 ডিফল্ট: 80</string>
+
     <string name="mjpeg_pref_settings_security">নিরাপত্তা</string>
     <string name="mjpeg_pref_enable_pin">পিন সক্ষম করুন</string>
     <string name="mjpeg_pref_enable_pin_summary">পিন দিয়ে স্ট্রিম অ্যাক্সেস রক্ষা করুন</string>
@@ -100,6 +107,7 @@
     <string name="mjpeg_pref_set_pin_text">পিন লিখুন। ডিফল্ট: 000000</string>
     <string name="mjpeg_pref_block_address">IP ঠিকানা ব্লক করুন</string>
     <string name="mjpeg_pref_block_address_summary">5 মিনিটের জন্য 5টি ভুল পিনের প্রচেষ্টার পরে ক্লায়েন্ট আইপি ঠিকানা ব্লক করুন</string>
+
     <string name="mjpeg_pref_settings_advanced">উন্নত</string>
     <string name="mjpeg_pref_wifi_only">শুধুমাত্র ওয়াইফাই ব্যবহার করুন</string>
     <string name="mjpeg_pref_wifi_only_summary">শুধুমাত্র ওয়াইফাই ইন্টারফেসে সার্ভার চালান</string>
@@ -112,12 +120,15 @@
     <string name="mjpeg_pref_server_port">সার্ভারের পোর্ট</string>
     <string name="mjpeg_pref_server_port_summary">ইনকামিং সংযোগের জন্য পোর্ট সেট করুন</string>
     <string name="mjpeg_pref_server_port_text">ইনকামিং সংযোগের জন্য সার্ভার পোর্ট সেট করুন। মান: 1025-65535 ডিফল্ট: 8080</string>
+
     <string name="mjpeg_error_port_in_use">পোর্ট ইতিমধ্যেই ব্যবহার করা হচ্ছে। অন্য একটি চয়ন করুন.</string>
     <string name="mjpeg_error_invalid_media_projection">নিরাপত্তা ত্রুটি: অবৈধ মিডিয়া অভিক্ষেপ. আরেক বার চেষ্টা করুন।</string>
     <string name="mjpeg_error_ip_address_not_found">আইপি ঠিকানা পাওয়া যায়নি. স্ট্রিম সেটিংসে \"শুধু ওয়াইফাই ব্যবহার করুন\" অক্ষম করার চেষ্টা করুন৷</string>
     <string name="mjpeg_error_notification_permission_required">স্ট্রিমিং পরিষেবা শুরু করতে অ্যাপ্লিকেশানের জন্য বিজ্ঞপ্তিগুলি সক্রিয় করা প্রয়োজন৷ অ্যাপ্লিকেশন সেটিংসে বিজ্ঞপ্তি সক্রিয় করুন.</string>
     <string name="mjpeg_error_unspecified">কিছু ভুল হয়েছে। অনুগ্রহ করে একটু পরে আবার চেষ্টা করুন।</string>
+
     <string name="mjpeg_start_image_text">ডিভাইসে স্ট্রিম শুরু করুন</string>
+
     <string name="mjpeg_html_stream_connecting">সংযোগ করার চেষ্টা করছে</string>
     <string name="mjpeg_html_stream_require_pin">এই স্ট্রীমটি অ্যাক্সেস করতে পিন প্রয়োজন৷</string>
     <string name="mjpeg_html_enter_pin">পিন লিখুন:\\u0020</string>

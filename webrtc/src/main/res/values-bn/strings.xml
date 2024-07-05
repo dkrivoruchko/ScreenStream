@@ -2,6 +2,7 @@
 <resources>
     <string name="webrtc_error_recover">পুনরুদ্ধার করুন</string>
     <string name="webrtc_error_open_settings">ওপেন সেটিংস</string>
+
     <string name="webrtc_stream_mode">গ্লোবাল মোড (WebRTC)</string>
     <string name="webrtc_stream_mode_description">গ্লোবাল মোড বর্ণনা</string>
     <string name="webrtc_stream_mode_details">
@@ -13,8 +14,9 @@
         - স্ট্রিমিংয়ের জন্য একটি ইন্টারনেট সংযোগ প্রয়োজন।\n
         - প্রতিটি ক্লায়েন্টের জন্য পৃথক ডেটা ট্রান্সমিশন (আপনার আরও বেশি ক্লায়েন্ট আছে, আপনার আরও বেশি ইন্টারনেট ব্যান্ডউইথ প্রয়োজন)।
     </string>
+
     <string name="webrtc_stream_server_address">এখানে স্ট্রিম অ্যাক্সেস করুন: %1$s</string>
-    <string name="webrtc_stream_stream_id_getting">স্ট্রিম আইডি পাওয়া যাচ্ছে...</string>
+    <string name="webrtc_stream_stream_id_getting">স্ট্রিম আইডি পাওয়া যাচ্ছে…</string>
     <string name="webrtc_stream_stream_id">স্ট্রিম আইডি: %1$s</string>
     <string name="webrtc_stream_stream_password">স্ট্রিম পাসওয়ার্ড: %1$s</string>
     <string name="webrtc_stream_description_show_password">স্ট্রিম পাসওয়ার্ড দেখান</string>
@@ -35,18 +37,23 @@
     <string name="webrtc_stream_share_address">ডিভাইস ঠিকানা শেয়ার করুন</string>
     <string name="webrtc_stream_start">স্ট্রীম শুরু করুন</string>
     <string name="webrtc_stream_stop">স্ট্রীম বন্ধ করুন</string>
+
     <string name="webrtc_pref_header">গ্লোবাল মোড (WebRTC) সেটিংস</string>
     <string name="webrtc_pref_keep_awake">ডিভাইস জাগ্রত রাখুন</string>
     <string name="webrtc_pref_keep_awake_summary">স্ট্রিমিং করার সময় ডিভাইস এবং স্ক্রীন সজাগ রাখুন</string>
     <string name="webrtc_pref_stop_on_sleep">মোবাইল স্লিপ মোডে স্ট্রিম বন্ধ করুন</string>
     <string name="webrtc_pref_stop_on_sleep_summary">স্ক্রিন বন্ধ হলে স্ট্রিম বন্ধ করুন</string>
+
     <string name="webrtc_stream_audio_permission_title">অডিও রেকর্ডিংয়ের অনুমতি দিন</string>
     <string name="webrtc_stream_audio_permission_message">অডিও কন্টেন্ট স্ট্রিম করার জন্য অ্যাপ্লিকেশনের জন্য অডিও রেকর্ড করার অনুমতি প্রয়োজন।  এই অনুমতি না দিলে, স্ট্রীমটি অডিও ছাড়াই হবে।</string>
     <string name="webrtc_stream_audio_permission_message_settings">অডিও বিষয়বস্তু স্ট্রিম করার জন্য অ্যাপ্লিকেশনটির জন্য অ্যাপ্লিকেশন অনুমতিগুলিতে মাইক্রোফোন অ্যাক্সেস দেওয়া প্রয়োজন৷  এই অনুমতি প্রদান ছাড়া, স্ট্রীম কোনো অডিও ছাড়াই পরিচালিত হবে.</string>
     <string name="webrtc_stream_audio_permission_open_settings">ওপেন সেটিংস</string>
+
     <string name="webrtc_stream_cast_permission_required_title">অনুমতি প্রয়োজন</string>
     <string name="webrtc_stream_cast_permission_required">স্ক্রিন ক্যাপচার করতে স্ক্রিনস্ট্রিম অ্যাপ্লিকেশনটির স্ক্রিন কাস্টের অনুমতি প্রয়োজন।</string>
+
     <string name="webrtc_item_client_disconnect">সংযোগ বিচ্ছিন্ন করুন</string>
+
     <string name="webrtc_error_play_integrity_update_play_store">অনুগ্রহ করে গুগল প্লে স্টোর আপডেট করুন</string>
     <string name="webrtc_error_play_integrity_install_play_store">অনুগ্রহ করে অফিসিয়াল Google Play Store ইনস্টল বা সক্ষম করুন৷</string>
     <string name="webrtc_error_play_integrity_install_play_service">দয়া করে প্লে পরিষেবাগুলি ইনস্টল বা সক্ষম করুন৷</string>
