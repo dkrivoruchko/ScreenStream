@@ -16,6 +16,7 @@ android {
 
     defaultConfig {
         minSdk = rootProject.extra["minSdkVersion"] as Int
+        consumerProguardFiles("consumer-rules.pro")
     }
 
     buildFeatures {
@@ -60,7 +61,7 @@ dependencies {
     implementation(libs.play.services.tasks)
     implementation(libs.play.integrity)
 
-    implementation(libs.webrtc)
+//    implementation(libs.webrtc) //m126.0.6478.122
     implementation(libs.socket)
     implementation(libs.okhttp)
 }

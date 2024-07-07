@@ -16,6 +16,7 @@ import androidx.window.layout.WindowMetricsCalculator
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.common.getLog
 import org.webrtc.AudioSource
+import org.webrtc.DefaultVideoDecoderFactory
 import org.webrtc.DefaultVideoEncoderFactory
 import org.webrtc.EglBase
 import org.webrtc.HardwareVideoEncoderFactory
@@ -25,7 +26,6 @@ import org.webrtc.PeerConnectionFactory
 import org.webrtc.RtpCapabilities
 import org.webrtc.SurfaceTextureHelper
 import org.webrtc.VideoSource
-import org.webrtc.WrappedVideoDecoderFactory
 import org.webrtc.audio.AudioRecordDataCallback
 import org.webrtc.audio.JavaAudioDeviceModule
 import java.nio.ByteBuffer
@@ -82,7 +82,7 @@ internal class WebRtcProjection(private val serviceContext: Context) : AudioReco
 
         peerConnectionFactory = PeerConnectionFactory.builder()
             .setOptions(PeerConnectionFactory.Options())
-            .setVideoDecoderFactory(WrappedVideoDecoderFactory(rootEglBase.eglBaseContext))
+            .setVideoDecoderFactory(DefaultVideoDecoderFactory(rootEglBase.eglBaseContext))
             .setVideoEncoderFactory(DefaultVideoEncoderFactory(rootEglBase.eglBaseContext, true, false))
             .setAudioDeviceModule(audioDeviceModule)
             .createPeerConnectionFactory()
@@ -254,7 +254,6 @@ internal class WebRtcProjection(private val serviceContext: Context) : AudioReco
             .addMatchingUsage(AudioAttributes.USAGE_GAME)
             .addMatchingUsage(AudioAttributes.USAGE_UNKNOWN)
             .build()
-
 
         return AudioRecord.Builder()
             .setAudioFormat(format)
