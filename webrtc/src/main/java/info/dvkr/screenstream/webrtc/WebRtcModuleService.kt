@@ -19,7 +19,7 @@ import java.net.UnknownHostException
 public class WebRtcModuleService : StreamingModuleService() {
 
     internal companion object {
-        internal fun getIntent(context: Context): Intent = Intent(context, WebRtcModuleService::class.java)
+        internal fun getIntent(context: Context): Intent = Intent(context, WebRtcModuleService::class.java).addIntentId()
 
         @Throws(ServiceStartNotAllowedException::class)
         internal fun startService(context: Context, intent: Intent) {

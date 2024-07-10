@@ -72,13 +72,7 @@ public class TileActionService : TileService() {
     private val streamingModulesManager: StreamingModuleManager by inject()
     private var coroutineScope: CoroutineScope? = null
 
-    override fun onBind(intent: Intent?): IBinder? =
-        runCatching {
-            XLog.d(getLog("TileActionService", "onBind"))
-            super.onBind(intent)
-        }
-            .onFailure { XLog.d(getLog("TileActionService", "onBind: ${it.message}"), it) }
-            .getOrNull()
+    override fun onBind(intent: Intent?): IBinder? = runCatching { super.onBind(intent) }.getOrNull()
 
     override fun onTileAdded() {
         super.onTileAdded()
