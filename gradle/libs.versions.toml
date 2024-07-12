@@ -1,7 +1,7 @@
 [versions]
-agp = "8.5.0"
+agp = "8.5.1"
 kotlin = "2.0.0"
-ksp = "2.0.0-1.0.22"
+ksp = "2.0.0-1.0.23"
 android-tools-r8 = "8.3.37"
 android-tools-desugar = "2.0.4"
 
@@ -41,7 +41,7 @@ play-app-update = "2.1.0"
 play-services-ads = "23.2.0"
 webkit = "1.11.0"
 firebase-analytics = "22.0.2"
-firebase-crashlytics = "19.0.2"
+firebase-crashlytics = "19.0.3"
 google-services = "4.4.2"
 crashlytics-gradle = "3.0.2"
 
