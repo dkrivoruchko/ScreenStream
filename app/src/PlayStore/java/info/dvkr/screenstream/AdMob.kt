@@ -37,13 +37,18 @@ import com.google.android.ump.ConsentRequestParameters
 import com.google.android.ump.FormError
 import com.google.android.ump.UserMessagingPlatform
 import info.dvkr.screenstream.common.getLog
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.koin.compose.koinInject
 import org.koin.core.annotation.Single
 import java.util.UUID
+import java.util.concurrent.atomic.AtomicBoolean
 
-@Single
+@Single(createdAtStart = true)
 public class AdMob(private val context: Context) {
 
     private data class AdUnit(val id: String, var lastUsedMillis: Long = 0, var inComposition: Boolean = false) {
@@ -88,12 +93,12 @@ public class AdMob(private val context: Context) {
     private val consentInformation: ConsentInformation = UserMessagingPlatform.getConsentInformation(context)
 
     public val initialized: MutableState<Boolean> = mutableStateOf(false)
+    private var isMobileAdsInitializeCalled = AtomicBoolean(false)
 
     private val consentRequestParameters = if (context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0) {
         val hashedId = "203640674D72D8AD3E73BDFC4AD236B2"
         MobileAds.setRequestConfiguration(RequestConfiguration.Builder().setTestDeviceIds(listOf(hashedId)).build())
         ConsentRequestParameters.Builder()
-            .setTagForUnderAgeOfConsent(false)
             .setConsentDebugSettings(
                 ConsentDebugSettings.Builder(context)
                     .setDebugGeography(ConsentDebugSettings.DebugGeography.DEBUG_GEOGRAPHY_NOT_EEA)
@@ -102,9 +107,7 @@ public class AdMob(private val context: Context) {
             )
             .build()
     } else {
-        ConsentRequestParameters.Builder()
-            .setTagForUnderAgeOfConsent(false)
-            .build()
+        ConsentRequestParameters.Builder().build()
     }
 
     public val isPrivacyOptionsRequired: Boolean
@@ -113,16 +116,13 @@ public class AdMob(private val context: Context) {
     public fun showPrivacyOptionsForm(activity: Activity) {
         UserMessagingPlatform.showPrivacyOptionsForm(activity) { formError ->
             if (formError != null) {
-                XLog.w(
-                    getLog("showPrivacyOptionsForm: ${formError.errorCode} ${formError.message}"),
-                    RuntimeException("showPrivacyOptionsForm: ${formError.errorCode} ${formError.message}")
-                )
+                XLog.w(getLog("showPrivacyOptionsForm", "Error: ${formError.errorCode} ${formError.message}"), RuntimeException("showPrivacyOptionsForm: ${formError.errorCode} ${formError.message}"))
             }
         }
     }
 
     public fun init(activity: Activity) {
-        XLog.d(getLog("init"))
+        XLog.d(getLog("init", "${activity.hashCode()}"))
 
         if (initialized.value) return
 
@@ -143,18 +143,26 @@ public class AdMob(private val context: Context) {
         }
 
         if (error != null) {
-            XLog.w(
-                getLog("initializeMobileAds: ${error.errorCode} ${error.message}"),
-                RuntimeException("initializeMobileAds: ${error.errorCode} ${error.message}")
-            )
+            XLog.w(getLog("initializeMobileAds", "Error: ${error.errorCode} ${error.message}"), RuntimeException("initializeMobileAds: ${error.errorCode} ${error.message}"))
             initialized.value = false
             return
         }
 
         if (consentInformation.canRequestAds()) {
             XLog.d(getLog("initializeMobileAds"))
-            initialized.value = true
-            MobileAds.initialize(context)
+            if (isMobileAdsInitializeCalled.getAndSet(true)) {
+                XLog.d(getLog("initializeMobileAds", "Pending initialization. Ignoring"))
+                return
+            }
+
+            CoroutineScope(Dispatchers.IO).launch {
+                MobileAds.initialize(context) {
+                    CoroutineScope(Dispatchers.Main).launch {
+                        XLog.d(this@AdMob.getLog("initializeMobileAds", "Done"))
+                        initialized.value = true
+                    }
+                }
+            }
         }
     }
 }
@@ -192,6 +200,7 @@ private fun AdBox(adMob: AdMob, adSize: AdSize, collapsible: Boolean) {
         if (selectedAdUnitId.value.isNotBlank()) {
             val adUnitReady = remember { mutableStateOf(false) }
             val adUnitLoaded = remember { mutableStateOf(false) }
+            val adReloadJob = remember { Job() }
             LaunchedEffect(Unit) { adUnitReady.value = adMob.waitAdUnitReady(selectedAdUnitId.value) }
 
             AndroidView(
@@ -234,6 +243,7 @@ private fun AdBox(adMob: AdMob, adSize: AdSize, collapsible: Boolean) {
                 modifier = Modifier.fillMaxWidth(),
                 onRelease = { adView ->
                     XLog.d(adView.getLog("AdaptiveBanner", "onRelease: ${adView.adUnitId}"))
+                    adReloadJob.cancel()
                     adView.destroy()
                     adMob.release(adView.adUnitId)
                     selectedAdUnitId.value = ""
@@ -248,9 +258,16 @@ private fun AdBox(adMob: AdMob, adSize: AdSize, collapsible: Boolean) {
                                 putString("collapsible_request_id", UUID.randomUUID().toString())
                             })
                         }
-                        adView.loadAd(adRequestBuilder.build())
-                        adMob.setAdViewLoaded(adView.adUnitId)
-                        adUnitLoaded.value = true
+
+                        CoroutineScope(Dispatchers.Main.immediate + adReloadJob).launch {
+                            repeat(Int.MAX_VALUE) { i ->
+                                XLog.d(adView.getLog("AdaptiveBanner", "update ($i): ${adView.adUnitId}"))
+                                adView.loadAd(adRequestBuilder.build())
+                                adMob.setAdViewLoaded(adView.adUnitId)
+                                adUnitLoaded.value = true
+                                delay(60_000)
+                            }
+                        }
                     }
                 }
             )
