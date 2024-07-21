@@ -356,14 +356,11 @@ internal class WebRtcStreamingService(
     }
 
     override fun handleMessage(msg: Message): Boolean = runBlocking(Dispatchers.Unconfined) {
-        XLog.v(this@WebRtcStreamingService.getLog("handleMessage", "Message: $msg"))
-
         val event: WebRtcEvent = msg.obj as WebRtcEvent
         try {
             XLog.d(this@WebRtcStreamingService.getLog("handleMessage", "Event [$event] Current state: [${getStateString()}]"))
             processEvent(event)
         } catch (cause: Throwable) {
-            XLog.e(this@WebRtcStreamingService.getLog("handleMessage.catch", cause.toString()))
             XLog.e(this@WebRtcStreamingService.getLog("handleMessage.catch", cause.toString()), cause)
 
             mediaProjectionIntent = null

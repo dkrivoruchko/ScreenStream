@@ -32,7 +32,7 @@
     <string name="mjpeg_stream_pin_disabled">ፒን ተሰናክሏል።</string>
     <string name="mjpeg_stream_description_show_pin">የዥረት ፒን አሳይ</string>
     <string name="mjpeg_stream_description_create_pin">አዲስ የዥረት ፒን ይፍጠሩ</string>
-    <string name="mjpeg_stream_current_traffic">ትራፊክ፡ %1$፣.2f Mbit/s</string>
+    <string name="mjpeg_stream_current_traffic">ትራፊክ፡ %1$,.2f Mbit/s</string>
     <string name="mjpeg_stream_traffic_graph">የትራፊክ ግራፍ</string>
     <string name="mjpeg_stream_connected_clients">የተገናኙ ደንበኞች፡ %1$d</string>
     <string name="mjpeg_stream_client_disconnected">ግንኙነቱ ተቋርጧል</string>

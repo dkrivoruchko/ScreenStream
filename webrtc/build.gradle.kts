@@ -61,8 +61,9 @@ dependencies {
     implementation(libs.play.services.tasks)
     implementation(libs.play.integrity)
 
-//    implementation(libs.webrtc) //m126.0.6478.122
+    // Local Webrtc m126.0.6478.122
     implementation(libs.socket)
+    implementation(libs.okio)
     implementation(libs.okhttp)
 }
 

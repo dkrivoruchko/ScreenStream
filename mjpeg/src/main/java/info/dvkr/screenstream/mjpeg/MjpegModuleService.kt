@@ -39,12 +39,12 @@ public class MjpegModuleService : StreamingModuleService() {
         XLog.d(getLog("onStartCommand", "MjpegModuleService.INTENT_ID: ${intent.getStringExtra(INTENT_ID)}"))
 
         if (isDuplicateIntent(intent)) {
-            XLog.w(getLog("onStartCommand"), IllegalArgumentException("MjpegModuleService.onStartCommand: duplicate intent, startId: $startId, $intent"))
+            XLog.w(getLog("onStartCommand"), IllegalArgumentException("MjpegModuleService.onStartCommand: duplicate intent, startId: $startId"))
             return START_NOT_STICKY
         }
 
         val mjpegEvent = MjpegEvent.Intentable.fromIntent(intent) ?: run {
-            XLog.e(getLog("onStartCommand"), IllegalArgumentException("MjpegModuleService.onStartCommand: MjpegEvent = null, startId: $startId, $intent"))
+            XLog.e(getLog("onStartCommand"), IllegalArgumentException("MjpegModuleService.onStartCommand: MjpegEvent = null, startId: $startId"))
             return START_NOT_STICKY
         }
         XLog.d(getLog("onStartCommand", "MjpegEvent: $mjpegEvent, startId: $startId"))

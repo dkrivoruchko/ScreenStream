@@ -248,22 +248,23 @@ internal class MjpegStreamingService(
     }
 
     override fun handleMessage(msg: Message): Boolean = runBlocking(Dispatchers.Unconfined) {
-        XLog.v(this@MjpegStreamingService.getLog("handleMessage", "Message: $msg"))
-
         val event: MjpegEvent = msg.obj as MjpegEvent
         try {
-            XLog.d(this@MjpegStreamingService.getLog("handleMessage", "Event [$event] Current state: [${getStateString()}]"))
+            if (event !is InternalEvent.Traffic) {
+                XLog.d(this@MjpegStreamingService.getLog("handleMessage", "Event [$event] Current state: [${getStateString()}]"))
+            }
             processEvent(event)
         } catch (cause: Throwable) {
-            XLog.e(this@MjpegStreamingService.getLog("processEvent.catch", cause.toString()))
-            XLog.e(this@MjpegStreamingService.getLog("processEvent.catch", cause.toString()), cause)
+            XLog.e(this@MjpegStreamingService.getLog("handleMessage.catch", cause.toString()), cause)
 
             mediaProjectionIntent = null
             stopStream()
 
             currentError = if (cause is MjpegError) cause else MjpegError.UnknownError(cause)
         } finally {
-            XLog.d(this@MjpegStreamingService.getLog("processEvent", "Done [$event] New state: [${getStateString()}]"))
+            if (event !is InternalEvent.Traffic) {
+                XLog.d(this@MjpegStreamingService.getLog("handleMessage", "Done [$event] New state: [${getStateString()}]"))
+            }
             if (event is InternalEvent.Destroy) event.destroyJob.complete()
             publishState()
         }
