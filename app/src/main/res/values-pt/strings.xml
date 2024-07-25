@@ -58,6 +58,8 @@
     <string name="app_pref_dynamic_theme_summary">Ajustar a aparência com base nas cores do seu papel de parede</string>
     <string name="app_pref_notification">Configurações de notificação do dispositivo</string>
     <string name="app_pref_notification_summary">Abrir configurações de notificação do sistema</string>
+    <string name="app_pref_tile">Adicionar bloco de aplicativo</string>
+    <string name="app_pref_tile_summary">Adicionar bloco de aplicativo às Configurações Rápidas</string>
     <string name="app_pref_logging">Ativar logs do aplicativo</string>
     <string name="app_pref_logging_summary">Coletar logs do aplicativo</string>
 

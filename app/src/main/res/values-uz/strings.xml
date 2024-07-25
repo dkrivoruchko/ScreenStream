@@ -58,6 +58,8 @@
     <string name="app_pref_dynamic_theme_summary">Fon rasmi ranglariga qarab tashqi ko\'rinishni sozlang</string>
     <string name="app_pref_notification">Qurilma bildirishnoma sozlamalari</string>
     <string name="app_pref_notification_summary">Tizim bildirishnoma sozlamalarini oching</string>
+    <string name="app_pref_tile">Ilova plitasini qo\'shing</string>
+    <string name="app_pref_tile_summary">Ilova plitasini Tezkor sozlamalarga qo\'shing</string>
     <string name="app_pref_logging">Ilova jurnallarini yoqish</string>
     <string name="app_pref_logging_summary">Ilova jurnallarini yig\'ing</string>
 

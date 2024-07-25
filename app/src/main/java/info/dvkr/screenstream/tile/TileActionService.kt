@@ -1,6 +1,5 @@
 package info.dvkr.screenstream.tile
 
-import android.Manifest
 import android.app.PendingIntent
 import android.app.StatusBarManager
 import android.content.ComponentName
@@ -12,16 +11,11 @@ import android.os.IBinder
 import android.service.quicksettings.Tile
 import android.service.quicksettings.TileService
 import androidx.annotation.RequiresApi
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.ui.platform.LocalContext
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.SingleActivity
 import info.dvkr.screenstream.common.getLog
-import info.dvkr.screenstream.common.isPermissionGranted
 import info.dvkr.screenstream.common.module.StreamingModuleManager
-import info.dvkr.screenstream.common.settings.AppSettings
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -36,27 +30,13 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.runBlocking
 import org.koin.android.ext.android.inject
-import org.koin.compose.koinInject
 
 @RequiresApi(Build.VERSION_CODES.N)
 public class TileActionService : TileService() {
 
     internal companion object {
-
-        @Composable
         @RequiresApi(Build.VERSION_CODES.TIRAMISU)
-        internal fun AddTileRequest(appSettings: AppSettings = koinInject()) {
-            val context = LocalContext.current
-            LaunchedEffect(Unit) {
-                if (appSettings.data.value.addTileAsked.not() && context.isPermissionGranted(Manifest.permission.POST_NOTIFICATIONS)) {
-                    appSettings.updateData { copy(addTileAsked = true) }
-                    addTileRequest(context)
-                }
-            }
-        }
-
-        @RequiresApi(Build.VERSION_CODES.TIRAMISU)
-        private fun addTileRequest(context: Context) {
+        internal fun showAddTileRequest(context: Context) {
             val statusBarManager = context.getSystemService(StatusBarManager::class.java)
             statusBarManager.requestAddTileService(
                 ComponentName(context, TileActionService::class.java),
@@ -64,7 +44,7 @@ public class TileActionService : TileService() {
                 Icon.createWithResource(context, R.drawable.ic_tile_24dp),
                 { it?.run() }
             ) {
-                XLog.d(getLog("TileActionService", "addTileRequest: $it"))
+                XLog.d(getLog("TileActionService", "showAddTileRequest: $it"))
             }
         }
     }

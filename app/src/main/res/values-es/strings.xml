@@ -58,6 +58,8 @@
     <string name="app_pref_dynamic_theme_summary">Ajustar la apariencia según los colores de su fondo de pantalla</string>
     <string name="app_pref_notification">Opciones de notificación</string>
     <string name="app_pref_notification_summary">Abrir opciones de notificación del sistema</string>
+    <string name="app_pref_tile">Agregar mosaico de la aplicación</string>
+    <string name="app_pref_tile_summary">Agregar mosaico de la aplicación a Configuración rápida</string>
     <string name="app_pref_logging">Habilitar registros</string>
     <string name="app_pref_logging_summary">Generando los registros</string>
 

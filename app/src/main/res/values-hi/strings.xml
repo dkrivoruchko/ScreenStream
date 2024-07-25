@@ -58,6 +58,8 @@
     <string name="app_pref_dynamic_theme_summary">अपने वॉलपेपर के रंगों के आधार पर दिखावट को समायोजित करें</string>
     <string name="app_pref_notification">डिवाइस अधिसूचना सेटिंग्स</string>
     <string name="app_pref_notification_summary">सिस्टम अधिसूचना सेटिंग्स खोलें</string>
+    <string name="app_pref_tile">एप्लिकेशन टाइल जोड़ें</string>
+    <string name="app_pref_tile_summary">त्वरित सेटिंग्स में एप्लिकेशन टाइल जोड़ें</string>
     <string name="app_pref_logging">एप्लिकेशन लॉग सक्षम करें</string>
     <string name="app_pref_logging_summary">आवेदन पत्र एकत्र करें</string>
 

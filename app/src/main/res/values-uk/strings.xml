@@ -58,6 +58,8 @@
     <string name="app_pref_dynamic_theme_summary">Налаштування вигляду на основі кольорів вашого шпалер</string>
     <string name="app_pref_notification">Налаштування повідомлень пристрою</string>
     <string name="app_pref_notification_summary">Перейти в системні налаштування повідомлень</string>
+    <string name="app_pref_tile">Додати плитку додатка</string>
+    <string name="app_pref_tile_summary">Додати плитку додатка до Швидких налаштувань</string>
     <string name="app_pref_logging">Увімкнути діагностичну інформацію</string>
     <string name="app_pref_logging_summary">Збирати діагностичну інформацію</string>
 

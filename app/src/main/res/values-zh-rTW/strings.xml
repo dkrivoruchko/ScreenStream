@@ -58,6 +58,8 @@
     <string name="app_pref_dynamic_theme_summary">根據您的桌布顏色調整外觀</string>
     <string name="app_pref_notification">設備通知設置</string>
     <string name="app_pref_notification_summary">打開系統通知設置</string>
+    <string name="app_pref_tile">新增應用程式磚</string>
+    <string name="app_pref_tile_summary">新增應用程式磚到快速設定</string>
     <string name="app_pref_logging">启用应用日志</string>
     <string name="app_pref_logging_summary">收集应用日志</string>
 

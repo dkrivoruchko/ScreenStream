@@ -58,6 +58,8 @@
     <string name="app_pref_dynamic_theme_summary">Ajustez l\'apparence en fonction des couleurs de votre papier peint</string>
     <string name="app_pref_notification">Paramètres de notification de l\'appareil</string>
     <string name="app_pref_notification_summary">Ouvrir les paramètres de notification du système</string>
+    <string name="app_pref_tile">Ajouter une tuile d\'application</string>
+    <string name="app_pref_tile_summary">Ajouter une tuile d\'application aux Paramètres rapides</string>
     <string name="app_pref_logging">Activer les journaux d\'application</string>
     <string name="app_pref_logging_summary">Collecter les journaux d\'application</string>
 

@@ -30,7 +30,7 @@ import kotlinx.coroutines.CoroutineScope
 
 internal object Logging : ModuleSettings.Item {
     override val id: String = "LOGGING"
-    override val position: Int = 4
+    override val position: Int = 5
     override val available: Boolean = AppLogger.isLoggingOn
 
     override fun has(resources: Resources, text: String): Boolean = with(resources) {

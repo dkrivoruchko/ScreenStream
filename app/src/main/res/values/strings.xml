@@ -60,6 +60,8 @@
     <string name="app_pref_dynamic_theme_summary">Adjust the appearance based on your wallpaper\'s colors</string>
     <string name="app_pref_notification">Device notification settings</string>
     <string name="app_pref_notification_summary">Open system notification settings</string>
+    <string name="app_pref_tile">Add application tile</string>
+    <string name="app_pref_tile_summary">Add application tile to Quick Settings</string>
     <string name="app_pref_logging">Enable application logs</string>
     <string name="app_pref_logging_summary">Collect application logs</string>
 

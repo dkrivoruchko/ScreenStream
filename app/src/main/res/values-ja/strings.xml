@@ -58,6 +58,8 @@
     <string name="app_pref_dynamic_theme_summary">壁紙の色に基づいて外観を調整します</string>
     <string name="app_pref_notification">端末の通知設定</string>
     <string name="app_pref_notification_summary">システムの通知設定を開きます</string>
+    <string name="app_pref_tile">アプリのタイルを追加</string>
+    <string name="app_pref_tile_summary">クイック設定にアプリのタイルを追加</string>
     <string name="app_pref_logging">アプリケーションログを有効化</string>
     <string name="app_pref_logging_summary">アプリケーションログを収集します</string>
 

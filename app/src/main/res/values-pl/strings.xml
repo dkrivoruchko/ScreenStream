@@ -58,6 +58,8 @@
     <string name="app_pref_dynamic_theme_summary">Dostosuj wygląd na podstawie kolorów tapety</string>
     <string name="app_pref_notification">Ustawienia powiadomień</string>
     <string name="app_pref_notification_summary">Otwiera ustawienia powiadomień systemu</string>
+    <string name="app_pref_tile">Dodaj kafelek aplikacji</string>
+    <string name="app_pref_tile_summary">Dodaj kafelek aplikacji do Szybkich ustawień</string>
     <string name="app_pref_logging">Włącz dzienniki aplikacji</string>
     <string name="app_pref_logging_summary">Zbieraj dzienniki aplikacji</string>
 

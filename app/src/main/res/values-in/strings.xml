@@ -58,6 +58,8 @@
     <string name="app_pref_dynamic_theme_summary">Sesuaikan tampilan berdasarkan warna wallpaper Anda</string>
     <string name="app_pref_notification">Pengaturan notifikasi perangkat</string>
     <string name="app_pref_notification_summary">Buka pengaturan notifikasi sistem</string>
+    <string name="app_pref_tile">Tambahkan ubin aplikasi</string>
+    <string name="app_pref_tile_summary">Tambahkan ubin aplikasi ke Pengaturan Cepat</string>
     <string name="app_pref_logging">Aktifkan log aplikasi</string>
     <string name="app_pref_logging_summary">Kumpulkan log aplikasi</string>
 

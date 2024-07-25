@@ -58,6 +58,8 @@
     <string name="app_pref_dynamic_theme_summary">Regola l\'aspetto in base ai colori dello sfondo</string>
     <string name="app_pref_notification">Impostazioni di notifica del dispositivo</string>
     <string name="app_pref_notification_summary">Apri impostazioni di notifica di sistema</string>
+    <string name="app_pref_tile">Aggiungi riquadro applicazione</string>
+    <string name="app_pref_tile_summary">Aggiungi riquadro applicazione alle Impostazioni rapide</string>
     <string name="app_pref_logging">Attiva registro dell\'applicazione</string>
     <string name="app_pref_logging_summary">Raccogli il registro dell\'applicazione</string>
 

@@ -58,6 +58,8 @@
     <string name="app_pref_dynamic_theme_summary">Pas die voorkoms aan op grond van jou muurpapierkleur</string>
     <string name="app_pref_notification">Toestelkennisgewinginstellings</string>
     <string name="app_pref_notification_summary">Maak stelselkennisgewinginstellings oop</string>
+    <string name="app_pref_tile">Voeg toepassingteël by</string>
+    <string name="app_pref_tile_summary">Voeg toepassingteël by Vinnige Instellings</string>
     <string name="app_pref_logging">Aktiveer toepassingloglêers</string>
     <string name="app_pref_logging_summary">Versamel toepassing logs</string>
 

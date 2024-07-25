@@ -58,9 +58,6 @@ internal class AppSettingsImpl(context: Context) : AppSettings {
 
                 if (newSettings.dynamicTheme != AppSettings.Default.DYNAMIC_THEME)
                     set(AppSettings.Key.DYNAMIC_THEME, newSettings.dynamicTheme)
-
-                if (newSettings.addTileAsked != AppSettings.Default.ADD_TILE_ASKED)
-                    set(AppSettings.Key.ADD_TILE_ASKED, newSettings.addTileAsked)
             }
         }
         Unit
@@ -70,6 +67,5 @@ internal class AppSettingsImpl(context: Context) : AppSettings {
         streamingModule = StreamingModule.Id(this[AppSettings.Key.STREAMING_MODULE] ?: AppSettings.Default.STREAMING_MODULE.value),
         nightMode = this[AppSettings.Key.NIGHT_MODE] ?: AppSettings.Default.NIGHT_MODE,
         dynamicTheme = this[AppSettings.Key.DYNAMIC_THEME] ?: AppSettings.Default.DYNAMIC_THEME,
-        addTileAsked = this[AppSettings.Key.ADD_TILE_ASKED] ?: AppSettings.Default.ADD_TILE_ASKED,
     )
 }

@@ -58,6 +58,8 @@
     <string name="app_pref_dynamic_theme_summary">በግድግዳ ወረቀትዎ ቀለሞች ላይ በመመስረት መልክውን ያስተካክሉ</string>
     <string name="app_pref_notification">የመሣሪያ ማሳወቂያ ቅንብሮች</string>
     <string name="app_pref_notification_summary">የስርዓት ማሳወቂያ ቅንብሮችን ክፈት</string>
+    <string name="app_pref_tile">እባክዎ የመተግበሪያ ሸክላ ያክሉ</string>
+    <string name="app_pref_tile_summary">የመተግበሪያ ሸክላ ወደ ፈጣን ቅንብሮች አክል</string>
     <string name="app_pref_logging">የመተግበሪያ ምዝግብ ማስታወሻዎችን አንቃ</string>
     <string name="app_pref_logging_summary">የመተግበሪያ ምዝግብ ማስታወሻዎችን ይሰብስቡ</string>
 

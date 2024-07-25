@@ -58,6 +58,8 @@
     <string name="app_pref_dynamic_theme_summary">დაარეგულირეთ გარეგნობა თქვენი ფონის ფერების მიხედვით</string>
     <string name="app_pref_notification">მოწყობილობის შეტყობინებების პარამეტრები</string>
     <string name="app_pref_notification_summary">გახსენით სისტემის შეტყობინებების პარამეტრები</string>
+    <string name="app_pref_tile">დაუმატეთ აპლიკაციის ფილა</string>
+    <string name="app_pref_tile_summary">დაუმატეთ აპლიკაციის ფილა სწრაფი პარამეტრებისათვის</string>
     <string name="app_pref_logging">აპლიკაციის ჟურნალების ჩართვა</string>
     <string name="app_pref_logging_summary">შეაგროვეთ განაცხადის ჟურნალები</string>
 

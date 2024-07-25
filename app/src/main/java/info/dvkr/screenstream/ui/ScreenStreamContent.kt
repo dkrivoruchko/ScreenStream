@@ -89,7 +89,6 @@ internal fun ScreenStreamContent(
 
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
         NotificationPermission()
-        TileActionService.AddTileRequest()
     }
 }
 

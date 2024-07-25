@@ -58,6 +58,8 @@
     <string name="app_pref_dynamic_theme_summary">Pas het uiterlijk aan op basis van de kleuren van uw achtergrond</string>
     <string name="app_pref_notification">Toestel notificatie instellingen</string>
     <string name="app_pref_notification_summary">Open notificatie instellingen</string>
+    <string name="app_pref_tile">Applicatietegel toevoegen</string>
+    <string name="app_pref_tile_summary">Applicatietegel toevoegen aan Snelle instellingen</string>
     <string name="app_pref_logging">Zet applicatie loggen aan</string>
     <string name="app_pref_logging_summary">Totaal logboek opsomming</string>
 

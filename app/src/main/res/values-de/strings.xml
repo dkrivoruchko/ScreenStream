@@ -58,6 +58,8 @@
     <string name="app_pref_dynamic_theme_summary">Passen Sie das Aussehen basierend auf den Farben Ihres Hintergrundbilds an</string>
     <string name="app_pref_notification">Einstellungen für Benachrichtigungen</string>
     <string name="app_pref_notification_summary">Systemeinstellungen für Benachrichtigungen öffnen</string>
+    <string name="app_pref_tile">Anwendungskachel hinzufügen</string>
+    <string name="app_pref_tile_summary">Anwendungskachel zu den Schnelleinstellungen hinzufügen</string>
     <string name="app_pref_logging">App-Logs aktivieren</string>
     <string name="app_pref_logging_summary">App-Logs sammeln</string>
 

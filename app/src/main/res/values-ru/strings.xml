@@ -58,6 +58,8 @@
     <string name="app_pref_dynamic_theme_summary">Настройте внешний вид на основе цветов вашего фона</string>
     <string name="app_pref_notification">Настройки уведомлений устройства</string>
     <string name="app_pref_notification_summary">Открыть настройки уведомлений системы</string>
+    <string name="app_pref_tile">Добавить плитку приложения</string>
+    <string name="app_pref_tile_summary">Добавить плитку приложения в Быстрые настройки</string>
     <string name="app_pref_logging">Включить логирование</string>
     <string name="app_pref_logging_summary">Собирать логи приложения</string>
 

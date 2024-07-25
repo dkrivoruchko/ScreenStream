@@ -58,6 +58,8 @@
     <string name="app_pref_dynamic_theme_summary">ضبط المظهر استنادًا إلى ألوان خلفية سطح المكتب الخاصة بك</string>
     <string name="app_pref_notification">إعدادات إشعار الجهاز</string>
     <string name="app_pref_notification_summary">افتح إعدادات إشعار النظام</string>
+    <string name="app_pref_tile">إضافة بلاطة التطبيق</string>
+    <string name="app_pref_tile_summary">إضافة بلاطة التطبيق إلى الإعدادات السريعة</string>
     <string name="app_pref_logging">تمكين سجلات التطبيقات</string>
     <string name="app_pref_logging_summary">جمع سجلات التطبيقات</string>
 

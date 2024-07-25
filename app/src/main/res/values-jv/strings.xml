@@ -58,6 +58,8 @@
     <string name="app_pref_dynamic_theme_summary">Setel tampilan adhedhasar warna wallpaper sampeyan</string>
     <string name="app_pref_notification">Setelan kabar piranti</string>
     <string name="app_pref_notification_summary">Bukak setelan kabar sistem</string>
+    <string name="app_pref_tile">Tambah jubin aplikasi</string>
+    <string name="app_pref_tile_summary">Tambah jubin aplikasi menyang Pengaturan Cepat</string>
     <string name="app_pref_logging">Aktifake log aplikasi</string>
     <string name="app_pref_logging_summary">Nglumpukake log aplikasi</string>
 

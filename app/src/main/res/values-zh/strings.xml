@@ -58,6 +58,8 @@
     <string name="app_pref_dynamic_theme_summary">根据您的壁纸颜色调整外观</string>
     <string name="app_pref_notification">打开设备通知设置</string>
     <string name="app_pref_notification_summary">打开系统通知设置</string>
+    <string name="app_pref_tile">添加应用瓷砖</string>
+    <string name="app_pref_tile_summary">将应用瓷砖添加到快速设置</string>
     <string name="app_pref_logging">启用程序日志</string>
     <string name="app_pref_logging_summary">收集程序日志</string>
 
