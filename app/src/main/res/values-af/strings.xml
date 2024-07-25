@@ -44,7 +44,16 @@
     <string name="app_pref_locale_summary">Maak toepassingstaalinstellings oop</string>
     <string name="app_pref_locale_default">Stelsel verstek</string>
     <string name="app_pref_night_mode">Donker tema</string>
-
+    <string-array name="app_pref_night_mode_options_api21_28">
+        <item>Altyd</item>
+        <item>Gestel deur Battery Saver</item>
+        <item>Nooit</item>
+    </string-array>
+    <string-array name="app_pref_night_mode_options_api29">
+        <item>Altyd</item>
+        <item>Outomaties (volg stelsel)</item>
+        <item>Nooit</item>
+    </string-array>
     <string name="app_pref_dynamic_theme">Dinamiese kleur</string>
     <string name="app_pref_dynamic_theme_summary">Pas die voorkoms aan op grond van jou muurpapierkleur</string>
     <string name="app_pref_notification">Toestelkennisgewinginstellings</string>

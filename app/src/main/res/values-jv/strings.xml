@@ -44,7 +44,16 @@
     <string name="app_pref_locale_summary">Bukak setelan basa aplikasi</string>
     <string name="app_pref_locale_default">Default sistem</string>
     <string name="app_pref_night_mode">Tema peteng</string>
-
+    <string-array name="app_pref_night_mode_options_api21_28">
+        <item>Saé</item>
+        <item>Diatur déning Panghemat Baterei</item>
+        <item>Pernah</item>
+    </string-array>
+    <string-array name="app_pref_night_mode_options_api29">
+        <item>Saé</item>
+        <item>Otomatis (tut wuri sistem)</item>
+        <item>Pernah</item>
+    </string-array>
     <string name="app_pref_dynamic_theme">Warna dinamis</string>
     <string name="app_pref_dynamic_theme_summary">Setel tampilan adhedhasar warna wallpaper sampeyan</string>
     <string name="app_pref_notification">Setelan kabar piranti</string>

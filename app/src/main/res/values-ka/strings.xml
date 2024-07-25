@@ -44,6 +44,16 @@
     <string name="app_pref_locale_summary">გახსენით აპლიკაციის ენის პარამეტრები</string>
     <string name="app_pref_locale_default">სისტემის ნაგულისხმევი</string>
     <string name="app_pref_night_mode">მუქი თემა</string>
+    <string-array name="app_pref_night_mode_options_api21_28">
+        <item>ყოველთვის</item>
+        <item>დააყენეთ ბატარეის დამზოგით</item>
+        <item>არასოდეს</item>
+    </string-array>
+    <string-array name="app_pref_night_mode_options_api29">
+        <item>ყოველთვის</item>
+        <item>ავტომატურად (მიდევნეთ სისტემას)</item>
+        <item>არასოდეს</item>
+    </string-array>
     <string name="app_pref_dynamic_theme">დინამიური ფერი</string>
     <string name="app_pref_dynamic_theme_summary">დაარეგულირეთ გარეგნობა თქვენი ფონის ფერების მიხედვით</string>
     <string name="app_pref_notification">მოწყობილობის შეტყობინებების პარამეტრები</string>

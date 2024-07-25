@@ -44,7 +44,16 @@
     <string name="app_pref_locale_summary">የመተግበሪያ ቋንቋ ቅንብሮችን ይክፈቱ</string>
     <string name="app_pref_locale_default">የስርዓት ነባሪ</string>
     <string name="app_pref_night_mode">ጨለማ ጭብጥ</string>
-
+    <string-array name="app_pref_night_mode_options_api21_28">
+        <item>እያለ</item>
+        <item>በባትሪ ሳቨር የተወሰነ</item>
+        <item>በፍጹም</item>
+    </string-array>
+    <string-array name="app_pref_night_mode_options_api29">
+        <item>እያለ</item>
+        <item>ራስእራስ (ስርዓትን ይከተላል)</item>
+        <item>በፍጹም</item>
+    </string-array>
     <string name="app_pref_dynamic_theme">ተለዋዋጭ ቀለም</string>
     <string name="app_pref_dynamic_theme_summary">በግድግዳ ወረቀትዎ ቀለሞች ላይ በመመስረት መልክውን ያስተካክሉ</string>
     <string name="app_pref_notification">የመሣሪያ ማሳወቂያ ቅንብሮች</string>

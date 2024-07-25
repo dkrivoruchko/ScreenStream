@@ -44,7 +44,16 @@
     <string name="app_pref_locale_summary">Buka pengaturan bahasa aplikasi</string>
     <string name="app_pref_locale_default">Bawaan sistem</string>
     <string name="app_pref_night_mode">Tema gelap</string>
-
+    <string-array name="app_pref_night_mode_options_api21_28">
+        <item>Selalu</item>
+        <item>Diatur oleh Penghemat Baterai</item>
+        <item>Tidak Pernah</item>
+    </string-array>
+    <string-array name="app_pref_night_mode_options_api29">
+        <item>Selalu</item>
+        <item>Otomatis (ikuti sistem)</item>
+        <item>Tidak Pernah</item>
+    </string-array>
     <string name="app_pref_dynamic_theme">Warna dinamis</string>
     <string name="app_pref_dynamic_theme_summary">Sesuaikan tampilan berdasarkan warna wallpaper Anda</string>
     <string name="app_pref_notification">Pengaturan notifikasi perangkat</string>

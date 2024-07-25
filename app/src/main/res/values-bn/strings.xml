@@ -44,7 +44,16 @@
     <string name="app_pref_locale_summary">অ্যাপ্লিকেশন ভাষা সেটিংস খুলুন</string>
     <string name="app_pref_locale_default">সিস্টেমের ডিফল্ট</string>
     <string name="app_pref_night_mode">গাঢ় থিম</string>
-
+    <string-array name="app_pref_night_mode_options_api21_28">
+        <item>সবসময়</item>
+        <item>ব্যাটারি সেভারের দ্বারা সেট করুন</item>
+        <item>কখনো না</item>
+    </string-array>
+    <string-array name="app_pref_night_mode_options_api29">
+        <item>সবসময়</item>
+        <item>স্বয়ংক্রিয় (সিস্টেম অনুসরণ করুন)</item>
+        <item>কখনো না</item>
+    </string-array>
     <string name="app_pref_dynamic_theme">গতিশীল রঙ</string>
     <string name="app_pref_dynamic_theme_summary">আপনার ওয়ালপেপারের রঙের উপর ভিত্তি করে চেহারা সামঞ্জস্য করুন</string>
     <string name="app_pref_notification">ডিভাইস বিজ্ঞপ্তি সেটিংস</string>

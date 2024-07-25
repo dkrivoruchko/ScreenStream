@@ -44,6 +44,16 @@
     <string name="app_pref_locale_summary">Ilova tili sozlamalarini oching</string>
     <string name="app_pref_locale_default">Tizim standarti</string>
     <string name="app_pref_night_mode">Qorong\'i mavzu</string>
+    <string-array name="app_pref_night_mode_options_api21_28">
+        <item>Har doim</item>
+        <item>Batareyani tejash orqali sozlanadi</item>
+        <item>Hech qachon</item>
+    </string-array>
+    <string-array name="app_pref_night_mode_options_api29">
+        <item>Har doim</item>
+        <item>Avtomatik (tizimga rioya qiling)</item>
+        <item>Hech qachon</item>
+    </string-array>
     <string name="app_pref_dynamic_theme">Dinamik rang</string>
     <string name="app_pref_dynamic_theme_summary">Fon rasmi ranglariga qarab tashqi ko\'rinishni sozlang</string>
     <string name="app_pref_notification">Qurilma bildirishnoma sozlamalari</string>
