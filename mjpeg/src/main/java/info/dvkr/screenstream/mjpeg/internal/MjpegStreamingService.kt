@@ -229,7 +229,7 @@ internal class MjpegStreamingService(
         if (event is InternalEvent.Destroy) destroyPending = true
 
         if (timeout > 0) XLog.d(getLog("sendEvent", "New event [Timeout: $timeout] => $event"))
-        else XLog.d(getLog("sendEvent", "New event => $event"))
+        else XLog.v(getLog("sendEvent", "New event => $event"))
 
         if (event is InternalEvent.RestartServer) {
             handler.removeMessages(MjpegEvent.Priority.RESTART_IGNORE)

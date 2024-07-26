@@ -8,6 +8,7 @@ import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.ui.Modifier
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.flowWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import com.elvishew.xlog.XLog
@@ -22,6 +23,7 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.onStart
 import org.koin.android.ext.android.inject
 import org.koin.compose.KoinContext
 import kotlin.coroutines.cancellation.CancellationException
@@ -57,7 +59,9 @@ public class SingleActivity : AppUpdateActivity() {
             .launchIn(lifecycleScope)
 
         streamingModulesManager.selectedModuleIdFlow
+            .onStart { XLog.d(this@SingleActivity.getLog("selectedModuleIdFlow.onStart")) }
             .onEach { moduleId ->
+                if (streamingModulesManager.isActive(moduleId)) return@onEach
                 XLog.i(this@SingleActivity.getLog("selectedModuleIdFlow.onEach:", "$moduleId"))
                 streamingModulesManager.startModule(moduleId, this)
             }
@@ -66,10 +70,10 @@ public class SingleActivity : AppUpdateActivity() {
                 else throw it
             }
             .onCompletion { cause ->
-                if (cause == null || cause is CancellationException) XLog.i(this@SingleActivity.getLog("selectedModuleIdFlow.onCompletion"))
+                if (cause == null || cause is CancellationException) XLog.d(this@SingleActivity.getLog("selectedModuleIdFlow.onCompletion"))
                 else XLog.e(this@SingleActivity.getLog("selectedModuleIdFlow.onCompletion: ${cause.message}"), cause)
             }
-            .flowWithLifecycle(lifecycle)
+            .flowWithLifecycle(lifecycle, minActiveState = Lifecycle.State.RESUMED)
             .launchIn(lifecycleScope)
     }
 }

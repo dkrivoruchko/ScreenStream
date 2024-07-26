@@ -54,21 +54,13 @@ public class TileActionService : TileService() {
 
     override fun onBind(intent: Intent?): IBinder? = runCatching { super.onBind(intent) }.getOrNull()
 
-    override fun onTileAdded() {
-        super.onTileAdded()
-        XLog.d(getLog("TileActionService", "onTileAdded"))
-    }
-
     override fun onStartListening() {
         super.onStartListening()
-        XLog.d(getLog("TileActionService", "onStartListening"))
-
         @OptIn(ExperimentalCoroutinesApi::class)
         streamingModulesManager.activeModuleStateFlow
             .flatMapConcat { activeModule -> activeModule?.isStreaming?.map<Boolean, Boolean?> { it } ?: flow { emit(null) } }
             .distinctUntilChanged()
             .map { isStreaming ->
-                XLog.e(getLog("TileActionService", "onStartListening.isStreaming: $isStreaming"))
                 qsTile?.icon = Icon.createWithResource(this, R.drawable.ic_tile_24dp)
                 qsTile?.state = if (isStreaming == null) Tile.STATE_INACTIVE else Tile.STATE_ACTIVE
                 when {
@@ -95,7 +87,6 @@ public class TileActionService : TileService() {
 
     override fun onStopListening() {
         super.onStopListening()
-        XLog.d(getLog("TileActionService", "onStopListening"))
         coroutineScope?.cancel()
         coroutineScope = null
 
@@ -110,8 +101,6 @@ public class TileActionService : TileService() {
 
     override fun onClick() {
         super.onClick()
-        XLog.d(getLog("TileActionService", "onClick"))
-
         val activeModule = runBlocking { streamingModulesManager.activeModuleStateFlow.first() }
         if (activeModule == null) {
             startSingleActivity()
@@ -124,11 +113,6 @@ public class TileActionService : TileService() {
         } else {
             startSingleActivity()
         }
-    }
-
-    override fun onTileRemoved() {
-        super.onTileRemoved()
-        XLog.d(getLog("TileActionService", "onTileRemoved"))
     }
 
     @Suppress("DEPRECATION")
