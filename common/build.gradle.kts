@@ -6,6 +6,8 @@ plugins {
     alias(libs.plugins.ksp)
 }
 
+java.toolchain.languageVersion = JavaLanguageVersion.of(17)
+
 android {
     namespace = "info.dvkr.screenstream.common"
     compileSdk = rootProject.extra["compileSdkVersion"] as Int
@@ -15,13 +17,7 @@ android {
         minSdk = rootProject.extra["minSdkVersion"] as Int
     }
 
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
-    }
-
     kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_11.toString()
         freeCompilerArgs += "-Xexplicit-api=strict"
     }
 

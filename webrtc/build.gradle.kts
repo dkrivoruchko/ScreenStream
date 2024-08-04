@@ -8,11 +8,13 @@ plugins {
     alias(libs.plugins.ksp)
 }
 
+java.toolchain.languageVersion = JavaLanguageVersion.of(17)
+
 android {
     namespace = "info.dvkr.screenstream.webrtc"
     compileSdk = rootProject.extra["compileSdkVersion"] as Int
     buildToolsVersion = rootProject.extra["buildToolsVersion"] as String
-    ndkVersion = "26.3.11579264"
+    ndkVersion = "27.0.12077973"
 
     defaultConfig {
         minSdk = rootProject.extra["minSdkVersion"] as Int
@@ -38,13 +40,7 @@ android {
         }
     }
 
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
-    }
-
     kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_11.toString()
         freeCompilerArgs += "-Xexplicit-api=strict"
     }
 

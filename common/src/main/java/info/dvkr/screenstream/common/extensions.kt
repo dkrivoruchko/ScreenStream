@@ -52,10 +52,10 @@ public fun Context.isPermissionGranted(permission: String): Boolean =
 public fun Activity.shouldShowPermissionRationale(permission: String): Boolean =
     ActivityCompat.shouldShowRequestPermissionRationale(this, permission)
 
-public fun Context.getAppVersion(): String = runCatching {
+public fun Context.getVersionName(packageName: String = this.packageName, fallback: String = "unknown"): String = runCatching {
     if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) packageManager.getPackageInfo(packageName, 0).versionName
     else packageManager.getPackageInfo(packageName, PackageManager.PackageInfoFlags.of(0)).versionName
-}.getOrDefault("unknown")
+}.getOrNull() ?: fallback
 
 public fun Context.openStringUrl(url: String, onError: (Throwable) -> Unit = {}) {
     runCatching {

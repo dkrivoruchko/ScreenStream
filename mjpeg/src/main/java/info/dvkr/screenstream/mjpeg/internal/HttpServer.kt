@@ -4,7 +4,7 @@ import android.content.Context
 import android.content.pm.ApplicationInfo
 import android.graphics.Bitmap
 import com.elvishew.xlog.XLog
-import info.dvkr.screenstream.common.getAppVersion
+import info.dvkr.screenstream.common.getVersionName
 import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.common.randomString
 import info.dvkr.screenstream.mjpeg.R
@@ -105,7 +105,7 @@ internal class HttpServer(
         .replace("%ERROR%", context.getString(R.string.mjpeg_html_error_unspecified)) //TODO not used
         .replace("%DD_SERVICE%", if (debuggable) "mjpeg_client:dev" else "mjpeg_client:prod")
         .replace("DD_HANDLER", if (debuggable) "[\"http\", \"console\"]" else "[\"http\"]")
-        .replace("%APP_VERSION%", context.getAppVersion())
+        .replace("%APP_VERSION%", context.getVersionName())
 
     private val indexHtml: AtomicReference<String> = AtomicReference("")
     private val lastJPEG: AtomicReference<ByteArray> = AtomicReference(ByteArray(0))

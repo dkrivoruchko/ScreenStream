@@ -30,7 +30,7 @@ import androidx.compose.ui.unit.dp
 import info.dvkr.screenstream.AdMob
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.common.findActivity
-import info.dvkr.screenstream.common.getAppVersion
+import info.dvkr.screenstream.common.getVersionName
 import info.dvkr.screenstream.common.openStringUrl
 import info.dvkr.screenstream.logger.AppLogger
 import org.koin.compose.koinInject
@@ -64,7 +64,7 @@ public fun AboutTabContent(
         val context = LocalContext.current
         val loggerClicksCounter = remember { mutableIntStateOf(0) }
         Text(
-            text = stringResource(id = R.string.app_tab_about_app_version, context.getAppVersion()),
+            text = stringResource(id = R.string.app_tab_about_app_version, context.getVersionName()),
             modifier = Modifier
                 .padding(8.dp)
                 .clickable {

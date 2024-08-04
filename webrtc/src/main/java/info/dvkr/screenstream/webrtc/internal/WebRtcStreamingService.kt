@@ -24,6 +24,7 @@ import androidx.annotation.MainThread
 import androidx.core.content.ContextCompat
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.common.getLog
+import info.dvkr.screenstream.common.getVersionName
 import info.dvkr.screenstream.webrtc.WebRtcKoinScope
 import info.dvkr.screenstream.webrtc.WebRtcModuleService
 import info.dvkr.screenstream.webrtc.settings.WebRtcSettings
@@ -64,14 +65,7 @@ internal class WebRtcStreamingService(
     private val webRtcSettings: WebRtcSettings
 ) : HandlerThread("WebRTC-HT", android.os.Process.THREAD_PRIORITY_DISPLAY), Handler.Callback {
 
-    private val versionName = runCatching {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            service.packageManager.getPackageInfo("com.google.android.gms", PackageManager.PackageInfoFlags.of(0)).versionName
-        } else {
-            service.packageManager.getPackageInfo("com.google.android.gms", 0).versionName
-        }
-    }.getOrDefault("-")
-
+    private val versionName = service.getVersionName("com.google.android.gms", "-")
     private val powerManager: PowerManager = service.application.getSystemService(PowerManager::class.java)
     private val connectivityManager: ConnectivityManager = service.application.getSystemService(ConnectivityManager::class.java)
     private val handler: Handler by lazy(LazyThreadSafetyMode.NONE) { Handler(looper, this) }

@@ -20,7 +20,7 @@ public interface AppSettings {
     public object Default {
         public val STREAMING_MODULE: StreamingModule.Id = StreamingModule.Id("_NONE_")
         public const val NIGHT_MODE: Int = AppCompatDelegate.MODE_NIGHT_UNSPECIFIED
-        public const val DYNAMIC_THEME: Boolean = true
+        public const val DYNAMIC_THEME: Boolean = false
     }
 
     @Immutable

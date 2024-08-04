@@ -5,8 +5,6 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatDelegate
-import androidx.compose.foundation.layout.safeDrawingPadding
-import androidx.compose.ui.Modifier
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.flowWithLifecycle
@@ -45,10 +43,7 @@ public class SingleActivity : AppUpdateActivity() {
         setContent {
             KoinContext {
                 ScreenStreamTheme {
-                    ScreenStreamContent(
-                        updateFlow = updateFlow,
-                        modifier = Modifier.safeDrawingPadding()
-                    )
+                    ScreenStreamContent(updateFlow = updateFlow)
                 }
             }
         }

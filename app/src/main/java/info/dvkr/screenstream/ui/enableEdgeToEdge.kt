@@ -10,13 +10,18 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsControllerCompat
 
 // Based on androidx.activity.ComponentActivity.enableEdgeToEdge
+@Suppress("DEPRECATION")
 internal fun ComponentActivity.enableEdgeToEdge(statusBarColor: Color, navigationBarColor: Color) {
     WindowCompat.setDecorFitsSystemWindows(window, false)
 
-    window.statusBarColor = statusBarColor.toArgb()
-    // No navigationBarColor for API < 26 as it works bad
+    // Transparent on Android 15+
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+        window.statusBarColor = statusBarColor.toArgb()
+    }
 
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+    // No navigationBarColor for API < 26 as it works bad
+    // Transparent on Android 15+
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && Build.VERSION.SDK_INT < Build.VERSION_CODES.VANILLA_ICE_CREAM) {
         window.navigationBarColor = navigationBarColor.toArgb()
     }
 
