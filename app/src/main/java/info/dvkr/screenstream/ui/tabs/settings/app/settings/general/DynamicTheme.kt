@@ -13,8 +13,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
@@ -45,9 +43,9 @@ internal object DynamicTheme : ModuleSettings.Item {
     override fun ItemUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit) {
         val appSettings = koinInject<AppSettings>()
         val appSettingsState = appSettings.data.collectAsStateWithLifecycle()
-        val dynamicTheme = remember { derivedStateOf { appSettingsState.value.dynamicTheme } }
+        val dynamicTheme = appSettingsState.value.dynamicTheme
 
-        DynamicThemeUI(horizontalPadding, dynamicTheme.value) {
+        DynamicThemeUI(horizontalPadding, dynamicTheme) {
             coroutineScope.launch { appSettings.updateData { copy(dynamicTheme = it) } }
         }
     }

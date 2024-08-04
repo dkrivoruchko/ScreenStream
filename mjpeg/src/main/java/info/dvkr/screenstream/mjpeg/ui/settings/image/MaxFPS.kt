@@ -19,7 +19,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -61,21 +60,18 @@ internal object MaxFPS : ModuleSettings.Item {
     override fun ItemUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit) {
         val mjpegSettings = koinInject<MjpegSettings>()
         val mjpegSettingsState = mjpegSettings.data.collectAsStateWithLifecycle()
-        val maxFPS = remember { derivedStateOf { mjpegSettingsState.value.maxFPS } }
 
-        MaxFpsUI(horizontalPadding, maxFPS.value, onDetailShow)
+        MaxFpsUI(horizontalPadding, mjpegSettingsState.value.maxFPS, onDetailShow)
     }
 
     @Composable
     override fun DetailUI(headerContent: @Composable (String) -> Unit) {
         val mjpegSettings = koinInject<MjpegSettings>()
         val mjpegSettingsState = mjpegSettings.data.collectAsStateWithLifecycle()
-        val maxFPS = remember { derivedStateOf { mjpegSettingsState.value.maxFPS } }
-
         val scope = rememberCoroutineScope()
 
-        MaxFpsDetailUI(headerContent, maxFPS.value) {
-            if (maxFPS.value != it) {
+        MaxFpsDetailUI(headerContent, mjpegSettingsState.value.maxFPS) {
+            if (mjpegSettingsState.value.maxFPS != it) {
                 scope.launch { mjpegSettings.updateData { copy(maxFPS = it) } }
             }
         }

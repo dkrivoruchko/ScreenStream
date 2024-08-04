@@ -12,8 +12,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -46,11 +44,9 @@ internal object HtmlEnableButtons : ModuleSettings.Item {
     override fun ItemUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit) {
         val mjpegSettings = koinInject<MjpegSettings>()
         val mjpegSettingsState = mjpegSettings.data.collectAsStateWithLifecycle()
-        val htmlEnableButtons = remember { derivedStateOf { mjpegSettingsState.value.htmlEnableButtons } }
-        val enablePin = remember { derivedStateOf { mjpegSettingsState.value.enablePin } }
 
-        HtmlEnableButtonsUI(horizontalPadding, htmlEnableButtons.value, enablePin.value) {
-            if (htmlEnableButtons.value != it) {
+        HtmlEnableButtonsUI(horizontalPadding, mjpegSettingsState.value.htmlEnableButtons, mjpegSettingsState.value.enablePin) {
+            if (mjpegSettingsState.value.htmlEnableButtons != it) {
                 coroutineScope.launch { mjpegSettings.updateData { copy(htmlEnableButtons = it) } }
             }
         }

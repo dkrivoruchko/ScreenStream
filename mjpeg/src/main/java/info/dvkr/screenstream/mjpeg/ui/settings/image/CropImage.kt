@@ -26,7 +26,6 @@ import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -77,10 +76,9 @@ internal object CropImage : ModuleSettings.Item {
     override fun ItemUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit) {
         val mjpegSettings = koinInject<MjpegSettings>()
         val mjpegSettingsState = mjpegSettings.data.collectAsStateWithLifecycle()
-        val imageCrop = remember { derivedStateOf { mjpegSettingsState.value.imageCrop } }
 
-        CropImageUI(horizontalPadding, imageCrop.value, onDetailShow) {
-            coroutineScope.launch { mjpegSettings.updateData { copy(imageCrop = imageCrop.value.not()) } }
+        CropImageUI(horizontalPadding, mjpegSettingsState.value.imageCrop, onDetailShow) {
+            coroutineScope.launch { mjpegSettings.updateData { copy(imageCrop = mjpegSettingsState.value.imageCrop.not()) } }
         }
     }
 
@@ -88,23 +86,30 @@ internal object CropImage : ModuleSettings.Item {
     override fun DetailUI(headerContent: @Composable (String) -> Unit) {
         val mjpegSettings = koinInject<MjpegSettings>()
         val mjpegSettingsState = mjpegSettings.data.collectAsStateWithLifecycle()
-        val imageCropTop = remember { derivedStateOf { mjpegSettingsState.value.imageCropTop } }
-        val imageCropBottom = remember { derivedStateOf { mjpegSettingsState.value.imageCropBottom } }
-        val imageCropLeft = remember { derivedStateOf { mjpegSettingsState.value.imageCropLeft } }
-        val imageCropRight = remember { derivedStateOf { mjpegSettingsState.value.imageCropRight } }
-
         val scope = rememberCoroutineScope()
 
         CropImageDetailUI(
             headerContent,
-            imageCropTop.value,
-            imageCropBottom.value,
-            imageCropLeft.value,
-            imageCropRight.value,
-            onNewValueTop = { if (imageCropTop.value != it) scope.launch { mjpegSettings.updateData { copy(imageCropTop = it) } } },
-            onNewValueBottom = { if (imageCropBottom.value != it) scope.launch { mjpegSettings.updateData { copy(imageCropBottom = it) } } },
-            onNewValueLeft = { if (imageCropLeft.value != it) scope.launch { mjpegSettings.updateData { copy(imageCropLeft = it) } } },
-            onNewValueRight = { if (imageCropRight.value != it) scope.launch { mjpegSettings.updateData { copy(imageCropRight = it) } } }
+            mjpegSettingsState.value.imageCropTop,
+            mjpegSettingsState.value.imageCropBottom,
+            mjpegSettingsState.value.imageCropLeft,
+            mjpegSettingsState.value.imageCropRight,
+            onNewValueTop = {
+                if (mjpegSettingsState.value.imageCropTop != it)
+                    scope.launch { mjpegSettings.updateData { copy(imageCropTop = it) } }
+            },
+            onNewValueBottom = {
+                if (mjpegSettingsState.value.imageCropBottom != it)
+                    scope.launch { mjpegSettings.updateData { copy(imageCropBottom = it) } }
+            },
+            onNewValueLeft = {
+                if (mjpegSettingsState.value.imageCropLeft != it)
+                    scope.launch { mjpegSettings.updateData { copy(imageCropLeft = it) } }
+            },
+            onNewValueRight = {
+                if (mjpegSettingsState.value.imageCropRight != it)
+                    scope.launch { mjpegSettings.updateData { copy(imageCropRight = it) } }
+            }
         )
     }
 }

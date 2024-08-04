@@ -12,8 +12,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
@@ -44,10 +42,9 @@ internal object EnableLocalhost : ModuleSettings.Item {
     override fun ItemUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit) {
         val mjpegSettings = koinInject<MjpegSettings>()
         val mjpegSettingsState = mjpegSettings.data.collectAsStateWithLifecycle()
-        val enableLocalHost = remember { derivedStateOf { mjpegSettingsState.value.enableLocalHost } }
 
-        EnableLocalhostUI(horizontalPadding, enableLocalHost.value) {
-            if (enableLocalHost.value != it) {
+        EnableLocalhostUI(horizontalPadding, mjpegSettingsState.value.enableLocalHost) {
+            if (mjpegSettingsState.value.enableLocalHost != it) {
                 coroutineScope.launch { mjpegSettings.updateData { copy(enableLocalHost = it) } }
             }
         }

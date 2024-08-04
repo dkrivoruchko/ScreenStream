@@ -20,8 +20,6 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -55,24 +53,21 @@ internal object Rotation : ModuleSettings.Item {
     override fun ItemUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit) {
         val mjpegSettings = koinInject<MjpegSettings>()
         val mjpegSettingsState = mjpegSettings.data.collectAsStateWithLifecycle()
-        val rotation = remember { derivedStateOf { mjpegSettingsState.value.rotation } }
 
-        RotationUI(horizontalPadding, rotation.value, onDetailShow)
+        RotationUI(horizontalPadding, mjpegSettingsState.value.rotation, onDetailShow)
     }
 
     @Composable
     override fun DetailUI(headerContent: @Composable (String) -> Unit) {
         val mjpegSettings = koinInject<MjpegSettings>()
         val mjpegSettingsState = mjpegSettings.data.collectAsStateWithLifecycle()
-        val rotation = remember { derivedStateOf { mjpegSettingsState.value.rotation } }
-        val rotationIndex = remember { derivedStateOf { rotationList.first { it.second == mjpegSettingsState.value.rotation }.first } }
-
+        val rotationIndex = rotationList.first { it.second == mjpegSettingsState.value.rotation }.first
         val rotationOptions = stringArrayResource(id = R.array.mjpeg_pref_rotate_options)
         val scope = rememberCoroutineScope()
 
-        RotationDetailUI(headerContent, rotationOptions, rotationIndex.value) { index ->
+        RotationDetailUI(headerContent, rotationOptions, rotationIndex) { index ->
             val newRotation = rotationList[index].second
-            if (rotation.value != newRotation) {
+            if (mjpegSettingsState.value.rotation != newRotation) {
                 scope.launch { mjpegSettings.updateData { copy(rotation = newRotation) } }
             }
         }

@@ -12,8 +12,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -45,10 +43,8 @@ internal object HidePinOnStart : ModuleSettings.Item {
     override fun ItemUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit) {
         val mjpegSettings = koinInject<MjpegSettings>()
         val mjpegSettingsState = mjpegSettings.data.collectAsStateWithLifecycle()
-        val hidePinOnStart = remember { derivedStateOf { mjpegSettingsState.value.hidePinOnStart } }
-        val enablePin = remember { derivedStateOf { mjpegSettingsState.value.enablePin } }
 
-        HidePinOnStartUI(horizontalPadding, hidePinOnStart.value, enablePin.value) {
+        HidePinOnStartUI(horizontalPadding, mjpegSettingsState.value.hidePinOnStart, mjpegSettingsState.value.enablePin) {
             coroutineScope.launch { mjpegSettings.updateData { copy(hidePinOnStart = it) } }
         }
     }

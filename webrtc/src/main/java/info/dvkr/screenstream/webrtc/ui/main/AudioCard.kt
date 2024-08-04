@@ -22,7 +22,6 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.State
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -60,12 +59,7 @@ internal fun AudioCard(
     scope: CoroutineScope = rememberCoroutineScope(),
     webRtcSettings: WebRtcSettings = koinInject()
 ) {
-    val isStreaming = remember { derivedStateOf { webRtcState.value.isStreaming } }
-
     val webRtcSettingsState = webRtcSettings.data.collectAsStateWithLifecycle()
-    val enableMic = remember { derivedStateOf { webRtcSettingsState.value.enableMic } }
-    val enableDeviceAudio = remember { derivedStateOf { webRtcSettingsState.value.enableDeviceAudio } }
-
     val context = LocalContext.current
     val showRecordAudioPermission = rememberSaveable { mutableStateOf(false) }
     val onPermissionsResult = remember { mutableStateOf<((Boolean) -> Unit)?>(null) }
@@ -81,8 +75,8 @@ internal fun AudioCard(
     ) {
         AudioSource(
             text = stringResource(id = R.string.webrtc_stream_audio_mic),
-            selected = enableMic.value,
-            enabled = Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE || isStreaming.value.not(),
+            selected = webRtcSettingsState.value.enableMic,
+            enabled = Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE || webRtcState.value.isStreaming.not(),
             onChange = { enabled ->
                 if (enabled.not() || context.isPermissionGranted(Manifest.permission.RECORD_AUDIO)) {
                     scope.launch { webRtcSettings.updateData { copy(enableMic = enabled) } }
@@ -98,8 +92,8 @@ internal fun AudioCard(
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             AudioSource(
                 text = stringResource(id = R.string.webrtc_stream_audio_device),
-                selected = enableDeviceAudio.value,
-                enabled = Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE || isStreaming.value.not(),
+                selected = webRtcSettingsState.value.enableDeviceAudio,
+                enabled = Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE || webRtcState.value.isStreaming.not(),
                 onChange = { enabled ->
                     if (enabled.not() || context.isPermissionGranted(Manifest.permission.RECORD_AUDIO)) {
                         scope.launch { webRtcSettings.updateData { copy(enableDeviceAudio = enabled) } }

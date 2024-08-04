@@ -31,7 +31,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -68,18 +67,8 @@ internal fun StreamCard(
     onCreateNewPassword: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-
-    val isStreaming = remember { derivedStateOf { webRtcState.value.isStreaming } }
-    val streamId = remember { derivedStateOf { webRtcState.value.streamId } }
-    val signalingServerUrl = remember { derivedStateOf { webRtcState.value.signalingServerUrl } }
-    val streamPassword = remember { derivedStateOf { webRtcState.value.streamPassword } }
-
-    val fullAddress = remember {
-        derivedStateOf { webRtcState.value.signalingServerUrl + "/?id=${webRtcState.value.streamId}&p=${webRtcState.value.streamPassword}" }
-    }
-
     ElevatedCard(modifier = modifier) {
-        if (streamId.value.isBlank()) {
+        if (webRtcState.value.streamId.isBlank()) {
             Text(
                 text = stringResource(id = R.string.webrtc_stream_stream_id_getting),
                 modifier = Modifier.padding(12.dp).fillMaxWidth(),
@@ -88,14 +77,16 @@ internal fun StreamCard(
                 style = MaterialTheme.typography.titleMedium
             )
         } else {
+            val fullAddress = webRtcState.value.signalingServerUrl + "/?id=${webRtcState.value.streamId}&p=${webRtcState.value.streamPassword}"
             val context = LocalContext.current
+
             Text(
-                text = stringResource(id = R.string.webrtc_stream_server_address, signalingServerUrl.value)
-                    .stylePlaceholder(signalingServerUrl.value, SpanStyle(color = MaterialTheme.colorScheme.primary)),
+                text = stringResource(id = R.string.webrtc_stream_server_address, webRtcState.value.signalingServerUrl)
+                    .stylePlaceholder(webRtcState.value.signalingServerUrl, SpanStyle(color = MaterialTheme.colorScheme.primary)),
                 modifier = Modifier
                     .padding(vertical = 16.dp)
                     .clickable(role = Role.Button) {
-                        context.openStringUrl(fullAddress.value) { error ->
+                        context.openStringUrl(fullAddress) { error ->
                             val messageId = when (error) {
                                 is ActivityNotFoundException -> R.string.webrtc_stream_no_web_browser_found
                                 else -> R.string.webrtc_stream_external_app_error
@@ -115,13 +106,13 @@ internal fun StreamCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = stringResource(id = R.string.webrtc_stream_stream_id, streamId.value)
-                        .stylePlaceholder(streamId.value, SpanStyle(fontWeight = FontWeight.Bold, fontFamily = RobotoMonoBold)),
+                    text = stringResource(id = R.string.webrtc_stream_stream_id, webRtcState.value.streamId)
+                        .stylePlaceholder(webRtcState.value.streamId, SpanStyle(fontWeight = FontWeight.Bold, fontFamily = RobotoMonoBold)),
                     modifier = Modifier.weight(1F)
                 )
 
                 AnimatedVisibility(
-                    visible = isStreaming.value.not(),
+                    visible = webRtcState.value.isStreaming.not(),
                     enter = fadeIn(),
                     exit = fadeOut(),
                 ) {
@@ -140,16 +131,16 @@ internal fun StreamCard(
             ) {
                 val interactionSource = remember { MutableInteractionSource() }
                 val isPressed = interactionSource.collectIsPressedAsState()
-                val text = remember { derivedStateOf { if (isStreaming.value.not() || isPressed.value) streamPassword.value else "*" } }
+                val text = if (webRtcState.value.isStreaming.not() || isPressed.value) webRtcState.value.streamPassword else "*"
 
                 Text(
-                    text = stringResource(id = R.string.webrtc_stream_stream_password, text.value)
-                        .stylePlaceholder(text.value, SpanStyle(fontWeight = FontWeight.Bold, fontFamily = RobotoMonoBold)),
+                    text = stringResource(id = R.string.webrtc_stream_stream_password, text)
+                        .stylePlaceholder(text, SpanStyle(fontWeight = FontWeight.Bold, fontFamily = RobotoMonoBold)),
                     modifier = Modifier.weight(1F)
                 )
 
                 Crossfade(
-                    targetState = isStreaming.value,
+                    targetState = webRtcState.value.isStreaming,
                     label = "StreamPasswordButtonCrossfade"
                 ) { isStreaming ->
                     if (isStreaming) {
@@ -175,10 +166,10 @@ internal fun StreamCard(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.End
             ) {
-                OpenInBrowserButton(fullAddress.value)
-                CopyAddressButton(fullAddress.value)
-                ShareAddressButton(fullAddress.value)
-                ShowQRCodeButton(fullAddress.value)
+                OpenInBrowserButton(fullAddress)
+                CopyAddressButton(fullAddress)
+                ShareAddressButton(fullAddress)
+                ShowQRCodeButton(fullAddress)
             }
         }
     }

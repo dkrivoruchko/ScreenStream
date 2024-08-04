@@ -19,7 +19,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -66,23 +65,20 @@ internal object ResizeImage : ModuleSettings.Item {
     override fun ItemUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit) {
         val mjpegSettings = koinInject<MjpegSettings>()
         val mjpegSettingsState = mjpegSettings.data.collectAsStateWithLifecycle()
-        val resizeFactor = remember { derivedStateOf { mjpegSettingsState.value.resizeFactor } }
 
-        ResizeImageUI(horizontalPadding, resizeFactor.value, onDetailShow)
+        ResizeImageUI(horizontalPadding, mjpegSettingsState.value.resizeFactor, onDetailShow)
     }
 
     @Composable
     override fun DetailUI(headerContent: @Composable (String) -> Unit) {
         val mjpegSettings = koinInject<MjpegSettings>()
         val mjpegSettingsState = mjpegSettings.data.collectAsStateWithLifecycle()
-        val resizeFactor = remember { derivedStateOf { mjpegSettingsState.value.resizeFactor } }
         val context = LocalContext.current
         val size = remember { WindowMetricsCalculator.getOrCreate().computeMaximumWindowMetrics(context).bounds.toComposeIntRect().size }
-
         val scope = rememberCoroutineScope()
 
-        ResizeImageDetailUI(headerContent, resizeFactor.value, size) {
-            if (resizeFactor.value != it) {
+        ResizeImageDetailUI(headerContent, mjpegSettingsState.value.resizeFactor, size) {
+            if (mjpegSettingsState.value.resizeFactor != it) {
                 scope.launch { mjpegSettings.updateData { copy(resizeFactor = it) } }
             }
         }
@@ -138,8 +134,8 @@ private fun ResizeImageDetailUI(
         val text = resizeFactor.toString()
         mutableStateOf(TextFieldValue(text = text, selection = TextRange(text.length)))
     }
-    val resizedWidth = remember(resizeFactor, size) { derivedStateOf { (size.width * resizeFactor / 100F).toInt() } }
-    val resizedHeight = remember(resizeFactor, size) { derivedStateOf { (size.height * resizeFactor / 100F).toInt() } }
+    val resizedWidth = (size.width * resizeFactor / 100F).toInt()
+    val resizedHeight = (size.height * resizeFactor / 100F).toInt()
     val isError = remember { mutableStateOf(false) }
     val focusRequester = remember { FocusRequester() }
 
@@ -180,7 +176,7 @@ private fun ResizeImageDetailUI(
             )
 
             Text(
-                text = stringResource(id = R.string.mjpeg_pref_resize_result, resizedWidth.value, resizedHeight.value),
+                text = stringResource(id = R.string.mjpeg_pref_resize_result, resizedWidth, resizedHeight),
                 modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
             )
         }

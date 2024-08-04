@@ -30,7 +30,6 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -77,20 +76,18 @@ internal object HtmlBackColor : ModuleSettings.Item {
     override fun ItemUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit) {
         val mjpegSettings = koinInject<MjpegSettings>()
         val mjpegSettingsState = mjpegSettings.data.collectAsStateWithLifecycle()
-        val htmlBackColor = remember { derivedStateOf { Color(mjpegSettingsState.value.htmlBackColor) } }
 
-        HtmlBackColorUI(horizontalPadding, htmlBackColor.value, onDetailShow)
+        HtmlBackColorUI(horizontalPadding, Color(mjpegSettingsState.value.htmlBackColor), onDetailShow)
     }
 
     @Composable
     override fun DetailUI(headerContent: @Composable (String) -> Unit) {
         val mjpegSettings = koinInject<MjpegSettings>()
         val mjpegSettingsState = mjpegSettings.data.collectAsStateWithLifecycle()
-        val htmlBackColor = remember { derivedStateOf { Color(mjpegSettingsState.value.htmlBackColor) } }
         val scope = rememberCoroutineScope()
 
-        HtmlBackColorDetailUI(headerContent, htmlBackColor.value) { color: Color ->
-            if (htmlBackColor.value != color) {
+        HtmlBackColorDetailUI(headerContent, Color(mjpegSettingsState.value.htmlBackColor)) { color: Color ->
+            if (Color(mjpegSettingsState.value.htmlBackColor) != color) {
                 scope.launch { mjpegSettings.updateData { copy(htmlBackColor = color.toArgb()) } }
             }
         }

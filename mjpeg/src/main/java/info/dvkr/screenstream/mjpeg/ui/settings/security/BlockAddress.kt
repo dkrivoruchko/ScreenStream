@@ -12,8 +12,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -45,11 +43,9 @@ internal object BlockAddress : ModuleSettings.Item {
     override fun ItemUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit) {
         val mjpegSettings = koinInject<MjpegSettings>()
         val mjpegSettingsState = mjpegSettings.data.collectAsStateWithLifecycle()
-        val blockAddress = remember { derivedStateOf { mjpegSettingsState.value.blockAddress } }
-        val enablePin = remember { derivedStateOf { mjpegSettingsState.value.enablePin } }
 
-        BlockAddressUI(horizontalPadding, blockAddress.value, enablePin.value) {
-            if (blockAddress.value != it) {
+        BlockAddressUI(horizontalPadding, mjpegSettingsState.value.blockAddress, mjpegSettingsState.value.enablePin) {
+            if (mjpegSettingsState.value.blockAddress != it) {
                 coroutineScope.launch { mjpegSettings.updateData { copy(blockAddress = it) } }
             }
         }

@@ -25,8 +25,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -62,9 +60,8 @@ internal object VrMode : ModuleSettings.Item {
     override fun ItemUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit) {
         val mjpegSettings = koinInject<MjpegSettings>()
         val mjpegSettingsState = mjpegSettings.data.collectAsStateWithLifecycle()
-        val vrMode = remember { derivedStateOf { mjpegSettingsState.value.vrMode } }
 
-        VrModeUI(horizontalPadding, vrMode.value, onDetailShow) {
+        VrModeUI(horizontalPadding, mjpegSettingsState.value.vrMode, onDetailShow) {
             coroutineScope.launch { mjpegSettings.updateData { copy(vrMode = it) } }
         }
     }
@@ -73,14 +70,11 @@ internal object VrMode : ModuleSettings.Item {
     override fun DetailUI(headerContent: @Composable (String) -> Unit) {
         val mjpegSettings = koinInject<MjpegSettings>()
         val mjpegSettingsState = mjpegSettings.data.collectAsStateWithLifecycle()
-        val vrMode = remember { derivedStateOf { mjpegSettingsState.value.vrMode } }
-
         val vrModeOptions = stringArrayResource(id = R.array.mjpeg_pref_vr_mode_options)
-
         val scope = rememberCoroutineScope()
 
-        VrModeDetailUI(headerContent, vrModeOptions, vrMode.value) {
-            if (vrMode.value != it) {
+        VrModeDetailUI(headerContent, vrModeOptions, mjpegSettingsState.value.vrMode) {
+            if (mjpegSettingsState.value.vrMode != it) {
                 scope.launch { mjpegSettings.updateData { copy(vrMode = it) } }
             }
         }

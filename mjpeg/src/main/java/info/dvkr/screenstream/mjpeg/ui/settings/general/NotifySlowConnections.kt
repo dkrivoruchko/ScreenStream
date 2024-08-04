@@ -12,8 +12,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
@@ -44,10 +42,9 @@ internal object NotifySlowConnections : ModuleSettings.Item {
     override fun ItemUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit) {
         val mjpegSettings = koinInject<MjpegSettings>()
         val mjpegSettingsState = mjpegSettings.data.collectAsStateWithLifecycle()
-        val notifySlowConnections = remember { derivedStateOf { mjpegSettingsState.value.notifySlowConnections } }
 
-        NotifySlowConnectionsUI(horizontalPadding, notifySlowConnections.value) {
-            if (notifySlowConnections.value != it) {
+        NotifySlowConnectionsUI(horizontalPadding, mjpegSettingsState.value.notifySlowConnections) {
+            if (mjpegSettingsState.value.notifySlowConnections != it) {
                 coroutineScope.launch { mjpegSettings.updateData { copy(notifySlowConnections = it) } }
             }
         }

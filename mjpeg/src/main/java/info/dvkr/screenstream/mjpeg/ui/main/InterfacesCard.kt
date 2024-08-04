@@ -25,7 +25,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -55,10 +54,8 @@ internal fun InterfacesCard(
     mjpegState: State<MjpegState>,
     modifier: Modifier = Modifier,
 ) {
-    val interfaces = remember { derivedStateOf { mjpegState.value.serverNetInterfaces } }
-
     ElevatedCard(modifier = modifier) {
-        if (interfaces.value.isEmpty()) {
+        if (mjpegState.value.serverNetInterfaces.isEmpty()) {
             Column(modifier = Modifier.padding(8.dp)) {
                 Text(text = stringResource(id = R.string.mjpeg_item_address))
                 Text(
@@ -69,14 +66,14 @@ internal fun InterfacesCard(
                 )
             }
         } else {
-            interfaces.value.forEachIndexed { index, netInterface ->
+            mjpegState.value.serverNetInterfaces.forEachIndexed { index, netInterface ->
                 AddressCard(
                     fullAddress = netInterface.fullAddress,
                     interfaceName = netInterface.name,
                     modifier = Modifier.padding(top = 12.dp, bottom = 4.dp, start = 12.dp, end = 0.dp)
                 )
 
-                if (index != interfaces.value.lastIndex) {
+                if (index != mjpegState.value.serverNetInterfaces.lastIndex) {
                     HorizontalDivider(modifier = Modifier.fillMaxWidth())
                 }
             }

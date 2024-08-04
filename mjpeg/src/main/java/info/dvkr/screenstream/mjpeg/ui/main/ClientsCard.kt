@@ -7,8 +7,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
-import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -25,23 +23,18 @@ internal fun ClientsCard(
     mjpegState: State<MjpegState>,
     modifier: Modifier = Modifier
 ) {
-    val expandable = remember { derivedStateOf { mjpegState.value.clients.isNotEmpty() } }
-
     ExpandableCard(
         headerContent = {
-            val clientsCount = remember {
-                derivedStateOf { mjpegState.value.clients.count { it.state != MjpegState.Client.State.DISCONNECTED } }
-            }
-
+            val clientsCount = mjpegState.value.clients.count { it.state != MjpegState.Client.State.DISCONNECTED }
             Text(
-                text = stringResource(id = R.string.mjpeg_stream_connected_clients, clientsCount.value)
-                    .stylePlaceholder(clientsCount.value.toString(), SpanStyle(fontWeight = FontWeight.Bold)),
+                text = stringResource(id = R.string.mjpeg_stream_connected_clients, clientsCount)
+                    .stylePlaceholder(clientsCount.toString(), SpanStyle(fontWeight = FontWeight.Bold)),
                 modifier = Modifier.align(Alignment.Center)
             )
         },
         modifier = modifier,
         contentModifier = Modifier.padding(8.dp),
-        expandable = expandable.value
+        expandable = mjpegState.value.clients.isNotEmpty()
     ) {
         mjpegState.value.clients.forEachIndexed { index, client ->
             MjpegClient(client = client, modifier = Modifier.padding(horizontal = 4.dp))

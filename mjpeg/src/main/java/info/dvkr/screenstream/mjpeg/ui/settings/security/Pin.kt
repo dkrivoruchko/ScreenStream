@@ -19,7 +19,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -66,30 +65,25 @@ internal object Pin : ModuleSettings.Item {
     override fun ItemUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit) {
         val mjpegSettings = koinInject<MjpegSettings>()
         val mjpegSettingsState = mjpegSettings.data.collectAsStateWithLifecycle()
-        val pin = remember { derivedStateOf { mjpegSettingsState.value.pin } }
-        val enabled = remember {
-            derivedStateOf {
-                mjpegSettingsState.value.enablePin && mjpegSettingsState.value.newPinOnAppStart.not() && mjpegSettingsState.value.autoChangePin.not()
-            }
-        }
+        val enabled =
+            mjpegSettingsState.value.enablePin && mjpegSettingsState.value.newPinOnAppStart.not() && mjpegSettingsState.value.autoChangePin.not()
+
 
         val streamingModulesManager = koinInject<StreamingModuleManager>()
         val activeModule = streamingModulesManager.activeModuleStateFlow.collectAsStateWithLifecycle()
         val isStreaming = activeModule.value?.isStreaming?.collectAsStateWithLifecycle(false)
 
-        PinUI(horizontalPadding, pin.value, enabled.value, isStreaming?.value?.not() ?: true, onDetailShow)
+        PinUI(horizontalPadding, mjpegSettingsState.value.pin, enabled, isStreaming?.value?.not() ?: true, onDetailShow)
     }
 
     @Composable
     override fun DetailUI(headerContent: @Composable (String) -> Unit) {
         val mjpegSettings = koinInject<MjpegSettings>()
         val mjpegSettingsState = mjpegSettings.data.collectAsStateWithLifecycle()
-        val pin = remember { derivedStateOf { mjpegSettingsState.value.pin } }
-
         val scope = rememberCoroutineScope()
 
-        PinDetailUI(headerContent, pin.value) {
-            if (pin.value != it) {
+        PinDetailUI(headerContent, mjpegSettingsState.value.pin) {
+            if (mjpegSettingsState.value.pin != it) {
                 scope.launch { mjpegSettings.updateData { copy(pin = it) } }
             }
         }

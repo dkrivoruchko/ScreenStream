@@ -19,7 +19,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -61,21 +60,18 @@ internal object JpegQuality : ModuleSettings.Item {
     override fun ItemUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit) {
         val mjpegSettings = koinInject<MjpegSettings>()
         val mjpegSettingsState = mjpegSettings.data.collectAsStateWithLifecycle()
-        val jpegQuality = remember { derivedStateOf { mjpegSettingsState.value.jpegQuality } }
 
-        JpegQualityUI(horizontalPadding, jpegQuality.value, onDetailShow)
+        JpegQualityUI(horizontalPadding, mjpegSettingsState.value.jpegQuality, onDetailShow)
     }
 
     @Composable
     override fun DetailUI(headerContent: @Composable (String) -> Unit) {
         val mjpegSettings = koinInject<MjpegSettings>()
         val mjpegSettingsState = mjpegSettings.data.collectAsStateWithLifecycle()
-        val jpegQuality = remember { derivedStateOf { mjpegSettingsState.value.jpegQuality } }
-
         val scope = rememberCoroutineScope()
 
-        JpegQualityDetailUI(headerContent, jpegQuality.value) {
-            if (jpegQuality.value != it) {
+        JpegQualityDetailUI(headerContent, mjpegSettingsState.value.jpegQuality) {
+            if (mjpegSettingsState.value.jpegQuality != it) {
                 scope.launch { mjpegSettings.updateData { copy(jpegQuality = it) } }
             }
         }

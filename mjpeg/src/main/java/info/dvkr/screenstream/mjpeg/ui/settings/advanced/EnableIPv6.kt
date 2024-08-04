@@ -12,8 +12,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
@@ -44,10 +42,9 @@ internal object EnableIPv6 : ModuleSettings.Item {
     override fun ItemUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit) {
         val mjpegSettings = koinInject<MjpegSettings>()
         val mjpegSettingsState = mjpegSettings.data.collectAsStateWithLifecycle()
-        val enableIPv6 = remember { derivedStateOf { mjpegSettingsState.value.enableIPv6 } }
 
-        EnableIPv6UI(horizontalPadding, enableIPv6.value) {
-            if (enableIPv6.value != it) {
+        EnableIPv6UI(horizontalPadding, mjpegSettingsState.value.enableIPv6) {
+            if (mjpegSettingsState.value.enableIPv6 != it) {
                 coroutineScope.launch { mjpegSettings.updateData { copy(enableIPv6 = it) } }
             }
         }

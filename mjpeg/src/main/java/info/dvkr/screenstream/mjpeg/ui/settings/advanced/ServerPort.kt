@@ -19,7 +19,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -61,21 +60,18 @@ internal object ServerPort : ModuleSettings.Item {
     override fun ItemUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit) {
         val mjpegSettings = koinInject<MjpegSettings>()
         val mjpegSettingsState = mjpegSettings.data.collectAsStateWithLifecycle()
-        val serverPort = remember { derivedStateOf { mjpegSettingsState.value.serverPort } }
 
-        ServerPortUI(horizontalPadding, serverPort.value, onDetailShow)
+        ServerPortUI(horizontalPadding, mjpegSettingsState.value.serverPort, onDetailShow)
     }
 
     @Composable
     override fun DetailUI(headerContent: @Composable (String) -> Unit) {
         val mjpegSettings = koinInject<MjpegSettings>()
         val mjpegSettingsState = mjpegSettings.data.collectAsStateWithLifecycle()
-        val serverPort = remember { derivedStateOf { mjpegSettingsState.value.serverPort } }
-
         val scope = rememberCoroutineScope()
 
-        ServerPortDetailUI(headerContent, serverPort.value.toString()) {
-            if (serverPort.value != it) {
+        ServerPortDetailUI(headerContent, mjpegSettingsState.value.serverPort.toString()) {
+            if (mjpegSettingsState.value.serverPort != it) {
                 scope.launch { mjpegSettings.updateData { copy(serverPort = it) } }
             }
         }

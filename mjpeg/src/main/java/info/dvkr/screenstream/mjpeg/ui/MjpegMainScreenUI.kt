@@ -19,7 +19,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -48,16 +47,12 @@ internal fun MjpegMainScreenUI(
     modifier: Modifier = Modifier
 ) {
     val mjpegState = mjpegStateFlow.collectAsStateWithLifecycle()
-    val isStreaming = remember { derivedStateOf { mjpegState.value.isStreaming } }
-    val isBusy = remember { derivedStateOf { mjpegState.value.isBusy } }
-    val waitingCastPermission = remember { derivedStateOf { mjpegState.value.waitingCastPermission } }
-    val error = remember { derivedStateOf { mjpegState.value.error } }
 
     BoxWithConstraints(modifier = modifier) {
         MediaProjectionPermission(
-            requestCastPermission = waitingCastPermission.value,
-            onPermissionGranted = { intent -> if (waitingCastPermission.value) sendEvent(MjpegEvent.StartProjection(intent)) },
-            onPermissionDenied = { if (waitingCastPermission.value) sendEvent(MjpegEvent.CastPermissionsDenied) },
+            shouldRequestPermission = mjpegState.value.waitingCastPermission,
+            onPermissionGranted = { intent -> if (mjpegState.value.waitingCastPermission) sendEvent(MjpegEvent.StartProjection(intent)) },
+            onPermissionDenied = { if (mjpegState.value.waitingCastPermission) sendEvent(MjpegEvent.CastPermissionsDenied) },
             requiredDialogTitle = stringResource(id = R.string.mjpeg_stream_cast_permission_required_title),
             requiredDialogText = stringResource(id = R.string.mjpeg_stream_cast_permission_required)
         )
@@ -69,7 +64,7 @@ internal fun MjpegMainScreenUI(
             state = lazyVerticalStaggeredGridState,
             contentPadding = PaddingValues(start = 8.dp, end = 8.dp, bottom = 64.dp),
         ) {
-            error.value?.let {
+            mjpegState.value.error?.let {
                 item(key = "ERROR") {
                     ErrorCard(error = it, modifier = Modifier.padding(8.dp), sendEvent = sendEvent)
                 }
@@ -92,8 +87,8 @@ internal fun MjpegMainScreenUI(
             }
         }
 
-        LaunchedEffect(error.value) {
-            if (error.value != null) lazyVerticalStaggeredGridState.animateScrollToItem(0)
+        LaunchedEffect(mjpegState.value.error) {
+            if (mjpegState.value.error != null) lazyVerticalStaggeredGridState.animateScrollToItem(0)
         }
 
         val doubleClickProtection = remember { DoubleClickProtection.get() }
@@ -101,14 +96,14 @@ internal fun MjpegMainScreenUI(
         Button(
             onClick = dropUnlessStarted {
                 doubleClickProtection.processClick {
-                    if (isStreaming.value) sendEvent(MjpegEvent.Intentable.StopStream("User action: Button"))
+                    if (mjpegState.value.isStreaming) sendEvent(MjpegEvent.Intentable.StopStream("User action: Button"))
                     else sendEvent(MjpegStreamingService.InternalEvent.StartStream)
                 }
             },
             modifier = Modifier
                 .padding(start = 16.dp, end = 16.dp, bottom = 8.dp)
                 .align(alignment = Alignment.BottomCenter),
-            enabled = isBusy.value.not(),
+            enabled = mjpegState.value.isBusy.not(),
             shape = MaterialTheme.shapes.medium,
             contentPadding = PaddingValues(start = 12.dp, top = 12.dp, bottom = 12.dp, end = 16.dp),
             elevation = ButtonDefaults.buttonElevation(
@@ -118,12 +113,12 @@ internal fun MjpegMainScreenUI(
                 hoveredElevation = 6.0.dp
             )
         ) {
-            Crossfade(targetState = isStreaming.value, label = "StreamingButtonCrossfade") { isStreaming ->
+            Crossfade(targetState = mjpegState.value.isStreaming, label = "StreamingButtonCrossfade") { isStreaming ->
                 Icon(imageVector = if (isStreaming) Icon_Stop else Icon_PlayArrow, contentDescription = null)
             }
             Spacer(modifier = Modifier.size(ButtonDefaults.IconSpacing))
             Text(
-                text = stringResource(id = if (isStreaming.value) R.string.mjpeg_stream_stop else R.string.mjpeg_stream_start),
+                text = stringResource(id = if (mjpegState.value.isStreaming) R.string.mjpeg_stream_stop else R.string.mjpeg_stream_start),
                 style = MaterialTheme.typography.titleMedium
             )
         }

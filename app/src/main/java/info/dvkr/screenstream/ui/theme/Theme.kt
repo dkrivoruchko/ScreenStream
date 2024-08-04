@@ -7,8 +7,6 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import info.dvkr.screenstream.common.settings.AppSettings
@@ -98,11 +96,10 @@ internal fun ScreenStreamTheme(
     content: @Composable () -> Unit
 ) {
     val appSettingsState = appSettings.data.collectAsStateWithLifecycle()
-    val dynamicTheme = remember { derivedStateOf { appSettingsState.value.dynamicTheme } }
 
     val colorScheme = when {
-        DynamicTheme.available && dynamicTheme.value && darkTheme -> dynamicDarkColorScheme(LocalContext.current)
-        DynamicTheme.available && dynamicTheme.value && darkTheme.not() -> dynamicLightColorScheme(LocalContext.current)
+        DynamicTheme.available && appSettingsState.value.dynamicTheme && darkTheme -> dynamicDarkColorScheme(LocalContext.current)
+        DynamicTheme.available && appSettingsState.value.dynamicTheme && darkTheme.not() -> dynamicLightColorScheme(LocalContext.current)
         darkTheme -> darkScheme
         else -> lightScheme
     }

@@ -13,7 +13,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
@@ -25,7 +25,7 @@ import info.dvkr.screenstream.common.getLog
 
 @Composable
 public fun MediaProjectionPermission(
-    requestCastPermission: Boolean,
+    shouldRequestPermission: Boolean,
     onPermissionGranted: (Intent) -> Unit,
     onPermissionDenied: () -> Unit,
     requiredDialogTitle: String,
@@ -37,7 +37,7 @@ public fun MediaProjectionPermission(
     val mediaProjectionPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult(),
         onResult = { activityResult ->
-            if (requestCastPermission.not()) {
+            if (shouldRequestPermission.not()) {
                 XLog.i(activityResult.getLog("MediaProjectionPermission"), IllegalStateException("MediaProjectionPermission: ignoring result"))
                 return@rememberLauncherForActivityResult
             }
@@ -50,18 +50,20 @@ public fun MediaProjectionPermission(
         }
     )
 
-    if (requestCastPermission.not()) mediaProjectionRequested.value = false
+    if (shouldRequestPermission) {
+        if (mediaProjectionRequested.value.not()) {
+            val context = LocalContext.current
+            SideEffect {
+                // TODO media projection for multi-display devices
+                val mediaProjectionManager = context.getSystemService(MediaProjectionManager::class.java)
+                mediaProjectionPermissionLauncher.launch(mediaProjectionManager.createScreenCaptureIntent())
 
-    if (requestCastPermission && mediaProjectionRequested.value.not()) {
-        val context = LocalContext.current
-        LaunchedEffect(Unit) {
-            // TODO media projection for multi-display devices
-            val mediaProjectionManager = context.getSystemService(MediaProjectionManager::class.java)
-            mediaProjectionPermissionLauncher.launch(mediaProjectionManager.createScreenCaptureIntent())
-
-            showMediaProjectionPermissionErrorDialog.value = false
-            mediaProjectionRequested.value = true
+                showMediaProjectionPermissionErrorDialog.value = false
+                mediaProjectionRequested.value = true
+            }
         }
+    } else {
+        mediaProjectionRequested.value = false
     }
 
     if (showMediaProjectionPermissionErrorDialog.value) {

@@ -23,8 +23,6 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -58,9 +56,9 @@ internal object NightMode : ModuleSettings.Item {
         val appSettings = koinInject<AppSettings>()
         val appSettingsState = appSettings.data.collectAsStateWithLifecycle()
         val nightModeOptions = stringArrayResource(id = nightModeOptionsRes)
-        val nightModeSummary = remember { derivedStateOf { nightModeOptions[getNightModeIndex(appSettingsState.value.nightMode)] } }
+        val nightModeSummary = nightModeOptions[getNightModeIndex(appSettingsState.value.nightMode)]
 
-        NightModeUI(horizontalPadding, nightModeSummary.value, onDetailShow)
+        NightModeUI(horizontalPadding, nightModeSummary, onDetailShow)
     }
 
     @Composable
@@ -68,11 +66,11 @@ internal object NightMode : ModuleSettings.Item {
         val appSettings = koinInject<AppSettings>()
         val appSettingsState = appSettings.data.collectAsStateWithLifecycle()
         val nightModeOptions = stringArrayResource(id = nightModeOptionsRes)
-        val nightModeIndex = remember { derivedStateOf { getNightModeIndex(appSettingsState.value.nightMode) } }
+        val nightModeIndex = getNightModeIndex(appSettingsState.value.nightMode)
         val scope = rememberCoroutineScope()
 
-        NightModeDetailUI(headerContent, nightModeOptions, nightModeIndex.value) { index ->
-            if (nightModeIndex.value != index) {
+        NightModeDetailUI(headerContent, nightModeOptions, nightModeIndex) { index ->
+            if (nightModeIndex != index) {
                 scope.launch { appSettings.updateData { copy(nightMode = nightModesCompat[index].mode) } }
             }
         }

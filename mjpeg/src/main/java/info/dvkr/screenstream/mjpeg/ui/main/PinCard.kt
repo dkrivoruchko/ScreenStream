@@ -14,7 +14,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -38,15 +37,12 @@ internal fun PinCard(
         Box(
             modifier = Modifier.padding(8.dp).fillMaxWidth().minimumInteractiveComponentSize()
         ) {
-            val isStreaming = remember { derivedStateOf { mjpegState.value.isStreaming } }
-            val pinState = remember { derivedStateOf { mjpegState.value.pin } }
-
-            if (pinState.value.enablePin) {
-                if (isStreaming.value) {
-                    if (pinState.value.hidePinOnStream) {
+            if (mjpegState.value.pin.enablePin) {
+                if (mjpegState.value.isStreaming) {
+                    if (mjpegState.value.pin.hidePinOnStream) {
                         val interactionSource = remember { MutableInteractionSource() }
                         val isPressed = interactionSource.collectIsPressedAsState()
-                        val pinText = if (isPressed.value) pinState.value.pin else "*"
+                        val pinText = if (isPressed.value) mjpegState.value.pin.pin else "*"
                         val text = stringResource(id = R.string.mjpeg_stream_pin, pinText)
                             .stylePlaceholder(pinText, SpanStyle(fontWeight = FontWeight.Bold, fontFamily = RobotoMonoBold))
 
@@ -63,15 +59,15 @@ internal fun PinCard(
                         }
                     } else {
                         Text(
-                            text = stringResource(id = R.string.mjpeg_stream_pin, pinState.value.pin)
-                                .stylePlaceholder(pinState.value.pin, SpanStyle(fontWeight = FontWeight.Bold, fontFamily = RobotoMonoBold)),
+                            text = stringResource(id = R.string.mjpeg_stream_pin, mjpegState.value.pin.pin)
+                                .stylePlaceholder(mjpegState.value.pin.pin, SpanStyle(fontWeight = FontWeight.Bold, fontFamily = RobotoMonoBold)),
                             modifier = Modifier.align(Alignment.Center)
                         )
                     }
                 } else {
                     Text(
-                        text = stringResource(id = R.string.mjpeg_stream_pin, pinState.value.pin)
-                            .stylePlaceholder(pinState.value.pin, SpanStyle(fontWeight = FontWeight.Bold, fontFamily = RobotoMonoBold)),
+                        text = stringResource(id = R.string.mjpeg_stream_pin, mjpegState.value.pin.pin)
+                            .stylePlaceholder(mjpegState.value.pin.pin, SpanStyle(fontWeight = FontWeight.Bold, fontFamily = RobotoMonoBold)),
                         modifier = Modifier.align(Alignment.Center)
                     )
                     IconButton(

@@ -19,7 +19,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -47,16 +46,12 @@ internal fun WebRtcMainScreenUI(
     modifier: Modifier = Modifier
 ) {
     val webRtcState = webRtcStateFlow.collectAsStateWithLifecycle()
-    val isStreaming = remember { derivedStateOf { webRtcState.value.isStreaming } }
-    val isBusy = remember { derivedStateOf { webRtcState.value.isBusy } }
-    val waitingCastPermission = remember { derivedStateOf { webRtcState.value.waitingCastPermission } }
-    val error = remember { derivedStateOf { webRtcState.value.error } }
 
     BoxWithConstraints(modifier = modifier) {
         MediaProjectionPermission(
-            requestCastPermission = waitingCastPermission.value,
-            onPermissionGranted = { intent -> if (waitingCastPermission.value) sendEvent(WebRtcEvent.StartProjection(intent)) },
-            onPermissionDenied = { if (waitingCastPermission.value) sendEvent(WebRtcEvent.CastPermissionsDenied) },
+            shouldRequestPermission = webRtcState.value.waitingCastPermission,
+            onPermissionGranted = { intent -> if (webRtcState.value.waitingCastPermission) sendEvent(WebRtcEvent.StartProjection(intent)) },
+            onPermissionDenied = { if (webRtcState.value.waitingCastPermission) sendEvent(WebRtcEvent.CastPermissionsDenied) },
             requiredDialogTitle = stringResource(id = R.string.webrtc_stream_cast_permission_required_title),
             requiredDialogText = stringResource(id = R.string.webrtc_stream_cast_permission_required)
         )
@@ -68,7 +63,7 @@ internal fun WebRtcMainScreenUI(
             state = lazyVerticalStaggeredGridState,
             contentPadding = PaddingValues(start = 8.dp, end = 8.dp, bottom = 64.dp),
         ) {
-            error.value?.let {
+            webRtcState.value.error?.let {
                 item(key = "ERROR") {
                     ErrorCard(error = it, modifier = Modifier.padding(8.dp), sendEvent = sendEvent)
                 }
@@ -99,8 +94,8 @@ internal fun WebRtcMainScreenUI(
             }
         }
 
-        LaunchedEffect(error.value) {
-            if (error.value != null) lazyVerticalStaggeredGridState.animateScrollToItem(0)
+        LaunchedEffect(webRtcState.value.error) {
+            if (webRtcState.value.error != null) lazyVerticalStaggeredGridState.animateScrollToItem(0)
         }
 
         val doubleClickProtection = remember { DoubleClickProtection.get() }
@@ -108,14 +103,14 @@ internal fun WebRtcMainScreenUI(
         Button(
             onClick = dropUnlessStarted {
                 doubleClickProtection.processClick {
-                    if (isStreaming.value) sendEvent(WebRtcEvent.Intentable.StopStream("User action: Button"))
+                    if (webRtcState.value.isStreaming) sendEvent(WebRtcEvent.Intentable.StopStream("User action: Button"))
                     else sendEvent(WebRtcStreamingService.InternalEvent.StartStream)
                 }
             },
             modifier = Modifier
                 .padding(start = 16.dp, end = 16.dp, bottom = 8.dp)
                 .align(alignment = Alignment.BottomCenter),
-            enabled = isBusy.value.not(),
+            enabled = webRtcState.value.isBusy.not(),
             shape = MaterialTheme.shapes.medium,
             contentPadding = PaddingValues(start = 12.dp, top = 12.dp, bottom = 12.dp, end = 16.dp),
             elevation = ButtonDefaults.buttonElevation(
@@ -125,12 +120,12 @@ internal fun WebRtcMainScreenUI(
                 hoveredElevation = 6.0.dp,
             )
         ) {
-            Crossfade(targetState = isStreaming.value, label = "StreamingButtonCrossfade") { isStreaming ->
+            Crossfade(targetState = webRtcState.value.isStreaming, label = "StreamingButtonCrossfade") { isStreaming ->
                 Icon(imageVector = if (isStreaming) Icon_Stop else Icon_PlayArrow, contentDescription = null)
             }
             Spacer(modifier = Modifier.size(ButtonDefaults.IconSpacing))
             Text(
-                text = stringResource(id = if (isStreaming.value) R.string.webrtc_stream_stop else R.string.webrtc_stream_start),
+                text = stringResource(id = if (webRtcState.value.isStreaming) R.string.webrtc_stream_stop else R.string.webrtc_stream_start),
                 style = MaterialTheme.typography.titleMedium
             )
         }
