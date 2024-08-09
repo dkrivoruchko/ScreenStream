@@ -116,7 +116,7 @@ public class AdMob(private val context: Context) {
     public fun showPrivacyOptionsForm(activity: Activity) {
         UserMessagingPlatform.showPrivacyOptionsForm(activity) { formError ->
             if (formError != null) {
-                XLog.w(getLog("showPrivacyOptionsForm", "Error: ${formError.errorCode} ${formError.message}"), RuntimeException("showPrivacyOptionsForm: ${formError.errorCode} ${formError.message}"))
+                XLog.w(getLog("showPrivacyOptionsForm", "Error: ${formError.errorCode} ${formError.message}"))
             }
         }
     }
@@ -143,7 +143,7 @@ public class AdMob(private val context: Context) {
         }
 
         if (error != null) {
-            XLog.w(getLog("initializeMobileAds", "Error: ${error.errorCode} ${error.message}"), RuntimeException("initializeMobileAds: ${error.errorCode} ${error.message}"))
+            XLog.w(getLog("initializeMobileAds", "Error: ${error.errorCode} ${error.message}"))
             initialized.value = false
             return
         }
@@ -211,7 +211,7 @@ private fun AdBox(adMob: AdMob, adSize: AdSize, collapsible: Boolean) {
                         setAdSize(adSize)
                         adListener = object : AdListener() {
                             override fun onAdFailedToLoad(adError: LoadAdError) {
-                                XLog.e(getLog("onAdFailedToLoad", adError.toString()), RuntimeException("onAdFailedToLoad: $adError"))
+                                XLog.w(getLog("onAdFailedToLoad", adError.toString()))
                             }
                         }
 
