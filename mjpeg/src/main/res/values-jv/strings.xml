@@ -65,6 +65,8 @@
     <string name="mjpeg_pref_html_back_color">Werna latar mburi kaca web</string>
     <string name="mjpeg_pref_html_back_color_summary">Setel werna latar mburi kaca web</string>
     <string name="mjpeg_pref_html_back_color_title">Pilih werna latar mburi</string>
+    <string name="mjpeg_pref_html_fit_window">Pas gambar menyang jendhela browser</string>
+    <string name="mjpeg_pref_html_fit_window_summary">Skala gambar ing browser menyang kebekan jendhela</string>
 
     <string name="mjpeg_pref_settings_image">Gambar</string>
     <string name="mjpeg_pref_vr_mode">Mode kasunyatan virtual</string>

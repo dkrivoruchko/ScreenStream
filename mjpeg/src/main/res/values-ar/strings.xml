@@ -64,6 +64,8 @@
     <string name="mjpeg_pref_html_back_color">لون خلفية صفحة الويب</string>
     <string name="mjpeg_pref_html_back_color_summary">تعيين لون خلفية صفحة الويب</string>
     <string name="mjpeg_pref_html_back_color_title">اختيار لون الخلفية</string>
+    <string name="mjpeg_pref_html_fit_window">تطويع الصورة لنافذة المتصفح</string>
+    <string name="mjpeg_pref_html_fit_window_summary">تكبير الصورة في المتصفح لملء عرض/ارتفاع النافذة بالكامل</string>
 
     <string name="mjpeg_pref_settings_image">صورة</string>
     <string name="mjpeg_pref_vr_mode">وضع الواقع الافتراضي</string>

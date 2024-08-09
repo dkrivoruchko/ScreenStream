@@ -64,6 +64,8 @@
     <string name="mjpeg_pref_html_back_color">Колір фону веб-сторінки</string>
     <string name="mjpeg_pref_html_back_color_summary">Вибрати колір фону веб-сторінки</string>
     <string name="mjpeg_pref_html_back_color_title">Вибрати колір фону</string>
+    <string name="mjpeg_pref_html_fit_window">Масштабувати зображення під вікно браузера</string>
+    <string name="mjpeg_pref_html_fit_window_summary">Масштабувати зображення у браузері до повної ширини/висоти вікна</string>
 
     <string name="mjpeg_pref_settings_image">Зображення</string>
     <string name="mjpeg_pref_vr_mode">Режим віртуальної реальності</string>

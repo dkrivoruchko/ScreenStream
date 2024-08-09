@@ -29,6 +29,15 @@ function configureButtons(enable) {
         }
     }
 }
+function configureFitWindow(enable) {
+    if (enable) {
+        stream.style.width = "100%";
+        stream.style.objectFit = "contain";
+    } else {
+        stream.style.width = null;
+        stream.style.objectFit = null;
+    }
+}
 if (!document.pictureInPictureEnabled) buttonPiP.style.display = "none";
 
 window.onmousemove = () => {
@@ -167,6 +176,7 @@ function connect() {
         if (message.type === "SETTINGS") {
             document.body.style.backgroundColor = message.data.backColor;
             configureButtons(message.data.enableButtons);
+            configureFitWindow(message.data.fitWindow);
             return;
         }
 

@@ -64,6 +64,8 @@
     <string name="mjpeg_pref_html_back_color">ვებ გვერდის ფონის ფერი</string>
     <string name="mjpeg_pref_html_back_color_summary">დააყენეთ ვებ გვერდის ფონის ფერი</string>
     <string name="mjpeg_pref_html_back_color_title">აირჩიეთ ფონის ფერი</string>
+    <string name="mjpeg_pref_html_fit_window">გამოსახულების მორგება ბრაუზერის ფანჯარაში</string>
+    <string name="mjpeg_pref_html_fit_window_summary">გამოსახულების მასშტაბირება ბრაუზერში სრულ ეკრანზე</string>
 
     <string name="mjpeg_pref_settings_image">გამოსახულება</string>
     <string name="mjpeg_pref_vr_mode">ვირტუალური რეალობის რეჟიმი</string>

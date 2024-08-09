@@ -19,6 +19,7 @@ public interface MjpegSettings {
         public val HTML_ENABLE_BUTTONS: Preferences.Key<Boolean> = booleanPreferencesKey("HTML_ENABLE_BUTTONS")
         public val HTML_SHOW_PRESS_START: Preferences.Key<Boolean> = booleanPreferencesKey("HTML_SHOW_PRESS_START")
         public val HTML_BACK_COLOR: Preferences.Key<Int> = intPreferencesKey("HTML_BACK_COLOR")
+        public val HTML_FIT_WINDOW: Preferences.Key<Boolean> = booleanPreferencesKey("HTML_FIT_WINDOW")
 
         public val VR_MODE: Preferences.Key<Int> = intPreferencesKey("VR_MODE")
         public val IMAGE_CROP: Preferences.Key<Boolean> = booleanPreferencesKey("IMAGE_CROP")
@@ -52,9 +53,10 @@ public interface MjpegSettings {
         public const val STOP_ON_CONFIGURATION_CHANGE: Boolean = false
         public const val NOTIFY_SLOW_CONNECTIONS: Boolean = false
 
-        public const val HTML_ENABLE_BUTTONS: Boolean = true
+        public const val HTML_ENABLE_BUTTONS: Boolean = false
         public const val HTML_SHOW_PRESS_START: Boolean = true
         public const val HTML_BACK_COLOR: Int = -15723496// "FF101418".toLong(radix = 16).toInt()
+        public const val HTML_FIT_WINDOW: Boolean = true
 
         public const val VR_MODE_DISABLE: Int = 0
         public const val VR_MODE_LEFT: Int = 1
@@ -102,6 +104,7 @@ public interface MjpegSettings {
         public val htmlEnableButtons: Boolean = Default.HTML_ENABLE_BUTTONS,
         public val htmlShowPressStart: Boolean = Default.HTML_SHOW_PRESS_START,
         public val htmlBackColor: Int = Default.HTML_BACK_COLOR,
+        public val htmlFitWindow: Boolean = Default.HTML_FIT_WINDOW,
 
         public val vrMode: Int = Default.VR_MODE_DISABLE,
         public val imageCrop: Boolean = Default.IMAGE_CROP,

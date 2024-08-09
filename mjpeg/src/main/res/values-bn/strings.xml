@@ -65,6 +65,8 @@
     <string name="mjpeg_pref_html_back_color">ওয়েব পৃষ্ঠার পটভূমির রঙ</string>
     <string name="mjpeg_pref_html_back_color_summary">ওয়েব পৃষ্ঠার পটভূমির রঙ সেট করুন</string>
     <string name="mjpeg_pref_html_back_color_title">পটভূমির রঙ নির্বাচন করুন</string>
+    <string name="mjpeg_pref_html_fit_window">ব্রাউজারের উইন্ডোতে ছবিটি ফিট করুন</string>
+    <string name="mjpeg_pref_html_fit_window_summary">ব্রাউজারে ছবিটি সম্পূর্ণ উইন্ডো প্রস্থ/উচ্চতায় স্কেল করুন</string>
 
     <string name="mjpeg_pref_settings_image">ছবি</string>
     <string name="mjpeg_pref_vr_mode">ভার্চুয়াল বাস্তবতা মোড</string>

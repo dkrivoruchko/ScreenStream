@@ -65,6 +65,8 @@
     <string name="mjpeg_pref_html_back_color">Webblad agtergrondkleur</string>
     <string name="mjpeg_pref_html_back_color_summary">Stel webblad agtergrondkleur</string>
     <string name="mjpeg_pref_html_back_color_title">Kies agtergrondkleur</string>
+    <string name="mjpeg_pref_html_fit_window">Pas prent aan by blaaier venster</string>
+    <string name="mjpeg_pref_html_fit_window_summary">Skaleer prent in blaaier na volle vensterbreedte/hoogte</string>
 
     <string name="mjpeg_pref_settings_image">Beeld</string>
     <string name="mjpeg_pref_vr_mode">Virtuele werklikheidsmodus</string>

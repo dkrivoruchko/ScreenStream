@@ -64,6 +64,8 @@
     <string name="mjpeg_pref_html_back_color">Warna latar belakang halaman web</string>
     <string name="mjpeg_pref_html_back_color_summary">Atur warna latar belakang halaman web</string>
     <string name="mjpeg_pref_html_back_color_title">Pilih warna latar belakang</string>
+    <string name="mjpeg_pref_html_fit_window">Sesuaikan gambar ke jendela browser</string>
+    <string name="mjpeg_pref_html_fit_window_summary">Perbesar gambar di browser ke lebar/tinggi penuh jendela</string>
 
     <string name="mjpeg_pref_settings_image">Gambar</string>
     <string name="mjpeg_pref_vr_mode">Modus realitas maya</string>

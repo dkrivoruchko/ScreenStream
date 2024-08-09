@@ -124,16 +124,23 @@ internal class HttpServer(
         val coroutineScope = CoroutineScope(Job() + Dispatchers.Default)
 
         mjpegSettings.data
-            .map { it.htmlBackColor }
+            .map { Pair(it.htmlBackColor, it.htmlFitWindow) }
             .distinctUntilChanged()
-            .onEach { htmlBackColor -> indexHtml.set(baseIndexHtml.replace("BACKGROUND_COLOR", htmlBackColor.toColorHexString())) }
+            .onEach { (backColor, fitWindow) ->
+                indexHtml.set(
+                    baseIndexHtml
+                        .replace("BACKGROUND_COLOR", backColor.toColorHexString())
+                        .replace("FIT_WINDOW", if (fitWindow) """style='width: 100%; object-fit: contain;'""" else "")
+                )
+            }
             .launchIn(coroutineScope)
 
         mjpegSettings.data
-            .map { Pair(it.htmlEnableButtons && serverData.enablePin.not(), it.htmlBackColor.toColorHexString()) }
+            .map { Triple(it.htmlEnableButtons && serverData.enablePin.not(), it.htmlBackColor.toColorHexString(), it.htmlFitWindow) }
             .distinctUntilChanged()
-            .onEach { (enableButtons, backColor) ->
-                serverData.notifyClients("SETTINGS", JSONObject().put("enableButtons", enableButtons).put("backColor", backColor))
+            .onEach { (enableButtons, backColor, fitWindow) ->
+                val data = JSONObject(mapOf("enableButtons" to enableButtons, "backColor" to backColor, "fitWindow" to fitWindow))
+                serverData.notifyClients("SETTINGS", data)
             }
             .launchIn(coroutineScope)
 

@@ -64,6 +64,8 @@
     <string name="mjpeg_pref_html_back_color">Web page background color</string>
     <string name="mjpeg_pref_html_back_color_summary">Set web page background color</string>
     <string name="mjpeg_pref_html_back_color_title">Select background color</string>
+    <string name="mjpeg_pref_html_fit_window">Fit image to browser window</string>
+    <string name="mjpeg_pref_html_fit_window_summary">Scale up image in browser to full window width/height</string>
 
     <string name="mjpeg_pref_settings_image">Image</string>
     <string name="mjpeg_pref_vr_mode">Virtual reality mode</string>

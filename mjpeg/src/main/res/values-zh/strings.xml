@@ -64,6 +64,8 @@
     <string name="mjpeg_pref_html_back_color">网页背景色</string>
     <string name="mjpeg_pref_html_back_color_summary">设置网页背景色</string>
     <string name="mjpeg_pref_html_back_color_title">选择背景色</string>
+    <string name="mjpeg_pref_html_fit_window">适应浏览器窗口的图像</string>
+    <string name="mjpeg_pref_html_fit_window_summary">将图像在浏览器中缩放到整个窗口宽度/高度</string>
 
     <string name="mjpeg_pref_settings_image">图片</string>
     <string name="mjpeg_pref_vr_mode">虚拟现实模式</string>

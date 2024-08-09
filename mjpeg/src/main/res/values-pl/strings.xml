@@ -65,6 +65,8 @@
     <string name="mjpeg_pref_html_back_color">Kolor tła strony internetowej</string>
     <string name="mjpeg_pref_html_back_color_summary">Ustawia kolor tła strony internetowej</string>
     <string name="mjpeg_pref_html_back_color_title">Wybierz kolor tła</string>
+    <string name="mjpeg_pref_html_fit_window">Dopasuj obraz do okna przeglądarki</string>
+    <string name="mjpeg_pref_html_fit_window_summary">Powiększ obraz w przeglądarce do pełnej szerokości/wysokości okna</string>
 
     <string name="mjpeg_pref_settings_image">Obraz</string>
     <string name="mjpeg_pref_vr_mode">Tryb wirtualnej rzeczywistości</string>

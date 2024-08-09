@@ -64,6 +64,8 @@
     <string name="mjpeg_pref_html_back_color">背景色</string>
     <string name="mjpeg_pref_html_back_color_summary">設定串流頁面背景色</string>
     <string name="mjpeg_pref_html_back_color_title">選擇背景色</string>
+    <string name="mjpeg_pref_html_fit_window">適應瀏覽器視窗的圖片</string>
+    <string name="mjpeg_pref_html_fit_window_summary">在瀏覽器中縮放圖片以適應整個視窗的寬度/高度</string>
 
     <string name="mjpeg_pref_settings_image">畫面</string>
     <string name="mjpeg_pref_vr_mode">虛擬實境模式</string>

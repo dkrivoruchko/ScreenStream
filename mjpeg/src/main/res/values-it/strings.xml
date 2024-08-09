@@ -64,6 +64,8 @@
     <string name="mjpeg_pref_html_back_color">Colore di sfondo pagina</string>
     <string name="mjpeg_pref_html_back_color_summary">Imposta il colore di sfondo della pagina web</string>
     <string name="mjpeg_pref_html_back_color_title">Seleziona colore di sfondo</string>
+    <string name="mjpeg_pref_html_fit_window">Adatta immagine alla finestra del browser</string>
+    <string name="mjpeg_pref_html_fit_window_summary">Scala l\'immagine nel browser a larghezza/altezza completa della finestra</string>
 
     <string name="mjpeg_pref_settings_image">Immagine</string>
     <string name="mjpeg_pref_vr_mode">Modalità realtà virtuale</string>

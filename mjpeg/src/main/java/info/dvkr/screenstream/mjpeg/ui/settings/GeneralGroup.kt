@@ -9,6 +9,7 @@ import info.dvkr.screenstream.common.ModuleSettings
 import info.dvkr.screenstream.mjpeg.R
 import info.dvkr.screenstream.mjpeg.ui.settings.general.HtmlBackColor
 import info.dvkr.screenstream.mjpeg.ui.settings.general.HtmlEnableButtons
+import info.dvkr.screenstream.mjpeg.ui.settings.general.HtmlFitWindow
 import info.dvkr.screenstream.mjpeg.ui.settings.general.HtmlShowPressStart
 import info.dvkr.screenstream.mjpeg.ui.settings.general.KeepAwake
 import info.dvkr.screenstream.mjpeg.ui.settings.general.NotifySlowConnections
@@ -19,7 +20,16 @@ public object GeneralGroup : ModuleSettings.Group {
     override val id: String = "GENERAL"
     override val position: Int = 0
     override val items: List<ModuleSettings.Item> =
-        listOf(KeepAwake, StopOnSleep, StopOnConfigurationChange, NotifySlowConnections, HtmlEnableButtons, HtmlShowPressStart, HtmlBackColor)
+        listOf(
+            KeepAwake,
+            StopOnSleep,
+            StopOnConfigurationChange,
+            NotifySlowConnections,
+            HtmlEnableButtons,
+            HtmlShowPressStart,
+            HtmlBackColor,
+            HtmlFitWindow
+        )
             .filter { it.available }.sortedBy { it.position }
 
     @Composable

@@ -64,6 +64,8 @@
     <string name="mjpeg_pref_html_back_color">የድረ-ገጽ ዳራ ቀለም</string>
     <string name="mjpeg_pref_html_back_color_summary">የድረ-ገጽ ዳራ ቀለም አዘጋጅ</string>
     <string name="mjpeg_pref_html_back_color_title">የጀርባ ቀለም ይምረጡ</string>
+    <string name="mjpeg_pref_html_fit_window">ምስልን እንደ መሣሪያ መስኮት ይስማማ</string>
+    <string name="mjpeg_pref_html_fit_window_summary">አበረክቷት ምስልን በአጠቃቀም ስልክ ወደ ሙሉ መስኮት ስፋት/ቁመት</string>
 
     <string name="mjpeg_pref_settings_image">ምስል</string>
     <string name="mjpeg_pref_vr_mode">ምናባዊ እውነታ ሁነታ</string>

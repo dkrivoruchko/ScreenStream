@@ -208,7 +208,7 @@
     </div>
   </div>
 
-  <div id="streamDiv"><img id="stream" /></div>
+  <div id="streamDiv"><img id="stream" FIT_WINDOW /></div>
 
   <div id="buttonsDiv">
     <input type="image" id="fullscreen" style="width:24px;height:24px;margin:4px;" src="data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23FFF' d='M5,5H10V7H7V10H5V5M14,5H19V10H17V7H14V5M17,14H19V19H14V17H17V14M10,17V19H5V14H7V17H10Z' /%3E%3C/svg%3E" onclick="toggleFullscreen()" />
@@ -271,6 +271,15 @@
           clearTimeout(hideTimeout);
           buttonsDiv.style.visibility = "hidden";
         }
+      }
+    }
+    function configureFitWindow(enable) {
+      if (enable) {
+        stream.style.width = "100%";
+        stream.style.objectFit = "contain";
+      } else {
+        stream.style.width = null;
+        stream.style.objectFit = null;
       }
     }
     if (!document.pictureInPictureEnabled) buttonPiP.style.display = "none";
@@ -391,6 +400,7 @@
         if (message.type === "SETTINGS") {
           document.body.style.backgroundColor = message.data.backColor;
           configureButtons(message.data.enableButtons);
+          configureFitWindow(message.data.fitWindow);
           return;
         }
         window.DD_LOGS && DD_LOGS.logger.error("websocket.onmessage. Unknown data:", {
@@ -451,7 +461,7 @@
       if (document.pictureInPictureElement) {
         document.exitPictureInPicture();
       } else {
-        var drawMJPEGStream = function drawMJPEGStream() {
+        var _drawMJPEGStream = function drawMJPEGStream() {
           var naturalWidth = stream.naturalWidth,
             naturalHeight = stream.naturalHeight;
           if (canvas.width != naturalWidth || canvas.height != naturalHeight) {
@@ -459,7 +469,7 @@
             canvas.height = naturalHeight;
           }
           context.drawImage(stream, 0, 0);
-          drawTimeoutId = setTimeout(drawMJPEGStream, 32);
+          drawTimeoutId = setTimeout(_drawMJPEGStream, 32);
         };
         var canvas = document.createElement("canvas");
         canvas.style.display = "none";
@@ -493,7 +503,7 @@
         });
         pipStreamDiv.appendChild(videoElement);
         var context = canvas.getContext("2d");
-        drawMJPEGStream();
+        _drawMJPEGStream();
       }
     }
     if (document.readyState === "loading") {

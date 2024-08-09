@@ -13,6 +13,7 @@ import android.graphics.Color
 import android.graphics.LinearGradient
 import android.graphics.Paint
 import android.graphics.Rect
+import android.graphics.RectF
 import android.graphics.Shader
 import android.media.projection.MediaProjection
 import android.media.projection.MediaProjectionManager
@@ -25,6 +26,7 @@ import android.os.PowerManager
 import android.widget.Toast
 import androidx.annotation.AnyThread
 import androidx.annotation.MainThread
+import androidx.window.layout.WindowMetricsCalculator
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.mjpeg.MjpegKoinScope
@@ -49,6 +51,8 @@ import kotlinx.coroutines.withTimeoutOrNull
 import org.koin.core.annotation.InjectedParam
 import org.koin.core.annotation.Scope
 import org.koin.core.annotation.Scoped
+import kotlin.math.max
+import kotlin.math.min
 import kotlin.random.Random
 
 @Scope(MjpegKoinScope::class)
@@ -548,20 +552,40 @@ internal class MjpegStreamingService(
     private fun getStartBitmap(): Bitmap {
         startBitmap?.let { return it }
 
-        val bitmap = Bitmap.createBitmap(600, 400, Bitmap.Config.ARGB_8888)
+        val screenSize = WindowMetricsCalculator.getOrCreate().computeMaximumWindowMetrics(service).bounds
+        val bitmap = Bitmap.createBitmap(max(screenSize.width(), 600), max(screenSize.height(), 800), Bitmap.Config.ARGB_8888)
+
+        var width = min(bitmap.width.toFloat(), 1536F)
+        val height = min(bitmap.height.toFloat(), width * 0.75F)
+        width = height / 0.75F
+
+        val left = max((bitmap.width - width) / 2F, 0F)
+        val top = max((bitmap.height - height) / 2F, 0F)
+        val right = bitmap.width - left
+        val bottom = (bitmap.height + height) / 2
+        val backRect = RectF(left, top, right, bottom)
         val canvas = Canvas(bitmap).apply {
             drawColor(mjpegSettings.data.value.htmlBackColor)
-            val shader = LinearGradient(0F, 0F, 0F, 400F, Color.parseColor("#144A74"), Color.parseColor("#001D34"), Shader.TileMode.CLAMP)
-            drawRoundRect(0F, 0F, 600F, 400F, 32F, 32F, Paint().apply { setShader(shader) })
+            val shader = LinearGradient(
+                backRect.left, backRect.top, backRect.left, backRect.bottom,
+                Color.parseColor("#144A74"), Color.parseColor("#001D34"), Shader.TileMode.CLAMP
+            )
+            drawRoundRect(backRect, 32F, 32F, Paint().apply { setShader(shader) })
         }
-        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { textSize = 24f; color = Color.WHITE }
+
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { textSize = 26F / 600 * backRect.width(); color = Color.WHITE }
+        val logoSize = (min(backRect.width(), backRect.height()) * 0.7).toInt()
         val logo = service.getFileFromAssets("logo.png")
             .run { BitmapFactory.decodeByteArray(this, 0, size) }
-            .let { Bitmap.createScaledBitmap(it, 256, 256, true) }
-        canvas.drawBitmap(logo, 172f, 16f, paint)
+            .let { Bitmap.createScaledBitmap(it, logoSize, logoSize, true) }
+        canvas.drawBitmap(logo, backRect.left + (backRect.width() - logo.width) / 2, backRect.top, paint)
+
         val message = service.getString(R.string.mjpeg_start_image_text)
         val bounds = Rect().apply { paint.getTextBounds(message, 0, message.length, this) }
-        canvas.drawText(message, (bitmap.width - bounds.width()) / 2f, 324f, paint)
+        val textX = backRect.left + (backRect.width() - bounds.width()) / 2
+        val textY = backRect.top + logo.height + (backRect.height() - logo.height) / 2 - bounds.height() / 2
+        canvas.drawText(message, textX, textY, paint)
+
         startBitmap = bitmap
         return bitmap
     }

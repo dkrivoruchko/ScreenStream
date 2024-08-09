@@ -72,6 +72,9 @@ internal class MjpegSettingsImpl(
                 if (newSettings.htmlBackColor != MjpegSettings.Default.HTML_BACK_COLOR)
                     set(MjpegSettings.Key.HTML_BACK_COLOR, newSettings.htmlBackColor)
 
+                if (newSettings.htmlFitWindow != MjpegSettings.Default.HTML_FIT_WINDOW)
+                    set(MjpegSettings.Key.HTML_FIT_WINDOW, newSettings.htmlFitWindow)
+
 
                 if (newSettings.vrMode != MjpegSettings.Default.VR_MODE_DISABLE)
                     set(MjpegSettings.Key.VR_MODE, newSettings.vrMode)
@@ -153,6 +156,7 @@ internal class MjpegSettingsImpl(
         htmlEnableButtons = this[MjpegSettings.Key.HTML_ENABLE_BUTTONS] ?: MjpegSettings.Default.HTML_ENABLE_BUTTONS,
         htmlShowPressStart = this[MjpegSettings.Key.HTML_SHOW_PRESS_START] ?: MjpegSettings.Default.HTML_SHOW_PRESS_START,
         htmlBackColor = this[MjpegSettings.Key.HTML_BACK_COLOR] ?: MjpegSettings.Default.HTML_BACK_COLOR,
+        htmlFitWindow = this[MjpegSettings.Key.HTML_FIT_WINDOW] ?: MjpegSettings.Default.HTML_FIT_WINDOW,
 
         vrMode = this[MjpegSettings.Key.VR_MODE] ?: MjpegSettings.Default.VR_MODE_DISABLE,
         imageCrop = this[MjpegSettings.Key.IMAGE_CROP] ?: MjpegSettings.Default.IMAGE_CROP,

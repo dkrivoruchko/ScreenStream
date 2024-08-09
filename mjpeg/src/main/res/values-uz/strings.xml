@@ -65,6 +65,8 @@
     <string name="mjpeg_pref_html_back_color">Veb-sahifa fon rangi</string>
     <string name="mjpeg_pref_html_back_color_summary">Veb-sahifaning fon rangini o\'rnating</string>
     <string name="mjpeg_pref_html_back_color_title">Fon rangini tanlang</string>
+    <string name="mjpeg_pref_html_fit_window">Rasmni brauzer oynasiga moslashtiring</string>
+    <string name="mjpeg_pref_html_fit_window_summary">Rasmni brauzerda to\'liq oynani kengligi/balandligi bo\'yicha kattalashtiring</string>
 
     <string name="mjpeg_pref_settings_image">Rasm</string>
     <string name="mjpeg_pref_vr_mode">Virtual haqiqat rejimi</string>
