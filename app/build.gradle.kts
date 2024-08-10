@@ -127,6 +127,7 @@ dependencies {
     "PlayStoreImplementation"(project(":webrtc"))
     "PlayStoreImplementation"(libs.play.services.tasks)
     "PlayStoreImplementation"(libs.play.app.update)
+    "PlayStoreImplementation"(libs.play.app.review)
     "PlayStoreImplementation"(libs.play.services.ads)
     "PlayStoreImplementation"(libs.webkit)
     "PlayStoreImplementation"(libs.firebase.analytics)

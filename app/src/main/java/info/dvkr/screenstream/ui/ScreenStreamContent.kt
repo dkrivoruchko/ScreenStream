@@ -1,5 +1,6 @@
 package info.dvkr.screenstream.ui
 
+import android.app.Activity
 import android.os.Build
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
@@ -38,6 +39,7 @@ import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffo
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffoldLayout
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteType
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
@@ -47,6 +49,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onPlaced
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -54,8 +57,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.toIntRect
 import androidx.compose.ui.unit.toRect
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.dropUnlessStarted
 import androidx.window.core.layout.WindowWidthSizeClass
+import info.dvkr.screenstream.AppReview
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.logger.AppLogger
 import info.dvkr.screenstream.logger.CollectingLogsUi
@@ -81,13 +86,16 @@ internal fun ScreenStreamContent(
         MainContent(modifier = modifier.fillMaxSize())
     }
 
-    val updateFlowState = updateFlow.collectAsState()
+    val updateFlowState = updateFlow.collectAsStateWithLifecycle()
     if (updateFlowState.value != null) {
         AppUpdateRequestUI(
             onConfirmButtonClick = { updateFlowState.value?.invoke(true) },
             onDismissButtonClick = { updateFlowState.value?.invoke(false) }
         )
     }
+
+    val activity = LocalContext.current as Activity
+    LaunchedEffect(Unit) { AppReview.showReviewUi(activity) }
 
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
         NotificationPermission()
