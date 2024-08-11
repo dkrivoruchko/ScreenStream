@@ -1,8 +1,11 @@
 package info.dvkr.screenstream.webrtc.ui.main
 
 import android.content.ActivityNotFoundException
+import android.content.ClipData
+import android.content.ClipDescription
 import android.content.Intent
 import android.os.Build
+import android.os.PersistableBundle
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
@@ -40,6 +43,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.platform.ClipboardManager
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
@@ -204,7 +208,20 @@ private fun CopyAddressButton(
     val context = LocalContext.current
 
     IconButton(onClick = {
-        clipboardManager.setText(AnnotatedString(fullAddress))
+        clipboardManager.setClip(
+            ClipEntry(
+                ClipData.newPlainText(fullAddress, fullAddress).apply {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                        description.extras = PersistableBundle().apply {
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
+                                putBoolean(ClipDescription.EXTRA_IS_SENSITIVE, true)
+                            else
+                                putBoolean("android.content.extra.IS_SENSITIVE", true)
+                        }
+                    }
+                }
+            )
+        )
         if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.S_V2) {
             Toast.makeText(context, R.string.webrtc_stream_copied, Toast.LENGTH_LONG).show()
         }
