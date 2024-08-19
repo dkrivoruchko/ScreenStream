@@ -1,5 +1,6 @@
 package info.dvkr.screenstream.tile
 
+import android.annotation.SuppressLint
 import android.app.PendingIntent
 import android.app.StatusBarManager
 import android.content.ComponentName
@@ -29,7 +30,7 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.runBlocking
-import org.koin.android.ext.android.inject
+import org.koin.android.ext.android.get
 
 @RequiresApi(Build.VERSION_CODES.N)
 public class TileActionService : TileService() {
@@ -49,15 +50,17 @@ public class TileActionService : TileService() {
         }
     }
 
-    private val streamingModulesManager: StreamingModuleManager by inject()
+    private var streamingModulesManager: StreamingModuleManager? = null
     private var coroutineScope: CoroutineScope? = null
 
     override fun onBind(intent: Intent?): IBinder? = runCatching { super.onBind(intent) }.getOrNull()
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     override fun onStartListening() {
         super.onStartListening()
-        @OptIn(ExperimentalCoroutinesApi::class)
-        streamingModulesManager.activeModuleStateFlow
+
+        streamingModulesManager = runCatching { get<StreamingModuleManager>() }.getOrNull() ?: return
+        streamingModulesManager!!.activeModuleStateFlow
             .flatMapConcat { activeModule -> activeModule?.isStreaming?.map<Boolean, Boolean?> { it } ?: flow { emit(null) } }
             .distinctUntilChanged()
             .map { isStreaming ->
@@ -101,7 +104,7 @@ public class TileActionService : TileService() {
 
     override fun onClick() {
         super.onClick()
-        val activeModule = runBlocking { streamingModulesManager.activeModuleStateFlow.first() }
+        val activeModule = streamingModulesManager?.run { runBlocking { activeModuleStateFlow.first() } }
         if (activeModule == null) {
             startSingleActivity()
             return
@@ -116,6 +119,7 @@ public class TileActionService : TileService() {
     }
 
     @Suppress("DEPRECATION")
+    @SuppressLint("StartActivityAndCollapseDeprecated")
     private fun startSingleActivity() {
         val intent = SingleActivity.getIntent(applicationContext).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
