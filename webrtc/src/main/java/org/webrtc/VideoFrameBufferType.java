@@ -1,5 +1,5 @@
 
-// Copyright 2023 The Chromium Authors. All rights reserved.
+// Copyright 2024 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -16,19 +16,19 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 
 @IntDef({
-        VideoFrameBufferType.NATIVE, VideoFrameBufferType.I420, VideoFrameBufferType.I420A,
-        VideoFrameBufferType.I422, VideoFrameBufferType.I444, VideoFrameBufferType.I010,
-        VideoFrameBufferType.I210, VideoFrameBufferType.I410, VideoFrameBufferType.NV12
+    VideoFrameBufferType.NATIVE, VideoFrameBufferType.I420, VideoFrameBufferType.I420A,
+    VideoFrameBufferType.I422, VideoFrameBufferType.I444, VideoFrameBufferType.I010,
+    VideoFrameBufferType.I210, VideoFrameBufferType.I410, VideoFrameBufferType.NV12
 })
 @Retention(RetentionPolicy.SOURCE)
 public @interface VideoFrameBufferType {
-    int NATIVE = 0;
-    int I420 = 1;
-    int I420A = 2;
-    int I422 = 3;
-    int I444 = 4;
-    int I010 = 5;
-    int I210 = 6;
-    int I410 = 7;
-    int NV12 = 8;
+  int NATIVE = 0;
+  int I420 = 1;
+  int I420A = 2;
+  int I422 = 3;
+  int I444 = 4;
+  int I010 = 5;
+  int I210 = 6;
+  int I410 = 7;
+  int NV12 = 8;
 }

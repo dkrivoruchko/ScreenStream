@@ -1,5 +1,5 @@
 
-// Copyright 2023 The Chromium Authors. All rights reserved.
+// Copyright 2024 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -16,12 +16,12 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 
 @IntDef({
-        Priority.VERY_LOW, Priority.LOW, Priority.MEDIUM, Priority.HIGH
+    Priority.VERY_LOW, Priority.LOW, Priority.MEDIUM, Priority.HIGH
 })
 @Retention(RetentionPolicy.SOURCE)
 public @interface Priority {
-    int VERY_LOW = 0;
-    int LOW = 1;
-    int MEDIUM = 2;
-    int HIGH = 3;
+  int VERY_LOW = 0;
+  int LOW = 1;
+  int MEDIUM = 2;
+  int HIGH = 3;
 }
