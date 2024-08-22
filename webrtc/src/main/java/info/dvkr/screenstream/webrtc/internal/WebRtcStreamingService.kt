@@ -52,6 +52,7 @@ import org.koin.core.annotation.InjectedParam
 import org.koin.core.annotation.Scope
 import org.koin.core.annotation.Scoped
 import org.webrtc.IceCandidate
+import org.webrtc.PeerConnection.IceServer
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.math.pow
@@ -105,7 +106,7 @@ internal class WebRtcStreamingService(
         data class OpenSocket(val token: PlayIntegrityToken) : InternalEvent(Priority.RECOVER_IGNORE)
         data object StreamCreate : InternalEvent(Priority.RECOVER_IGNORE)
         data class StreamCreated(val streamId: StreamId) : InternalEvent(Priority.RECOVER_IGNORE)
-        data class ClientJoin(val clientId: ClientId) : InternalEvent(Priority.RECOVER_IGNORE)
+        data class ClientJoin(val clientId: ClientId, val iceServers: List<IceServer>) : InternalEvent(Priority.RECOVER_IGNORE)
         data class SocketSignalingError(val error: SocketSignaling.Error) : InternalEvent(Priority.RECOVER_IGNORE)
 
         data object StartStream : InternalEvent(Priority.STOP_IGNORE)
@@ -157,9 +158,9 @@ internal class WebRtcStreamingService(
             sendEvent(InternalEvent.StreamCreate)
         }
 
-        override fun onClientJoin(clientId: ClientId) {
-            XLog.v(this@WebRtcStreamingService.getLog("SocketSignaling.onClientJoin", "$clientId"))
-            sendEvent(InternalEvent.ClientJoin(clientId))
+        override fun onClientJoin(clientId: ClientId, iceServers: List<IceServer>) {
+            XLog.v(this@WebRtcStreamingService.getLog("SocketSignaling.onClientJoin", "$clientId IceServers: ${iceServers.size}"))
+            sendEvent(InternalEvent.ClientJoin(clientId, iceServers))
         }
 
         override fun onClientLeave(clientId: ClientId) {
@@ -211,11 +212,13 @@ internal class WebRtcStreamingService(
         }
 
         override fun onError(clientId: ClientId, cause: Throwable) {
-            if (cause.message?.startsWith("onPeerDisconnected") == true)
-                XLog.e(this@WebRtcStreamingService.getLog("WebRTCClient.onError", "Client: $clientId: ${cause.message}"))
-            else
+            if (cause.message?.startsWith("onPeerDisconnected") == true) {
+                XLog.w(this@WebRtcStreamingService.getLog("WebRTCClient.onError", "Client: $clientId: ${cause.message}"))
+                sendEvent(WebRtcEvent.RemoveClient(clientId, false, "onError:${cause.message}"))
+            } else {
                 XLog.e(this@WebRtcStreamingService.getLog("WebRTCClient.onError", "Client: $clientId"), cause)
-            sendEvent(WebRtcEvent.RemoveClient(clientId, true, "onError:${cause.message}"))
+                sendEvent(WebRtcEvent.RemoveClient(clientId, true, "onError:${cause.message}"))
+            }
         }
     }
 
@@ -543,8 +546,11 @@ internal class WebRtcStreamingService(
 
                 val prj = projection!!
                 clients[event.clientId]?.stop()
-                clients[event.clientId] =
-                    WebRtcClient(event.clientId, prj.peerConnectionFactory, prj.videoCodecs, prj.audioCodecs, webRtcClientEventListener)
+                clients[event.clientId] = WebRtcClient(
+                    event.clientId, event.iceServers,
+                    prj.peerConnectionFactory, prj.videoCodecs, prj.audioCodecs,
+                    webRtcClientEventListener
+                )
 
                 if (isStreaming()) {
                     clients[event.clientId]?.start(prj.localMediaSteam!!)
@@ -558,8 +564,7 @@ internal class WebRtcStreamingService(
                     return
                 }
 
-                clients[event.clientId]?.stop()
-                clients.remove(event.clientId)
+                clients.remove(event.clientId)?.stop()
                 if (event.notifyServer)
                     requireNotNull(signaling) { "signaling==null" }
                         .sendRemoveClients(listOf(event.clientId), "RemoveClient:${event.reason}")

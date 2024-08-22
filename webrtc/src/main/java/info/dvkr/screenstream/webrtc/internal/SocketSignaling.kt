@@ -15,6 +15,7 @@ import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
 import org.webrtc.IceCandidate
+import org.webrtc.PeerConnection.IceServer
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 
@@ -67,7 +68,7 @@ internal class SocketSignaling(
         fun onSocketDisconnected(reason: String)
         fun onStreamCreated(streamId: StreamId)
         fun onStreamRemoved()
-        fun onClientJoin(clientId: ClientId)
+        fun onClientJoin(clientId: ClientId, iceServers: List<IceServer>)
         fun onClientLeave(clientId: ClientId)
         fun onClientNotFound(clientId: ClientId, reason: String)
         fun onClientAnswer(clientId: ClientId, answer: Answer)
@@ -100,6 +101,7 @@ internal class SocketSignaling(
         const val STATUS = "status"
         const val OK = "OK"
         const val STREAM_ID = "streamId"
+        const val ICE_SERVERS = "iceServers"
         const val PASSWORD_HASH = "passwordHash"
         const val CLIENT_ID = "clientId"
         const val OFFER = "offer"
@@ -232,7 +234,7 @@ internal class SocketSignaling(
                 payload.sendErrorAck(Payload.ERROR_EMPTY_OR_BAD_DATA)
             } else if (passwordVerifier.isValid(payload.clientId, payload.passwordHash)) {
                 payload.sendOkAck()
-                eventListener.onClientJoin(payload.clientId)
+                eventListener.onClientJoin(payload.clientId, payload.iceServers)
             } else {
                 XLog.w(getLog("onStreamCreated", "[${Event.STREAM_JOIN}] Wrong stream password"))
                 payload.sendErrorAck(Payload.ERROR_WRONG_STREAM_PASSWORD)
@@ -487,6 +489,24 @@ internal class SocketSignaling(
 
         val passwordHash: String by lazy(LazyThreadSafetyMode.NONE) {
             json?.optString(Payload.PASSWORD_HASH) ?: ""
+        }
+
+        val iceServers: List<IceServer> by lazy(LazyThreadSafetyMode.NONE) {
+            json?.optJSONArray(Payload.ICE_SERVERS)?.let { iceServersArray ->
+                (0 until iceServersArray.length()).mapNotNull { i ->
+                    val iceServerJson = iceServersArray.optJSONObject(i) ?: return@mapNotNull null
+                    val urls = iceServerJson.optString("urls").ifBlank { null } ?: return@mapNotNull null
+                    val username = iceServerJson.optString("username").ifBlank { null }
+                    val credential = iceServerJson.optString("credential").ifBlank { null }
+
+                    IceServer.builder(urls).apply {
+                        if (username != null && credential != null) {
+                            setUsername(username)
+                            setPassword(credential)
+                        }
+                    }.createIceServer()
+                }
+            } ?: emptyList()
         }
 
         val answer: Answer by lazy(LazyThreadSafetyMode.NONE) {

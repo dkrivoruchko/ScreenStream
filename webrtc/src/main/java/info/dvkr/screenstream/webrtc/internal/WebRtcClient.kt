@@ -30,6 +30,7 @@ import java.util.zip.CRC32
 
 internal class WebRtcClient(
     internal val clientId: ClientId,
+    iceServers: List<IceServer>,
     private val factory: PeerConnectionFactory,
     private val videoCodecs: List<RtpCapabilities.CodecCapability>,
     private val audioCodecs: List<RtpCapabilities.CodecCapability>,
@@ -49,6 +50,9 @@ internal class WebRtcClient(
     private enum class State { CREATED, PENDING_OFFER, PENDING_OFFER_ACCEPT, OFFER_ACCEPTED }
 
     private val id: String = "${clientId.value}#$publicId"
+    private val rtcConfig = RTCConfiguration(iceServers.ifEmpty { defaultIceServers }).apply {
+        tcpCandidatePolicy = PeerConnection.TcpCandidatePolicy.DISABLED
+    }
     private val pendingIceCandidates: MutableList<IceCandidate> = Collections.synchronizedList(mutableListOf())
 
     private val state: AtomicReference<State> = AtomicReference(State.CREATED)
@@ -89,7 +93,7 @@ internal class WebRtcClient(
                 }
                 if (it.mediaType == MediaStreamTrack.MediaType.MEDIA_TYPE_AUDIO) it.setCodecPreferences(audioCodecs)
             }
-            //setBitrate(200_000, 4_000_000, 8_000_000) doesn't work
+        // TODO setBitrate(200_000, 2_000_000, 4_000_000)
         }
 
         mediaStreamId = mediaStream.id
@@ -248,17 +252,33 @@ internal class WebRtcClient(
     }
 
     // Signaling thread
-    private fun onCandidatePairChanged(event: CandidatePairChangeEvent) {
-        val msg = "Client: $id, MediaStream: $mediaStreamId, State: $state"
+    private fun onCandidatePairChanged() {
+        XLog.d(this@WebRtcClient.getLog("onCandidatePairChanged", "Client: $id, MediaStream: $mediaStreamId, State: $state"))
 
-        if (state.get() == State.OFFER_ACCEPTED) {
-            XLog.d(this@WebRtcClient.getLog("onCandidatePairChanged", msg))
-            clientAddress.set(event.runCatching { remote.sdp.split(' ', limit = 6).drop(4).first() }
-                .map { if (regexIPv4.matches(it) || regexIPv6Standard.matches(it) || regexIPv6Compressed.matches(it)) it else "-" }
-                .getOrElse { "-" })
+        peerConnection?.getStats { report ->
+            val transport = report.statsMap.filter { it.value.type == "transport" }.values.firstOrNull() ?: return@getStats
+            val selectedCandidatePairId = transport.members.get("selectedCandidatePairId") as String? ?: return@getStats
+
+            val selectedCandidatePair = report.statsMap[selectedCandidatePairId] ?: return@getStats
+            val localCandidateId = selectedCandidatePair.members["localCandidateId"] as String? ?: return@getStats
+            val remoteCandidateId = selectedCandidatePair.members["remoteCandidateId"] as String? ?: return@getStats
+            val localCandidate = report.statsMap[localCandidateId] ?: return@getStats
+            val remoteCandidate = report.statsMap[remoteCandidateId] ?: return@getStats
+
+            val localNetworkType = localCandidate.members["networkType"] as String? ?: ""
+            val localCandidateType = (localCandidate.members["candidateType"] as String? ?: "").let { type ->
+                when {
+                    type.equals("host", ignoreCase = true) -> "HOST"
+                    type.equals("srflx", ignoreCase = true) -> "STUN"
+                    type.equals("prflx", ignoreCase = true) -> "STUN"
+                    type.equals("relay", ignoreCase = true) -> "TURN"
+                    else -> null
+                }
+            }
+            val remoteIP = remoteCandidate.members["ip"] as String? ?: ""
+
+            clientAddress.set("${localNetworkType.uppercase()}${localCandidateType?.let { " [$it]" }}\n$remoteIP")
             eventListener.onClientAddress(clientId)
-        } else {
-            XLog.d(this@WebRtcClient.getLog("onCandidatePairChanged", "Ignoring"), IllegalStateException("onCandidatePairChanged: $msg"))
         }
     }
 
@@ -279,7 +299,7 @@ internal class WebRtcClient(
     private class WebRTCPeerConnectionObserver(
         private val clientId: ClientId,
         private val onHostCandidate: (IceCandidate) -> Unit,
-        private val onCandidatePairChanged: (CandidatePairChangeEvent) -> Unit,
+        private val onCandidatePairChanged: () -> Unit,
         private val onPeerDisconnected: () -> Unit
     ) : PeerConnection.Observer {
 
@@ -324,7 +344,7 @@ internal class WebRtcClient(
 
         override fun onSelectedCandidatePairChanged(event: CandidatePairChangeEvent) {
             XLog.v(getLog("onSelectedCandidatePairChanged", "Client: $clientId"))
-            onCandidatePairChanged(event)
+            onCandidatePairChanged()
         }
 
         override fun onAddStream(mediaStream: MediaStream?) {
@@ -366,26 +386,13 @@ internal class WebRtcClient(
 
     private companion object {
         @JvmStatic
-        private val iceServers = listOf(
-            IceServer.builder("stun:stun.l.google.com:19302").createIceServer(),
-            IceServer.builder("stun:stun1.l.google.com:19302").createIceServer(),
-            IceServer.builder("stun:stun2.l.google.com:19302").createIceServer(),
-            IceServer.builder("stun:stun3.l.google.com:19302").createIceServer(),
-            IceServer.builder("stun:stun4.l.google.com:19302").createIceServer()
-        )
-
-        @JvmStatic
-        private val rtcConfig = RTCConfiguration(iceServers.asSequence().shuffled().take(2).toList()).apply {
-            tcpCandidatePolicy = PeerConnection.TcpCandidatePolicy.DISABLED
-        }
-
-        @JvmStatic
-        private val regexIPv4 = "^(([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])(\\.(?!\$)|\$)){4}\$".toRegex()
-
-        @JvmStatic
-        private val regexIPv6Standard = "^(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}\$".toRegex()
-
-        @JvmStatic
-        private val regexIPv6Compressed = "^((?:[0-9A-Fa-f]{1,4}(?::[0-9A-Fa-f]{1,4})*)?)::((?:[0-9A-Fa-f]{1,4}(?::[0-9A-Fa-f]{1,4})*)?)\$".toRegex()
+        private val defaultIceServers
+            get() = sequenceOf(
+                "stun:stun.l.google.com:19302",
+                "stun:stun1.l.google.com:19302",
+                "stun:stun2.l.google.com:19302",
+                "stun:stun3.l.google.com:19302",
+                "stun:stun4.l.google.com:19302",
+            ).shuffled().take(2).map { IceServer.builder(it).createIceServer() }.toList()
     }
 }
