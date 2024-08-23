@@ -16,6 +16,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.PathFillType
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
@@ -67,7 +68,7 @@ private fun HtmlEnableButtonsUI(
             .conditional(enablePin) { alpha(0.5F) },
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(imageVector = Icon_ControlCamera, contentDescription = null, modifier = Modifier.padding(end = 16.dp))
+        Icon(imageVector = Icon_Buttons, contentDescription = null, modifier = Modifier.padding(end = 16.dp))
 
         Column(modifier = Modifier.weight(1F)) {
             Text(
@@ -87,41 +88,38 @@ private fun HtmlEnableButtonsUI(
     }
 }
 
-private val Icon_ControlCamera: ImageVector = materialIcon(name = "Filled.ControlCamera") {
-    materialPath {
-        moveTo(15.54f, 5.54f)
-        lineTo(13.77f, 7.3f)
-        lineTo(12.0f, 5.54f)
-        lineTo(10.23f, 7.3f)
-        lineTo(8.46f, 5.54f)
-        lineTo(12.0f, 2.0f)
+private var Icon_Buttons: ImageVector = materialIcon(name = "Buttons") {
+    materialPath(pathFillType = PathFillType.EvenOdd) {
+        moveTo(3.933f, 8.333f)
+        horizontalLineToRelative(16.134f)
+        curveToRelative(0.81f, 0f, 1.466f, 0.657f, 1.466f, 1.467f)
+        verticalLineToRelative(4.4f)
+        curveToRelative(0f, 0.81f, -0.656f, 1.467f, -1.466f, 1.467f)
+        horizontalLineTo(3.933f)
+        curveToRelative(-0.81f, 0f, -1.466f, -0.657f, -1.466f, -1.467f)
+        verticalLineTo(9.8f)
+        curveToRelative(0f, -0.81f, 0.656f, -1.467f, 1.466f, -1.467f)
         close()
-        moveTo(18.46f, 15.54f)
-        lineToRelative(-1.76f, -1.77f)
-        lineTo(18.46f, 12.0f)
-        lineToRelative(-1.76f, -1.77f)
-        lineToRelative(1.76f, -1.77f)
-        lineTo(22.0f, 12.0f)
+        moveTo(1f, 9.8f)
+        arcToRelative(2.933f, 2.933f, 0f, isMoreThanHalf = false, isPositiveArc = true, 2.933f, -2.933f)
+        horizontalLineToRelative(16.134f)
+        arcTo(2.933f, 2.933f, 0f, isMoreThanHalf = false, isPositiveArc = true, 23f, 9.8f)
+        verticalLineToRelative(4.4f)
+        arcToRelative(2.933f, 2.933f, 0f, isMoreThanHalf = false, isPositiveArc = true, -2.933f, 2.933f)
+        horizontalLineTo(3.933f)
+        arcTo(2.933f, 2.933f, 0f, isMoreThanHalf = false, isPositiveArc = true, 1f, 14.2f)
         close()
-        moveTo(8.46f, 18.46f)
-        lineToRelative(1.77f, -1.76f)
-        lineTo(12.0f, 18.46f)
-        lineToRelative(1.77f, -1.76f)
-        lineToRelative(1.77f, 1.76f)
-        lineTo(12.0f, 22.0f)
+        moveToRelative(6.6f, 1.1f)
+        arcToRelative(1.1f, 1.1f, 0f, isMoreThanHalf = true, isPositiveArc = false, 0f, 2.2f)
+        arcToRelative(1.1f, 1.1f, 0f, isMoreThanHalf = false, isPositiveArc = false, 0f, -2.2f)
         close()
-        moveTo(5.54f, 8.46f)
-        lineToRelative(1.76f, 1.77f)
-        lineTo(5.54f, 12.0f)
-        lineToRelative(1.76f, 1.77f)
-        lineToRelative(-1.76f, 1.77f)
-        lineTo(2.0f, 12.0f)
+        moveToRelative(3.3f, 1.1f)
+        arcToRelative(1.1f, 1.1f, 0f, isMoreThanHalf = true, isPositiveArc = true, 2.2f, 0f)
+        arcToRelative(1.1f, 1.1f, 0f, isMoreThanHalf = false, isPositiveArc = true, -2.2f, 0f)
         close()
-    }
-    materialPath {
-        moveTo(12.0f, 12.0f)
-        moveToRelative(-3.0f, 0.0f)
-        arcToRelative(3.0f, 3.0f, 0.0f, true, true, 6.0f, 0.0f)
-        arcToRelative(3.0f, 3.0f, 0.0f, true, true, -6.0f, 0.0f)
+        moveToRelative(5.5f, -1.1f)
+        arcToRelative(1.1f, 1.1f, 0f, isMoreThanHalf = true, isPositiveArc = false, 0f, 2.2f)
+        arcToRelative(1.1f, 1.1f, 0f, isMoreThanHalf = false, isPositiveArc = false, 0f, -2.2f)
+        close()
     }
 }
