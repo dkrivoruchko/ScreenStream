@@ -277,7 +277,7 @@ internal class WebRtcClient(
             }
             val remoteIP = remoteCandidate.members["ip"] as String? ?: ""
 
-            clientAddress.set("${localNetworkType.uppercase()}${localCandidateType?.let { " [$it]" }}\n$remoteIP")
+            clientAddress.set("${localNetworkType.uppercase()}${localCandidateType?.let { " [$it]" }}\n${remoteIP.ifBlank { "-" }}")
             eventListener.onClientAddress(clientId)
         }
     }
