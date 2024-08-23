@@ -20,10 +20,6 @@ android {
     kotlinOptions {
         freeCompilerArgs += "-Xexplicit-api=strict"
     }
-
-    composeCompiler {
-        enableStrongSkippingMode = true
-    }
 }
 
 dependencies {

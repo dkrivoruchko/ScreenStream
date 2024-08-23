@@ -24,10 +24,6 @@ android {
     androidResources {
         ignoreAssetsPattern = "!dev"
     }
-
-    composeCompiler {
-        enableStrongSkippingMode = true
-    }
 }
 
 dependencies {
