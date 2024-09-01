@@ -348,10 +348,11 @@ internal class MjpegStreamingService(
                 if (pendingServer) {
                     waitingForPermission = false
                     XLog.w(getLog("MjpegEvent.StartProjection", "Server is not ready. Ignoring"))
+                } else if (isStreaming) {
+                    waitingForPermission = false
+                    XLog.w(getLog("MjpegEvent.StartProjection", "Already streaming"))
                 } else {
                     waitingForPermission = false
-                    check(isStreaming.not()) { "MjpegEvent.StartProjection: Already streaming" }
-
                     service.startForeground()
 
                     // TODO Starting from Android R, if your application requests the SYSTEM_ALERT_WINDOW permission, and the user has

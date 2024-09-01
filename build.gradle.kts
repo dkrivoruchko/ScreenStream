@@ -1,6 +1,6 @@
 buildscript {
     dependencies {
-        classpath(libs.android.tools.r8)
+//        classpath(libs.android.tools.r8)
         classpath(libs.firebase.crashlytics.gradle)
     }
 }

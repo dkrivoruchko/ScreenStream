@@ -61,7 +61,7 @@ public fun Context.openStringUrl(url: String, onError: (Throwable) -> Unit = {})
     runCatching {
         startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
     }.onFailure {
-        XLog.e(getLog("openStringUrl", url), it)
+        XLog.w(getLog("openStringUrl", url))
         onError.invoke(it)
     }
 }
