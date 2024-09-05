@@ -90,7 +90,8 @@
     <string name="mjpeg_pref_rotate_summary">ক্লায়েন্টকে পাঠানোর আগে চিত্রটি ঘোরান</string>
     <string name="mjpeg_pref_fps">প্রতি সেকেন্ডে ফ্রেম সীমিত করুন</string>
     <string name="mjpeg_pref_fps_summary">প্রতি সেকেন্ডে সর্বোচ্চ ফ্রেম সেট করুন</string>
-    <string name="mjpeg_pref_fps_text">প্রতি সেকেন্ডে সর্বোচ্চ ফ্রেম সেট করুন। মান: 1-120 ডিফল্ট: 30</string>
+    <string name="mjpeg_pref_fps_text">প্রতি সেকেন্ডে সর্বোচ্চ ফ্রেম সেট করুন। মান: 1/10-120 ডিফল্ট: 30</string>
+    <string name="mjpeg_pref_fps_low_mode_text">ই-ইঙ্ক স্ক্রিনের জন্য আদর্শ, প্রতি %d সেকেন্ডে একটি ফ্রেমে সীমাবদ্ধ করুন।</string>
     <string name="mjpeg_pref_jpeg_quality">JPEG কম্প্রেশন গুণমান</string>
     <string name="mjpeg_pref_jpeg_quality_summary">JPEG কম্প্রেশন গুণমান সেট করুন</string>
     <string name="mjpeg_pref_jpeg_quality_text">JPEG কম্প্রেশন গুণমান সেট করুন। মান: 10-100 ডিফল্ট: 80</string>

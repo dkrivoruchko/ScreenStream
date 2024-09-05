@@ -13,6 +13,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.materialIcon
 import androidx.compose.material.icons.materialPath
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -24,6 +25,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -39,11 +41,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import info.dvkr.screenstream.common.ModuleSettings
+import info.dvkr.screenstream.common.ui.conditional
 import info.dvkr.screenstream.mjpeg.R
 import info.dvkr.screenstream.mjpeg.settings.MjpegSettings
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
+import kotlin.math.abs
 
 internal object MaxFPS : ModuleSettings.Item {
     override val id: String = MjpegSettings.Key.MAX_FPS.name
@@ -107,7 +111,7 @@ private fun MaxFpsUI(
         }
 
         Text(
-            text = maxFPS.toString(),
+            text = if (maxFPS > 0 || maxFPS == -1) abs(maxFPS).toString() else "1/${abs(maxFPS)}",
             modifier = Modifier.defaultMinSize(minWidth = 52.dp),
             color = MaterialTheme.colorScheme.primary,
             textAlign = TextAlign.Center,
@@ -122,8 +126,8 @@ private fun MaxFpsDetailUI(
     maxFPS: Int,
     onValueChange: (Int) -> Unit
 ) {
-    val currentMaxFPS = remember(maxFPS) {
-        val text = maxFPS.toString()
+    val currentFPS = remember(maxFPS) {
+        val text = abs(maxFPS).toString()
         mutableStateOf(TextFieldValue(text = text, selection = TextRange(text.length)))
     }
     val isError = remember { mutableStateOf(false) }
@@ -147,16 +151,28 @@ private fun MaxFpsDetailUI(
             )
 
             OutlinedTextField(
-                value = currentMaxFPS.value,
+                value = currentFPS.value,
                 onValueChange = { textField ->
-                    val newMaxFPS = textField.text.take(3).toIntOrNull()
-                    if (newMaxFPS == null || newMaxFPS !in 1..120) {
-                        currentMaxFPS.value = textField.copy(text = textField.text.take(3))
-                        isError.value = true
-                    } else {
-                        currentMaxFPS.value = textField.copy(text = newMaxFPS.toString())
-                        isError.value = false
-                        onValueChange.invoke(newMaxFPS)
+                    if (maxFPS >= 0) {
+                        val newMaxFPS = textField.text.take(3).toIntOrNull()
+                        if (newMaxFPS == null || newMaxFPS !in 1..120) {
+                            currentFPS.value = textField.copy(text = textField.text.take(3))
+                            isError.value = true
+                        } else {
+                            currentFPS.value = textField.copy(text = newMaxFPS.toString())
+                            isError.value = false
+                            onValueChange.invoke(newMaxFPS)
+                        }
+                    } else { // Low FPS mode
+                        val newLowFPS = textField.text.take(2).toIntOrNull()
+                        if (newLowFPS == null || newLowFPS !in 1..10) {
+                            currentFPS.value = textField.copy(text = textField.text.take(2))
+                            isError.value = true
+                        } else {
+                            currentFPS.value = textField.copy(text = newLowFPS.toString())
+                            isError.value = false
+                            onValueChange.invoke(-newLowFPS)
+                        }
                     }
                 },
                 modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp).focusRequester(focusRequester),
@@ -164,6 +180,22 @@ private fun MaxFpsDetailUI(
                 keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
                 singleLine = true,
             )
+
+            Row {
+                Checkbox(
+                    checked = maxFPS < 0,
+                    onCheckedChange = {
+                        onValueChange.invoke(if (maxFPS >= 0) -5 else MjpegSettings.Default.MAX_FPS)
+                        isError.value = false
+                    },
+                    modifier = Modifier.align(alignment = Alignment.CenterVertically)
+                )
+
+                Text(
+                    text = stringResource(id = R.string.mjpeg_pref_fps_low_mode_text, abs(maxFPS)),
+                    modifier = Modifier.padding(start = 8.dp).conditional(maxFPS >= 0) { alpha(0.5F) },
+                )
+            }
         }
     }
 

@@ -4,8 +4,8 @@ import android.content.Context
 import android.content.pm.ApplicationInfo
 import android.graphics.Bitmap
 import com.elvishew.xlog.XLog
-import info.dvkr.screenstream.common.getVersionName
 import info.dvkr.screenstream.common.getLog
+import info.dvkr.screenstream.common.getVersionName
 import info.dvkr.screenstream.common.randomString
 import info.dvkr.screenstream.mjpeg.R
 import info.dvkr.screenstream.mjpeg.internal.HttpServerData.Companion.getClientId
@@ -157,11 +157,15 @@ internal class HttpServer(
             .filter { it.isNotEmpty() }
             .onEach { jpeg -> lastJPEG.set(jpeg) }
             .flatMapLatest { jpeg ->
-                flow<ByteArray> { // Send last image every second as keep-alive
-                    while (currentCoroutineContext().isActive) {
-                        emit(jpeg)
-                        delay(1000)
+                if (mjpegSettings.data.value.maxFPS > 0) {
+                    flow<ByteArray> { // Send last image every second as keep-alive
+                        while (currentCoroutineContext().isActive) {
+                            emit(jpeg)
+                            delay(1000)
+                        }
                     }
+                } else {
+                    flow { emit(jpeg) }
                 }
             }
             .conflate()

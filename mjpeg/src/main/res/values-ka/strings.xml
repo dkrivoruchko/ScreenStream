@@ -89,7 +89,8 @@
     <string name="mjpeg_pref_rotate_summary">დაატრიალეთ სურათი კლიენტისთვის გაგზავნამდე</string>
     <string name="mjpeg_pref_fps">შეზღუდეთ კადრები წამში</string>
     <string name="mjpeg_pref_fps_summary">დააყენეთ მაქსიმალური კადრები წამში</string>
-    <string name="mjpeg_pref_fps_text">დააყენეთ მაქსიმალური კადრები წამში. ღირებულებები: 1–120 ნაგულისხმევი: 30</string>
+    <string name="mjpeg_pref_fps_text">დააყენეთ მაქსიმალური კადრები წამში. ღირებულებები: 1/10–120 ნაგულისხმევი: 30</string>
+    <string name="mjpeg_pref_fps_low_mode_text">შეზღუდეთ კადრის სიხშირე ერთ კადრამდე ყოველ %d წამში, იდეალურია E-Ink ეკრანებისთვის.</string>
     <string name="mjpeg_pref_jpeg_quality">JPEG შეკუმშვის ხარისხი</string>
     <string name="mjpeg_pref_jpeg_quality_summary">დააყენეთ JPEG შეკუმშვის ხარისხი</string>
     <string name="mjpeg_pref_jpeg_quality_text">დააყენეთ JPEG შეკუმშვის ხარისხი. ღირებულებები: 10–100 ნაგულისხმევი: 80</string>

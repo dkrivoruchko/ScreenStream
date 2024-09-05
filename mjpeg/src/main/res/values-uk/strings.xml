@@ -94,7 +94,8 @@
     <string name="mjpeg_pref_rotate_summary">Повернути зображення перед надсиланням на клієнт</string>
     <string name="mjpeg_pref_fps">Встановити ліміт кадрів на секунду</string>
     <string name="mjpeg_pref_fps_summary">Встановити максимальний ліміт кадрів за секунду</string>
-    <string name="mjpeg_pref_fps_text">Встановити ліміт кадрів на секунду.\nВеличини: 1–120\nЗа замовчуванням: 30</string>
+    <string name="mjpeg_pref_fps_text">Встановити ліміт кадрів на секунду.\nВеличини: 1/10–120\nЗа замовчуванням: 30</string>
+    <string name="mjpeg_pref_fps_low_mode_text">Обмежте частоту кадрів до одного кадру кожні %d секунд, ідеально для E-Ink екранів.</string>
     <string name="mjpeg_pref_jpeg_quality">Якість компресії JPEG</string>
     <string name="mjpeg_pref_jpeg_quality_summary">Встановити якість компресії JPEG</string>
     <string name="mjpeg_pref_jpeg_quality_text">Встановити якість компресії JPEG.\nВеличини: 10–100\nЗа замовчуванням: 80</string>

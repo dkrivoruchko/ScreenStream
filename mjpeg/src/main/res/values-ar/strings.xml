@@ -94,7 +94,8 @@
     <string name="mjpeg_pref_rotate_summary">تدوير الصورة قبل إرسالها إلى العميل</string>
     <string name="mjpeg_pref_fps">الحد من صور في الثانية الواحدة</string>
     <string name="mjpeg_pref_fps_summary">اضبط أقصى صور في الثانية</string>
-    <string name="mjpeg_pref_fps_text">عيّن الحد الأقصى للصور في الثانية. \n القيم: 1–120\nافتراضيًا: 30</string>
+    <string name="mjpeg_pref_fps_text">عيّن الحد الأقصى للصور في الثانية. \n القيم: 1/10–120\nافتراضيًا: 30</string>
+    <string name="mjpeg_pref_fps_low_mode_text">تحديد معدل الإطارات إلى إطار واحد كل %d ثانية، مثالي لشاشات الحبر الإلكتروني.</string>
     <string name="mjpeg_pref_jpeg_quality">جودة ضغط JPEG</string>
     <string name="mjpeg_pref_jpeg_quality_summary">اضبط جودة ضغط JPEG</string>
     <string name="mjpeg_pref_jpeg_quality_text">اضبط جودة ضغط JPEG. القيم: 10–100\nالافتراضي: 80</string>

@@ -89,7 +89,8 @@
     <string name="mjpeg_pref_rotate_summary">ወደ ደንበኛ ከመላክዎ በፊት ምስሉን ያሽከርክሩ</string>
     <string name="mjpeg_pref_fps">ክፈፎች በሰከንድ ይገድቡ</string>
     <string name="mjpeg_pref_fps_summary">በሰከንድ ከፍተኛውን ፍሬሞች ያዘጋጁ</string>
-    <string name="mjpeg_pref_fps_text">በሰከንድ ከፍተኛውን ፍሬሞች ያዘጋጁ። ዋጋ፡ 1–120 ነባሪ፡ 30</string>
+    <string name="mjpeg_pref_fps_text">በሰከንድ ከፍተኛውን ፍሬሞች ያዘጋጁ። ዋጋ፡ 1/10–120 ነባሪ፡ 30</string>
+    <string name="mjpeg_pref_fps_low_mode_text">እያንዳንዱ እንቁራሪት በየ%d ሰከንድ እንዲታይ ተገድቷል, በE-Ink ስክሪንስ ተስማሚ ነው።</string>
     <string name="mjpeg_pref_jpeg_quality">JPEG መጭመቂያ ጥራት</string>
     <string name="mjpeg_pref_jpeg_quality_summary">የ JPEG መጭመቂያ ጥራት ያዘጋጁ</string>
     <string name="mjpeg_pref_jpeg_quality_text">የ JPEG መጭመቂያ ጥራት ያዘጋጁ። ዋጋዎች: 10-100 ነባሪ፡ 80</string>

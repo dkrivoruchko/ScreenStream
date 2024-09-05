@@ -89,7 +89,8 @@
     <string name="mjpeg_pref_rotate_summary">Putar gambar sebelum dikirim ke klien</string>
     <string name="mjpeg_pref_fps">Batasi frame per detik</string>
     <string name="mjpeg_pref_fps_summary">Tetapkan frame maksimum per detik</string>
-    <string name="mjpeg_pref_fps_text">Tetapkan frame maksimum per detik. Nilai: 1–120 Bawaan: 30</string>
+    <string name="mjpeg_pref_fps_text">Tetapkan frame maksimum per detik. Nilai: 1/10–120 Bawaan: 30</string>
+    <string name="mjpeg_pref_fps_low_mode_text">Batasi kecepatan frame menjadi satu frame setiap %d detik, ideal untuk layar E-Ink.</string>
     <string name="mjpeg_pref_jpeg_quality">Kualitas kompresi JPEG</string>
     <string name="mjpeg_pref_jpeg_quality_summary">Atur kualitas kompresi JPEG</string>
     <string name="mjpeg_pref_jpeg_quality_text">Atur kualitas kompresi JPEG. Nilai: 10–100 Bawaan: 80</string>

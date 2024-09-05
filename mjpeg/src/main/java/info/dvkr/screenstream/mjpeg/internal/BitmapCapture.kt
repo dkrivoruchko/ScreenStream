@@ -31,6 +31,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
+import kotlin.math.abs
 
 // https://developer.android.com/media/grow/media-projection
 internal class BitmapCapture(
@@ -216,9 +217,16 @@ internal class BitmapCapture(
                 try {
                     reader.acquireLatestImage()?.let { image ->
                         val now = System.currentTimeMillis()
-                        if ((now - lastImageMillis) < (1000 / maxFPS.get())) {
-                            image.close()
-                            return
+                        if (maxFPS.get() > 0) {
+                            if ((now - lastImageMillis) < (1000 / maxFPS.get())) {
+                                image.close()
+                                return
+                            }
+                        } else {
+                            if ((now - lastImageMillis) < (1000 * abs(maxFPS.get()))) {
+                                image.close()
+                                return
+                            }
                         }
                         lastImageMillis = now
 
