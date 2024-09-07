@@ -28,7 +28,7 @@ android {
     namespace = "info.dvkr.screenstream"
     compileSdk = rootProject.extra["compileSdkVersion"] as Int
     buildToolsVersion = rootProject.extra["buildToolsVersion"] as String
-    ndkVersion = "26.3.11579264"
+    ndkVersion = "27.1.12297006"
 
     defaultConfig {
         applicationId = "info.dvkr.screenstream"

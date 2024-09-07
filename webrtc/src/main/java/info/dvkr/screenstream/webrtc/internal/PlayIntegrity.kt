@@ -178,7 +178,7 @@ internal class PlayIntegrity(serviceContext: Context, private val environment: W
             WebRtcError.PlayIntegrityError(errorCode, true, message)
 
         StandardIntegrityErrorCode.INTEGRITY_TOKEN_PROVIDER_INVALID ->
-            WebRtcError.PlayIntegrityError(errorCode, false, message)
+            WebRtcError.PlayIntegrityError(errorCode, true, message)
 
         StandardIntegrityErrorCode.INTERNAL_ERROR -> // Unknown internal error.
             WebRtcError.PlayIntegrityError(errorCode, true, message)
