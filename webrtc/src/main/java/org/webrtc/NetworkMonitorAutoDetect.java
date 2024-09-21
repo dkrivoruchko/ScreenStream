@@ -198,8 +198,8 @@ public class NetworkMonitorAutoDetect extends BroadcastReceiver implements Netwo
       this.connectivityManager = connectivityManager;
       this.availableNetworks = availableNetworks;
       this.getAllNetworksFromCache =
-          checkFieldTrial(fieldTrialsString, "getAllNetworksFromCache", false);
-      this.requestVPN = checkFieldTrial(fieldTrialsString, "requestVPN", false);
+          checkFieldTrial(fieldTrialsString, "getAllNetworksFromCache", true);
+      this.requestVPN = checkFieldTrial(fieldTrialsString, "requestVPN", true);
       this.includeOtherUidNetworks =
           checkFieldTrial(fieldTrialsString, "includeOtherUidNetworks", false);
     }

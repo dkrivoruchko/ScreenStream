@@ -592,7 +592,7 @@ public class PeerConnection {
       tcpCandidatePolicy = TcpCandidatePolicy.ENABLED;
       candidateNetworkPolicy = CandidateNetworkPolicy.ALL;
       this.iceServers = iceServers;
-      audioJitterBufferMaxPackets = 50;
+      audioJitterBufferMaxPackets = 200;
       audioJitterBufferFastAccelerate = false;
       iceConnectionReceivingTimeout = -1;
       iceBackupCandidatePairPingInterval = -1;

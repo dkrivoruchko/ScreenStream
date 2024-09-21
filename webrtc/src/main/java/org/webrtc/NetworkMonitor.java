@@ -13,9 +13,11 @@ package org.webrtc;
 import android.content.Context;
 import android.os.Build;
 import androidx.annotation.Nullable;
+import androidx.annotation.VisibleForTesting;
 import java.util.ArrayList;
 import java.util.List;
 import org.webrtc.NetworkChangeDetector;
+
 
 /**
  * Borrowed from Chromium's
@@ -349,7 +351,8 @@ public class NetworkMonitor {
   }
 
   // For testing only.
-  int getNumObservers() {
+  @VisibleForTesting
+  public int getNumObservers() {
     synchronized (networkChangeDetectorLock) {
       return numObservers;
     }
