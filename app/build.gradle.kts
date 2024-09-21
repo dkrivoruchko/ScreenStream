@@ -11,7 +11,10 @@ plugins {
     alias(libs.plugins.firebaseCrashlytics)
 }
 
-java.toolchain.languageVersion = JavaLanguageVersion.of(17)
+kotlin {
+    explicitApi()
+    jvmToolchain(17)
+}
 
 android {
     signingConfigs {
@@ -89,10 +92,6 @@ android {
         isCoreLibraryDesugaringEnabled = true
     }
 
-    kotlinOptions {
-        freeCompilerArgs += "-Xexplicit-api=strict"
-    }
-
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
@@ -107,7 +106,7 @@ dependencies {
 
     ksp(libs.koin.ksp)
 
-    implementation(project(":common"))
+    implementation(projects.common)
 
     implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.compose.material3.adaptive.navigation.suite)
@@ -115,11 +114,9 @@ dependencies {
     implementation(libs.androidx.compose.material3.adaptive.navigation)
     implementation(libs.processPhoenix)
 
-    // MJPEG
-    implementation(project(":mjpeg"))
+    implementation(projects.mjpeg)
 
-    // PlayStore-WebRTC
-    "PlayStoreImplementation"(project(":webrtc"))
+    "PlayStoreImplementation"(projects.webrtc)
     "PlayStoreImplementation"(libs.play.services.tasks)
     "PlayStoreImplementation"(libs.play.app.update)
     "PlayStoreImplementation"(libs.play.app.review)

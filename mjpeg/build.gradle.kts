@@ -6,7 +6,10 @@ plugins {
     alias(libs.plugins.ksp)
 }
 
-java.toolchain.languageVersion = JavaLanguageVersion.of(17)
+kotlin {
+    explicitApi()
+    jvmToolchain(17)
+}
 
 android {
     namespace = "info.dvkr.screenstream.mjpeg"
@@ -17,17 +20,13 @@ android {
         minSdk = rootProject.extra["minSdkVersion"] as Int
     }
 
-    kotlinOptions {
-        freeCompilerArgs += "-Xexplicit-api=strict"
-    }
-
     androidResources {
         ignoreAssetsPattern = "!dev"
     }
 }
 
 dependencies {
-    implementation(project(":common"))
+    implementation(projects.common)
 
     ksp(libs.koin.ksp)
 
