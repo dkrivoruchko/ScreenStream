@@ -111,6 +111,7 @@ internal class HttpServer(
     private val indexHtml: AtomicReference<String> = AtomicReference("")
     private val lastJPEG: AtomicReference<ByteArray> = AtomicReference(ByteArray(0))
     private val serverData: HttpServerData = HttpServerData(sendEvent)
+    private val mjpegSharedFlow: AtomicReference<SharedFlow<ByteArray>> = AtomicReference(null)
     private val ktorServer: AtomicReference<Pair<EmbeddedServer<*, *>, CompletableDeferred<Unit>>> = AtomicReference(null)
 
     init {
@@ -149,7 +150,7 @@ internal class HttpServer(
         lastJPEG.set(ByteArray(0))
 
         @OptIn(ExperimentalCoroutinesApi::class)
-        val mjpegSharedFlow = bitmapStateFlow
+        val mjpegFlow = bitmapStateFlow
             .map { bitmap ->
                 resultJpegStream.reset()
                 bitmap.compress(Bitmap.CompressFormat.JPEG, mjpegSettings.data.value.jpegQuality, resultJpegStream)
@@ -172,6 +173,8 @@ internal class HttpServer(
             .conflate()
             .shareIn(coroutineScope, SharingStarted.Eagerly, 1)
 
+        mjpegSharedFlow.set(mjpegFlow)
+
         val serverPort = mjpegSettings.data.value.serverPort
         val server = embeddedServer(CIO,
             rootConfig = serverConfig {
@@ -180,7 +183,7 @@ internal class HttpServer(
                     if (throwable is SocketException) return@CoroutineExceptionHandler
                     XLog.i(this@HttpServer.getLog("parentCoroutineContext", "coroutineExceptionHandler: $throwable"), throwable)
                 }
-                module { appModule(mjpegSharedFlow) }
+                module { appModule() }
             },
             configure = {
                 connectionIdleTimeoutSeconds = 10
@@ -241,6 +244,7 @@ internal class HttpServer(
                     XLog.i(this@HttpServer.getLog("stopServer", "Done. Ktor: $hashCode"))
                 }
             }
+            mjpegSharedFlow.set(null)
             XLog.d(this@HttpServer.getLog("stopServer", "Done"))
         }
     }
@@ -255,7 +259,7 @@ internal class HttpServer(
         if (isActive) send(JSONObject().put("type", type).apply { if (data != null) put("data", data) }.toString())
     }
 
-    private fun Application.appModule(mjpegSharedFlow: SharedFlow<ByteArray>) {
+    private fun Application.appModule() {
         val crlf = "\r\n".toByteArray()
         val jpegBaseHeader = "Content-Type: image/jpeg\r\nContent-Length: ".toByteArray()
         val multipartBoundary = randomString(20)
@@ -368,12 +372,12 @@ internal class HttpServer(
                         val emmitCounter = AtomicLong(0L)
                         val collectCounter = AtomicLong(0L)
 
-                        mjpegSharedFlow
-                            .onStart {
-                                XLog.i(this@appModule.getLog("onStart", "Client: $clientId:$remotePort"))
-                                serverData.addConnected(clientId, remoteAddress, remotePort)
-                                channel.writeFully(jpegBoundary, 0, jpegBoundary.size)
-                            }
+                        val mjpegFlow = mjpegSharedFlow.get() ?: return
+                        mjpegFlow.onStart {
+                            XLog.i(this@appModule.getLog("onStart", "Client: $clientId:$remotePort"))
+                            serverData.addConnected(clientId, remoteAddress, remotePort)
+                            channel.writeFully(jpegBoundary, 0, jpegBoundary.size)
+                        }
                             .onCompletion {
                                 XLog.i(this@appModule.getLog("onCompletion", "Client: $clientId:$remotePort"))
                                 serverData.setDisconnected(clientId, remoteAddress, remotePort)
