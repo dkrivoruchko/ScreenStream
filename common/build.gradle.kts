@@ -22,6 +22,8 @@ android {
 }
 
 dependencies {
+    api(libs.kotlinStdlibJdk8)
+    api(libs.kotlinReflect)
     api(libs.kotlinx.coroutines.android)
 
     api(libs.androidx.core.ktx)

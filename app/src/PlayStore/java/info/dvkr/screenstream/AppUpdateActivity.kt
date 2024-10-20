@@ -1,8 +1,8 @@
 package info.dvkr.screenstream
 
 import android.os.Bundle
+import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.content.edit
 import androidx.lifecycle.lifecycleScope
@@ -23,7 +23,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.android.ext.android.inject
 
-public abstract class AppUpdateActivity : AppCompatActivity() {
+public abstract class AppUpdateActivity : ComponentActivity() {
 
     private companion object {
         private const val APP_UPDATE_REQUEST_TIMEOUT = 8 * 60 * 60 * 1000L  // 8 hours. Don't need exact time frame

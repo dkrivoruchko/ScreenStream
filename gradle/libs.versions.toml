@@ -1,31 +1,31 @@
 [versions]
-agp = "8.6.1"
-kotlin = "2.0.20"
-ksp = "2.0.20-1.0.25"
+agp = "8.7.1"
+kotlin = "2.0.21"
+ksp = "2.0.21-1.0.25"
 android-tools-r8 = "8.5.35"
 android-tools-desugar = "2.1.2"
 
-koin-android-compose = "3.5.6"
+koin-android = "4.0.0"
 koin-ksp = "1.3.1"
 
 kotlinx-coroutines = "1.9.0"
 
 androidx-core-ktx = "1.13.1"
 androidx-core-splashscreen = "1.2.0-alpha02"
-androidx-activity-compose = "1.9.2"
-androidx-fragment = "1.8.3"
+androidx-activity-compose = "1.9.3"
+androidx-fragment = "1.8.4"
 androidx-appcompat = "1.7.0"
 androidx-lifecycle = "2.8.6"
 androidx-window = "1.3.0"
 androidx-datastore-preferences = "1.1.1"
 
-compose-bom = "2024.09.02"
+compose-bom = "2024.10.00"
 
 process-phoenix = "3.0.0"
 xlog = "1.11.1"
 
 #MJPEG
-ktor = "2.3.12"
+ktor = "3.0.0"
 
 #PlayStore-WebRTC
 play-services-tasks = "18.2.0"
@@ -36,19 +36,22 @@ okhttp = "4.12.0"
 
 #PlayStore-App
 play-app-update = "2.1.0"
-play-app-review = "2.0.1"
-play-services-ads = "23.3.0"
-webkit = "1.12.0"
-firebase-analytics = "22.1.0"
-firebase-crashlytics = "19.1.0"
+play-app-review = "2.0.2"
+play-services-ads = "23.4.0"
+webkit = "1.12.1"
+firebase-analytics = "22.1.2"
+firebase-crashlytics = "19.2.0"
 google-services = "4.4.2"
 crashlytics-gradle = "3.0.2"
 
 [libraries]
 android-tools-r8 = { module = "com.android.tools:r8", version.ref = "android-tools-r8" }
 android-tools-desugar = { module = "com.android.tools:desugar_jdk_libs", version.ref = "android-tools-desugar" }
+kotlinStdlibJdk8 = { module = "org.jetbrains.kotlin:kotlin-stdlib-jdk8", version.ref = "kotlin" }
+kotlinReflect = { module = "org.jetbrains.kotlin:kotlin-reflect", version.ref = "kotlin" }
 
-koin-android-compose = { module = "io.insert-koin:koin-androidx-compose", version.ref = "koin-android-compose" }
+koin-android-compose = { module = "io.insert-koin:koin-androidx-compose", version.ref = "koin-android" }
+koin-startup = { module = "io.insert-koin:koin-androidx-startup", version.ref = "koin-android" }
 koin-annotations = { module = "io.insert-koin:koin-annotations", version.ref = "koin-ksp" }
 koin-ksp = { module = "io.insert-koin:koin-ksp-compiler", version.ref = "koin-ksp" }
 

@@ -31,7 +31,7 @@ android {
     namespace = "info.dvkr.screenstream"
     compileSdk = rootProject.extra["compileSdkVersion"] as Int
     buildToolsVersion = rootProject.extra["buildToolsVersion"] as String
-    ndkVersion = "27.1.12297006"
+    ndkVersion = "27.2.12479018"
 
     defaultConfig {
         applicationId = "info.dvkr.screenstream"
@@ -105,6 +105,7 @@ dependencies {
     coreLibraryDesugaring(libs.android.tools.desugar)
 
     ksp(libs.koin.ksp)
+//    implementation(libs.koin.startup)
 
     implementation(projects.common)
 

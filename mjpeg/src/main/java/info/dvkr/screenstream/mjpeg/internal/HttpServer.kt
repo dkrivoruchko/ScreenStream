@@ -20,11 +20,10 @@ import io.ktor.http.content.OutgoingContent
 import io.ktor.server.application.Application
 import io.ktor.server.application.ApplicationStarted
 import io.ktor.server.application.ApplicationStopped
-import io.ktor.server.application.call
 import io.ktor.server.application.install
+import io.ktor.server.application.serverConfig
 import io.ktor.server.cio.CIO
-import io.ktor.server.cio.CIOApplicationEngine
-import io.ktor.server.engine.applicationEngineEnvironment
+import io.ktor.server.engine.EmbeddedServer
 import io.ktor.server.engine.connector
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.plugins.cachingheaders.CachingHeaders
@@ -43,6 +42,7 @@ import io.ktor.server.routing.routing
 import io.ktor.server.websocket.WebSockets
 import io.ktor.server.websocket.webSocket
 import io.ktor.utils.io.ByteWriteChannel
+import io.ktor.utils.io.writeFully
 import io.ktor.websocket.DefaultWebSocketSession
 import io.ktor.websocket.Frame
 import io.ktor.websocket.readText
@@ -83,6 +83,7 @@ import java.io.IOException
 import java.net.BindException
 import java.net.SocketException
 import java.nio.charset.StandardCharsets
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
 
@@ -110,7 +111,7 @@ internal class HttpServer(
     private val indexHtml: AtomicReference<String> = AtomicReference("")
     private val lastJPEG: AtomicReference<ByteArray> = AtomicReference(ByteArray(0))
     private val serverData: HttpServerData = HttpServerData(sendEvent)
-    private val ktorServer: AtomicReference<Pair<CIOApplicationEngine, CompletableDeferred<Unit>>> = AtomicReference(null)
+    private val ktorServer: AtomicReference<Pair<EmbeddedServer<*, *>, CompletableDeferred<Unit>>> = AtomicReference(null)
 
     init {
         XLog.d(getLog("init"))
@@ -172,30 +173,36 @@ internal class HttpServer(
             .shareIn(coroutineScope, SharingStarted.Eagerly, 1)
 
         val serverPort = mjpegSettings.data.value.serverPort
-        val server = embeddedServer(CIO, applicationEngineEnvironment {
-            parentCoroutineContext = CoroutineExceptionHandler { _, throwable ->
-                XLog.e(this@HttpServer.getLog("parentCoroutineContext", "coroutineExceptionHandler: $throwable"), throwable)
-            }
-            module { appModule(mjpegSharedFlow) }
-            serverAddresses.forEach { netInterface ->
-                connector {
-                    host = netInterface.address.hostAddress!!
-                    port = serverPort
+        val server = embeddedServer(CIO,
+            rootConfig = serverConfig {
+                parentCoroutineContext = CoroutineExceptionHandler { _, throwable ->
+                    if (throwable is BindException) return@CoroutineExceptionHandler
+                    if (throwable is SocketException) return@CoroutineExceptionHandler
+                    XLog.i(this@HttpServer.getLog("parentCoroutineContext", "coroutineExceptionHandler: $throwable"), throwable)
+                }
+                module { appModule(mjpegSharedFlow) }
+            },
+            configure = {
+                connectionIdleTimeoutSeconds = 10
+                reuseAddress = true
+                shutdownGracePeriod = 0
+                shutdownTimeout = 500
+                serverAddresses.forEach { netInterface ->
+                    connector {
+                        host = netInterface.address.hostAddress!!
+                        port = serverPort
+                    }
                 }
             }
-        }) {
-            connectionIdleTimeoutSeconds = 10
-            shutdownGracePeriod = 0
-            shutdownTimeout = 500
-        }
+        )
 
         ktorServer.set(server to CompletableDeferred())
 
-        server.environment.monitor.subscribe(ApplicationStarted) {
+        server.monitor.subscribe(ApplicationStarted) {
             XLog.i(getLog("monitor", "KtorStarted: ${it.hashCode()}"))
         }
 
-        server.environment.monitor.subscribe(ApplicationStopped) {
+        server.monitor.subscribe(ApplicationStopped) {
             XLog.i(getLog("monitor", "KtorStopped: ${it.hashCode()}"))
             coroutineScope.cancel()
             serverData.clear()
@@ -219,7 +226,7 @@ internal class HttpServer(
             XLog.e(getLog("startServer.Throwable"), cause)
             sendEvent(MjpegStreamingService.InternalEvent.Error(MjpegError.HttpServerException))
         }
-        XLog.d(getLog("startServer", "Done. Ktor: ${server.appHashCode()} "))
+        XLog.d(getLog("startServer", "Done. Ktor: ${server.hashCode()} "))
     }
 
     internal suspend fun stop(reloadClients: Boolean) = coroutineScope {
@@ -228,9 +235,9 @@ internal class HttpServer(
             ktorServer.getAndSet(null)?.let { (server, stopJob) ->
                 if (stopJob.isActive) {
                     if (reloadClients) serverData.notifyClients("RELOAD", timeout = 250)
-                    val hashCode = server.appHashCode()
+                    val hashCode = server.hashCode()
                     XLog.i(this@HttpServer.getLog("stopServer", "Ktor: $hashCode"))
-                    server.stop(250, 500)
+                    server.stop(250, 500, TimeUnit.MILLISECONDS)
                     XLog.i(this@HttpServer.getLog("stopServer", "Done. Ktor: $hashCode"))
                 }
             }
@@ -243,8 +250,6 @@ internal class HttpServer(
         serverData.destroy()
         stop(false)
     }
-
-    private fun CIOApplicationEngine.appHashCode(): Int = runCatching { application.hashCode() }.getOrDefault(0)
 
     private suspend fun DefaultWebSocketSession.send(type: String, data: Any?) {
         if (isActive) send(JSONObject().put("type", type).apply { if (data != null) put("data", data) }.toString())
@@ -394,6 +399,7 @@ internal class HttpServer(
                                 channel.writeFully(jpeg, 0, jpeg.size)
                                 channel.writeFully(crlf, 0, crlf.size)
                                 channel.writeFully(jpegBoundary, 0, jpegBoundary.size)
+                                channel.flush()
                                 // Write MJPEG frame
 
                                 val size = jpegBaseHeader.size + jpegSizeText.size + crlf.size * 3 + jpeg.size + jpegBoundary.size
