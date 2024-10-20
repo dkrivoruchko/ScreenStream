@@ -25,7 +25,6 @@ import androidx.core.content.ContextCompat
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.common.getVersionName
-import info.dvkr.screenstream.webrtc.WebRtcKoinScope
 import info.dvkr.screenstream.webrtc.WebRtcModuleService
 import info.dvkr.screenstream.webrtc.settings.WebRtcSettings
 import info.dvkr.screenstream.webrtc.ui.WebRtcError
@@ -48,20 +47,15 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeoutOrNull
 import okhttp3.ConnectionSpec
 import okhttp3.OkHttpClient
-import org.koin.core.annotation.InjectedParam
-import org.koin.core.annotation.Scope
-import org.koin.core.annotation.Scoped
 import org.webrtc.IceCandidate
 import org.webrtc.PeerConnection.IceServer
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.math.pow
 
-@Scope(WebRtcKoinScope::class)
-@Scoped(binds = [WebRtcStreamingService::class])
 internal class WebRtcStreamingService(
-    @InjectedParam private val service: WebRtcModuleService,
-    @InjectedParam private val mutableWebRtcStateFlow: MutableStateFlow<WebRtcState>,
+    private val service: WebRtcModuleService,
+    private val mutableWebRtcStateFlow: MutableStateFlow<WebRtcState>,
     private val environment: WebRtcEnvironment,
     private val webRtcSettings: WebRtcSettings
 ) : HandlerThread("WebRTC-HT", android.os.Process.THREAD_PRIORITY_DISPLAY), Handler.Callback {

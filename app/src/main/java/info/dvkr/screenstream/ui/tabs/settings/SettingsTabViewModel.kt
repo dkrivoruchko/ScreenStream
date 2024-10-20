@@ -16,9 +16,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
-import org.koin.android.annotation.KoinViewModel
 
-@KoinViewModel
 internal class SettingsTabViewModel(
     appModuleSettings: AppModuleSettings,
     streamingModulesManager: StreamingModuleManager,

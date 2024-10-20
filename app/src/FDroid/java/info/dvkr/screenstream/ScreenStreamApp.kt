@@ -8,7 +8,6 @@ import info.dvkr.screenstream.common.CommonKoinModule
 import info.dvkr.screenstream.logger.AppLogger
 import info.dvkr.screenstream.mjpeg.MjpegKoinModule
 import org.koin.core.module.Module
-import org.koin.ksp.generated.module
 
 public class ScreenStreamApp : BaseApp() {
 
@@ -20,5 +19,5 @@ public class ScreenStreamApp : BaseApp() {
         })
     }
 
-    override val streamingModules: Array<Module> = arrayOf(CommonKoinModule().module, MjpegKoinModule().module)
+    override val streamingModules: Array<Module> = arrayOf(CommonKoinModule, MjpegKoinModule)
 }

@@ -1,12 +1,11 @@
 package info.dvkr.screenstream
 
 import android.app.Activity
+import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import org.koin.core.annotation.Single
 
-@Single
-public class AdMob {
+public class AdMob(context: Context) {
     public val isPrivacyOptionsRequired: Boolean = false
 
     public fun showPrivacyOptionsForm(activity: Activity) {}

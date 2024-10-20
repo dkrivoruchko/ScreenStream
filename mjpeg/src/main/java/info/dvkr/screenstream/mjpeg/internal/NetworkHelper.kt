@@ -7,8 +7,6 @@ import android.net.wifi.WifiManager
 import androidx.core.content.ContextCompat
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.common.getLog
-import info.dvkr.screenstream.mjpeg.MjpegKoinScope
-import org.koin.core.annotation.Scope
 import java.net.Inet4Address
 import java.net.Inet6Address
 import java.net.InetAddress
@@ -16,7 +14,6 @@ import java.net.NetworkInterface
 import java.util.Collections
 import java.util.Enumeration
 
-@Scope(MjpegKoinScope::class)
 @SuppressLint("WifiManagerPotentialLeak")
 internal class NetworkHelper(context: Context) {
 

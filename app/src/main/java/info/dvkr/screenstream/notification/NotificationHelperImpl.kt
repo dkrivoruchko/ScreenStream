@@ -19,9 +19,7 @@ import info.dvkr.screenstream.SingleActivity
 import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.common.isPermissionGranted
 import info.dvkr.screenstream.common.notification.NotificationHelper
-import org.koin.core.annotation.Single
 
-@Single
 internal class NotificationHelperImpl(context: Context) : NotificationHelper {
     private companion object {
         private const val CHANNEL_STREAMING = "info.dvkr.screenstream.NOTIFICATION_CHANNEL_STREAMING"

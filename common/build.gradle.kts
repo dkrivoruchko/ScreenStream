@@ -3,7 +3,6 @@ plugins {
     alias(libs.plugins.kotlinAndroid)
     alias(libs.plugins.kotlinParcelize)
     alias(libs.plugins.compose)
-    alias(libs.plugins.ksp)
 }
 
 kotlin {
@@ -40,8 +39,6 @@ dependencies {
     api(libs.androidx.compose.material3.window)
 
     api(libs.koin.android.compose)
-    api(libs.koin.annotations)
-    ksp(libs.koin.ksp)
 
     api(libs.xlog)
 }

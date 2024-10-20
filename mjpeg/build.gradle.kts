@@ -3,7 +3,6 @@ plugins {
     alias(libs.plugins.kotlinAndroid)
     alias(libs.plugins.kotlinParcelize)
     alias(libs.plugins.compose)
-    alias(libs.plugins.ksp)
 }
 
 kotlin {
@@ -27,8 +26,6 @@ android {
 
 dependencies {
     implementation(projects.common)
-
-    ksp(libs.koin.ksp)
 
     implementation(libs.ktor.server.cio)
     implementation(libs.ktor.server.compression)

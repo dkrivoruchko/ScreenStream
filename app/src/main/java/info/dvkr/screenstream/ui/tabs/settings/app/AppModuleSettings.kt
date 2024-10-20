@@ -9,9 +9,7 @@ import androidx.compose.ui.unit.sp
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.common.ModuleSettings
 import info.dvkr.screenstream.ui.tabs.settings.app.settings.GeneralGroup
-import org.koin.core.annotation.Single
 
-@Single
 internal class AppModuleSettings : ModuleSettings {
     override val id: String = "APP"
     override val groups: List<ModuleSettings.Group> =

@@ -44,11 +44,9 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.koin.compose.koinInject
-import org.koin.core.annotation.Single
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicBoolean
 
-@Single(createdAtStart = true)
 public class AdMob(private val context: Context) {
 
     private data class AdUnit(val id: String, var lastUsedMillis: Long = 0, var inComposition: Boolean = false) {

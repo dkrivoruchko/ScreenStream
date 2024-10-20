@@ -29,7 +29,6 @@ import androidx.annotation.MainThread
 import androidx.window.layout.WindowMetricsCalculator
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.common.getLog
-import info.dvkr.screenstream.mjpeg.MjpegKoinScope
 import info.dvkr.screenstream.mjpeg.MjpegModuleService
 import info.dvkr.screenstream.mjpeg.R
 import info.dvkr.screenstream.mjpeg.settings.MjpegSettings
@@ -48,18 +47,14 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeoutOrNull
-import org.koin.core.annotation.InjectedParam
-import org.koin.core.annotation.Scope
-import org.koin.core.annotation.Scoped
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.random.Random
 
-@Scope(MjpegKoinScope::class)
-@Scoped(binds = [MjpegStreamingService::class])
+
 internal class MjpegStreamingService(
-    @InjectedParam private val service: MjpegModuleService,
-    @InjectedParam private val mutableMjpegStateFlow: MutableStateFlow<MjpegState>,
+    private val service: MjpegModuleService,
+    private val mutableMjpegStateFlow: MutableStateFlow<MjpegState>,
     private val networkHelper: NetworkHelper,
     private val mjpegSettings: MjpegSettings
 ) : HandlerThread("MJPEG-HT", android.os.Process.THREAD_PRIORITY_DISPLAY), Handler.Callback {

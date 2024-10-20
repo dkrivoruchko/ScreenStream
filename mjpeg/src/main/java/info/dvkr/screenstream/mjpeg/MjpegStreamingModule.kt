@@ -21,12 +21,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
-import org.koin.core.annotation.Named
-import org.koin.core.annotation.Single
 import org.koin.core.parameter.parametersOf
 
-@Single
-@Named(MjpegKoinQualifier)
 public class MjpegStreamingModule : StreamingModule {
 
     public companion object {

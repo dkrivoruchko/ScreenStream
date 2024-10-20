@@ -6,7 +6,6 @@ plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.kotlinAndroid)
     alias(libs.plugins.compose)
-    alias(libs.plugins.ksp)
     alias(libs.plugins.googleServices)
     alias(libs.plugins.firebaseCrashlytics)
 }
@@ -104,7 +103,6 @@ android {
 dependencies {
     coreLibraryDesugaring(libs.android.tools.desugar)
 
-    ksp(libs.koin.ksp)
 //    implementation(libs.koin.startup)
 
     implementation(projects.common)

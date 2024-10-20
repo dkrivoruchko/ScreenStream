@@ -10,9 +10,7 @@ import info.dvkr.screenstream.common.module.StreamingModuleService
 import info.dvkr.screenstream.webrtc.internal.WebRtcEvent
 import info.dvkr.screenstream.webrtc.ui.WebRtcError
 import kotlinx.coroutines.*
-import kotlinx.coroutines.flow.*
 import org.koin.android.ext.android.inject
-import org.koin.core.qualifier.named
 import java.net.ConnectException
 import java.net.UnknownHostException
 
@@ -33,7 +31,7 @@ public class WebRtcModuleService : StreamingModuleService() {
     override val notificationIdForeground: Int = 200
     override val notificationIdError: Int = 210
 
-    private val webRtcStreamingModule: WebRtcStreamingModule by inject(named(WebRtcKoinQualifier), LazyThreadSafetyMode.NONE)
+    private val webRtcStreamingModule: WebRtcStreamingModule by inject(WebRtcKoinQualifier, LazyThreadSafetyMode.NONE)
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent == null) {

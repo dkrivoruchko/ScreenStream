@@ -10,7 +10,6 @@ import info.dvkr.screenstream.mjpeg.internal.MjpegEvent
 import info.dvkr.screenstream.mjpeg.ui.MjpegError
 import kotlinx.coroutines.runBlocking
 import org.koin.android.ext.android.inject
-import org.koin.core.qualifier.named
 
 public class MjpegModuleService : StreamingModuleService() {
 
@@ -28,7 +27,7 @@ public class MjpegModuleService : StreamingModuleService() {
     override val notificationIdForeground: Int = 100
     override val notificationIdError: Int = 110
 
-    private val mjpegStreamingModule: MjpegStreamingModule by inject(named(MjpegKoinQualifier), LazyThreadSafetyMode.NONE)
+    private val mjpegStreamingModule: MjpegStreamingModule by inject(MjpegKoinQualifier, LazyThreadSafetyMode.NONE)
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent == null) {
