@@ -1,0 +1,147 @@
+<resources>
+    <string name="mjpeg_error_recover">Leheneratu</string>
+    <string name="mjpeg_error_open_settings">Ireki konfigurazioa</string>
+
+    <string name="mjpeg_stream_mode">Tokiko modua (MJPEG)</string>
+    <string name="mjpeg_stream_mode_description">Tokiko moduaren deskribapena</string>
+    <string name="mjpeg_stream_mode_details">
+- MJPEG estandarrak bultzatuta.\n
+- Segurtasunerako PINa erabiltzen du (zifratzerik gabe).\n
+- Bideoa irudi multzo bereizi gisa bidaltzen du (audiorik gabe).\n
+- Zure sare lokalean Interneteko konexiorik gabe funtzionatzen du.\n
+- HTTP zerbitzari barnean du.\n
+- WiFi edota sare mugikorrekin funtzionatzen du, IPv4 eta IPv6rekin bateragarria.\n
+- Bezeroak web nabigatzailearen bidez konektatzen dira aplikazioak emandako IP helbidea erabiliz.\n
+- Oso pertsonalizagarria.\n
+- Bezero bakoitzeko datu-transmisio indibiduala (zenbat eta bezero gehiago izan, orduan eta sareko banda zabalera gehiago behar da).
+</string>
+
+    <string name="mjpeg_item_address">Tokiko helbidea:</string>
+    <string name="mjpeg_stream_no_address">Helbidea ez da aurkitu</string>
+    <string name="mjpeg_stream_interface">Interfazea: %1$s</string>
+    <string name="mjpeg_stream_copied">Kopiatuta</string>
+    <string name="mjpeg_stream_no_web_browser_found">Ez da aurkitu web nabigatzailea</string>
+    <string name="mjpeg_stream_external_app_error">Kanpoko errorea aplikazioan</string>
+    <string name="mjpeg_stream_share_address">Partekatu helbidea</string>
+    <string name="mjpeg_item_address_description_open_address">Ireki helbidea</string>
+    <string name="mjpeg_item_address_description_copy_address">Kopiatu helbidea</string>
+    <string name="mjpeg_item_address_description_share_address">Partekatu helbidea</string>
+    <string name="mjpeg_item_address_description_qr_address">Erakutsi helbidea QR kode gisa</string>
+    <string name="mjpeg_item_address_description_qr">QR kodea</string>
+    <string name="mjpeg_stream_pin">PIN: %1$s</string>
+    <string name="mjpeg_stream_pin_disabled">PIN desgaitua</string>
+    <string name="mjpeg_stream_description_show_pin">Erakutsi fluxuaren PINa</string>
+    <string name="mjpeg_stream_description_create_pin">Sortu fluxuaren PIN berria</string>
+    <string name="mjpeg_stream_current_traffic">Trafikoa: %1$,.2f Mbit/s</string>
+    <string name="mjpeg_stream_traffic_graph">Trafikoaren grafikoa</string>
+    <string name="mjpeg_stream_connected_clients">Konektatutako bezeroak: %1$d</string>
+    <string name="mjpeg_stream_client_disconnected">Deskonektatuta</string>
+    <string name="mjpeg_stream_client_slow_network">Konexio motela</string>
+    <string name="mjpeg_stream_client_connected">Konektatuta</string>
+    <string name="mjpeg_stream_client_blocked">Blokeatuta</string>
+    <string name="mjpeg_stream_start">Hasi igortzen</string>
+    <string name="mjpeg_stream_stop">Gelditu igortzen</string>
+
+    <string name="mjpeg_stream_cast_permission_required_title">Baimena behar da</string>
+    <string name="mjpeg_stream_cast_permission_required">WIMOk pantaila kapturatzeko baimena eskatzen du.</string>
+
+    <string name="mjpeg_slow_client_connection">Konexio motela detektatu da</string>
+
+    <string name="mjpeg_pref_header">Tokiko moduaren konfigurazioa (MJPEG)</string>
+    <string name="mjpeg_pref_settings_general">Orokorra</string>
+    <string name="mjpeg_pref_keep_awake">Mantendu gailua aktibo</string>
+    <string name="mjpeg_pref_keep_awake_summary">Mantendu gailua eta pantaila aktibo igortzean</string>
+    <string name="mjpeg_pref_stop_on_sleep">Gelditu igorpena loa hartzean</string>
+    <string name="mjpeg_pref_stop_on_sleep_summary">Gelditu igorpena pantaila itzaltzen bada</string>
+    <string name="mjpeg_pref_stop_on_configuration">Gelditu igorpena konfigurazioa aldatzean</string>
+    <string name="mjpeg_pref_stop_on_configuration_summary">Gelditu igorpena bere konfigurazioa aldatzen bada</string>
+    <string name="mjpeg_pref_detect_slow_connections">Konexio motelen berri eman</string>
+    <string name="mjpeg_pref_detect_slow_connections_summary">Detektatu konexio motelak eta haien berri eman</string>
+    <string name="mjpeg_pref_html_buttons">Gaitu botoiak web orrialdean</string>
+    <string name="mjpeg_pref_html_buttons_summary">Erakutsi kontrol-botoiak web orrialdean</string>
+    <string name="mjpeg_pref_html_show_press_start">Erakutsi "Hasi gailuko igorpena"</string>
+    <string name="mjpeg_pref_html_show_press_start_summary">Erakutsi "Hasi gailuko igorpena" web orrialdean</string>
+    <string name="mjpeg_pref_html_back_color">Web orrialdearen atzeko planoaren kolorea</string>
+    <string name="mjpeg_pref_html_back_color_summary">Eman kolorea web orrialdearen atzeko planoari</string>
+    <string name="mjpeg_pref_html_back_color_title">Hautatu atzeko planoaren kolorea</string>
+    <string name="mjpeg_pref_html_fit_window">Doitu irudia nabigatzailearen leihoari</string>
+    <string name="mjpeg_pref_html_fit_window_summary">Eskalatu nabigatzailearen irudia leihoaren zabalera/altuerari</string>
+
+    <string name="mjpeg_pref_settings_image">Irudia</string>
+    <string name="mjpeg_pref_vr_mode">Errealitate Birtuala modua</string>
+    <string name="mjpeg_pref_vr_mode_summary">Kapturatu edukia errealitate areagotuko moduan</string>
+    <string-array name="mjpeg_pref_vr_mode_options">
+        <item>Desgaitu</item>
+        <item>Erabili ezkerreko aldea</item>
+        <item>Erabili eskuineko aldea</item>
+    </string-array>
+    <string name="mjpeg_pref_crop">Moztu irudia</string>
+    <string name="mjpeg_pref_crop_summary">Moztu irudia bezeroari bidali aurretik</string>
+    <string name="mjpeg_pref_crop_top">Moztu goiko ertza:</string>
+    <string name="mjpeg_pref_crop_bottom">Moztu beheko ertza:</string>
+    <string name="mjpeg_pref_crop_left">Moztu ezkerreko ertza:</string>
+    <string name="mjpeg_pref_crop_right">Moztu eskuineko ertza:</string>
+    <string name="mjpeg_pref_crop_pixels">pixel</string>
+    <string name="mjpeg_pref_crop_warning">Ez da mozten emaitza irudi hutsa bada</string>
+    <string name="mjpeg_pref_crop_error">Sartu baliozko balioa mozketarako</string>
+    <string name="mjpeg_pref_grayscale">Grisen eskala modua</string>
+    <string name="mjpeg_pref_grayscale_summary">Grisen eskalako irudia bezeroari bidali aurretik</string>
+    <string name="mjpeg_pref_resize">Aldatu irudiaren tamaina</string>
+    <string name="mjpeg_pref_resize_summary">Aldatu irudiaren tamaina bezeroari bidali aurretik</string>
+    <string name="mjpeg_pref_resize_text">Ezarri irudiaren handitze faktorea ehunekotan.\nBalioak: 10–150\nLehenetsia: 50\nTamaina: %1$dx%2$d</string>
+    <string name="mjpeg_pref_resize_result">Irudiaren tamaina: %1$dx%2$d</string>
+    <string name="mjpeg_pref_rotate">Biratu irudia erlojuaren orratzen noranzkoan</string>
+    <string name="mjpeg_pref_rotate_summary">Biratu irudia bezeroari bidali aurretik</string>
+    <string name="mjpeg_pref_fps">Mugatu segundoko fotogramak</string>
+    <string name="mjpeg_pref_fps_summary">Ezarri segundoko gehienezko fotograma kopurua</string>
+    <string name="mjpeg_pref_fps_text">Ezarri segundoko gehienezko fotograma kopurua.\nBalioak: 1/10–120\nLehenetsia: 30</string>
+    <string name="mjpeg_pref_fps_low_mode_text">Mugatu fotogramen emaria %d segunduko batera, onena tinta elektroniko pantailetarako.</string>
+    <string name="mjpeg_pref_jpeg_quality">JPEG konpresioaren kalitatea</string>
+    <string name="mjpeg_pref_jpeg_quality_summary">Ezarri JPEG konpresioaren kalitatea</string>
+    <string name="mjpeg_pref_jpeg_quality_text">Ezarri JPEG konpresioaren kalitatea.\nBalioak: 10–100\nLehenetsia: 80</string>
+
+    <string name="mjpeg_pref_settings_security">Segurtasuna</string>
+    <string name="mjpeg_pref_enable_pin">Gaitu PINa</string>
+    <string name="mjpeg_pref_enable_pin_summary">Babestu igorpenerako sarbidea PIN bidez</string>
+    <string name="mjpeg_pref_hide_pin">Ezkutatu PINa automatikoki igorpena hastean</string>
+    <string name="mjpeg_pref_hide_pin_summary">Erakutsi izartxoak PINaren ordez igorpenean</string>
+    <string name="mjpeg_pref_new_pin_on_start">PIN berria hastean</string>
+    <string name="mjpeg_pref_new_pin_on_start_summary">Sortu PIN berria aplikazioa hastean</string>
+    <string name="mjpeg_pref_auto_change_pin">Aldatu PINa automatikoki</string>
+    <string name="mjpeg_pref_auto_change_pin_summary">Sortu PIN berria igorpen bakoitzean</string>
+    <string name="mjpeg_pref_set_pin">Ipini PINa</string>
+    <string name="mjpeg_pref_set_pin_summary">Sartu PINa eskuz</string>
+    <string name="mjpeg_pref_set_pin_text">Sartu PINa eskuz.\nLehenetsia: 000000</string>
+    <string name="mjpeg_pref_block_address">Blokeatu IP helbidea</string>
+    <string name="mjpeg_pref_block_address_summary">Blokeatu bezeroaren IP helbidea 5 PIN saiakera okerren ondoren 5 minutuz</string>
+
+    <string name="mjpeg_pref_settings_advanced">Aurreratua</string>
+    <string name="mjpeg_pref_wifi_only">Erabili WIFIa bakarrik</string>
+    <string name="mjpeg_pref_wifi_only_summary">Exekutatu zerbitzaria WiFi bidez soilik</string>
+    <string name="mjpeg_pref_enable_ipv6">Gaitu IPv6 euskarria</string>
+    <string name="mjpeg_pref_enable_ipv6_summary">Exekutatu zerbitzaria IPv6 helbideekin ere</string>
+    <string name="mjpeg_pref_enable_localhost">Gaitu localhost</string>
+    <string name="mjpeg_pref_enable_localhost_summary">Exekutatu zerbitzaria localhost helbideekin ere</string>
+    <string name="mjpeg_pref_localhost_only">Soilik localhost</string>
+    <string name="mjpeg_pref_localhost_only_summary">Exekutatu zerbitzaria soilik localhost helbideekin</string>
+    <string name="mjpeg_pref_server_port">Zerbitzariaren ataka</string>
+    <string name="mjpeg_pref_server_port_summary">Sarrerako konexioetarako ataka</string>
+    <string name="mjpeg_pref_server_port_text">Sarrerako konexioetarako ataka.\nBalioak: 1025–65535\nLehenetsia: 8080</string>
+
+    <string name="mjpeg_error_port_in_use">Ataka hau erabiltzen ari da. Aukeratu beste bat.</string>
+    <string name="mjpeg_error_invalid_media_projection">Segurtasun errorea: Media proiekzio baliogabea. Saiatu berriro.</string>
+    <string name="mjpeg_error_ip_address_not_found">Ez da aurkitu IP helbidea.\nSaiatu desgaitzen \"Erabili WIFIa bakarrik\" igorpenaren konfigurazioan.</string>
+    <string name="mjpeg_error_notification_permission_required">Aplikazioak jakinarazpenak gaituta egotea eskatzen du igorpen zerbitzua abiarazteko.\nMesedez, gaitu jakinarazpenak aplikazioaren ezarpenetan.</string>
+    <string name="mjpeg_error_unspecified">Zerbait gaizki joan da. Mesedez, saiatu beranduago.</string>
+
+    <string name="mjpeg_start_image_text">Hasi gailuan igortzen</string>
+
+    <!--HTML text-->
+    <string name="mjpeg_html_stream_connecting">Konektatzen saiatzen</string>
+    <string name="mjpeg_html_stream_require_pin">PIN bat behar duzu sartzeko</string>
+    <string name="mjpeg_html_enter_pin">Sartu PINa:\u0020</string>
+    <string name="mjpeg_html_submit_pin">Bidali</string>
+    <string name="mjpeg_html_wrong_pin">PIN okerra!</string>
+    <string name="mjpeg_html_address_blocked">Bezeroaren helbidea blokeatu da</string>
+    <string name="mjpeg_html_error_unspecified">Zerbait gaizki joan da. &lt;br&gt; Mesedez, birkargatu orria eta saiatu berriro.</string>
+</resources>
