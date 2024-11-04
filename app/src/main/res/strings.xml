@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_error_title">Errorea</string>
+    <string name="app_error_recover">Leheneratu</string>
+
+    <string name="app_logs_collecting">Erregistroak sortzen…</string>
+    <string name="app_logs_send_title">Bidali erregistroak garatzaileari</string>
+    <string name="app_logs_send_message">Gehitu arazoaren zure deskribapena:</string>
+    <string name="app_logs_send">Bidali</string>
+    <string name="app_logs_enabled">Erregistroa gaitua</string>
+    <string name="app_logs_disabled">Erregistroa desgaitua</string>
+    <string name="app_logs_stop">Gelditu erregistroak</string>
+
+    <string name="app_activity_update_dialog_title">Bertsio-berritze bat eskuragai</string>
+    <string name="app_activity_update_dialog_message">Bertsio berri bat deskargatu da. Berrabiarazi nahi duzu aplikazioa?</string>
+    <string name="app_activity_update_dialog_restart">Berrabiarazi</string>
+
+    <string name="app_tab_stream">Igorri</string>
+    <string name="app_tab_settings">Aukerak</string>
+    <string name="app_tab_about">Honi buruz</string>
+
+    <string name="app_tab_stream_select_mode">Hautatu igorpen modua:</string>
+
+    <string name="app_permission_required_title">Baimena behar da</string>
+    <string name="app_permission_allow_notifications">Aplikazioak jakinarazpenak bidaltzeko baimena behar du igorpen zerbitzua abiarazteko.\n\nBaimendu jakinarazpenak bidaltzea.</string>
+    <string name="app_permission_allow_notifications_settings">Aplikazioak jakinarazpenak bidaltzeko baimena behar du streaming zerbitzua abiarazteko.\n\nBaimendu jakinarazpenak bidaltzeko aplikazioaren ezarpenetan.</string>
+    <string name="app_permission_notification_settings">Ireki ezarpenak</string>
+
+    <string name="app_notification_channel_streaming">Igorpen-jakinarazpenak</string>
+    <string name="app_notification_channel_error">Errore-jakinarazpenak</string>
+    <string name="app_notification_streaming_title">Igortzen…</string>
+    <string name="app_notification_streaming_content">Sakatu Gelditu igorpena gelditzeko</string>
+    <string name="app_notification_stop">Gelditu</string>
+
+    <string name="app_tile_start">Hasi</string>
+    <string name="app_tile_stop">Gelditu</string>
+
+    <string name="app_pref_settings_search">Ezarpen-bilaketa</string>
+    <string name="app_pref_search">Bilatu</string>
+    <string name="app_pref_close">Itzi</string>
+    <string name="app_pref_back">Atzera</string>
+    <string name="app_pref_settings">Aplikazioaren konfigurazioa</string>
+    <string name="app_pref_locale">Aplikazioaren hizkuntza</string>
+    <string name="app_pref_locale_summary">Ireki aplikazioaren hizkuntza konfigurazioa</string>
+    <string name="app_pref_locale_default">Sistemaren lehenetsia</string>
+    <string name="app_pref_night_mode">Gai iluna</string>
+    <string-array name="app_pref_night_mode_options_api21_28">
+        <item>Beti</item>
+        <item>Ezarri energia aurreztea</item>
+        <item>Inoiz ez</item>
+    </string-array>
+    <string-array name="app_pref_night_mode_options_api29">
+        <item>Beti</item>
+        <item>Automatikoa (Sisteman bezala)</item>
+        <item>Inoiz ez</item>
+    </string-array>
+    <string name="app_pref_dynamic_theme">Kolore dinamikoa</string>
+    <string name="app_pref_dynamic_theme_summary">Doitu itxura zure horma-paperen koloreen arabera</string>
+    <string name="app_pref_notification">Jakinarazpen-aukerak</string>
+    <string name="app_pref_notification_summary">Ireki sistemaren jakinarazpen-aukerak</string>
+    <string name="app_pref_tile">Gehitu aplikazioaren lauza</string>
+    <string name="app_pref_tile_summary">Gehitu aplikazioaren lauza Ezarpen bizkorretan</string>
+    <string name="app_pref_logging">Gaitu erregistroak</string>
+    <string name="app_pref_logging_summary">Erregistroak sortzen</string>
+
+    <string name="app_tab_about_app_version">Bertsioa: %1$s</string>
+    <string name="app_tab_about_developer_name">Dmytro Kryvoruchko-k garatua</string>
+    <string name="app_tab_about_rate_app">Baloratu aplikazioa</string>
+    <string name="app_tab_about_write_email">Idatzi garatzaileari</string>
+    <string name="app_tab_about_email_chooser_header">Posta bidaltzen…</string>
+    <string name="app_tab_about_app_sources">Aplikazioaren iturburuak</string>
+    <string name="app_tab_about_terms_conditions">Baldintzak</string>
+    <string name="app_tab_about_privacy_policy">Pribatutasun-politika</string>
+    <string name="app_tab_about_privacy_options">Pribatutasun-aukerak</string>
+    <string name="app_tab_about_license">Lizentzia</string>
+</resources>
