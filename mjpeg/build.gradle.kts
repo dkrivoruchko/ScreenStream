@@ -19,6 +19,10 @@ android {
         minSdk = rootProject.extra["minSdkVersion"] as Int
     }
 
+    buildFeatures {
+        compose = true
+    }
+
     androidResources {
         ignoreAssetsPattern = "!dev"
     }

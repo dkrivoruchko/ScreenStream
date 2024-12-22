@@ -18,6 +18,10 @@ android {
     defaultConfig {
         minSdk = rootProject.extra["minSdkVersion"] as Int
     }
+
+    buildFeatures {
+        compose = true
+    }
 }
 
 dependencies {

@@ -1,29 +1,28 @@
 [versions]
-agp = "8.7.1"
-kotlin = "2.0.21"
-android-tools-r8 = "8.5.35"
-android-tools-desugar = "2.1.2"
+agp = "8.7.3"
+kotlin = "2.1.0"
+android-tools-desugar = "2.1.4"
 
 koin-android = "4.0.0"
 
-kotlinx-coroutines = "1.9.0"
+kotlinx-coroutines = "1.10.1"
 
-androidx-core-ktx = "1.13.1"
+androidx-core-ktx = "1.15.0"
 androidx-core-splashscreen = "1.2.0-alpha02"
 androidx-activity-compose = "1.9.3"
-androidx-fragment = "1.8.4"
+androidx-fragment = "1.8.5"
 androidx-appcompat = "1.7.0"
-androidx-lifecycle = "2.8.6"
+androidx-lifecycle = "2.8.7"
 androidx-window = "1.3.0"
 androidx-datastore-preferences = "1.1.1"
 
-compose-bom = "2024.10.00"
+compose-bom = "2024.12.01"
 
 process-phoenix = "3.0.0"
 xlog = "1.11.1"
 
 #MJPEG
-ktor = "3.0.0"
+ktor = "3.0.3"
 
 #PlayStore-WebRTC
 play-services-tasks = "18.2.0"
@@ -35,15 +34,14 @@ okhttp = "4.12.0"
 #PlayStore-App
 play-app-update = "2.1.0"
 play-app-review = "2.0.2"
-play-services-ads = "23.4.0"
+play-services-ads = "23.6.0"
 webkit = "1.12.1"
 firebase-analytics = "22.1.2"
-firebase-crashlytics = "19.2.0"
+firebase-crashlytics = "19.3.0"
 google-services = "4.4.2"
 crashlytics-gradle = "3.0.2"
 
 [libraries]
-android-tools-r8 = { module = "com.android.tools:r8", version.ref = "android-tools-r8" }
 android-tools-desugar = { module = "com.android.tools:desugar_jdk_libs", version.ref = "android-tools-desugar" }
 kotlinStdlibJdk8 = { module = "org.jetbrains.kotlin:kotlin-stdlib-jdk8", version.ref = "kotlin" }
 kotlinReflect = { module = "org.jetbrains.kotlin:kotlin-reflect", version.ref = "kotlin" }

@@ -25,6 +25,7 @@ android {
 
     buildFeatures {
         buildConfig = true
+        compose = true
     }
 
     val localProps = Properties()
