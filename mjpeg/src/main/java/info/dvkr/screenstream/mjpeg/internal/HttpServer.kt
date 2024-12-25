@@ -42,6 +42,8 @@ import io.ktor.server.routing.routing
 import io.ktor.server.websocket.WebSockets
 import io.ktor.server.websocket.webSocket
 import io.ktor.utils.io.ByteWriteChannel
+import io.ktor.utils.io.core.buildPacket
+import io.ktor.utils.io.core.writeFully
 import io.ktor.utils.io.writeFully
 import io.ktor.websocket.DefaultWebSocketSession
 import io.ktor.websocket.Frame
@@ -63,11 +65,13 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onCompletion
@@ -77,6 +81,8 @@ import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.takeWhile
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.io.readByteArray
 import org.json.JSONObject
 import java.io.ByteArrayOutputStream
 import java.io.IOException
@@ -150,24 +156,27 @@ internal class HttpServer(
         lastJPEG.set(ByteArray(0))
 
         @OptIn(ExperimentalCoroutinesApi::class)
-        val mjpegFlow = bitmapStateFlow
-            .map { bitmap ->
-                resultJpegStream.reset()
-                bitmap.compress(Bitmap.CompressFormat.JPEG, mjpegSettings.data.value.jpegQuality, resultJpegStream)
-                resultJpegStream.toByteArray()
+        val mjpegFlow = combine(bitmapStateFlow, mjpegSettings.data) { bitmap, settings -> bitmap to settings }
+            .conflate()
+            .map { (bitmap, settings) ->
+                withContext(Dispatchers.IO) {
+                    resultJpegStream.reset()
+                    bitmap.compress(Bitmap.CompressFormat.JPEG, settings.jpegQuality, resultJpegStream)
+                    resultJpegStream.toByteArray() to settings.maxFPS
+                }
             }
-            .filter { it.isNotEmpty() }
-            .onEach { jpeg -> lastJPEG.set(jpeg) }
-            .flatMapLatest { jpeg ->
-                if (mjpegSettings.data.value.maxFPS > 0) {
-                    flow<ByteArray> { // Send last image every second as keep-alive
+            .filter { (jpeg, _) -> jpeg.isNotEmpty() }
+            .onEach { (jpeg, _) -> lastJPEG.set(jpeg) }
+            .flatMapLatest { (jpeg, maxFPS) ->
+                if (maxFPS > 0) { // If maxFPS > 0, repeatedly emit the same JPEG every second (keep-alive)
+                    flow {
                         while (currentCoroutineContext().isActive) {
                             emit(jpeg)
                             delay(1000)
                         }
                     }
                 } else {
-                    flow { emit(jpeg) }
+                    flowOf(jpeg)
                 }
             }
             .conflate()
@@ -369,44 +378,52 @@ internal class HttpServer(
                     override val contentType: ContentType = contentType
 
                     override suspend fun writeTo(channel: ByteWriteChannel) {
-                        val emmitCounter = AtomicLong(0L)
+                        val emitCounter = AtomicLong(0L)
                         val collectCounter = AtomicLong(0L)
 
                         val mjpegFlow = mjpegSharedFlow.get() ?: return
                         mjpegFlow.onStart {
                             XLog.i(this@appModule.getLog("onStart", "Client: $clientId:$remotePort"))
                             serverData.addConnected(clientId, remoteAddress, remotePort)
-                            channel.writeFully(jpegBoundary, 0, jpegBoundary.size)
+                            channel.writeFully(jpegBoundary)
                         }
                             .onCompletion {
                                 XLog.i(this@appModule.getLog("onCompletion", "Client: $clientId:$remotePort"))
                                 serverData.setDisconnected(clientId, remoteAddress, remotePort)
                             }
                             .takeWhile { stopClientStream(channel).not() }
-                            .map { Pair(emmitCounter.incrementAndGet(), it) }
+                            .map { Pair(emitCounter.incrementAndGet(), it) }
                             .conflate()
-                            .onEach { (emmitCounter, jpeg) ->
+                            .onEach { (emitCounter, jpeg) ->
                                 if (stopClientStream(channel)) return@onEach
 
-                                if (emmitCounter - collectCounter.incrementAndGet() >= 5) {
+                                if (emitCounter - collectCounter.incrementAndGet() >= 5) {
                                     XLog.i(this@appModule.getLog("onEach", "Slow connection. Client: $clientId"))
-                                    collectCounter.set(emmitCounter)
+                                    collectCounter.set(emitCounter)
                                     serverData.setSlowConnection(clientId, remoteAddress, remotePort)
                                 }
 
                                 // Write MJPEG frame
                                 val jpegSizeText = jpeg.size.toString().toByteArray()
-                                channel.writeFully(jpegBaseHeader, 0, jpegBaseHeader.size)
-                                channel.writeFully(jpegSizeText, 0, jpegSizeText.size)
-                                channel.writeFully(crlf, 0, crlf.size)
-                                channel.writeFully(crlf, 0, crlf.size)
-                                channel.writeFully(jpeg, 0, jpeg.size)
-                                channel.writeFully(crlf, 0, crlf.size)
-                                channel.writeFully(jpegBoundary, 0, jpegBoundary.size)
+                                val mjpegHeader = buildPacket {
+                                    writeFully(jpegBaseHeader)
+                                    writeFully(jpegSizeText)
+                                    writeFully(crlf)
+                                    writeFully(crlf)
+                                }.readByteArray()
+
+                                val mjpegFooter = buildPacket {
+                                    writeFully(crlf)
+                                    writeFully(jpegBoundary)
+                                }.readByteArray()
+
+                                channel.writeFully(mjpegHeader)
+                                channel.writeFully(jpeg)
+                                channel.writeFully(mjpegFooter)
                                 channel.flush()
                                 // Write MJPEG frame
 
-                                val size = jpegBaseHeader.size + jpegSizeText.size + crlf.size * 3 + jpeg.size + jpegBoundary.size
+                                val size = mjpegHeader.size + jpeg.size + mjpegFooter.size
                                 serverData.setNextBytes(clientId, remoteAddress, remotePort, size)
                             }
                             .catch { /* Empty intentionally */ }
