@@ -113,6 +113,7 @@ internal class SocketSignaling(
 
         const val ERROR_EMPTY_OR_BAD_DATA = "ERROR:EMPTY_OR_BAD_DATA"
         const val ERROR_NO_CLIENT_FOUND = "ERROR:NO_CLIENT_FOUND"
+        const val ERROR_TIMEOUT_OR_NO_RESPONSE = "ERROR:TIMEOUT_OR_NO_RESPONSE"
         const val ERROR_WRONG_STREAM_PASSWORD = "ERROR:WRONG_STREAM_PASSWORD"
 
         const val ERROR_TOKEN_VERIFICATION_FAILED = "ERROR:TOKEN_VERIFICATION_FAILED"
@@ -382,6 +383,11 @@ internal class SocketSignaling(
                         eventListener.onClientNotFound(clientId, "[${Event.HOST_OFFER}]")
                     }
 
+                    Payload.ERROR_TIMEOUT_OR_NO_RESPONSE -> {
+                        XLog.w(this@SocketSignaling.getLog("sendHostOffer[${socketId()}]", "[${Event.HOST_OFFER}] => Timeout"))
+                        eventListener.onClientNotFound(clientId, "[${Event.HOST_OFFER}] => Timeout")
+                    }
+
                     else -> throw IllegalArgumentException("sendHostOffer => $status")
                 }
             }
@@ -415,6 +421,11 @@ internal class SocketSignaling(
                     Payload.ERROR_NO_CLIENT_FOUND -> {
                         XLog.d(this@SocketSignaling.getLog("sendHostCandidates[${socketId()}]", "Client: $clientId => $status"))
                         eventListener.onClientNotFound(clientId, "[${Event.HOST_CANDIDATE}]")
+                    }
+
+                    Payload.ERROR_TIMEOUT_OR_NO_RESPONSE -> {
+                        XLog.w(this@SocketSignaling.getLog("sendHostCandidates[${socketId()}]", "[${Event.HOST_CANDIDATE}] => Timeout"))
+                        eventListener.onClientNotFound(clientId, "[${Event.HOST_CANDIDATE}] => Timeout")
                     }
 
                     else -> throw IllegalArgumentException("sendHostCandidates => $status")
