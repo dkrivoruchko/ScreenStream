@@ -291,6 +291,7 @@ public class PeerConnectionFactory {
    * PeerConnectionFactory. Replaces all the old initialization methods. Must not be called while
    * a PeerConnectionFactory is alive.
    */
+  @SuppressWarnings("EnumOrdinal")
   public static void initialize(InitializationOptions options) {
     ContextUtils.initialize(options.applicationContext);
     NativeLibrary.initialize(options.nativeLibraryLoader, options.nativeLibraryName);
