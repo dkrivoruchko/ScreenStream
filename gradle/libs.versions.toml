@@ -1,9 +1,9 @@
 [versions]
-agp = "8.7.3"
+agp = "8.8.0"
 kotlin = "2.1.0"
 android-tools-desugar = "2.1.4"
 
-koin-android = "4.0.0"
+koin-android = "4.0.1"
 
 kotlinx-coroutines = "1.10.1"
 
@@ -28,7 +28,7 @@ ktor = "3.0.3"
 play-services-tasks = "18.2.0"
 play-integrity = "1.4.0"
 socket = "2.1.1"
-okio = "3.9.1"
+okio = "3.10.2"
 okhttp = "4.12.0"
 
 #PlayStore-App
