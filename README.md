@@ -8,6 +8,7 @@ Versions from F-Droid are Ad-free and support only **Local mode (MJPEG)**.
 
 <a href='https://play.google.com/store/apps/details?id=info.dvkr.screenstream'><img alt='Get it on Google Play' src='https://play.google.com/intl/en_us/badges/images/generic/en_badge_web_generic.png' height="100"/></a> <a href="https://f-droid.org/packages/info.dvkr.screenstream/" target="_blank"><img src="https://f-droid.org/badge/get-it-on.png" alt="Get it on F-Droid" height="100"/></a>
 
+ * [Project support](#project-support)
  * [Stream modes](#stream-modes)
    + [Local mode (MJPEG)](#local-mode-mjpeg)
    + [Global mode (WebRTC)](#global-mode-webrtc)
@@ -16,6 +17,15 @@ Versions from F-Droid are Ad-free and support only **Local mode (MJPEG)**.
  * [Developer](#developed-by)
  * [Privacy Policy and Terms & Conditions](#privacy-policy-and-terms--conditions)
  * [License](#license)
+
+## Project support
+
+If you find **ScreenStream** useful, please consider donating to support its development.<br>
+Your contribution is greatly appreciated!
+
+<a href="https://nowpayments.io/donation?api_key=9GK3BHB-VPX4XHM-GV2F208-8BVABGR" target="_blank" rel="noreferrer noopener">
+    <img src="https://nowpayments.io/images/embeds/donation-button-white.svg" alt="Cryptocurrency donation by NOWPayments">
+</a>
 
 ## Stream modes
 
