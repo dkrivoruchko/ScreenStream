@@ -7,10 +7,11 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.Color
-import android.net.Uri
 import android.os.Build
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.createBitmap
+import androidx.core.net.toUri
 import com.elvishew.xlog.XLog
 import io.nayuki.qrcodegen.QrCode
 
@@ -32,7 +33,7 @@ public fun String.generateQRBitmap(sizePx: Int): Bitmap {
             pixels[y * sizePx + x] = if (module) Color.BLACK else Color.WHITE
         }
     }
-    return Bitmap.createBitmap(sizePx, sizePx, Bitmap.Config.ARGB_8888).apply {
+    return createBitmap(sizePx, sizePx).apply {
         setPixels(pixels, 0, sizePx, 0, 0, sizePx, sizePx)
     }
 }
@@ -59,7 +60,7 @@ public fun Context.getVersionName(packageName: String = this.packageName, fallba
 
 public fun Context.openStringUrl(url: String, onError: (Throwable) -> Unit = {}) {
     runCatching {
-        startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        startActivity(Intent(Intent.ACTION_VIEW, url.toUri()).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
     }.onFailure {
         XLog.w(getLog("openStringUrl", url))
         onError.invoke(it)

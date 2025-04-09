@@ -13,7 +13,7 @@
 - Works with WiFi and/or mobile networks, supporting IPv4 and IPv6.\n
 - Clients connect via web browser using the app\'s provided IP address.\n
 - Highly customizable.\n
-- Individual data transmission for each client (more clients you have, more notwork bandwidth you need).
+- Individual data transmission for each client (more clients you have, more network bandwidth you need).
 </string>
 
     <string name="mjpeg_item_address">Device address:</string>

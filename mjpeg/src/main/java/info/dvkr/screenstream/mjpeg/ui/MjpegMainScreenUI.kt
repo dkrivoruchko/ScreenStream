@@ -59,7 +59,7 @@ internal fun MjpegMainScreenUI(
 
         val lazyVerticalStaggeredGridState = rememberLazyStaggeredGridState()
         LazyVerticalStaggeredGrid(
-            columns = StaggeredGridCells.Fixed(if (maxWidth >= 800.dp) 2 else 1),
+            columns = StaggeredGridCells.Fixed(if (this.maxWidth >= 800.dp) 2 else 1),
             modifier = Modifier.fillMaxSize(),
             state = lazyVerticalStaggeredGridState,
             contentPadding = PaddingValues(start = 8.dp, end = 8.dp, bottom = 64.dp),

@@ -169,6 +169,7 @@ internal class BitmapCapture(
         currentWidth = width
         currentHeight = height
 
+        virtualDisplay?.surface = null
         imageReader?.surface?.release() // For some reason imageReader.close() does not release surface
         imageReader?.close()
 
