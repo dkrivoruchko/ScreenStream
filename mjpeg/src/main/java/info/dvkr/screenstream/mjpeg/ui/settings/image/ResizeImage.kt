@@ -153,7 +153,9 @@ private fun ResizeImageDetailUI(
         ) {
             Text(
                 text = stringResource(id = R.string.mjpeg_pref_resize_text, size.width, size.height),
-                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp)
             )
 
             OutlinedTextField(
@@ -169,7 +171,10 @@ private fun ResizeImageDetailUI(
                         onValueChange.invoke(newResize)
                     }
                 },
-                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp).focusRequester(focusRequester),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp)
+                    .focusRequester(focusRequester),
                 isError = isError.value,
                 keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
                 singleLine = true,
@@ -177,7 +182,9 @@ private fun ResizeImageDetailUI(
 
             Text(
                 text = stringResource(id = R.string.mjpeg_pref_resize_result, resizedWidth, resizedHeight),
-                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp)
             )
         }
     }

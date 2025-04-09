@@ -1,7 +1,14 @@
 package info.dvkr.screenstream.rtsp.internal.video
 
 import android.graphics.SurfaceTexture
-import android.opengl.*
+import android.opengl.EGL14
+import android.opengl.EGLConfig
+import android.opengl.EGLContext
+import android.opengl.EGLDisplay
+import android.opengl.EGLSurface
+import android.opengl.GLES11Ext
+import android.opengl.GLES20
+import android.opengl.Matrix
 import android.os.Handler
 import android.os.HandlerThread
 import android.os.Process
@@ -309,7 +316,6 @@ internal class EglRenderer(
 
         surfaceTexture = SurfaceTexture(textureId).apply {
             setDefaultBufferSize(width, height)
-//            setOnFrameAvailableListener({ renderFrameTask.run() }, handler)
         }
 
         Matrix.setIdentityM(stMatrix, 0)

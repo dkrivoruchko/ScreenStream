@@ -158,7 +158,10 @@ private fun ServerPortDetailUI(
                         onValueChange.invoke(newServerPort)
                     }
                 },
-                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp).focusRequester(focusRequester),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp)
+                    .focusRequester(focusRequester),
                 isError = isError.value,
                 keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
                 singleLine = true,

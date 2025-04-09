@@ -14,7 +14,6 @@ import org.koin.core.scope.Scope
 import org.koin.dsl.bind
 import org.koin.dsl.module
 
-
 internal class WebRtcKoinScope : KoinScopeComponent {
     override val scope: Scope by lazy(LazyThreadSafetyMode.NONE) { createScope(this) }
 }

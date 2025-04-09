@@ -3,9 +3,9 @@ package info.dvkr.screenstream.webrtc.internal
 import android.os.Build
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
-import android.text.TextUtils
 import android.util.Base64
 import android.view.View
+import androidx.core.text.layoutDirection
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.common.getLog
 import org.json.JSONObject
@@ -68,8 +68,7 @@ internal object JWTHelper {
     internal fun createKey() {
         // Workaround for known date parsing issue in KeyPairGenerator class https://issuetracker.google.com/issues/37095309
         val currentLocale = Locale.getDefault()
-        val applyFix = Build.VERSION.SDK_INT == Build.VERSION_CODES.M &&
-                TextUtils.getLayoutDirectionFromLocale(currentLocale) == View.LAYOUT_DIRECTION_RTL
+        val applyFix = Build.VERSION.SDK_INT == Build.VERSION_CODES.M && currentLocale.layoutDirection == View.LAYOUT_DIRECTION_RTL
 
         runCatching {
             XLog.d(getLog("createKey", "Key alias: $KEY_ALIAS, applyFix: $applyFix"))

@@ -87,7 +87,9 @@ internal fun TrafficCard(
                     )
                 },
                 contentDescription = stringResource(id = R.string.mjpeg_stream_traffic_graph),
-                modifier = Modifier.fillMaxWidth().height(160.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(160.dp)
             )
         }
     }
@@ -159,7 +161,9 @@ private fun TrafficYLabels(
 ) {
     val currentMaxY = remember { derivedStateOf { max(1F, points.value.maxOrNull() ?: 1F) } }
     Column(
-        modifier = Modifier.fillMaxHeight().padding(end = 4.dp),
+        modifier = Modifier
+            .fillMaxHeight()
+            .padding(end = 4.dp),
         verticalArrangement = Arrangement.SpaceBetween,
         horizontalAlignment = Alignment.End
     ) {

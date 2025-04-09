@@ -62,7 +62,6 @@ import info.dvkr.screenstream.common.ui.stylePlaceholder
 import info.dvkr.screenstream.webrtc.R
 import info.dvkr.screenstream.webrtc.ui.WebRtcState
 
-
 @Composable
 internal fun StreamCard(
     webRtcState: State<WebRtcState>,
@@ -74,7 +73,9 @@ internal fun StreamCard(
         if (webRtcState.value.streamId.isBlank()) {
             Text(
                 text = stringResource(id = R.string.webrtc_stream_stream_id_getting),
-                modifier = Modifier.padding(12.dp).fillMaxWidth(),
+                modifier = Modifier
+                    .padding(12.dp)
+                    .fillMaxWidth(),
                 textAlign = TextAlign.Center,
                 fontSize = 18.sp,
                 style = MaterialTheme.typography.titleMedium
@@ -105,7 +106,10 @@ internal fun StreamCard(
             )
 
             Row(
-                modifier = Modifier.padding(start = 12.dp).fillMaxWidth().defaultMinSize(minHeight = 48.dp),
+                modifier = Modifier
+                    .padding(start = 12.dp)
+                    .fillMaxWidth()
+                    .defaultMinSize(minHeight = 48.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
@@ -129,7 +133,9 @@ internal fun StreamCard(
             }
 
             Row(
-                modifier = Modifier.padding(start = 12.dp).fillMaxWidth(),
+                modifier = Modifier
+                    .padding(start = 12.dp)
+                    .fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 val interactionSource = remember { MutableInteractionSource() }

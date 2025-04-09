@@ -24,12 +24,6 @@
             android:name="com.google.android.gms.ads.APPLICATION_ID"
             android:value="${adMobPubId}" />
         <meta-data
-            android:name="com.google.android.gms.ads.flag.OPTIMIZE_INITIALIZATION"
-            android:value="true" />
-        <meta-data
-            android:name="com.google.android.gms.ads.flag.OPTIMIZE_AD_LOADING"
-            android:value="true" />
-        <meta-data
             android:name="com.google.android.gms.ads.DELAY_APP_MEASUREMENT_INIT"
             android:value="true" />
 

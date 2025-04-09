@@ -27,7 +27,6 @@ import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
-import kotlin.collections.set
 
 internal class HttpServerData(private val sendEvent: (MjpegEvent) -> Unit) {
 

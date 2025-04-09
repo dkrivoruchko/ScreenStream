@@ -99,7 +99,7 @@ public class AdMob(private val context: Context) {
         ConsentRequestParameters.Builder()
             .setConsentDebugSettings(
                 ConsentDebugSettings.Builder(context)
-                    .setDebugGeography(ConsentDebugSettings.DebugGeography.DEBUG_GEOGRAPHY_NOT_EEA)
+                    .setDebugGeography(ConsentDebugSettings.DebugGeography.DEBUG_GEOGRAPHY_OTHER)
                     .addTestDeviceHashedId(hashedId)
                     .build()
             )
@@ -174,7 +174,7 @@ public fun AdaptiveBanner(
     if (adMob.initialized.value) {
         BoxWithConstraints(modifier = modifier) {
             val context = LocalContext.current
-            val adSize = remember(context, maxWidth) {
+            val adSize = remember(context, this.maxWidth) {
                 AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(context, maxWidth.value.toInt())
             }
 

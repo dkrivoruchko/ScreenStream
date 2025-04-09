@@ -57,8 +57,6 @@ private fun GrayscaleUI(
     imageGrayscale: Boolean,
     onValueChange: (Boolean) -> Unit
 ) {
-
-
     Row(
         modifier = Modifier
             .toggleable(value = imageGrayscale, onValueChange = onValueChange)

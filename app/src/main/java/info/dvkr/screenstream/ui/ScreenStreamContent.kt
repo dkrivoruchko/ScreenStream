@@ -1,9 +1,9 @@
 package info.dvkr.screenstream.ui
 
-import android.app.Activity
 import android.os.Build
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.LocalActivity
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.EaseIn
 import androidx.compose.animation.core.EaseOut
@@ -48,7 +48,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onPlaced
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -79,7 +78,11 @@ internal fun ScreenStreamContent(
     if (isLoggingOn) {
         Column(modifier = modifier.fillMaxSize()) {
             CollectingLogsUi(modifier = Modifier.fillMaxWidth())
-            MainContent(modifier = Modifier.fillMaxWidth().weight(1F))
+            MainContent(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1F)
+            )
         }
     } else {
         MainContent(modifier = modifier.fillMaxSize())
@@ -93,7 +96,7 @@ internal fun ScreenStreamContent(
         )
     }
 
-    val activity = LocalContext.current as Activity
+    val activity = LocalActivity.current
     LaunchedEffect(Unit) { AppReview.showReviewUi(activity) }
 
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -205,7 +208,9 @@ private fun AppUpdateRequestUI(
         dragHandle = null
     ) {
         Row(
-            modifier = Modifier.padding(16.dp).fillMaxWidth(),
+            modifier = Modifier
+                .padding(16.dp)
+                .fillMaxWidth(),
             horizontalArrangement = Arrangement.Center,
         ) {
             Icon(painter = painterResource(R.drawable.ic_notification_small_24dp), contentDescription = null)
@@ -218,10 +223,14 @@ private fun AppUpdateRequestUI(
         }
         Text(
             text = stringResource(id = R.string.app_activity_update_dialog_message),
-            modifier = Modifier.padding(horizontal = 16.dp).fillMaxWidth()
+            modifier = Modifier
+                .padding(horizontal = 16.dp)
+                .fillMaxWidth()
         )
         Row(
-            modifier = Modifier.padding(end = 16.dp).fillMaxWidth(),
+            modifier = Modifier
+                .padding(end = 16.dp)
+                .fillMaxWidth(),
             horizontalArrangement = Arrangement.End,
         ) {
             TextButton(

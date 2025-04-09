@@ -1,7 +1,10 @@
 package info.dvkr.screenstream.rtsp.internal.rtsp.sockets
 
 import io.ktor.network.selector.SelectorManager
-import io.ktor.network.sockets.*
+import io.ktor.network.sockets.ConnectedDatagramSocket
+import io.ktor.network.sockets.Datagram
+import io.ktor.network.sockets.InetSocketAddress
+import io.ktor.network.sockets.aSocket
 import io.ktor.utils.io.core.buildPacket
 import io.ktor.utils.io.core.writeFully
 import kotlinx.coroutines.sync.Mutex

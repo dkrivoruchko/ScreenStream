@@ -61,6 +61,7 @@ import info.dvkr.screenstream.AdaptiveBanner
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.common.ModuleSettings
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
@@ -70,13 +71,14 @@ internal fun SettingsTabContent(
     modifier: Modifier = Modifier,
     settingsViewModel: SettingsTabViewModel = koinViewModel()
 ) {
+    val scope = rememberCoroutineScope()
     val windowAdaptiveInfo = currentWindowAdaptiveInfo()
     val listPanePreferredWidth = calculateListPanePreferredWidth(windowAdaptiveInfo, boundsInWindow)
     val scaffoldDirective = calculatePaneScaffoldDirective(windowAdaptiveInfo, HingePolicy.AvoidOccluding)
         .copy(verticalPartitionSpacerSize = 0.dp, horizontalPartitionSpacerSize = 0.dp)
     val navigator = rememberListDetailPaneScaffoldNavigator<ModuleSettings.Id>(scaffoldDirective)
 
-    BackHandler(enabled = navigator.canNavigateBack()) { navigator.navigateBack() }
+    BackHandler(enabled = navigator.canNavigateBack()) { scope.launch { navigator.navigateBack() } }
 
     val lazyListState = rememberLazyListState()
 
@@ -90,15 +92,15 @@ internal fun SettingsTabContent(
                     settingsListFlow = settingsViewModel.settingsListFlow,
                     searchTextFlow = settingsViewModel.searchTextFlow,
                     onSearchTextChange = { text -> settingsViewModel.setSearchText(text) },
-                    onSettingSelected = { navigator.navigateTo(ListDetailPaneScaffoldRole.Detail, it) },
+                    onSettingSelected = { scope.launch { navigator.navigateTo(ListDetailPaneScaffoldRole.Detail, it) } },
                     modifier = Modifier.preferredWidth(listPanePreferredWidth)
                 )
             }
         },
         detailPane = {
             AnimatedPane(modifier = Modifier.fillMaxSize()) {
-                settingsViewModel.getModuleSettingsItem(navigator.currentDestination?.content)
-                    ?.DetailUI { title -> DetailUITitle(title, navigator.canNavigateBack()) { navigator.navigateBack() } }
+                settingsViewModel.getModuleSettingsItem(navigator.currentDestination?.contentKey)
+                    ?.DetailUI { title -> DetailUITitle(title, navigator.canNavigateBack()) { scope.launch { navigator.navigateBack() } } }
             }
         },
         modifier = modifier
@@ -109,7 +111,9 @@ internal fun SettingsTabContent(
 private fun DetailUITitle(title: String, canNavigateBack: Boolean, navigateBack: () -> Unit) {
     if (canNavigateBack) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 8.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 4.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = navigateBack) {
@@ -150,11 +154,12 @@ private fun SettingsListPane(
     val scope = rememberCoroutineScope()
 
     BoxWithConstraints(modifier) {
-        val horizontalPadding = if (maxWidth >= 480.dp) 16.dp else 0.dp
+        val horizontalPadding = if (this.maxWidth >= 480.dp) 16.dp else 0.dp
 
         val secondaryContainer = MaterialTheme.colorScheme.secondaryContainer
         val titleModifier = remember(maxWidth, secondaryContainer) {
-            Modifier.background(color = secondaryContainer)
+            Modifier
+                .background(color = secondaryContainer)
                 .padding(horizontal = horizontalPadding + 16.dp, vertical = 8.dp)
                 .fillMaxWidth()
         }
@@ -167,7 +172,9 @@ private fun SettingsListPane(
             HorizontalDivider()
 
             LazyColumn(
-                modifier = Modifier.fillMaxSize().imePadding(),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .imePadding(),
                 state = lazyListState
             ) {
                 settingsList.value.forEach { module ->
@@ -185,7 +192,9 @@ private fun SettingsListPane(
                             key = { _, settingsItem -> "${module.id}#${settingsGroup.id}#${settingsItem.id}" },
                             contentType = { _, _ -> "ITEM" },
                             itemContent = { index, settingsItem ->
-                                Column(modifier = Modifier.fillMaxWidth().animateItem()) {
+                                Column(modifier = Modifier
+                                    .fillMaxWidth()
+                                    .animateItem()) {
                                     settingsItem.ItemUI(
                                         horizontalPadding = horizontalPadding,
                                         coroutineScope = scope,
@@ -255,7 +264,9 @@ private fun SettingsListTitle(
     searchVisible: MutableState<Boolean>
 ) {
     Row(
-        modifier = Modifier.size(size).padding(start = 16.dp, end = 12.dp),
+        modifier = Modifier
+            .size(size)
+            .padding(start = 16.dp, end = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
@@ -286,7 +297,10 @@ private fun SettingsListSearch(
             searchTextLocalProxy.value = it
             onSearchTextChange.invoke(it)
         },
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).focusRequester(focusRequester),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+            .focusRequester(focusRequester),
         placeholder = { Text(text = stringResource(id = R.string.app_pref_settings_search)) },
         leadingIcon = { Icon(imageVector = Icon_Search, contentDescription = stringResource(id = R.string.app_pref_search)) },
         trailingIcon = {

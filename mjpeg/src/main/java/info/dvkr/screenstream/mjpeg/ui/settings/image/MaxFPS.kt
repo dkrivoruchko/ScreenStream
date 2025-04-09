@@ -147,7 +147,9 @@ private fun MaxFpsDetailUI(
         ) {
             Text(
                 text = stringResource(id = R.string.mjpeg_pref_fps_text),
-                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp)
             )
 
             OutlinedTextField(
@@ -175,7 +177,10 @@ private fun MaxFpsDetailUI(
                         }
                     }
                 },
-                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp).focusRequester(focusRequester),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp)
+                    .focusRequester(focusRequester),
                 isError = isError.value,
                 keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
                 singleLine = true,
@@ -193,7 +198,9 @@ private fun MaxFpsDetailUI(
 
                 Text(
                     text = stringResource(id = R.string.mjpeg_pref_fps_low_mode_text, abs(maxFPS)),
-                    modifier = Modifier.padding(start = 8.dp).conditional(maxFPS >= 0) { alpha(0.5F) },
+                    modifier = Modifier
+                        .padding(start = 8.dp)
+                        .conditional(maxFPS >= 0) { alpha(0.5F) },
                 )
             }
         }

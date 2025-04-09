@@ -10,6 +10,7 @@ import android.os.Build
 import android.widget.Toast
 import androidx.annotation.MainThread
 import androidx.core.content.FileProvider
+import androidx.core.content.edit
 import com.elvishew.xlog.LogConfiguration
 import com.elvishew.xlog.LogUtils
 import com.elvishew.xlog.XLog
@@ -74,7 +75,7 @@ internal object AppLogger {
         Toast.makeText(context, context.getString(R.string.app_logs_enabled), Toast.LENGTH_LONG).show()
         GlobalScope.launch {
             cleanLogFiles(context)
-            sharedPreferences.edit().putBoolean("loggingOn", true).commit()
+            sharedPreferences.edit(commit = true) { putBoolean("loggingOn", true) }
         }.invokeOnCompletion {
             ProcessPhoenix.triggerRebirth(context)
         }
@@ -88,7 +89,7 @@ internal object AppLogger {
         isLoggingOn = false
         Toast.makeText(context, context.getString(R.string.app_logs_disabled), Toast.LENGTH_LONG).show()
         GlobalScope.launch {
-            sharedPreferences.edit().putBoolean("loggingOn", false).commit()
+            sharedPreferences.edit(commit = true) { putBoolean("loggingOn", false) }
             cleanLogFiles(context)
         }.invokeOnCompletion {
             ProcessPhoenix.triggerRebirth(context)

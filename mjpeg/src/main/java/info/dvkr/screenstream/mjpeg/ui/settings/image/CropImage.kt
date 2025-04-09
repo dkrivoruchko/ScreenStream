@@ -144,7 +144,12 @@ private fun CropImageUI(
             )
         }
 
-        VerticalDivider(modifier = Modifier.padding(vertical = 12.dp).padding(start = 4.dp, end = 8.dp).fillMaxHeight())
+        VerticalDivider(
+            modifier = Modifier
+                .padding(vertical = 12.dp)
+                .padding(start = 4.dp, end = 8.dp)
+                .fillMaxHeight()
+        )
 
         Switch(checked = imageCrop, onCheckedChange = onValueChange, modifier = Modifier.scale(0.7F))
     }
@@ -186,7 +191,9 @@ private fun CropImageDetailUI(
         ) {
             Text(
                 text = if (hasError) stringResource(id = R.string.mjpeg_pref_crop_error) else stringResource(id = R.string.mjpeg_pref_crop_warning),
-                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp),
                 color = if (hasError) MaterialTheme.colorScheme.error else Color.Unspecified,
                 style = MaterialTheme.typography.bodyLarge
             )
@@ -228,7 +235,10 @@ private fun CropRow(
                 onNewValue.invoke(newCrop)
             }
         },
-        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp).focusRequester(focusRequester),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp)
+            .focusRequester(focusRequester),
         label = {
             Text(
                 text = stringResource(id = labelRes) + " (" + stringResource(id = R.string.mjpeg_pref_crop_pixels) + ")",

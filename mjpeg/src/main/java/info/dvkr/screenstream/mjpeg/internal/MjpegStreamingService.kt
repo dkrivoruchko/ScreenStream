@@ -50,7 +50,9 @@ import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.random.Random
-
+import androidx.core.graphics.createBitmap
+import androidx.core.graphics.scale
+import androidx.core.graphics.toColorInt
 
 internal class MjpegStreamingService(
     private val service: MjpegModuleService,
@@ -66,7 +68,7 @@ internal class MjpegStreamingService(
     private val coroutineDispatcher: CoroutineDispatcher by lazy(LazyThreadSafetyMode.NONE) { handler.asCoroutineDispatcher("MJPEG-HT_Dispatcher") }
     private val supervisorJob = SupervisorJob()
     private val coroutineScope by lazy(LazyThreadSafetyMode.NONE) { CoroutineScope(supervisorJob + coroutineDispatcher) }
-    private val bitmapStateFlow = MutableStateFlow(Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888))
+    private val bitmapStateFlow = MutableStateFlow(createBitmap(1, 1))
     private val httpServer by lazy(mode = LazyThreadSafetyMode.NONE) {
         HttpServer(service, mjpegSettings, bitmapStateFlow.asStateFlow(), ::sendEvent)
     }
@@ -549,7 +551,7 @@ internal class MjpegStreamingService(
         startBitmap?.let { return it }
 
         val screenSize = WindowMetricsCalculator.getOrCreate().computeMaximumWindowMetrics(service).bounds
-        val bitmap = Bitmap.createBitmap(max(screenSize.width(), 600), max(screenSize.height(), 800), Bitmap.Config.ARGB_8888)
+        val bitmap = createBitmap(max(screenSize.width(), 600), max(screenSize.height(), 800))
 
         var width = min(bitmap.width.toFloat(), 1536F)
         val height = min(bitmap.height.toFloat(), width * 0.75F)
@@ -564,16 +566,14 @@ internal class MjpegStreamingService(
             drawColor(mjpegSettings.data.value.htmlBackColor)
             val shader = LinearGradient(
                 backRect.left, backRect.top, backRect.left, backRect.bottom,
-                Color.parseColor("#144A74"), Color.parseColor("#001D34"), Shader.TileMode.CLAMP
+                "#144A74".toColorInt(), "#001D34".toColorInt(), Shader.TileMode.CLAMP
             )
             drawRoundRect(backRect, 32F, 32F, Paint().apply { setShader(shader) })
         }
 
         val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { textSize = 26F / 600 * backRect.width(); color = Color.WHITE }
         val logoSize = (min(backRect.width(), backRect.height()) * 0.7).toInt()
-        val logo = service.getFileFromAssets("logo.png")
-            .run { BitmapFactory.decodeByteArray(this, 0, size) }
-            .let { Bitmap.createScaledBitmap(it, logoSize, logoSize, true) }
+        val logo = service.getFileFromAssets("logo.png").run { BitmapFactory.decodeByteArray(this, 0, size) }.scale(logoSize, logoSize)
         canvas.drawBitmap(logo, backRect.left + (backRect.width() - logo.width) / 2, backRect.top, paint)
 
         val message = service.getString(R.string.mjpeg_start_image_text)

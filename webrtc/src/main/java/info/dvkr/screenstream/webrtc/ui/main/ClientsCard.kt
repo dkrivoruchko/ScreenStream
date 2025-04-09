@@ -43,7 +43,11 @@ internal fun ClientsCard(
             WebRtcClient(client = client, onClientDisconnect = onClientDisconnect)
 
             if (index != webRtcState.value.clients.lastIndex) {
-                HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp).fillMaxWidth())
+                HorizontalDivider(
+                    modifier = Modifier
+                        .padding(vertical = 4.dp)
+                        .fillMaxWidth()
+                )
             }
         }
     }
@@ -56,11 +60,18 @@ private fun WebRtcClient(
     modifier: Modifier = Modifier
 ) {
     Row(
-        modifier = modifier.padding(start = 8.dp).fillMaxWidth(),
+        modifier = modifier
+            .padding(start = 8.dp)
+            .fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(text = "${client.publicId.substring(0, 4)}-${client.publicId.substring(4)}")
-        Text(text = client.address, modifier = Modifier.padding(start = 8.dp).weight(1F), textAlign = TextAlign.Center)
+        Text(
+            text = client.address,
+            modifier = Modifier
+                .padding(start = 8.dp)
+                .weight(1F), textAlign = TextAlign.Center
+        )
         TextButton(onClick = { onClientDisconnect.invoke(ClientId(client.id)) }) {
             Text(text = stringResource(id = R.string.webrtc_item_client_disconnect))
         }

@@ -35,7 +35,10 @@ internal fun PinCard(
 ) {
     ElevatedCard(modifier = modifier) {
         Box(
-            modifier = Modifier.padding(8.dp).fillMaxWidth().minimumInteractiveComponentSize()
+            modifier = Modifier
+                .padding(8.dp)
+                .fillMaxWidth()
+                .minimumInteractiveComponentSize()
         ) {
             if (mjpegState.value.pin.enablePin) {
                 if (mjpegState.value.isStreaming) {

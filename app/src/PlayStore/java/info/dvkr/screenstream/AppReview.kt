@@ -18,7 +18,9 @@ public object AppReview {
     private lateinit var sharedPreferences: SharedPreferences
     private var lastReviewRequest: Long = 0
 
-    public suspend fun showReviewUi(activity: Activity) {
+    public suspend fun showReviewUi(activity: Activity?) {
+        if (activity == null) return
+
         if (::sharedPreferences.isInitialized.not()) {
             sharedPreferences = activity.getSharedPreferences("play_review.xml", MODE_PRIVATE)
         }

@@ -123,7 +123,9 @@ private fun PinUI(
 
         Text(
             text = if (isPinVisible) pin else "*",
-            modifier = Modifier.defaultMinSize(minWidth = 52.dp).padding(end = 6.dp),
+            modifier = Modifier
+                .defaultMinSize(minWidth = 52.dp)
+                .padding(end = 6.dp),
             color = MaterialTheme.colorScheme.primary,
             fontWeight = FontWeight.Bold,
             fontFamily = RobotoMonoBold,
@@ -157,7 +159,9 @@ private fun PinDetailUI(
         ) {
             Text(
                 text = stringResource(id = R.string.mjpeg_pref_set_pin_text),
-                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp)
             )
 
             OutlinedTextField(
@@ -173,7 +177,10 @@ private fun PinDetailUI(
                         onValueChange.invoke(newPinText)
                     }
                 },
-                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp).focusRequester(focusRequester),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp)
+                    .focusRequester(focusRequester),
                 isError = isError.value,
                 keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
                 singleLine = true,

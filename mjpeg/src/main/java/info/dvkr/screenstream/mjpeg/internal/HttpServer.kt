@@ -185,7 +185,8 @@ internal class HttpServer(
         mjpegSharedFlow.set(mjpegFlow)
 
         val serverPort = mjpegSettings.data.value.serverPort
-        val server = embeddedServer(CIO,
+        val server = embeddedServer(
+            factory = CIO,
             rootConfig = serverConfig {
                 parentCoroutineContext = CoroutineExceptionHandler { _, throwable ->
                     if (throwable is BindException) return@CoroutineExceptionHandler

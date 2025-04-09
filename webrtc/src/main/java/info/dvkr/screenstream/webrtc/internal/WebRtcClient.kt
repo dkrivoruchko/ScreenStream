@@ -93,7 +93,7 @@ internal class WebRtcClient(
                 }
                 if (it.mediaType == MediaStreamTrack.MediaType.MEDIA_TYPE_AUDIO) it.setCodecPreferences(audioCodecs)
             }
-        // TODO setBitrate(200_000, 2_000_000, 4_000_000)
+            // TODO setBitrate(200_000, 2_000_000, 4_000_000)
         }
 
         mediaStreamId = mediaStream.id
@@ -101,20 +101,21 @@ internal class WebRtcClient(
         state.set(State.PENDING_OFFER)
 
         XLog.d(getLog("start", "createOffer: Client: $id, mediaStream: ${mediaStream.id}"))
-        peerConnection!!.createOffer(object : SdpObserver {
-            // Signaling thread
-            override fun onCreateSuccess(sessionDescription: SessionDescription) {
-                XLog.d(this@WebRtcClient.getLog("start", "createOffer.onSuccess: Client: $id"))
-                setHostOffer(mediaStream.id, SessionDescription(SessionDescription.Type.OFFER, sessionDescription.description))
-            }
+        peerConnection!!.createOffer(
+            object : SdpObserver {
+                // Signaling thread
+                override fun onCreateSuccess(sessionDescription: SessionDescription) {
+                    XLog.d(this@WebRtcClient.getLog("start", "createOffer.onSuccess: Client: $id"))
+                    setHostOffer(mediaStream.id, SessionDescription(SessionDescription.Type.OFFER, sessionDescription.description))
+                }
 
-            // Signaling thread
-            override fun onCreateFailure(s: String?) =
-                eventListener.onError(clientId, IllegalStateException("Client: $id. createHostOffer.onFailure: $s"))
+                // Signaling thread
+                override fun onCreateFailure(s: String?) =
+                    eventListener.onError(clientId, IllegalStateException("Client: $id. createHostOffer.onFailure: $s"))
 
-            override fun onSetSuccess() = Unit
-            override fun onSetFailure(s: String?) = Unit
-        },
+                override fun onSetSuccess() = Unit
+                override fun onSetFailure(s: String?) = Unit
+            },
             MediaConstraints().apply {
                 mandatory.add(MediaConstraints.KeyValuePair("OfferToReceiveVideo", "false"))
                 mandatory.add(MediaConstraints.KeyValuePair("OfferToReceiveAudio", "false"))

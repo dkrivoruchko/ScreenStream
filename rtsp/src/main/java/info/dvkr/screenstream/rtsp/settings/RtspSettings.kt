@@ -41,7 +41,7 @@ public interface RtspSettings {
         public const val STOP_ON_SLEEP: Boolean = false
         public const val STOP_ON_CONFIGURATION_CHANGE: Boolean = false
 
-        public const val SERVER_ADDRESS: String = "rtsp://192.168.231.11:8554/mystream" //"rtsp://"
+        public const val SERVER_ADDRESS: String = "rtsp://"
         public const val PROTOCOL: String = "TCP" // Must match Protocol enum values
 
         public const val VIDEO_CODEC_AUTO_SELECT: Boolean = true

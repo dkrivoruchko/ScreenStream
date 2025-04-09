@@ -2,7 +2,6 @@ package info.dvkr.screenstream.webrtc.ui.main
 
 import android.Manifest
 import android.content.Intent
-import android.net.Uri
 import android.os.Build
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -34,6 +33,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
+import androidx.core.net.toUri
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -66,7 +66,11 @@ internal fun AudioCard(
 
     ExpandableCard(
         headerContent = {
-            Column(modifier = Modifier.align(Alignment.CenterStart).padding(start = 48.dp)) {
+            Column(
+                modifier = Modifier
+                    .align(Alignment.CenterStart)
+                    .padding(start = 48.dp)
+            ) {
                 Text(text = stringResource(id = R.string.webrtc_stream_audio_select), style = MaterialTheme.typography.titleMedium)
             }
         },
@@ -215,7 +219,7 @@ private fun RequestPermission(
                         runCatching {
                             val i = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
                                 addCategory(Intent.CATEGORY_DEFAULT)
-                                data = Uri.parse("package:${context.packageName}")
+                                data = "package:${context.packageName}".toUri()
                                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                                 addFlags(Intent.FLAG_ACTIVITY_NO_HISTORY)
                                 addFlags(Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS)

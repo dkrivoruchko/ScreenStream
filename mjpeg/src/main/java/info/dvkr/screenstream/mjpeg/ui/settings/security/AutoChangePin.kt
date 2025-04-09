@@ -66,7 +66,7 @@ private fun AutoChangePinUI(
             .conditional(enablePin.not()) { alpha(0.5F) },
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(imageVector = Icon_Autorenew, contentDescription = null, modifier = Modifier.padding(end = 16.dp))
+        Icon(imageVector = Icon_AutoRenew, contentDescription = null, modifier = Modifier.padding(end = 16.dp))
 
         Column(modifier = Modifier.weight(1F)) {
             Text(
@@ -86,7 +86,7 @@ private fun AutoChangePinUI(
     }
 }
 
-private val Icon_Autorenew: ImageVector = materialIcon(name = "Filled.Autorenew") {
+private val Icon_AutoRenew: ImageVector = materialIcon(name = "Filled.AutoRenew") {
     materialPath {
         moveTo(12.0f, 6.0f)
         verticalLineToRelative(3.0f)

@@ -175,7 +175,12 @@ private fun LanguageRow(
         verticalAlignment = Alignment.CenterVertically
     ) {
         if (selected) {
-            Text(text = displayLanguage, modifier = Modifier.padding(start = 24.dp).weight(1F))
+            Text(
+                text = displayLanguage,
+                modifier = Modifier
+                    .padding(start = 24.dp)
+                    .weight(1F)
+            )
             Icon(
                 imageVector = Icon_Check,
                 contentDescription = null,

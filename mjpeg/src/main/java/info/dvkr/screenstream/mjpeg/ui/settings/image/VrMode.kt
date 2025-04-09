@@ -111,7 +111,12 @@ private fun VrModeUI(
             )
         }
 
-        VerticalDivider(modifier = Modifier.padding(vertical = 12.dp).padding(start = 4.dp, end = 8.dp).fillMaxHeight())
+        VerticalDivider(
+            modifier = Modifier
+                .padding(vertical = 12.dp)
+                .padding(start = 4.dp, end = 8.dp)
+                .fillMaxHeight()
+        )
 
         Switch(
             checked = vrMode > MjpegSettings.Default.VR_MODE_DISABLE,

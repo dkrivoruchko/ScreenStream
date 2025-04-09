@@ -9,7 +9,7 @@ import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.common.module.StreamingModuleService
 import info.dvkr.screenstream.webrtc.internal.WebRtcEvent
 import info.dvkr.screenstream.webrtc.ui.WebRtcError
-import kotlinx.coroutines.*
+import kotlinx.coroutines.runBlocking
 import org.koin.android.ext.android.inject
 import java.net.ConnectException
 import java.net.UnknownHostException

@@ -30,14 +30,14 @@ android {
     namespace = "info.dvkr.screenstream"
     compileSdk = rootProject.extra["compileSdkVersion"] as Int
     buildToolsVersion = rootProject.extra["buildToolsVersion"] as String
-    ndkVersion = "27.2.12479018"
+    ndkVersion = "28.0.13004108"
 
     defaultConfig {
         applicationId = "info.dvkr.screenstream"
         minSdk = rootProject.extra["minSdkVersion"] as Int
         targetSdk = rootProject.extra["targetSdkVersion"] as Int
-        versionCode = 41013
-        versionName = "4.1.13"
+        versionCode = 42000
+        versionName = "4.2.00"
 
         // https://medium.com/@crafty/no-if-you-do-that-then-you-cant-use-newer-features-on-older-platforms-e-g-fa595333c0a4
         vectorDrawables.useSupportLibrary = true

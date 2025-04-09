@@ -40,7 +40,8 @@ internal class WebRtcSettingsImpl(context: Context) : WebRtcSettings {
             WebRtcSettings.Data()
         )
 
-    override suspend fun updateData(transform: WebRtcSettings.Data.() -> WebRtcSettings.Data) = withContext(NonCancellable + Dispatchers.IO) {
+    override suspend fun updateData(transform: WebRtcSettings.Data.() -> WebRtcSettings.Data) =
+        withContext(NonCancellable + Dispatchers.IO) {
             dataStore.edit { preferences ->
                 val newSettings = transform.invoke(preferences.toWebRtcSettings())
 

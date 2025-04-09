@@ -30,7 +30,3 @@ dependencies {
     implementation(libs.ktor.network)
     implementation(libs.ktor.network.tls)
 }
-
-configurations.all {
-    exclude("org.fusesource.jansi", "jansi") //TODO
-}

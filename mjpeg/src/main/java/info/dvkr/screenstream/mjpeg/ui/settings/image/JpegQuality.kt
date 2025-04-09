@@ -143,7 +143,9 @@ private fun JpegQualityDetailUI(
         ) {
             Text(
                 text = stringResource(id = R.string.mjpeg_pref_jpeg_quality_text),
-                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp),
             )
 
             OutlinedTextField(
@@ -159,7 +161,10 @@ private fun JpegQualityDetailUI(
                         onValueChange.invoke(newJpegQuality)
                     }
                 },
-                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp).focusRequester(focusRequester),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp)
+                    .focusRequester(focusRequester),
                 isError = isError.value,
                 keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
                 singleLine = true,

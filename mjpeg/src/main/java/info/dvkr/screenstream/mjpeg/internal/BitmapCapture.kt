@@ -1,7 +1,15 @@
 package info.dvkr.screenstream.mjpeg.internal
 
 import android.content.Context
-import android.graphics.*
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.ColorMatrix
+import android.graphics.ColorMatrixColorFilter
+import android.graphics.Matrix
+import android.graphics.Paint
+import android.graphics.PixelFormat
+import android.graphics.PorterDuff
 import android.hardware.display.DisplayManager
 import android.hardware.display.VirtualDisplay
 import android.media.Image
@@ -10,6 +18,7 @@ import android.media.projection.MediaProjection
 import android.os.Handler
 import android.os.HandlerThread
 import android.os.Process
+import androidx.core.graphics.createBitmap
 import androidx.window.layout.WindowMetricsCalculator
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.common.getLog
@@ -250,7 +259,7 @@ internal class BitmapCapture(
         val planeWidth = plane.rowStride / plane.pixelStride
         val planeHeight = fullHeight
         if (reusableBitmap == null || reusableBitmap!!.width != planeWidth || reusableBitmap!!.height != planeHeight) {
-            reusableBitmap = Bitmap.createBitmap(planeWidth, planeHeight, Bitmap.Config.ARGB_8888)
+            reusableBitmap = createBitmap(planeWidth, planeHeight)
         }
         reusableBitmap!!.copyPixelsFromBuffer(plane.buffer)
 
@@ -321,7 +330,7 @@ internal class BitmapCapture(
         val scaledH = max(1, (finalH * scale).toInt())
 
         if (outputBitmap == null || outputBitmap!!.width != scaledW || outputBitmap!!.height != scaledH) {
-            outputBitmap = Bitmap.createBitmap(scaledW, scaledH, Bitmap.Config.ARGB_8888)
+            outputBitmap = createBitmap(scaledW, scaledH)
         }
 
         val skipTransform = transformMatrix.isIdentity && paint.colorFilter == null
