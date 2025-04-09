@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="rtsp_error_recover">Recuperar</string>
+    <string name="rtsp_error_open_settings">Abrir configurações</string>
+
+    <string name="rtsp_stream_mode">Modo RTSP (RTSP)</string>
+    <string name="rtsp_stream_mode_description">Descrição do modo RTSP</string>
+    <string name="rtsp_stream_mode_details">
+- Funciona com protocolo RTSP.\n
+- Requer servidor de mídia compatível com RTSP.\n
+- Suporta vídeo e áudio.\n
+- Pode ser protegido por usuário/senha.\n
+- Criptografia opcional do canal de controle (RTSPS com TLS).\n
+- Compatível com WiFi, redes móveis e IPv4/IPv6.\n
+- Requer cliente ou player RTSP para visualização.\n
+- Altamente personalizável.\n
+</string>
+
+    <string name="rtsp_stream_start">Iniciar transmissão</string>
+    <string name="rtsp_stream_stop">Parar transmissão</string>
+
+    <string name="rtsp_cast_permission_required_title">Permissão necessária</string>
+    <string name="rtsp_cast_permission_required">O aplicativo ScreenStream requer permissão de captura de tela.</string>
+    <string name="rtsp_error_notification_permission_required">O aplicativo requer notificações ativadas para iniciar o serviço de transmissão.\nAtive as notificações nas configurações do aplicativo.</string>
+    <string name="rtsp_error_unspecified">Algo deu errado. Tente novamente mais tarde.</string>
+
+    <string name="rtsp_media_server">Servidor de mídia</string>
+    <string name="rtsp_server_address">Endereço do servidor RTSP</string>
+    <string name="rtsp_protocol">Protocolo RTSP</string>
+
+    <string name="rtsp_connection_connected">Servidor conectado</string>
+    <string name="rtsp_connection_connecting">Conectando ao servidor…</string>
+    <string name="rtsp_connection_disconnected">Servidor desconectado</string>
+    <string name="rtsp_connection_error">Erro de conexão</string>
+
+    <string name="rtsp_video_parameters">Parâmetros de vídeo</string>
+    <string name="rtsp_video_encoder">Codificador de vídeo:</string>
+    <string name="rtsp_video_encoder_auto">Auto</string>
+    <string name="rtsp_video_resize_image">Redimensionar imagem: %1$.2f%%</string>
+    <string name="rtsp_video_resize_image_10">10%</string>
+    <string name="rtsp_video_resize_image_100">100%</string>
+    <string name="rtsp_video_screen_size">Tamanho da tela: %1$dx%2$d</string>
+    <string name="rtsp_video_video_size">Tamanho do vídeo: %1$dx%2$d</string>
+    <string name="rtsp_video_frame_rate">Taxa de quadros: %1$d quadros/seg</string>
+    <string name="rtsp_video_bitrate">Taxa de bits vídeo: %1$s/seg</string>
+    <string name="rtsp_video_bitrate_mbit">%.2f Mbit</string>
+    <string name="rtsp_video_bitrate_kbit">%d Kbit</string>
+
+    <string name="rtsp_audio_parameters">Parâmetros de áudio</string>
+    <string name="rtsp_audio_mic">Microfone</string>
+    <string name="rtsp_audio_device">Áudio do dispositivo</string>
+    <string name="rtsp_audio_encoder">Codificador de áudio:</string>
+    <string name="rtsp_audio_encoder_auto">Auto</string>
+    <string name="rtsp_audio_bitrate">Taxa de bits áudio: %1$s/seg</string>
+    <string name="rtsp_audio_permission_title">Permitir gravação de áudio</string>
+    <string name="rtsp_audio_permission_message">A permissão para gravar áudio é necessária para transmitir conteúdo de áudio.\n\nSem esta permissão, a transmissão será sem áudio.</string>
+    <string name="rtsp_audio_permission_open_settings">Abrir configurações</string>
+    <string name="rtsp_audio_permission_message_settings">Conceder acesso ao microfone é necessário para transmitir conteúdo de áudio.\n\nSem esta permissão, a transmissão será realizada sem áudio.</string>
+
+    <string name="rtsp_connection_access_denied">Acesso negado</string>
+    <string name="rtsp_connection_no_credentials">Especifique usuário e senha</string>
+    <string name="rtsp_connection_invalid_credentials">Usuário ou senha inválidos</string>
+</resources>

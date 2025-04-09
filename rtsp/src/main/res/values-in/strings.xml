@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="rtsp_error_recover">Pulihkan</string>
+    <string name="rtsp_error_open_settings">Buka pengaturan</string>
+
+    <string name="rtsp_stream_mode">Mode RTSP (RTSP)</string>
+    <string name="rtsp_stream_mode_description">Deskripsi mode RTSP</string>
+    <string name="rtsp_stream_mode_details">
+- Didukung oleh protokol RTSP.\n
+- Memerlukan server media yang mendukung RTSP.\n
+- Mendukung video dan audio.\n
+- Dapat dilindungi dengan nama pengguna/kata sandi.\n
+- Enkripsi saluran kontrol opsional (RTSPS menggunakan TLS).\n
+- Kompatibel dengan WiFi, jaringan seluler, dan IPv4/IPv6.\n
+- Memerlukan klien atau pemutar RTSP untuk menonton.\n
+- Sangat dapat disesuaikan.\n
+</string>
+
+    <string name="rtsp_stream_start">Mulai siaran</string>
+    <string name="rtsp_stream_stop">Hentikan siaran</string>
+
+    <string name="rtsp_cast_permission_required_title">Izin diperlukan</string>
+    <string name="rtsp_cast_permission_required">Aplikasi ScreenStream memerlukan izin Cast Layar untuk merekam layar.</string>
+    <string name="rtsp_error_notification_permission_required">Aplikasi memerlukan notifikasi diaktifkan untuk memulai layanan streaming.\nSilakan aktifkan notifikasi di pengaturan aplikasi.</string>
+    <string name="rtsp_error_unspecified">Terjadi kesalahan. Silakan coba lagi nanti.</string>
+
+    <string name="rtsp_media_server">Server media</string>
+    <string name="rtsp_server_address">Alamat server RTSP</string>
+    <string name="rtsp_protocol">Protokol RTSP</string>
+
+    <string name="rtsp_connection_connected">Server terhubung</string>
+    <string name="rtsp_connection_connecting">Menghubungkan ke server…</string>
+    <string name="rtsp_connection_disconnected">Server terputus</string>
+    <string name="rtsp_connection_error">Kesalahan koneksi</string>
+
+    <string name="rtsp_video_parameters">Parameter video</string>
+    <string name="rtsp_video_encoder">Encoder video:</string>
+    <string name="rtsp_video_encoder_auto">Otomatis</string>
+    <string name="rtsp_video_resize_image">Ubah ukuran gambar: %1$.2f%%</string>
+    <string name="rtsp_video_resize_image_10">10%</string>
+    <string name="rtsp_video_resize_image_100">100%</string>
+    <string name="rtsp_video_screen_size">Ukuran layar: %1$dx%2$d</string>
+    <string name="rtsp_video_video_size">Ukuran video: %1$dx%2$d</string>
+    <string name="rtsp_video_frame_rate">Kecepatan frame: %1$d frame/detik</string>
+    <string name="rtsp_video_bitrate">Bitrate video: %1$s/detik</string>
+    <string name="rtsp_video_bitrate_mbit">%.2f Mbit</string>
+    <string name="rtsp_video_bitrate_kbit">%d Kbit</string>
+
+    <string name="rtsp_audio_parameters">Parameter audio</string>
+    <string name="rtsp_audio_mic">Mikrofon</string>
+    <string name="rtsp_audio_device">Audio perangkat</string>
+    <string name="rtsp_audio_encoder">Encoder audio:</string>
+    <string name="rtsp_audio_encoder_auto">Otomatis</string>
+    <string name="rtsp_audio_bitrate">Bitrate audio: %1$s/detik</string>
+    <string name="rtsp_audio_permission_title">Izinkan perekaman audio</string>
+    <string name="rtsp_audio_permission_message">Izin untuk merekam audio diperlukan agar aplikasi dapat menyiarkan konten audio.\n\nTanpa izin ini, siaran akan tanpa audio.</string>
+    <string name="rtsp_audio_permission_open_settings">Buka pengaturan</string>
+    <string name="rtsp_audio_permission_message_settings">Pemberian akses mikrofon di izin aplikasi diperlukan agar aplikasi dapat menyiarkan konten audio.\n\nTanpa izin ini, siaran akan dilakukan tanpa audio.</string>
+
+    <string name="rtsp_connection_access_denied">Akses ditolak</string>
+    <string name="rtsp_connection_no_credentials">Tentukan nama pengguna dan kata sandi</string>
+    <string name="rtsp_connection_invalid_credentials">Nama pengguna atau kata sandi tidak valid</string>
+</resources>

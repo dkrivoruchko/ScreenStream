@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="rtsp_error_recover">恢復</string>
+    <string name="rtsp_error_open_settings">開啟設定</string>
+
+    <string name="rtsp_stream_mode">RTSP模式（RTSP）</string>
+    <string name="rtsp_stream_mode_description">RTSP模式說明</string>
+    <string name="rtsp_stream_mode_details">
+- 基於RTSP協議。\n
+- 需要支援RTSP的媒體伺服器。\n
+- 支援視訊和音訊。\n
+- 可透過使用者名稱/密碼保護。\n
+- 可選控制通道加密（使用TLS的RTSPS）。\n
+- 相容WiFi、行動網路和IPv4/IPv6。\n
+- 需要RTSP客戶端或播放器觀看。\n
+- 高度可定制。\n
+</string>
+
+    <string name="rtsp_stream_start">開始串流</string>
+    <string name="rtsp_stream_stop">停止串流</string>
+
+    <string name="rtsp_cast_permission_required_title">需要權限</string>
+    <string name="rtsp_cast_permission_required">ScreenStream應用需要螢幕錄製權限來捕獲螢幕。</string>
+    <string name="rtsp_error_notification_permission_required">應用需要啟用通知才能啟動串流服務。\n請在應用設定中啟用通知。</string>
+    <string name="rtsp_error_unspecified">發生錯誤。請稍後重試。</string>
+
+    <string name="rtsp_media_server">媒體伺服器</string>
+    <string name="rtsp_server_address">RTSP伺服器地址</string>
+    <string name="rtsp_protocol">RTSP協議</string>
+
+    <string name="rtsp_connection_connected">伺服器已連接</string>
+    <string name="rtsp_connection_connecting">正在連接伺服器…</string>
+    <string name="rtsp_connection_disconnected">伺服器已斷開</string>
+    <string name="rtsp_connection_error">連接錯誤</string>
+
+    <string name="rtsp_video_parameters">視訊參數</string>
+    <string name="rtsp_video_encoder">視訊編碼器：</string>
+    <string name="rtsp_video_encoder_auto">自動</string>
+    <string name="rtsp_video_resize_image">調整圖像大小：%1$.2f%%</string>
+    <string name="rtsp_video_resize_image_10">10%</string>
+    <string name="rtsp_video_resize_image_100">100%</string>
+    <string name="rtsp_video_screen_size">螢幕尺寸：%1$dx%2$d</string>
+    <string name="rtsp_video_video_size">視訊尺寸：%1$dx%2$d</string>
+    <string name="rtsp_video_frame_rate">幀率：%1$d 幀/秒</string>
+    <string name="rtsp_video_bitrate">視訊位元率：%1$s/秒</string>
+    <string name="rtsp_video_bitrate_mbit">%.2f Mbit</string>
+    <string name="rtsp_video_bitrate_kbit">%d Kbit</string>
+
+    <string name="rtsp_audio_parameters">音訊參數</string>
+    <string name="rtsp_audio_mic">麥克風</string>
+    <string name="rtsp_audio_device">裝置音訊</string>
+    <string name="rtsp_audio_encoder">音訊編碼器：</string>
+    <string name="rtsp_audio_encoder_auto">自動</string>
+    <string name="rtsp_audio_bitrate">音訊位元率：%1$s/秒</string>
+    <string name="rtsp_audio_permission_title">允許錄音</string>
+    <string name="rtsp_audio_permission_message">應用需要錄音權限才能傳輸音訊內容。\n\n如果不授予權限，串流將沒有音訊。</string>
+    <string name="rtsp_audio_permission_open_settings">開啟設定</string>
+    <string name="rtsp_audio_permission_message_settings">需要麥克風存取權限才能傳輸音訊內容。\n\n如果不授予權限，串流將沒有音訊。</string>
+
+    <string name="rtsp_connection_access_denied">存取被拒絕</string>
+    <string name="rtsp_connection_no_credentials">請指定使用者名稱和密碼</string>
+    <string name="rtsp_connection_invalid_credentials">使用者名稱或密碼無效</string>
+</resources>

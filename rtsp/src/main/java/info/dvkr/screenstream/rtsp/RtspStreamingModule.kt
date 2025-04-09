@@ -1,4 +1,4 @@
-package info.dvkr.screenstream.webrtc
+package info.dvkr.screenstream.rtsp
 
 import android.app.Service
 import android.content.Context
@@ -10,11 +10,11 @@ import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.common.ModuleSettings
 import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.common.module.StreamingModule
-import info.dvkr.screenstream.webrtc.internal.WebRtcEvent
-import info.dvkr.screenstream.webrtc.internal.WebRtcStreamingService
-import info.dvkr.screenstream.webrtc.ui.WebRtcMainScreenUI
-import info.dvkr.screenstream.webrtc.ui.WebRtcModuleSettings
-import info.dvkr.screenstream.webrtc.ui.WebRtcState
+import info.dvkr.screenstream.rtsp.internal.RtspEvent
+import info.dvkr.screenstream.rtsp.internal.RtspStreamingService
+import info.dvkr.screenstream.rtsp.ui.RtspMainScreenUI
+import info.dvkr.screenstream.rtsp.ui.RtspModuleSettings
+import info.dvkr.screenstream.rtsp.ui.RtspState
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -23,33 +23,33 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import org.koin.core.parameter.parametersOf
 
-public class WebRtcStreamingModule : StreamingModule {
+public class RtspStreamingModule : StreamingModule {
 
     public companion object {
-        public val Id: StreamingModule.Id = StreamingModule.Id("WEBRTC")
+        public val Id: StreamingModule.Id = StreamingModule.Id("RTSP")
     }
 
     private val _streamingServiceState: MutableStateFlow<StreamingModule.State> = MutableStateFlow(StreamingModule.State.Initiated)
-    private val _webRtcStateFlow: MutableStateFlow<WebRtcState> = MutableStateFlow(WebRtcState())
+    private val _rtspStateFlow: MutableStateFlow<RtspState> = MutableStateFlow(RtspState())
 
     override val id: StreamingModule.Id = Id
-    override val priority: Int = 20
-    override val moduleSettings: ModuleSettings = WebRtcModuleSettings
+    override val priority: Int = 10
+    override val moduleSettings: ModuleSettings = RtspModuleSettings
 
     override val isRunning: Flow<Boolean>
         get() = _streamingServiceState.map { it is StreamingModule.State.Running }
 
     override val isStreaming: Flow<Boolean>
-        get() = _webRtcStateFlow.map { it.isStreaming }
+        get() = _rtspStateFlow.map { it.isStreaming }
 
-    override val nameResource: Int = R.string.webrtc_stream_mode
-    override val descriptionResource: Int = R.string.webrtc_stream_mode_description
-    override val detailsResource: Int = R.string.webrtc_stream_mode_details
+    override val nameResource: Int = R.string.rtsp_stream_mode
+    override val descriptionResource: Int = R.string.rtsp_stream_mode_description
+    override val detailsResource: Int = R.string.rtsp_stream_mode_details
 
     @Composable
     override fun StreamUIContent(modifier: Modifier): Unit =
-        WebRtcMainScreenUI(
-            webRtcStateFlow = _webRtcStateFlow.asStateFlow(),
+        RtspMainScreenUI(
+            rtspStateFlow = _rtspStateFlow.asStateFlow(),
             sendEvent = ::sendEvent,
             modifier = modifier
         )
@@ -61,7 +61,7 @@ public class WebRtcStreamingModule : StreamingModule {
 
         when (val state = _streamingServiceState.value) {
             StreamingModule.State.Initiated -> {
-                WebRtcModuleService.startService(context, WebRtcEvent.Intentable.StartService.toIntent(context))
+                RtspModuleService.Companion.startService(context, RtspEvent.Intentable.StartService.toIntent(context))
                 _streamingServiceState.value = StreamingModule.State.PendingStart
             }
 
@@ -71,11 +71,13 @@ public class WebRtcStreamingModule : StreamingModule {
 
     @MainThread
     internal fun onServiceStart(service: Service) {
+        XLog.d(getLog("onServiceStart", "Service: $service"))
+
         when (val state = _streamingServiceState.value) {
             StreamingModule.State.PendingStart -> {
-                val scope = WebRtcKoinScope().scope
+                val scope = RtspKoinScope().scope
                 _streamingServiceState.value = StreamingModule.State.Running(scope)
-                scope.get<WebRtcStreamingService> { parametersOf(service, _webRtcStateFlow) }.start()
+                scope.get<RtspStreamingService> { parametersOf(service, _rtspStateFlow) }.start()
             }
 
             else -> throw RuntimeException("Unexpected state: $state")
@@ -97,8 +99,8 @@ public class WebRtcStreamingModule : StreamingModule {
 
             is StreamingModule.State.Running -> {
                 _streamingServiceState.value = StreamingModule.State.PendingStop
-                withContext(NonCancellable) { state.scope.get<WebRtcStreamingService>().destroyService() }
-                _webRtcStateFlow.value = WebRtcState()
+                withContext(NonCancellable) { state.scope.get<RtspStreamingService>().destroyService() }
+                _rtspStateFlow.value = RtspState()
                 state.scope.close()
                 _streamingServiceState.value = StreamingModule.State.Initiated
             }
@@ -110,17 +112,17 @@ public class WebRtcStreamingModule : StreamingModule {
     }
 
     override fun stopStream(reason: String) {
-        XLog.d(getLog("stopStream", "reason $reason"))
-        sendEvent(WebRtcEvent.Intentable.StopStream(reason))
+        XLog.d(getLog("stopStream", "reason: $reason"))
+        sendEvent(RtspEvent.Intentable.StopStream(reason))
     }
 
     @MainThread
-    internal fun sendEvent(event: WebRtcEvent) {
+    internal fun sendEvent(event: RtspEvent) {
         XLog.d(getLog("sendEvent", "Event $event"))
         check(Looper.getMainLooper().isCurrentThread) { "Only main thread allowed" }
 
         when (val state = _streamingServiceState.value) {
-            is StreamingModule.State.Running -> state.scope.get<WebRtcStreamingService>().sendEvent(event)
+            is StreamingModule.State.Running -> state.scope.get<RtspStreamingService>().sendEvent(event)
             else -> XLog.w(
                 getLog("sendEvent", "Unexpected state: $state for event $event"),
                 RuntimeException("Unexpected state: $state for event $event")

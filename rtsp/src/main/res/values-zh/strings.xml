@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="rtsp_error_recover">恢复</string>
+    <string name="rtsp_error_open_settings">打开设置</string>
+
+    <string name="rtsp_stream_mode">RTSP模式（RTSP）</string>
+    <string name="rtsp_stream_mode_description">RTSP模式说明</string>
+    <string name="rtsp_stream_mode_details">
+- 基于RTSP协议。\n
+- 需要支持RTSP的媒体服务器。\n
+- 支持视频和音频。\n
+- 可通过用户名/密码保护。\n
+- 可选控制通道加密（使用TLS的RTSPS）。\n
+- 兼容WiFi、移动网络和IPv4/IPv6。\n
+- 需要RTSP客户端或播放器观看。\n
+- 高度可定制。\n
+</string>
+
+    <string name="rtsp_stream_start">开始流媒体</string>
+    <string name="rtsp_stream_stop">停止流媒体</string>
+
+    <string name="rtsp_cast_permission_required_title">需要权限</string>
+    <string name="rtsp_cast_permission_required">ScreenStream应用需要屏幕录制权限来捕获屏幕。</string>
+    <string name="rtsp_error_notification_permission_required">应用需要启用通知才能启动流媒体服务。\n请在应用设置中启用通知。</string>
+    <string name="rtsp_error_unspecified">出现错误。请稍后重试。</string>
+
+    <string name="rtsp_media_server">媒体服务器</string>
+    <string name="rtsp_server_address">RTSP服务器地址</string>
+    <string name="rtsp_protocol">RTSP协议</string>
+
+    <string name="rtsp_connection_connected">服务器已连接</string>
+    <string name="rtsp_connection_connecting">正在连接服务器…</string>
+    <string name="rtsp_connection_disconnected">服务器已断开</string>
+    <string name="rtsp_connection_error">连接错误</string>
+
+    <string name="rtsp_video_parameters">视频参数</string>
+    <string name="rtsp_video_encoder">视频编码器：</string>
+    <string name="rtsp_video_encoder_auto">自动</string>
+    <string name="rtsp_video_resize_image">调整图像大小：%1$.2f%%</string>
+    <string name="rtsp_video_resize_image_10">10%</string>
+    <string name="rtsp_video_resize_image_100">100%</string>
+    <string name="rtsp_video_screen_size">屏幕尺寸：%1$dx%2$d</string>
+    <string name="rtsp_video_video_size">视频尺寸：%1$dx%2$d</string>
+    <string name="rtsp_video_frame_rate">帧率：%1$d 帧/秒</string>
+    <string name="rtsp_video_bitrate">视频比特率：%1$s/秒</string>
+    <string name="rtsp_video_bitrate_mbit">%.2f Mbit</string>
+    <string name="rtsp_video_bitrate_kbit">%d Kbit</string>
+
+    <string name="rtsp_audio_parameters">音频参数</string>
+    <string name="rtsp_audio_mic">麦克风</string>
+    <string name="rtsp_audio_device">设备音频</string>
+    <string name="rtsp_audio_encoder">音频编码器：</string>
+    <string name="rtsp_audio_encoder_auto">自动</string>
+    <string name="rtsp_audio_bitrate">音频比特率：%1$s/秒</string>
+    <string name="rtsp_audio_permission_title">允许录音</string>
+    <string name="rtsp_audio_permission_message">应用需要录音权限才能传输音频内容。\n\n如果不授予权限，流媒体将没有音频。</string>
+    <string name="rtsp_audio_permission_open_settings">打开设置</string>
+    <string name="rtsp_audio_permission_message_settings">需要麦克风访问权限才能传输音频内容。\n\n如果不授予权限，流媒体将没有音频。</string>
+
+    <string name="rtsp_connection_access_denied">访问被拒绝</string>
+    <string name="rtsp_connection_no_credentials">请指定用户名和密码</string>
+    <string name="rtsp_connection_invalid_credentials">用户名或密码无效</string>
+</resources>

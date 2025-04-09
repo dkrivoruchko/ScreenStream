@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="rtsp_error_recover">Herstellen</string>
+    <string name="rtsp_error_open_settings">Instellingen openen</string>
+
+    <string name="rtsp_stream_mode">RTSP-modus (RTSP)</string>
+    <string name="rtsp_stream_mode_description">RTSP-modus beschrijving</string>
+    <string name="rtsp_stream_mode_details">
+- Gebruikt RTSP-protocol.\n
+- Vereist een RTSP-mediaserver.\n
+- Ondersteunt zowel video als audio.\n
+- Kan worden beveiligd met gebruikersnaam/wachtwoord.\n
+- Optionele versleuteling van besturingskanaal (RTSPS met TLS).\n
+- Compatibel met WiFi, mobiele netwerken en zowel IPv4/IPv6.\n
+- Vereist een RTSP-client of -speler voor weergave.\n
+- Zeer aanpasbaar.\n
+</string>
+
+    <string name="rtsp_stream_start">Stream starten</string>
+    <string name="rtsp_stream_stop">Stream stoppen</string>
+
+    <string name="rtsp_cast_permission_required_title">Toestemming vereist</string>
+    <string name="rtsp_cast_permission_required">ScreenStream-applicatie heeft schermopnametoestemming nodig om het scherm vast te leggen.</string>
+    <string name="rtsp_error_notification_permission_required">Applicatie vereist dat meldingen zijn ingeschakeld om streamingservice te starten.\nSchakel meldingen in bij applicatie-instellingen.</string>
+    <string name="rtsp_error_unspecified">Er is iets misgegaan. Probeer het later opnieuw.</string>
+
+    <string name="rtsp_media_server">Mediaserver</string>
+    <string name="rtsp_server_address">RTSP-serveradres</string>
+    <string name="rtsp_protocol">RTSP-protocol</string>
+
+    <string name="rtsp_connection_connected">Server verbonden</string>
+    <string name="rtsp_connection_connecting">Verbinding maken met server…</string>
+    <string name="rtsp_connection_disconnected">Server verbroken</string>
+    <string name="rtsp_connection_error">Verbindingsfout</string>
+
+    <string name="rtsp_video_parameters">Videoparameters</string>
+    <string name="rtsp_video_encoder">Video-encoder:</string>
+    <string name="rtsp_video_encoder_auto">Auto</string>
+    <string name="rtsp_video_resize_image">Afbeelding herschalen: %1$.2f%%</string>
+    <string name="rtsp_video_resize_image_10">10%</string>
+    <string name="rtsp_video_resize_image_100">100%</string>
+    <string name="rtsp_video_screen_size">Schermgrootte: %1$dx%2$d</string>
+    <string name="rtsp_video_video_size">Videogrootte: %1$dx%2$d</string>
+    <string name="rtsp_video_frame_rate">Framerate: %1$d frames/sec</string>
+    <string name="rtsp_video_bitrate">Videobitrate: %1$s/sec</string>
+    <string name="rtsp_video_bitrate_mbit">%.2f Mbit</string>
+    <string name="rtsp_video_bitrate_kbit">%d Kbit</string>
+
+    <string name="rtsp_audio_parameters">Audioparameters</string>
+    <string name="rtsp_audio_mic">Microfoon</string>
+    <string name="rtsp_audio_device">Apparaatgeluid</string>
+    <string name="rtsp_audio_encoder">Audio-encoder:</string>
+    <string name="rtsp_audio_encoder_auto">Auto</string>
+    <string name="rtsp_audio_bitrate">Audiobitrate: %1$s/sec</string>
+    <string name="rtsp_audio_permission_title">Audio-opname toestaan</string>
+    <string name="rtsp_audio_permission_message">Toestemming voor audio-opname is nodig om audio te streamen.\n\nZonder deze toestemming zal de stream geen audio bevatten.</string>
+    <string name="rtsp_audio_permission_open_settings">Instellingen openen</string>
+    <string name="rtsp_audio_permission_message_settings">Microfoontoestemming is nodig om audio te streamen.\n\nZonder deze toestemming zal de stream geen audio bevatten.</string>
+
+    <string name="rtsp_connection_access_denied">Toegang geweigerd</string>
+    <string name="rtsp_connection_no_credentials">Geef gebruikersnaam en wachtwoord op</string>
+    <string name="rtsp_connection_invalid_credentials">Gebruikersnaam of wachtwoord is ongeldig</string>
+</resources>

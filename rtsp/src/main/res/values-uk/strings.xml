@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="rtsp_error_recover">Відновити</string>
+    <string name="rtsp_error_open_settings">Відкрити налаштування</string>
+
+    <string name="rtsp_stream_mode">Режим RTSP (RTSP)</string>
+    <string name="rtsp_stream_mode_description">Опис режиму RTSP</string>
+    <string name="rtsp_stream_mode_details">
+- Працює за протоколом RTSP.\n
+- Потрібен медіасервер з підтримкою RTSP.\n
+- Підтримує відео та аудіо.\n
+- Може бути захищений логіном/паролем.\n
+- Опціональне шифрування каналу керування (RTSPS з TLS).\n
+- Сумісний з WiFi, мобільними мережами та IPv4/IPv6.\n
+- Потрібен RTSP-клієнт або плеєр для перегляду.\n
+- Широкі можливості налаштування.\n
+</string>
+
+    <string name="rtsp_stream_start">Почати трансляцію</string>
+    <string name="rtsp_stream_stop">Зупинити трансляцію</string>
+
+    <string name="rtsp_cast_permission_required_title">Потрібен дозвіл</string>
+    <string name="rtsp_cast_permission_required">Додатку ScreenStream потрібен дозвіл на запис екрану.</string>
+    <string name="rtsp_error_notification_permission_required">Для запуску служби трансляції потрібно увімкнути сповіщення.\nУвімкніть сповіщення в налаштуваннях додатку.</string>
+    <string name="rtsp_error_unspecified">Щось пішло не так. Будь ласка, спробуйте пізніше.</string>
+
+    <string name="rtsp_media_server">Медіасервер</string>
+    <string name="rtsp_server_address">Адреса RTSP-сервера</string>
+    <string name="rtsp_protocol">Протокол RTSP</string>
+
+    <string name="rtsp_connection_connected">Сервер підключено</string>
+    <string name="rtsp_connection_connecting">Підключення до сервера…</string>
+    <string name="rtsp_connection_disconnected">Сервер відключено</string>
+    <string name="rtsp_connection_error">Помилка підключення</string>
+
+    <string name="rtsp_video_parameters">Параметри відео</string>
+    <string name="rtsp_video_encoder">Відеокодек:</string>
+    <string name="rtsp_video_encoder_auto">Авто</string>
+    <string name="rtsp_video_resize_image">Розмір зображення: %1$.2f%%</string>
+    <string name="rtsp_video_resize_image_10">10%</string>
+    <string name="rtsp_video_resize_image_100">100%</string>
+    <string name="rtsp_video_screen_size">Розмір екрану: %1$dx%2$d</string>
+    <string name="rtsp_video_video_size">Розмір відео: %1$dx%2$d</string>
+    <string name="rtsp_video_frame_rate">Частота кадрів: %1$d кадрів/сек</string>
+    <string name="rtsp_video_bitrate">Бітрейт відео: %1$s/сек</string>
+    <string name="rtsp_video_bitrate_mbit">%.2f Мбіт</string>
+    <string name="rtsp_video_bitrate_kbit">%d Кбіт</string>
+
+    <string name="rtsp_audio_parameters">Параметри аудіо</string>
+    <string name="rtsp_audio_mic">Мікрофон</string>
+    <string name="rtsp_audio_device">Звук пристрою</string>
+    <string name="rtsp_audio_encoder">Аудіокодек:</string>
+    <string name="rtsp_audio_encoder_auto">Авто</string>
+    <string name="rtsp_audio_bitrate">Бітрейт аудіо: %1$s/сек</string>
+    <string name="rtsp_audio_permission_title">Дозволити запис звуку</string>
+    <string name="rtsp_audio_permission_message">Дозвіл на запис звуку необхідний для трансляції аудіо.\n\nБез цього дозволу трансляція буде без звуку.</string>
+    <string name="rtsp_audio_permission_open_settings">Відкрити налаштування</string>
+    <string name="rtsp_audio_permission_message_settings">Надання доступу до мікрофона необхідне для трансляції аудіо.\n\nБез цього дозволу трансляція буде без звуку.</string>
+
+    <string name="rtsp_connection_access_denied">Доступ заборонено</string>
+    <string name="rtsp_connection_no_credentials">Вкажіть логін і пароль</string>
+    <string name="rtsp_connection_invalid_credentials">Невірний логін або пароль</string>
+</resources>

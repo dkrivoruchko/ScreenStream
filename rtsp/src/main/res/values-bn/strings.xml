@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="rtsp_error_recover">পুনরুদ্ধার</string>
+    <string name="rtsp_error_open_settings">সেটিংস খুলুন</string>
+
+    <string name="rtsp_stream_mode">RTSP মোড (RTSP)</string>
+    <string name="rtsp_stream_mode_description">RTSP মোড বিবরণ</string>
+    <string name="rtsp_stream_mode_details">
+- RTSP প্রোটোকল দ্বারা চালিত।\n
+- RTSP-সক্ষম মিডিয়া সার্ভার প্রয়োজন।\n
+- ভিডিও এবং অডিও উভয়ই সমর্থন করে।\n
+- ব্যবহারকারী নাম/পাসওয়ার্ড দ্বারা সুরক্ষিত করা যেতে পারে।\n
+- ঐচ্ছিক নিয়ন্ত্রণ চ্যানেল এনক্রিপশন (TLS ব্যবহার করে RTSPS)।\n
+- WiFi, মোবাইল নেটওয়ার্ক, এবং IPv4/IPv6 উভয়ের সাথে সামঞ্জস্যপূর্ণ।\n
+- দেখার জন্য RTSP ক্লায়েন্ট বা প্লেয়ার প্রয়োজন।\n
+- অত্যধিক কাস্টমাইজযোগ্য।\n
+</string>
+
+    <string name="rtsp_stream_start">স্ট্রিম শুরু করুন</string>
+    <string name="rtsp_stream_stop">স্ট্রিম বন্ধ করুন</string>
+
+    <string name="rtsp_cast_permission_required_title">অনুমতি প্রয়োজন</string>
+    <string name="rtsp_cast_permission_required">ScreenStream অ্যাপ্লিকেশনের স্ক্রিন ক্যাপচার করার জন্য স্ক্রিন কাস্ট অনুমতি প্রয়োজন।</string>
+    <string name="rtsp_error_notification_permission_required">স্ট্রিমিং সেবা শুরু করতে অ্যাপ্লিকেশনটির বিজ্ঞপ্তি সক্রিয় করা প্রয়োজন।\nঅনুগ্রহ করে অ্যাপ্লিকেশন সেটিংসে বিজ্ঞপ্তিগুলি সক্রিয় করুন।</string>
+    <string name="rtsp_error_unspecified">কিছু ভুল হয়েছে। অনুগ্রহ করে পরে আবার চেষ্টা করুন।</string>
+
+    <string name="rtsp_media_server">মিডিয়া সার্ভার</string>
+    <string name="rtsp_server_address">RTSP সার্ভার ঠিকানা</string>
+    <string name="rtsp_protocol">RTSP প্রোটোকল</string>
+
+    <string name="rtsp_connection_connected">সার্ভার সংযুক্ত</string>
+    <string name="rtsp_connection_connecting">সার্ভারে সংযোগ হচ্ছে…</string>
+    <string name="rtsp_connection_disconnected">সার্ভার সংযোগ বিচ্ছিন্ন</string>
+    <string name="rtsp_connection_error">সংযোগ ত্রুটি</string>
+
+    <string name="rtsp_video_parameters">ভিডিও পরামিতি</string>
+    <string name="rtsp_video_encoder">ভিডিও এনকোডার:</string>
+    <string name="rtsp_video_encoder_auto">স্বয়ংক্রিয়</string>
+    <string name="rtsp_video_resize_image">ছবি আকার পরিবর্তন: %1$.2f%%</string>
+    <string name="rtsp_video_resize_image_10">10%</string>
+    <string name="rtsp_video_resize_image_100">100%</string>
+    <string name="rtsp_video_screen_size">স্ক্রিন আকার: %1$dx%2$d</string>
+    <string name="rtsp_video_video_size">ভিডিও আকার: %1$dx%2$d</string>
+    <string name="rtsp_video_frame_rate">ফ্রেম রেট: %1$d ফ্রেম/সেকেন্ড</string>
+    <string name="rtsp_video_bitrate">ভিডিও বিটরেট: %1$s/সেকেন্ড</string>
+    <string name="rtsp_video_bitrate_mbit">%.2f মেগাবিট</string>
+    <string name="rtsp_video_bitrate_kbit">%d কিলোবিট</string>
+
+    <string name="rtsp_audio_parameters">অডিও পরামিতি</string>
+    <string name="rtsp_audio_mic">মাইক্রোফোন</string>
+    <string name="rtsp_audio_device">ডিভাইস অডিও</string>
+    <string name="rtsp_audio_encoder">অডিও এনকোডার:</string>
+    <string name="rtsp_audio_encoder_auto">স্বয়ংক্রিয়</string>
+    <string name="rtsp_audio_bitrate">অডিও বিটরেট: %1$s/সেকেন্ড</string>
+    <string name="rtsp_audio_permission_title">অডিও রেকর্ডিং অনুমতি দিন</string>
+    <string name="rtsp_audio_permission_message">অডিও কন্টেন্ট স্ট্রিম করার জন্য অ্যাপ্লিকেশনের অডিও রেকর্ড করার অনুমতি প্রয়োজন।\n\nএই অনুমতি না দিলে, স্ট্রিম অডিও ছাড়া হবে।</string>
+    <string name="rtsp_audio_permission_open_settings">সেটিংস খুলুন</string>
+    <string name="rtsp_audio_permission_message_settings">অডিও কন্টেন্ট স্ট্রিম করার জন্য অ্যাপ্লিকেশন অনুমতিতে মাইক্রোফোন অ্যাক্সেস দেওয়া প্রয়োজন।\n\nএই অনুমতি না দিলে, স্ট্রিম অডিও ছাড়া পরিচালিত হবে।</string>
+
+    <string name="rtsp_connection_access_denied">অ্যাক্সেস অস্বীকৃত</string>
+    <string name="rtsp_connection_no_credentials">ব্যবহারকারী নাম এবং পাসওয়ার্ড নির্দিষ্ট করুন</string>
+    <string name="rtsp_connection_invalid_credentials">ব্যবহারকারী নাম বা পাসওয়ার্ড অবৈধ</string>
+</resources>

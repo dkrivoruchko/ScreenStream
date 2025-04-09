@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="rtsp_error_recover">Récupérer</string>
+    <string name="rtsp_error_open_settings">Ouvrir les paramètres</string>
+
+    <string name="rtsp_stream_mode">Mode RTSP (RTSP)</string>
+    <string name="rtsp_stream_mode_description">Description du mode RTSP</string>
+    <string name="rtsp_stream_mode_details">
+- Alimenté par le protocole RTSP.\n
+- Nécessite un serveur média compatible RTSP.\n
+- Prend en charge la vidéo et l\'audio.\n
+- Peut être protégé par nom d\'utilisateur/mot de passe.\n
+- Chiffrement optionnel du canal de contrôle (RTSPS utilisant TLS).\n
+- Compatible avec WiFi, réseaux mobiles et IPv4/IPv6.\n
+- Nécessite un client ou lecteur RTSP pour la visualisation.\n
+- Hautement personnalisable.\n
+</string>
+
+    <string name="rtsp_stream_start">Démarrer le flux</string>
+    <string name="rtsp_stream_stop">Arrêter le flux</string>
+
+    <string name="rtsp_cast_permission_required_title">Autorisation requise</string>
+    <string name="rtsp_cast_permission_required">L\'application ScreenStream nécessite l\'autorisation de diffusion d\'écran pour capturer l\'écran.</string>
+    <string name="rtsp_error_notification_permission_required">L\'application nécessite que les notifications soient activées pour démarrer le service de diffusion.\nVeuillez activer les notifications dans les paramètres de l\'application.</string>
+    <string name="rtsp_error_unspecified">Une erreur s\'est produite. Veuillez réessayer plus tard.</string>
+
+    <string name="rtsp_media_server">Serveur média</string>
+    <string name="rtsp_server_address">Adresse du serveur RTSP</string>
+    <string name="rtsp_protocol">Protocole RTSP</string>
+
+    <string name="rtsp_connection_connected">Serveur connecté</string>
+    <string name="rtsp_connection_connecting">Connexion au serveur…</string>
+    <string name="rtsp_connection_disconnected">Serveur déconnecté</string>
+    <string name="rtsp_connection_error">Erreur de connexion</string>
+
+    <string name="rtsp_video_parameters">Paramètres vidéo</string>
+    <string name="rtsp_video_encoder">Encodeur vidéo :</string>
+    <string name="rtsp_video_encoder_auto">Auto</string>
+    <string name="rtsp_video_resize_image">Redimensionner l\'image : %1$.2f%%</string>
+    <string name="rtsp_video_resize_image_10">10%</string>
+    <string name="rtsp_video_resize_image_100">100%</string>
+    <string name="rtsp_video_screen_size">Taille de l\'écran : %1$dx%2$d</string>
+    <string name="rtsp_video_video_size">Taille de la vidéo : %1$dx%2$d</string>
+    <string name="rtsp_video_frame_rate">Fréquence d\'images : %1$d images/sec</string>
+    <string name="rtsp_video_bitrate">Débit vidéo : %1$s/sec</string>
+    <string name="rtsp_video_bitrate_mbit">%.2f Mbit</string>
+    <string name="rtsp_video_bitrate_kbit">%d Kbit</string>
+
+    <string name="rtsp_audio_parameters">Paramètres audio</string>
+    <string name="rtsp_audio_mic">Microphone</string>
+    <string name="rtsp_audio_device">Audio de l\'appareil</string>
+    <string name="rtsp_audio_encoder">Encodeur audio :</string>
+    <string name="rtsp_audio_encoder_auto">Auto</string>
+    <string name="rtsp_audio_bitrate">Débit audio : %1$s/sec</string>
+    <string name="rtsp_audio_permission_title">Autoriser l\'enregistrement audio</string>
+    <string name="rtsp_audio_permission_message">L\'autorisation d\'enregistrer l\'audio est nécessaire pour que l\'application puisse diffuser du contenu audio.\n\nSans cette autorisation, le flux sera sans audio.</string>
+    <string name="rtsp_audio_permission_open_settings">Ouvrir les paramètres</string>
+    <string name="rtsp_audio_permission_message_settings">L\'accès au microphone dans les autorisations de l\'application est nécessaire pour diffuser du contenu audio.\n\nSans cette autorisation, le flux sera effectué sans audio.</string>
+
+    <string name="rtsp_connection_access_denied">Accès refusé</string>
+    <string name="rtsp_connection_no_credentials">Spécifiez le nom d\'utilisateur et le mot de passe</string>
+    <string name="rtsp_connection_invalid_credentials">Nom d\'utilisateur ou mot de passe invalide</string>
+</resources>

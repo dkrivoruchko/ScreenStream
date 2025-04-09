@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="rtsp_error_recover">استعادة</string>
+    <string name="rtsp_error_open_settings">فتح الإعدادات</string>
+
+    <string name="rtsp_stream_mode">وضع RTSP (RTSP)</string>
+    <string name="rtsp_stream_mode_description">وصف وضع RTSP</string>
+    <string name="rtsp_stream_mode_details">
+- يعمل ببروتوكول RTSP.\n
+- يتطلب خادم وسائط متوافق مع RTSP.\n
+- يدعم الفيديو والصوت.\n
+- يمكن حمايته باسم مستخدم/كلمة مرور.\n
+- تشفير قناة التحكم اختياري (RTSPS باستخدام TLS).\n
+- متوافق مع WiFi وشبكات الجوال وIPv4/IPv6.\n
+- يتطلب عميل RTSP أو مشغل للمشاهدة.\n
+- قابل للتخصيص بشكل كبير.\n
+</string>
+
+    <string name="rtsp_stream_start">بدء البث</string>
+    <string name="rtsp_stream_stop">إيقاف البث</string>
+
+    <string name="rtsp_cast_permission_required_title">الإذن مطلوب</string>
+    <string name="rtsp_cast_permission_required">يتطلب تطبيق ScreenStream إذن بث الشاشة لالتقاط الشاشة.</string>
+    <string name="rtsp_error_notification_permission_required">يتطلب التطبيق تمكين الإشعارات لبدء خدمة البث.\nيرجى تمكين الإشعارات في إعدادات التطبيق.</string>
+    <string name="rtsp_error_unspecified">حدث خطأ ما. يرجى المحاولة مرة أخرى لاحقاً.</string>
+
+    <string name="rtsp_media_server">خادم الوسائط</string>
+    <string name="rtsp_server_address">عنوان خادم RTSP</string>
+    <string name="rtsp_protocol">بروتوكول RTSP</string>
+
+    <string name="rtsp_connection_connected">تم الاتصال بالخادم</string>
+    <string name="rtsp_connection_connecting">جاري الاتصال بالخادم…</string>
+    <string name="rtsp_connection_disconnected">انقطع الاتصال بالخادم</string>
+    <string name="rtsp_connection_error">خطأ في الاتصال</string>
+
+    <string name="rtsp_video_parameters">معلمات الفيديو</string>
+    <string name="rtsp_video_encoder">ترميز الفيديو:</string>
+    <string name="rtsp_video_encoder_auto">تلقائي</string>
+    <string name="rtsp_video_resize_image">تغيير حجم الصورة: %1$.2f%%</string>
+    <string name="rtsp_video_resize_image_10">10%</string>
+    <string name="rtsp_video_resize_image_100">100%</string>
+    <string name="rtsp_video_screen_size">حجم الشاشة: %1$dx%2$d</string>
+    <string name="rtsp_video_video_size">حجم الفيديو: %1$dx%2$d</string>
+    <string name="rtsp_video_frame_rate">معدل الإطارات: %1$d إطار/ثانية</string>
+    <string name="rtsp_video_bitrate">معدل بت الفيديو: %1$s/ثانية</string>
+    <string name="rtsp_video_bitrate_mbit">%.2f ميجابت</string>
+    <string name="rtsp_video_bitrate_kbit">%d كيلوبت</string>
+
+    <string name="rtsp_audio_parameters">معلمات الصوت</string>
+    <string name="rtsp_audio_mic">الميكروفون</string>
+    <string name="rtsp_audio_device">صوت الجهاز</string>
+    <string name="rtsp_audio_encoder">ترميز الصوت:</string>
+    <string name="rtsp_audio_encoder_auto">تلقائي</string>
+    <string name="rtsp_audio_bitrate">معدل بت الصوت: %1$s/ثانية</string>
+    <string name="rtsp_audio_permission_title">السماح بتسجيل الصوت</string>
+    <string name="rtsp_audio_permission_message">إذن تسجيل الصوت ضروري للتطبيق لبث المحتوى الصوتي.\n\nبدون منح هذا الإذن، سيكون البث بدون صوت.</string>
+    <string name="rtsp_audio_permission_open_settings">فتح الإعدادات</string>
+    <string name="rtsp_audio_permission_message_settings">منح الوصول إلى الميكروفون في أذونات التطبيق ضروري للتطبيق لبث المحتوى الصوتي.\n\nبدون منح هذا الإذن، سيتم إجراء البث بدون صوت.</string>
+
+    <string name="rtsp_connection_access_denied">تم رفض الوصول</string>
+    <string name="rtsp_connection_no_credentials">حدد اسم المستخدم وكلمة المرور</string>
+    <string name="rtsp_connection_invalid_credentials">اسم المستخدم أو كلمة المرور غير صالحة</string>
+</resources>
