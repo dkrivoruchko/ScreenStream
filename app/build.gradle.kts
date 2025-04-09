@@ -115,6 +115,7 @@ dependencies {
     implementation(libs.processPhoenix)
 
     implementation(projects.mjpeg)
+    implementation(projects.rtsp)
 
     "PlayStoreImplementation"(projects.webrtc)
     "PlayStoreImplementation"(libs.play.services.tasks)

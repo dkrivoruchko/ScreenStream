@@ -33,7 +33,7 @@ public class MjpegStreamingModule : StreamingModule {
     private val _mjpegStateFlow: MutableStateFlow<MjpegState> = MutableStateFlow(MjpegState())
 
     override val id: StreamingModule.Id = Id
-    override val priority: Int = 20
+    override val priority: Int = 30
     override val moduleSettings: ModuleSettings = MjpegModuleSettings
 
     override val isRunning: Flow<Boolean>
