@@ -22,7 +22,7 @@
     <string name="rtsp_cast_permission_required_title">Permission required</string>
     <string name="rtsp_cast_permission_required">ScreenStream application requires Screen Cast permission to capture screen.</string>
     <string name="rtsp_error_notification_permission_required">Application require notifications to be enabled to start streaming service.\nPlease enable notifications in application settings.</string>
-    <string name="rtsp_error_unspecified">Something went wrong. Please try again later.</string>
+    <string name="rtsp_error_unspecified">Something went wrong.</string>
 
     <string name="rtsp_media_server">Media server</string>
     <string name="rtsp_server_address">RTSP server address</string>

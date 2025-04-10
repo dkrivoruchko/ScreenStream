@@ -102,19 +102,12 @@ internal fun AudioCard(
         modifier = modifier,
         initiallyExpanded = true
     ) {
-        if (rtspState.value.selectedAudioEncoder?.capabilities?.audioCapabilities == null) return@ExpandableCard
-
-        val audioCapabilities = remember(rtspState.value.selectedAudioEncoder) {
-            rtspState.value.selectedAudioEncoder?.capabilities?.audioCapabilities!!
-        }
-
         val rtspSettingsState = rtspSettings.data.collectAsStateWithLifecycle()
         val context = LocalContext.current
 
         AudioSource(
             text = stringResource(R.string.rtsp_audio_mic),
             selected = rtspSettingsState.value.enableMic,
-            enabled = rtspState.value.isStreaming.not(),
             onChange = { enabled ->
                 if (enabled.not() || context.isPermissionGranted(Manifest.permission.RECORD_AUDIO)) {
                     scope.launch { rtspSettings.updateData { copy(enableMic = enabled) } }
@@ -125,6 +118,7 @@ internal fun AudioCard(
                     showRecordAudioPermission.value = true
                 }
             },
+            enabled = rtspState.value.isStreaming.not(),
             modifier = Modifier.padding(top = 4.dp)
         )
 
@@ -132,7 +126,6 @@ internal fun AudioCard(
             AudioSource(
                 text = stringResource(R.string.rtsp_audio_device),
                 selected = rtspSettingsState.value.enableDeviceAudio,
-                enabled = rtspState.value.isStreaming.not(),
                 onChange = { enabled ->
                     if (enabled.not() || context.isPermissionGranted(Manifest.permission.RECORD_AUDIO)) {
                         scope.launch { rtspSettings.updateData { copy(enableDeviceAudio = enabled) } }
@@ -143,6 +136,7 @@ internal fun AudioCard(
                         showRecordAudioPermission.value = true
                     }
                 },
+                enabled = rtspState.value.isStreaming.not(),
                 modifier = Modifier.padding(top = 4.dp)
             )
         }
@@ -155,11 +149,17 @@ internal fun AudioCard(
             selectedEncoder = rtspState.value.selectedAudioEncoder,
             availableEncoders = EncoderUtils.availableAudioEncoders,
             onCodecSelected = { scope.launch { rtspSettings.updateData { copy(audioCodec = it ?: "") } } },
+            enabled = rtspState.value.isStreaming.not(),
             modifier = Modifier
                 .padding(top = 4.dp)
                 .fillMaxWidth()
         )
 
+        if (rtspState.value.selectedAudioEncoder?.capabilities?.audioCapabilities == null) return@ExpandableCard
+
+        val audioCapabilities = remember(rtspState.value.selectedAudioEncoder) {
+            rtspState.value.selectedAudioEncoder?.capabilities?.audioCapabilities!!
+        }
 
         val bitrateRangeKbits = remember(audioCapabilities) { audioCapabilities.getBitRateInKbits() }
 
@@ -167,6 +167,7 @@ internal fun AudioCard(
             bitrateRangeKbits = bitrateRangeKbits,
             bitrateBits = rtspSettingsState.value.audioBitrateBits,
             onValueChange = { scope.launch { rtspSettings.updateData { copy(audioBitrateBits = it) } } },
+            enabled = rtspState.value.isStreaming.not(),
             modifier = Modifier
                 .padding(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 8.dp)
                 .fillMaxWidth()
@@ -185,9 +186,9 @@ internal fun AudioCard(
 @Composable
 private fun AudioSource(
     text: String,
-    enabled: Boolean,
     selected: Boolean,
     onChange: (Boolean) -> Unit,
+    enabled: Boolean,
     modifier: Modifier = Modifier,
 ) {
     Row(
@@ -208,12 +209,13 @@ private fun AudioEncoder(
     selectedEncoder: AudioCodecInfo?,
     availableEncoders: List<AudioCodecInfo>,
     onCodecSelected: (String?) -> Unit,
+    enabled: Boolean,
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier) {
         Row(
             modifier = Modifier
-                .toggleable(value = isAutoSelect, onValueChange = onAutoSelectChange)
+                .conditional(enabled) { toggleable(value = isAutoSelect, onValueChange = onAutoSelectChange) }
                 .padding(start = 16.dp, top = 8.dp, end = 4.dp, bottom = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -221,7 +223,7 @@ private fun AudioEncoder(
             Spacer(modifier = Modifier.weight(1f))
             Row {
                 Text(text = stringResource(R.string.rtsp_audio_encoder_auto), modifier = Modifier.align(Alignment.CenterVertically))
-                Switch(checked = isAutoSelect, onCheckedChange = null, modifier = Modifier.scale(0.7F))
+                Switch(checked = isAutoSelect, enabled = enabled, onCheckedChange = null, modifier = Modifier.scale(0.7F))
             }
         }
 
@@ -291,6 +293,7 @@ private fun Bitrate(
     bitrateRangeKbits: ClosedRange<Int>,
     bitrateBits: Int,
     onValueChange: (Int) -> Unit,
+    enabled: Boolean,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier) {
@@ -313,6 +316,7 @@ private fun Bitrate(
                     .padding(horizontal = 8.dp)
                     .weight(1f)
                     .align(Alignment.CenterVertically),
+                enabled = enabled,
                 valueRange = bitrateRangeKbits.start.toFloat()..bitrateRangeKbits.endInclusive.toFloat(),
                 onValueChangeFinished = { onValueChange.invoke((sliderPosition * 1000).roundToInt()) }
             )

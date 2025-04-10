@@ -223,9 +223,7 @@ internal class AudioCapture(
                 }
 
                 size < 0 -> {
-                    XLog.w(getLog("readAudioLoop", "Read error: $size"))
-                    onError(Exception("Read error: $size"))
-                    break
+                    XLog.w(getLog("readAudioLoop", "Read size is negative, skipping frame."))
                 }
             }
         }

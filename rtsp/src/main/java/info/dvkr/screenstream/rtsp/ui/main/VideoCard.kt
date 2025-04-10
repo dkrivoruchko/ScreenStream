@@ -31,6 +31,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -58,6 +59,7 @@ import info.dvkr.screenstream.rtsp.internal.VideoCodecInfo
 import info.dvkr.screenstream.rtsp.settings.RtspSettings
 import info.dvkr.screenstream.rtsp.ui.RtspState
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import kotlin.math.roundToInt
@@ -99,17 +101,20 @@ internal fun VideoCard(
             selectedEncoder = rtspState.value.selectedVideoEncoder,
             availableEncoders = EncoderUtils.availableVideoEncoders,
             onCodecSelected = { scope.launch { rtspSettings.updateData { copy(videoCodec = it) } } },
+            enabled = rtspState.value.isStreaming.not(),
             modifier = Modifier
                 .padding(top = 4.dp)
                 .fillMaxWidth()
         )
 
         val context = LocalContext.current
-        val screenSize = remember {
+        val screenSize = remember(context) {
             WindowMetricsCalculator.getOrCreate().computeMaximumWindowMetrics(context).bounds.toComposeIntRect().size
         }
 
-        val (_, resizedWidth, resizedHeight) = remember(screenSize, videoCapabilities, rtspSettingsState.value.videoResizeFactor) {
+        val (resizeFactor, resizedWidth, resizedHeight) = remember(
+            screenSize, videoCapabilities, rtspSettingsState.value.videoResizeFactor
+        ) {
             videoCapabilities.adjustResizeFactor(screenSize.width, screenSize.height, rtspSettingsState.value.videoResizeFactor / 100)
         }
 
@@ -122,16 +127,16 @@ internal fun VideoCard(
         ImageSize(
             screenSize = screenSize,
             resultSize = IntSize(resizedWidth, resizedHeight),
-            resizeFactor = rtspSettingsState.value.videoResizeFactor,
+            resizeFactor = resizeFactor * 100,
             onValueChange = { newResizeFactor ->
                 scope.launch {
                     val (resizeFactor, resizedWidth, resizedHeight) =
                         videoCapabilities.adjustResizeFactor(screenSize.width, screenSize.height, newResizeFactor / 100)
-                    val fpsRange =
-                        videoCapabilities.getFrameRates(resizedWidth, resizedHeight)
+                    val fpsRange = videoCapabilities.getFrameRates(resizedWidth, resizedHeight)
                     rtspSettings.updateData { copy(videoResizeFactor = resizeFactor * 100, videoFps = videoFps.coerceIn(fpsRange)) }
                 }
             },
+            enabled = rtspState.value.isStreaming.not(),
             modifier = Modifier
                 .padding(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 8.dp)
                 .fillMaxWidth()
@@ -141,6 +146,7 @@ internal fun VideoCard(
             fpsRange = fpsRange,
             fps = rtspSettingsState.value.videoFps,
             onValueChange = { scope.launch { rtspSettings.updateData { copy(videoFps = it) } } },
+            enabled = rtspState.value.isStreaming.not(),
             modifier = Modifier
                 .padding(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 8.dp)
                 .fillMaxWidth()
@@ -150,6 +156,7 @@ internal fun VideoCard(
             bitrateRangeKbits = bitrateRangeKbits,
             bitrateBits = rtspSettingsState.value.videoBitrateBits,
             onValueChange = { scope.launch { rtspSettings.updateData { copy(videoBitrateBits = it) } } },
+            enabled = rtspState.value.isStreaming.not(),
             modifier = Modifier
                 .padding(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 8.dp)
                 .fillMaxWidth()
@@ -164,12 +171,13 @@ private fun VideoEncoder(
     selectedEncoder: VideoCodecInfo?,
     availableEncoders: List<VideoCodecInfo>,
     onCodecSelected: (String) -> Unit,
+    enabled: Boolean,
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier) {
         Row(
             modifier = Modifier
-                .toggleable(value = isAutoSelect, onValueChange = onAutoSelectChange)
+                .conditional(enabled) { toggleable(value = isAutoSelect, onValueChange = onAutoSelectChange) }
                 .padding(start = 16.dp, top = 8.dp, end = 4.dp, bottom = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -177,7 +185,7 @@ private fun VideoEncoder(
             Spacer(modifier = Modifier.weight(1f))
             Row {
                 Text(text = stringResource(R.string.rtsp_video_encoder_auto), modifier = Modifier.align(Alignment.CenterVertically))
-                Switch(checked = isAutoSelect, onCheckedChange = null, modifier = Modifier.scale(0.7F))
+                Switch(checked = isAutoSelect, enabled = enabled, onCheckedChange = null, modifier = Modifier.scale(0.7F))
             }
         }
 
@@ -248,11 +256,14 @@ private fun ImageSize(
     resultSize: IntSize,
     resizeFactor: Float,
     onValueChange: (Float) -> Unit,
+    enabled: Boolean,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier) {
-        var sliderPosition by remember(resizeFactor) { mutableFloatStateOf(resizeFactor.toFloat()) }
-        var currentResultSize by remember(resultSize) { mutableStateOf(resultSize) }
+        var counter by remember { mutableLongStateOf(0) }
+        var sliderPosition by remember(resizeFactor, counter) { mutableFloatStateOf(resizeFactor) }
+        var currentResultSize by remember(resultSize, counter) { mutableStateOf(resultSize) }
+        val scope = rememberCoroutineScope()
 
         Text(text = stringResource(R.string.rtsp_video_resize_image, sliderPosition))
 
@@ -262,17 +273,15 @@ private fun ImageSize(
                 value = sliderPosition,
                 onValueChange = {
                     sliderPosition = it
-                    currentResultSize = IntSize(
-                        (screenSize.width * sliderPosition / 100F).roundToInt(),
-                        (screenSize.height * sliderPosition / 100F).roundToInt()
-                    )
+                    currentResultSize = IntSize((screenSize.width * it / 100F).roundToInt(), (screenSize.height * it / 100F).roundToInt())
                 },
+                enabled = enabled,
                 modifier = Modifier
                     .padding(horizontal = 8.dp)
                     .weight(1f)
                     .align(Alignment.CenterVertically),
                 valueRange = 10F..100F,
-                onValueChangeFinished = { onValueChange.invoke(sliderPosition) }
+                onValueChangeFinished = { onValueChange.invoke(sliderPosition); scope.launch { delay(250); counter = counter + 1 } }
             )
             Text(text = stringResource(R.string.rtsp_video_resize_image_100), modifier = Modifier.align(Alignment.CenterVertically))
         }
@@ -307,6 +316,7 @@ private fun Fps(
     fpsRange: ClosedRange<Int>,
     fps: Int,
     onValueChange: (Int) -> Unit,
+    enabled: Boolean,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier) {
@@ -323,6 +333,7 @@ private fun Fps(
                     .padding(horizontal = 8.dp)
                     .weight(1f)
                     .align(Alignment.CenterVertically),
+                enabled = enabled,
                 valueRange = fpsRange.start.toFloat()..fpsRange.endInclusive.toFloat(),
                 onValueChangeFinished = { onValueChange.invoke(sliderPosition.roundToInt()) }
             )
@@ -336,6 +347,7 @@ private fun Bitrate(
     bitrateRangeKbits: ClosedRange<Int>,
     bitrateBits: Int,
     onValueChange: (Int) -> Unit,
+    enabled: Boolean,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier) {
@@ -358,6 +370,7 @@ private fun Bitrate(
                     .padding(horizontal = 8.dp)
                     .weight(1f)
                     .align(Alignment.CenterVertically),
+                enabled = enabled,
                 valueRange = bitrateRangeKbits.start.toFloat()..bitrateRangeKbits.endInclusive.toFloat(),
                 onValueChangeFinished = { onValueChange.invoke((sliderPosition * 1000).roundToInt()) }
             )

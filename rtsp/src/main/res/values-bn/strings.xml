@@ -22,7 +22,7 @@
     <string name="rtsp_cast_permission_required_title">অনুমতি প্রয়োজন</string>
     <string name="rtsp_cast_permission_required">ScreenStream অ্যাপ্লিকেশনের স্ক্রিন ক্যাপচার করার জন্য স্ক্রিন কাস্ট অনুমতি প্রয়োজন।</string>
     <string name="rtsp_error_notification_permission_required">স্ট্রিমিং সেবা শুরু করতে অ্যাপ্লিকেশনটির বিজ্ঞপ্তি সক্রিয় করা প্রয়োজন।\nঅনুগ্রহ করে অ্যাপ্লিকেশন সেটিংসে বিজ্ঞপ্তিগুলি সক্রিয় করুন।</string>
-    <string name="rtsp_error_unspecified">কিছু ভুল হয়েছে। অনুগ্রহ করে পরে আবার চেষ্টা করুন।</string>
+    <string name="rtsp_error_unspecified">কিছু একটা সমস্যা হয়েছে।</string>
 
     <string name="rtsp_media_server">মিডিয়া সার্ভার</string>
     <string name="rtsp_server_address">RTSP সার্ভার ঠিকানা</string>

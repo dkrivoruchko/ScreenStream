@@ -22,7 +22,7 @@
     <string name="rtsp_cast_permission_required_title">Baimena beharrezkoa</string>
     <string name="rtsp_cast_permission_required">ScreenStream aplikazioak pantaila transmisio baimena behar du pantaila harrapatzeko.</string>
     <string name="rtsp_error_notification_permission_required">Aplikazioak jakinarazpenak gaituta egotea behar du transmisio zerbitzua hasteko.\nMesedez, gaitu jakinarazpenak aplikazioaren ezarpenetan.</string>
-    <string name="rtsp_error_unspecified">Zerbait gaizki joan da. Saiatu berriro geroago.</string>
+    <string name="rtsp_error_unspecified">Zerbait oker joan da.</string>
 
     <string name="rtsp_media_server">Multimedia zerbitzaria</string>
     <string name="rtsp_server_address">RTSP zerbitzariaren helbidea</string>

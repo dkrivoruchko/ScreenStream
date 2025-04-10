@@ -145,22 +145,15 @@ internal class RtspStreamingService(
         fun <T> Flow<T>.listenForChange(scope: CoroutineScope, drop: Int = 0, action: suspend (T) -> Unit) =
             distinctUntilChanged().drop(drop).onEach { action(it) }.launchIn(scope)
 
-        rtspSettings.data.map { it.videoCodecAutoSelect }.listenForChange(coroutineScope) {
-            if (it) sendEvent(InternalEvent.OnVideoCodecChange(null))
-            else sendEvent(InternalEvent.OnVideoCodecChange(rtspSettings.data.value.videoCodec))
+        rtspSettings.data.map { it.videoCodecAutoSelect to it.videoCodec }.listenForChange(coroutineScope) {
+            if (it.first) sendEvent(InternalEvent.OnVideoCodecChange(null))
+            else sendEvent(InternalEvent.OnVideoCodecChange(it.second))
         }
 
-        rtspSettings.data.map { it.videoCodec }.listenForChange(coroutineScope) {
-            sendEvent(InternalEvent.OnVideoCodecChange(it))
-        }
 
-        rtspSettings.data.map { it.audioCodecAutoSelect }.listenForChange(coroutineScope) {
-            if (it) sendEvent(InternalEvent.OnAudioCodecChange(null))
-            else sendEvent(InternalEvent.OnAudioCodecChange(rtspSettings.data.value.audioCodec))
-        }
-
-        rtspSettings.data.map { it.audioCodec }.listenForChange(coroutineScope) {
-            sendEvent(InternalEvent.OnAudioCodecChange(it))
+        rtspSettings.data.map { it.audioCodecAutoSelect to it.audioCodec }.listenForChange(coroutineScope) {
+            if (it.first) sendEvent(InternalEvent.OnAudioCodecChange(null))
+            else sendEvent(InternalEvent.OnAudioCodecChange(it.second))
         }
     }
 
@@ -264,14 +257,12 @@ internal class RtspStreamingService(
                 selectedVideoEncoderInfo = null
                 selectedVideoEncoderInfo = when {
                     // Auto select
-                    event.name.isNullOrEmpty() -> EncoderUtils.availableVideoEncoders.first()
+                    event.name.isNullOrBlank() -> EncoderUtils.availableVideoEncoders.first()
 
                     // We have saved codec, checking if it's available
                     else -> EncoderUtils.availableVideoEncoders
                         .firstOrNull { it.name.equals(event.name, ignoreCase = true) } ?: EncoderUtils.availableVideoEncoders.first()
                 }
-
-                require(selectedVideoEncoderInfo != null) { "No valid video encoder found" }
             }
 
             is InternalEvent.OnAudioCodecChange -> {
@@ -280,14 +271,12 @@ internal class RtspStreamingService(
                 selectedAudioEncoderInfo = null
                 selectedAudioEncoderInfo = when {
                     // Auto select
-                    event.name.isNullOrEmpty() -> EncoderUtils.availableAudioEncoders.first()
+                    event.name.isNullOrBlank() -> EncoderUtils.availableAudioEncoders.first()
 
                     // We have saved codec, checking if it's available
                     else -> EncoderUtils.availableAudioEncoders
                         .firstOrNull { it.name.equals(event.name, ignoreCase = true) } ?: EncoderUtils.availableAudioEncoders.first()
                 }
-
-                require(selectedAudioEncoderInfo != null) { "No valid audio encoder found" }
             }
 
             is InternalEvent.StartStream -> {
@@ -341,7 +330,7 @@ internal class RtspStreamingService(
                     onVideoFrame = { frame -> rtspClient?.enqueueFrame(frame) },
                     onFps = { sendEvent(InternalEvent.OnVideoFps(it)) },
                     onError = {
-                        XLog.e(getLog("VideoEncoder.onError", it.message), it)
+                        XLog.w(getLog("VideoEncoder.onError", it.message), it)
                         sendEvent(InternalEvent.Error(RtspError.UnknownError(it)))
                     }
                 ).apply {
@@ -354,6 +343,23 @@ internal class RtspStreamingService(
                     val fps = rtspSettings.data.value.videoFps.coerceIn(videoCapabilities.supportedFrameRates.toClosedRange())
                     val bitRate = rtspSettings.data.value.videoBitrateBits.coerceIn(videoCapabilities.bitrateRange.toClosedRange())
                     prepare(width, height, fps, bitRate)
+
+                    if (inputSurfaceTexture == null) {
+                        rtspClient?.destroy()
+                        rtspClient = null
+
+                        serverConnectionState = ConnectionState.Disconnected
+
+                        videoEncoder?.stop()
+                        videoEncoder = null
+
+                        mediaProjection?.unregisterCallback(projectionCallback)
+                        mediaProjection?.stop()
+                        mediaProjection = null
+
+                        service.stopForeground()
+                        return
+                    }
 
                     virtualDisplay?.release()
                     virtualDisplay?.surface?.release()
@@ -379,7 +385,7 @@ internal class RtspStreamingService(
                         onAudioInfo = { rtspClient?.setAudioData(selectedAudioEncoderInfo!!.codec, it) },
                         onAudioFrame = { frame -> rtspClient?.enqueueFrame(frame) },
                         onError = {
-                            XLog.e(getLog("AudioEncoder.onError", it.message), it)
+                            XLog.w(getLog("AudioEncoder.onError", it.message), it)
                             sendEvent(InternalEvent.Error(RtspError.UnknownError(it)))
                         }
                     ).apply {
@@ -504,6 +510,7 @@ internal class RtspStreamingService(
             }
 
             rtspClient?.destroy()
+            rtspClient = null
             serverConnectionState = ConnectionState.Disconnected
 
             videoEncoder?.stop()
@@ -514,8 +521,6 @@ internal class RtspStreamingService(
 
             audioEncoder?.stop()
             audioEncoder = null
-
-            rtspClient = null
 
             mediaProjection?.unregisterCallback(projectionCallback)
             mediaProjection?.stop()

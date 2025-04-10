@@ -21,7 +21,7 @@
     <string name="rtsp_cast_permission_required_title">ፈቃድ ያስፈልጋል</string>
     <string name="rtsp_cast_permission_required">ScreenStream መተግበሪያ ለማያ ገጽ ማንሳት የማያ ገጽ ስርጭት ፈቃድ ያስፈልገዋል።</string>
     <string name="rtsp_error_notification_permission_required">መተግበሪያው የዥረት አገልግሎት ለመጀመር ማሳወቂያዎች እንዲነቁ ይፈልጋል።\nእባክዎ በመተግበሪያ ቅንብሮች ውስጥ ማሳወቂያዎችን ያንቁ።</string>
-    <string name="rtsp_error_unspecified">አንድ ነገር ተሳስቷል። እባክዎ ቆይተው ይሞክሩ።</string>
+    <string name="rtsp_error_unspecified">አንድ ችግር ተፈጥሯል።</string>
 
     <string name="rtsp_media_server">ሚዲያ አገልጋይ</string>
     <string name="rtsp_server_address">RTSP አገልጋይ አድራሻ</string>

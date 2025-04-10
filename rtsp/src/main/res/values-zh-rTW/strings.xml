@@ -22,7 +22,7 @@
     <string name="rtsp_cast_permission_required_title">需要權限</string>
     <string name="rtsp_cast_permission_required">ScreenStream應用需要螢幕錄製權限來捕獲螢幕。</string>
     <string name="rtsp_error_notification_permission_required">應用需要啟用通知才能啟動串流服務。\n請在應用設定中啟用通知。</string>
-    <string name="rtsp_error_unspecified">發生錯誤。請稍後重試。</string>
+    <string name="rtsp_error_unspecified">發生錯誤。</string>
 
     <string name="rtsp_media_server">媒體伺服器</string>
     <string name="rtsp_server_address">RTSP伺服器地址</string>

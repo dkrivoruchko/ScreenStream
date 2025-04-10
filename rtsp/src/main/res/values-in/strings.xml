@@ -22,7 +22,7 @@
     <string name="rtsp_cast_permission_required_title">Izin diperlukan</string>
     <string name="rtsp_cast_permission_required">Aplikasi ScreenStream memerlukan izin Cast Layar untuk merekam layar.</string>
     <string name="rtsp_error_notification_permission_required">Aplikasi memerlukan notifikasi diaktifkan untuk memulai layanan streaming.\nSilakan aktifkan notifikasi di pengaturan aplikasi.</string>
-    <string name="rtsp_error_unspecified">Terjadi kesalahan. Silakan coba lagi nanti.</string>
+    <string name="rtsp_error_unspecified">Terjadi kesalahan.</string>
 
     <string name="rtsp_media_server">Server media</string>
     <string name="rtsp_server_address">Alamat server RTSP</string>

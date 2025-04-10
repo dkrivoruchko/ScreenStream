@@ -22,7 +22,7 @@
     <string name="rtsp_cast_permission_required_title">Потрібен дозвіл</string>
     <string name="rtsp_cast_permission_required">Додатку ScreenStream потрібен дозвіл на запис екрану.</string>
     <string name="rtsp_error_notification_permission_required">Для запуску служби трансляції потрібно увімкнути сповіщення.\nУвімкніть сповіщення в налаштуваннях додатку.</string>
-    <string name="rtsp_error_unspecified">Щось пішло не так. Будь ласка, спробуйте пізніше.</string>
+    <string name="rtsp_error_unspecified">Щось пішло не так.</string>
 
     <string name="rtsp_media_server">Медіасервер</string>
     <string name="rtsp_server_address">Адреса RTSP-сервера</string>

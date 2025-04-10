@@ -22,7 +22,7 @@
     <string name="rtsp_cast_permission_required_title">Toestemming benodig</string>
     <string name="rtsp_cast_permission_required">ScreenStream-toepassing benodig Skermstuur-toestemming om die skerm vas te lê.</string>
     <string name="rtsp_error_notification_permission_required">Toepassing vereis dat kennisgewings geaktiveer word om stroomdiens te begin.\nAktiveer asseblief kennisgewings in toepassingsinstellings.</string>
-    <string name="rtsp_error_unspecified">Iets het verkeerd gegaan. Probeer asseblief later weer.</string>
+    <string name="rtsp_error_unspecified">Iets het verkeerd gegaan.</string>
 
     <string name="rtsp_media_server">Mediaserver</string>
     <string name="rtsp_server_address">RTSP-serveradres</string>

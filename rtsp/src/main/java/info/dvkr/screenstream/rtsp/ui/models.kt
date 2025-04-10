@@ -41,7 +41,7 @@ internal sealed class ConnectionError(@StringRes open val id: Int) : Throwable()
 internal sealed class RtspError(@StringRes open val id: Int, override val message: String? = null) : Throwable() {
     internal data object NotificationPermissionRequired : RtspError(R.string.rtsp_error_notification_permission_required)
     internal data class UnknownError(override val cause: Throwable?) : RtspError(R.string.rtsp_error_unspecified) {
-        override fun toString(context: Context): String = context.getString(id) + " [${cause?.message}]"
+        override fun toString(context: Context): String = context.getString(id) + "\n[${cause.toString()}]"
     }
 
     internal open fun toString(context: Context): String = if (id != 0) context.getString(id) else message ?: toString()

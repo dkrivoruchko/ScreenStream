@@ -22,7 +22,7 @@
     <string name="rtsp_cast_permission_required_title">الإذن مطلوب</string>
     <string name="rtsp_cast_permission_required">يتطلب تطبيق ScreenStream إذن بث الشاشة لالتقاط الشاشة.</string>
     <string name="rtsp_error_notification_permission_required">يتطلب التطبيق تمكين الإشعارات لبدء خدمة البث.\nيرجى تمكين الإشعارات في إعدادات التطبيق.</string>
-    <string name="rtsp_error_unspecified">حدث خطأ ما. يرجى المحاولة مرة أخرى لاحقاً.</string>
+    <string name="rtsp_error_unspecified">حدث خطأ ما.</string>
 
     <string name="rtsp_media_server">خادم الوسائط</string>
     <string name="rtsp_server_address">عنوان خادم RTSP</string>

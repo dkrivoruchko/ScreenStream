@@ -22,7 +22,7 @@
     <string name="rtsp_cast_permission_required_title">Wymagane uprawnienie</string>
     <string name="rtsp_cast_permission_required">Aplikacja ScreenStream wymaga uprawnienia do nagrywania ekranu.</string>
     <string name="rtsp_error_notification_permission_required">Aplikacja wymaga włączonych powiadomień do uruchomienia usługi transmisji.\nWłącz powiadomienia w ustawieniach aplikacji.</string>
-    <string name="rtsp_error_unspecified">Coś poszło nie tak. Spróbuj ponownie później.</string>
+    <string name="rtsp_error_unspecified">Coś poszło nie tak.</string>
 
     <string name="rtsp_media_server">Serwer mediów</string>
     <string name="rtsp_server_address">Adres serwera RTSP</string>

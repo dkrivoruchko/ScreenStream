@@ -125,7 +125,6 @@ internal class AudioEncoder(
                 onAudioInfo(audioParams)
             }
         }.onFailure { cause ->
-            XLog.w(getLog("prepare", "Failed to prepare audio encoder: $cause"), cause)
             onError(cause)
         }
     }

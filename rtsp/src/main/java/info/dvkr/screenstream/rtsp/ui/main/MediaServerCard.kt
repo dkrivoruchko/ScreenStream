@@ -96,7 +96,9 @@ internal fun MediaServerCard(
         )
 
         Box(modifier = Modifier.padding(start = 12.dp, end = 12.dp, top = 16.dp, bottom = 8.dp)) {
-            val selectedProtocol by remember { mutableStateOf(Protocol.valueOf(rtspSettingsState.value.protocol)) }
+            val selectedProtocol by remember(rtspSettingsState.value.protocol) {
+                mutableStateOf(Protocol.valueOf(rtspSettingsState.value.protocol))
+            }
 
             OutlinedCard(
                 modifier = Modifier.selectableGroup(),
@@ -122,6 +124,7 @@ internal fun MediaServerCard(
                                 .defaultMinSize(minHeight = 32.dp)
                                 .selectable(
                                     selected = (protocol == selectedProtocol),
+                                    enabled = rtspState.value.isStreaming.not(),
                                     onClick = { scope.launch { rtspSettings.updateData { copy(protocol = protocol.name) } } },
                                     role = Role.RadioButton
                                 ),

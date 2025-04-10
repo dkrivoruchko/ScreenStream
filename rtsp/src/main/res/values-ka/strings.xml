@@ -22,7 +22,7 @@
     <string name="rtsp_cast_permission_required_title">საჭიროა ნებართვა</string>
     <string name="rtsp_cast_permission_required">ScreenStream აპლიკაციას სჭირდება ეკრანის ტრანსლაციის ნებართვა ეკრანის ჩასაწერად.</string>
     <string name="rtsp_error_notification_permission_required">აპლიკაციას სჭირდება შეტყობინებების ჩართვა სტრიმინგის სერვისის გასაშვებად.\nგთხოვთ, ჩართოთ შეტყობინებები აპლიკაციის პარამეტრებში.</string>
-    <string name="rtsp_error_unspecified">დაფიქსირდა შეცდომა. გთხოვთ, სცადოთ მოგვიანებით.</string>
+    <string name="rtsp_error_unspecified">რაღაც შეცდომა მოხდა.</string>
 
     <string name="rtsp_media_server">მედია სერვერი</string>
     <string name="rtsp_server_address">RTSP სერვერის მისამართი</string>

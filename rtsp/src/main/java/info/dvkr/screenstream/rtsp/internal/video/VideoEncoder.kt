@@ -1,5 +1,6 @@
 package info.dvkr.screenstream.rtsp.internal.video
 
+import android.graphics.SurfaceTexture
 import android.media.MediaCodec
 import android.media.MediaCodecInfo
 import android.media.MediaFormat
@@ -51,8 +52,8 @@ internal class VideoEncoder(
     internal var height: Int = 0
         private set
 
-    internal val inputSurfaceTexture
-        get() = eglRenderer?.inputSurfaceTexture ?: throw IllegalStateException("EglRenderer not initialized")
+    internal val inputSurfaceTexture: SurfaceTexture?
+        get() = eglRenderer?.inputSurfaceTexture
 
     internal fun prepare(width: Int, height: Int, fps: Int, bitRate: Int) {
         runCatching {
@@ -75,17 +76,12 @@ internal class VideoEncoder(
 
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                         setInteger(MediaFormat.KEY_MAX_B_FRAMES, 0)
-//                        setInteger(MediaFormat.KEY_PREPEND_HEADER_TO_SYNC_FRAMES, 1)
                     }
 
                     if (codecInfo.isCBRModeSupported) {
                         setInteger(MediaFormat.KEY_BITRATE_MODE, MediaCodecInfo.EncoderCapabilities.BITRATE_MODE_CBR)
                     } else {
                         setInteger(MediaFormat.KEY_BITRATE_MODE, MediaCodecInfo.EncoderCapabilities.BITRATE_MODE_VBR)
-                    }
-
-                    if (codecInfo.codec is Codec.Video.H264) {
-                        setInteger(MediaFormat.KEY_PROFILE, MediaCodecInfo.CodecProfileLevel.AVCProfileHigh)
                     }
                 }
 
@@ -104,7 +100,6 @@ internal class VideoEncoder(
                 currentState = State.PREPARED
             }
         }.onFailure { cause ->
-            XLog.w(getLog("prepare", "Failed to prepare video encoder: $cause"), cause)
             onError(cause)
         }
     }

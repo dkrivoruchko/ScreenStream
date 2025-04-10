@@ -22,7 +22,7 @@
     <string name="rtsp_cast_permission_required_title">Autorisation requise</string>
     <string name="rtsp_cast_permission_required">L\'application ScreenStream nécessite l\'autorisation de diffusion d\'écran pour capturer l\'écran.</string>
     <string name="rtsp_error_notification_permission_required">L\'application nécessite que les notifications soient activées pour démarrer le service de diffusion.\nVeuillez activer les notifications dans les paramètres de l\'application.</string>
-    <string name="rtsp_error_unspecified">Une erreur s\'est produite. Veuillez réessayer plus tard.</string>
+    <string name="rtsp_error_unspecified">Un problème est survenu.</string>
 
     <string name="rtsp_media_server">Serveur média</string>
     <string name="rtsp_server_address">Adresse du serveur RTSP</string>
