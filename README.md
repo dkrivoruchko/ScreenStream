@@ -23,9 +23,11 @@ Versions from F-Droid are Ad-free and support only **Local mode (MJPEG)**.
 If you find **ScreenStream** useful, please consider donating to support its development.<br>
 Your contribution is greatly appreciated!
 
-<a href="https://nowpayments.io/donation?api_key=9GK3BHB-VPX4XHM-GV2F208-8BVABGR" target="_blank" rel="noreferrer noopener">
-    <img src="https://nowpayments.io/images/embeds/donation-button-white.svg" alt="Cryptocurrency donation by NOWPayments">
-</a>
+**Tron (TRC20) USDT / USDC :** `TUKtTz3oe3qKYmm1ScDLKjRz9ty1FahpzR`
+
+**Solana (SPL) USDT / USDC :** `7HasyJBLpiNhFvMvbfKUDXZwThRCfc3S4Yr74Rbs5e23`
+
+**BNB Smart Chain (BEP20) USDT / USDC / BUSD / BNB :** `0x96818c1CfE9F613d8194c882a0898B8B3c47077B`
 
 ## Stream modes
 

@@ -140,7 +140,7 @@ internal class WebRtcProjection(private val serviceContext: Context) : AudioReco
         synchronized(lock) {
             XLog.d(getLog("start"))
 
-            val mediaProjection = mediaProjectionManager.getMediaProjection(Activity.RESULT_OK, intent)
+            val mediaProjection = mediaProjectionManager.getMediaProjection(Activity.RESULT_OK, intent)!!
             val videoSource = peerConnectionFactory.createVideoSource(true)
             val audioSource = peerConnectionFactory.createAudioSource(audioMediaConstraints)
 

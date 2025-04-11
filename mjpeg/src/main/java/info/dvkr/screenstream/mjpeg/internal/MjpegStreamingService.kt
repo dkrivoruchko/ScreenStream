@@ -355,7 +355,7 @@ internal class MjpegStreamingService(
                     // TODO Starting from Android R, if your application requests the SYSTEM_ALERT_WINDOW permission, and the user has
                     //  not explicitly denied it, the permission will be automatically granted until the projection is stopped.
                     //  The permission allows your app to display user controls on top of the screen being captured.
-                    val mediaProjection = projectionManager.getMediaProjection(Activity.RESULT_OK, event.intent).apply {
+                    val mediaProjection = projectionManager.getMediaProjection(Activity.RESULT_OK, event.intent)!!.apply {
                         registerCallback(projectionCallback, Handler(Looper.getMainLooper()))
                     }
 

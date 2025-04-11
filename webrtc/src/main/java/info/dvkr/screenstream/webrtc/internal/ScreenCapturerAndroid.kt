@@ -90,5 +90,5 @@ internal class ScreenCapturerAndroid(
         "WebRTC_ScreenCapture", width, height, 400,
         DisplayManager.VIRTUAL_DISPLAY_FLAG_PRESENTATION,
         Surface(surfaceTextureHelper.surfaceTexture), null, null
-    )
+    )!!
 }

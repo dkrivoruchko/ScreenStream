@@ -16,6 +16,6 @@ plugins {
 }
 
 val minSdkVersion by extra(23)
-val targetSdkVersion by extra(35)
-val compileSdkVersion by extra(35)
-val buildToolsVersion by extra("35.0.1")
+val targetSdkVersion by extra(36)
+val compileSdkVersion by extra(36)
+val buildToolsVersion by extra("36.0.0")

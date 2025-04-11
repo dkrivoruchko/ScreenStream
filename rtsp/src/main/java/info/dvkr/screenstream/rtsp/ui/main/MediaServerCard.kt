@@ -89,6 +89,7 @@ internal fun MediaServerCard(
             modifier = Modifier
                 .padding(start = 12.dp, end = 12.dp, top = 8.dp)
                 .fillMaxWidth(),
+            enabled = rtspState.value.isStreaming.not(),
             label = { Text(text = stringResource(R.string.rtsp_server_address)) },
             isError = isError,
             keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Uri, imeAction = ImeAction.Done),
