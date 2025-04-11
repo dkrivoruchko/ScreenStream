@@ -37,6 +37,7 @@ public interface NetworkChangeDetector {
       this.address = address;
     }
 
+    @SuppressWarnings("UnusedMethod")
     @CalledByNative("IPAddress")
     private byte[] getAddress() {
       return address;
@@ -61,26 +62,31 @@ public interface NetworkChangeDetector {
       this.ipAddresses = addresses;
     }
 
+    @SuppressWarnings("UnusedMethod")
     @CalledByNative("NetworkInformation")
     private IPAddress[] getIpAddresses() {
       return ipAddresses;
     }
 
+    @SuppressWarnings("UnusedMethod")
     @CalledByNative("NetworkInformation")
     private ConnectionType getConnectionType() {
       return type;
     }
 
+    @SuppressWarnings("UnusedMethod")
     @CalledByNative("NetworkInformation")
     private ConnectionType getUnderlyingConnectionTypeForVpn() {
       return underlyingTypeForVpn;
     }
 
+    @SuppressWarnings("UnusedMethod")
     @CalledByNative("NetworkInformation")
     private long getHandle() {
       return handle;
     }
 
+    @SuppressWarnings("UnusedMethod")
     @CalledByNative("NetworkInformation")
     private String getName() {
       return name;

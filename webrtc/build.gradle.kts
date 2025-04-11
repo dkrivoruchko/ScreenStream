@@ -50,7 +50,7 @@ dependencies {
     implementation(libs.play.services.tasks)
     implementation(libs.play.integrity)
 
-    // Local WebRTC m131.0.6778.155
+    // Local WebRTC m135.0.7049.41
 
     implementation(libs.socket)
     implementation(libs.okio)

@@ -579,6 +579,10 @@ public class PeerConnection {
      */
     public boolean offerExtmapAllowMixed;
 
+    /** Limit ports used for connections. */
+    public int portAllocatorMinPort;
+    public int portAllocatorMaxPort;
+
     /** Control port allocation, including what kinds of ports are allocated. */
     @PortAllocatorFlags public int portAllocatorFlags;
 
@@ -623,6 +627,8 @@ public class PeerConnection {
       turnLoggingId = null;
       enableImplicitRollback = false;
       offerExtmapAllowMixed = true;
+      portAllocatorMinPort = 0;
+      portAllocatorMaxPort = 0;
       portAllocatorFlags = 0;
     }
 
@@ -831,6 +837,16 @@ public class PeerConnection {
     @CalledByNative("RTCConfiguration")
     boolean getOfferExtmapAllowMixed() {
       return offerExtmapAllowMixed;
+    }
+
+    @CalledByNative("RTCConfiguration")
+    int getPortAllocatorMinPort() {
+      return portAllocatorMinPort;
+    }
+
+    @CalledByNative("RTCConfiguration")
+    int getPortAllocatorMaxPort() {
+      return portAllocatorMaxPort;
     }
 
     @CalledByNative("RTCConfiguration")

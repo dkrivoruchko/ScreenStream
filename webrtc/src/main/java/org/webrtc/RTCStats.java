@@ -77,7 +77,6 @@ public class RTCStats {
         .append(type)
         .append(", id: ")
         .append(id);
-    boolean first = true;
     for (Map.Entry<String, Object> entry : members.entrySet()) {
       builder.append(", ").append(entry.getKey()).append(": ");
       appendValue(builder, entry.getValue());

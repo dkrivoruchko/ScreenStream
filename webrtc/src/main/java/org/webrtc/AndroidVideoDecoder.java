@@ -303,7 +303,6 @@ class AndroidVideoDecoder implements VideoDecoder, VideoSink {
       renderedTextureMetadata = null;
     }
     callback = null;
-    frameInfos.clear();
     return status;
   }
 
@@ -331,6 +330,7 @@ class AndroidVideoDecoder implements VideoDecoder, VideoSink {
     } finally {
       codec = null;
       outputThread = null;
+      frameInfos.clear();
     }
     return VideoCodecStatus.OK;
   }
@@ -422,7 +422,6 @@ class AndroidVideoDecoder implements VideoDecoder, VideoSink {
 
   @Override
   public void onFrame(VideoFrame frame) {
-    final VideoFrame newFrame;
     final Integer decodeTimeMs;
     final long timestampNs;
     synchronized (renderedTextureMetadataLock) {
