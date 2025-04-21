@@ -48,7 +48,9 @@
 
     <string name="rtsp_audio_parameters">音频参数</string>
     <string name="rtsp_audio_mic">麦克风</string>
+    <string name="rtsp_audio_mic_mute">静音麦克风</string>
     <string name="rtsp_audio_device">设备音频</string>
+    <string name="rtsp_audio_device_mute">静音设备音频</string>
     <string name="rtsp_audio_encoder">音频编码器：</string>
     <string name="rtsp_audio_encoder_auto">自动</string>
     <string name="rtsp_audio_bitrate">音频比特率：%1$s/秒</string>

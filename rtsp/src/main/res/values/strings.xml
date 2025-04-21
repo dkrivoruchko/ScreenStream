@@ -48,7 +48,9 @@
 
     <string name="rtsp_audio_parameters">Audio parameters</string>
     <string name="rtsp_audio_mic">Microphone</string>
+    <string name="rtsp_audio_mic_mute">Mute microphone</string>
     <string name="rtsp_audio_device">Device audio</string>
+    <string name="rtsp_audio_device_mute">Mute device audio</string>
     <string name="rtsp_audio_encoder">Audio encoder:</string>
     <string name="rtsp_audio_encoder_auto">Auto</string>
     <string name="rtsp_audio_bitrate">Audio bitrate: %1$s/sec</string>

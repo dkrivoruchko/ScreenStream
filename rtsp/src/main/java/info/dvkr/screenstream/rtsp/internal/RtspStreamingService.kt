@@ -91,6 +91,7 @@ internal class RtspStreamingService(
         data class InitState(val clearIntent: Boolean = true) : InternalEvent(Priority.DESTROY_IGNORE)
         data class OnVideoCodecChange(val name: String?) : InternalEvent(Priority.DESTROY_IGNORE)
         data class OnAudioCodecChange(val name: String?) : InternalEvent(Priority.DESTROY_IGNORE)
+        data class OnAudioParamsChange(val micMute: Boolean, val deviceMute: Boolean, val micVolume: Float, val deviceVolume: Float) : InternalEvent(Priority.DESTROY_IGNORE)
         data object StartStream : InternalEvent(Priority.RECOVER_IGNORE)
         data class RtspClientOnError(val error: ConnectionError) : InternalEvent(Priority.RECOVER_IGNORE)
         data object RtspClientOnConnectionSuccess : InternalEvent(Priority.RECOVER_IGNORE)
@@ -150,11 +151,13 @@ internal class RtspStreamingService(
             else sendEvent(InternalEvent.OnVideoCodecChange(it.second))
         }
 
-
         rtspSettings.data.map { it.audioCodecAutoSelect to it.audioCodec }.listenForChange(coroutineScope) {
             if (it.first) sendEvent(InternalEvent.OnAudioCodecChange(null))
             else sendEvent(InternalEvent.OnAudioCodecChange(it.second))
         }
+
+        rtspSettings.data.map { InternalEvent.OnAudioParamsChange(it.muteMic, it.muteDeviceAudio, it.volumeMic, it.volumeDeviceAudio) }
+            .listenForChange(coroutineScope) { sendEvent(it) }
     }
 
     @MainThread
@@ -401,6 +404,10 @@ internal class RtspStreamingService(
                             audioSource = MediaRecorder.AudioSource.DEFAULT,
                             mediaProjection = mediaProjection!!,
                         )
+
+                        setMute(rtspSettings.data.value.muteMic, rtspSettings.data.value.muteDeviceAudio)
+                        setVolume(rtspSettings.data.value.volumeMic, rtspSettings.data.value.volumeDeviceAudio)
+
                         start()
                     }
 
@@ -413,6 +420,12 @@ internal class RtspStreamingService(
                 }
 
                 this@RtspStreamingService.isStreaming = true
+            }
+
+            is InternalEvent.OnAudioParamsChange -> {
+                if (isStreaming.not()) return
+                audioEncoder?.setVolume(event.micVolume, event.deviceVolume)
+                audioEncoder?.setMute(event.micMute, event.deviceMute)
             }
 
             is InternalEvent.ConfigurationChange -> {

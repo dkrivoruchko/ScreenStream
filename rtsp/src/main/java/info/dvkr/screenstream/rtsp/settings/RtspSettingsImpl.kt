@@ -94,8 +94,20 @@ internal class RtspSettingsImpl(
                 if (newSettings.enableMic != RtspSettings.Default.ENABLE_MIC)
                     set(RtspSettings.Key.ENABLE_MIC, newSettings.enableMic)
 
+                if (newSettings.muteMic != RtspSettings.Default.MUTE_MIC)
+                    set(RtspSettings.Key.MUTE_MIC, newSettings.muteMic)
+
+                if (newSettings.volumeMic != RtspSettings.Default.VOLUME_MIC)
+                    set(RtspSettings.Key.VOLUME_MIC, newSettings.volumeMic)
+
                 if (newSettings.enableDeviceAudio != RtspSettings.Default.ENABLE_DEVICE_AUDIO)
                     set(RtspSettings.Key.ENABLE_DEVICE_AUDIO, newSettings.enableDeviceAudio)
+
+                if (newSettings.muteDeviceAudio != RtspSettings.Default.MUTE_DEVICE_AUDIO)
+                    set(RtspSettings.Key.MUTE_DEVICE_AUDIO, newSettings.muteDeviceAudio)
+
+                if (newSettings.volumeDeviceAudio != RtspSettings.Default.VOLUME_DEVICE_AUDIO)
+                    set(RtspSettings.Key.VOLUME_DEVICE_AUDIO, newSettings.volumeDeviceAudio)
 
                 if (newSettings.stereoAudio != RtspSettings.Default.STEREO_AUDIO)
                     set(RtspSettings.Key.STEREO_AUDIO, newSettings.stereoAudio)
@@ -128,7 +140,11 @@ internal class RtspSettingsImpl(
         audioCodec = this[RtspSettings.Key.AUDIO_CODEC] ?: RtspSettings.Default.AUDIO_CODEC,
         audioBitrateBits = this[RtspSettings.Key.AUDIO_BITRATE] ?: RtspSettings.Default.AUDIO_BITRATE,
         enableMic = this[RtspSettings.Key.ENABLE_MIC] ?: RtspSettings.Default.ENABLE_MIC,
+        muteMic = this[RtspSettings.Key.MUTE_MIC] ?: RtspSettings.Default.MUTE_MIC,
+        volumeMic = this[RtspSettings.Key.VOLUME_MIC] ?: RtspSettings.Default.VOLUME_MIC,
         enableDeviceAudio = this[RtspSettings.Key.ENABLE_DEVICE_AUDIO] ?: RtspSettings.Default.ENABLE_DEVICE_AUDIO,
+        muteDeviceAudio = this[RtspSettings.Key.MUTE_DEVICE_AUDIO] ?: RtspSettings.Default.MUTE_DEVICE_AUDIO,
+        volumeDeviceAudio = this[RtspSettings.Key.VOLUME_DEVICE_AUDIO] ?: RtspSettings.Default.VOLUME_DEVICE_AUDIO,
         stereoAudio = this[RtspSettings.Key.STEREO_AUDIO] ?: RtspSettings.Default.STEREO_AUDIO,
         audioEchoCanceller = this[RtspSettings.Key.AUDIO_ECHO_CANCELLER] ?: RtspSettings.Default.AUDIO_ECHO_CANCELLER,
         audioNoiseSuppressor = this[RtspSettings.Key.AUDIO_NOISE_SUPPRESSOR] ?: RtspSettings.Default.AUDIO_NOISE_SUPPRESSOR,

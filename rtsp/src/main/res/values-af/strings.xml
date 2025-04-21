@@ -48,7 +48,9 @@
 
     <string name="rtsp_audio_parameters">Klankparameters</string>
     <string name="rtsp_audio_mic">Mikrofoon</string>
+    <string name="rtsp_audio_mic_mute">Demp mikrofoon</string>
     <string name="rtsp_audio_device">Toestelklank</string>
+    <string name="rtsp_audio_device_mute">Demp toestelklank</string>
     <string name="rtsp_audio_encoder">Klank-enkodeerder:</string>
     <string name="rtsp_audio_encoder_auto">Outo</string>
     <string name="rtsp_audio_bitrate">Klank-bitrate: %1$s/sek</string>

@@ -48,7 +48,9 @@
 
     <string name="rtsp_audio_parameters">অডিও পরামিতি</string>
     <string name="rtsp_audio_mic">মাইক্রোফোন</string>
+    <string name="rtsp_audio_mic_mute">মাইক্রোফোন মিউট করুন</string>
     <string name="rtsp_audio_device">ডিভাইস অডিও</string>
+    <string name="rtsp_audio_device_mute">ডিভাইস অডিও মিউট করুন</string>
     <string name="rtsp_audio_encoder">অডিও এনকোডার:</string>
     <string name="rtsp_audio_encoder_auto">স্বয়ংক্রিয়</string>
     <string name="rtsp_audio_bitrate">অডিও বিটরেট: %1$s/সেকেন্ড</string>

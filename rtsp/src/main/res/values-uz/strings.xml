@@ -48,7 +48,9 @@
 
     <string name="rtsp_audio_parameters">Audio parametrlari</string>
     <string name="rtsp_audio_mic">Mikrofon</string>
+    <string name="rtsp_audio_mic_mute">Mikrofonni o\'chirish</string>
     <string name="rtsp_audio_device">Qurilma audiosi</string>
+    <string name="rtsp_audio_device_mute">Qurilma audiosini o\'chirish</string>
     <string name="rtsp_audio_encoder">Audio kodlovchi:</string>
     <string name="rtsp_audio_encoder_auto">Avto</string>
     <string name="rtsp_audio_bitrate">Audio bitreyt: %1$s/sek</string>

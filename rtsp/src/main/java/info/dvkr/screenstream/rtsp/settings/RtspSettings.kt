@@ -30,7 +30,11 @@ public interface RtspSettings {
         public val AUDIO_BITRATE: Preferences.Key<Int> = intPreferencesKey("AUDIO_BITRATE")
 
         public val ENABLE_MIC: Preferences.Key<Boolean> = booleanPreferencesKey("ENABLE_MIC")
+        public val MUTE_MIC: Preferences.Key<Boolean> = booleanPreferencesKey("MUTE_MIC")
+        public val VOLUME_MIC: Preferences.Key<Float> = floatPreferencesKey("VOLUME_MIC")
         public val ENABLE_DEVICE_AUDIO: Preferences.Key<Boolean> = booleanPreferencesKey("ENABLE_DEVICE_AUDIO")
+        public val MUTE_DEVICE_AUDIO: Preferences.Key<Boolean> = booleanPreferencesKey("MUTE_DEVICE_AUDIO")
+        public val VOLUME_DEVICE_AUDIO: Preferences.Key<Float> = floatPreferencesKey("VOLUME_DEVICE_AUDIO")
         public val STEREO_AUDIO: Preferences.Key<Boolean> = booleanPreferencesKey("STEREO_AUDIO")
         public val AUDIO_ECHO_CANCELLER: Preferences.Key<Boolean> = booleanPreferencesKey("AUDIO_ECHO_CANCELLER")
         public val AUDIO_NOISE_SUPPRESSOR: Preferences.Key<Boolean> = booleanPreferencesKey("AUDIO_NOISE_SUPPRESSOR")
@@ -54,7 +58,11 @@ public interface RtspSettings {
         public const val AUDIO_CODEC: String = ""
         public const val AUDIO_BITRATE: Int = 128 * 1000
         public const val ENABLE_MIC: Boolean = false
+        public const val MUTE_MIC: Boolean = false
+        public const val VOLUME_MIC: Float = 1.0F
         public const val ENABLE_DEVICE_AUDIO: Boolean = false
+        public const val MUTE_DEVICE_AUDIO: Boolean = false
+        public const val VOLUME_DEVICE_AUDIO: Float = 1.0F
         public const val STEREO_AUDIO: Boolean = false
         public const val AUDIO_ECHO_CANCELLER: Boolean = true
         public const val AUDIO_NOISE_SUPPRESSOR: Boolean = false
@@ -79,7 +87,11 @@ public interface RtspSettings {
         public val audioCodec: String = Default.AUDIO_CODEC,
         public val audioBitrateBits: Int = Default.AUDIO_BITRATE,
         public val enableMic: Boolean = Default.ENABLE_MIC,
+        public val muteMic: Boolean = Default.MUTE_MIC,
+        public val volumeMic: Float = Default.VOLUME_MIC,
         public val enableDeviceAudio: Boolean = Default.ENABLE_DEVICE_AUDIO,
+        public val muteDeviceAudio: Boolean = Default.MUTE_DEVICE_AUDIO,
+        public val volumeDeviceAudio: Float = Default.VOLUME_DEVICE_AUDIO,
         public val stereoAudio: Boolean = Default.STEREO_AUDIO,
         public val audioEchoCanceller: Boolean = Default.AUDIO_ECHO_CANCELLER,
         public val audioNoiseSuppressor: Boolean = Default.AUDIO_NOISE_SUPPRESSOR,

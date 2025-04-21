@@ -48,7 +48,9 @@
 
     <string name="rtsp_audio_parameters">აუდიოს პარამეტრები</string>
     <string name="rtsp_audio_mic">მიკროფონი</string>
+    <string name="rtsp_audio_mic_mute">მიკროფონის დადუმება</string>
     <string name="rtsp_audio_device">მოწყობილობის აუდიო</string>
+    <string name="rtsp_audio_device_mute">მოწყობილობის აუდიოს დადუმება</string>
     <string name="rtsp_audio_encoder">აუდიო ენკოდერი:</string>
     <string name="rtsp_audio_encoder_auto">ავტო</string>
     <string name="rtsp_audio_bitrate">აუდიოს ბიტრეიტი: %1$s/წმ</string>

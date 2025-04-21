@@ -48,7 +48,9 @@
 
     <string name="rtsp_audio_parameters">音声パラメータ</string>
     <string name="rtsp_audio_mic">マイク</string>
-    <string name="rtsp_audio_device">デバイス音声</string>
+    <string name="rtsp_audio_mic_mute">マイクをミュート</string>
+    <string name="rtsp_audio_device">デバイスの音声</string>
+    <string name="rtsp_audio_device_mute">デバイスの音声をミュート</string>
     <string name="rtsp_audio_encoder">音声エンコーダー：</string>
     <string name="rtsp_audio_encoder_auto">自動</string>
     <string name="rtsp_audio_bitrate">音声ビットレート: %1$s/秒</string>

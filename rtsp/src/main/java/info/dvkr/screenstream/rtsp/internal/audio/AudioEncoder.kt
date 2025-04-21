@@ -198,6 +198,24 @@ internal class AudioEncoder(
         XLog.v(getLog("stop", "Done"))
     }
 
+    internal fun setMute(micMute: Boolean, deviceMute: Boolean) {
+        XLog.v(getLog("setMute", "micMute: $micMute, deviceMute: $deviceMute"))
+        when (audioSource) {
+            is MicrophoneSource -> (audioSource as MicrophoneSource).setMute(micMute)
+            is InternalAudioSource -> (audioSource as InternalAudioSource).setMute(deviceMute)
+            is MixAudioSource -> (audioSource as MixAudioSource).setMute(micMute, deviceMute)
+        }
+    }
+
+    internal fun setVolume(micVolume: Float, deviceVolume: Float) {
+        XLog.v(getLog("setVolume", "micVolume: $micVolume, deviceVolume: $deviceVolume"))
+        when (audioSource) {
+            is MicrophoneSource -> (audioSource as MicrophoneSource).volume = micVolume
+            is InternalAudioSource -> (audioSource as InternalAudioSource).volume = deviceVolume
+            is MixAudioSource -> (audioSource as MixAudioSource).setVolume(micVolume, deviceVolume)
+        }
+    }
+
     private fun createCodecCallback(): MediaCodec.Callback = object : MediaCodec.Callback() {
         override fun onInputBufferAvailable(codec: MediaCodec, index: Int) {
             runCatching {

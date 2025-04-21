@@ -131,4 +131,14 @@ internal class MixAudioSource(
             if (intFrames.tryReceive().isFailure) break
         }
     }
+
+    internal fun setMute(micMute: Boolean, deviceMute: Boolean) {
+        microphone.setMute(micMute)
+        internal.setMute(deviceMute)
+    }
+
+    internal fun setVolume(micVolume: Float, deviceVolume: Float) {
+        microphone.volume = micVolume
+        internal.volume = deviceVolume
+    }
 }

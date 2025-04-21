@@ -48,7 +48,9 @@
 
     <string name="rtsp_audio_parameters">معلمات الصوت</string>
     <string name="rtsp_audio_mic">الميكروفون</string>
+    <string name="rtsp_audio_mic_mute">كتم صوت الميكروفون</string>
     <string name="rtsp_audio_device">صوت الجهاز</string>
+    <string name="rtsp_audio_device_mute">كتم صوت الجهاز</string>
     <string name="rtsp_audio_encoder">ترميز الصوت:</string>
     <string name="rtsp_audio_encoder_auto">تلقائي</string>
     <string name="rtsp_audio_bitrate">معدل بت الصوت: %1$s/ثانية</string>

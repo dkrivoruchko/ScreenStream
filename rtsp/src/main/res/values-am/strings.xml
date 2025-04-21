@@ -47,7 +47,9 @@
 
     <string name="rtsp_audio_parameters">የድምጽ ፓራሜትሮች</string>
     <string name="rtsp_audio_mic">ማይክሮፎን</string>
-    <string name="rtsp_audio_device">የመሳሪያ ድምጽ</string>
+    <string name="rtsp_audio_mic_mute">ማይክሮፎን አጥፋ</string>
+    <string name="rtsp_audio_device">የመሣሪያ ድምፅ</string>
+    <string name="rtsp_audio_device_mute">የመሣሪያ ድምፅ አጥፋ</string>
     <string name="rtsp_audio_encoder">የድምጽ አርቃቂ:</string>
     <string name="rtsp_audio_encoder_auto">ራስሰር</string>
     <string name="rtsp_audio_bitrate">የድምጽ ቢትሬት: %1$s/ሰከንድ</string>

@@ -48,7 +48,9 @@
 
     <string name="rtsp_audio_parameters">ऑडियो पैरामीटर</string>
     <string name="rtsp_audio_mic">माइक्रोफोन</string>
+    <string name="rtsp_audio_mic_mute">माइक्रोफ़ोन म्यूट करें</string>
     <string name="rtsp_audio_device">डिवाइस ऑडियो</string>
+    <string name="rtsp_audio_device_mute">डिवाइस ऑडियो म्यूट करें</string>
     <string name="rtsp_audio_encoder">ऑडियो एनकोडर:</string>
     <string name="rtsp_audio_encoder_auto">ऑटो</string>
     <string name="rtsp_audio_bitrate">ऑडियो बिटरेट: %1$s/सेकंड</string>

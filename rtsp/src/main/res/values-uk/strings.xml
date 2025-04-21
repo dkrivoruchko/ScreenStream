@@ -48,7 +48,9 @@
 
     <string name="rtsp_audio_parameters">Параметри аудіо</string>
     <string name="rtsp_audio_mic">Мікрофон</string>
+    <string name="rtsp_audio_mic_mute">Вимкнути мікрофон</string>
     <string name="rtsp_audio_device">Звук пристрою</string>
+    <string name="rtsp_audio_device_mute">Вимкнути звук пристрою</string>
     <string name="rtsp_audio_encoder">Аудіокодек:</string>
     <string name="rtsp_audio_encoder_auto">Авто</string>
     <string name="rtsp_audio_bitrate">Бітрейт аудіо: %1$s/сек</string>

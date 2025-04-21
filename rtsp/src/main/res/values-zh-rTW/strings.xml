@@ -48,7 +48,9 @@
 
     <string name="rtsp_audio_parameters">音訊參數</string>
     <string name="rtsp_audio_mic">麥克風</string>
+    <string name="rtsp_audio_mic_mute">靜音麥克風</string>
     <string name="rtsp_audio_device">裝置音訊</string>
+    <string name="rtsp_audio_device_mute">靜音裝置音訊</string>
     <string name="rtsp_audio_encoder">音訊編碼器：</string>
     <string name="rtsp_audio_encoder_auto">自動</string>
     <string name="rtsp_audio_bitrate">音訊位元率：%1$s/秒</string>

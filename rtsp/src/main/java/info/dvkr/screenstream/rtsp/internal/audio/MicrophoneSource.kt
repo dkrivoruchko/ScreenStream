@@ -34,7 +34,7 @@ internal class MicrophoneSource(
 
     override fun stop() = audioCapture.stop()
 
-    fun mute() = audioCapture.mute()
-
-    fun unMute() = audioCapture.unMute()
+    internal fun setMute(mute: Boolean) {
+        if (mute) audioCapture.mute() else audioCapture.unMute()
+    }
 }
