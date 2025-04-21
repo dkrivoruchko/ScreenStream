@@ -12,6 +12,7 @@ Versions from F-Droid are Ad-free and support only **Local mode (MJPEG)**.
  * [Stream modes](#stream-modes)
    + [Local mode (MJPEG)](#local-mode-mjpeg)
    + [Global mode (WebRTC)](#global-mode-webrtc)
+   + [RTSP mode](#rtsp-mode)
  * [Screenshots](#screenshots)
  * [Contribution](#contribution)
  * [Developer](#developed-by)
@@ -31,9 +32,9 @@ Your contribution is greatly appreciated!
 
 ## Stream modes
 
-ScreenStream offers two stream modes: **Global mode (WebRTC)** (in [Google Play Store](https://play.google.com/store/apps/details?id=info.dvkr.screenstream) version only) and **Local mode (MJPEG)**. Both modes aim to stream the Android device screen but function differently. They are independent of each other, with unique functionalities, restrictions, and customization options.
+ScreenStream offers two stream modes: **Global mode (WebRTC)** (in [Google Play Store](https://play.google.com/store/apps/details?id=info.dvkr.screenstream) version only), **Local mode (MJPEG)** and **RTSP mode**. All modes aim to stream the Android device screen but function differently. They are independent of each other, with unique functionalities, restrictions, and customization options.
 
-In both modes the number of clients is not directly limited, but it's important to keep in mind that each client consumes CPU resources and bandwidth for data transmission.
+In **Global (WebRTC)** and **Local (MJPEG)** modes the number of clients is not directly limited, but it's important to keep in mind that each client consumes CPU resources and bandwidth for data transmission.
 
 The application uses Android [MediaProjection](https://developer.android.com/reference/android/media/projection/MediaProjection) feature and requires Android 6.0 or higher.
 
@@ -88,10 +89,26 @@ The Global mode was introduced in app version 4 and offers the following functio
 > [!NOTE]
 > Global mode (WebRTC) only available in Google Play version
 
+### RTSP mode
+
+RTSP mode in ScreenStream streams your Android device screen to an external RTSP media server, providing compatibility with a wide range of standard RTSP clients.
+
+For optimal performance, a fast and stable network connection is recommended due to high traffic and low network delay requirements.
+
+- Powered by RTSP protocol.
+- Requires an RTSP-capable media server (tested with MediaMTX).
+- Supports both video (H.265, H.264, AV1) and audio (OPUS, AAC, G.711).
+- Can be protected by username/password.
+- Optional control channel encryption (RTSPS using TLS).
+- Compatible with WiFi, mobile networks, and both IPv4/IPv6.
+- Requires an RTSP client or player for viewing (tested with VLC).
+
 ## Screenshots
 
 ![](screenshots/screenshot_lm_d.png)&nbsp;![](screenshots/screenshot_lm_d_about.png)<br>
 ![](screenshots/screenshot_gm_d.png)&nbsp;![](screenshots/screenshot_gm_d_about.png)<br>
+![](screenshots/screenshot_rtsp_d.png)&nbsp;![](screenshots/screenshot_rtsp_d_about.png)<br>
+![](screenshots/screenshot_rtsp_d_video.png)&nbsp;![](screenshots/screenshot_rtsp_d_audio.png)<br>
 ![](screenshots/screenshot_settings_1_d.png)&nbsp;![](screenshots/screenshot_settings_1_l.png)<br>
 ![](screenshots/screenshot_settings_2_d.png)&nbsp;![](screenshots/screenshot_settings_2_l.png)<br>
 ![](screenshots/screenshot_settings_3_d.png)&nbsp;![](screenshots/screenshot_settings_3_l.png)<br>
@@ -105,6 +122,7 @@ To contribute with translation, kindly translate the following three files:
 1. https://github.com/dkrivoruchko/ScreenStream/blob/master/app/src/main/res/values/strings.xml
 1. https://github.com/dkrivoruchko/ScreenStream/blob/master/mjpeg/src/main/res/values/strings.xml
 1. https://github.com/dkrivoruchko/ScreenStream/blob/master/webrtc/src/main/res/values/strings.xml
+1. https://github.com/dkrivoruchko/ScreenStream/blob/master/rtsp/src/main/res/values/strings.xml
 
 Then, please, [make a pull request](https://help.github.com/en/articles/creating-a-pull-request) or send those translated files to the developer via e-mail <dkrivoruchko@gmail.com> as an attachment.
 
