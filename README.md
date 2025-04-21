@@ -1,10 +1,10 @@
 ![](screenshots/about_image_full.png)
 # ScreenStream
 
-ScreenStream is a user-friendly Android application that allows users to easily share their device screen and view it directly in a web browser. No additional software is required other than the ScreenStream itself, a web browser, and an internet connection (for Global mode).
+ScreenStream is a user-friendly Android application that allows users to easily share their device screen and audio and view it directly in a web browser. No additional software is required other than the ScreenStream itself, a web browser, and an internet connection (for Global mode).
 
-Google Play versions supports both **Global mode (WebRTC)** and **Local mode (MJPEG)** with ads included.<br>
-Versions from F-Droid are Ad-free and support only **Local mode (MJPEG)**.
+Google Play version supports all modes: **Global mode (WebRTC)**, **Local mode (MJPEG)** and **RTSP mode** with ads included.<br>
+Versions from F-Droid are ad-free and support only **Local mode (MJPEG)** and **RTSP mode**.
 
 <a href='https://play.google.com/store/apps/details?id=info.dvkr.screenstream'><img alt='Get it on Google Play' src='https://play.google.com/intl/en_us/badges/images/generic/en_badge_web_generic.png' height="100"/></a> <a href="https://f-droid.org/packages/info.dvkr.screenstream/" target="_blank"><img src="https://f-droid.org/badge/get-it-on.png" alt="Get it on F-Droid" height="100"/></a>
 
@@ -32,7 +32,13 @@ Your contribution is greatly appreciated!
 
 ## Stream modes
 
-ScreenStream offers two stream modes: **Global mode (WebRTC)** (in [Google Play Store](https://play.google.com/store/apps/details?id=info.dvkr.screenstream) version only), **Local mode (MJPEG)** and **RTSP mode**. All modes aim to stream the Android device screen but function differently. They are independent of each other, with unique functionalities, restrictions, and customization options.
+ScreenStream offers three stream modes: **Global mode (WebRTC)** (in [Google Play Store](https://play.google.com/store/apps/details?id=info.dvkr.screenstream) version only), **Local mode (MJPEG)** and **RTSP mode**. All modes aim to stream the Android device screen and audio but function differently. They are independent of each other, with unique functionalities, restrictions, and customization options.
+
+| Mode               | Transport | Audio | Internet required | Server side | Security                              |
+|--------------------|-----------|-------|-------------------|-------------|---------------------------------------|
+| **Local (MJPEG)**  | HTTP MJPEG | ✕     | No                | Built‑in    | Optional 4‑digit PIN                  |
+| **Global (WebRTC)**| WebRTC    | ✓     | Yes               | Public signalling @ screenstream.io | End‑to‑end encryption + password |
+| **RTSP**           | RTSP<br>H.265/H.264/AV1<br>OPUS/AAC/G.711 | ✓ | Depends on server | External RTSP server (e.g. MediaMTX) | Basic Auth + optional TLS |
 
 In **Global (WebRTC)** and **Local (MJPEG)** modes the number of clients is not directly limited, but it's important to keep in mind that each client consumes CPU resources and bandwidth for data transmission.
 
@@ -48,7 +54,7 @@ The application uses Android [MediaProjection](https://developer.android.com/ref
 
 ### Local mode (MJPEG)
 
-Local mode in the ScreenStream application is built on the MJPEG standard and utilizes an embedded HTTP server within the app. As a result, an internet connection is not required; instead, it can function on a local network, such as Wi-Fi, device HotSpot, Network-over-USB, or any other network between the client's web browser and the Android device with the ScreenStream app.
+Local mode in the ScreenStream application is built on the MJPEG standard and utilizes an embedded HTTP server within the app. As a result, an internet connection is not required; instead, it can function on a local network, such as Wi-Fi, device hotspot, Network-over-USB, or any other network between the client's web browser and the Android device with the ScreenStream app.
 
 For optimal performance, a fast and stable network connection is recommended due to high traffic and low network delay requirements.
 
@@ -117,7 +123,7 @@ For optimal performance, a fast and stable network connection is recommended due
 
 ## Contribution
 
-To contribute with translation, kindly translate the following three files:
+To contribute with translation, kindly translate the following four files:
 
 1. https://github.com/dkrivoruchko/ScreenStream/blob/master/app/src/main/res/values/strings.xml
 1. https://github.com/dkrivoruchko/ScreenStream/blob/master/mjpeg/src/main/res/values/strings.xml
