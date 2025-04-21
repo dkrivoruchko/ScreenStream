@@ -109,6 +109,9 @@ For optimal performance, a fast and stable network connection is recommended due
 - Compatible with WiFi, mobile networks, and both IPv4/IPv6.
 - Requires an RTSP client or player for viewing (tested with VLC).
 
+> [!NOTE]
+> You need an RTSP‑capable media server (e.g., [MediaMTX](https://github.com/aler9/mediamtx)) to stream to.
+
 ## Screenshots
 
 ![](screenshots/screenshot_lm_d.png)&nbsp;![](screenshots/screenshot_lm_d_about.png)<br>
