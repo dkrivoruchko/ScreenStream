@@ -30,7 +30,7 @@ android {
     namespace = "info.dvkr.screenstream"
     compileSdk = rootProject.extra["compileSdkVersion"] as Int
     buildToolsVersion = rootProject.extra["buildToolsVersion"] as String
-    ndkVersion = "28.0.13004108"
+    ndkVersion = "28.1.13356709"
 
     defaultConfig {
         applicationId = "info.dvkr.screenstream"
@@ -63,7 +63,9 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+//            baselineProfile.automaticGenerationDuringBuild = true
             configure<CrashlyticsExtension> {
+                mappingFileUploadEnabled = true
                 nativeSymbolUploadEnabled = true
             }
         }
