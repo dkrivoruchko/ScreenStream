@@ -1,6 +1,7 @@
 package info.dvkr.screenstream.mjpeg.ui.main
 
 import android.content.ActivityNotFoundException
+import android.content.ClipData
 import android.content.Intent
 import android.os.Build
 import android.widget.Toast
@@ -27,6 +28,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -34,13 +36,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.ClipboardManager
-import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.ClipEntry
+import androidx.compose.ui.platform.Clipboard
+import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -48,6 +50,8 @@ import info.dvkr.screenstream.common.generateQRBitmap
 import info.dvkr.screenstream.common.openStringUrl
 import info.dvkr.screenstream.mjpeg.R
 import info.dvkr.screenstream.mjpeg.ui.MjpegState
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 
 @Composable
 internal fun InterfacesCard(
@@ -149,13 +153,14 @@ private fun OpenInBrowserButton(
 @Composable
 private fun CopyAddressButton(
     fullAddress: String,
-    clipboardManager: ClipboardManager = LocalClipboardManager.current
+    clipboard: Clipboard = LocalClipboard.current,
+    scope: CoroutineScope = rememberCoroutineScope()
 ) {
     val context = LocalContext.current
 
     IconButton(
         onClick = {
-            clipboardManager.setText(AnnotatedString(fullAddress))
+            scope.launch { clipboard.setClipEntry(ClipEntry(ClipData.newPlainText(fullAddress, fullAddress))) }
             if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.S_V2) {
                 Toast.makeText(context, R.string.mjpeg_stream_copied, Toast.LENGTH_LONG).show()
             }

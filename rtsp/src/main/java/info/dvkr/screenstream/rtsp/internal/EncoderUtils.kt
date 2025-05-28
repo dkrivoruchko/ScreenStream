@@ -113,8 +113,8 @@ internal object EncoderUtils {
     private fun MediaCodecInfo.isCbrCapable(mimeType: String): Boolean =
         runCatching {
             getCapabilitiesForType(mimeType)
-                .encoderCapabilities
-                .isBitrateModeSupported(EncoderCapabilities.BITRATE_MODE_CBR)
+                ?.encoderCapabilities
+                ?.isBitrateModeSupported(EncoderCapabilities.BITRATE_MODE_CBR) ?: false
         }.getOrDefault(false)
 
     private fun MediaCodecInfo.isHardwareAcceleratedCompat(): Boolean =

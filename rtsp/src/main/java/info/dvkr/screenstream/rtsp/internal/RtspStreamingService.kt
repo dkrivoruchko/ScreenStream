@@ -337,7 +337,7 @@ internal class RtspStreamingService(
                         sendEvent(InternalEvent.Error(RtspError.UnknownError(it)))
                     }
                 ).apply {
-                    val videoCapabilities = selectedVideoEncoderInfo!!.capabilities.videoCapabilities
+                    val videoCapabilities = selectedVideoEncoderInfo!!.capabilities.videoCapabilities!!
                     val bounds = WindowMetricsCalculator.getOrCreate().computeMaximumWindowMetrics(service).bounds
                     val (_, width, height) = videoCapabilities.adjustResizeFactor(
                         bounds.width(), bounds.height(), rtspSettings.data.value.videoResizeFactor / 100
@@ -435,7 +435,7 @@ internal class RtspStreamingService(
                         configDiff and ActivityInfo.CONFIG_ORIENTATION != 0 || configDiff and ActivityInfo.CONFIG_SCREEN_LAYOUT != 0 ||
                         configDiff and ActivityInfo.CONFIG_SCREEN_SIZE != 0 || configDiff and ActivityInfo.CONFIG_DENSITY != 0
                     ) {
-                        val videoCapabilities = selectedVideoEncoderInfo!!.capabilities.videoCapabilities
+                        val videoCapabilities = selectedVideoEncoderInfo!!.capabilities.videoCapabilities!!
                         val bounds = WindowMetricsCalculator.getOrCreate().computeMaximumWindowMetrics(service).bounds
                         val (_, width, height) = videoCapabilities.adjustResizeFactor(
                             bounds.width(), bounds.height(), rtspSettings.data.value.videoResizeFactor / 100
@@ -459,7 +459,7 @@ internal class RtspStreamingService(
 
             is InternalEvent.CapturedContentResize -> {
                 if (isStreaming) {
-                    val videoCapabilities = selectedVideoEncoderInfo!!.capabilities.videoCapabilities
+                    val videoCapabilities = selectedVideoEncoderInfo!!.capabilities.videoCapabilities!!
                     val bounds = WindowMetricsCalculator.getOrCreate().computeMaximumWindowMetrics(service).bounds
                     val (_, width, height) = videoCapabilities.adjustResizeFactor(
                         bounds.width(), bounds.height(), rtspSettings.data.value.videoResizeFactor / 100

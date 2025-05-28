@@ -36,6 +36,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -44,8 +45,8 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.ClipEntry
-import androidx.compose.ui.platform.ClipboardManager
-import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.Clipboard
+import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
@@ -61,6 +62,8 @@ import info.dvkr.screenstream.common.ui.RobotoMonoBold
 import info.dvkr.screenstream.common.ui.stylePlaceholder
 import info.dvkr.screenstream.webrtc.R
 import info.dvkr.screenstream.webrtc.ui.WebRtcState
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 
 @Composable
 internal fun StreamCard(
@@ -81,7 +84,8 @@ internal fun StreamCard(
                 style = MaterialTheme.typography.titleMedium
             )
         } else {
-            val fullAddress = webRtcState.value.signalingServerUrl + "/?id=${webRtcState.value.streamId}&p=${webRtcState.value.streamPassword}"
+            val fullAddress =
+                webRtcState.value.signalingServerUrl + "/?id=${webRtcState.value.streamId}&p=${webRtcState.value.streamPassword}"
             val context = LocalContext.current
 
             Text(
@@ -208,25 +212,28 @@ private fun OpenInBrowserButton(
 @Composable
 private fun CopyAddressButton(
     fullAddress: String,
-    clipboardManager: ClipboardManager = LocalClipboardManager.current
+    clipboard: Clipboard = LocalClipboard.current,
+    scope: CoroutineScope = rememberCoroutineScope()
 ) {
     val context = LocalContext.current
 
     IconButton(onClick = {
-        clipboardManager.setClip(
-            ClipEntry(
-                ClipData.newPlainText(fullAddress, fullAddress).apply {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                        description.extras = PersistableBundle().apply {
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
-                                putBoolean(ClipDescription.EXTRA_IS_SENSITIVE, true)
-                            else
-                                putBoolean("android.content.extra.IS_SENSITIVE", true)
+        scope.launch {
+            clipboard.setClipEntry(
+                ClipEntry(
+                    ClipData.newPlainText(fullAddress, fullAddress).apply {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                            description.extras = PersistableBundle().apply {
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
+                                    putBoolean(ClipDescription.EXTRA_IS_SENSITIVE, true)
+                                else
+                                    putBoolean("android.content.extra.IS_SENSITIVE", true)
+                            }
                         }
                     }
-                }
+                )
             )
-        )
+        }
         if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.S_V2) {
             Toast.makeText(context, R.string.webrtc_stream_copied, Toast.LENGTH_LONG).show()
         }
