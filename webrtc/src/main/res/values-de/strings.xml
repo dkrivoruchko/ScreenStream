@@ -15,6 +15,7 @@
 - Einzelne Datenübertragung für jeden Client (je mehr Clients Sie haben, desto mehr Internetbandbreite wird benötigt).
 </string>
 
+    <string name="webrtc_stream_network_recovery">Verbindung verloren. Verbinde erneut…</string>
     <string name="webrtc_stream_server_address">Zugriff auf den Stream unter:\n%1$s</string>
     <string name="webrtc_stream_stream_id_getting">Stream-ID wird abgerufen…</string>
     <string name="webrtc_stream_stream_id">Stream-ID: %1$s</string>

@@ -15,6 +15,7 @@
         - ለእያንዳንዱ ደንበኛ የግለሰብ ውሂብ ማስተላለፍ (ብዙ ደንበኞች አሉዎት ፣ ብዙ የበይነመረብ ባንድዊድዝ ያስፈልግዎታል)።
     </string>
 
+    <string name="webrtc_stream_network_recovery">ግንኙነት ጠፋ። እንደገና በመገናኘት ላይ…</string>
     <string name="webrtc_stream_server_address">ዥረት ይድረሱበት በ፡ %1$s</string>
     <string name="webrtc_stream_stream_id_getting">የዥረት መታወቂያ በማግኘት ላይ…</string>
     <string name="webrtc_stream_stream_id">የዥረት መታወቂያ፡ %1$s</string>

@@ -15,6 +15,7 @@
         - Transmisi data individual untuk setiap klien (semakin banyak klien yang Anda miliki, semakin banyak bandwidth Internet yang Anda perlukan).
     </string>
 
+    <string name="webrtc_stream_network_recovery">Koneksi terputus. Menyambung kembali…</string>
     <string name="webrtc_stream_server_address">Akses aliran di: %1$s</string>
     <string name="webrtc_stream_stream_id_getting">Mendapatkan ID Aliran…</string>
     <string name="webrtc_stream_stream_id">ID Aliran: %1$s</string>

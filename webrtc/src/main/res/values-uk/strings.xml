@@ -15,6 +15,7 @@
 - Індивідуальна передача даних для кожного клієнта (чим більше клієнтів, тим більш швидкий Інтернет потрібен)
 </string>
 
+    <string name="webrtc_stream_network_recovery">З\'єднання втрачено. Перепідключення…</string>
     <string name="webrtc_stream_server_address">Трансляція доступна за адресою:\n%1$s</string>
     <string name="webrtc_stream_stream_id_getting">Отримання ID трансляції…</string>
     <string name="webrtc_stream_stream_id">ID трансляції: %1$s</string>

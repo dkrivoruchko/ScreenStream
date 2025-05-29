@@ -15,6 +15,7 @@
 - Indywidualna transmisja danych dla każdego klienta (im więcej klientów, tym większa przepustowość internetowa jest wymagana).
 </string>
 
+    <string name="webrtc_stream_network_recovery">Utracono połączenie. Ponowne łączenie…</string>
     <string name="webrtc_stream_server_address">Dostęp do strumienia pod adresem:\n%1$s</string>
     <string name="webrtc_stream_stream_id_getting">Pobieranie ID strumienia…</string>
     <string name="webrtc_stream_stream_id">ID strumienia: %1$s</string>

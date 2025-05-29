@@ -15,6 +15,7 @@
         - ინდივიდუალური მონაცემთა გადაცემა თითოეული კლიენტისთვის (უფრო მეტი კლიენტი გყავთ, მეტი ინტერნეტ გამტარობა გჭირდებათ).
     </string>
 
+    <string name="webrtc_stream_network_recovery">კავშირი დაიკარგა. ხელახლა უკავშირდება…</string>
     <string name="webrtc_stream_server_address">ნაკადზე წვდომა აქ: %1$s</string>
     <string name="webrtc_stream_stream_id_getting">მიმდინარეობს ნაკადის ID-ის მიღება…</string>
     <string name="webrtc_stream_stream_id">ნაკადის ID: %1$s</string>

@@ -15,6 +15,7 @@
 - 每个客户端单独的数据传输 （客户端越多，所需的互联网带宽也越多）.
 </string>
 
+    <string name="webrtc_stream_network_recovery">连接已断开。正在重连…</string>
     <string name="webrtc_stream_server_address">访问位于下列地址的流：\n%1$s</string>
     <string name="webrtc_stream_stream_id_getting">正在获取流 ID…</string>
     <string name="webrtc_stream_stream_id">流 ID：%1$s</string>

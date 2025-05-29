@@ -15,6 +15,7 @@
         - Transmisi data individu kanggo saben klien (luwih akeh klien sing sampeyan duwe, luwih akeh bandwidth Internet sing dibutuhake).
     </string>
 
+    <string name="webrtc_stream_network_recovery">Sambungan ilang. Nyambung maneh…</string>
     <string name="webrtc_stream_server_address">Akses stream ing: %1$s</string>
     <string name="webrtc_stream_stream_id_getting">Njupuk ID Stream…</string>
     <string name="webrtc_stream_stream_id">ID Aliran: %1$s</string>

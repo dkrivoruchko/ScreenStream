@@ -15,6 +15,7 @@
 - 每個客戶端的數據傳輸都是獨立的（客戶端越多，需要的網際網路頻寬越多）。
 </string>
 
+    <string name="webrtc_stream_network_recovery">連線中斷。重新連線中…</string>
     <string name="webrtc_stream_server_address">在以下地址訪問串流：\n%1$s</string>
     <string name="webrtc_stream_stream_id_getting">正在獲取串流 ID…</string>
     <string name="webrtc_stream_stream_id">串流 ID：%1$s</string>

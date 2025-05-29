@@ -15,6 +15,7 @@
 - Transmissão de dados individual para cada cliente (quanto mais clientes, mais largura de banda da Internet é necessária).
 </string>
 
+    <string name="webrtc_stream_network_recovery">Conexão perdida. Reconectando…</string>
     <string name="webrtc_stream_server_address">Acesse o stream em:\n%1$s</string>
     <string name="webrtc_stream_stream_id_getting">Obtendo ID do stream…</string>
     <string name="webrtc_stream_stream_id">ID do stream: %1$s</string>

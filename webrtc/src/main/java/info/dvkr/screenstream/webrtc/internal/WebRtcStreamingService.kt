@@ -79,6 +79,7 @@ internal class WebRtcStreamingService(
     @Volatile private var wakeLock: PowerManager.WakeLock? = null
     @Volatile private var currentStreamId: StreamId = StreamId.EMPTY
     @Volatile private var currentStreamPassword: StreamPassword = StreamPassword.EMPTY
+    @Volatile private var projection: WebRtcProjection? = null
     // All Volatile vars must be write on this (WebRTC-HT) thread
 
     // All vars must be read/write on this (WebRTC-HT) thread
@@ -87,7 +88,6 @@ internal class WebRtcStreamingService(
     private var signaling: SocketSignaling? = null
     private var waitingForPermission: Boolean = false
     private var mediaProjectionIntent: Intent? = null
-    private var projection: WebRtcProjection? = null
     private var isAudioPermissionGrantedOnStart: Boolean = false
     private var clients: MutableMap<ClientId, WebRtcClient> = HashMap()
     private var previousError: WebRtcError? = null
@@ -139,6 +139,7 @@ internal class WebRtcStreamingService(
 
         override fun onSocketDisconnected(reason: String) {
             XLog.v(this@WebRtcStreamingService.getLog("SocketSignaling.onSocketDisconnected", reason))
+            networkRecovery.value = isStreaming()
             sendEvent(InternalEvent.GetNonce(0, false))
         }
 
@@ -224,6 +225,7 @@ internal class WebRtcStreamingService(
     }
 
     private val networkAvailable = MutableStateFlow(true)
+    private val networkRecovery = MutableStateFlow(false)
 
     private val networkCallback = object : ConnectivityManager.NetworkCallback() {
         override fun onAvailable(network: Network) {
@@ -272,7 +274,7 @@ internal class WebRtcStreamingService(
         networkAvailable.onEach { available ->
             XLog.d(getLog("start", "networkAvailable: $available"))
             if (available) sendEvent(InternalEvent.GetNonce(0, false))
-            else sendEvent(WebRtcEvent.Intentable.StopStream("networkAvailableFlow: false"))
+//            else sendEvent(WebRtcEvent.Intentable.StopStream("networkAvailableFlow: false"))
         }.launchIn(coroutineScope)
 
         webRtcSettings.data.map { it.enableMic }.distinctUntilChanged()
@@ -389,6 +391,7 @@ internal class WebRtcStreamingService(
                 clients = HashMap()
 
                 currentError.set(null)
+                networkRecovery.value = false
             }
 
             is InternalEvent.GetNonce -> {
@@ -412,15 +415,18 @@ internal class WebRtcStreamingService(
                     onSuccess { nonce -> sendEvent(InternalEvent.GetToken(nonce, 0, event.forceTokenUpdate)) }
                     onFailure { cause ->
                         if (cause !is WebRtcError.NetworkError) {
+                            networkRecovery.value = false
                             currentError.set(WebRtcError.UnknownError(cause))
                             sendEvent(WebRtcEvent.UpdateState)
-                        } else if (cause.isNonRetryable() || event.attempt >= 3) {
+                        } else if (cause.isNonRetryable() || event.attempt >= 15) {
                             networkAvailable.value = false
+                            networkRecovery.value = false
                             currentError.set(cause)
                             sendEvent(WebRtcEvent.UpdateState)
                         } else {
+                            networkRecovery.value = isStreaming()
                             val attempt = event.attempt + 1
-                            val delay = (2000L * (1.5).pow(attempt - 1)).toLong()
+                            val delay = (2000L * (1.1).pow(attempt - 1)).toLong()
                             sendEvent(InternalEvent.GetNonce(attempt, event.forceTokenUpdate), delay)
                         }
                     }
@@ -450,18 +456,21 @@ internal class WebRtcStreamingService(
                             cause !is WebRtcError.PlayIntegrityError -> {
                                 XLog.i(this@WebRtcStreamingService.getLog("getToken", "Got error. Stopping: ${cause.message}"))
                                 currentError.set(WebRtcError.UnknownError(cause))
+                                networkRecovery.value = false
                                 sendEvent(WebRtcEvent.UpdateState)
                             }
 
                             cause.isAutoRetryable.not() -> {
                                 XLog.i(this@WebRtcStreamingService.getLog("getToken", "Got error. Stopping: ${cause.message}"))
                                 currentError.set(cause)
+                                networkRecovery.value = false
                                 sendEvent(WebRtcEvent.UpdateState)
                             }
 
                             event.attempt >= 3 -> {
                                 XLog.i(this@WebRtcStreamingService.getLog("getToken", "Got error. Max attempts. Stopping: ${cause.message}"))
                                 networkAvailable.value = false
+                                networkRecovery.value = false
                                 currentError.set(cause)
                                 sendEvent(WebRtcEvent.UpdateState)
                             }
@@ -518,6 +527,7 @@ internal class WebRtcStreamingService(
                     currentStreamPassword = StreamPassword.EMPTY
                 }
 
+                networkRecovery.value = false
                 currentStreamId = event.streamId
                 if (currentStreamPassword.isEmpty()) currentStreamPassword = StreamPassword.generateNew()
                 projection = projection ?: WebRtcProjection(service)
@@ -867,9 +877,7 @@ internal class WebRtcStreamingService(
         }
     }
 
-    // Inline Only
-    @Suppress("NOTHING_TO_INLINE")
-    private inline fun isStreaming(): Boolean = projection?.isRunning ?: false
+    private fun isStreaming(): Boolean = projection?.isRunning ?: false
 
     // Inline Only
     @Suppress("NOTHING_TO_INLINE")
@@ -894,18 +902,19 @@ internal class WebRtcStreamingService(
     // Inline Only
     @Suppress("NOTHING_TO_INLINE")
     private inline fun getStateString() =
-        "Destroy: $destroyPending, Socket:${signaling?.socketId()}, StreamId:$currentStreamId, Streaming:${isStreaming()}, WFP:$waitingForPermission, Clients:${clients.size}"
+        "Destroy: $destroyPending, Socket:${signaling?.socketId()}, StreamId:$currentStreamId, Streaming:${isStreaming()}, WFP:$waitingForPermission, networkRecovery:${networkRecovery.value} Clients:${clients.size}"
 
     // Inline Only
     @Suppress("NOTHING_TO_INLINE")
     private inline fun publishState() {
         val state = WebRtcState(
-            signaling?.socketId() == null || currentStreamId.isEmpty() || waitingForPermission || currentError.get() != null || destroyPending,
+            (signaling?.socketId() == null && networkRecovery.value == false)|| currentStreamId.isEmpty() || waitingForPermission || currentError.get() != null || destroyPending,
             environment.signalingServerUrl,
             currentStreamId.value,
             currentStreamPassword.value,
             waitingForPermission,
             isStreaming(),
+            networkRecovery.value,
             clients.map { it.value.toClient() },
             currentError.get()
         )

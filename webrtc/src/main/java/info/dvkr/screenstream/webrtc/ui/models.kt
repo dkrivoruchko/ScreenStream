@@ -13,6 +13,7 @@ internal data class WebRtcState(
     val streamPassword: String = "",
     val waitingCastPermission: Boolean = false,
     val isStreaming: Boolean = false,
+    val networkRecovery: Boolean = false,
     val clients: List<Client> = emptyList(),
     val error: WebRtcError? = null
 ) {
@@ -20,7 +21,7 @@ internal data class WebRtcState(
     internal data class Client(val id: String, val publicId: String, val address: String)
 
     override fun toString(): String =
-        "WebRtcState(isBusy=$isBusy, streamId='$streamId', wCP=$waitingCastPermission, isStreaming=$isStreaming, clients=${clients.size}, error=$error)"
+        "WebRtcState(isBusy=$isBusy, streamId='$streamId', wCP=$waitingCastPermission, isStreaming=$isStreaming, networkRecovery=$networkRecovery, clients=${clients.size}, error=$error)"
 }
 
 @Immutable
@@ -37,7 +38,7 @@ internal sealed class WebRtcError(@StringRes open val id: Int, override val mess
         override val message: String?,
         override val cause: Throwable?
     ) : WebRtcError(R.string.webrtc_error_check_network) {
-        internal fun isNonRetryable(): Boolean = code in 500..599 || code == -1
+        internal fun isNonRetryable(): Boolean = code in 500..599
         override fun toString(context: Context): String = context.getString(id) + if (message.isNullOrBlank()) "" else ":\n$message"
     }
 

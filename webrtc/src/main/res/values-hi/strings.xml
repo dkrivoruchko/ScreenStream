@@ -15,6 +15,7 @@
 - प्रत्येक ग्राहक के लिए व्यक्तिगत डेटा प्रसारण (जितने अधिक ग्राहक होते हैं, उतना अधिक इंटरनेट बैंडविड्थ की आवश्यकता होती है)।
 </string>
 
+    <string name="webrtc_stream_network_recovery">कनेक्शन खो गया। फिर से जुड़ रहा है…</string>
     <string name="webrtc_stream_server_address">पते पर पहुंचें:\n%1$s</string>
     <string name="webrtc_stream_stream_id_getting">स्ट्रीम आईडी प्राप्त कर रहा है…</string>
     <string name="webrtc_stream_stream_id">स्ट्रीम आईडी: %1$s</string>

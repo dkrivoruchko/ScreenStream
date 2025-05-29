@@ -84,6 +84,18 @@ internal fun StreamCard(
                 style = MaterialTheme.typography.titleMedium
             )
         } else {
+            if (webRtcState.value.networkRecovery) {
+                Text(
+                    text = stringResource(id = R.string.webrtc_stream_network_recovery),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.error)
+                        .padding(vertical = 16.dp),
+                    color = MaterialTheme.colorScheme.onError,
+                    textAlign = TextAlign.Center
+                )
+            }
+
             val fullAddress =
                 webRtcState.value.signalingServerUrl + "/?id=${webRtcState.value.streamId}&p=${webRtcState.value.streamPassword}"
             val context = LocalContext.current

@@ -15,6 +15,7 @@
         - Har bir mijoz uchun individual ma\'lumotlarni uzatish (sizda ko\'proq mijozlar bor, sizga ko\'proq Internet o\'tkazish qobiliyati kerak).
     </string>
 
+    <string name="webrtc_stream_network_recovery">Aloqa uzildi. Qayta ulanmoqda…</string>
     <string name="webrtc_stream_server_address">Oqimga kirish: %1$s</string>
     <string name="webrtc_stream_stream_id_getting">Stream ID olinmoqda…</string>
     <string name="webrtc_stream_stream_id">Oqim identifikatori: %1$s</string>

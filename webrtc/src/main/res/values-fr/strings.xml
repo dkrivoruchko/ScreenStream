@@ -15,6 +15,7 @@
 - Transmission de données individuelle pour chaque client (plus vous avez de clients, plus vous avez besoin de bande passante Internet).
 </string>
 
+    <string name="webrtc_stream_network_recovery">Connexion perdue. Reconnexion…</string>
     <string name="webrtc_stream_server_address">Accéder au flux à l\'adresse :\n%1$s</string>
     <string name="webrtc_stream_stream_id_getting">Obtention de l\'ID du flux…</string>
     <string name="webrtc_stream_stream_id">ID du flux : %1$s</string>

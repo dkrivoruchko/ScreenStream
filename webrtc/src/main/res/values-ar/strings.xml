@@ -15,6 +15,7 @@
 - نقل البيانات الفردية لكل عميل (المزيد من العملاء لديك، والمزيد من عرض النطاق الترددي للإنترنت الذي تحتاجه).
 </string>
 
+    <string name="webrtc_stream_network_recovery">فُقد الاتصال. جارٍ إعادة الاتصال…</string>
     <string name="webrtc_stream_server_address">الوصول إلى البث في:\n%1$s</string>
     <string name="webrtc_stream_stream_id_getting">الحصول على معرف البث…</string>
     <string name="webrtc_stream_stream_id">معرف البث: %1$s</string>
