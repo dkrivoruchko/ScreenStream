@@ -34,7 +34,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.window.core.layout.WindowHeightSizeClass
+import androidx.window.core.layout.WindowSizeClass
 import info.dvkr.screenstream.AdaptiveBanner
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.common.module.StreamingModule
@@ -110,7 +110,7 @@ private fun StreamingModuleSelector(
         },
         modifier = modifier,
         contentModifier = Modifier.selectableGroup(),
-        initiallyExpanded = adaptiveInfo.windowSizeClass.windowHeightSizeClass != WindowHeightSizeClass.COMPACT,
+        initiallyExpanded = adaptiveInfo.windowSizeClass.isHeightAtLeastBreakpoint(WindowSizeClass.HEIGHT_DP_MEDIUM_LOWER_BOUND)
     ) {
         streamingModulesManager.modules.forEach { module ->
             ModuleSelectorRow(

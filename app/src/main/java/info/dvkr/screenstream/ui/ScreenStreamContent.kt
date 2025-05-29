@@ -57,7 +57,7 @@ import androidx.compose.ui.unit.toIntRect
 import androidx.compose.ui.unit.toRect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.dropUnlessStarted
-import androidx.window.core.layout.WindowWidthSizeClass
+import androidx.window.core.layout.WindowSizeClass
 import info.dvkr.screenstream.AppReview
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.logger.AppLogger
@@ -115,7 +115,7 @@ private fun MainContent(
     val layoutType = with(currentWindowAdaptiveInfo()) {
         when {
             windowPosture.isTabletop -> NavigationSuiteType.NavigationBar
-            windowSizeClass.windowWidthSizeClass != WindowWidthSizeClass.COMPACT -> NavigationSuiteType.NavigationRail
+            windowSizeClass.isWidthAtLeastBreakpoint(WindowSizeClass.WIDTH_DP_MEDIUM_LOWER_BOUND) -> NavigationSuiteType.NavigationRail
             else -> NavigationSuiteType.NavigationBar
         }
     }

@@ -56,7 +56,7 @@ import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.window.core.layout.WindowWidthSizeClass
+import androidx.window.core.layout.WindowSizeClass
 import info.dvkr.screenstream.AdaptiveBanner
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.common.ModuleSettings
@@ -192,9 +192,11 @@ private fun SettingsListPane(
                             key = { _, settingsItem -> "${module.id}#${settingsGroup.id}#${settingsItem.id}" },
                             contentType = { _, _ -> "ITEM" },
                             itemContent = { index, settingsItem ->
-                                Column(modifier = Modifier
-                                    .fillMaxWidth()
-                                    .animateItem()) {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .animateItem()
+                                ) {
                                     settingsItem.ItemUI(
                                         horizontalPadding = horizontalPadding,
                                         coroutineScope = scope,
@@ -330,8 +332,10 @@ private fun calculateListPanePreferredWidth(
     val hinge = windowAdaptiveInfo.windowPosture.hingeList.firstOrNull()
     return when {
         hinge == null || hinge.isFlat ->
-            when (windowAdaptiveInfo.windowSizeClass.windowWidthSizeClass) {
-                WindowWidthSizeClass.EXPANDED -> with(LocalDensity.current) { (boundsInWindow.width / 2).toDp() }
+            when {
+                windowAdaptiveInfo.windowSizeClass.isWidthAtLeastBreakpoint(WindowSizeClass.WIDTH_DP_MEDIUM_LOWER_BOUND)
+                    -> with(LocalDensity.current) { (boundsInWindow.width / 2).toDp() }
+
                 else -> 360.dp
             }
 
