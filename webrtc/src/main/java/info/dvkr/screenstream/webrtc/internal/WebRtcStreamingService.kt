@@ -51,6 +51,7 @@ import org.webrtc.IceCandidate
 import org.webrtc.PeerConnection.IceServer
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
+import kotlin.math.min
 import kotlin.math.pow
 
 internal class WebRtcStreamingService(
@@ -418,7 +419,7 @@ internal class WebRtcStreamingService(
                             networkRecovery.value = false
                             currentError.set(WebRtcError.UnknownError(cause))
                             sendEvent(WebRtcEvent.UpdateState)
-                        } else if (cause.isNonRetryable() || event.attempt >= 15) {
+                        } else if (cause.isNonRetryable() || event.attempt >= 20) {
                             networkAvailable.value = false
                             networkRecovery.value = false
                             currentError.set(cause)
@@ -426,7 +427,7 @@ internal class WebRtcStreamingService(
                         } else {
                             networkRecovery.value = isStreaming()
                             val attempt = event.attempt + 1
-                            val delay = (2000L * (1.1).pow(attempt - 1)).toLong()
+                            val delay = min((2000L * (1.1).pow(attempt - 1)).toLong(), 15_000L)
                             sendEvent(InternalEvent.GetNonce(attempt, event.forceTokenUpdate), delay)
                         }
                     }
