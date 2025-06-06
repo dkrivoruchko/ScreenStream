@@ -40,10 +40,10 @@ public interface MjpegSettings {
         public val PIN: Preferences.Key<String> = stringPreferencesKey("PIN")
         public val BLOCK_ADDRESS: Preferences.Key<Boolean> = booleanPreferencesKey("BLOCK_ADDRESS")
 
-        public val USE_WIFI_ONLY: Preferences.Key<Boolean> = booleanPreferencesKey("USE_WIFI_ONLY")
+        public val INTERFACE_FILTER: Preferences.Key<Int> = intPreferencesKey("INTERFACE_FILTER")
+        public val ADDRESS_FILTER: Preferences.Key<Int> = intPreferencesKey("ADDRESS_FILTER")
+        public val ENABLE_IPV4: Preferences.Key<Boolean> = booleanPreferencesKey("ENABLE_IPV4")
         public val ENABLE_IPV6: Preferences.Key<Boolean> = booleanPreferencesKey("ENABLE_IPV6")
-        public val ENABLE_LOCAL_HOST: Preferences.Key<Boolean> = booleanPreferencesKey("ENABLE_LOCAL_HOST")
-        public val LOCAL_HOST_ONLY: Preferences.Key<Boolean> = booleanPreferencesKey("LOCAL_HOST_ONLY")
         public val SERVER_PORT: Preferences.Key<Int> = intPreferencesKey("SERVER_PORT")
     }
 
@@ -79,10 +79,10 @@ public interface MjpegSettings {
         public const val PIN: String = "000000"
         public const val BLOCK_ADDRESS: Boolean = true
 
-        public const val USE_WIFI_ONLY: Boolean = true
+        public const val INTERFACE_FILTER: Int = 0
+        public const val ADDRESS_FILTER: Int = 0
+        public const val ENABLE_IPV4: Boolean = true
         public const val ENABLE_IPV6: Boolean = false
-        public const val ENABLE_LOCAL_HOST: Boolean = false
-        public const val LOCAL_HOST_ONLY: Boolean = false
         public const val SERVER_PORT: Int = 8080
     }
 
@@ -93,6 +93,15 @@ public interface MjpegSettings {
         public const val ROTATION_90: Int = 90
         public const val ROTATION_180: Int = 180
         public const val ROTATION_270: Int = 270
+
+        public const val INTERFACE_WIFI: Int = 1
+        public const val INTERFACE_MOBILE: Int = 1 shl 1
+        public const val INTERFACE_ETHERNET: Int = 1 shl 2
+        public const val INTERFACE_VPN: Int = 1 shl 3
+
+        public const val ADDRESS_PRIVATE: Int = 1
+        public const val ADDRESS_LOCALHOST: Int = 1 shl 1
+        public const val ADDRESS_PUBLIC: Int = 1 shl 2
     }
 
     @Immutable
@@ -125,10 +134,10 @@ public interface MjpegSettings {
         public val pin: String = Default.PIN,
         public val blockAddress: Boolean = Default.BLOCK_ADDRESS,
 
-        public val useWiFiOnly: Boolean = Default.USE_WIFI_ONLY,
+        public val interfaceFilter: Int = Default.INTERFACE_FILTER,
+        public val addressFilter: Int = Default.ADDRESS_FILTER,
+        public val enableIpv4: Boolean = Default.ENABLE_IPV4,
         public val enableIPv6: Boolean = Default.ENABLE_IPV6,
-        public val enableLocalHost: Boolean = Default.ENABLE_LOCAL_HOST,
-        public val localHostOnly: Boolean = Default.LOCAL_HOST_ONLY,
         public val serverPort: Int = Default.SERVER_PORT,
     )
 
