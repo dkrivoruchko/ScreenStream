@@ -183,17 +183,17 @@ internal class MjpegStreamingService(
         mjpegSettings.data.map { it.blockAddress }.listenForChange(coroutineScope, 1) {
             sendEvent(InternalEvent.RestartServer(RestartReason.SettingsChanged(MjpegSettings.Key.BLOCK_ADDRESS.name)))
         }
-        mjpegSettings.data.map { it.useWiFiOnly }.listenForChange(coroutineScope, 1) {
-            sendEvent(InternalEvent.RestartServer(RestartReason.NetworkSettingsChanged(MjpegSettings.Key.USE_WIFI_ONLY.name)))
+        mjpegSettings.data.map { it.interfaceFilter }.listenForChange(coroutineScope, 1) {
+            sendEvent(InternalEvent.RestartServer(RestartReason.NetworkSettingsChanged(MjpegSettings.Key.INTERFACE_FILTER.name)))
+        }
+        mjpegSettings.data.map { it.addressFilter }.listenForChange(coroutineScope, 1) {
+            sendEvent(InternalEvent.RestartServer(RestartReason.NetworkSettingsChanged(MjpegSettings.Key.ADDRESS_FILTER.name)))
+        }
+        mjpegSettings.data.map { it.enableIpv4 }.listenForChange(coroutineScope, 1) {
+            sendEvent(InternalEvent.RestartServer(RestartReason.NetworkSettingsChanged(MjpegSettings.Key.ENABLE_IPV4.name)))
         }
         mjpegSettings.data.map { it.enableIPv6 }.listenForChange(coroutineScope, 1) {
             sendEvent(InternalEvent.RestartServer(RestartReason.NetworkSettingsChanged(MjpegSettings.Key.ENABLE_IPV6.name)))
-        }
-        mjpegSettings.data.map { it.enableLocalHost }.listenForChange(coroutineScope, 1) {
-            sendEvent(InternalEvent.RestartServer(RestartReason.NetworkSettingsChanged(MjpegSettings.Key.ENABLE_LOCAL_HOST.name)))
-        }
-        mjpegSettings.data.map { it.localHostOnly }.listenForChange(coroutineScope, 1) {
-            sendEvent(InternalEvent.RestartServer(RestartReason.NetworkSettingsChanged(MjpegSettings.Key.LOCAL_HOST_ONLY.name)))
         }
         mjpegSettings.data.map { it.serverPort }.listenForChange(coroutineScope, 1) {
             sendEvent(InternalEvent.RestartServer(RestartReason.NetworkSettingsChanged(MjpegSettings.Key.SERVER_PORT.name)))
@@ -295,10 +295,10 @@ internal class MjpegStreamingService(
                 if (pendingServer.not()) httpServer.stop(false)
 
                 val newInterfaces = networkHelper.getNetInterfaces(
-                    mjpegSettings.data.value.useWiFiOnly,
+                    mjpegSettings.data.value.interfaceFilter,
+                    mjpegSettings.data.value.addressFilter,
+                    mjpegSettings.data.value.enableIpv4,
                     mjpegSettings.data.value.enableIPv6,
-                    mjpegSettings.data.value.enableLocalHost,
-                    mjpegSettings.data.value.localHostOnly
                 )
 
                 if (newInterfaces.isNotEmpty()) {
@@ -525,7 +525,7 @@ internal class MjpegStreamingService(
         val state = MjpegState(
             isBusy = pendingServer || destroyPending || waitingForPermission || currentError != null,
             serverNetInterfaces = netInterfaces.map {
-                MjpegState.ServerNetInterface(it.name, "http://${it.address.asString()}:${mjpegSettings.data.value.serverPort}")
+                MjpegState.ServerNetInterface(it.label, "http://${it.address.asString()}:${mjpegSettings.data.value.serverPort}")
             }.sortedBy { it.fullAddress },
             waitingCastPermission = waitingForPermission,
             isStreaming = isStreaming,
