@@ -124,21 +124,36 @@
     <string name="mjpeg_pref_block_address_summary">Block client IP address after 5 wrong pin attempts for 5 minutes</string>
 
     <string name="mjpeg_pref_settings_advanced">Advanced</string>
-    <string name="mjpeg_pref_wifi_only">Use WiFi only</string>
-    <string name="mjpeg_pref_wifi_only_summary">Run server on WiFi interface only</string>
+    <string name="mjpeg_pref_interface_filter">Interface filter</string>
+    <string name="mjpeg_pref_interface_filter_summary">Select network interfaces for server</string>
+    <string name="mjpeg_pref_filter_wifi">Wi-Fi</string>
+    <string name="mjpeg_pref_filter_mobile">Mobile</string>
+    <string name="mjpeg_pref_filter_ethernet">Ethernet</string>
+    <string name="mjpeg_pref_filter_vpn">VPN</string>
+    <string name="mjpeg_pref_filter_unknown">unknown</string>
+    <string name="mjpeg_pref_filter_no_restriction">No restriction</string>
+    <string name="mjpeg_pref_address_filter">Address filter</string>
+    <string name="mjpeg_pref_address_filter_summary">Select IP address types for server</string>
+    <string name="mjpeg_pref_filter_private">Private</string>
+    <string name="mjpeg_pref_filter_localhost">Localhost</string>
+    <string name="mjpeg_pref_filter_public">Public</string>
+    <string name="mjpeg_pref_enable_ipv4">Enable IPv4 support</string>
+    <string name="mjpeg_pref_enable_ipv4_summary">Run server on IPv4 addresses also</string>
     <string name="mjpeg_pref_enable_ipv6">Enable IPv6 support</string>
     <string name="mjpeg_pref_enable_ipv6_summary">Run server on IPv6 addresses also</string>
-    <string name="mjpeg_pref_enable_localhost">Enable local host</string>
-    <string name="mjpeg_pref_enable_localhost_summary">Run server on local host addresses also</string>
-    <string name="mjpeg_pref_localhost_only">Local host only</string>
-    <string name="mjpeg_pref_localhost_only_summary">Run server on local host addresses only</string>
+    <string name="mjpeg_label_ipv4_lan">IPv4 LAN</string>
+    <string name="mjpeg_label_ipv6_ula">IPv6 ULA</string>
+    <string name="mjpeg_label_public_ipv4">Public IPv4</string>
+    <string name="mjpeg_label_public_ipv6">Public IPv6</string>
+    <string name="mjpeg_label_loopback">Loopback</string>
+    <string name="mjpeg_label_interface" translatable="false">%1$s (%2$s)</string>
     <string name="mjpeg_pref_server_port">Server port</string>
     <string name="mjpeg_pref_server_port_summary">Set port for incoming connections</string>
     <string name="mjpeg_pref_server_port_text">Set server port for incoming connections.\nValues: 1025–65535\nDefault: 8080</string>
 
     <string name="mjpeg_error_port_in_use">Port already in use. Choose another one.</string>
     <string name="mjpeg_error_invalid_media_projection">Security error: Invalid media projection. Try one more time.</string>
-    <string name="mjpeg_error_ip_address_not_found">IP address not found.\nTry to disable \"Use WiFi only\" in stream settings.</string>
+    <string name="mjpeg_error_ip_address_not_found">IP address not found.\nTry to adjust network filters in stream settings.</string>
     <string name="mjpeg_error_notification_permission_required">Application require notifications to be enabled to start streaming service.\nPlease enable notifications in application settings.</string>
     <string name="mjpeg_error_unspecified">Something went wrong. Please try again later.</string>
 

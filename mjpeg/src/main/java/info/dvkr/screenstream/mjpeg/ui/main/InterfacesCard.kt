@@ -73,7 +73,7 @@ internal fun InterfacesCard(
             mjpegState.value.serverNetInterfaces.forEachIndexed { index, netInterface ->
                 AddressCard(
                     fullAddress = netInterface.fullAddress,
-                    interfaceName = netInterface.name,
+                    interfaceLabel = netInterface.label,
                     modifier = Modifier.padding(top = 12.dp, bottom = 4.dp, start = 12.dp, end = 0.dp)
                 )
 
@@ -88,7 +88,7 @@ internal fun InterfacesCard(
 @Composable
 private fun AddressCard(
     fullAddress: String,
-    interfaceName: String,
+    interfaceLabel: String,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier) {
@@ -117,7 +117,7 @@ private fun AddressCard(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = stringResource(id = R.string.mjpeg_stream_interface, interfaceName),
+                text = stringResource(id = R.string.mjpeg_stream_interface, interfaceLabel),
                 modifier = Modifier.weight(1F),
                 style = MaterialTheme.typography.bodySmall,
             )

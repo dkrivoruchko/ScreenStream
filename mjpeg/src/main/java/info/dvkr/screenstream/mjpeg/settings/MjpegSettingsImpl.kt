@@ -21,12 +21,11 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.withContext
 import java.io.IOException
 
-internal class MjpegSettingsImpl(
-    context: Context
-) : MjpegSettings {
+internal class MjpegSettingsImpl(context: Context) : MjpegSettings {
 
     private val dataStore: DataStore<Preferences> = PreferenceDataStoreFactory.create(
         corruptionHandler = ReplaceFileCorruptionHandler { ex -> XLog.e(ex); emptyPreferences() },
+        migrations = mjpegMigrations,
         produceFile = { context.preferencesDataStoreFile("MJPEG_settings") } // Sync name with backup config
     )
 
@@ -127,17 +126,17 @@ internal class MjpegSettingsImpl(
                     set(MjpegSettings.Key.BLOCK_ADDRESS, newSettings.blockAddress)
 
 
-                if (newSettings.useWiFiOnly != MjpegSettings.Default.USE_WIFI_ONLY)
-                    set(MjpegSettings.Key.USE_WIFI_ONLY, newSettings.useWiFiOnly)
+                if (newSettings.interfaceFilter != MjpegSettings.Default.INTERFACE_FILTER)
+                    set(MjpegSettings.Key.INTERFACE_FILTER, newSettings.interfaceFilter)
+
+                if (newSettings.addressFilter != MjpegSettings.Default.ADDRESS_FILTER)
+                    set(MjpegSettings.Key.ADDRESS_FILTER, newSettings.addressFilter)
+
+                if (newSettings.enableIPv4 != MjpegSettings.Default.ENABLE_IPV4)
+                    set(MjpegSettings.Key.ENABLE_IPV4, newSettings.enableIPv4)
 
                 if (newSettings.enableIPv6 != MjpegSettings.Default.ENABLE_IPV6)
                     set(MjpegSettings.Key.ENABLE_IPV6, newSettings.enableIPv6)
-
-                if (newSettings.enableLocalHost != MjpegSettings.Default.ENABLE_LOCAL_HOST)
-                    set(MjpegSettings.Key.ENABLE_LOCAL_HOST, newSettings.enableLocalHost)
-
-                if (newSettings.localHostOnly != MjpegSettings.Default.LOCAL_HOST_ONLY)
-                    set(MjpegSettings.Key.LOCAL_HOST_ONLY, newSettings.localHostOnly)
 
                 if (newSettings.serverPort != MjpegSettings.Default.SERVER_PORT)
                     set(MjpegSettings.Key.SERVER_PORT, newSettings.serverPort)
@@ -175,10 +174,10 @@ internal class MjpegSettingsImpl(
         pin = this[MjpegSettings.Key.PIN] ?: MjpegSettings.Default.PIN,
         blockAddress = this[MjpegSettings.Key.BLOCK_ADDRESS] ?: MjpegSettings.Default.BLOCK_ADDRESS,
 
-        useWiFiOnly = this[MjpegSettings.Key.USE_WIFI_ONLY] ?: MjpegSettings.Default.USE_WIFI_ONLY,
+        interfaceFilter = this[MjpegSettings.Key.INTERFACE_FILTER] ?: MjpegSettings.Default.INTERFACE_FILTER,
+        addressFilter = this[MjpegSettings.Key.ADDRESS_FILTER] ?: MjpegSettings.Default.ADDRESS_FILTER,
+        enableIPv4 = this[MjpegSettings.Key.ENABLE_IPV4] ?: MjpegSettings.Default.ENABLE_IPV4,
         enableIPv6 = this[MjpegSettings.Key.ENABLE_IPV6] ?: MjpegSettings.Default.ENABLE_IPV6,
-        enableLocalHost = this[MjpegSettings.Key.ENABLE_LOCAL_HOST] ?: MjpegSettings.Default.ENABLE_LOCAL_HOST,
-        localHostOnly = this[MjpegSettings.Key.LOCAL_HOST_ONLY] ?: MjpegSettings.Default.LOCAL_HOST_ONLY,
         serverPort = this[MjpegSettings.Key.SERVER_PORT] ?: MjpegSettings.Default.SERVER_PORT,
     )
 }

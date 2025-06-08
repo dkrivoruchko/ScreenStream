@@ -30,7 +30,7 @@ import org.koin.compose.koinInject
 
 internal object EnableIPv6 : ModuleSettings.Item {
     override val id: String = MjpegSettings.Key.ENABLE_IPV6.name
-    override val position: Int = 1
+    override val position: Int = 3
     override val available: Boolean = true
 
     override fun has(resources: Resources, text: String): Boolean = with(resources) {
@@ -43,9 +43,15 @@ internal object EnableIPv6 : ModuleSettings.Item {
         val mjpegSettings = koinInject<MjpegSettings>()
         val mjpegSettingsState = mjpegSettings.data.collectAsStateWithLifecycle()
 
-        EnableIPv6UI(horizontalPadding, mjpegSettingsState.value.enableIPv6) {
-            if (mjpegSettingsState.value.enableIPv6 != it) {
-                coroutineScope.launch { mjpegSettings.updateData { copy(enableIPv6 = it) } }
+        EnableIPv6UI(horizontalPadding, mjpegSettingsState.value.enableIPv6) { newValue ->
+            coroutineScope.launch {
+                mjpegSettings.updateData {
+                    if (!newValue && !enableIPv4) {
+                        copy(enableIPv6 = false, enableIPv4 = true)
+                    } else {
+                        copy(enableIPv6 = newValue)
+                    }
+                }
             }
         }
     }
@@ -63,7 +69,7 @@ private fun EnableIPv6UI(
             .padding(start = horizontalPadding + 16.dp, end = horizontalPadding + 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(imageVector = Icon_Ipv6, contentDescription = null, modifier = Modifier.padding(end = 16.dp))
+        Icon(imageVector = Icon_IPv6, contentDescription = null, modifier = Modifier.padding(end = 16.dp))
 
         Column(modifier = Modifier.weight(1F)) {
             Text(
@@ -83,76 +89,78 @@ private fun EnableIPv6UI(
     }
 }
 
-private val Icon_Ipv6: ImageVector = materialIcon(name = "Ipv6") {
+private val Icon_IPv6: ImageVector = materialIcon(name = "IPv6") {
     materialPath {
-        moveTo(1.1F, 16.833F)
-        verticalLineTo(7.04F)
-        horizontalLineToRelative(1.621F)
-        verticalLineToRelative(9.793F)
+        moveTo(1.32f, 16.71f)
+        verticalLineTo(7.166f)
+        horizontalLineToRelative(1.575f)
+        verticalLineToRelative(9.544f)
         close()
     }
     materialPath {
-        moveTo(4.282F, 16.833F)
-        lineTo(4.282F, 7.04F)
-        horizontalLineToRelative(2.613F)
-        quadToRelative(1.46F, 0.0F, 1.909F, 0.14F)
-        quadToRelative(0.717F, 0.227F, 1.18F, 0.969F)
-        quadToRelative(0.468F, 0.741F, 0.468F, 1.91F)
-        quadToRelative(0.0F, 1.063F, -0.402F, 1.784F)
-        quadToRelative(-0.402F, 0.715F, -1.005F, 1.009F)
-        quadToRelative(-0.603F, 0.287F, -2.077F, 0.287F)
-        lineTo(5.903F, 13.139F)
-        verticalLineToRelative(3.694F)
-        moveTo(5.903F, 8.697F)
-        verticalLineToRelative(2.779F)
-        horizontalLineToRelative(0.898F)
-        quadToRelative(0.904F, 0.0F, 1.226F, -0.127F)
-        quadToRelative(0.328F, -0.127F, 0.536F, -0.455F)
-        quadToRelative(0.208F, -0.334F, 0.208F, -0.815F)
-        quadToRelative(0.0F, -0.487F, -0.215F, -0.821F)
-        quadToRelative(-0.214F, -0.334F, -0.53F, -0.448F)
-        quadToRelative(-0.314F, -0.113F, -1.332F, -0.113F)
+        moveTo(4.406f, 16.71f)
+        verticalLineTo(7.166f)
+        horizontalLineToRelative(2.539f)
+        quadToRelative(1.419f, 0.0f, 1.855f, 0.137f)
+        quadToRelative(0.697f, 0.221f, 1.146f, 0.944f)
+        quadToRelative(0.456f, 0.722f, 0.456f, 1.862f)
+        quadToRelative(0.0f, 1.035f, -0.39f, 1.738f)
+        quadToRelative(-0.392f, 0.697f, -0.977f, 0.983f)
+        quadToRelative(-0.586f, 0.28f, -2.019f, 0.28f)
+        horizontalLineTo(5.981f)
+        verticalLineToRelative(3.6f)
+        close()
+        moveTo(5.98f, 8.78f)
+        verticalLineToRelative(2.709f)
+        horizontalLineToRelative(0.873f)
+        quadToRelative(0.878f, 0.0f, 1.19f, -0.124f)
+        quadToRelative(0.32f, -0.123f, 0.522f, -0.442f)
+        quadToRelative(0.202f, -0.326f, 0.202f, -0.795f)
+        quadToRelative(0.0f, -0.475f, -0.209f, -0.8f)
+        quadToRelative(-0.208f, -0.326f, -0.514f, -0.437f)
+        quadToRelative(-0.306f, -0.11f, -1.296f, -0.11f)
         close()
     }
     materialPath {
-        moveTo(13.38F, 16.833F)
-        lineToRelative(-2.352F, -7.094F)
-        horizontalLineToRelative(1.621F)
-        lineToRelative(1.099F, 3.62F)
-        lineToRelative(0.315F, 1.21F)
-        lineToRelative(0.328F, -1.21F)
-        lineToRelative(1.112F, -3.62F)
-        horizontalLineToRelative(1.581F)
-        lineToRelative(-2.318F, 7.094F)
+        moveTo(13.246f, 16.71f)
+        lineToRelative(-2.285f, -6.914f)
+        horizontalLineToRelative(1.575f)
+        lineToRelative(1.068f, 3.529f)
+        lineToRelative(0.306f, 1.178f)
+        lineToRelative(0.319f, -1.178f)
+        lineToRelative(1.08f, -3.529f)
+        horizontalLineToRelative(1.537f)
+        lineToRelative(-2.253f, 6.914f)
         close()
     }
     materialPath {
-        moveTo(22.946F, 9.438F)
-        lineToRelative(-1.494F, 0.2F)
-        quadToRelative(-0.107F, -1.095F, -0.878F, -1.095F)
-        quadToRelative(-0.502F, 0.0F, -0.837F, 0.548F)
-        quadToRelative(-0.328F, 0.548F, -0.415F, 2.21F)
-        quadToRelative(0.288F, -0.413F, 0.643F, -0.62F)
-        quadToRelative(0.355F, -0.207F, 0.784F, -0.207F)
-        quadToRelative(0.944F, 0.0F, 1.648F, 0.881F)
-        quadToRelative(0.703F, 0.875F, 0.703F, 2.332F)
-        quadToRelative(0.0F, 1.55F, -0.744F, 2.431F)
-        quadToRelative(-0.743F, 0.882F, -1.842F, 0.882F)
-        quadToRelative(-1.206F, 0.0F, -2.003F, -1.142F)
-        quadToRelative(-0.79F, -1.15F, -0.79F, -3.801F)
-        quadToRelative(0.0F, -2.692F, 0.824F, -3.875F)
-        quadTo(19.369F, 7.0F, 20.662F, 7.0F)
-        quadToRelative(0.89F, 0.0F, 1.5F, 0.608F)
-        quadToRelative(0.616F, 0.601F, 0.784F, 1.83F)
-        moveTo(19.456F, 13.533F)
-        quadToRelative(0.0F, 0.929F, 0.341F, 1.423F)
-        quadToRelative(0.349F, 0.488F, 0.79F, 0.488F)
-        quadToRelative(0.43F, 0.0F, 0.71F, -0.408F)
-        quadToRelative(0.289F, -0.407F, 0.289F, -1.336F)
-        quadToRelative(0.0F, -0.962F, -0.308F, -1.403F)
-        quadToRelative(-0.308F, -0.44F, -0.764F, -0.44F)
-        quadToRelative(-0.442F, 0.0F, -0.75F, 0.42F)
-        quadToRelative(-0.308F, 0.421F, -0.308F, 1.256F)
+        moveTo(22.53f, 9.503f)
+        lineToRelative(-1.452f, 0.196f)
+        quadToRelative(-0.104f, -1.068f, -0.853f, -1.068f)
+        quadToRelative(-0.488f, 0.0f, -0.814f, 0.534f)
+        quadToRelative(-0.319f, 0.534f, -0.404f, 2.155f)
+        quadToRelative(0.28f, -0.404f, 0.625f, -0.606f)
+        quadToRelative(0.345f, -0.202f, 0.762f, -0.202f)
+        quadToRelative(0.918f, 0.0f, 1.602f, 0.86f)
+        quadToRelative(0.683f, 0.853f, 0.683f, 2.272f)
+        quadToRelative(0.0f, 1.51f, -0.722f, 2.37f)
+        quadToRelative(-0.723f, 0.859f, -1.79f, 0.859f)
+        quadToRelative(-1.173f, 0.0f, -1.947f, -1.113f)
+        quadToRelative(-0.769f, -1.12f, -0.769f, -3.705f)
+        quadToRelative(0.0f, -2.623f, 0.801f, -3.776f)
+        quadToRelative(0.801f, -1.152f, 2.058f, -1.152f)
+        quadToRelative(0.865f, 0.0f, 1.458f, 0.592f)
+        quadToRelative(0.599f, 0.586f, 0.762f, 1.784f)
+        close()
+        moveTo(19.138f, 13.494f)
+        quadToRelative(0.0f, 0.905f, 0.332f, 1.387f)
+        quadToRelative(0.338f, 0.475f, 0.768f, 0.475f)
+        quadToRelative(0.417f, 0.0f, 0.69f, -0.397f)
+        quadToRelative(0.28f, -0.397f, 0.28f, -1.302f)
+        quadToRelative(0.0f, -0.938f, -0.3f, -1.367f)
+        quadToRelative(-0.299f, -0.43f, -0.742f, -0.43f)
+        quadToRelative(-0.43f, 0.0f, -0.729f, 0.41f)
+        quadToRelative(-0.3f, 0.41f, -0.3f, 1.224f)
         close()
     }
 }
