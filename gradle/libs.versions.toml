@@ -37,7 +37,7 @@ play-app-review = "2.0.2"
 play-services-ads = "24.3.0"
 webkit = "1.14.0"
 firebase-analytics = "22.4.0"
-firebase-crashlytics = "19.4.3"
+firebase-crashlytics = "19.4.4"
 google-services = "4.4.2"
 crashlytics-gradle = "3.0.3"
 
