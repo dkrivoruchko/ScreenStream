@@ -189,7 +189,7 @@ internal class MjpegStreamingService(
         mjpegSettings.data.map { it.addressFilter }.listenForChange(coroutineScope, 1) {
             sendEvent(InternalEvent.RestartServer(RestartReason.NetworkSettingsChanged(MjpegSettings.Key.ADDRESS_FILTER.name)))
         }
-        mjpegSettings.data.map { it.enableIpv4 }.listenForChange(coroutineScope, 1) {
+        mjpegSettings.data.map { it.enableIPv4 }.listenForChange(coroutineScope, 1) {
             sendEvent(InternalEvent.RestartServer(RestartReason.NetworkSettingsChanged(MjpegSettings.Key.ENABLE_IPV4.name)))
         }
         mjpegSettings.data.map { it.enableIPv6 }.listenForChange(coroutineScope, 1) {
@@ -297,7 +297,7 @@ internal class MjpegStreamingService(
                 val newInterfaces = networkHelper.getNetInterfaces(
                     mjpegSettings.data.value.interfaceFilter,
                     mjpegSettings.data.value.addressFilter,
-                    mjpegSettings.data.value.enableIpv4,
+                    mjpegSettings.data.value.enableIPv4,
                     mjpegSettings.data.value.enableIPv6,
                 )
 
@@ -525,7 +525,7 @@ internal class MjpegStreamingService(
         val state = MjpegState(
             isBusy = pendingServer || destroyPending || waitingForPermission || currentError != null,
             serverNetInterfaces = netInterfaces.map {
-                MjpegState.ServerNetInterface(it.label, "http://${it.address.asString()}:${mjpegSettings.data.value.serverPort}")
+                MjpegState.ServerNetInterface(it.label, it.buildUrl(mjpegSettings.data.value.serverPort))
             }.sortedBy { it.fullAddress },
             waitingCastPermission = waitingForPermission,
             isStreaming = isStreaming,

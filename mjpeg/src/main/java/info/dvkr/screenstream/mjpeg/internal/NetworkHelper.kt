@@ -3,166 +3,281 @@ package info.dvkr.screenstream.mjpeg.internal
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.res.Resources
-import android.net.wifi.WifiManager
-import androidx.core.content.ContextCompat
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
+import android.os.Build
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.mjpeg.R
 import info.dvkr.screenstream.mjpeg.settings.MjpegSettings
+import info.dvkr.screenstream.mjpeg.settings.MjpegSettings.Values.AddressMask
+import info.dvkr.screenstream.mjpeg.settings.MjpegSettings.Values.InterfaceMask
 import java.net.Inet4Address
 import java.net.Inet6Address
 import java.net.InetAddress
 import java.net.NetworkInterface
 import java.util.Collections
-import java.util.Enumeration
 
-@SuppressLint("WifiManagerPotentialLeak")
-internal class NetworkHelper(context: Context) {
+internal class NetworkHelper(private val context: Context) {
 
-    private val networkInterfaceCommonNameArray =
-        arrayOf("lo", "eth", "lan", "wlan", "en", "p2p", "net", "ppp", "wigig", "ap", "rmnet", "rmnet_data")
+    private companion object {
+        private val INTERFACE_PATTERNS = mapOf(
+            MjpegSettings.Values.INTERFACE_WIFI to listOf("wlan\\d", "ap\\d", "wigig\\d", "softap\\.?\\d").map { it.toRegex() },
+            MjpegSettings.Values.INTERFACE_MOBILE to listOf("rmnet.*", "ccmni.*", "usb\\d").map { it.toRegex() },
+            MjpegSettings.Values.INTERFACE_ETHERNET to listOf("eth\\d", "en\\d", "lan\\d").map { it.toRegex() },
+            MjpegSettings.Values.INTERFACE_VPN to listOf("tun\\d", "tap\\d", "ppp\\d", "vpn").map { it.toRegex() }
+        )
 
-    private val defaultWifiRegexArray: Array<Regex> = arrayOf(
-        Regex("wlan\\d"),
-        Regex("ap\\d"),
-        Regex("wigig\\d"),
-        Regex("softap\\.?\\d")
-    )
+        private val COMMON_IFACE_NAMES = listOf(
+            "lo", "eth", "lan", "wlan", "en", "p2p", "net", "ppp", "wigig", "ap", "rmnet", "rmnet_data"
+        )
 
-    @SuppressLint("DiscouragedApi")
-    private val wifiRegexArray: Array<Regex> =
-        Resources.getSystem().getIdentifier("config_tether_wifi_regexs", "array", "android").let { tetherId ->
-            context.applicationContext.resources.getStringArray(tetherId).map { it.toRegex() }.toTypedArray()
-        }
+        private val LOOPBACK_IFACE_NAMES = listOf("lo", "lo0", "loopback")
+    }
 
-    private val wifiManager: WifiManager = ContextCompat.getSystemService(context, WifiManager::class.java)!!
+    private val connectivityManager: ConnectivityManager? = context.getSystemService(ConnectivityManager::class.java)
 
-    private fun getNetworkInterfacesWithFallBack(): Enumeration<NetworkInterface> {
-        try {
-            return NetworkInterface.getNetworkInterfaces()
-        } catch (ex: Exception) {
-            XLog.w(getLog("getNetworkInterfacesWithFallBack.getNetworkInterfaces", ex.toString()))
-        }
-
-        val netList = mutableListOf<NetworkInterface>()
-        (0..7).forEach { index ->
-            try {
-                val networkInterface: NetworkInterface? = NetworkInterface.getByIndex(index)
-                if (networkInterface != null) netList.add(networkInterface)
-                else if (index > 3) {
-                    if (netList.isNotEmpty()) return Collections.enumeration(netList)
-                    return@forEach
-                }
-            } catch (ex: Exception) {
-                XLog.e(getLog("getNetworkInterfacesWithFallBack.getByIndex#$index:", ex.toString()))
+    private val enhancedInterfacePatterns: Map<Int, List<Regex>> by lazy {
+        INTERFACE_PATTERNS.mapValues { (type, patterns) ->
+            if (type == MjpegSettings.Values.INTERFACE_WIFI) {
+                patterns + getOemWifiPatterns()
+            } else {
+                patterns
             }
         }
-
-        networkInterfaceCommonNameArray.forEach { commonName ->
-            try {
-                val networkInterface: NetworkInterface? = NetworkInterface.getByName(commonName)
-                if (networkInterface != null) netList.add(networkInterface)
-
-                (0..15).forEach { index ->
-                    val networkInterfaceIndexed: NetworkInterface? = NetworkInterface.getByName("$commonName$index")
-                    if (networkInterfaceIndexed != null) netList.add(networkInterfaceIndexed)
-                }
-
-            } catch (ex: Exception) {
-                XLog.e(getLog("getNetworkInterfacesWithFallBack.commonName#$commonName:", ex.toString()))
-            }
-        }
-
-        return Collections.enumeration(netList)
     }
 
     fun getNetInterfaces(
-        interfaceFilter: Int,
-        addressFilter: Int,
+        @InterfaceMask interfaceFilter: Int,
+        @AddressMask addressFilter: Int,
         enableIpv4: Boolean,
         enableIpv6: Boolean,
     ): List<MjpegNetInterface> {
-        XLog.d(getLog("getNetInterfaces", "Invoked"))
+        XLog.d(
+            getLog(
+                "getNetInterfaces",
+                "interfaceFilter=$interfaceFilter, addressFilter=$addressFilter, ipv4=$enableIpv4, ipv6=$enableIpv6"
+            )
+        )
 
-        val netInterfaceList = mutableListOf<MjpegNetInterface>()
+        val netInterfaces = mutableListOf<MjpegNetInterface>()
 
-        val wifiPattern = defaultWifiRegexArray + wifiRegexArray
-        val mobilePattern = arrayOf(Regex("rmnet.*"), Regex("ccmni.*"), Regex("usb\\d"))
-        val ethernetPattern = arrayOf(Regex("eth\\d"), Regex("en\\d"), Regex("lan\\d"))
-        val vpnPattern = arrayOf(Regex("tun\\d"), Regex("tap\\d"), Regex("ppp\\d"), Regex("vpn"))
-
-        getNetworkInterfacesWithFallBack().asSequence().forEach { networkInterface ->
-            val name = networkInterface.displayName
-
-            val isWifi = wifiPattern.any { it.matches(name) }
-            val isMobile = mobilePattern.any { it.matches(name) }
-            val isEthernet = ethernetPattern.any { it.matches(name) }
-            val isVpn = vpnPattern.any { it.matches(name) }
-
-            val includeInterface =
-                interfaceFilter == 0 ||
-                        (isWifi && interfaceFilter and MjpegSettings.Values.INTERFACE_WIFI != 0) ||
-                        (isMobile && interfaceFilter and MjpegSettings.Values.INTERFACE_MOBILE != 0) ||
-                        (isEthernet && interfaceFilter and MjpegSettings.Values.INTERFACE_ETHERNET != 0) ||
-                        (isVpn && interfaceFilter and MjpegSettings.Values.INTERFACE_VPN != 0)
-
-            if (!includeInterface) return@forEach
-
-            networkInterface.inetAddresses.asSequence().filterNotNull()
-                .filter { !it.isLinkLocalAddress && !it.isMulticastAddress }
-                .filter { (it is Inet4Address && enableIpv4) || (it is Inet6Address && enableIpv6) }
-                .filter { address ->
-                    if (addressFilter == 0) true
-                    else {
-                        val isLocalhost = address.isLoopbackAddress
-                        val isPrivate = address.isSiteLocalAddress
-                        val isPublic = !isLocalhost && !isPrivate
-                        (isLocalhost && addressFilter and MjpegSettings.Values.ADDRESS_LOCALHOST != 0) ||
-                                (isPrivate && addressFilter and MjpegSettings.Values.ADDRESS_PRIVATE != 0) ||
-                                (isPublic && addressFilter and MjpegSettings.Values.ADDRESS_PUBLIC != 0)
-                    }
-                }
-                .map { if (it is Inet6Address) Inet6Address.getByAddress(it.address) else it }
-                .map { address ->
-                    val interfaceLabel = when {
-                        isWifi -> context.getString(R.string.mjpeg_pref_filter_wifi)
-                        isMobile -> context.getString(R.string.mjpeg_pref_filter_mobile)
-                        isEthernet -> context.getString(R.string.mjpeg_pref_filter_ethernet)
-                        isVpn -> context.getString(R.string.mjpeg_pref_filter_vpn)
-                        else -> name
-                    }
-                    val addressLabel = when {
-                        address.isLoopbackAddress -> context.getString(R.string.mjpeg_label_loopback)
-                        address.isSiteLocalAddress && address is Inet6Address -> context.getString(R.string.mjpeg_label_ipv6_ula)
-                        address.isSiteLocalAddress -> context.getString(R.string.mjpeg_label_ipv4_lan)
-                        address is Inet6Address -> context.getString(R.string.mjpeg_label_public_ipv6)
-                        else -> context.getString(R.string.mjpeg_label_public_ipv4)
-                    }
-                    val label = if (address.isLoopbackAddress) addressLabel
-                    else context.getString(R.string.mjpeg_label_interface, interfaceLabel, addressLabel)
-                    MjpegNetInterface(label, address)
-                }
-                .toCollection(netInterfaceList)
+        if (addressFilter != MjpegSettings.Values.ADDRESS_LOCALHOST) {
+            connectivityManager?.runCatching {
+                discoverViaConnectivityManager(interfaceFilter, addressFilter, enableIpv4, enableIpv6, netInterfaces)
+            }?.onFailure { XLog.w(getLog("CM discovery failed", it.toString())) }
         }
 
-        if (netInterfaceList.isEmpty() && wifiConnected()) netInterfaceList.add(getWiFiNetAddress())
+        discoverViaNetworkInterface(
+            interfaceFilter = interfaceFilter,
+            addressFilter = addressFilter,
+            enableIpv4 = enableIpv4,
+            enableIpv6 = enableIpv6,
+            sink = netInterfaces,
+            useStrictFiltering = true
+        )
 
-        return netInterfaceList
+        val needsLocalhost = addressFilter == 0 || (addressFilter and MjpegSettings.Values.ADDRESS_LOCALHOST) != 0
+        if (needsLocalhost && netInterfaces.none { it.address.isLoopbackAddress }) {
+            XLog.d(getLog("getNetInterfaces", "No loopback found, attempting manual discovery"))
+            discoverLoopbackManually(enableIpv4, enableIpv6, netInterfaces)
+        }
+
+        if (netInterfaces.isEmpty() && (enableIpv4 || enableIpv6) && addressFilter != MjpegSettings.Values.ADDRESS_LOCALHOST) {
+            XLog.d(getLog("getNetInterfaces", "Attempting discovery with relaxed filters"))
+
+            discoverViaNetworkInterface(
+                interfaceFilter = interfaceFilter,
+                addressFilter = addressFilter,
+                enableIpv4 = enableIpv4,
+                enableIpv6 = enableIpv6,
+                sink = netInterfaces,
+                useStrictFiltering = false
+            )
+        }
+
+        return netInterfaces
+            .filter { it.address.hostAddress != null }
+            .distinctBy { it.address.hostAddress!!.substringBefore('%') }
     }
 
     @Suppress("DEPRECATION")
-    private fun wifiConnected() = wifiManager.connectionInfo.ipAddress != 0
+    private fun discoverViaConnectivityManager(
+        @InterfaceMask interfaceFilter: Int,
+        @AddressMask addressFilter: Int,
+        enableIpv4: Boolean,
+        enableIpv6: Boolean,
+        sink: MutableList<MjpegNetInterface>
+    ) {
+        connectivityManager?.allNetworks?.forEach { network ->
+            val caps = connectivityManager.getNetworkCapabilities(network) ?: return@forEach
+            val linkProps = connectivityManager.getLinkProperties(network) ?: return@forEach
 
-    @Suppress("DEPRECATION")
-    private fun getWiFiNetAddress(): MjpegNetInterface {
-        XLog.d(getLog("getWiFiNetAddress", "Invoked"))
+            val transportMask = when {
+                caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> MjpegSettings.Values.INTERFACE_WIFI
+                caps.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) -> MjpegSettings.Values.INTERFACE_MOBILE
+                caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) -> MjpegSettings.Values.INTERFACE_ETHERNET
+                caps.hasTransport(NetworkCapabilities.TRANSPORT_VPN) -> MjpegSettings.Values.INTERFACE_VPN
+                else -> 0
+            }
 
-        val ipInt = wifiManager.connectionInfo.ipAddress
-        val ipByteArray = ByteArray(4) { i -> (ipInt.shr(i * 8).and(255)).toByte() }
-        val inet4Address = InetAddress.getByAddress(ipByteArray) as Inet4Address
-        val interfaceLabel = context.getString(R.string.mjpeg_pref_filter_wifi)
-        val addressLabel = context.getString(R.string.mjpeg_label_ipv4_lan)
-        val label = context.getString(R.string.mjpeg_label_interface, interfaceLabel, addressLabel)
-        return MjpegNetInterface(label, inet4Address)
+            if (interfaceFilter != 0 && (transportMask and interfaceFilter) == 0) return@forEach
+
+            linkProps.linkAddresses
+                .mapNotNull { it.address }
+                .filter { addr -> !addr.isLinkLocalAddress && !addr.isMulticastAddress }
+                .filter { isAddressTypeEnabled(it, enableIpv4, enableIpv6) }
+                .filter { passesAddressFilter(it, addressFilter) }
+                .mapTo(sink) { toMjpegNetInterface(it, transportMask) }
+        }
+    }
+
+    private fun discoverViaNetworkInterface(
+        @InterfaceMask interfaceFilter: Int,
+        @AddressMask addressFilter: Int,
+        enableIpv4: Boolean,
+        enableIpv6: Boolean,
+        sink: MutableList<MjpegNetInterface>,
+        useStrictFiltering: Boolean
+    ) {
+        val allIfaceNames = COMMON_IFACE_NAMES + LOOPBACK_IFACE_NAMES
+
+        runCatching { NetworkInterface.getNetworkInterfaces() }.getOrElse {
+            val interfaces = mutableSetOf<NetworkInterface>()
+            (0..10).forEach { index ->
+                runCatching { NetworkInterface.getByIndex(index) }.getOrNull()?.let(interfaces::add)
+            }
+            allIfaceNames.forEach { base ->
+                runCatching { NetworkInterface.getByName(base) }.getOrNull()?.let(interfaces::add)
+                (0..15).forEach { i -> runCatching { NetworkInterface.getByName("$base$i") }.getOrNull()?.let(interfaces::add) }
+            }
+            Collections.enumeration(interfaces.toList())
+        }
+            .asSequence()
+            .filter { nif ->
+                if (!nif.isUp) return@filter false
+                val isLoopback = LOOPBACK_IFACE_NAMES.any {
+                    nif.name.equals(it, ignoreCase = true) || nif.displayName.equals(it, ignoreCase = true)
+                }
+                val needsLocalhost = addressFilter == 0 || (addressFilter and MjpegSettings.Values.ADDRESS_LOCALHOST) != 0
+                if (isLoopback && needsLocalhost) return@filter true
+
+                !useStrictFiltering || Build.VERSION.SDK_INT < 24 || !nif.isVirtual
+            }
+            .forEach { nif ->
+                val transportMask = when {
+                    LOOPBACK_IFACE_NAMES.any {
+                        nif.name.equals(it, ignoreCase = true) || nif.displayName.equals(it, ignoreCase = true)
+                    } -> 0
+
+                    else -> enhancedInterfacePatterns.entries.firstOrNull { (_, patterns) ->
+                        patterns.any { regex -> regex.matches(nif.displayName) || regex.matches(nif.name) }
+                    }?.key ?: 0
+                }
+
+                val isLoopback = transportMask == 0 && LOOPBACK_IFACE_NAMES.any { nif.name.equals(it, ignoreCase = true) }
+
+                if (!isLoopback && interfaceFilter != 0 && transportMask != 0 && (transportMask and interfaceFilter) == 0) {
+                    return@forEach
+                }
+
+                nif.inetAddresses
+                    .asSequence()
+                    .filter { addr -> !addr.isLinkLocalAddress && !addr.isMulticastAddress }
+                    .filter { addr -> isAddressTypeEnabled(addr, enableIpv4, enableIpv6) }
+                    .filter { addr -> passesAddressFilter(addr, addressFilter) }
+                    .mapTo(sink) { toMjpegNetInterface(it, transportMask) }
+            }
+    }
+
+    private fun discoverLoopbackManually(
+        enableIpv4: Boolean,
+        enableIpv6: Boolean,
+        sink: MutableList<MjpegNetInterface>
+    ) {
+        LOOPBACK_IFACE_NAMES.forEach { name ->
+            runCatching {
+                NetworkInterface.getByName(name)?.let { nif ->
+                    if (nif.isUp) {
+                        nif.inetAddresses
+                            .asSequence()
+                            .filter { it.isLoopbackAddress }
+                            .filter { isAddressTypeEnabled(it, enableIpv4, enableIpv6) }
+                            .mapTo(sink) { toMjpegNetInterface(it, 0) }
+                    }
+                }
+            }.onFailure {
+                XLog.d(getLog("discoverLoopbackManually", "Failed to get interface $name: ${it.message}"))
+            }
+        }
+
+        if (sink.none { it.address.isLoopbackAddress }) {
+            if (enableIpv4) {
+                runCatching {
+                    InetAddress.getByName("127.0.0.1").let { addr -> if (addr.isLoopbackAddress) sink.add(toMjpegNetInterface(addr, 0)) }
+                }.onFailure {
+                    XLog.d(getLog("discoverLoopbackManually", "Failed to add IPv4 loopback: ${it.message}"))
+                }
+            }
+
+            if (enableIpv6) {
+                runCatching {
+                    InetAddress.getByName("::1").let { addr -> if (addr.isLoopbackAddress) sink.add(toMjpegNetInterface(addr, 0)) }
+                }.onFailure {
+                    XLog.d(getLog("discoverLoopbackManually", "Failed to add IPv6 loopback: ${it.message}"))
+                }
+            }
+        }
+    }
+
+    @SuppressLint("DiscouragedApi")
+    private fun getOemWifiPatterns(): List<Regex> {
+        val id = Resources.getSystem().getIdentifier("config_tether_wifi_regexs", "array", "android")
+        return if (id != 0) {
+            runCatching { context.resources.getStringArray(id).map { it.toRegex() } }.getOrElse {
+                XLog.w(getLog("getOemWifiPatterns", "Failed to load OEM patterns: $it"))
+                emptyList()
+            }
+        } else {
+            emptyList()
+        }
+    }
+
+    private fun isAddressTypeEnabled(addr: InetAddress, ipv4: Boolean, ipv6: Boolean): Boolean =
+        (addr is Inet4Address && ipv4) || (addr is Inet6Address && ipv6)
+
+    private fun passesAddressFilter(addr: InetAddress, @AddressMask filter: Int): Boolean {
+        if (filter == MjpegSettings.Values.ADDRESS_ALL) return true
+        return when {
+            addr.isLoopbackAddress -> (filter and MjpegSettings.Values.ADDRESS_LOCALHOST) != 0
+            addr.isSiteLocalAddress -> (filter and MjpegSettings.Values.ADDRESS_PRIVATE) != 0
+            else -> (filter and MjpegSettings.Values.ADDRESS_PUBLIC) != 0
+        }
+    }
+
+    private fun toMjpegNetInterface(address: InetAddress, transportMask: Int): MjpegNetInterface {
+        val interfaceLabel = when (transportMask) {
+            MjpegSettings.Values.INTERFACE_WIFI -> context.getString(R.string.mjpeg_pref_filter_wifi)
+            MjpegSettings.Values.INTERFACE_MOBILE -> context.getString(R.string.mjpeg_pref_filter_mobile)
+            MjpegSettings.Values.INTERFACE_ETHERNET -> context.getString(R.string.mjpeg_pref_filter_ethernet)
+            MjpegSettings.Values.INTERFACE_VPN -> context.getString(R.string.mjpeg_pref_filter_vpn)
+            else -> context.getString(R.string.mjpeg_pref_filter_unknown)
+        }
+
+        val addressLabel = when {
+            address.isLoopbackAddress -> context.getString(R.string.mjpeg_label_loopback)
+            address.isSiteLocalAddress && address is Inet6Address -> context.getString(R.string.mjpeg_label_ipv6_ula)
+            address.isSiteLocalAddress -> context.getString(R.string.mjpeg_label_ipv4_lan)
+            address is Inet6Address -> context.getString(R.string.mjpeg_label_public_ipv6)
+            else -> context.getString(R.string.mjpeg_label_public_ipv4)
+        }
+
+        val label = if (address.isLoopbackAddress) {
+            context.getString(R.string.mjpeg_label_interface, addressLabel, if (address is Inet6Address) "IPv6" else "IPv4")
+        } else {
+            context.getString(R.string.mjpeg_label_interface, interfaceLabel, addressLabel)
+        }
+
+        return MjpegNetInterface(label, address)
     }
 }

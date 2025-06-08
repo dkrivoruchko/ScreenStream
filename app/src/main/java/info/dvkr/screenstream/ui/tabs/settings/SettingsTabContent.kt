@@ -178,7 +178,8 @@ private fun SettingsListPane(
                 state = lazyListState
             ) {
                 settingsList.value.forEach { module ->
-                    stickyHeader(key = module.id, contentType = "HEADER") {
+                    // stickyHeader has bug in Compose
+                    item(key = module.id, contentType = "HEADER") {
                         module.TitleUI(modifier = titleModifier)
                     }
 

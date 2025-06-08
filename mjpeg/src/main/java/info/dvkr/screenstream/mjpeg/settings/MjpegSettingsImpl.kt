@@ -21,12 +21,11 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.withContext
 import java.io.IOException
 
-internal class MjpegSettingsImpl(
-    context: Context
-) : MjpegSettings {
+internal class MjpegSettingsImpl(context: Context) : MjpegSettings {
 
     private val dataStore: DataStore<Preferences> = PreferenceDataStoreFactory.create(
         corruptionHandler = ReplaceFileCorruptionHandler { ex -> XLog.e(ex); emptyPreferences() },
+        migrations = mjpegMigrations,
         produceFile = { context.preferencesDataStoreFile("MJPEG_settings") } // Sync name with backup config
     )
 
@@ -133,8 +132,8 @@ internal class MjpegSettingsImpl(
                 if (newSettings.addressFilter != MjpegSettings.Default.ADDRESS_FILTER)
                     set(MjpegSettings.Key.ADDRESS_FILTER, newSettings.addressFilter)
 
-                if (newSettings.enableIpv4 != MjpegSettings.Default.ENABLE_IPV4)
-                    set(MjpegSettings.Key.ENABLE_IPV4, newSettings.enableIpv4)
+                if (newSettings.enableIPv4 != MjpegSettings.Default.ENABLE_IPV4)
+                    set(MjpegSettings.Key.ENABLE_IPV4, newSettings.enableIPv4)
 
                 if (newSettings.enableIPv6 != MjpegSettings.Default.ENABLE_IPV6)
                     set(MjpegSettings.Key.ENABLE_IPV6, newSettings.enableIPv6)
@@ -175,20 +174,9 @@ internal class MjpegSettingsImpl(
         pin = this[MjpegSettings.Key.PIN] ?: MjpegSettings.Default.PIN,
         blockAddress = this[MjpegSettings.Key.BLOCK_ADDRESS] ?: MjpegSettings.Default.BLOCK_ADDRESS,
 
-        interfaceFilter = this[MjpegSettings.Key.INTERFACE_FILTER] ?: run {
-            if (this[MjpegSettings.Key.USE_WIFI_ONLY] == true) MjpegSettings.Values.INTERFACE_WIFI
-            else MjpegSettings.Default.INTERFACE_FILTER
-        },
-        addressFilter = this[MjpegSettings.Key.ADDRESS_FILTER] ?: run {
-            val localHostOnly = this[MjpegSettings.Key.LOCAL_HOST_ONLY] ?: false
-            val enableLocalHost = this[MjpegSettings.Key.ENABLE_LOCAL_HOST] ?: false
-            when {
-                localHostOnly -> MjpegSettings.Values.ADDRESS_LOCALHOST
-                enableLocalHost.not() -> MjpegSettings.Values.ADDRESS_PRIVATE or MjpegSettings.Values.ADDRESS_PUBLIC
-                else -> MjpegSettings.Default.ADDRESS_FILTER
-            }
-        },
-        enableIpv4 = this[MjpegSettings.Key.ENABLE_IPV4] ?: MjpegSettings.Default.ENABLE_IPV4,
+        interfaceFilter = this[MjpegSettings.Key.INTERFACE_FILTER] ?: MjpegSettings.Default.INTERFACE_FILTER,
+        addressFilter = this[MjpegSettings.Key.ADDRESS_FILTER] ?: MjpegSettings.Default.ADDRESS_FILTER,
+        enableIPv4 = this[MjpegSettings.Key.ENABLE_IPV4] ?: MjpegSettings.Default.ENABLE_IPV4,
         enableIPv6 = this[MjpegSettings.Key.ENABLE_IPV6] ?: MjpegSettings.Default.ENABLE_IPV6,
         serverPort = this[MjpegSettings.Key.SERVER_PORT] ?: MjpegSettings.Default.SERVER_PORT,
     )
