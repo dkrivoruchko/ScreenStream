@@ -18,6 +18,7 @@
     <string name="app_tab_stream">Transmisja</string>
     <string name="app_tab_settings">Ustawienia</string>
     <string name="app_tab_about">O aplikacji</string>
+    <string name="app_tab_exit">Wyjście</string>
 
     <string name="app_tab_stream_select_mode">Wybierz tryb strumienia:</string>
 

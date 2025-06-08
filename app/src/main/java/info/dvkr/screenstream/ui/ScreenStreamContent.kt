@@ -65,6 +65,7 @@ import info.dvkr.screenstream.logger.CollectingLogsUi
 import info.dvkr.screenstream.notification.NotificationPermission
 import info.dvkr.screenstream.ui.tabs.AppTabs
 import info.dvkr.screenstream.ui.tabs.about.AboutTabContent
+import info.dvkr.screenstream.ui.tabs.exit.ExitTabContent
 import info.dvkr.screenstream.ui.tabs.settings.SettingsTabContent
 import info.dvkr.screenstream.ui.tabs.stream.StreamTabContent
 import kotlinx.coroutines.flow.StateFlow
@@ -175,6 +176,7 @@ private fun MainContent(
                     AppTabs.STREAM -> StreamTabContent(contentBoundsInWindow.value, modifier = Modifier.fillMaxSize())
                     AppTabs.SETTINGS -> SettingsTabContent(contentBoundsInWindow.value, modifier = Modifier.fillMaxSize())
                     AppTabs.ABOUT -> AboutTabContent(modifier = Modifier.fillMaxSize())
+                    AppTabs.EXIT -> ExitTabContent(modifier = Modifier.fillMaxSize())
                 }
             }
         }

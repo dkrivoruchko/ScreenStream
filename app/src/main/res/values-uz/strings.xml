@@ -18,6 +18,7 @@
     <string name="app_tab_stream">Oqim</string>
     <string name="app_tab_settings">Sozlamalar</string>
     <string name="app_tab_about">Haqida</string>
+    <string name="app_tab_exit">Chiqish</string>
 
     <string name="app_tab_stream_select_mode">Oqim rejimini tanlang:</string>
 

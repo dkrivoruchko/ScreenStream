@@ -14,6 +14,7 @@ internal enum class AppTabs(
     STREAM(Icon_Stream, Icon_Stream, R.string.app_tab_stream),
     SETTINGS(Icon_Settings, Icons_Settings_Filled, R.string.app_tab_settings),
     ABOUT(Icon_Info, Icon_Info_Filled, R.string.app_tab_about),
+    EXIT(Icons_Filled_Close, Icons_Filled_Close, R.string.app_tab_exit)
 }
 
 private val Icon_Stream: ImageVector = materialIcon(name = "Filled.Stream") {
@@ -283,6 +284,24 @@ private val Icon_Info_Filled: ImageVector = materialIcon(name = "Filled.Info") {
         lineTo(11.0f, 7.0f)
         horizontalLineToRelative(2.0f)
         verticalLineToRelative(2.0f)
+        close()
+    }
+}
+
+private val Icons_Filled_Close: ImageVector = materialIcon(name = "Filled.Close") {
+    materialPath {
+        moveTo(19.0f, 6.41f)
+        lineTo(17.59f, 5.0f)
+        lineTo(12.0f, 10.59f)
+        lineTo(6.41f, 5.0f)
+        lineTo(5.0f, 6.41f)
+        lineTo(10.59f, 12.0f)
+        lineTo(5.0f, 17.59f)
+        lineTo(6.41f, 19.0f)
+        lineTo(12.0f, 13.41f)
+        lineTo(17.59f, 19.0f)
+        lineTo(19.0f, 17.59f)
+        lineTo(13.41f, 12.0f)
         close()
     }
 }

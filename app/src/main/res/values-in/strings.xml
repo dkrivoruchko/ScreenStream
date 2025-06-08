@@ -18,6 +18,7 @@
     <string name="app_tab_stream">Sungai kecil</string>
     <string name="app_tab_settings">Pengaturan</string>
     <string name="app_tab_about">Tentang</string>
+    <string name="app_tab_exit">Keluar</string>
 
     <string name="app_tab_stream_select_mode">Pilih mode streaming:</string>
 

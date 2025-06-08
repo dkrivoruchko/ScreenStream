@@ -17,7 +17,8 @@
 
     <string name="app_tab_stream">Трансляція</string>
     <string name="app_tab_settings">Налаштування</string>
-    <string name="app_tab_about">Інформація</string>
+    <string name="app_tab_about">Про додаток</string>
+    <string name="app_tab_exit">Вийти</string>
 
     <string name="app_tab_stream_select_mode">Оберіть режим трансляції:</string>
 

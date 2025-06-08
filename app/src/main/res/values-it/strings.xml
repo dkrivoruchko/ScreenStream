@@ -18,6 +18,7 @@
     <string name="app_tab_stream">Trasmissione</string>
     <string name="app_tab_settings">Impostazioni</string>
     <string name="app_tab_about">Al riguardo</string>
+    <string name="app_tab_exit">Esci</string>
 
     <string name="app_tab_stream_select_mode">Seleziona la modalità di streaming:</string>
 

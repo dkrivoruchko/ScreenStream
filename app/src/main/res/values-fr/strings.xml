@@ -18,6 +18,7 @@
     <string name="app_tab_stream">Diffusion</string>
     <string name="app_tab_settings">Réglages</string>
     <string name="app_tab_about">À propos de</string>
+    <string name="app_tab_exit">Quitter</string>
 
     <string name="app_tab_stream_select_mode">Sélectionnez le mode de flux:</string>
 

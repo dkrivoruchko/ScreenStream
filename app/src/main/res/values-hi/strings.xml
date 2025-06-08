@@ -18,6 +18,7 @@
     <string name="app_tab_stream">प्रवाह</string>
     <string name="app_tab_settings">सेटिंग्स</string>
     <string name="app_tab_about">विषय में</string>
+    <string name="app_tab_exit">बाहर</string>
 
     <string name="app_tab_stream_select_mode">स्ट्रीम मोड चुनें:</string>
 

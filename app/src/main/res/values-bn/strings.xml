@@ -18,6 +18,7 @@
     <string name="app_tab_stream">প্রবাহ</string>
     <string name="app_tab_settings">সেটিংস</string>
     <string name="app_tab_about">সম্পর্কিত</string>
+    <string name="app_tab_exit">প্রস্থান</string>
 
     <string name="app_tab_stream_select_mode">স্ট্রিম মোড নির্বাচন করুন:</string>
 

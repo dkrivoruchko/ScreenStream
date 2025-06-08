@@ -18,6 +18,7 @@
     <string name="app_tab_stream">主畫面</string>
     <string name="app_tab_settings">設定</string>
     <string name="app_tab_about">關於</string>
+    <string name="app_tab_exit">離開</string>
 
     <string name="app_tab_stream_select_mode">選擇串流模式：</string>
 

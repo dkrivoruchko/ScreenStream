@@ -18,6 +18,7 @@
     <string name="app_tab_stream">ዥረት</string>
     <string name="app_tab_settings">ቅንብሮች</string>
     <string name="app_tab_about">ስለ</string>
+    <string name="app_tab_exit">ውጣ</string>
 
     <string name="app_tab_stream_select_mode">የዥረት ሁነታን ይምረጡ፡</string>
 

@@ -18,6 +18,7 @@
     <string name="app_tab_stream">Stroom</string>
     <string name="app_tab_settings">" Instellings "</string>
     <string name="app_tab_about">Oor</string>
+    <string name="app_tab_exit">Verlaat</string>
 
     <string name="app_tab_stream_select_mode">Kies stroommodus:</string>
 

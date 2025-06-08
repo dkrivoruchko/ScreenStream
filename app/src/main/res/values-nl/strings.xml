@@ -18,6 +18,7 @@
     <string name="app_tab_stream">Stream</string>
     <string name="app_tab_settings">Instellingen</string>
     <string name="app_tab_about">Informatie</string>
+    <string name="app_tab_exit">Afsluiten</string>
 
     <string name="app_tab_stream_select_mode">Selecteer streammodus:</string>
 
