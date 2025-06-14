@@ -14,6 +14,7 @@ import info.dvkr.screenstream.mjpeg.ui.MjpegError
 import io.ktor.http.CacheControl
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.content.CachingOptions
 import io.ktor.http.content.OutgoingContent
@@ -30,6 +31,7 @@ import io.ktor.server.plugins.cachingheaders.CachingHeaders
 import io.ktor.server.plugins.compression.Compression
 import io.ktor.server.plugins.compression.deflate
 import io.ktor.server.plugins.compression.gzip
+import io.ktor.server.plugins.cors.routing.CORS
 import io.ktor.server.plugins.defaultheaders.DefaultHeaders
 import io.ktor.server.plugins.forwardedheaders.ForwardedHeaders
 import io.ktor.server.plugins.origin
@@ -281,8 +283,21 @@ internal class HttpServer(
             deflate()
         }
         install(CachingHeaders) { options { _, _ -> CachingOptions(CacheControl.NoStore(CacheControl.Visibility.Private)) } }
-        install(DefaultHeaders) { header(HttpHeaders.AccessControlAllowOrigin, "*") }
+        install(DefaultHeaders)
         install(ForwardedHeaders)
+        install(CORS) {
+            anyHost()
+            allowMethod(HttpMethod.Get)
+            allowMethod(HttpMethod.Head)
+            allowMethod(HttpMethod.Options)
+            allowHeader(HttpHeaders.ContentType)
+            allowHeader(HttpHeaders.Range)
+            allowNonSimpleContentTypes = true
+
+            exposeHeader(HttpHeaders.ContentLength)
+            exposeHeader(HttpHeaders.ContentRange)
+            exposeHeader(HttpHeaders.ContentType)
+        }
         install(WebSockets)
         install(StatusPages) {
             exception<Throwable> { call, cause ->

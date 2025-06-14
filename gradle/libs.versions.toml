@@ -77,6 +77,7 @@ ktor-server-compression = { module = "io.ktor:ktor-server-compression", version.
 ktor-server-caching-headers = { module = "io.ktor:ktor-server-caching-headers", version.ref = "ktor" }
 ktor-server-default-headers = { module = "io.ktor:ktor-server-default-headers", version.ref = "ktor" }
 ktor-server-forwarded-header = { module = "io.ktor:ktor-server-forwarded-header", version.ref = "ktor" }
+ktor-server-cors = { module = "io.ktor:ktor-server-cors", version.ref = "ktor" }
 ktor-server-websockets = { module = "io.ktor:ktor-server-websockets", version.ref = "ktor" }
 ktor-server-status-pages = { module = "io.ktor:ktor-server-status-pages", version.ref = "ktor" }
 
