@@ -100,6 +100,15 @@ internal class MjpegSettingsImpl(context: Context) : MjpegSettings {
                 if (newSettings.resizeFactor != MjpegSettings.Default.RESIZE_FACTOR)
                     set(MjpegSettings.Key.RESIZE_FACTOR, newSettings.resizeFactor)
 
+                if (newSettings.resolutionWidth != MjpegSettings.Default.RESOLUTION_WIDTH)
+                    set(MjpegSettings.Key.RESOLUTION_WIDTH, newSettings.resolutionWidth)
+
+                if (newSettings.resolutionHeight != MjpegSettings.Default.RESOLUTION_HEIGHT)
+                    set(MjpegSettings.Key.RESOLUTION_HEIGHT, newSettings.resolutionHeight)
+
+                if (newSettings.resolutionStretch != MjpegSettings.Default.RESOLUTION_STRETCH)
+                    set(MjpegSettings.Key.RESOLUTION_STRETCH, newSettings.resolutionStretch)
+
                 if (newSettings.rotation != MjpegSettings.Default.ROTATION)
                     set(MjpegSettings.Key.ROTATION, newSettings.rotation)
 
@@ -164,6 +173,9 @@ internal class MjpegSettingsImpl(context: Context) : MjpegSettings {
         imageGrayscale = this[MjpegSettings.Key.IMAGE_GRAYSCALE] ?: MjpegSettings.Default.IMAGE_GRAYSCALE,
         jpegQuality = this[MjpegSettings.Key.JPEG_QUALITY] ?: MjpegSettings.Default.JPEG_QUALITY,
         resizeFactor = this[MjpegSettings.Key.RESIZE_FACTOR] ?: MjpegSettings.Default.RESIZE_FACTOR,
+        resolutionWidth = this[MjpegSettings.Key.RESOLUTION_WIDTH] ?: MjpegSettings.Default.RESOLUTION_WIDTH,
+        resolutionHeight = this[MjpegSettings.Key.RESOLUTION_HEIGHT] ?: MjpegSettings.Default.RESOLUTION_HEIGHT,
+        resolutionStretch = this[MjpegSettings.Key.RESOLUTION_STRETCH] ?: MjpegSettings.Default.RESOLUTION_STRETCH,
         rotation = this[MjpegSettings.Key.ROTATION] ?: MjpegSettings.Default.ROTATION,
         maxFPS = this[MjpegSettings.Key.MAX_FPS] ?: MjpegSettings.Default.MAX_FPS,
 

@@ -46,6 +46,9 @@ internal class BitmapCapture(
         val vrMode: Int = MjpegSettings.Default.VR_MODE_DISABLE,
         val grayscale: Boolean = MjpegSettings.Default.IMAGE_GRAYSCALE,
         val resizeFactor: Int = MjpegSettings.Values.RESIZE_DISABLED,
+        val targetWidth: Int = MjpegSettings.Default.RESOLUTION_WIDTH,
+        val targetHeight: Int = MjpegSettings.Default.RESOLUTION_HEIGHT,
+        val stretch: Boolean = MjpegSettings.Default.RESOLUTION_STRETCH,
         val rotationDegrees: Int = MjpegSettings.Values.ROTATION_0,
         val maxFPS: Int = MjpegSettings.Default.MAX_FPS,
         val cropLeft: Int = MjpegSettings.Default.IMAGE_CROP_LEFT,
@@ -86,6 +89,9 @@ internal class BitmapCapture(
                 vrMode = data.vrMode,
                 grayscale = data.imageGrayscale,
                 resizeFactor = data.resizeFactor,
+                targetWidth = data.resolutionWidth,
+                targetHeight = data.resolutionHeight,
+                stretch = data.resolutionStretch,
                 rotationDegrees = data.rotation,
                 maxFPS = data.maxFPS,
                 cropLeft = if (data.imageCrop == MjpegSettings.Default.IMAGE_CROP) 0 else data.imageCropLeft,
@@ -287,25 +293,62 @@ internal class BitmapCapture(
             cropW = fullWidth; cropH = fullHeight
         }
 
+        val rotate90or270 = imageOptions.rotationDegrees == MjpegSettings.Values.ROTATION_90 ||
+                imageOptions.rotationDegrees == MjpegSettings.Values.ROTATION_270
+        val finalW = if (rotate90or270) cropH else cropW
+        val finalH = if (rotate90or270) cropW else cropH
+
+        val scaleX: Float
+        val scaleY: Float
+        if (imageOptions.targetWidth > 0 && imageOptions.targetHeight > 0) {
+            if (imageOptions.stretch) {
+                scaleX = imageOptions.targetWidth.toFloat() / finalW
+                scaleY = imageOptions.targetHeight.toFloat() / finalH
+            } else {
+                val scale = min(
+                    imageOptions.targetWidth.toFloat() / finalW,
+                    imageOptions.targetHeight.toFloat() / finalH
+                )
+                scaleX = scale
+                scaleY = scale
+            }
+        } else if (imageOptions.resizeFactor != MjpegSettings.Values.RESIZE_DISABLED) {
+            val scale = imageOptions.resizeFactor / 100f
+            scaleX = scale
+            scaleY = scale
+        } else {
+            scaleX = 1f
+            scaleY = 1f
+        }
+
+        val scaledW = max(1, (finalW * scaleX).toInt())
+        val scaledH = max(1, (finalH * scaleY).toInt())
+
         if (transformMatrixDirty) {
             transformMatrix.reset()
-            transformMatrix.postTranslate(-left.toFloat(), -top.toFloat()) // Move to (0,0)
 
-            // Handle rotation if not 0
-            if (imageOptions.rotationDegrees != MjpegSettings.Values.ROTATION_0) {
-                transformMatrix.postRotate(imageOptions.rotationDegrees.toFloat())
-                when (imageOptions.rotationDegrees) {
-                    MjpegSettings.Values.ROTATION_90 -> transformMatrix.postTranslate(cropH.toFloat(), 0f)
-                    MjpegSettings.Values.ROTATION_180 -> transformMatrix.postTranslate(cropW.toFloat(), cropH.toFloat())
-                    MjpegSettings.Values.ROTATION_270 -> transformMatrix.postTranslate(0f, cropW.toFloat())
+            val postDx: Float
+            val postDy: Float
+            when (imageOptions.rotationDegrees) {
+                MjpegSettings.Values.ROTATION_90 -> {
+                    postDx = scaledH.toFloat(); postDy = 0f
+                }
+                MjpegSettings.Values.ROTATION_180 -> {
+                    postDx = scaledW.toFloat(); postDy = scaledH.toFloat()
+                }
+                MjpegSettings.Values.ROTATION_270 -> {
+                    postDx = 0f; postDy = scaledW.toFloat()
+                }
+                else -> {
+                    postDx = 0f; postDy = 0f
                 }
             }
 
-            // Handle resize factor
-            if (imageOptions.resizeFactor != MjpegSettings.Values.RESIZE_DISABLED) {
-                val scale = imageOptions.resizeFactor / 100f
-                transformMatrix.postScale(scale, scale)
-            }
+            if (postDx != 0f || postDy != 0f) transformMatrix.postTranslate(postDx, postDy)
+            if (imageOptions.rotationDegrees != MjpegSettings.Values.ROTATION_0)
+                transformMatrix.postRotate(imageOptions.rotationDegrees.toFloat())
+            if (scaleX != 1f || scaleY != 1f) transformMatrix.postScale(scaleX, scaleY)
+            transformMatrix.postTranslate(-left.toFloat(), -top.toFloat())
 
             // Update paint's colorFilter if needed
             paint.colorFilter = if (imageOptions.grayscale) {
@@ -316,18 +359,6 @@ internal class BitmapCapture(
 
             transformMatrixDirty = false
         }
-
-        // Determine final scaled size
-        val rotate90or270 = imageOptions.rotationDegrees == MjpegSettings.Values.ROTATION_90 ||
-                imageOptions.rotationDegrees == MjpegSettings.Values.ROTATION_270
-        val finalW = if (rotate90or270) cropH else cropW
-        val finalH = if (rotate90or270) cropW else cropH
-
-        val scale = if (imageOptions.resizeFactor == MjpegSettings.Values.RESIZE_DISABLED) 1f
-        else imageOptions.resizeFactor / 100f
-
-        val scaledW = max(1, (finalW * scale).toInt())
-        val scaledH = max(1, (finalH * scale).toInt())
 
         if (outputBitmap == null || outputBitmap!!.width != scaledW || outputBitmap!!.height != scaledH) {
             outputBitmap = createBitmap(scaledW, scaledH)
