@@ -30,6 +30,9 @@ public interface MjpegSettings {
         public val IMAGE_GRAYSCALE: Preferences.Key<Boolean> = booleanPreferencesKey("IMAGE_GRAYSCALE")
         public val JPEG_QUALITY: Preferences.Key<Int> = intPreferencesKey("JPEG_QUALITY")
         public val RESIZE_FACTOR: Preferences.Key<Int> = intPreferencesKey("RESIZE_FACTOR")
+        public val RESOLUTION_WIDTH: Preferences.Key<Int> = intPreferencesKey("RESOLUTION_WIDTH")
+        public val RESOLUTION_HEIGHT: Preferences.Key<Int> = intPreferencesKey("RESOLUTION_HEIGHT")
+        public val RESOLUTION_STRETCH: Preferences.Key<Boolean> = booleanPreferencesKey("RESOLUTION_STRETCH")
         public val ROTATION: Preferences.Key<Int> = intPreferencesKey("ROTATION")
         public val MAX_FPS: Preferences.Key<Int> = intPreferencesKey("MAX_FPS")
 
@@ -69,6 +72,9 @@ public interface MjpegSettings {
         public const val IMAGE_GRAYSCALE: Boolean = false
         public const val JPEG_QUALITY: Int = 80
         public const val RESIZE_FACTOR: Int = 50
+        public const val RESOLUTION_WIDTH: Int = 0
+        public const val RESOLUTION_HEIGHT: Int = 0
+        public const val RESOLUTION_STRETCH: Boolean = false
         public const val ROTATION: Int = Values.ROTATION_0
         public const val MAX_FPS: Int = 30
 
@@ -135,6 +141,9 @@ public interface MjpegSettings {
         public val imageGrayscale: Boolean = Default.IMAGE_GRAYSCALE,
         public val jpegQuality: Int = Default.JPEG_QUALITY,
         public val resizeFactor: Int = Default.RESIZE_FACTOR,
+        public val resolutionWidth: Int = Default.RESOLUTION_WIDTH,
+        public val resolutionHeight: Int = Default.RESOLUTION_HEIGHT,
+        public val resolutionStretch: Boolean = Default.RESOLUTION_STRETCH,
         public val rotation: Int = Default.ROTATION,
         public val maxFPS: Int = Default.MAX_FPS,
 

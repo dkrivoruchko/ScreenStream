@@ -89,6 +89,12 @@
     <string name="mjpeg_pref_resize">Resize image</string>
     <string name="mjpeg_pref_resize_summary">Resize image before sending to client</string>
     <string name="mjpeg_pref_resize_value" translatable="false">%1$d%%</string>
+    <string name="mjpeg_pref_resize_resolution_value" translatable="false">%1$dx%2$d</string>
+    <string name="mjpeg_pref_resize_mode_percent">Resize by percent</string>
+    <string name="mjpeg_pref_resize_mode_resolution">Exact resolution</string>
+    <string name="mjpeg_pref_resize_width">Width:</string>
+    <string name="mjpeg_pref_resize_height">Height:</string>
+    <string name="mjpeg_pref_resize_stretch">Stretch image to fit</string>
     <string name="mjpeg_pref_resize_text">Set image resize factor in percent.\nValues: 10–150\nDefault: 50\nScreen size: %1$dx%2$d</string>
     <string name="mjpeg_pref_resize_result">Picture size: %1$dx%2$d</string>
     <string name="mjpeg_pref_rotate">Rotate image clockwise</string>
