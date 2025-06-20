@@ -74,7 +74,7 @@ public interface MjpegSettings {
         public const val RESIZE_FACTOR: Int = 50
         public const val RESOLUTION_WIDTH: Int = 0
         public const val RESOLUTION_HEIGHT: Int = 0
-        public const val RESOLUTION_STRETCH: Boolean = false
+        public const val RESOLUTION_STRETCH: Boolean = true
         public const val ROTATION: Int = Values.ROTATION_0
         public const val MAX_FPS: Int = 30
 

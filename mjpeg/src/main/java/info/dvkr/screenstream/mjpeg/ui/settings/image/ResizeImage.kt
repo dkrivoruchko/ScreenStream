@@ -9,24 +9,26 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.materialIcon
 import androidx.compose.material.icons.materialPath
-import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -96,10 +98,26 @@ internal object ResizeImage : ModuleSettings.Item {
             mjpegSettingsState.value.resolutionHeight,
             mjpegSettingsState.value.resolutionStretch,
             size,
-            onNewResize = { if (mjpegSettingsState.value.resizeFactor != it) scope.launch { mjpegSettings.updateData { copy(resizeFactor = it) } } },
-            onNewWidth = { if (mjpegSettingsState.value.resolutionWidth != it) scope.launch { mjpegSettings.updateData { copy(resolutionWidth = it) } } },
-            onNewHeight = { if (mjpegSettingsState.value.resolutionHeight != it) scope.launch { mjpegSettings.updateData { copy(resolutionHeight = it) } } },
-            onStretchChange = { if (mjpegSettingsState.value.resolutionStretch != it) scope.launch { mjpegSettings.updateData { copy(resolutionStretch = it) } } }
+            onNewResize = {
+                if (mjpegSettingsState.value.resizeFactor != it) scope.launch {
+                    mjpegSettings.updateData { copy(resizeFactor = it) }
+                }
+            },
+            onNewWidth = {
+                if (mjpegSettingsState.value.resolutionWidth != it) scope.launch {
+                    mjpegSettings.updateData { copy(resolutionWidth = it) }
+                }
+            },
+            onNewHeight = {
+                if (mjpegSettingsState.value.resolutionHeight != it) scope.launch {
+                    mjpegSettings.updateData { copy(resolutionHeight = it) }
+                }
+            },
+            onStretchChange = {
+                if (mjpegSettingsState.value.resolutionStretch != it) scope.launch {
+                    mjpegSettings.updateData { copy(resolutionStretch = it) }
+                }
+            }
         )
     }
 }
@@ -134,13 +152,12 @@ private fun ResizeImageUI(
             )
         }
 
-        val valueText = if (width > 0 && height > 0) {
-            stringResource(id = R.string.mjpeg_pref_resize_resolution_value, width, height)
-        } else {
-            stringResource(id = R.string.mjpeg_pref_resize_value, resizeFactor)
-        }
         Text(
-            text = valueText,
+            text = if (width > 0 && height > 0) {
+                stringResource(id = R.string.mjpeg_pref_resize_resolution_value, width, height)
+            } else {
+                stringResource(id = R.string.mjpeg_pref_resize_value, resizeFactor)
+            },
             modifier = Modifier.defaultMinSize(minWidth = 52.dp),
             color = MaterialTheme.colorScheme.primary,
             textAlign = TextAlign.Center,
@@ -186,13 +203,16 @@ private fun ResizeImageDetailUI(
         (size.width * resizeFactor / 100F).toInt() to (size.height * resizeFactor / 100F).toInt()
     } else {
         if (currentWidth.value.text.isNotEmpty() && currentHeight.value.text.isNotEmpty()) {
-            val w = currentWidth.value.text.toInt()
-            val h = currentHeight.value.text.toInt()
-            if (stretch) {
-                w to h
-            } else {
-                val scale = min(w.toFloat() / size.width, h.toFloat() / size.height)
-                (size.width * scale).toInt() to (size.height * scale).toInt()
+            val w = currentWidth.value.text.toIntOrNull() ?: 0
+            val h = currentHeight.value.text.toIntOrNull() ?: 0
+            when {
+                w <= 0 || h <= 0 -> 0 to 0
+                stretch -> w to h
+                size.width <= 0 || size.height <= 0 -> 0 to 0
+                else -> {
+                    val scale = min(w.toFloat() / size.width, h.toFloat() / size.height)
+                    (size.width * scale).toInt() to (size.height * scale).toInt()
+                }
             }
         } else 0 to 0
     }
@@ -216,9 +236,15 @@ private fun ResizeImageDetailUI(
                     .padding(vertical = 8.dp)
             )
 
+            Text(
+                text = stringResource(id = R.string.mjpeg_pref_resize_result, resizedWidth, resizedHeight),
+                modifier = Modifier.fillMaxWidth()
+            )
+
             Column(modifier = Modifier.selectableGroup()) {
                 Row(
                     modifier = Modifier
+                        .padding(top = 8.dp)
                         .selectable(
                             selected = mode == 0,
                             onClick = {
@@ -235,7 +261,10 @@ private fun ResizeImageDetailUI(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     RadioButton(selected = mode == 0, onClick = null)
-                    Text(text = stringResource(id = R.string.mjpeg_pref_resize_mode_percent), modifier = Modifier.padding(start = 16.dp))
+                    Text(
+                        text = stringResource(id = R.string.mjpeg_pref_resize_mode_percent),
+                        modifier = Modifier.padding(start = 16.dp)
+                    )
                 }
 
                 Row(
@@ -251,7 +280,10 @@ private fun ResizeImageDetailUI(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     RadioButton(selected = mode == 1, onClick = null)
-                    Text(text = stringResource(id = R.string.mjpeg_pref_resize_mode_resolution), modifier = Modifier.padding(start = 16.dp))
+                    Text(
+                        text = stringResource(id = R.string.mjpeg_pref_resize_mode_resolution),
+                        modifier = Modifier.padding(start = 16.dp)
+                    )
                 }
             }
 
@@ -323,18 +355,22 @@ private fun ResizeImageDetailUI(
                     singleLine = true
                 )
 
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Checkbox(checked = stretch, onCheckedChange = { onStretchChange.invoke(it) })
-                    Text(text = stringResource(id = R.string.mjpeg_pref_resize_stretch), modifier = Modifier.padding(start = 8.dp))
+                Row(
+                    modifier = Modifier
+                        .padding(vertical = 4.dp)
+                        .clickable { onStretchChange.invoke(!stretch) }
+                        .fillMaxWidth()
+                        .defaultMinSize(minHeight = 48.dp)
+                        .minimumInteractiveComponentSize(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Checkbox(checked = stretch, onCheckedChange = null)
+                    Text(
+                        text = stringResource(id = R.string.mjpeg_pref_resize_stretch),
+                        modifier = Modifier.padding(start = 8.dp)
+                    )
                 }
             }
-
-            Text(
-                text = stringResource(id = R.string.mjpeg_pref_resize_result, resizedWidth, resizedHeight),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp)
-            )
         }
     }
 
