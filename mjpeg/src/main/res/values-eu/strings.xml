@@ -18,7 +18,7 @@
 
     <string name="mjpeg_item_address">Tokiko helbidea:</string>
     <string name="mjpeg_stream_no_address">Helbidea ez da aurkitu</string>
-    <string name="mjpeg_stream_interface">Interfazea: %1$s</string>
+    <string name="mjpeg_stream_interface">Interfazea:\n%1$s</string>
     <string name="mjpeg_stream_copied">Kopiatuta</string>
     <string name="mjpeg_stream_no_web_browser_found">Ez da aurkitu web nabigatzailea</string>
     <string name="mjpeg_stream_external_app_error">Kanpoko errorea aplikazioan</string>
@@ -88,6 +88,11 @@
     <string name="mjpeg_pref_grayscale_summary">Grisen eskalako irudia bezeroari bidali aurretik</string>
     <string name="mjpeg_pref_resize">Aldatu irudiaren tamaina</string>
     <string name="mjpeg_pref_resize_summary">Aldatu irudiaren tamaina bezeroari bidali aurretik</string>
+    <string name="mjpeg_pref_resize_mode_percent">Tamaina aldatu ehunekoaz</string>
+    <string name="mjpeg_pref_resize_mode_resolution">Bereizmen zehatza</string>
+    <string name="mjpeg_pref_resize_width">Zabalera:</string>
+    <string name="mjpeg_pref_resize_height">Altuera:</string>
+    <string name="mjpeg_pref_resize_stretch">Luzatu doitzeko</string>
     <string name="mjpeg_pref_resize_text">Ezarri irudiaren handitze faktorea ehunekotan.\nBalioak: 10–150\nLehenetsia: 50\nTamaina: %1$dx%2$d</string>
     <string name="mjpeg_pref_resize_result">Irudiaren tamaina: %1$dx%2$d</string>
     <string name="mjpeg_pref_rotate">Biratu irudia erlojuaren orratzen noranzkoan</string>

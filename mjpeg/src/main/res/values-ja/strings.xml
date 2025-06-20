@@ -18,7 +18,7 @@
 
     <string name="mjpeg_item_address">端末のアドレス:</string>
     <string name="mjpeg_stream_no_address">アドレスがありません</string>
-    <string name="mjpeg_stream_interface">インターフェース: %1$s</string>
+    <string name="mjpeg_stream_interface">インターフェース:\n%1$s</string>
     <string name="mjpeg_stream_copied">コピーしました</string>
     <string name="mjpeg_stream_no_web_browser_found">Webブラウザがありません</string>
     <string name="mjpeg_stream_external_app_error">外部アプリケーションエラー</string>
@@ -88,6 +88,11 @@
     <string name="mjpeg_pref_grayscale_summary">クライアントに送信する前に画像をグレースケールに変換</string>
     <string name="mjpeg_pref_resize">画像のリサイズ</string>
     <string name="mjpeg_pref_resize_summary">クライアントに送信する前に画像サイズを変更します</string>
+    <string name="mjpeg_pref_resize_mode_percent">パーセントでリサイズ</string>
+    <string name="mjpeg_pref_resize_mode_resolution">正確な解像度</string>
+    <string name="mjpeg_pref_resize_width">幅:</string>
+    <string name="mjpeg_pref_resize_height">高さ:</string>
+    <string name="mjpeg_pref_resize_stretch">フィットするように伸縮</string>
     <string name="mjpeg_pref_resize_text">画像のリサイズ率をパーセントで指定してください。\n値: 10–150\n初期値: 50\n画面サイズ: %1$dx%2$d</string>
     <string name="mjpeg_pref_resize_result">画像サイズ: %1$dx%2$d</string>
     <string name="mjpeg_pref_rotate">時計回りに画像を回転する</string>

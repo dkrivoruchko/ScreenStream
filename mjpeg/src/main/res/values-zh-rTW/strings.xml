@@ -18,7 +18,7 @@
 
     <string name="mjpeg_item_address">本機位址：</string>
     <string name="mjpeg_stream_no_address">找不到位址</string>
-    <string name="mjpeg_stream_interface">端口: %1$s</string>
+    <string name="mjpeg_stream_interface">端口:\n%1$s</string>
     <string name="mjpeg_stream_copied">已複製</string>
     <string name="mjpeg_stream_no_web_browser_found">未找到瀏覽器</string>
     <string name="mjpeg_stream_external_app_error">外部應用錯誤</string>
@@ -88,6 +88,11 @@
     <string name="mjpeg_pref_grayscale_summary">傳送剪黑白畫面到用戶端</string>
     <string name="mjpeg_pref_resize">縮放畫面</string>
     <string name="mjpeg_pref_resize_summary">傳送縮放過的畫面到用戶端</string>
+    <string name="mjpeg_pref_resize_mode_percent">按百分比調整</string>
+    <string name="mjpeg_pref_resize_mode_resolution">精確解析度</string>
+    <string name="mjpeg_pref_resize_width">寬度：</string>
+    <string name="mjpeg_pref_resize_height">高度：</string>
+    <string name="mjpeg_pref_resize_stretch">延展以符合</string>
     <string name="mjpeg_pref_resize_text">設置縮放百分比。\n範圍： 10–150\n預設： 50\n螢幕解析度： %1$dx%2$d</string>
     <string name="mjpeg_pref_resize_result">畫面大小 size： %1$dx%2$d</string>
     <string name="mjpeg_pref_rotate">順時針旋轉畫面</string>

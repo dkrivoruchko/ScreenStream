@@ -66,6 +66,7 @@ The Local mode offers the following functionality:
 - Sends video as a series of independent images (no audio).
 - Works without an internet connection within your local network.
 - Embedded HTTP server.
+- Allows resizing by percentage or specifying an exact resolution.
 - Works with WiFi and/or mobile networks, supporting IPv4 and IPv6.
 - Clients connect via web browser using the app's provided IP address.
 - Highly customizable.

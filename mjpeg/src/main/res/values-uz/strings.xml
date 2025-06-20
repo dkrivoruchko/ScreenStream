@@ -19,7 +19,7 @@
 
     <string name="mjpeg_item_address">Qurilma manzili:</string>
     <string name="mjpeg_stream_no_address">Hech qanday manzil topilmadi</string>
-    <string name="mjpeg_stream_interface">Interfeys: %1$s</string>
+    <string name="mjpeg_stream_interface">Interfeys:\n%1$s</string>
     <string name="mjpeg_stream_copied">Ko‘chirildi</string>
     <string name="mjpeg_stream_no_web_browser_found">Hech qanday veb-brauzer topilmadi</string>
     <string name="mjpeg_stream_external_app_error">Tashqi dastur xatosi</string>
@@ -84,6 +84,11 @@
     <string name="mjpeg_pref_grayscale_summary">Mijozga yuborishdan oldin kul rangdagi rasm</string>
     <string name="mjpeg_pref_resize">Rasm hajmini o\'zgartirish</string>
     <string name="mjpeg_pref_resize_summary">Mijozga yuborishdan oldin rasm hajmini o\'zgartiring</string>
+    <string name="mjpeg_pref_resize_mode_percent">Foizda o\'lchamini o\'zgartirish</string>
+    <string name="mjpeg_pref_resize_mode_resolution">Aniq piksellar soni</string>
+    <string name="mjpeg_pref_resize_width">Kengligi:</string>
+    <string name="mjpeg_pref_resize_height">Balandligi:</string>
+    <string name="mjpeg_pref_resize_stretch">Moslashtirish uchun cho\'zish</string>
     <string name="mjpeg_pref_resize_text">Rasm hajmini o\'zgartirish koeffitsientini foizda o\'rnating. Qiymatlar: 10–150 Standart: 50 Ekran hajmi: %1$dx%2$d</string>
     <string name="mjpeg_pref_resize_result">Rasm hajmi: %1$dx%2$d</string>
     <string name="mjpeg_pref_rotate">Rasmni soat yo\'nalishi bo\'yicha aylantiring</string>

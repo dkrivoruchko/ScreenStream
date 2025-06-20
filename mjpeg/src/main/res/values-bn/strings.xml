@@ -19,7 +19,7 @@
 
     <string name="mjpeg_item_address">ডিভাইস ঠিকানা:</string>
     <string name="mjpeg_stream_no_address">কোনো ঠিকানা পাওয়া যায়নি</string>
-    <string name="mjpeg_stream_interface">ইন্টারফেস: %1$s</string>
+    <string name="mjpeg_stream_interface">ইন্টারফেস:\n%1$s</string>
     <string name="mjpeg_stream_copied">কপি করা হয়েছে</string>
     <string name="mjpeg_stream_no_web_browser_found">কোনো ওয়েব ব্রাউজার পাওয়া যায়নি</string>
     <string name="mjpeg_stream_external_app_error">বহিরাগত অ্যাপ্লিকেশন ত্রুটি</string>
@@ -84,6 +84,11 @@
     <string name="mjpeg_pref_grayscale_summary">ক্লায়েন্টকে পাঠানোর আগে গ্রেস্কেল চিত্র</string>
     <string name="mjpeg_pref_resize">চিত্রের আকার পরিবর্তন করুন</string>
     <string name="mjpeg_pref_resize_summary">ক্লায়েন্টকে পাঠানোর আগে চিত্রের আকার পরিবর্তন করুন</string>
+    <string name="mjpeg_pref_resize_mode_percent">শতাংশ দ্বারা রিসাইজ</string>
+    <string name="mjpeg_pref_resize_mode_resolution">নির্দিষ্ট রেজোলিউশন</string>
+    <string name="mjpeg_pref_resize_width">প্রস্থ:</string>
+    <string name="mjpeg_pref_resize_height">উচ্চতা:</string>
+    <string name="mjpeg_pref_resize_stretch">ফিট করতে প্রসারিত করুন</string>
     <string name="mjpeg_pref_resize_text">শতাংশে ইমেজ রিসাইজ ফ্যাক্টর সেট করুন। মান: 10–150 ডিফল্ট: 50 স্ক্রিনের আকার: %1$dx%2$d</string>
     <string name="mjpeg_pref_resize_result">ছবির আকার: %1$dx%2$d</string>
     <string name="mjpeg_pref_rotate">ছবি ঘড়ির কাঁটার দিকে ঘোরান</string>

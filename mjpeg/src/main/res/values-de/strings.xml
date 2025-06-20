@@ -18,7 +18,7 @@
 
     <string name="mjpeg_item_address">Adresse des Gerätes:</string>
     <string name="mjpeg_stream_no_address">Keine Adresse gefunden</string>
-    <string name="mjpeg_stream_interface">Schnittstelle: %1$s</string>
+    <string name="mjpeg_stream_interface">Schnittstelle:\n%1$s</string>
     <string name="mjpeg_stream_copied">Kopiert</string>
     <string name="mjpeg_stream_no_web_browser_found">Kein Browser gefunden</string>
     <string name="mjpeg_stream_external_app_error">Fehler einer externen Applikation</string>
@@ -88,6 +88,11 @@
     <string name="mjpeg_pref_grayscale_summary">Bild in schwarzweiß konvertieren vor dem Senden an den Client</string>
     <string name="mjpeg_pref_resize">Bildgröße anpassen</string>
     <string name="mjpeg_pref_resize_summary">Bildgröße vor dem Senden anpassen</string>
+    <string name="mjpeg_pref_resize_mode_percent">Prozentual skalieren</string>
+    <string name="mjpeg_pref_resize_mode_resolution">Exakte Auflösung</string>
+    <string name="mjpeg_pref_resize_width">Breite:</string>
+    <string name="mjpeg_pref_resize_height">Höhe:</string>
+    <string name="mjpeg_pref_resize_stretch">Auf Größe strecken</string>
     <string name="mjpeg_pref_resize_text">Vergrößerungsfaktor in Prozent angeben.\nWerte: 10–150\nStandard: 50\nBildschirmgröße: %1$dx%2$d</string>
     <string name="mjpeg_pref_resize_result">Bildgröße: %1$dx%2$d</string>
     <string name="mjpeg_pref_rotate">Bild im Uhrzeigersinn drehen</string>

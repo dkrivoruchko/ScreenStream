@@ -18,7 +18,7 @@
 
     <string name="mjpeg_item_address">Endereço do dispositivo:</string>
     <string name="mjpeg_stream_no_address">Nenhum endereço encontrado</string>
-    <string name="mjpeg_stream_interface">Interface: %1$s</string>
+    <string name="mjpeg_stream_interface">Interface:\n%1$s</string>
     <string name="mjpeg_stream_copied">Copiado</string>
     <string name="mjpeg_stream_no_web_browser_found">Nenhum navegador da web encontrado</string>
     <string name="mjpeg_stream_external_app_error">Erro na aplicação externa</string>
@@ -88,6 +88,11 @@
     <string name="mjpeg_pref_grayscale_summary">Converter a imagem em escala de cinza antes de enviá-la para o cliente</string>
     <string name="mjpeg_pref_resize">Redimensionar imagem</string>
     <string name="mjpeg_pref_resize_summary">Redimensionar a imagem antes de enviá-la para o cliente</string>
+    <string name="mjpeg_pref_resize_mode_percent">Redimensionar por porcentagem</string>
+    <string name="mjpeg_pref_resize_mode_resolution">Resolução exata</string>
+    <string name="mjpeg_pref_resize_width">Largura:</string>
+    <string name="mjpeg_pref_resize_height">Altura:</string>
+    <string name="mjpeg_pref_resize_stretch">Esticar para ajustar</string>
     <string name="mjpeg_pref_resize_text">Defina o fator de redimensionamento da imagem em porcentagem.\nValores: 10–150\nPadrão: 50\nTamanho da tela: %1$dx%2$d</string>
     <string name="mjpeg_pref_resize_result">Tamanho da imagem: %1$dx%2$d</string>
     <string name="mjpeg_pref_rotate">Girar imagem no sentido horário</string>

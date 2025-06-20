@@ -18,7 +18,7 @@
 
     <string name="mjpeg_item_address">عنوان الجهاز:</string>
     <string name="mjpeg_stream_no_address">لم يتم العثور على عنوان</string>
-    <string name="mjpeg_stream_interface">واجهة: %1$s</string>
+    <string name="mjpeg_stream_interface">الواجهة:\n%1$s</string>
     <string name="mjpeg_stream_copied">تم نسخه</string>
     <string name="mjpeg_stream_no_web_browser_found">لم يتم العثور على متصفح ويب</string>
     <string name="mjpeg_stream_external_app_error">خطأ في التطبيق الخارجي</string>
@@ -88,6 +88,11 @@
     <string name="mjpeg_pref_grayscale_summary">تحويل الصورة إلى الألوان الرمادية قبل إرسالها إلى العميل</string>
     <string name="mjpeg_pref_resize">تغيير حجم الصورة</string>
     <string name="mjpeg_pref_resize_summary">تغيير حجم الصورة قبل إرسالها إلى العميل</string>
+    <string name="mjpeg_pref_resize_mode_percent">تغيير الحجم بالنسبة المئوية</string>
+    <string name="mjpeg_pref_resize_mode_resolution">دقة محددة</string>
+    <string name="mjpeg_pref_resize_width">العرض:</string>
+    <string name="mjpeg_pref_resize_height">الارتفاع:</string>
+    <string name="mjpeg_pref_resize_stretch">تمديد للملاءمة</string>
     <string name="mjpeg_pref_resize_text">قم بتعيين عامل تغيير حجم الصورة بالنسبة المئوية.\nالقيم: 10–150\nالافتراضي: 50\nحجم الشاشة: %1$dx%2$d</string>
     <string name="mjpeg_pref_resize_result">%1$dx%2$d حجم الصورة</string>
     <string name="mjpeg_pref_rotate">تدوير الصورة في اتجاه عقارب الساعة</string>

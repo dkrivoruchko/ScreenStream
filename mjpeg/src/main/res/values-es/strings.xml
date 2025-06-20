@@ -18,7 +18,7 @@
 
     <string name="mjpeg_item_address">Dirección local:</string>
     <string name="mjpeg_stream_no_address">Dirección no encontrada</string>
-    <string name="mjpeg_stream_interface">Interfaz: %1$s</string>
+    <string name="mjpeg_stream_interface">Interfaz:\n%1$s</string>
     <string name="mjpeg_stream_copied">Copiado</string>
     <string name="mjpeg_stream_no_web_browser_found">Navegador web no encontrado</string>
     <string name="mjpeg_stream_external_app_error">Error externo en aplicación</string>
@@ -88,6 +88,11 @@
     <string name="mjpeg_pref_grayscale_summary">Imagen en escala de grises antes de enviar al cliente</string>
     <string name="mjpeg_pref_resize">Redimensionar la imagen</string>
     <string name="mjpeg_pref_resize_summary">Redimensionar la imagen antes de enviar al cliente</string>
+    <string name="mjpeg_pref_resize_mode_percent">Redimensionar por porcentaje</string>
+    <string name="mjpeg_pref_resize_mode_resolution">Resolución exacta</string>
+    <string name="mjpeg_pref_resize_width">Ancho:</string>
+    <string name="mjpeg_pref_resize_height">Alto:</string>
+    <string name="mjpeg_pref_resize_stretch">Estirar para ajustar</string>
     <string name="mjpeg_pref_resize_text">Establesca un factor de aumento de la imagen en porciento.\nValores: 10–150\nPor defecto: 50\nTamaño: %1$dx%2$d</string>
     <string name="mjpeg_pref_resize_result">Tamaño de imagen: %1$dx%2$d</string>
     <string name="mjpeg_pref_rotate">Rotar imagen en sentido del reloj</string>

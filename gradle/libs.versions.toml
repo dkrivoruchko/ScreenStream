@@ -16,7 +16,7 @@ androidx-lifecycle = "2.9.1"
 androidx-window = "1.4.0"
 androidx-datastore-preferences = "1.1.7"
 
-compose-bom = "2025.06.00"
+compose-bom = "2025.06.01"
 
 process-phoenix = "3.0.0"
 xlog = "1.11.1"
@@ -39,7 +39,7 @@ webkit = "1.14.0"
 firebase-analytics = "22.4.0"
 firebase-crashlytics = "19.4.4"
 google-services = "4.4.2"
-crashlytics-gradle = "3.0.3"
+crashlytics-gradle = "3.0.4"
 
 [libraries]
 android-tools-desugar = { module = "com.android.tools:desugar_jdk_libs", version.ref = "android-tools-desugar" }

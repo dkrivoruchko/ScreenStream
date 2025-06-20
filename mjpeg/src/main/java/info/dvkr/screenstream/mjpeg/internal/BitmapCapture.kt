@@ -31,6 +31,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlin.math.abs
 import kotlin.math.max
+import kotlin.math.min
 
 // https://developer.android.com/media/grow/media-projection
 internal class BitmapCapture(
@@ -46,6 +47,9 @@ internal class BitmapCapture(
         val vrMode: Int = MjpegSettings.Default.VR_MODE_DISABLE,
         val grayscale: Boolean = MjpegSettings.Default.IMAGE_GRAYSCALE,
         val resizeFactor: Int = MjpegSettings.Values.RESIZE_DISABLED,
+        val targetWidth: Int = MjpegSettings.Default.RESOLUTION_WIDTH,
+        val targetHeight: Int = MjpegSettings.Default.RESOLUTION_HEIGHT,
+        val stretch: Boolean = MjpegSettings.Default.RESOLUTION_STRETCH,
         val rotationDegrees: Int = MjpegSettings.Values.ROTATION_0,
         val maxFPS: Int = MjpegSettings.Default.MAX_FPS,
         val cropLeft: Int = MjpegSettings.Default.IMAGE_CROP_LEFT,
@@ -62,6 +66,7 @@ internal class BitmapCapture(
     private val imageThread: HandlerThread by lazy { HandlerThread("BitmapCapture", Process.THREAD_PRIORITY_BACKGROUND) }
     private val imageThreadHandler: Handler by lazy { Handler(imageThread.looper) }
 
+    @Volatile
     private var imageListener: ImageListener? = null
     private var imageReader: ImageReader? = null
     private var virtualDisplay: VirtualDisplay? = null
@@ -76,7 +81,7 @@ internal class BitmapCapture(
 
     private var transformMatrix = Matrix()
     private var transformMatrixDirty = true
-    private var paint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private var paint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.DITHER_FLAG or Paint.FILTER_BITMAP_FLAG)
 
     init {
         XLog.d(getLog("init"))
@@ -86,6 +91,9 @@ internal class BitmapCapture(
                 vrMode = data.vrMode,
                 grayscale = data.imageGrayscale,
                 resizeFactor = data.resizeFactor,
+                targetWidth = data.resolutionWidth,
+                targetHeight = data.resolutionHeight,
+                stretch = data.resolutionStretch,
                 rotationDegrees = data.rotation,
                 maxFPS = data.maxFPS,
                 cropLeft = if (data.imageCrop == MjpegSettings.Default.IMAGE_CROP) 0 else data.imageCropLeft,
@@ -113,9 +121,10 @@ internal class BitmapCapture(
         currentWidth = bounds.width()
         currentHeight = bounds.height()
 
-        imageListener = ImageListener()
+        val newImageListener = ImageListener()
+        imageListener = newImageListener
         imageReader = ImageReader.newInstance(currentWidth, currentHeight, PixelFormat.RGBA_8888, 2).apply {
-            setOnImageAvailableListener(imageListener, imageThreadHandler)
+            setOnImageAvailableListener(newImageListener, imageThreadHandler)
         }
 
         try {
@@ -182,9 +191,10 @@ internal class BitmapCapture(
         imageReader?.surface?.release() // For some reason imageReader.close() does not release surface
         imageReader?.close()
 
-        imageListener = ImageListener()
+        val newImageListener = ImageListener()
+        imageListener = newImageListener
         imageReader = ImageReader.newInstance(width, height, PixelFormat.RGBA_8888, 2).apply {
-            setOnImageAvailableListener(imageListener, imageThreadHandler)
+            setOnImageAvailableListener(newImageListener, imageThreadHandler)
         }
 
         try {
@@ -204,6 +214,7 @@ internal class BitmapCapture(
     }
 
     private fun safeRelease() {
+        imageListener = null
         virtualDisplay?.release()
         virtualDisplay = null
         imageReader?.surface?.release() // For some reason imageReader.close() does not release surface
@@ -211,7 +222,6 @@ internal class BitmapCapture(
         imageReader = null
         reusableBitmap = null
         outputBitmap = null
-        imageListener = null
     }
 
     private inner class ImageListener : ImageReader.OnImageAvailableListener {
@@ -255,93 +265,85 @@ internal class BitmapCapture(
         val fullWidth = image.width
         val fullHeight = image.height
 
-        // Reuse or create a large ARGB_8888 bitmap for the raw copy
         val planeWidth = plane.rowStride / plane.pixelStride
-        val planeHeight = fullHeight
-        if (reusableBitmap == null || reusableBitmap!!.width != planeWidth || reusableBitmap!!.height != planeHeight) {
-            reusableBitmap = createBitmap(planeWidth, planeHeight)
+        if (reusableBitmap == null || reusableBitmap!!.width != planeWidth || reusableBitmap!!.height != fullHeight) {
+            reusableBitmap = createBitmap(planeWidth, fullHeight, Bitmap.Config.ARGB_8888)
         }
         reusableBitmap!!.copyPixelsFromBuffer(plane.buffer)
 
-        // If planeWidth > actual width, make a "clean" sub-bitmap
         val tmpBitmap = if (planeWidth > fullWidth) {
-            Bitmap.createBitmap(reusableBitmap!!, 0, 0, fullWidth, planeHeight)
+            Bitmap.createBitmap(reusableBitmap!!, 0, 0, fullWidth, fullHeight)
         } else {
             reusableBitmap!!
         }
 
-        // Determine VR boundaries
         val vrLeft = if (imageOptions.vrMode == MjpegSettings.Default.VR_MODE_RIGHT) fullWidth / 2 else 0
         val vrRight = if (imageOptions.vrMode == MjpegSettings.Default.VR_MODE_LEFT) fullWidth / 2 else fullWidth
 
-        // Determine user crop
-        var left = (vrLeft + imageOptions.cropLeft).coerceIn(0, vrRight)
-        var right = (vrRight - imageOptions.cropRight).coerceIn(left, fullWidth)
-        var top = imageOptions.cropTop.coerceIn(0, fullHeight)
-        var bottom = (fullHeight - imageOptions.cropBottom).coerceIn(top, fullHeight)
+        var cropLeft = (vrLeft + imageOptions.cropLeft).coerceIn(vrLeft, vrRight)
+        var cropRight = (vrRight - imageOptions.cropRight).coerceIn(cropLeft, vrRight)
+        var cropTop = imageOptions.cropTop.coerceIn(0, fullHeight)
+        var cropBottom = (fullHeight - imageOptions.cropBottom).coerceIn(cropTop, fullHeight)
 
-        var cropW = right - left
-        var cropH = bottom - top
-        if (cropW <= 0 || cropH <= 0) { // Fallback to full region if invalid
-            left = 0; top = 0; right = fullWidth; bottom = fullHeight
-            cropW = fullWidth; cropH = fullHeight
+        if (cropLeft >= cropRight || cropTop >= cropBottom) {
+            cropLeft = vrLeft; cropTop = 0; cropRight = vrRight; cropBottom = fullHeight // Fallback
         }
 
-        if (transformMatrixDirty) {
-            transformMatrix.reset()
-            transformMatrix.postTranslate(-left.toFloat(), -top.toFloat()) // Move to (0,0)
+        val cropWidth = cropRight - cropLeft
+        val cropHeight = cropBottom - cropTop
 
-            // Handle rotation if not 0
-            if (imageOptions.rotationDegrees != MjpegSettings.Values.ROTATION_0) {
-                transformMatrix.postRotate(imageOptions.rotationDegrees.toFloat())
-                when (imageOptions.rotationDegrees) {
-                    MjpegSettings.Values.ROTATION_90 -> transformMatrix.postTranslate(cropH.toFloat(), 0f)
-                    MjpegSettings.Values.ROTATION_180 -> transformMatrix.postTranslate(cropW.toFloat(), cropH.toFloat())
-                    MjpegSettings.Values.ROTATION_270 -> transformMatrix.postTranslate(0f, cropW.toFloat())
+        val (scaleX, scaleY) = when {
+            imageOptions.targetWidth > 0 && imageOptions.targetHeight > 0 -> {
+                if (imageOptions.stretch) {
+                    imageOptions.targetWidth.toFloat() / cropWidth to imageOptions.targetHeight.toFloat() / cropHeight
+                } else {
+                    min(imageOptions.targetWidth.toFloat() / cropWidth, imageOptions.targetHeight.toFloat() / cropHeight).let { it to it }
                 }
             }
 
-            // Handle resize factor
-            if (imageOptions.resizeFactor != MjpegSettings.Values.RESIZE_DISABLED) {
-                val scale = imageOptions.resizeFactor / 100f
-                transformMatrix.postScale(scale, scale)
+            imageOptions.resizeFactor != 100 -> {
+                (imageOptions.resizeFactor / 100f).let { it to it }
             }
 
-            // Update paint's colorFilter if needed
+            else -> 1f to 1f
+        }
+
+        val scaledWidth = max(1, (cropWidth * scaleX).toInt())
+        val scaledHeight = max(1, (cropHeight * scaleY).toInt())
+
+        val rotated = imageOptions.rotationDegrees == 90 || imageOptions.rotationDegrees == 270
+        val outputWidth = if (rotated) scaledHeight else scaledWidth
+        val outputHeight = if (rotated) scaledWidth else scaledHeight
+
+        if (transformMatrixDirty) {
+            transformMatrix.apply {
+                reset()
+                setTranslate(-cropLeft.toFloat(), -cropTop.toFloat())
+                postScale(scaleX, scaleY)
+                postRotate(imageOptions.rotationDegrees.toFloat())
+                when (imageOptions.rotationDegrees) {
+                    90 -> postTranslate(scaledHeight.toFloat(), 0f)
+                    180 -> postTranslate(scaledWidth.toFloat(), scaledHeight.toFloat())
+                    270 -> postTranslate(0f, scaledWidth.toFloat())
+                }
+            }
+
             paint.colorFilter = if (imageOptions.grayscale) {
                 ColorMatrixColorFilter(ColorMatrix().apply { setSaturation(0f) })
-            } else {
-                null
-            }
+            } else null
 
             transformMatrixDirty = false
         }
 
-        // Determine final scaled size
-        val rotate90or270 = imageOptions.rotationDegrees == MjpegSettings.Values.ROTATION_90 ||
-                imageOptions.rotationDegrees == MjpegSettings.Values.ROTATION_270
-        val finalW = if (rotate90or270) cropH else cropW
-        val finalH = if (rotate90or270) cropW else cropH
-
-        val scale = if (imageOptions.resizeFactor == MjpegSettings.Values.RESIZE_DISABLED) 1f
-        else imageOptions.resizeFactor / 100f
-
-        val scaledW = max(1, (finalW * scale).toInt())
-        val scaledH = max(1, (finalH * scale).toInt())
-
-        if (outputBitmap == null || outputBitmap!!.width != scaledW || outputBitmap!!.height != scaledH) {
-            outputBitmap = createBitmap(scaledW, scaledH)
+        if (outputBitmap == null || outputBitmap!!.width != outputWidth || outputBitmap!!.height != outputHeight) {
+            outputBitmap?.recycle()
+            outputBitmap = createBitmap(outputWidth, outputHeight, Bitmap.Config.ARGB_8888)
         }
 
-        val skipTransform = transformMatrix.isIdentity && paint.colorFilter == null
-        return if (skipTransform) {
-            tmpBitmap.copy(tmpBitmap.config!!, false)
-        } else {
-            val canvas = Canvas(outputBitmap!!)
-            canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR)
-            canvas.drawBitmap(tmpBitmap, transformMatrix, paint)
+        val canvas = Canvas(outputBitmap!!)
+        canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR)
+        canvas.drawBitmap(tmpBitmap, transformMatrix, paint)
 
-            outputBitmap!!.copy(outputBitmap!!.config!!, false)
-        }
+        return outputBitmap!!.copy(outputBitmap!!.config ?: Bitmap.Config.ARGB_8888, false)
     }
 }

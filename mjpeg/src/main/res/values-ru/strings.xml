@@ -17,7 +17,7 @@
 
     <string name="mjpeg_item_address">Адрес устройства:</string>
     <string name="mjpeg_stream_no_address">Адреса не найдены</string>
-    <string name="mjpeg_stream_interface">Интерфейс: %1$s</string>
+    <string name="mjpeg_stream_interface">Интерфейс:\n%1$s</string>
     <string name="mjpeg_stream_copied">Скопировано</string>
     <string name="mjpeg_stream_no_web_browser_found">Не найден веб-браузер</string>
     <string name="mjpeg_stream_external_app_error">Ошибка внешнего приложения</string>
@@ -87,6 +87,11 @@
     <string name="mjpeg_pref_grayscale_summary">Переводить изображение в градации серого перед отправкой</string>
     <string name="mjpeg_pref_resize">Размер изображения</string>
     <string name="mjpeg_pref_resize_summary">Изменять размер изображения перед отправкой</string>
+    <string name="mjpeg_pref_resize_mode_percent">Изменить размер в процентах</string>
+    <string name="mjpeg_pref_resize_mode_resolution">Точное разрешение</string>
+    <string name="mjpeg_pref_resize_width">Ширина:</string>
+    <string name="mjpeg_pref_resize_height">Высота:</string>
+    <string name="mjpeg_pref_resize_stretch">Растянуть по размеру</string>
     <string name="mjpeg_pref_resize_text">Установите коэффициент масштабирования изображения в процентах.\nЗначения: 10–150\nПо умолчанию: 50\nРазмер экрана: %1$dx%2$d</string>
     <string name="mjpeg_pref_resize_result">Размер изображения: %1$dx%2$d</string>
     <string name="mjpeg_pref_rotate">Поворачивать по часовой стрелке</string>
