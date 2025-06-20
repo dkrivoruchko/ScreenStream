@@ -19,7 +19,7 @@
     <string name="mjpeg_item_address">Adres urządzenia:</string>
 
     <string name="mjpeg_stream_no_address">Nie znaleziono adresu</string>
-    <string name="mjpeg_stream_interface">Łącze: %1$s</string>
+    <string name="mjpeg_stream_interface">Łącze:\n%1$s</string>
     <string name="mjpeg_stream_copied">Skopiowano</string>
     <string name="mjpeg_stream_no_web_browser_found">Nie znaleziono przeglądarki internetowej</string>
     <string name="mjpeg_stream_external_app_error">Błąd aplikacji zewnętrznej</string>
@@ -89,6 +89,11 @@
     <string name="mjpeg_pref_grayscale_summary">Ustawia obraz w skali szarości przed wysłaniem</string>
     <string name="mjpeg_pref_resize">Zmiana rozmiaru obrazu</string>
     <string name="mjpeg_pref_resize_summary">Zmienia rozmiar obrazu przed wysłaniem</string>
+    <string name="mjpeg_pref_resize_mode_percent">Zmień rozmiar procentowo</string>
+    <string name="mjpeg_pref_resize_mode_resolution">Dokładna rozdzielczość</string>
+    <string name="mjpeg_pref_resize_width">Szerokość:</string>
+    <string name="mjpeg_pref_resize_height">Wysokość:</string>
+    <string name="mjpeg_pref_resize_stretch">Rozciągnij do dopasowania</string>
     <string name="mjpeg_pref_resize_text">Ustaw współczynnik zmiany rozmiaru obrazu w procentach.\nWartość: 10–150\nDomyślnie: 50\nRozmiar ekranu: %1$dx%2$d</string>
     <string name="mjpeg_pref_resize_result">Rozmiar obrazu: %1$dx%2$d</string>
     <string name="mjpeg_pref_rotate">Obróć zdjęcie zgodnie z ruchem wskazówek zegara</string>

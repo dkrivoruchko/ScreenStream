@@ -19,7 +19,7 @@
 
     <string name="mjpeg_item_address">Alamat piranti:</string>
     <string name="mjpeg_stream_no_address">Ora ana alamat sing ditemokake</string>
-    <string name="mjpeg_stream_interface">Antarmuka: %1$s</string>
+    <string name="mjpeg_stream_interface">Antarmuka:\n%1$s</string>
     <string name="mjpeg_stream_copied">disalin</string>
     <string name="mjpeg_stream_no_web_browser_found">Ora ana browser web sing ditemokake</string>
     <string name="mjpeg_stream_external_app_error">Kesalahan aplikasi eksternal</string>
@@ -84,6 +84,11 @@
     <string name="mjpeg_pref_grayscale_summary">Gambar grayscale sadurunge dikirim menyang klien</string>
     <string name="mjpeg_pref_resize">Ngowahi ukuran gambar</string>
     <string name="mjpeg_pref_resize_summary">Ganti ukuran gambar sadurunge dikirim menyang klien</string>
+    <string name="mjpeg_pref_resize_mode_percent">Owahi ukuran nganggo persen</string>
+    <string name="mjpeg_pref_resize_mode_resolution">Resolusi pas</string>
+    <string name="mjpeg_pref_resize_width">Amba:</string>
+    <string name="mjpeg_pref_resize_height">Dhuwur:</string>
+    <string name="mjpeg_pref_resize_stretch">Tarik supaya pas</string>
     <string name="mjpeg_pref_resize_text">Setel faktor pangowahan ukuran gambar ing persen. Nilai: 10–150 Default: 50 Ukuran layar: %1$dx%2$d</string>
     <string name="mjpeg_pref_resize_result">Ukuran gambar: %1$dx%2$d</string>
     <string name="mjpeg_pref_rotate">Puter gambar searah jarum jam</string>

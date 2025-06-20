@@ -18,7 +18,7 @@
 
     <string name="mjpeg_item_address">डिवाइस पता:</string>
     <string name="mjpeg_stream_no_address">कोई पता नहीं मिला</string>
-    <string name="mjpeg_stream_interface">इंटरफ़ेस:%1$s</string>
+    <string name="mjpeg_stream_interface">इंटरफ़ेस:\n%1$s</string>
     <string name="mjpeg_stream_copied">नक़ल किया गया</string>
     <string name="mjpeg_stream_no_web_browser_found">कोई वेब ब्राउज़र नहीं मिला</string>
     <string name="mjpeg_stream_external_app_error">बाहरी अनुप्रयोग त्रुटि</string>
@@ -88,6 +88,11 @@
     <string name="mjpeg_pref_grayscale_summary">ग्रेस्केल छवि को ग्राहक को भेजने से पहले</string>
     <string name="mjpeg_pref_resize">चित्र को पुनर्कार करें</string>
     <string name="mjpeg_pref_resize_summary">क्लाइंट को भेजने से पहले छवि का आकार बदलें</string>
+    <string name="mjpeg_pref_resize_mode_percent">प्रतिशत से आकार बदलें</string>
+    <string name="mjpeg_pref_resize_mode_resolution">सटीक रिज़ॉल्यूशन</string>
+    <string name="mjpeg_pref_resize_width">चौड़ाई:</string>
+    <string name="mjpeg_pref_resize_height">ऊंचाई:</string>
+    <string name="mjpeg_pref_resize_stretch">फिट करने के लिए खींचें</string>
     <string name="mjpeg_pref_resize_text">छवि का आकार प्रतिशत में फैक्टर का आकार बदलें।\nआकार: 10–150\nडिफ़ॉल्ट: 50\nस्क्रीन आकार: %1$dx%2$d</string>
     <string name="mjpeg_pref_resize_result">चित्र का आकार: %1$dx%2$d</string>
     <string name="mjpeg_pref_rotate">छवि को दक्षिणावर्त घुमाएँ</string>

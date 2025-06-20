@@ -18,7 +18,7 @@
 
     <string name="mjpeg_item_address">የመሣሪያ አድራሻ፡-</string>
     <string name="mjpeg_stream_no_address">ምንም አድራሻ አልተገኘም።</string>
-    <string name="mjpeg_stream_interface">በይነገጽ፡ %1$s</string>
+    <string name="mjpeg_stream_interface">በይነገጽ፡\n%1$s</string>
     <string name="mjpeg_stream_copied">ተገልብጧል</string>
     <string name="mjpeg_stream_no_web_browser_found">ምንም የድር አሳሽ አልተገኘም።</string>
     <string name="mjpeg_stream_external_app_error">የውጫዊ መተግበሪያ ስህተት</string>
@@ -83,7 +83,12 @@
     <string name="mjpeg_pref_grayscale_summary">ወደ ደንበኛ ከመላክዎ በፊት ግራጫማ ምስል</string>
     <string name="mjpeg_pref_resize">የምስል መጠን ቀይር</string>
     <string name="mjpeg_pref_resize_summary">ወደ ደንበኛ ከመላክዎ በፊት የምስሉን መጠን ይለውጡ</string>
-    <string name="mjpeg_pref_resize_text">የምስል መጠን መጠንን በመቶኛ ያዘጋጁ። ዋጋዎች: 10-150 ነባሪ፡ 50 የማያ መጠን፡ %1$dx%2$d</string>
+    <string name="mjpeg_pref_resize_mode_percent">በመቶኛ ቀይር</string>
+    <string name="mjpeg_pref_resize_mode_resolution">ትክክለኛ ጥራት</string>
+    <string name="mjpeg_pref_resize_width">ስፋት:</string>
+    <string name="mjpeg_pref_resize_height">ቁመት:</string>
+    <string name="mjpeg_pref_resize_stretch">ለማስማማት ዘርጋ</string>
+    <string name="mjpeg_pref_resize_text">የምስል መጠን መጠንን በመቶኛ ያዘጋጁ። ዋጋዎች: 10–150 ነባሪ፡ 50 የማያ መጠን፡ %1$dx%2$d</string>
     <string name="mjpeg_pref_resize_result">የሥዕል መጠን፡ %1$dx%2$d</string>
     <string name="mjpeg_pref_rotate">ምስሉን በሰዓት አቅጣጫ አሽከርክር</string>
     <string name="mjpeg_pref_rotate_summary">ወደ ደንበኛ ከመላክዎ በፊት ምስሉን ያሽከርክሩ</string>
@@ -93,7 +98,7 @@
     <string name="mjpeg_pref_fps_low_mode_text">እያንዳንዱ እንቁራሪት በየ%d ሰከንድ እንዲታይ ተገድቷል, በE-Ink ስክሪንስ ተስማሚ ነው።</string>
     <string name="mjpeg_pref_jpeg_quality">JPEG መጭመቂያ ጥራት</string>
     <string name="mjpeg_pref_jpeg_quality_summary">የ JPEG መጭመቂያ ጥራት ያዘጋጁ</string>
-    <string name="mjpeg_pref_jpeg_quality_text">የ JPEG መጭመቂያ ጥራት ያዘጋጁ። ዋጋዎች: 10-100 ነባሪ፡ 80</string>
+    <string name="mjpeg_pref_jpeg_quality_text">የ JPEG መጭመቂያ ጥራት ያዘጋጁ። ዋጋዎች: 10–100 ነባሪ፡ 80</string>
 
     <string name="mjpeg_pref_settings_security">ደህንነት</string>
     <string name="mjpeg_pref_enable_pin">ፒን አንቃ</string>

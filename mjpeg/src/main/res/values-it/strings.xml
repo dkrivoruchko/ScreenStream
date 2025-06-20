@@ -18,7 +18,7 @@
 
     <string name="mjpeg_item_address">Indirizzo del dispositivo:</string>
     <string name="mjpeg_stream_no_address">Nessun indirizzo trovato</string>
-    <string name="mjpeg_stream_interface">Interfaccia: %1$s</string>
+    <string name="mjpeg_stream_interface">Interfaccia:\n%1$s</string>
     <string name="mjpeg_stream_copied">Copiato</string>
     <string name="mjpeg_stream_no_web_browser_found">Nessun browser web trovato</string>
     <string name="mjpeg_stream_external_app_error">Errore applicazione esterna</string>
@@ -88,6 +88,11 @@
     <string name="mjpeg_pref_grayscale_summary">Immagine in scala di grigi prima dell\'invio al cliente</string>
     <string name="mjpeg_pref_resize">Ridimensiona immagine</string>
     <string name="mjpeg_pref_resize_summary">Ridimensiona l\'immagine prima di inviarla al client</string>
+    <string name="mjpeg_pref_resize_mode_percent">Ridimensiona in percentuale</string>
+    <string name="mjpeg_pref_resize_mode_resolution">Risoluzione esatta</string>
+    <string name="mjpeg_pref_resize_width">Larghezza:</string>
+    <string name="mjpeg_pref_resize_height">Altezza:</string>
+    <string name="mjpeg_pref_resize_stretch">Allunga per adattare</string>
     <string name="mjpeg_pref_resize_text">Imposta la percentuale di ridimensionamento.\nValori: 10–150\nPredefinita: 50\nDimensione schermo: %1$dx%2$d</string>
     <string name="mjpeg_pref_resize_result">Dimensione immagine: %1$dx%2$d</string>
     <string name="mjpeg_pref_rotate">Ruota immagine in senso orario</string>

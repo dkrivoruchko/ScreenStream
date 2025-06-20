@@ -19,7 +19,7 @@
 
     <string name="mjpeg_item_address">Toesteladres:</string>
     <string name="mjpeg_stream_no_address">Geen adres gevind nie</string>
-    <string name="mjpeg_stream_interface">Koppelvlak: %1$s</string>
+    <string name="mjpeg_stream_interface">Koppelvlak:\n%1$s</string>
     <string name="mjpeg_stream_copied">Gekopieer</string>
     <string name="mjpeg_stream_no_web_browser_found">Geen webblaaier gevind nie</string>
     <string name="mjpeg_stream_external_app_error">Eksterne toepassingsfout</string>
@@ -84,6 +84,11 @@
     <string name="mjpeg_pref_grayscale_summary">Grysskaal-prent voordat dit aan kliënt gestuur word</string>
     <string name="mjpeg_pref_resize">Verander grootte van prent</string>
     <string name="mjpeg_pref_resize_summary">Verander grootte van prent voordat dit na kliënt gestuur word</string>
+    <string name="mjpeg_pref_resize_mode_percent">Vergroot met persentasie</string>
+    <string name="mjpeg_pref_resize_mode_resolution">Presiese resolusie</string>
+    <string name="mjpeg_pref_resize_width">Breedte:</string>
+    <string name="mjpeg_pref_resize_height">Hoogte:</string>
+    <string name="mjpeg_pref_resize_stretch">Rek om te pas</string>
     <string name="mjpeg_pref_resize_text">Stel beeldveranderingsfaktor in persentasie. Waardes: 10–150 Verstek: 50 Skermgrootte: %1$dx%2$d</string>
     <string name="mjpeg_pref_resize_result">Prentgrootte: %1$dx%2$d</string>
     <string name="mjpeg_pref_rotate">Draai prent kloksgewys</string>

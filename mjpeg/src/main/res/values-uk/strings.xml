@@ -18,7 +18,7 @@
     <string name="mjpeg_item_address">Адреса пристрою:</string>
 
     <string name="mjpeg_stream_no_address">Адресу не знайдено</string>
-    <string name="mjpeg_stream_interface">Інтерфейс: %1$s</string>
+    <string name="mjpeg_stream_interface">Інтерфейс:\n%1$s</string>
     <string name="mjpeg_stream_copied">Скопійовано</string>
     <string name="mjpeg_stream_no_web_browser_found">Не знайдено веб-браузер</string>
     <string name="mjpeg_stream_external_app_error">Помилка зовнішнього додатку</string>
@@ -88,6 +88,11 @@
     <string name="mjpeg_pref_grayscale_summary">Переводити зображення у градації сірого перед відправкою</string>
     <string name="mjpeg_pref_resize">Змінити розмір зображення</string>
     <string name="mjpeg_pref_resize_summary">Змінити розмір зображення перед надсиланням на клієнт</string>
+    <string name="mjpeg_pref_resize_mode_percent">Змінити розмір у відсотках</string>
+    <string name="mjpeg_pref_resize_mode_resolution">Точна роздільність</string>
+    <string name="mjpeg_pref_resize_width">Ширина:</string>
+    <string name="mjpeg_pref_resize_height">Висота:</string>
+    <string name="mjpeg_pref_resize_stretch">Розтягнути за розміром</string>
     <string name="mjpeg_pref_resize_text">Встановіть фактор зміни розміру у відсотках.\nВеличини: 10–150\nЗа замовчуванням: 50\nРозмір екрану: %1$dx%2$d</string>
     <string name="mjpeg_pref_resize_result">Розмір зображення: %1$dx%2$d</string>
     <string name="mjpeg_pref_rotate">Повернути зображення за годинниковаою стрілкою</string>

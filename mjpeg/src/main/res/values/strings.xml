@@ -18,7 +18,7 @@
 
     <string name="mjpeg_item_address">Device address:</string>
     <string name="mjpeg_stream_no_address">No address found</string>
-    <string name="mjpeg_stream_interface">Interface: %1$s</string>
+    <string name="mjpeg_stream_interface">Interface:\n%1$s</string>
     <string name="mjpeg_stream_copied">Copied</string>
     <string name="mjpeg_stream_no_web_browser_found">No web browser found</string>
     <string name="mjpeg_stream_external_app_error">External application error</string>
@@ -94,7 +94,7 @@
     <string name="mjpeg_pref_resize_mode_resolution">Exact resolution</string>
     <string name="mjpeg_pref_resize_width">Width:</string>
     <string name="mjpeg_pref_resize_height">Height:</string>
-    <string name="mjpeg_pref_resize_stretch">Stretch image to fit</string>
+    <string name="mjpeg_pref_resize_stretch">Stretch to fit</string>
     <string name="mjpeg_pref_resize_text">Set image resize factor in percent.\nValues: 10–150\nDefault: 50\nScreen size: %1$dx%2$d</string>
     <string name="mjpeg_pref_resize_result">Picture size: %1$dx%2$d</string>
     <string name="mjpeg_pref_rotate">Rotate image clockwise</string>

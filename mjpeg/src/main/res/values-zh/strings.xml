@@ -18,7 +18,7 @@
 
     <string name="mjpeg_item_address">设备地址：</string>
     <string name="mjpeg_stream_no_address">未找到地址</string>
-    <string name="mjpeg_stream_interface">接口： %1$s</string>
+    <string name="mjpeg_stream_interface">接口：\n%1$s</string>
     <string name="mjpeg_stream_copied">已复制</string>
     <string name="mjpeg_stream_no_web_browser_found">没找到网络浏览器</string>
     <string name="mjpeg_stream_external_app_error">外部程序错误</string>
@@ -88,6 +88,11 @@
     <string name="mjpeg_pref_grayscale_summary">发送到客户端前对图片进行灰度处理</string>
     <string name="mjpeg_pref_resize">调整图片尺寸</string>
     <string name="mjpeg_pref_resize_summary">发送到客户端前调整图片尺寸</string>
+    <string name="mjpeg_pref_resize_mode_percent">按百分比调整</string>
+    <string name="mjpeg_pref_resize_mode_resolution">精确分辨率</string>
+    <string name="mjpeg_pref_resize_width">宽度：</string>
+    <string name="mjpeg_pref_resize_height">高度：</string>
+    <string name="mjpeg_pref_resize_stretch">拉伸适应</string>
     <string name="mjpeg_pref_resize_text">设置图片尺寸调整的百分比率\n值：10–150\n默认：50\n屏幕尺寸：%1$dx%2$d</string>
     <string name="mjpeg_pref_resize_result">图片尺寸： %1$dx%2$d</string>
     <string name="mjpeg_pref_rotate">顺时针旋转图片</string>

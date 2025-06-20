@@ -18,7 +18,7 @@
 
     <string name="mjpeg_item_address">Adresse du périphérique :</string>
     <string name="mjpeg_stream_no_address">Aucune adresse trouvée</string>
-    <string name="mjpeg_stream_interface">Interface: %1$s</string>
+    <string name="mjpeg_stream_interface">Interface:\n%1$s</string>
     <string name="mjpeg_stream_copied">Copié</string>
     <string name="mjpeg_stream_no_web_browser_found">Aucun navigateur Web trouvé</string>
     <string name="mjpeg_stream_external_app_error">Erreur de l\'application externe</string>
@@ -88,6 +88,11 @@
     <string name="mjpeg_pref_grayscale_summary">Convertir l\'image en niveaux de gris avant de l\'envoyer au client</string>
     <string name="mjpeg_pref_resize">Redimensionner l\'image</string>
     <string name="mjpeg_pref_resize_summary">Redimensionner l\'image avant de l\'envoyer au client</string>
+    <string name="mjpeg_pref_resize_mode_percent">Redimensionner en pourcentage</string>
+    <string name="mjpeg_pref_resize_mode_resolution">Résolution exacte</string>
+    <string name="mjpeg_pref_resize_width">Largeur :</string>
+    <string name="mjpeg_pref_resize_height">Hauteur :</string>
+    <string name="mjpeg_pref_resize_stretch">Étirer pour ajuster</string>
     <string name="mjpeg_pref_resize_text">Définissez le facteur de redimensionnement de l\'image en pourcentage.\nValeurs: 10–150\nPar défaut: 50\nTaille de l\'écran: %1$dx%2$d</string>
     <string name="mjpeg_pref_resize_result">Taille de l\'image: %1$dx%2$d</string>
     <string name="mjpeg_pref_rotate">Faire pivoter l\'image dans le sens horaire</string>

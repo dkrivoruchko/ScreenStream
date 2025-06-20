@@ -19,7 +19,7 @@
 
     <string name="mjpeg_item_address">Toestel adres:</string>
     <string name="mjpeg_stream_no_address">Geen adres gevonden</string>
-    <string name="mjpeg_stream_interface">Interface: %1$s</string>
+    <string name="mjpeg_stream_interface">Interface:\n%1$s</string>
     <string name="mjpeg_stream_copied">gekopieerd</string>
     <string name="mjpeg_stream_no_web_browser_found">Geen webbrowser gevonden</string>
     <string name="mjpeg_stream_external_app_error">Externe applicatie fout</string>
@@ -89,6 +89,11 @@
     <string name="mjpeg_pref_grayscale_summary">Beeld in grijswaarden voordat het naar de client wordt verzonden</string>
     <string name="mjpeg_pref_resize">Formaat van beeld weizigen</string>
     <string name="mjpeg_pref_resize_summary">Formaat weizigen voor het sturen naar de client</string>
+    <string name="mjpeg_pref_resize_mode_percent">Schalen met percentage</string>
+    <string name="mjpeg_pref_resize_mode_resolution">Exacte resolutie</string>
+    <string name="mjpeg_pref_resize_width">Breedte:</string>
+    <string name="mjpeg_pref_resize_height">Hoogte:</string>
+    <string name="mjpeg_pref_resize_stretch">Uitrekken om te passen</string>
     <string name="mjpeg_pref_resize_text">Waarde van formaat weizigen in procenten invullen.\nWaardes: 10–150\nStandaard: 50\nScherm maat: %1$dx%2$d</string>
     <string name="mjpeg_pref_resize_result">Beeld maat: %1$dx%2$d</string>
     <string name="mjpeg_pref_rotate">Draai het scherm om</string>

@@ -18,7 +18,7 @@
 
     <string name="mjpeg_item_address">მოწყობილობის მისამართი:</string>
     <string name="mjpeg_stream_no_address">მისამართი ვერ მოიძებნა</string>
-    <string name="mjpeg_stream_interface">ინტერფეისი: %1$s</string>
+    <string name="mjpeg_stream_interface">ინტერფეისი:\n%1$s</string>
     <string name="mjpeg_stream_copied">კოპირებულია</string>
     <string name="mjpeg_stream_no_web_browser_found">ვებ ბრაუზერი ვერ მოიძებნა</string>
     <string name="mjpeg_stream_external_app_error">გარე განაცხადის შეცდომა</string>
@@ -83,6 +83,11 @@
     <string name="mjpeg_pref_grayscale_summary">რუხი ფერის სურათი კლიენტისთვის გაგზავნამდე</string>
     <string name="mjpeg_pref_resize">სურათის ზომის შეცვლა</string>
     <string name="mjpeg_pref_resize_summary">შეცვალეთ სურათის ზომა კლიენტისთვის გაგზავნამდე</string>
+    <string name="mjpeg_pref_resize_mode_percent">ზომის შეცვლა პროცენტით</string>
+    <string name="mjpeg_pref_resize_mode_resolution">ზუსტი გარჩევადობა</string>
+    <string name="mjpeg_pref_resize_width">სიგანე:</string>
+    <string name="mjpeg_pref_resize_height">სიმაღლე:</string>
+    <string name="mjpeg_pref_resize_stretch">გაჭიმვა მოსარგებად</string>
     <string name="mjpeg_pref_resize_text">დააყენეთ სურათის ზომის შეცვლის ფაქტორი პროცენტებში. ღირებულებები: 10–150 ნაგულისხმევი: 50 ეკრანის ზომა: %1$dx%2$d</string>
     <string name="mjpeg_pref_resize_result">სურათის ზომა: %1$dx%2$d</string>
     <string name="mjpeg_pref_rotate">სურათის როტაცია საათის ისრის მიმართულებით</string>
