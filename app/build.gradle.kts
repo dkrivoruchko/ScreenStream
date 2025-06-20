@@ -4,8 +4,8 @@ import java.util.Properties
 
 plugins {
     alias(libs.plugins.androidApplication)
-    alias(libs.plugins.kotlinAndroid)
-    alias(libs.plugins.compose)
+    alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.googleServices)
     alias(libs.plugins.firebaseCrashlytics)
 }
@@ -105,8 +105,6 @@ android {
 
 dependencies {
     coreLibraryDesugaring(libs.android.tools.desugar)
-
-//    implementation(libs.koin.startup)
 
     implementation(projects.common)
 
