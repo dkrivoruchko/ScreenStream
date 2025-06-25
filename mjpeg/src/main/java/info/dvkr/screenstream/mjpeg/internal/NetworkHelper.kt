@@ -246,11 +246,21 @@ internal class NetworkHelper(private val context: Context) {
     private fun isAddressTypeEnabled(addr: InetAddress, ipv4: Boolean, ipv6: Boolean): Boolean =
         (addr is Inet4Address && ipv4) || (addr is Inet6Address && ipv6)
 
+    private fun isULA(addr: Inet6Address): Boolean = (addr.address[0].toInt() and 0xFE) == 0xFC
+
     private fun passesAddressFilter(addr: InetAddress, @AddressMask filter: Int): Boolean {
         if (filter == MjpegSettings.Values.ADDRESS_ALL) return true
+
+        val isPrivate = when {
+            addr.isLoopbackAddress -> false
+            addr is Inet6Address && isULA(addr) -> true
+            addr.isSiteLocalAddress -> true
+            else -> false
+        }
+
         return when {
             addr.isLoopbackAddress -> (filter and MjpegSettings.Values.ADDRESS_LOCALHOST) != 0
-            addr.isSiteLocalAddress -> (filter and MjpegSettings.Values.ADDRESS_PRIVATE) != 0
+            isPrivate -> (filter and MjpegSettings.Values.ADDRESS_PRIVATE) != 0
             else -> (filter and MjpegSettings.Values.ADDRESS_PUBLIC) != 0
         }
     }
@@ -266,7 +276,7 @@ internal class NetworkHelper(private val context: Context) {
 
         val addressLabel = when {
             address.isLoopbackAddress -> context.getString(R.string.mjpeg_label_loopback)
-            address.isSiteLocalAddress && address is Inet6Address -> context.getString(R.string.mjpeg_label_ipv6_ula)
+            address is Inet6Address && isULA(address) -> context.getString(R.string.mjpeg_label_ipv6_ula)
             address.isSiteLocalAddress -> context.getString(R.string.mjpeg_label_ipv4_lan)
             address is Inet6Address -> context.getString(R.string.mjpeg_label_public_ipv6)
             else -> context.getString(R.string.mjpeg_label_public_ipv4)
