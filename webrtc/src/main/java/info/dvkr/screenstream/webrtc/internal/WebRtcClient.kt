@@ -138,6 +138,23 @@ internal class WebRtcClient(
     // WebRTC-HT thread
     internal fun toClient(): WebRtcState.Client = WebRtcState.Client(clientId.value, publicId, clientAddress.get())
 
+    internal fun requestKeyFrame() {
+        if (state.get() != State.OFFER_ACCEPTED) {
+            val msg = "Wrong client $id state: $state, expecting: ${State.OFFER_ACCEPTED}"
+            XLog.w(getLog("requestKeyFrame", msg), IllegalStateException(msg))
+            return
+        }
+
+        XLog.d(getLog("requestKeyFrame", "Client: $id"))
+        peerConnection?.let { pc ->
+            pc.senders.find { it.track()?.kind() == "video" }?.let { videoSender ->
+                val parameters = videoSender.parameters
+                // A trivial change to parameters can force a keyframe. We just set them again.
+                videoSender.parameters = parameters
+            } ?: XLog.w(getLog("requestKeyFrame", "No video sender found for client $id"))
+        }
+    }
+
     // Signaling thread
     private fun setHostOffer(mediaStreamId: MediaStreamId, sessionDescription: SessionDescription) {
         if (state.get() != State.PENDING_OFFER) {

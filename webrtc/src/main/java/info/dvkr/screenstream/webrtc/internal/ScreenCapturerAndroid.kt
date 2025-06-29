@@ -10,6 +10,7 @@ import info.dvkr.screenstream.common.getLog
 import org.webrtc.CapturerObserver
 import org.webrtc.SurfaceTextureHelper
 import org.webrtc.ThreadUtils
+import java.util.concurrent.CountDownLatch
 
 internal class ScreenCapturerAndroid(
     private val surfaceTextureHelper: SurfaceTextureHelper,
@@ -41,17 +42,23 @@ internal class ScreenCapturerAndroid(
     @Synchronized
     internal fun stopCapture() {
         checkNotDisposed()
+        val latch = CountDownLatch(1)
         ThreadUtils.invokeAtFrontUninterruptibly(surfaceTextureHelper.handler) {
-            surfaceTextureHelper.stopListening()
-            surfaceTextureHelper.dispose()
-            capturerObserver.onCapturerStopped()
+            try {
+                surfaceTextureHelper.stopListening()
+                surfaceTextureHelper.dispose()
+                capturerObserver.onCapturerStopped()
 
-            virtualDisplay!!.release()
-            virtualDisplay = null
-            mediaProjection!!.unregisterCallback(mediaProjectionCallback)
-            mediaProjection!!.stop()
-            mediaProjection = null
+                virtualDisplay?.release()
+                virtualDisplay = null
+                mediaProjection?.unregisterCallback(mediaProjectionCallback)
+                mediaProjection?.stop()
+                mediaProjection = null
+            } finally {
+                latch.countDown()
+            }
         }
+        latch.await()
     }
 
     @Synchronized

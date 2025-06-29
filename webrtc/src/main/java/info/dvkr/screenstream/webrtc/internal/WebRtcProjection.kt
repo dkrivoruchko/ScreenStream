@@ -185,11 +185,6 @@ internal class WebRtcProjection(private val serviceContext: Context) : AudioReco
         }
     }
 
-    internal fun changeCaptureFormat() {
-        val screeSize = WindowMetricsCalculator.getOrCreate().computeMaximumWindowMetrics(serviceContext).bounds
-        changeCaptureFormat(screeSize.width(), screeSize.height())
-    }
-
     internal fun changeCaptureFormat(width: Int, height: Int) {
         synchronized(lock) {
             if (isStopped || isRunning.not()) {
@@ -197,8 +192,20 @@ internal class WebRtcProjection(private val serviceContext: Context) : AudioReco
                 return
             }
             XLog.d(this@WebRtcProjection.getLog("changeCaptureFormat", "width:$width, height:$height"))
+            screenCapturer?.changeCaptureFormat(width, height)
+        }
+    }
+
+    internal fun forceKeyFrame() {
+        synchronized(lock) {
+            if (isStopped || isRunning.not()) {
+                XLog.i(this@WebRtcProjection.getLog("forceKeyFrame", "Ignoring: isStopped=$isStopped, isRunning=$isRunning"))
+                return
+            }
+            XLog.d(this@WebRtcProjection.getLog("forceKeyFrame"))
             screenCapturer?.apply {
                 val screeSize = WindowMetricsCalculator.getOrCreate().computeMaximumWindowMetrics(serviceContext).bounds
+                changeCaptureFormat(screeSize.width() - 1, screeSize.height() - 1)
                 changeCaptureFormat(screeSize.width(), screeSize.height())
             }
         }

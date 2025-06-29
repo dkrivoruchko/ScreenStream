@@ -22,6 +22,7 @@ import android.os.PowerManager
 import androidx.annotation.AnyThread
 import androidx.annotation.MainThread
 import androidx.core.content.ContextCompat
+import androidx.window.layout.WindowMetricsCalculator
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.common.getVersionName
@@ -558,7 +559,9 @@ internal class WebRtcStreamingService(
                 )
 
                 if (isStreaming()) {
+                    prj.forceKeyFrame()
                     clients[event.clientId]?.start(prj.localMediaSteam!!)
+                    clients[event.clientId]?.requestKeyFrame()
                     requireNotNull(signaling) { "signaling==null" }.sendStreamStart(event.clientId)
                 }
             }
@@ -820,7 +823,8 @@ internal class WebRtcStreamingService(
                     configDiff and ActivityInfo.CONFIG_ORIENTATION != 0 || configDiff and ActivityInfo.CONFIG_SCREEN_LAYOUT != 0 ||
                     configDiff and ActivityInfo.CONFIG_SCREEN_SIZE != 0 || configDiff and ActivityInfo.CONFIG_DENSITY != 0
                 ) {
-                    projection!!.changeCaptureFormat()
+                    val screeSize = WindowMetricsCalculator.getOrCreate().computeMaximumWindowMetrics(service).bounds
+                    projection!!.changeCaptureFormat(screeSize.width(), screeSize.height())
                 } else {
                     XLog.d(getLog("ConfigurationChange", "No change relevant for streaming. Ignoring."))
                 }
