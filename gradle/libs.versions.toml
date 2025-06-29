@@ -1,6 +1,6 @@
 [versions]
-agp = "8.10.1"
-kotlin = "2.1.21"
+agp = "8.11.0"
+kotlin = "2.2.0"
 android-tools-desugar = "2.1.5"
 
 koin-android = "4.1.0"
@@ -28,7 +28,7 @@ ktor = "3.2.0"
 play-services-tasks = "18.3.0"
 play-integrity = "1.4.0"
 socket = "2.1.2"
-okio = "3.13.0"
+okio = "3.14.0"
 okhttp = "4.12.0"
 
 #PlayStore-App
@@ -36,9 +36,9 @@ play-app-update = "2.1.0"
 play-app-review = "2.0.2"
 play-services-ads = "24.4.0"
 webkit = "1.14.0"
-firebase-analytics = "22.4.0"
+firebase-analytics = "22.5.0"
 firebase-crashlytics = "19.4.4"
-google-services = "4.4.2"
+google-services = "4.4.3"
 crashlytics-gradle = "3.0.4"
 
 [libraries]
