@@ -12,15 +12,15 @@ package org.webrtc;
 
 /**
  * The TimestampAligner class helps translating camera timestamps into the same timescale as is
- * used by rtc::TimeNanos(). Some cameras have built in timestamping which is more accurate than
+ * used by webrtc::TimeNanos(). Some cameras have built in timestamping which is more accurate than
  * reading the system clock, but using a different epoch and unknown clock drift. Frame timestamps
- * in webrtc should use rtc::TimeNanos (system monotonic time), and this class provides a filter
- * which lets us use the rtc::TimeNanos timescale, and at the same time take advantage of higher
- * accuracy of the camera clock. This class is a wrapper on top of rtc::TimestampAligner.
+ * in webrtc should use webrtc::TimeNanos (system monotonic time), and this class provides a filter
+ * which lets us use the webrtc::TimeNanos timescale, and at the same time take advantage of higher
+ * accuracy of the camera clock. This class is a wrapper on top of webrtc::TimestampAligner.
  */
 public class TimestampAligner {
   /**
-   * Wrapper around rtc::TimeNanos(). This is normally same as System.nanoTime(), but call this
+   * Wrapper around webrtc::TimeNanos(). This is normally same as System.nanoTime(), but call this
    * function to be safe.
    */
   public static long getRtcTimeNanos() {
@@ -30,7 +30,7 @@ public class TimestampAligner {
   private volatile long nativeTimestampAligner = nativeCreateTimestampAligner();
 
   /**
-   * Translates camera timestamps to the same timescale as is used by rtc::TimeNanos().
+   * Translates camera timestamps to the same timescale as is used by webrtc::TimeNanos().
    * `cameraTimeNs` is assumed to be accurate, but with an unknown epoch and clock drift. Returns
    * the translated timestamp.
    */

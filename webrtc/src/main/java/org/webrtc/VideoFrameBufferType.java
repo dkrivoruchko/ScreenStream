@@ -1,5 +1,5 @@
 
-// Copyright 2024 The Chromium Authors
+// Copyright 2025 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -12,14 +12,17 @@ package org.webrtc;
 
 import androidx.annotation.IntDef;
 
+import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
 @IntDef({
     VideoFrameBufferType.NATIVE, VideoFrameBufferType.I420, VideoFrameBufferType.I420A,
     VideoFrameBufferType.I422, VideoFrameBufferType.I444, VideoFrameBufferType.I010,
     VideoFrameBufferType.I210, VideoFrameBufferType.I410, VideoFrameBufferType.NV12
 })
+@Target(ElementType.TYPE_USE)
 @Retention(RetentionPolicy.SOURCE)
 public @interface VideoFrameBufferType {
   int NATIVE = 0;

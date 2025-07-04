@@ -16,5 +16,14 @@ public interface AudioProcessingFactory {
    * Dynamically allocates a webrtc::AudioProcessing instance and returns a pointer to it.
    * The caller takes ownership of the object.
    */
-  public long createNative();
+  // TODO: bugs.webrtc.org/369904700 - Remove when implementations switch to
+  // another variant.
+  @Deprecated
+  public default long createNative() {
+    return 0;
+  }
+
+  public default long createNative(long webrtcEnvRef) {
+    return createNative();
+  }
 }

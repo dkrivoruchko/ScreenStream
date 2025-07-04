@@ -397,11 +397,12 @@ public class JavaAudioDeviceModule implements AudioDeviceModule {
   }
 
   @Override
-  public long getNativeAudioDeviceModulePointer() {
+  public long getNative(long webrtcEnvRef) {
     synchronized (nativeLock) {
       if (nativeAudioDeviceModule == 0) {
         nativeAudioDeviceModule = nativeCreateAudioDeviceModule(context, audioManager, audioInput,
-            audioOutput, inputSampleRate, outputSampleRate, useStereoInput, useStereoOutput);
+            audioOutput, webrtcEnvRef, inputSampleRate, outputSampleRate, useStereoInput,
+            useStereoOutput);
       }
       return nativeAudioDeviceModule;
     }
@@ -449,5 +450,6 @@ public class JavaAudioDeviceModule implements AudioDeviceModule {
 
   private static native long nativeCreateAudioDeviceModule(Context context,
       AudioManager audioManager, WebRtcAudioRecord audioInput, WebRtcAudioTrack audioOutput,
-      int inputSampleRate, int outputSampleRate, boolean useStereoInput, boolean useStereoOutput);
+      long webrtcEnvRef, int inputSampleRate, int outputSampleRate, boolean useStereoInput,
+      boolean useStereoOutput);
 }

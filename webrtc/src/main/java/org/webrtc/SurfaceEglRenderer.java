@@ -18,7 +18,7 @@ import java.util.concurrent.CountDownLatch;
  * renderFrame() is asynchronous to avoid blocking the calling thread.
  * This class is thread safe and handles access from potentially three different threads:
  * Interaction from the main app in init, release and setMirror.
- * Interaction from C++ rtc::VideoSinkInterface in renderFrame.
+ * Interaction from C++ webrtc::VideoSinkInterface in renderFrame.
  * Interaction from SurfaceHolder lifecycle in surfaceCreated, surfaceChanged, and surfaceDestroyed.
  */
 public class SurfaceEglRenderer extends EglRenderer implements SurfaceHolder.Callback {
@@ -39,6 +39,10 @@ public class SurfaceEglRenderer extends EglRenderer implements SurfaceHolder.Cal
    */
   public SurfaceEglRenderer(String name) {
     super(name);
+  }
+
+  public SurfaceEglRenderer(String name, VideoFrameDrawer videoFrameDrawer) {
+    super(name, videoFrameDrawer);
   }
 
   /**

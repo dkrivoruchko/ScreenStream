@@ -51,8 +51,8 @@ public class SurfaceTextureHelper {
    * Construct a new SurfaceTextureHelper sharing OpenGL resources with `sharedContext`. A dedicated
    * thread and handler is created for handling the SurfaceTexture. May return null if EGL fails to
    * initialize a pixel buffer surface and make it current. If alignTimestamps is true, the frame
-   * timestamps will be aligned to rtc::TimeNanos(). If frame timestamps are aligned to
-   * rtc::TimeNanos() there is no need for aligning timestamps again in
+   * timestamps will be aligned to webrtc::TimeNanos(). If frame timestamps are aligned to
+   * webrtc::TimeNanos() there is no need for aligning timestamps again in
    * PeerConnectionFactory.createVideoSource(). This makes the timestamps more accurate and
    * closer to actual creation time.
    */

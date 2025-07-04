@@ -419,7 +419,7 @@ public class PeerConnection {
     }
   }
 
-  /** Java version of rtc::KeyType */
+  /** Java version of webrtc::KeyType */
   public enum KeyType { RSA, ECDSA }
 
   /** Java version of PeerConnectionInterface.ContinualGatheringPolicy */
