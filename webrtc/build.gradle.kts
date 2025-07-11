@@ -16,7 +16,7 @@ android {
     namespace = "info.dvkr.screenstream.webrtc"
     compileSdk = rootProject.extra["compileSdkVersion"] as Int
     buildToolsVersion = rootProject.extra["buildToolsVersion"] as String
-    ndkVersion = "28.1.13356709"
+    ndkVersion = rootProject.extra["ndkVersion"] as String
 
     defaultConfig {
         minSdk = rootProject.extra["minSdkVersion"] as Int

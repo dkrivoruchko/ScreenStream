@@ -1,5 +1,5 @@
 [versions]
-agp = "8.11.0"
+agp = "8.11.1"
 kotlin = "2.2.0"
 android-tools-desugar = "2.1.5"
 
@@ -25,11 +25,11 @@ xlog = "1.11.1"
 ktor = "3.2.1"
 
 #PlayStore-WebRTC
-play-services-tasks = "18.3.0"
+play-services-tasks = "18.3.2"
 play-integrity = "1.4.0"
 socket = "2.1.2"
 okio = "3.15.0"
-okhttp = "5.0.0"
+okhttp = "5.1.0"
 
 #PlayStore-App
 play-app-update = "2.1.0"
