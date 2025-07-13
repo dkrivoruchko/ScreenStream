@@ -88,8 +88,10 @@ public class StreamingModuleManager(modules: List<StreamingModule>, private val 
 
         modules.firstOrNull { it.id == id }?.let { module ->
             XLog.d(getLog("stopModule", "${module.id}"))
-            if (isActive(module.id)) _activeModuleStateFlow.value = null
             module.stopModule()
+            if (_activeModuleStateFlow.value?.id == module.id) {
+                _activeModuleStateFlow.value = null
+            }
         } ?: XLog.d(getLog("stopModule", "Module $id not found. Ignoring"))
     }
 }

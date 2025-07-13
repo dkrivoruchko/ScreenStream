@@ -561,7 +561,6 @@ internal class WebRtcStreamingService(
                 if (isStreaming()) {
                     prj.forceKeyFrame()
                     clients[event.clientId]?.start(prj.localMediaSteam!!)
-                    clients[event.clientId]?.requestKeyFrame()
                     requireNotNull(signaling) { "signaling==null" }.sendStreamStart(event.clientId)
                 }
             }
@@ -702,6 +701,7 @@ internal class WebRtcStreamingService(
                     XLog.i(getLog("HostOfferConfirmed", "Client ${event.clientId} not found"))
                     sendEvent(WebRtcEvent.RemoveClient(event.clientId, true, "HostOfferConfirmed"))
                 }
+                clients[event.clientId]?.requestKeyFrame()
             }
 
             is InternalEvent.SetClientAnswer -> {

@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.pm.ApplicationInfo
 import android.os.Bundle
 import android.view.View
+import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.defaultMinSize
@@ -16,7 +17,6 @@ import androidx.compose.runtime.movableContentOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.DefaultLifecycleObserver
@@ -173,12 +173,12 @@ public fun AdaptiveBanner(
 ) {
     if (adMob.initialized.value) {
         BoxWithConstraints(modifier = modifier) {
-            val context = LocalContext.current
-            val adSize = remember(context, this.maxWidth) {
-                AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(context, maxWidth.value.toInt())
+            val activity = LocalActivity.current!!
+            val adSize = remember(activity, this.maxWidth) {
+                AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(activity, maxWidth.value.toInt())
             }
 
-            val adBox = remember(adSize, collapsible) { movableContentOf { AdBox(adMob, adSize, collapsible) } }
+            val adBox = remember(adSize, collapsible) { movableContentOf { AdBox(adMob, adSize, collapsible, activity) } }
 
             adBox.invoke()
         }
@@ -186,7 +186,7 @@ public fun AdaptiveBanner(
 }
 
 @Composable
-private fun AdBox(adMob: AdMob, adSize: AdSize, collapsible: Boolean) {
+private fun AdBox(adMob: AdMob, adSize: AdSize, collapsible: Boolean, activity: Activity) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -202,8 +202,8 @@ private fun AdBox(adMob: AdMob, adSize: AdSize, collapsible: Boolean) {
             LaunchedEffect(Unit) { adUnitReady.value = adMob.waitAdUnitReady(selectedAdUnitId.value) }
 
             AndroidView(
-                factory = { ctx ->
-                    AdView(ctx).apply AdView@{
+                factory = {
+                    AdView(activity).apply AdView@{
                         XLog.d(getLog("AdaptiveBanner", "factory: ${selectedAdUnitId.value}"))
                         adUnitId = selectedAdUnitId.value
                         setAdSize(adSize)
