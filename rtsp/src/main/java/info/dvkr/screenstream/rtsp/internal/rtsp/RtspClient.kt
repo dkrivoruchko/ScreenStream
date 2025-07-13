@@ -415,7 +415,7 @@ internal class RtspClient(
             ssrcAudio = ssrcAudio
         )
 
-        var videoPacket = when (videoParams.codec) {
+        val videoPacket = when (videoParams.codec) {
             Codec.Video.H264 -> H264Packet().apply { sentVideoInfo(videoParams.sps, videoParams.pps!!) }
             Codec.Video.H265 -> H265Packet()
             Codec.Video.AV1 -> Av1Packet()

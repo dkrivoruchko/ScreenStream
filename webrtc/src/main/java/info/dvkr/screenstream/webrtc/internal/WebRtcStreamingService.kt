@@ -595,7 +595,7 @@ internal class WebRtcStreamingService(
                     return
                 }
 
-                currentError.set(WebRtcError.SocketError(event.error.message!!, event.error.cause))
+                currentError.set(WebRtcError.SocketError(event.error.message ?: "Unknown error", event.error.cause))
             }
 
             is WebRtcEvent.CastPermissionsDenied -> waitingForPermission = false
@@ -913,7 +913,7 @@ internal class WebRtcStreamingService(
     @Suppress("NOTHING_TO_INLINE")
     private inline fun publishState() {
         val state = WebRtcState(
-            (signaling?.socketId() == null && networkRecovery.value == false)|| currentStreamId.isEmpty() || waitingForPermission || currentError.get() != null || destroyPending,
+            (signaling?.socketId() == null && !networkRecovery.value) || currentStreamId.isEmpty() || waitingForPermission || currentError.get() != null || destroyPending,
             environment.signalingServerUrl,
             currentStreamId.value,
             currentStreamPassword.value,
