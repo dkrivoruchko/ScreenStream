@@ -364,8 +364,10 @@ internal class MjpegStreamingService(
                     }
                     val captureStarted = bitmapCapture.start()
                     if (captureStarted && Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                        mediaProjectionIntent = event.intent
-                        service.registerComponentCallbacks(componentCallback)
+                        if (Build.VERSION.SDK_INT != Build.VERSION_CODES.S || !Build.MANUFACTURER.equals("Xiaomi", ignoreCase = true)) {
+                            mediaProjectionIntent = event.intent
+                            service.registerComponentCallbacks(componentCallback)
+                        }
                     }
 
                     @Suppress("DEPRECATION")

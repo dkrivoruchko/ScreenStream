@@ -561,7 +561,6 @@ internal class WebRtcStreamingService(
                 if (isStreaming()) {
                     prj.forceKeyFrame()
                     clients[event.clientId]?.start(prj.localMediaSteam!!)
-                    clients[event.clientId]?.requestKeyFrame()
                     requireNotNull(signaling) { "signaling==null" }.sendStreamStart(event.clientId)
                 }
             }
@@ -596,7 +595,7 @@ internal class WebRtcStreamingService(
                     return
                 }
 
-                currentError.set(WebRtcError.SocketError(event.error.message!!, event.error.cause))
+                currentError.set(WebRtcError.SocketError(event.error.message ?: "Unknown error", event.error.cause))
             }
 
             is WebRtcEvent.CastPermissionsDenied -> waitingForPermission = false
@@ -702,6 +701,7 @@ internal class WebRtcStreamingService(
                     XLog.i(getLog("HostOfferConfirmed", "Client ${event.clientId} not found"))
                     sendEvent(WebRtcEvent.RemoveClient(event.clientId, true, "HostOfferConfirmed"))
                 }
+                clients[event.clientId]?.requestKeyFrame()
             }
 
             is InternalEvent.SetClientAnswer -> {
@@ -913,7 +913,7 @@ internal class WebRtcStreamingService(
     @Suppress("NOTHING_TO_INLINE")
     private inline fun publishState() {
         val state = WebRtcState(
-            (signaling?.socketId() == null && networkRecovery.value == false)|| currentStreamId.isEmpty() || waitingForPermission || currentError.get() != null || destroyPending,
+            (signaling?.socketId() == null && !networkRecovery.value) || currentStreamId.isEmpty() || waitingForPermission || currentError.get() != null || destroyPending,
             environment.signalingServerUrl,
             currentStreamId.value,
             currentStreamPassword.value,

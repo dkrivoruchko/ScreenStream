@@ -366,7 +366,7 @@ internal class RtspStreamingService(
 
                     virtualDisplay?.release()
                     virtualDisplay?.surface?.release()
-                    virtualDisplay = mediaProjection!!.createVirtualDisplay(
+                    virtualDisplay = mediaProjection?.createVirtualDisplay(
                         "ScreenStreamVirtualDisplay",
                         width,
                         height,
@@ -376,6 +376,12 @@ internal class RtspStreamingService(
                         null,
                         null
                     )
+
+                    if (virtualDisplay == null) {
+                        XLog.w(getLog("startDisplayCapture", "virtualDisplay is null"))
+                        sendEvent(InternalEvent.Error(RtspError.UnknownError(IllegalStateException("virtualDisplay is null"))))
+                        return
+                    }
 
                     start()
                 }

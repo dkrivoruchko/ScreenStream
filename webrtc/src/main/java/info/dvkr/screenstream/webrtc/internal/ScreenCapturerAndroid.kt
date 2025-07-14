@@ -35,6 +35,14 @@ internal class ScreenCapturerAndroid(
         mediaProjection.registerCallback(mediaProjectionCallback, surfaceTextureHelper.handler)
         surfaceTextureHelper.setTextureSize(width, height)
         virtualDisplay = createVirtualDisplay()
+        if (virtualDisplay == null) {
+            mediaProjectionCallback.onStop()
+            XLog.w(
+                getLog("startCapture", "virtualDisplay is null"),
+                IllegalStateException("ScreenCapturerAndroid.startCapture: createVirtualDisplay() returned null.")
+            )
+            return
+        }
         capturerObserver.onCapturerStarted(true)
         surfaceTextureHelper.startListening { frame -> capturerObserver.onFrameCaptured(frame) }
     }
@@ -79,6 +87,14 @@ internal class ScreenCapturerAndroid(
                 } else {
                     virtualDisplay!!.release()
                     virtualDisplay = createVirtualDisplay()
+                    if (virtualDisplay == null) {
+                        mediaProjectionCallback.onStop()
+                        XLog.w(
+                            getLog("startCapture", "virtualDisplay is null"),
+                            IllegalStateException("ScreenCapturerAndroid.changeCaptureFormat: createVirtualDisplay() returned null.")
+                        )
+                        return@invokeAtFrontUninterruptibly
+                    }
                 }
             }
         }
@@ -93,9 +109,9 @@ internal class ScreenCapturerAndroid(
         if (isDisposed) throw RuntimeException("Capturer is disposed.")
     }
 
-    private fun createVirtualDisplay(): VirtualDisplay = mediaProjection!!.createVirtualDisplay(
+    private fun createVirtualDisplay(): VirtualDisplay? = mediaProjection?.createVirtualDisplay(
         "WebRTC_ScreenCapture", width, height, 400,
         DisplayManager.VIRTUAL_DISPLAY_FLAG_PRESENTATION,
         Surface(surfaceTextureHelper.surfaceTexture), null, null
-    )!!
+    )
 }

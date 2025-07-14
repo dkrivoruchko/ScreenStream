@@ -138,7 +138,14 @@ internal class BitmapCapture(
                 null,
                 imageThreadHandler
             )
-            state = State.STARTED
+            if (virtualDisplay == null) {
+                XLog.w(getLog("startDisplayCapture", "virtualDisplay is null"))
+                state = State.ERROR
+                onError(MjpegError.UnknownError(RuntimeException("virtualDisplay is null")))
+                safeRelease()
+            } else {
+                state = State.STARTED
+            }
         } catch (ex: SecurityException) {
             XLog.w(getLog("startDisplayCapture", ex.toString()), ex)
             state = State.ERROR

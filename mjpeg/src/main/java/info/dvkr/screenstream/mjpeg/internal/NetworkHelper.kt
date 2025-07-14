@@ -155,7 +155,7 @@ internal class NetworkHelper(private val context: Context) {
         }
             .asSequence()
             .filter { nif ->
-                if (!nif.isUp) return@filter false
+                if (!runCatching { nif.isUp }.getOrDefault(false)) return@filter false
                 val isLoopback = LOOPBACK_IFACE_NAMES.any {
                     nif.name.equals(it, ignoreCase = true) || nif.displayName.equals(it, ignoreCase = true)
                 }
@@ -198,7 +198,7 @@ internal class NetworkHelper(private val context: Context) {
         LOOPBACK_IFACE_NAMES.forEach { name ->
             runCatching {
                 NetworkInterface.getByName(name)?.let { nif ->
-                    if (nif.isUp) {
+                    if (runCatching { nif.isUp }.getOrDefault(false)) {
                         nif.inetAddresses
                             .asSequence()
                             .filter { it.isLoopbackAddress }
