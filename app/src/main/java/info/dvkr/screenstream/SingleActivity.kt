@@ -1,5 +1,6 @@
 package info.dvkr.screenstream
 
+import android.app.ActivityManager
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
@@ -11,10 +12,12 @@ import androidx.lifecycle.flowWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.common.getLog
+import info.dvkr.screenstream.common.module.StreamingModule
 import info.dvkr.screenstream.common.module.StreamingModuleManager
 import info.dvkr.screenstream.common.settings.AppSettings
 import info.dvkr.screenstream.ui.ScreenStreamContent
 import info.dvkr.screenstream.ui.theme.ScreenStreamTheme
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.launchIn
@@ -55,7 +58,7 @@ public class SingleActivity : AppUpdateActivity() {
             .onEach { moduleId ->
                 if (streamingModulesManager.isActive(moduleId)) return@onEach
                 XLog.i(this@SingleActivity.getLog("selectedModuleIdFlow.onEach:", "$moduleId"))
-                streamingModulesManager.startModule(moduleId, this)
+                startModuleWithCheck(moduleId)
             }
             .catch {
                 if (it is IllegalStateException) XLog.i(this@SingleActivity.getLog("selectedModuleIdFlow.catch: ${it.message}"), it)
@@ -67,5 +70,17 @@ public class SingleActivity : AppUpdateActivity() {
             }
             .flowWithLifecycle(lifecycle, minActiveState = Lifecycle.State.RESUMED)
             .launchIn(lifecycleScope)
+    }
+
+    private suspend fun startModuleWithCheck(moduleId: StreamingModule.Id, attempt: Int = 0) {
+        val importance = ActivityManager.RunningAppProcessInfo().also { ActivityManager.getMyMemoryState(it) }.importance
+        XLog.i(this@SingleActivity.getLog("startModuleWithCheck", "$moduleId [${lifecycle.currentState}] Importance: $importance, Attempt $attempt"))
+
+        if (attempt >= 5 || importance <= ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND_SERVICE) {
+            streamingModulesManager.startModule(moduleId, this)
+        } else {
+            delay(75)
+            startModuleWithCheck(moduleId, attempt + 1)
+        }
     }
 }
