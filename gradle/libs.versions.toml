@@ -12,17 +12,17 @@ androidx-core-splashscreen = "1.2.0-rc01"
 androidx-activity-compose = "1.10.1"
 androidx-fragment = "1.8.8"
 androidx-appcompat = "1.7.1"
-androidx-lifecycle = "2.9.1"
+androidx-lifecycle = "2.9.2"
 androidx-window = "1.4.0"
 androidx-datastore-preferences = "1.1.7"
 
-compose-bom = "2025.06.01"
+compose-bom = "2025.07.00"
 
 process-phoenix = "3.0.0"
 xlog = "1.11.1"
 
 #MJPEG
-ktor = "3.2.1"
+ktor = "3.2.2"
 
 #PlayStore-WebRTC
 play-services-tasks = "18.3.2"
