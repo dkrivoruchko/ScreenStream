@@ -34,12 +34,12 @@ okhttp = "5.1.0"
 #PlayStore-App
 play-app-update = "2.1.0"
 play-app-review = "2.0.2"
-play-services-ads = "24.4.0"
+play-services-ads = "24.5.0"
 webkit = "1.14.0"
-firebase-analytics = "22.5.0"
-firebase-crashlytics = "19.4.4"
+firebase-analytics = "23.0.0"
+firebase-crashlytics = "20.0.0"
 google-services = "4.4.3"
-crashlytics-gradle = "3.0.4"
+crashlytics-gradle = "3.0.5"
 
 [libraries]
 android-tools-desugar = { module = "com.android.tools:desugar_jdk_libs", version.ref = "android-tools-desugar" }
