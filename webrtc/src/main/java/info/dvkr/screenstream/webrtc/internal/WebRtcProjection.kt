@@ -47,7 +47,7 @@ internal class WebRtcProjection(private val serviceContext: Context) : AudioReco
     }
 
     private enum class AudioCodec { OPUS }
-    private enum class VideoCodec(val priority: Int) { VP8(1), VP9(2), H264(3), H265(4); }
+    private enum class VideoCodec(val priority: Int) { VP8(1), VP9(2), H265(3), H264(4); }
 
     private val mediaProjectionManager = serviceContext.applicationContext.getSystemService(MediaProjectionManager::class.java)
 
