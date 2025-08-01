@@ -1,5 +1,8 @@
 package info.dvkr.screenstream.ui.tabs.settings.app.settings.general
 
+import android.app.UiModeManager
+import android.content.Context
+import android.content.res.Configuration
 import android.content.res.Resources
 import android.os.Build
 import androidx.compose.foundation.clickable
@@ -42,7 +45,10 @@ internal object Notifications : ModuleSettings.Item {
         val notificationHelper = koinInject<NotificationHelper>()
         val context = LocalContext.current
 
-        NotificationsUI(horizontalPadding) { context.startActivity(notificationHelper.getNotificationSettingsIntent()) }
+        val uiModeManager = context.getSystemService(Context.UI_MODE_SERVICE) as UiModeManager
+        if (uiModeManager.currentModeType != Configuration.UI_MODE_TYPE_TELEVISION) {
+            NotificationsUI(horizontalPadding) { context.startActivity(notificationHelper.getNotificationSettingsIntent()) }
+        }
     }
 }
 
