@@ -103,7 +103,7 @@ public class WebRtcStreamingModule : StreamingModule {
                 _streamingServiceState.value = StreamingModule.State.Initiated
             }
 
-            StreamingModule.State.PendingStop -> throw RuntimeException("Unexpected state: $state")
+            StreamingModule.State.PendingStop -> XLog.d(getLog("stopModule", "Already stopping (PendingStop). Ignoring"))
         }
 
         XLog.d(getLog("stopModule", "Done"))

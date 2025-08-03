@@ -53,6 +53,7 @@ import info.dvkr.screenstream.common.ModuleSettings
 import info.dvkr.screenstream.mjpeg.R
 import info.dvkr.screenstream.mjpeg.settings.MjpegSettings
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import kotlin.math.min
@@ -374,7 +375,7 @@ private fun ResizeImageDetailUI(
         }
     }
 
-    LaunchedEffect(Unit) { focusRequester.requestFocus() }
+    LaunchedEffect(Unit) { delay(50); focusRequester.requestFocus() }
 }
 
 private val Icon_Resize: ImageVector = materialIcon(name = "Resize") {

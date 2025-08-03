@@ -123,8 +123,14 @@ internal class WebRtcProjection(private val serviceContext: Context) : AudioReco
     override fun onAudioDataRecorded(audioFormat: Int, channelCount: Int, sampleRate: Int, audioBuffer: ByteBuffer) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && deviceAudioMute.not()) {
             if (deviceAudioRecord == null) {
-                deviceAudioRecord = createAudioRecord(audioFormat, sampleRate, mediaProjection!!).apply { startRecording() }
+                createAudioRecord(audioFormat, sampleRate, mediaProjection!!)?.let {
+                    deviceAudioRecord = it.apply { startRecording() }
+                } ?: run {
+                    XLog.w(getLog("onAudioDataRecorded", "Cannot create AudioRecord for projection"))
+                    return
+                }
             }
+
             deviceAudioRecord?.apply {
                 val deviceAudioBuffer = ByteBuffer.allocateDirect(audioBuffer.capacity()).order(ByteOrder.nativeOrder())
                 read(deviceAudioBuffer, deviceAudioBuffer.capacity(), AudioRecord.READ_BLOCKING)
@@ -249,7 +255,7 @@ internal class WebRtcProjection(private val serviceContext: Context) : AudioReco
 
     @SuppressLint("MissingPermission")
     @RequiresApi(Build.VERSION_CODES.Q)
-    private fun createAudioRecord(audioFormat: Int, sampleRate: Int, mediaProjection: MediaProjection): AudioRecord {
+    private fun createAudioRecord(audioFormat: Int, sampleRate: Int, mediaProjection: MediaProjection): AudioRecord? {
         val format = AudioFormat.Builder()
             .setEncoding(audioFormat)
             .setSampleRate(sampleRate)
@@ -262,10 +268,12 @@ internal class WebRtcProjection(private val serviceContext: Context) : AudioReco
             .addMatchingUsage(AudioAttributes.USAGE_UNKNOWN)
             .build()
 
-        return AudioRecord.Builder()
-            .setAudioFormat(format)
-            .setAudioPlaybackCaptureConfig(playbackConfig)
-            .build()
+        return runCatching {
+            AudioRecord.Builder()
+                .setAudioFormat(format)
+                .setAudioPlaybackCaptureConfig(playbackConfig)
+                .build()
+        }.onFailure { e -> XLog.e(getLog("createAudioRecord", "Cannot create AudioRecord"), e) }.getOrNull()
     }
 
     private fun mixBuffers(buffer1: ByteBuffer, buffer2: ByteBuffer): ByteArray {

@@ -47,6 +47,7 @@ import info.dvkr.screenstream.common.ui.conditional
 import info.dvkr.screenstream.mjpeg.R
 import info.dvkr.screenstream.mjpeg.settings.MjpegSettings
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 
@@ -188,7 +189,7 @@ private fun PinDetailUI(
         }
     }
 
-    LaunchedEffect(Unit) { focusRequester.requestFocus() }
+    LaunchedEffect(Unit) { delay(50); focusRequester.requestFocus() }
 }
 
 private val Icon_Dialpad: ImageVector = materialIcon(name = "Filled.Dialpad") {

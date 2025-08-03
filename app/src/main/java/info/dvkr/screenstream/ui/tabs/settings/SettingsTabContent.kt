@@ -60,6 +60,7 @@ import androidx.window.core.layout.WindowSizeClass
 import info.dvkr.screenstream.AdaptiveBanner
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.common.ModuleSettings
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
@@ -321,7 +322,7 @@ private fun SettingsListSearch(
         singleLine = true
     )
 
-    LaunchedEffect(Unit) { if (searchVisible.value) focusRequester.requestFocus() }
+    LaunchedEffect(Unit) { if (searchVisible.value) { delay(50); focusRequester.requestFocus() } }
 }
 
 @Composable
