@@ -25,6 +25,7 @@ import org.webrtc.RtpTransceiver
 import org.webrtc.SdpObserver
 import org.webrtc.SessionDescription
 import java.util.Collections
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 import java.util.zip.CRC32
 
@@ -53,9 +54,10 @@ internal class WebRtcClient(
     private val rtcConfig = RTCConfiguration(iceServers.ifEmpty { defaultIceServers }).apply {
         tcpCandidatePolicy = PeerConnection.TcpCandidatePolicy.DISABLED
     }
-    private val pendingIceCandidates: MutableList<IceCandidate> = Collections.synchronizedList(mutableListOf())
-    private val pendingClientAnswer: AtomicReference<Pair<MediaStreamId, Answer>?> = AtomicReference(null)
-    private val pendingClientCandidates: MutableList<Pair<MediaStreamId, IceCandidate>> = Collections.synchronizedList(mutableListOf())
+    private val pendingHostCandidates: MutableList<IceCandidate> = Collections.synchronizedList(mutableListOf())
+    private var queuedAnswer: Answer? = null
+    private val queuedCandidates: MutableList<IceCandidate> = mutableListOf()
+    private val queuedRequestKeyFrame: AtomicBoolean = AtomicBoolean(false)
 
     private val state: AtomicReference<State> = AtomicReference(State.CREATED)
     private val clientAddress: AtomicReference<String> = AtomicReference("-") //TODO
@@ -99,7 +101,7 @@ internal class WebRtcClient(
         }
 
         mediaStreamId = mediaStream.id
-        pendingIceCandidates.clear()
+        pendingHostCandidates.clear()
         state.set(State.PENDING_OFFER)
 
         XLog.d(getLog("start", "createOffer: Client: $id, mediaStream: ${mediaStream.id}"))
@@ -132,9 +134,10 @@ internal class WebRtcClient(
         peerConnection?.dispose()
         peerConnection = null
         mediaStreamId = null
-        pendingIceCandidates.clear()
-        pendingClientAnswer.set(null)
-        pendingClientCandidates.clear()
+        pendingHostCandidates.clear()
+        queuedAnswer = null
+        queuedCandidates.clear()
+        queuedRequestKeyFrame.set(false)
         clientAddress.set("-")
         state.set(State.CREATED)
     }
@@ -144,8 +147,8 @@ internal class WebRtcClient(
 
     internal fun requestKeyFrame() {
         if (state.get() != State.OFFER_ACCEPTED) {
-            val msg = "Wrong client $id state: $state, expecting: ${State.OFFER_ACCEPTED}"
-            XLog.w(getLog("requestKeyFrame", msg), IllegalStateException(msg))
+            XLog.w(getLog("requestKeyFrame", "Wrong state ${state.get()}, queuing requestKeyFrame"))
+            queuedRequestKeyFrame.set(true)
             return
         }
 
@@ -198,13 +201,13 @@ internal class WebRtcClient(
 
             State.PENDING_OFFER_ACCEPT -> {
                 XLog.d(this@WebRtcClient.getLog("onHostCandidate", "$msg. Accumulating"))
-                pendingIceCandidates.add(candidate)
+                pendingHostCandidates.add(candidate)
             }
 
             State.OFFER_ACCEPTED -> {
                 XLog.d(this@WebRtcClient.getLog("onHostCandidate", msg))
-                val list = pendingIceCandidates.apply { add(candidate) }.toList()
-                pendingIceCandidates.clear()
+                val list = pendingHostCandidates.apply { add(candidate) }.toList()
+                pendingHostCandidates.clear()
                 eventListener.onHostCandidates(clientId, list)
             }
 
@@ -214,20 +217,33 @@ internal class WebRtcClient(
 
     // WebRTC-HT thread
     internal fun onHostOfferConfirmed() {
+        if (state.get() == State.OFFER_ACCEPTED) {
+            XLog.w(getLog("onHostOfferConfirmed", "Client $id already in OFFER_ACCEPTED state. Ignoring."))
+            return
+        }
+
         if (state.get() != State.PENDING_OFFER_ACCEPT) {
             val msg = "Wrong client $id state: $state, expecting: ${State.PENDING_OFFER_ACCEPT}"
             XLog.w(getLog("onHostOfferConfirmed", msg), IllegalStateException("onHostOfferConfirmed: $msg"))
             eventListener.onError(clientId, IllegalStateException("onHostOfferConfirmed: $msg"))
-        } else {
-            XLog.d(getLog("onHostOfferConfirmed", "Client: $id"))
-            state.set(State.OFFER_ACCEPTED)
-            val list = pendingIceCandidates.toList()
-            pendingIceCandidates.clear()
-            eventListener.onHostCandidates(clientId, list)
+            return
+        }
 
-            pendingClientAnswer.getAndSet(null)?.let { (streamId, answer) -> setClientAnswer(streamId, answer) }
-            pendingClientCandidates.forEach { (streamId, candidate) -> setClientCandidate(streamId, candidate) }
-            pendingClientCandidates.clear()
+        XLog.d(getLog("onHostOfferConfirmed", "Client: $id"))
+        state.set(State.OFFER_ACCEPTED)
+        val hostCandidates = pendingHostCandidates.toList()
+        pendingHostCandidates.clear()
+        eventListener.onHostCandidates(clientId, hostCandidates)
+
+        queuedAnswer?.let {
+            setClientAnswer(mediaStreamId!!, it)
+            queuedAnswer = null
+        }
+        queuedCandidates.forEach { setClientCandidate(mediaStreamId!!, it) }
+        queuedCandidates.clear()
+
+        if (queuedRequestKeyFrame.getAndSet(false)) {
+            requestKeyFrame()
         }
     }
 
@@ -236,7 +252,7 @@ internal class WebRtcClient(
         if (state.get() != State.OFFER_ACCEPTED) {
             if (state.get() == State.PENDING_OFFER_ACCEPT) {
                 XLog.i(getLog("setClientAnswer", "Client $id in PENDING_OFFER_ACCEPT state. Queueing answer."))
-                pendingClientAnswer.set(mediaStreamId to answer)
+                queuedAnswer = answer
             } else {
                 val msg = "Wrong client $id state: $state, expecting: ${State.OFFER_ACCEPTED}"
                 XLog.w(getLog("setClientAnswer", msg), IllegalStateException("setClientAnswer: $msg"))
@@ -266,7 +282,7 @@ internal class WebRtcClient(
         if (state.get() != State.OFFER_ACCEPTED) {
             if (state.get() == State.PENDING_OFFER_ACCEPT) {
                 XLog.i(getLog("setClientCandidate", "Client $id in PENDING_OFFER_ACCEPT state. Queueing candidate."))
-                pendingClientCandidates.add(mediaStreamId to candidate)
+                queuedCandidates.add(candidate)
             } else {
                 val msg = "Wrong client $id state: $state, expecting: ${State.OFFER_ACCEPTED}"
                 XLog.w(getLog("setClientCandidate", msg), IllegalStateException("setClientCandidate: $msg"))
