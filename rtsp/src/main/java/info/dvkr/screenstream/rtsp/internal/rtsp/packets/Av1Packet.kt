@@ -4,7 +4,6 @@ import android.media.MediaCodec
 import android.util.Log
 import info.dvkr.screenstream.rtsp.internal.MediaFrame
 import info.dvkr.screenstream.rtsp.internal.RtpFrame
-import io.ktor.util.copy
 import java.nio.ByteBuffer
 import kotlin.experimental.or
 
@@ -23,7 +22,8 @@ internal class Av1Packet : BaseRtpPacket(VIDEO_CLOCK_FREQUENCY, PAYLOAD_TYPE) {
          */
         fun extractObuSeq(buffer: ByteBuffer, bufferInfo: MediaCodec.BufferInfo): ByteArray? {
             if (bufferInfo.flags and MediaCodec.BUFFER_FLAG_KEY_FRAME == 0) return null
-            val av1Data = ByteArray(buffer.remaining()).also { buffer.get(it) }
+            val dup = buffer.duplicate()
+            val av1Data = ByteArray(dup.remaining()).also { dup.get(it) }
             return getObus(av1Data)
                 .firstOrNull { getObuType(it.header[0]) == ObuType.SEQUENCE_HEADER }
                 ?.getFullData()
@@ -178,68 +178,71 @@ internal class Av1Packet : BaseRtpPacket(VIDEO_CLOCK_FREQUENCY, PAYLOAD_TYPE) {
      */
     override fun createPacket(mediaFrame: MediaFrame): List<RtpFrame> {
         // Remove any extra info from the encoded buffer
-        var fixedBuffer = mediaFrame.data.removeInfo(mediaFrame.info)
+        var src = mediaFrame.data.removeInfo(mediaFrame.info)
 
-        // Skip a possible Temporal Delimiter OBU
-        if (getObuType(fixedBuffer.get(0)) == ObuType.TEMPORAL_DELIMITER) {
-            // Typically 2 bytes in a TD OBU (header + extension), so skip them
-            if (fixedBuffer.remaining() >= 2) {
-                fixedBuffer.position(2)
-            }
-            fixedBuffer = fixedBuffer.slice()
+        // Skip a Temporal Delimiter OBU if present at start
+        if (src.remaining() >= 1 && getObuType(src.get(src.position())) == ObuType.TEMPORAL_DELIMITER) {
+            if (src.remaining() >= 2) src.position(src.position() + 2)
+            src = src.slice()
         }
 
-        // Parse out all OBUs in the buffer
-        val obuList = getObus(fixedBuffer.copy().toByteArray())
+        // Parse OBUs and assemble exact bytes for each OBU (header + leb128 + payload)
+        val obuList = getObus(src.toByteArray()).filter { getObuType(it.header[0]) != ObuType.TEMPORAL_DELIMITER }
         if (obuList.isEmpty()) return emptyList()
+        val obuBytes = obuList.map { it.getFullData() }
 
-        // Use 90kHz timestamp for RTP
         val ts = mediaFrame.info.timestamp * 1000L
-
-        // Concatenate the OBUs in one chunk, inserting LEB128 lengths for all but the last OBU
-        var data = byteArrayOf()
-        obuList.forEachIndexed { i, obu ->
-            val obuData = obu.getFullData()
-            data = if (i == obuList.size - 1) {
-                data.plus(obuData)
-            } else {
-                data.plus(writeLeb128(obuData.size.toLong())).plus(obuData)
-            }
-        }
-
-        // Prepare to fragment this chunk into RTP packets if needed
-        fixedBuffer = ByteBuffer.wrap(data)
-        val totalSize = fixedBuffer.remaining()
-        var sum = 0
+        val maxPayload = MAX_PACKET_SIZE - RTP_HEADER_LENGTH - 1 // 1 byte for aggregation header
         val frames = mutableListOf<RtpFrame>()
 
-        while (sum < totalSize) {
-            val isFirstPacket = (sum == 0)
-            val maxPayload = MAX_PACKET_SIZE - RTP_HEADER_LENGTH - 1  // 1 byte for aggregation header
-            val length = if (totalSize - sum > maxPayload) maxPayload else fixedBuffer.remaining()
+        var firstPacket = true
+        var obuIndex = 0
+        var offsetInObu = 0
 
-            // Allocate space for RTP header + Aggregation Header + data chunk
-            val buffer = getBuffer(length + RTP_HEADER_LENGTH + 1)
-            val rtpTs = updateTimeStamp(buffer, ts)
+        while (obuIndex < obuBytes.size) {
+            val bufferPayload = ArrayList<Byte>(maxPayload)
+            var remaining = maxPayload
+            var newObuCount = 0
+            val startingWithContinuation = offsetInObu > 0
 
-            fixedBuffer.get(buffer, RTP_HEADER_LENGTH + 1, length)
-            sum += length
-
-            // Decide if this is the last packet
-            val isLastPacket = (sum >= totalSize)
-            if (isLastPacket) {
-                markPacket(buffer) // set marker bit
+            // Fill this packet payload
+            while (remaining > 0 && obuIndex < obuBytes.size) {
+                val bytes = obuBytes[obuIndex]
+                val toCopy = minOf(remaining, bytes.size - offsetInObu)
+                // Count a new OBU start only when we begin copying at offset 0
+                if (offsetInObu == 0) newObuCount++
+                for (i in 0 until toCopy) bufferPayload.add(bytes[offsetInObu + i])
+                remaining -= toCopy
+                offsetInObu += toCopy
+                if (offsetInObu >= bytes.size) {
+                    obuIndex++
+                    offsetInObu = 0
+                } else {
+                    // Current OBU didn't fit completely; stop to avoid splitting LEB128/header across packets (we started at 0)
+                    break
+                }
             }
 
-            // For AV1's Aggregation Header (1 byte):
-            // bits 7..7 = Z: 0 if first packet, else 1
-            // bits 6..6 = Y: 0 if last packet, else 1
-            // bits 5..4 = W: number of OBUs in this packet (0..3)
-            // bit  3    = N: 1 if starts keyframe, else 0
-            val obuCount = if (isFirstPacket) obuList.size else 1
-            buffer[RTP_HEADER_LENGTH] = generateAv1AggregationHeader(mediaFrame.info.isKeyFrame, isFirstPacket, isLastPacket, obuCount)
-            updateSeq(buffer)
-            frames.add(RtpFrame.Video(buffer, rtpTs, buffer.size))
+            if (startingWithContinuation && newObuCount > 0) {
+                // If packet starts mid-OBU, first OBU didn't start here; adjust count
+                newObuCount--
+            }
+            // Cap W to 3
+            val w = newObuCount.coerceIn(0, 3)
+
+            val size = bufferPayload.size
+            val out = getBuffer(size + RTP_HEADER_LENGTH + 1)
+            val rtpTs = updateTimeStamp(out, ts)
+            for (i in 0 until size) out[RTP_HEADER_LENGTH + 1 + i] = bufferPayload[i]
+
+            val isLast = (obuIndex >= obuBytes.size && offsetInObu == 0)
+            if (isLast) markPacket(out)
+
+            out[RTP_HEADER_LENGTH] = generateAv1AggregationHeader(mediaFrame.info.isKeyFrame, firstPacket, isLast, w)
+            updateSeq(out)
+            frames.add(RtpFrame.Video(out, rtpTs, out.size))
+
+            firstPacket = false
         }
         return frames
     }

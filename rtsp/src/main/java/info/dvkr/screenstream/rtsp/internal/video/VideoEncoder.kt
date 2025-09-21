@@ -199,7 +199,7 @@ internal class VideoEncoder(
                         (adjustedInfo.flags.hasFlag(MediaCodec.BUFFER_FLAG_CODEC_CONFIG) ||
                                 adjustedInfo.flags.hasFlag(MediaCodec.BUFFER_FLAG_KEY_FRAME))
                     ) {
-                        outputBuffer.duplicate().extractCodecConfig()?.let { (sps, pps, vps) ->
+                        outputBuffer.duplicate().extractCodecConfig(adjustedInfo)?.let { (sps, pps, vps) ->
                             onVideoInfo(sps, pps, vps)
                             isCodecConfigSent = true
                         }
@@ -242,30 +242,38 @@ internal class VideoEncoder(
 
     private fun Int.hasFlag(flag: Int) = (this and flag) != 0
 
-    private fun ByteBuffer.extractCodecConfig(): Triple<ByteArray, ByteArray?, ByteArray?>? =
+    private fun ByteBuffer.extractCodecConfig(bufferInfo: MediaCodec.BufferInfo): Triple<ByteArray, ByteArray?, ByteArray?>? =
         when (codecInfo.codec) {
             is Codec.Video.H264 -> H264Packet.extractSpsPps(this)?.let { (sps, pps) ->
                 Triple(sps, pps, null)
             }
 
-            is Codec.Video.H265 -> H265Packet.extractVpsSpsPps(this)?.let { (sps, pps, vps) ->
+            is Codec.Video.H265 -> H265Packet.extractSpsPpsVps(this)?.let { (sps, pps, vps) ->
                 Triple(sps, pps, vps)
             }
 
-            is Codec.Video.AV1 -> Av1Packet.extractObuSeq(this, MediaCodec.BufferInfo())?.let { seqHeader ->
+            is Codec.Video.AV1 -> Av1Packet.extractObuSeq(this, bufferInfo)?.let { seqHeader ->
                 Triple(seqHeader, null, null)
             }
         }
 
     private fun MediaFormat.extractCodecConfigFromFormat(): Triple<ByteArray, ByteArray?, ByteArray?>? =
         when (codecInfo.codec) {
-            is Codec.Video.H264 -> getByteBuffer("csd-0")?.let { sps ->
-                Triple(sps.toByteArray(), getByteBuffer("csd-1")?.toByteArray(), null)
+            is Codec.Video.H264 -> {
+                val spsBuf = getByteBuffer("csd-0") ?: return null
+                val ppsBuf = getByteBuffer("csd-1")
+                val sps = spsBuf.toRawNalOrAnnexBFirstNal()
+                val pps = ppsBuf?.toRawNalOrAnnexBFirstNal()
+                sps?.let { Triple(it, pps, null) }
             }
 
-            is Codec.Video.H265 -> getByteBuffer("csd-0")?.let { csd0 ->
-                H265Packet.extractVpsSpsPps(csd0)?.let { (sps, pps, vps) ->
-                    Triple(sps, pps, vps)
+            is Codec.Video.H265 -> {
+                val csd0 = getByteBuffer("csd-0") ?: return null
+                // Try as Annex-B first
+                H265Packet.extractSpsPpsVps(csd0)?.let { (sps, pps, vps) -> Triple(sps, pps, vps) } ?: run {
+                    // If not Annex-B, try convert HVCC to Annex-B and re-parse
+                    val converted = convertLengthPrefixedToAnnexB(csd0)
+                    converted?.let { H265Packet.extractSpsPpsVps(it) }?.let { (sps, pps, vps) -> Triple(sps, pps, vps) }
                 }
             }
 
@@ -273,6 +281,77 @@ internal class VideoEncoder(
                 Triple(av1Csd.toByteArray(), null, null)
             }
         }
+
+    private fun ByteBuffer.toRawNalOrAnnexBFirstNal(): ByteArray? {
+        val dup = duplicate()
+        if (dup.remaining() < 1) return null
+        // Annex-B: return bytes between first and (optional) next start code
+        if (dup.remaining() >= 4 && dup.get(0) == 0.toByte() && dup.get(1) == 0.toByte() &&
+            ((dup.get(2) == 1.toByte()) || (dup.get(2) == 0.toByte() && dup.get(3) == 1.toByte()))
+        ) {
+            // Skip first start code
+            val startSize = if (dup.get(2) == 1.toByte()) 3 else 4
+            dup.position(startSize)
+            val tail = dup.slice()
+            // Find next start code to limit NAL payload
+            val arr = ByteArray(tail.remaining())
+            tail.get(arr)
+            var end = arr.size
+            for (i in 0 until arr.size - 3) {
+                if (arr[i] == 0.toByte() && arr[i + 1] == 0.toByte() &&
+                    (arr[i + 2] == 1.toByte() || (i + 3 < arr.size && arr[i + 2] == 0.toByte() && arr[i + 3] == 1.toByte()))
+                ) {
+                    end = i; break
+                }
+            }
+            return arr.copyOfRange(0, end)
+        }
+        // AVCC: read length field (4 or 2 bytes) and return that many bytes
+        if (dup.remaining() >= 2) {
+            val lengthFieldBytes = if (dup.remaining() >= 4) 4 else 2
+            var len = 0
+            repeat(lengthFieldBytes) { i -> len = (len shl 8) or (dup.get(i).toInt() and 0xFF) }
+            if (len > 0 && len <= dup.remaining() - lengthFieldBytes) {
+                val out = ByteArray(len)
+                dup.position(lengthFieldBytes)
+                dup.get(out)
+                return out
+            }
+        }
+        return null
+    }
+
+    private fun convertLengthPrefixedToAnnexB(src: ByteBuffer): ByteBuffer? {
+        val dup = src.duplicate()
+        if (dup.remaining() < 4) return null
+        fun tryConvert(n: Int): ByteBuffer? {
+            val t = dup.duplicate()
+            var remain = t.remaining()
+            var cnt = 0
+            while (remain >= n) {
+                var len = 0
+                repeat(n) { len = (len shl 8) or (t.get().toInt() and 0xFF) }
+                if (len <= 0 || len > t.remaining()) return null
+                t.position(t.position() + len)
+                remain = t.remaining(); cnt++
+            }
+            if (remain != 0 || cnt == 0) return null
+            val inSize = dup.remaining()
+            val outSize = inSize - cnt * n + cnt * 4
+            val out = ByteArray(outSize)
+            val s2 = dup.duplicate()
+            var dst = 0
+            while (s2.remaining() >= n) {
+                var len = 0
+                repeat(n) { len = (len shl 8) or (s2.get().toInt() and 0xFF) }
+                if (len <= 0 || len > s2.remaining()) return null
+                out[dst++] = 0; out[dst++] = 0; out[dst++] = 0; out[dst++] = 1
+                s2.get(out, dst, len); dst += len
+            }
+            return ByteBuffer.wrap(out, 0, dst)
+        }
+        return tryConvert(4) ?: tryConvert(2)
+    }
 
     private fun ByteBuffer.toByteArray(): ByteArray {
         val duplicateBuffer = duplicate()

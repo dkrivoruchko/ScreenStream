@@ -15,7 +15,7 @@ internal class H265Packet : BaseRtpPacket(VIDEO_CLOCK_FREQUENCY, PAYLOAD_TYPE) {
         const val IDR_N_LP = 20
         const val IDR_W_DLP = 19
 
-        fun extractVpsSpsPps(csd0Buffer: ByteBuffer): Triple<ByteArray, ByteArray, ByteArray>? {
+        fun extractSpsPpsVps(csd0Buffer: ByteBuffer): Triple<ByteArray, ByteArray, ByteArray>? {
             val csdArray = ByteArray(csd0Buffer.remaining()).also {
                 csd0Buffer.mark()
                 csd0Buffer.get(it)
@@ -58,8 +58,24 @@ internal class H265Packet : BaseRtpPacket(VIDEO_CLOCK_FREQUENCY, PAYLOAD_TYPE) {
         }
     }
 
+    private var vps: ByteArray? = null
+    private var sps: ByteArray? = null
+    private var pps: ByteArray? = null
+    private var sendKeyFrame = false
+
+    fun setVideoInfo(sps: ByteArray?, pps: ByteArray?, vps: ByteArray?) {
+        this.sps = sps
+        this.pps = pps
+        this.vps = vps
+        sendKeyFrame = false
+    }
+
     override fun createPacket(mediaFrame: MediaFrame): List<RtpFrame> {
-        val fixedBuffer = mediaFrame.data.removeInfo(mediaFrame.info)
+        var fixedBuffer = mediaFrame.data.removeInfo(mediaFrame.info)
+        // If buffer is length-prefixed (HEVC configuration), convert to Annex-B
+        if (fixedBuffer.getVideoStartCodeSize() == 0) {
+            convertHvccToAnnexB(fixedBuffer)?.let { fixedBuffer = it }
+        }
         val header = ByteArray(fixedBuffer.getVideoStartCodeSize() + 2)
         if (header.size == 2) return emptyList()
 
@@ -70,6 +86,20 @@ internal class H265Packet : BaseRtpPacket(VIDEO_CLOCK_FREQUENCY, PAYLOAD_TYPE) {
         val type = ((header[header.size - 2].toInt() shr 1) and 0x3F)
 
         val frames = mutableListOf<RtpFrame>()
+
+        // Prepend VPS/SPS/PPS before the first keyframe if available and not already present
+        val isParamNal = (type == 32 /*VPS*/ || type == 33 /*SPS*/ || type == 34 /*PPS*/)
+        if ((type == IDR_W_DLP || type == IDR_N_LP || mediaFrame.info.isKeyFrame) && !sendKeyFrame && !isParamNal) {
+            listOfNotNull(vps, sps, pps).forEach { nal ->
+                val buffer = getBuffer(nal.size + RTP_HEADER_LENGTH)
+                val rtpTs = updateTimeStamp(buffer, ts)
+                System.arraycopy(nal, 0, buffer, RTP_HEADER_LENGTH, nal.size)
+                updateSeq(buffer)
+                // No marker here; marker will be set on last packet of the frame below
+                frames.add(RtpFrame.Video(buffer, rtpTs, buffer.size))
+            }
+            sendKeyFrame = true
+        }
 
         if (naluLength <= MAX_PACKET_SIZE - RTP_HEADER_LENGTH - 2) {
             val buffer = getBuffer(naluLength + RTP_HEADER_LENGTH + 2)
@@ -124,5 +154,48 @@ internal class H265Packet : BaseRtpPacket(VIDEO_CLOCK_FREQUENCY, PAYLOAD_TYPE) {
         get(0) == 0x00.toByte() && get(1) == 0x00.toByte() && get(2) == 0x00.toByte() && get(3) == 0x01.toByte() -> 4
         get(0) == 0x00.toByte() && get(1) == 0x00.toByte() && get(2) == 0x01.toByte() -> 3
         else -> 0
+    }
+
+    // Converts a length-prefixed HEVC stream (HVCC) to Annex-B start code delimited stream.
+    private fun convertHvccToAnnexB(src: ByteBuffer): ByteBuffer? {
+        val duplicate = src.duplicate()
+        if (duplicate.remaining() < 4) return null
+
+        fun convert(lengthFieldBytes: Int): ByteBuffer? {
+            val tmp = duplicate.duplicate()
+            var remaining = tmp.remaining()
+            var nalCount = 0
+            while (remaining >= lengthFieldBytes) {
+                var len = 0
+                repeat(lengthFieldBytes) { _ -> len = (len shl 8) or (tmp.get().toInt() and 0xFF) }
+                if (len <= 0 || len > tmp.remaining()) return null
+                tmp.position(tmp.position() + len)
+                remaining = tmp.remaining()
+                nalCount++
+            }
+            if (remaining != 0 || nalCount == 0) return null
+
+            val inSize = duplicate.remaining()
+            val outSize = inSize - nalCount * lengthFieldBytes + nalCount * 4
+            val out = ByteArray(outSize)
+            val src2 = duplicate.duplicate()
+            var dst = 0
+            while (src2.remaining() >= lengthFieldBytes) {
+                var len = 0
+                repeat(lengthFieldBytes) { _ -> len = (len shl 8) or (src2.get().toInt() and 0xFF) }
+                if (len <= 0 || len > src2.remaining()) return null
+                out[dst++] = 0; out[dst++] = 0; out[dst++] = 0; out[dst++] = 1
+                src2.get(out, dst, len)
+                dst += len
+            }
+            return ByteBuffer.wrap(out, 0, dst)
+        }
+
+        return convert(4) ?: convert(2)
+    }
+
+    override fun reset() {
+        super.reset()
+        sendKeyFrame = false
     }
 }

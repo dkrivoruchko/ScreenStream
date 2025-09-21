@@ -40,7 +40,7 @@ internal object KeepAwake : ModuleSettings.Item {
     }
 
     @Composable
-    override fun ItemUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit) {
+    override fun ItemUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, enabled: Boolean, onDetailShow: () -> Unit) {
         val webRtcSettings = koinInject<WebRtcSettings>()
         val webRtcSettingsState = webRtcSettings.data.collectAsStateWithLifecycle()
         val keepAwake = webRtcSettingsState.value.keepAwake

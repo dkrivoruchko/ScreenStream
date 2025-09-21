@@ -5,7 +5,9 @@ import androidx.annotation.StringRes
 import androidx.compose.runtime.Immutable
 import info.dvkr.screenstream.rtsp.R
 import info.dvkr.screenstream.rtsp.internal.AudioCodecInfo
+import info.dvkr.screenstream.rtsp.internal.Protocol
 import info.dvkr.screenstream.rtsp.internal.VideoCodecInfo
+import info.dvkr.screenstream.rtsp.settings.RtspSettings
 
 @Immutable
 internal data class RtspState(
@@ -14,19 +16,33 @@ internal data class RtspState(
     val isStreaming: Boolean = false,
     val selectedVideoEncoder: VideoCodecInfo? = null,
     val selectedAudioEncoder: AudioCodecInfo? = null,
-    val connectionState: ConnectionState = ConnectionState.Disconnected,
+    val transport: RtspTransportState = RtspTransportState(),
     val error: RtspError? = null
 ) {
     override fun toString(): String =
-        "MjpegState(isBusy=$isBusy, wCP=$waitingCastPermission, isStreaming=$isStreaming, error=$error)"
+        "RtspState(isBusy=$isBusy, wCP=$waitingCastPermission, isStreaming=$isStreaming, transport=$transport, error=$error)"
 }
 
 @Immutable
-internal sealed class ConnectionState {
-    internal data object Disconnected : ConnectionState()
-    internal data object Connecting : ConnectionState()
-    internal data object Connected : ConnectionState()
-    internal data class Error(val connectionError: ConnectionError) : ConnectionState()
+internal data class RtspBinding(val label: String, val fullAddress: String)
+
+@Immutable
+internal data class RtspTransportState(
+    val mode: RtspSettings.Values.Mode = RtspSettings.Default.MODE,
+    val protocol: Protocol = Protocol.TCP,
+    val status: Status = Status.Idle
+) {
+    @Immutable
+    internal sealed interface Status {
+        data object Idle : Status
+        data object Starting : Status
+        data class Ready(val bindings: List<RtspBinding> = emptyList()) : Status
+        data class Active(val clients: Int = 0, val bindings: List<RtspBinding> = emptyList()) : Status
+        data class ClientError(val error: ConnectionError) : Status
+        data class GenericError(val error: RtspError) : Status
+    }
+
+    override fun toString(): String = "RtspTransportState(mode=$mode, protocol=$protocol, status=$status)"
 }
 
 @Immutable
@@ -41,7 +57,7 @@ internal sealed class ConnectionError(@StringRes open val id: Int) : Throwable()
 internal sealed class RtspError(@StringRes open val id: Int, override val message: String? = null) : Throwable() {
     internal data object NotificationPermissionRequired : RtspError(R.string.rtsp_error_notification_permission_required)
     internal data class UnknownError(override val cause: Throwable?) : RtspError(R.string.rtsp_error_unspecified) {
-        override fun toString(context: Context): String = context.getString(id) + "\n[${cause.toString()}]"
+        override fun toString(context: Context): String = context.getString(id) + " [${cause.toString()}]"
     }
 
     internal open fun toString(context: Context): String = if (id != 0) context.getString(id) else message ?: toString()

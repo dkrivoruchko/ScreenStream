@@ -27,7 +27,7 @@ internal class RtcpReporter(
         private const val REPORT_INTERVAL_MS = 5000L
     }
 
-    private class TrackInfo(
+    class TrackInfo(
         val buffer: ByteArray = ByteArray(REPORT_PACKET_LENGTH),
         var packetCount: Long = 0L,
         var octetCount: Long = 0L,
@@ -93,6 +93,26 @@ internal class RtcpReporter(
         XLog.v(getLog("close", "Done"))
     }
 
+    internal suspend fun setSsrcVideo(newSsrc: Long) = lock.withLock {
+        videoTrack.apply {
+            buffer.setLong(newSsrc, 4, 8)
+            packetCount = 0
+            octetCount = 0
+            lastReportTimeMs = 0
+            lastRtpTimestamp = 0
+        }
+    }
+
+    internal suspend fun setSsrcAudio(newSsrc: Long) = lock.withLock {
+        audioTrack.apply {
+            buffer.setLong(newSsrc, 4, 8)
+            packetCount = 0
+            octetCount = 0
+            lastReportTimeMs = 0
+            lastRtpTimestamp = 0
+        }
+    }
+
     private suspend fun sendPeriodicReport(track: TrackInfo, trackId: Int) {
         val nowMs = System.currentTimeMillis()
         if (nowMs - track.lastReportTimeMs < REPORT_INTERVAL_MS) return
@@ -110,7 +130,9 @@ internal class RtcpReporter(
 
         when (protocol) {
             Protocol.TCP -> try {
-                val tcpHeader = byteArrayOf('$'.code.toByte(), (2 * trackId + 1).toByte(), 0, REPORT_PACKET_LENGTH.toByte())
+                val lenHi = ((REPORT_PACKET_LENGTH ushr 8) and 0xFF).toByte()
+                val lenLo = (REPORT_PACKET_LENGTH and 0xFF).toByte()
+                val tcpHeader = byteArrayOf('$'.code.toByte(), (2 * trackId + 1).toByte(), lenHi, lenLo)
                 writeToTcpSocket(tcpHeader, track.buffer)
                 XLog.v(getLog("sendPeriodicReport", "TCP track=$trackId, size=28"))
             } catch (e: IOException) {
@@ -135,7 +157,9 @@ internal class RtcpReporter(
 
         when (protocol) {
             Protocol.TCP -> {
-                val tcpHeader = byteArrayOf('$'.code.toByte(), (2 * trackId + 1).toByte(), 0, byePacket.size.toByte())
+                val lenHi = ((byePacket.size ushr 8) and 0xFF).toByte()
+                val lenLo = (byePacket.size and 0xFF).toByte()
+                val tcpHeader = byteArrayOf('$'.code.toByte(), (2 * trackId + 1).toByte(), lenHi, lenLo)
                 writeToTcpSocket(tcpHeader, byePacket)
             }
 

@@ -40,7 +40,7 @@ internal object DynamicTheme : ModuleSettings.Item {
     }
 
     @Composable
-    override fun ItemUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit) {
+    override fun ItemUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, enabled: Boolean, onDetailShow: () -> Unit) {
         val appSettings = koinInject<AppSettings>()
         val appSettingsState = appSettings.data.collectAsStateWithLifecycle()
         val dynamicTheme = appSettingsState.value.dynamicTheme

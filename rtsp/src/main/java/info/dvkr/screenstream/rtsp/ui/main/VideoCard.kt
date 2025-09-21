@@ -85,7 +85,7 @@ internal fun VideoCard(
             }
         },
         modifier = modifier,
-        initiallyExpanded = true
+        initiallyExpanded = false
     ) {
         if (rtspState.value.selectedVideoEncoder?.capabilities?.videoCapabilities == null) return@ExpandableCard
 

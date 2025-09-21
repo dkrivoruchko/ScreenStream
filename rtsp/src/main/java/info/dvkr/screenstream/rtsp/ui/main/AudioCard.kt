@@ -102,7 +102,7 @@ internal fun AudioCard(
             }
         },
         modifier = modifier,
-        initiallyExpanded = true
+        initiallyExpanded = false
     ) {
         val rtspSettingsState = rtspSettings.data.collectAsStateWithLifecycle()
         val context = LocalContext.current

@@ -87,7 +87,7 @@ internal class AudioEncoder(
                     }
                     onAudioInfo(audioParams)
 
-                    handlerThread = HandlerThread("AudioEncoderHandler", Process.THREAD_PRIORITY_DISPLAY).apply { start() }
+                    handlerThread = HandlerThread("AudioEncoderHandler", Process.THREAD_PRIORITY_AUDIO).apply { start() }
                     handler = Handler(handlerThread!!.looper)
 
                     currentState = State.PREPARED
@@ -116,7 +116,7 @@ internal class AudioEncoder(
                 val encoder = MediaCodec.createByCodecName(codecInfo.name)
                 encoder.configure(format, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE)
 
-                handlerThread = HandlerThread("AudioEncoderHandler", Process.THREAD_PRIORITY_DISPLAY).apply { start() }
+                handlerThread = HandlerThread("AudioEncoderHandler", Process.THREAD_PRIORITY_AUDIO).apply { start() }
                 handler = Handler(handlerThread!!.looper)
                 encoder.setCallback(createCodecCallback(), handler)
 

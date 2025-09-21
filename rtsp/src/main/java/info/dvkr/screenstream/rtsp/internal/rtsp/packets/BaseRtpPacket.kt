@@ -6,6 +6,7 @@ import info.dvkr.screenstream.rtsp.internal.RtpFrame
 import java.nio.ByteBuffer
 import kotlin.experimental.and
 import kotlin.experimental.or
+import kotlin.random.Random
 
 internal abstract class BaseRtpPacket(private var clock: Long, private val payloadType: Int) {
     companion object {
@@ -15,19 +16,23 @@ internal abstract class BaseRtpPacket(private var clock: Long, private val paylo
         protected const val MAX_PACKET_SIZE = MTU - 28
     }
 
-    private var seq = 0
+    private var seq = Random.nextInt(0, 0x10000)
     private var ssrc = 0
 
     abstract fun createPacket(mediaFrame: MediaFrame): List<RtpFrame>
 
     @CallSuper
     open fun reset() {
-        seq = 0
+        seq = Random.nextInt(0, 0x10000)
         ssrc = 0
     }
 
     fun setSSRC(ssrc: Long) {
         this.ssrc = (ssrc and 0xFFFFFFFF).toInt()
+    }
+
+    fun setInitialSeq(initial: Int) {
+        seq = initial and 0xFFFF
     }
 
     protected fun setClock(clock: Long) {

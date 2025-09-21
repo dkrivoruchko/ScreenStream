@@ -19,10 +19,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -39,8 +36,10 @@ import info.dvkr.screenstream.rtsp.internal.RtspStreamingService
 import info.dvkr.screenstream.rtsp.internal.rtsp.RtspUrl
 import info.dvkr.screenstream.rtsp.settings.RtspSettings
 import info.dvkr.screenstream.rtsp.ui.main.AudioCard
+import info.dvkr.screenstream.rtsp.ui.main.client.ClientParametersCard
 import info.dvkr.screenstream.rtsp.ui.main.ErrorCard
-import info.dvkr.screenstream.rtsp.ui.main.MediaServerCard
+import info.dvkr.screenstream.rtsp.ui.main.ModeCard
+import info.dvkr.screenstream.rtsp.ui.main.server.ServerParametersCard
 import info.dvkr.screenstream.rtsp.ui.main.VideoCard
 import kotlinx.coroutines.flow.StateFlow
 import org.koin.compose.koinInject
@@ -53,6 +52,7 @@ internal fun RtspMainScreenUI(
     rtspSettings: RtspSettings = koinInject()
 ) {
     val rtspState = rtspStateFlow.collectAsStateWithLifecycle()
+    val rtspSettingsState = rtspSettings.data.collectAsStateWithLifecycle()
 
     BoxWithConstraints(modifier = modifier) {
         MediaProjectionPermission(
@@ -77,8 +77,18 @@ internal fun RtspMainScreenUI(
                 }
             }
 
-            item(key = "MediaServer") {
-                MediaServerCard(rtspState = rtspState, modifier = Modifier.padding(8.dp))
+            item(key = "MODE") {
+                ModeCard(rtspState = rtspState, modifier = Modifier.padding(8.dp))
+            }
+            if (rtspSettingsState.value.mode == RtspSettings.Values.Mode.SERVER) {
+                item(key = "SERVER_PARAMETERS") {
+                    ServerParametersCard(rtspState = rtspState, modifier = Modifier.padding(8.dp))
+                }
+            }
+            if (rtspSettingsState.value.mode == RtspSettings.Values.Mode.CLIENT) {
+                item(key = "CLIENT_PARAMETERS") {
+                    ClientParametersCard(rtspState = rtspState, modifier = Modifier.padding(8.dp))
+                }
             }
             item(key = "VIDEO") {
                 VideoCard(rtspState = rtspState, modifier = Modifier.padding(8.dp))
@@ -94,10 +104,8 @@ internal fun RtspMainScreenUI(
 
         val doubleClickProtection = remember { DoubleClickProtection.get() }
 
-        val rtspSettingsState = rtspSettings.data.collectAsStateWithLifecycle()
-        var mediaServerUrlError by remember(rtspSettingsState.value.serverAddress) {
-            mutableStateOf(runCatching { RtspUrl.parse(rtspSettingsState.value.serverAddress) }.isFailure)
-        }
+        val mediaServerUrlError = rtspState.value.transport.mode == RtspSettings.Values.Mode.CLIENT &&
+                runCatching { RtspUrl.parse(rtspSettingsState.value.serverAddress) }.isFailure
 
         Button(
             onClick = dropUnlessStarted {

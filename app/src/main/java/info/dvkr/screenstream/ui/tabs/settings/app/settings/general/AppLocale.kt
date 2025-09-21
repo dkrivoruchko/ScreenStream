@@ -52,7 +52,7 @@ internal object AppLocale : ModuleSettings.Item {
     }
 
     @Composable
-    override fun ItemUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit) {
+    override fun ItemUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, enabled: Boolean, onDetailShow: () -> Unit) {
         val context = LocalContext.current
 
         AppLocaleUI(horizontalPadding) {

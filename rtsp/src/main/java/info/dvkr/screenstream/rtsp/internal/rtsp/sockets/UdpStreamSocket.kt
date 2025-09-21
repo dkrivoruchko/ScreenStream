@@ -34,4 +34,10 @@ internal class UdpStreamSocket(
     suspend fun write(bytes: ByteArray) = ioMutex.withLock {
         udpSocket?.send(Datagram(buildPacket { writeFully(bytes) }, remoteSocketAddress))
     }
+
+    suspend fun write(bytes: ByteArray, offset: Int, length: Int) = ioMutex.withLock {
+        udpSocket?.send(Datagram(buildPacket { writeFully(bytes, offset, length) }, remoteSocketAddress))
+    }
+
+    fun localPort(): Int? = (udpSocket?.localAddress as? InetSocketAddress)?.port
 }

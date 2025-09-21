@@ -2,6 +2,7 @@ package info.dvkr.screenstream.rtsp.internal.rtsp.packets
 
 import info.dvkr.screenstream.rtsp.internal.MediaFrame
 import info.dvkr.screenstream.rtsp.internal.RtpFrame
+import java.nio.ByteBuffer
 import kotlin.experimental.and
 
 /**
@@ -18,7 +19,14 @@ internal class AacPacket : BaseRtpPacket(0, PAYLOAD_TYPE + 1) {
     }
 
     override fun createPacket(mediaFrame: MediaFrame): List<RtpFrame> {
-        val fixedBuffer = mediaFrame.data.removeInfo(mediaFrame.info)
+        var fixedBuffer = mediaFrame.data.removeInfo(mediaFrame.info)
+        // Strip ADTS header if detected
+        parseAdtsHeader(fixedBuffer)?.let { headerLen ->
+            if (fixedBuffer.remaining() > headerLen) {
+                fixedBuffer.position(fixedBuffer.position() + headerLen)
+                fixedBuffer = fixedBuffer.slice()
+            }
+        }
         val length = fixedBuffer.remaining()
         // AU headers take 4 extra bytes in each RTP chunk.
         val maxPayload = MAX_PACKET_SIZE - (RTP_HEADER_LENGTH + 4)
@@ -56,5 +64,28 @@ internal class AacPacket : BaseRtpPacket(0, PAYLOAD_TYPE + 1) {
             frames.add(rtpFrame)
         }
         return frames
+    }
+
+    private fun parseAdtsHeader(buf: ByteBuffer): Int? {
+        if (buf.remaining() < 7) return null
+        val base = buf.position()
+        val b0 = buf.get(base).toInt() and 0xFF
+        val b1 = buf.get(base + 1).toInt() and 0xFF
+        // 12-bit syncword 0xFFF
+        if (b0 != 0xFF || (b1 and 0xF0) != 0xF0) return null
+        val layer = (b1 ushr 1) and 0x3
+        if (layer != 0) return null // must be 00
+        val protectionAbsent = (b1 and 0x01) == 1
+        val headerLen = if (protectionAbsent) 7 else 9
+        if (!protectionAbsent && buf.remaining() < 9) return null
+        // Optional: Validate aac_frame_length to guard against corruption
+        if (buf.remaining() >= headerLen + 2) {
+            val b3 = buf.get(base + 3).toInt() and 0xFF
+            val b4 = buf.get(base + 4).toInt() and 0xFF
+            val b5 = buf.get(base + 5).toInt() and 0xFF
+            val frameLen = ((b3 and 0x03) shl 11) or (b4 shl 3) or ((b5 ushr 5) and 0x07)
+            if (frameLen < headerLen || frameLen > buf.remaining()) return null
+        }
+        return headerLen
     }
 }
