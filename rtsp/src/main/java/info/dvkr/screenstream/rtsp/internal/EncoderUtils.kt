@@ -22,24 +22,24 @@ internal object EncoderUtils {
     // Video: H.265, H.264, AV1
     val availableVideoEncoders: List<VideoCodecInfo> by lazy {
         buildList {
-            addAll(findVideoEncoders(Video.H265))
             addAll(findVideoEncoders(Video.H264))
+            addAll(findVideoEncoders(Video.H265))
             addAll(findVideoEncoders(Video.AV1))
         }.sortedWith(
             compareBy(
+                {
+                    when (it.codec) {
+                        Video.H264 -> 0
+                        Video.H265 -> 1
+                        Video.AV1 -> 2
+                    }
+                },
                 {
                     when {
                         it.isHardwareAccelerated && it.isCBRModeSupported -> 0
                         it.isHardwareAccelerated && !it.isCBRModeSupported -> 1
                         !it.isHardwareAccelerated && it.isCBRModeSupported -> 2
                         else -> 3
-                    }
-                },
-                {
-                    when (it.codec) {
-                        Video.H265 -> 0
-                        Video.H264 -> 1
-                        Video.AV1 -> 2
                     }
                 }
             )

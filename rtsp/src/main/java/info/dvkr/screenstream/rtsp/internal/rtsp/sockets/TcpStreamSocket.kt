@@ -28,7 +28,10 @@ internal class TcpStreamSocket private constructor(
     private val remotePort: Int,
     private val sslEnabled: Boolean
 ) {
-    private val ioMutex = Mutex()
+    // Separate locks for write and read: avoid blocking RTP interleaved writes
+    // while the command loop is waiting for next RTSP request.
+    private val writeMutex = Mutex()
+    private val readMutex = Mutex()
 
     private var input: ByteReadChannel? = null
     private var output: ByteWriteChannel? = null
@@ -61,7 +64,9 @@ internal class TcpStreamSocket private constructor(
         connected = true
     }
 
-    internal suspend inline fun <T> withLock(crossinline block: suspend TcpStreamSocket.() -> T): T = ioMutex.withLock { block() }
+    // Serialize writes to keep ByteWriteChannel framing atomically consistent
+    internal suspend inline fun <T> withLock(crossinline block: suspend TcpStreamSocket.() -> T): T = writeMutex.withLock { block() }
+
 
     internal suspend fun connect() {
         if (tcpSocket != null) return
@@ -78,7 +83,7 @@ internal class TcpStreamSocket private constructor(
         }
     }
 
-    internal suspend fun close() = ioMutex.withLock {
+    internal suspend fun close() = writeMutex.withLock {
         runCatching { tcpSocket?.close() }
         tcpSocket = null
         connected = false
@@ -93,23 +98,57 @@ internal class TcpStreamSocket private constructor(
         output?.flush()
     }
 
+    // Optimized path for RTP interleaved packets: buffer multiple writes and flush once.
+    internal suspend fun write(bytes1: ByteArray, bytes2: ByteArray, offset2: Int = 0, size2: Int = bytes2.size) {
+        output?.writeFully(bytes1)
+        output?.writeFully(bytes2, offset2, size2)
+    }
+
+    internal suspend fun flush() {
+        output?.flush()
+    }
+
     @Throws
     internal suspend fun writeAndFlush(string: String) {
-        output?.writeStringUtf8(string)
+        // Avoid potential issues in writeStringUtf8 with large strings on some kotlinx-io versions
+        val bytes = string.toByteArray(Charsets.US_ASCII)
+        output?.writeFully(bytes)
         output?.flush()
     }
 
     @Throws
     internal suspend fun readRequestHeaders(): String? {
-        val sb = StringBuilder()
-        var line = input?.readUTF8Line() ?: return null
-        sb.append(line).append("\r\n")
+        val ch = input ?: return null
+        val one = ByteArray(1)
         while (true) {
-            line = input?.readUTF8Line() ?: break
-            if (line.isEmpty()) break
-            sb.append(line).append("\r\n")
+            // Read first byte; null -> closed
+            if (runCatching { ch.readFully(one, 0, 1) }.isFailure) return null
+            val first = one[0]
+            if (first == '$'.code.toByte()) {
+                // Interleaved frame: skip channel + length + payload
+                val hdr = ByteArray(3)
+                if (runCatching { ch.readFully(hdr, 0, 3) }.isFailure) return null
+                val len = ((hdr[1].toInt() and 0xFF) shl 8) or (hdr[2].toInt() and 0xFF)
+                if (len > 0) {
+                    val payload = ByteArray(len)
+                    if (runCatching { ch.readFully(payload, 0, len) }.isFailure) return null
+                }
+                // Continue to next item (either another interleaved frame or RTSP request)
+                continue
+            } else {
+                // Start of RTSP request; assemble first line from first byte + remainder
+                val sb = StringBuilder()
+                sb.append(first.toInt().toChar())
+                val firstLine = ch.readUTF8Line() ?: return null
+                sb.append(firstLine).append("\r\n")
+                while (true) {
+                    val line = ch.readUTF8Line() ?: break
+                    if (line.isEmpty()) break
+                    sb.append(line).append("\r\n")
+                }
+                return sb.toString()
+            }
         }
-        return sb.toString()
     }
 
     @Throws

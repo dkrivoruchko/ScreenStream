@@ -37,6 +37,10 @@ internal class RtspServer(
     private var serverPath: String = "/screen"
     private var serverPort: Int = 8554
 
+    // Debug counters
+    private var debugVideoFrames: Long = 0
+    private var debugAudioFrames: Long = 0
+
     fun setVideoData(videoParams: RtspClient.VideoParams) {
         this.videoParams.set(videoParams)
     }
@@ -134,12 +138,27 @@ internal class RtspServer(
         if (snapshot.isEmpty()) {
             ByteArrayPool.recycle(bytes); return
         }
-        val shared = SharedBuffer(bytes).also { it.addRef(1) }
+        val shared = SharedBuffer(bytes).also { it.addRef(1) } // base ref while distributing
         var accepted = 0
         val blob = VideoBlob(shared, size, frame.info.timestamp, frame.info.isKeyFrame)
-        snapshot.forEach { if (it.enqueueVideo(blob)) accepted++ }
-        if (accepted != 0) shared.addRef(accepted)
+        snapshot.forEach { conn ->
+            // Reserve a ref before offering to avoid race where writer releases before we account it
+            shared.addRef(1)
+            val ok = conn.enqueueVideo(blob)
+            if (ok) {
+                accepted++
+            } else {
+                // Compensate reservation on failure
+                shared.release()
+            }
+        }
+        // Drop the base ref; remaining refs equal to number of enqueued consumers
         shared.release()
+
+        debugVideoFrames++
+        if (debugVideoFrames <= 8L || accepted == 0) {
+            XLog.d(getLog("onVideoFrame", "size=$size, key=${frame.info.isKeyFrame}, accepted=$accepted/${snapshot.size}"))
+        }
     }
 
     internal fun onAudioFrame(frame: MediaFrame.AudioFrame) {
@@ -158,9 +177,17 @@ internal class RtspServer(
         val shared = SharedBuffer(bytes).also { it.addRef(1) }
         var accepted = 0
         val blob = AudioBlob(shared, size, frame.info.timestamp)
-        snapshot.forEach { if (it.enqueueAudio(blob)) accepted++ }
-        if (accepted != 0) shared.addRef(accepted)
+        snapshot.forEach { conn ->
+            shared.addRef(1)
+            val ok = conn.enqueueAudio(blob)
+            if (ok) accepted++ else shared.release()
+        }
         shared.release()
+
+        debugAudioFrames++
+        if (debugAudioFrames <= 8L || accepted == 0) {
+            XLog.d(getLog("onAudioFrame", "size=$size, accepted=$accepted/${snapshot.size}"))
+        }
     }
 
     private fun onClientEvent(event: RtspStreamingService.InternalEvent) {

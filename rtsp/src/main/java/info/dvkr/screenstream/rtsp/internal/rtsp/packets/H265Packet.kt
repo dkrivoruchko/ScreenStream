@@ -5,9 +5,6 @@ import info.dvkr.screenstream.rtsp.internal.RtpFrame
 import java.nio.ByteBuffer
 import kotlin.experimental.and
 
-/**
- * RFC 7798 for H.265 (HEVC).
- */
 internal class H265Packet : BaseRtpPacket(VIDEO_CLOCK_FREQUENCY, PAYLOAD_TYPE) {
 
     companion object {
@@ -16,45 +13,45 @@ internal class H265Packet : BaseRtpPacket(VIDEO_CLOCK_FREQUENCY, PAYLOAD_TYPE) {
         const val IDR_W_DLP = 19
 
         fun extractSpsPpsVps(csd0Buffer: ByteBuffer): Triple<ByteArray, ByteArray, ByteArray>? {
-            val csdArray = ByteArray(csd0Buffer.remaining()).also {
-                csd0Buffer.mark()
-                csd0Buffer.get(it)
-                csd0Buffer.reset()
+            val csd = ByteArray(csd0Buffer.remaining()).also {
+                csd0Buffer.mark(); csd0Buffer.get(it); csd0Buffer.reset()
             }
 
-            val startCodes = findAnnexBStartCodes(csdArray)
-            if (startCodes.size < 3) return null
+            fun startCodeLen(pos: Int): Int = when {
+                pos + 3 < csd.size && csd[pos] == 0.toByte() && csd[pos + 1] == 0.toByte() && csd[pos + 2] == 0.toByte() && csd[pos + 3] == 1.toByte() -> 4
+                pos + 2 < csd.size && csd[pos] == 0.toByte() && csd[pos + 1] == 0.toByte() && csd[pos + 2] == 1.toByte() -> 3
+                else -> 0
+            }
 
-            val (vpsStart, spsStart, ppsStart) = startCodes
-
-            val vps = csdArray.copyOfRange(vpsStart, spsStart)
-            val sps = csdArray.copyOfRange(spsStart, ppsStart)
-            val pps = csdArray.copyOfRange(ppsStart, csdArray.size)
-
-            return Triple(sps, pps, vps)
-        }
-
-        private fun findAnnexBStartCodes(data: ByteArray): List<Int> {
-            val positions = mutableListOf<Int>()
             var i = 0
-            while (i < data.size - 3) {
-                // Look for 00 00 01 or 00 00 00 01
-                if (data[i] == 0.toByte() && data[i + 1] == 0.toByte()) {
-                    if (data[i + 2] == 1.toByte()) {
-                        // Short start code: 00 00 01
-                        positions.add(i)
-                        i += 3
-                        continue
-                    } else if (i < data.size - 4 && data[i + 2] == 0.toByte() && data[i + 3] == 1.toByte()) {
-                        // Long start code: 00 00 00 01
-                        positions.add(i)
-                        i += 4
-                        continue
-                    }
+            var vps: ByteArray? = null
+            var sps: ByteArray? = null
+            var pps: ByteArray? = null
+            while (i < csd.size - 3) {
+                val sc = startCodeLen(i)
+                if (sc == 0) {
+                    i++; continue
                 }
-                i++
+                val nalStart = i + sc
+                var j = nalStart
+                while (j < csd.size - 3 && startCodeLen(j) == 0) j++
+                val nalEnd = if (j >= csd.size - 3) csd.size else j
+                if (nalEnd - nalStart > 0) {
+                    val nalHeader = csd[nalStart].toInt() and 0xFF
+                    val nalType = (nalHeader shr 1) and 0x3F
+                    when (nalType) {
+                        32 -> if (vps == null) vps = csd.copyOfRange(nalStart, nalEnd)
+                        33 -> if (sps == null) sps = csd.copyOfRange(nalStart, nalEnd)
+                        34 -> if (pps == null) pps = csd.copyOfRange(nalStart, nalEnd)
+                    }
+                    if (vps != null && sps != null && pps != null) break
+                }
+                i = nalEnd
             }
-            return positions
+            val vv = vps ?: return null
+            val ss = sps ?: return null
+            val pp = pps ?: return null
+            return Triple(ss, pp, vv)
         }
     }
 
@@ -62,6 +59,7 @@ internal class H265Packet : BaseRtpPacket(VIDEO_CLOCK_FREQUENCY, PAYLOAD_TYPE) {
     private var sps: ByteArray? = null
     private var pps: ByteArray? = null
     private var sendKeyFrame = false
+    private var forceParamsOnce = false
 
     fun setVideoInfo(sps: ByteArray?, pps: ByteArray?, vps: ByteArray?) {
         this.sps = sps
@@ -70,9 +68,12 @@ internal class H265Packet : BaseRtpPacket(VIDEO_CLOCK_FREQUENCY, PAYLOAD_TYPE) {
         sendKeyFrame = false
     }
 
+    fun forceParamsOnce() {
+        forceParamsOnce = true
+    }
+
     override fun createPacket(mediaFrame: MediaFrame): List<RtpFrame> {
         var fixedBuffer = mediaFrame.data.removeInfo(mediaFrame.info)
-        // If buffer is length-prefixed (HEVC configuration), convert to Annex-B
         if (fixedBuffer.getVideoStartCodeSize() == 0) {
             convertHvccToAnnexB(fixedBuffer)?.let { fixedBuffer = it }
         }
@@ -87,19 +88,19 @@ internal class H265Packet : BaseRtpPacket(VIDEO_CLOCK_FREQUENCY, PAYLOAD_TYPE) {
 
         val frames = mutableListOf<RtpFrame>()
 
-        // Prepend VPS/SPS/PPS before the first keyframe if available and not already present
         val isParamNal = (type == 32 /*VPS*/ || type == 33 /*SPS*/ || type == 34 /*PPS*/)
-        if ((type == IDR_W_DLP || type == IDR_N_LP || mediaFrame.info.isKeyFrame) && !sendKeyFrame && !isParamNal) {
+        if (((type == IDR_W_DLP) || (type == IDR_N_LP) || mediaFrame.info.isKeyFrame || forceParamsOnce) && (!isParamNal)) {
             listOfNotNull(vps, sps, pps).forEach { nal ->
                 val buffer = getBuffer(nal.size + RTP_HEADER_LENGTH)
                 val rtpTs = updateTimeStamp(buffer, ts)
                 System.arraycopy(nal, 0, buffer, RTP_HEADER_LENGTH, nal.size)
                 updateSeq(buffer)
-                // No marker here; marker will be set on last packet of the frame below
                 frames.add(RtpFrame.Video(buffer, rtpTs, buffer.size))
             }
             sendKeyFrame = true
+            if (forceParamsOnce) forceParamsOnce = false
         }
+
 
         if (naluLength <= MAX_PACKET_SIZE - RTP_HEADER_LENGTH - 2) {
             val buffer = getBuffer(naluLength + RTP_HEADER_LENGTH + 2)

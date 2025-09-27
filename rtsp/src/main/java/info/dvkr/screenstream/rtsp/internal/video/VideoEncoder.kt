@@ -169,6 +169,20 @@ internal class VideoEncoder(
         }
     }
 
+    internal fun requestKeyFrame(): Unit = synchronized(encoderLock) {
+        if (currentState != State.RUNNING) {
+            XLog.w(getLog("requestKeyFrame", "Ignoring; encoder not RUNNING (state=$currentState)"))
+            return
+        }
+        runCatching {
+            val bundle = Bundle().apply { putInt(MediaCodec.PARAMETER_KEY_REQUEST_SYNC_FRAME, 0) }
+            videoEncoder?.setParameters(bundle)
+            XLog.v(getLog("requestKeyFrame", "Sync frame requested"))
+        }.onFailure {
+            XLog.w(getLog("requestKeyFrame", "Failed: ${it.message}"), it)
+        }
+    }
+
     private fun createCodecCallback(): MediaCodec.Callback = object : MediaCodec.Callback() {
         override fun onInputBufferAvailable(codec: MediaCodec, index: Int) {
             // No-op: We use a Surface input (EGL). No direct input buffers needed.

@@ -10,7 +10,7 @@ import kotlin.random.Random
 
 internal abstract class BaseRtpPacket(private var clock: Long, private val payloadType: Int) {
     companion object {
-        const val MTU = 1200
+        const val MTU = 1028
         const val RTP_HEADER_LENGTH = 12
         const val VIDEO_CLOCK_FREQUENCY = 90000L
         protected const val MAX_PACKET_SIZE = MTU - 28
@@ -39,13 +39,10 @@ internal abstract class BaseRtpPacket(private var clock: Long, private val paylo
         this.clock = clock
     }
 
-    protected fun getBuffer(size: Int): ByteArray {
-        val buffer = ByteArray(size)
-        buffer[0] = 0x80.toByte()
-        buffer[1] = payloadType.toByte()
-        buffer.setLong(ssrc.toLong(), 8, 12)
-        buffer[1] = buffer[1] and 0x7F
-        return buffer
+    protected fun getBuffer(size: Int): ByteArray = ByteArray(size).also { b ->
+        b[0] = 0x80.toByte()
+        b[1] = payloadType.toByte() and 0x7F
+        b.setLong(ssrc.toLong(), 8, 12)
     }
 
     protected fun updateTimeStamp(buffer: ByteArray, timestamp: Long): Long {

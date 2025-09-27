@@ -3,9 +3,6 @@ package info.dvkr.screenstream.rtsp.internal.rtsp.packets
 import info.dvkr.screenstream.rtsp.internal.MediaFrame
 import info.dvkr.screenstream.rtsp.internal.RtpFrame
 
-/**
- * RFC 7655 for G711 (PCMA/PCMU).
- */
 internal class G711Packet : BaseRtpPacket(0, PAYLOAD_TYPE) {
 
     companion object {

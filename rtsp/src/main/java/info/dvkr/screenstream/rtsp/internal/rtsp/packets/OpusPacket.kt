@@ -3,9 +3,6 @@ package info.dvkr.screenstream.rtsp.internal.rtsp.packets
 import info.dvkr.screenstream.rtsp.internal.MediaFrame
 import info.dvkr.screenstream.rtsp.internal.RtpFrame
 
-/**
- * RFC 7587 for Opus.
- */
 internal class OpusPacket : BaseRtpPacket(0, PAYLOAD_TYPE + 1) {
 
     companion object {
@@ -13,7 +10,7 @@ internal class OpusPacket : BaseRtpPacket(0, PAYLOAD_TYPE + 1) {
     }
 
     fun setAudioInfo(sampleRate: Int) {
-        setClock(sampleRate.toLong())
+        setClock(48_000)
     }
 
     override fun createPacket(mediaFrame: MediaFrame): List<RtpFrame> {

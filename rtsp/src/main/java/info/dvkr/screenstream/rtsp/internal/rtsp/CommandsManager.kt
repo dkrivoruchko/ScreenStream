@@ -2,15 +2,8 @@ package info.dvkr.screenstream.rtsp.internal.rtsp
 
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.common.getLog
-import info.dvkr.screenstream.rtsp.internal.Codec
 import info.dvkr.screenstream.rtsp.internal.Protocol
-import info.dvkr.screenstream.rtsp.internal.rtsp.packets.AacPacket
-import info.dvkr.screenstream.rtsp.internal.rtsp.packets.Av1Packet
-import info.dvkr.screenstream.rtsp.internal.rtsp.packets.BaseRtpPacket
-import info.dvkr.screenstream.rtsp.internal.rtsp.packets.G711Packet
-import info.dvkr.screenstream.rtsp.internal.rtsp.packets.H264Packet
-import info.dvkr.screenstream.rtsp.internal.rtsp.packets.H265Packet
-import info.dvkr.screenstream.rtsp.internal.rtsp.packets.OpusPacket
+import info.dvkr.screenstream.rtsp.internal.rtsp.sdp.SdpBuilder
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeout
@@ -51,9 +44,7 @@ internal class CommandsManager(
         private val TRANSPORT_REGEX = Regex("""Transport\s*:\s*(.+)""", RegexOption.IGNORE_CASE)
         private val SESSION_HEADER_REGEX = Regex("""Session\s*:\s*([^\r\n;]+)""", RegexOption.IGNORE_CASE)
 
-        private val AUDIO_SAMPLING_RATES = intArrayOf(
-            96000, 88200, 64000, 48000, 44100, 32000, 24000, 22050, 16000, 12000, 11025, 8000, 7350, -1, -1, -1
-        )
+
     }
 
     private val lock = Mutex()
@@ -100,17 +91,18 @@ internal class CommandsManager(
         }
     }
 
-    internal suspend fun createAnnounce(videoParams: RtspClient.VideoParams, audioParams: RtspClient.AudioParams?): String = lock.withLock {
-        require(mode == Mode.CLIENT)
-        buildString {
-            val body = createSdpBody(videoParams, audioParams)
-            append("ANNOUNCE rtsp://$host:$port$path RTSP/1.0\r\n")
-            append("Content-Type: application/sdp\r\n")
-            addDefaultHeaders(contentLength = body.toByteArray(Charsets.US_ASCII).size)
-            append("\r\n")
-            append(body)
+    internal suspend fun createAnnounce(videoParams: RtspClient.VideoParams, audioParams: RtspClient.AudioParams?): String =
+        lock.withLock {
+            require(mode == Mode.CLIENT)
+            buildString {
+                val body = SdpBuilder().createSdpBody(videoParams, audioParams, sdpSessionId)
+                append("ANNOUNCE rtsp://$host:$port$path RTSP/1.0\r\n")
+                append("Content-Type: application/sdp\r\n")
+                addDefaultHeaders(contentLength = body.toByteArray(Charsets.US_ASCII).size)
+                append("\r\n")
+                append(body)
+            }
         }
-    }
 
     internal suspend fun applyAuthFor(method: Method, uriPath: String, authResponse: String) = lock.withLock {
         require(mode == Mode.CLIENT)
@@ -157,20 +149,21 @@ internal class CommandsManager(
         }
     }
 
-    internal suspend fun createSetup(protocol: Protocol, clientRtpPort: Int, clientRtcpPort: Int, trackId: Int): String = lock.withLock {
-        require(mode == Mode.CLIENT)
-        val uri = "rtsp://$host:$port$path/trackID=$trackId"
-        val transport = when (protocol) {
-            Protocol.TCP -> "RTP/AVP/TCP;unicast;interleaved=${trackId shl 1}-${(trackId shl 1) + 1}"
-            Protocol.UDP -> "RTP/AVP;unicast;client_port=$clientRtpPort-$clientRtcpPort"
+    internal suspend fun createSetup(protocol: Protocol, clientRtpPort: Int, clientRtcpPort: Int, trackId: Int): String =
+        lock.withLock {
+            require(mode == Mode.CLIENT)
+            val uri = "rtsp://$host:$port$path/trackID=$trackId"
+            val transport = when (protocol) {
+                Protocol.TCP -> "RTP/AVP/TCP;unicast;interleaved=${trackId shl 1}-${(trackId shl 1) + 1}"
+                Protocol.UDP -> "RTP/AVP;unicast;client_port=$clientRtpPort-$clientRtcpPort"
+            }
+            buildString {
+                append("SETUP $uri RTSP/1.0\r\n")
+                append("Transport: $transport\r\n")
+                addDefaultHeaders()
+                append("\r\n")
+            }
         }
-        buildString {
-            append("SETUP $uri RTSP/1.0\r\n")
-            append("Transport: $transport\r\n")
-            addDefaultHeaders()
-            append("\r\n")
-        }
-    }
 
     internal suspend fun createRecord(): String = lock.withLock {
         require(mode == Mode.CLIENT)
@@ -199,7 +192,11 @@ internal class CommandsManager(
         timeoutMs: Long = 15_000
     ): Command = withTimeout(timeoutMs) { getResponse(readLine, readBytes, method) }
 
-    private suspend fun getResponse(readLine: suspend () -> String?, readBytes: suspend (ByteArray, Int) -> Unit, method: Method): Command =
+    private suspend fun getResponse(
+        readLine: suspend () -> String?,
+        readBytes: suspend (ByteArray, Int) -> Unit,
+        method: Method
+    ): Command =
         lock.withLock {
             require(mode == Mode.CLIENT)
             val headerLines = mutableListOf<String>()
@@ -290,7 +287,7 @@ internal class CommandsManager(
 
     internal fun createDescribeResponse(cSeq: Int, videoParams: RtspClient.VideoParams, audioParams: RtspClient.AudioParams?): String {
         require(mode == Mode.SERVER)
-        val sdp = createSdpBody(videoParams, audioParams)
+        val sdp = SdpBuilder().createSdpBody(videoParams, audioParams, sdpSessionId)
         return buildString {
             append("RTSP/1.0 200 OK\r\n")
             append("CSeq: $cSeq\r\n")
@@ -307,7 +304,8 @@ internal class CommandsManager(
             require(mode == Mode.SERVER)
             append("RTSP/1.0 200 OK\r\n")
             append("CSeq: $cSeq\r\n")
-            val newTransport = if (transport.contains("client_port")) "$transport;server_port=$serverRtpPort-$serverRtcpPort" else transport
+            val newTransport =
+                if (transport.contains("client_port")) "$transport;server_port=$serverRtpPort-$serverRtcpPort" else transport
             append("Transport: $newTransport\r\n")
             append("Session: $sessionId\r\n")
             append("Cache-Control: no-cache\r\n")
@@ -319,6 +317,7 @@ internal class CommandsManager(
         append("RTSP/1.0 200 OK\r\n")
         append("CSeq: $cSeq\r\n")
         append("Session: $sessionId\r\n")
+        append("Range: npt=0.000-\r\n")
         val rtpInfo = tracks.distinct().sorted().joinToString(separator = ",") { tid -> "url=rtsp://$host:$port$path/trackID=$tid" }
         if (rtpInfo.isNotEmpty()) append("RTP-Info: ").append(rtpInfo).append("\r\n")
         append("\r\n")
@@ -329,6 +328,7 @@ internal class CommandsManager(
         append("RTSP/1.0 200 OK\r\n")
         append("CSeq: $cSeq\r\n")
         append("Session: $sessionId\r\n")
+        append("Range: npt=0.000-\r\n")
         val rtpInfo = trackInfo.toSortedMap().entries.joinToString(",") { (tid, info) ->
             buildString {
                 append("url=rtsp://$host:$port$path/trackID=$tid")
@@ -387,95 +387,6 @@ internal class CommandsManager(
         append("RTSP/1.0 $code $status\r\n")
         append("CSeq: $cSeq\r\n")
         append("\r\n")
-    }
-
-    private fun createSdpBody(videoParams: RtspClient.VideoParams, audioParams: RtspClient.AudioParams?): String {
-        val spsString = videoParams.sps.encodeBase64()
-        val ppsString = videoParams.pps?.encodeBase64().orEmpty()
-        val vpsString = videoParams.vps?.encodeBase64().orEmpty()
-        val videoCodecBody = when (videoParams.codec) {
-            Codec.Video.H264 -> createH264Body(0, spsString, ppsString)
-            Codec.Video.H265 -> createH265Body(0, spsString, ppsString, vpsString)
-            Codec.Video.AV1 -> createAV1Body(0)
-        }
-
-        val audioCodecBody = when (audioParams) {
-            null -> ""
-            else -> when (audioParams.codec) {
-                Codec.Audio.G711 -> createG711Body(1)
-                Codec.Audio.AAC -> createAacBody(1, audioParams.sampleRate, audioParams.isStereo)
-                Codec.Audio.OPUS -> createOpusBody(1)
-            }
-        }
-        return buildString {
-            append("v=0\r\n")
-            append("o=- $sdpSessionId $sdpSessionId IN IP4 127.0.0.1\r\n")
-            append("s=ScreenStream\r\n")
-            append("i=ScreenStream\r\n")
-            append("c=IN IP4 0.0.0.0\r\n")
-            append("t=0 0\r\n")
-            append("a=type:broadcast\r\n")
-            append("a=control:*\r\n")
-            append(videoCodecBody)
-            if (audioCodecBody.isNotEmpty()) append(audioCodecBody)
-        }
-    }
-
-    private fun createOpusBody(trackAudio: Int): String = buildString {
-        val payload = OpusPacket.PAYLOAD_TYPE + trackAudio
-        append("m=audio 0 RTP/AVP $payload\r\n")
-        append("a=rtpmap:$payload OPUS/48000/2\r\n")
-        append("a=control:trackID=$trackAudio\r\n")
-    }
-
-    private fun createG711Body(trackAudio: Int): String = buildString {
-        val payload = G711Packet.PAYLOAD_TYPE
-        append("m=audio 0 RTP/AVP $payload\r\n")
-        append("a=rtpmap:$payload PCMA/8000/1\r\n")
-        append("a=control:trackID=$trackAudio\r\n")
-    }
-
-    private fun createAacBody(trackAudio: Int, sampleRate: Int, isStereo: Boolean): String {
-        val sampleRateIndex = AUDIO_SAMPLING_RATES.indexOf(sampleRate).takeIf { it >= 0 } ?: 3 // default 48k
-        val channels = if (isStereo) 2 else 1
-        val config = ((2 /*AAC-LC*/ and 0x1F) shl 11) or ((sampleRateIndex and 0x0F) shl 7) or ((channels and 0x0F) shl 3)
-        val payload = AacPacket.PAYLOAD_TYPE + trackAudio
-        return buildString {
-            append("m=audio 0 RTP/AVP $payload\r\n")
-            append("a=rtpmap:$payload MPEG4-GENERIC/$sampleRate/$channels\r\n")
-            append("a=fmtp:$payload profile-level-id=1; mode=AAC-hbr; config=")
-            append(java.lang.String.format("%04x", config))
-            append("; sizelength=13; indexlength=3; indexdeltalength=3\r\n")
-            append("a=control:trackID=$trackAudio\r\n")
-        }
-    }
-
-    private fun createAV1Body(trackVideo: Int): String = buildString {
-        val payload = Av1Packet.PAYLOAD_TYPE + trackVideo
-        append("m=video 0 RTP/AVP $payload\r\n")
-        append("a=rtpmap:$payload AV1/${BaseRtpPacket.VIDEO_CLOCK_FREQUENCY}\r\n")
-        append("a=control:trackID=$trackVideo\r\n")
-    }
-
-    private fun createH264Body(trackVideo: Int, sps: String, pps: String): String = buildString {
-        val payload = H264Packet.PAYLOAD_TYPE + trackVideo
-        append("m=video 0 RTP/AVP $payload\r\n")
-        append("a=rtpmap:$payload H264/${BaseRtpPacket.VIDEO_CLOCK_FREQUENCY}\r\n")
-        append("a=fmtp:$payload packetization-mode=1; sprop-parameter-sets=$sps,$pps\r\n")
-        append("a=control:trackID=$trackVideo\r\n")
-    }
-
-    private fun createH265Body(trackVideo: Int, sps: String, pps: String, vps: String): String = buildString {
-        val payload = H265Packet.PAYLOAD_TYPE + trackVideo
-        append("m=video 0 RTP/AVP $payload\r\n")
-        append("a=rtpmap:$payload H265/${BaseRtpPacket.VIDEO_CLOCK_FREQUENCY}\r\n")
-        val parts = buildList {
-            if (vps.isNotEmpty()) add("sprop-vps=$vps")
-            if (sps.isNotEmpty()) add("sprop-sps=$sps")
-            if (pps.isNotEmpty()) add("sprop-pps=$pps")
-        }.joinToString("; ")
-        if (parts.isNotEmpty()) append("a=fmtp:$payload $parts\r\n")
-        append("a=control:trackID=$trackVideo\r\n")
     }
 
     @OptIn(ExperimentalEncodingApi::class)

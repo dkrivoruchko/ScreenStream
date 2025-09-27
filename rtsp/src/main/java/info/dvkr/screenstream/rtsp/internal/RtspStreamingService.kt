@@ -118,6 +118,7 @@ internal class RtspStreamingService(
         data class OnAudioParamsChange(val micMute: Boolean, val deviceMute: Boolean, val micVolume: Float, val deviceVolume: Float) :
             InternalEvent(Priority.DESTROY_IGNORE)
 
+        data class ModeChanged(val mode: RtspSettings.Values.Mode) : InternalEvent(Priority.RECOVER_IGNORE)
         data class DiscoverAddress(val reason: String, val attempt: Int) : InternalEvent(Priority.RECOVER_IGNORE)
         data object StartStream : InternalEvent(Priority.RECOVER_IGNORE)
         data class RtspClientOnError(val error: ConnectionError) : InternalEvent(Priority.RECOVER_IGNORE)
@@ -198,6 +199,10 @@ internal class RtspStreamingService(
 
         rtspSettings.data.map { InternalEvent.OnAudioParamsChange(it.muteMic, it.muteDeviceAudio, it.volumeMic, it.volumeDeviceAudio) }
             .listenForChange(coroutineScope) { sendEvent(it) }
+
+        rtspSettings.data.map { it.mode }.listenForChange(coroutineScope, 1) { mode ->
+            sendEvent(InternalEvent.ModeChanged(mode))
+        }
 
         rtspSettings.data.map { it.interfaceFilter }.listenForChange(coroutineScope, 1) {
             if (rtspSettings.data.value.mode == RtspSettings.Values.Mode.SERVER)
@@ -436,6 +441,23 @@ internal class RtspStreamingService(
                 }
             }
 
+            is InternalEvent.ModeChanged -> {
+                when (event.mode) {
+                    RtspSettings.Values.Mode.SERVER -> {
+                        sendEvent(InternalEvent.DiscoverAddress("SettingsChanged:Mode", 0))
+                    }
+                    RtspSettings.Values.Mode.CLIENT -> {
+                        runCatching { rtspServer?.stop() }.onFailure {
+                            XLog.w(getLog("ModeChanged", "Stop server failed: ${it.message}"), it)
+                        }
+                        rtspServer = null
+                        netInterfaces = emptyList()
+                        activeServerClients = 0
+                        updateTransportStatus(RtspTransportState.Status.Idle)
+                    }
+                }
+            }
+
             is RtspEvent.CastPermissionsDenied -> waitingForPermission = false
 
             is RtspEvent.StartProjection -> {
@@ -489,15 +511,27 @@ internal class RtspStreamingService(
                     return
                 }
 
+                fun ByteArray.stripAnnexBStartCode(): ByteArray = when {
+                    size >= 4 && this[0] == 0.toByte() && this[1] == 0.toByte() && this[2] == 0.toByte() && this[3] == 1.toByte() ->
+                        copyOfRange(4, size)
+                    size >= 3 && this[0] == 0.toByte() && this[1] == 0.toByte() && this[2] == 1.toByte() ->
+                        copyOfRange(3, size)
+                    else -> this
+                }
+
                 videoEncoder = VideoEncoder(
                     codecInfo = selectedVideoEncoderInfo!!,
                     onVideoInfo = { sps, pps, vps ->
                         if (isServerMode) {
-                            rtspServer?.setVideoData(
-                                RtspClient.VideoParams(selectedVideoEncoderInfo!!.codec, sps, pps, vps)
-                            )
+                            val spsClean = sps.stripAnnexBStartCode()
+                            val ppsClean = pps?.stripAnnexBStartCode()
+                            val vpsClean = vps?.stripAnnexBStartCode()
+                            rtspServer?.setVideoData(RtspClient.VideoParams(selectedVideoEncoderInfo!!.codec, spsClean, ppsClean, vpsClean))
                         } else {
-                            rtspClient?.setVideoData(selectedVideoEncoderInfo!!.codec, sps, pps, vps)
+                            val spsClean = sps.stripAnnexBStartCode()
+                            val ppsClean = pps?.stripAnnexBStartCode()
+                            val vpsClean = vps?.stripAnnexBStartCode()
+                            rtspClient?.setVideoData(selectedVideoEncoderInfo!!.codec, spsClean, ppsClean, vpsClean)
                         }
                     },
                     onVideoFrame = { frame ->
@@ -749,6 +783,7 @@ internal class RtspStreamingService(
             is InternalEvent.RtspServerOnClientConnected -> {
                 activeServerClients += 1
                 updateTransportStatus(RtspTransportState.Status.Active(activeServerClients, currentBindings()))
+                videoEncoder?.requestKeyFrame()
             }
 
             is InternalEvent.RtspServerOnClientDisconnected -> {

@@ -13,10 +13,10 @@ androidx-activity-compose = "1.11.0"
 androidx-fragment = "1.8.9"
 androidx-appcompat = "1.7.1"
 androidx-lifecycle = "2.9.4"
-androidx-window = "1.4.0"
+androidx-window = "1.5.0"
 androidx-datastore-preferences = "1.1.7"
 
-compose-bom = "2025.09.00"
+compose-bom = "2025.09.01"
 
 process-phoenix = "3.0.0"
 xlog = "1.11.1"
@@ -66,6 +66,7 @@ androidx-compose-material3-window = { module = "androidx.compose.material3:mater
 androidx-compose-material3-adaptive-navigation-suite = { module = "androidx.compose.material3:material3-adaptive-navigation-suite"  }
 androidx-compose-material3-adaptive-layout = { module = "androidx.compose.material3.adaptive:adaptive-layout"  }
 androidx-compose-material3-adaptive-navigation = { module = "androidx.compose.material3.adaptive:adaptive-navigation"  }
+androidx-compose-material-icons-core = { module = "androidx.compose.material:material-icons-core" }
 
 processPhoenix = { module = "com.jakewharton:process-phoenix", version.ref = "process-phoenix" }
 xlog = { module = "com.elvishew:xlog", version.ref = "xlog" }
