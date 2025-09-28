@@ -7,12 +7,15 @@ internal class UdpTransport(
     private val getVideoRtp: () -> UdpStreamSocket?,
     private val getAudioRtp: () -> UdpStreamSocket?,
 ) : RtpTransport {
+
     override suspend fun sendRtpPackets(trackId: Int, packets: List<RtpFrame>) {
+
         val sock = when (trackId) {
             RtpFrame.VIDEO_TRACK_ID -> getVideoRtp()
             else -> getAudioRtp()
         } ?: return
-        for (p in packets) sock.write(p.buffer, 0, p.length)
+
+        for (packet in packets) sock.write(packet.buffer, 0, packet.length)
     }
 }
 

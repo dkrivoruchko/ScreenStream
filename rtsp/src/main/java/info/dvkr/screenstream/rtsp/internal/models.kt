@@ -26,17 +26,16 @@ internal sealed class MediaFrame {
 
 internal enum class Protocol { TCP, UDP }
 
-internal sealed class RtpFrame(val trackId: Int, val buffer: ByteArray, val timeStamp: Long, val length: Int) {
-    class Video(buffer: ByteArray, timeStamp: Long, length: Int) : RtpFrame(VIDEO_TRACK_ID, buffer, timeStamp, length)
-    class Audio(buffer: ByteArray, timeStamp: Long, length: Int) : RtpFrame(AUDIO_TRACK_ID, buffer, timeStamp, length)
+    internal sealed class RtpFrame(val trackId: Int, val buffer: ByteArray, val timeStamp: Long, val length: Int) {
+        class Video(buffer: ByteArray, timeStamp: Long, length: Int) : RtpFrame(VIDEO_TRACK_ID, buffer, timeStamp, length)
+        class Audio(buffer: ByteArray, timeStamp: Long, length: Int) : RtpFrame(AUDIO_TRACK_ID, buffer, timeStamp, length)
 
     companion object {
         const val VIDEO_TRACK_ID: Int = 0
         const val AUDIO_TRACK_ID: Int = 1
     }
 
-    internal fun getTcpHeader(): ByteArray =
-        byteArrayOf('$'.code.toByte(), (trackId shl 1).toByte(), (length shr 8).toByte(), (length and 0xFF).toByte())
+    internal fun getTcpHeader(): ByteArray = interleavedHeader(trackId shl 1, length)
 }
 
 internal sealed class Codec(val name: String, val mimeType: String) {
@@ -53,6 +52,13 @@ internal sealed class Codec(val name: String, val mimeType: String) {
         data object OPUS : Audio("OPUS", "audio/opus")
     }
 }
+
+internal fun interleavedHeader(channel: Int, length: Int): ByteArray = byteArrayOf(
+    '$'.code.toByte(),
+    channel.toByte(),
+    (length ushr 8).toByte(),
+    (length and 0xFF).toByte()
+)
 
 internal data class VideoCodecInfo(
     val name: String,

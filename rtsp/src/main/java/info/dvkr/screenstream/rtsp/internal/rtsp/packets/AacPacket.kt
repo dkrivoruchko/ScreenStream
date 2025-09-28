@@ -11,8 +11,11 @@ internal class AacPacket : BaseRtpPacket(0, PAYLOAD_TYPE + 1) {
         const val PAYLOAD_TYPE = 96
     }
 
+    private var nextRtpTs: Long = -1L
+
     fun setAudioInfo(sampleRate: Int) {
         setClock(sampleRate.toLong())
+        nextRtpTs = -1L
     }
 
     override fun createPacket(mediaFrame: MediaFrame): List<RtpFrame> {
@@ -25,9 +28,12 @@ internal class AacPacket : BaseRtpPacket(0, PAYLOAD_TYPE + 1) {
         }
         val length = fixedBuffer.remaining()
         val maxPayload = MAX_PACKET_SIZE - (RTP_HEADER_LENGTH + 4)
-        val ts = mediaFrame.info.timestamp * 1000
+        val tsNs = mediaFrame.info.timestamp * 1000
         var sum = 0
         val frames = mutableListOf<RtpFrame>()
+
+        // AAC-LC has fixed 1024 samples per AU
+        var rtpTsForThisAu = if (nextRtpTs >= 0) nextRtpTs else toRtpTimestampFromNs(tsNs)
 
         while (sum < length) {
             val size = if (length - sum < maxPayload) (length - sum) else maxPayload
@@ -43,17 +49,19 @@ internal class AacPacket : BaseRtpPacket(0, PAYLOAD_TYPE + 1) {
 
             buffer[RTP_HEADER_LENGTH + 3] = buffer[RTP_HEADER_LENGTH + 3] and 0xF8.toByte()
 
-            val rtpTs = updateTimeStamp(buffer, ts)
+            setRtpTimestamp(buffer, rtpTsForThisAu)
             updateSeq(buffer)
 
             if (sum + size >= length) {
                 markPacket(buffer)
             }
 
-            val rtpFrame = RtpFrame.Audio(buffer, rtpTs, buffer.size)
+            val rtpFrame = RtpFrame.Audio(buffer, rtpTsForThisAu, buffer.size)
             sum += size
             frames.add(rtpFrame)
         }
+        // Advance RTP timestamp by one AAC frame (1024 samples) for the next AU
+        nextRtpTs = rtpTsForThisAu + 1024
         return frames
     }
 

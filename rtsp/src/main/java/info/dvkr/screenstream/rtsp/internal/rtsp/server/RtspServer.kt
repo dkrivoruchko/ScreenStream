@@ -1,11 +1,9 @@
 package info.dvkr.screenstream.rtsp.internal.rtsp.server
 
-import com.elvishew.xlog.XLog
-import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.rtsp.internal.MediaFrame
 import info.dvkr.screenstream.rtsp.internal.RtspStreamingService
-import info.dvkr.screenstream.rtsp.internal.rtsp.CommandsManager
 import info.dvkr.screenstream.rtsp.internal.rtsp.RtspClient
+import info.dvkr.screenstream.rtsp.internal.rtsp.RtspServerMessages
 import info.dvkr.screenstream.rtsp.internal.rtsp.sockets.TcpStreamSocket
 import io.ktor.network.selector.SelectorManager
 import io.ktor.network.sockets.ServerSocket
@@ -37,9 +35,6 @@ internal class RtspServer(
     private var serverPath: String = "/screen"
     private var serverPort: Int = 8554
 
-    // Debug counters
-    private var debugVideoFrames: Long = 0
-    private var debugAudioFrames: Long = 0
 
     fun setVideoData(videoParams: RtspClient.VideoParams) {
         this.videoParams.set(videoParams)
@@ -50,7 +45,6 @@ internal class RtspServer(
     }
 
     fun start(addresses: List<RtspNetInterface>, port: Int, path: String, protocol: info.dvkr.screenstream.rtsp.internal.Protocol) {
-        XLog.d(getLog("start", "addresses=${addresses.size}, port=$port, path=$path, protocol=$protocol"))
         if (serverJob?.isActive == true) stop()
 
         requiredProtocol = protocol
@@ -68,14 +62,12 @@ internal class RtspServer(
                     runCatching {
                         val ss = aSocket(sm).tcp().bind(host, serverPort)
                         serverSockets.add(ss to host)
-                        XLog.i(getLog("start.bind", "$host:$serverPort"))
                     }.onFailure {
-                        XLog.w(getLog("start.bind", "Failed $host:$serverPort -> ${it.message}"), it)
+                        // ignore
                     }
                 }
 
                 if (serverSockets.isEmpty()) {
-                    XLog.w(getLog("start", "No sockets bound"))
                     return@launch
                 }
 
@@ -85,11 +77,8 @@ internal class RtspServer(
                     launch {
                         while (isActive) {
                             val clientSocket = runCatching { ss.accept() }.getOrElse { break }
-                            XLog.i(getLog("accept", "Client connected: ${clientSocket.remoteAddress} on $boundHost:$serverPort"))
                             val tcpStreamSocket = TcpStreamSocket(scope.coroutineContext, sm, clientSocket)
-                            val commandsManager = CommandsManager(
-                                appVersion, CommandsManager.Mode.SERVER, boundHost, serverPort, serverPath, null, null
-                            )
+                            val commandsManager = RtspServerMessages(appVersion, boundHost, serverPort, serverPath)
                             val conn = RtspServerConnection(
                                 tcpStreamSocket, commandsManager, videoParams, audioParams, ::onClientEvent, requiredProtocol
                             )
@@ -98,18 +87,15 @@ internal class RtspServer(
                         }
                     }
                 }
-            } catch (t: Throwable) {
-                XLog.w(getLog("start", "Failed: ${t.message}"), t)
+            } catch (_: Throwable) {
             }
         }
     }
 
     internal fun stop() {
-        XLog.d(getLog("stop"))
         runBlocking {
             withContext(NonCancellable + Dispatchers.IO) { stopSuspend() }
         }
-        XLog.d(getLog("stop", "Done"))
     }
 
     private suspend fun stopSuspend() {
@@ -155,10 +141,6 @@ internal class RtspServer(
         // Drop the base ref; remaining refs equal to number of enqueued consumers
         shared.release()
 
-        debugVideoFrames++
-        if (debugVideoFrames <= 8L || accepted == 0) {
-            XLog.d(getLog("onVideoFrame", "size=$size, key=${frame.info.isKeyFrame}, accepted=$accepted/${snapshot.size}"))
-        }
     }
 
     internal fun onAudioFrame(frame: MediaFrame.AudioFrame) {
@@ -184,10 +166,6 @@ internal class RtspServer(
         }
         shared.release()
 
-        debugAudioFrames++
-        if (debugAudioFrames <= 8L || accepted == 0) {
-            XLog.d(getLog("onAudioFrame", "size=$size, accepted=$accepted/${snapshot.size}"))
-        }
     }
 
     private fun onClientEvent(event: RtspStreamingService.InternalEvent) {

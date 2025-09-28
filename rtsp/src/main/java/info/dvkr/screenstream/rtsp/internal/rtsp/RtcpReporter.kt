@@ -1,10 +1,9 @@
 package info.dvkr.screenstream.rtsp.internal.rtsp
 
-import com.elvishew.xlog.XLog
-import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.rtsp.internal.Protocol
 import info.dvkr.screenstream.rtsp.internal.RtpFrame
 import info.dvkr.screenstream.rtsp.internal.rtsp.sockets.UdpStreamSocket
+import info.dvkr.screenstream.rtsp.internal.interleavedHeader
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -12,8 +11,13 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.io.IOException
-import kotlin.coroutines.cancellation.CancellationException
 
+/**
+ * Periodically emits RTCP Sender Reports (and a BYE on close) for video/audio tracks.
+ * - Sends an immediate first SR after the very first RTP packet to establish NTP↔RTP mapping early.
+ * - Continues at a fixed cadence while tracks are active; suppresses when idle.
+ * - Works over both UDP (per‑track sockets) and interleaved TCP (even/odd channels).
+ */
 internal class RtcpReporter(
     scope: CoroutineScope,
     private val protocol: Protocol,
@@ -25,8 +29,6 @@ internal class RtcpReporter(
 ) {
     private companion object {
         private const val REPORT_PACKET_LENGTH = 28
-
-        // Keep SRs frequent for better clock sync on strict clients (e.g., VLC 4.x live555).
         private const val REPORT_INTERVAL_MS = 2000L
     }
 
@@ -35,7 +37,8 @@ internal class RtcpReporter(
         var packetCount: Long = 0L,
         var octetCount: Long = 0L,
         var lastReportTimeMs: Long = 0L,
-        var lastRtpTimestamp: Long = 0L
+        var lastRtpTimestamp: Long = 0L,
+        var lastRtpUpdateAtMs: Long = 0L
     )
 
     private val videoTrack = TrackInfo().apply {
@@ -61,9 +64,15 @@ internal class RtcpReporter(
         while (isActive) {
             lock.withLock {
                 if (closed) return@withLock
-                // Only send SR after we have at least one RTP packet (valid timestamp/counts)
-                if (videoTrack.packetCount > 0) sendPeriodicReport(videoTrack, 0)
-                if (audioEnabled && audioTrack.packetCount > 0) sendPeriodicReport(audioTrack, 1)
+                val now = System.currentTimeMillis()
+                val activeVideo = videoTrack.packetCount > 0 && (now - videoTrack.lastRtpUpdateAtMs) <= (2 * REPORT_INTERVAL_MS + 1000L)
+                val activeAudio =
+                    audioEnabled && audioTrack.packetCount > 0 && (now - audioTrack.lastRtpUpdateAtMs) <= (2 * REPORT_INTERVAL_MS + 1000L)
+
+                if (activeVideo) sendPeriodicReport(videoTrack, 0)
+                if (activeAudio) sendPeriodicReport(audioTrack, 1)
+
+                // If no active tracks for a while, suppress SRs; do not close here to allow quick resume.
             }
             delay(REPORT_INTERVAL_MS)
         }
@@ -80,6 +89,7 @@ internal class RtcpReporter(
         track.packetCount++
         track.octetCount += (rtpFrame.length - 12).coerceAtLeast(0)
         track.lastRtpTimestamp = rtpFrame.timeStamp
+        track.lastRtpUpdateAtMs = System.currentTimeMillis()
         // Send an immediate first SR after the very first RTP packet to establish NTP<->RTP mapping early.
         if (wasZero) {
             val tid = if (rtpFrame is RtpFrame.Video) 0 else 1
@@ -88,30 +98,16 @@ internal class RtcpReporter(
     }
 
     internal suspend fun close() = lock.withLock {
-        XLog.v(getLog("close"))
-
         if (closed) return@withLock
         closed = true
 
         periodicJob.cancel()
 
-        runCatching { sendBye(0, videoTrack.buffer) }.onFailure {
-            if (it is CancellationException)
-                XLog.v(getLog("close", "Failed to send BYE for video track: ${it.message}"), it)
-            else
-                XLog.w(getLog("close", "Failed to send BYE for video track: ${it.message}"), it)
-        }
-        if (audioEnabled) runCatching { sendBye(1, audioTrack.buffer) }.onFailure {
-            if (it is CancellationException)
-                XLog.v(getLog("close", "Failed to send BYE for audio track: ${it.message}"), it)
-            else
-                XLog.w(getLog("close", "Failed to send BYE for audio track: ${it.message}"), it)
-        }
+        runCatching { sendBye(0, videoTrack.buffer) }
+        if (audioEnabled) runCatching { sendBye(1, audioTrack.buffer) }
 
         videoUdpSocket?.close()
         audioUdpSocket?.close()
-
-        XLog.v(getLog("close", "Done"))
     }
 
     internal suspend fun setSsrcVideo(newSsrc: Long) = lock.withLock {
@@ -151,16 +147,10 @@ internal class RtcpReporter(
 
         when (protocol) {
             Protocol.TCP -> try {
-                val lenHi = ((REPORT_PACKET_LENGTH ushr 8) and 0xFF).toByte()
-                val lenLo = (REPORT_PACKET_LENGTH and 0xFF).toByte()
-                val tcpHeader = byteArrayOf('$'.code.toByte(), (2 * trackId + 1).toByte(), lenHi, lenLo)
+                val tcpHeader = interleavedHeader(2 * trackId + 1, REPORT_PACKET_LENGTH)
                 writeToTcpSocket(tcpHeader, track.buffer)
-                XLog.v(getLog("sendPeriodicReport", "TCP track=$trackId, size=28"))
             } catch (t: Throwable) {
-                if (t is CancellationException)
-                    XLog.v(getLog("sendPeriodicReport", "TCP track=$trackId failed: ${t.message}"), t)
-                else
-                    XLog.w(getLog("sendPeriodicReport", "TCP track=$trackId failed: ${t.message}"), t)
+                // swallow
             }
 
             Protocol.UDP -> try {
@@ -168,9 +158,8 @@ internal class RtcpReporter(
                     0 -> videoUdpSocket?.write(track.buffer)
                     else -> audioUdpSocket?.write(track.buffer)
                 }
-                XLog.v(getLog("sendPeriodicReport", "UDP track=$trackId, size=28"))
             } catch (e: IOException) {
-                XLog.d(getLog("sendPeriodicReport", "UDP track=$trackId failed: ${e.message}"), e)
+                // swallow
             }
         }
     }
@@ -181,20 +170,17 @@ internal class RtcpReporter(
 
         when (protocol) {
             Protocol.TCP -> runCatching {
-                val lenHi = ((byePacket.size ushr 8) and 0xFF).toByte()
-                val lenLo = (byePacket.size and 0xFF).toByte()
-                val tcpHeader = byteArrayOf('$'.code.toByte(), (2 * trackId + 1).toByte(), lenHi, lenLo)
+                val tcpHeader = interleavedHeader(2 * trackId + 1, byePacket.size)
                 writeToTcpSocket(tcpHeader, byePacket)
-            }.onFailure { XLog.w(getLog("sendBye", "TCP track=$trackId failed: ${it.message}"), it) }
+            }
 
             Protocol.UDP -> runCatching {
                 when (trackId) {
                     0 -> videoUdpSocket?.write(byePacket)
                     else -> audioUdpSocket?.write(byePacket)
                 }
-            }.onFailure { XLog.w(getLog("sendBye", "UDP track=$trackId failed: ${it.message}"), it) }
+            }
         }
-        XLog.d(getLog("sendBye", "RTCP BYE attempted track=$trackId, SSRC=${ssrc.joinToString { it.toUByte().toString() }}"))
     }
 
     private fun ByteArray.setLong(value: Long, begin: Int, end: Int) {

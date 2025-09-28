@@ -51,6 +51,12 @@ internal abstract class BaseRtpPacket(private var clock: Long, private val paylo
         return ts
     }
 
+    protected fun toRtpTimestampFromNs(timestampNs: Long): Long = (timestampNs * clock) / 1_000_000_000L
+
+    protected fun setRtpTimestamp(buffer: ByteArray, rtpTs: Long) {
+        buffer.setLong(rtpTs, 4, 8)
+    }
+
     protected fun updateSeq(buffer: ByteArray) {
         seq = (seq + 1) and 0xFFFF
         buffer.setLong(seq.toLong(), 2, 4)

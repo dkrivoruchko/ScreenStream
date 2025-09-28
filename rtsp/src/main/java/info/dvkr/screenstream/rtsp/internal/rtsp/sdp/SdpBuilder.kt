@@ -86,7 +86,6 @@ internal class SdpBuilder {
         val payload = H264Packet.PAYLOAD_TYPE + trackVideo
         append("m=video 0 RTP/AVP $payload\r\n")
         append("a=rtpmap:$payload H264/${BaseRtpPacket.VIDEO_CLOCK_FREQUENCY}\r\n")
-        append("a=framerate:30\r\n")
         val parsedProfile = runCatching { extractH264ProfileLevelId(sps) }.getOrNull()
         val profileLevelId = parsedProfile ?: "42e01f"
         append("a=fmtp:$payload packetization-mode=1; level-asymmetry-allowed=1; profile-level-id=$profileLevelId;")
@@ -107,7 +106,6 @@ internal class SdpBuilder {
         val payload = H265Packet.PAYLOAD_TYPE + trackVideo
         append("m=video 0 RTP/AVP $payload\r\n")
         append("a=rtpmap:$payload H265/${BaseRtpPacket.VIDEO_CLOCK_FREQUENCY}\r\n")
-        append("a=framerate:30\r\n")
         val parts = buildList {
             if (vps.isNotEmpty()) add("sprop-vps=$vps")
             if (sps.isNotEmpty()) add("sprop-sps=$sps")
@@ -127,4 +125,3 @@ internal class SdpBuilder {
         )
     }
 }
-
