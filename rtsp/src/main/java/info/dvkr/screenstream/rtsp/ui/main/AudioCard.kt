@@ -302,8 +302,8 @@ private fun AudioEncoder(
         Row(
             modifier = Modifier
                 .padding(top = 4.dp)
-                .conditional(isAutoSelect.not()) { clickable { expanded = true } }
-                .alpha(if (isAutoSelect) 0.5f else 1f)
+                .conditional(isAutoSelect.not()) { clickable(enabled = enabled) { expanded = true } }
+                .alpha(if (isAutoSelect || enabled.not()) 0.5f else 1f)
                 .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {

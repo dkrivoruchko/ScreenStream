@@ -180,16 +180,34 @@ internal class Av1Packet : BaseRtpPacket(VIDEO_CLOCK_FREQUENCY, PAYLOAD_TYPE) {
         // Remove any extra info from the encoded buffer
         var src = mediaFrame.data.removeInfo(mediaFrame.info)
 
-        // Skip a Temporal Delimiter OBU if present at start
-        if (src.remaining() >= 1 && getObuType(src.get(src.position())) == ObuType.TEMPORAL_DELIMITER) {
-            if (src.remaining() >= 2) src.position(src.position() + 2)
-            src = src.slice()
+        // Do not manually skip TD; parser below will remove TD OBUs safely
+
+        // Parse OBUs and keep structured header/leb/payload
+        val parsedObus = getObus(src.toByteArray()).filter { getObuType(it.header[0]) != ObuType.TEMPORAL_DELIMITER }
+        if (parsedObus.isEmpty()) return emptyList()
+
+        // Transform to RTP wire-form per RFC: clear HAS_SIZE_FIELD and drop OBU-size LEB for each OBU
+        val wireObus = mutableListOf<ByteArray>()
+        val headerLens = mutableListOf<Int>()
+        for (o in parsedObus) {
+            val hdr = o.header.copyOf()
+            // AV1 OBU header: clear forbidden (bit7), has_size_field (bit1) and reserved1bit (bit0)
+            hdr[0] = (hdr[0].toInt() and 0x7C).toByte()
+            wireObus += (hdr + o.data)
+            headerLens += hdr.size
         }
 
-        // Parse OBUs and assemble exact bytes for each OBU (header + leb128 + payload)
-        val obuList = getObus(src.toByteArray()).filter { getObuType(it.header[0]) != ObuType.TEMPORAL_DELIMITER }
-        if (obuList.isEmpty()) return emptyList()
-        val obuBytes = obuList.map { it.getFullData() }
+        // Optional: inject sequence header before keyframe if available
+        val listForPacket = mutableListOf<ByteArray>()
+        val headerLensForPacket = mutableListOf<Int>()
+        if (mediaFrame.info.isKeyFrame) {
+            seqHeaderWire?.let {
+                listForPacket += it
+                headerLensForPacket += seqHeaderHeaderLen
+            }
+        }
+        listForPacket += wireObus
+        headerLensForPacket += headerLens
 
         val ts = mediaFrame.info.timestamp * 1000L
         val maxPayload = MAX_PACKET_SIZE - RTP_HEADER_LENGTH - 1 // 1 byte for aggregation header
@@ -199,46 +217,113 @@ internal class Av1Packet : BaseRtpPacket(VIDEO_CLOCK_FREQUENCY, PAYLOAD_TYPE) {
         var obuIndex = 0
         var offsetInObu = 0
 
-        while (obuIndex < obuBytes.size) {
-            val bufferPayload = ArrayList<Byte>(maxPayload)
-            var remaining = maxPayload
-            var newObuCount = 0
-            val startingWithContinuation = offsetInObu > 0
+        fun lebLenInt(x: Int): Int {
+            var v = x
+            var n = 0
+            do { n++; v = v ushr 7 } while (v != 0)
+            return n
+        }
 
-            // Fill this packet payload
-            while (remaining > 0 && obuIndex < obuBytes.size) {
-                val bytes = obuBytes[obuIndex]
-                val toCopy = minOf(remaining, bytes.size - offsetInObu)
-                // Count a new OBU start only when we begin copying at offset 0
-                if (offsetInObu == 0) newObuCount++
-                for (i in 0 until toCopy) bufferPayload.add(bytes[offsetInObu + i])
-                remaining -= toCopy
-                offsetInObu += toCopy
-                if (offsetInObu >= bytes.size) {
+        while (obuIndex < listForPacket.size) {
+            // Build list of elements for this RTP packet
+            data class Elem(val idx: Int, val start: Int, val len: Int, val isContinuation: Boolean)
+            val elems = mutableListOf<Elem>()
+            var remaining = maxPayload
+            var startingWithContinuation = offsetInObu > 0
+            var lastIsFragmented = false
+
+            while (remaining > 0 && obuIndex < listForPacket.size) {
+                val full = listForPacket[obuIndex]
+                val headerLen = headerLensForPacket[obuIndex]
+                val totalLen = full.size
+
+                // Decide how many bytes of this OBU we can copy in this packet for this element
+                var toCopy: Int
+                if (offsetInObu == 0) {
+                    // Ensure we can at least include header + OBU LEB fully in the first fragment
+                    // Compute maximum payload we can fit after accounting for at least 1 byte LEB (aggregator length)
+                    var maxData = remaining - 1
+                    if (maxData <= 0) break
+                    // Prefer full OBU if it fits (including aggregator LEB)
+                    fun lebLen(x: Int): Int {
+                        var v = x
+                        var n = 0
+                        do { n++; v = v ushr 7 } while (v != 0)
+                        return n
+                    }
+                    val fullNeed = lebLen(totalLen) + totalLen
+                    if (fullNeed <= remaining) {
+                        toCopy = totalLen
+                    } else {
+                        // Fragment: ensure we keep header+OBU-LEB intact
+                        // Start with as much as fits, then shrink until LEB(toCopy)+toCopy <= remaining and toCopy>=headerLen
+                        toCopy = maxData
+                        while (toCopy > 0 && (lebLen(toCopy) + toCopy > remaining)) toCopy--
+                        if (toCopy < headerLen) break // can't start this OBU in this packet
+                        lastIsFragmented = true
+                    }
+                } else {
+                    // Continuation of a previous OBU: no header/OBU-LEB in this fragment
+                    fun lebLen(x: Int): Int {
+                        var v = x
+                        var n = 0
+                        do { n++; v = v ushr 7 } while (v != 0)
+                        return n
+                    }
+                    val remainInObu = totalLen - offsetInObu
+                    var maxData = remaining - 1
+                    if (maxData <= 0) break
+                    toCopy = if (remainInObu + lebLen(remainInObu) <= remaining) remainInObu else maxData
+                    while (toCopy > 0 && (lebLen(toCopy) + toCopy > remaining)) toCopy--
+                    if (toCopy <= 0) break
+                    if (toCopy < remainInObu) lastIsFragmented = true
+                }
+
+                // Append element and update counters (single element per packet policy)
+                elems.add(Elem(obuIndex, offsetInObu, toCopy, isContinuation = (offsetInObu > 0)))
+                remaining = 0 // force one element per RTP packet
+
+                if (offsetInObu + toCopy >= full.size) {
+                    // Finished this OBU
                     obuIndex++
                     offsetInObu = 0
                 } else {
-                    // Current OBU didn't fit completely; stop to avoid splitting LEB128/header across packets (we started at 0)
+                    // Fragmented OBU; do not place more elements in this packet to keep Y semantics simple
+                    offsetInObu += toCopy
+                    lastIsFragmented = true
                     break
                 }
             }
 
-            if (startingWithContinuation && newObuCount > 0) {
-                // If packet starts mid-OBU, first OBU didn't start here; adjust count
-                newObuCount--
-            }
-            // Cap W to 3
-            val w = newObuCount.coerceIn(0, 3)
+            if (elems.isEmpty()) break
 
-            val size = bufferPayload.size
-            val out = getBuffer(size + RTP_HEADER_LENGTH + 1)
+            // Compute total size: 1 (agg hdr) + sum(LEB(len) + len) for W=0 (length-present)
+            val payloadSize = elems.sumOf { lebLenInt(it.len) + it.len }
+            val out = getBuffer(payloadSize + RTP_HEADER_LENGTH + 1)
             val rtpTs = updateTimeStamp(out, ts)
-            for (i in 0 until size) out[RTP_HEADER_LENGTH + 1 + i] = bufferPayload[i]
 
-            val isLast = (obuIndex >= obuBytes.size && offsetInObu == 0)
+            // Aggregation header: Z,Y,W(=0 -> single element, length present),N
+            val z = if (startingWithContinuation) 1 else 0
+            val y = if (lastIsFragmented) 1 else 0
+            val w = 0 // single element; length present via LEB
+            val n = if (mediaFrame.info.isKeyFrame && firstPacket) 1 else 0
+            out[RTP_HEADER_LENGTH] = (((z shl 7) or (y shl 6) or (w shl 4) or (n shl 3))).toByte()
+
+            // Write per-element LEB length followed by element bytes (W=0)
+            var pos = RTP_HEADER_LENGTH + 1
+            for (e in elems) {
+                val leb = writeLeb128(e.len.toLong())
+                for (i in leb.indices) out[pos + i] = leb[i]
+                pos += leb.size
+                val fullBytes = listForPacket[e.idx]
+                for (i in 0 until e.len) {
+                    out[pos + i] = fullBytes[e.start + i]
+                }
+                pos += e.len
+            }
+
+            val isLast = (obuIndex >= listForPacket.size && offsetInObu == 0)
             if (isLast) markPacket(out)
-
-            out[RTP_HEADER_LENGTH] = generateAv1AggregationHeader(mediaFrame.info.isKeyFrame, firstPacket, isLast, w)
             updateSeq(out)
             frames.add(RtpFrame.Video(out, rtpTs, out.size))
 
@@ -252,5 +337,33 @@ internal class Av1Packet : BaseRtpPacket(VIDEO_CLOCK_FREQUENCY, PAYLOAD_TYPE) {
         val bytes = ByteArray(duplicateBuffer.remaining())
         duplicateBuffer.get(bytes)
         return bytes
+    }
+
+    // Sequence header support (optional injection on keyframes)
+    private var seqHeaderWire: ByteArray? = null
+    private var seqHeaderHeaderLen: Int = 0
+
+    fun setSequenceHeader(obuFull: ByteArray) {
+        if (obuFull.isEmpty()) return
+        // Parse header length (1 or 2 bytes depending on extension flag)
+        val containExtended = ((obuFull[0].toInt() ushr 2) and 0x01) == 1
+        val hdrLen = if (containExtended && obuFull.size >= 2) 2 else 1
+        // Parse LEB size field right after header (up to 8 bytes)
+        var idx = hdrLen
+        var lebBytes = 0
+        while (idx < obuFull.size) {
+            lebBytes++
+            val b = obuFull[idx]
+            idx++
+            if ((b.toInt() and 0x80) == 0) break
+            if (lebBytes >= 8) break
+        }
+        val header = obuFull.copyOfRange(0, hdrLen)
+        // AV1 OBU header (wire form): clear forbidden (bit7), has_size_field (bit1) and reserved (bit0)
+        header[0] = (header[0].toInt() and 0x7C).toByte()
+        val payloadStart = hdrLen + lebBytes
+        val payload = if (payloadStart <= obuFull.size) obuFull.copyOfRange(payloadStart, obuFull.size) else byteArrayOf()
+        seqHeaderWire = header + payload
+        seqHeaderHeaderLen = header.size
     }
 }

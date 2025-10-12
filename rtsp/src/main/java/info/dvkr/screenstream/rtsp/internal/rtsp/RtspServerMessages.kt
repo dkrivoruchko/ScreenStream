@@ -1,5 +1,7 @@
 package info.dvkr.screenstream.rtsp.internal.rtsp
 
+import info.dvkr.screenstream.rtsp.internal.rtsp.core.ResponseBuilder
+import info.dvkr.screenstream.rtsp.internal.rtsp.core.TransportHeader
 import info.dvkr.screenstream.rtsp.internal.rtsp.sdp.SdpBuilder
 import kotlin.math.max
 
@@ -27,83 +29,72 @@ internal class RtspServerMessages(appVersion: String, host: String, port: Int, p
         extractSessionHeader(request)
 
     internal fun parseClientPorts(transport: String): Pair<Int, Int>? =
-        CLIENT_PORT_REGEX.find(transport)?.destructured?.let { (rtp, rtcp) ->
-            rtp.toIntOrNull() to rtcp.toIntOrNull()
-        }?.takeIf { it.first != null && it.second != null }?.let { it.first!! to it.second!! }
+        TransportHeader.parse(transport)?.clientPorts
 
-    internal fun createOptionsResponse(cSeq: Int): String = buildString {
-        append("RTSP/1.0 200 OK\r\n")
-        append("CSeq: $cSeq\r\n")
-        append("Public: DESCRIBE, SETUP, TEARDOWN, PLAY, PAUSE, GET_PARAMETER\r\n")
-        append("\r\n")
-    }
+    internal fun createOptionsResponse(cSeq: Int): String =
+        ResponseBuilder.ok()
+            .header("CSeq", cSeq.toString())
+            .header("Public", "DESCRIBE, SETUP, TEARDOWN, PLAY, PAUSE, GET_PARAMETER")
+            .build()
 
     internal fun createDescribeResponse(cSeq: Int, videoParams: RtspClient.VideoParams, audioParams: RtspClient.AudioParams?): String {
         val sdp = SdpBuilder().createSdpBody(videoParams, audioParams, sdpSessionId)
-        val len = sdp.toByteArray(Charsets.US_ASCII).size
-        return buildString {
-            append("RTSP/1.0 200 OK\r\n")
-            append("CSeq: $cSeq\r\n")
-            append("Content-Base: rtsp://$host:$port$path/\r\n")
-            append("Content-Type: application/sdp\r\n")
-            append("Content-Length: $len\r\n")
-            append("\r\n")
-            append(sdp)
-        }
+        return ResponseBuilder.ok()
+            .header("CSeq", cSeq.toString())
+            .header("Content-Base", "rtsp://$host:$port$path/")
+            .header("Content-Type", "application/sdp")
+            .bodyAscii(sdp)
+            .build()
     }
 
-    internal fun createSetupResponse(cSeq: Int, transport: String, serverRtpPort: Int, serverRtcpPort: Int, sessionId: String): String =
-        buildString {
-            append("RTSP/1.0 200 OK\r\n")
-            append("CSeq: $cSeq\r\n")
-            val newTransport = if (transport.contains("client_port")) "$transport;server_port=$serverRtpPort-$serverRtcpPort" else transport
-            append("Transport: $newTransport\r\n")
-            append("Session: $sessionId\r\n")
-            append("Cache-Control: no-cache\r\n")
-            append("\r\n")
-        }
+    internal fun createSetupResponse(cSeq: Int, transport: String, serverRtpPort: Int, serverRtcpPort: Int, sessionId: String): String {
+        val parsed = TransportHeader.parse(transport)
+        val value = if (parsed?.clientPorts != null) parsed.withServerPorts(serverRtpPort, serverRtcpPort).toString() else transport
+        return ResponseBuilder.ok()
+            .header("CSeq", cSeq.toString())
+            .header("Transport", value)
+            .header("Session", sessionId)
+            .header("Cache-Control", "no-cache")
+            .build()
+    }
 
-    internal fun createPlayResponse(cSeq: Int, sessionId: String, trackInfo: Map<Int, PlayTrackInfo>): String = buildString {
-        append("RTSP/1.0 200 OK\r\n")
-        append("CSeq: $cSeq\r\n")
-        append("Session: $sessionId\r\n")
-        append("Range: npt=0.000-\r\n")
+    internal fun createPlayResponse(cSeq: Int, sessionId: String, trackInfo: Map<Int, PlayTrackInfo>): String {
         val rtpInfo = trackInfo.toSortedMap().entries.joinToString(",") { (tid, info) ->
             "url=rtsp://$host:$port$path/trackID=$tid;seq=${max(0, info.seq)};rtptime=${info.rtptime}"
         }
-        append("RTP-Info: ").append(rtpInfo).append("\r\n")
-        append("\r\n")
+        return ResponseBuilder.ok()
+            .header("CSeq", cSeq.toString())
+            .header("Session", sessionId)
+            .header("Range", "npt=0.000-")
+            .header("RTP-Info", rtpInfo)
+            .build()
     }
 
-    internal fun createPauseResponse(cSeq: Int, sessionId: String): String = buildString {
-        append("RTSP/1.0 200 OK\r\n")
-        append("CSeq: $cSeq\r\n")
-        append("Session: $sessionId\r\n")
-        append("\r\n")
-    }
+    internal fun createPauseResponse(cSeq: Int, sessionId: String): String =
+        ResponseBuilder.ok()
+            .header("CSeq", cSeq.toString())
+            .header("Session", sessionId)
+            .build()
 
-    internal fun createTeardownResponse(cSeq: Int, sessionId: String): String = buildString {
-        append("RTSP/1.0 200 OK\r\n")
-        append("CSeq: $cSeq\r\n")
-        append("Session: $sessionId\r\n")
-        append("\r\n")
-    }
+    internal fun createTeardownResponse(cSeq: Int, sessionId: String): String =
+        ResponseBuilder.ok()
+            .header("CSeq", cSeq.toString())
+            .header("Session", sessionId)
+            .build()
 
-    internal fun createGetParameterResponse(cSeq: Int, sessionId: String): String = buildString {
-        append("RTSP/1.0 200 OK\r\n")
-        append("CSeq: $cSeq\r\n")
-        if (sessionId.isNotBlank()) append("Session: $sessionId\r\n")
-        append("\r\n")
-    }
+    internal fun createGetParameterResponse(cSeq: Int, sessionId: String): String =
+        ResponseBuilder.ok()
+            .header("CSeq", cSeq.toString())
+            .apply { if (sessionId.isNotBlank()) header("Session", sessionId) }
+            .build()
 
-    internal fun createServiceUnavailableResponse(cSeq: Int, retryAfterSeconds: Int = 2): String = buildString {
-        append("RTSP/1.0 503 Service Unavailable\r\n")
-        append("CSeq: $cSeq\r\n")
-        append("Retry-After: $retryAfterSeconds\r\n")
-        append("\r\n")
-    }
+    internal fun createServiceUnavailableResponse(cSeq: Int, retryAfterSeconds: Int = 2): String =
+        ResponseBuilder.error(503, "Service Unavailable")
+            .header("CSeq", cSeq.toString())
+            .header("Retry-After", retryAfterSeconds.toString())
+            .build()
 
-    internal fun createErrorResponse(code: Int, cSeq: Int): String = buildString {
+    internal fun createErrorResponse(code: Int, cSeq: Int): String {
         val status = when (code) {
             400 -> "Bad Request"
             401 -> "Unauthorized"
@@ -113,8 +104,8 @@ internal class RtspServerMessages(appVersion: String, host: String, port: Int, p
             500 -> "Internal Server Error"
             else -> "Unknown Error"
         }
-        append("RTSP/1.0 $code $status\r\n")
-        append("CSeq: $cSeq\r\n")
-        append("\r\n")
+        return ResponseBuilder.error(code, status)
+            .header("CSeq", cSeq.toString())
+            .build()
     }
 }

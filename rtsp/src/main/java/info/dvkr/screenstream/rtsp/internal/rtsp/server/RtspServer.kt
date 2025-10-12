@@ -176,4 +176,11 @@ internal class RtspServer(
         }
         onEvent(event)
     }
+
+    // Expose client statistics to the service/UI layer
+    fun getClientStatsFlows(): List<kotlinx.coroutines.flow.StateFlow<ClientStats>> =
+        synchronized(rtspServerConnections) { rtspServerConnections.map { it.stats } }
+
+    fun getClientStatsSnapshot(): List<ClientStats> =
+        synchronized(rtspServerConnections) { rtspServerConnections.map { it.stats.value } }
 }

@@ -8,6 +8,7 @@ import info.dvkr.screenstream.rtsp.internal.AudioCodecInfo
 import info.dvkr.screenstream.rtsp.internal.Protocol
 import info.dvkr.screenstream.rtsp.internal.VideoCodecInfo
 import info.dvkr.screenstream.rtsp.settings.RtspSettings
+import info.dvkr.screenstream.rtsp.internal.rtsp.server.ClientStats
 
 @Immutable
 internal data class RtspState(
@@ -17,10 +18,11 @@ internal data class RtspState(
     val selectedVideoEncoder: VideoCodecInfo? = null,
     val selectedAudioEncoder: AudioCodecInfo? = null,
     val transport: RtspTransportState = RtspTransportState(),
+    val serverClientStats: List<ClientStats> = emptyList(),
     val error: RtspError? = null
 ) {
     override fun toString(): String =
-        "RtspState(isBusy=$isBusy, wCP=$waitingCastPermission, isStreaming=$isStreaming, transport=$transport, error=$error)"
+        "RtspState(isBusy=$isBusy, wCP=$waitingCastPermission, isStreaming=$isStreaming, transport=$transport, clients=${serverClientStats.size}, error=$error)"
 }
 
 @Immutable

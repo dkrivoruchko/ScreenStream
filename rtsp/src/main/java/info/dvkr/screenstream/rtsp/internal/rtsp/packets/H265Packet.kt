@@ -3,7 +3,6 @@ package info.dvkr.screenstream.rtsp.internal.rtsp.packets
 import info.dvkr.screenstream.rtsp.internal.MediaFrame
 import info.dvkr.screenstream.rtsp.internal.RtpFrame
 import java.nio.ByteBuffer
-import kotlin.experimental.and
 
 internal class H265Packet : BaseRtpPacket(VIDEO_CLOCK_FREQUENCY, PAYLOAD_TYPE) {
 
@@ -77,77 +76,98 @@ internal class H265Packet : BaseRtpPacket(VIDEO_CLOCK_FREQUENCY, PAYLOAD_TYPE) {
         if (fixedBuffer.getVideoStartCodeSize() == 0) {
             convertHvccToAnnexB(fixedBuffer)?.let { fixedBuffer = it }
         }
-        val header = ByteArray(fixedBuffer.getVideoStartCodeSize() + 2)
-        if (header.size == 2) return emptyList()
 
-        fixedBuffer.get(header, 0, header.size)
+        // If still no start code, we can't safely packetize
+        if (fixedBuffer.remaining() < 4 && fixedBuffer.getVideoStartCodeSize() == 0) return emptyList()
+
         val ts = mediaFrame.info.timestamp * 1000L
-        val naluLength = fixedBuffer.remaining()
-
-        val type = ((header[header.size - 2].toInt() shr 1) and 0x3F)
-
         val frames = mutableListOf<RtpFrame>()
 
-        val isParamNal = (type == 32 /*VPS*/ || type == 33 /*SPS*/ || type == 34 /*PPS*/)
-        if (((type == IDR_W_DLP) || (type == IDR_N_LP) || mediaFrame.info.isKeyFrame || forceParamsOnce) && (!isParamNal)) {
-            listOfNotNull(vps, sps, pps).forEach { nal ->
-                val buffer = getBuffer(nal.size + RTP_HEADER_LENGTH)
-                val rtpTs = updateTimeStamp(buffer, ts)
-                System.arraycopy(nal, 0, buffer, RTP_HEADER_LENGTH, nal.size)
-                updateSeq(buffer)
-                frames.add(RtpFrame.Video(buffer, rtpTs, buffer.size))
+        var paramsInjectedForThisAu = false
+        var audForThisAuSent = false
+
+        // Iterate through Annex‑B NAL units within this access unit
+        var slice = fixedBuffer.slice()
+        while (slice.remaining() > 0) {
+            val startCodeSize = slice.getStartCodeSizeAtPos()
+            if (startCodeSize == 0) {
+                // No further start codes: treat the remainder as a single NAL
+                val startPos = slice.position()
+                if (slice.remaining() < 2) break
+                val header0 = slice.get(startPos).toInt() and 0xFF
+                val nalType = (header0 shr 1) and 0x3F
+                val isParamNal = (nalType == 32 || nalType == 33 || nalType == 34)
+
+                if (!audForThisAuSent) {
+                    // Insert HEVC AUD (NAL type 35) to help delimiting access units over TCP
+                    val aud = byteArrayOf(((35 and 0x3F) shl 1).toByte(), 0x01, 0x80.toByte())
+                    val b = getBuffer(aud.size + RTP_HEADER_LENGTH)
+                    val rtpTs = updateTimeStamp(b, ts)
+                    updateSeq(b)
+                    System.arraycopy(aud, 0, b, RTP_HEADER_LENGTH, aud.size)
+                    frames.add(RtpFrame.Video(b, rtpTs, b.size))
+                }
+
+                if (((nalType == IDR_W_DLP) || (nalType == IDR_N_LP) || mediaFrame.info.isKeyFrame || forceParamsOnce) && !isParamNal && !paramsInjectedForThisAu) {
+                    listOfNotNull(vps, sps, pps).forEach { nal ->
+                        val b = getBuffer(nal.size + RTP_HEADER_LENGTH)
+                        val rtpTs = updateTimeStamp(b, ts)
+                        System.arraycopy(nal, 0, b, RTP_HEADER_LENGTH, nal.size)
+                        updateSeq(b)
+                        frames.add(RtpFrame.Video(b, rtpTs, b.size))
+                    }
+                    sendKeyFrame = true
+                    if (forceParamsOnce) forceParamsOnce = false
+                }
+
+                val naluLen = slice.remaining()
+                packetizeHevcNal(slice, startPos, naluLen, ts, frames, markLast = true)
+                slice.position(startPos + naluLen)
+                break
             }
-            sendKeyFrame = true
-            if (forceParamsOnce) forceParamsOnce = false
+
+            val startPos = slice.position() + startCodeSize
+            if (startPos >= slice.limit()) break
+
+            // Find the next start code to delimit this NAL
+            val search = slice.duplicate().apply { position(startPos) }
+            val next = findNextStartCodeIndex(search)
+            val naluLen = next?.first ?: (slice.limit() - startPos)
+
+            // Injection of VPS/SPS/PPS once per AU before first non-parameter NAL if requested
+            val header0 = slice.get(startPos).toInt() and 0xFF
+            val nalType = (header0 shr 1) and 0x3F
+            val isParamNal = (nalType == 32 || nalType == 33 || nalType == 34)
+            if (!audForThisAuSent) {
+                val aud = byteArrayOf(((35 and 0x3F) shl 1).toByte(), 0x01, 0x80.toByte())
+                val b = getBuffer(aud.size + RTP_HEADER_LENGTH)
+                val rtpTs = updateTimeStamp(b, ts)
+                updateSeq(b)
+                System.arraycopy(aud, 0, b, RTP_HEADER_LENGTH, aud.size)
+                frames.add(RtpFrame.Video(b, rtpTs, b.size))
+                audForThisAuSent = true
+            }
+            if (((nalType == IDR_W_DLP) || (nalType == IDR_N_LP) || mediaFrame.info.isKeyFrame || forceParamsOnce) && !isParamNal && !paramsInjectedForThisAu) {
+                listOfNotNull(vps, sps, pps).forEach { nal ->
+                    val b = getBuffer(nal.size + RTP_HEADER_LENGTH)
+                    val rtpTs = updateTimeStamp(b, ts)
+                    System.arraycopy(nal, 0, b, RTP_HEADER_LENGTH, nal.size)
+                    updateSeq(b)
+                    frames.add(RtpFrame.Video(b, rtpTs, b.size))
+                }
+                sendKeyFrame = true
+                paramsInjectedForThisAu = true
+                if (forceParamsOnce) forceParamsOnce = false
+            }
+
+            val isLastNal = (next == null)
+            packetizeHevcNal(slice, startPos, naluLen, ts, frames, markLast = isLastNal)
+
+            // Advance to next NAL start (position after this NAL and before next start code)
+            slice.position(startPos + naluLen)
+            if (isLastNal) break
         }
 
-
-        if (naluLength <= MAX_PACKET_SIZE - RTP_HEADER_LENGTH - 2) {
-            val buffer = getBuffer(naluLength + RTP_HEADER_LENGTH + 2)
-
-            buffer[RTP_HEADER_LENGTH] = header[header.size - 2]
-            buffer[RTP_HEADER_LENGTH + 1] = header[header.size - 1]
-            fixedBuffer.get(buffer, RTP_HEADER_LENGTH + 2, naluLength)
-
-            val rtpTs = updateTimeStamp(buffer, ts)
-            markPacket(buffer)
-            updateSeq(buffer)
-
-            frames.add(RtpFrame.Video(buffer, rtpTs, buffer.size))
-        } else {
-            header[0] = (49 shl 1).toByte()
-            header[1] = 1
-            header[2] = type.toByte()
-            header[2] = header[2].plus(0x80).toByte()
-
-            var sum = 0
-            while (sum < naluLength) {
-                val length = if (naluLength - sum > MAX_PACKET_SIZE - RTP_HEADER_LENGTH - 3) {
-                    MAX_PACKET_SIZE - RTP_HEADER_LENGTH - 3
-                } else {
-                    fixedBuffer.remaining()
-                }
-                val buffer = getBuffer(length + RTP_HEADER_LENGTH + 3)
-
-                buffer[RTP_HEADER_LENGTH] = header[0]
-                buffer[RTP_HEADER_LENGTH + 1] = header[1]
-                buffer[RTP_HEADER_LENGTH + 2] = header[2]
-
-                val rtpTs = updateTimeStamp(buffer, ts)
-                fixedBuffer.get(buffer, RTP_HEADER_LENGTH + 3, length)
-                sum += length
-
-                if (sum >= naluLength) {
-                    buffer[RTP_HEADER_LENGTH + 2] = buffer[RTP_HEADER_LENGTH + 2].plus(0x40).toByte() // set E bit
-                    markPacket(buffer)
-                }
-                updateSeq(buffer)
-
-                frames.add(RtpFrame.Video(buffer, rtpTs, buffer.size))
-
-                header[2] = header[2] and 0x7F
-            }
-        }
         return frames
     }
 
@@ -155,6 +175,91 @@ internal class H265Packet : BaseRtpPacket(VIDEO_CLOCK_FREQUENCY, PAYLOAD_TYPE) {
         get(0) == 0x00.toByte() && get(1) == 0x00.toByte() && get(2) == 0x00.toByte() && get(3) == 0x01.toByte() -> 4
         get(0) == 0x00.toByte() && get(1) == 0x00.toByte() && get(2) == 0x01.toByte() -> 3
         else -> 0
+    }
+
+    private fun ByteBuffer.getStartCodeSizeAtPos(): Int {
+        val p = position()
+        val rem = remaining()
+        return when {
+            rem >= 4 && get(p) == 0x00.toByte() && get(p + 1) == 0x00.toByte() && get(p + 2) == 0x00.toByte() && get(p + 3) == 0x01.toByte() -> 4
+            rem >= 3 && get(p) == 0x00.toByte() && get(p + 1) == 0x00.toByte() && get(p + 2) == 0x01.toByte() -> 3
+            else -> 0
+        }
+    }
+
+    private fun findNextStartCodeIndex(buffer: ByteBuffer): Pair<Int, Int>? {
+        val dup = buffer.duplicate()
+        val limit = dup.limit()
+        var i = dup.position()
+        val end = limit - 3
+        while (i < end) {
+            if (dup.get(i).toInt() == 0 && dup.get(i + 1).toInt() == 0) {
+                if (dup.get(i + 2).toInt() == 1) return (i - dup.position()) to 3
+                if (i + 3 < limit && dup.get(i + 2).toInt() == 0 && dup.get(i + 3).toInt() == 1) return (i - dup.position()) to 4
+            }
+            i++
+        }
+        return null
+    }
+
+    private fun packetizeHevcNal(
+        base: ByteBuffer,
+        startPos: Int,
+        naluLen: Int,
+        ts: Long,
+        out: MutableList<RtpFrame>,
+        markLast: Boolean
+    ) {
+        // The NAL length includes the 2-byte HEVC NAL header
+        val maxPayloadSingle = MAX_PACKET_SIZE - RTP_HEADER_LENGTH
+        if (naluLen <= maxPayloadSingle) {
+            val buffer = getBuffer(naluLen + RTP_HEADER_LENGTH)
+            val dup = base.duplicate()
+            dup.limit(startPos + naluLen)
+            dup.position(startPos)
+            dup.get(buffer, RTP_HEADER_LENGTH, naluLen)
+            val rtpTs = updateTimeStamp(buffer, ts)
+            updateSeq(buffer)
+            if (markLast) markPacket(buffer)
+            out.add(RtpFrame.Video(buffer, rtpTs, buffer.size))
+            return
+        }
+
+        // FU fragmentation (RFC 7798)
+        val nalHeader0 = base.get(startPos).toInt() and 0xFF
+        val nalHeader1 = base.get(startPos + 1).toInt() and 0xFF
+        val nalType = (nalHeader0 shr 1) and 0x3F
+
+        val fuIndicator0 = (((49 and 0x3F) shl 1) or (nalHeader0 and 0x81)).toByte() // replace type with 49, keep F and reserved bits
+        val fuIndicator1 = nalHeader1.toByte() // preserve nuh_layer_id and nuh_temporal_id_plus1
+
+        val maxFrag = MAX_PACKET_SIZE - RTP_HEADER_LENGTH - 3
+        var offset = 2 // skip original 2-byte NAL header
+        var first = true
+        while (offset < naluLen) {
+            val remaining = naluLen - offset
+            val chunk = if (remaining > maxFrag) maxFrag else remaining
+            val buffer = getBuffer(chunk + RTP_HEADER_LENGTH + 3)
+            buffer[RTP_HEADER_LENGTH] = fuIndicator0
+            buffer[RTP_HEADER_LENGTH + 1] = fuIndicator1
+            var fuHeader = (nalType and 0x3F).toByte()
+            if (first) fuHeader = (fuHeader.toInt() or 0x80).toByte() // S bit
+            if (remaining <= maxFrag) fuHeader = (fuHeader.toInt() or 0x40).toByte() // E bit on last fragment of this NAL
+            buffer[RTP_HEADER_LENGTH + 2] = fuHeader
+
+            val rtpTs = updateTimeStamp(buffer, ts)
+
+            val dup = base.duplicate()
+            dup.limit(startPos + offset + chunk)
+            dup.position(startPos + offset)
+            dup.get(buffer, RTP_HEADER_LENGTH + 3, chunk)
+            offset += chunk
+
+            if (remaining <= maxFrag && markLast) markPacket(buffer)
+            updateSeq(buffer)
+            out.add(RtpFrame.Video(buffer, rtpTs, buffer.size))
+            first = false
+        }
     }
 
     // Converts a length-prefixed HEVC stream (HVCC) to Annex-B start code delimited stream.

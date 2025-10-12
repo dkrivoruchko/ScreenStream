@@ -31,6 +31,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.StateFlow
 import java.nio.ByteBuffer
 import java.security.SecureRandom
 import java.util.concurrent.atomic.AtomicReference
@@ -46,6 +47,15 @@ internal class RtspServerConnection(
     private val scope: CoroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     private val TRACK_ID_REGEX = Regex("trackID=(\\d+)")
+
+    private sealed interface State {
+        data object Init : State
+        data object Ready : State
+        data object Playing : State
+        data object Closed : State
+    }
+
+    private var state: State = State.Init
 
     private var protocol: Protocol = Protocol.TCP
     private var sessionId: String = SecureRandom().nextInt().toString(16)
@@ -76,15 +86,23 @@ internal class RtspServerConnection(
     private var videoWriterJob: Job? = null
     private var audioWriterJob: Job? = null
     
-    private var lastSpsPpsInjectNs: Long = 0L
+    private val paramInjector = ParamInjector()
     private var waitingForKeyframe: Boolean = false
     private var rtpTransport: RtpTransport? = null
 
     // Per-client queues
     private val videoQueue = kotlinx.coroutines.channels.Channel<VideoBlob>(capacity = 32)
     private val audioQueue = kotlinx.coroutines.channels.Channel<AudioBlob>(capacity = 64)
-
-    // Metrics removed (keep behaviour minimal)
+    
+    // Per-client statistics
+    private val statsReporter = ClientStatsReporter(
+        sessionId = sessionId,
+        remoteHost = tcpStreamSocket.remoteHost,
+        protocol = protocol,
+        queueCapVideo = 32,
+        queueCapAudio = 64
+    )
+    internal val stats: StateFlow<ClientStats> = statsReporter.stats
 
     internal fun enqueueVideo(blob: VideoBlob): Boolean {
         // Prefer dropping non-key frames if full; if keyframe, try to clear and accept
@@ -94,11 +112,14 @@ internal class RtspServerConnection(
                 while (videoQueue.tryReceive().isSuccess) { /* drain */
                 }
                 val ok = videoQueue.trySend(blob).isSuccess
+                if (!ok) statsReporter.onVideoDrop() else statsReporter.onVideoEnqueue()
                 return ok
             } else {
+                statsReporter.onVideoDrop()
                 return false
             }
         } else {
+            statsReporter.onVideoEnqueue()
             return true
         }
     }
@@ -109,9 +130,11 @@ internal class RtspServerConnection(
             // Drop oldest and try again
             audioQueue.tryReceive().getOrNull()
             if (!audioQueue.trySend(blob).isSuccess) {
+                statsReporter.onAudioDrop()
                 return false
             }
         }
+        statsReporter.onAudioEnqueue()
         return true
     }
 
@@ -162,6 +185,7 @@ internal class RtspServerConnection(
                     if (transport.contains("TCP", ignoreCase = true)) {
                         // Accept TCP even if preferred protocol is UDP to maximize compatibility
                         protocol = Protocol.TCP
+                        statsReporter.setProtocol(protocol)
                         val inter = Regex("interleaved=([0-9]+)-([0-9]+)").find(transport)?.destructured
                         val ch = inter?.let { (a, b) -> a.toInt() to b.toInt() } ?: ((trackId shl 1) to ((trackId shl 1) + 1))
                         if (trackId == RtpFrame.VIDEO_TRACK_ID) videoCh = ch else audioCh = ch
@@ -181,6 +205,7 @@ internal class RtspServerConnection(
                     } else if (transport.contains("UDP", ignoreCase = true)) {
                         // Accept UDP even if preferred protocol is TCP
                         protocol = Protocol.UDP
+                        statsReporter.setProtocol(protocol)
                         val clientPorts = commandsManager.parseClientPorts(transport)
                         if (clientPorts == null) {
                             tcpStreamSocket.withLock { writeAndFlush(commandsManager.createErrorResponse(400, cSeq)) }
@@ -275,10 +300,12 @@ internal class RtspServerConnection(
 
                     // Enable streaming after sending the PLAY response
                     isStreaming = true
+                    state = State.Playing
                 }
 
                 RtspServerMessages.Method.PAUSE -> tcpStreamSocket.withLock {
                     isStreaming = false
+                    state = State.Ready
                     rtcpReporter?.close()
                     rtcpReporter = null
                     writeAndFlush(commandsManager.createPauseResponse(cSeq, sessionId))
@@ -325,22 +352,17 @@ internal class RtspServerConnection(
             val info = MediaFrame.Info(offset = 0, size = blob.length, timestamp = blob.timestampUs, isKeyFrame = blob.isKeyFrame)
             val frame = MediaFrame.VideoFrame(buffer, info) {}
 
-            // Periodically prepend SPS/PPS (STAP‑A) even on non‑IDR to help resync strict players.
-            if (PacketizationConfig.paramReinjectionEnabled && !blob.isKeyFrame) {
-                val now = System.nanoTime()
-                val intervalNs = PacketizationConfig.reinjectParamsIntervalSec.toLong() * 1_000_000_000L
-                if (now - lastSpsPpsInjectNs > intervalNs) { // configurable
-                    when (val vp = videoPacketizer) {
-                        is H264Packet -> vp.forceStapAOnce()
-                        is H265Packet -> vp.forceParamsOnce()
-                    }
-                    lastSpsPpsInjectNs = now
-                }
+            // Periodically prepend VPS/SPS/PPS on non‑IDR to help resync strict players.
+            when (val vp = videoPacketizer) {
+                is H264Packet -> paramInjector.maybeInjectForH264(vp, blob.isKeyFrame)
+                is H265Packet -> paramInjector.maybeInjectForH265(vp, blob.isKeyFrame)
             }
 
             val packets = videoPacketizer!!.createPacket(frame)
             try {
                 sendPackets(RtpFrame.VIDEO_TRACK_ID, packets)
+                val bytes = packets.sumOf { it.length }
+                statsReporter.onVideoSent(packets.size, bytes)
             } catch (t: Throwable) {
                 break
             }
@@ -368,6 +390,8 @@ internal class RtspServerConnection(
             val packets = audioPacketizer!!.createPacket(frame)
             try {
                 sendPackets(RtpFrame.AUDIO_TRACK_ID, packets)
+                val bytes = packets.sumOf { it.length }
+                statsReporter.onAudioSent(packets.size, bytes)
             } catch (t: Throwable) {
                 break
             }
@@ -409,6 +433,7 @@ internal class RtspServerConnection(
         }
 
         scope.cancel()
+        state = State.Closed
         onEvent(RtspStreamingService.InternalEvent.RtspServerOnClientDisconnected(this))
     }
 
@@ -421,7 +446,7 @@ internal class RtspServerConnection(
         videoPacketizer = when (v.codec) {
             Codec.Video.H264 -> H264Packet().apply { setVideoInfo(v.sps, v.pps!!) }
             Codec.Video.H265 -> H265Packet().apply { setVideoInfo(v.sps, v.pps!!, v.vps!!) }
-            Codec.Video.AV1 -> Av1Packet()
+            Codec.Video.AV1 -> Av1Packet().apply { setSequenceHeader(v.sps) }
         }.apply {
             videoSsrc = SecureRandom().nextLong()
             setSSRC(videoSsrc)

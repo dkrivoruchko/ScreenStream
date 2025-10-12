@@ -50,6 +50,9 @@ internal class SdpBuilder {
         val payload = OpusPacket.PAYLOAD_TYPE + trackAudio
         append("m=audio 0 RTP/AVP $payload\r\n")
         append("a=rtpmap:$payload OPUS/48000/2\r\n")
+        // RFC 7587 declarative SDP parameters to help some clients (e.g., GStreamer)
+        append("a=fmtp:$payload sprop-stereo=1; maxplaybackrate=48000; sprop-maxcapturerate=48000\r\n")
+        append("a=ptime:20\r\n")
         append("a=control:trackID=$trackAudio\r\n")
     }
 
@@ -67,10 +70,11 @@ internal class SdpBuilder {
         val payload = AacPacket.PAYLOAD_TYPE + trackAudio
         return buildString {
             append("m=audio 0 RTP/AVP $payload\r\n")
-            append("a=rtpmap:$payload MPEG4-GENERIC/$sampleRate/$channels\r\n")
-            append("a=fmtp:$payload profile-level-id=1; mode=AAC-hbr; config=")
+            // RFC 3640 (mpeg4-generic) AAC-LC, one AU per RTP, size+index header (16 bits)
+            append("a=rtpmap:$payload mpeg4-generic/$sampleRate/$channels\r\n")
+            append("a=fmtp:$payload streamtype=5; profile-level-id=16; mode=AAC-hbr; config=")
             append(java.lang.String.format("%04x", config))
-            append("; sizelength=13; indexlength=3; indexdeltalength=3\r\n")
+            append("; sizeLength=13; indexLength=3; indexDeltaLength=3; constantDuration=1024\r\n")
             append("a=control:trackID=$trackAudio\r\n")
         }
     }

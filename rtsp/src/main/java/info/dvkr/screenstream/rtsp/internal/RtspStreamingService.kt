@@ -35,8 +35,8 @@ import info.dvkr.screenstream.rtsp.internal.rtsp.server.RtspServerConnection
 import info.dvkr.screenstream.rtsp.internal.video.VideoEncoder
 import info.dvkr.screenstream.rtsp.settings.RtspSettings
 import info.dvkr.screenstream.rtsp.ui.ConnectionError
-import info.dvkr.screenstream.rtsp.ui.RtspError
 import info.dvkr.screenstream.rtsp.ui.RtspBinding
+import info.dvkr.screenstream.rtsp.ui.RtspError
 import info.dvkr.screenstream.rtsp.ui.RtspState
 import info.dvkr.screenstream.rtsp.ui.RtspTransportState
 import kotlinx.coroutines.CompletableJob
@@ -53,6 +53,8 @@ import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeoutOrNull
 import java.net.URISyntaxException
@@ -93,6 +95,7 @@ internal class RtspStreamingService(
     private var currentError: RtspError? = null
     private var previousError: RtspError? = null
     private var netInterfaces: List<info.dvkr.screenstream.rtsp.internal.rtsp.server.RtspNetInterface> = emptyList()
+    private var statsHeartbeatJob: Job? = null
     // All vars must be read/write on this (RTSP_HT) thread
 
     private fun currentBindings(): List<RtspBinding> {
@@ -309,15 +312,19 @@ internal class RtspStreamingService(
             }
             val resolvedStatus = when {
                 currentError != null && statusForState !is RtspTransportState.Status.ClientError &&
-                    statusForState !is RtspTransportState.Status.GenericError ->
+                        statusForState !is RtspTransportState.Status.GenericError ->
                     RtspTransportState.Status.GenericError(currentError!!)
 
                 else -> statusForState
             }
 
+            val clientStatsSnapshot = if (rtspSettings.data.value.mode == RtspSettings.Values.Mode.SERVER) {
+                rtspServer?.getClientStatsSnapshot().orEmpty()
+            } else emptyList()
+
             mutableRtspStateFlow.value = RtspState(
                 isBusy = destroyPending || waitingForPermission || currentError != null ||
-                    resolvedStatus is RtspTransportState.Status.Starting,
+                        resolvedStatus is RtspTransportState.Status.Starting,
                 waitingCastPermission = waitingForPermission,
                 isStreaming = isStreaming,
                 selectedVideoEncoder = selectedVideoEncoderInfo,
@@ -327,6 +334,7 @@ internal class RtspStreamingService(
                     protocol = runCatching { Protocol.valueOf(settingsSnapshot.protocol) }.getOrDefault(Protocol.TCP),
                     status = resolvedStatus
                 ),
+                serverClientStats = clientStatsSnapshot,
                 error = currentError
             )
 
@@ -446,6 +454,7 @@ internal class RtspStreamingService(
                     RtspSettings.Values.Mode.SERVER -> {
                         sendEvent(InternalEvent.DiscoverAddress("SettingsChanged:Mode", 0))
                     }
+
                     RtspSettings.Values.Mode.CLIENT -> {
                         runCatching { rtspServer?.stop() }.onFailure {
                             XLog.w(getLog("ModeChanged", "Stop server failed: ${it.message}"), it)
@@ -514,8 +523,10 @@ internal class RtspStreamingService(
                 fun ByteArray.stripAnnexBStartCode(): ByteArray = when {
                     size >= 4 && this[0] == 0.toByte() && this[1] == 0.toByte() && this[2] == 0.toByte() && this[3] == 1.toByte() ->
                         copyOfRange(4, size)
+
                     size >= 3 && this[0] == 0.toByte() && this[1] == 0.toByte() && this[2] == 1.toByte() ->
                         copyOfRange(3, size)
+
                     else -> this
                 }
 
@@ -557,11 +568,12 @@ internal class RtspStreamingService(
                         rtspClient?.destroy()
                         rtspClient = null
 
-                        val readyStatus = if (rtspSettings.data.value.mode == RtspSettings.Values.Mode.SERVER && netInterfaces.isNotEmpty()) {
-                            RtspTransportState.Status.Ready(currentBindings())
-                        } else {
-                            RtspTransportState.Status.Idle
-                        }
+                        val readyStatus =
+                            if (rtspSettings.data.value.mode == RtspSettings.Values.Mode.SERVER && netInterfaces.isNotEmpty()) {
+                                RtspTransportState.Status.Ready(currentBindings())
+                            } else {
+                                RtspTransportState.Status.Idle
+                            }
                         updateTransportStatus(readyStatus)
 
                         videoEncoder?.stop()
@@ -671,6 +683,16 @@ internal class RtspStreamingService(
                 }
 
                 this@RtspStreamingService.isStreaming = true
+                statsHeartbeatJob?.cancel()
+                statsHeartbeatJob = coroutineScope.launch {
+                    while (isActive) {
+                        if (isStreaming && rtspSettings.data.value.mode == RtspSettings.Values.Mode.SERVER) {
+                            val stats = rtspServer?.getClientStatsSnapshot().orEmpty()
+                            mutableRtspStateFlow.value = mutableRtspStateFlow.value.copy(serverClientStats = stats)
+                        }
+                        kotlinx.coroutines.delay(1000)
+                    }
+                }
             }
 
             is InternalEvent.OnAudioParamsChange -> {
@@ -836,6 +858,10 @@ internal class RtspStreamingService(
         } else {
             XLog.d(getLog("stopStream", "Not streaming. Ignoring."))
         }
+
+        // Stop periodic stats updates and clear snapshot in UI state
+        statsHeartbeatJob?.cancel(); statsHeartbeatJob = null
+        mutableRtspStateFlow.value = mutableRtspStateFlow.value.copy(serverClientStats = emptyList())
 
         wakeLock?.apply { if (isHeld) release() }
         wakeLock = null
