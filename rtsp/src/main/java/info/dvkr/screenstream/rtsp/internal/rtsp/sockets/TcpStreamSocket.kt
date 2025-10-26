@@ -1,5 +1,6 @@
 package info.dvkr.screenstream.rtsp.internal.rtsp.sockets
 
+import info.dvkr.screenstream.rtsp.internal.rtsp.RtspMessage
 import io.ktor.network.selector.SelectorManager
 import io.ktor.network.sockets.InetSocketAddress
 import io.ktor.network.sockets.ReadWriteSocket
@@ -14,7 +15,6 @@ import io.ktor.utils.io.ByteWriteChannel
 import io.ktor.utils.io.readFully
 import io.ktor.utils.io.readUTF8Line
 import io.ktor.utils.io.writeFully
-import io.ktor.utils.io.writeStringUtf8
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeout
@@ -90,6 +90,13 @@ internal class TcpStreamSocket private constructor(
     }
 
     internal fun isConnected(): Boolean = connected && (tcpSocket?.isClosed == false)
+
+    @Throws
+    internal suspend fun writeAndFlush(message: RtspMessage) {
+        output?.writeFully(message.header)
+        if (message.body != null) output?.writeFully(message.body)
+        output?.flush()
+    }
 
     @Throws
     internal suspend fun writeAndFlush(bytes1: ByteArray, bytes2: ByteArray, offset2: Int = 0, size2: Int = bytes2.size) {

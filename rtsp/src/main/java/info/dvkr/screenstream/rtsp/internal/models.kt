@@ -34,8 +34,6 @@ internal enum class Protocol { TCP, UDP }
         const val VIDEO_TRACK_ID: Int = 0
         const val AUDIO_TRACK_ID: Int = 1
     }
-
-    internal fun getTcpHeader(): ByteArray = interleavedHeader(trackId shl 1, length)
 }
 
 internal sealed class Codec(val name: String, val mimeType: String) {

@@ -20,6 +20,8 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.onStart
+import kotlin.io.encoding.Base64
+import kotlin.io.encoding.ExperimentalEncodingApi
 
 @OptIn(FlowPreview::class)
 @Suppress("DEPRECATION")
@@ -94,3 +96,6 @@ internal fun Context.startListening(serviceJob: Job, onScreenOff: () -> Unit, on
         }
     }
 }
+
+@OptIn(ExperimentalEncodingApi::class)
+internal fun ByteArray.encodeBase64(): String = Base64.encode(this)

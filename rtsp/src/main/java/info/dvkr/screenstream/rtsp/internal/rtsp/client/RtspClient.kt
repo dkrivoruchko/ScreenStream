@@ -9,6 +9,7 @@ import info.dvkr.screenstream.rtsp.internal.Protocol
 import info.dvkr.screenstream.rtsp.internal.RtpFrame
 import info.dvkr.screenstream.rtsp.internal.RtspStreamingService
 import info.dvkr.screenstream.rtsp.internal.audio.AudioSource
+import info.dvkr.screenstream.rtsp.internal.interleavedHeader
 import info.dvkr.screenstream.rtsp.internal.rtsp.BitrateCalculator
 import info.dvkr.screenstream.rtsp.internal.rtsp.RtcpReporter
 import info.dvkr.screenstream.rtsp.internal.rtsp.RtspUrl
@@ -372,7 +373,13 @@ internal class RtspClient(
                 rtspUrl.hasAuth().not() -> throw ConnectionError.NoCredentialsError
                 else -> {
                     val announceWithAuth = tcpSocket.withLock {
-                        commandsManager.applyAuthFor(RtspMessagesBase.Method.ANNOUNCE, rtspUrl.fullPath, announceResp.text)
+                        commandsManager.applyAuthFor(
+                            RtspMessagesBase.Method.ANNOUNCE,
+                            rtspUrl.fullPath,
+                            announceResp.text,
+                            videoParams,
+                            audioParams
+                        )
                         writeAndFlush(commandsManager.createAnnounce(videoParams, audioParams))
                         commandsManager.getResponseWithTimeout(::readLine, ::readBytes, RtspMessagesBase.Method.ANNOUNCE)
                     }
@@ -463,10 +470,10 @@ internal class RtspClient(
             try {
                 tcpSocket.withLock {
                     val hasSession = commandsManager.hasSession()
-                    val req = if (hasSession) commandsManager.createGetParameter() else commandsManager.createOptions()
-                    writeAndFlush(req)
-                    val m = if (hasSession) RtspMessagesBase.Method.GET_PARAMETER else RtspMessagesBase.Method.OPTIONS
-                    commandsManager.getResponseWithTimeout(::readLine, ::readBytes, m)
+                    val message = if (hasSession) commandsManager.createGetParameter() else commandsManager.createOptions()
+                    writeAndFlush(message)
+                    val method = if (hasSession) RtspMessagesBase.Method.GET_PARAMETER else RtspMessagesBase.Method.OPTIONS
+                    commandsManager.getResponseWithTimeout(::readLine, ::readBytes, method)
                 }
             } catch (_: CancellationException) {
             } catch (e: Throwable) {
@@ -544,7 +551,10 @@ internal class RtspClient(
                             for (rtpFrame in rtpFrames) {
                                 when {
                                     protocol == Protocol.TCP -> tcpSocket.withLock {
-                                        if (isConnected()) writeAndFlush(rtpFrame.getTcpHeader(), rtpFrame.buffer, 0, rtpFrame.length)
+                                        if (isConnected()) {
+                                            val tcpHeader = interleavedHeader(rtpFrame.trackId shl 1, rtpFrame.length)
+                                            writeAndFlush(tcpHeader, rtpFrame.buffer, 0, rtpFrame.length)
+                                        }
                                     }
 
                                     rtpFrame is RtpFrame.Video -> videoUdpSocket?.write(rtpFrame.buffer, 0, rtpFrame.length)

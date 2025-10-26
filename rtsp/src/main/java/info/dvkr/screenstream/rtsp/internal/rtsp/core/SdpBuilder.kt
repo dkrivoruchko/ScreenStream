@@ -1,6 +1,7 @@
 package info.dvkr.screenstream.rtsp.internal.rtsp.core
 
 import info.dvkr.screenstream.rtsp.internal.Codec
+import info.dvkr.screenstream.rtsp.internal.encodeBase64
 import info.dvkr.screenstream.rtsp.internal.rtsp.client.RtspClient
 import info.dvkr.screenstream.rtsp.internal.rtsp.packets.AacPacket
 import info.dvkr.screenstream.rtsp.internal.rtsp.packets.Av1Packet
@@ -10,7 +11,6 @@ import info.dvkr.screenstream.rtsp.internal.rtsp.packets.H264Packet
 import info.dvkr.screenstream.rtsp.internal.rtsp.packets.H265Packet
 import info.dvkr.screenstream.rtsp.internal.rtsp.packets.OpusPacket
 import kotlin.io.encoding.Base64
-import kotlin.io.encoding.ExperimentalEncodingApi
 
 internal class SdpBuilder {
 
@@ -91,9 +91,13 @@ internal class SdpBuilder {
         append("m=video 0 RTP/AVP $payload\r\n")
         append("a=rtpmap:$payload H264/${BaseRtpPacket.Companion.VIDEO_CLOCK_FREQUENCY}\r\n")
         val parsedProfile = runCatching { extractH264ProfileLevelId(sps) }.getOrNull()
-        val profileLevelId = parsedProfile ?: "42e01f"
-        append("a=fmtp:$payload packetization-mode=1; level-asymmetry-allowed=1; profile-level-id=$profileLevelId;")
-        append(" sprop-parameter-sets=$sps,$pps\r\n")
+        val profileLevelId = parsedProfile ?: "42E01F"
+
+        append("a=fmtp:$payload packetization-mode=1; level-asymmetry-allowed=1; profile-level-id=$profileLevelId")
+        val sprop = listOf(sps, pps).filter { it.isNotEmpty() }.joinToString(",")
+        if (sprop.isNotEmpty()) append("; sprop-parameter-sets=$sprop")
+        append("\r\n")
+
         append("a=control:trackID=$trackVideo\r\n")
     }
 
@@ -103,7 +107,7 @@ internal class SdpBuilder {
         val profileIdc = sps[1].toInt() and 0xFF
         val constraints = sps[2].toInt() and 0xFF
         val levelIdc = sps[3].toInt() and 0xFF
-        String.format("%02x%02x%02x", profileIdc, constraints, levelIdc)
+        String.format("%02X%02X%02X", profileIdc, constraints, levelIdc)
     }.getOrNull()
 
     private fun createH265Body(trackVideo: Int, sps: String, pps: String, vps: String): String = buildString {
@@ -118,9 +122,6 @@ internal class SdpBuilder {
         if (parts.isNotEmpty()) append("a=fmtp:$payload $parts\r\n")
         append("a=control:trackID=$trackVideo\r\n")
     }
-
-    @OptIn(ExperimentalEncodingApi::class)
-    private fun ByteArray.encodeBase64(): String = Base64.Default.encode(this)
 
     private companion object {
         private val AUDIO_SAMPLING_RATES = intArrayOf(

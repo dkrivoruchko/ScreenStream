@@ -1,11 +1,16 @@
 package info.dvkr.screenstream.rtsp.internal.rtsp.core
 
+import info.dvkr.screenstream.rtsp.internal.rtsp.RtspMessage
 import info.dvkr.screenstream.rtsp.internal.rtsp.client.RtspClient
 import kotlin.math.max
 
 internal class RtspServerMessages(
     appVersion: String, host: String, port: Int, path: String
 ) : RtspMessagesBase(appVersion, host, port, path) {
+
+    private companion object {
+        private const val DEFAULT_SESSION_TIMEOUT_SEC = 60
+    }
 
     internal data class PlayTrackInfo(val seq: Int, val rtptime: Long)
 
@@ -17,13 +22,17 @@ internal class RtspServerMessages(
 
     internal fun parseClientPorts(transport: String): Pair<Int, Int>? = TransportHeader.parse(transport)?.clientPorts
 
-    internal fun createOptionsResponse(cSeq: Int): String =
+    internal fun createOptionsResponse(cSeq: Int): RtspMessage =
         ResponseBuilder.ok()
             .withCSeq(cSeq)
             .header(RtspHeaders.PUBLIC, "DESCRIBE, SETUP, TEARDOWN, PLAY, PAUSE, GET_PARAMETER")
             .build()
 
-    internal fun createDescribeResponse(cSeq: Int, videoParams: RtspClient.VideoParams, audioParams: RtspClient.AudioParams?): String =
+    internal fun createDescribeResponse(
+        cSeq: Int,
+        videoParams: RtspClient.VideoParams,
+        audioParams: RtspClient.AudioParams?
+    ): RtspMessage =
         ResponseBuilder.ok()
             .withCSeq(cSeq)
             .header(RtspHeaders.CONTENT_BASE, "$baseUri/")
@@ -31,18 +40,24 @@ internal class RtspServerMessages(
             .bodyAscii(SdpBuilder().createSdpBody(videoParams, audioParams, sdpSessionId))
             .build()
 
-    internal fun createSetupResponse(cSeq: Int, transport: String, serverRtpPort: Int, serverRtcpPort: Int, sessionId: String): String {
+    internal fun createSetupResponse(
+        cSeq: Int,
+        transport: String,
+        serverRtpPort: Int,
+        serverRtcpPort: Int,
+        sessionId: String
+    ): RtspMessage {
         val parsed = TransportHeader.parse(transport)
         val value = if (parsed?.clientPorts != null) parsed.withServerPorts(serverRtpPort, serverRtcpPort).toString() else transport
         return ResponseBuilder.ok()
             .withCSeq(cSeq)
-            .withSession(sessionId)
+            .withSession(sessionId, DEFAULT_SESSION_TIMEOUT_SEC)
             .header(RtspHeaders.TRANSPORT, value)
             .header(RtspHeaders.CACHE_CONTROL, "no-cache")
             .build()
     }
 
-    internal fun createPlayResponse(cSeq: Int, sessionId: String, trackInfo: Map<Int, PlayTrackInfo>): String {
+    internal fun createPlayResponse(cSeq: Int, sessionId: String, trackInfo: Map<Int, PlayTrackInfo>): RtspMessage {
         val rtpInfo = trackInfo.toSortedMap().entries.joinToString(",") { (tid, info) ->
             "url=${trackUri(tid)};seq=${max(0, info.seq)};rtptime=${info.rtptime}"
         }
@@ -54,31 +69,31 @@ internal class RtspServerMessages(
             .build()
     }
 
-    internal fun createPauseResponse(cSeq: Int, sessionId: String): String =
+    internal fun createPauseResponse(cSeq: Int, sessionId: String): RtspMessage =
         ResponseBuilder.ok()
             .withCSeq(cSeq)
             .withSession(sessionId)
             .build()
 
-    internal fun createTeardownResponse(cSeq: Int, sessionId: String): String =
+    internal fun createTeardownResponse(cSeq: Int, sessionId: String): RtspMessage =
         ResponseBuilder.ok()
             .withCSeq(cSeq)
             .withSession(sessionId)
             .build()
 
-    internal fun createGetParameterResponse(cSeq: Int, sessionId: String): String =
+    internal fun createGetParameterResponse(cSeq: Int, sessionId: String): RtspMessage =
         ResponseBuilder.ok()
             .withCSeq(cSeq)
             .apply { if (sessionId.isNotBlank()) withSession(sessionId) }
             .build()
 
-    internal fun createServiceUnavailableResponse(cSeq: Int, retryAfterSeconds: Int = 2): String =
+    internal fun createServiceUnavailableResponse(cSeq: Int, retryAfterSeconds: Int = 2): RtspMessage =
         ResponseBuilder.error(503, "Service Unavailable")
             .withCSeq(cSeq)
             .header(RtspHeaders.RETRY_AFTER, retryAfterSeconds.toString())
             .build()
 
-    internal fun createErrorResponse(code: Int, cSeq: Int): String {
+    internal fun createErrorResponse(code: Int, cSeq: Int = -1): RtspMessage {
         val status = when (code) {
             400 -> "Bad Request"
             401 -> "Unauthorized"
@@ -107,19 +122,21 @@ internal class RtspServerMessages(
             return this
         }
 
-        fun withCSeq(cSeq: Int): ResponseBuilder = header(RtspHeaders.CSEQ, cSeq.toString())
+        fun withCSeq(cSeq: Int): ResponseBuilder = apply { if (cSeq >= 0) header(RtspHeaders.CSEQ, cSeq.toString()) }
 
-        fun withSession(session: String): ResponseBuilder = header(RtspHeaders.SESSION, session)
+        fun withSession(session: String, timeoutSec: Int? = null): ResponseBuilder {
+            val sessionHeader = if (timeoutSec != null && timeoutSec > 0) "$session;timeout=$timeoutSec" else session
+            return header(RtspHeaders.SESSION, sessionHeader)
+        }
 
-        fun build(): String {
-            val sb = StringBuilder()
-            sb.append(RTSP_VERSION).append(' ').append(statusCode).append(' ').append(statusText).append(CRLF)
-            val bodyBytes = body
-            if (bodyBytes != null) headers[RtspHeaders.CONTENT_LENGTH] = bodyBytes.size.toString()
-            for ((k, v) in headers) sb.append(k).append(": ").append(v).append(CRLF)
-            sb.append(CRLF)
-            if (bodyBytes != null) sb.append(bodyBytes.toString(Charsets.US_ASCII))
-            return sb.toString()
+        fun build(): RtspMessage {
+            val header = buildString {
+                append(RTSP_VERSION).append(' ').append(statusCode).append(' ').append(statusText).append(CRLF)
+                body?.let { headers[RtspHeaders.CONTENT_LENGTH] = it.size.toString() }
+                for ((k, v) in headers) append(k).append(": ").append(v).append(CRLF)
+                append(CRLF)
+            }
+            return RtspMessage(header = header.toByteArray(Charsets.ISO_8859_1), body = body)
         }
 
         companion object {

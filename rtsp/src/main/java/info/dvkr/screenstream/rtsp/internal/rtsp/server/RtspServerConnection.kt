@@ -152,18 +152,21 @@ internal class RtspServerConnection(
         while (scope.isActive && tcpStreamSocket.isConnected()) {
             val request = tcpStreamSocket.readRequestHeaders() ?: break
             val (method, cSeq) = commandsManager.parseRequest(request)
+
+            if (cSeq < 0) {
+                tcpStreamSocket.withLock { writeAndFlush(commandsManager.createErrorResponse(400)) }
+                continue
+            }
+
             when (method) {
-                RtspMessagesBase.Method.OPTIONS -> tcpStreamSocket.withLock {
-                    writeAndFlush(commandsManager.createOptionsResponse(cSeq))
-                }
+                RtspMessagesBase.Method.OPTIONS -> tcpStreamSocket.withLock { writeAndFlush(commandsManager.createOptionsResponse(cSeq)) }
 
                 RtspMessagesBase.Method.DESCRIBE -> tcpStreamSocket.withLock {
-                    val v = videoParams.get()
-                    if (v == null) {
+                    val videoParams = this@RtspServerConnection.videoParams.get()
+                    if (videoParams == null) {
                         writeAndFlush(commandsManager.createServiceUnavailableResponse(cSeq))
                     } else {
-                        val resp = commandsManager.createDescribeResponse(cSeq, v, audioParams.get())
-                        writeAndFlush(resp)
+                        writeAndFlush(commandsManager.createDescribeResponse(cSeq, videoParams, audioParams.get()))
                     }
                 }
 
@@ -186,8 +189,7 @@ internal class RtspServerConnection(
                             if (tid == RtpFrame.VIDEO_TRACK_ID) videoCh.first else audioCh.first
                         }
                         tcpStreamSocket.withLock {
-                            val resp = commandsManager.createSetupResponse(cSeq, transport, 0, 0, sessionId)
-                            writeAndFlush(resp)
+                            writeAndFlush(commandsManager.createSetupResponse(cSeq, transport, 0, 0, sessionId))
                         }
                         // Prepare packetizer and initial sequence
                         if (trackId == RtpFrame.VIDEO_TRACK_ID) {
@@ -224,8 +226,7 @@ internal class RtspServerConnection(
                             getAudioRtp = { audioRtpSocket }
                         )
                         tcpStreamSocket.withLock {
-                            val resp = commandsManager.createSetupResponse(cSeq, transport, serverRtp, serverRtcp, sessionId)
-                            writeAndFlush(resp)
+                            writeAndFlush(commandsManager.createSetupResponse(cSeq, transport, serverRtp, serverRtcp, sessionId))
                         }
                         if (trackId == RtpFrame.VIDEO_TRACK_ID) {
                             prepareVideoPacketizerIfNeeded()
@@ -239,8 +240,8 @@ internal class RtspServerConnection(
 
                 RtspMessagesBase.Method.PLAY -> tcpStreamSocket.withLock {
                     runCatching {
-                        val v = videoParams.get()
-                        waitingForKeyframe = when (v?.codec) {
+                        val videoParams = this@RtspServerConnection.videoParams.get()
+                        waitingForKeyframe = when (videoParams?.codec) {
                             Codec.Video.H265 -> PacketizationConfig.requireFirstIdrForHevc
                             Codec.Video.H264 -> PacketizationConfig.requireFirstIdrForAvc
                             else -> false
@@ -253,11 +254,11 @@ internal class RtspServerConnection(
                             protocol = protocol,
                             writeToTcpSocket = { header, data ->
                                 socket.withLock {
-                                    val ch = header[1].toInt() and 0xFF
-                                    val mapped = when (ch) {
+                                    val channelId = header[1].toInt() and 0xFF
+                                    val mapped = when (channelId) {
                                         1 -> videoCh.second
                                         3 -> audioCh.second
-                                        else -> ch
+                                        else -> channelId
                                     }
                                     header[1] = mapped.toByte()
                                     if (isConnected()) writeAndFlush(header, data)

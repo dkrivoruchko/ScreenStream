@@ -10,13 +10,26 @@ internal abstract class RtspMessagesBase(
 ) {
     internal enum class Method { OPTIONS, ANNOUNCE, RECORD, SETUP, TEARDOWN, DESCRIBE, PLAY, PAUSE, GET_PARAMETER, UNKNOWN }
 
+    protected data class DigestChallenge(val realm: String, val nonce: String, val qop: String, val opaque: String?, val algorithm: String?)
+
     protected val baseUri: String
-        get() = "rtsp://$host:$port$path"
+        get() = "rtsp://${formatHostForRtspAuthority(host)}:$port$path"
 
     protected val userAgent: String
         get() = "ScreenStream/$appVersion"
 
     protected fun trackUri(trackId: Int): String = "$baseUri/trackID=$trackId"
+
+    private fun formatHostForRtspAuthority(host: String): String {
+        if (host.isEmpty()) return host
+        val alreadyBracketed = host.first() == '[' && host.last() == ']'
+        val isIpv6Literal = ':' in host
+        return when {
+            alreadyBracketed -> host
+            isIpv6Literal -> "[${host}]"
+            else -> host
+        }
+    }
 
     protected val rng = SecureRandom()
     protected var sdpSessionId: Int = rng.nextInt(Int.MAX_VALUE)
@@ -26,40 +39,28 @@ internal abstract class RtspMessagesBase(
         protected const val CRLF: String = "\r\n"
 
         @JvmStatic
-        protected val CSEQ_REGEX = Regex("""CSeq\s*:\s*(\d+)""", RegexOption.IGNORE_CASE)
+        private val CSEQ_REGEX = Regex("""CSeq\s*:\s*(\d+)""", RegexOption.IGNORE_CASE)
 
         @JvmStatic
-        protected val METHOD_REGEX = Regex("""(\w+) (\S+) RTSP""", RegexOption.IGNORE_CASE)
+        private val METHOD_REGEX = Regex("""^([A-Za-z]+)\s+(\S+)\s+RTSP/\d+\.\d+""", RegexOption.IGNORE_CASE)
 
         @JvmStatic
-        protected val TRANSPORT_REGEX = Regex("""Transport\s*:\s*(.+)""", RegexOption.IGNORE_CASE)
+        private val TRANSPORT_REGEX = Regex("""Transport\s*:\s*(.+)""", RegexOption.IGNORE_CASE)
 
         @JvmStatic
-        protected val SESSION_HEADER_REGEX = Regex("""Session\s*:\s*([^\r\n;]+)""", RegexOption.IGNORE_CASE)
+        private val SESSION_HEADER_REGEX = Regex("""Session\s*:\s*([^\r\n;]+)""", RegexOption.IGNORE_CASE)
 
         @JvmStatic
-        protected val CONTENT_LENGTH_REGEX = Regex("""Content-Length:\s*(\d+)""", RegexOption.IGNORE_CASE)
+        private val CONTENT_LENGTH_REGEX = Regex("""Content-Length:\s*(\d+)""", RegexOption.IGNORE_CASE)
 
         @JvmStatic
-        protected val STATUS_REGEX = Regex("""RTSP/\d.\d\s+(\d+)\s+(.+)""", RegexOption.IGNORE_CASE)
+        private val STATUS_REGEX = Regex("""RTSP/\d\.\d\s+(\d+)\s+(.+)""", RegexOption.IGNORE_CASE)
 
         @JvmStatic
-        protected val SESSION_ID_REGEX = Regex("""Session\s*:\s*([^\r\n;]+)""", RegexOption.IGNORE_CASE)
+        private val AUTH_PARAM_REGEX = Regex("""([A-Za-z]+)\s*=\s*(?:\"([^\"]*)\"|([^,\s]+))""", RegexOption.IGNORE_CASE)
 
         @JvmStatic
-        protected val SESSION_TIMEOUT_REGEX = Regex("""Session\s*:\s*[^\r\n;]+;[^\r\n]*timeout\s*=\s*(\d+)""", RegexOption.IGNORE_CASE)
-
-        @JvmStatic
-        protected val DIGEST_AUTH_REGEX = Regex("""realm="([^"]+)",\s*nonce="([^"]+)"(.*)""", RegexOption.IGNORE_CASE)
-
-        @JvmStatic
-        protected val QOP_REGEX = Regex("""qop="([^"]+)""", RegexOption.IGNORE_CASE)
-
-        @JvmStatic
-        protected val OPAQUE_REGEX = Regex("""opaque="([^"]+)""", RegexOption.IGNORE_CASE)
-
-        @JvmStatic
-        protected val ALGORITHM_REGEX = Regex("""algorithm="?([^," ]+)"?""", RegexOption.IGNORE_CASE)
+        private val SESSION_TIMEOUT_REGEX = Regex("""Session\s*:\s*[^\r\n;]+;[^\r\n]*timeout\s*=\s*(\d+)""", RegexOption.IGNORE_CASE)
     }
 
     protected object RtspHeaders {
@@ -95,6 +96,43 @@ internal abstract class RtspMessagesBase(
 
     protected fun extractStatus(text: String): Int =
         STATUS_REGEX.find(text)?.groupValues?.get(1)?.toIntOrNull() ?: -1
+
+    protected fun extractSessionTimeout(text: String): Int? =
+        SESSION_TIMEOUT_REGEX.find(text)?.groupValues?.getOrNull(1)?.toIntOrNull()?.takeIf { it > 0 }
+
+    protected fun parseDigestChallenge(text: String): DigestChallenge? {
+        val headerLine = text.split("\r\n")
+            .firstOrNull { it.startsWith("WWW-Authenticate", ignoreCase = true) }
+            ?.substringAfter(':', missingDelimiterValue = "")
+            ?.trim()
+
+        val raw = when {
+            headerLine?.contains("Digest", ignoreCase = true) == true -> headerLine
+            else -> {
+                val idx = text.indexOf("Digest", ignoreCase = true)
+                if (idx >= 0) text.substring(idx + 6).substringBefore("\r\n").trim() else null
+            }
+        } ?: return null
+
+        val paramsPart = raw.substringAfter("Digest", missingDelimiterValue = "").trim().trimStart(',').trim()
+        val params = mutableMapOf<String, String>()
+        for (matchResult in AUTH_PARAM_REGEX.findAll(paramsPart)) {
+            val key = matchResult.groupValues[1].lowercase()
+            val value = when {
+                matchResult.groupValues.size >= 3 && matchResult.groupValues[2].isNotEmpty() -> matchResult.groupValues[2]
+                matchResult.groupValues.size >= 4 && matchResult.groupValues[3].isNotEmpty() -> matchResult.groupValues[3]
+                else -> ""
+            }
+            params[key] = value
+        }
+
+        val realm = params["realm"] ?: return null
+        val nonce = params["nonce"] ?: return null
+        val qop = params["qop"].orEmpty()
+        val opaque = params["opaque"]
+        val algorithm = params["algorithm"]
+        return DigestChallenge(realm, nonce, qop, opaque, algorithm)
+    }
 
     protected fun parseMethod(text: String): Method {
         val token = extractMethodToken(text)?.uppercase().orEmpty()
