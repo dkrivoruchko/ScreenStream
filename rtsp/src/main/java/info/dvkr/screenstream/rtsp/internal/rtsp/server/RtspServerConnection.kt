@@ -42,7 +42,7 @@ internal class RtspServerConnection(
     private val onEvent: (RtspStreamingService.InternalEvent) -> Unit,
     private val requiredProtocol: Protocol
 ) {
-    private val scope: CoroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val secureRandom = SecureRandom()
     private val TRACK_ID_REGEX = Regex("trackID=(\\d+)")
 
@@ -83,6 +83,28 @@ internal class RtspServerConnection(
     private var clientJob: Job? = null
     private var videoWriterJob: Job? = null
     private var audioWriterJob: Job? = null
+
+    internal class ParamInjector() {
+        private var lastInjectNs: Long = 0L
+
+        fun maybeInjectForH264(packet: H264Packet, isKeyFrame: Boolean) {
+            if (isKeyFrame) return
+            val now = System.nanoTime()
+            if (now - lastInjectNs > 2_000_000_000L) {
+                packet.forceStapAOnce()
+                lastInjectNs = now
+            }
+        }
+
+        fun maybeInjectForH265(packet: H265Packet, isKeyFrame: Boolean) {
+            if (isKeyFrame) return
+            val now = System.nanoTime()
+            if (now - lastInjectNs > 2_000_000_000L) {
+                packet.forceParamsOnce()
+                lastInjectNs = now
+            }
+        }
+    }
 
     private val paramInjector = ParamInjector()
     private var waitingForKeyframe: Boolean = false
@@ -259,8 +281,8 @@ internal class RtspServerConnection(
                     runCatching {
                         val videoParams = this@RtspServerConnection.videoParams.get()
                         waitingForKeyframe = when (videoParams?.codec) {
-                            Codec.Video.H265 -> PacketizationConfig.requireFirstIdrForHevc
-                            Codec.Video.H264 -> PacketizationConfig.requireFirstIdrForAvc
+                            Codec.Video.H265 -> true
+                            Codec.Video.H264 -> true
                             else -> false
                         }
                     }

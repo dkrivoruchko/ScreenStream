@@ -27,16 +27,14 @@ internal class RtspServer(
     private val onEvent: (RtspStreamingService.InternalEvent) -> Unit
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
     private var selectorManager: SelectorManager? = null
-    private val serverSockets: MutableList<Pair<ServerSocket, String>> = mutableListOf()
     private var serverJob: Job? = null
+    private val serverSockets: MutableList<Pair<ServerSocket, String>> = mutableListOf()
+
     private val rtspServerConnections = mutableListOf<RtspServerConnection>()
     private val videoParams = AtomicReference<RtspClient.VideoParams?>()
     private val audioParams = AtomicReference<RtspClient.AudioParams?>()
-    private var requiredProtocol: Protocol = Protocol.TCP
-    private var serverPath: String = "/screen"
-    private var serverPort: Int = 8554
-
 
     internal fun setVideoData(videoParams: RtspClient.VideoParams) {
         this.videoParams.set(videoParams)
@@ -52,47 +50,42 @@ internal class RtspServer(
     internal fun start(addresses: List<RtspNetInterface>, port: Int, path: String, protocol: Protocol) {
         if (serverJob?.isActive == true) stop()
 
-        requiredProtocol = protocol
-        serverPort = port
-        serverPath = "/" + path.trimStart('/')
-
         serverJob = scope.launch {
-            val sm = SelectorManager(Dispatchers.IO)
-            selectorManager = sm
-            try {
+            val selectorManager = SelectorManager(coroutineContext).also { this@RtspServer.selectorManager = it }
+            runCatching {
                 serverSockets.clear()
 
-                addresses.forEach { netIf ->
-                    val host = netIf.address.hostAddress!!.substringBefore('%')
+                addresses.forEach { networkInterface ->
                     runCatching {
-                        val ss = aSocket(sm).tcp().bind(host, serverPort)
-                        serverSockets.add(ss to host)
-                    }.onFailure {
-                        // ignore
+                        val host = networkInterface.address.hostAddress!!.substringBefore('%')
+                        val serverSocket = aSocket(selectorManager).tcp().bind(host, port)
+                        serverSockets.add(serverSocket to host)
                     }
                 }
 
                 if (serverSockets.isEmpty()) {
-                    return@launch
+                    return@launch //TODO report error
                 }
 
                 onEvent(RtspStreamingService.InternalEvent.RtspServerOnStart)
 
-                serverSockets.forEach { (ss, boundHost) ->
+                serverSockets.forEach { (serverSocket, boundHost) ->
                     launch {
                         while (isActive) {
-                            val clientSocket = runCatching { ss.accept() }.getOrElse { break }
-                            val tcpStreamSocket = TcpStreamSocket(scope.coroutineContext, sm, clientSocket)
-                            val commandsManager = RtspServerMessages(appVersion, boundHost, serverPort, serverPath)
-                            val conn = RtspServerConnection(
-                                tcpStreamSocket, commandsManager, videoParams, audioParams, ::onClientEvent, requiredProtocol
+                            val clientSocket = runCatching { serverSocket.accept() }.getOrElse { break } // TODO Why break, maybe continue?
+                            val serverConnection = RtspServerConnection(
+                                tcpStreamSocket = TcpStreamSocket(scope.coroutineContext, selectorManager, clientSocket),
+                                commandsManager = RtspServerMessages(appVersion, boundHost, port, path),
+                                videoParams,
+                                audioParams,
+                                ::onClientEvent,
+                                protocol
                             )
-                            synchronized(rtspServerConnections) { rtspServerConnections.add(conn) }
-                            conn.start()
+                            synchronized(rtspServerConnections) { rtspServerConnections.add(serverConnection) }
+                            serverConnection.start()
                         }
                     }
                 }
-            } catch (_: Throwable) {
             }
         }
     }

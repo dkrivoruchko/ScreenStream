@@ -6,11 +6,13 @@ internal abstract class RtspMessagesBase(
     protected val appVersion: String,
     protected val host: String,
     protected val port: Int,
-    protected val path: String,
+    path: String,
 ) {
     internal enum class Method { OPTIONS, ANNOUNCE, RECORD, SETUP, TEARDOWN, DESCRIBE, PLAY, PAUSE, GET_PARAMETER, UNKNOWN }
 
     protected data class DigestChallenge(val realm: String, val nonce: String, val qop: String, val opaque: String?, val algorithm: String?)
+
+    protected val path = "/" + path.trimStart('/')
 
     protected val baseUri: String
         get() = "rtsp://${formatHostForRtspAuthority(host)}:$port$path"
