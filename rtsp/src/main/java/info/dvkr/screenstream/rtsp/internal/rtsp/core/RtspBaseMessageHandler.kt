@@ -2,7 +2,7 @@ package info.dvkr.screenstream.rtsp.internal.rtsp.core
 
 import java.security.SecureRandom
 
-internal abstract class RtspMessagesBase(
+internal abstract class RtspBaseMessageHandler(
     protected val appVersion: String,
     protected val host: String,
     protected val port: Int,
@@ -92,6 +92,9 @@ internal abstract class RtspMessagesBase(
 
     protected fun extractMethodToken(text: String): String? =
         METHOD_REGEX.find(text)?.groups?.get(1)?.value
+
+    protected fun extractRequestUri(text: String): String? =
+        METHOD_REGEX.find(text)?.groups?.get(2)?.value
 
     protected fun extractContentLength(text: String): Int =
         CONTENT_LENGTH_REGEX.find(text)?.groupValues?.get(1)?.toIntOrNull() ?: 0

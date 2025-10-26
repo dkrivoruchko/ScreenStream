@@ -8,16 +8,16 @@ import java.util.Locale
 import java.util.TimeZone
 import kotlin.math.max
 
-internal class RtspServerMessages(
+internal class RtspServerMessageHandler(
     appVersion: String, host: String, port: Int, path: String
-) : RtspMessagesBase(appVersion, host, port, path) {
+) : RtspBaseMessageHandler(appVersion, host, port, path) {
 
     private companion object {
         private const val DEFAULT_SESSION_TIMEOUT_SEC = 60
         private const val ALLOWED_METHODS = "OPTIONS, DESCRIBE, SETUP, PLAY, PAUSE, TEARDOWN, GET_PARAMETER"
     }
 
-    internal data class PlayTrackInfo(val seq: Int, val rtpTime: Long)
+    internal data class PlayTrackInfo(val seq: Int, val rtpTime: Long, val ssrc: Long)
 
     internal fun parseRequest(request: String): Pair<Method, Int> = parseMethod(request) to extractCSeq(request)
 
@@ -52,21 +52,45 @@ internal class RtspServerMessages(
         transport: String,
         serverRtpPort: Int,
         serverRtcpPort: Int,
-        sessionId: String
+        sessionId: String,
+        channelPair: Pair<Int, Int>? = null
     ): RtspMessage {
         val parsed = TransportHeader.parse(transport)
-        val value = if (parsed?.clientPorts != null) parsed.withServerPorts(serverRtpPort, serverRtcpPort).toString() else transport
+
+        val transportHeader = if (parsed != null) {
+            var header = parsed
+            if (header.clientPorts != null) header = header.withServerPorts(serverRtpPort, serverRtcpPort)
+            if (channelPair != null) header = header.copy(interleaved = channelPair)
+            if (header.mode == null) header = header.copy(mode = "PLAY", modeQuoted = false)
+            header.toString()
+        } else {
+            var value = if (channelPair != null && transport.contains("TCP", ignoreCase = true) && !transport.contains("interleaved", ignoreCase = true)) {
+                "$transport;interleaved=${channelPair.first}-${channelPair.second}"
+            } else {
+                transport
+            }
+            if (!value.contains("mode=", ignoreCase = true)) value = "$value;mode=PLAY"
+            value.replace(Regex(";\\s+"), ";")
+        }
+
         return ResponseBuilder.ok()
             .withCSeq(cSeq)
             .withSession(sessionId, DEFAULT_SESSION_TIMEOUT_SEC)
-            .header(RtspHeaders.TRANSPORT, value)
+            .header(RtspHeaders.TRANSPORT, transportHeader)
             .withUserAgent(userAgent)
             .build()
     }
 
-    internal fun createPlayResponse(cSeq: Int, sessionId: String, trackInfo: Map<Int, PlayTrackInfo>): RtspMessage {
+    internal fun createPlayResponse(
+        cSeq: Int,
+        sessionId: String,
+        trackInfo: Map<Int, PlayTrackInfo>,
+        urlOverrides: Map<Int, String>? = null
+    ): RtspMessage {
         val rtpInfo = trackInfo.toSortedMap().entries.joinToString(",") { (tid, info) ->
-            "url=${trackUri(tid)};seq=${max(0, info.seq)};rtptime=${info.rtpTime}"
+            val ssrcHex = String.format(Locale.US, "%08X", (info.ssrc and 0xFFFFFFFFL))
+            val url = urlOverrides?.get(tid) ?: trackUri(tid)
+            "url=${url};seq=${max(0, info.seq)};rtptime=${info.rtpTime};ssrc=$ssrcHex"
         }
         return ResponseBuilder.ok()
             .withCSeq(cSeq)
@@ -76,6 +100,8 @@ internal class RtspServerMessages(
             .withUserAgent(userAgent)
             .build()
     }
+
+    internal fun getRequestUri(request: String): String? = extractRequestUri(request)
 
     internal fun createPauseResponse(cSeq: Int, sessionId: String): RtspMessage =
         ResponseBuilder.ok()

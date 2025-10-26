@@ -5,7 +5,7 @@ import info.dvkr.screenstream.rtsp.internal.Protocol
 import info.dvkr.screenstream.rtsp.internal.RtspNetInterface
 import info.dvkr.screenstream.rtsp.internal.RtspStreamingService
 import info.dvkr.screenstream.rtsp.internal.rtsp.client.RtspClient
-import info.dvkr.screenstream.rtsp.internal.rtsp.core.RtspServerMessages
+import info.dvkr.screenstream.rtsp.internal.rtsp.core.RtspServerMessageHandler
 import info.dvkr.screenstream.rtsp.internal.rtsp.sockets.TcpStreamSocket
 import io.ktor.network.selector.SelectorManager
 import io.ktor.network.sockets.ServerSocket
@@ -16,6 +16,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -26,7 +27,8 @@ internal class RtspServer(
     private val appVersion: String,
     private val onEvent: (RtspStreamingService.InternalEvent) -> Unit
 ) {
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private var scopeJob: Job = SupervisorJob()
+    private var scope: CoroutineScope = CoroutineScope(scopeJob + Dispatchers.IO)
 
     private var selectorManager: SelectorManager? = null
     private var serverJob: Job? = null
@@ -50,6 +52,11 @@ internal class RtspServer(
     internal fun start(addresses: List<RtspNetInterface>, port: Int, path: String, protocol: Protocol) {
         if (serverJob?.isActive == true) stop()
 
+        if (!scopeJob.isActive) {
+            scopeJob = SupervisorJob()
+            scope = CoroutineScope(scopeJob + Dispatchers.IO)
+        }
+
         serverJob = scope.launch {
             val selectorManager = SelectorManager(coroutineContext).also { this@RtspServer.selectorManager = it }
             runCatching {
@@ -72,10 +79,16 @@ internal class RtspServer(
                 serverSockets.forEach { (serverSocket, boundHost) ->
                     launch {
                         while (isActive) {
-                            val clientSocket = runCatching { serverSocket.accept() }.getOrElse { break } // TODO Why break, maybe continue?
+                            val clientSocket = try {
+                                serverSocket.accept()
+                            } catch (_: Throwable) {
+                                if (!isActive) break
+                                delay(50)
+                                continue
+                            }
                             val serverConnection = RtspServerConnection(
                                 tcpStreamSocket = TcpStreamSocket(scope.coroutineContext, selectorManager, clientSocket),
-                                commandsManager = RtspServerMessages(appVersion, boundHost, port, path),
+                                serverMessageHandler = RtspServerMessageHandler(appVersion, boundHost, port, path),
                                 videoParams,
                                 audioParams,
                                 ::onClientEvent,
@@ -106,6 +119,7 @@ internal class RtspServer(
         serverJob = null
         runCatching { selectorManager?.close() }
         selectorManager = null
+        runCatching { scopeJob.cancel() }
         onEvent(RtspStreamingService.InternalEvent.RtspServerOnStop)
     }
 

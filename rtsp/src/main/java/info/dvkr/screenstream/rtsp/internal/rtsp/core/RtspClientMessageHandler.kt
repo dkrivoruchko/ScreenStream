@@ -10,9 +10,9 @@ import kotlinx.coroutines.withTimeout
 import java.io.IOException
 import java.security.MessageDigest
 
-internal class RtspClientMessages(
+internal class RtspClientMessageHandler(
     appVersion: String, host: String, port: Int, path: String, private val username: String?, private val password: String?
-) : RtspMessagesBase(appVersion, host, port, path) {
+) : RtspBaseMessageHandler(appVersion, host, port, path) {
 
     internal data class Command(val method: Method, val cSeq: Int, val status: Int, val text: String)
 

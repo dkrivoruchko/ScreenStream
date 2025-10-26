@@ -24,7 +24,7 @@ internal data class TransportHeader(
             parts += "mode=$v"
         }
         if (extensions.isNotEmpty()) parts += extensions
-        return parts.joinToString("; ")
+        return parts.joinToString(";")
     }
 
     companion object {
