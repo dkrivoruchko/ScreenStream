@@ -94,7 +94,7 @@ internal class RtspStreamingService(
     private var mediaProjection: MediaProjection? = null
     private var currentError: RtspError? = null
     private var previousError: RtspError? = null
-    private var netInterfaces: List<info.dvkr.screenstream.rtsp.internal.rtsp.server.RtspNetInterface> = emptyList()
+    private var netInterfaces: List<RtspNetInterface> = emptyList()
     private var statsHeartbeatJob: Job? = null
     // All vars must be read/write on this (RTSP_HT) thread
 

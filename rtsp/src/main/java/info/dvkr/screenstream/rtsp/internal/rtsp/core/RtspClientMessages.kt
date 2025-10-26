@@ -36,7 +36,7 @@ internal class RtspClientMessages(
 
     internal suspend fun reset() = lock.withLock {
         authorization = null
-        sdpSessionId = rng.nextInt(Int.MAX_VALUE)
+        sdpSessionId = secureRandom.nextInt(Int.MAX_VALUE)
         cSeq = 0
         sessionId = ""
         sessionTimeoutSec = null
@@ -104,7 +104,7 @@ internal class RtspClientMessages(
                 }
 
                 val fullUri = if (uriPath.startsWith(path)) "$baseUri${uriPath.removePrefix(path)}" else "$baseUri$uriPath"
-                val cnonce = ByteArray(8).also { rng.nextBytes(it) }.joinToString("") { "%02x".format(it) }
+                val cnonce = ByteArray(8).also { secureRandom.nextBytes(it) }.joinToString("") { "%02x".format(it) }
 
                 val baseHa1 = "$user:$realm:$pass".toByteArray(Charsets.ISO_8859_1).md5String()
                 val ha1 = if (algorithm.equals("MD5-sess", ignoreCase = true)) {

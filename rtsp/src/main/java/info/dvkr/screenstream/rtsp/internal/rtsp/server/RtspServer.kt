@@ -2,6 +2,7 @@ package info.dvkr.screenstream.rtsp.internal.rtsp.server
 
 import info.dvkr.screenstream.rtsp.internal.MediaFrame
 import info.dvkr.screenstream.rtsp.internal.Protocol
+import info.dvkr.screenstream.rtsp.internal.RtspNetInterface
 import info.dvkr.screenstream.rtsp.internal.RtspStreamingService
 import info.dvkr.screenstream.rtsp.internal.rtsp.client.RtspClient
 import info.dvkr.screenstream.rtsp.internal.rtsp.core.RtspServerMessages

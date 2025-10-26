@@ -31,8 +31,8 @@ internal abstract class RtspMessagesBase(
         }
     }
 
-    protected val rng = SecureRandom()
-    protected var sdpSessionId: Int = rng.nextInt(Int.MAX_VALUE)
+    protected val secureRandom = SecureRandom()
+    protected var sdpSessionId: Int = secureRandom.nextInt(Int.MAX_VALUE)
 
     protected companion object {
         protected const val RTSP_VERSION: String = "RTSP/1.0"

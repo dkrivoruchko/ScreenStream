@@ -9,6 +9,7 @@ import android.os.Build
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.rtsp.R
+import info.dvkr.screenstream.rtsp.internal.RtspNetInterface
 import info.dvkr.screenstream.rtsp.settings.RtspSettings
 import info.dvkr.screenstream.rtsp.settings.RtspSettings.Values.AddressMask
 import info.dvkr.screenstream.rtsp.settings.RtspSettings.Values.InterfaceMask
