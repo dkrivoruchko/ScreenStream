@@ -31,24 +31,24 @@ internal data class TransportHeader(
             var client: Pair<Int, Int>? = null
             var server: Pair<Int, Int>? = null
             for (i in 1 until tokens.size) {
-                val t = tokens[i]
+                val token = tokens[i]
                 when {
-                    t.equals("unicast", true) -> unicast = true
-                    t.equals("multicast", true) -> unicast = false
-                    t.startsWith("interleaved=", true) -> {
-                        val v = t.substringAfter('=')
+                    token.equals("unicast", true) -> unicast = true
+                    token.equals("multicast", true) -> unicast = false
+                    token.startsWith("interleaved=", true) -> {
+                        val v = token.substringAfter('=')
                         val a = v.split('-').mapNotNull { it.toIntOrNull() }
                         if (a.size == 2) interleaved = a[0] to a[1]
                     }
 
-                    t.startsWith("client_port=", true) -> {
-                        val v = t.substringAfter('=')
+                    token.startsWith("client_port=", true) -> {
+                        val v = token.substringAfter('=')
                         val a = v.split('-').mapNotNull { it.toIntOrNull() }
                         if (a.size == 2) client = a[0] to a[1]
                     }
 
-                    t.startsWith("server_port=", true) -> {
-                        val v = t.substringAfter('=')
+                    token.startsWith("server_port=", true) -> {
+                        val v = token.substringAfter('=')
                         val a = v.split('-').mapNotNull { it.toIntOrNull() }
                         if (a.size == 2) server = a[0] to a[1]
                     }

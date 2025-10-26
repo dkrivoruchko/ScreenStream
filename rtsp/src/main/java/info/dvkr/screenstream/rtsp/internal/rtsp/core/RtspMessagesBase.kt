@@ -1,5 +1,7 @@
 package info.dvkr.screenstream.rtsp.internal.rtsp.core
 
+import java.security.SecureRandom
+
 internal abstract class RtspMessagesBase(
     protected val appVersion: String,
     protected val host: String,
@@ -11,7 +13,18 @@ internal abstract class RtspMessagesBase(
     protected val baseUri: String
         get() = "rtsp://$host:$port$path"
 
+    protected val userAgent: String
+        get() = "ScreenStream/$appVersion"
+
+    protected fun trackUri(trackId: Int): String = "$baseUri/trackID=$trackId"
+
+    protected val rng = SecureRandom()
+    protected var sdpSessionId: Int = rng.nextInt(Int.MAX_VALUE)
+
     protected companion object {
+        protected const val RTSP_VERSION: String = "RTSP/1.0"
+        protected const val CRLF: String = "\r\n"
+
         @JvmStatic
         protected val CSEQ_REGEX = Regex("""CSeq\s*:\s*(\d+)""", RegexOption.IGNORE_CASE)
 
@@ -47,6 +60,22 @@ internal abstract class RtspMessagesBase(
 
         @JvmStatic
         protected val ALGORITHM_REGEX = Regex("""algorithm="?([^," ]+)"?""", RegexOption.IGNORE_CASE)
+    }
+
+    protected object RtspHeaders {
+        const val CSEQ = "CSeq"
+        const val SESSION = "Session"
+        const val TRANSPORT = "Transport"
+        const val CONTENT_TYPE = "Content-Type"
+        const val CONTENT_LENGTH = "Content-Length"
+        const val USER_AGENT = "User-Agent"
+        const val RTP_INFO = "RTP-Info"
+        const val PUBLIC = "Public"
+        const val RANGE = "Range"
+        const val AUTHORIZATION = "Authorization"
+        const val CONTENT_BASE = "Content-Base"
+        const val CACHE_CONTROL = "Cache-Control"
+        const val RETRY_AFTER = "Retry-After"
     }
 
     protected fun extractCSeq(text: String): Int =
