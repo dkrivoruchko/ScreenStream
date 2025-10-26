@@ -164,7 +164,7 @@ internal class RtspServerConnection(
                 RtspMessagesBase.Method.DESCRIBE -> tcpStreamSocket.withLock {
                     val videoParams = this@RtspServerConnection.videoParams.get()
                     if (videoParams == null) {
-                        writeAndFlush(commandsManager.createServiceUnavailableResponse(cSeq))
+                        writeAndFlush(commandsManager.createErrorResponse(415, cSeq))
                     } else {
                         writeAndFlush(commandsManager.createDescribeResponse(cSeq, videoParams, audioParams.get()))
                     }
@@ -275,13 +275,13 @@ internal class RtspServerConnection(
                     if (videoPacketizer != null) {
                         val seqV = ((initialVideoSeq ?: 0) + 1) and 0xFFFF
                         val tsV = RtpTimestampCalculator.videoRtpTime(nowUs)
-                        trackInfo[RtpFrame.VIDEO_TRACK_ID] = RtspServerMessages.PlayTrackInfo(seq = seqV, rtptime = tsV)
+                        trackInfo[RtpFrame.VIDEO_TRACK_ID] = RtspServerMessages.PlayTrackInfo(seq = seqV, rtpTime = tsV)
                     }
                     if (audioPacketizer != null) {
                         val seqA = ((initialAudioSeq ?: 0) + 1) and 0xFFFF
                         val sr = audioParams.get()?.sampleRate ?: 48000
                         val tsA = RtpTimestampCalculator.audioRtpTime(nowUs, sr)
-                        trackInfo[RtpFrame.AUDIO_TRACK_ID] = RtspServerMessages.PlayTrackInfo(seq = seqA, rtptime = tsA)
+                        trackInfo[RtpFrame.AUDIO_TRACK_ID] = RtspServerMessages.PlayTrackInfo(seq = seqA, rtpTime = tsA)
                     }
                     writeAndFlush(commandsManager.createPlayResponse(cSeq, sessionId, trackInfo))
 
@@ -312,7 +312,7 @@ internal class RtspServerConnection(
                     }
                 }
 
-                else -> tcpStreamSocket.withLock { writeAndFlush(commandsManager.createErrorResponse(400, cSeq)) }
+                else -> tcpStreamSocket.withLock { writeAndFlush(commandsManager.createErrorResponse(405, cSeq)) }
             }
         }
     }

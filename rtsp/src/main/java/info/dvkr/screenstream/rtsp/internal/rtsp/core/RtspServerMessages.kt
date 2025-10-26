@@ -2,6 +2,10 @@ package info.dvkr.screenstream.rtsp.internal.rtsp.core
 
 import info.dvkr.screenstream.rtsp.internal.rtsp.RtspMessage
 import info.dvkr.screenstream.rtsp.internal.rtsp.client.RtspClient
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import java.util.TimeZone
 import kotlin.math.max
 
 internal class RtspServerMessages(
@@ -10,9 +14,10 @@ internal class RtspServerMessages(
 
     private companion object {
         private const val DEFAULT_SESSION_TIMEOUT_SEC = 60
+        private const val ALLOWED_METHODS = "OPTIONS, DESCRIBE, SETUP, PLAY, PAUSE, TEARDOWN, GET_PARAMETER"
     }
 
-    internal data class PlayTrackInfo(val seq: Int, val rtptime: Long)
+    internal data class PlayTrackInfo(val seq: Int, val rtpTime: Long)
 
     internal fun parseRequest(request: String): Pair<Method, Int> = parseMethod(request) to extractCSeq(request)
 
@@ -25,7 +30,8 @@ internal class RtspServerMessages(
     internal fun createOptionsResponse(cSeq: Int): RtspMessage =
         ResponseBuilder.ok()
             .withCSeq(cSeq)
-            .header(RtspHeaders.PUBLIC, "DESCRIBE, SETUP, TEARDOWN, PLAY, PAUSE, GET_PARAMETER")
+            .header(RtspHeaders.PUBLIC, ALLOWED_METHODS)
+            .withUserAgent(userAgent)
             .build()
 
     internal fun createDescribeResponse(
@@ -37,6 +43,7 @@ internal class RtspServerMessages(
             .withCSeq(cSeq)
             .header(RtspHeaders.CONTENT_BASE, "$baseUri/")
             .header(RtspHeaders.CONTENT_TYPE, "application/sdp")
+            .withUserAgent(userAgent)
             .bodyAscii(SdpBuilder().createSdpBody(videoParams, audioParams, sdpSessionId))
             .build()
 
@@ -53,19 +60,20 @@ internal class RtspServerMessages(
             .withCSeq(cSeq)
             .withSession(sessionId, DEFAULT_SESSION_TIMEOUT_SEC)
             .header(RtspHeaders.TRANSPORT, value)
-            .header(RtspHeaders.CACHE_CONTROL, "no-cache")
+            .withUserAgent(userAgent)
             .build()
     }
 
     internal fun createPlayResponse(cSeq: Int, sessionId: String, trackInfo: Map<Int, PlayTrackInfo>): RtspMessage {
         val rtpInfo = trackInfo.toSortedMap().entries.joinToString(",") { (tid, info) ->
-            "url=${trackUri(tid)};seq=${max(0, info.seq)};rtptime=${info.rtptime}"
+            "url=${trackUri(tid)};seq=${max(0, info.seq)};rtptime=${info.rtpTime}"
         }
         return ResponseBuilder.ok()
             .withCSeq(cSeq)
             .withSession(sessionId)
             .header(RtspHeaders.RANGE, "npt=0.000-")
             .header(RtspHeaders.RTP_INFO, rtpInfo)
+            .withUserAgent(userAgent)
             .build()
     }
 
@@ -73,24 +81,21 @@ internal class RtspServerMessages(
         ResponseBuilder.ok()
             .withCSeq(cSeq)
             .withSession(sessionId)
+            .withUserAgent(userAgent)
             .build()
 
     internal fun createTeardownResponse(cSeq: Int, sessionId: String): RtspMessage =
         ResponseBuilder.ok()
             .withCSeq(cSeq)
             .withSession(sessionId)
+            .withUserAgent(userAgent)
             .build()
 
     internal fun createGetParameterResponse(cSeq: Int, sessionId: String): RtspMessage =
         ResponseBuilder.ok()
             .withCSeq(cSeq)
             .apply { if (sessionId.isNotBlank()) withSession(sessionId) }
-            .build()
-
-    internal fun createServiceUnavailableResponse(cSeq: Int, retryAfterSeconds: Int = 2): RtspMessage =
-        ResponseBuilder.error(503, "Service Unavailable")
-            .withCSeq(cSeq)
-            .header(RtspHeaders.RETRY_AFTER, retryAfterSeconds.toString())
+            .withUserAgent(userAgent)
             .build()
 
     internal fun createErrorResponse(code: Int, cSeq: Int = -1): RtspMessage {
@@ -98,6 +103,8 @@ internal class RtspServerMessages(
             400 -> "Bad Request"
             401 -> "Unauthorized"
             404 -> "Not Found"
+            405 -> "Method Not Allowed"
+            415 -> "Unsupported Media Type"
             454 -> "Session Not Found"
             461 -> "Unsupported Transport"
             500 -> "Internal Server Error"
@@ -105,6 +112,13 @@ internal class RtspServerMessages(
         }
         return ResponseBuilder.error(code, status)
             .withCSeq(cSeq)
+            .apply {
+                if (code == 405) {
+                    header("Allow", ALLOWED_METHODS)
+                    header(RtspHeaders.PUBLIC, ALLOWED_METHODS)
+                }
+            }
+            .withUserAgent(userAgent)
             .build()
     }
 
@@ -129,7 +143,12 @@ internal class RtspServerMessages(
             return header(RtspHeaders.SESSION, sessionHeader)
         }
 
+        fun withUserAgent(userAgent: String): ResponseBuilder = header("Server", userAgent)
+
         fun build(): RtspMessage {
+            if (!headers.containsKey("Date")) headers["Date"] = rfc1123Date()
+            if (!headers.containsKey(RtspHeaders.CACHE_CONTROL)) headers[RtspHeaders.CACHE_CONTROL] = "no-cache"
+
             val header = buildString {
                 append(RTSP_VERSION).append(' ').append(statusCode).append(' ').append(statusText).append(CRLF)
                 body?.let { headers[RtspHeaders.CONTENT_LENGTH] = it.size.toString() }
@@ -142,6 +161,10 @@ internal class RtspServerMessages(
         companion object {
             fun ok(): ResponseBuilder = ResponseBuilder(200, "OK")
             fun error(code: Int, text: String): ResponseBuilder = ResponseBuilder(code, text)
+
+            private fun rfc1123Date(): String = SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss 'GMT'", Locale.US)
+                .apply { timeZone = TimeZone.getTimeZone("GMT") }
+                .format(Date())
         }
     }
 }

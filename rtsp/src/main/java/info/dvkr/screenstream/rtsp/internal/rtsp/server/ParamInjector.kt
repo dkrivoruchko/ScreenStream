@@ -1,6 +1,5 @@
 package info.dvkr.screenstream.rtsp.internal.rtsp.server
 
-import info.dvkr.screenstream.rtsp.internal.rtsp.server.PacketizationConfig
 import info.dvkr.screenstream.rtsp.internal.rtsp.packets.H264Packet
 import info.dvkr.screenstream.rtsp.internal.rtsp.packets.H265Packet
 

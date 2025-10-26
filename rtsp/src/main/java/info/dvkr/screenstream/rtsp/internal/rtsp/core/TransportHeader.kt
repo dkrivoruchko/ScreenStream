@@ -8,6 +8,7 @@ internal data class TransportHeader(
     val serverPorts: Pair<Int, Int>? = null,
     val mode: String? = null,
     val modeQuoted: Boolean = false,
+    val extensions: List<String> = emptyList(),
 ) {
     fun withServerPorts(rtp: Int, rtcp: Int): TransportHeader = copy(serverPorts = rtp to rtcp)
 
@@ -22,6 +23,7 @@ internal data class TransportHeader(
             val v = if (modeQuoted) "\"$mode\"" else mode
             parts += "mode=$v"
         }
+        if (extensions.isNotEmpty()) parts += extensions
         return parts.joinToString("; ")
     }
 
@@ -37,6 +39,7 @@ internal data class TransportHeader(
             var server: Pair<Int, Int>? = null
             var mode: String? = null
             var modeQuoted = false
+            val extras = mutableListOf<String>()
             for (i in 1 until tokens.size) {
                 val token = tokens[i]
                 when {
@@ -67,9 +70,11 @@ internal data class TransportHeader(
                         modeQuoted = raw.startsWith('"') && raw.endsWith('"') && raw.length >= 2
                         mode = raw.trim('"')
                     }
+
+                    else -> extras += token
                 }
             }
-            return TransportHeader(profile, unicast, interleaved, client, server, mode, modeQuoted)
+            return TransportHeader(profile, unicast, interleaved, client, server, mode, modeQuoted, extras)
         }
     }
 }
