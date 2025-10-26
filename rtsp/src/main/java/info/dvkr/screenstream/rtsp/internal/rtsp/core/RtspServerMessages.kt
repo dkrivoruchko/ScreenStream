@@ -1,8 +1,8 @@
-package info.dvkr.screenstream.rtsp.internal.rtsp
+package info.dvkr.screenstream.rtsp.internal.rtsp.core
 
-import info.dvkr.screenstream.rtsp.internal.rtsp.core.ResponseBuilder
-import info.dvkr.screenstream.rtsp.internal.rtsp.core.TransportHeader
-import info.dvkr.screenstream.rtsp.internal.rtsp.sdp.SdpBuilder
+import info.dvkr.screenstream.rtsp.internal.rtsp.client.RtspClient
+import info.dvkr.screenstream.rtsp.internal.rtsp.core.SdpBuilder
+import java.security.SecureRandom
 import kotlin.math.max
 
 internal class RtspServerMessages(appVersion: String, host: String, port: Int, path: String) :
@@ -12,12 +12,11 @@ internal class RtspServerMessages(appVersion: String, host: String, port: Int, p
 
     internal data class PlayTrackInfo(val seq: Int, val rtptime: Long)
 
-    private var sdpSessionId: Int = java.security.SecureRandom().nextInt(Int.MAX_VALUE)
+    private var sdpSessionId: Int = SecureRandom().nextInt(Int.MAX_VALUE)
 
     internal fun parseRequest(request: String): Pair<Method, Int> {
         val token = extractMethodToken(request)?.uppercase().orEmpty()
-        val method = runCatching { Method.valueOf(token) }
-            .getOrDefault(Method.UNKNOWN)
+        val method = runCatching { Method.valueOf(token) }.getOrDefault(Method.UNKNOWN)
         val cseq = extractCSeq(request)
         return method to cseq
     }

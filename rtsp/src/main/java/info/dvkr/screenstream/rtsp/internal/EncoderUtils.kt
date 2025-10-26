@@ -24,7 +24,7 @@ internal object EncoderUtils {
         buildList {
             addAll(findVideoEncoders(Video.H264))
             addAll(findVideoEncoders(Video.H265))
-            addAll(findVideoEncoders(Video.AV1))
+//            addAll(findVideoEncoders(Video.AV1))
         }.sortedWith(
             compareBy(
                 {

@@ -1,4 +1,4 @@
-package info.dvkr.screenstream.rtsp.internal.rtsp.transport
+package info.dvkr.screenstream.rtsp.internal.rtsp.server
 
 import info.dvkr.screenstream.rtsp.internal.RtpFrame
 

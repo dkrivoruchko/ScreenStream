@@ -129,7 +129,7 @@ internal class NetworkHelper(private val context: Context) {
                 .filter { addr -> !addr.isLinkLocalAddress && !addr.isMulticastAddress }
                 .filter { isAddressTypeEnabled(it, enableIpv4, enableIpv6) }
                 .filter { passesAddressFilter(it, addressFilter) }
-                .mapTo(sink) { toMjpegNetInterface(it, transportMask) }
+                .mapTo(sink) { toRtspNetInterface(it, transportMask) }
         }
     }
 
@@ -187,7 +187,7 @@ internal class NetworkHelper(private val context: Context) {
                     .filter { addr -> !addr.isLinkLocalAddress && !addr.isMulticastAddress }
                     .filter { addr -> isAddressTypeEnabled(addr, enableIpv4, enableIpv6) }
                     .filter { addr -> passesAddressFilter(addr, addressFilter) }
-                    .mapTo(sink) { toMjpegNetInterface(it, transportMask) }
+                    .mapTo(sink) { toRtspNetInterface(it, transportMask) }
             }
     }
 
@@ -204,7 +204,7 @@ internal class NetworkHelper(private val context: Context) {
                             .asSequence()
                             .filter { it.isLoopbackAddress }
                             .filter { isAddressTypeEnabled(it, enableIpv4, enableIpv6) }
-                            .mapTo(sink) { toMjpegNetInterface(it, 0) }
+                            .mapTo(sink) { toRtspNetInterface(it, 0) }
                     }
                 }
             }.onFailure {
@@ -215,7 +215,7 @@ internal class NetworkHelper(private val context: Context) {
         if (sink.none { it.address.isLoopbackAddress }) {
             if (enableIpv4) {
                 runCatching {
-                    InetAddress.getByName("127.0.0.1").let { addr -> if (addr.isLoopbackAddress) sink.add(toMjpegNetInterface(addr, 0)) }
+                    InetAddress.getByName("127.0.0.1").let { addr -> if (addr.isLoopbackAddress) sink.add(toRtspNetInterface(addr, 0)) }
                 }.onFailure {
                     XLog.d(getLog("discoverLoopbackManually", "Failed to add IPv4 loopback: ${it.message}"))
                 }
@@ -223,7 +223,7 @@ internal class NetworkHelper(private val context: Context) {
 
             if (enableIpv6) {
                 runCatching {
-                    InetAddress.getByName("::1").let { addr -> if (addr.isLoopbackAddress) sink.add(toMjpegNetInterface(addr, 0)) }
+                    InetAddress.getByName("::1").let { addr -> if (addr.isLoopbackAddress) sink.add(toRtspNetInterface(addr, 0)) }
                 }.onFailure {
                     XLog.d(getLog("discoverLoopbackManually", "Failed to add IPv6 loopback: ${it.message}"))
                 }
@@ -266,7 +266,7 @@ internal class NetworkHelper(private val context: Context) {
         }
     }
 
-    private fun toMjpegNetInterface(address: InetAddress, transportMask: Int): RtspNetInterface {
+    private fun toRtspNetInterface(address: InetAddress, transportMask: Int): RtspNetInterface {
         val interfaceLabel = when (transportMask) {
             RtspSettings.Values.INTERFACE_WIFI -> context.getString(R.string.rtsp_pref_filter_wifi)
             RtspSettings.Values.INTERFACE_MOBILE -> context.getString(R.string.rtsp_pref_filter_mobile)

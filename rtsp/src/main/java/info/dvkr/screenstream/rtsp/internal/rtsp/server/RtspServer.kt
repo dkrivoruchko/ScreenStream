@@ -2,8 +2,8 @@ package info.dvkr.screenstream.rtsp.internal.rtsp.server
 
 import info.dvkr.screenstream.rtsp.internal.MediaFrame
 import info.dvkr.screenstream.rtsp.internal.RtspStreamingService
-import info.dvkr.screenstream.rtsp.internal.rtsp.RtspClient
-import info.dvkr.screenstream.rtsp.internal.rtsp.RtspServerMessages
+import info.dvkr.screenstream.rtsp.internal.rtsp.client.RtspClient
+import info.dvkr.screenstream.rtsp.internal.rtsp.core.RtspServerMessages
 import info.dvkr.screenstream.rtsp.internal.rtsp.sockets.TcpStreamSocket
 import io.ktor.network.selector.SelectorManager
 import io.ktor.network.sockets.ServerSocket

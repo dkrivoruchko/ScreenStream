@@ -1,7 +1,8 @@
-package info.dvkr.screenstream.rtsp.internal.rtsp
+package info.dvkr.screenstream.rtsp.internal.rtsp.core
 
 import info.dvkr.screenstream.rtsp.internal.Protocol
-import info.dvkr.screenstream.rtsp.internal.rtsp.sdp.SdpBuilder
+import info.dvkr.screenstream.rtsp.internal.rtsp.client.RtspClient
+import info.dvkr.screenstream.rtsp.internal.rtsp.core.SdpBuilder
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeout

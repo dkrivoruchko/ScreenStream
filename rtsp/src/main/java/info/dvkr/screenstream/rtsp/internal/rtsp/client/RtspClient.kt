@@ -1,4 +1,4 @@
-package info.dvkr.screenstream.rtsp.internal.rtsp
+package info.dvkr.screenstream.rtsp.internal.rtsp.client
 
 import androidx.annotation.AnyThread
 import com.elvishew.xlog.XLog
@@ -7,8 +7,12 @@ import info.dvkr.screenstream.rtsp.internal.Codec
 import info.dvkr.screenstream.rtsp.internal.MediaFrame
 import info.dvkr.screenstream.rtsp.internal.Protocol
 import info.dvkr.screenstream.rtsp.internal.RtpFrame
-import info.dvkr.screenstream.rtsp.internal.RtspStreamingService.InternalEvent
+import info.dvkr.screenstream.rtsp.internal.RtspStreamingService
 import info.dvkr.screenstream.rtsp.internal.audio.AudioSource
+import info.dvkr.screenstream.rtsp.internal.rtsp.BitrateCalculator
+import info.dvkr.screenstream.rtsp.internal.rtsp.RtcpReporter
+import info.dvkr.screenstream.rtsp.internal.rtsp.RtspUrl
+import info.dvkr.screenstream.rtsp.internal.rtsp.core.RtspClientMessages
 import info.dvkr.screenstream.rtsp.internal.rtsp.packets.AacPacket
 import info.dvkr.screenstream.rtsp.internal.rtsp.packets.Av1Packet
 import info.dvkr.screenstream.rtsp.internal.rtsp.packets.G711Packet
@@ -56,7 +60,7 @@ internal class RtspClient(
     private val protocol: Protocol,
     private val onlyVideo: Boolean,
     private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
-    private val onEvent: (InternalEvent) -> Unit
+    private val onEvent: (RtspStreamingService.InternalEvent) -> Unit
 ) {
 
     private enum class State { IDLE, CONNECTING, STREAMING }
@@ -275,31 +279,31 @@ internal class RtspClient(
 
                 val ports = doRtspHandshake(tcp, rtspUrl, videoParams, audioParams)
 
-                onEvent(InternalEvent.RtspClientOnConnectionSuccess)
+                onEvent(RtspStreamingService.InternalEvent.RtspClientOnConnectionSuccess)
 
                 val sendingJob = launch { sendingLoop(tcp, ports, videoParams, audioParams) }
                 launch { keepAliveLoop(tcp) }.join()
                 sendingJob.cancelAndJoin()
             } catch (e: ConnectException) {
                 XLog.w(getLog("connect", "Connection error: ${e.message}"), e)
-                onEvent(InternalEvent.RtspClientOnError(ConnectionError.Failed(e.message)))
+                onEvent(RtspStreamingService.InternalEvent.RtspClientOnError(ConnectionError.Failed(e.message)))
                 error = e
             } catch (e: CertificateException) {
                 XLog.w(getLog("connect", "Connection error: ${e.message}"), e)
-                onEvent(InternalEvent.RtspClientOnError(ConnectionError.Failed(e.message)))
+                onEvent(RtspStreamingService.InternalEvent.RtspClientOnError(ConnectionError.Failed(e.message)))
                 error = e
             } catch (e: TimeoutCancellationException) {
                 XLog.w(getLog("connect", "Connection error: ${e.message}"), e)
-                onEvent(InternalEvent.RtspClientOnError(ConnectionError.Failed("Timeout")))
+                onEvent(RtspStreamingService.InternalEvent.RtspClientOnError(ConnectionError.Failed("Timeout")))
                 error = e
             } catch (e: ConnectionError) {
                 XLog.w(getLog("connect", "Connection error: ${e.message}"), e)
-                onEvent(InternalEvent.RtspClientOnError(e))
+                onEvent(RtspStreamingService.InternalEvent.RtspClientOnError(e))
                 error = e
             } catch (_: CancellationException) {
             } catch (e: Throwable) {
                 XLog.w(getLog("connect", "Unknown error: ${e.message}"), e)
-                onEvent(InternalEvent.Error(RtspError.UnknownError(e)))
+                onEvent(RtspStreamingService.InternalEvent.Error(RtspError.UnknownError(e)))
                 error = e
             } finally {
                 XLog.w(getLog("connect", "finally"))
@@ -321,7 +325,7 @@ internal class RtspClient(
                 synchronized(rtspLock) { currentState = State.IDLE }
 
                 XLog.w(getLog("connect", "finally Done"))
-                if (error == null) onEvent(InternalEvent.RtspClientOnDisconnect)
+                if (error == null) onEvent(RtspStreamingService.InternalEvent.RtspClientOnDisconnect)
             }
         }.also {
             connectionJob.set(it)
@@ -385,7 +389,7 @@ internal class RtspClient(
         // 3) SETUP for video
         var videoClientPorts = if (protocol == Protocol.UDP) Ports.getEvenOddPair() else Ports.getRandom()
         var videoServerPorts = Ports.getRandom()
-        setupTrack(tcpSocket, videoClientPorts, RtpFrame.VIDEO_TRACK_ID)?.also { (client, server) ->
+        setupTrack(tcpSocket, videoClientPorts, RtpFrame.Companion.VIDEO_TRACK_ID)?.also { (client, server) ->
             client?.let { videoClientPorts = it }
             server?.let { videoServerPorts = it }
         }
@@ -394,7 +398,7 @@ internal class RtspClient(
         var audioClientPorts = if (protocol == Protocol.UDP) Ports.getEvenOddPair() else Ports.getRandom()
         var audioServerPorts = Ports.getRandom()
         if (!onlyVideo && audioParams != null) {
-            setupTrack(tcpSocket, audioClientPorts, RtpFrame.AUDIO_TRACK_ID)?.also { (client, server) ->
+            setupTrack(tcpSocket, audioClientPorts, RtpFrame.Companion.AUDIO_TRACK_ID)?.also { (client, server) ->
                 client?.let { audioClientPorts = it }
                 server?.let { audioServerPorts = it }
             }
@@ -465,7 +469,7 @@ internal class RtspClient(
                 }
             } catch (_: CancellationException) {
             } catch (e: Throwable) {
-                onEvent(InternalEvent.RtspClientOnError(ConnectionError.Failed("Keep-alive failed: ${e.message}")))
+                onEvent(RtspStreamingService.InternalEvent.RtspClientOnError(ConnectionError.Failed("Keep-alive failed: ${e.message}")))
                 tcpSocket.withLock { close() }
                 currentCoroutineContext().cancel()
                 return
@@ -474,8 +478,8 @@ internal class RtspClient(
     }
 
     private suspend fun sendingLoop(tcpSocket: TcpStreamSocket, ports: SelectedPorts, videoParams: VideoParams, audioParams: AudioParams?) {
-        var ssrcVideo = Random.nextInt().toLong() and 0xFFFFFFFFL
-        val ssrcAudio = Random.nextInt().toLong() and 0xFFFFFFFFL
+        var ssrcVideo = Random.Default.nextInt().toLong() and 0xFFFFFFFFL
+        val ssrcAudio = Random.Default.nextInt().toLong() and 0xFFFFFFFFL
 
         val videoUdpSocket = if (protocol == Protocol.TCP) null else
             UdpStreamSocket(selectorManager, rtspUrl.host, ports.videoServer.client, ports.videoClient.client).apply { connect() }
@@ -484,7 +488,7 @@ internal class RtspClient(
             UdpStreamSocket(selectorManager, rtspUrl.host, ports.audioServer.client, ports.audioClient.client).apply { connect() }
 
         val bitrateCalculator = BitrateCalculator(scope) { bitrate ->
-            onEvent(InternalEvent.RtspClientOnBitrate(bitrate))
+            onEvent(RtspStreamingService.InternalEvent.RtspClientOnBitrate(bitrate))
         }
 
         val reporter = RtcpReporter(
@@ -556,7 +560,7 @@ internal class RtspClient(
                                 queuedItem.videoParams.codec is Codec.Video.H264 && videoPacket is H264Packet -> {
                                     XLog.w(getLog("sendingLoop", "Applying new SPS/PPS for H264"))
                                     videoPacket.reset()
-                                    ssrcVideo = Random.nextInt().toLong() and 0xFFFFFFFFL
+                                    ssrcVideo = Random.Default.nextInt().toLong() and 0xFFFFFFFFL
                                     videoPacket.setSSRC(ssrcVideo)
                                     reporter.setSsrcVideo(ssrcVideo)
                                     videoPacket.setVideoInfo(queuedItem.videoParams.sps, queuedItem.videoParams.pps!!)
@@ -565,7 +569,7 @@ internal class RtspClient(
                                 queuedItem.videoParams.codec is Codec.Video.H265 && videoPacket is H265Packet -> {
                                     XLog.w(getLog("sendingLoop", "Applying new VPS/SPS/PPS for H265"))
                                     videoPacket.reset()
-                                    ssrcVideo = Random.nextInt().toLong() and 0xFFFFFFFFL
+                                    ssrcVideo = Random.Default.nextInt().toLong() and 0xFFFFFFFFL
                                     videoPacket.setSSRC(ssrcVideo)
                                     reporter.setSsrcVideo(ssrcVideo)
                                     videoPacket.setVideoInfo(
@@ -580,7 +584,7 @@ internal class RtspClient(
                 } catch (_: CancellationException) {
                 } catch (error: Throwable) {
                     XLog.w(getLog("sendingLoop", "Error sending packet: ${error.message}"), error)
-                    onEvent(InternalEvent.RtspClientOnError(ConnectionError.Failed("Error sending packet: ${error.message}")))
+                    onEvent(RtspStreamingService.InternalEvent.RtspClientOnError(ConnectionError.Failed("Error sending packet: ${error.message}")))
                     currentCoroutineContext().cancel()
                 } finally {
                     if (queuedItem is QueuedItem.Frame) {

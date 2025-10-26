@@ -1,6 +1,6 @@
 [versions]
 agp = "8.13.0"
-kotlin = "2.2.20"
+kotlin = "2.2.21"
 android-tools-desugar = "2.1.5"
 
 koin-android = "4.1.1"
@@ -16,7 +16,7 @@ androidx-lifecycle = "2.9.4"
 androidx-window = "1.5.0"
 androidx-datastore-preferences = "1.1.7"
 
-compose-bom = "2025.10.00"
+compose-bom = "2025.10.01"
 
 process-phoenix = "3.0.0"
 xlog = "1.11.1"
@@ -28,7 +28,7 @@ ktor = "3.3.1"
 play-services-tasks = "18.4.0"
 play-integrity = "1.5.0"
 socket = "2.1.2"
-okio = "3.16.1"
+okio = "3.16.2"
 okhttp = "5.2.1"
 
 #PlayStore-App

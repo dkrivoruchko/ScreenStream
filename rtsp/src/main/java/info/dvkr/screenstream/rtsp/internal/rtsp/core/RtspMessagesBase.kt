@@ -1,4 +1,4 @@
-package info.dvkr.screenstream.rtsp.internal.rtsp
+package info.dvkr.screenstream.rtsp.internal.rtsp.core
 
 internal abstract class RtspMessagesBase(
     protected val appVersion: String,

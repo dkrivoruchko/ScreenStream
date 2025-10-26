@@ -27,7 +27,7 @@ import info.dvkr.screenstream.rtsp.RtspModuleService
 import info.dvkr.screenstream.rtsp.internal.EncoderUtils.adjustResizeFactor
 import info.dvkr.screenstream.rtsp.internal.audio.AudioEncoder
 import info.dvkr.screenstream.rtsp.internal.audio.AudioSource
-import info.dvkr.screenstream.rtsp.internal.rtsp.RtspClient
+import info.dvkr.screenstream.rtsp.internal.rtsp.client.RtspClient
 import info.dvkr.screenstream.rtsp.internal.rtsp.RtspUrl
 import info.dvkr.screenstream.rtsp.internal.rtsp.server.NetworkHelper
 import info.dvkr.screenstream.rtsp.internal.rtsp.server.RtspServer

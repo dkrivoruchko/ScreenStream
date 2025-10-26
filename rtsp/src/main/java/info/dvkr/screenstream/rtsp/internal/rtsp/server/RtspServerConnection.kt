@@ -6,11 +6,10 @@ import info.dvkr.screenstream.rtsp.internal.MediaFrame
 import info.dvkr.screenstream.rtsp.internal.Protocol
 import info.dvkr.screenstream.rtsp.internal.RtpFrame
 import info.dvkr.screenstream.rtsp.internal.RtspStreamingService
-import info.dvkr.screenstream.rtsp.internal.rtsp.PacketizationConfig
 import info.dvkr.screenstream.rtsp.internal.rtsp.RtcpReporter
-import info.dvkr.screenstream.rtsp.internal.rtsp.RtpTimestampCalculator
-import info.dvkr.screenstream.rtsp.internal.rtsp.RtspClient
-import info.dvkr.screenstream.rtsp.internal.rtsp.RtspServerMessages
+import info.dvkr.screenstream.rtsp.internal.rtsp.server.RtpTimestampCalculator
+import info.dvkr.screenstream.rtsp.internal.rtsp.client.RtspClient
+import info.dvkr.screenstream.rtsp.internal.rtsp.core.RtspServerMessages
 import info.dvkr.screenstream.rtsp.internal.rtsp.packets.AacPacket
 import info.dvkr.screenstream.rtsp.internal.rtsp.packets.Av1Packet
 import info.dvkr.screenstream.rtsp.internal.rtsp.packets.BaseRtpPacket
@@ -20,18 +19,17 @@ import info.dvkr.screenstream.rtsp.internal.rtsp.packets.H265Packet
 import info.dvkr.screenstream.rtsp.internal.rtsp.packets.OpusPacket
 import info.dvkr.screenstream.rtsp.internal.rtsp.sockets.TcpStreamSocket
 import info.dvkr.screenstream.rtsp.internal.rtsp.sockets.UdpStreamSocket
-import info.dvkr.screenstream.rtsp.internal.rtsp.transport.InterleavedTcpTransport
-import info.dvkr.screenstream.rtsp.internal.rtsp.transport.RtpTransport
-import info.dvkr.screenstream.rtsp.internal.rtsp.transport.UdpTransport
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.flow.StateFlow
 import java.nio.ByteBuffer
 import java.security.SecureRandom
 import java.util.concurrent.atomic.AtomicReference
@@ -85,16 +83,14 @@ internal class RtspServerConnection(
     private var clientJob: Job? = null
     private var videoWriterJob: Job? = null
     private var audioWriterJob: Job? = null
-    
+
     private val paramInjector = ParamInjector()
     private var waitingForKeyframe: Boolean = false
     private var rtpTransport: RtpTransport? = null
 
-    // Per-client queues
-    private val videoQueue = kotlinx.coroutines.channels.Channel<VideoBlob>(capacity = 32)
-    private val audioQueue = kotlinx.coroutines.channels.Channel<AudioBlob>(capacity = 64)
-    
-    // Per-client statistics
+    private val videoQueue = Channel<VideoBlob>(capacity = 32)
+    private val audioQueue = Channel<AudioBlob>(capacity = 64)
+
     private val statsReporter = ClientStatsReporter(
         sessionId = sessionId,
         remoteHost = tcpStreamSocket.remoteHost,
@@ -125,9 +121,7 @@ internal class RtspServerConnection(
     }
 
     internal fun enqueueAudio(blob: AudioBlob): Boolean {
-        // Drop newest if full; keep latency bounded
         if (!audioQueue.trySend(blob).isSuccess) {
-            // Drop oldest and try again
             audioQueue.tryReceive().getOrNull()
             if (!audioQueue.trySend(blob).isSuccess) {
                 statsReporter.onAudioDrop()
@@ -155,8 +149,6 @@ internal class RtspServerConnection(
 
     private suspend fun commandLoop() {
         while (scope.isActive && tcpStreamSocket.isConnected()) {
-            // Do not hold the write lock while waiting for incoming requests;
-            // this would block RTP interleaved writes.
             val request = tcpStreamSocket.readRequestHeaders() ?: break
             val (method, cSeq) = commandsManager.parseRequest(request)
             when (method) {
@@ -245,9 +237,6 @@ internal class RtspServerConnection(
                 }
 
                 RtspServerMessages.Method.PLAY -> tcpStreamSocket.withLock {
-                    // Respond to PLAY first, then start streaming to avoid races
-                    // where packetizers advance seq/timestamps before RTP-Info is sent.
-                    // For HEVC, require an IDR before we forward frames to a fresh client.
                     runCatching {
                         val v = videoParams.get()
                         waitingForKeyframe = when (v?.codec) {
@@ -262,7 +251,6 @@ internal class RtspServerConnection(
                             scope = scope,
                             protocol = protocol,
                             writeToTcpSocket = { header, data ->
-                                // Always serialize writes via socket lock to avoid ByteChannel corruption
                                 socket.withLock {
                                     val ch = header[1].toInt() and 0xFF
                                     val mapped = when (ch) {
@@ -280,9 +268,6 @@ internal class RtspServerConnection(
                             ssrcAudio = audioSsrc
                         )
                     }
-                    // Provide RTP-Info with sequence numbers of the first packet that will be sent.
-                    // Our RTP packetizers increment the sequence before writing the first packet, so
-                    // advertise initialSeq + 1 to match the first outgoing RTP packet.
                     val trackInfo = mutableMapOf<Int, RtspServerMessages.PlayTrackInfo>()
                     val nowUs = MasterClock.relativeTimeUs()
                     if (videoPacketizer != null) {
@@ -334,7 +319,7 @@ internal class RtspServerConnection(
         while (scope.isActive) {
             // Do not consume queue until PLAY; preserve first keyframe for the client
             if (!isStreaming) {
-                kotlinx.coroutines.delay(10)
+                delay(10)
                 continue
             }
             val blob = videoQueue.receiveCatching().getOrNull() ?: break
@@ -368,8 +353,6 @@ internal class RtspServerConnection(
             }
 
             blob.buf.release()
-
-            // Slow-client detection removed for simplicity; queues are bounded.
         }
     }
 
@@ -396,8 +379,6 @@ internal class RtspServerConnection(
                 break
             }
             blob.buf.release()
-
-            // Slow-client detection removed for simplicity; queues are bounded.
         }
     }
 
@@ -407,7 +388,6 @@ internal class RtspServerConnection(
     }
 
     internal suspend fun stop() {
-
         clientJob?.cancel()
         clientJob = null
         videoWriterJob?.cancel(); videoWriterJob = null

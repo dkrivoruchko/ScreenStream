@@ -1,4 +1,4 @@
-package info.dvkr.screenstream.rtsp.internal.rtsp
+package info.dvkr.screenstream.rtsp.internal.rtsp.server
 
 internal object PacketizationConfig {
     @Volatile var paramReinjectionEnabled: Boolean = true
