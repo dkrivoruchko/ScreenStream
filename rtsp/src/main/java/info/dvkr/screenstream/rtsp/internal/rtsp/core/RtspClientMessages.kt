@@ -2,7 +2,6 @@ package info.dvkr.screenstream.rtsp.internal.rtsp.core
 
 import info.dvkr.screenstream.rtsp.internal.Protocol
 import info.dvkr.screenstream.rtsp.internal.rtsp.client.RtspClient
-import info.dvkr.screenstream.rtsp.internal.rtsp.core.SdpBuilder
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeout
@@ -21,7 +20,6 @@ internal class RtspClientMessages(
     private val password: String?
 ) : RtspMessagesBase(appVersion, host, port, path) {
 
-    internal enum class Method { OPTIONS, ANNOUNCE, RECORD, SETUP, TEARDOWN, DESCRIBE, PLAY, PAUSE, GET_PARAMETER, UNKNOWN }
     internal data class Command(val method: Method, val cSeq: Int, val status: Int, val text: String)
 
     private val lock = Mutex()
@@ -52,7 +50,7 @@ internal class RtspClientMessages(
 
     internal suspend fun createOptions(): String = lock.withLock {
         buildString {
-            append("OPTIONS rtsp://$host:$port$path RTSP/1.0\r\n")
+            append("OPTIONS $baseUri RTSP/1.0\r\n")
             addDefaultHeaders()
             append("\r\n")
         }
@@ -60,7 +58,7 @@ internal class RtspClientMessages(
 
     internal suspend fun createGetParameter(): String = lock.withLock {
         buildString {
-            append("GET_PARAMETER rtsp://$host:$port$path RTSP/1.0\r\n")
+            append("GET_PARAMETER $baseUri RTSP/1.0\r\n")
             addDefaultHeaders()
             append("\r\n")
         }
@@ -70,7 +68,7 @@ internal class RtspClientMessages(
         lock.withLock {
             buildString {
                 val body = SdpBuilder().createSdpBody(videoParams, audioParams, sdpSessionId)
-                append("ANNOUNCE rtsp://$host:$port$path RTSP/1.0\r\n")
+                append("ANNOUNCE $baseUri RTSP/1.0\r\n")
                 append("Content-Type: application/sdp\r\n")
                 addDefaultHeaders(contentLength = body.toByteArray(Charsets.US_ASCII).size)
                 append("\r\n")
@@ -95,12 +93,13 @@ internal class RtspClientMessages(
                 val opaque = OPAQUE_REGEX.find(authResponse)?.groupValues?.getOrNull(1).orEmpty()
                 val algorithm = ALGORITHM_REGEX.find(authResponse)?.groupValues?.getOrNull(1).orEmpty()
                 val ha1 = "$user:$realm:$pass".md5()
-                val ha2 = "$method:rtsp://$host:$port$uriPath".md5()
+                val fullUri = if (uriPath.startsWith(path)) "$baseUri${uriPath.removePrefix(path)}" else "$baseUri$uriPath"
+                val ha2 = "$method:$fullUri".md5()
                 val cnonce = SecureRandom().nextInt().toString(16)
                 val response = if (qop.isEmpty()) "$ha1:$nonce:$ha2".md5() else "$ha1:$nonce:00000001:$cnonce:$qop:$ha2".md5()
                 buildString {
                     append("Digest username=\"$user\", realm=\"$realm\", nonce=\"$nonce\", ")
-                    append("uri=\"rtsp://$host:$port$uriPath\", response=\"$response\"")
+                    append("uri=\"$fullUri\", response=\"$response\"")
                     if (qop.isNotEmpty()) append(", qop=\"$qop\"")
                     if (opaque.isNotEmpty()) append(", opaque=\"$opaque\"")
                     append(", algorithm=\"$algorithm\"")
@@ -111,7 +110,7 @@ internal class RtspClientMessages(
     }
 
     internal suspend fun createSetup(protocol: Protocol, clientRtpPort: Int, clientRtcpPort: Int, trackId: Int): String = lock.withLock {
-        val uri = "rtsp://$host:$port$path/trackID=$trackId"
+        val uri = "$baseUri/trackID=$trackId"
         val transport = when (protocol) {
             Protocol.TCP -> "RTP/AVP/TCP;unicast;interleaved=${trackId shl 1}-${(trackId shl 1) + 1}"
             Protocol.UDP -> "RTP/AVP;unicast;client_port=$clientRtpPort-$clientRtcpPort"
@@ -126,7 +125,7 @@ internal class RtspClientMessages(
 
     internal suspend fun createRecord(): String = lock.withLock {
         buildString {
-            append("RECORD rtsp://$host:$port$path RTSP/1.0\r\n")
+            append("RECORD $baseUri RTSP/1.0\r\n")
             append("Range: npt=0.000-\r\n")
             addDefaultHeaders()
             append("\r\n")
@@ -135,7 +134,7 @@ internal class RtspClientMessages(
 
     internal suspend fun createTeardown(): String = lock.withLock {
         buildString {
-            append("TEARDOWN rtsp://$host:$port$path RTSP/1.0\r\n")
+            append("TEARDOWN $baseUri RTSP/1.0\r\n")
             addDefaultHeaders()
             append("\r\n")
         }
@@ -175,9 +174,10 @@ internal class RtspClientMessages(
     }
 
     internal fun getPorts(command: Command): Pair<RtspClient.Ports?, RtspClient.Ports?> {
-        val transport = extractTransport(command.text).ifEmpty { return null to null }
-        val client = CLIENT_PORT_REGEX.find(transport)?.destructured?.let { (rtp, rtcp) -> RtspClient.Ports(rtp.toInt(), rtcp.toInt()) }
-        val server = SERVER_PORT_REGEX.find(transport)?.destructured?.let { (rtp, rtcp) -> RtspClient.Ports(rtp.toInt(), rtcp.toInt()) }
+        val transportText = extractTransport(command.text).ifEmpty { return null to null }
+        val parsed = TransportHeader.parse(transportText) ?: return null to null
+        val client = parsed.clientPorts?.let { (rtp, rtcp) -> RtspClient.Ports(rtp, rtcp) }
+        val server = parsed.serverPorts?.let { (rtp, rtcp) -> RtspClient.Ports(rtp, rtcp) }
         return client to server
     }
 
@@ -194,12 +194,5 @@ internal class RtspClientMessages(
         append("User-Agent: ScreenStream/$appVersion\r\n")
         if (contentLength != null) append("Content-Length: $contentLength\r\n")
         if (sessionId.isNotBlank()) append("Session: $sessionId\r\n")
-    }
-
-    private companion object {
-        private val DIGEST_AUTH_REGEX = Regex("""realm="([^"]+)",\s*nonce="([^"]+)"(.*)""", RegexOption.IGNORE_CASE)
-        private val QOP_REGEX = Regex("""qop="([^"]+)""", RegexOption.IGNORE_CASE)
-        private val OPAQUE_REGEX = Regex("""opaque="([^"]+)""", RegexOption.IGNORE_CASE)
-        private val ALGORITHM_REGEX = Regex("""algorithm="?([^," ]+)"?""", RegexOption.IGNORE_CASE)
     }
 }

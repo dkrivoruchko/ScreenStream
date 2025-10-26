@@ -7,8 +7,8 @@ import info.dvkr.screenstream.rtsp.internal.Protocol
 import info.dvkr.screenstream.rtsp.internal.RtpFrame
 import info.dvkr.screenstream.rtsp.internal.RtspStreamingService
 import info.dvkr.screenstream.rtsp.internal.rtsp.RtcpReporter
-import info.dvkr.screenstream.rtsp.internal.rtsp.server.RtpTimestampCalculator
 import info.dvkr.screenstream.rtsp.internal.rtsp.client.RtspClient
+import info.dvkr.screenstream.rtsp.internal.rtsp.core.RtspMessagesBase
 import info.dvkr.screenstream.rtsp.internal.rtsp.core.RtspServerMessages
 import info.dvkr.screenstream.rtsp.internal.rtsp.packets.AacPacket
 import info.dvkr.screenstream.rtsp.internal.rtsp.packets.Av1Packet
@@ -153,11 +153,11 @@ internal class RtspServerConnection(
             val request = tcpStreamSocket.readRequestHeaders() ?: break
             val (method, cSeq) = commandsManager.parseRequest(request)
             when (method) {
-                RtspServerMessages.Method.OPTIONS -> tcpStreamSocket.withLock {
+                RtspMessagesBase.Method.OPTIONS -> tcpStreamSocket.withLock {
                     writeAndFlush(commandsManager.createOptionsResponse(cSeq))
                 }
 
-                RtspServerMessages.Method.DESCRIBE -> tcpStreamSocket.withLock {
+                RtspMessagesBase.Method.DESCRIBE -> tcpStreamSocket.withLock {
                     val v = videoParams.get()
                     if (v == null) {
                         writeAndFlush(commandsManager.createServiceUnavailableResponse(cSeq))
@@ -167,7 +167,7 @@ internal class RtspServerConnection(
                     }
                 }
 
-                RtspServerMessages.Method.SETUP -> {
+                RtspMessagesBase.Method.SETUP -> {
                     val transport = commandsManager.getTransport(request)
                     val trackId = TRACK_ID_REGEX.find(request)?.groups?.get(1)?.value?.toIntOrNull() ?: -1
                     if (trackId !in 0..1) {
@@ -237,7 +237,7 @@ internal class RtspServerConnection(
                     }
                 }
 
-                RtspServerMessages.Method.PLAY -> tcpStreamSocket.withLock {
+                RtspMessagesBase.Method.PLAY -> tcpStreamSocket.withLock {
                     runCatching {
                         val v = videoParams.get()
                         waitingForKeyframe = when (v?.codec) {
@@ -289,7 +289,7 @@ internal class RtspServerConnection(
                     state = State.Playing
                 }
 
-                RtspServerMessages.Method.PAUSE -> tcpStreamSocket.withLock {
+                RtspMessagesBase.Method.PAUSE -> tcpStreamSocket.withLock {
                     isStreaming = false
                     state = State.Ready
                     rtcpReporter?.close()
@@ -297,12 +297,12 @@ internal class RtspServerConnection(
                     writeAndFlush(commandsManager.createPauseResponse(cSeq, sessionId))
                 }
 
-                RtspServerMessages.Method.TEARDOWN -> {
+                RtspMessagesBase.Method.TEARDOWN -> {
                     tcpStreamSocket.withLock { writeAndFlush(commandsManager.createTeardownResponse(cSeq, sessionId)) }
                     break
                 }
 
-                RtspServerMessages.Method.GET_PARAMETER -> {
+                RtspMessagesBase.Method.GET_PARAMETER -> {
                     val sess = commandsManager.getSessionFromRequest(request)
                     if (sess != null && sess != sessionId) {
                         tcpStreamSocket.withLock { writeAndFlush(commandsManager.createErrorResponse(454, cSeq)) }

@@ -1,34 +1,23 @@
 package info.dvkr.screenstream.rtsp.internal.rtsp.core
 
 import info.dvkr.screenstream.rtsp.internal.rtsp.client.RtspClient
-import info.dvkr.screenstream.rtsp.internal.rtsp.core.SdpBuilder
 import java.security.SecureRandom
 import kotlin.math.max
 
 internal class RtspServerMessages(appVersion: String, host: String, port: Int, path: String) :
     RtspMessagesBase(appVersion, host, port, path) {
 
-    internal enum class Method { OPTIONS, ANNOUNCE, RECORD, SETUP, TEARDOWN, DESCRIBE, PLAY, PAUSE, GET_PARAMETER, UNKNOWN }
-
     internal data class PlayTrackInfo(val seq: Int, val rtptime: Long)
 
     private var sdpSessionId: Int = SecureRandom().nextInt(Int.MAX_VALUE)
 
-    internal fun parseRequest(request: String): Pair<Method, Int> {
-        val token = extractMethodToken(request)?.uppercase().orEmpty()
-        val method = runCatching { Method.valueOf(token) }.getOrDefault(Method.UNKNOWN)
-        val cseq = extractCSeq(request)
-        return method to cseq
-    }
+    internal fun parseRequest(request: String): Pair<Method, Int> = parseMethod(request) to extractCSeq(request)
 
-    internal fun getTransport(request: String): String =
-        extractTransport(request)
+    internal fun getTransport(request: String): String = extractTransport(request)
 
-    internal fun getSessionFromRequest(request: String): String? =
-        extractSessionHeader(request)
+    internal fun getSessionFromRequest(request: String): String? = extractSessionHeader(request)
 
-    internal fun parseClientPorts(transport: String): Pair<Int, Int>? =
-        TransportHeader.parse(transport)?.clientPorts
+    internal fun parseClientPorts(transport: String): Pair<Int, Int>? = TransportHeader.parse(transport)?.clientPorts
 
     internal fun createOptionsResponse(cSeq: Int): String =
         ResponseBuilder.ok()
@@ -40,7 +29,7 @@ internal class RtspServerMessages(appVersion: String, host: String, port: Int, p
         val sdp = SdpBuilder().createSdpBody(videoParams, audioParams, sdpSessionId)
         return ResponseBuilder.ok()
             .header("CSeq", cSeq.toString())
-            .header("Content-Base", "rtsp://$host:$port$path/")
+            .header("Content-Base", "$baseUri/")
             .header("Content-Type", "application/sdp")
             .bodyAscii(sdp)
             .build()
@@ -59,7 +48,7 @@ internal class RtspServerMessages(appVersion: String, host: String, port: Int, p
 
     internal fun createPlayResponse(cSeq: Int, sessionId: String, trackInfo: Map<Int, PlayTrackInfo>): String {
         val rtpInfo = trackInfo.toSortedMap().entries.joinToString(",") { (tid, info) ->
-            "url=rtsp://$host:$port$path/trackID=$tid;seq=${max(0, info.seq)};rtptime=${info.rtptime}"
+            "url=$baseUri/trackID=$tid;seq=${max(0, info.seq)};rtptime=${info.rtptime}"
         }
         return ResponseBuilder.ok()
             .header("CSeq", cSeq.toString())

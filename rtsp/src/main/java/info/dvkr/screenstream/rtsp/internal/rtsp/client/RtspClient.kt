@@ -13,6 +13,7 @@ import info.dvkr.screenstream.rtsp.internal.rtsp.BitrateCalculator
 import info.dvkr.screenstream.rtsp.internal.rtsp.RtcpReporter
 import info.dvkr.screenstream.rtsp.internal.rtsp.RtspUrl
 import info.dvkr.screenstream.rtsp.internal.rtsp.core.RtspClientMessages
+import info.dvkr.screenstream.rtsp.internal.rtsp.core.RtspMessagesBase
 import info.dvkr.screenstream.rtsp.internal.rtsp.packets.AacPacket
 import info.dvkr.screenstream.rtsp.internal.rtsp.packets.Av1Packet
 import info.dvkr.screenstream.rtsp.internal.rtsp.packets.G711Packet
@@ -313,7 +314,7 @@ internal class RtspClient(
                         if (isConnected()) {
                             runCatching {
                                 writeAndFlush(commandsManager.createTeardown())
-                                commandsManager.getResponseWithTimeout(::readLine, ::readBytes, RtspClientMessages.Method.TEARDOWN)
+                                commandsManager.getResponseWithTimeout(::readLine, ::readBytes, RtspMessagesBase.Method.TEARDOWN)
                             }
                         }
                         close()
@@ -355,13 +356,13 @@ internal class RtspClient(
         // 1) OPTIONS
         tcpSocket.withLock {
             writeAndFlush(commandsManager.createOptions())
-            commandsManager.getResponseWithTimeout(::readLine, ::readBytes, RtspClientMessages.Method.OPTIONS)
+            commandsManager.getResponseWithTimeout(::readLine, ::readBytes, RtspMessagesBase.Method.OPTIONS)
         }
 
         // 2) ANNOUNCE
         val announceResp = tcpSocket.withLock {
             writeAndFlush(commandsManager.createAnnounce(videoParams, audioParams))
-            commandsManager.getResponseWithTimeout(::readLine, ::readBytes, RtspClientMessages.Method.ANNOUNCE)
+            commandsManager.getResponseWithTimeout(::readLine, ::readBytes, RtspMessagesBase.Method.ANNOUNCE)
         }
 
         when (announceResp.status) {
@@ -371,9 +372,9 @@ internal class RtspClient(
                 rtspUrl.hasAuth().not() -> throw ConnectionError.NoCredentialsError
                 else -> {
                     val announceWithAuth = tcpSocket.withLock {
-                        commandsManager.applyAuthFor(RtspClientMessages.Method.ANNOUNCE, rtspUrl.fullPath, announceResp.text)
+                        commandsManager.applyAuthFor(RtspMessagesBase.Method.ANNOUNCE, rtspUrl.fullPath, announceResp.text)
                         writeAndFlush(commandsManager.createAnnounce(videoParams, audioParams))
-                        commandsManager.getResponseWithTimeout(::readLine, ::readBytes, RtspClientMessages.Method.ANNOUNCE)
+                        commandsManager.getResponseWithTimeout(::readLine, ::readBytes, RtspMessagesBase.Method.ANNOUNCE)
                     }
                     when (announceWithAuth.status) {
                         200 -> XLog.d(getLog("doRtspHandshake", "ANNOUNCE with auth success"))
@@ -407,14 +408,14 @@ internal class RtspClient(
         // 5) RECORD
         val recordResp = tcpSocket.withLock {
             writeAndFlush(commandsManager.createRecord())
-            commandsManager.getResponseWithTimeout(::readLine, ::readBytes, RtspClientMessages.Method.RECORD)
+            commandsManager.getResponseWithTimeout(::readLine, ::readBytes, RtspMessagesBase.Method.RECORD)
         }
         if (recordResp.status == 401) {
             if (rtspUrl.hasAuth().not()) throw ConnectionError.NoCredentialsError
             val retry = tcpSocket.withLock {
-                commandsManager.applyAuthFor(RtspClientMessages.Method.RECORD, rtspUrl.fullPath, recordResp.text)
+                commandsManager.applyAuthFor(RtspMessagesBase.Method.RECORD, rtspUrl.fullPath, recordResp.text)
                 writeAndFlush(commandsManager.createRecord())
-                commandsManager.getResponseWithTimeout(::readLine, ::readBytes, RtspClientMessages.Method.RECORD)
+                commandsManager.getResponseWithTimeout(::readLine, ::readBytes, RtspMessagesBase.Method.RECORD)
             }
             if (retry.status != 200) throw ConnectionError.Failed("RECORD: [${retry.status}] ${retry.text}")
         } else if (recordResp.status != 200) {
@@ -429,15 +430,15 @@ internal class RtspClient(
         val setupUriPath = "${rtspUrl.fullPath}/trackID=$trackId"
         var setupRes = tcpSocket.withLock {
             writeAndFlush(commandsManager.createSetup(protocol, clientPorts.client, clientPorts.server, trackId))
-            commandsManager.getResponseWithTimeout(::readLine, ::readBytes, RtspClientMessages.Method.SETUP)
+            commandsManager.getResponseWithTimeout(::readLine, ::readBytes, RtspMessagesBase.Method.SETUP)
         }
 
         if (setupRes.status == 401) {
             if (rtspUrl.hasAuth().not()) throw ConnectionError.NoCredentialsError
             setupRes = tcpSocket.withLock {
-                commandsManager.applyAuthFor(RtspClientMessages.Method.SETUP, setupUriPath, setupRes.text)
+                commandsManager.applyAuthFor(RtspMessagesBase.Method.SETUP, setupUriPath, setupRes.text)
                 writeAndFlush(commandsManager.createSetup(protocol, clientPorts.client, clientPorts.server, trackId))
-                commandsManager.getResponseWithTimeout(::readLine, ::readBytes, RtspClientMessages.Method.SETUP)
+                commandsManager.getResponseWithTimeout(::readLine, ::readBytes, RtspMessagesBase.Method.SETUP)
             }
         }
 
@@ -464,7 +465,7 @@ internal class RtspClient(
                     val hasSession = commandsManager.hasSession()
                     val req = if (hasSession) commandsManager.createGetParameter() else commandsManager.createOptions()
                     writeAndFlush(req)
-                    val m = if (hasSession) RtspClientMessages.Method.GET_PARAMETER else RtspClientMessages.Method.OPTIONS
+                    val m = if (hasSession) RtspMessagesBase.Method.GET_PARAMETER else RtspMessagesBase.Method.OPTIONS
                     commandsManager.getResponseWithTimeout(::readLine, ::readBytes, m)
                 }
             } catch (_: CancellationException) {
