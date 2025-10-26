@@ -88,8 +88,8 @@ internal class RtspServerConnection(
     private var waitingForKeyframe: Boolean = false
     private var rtpTransport: RtpTransport? = null
 
-    private val videoQueue = Channel<VideoBlob>(capacity = 32)
-    private val audioQueue = Channel<AudioBlob>(capacity = 64)
+    private val videoQueue = Channel<VideoBlob>(capacity = 32) { it.buf.releaseOne() }
+    private val audioQueue = Channel<AudioBlob>(capacity = 64) { it.buf.releaseOne() }
 
     private val statsReporter = ClientStatsReporter(
         sessionId = sessionId,
@@ -101,11 +101,11 @@ internal class RtspServerConnection(
     internal val stats: StateFlow<ClientStats> = statsReporter.stats
 
     internal fun enqueueVideo(blob: VideoBlob): Boolean {
-        // Prefer dropping non-key frames if full; if keyframe, try to clear and accept
         if (!videoQueue.trySend(blob).isSuccess) {
             if (blob.isKeyFrame) {
-                // Drain queue to prioritize keyframe
-                while (videoQueue.tryReceive().isSuccess) { /* drain */
+                while (true) {
+                    val drained = videoQueue.tryReceive().getOrNull() ?: break
+                    drained.buf.releaseOne()
                 }
                 val ok = videoQueue.trySend(blob).isSuccess
                 if (!ok) statsReporter.onVideoDrop() else statsReporter.onVideoEnqueue()
@@ -122,7 +122,8 @@ internal class RtspServerConnection(
 
     internal fun enqueueAudio(blob: AudioBlob): Boolean {
         if (!audioQueue.trySend(blob).isSuccess) {
-            audioQueue.tryReceive().getOrNull()
+            val evicted = audioQueue.tryReceive().getOrNull()
+            evicted?.buf?.releaseOne()
             if (!audioQueue.trySend(blob).isSuccess) {
                 statsReporter.onAudioDrop()
                 return false
@@ -328,7 +329,7 @@ internal class RtspServerConnection(
 
             // Drop non-keyframes until the first IDR to help HEVC clients sync cleanly
             if (waitingForKeyframe && !blob.isKeyFrame) {
-                blob.buf.release()
+                blob.buf.releaseOne()
                 continue
             }
             if (blob.isKeyFrame) waitingForKeyframe = false
@@ -352,7 +353,7 @@ internal class RtspServerConnection(
                 break
             }
 
-            blob.buf.release()
+            blob.buf.releaseOne()
         }
     }
 
@@ -378,7 +379,7 @@ internal class RtspServerConnection(
             } catch (t: Throwable) {
                 break
             }
-            blob.buf.release()
+            blob.buf.releaseOne()
         }
     }
 
@@ -405,11 +406,11 @@ internal class RtspServerConnection(
 
         while (true) {
             val v = videoQueue.tryReceive().getOrNull() ?: break
-            v.buf.release()
+            v.buf.releaseOne()
         }
         while (true) {
             val a = audioQueue.tryReceive().getOrNull() ?: break
-            a.buf.release()
+            a.buf.releaseOne()
         }
 
         scope.cancel()

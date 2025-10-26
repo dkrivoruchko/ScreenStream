@@ -1,6 +1,7 @@
 package info.dvkr.screenstream.rtsp.internal.rtsp.server
 
 import info.dvkr.screenstream.rtsp.internal.MediaFrame
+import info.dvkr.screenstream.rtsp.internal.Protocol
 import info.dvkr.screenstream.rtsp.internal.RtspStreamingService
 import info.dvkr.screenstream.rtsp.internal.rtsp.client.RtspClient
 import info.dvkr.screenstream.rtsp.internal.rtsp.core.RtspServerMessages
@@ -31,20 +32,23 @@ internal class RtspServer(
     private val rtspServerConnections = mutableListOf<RtspServerConnection>()
     private val videoParams = AtomicReference<RtspClient.VideoParams?>()
     private val audioParams = AtomicReference<RtspClient.AudioParams?>()
-    private var requiredProtocol: info.dvkr.screenstream.rtsp.internal.Protocol = info.dvkr.screenstream.rtsp.internal.Protocol.TCP
+    private var requiredProtocol: Protocol = Protocol.TCP
     private var serverPath: String = "/screen"
     private var serverPort: Int = 8554
 
 
-    fun setVideoData(videoParams: RtspClient.VideoParams) {
+    internal fun setVideoData(videoParams: RtspClient.VideoParams) {
         this.videoParams.set(videoParams)
     }
 
-    fun setAudioData(audioParams: RtspClient.AudioParams) {
+    internal fun setAudioData(audioParams: RtspClient.AudioParams) {
         this.audioParams.set(audioParams)
     }
 
-    fun start(addresses: List<RtspNetInterface>, port: Int, path: String, protocol: info.dvkr.screenstream.rtsp.internal.Protocol) {
+    internal fun getClientStatsSnapshot(): List<ClientStats> =
+        synchronized(rtspServerConnections) { rtspServerConnections.map { it.stats.value } }
+
+    internal fun start(addresses: List<RtspNetInterface>, port: Int, path: String, protocol: Protocol) {
         if (serverJob?.isActive == true) stop()
 
         requiredProtocol = protocol
@@ -112,6 +116,12 @@ internal class RtspServer(
     }
 
     internal fun onVideoFrame(frame: MediaFrame.VideoFrame) {
+        val snapshot = synchronized(rtspServerConnections) { rtspServerConnections.toList() }
+        if (snapshot.isEmpty()) {
+            frame.release()
+            return
+        }
+
         val buffer = frame.data
         val size = frame.info.size
         val bytes = ByteArrayPool.get(size)
@@ -120,30 +130,24 @@ internal class RtspServer(
         buffer.get(bytes, 0, size)
         frame.release()
 
-        val snapshot = synchronized(rtspServerConnections) { rtspServerConnections.toList() }
-        if (snapshot.isEmpty()) {
-            ByteArrayPool.recycle(bytes); return
-        }
-        val shared = SharedBuffer(bytes).also { it.addRef(1) } // base ref while distributing
-        var accepted = 0
+        val shared = SharedBuffer(bytes).also { it.retain(1) }
         val blob = VideoBlob(shared, size, frame.info.timestamp, frame.info.isKeyFrame)
-        snapshot.forEach { conn ->
-            // Reserve a ref before offering to avoid race where writer releases before we account it
-            shared.addRef(1)
-            val ok = conn.enqueueVideo(blob)
-            if (ok) {
-                accepted++
-            } else {
-                // Compensate reservation on failure
-                shared.release()
-            }
-        }
-        // Drop the base ref; remaining refs equal to number of enqueued consumers
-        shared.release()
 
+        snapshot.forEach { conn ->
+            shared.retain(1)
+            if (!conn.enqueueVideo(blob)) shared.releaseOne()
+        }
+
+        shared.releaseOne()
     }
 
     internal fun onAudioFrame(frame: MediaFrame.AudioFrame) {
+        val snapshot = synchronized(rtspServerConnections) { rtspServerConnections.toList() }
+        if (snapshot.isEmpty()) {
+            frame.release()
+            return
+        }
+
         val buffer = frame.data
         val size = frame.info.size
         val bytes = ByteArrayPool.get(size)
@@ -152,35 +156,21 @@ internal class RtspServer(
         buffer.get(bytes, 0, size)
         frame.release()
 
-        val snapshot = synchronized(rtspServerConnections) { rtspServerConnections.toList() }
-        if (snapshot.isEmpty()) {
-            ByteArrayPool.recycle(bytes); return
-        }
-        val shared = SharedBuffer(bytes).also { it.addRef(1) }
-        var accepted = 0
+        val shared = SharedBuffer(bytes).also { it.retain(1) }
         val blob = AudioBlob(shared, size, frame.info.timestamp)
-        snapshot.forEach { conn ->
-            shared.addRef(1)
-            val ok = conn.enqueueAudio(blob)
-            if (ok) accepted++ else shared.release()
-        }
-        shared.release()
 
+        snapshot.forEach { conn ->
+            shared.retain(1)
+            if (!conn.enqueueAudio(blob)) shared.releaseOne()
+        }
+
+        shared.releaseOne()
     }
 
     private fun onClientEvent(event: RtspStreamingService.InternalEvent) {
         if (event is RtspStreamingService.InternalEvent.RtspServerOnClientDisconnected) {
-            synchronized(rtspServerConnections) {
-                rtspServerConnections.remove(event.rtspServerConnection)
-            }
+            synchronized(rtspServerConnections) { rtspServerConnections.remove(event.rtspServerConnection) }
         }
         onEvent(event)
     }
-
-    // Expose client statistics to the service/UI layer
-    fun getClientStatsFlows(): List<kotlinx.coroutines.flow.StateFlow<ClientStats>> =
-        synchronized(rtspServerConnections) { rtspServerConnections.map { it.stats } }
-
-    fun getClientStatsSnapshot(): List<ClientStats> =
-        synchronized(rtspServerConnections) { rtspServerConnections.map { it.stats.value } }
 }
