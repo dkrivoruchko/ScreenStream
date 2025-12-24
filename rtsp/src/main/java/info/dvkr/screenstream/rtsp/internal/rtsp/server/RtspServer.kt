@@ -7,6 +7,7 @@ import info.dvkr.screenstream.rtsp.internal.RtspStreamingService
 import info.dvkr.screenstream.rtsp.internal.rtsp.client.RtspClient
 import info.dvkr.screenstream.rtsp.internal.rtsp.core.RtspServerMessageHandler
 import info.dvkr.screenstream.rtsp.internal.rtsp.sockets.TcpStreamSocket
+import info.dvkr.screenstream.rtsp.ui.RtspError
 import io.ktor.network.selector.SelectorManager
 import io.ktor.network.sockets.ServerSocket
 import io.ktor.network.sockets.aSocket
@@ -61,17 +62,32 @@ internal class RtspServer(
             val selectorManager = SelectorManager(coroutineContext).also { this@RtspServer.selectorManager = it }
             runCatching {
                 serverSockets.clear()
+                val bindFailures = mutableListOf<String>()
 
                 addresses.forEach { networkInterface ->
                     runCatching {
                         val host = networkInterface.address.hostAddress!!.substringBefore('%')
                         val serverSocket = aSocket(selectorManager).tcp().bind(host, port)
                         serverSockets.add(serverSocket to host)
+                    }.onFailure { error ->
+                        val host = networkInterface.address.hostAddress?.substringBefore('%') ?: "unknown"
+                        bindFailures += "$host: ${error.message ?: error::class.simpleName}"
                     }
                 }
 
-                if (serverSockets.isEmpty()) {
-                    return@launch //TODO report error
+                if (serverSockets.isEmpty() || bindFailures.isNotEmpty()) {
+                    val hosts = addresses.mapNotNull { it.address.hostAddress?.substringBefore('%') }.joinToString(", ")
+                    val details = if (bindFailures.isNotEmpty()) bindFailures.joinToString("; ") else "no interfaces"
+                    onEvent(
+                        RtspStreamingService.InternalEvent.Error(
+                            RtspError.UnknownError(IllegalStateException("RTSP bind failed (port=$port, hosts=$hosts): $details"))
+                        )
+                    )
+                    serverSockets.forEach { runCatching { it.first.close() } }
+                    serverSockets.clear()
+                    runCatching { selectorManager.close() }
+                    this@RtspServer.selectorManager = null
+                    return@launch
                 }
 
                 onEvent(RtspStreamingService.InternalEvent.RtspServerOnStart)

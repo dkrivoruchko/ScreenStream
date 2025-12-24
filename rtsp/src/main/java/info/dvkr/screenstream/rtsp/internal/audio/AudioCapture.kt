@@ -86,15 +86,43 @@ internal class AudioCapture(
         }
     }
 
+    @RequiresApi(Build.VERSION_CODES.Q)
+    @RequiresPermission(Manifest.permission.RECORD_AUDIO)
+    fun checkIfConfigurationSupported(config: AudioPlaybackCaptureConfiguration) {
+        val bufferSizeInBytes = audioParams.calculateBufferSizeInBytes()
+        var testRecord: AudioRecord? = null
+        try {
+            testRecord = AudioRecord.Builder()
+                .setAudioPlaybackCaptureConfig(config)
+                .setAudioFormat(
+                    AudioFormat.Builder()
+                        .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
+                        .setSampleRate(audioParams.sampleRate)
+                        .setChannelMask(if (audioParams.isStereo) AudioFormat.CHANNEL_IN_STEREO else AudioFormat.CHANNEL_IN_MONO)
+                        .build()
+                )
+                .setBufferSizeInBytes(bufferSizeInBytes)
+                .build()
+            if (testRecord.state != AudioRecord.STATE_INITIALIZED) {
+                throw IllegalArgumentException("Failed to initialize AudioRecord for internal capture.")
+            }
+        } catch (e: Throwable) {
+            onError(e)
+        } finally {
+            testRecord?.release()
+        }
+    }
+
     @Synchronized
     @RequiresPermission(Manifest.permission.RECORD_AUDIO)
     fun start(audioSource: Int) {
+        var record: AudioRecord? = null
         try {
             check(!_isRunning) { "Audio capture is already running." }
 
             val bufferSizeInBytes = audioParams.calculateBufferSizeInBytes()
 
-            val record = AudioRecord(
+            record = AudioRecord(
                 audioSource,
                 audioParams.sampleRate,
                 if (audioParams.isStereo) AudioFormat.CHANNEL_IN_STEREO else AudioFormat.CHANNEL_IN_MONO,
@@ -114,12 +142,23 @@ internal class AudioCapture(
             if (record.recordingState != AudioRecord.RECORDSTATE_RECORDING) {
                 throw IllegalArgumentException("Failed to start recording AudioRecord with given parameters.")
             }
+
+            audioRecord = record
             _isRunning = true
 
             scope = CoroutineScope(Job() + dispatcher).apply {
                 launch { readAudioLoop(record, bufferSizeInBytes) }
             }
         } catch (cause: Exception) {
+            scope?.cancel()
+            scope = null
+            _isRunning = false
+
+            runCatching { record?.stop() }
+            record?.release()
+            audioRecord = null
+            releaseAudioEffects()
+
             XLog.w(getLog("start", "Failed to start audio capture: ${cause.message}"), cause)
             onError(cause)
         }
@@ -129,12 +168,13 @@ internal class AudioCapture(
     @RequiresApi(Build.VERSION_CODES.Q)
     @RequiresPermission(Manifest.permission.RECORD_AUDIO)
     fun start(config: AudioPlaybackCaptureConfiguration) {
+        var record: AudioRecord? = null
         try {
             check(!_isRunning) { "Audio capture is already running." }
 
             val bufferSizeInBytes = audioParams.calculateBufferSizeInBytes()
 
-            val record = AudioRecord.Builder()
+            record = AudioRecord.Builder()
                 .setAudioPlaybackCaptureConfig(config)
                 .setAudioFormat(
                     AudioFormat.Builder()
@@ -158,12 +198,23 @@ internal class AudioCapture(
             if (record.recordingState != AudioRecord.RECORDSTATE_RECORDING) {
                 throw IllegalArgumentException("Failed to start recording AudioRecord with given parameters.")
             }
+
+            audioRecord = record
             _isRunning = true
 
             scope = CoroutineScope(Job() + dispatcher).apply {
                 launch { readAudioLoop(record, bufferSizeInBytes) }
             }
         } catch (cause: Exception) {
+            scope?.cancel()
+            scope = null
+            _isRunning = false
+
+            runCatching { record?.stop() }
+            record?.release()
+            audioRecord = null
+            releaseAudioEffects()
+
             XLog.w(getLog("start", "Failed to start audio capture: ${cause.message}"), cause)
             onError(cause)
         }
@@ -185,13 +236,13 @@ internal class AudioCapture(
     }
 
     private suspend fun readAudioLoop(record: AudioRecord, bufferSizeInBytes: Int) = runCatching {
-        val pcmBuffer = ByteArray(bufferSizeInBytes)
-        val byteBuffer = ByteBuffer.wrap(pcmBuffer).order(ByteOrder.LITTLE_ENDIAN)
-        val shortBuffer = byteBuffer.asShortBuffer()
+        val pcmByteBuffer = ByteBuffer.allocateDirect(bufferSizeInBytes).order(ByteOrder.nativeOrder())
+        val shortBuffer = pcmByteBuffer.asShortBuffer()
 
         while (currentCoroutineContext().isActive) {
             if (!isRunning()) break
-            val size = record.read(pcmBuffer, 0, pcmBuffer.size)
+            pcmByteBuffer.clear()
+            val size = record.read(pcmByteBuffer, bufferSizeInBytes, AudioRecord.READ_BLOCKING)
             when {
                 size > 0 -> {
                     if (size % 2 != 0) {
@@ -199,31 +250,46 @@ internal class AudioCapture(
                         continue
                     }
 
-                    when {
-                        isMuted() -> pcmBuffer.fill(0, 0, size)
-                        micVolume != 1.0f -> {
-                            byteBuffer.clear()
-                            shortBuffer.clear()
-                            shortBuffer.limit(size / 2)
-                            for (i in 0 until (size / 2)) {
-                                val sample = shortBuffer.get(i)
-                                val scaled = (sample * micVolume).toInt()
+                    if (isMuted()) {
+                        onAudioFrame(AudioSource.Frame(ByteArray(size), size, MasterClock.relativeTimeUs()))
+                        continue
+                    }
+
+                    if (micVolume != 1.0f) {
+                        val sampleCount = size / 2
+                        shortBuffer.clear()
+                        shortBuffer.limit(sampleCount)
+                        for (i in 0 until sampleCount) {
+                            val sample = shortBuffer.get(i)
+                            val scaled = (sample * micVolume).toInt()
+                            shortBuffer.put(
+                                i,
                                 when {
-                                    scaled > Short.MAX_VALUE -> shortBuffer.put(i, Short.MAX_VALUE)
-                                    scaled < Short.MIN_VALUE -> shortBuffer.put(i, Short.MIN_VALUE)
-                                    else -> shortBuffer.put(i, scaled.toShort())
+                                    scaled > Short.MAX_VALUE -> Short.MAX_VALUE
+                                    scaled < Short.MIN_VALUE -> Short.MIN_VALUE
+                                    else -> scaled.toShort()
                                 }
-                            }
+                            )
                         }
                     }
 
                     val frameBuffer = ByteArray(size)
-                    System.arraycopy(pcmBuffer, 0, frameBuffer, 0, size)
+                    pcmByteBuffer.position(0)
+                    pcmByteBuffer.get(frameBuffer, 0, size)
                     onAudioFrame(AudioSource.Frame(frameBuffer, size, MasterClock.relativeTimeUs()))
                 }
 
                 size < 0 -> {
-                    XLog.w(getLog("readAudioLoop", "Read size is negative, skipping frame."))
+                    val error = when (size) {
+                        AudioRecord.ERROR_DEAD_OBJECT -> IllegalStateException("AudioRecord is dead (ERROR_DEAD_OBJECT).")
+                        AudioRecord.ERROR_INVALID_OPERATION -> IllegalStateException("AudioRecord read failed (ERROR_INVALID_OPERATION).")
+                        AudioRecord.ERROR_BAD_VALUE -> IllegalArgumentException("AudioRecord read failed (ERROR_BAD_VALUE).")
+                        AudioRecord.ERROR -> IllegalStateException("AudioRecord read failed (ERROR).")
+                        else -> IllegalStateException("AudioRecord read failed (code=$size).")
+                    }
+                    XLog.w(getLog("readAudioLoop", error.message ?: "AudioRecord read error"), error)
+                    onError(error)
+                    break
                 }
             }
         }

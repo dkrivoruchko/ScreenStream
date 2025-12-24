@@ -7,8 +7,7 @@ internal data class TransportHeader(
     val clientPorts: Pair<Int, Int>? = null,
     val serverPorts: Pair<Int, Int>? = null,
     val mode: String? = null,
-    val modeQuoted: Boolean = false,
-    val extensions: List<String> = emptyList(),
+    val modeQuoted: Boolean = false
 ) {
     fun withServerPorts(rtp: Int, rtcp: Int): TransportHeader = copy(serverPorts = rtp to rtcp)
 
@@ -23,11 +22,24 @@ internal data class TransportHeader(
             val v = if (modeQuoted) "\"$mode\"" else mode
             parts += "mode=$v"
         }
-        if (extensions.isNotEmpty()) parts += extensions
         return parts.joinToString(";")
     }
 
     companion object {
+        internal data class ParsedSpec(val raw: String, val header: TransportHeader, val profile: String, val isTcp: Boolean)
+
+        fun parseList(text: String): List<ParsedSpec> = text
+            .split(',')
+            .asSequence()
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+            .mapNotNull { spec ->
+                val parsed = parse(spec) ?: return@mapNotNull null
+                val profile = parsed.profile
+                ParsedSpec(spec, parsed, profile, profile.contains("TCP", ignoreCase = true))
+            }
+            .toList()
+
         fun parse(text: String): TransportHeader? {
             val first = text.split(',').firstOrNull()?.trim() ?: return null
             val tokens = first.split(';').map { it.trim() }.filter { it.isNotEmpty() }
@@ -39,7 +51,6 @@ internal data class TransportHeader(
             var server: Pair<Int, Int>? = null
             var mode: String? = null
             var modeQuoted = false
-            val extras = mutableListOf<String>()
             for (i in 1 until tokens.size) {
                 val token = tokens[i]
                 when {
@@ -71,10 +82,10 @@ internal data class TransportHeader(
                         mode = raw.trim('"')
                     }
 
-                    else -> extras += token
+                    else -> Unit // ignore unknown params to avoid echoing them back
                 }
             }
-            return TransportHeader(profile, unicast, interleaved, client, server, mode, modeQuoted, extras)
+            return TransportHeader(profile, unicast, interleaved, client, server, mode, modeQuoted)
         }
     }
 }

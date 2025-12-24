@@ -27,8 +27,8 @@ import info.dvkr.screenstream.rtsp.RtspModuleService
 import info.dvkr.screenstream.rtsp.internal.EncoderUtils.adjustResizeFactor
 import info.dvkr.screenstream.rtsp.internal.audio.AudioEncoder
 import info.dvkr.screenstream.rtsp.internal.audio.AudioSource
-import info.dvkr.screenstream.rtsp.internal.rtsp.client.RtspClient
 import info.dvkr.screenstream.rtsp.internal.rtsp.RtspUrl
+import info.dvkr.screenstream.rtsp.internal.rtsp.client.RtspClient
 import info.dvkr.screenstream.rtsp.internal.rtsp.server.NetworkHelper
 import info.dvkr.screenstream.rtsp.internal.rtsp.server.RtspServer
 import info.dvkr.screenstream.rtsp.internal.rtsp.server.RtspServerConnection
@@ -623,7 +623,13 @@ internal class RtspStreamingService(
                                 rtspClient?.setAudioData(selectedAudioEncoderInfo!!.codec, params)
                             }
                         },
-                        onAudioFrame = { frame -> if (isServerMode) rtspServer?.onAudioFrame(frame) else rtspClient?.enqueueFrame(frame) },
+                        onAudioFrame = { frame ->
+                            if (isServerMode) {
+                                rtspServer?.onAudioFrame(frame) //?: frame.release()
+                            } else {
+                                rtspClient?.enqueueFrame(frame)// ?: frame.release()
+                            }
+                        },
                         onError = {
                             XLog.w(getLog("AudioEncoder.onError", it.message), it)
                             sendEvent(InternalEvent.Error(RtspError.UnknownError(it)))

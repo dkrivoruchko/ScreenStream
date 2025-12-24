@@ -62,6 +62,10 @@ internal abstract class BaseRtpPacket(private var clock: Long, private val paylo
         buffer.setLong(seq.toLong(), 2, 4)
     }
 
+    internal fun peekNextSeq(): Int = (seq + 1) and 0xFFFF
+
+    internal fun rtpTimestampFromUs(timestampUs: Long): Long = (timestampUs * clock) / 1_000_000L
+
     protected fun markPacket(buffer: ByteArray) {
         buffer[1] = buffer[1] or 0x80.toByte()
     }

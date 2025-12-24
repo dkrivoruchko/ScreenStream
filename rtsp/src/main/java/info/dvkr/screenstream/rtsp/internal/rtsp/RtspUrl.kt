@@ -29,6 +29,7 @@ internal class RtspUrl(
 
             val port = when {
                 uri.port >= 0 -> uri.port
+                tlsEnabled -> 322
                 else -> 554
             }
 

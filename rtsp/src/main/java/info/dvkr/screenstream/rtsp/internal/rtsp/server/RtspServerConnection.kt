@@ -11,6 +11,7 @@ import info.dvkr.screenstream.rtsp.internal.rtsp.RtcpReporter
 import info.dvkr.screenstream.rtsp.internal.rtsp.client.RtspClient
 import info.dvkr.screenstream.rtsp.internal.rtsp.core.RtspBaseMessageHandler
 import info.dvkr.screenstream.rtsp.internal.rtsp.core.RtspServerMessageHandler
+import info.dvkr.screenstream.rtsp.internal.rtsp.core.TransportHeader
 import info.dvkr.screenstream.rtsp.internal.rtsp.packets.AacPacket
 import info.dvkr.screenstream.rtsp.internal.rtsp.packets.Av1Packet
 import info.dvkr.screenstream.rtsp.internal.rtsp.packets.BaseRtpPacket
@@ -30,8 +31,11 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.nio.ByteBuffer
 import java.security.SecureRandom
+import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
 
 internal class RtspServerConnection(
@@ -45,6 +49,7 @@ internal class RtspServerConnection(
     private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val secureRandom = SecureRandom()
     private val TRACK_ID_REGEX = Regex("trackID=(\\d+)")
+    private val stateLock = Mutex()
 
     private sealed interface State {
         data object Init : State
@@ -53,10 +58,25 @@ internal class RtspServerConnection(
         data object Closed : State
     }
 
+    private data class VideoStateSnapshot(
+        val streaming: Boolean,
+        val setupDone: Boolean,
+        val waitingForKeyframe: Boolean,
+        val sender: suspend (trackId: Int, packets: List<RtpFrame>) -> Unit
+    )
+
+    private data class AudioStateSnapshot(
+        val streaming: Boolean,
+        val setupDone: Boolean,
+        val sender: suspend (trackId: Int, packets: List<RtpFrame>) -> Unit
+    )
+
     private var state: State = State.Init
 
     private var protocol: Protocol = Protocol.TCP
-    private var sessionId: String = secureRandom.nextInt().toString(16)
+    private var sessionId: String = generateSessionId()
+
+    @Volatile
     internal var isStreaming: Boolean = false
 
     // Interleaved channels for TCP mode (video 0/1, audio 2/3 by default)
@@ -84,7 +104,11 @@ internal class RtspServerConnection(
     private var videoWriterJob: Job? = null
     private var audioWriterJob: Job? = null
     private val setupUrls: MutableMap<Int, String> = mutableMapOf()
+
+    @Volatile
     private var videoSetupDone: Boolean = false
+
+    @Volatile
     private var audioSetupDone: Boolean = false
 
     internal class ParamInjector() {
@@ -115,6 +139,19 @@ internal class RtspServerConnection(
 
     private val videoQueue = Channel<VideoBlob>(capacity = 32) { it.buf.releaseOne() }
     private val audioQueue = Channel<AudioBlob>(capacity = 64) { it.buf.releaseOne() }
+    private val videoQueueSize = AtomicInteger(0)
+    private val audioQueueSize = AtomicInteger(0)
+
+    private val negotiatedInterleavedChannels: MutableSet<Int> = mutableSetOf()
+    private fun allowedInterleavedChannels(): Set<Int> =
+        if (protocol == Protocol.TCP) negotiatedInterleavedChannels.toSet() else emptySet()
+
+    private suspend fun onInterleavedChunk(channel: Int, data: ByteArray, length: Int, isLast: Boolean) {
+        val isRtcp = channel == videoCh.second || channel == audioCh.second
+        if (!isRtcp) return
+        // Currently no RTCP parsing; hook kept to allow future receiver-report handling.
+        if (data.isEmpty() || length == 0 || !isLast) return
+    }
 
     private val statsReporter = ClientStatsReporter(
         sessionId = sessionId,
@@ -125,6 +162,8 @@ internal class RtspServerConnection(
     )
     internal val stats: StateFlow<ClientStats> = statsReporter.stats
 
+    private fun updateQueueStats() = statsReporter.setQueueSizes(videoQueueSize.get(), audioQueueSize.get())
+
     internal fun enqueueVideo(blob: VideoBlob): Boolean {
         if (!isStreaming || !videoSetupDone) return false
         if (!videoQueue.trySend(blob).isSuccess) {
@@ -132,15 +171,24 @@ internal class RtspServerConnection(
                 while (true) {
                     val drained = videoQueue.tryReceive().getOrNull() ?: break
                     drained.buf.releaseOne()
+                    videoQueueSize.decrementAndGet()
                 }
                 val ok = videoQueue.trySend(blob).isSuccess
-                if (!ok) statsReporter.onVideoDrop() else statsReporter.onVideoEnqueue()
+                if (!ok) {
+                    statsReporter.onVideoDrop()
+                } else {
+                    videoQueueSize.incrementAndGet()
+                    updateQueueStats()
+                    statsReporter.onVideoEnqueue()
+                }
                 return ok
             } else {
                 statsReporter.onVideoDrop()
                 return false
             }
         } else {
+            videoQueueSize.incrementAndGet()
+            updateQueueStats()
             statsReporter.onVideoEnqueue()
             return true
         }
@@ -150,12 +198,17 @@ internal class RtspServerConnection(
         if (!isStreaming || !audioSetupDone) return false
         if (!audioQueue.trySend(blob).isSuccess) {
             val evicted = audioQueue.tryReceive().getOrNull()
-            evicted?.buf?.releaseOne()
+            if (evicted != null) {
+                evicted.buf.releaseOne()
+                audioQueueSize.decrementAndGet()
+            }
             if (!audioQueue.trySend(blob).isSuccess) {
                 statsReporter.onAudioDrop()
                 return false
             }
         }
+        audioQueueSize.incrementAndGet()
+        updateQueueStats()
         statsReporter.onAudioEnqueue()
         return true
     }
@@ -176,20 +229,25 @@ internal class RtspServerConnection(
 
     private suspend fun commandLoop() {
         while (scope.isActive && tcpStreamSocket.isConnected()) {
-            val request = tcpStreamSocket.readRequestHeaders() ?: break
+            val request = tcpStreamSocket.withReadLock {
+                readRequestHeaders(
+                    allowedInterleavedChannels = allowedInterleavedChannels(),
+                    onInterleavedChunk = ::onInterleavedChunk
+                )
+            } ?: break
             val (method, cSeq) = serverMessageHandler.parseRequest(request)
 
             if (cSeq < 0) {
-                tcpStreamSocket.withLock { writeAndFlush(serverMessageHandler.createErrorResponse(400)) }
+                tcpStreamSocket.withWriteLock { writeAndFlush(serverMessageHandler.createErrorResponse(400)) }
                 continue
             }
 
             when (method) {
-                RtspBaseMessageHandler.Method.OPTIONS -> tcpStreamSocket.withLock {
+                RtspBaseMessageHandler.Method.OPTIONS -> tcpStreamSocket.withWriteLock {
                     writeAndFlush(serverMessageHandler.createOptionsResponse(cSeq))
                 }
 
-                RtspBaseMessageHandler.Method.DESCRIBE -> tcpStreamSocket.withLock {
+                RtspBaseMessageHandler.Method.DESCRIBE -> tcpStreamSocket.withWriteLock {
                     val videoParams = this@RtspServerConnection.videoParams.get()
                     if (videoParams == null) {
                         writeAndFlush(serverMessageHandler.createErrorResponse(415, cSeq))
@@ -199,30 +257,76 @@ internal class RtspServerConnection(
                 }
 
                 RtspBaseMessageHandler.Method.SETUP -> {
-                    val transport = serverMessageHandler.getTransport(request)
+                    if (state == State.Playing) {
+                        tcpStreamSocket.withWriteLock { writeAndFlush(serverMessageHandler.createErrorResponse(455, cSeq)) }
+                        continue
+                    }
+                    val transportHeader = serverMessageHandler.getTransport(request)
                     val trackId = TRACK_ID_REGEX.find(request)?.groups?.get(1)?.value?.toIntOrNull() ?: -1
                     serverMessageHandler.getRequestUri(request)?.let { uri ->
                         if (trackId in 0..1) setupUrls[trackId] = uri
                     }
                     if (trackId !in 0..1) {
-                        tcpStreamSocket.withLock { writeAndFlush(serverMessageHandler.createErrorResponse(400, cSeq)) }
+                        tcpStreamSocket.withWriteLock { writeAndFlush(serverMessageHandler.createErrorResponse(400, cSeq)) }
                         continue
                     }
 
-                    if (transport.contains("TCP", ignoreCase = true)) {
+                    val transportSpecs = TransportHeader.parseList(transportHeader)
+                    var selected: TransportHeader.Companion.ParsedSpec? = null
+                    for (spec in transportSpecs) {
+                        if (spec.isTcp || serverMessageHandler.parseClientPorts(spec.raw) != null) {
+                            selected = spec
+                            break
+                        }
+                    }
+                    if (selected == null) {
+                        tcpStreamSocket.withWriteLock { writeAndFlush(serverMessageHandler.createErrorResponse(461, cSeq)) }
+                        continue
+                    }
+                    val spec = selected.raw
+                    val selectedParsed = selected.header
+                    val selectedTcp = selected.isTcp
+                    val hasSetup = stateLock.withLock { videoSetupDone || audioSetupDone }
+                    if (hasSetup && (protocol == Protocol.TCP) != selectedTcp) {
+                        tcpStreamSocket.withWriteLock { writeAndFlush(serverMessageHandler.createErrorResponse(461, cSeq)) }
+                        continue
+                    }
+
+                    if (selectedTcp) {
                         // Accept TCP even if preferred protocol is UDP to maximize compatibility
                         protocol = Protocol.TCP
                         statsReporter.setProtocol(protocol)
-                        val inter = Regex("interleaved=([0-9]+)-([0-9]+)").find(transport)?.destructured
-                        val channelPair = inter?.let { (a, b) -> a.toInt() to b.toInt() } ?: ((trackId shl 1) to ((trackId shl 1) + 1))
+                        val channelPair = selectedParsed?.interleaved
+                            ?: Regex("interleaved=([0-9]+)-([0-9]+)").find(spec)?.destructured?.let { (a, b) -> a.toInt() to b.toInt() }
+                        if (channelPair == null) {
+                            tcpStreamSocket.withWriteLock { writeAndFlush(serverMessageHandler.createErrorResponse(461, cSeq)) }
+                            continue
+                        }
+                        val currentPair = if (trackId == RtpFrame.VIDEO_TRACK_ID && videoSetupDone) {
+                            videoCh
+                        } else if (trackId == RtpFrame.AUDIO_TRACK_ID && audioSetupDone) {
+                            audioCh
+                        } else {
+                            null
+                        }
+                        val sameAsCurrent = currentPair?.let { it.first == channelPair.first && it.second == channelPair.second } == true
+                        if (!sameAsCurrent &&
+                            (negotiatedInterleavedChannels.contains(channelPair.first) ||
+                                negotiatedInterleavedChannels.contains(channelPair.second))
+                        ) {
+                            tcpStreamSocket.withWriteLock { writeAndFlush(serverMessageHandler.createErrorResponse(461, cSeq)) }
+                            continue
+                        }
                         if (trackId == RtpFrame.VIDEO_TRACK_ID) videoCh = channelPair else audioCh = channelPair
+                        negotiatedInterleavedChannels += channelPair.first
+                        negotiatedInterleavedChannels += channelPair.second
 
-                        sendRtpPackets = { tid, packets ->
+                        val sender: suspend (trackId: Int, packets: List<RtpFrame>) -> Unit = { tid, packets ->
                             val ch = if (tid == RtpFrame.VIDEO_TRACK_ID) videoCh.first else audioCh.first
                             var i = 0
                             val n = packets.size
                             for (packet in packets) {
-                                tcpStreamSocket.withLock {
+                                tcpStreamSocket.withWriteLock {
                                     write(interleavedHeader(ch, packet.length), packet.buffer, 0, packet.length)
                                     val isAudio = (tid == RtpFrame.AUDIO_TRACK_ID)
                                     val shouldFlush = isAudio || i == n - 1 || (i and 0x7) == 0
@@ -231,25 +335,38 @@ internal class RtspServerConnection(
                                 i++
                             }
                         }
+                        stateLock.withLock { sendRtpPackets = sender }
 
-                        tcpStreamSocket.withLock {
-                            writeAndFlush(serverMessageHandler.createSetupResponse(cSeq, transport, 0, 0, sessionId, channelPair))
+                        tcpStreamSocket.withWriteLock {
+                            writeAndFlush(serverMessageHandler.createSetupResponse(cSeq, spec, 0, 0, sessionId, channelPair))
                         }
                         if (trackId == RtpFrame.VIDEO_TRACK_ID) {
                             prepareVideoPacketizerIfNeeded()
-                            videoSetupDone = true
+                            stateLock.withLock { videoSetupDone = true }
                         } else {
                             prepareAudioPacketizerIfNeeded()
-                            audioSetupDone = true
+                            stateLock.withLock { audioSetupDone = true }
                         }
-                    } else if (transport.contains("UDP", ignoreCase = true)) {
+                        state = State.Ready
+                    } else {
                         // Accept UDP even if preferred protocol is TCP
                         protocol = Protocol.UDP
                         statsReporter.setProtocol(protocol)
-                        val clientPorts = serverMessageHandler.parseClientPorts(transport)
+                        val clientPorts = serverMessageHandler.parseClientPorts(spec)
                         if (clientPorts == null) {
-                            tcpStreamSocket.withLock { writeAndFlush(serverMessageHandler.createErrorResponse(400, cSeq)) }
+                            tcpStreamSocket.withWriteLock { writeAndFlush(serverMessageHandler.createErrorResponse(400, cSeq)) }
                             continue
+                        }
+                        if (trackId == RtpFrame.VIDEO_TRACK_ID) {
+                            runCatching { videoRtpSocket?.close() }
+                            runCatching { videoRtcpSocket?.close() }
+                            videoRtpSocket = null
+                            videoRtcpSocket = null
+                        } else {
+                            runCatching { audioRtpSocket?.close() }
+                            runCatching { audioRtcpSocket?.close() }
+                            audioRtpSocket = null
+                            audioRtcpSocket = null
                         }
                         val (clientRtp, clientRtcp) = clientPorts
                         val remoteHost = tcpStreamSocket.remoteHost
@@ -267,132 +384,167 @@ internal class RtspServerConnection(
                             audioRtpSocket = rtp; audioRtcpSocket = rtcp
                         }
 
-                        sendRtpPackets = { tid, packets ->
+                        val sender: suspend (trackId: Int, packets: List<RtpFrame>) -> Unit = { tid, packets ->
                             val sock = if (tid == RtpFrame.VIDEO_TRACK_ID) videoRtpSocket else audioRtpSocket
                             if (sock != null) {
                                 for (packet in packets) sock.write(packet.buffer, 0, packet.length)
                             }
                         }
+                        stateLock.withLock { sendRtpPackets = sender }
 
-                        tcpStreamSocket.withLock {
-                            writeAndFlush(serverMessageHandler.createSetupResponse(cSeq, transport, serverRtp, serverRtcp, sessionId))
+                        tcpStreamSocket.withWriteLock {
+                            writeAndFlush(serverMessageHandler.createSetupResponse(cSeq, spec, serverRtp, serverRtcp, sessionId))
                         }
 
                         if (trackId == RtpFrame.VIDEO_TRACK_ID) {
                             prepareVideoPacketizerIfNeeded()
-                            videoSetupDone = true
+                            stateLock.withLock { videoSetupDone = true }
                         } else {
                             prepareAudioPacketizerIfNeeded()
-                            audioSetupDone = true
+                            stateLock.withLock { audioSetupDone = true }
                         }
-                    } else {
-                        tcpStreamSocket.withLock { writeAndFlush(serverMessageHandler.createErrorResponse(461, cSeq)) }
+                        state = State.Ready
                     }
                 }
 
-                RtspBaseMessageHandler.Method.PLAY -> tcpStreamSocket.withLock {
-                    runCatching {
-                        val videoParams = this@RtspServerConnection.videoParams.get()
-                        waitingForKeyframe = when (videoParams?.codec) {
-                            Codec.Video.H265 -> true
-                            Codec.Video.H264 -> true
-                            else -> false
-                        }
+                RtspBaseMessageHandler.Method.PLAY -> {
+                    val sess = serverMessageHandler.getSessionFromRequest(request)
+                    if (sess != null && sess != sessionId) {
+                        tcpStreamSocket.withWriteLock { writeAndFlush(serverMessageHandler.createErrorResponse(454, cSeq)) }
+                        continue
                     }
-                    if (rtcpReporter == null) {
-                        val socket = this@RtspServerConnection.tcpStreamSocket
-                        rtcpReporter = RtcpReporter(
-                            scope = scope,
-                            protocol = protocol,
-                            writeToTcpSocket = { header, data ->
-                                socket.withLock {
-                                    val channelId = header[1].toInt() and 0xFF
-                                    val mapped = when (channelId) {
-                                        1 -> videoCh.second
-                                        3 -> audioCh.second
-                                        else -> channelId
+                    if (state != State.Ready || (!videoSetupDone && !audioSetupDone)) {
+                        tcpStreamSocket.withWriteLock { writeAndFlush(serverMessageHandler.createErrorResponse(455, cSeq)) }
+                        continue
+                    }
+
+                    if (videoSetupDone) prepareVideoPacketizerIfNeeded()
+                    if (audioSetupDone) prepareAudioPacketizerIfNeeded()
+
+                    tcpStreamSocket.withWriteLock {
+                        runCatching {
+                            val videoParams = this@RtspServerConnection.videoParams.get()
+                            val shouldWait = when (videoParams?.codec) {
+                                Codec.Video.H265 -> true
+                                Codec.Video.H264 -> true
+                                else -> false
+                            }
+                            stateLock.withLock { waitingForKeyframe = shouldWait }
+                        }
+                        if (rtcpReporter == null) {
+                            val socket = this@RtspServerConnection.tcpStreamSocket
+                            rtcpReporter = RtcpReporter(
+                                scope = scope,
+                                protocol = protocol,
+                                writeToTcpSocket = { header, data ->
+                                    socket.withWriteLock {
+                                        val channelId = header[1].toInt() and 0xFF
+                                        val mapped = when (channelId) {
+                                            1 -> videoCh.second
+                                            3 -> audioCh.second
+                                            else -> channelId
+                                        }
+                                        header[1] = mapped.toByte()
+                                        if (isConnected()) writeAndFlush(header, data)
                                     }
-                                    header[1] = mapped.toByte()
-                                    if (isConnected()) writeAndFlush(header, data)
-                                }
-                            },
-                            videoUdpSocket = videoRtcpSocket,
-                            audioUdpSocket = audioRtcpSocket,
-                            ssrcVideo = videoSsrc,
-                            ssrcAudio = audioSsrc
-                        )
+                                },
+                                videoUdpSocket = videoRtcpSocket,
+                                audioUdpSocket = audioRtcpSocket,
+                                ssrcVideo = videoSsrc,
+                                ssrcAudio = audioSsrc
+                            )
+                        }
+                        val trackInfo = mutableMapOf<Int, RtspServerMessageHandler.PlayTrackInfo>()
+                        val nowUs = MasterClock.relativeTimeUs()
+                        if (videoPacketizer != null && videoSetupDone) {
+                            val seqV = videoPacketizer!!.peekNextSeq()
+                            val tsV = videoPacketizer!!.rtpTimestampFromUs(nowUs)
+                            trackInfo[RtpFrame.VIDEO_TRACK_ID] = RtspServerMessageHandler.PlayTrackInfo(seqV, tsV, videoSsrc)
+                        }
+                        if (audioPacketizer != null && audioSetupDone) {
+                            val seqA = audioPacketizer!!.peekNextSeq()
+                            val tsA = audioPacketizer!!.rtpTimestampFromUs(nowUs)
+                            trackInfo[RtpFrame.AUDIO_TRACK_ID] = RtspServerMessageHandler.PlayTrackInfo(seqA, tsA, audioSsrc)
+                        }
+                        writeAndFlush(serverMessageHandler.createPlayResponse(cSeq, sessionId, trackInfo, setupUrls))
+                        stateLock.withLock { isStreaming = true }
+                        state = State.Playing
                     }
-                    val trackInfo = mutableMapOf<Int, RtspServerMessageHandler.PlayTrackInfo>()
-                    val nowUs = MasterClock.relativeTimeUs()
-                    if (videoPacketizer != null && videoSetupDone) {
-                        val seqV = ((initialVideoSeq ?: 0) + 1) and 0xFFFF
-                        val tsV = (nowUs * BaseRtpPacket.VIDEO_CLOCK_FREQUENCY) / 1_000_000L
-                        trackInfo[RtpFrame.VIDEO_TRACK_ID] = RtspServerMessageHandler.PlayTrackInfo(seqV, tsV, videoSsrc)
-                    }
-                    if (audioPacketizer != null && audioSetupDone) {
-                        val seqA = ((initialAudioSeq ?: 0) + 1) and 0xFFFF
-                        val sampleRate = audioParams.get()?.sampleRate ?: 48000
-                        val tsA = (nowUs * sampleRate) / 1_000_000L
-                        trackInfo[RtpFrame.AUDIO_TRACK_ID] = RtspServerMessageHandler.PlayTrackInfo(seqA, tsA, audioSsrc)
-                    }
-                    writeAndFlush(serverMessageHandler.createPlayResponse(cSeq, sessionId, trackInfo, setupUrls))
-
-                    isStreaming = true
-                    state = State.Playing
                 }
 
-                RtspBaseMessageHandler.Method.PAUSE -> tcpStreamSocket.withLock {
-                    isStreaming = false
-                    state = State.Ready
-                    rtcpReporter?.close()
-                    rtcpReporter = null
-                    writeAndFlush(serverMessageHandler.createPauseResponse(cSeq, sessionId))
+                RtspBaseMessageHandler.Method.PAUSE -> {
+                    val sess = serverMessageHandler.getSessionFromRequest(request)
+                    if (sess != null && sess != sessionId) {
+                        tcpStreamSocket.withWriteLock { writeAndFlush(serverMessageHandler.createErrorResponse(454, cSeq)) }
+                        continue
+                    }
+                    if (state != State.Playing) {
+                        tcpStreamSocket.withWriteLock { writeAndFlush(serverMessageHandler.createErrorResponse(455, cSeq)) }
+                        continue
+                    }
+                    tcpStreamSocket.withWriteLock {
+                        stateLock.withLock { isStreaming = false }
+                        state = State.Ready
+                        rtcpReporter?.close()
+                        rtcpReporter = null
+                        writeAndFlush(serverMessageHandler.createPauseResponse(cSeq, sessionId))
+                    }
                 }
 
                 RtspBaseMessageHandler.Method.TEARDOWN -> {
-                    tcpStreamSocket.withLock { writeAndFlush(serverMessageHandler.createTeardownResponse(cSeq, sessionId)) }
+                    val sess = serverMessageHandler.getSessionFromRequest(request)
+                    if (sess != null && sess != sessionId) {
+                        tcpStreamSocket.withWriteLock { writeAndFlush(serverMessageHandler.createErrorResponse(454, cSeq)) }
+                        continue
+                    }
+                    tcpStreamSocket.withWriteLock { writeAndFlush(serverMessageHandler.createTeardownResponse(cSeq, sessionId)) }
                     break
                 }
 
                 RtspBaseMessageHandler.Method.GET_PARAMETER -> {
                     val sess = serverMessageHandler.getSessionFromRequest(request)
                     if (sess != null && sess != sessionId) {
-                        tcpStreamSocket.withLock { writeAndFlush(serverMessageHandler.createErrorResponse(454, cSeq)) }
+                        tcpStreamSocket.withWriteLock { writeAndFlush(serverMessageHandler.createErrorResponse(454, cSeq)) }
                     } else {
-                        tcpStreamSocket.withLock { writeAndFlush(serverMessageHandler.createGetParameterResponse(cSeq, sessionId)) }
+                        tcpStreamSocket.withWriteLock { writeAndFlush(serverMessageHandler.createGetParameterResponse(cSeq, sessionId)) }
                     }
                 }
 
-                else -> tcpStreamSocket.withLock { writeAndFlush(serverMessageHandler.createErrorResponse(405, cSeq)) }
+                else -> tcpStreamSocket.withWriteLock { writeAndFlush(serverMessageHandler.createErrorResponse(405, cSeq)) }
             }
         }
     }
 
     private suspend fun videoWriterLoop() {
         while (scope.isActive) {
-            if (!isStreaming) {
+            val (streaming, setupDone, waitKey, sender) = stateLock.withLock {
+                VideoStateSnapshot(isStreaming, videoSetupDone, waitingForKeyframe, sendRtpPackets)
+            }
+            if (!streaming) {
                 delay(10)
                 continue
             }
             val videoBlob = videoQueue.receiveCatching().getOrNull() ?: break
+            videoQueueSize.decrementAndGet()
+            updateQueueStats()
 
             if (videoParams.get() == null) {
                 videoBlob.buf.releaseOne()
                 continue
             }
 
-            if (!videoSetupDone) {
+            if (!setupDone) {
                 videoBlob.buf.releaseOne()
                 continue
             }
 
             // Drop non-keyframes until the first IDR to help HEVC clients sync cleanly
-            if (waitingForKeyframe && !videoBlob.isKeyFrame) {
+            if (waitKey && !videoBlob.isKeyFrame) {
                 videoBlob.buf.releaseOne()
                 continue
             }
 
-            if (videoBlob.isKeyFrame) waitingForKeyframe = false
+            if (videoBlob.isKeyFrame) stateLock.withLock { waitingForKeyframe = false }
 
             val buffer = ByteBuffer.wrap(videoBlob.buf.bytes, 0, videoBlob.length)
             val info =
@@ -409,7 +561,7 @@ internal class RtspServerConnection(
 
             val packets = videoPacketizer!!.createPacket(frame)
             try {
-                sendRtpPackets(RtpFrame.VIDEO_TRACK_ID, packets)
+                sender(RtpFrame.VIDEO_TRACK_ID, packets)
                 for (packet in packets) rtcpReporter?.update(packet)
                 val bytes = packets.sumOf { it.length }
                 statsReporter.onVideoSent(packets.size, bytes)
@@ -423,18 +575,23 @@ internal class RtspServerConnection(
 
     private suspend fun audioWriterLoop() {
         while (scope.isActive) {
-            if (!isStreaming) {
+            val (streaming, setupDone, sender) = stateLock.withLock {
+                AudioStateSnapshot(isStreaming, audioSetupDone, sendRtpPackets)
+            }
+            if (!streaming) {
                 delay(10)
                 continue
             }
             val audioBlob = audioQueue.receiveCatching().getOrNull() ?: break
+            audioQueueSize.decrementAndGet()
+            updateQueueStats()
 
             if (audioParams.get() == null) {
                 audioBlob.buf.releaseOne()
                 continue
             }
 
-            if (!audioSetupDone) {
+            if (!setupDone) {
                 audioBlob.buf.releaseOne()
                 continue
             }
@@ -446,7 +603,7 @@ internal class RtspServerConnection(
             if (audioPacketizer == null) prepareAudioPacketizerIfNeeded()
             val packets = audioPacketizer!!.createPacket(frame)
             try {
-                sendRtpPackets(RtpFrame.AUDIO_TRACK_ID, packets)
+                sender(RtpFrame.AUDIO_TRACK_ID, packets)
                 for (packet in packets) rtcpReporter?.update(packet)
                 val bytes = packets.sumOf { it.length }
                 statsReporter.onAudioSent(packets.size, bytes)
@@ -459,6 +616,15 @@ internal class RtspServerConnection(
     }
 
     internal suspend fun stop() {
+        stateLock.withLock {
+            isStreaming = false
+            waitingForKeyframe = false
+            sendRtpPackets = { _, _ -> }
+            videoSetupDone = false
+            audioSetupDone = false
+        }
+        negotiatedInterleavedChannels.clear()
+        runCatching { tcpStreamSocket.close() }
         clientJob?.cancel()
         clientJob = null
         videoWriterJob?.cancel(); videoWriterJob = null
@@ -477,14 +643,14 @@ internal class RtspServerConnection(
         while (true) {
             val videoBlob = videoQueue.tryReceive().getOrNull() ?: break
             videoBlob.buf.releaseOne()
+            videoQueueSize.decrementAndGet()
         }
         while (true) {
             val audioBlob = audioQueue.tryReceive().getOrNull() ?: break
             audioBlob.buf.releaseOne()
+            audioQueueSize.decrementAndGet()
         }
-
-        videoSetupDone = false
-        audioSetupDone = false
+        updateQueueStats()
 
         scope.cancel()
         state = State.Closed
@@ -530,4 +696,21 @@ internal class RtspServerConnection(
     }
 
     override fun toString(): String = "RtspServerConnection(address='${tcpStreamSocket.remoteHost}')"
+
+    private fun generateSessionId(): String {
+        val bytes = ByteArray(16)
+        secureRandom.nextBytes(bytes)
+        val chars = CharArray(bytes.size * 2)
+        var i = 0
+        for (b in bytes) {
+            val v = b.toInt() and 0xFF
+            chars[i++] = HEX_CHARS[v ushr 4]
+            chars[i++] = HEX_CHARS[v and 0x0F]
+        }
+        return String(chars)
+    }
+
+    private companion object {
+        private val HEX_CHARS = "0123456789abcdef".toCharArray()
+    }
 }

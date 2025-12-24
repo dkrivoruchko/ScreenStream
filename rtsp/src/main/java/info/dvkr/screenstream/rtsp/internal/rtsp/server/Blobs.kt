@@ -32,7 +32,14 @@ internal class SharedBuffer(val bytes: ByteArray) {
     }
 
     fun releaseOne() {
-        if (refs.decrementAndGet() == 0) ByteArrayPool.recycle(bytes)
+        while (true) {
+            val current = refs.get()
+            if (current <= 0) return
+            if (refs.compareAndSet(current, current - 1)) {
+                if (current == 1) ByteArrayPool.recycle(bytes)
+                return
+            }
+        }
     }
 }
 

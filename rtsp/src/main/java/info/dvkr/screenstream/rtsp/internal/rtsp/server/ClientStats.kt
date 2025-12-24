@@ -3,6 +3,7 @@ package info.dvkr.screenstream.rtsp.internal.rtsp.server
 import info.dvkr.screenstream.rtsp.internal.Protocol
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.update
 
 internal data class MediaStats(
     val packetsSent: Long = 0,
@@ -75,9 +76,4 @@ internal class ClientStatsReporter(
             )
         )
     }
-
-    private inline fun <T> MutableStateFlow<T>.update(block: (T) -> T) {
-        value = block(value)
-    }
 }
-

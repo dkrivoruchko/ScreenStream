@@ -130,6 +130,7 @@ internal class RtspServerMessageHandler(
             401 -> "Unauthorized"
             404 -> "Not Found"
             405 -> "Method Not Allowed"
+            455 -> "Method Not Valid in This State"
             415 -> "Unsupported Media Type"
             454 -> "Session Not Found"
             461 -> "Unsupported Transport"

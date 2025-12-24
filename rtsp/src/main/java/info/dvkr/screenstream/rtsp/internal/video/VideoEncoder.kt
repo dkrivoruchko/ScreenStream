@@ -45,6 +45,8 @@ internal class VideoEncoder(
     private var handler: Handler? = null
     private var eglRenderer: EglRenderer? = null
     private var isCodecConfigSent: Boolean = false
+    private var lastBitrate: Int? = null
+    private val adjustedBufferInfo = MediaCodec.BufferInfo()
 
     internal var width: Int = 0
         private set
@@ -97,14 +99,20 @@ internal class VideoEncoder(
                 encoder.setCallback(createCodecCallback(), handler)
 
                 videoEncoder = encoder
+                lastBitrate = bitRate
                 currentState = State.PREPARED
             }
         }.onFailure { cause ->
+            cleanupAfterPrepareFailure()
             onError(cause)
         }
     }
 
-    internal fun start() = synchronized(encoderLock) {
+    private fun cleanupAfterPrepareFailure(): Unit = synchronized(encoderLock) {
+        stopInternal(force = true, logTag = "prepareCleanup")
+    }
+
+    internal fun start(): Unit = synchronized(encoderLock) {
         XLog.v(getLog("start"))
         if (currentState != State.PREPARED) {
             XLog.w(getLog("start", "Cannot start unless state is PREPARED. Current: $currentState"))
@@ -118,15 +126,21 @@ internal class VideoEncoder(
         XLog.v(getLog("start", "Done"))
     }
 
-    internal fun stop() = synchronized(encoderLock) {
+    internal fun stop(): Unit = synchronized(encoderLock) {
         XLog.v(getLog("stop"))
-        if (currentState == State.IDLE || currentState == State.STOPPED) {
+        if (stopInternal(force = false, logTag = "stopInternal").not()) return
+        XLog.v(getLog("stop", "Done"))
+    }
+
+    private fun stopInternal(force: Boolean, logTag: String): Boolean {
+        if (!force && (currentState == State.IDLE || currentState == State.STOPPED)) {
             XLog.w(getLog("stop", "Cannot stop unless state is RUNNING. Current: $currentState"))
-            return
+            return false
         }
 
         currentState = State.STOPPED
         isCodecConfigSent = false
+        lastBitrate = null
 
         eglRenderer?.stop()
         eglRenderer = null
@@ -136,7 +150,7 @@ internal class VideoEncoder(
                 stop()
                 release()
             }.onFailure {
-                XLog.w(this@VideoEncoder.getLog("stopInternal", "mediaCodec.stop() exception: ${it.message}"), it)
+                XLog.w(this@VideoEncoder.getLog(logTag, "mediaCodec.stop() exception: ${it.message}"), it)
             }
         }
         videoEncoder = null
@@ -146,15 +160,14 @@ internal class VideoEncoder(
             quitSafely()
             runCatching { join(250) }.onFailure {
                 quit()
-                XLog.w(this@VideoEncoder.getLog("stopInternal", "handlerThread.join() took too long, forcing a shutdown"))
+                XLog.w(this@VideoEncoder.getLog(logTag, "handlerThread.join() took too long, forcing a shutdown"))
             }
         }
         handlerThread = null
         handler = null
 
         currentState = State.IDLE
-
-        XLog.v(getLog("stop", "Done"))
+        return true
     }
 
     internal fun setBitrate(newBitrate: Int): Unit = synchronized(encoderLock) {
@@ -162,8 +175,20 @@ internal class VideoEncoder(
             XLog.w(getLog("setBitrate", "Ignoring setBitrate($newBitrate); not in RUNNING state."))
             return
         }
+        if (newBitrate <= 0) {
+            XLog.w(getLog("setBitrate", "Ignoring non-positive bitrate: $newBitrate"))
+            return
+        }
+        val bitrateRange = codecInfo.capabilities.videoCapabilities?.bitrateRange
+        val bitrate = bitrateRange?.let { newBitrate.coerceIn(it.lower, it.upper) } ?: newBitrate
+        if (bitrate != newBitrate) {
+            XLog.w(getLog("setBitrate", "Clamped bitrate $newBitrate -> $bitrate"))
+        }
+        if (lastBitrate == bitrate) return
         runCatching {
-            videoEncoder?.setParameters(Bundle().apply { putInt(MediaCodec.PARAMETER_KEY_VIDEO_BITRATE, newBitrate) })
+            videoEncoder?.setParameters(Bundle().apply { putInt(MediaCodec.PARAMETER_KEY_VIDEO_BITRATE, bitrate) })
+        }.onSuccess {
+            lastBitrate = bitrate
         }.onFailure {
             XLog.w(getLog("setBitrate", "Error while updating bitrate; codec in invalid state."), it)
         }
@@ -192,27 +217,41 @@ internal class VideoEncoder(
             runCatching {
                 val videoFrame = synchronized(encoderLock) {
                     if (currentState != State.RUNNING || info.size == 0) {
-                        runCatching { codec.releaseOutputBuffer(index, false) }
+                        releaseOutputBufferSafely(codec, index)
                         return
                     }
 
                     val outputBuffer = codec.getOutputBuffer(index) ?: run {
-                        runCatching { codec.releaseOutputBuffer(index, false) }
+                        releaseOutputBufferSafely(codec, index)
                         return
                     }
 
                     outputBuffer.position(info.offset)
                     outputBuffer.limit(info.offset + info.size)
 
-                    val adjustedInfo = MediaCodec.BufferInfo().apply {
+                    val adjustedInfo = adjustedBufferInfo.apply {
                         val forcedPtsUs = MasterClock.relativeTimeUs()
                         set(info.offset, info.size, forcedPtsUs, info.flags)
                     }
 
-                    if (!isCodecConfigSent &&
-                        (adjustedInfo.flags.hasFlag(MediaCodec.BUFFER_FLAG_CODEC_CONFIG) ||
-                                adjustedInfo.flags.hasFlag(MediaCodec.BUFFER_FLAG_KEY_FRAME))
-                    ) {
+                    val flags = adjustedInfo.flags
+                    if (flags.hasFlag(MediaCodec.BUFFER_FLAG_CODEC_CONFIG)) {
+                        if (!isCodecConfigSent) {
+                            outputBuffer.duplicate().extractCodecConfig(adjustedInfo)?.let { (sps, pps, vps) ->
+                                onVideoInfo(sps, pps, vps)
+                                isCodecConfigSent = true
+                            }
+                        }
+                        releaseOutputBufferSafely(codec, index)
+                        return
+                    }
+
+                    if (flags.hasFlag(MediaCodec.BUFFER_FLAG_END_OF_STREAM)) {
+                        releaseOutputBufferSafely(codec, index)
+                        return
+                    }
+
+                    if (!isCodecConfigSent && flags.hasFlag(MediaCodec.BUFFER_FLAG_KEY_FRAME)) {
                         outputBuffer.duplicate().extractCodecConfig(adjustedInfo)?.let { (sps, pps, vps) ->
                             onVideoInfo(sps, pps, vps)
                             isCodecConfigSent = true
@@ -227,15 +266,15 @@ internal class VideoEncoder(
                             offset = adjustedInfo.offset,
                             size = adjustedInfo.size,
                             timestamp = adjustedInfo.presentationTimeUs,
-                            isKeyFrame = adjustedInfo.flags.hasFlag(MediaCodec.BUFFER_FLAG_KEY_FRAME)
+                            isKeyFrame = flags.hasFlag(MediaCodec.BUFFER_FLAG_KEY_FRAME)
                         ),
-                        releaseCallback = { runCatching { codec.releaseOutputBuffer(index, false) } }
+                        releaseCallback = { releaseOutputBufferSafely(codec, index) }
                     )
                 }
                 onVideoFrame(videoFrame)
             }.onFailure { cause ->
                 XLog.w(this@VideoEncoder.getLog("CodecCallback.onOutputBufferAvailable", "onFailure: ${cause.message}"), cause)
-                runCatching { codec.releaseOutputBuffer(index, false) }
+                releaseOutputBufferSafely(codec, index)
                 onError(cause)
             }
         }
@@ -255,6 +294,10 @@ internal class VideoEncoder(
     }
 
     private fun Int.hasFlag(flag: Int) = (this and flag) != 0
+
+    private fun releaseOutputBufferSafely(codec: MediaCodec, index: Int) {
+        runCatching { codec.releaseOutputBuffer(index, false) }
+    }
 
     private fun ByteBuffer.extractCodecConfig(bufferInfo: MediaCodec.BufferInfo): Triple<ByteArray, ByteArray?, ByteArray?>? =
         when (codecInfo.codec) {

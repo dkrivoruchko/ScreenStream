@@ -141,37 +141,45 @@ internal class EglRenderer(
     fun stop() {
         XLog.v(getLog("stop"))
 
-        if (!isRendering.compareAndSet(true, false)) {
+        val wasRendering = isRendering.getAndSet(false)
+        if (!wasRendering) {
             XLog.w(getLog("stop", "Renderer is not running."))
-            handler.removeCallbacksAndMessages(null)
-            handlerThread.quitSafely()
-            return
         }
 
-        val latch = CountDownLatch(1)
-        handler.post {
-            handler.removeCallbacksAndMessages(null)
-
-            surfaceTexture?.setOnFrameAvailableListener(null)
-            surfaceTexture = null
-
-            runCatching { releaseGL() }.onFailure { XLog.e(getLog("stop", "Failed to release GL resources."), it) }
-
-            latch.countDown()
-            handlerThread.quitSafely()
+        val isHandlerThread = Thread.currentThread() == handlerThread.looper?.thread
+        if (isHandlerThread) {
+            stopOnHandlerThread()
+        } else {
+            val latch = CountDownLatch(1)
+            val posted = handler.post {
+                runCatching { stopOnHandlerThread() }.onFailure { XLog.e(getLog("stop", "Failed to stop on handler thread."), it) }
+                latch.countDown()
+            }
+            if (posted) {
+                latch.await()
+            }
         }
-
-        latch.await()
 
         runCatching { encoderSurface.release() }.onFailure { XLog.e(getLog("stop", "Failed to release encoder surface."), it) }
 
         XLog.v(getLog("stop", "Done"))
     }
 
+    private fun stopOnHandlerThread() {
+        handler.removeCallbacksAndMessages(null)
+
+        surfaceTexture?.setOnFrameAvailableListener(null)
+        surfaceTexture = null
+
+        runCatching { releaseGL() }.onFailure { XLog.e(getLog("stop", "Failed to release GL resources."), it) }
+
+        handlerThread.quitSafely()
+    }
+
     internal fun setFps(fps: Int) {
         XLog.v(getLog("setFps", "$fps"))
         handler.post {
-            this.fps = fps.coerceAtLeast(0)
+            this.fps = fps.coerceAtLeast(1)
             if (this.fps <= 0) frameIntervalMs = 0.0 else frameIntervalMs = 1000.0 / this.fps
         }
     }
@@ -183,6 +191,8 @@ internal class EglRenderer(
         }.onFailure { cause ->
             if (errorOccurred.compareAndSet(false, true)) {
                 XLog.w(getLog("runSafely", cause.message), cause)
+                isRendering.set(false)
+                handler.removeCallbacksAndMessages(null)
                 onError(cause)
             }
         }
@@ -211,6 +221,8 @@ internal class EglRenderer(
         nextRenderTimeMs += frameIntervalMs
 
         val renderTime = measureTimeMillis { runSafely { drawFrame() } }.toDouble()
+
+        if (!isRendering.get()) return
 
         handler.removeCallbacks(renderFrameTask)
         handler.postDelayed(renderFrameTask, (nextRenderTimeMs - nowMs + renderTime).coerceAtLeast(0.0).roundToLong())

@@ -28,7 +28,7 @@ internal class AacPacket : BaseRtpPacket(0, PAYLOAD_TYPE + 1) {
         val adtsHeaderLen = parseAdtsHeader(fixedBuffer)
         val isAdts = adtsHeaderLen != null && adtsHeaderLen > 0
         if (isAdts) {
-            fixedBuffer.position(fixedBuffer.position() + adtsHeaderLen!!)
+            fixedBuffer.position(fixedBuffer.position() + adtsHeaderLen)
             fixedBuffer = fixedBuffer.slice()
         }
         val length = fixedBuffer.remaining()

@@ -47,7 +47,7 @@ internal class SdpBuilder {
     }
 
     private fun createOpusBody(trackAudio: Int): String = buildString {
-        val payload = OpusPacket.Companion.PAYLOAD_TYPE + trackAudio
+        val payload = OpusPacket.PAYLOAD_TYPE + trackAudio
         append("m=audio 0 RTP/AVP $payload\r\n")
         append("a=rtpmap:$payload OPUS/48000/2\r\n")
         // RFC 7587 declarative SDP parameters to help some clients (e.g., GStreamer)
@@ -57,7 +57,7 @@ internal class SdpBuilder {
     }
 
     private fun createG711Body(trackAudio: Int): String = buildString {
-        val payload = G711Packet.Companion.PAYLOAD_TYPE
+        val payload = G711Packet.PAYLOAD_TYPE
         append("m=audio 0 RTP/AVP $payload\r\n")
         append("a=rtpmap:$payload PCMA/8000/1\r\n")
         append("a=control:trackID=$trackAudio\r\n")
@@ -67,7 +67,7 @@ internal class SdpBuilder {
         val sampleRateIndex = AUDIO_SAMPLING_RATES.indexOf(sampleRate).takeIf { it >= 0 } ?: 3 // default 48k
         val channels = if (isStereo) 2 else 1
         val config = ((2 /*AAC-LC*/ and 0x1F) shl 11) or ((sampleRateIndex and 0x0F) shl 7) or ((channels and 0x0F) shl 3)
-        val payload = AacPacket.Companion.PAYLOAD_TYPE + trackAudio
+        val payload = AacPacket.PAYLOAD_TYPE + trackAudio
         return buildString {
             append("m=audio 0 RTP/AVP $payload\r\n")
             // RFC 3640 (mpeg4-generic) AAC-LC, one AU per RTP, size+index header (16 bits)
@@ -80,16 +80,16 @@ internal class SdpBuilder {
     }
 
     private fun createAV1Body(trackVideo: Int): String = buildString {
-        val payload = Av1Packet.Companion.PAYLOAD_TYPE + trackVideo
+        val payload = Av1Packet.PAYLOAD_TYPE + trackVideo
         append("m=video 0 RTP/AVP $payload\r\n")
-        append("a=rtpmap:$payload AV1/${BaseRtpPacket.Companion.VIDEO_CLOCK_FREQUENCY}\r\n")
+        append("a=rtpmap:$payload AV1/${BaseRtpPacket.VIDEO_CLOCK_FREQUENCY}\r\n")
         append("a=control:trackID=$trackVideo\r\n")
     }
 
     private fun createH264Body(trackVideo: Int, sps: String, pps: String): String = buildString {
-        val payload = H264Packet.Companion.PAYLOAD_TYPE + trackVideo
+        val payload = H264Packet.PAYLOAD_TYPE + trackVideo
         append("m=video 0 RTP/AVP $payload\r\n")
-        append("a=rtpmap:$payload H264/${BaseRtpPacket.Companion.VIDEO_CLOCK_FREQUENCY}\r\n")
+        append("a=rtpmap:$payload H264/${BaseRtpPacket.VIDEO_CLOCK_FREQUENCY}\r\n")
         val parsedProfile = runCatching { extractH264ProfileLevelId(sps) }.getOrNull()
         val profileLevelId = parsedProfile ?: "42E01F"
 
@@ -102,7 +102,7 @@ internal class SdpBuilder {
     }
 
     private fun extractH264ProfileLevelId(spsB64: String): String? = runCatching {
-        val sps = Base64.Default.decode(spsB64)
+        val sps = Base64.decode(spsB64)
         if (sps.size < 4) return null
         val profileIdc = sps[1].toInt() and 0xFF
         val constraints = sps[2].toInt() and 0xFF
@@ -111,9 +111,9 @@ internal class SdpBuilder {
     }.getOrNull()
 
     private fun createH265Body(trackVideo: Int, sps: String, pps: String, vps: String): String = buildString {
-        val payload = H265Packet.Companion.PAYLOAD_TYPE + trackVideo
+        val payload = H265Packet.PAYLOAD_TYPE + trackVideo
         append("m=video 0 RTP/AVP $payload\r\n")
-        append("a=rtpmap:$payload H265/${BaseRtpPacket.Companion.VIDEO_CLOCK_FREQUENCY}\r\n")
+        append("a=rtpmap:$payload H265/${BaseRtpPacket.VIDEO_CLOCK_FREQUENCY}\r\n")
         val parts = buildList {
             if (vps.isNotEmpty()) add("sprop-vps=$vps")
             if (sps.isNotEmpty()) add("sprop-sps=$sps")

@@ -16,6 +16,12 @@ internal class Av1Packet : BaseRtpPacket(VIDEO_CLOCK_FREQUENCY, PAYLOAD_TYPE) {
     companion object {
         const val PAYLOAD_TYPE = 96
         private const val TAG = "Av1Packet"
+        private var warnedNoSizeField: Boolean = false
+
+        private data class ParsedHeader(
+            val header: ByteArray,
+            val hasSizeField: Boolean
+        )
 
         /**
          * Extracts the OBU of type SEQUENCE_HEADER from a keyframe if present.
@@ -45,34 +51,43 @@ internal class Av1Packet : BaseRtpPacket(VIDEO_CLOCK_FREQUENCY, PAYLOAD_TYPE) {
             var index = 0
 
             while (index < av1Data.size) {
-                val header = readHeader(av1Data, index)
-                index += header.size
+                val parsedHeader = parseHeader(av1Data, index) ?: break
+                index += parsedHeader.header.size
                 if (index >= av1Data.size) break
 
-                val (leb128Size, leb128BytesUsed) = readLeb128(av1Data, index)
-                // Negative means malformed LEB128 or out-of-bounds
-                if (leb128Size < 0) {
-                    Log.e(TAG, "Malformed or out-of-bounds LEB128. Stopping OBU parsing.")
-                    break
+                val (obuPayloadSize, leb128BytesUsed, lebBytes) = if (parsedHeader.hasSizeField) {
+                    val (leb128Size, bytesUsed) = readLeb128(av1Data, index)
+                    // Negative means malformed LEB128 or out-of-bounds
+                    if (leb128Size < 0) {
+                        Log.e(TAG, "Malformed or out-of-bounds LEB128. Stopping OBU parsing.")
+                        break
+                    }
+                    Triple(leb128Size.toInt(), bytesUsed, av1Data.sliceArray(index until index + bytesUsed))
+                } else {
+                    if (!warnedNoSizeField) {
+                        Log.w(TAG, "OBU has no size field; treating remainder as a single OBU.")
+                        warnedNoSizeField = true
+                    }
+                    Triple(av1Data.size - index, 0, null)
                 }
 
                 index += leb128BytesUsed
-                if (index >= av1Data.size) break
+                if (index >= av1Data.size && obuPayloadSize == 0) break
 
                 // Check that the OBU data fits in the remaining buffer
-                if (leb128Size.toInt() > av1Data.size - index) {
-                    Log.e(TAG, "LEB128 size exceeds remaining buffer. Stopping OBU parsing.")
+                if (obuPayloadSize > av1Data.size - index) {
+                    Log.e(TAG, "OBU size exceeds remaining buffer. Stopping OBU parsing.")
                     break
                 }
 
-                // The length LEB128 itself
-                val lengthBytes = av1Data.sliceArray(index - leb128BytesUsed until index)
-
                 // The OBU payload
-                val data = av1Data.sliceArray(index until index + leb128Size.toInt())
+                val data = av1Data.sliceArray(index until index + obuPayloadSize)
                 index += data.size
 
-                obuList.add(Obu(header = header, leb128 = lengthBytes, data = data))
+                obuList.add(Obu(header = parsedHeader.header, leb128 = lebBytes, data = data))
+
+                // Without size fields, we cannot reliably parse subsequent OBUs
+                if (!parsedHeader.hasSizeField) break
             }
             return obuList
         }
@@ -80,17 +95,19 @@ internal class Av1Packet : BaseRtpPacket(VIDEO_CLOCK_FREQUENCY, PAYLOAD_TYPE) {
         /**
          * Reads the OBU header (1 or 2 bytes, depending on extension_flag).
          */
-        private fun readHeader(av1Data: ByteArray, offset: Int): ByteArray {
-            val header = mutableListOf<Byte>()
-            val info = av1Data[offset]
-            header.add(info)
-
+        private fun parseHeader(av1Data: ByteArray, offset: Int): ParsedHeader? {
+            if (offset >= av1Data.size) return null
+            val info = av1Data[offset].toInt() and 0xFF
             // extension_flag is bit 2 from the right: (info >> 2) & 0x01
-            val containExtended = ((info.toInt() ushr 2) and 0x01) == 1
-            if (containExtended && offset + 1 < av1Data.size) {
-                header.add(av1Data[offset + 1])
+            val containExtended = ((info ushr 2) and 0x01) == 1
+            val hasSizeField = ((info ushr 1) and 0x01) == 1
+            val headerLen = if (containExtended) 2 else 1
+            if (offset + headerLen > av1Data.size) {
+                Log.e(TAG, "Truncated OBU header at offset $offset.")
+                return null
             }
-            return header.toByteArray()
+            val header = if (headerLen == 2) byteArrayOf(av1Data[offset], av1Data[offset + 1]) else byteArrayOf(av1Data[offset])
+            return ParsedHeader(header, hasSizeField)
         }
 
         /**
@@ -178,7 +195,7 @@ internal class Av1Packet : BaseRtpPacket(VIDEO_CLOCK_FREQUENCY, PAYLOAD_TYPE) {
      */
     override fun createPacket(mediaFrame: MediaFrame): List<RtpFrame> {
         // Remove any extra info from the encoded buffer
-        var src = mediaFrame.data.removeInfo(mediaFrame.info)
+        val src = mediaFrame.data.removeInfo(mediaFrame.info)
 
         // Do not manually skip TD; parser below will remove TD OBUs safely
 
@@ -200,7 +217,8 @@ internal class Av1Packet : BaseRtpPacket(VIDEO_CLOCK_FREQUENCY, PAYLOAD_TYPE) {
         // Optional: inject sequence header before keyframe if available
         val listForPacket = mutableListOf<ByteArray>()
         val headerLensForPacket = mutableListOf<Int>()
-        if (mediaFrame.info.isKeyFrame) {
+        val includeSeqHeader = mediaFrame.info.isKeyFrame && seqHeaderWire != null
+        if (includeSeqHeader) {
             seqHeaderWire?.let {
                 listForPacket += it
                 headerLensForPacket += seqHeaderHeaderLen
@@ -306,7 +324,7 @@ internal class Av1Packet : BaseRtpPacket(VIDEO_CLOCK_FREQUENCY, PAYLOAD_TYPE) {
             val z = if (startingWithContinuation) 1 else 0
             val y = if (lastIsFragmented) 1 else 0
             val w = 0 // single element; length present via LEB
-            val n = if (mediaFrame.info.isKeyFrame && firstPacket) 1 else 0
+            val n = if (newSequence && includeSeqHeader && firstPacket) 1 else 0
             out[RTP_HEADER_LENGTH] = (((z shl 7) or (y shl 6) or (w shl 4) or (n shl 3))).toByte()
 
             // Write per-element LEB length followed by element bytes (W=0)
@@ -326,6 +344,7 @@ internal class Av1Packet : BaseRtpPacket(VIDEO_CLOCK_FREQUENCY, PAYLOAD_TYPE) {
             if (isLast) markPacket(out)
             updateSeq(out)
             frames.add(RtpFrame.Video(out, rtpTs, out.size))
+            if (newSequence && includeSeqHeader && firstPacket) newSequence = false
 
             firstPacket = false
         }
@@ -342,28 +361,33 @@ internal class Av1Packet : BaseRtpPacket(VIDEO_CLOCK_FREQUENCY, PAYLOAD_TYPE) {
     // Sequence header support (optional injection on keyframes)
     private var seqHeaderWire: ByteArray? = null
     private var seqHeaderHeaderLen: Int = 0
+    private var newSequence: Boolean = false
 
     fun setSequenceHeader(obuFull: ByteArray) {
         if (obuFull.isEmpty()) return
-        // Parse header length (1 or 2 bytes depending on extension flag)
-        val containExtended = ((obuFull[0].toInt() ushr 2) and 0x01) == 1
-        val hdrLen = if (containExtended && obuFull.size >= 2) 2 else 1
-        // Parse LEB size field right after header (up to 8 bytes)
-        var idx = hdrLen
-        var lebBytes = 0
-        while (idx < obuFull.size) {
-            lebBytes++
-            val b = obuFull[idx]
-            idx++
-            if ((b.toInt() and 0x80) == 0) break
-            if (lebBytes >= 8) break
+        val parsedHeader = parseHeader(obuFull, 0) ?: return
+        val header = parsedHeader.header.copyOf()
+        var payloadOffset = parsedHeader.header.size
+        var payloadSize = obuFull.size - payloadOffset
+
+        if (parsedHeader.hasSizeField) {
+            val (leb128Size, lebBytesUsed) = readLeb128(obuFull, payloadOffset)
+            if (leb128Size < 0) return
+            payloadOffset += lebBytesUsed
+            if (payloadOffset > obuFull.size) return
+            if (leb128Size.toInt() > obuFull.size - payloadOffset) return
+            payloadSize = leb128Size.toInt()
         }
-        val header = obuFull.copyOfRange(0, hdrLen)
+
         // AV1 OBU header (wire form): clear forbidden (bit7), has_size_field (bit1) and reserved (bit0)
         header[0] = (header[0].toInt() and 0x7C).toByte()
-        val payloadStart = hdrLen + lebBytes
-        val payload = if (payloadStart <= obuFull.size) obuFull.copyOfRange(payloadStart, obuFull.size) else byteArrayOf()
+        val payload = if (payloadSize > 0 && payloadOffset + payloadSize <= obuFull.size) {
+            obuFull.copyOfRange(payloadOffset, payloadOffset + payloadSize)
+        } else {
+            byteArrayOf()
+        }
         seqHeaderWire = header + payload
         seqHeaderHeaderLen = header.size
+        newSequence = true
     }
 }

@@ -68,16 +68,17 @@ internal class H264Packet : BaseRtpPacket(VIDEO_CLOCK_FREQUENCY, PAYLOAD_TYPE) {
     override fun createPacket(mediaFrame: MediaFrame): List<RtpFrame> {
         var fixedBuffer = mediaFrame.data.removeInfo(mediaFrame.info)
 
-        if (getHeaderSize(fixedBuffer) == 0) {
+        var headerSize = getHeaderSize(fixedBuffer)
+        if (headerSize == 0) {
             convertAvccToAnnexB(fixedBuffer)?.let { fixedBuffer = it }
+            headerSize = getHeaderSize(fixedBuffer)
         }
 
         val ts = mediaFrame.info.timestamp * 1000L
         val frames = mutableListOf<RtpFrame>()
 
-        val prefix = getHeaderSize(fixedBuffer)
         fixedBuffer.rewind()
-        if (prefix > 0) fixedBuffer.position(prefix)
+        if (headerSize > 0) fixedBuffer.position(headerSize)
 
         var stapForThisAuSent = false
         var audForThisAuSent = false
@@ -277,20 +278,19 @@ internal class H264Packet : BaseRtpPacket(VIDEO_CLOCK_FREQUENCY, PAYLOAD_TYPE) {
         val sps = this.sps
         val pps = this.pps
         if (sps != null && pps != null) {
-            val startCodeSize = byteBuffer.getVideoStartCodeSize()
+            val dup = byteBuffer.duplicate()
+            val startCodeSize = dup.getVideoStartCodeSize()
             if (startCodeSize == 0) return 0
             val startCode = ByteArray(startCodeSize) { 0x00 }
             startCode[startCodeSize - 1] = 0x01
             val avcHeader = startCode + sps + startCode + pps + startCode
-            if (byteBuffer.remaining() < avcHeader.size) return startCodeSize
+            if (dup.remaining() < avcHeader.size) return 0
 
             val possibleHeader = ByteArray(avcHeader.size)
-            byteBuffer.get(possibleHeader, 0, possibleHeader.size)
+            dup.get(possibleHeader, 0, possibleHeader.size)
             return if (avcHeader.contentEquals(possibleHeader)) {
                 avcHeader.size
-            } else {
-                startCodeSize
-            }
+            } else 0
         }
         return 0
     }

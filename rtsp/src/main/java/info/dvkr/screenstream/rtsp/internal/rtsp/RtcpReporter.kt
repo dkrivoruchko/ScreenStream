@@ -2,8 +2,8 @@ package info.dvkr.screenstream.rtsp.internal.rtsp
 
 import info.dvkr.screenstream.rtsp.internal.Protocol
 import info.dvkr.screenstream.rtsp.internal.RtpFrame
-import info.dvkr.screenstream.rtsp.internal.rtsp.sockets.UdpStreamSocket
 import info.dvkr.screenstream.rtsp.internal.interleavedHeader
+import info.dvkr.screenstream.rtsp.internal.rtsp.sockets.UdpStreamSocket
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -54,6 +54,9 @@ internal class RtcpReporter(
         buffer.setLong(REPORT_PACKET_LENGTH / 4 - 1L, 2, 4)
         buffer.setLong(ssrcAudio, 4, 8)
     }
+
+    private var videoSdes: ByteArray = buildSdesPacket(ssrcVideo)
+    private var audioSdes: ByteArray = buildSdesPacket(ssrcAudio)
 
     private val audioEnabled = ssrcAudio != 0L
 
@@ -118,6 +121,7 @@ internal class RtcpReporter(
             lastReportTimeMs = 0
             lastRtpTimestamp = 0
         }
+        videoSdes = buildSdesPacket(newSsrc)
     }
 
     internal suspend fun setSsrcAudio(newSsrc: Long) = lock.withLock {
@@ -128,6 +132,7 @@ internal class RtcpReporter(
             lastReportTimeMs = 0
             lastRtpTimestamp = 0
         }
+        audioSdes = buildSdesPacket(newSsrc)
     }
 
     private suspend fun sendPeriodicReport(track: TrackInfo, trackId: Int) {
@@ -145,18 +150,21 @@ internal class RtcpReporter(
         track.buffer.setLong(track.packetCount, 20, 24)
         track.buffer.setLong(track.octetCount, 24, 28)
 
+        val sdes = if (trackId == 0) videoSdes else audioSdes
+        val compound = track.buffer + sdes
+
         when (protocol) {
             Protocol.TCP -> try {
-                val tcpHeader = interleavedHeader(2 * trackId + 1, REPORT_PACKET_LENGTH)
-                writeToTcpSocket(tcpHeader, track.buffer)
+                val tcpHeader = interleavedHeader(2 * trackId + 1, compound.size)
+                writeToTcpSocket(tcpHeader, compound)
             } catch (t: Throwable) {
                 // swallow
             }
 
             Protocol.UDP -> try {
                 when (trackId) {
-                    0 -> videoUdpSocket?.write(track.buffer)
-                    else -> audioUdpSocket?.write(track.buffer)
+                    0 -> videoUdpSocket?.write(compound)
+                    else -> audioUdpSocket?.write(compound)
                 }
             } catch (e: IOException) {
                 // swallow
@@ -167,20 +175,49 @@ internal class RtcpReporter(
     private suspend fun sendBye(trackId: Int, buffer: ByteArray) {
         val ssrc = buffer.sliceArray(4..7)
         val byePacket = byteArrayOf(0x81.toByte(), 203.toByte(), 0x00, 0x01, ssrc[0], ssrc[1], ssrc[2], ssrc[3])
+        val sdes = if (trackId == 0) videoSdes else audioSdes
+        val compound = buffer + sdes + byePacket
 
         when (protocol) {
             Protocol.TCP -> runCatching {
-                val tcpHeader = interleavedHeader(2 * trackId + 1, byePacket.size)
-                writeToTcpSocket(tcpHeader, byePacket)
+                val tcpHeader = interleavedHeader(2 * trackId + 1, compound.size)
+                writeToTcpSocket(tcpHeader, compound)
             }
 
             Protocol.UDP -> runCatching {
                 when (trackId) {
-                    0 -> videoUdpSocket?.write(byePacket)
-                    else -> audioUdpSocket?.write(byePacket)
+                    0 -> videoUdpSocket?.write(compound)
+                    else -> audioUdpSocket?.write(compound)
                 }
             }
         }
+    }
+
+    private fun buildSdesPacket(ssrc: Long): ByteArray {
+        if (ssrc == 0L) return ByteArray(0)
+        val cname = "screenstream-" + (ssrc and 0xFFFFFFFFL).toString(16)
+        val cnameBytes = cname.toByteArray(Charsets.US_ASCII).let { if (it.size > 255) it.copyOf(255) else it }
+        val itemLen = 2 + cnameBytes.size // type + length + value
+        var chunkLen = 4 + itemLen + 1 // SSRC + item + end
+        val pad = (4 - (chunkLen % 4)) % 4
+        chunkLen += pad
+
+        val packetLen = 4 + chunkLen
+        val lengthWords = (packetLen / 4) - 1
+        val out = ByteArray(packetLen)
+        out[0] = 0x81.toByte() // V=2, P=0, SC=1
+        out[1] = 202.toByte() // SDES
+        out[2] = ((lengthWords ushr 8) and 0xFF).toByte()
+        out[3] = (lengthWords and 0xFF).toByte()
+        out[4] = (ssrc shr 24).toByte()
+        out[5] = (ssrc shr 16).toByte()
+        out[6] = (ssrc shr 8).toByte()
+        out[7] = (ssrc and 0xFF).toByte()
+        out[8] = 1 // CNAME
+        out[9] = cnameBytes.size.toByte()
+        System.arraycopy(cnameBytes, 0, out, 10, cnameBytes.size)
+        // END item (0) + padding already zeroed by ByteArray init
+        return out
     }
 
     private fun ByteArray.setLong(value: Long, begin: Int, end: Int) {

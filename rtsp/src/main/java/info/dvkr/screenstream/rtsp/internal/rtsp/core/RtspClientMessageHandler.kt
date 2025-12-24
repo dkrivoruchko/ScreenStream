@@ -24,6 +24,7 @@ internal class RtspClientMessageHandler(
     private var sessionTimeoutSec: Int? = null
     private var cSeq: Int = 0
     private var authNc: Int = 0
+    private var lastAuthNonce: String? = null
 
     internal fun hasSession(): Boolean = sessionId.isNotBlank()
 
@@ -94,6 +95,10 @@ internal class RtspClientMessageHandler(
                 val nonce = challenge.nonce
                 val opaque = challenge.opaque.orEmpty()
                 val algorithm = challenge.algorithm.orEmpty()
+                if (lastAuthNonce != nonce) {
+                    authNc = 0
+                    lastAuthNonce = nonce
+                }
                 val selectedQop = challenge.qop.split(',').map { it.trim() }.filter { it.isNotEmpty() }.let { tokens ->
                     val lower = tokens.map { it.lowercase() }
                     when {
@@ -143,7 +148,7 @@ internal class RtspClientMessageHandler(
                 buildString {
                     append("Digest username=\"${quoteParam(user)}\", realm=\"${quoteParam(realm)}\", nonce=\"${quoteParam(nonce)}\", ")
                     append("uri=\"${quoteParam(fullUri)}\", response=\"$response\"")
-                    selectedQop?.let { append(", qop=\"${it.lowercase()}\"") }
+                    selectedQop?.let { append(", qop=${it.lowercase()}") }
                     if (opaque.isNotEmpty()) append(", opaque=\"${quoteParam(opaque)}\"")
                     if (algorithm.isNotEmpty()) append(", algorithm=\"$algorithm\"")
                     if (selectedQop != null) append(", nc=$ncHex, cnonce=\"$cnonce\"")
@@ -219,6 +224,12 @@ internal class RtspClientMessageHandler(
         val client = parsed.clientPorts?.let { (rtp, rtcp) -> RtspClient.Ports(rtp, rtcp) }
         val server = parsed.serverPorts?.let { (rtp, rtcp) -> RtspClient.Ports(rtp, rtcp) }
         return client to server
+    }
+
+    internal fun getInterleaved(command: Command): Pair<Int, Int>? {
+        val transport = extractTransport(command.text).ifEmpty { return null }
+        val parsed = TransportHeader.parse(transport) ?: return null
+        return parsed.interleaved
     }
 
     private fun ByteArray.md5String(): String = runCatching {

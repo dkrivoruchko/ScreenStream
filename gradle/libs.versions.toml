@@ -1,6 +1,6 @@
 [versions]
-agp = "8.13.0"
-kotlin = "2.2.21"
+agp = "8.13.2"
+kotlin = "2.3.0"
 android-tools-desugar = "2.1.5"
 
 koin-android = "4.1.1"
@@ -8,34 +8,34 @@ koin-android = "4.1.1"
 kotlinx-coroutines = "1.10.2"
 
 androidx-core-ktx = "1.17.0"
-androidx-core-splashscreen = "1.2.0-rc01"
-androidx-activity-compose = "1.11.0"
+androidx-core-splashscreen = "1.2.0"
+androidx-activity-compose = "1.12.2"
 androidx-fragment = "1.8.9"
 androidx-appcompat = "1.7.1"
-androidx-lifecycle = "2.9.4"
-androidx-window = "1.5.0"
-androidx-datastore-preferences = "1.1.7"
+androidx-lifecycle = "2.10.0"
+androidx-window = "1.5.1"
+androidx-datastore-preferences = "1.2.0"
 
-compose-bom = "2025.10.01"
+compose-bom = "2025.12.01"
 
 process-phoenix = "3.0.0"
 xlog = "1.11.1"
 
 #MJPEG
-ktor = "3.3.1"
+ktor = "3.3.3"
 
 #PlayStore-WebRTC
 play-services-tasks = "18.4.0"
-play-integrity = "1.5.0"
+play-integrity = "1.6.0"
 socket = "2.1.2"
-okio = "3.16.2"
-okhttp = "5.2.1"
+okio = "3.16.4"
+okhttp = "5.3.2"
 
 #PlayStore-App
 play-app-update = "2.1.0"
 play-app-review = "2.0.2"
-play-services-ads = "24.7.0"
-webkit = "1.14.0"
+play-services-ads = "24.9.0"
+webkit = "1.15.0"
 firebase-analytics = "23.0.0"
 firebase-crashlytics = "20.0.3"
 google-services = "4.4.4"

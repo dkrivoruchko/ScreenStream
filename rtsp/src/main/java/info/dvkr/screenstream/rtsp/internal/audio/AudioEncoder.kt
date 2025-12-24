@@ -129,7 +129,7 @@ internal class AudioEncoder(
         }
     }
 
-    internal fun start() = synchronized(encoderLock) {
+    internal fun start(): Unit = synchronized(encoderLock) {
         if (audioSource == null) {
             XLog.i(getLog("start", "No audioSource. Ignoring"))
             return
@@ -150,7 +150,7 @@ internal class AudioEncoder(
         XLog.v(getLog("start", "Done"))
     }
 
-    internal fun stop() = synchronized(encoderLock) {
+    internal fun stop(): Unit = synchronized(encoderLock) {
         if (audioSource == null) {
             XLog.i(getLog("stop", "No audioSource. Ignoring"))
             return

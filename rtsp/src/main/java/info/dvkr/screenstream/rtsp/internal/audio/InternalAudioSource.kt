@@ -32,8 +32,16 @@ internal class InternalAudioSource(
             audioCapture.micVolume = value
         }
 
+    @Throws
     @RequiresPermission(Manifest.permission.RECORD_AUDIO)
-    override fun checkIfConfigurationSupported() = audioCapture.checkIfConfigurationSupported()
+    override fun checkIfConfigurationSupported() {
+        val config = AudioPlaybackCaptureConfiguration.Builder(mediaProjection)
+            .addMatchingUsage(AudioAttributes.USAGE_MEDIA)
+            .addMatchingUsage(AudioAttributes.USAGE_GAME)
+            .addMatchingUsage(AudioAttributes.USAGE_UNKNOWN)
+            .build()
+        audioCapture.checkIfConfigurationSupported(config)
+    }
 
     @RequiresPermission(Manifest.permission.RECORD_AUDIO)
     override fun start() {

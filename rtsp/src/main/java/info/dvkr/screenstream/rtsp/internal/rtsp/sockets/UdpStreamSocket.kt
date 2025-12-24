@@ -9,6 +9,8 @@ import io.ktor.utils.io.core.buildPacket
 import io.ktor.utils.io.core.writeFully
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import java.net.Inet6Address
+import java.net.InetAddress
 
 internal class UdpStreamSocket(
     private val selectorManager: SelectorManager,
@@ -17,13 +19,19 @@ internal class UdpStreamSocket(
     private val localPort: Int
 ) {
     private val ioMutex = Mutex()
-    private val remoteSocketAddress = InetSocketAddress(remoteHost, remotePort)
     private var udpSocket: ConnectedDatagramSocket? = null
+    private var remoteSocketAddress: InetSocketAddress? = null
 
     suspend fun connect() = ioMutex.withLock {
+        runCatching { udpSocket?.close() }
+        udpSocket = null
+        val remoteAddress = InetAddress.getByName(remoteHost)
+        val resolvedRemote = InetSocketAddress(remoteAddress.hostAddress ?: remoteHost, remotePort)
+        val localBindHost = if (remoteAddress is Inet6Address) "::" else "0.0.0.0"
         udpSocket = aSocket(selectorManager)
             .udp()
-            .connect(remoteSocketAddress, InetSocketAddress("0.0.0.0", localPort))
+            .connect(resolvedRemote, InetSocketAddress(localBindHost, localPort))
+        remoteSocketAddress = resolvedRemote
     }
 
     suspend fun close() = ioMutex.withLock {
@@ -32,11 +40,13 @@ internal class UdpStreamSocket(
     }
 
     suspend fun write(bytes: ByteArray) = ioMutex.withLock {
-        udpSocket?.send(Datagram(buildPacket { writeFully(bytes) }, remoteSocketAddress))
+        val target = remoteSocketAddress ?: return@withLock
+        udpSocket?.send(Datagram(buildPacket { writeFully(bytes) }, target))
     }
 
     suspend fun write(bytes: ByteArray, offset: Int, length: Int) = ioMutex.withLock {
-        udpSocket?.send(Datagram(buildPacket { writeFully(bytes, offset, length) }, remoteSocketAddress))
+        val target = remoteSocketAddress ?: return@withLock
+        udpSocket?.send(Datagram(buildPacket { writeFully(bytes, offset, length) }, target))
     }
 
     fun localPort(): Int? = (udpSocket?.localAddress as? InetSocketAddress)?.port

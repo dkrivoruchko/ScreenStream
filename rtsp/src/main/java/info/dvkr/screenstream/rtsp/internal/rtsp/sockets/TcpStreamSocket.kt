@@ -18,6 +18,7 @@ import io.ktor.utils.io.writeFully
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeout
+import java.io.IOException
 import kotlin.coroutines.CoroutineContext
 
 internal class TcpStreamSocket private constructor(
@@ -65,8 +66,10 @@ internal class TcpStreamSocket private constructor(
     }
 
     // Serialize writes to keep ByteWriteChannel framing atomically consistent
-    internal suspend inline fun <T> withLock(crossinline block: suspend TcpStreamSocket.() -> T): T = writeMutex.withLock { block() }
+    internal suspend inline fun <T> withWriteLock(crossinline block: suspend TcpStreamSocket.() -> T): T = writeMutex.withLock { block() }
 
+    // Serialize reads so control responses don't interleave with other reads.
+    internal suspend inline fun <T> withReadLock(crossinline block: suspend TcpStreamSocket.() -> T): T = readMutex.withLock { block() }
 
     internal suspend fun connect() {
         if (tcpSocket != null) return
@@ -123,10 +126,16 @@ internal class TcpStreamSocket private constructor(
         output?.flush()
     }
 
-    @Throws
-    internal suspend fun readRequestHeaders(): String? {
+    @Throws(IOException::class)
+    internal suspend fun readRequestHeaders(
+        allowedInterleavedChannels: Set<Int>,
+        maxInterleavedLength: Int = 65535,
+        maxHeaderLength: Int = 16 * 1024,
+        onInterleavedChunk: (suspend (channel: Int, data: ByteArray, length: Int, isLast: Boolean) -> Unit)? = null
+    ): String? {
         val ch = input ?: return null
         val one = ByteArray(1)
+        val scratch = ByteArray(minOf(4096, maxInterleavedLength))
         while (true) {
             // Read first byte; null -> closed
             if (runCatching { ch.readFully(one, 0, 1) }.isFailure) return null
@@ -135,22 +144,37 @@ internal class TcpStreamSocket private constructor(
                 // Interleaved frame: skip channel + length + payload
                 val hdr = ByteArray(3)
                 if (runCatching { ch.readFully(hdr, 0, 3) }.isFailure) return null
+                val channel = hdr[0].toInt() and 0xFF
                 val len = ((hdr[1].toInt() and 0xFF) shl 8) or (hdr[2].toInt() and 0xFF)
-                if (len > 0) {
-                    val payload = ByteArray(len)
-                    if (runCatching { ch.readFully(payload, 0, len) }.isFailure) return null
+                if (len < 0 || len > maxInterleavedLength) {
+                    throw IOException("Interleaved frame length $len exceeds limit $maxInterleavedLength")
+                }
+                if (channel !in allowedInterleavedChannels) {
+                    throw IOException("Unexpected interleaved channel $channel")
+                }
+                var remaining = len
+                while (remaining > 0) {
+                    val toRead = minOf(remaining, scratch.size)
+                    if (runCatching { ch.readFully(scratch, 0, toRead) }.isFailure) return null
+                    onInterleavedChunk?.invoke(channel, scratch, toRead, remaining == toRead)
+                    remaining -= toRead
                 }
                 // Continue to next item (either another interleaved frame or RTSP request)
                 continue
             } else {
                 // Start of RTSP request; assemble first line from first byte + remainder
                 val sb = StringBuilder()
+                var headerBytes = 0
                 sb.append(first.toInt().toChar())
                 val firstLine = ch.readUTF8Line() ?: return null
+                headerBytes += 1 + firstLine.length
+                if (headerBytes > maxHeaderLength) throw IOException("RTSP header too large (> $maxHeaderLength bytes)")
                 sb.append(firstLine).append("\r\n")
                 while (true) {
                     val line = ch.readUTF8Line() ?: break
                     if (line.isEmpty()) break
+                    headerBytes += line.length + 2
+                    if (headerBytes > maxHeaderLength) throw IOException("RTSP header too large (> $maxHeaderLength bytes)")
                     sb.append(line).append("\r\n")
                 }
                 return sb.toString()
