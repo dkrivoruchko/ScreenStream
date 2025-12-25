@@ -16,6 +16,25 @@
 - Широкие возможности настройки.\n
 </string>
 
+    <string name="rtsp_mode_card_title">Выберите режим RTSP:</string>
+    <string name="rtsp_mode_server">Сервер</string>
+    <string name="rtsp_mode_server_hint">Сделать устройство RTSP-сервером</string>
+    <string name="rtsp_mode_client">Клиент</string>
+    <string name="rtsp_mode_client_hint">Подключиться к удалённому RTSP-серверу</string>
+
+    <string name="rtsp_interfaces_title">Адрес RTSP-сервера</string>
+    <string name="rtsp_interfaces_no_address">Нет доступных сетевых адресов.\nПроверьте соединение и фильтры интерфейсов.</string>
+    <string name="rtsp_interfaces_interface_label">Интерфейс:\n%1$s</string>
+    <string name="rtsp_interfaces_description_copy">Копировать адрес</string>
+    <string name="rtsp_interfaces_description_share">Поделиться адресом</string>
+    <string name="rtsp_interfaces_description_qr">Показать адрес как QR-код</string>
+    <string name="rtsp_interfaces_qr_content_description">QR-код</string>
+    <string name="rtsp_interfaces_copied">Адрес скопирован</string>
+    <string name="rtsp_interfaces_share_title">Поделиться RTSP-адресом</string>
+
+    <string name="rtsp_server_parameters">Параметры сервера</string>
+    <string name="rtsp_client_parameters">Параметры клиента</string>
+
     <string name="rtsp_stream_start">Запустить трансляцию</string>
     <string name="rtsp_stream_stop">Остановить трансляцию</string>
 
@@ -32,6 +51,12 @@
     <string name="rtsp_connection_connecting">Подключение к серверу…</string>
     <string name="rtsp_connection_disconnected">Сервер отключен</string>
     <string name="rtsp_connection_error">Ошибка подключения</string>
+
+    <string name="rtsp_label_ipv4_lan">IPv4 LAN</string>
+    <string name="rtsp_label_ipv6_ula">IPv6 ULA</string>
+    <string name="rtsp_label_public_ipv4">Публичный IPv4</string>
+    <string name="rtsp_label_public_ipv6">Публичный IPv6</string>
+    <string name="rtsp_label_loopback">Loopback</string>
 
     <string name="rtsp_video_parameters">Параметры видео</string>
     <string name="rtsp_video_encoder">Видеокодек:</string>
@@ -62,14 +87,28 @@
     <string name="rtsp_connection_access_denied">Доступ запрещен</string>
     <string name="rtsp_connection_no_credentials">Укажите логин и пароль</string>
     <string name="rtsp_connection_invalid_credentials">Неверный логин или пароль</string>
+
+    <string name="rtsp_close">Закрыть</string>
+    <string name="rtsp_pref_protocol">Протокол RTSP</string>
+    <string name="rtsp_pref_protocol_summary">Выберите транспорт для RTP-пакетов</string>
+    <string name="rtsp_pref_interface_filter">Фильтр интерфейсов</string>
+    <string name="rtsp_pref_interface_filter_summary">Выберите сетевые интерфейсы для сервера</string>
     <string name="rtsp_pref_interface_filter_wifi">Wi-Fi</string>
     <string name="rtsp_pref_interface_filter_mobile">Мобильный</string>
     <string name="rtsp_pref_interface_filter_ethernet">Ethernet</string>
     <string name="rtsp_pref_interface_filter_vpn">VPN</string>
     <string name="rtsp_pref_interface_filter_unknown">неизвестный</string>
-    <string name="rtsp_label_ipv4_lan">IPv4 LAN</string>
-    <string name="rtsp_label_ipv6_ula">IPv6 ULA</string>
-    <string name="rtsp_label_public_ipv4">Публичный IPv4</string>
-    <string name="rtsp_label_public_ipv6">Публичный IPv6</string>
-    <string name="rtsp_label_loopback">Loopback</string>
+    <string name="rtsp_pref_filter_no_restriction">Без ограничений</string>
+    <string name="rtsp_pref_address_filter">Фильтр адресов</string>
+    <string name="rtsp_pref_address_filter_summary">Выберите типы IP-адресов для сервера</string>
+    <string name="rtsp_pref_address_filter_private">Частный</string>
+    <string name="rtsp_pref_address_filter_localhost">Localhost</string>
+    <string name="rtsp_pref_address_filter_public">Публичный</string>
+    <string name="rtsp_pref_enable_ipv4">Включить IPv4</string>
+    <string name="rtsp_pref_enable_ipv4_summary">Запустить сервер на IPv4-адресах</string>
+    <string name="rtsp_pref_enable_ipv6">Включить IPv6</string>
+    <string name="rtsp_pref_enable_ipv6_summary">Запустить сервер на IPv6-адресах</string>
+    <string name="rtsp_pref_server_port">Порт сервера</string>
+    <string name="rtsp_pref_server_port_summary">Установить порт для входяших подключений</string>
+    <string name="rtsp_pref_server_port_text">Установите порт сервера для входящих подключений.\nЗначения: 1025–65535\nПо умолчанию: 8554</string>
 </resources>

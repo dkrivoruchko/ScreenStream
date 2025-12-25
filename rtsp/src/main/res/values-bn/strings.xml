@@ -16,6 +16,25 @@
 - অত্যধিক কাস্টমাইজযোগ্য।\n
 </string>
 
+    <string name="rtsp_mode_card_title">RTSP মোড নির্বাচন করুন:</string>
+    <string name="rtsp_mode_server">সার্ভার</string>
+    <string name="rtsp_mode_server_hint">এই ডিভাইসটিকে RTSP সার্ভার হিসেবে হোস্ট করুন</string>
+    <string name="rtsp_mode_client">ক্লায়েন্ট</string>
+    <string name="rtsp_mode_client_hint">দূরবর্তী RTSP সার্ভারে সংযোগ করুন</string>
+
+    <string name="rtsp_interfaces_title">RTSP সার্ভার ঠিকানা</string>
+    <string name="rtsp_interfaces_no_address">কোনো নেটওয়ার্ক ঠিকানা নেই।\nনেটওয়ার্ক সংযোগ ও ইন্টারফেস ফিল্টার যাচাই করুন।</string>
+    <string name="rtsp_interfaces_interface_label">ইন্টারফেস:\n%1$s</string>
+    <string name="rtsp_interfaces_description_copy">ঠিকানা কপি করুন</string>
+    <string name="rtsp_interfaces_description_share">ঠিকানা শেয়ার করুন</string>
+    <string name="rtsp_interfaces_description_qr">QR-কোড হিসাবে ঠিকানা দেখান</string>
+    <string name="rtsp_interfaces_qr_content_description">QR-কোড</string>
+    <string name="rtsp_interfaces_copied">ঠিকানা কপি হয়েছে</string>
+    <string name="rtsp_interfaces_share_title">RTSP ঠিকানা শেয়ার করুন</string>
+
+    <string name="rtsp_server_parameters">সার্ভার প্যারামিটার</string>
+    <string name="rtsp_client_parameters">ক্লায়েন্ট প্যারামিটার</string>
+
     <string name="rtsp_stream_start">স্ট্রিম শুরু করুন</string>
     <string name="rtsp_stream_stop">স্ট্রিম বন্ধ করুন</string>
 
@@ -32,6 +51,12 @@
     <string name="rtsp_connection_connecting">সার্ভারে সংযোগ হচ্ছে…</string>
     <string name="rtsp_connection_disconnected">সার্ভার সংযোগ বিচ্ছিন্ন</string>
     <string name="rtsp_connection_error">সংযোগ ত্রুটি</string>
+
+    <string name="rtsp_label_ipv4_lan">IPv4 LAN</string>
+    <string name="rtsp_label_ipv6_ula">IPv6 ULA</string>
+    <string name="rtsp_label_public_ipv4">পাবলিক IPv4</string>
+    <string name="rtsp_label_public_ipv6">পাবলিক IPv6</string>
+    <string name="rtsp_label_loopback">লুপব্যাক</string>
 
     <string name="rtsp_video_parameters">ভিডিও পরামিতি</string>
     <string name="rtsp_video_encoder">ভিডিও এনকোডার:</string>
@@ -62,14 +87,28 @@
     <string name="rtsp_connection_access_denied">অ্যাক্সেস অস্বীকৃত</string>
     <string name="rtsp_connection_no_credentials">ব্যবহারকারী নাম এবং পাসওয়ার্ড নির্দিষ্ট করুন</string>
     <string name="rtsp_connection_invalid_credentials">ব্যবহারকারী নাম বা পাসওয়ার্ড অবৈধ</string>
+
+    <string name="rtsp_close">বন্ধ করুন</string>
+    <string name="rtsp_pref_protocol">RTSP প্রোটোকল</string>
+    <string name="rtsp_pref_protocol_summary">RTP প্যাকেটের পরিবহন নির্বাচন করুন</string>
+    <string name="rtsp_pref_interface_filter">ইন্টারফেস ফিল্টার</string>
+    <string name="rtsp_pref_interface_filter_summary">সার্ভারের জন্য নেটওয়ার্ক ইন্টারফেস নির্বাচন করুন</string>
     <string name="rtsp_pref_interface_filter_wifi">ওয়াই-ফাই</string>
     <string name="rtsp_pref_interface_filter_mobile">মোবাইল</string>
     <string name="rtsp_pref_interface_filter_ethernet">ইথারনেট</string>
     <string name="rtsp_pref_interface_filter_vpn">ভিপিএন</string>
     <string name="rtsp_pref_interface_filter_unknown">অজানা</string>
-    <string name="rtsp_label_ipv4_lan">IPv4 LAN</string>
-    <string name="rtsp_label_ipv6_ula">IPv6 ULA</string>
-    <string name="rtsp_label_public_ipv4">পাবলিক IPv4</string>
-    <string name="rtsp_label_public_ipv6">পাবলিক IPv6</string>
-    <string name="rtsp_label_loopback">লুপব্যাক</string>
+    <string name="rtsp_pref_filter_no_restriction">কোন সীমাবদ্ধতা নেই</string>
+    <string name="rtsp_pref_address_filter">ঠিকানা ফিল্টার</string>
+    <string name="rtsp_pref_address_filter_summary">সার্ভারের জন্য আইপি ঠিকানার ধরন নির্বাচন করুন</string>
+    <string name="rtsp_pref_address_filter_private">ব্যক্তিগত</string>
+    <string name="rtsp_pref_address_filter_localhost">লোকালহোস্ট</string>
+    <string name="rtsp_pref_address_filter_public">পাবলিক</string>
+    <string name="rtsp_pref_enable_ipv4">IPv4 সক্রিয় করুন</string>
+    <string name="rtsp_pref_enable_ipv4_summary">IPv4 ঠিকানায় সার্ভার চালান</string>
+    <string name="rtsp_pref_enable_ipv6">IPv6 সক্রিয় করুন</string>
+    <string name="rtsp_pref_enable_ipv6_summary">IPv6 ঠিকানায় সার্ভার চালান</string>
+    <string name="rtsp_pref_server_port">সার্ভারের পোর্ট</string>
+    <string name="rtsp_pref_server_port_summary">ইনকামিং সংযোগের জন্য পোর্ট সেট করুন</string>
+    <string name="rtsp_pref_server_port_text">ইনকামিং সংযোগের জন্য সার্ভার পোর্ট সেট করুন।\nমান: 1025–65535\nডিফল্ট: 8554</string>
 </resources>

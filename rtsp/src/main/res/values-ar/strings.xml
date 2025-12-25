@@ -16,6 +16,25 @@
 - قابل للتخصيص بشكل كبير.\n
 </string>
 
+    <string name="rtsp_mode_card_title">اختر وضع RTSP:</string>
+    <string name="rtsp_mode_server">خادم</string>
+    <string name="rtsp_mode_server_hint">استضف هذا الجهاز كخادم RTSP</string>
+    <string name="rtsp_mode_client">عميل</string>
+    <string name="rtsp_mode_client_hint">اتصل بخادم RTSP بعيد</string>
+
+    <string name="rtsp_interfaces_title">عنوان خادم RTSP</string>
+    <string name="rtsp_interfaces_no_address">لا توجد عناوين شبكة متاحة.\nتحقق من اتصال الشبكة وفلاتر الواجهة.</string>
+    <string name="rtsp_interfaces_interface_label">الواجهة:\n%1$s</string>
+    <string name="rtsp_interfaces_description_copy">نسخ العنوان</string>
+    <string name="rtsp_interfaces_description_share">عنوان المشاركة</string>
+    <string name="rtsp_interfaces_description_qr">أظهر العنوان كرمز QR</string>
+    <string name="rtsp_interfaces_qr_content_description">رمز الاستجابة السريعة</string>
+    <string name="rtsp_interfaces_copied">تم نسخ العنوان</string>
+    <string name="rtsp_interfaces_share_title">مشاركة عنوان RTSP</string>
+
+    <string name="rtsp_server_parameters">معلمات الخادم</string>
+    <string name="rtsp_client_parameters">معلمات العميل</string>
+
     <string name="rtsp_stream_start">بدء البث</string>
     <string name="rtsp_stream_stop">إيقاف البث</string>
 
@@ -32,6 +51,12 @@
     <string name="rtsp_connection_connecting">جاري الاتصال بالخادم…</string>
     <string name="rtsp_connection_disconnected">انقطع الاتصال بالخادم</string>
     <string name="rtsp_connection_error">خطأ في الاتصال</string>
+
+    <string name="rtsp_label_ipv4_lan">IPv4 LAN</string>
+    <string name="rtsp_label_ipv6_ula">IPv6 ULA</string>
+    <string name="rtsp_label_public_ipv4">IPv4 عام</string>
+    <string name="rtsp_label_public_ipv6">IPv6 عام</string>
+    <string name="rtsp_label_loopback">حلقة محلية</string>
 
     <string name="rtsp_video_parameters">معلمات الفيديو</string>
     <string name="rtsp_video_encoder">ترميز الفيديو:</string>
@@ -62,14 +87,28 @@
     <string name="rtsp_connection_access_denied">تم رفض الوصول</string>
     <string name="rtsp_connection_no_credentials">حدد اسم المستخدم وكلمة المرور</string>
     <string name="rtsp_connection_invalid_credentials">اسم المستخدم أو كلمة المرور غير صالحة</string>
+
+    <string name="rtsp_close">إغلاق</string>
+    <string name="rtsp_pref_protocol">بروتوكول RTSP</string>
+    <string name="rtsp_pref_protocol_summary">اختر ناقل حزم RTP</string>
+    <string name="rtsp_pref_interface_filter">تصفية الواجهة</string>
+    <string name="rtsp_pref_interface_filter_summary">اختر واجهات الشبكة للخادم</string>
     <string name="rtsp_pref_interface_filter_wifi">واي فاي</string>
     <string name="rtsp_pref_interface_filter_mobile">شبكة الجوال</string>
     <string name="rtsp_pref_interface_filter_ethernet">إيثرنت</string>
     <string name="rtsp_pref_interface_filter_vpn">VPN</string>
     <string name="rtsp_pref_interface_filter_unknown">غير معروف</string>
-    <string name="rtsp_label_ipv4_lan">IPv4 LAN</string>
-    <string name="rtsp_label_ipv6_ula">IPv6 ULA</string>
-    <string name="rtsp_label_public_ipv4">IPv4 عام</string>
-    <string name="rtsp_label_public_ipv6">IPv6 عام</string>
-    <string name="rtsp_label_loopback">حلقة محلية</string>
+    <string name="rtsp_pref_filter_no_restriction">بدون قيود</string>
+    <string name="rtsp_pref_address_filter">تصفية العناوين</string>
+    <string name="rtsp_pref_address_filter_summary">اختر أنواع عناوين IP للخادم</string>
+    <string name="rtsp_pref_address_filter_private">خاص</string>
+    <string name="rtsp_pref_address_filter_localhost">المضيف المحلي</string>
+    <string name="rtsp_pref_address_filter_public">عام</string>
+    <string name="rtsp_pref_enable_ipv4">تفعيل IPv4</string>
+    <string name="rtsp_pref_enable_ipv4_summary">تشغيل الخادم على عناوين IPv4</string>
+    <string name="rtsp_pref_enable_ipv6">تفعيل IPv6</string>
+    <string name="rtsp_pref_enable_ipv6_summary">تشغيل الخادم على عناوين IPv6</string>
+    <string name="rtsp_pref_server_port">منفذ سيرفر</string>
+    <string name="rtsp_pref_server_port_summary">تعيين منفذ للاتصالات الواردة</string>
+    <string name="rtsp_pref_server_port_text">تعيين منفذ خادم للاتصالات الواردة.\nالقيم: 1025–65535\nالافتراضي: 8554</string>
 </resources>

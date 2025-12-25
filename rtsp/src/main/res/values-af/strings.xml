@@ -16,6 +16,25 @@
 - Hoogs aanpasbaar.\n
 </string>
 
+    <string name="rtsp_mode_card_title">Kies RTSP-modus:</string>
+    <string name="rtsp_mode_server">Server</string>
+    <string name="rtsp_mode_server_hint">Host hierdie toestel as \'n RTSP-server</string>
+    <string name="rtsp_mode_client">Kliënt</string>
+    <string name="rtsp_mode_client_hint">Koppel aan \'n afgeleë RTSP-server</string>
+
+    <string name="rtsp_interfaces_title">RTSP-serveradres</string>
+    <string name="rtsp_interfaces_no_address">Geen netwerkadresse beskikbaar.\nKontroleer netwerkverbinding en koppelvlakfilters.</string>
+    <string name="rtsp_interfaces_interface_label">Koppelvlak:\n%1$s</string>
+    <string name="rtsp_interfaces_description_copy">Kopieer adres</string>
+    <string name="rtsp_interfaces_description_share">Deel adres</string>
+    <string name="rtsp_interfaces_description_qr">Wys adres as QR-kode</string>
+    <string name="rtsp_interfaces_qr_content_description">QR kode</string>
+    <string name="rtsp_interfaces_copied">Adres gekopieer</string>
+    <string name="rtsp_interfaces_share_title">Deel RTSP-adres</string>
+
+    <string name="rtsp_server_parameters">Serverparameters</string>
+    <string name="rtsp_client_parameters">Kliëntparameters</string>
+
     <string name="rtsp_stream_start">Begin stroom</string>
     <string name="rtsp_stream_stop">Stop stroom</string>
 
@@ -32,6 +51,12 @@
     <string name="rtsp_connection_connecting">Koppel aan server…</string>
     <string name="rtsp_connection_disconnected">Server ontkoppel</string>
     <string name="rtsp_connection_error">Verbindingsfout</string>
+
+    <string name="rtsp_label_ipv4_lan">IPv4 LAN</string>
+    <string name="rtsp_label_ipv6_ula">IPv6 ULA</string>
+    <string name="rtsp_label_public_ipv4">Publieke IPv4</string>
+    <string name="rtsp_label_public_ipv6">Publieke IPv6</string>
+    <string name="rtsp_label_loopback">Loopback</string>
 
     <string name="rtsp_video_parameters">Videoparameters</string>
     <string name="rtsp_video_encoder">Video-enkodeerder:</string>
@@ -62,14 +87,28 @@
     <string name="rtsp_connection_access_denied">Toegang geweier</string>
     <string name="rtsp_connection_no_credentials">Spesifiseer gebruikersnaam en wagwoord</string>
     <string name="rtsp_connection_invalid_credentials">Gebruikersnaam of wagwoord is ongeldig</string>
+
+    <string name="rtsp_close">Toemaak</string>
+    <string name="rtsp_pref_protocol">RTSP-protokol</string>
+    <string name="rtsp_pref_protocol_summary">Kies vervoer vir RTP-pakkette</string>
+    <string name="rtsp_pref_interface_filter">Koppelvlak filter</string>
+    <string name="rtsp_pref_interface_filter_summary">Kies netwerkkoppelvlakke vir bediener</string>
     <string name="rtsp_pref_interface_filter_wifi">Wi-Fi</string>
     <string name="rtsp_pref_interface_filter_mobile">Mobiel</string>
     <string name="rtsp_pref_interface_filter_ethernet">Ethernet</string>
     <string name="rtsp_pref_interface_filter_vpn">VPN</string>
     <string name="rtsp_pref_interface_filter_unknown">onbekend</string>
-    <string name="rtsp_label_ipv4_lan">IPv4 LAN</string>
-    <string name="rtsp_label_ipv6_ula">IPv6 ULA</string>
-    <string name="rtsp_label_public_ipv4">Publieke IPv4</string>
-    <string name="rtsp_label_public_ipv6">Publieke IPv6</string>
-    <string name="rtsp_label_loopback">Loopback</string>
+    <string name="rtsp_pref_filter_no_restriction">Geen beperking</string>
+    <string name="rtsp_pref_address_filter">Adres filter</string>
+    <string name="rtsp_pref_address_filter_summary">Kies IP-adres tipes vir bediener</string>
+    <string name="rtsp_pref_address_filter_private">Privaat</string>
+    <string name="rtsp_pref_address_filter_localhost">Localhost</string>
+    <string name="rtsp_pref_address_filter_public">Publiek</string>
+    <string name="rtsp_pref_enable_ipv4">Aktiveer IPv4</string>
+    <string name="rtsp_pref_enable_ipv4_summary">Laat server op IPv4-adresse loop</string>
+    <string name="rtsp_pref_enable_ipv6">Aktiveer IPv6</string>
+    <string name="rtsp_pref_enable_ipv6_summary">Laat server op IPv6-adresse loop</string>
+    <string name="rtsp_pref_server_port">Bedienerpoort</string>
+    <string name="rtsp_pref_server_port_summary">Stel poort vir inkomende verbindings</string>
+    <string name="rtsp_pref_server_port_text">Stel bedienerpoort vir inkomende verbindings.\nWaardes: 1025–65535\nVerstek: 8554</string>
 </resources>

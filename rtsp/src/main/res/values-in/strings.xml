@@ -16,6 +16,25 @@
 - Sangat dapat disesuaikan.\n
 </string>
 
+    <string name="rtsp_mode_card_title">Pilih mode RTSP:</string>
+    <string name="rtsp_mode_server">Server</string>
+    <string name="rtsp_mode_server_hint">Jadikan perangkat ini sebagai server RTSP</string>
+    <string name="rtsp_mode_client">Klien</string>
+    <string name="rtsp_mode_client_hint">Hubungkan ke server RTSP jarak jauh</string>
+
+    <string name="rtsp_interfaces_title">Alamat server RTSP</string>
+    <string name="rtsp_interfaces_no_address">Tidak ada alamat jaringan tersedia.\nPeriksa koneksi jaringan dan filter antarmuka.</string>
+    <string name="rtsp_interfaces_interface_label">Antarmuka:\n%1$s</string>
+    <string name="rtsp_interfaces_description_copy">Salin alamat</string>
+    <string name="rtsp_interfaces_description_share">Bagikan alamat</string>
+    <string name="rtsp_interfaces_description_qr">Tampilkan alamat sebagai kode QR</string>
+    <string name="rtsp_interfaces_qr_content_description">Kode QR</string>
+    <string name="rtsp_interfaces_copied">Alamat disalin</string>
+    <string name="rtsp_interfaces_share_title">Bagikan alamat RTSP</string>
+
+    <string name="rtsp_server_parameters">Parameter server</string>
+    <string name="rtsp_client_parameters">Parameter klien</string>
+
     <string name="rtsp_stream_start">Mulai siaran</string>
     <string name="rtsp_stream_stop">Hentikan siaran</string>
 
@@ -32,6 +51,12 @@
     <string name="rtsp_connection_connecting">Menghubungkan ke server…</string>
     <string name="rtsp_connection_disconnected">Server terputus</string>
     <string name="rtsp_connection_error">Kesalahan koneksi</string>
+
+    <string name="rtsp_label_ipv4_lan">IPv4 LAN</string>
+    <string name="rtsp_label_ipv6_ula">IPv6 ULA</string>
+    <string name="rtsp_label_public_ipv4">IPv4 publik</string>
+    <string name="rtsp_label_public_ipv6">IPv6 publik</string>
+    <string name="rtsp_label_loopback">Loopback</string>
 
     <string name="rtsp_video_parameters">Parameter video</string>
     <string name="rtsp_video_encoder">Encoder video:</string>
@@ -62,14 +87,28 @@
     <string name="rtsp_connection_access_denied">Akses ditolak</string>
     <string name="rtsp_connection_no_credentials">Tentukan nama pengguna dan kata sandi</string>
     <string name="rtsp_connection_invalid_credentials">Nama pengguna atau kata sandi tidak valid</string>
+
+    <string name="rtsp_close">Tutup</string>
+    <string name="rtsp_pref_protocol">Protokol RTSP</string>
+    <string name="rtsp_pref_protocol_summary">Pilih transport untuk paket RTP</string>
+    <string name="rtsp_pref_interface_filter">Filter antarmuka</string>
+    <string name="rtsp_pref_interface_filter_summary">Pilih antarmuka jaringan untuk server</string>
     <string name="rtsp_pref_interface_filter_wifi">Wi-Fi</string>
     <string name="rtsp_pref_interface_filter_mobile">Seluler</string>
     <string name="rtsp_pref_interface_filter_ethernet">Ethernet</string>
     <string name="rtsp_pref_interface_filter_vpn">VPN</string>
     <string name="rtsp_pref_interface_filter_unknown">tidak dikenal</string>
-    <string name="rtsp_label_ipv4_lan">IPv4 LAN</string>
-    <string name="rtsp_label_ipv6_ula">IPv6 ULA</string>
-    <string name="rtsp_label_public_ipv4">IPv4 publik</string>
-    <string name="rtsp_label_public_ipv6">IPv6 publik</string>
-    <string name="rtsp_label_loopback">Loopback</string>
+    <string name="rtsp_pref_filter_no_restriction">Tanpa batasan</string>
+    <string name="rtsp_pref_address_filter">Filter alamat</string>
+    <string name="rtsp_pref_address_filter_summary">Pilih jenis alamat IP untuk server</string>
+    <string name="rtsp_pref_address_filter_private">Pribadi</string>
+    <string name="rtsp_pref_address_filter_localhost">Localhost</string>
+    <string name="rtsp_pref_address_filter_public">Publik</string>
+    <string name="rtsp_pref_enable_ipv4">Aktifkan IPv4</string>
+    <string name="rtsp_pref_enable_ipv4_summary">Jalankan server pada alamat IPv4</string>
+    <string name="rtsp_pref_enable_ipv6">Aktifkan IPv6</string>
+    <string name="rtsp_pref_enable_ipv6_summary">Jalankan server pada alamat IPv6</string>
+    <string name="rtsp_pref_server_port">Port server</string>
+    <string name="rtsp_pref_server_port_summary">Atur port untuk koneksi masuk</string>
+    <string name="rtsp_pref_server_port_text">Atur port server untuk koneksi masuk.\nNilai: 1025–65535\nBawaan: 8554</string>
 </resources>

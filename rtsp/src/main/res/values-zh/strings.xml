@@ -16,6 +16,25 @@
 - 高度可定制。\n
 </string>
 
+    <string name="rtsp_mode_card_title">选择RTSP模式：</string>
+    <string name="rtsp_mode_server">服务器</string>
+    <string name="rtsp_mode_server_hint">将此设备作为RTSP服务器</string>
+    <string name="rtsp_mode_client">客户端</string>
+    <string name="rtsp_mode_client_hint">连接到远程RTSP服务器</string>
+
+    <string name="rtsp_interfaces_title">RTSP服务器地址</string>
+    <string name="rtsp_interfaces_no_address">没有可用的网络地址。\n请检查网络连接和接口过滤器。</string>
+    <string name="rtsp_interfaces_interface_label">接口：\n%1$s</string>
+    <string name="rtsp_interfaces_description_copy">复制地址</string>
+    <string name="rtsp_interfaces_description_share">分享地址</string>
+    <string name="rtsp_interfaces_description_qr">以二维码形式显示地址</string>
+    <string name="rtsp_interfaces_qr_content_description">二维码</string>
+    <string name="rtsp_interfaces_copied">地址已复制</string>
+    <string name="rtsp_interfaces_share_title">分享RTSP地址</string>
+
+    <string name="rtsp_server_parameters">服务器参数</string>
+    <string name="rtsp_client_parameters">客户端参数</string>
+
     <string name="rtsp_stream_start">开始流媒体</string>
     <string name="rtsp_stream_stop">停止流媒体</string>
 
@@ -32,6 +51,12 @@
     <string name="rtsp_connection_connecting">正在连接服务器…</string>
     <string name="rtsp_connection_disconnected">服务器已断开</string>
     <string name="rtsp_connection_error">连接错误</string>
+
+    <string name="rtsp_label_ipv4_lan">IPv4局域网</string>
+    <string name="rtsp_label_ipv6_ula">IPv6 ULA</string>
+    <string name="rtsp_label_public_ipv4">公网IPv4</string>
+    <string name="rtsp_label_public_ipv6">公网IPv6</string>
+    <string name="rtsp_label_loopback">环回</string>
 
     <string name="rtsp_video_parameters">视频参数</string>
     <string name="rtsp_video_encoder">视频编码器：</string>
@@ -62,14 +87,28 @@
     <string name="rtsp_connection_access_denied">访问被拒绝</string>
     <string name="rtsp_connection_no_credentials">请指定用户名和密码</string>
     <string name="rtsp_connection_invalid_credentials">用户名或密码无效</string>
+
+    <string name="rtsp_close">关闭</string>
+    <string name="rtsp_pref_protocol">RTSP协议</string>
+    <string name="rtsp_pref_protocol_summary">选择RTP数据包传输方式</string>
+    <string name="rtsp_pref_interface_filter">接口过滤器</string>
+    <string name="rtsp_pref_interface_filter_summary">选择服务器的网络接口</string>
     <string name="rtsp_pref_interface_filter_wifi">Wi-Fi</string>
     <string name="rtsp_pref_interface_filter_mobile">移动网络</string>
     <string name="rtsp_pref_interface_filter_ethernet">以太网</string>
     <string name="rtsp_pref_interface_filter_vpn">VPN</string>
     <string name="rtsp_pref_interface_filter_unknown">未知</string>
-    <string name="rtsp_label_ipv4_lan">IPv4局域网</string>
-    <string name="rtsp_label_ipv6_ula">IPv6 ULA</string>
-    <string name="rtsp_label_public_ipv4">公网IPv4</string>
-    <string name="rtsp_label_public_ipv6">公网IPv6</string>
-    <string name="rtsp_label_loopback">环回</string>
+    <string name="rtsp_pref_filter_no_restriction">无限制</string>
+    <string name="rtsp_pref_address_filter">地址过滤器</string>
+    <string name="rtsp_pref_address_filter_summary">选择服务器的IP地址类型</string>
+    <string name="rtsp_pref_address_filter_private">私有</string>
+    <string name="rtsp_pref_address_filter_localhost">本地主机</string>
+    <string name="rtsp_pref_address_filter_public">公网</string>
+    <string name="rtsp_pref_enable_ipv4">启用IPv4</string>
+    <string name="rtsp_pref_enable_ipv4_summary">在IPv4地址上运行服务器</string>
+    <string name="rtsp_pref_enable_ipv6">启用IPv6</string>
+    <string name="rtsp_pref_enable_ipv6_summary">在IPv6地址上运行服务器</string>
+    <string name="rtsp_pref_server_port">服务器端口</string>
+    <string name="rtsp_pref_server_port_summary">设置传入连接的端口</string>
+    <string name="rtsp_pref_server_port_text">设置传入连接的服务器端口。\n范围：1025–65535\n默认：8554</string>
 </resources>

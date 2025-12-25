@@ -16,6 +16,25 @@
 - अत्यधिक अनुकूलन योग्य।\n
 </string>
 
+    <string name="rtsp_mode_card_title">RTSP मोड चुनें:</string>
+    <string name="rtsp_mode_server">सर्वर</string>
+    <string name="rtsp_mode_server_hint">इस डिवाइस को RTSP सर्वर के रूप में होस्ट करें</string>
+    <string name="rtsp_mode_client">क्लाइंट</string>
+    <string name="rtsp_mode_client_hint">दूरस्थ RTSP सर्वर से कनेक्ट करें</string>
+
+    <string name="rtsp_interfaces_title">RTSP सर्वर पता</string>
+    <string name="rtsp_interfaces_no_address">कोई नेटवर्क पता उपलब्ध नहीं है।\nनेटवर्क कनेक्शन और इंटरफ़ेस फ़िल्टर जांचें।</string>
+    <string name="rtsp_interfaces_interface_label">इंटरफ़ेस:\n%1$s</string>
+    <string name="rtsp_interfaces_description_copy">पता कॉपी करें</string>
+    <string name="rtsp_interfaces_description_share">पता साझा करें</string>
+    <string name="rtsp_interfaces_description_qr">पता QR-कोड के रूप में दिखाएं</string>
+    <string name="rtsp_interfaces_qr_content_description">क्यूआर कोड</string>
+    <string name="rtsp_interfaces_copied">पता कॉपी हुआ</string>
+    <string name="rtsp_interfaces_share_title">RTSP पता साझा करें</string>
+
+    <string name="rtsp_server_parameters">सर्वर पैरामीटर</string>
+    <string name="rtsp_client_parameters">क्लाइंट पैरामीटर</string>
+
     <string name="rtsp_stream_start">स्ट्रीम शुरू करें</string>
     <string name="rtsp_stream_stop">स्ट्रीम बंद करें</string>
 
@@ -32,6 +51,12 @@
     <string name="rtsp_connection_connecting">सर्वर से कनेक्ट हो रहा है…</string>
     <string name="rtsp_connection_disconnected">सर्वर डिस्कनेक्टेड</string>
     <string name="rtsp_connection_error">कनेक्शन त्रुटि</string>
+
+    <string name="rtsp_label_ipv4_lan">IPv4 LAN</string>
+    <string name="rtsp_label_ipv6_ula">IPv6 ULA</string>
+    <string name="rtsp_label_public_ipv4">सार्वजनिक IPv4</string>
+    <string name="rtsp_label_public_ipv6">सार्वजनिक IPv6</string>
+    <string name="rtsp_label_loopback">लूपबैक</string>
 
     <string name="rtsp_video_parameters">वीडियो पैरामीटर</string>
     <string name="rtsp_video_encoder">वीडियो एनकोडर:</string>
@@ -62,14 +87,28 @@
     <string name="rtsp_connection_access_denied">पहुंच अस्वीकृत</string>
     <string name="rtsp_connection_no_credentials">उपयोगकर्ता नाम और पासवर्ड निर्दिष्ट करें</string>
     <string name="rtsp_connection_invalid_credentials">उपयोगकर्ता नाम या पासवर्ड अमान्य है</string>
+
+    <string name="rtsp_close">बंद करें</string>
+    <string name="rtsp_pref_protocol">RTSP प्रोटोकॉल</string>
+    <string name="rtsp_pref_protocol_summary">RTP पैकेट के लिए ट्रांसपोर्ट चुनें</string>
+    <string name="rtsp_pref_interface_filter">इंटरफ़ेस फ़िल्टर</string>
+    <string name="rtsp_pref_interface_filter_summary">सर्वर के लिए नेटवर्क इंटरफ़ेस चुनें</string>
     <string name="rtsp_pref_interface_filter_wifi">वाई-फ़ाई</string>
     <string name="rtsp_pref_interface_filter_mobile">मोबाइल</string>
     <string name="rtsp_pref_interface_filter_ethernet">ईथरनेट</string>
     <string name="rtsp_pref_interface_filter_vpn">वीपीएन</string>
     <string name="rtsp_pref_interface_filter_unknown">अज्ञात</string>
-    <string name="rtsp_label_ipv4_lan">IPv4 LAN</string>
-    <string name="rtsp_label_ipv6_ula">IPv6 ULA</string>
-    <string name="rtsp_label_public_ipv4">सार्वजनिक IPv4</string>
-    <string name="rtsp_label_public_ipv6">सार्वजनिक IPv6</string>
-    <string name="rtsp_label_loopback">लूपबैक</string>
+    <string name="rtsp_pref_filter_no_restriction">कोई प्रतिबंध नहीं</string>
+    <string name="rtsp_pref_address_filter">पता फ़िल्टर</string>
+    <string name="rtsp_pref_address_filter_summary">सर्वर के लिए IP पता प्रकार चुनें</string>
+    <string name="rtsp_pref_address_filter_private">निजी</string>
+    <string name="rtsp_pref_address_filter_localhost">लोकलहोस्ट</string>
+    <string name="rtsp_pref_address_filter_public">सार्वजनिक</string>
+    <string name="rtsp_pref_enable_ipv4">IPv4 सक्षम करें</string>
+    <string name="rtsp_pref_enable_ipv4_summary">IPv4 पतों पर सर्वर चलाएं</string>
+    <string name="rtsp_pref_enable_ipv6">IPv6 सक्षम करें</string>
+    <string name="rtsp_pref_enable_ipv6_summary">IPv6 पतों पर सर्वर चलाएं</string>
+    <string name="rtsp_pref_server_port">सर्वर पोर्ट</string>
+    <string name="rtsp_pref_server_port_summary">आने वाले कनेक्शन के लिए पोर्ट सेट करें</string>
+    <string name="rtsp_pref_server_port_text">आने वाले कनेक्शन के लिए सर्वर पोर्ट सेट करें।\nमूल्य: 1025–65535\nडिफ़ॉल्ट: 8554</string>
 </resources>

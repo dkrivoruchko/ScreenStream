@@ -16,6 +16,25 @@
 - Sehr anpassbar.\n
 </string>
 
+    <string name="rtsp_mode_card_title">RTSP-Modus auswählen:</string>
+    <string name="rtsp_mode_server">Server</string>
+    <string name="rtsp_mode_server_hint">Dieses Gerät als RTSP-Server hosten</string>
+    <string name="rtsp_mode_client">Client</string>
+    <string name="rtsp_mode_client_hint">Mit einem entfernten RTSP-Server verbinden</string>
+
+    <string name="rtsp_interfaces_title">RTSP-Server-Adresse</string>
+    <string name="rtsp_interfaces_no_address">Keine Netzwerkadressen verfügbar.\nNetzwerkverbindung und Schnittstellenfilter prüfen.</string>
+    <string name="rtsp_interfaces_interface_label">Schnittstelle:\n%1$s</string>
+    <string name="rtsp_interfaces_description_copy">Adresse kopieren</string>
+    <string name="rtsp_interfaces_description_share">Adresse teilen</string>
+    <string name="rtsp_interfaces_description_qr">Adresse als QR-Code anzeigen</string>
+    <string name="rtsp_interfaces_qr_content_description">QR-Code</string>
+    <string name="rtsp_interfaces_copied">Adresse kopiert</string>
+    <string name="rtsp_interfaces_share_title">RTSP-Adresse teilen</string>
+
+    <string name="rtsp_server_parameters">Serverparameter</string>
+    <string name="rtsp_client_parameters">Client-Parameter</string>
+
     <string name="rtsp_stream_start">Stream starten</string>
     <string name="rtsp_stream_stop">Stream stoppen</string>
 
@@ -32,6 +51,12 @@
     <string name="rtsp_connection_connecting">Verbindung zum Server wird hergestellt…</string>
     <string name="rtsp_connection_disconnected">Server getrennt</string>
     <string name="rtsp_connection_error">Verbindungsfehler</string>
+
+    <string name="rtsp_label_ipv4_lan">IPv4 LAN</string>
+    <string name="rtsp_label_ipv6_ula">IPv6 ULA</string>
+    <string name="rtsp_label_public_ipv4">Öffentliche IPv4</string>
+    <string name="rtsp_label_public_ipv6">Öffentliche IPv6</string>
+    <string name="rtsp_label_loopback">Loopback</string>
 
     <string name="rtsp_video_parameters">Videoparameter</string>
     <string name="rtsp_video_encoder">Video-Encoder:</string>
@@ -62,14 +87,28 @@
     <string name="rtsp_connection_access_denied">Zugriff verweigert</string>
     <string name="rtsp_connection_no_credentials">Benutzername und Passwort angeben</string>
     <string name="rtsp_connection_invalid_credentials">Benutzername oder Passwort ist ungültig</string>
+
+    <string name="rtsp_close">Schließen</string>
+    <string name="rtsp_pref_protocol">RTSP-Protokoll</string>
+    <string name="rtsp_pref_protocol_summary">Transport für RTP-Pakete auswählen</string>
+    <string name="rtsp_pref_interface_filter">Schnittstellenfilter</string>
+    <string name="rtsp_pref_interface_filter_summary">Netzwerkschnittstellen für Server auswählen</string>
     <string name="rtsp_pref_interface_filter_wifi">WLAN</string>
     <string name="rtsp_pref_interface_filter_mobile">Mobil</string>
     <string name="rtsp_pref_interface_filter_ethernet">Ethernet</string>
     <string name="rtsp_pref_interface_filter_vpn">VPN</string>
     <string name="rtsp_pref_interface_filter_unknown">unbekannt</string>
-    <string name="rtsp_label_ipv4_lan">IPv4 LAN</string>
-    <string name="rtsp_label_ipv6_ula">IPv6 ULA</string>
-    <string name="rtsp_label_public_ipv4">Öffentliche IPv4</string>
-    <string name="rtsp_label_public_ipv6">Öffentliche IPv6</string>
-    <string name="rtsp_label_loopback">Loopback</string>
+    <string name="rtsp_pref_filter_no_restriction">Keine Einschränkung</string>
+    <string name="rtsp_pref_address_filter">Adressfilter</string>
+    <string name="rtsp_pref_address_filter_summary">IP-Adresstypen für Server auswählen</string>
+    <string name="rtsp_pref_address_filter_private">Privat</string>
+    <string name="rtsp_pref_address_filter_localhost">Localhost</string>
+    <string name="rtsp_pref_address_filter_public">Öffentlich</string>
+    <string name="rtsp_pref_enable_ipv4">IPv4 aktivieren</string>
+    <string name="rtsp_pref_enable_ipv4_summary">Server auf IPv4-Adressen ausführen</string>
+    <string name="rtsp_pref_enable_ipv6">IPv6 aktivieren</string>
+    <string name="rtsp_pref_enable_ipv6_summary">Server auf IPv6-Adressen ausführen</string>
+    <string name="rtsp_pref_server_port">Server-Port</string>
+    <string name="rtsp_pref_server_port_summary">Port für eingehende Verbindungen setzen</string>
+    <string name="rtsp_pref_server_port_text">Port für eingehende Verbindungen setzen.\nWerte: 1025–65535\nStandard: 8554</string>
 </resources>
