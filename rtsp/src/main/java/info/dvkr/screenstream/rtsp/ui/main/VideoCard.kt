@@ -351,7 +351,14 @@ private fun Bitrate(
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier) {
+        var isDragging by remember { mutableStateOf(false) }
         var sliderPosition by remember { mutableFloatStateOf((bitrateBits / 1000).coerceIn(bitrateRangeKbits).toFloat()) }
+
+        LaunchedEffect(bitrateBits, bitrateRangeKbits) {
+            if (!isDragging) {
+                sliderPosition = (bitrateBits / 1000).coerceIn(bitrateRangeKbits).toFloat()
+            }
+        }
 
         Text(
             text = stringResource(R.string.rtsp_video_bitrate, sliderPosition.roundToInt().toKOrMBitString()),
@@ -365,14 +372,20 @@ private fun Bitrate(
             )
             Slider(
                 value = sliderPosition,
-                onValueChange = { sliderPosition = it },
+                onValueChange = {
+                    isDragging = true
+                    sliderPosition = it
+                },
                 modifier = Modifier
                     .padding(horizontal = 8.dp)
                     .weight(1f)
                     .align(Alignment.CenterVertically),
                 enabled = enabled,
                 valueRange = bitrateRangeKbits.start.toFloat()..bitrateRangeKbits.endInclusive.toFloat(),
-                onValueChangeFinished = { onValueChange.invoke((sliderPosition * 1000).roundToInt()) }
+                onValueChangeFinished = {
+                    isDragging = false
+                    onValueChange.invoke((sliderPosition * 1000).roundToInt())
+                }
             )
             Text(
                 text = bitrateRangeKbits.endInclusive.toKOrMBitString(),

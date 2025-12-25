@@ -269,11 +269,11 @@ internal class NetworkHelper(private val context: Context) {
 
     private fun toRtspNetInterface(address: InetAddress, transportMask: Int): RtspNetInterface {
         val interfaceLabel = when (transportMask) {
-            RtspSettings.Values.INTERFACE_WIFI -> context.getString(R.string.rtsp_pref_filter_wifi)
-            RtspSettings.Values.INTERFACE_MOBILE -> context.getString(R.string.rtsp_pref_filter_mobile)
-            RtspSettings.Values.INTERFACE_ETHERNET -> context.getString(R.string.rtsp_pref_filter_ethernet)
-            RtspSettings.Values.INTERFACE_VPN -> context.getString(R.string.rtsp_pref_filter_vpn)
-            else -> context.getString(R.string.rtsp_pref_filter_unknown)
+            RtspSettings.Values.INTERFACE_WIFI -> context.getString(R.string.rtsp_pref_interface_filter_wifi)
+            RtspSettings.Values.INTERFACE_MOBILE -> context.getString(R.string.rtsp_pref_interface_filter_mobile)
+            RtspSettings.Values.INTERFACE_ETHERNET -> context.getString(R.string.rtsp_pref_interface_filter_ethernet)
+            RtspSettings.Values.INTERFACE_VPN -> context.getString(R.string.rtsp_pref_interface_filter_vpn)
+            else -> context.getString(R.string.rtsp_pref_interface_filter_unknown)
         }
 
         val addressLabel = when {

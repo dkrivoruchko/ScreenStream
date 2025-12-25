@@ -1,6 +1,7 @@
 package info.dvkr.screenstream.rtsp.internal
 
 import android.media.MediaCodecInfo
+import androidx.compose.runtime.Immutable
 import java.net.Inet6Address
 import java.net.InetAddress
 import java.nio.ByteBuffer
@@ -60,6 +61,7 @@ internal fun interleavedHeader(channel: Int, length: Int): ByteArray = byteArray
     (length and 0xFF).toByte()
 )
 
+@Immutable
 internal data class VideoCodecInfo(
     val name: String,
     val codec: Codec.Video,
@@ -69,6 +71,7 @@ internal data class VideoCodecInfo(
     val capabilities: MediaCodecInfo.CodecCapabilities
 )
 
+@Immutable
 internal data class AudioCodecInfo(
     val name: String,
     val codec: Codec.Audio,

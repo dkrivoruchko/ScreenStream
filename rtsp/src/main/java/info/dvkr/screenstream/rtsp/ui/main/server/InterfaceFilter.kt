@@ -13,8 +13,6 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.materialIcon
-import androidx.compose.material.icons.materialPath
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -28,7 +26,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.state.ToggleableState
@@ -49,8 +47,8 @@ internal object InterfaceFilter : ModuleSettings.Item {
     override val available: Boolean = true
 
     override fun has(resources: Resources, text: String): Boolean = with(resources) {
-        getString(R.string.mjpeg_pref_interface_filter).contains(text, ignoreCase = true) ||
-                getString(R.string.mjpeg_pref_interface_filter_summary).contains(text, ignoreCase = true)
+        getString(R.string.rtsp_pref_interface_filter).contains(text, ignoreCase = true) ||
+                getString(R.string.rtsp_pref_interface_filter_summary).contains(text, ignoreCase = true)
     }
 
     @Composable
@@ -83,16 +81,16 @@ private fun InterfaceFilterUI(horizontalPadding: Dp, enabled: Boolean, interface
             .padding(start = horizontalPadding + 12.dp, end = horizontalPadding + 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(imageVector = Icon_Network, contentDescription = null, modifier = Modifier.padding(end = 16.dp))
+        Icon(painter = painterResource(R.drawable.lan_24px), contentDescription = null, modifier = Modifier.padding(end = 16.dp))
 
         Column(modifier = Modifier.weight(1F)) {
             Text(
-                text = stringResource(id = R.string.mjpeg_pref_interface_filter),
+                text = stringResource(id = R.string.rtsp_pref_interface_filter),
                 modifier = Modifier.padding(top = 8.dp, bottom = 2.dp),
                 style = MaterialTheme.typography.bodyLarge
             )
             Text(
-                text = stringResource(id = R.string.mjpeg_pref_interface_filter_summary),
+                text = stringResource(id = R.string.rtsp_pref_interface_filter_summary),
                 modifier = Modifier.padding(top = 2.dp, bottom = 8.dp),
                 style = MaterialTheme.typography.bodyMedium
             )
@@ -116,10 +114,10 @@ private fun InterfaceFilterUI(horizontalPadding: Dp, enabled: Boolean, interface
 }
 
 private val interfaceOptions = listOf(
-    R.string.rtsp_pref_filter_wifi to RtspSettings.Values.INTERFACE_WIFI,
-    R.string.rtsp_pref_filter_mobile to RtspSettings.Values.INTERFACE_MOBILE,
-    R.string.rtsp_pref_filter_ethernet to RtspSettings.Values.INTERFACE_ETHERNET,
-    R.string.rtsp_pref_filter_vpn to RtspSettings.Values.INTERFACE_VPN
+    R.string.rtsp_pref_interface_filter_wifi to RtspSettings.Values.INTERFACE_WIFI,
+    R.string.rtsp_pref_interface_filter_mobile to RtspSettings.Values.INTERFACE_MOBILE,
+    R.string.rtsp_pref_interface_filter_ethernet to RtspSettings.Values.INTERFACE_ETHERNET,
+    R.string.rtsp_pref_interface_filter_vpn to RtspSettings.Values.INTERFACE_VPN
 )
 
 @Composable
@@ -132,7 +130,7 @@ private fun InterfaceFilterDetailUI(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        headerContent.invoke(stringResource(id = R.string.mjpeg_pref_interface_filter))
+        headerContent.invoke(stringResource(id = R.string.rtsp_pref_interface_filter))
 
         Column(
             modifier = Modifier
@@ -140,7 +138,7 @@ private fun InterfaceFilterDetailUI(
                 .verticalScroll(rememberScrollState())
         ) {
             Text(
-                text = stringResource(id = R.string.mjpeg_pref_interface_filter_summary),
+                text = stringResource(id = R.string.rtsp_pref_interface_filter_summary),
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 8.dp)
@@ -163,7 +161,7 @@ private fun InterfaceFilterDetailUI(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = stringResource(id = R.string.mjpeg_pref_filter_no_restriction),
+                    text = stringResource(id = R.string.rtsp_pref_filter_no_restriction),
                     modifier = Modifier.weight(1F)
                 )
                 Switch(
@@ -225,70 +223,5 @@ private fun InterfaceCheckboxRow(
             text = text,
             modifier = Modifier.padding(start = 16.dp)
         )
-    }
-}
-
-private val Icon_Network: ImageVector = materialIcon(name = "Network") {
-    materialPath {
-        moveTo(10.0F, 2.0F)
-        curveTo(8.89F, 2.0F, 8.0F, 2.89F, 8.0F, 4.0F)
-        verticalLineTo(7.0F)
-        curveTo(8.0F, 8.11F, 8.89F, 9.0F, 10.0F, 9.0F)
-        horizontalLineTo(11.0F)
-        verticalLineTo(11.0F)
-        horizontalLineTo(2.0F)
-        verticalLineTo(13.0F)
-        horizontalLineTo(6.0F)
-        verticalLineTo(15.0F)
-        horizontalLineTo(5.0F)
-        curveTo(3.89F, 15.0F, 3.0F, 15.89F, 3.0F, 17.0F)
-        verticalLineTo(20.0F)
-        curveTo(3.0F, 21.11F, 3.89F, 22.0F, 5.0F, 22.0F)
-        horizontalLineTo(9.0F)
-        curveTo(10.11F, 22.0F, 11.0F, 21.11F, 11.0F, 20.0F)
-        verticalLineTo(17.0F)
-        curveTo(11.0F, 15.89F, 10.11F, 15.0F, 9.0F, 15.0F)
-        horizontalLineTo(8.0F)
-        verticalLineTo(13.0F)
-        horizontalLineTo(16.0F)
-        verticalLineTo(15.0F)
-        horizontalLineTo(15.0F)
-        curveTo(13.89F, 15.0F, 13.0F, 15.89F, 13.0F, 17.0F)
-        verticalLineTo(20.0F)
-        curveTo(13.0F, 21.11F, 13.89F, 22.0F, 15.0F, 22.0F)
-        horizontalLineTo(19.0F)
-        curveTo(20.11F, 22.0F, 21.0F, 21.11F, 21.0F, 20.0F)
-        verticalLineTo(17.0F)
-        curveTo(21.0F, 15.89F, 20.11F, 15.0F, 19.0F, 15.0F)
-        horizontalLineTo(18.0F)
-        verticalLineTo(13.0F)
-        horizontalLineTo(22.0F)
-        verticalLineTo(11.0F)
-        horizontalLineTo(13.0F)
-        verticalLineTo(9.0F)
-        horizontalLineTo(14.0F)
-        curveTo(15.11F, 9.0F, 16.0F, 8.11F, 16.0F, 7.0F)
-        verticalLineTo(4.0F)
-        curveTo(16.0F, 2.89F, 15.11F, 2.0F, 14.0F, 2.0F)
-        horizontalLineTo(10.0F)
-        close()
-        moveTo(10.0F, 4.0F)
-        horizontalLineTo(14.0F)
-        verticalLineTo(7.0F)
-        horizontalLineTo(10.0F)
-        verticalLineTo(4.0F)
-        close()
-        moveTo(5.0F, 17.0F)
-        horizontalLineTo(9.0F)
-        verticalLineTo(20.0F)
-        horizontalLineTo(5.0F)
-        verticalLineTo(17.0F)
-        close()
-        moveTo(15.0F, 17.0F)
-        horizontalLineTo(19.0F)
-        verticalLineTo(20.0F)
-        horizontalLineTo(15.0F)
-        verticalLineTo(17.0F)
-        close()
     }
 }

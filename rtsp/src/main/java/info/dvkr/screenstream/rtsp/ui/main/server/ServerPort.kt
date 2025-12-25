@@ -11,8 +11,6 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.materialIcon
-import androidx.compose.material.icons.materialPath
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -26,7 +24,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextRange
@@ -51,8 +49,8 @@ internal object ServerPort : ModuleSettings.Item {
     override val available: Boolean = true
 
     override fun has(resources: Resources, text: String): Boolean = with(resources) {
-        getString(R.string.mjpeg_pref_server_port).contains(text, ignoreCase = true) ||
-                getString(R.string.mjpeg_pref_server_port_summary).contains(text, ignoreCase = true) ||
+        getString(R.string.rtsp_pref_server_port).contains(text, ignoreCase = true) ||
+                getString(R.string.rtsp_pref_server_port_summary).contains(text, ignoreCase = true) ||
                 getString(R.string.rtsp_pref_server_port_text).contains(text, ignoreCase = true)
     }
 
@@ -86,16 +84,20 @@ private fun ServerPortUI(horizontalPadding: Dp, enabled: Boolean, serverPort: In
             .padding(start = horizontalPadding + 12.dp, end = horizontalPadding + 6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(imageVector = Icon_Http, contentDescription = null, modifier = Modifier.padding(end = 16.dp))
+        Icon(
+            painter = painterResource(R.drawable.settings_ethernet_24px),
+            contentDescription = null,
+            modifier = Modifier.padding(end = 16.dp)
+        )
 
         Column(modifier = Modifier.weight(1F)) {
             Text(
-                text = stringResource(id = R.string.mjpeg_pref_server_port),
+                text = stringResource(id = R.string.rtsp_pref_server_port),
                 modifier = Modifier.padding(top = 8.dp, bottom = 2.dp),
                 style = MaterialTheme.typography.bodyLarge
             )
             Text(
-                text = stringResource(id = R.string.mjpeg_pref_server_port_summary),
+                text = stringResource(id = R.string.rtsp_pref_server_port_summary),
                 modifier = Modifier.padding(top = 2.dp, bottom = 8.dp),
                 style = MaterialTheme.typography.bodyMedium
             )
@@ -127,7 +129,7 @@ private fun ServerPortDetailUI(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        headerContent.invoke(stringResource(id = R.string.mjpeg_pref_server_port))
+        headerContent.invoke(stringResource(id = R.string.rtsp_pref_server_port))
 
         Column(
             modifier = Modifier
@@ -165,67 +167,4 @@ private fun ServerPortDetailUI(
     }
 
     LaunchedEffect(Unit) { delay(50); focusRequester.requestFocus() }
-}
-
-private val Icon_Http: ImageVector = materialIcon(name = "Http") {
-    materialPath {
-        moveTo(1.1F, 16.0F)
-        verticalLineTo(8.0F)
-        horizontalLineToRelative(1.271F)
-        verticalLineToRelative(3.149F)
-        horizontalLineToRelative(2.5F)
-        verticalLineTo(8.0F)
-        horizontalLineToRelative(1.277F)
-        verticalLineToRelative(8.0F)
-        horizontalLineTo(4.872F)
-        verticalLineToRelative(-3.498F)
-        horizontalLineToRelative(-2.5F)
-        verticalLineTo(16.0F)
-        close()
-    }
-    materialPath {
-        moveTo(8.885F, 16.0F)
-        verticalLineTo(9.353F)
-        horizontalLineTo(7.01F)
-        verticalLineTo(8.0F)
-        horizontalLineToRelative(5.016F)
-        verticalLineToRelative(1.353F)
-        horizontalLineToRelative(-1.87F)
-        verticalLineTo(16.0F)
-        close()
-    }
-    materialPath {
-        moveTo(14.285F, 16.0F)
-        verticalLineTo(9.353F)
-        horizontalLineTo(12.41F)
-        verticalLineTo(8.0F)
-        horizontalLineToRelative(5.017F)
-        verticalLineToRelative(1.353F)
-        horizontalLineToRelative(-1.87F)
-        verticalLineTo(16.0F)
-        close()
-    }
-    materialPath {
-        moveTo(18.262F, 16.0F)
-        lineTo(18.262F, 8.0F)
-        horizontalLineToRelative(2.049F)
-        quadToRelative(1.145F, 0.0F, 1.497F, 0.115F)
-        quadToRelative(0.562F, 0.185F, 0.924F, 0.79F)
-        quadToRelative(0.368F, 0.607F, 0.368F, 1.562F)
-        quadToRelative(0.0F, 0.867F, -0.315F, 1.457F)
-        quadToRelative(-0.315F, 0.584F, -0.788F, 0.824F)
-        quadToRelative(-0.473F, 0.234F, -1.629F, 0.234F)
-        horizontalLineToRelative(-0.835F)
-        lineTo(19.533F, 16.0F)
-        moveTo(19.533F, 9.353F)
-        verticalLineToRelative(2.27F)
-        horizontalLineToRelative(0.704F)
-        quadToRelative(0.71F, 0.0F, 0.961F, -0.103F)
-        quadToRelative(0.258F, -0.104F, 0.42F, -0.371F)
-        quadToRelative(0.163F, -0.273F, 0.163F, -0.666F)
-        quadToRelative(0.0F, -0.398F, -0.168F, -0.671F)
-        reflectiveQuadToRelative(-0.415F, -0.366F)
-        quadToRelative(-0.247F, -0.093F, -1.045F, -0.093F)
-        close()
-    }
 }

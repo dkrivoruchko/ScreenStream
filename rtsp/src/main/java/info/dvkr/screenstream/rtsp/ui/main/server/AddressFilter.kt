@@ -13,8 +13,6 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.materialIcon
-import androidx.compose.material.icons.materialPath
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -28,7 +26,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.state.ToggleableState
@@ -49,8 +47,8 @@ internal object AddressFilter : ModuleSettings.Item {
     override val available: Boolean = true
 
     override fun has(resources: Resources, text: String): Boolean = with(resources) {
-        getString(R.string.mjpeg_pref_address_filter).contains(text, ignoreCase = true) ||
-                getString(R.string.mjpeg_pref_address_filter_summary).contains(text, ignoreCase = true)
+        getString(R.string.rtsp_pref_address_filter).contains(text, ignoreCase = true) ||
+                getString(R.string.rtsp_pref_address_filter_summary).contains(text, ignoreCase = true)
     }
 
     @Composable
@@ -83,16 +81,16 @@ private fun AddressFilterUI(horizontalPadding: Dp, enabled: Boolean, addressFilt
             .padding(start = horizontalPadding + 12.dp, end = horizontalPadding + 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(imageVector = Icon_Address, contentDescription = null, modifier = Modifier.padding(end = 16.dp))
+        Icon(painter = painterResource(R.drawable.ip_network_24px), contentDescription = null, modifier = Modifier.padding(end = 16.dp))
 
         Column(modifier = Modifier.weight(1F)) {
             Text(
-                text = stringResource(id = R.string.mjpeg_pref_address_filter),
+                text = stringResource(id = R.string.rtsp_pref_address_filter),
                 modifier = Modifier.padding(top = 8.dp, bottom = 2.dp),
                 style = MaterialTheme.typography.bodyLarge
             )
             Text(
-                text = stringResource(id = R.string.mjpeg_pref_address_filter_summary),
+                text = stringResource(id = R.string.rtsp_pref_address_filter_summary),
                 modifier = Modifier.padding(top = 2.dp, bottom = 8.dp),
                 style = MaterialTheme.typography.bodyMedium
             )
@@ -115,9 +113,9 @@ private fun AddressFilterUI(horizontalPadding: Dp, enabled: Boolean, addressFilt
 }
 
 private val addressOptions = listOf(
-    R.string.mjpeg_pref_filter_private to RtspSettings.Values.ADDRESS_PRIVATE,
-    R.string.mjpeg_pref_filter_localhost to RtspSettings.Values.ADDRESS_LOCALHOST,
-    R.string.mjpeg_pref_filter_public to RtspSettings.Values.ADDRESS_PUBLIC
+    R.string.rtsp_pref_address_filter_private to RtspSettings.Values.ADDRESS_PRIVATE,
+    R.string.rtsp_pref_address_filter_localhost to RtspSettings.Values.ADDRESS_LOCALHOST,
+    R.string.rtsp_pref_address_filter_public to RtspSettings.Values.ADDRESS_PUBLIC
 )
 
 @Composable
@@ -130,7 +128,7 @@ private fun AddressFilterDetailUI(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        headerContent.invoke(stringResource(id = R.string.mjpeg_pref_address_filter))
+        headerContent.invoke(stringResource(id = R.string.rtsp_pref_address_filter))
 
         Column(
             modifier = Modifier
@@ -138,7 +136,7 @@ private fun AddressFilterDetailUI(
                 .verticalScroll(rememberScrollState())
         ) {
             Text(
-                text = stringResource(id = R.string.mjpeg_pref_address_filter_summary),
+                text = stringResource(id = R.string.rtsp_pref_address_filter_summary),
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 8.dp)
@@ -161,7 +159,7 @@ private fun AddressFilterDetailUI(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = stringResource(id = R.string.mjpeg_pref_filter_no_restriction),
+                    text = stringResource(id = R.string.rtsp_pref_filter_no_restriction),
                     modifier = Modifier.weight(1F)
                 )
                 Switch(
@@ -223,64 +221,5 @@ private fun AddressCheckboxRow(
             text = text,
             modifier = Modifier.padding(start = 16.dp)
         )
-    }
-}
-
-private val Icon_Address: ImageVector = materialIcon(name = "Address") {
-    materialPath {
-        moveTo(15.0F, 20.0F)
-        lineTo(14.0F, 19.0F)
-        horizontalLineTo(13.0F)
-        verticalLineTo(17.0F)
-        horizontalLineTo(17.0F)
-        curveTo(18.11F, 17.0F, 19.0F, 16.11F, 19.0F, 15.0F)
-        verticalLineTo(5.0F)
-        curveTo(19.0F, 3.89F, 18.11F, 3.0F, 17.0F, 3.0F)
-        horizontalLineTo(7.0F)
-        curveTo(5.89F, 3.0F, 5.0F, 3.89F, 5.0F, 5.0F)
-        verticalLineTo(15.0F)
-        curveTo(5.0F, 16.11F, 5.89F, 17.0F, 7.0F, 17.0F)
-        horizontalLineTo(11.0F)
-        verticalLineTo(19.0F)
-        horizontalLineTo(10.0F)
-        lineTo(9.0F, 20.0F)
-        horizontalLineTo(2.0F)
-        verticalLineTo(22.0F)
-        horizontalLineTo(9.0F)
-        lineTo(10.0F, 23.0F)
-        horizontalLineTo(14.0F)
-        lineTo(15.0F, 22.0F)
-        horizontalLineTo(22.0F)
-        verticalLineTo(20.0F)
-        horizontalLineTo(15.0F)
-        close()
-        moveTo(7.0F, 15.0F)
-        verticalLineTo(5.0F)
-        horizontalLineTo(17.0F)
-        verticalLineTo(15.0F)
-        horizontalLineTo(7.0F)
-        close()
-        moveTo(10.0F, 6.0F)
-        horizontalLineTo(8.0F)
-        verticalLineTo(14.0F)
-        horizontalLineTo(10.0F)
-        verticalLineTo(6.0F)
-        close()
-        moveTo(14.0F, 6.0F)
-        horizontalLineTo(11.0F)
-        verticalLineTo(14.0F)
-        horizontalLineTo(13.0F)
-        verticalLineTo(12.0F)
-        horizontalLineTo(14.0F)
-        curveTo(15.11F, 12.0F, 16.0F, 11.11F, 16.0F, 10.0F)
-        verticalLineTo(8.0F)
-        curveTo(16.0F, 6.89F, 15.11F, 6.0F, 14.0F, 6.0F)
-        close()
-        moveTo(14.0F, 10.0F)
-        horizontalLineTo(13.0F)
-        verticalLineTo(8.0F)
-        horizontalLineTo(14.0F)
-        verticalLineTo(10.0F)
-        close()
     }
 }

@@ -61,7 +61,7 @@ public class RtspStreamingModule : StreamingModule {
 
         when (val state = _streamingServiceState.value) {
             StreamingModule.State.Initiated -> {
-                RtspModuleService.Companion.startService(context, RtspEvent.Intentable.StartService.toIntent(context))
+                RtspModuleService.startService(context, RtspEvent.Intentable.StartService.toIntent(context))
                 _streamingServiceState.value = StreamingModule.State.PendingStart
             }
 
@@ -111,6 +111,7 @@ public class RtspStreamingModule : StreamingModule {
         XLog.d(getLog("stopModule", "Done"))
     }
 
+    @MainThread
     override fun stopStream(reason: String) {
         XLog.d(getLog("stopStream", "reason: $reason"))
         sendEvent(RtspEvent.Intentable.StopStream(reason))

@@ -20,7 +20,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import info.dvkr.screenstream.rtsp.R
 import info.dvkr.screenstream.rtsp.settings.RtspSettings
@@ -87,7 +86,7 @@ private fun ModeSelector(
     val modes = listOf(RtspSettings.Values.Mode.SERVER, RtspSettings.Values.Mode.CLIENT)
 
     Column(modifier = modifier.fillMaxWidth()) {
-        modes.forEachIndexed { index, mode ->
+        modes.forEach { mode ->
             val isSelected = selected == mode
             val labelRes = when (mode) {
                 RtspSettings.Values.Mode.SERVER -> R.string.rtsp_mode_server

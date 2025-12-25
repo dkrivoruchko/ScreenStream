@@ -34,8 +34,8 @@ internal object EnableIPv4 : ModuleSettings.Item {
     override val available: Boolean = true
 
     override fun has(resources: Resources, text: String): Boolean = with(resources) {
-        getString(R.string.mjpeg_pref_enable_ipv4).contains(text, ignoreCase = true) ||
-                getString(R.string.mjpeg_pref_enable_ipv4_summary).contains(text, ignoreCase = true)
+        getString(R.string.rtsp_pref_enable_ipv4).contains(text, ignoreCase = true) ||
+                getString(R.string.rtsp_pref_enable_ipv4_summary).contains(text, ignoreCase = true)
     }
 
     @Composable
@@ -69,12 +69,12 @@ private fun EnableIpv4UI(horizontalPadding: Dp, enabled: Boolean, enableIPv4: Bo
 
         Column(modifier = Modifier.weight(1F)) {
             Text(
-                text = stringResource(id = R.string.mjpeg_pref_enable_ipv4),
+                text = stringResource(id = R.string.rtsp_pref_enable_ipv4),
                 modifier = Modifier.padding(top = 8.dp, bottom = 2.dp),
                 style = MaterialTheme.typography.bodyLarge
             )
             Text(
-                text = stringResource(id = R.string.mjpeg_pref_enable_ipv4_summary),
+                text = stringResource(id = R.string.rtsp_pref_enable_ipv4_summary),
                 modifier = Modifier.padding(top = 2.dp, bottom = 8.dp),
                 style = MaterialTheme.typography.bodyMedium
             )
