@@ -23,6 +23,7 @@ import info.dvkr.screenstream.rtsp.internal.rtsp.packets.H265Packet
 import info.dvkr.screenstream.rtsp.internal.rtsp.packets.OpusPacket
 import info.dvkr.screenstream.rtsp.internal.rtsp.sockets.TcpStreamSocket
 import info.dvkr.screenstream.rtsp.internal.rtsp.sockets.UdpStreamSocket
+import info.dvkr.screenstream.rtsp.internal.stripAnnexBStartCode
 import info.dvkr.screenstream.rtsp.ui.ConnectionError
 import info.dvkr.screenstream.rtsp.ui.RtspError
 import io.ktor.network.selector.SelectorManager
@@ -217,16 +218,6 @@ internal class RtspClient(
     @AnyThread
     internal fun setVideoData(videoCodec: Codec.Video, sps: ByteArray, pps: ByteArray?, vps: ByteArray?) = synchronized(rtspLock) {
         XLog.w(getLog("setVideoData", "$videoCodec"))
-
-        fun ByteArray.stripAnnexBStartCode(): ByteArray = when {
-            size >= 4 && this[0] == 0.toByte() && this[1] == 0.toByte() && this[2] == 0.toByte() && this[3] == 1.toByte() ->
-                copyOfRange(4, size)
-
-            size >= 3 && this[0] == 0.toByte() && this[1] == 0.toByte() && this[2] == 1.toByte() ->
-                copyOfRange(3, size)
-
-            else -> this
-        }
 
         val params = when (videoCodec) {
             Codec.Video.H264 -> VideoParams(

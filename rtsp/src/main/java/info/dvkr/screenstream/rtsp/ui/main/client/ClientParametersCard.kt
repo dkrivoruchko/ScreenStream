@@ -31,7 +31,6 @@ import info.dvkr.screenstream.common.ui.ExpandableCard
 import info.dvkr.screenstream.rtsp.R
 import info.dvkr.screenstream.rtsp.settings.RtspSettings
 import info.dvkr.screenstream.rtsp.ui.RtspState
-import info.dvkr.screenstream.rtsp.ui.main.server.RTPProtocol
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
@@ -68,11 +67,11 @@ internal fun ClientParametersCard(
         val isStreaming = rtspState.value.isStreaming
         var showBottomSheetForItemId by remember { mutableStateOf<String?>(null) }
 
-        RTPProtocol.ItemUI(
+        ClientProtocol.ItemUI(
             horizontalPadding = 0.dp,
             coroutineScope = scope,
             enabled = isStreaming.not()
-        ) { showBottomSheetForItemId = RTPProtocol.id }
+        ) { showBottomSheetForItemId = ClientProtocol.id }
 
         if (showBottomSheetForItemId != null) {
             val sheetState = rememberModalBottomSheetState()
@@ -84,7 +83,7 @@ internal fun ClientParametersCard(
                 dragHandle = null
             ) {
                 when (showBottomSheetForItemId) {
-                    RTPProtocol.id -> RTPProtocol.DetailUI { title ->
+                    ClientProtocol.id -> ClientProtocol.DetailUI { title ->
                         BottomSheetTitle(title) {
                             scope.launch { sheetState.hide() }
                                 .invokeOnCompletion { if (!sheetState.isVisible) showBottomSheetForItemId = null }

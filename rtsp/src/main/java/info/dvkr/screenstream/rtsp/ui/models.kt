@@ -31,7 +31,7 @@ internal data class RtspBinding(val label: String, val fullAddress: String)
 @Immutable
 internal data class RtspTransportState(
     val mode: RtspSettings.Values.Mode = RtspSettings.Default.MODE,
-    val protocol: Protocol = Protocol.TCP,
+    val protocol: Protocol = Protocol.TCP, //TODO DON'T see its been used
     val status: Status = Status.Idle
 ) {
     @Immutable

@@ -99,3 +99,9 @@ internal fun Context.startListening(serviceJob: Job, onScreenOff: () -> Unit, on
 
 @OptIn(ExperimentalEncodingApi::class)
 internal fun ByteArray.encodeBase64(): String = Base64.encode(this)
+
+internal fun ByteArray.stripAnnexBStartCode(): ByteArray = when {
+    size >= 4 && this[0] == 0.toByte() && this[1] == 0.toByte() && this[2] == 0.toByte() && this[3] == 1.toByte() -> copyOfRange(4, size)
+    size >= 3 && this[0] == 0.toByte() && this[1] == 0.toByte() && this[2] == 1.toByte() -> copyOfRange(3, size)
+    else -> this
+}

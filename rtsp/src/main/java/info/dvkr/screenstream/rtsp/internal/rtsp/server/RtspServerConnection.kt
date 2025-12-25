@@ -21,6 +21,7 @@ import info.dvkr.screenstream.rtsp.internal.rtsp.packets.H265Packet
 import info.dvkr.screenstream.rtsp.internal.rtsp.packets.OpusPacket
 import info.dvkr.screenstream.rtsp.internal.rtsp.sockets.TcpStreamSocket
 import info.dvkr.screenstream.rtsp.internal.rtsp.sockets.UdpStreamSocket
+import info.dvkr.screenstream.rtsp.settings.RtspSettings
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -44,7 +45,7 @@ internal class RtspServerConnection(
     private val videoParams: AtomicReference<RtspClient.VideoParams?>,
     private val audioParams: AtomicReference<RtspClient.AudioParams?>,
     private val onEvent: (RtspStreamingService.InternalEvent) -> Unit,
-    private val requiredProtocol: Protocol
+    private val serverProtocolPolicy: RtspSettings.Values.ServerProtocolPolicy
 ) {
     private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val secureRandom = SecureRandom()
@@ -272,12 +273,14 @@ internal class RtspServerConnection(
                     }
 
                     val transportSpecs = TransportHeader.parseList(transportHeader)
-                    var selected: TransportHeader.Companion.ParsedSpec? = null
-                    for (spec in transportSpecs) {
-                        if (spec.isTcp || serverMessageHandler.parseClientPorts(spec.raw) != null) {
-                            selected = spec
-                            break
+                    val selected: TransportHeader.Companion.ParsedSpec? = when (serverProtocolPolicy) {
+                        RtspSettings.Values.ServerProtocolPolicy.TCP -> transportSpecs.firstOrNull { it.isTcp }
+                        RtspSettings.Values.ServerProtocolPolicy.UDP -> transportSpecs.firstOrNull {
+                            it.isTcp.not() && serverMessageHandler.parseClientPorts(it.raw) != null
                         }
+
+                        RtspSettings.Values.ServerProtocolPolicy.AUTO -> transportSpecs.firstOrNull { it.isTcp }
+                            ?: transportSpecs.firstOrNull { it.isTcp.not() && serverMessageHandler.parseClientPorts(it.raw) != null }
                     }
                     if (selected == null) {
                         tcpStreamSocket.withWriteLock { writeAndFlush(serverMessageHandler.createErrorResponse(461, cSeq)) }
@@ -286,6 +289,10 @@ internal class RtspServerConnection(
                     val spec = selected.raw
                     val selectedParsed = selected.header
                     val selectedTcp = selected.isTcp
+                    if (!selectedTcp && serverMessageHandler.parseClientPorts(spec) == null) {
+                        tcpStreamSocket.withWriteLock { writeAndFlush(serverMessageHandler.createErrorResponse(461, cSeq)) }
+                        continue
+                    }
                     val hasSetup = stateLock.withLock { videoSetupDone || audioSetupDone }
                     if (hasSetup && (protocol == Protocol.TCP) != selectedTcp) {
                         tcpStreamSocket.withWriteLock { writeAndFlush(serverMessageHandler.createErrorResponse(461, cSeq)) }
@@ -293,7 +300,7 @@ internal class RtspServerConnection(
                     }
 
                     if (selectedTcp) {
-                        // Accept TCP even if preferred protocol is UDP to maximize compatibility
+                        // TCP selected (AUTO prefers TCP when offered).
                         protocol = Protocol.TCP
                         statsReporter.setProtocol(protocol)
                         val channelPair = selectedParsed?.interleaved
@@ -349,7 +356,7 @@ internal class RtspServerConnection(
                         }
                         state = State.Ready
                     } else {
-                        // Accept UDP even if preferred protocol is TCP
+                        // UDP selected per server policy.
                         protocol = Protocol.UDP
                         statsReporter.setProtocol(protocol)
                         val clientPorts = serverMessageHandler.parseClientPorts(spec)

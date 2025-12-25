@@ -1,12 +1,12 @@
 package info.dvkr.screenstream.rtsp.internal.rtsp.server
 
 import info.dvkr.screenstream.rtsp.internal.MediaFrame
-import info.dvkr.screenstream.rtsp.internal.Protocol
 import info.dvkr.screenstream.rtsp.internal.RtspNetInterface
 import info.dvkr.screenstream.rtsp.internal.RtspStreamingService
 import info.dvkr.screenstream.rtsp.internal.rtsp.client.RtspClient
 import info.dvkr.screenstream.rtsp.internal.rtsp.core.RtspServerMessageHandler
 import info.dvkr.screenstream.rtsp.internal.rtsp.sockets.TcpStreamSocket
+import info.dvkr.screenstream.rtsp.settings.RtspSettings
 import info.dvkr.screenstream.rtsp.ui.RtspError
 import io.ktor.network.selector.SelectorManager
 import io.ktor.network.sockets.ServerSocket
@@ -50,7 +50,12 @@ internal class RtspServer(
     internal fun getClientStatsSnapshot(): List<ClientStats> =
         synchronized(rtspServerConnections) { rtspServerConnections.map { it.stats.value } }
 
-    internal fun start(addresses: List<RtspNetInterface>, port: Int, path: String, protocol: Protocol) {
+    internal fun start(
+        addresses: List<RtspNetInterface>,
+        port: Int,
+        path: String,
+        protocol: RtspSettings.Values.ServerProtocolPolicy
+    ) {
         if (serverJob?.isActive == true) stop()
 
         if (!scopeJob.isActive) {
@@ -125,6 +130,12 @@ internal class RtspServer(
         }
     }
 
+    internal fun disconnectAllClients() {
+        runBlocking {
+            withContext(NonCancellable + Dispatchers.IO) { disconnectAllClientsSuspend() }
+        }
+    }
+
     private suspend fun stopSuspend() {
         val snapshot = synchronized(rtspServerConnections) { rtspServerConnections.toList().also { rtspServerConnections.clear() } }
         snapshot.forEach { runCatching { it.stop() } }
@@ -137,6 +148,11 @@ internal class RtspServer(
         selectorManager = null
         runCatching { scopeJob.cancel() }
         onEvent(RtspStreamingService.InternalEvent.RtspServerOnStop)
+    }
+
+    private suspend fun disconnectAllClientsSuspend() {
+        val snapshot = synchronized(rtspServerConnections) { rtspServerConnections.toList().also { rtspServerConnections.clear() } }
+        snapshot.forEach { runCatching { it.stop() } }
     }
 
     internal fun onVideoFrame(frame: MediaFrame.VideoFrame) {

@@ -62,8 +62,11 @@ internal class RtspSettingsImpl(
                 if (newSettings.serverAddress != RtspSettings.Default.SERVER_ADDRESS)
                     set(RtspSettings.Key.SERVER_ADDRESS, newSettings.serverAddress)
 
-                if (newSettings.protocol != RtspSettings.Default.PROTOCOL)
-                    set(RtspSettings.Key.PROTOCOL, newSettings.protocol)
+                if (newSettings.clientProtocol != RtspSettings.Default.CLIENT_PROTOCOL)
+                    set(RtspSettings.Key.CLIENT_PROTOCOL, newSettings.clientProtocol.name)
+
+                if (newSettings.serverProtocol != RtspSettings.Default.SERVER_PROTOCOL)
+                    set(RtspSettings.Key.SERVER_PROTOCOL, newSettings.serverProtocol.name)
 
                 if (newSettings.mode != RtspSettings.Default.MODE)
                     set(RtspSettings.Key.MODE, newSettings.mode.name)
@@ -149,7 +152,12 @@ internal class RtspSettingsImpl(
         stopOnConfigurationChange = this[RtspSettings.Key.STOP_ON_CONFIGURATION_CHANGE] ?: RtspSettings.Default.STOP_ON_CONFIGURATION_CHANGE,
 
         serverAddress = this[RtspSettings.Key.SERVER_ADDRESS] ?: RtspSettings.Default.SERVER_ADDRESS,
-        protocol = this[RtspSettings.Key.PROTOCOL] ?: RtspSettings.Default.PROTOCOL,
+        clientProtocol = runCatching {
+            this[RtspSettings.Key.CLIENT_PROTOCOL]?.uppercase()?.let { RtspSettings.Values.ClientProtocolPolicy.valueOf(it) }
+        }.getOrNull() ?: RtspSettings.Default.CLIENT_PROTOCOL,
+        serverProtocol = runCatching {
+            this[RtspSettings.Key.SERVER_PROTOCOL]?.uppercase()?.let { RtspSettings.Values.ServerProtocolPolicy.valueOf(it) }
+        }.getOrNull() ?: RtspSettings.Default.SERVER_PROTOCOL,
         mode = runCatching {
             this[RtspSettings.Key.MODE]?.let { name -> RtspSettings.Values.Mode.valueOf(name) }
         }.getOrNull() ?: RtspSettings.Default.MODE,

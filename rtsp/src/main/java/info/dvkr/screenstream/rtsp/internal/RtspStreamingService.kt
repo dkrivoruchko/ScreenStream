@@ -236,10 +236,15 @@ internal class RtspStreamingService(
                 sendEvent(InternalEvent.DiscoverAddress("SettingsChanged:ServerPath", 0))
             }
         }
-        rtspSettings.data.map { it.protocol }.listenForChange(coroutineScope, 1) {
+        rtspSettings.data.map { it.serverProtocol }.listenForChange(coroutineScope, 1) {
             if (rtspSettings.data.value.mode == RtspSettings.Values.Mode.SERVER) {
-                XLog.i(getLog("SettingsChanged", "Protocol -> ${it}"))
-                sendEvent(InternalEvent.DiscoverAddress("SettingsChanged:Protocol", 0))
+                XLog.i(getLog("SettingsChanged", "ServerProtocol -> ${it}"))
+                sendEvent(InternalEvent.DiscoverAddress("SettingsChanged:ServerProtocol", 0))
+            }
+        }
+        rtspSettings.data.map { it.clientProtocol }.listenForChange(coroutineScope, 1) {
+            if (rtspSettings.data.value.mode == RtspSettings.Values.Mode.CLIENT) {
+                XLog.i(getLog("SettingsChanged", "ClientProtocol -> ${it}"))
             }
         }
 
@@ -331,7 +336,17 @@ internal class RtspStreamingService(
                 selectedAudioEncoder = selectedAudioEncoderInfo,
                 transport = RtspTransportState(
                     mode = settingsSnapshot.mode,
-                    protocol = runCatching { Protocol.valueOf(settingsSnapshot.protocol) }.getOrDefault(Protocol.TCP),
+                    protocol = when (settingsSnapshot.mode) {
+                        RtspSettings.Values.Mode.SERVER -> when (settingsSnapshot.serverProtocol) {
+                            RtspSettings.Values.ServerProtocolPolicy.UDP -> Protocol.UDP
+                            else -> Protocol.TCP
+                        }
+
+                        RtspSettings.Values.Mode.CLIENT -> when (settingsSnapshot.clientProtocol) {
+                            RtspSettings.Values.ClientProtocolPolicy.UDP -> Protocol.UDP
+                            else -> Protocol.TCP
+                        }
+                    },
                     status = resolvedStatus
                 ),
                 serverClientStats = clientStatsSnapshot,
@@ -424,20 +439,20 @@ internal class RtspStreamingService(
                         if (rtspServer == null) rtspServer = RtspServer(service.getVersionName(), ::sendEvent)
                         val port = rtspSettings.data.value.serverPort
                         val path = rtspSettings.data.value.serverPath
-                        val protocol = Protocol.valueOf(rtspSettings.data.value.protocol)
+                        val protocolPolicy = rtspSettings.data.value.serverProtocol
                         val bindings = currentBindings()
                         if (netInterfaces.isNotEmpty()) {
                             XLog.i(
                                 getLog(
                                     "RtspServer",
-                                    "(Re)start on ${netInterfaces.size} interfaces, port=$port, path=$path, protocol=$protocol"
+                                    "(Re)start on ${netInterfaces.size} interfaces, port=$port, path=$path, protocol=$protocolPolicy"
                                 )
                             )
                             updateTransportStatus(
                                 if (isStreaming) RtspTransportState.Status.Active(activeServerClients, bindings)
                                 else RtspTransportState.Status.Ready(bindings)
                             )
-                            rtspServer!!.start(netInterfaces, port, path, protocol)
+                            rtspServer!!.start(netInterfaces, port, path, protocolPolicy)
                         } else {
                             XLog.w(getLog("RtspServer", "No interfaces to bind. Stopping server to avoid stale listeners."))
                             updateTransportStatus(RtspTransportState.Status.Idle)
@@ -491,12 +506,16 @@ internal class RtspStreamingService(
 
                 val onlyVideo = rtspSettings.data.value.enableMic.not() && rtspSettings.data.value.enableDeviceAudio.not()
                 val isServerMode = rtspSettings.data.value.mode == RtspSettings.Values.Mode.SERVER
-                val protocol = Protocol.valueOf(rtspSettings.data.value.protocol)
+                val protocol = when (rtspSettings.data.value.clientProtocol) {
+                    RtspSettings.Values.ClientProtocolPolicy.UDP -> Protocol.UDP
+                    RtspSettings.Values.ClientProtocolPolicy.TCP -> Protocol.TCP
+                }
                 if (isServerMode) {
                     if (rtspServer == null) rtspServer = RtspServer(service.getVersionName(), ::sendEvent)
                     val port = rtspSettings.data.value.serverPort
                     val path = rtspSettings.data.value.serverPath
-                    if (netInterfaces.isNotEmpty()) rtspServer!!.start(netInterfaces, port, path, protocol)
+                    val protocolPolicy = rtspSettings.data.value.serverProtocol
+                    if (netInterfaces.isNotEmpty()) rtspServer!!.start(netInterfaces, port, path, protocolPolicy)
                 } else {
                     val rtspUrl = try {
                         RtspUrl.parse(rtspSettings.data.value.serverAddress)
@@ -518,16 +537,6 @@ internal class RtspStreamingService(
                     service.stopForeground()
                     sendEvent(InternalEvent.Error(RtspError.UnknownError(IllegalStateException("No video encoder selected"))))
                     return
-                }
-
-                fun ByteArray.stripAnnexBStartCode(): ByteArray = when {
-                    size >= 4 && this[0] == 0.toByte() && this[1] == 0.toByte() && this[2] == 0.toByte() && this[3] == 1.toByte() ->
-                        copyOfRange(4, size)
-
-                    size >= 3 && this[0] == 0.toByte() && this[1] == 0.toByte() && this[2] == 1.toByte() ->
-                        copyOfRange(3, size)
-
-                    else -> this
                 }
 
                 videoEncoder = VideoEncoder(
@@ -828,14 +837,17 @@ internal class RtspStreamingService(
     // Inline Only
     @Suppress("NOTHING_TO_INLINE")
     private inline fun stopStream(stopServer: Boolean = false) {
-        if (isStreaming) {
+        run {
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                service.unregisterComponentCallbacks(componentCallback)
+                runCatching { service.unregisterComponentCallbacks(componentCallback) }
             }
 
             rtspClient?.destroy()
             rtspClient = null
             val isServerMode = rtspSettings.data.value.mode == RtspSettings.Values.Mode.SERVER
+            if (isServerMode && stopServer.not()) {
+                rtspServer?.disconnectAllClients()
+            }
             if (!isServerMode || stopServer) {
                 rtspServer?.stop()
                 rtspServer = null
@@ -861,8 +873,6 @@ internal class RtspStreamingService(
                 else -> RtspTransportState.Status.Idle
             }
             updateTransportStatus(statusAfterStop)
-        } else {
-            XLog.d(getLog("stopStream", "Not streaming. Ignoring."))
         }
 
         // Stop periodic stats updates and clear snapshot in UI state

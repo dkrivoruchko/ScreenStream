@@ -33,16 +33,17 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import info.dvkr.screenstream.common.ModuleSettings
 import info.dvkr.screenstream.rtsp.R
-import info.dvkr.screenstream.rtsp.internal.Protocol
 import info.dvkr.screenstream.rtsp.settings.RtspSettings
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 
-internal object RTPProtocol : ModuleSettings.Item {
-    override val id: String = RtspSettings.Key.PROTOCOL.name
+internal object ServerProtocol : ModuleSettings.Item {
+    override val id: String = RtspSettings.Key.SERVER_PROTOCOL.name
     override val position: Int = 0
     override val available: Boolean = true
+
+    private val SERVER_PROTOCOL_OPTIONS: List<String> = RtspSettings.Values.ServerProtocolPolicy.entries.map { it.name }
 
     override fun has(resources: Resources, text: String): Boolean = with(resources) {
         getString(R.string.rtsp_pref_protocol).contains(text, ignoreCase = true) ||
@@ -53,12 +54,11 @@ internal object RTPProtocol : ModuleSettings.Item {
     override fun ItemUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, enabled: Boolean, onDetailShow: () -> Unit) {
         val rtspSettings = koinInject<RtspSettings>()
         val rtspSettingsState = rtspSettings.data.collectAsStateWithLifecycle()
-        val protocol = remember(rtspSettingsState.value.protocol) {
-            val parsed = runCatching { Protocol.valueOf(rtspSettingsState.value.protocol) }.getOrDefault(Protocol.TCP)
-            mutableStateOf(parsed)
+        val protocol = remember(rtspSettingsState.value.serverProtocol) {
+            mutableStateOf(rtspSettingsState.value.serverProtocol.name)
         }
 
-        ProtocolUI(horizontalPadding, enabled, protocol.value, onDetailShow)
+        ProtocolItemUI(horizontalPadding, enabled, protocol.value, onDetailShow)
     }
 
     @Composable
@@ -67,17 +67,19 @@ internal object RTPProtocol : ModuleSettings.Item {
         val state = rtspSettings.data.collectAsStateWithLifecycle()
         val scope = rememberCoroutineScope()
 
-        val selected = runCatching { Protocol.valueOf(state.value.protocol) }.getOrDefault(Protocol.TCP)
-        ProtocolDetailUI(headerContent, selected) {
-            if (state.value.protocol != it.name) {
-                scope.launch { rtspSettings.updateData { copy(protocol = it.name) } }
+        val selected = state.value.serverProtocol
+        ProtocolDetailUI(headerContent, selected.name, SERVER_PROTOCOL_OPTIONS) { value ->
+            val newValue = runCatching { RtspSettings.Values.ServerProtocolPolicy.valueOf(value) }.getOrNull()
+                ?: return@ProtocolDetailUI
+            if (state.value.serverProtocol != newValue) {
+                scope.launch { rtspSettings.updateData { copy(serverProtocol = newValue) } }
             }
         }
     }
 }
 
 @Composable
-private fun ProtocolUI(horizontalPadding: Dp, enabled: Boolean, protocol: Protocol, onDetailShow: () -> Unit) {
+private fun ProtocolItemUI(horizontalPadding: Dp, enabled: Boolean, protocolLabel: String, onDetailShow: () -> Unit) {
     Row(
         modifier = Modifier
             .clickable(enabled = enabled, role = Role.Button, onClick = onDetailShow)
@@ -100,7 +102,7 @@ private fun ProtocolUI(horizontalPadding: Dp, enabled: Boolean, protocol: Protoc
         }
 
         Text(
-            text = protocol.name,
+            text = protocolLabel,
             color = MaterialTheme.colorScheme.primary,
             textAlign = TextAlign.Center,
             maxLines = 1
@@ -111,8 +113,9 @@ private fun ProtocolUI(horizontalPadding: Dp, enabled: Boolean, protocol: Protoc
 @Composable
 private fun ProtocolDetailUI(
     headerContent: @Composable (String) -> Unit,
-    protocol: Protocol,
-    onValueChange: (Protocol) -> Unit
+    protocol: String,
+    options: List<String>,
+    onValueChange: (String) -> Unit
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -133,7 +136,7 @@ private fun ProtocolDetailUI(
                     .padding(horizontal = 16.dp, vertical = 8.dp)
             )
 
-            Protocol.entries.forEach { item ->
+            options.forEach { item ->
                 Row(
                     modifier = Modifier
                         .toggleable(
@@ -152,7 +155,7 @@ private fun ProtocolDetailUI(
                         onClick = null
                     )
                     Text(
-                        text = item.name,
+                        text = item,
                         modifier = Modifier.padding(start = 8.dp)
                     )
                 }

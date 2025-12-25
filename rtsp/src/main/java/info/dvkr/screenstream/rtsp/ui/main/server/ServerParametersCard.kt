@@ -67,11 +67,11 @@ internal fun ServerParametersCard(
         val isStreaming = rtspState.value.isStreaming
         var showBottomSheetForItemId by remember { mutableStateOf<String?>(null) }
 
-        RTPProtocol.ItemUI(
+        ServerProtocol.ItemUI(
             horizontalPadding = 0.dp,
             coroutineScope = scope,
             enabled = isStreaming.not()
-        )  { showBottomSheetForItemId = RTPProtocol.id }
+        ) { showBottomSheetForItemId = ServerProtocol.id }
 
         InterfaceFilter.ItemUI(
             horizontalPadding = 0.dp,
@@ -113,7 +113,7 @@ internal fun ServerParametersCard(
                 dragHandle = null
             ) {
                 when (showBottomSheetForItemId) {
-                    RTPProtocol.id -> RTPProtocol.DetailUI { title ->
+                    ServerProtocol.id -> ServerProtocol.DetailUI { title ->
                         BottomSheetTitle(title) {
                             scope.launch { sheetState.hide() }
                                 .invokeOnCompletion { if (!sheetState.isVisible) showBottomSheetForItemId = null }
