@@ -3,18 +3,19 @@ package info.dvkr.screenstream.rtsp.internal.rtsp.client
 import androidx.annotation.AnyThread
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.common.getLog
+import info.dvkr.screenstream.rtsp.internal.AudioParams
 import info.dvkr.screenstream.rtsp.internal.Codec
 import info.dvkr.screenstream.rtsp.internal.MediaFrame
 import info.dvkr.screenstream.rtsp.internal.Protocol
 import info.dvkr.screenstream.rtsp.internal.RtpFrame
 import info.dvkr.screenstream.rtsp.internal.RtspStreamingService
+import info.dvkr.screenstream.rtsp.internal.VideoParams
 import info.dvkr.screenstream.rtsp.internal.audio.AudioSource
 import info.dvkr.screenstream.rtsp.internal.interleavedHeader
 import info.dvkr.screenstream.rtsp.internal.rtsp.BitrateCalculator
 import info.dvkr.screenstream.rtsp.internal.rtsp.RtcpReporter
 import info.dvkr.screenstream.rtsp.internal.rtsp.RtspUrl
 import info.dvkr.screenstream.rtsp.internal.rtsp.core.RtspBaseMessageHandler
-import info.dvkr.screenstream.rtsp.internal.rtsp.core.RtspClientMessageHandler
 import info.dvkr.screenstream.rtsp.internal.rtsp.packets.AacPacket
 import info.dvkr.screenstream.rtsp.internal.rtsp.packets.Av1Packet
 import info.dvkr.screenstream.rtsp.internal.rtsp.packets.G711Packet
@@ -23,8 +24,7 @@ import info.dvkr.screenstream.rtsp.internal.rtsp.packets.H265Packet
 import info.dvkr.screenstream.rtsp.internal.rtsp.packets.OpusPacket
 import info.dvkr.screenstream.rtsp.internal.rtsp.sockets.TcpStreamSocket
 import info.dvkr.screenstream.rtsp.internal.rtsp.sockets.UdpStreamSocket
-import info.dvkr.screenstream.rtsp.internal.stripAnnexBStartCode
-import info.dvkr.screenstream.rtsp.ui.ConnectionError
+import info.dvkr.screenstream.rtsp.settings.RtspSettings
 import info.dvkr.screenstream.rtsp.ui.RtspError
 import io.ktor.network.selector.SelectorManager
 import kotlinx.coroutines.CancellationException
@@ -48,19 +48,23 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
-import java.net.ConnectException
+import java.io.IOException
 import java.net.DatagramSocket
 import java.net.ServerSocket
+import java.net.SocketTimeoutException
+import java.nio.channels.UnresolvedAddressException
 import java.security.cert.CertificateException
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
+import javax.net.ssl.SSLHandshakeException
 import kotlin.random.Random
 
 internal class RtspClient(
     private val appVersion: String,
+    private val generation: Long,
     private val rtspUrl: RtspUrl,
-    private val protocol: Protocol,
+    private val protocolPolicy: RtspSettings.Values.ProtocolPolicy,
     private val onlyVideo: Boolean,
     private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
     private val onEvent: (RtspStreamingService.InternalEvent) -> Unit
@@ -140,17 +144,6 @@ internal class RtspClient(
         }
     }
 
-    internal class VideoParams(val codec: Codec.Video, val sps: ByteArray, val pps: ByteArray?, val vps: ByteArray?) {
-        val isOk: Boolean
-            get() = when (codec) {
-                Codec.Video.H264 -> pps != null
-                Codec.Video.H265 -> pps != null && vps != null
-                Codec.Video.AV1 -> true
-            }
-    }
-
-    internal class AudioParams(val codec: Codec.Audio, val sampleRate: Int, val isStereo: Boolean)
-
     internal class Ports(val client: Int, val server: Int) {
         companion object {
             fun getRandom() = Ports(ServerSocket(0).use { it.localPort }, ServerSocket(0).use { it.localPort })
@@ -186,13 +179,15 @@ internal class RtspClient(
         val audioClient: Ports,
         val audioServer: Ports,
         val videoInterleaved: Pair<Int, Int>,
-        val audioInterleaved: Pair<Int, Int>
+        val audioInterleaved: Pair<Int, Int>,
+        val protocol: Protocol
     )
 
     private data class SetupResult(
         val client: Ports? = null,
         val server: Ports? = null,
-        val interleaved: Pair<Int, Int>? = null
+        val interleaved: Pair<Int, Int>? = null,
+        val protocol: Protocol
     )
 
     private val commandsManager = RtspClientMessageHandler(
@@ -217,23 +212,11 @@ internal class RtspClient(
     @Throws
     @AnyThread
     internal fun setVideoData(videoCodec: Codec.Video, sps: ByteArray, pps: ByteArray?, vps: ByteArray?) = synchronized(rtspLock) {
-        XLog.w(getLog("setVideoData", "$videoCodec"))
+        XLog.d(getLog("setVideoData", "$videoCodec"))
 
         val params = when (videoCodec) {
-            Codec.Video.H264 -> VideoParams(
-                codec = videoCodec,
-                sps = sps.stripAnnexBStartCode(),
-                pps = pps?.stripAnnexBStartCode(),
-                vps = null
-            )
-
-            Codec.Video.H265 -> VideoParams(
-                codec = videoCodec,
-                sps = sps.stripAnnexBStartCode(),
-                pps = pps?.stripAnnexBStartCode(),
-                vps = vps?.stripAnnexBStartCode()
-            )
-
+            Codec.Video.H264 -> VideoParams(codec = videoCodec, sps = sps, pps = pps, vps = null)
+            Codec.Video.H265 -> VideoParams(codec = videoCodec, sps = sps, pps = pps, vps = vps)
             Codec.Video.AV1 -> VideoParams(videoCodec, sps, pps, vps)
         }
         if (currentState == State.STREAMING) {
@@ -246,7 +229,7 @@ internal class RtspClient(
     @Throws
     @AnyThread
     internal fun setAudioData(audioCodec: Codec.Audio, params: AudioSource.Params) = synchronized(rtspLock) {
-        XLog.w(getLog("setAudioData", "$audioCodec"))
+        XLog.d(getLog("setAudioData", "$audioCodec"))
         if (currentState == State.STREAMING) error("Cannot change audio codec while streaming")
         if (onlyVideo) error("Cannot change audio codec in only video mode")
 
@@ -285,35 +268,45 @@ internal class RtspClient(
 
                 val ports = doRtspHandshake(tcp, rtspUrl, videoParams, audioParams)
 
-                onEvent(RtspStreamingService.InternalEvent.RtspClientOnConnectionSuccess)
+                onEvent(RtspStreamingService.InternalEvent.RtspClient.OnConnectionSuccess(generation))
 
                 val sendingJob = launch { sendingLoop(tcp, ports, videoParams, audioParams) }
                 launch { keepAliveLoop(tcp) }.join()
                 sendingJob.cancelAndJoin()
-            } catch (e: ConnectException) {
-                XLog.w(getLog("connect", "Connection error: ${e.message}"), e)
-                onEvent(RtspStreamingService.InternalEvent.RtspClientOnError(ConnectionError.Failed(e.message)))
-                error = e
-            } catch (e: CertificateException) {
-                XLog.w(getLog("connect", "Connection error: ${e.message}"), e)
-                onEvent(RtspStreamingService.InternalEvent.RtspClientOnError(ConnectionError.Failed(e.message)))
-                error = e
-            } catch (e: TimeoutCancellationException) {
-                XLog.w(getLog("connect", "Connection error: ${e.message}"), e)
-                onEvent(RtspStreamingService.InternalEvent.RtspClientOnError(ConnectionError.Failed("Timeout")))
-                error = e
-            } catch (e: ConnectionError) {
-                XLog.w(getLog("connect", "Connection error: ${e.message}"), e)
-                onEvent(RtspStreamingService.InternalEvent.RtspClientOnError(e))
-                error = e
-            } catch (_: CancellationException) {
             } catch (e: Throwable) {
-                XLog.w(getLog("connect", "Unknown error: ${e.message}"), e)
-                onEvent(RtspStreamingService.InternalEvent.Error(RtspError.UnknownError(e)))
-                error = e
-            } finally {
-                XLog.w(getLog("connect", "finally"))
+                val mappedMessage = when (e) {
+                    is UnresolvedAddressException -> "Invalid address"
+                    is TimeoutCancellationException, is SocketTimeoutException -> "Timeout"
+                    is SSLHandshakeException, is CertificateException -> "TLS error"
+                    is IOException -> e.message ?: "Connection failed"
+                    else -> null
+                }
+                when {
+                    e is CancellationException -> Unit
 
+                    e is RtspError.ClientError -> {
+                        XLog.w(getLog("connect", "Connection error: ${e.message}"), e)
+                        onEvent(RtspStreamingService.InternalEvent.RtspClient.OnError(generation, e))
+                        error = e
+                    }
+
+                    mappedMessage != null -> {
+                        XLog.w(getLog("connect", "Connection error: $mappedMessage"), e)
+                        onEvent(
+                            RtspStreamingService.InternalEvent.RtspClient.OnError(
+                                generation, RtspError.ClientError.Failed(mappedMessage)
+                            )
+                        )
+                        error = e
+                    }
+
+                    else -> {
+                        XLog.w(getLog("connect", "Unknown error: ${e.message}"), e)
+                        onEvent(RtspStreamingService.InternalEvent.Error(RtspError.UnknownError(e)))
+                        error = e
+                    }
+                }
+            } finally {
                 withContext(NonCancellable) {
                     tcpSocket?.let { socket ->
                         socket.withWriteLock {
@@ -321,14 +314,8 @@ internal class RtspClient(
                                 runCatching { writeAndFlush(commandsManager.createTeardown()) }
                             }
                         }
-                        socket.withReadLock {
-                            if (isConnected()) {
-                                runCatching {
-                                    commandsManager.getResponseWithTimeout(::readLine, ::readBytes, RtspBaseMessageHandler.Method.TEARDOWN)
-                                }
-                            }
-                        }
-                        socket.withWriteLock { close() }
+                        runCatching { commandsManager.getResponseWithTimeout(socket, RtspBaseMessageHandler.Method.TEARDOWN) }
+                        socket.close()
                     }
                 }
 
@@ -336,8 +323,7 @@ internal class RtspClient(
                 audioParams.set(null)
                 synchronized(rtspLock) { currentState = State.IDLE }
 
-                XLog.w(getLog("connect", "finally Done"))
-                if (error == null) onEvent(RtspStreamingService.InternalEvent.RtspClientOnDisconnect)
+                if (error == null) onEvent(RtspStreamingService.InternalEvent.RtspClient.OnDisconnect(generation))
             }
         }.also {
             connectionJob.set(it)
@@ -345,17 +331,17 @@ internal class RtspClient(
     }
 
     internal fun disconnect() = runBlocking {
-        XLog.w(this@RtspClient.getLog("disconnect"))
+        XLog.d(this@RtspClient.getLog("disconnect"))
         connectionJob.getAndSet(null)?.cancelAndJoin()
-        XLog.w(this@RtspClient.getLog("disconnect", "Done"))
+        XLog.d(this@RtspClient.getLog("disconnect", "Done"))
     }
 
     internal fun destroy() = runBlocking {
-        XLog.w(this@RtspClient.getLog("destroy"))
+        XLog.d(this@RtspClient.getLog("destroy"))
         connectionJob.getAndSet(null)?.cancelAndJoin()
         runCatching { selectorManager.close() }
         scope.cancel()
-        XLog.w(this@RtspClient.getLog("destroy", "Done"))
+        XLog.d(this@RtspClient.getLog("destroy", "Done"))
     }
 
     @Throws
@@ -366,21 +352,29 @@ internal class RtspClient(
 
         // 1) OPTIONS
         tcpSocket.withWriteLock { writeAndFlush(commandsManager.createOptions()) }
-        tcpSocket.withReadLock {
-            commandsManager.getResponseWithTimeout(::readLine, ::readBytes, RtspBaseMessageHandler.Method.OPTIONS)
+        var optionsResp = commandsManager.getResponseWithTimeout(tcpSocket, RtspBaseMessageHandler.Method.OPTIONS)
+        if (optionsResp.status == 401) {
+            if (rtspUrl.hasAuth().not()) throw RtspError.ClientError.NoCredentialsError()
+            commandsManager.applyAuthFor(RtspBaseMessageHandler.Method.OPTIONS, rtspUrl.fullPath, optionsResp.text)
+            tcpSocket.withWriteLock { writeAndFlush(commandsManager.createOptions()) }
+            optionsResp = commandsManager.getResponseWithTimeout(tcpSocket, RtspBaseMessageHandler.Method.OPTIONS)
+        }
+        when (optionsResp.status) {
+            200 -> Unit
+            401 -> throw RtspError.ClientError.AuthError()
+            403 -> throw RtspError.ClientError.AccessDenied()
+            else -> throw RtspError.ClientError.Failed("OPTIONS: [${optionsResp.status}] ${optionsResp.text}")
         }
 
         // 2) ANNOUNCE
         tcpSocket.withWriteLock { writeAndFlush(commandsManager.createAnnounce(videoParams, audioParams)) }
-        val announceResp = tcpSocket.withReadLock {
-            commandsManager.getResponseWithTimeout(::readLine, ::readBytes, RtspBaseMessageHandler.Method.ANNOUNCE)
-        }
+        val announceResp = commandsManager.getResponseWithTimeout(tcpSocket, RtspBaseMessageHandler.Method.ANNOUNCE)
 
         when (announceResp.status) {
             200 -> XLog.d(getLog("doRtspHandshake", "ANNOUNCE success"))
-            403 -> throw ConnectionError.AccessDenied
+            403 -> throw RtspError.ClientError.AccessDenied()
             401 -> when {
-                rtspUrl.hasAuth().not() -> throw ConnectionError.NoCredentialsError
+                rtspUrl.hasAuth().not() -> throw RtspError.ClientError.NoCredentialsError()
                 else -> {
                     commandsManager.applyAuthFor(
                         RtspBaseMessageHandler.Method.ANNOUNCE,
@@ -390,109 +384,169 @@ internal class RtspClient(
                         audioParams
                     )
                     tcpSocket.withWriteLock { writeAndFlush(commandsManager.createAnnounce(videoParams, audioParams)) }
-                    val announceWithAuth = tcpSocket.withReadLock {
-                        commandsManager.getResponseWithTimeout(::readLine, ::readBytes, RtspBaseMessageHandler.Method.ANNOUNCE)
-                    }
+                    val announceWithAuth = commandsManager.getResponseWithTimeout(tcpSocket, RtspBaseMessageHandler.Method.ANNOUNCE)
                     when (announceWithAuth.status) {
                         200 -> XLog.d(getLog("doRtspHandshake", "ANNOUNCE with auth success"))
-                        401 -> throw ConnectionError.AuthError
-                        else -> throw ConnectionError.Failed("ANNOUNCE: [${announceWithAuth.status}] ${announceWithAuth.text}")
+                        401 -> throw RtspError.ClientError.AuthError()
+                        else -> throw RtspError.ClientError.Failed("ANNOUNCE: [${announceWithAuth.status}] ${announceWithAuth.text}")
                     }
                 }
             }
 
-            else -> throw ConnectionError.Failed("ANNOUNCE: [${announceResp.status}] ${announceResp.text}")
+            else -> throw RtspError.ClientError.Failed("ANNOUNCE: [${announceResp.status}] ${announceResp.text}")
         }
 
         // 3) SETUP for video
-        var videoClientPorts = if (protocol == Protocol.UDP) Ports.getEvenOddPair() else Ports.getRandom()
+        var videoClientPorts = if (protocolPolicy == RtspSettings.Values.ProtocolPolicy.TCP) Ports.getRandom() else Ports.getEvenOddPair()
         var videoServerPorts = Ports.getRandom()
         var videoInterleaved = (RtpFrame.VIDEO_TRACK_ID shl 1) to ((RtpFrame.VIDEO_TRACK_ID shl 1) + 1)
-        setupTrack(tcpSocket, videoClientPorts, RtpFrame.VIDEO_TRACK_ID)?.also { result ->
-            result.client?.let { videoClientPorts = it }
-            result.server?.let { videoServerPorts = it }
-            result.interleaved?.let { videoInterleaved = it }
+        val videoResult = setupTrack(tcpSocket, videoClientPorts, RtpFrame.VIDEO_TRACK_ID, protocolPolicy)
+        videoResult.client?.let { videoClientPorts = it }
+        videoResult.server?.let { videoServerPorts = it }
+        videoResult.interleaved?.let { videoInterleaved = it }
+
+        if (protocolPolicy == RtspSettings.Values.ProtocolPolicy.AUTO) {
+            XLog.i(getLog("doRtspHandshake", "AUTO selected transport: ${videoResult.protocol}"))
         }
 
         // 4) SETUP for audio
-        var audioClientPorts = if (protocol == Protocol.UDP) Ports.getEvenOddPair() else Ports.getRandom()
+        val audioPolicy = when (protocolPolicy) {
+            RtspSettings.Values.ProtocolPolicy.AUTO ->
+                if (videoResult.protocol == Protocol.UDP) RtspSettings.Values.ProtocolPolicy.UDP
+                else RtspSettings.Values.ProtocolPolicy.TCP
+
+            else -> protocolPolicy
+        }
+        var audioClientPorts = if (audioPolicy == RtspSettings.Values.ProtocolPolicy.TCP) Ports.getRandom() else Ports.getEvenOddPair()
+
         var audioServerPorts = Ports.getRandom()
         var audioInterleaved = (RtpFrame.AUDIO_TRACK_ID shl 1) to ((RtpFrame.AUDIO_TRACK_ID shl 1) + 1)
         if (!onlyVideo && audioParams != null) {
-            setupTrack(tcpSocket, audioClientPorts, RtpFrame.AUDIO_TRACK_ID)?.also { result ->
-                result.client?.let { audioClientPorts = it }
-                result.server?.let { audioServerPorts = it }
-                result.interleaved?.let { audioInterleaved = it }
-            }
+            val audioResult = setupTrack(tcpSocket, audioClientPorts, RtpFrame.AUDIO_TRACK_ID, audioPolicy)
+            audioResult.client?.let { audioClientPorts = it }
+            audioResult.server?.let { audioServerPorts = it }
+            audioResult.interleaved?.let { audioInterleaved = it }
         }
 
         // 5) RECORD
         tcpSocket.withWriteLock { writeAndFlush(commandsManager.createRecord()) }
-        val recordResp = tcpSocket.withReadLock {
-            commandsManager.getResponseWithTimeout(::readLine, ::readBytes, RtspBaseMessageHandler.Method.RECORD)
-        }
+        val recordResp = commandsManager.getResponseWithTimeout(tcpSocket, RtspBaseMessageHandler.Method.RECORD)
         if (recordResp.status == 401) {
-            if (rtspUrl.hasAuth().not()) throw ConnectionError.NoCredentialsError
+            if (rtspUrl.hasAuth().not()) throw RtspError.ClientError.NoCredentialsError()
             commandsManager.applyAuthFor(RtspBaseMessageHandler.Method.RECORD, rtspUrl.fullPath, recordResp.text)
             tcpSocket.withWriteLock { writeAndFlush(commandsManager.createRecord()) }
-            val retry = tcpSocket.withReadLock {
-                commandsManager.getResponseWithTimeout(::readLine, ::readBytes, RtspBaseMessageHandler.Method.RECORD)
+            val retry = commandsManager.getResponseWithTimeout(tcpSocket, RtspBaseMessageHandler.Method.RECORD)
+            when (retry.status) {
+                200 -> Unit
+                401 -> throw RtspError.ClientError.AuthError()
+                403 -> throw RtspError.ClientError.AccessDenied()
+                else -> throw RtspError.ClientError.Failed("RECORD: [${retry.status}] ${retry.text}")
             }
-            if (retry.status != 200) throw ConnectionError.Failed("RECORD: [${retry.status}] ${retry.text}")
-        } else if (recordResp.status != 200) {
-            throw ConnectionError.Failed("RECORD: [${recordResp.status}] ${recordResp.text}")
+        } else {
+            when (recordResp.status) {
+                200 -> Unit
+                403 -> throw RtspError.ClientError.AccessDenied()
+                else -> throw RtspError.ClientError.Failed("RECORD: [${recordResp.status}] ${recordResp.text}")
+            }
         }
 
-        return SelectedPorts(videoClientPorts, videoServerPorts, audioClientPorts, audioServerPorts, videoInterleaved, audioInterleaved)
+        return SelectedPorts(
+            videoClientPorts, videoServerPorts, audioClientPorts, audioServerPorts, videoInterleaved, audioInterleaved, videoResult.protocol
+        )
     }
 
     @Throws
-    private suspend fun setupTrack(tcpSocket: TcpStreamSocket, clientPorts: Ports, trackId: Int): SetupResult? {
+    private suspend fun setupTrack(
+        tcpSocket: TcpStreamSocket,
+        clientPorts: Ports,
+        trackId: Int,
+        protocolPolicy: RtspSettings.Values.ProtocolPolicy
+    ): SetupResult {
         val setupUriPath = "${rtspUrl.fullPath}/trackID=$trackId"
-        tcpSocket.withWriteLock { writeAndFlush(commandsManager.createSetup(protocol, clientPorts.client, clientPorts.server, trackId)) }
-        var setupRes = tcpSocket.withReadLock {
-            commandsManager.getResponseWithTimeout(::readLine, ::readBytes, RtspBaseMessageHandler.Method.SETUP)
+        tcpSocket.withWriteLock {
+            writeAndFlush(
+                commandsManager.createSetup(protocolPolicy, clientPorts.client, clientPorts.server, trackId)
+            )
         }
+        var setupRes = commandsManager.getResponseWithTimeout(tcpSocket, RtspBaseMessageHandler.Method.SETUP)
 
         if (setupRes.status == 401) {
-            if (rtspUrl.hasAuth().not()) throw ConnectionError.NoCredentialsError
+            if (rtspUrl.hasAuth().not()) throw RtspError.ClientError.NoCredentialsError()
             commandsManager.applyAuthFor(RtspBaseMessageHandler.Method.SETUP, setupUriPath, setupRes.text)
             tcpSocket.withWriteLock {
-                writeAndFlush(commandsManager.createSetup(protocol, clientPorts.client, clientPorts.server, trackId))
+                writeAndFlush(commandsManager.createSetup(protocolPolicy, clientPorts.client, clientPorts.server, trackId))
             }
-            setupRes = tcpSocket.withReadLock {
-                commandsManager.getResponseWithTimeout(::readLine, ::readBytes, RtspBaseMessageHandler.Method.SETUP)
-            }
+            setupRes = commandsManager.getResponseWithTimeout(tcpSocket, RtspBaseMessageHandler.Method.SETUP)
         }
 
-        if (setupRes.status != 200) throw ConnectionError.Failed("SETUP track $trackId: [${setupRes.status}] ${setupRes.text}")
+        when (setupRes.status) {
+            200 -> Unit
+            401 -> throw RtspError.ClientError.AuthError()
+            403 -> throw RtspError.ClientError.AccessDenied()
+            else -> throw RtspError.ClientError.Failed("SETUP track $trackId: [${setupRes.status}] ${setupRes.text}")
+        }
 
-        return when (protocol) {
-            Protocol.TCP -> SetupResult(interleaved = commandsManager.getInterleaved(setupRes))
-            Protocol.UDP -> {
-                val pair = commandsManager.getPorts(setupRes)
-                if (pair.first == null && pair.second == null) {
-                    throw ConnectionError.Failed("SETUP track $trackId: Missing/invalid Transport header")
+        val interleaved = commandsManager.getInterleaved(setupRes)
+        val pair = if (interleaved == null) commandsManager.getPorts(setupRes) else null
+        return when (protocolPolicy) {
+            RtspSettings.Values.ProtocolPolicy.TCP -> interleaved?.let {
+                SetupResult(interleaved = it, protocol = Protocol.TCP)
+            } ?: throw RtspError.ClientError.Failed("SETUP track $trackId: Missing/invalid Transport header")
+
+            RtspSettings.Values.ProtocolPolicy.UDP -> {
+                if (interleaved != null) throw RtspError.ClientError.Failed("SETUP track $trackId: Unexpected TCP Transport")
+                if (pair?.first == null && pair?.second == null) {
+                    throw RtspError.ClientError.Failed("SETUP track $trackId: Missing/invalid Transport header")
                 }
-                SetupResult(client = pair.first, server = pair.second)
+                SetupResult(client = pair.first, server = pair.second, protocol = Protocol.UDP)
+            }
+
+            RtspSettings.Values.ProtocolPolicy.AUTO -> {
+                if (interleaved != null) return SetupResult(interleaved = interleaved, protocol = Protocol.TCP)
+                if (pair?.first == null && pair?.second == null) {
+                    throw RtspError.ClientError.Failed("SETUP track $trackId: Missing/invalid Transport header")
+                }
+                SetupResult(client = pair.first, server = pair.second, protocol = Protocol.UDP)
             }
         }
     }
 
     private suspend fun keepAliveLoop(tcpSocket: TcpStreamSocket) {
-        while (currentCoroutineContext().isActive && tcpSocket.withWriteLock { isConnected() }) {
+        while (currentCoroutineContext().isActive) {
             delay(commandsManager.getSuggestedKeepAliveDelayMs())
-            if (tcpSocket.withWriteLock { isConnected() }.not()) return
             try {
                 val hasSession = commandsManager.hasSession()
-                val message = if (hasSession) commandsManager.createGetParameter() else commandsManager.createOptions()
                 val method = if (hasSession) RtspBaseMessageHandler.Method.GET_PARAMETER else RtspBaseMessageHandler.Method.OPTIONS
+                var message = if (hasSession) commandsManager.createGetParameter() else commandsManager.createOptions()
                 tcpSocket.withWriteLock { writeAndFlush(message) }
-                tcpSocket.withReadLock { commandsManager.getResponseWithTimeout(::readLine, ::readBytes, method) }
+                var response = commandsManager.getResponseWithTimeout(tcpSocket, method)
+                if (response.status == 401) {
+                    if (rtspUrl.hasAuth().not()) throw RtspError.ClientError.NoCredentialsError()
+                    commandsManager.applyAuthFor(method, rtspUrl.fullPath, response.text)
+                    message = if (hasSession) commandsManager.createGetParameter() else commandsManager.createOptions()
+                    tcpSocket.withWriteLock { writeAndFlush(message) }
+                    response = commandsManager.getResponseWithTimeout(tcpSocket, method)
+                }
+                when (response.status) {
+                    200 -> Unit
+                    401 -> throw RtspError.ClientError.AuthError()
+                    403 -> throw RtspError.ClientError.AccessDenied()
+                    else -> throw RtspError.ClientError.Failed("${method.name}: [${response.status}] ${response.text}")
+                }
             } catch (_: CancellationException) {
             } catch (e: Throwable) {
-                onEvent(RtspStreamingService.InternalEvent.RtspClientOnError(ConnectionError.Failed("Keep-alive failed: ${e.message}")))
-                tcpSocket.withWriteLock { close() }
+                if (currentCoroutineContext().isActive.not()) return
+                if (tcpSocket.isConnected().not()) return
+                if (e is RtspError.ClientError) {
+                    onEvent(RtspStreamingService.InternalEvent.RtspClient.OnError(generation, e))
+                } else {
+                    onEvent(
+                        RtspStreamingService.InternalEvent.RtspClient.OnError(
+                            generation, RtspError.ClientError.Failed("Keep-alive failed: ${e.message}")
+                        )
+                    )
+                }
+                tcpSocket.close()
                 currentCoroutineContext().cancel()
                 return
             }
@@ -502,6 +556,7 @@ internal class RtspClient(
     private suspend fun sendingLoop(tcpSocket: TcpStreamSocket, ports: SelectedPorts, videoParams: VideoParams, audioParams: AudioParams?) {
         var ssrcVideo = Random.nextInt().toLong() and 0xFFFFFFFFL
         val ssrcAudio = Random.nextInt().toLong() and 0xFFFFFFFFL
+        val protocol = ports.protocol
 
         val videoUdpSocket = if (protocol == Protocol.TCP) null else
             UdpStreamSocket(selectorManager, rtspUrl.host, ports.videoServer.client, ports.videoClient.client).apply { connect() }
@@ -510,7 +565,7 @@ internal class RtspClient(
             UdpStreamSocket(selectorManager, rtspUrl.host, ports.audioServer.client, ports.audioClient.client).apply { connect() }
 
         val bitrateCalculator = BitrateCalculator(scope) { bitrate ->
-            onEvent(RtspStreamingService.InternalEvent.RtspClientOnBitrate(bitrate))
+            onEvent(RtspStreamingService.InternalEvent.RtspClient.OnBitrate(generation, bitrate))
         }
 
         val videoRtcpChannel = ports.videoInterleaved.second
@@ -598,35 +653,37 @@ internal class RtspClient(
                         }
 
                         is QueuedItem.NewVideoParams -> {
+                            val vParams = queuedItem.videoParams
                             when {
-                                queuedItem.videoParams.codec is Codec.Video.H264 && videoPacket is H264Packet -> {
+                                vParams.codec is Codec.Video.H264 && videoPacket is H264Packet -> {
                                     XLog.w(getLog("sendingLoop", "Applying new SPS/PPS for H264"))
                                     videoPacket.reset()
-                                    ssrcVideo = Random.Default.nextInt().toLong() and 0xFFFFFFFFL
+                                    ssrcVideo = Random.nextInt().toLong() and 0xFFFFFFFFL
                                     videoPacket.setSSRC(ssrcVideo)
                                     reporter.setSsrcVideo(ssrcVideo)
-                                    videoPacket.setVideoInfo(queuedItem.videoParams.sps, queuedItem.videoParams.pps!!)
+                                    videoPacket.setVideoInfo(vParams.sps, vParams.pps!!)
                                 }
 
-                                queuedItem.videoParams.codec is Codec.Video.H265 && videoPacket is H265Packet -> {
+                                vParams.codec is Codec.Video.H265 && videoPacket is H265Packet -> {
                                     XLog.w(getLog("sendingLoop", "Applying new VPS/SPS/PPS for H265"))
                                     videoPacket.reset()
-                                    ssrcVideo = Random.Default.nextInt().toLong() and 0xFFFFFFFFL
+                                    ssrcVideo = Random.nextInt().toLong() and 0xFFFFFFFFL
                                     videoPacket.setSSRC(ssrcVideo)
                                     reporter.setSsrcVideo(ssrcVideo)
-                                    videoPacket.setVideoInfo(
-                                        queuedItem.videoParams.sps,
-                                        queuedItem.videoParams.pps!!,
-                                        queuedItem.videoParams.vps!!
-                                    )
+                                    videoPacket.setVideoInfo(vParams.sps, vParams.pps!!, vParams.vps!!)
                                 }
                             }
                         }
                     }
                 } catch (_: CancellationException) {
                 } catch (error: Throwable) {
+                    if (currentCoroutineContext().isActive.not()) return
                     XLog.w(getLog("sendingLoop", "Error sending packet: ${error.message}"), error)
-                    onEvent(RtspStreamingService.InternalEvent.RtspClientOnError(ConnectionError.Failed("Error sending packet: ${error.message}")))
+                    onEvent(
+                        RtspStreamingService.InternalEvent.RtspClient.OnError(
+                            generation, RtspError.ClientError.Failed("Error sending packet: ${error.message}")
+                        )
+                    )
                     currentCoroutineContext().cancel()
                 } finally {
                     if (queuedItem is QueuedItem.Frame) {

@@ -153,10 +153,10 @@ internal class RtspSettingsImpl(
 
         serverAddress = this[RtspSettings.Key.SERVER_ADDRESS] ?: RtspSettings.Default.SERVER_ADDRESS,
         clientProtocol = runCatching {
-            this[RtspSettings.Key.CLIENT_PROTOCOL]?.uppercase()?.let { RtspSettings.Values.ClientProtocolPolicy.valueOf(it) }
+            this[RtspSettings.Key.CLIENT_PROTOCOL]?.uppercase()?.let { RtspSettings.Values.ProtocolPolicy.valueOf(it) }
         }.getOrNull() ?: RtspSettings.Default.CLIENT_PROTOCOL,
         serverProtocol = runCatching {
-            this[RtspSettings.Key.SERVER_PROTOCOL]?.uppercase()?.let { RtspSettings.Values.ServerProtocolPolicy.valueOf(it) }
+            this[RtspSettings.Key.SERVER_PROTOCOL]?.uppercase()?.let { RtspSettings.Values.ProtocolPolicy.valueOf(it) }
         }.getOrNull() ?: RtspSettings.Default.SERVER_PROTOCOL,
         mode = runCatching {
             this[RtspSettings.Key.MODE]?.let { name -> RtspSettings.Values.Mode.valueOf(name) }

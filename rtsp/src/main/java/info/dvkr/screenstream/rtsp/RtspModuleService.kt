@@ -89,7 +89,7 @@ public class RtspModuleService : StreamingModuleService() {
     internal fun startForeground() {
         XLog.d(getLog("startForeground", "foregroundNotificationsEnabled: ${notificationHelper.foregroundNotificationsEnabled()}"))
 
-        if (notificationHelper.notificationPermissionGranted(this).not()) throw RtspError.NotificationPermissionRequired
+        if (notificationHelper.notificationPermissionGranted(this).not()) throw RtspError.NotificationPermissionRequired()
 
         startForeground(RtspEvent.Intentable.StopStream("RtspModuleService. User action: Notification").toIntent(this))
     }

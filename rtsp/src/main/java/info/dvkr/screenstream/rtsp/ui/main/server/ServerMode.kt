@@ -45,8 +45,8 @@ import info.dvkr.screenstream.common.generateQRBitmap
 import info.dvkr.screenstream.rtsp.R
 import info.dvkr.screenstream.rtsp.settings.RtspSettings
 import info.dvkr.screenstream.rtsp.ui.RtspBinding
+import info.dvkr.screenstream.rtsp.ui.RtspModeState
 import info.dvkr.screenstream.rtsp.ui.RtspState
-import info.dvkr.screenstream.rtsp.ui.RtspTransportState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
@@ -58,10 +58,9 @@ internal fun ServerMode(
     rtspSettings: RtspSettings = koinInject(),
     scope: CoroutineScope = rememberCoroutineScope()
 ) {
-    val status = rtspState.value.transport.status
-    val bindings = when (status) {
-        is RtspTransportState.Status.Ready -> status.bindings
-        is RtspTransportState.Status.Active -> status.bindings
+    val bindings = when (val status = rtspState.value.modeState.status) {
+        is RtspModeState.Status.Server.Starting -> status.bindings
+        is RtspModeState.Status.Server.Active -> status.bindings
         else -> emptyList()
     }
 

@@ -55,8 +55,8 @@ public interface RtspSettings {
         public const val STOP_ON_CONFIGURATION_CHANGE: Boolean = false
 
         public const val SERVER_ADDRESS: String = "rtsp://"
-        public val CLIENT_PROTOCOL: Values.ClientProtocolPolicy = Values.ClientProtocolPolicy.TCP
-        public val SERVER_PROTOCOL: Values.ServerProtocolPolicy = Values.ServerProtocolPolicy.AUTO
+        public val CLIENT_PROTOCOL: Values.ProtocolPolicy = Values.ProtocolPolicy.AUTO
+        public val SERVER_PROTOCOL: Values.ProtocolPolicy = Values.ProtocolPolicy.AUTO
         public val MODE: Values.Mode = Values.Mode.SERVER
 
         public const val VIDEO_CODEC_AUTO_SELECT: Boolean = true
@@ -88,8 +88,7 @@ public interface RtspSettings {
 
     public object Values {
         public enum class Mode { SERVER, CLIENT }
-        public enum class ClientProtocolPolicy { TCP, UDP }
-        public enum class ServerProtocolPolicy { AUTO, TCP, UDP }
+        public enum class ProtocolPolicy { AUTO, TCP, UDP }
 
         @IntDef(flag = true, value = [INTERFACE_WIFI, INTERFACE_MOBILE, INTERFACE_ETHERNET, INTERFACE_VPN])
         @Retention(AnnotationRetention.SOURCE)
@@ -118,8 +117,8 @@ public interface RtspSettings {
         public val stopOnConfigurationChange: Boolean = Default.STOP_ON_CONFIGURATION_CHANGE,
 
         public val serverAddress: String = Default.SERVER_ADDRESS,
-        public val clientProtocol: Values.ClientProtocolPolicy = Default.CLIENT_PROTOCOL,
-        public val serverProtocol: Values.ServerProtocolPolicy = Default.SERVER_PROTOCOL,
+        public val clientProtocol: Values.ProtocolPolicy = Default.CLIENT_PROTOCOL,
+        public val serverProtocol: Values.ProtocolPolicy = Default.SERVER_PROTOCOL,
         public val mode: Values.Mode = Default.MODE,
 
         public val videoCodecAutoSelect: Boolean = Default.VIDEO_CODEC_AUTO_SELECT,

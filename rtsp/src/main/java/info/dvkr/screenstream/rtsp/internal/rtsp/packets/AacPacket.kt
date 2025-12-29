@@ -13,13 +13,9 @@ internal class AacPacket : BaseRtpPacket(0, PAYLOAD_TYPE + 1) {
 
     private var nextRtpTs: Long = -1L
 
-    // Use RFC 3640 by default (AU headers). Do not use LATM over RTP.
-    private var latmMode: Boolean = false
-
     fun setAudioInfo(sampleRate: Int) {
         setClock(sampleRate.toLong())
         nextRtpTs = -1L
-        latmMode = false
     }
 
     override fun createPacket(mediaFrame: MediaFrame): List<RtpFrame> {
@@ -35,45 +31,32 @@ internal class AacPacket : BaseRtpPacket(0, PAYLOAD_TYPE + 1) {
         val tsNs = mediaFrame.info.timestamp * 1000
         val frames = mutableListOf<RtpFrame>()
 
-        var rtpTsForThisAu = if (nextRtpTs >= 0) nextRtpTs else toRtpTimestampFromNs(tsNs)
+        val rtpTsForThisAu = if (nextRtpTs >= 0) nextRtpTs else toRtpTimestampFromNs(tsNs)
 
-        if (latmMode && !isAdts) {
-            // Send encoder payload as-is (LATM) without AU headers; one RTP packet per buffer
-            val buffer = getBuffer(length + RTP_HEADER_LENGTH)
-            fixedBuffer.get(buffer, RTP_HEADER_LENGTH, length)
+        val maxPayload = MAX_PACKET_SIZE - (RTP_HEADER_LENGTH + 4)
+        var sum = 0
+        while (sum < length) {
+            val size = if (length - sum < maxPayload) (length - sum) else maxPayload
+            val buffer = getBuffer(size + RTP_HEADER_LENGTH + 4)
+            fixedBuffer.get(buffer, RTP_HEADER_LENGTH + 4, size)
+
+            // AU-headers-length: 16 bits (one AU-header)
+            buffer[RTP_HEADER_LENGTH] = 0x00
+            buffer[RTP_HEADER_LENGTH + 1] = 0x10
+
+            val sizeBits = length
+            buffer[RTP_HEADER_LENGTH + 2] = (sizeBits ushr 5).toByte()
+            buffer[RTP_HEADER_LENGTH + 3] = (sizeBits shl 3).toByte()
+            buffer[RTP_HEADER_LENGTH + 3] = buffer[RTP_HEADER_LENGTH + 3] and 0xF8.toByte()
+
             setRtpTimestamp(buffer, rtpTsForThisAu)
             updateSeq(buffer)
-            markPacket(buffer)
+            if (sum + size >= length) markPacket(buffer)
             frames.add(RtpFrame.Audio(buffer, rtpTsForThisAu, buffer.size))
-            nextRtpTs = rtpTsForThisAu + 1024
-            return frames
-        } else {
-            val maxPayload = MAX_PACKET_SIZE - (RTP_HEADER_LENGTH + 4)
-            var sum = 0
-            while (sum < length) {
-                val size = if (length - sum < maxPayload) (length - sum) else maxPayload
-                val buffer = getBuffer(size + RTP_HEADER_LENGTH + 4)
-                fixedBuffer.get(buffer, RTP_HEADER_LENGTH + 4, size)
-
-                buffer[RTP_HEADER_LENGTH] = 0x00
-                buffer[RTP_HEADER_LENGTH + 1] = 0x10
-
-                // FFmpeg/mpv expect AU-size (with sizeLength=13) to be in bytes
-                // for AAC-hbr depacketization. Use the full AU byte length here.
-                val sizeBits = length
-                buffer[RTP_HEADER_LENGTH + 2] = (sizeBits ushr 5).toByte()
-                buffer[RTP_HEADER_LENGTH + 3] = (sizeBits shl 3).toByte()
-                buffer[RTP_HEADER_LENGTH + 3] = buffer[RTP_HEADER_LENGTH + 3] and 0xF8.toByte()
-
-                setRtpTimestamp(buffer, rtpTsForThisAu)
-                updateSeq(buffer)
-                if (sum + size >= length) markPacket(buffer)
-                frames.add(RtpFrame.Audio(buffer, rtpTsForThisAu, buffer.size))
-                sum += size
-            }
-            nextRtpTs = rtpTsForThisAu + 1024
-            return frames
+            sum += size
         }
+        nextRtpTs = rtpTsForThisAu + 1024
+        return frames
     }
 
     private fun parseAdtsHeader(buf: ByteBuffer): Int? {

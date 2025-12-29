@@ -102,7 +102,7 @@ internal fun RtspMainScreenUI(
 
         val doubleClickProtection = remember { DoubleClickProtection.get() }
 
-        val mediaServerUrlError = rtspState.value.transport.mode == RtspSettings.Values.Mode.CLIENT &&
+        val mediaServerUrlError = rtspState.value.modeState.mode == RtspSettings.Values.Mode.CLIENT &&
                 runCatching { RtspUrl.parse(rtspSettingsState.value.serverAddress) }.isFailure
 
         Button(

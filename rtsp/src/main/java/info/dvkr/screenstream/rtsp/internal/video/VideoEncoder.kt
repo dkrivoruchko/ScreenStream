@@ -18,6 +18,7 @@ import info.dvkr.screenstream.rtsp.internal.VideoCodecInfo
 import info.dvkr.screenstream.rtsp.internal.rtsp.packets.Av1Packet
 import info.dvkr.screenstream.rtsp.internal.rtsp.packets.H264Packet
 import info.dvkr.screenstream.rtsp.internal.rtsp.packets.H265Packet
+import info.dvkr.screenstream.rtsp.internal.stripAnnexBStartCode
 import java.nio.ByteBuffer
 
 internal class VideoEncoder(
@@ -238,7 +239,7 @@ internal class VideoEncoder(
                     if (flags.hasFlag(MediaCodec.BUFFER_FLAG_CODEC_CONFIG)) {
                         if (!isCodecConfigSent) {
                             outputBuffer.duplicate().extractCodecConfig(adjustedInfo)?.let { (sps, pps, vps) ->
-                                onVideoInfo(sps, pps, vps)
+                                onVideoInfo(sps.stripAnnexBStartCode(), pps?.stripAnnexBStartCode(), vps?.stripAnnexBStartCode())
                                 isCodecConfigSent = true
                             }
                         }
@@ -253,7 +254,7 @@ internal class VideoEncoder(
 
                     if (!isCodecConfigSent && flags.hasFlag(MediaCodec.BUFFER_FLAG_KEY_FRAME)) {
                         outputBuffer.duplicate().extractCodecConfig(adjustedInfo)?.let { (sps, pps, vps) ->
-                            onVideoInfo(sps, pps, vps)
+                            onVideoInfo(sps.stripAnnexBStartCode(), pps?.stripAnnexBStartCode(), vps?.stripAnnexBStartCode())
                             isCodecConfigSent = true
                         }
                     }
@@ -287,7 +288,7 @@ internal class VideoEncoder(
         override fun onOutputFormatChanged(codec: MediaCodec, format: MediaFormat): Unit = synchronized(encoderLock) {
             if (isCodecConfigSent) return
             format.extractCodecConfigFromFormat()?.let { (sps, pps, vps) ->
-                onVideoInfo(sps, pps, vps)
+                onVideoInfo(sps.stripAnnexBStartCode(), pps?.stripAnnexBStartCode(), vps?.stripAnnexBStartCode())
                 isCodecConfigSent = true
             }
         }

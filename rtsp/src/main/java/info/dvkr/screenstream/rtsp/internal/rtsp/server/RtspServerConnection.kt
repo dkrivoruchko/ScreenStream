@@ -1,16 +1,15 @@
 package info.dvkr.screenstream.rtsp.internal.rtsp.server
 
+import info.dvkr.screenstream.rtsp.internal.AudioParams
 import info.dvkr.screenstream.rtsp.internal.Codec
 import info.dvkr.screenstream.rtsp.internal.MasterClock
 import info.dvkr.screenstream.rtsp.internal.MediaFrame
 import info.dvkr.screenstream.rtsp.internal.Protocol
 import info.dvkr.screenstream.rtsp.internal.RtpFrame
-import info.dvkr.screenstream.rtsp.internal.RtspStreamingService
+import info.dvkr.screenstream.rtsp.internal.VideoParams
 import info.dvkr.screenstream.rtsp.internal.interleavedHeader
 import info.dvkr.screenstream.rtsp.internal.rtsp.RtcpReporter
-import info.dvkr.screenstream.rtsp.internal.rtsp.client.RtspClient
 import info.dvkr.screenstream.rtsp.internal.rtsp.core.RtspBaseMessageHandler
-import info.dvkr.screenstream.rtsp.internal.rtsp.core.RtspServerMessageHandler
 import info.dvkr.screenstream.rtsp.internal.rtsp.core.TransportHeader
 import info.dvkr.screenstream.rtsp.internal.rtsp.packets.AacPacket
 import info.dvkr.screenstream.rtsp.internal.rtsp.packets.Av1Packet
@@ -40,14 +39,16 @@ import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
 
 internal class RtspServerConnection(
+    parentJob: Job,
     private val tcpStreamSocket: TcpStreamSocket,
     private val serverMessageHandler: RtspServerMessageHandler,
-    private val videoParams: AtomicReference<RtspClient.VideoParams?>,
-    private val audioParams: AtomicReference<RtspClient.AudioParams?>,
-    private val onEvent: (RtspStreamingService.InternalEvent) -> Unit,
-    private val serverProtocolPolicy: RtspSettings.Values.ServerProtocolPolicy
+    private val videoParams: AtomicReference<VideoParams?>,
+    private val audioParams: AtomicReference<AudioParams?>,
+    private val serverProtocolPolicy: RtspSettings.Values.ProtocolPolicy,
+    private val onRequestKeyFrame: () -> Unit,
+    private val onClosed: (RtspServerConnection) -> Unit,
 ) {
-    private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val scope: CoroutineScope = CoroutineScope(SupervisorJob(parentJob) + Dispatchers.IO)
     private val secureRandom = SecureRandom()
     private val TRACK_ID_REGEX = Regex("trackID=(\\d+)")
     private val stateLock = Mutex()
@@ -132,11 +133,16 @@ internal class RtspServerConnection(
                 lastInjectNs = now
             }
         }
+
+        fun reset() {
+            lastInjectNs = 0L
+        }
     }
 
     private val paramInjector = ParamInjector()
     private var waitingForKeyframe: Boolean = false
     private var sendRtpPackets: suspend (trackId: Int, packets: List<RtpFrame>) -> Unit = { _, _ -> }
+    @Volatile private var videoParamsChanged: Boolean = false
 
     private val videoQueue = Channel<VideoBlob>(capacity = 32) { it.buf.releaseOne() }
     private val audioQueue = Channel<AudioBlob>(capacity = 64) { it.buf.releaseOne() }
@@ -217,7 +223,6 @@ internal class RtspServerConnection(
     internal fun start() {
         clientJob = scope.launch {
             try {
-                onEvent(RtspStreamingService.InternalEvent.RtspServerOnClientConnected(this@RtspServerConnection))
                 commandLoop()
             } catch (_: Throwable) {
             } finally {
@@ -230,12 +235,10 @@ internal class RtspServerConnection(
 
     private suspend fun commandLoop() {
         while (scope.isActive && tcpStreamSocket.isConnected()) {
-            val request = tcpStreamSocket.withReadLock {
-                readRequestHeaders(
-                    allowedInterleavedChannels = allowedInterleavedChannels(),
-                    onInterleavedChunk = ::onInterleavedChunk
-                )
-            } ?: break
+            val request = tcpStreamSocket.readRtspMessage(
+                allowedInterleavedChannels = allowedInterleavedChannels(),
+                onInterleavedChunk = ::onInterleavedChunk
+            )?.let { String(it.header, Charsets.ISO_8859_1) } ?: break
             val (method, cSeq) = serverMessageHandler.parseRequest(request)
 
             if (cSeq < 0) {
@@ -251,7 +254,7 @@ internal class RtspServerConnection(
                 RtspBaseMessageHandler.Method.DESCRIBE -> tcpStreamSocket.withWriteLock {
                     val videoParams = this@RtspServerConnection.videoParams.get()
                     if (videoParams == null) {
-                        writeAndFlush(serverMessageHandler.createErrorResponse(415, cSeq))
+                        writeAndFlush(serverMessageHandler.createErrorResponse(503, cSeq))
                     } else {
                         writeAndFlush(serverMessageHandler.createDescribeResponse(cSeq, videoParams, audioParams.get()))
                     }
@@ -260,6 +263,10 @@ internal class RtspServerConnection(
                 RtspBaseMessageHandler.Method.SETUP -> {
                     if (state == State.Playing) {
                         tcpStreamSocket.withWriteLock { writeAndFlush(serverMessageHandler.createErrorResponse(455, cSeq)) }
+                        continue
+                    }
+                    if (this@RtspServerConnection.videoParams.get() == null) {
+                        tcpStreamSocket.withWriteLock { writeAndFlush(serverMessageHandler.createErrorResponse(503, cSeq)) }
                         continue
                     }
                     val transportHeader = serverMessageHandler.getTransport(request)
@@ -271,15 +278,19 @@ internal class RtspServerConnection(
                         tcpStreamSocket.withWriteLock { writeAndFlush(serverMessageHandler.createErrorResponse(400, cSeq)) }
                         continue
                     }
+                    if (trackId == RtpFrame.AUDIO_TRACK_ID && this@RtspServerConnection.audioParams.get() == null) {
+                        tcpStreamSocket.withWriteLock { writeAndFlush(serverMessageHandler.createErrorResponse(404, cSeq)) }
+                        continue
+                    }
 
                     val transportSpecs = TransportHeader.parseList(transportHeader)
                     val selected: TransportHeader.Companion.ParsedSpec? = when (serverProtocolPolicy) {
-                        RtspSettings.Values.ServerProtocolPolicy.TCP -> transportSpecs.firstOrNull { it.isTcp }
-                        RtspSettings.Values.ServerProtocolPolicy.UDP -> transportSpecs.firstOrNull {
+                        RtspSettings.Values.ProtocolPolicy.TCP -> transportSpecs.firstOrNull { it.isTcp }
+                        RtspSettings.Values.ProtocolPolicy.UDP -> transportSpecs.firstOrNull {
                             it.isTcp.not() && serverMessageHandler.parseClientPorts(it.raw) != null
                         }
 
-                        RtspSettings.Values.ServerProtocolPolicy.AUTO -> transportSpecs.firstOrNull { it.isTcp }
+                        RtspSettings.Values.ProtocolPolicy.AUTO -> transportSpecs.firstOrNull { it.isTcp }
                             ?: transportSpecs.firstOrNull { it.isTcp.not() && serverMessageHandler.parseClientPorts(it.raw) != null }
                     }
                     if (selected == null) {
@@ -303,9 +314,13 @@ internal class RtspServerConnection(
                         // TCP selected (AUTO prefers TCP when offered).
                         protocol = Protocol.TCP
                         statsReporter.setProtocol(protocol)
-                        val channelPair = selectedParsed?.interleaved
+                        val channelPair = selectedParsed.interleaved
                             ?: Regex("interleaved=([0-9]+)-([0-9]+)").find(spec)?.destructured?.let { (a, b) -> a.toInt() to b.toInt() }
                         if (channelPair == null) {
+                            tcpStreamSocket.withWriteLock { writeAndFlush(serverMessageHandler.createErrorResponse(461, cSeq)) }
+                            continue
+                        }
+                        if (channelPair.first == channelPair.second || channelPair.first !in 0..255 || channelPair.second !in 0..255) {
                             tcpStreamSocket.withWriteLock { writeAndFlush(serverMessageHandler.createErrorResponse(461, cSeq)) }
                             continue
                         }
@@ -387,8 +402,10 @@ internal class RtspServerConnection(
 
                         if (trackId == RtpFrame.VIDEO_TRACK_ID) {
                             videoRtpSocket = rtp; videoRtcpSocket = rtcp
+                            scope.launch { drainRtcp(videoRtcpSocket) }
                         } else {
                             audioRtpSocket = rtp; audioRtcpSocket = rtcp
+                            scope.launch { drainRtcp(audioRtcpSocket) }
                         }
 
                         val sender: suspend (trackId: Int, packets: List<RtpFrame>) -> Unit = { tid, packets ->
@@ -420,7 +437,11 @@ internal class RtspServerConnection(
                         tcpStreamSocket.withWriteLock { writeAndFlush(serverMessageHandler.createErrorResponse(454, cSeq)) }
                         continue
                     }
-                    if (state != State.Ready || (!videoSetupDone && !audioSetupDone)) {
+                    if (this@RtspServerConnection.videoParams.get() == null) {
+                        tcpStreamSocket.withWriteLock { writeAndFlush(serverMessageHandler.createErrorResponse(503, cSeq)) }
+                        continue
+                    }
+                    if (state != State.Ready || !videoSetupDone) {
                         tcpStreamSocket.withWriteLock { writeAndFlush(serverMessageHandler.createErrorResponse(455, cSeq)) }
                         continue
                     }
@@ -477,6 +498,7 @@ internal class RtspServerConnection(
                         stateLock.withLock { isStreaming = true }
                         state = State.Playing
                     }
+                    if (videoSetupDone) onRequestKeyFrame()
                 }
 
                 RtspBaseMessageHandler.Method.PAUSE -> {
@@ -522,8 +544,25 @@ internal class RtspServerConnection(
         }
     }
 
+    private suspend fun handleVideoParamsChanged() {
+        videoParamsChanged = false
+        stateLock.withLock { waitingForKeyframe = true }
+        videoPacketizer = null
+        paramInjector.reset()
+        while (true) {
+            val drained = videoQueue.tryReceive().getOrNull() ?: break
+            drained.buf.releaseOne()
+            videoQueueSize.decrementAndGet()
+        }
+        updateQueueStats()
+    }
+
     private suspend fun videoWriterLoop() {
         while (scope.isActive) {
+            if (videoParamsChanged) {
+                handleVideoParamsChanged()
+                continue
+            }
             val (streaming, setupDone, waitKey, sender) = stateLock.withLock {
                 VideoStateSnapshot(isStreaming, videoSetupDone, waitingForKeyframe, sendRtpPackets)
             }
@@ -534,6 +573,12 @@ internal class RtspServerConnection(
             val videoBlob = videoQueue.receiveCatching().getOrNull() ?: break
             videoQueueSize.decrementAndGet()
             updateQueueStats()
+
+            if (videoParamsChanged) {
+                videoBlob.buf.releaseOne()
+                handleVideoParamsChanged()
+                continue
+            }
 
             if (videoParams.get() == null) {
                 videoBlob.buf.releaseOne()
@@ -661,7 +706,11 @@ internal class RtspServerConnection(
 
         scope.cancel()
         state = State.Closed
-        onEvent(RtspStreamingService.InternalEvent.RtspServerOnClientDisconnected(this))
+        onClosed(this)
+    }
+
+    internal fun onVideoParamsChanged() {
+        videoParamsChanged = true
     }
 
     private suspend fun prepareVideoPacketizerIfNeeded() {
@@ -700,6 +749,13 @@ internal class RtspServerConnection(
         }
 
         rtcpReporter?.setSsrcAudio(audioSsrc)
+    }
+
+    private suspend fun drainRtcp(sock: UdpStreamSocket?) {
+        val buffer = ByteArray(1500)
+        while (scope.isActive) {
+            runCatching { sock?.readInto(buffer)?.let { if (it < 0) break } }
+        }
     }
 
     override fun toString(): String = "RtspServerConnection(address='${tcpStreamSocket.remoteHost}')"

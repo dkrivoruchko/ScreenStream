@@ -1,8 +1,9 @@
 package info.dvkr.screenstream.rtsp.internal.rtsp.core
 
+import info.dvkr.screenstream.rtsp.internal.AudioParams
 import info.dvkr.screenstream.rtsp.internal.Codec
+import info.dvkr.screenstream.rtsp.internal.VideoParams
 import info.dvkr.screenstream.rtsp.internal.encodeBase64
-import info.dvkr.screenstream.rtsp.internal.rtsp.client.RtspClient
 import info.dvkr.screenstream.rtsp.internal.rtsp.packets.AacPacket
 import info.dvkr.screenstream.rtsp.internal.rtsp.packets.Av1Packet
 import info.dvkr.screenstream.rtsp.internal.rtsp.packets.BaseRtpPacket
@@ -14,7 +15,7 @@ import kotlin.io.encoding.Base64
 
 internal class SdpBuilder {
 
-    fun createSdpBody(videoParams: RtspClient.VideoParams, audioParams: RtspClient.AudioParams?, sdpSessionId: Int): String {
+    fun createSdpBody(videoParams: VideoParams, audioParams: AudioParams?, sdpSessionId: Int): String {
         val spsString = videoParams.sps.encodeBase64()
         val ppsString = videoParams.pps?.encodeBase64().orEmpty()
         val vpsString = videoParams.vps?.encodeBase64().orEmpty()
@@ -29,7 +30,7 @@ internal class SdpBuilder {
             else -> when (audioParams.codec) {
                 Codec.Audio.G711 -> createG711Body(1)
                 Codec.Audio.AAC -> createAacBody(1, audioParams.sampleRate, audioParams.isStereo)
-                Codec.Audio.OPUS -> createOpusBody(1)
+                Codec.Audio.OPUS -> createOpusBody(1, audioParams.isStereo)
             }
         }
         return buildString {
@@ -46,12 +47,19 @@ internal class SdpBuilder {
         }
     }
 
-    private fun createOpusBody(trackAudio: Int): String = buildString {
+    private fun createOpusBody(trackAudio: Int, isStereo: Boolean): String = buildString {
         val payload = OpusPacket.PAYLOAD_TYPE + trackAudio
+        val channels = if (isStereo) 2 else 1
         append("m=audio 0 RTP/AVP $payload\r\n")
-        append("a=rtpmap:$payload OPUS/48000/2\r\n")
+        append("a=rtpmap:$payload OPUS/48000/$channels\r\n")
         // RFC 7587 declarative SDP parameters to help some clients (e.g., GStreamer)
-        append("a=fmtp:$payload sprop-stereo=1; maxplaybackrate=48000; sprop-maxcapturerate=48000\r\n")
+        val fmtpParams = buildList {
+            if (isStereo) add("stereo=1")
+            if (isStereo) add("sprop-stereo=1")
+            add("maxplaybackrate=48000")
+            add("sprop-maxcapturerate=48000")
+        }.joinToString("; ")
+        append("a=fmtp:$payload $fmtpParams\r\n")
         append("a=ptime:20\r\n")
         append("a=control:trackID=$trackAudio\r\n")
     }

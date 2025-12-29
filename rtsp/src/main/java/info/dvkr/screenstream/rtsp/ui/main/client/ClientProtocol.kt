@@ -43,7 +43,7 @@ internal object ClientProtocol : ModuleSettings.Item {
     override val position: Int = 0
     override val available: Boolean = true
 
-    private val CLIENT_PROTOCOL_OPTIONS: List<String> = RtspSettings.Values.ClientProtocolPolicy.entries.map { it.name }
+    private val CLIENT_PROTOCOL_OPTIONS: List<String> = RtspSettings.Values.ProtocolPolicy.entries.map { it.name }
 
     override fun has(resources: Resources, text: String): Boolean = with(resources) {
         getString(R.string.rtsp_pref_protocol).contains(text, ignoreCase = true) ||
@@ -67,9 +67,8 @@ internal object ClientProtocol : ModuleSettings.Item {
         val state = rtspSettings.data.collectAsStateWithLifecycle()
         val scope = rememberCoroutineScope()
 
-        val selected = state.value.clientProtocol
-        ProtocolDetailUI(headerContent, selected.name, CLIENT_PROTOCOL_OPTIONS) { value ->
-            val newValue = runCatching { RtspSettings.Values.ClientProtocolPolicy.valueOf(value) }.getOrNull() ?: return@ProtocolDetailUI
+        ProtocolDetailUI(headerContent, state.value.clientProtocol.name, CLIENT_PROTOCOL_OPTIONS) { value ->
+            val newValue = runCatching { RtspSettings.Values.ProtocolPolicy.valueOf(value) }.getOrNull() ?: return@ProtocolDetailUI
             if (state.value.clientProtocol != newValue) {
                 scope.launch { rtspSettings.updateData { copy(clientProtocol = newValue) } }
             }

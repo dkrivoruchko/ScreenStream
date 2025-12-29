@@ -1,9 +1,14 @@
-package info.dvkr.screenstream.rtsp.internal.rtsp.core
+package info.dvkr.screenstream.rtsp.internal.rtsp.client
 
-import info.dvkr.screenstream.rtsp.internal.Protocol
+import info.dvkr.screenstream.rtsp.internal.AudioParams
+import info.dvkr.screenstream.rtsp.internal.VideoParams
 import info.dvkr.screenstream.rtsp.internal.encodeBase64
 import info.dvkr.screenstream.rtsp.internal.rtsp.RtspMessage
-import info.dvkr.screenstream.rtsp.internal.rtsp.client.RtspClient
+import info.dvkr.screenstream.rtsp.internal.rtsp.core.RtspBaseMessageHandler
+import info.dvkr.screenstream.rtsp.internal.rtsp.core.SdpBuilder
+import info.dvkr.screenstream.rtsp.internal.rtsp.core.TransportHeader
+import info.dvkr.screenstream.rtsp.internal.rtsp.sockets.TcpStreamSocket
+import info.dvkr.screenstream.rtsp.settings.RtspSettings
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeout
@@ -62,7 +67,7 @@ internal class RtspClientMessageHandler(
             .build()
     }
 
-    internal suspend fun createAnnounce(videoParams: RtspClient.VideoParams, audioParams: RtspClient.AudioParams?): RtspMessage =
+    internal suspend fun createAnnounce(videoParams: VideoParams, audioParams: AudioParams?): RtspMessage =
         lock.withLock {
             RequestBuilder(Method.ANNOUNCE, baseUri)
                 .header(RtspHeaders.CONTENT_TYPE, "application/sdp")
@@ -78,8 +83,8 @@ internal class RtspClientMessageHandler(
         method: Method,
         uriPath: String,
         authResponse: String,
-        videoParams: RtspClient.VideoParams? = null,
-        audioParams: RtspClient.AudioParams? = null,
+        videoParams: VideoParams? = null,
+        audioParams: AudioParams? = null,
     ) = lock.withLock {
         val user = username.orEmpty()
         val pass = password.orEmpty()
@@ -157,20 +162,27 @@ internal class RtspClientMessageHandler(
         }
     }
 
-    internal suspend fun createSetup(protocol: Protocol, clientRtpPort: Int, clientRtcpPort: Int, trackId: Int): RtspMessage =
-        lock.withLock {
-            val transport = when (protocol) {
-                Protocol.TCP -> "RTP/AVP/TCP;unicast;interleaved=${trackId shl 1}-${(trackId shl 1) + 1};mode=record"
-                Protocol.UDP -> "RTP/AVP;unicast;client_port=$clientRtpPort-$clientRtcpPort;mode=record"
-            }
-            RequestBuilder(Method.SETUP, uri = trackUri(trackId))
-                .header(RtspHeaders.TRANSPORT, transport)
-                .withCSeq(++cSeq)
-                .withUserAgent(userAgent)
-                .withAuthorization(authorization)
-                .withSession(sessionId.takeIf { it.isNotBlank() })
-                .build()
+    internal suspend fun createSetup(
+        protocolPolicy: RtspSettings.Values.ProtocolPolicy,
+        clientRtpPort: Int,
+        clientRtcpPort: Int,
+        trackId: Int
+    ): RtspMessage = lock.withLock {
+        val udp = "RTP/AVP;unicast;client_port=$clientRtpPort-$clientRtcpPort;mode=record"
+        val tcp = "RTP/AVP/TCP;unicast;interleaved=${trackId shl 1}-${(trackId shl 1) + 1};mode=record"
+        val transport = when (protocolPolicy) {
+            RtspSettings.Values.ProtocolPolicy.AUTO -> "$udp, $tcp"
+            RtspSettings.Values.ProtocolPolicy.UDP -> udp
+            RtspSettings.Values.ProtocolPolicy.TCP -> tcp
         }
+        RequestBuilder(Method.SETUP, uri = trackUri(trackId))
+            .header(RtspHeaders.TRANSPORT, transport)
+            .withCSeq(++cSeq)
+            .withUserAgent(userAgent)
+            .withAuthorization(authorization)
+            .withSession(sessionId.takeIf { it.isNotBlank() })
+            .build()
+    }
 
     internal suspend fun createRecord(): RtspMessage = lock.withLock {
         RequestBuilder(Method.RECORD, baseUri)
@@ -193,34 +205,33 @@ internal class RtspClientMessageHandler(
 
     @Throws(IOException::class)
     internal suspend fun getResponseWithTimeout(
-        readLine: suspend () -> String?, readBytes: suspend (ByteArray, Int) -> Unit, method: Method, timeoutMs: Long = 15_000
-    ): Command = withTimeout(timeoutMs) { getResponse(readLine, readBytes, method) }
+        tcpSocket: TcpStreamSocket,
+        method: Method,
+        timeoutMs: Long = 15_000,
+        allowedInterleavedChannels: Set<Int>? = null,
+    ): Command = withTimeout(timeoutMs) { getResponse(tcpSocket, method, allowedInterleavedChannels) }
 
-    private suspend fun getResponse(readLine: suspend () -> String?, readBytes: suspend (ByteArray, Int) -> Unit, method: Method): Command =
+    private suspend fun getResponse(tcpSocket: TcpStreamSocket, method: Method, allowedInterleavedChannels: Set<Int>?): Command =
         lock.withLock {
-            val headerLines = mutableListOf<String>()
-            var contentLength = 0
-            while (true) {
-                val line = readLine()?.ifBlank { null } ?: break
-                headerLines.add(line)
-                contentLength = extractContentLength(line).takeIf { it > 0 } ?: contentLength
-            }
-            val body = if (contentLength <= 0) "" else ByteArray(contentLength).also { readBytes(it, contentLength) }.decodeToString()
+            val msg = tcpSocket.readRtspMessage(allowedInterleavedChannels = allowedInterleavedChannels)
+                ?: throw IOException("Socket closed")
 
+            val bodyText = msg.body?.let { String(it, Charsets.ISO_8859_1) }.orEmpty()
             val text = buildString {
-                headerLines.forEach { append(it).append("\r\n") }
+                append(String(msg.header, Charsets.ISO_8859_1))
                 append("\r\n")
-                append(body)
+                append(bodyText)
             }
+
             extractSessionHeader(text)?.let { sid -> sessionId = sid }
             extractSessionTimeout(text)?.let { sessionTimeoutSec = it }
 
-            return@withLock Command(method, extractCSeq(text), extractStatus(text), text)
+            Command(method, extractCSeq(text), extractStatus(text), text)
         }
 
     internal fun getPorts(command: Command): Pair<RtspClient.Ports?, RtspClient.Ports?> {
         val transport = extractTransport(command.text).ifEmpty { return null to null }
-        val parsed = TransportHeader.parse(transport) ?: return null to null
+        val parsed = TransportHeader.Companion.parse(transport) ?: return null to null
         val client = parsed.clientPorts?.let { (rtp, rtcp) -> RtspClient.Ports(rtp, rtcp) }
         val server = parsed.serverPorts?.let { (rtp, rtcp) -> RtspClient.Ports(rtp, rtcp) }
         return client to server

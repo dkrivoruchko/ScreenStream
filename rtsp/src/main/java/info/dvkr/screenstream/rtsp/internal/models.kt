@@ -56,8 +56,8 @@ internal sealed class Codec(val name: String, val mimeType: String) {
 
 internal fun interleavedHeader(channel: Int, length: Int): ByteArray = byteArrayOf(
     '$'.code.toByte(),
-    channel.toByte(),
-    (length ushr 8).toByte(),
+    channel.also { require(it in 0..255) { "RTSP interleaved channel must be in 0..255 (got $it)" } }.toByte(),
+    length.also { require(it in 0..65535) { "RTSP interleaved length must be in 0..65535 (got $it)" } }.ushr(8).toByte(),
     (length and 0xFF).toByte()
 )
 
@@ -83,9 +83,38 @@ internal data class AudioCodecInfo(
 
 internal data class RtspNetInterface(val label: String, val address: InetAddress) {
 
-    internal fun buildUrl(port: Int): String = if (address is Inet6Address) {
-        "rtsp://[${address.hostAddress!!.substringBefore('%')}]:$port"
-    } else {
-        "rtsp://${address.hostAddress}:$port"
+    internal fun buildUrl(port: Int, path: String): String {
+        val baseUrl = if (address is Inet6Address) {
+            "rtsp://[${address.hostAddress!!.substringBefore('%')}]:$port"
+        } else {
+            "rtsp://${address.hostAddress}:$port"
+        }
+        val path = path.trimStart('/')
+        return if (path.isEmpty()) baseUrl else "$baseUrl/$path"
     }
 }
+
+
+internal class VideoParams(val codec: Codec.Video, val sps: ByteArray, val pps: ByteArray?, val vps: ByteArray?) {
+    val isOk: Boolean
+        get() = when (codec) {
+            Codec.Video.H264 -> pps != null
+            Codec.Video.H265 -> pps != null && vps != null
+            Codec.Video.AV1 -> true
+        }
+
+    internal fun contentEquals(other: VideoParams?): Boolean {
+        if (other == null) return false
+        if (codec != other.codec) return false
+        if (!sps.contentEquals(other.sps)) return false
+        if (pps == null && other.pps != null) return false
+        if (pps != null && other.pps == null) return false
+        if (pps != null && !pps.contentEquals(other.pps)) return false
+        if (vps == null && other.vps != null) return false
+        if (vps != null && other.vps == null) return false
+        if (vps != null && !vps.contentEquals(other.vps)) return false
+        return true
+    }
+}
+
+internal class AudioParams(val codec: Codec.Audio, val sampleRate: Int, val isStereo: Boolean)

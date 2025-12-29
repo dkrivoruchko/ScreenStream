@@ -85,12 +85,11 @@ internal class AudioEncoder(
                     ).apply {
                         prepare(audioParams.sampleRate, audioParams.isStereo)
                     }
-                    onAudioInfo(audioParams)
-
                     handlerThread = HandlerThread("AudioEncoderHandler", Process.THREAD_PRIORITY_AUDIO).apply { start() }
                     handler = Handler(handlerThread!!.looper)
 
                     currentState = State.PREPARED
+                    onAudioInfo(audioParams)
                     return
                 }
 
@@ -125,8 +124,41 @@ internal class AudioEncoder(
                 onAudioInfo(audioParams)
             }
         }.onFailure { cause ->
+            cleanupAfterPrepareFailure()
             onError(cause)
         }
+    }
+
+    private fun cleanupAfterPrepareFailure(): Unit = synchronized(encoderLock) {
+        runCatching { audioSource?.stop() }
+        audioSource = null
+
+        g711Codec?.stopEncoding()
+        g711Codec = null
+
+        audioEncoder?.apply {
+            runCatching {
+                stop()
+                release()
+            }.onFailure {
+                XLog.w(this@AudioEncoder.getLog("cleanupAfterPrepareFailure", "mediaCodec.stop() exception: ${it.message}"), it)
+            }
+        }
+        audioEncoder = null
+
+        handler?.removeCallbacksAndMessages(null)
+        handlerThread?.apply {
+            quitSafely()
+            runCatching { join(250) }.onFailure {
+                quit()
+                XLog.w(this@AudioEncoder.getLog("cleanupAfterPrepareFailure", "handlerThread.join() took too long, forcing a shutdown"))
+            }
+        }
+        handlerThread = null
+        handler = null
+
+        frameQueue.clear()
+        currentState = State.IDLE
     }
 
     internal fun start(): Unit = synchronized(encoderLock) {

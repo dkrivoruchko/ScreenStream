@@ -24,9 +24,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import info.dvkr.screenstream.rtsp.R
 import info.dvkr.screenstream.rtsp.internal.rtsp.RtspUrl
 import info.dvkr.screenstream.rtsp.settings.RtspSettings
-import info.dvkr.screenstream.rtsp.ui.ConnectionError
+import info.dvkr.screenstream.rtsp.ui.RtspError
+import info.dvkr.screenstream.rtsp.ui.RtspModeState
 import info.dvkr.screenstream.rtsp.ui.RtspState
-import info.dvkr.screenstream.rtsp.ui.RtspTransportState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
@@ -61,24 +61,23 @@ internal fun ClientMode(
             singleLine = true
         )
 
-        val statusMessage = when (val status = rtspState.value.transport.status) {
-            is RtspTransportState.Status.Active -> stringResource(R.string.rtsp_connection_connected)
-            RtspTransportState.Status.Starting -> stringResource(R.string.rtsp_connection_connecting)
-            RtspTransportState.Status.Idle, is RtspTransportState.Status.Ready -> stringResource(R.string.rtsp_connection_disconnected)
-            is RtspTransportState.Status.ClientError -> when (val error = status.error) {
-                is ConnectionError.Failed -> stringResource(error.id) + (error.message?.let { " [$it]" } ?: "")
+        val statusMessage = when (val status = rtspState.value.modeState.status) {
+            is RtspModeState.Status.Client.Active -> stringResource(R.string.rtsp_connection_connected)
+            RtspModeState.Status.Client.Starting -> stringResource(R.string.rtsp_connection_connecting)
+            RtspModeState.Status.Idle -> stringResource(R.string.rtsp_connection_disconnected)
+            is RtspModeState.Status.Error -> when (val error = status.error) {
+                is RtspError.ClientError.Failed -> stringResource(error.id) + (error.message?.let { " [$it]" } ?: "")
+                is RtspError.UnknownError -> error.toString(LocalContext.current)
                 else -> stringResource(error.id)
             }
 
-            is RtspTransportState.Status.GenericError -> status.error.toString(LocalContext.current)
+            is RtspModeState.Status.Server.Active -> ""
+            is RtspModeState.Status.Server.Starting -> ""
         }
 
-        val statusColor = when (rtspState.value.transport.status) {
-            is RtspTransportState.Status.ClientError,
-            is RtspTransportState.Status.GenericError -> MaterialTheme.colorScheme.error
-
-            is RtspTransportState.Status.Active -> MaterialTheme.colorScheme.primary
-
+        val statusColor = when (rtspState.value.modeState.status) {
+            is RtspModeState.Status.Error -> MaterialTheme.colorScheme.error
+            is RtspModeState.Status.Client.Active -> MaterialTheme.colorScheme.primary
             else -> MaterialTheme.colorScheme.onSurfaceVariant
         }
 

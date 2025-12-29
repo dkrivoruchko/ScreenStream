@@ -1,7 +1,11 @@
-package info.dvkr.screenstream.rtsp.internal.rtsp.core
+package info.dvkr.screenstream.rtsp.internal.rtsp.server
 
+import info.dvkr.screenstream.rtsp.internal.AudioParams
+import info.dvkr.screenstream.rtsp.internal.VideoParams
 import info.dvkr.screenstream.rtsp.internal.rtsp.RtspMessage
-import info.dvkr.screenstream.rtsp.internal.rtsp.client.RtspClient
+import info.dvkr.screenstream.rtsp.internal.rtsp.core.RtspBaseMessageHandler
+import info.dvkr.screenstream.rtsp.internal.rtsp.core.SdpBuilder
+import info.dvkr.screenstream.rtsp.internal.rtsp.core.TransportHeader
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -25,6 +29,8 @@ internal class RtspServerMessageHandler(
 
     internal fun getSessionFromRequest(request: String): String? = extractSessionHeader(request)
 
+//    internal fun getContentLength(request: String): Int = extractContentLength(request)
+
     internal fun parseClientPorts(transport: String): Pair<Int, Int>? = TransportHeader.parse(transport)?.clientPorts
 
     internal fun createOptionsResponse(cSeq: Int): RtspMessage =
@@ -36,8 +42,8 @@ internal class RtspServerMessageHandler(
 
     internal fun createDescribeResponse(
         cSeq: Int,
-        videoParams: RtspClient.VideoParams,
-        audioParams: RtspClient.AudioParams?
+        videoParams: VideoParams,
+        audioParams: AudioParams?
     ): RtspMessage =
         ResponseBuilder.ok()
             .withCSeq(cSeq)
@@ -88,9 +94,8 @@ internal class RtspServerMessageHandler(
         urlOverrides: Map<Int, String>? = null
     ): RtspMessage {
         val rtpInfo = trackInfo.toSortedMap().entries.joinToString(",") { (tid, info) ->
-            val ssrcHex = String.format(Locale.US, "%08X", (info.ssrc and 0xFFFFFFFFL))
             val url = urlOverrides?.get(tid) ?: trackUri(tid)
-            "url=${url};seq=${max(0, info.seq)};rtptime=${info.rtpTime};ssrc=$ssrcHex"
+            "url=${url};seq=${max(0, info.seq)};rtptime=${info.rtpTime}"
         }
         return ResponseBuilder.ok()
             .withCSeq(cSeq)
@@ -135,6 +140,7 @@ internal class RtspServerMessageHandler(
             454 -> "Session Not Found"
             461 -> "Unsupported Transport"
             500 -> "Internal Server Error"
+            503 -> "Service Unavailable"
             else -> "Unknown Error"
         }
         return ResponseBuilder.error(code, status)

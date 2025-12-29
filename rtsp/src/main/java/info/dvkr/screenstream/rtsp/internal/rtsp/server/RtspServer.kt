@@ -1,10 +1,11 @@
 package info.dvkr.screenstream.rtsp.internal.rtsp.server
 
+import info.dvkr.screenstream.rtsp.internal.AudioParams
+import info.dvkr.screenstream.rtsp.internal.Codec
 import info.dvkr.screenstream.rtsp.internal.MediaFrame
 import info.dvkr.screenstream.rtsp.internal.RtspNetInterface
 import info.dvkr.screenstream.rtsp.internal.RtspStreamingService
-import info.dvkr.screenstream.rtsp.internal.rtsp.client.RtspClient
-import info.dvkr.screenstream.rtsp.internal.rtsp.core.RtspServerMessageHandler
+import info.dvkr.screenstream.rtsp.internal.VideoParams
 import info.dvkr.screenstream.rtsp.internal.rtsp.sockets.TcpStreamSocket
 import info.dvkr.screenstream.rtsp.settings.RtspSettings
 import info.dvkr.screenstream.rtsp.ui.RtspError
@@ -26,7 +27,9 @@ import java.util.concurrent.atomic.AtomicReference
 
 internal class RtspServer(
     private val appVersion: String,
-    private val onEvent: (RtspStreamingService.InternalEvent) -> Unit
+    private val generation: Long,
+    private val onEvent: (RtspStreamingService.InternalEvent) -> Unit,
+    private val onRequestKeyFrame: () -> Unit
 ) {
     private var scopeJob: Job = SupervisorJob()
     private var scope: CoroutineScope = CoroutineScope(scopeJob + Dispatchers.IO)
@@ -36,15 +39,28 @@ internal class RtspServer(
     private val serverSockets: MutableList<Pair<ServerSocket, String>> = mutableListOf()
 
     private val rtspServerConnections = mutableListOf<RtspServerConnection>()
-    private val videoParams = AtomicReference<RtspClient.VideoParams?>()
-    private val audioParams = AtomicReference<RtspClient.AudioParams?>()
+    private val videoParams = AtomicReference<VideoParams?>()
+    private val audioParams = AtomicReference<AudioParams?>()
 
-    internal fun setVideoData(videoParams: RtspClient.VideoParams) {
-        this.videoParams.set(videoParams)
+    internal fun setVideoData(videoCodec: Codec.Video, sps: ByteArray, pps: ByteArray?, vps: ByteArray?) {
+        val newParams = VideoParams(videoCodec, sps, pps, vps)
+        if (videoParams.get()?.contentEquals(newParams) == true) return
+        this.videoParams.set(newParams)
+
+        val snapshot = synchronized(rtspServerConnections) { rtspServerConnections.toList() }
+        if (snapshot.isNotEmpty()) {
+            onRequestKeyFrame()
+            snapshot.forEach { it.onVideoParamsChanged() }
+        }
     }
 
-    internal fun setAudioData(audioParams: RtspClient.AudioParams) {
+    internal fun setAudioData(audioParams: AudioParams) {
         this.audioParams.set(audioParams)
+    }
+
+    internal fun clearMediaParams() {
+        videoParams.set(null)
+        audioParams.set(null)
     }
 
     internal fun getClientStatsSnapshot(): List<ClientStats> =
@@ -54,7 +70,7 @@ internal class RtspServer(
         addresses: List<RtspNetInterface>,
         port: Int,
         path: String,
-        protocol: RtspSettings.Values.ServerProtocolPolicy
+        protocol: RtspSettings.Values.ProtocolPolicy
     ) {
         if (serverJob?.isActive == true) stop()
 
@@ -95,7 +111,7 @@ internal class RtspServer(
                     return@launch
                 }
 
-                onEvent(RtspStreamingService.InternalEvent.RtspServerOnStart)
+                onEvent(RtspStreamingService.InternalEvent.RtspServer.OnStart(generation))
 
                 serverSockets.forEach { (serverSocket, boundHost) ->
                     launch {
@@ -108,12 +124,14 @@ internal class RtspServer(
                                 continue
                             }
                             val serverConnection = RtspServerConnection(
+                                parentJob = scopeJob,
                                 tcpStreamSocket = TcpStreamSocket(scope.coroutineContext, selectorManager, clientSocket),
                                 serverMessageHandler = RtspServerMessageHandler(appVersion, boundHost, port, path),
                                 videoParams,
                                 audioParams,
-                                ::onClientEvent,
-                                protocol
+                                serverProtocolPolicy = protocol,
+                                onRequestKeyFrame = onRequestKeyFrame,
+                                onClosed = { synchronized(rtspServerConnections) { rtspServerConnections.remove(it) } }
                             )
                             synchronized(rtspServerConnections) { rtspServerConnections.add(serverConnection) }
                             serverConnection.start()
@@ -147,7 +165,7 @@ internal class RtspServer(
         runCatching { selectorManager?.close() }
         selectorManager = null
         runCatching { scopeJob.cancel() }
-        onEvent(RtspStreamingService.InternalEvent.RtspServerOnStop)
+        onEvent(RtspStreamingService.InternalEvent.RtspServer.OnStop(generation))
     }
 
     private suspend fun disconnectAllClientsSuspend() {
@@ -205,12 +223,5 @@ internal class RtspServer(
         }
 
         shared.releaseOne()
-    }
-
-    private fun onClientEvent(event: RtspStreamingService.InternalEvent) {
-        if (event is RtspStreamingService.InternalEvent.RtspServerOnClientDisconnected) {
-            synchronized(rtspServerConnections) { rtspServerConnections.remove(event.rtspServerConnection) }
-        }
-        onEvent(event)
     }
 }
