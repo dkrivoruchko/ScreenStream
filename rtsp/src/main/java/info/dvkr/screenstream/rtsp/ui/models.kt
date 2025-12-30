@@ -10,47 +10,26 @@ import info.dvkr.screenstream.rtsp.internal.rtsp.server.ClientStats
 import info.dvkr.screenstream.rtsp.settings.RtspSettings
 
 @Immutable
-internal data class RtspState(
-    val isBusy: Boolean = true,
-    val waitingCastPermission: Boolean = false,
-    val isStreaming: Boolean = false,
-    val selectedVideoEncoder: VideoCodecInfo? = null,
-    val selectedAudioEncoder: AudioCodecInfo? = null,
-    val modeState: RtspModeState = RtspModeState(),
-    val serverClientStats: List<ClientStats> = emptyList(),
-    val error: RtspError? = null
-) {
-    override fun toString(): String =
-        "RtspState(isBusy=$isBusy, wCP=$waitingCastPermission, isStreaming=$isStreaming, transport=$modeState, clients=${serverClientStats.size}, error=$error)"
-}
+internal enum class RtspClientStatus { IDLE, STARTING, ACTIVE, ERROR }
 
 @Immutable
 internal data class RtspBinding(val label: String, val fullAddress: String)
 
 @Immutable
-internal data class RtspModeState(
+internal data class RtspState(
     val mode: RtspSettings.Values.Mode = RtspSettings.Default.MODE,
-    val status: Status = Status.Idle
+    val isBusy: Boolean = true,
+    val waitingCastPermission: Boolean = false,
+    val isStreaming: Boolean = false,
+    val selectedVideoEncoder: VideoCodecInfo? = null,
+    val selectedAudioEncoder: AudioCodecInfo? = null,
+    val serverBindings: List<RtspBinding> = emptyList(),
+    val serverClientStats: List<ClientStats> = emptyList(),
+    val clientStatus: RtspClientStatus = RtspClientStatus.IDLE,
+    val error: RtspError? = null
 ) {
-    @Immutable
-    internal sealed interface Status {
-        data object Idle : Status
-        data class Error(val error: RtspError) : Status
-
-        @Immutable
-        sealed interface Client : Status {
-            data object Starting : Status
-            data object Active : Status
-        }
-
-        @Immutable
-        sealed interface Server : Status {
-            data class Starting(val bindings: List<RtspBinding> = emptyList()) : Status
-            data class Active(val bindings: List<RtspBinding> = emptyList()) : Status
-        }
-    }
-
-    override fun toString(): String = "RtspModeState(mode=$mode, status=$status)"
+    override fun toString(): String =
+        "RtspViewState(mode=$mode, isBusy=$isBusy, wCP=$waitingCastPermission, isStreaming=$isStreaming, serverClients=${serverClientStats.size}, clientStatus=$clientStatus, error=$error)"
 }
 
 @Immutable

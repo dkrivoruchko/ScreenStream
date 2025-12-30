@@ -158,12 +158,12 @@ internal class RtspServer(
         val snapshot = synchronized(rtspServerConnections) { rtspServerConnections.toList().also { rtspServerConnections.clear() } }
         snapshot.forEach { runCatching { it.stop() } }
 
-        runCatching { serverJob?.cancelAndJoin() }
         serverSockets.forEach { runCatching { it.first.close() } }
         serverSockets.clear()
-        serverJob = null
         runCatching { selectorManager?.close() }
         selectorManager = null
+        runCatching { serverJob?.cancelAndJoin() }
+        serverJob = null
         runCatching { scopeJob.cancel() }
         onEvent(RtspStreamingService.InternalEvent.RtspServer.OnStop(generation))
     }

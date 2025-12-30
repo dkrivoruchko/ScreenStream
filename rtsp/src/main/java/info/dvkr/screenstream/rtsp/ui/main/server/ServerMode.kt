@@ -45,7 +45,6 @@ import info.dvkr.screenstream.common.generateQRBitmap
 import info.dvkr.screenstream.rtsp.R
 import info.dvkr.screenstream.rtsp.settings.RtspSettings
 import info.dvkr.screenstream.rtsp.ui.RtspBinding
-import info.dvkr.screenstream.rtsp.ui.RtspModeState
 import info.dvkr.screenstream.rtsp.ui.RtspState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -58,14 +57,8 @@ internal fun ServerMode(
     rtspSettings: RtspSettings = koinInject(),
     scope: CoroutineScope = rememberCoroutineScope()
 ) {
-    val bindings = when (val status = rtspState.value.modeState.status) {
-        is RtspModeState.Status.Server.Starting -> status.bindings
-        is RtspModeState.Status.Server.Active -> status.bindings
-        else -> emptyList()
-    }
-
     Column(modifier = modifier) {
-        if (bindings.isEmpty()) {
+        if (rtspState.value.serverBindings.isEmpty()) {
             Text(
                 text = stringResource(id = R.string.rtsp_interfaces_no_address),
                 modifier = Modifier.padding(8.dp),
@@ -73,12 +66,12 @@ internal fun ServerMode(
                 style = MaterialTheme.typography.titleMedium
             )
         } else {
-            bindings.forEachIndexed { index, binding ->
+            rtspState.value.serverBindings.forEachIndexed { index, binding ->
                 AddressRow(
                     binding = binding,
                     modifier = Modifier.padding(top = 12.dp, bottom = 4.dp, start = 12.dp, end = 0.dp)
                 )
-                if (index != bindings.lastIndex) {
+                if (index != rtspState.value.serverBindings.lastIndex) {
                     HorizontalDivider(modifier = Modifier.fillMaxWidth())
                 }
             }

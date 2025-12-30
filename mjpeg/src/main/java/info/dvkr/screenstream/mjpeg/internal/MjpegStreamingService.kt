@@ -125,6 +125,7 @@ internal class MjpegStreamingService(
         override fun toString(): String = "${javaClass.simpleName}[$msg]"
     }
 
+    @Suppress("OVERRIDE_DEPRECATION")
     private val componentCallback = object : ComponentCallbacks {
         override fun onConfigurationChanged(newConfig: Configuration) = sendEvent(InternalEvent.ConfigurationChange(newConfig))
         override fun onLowMemory() = Unit

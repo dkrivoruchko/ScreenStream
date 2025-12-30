@@ -10,7 +10,6 @@ import info.dvkr.screenstream.rtsp.internal.Protocol
 import info.dvkr.screenstream.rtsp.internal.RtpFrame
 import info.dvkr.screenstream.rtsp.internal.RtspStreamingService
 import info.dvkr.screenstream.rtsp.internal.VideoParams
-import info.dvkr.screenstream.rtsp.internal.audio.AudioSource
 import info.dvkr.screenstream.rtsp.internal.interleavedHeader
 import info.dvkr.screenstream.rtsp.internal.rtsp.BitrateCalculator
 import info.dvkr.screenstream.rtsp.internal.rtsp.RtcpReporter
@@ -228,12 +227,12 @@ internal class RtspClient(
 
     @Throws
     @AnyThread
-    internal fun setAudioData(audioCodec: Codec.Audio, params: AudioSource.Params) = synchronized(rtspLock) {
-        XLog.d(getLog("setAudioData", "$audioCodec"))
+    internal fun setAudioData(params: AudioParams) = synchronized(rtspLock) {
+        XLog.d(getLog("setAudioData", "${params.codec}"))
         if (currentState == State.STREAMING) error("Cannot change audio codec while streaming")
         if (onlyVideo) error("Cannot change audio codec in only video mode")
 
-        audioParams.set(AudioParams(audioCodec, params.sampleRate, params.isStereo))
+        audioParams.set(params)
     }
 
     @AnyThread

@@ -65,7 +65,7 @@ public class RtspModuleService : StreamingModuleService() {
             return START_NOT_STICKY
         }
 
-        if (streamingModuleManager.isActive(RtspStreamingModule.Companion.Id)) {
+        if (streamingModuleManager.isActive(RtspStreamingModule.Id)) {
             when (mjpegEvent) {
                 is RtspEvent.Intentable.StartService -> rtspStreamingModule.onServiceStart(this)
                 is RtspEvent.Intentable.StopStream -> rtspStreamingModule.sendEvent(mjpegEvent)
@@ -81,7 +81,7 @@ public class RtspModuleService : StreamingModuleService() {
 
     override fun onDestroy() {
         XLog.d(getLog("onDestroy"))
-        runBlocking { streamingModuleManager.stopModule(RtspStreamingModule.Companion.Id) }
+        runBlocking { streamingModuleManager.stopModule(RtspStreamingModule.Id) }
         super.onDestroy()
     }
 

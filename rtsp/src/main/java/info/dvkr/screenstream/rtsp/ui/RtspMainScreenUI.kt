@@ -68,9 +68,9 @@ internal fun RtspMainScreenUI(
             state = lazyVerticalStaggeredGridState,
             contentPadding = PaddingValues(start = 8.dp, end = 8.dp, bottom = 64.dp),
         ) {
-            if (rtspState.value.error is RtspError.UnknownError) {
+            if (rtspState.value.error is RtspError.UnknownError || rtspState.value.error is RtspError.NotificationPermissionRequired) {
                 item(key = "ERROR") {
-                    val error = rtspState.value.error as RtspError.UnknownError
+                    val error = rtspState.value.error as RtspError
                     ErrorCard(error = error, sendEvent = sendEvent, modifier = Modifier.padding(8.dp))
                 }
             }
@@ -102,7 +102,7 @@ internal fun RtspMainScreenUI(
 
         val doubleClickProtection = remember { DoubleClickProtection.get() }
 
-        val mediaServerUrlError = rtspState.value.modeState.mode == RtspSettings.Values.Mode.CLIENT &&
+        val mediaServerUrlError = rtspState.value.mode == RtspSettings.Values.Mode.CLIENT &&
                 runCatching { RtspUrl.parse(rtspSettingsState.value.serverAddress) }.isFailure
 
         Button(
