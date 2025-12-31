@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="rtsp_error_recover">ማገገም</string>
     <string name="rtsp_error_open_settings">ቅንብሮችን ክፈት</string>
@@ -15,6 +16,25 @@
 - በጣም ብጁ የሚሆን።\n
 </string>
 
+    <string name="rtsp_mode_card_title">የRTSP ሁነታ ይምረጡ፡</string>
+    <string name="rtsp_mode_server">አገልጋይ</string>
+    <string name="rtsp_mode_server_hint">ይህን መሳሪያ እንደ RTSP አገልጋይ አስተናግድ</string>
+    <string name="rtsp_mode_client">ደንበኛ</string>
+    <string name="rtsp_mode_client_hint">ወደ ሩቅ RTSP አገልጋይ ተገናኝ</string>
+
+    <string name="rtsp_interfaces_title">RTSP አገልጋይ አድራሻ</string>
+    <string name="rtsp_interfaces_no_address">ኔትወርክ አድራሻዎች አልተገኙም።\nየኔትወርክ ግንኙነትን እና መገናኛ ማጣሪያዎችን ያረጋግጡ።</string>
+    <string name="rtsp_interfaces_interface_label">በይነገጽ፡\n%1$s</string>
+    <string name="rtsp_interfaces_description_copy">አድራሻ ቅዳ</string>
+    <string name="rtsp_interfaces_description_share">አድራሻ አጋራ</string>
+    <string name="rtsp_interfaces_description_qr">አድራሻ እንደ QR-code አሳይ</string>
+    <string name="rtsp_interfaces_qr_content_description">QR-code</string>
+    <string name="rtsp_interfaces_copied">አድራሻ ተገልብጧል</string>
+    <string name="rtsp_interfaces_share_title">RTSP አድራሻ አጋራ</string>
+
+    <string name="rtsp_server_parameters">የአገልጋይ ፓራሜትሮች</string>
+    <string name="rtsp_client_parameters">የደንበኛ ፓራሜትሮች</string>
+
     <string name="rtsp_stream_start">ዥረት ጀምር</string>
     <string name="rtsp_stream_stop">ዥረት አቁም</string>
 
@@ -31,6 +51,12 @@
     <string name="rtsp_connection_connecting">ከአገልጋይ ጋር በመገናኘት ላይ…</string>
     <string name="rtsp_connection_disconnected">አገልጋይ ተቋርጧል</string>
     <string name="rtsp_connection_error">የግንኙነት ስህተት</string>
+
+    <string name="rtsp_label_ipv4_lan">IPv4 LAN</string>
+    <string name="rtsp_label_ipv6_ula">IPv6 ULA</string>
+    <string name="rtsp_label_public_ipv4">ህዝባዊ IPv4</string>
+    <string name="rtsp_label_public_ipv6">ህዝባዊ IPv6</string>
+    <string name="rtsp_label_loopback">Loopback</string>
 
     <string name="rtsp_video_parameters">የቪዲዮ ፓራሜትሮች</string>
     <string name="rtsp_video_encoder">የቪዲዮ አርቃቂ:</string>
@@ -61,4 +87,28 @@
     <string name="rtsp_connection_access_denied">መዳረሻ ተከልክሏል</string>
     <string name="rtsp_connection_no_credentials">የተጠቃሚ ስምና የይለፍ ቃል ይግለጹ</string>
     <string name="rtsp_connection_invalid_credentials">የተጠቃሚ ስም ወይም የይለፍ ቃል ዋጋ የለውም</string>
+
+    <string name="rtsp_close">ገጠመ</string>
+    <string name="rtsp_pref_protocol">RTSP ፕሮቶኮል</string>
+    <string name="rtsp_pref_protocol_summary">ለRTP ጥቅሎች መጓጓዣ ይምረጡ</string>
+    <string name="rtsp_pref_interface_filter">መገናኛ ማጣሪያ</string>
+    <string name="rtsp_pref_interface_filter_summary">ለአገልጋዩ የአውታረ መረብ መገናኛዎችን ይምረጡ</string>
+    <string name="rtsp_pref_interface_filter_wifi">ዋይ-ፋይ</string>
+    <string name="rtsp_pref_interface_filter_mobile">ሞባይል</string>
+    <string name="rtsp_pref_interface_filter_ethernet">ኢተርኔት</string>
+    <string name="rtsp_pref_interface_filter_vpn">ቪፒኤን</string>
+    <string name="rtsp_pref_interface_filter_unknown">ያልታወቀ</string>
+    <string name="rtsp_pref_filter_no_restriction">ገደብ የለም</string>
+    <string name="rtsp_pref_address_filter">አድራሻ ማጣሪያ</string>
+    <string name="rtsp_pref_address_filter_summary">ለአገልጋዩ የአይፒ አድራሻ አይነቶችን ይምረጡ</string>
+    <string name="rtsp_pref_address_filter_private">የግል</string>
+    <string name="rtsp_pref_address_filter_localhost">Localhost</string>
+    <string name="rtsp_pref_address_filter_public">ህዝባዊ</string>
+    <string name="rtsp_pref_enable_ipv4">IPv4 አክቲቭ አድርግ</string>
+    <string name="rtsp_pref_enable_ipv4_summary">አገልጋዩን በIPv4 አድራሻዎች ላይ አስኬድ</string>
+    <string name="rtsp_pref_enable_ipv6">IPv6 አክቲቭ አድርግ</string>
+    <string name="rtsp_pref_enable_ipv6_summary">አገልጋዩን በIPv6 አድራሻዎች ላይ አስኬድ</string>
+    <string name="rtsp_pref_server_port">የአገልጋይ ወደብ</string>
+    <string name="rtsp_pref_server_port_summary">ለገቢ ግንኙነቶች ወደብ ያዘጋጁ</string>
+    <string name="rtsp_pref_server_port_text">ለመጪ ግንኙነቶች የአገልጋይ ወደብ ያዘጋጁ።\nዋጋ፡ 1025–65535\nነባሪ፡ 8554</string>
 </resources>

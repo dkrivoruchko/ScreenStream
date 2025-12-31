@@ -16,26 +16,22 @@ internal class BitrateCalculator(
     private var startNs: Long = 0L
     private var job: Job? = null
 
-    private fun reset() {
-        startNs = System.nanoTime()
-        totalBytes.set(0)
-    }
-
     fun start() {
         if (job?.isActive == true) return
-        reset()
+        startNs = System.nanoTime()
+        totalBytes.set(0)
         job = scope.launch {
             while (isActive) {
                 delay(1000)
+                val nowNs = System.nanoTime()
+                val elapsedNs = nowNs - startNs
                 val currentBytes = totalBytes.getAndSet(0)
-                val elapsedNs = System.nanoTime() - startNs
+                startNs = nowNs
                 if (elapsedNs <= 0) {
-                    reset()
                     continue
                 }
                 val bitsPerSecond = currentBytes * 8_000_000_000L / elapsedNs
                 onBitrate(bitsPerSecond)
-                reset()
             }
         }
     }

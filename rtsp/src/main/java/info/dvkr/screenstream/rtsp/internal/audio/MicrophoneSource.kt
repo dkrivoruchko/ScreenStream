@@ -26,6 +26,7 @@ internal class MicrophoneSource(
             audioCapture.micVolume = value
         }
 
+    @Throws
     @RequiresPermission(Manifest.permission.RECORD_AUDIO)
     override fun checkIfConfigurationSupported() = audioCapture.checkIfConfigurationSupported(audioSource)
 

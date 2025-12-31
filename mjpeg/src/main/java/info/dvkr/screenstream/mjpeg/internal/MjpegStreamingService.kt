@@ -125,6 +125,7 @@ internal class MjpegStreamingService(
         override fun toString(): String = "${javaClass.simpleName}[$msg]"
     }
 
+    @Suppress("OVERRIDE_DEPRECATION")
     private val componentCallback = object : ComponentCallbacks {
         override fun onConfigurationChanged(newConfig: Configuration) = sendEvent(InternalEvent.ConfigurationChange(newConfig))
         override fun onLowMemory() = Unit
@@ -395,8 +396,9 @@ internal class MjpegStreamingService(
                 sendEvent(MjpegEvent.Intentable.StopStream("ScreenOff"))
 
             is InternalEvent.ConfigurationChange -> {
+                val newConfig = Configuration(event.newConfig)
                 if (isStreaming) {
-                    val configDiff = deviceConfiguration.diff(event.newConfig)
+                    val configDiff = deviceConfiguration.diff(newConfig)
                     if (
                         configDiff and ActivityInfo.CONFIG_ORIENTATION != 0 || configDiff and ActivityInfo.CONFIG_SCREEN_LAYOUT != 0 ||
                         configDiff and ActivityInfo.CONFIG_SCREEN_SIZE != 0 || configDiff and ActivityInfo.CONFIG_DENSITY != 0
@@ -408,7 +410,7 @@ internal class MjpegStreamingService(
                 } else {
                     XLog.d(getLog("ConfigurationChange", "Not streaming. Ignoring."))
                 }
-                deviceConfiguration = Configuration(event.newConfig)
+                deviceConfiguration = Configuration(newConfig)
             }
 
             is InternalEvent.CapturedContentResize -> {

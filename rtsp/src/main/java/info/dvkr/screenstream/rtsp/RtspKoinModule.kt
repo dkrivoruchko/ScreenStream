@@ -2,6 +2,7 @@ package info.dvkr.screenstream.rtsp
 
 import info.dvkr.screenstream.common.module.StreamingModule
 import info.dvkr.screenstream.rtsp.internal.RtspStreamingService
+import info.dvkr.screenstream.rtsp.internal.rtsp.server.NetworkHelper
 import info.dvkr.screenstream.rtsp.settings.RtspSettings
 import info.dvkr.screenstream.rtsp.settings.RtspSettingsImpl
 import org.koin.core.component.KoinScopeComponent
@@ -21,7 +22,8 @@ internal val RtspKoinQualifier: Qualifier = StringQualifier("RtspStreamingModule
 public val RtspKoinModule: org.koin.core.module.Module = module {
     single(RtspKoinQualifier) { RtspStreamingModule() } bind (StreamingModule::class)
     single { RtspSettingsImpl(context = get()) } bind (RtspSettings::class)
+    single { NetworkHelper(context = get()) } bind (NetworkHelper::class)
     scope<RtspKoinScope> {
-        scoped { params -> RtspStreamingService(params.get(), params.get(), get()) } bind (RtspStreamingService::class)
+        scoped { params -> RtspStreamingService(params.get(), params.get(), get(), get()) } bind (RtspStreamingService::class)
     }
 }

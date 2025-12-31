@@ -16,6 +16,25 @@
 - Juda moslashuvchan.\n
 </string>
 
+    <string name="rtsp_mode_card_title">RTSP rejimini tanlang:</string>
+    <string name="rtsp_mode_server">Server</string>
+    <string name="rtsp_mode_server_hint">Ushbu qurilmani RTSP server sifatida ishga tushiring</string>
+    <string name="rtsp_mode_client">Mijoz</string>
+    <string name="rtsp_mode_client_hint">Masofadagi RTSP serverga ulang</string>
+
+    <string name="rtsp_interfaces_title">RTSP server manzili</string>
+    <string name="rtsp_interfaces_no_address">Tarmoq manzillari mavjud emas.\nTarmoq ulanishini va interfeys filtrlarini tekshiring.</string>
+    <string name="rtsp_interfaces_interface_label">Interfeys:\n%1$s</string>
+    <string name="rtsp_interfaces_description_copy">Manzilni nusxalash</string>
+    <string name="rtsp_interfaces_description_share">Manzilni ulashish</string>
+    <string name="rtsp_interfaces_description_qr">Manzilni QR-kod sifatida ko\'rsatish</string>
+    <string name="rtsp_interfaces_qr_content_description">QR-kod</string>
+    <string name="rtsp_interfaces_copied">Manzil nusxalandi</string>
+    <string name="rtsp_interfaces_share_title">RTSP manzilini ulashish</string>
+
+    <string name="rtsp_server_parameters">Server parametrlari</string>
+    <string name="rtsp_client_parameters">Mijoz parametrlari</string>
+
     <string name="rtsp_stream_start">Translyatsiyani boshlash</string>
     <string name="rtsp_stream_stop">Translyatsiyani to\'xtatish</string>
 
@@ -32,6 +51,12 @@
     <string name="rtsp_connection_connecting">Serverga ulanmoqda…</string>
     <string name="rtsp_connection_disconnected">Server uzildi</string>
     <string name="rtsp_connection_error">Ulanish xatosi</string>
+
+    <string name="rtsp_label_ipv4_lan">IPv4 LAN</string>
+    <string name="rtsp_label_ipv6_ula">IPv6 ULA</string>
+    <string name="rtsp_label_public_ipv4">Ommaviy IPv4</string>
+    <string name="rtsp_label_public_ipv6">Ommaviy IPv6</string>
+    <string name="rtsp_label_loopback">Loopback</string>
 
     <string name="rtsp_video_parameters">Video parametrlari</string>
     <string name="rtsp_video_encoder">Video kodlovchi:</string>
@@ -62,4 +87,28 @@
     <string name="rtsp_connection_access_denied">Kirish rad etildi</string>
     <string name="rtsp_connection_no_credentials">Foydalanuvchi nomi va parolni kiriting</string>
     <string name="rtsp_connection_invalid_credentials">Foydalanuvchi nomi yoki parol noto\'g\'ri</string>
+
+    <string name="rtsp_close">Yopish</string>
+    <string name="rtsp_pref_protocol">RTSP protokoli</string>
+    <string name="rtsp_pref_protocol_summary">RTP paketlari uchun transportni tanlang</string>
+    <string name="rtsp_pref_interface_filter">Interfeys filtri</string>
+    <string name="rtsp_pref_interface_filter_summary">Server uchun tarmoq interfeyslarini tanlang</string>
+    <string name="rtsp_pref_interface_filter_wifi">Wi-Fi</string>
+    <string name="rtsp_pref_interface_filter_mobile">Mobil</string>
+    <string name="rtsp_pref_interface_filter_ethernet">Ethernet</string>
+    <string name="rtsp_pref_interface_filter_vpn">VPN</string>
+    <string name="rtsp_pref_interface_filter_unknown">noma\'lum</string>
+    <string name="rtsp_pref_filter_no_restriction">Cheklovsiz</string>
+    <string name="rtsp_pref_address_filter">Manzil filtri</string>
+    <string name="rtsp_pref_address_filter_summary">Server uchun IP manzil turlarini tanlang</string>
+    <string name="rtsp_pref_address_filter_private">Shaxsiy</string>
+    <string name="rtsp_pref_address_filter_localhost">Localhost</string>
+    <string name="rtsp_pref_address_filter_public">Ommaviy</string>
+    <string name="rtsp_pref_enable_ipv4">IPv4 yoqish</string>
+    <string name="rtsp_pref_enable_ipv4_summary">Serverni IPv4 manzillarda ishga tushiring</string>
+    <string name="rtsp_pref_enable_ipv6">IPv6 yoqish</string>
+    <string name="rtsp_pref_enable_ipv6_summary">Serverni IPv6 manzillarda ishga tushiring</string>
+    <string name="rtsp_pref_server_port">Server porti</string>
+    <string name="rtsp_pref_server_port_summary">Kiruvchi ulanishlar uchun portni o\'rnating</string>
+    <string name="rtsp_pref_server_port_text">Kiruvchi ulanishlar uchun server portini o\'rnating.\nQiymatlar: 1025–65535\nStandart: 8554</string>
 </resources>

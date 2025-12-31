@@ -10,8 +10,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
-import androidx.compose.material.icons.materialIcon
-import androidx.compose.material.icons.materialPath
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -19,13 +17,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -40,8 +35,10 @@ import info.dvkr.screenstream.rtsp.internal.rtsp.RtspUrl
 import info.dvkr.screenstream.rtsp.settings.RtspSettings
 import info.dvkr.screenstream.rtsp.ui.main.AudioCard
 import info.dvkr.screenstream.rtsp.ui.main.ErrorCard
-import info.dvkr.screenstream.rtsp.ui.main.MediaServerCard
+import info.dvkr.screenstream.rtsp.ui.main.ModeCard
 import info.dvkr.screenstream.rtsp.ui.main.VideoCard
+import info.dvkr.screenstream.rtsp.ui.main.client.ClientParametersCard
+import info.dvkr.screenstream.rtsp.ui.main.server.ServerParametersCard
 import kotlinx.coroutines.flow.StateFlow
 import org.koin.compose.koinInject
 
@@ -53,6 +50,7 @@ internal fun RtspMainScreenUI(
     rtspSettings: RtspSettings = koinInject()
 ) {
     val rtspState = rtspStateFlow.collectAsStateWithLifecycle()
+    val rtspSettingsState = rtspSettings.data.collectAsStateWithLifecycle()
 
     BoxWithConstraints(modifier = modifier) {
         MediaProjectionPermission(
@@ -70,15 +68,25 @@ internal fun RtspMainScreenUI(
             state = lazyVerticalStaggeredGridState,
             contentPadding = PaddingValues(start = 8.dp, end = 8.dp, bottom = 64.dp),
         ) {
-            if (rtspState.value.error is RtspError.UnknownError) {
+            if (rtspState.value.error is RtspError.UnknownError || rtspState.value.error is RtspError.NotificationPermissionRequired) {
                 item(key = "ERROR") {
-                    val error = rtspState.value.error as RtspError.UnknownError
+                    val error = rtspState.value.error as RtspError
                     ErrorCard(error = error, sendEvent = sendEvent, modifier = Modifier.padding(8.dp))
                 }
             }
 
-            item(key = "MediaServer") {
-                MediaServerCard(rtspState = rtspState, modifier = Modifier.padding(8.dp))
+            item(key = "MODE") {
+                ModeCard(rtspState = rtspState, modifier = Modifier.padding(8.dp))
+            }
+            if (rtspSettingsState.value.mode == RtspSettings.Values.Mode.SERVER) {
+                item(key = "SERVER_PARAMETERS") {
+                    ServerParametersCard(rtspState = rtspState, modifier = Modifier.padding(8.dp))
+                }
+            }
+            if (rtspSettingsState.value.mode == RtspSettings.Values.Mode.CLIENT) {
+                item(key = "CLIENT_PARAMETERS") {
+                    ClientParametersCard(rtspState = rtspState, modifier = Modifier.padding(8.dp))
+                }
             }
             item(key = "VIDEO") {
                 VideoCard(rtspState = rtspState, modifier = Modifier.padding(8.dp))
@@ -94,10 +102,8 @@ internal fun RtspMainScreenUI(
 
         val doubleClickProtection = remember { DoubleClickProtection.get() }
 
-        val rtspSettingsState = rtspSettings.data.collectAsStateWithLifecycle()
-        var mediaServerUrlError by remember(rtspSettingsState.value.serverAddress) {
-            mutableStateOf(runCatching { RtspUrl.parse(rtspSettingsState.value.serverAddress) }.isFailure)
-        }
+        val mediaServerUrlError = rtspState.value.mode == RtspSettings.Values.Mode.CLIENT &&
+                runCatching { RtspUrl.parse(rtspSettingsState.value.serverAddress) }.isFailure
 
         Button(
             onClick = dropUnlessStarted {
@@ -120,7 +126,10 @@ internal fun RtspMainScreenUI(
             )
         ) {
             Crossfade(targetState = rtspState.value.isStreaming, label = "StreamingButtonCrossfade") { isStreaming ->
-                Icon(imageVector = if (isStreaming) Icon_Stop else Icon_PlayArrow, contentDescription = null)
+                Icon(
+                    painter = painterResource(if (isStreaming) R.drawable.stop_24px else R.drawable.play_arrow_24px),
+                    contentDescription = null
+                )
             }
             Spacer(modifier = Modifier.size(ButtonDefaults.IconSpacing))
             Text(
@@ -128,24 +137,5 @@ internal fun RtspMainScreenUI(
                 style = MaterialTheme.typography.titleMedium
             )
         }
-    }
-}
-
-private val Icon_Stop: ImageVector = materialIcon(name = "Filled.Stop") {
-    materialPath {
-        moveTo(6.0f, 6.0f)
-        horizontalLineToRelative(12.0f)
-        verticalLineToRelative(12.0f)
-        horizontalLineTo(6.0f)
-        close()
-    }
-}
-
-private val Icon_PlayArrow: ImageVector = materialIcon(name = "Filled.PlayArrow") {
-    materialPath {
-        moveTo(8.0f, 5.0f)
-        verticalLineToRelative(14.0f)
-        lineToRelative(11.0f, -7.0f)
-        close()
     }
 }

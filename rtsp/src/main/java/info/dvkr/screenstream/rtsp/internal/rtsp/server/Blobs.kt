@@ -1,0 +1,48 @@
+package info.dvkr.screenstream.rtsp.internal.rtsp.server
+
+import java.util.concurrent.ConcurrentLinkedQueue
+import java.util.concurrent.atomic.AtomicInteger
+
+internal object ByteArrayPool {
+    private const val MAX_PER_BUCKET = 32
+    private val buckets = intArrayOf(4 * 1024, 8 * 1024, 16 * 1024, 32 * 1024, 64 * 1024, 128 * 1024, 256 * 1024, 512 * 1024, 1024 * 1024, 2 * 1024 * 1024)
+    private val pools: Map<Int, ConcurrentLinkedQueue<ByteArray>> = buckets.associateWith { ConcurrentLinkedQueue<ByteArray>() }
+
+    private fun bucketSize(size: Int): Int = buckets.firstOrNull { it >= size } ?: size
+
+    fun get(size: Int): ByteArray {
+        val bsz = bucketSize(size)
+        val q = pools[bsz]
+        return q?.poll() ?: ByteArray(bsz)
+    }
+
+    fun recycle(array: ByteArray) {
+        val bsz = bucketSize(array.size)
+        val q = pools[bsz] ?: return
+        if (q.size >= MAX_PER_BUCKET) return
+        q.offer(array)
+    }
+}
+
+internal class SharedBuffer(val bytes: ByteArray) {
+    private val refs = AtomicInteger(0)
+
+    fun retain(count: Int = 1) {
+        if (count > 0) refs.addAndGet(count)
+    }
+
+    fun releaseOne() {
+        while (true) {
+            val current = refs.get()
+            if (current <= 0) return
+            if (refs.compareAndSet(current, current - 1)) {
+                if (current == 1) ByteArrayPool.recycle(bytes)
+                return
+            }
+        }
+    }
+}
+
+internal data class VideoBlob(val buf: SharedBuffer, val length: Int, val timestampUs: Long, val isKeyFrame: Boolean)
+
+internal data class AudioBlob(val buf: SharedBuffer, val length: Int, val timestampUs: Long)

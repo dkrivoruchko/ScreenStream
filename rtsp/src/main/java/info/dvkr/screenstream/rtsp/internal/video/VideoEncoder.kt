@@ -18,6 +18,7 @@ import info.dvkr.screenstream.rtsp.internal.VideoCodecInfo
 import info.dvkr.screenstream.rtsp.internal.rtsp.packets.Av1Packet
 import info.dvkr.screenstream.rtsp.internal.rtsp.packets.H264Packet
 import info.dvkr.screenstream.rtsp.internal.rtsp.packets.H265Packet
+import info.dvkr.screenstream.rtsp.internal.stripAnnexBStartCode
 import java.nio.ByteBuffer
 
 internal class VideoEncoder(
@@ -45,6 +46,8 @@ internal class VideoEncoder(
     private var handler: Handler? = null
     private var eglRenderer: EglRenderer? = null
     private var isCodecConfigSent: Boolean = false
+    private var lastBitrate: Int? = null
+    private val adjustedBufferInfo = MediaCodec.BufferInfo()
 
     internal var width: Int = 0
         private set
@@ -97,14 +100,20 @@ internal class VideoEncoder(
                 encoder.setCallback(createCodecCallback(), handler)
 
                 videoEncoder = encoder
+                lastBitrate = bitRate
                 currentState = State.PREPARED
             }
         }.onFailure { cause ->
+            cleanupAfterPrepareFailure()
             onError(cause)
         }
     }
 
-    internal fun start() = synchronized(encoderLock) {
+    private fun cleanupAfterPrepareFailure(): Unit = synchronized(encoderLock) {
+        stopInternal(force = true, logTag = "prepareCleanup")
+    }
+
+    internal fun start(): Unit = synchronized(encoderLock) {
         XLog.v(getLog("start"))
         if (currentState != State.PREPARED) {
             XLog.w(getLog("start", "Cannot start unless state is PREPARED. Current: $currentState"))
@@ -118,15 +127,21 @@ internal class VideoEncoder(
         XLog.v(getLog("start", "Done"))
     }
 
-    internal fun stop() = synchronized(encoderLock) {
+    internal fun stop(): Unit = synchronized(encoderLock) {
         XLog.v(getLog("stop"))
-        if (currentState == State.IDLE || currentState == State.STOPPED) {
+        if (stopInternal(force = false, logTag = "stopInternal").not()) return
+        XLog.v(getLog("stop", "Done"))
+    }
+
+    private fun stopInternal(force: Boolean, logTag: String): Boolean {
+        if (!force && (currentState == State.IDLE || currentState == State.STOPPED)) {
             XLog.w(getLog("stop", "Cannot stop unless state is RUNNING. Current: $currentState"))
-            return
+            return false
         }
 
         currentState = State.STOPPED
         isCodecConfigSent = false
+        lastBitrate = null
 
         eglRenderer?.stop()
         eglRenderer = null
@@ -136,7 +151,7 @@ internal class VideoEncoder(
                 stop()
                 release()
             }.onFailure {
-                XLog.w(this@VideoEncoder.getLog("stopInternal", "mediaCodec.stop() exception: ${it.message}"), it)
+                XLog.w(this@VideoEncoder.getLog(logTag, "mediaCodec.stop() exception: ${it.message}"), it)
             }
         }
         videoEncoder = null
@@ -146,15 +161,14 @@ internal class VideoEncoder(
             quitSafely()
             runCatching { join(250) }.onFailure {
                 quit()
-                XLog.w(this@VideoEncoder.getLog("stopInternal", "handlerThread.join() took too long, forcing a shutdown"))
+                XLog.w(this@VideoEncoder.getLog(logTag, "handlerThread.join() took too long, forcing a shutdown"))
             }
         }
         handlerThread = null
         handler = null
 
         currentState = State.IDLE
-
-        XLog.v(getLog("stop", "Done"))
+        return true
     }
 
     internal fun setBitrate(newBitrate: Int): Unit = synchronized(encoderLock) {
@@ -162,10 +176,36 @@ internal class VideoEncoder(
             XLog.w(getLog("setBitrate", "Ignoring setBitrate($newBitrate); not in RUNNING state."))
             return
         }
+        if (newBitrate <= 0) {
+            XLog.w(getLog("setBitrate", "Ignoring non-positive bitrate: $newBitrate"))
+            return
+        }
+        val bitrateRange = codecInfo.capabilities.videoCapabilities?.bitrateRange
+        val bitrate = bitrateRange?.let { newBitrate.coerceIn(it.lower, it.upper) } ?: newBitrate
+        if (bitrate != newBitrate) {
+            XLog.w(getLog("setBitrate", "Clamped bitrate $newBitrate -> $bitrate"))
+        }
+        if (lastBitrate == bitrate) return
         runCatching {
-            videoEncoder?.setParameters(Bundle().apply { putInt(MediaCodec.PARAMETER_KEY_VIDEO_BITRATE, newBitrate) })
+            videoEncoder?.setParameters(Bundle().apply { putInt(MediaCodec.PARAMETER_KEY_VIDEO_BITRATE, bitrate) })
+        }.onSuccess {
+            lastBitrate = bitrate
         }.onFailure {
             XLog.w(getLog("setBitrate", "Error while updating bitrate; codec in invalid state."), it)
+        }
+    }
+
+    internal fun requestKeyFrame(): Unit = synchronized(encoderLock) {
+        if (currentState != State.RUNNING) {
+            XLog.w(getLog("requestKeyFrame", "Ignoring; encoder not RUNNING (state=$currentState)"))
+            return
+        }
+        runCatching {
+            val bundle = Bundle().apply { putInt(MediaCodec.PARAMETER_KEY_REQUEST_SYNC_FRAME, 0) }
+            videoEncoder?.setParameters(bundle)
+            XLog.v(getLog("requestKeyFrame", "Sync frame requested"))
+        }.onFailure {
+            XLog.w(getLog("requestKeyFrame", "Failed: ${it.message}"), it)
         }
     }
 
@@ -178,29 +218,43 @@ internal class VideoEncoder(
             runCatching {
                 val videoFrame = synchronized(encoderLock) {
                     if (currentState != State.RUNNING || info.size == 0) {
-                        runCatching { codec.releaseOutputBuffer(index, false) }
+                        releaseOutputBufferSafely(codec, index)
                         return
                     }
 
                     val outputBuffer = codec.getOutputBuffer(index) ?: run {
-                        runCatching { codec.releaseOutputBuffer(index, false) }
+                        releaseOutputBufferSafely(codec, index)
                         return
                     }
 
                     outputBuffer.position(info.offset)
                     outputBuffer.limit(info.offset + info.size)
 
-                    val adjustedInfo = MediaCodec.BufferInfo().apply {
+                    val adjustedInfo = adjustedBufferInfo.apply {
                         val forcedPtsUs = MasterClock.relativeTimeUs()
                         set(info.offset, info.size, forcedPtsUs, info.flags)
                     }
 
-                    if (!isCodecConfigSent &&
-                        (adjustedInfo.flags.hasFlag(MediaCodec.BUFFER_FLAG_CODEC_CONFIG) ||
-                                adjustedInfo.flags.hasFlag(MediaCodec.BUFFER_FLAG_KEY_FRAME))
-                    ) {
-                        outputBuffer.duplicate().extractCodecConfig()?.let { (sps, pps, vps) ->
-                            onVideoInfo(sps, pps, vps)
+                    val flags = adjustedInfo.flags
+                    if (flags.hasFlag(MediaCodec.BUFFER_FLAG_CODEC_CONFIG)) {
+                        if (!isCodecConfigSent) {
+                            outputBuffer.duplicate().extractCodecConfig(adjustedInfo)?.let { (sps, pps, vps) ->
+                                onVideoInfo(sps.stripAnnexBStartCode(), pps?.stripAnnexBStartCode(), vps?.stripAnnexBStartCode())
+                                isCodecConfigSent = true
+                            }
+                        }
+                        releaseOutputBufferSafely(codec, index)
+                        return
+                    }
+
+                    if (flags.hasFlag(MediaCodec.BUFFER_FLAG_END_OF_STREAM)) {
+                        releaseOutputBufferSafely(codec, index)
+                        return
+                    }
+
+                    if (!isCodecConfigSent && flags.hasFlag(MediaCodec.BUFFER_FLAG_KEY_FRAME)) {
+                        outputBuffer.duplicate().extractCodecConfig(adjustedInfo)?.let { (sps, pps, vps) ->
+                            onVideoInfo(sps.stripAnnexBStartCode(), pps?.stripAnnexBStartCode(), vps?.stripAnnexBStartCode())
                             isCodecConfigSent = true
                         }
                     }
@@ -213,15 +267,15 @@ internal class VideoEncoder(
                             offset = adjustedInfo.offset,
                             size = adjustedInfo.size,
                             timestamp = adjustedInfo.presentationTimeUs,
-                            isKeyFrame = adjustedInfo.flags.hasFlag(MediaCodec.BUFFER_FLAG_KEY_FRAME)
+                            isKeyFrame = flags.hasFlag(MediaCodec.BUFFER_FLAG_KEY_FRAME)
                         ),
-                        releaseCallback = { runCatching { codec.releaseOutputBuffer(index, false) } }
+                        releaseCallback = { releaseOutputBufferSafely(codec, index) }
                     )
                 }
                 onVideoFrame(videoFrame)
             }.onFailure { cause ->
                 XLog.w(this@VideoEncoder.getLog("CodecCallback.onOutputBufferAvailable", "onFailure: ${cause.message}"), cause)
-                runCatching { codec.releaseOutputBuffer(index, false) }
+                releaseOutputBufferSafely(codec, index)
                 onError(cause)
             }
         }
@@ -234,7 +288,7 @@ internal class VideoEncoder(
         override fun onOutputFormatChanged(codec: MediaCodec, format: MediaFormat): Unit = synchronized(encoderLock) {
             if (isCodecConfigSent) return
             format.extractCodecConfigFromFormat()?.let { (sps, pps, vps) ->
-                onVideoInfo(sps, pps, vps)
+                onVideoInfo(sps.stripAnnexBStartCode(), pps?.stripAnnexBStartCode(), vps?.stripAnnexBStartCode())
                 isCodecConfigSent = true
             }
         }
@@ -242,30 +296,42 @@ internal class VideoEncoder(
 
     private fun Int.hasFlag(flag: Int) = (this and flag) != 0
 
-    private fun ByteBuffer.extractCodecConfig(): Triple<ByteArray, ByteArray?, ByteArray?>? =
+    private fun releaseOutputBufferSafely(codec: MediaCodec, index: Int) {
+        runCatching { codec.releaseOutputBuffer(index, false) }
+    }
+
+    private fun ByteBuffer.extractCodecConfig(bufferInfo: MediaCodec.BufferInfo): Triple<ByteArray, ByteArray?, ByteArray?>? =
         when (codecInfo.codec) {
             is Codec.Video.H264 -> H264Packet.extractSpsPps(this)?.let { (sps, pps) ->
                 Triple(sps, pps, null)
             }
 
-            is Codec.Video.H265 -> H265Packet.extractVpsSpsPps(this)?.let { (sps, pps, vps) ->
+            is Codec.Video.H265 -> H265Packet.extractSpsPpsVps(this)?.let { (sps, pps, vps) ->
                 Triple(sps, pps, vps)
             }
 
-            is Codec.Video.AV1 -> Av1Packet.extractObuSeq(this, MediaCodec.BufferInfo())?.let { seqHeader ->
+            is Codec.Video.AV1 -> Av1Packet.extractObuSeq(this, bufferInfo)?.let { seqHeader ->
                 Triple(seqHeader, null, null)
             }
         }
 
     private fun MediaFormat.extractCodecConfigFromFormat(): Triple<ByteArray, ByteArray?, ByteArray?>? =
         when (codecInfo.codec) {
-            is Codec.Video.H264 -> getByteBuffer("csd-0")?.let { sps ->
-                Triple(sps.toByteArray(), getByteBuffer("csd-1")?.toByteArray(), null)
+            is Codec.Video.H264 -> {
+                val spsBuf = getByteBuffer("csd-0") ?: return null
+                val ppsBuf = getByteBuffer("csd-1")
+                val sps = spsBuf.toRawNalOrAnnexBFirstNal()
+                val pps = ppsBuf?.toRawNalOrAnnexBFirstNal()
+                sps?.let { Triple(it, pps, null) }
             }
 
-            is Codec.Video.H265 -> getByteBuffer("csd-0")?.let { csd0 ->
-                H265Packet.extractVpsSpsPps(csd0)?.let { (sps, pps, vps) ->
-                    Triple(sps, pps, vps)
+            is Codec.Video.H265 -> {
+                val csd0 = getByteBuffer("csd-0") ?: return null
+                // Try as Annex-B first
+                H265Packet.extractSpsPpsVps(csd0)?.let { (sps, pps, vps) -> Triple(sps, pps, vps) } ?: run {
+                    // If not Annex-B, try convert HVCC to Annex-B and re-parse
+                    val converted = convertLengthPrefixedToAnnexB(csd0)
+                    converted?.let { H265Packet.extractSpsPpsVps(it) }?.let { (sps, pps, vps) -> Triple(sps, pps, vps) }
                 }
             }
 
@@ -273,6 +339,77 @@ internal class VideoEncoder(
                 Triple(av1Csd.toByteArray(), null, null)
             }
         }
+
+    private fun ByteBuffer.toRawNalOrAnnexBFirstNal(): ByteArray? {
+        val dup = duplicate()
+        if (dup.remaining() < 1) return null
+        // Annex-B: return bytes between first and (optional) next start code
+        if (dup.remaining() >= 4 && dup.get(0) == 0.toByte() && dup.get(1) == 0.toByte() &&
+            ((dup.get(2) == 1.toByte()) || (dup.get(2) == 0.toByte() && dup.get(3) == 1.toByte()))
+        ) {
+            // Skip first start code
+            val startSize = if (dup.get(2) == 1.toByte()) 3 else 4
+            dup.position(startSize)
+            val tail = dup.slice()
+            // Find next start code to limit NAL payload
+            val arr = ByteArray(tail.remaining())
+            tail.get(arr)
+            var end = arr.size
+            for (i in 0 until arr.size - 3) {
+                if (arr[i] == 0.toByte() && arr[i + 1] == 0.toByte() &&
+                    (arr[i + 2] == 1.toByte() || (i + 3 < arr.size && arr[i + 2] == 0.toByte() && arr[i + 3] == 1.toByte()))
+                ) {
+                    end = i; break
+                }
+            }
+            return arr.copyOfRange(0, end)
+        }
+        // AVCC: read length field (4 or 2 bytes) and return that many bytes
+        if (dup.remaining() >= 2) {
+            val lengthFieldBytes = if (dup.remaining() >= 4) 4 else 2
+            var len = 0
+            repeat(lengthFieldBytes) { i -> len = (len shl 8) or (dup.get(i).toInt() and 0xFF) }
+            if (len > 0 && len <= dup.remaining() - lengthFieldBytes) {
+                val out = ByteArray(len)
+                dup.position(lengthFieldBytes)
+                dup.get(out)
+                return out
+            }
+        }
+        return null
+    }
+
+    private fun convertLengthPrefixedToAnnexB(src: ByteBuffer): ByteBuffer? {
+        val dup = src.duplicate()
+        if (dup.remaining() < 4) return null
+        fun tryConvert(n: Int): ByteBuffer? {
+            val t = dup.duplicate()
+            var remain = t.remaining()
+            var cnt = 0
+            while (remain >= n) {
+                var len = 0
+                repeat(n) { len = (len shl 8) or (t.get().toInt() and 0xFF) }
+                if (len <= 0 || len > t.remaining()) return null
+                t.position(t.position() + len)
+                remain = t.remaining(); cnt++
+            }
+            if (remain != 0 || cnt == 0) return null
+            val inSize = dup.remaining()
+            val outSize = inSize - cnt * n + cnt * 4
+            val out = ByteArray(outSize)
+            val s2 = dup.duplicate()
+            var dst = 0
+            while (s2.remaining() >= n) {
+                var len = 0
+                repeat(n) { len = (len shl 8) or (s2.get().toInt() and 0xFF) }
+                if (len <= 0 || len > s2.remaining()) return null
+                out[dst++] = 0; out[dst++] = 0; out[dst++] = 0; out[dst++] = 1
+                s2.get(out, dst, len); dst += len
+            }
+            return ByteBuffer.wrap(out, 0, dst)
+        }
+        return tryConvert(4) ?: tryConvert(2)
+    }
 
     private fun ByteBuffer.toByteArray(): ByteArray {
         val duplicateBuffer = duplicate()

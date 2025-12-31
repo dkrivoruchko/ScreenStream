@@ -62,8 +62,14 @@ internal class RtspSettingsImpl(
                 if (newSettings.serverAddress != RtspSettings.Default.SERVER_ADDRESS)
                     set(RtspSettings.Key.SERVER_ADDRESS, newSettings.serverAddress)
 
-                if (newSettings.protocol != RtspSettings.Default.PROTOCOL)
-                    set(RtspSettings.Key.PROTOCOL, newSettings.protocol)
+                if (newSettings.clientProtocol != RtspSettings.Default.CLIENT_PROTOCOL)
+                    set(RtspSettings.Key.CLIENT_PROTOCOL, newSettings.clientProtocol.name)
+
+                if (newSettings.serverProtocol != RtspSettings.Default.SERVER_PROTOCOL)
+                    set(RtspSettings.Key.SERVER_PROTOCOL, newSettings.serverProtocol.name)
+
+                if (newSettings.mode != RtspSettings.Default.MODE)
+                    set(RtspSettings.Key.MODE, newSettings.mode.name)
 
                 if (newSettings.videoCodecAutoSelect != RtspSettings.Default.VIDEO_CODEC_AUTO_SELECT)
                     set(RtspSettings.Key.VIDEO_CODEC_AUTO_SELECT, newSettings.videoCodecAutoSelect)
@@ -117,6 +123,24 @@ internal class RtspSettingsImpl(
 
                 if (newSettings.audioNoiseSuppressor != RtspSettings.Default.AUDIO_NOISE_SUPPRESSOR)
                     set(RtspSettings.Key.AUDIO_NOISE_SUPPRESSOR, newSettings.audioNoiseSuppressor)
+
+                if (newSettings.interfaceFilter != RtspSettings.Default.INTERFACE_FILTER)
+                    set(RtspSettings.Key.INTERFACE_FILTER, newSettings.interfaceFilter)
+
+                if (newSettings.addressFilter != RtspSettings.Default.ADDRESS_FILTER)
+                    set(RtspSettings.Key.ADDRESS_FILTER, newSettings.addressFilter)
+
+                if (newSettings.enableIPv4 != RtspSettings.Default.ENABLE_IPV4)
+                    set(RtspSettings.Key.ENABLE_IPV4, newSettings.enableIPv4)
+
+                if (newSettings.enableIPv6 != RtspSettings.Default.ENABLE_IPV6)
+                    set(RtspSettings.Key.ENABLE_IPV6, newSettings.enableIPv6)
+
+                if (newSettings.serverPort != RtspSettings.Default.SERVER_PORT)
+                    set(RtspSettings.Key.SERVER_PORT, newSettings.serverPort)
+
+                if (newSettings.serverPath != RtspSettings.Default.SERVER_PATH)
+                    set(RtspSettings.Key.SERVER_PATH, newSettings.serverPath)
             }
         }
         Unit
@@ -128,7 +152,15 @@ internal class RtspSettingsImpl(
         stopOnConfigurationChange = this[RtspSettings.Key.STOP_ON_CONFIGURATION_CHANGE] ?: RtspSettings.Default.STOP_ON_CONFIGURATION_CHANGE,
 
         serverAddress = this[RtspSettings.Key.SERVER_ADDRESS] ?: RtspSettings.Default.SERVER_ADDRESS,
-        protocol = this[RtspSettings.Key.PROTOCOL] ?: RtspSettings.Default.PROTOCOL,
+        clientProtocol = runCatching {
+            this[RtspSettings.Key.CLIENT_PROTOCOL]?.uppercase()?.let { RtspSettings.Values.ProtocolPolicy.valueOf(it) }
+        }.getOrNull() ?: RtspSettings.Default.CLIENT_PROTOCOL,
+        serverProtocol = runCatching {
+            this[RtspSettings.Key.SERVER_PROTOCOL]?.uppercase()?.let { RtspSettings.Values.ProtocolPolicy.valueOf(it) }
+        }.getOrNull() ?: RtspSettings.Default.SERVER_PROTOCOL,
+        mode = runCatching {
+            this[RtspSettings.Key.MODE]?.let { name -> RtspSettings.Values.Mode.valueOf(name) }
+        }.getOrNull() ?: RtspSettings.Default.MODE,
 
         videoCodecAutoSelect = this[RtspSettings.Key.VIDEO_CODEC_AUTO_SELECT] ?: RtspSettings.Default.VIDEO_CODEC_AUTO_SELECT,
         videoCodec = this[RtspSettings.Key.VIDEO_CODEC] ?: RtspSettings.Default.VIDEO_CODEC,
@@ -148,5 +180,12 @@ internal class RtspSettingsImpl(
         stereoAudio = this[RtspSettings.Key.STEREO_AUDIO] ?: RtspSettings.Default.STEREO_AUDIO,
         audioEchoCanceller = this[RtspSettings.Key.AUDIO_ECHO_CANCELLER] ?: RtspSettings.Default.AUDIO_ECHO_CANCELLER,
         audioNoiseSuppressor = this[RtspSettings.Key.AUDIO_NOISE_SUPPRESSOR] ?: RtspSettings.Default.AUDIO_NOISE_SUPPRESSOR,
+
+        interfaceFilter = this[RtspSettings.Key.INTERFACE_FILTER] ?: RtspSettings.Default.INTERFACE_FILTER,
+        addressFilter = this[RtspSettings.Key.ADDRESS_FILTER] ?: RtspSettings.Default.ADDRESS_FILTER,
+        enableIPv4 = this[RtspSettings.Key.ENABLE_IPV4] ?: RtspSettings.Default.ENABLE_IPV4,
+        enableIPv6 = this[RtspSettings.Key.ENABLE_IPV6] ?: RtspSettings.Default.ENABLE_IPV6,
+        serverPort = this[RtspSettings.Key.SERVER_PORT] ?: RtspSettings.Default.SERVER_PORT,
+        serverPath = this[RtspSettings.Key.SERVER_PATH] ?: RtspSettings.Default.SERVER_PATH,
     )
 }

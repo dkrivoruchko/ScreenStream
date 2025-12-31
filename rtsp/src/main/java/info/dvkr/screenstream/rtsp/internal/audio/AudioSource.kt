@@ -27,6 +27,7 @@ internal interface AudioSource {
             val DEFAULT_OPUS = Params(sampleRate = 48000, isStereo = true, bitrate = 128 * 1000)
         }
 
+        @Throws(IllegalArgumentException::class)
         internal fun calculateBufferSizeInBytes(desiredBufferDurationMs: Int = 40): Int {
             require(desiredBufferDurationMs > 0) { "desiredBufferDurationMs must be positive" }
 
@@ -47,7 +48,7 @@ internal interface AudioSource {
 
     val isRunning: Boolean
 
-    @Throws(Error::class)
+    @Throws
     fun checkIfConfigurationSupported()
     fun start()
     fun stop()

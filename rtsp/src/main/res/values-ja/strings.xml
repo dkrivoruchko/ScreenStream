@@ -16,6 +16,25 @@
 - 高度にカスタマイズ可能。\n
 </string>
 
+    <string name="rtsp_mode_card_title">RTSPモードを選択：</string>
+    <string name="rtsp_mode_server">サーバー</string>
+    <string name="rtsp_mode_server_hint">この端末をRTSPサーバーとしてホスト</string>
+    <string name="rtsp_mode_client">クライアント</string>
+    <string name="rtsp_mode_client_hint">リモートRTSPサーバーに接続</string>
+
+    <string name="rtsp_interfaces_title">RTSPサーバーアドレス</string>
+    <string name="rtsp_interfaces_no_address">利用可能なネットワークアドレスがありません。\nネットワーク接続とインターフェースフィルターを確認してください。</string>
+    <string name="rtsp_interfaces_interface_label">インターフェース:\n%1$s</string>
+    <string name="rtsp_interfaces_description_copy">アドレスをコピー</string>
+    <string name="rtsp_interfaces_description_share">アドレスを共有</string>
+    <string name="rtsp_interfaces_description_qr">QRコードとしてアドレスを表示</string>
+    <string name="rtsp_interfaces_qr_content_description">QRコード</string>
+    <string name="rtsp_interfaces_copied">アドレスをコピーしました</string>
+    <string name="rtsp_interfaces_share_title">RTSPアドレスを共有</string>
+
+    <string name="rtsp_server_parameters">サーバーパラメータ</string>
+    <string name="rtsp_client_parameters">クライアントパラメータ</string>
+
     <string name="rtsp_stream_start">配信開始</string>
     <string name="rtsp_stream_stop">配信停止</string>
 
@@ -32,6 +51,12 @@
     <string name="rtsp_connection_connecting">サーバーに接続中…</string>
     <string name="rtsp_connection_disconnected">サーバー切断</string>
     <string name="rtsp_connection_error">接続エラー</string>
+
+    <string name="rtsp_label_ipv4_lan">IPv4 LAN</string>
+    <string name="rtsp_label_ipv6_ula">IPv6 ULA</string>
+    <string name="rtsp_label_public_ipv4">パブリックIPv4</string>
+    <string name="rtsp_label_public_ipv6">パブリックIPv6</string>
+    <string name="rtsp_label_loopback">ループバック</string>
 
     <string name="rtsp_video_parameters">動画パラメータ</string>
     <string name="rtsp_video_encoder">動画エンコーダー：</string>
@@ -62,4 +87,28 @@
     <string name="rtsp_connection_access_denied">アクセス拒否</string>
     <string name="rtsp_connection_no_credentials">ユーザー名とパスワードを指定してください</string>
     <string name="rtsp_connection_invalid_credentials">ユーザー名またはパスワードが無効です</string>
+
+    <string name="rtsp_close">閉じる</string>
+    <string name="rtsp_pref_protocol">RTSPプロトコル</string>
+    <string name="rtsp_pref_protocol_summary">RTPパケットの転送方式を選択</string>
+    <string name="rtsp_pref_interface_filter">インターフェースフィルター</string>
+    <string name="rtsp_pref_interface_filter_summary">サーバー用のネットワークインターフェースを選択</string>
+    <string name="rtsp_pref_interface_filter_wifi">Wi-Fi</string>
+    <string name="rtsp_pref_interface_filter_mobile">モバイル</string>
+    <string name="rtsp_pref_interface_filter_ethernet">イーサネット</string>
+    <string name="rtsp_pref_interface_filter_vpn">VPN</string>
+    <string name="rtsp_pref_interface_filter_unknown">不明</string>
+    <string name="rtsp_pref_filter_no_restriction">制限なし</string>
+    <string name="rtsp_pref_address_filter">アドレスフィルター</string>
+    <string name="rtsp_pref_address_filter_summary">サーバー用のIPアドレスタイプを選択</string>
+    <string name="rtsp_pref_address_filter_private">プライベート</string>
+    <string name="rtsp_pref_address_filter_localhost">ローカルホスト</string>
+    <string name="rtsp_pref_address_filter_public">パブリック</string>
+    <string name="rtsp_pref_enable_ipv4">IPv4を有効化</string>
+    <string name="rtsp_pref_enable_ipv4_summary">IPv4アドレスでサーバーを実行</string>
+    <string name="rtsp_pref_enable_ipv6">IPv6を有効化</string>
+    <string name="rtsp_pref_enable_ipv6_summary">IPv6アドレスでサーバーを実行</string>
+    <string name="rtsp_pref_server_port">サーバー ポート</string>
+    <string name="rtsp_pref_server_port_summary">接続を待ち受けるポートを設定します</string>
+    <string name="rtsp_pref_server_port_text">接続を待ち受けるポートを設定してください。\n値: 1025–65535\n初期値: 8554</string>
 </resources>

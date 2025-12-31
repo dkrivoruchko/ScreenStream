@@ -16,6 +16,25 @@
 - Bisa dikustomisasi.\n
 </string>
 
+    <string name="rtsp_mode_card_title">Pilih mode RTSP:</string>
+    <string name="rtsp_mode_server">Server</string>
+    <string name="rtsp_mode_server_hint">Host piranti iki minangka server RTSP</string>
+    <string name="rtsp_mode_client">Klien</string>
+    <string name="rtsp_mode_client_hint">Sambung menyang server RTSP adoh</string>
+
+    <string name="rtsp_interfaces_title">Alamat server RTSP</string>
+    <string name="rtsp_interfaces_no_address">Ora ana alamat jaringan kasedhiya.\nPriksa sambungan jaringan lan panyaring antarmuka.</string>
+    <string name="rtsp_interfaces_interface_label">Antarmuka:\n%1$s</string>
+    <string name="rtsp_interfaces_description_copy">Salin alamat</string>
+    <string name="rtsp_interfaces_description_share">Nuduhake alamat</string>
+    <string name="rtsp_interfaces_description_qr">Tampilake alamat minangka kode QR</string>
+    <string name="rtsp_interfaces_qr_content_description">QR-kode</string>
+    <string name="rtsp_interfaces_copied">Alamat wis disalin</string>
+    <string name="rtsp_interfaces_share_title">Nuduhake alamat RTSP</string>
+
+    <string name="rtsp_server_parameters">Parameter server</string>
+    <string name="rtsp_client_parameters">Parameter klien</string>
+
     <string name="rtsp_stream_start">Miwiti siaran</string>
     <string name="rtsp_stream_stop">Mandheg siaran</string>
 
@@ -32,6 +51,12 @@
     <string name="rtsp_connection_connecting">Nyambung nang server…</string>
     <string name="rtsp_connection_disconnected">Server pedhot</string>
     <string name="rtsp_connection_error">Kesalahan koneksi</string>
+
+    <string name="rtsp_label_ipv4_lan">IPv4 LAN</string>
+    <string name="rtsp_label_ipv6_ula">IPv6 ULA</string>
+    <string name="rtsp_label_public_ipv4">IPv4 umum</string>
+    <string name="rtsp_label_public_ipv6">IPv6 umum</string>
+    <string name="rtsp_label_loopback">Loopback</string>
 
     <string name="rtsp_video_parameters">Parameter video</string>
     <string name="rtsp_video_encoder">Encoder video:</string>
@@ -62,4 +87,28 @@
     <string name="rtsp_connection_access_denied">Akses ditolak</string>
     <string name="rtsp_connection_no_credentials">Tentokake jeneng panganggo lan tembung sandi</string>
     <string name="rtsp_connection_invalid_credentials">Jeneng panganggo utawa tembung sandi ora valid</string>
+
+    <string name="rtsp_close">Nutup</string>
+    <string name="rtsp_pref_protocol">Protokol RTSP</string>
+    <string name="rtsp_pref_protocol_summary">Pilih transport kanggo paket RTP</string>
+    <string name="rtsp_pref_interface_filter">Panyaring antarmuka</string>
+    <string name="rtsp_pref_interface_filter_summary">Pilih antarmuka jaringan kanggo server</string>
+    <string name="rtsp_pref_interface_filter_wifi">Wi-Fi</string>
+    <string name="rtsp_pref_interface_filter_mobile">Seluler</string>
+    <string name="rtsp_pref_interface_filter_ethernet">Ethernet</string>
+    <string name="rtsp_pref_interface_filter_vpn">VPN</string>
+    <string name="rtsp_pref_interface_filter_unknown">ora dikenal</string>
+    <string name="rtsp_pref_filter_no_restriction">Tanpa watesan</string>
+    <string name="rtsp_pref_address_filter">Panyaring alamat</string>
+    <string name="rtsp_pref_address_filter_summary">Pilih jinis alamat IP kanggo server</string>
+    <string name="rtsp_pref_address_filter_private">Pribadi</string>
+    <string name="rtsp_pref_address_filter_localhost">Localhost</string>
+    <string name="rtsp_pref_address_filter_public">Umum</string>
+    <string name="rtsp_pref_enable_ipv4">Aktifake IPv4</string>
+    <string name="rtsp_pref_enable_ipv4_summary">Jalankan server ing alamat IPv4</string>
+    <string name="rtsp_pref_enable_ipv6">Aktifake IPv6</string>
+    <string name="rtsp_pref_enable_ipv6_summary">Jalankan server ing alamat IPv6</string>
+    <string name="rtsp_pref_server_port">Port server</string>
+    <string name="rtsp_pref_server_port_summary">Setel port kanggo sambungan mlebu</string>
+    <string name="rtsp_pref_server_port_text">Setel port server kanggo sambungan mlebu.\nAngka: 1025–65535\nDefault: 8554</string>
 </resources>

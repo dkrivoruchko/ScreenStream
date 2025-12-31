@@ -12,7 +12,7 @@ internal class RtspUrl(
     val password: String?
 ) {
 
-    internal fun hasAuth(): Boolean = !user.isNullOrEmpty() && !password.isNullOrEmpty()
+    internal fun hasAuth(): Boolean = !user.isNullOrEmpty()
 
     internal companion object {
         @Throws(URISyntaxException::class)
@@ -29,22 +29,25 @@ internal class RtspUrl(
 
             val port = when {
                 uri.port >= 0 -> uri.port
-                tlsEnabled -> 443
+                tlsEnabled -> 322
                 else -> 554
             }
 
             val rawPath = uri.path.orEmpty().trim().removePrefix("/")
-                .ifBlank { throw URISyntaxException(endpoint, "Invalid/missing path") }
-            val fullPath = if (!uri.query.isNullOrEmpty()) "/$rawPath?${uri.query}" else "/$rawPath"
+            val fullPath = when {
+                rawPath.isEmpty() && !uri.query.isNullOrEmpty() -> "/?${uri.query}"
+                rawPath.isEmpty() -> "/"
+                !uri.query.isNullOrEmpty() -> "/$rawPath?${uri.query}"
+                else -> "/$rawPath"
+            }
 
             val (user, password) = if (uri.userInfo.isNullOrEmpty()) {
                 null to null
             } else {
-                if (!uri.userInfo.contains(":")) {
-                    throw URISyntaxException(endpoint, "Invalid auth. Must contain 'username:password' if present")
-                }
                 val parts = uri.userInfo.split(":", limit = 2)
-                parts.getOrNull(0) to parts.getOrNull(1)
+                val u = parts.getOrNull(0)
+                val p = parts.getOrNull(1) ?: ""
+                u to p
             }
 
             return RtspUrl(tlsEnabled, host, port, fullPath, user, password)

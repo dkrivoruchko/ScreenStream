@@ -39,7 +39,7 @@ internal object Tile : ModuleSettings.Item {
 
     @Composable
     @SuppressLint("NewApi")
-    override fun ItemUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit) {
+    override fun ItemUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, enabled: Boolean, onDetailShow: () -> Unit) {
         val context = LocalContext.current
 
         TileUI(horizontalPadding) { TileActionService.showAddTileRequest(context) }

@@ -5,23 +5,18 @@ import android.media.projection.MediaProjection
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.annotation.RequiresPermission
-import com.elvishew.xlog.XLog
-import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.rtsp.internal.MasterClock
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.currentCoroutineContext
-import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
-import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.coroutines.launch
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
+import kotlin.math.abs
 
 @RequiresApi(Build.VERSION_CODES.Q)
 internal class MixAudioSource(
@@ -31,17 +26,25 @@ internal class MixAudioSource(
     private val dispatcher: CoroutineDispatcher,
     private val onAudioFrame: (AudioSource.Frame) -> Unit,
     private val onError: (Throwable) -> Unit,
-    private val micMixFactor: Float = 1.6f,
-    private val intMixFactor: Float = 0.4f,
+    private val micMixFactor: Float = 1.0f,
+    private val intMixFactor: Float = 0.25f,
 ) : AudioSource {
 
-    private val micFrames = Channel<AudioSource.Frame>(Channel.UNLIMITED)
-    private val microphone = MicrophoneSource(audioParams, audioSource, dispatcher, onAudioFrame = { micFrames.trySend(it) }, onError)
+    private val microphone = MicrophoneSource(audioParams, audioSource, dispatcher, onAudioFrame = { pushToRing(it, micRing) }, onError)
+    private val internal = InternalAudioSource(audioParams, mediaProjection, dispatcher, onAudioFrame = { pushToRing(it, intRing) }, onError)
 
-    private val intFrames = Channel<AudioSource.Frame>(Channel.UNLIMITED)
-    private val internal = InternalAudioSource(audioParams, mediaProjection, dispatcher, onAudioFrame = { intFrames.trySend(it) }, onError)
+    private val channels = if (audioParams.isStereo) 2 else 1
+    private val chunkMs = 20
+    private val chunkSamplesPerChannel = (audioParams.sampleRate * chunkMs) / 1000
+    private val chunkSamples = chunkSamplesPerChannel * channels
+    private val chunkBytes = chunkSamples * 2
+    private val chunkDurationUs = (chunkSamplesPerChannel * 1_000_000L) / audioParams.sampleRate
 
-    private val inputSize = audioParams.calculateBufferSizeInBytes()
+    private val ringCapacitySamples = chunkSamples * 10 // ~200ms buffer
+    private val micRing = ShortRing(ringCapacitySamples)
+    private val intRing = ShortRing(ringCapacitySamples)
+
+    private val limiterTarget = Short.MAX_VALUE * 0.98f
 
     @Volatile
     override var isRunning: Boolean = false
@@ -49,6 +52,7 @@ internal class MixAudioSource(
 
     private var scope: CoroutineScope? = null
 
+    @Throws
     @RequiresPermission(Manifest.permission.RECORD_AUDIO)
     override fun checkIfConfigurationSupported() {
         microphone.checkIfConfigurationSupported()
@@ -65,52 +69,46 @@ internal class MixAudioSource(
         internal.start()
 
         val scope = CoroutineScope(SupervisorJob() + dispatcher).also { scope = it }
+        scope.launch {
+            val micChunk = ShortArray(chunkSamples)
+            val intChunk = ShortArray(chunkSamples)
+            val outChunk = ShortArray(chunkSamples)
+            val outBytes = ByteArray(chunkBytes)
 
-        flow {
-            val micBuffer = ByteArray(inputSize)
-            val intBuffer = ByteArray(inputSize)
-            val mixedBuffer = ByteArray(inputSize)
+            var nextPtsUs = MasterClock.relativeTimeUs()
 
             while (currentCoroutineContext().isActive && isRunning) {
-                val micFrame = withTimeoutOrNull(60) { micFrames.receive() }
-                val intFrame = withTimeoutOrNull(60) { intFrames.receive() }
+                val micOk = micRing.read(micChunk, chunkSamples)
+                val intOk = intRing.read(intChunk, chunkSamples)
 
-                micBuffer.fill(0)
-                intBuffer.fill(0)
-                micFrame?.buffer?.copyInto(micBuffer, endIndex = minOf(micFrame.size, inputSize))
-                intFrame?.buffer?.copyInto(intBuffer, endIndex = minOf(intFrame.size, inputSize))
+                if (!micOk) micChunk.fill(0)
+                if (!intOk) intChunk.fill(0)
 
-                val timeStamp = intFrame?.timestampUs ?: micFrame?.timestampUs ?: MasterClock.relativeTimeUs()
+                var peakSum = 0f
+                for (i in 0 until chunkSamples) {
+                    val mixedAbs = abs(micChunk[i] * micMixFactor + intChunk[i] * intMixFactor)
+                    if (mixedAbs > peakSum) peakSum = mixedAbs
+                }
 
-                val micShortBuffer = ByteBuffer.wrap(micBuffer).order(ByteOrder.LITTLE_ENDIAN).asShortBuffer()
-                val intShortBuffer = ByteBuffer.wrap(intBuffer).order(ByteOrder.LITTLE_ENDIAN).asShortBuffer()
-                val mixedShortBuffer = ByteBuffer.wrap(mixedBuffer).order(ByteOrder.LITTLE_ENDIAN).asShortBuffer()
+                val scale = if (peakSum > limiterTarget) limiterTarget / peakSum else 1f
 
-                for (i in 0 until inputSize / 2) {
-                    val micSample = micShortBuffer.get(i).toInt()
-                    val intSample = intShortBuffer.get(i).toInt()
-
-                    val mixedFloat = when {
-                        micFrame != null && intFrame != null -> micSample * micMixFactor + intSample * intMixFactor
-                        micFrame != null -> micSample * micMixFactor
-                        intFrame != null -> intSample * intMixFactor
-                        else -> 0f
-                    }
-
-                    val clamped = when {
+                for (i in 0 until chunkSamples) {
+                    val mixedFloat = (micChunk[i] * micMixFactor + intChunk[i] * intMixFactor) * scale
+                    outChunk[i] = when {
                         mixedFloat > Short.MAX_VALUE -> Short.MAX_VALUE
                         mixedFloat < Short.MIN_VALUE -> Short.MIN_VALUE
                         else -> mixedFloat.toInt().toShort()
                     }
-
-                    mixedShortBuffer.put(i, clamped)
                 }
-                emit(AudioSource.Frame(mixedBuffer.clone(), mixedBuffer.size, timeStamp))
+
+                ByteBuffer.wrap(outBytes).order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().put(outChunk)
+                onAudioFrame(AudioSource.Frame(outBytes.clone(), outBytes.size, nextPtsUs))
+
+                nextPtsUs += chunkDurationUs
+                val sleepUs = nextPtsUs - MasterClock.relativeTimeUs()
+                if (sleepUs > 0) delay((sleepUs / 1000L).coerceAtLeast(1L))
             }
         }
-            .onEach { frame -> onAudioFrame(frame) }
-            .catch { XLog.w(getLog("start.catch", it.message), it) }
-            .launchIn(scope)
     }
 
     @Synchronized
@@ -124,12 +122,8 @@ internal class MixAudioSource(
         scope?.cancel()
         scope = null
 
-        while (true) {
-            if (micFrames.tryReceive().isFailure) break
-        }
-        while (true) {
-            if (intFrames.tryReceive().isFailure) break
-        }
+        micRing.clear()
+        intRing.clear()
     }
 
     internal fun setMute(micMute: Boolean, deviceMute: Boolean) {
@@ -140,5 +134,56 @@ internal class MixAudioSource(
     internal fun setVolume(micVolume: Float, deviceVolume: Float) {
         microphone.volume = micVolume
         internal.volume = deviceVolume
+    }
+
+    private fun pushToRing(frame: AudioSource.Frame, ring: ShortRing) {
+        val sampleCount = frame.size / 2
+        if (sampleCount <= 0) return
+        val shortBuffer = ByteBuffer.wrap(frame.buffer, 0, sampleCount * 2)
+            .order(ByteOrder.LITTLE_ENDIAN)
+            .asShortBuffer()
+        val tmp = ShortArray(sampleCount)
+        shortBuffer.get(tmp)
+        ring.write(tmp, tmp.size)
+    }
+
+    private class ShortRing(capacitySamples: Int) {
+        private val data = ShortArray(capacitySamples)
+        private var head = 0
+        private var size = 0
+
+        @Synchronized
+        fun write(src: ShortArray, count: Int) {
+            var i = 0
+            while (i < count) {
+                if (size == data.size) {
+                    head = (head + 1) % data.size
+                    size--
+                }
+                val idx = (head + size) % data.size
+                data[idx] = src[i]
+                size++
+                i++
+            }
+        }
+
+        @Synchronized
+        fun read(dst: ShortArray, count: Int): Boolean {
+            if (size < count) return false
+            var i = 0
+            while (i < count) {
+                dst[i] = data[head]
+                head = (head + 1) % data.size
+                size--
+                i++
+            }
+            return true
+        }
+
+        @Synchronized
+        fun clear() {
+            head = 0
+            size = 0
+        }
     }
 }

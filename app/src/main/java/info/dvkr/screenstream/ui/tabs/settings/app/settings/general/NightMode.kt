@@ -52,7 +52,7 @@ internal object NightMode : ModuleSettings.Item {
     }
 
     @Composable
-    override fun ItemUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, onDetailShow: () -> Unit) {
+    override fun ItemUI(horizontalPadding: Dp, coroutineScope: CoroutineScope, enabled: Boolean, onDetailShow: () -> Unit) {
         val appSettings = koinInject<AppSettings>()
         val appSettingsState = appSettings.data.collectAsStateWithLifecycle()
         val nightModeOptions = stringArrayResource(id = nightModeOptionsRes)
