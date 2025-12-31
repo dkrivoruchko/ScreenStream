@@ -144,79 +144,81 @@ internal class RtspStreamingService(
                 field = value
             }
 
-        fun discover(reason: String, attempt: Int, lastVideoParams: VideoParams?, lastAudioParams: AudioParams?) {
-            server = null
-
-            runCatching {
-                val netInterfaces = networkHelper.getNetInterfaces(
-                    rtspSettings.data.value.interfaceFilter,
-                    rtspSettings.data.value.addressFilter,
-                    rtspSettings.data.value.enableIPv4,
-                    rtspSettings.data.value.enableIPv6,
-                )
-
-                XLog.d(getLog("DiscoverAddress", "${netInterfaces.size} interfaces discovered ($reason)"))
-
-                if (netInterfaces.isEmpty()) {
-                    if (attempt < 3) {
-                        sendEvent(InternalEvent.DiscoverAddress(reason, attempt + 1), 1000)
-                    } else {
-                        XLog.w(getLog("RtspServer", "No interfaces to bind. Stopping stream and give up."))
-                        stopStream(true)
-                        currentError = RtspError.ServerError.AddressNotFoundException()
-                    }
-                } else {
-                    if (currentError is RtspError.ServerError.AddressNotFoundException) currentError = null
-
-                    val port = rtspSettings.data.value.serverPort
-                    val path = rtspSettings.data.value.serverPath
-                    val protocolPolicy = rtspSettings.data.value.serverProtocol
-
-                    server = RtspServer(
-                        appVersion = appVersion,
-                        generation = ++generation,
-                        onEvent = {
-                            XLog.d(getLog("RtspServer.onEvent", it.toString()))
-                            sendEvent(it)
-                        },
-                        onRequestKeyFrame = { projectionState.active?.videoEncoder?.requestKeyFrame() }
-                    ).apply {
-                        start(netInterfaces.toList(), port, path, protocolPolicy)
-                    }
-
-                    lastVideoParams?.let { params ->
-                        server?.setVideoData(params.codec, params.sps, params.pps, params.vps)
-                        projectionState.active?.videoEncoder?.requestKeyFrame()
-                    }
-                    lastAudioParams?.let { params ->
-                        server?.setAudioData(params)
-                    }
-
-                    bindings = netInterfaces.map { RtspBinding(label = it.label, fullAddress = it.buildUrl(port, path)) }
-
-                    XLog.d(getLog("RtspServer", "(Re)start on ${netInterfaces.size} interfaces, protocol=$protocolPolicy"))
-                }
-            }.onFailure {
-                XLog.w(getLog("DiscoverAddress", "Failed: ${it.message}"), it)
-                stopStream(true)
-                currentError = RtspError.UnknownError(it)
-            }
-        }
-
         fun onEvent(event: InternalEvent.RtspServer) {
-            if (event.generation != generation) {
+            if (event !is  InternalEvent.RtspServer.DiscoverAddress && event.generation != generation) {
                 XLog.d(getLog("RtspServer:${event::class.simpleName}", "Stale generation=${event.generation}. Ignoring."))
                 return
             }
 
             when (event) {
+                is InternalEvent.RtspServer.DiscoverAddress -> {
+                    server = null
+
+                    runCatching {
+                        val netInterfaces = networkHelper.getNetInterfaces(
+                            rtspSettings.data.value.interfaceFilter,
+                            rtspSettings.data.value.addressFilter,
+                            rtspSettings.data.value.enableIPv4,
+                            rtspSettings.data.value.enableIPv6,
+                        )
+
+                        XLog.d(getLog("DiscoverAddress", "${netInterfaces.size} interfaces discovered (${event.reason})"))
+
+                        if (netInterfaces.isEmpty()) {
+                            if (event.attempt < 3) {
+                                sendEvent(
+                                    InternalEvent.RtspServer.DiscoverAddress(reason = event.reason, attempt = event.attempt + 1),
+                                    1000
+                                )
+                            } else {
+                                XLog.w(getLog("RtspServer", "No interfaces to bind. Stopping stream and give up."))
+                                stopStream(true)
+                                currentError = RtspError.ServerError.AddressNotFoundException()
+                            }
+                        } else {
+                            if (currentError is RtspError.ServerError.AddressNotFoundException) currentError = null
+
+                            val port = rtspSettings.data.value.serverPort
+                            val path = rtspSettings.data.value.serverPath
+                            val protocolPolicy = rtspSettings.data.value.serverProtocol
+
+                            server = RtspServer(
+                                appVersion = appVersion,
+                                generation = ++generation,
+                                onEvent = {
+                                    XLog.d(getLog("RtspServer.onEvent", it.toString()))
+                                    sendEvent(it)
+                                },
+                                onRequestKeyFrame = { projectionState.active?.videoEncoder?.requestKeyFrame() }
+                            ).apply {
+                                start(netInterfaces.toList(), port, path, protocolPolicy)
+                            }
+
+                            projectionState.lastVideoParams?.let { params ->
+                                server?.setVideoData(params.codec, params.sps, params.pps, params.vps)
+                                projectionState.active?.videoEncoder?.requestKeyFrame()
+                            }
+                            projectionState.lastAudioParams?.let { params ->
+                                server?.setAudioData(params)
+                            }
+
+                            bindings = netInterfaces.map { RtspBinding(label = it.label, fullAddress = it.buildUrl(port, path)) }
+
+                            XLog.d(getLog("RtspServer", "(Re)start on ${netInterfaces.size} interfaces, protocol=$protocolPolicy"))
+                        }
+                    }.onFailure {
+                        XLog.w(getLog("DiscoverAddress", "Failed: ${it.message}"), it)
+                        stopStream(true)
+                        currentError = RtspError.UnknownError(it)
+                    }
+                }
+
                 is InternalEvent.RtspServer.OnStart -> {
                     isActive = true
                     currentError = null
                 }
 
                 is InternalEvent.RtspServer.OnStop -> server = null
-
                 is InternalEvent.RtspServer.OnClientStats -> Unit // Intentional to trigger serverClientStats update
             }
         }
@@ -326,7 +328,6 @@ internal class RtspStreamingService(
         data class OnVideoCodecChange(val name: String?) : InternalEvent(Priority.DESTROY_IGNORE)
         data class OnAudioCodecChange(val name: String?) : InternalEvent(Priority.DESTROY_IGNORE)
         data class ModeChanged(val mode: RtspSettings.Values.Mode) : InternalEvent(Priority.RECOVER_IGNORE)
-        data class DiscoverAddress(val reason: String, val attempt: Int) : InternalEvent(Priority.RECOVER_IGNORE)
         data object StartStream : InternalEvent(Priority.RECOVER_IGNORE)
 
         data class OnAudioParamsChange(val micMute: Boolean, val deviceMute: Boolean, val micVolume: Float, val deviceVolume: Float) :
@@ -352,6 +353,8 @@ internal class RtspStreamingService(
         sealed class RtspServer(priority: Int) : InternalEvent(priority) {
             abstract val generation: Long
 
+            data class DiscoverAddress(override val generation: Long = -1L, val reason: String, val attempt: Int = 0) :
+                RtspServer(Priority.RECOVER_IGNORE)
             data class OnStart(override val generation: Long) : RtspServer(Priority.RECOVER_IGNORE)
             data class OnStop(override val generation: Long) : RtspServer(Priority.DESTROY_IGNORE)
             data class OnClientStats(override val generation: Long) : RtspServer(Priority.DESTROY_IGNORE)
@@ -404,7 +407,7 @@ internal class RtspStreamingService(
             onScreenOff = { if (rtspSettings.data.value.stopOnSleep) sendEvent(RtspEvent.Intentable.StopStream("ScreenOff")) },
             onConnectionChanged = {
                 if (rtspSettings.data.value.mode == RtspSettings.Values.Mode.SERVER)
-                    sendEvent(InternalEvent.DiscoverAddress("ConnectionChanged", 0))
+                    sendEvent(InternalEvent.RtspServer.DiscoverAddress(reason = "ConnectionChanged"))
             }
         )
 
@@ -436,7 +439,7 @@ internal class RtspStreamingService(
         ).forEach { (flow, reason) ->
             flow.listenForChange(coroutineScope, 1) { value ->
                 XLog.i(getLog("SettingsChanged", "${reason.removePrefix("SettingsChanged:")} -> $value"))
-                sendEvent(InternalEvent.DiscoverAddress(reason, 0))
+                sendEvent(InternalEvent.RtspServer.DiscoverAddress(reason = reason))
             }
         }
     }
@@ -557,10 +560,9 @@ internal class RtspStreamingService(
     private fun processEvent(event: RtspEvent) {
         when (event) {
             is InternalEvent.InitState -> {
-                val selectedMode = rtspSettings.data.value.mode
                 serverController = null
                 clientController = null
-                if (selectedMode == RtspSettings.Values.Mode.SERVER) {
+                if (rtspSettings.data.value.mode == RtspSettings.Values.Mode.SERVER) {
                     serverController = RtspServerController()
                 } else {
                     clientController = RtspClientController()
@@ -569,7 +571,6 @@ internal class RtspStreamingService(
                     waitingForPermission = false,
                     cachedIntent = if (event.clearIntent) null else projectionState.cachedIntent
                 )
-
                 currentError = null
                 previousError = null
             }
@@ -580,10 +581,7 @@ internal class RtspStreamingService(
                 selectedVideoEncoderInfo = null
                 val available = EncoderUtils.availableVideoEncoders
                 selectedVideoEncoderInfo = when {
-                    available.isEmpty() -> {
-                        currentError = RtspError.UnknownError(IllegalStateException("No suitable video encoders available"))
-                        null
-                    }
+                    available.isEmpty() -> throw IllegalStateException("No suitable video encoders available")
                     // Auto select
                     event.name.isNullOrBlank() -> available.first()
 
@@ -600,7 +598,7 @@ internal class RtspStreamingService(
                 selectedAudioEncoderInfo = when {
                     available.isEmpty() -> {
                         if (rtspSettings.data.value.enableMic || rtspSettings.data.value.enableDeviceAudio) {
-                            currentError = RtspError.UnknownError(IllegalStateException("No suitable audio encoders available"))
+                            throw IllegalStateException("No suitable audio encoders available")
                         }
                         null
                     }
@@ -615,21 +613,11 @@ internal class RtspStreamingService(
             is InternalEvent.ModeChanged -> {
                 stopStream(true)
 
-                serverController = null
-                clientController = null
                 sendEvent(InternalEvent.InitState(false))
-                if (event.mode == RtspSettings.Values.Mode.SERVER) {
-                    sendEvent(InternalEvent.DiscoverAddress("ModeChanged", 0))
-                }
-            }
 
-            is InternalEvent.DiscoverAddress -> {
-                serverController?.discover(
-                    reason = event.reason,
-                    attempt = event.attempt,
-                    lastVideoParams = projectionState.lastVideoParams,
-                    lastAudioParams = projectionState.lastAudioParams
-                )
+                if (event.mode == RtspSettings.Values.Mode.SERVER) {
+                    sendEvent(InternalEvent.RtspServer.DiscoverAddress(reason = "ModeChanged"))
+                }
             }
 
             is InternalEvent.StartStream -> {
@@ -646,42 +634,24 @@ internal class RtspStreamingService(
             is RtspEvent.StartProjection -> {
                 projectionState.waitingForPermission = false
 
+                check(projectionState.active == null) { "Already streaming" }
+                check(selectedVideoEncoderInfo != null) { "No video encoder selected" }
+
                 val settings = rtspSettings.data.value
-
-                if (projectionState.active != null) {
-                    sendEvent(InternalEvent.Error(RtspError.UnknownError(IllegalStateException("Already streaming"))))
-                    return
-                }
-
-                if (selectedVideoEncoderInfo == null) {
-                    sendEvent(InternalEvent.Error(RtspError.UnknownError(IllegalStateException("No video encoder selected"))))
-                    return
-                }
-
                 val audioEnabled = settings.enableMic || settings.enableDeviceAudio
-                if (audioEnabled && selectedAudioEncoderInfo == null) {
-                    sendEvent(InternalEvent.Error(RtspError.UnknownError(IllegalStateException("No suitable audio encoders available"))))
-                    return
-                }
+
+                check((audioEnabled && selectedAudioEncoderInfo == null).not()) { "No audio encoder selected" }
 
                 val modeLocal = settings.mode
                 val serverController = if (modeLocal == RtspSettings.Values.Mode.SERVER) serverController else null
                 val clientController = if (modeLocal == RtspSettings.Values.Mode.CLIENT) clientController else null
 
                 if (modeLocal == RtspSettings.Values.Mode.SERVER) {
-                    if (serverController == null) {
-                        sendEvent(InternalEvent.Error(RtspError.UnknownError(IllegalStateException("RtspServer controller is null"))))
-                        return
-                    }
-                    if (serverController.isActive.not()) {
-                        sendEvent(InternalEvent.Error(RtspError.UnknownError(IllegalStateException("RtspServer is not ready"))))
-                        return
-                    }
+                    check(serverController != null) { "RtspServer controller is null" }
+                    check(serverController.isActive) { "RtspServer is not ready" }
                 } else {
-                    if (clientController == null) {
-                        sendEvent(InternalEvent.Error(RtspError.UnknownError(IllegalStateException("RtspClient controller is null"))))
-                        return
-                    }
+                    check(clientController != null) { "RtspClient controller is null" }
+
                     val rtspUrl = try {
                         RtspUrl.parse(settings.serverAddress)
                     } catch (e: URISyntaxException) {
@@ -947,7 +917,9 @@ internal class RtspStreamingService(
                 if (event is RtspEvent.Intentable.RecoverError) {
                     handler.removeMessages(RtspEvent.Priority.RECOVER_IGNORE)
                     sendEvent(InternalEvent.InitState(true))
-                    sendEvent(InternalEvent.DiscoverAddress("RecoverError", 0))
+                    if (rtspSettings.data.value.mode == RtspSettings.Values.Mode.SERVER) {
+                        sendEvent(InternalEvent.RtspServer.DiscoverAddress(reason = "RecoverError"))
+                    }
                 }
             }
 

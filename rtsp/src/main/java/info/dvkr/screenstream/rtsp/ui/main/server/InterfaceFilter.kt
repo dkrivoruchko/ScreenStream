@@ -108,7 +108,8 @@ private fun InterfaceFilterUI(horizontalPadding: Dp, enabled: Boolean, interface
                 else -> ToggleableState.Indeterminate
             },
             onClick = null,
-            modifier = Modifier.padding(end = 12.dp)
+            modifier = Modifier.padding(end = 12.dp),
+            enabled = enabled
         )
     }
 }

@@ -80,7 +80,7 @@ private fun EnableIPv6UI(horizontalPadding: Dp, enabled: Boolean, enableIPv6: Bo
             )
         }
 
-        Switch(checked = enableIPv6, onCheckedChange = null, modifier = Modifier.scale(0.7F))
+        Switch(checked = enableIPv6, onCheckedChange = null, modifier = Modifier.scale(0.7F), enabled = enabled)
     }
 }
 

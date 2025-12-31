@@ -24,6 +24,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -81,10 +82,14 @@ private fun ProtocolItemUI(horizontalPadding: Dp, enabled: Boolean, protocolLabe
     Row(
         modifier = Modifier
             .clickable(enabled = enabled, role = Role.Button, onClick = onDetailShow)
-            .padding(start = horizontalPadding + 12.dp, end = horizontalPadding + 18.dp),
+            .padding(start = horizontalPadding + 12.dp, end = horizontalPadding + 6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(painter = painterResource(R.drawable.protocol_24px), contentDescription = null, modifier = Modifier.padding(end = 16.dp))
+        Icon(
+            painter = painterResource(R.drawable.protocol_24px),
+            contentDescription = null,
+            modifier = Modifier.padding(end = 16.dp)
+        )
 
         Column(modifier = Modifier.weight(1F)) {
             Text(
@@ -101,6 +106,9 @@ private fun ProtocolItemUI(horizontalPadding: Dp, enabled: Boolean, protocolLabe
 
         Text(
             text = protocolLabel,
+            modifier = Modifier
+                .defaultMinSize(minWidth = 52.dp)
+                .alpha(if (enabled) 1f else 0.5f),
             color = MaterialTheme.colorScheme.primary,
             textAlign = TextAlign.Center,
             maxLines = 1

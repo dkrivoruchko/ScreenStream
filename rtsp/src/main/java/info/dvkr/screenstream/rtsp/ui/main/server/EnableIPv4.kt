@@ -80,7 +80,7 @@ private fun EnableIpv4UI(horizontalPadding: Dp, enabled: Boolean, enableIPv4: Bo
             )
         }
 
-        Switch(checked = enableIPv4, onCheckedChange = null, modifier = Modifier.scale(0.7F))
+        Switch(checked = enableIPv4, onCheckedChange = null, modifier = Modifier.scale(0.7F), enabled = enabled)
     }
 }
 

@@ -22,6 +22,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.res.painterResource
@@ -105,7 +106,9 @@ private fun ServerPortUI(horizontalPadding: Dp, enabled: Boolean, serverPort: In
 
         Text(
             text = serverPort.toString(),
-            modifier = Modifier.defaultMinSize(minWidth = 52.dp),
+            modifier = Modifier
+                .defaultMinSize(minWidth = 52.dp)
+                .alpha(if (enabled) 1f else 0.5f),
             color = MaterialTheme.colorScheme.primary,
             textAlign = TextAlign.Center,
             maxLines = 1
