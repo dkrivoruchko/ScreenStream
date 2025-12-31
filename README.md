@@ -34,11 +34,11 @@ Your contribution is greatly appreciated!
 
 ScreenStream offers three stream modes: **Global mode (WebRTC)** (in [Google Play Store](https://play.google.com/store/apps/details?id=info.dvkr.screenstream) version only), **Local mode (MJPEG)** and **RTSP mode**. All modes aim to stream the Android device screen and audio but function differently. They are independent of each other, with unique functionalities, restrictions, and customization options.
 
-| Mode               | Transport | Audio | Internet required | Server side | Security                              |
-|--------------------|-----------|-------|-------------------|-------------|---------------------------------------|
-| **Local (MJPEG)**  | HTTP MJPEG | ✕     | No                | Built‑in    | Optional 4‑digit PIN                  |
-| **Global (WebRTC)**| WebRTC    | ✓     | Yes               | Public signalling @ screenstream.io | End‑to‑end encryption + password |
-| **RTSP**           | RTSP<br>H.265/H.264/AV1<br>OPUS/AAC/G.711 | ✓ | Depends on server | External RTSP server (e.g. MediaMTX) | Basic Auth + optional TLS |
+| Mode                   | Transport | Audio | Internet required | Server side                                                   | Security                                     |
+|------------------------|-----------|-------|-------------------|---------------------------------------------------------------|----------------------------------------------|
+| **Local (MJPEG)**      | HTTP MJPEG | ✕     | No            | Built‑in                                                      | Optional 4‑digit PIN                         |
+| **Global (WebRTC)**    | WebRTC    | ✓     | Yes               | Public signalling @ screenstream.io                        | End‑to‑end encryption + password          |
+| **RTSP Server/Client** | RTSP<br>H.265/H.264/AV1<br>OPUS/AAC/G.711 | ✓ | No (server) / Depends (client) | Built‑in server (Server mode) / External server (client mode) | Client mode supports RTSP auth + RTSPS (TLS) |
 
 In **Global (WebRTC)** and **Local (MJPEG)** modes the number of clients is not directly limited, but it's important to keep in mind that each client consumes CPU resources and bandwidth for data transmission.
 
@@ -98,20 +98,20 @@ The Global mode was introduced in app version 4 and offers the following functio
 
 ### RTSP mode
 
-RTSP mode in ScreenStream streams your Android device screen to an external RTSP media server, providing compatibility with a wide range of standard RTSP clients.
+RTSP mode in ScreenStream supports two sub‑modes: server mode (default) hosts this device as an RTSP server, while client mode connects to an external RTSP media server, providing compatibility with a wide range of standard RTSP clients.
 
 For optimal performance, a fast and stable network connection is recommended due to high traffic and low network delay requirements.
 
 - Powered by RTSP protocol.
-- Requires an RTSP-capable media server (tested with MediaMTX).
-- Supports both video (H.265, H.264, AV1) and audio (OPUS, AAC, G.711).
-- Can be protected by username/password.
-- Optional control channel encryption (RTSPS using TLS).
-- Compatible with WiFi, mobile networks, and both IPv4/IPv6.
-- Requires an RTSP client or player for viewing (tested with VLC).
+- Server mode (default) hosts device as an RTSP server.
+- Client mode connects to a remote RTSP server (e.g., MediaMTX).
+- Supports video and audio with codec configuration.
+- Server mode adds protocol, interface/address filters, IPv4/IPv6, and port settings.
+- Requires an RTSP client or player for viewing.
+- Tested with [VLC media player](https://www.videolan.org/vlc/), [FFplay](https://ffmpeg.org/ffplay.html), [mpv](https://mpv.io/), and [gst-play-1.0](https://gstreamer.freedesktop.org/) (GStreamer) players.
 
 > [!NOTE]
-> You need an RTSP‑capable media server (e.g., [MediaMTX](https://github.com/aler9/mediamtx)) to stream to.
+> Client mode requires an RTSP‑capable media server (e.g., [MediaMTX](https://github.com/aler9/mediamtx)).
 
 ## Screenshots
 
