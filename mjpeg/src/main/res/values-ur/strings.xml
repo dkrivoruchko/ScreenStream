@@ -1,0 +1,176 @@
+<resources>
+    <string name="mjpeg_error_recover">بحال کریں</string>
+    <string name="mjpeg_error_open_settings">ترتیبات کھولیں</string>
+
+    <string name="mjpeg_stream_mode">لوکل موڈ (MJPEG)</string>
+    <string name="mjpeg_stream_mode_description">لوکل موڈ کی تفصیل</string>
+    <string name="mjpeg_stream_mode_details">
+- MJPEG معیار پر مبنی۔\n
+- سیکیورٹی کیلئے PIN (انکرپشن نہیں)۔\n
+- ویڈیو تصاویر کے سلسلے کی صورت میں (آڈیو نہیں)۔\n
+- لوکل نیٹ ورک میں انٹرنیٹ کے بغیر بھی چلتا ہے۔\n
+- ایمبیڈڈ HTTP سرور۔\n
+- WiFi/موبائل، IPv4 اور IPv6 سپورٹ۔\n
+- کلائنٹس براؤزر سے ایپ کے دیے IP پتے پر جڑتے ہیں۔\n
+- زیادہ حسبِ ضرورت۔\n
+- ہر کلائنٹ کیلئے الگ ڈیٹا؛ زیادہ کلائنٹس تو زیادہ بینڈوڈتھ درکار ہوگی۔
+</string>
+
+    <string name="mjpeg_item_address">ڈیوائس پتہ:</string>
+    <string name="mjpeg_stream_no_address">کوئی پتہ نہیں ملا</string>
+    <string name="mjpeg_stream_interface">انٹرفیس:\n%1$s</string>
+    <string name="mjpeg_stream_copied">کاپی ہو گیا</string>
+    <string name="mjpeg_stream_no_web_browser_found">کوئی ویب براؤزر نہیں ملا</string>
+    <string name="mjpeg_stream_external_app_error">بیرونی ایپ میں خرابی</string>
+    <string name="mjpeg_stream_share_address">ڈیوائس پتہ شیئر کریں</string>
+    <string name="mjpeg_item_address_description_open_address">پتہ کھولیں</string>
+    <string name="mjpeg_item_address_description_copy_address">پتہ کاپی کریں</string>
+    <string name="mjpeg_item_address_description_share_address">پتہ شیئر کریں</string>
+    <string name="mjpeg_item_address_description_qr_address">پتہ QR کوڈ میں دکھائیں</string>
+    <string name="mjpeg_item_address_description_qr">QR کوڈ</string>
+    <string name="mjpeg_stream_pin">PIN: %1$s</string>
+    <string name="mjpeg_stream_pin_disabled">PIN غیر فعال ہے</string>
+    <string name="mjpeg_stream_description_show_pin">اسٹریم PIN دکھائیں</string>
+    <string name="mjpeg_stream_description_create_pin">نیا اسٹریم PIN بنائیں</string>
+    <string name="mjpeg_stream_current_traffic">ٹریفک: %1$,.2f Mbit/s</string>
+    <string name="mjpeg_stream_traffic_graph">ٹریفک گراف</string>
+    <string name="mjpeg_stream_connected_clients">جڑے ہوئے کلائنٹس: %1$d</string>
+    <string name="mjpeg_stream_client_disconnected">منقطع</string>
+    <string name="mjpeg_stream_client_slow_network">سست کنکشن</string>
+    <string name="mjpeg_stream_client_connected">جڑا ہوا</string>
+    <string name="mjpeg_stream_client_blocked">بلاک شدہ</string>
+    <string name="mjpeg_stream_start">اسٹریم شروع کریں</string>
+    <string name="mjpeg_stream_stop">اسٹریم روکیں</string>
+
+    <string name="mjpeg_stream_cast_permission_required_title">اجازت درکار ہے</string>
+    <string name="mjpeg_stream_cast_permission_required">اسکرین کیپچر کیلئے Screen Cast اجازت درکار ہے۔</string>
+
+    <string name="mjpeg_slow_client_connection">سست کلائنٹ کنکشن ملا</string>
+
+    <string name="mjpeg_pref_header">لوکل موڈ (MJPEG) ترتیبات</string>
+    <string name="mjpeg_pref_settings_general">عمومی</string>
+    <string name="mjpeg_pref_keep_awake">ڈیوائس جاگتی رکھیں</string>
+    <string name="mjpeg_pref_keep_awake_summary">اسٹریم کے دوران ڈیوائس اور اسکرین جاگتی رکھیں</string>
+    <string name="mjpeg_pref_stop_on_sleep">سلیپ پر اسٹریم روکیں</string>
+    <string name="mjpeg_pref_stop_on_sleep_summary">اسکرین بند ہو تو اسٹریم روکیں</string>
+    <string name="mjpeg_pref_stop_on_configuration">ترتیب بدلنے پر اسٹریم روکیں</string>
+    <string name="mjpeg_pref_stop_on_configuration_summary">جب اسٹریم کی ترتیب بدلے تو روکیں</string>
+    <string name="mjpeg_pref_detect_slow_connections">سست کنکشن کی اطلاع</string>
+    <string name="mjpeg_pref_detect_slow_connections_summary">سست کلائنٹ کنکشن کی اطلاع دیں</string>
+    <string name="mjpeg_pref_html_buttons">ویب صفحہ بٹن فعال کریں</string>
+    <string name="mjpeg_pref_html_buttons_summary">ویب صفحہ پر کنٹرول بٹن دکھائیں</string>
+    <string name="mjpeg_pref_html_show_press_start">ویب صفحہ پر \"ڈیوائس پر اسٹریم شروع کریں\" دکھائیں</string>
+    <string name="mjpeg_pref_html_show_press_start_summary">ویب صفحہ پر \"ڈیوائس پر اسٹریم شروع کریں\" دکھائیں</string>
+    <string name="mjpeg_pref_html_back_color">ویب صفحہ پس منظر رنگ</string>
+    <string name="mjpeg_pref_html_back_color_summary">ویب صفحہ کا پس منظر رنگ سیٹ کریں</string>
+    <string name="mjpeg_pref_html_back_color_title">پس منظر رنگ منتخب کریں</string>
+    <string name="mjpeg_pref_html_fit_window">تصویر کو ونڈو میں فٹ کریں</string>
+    <string name="mjpeg_pref_html_fit_window_summary">براؤزر میں تصویر کو پوری ونڈو کے مطابق کریں</string>
+
+    <string name="mjpeg_pref_settings_image">تصویر</string>
+    <string name="mjpeg_pref_vr_mode">VR موڈ</string>
+    <string name="mjpeg_pref_vr_mode_summary">آدھی اسکرین سے کیپچر کریں</string>
+    <string-array name="mjpeg_pref_vr_mode_options">
+        <item>غیرفعال</item>
+        <item>بائیں حصہ</item>
+        <item>دائیں حصہ</item>
+    </string-array>
+    <string name="mjpeg_pref_crop">تصویر تراشیں</string>
+    <string name="mjpeg_pref_crop_summary">کلائنٹ کو بھیجنے سے پہلے تصویر تراشیں</string>
+    <string name="mjpeg_pref_crop_top">اوپر سے:</string>
+    <string name="mjpeg_pref_crop_bottom">نیچے سے:</string>
+    <string name="mjpeg_pref_crop_left">بائیں سے:</string>
+    <string name="mjpeg_pref_crop_right">دائیں سے:</string>
+    <string name="mjpeg_pref_crop_pixels">پکسل</string>
+    <string name="mjpeg_pref_crop_warning">اگر نتیجہ خالی تصویر ہو تو تراشنا نظرانداز ہوگا</string>
+    <string name="mjpeg_pref_crop_error">درست تراش اقدار درج کریں</string>
+    <string name="mjpeg_pref_grayscale">گریسکیل موڈ</string>
+    <string name="mjpeg_pref_grayscale_summary">کلائنٹ کو بھیجنے سے پہلے تصویر کو گریسکیل کریں</string>
+    <string name="mjpeg_pref_resize">تصویر کا سائز بدلیں</string>
+    <string name="mjpeg_pref_resize_summary">کلائنٹ کو بھیجنے سے پہلے سائز بدلیں</string>
+    <string name="mjpeg_pref_resize_value" translatable="false">%1$d%%</string>
+    <string name="mjpeg_pref_resize_resolution_value" translatable="false">%1$dx%2$d</string>
+    <string name="mjpeg_pref_resize_mode_percent">فیصد سے سائز بدلیں</string>
+    <string name="mjpeg_pref_resize_mode_resolution">مقرر ریزولوشن</string>
+    <string name="mjpeg_pref_resize_width">چوڑائی:</string>
+    <string name="mjpeg_pref_resize_height">اونچائی:</string>
+    <string name="mjpeg_pref_resize_stretch">فٹ کرنے کیلئے پھیلائیں</string>
+    <string name="mjpeg_pref_resize_text">سائز فیصد میں طے کریں۔\nقدریں: 10–150\nڈیفالٹ: 50\nاسکرین سائز: %1$dx%2$d</string>
+    <string name="mjpeg_pref_resize_result">تصویر سائز: %1$dx%2$d</string>
+    <string name="mjpeg_pref_rotate">تصویر دائیں گھمائیں</string>
+    <string name="mjpeg_pref_rotate_summary">کلائنٹ کو بھیجنے سے پہلے گھمائیں</string>
+    <string name="mjpeg_pref_rotate_value" translatable="false">%1$d\u00B0</string>
+    <string-array name="mjpeg_pref_rotate_options" translatable="false">
+        <item>0\u00B0</item>
+        <item>90\u00B0</item>
+        <item>180\u00B0</item>
+        <item>270\u00B0</item>
+    </string-array>
+    <string name="mjpeg_pref_fps">فریم/سیکنڈ حد</string>
+    <string name="mjpeg_pref_fps_summary">زیادہ سے زیادہ فریم فی سیکنڈ مقرر کریں</string>
+    <string name="mjpeg_pref_fps_text">زیادہ سے زیادہ فریم فی سیکنڈ مقرر کریں۔\nقدریں: 1/10–120\nڈیفالٹ: 30</string>
+    <string name="mjpeg_pref_fps_low_mode_text">ہر %d سیکنڈ میں ایک فریم؛ E-Ink اسکرینز کیلئے موزوں۔</string>
+    <string name="mjpeg_pref_jpeg_quality">JPEG معیار</string>
+    <string name="mjpeg_pref_jpeg_quality_summary">JPEG کمپریشن معیار مقرر کریں</string>
+    <string name="mjpeg_pref_jpeg_quality_text">JPEG کمپریشن معیار مقرر کریں۔\nقدریں: 10–100\nڈیفالٹ: 80</string>
+
+    <string name="mjpeg_pref_settings_security">سیکیورٹی</string>
+    <string name="mjpeg_pref_enable_pin">PIN فعال کریں</string>
+    <string name="mjpeg_pref_enable_pin_summary">اسٹریم تک رسائی PIN سے محفوظ کریں</string>
+    <string name="mjpeg_pref_hide_pin">اسٹریم پر PIN چھپائیں</string>
+    <string name="mjpeg_pref_hide_pin_summary">اسٹریم کے دوران PIN کی جگہ ستارے دکھائیں</string>
+    <string name="mjpeg_pref_new_pin_on_start">شروع پر نیا PIN</string>
+    <string name="mjpeg_pref_new_pin_on_start_summary">ایپ شروع ہوتے ہی نیا PIN بنائیں</string>
+    <string name="mjpeg_pref_auto_change_pin">PIN خود بدلیں</string>
+    <string name="mjpeg_pref_auto_change_pin_summary">ہر نئے اسٹریم کیلئے نیا PIN بنائیں</string>
+    <string name="mjpeg_pref_set_pin">PIN سیٹ کریں</string>
+    <string name="mjpeg_pref_set_pin_summary">PIN دستی طور پر درج کریں</string>
+    <string name="mjpeg_pref_set_pin_text">PIN درج کریں۔\nڈیفالٹ: 000000</string>
+    <string name="mjpeg_pref_block_address">IP بلاک کریں</string>
+    <string name="mjpeg_pref_block_address_summary">PIN 5 بار غلط ہو تو IP 5 منٹ کیلئے بلاک کریں</string>
+
+    <string name="mjpeg_pref_settings_advanced">اعلی درجے</string>
+    <string name="mjpeg_pref_interface_filter">انٹرفیس فلٹر</string>
+    <string name="mjpeg_pref_interface_filter_summary">سرور کیلئے نیٹ ورک انٹرفیس منتخب کریں</string>
+    <string name="mjpeg_pref_filter_wifi">وائی فائی</string>
+    <string name="mjpeg_pref_filter_mobile">موبائل</string>
+    <string name="mjpeg_pref_filter_ethernet">ایتھرنیٹ</string>
+    <string name="mjpeg_pref_filter_vpn">VPN</string>
+    <string name="mjpeg_pref_filter_unknown">نامعلوم</string>
+    <string name="mjpeg_pref_filter_no_restriction">کوئی پابندی نہیں</string>
+    <string name="mjpeg_pref_address_filter">ایڈریس فلٹر</string>
+    <string name="mjpeg_pref_address_filter_summary">سرور کیلئے IP اقسام منتخب کریں</string>
+    <string name="mjpeg_pref_filter_private">پرائیویٹ</string>
+    <string name="mjpeg_pref_filter_localhost">لوکل ہوسٹ</string>
+    <string name="mjpeg_pref_filter_public">عوامی</string>
+    <string name="mjpeg_pref_enable_ipv4">IPv4 سپورٹ فعال کریں</string>
+    <string name="mjpeg_pref_enable_ipv4_summary">IPv4 پتوں پر بھی سرور چلائیں</string>
+    <string name="mjpeg_pref_enable_ipv6">IPv6 سپورٹ فعال کریں</string>
+    <string name="mjpeg_pref_enable_ipv6_summary">IPv6 پتوں پر بھی سرور چلائیں</string>
+    <string name="mjpeg_label_ipv4_lan">IPv4 LAN</string>
+    <string name="mjpeg_label_ipv6_ula">IPv6 ULA</string>
+    <string name="mjpeg_label_public_ipv4">عوامی IPv4</string>
+    <string name="mjpeg_label_public_ipv6">عوامی IPv6</string>
+    <string name="mjpeg_label_loopback">لوپ بیک</string>
+    <string name="mjpeg_label_interface" translatable="false">%1$s (%2$s)</string>
+    <string name="mjpeg_pref_server_port">سرور پورٹ</string>
+    <string name="mjpeg_pref_server_port_summary">آنے والے کنکشنز کیلئے پورٹ سیٹ کریں</string>
+    <string name="mjpeg_pref_server_port_text">آنے والے کنکشنز کیلئے سرور پورٹ سیٹ کریں۔\nقدریں: 1025–65535\nڈیفالٹ: 8080</string>
+
+    <string name="mjpeg_error_port_in_use">پورٹ پہلے سے استعمال میں ہے۔ دوسری منتخب کریں۔</string>
+    <string name="mjpeg_error_invalid_media_projection">سیکیورٹی خرابی: غلط میڈیا پروجیکشن۔ دوبارہ کوشش کریں۔</string>
+    <string name="mjpeg_error_ip_address_not_found">IP پتہ نہیں ملا۔\nاسٹریم ترتیبات میں نیٹ ورک فلٹر ایڈجسٹ کریں۔</string>
+    <string name="mjpeg_error_notification_permission_required">اسٹریمنگ سروس شروع کرنے کیلئے اطلاعات کی اجازت درکار ہے۔\nایپ کی ترتیبات میں اطلاعات فعال کریں۔</string>
+    <string name="mjpeg_error_unspecified">کچھ غلط ہو گیا۔ بعد میں دوبارہ کوشش کریں۔</string>
+
+    <string name="mjpeg_start_image_text">ڈیوائس پر اسٹریم شروع کریں</string>
+
+    <!--HTML text-->
+    <string name="mjpeg_html_stream_connecting">کنیکٹ ہو رہے ہیں</string>
+    <string name="mjpeg_html_stream_require_pin">اس اسٹریم کیلئے PIN درکار ہے</string>
+    <string name="mjpeg_html_enter_pin">PIN درج کریں:\u0020</string>
+    <string name="mjpeg_html_submit_pin">جمع کریں</string>
+    <string name="mjpeg_html_wrong_pin">غلط PIN!</string>
+    <string name="mjpeg_html_address_blocked">کلائنٹ پتہ بلاک ہے</string>
+    <string name="mjpeg_html_error_unspecified">کچھ غلط ہو گیا۔ صفحہ دوبارہ لوڈ کریں اور پھر کوشش کریں۔</string>
+</resources>

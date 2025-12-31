@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="webrtc_error_recover">بحال کریں</string>
+    <string name="webrtc_error_open_settings">ترتیبات کھولیں</string>
+
+    <string name="webrtc_stream_mode">عالمی موڈ (WebRTC)</string>
+    <string name="webrtc_stream_mode_description">عالمی موڈ کی تفصیل</string>
+    <string name="webrtc_stream_mode_details">
+- WebRTC ٹیکنالوجی پر مبنی۔\n
+- اینڈ ٹو اینڈ انکرپشن۔\n
+- پاس ورڈ سے اسٹریم محفوظ۔\n
+- ویڈیو اور آڈیو دونوں۔\n
+- منفرد اسٹریم ID اور پاس ورڈ سے کنکشن۔\n
+- اسٹریم کیلئے انٹرنیٹ درکار ہے۔\n
+- ہر کلائنٹ کیلئے الگ ڈیٹا؛ زیادہ کلائنٹس تو زیادہ بینڈوڈتھ درکار ہوگی۔
+</string>
+
+    <string name="webrtc_stream_network_recovery">کنکشن ٹوٹ گیا۔ دوبارہ جڑ رہے ہیں…</string>
+    <string name="webrtc_stream_server_address">اسٹریم یہاں کھولیں:\n%1$s</string>
+    <string name="webrtc_stream_stream_id_getting">اسٹریم ID حاصل ہو رہی ہے…</string>
+    <string name="webrtc_stream_stream_id">اسٹریم ID: %1$s</string>
+    <string name="webrtc_stream_stream_password">اسٹریم پاس ورڈ: %1$s</string>
+    <string name="webrtc_stream_description_show_password">اسٹریم پاس ورڈ دکھائیں</string>
+    <string name="webrtc_stream_description_get_new_id">نئی اسٹریم ID حاصل کریں</string>
+    <string name="webrtc_stream_description_create_password">نیا اسٹریم پاس ورڈ بنائیں</string>
+    <string name="webrtc_stream_description_open_address">پتہ کھولیں</string>
+    <string name="webrtc_stream_description_copy_address">پتہ کاپی کریں</string>
+    <string name="webrtc_stream_description_share_address">پتہ شیئر کریں</string>
+    <string name="webrtc_stream_description_qr_address">پتہ QR کوڈ میں دکھائیں</string>
+    <string name="webrtc_stream_description_qr">QR کوڈ</string>
+    <string name="webrtc_stream_copied">کاپی ہو گیا</string>
+    <string name="webrtc_stream_audio_select">آڈیو ذرائع منتخب کریں:</string>
+    <string name="webrtc_stream_audio_mic">مائیکروفون</string>
+    <string name="webrtc_stream_audio_device">ڈیوائس آڈیو</string>
+    <string name="webrtc_stream_connected_clients">جڑے ہوئے کلائنٹس: %1$d</string>
+    <string name="webrtc_stream_no_web_browser_found">کوئی ویب براؤزر نہیں ملا</string>
+    <string name="webrtc_stream_external_app_error">بیرونی ایپ میں خرابی</string>
+    <string name="webrtc_stream_share_address">ڈیوائس پتہ شیئر کریں</string>
+    <string name="webrtc_stream_start">اسٹریم شروع کریں</string>
+    <string name="webrtc_stream_stop">اسٹریم روکیں</string>
+
+    <string name="webrtc_pref_header">عالمی موڈ (WebRTC) ترتیبات</string>
+    <string name="webrtc_pref_keep_awake">ڈیوائس جاگتی رکھیں</string>
+    <string name="webrtc_pref_keep_awake_summary">اسٹریم کے دوران ڈیوائس اور اسکرین جاگتی رکھیں</string>
+    <string name="webrtc_pref_stop_on_sleep">سلیپ پر اسٹریم روکیں</string>
+    <string name="webrtc_pref_stop_on_sleep_summary">اسکرین بند ہو تو اسٹریم روکیں</string>
+
+    <string name="webrtc_stream_audio_permission_title">آڈیو ریکارڈنگ کی اجازت</string>
+    <string name="webrtc_stream_audio_permission_message">آڈیو اسٹریم کیلئے ریکارڈنگ کی اجازت ضروری ہے۔\n\nبغیر اجازت کے اسٹریم میں آڈیو نہیں ہوگا۔</string>
+    <string name="webrtc_stream_audio_permission_message_settings">ایپ پرمیشنز میں مائیکروفون کی اجازت ضروری ہے تاکہ آڈیو اسٹریم ہو سکے۔\n\nبغیر اجازت کے آڈیو نہیں ہوگا۔</string>
+    <string name="webrtc_stream_audio_permission_open_settings">ترتیبات کھولیں</string>
+
+    <string name="webrtc_stream_cast_permission_required_title">اجازت درکار ہے</string>
+    <string name="webrtc_stream_cast_permission_required">اسکرین کیپچر کیلئے Screen Cast اجازت درکار ہے۔</string>
+
+    <string name="webrtc_item_client_disconnect">منقطع کریں</string>
+
+    <string name="webrtc_error_play_integrity_update_play_store">براہ کرم گوگل پلے اسٹور اپ ڈیٹ کریں</string>
+    <string name="webrtc_error_play_integrity_install_play_store">براہ کرم آفیشل گوگل پلے اسٹور انسٹال یا فعال کریں</string>
+    <string name="webrtc_error_play_integrity_install_play_service">براہ کرم پلے سروسز انسٹال یا فعال کریں</string>
+    <string name="webrtc_error_play_integrity_update_play_service">براہ کرم گوگل پلے سروسز اپ ڈیٹ کریں</string>
+    <string name="webrtc_error_check_network">براہ کرم انٹرنیٹ کنکشن چیک کریں</string>
+    <string name="webrtc_notification_permission_required">اسٹریمنگ سروس شروع کرنے کیلئے اطلاعات کی اجازت درکار ہے۔\nایپ کی ترتیبات میں اطلاعات فعال کریں۔</string>
+    <string name="webrtc_error_unspecified">کچھ غلط ہو گیا۔ بعد میں دوبارہ کوشش کریں۔</string>
+</resources>

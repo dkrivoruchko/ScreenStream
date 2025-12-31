@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name" translatable="false">ScreenStream</string>
+
+    <string name="app_error_title">خرابی</string>
+    <string name="app_error_recover">بحال کریں</string>
+
+    <string name="app_logs_collecting">ایپ لاگز جمع ہو رہے ہیں…</string>
+    <string name="app_logs_send_title">لاگز ڈویلپر کو بھیجیں</string>
+    <string name="app_logs_send_message">براہ کرم مسئلے کی وضاحت لکھیں:</string>
+    <string name="app_logs_send">بھیجیں</string>
+    <string name="app_logs_enabled">لاگنگ فعال ہے</string>
+    <string name="app_logs_disabled">لاگنگ غیر فعال ہے</string>
+    <string name="app_logs_stop">لاگنگ روکیں</string>
+
+    <string name="app_activity_update_dialog_title">اپ ڈیٹ دستیاب ہے</string>
+    <string name="app_activity_update_dialog_message">اپ ڈیٹ ڈاؤن لوڈ ہو چکی ہے۔ ایپ دوبارہ شروع کریں؟</string>
+    <string name="app_activity_update_dialog_restart">دوبارہ شروع کریں</string>
+
+    <string name="app_tab_stream">اسٹریم</string>
+    <string name="app_tab_settings">ترتیبات</string>
+    <string name="app_tab_about">بارے میں</string>
+    <string name="app_tab_exit">خروج</string>
+
+    <string name="app_tab_stream_select_mode">اسٹریم موڈ منتخب کریں:</string>
+
+    <string name="app_permission_required_title">اجازت درکار ہے</string>
+    <string name="app_permission_allow_notifications">اسٹریمنگ سروس شروع کرنے کیلئے ایپ کو اطلاعات کی اجازت درکار ہے۔\n\nبراہ کرم اطلاعات کی اجازت دیں۔</string>
+    <string name="app_permission_allow_notifications_settings">اسٹریمنگ سروس شروع کرنے کیلئے ایپ کو اطلاعات کی اجازت درکار ہے۔\n\nبراہ کرم ایپ کی ترتیبات میں اطلاعات کی اجازت دیں۔</string>
+    <string name="app_permission_notification_settings">ترتیبات کھولیں</string>
+
+    <string name="app_notification_channel_streaming">اسٹریمنگ اطلاعات</string>
+    <string name="app_notification_channel_error">خرابی اطلاعات</string>
+    <string name="app_notification_streaming_title">اسٹریمنگ…</string>
+    <string name="app_notification_streaming_content">اسٹریم ختم کرنے کیلئے روکیں دبائیں</string>
+    <string name="app_notification_stop">روکیں</string>
+
+    <string name="app_tile_start">شروع کریں</string>
+    <string name="app_tile_stop">روکیں</string>
+
+    <string name="app_pref_settings_search">ترتیبات میں تلاش</string>
+    <string name="app_pref_search">تلاش</string>
+    <string name="app_pref_close">بند کریں</string>
+    <string name="app_pref_back">واپس</string>
+    <string name="app_pref_settings">ایپ کی ترتیبات</string>
+    <string name="app_pref_locale">ایپ کی زبان</string>
+    <string name="app_pref_locale_summary">ایپ زبان کی ترتیبات کھولیں</string>
+    <string name="app_pref_locale_default">سسٹم ڈیفالٹ</string>
+    <string name="app_pref_night_mode">ڈارک تھیم</string>
+
+    <string-array name="app_pref_night_mode_options_api21_28">
+        <item>ہمیشہ</item>
+        <item>بیٹری سیور کے مطابق</item>
+        <item>کبھی نہیں</item>
+    </string-array>
+
+    <string-array name="app_pref_night_mode_options_api29">
+        <item>ہمیشہ</item>
+        <item>خودکار (سسٹم کے مطابق)</item>
+        <item>کبھی نہیں</item>
+    </string-array>
+
+    <string name="app_pref_dynamic_theme">ڈائنامک رنگ</string>
+    <string name="app_pref_dynamic_theme_summary">وال پیپر کے رنگوں کے مطابق انداز بدلیں</string>
+    <string name="app_pref_notification">ڈیوائس اطلاعی ترتیبات</string>
+    <string name="app_pref_notification_summary">سسٹم اطلاعی ترتیبات کھولیں</string>
+    <string name="app_pref_tile">ایپ ٹائل شامل کریں</string>
+    <string name="app_pref_tile_summary">کوئک سیٹنگز میں ایپ ٹائل شامل کریں</string>
+    <string name="app_pref_logging">ایپ لاگز فعال کریں</string>
+    <string name="app_pref_logging_summary">ایپ لاگز جمع کریں</string>
+
+    <string name="app_tab_about_app_version">ورژن: %1$s</string>
+    <string name="app_tab_about_developer_name">تیار کردہ: Dmytro Kryvoruchko</string>
+    <string name="app_tab_about_rate_app">ایپ ریٹ کریں</string>
+    <string name="app_tab_about_write_email">ڈویلپر کو ای میل کریں</string>
+    <string name="app_tab_about_email_chooser_header">ای میل بھیجی جا رہی ہے…</string>
+    <string name="app_tab_about_app_sources">ایپ کے ماخذ</string>
+    <string name="app_tab_about_terms_conditions">شرائط و ضوابط</string>
+    <string name="app_tab_about_privacy_policy">رازداری کی پالیسی</string>
+    <string name="app_tab_about_privacy_options">رازداری کے اختیارات</string>
+    <string name="app_tab_about_license">لائسنس</string>
+</resources>
