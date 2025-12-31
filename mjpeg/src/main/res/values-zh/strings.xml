@@ -61,6 +61,8 @@
     <string name="mjpeg_pref_html_buttons_summary">在网页上显示操控按钮</string>
     <string name="mjpeg_pref_html_show_press_start">显示 \"在设备上开始传输\"</string>
     <string name="mjpeg_pref_html_show_press_start_summary">在网页上显示 \"在设备上开始传输\"</string>
+    <string name="mjpeg_pref_html_keep_image_on_reconnect">重连时保留图像</string>
+    <string name="mjpeg_pref_html_keep_image_on_reconnect_summary">重连时保持最后一张图像可见</string>
     <string name="mjpeg_pref_html_back_color">网页背景色</string>
     <string name="mjpeg_pref_html_back_color_summary">设置网页背景色</string>
     <string name="mjpeg_pref_html_back_color_title">选择背景色</string>
@@ -157,6 +159,7 @@
 
     <!--HTML text-->
     <string name="mjpeg_html_stream_connecting">尝试连接中</string>
+    <string name="mjpeg_html_stream_reconnecting">正在重连…</string>
     <string name="mjpeg_html_stream_require_pin">需要 PIN 码才能访问这个流。</string>
     <string name="mjpeg_html_enter_pin">输入 pin 码：\u0020</string>
     <string name="mjpeg_html_submit_pin">提交</string>

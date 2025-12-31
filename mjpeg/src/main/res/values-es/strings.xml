@@ -61,6 +61,8 @@
     <string name="mjpeg_pref_html_buttons_summary">Mostrar botones de control en la Página Web</string>
     <string name="mjpeg_pref_html_show_press_start">Mostrar "Iniciar transmisión en el dispositivo"</string>
     <string name="mjpeg_pref_html_show_press_start_summary">Mostrar "Iniciar transmisión en el dispositivo" en la página web</string>
+    <string name="mjpeg_pref_html_keep_image_on_reconnect">Mantener imagen al reconectar</string>
+    <string name="mjpeg_pref_html_keep_image_on_reconnect_summary">Mantener visible la última imagen durante la reconexión</string>
     <string name="mjpeg_pref_html_back_color">Color de fondo de la Página Web</string>
     <string name="mjpeg_pref_html_back_color_summary">Poner color de fondo de la Página Web</string>
     <string name="mjpeg_pref_html_back_color_title">Seleccionar color de fondo</string>
@@ -157,6 +159,7 @@
 
     <!--HTML text-->
     <string name="mjpeg_html_stream_connecting">Intentando conectar</string>
+    <string name="mjpeg_html_stream_reconnecting">Reconectando…</string>
     <string name="mjpeg_html_stream_require_pin">Necesitas un PIN para acceder</string>
     <string name="mjpeg_html_enter_pin">Introdusca el PIN:\u0020</string>
     <string name="mjpeg_html_submit_pin">Enviar</string>

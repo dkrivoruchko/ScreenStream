@@ -61,6 +61,8 @@
     <string name="mjpeg_pref_html_buttons_summary">Afficher les boutons de contrôle sur la page web</string>
     <string name="mjpeg_pref_html_show_press_start">Afficher \"Démarrer le flux sur l\'appareil\"</string>
     <string name="mjpeg_pref_html_show_press_start_summary">Afficher \"Démarrer le flux sur l\'appareil\" sur la page web</string>
+    <string name="mjpeg_pref_html_keep_image_on_reconnect">Conserver l\'image lors de la reconnexion</string>
+    <string name="mjpeg_pref_html_keep_image_on_reconnect_summary">Garder la dernière image visible pendant la reconnexion</string>
     <string name="mjpeg_pref_html_back_color">Couleur de fond de la page web</string>
     <string name="mjpeg_pref_html_back_color_summary">Définir la couleur de fond de la page web</string>
     <string name="mjpeg_pref_html_back_color_title">Sélectionner la couleur de fond</string>
@@ -157,6 +159,7 @@
 
     <!--HTML text-->
     <string name="mjpeg_html_stream_connecting">Tentative de connexion</string>
+    <string name="mjpeg_html_stream_reconnecting">Reconnexion…</string>
     <string name="mjpeg_html_stream_require_pin">Ce flux nécessite un code PIN pour y accéder</string>
     <string name="mjpeg_html_enter_pin">Entrer le code PIN:\u0020</string>
     <string name="mjpeg_html_submit_pin">Soumettre</string>

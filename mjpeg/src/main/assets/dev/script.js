@@ -6,6 +6,7 @@ const buttonPiP = document.getElementById("PiP")
 const streamDiv = document.getElementById("streamDiv");
 const stream = document.getElementById("stream");
 const connectDiv = document.getElementById("connectDiv");
+const reconnectDiv = document.getElementById("reconnectDiv");
 const pinDiv = document.getElementById("pinDiv");
 const pin = document.getElementById("pin");
 const sendPin = document.getElementById("sendPin");
@@ -13,7 +14,9 @@ const pinWrongMsg = document.getElementById("pinWrongMsg");
 const blockedDiv = document.getElementById("blockedDiv");
 const errorDiv = document.getElementById("errorDiv");
 const pipStreamDiv = document.getElementById("pipStreamDiv");
-
+var keepImageOnReconnect = document.body.dataset.keepImageOnReconnect === "true";
+var hasStreamImage = false;
+var isReconnecting = false;
 var enableButtons = false;
 const buttonsHideFunction = () => { buttonsDiv.style.visibility = "hidden"; }
 var hideTimeout = setTimeout(buttonsHideFunction, 1500);
@@ -37,6 +40,16 @@ function configureFitWindow(enable) {
         stream.style.width = null;
         stream.style.objectFit = null;
     }
+}
+
+function showReconnectBar() {
+    reconnectDiv.style.display = "flex";
+    document.body.classList.add("reconnect-visible");
+}
+
+function hideReconnectBar() {
+    reconnectDiv.style.display = "none";
+    document.body.classList.remove("reconnect-visible");
 }
 if (!document.pictureInPictureEnabled) buttonPiP.style.display = "none";
 
@@ -101,6 +114,7 @@ var MJPEGErrorCounter = 0;
 
 function connect() {
     connectDiv.style.visibility = "visible";
+    hideReconnectBar();
     pinDiv.style.visibility = "hidden";
     blockedDiv.style.visibility = "hidden";
     pinWrongMsg.style.visibility = "inherit";
@@ -111,18 +125,29 @@ function connect() {
     websocket = new WebsocketHeartbeat(`ws://${window.location.host}/socket?clientId=${clientId}`);
 
     websocket.onopen = () => {
+        isReconnecting = false;
         websocket.send(JSON.stringify({ type: "CONNECT" }));
         connectDiv.style.visibility = "hidden";
+        hideReconnectBar();
     };
 
     websocket.onreconnect = () => {
-        connectDiv.style.visibility = "visible";
+        isReconnecting = true;
         pinDiv.style.visibility = "hidden";
         blockedDiv.style.visibility = "hidden";
         pinWrongMsg.style.visibility = "inherit";
-        streamDiv.style.visibility = "hidden";
         errorDiv.style.visibility = "hidden";
-        stream.src = "";
+
+        if (keepImageOnReconnect && hasStreamImage) {
+            connectDiv.style.visibility = "hidden";
+            streamDiv.style.visibility = "visible";
+            showReconnectBar();
+        } else {
+            connectDiv.style.visibility = "visible";
+            streamDiv.style.visibility = "hidden";
+            stream.src = "";
+            hideReconnectBar();
+        }
         MJPEGErrorCounter = 0;
 
         clearTimeout(showStreamTimeoutId);
@@ -142,21 +167,26 @@ function connect() {
             pinDiv.style.visibility = "hidden";
             blockedDiv.style.visibility = "hidden";
             pinWrongMsg.style.visibility = "inherit";
+            isReconnecting = false;
             showStream(message.data.streamAddress + `?clientId=${clientId}`);
             configureButtons(message.data.enableButtons);
+            hideReconnectBar();
             return;
         }
 
         if (message.type === "UNAUTHORIZED") {
+            isReconnecting = false;
             if (message.data === "ADDRESS_BLOCKED") {
                 pinDiv.style.visibility = "hidden";
                 blockedDiv.style.visibility = "visible";
                 pinWrongMsg.style.visibility = "inherit";
+                hideReconnectBar();
                 return;
             }
 
             pinDiv.style.visibility = "visible";
             blockedDiv.style.visibility = "hidden";
+            hideReconnectBar();
 
             if (message.data === "WRONG_PIN") {
                 pin.value = "";
@@ -177,6 +207,8 @@ function connect() {
             document.body.style.backgroundColor = message.data.backColor;
             configureButtons(message.data.enableButtons);
             configureFitWindow(message.data.fitWindow);
+            keepImageOnReconnect = message.data.keepImageOnReconnect;
+            document.body.dataset.keepImageOnReconnect = keepImageOnReconnect;
             return;
         }
 
@@ -185,8 +217,10 @@ function connect() {
 }
 
 function showStream(url) {
-    streamDiv.style.visibility = "hidden";
-    stream.src = "";
+    if (!(keepImageOnReconnect && hasStreamImage && isReconnecting)) {
+        streamDiv.style.visibility = "hidden";
+        stream.src = "";
+    }
     errorDiv.style.visibility = "hidden";
 
     clearTimeout(showStreamTimeoutId);
@@ -198,7 +232,9 @@ function showStream(url) {
         stream.src = url;
     }).then(() => {
         MJPEGErrorCounter = 0;
+        hasStreamImage = true;
         streamDiv.style.visibility = "visible";
+        hideReconnectBar();
         window.DD_LOGS && DD_LOGS.logger.debug("showStream", { mode: "default", result: "ok" });
     }).catch((error) => {
         window.DD_LOGS && DD_LOGS.logger.debug("showStream", { mode: "default", result: "error" });

@@ -61,6 +61,8 @@
     <string name="mjpeg_pref_html_buttons_summary">Show control buttons on web page</string>
     <string name="mjpeg_pref_html_show_press_start">Show \"Start stream on device\"</string>
     <string name="mjpeg_pref_html_show_press_start_summary">Show \"Start stream on device\" on web page</string>
+    <string name="mjpeg_pref_html_keep_image_on_reconnect">Keep image on reconnect</string>
+    <string name="mjpeg_pref_html_keep_image_on_reconnect_summary">Keep last image visible while reconnecting</string>
     <string name="mjpeg_pref_html_back_color">Web page background color</string>
     <string name="mjpeg_pref_html_back_color_summary">Set web page background color</string>
     <string name="mjpeg_pref_html_back_color_title">Select background color</string>
@@ -167,6 +169,7 @@
 
     <!--HTML text-->
     <string name="mjpeg_html_stream_connecting">Trying to connect</string>
+    <string name="mjpeg_html_stream_reconnecting">Reconnecting…</string>
     <string name="mjpeg_html_stream_require_pin">This stream requires PIN to access it</string>
     <string name="mjpeg_html_enter_pin">Enter PIN:\u0020</string>
     <string name="mjpeg_html_submit_pin">Submit</string>

@@ -18,6 +18,7 @@ public interface MjpegSettings {
 
         public val HTML_ENABLE_BUTTONS: Preferences.Key<Boolean> = booleanPreferencesKey("HTML_ENABLE_BUTTONS")
         public val HTML_SHOW_PRESS_START: Preferences.Key<Boolean> = booleanPreferencesKey("HTML_SHOW_PRESS_START")
+        public val HTML_KEEP_IMAGE_ON_RECONNECT: Preferences.Key<Boolean> = booleanPreferencesKey("HTML_KEEP_IMAGE_ON_RECONNECT")
         public val HTML_BACK_COLOR: Preferences.Key<Int> = intPreferencesKey("HTML_BACK_COLOR")
         public val HTML_FIT_WINDOW: Preferences.Key<Boolean> = booleanPreferencesKey("HTML_FIT_WINDOW")
 
@@ -58,6 +59,7 @@ public interface MjpegSettings {
 
         public const val HTML_ENABLE_BUTTONS: Boolean = false
         public const val HTML_SHOW_PRESS_START: Boolean = true
+        public const val HTML_KEEP_IMAGE_ON_RECONNECT: Boolean = true
         public const val HTML_BACK_COLOR: Int = -15723496// "FF101418".toLong(radix = 16).toInt()
         public const val HTML_FIT_WINDOW: Boolean = true
 
@@ -129,6 +131,7 @@ public interface MjpegSettings {
         public val notifySlowConnections: Boolean = Default.NOTIFY_SLOW_CONNECTIONS,
         public val htmlEnableButtons: Boolean = Default.HTML_ENABLE_BUTTONS,
         public val htmlShowPressStart: Boolean = Default.HTML_SHOW_PRESS_START,
+        public val htmlKeepImageOnReconnect: Boolean = Default.HTML_KEEP_IMAGE_ON_RECONNECT,
         public val htmlBackColor: Int = Default.HTML_BACK_COLOR,
         public val htmlFitWindow: Boolean = Default.HTML_FIT_WINDOW,
 

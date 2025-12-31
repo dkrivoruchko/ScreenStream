@@ -60,6 +60,8 @@
     <string name="mjpeg_pref_html_buttons_summary">Показувати кнопки веб сторінки</string>
     <string name="mjpeg_pref_html_show_press_start">Показувати \"Розпочніть трансляцію на пристрої\"</string>
     <string name="mjpeg_pref_html_show_press_start_summary">Показувати \"Розпочніть трансляцію на пристрої\" на веб сторінці</string>
+    <string name="mjpeg_pref_html_keep_image_on_reconnect">Зберігати зображення під час перепідключення</string>
+    <string name="mjpeg_pref_html_keep_image_on_reconnect_summary">Залишати останнє зображення видимим під час перепідключення</string>
     <string name="mjpeg_pref_html_back_color">Колір фону веб-сторінки</string>
     <string name="mjpeg_pref_html_back_color_summary">Вибрати колір фону веб-сторінки</string>
     <string name="mjpeg_pref_html_back_color_title">Вибрати колір фону</string>
@@ -156,6 +158,7 @@
 
     <!--HTML text-->
     <string name="mjpeg_html_stream_connecting">Спроба підключення</string>
+    <string name="mjpeg_html_stream_reconnecting">Перепідключення…</string>
     <string name="mjpeg_html_stream_require_pin">Ця трансляція вимагає ПІН-код</string>
     <string name="mjpeg_html_enter_pin">Введіть ПІН-код:\u0020</string>
     <string name="mjpeg_html_submit_pin">Підтвердити</string>

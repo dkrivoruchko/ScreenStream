@@ -106,6 +106,7 @@ internal class HttpServer(
     private val logoSvg: ByteArray = context.getFileFromAssets("logo.svg")
     private val baseIndexHtml = String(context.getFileFromAssets("index.html"), StandardCharsets.UTF_8)
         .replace("%CONNECTING%", context.getString(R.string.mjpeg_html_stream_connecting))
+        .replace("%RECONNECTING%", context.getString(R.string.mjpeg_html_stream_reconnecting))
         .replace("%STREAM_REQUIRE_PIN%", context.getString(R.string.mjpeg_html_stream_require_pin))
         .replace("%ENTER_PIN%", context.getString(R.string.mjpeg_html_enter_pin))
         .replace("%SUBMIT_PIN%", context.getString(R.string.mjpeg_html_submit_pin))
@@ -122,6 +123,19 @@ internal class HttpServer(
     private val mjpegSharedFlow: AtomicReference<SharedFlow<ByteArray>> = AtomicReference(null)
     private val ktorServer: AtomicReference<Pair<EmbeddedServer<*, *>, CompletableDeferred<Unit>>> = AtomicReference(null)
 
+    private data class HtmlIndexSettings(
+        val backColor: String,
+        val fitWindow: Boolean,
+        val keepImageOnReconnect: Boolean
+    )
+
+    private data class HtmlSettings(
+        val enableButtons: Boolean,
+        val backColor: String,
+        val fitWindow: Boolean,
+        val keepImageOnReconnect: Boolean
+    )
+
     init {
         XLog.d(getLog("init"))
     }
@@ -134,22 +148,37 @@ internal class HttpServer(
         val coroutineScope = CoroutineScope(Job() + Dispatchers.Default)
 
         mjpegSettings.data
-            .map { Pair(it.htmlBackColor, it.htmlFitWindow) }
+            .map { HtmlIndexSettings(it.htmlBackColor.toColorHexString(), it.htmlFitWindow, it.htmlKeepImageOnReconnect) }
             .distinctUntilChanged()
-            .onEach { (backColor, fitWindow) ->
+            .onEach { (backColor, fitWindow, keepImageOnReconnect) ->
                 indexHtml.set(
                     baseIndexHtml
-                        .replace("BACKGROUND_COLOR", backColor.toColorHexString())
+                        .replace("BACKGROUND_COLOR", backColor)
                         .replace("FIT_WINDOW", if (fitWindow) """style='width: 100%; object-fit: contain;'""" else "")
+                        .replace("%KEEP_IMAGE_ON_RECONNECT%", keepImageOnReconnect.toString())
                 )
             }
             .launchIn(coroutineScope)
 
         mjpegSettings.data
-            .map { Triple(it.htmlEnableButtons && serverData.enablePin.not(), it.htmlBackColor.toColorHexString(), it.htmlFitWindow) }
+            .map {
+                HtmlSettings(
+                    enableButtons = it.htmlEnableButtons && serverData.enablePin.not(),
+                    backColor = it.htmlBackColor.toColorHexString(),
+                    fitWindow = it.htmlFitWindow,
+                    keepImageOnReconnect = it.htmlKeepImageOnReconnect
+                )
+            }
             .distinctUntilChanged()
-            .onEach { (enableButtons, backColor, fitWindow) ->
-                val data = JSONObject(mapOf("enableButtons" to enableButtons, "backColor" to backColor, "fitWindow" to fitWindow))
+            .onEach { (enableButtons, backColor, fitWindow, keepImageOnReconnect) ->
+                val data = JSONObject(
+                    mapOf(
+                        "enableButtons" to enableButtons,
+                        "backColor" to backColor,
+                        "fitWindow" to fitWindow,
+                        "keepImageOnReconnect" to keepImageOnReconnect
+                    )
+                )
                 serverData.notifyClients("SETTINGS", data)
             }
             .launchIn(coroutineScope)

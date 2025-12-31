@@ -61,6 +61,8 @@
     <string name="mjpeg_pref_html_buttons_summary">Veb-sahifada boshqaruv tugmalarini ko\'rsatish</string>
     <string name="mjpeg_pref_html_show_press_start">“Qurilmada oqimni boshlash”ni ko‘rsatish</string>
     <string name="mjpeg_pref_html_show_press_start_summary">Veb-sahifada \"Qurilmada oqimni boshlash\" ni ko\'rsating</string>
+    <string name="mjpeg_pref_html_keep_image_on_reconnect">Qayta ulanganida rasmni saqlash</string>
+    <string name="mjpeg_pref_html_keep_image_on_reconnect_summary">Qayta ulanish paytida oxirgi rasm ko‘rinib tursin</string>
     <string name="mjpeg_pref_html_back_color">Veb-sahifa fon rangi</string>
     <string name="mjpeg_pref_html_back_color_summary">Veb-sahifaning fon rangini o\'rnating</string>
     <string name="mjpeg_pref_html_back_color_title">Fon rangini tanlang</string>
@@ -157,6 +159,7 @@
 
     <!--HTML text-->
     <string name="mjpeg_html_stream_connecting">Ulanishga urinish</string>
+    <string name="mjpeg_html_stream_reconnecting">Qayta ulanmoqda…</string>
     <string name="mjpeg_html_stream_require_pin">Bu oqimga kirish uchun PIN kod talab qilinadi</string>
     <string name="mjpeg_html_enter_pin">PIN-kodni kiriting:\\u0020</string>
     <string name="mjpeg_html_submit_pin">Yuborish</string>

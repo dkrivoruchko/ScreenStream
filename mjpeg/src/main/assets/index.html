@@ -7,6 +7,10 @@
   <title>ScreenStream</title>
   <link rel="icon" type="image/x-icon" sizes="any" href="/favicon.ico">
   <style>
+    :root {
+      --reconnect-bar-height: 40px;
+    }
+
     body,
     html {
       width: 100%;
@@ -40,6 +44,22 @@
       background: linear-gradient(#144A74, #001D34);
     }
 
+    #reconnectDiv {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: var(--reconnect-bar-height);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: #DFAF3A;
+      color: #2E2300;
+      font-size: large;
+      font-weight: 600;
+      z-index: 20;
+    }
+
     .logo {
       width: 160px;
       height: 160px;
@@ -63,6 +83,7 @@
     #buttonsDiv {
       background-color: #08121C;
       visibility: hidden;
+      top: 0;
       left: 50%;
       padding: 8px 16px;
       transform: translateX(-50%);
@@ -70,6 +91,10 @@
       border-radius: 0 0 8px 8px;
       box-shadow: 0 0 4px 4px rgba(8, 18, 28, .2);
       z-index: 10;
+    }
+
+    body.reconnect-visible #buttonsDiv {
+      top: var(--reconnect-bar-height);
     }
 
     #pinDiv input {
@@ -196,7 +221,8 @@
   </script>
 </head>
 
-<body>
+<body data-keep-image-on-reconnect="%KEEP_IMAGE_ON_RECONNECT%">
+  <div id="reconnectDiv">%RECONNECTING%</div>
   <div id="connectDiv">
     <img src="logo.svg" class="logo" />
     <p style="font-weight:500">%CONNECTING%</p>
@@ -253,6 +279,7 @@
     var streamDiv = document.getElementById("streamDiv");
     var stream = document.getElementById("stream");
     var connectDiv = document.getElementById("connectDiv");
+    var reconnectDiv = document.getElementById("reconnectDiv");
     var pinDiv = document.getElementById("pinDiv");
     var pin = document.getElementById("pin");
     var sendPin = document.getElementById("sendPin");
@@ -260,6 +287,9 @@
     var blockedDiv = document.getElementById("blockedDiv");
     var errorDiv = document.getElementById("errorDiv");
     var pipStreamDiv = document.getElementById("pipStreamDiv");
+    var keepImageOnReconnect = document.body.dataset.keepImageOnReconnect === "true";
+    var hasStreamImage = false;
+    var isReconnecting = false;
 
     var enableButtons = false;
     var buttonsHideFunction = function buttonsHideFunction() {
@@ -287,6 +317,16 @@
             stream.style.objectFit = null;
         }
     }
+
+    function showReconnectBar() {
+        reconnectDiv.style.display = "flex";
+        document.body.classList.add("reconnect-visible");
+    }
+
+    function hideReconnectBar() {
+        reconnectDiv.style.display = "none";
+        document.body.classList.remove("reconnect-visible");
+    }
     if (!document.pictureInPictureEnabled) buttonPiP.style.display = "none";
 
     window.onmousemove = function () {
@@ -303,7 +343,7 @@
     }
 
     function fullScreenHandler() {
-        if (isFullscreen()) fullscreenInput.src = "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23FFF' d='M14,14H19V16H16V19H14V14M5,14H10V19H8V16H5V14M8,5H10V10H5V8H8V5M19,8V10H14V5H16V8H19Z' /%3E%3C/svg%3E"; else fullscreenInput.src = "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23FFF' d='M5,5H10V7H7V10H5V5M14,5H19V10H17V7H14V5M17,14H19V19H14V17H17V14M10,17V19H5V14H7V17H10Z' /%3E%3C/svg%3E";
+        if (isFullscreen()) fullscreenInput.src = "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23FFF' d='M14,14H19V16H16V19H14V14M5,14H10V19H8V16H5V14M8,5H10V10H5V8H8V5M19,8V10H14V5H16V8H19Z' /%3E%3C/svg%3E";else fullscreenInput.src = "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23FFF' d='M5,5H10V7H7V10H5V5M14,5H19V10H17V7H14V5M17,14H19V19H14V17H17V14M10,17V19H5V14H7V17H10Z' /%3E%3C/svg%3E";
     }
 
     function isFullscreenEnabled() {
@@ -320,11 +360,11 @@
     }
 
     function fullScreen(element) {
-        if (element.requestFullscreen) element.requestFullscreen(); else if (element.webkitRequestFullscreen) element.webkitRequestFullscreen(); else if (element.mozRequestFullScreen) element.mozRequestFullScreen(); else if (element.msRequestFullscreen) element.msRequestFullscreen();
+        if (element.requestFullscreen) element.requestFullscreen();else if (element.webkitRequestFullscreen) element.webkitRequestFullscreen();else if (element.mozRequestFullScreen) element.mozRequestFullScreen();else if (element.msRequestFullscreen) element.msRequestFullscreen();
     }
 
     function fullScreenExit() {
-        if (document.exitFullscreen) document.exitFullscreen(); else if (document.webkitExitFullscreen) document.webkitExitFullscreen(); else if (document.mozCancelFullScreen) document.mozCancelFullScreen(); else if (document.msExitFullscreen) document.msExitFullscreen();
+        if (document.exitFullscreen) document.exitFullscreen();else if (document.webkitExitFullscreen) document.webkitExitFullscreen();else if (document.mozCancelFullScreen) document.mozCancelFullScreen();else if (document.msExitFullscreen) document.msExitFullscreen();
     }
 
     function toggleFullscreen() {
@@ -349,6 +389,7 @@
 
     function connect() {
         connectDiv.style.visibility = "visible";
+        hideReconnectBar();
         pinDiv.style.visibility = "hidden";
         blockedDiv.style.visibility = "hidden";
         pinWrongMsg.style.visibility = "inherit";
@@ -359,18 +400,29 @@
         websocket = new WebsocketHeartbeat("ws://" + window.location.host + "/socket?clientId=" + clientId);
 
         websocket.onopen = function () {
+            isReconnecting = false;
             websocket.send(JSON.stringify({ type: "CONNECT" }));
             connectDiv.style.visibility = "hidden";
+            hideReconnectBar();
         };
 
         websocket.onreconnect = function () {
-            connectDiv.style.visibility = "visible";
+            isReconnecting = true;
             pinDiv.style.visibility = "hidden";
             blockedDiv.style.visibility = "hidden";
             pinWrongMsg.style.visibility = "inherit";
-            streamDiv.style.visibility = "hidden";
             errorDiv.style.visibility = "hidden";
-            stream.src = "";
+
+            if (keepImageOnReconnect && hasStreamImage) {
+                connectDiv.style.visibility = "hidden";
+                streamDiv.style.visibility = "visible";
+                showReconnectBar();
+            } else {
+                connectDiv.style.visibility = "visible";
+                streamDiv.style.visibility = "hidden";
+                stream.src = "";
+                hideReconnectBar();
+            }
             MJPEGErrorCounter = 0;
 
             clearTimeout(showStreamTimeoutId);
@@ -390,21 +442,26 @@
                 pinDiv.style.visibility = "hidden";
                 blockedDiv.style.visibility = "hidden";
                 pinWrongMsg.style.visibility = "inherit";
+                isReconnecting = false;
                 showStream(message.data.streamAddress + ("?clientId=" + clientId));
                 configureButtons(message.data.enableButtons);
+                hideReconnectBar();
                 return;
             }
 
             if (message.type === "UNAUTHORIZED") {
+                isReconnecting = false;
                 if (message.data === "ADDRESS_BLOCKED") {
                     pinDiv.style.visibility = "hidden";
                     blockedDiv.style.visibility = "visible";
                     pinWrongMsg.style.visibility = "inherit";
+                    hideReconnectBar();
                     return;
                 }
 
                 pinDiv.style.visibility = "visible";
                 blockedDiv.style.visibility = "hidden";
+                hideReconnectBar();
 
                 if (message.data === "WRONG_PIN") {
                     pin.value = "";
@@ -425,6 +482,8 @@
                 document.body.style.backgroundColor = message.data.backColor;
                 configureButtons(message.data.enableButtons);
                 configureFitWindow(message.data.fitWindow);
+                keepImageOnReconnect = message.data.keepImageOnReconnect;
+                document.body.dataset.keepImageOnReconnect = keepImageOnReconnect;
                 return;
             }
 
@@ -433,8 +492,10 @@
     }
 
     function showStream(url) {
-        streamDiv.style.visibility = "hidden";
-        stream.src = "";
+        if (!(keepImageOnReconnect && hasStreamImage && isReconnecting)) {
+            streamDiv.style.visibility = "hidden";
+            stream.src = "";
+        }
         errorDiv.style.visibility = "hidden";
 
         clearTimeout(showStreamTimeoutId);
@@ -442,15 +503,17 @@
         new Promise(function (resolve, reject) {
             window.DD_LOGS && DD_LOGS.logger.debug("showStream", { mode: "default", streamAddress: url });
             stream.onload = function () {
-                stream.onload = null; stream.onerror = null; resolve();
+                stream.onload = null;stream.onerror = null;resolve();
             };
             stream.onerror = function (e) {
-                stream.onerror = null; stream.onload = null; reject(e);
+                stream.onerror = null;stream.onload = null;reject(e);
             };
             stream.src = url;
         }).then(function () {
             MJPEGErrorCounter = 0;
+            hasStreamImage = true;
             streamDiv.style.visibility = "visible";
+            hideReconnectBar();
             window.DD_LOGS && DD_LOGS.logger.debug("showStream", { mode: "default", result: "ok" });
         })["catch"](function (error) {
             window.DD_LOGS && DD_LOGS.logger.debug("showStream", { mode: "default", result: "error" });
@@ -547,11 +610,11 @@
         this.opts = { url: url, pingTimeout: 1000, pongTimeout: 1000, reconnectTimeout: 2000, pingMsg: JSON.stringify({ type: "HEARTBEAT" }) };
         this.ws = null;
 
-        this.onclose = function () { };
-        this.onerror = function () { };
-        this.onopen = function () { };
-        this.onmessage = function () { };
-        this.onreconnect = function () { };
+        this.onclose = function () {};
+        this.onerror = function () {};
+        this.onopen = function () {};
+        this.onmessage = function () {};
+        this.onreconnect = function () {};
 
         this.createWebSocket();
     }
@@ -608,7 +671,7 @@
                 _this3.ws.onclose = null;
                 try {
                     _this3.ws.close();
-                } catch (ignore) { }
+                } catch (ignore) {}
                 _this3.reconnect();
             }, _this3.opts.pongTimeout);
         }, this.opts.pingTimeout);
@@ -620,7 +683,7 @@
         this.ws.onclose = null;
         try {
             this.ws.close();
-        } catch (ignore) { }
+        } catch (ignore) {}
     };
 
     // https://github.com/username1565/sha256

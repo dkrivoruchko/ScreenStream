@@ -61,6 +61,8 @@
     <string name="mjpeg_pref_html_buttons_summary">Kontoll-Schaltflächen auf der Webseite anzeigen/verstecken</string>
     <string name="mjpeg_pref_html_show_press_start">\"Stream auf Gerät starten\" anzeigen</string>
     <string name="mjpeg_pref_html_show_press_start_summary">\"Stream auf Gerät starten\" auf der Webseite anzeigen</string>
+    <string name="mjpeg_pref_html_keep_image_on_reconnect">Bild bei Neuverbindung beibehalten</string>
+    <string name="mjpeg_pref_html_keep_image_on_reconnect_summary">Letztes Bild während der Neuverbindung sichtbar lassen</string>
     <string name="mjpeg_pref_html_back_color">Hintergrundfarbe der Webseite</string>
     <string name="mjpeg_pref_html_back_color_summary">Hintergrundfarbe der Webseite setzen</string>
     <string name="mjpeg_pref_html_back_color_title">Hintergrundfarbe wählen</string>
@@ -157,6 +159,7 @@
 
     <!--HTML text-->
     <string name="mjpeg_html_stream_connecting">Versuche zu verbinden</string>
+    <string name="mjpeg_html_stream_reconnecting">Wird neu verbunden…</string>
     <string name="mjpeg_html_stream_require_pin">Dieser Stream benötigt einen Pin für den Zugriff</string>
     <string name="mjpeg_html_enter_pin">Pin eingeben:\u0020</string>
     <string name="mjpeg_html_submit_pin">Senden</string>

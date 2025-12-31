@@ -61,6 +61,8 @@
     <string name="mjpeg_pref_html_buttons_summary">ওয়েব পেজে কন্ট্রোল বোতাম দেখান</string>
     <string name="mjpeg_pref_html_show_press_start">\"ডিভাইসে স্ট্রিম শুরু করুন\" দেখান</string>
     <string name="mjpeg_pref_html_show_press_start_summary">ওয়েব পৃষ্ঠায় \"ডিভাইসে স্ট্রিম শুরু করুন\" দেখান</string>
+    <string name="mjpeg_pref_html_keep_image_on_reconnect">পুনঃসংযোগে ছবি রাখুন</string>
+    <string name="mjpeg_pref_html_keep_image_on_reconnect_summary">পুনঃসংযোগের সময় শেষ ছবিটি দৃশ্যমান রাখুন</string>
     <string name="mjpeg_pref_html_back_color">ওয়েব পৃষ্ঠার পটভূমির রঙ</string>
     <string name="mjpeg_pref_html_back_color_summary">ওয়েব পৃষ্ঠার পটভূমির রঙ সেট করুন</string>
     <string name="mjpeg_pref_html_back_color_title">পটভূমির রঙ নির্বাচন করুন</string>
@@ -157,6 +159,7 @@
 
     <!--HTML text-->
     <string name="mjpeg_html_stream_connecting">সংযোগ করার চেষ্টা করছে</string>
+    <string name="mjpeg_html_stream_reconnecting">পুনঃসংযোগ করা হচ্ছে…</string>
     <string name="mjpeg_html_stream_require_pin">এই স্ট্রীমটি অ্যাক্সেস করতে পিন প্রয়োজন৷</string>
     <string name="mjpeg_html_enter_pin">পিন লিখুন:\\u0020</string>
     <string name="mjpeg_html_submit_pin">জমা দিন</string>

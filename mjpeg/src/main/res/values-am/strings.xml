@@ -60,6 +60,8 @@
     <string name="mjpeg_pref_html_buttons_summary">በድረ-ገጽ ላይ የመቆጣጠሪያ አዝራሮችን አሳይ</string>
     <string name="mjpeg_pref_html_show_press_start">\"በመሣሪያ ላይ ዥረት ጀምር\" አሳይ</string>
     <string name="mjpeg_pref_html_show_press_start_summary">በድረ-ገጽ ላይ \"በመሣሪያ ላይ ዥረት ጀምር\" የሚለውን አሳይ</string>
+    <string name="mjpeg_pref_html_keep_image_on_reconnect">እንደገና ሲገናኝ ምስሉን አቆይ</string>
+    <string name="mjpeg_pref_html_keep_image_on_reconnect_summary">እንደገና ሲገናኝ የመጨረሻውን ምስል እንዲታይ አቆይ</string>
     <string name="mjpeg_pref_html_back_color">የድረ-ገጽ ዳራ ቀለም</string>
     <string name="mjpeg_pref_html_back_color_summary">የድረ-ገጽ ዳራ ቀለም አዘጋጅ</string>
     <string name="mjpeg_pref_html_back_color_title">የጀርባ ቀለም ይምረጡ</string>
@@ -156,6 +158,7 @@
 
     <!--HTML text-->
     <string name="mjpeg_html_stream_connecting">ለመገናኘት በመሞከር ላይ</string>
+    <string name="mjpeg_html_stream_reconnecting">እንደገና በመገናኘት ላይ…</string>
     <string name="mjpeg_html_stream_require_pin">ይህ ዥረት እሱን ለማግኘት ፒን ያስፈልገዋል</string>
     <string name="mjpeg_html_enter_pin">ፒን አስገባ፡\\u0020</string>
     <string name="mjpeg_html_submit_pin">አስገባ</string>

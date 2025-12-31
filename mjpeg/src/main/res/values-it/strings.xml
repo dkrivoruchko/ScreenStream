@@ -61,6 +61,8 @@
     <string name="mjpeg_pref_html_buttons_summary">Mostra pulsanti di controllo nella pagina web</string>
     <string name="mjpeg_pref_html_show_press_start">Mostra \"Avvia lo streaming sul dispositivo\"</string>
     <string name="mjpeg_pref_html_show_press_start_summary">Mostra \"Avvia lo streaming sul dispositivo\" sulla pagina web</string>
+    <string name="mjpeg_pref_html_keep_image_on_reconnect">Mantieni immagine alla riconnessione</string>
+    <string name="mjpeg_pref_html_keep_image_on_reconnect_summary">Mantieni visibile l\'ultima immagine durante la riconnessione</string>
     <string name="mjpeg_pref_html_back_color">Colore di sfondo pagina</string>
     <string name="mjpeg_pref_html_back_color_summary">Imposta il colore di sfondo della pagina web</string>
     <string name="mjpeg_pref_html_back_color_title">Seleziona colore di sfondo</string>
@@ -157,6 +159,7 @@
 
     <!--HTML text-->
     <string name="mjpeg_html_stream_connecting">Tentativo di connessione</string>
+    <string name="mjpeg_html_stream_reconnecting">Riconnessione…</string>
     <string name="mjpeg_html_stream_require_pin">L\'accesso a questa trasmissione richiede un PIN</string>
     <string name="mjpeg_html_enter_pin">Inserisci pin:\u0020</string>
     <string name="mjpeg_html_submit_pin">Invia</string>

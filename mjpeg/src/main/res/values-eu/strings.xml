@@ -61,6 +61,8 @@
     <string name="mjpeg_pref_html_buttons_summary">Erakutsi kontrol-botoiak web orrialdean</string>
     <string name="mjpeg_pref_html_show_press_start">Erakutsi "Hasi gailuko igorpena"</string>
     <string name="mjpeg_pref_html_show_press_start_summary">Erakutsi "Hasi gailuko igorpena" web orrialdean</string>
+    <string name="mjpeg_pref_html_keep_image_on_reconnect">Irudia berriro konektatzean mantendu</string>
+    <string name="mjpeg_pref_html_keep_image_on_reconnect_summary">Azken irudia ikusgai mantendu berriro konektatzen den bitartean</string>
     <string name="mjpeg_pref_html_back_color">Web orrialdearen atzeko planoaren kolorea</string>
     <string name="mjpeg_pref_html_back_color_summary">Eman kolorea web orrialdearen atzeko planoari</string>
     <string name="mjpeg_pref_html_back_color_title">Hautatu atzeko planoaren kolorea</string>
@@ -157,6 +159,7 @@
 
     <!--HTML text-->
     <string name="mjpeg_html_stream_connecting">Konektatzen saiatzen</string>
+    <string name="mjpeg_html_stream_reconnecting">Berriro konektatzen…</string>
     <string name="mjpeg_html_stream_require_pin">PIN bat behar duzu sartzeko</string>
     <string name="mjpeg_html_enter_pin">Sartu PINa:\u0020</string>
     <string name="mjpeg_html_submit_pin">Bidali</string>

@@ -61,6 +61,8 @@
     <string name="mjpeg_pref_html_buttons_summary">Tampilake tombol kontrol ing kaca web</string>
     <string name="mjpeg_pref_html_show_press_start">Tampilake \"Mulai stream ing piranti\"</string>
     <string name="mjpeg_pref_html_show_press_start_summary">Tampilake \"Mulai stream ing piranti\" ing kaca web</string>
+    <string name="mjpeg_pref_html_keep_image_on_reconnect">Tansah simpen gambar nalika nyambung maneh</string>
+    <string name="mjpeg_pref_html_keep_image_on_reconnect_summary">Tansah nuduhake gambar pungkasan nalika nyambung maneh</string>
     <string name="mjpeg_pref_html_back_color">Werna latar mburi kaca web</string>
     <string name="mjpeg_pref_html_back_color_summary">Setel werna latar mburi kaca web</string>
     <string name="mjpeg_pref_html_back_color_title">Pilih werna latar mburi</string>
@@ -157,6 +159,7 @@
 
     <!--HTML text-->
     <string name="mjpeg_html_stream_connecting">Nyoba nyambungake</string>
+    <string name="mjpeg_html_stream_reconnecting">Nyambung maneh…</string>
     <string name="mjpeg_html_stream_require_pin">Stream iki mbutuhake PIN kanggo ngakses</string>
     <string name="mjpeg_html_enter_pin">Ketik pin:\\u0020</string>
     <string name="mjpeg_html_submit_pin">Kirimake</string>

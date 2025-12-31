@@ -61,6 +61,8 @@
     <string name="mjpeg_pref_html_buttons_summary">إظهار أزرار التحكم على صفحة الويب</string>
     <string name="mjpeg_pref_html_show_press_start">عرض "ابدأ البث على الجهاز"</string>
     <string name="mjpeg_pref_html_show_press_start_summary">عرض "ابدأ البث على الجهاز" على الصفحة الويب</string>
+    <string name="mjpeg_pref_html_keep_image_on_reconnect">الحفاظ على الصورة عند إعادة الاتصال</string>
+    <string name="mjpeg_pref_html_keep_image_on_reconnect_summary">إبقاء آخر صورة مرئية أثناء إعادة الاتصال</string>
     <string name="mjpeg_pref_html_back_color">لون خلفية صفحة الويب</string>
     <string name="mjpeg_pref_html_back_color_summary">تعيين لون خلفية صفحة الويب</string>
     <string name="mjpeg_pref_html_back_color_title">اختيار لون الخلفية</string>
@@ -157,6 +159,7 @@
 
     <!--HTML text-->
     <string name="mjpeg_html_stream_connecting">أحاول الاتصال</string>
+    <string name="mjpeg_html_stream_reconnecting">جارٍ إعادة الاتصال…</string>
     <string name="mjpeg_html_stream_require_pin">يتطلب هذا البث رقم التعريف الشخصي للوصول إليه</string>
     <string name="mjpeg_html_enter_pin"> \u0020: أدخل الرقم السري</string>
     <string name="mjpeg_html_submit_pin">إرسال</string>

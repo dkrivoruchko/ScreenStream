@@ -61,6 +61,8 @@
     <string name="mjpeg_pref_html_buttons_summary">ویب صفحہ پر کنٹرول بٹن دکھائیں</string>
     <string name="mjpeg_pref_html_show_press_start">ویب صفحہ پر \"ڈیوائس پر اسٹریم شروع کریں\" دکھائیں</string>
     <string name="mjpeg_pref_html_show_press_start_summary">ویب صفحہ پر \"ڈیوائس پر اسٹریم شروع کریں\" دکھائیں</string>
+    <string name="mjpeg_pref_html_keep_image_on_reconnect">دوبارہ جڑتے وقت تصویر برقرار رکھیں</string>
+    <string name="mjpeg_pref_html_keep_image_on_reconnect_summary">دوبارہ جڑتے وقت آخری تصویر دکھائی دیتی رہے</string>
     <string name="mjpeg_pref_html_back_color">ویب صفحہ پس منظر رنگ</string>
     <string name="mjpeg_pref_html_back_color_summary">ویب صفحہ کا پس منظر رنگ سیٹ کریں</string>
     <string name="mjpeg_pref_html_back_color_title">پس منظر رنگ منتخب کریں</string>
@@ -157,6 +159,7 @@
 
     <!--HTML text-->
     <string name="mjpeg_html_stream_connecting">کنیکٹ ہو رہے ہیں</string>
+    <string name="mjpeg_html_stream_reconnecting">دوبارہ جڑ رہا ہے…</string>
     <string name="mjpeg_html_stream_require_pin">اس اسٹریم کیلئے PIN درکار ہے</string>
     <string name="mjpeg_html_enter_pin">PIN درج کریں:\u0020</string>
     <string name="mjpeg_html_submit_pin">جمع کریں</string>

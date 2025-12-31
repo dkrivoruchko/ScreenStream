@@ -61,6 +61,8 @@
     <string name="mjpeg_pref_html_buttons_summary">Wys beheerknoppies op webblad</string>
     <string name="mjpeg_pref_html_show_press_start">Wys \"Begin stroom op toestel\"</string>
     <string name="mjpeg_pref_html_show_press_start_summary">Wys \"Begin stroom op toestel\" op webblad</string>
+    <string name="mjpeg_pref_html_keep_image_on_reconnect">Behou beeld by herverbinding</string>
+    <string name="mjpeg_pref_html_keep_image_on_reconnect_summary">Hou laaste beeld sigbaar tydens herverbinding</string>
     <string name="mjpeg_pref_html_back_color">Webblad agtergrondkleur</string>
     <string name="mjpeg_pref_html_back_color_summary">Stel webblad agtergrondkleur</string>
     <string name="mjpeg_pref_html_back_color_title">Kies agtergrondkleur</string>
@@ -157,6 +159,7 @@
 
     <!--HTML text-->
     <string name="mjpeg_html_stream_connecting">Probeer om te koppel</string>
+    <string name="mjpeg_html_stream_reconnecting">Herverbinding…</string>
     <string name="mjpeg_html_stream_require_pin">Hierdie stroom vereis PIN om toegang daartoe te verkry</string>
     <string name="mjpeg_html_enter_pin">Voer pen in:\\u0020</string>
     <string name="mjpeg_html_submit_pin">Indien</string>

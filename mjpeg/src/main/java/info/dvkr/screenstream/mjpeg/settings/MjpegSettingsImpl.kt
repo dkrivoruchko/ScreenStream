@@ -66,6 +66,9 @@ internal class MjpegSettingsImpl(context: Context) : MjpegSettings {
                 if (newSettings.htmlShowPressStart != MjpegSettings.Default.HTML_SHOW_PRESS_START)
                     set(MjpegSettings.Key.HTML_SHOW_PRESS_START, newSettings.htmlShowPressStart)
 
+                if (newSettings.htmlKeepImageOnReconnect != MjpegSettings.Default.HTML_KEEP_IMAGE_ON_RECONNECT)
+                    set(MjpegSettings.Key.HTML_KEEP_IMAGE_ON_RECONNECT, newSettings.htmlKeepImageOnReconnect)
+
                 if (newSettings.htmlBackColor != MjpegSettings.Default.HTML_BACK_COLOR)
                     set(MjpegSettings.Key.HTML_BACK_COLOR, newSettings.htmlBackColor)
 
@@ -161,6 +164,7 @@ internal class MjpegSettingsImpl(context: Context) : MjpegSettings {
         notifySlowConnections = this[MjpegSettings.Key.NOTIFY_SLOW_CONNECTIONS] ?: MjpegSettings.Default.NOTIFY_SLOW_CONNECTIONS,
         htmlEnableButtons = this[MjpegSettings.Key.HTML_ENABLE_BUTTONS] ?: MjpegSettings.Default.HTML_ENABLE_BUTTONS,
         htmlShowPressStart = this[MjpegSettings.Key.HTML_SHOW_PRESS_START] ?: MjpegSettings.Default.HTML_SHOW_PRESS_START,
+        htmlKeepImageOnReconnect = this[MjpegSettings.Key.HTML_KEEP_IMAGE_ON_RECONNECT] ?: MjpegSettings.Default.HTML_KEEP_IMAGE_ON_RECONNECT,
         htmlBackColor = this[MjpegSettings.Key.HTML_BACK_COLOR] ?: MjpegSettings.Default.HTML_BACK_COLOR,
         htmlFitWindow = this[MjpegSettings.Key.HTML_FIT_WINDOW] ?: MjpegSettings.Default.HTML_FIT_WINDOW,
 

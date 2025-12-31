@@ -61,6 +61,8 @@
     <string name="mjpeg_pref_html_buttons_summary">Pokazuje przyciski sterujące na stronie internetowej</string>
     <string name="mjpeg_pref_html_show_press_start">Pokaż \"Uruchom strumień na urządzeniu\"</string>
     <string name="mjpeg_pref_html_show_press_start_summary">Pokaż \"Uruchom strumień na urządzeniu\" na stronie internetowej</string>
+    <string name="mjpeg_pref_html_keep_image_on_reconnect">Zachowaj obraz przy ponownym łączeniu</string>
+    <string name="mjpeg_pref_html_keep_image_on_reconnect_summary">Pozostaw ostatni obraz widoczny podczas ponownego łączenia</string>
     <string name="mjpeg_pref_html_back_color">Kolor tła strony internetowej</string>
     <string name="mjpeg_pref_html_back_color_summary">Ustawia kolor tła strony internetowej</string>
     <string name="mjpeg_pref_html_back_color_title">Wybierz kolor tła</string>
@@ -157,6 +159,7 @@
 
     <!--HTML text-->
     <string name="mjpeg_html_stream_connecting">Próba połączenia</string>
+    <string name="mjpeg_html_stream_reconnecting">Ponowne łączenie…</string>
     <string name="mjpeg_html_stream_require_pin">Transmisja wymaga kodu PIN</string>
     <string name="mjpeg_html_enter_pin">Wpisz kod PIN:\u0020</string>
     <string name="mjpeg_html_submit_pin">Zatwierdź</string>

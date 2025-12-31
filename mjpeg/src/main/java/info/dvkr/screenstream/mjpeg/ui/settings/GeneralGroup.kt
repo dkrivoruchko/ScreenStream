@@ -10,6 +10,7 @@ import info.dvkr.screenstream.mjpeg.R
 import info.dvkr.screenstream.mjpeg.ui.settings.general.HtmlBackColor
 import info.dvkr.screenstream.mjpeg.ui.settings.general.HtmlEnableButtons
 import info.dvkr.screenstream.mjpeg.ui.settings.general.HtmlFitWindow
+import info.dvkr.screenstream.mjpeg.ui.settings.general.HtmlKeepImageOnReconnect
 import info.dvkr.screenstream.mjpeg.ui.settings.general.HtmlShowPressStart
 import info.dvkr.screenstream.mjpeg.ui.settings.general.KeepAwake
 import info.dvkr.screenstream.mjpeg.ui.settings.general.NotifySlowConnections
@@ -28,7 +29,8 @@ public object GeneralGroup : ModuleSettings.Group {
             HtmlEnableButtons,
             HtmlShowPressStart,
             HtmlBackColor,
-            HtmlFitWindow
+            HtmlFitWindow,
+            HtmlKeepImageOnReconnect
         )
             .filter { it.available }.sortedBy { it.position }
 

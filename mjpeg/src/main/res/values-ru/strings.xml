@@ -60,6 +60,8 @@
     <string name="mjpeg_pref_html_buttons_summary">Показывать кнопки управления на веб-странице</string>
     <string name="mjpeg_pref_html_show_press_start">Показывать \"Запустите трансляцию на устройстве\"</string>
     <string name="mjpeg_pref_html_show_press_start_summary">Показывать \"Запустите трансляцию на устройстве\" на веб-странице</string>
+    <string name="mjpeg_pref_html_keep_image_on_reconnect">Сохранять изображение при переподключении</string>
+    <string name="mjpeg_pref_html_keep_image_on_reconnect_summary">Оставлять последнее изображение видимым при переподключении</string>
     <string name="mjpeg_pref_html_back_color">Цвет фона веб-страницы</string>
     <string name="mjpeg_pref_html_back_color_summary">Выбрать цвет фона веб-страницы</string>
     <string name="mjpeg_pref_html_back_color_title">Выберите цвет фона</string>
@@ -156,6 +158,7 @@
 
     <!--HTML text-->
     <string name="mjpeg_html_stream_connecting">Попытка подключения</string>
+    <string name="mjpeg_html_stream_reconnecting">Переподключение…</string>
     <string name="mjpeg_html_stream_require_pin">Эта трансляция требует PIN-код для доступа к ней</string>
     <string name="mjpeg_html_enter_pin">Введите PIN-код:\u0020</string>
     <string name="mjpeg_html_submit_pin">Отправить</string>

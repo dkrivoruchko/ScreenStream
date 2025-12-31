@@ -60,6 +60,8 @@
     <string name="mjpeg_pref_html_buttons_summary">Tampilkan tombol kontrol di halaman web</string>
     <string name="mjpeg_pref_html_show_press_start">Tampilkan \"Mulai streaming di perangkat\"</string>
     <string name="mjpeg_pref_html_show_press_start_summary">Tampilkan \"Mulai streaming di perangkat\" di halaman web</string>
+    <string name="mjpeg_pref_html_keep_image_on_reconnect">Pertahankan gambar saat menyambung ulang</string>
+    <string name="mjpeg_pref_html_keep_image_on_reconnect_summary">Biarkan gambar terakhir tetap terlihat saat menyambung ulang</string>
     <string name="mjpeg_pref_html_back_color">Warna latar belakang halaman web</string>
     <string name="mjpeg_pref_html_back_color_summary">Atur warna latar belakang halaman web</string>
     <string name="mjpeg_pref_html_back_color_title">Pilih warna latar belakang</string>
@@ -156,6 +158,7 @@
 
     <!--HTML text-->
     <string name="mjpeg_html_stream_connecting">Mencoba terhubung</string>
+    <string name="mjpeg_html_stream_reconnecting">Menyambung ulang…</string>
     <string name="mjpeg_html_stream_require_pin">Aliran ini memerlukan PIN untuk mengaksesnya</string>
     <string name="mjpeg_html_enter_pin">Masukkan pin:\\u0020</string>
     <string name="mjpeg_html_submit_pin">Kirim</string>

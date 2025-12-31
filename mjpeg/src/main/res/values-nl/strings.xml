@@ -61,6 +61,8 @@
     <string name="mjpeg_pref_html_buttons_summary">Laat controle knoppen zien op pagina</string>
     <string name="mjpeg_pref_html_show_press_start">Toon \"Stream starten op apparaat\"</string>
     <string name="mjpeg_pref_html_show_press_start_summary">Toon \"Stream starten op apparaat\" op de webpagina</string>
+    <string name="mjpeg_pref_html_keep_image_on_reconnect">Afbeelding behouden bij opnieuw verbinden</string>
+    <string name="mjpeg_pref_html_keep_image_on_reconnect_summary">Laat de laatste afbeelding zichtbaar tijdens opnieuw verbinden</string>
     <string name="mjpeg_pref_html_back_color">Pagina achtergrond kleur</string>
     <string name="mjpeg_pref_html_back_color_summary">Stel de pagina achtergrond kleur in</string>
     <string name="mjpeg_pref_html_back_color_title">Selecteer pagina achtergrond kleur</string>
@@ -157,6 +159,7 @@
 
     <!--HTML text-->
     <string name="mjpeg_html_stream_connecting">Proberen te verbinden</string>
+    <string name="mjpeg_html_stream_reconnecting">Opnieuw verbinden…</string>
     <string name="mjpeg_html_stream_require_pin">Deze stream is beveiligd met een PIN</string>
     <string name="mjpeg_html_enter_pin">Vul de pin in:\u0020</string>
     <string name="mjpeg_html_submit_pin">Verstuur</string>
