@@ -10,7 +10,7 @@
 - Sends video as a series of independent images (no audio).\n
 - Works without an internet connection within your local network.\n
 - Embedded HTTP server.\n
-- Works with WiFi and/or mobile networks, supporting IPv4 and IPv6.\n
+- Works with Wi-Fi and/or mobile networks, supporting IPv4 and IPv6.\n
 - Clients connect via web browser using the app\'s provided IP address.\n
 - Highly customizable.\n
 - Individual data transmission for each client (more clients you have, more network bandwidth you need).
@@ -26,12 +26,12 @@
     <string name="mjpeg_item_address_description_open_address">Open address</string>
     <string name="mjpeg_item_address_description_copy_address">Copy address</string>
     <string name="mjpeg_item_address_description_share_address">Share address</string>
-    <string name="mjpeg_item_address_description_qr_address">Show address as QR-code</string>
-    <string name="mjpeg_item_address_description_qr">QR-code</string>
-    <string name="mjpeg_stream_pin">Pin: %1$s</string>
-    <string name="mjpeg_stream_pin_disabled">Pin disabled</string>
-    <string name="mjpeg_stream_description_show_pin">Show stream pin</string>
-    <string name="mjpeg_stream_description_create_pin">Create new stream pin</string>
+    <string name="mjpeg_item_address_description_qr_address">Show address as QR code</string>
+    <string name="mjpeg_item_address_description_qr">QR code</string>
+    <string name="mjpeg_stream_pin">PIN: %1$s</string>
+    <string name="mjpeg_stream_pin_disabled">PIN disabled</string>
+    <string name="mjpeg_stream_description_show_pin">Show stream PIN</string>
+    <string name="mjpeg_stream_description_create_pin">Create new stream PIN</string>
     <string name="mjpeg_stream_current_traffic">Traffic: %1$,.2f Mbit/s</string>
     <string name="mjpeg_stream_traffic_graph">Traffic graph</string>
     <string name="mjpeg_stream_connected_clients">Connected clients: %1$d</string>
@@ -115,19 +115,19 @@
     <string name="mjpeg_pref_jpeg_quality_text">Set JPEG compression quality.\nValues: 10–100\nDefault: 80</string>
 
     <string name="mjpeg_pref_settings_security">Security</string>
-    <string name="mjpeg_pref_enable_pin">Enable pin</string>
-    <string name="mjpeg_pref_enable_pin_summary">Protect access to stream with pin</string>
-    <string name="mjpeg_pref_hide_pin">Auto hide pin on stream start</string>
-    <string name="mjpeg_pref_hide_pin_summary">Show asterisks instead of pin while streaming</string>
-    <string name="mjpeg_pref_new_pin_on_start">New pin on start</string>
-    <string name="mjpeg_pref_new_pin_on_start_summary">Generate new pin on application start</string>
-    <string name="mjpeg_pref_auto_change_pin">Auto change pin</string>
-    <string name="mjpeg_pref_auto_change_pin_summary">Generate new pin for each new stream</string>
-    <string name="mjpeg_pref_set_pin">Set pin</string>
-    <string name="mjpeg_pref_set_pin_summary">Enter pin manually</string>
-    <string name="mjpeg_pref_set_pin_text">Enter pin.\nDefault: 000000</string>
+    <string name="mjpeg_pref_enable_pin">Enable PIN</string>
+    <string name="mjpeg_pref_enable_pin_summary">Protect access to stream with PIN</string>
+    <string name="mjpeg_pref_hide_pin">Auto hide PIN on stream start</string>
+    <string name="mjpeg_pref_hide_pin_summary">Show asterisks instead of PIN while streaming</string>
+    <string name="mjpeg_pref_new_pin_on_start">New PIN on start</string>
+    <string name="mjpeg_pref_new_pin_on_start_summary">Generate new PIN on application start</string>
+    <string name="mjpeg_pref_auto_change_pin">Auto change PIN</string>
+    <string name="mjpeg_pref_auto_change_pin_summary">Generate new PIN for each new stream</string>
+    <string name="mjpeg_pref_set_pin">Set PIN</string>
+    <string name="mjpeg_pref_set_pin_summary">Enter PIN manually</string>
+    <string name="mjpeg_pref_set_pin_text">Enter PIN.\nDefault: 000000</string>
     <string name="mjpeg_pref_block_address">Block IP address</string>
-    <string name="mjpeg_pref_block_address_summary">Block client IP address after 5 wrong pin attempts for 5 minutes</string>
+    <string name="mjpeg_pref_block_address_summary">Block client IP address after 5 wrong PIN attempts for 5 minutes</string>
 
     <string name="mjpeg_pref_settings_advanced">Advanced</string>
     <string name="mjpeg_pref_interface_filter">Interface filter</string>
@@ -160,7 +160,7 @@
     <string name="mjpeg_error_port_in_use">Port already in use. Choose another one.</string>
     <string name="mjpeg_error_invalid_media_projection">Security error: Invalid media projection. Try one more time.</string>
     <string name="mjpeg_error_ip_address_not_found">IP address not found.\nTry to adjust network filters in stream settings.</string>
-    <string name="mjpeg_error_notification_permission_required">Application require notifications to be enabled to start streaming service.\nPlease enable notifications in application settings.</string>
+    <string name="mjpeg_error_notification_permission_required">Application requires notifications to be enabled to start streaming service.\nPlease enable notifications in application settings.</string>
     <string name="mjpeg_error_unspecified">Something went wrong. Please try again later.</string>
 
     <string name="mjpeg_start_image_text">Start stream on device</string>
@@ -168,9 +168,9 @@
     <!--HTML text-->
     <string name="mjpeg_html_stream_connecting">Trying to connect</string>
     <string name="mjpeg_html_stream_require_pin">This stream requires PIN to access it</string>
-    <string name="mjpeg_html_enter_pin">Enter pin:\u0020</string>
+    <string name="mjpeg_html_enter_pin">Enter PIN:\u0020</string>
     <string name="mjpeg_html_submit_pin">Submit</string>
-    <string name="mjpeg_html_wrong_pin">Wrong pin!</string>
+    <string name="mjpeg_html_wrong_pin">Wrong PIN!</string>
     <string name="mjpeg_html_address_blocked">Client address blocked</string>
     <string name="mjpeg_html_error_unspecified">Something went wrong. &lt;br&gt; Please reload page and try again.</string>
 </resources>

@@ -15,12 +15,12 @@
     <string name="app_activity_update_dialog_message">Yangilanish endigina yuklab olindi</string>
     <string name="app_activity_update_dialog_restart">Qayta ishga tushirish</string>
 
-    <string name="app_tab_stream">Oqim</string>
+    <string name="app_tab_stream">Strim</string>
     <string name="app_tab_settings">Sozlamalar</string>
     <string name="app_tab_about">Haqida</string>
     <string name="app_tab_exit">Chiqish</string>
 
-    <string name="app_tab_stream_select_mode">Oqim rejimini tanlang:</string>
+    <string name="app_tab_stream_select_mode">Strim rejimini tanlang:</string>
 
     <string name="app_permission_required_title">Ruxsat talab qilinadi</string>
     <string name="app_permission_allow_notifications">Striming xizmatini ishga tushirish uchun ilova bildirishnomalarni yuborishga ruxsat talab qiladi. Iltimos, bildirishnomalarni yuborishga ruxsat bering.</string>

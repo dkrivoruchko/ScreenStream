@@ -15,7 +15,7 @@
     <string name="app_activity_update_dialog_message">একটি আপডেট সবেমাত্র ডাউনলোড করা হয়েছে। এখন অ্যাপ রিস্টার্ট করবেন?</string>
     <string name="app_activity_update_dialog_restart">পুনরারম্ভ</string>
 
-    <string name="app_tab_stream">প্রবাহ</string>
+    <string name="app_tab_stream">স্ট্রিম</string>
     <string name="app_tab_settings">সেটিংস</string>
     <string name="app_tab_about">সম্পর্কিত</string>
     <string name="app_tab_exit">প্রস্থান</string>

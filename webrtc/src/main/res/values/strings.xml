@@ -26,8 +26,8 @@
     <string name="webrtc_stream_description_open_address">Open address</string>
     <string name="webrtc_stream_description_copy_address">Copy address</string>
     <string name="webrtc_stream_description_share_address">Share address</string>
-    <string name="webrtc_stream_description_qr_address">Show address as QR-code</string>
-    <string name="webrtc_stream_description_qr">QR-code</string>
+    <string name="webrtc_stream_description_qr_address">Show address as QR code</string>
+    <string name="webrtc_stream_description_qr">QR code</string>
     <string name="webrtc_stream_copied">Copied</string>
     <string name="webrtc_stream_audio_select">Select audio sources:</string>
     <string name="webrtc_stream_audio_mic">Microphone</string>
@@ -60,6 +60,6 @@
     <string name="webrtc_error_play_integrity_install_play_service">Please install or enable Play Services</string>
     <string name="webrtc_error_play_integrity_update_play_service">Please update Google Play Services</string>
     <string name="webrtc_error_check_network">Please check for Internet connectivity</string>
-    <string name="webrtc_notification_permission_required">Application require notifications to be enabled to start streaming service.\nPlease enable notifications in application settings.</string>
+    <string name="webrtc_notification_permission_required">Application requires notifications to be enabled to start streaming service.\nPlease enable notifications in application settings.</string>
     <string name="webrtc_error_unspecified">Something went wrong. Please try again later.</string>
 </resources>

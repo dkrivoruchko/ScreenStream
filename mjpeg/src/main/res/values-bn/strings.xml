@@ -1,4 +1,3 @@
-<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="mjpeg_error_recover">পুনরুদ্ধার করুন</string>
     <string name="mjpeg_error_open_settings">ওপেন সেটিংস</string>
@@ -6,7 +5,7 @@
     <string name="mjpeg_stream_mode">স্থানীয় মোড (MJPEG)</string>
     <string name="mjpeg_stream_mode_description">স্থানীয় মোড বিবরণ</string>
     <string name="mjpeg_stream_mode_details">
-        - MJPEG মান দ্বারা চালিত.\n
+- MJPEG মান দ্বারা চালিত.\n
         - নিরাপত্তার জন্য পিন ব্যবহার করে (কোন এনক্রিপশন নেই)।\n
         - স্বাধীন চিত্রগুলির একটি সিরিজ হিসাবে ভিডিও পাঠায় (কোনও অডিও নেই)।\n
         - আপনার স্থানীয় নেটওয়ার্কের মধ্যে ইন্টারনেট সংযোগ ছাড়াই কাজ করে।\n
@@ -15,7 +14,7 @@
         - ক্লায়েন্টরা অ্যাপের প্রদত্ত আইপি ঠিকানা ব্যবহার করে ওয়েব ব্রাউজারের মাধ্যমে সংযুক্ত হন।\n
         - অত্যন্ত কাস্টমাইজযোগ্য।\n
         - প্রতিটি ক্লায়েন্টের জন্য পৃথক ডেটা ট্রান্সমিশন (আপনার আরও বেশি ক্লায়েন্ট আছে, আপনার প্রয়োজন আরও বেশি নটওয়ার্ক ব্যান্ডউইথ)।
-    </string>
+</string>
 
     <string name="mjpeg_item_address">ডিভাইস ঠিকানা:</string>
     <string name="mjpeg_stream_no_address">কোনো ঠিকানা পাওয়া যায়নি</string>
@@ -71,6 +70,11 @@
     <string name="mjpeg_pref_settings_image">ছবি</string>
     <string name="mjpeg_pref_vr_mode">ভার্চুয়াল বাস্তবতা মোড</string>
     <string name="mjpeg_pref_vr_mode_summary">অর্ধ স্ক্রীন থেকে বিষয়বস্তু ক্যাপচার</string>
+    <string-array name="mjpeg_pref_vr_mode_options">
+        <item>নিষ্ক্রিয় করুন</item>
+        <item>বাম অংশ ব্যবহার করুন</item>
+        <item>ডান অংশ ব্যবহার করুন</item>
+    </string-array>
     <string name="mjpeg_pref_crop">ফসল ইমেজ</string>
     <string name="mjpeg_pref_crop_summary">ক্লায়েন্টকে পাঠানোর আগে ছবি ক্রপ করুন</string>
     <string name="mjpeg_pref_crop_top">ক্রপ টপ:</string>
@@ -151,6 +155,7 @@
 
     <string name="mjpeg_start_image_text">ডিভাইসে স্ট্রিম শুরু করুন</string>
 
+    <!--HTML text-->
     <string name="mjpeg_html_stream_connecting">সংযোগ করার চেষ্টা করছে</string>
     <string name="mjpeg_html_stream_require_pin">এই স্ট্রীমটি অ্যাক্সেস করতে পিন প্রয়োজন৷</string>
     <string name="mjpeg_html_enter_pin">পিন লিখুন:\\u0020</string>

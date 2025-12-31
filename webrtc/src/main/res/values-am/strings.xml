@@ -6,14 +6,14 @@
     <string name="webrtc_stream_mode">ሁለንተናዊ ሁነታ (WebRTC)</string>
     <string name="webrtc_stream_mode_description">የአለምአቀፍ ሁነታ መግለጫ</string>
     <string name="webrtc_stream_mode_details">
-        - በWebRTC ቴክኖሎጂ የተጎላበተ።\n
+- በWebRTC ቴክኖሎጂ የተጎላበተ።\n
         - ከጫፍ እስከ ጫፍ የተመሰጠረ ግንኙነት።\n
         - በይለፍ ቃል የዥረት ጥበቃ።\n
         - ቪዲዮ እና ድምጽ መላክ ይችላል.\n
         - ልዩ የዥረት መታወቂያ እና የይለፍ ቃል በመጠቀም ይገናኙ።\n
         - ለመልቀቅ የበይነመረብ ግንኙነት ይፈልጋል።\n
         - ለእያንዳንዱ ደንበኛ የግለሰብ ውሂብ ማስተላለፍ (ብዙ ደንበኞች አሉዎት ፣ ብዙ የበይነመረብ ባንድዊድዝ ያስፈልግዎታል)።
-    </string>
+</string>
 
     <string name="webrtc_stream_network_recovery">ግንኙነት ጠፋ። እንደገና በመገናኘት ላይ…</string>
     <string name="webrtc_stream_server_address">ዥረት ይድረሱበት በ፡ %1$s</string>

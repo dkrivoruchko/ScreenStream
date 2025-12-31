@@ -44,7 +44,7 @@
     <string name="webrtc_pref_keep_awake_summary">Держать устройство и экран активными при трансляции</string>
     <string name="webrtc_pref_stop_on_sleep">Останавливать при выключении</string>
     <string name="webrtc_pref_stop_on_sleep_summary">Останавливать трансляцию, если выключится экран</string>
-    
+
     <string name="webrtc_stream_audio_permission_title">Разрешить запись аудио</string>
     <string name="webrtc_stream_audio_permission_message">Необходимо разрешение на запись аудио для работы приложения со звуком.\n\nБез предоставления этого разрешения трансляция будет без звука.</string>
     <string name="webrtc_stream_audio_permission_message_settings">Необходимо предоставить доступ к микрофону в настройках разрешений приложения для работы со звуком.\n\nБез предоставления этого разрешения трансляция будет проводиться без звука.</string>

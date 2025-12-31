@@ -20,8 +20,8 @@
     <string name="webrtc_stream_stream_id_getting">Отримання ID трансляції…</string>
     <string name="webrtc_stream_stream_id">ID трансляції: %1$s</string>
     <string name="webrtc_stream_stream_password">Пароль трансляції: %1$s</string>
-    <string name="webrtc_stream_description_get_new_id">Отримати новий ID трансляції</string>
     <string name="webrtc_stream_description_show_password">Показати пароль трансляції</string>
+    <string name="webrtc_stream_description_get_new_id">Отримати новий ID трансляції</string>
     <string name="webrtc_stream_description_create_password">Створити новий пароль для трансляції</string>
     <string name="webrtc_stream_description_open_address">Відкрити адресу</string>
     <string name="webrtc_stream_description_copy_address">Скопіювати адресу</string>
@@ -44,7 +44,7 @@
     <string name="webrtc_pref_keep_awake_summary">Тримати пристрій та екран активними під час трансляції</string>
     <string name="webrtc_pref_stop_on_sleep">Зупиняти трансляцію при засинанні пристрою</string>
     <string name="webrtc_pref_stop_on_sleep_summary">Зупиняти трансляцію при вимкненні екрану</string>
-    
+
     <string name="webrtc_stream_audio_permission_title">Дозволити запис аудіо</string>
     <string name="webrtc_stream_audio_permission_message">Для додатку необхідний дозвіл на запис аудіо для трансляції аудіовмісту.\nБез надання цього дозволу трансляція буде без звуку.</string>
     <string name="webrtc_stream_audio_permission_message_settings">Надання доступу до мікрофону у налаштуваннях додатку є необхідним для трансляції аудіовмісту.\n\nБез надання цього дозволу трансляція буде проводитись без звуку.</string>

@@ -7,13 +7,12 @@
     <string name="rtsp_stream_mode_description">وصف وضع RTSP</string>
     <string name="rtsp_stream_mode_details">
 - يعمل ببروتوكول RTSP.\n
-- يتطلب خادم وسائط متوافق مع RTSP.\n
-- يدعم الفيديو والصوت.\n
-- يمكن حمايته باسم مستخدم/كلمة مرور.\n
-- تشفير قناة التحكم اختياري (RTSPS باستخدام TLS).\n
-- متوافق مع WiFi وشبكات الجوال وIPv4/IPv6.\n
-- يتطلب عميل RTSP أو مشغل للمشاهدة.\n
-- قابل للتخصيص بشكل كبير.\n
+- وضع الخادم (الافتراضي) يستضيف هذا الجهاز كخادم RTSP.\n
+- وضع العميل يتصل بخادم RTSP بعيد.\n
+- يدعم الفيديو والصوت مع إعدادات الترميز.\n
+- وضع الخادم يضيف إعدادات البروتوكول ومرشحات الواجهة/العنوان وIPv4/IPv6 والمنفذ.\n
+- يعمل عبر شبكات Wi‑Fi/الجوال وIPv4/IPv6.\n
+- يتطلب عميل RTSP أو مشغل للمشاهدة.
 </string>
 
     <string name="rtsp_mode_card_title">اختر وضع RTSP:</string>
@@ -41,6 +40,7 @@
     <string name="rtsp_cast_permission_required_title">الإذن مطلوب</string>
     <string name="rtsp_cast_permission_required">يتطلب تطبيق ScreenStream إذن بث الشاشة لالتقاط الشاشة.</string>
     <string name="rtsp_error_notification_permission_required">يتطلب التطبيق تمكين الإشعارات لبدء خدمة البث.\nيرجى تمكين الإشعارات في إعدادات التطبيق.</string>
+    <string name="rtsp_error_ip_address_not_found">لم يتم العثور على عنوان IP</string>
     <string name="rtsp_error_unspecified">حدث خطأ ما.</string>
 
     <string name="rtsp_media_server">خادم الوسائط</string>

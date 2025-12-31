@@ -44,7 +44,7 @@
     <string name="webrtc_pref_keep_awake_summary">Mantieni il dispositivo e lo schermo attivi durante lo streaming</string>
     <string name="webrtc_pref_stop_on_sleep">Interrompi a schermo spento</string>
     <string name="webrtc_pref_stop_on_sleep_summary">Interrompi la trasmissione quando lo schermo si spegne</string>
-    
+
     <string name="webrtc_stream_audio_permission_title">Consenti la registrazione audio</string>
     <string name="webrtc_stream_audio_permission_message">È necessario il permesso per registrare l\'audio per l\'applicazione per lo streaming audio.\n\nSenza concedere questo permesso, lo streaming sarà senza audio.</string>
     <string name="webrtc_stream_audio_permission_message_settings">È necessario concedere l\'accesso al microfono nelle autorizzazioni dell\'applicazione per lo streaming audio.\n\nSenza concedere questo permesso, lo streaming sarà condotto senza audio.</string>

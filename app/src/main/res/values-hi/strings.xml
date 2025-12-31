@@ -15,7 +15,7 @@
     <string name="app_activity_update_dialog_message">एक अपडेट अभी डाउनलोड की गई है। क्या आप अब ऐप्लिकेशन को फिर से चालना चाहेंगे?</string>
     <string name="app_activity_update_dialog_restart">रीस्टार्ट करें</string>
 
-    <string name="app_tab_stream">प्रवाह</string>
+    <string name="app_tab_stream">स्ट्रीम</string>
     <string name="app_tab_settings">सेटिंग्स</string>
     <string name="app_tab_about">विषय में</string>
     <string name="app_tab_exit">बाहर</string>

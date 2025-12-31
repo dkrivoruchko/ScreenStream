@@ -7,13 +7,12 @@
     <string name="rtsp_stream_mode_description">RTSP moduaren deskribapena</string>
     <string name="rtsp_stream_mode_details">
 - RTSP protokoloak bultzatuta.\n
-- RTSP gaitasuna duen multimedia zerbitzaria behar du.\n
-- Bideoa eta audioa onartzen ditu.\n
-- Erabiltzaile-izen/pasahitzarekin babes daiteke.\n
-- Aukerako kontrol-kanalaren enkriptatzea (RTSPS TLS erabiliz).\n
-- WiFi, sare mugikorrak eta IPv4/IPv6 bateragarria.\n
-- RTSP bezero edo erreproduzitzailea behar du ikusteko.\n
-- Erabat pertsonalizagarria.\n
+- Zerbitzari moduak (lehenetsia) gailu hau RTSP zerbitzari gisa ostatatzen du.\n
+- Bezero moduak urruneko RTSP zerbitzarira konektatzen da.\n
+- Bideoa eta audioa onartzen ditu kodek-konfigurazioarekin.\n
+- Zerbitzari moduak protokoloa, interfazea/helbidea iragazkiak, IPv4/IPv6 eta portu-ezarpenak gehitzen ditu.\n
+- Wi‑Fi/mugikor sareetan eta IPv4/IPv6n funtzionatzen du.\n
+- RTSP bezero edo erreproduzitzailea behar du ikusteko.
 </string>
 
     <string name="rtsp_mode_card_title">Hautatu RTSP modua:</string>
@@ -41,6 +40,7 @@
     <string name="rtsp_cast_permission_required_title">Baimena beharrezkoa</string>
     <string name="rtsp_cast_permission_required">ScreenStream aplikazioak pantaila transmisio baimena behar du pantaila harrapatzeko.</string>
     <string name="rtsp_error_notification_permission_required">Aplikazioak jakinarazpenak gaituta egotea behar du transmisio zerbitzua hasteko.\nMesedez, gaitu jakinarazpenak aplikazioaren ezarpenetan.</string>
+    <string name="rtsp_error_ip_address_not_found">Ez da IP helbiderik aurkitu</string>
     <string name="rtsp_error_unspecified">Zerbait oker joan da.</string>
 
     <string name="rtsp_media_server">Multimedia zerbitzaria</string>

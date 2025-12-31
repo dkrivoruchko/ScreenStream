@@ -1,7 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name" translatable="false">ScreenStream</string>
-
     <string name="app_error_title">خرابی</string>
     <string name="app_error_recover">بحال کریں</string>
 
@@ -47,19 +45,16 @@
     <string name="app_pref_locale_summary">ایپ زبان کی ترتیبات کھولیں</string>
     <string name="app_pref_locale_default">سسٹم ڈیفالٹ</string>
     <string name="app_pref_night_mode">ڈارک تھیم</string>
-
     <string-array name="app_pref_night_mode_options_api21_28">
         <item>ہمیشہ</item>
         <item>بیٹری سیور کے مطابق</item>
         <item>کبھی نہیں</item>
     </string-array>
-
     <string-array name="app_pref_night_mode_options_api29">
         <item>ہمیشہ</item>
         <item>خودکار (سسٹم کے مطابق)</item>
         <item>کبھی نہیں</item>
     </string-array>
-
     <string name="app_pref_dynamic_theme">ڈائنامک رنگ</string>
     <string name="app_pref_dynamic_theme_summary">وال پیپر کے رنگوں کے مطابق انداز بدلیں</string>
     <string name="app_pref_notification">ڈیوائس اطلاعی ترتیبات</string>

@@ -88,8 +88,6 @@
     <string name="mjpeg_pref_grayscale_summary">کلائنٹ کو بھیجنے سے پہلے تصویر کو گریسکیل کریں</string>
     <string name="mjpeg_pref_resize">تصویر کا سائز بدلیں</string>
     <string name="mjpeg_pref_resize_summary">کلائنٹ کو بھیجنے سے پہلے سائز بدلیں</string>
-    <string name="mjpeg_pref_resize_value" translatable="false">%1$d%%</string>
-    <string name="mjpeg_pref_resize_resolution_value" translatable="false">%1$dx%2$d</string>
     <string name="mjpeg_pref_resize_mode_percent">فیصد سے سائز بدلیں</string>
     <string name="mjpeg_pref_resize_mode_resolution">مقرر ریزولوشن</string>
     <string name="mjpeg_pref_resize_width">چوڑائی:</string>
@@ -99,13 +97,6 @@
     <string name="mjpeg_pref_resize_result">تصویر سائز: %1$dx%2$d</string>
     <string name="mjpeg_pref_rotate">تصویر دائیں گھمائیں</string>
     <string name="mjpeg_pref_rotate_summary">کلائنٹ کو بھیجنے سے پہلے گھمائیں</string>
-    <string name="mjpeg_pref_rotate_value" translatable="false">%1$d\u00B0</string>
-    <string-array name="mjpeg_pref_rotate_options" translatable="false">
-        <item>0\u00B0</item>
-        <item>90\u00B0</item>
-        <item>180\u00B0</item>
-        <item>270\u00B0</item>
-    </string-array>
     <string name="mjpeg_pref_fps">فریم/سیکنڈ حد</string>
     <string name="mjpeg_pref_fps_summary">زیادہ سے زیادہ فریم فی سیکنڈ مقرر کریں</string>
     <string name="mjpeg_pref_fps_text">زیادہ سے زیادہ فریم فی سیکنڈ مقرر کریں۔\nقدریں: 1/10–120\nڈیفالٹ: 30</string>
@@ -152,7 +143,6 @@
     <string name="mjpeg_label_public_ipv4">عوامی IPv4</string>
     <string name="mjpeg_label_public_ipv6">عوامی IPv6</string>
     <string name="mjpeg_label_loopback">لوپ بیک</string>
-    <string name="mjpeg_label_interface" translatable="false">%1$s (%2$s)</string>
     <string name="mjpeg_pref_server_port">سرور پورٹ</string>
     <string name="mjpeg_pref_server_port_summary">آنے والے کنکشنز کیلئے پورٹ سیٹ کریں</string>
     <string name="mjpeg_pref_server_port_text">آنے والے کنکشنز کیلئے سرور پورٹ سیٹ کریں۔\nقدریں: 1025–65535\nڈیفالٹ: 8080</string>

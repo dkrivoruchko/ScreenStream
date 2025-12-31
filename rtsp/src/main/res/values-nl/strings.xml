@@ -7,13 +7,12 @@
     <string name="rtsp_stream_mode_description">RTSP-modus beschrijving</string>
     <string name="rtsp_stream_mode_details">
 - Gebruikt RTSP-protocol.\n
-- Vereist een RTSP-mediaserver.\n
-- Ondersteunt zowel video als audio.\n
-- Kan worden beveiligd met gebruikersnaam/wachtwoord.\n
-- Optionele versleuteling van besturingskanaal (RTSPS met TLS).\n
-- Compatibel met WiFi, mobiele netwerken en zowel IPv4/IPv6.\n
-- Vereist een RTSP-client of -speler voor weergave.\n
-- Zeer aanpasbaar.\n
+- Servermodus (standaard) host dit apparaat als RTSP-server.\n
+- Clientmodus verbindt met een externe RTSP-server.\n
+- Ondersteunt video en audio met codecconfiguratie.\n
+- Servermodus voegt protocol-, interface/adresfilters, IPv4/IPv6 en poortinstellingen toe.\n
+- Werkt via Wi‑Fi/mobiele netwerken en IPv4/IPv6.\n
+- Vereist een RTSP-client of -speler voor weergave.
 </string>
 
     <string name="rtsp_mode_card_title">Selecteer RTSP-modus:</string>
@@ -41,6 +40,7 @@
     <string name="rtsp_cast_permission_required_title">Toestemming vereist</string>
     <string name="rtsp_cast_permission_required">ScreenStream-applicatie heeft schermopnametoestemming nodig om het scherm vast te leggen.</string>
     <string name="rtsp_error_notification_permission_required">Applicatie vereist dat meldingen zijn ingeschakeld om streamingservice te starten.\nSchakel meldingen in bij applicatie-instellingen.</string>
+    <string name="rtsp_error_ip_address_not_found">Geen IP-adres gevonden</string>
     <string name="rtsp_error_unspecified">Er is iets misgegaan.</string>
 
     <string name="rtsp_media_server">Mediaserver</string>

@@ -6,14 +6,14 @@
     <string name="webrtc_stream_mode">Globale modus (WebRTC)</string>
     <string name="webrtc_stream_mode_description">Globale modus beskrywing</string>
     <string name="webrtc_stream_mode_details">
-        - Aangedryf deur WebRTC-tegnologie.\n
+- Aangedryf deur WebRTC-tegnologie.\n
         - End-tot-end geënkripteerde kommunikasie.\n
         - Stroombeskerming met wagwoord.\n
         - Kan video en klank stuur.\n
         - Koppel met unieke stroom-ID en wagwoord.\n
         - Vereis \'n internetverbinding vir stroom.\n
         - Individuele data-oordrag vir elke kliënt (meer kliënte wat jy het, meer internet bandwydte wat jy nodig het).
-    </string>
+</string>
 
     <string name="webrtc_stream_network_recovery">Verbinding verloor. Koppel weer…</string>
     <string name="webrtc_stream_server_address">Toegang tot stroom by: %1$s</string>

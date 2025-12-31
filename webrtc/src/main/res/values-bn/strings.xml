@@ -6,14 +6,14 @@
     <string name="webrtc_stream_mode">গ্লোবাল মোড (WebRTC)</string>
     <string name="webrtc_stream_mode_description">গ্লোবাল মোড বর্ণনা</string>
     <string name="webrtc_stream_mode_details">
-        - WebRTC প্রযুক্তি দ্বারা চালিত।\n
+- WebRTC প্রযুক্তি দ্বারা চালিত।\n
         - এন্ড-টু-এন্ড এনক্রিপ্ট করা যোগাযোগ।\n
         - পাসওয়ার্ড সহ স্ট্রিম সুরক্ষা।\n
         - ভিডিও এবং অডিও পাঠাতে পারেন।\n
         - অনন্য স্ট্রিম আইডি এবং পাসওয়ার্ড ব্যবহার করে সংযোগ করুন।\n
         - স্ট্রিমিংয়ের জন্য একটি ইন্টারনেট সংযোগ প্রয়োজন।\n
         - প্রতিটি ক্লায়েন্টের জন্য পৃথক ডেটা ট্রান্সমিশন (আপনার আরও বেশি ক্লায়েন্ট আছে, আপনার আরও বেশি ইন্টারনেট ব্যান্ডউইথ প্রয়োজন)।
-    </string>
+</string>
 
     <string name="webrtc_stream_network_recovery">সংযোগ হারিয়েছে। পুনঃসংযোগ হচ্ছে…</string>
     <string name="webrtc_stream_server_address">এখানে স্ট্রিম অ্যাক্সেস করুন: %1$s</string>

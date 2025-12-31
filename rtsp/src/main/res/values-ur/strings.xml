@@ -7,13 +7,12 @@
     <string name="rtsp_stream_mode_description">RTSP موڈ کی تفصیل</string>
     <string name="rtsp_stream_mode_details">
 - RTSP پروٹوکول پر مبنی۔\n
-- RTSP-سپورٹڈ میڈیا سرور درکار ہے۔\n
-- ویڈیو اور آڈیو دونوں سپورٹ۔\n
-- یوزرنیم/پاس ورڈ سے محفوظ کیا جا سکتا ہے۔\n
-- کنٹرول چینل انکرپشن اختیاری (TLS کے ساتھ RTSPS)۔\n
-- WiFi/موبائل، IPv4/IPv6 سپورٹ۔\n
-- دیکھنے کیلئے RTSP کلائنٹ/پلیئر درکار ہے۔\n
-- زیادہ حسبِ ضرورت۔\n
+- سرور موڈ (ڈیفالٹ) اس ڈیوائس کو RTSP سرور کے طور پر ہوسٹ کرتا ہے۔\n
+- کلائنٹ موڈ ریموٹ RTSP سرور سے جڑتا ہے۔\n
+- کوڈیک کنفیگریشن کے ساتھ ویڈیو اور آڈیو سپورٹ۔\n
+- سرور موڈ پروٹوکول، انٹرفیس/ایڈریس فلٹرز، IPv4/IPv6 اور پورٹ سیٹنگز شامل کرتا ہے۔\n
+- Wi‑Fi/موبائل نیٹ ورکس اور IPv4/IPv6 پر کام کرتا ہے۔\n
+- دیکھنے کیلئے RTSP کلائنٹ/پلیئر درکار ہے۔
 </string>
 
     <string name="rtsp_mode_card_title">RTSP موڈ منتخب کریں:</string>
@@ -58,7 +57,6 @@
     <string name="rtsp_label_public_ipv4">عوامی IPv4</string>
     <string name="rtsp_label_public_ipv6">عوامی IPv6</string>
     <string name="rtsp_label_loopback">لوپ بیک</string>
-    <string name="rtsp_label_interface" translatable="false">%1$s (%2$s)</string>
 
     <string name="rtsp_video_parameters">ویڈیو پیرامیٹرز</string>
     <string name="rtsp_video_encoder">ویڈیو انکوڈر:</string>

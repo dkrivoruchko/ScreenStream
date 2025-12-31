@@ -15,14 +15,14 @@
     <string name="app_activity_update_dialog_message">Una actualización se acaba de descargar. Desea reiniciar la aplicación?</string>
     <string name="app_activity_update_dialog_restart">Reiniciar</string>
 
-    <string name="app_tab_stream">Transmitir</string>
-    <string name="app_tab_settings">Opciones</string>
+    <string name="app_tab_stream">Streaming</string>
+    <string name="app_tab_settings">Ajustes</string>
     <string name="app_tab_about">Acerca de</string>
     <string name="app_tab_exit">Salir</string>
 
-    <string name="app_tab_stream_select_mode">Seleccionar modo de transmisión:</string>
+    <string name="app_tab_stream_select_mode">Seleccionar modo de streaming:</string>
 
-    <string name="app_permission_required_title">Permission required</string>
+    <string name="app_permission_required_title">Permiso requerido</string>
     <string name="app_permission_allow_notifications">La aplicación requiere permiso para enviar notificaciones para poder iniciar el servicio de transmisión.\n\nPor favor, permita el envío de notificaciones.</string>
     <string name="app_permission_allow_notifications_settings">La aplicación requiere permiso para enviar notificaciones para poder iniciar el servicio de transmisión.\n\nPor favor, permita el envío de notificaciones en la configuración de la aplicación.</string>
     <string name="app_permission_notification_settings">Abrir configuración</string>

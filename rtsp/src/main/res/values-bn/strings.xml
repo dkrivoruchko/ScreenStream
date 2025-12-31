@@ -7,13 +7,12 @@
     <string name="rtsp_stream_mode_description">RTSP মোড বিবরণ</string>
     <string name="rtsp_stream_mode_details">
 - RTSP প্রোটোকল দ্বারা চালিত।\n
-- RTSP-সক্ষম মিডিয়া সার্ভার প্রয়োজন।\n
-- ভিডিও এবং অডিও উভয়ই সমর্থন করে।\n
-- ব্যবহারকারী নাম/পাসওয়ার্ড দ্বারা সুরক্ষিত করা যেতে পারে।\n
-- ঐচ্ছিক নিয়ন্ত্রণ চ্যানেল এনক্রিপশন (TLS ব্যবহার করে RTSPS)।\n
-- WiFi, মোবাইল নেটওয়ার্ক, এবং IPv4/IPv6 উভয়ের সাথে সামঞ্জস্যপূর্ণ।\n
-- দেখার জন্য RTSP ক্লায়েন্ট বা প্লেয়ার প্রয়োজন।\n
-- অত্যধিক কাস্টমাইজযোগ্য।\n
+- সার্ভার মোড (ডিফল্ট) এই ডিভাইসকে RTSP সার্ভার হিসেবে হোস্ট করে।\n
+- ক্লায়েন্ট মোড দূরবর্তী RTSP সার্ভারে সংযোগ করে।\n
+- কোডেক কনফিগারেশনসহ ভিডিও ও অডিও সমর্থন করে।\n
+- সার্ভার মোড প্রোটোকল, ইন্টারফেস/অ্যাড্রেস ফিল্টার, IPv4/IPv6 এবং পোর্ট সেটিংস যোগ করে।\n
+- Wi‑Fi/মোবাইল নেটওয়ার্ক এবং IPv4/IPv6-এ কাজ করে।\n
+- দেখার জন্য RTSP ক্লায়েন্ট বা প্লেয়ার প্রয়োজন।
 </string>
 
     <string name="rtsp_mode_card_title">RTSP মোড নির্বাচন করুন:</string>
@@ -41,6 +40,7 @@
     <string name="rtsp_cast_permission_required_title">অনুমতি প্রয়োজন</string>
     <string name="rtsp_cast_permission_required">ScreenStream অ্যাপ্লিকেশনের স্ক্রিন ক্যাপচার করার জন্য স্ক্রিন কাস্ট অনুমতি প্রয়োজন।</string>
     <string name="rtsp_error_notification_permission_required">স্ট্রিমিং সেবা শুরু করতে অ্যাপ্লিকেশনটির বিজ্ঞপ্তি সক্রিয় করা প্রয়োজন।\nঅনুগ্রহ করে অ্যাপ্লিকেশন সেটিংসে বিজ্ঞপ্তিগুলি সক্রিয় করুন।</string>
+    <string name="rtsp_error_ip_address_not_found">কোনো IP ঠিকানা পাওয়া যায়নি</string>
     <string name="rtsp_error_unspecified">কিছু একটা সমস্যা হয়েছে।</string>
 
     <string name="rtsp_media_server">মিডিয়া সার্ভার</string>

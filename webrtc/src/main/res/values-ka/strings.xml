@@ -6,14 +6,14 @@
     <string name="webrtc_stream_mode">გლობალური რეჟიმი (WebRTC)</string>
     <string name="webrtc_stream_mode_description">გლობალური რეჟიმის აღწერა</string>
     <string name="webrtc_stream_mode_details">
-        - უზრუნველყოფილია WebRTC ტექნოლოგიით.\n
+- უზრუნველყოფილია WebRTC ტექნოლოგიით.\n
         - ბოლოდან ბოლომდე დაშიფრული კომუნიკაცია.\n
         - ნაკადის დაცვა პაროლით.\n
         - შეუძლია ვიდეო და აუდიოს გაგზავნა.\n
         - დაკავშირება უნიკალური ნაკადის ID და პაროლის გამოყენებით.\n
         - სტრიმინგისთვის საჭიროა ინტერნეტ კავშირი.\n
         - ინდივიდუალური მონაცემთა გადაცემა თითოეული კლიენტისთვის (უფრო მეტი კლიენტი გყავთ, მეტი ინტერნეტ გამტარობა გჭირდებათ).
-    </string>
+</string>
 
     <string name="webrtc_stream_network_recovery">კავშირი დაიკარგა. ხელახლა უკავშირდება…</string>
     <string name="webrtc_stream_server_address">ნაკადზე წვდომა აქ: %1$s</string>

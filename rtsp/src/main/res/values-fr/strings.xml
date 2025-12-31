@@ -7,13 +7,12 @@
     <string name="rtsp_stream_mode_description">Description du mode RTSP</string>
     <string name="rtsp_stream_mode_details">
 - Alimenté par le protocole RTSP.\n
-- Nécessite un serveur média compatible RTSP.\n
-- Prend en charge la vidéo et l\'audio.\n
-- Peut être protégé par nom d\'utilisateur/mot de passe.\n
-- Chiffrement optionnel du canal de contrôle (RTSPS utilisant TLS).\n
-- Compatible avec WiFi, réseaux mobiles et IPv4/IPv6.\n
-- Nécessite un client ou lecteur RTSP pour la visualisation.\n
-- Hautement personnalisable.\n
+- Le mode serveur (par défaut) héberge cet appareil en tant que serveur RTSP.\n
+- Le mode client se connecte à un serveur RTSP distant.\n
+- Prend en charge la vidéo et l\'audio avec configuration des codecs.\n
+- Le mode serveur ajoute le protocole, les filtres d\'interface/adresse, IPv4/IPv6 et les paramètres de port.\n
+- Fonctionne sur Wi‑Fi/réseaux mobiles et IPv4/IPv6.\n
+- Nécessite un client ou lecteur RTSP pour la visualisation.
 </string>
 
     <string name="rtsp_mode_card_title">Sélectionnez le mode RTSP :</string>
@@ -41,6 +40,7 @@
     <string name="rtsp_cast_permission_required_title">Autorisation requise</string>
     <string name="rtsp_cast_permission_required">L\'application ScreenStream nécessite l\'autorisation de diffusion d\'écran pour capturer l\'écran.</string>
     <string name="rtsp_error_notification_permission_required">L\'application nécessite que les notifications soient activées pour démarrer le service de diffusion.\nVeuillez activer les notifications dans les paramètres de l\'application.</string>
+    <string name="rtsp_error_ip_address_not_found">Aucune adresse IP trouvée</string>
     <string name="rtsp_error_unspecified">Un problème est survenu.</string>
 
     <string name="rtsp_media_server">Serveur média</string>

@@ -7,13 +7,12 @@
     <string name="rtsp_stream_mode_description">RTSP რეჟიმის აღწერა</string>
     <string name="rtsp_stream_mode_details">
 - მუშაობს RTSP პროტოკოლით.\n
-- საჭიროებს RTSP-ის მხარდამჭერ მედია სერვერს.\n
-- მხარს უჭერს როგორც ვიდეოს, ისე აუდიოს.\n
-- შეიძლება დაცული იყოს მომხმარებლის სახელით/პაროლით.\n
-- არჩევითი საკონტროლო არხის დაშიფვრა (RTSPS TLS-ის გამოყენებით).\n
-- თავსებადია WiFi-თან, მობილურ ქსელებთან და IPv4/IPv6-თან.\n
-- საჭიროებს RTSP კლიენტს ან პლეერს სანახავად.\n
-- მაღალი მორგების შესაძლებლობით.\n
+- სერვერის რეჟიმი (ნაგულისხმევი) ამ მოწყობილობას RTSP სერვერად მასპინძლობს.\n
+- კლიენტის რეჟიმი უკავშირდება დისტანციურ RTSP სერვერს.\n
+- მხარს უჭერს ვიდეოსა და აუდიოს კოდეკის კონფიგურაციით.\n
+- სერვერის რეჟიმი ამატებს პროტოკოლს, ინტერფეის/მისამართის ფილტრებს, IPv4/IPv6-ს და პორტის პარამეტრებს.\n
+- მუშაობს Wi‑Fi/მობილურ ქსელებზე და IPv4/IPv6-ზე.\n
+- საჭიროებს RTSP კლიენტს ან პლეერს სანახავად.
 </string>
 
     <string name="rtsp_mode_card_title">აირჩიეთ RTSP რეჟიმი:</string>
@@ -41,6 +40,7 @@
     <string name="rtsp_cast_permission_required_title">საჭიროა ნებართვა</string>
     <string name="rtsp_cast_permission_required">ScreenStream აპლიკაციას სჭირდება ეკრანის ტრანსლაციის ნებართვა ეკრანის ჩასაწერად.</string>
     <string name="rtsp_error_notification_permission_required">აპლიკაციას სჭირდება შეტყობინებების ჩართვა სტრიმინგის სერვისის გასაშვებად.\nგთხოვთ, ჩართოთ შეტყობინებები აპლიკაციის პარამეტრებში.</string>
+    <string name="rtsp_error_ip_address_not_found">IP მისამართი ვერ მოიძებნა</string>
     <string name="rtsp_error_unspecified">რაღაც შეცდომა მოხდა.</string>
 
     <string name="rtsp_media_server">მედია სერვერი</string>

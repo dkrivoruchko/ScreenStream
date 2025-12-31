@@ -7,13 +7,12 @@
     <string name="rtsp_stream_mode_description">RTSP-modus beskrywing</string>
     <string name="rtsp_stream_mode_details">
 - Aangedryf deur RTSP-protokol.\n
-- Vereis \'n RTSP-bekwame mediaserver.\n
-- Ondersteun beide video en klank.\n
-- Kan beskerm word deur gebruikersnaam/wagwoord.\n
-- Opsionele beheerkanaalkriptering (RTSPS met TLS).\n
-- Versoenbaar met WiFi, mobiele netwerke, en beide IPv4/IPv6.\n
-- Vereis \'n RTSP-kliënt of speler vir besigtiging.\n
-- Hoogs aanpasbaar.\n
+- Bedienermodus (verstek) huisves hierdie toestel as \'n RTSP-bediener.\n
+- Kliëntmodus koppel aan \'n afgeleë RTSP-bediener.\n
+- Ondersteun video en klank met kodek-opstelling.\n
+- Bedienermodus voeg protokol, koppelvlak-/adresfilters, IPv4/IPv6 en poortinstellings by.\n
+- Werk oor Wi‑Fi/mobiele netwerke en IPv4/IPv6.\n
+- Vereis \'n RTSP-kliënt of speler vir besigtiging.
 </string>
 
     <string name="rtsp_mode_card_title">Kies RTSP-modus:</string>
@@ -41,6 +40,7 @@
     <string name="rtsp_cast_permission_required_title">Toestemming benodig</string>
     <string name="rtsp_cast_permission_required">ScreenStream-toepassing benodig Skermstuur-toestemming om die skerm vas te lê.</string>
     <string name="rtsp_error_notification_permission_required">Toepassing vereis dat kennisgewings geaktiveer word om stroomdiens te begin.\nAktiveer asseblief kennisgewings in toepassingsinstellings.</string>
+    <string name="rtsp_error_ip_address_not_found">Geen IP-adres gevind</string>
     <string name="rtsp_error_unspecified">Iets het verkeerd gegaan.</string>
 
     <string name="rtsp_media_server">Mediaserver</string>

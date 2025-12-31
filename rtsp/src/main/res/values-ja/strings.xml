@@ -7,13 +7,12 @@
     <string name="rtsp_stream_mode_description">RTSPモードの説明</string>
     <string name="rtsp_stream_mode_details">
 - RTSPプロトコルで動作。\n
-- RTSP対応メディアサーバーが必要。\n
-- 動画と音声の両方をサポート。\n
-- ユーザー名/パスワードで保護可能。\n
-- オプションの制御チャネル暗号化（TLSによるRTSPS）。\n
-- WiFi、モバイルネットワーク、IPv4/IPv6に対応。\n
-- 視聴にはRTSPクライアントまたはプレーヤーが必要。\n
-- 高度にカスタマイズ可能。\n
+- サーバーモード（デフォルト）ではこの端末をRTSPサーバーとしてホストします。\n
+- クライアントモードはリモートRTSPサーバーに接続します。\n
+- コーデック設定付きで動画と音声をサポート。\n
+- サーバーモードはプロトコル、インターフェース/アドレスのフィルター、IPv4/IPv6、ポート設定を追加します。\n
+- Wi‑Fi/モバイルネットワークおよびIPv4/IPv6で動作。\n
+- 視聴にはRTSPクライアントまたはプレーヤーが必要。
 </string>
 
     <string name="rtsp_mode_card_title">RTSPモードを選択：</string>
@@ -41,6 +40,7 @@
     <string name="rtsp_cast_permission_required_title">権限が必要です</string>
     <string name="rtsp_cast_permission_required">ScreenStreamアプリは画面キャプチャのためにスクリーンキャスト権限が必要です。</string>
     <string name="rtsp_error_notification_permission_required">ストリーミングサービスを開始するには通知を有効にする必要があります。\nアプリ設定で通知を有効にしてください。</string>
+    <string name="rtsp_error_ip_address_not_found">IP アドレスが見つかりません</string>
     <string name="rtsp_error_unspecified">エラーが発生しました。</string>
 
     <string name="rtsp_media_server">メディアサーバー</string>

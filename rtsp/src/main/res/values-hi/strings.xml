@@ -7,13 +7,12 @@
     <string name="rtsp_stream_mode_description">RTSP मोड विवरण</string>
     <string name="rtsp_stream_mode_details">
 - RTSP प्रोटोकॉल द्वारा संचालित।\n
-- RTSP-सक्षम मीडिया सर्वर की आवश्यकता है।\n
-- वीडियो और ऑडियो दोनों का समर्थन करता है।\n
-- उपयोगकर्ता नाम/पासवर्ड द्वारा सुरक्षित किया जा सकता है।\n
-- वैकल्पिक नियंत्रण चैनल एन्क्रिप्शन (TLS का उपयोग करके RTSPS)।\n
-- वाईफाई, मोबाइल नेटवर्क और IPv4/IPv6 दोनों के साथ संगत।\n
-- देखने के लिए RTSP क्लाइंट या प्लेयर की आवश्यकता है।\n
-- अत्यधिक अनुकूलन योग्य।\n
+- सर्वर मोड (डिफ़ॉल्ट) इस डिवाइस को RTSP सर्वर के रूप में होस्ट करता है।\n
+- क्लाइंट मोड दूरस्थ RTSP सर्वर से जुड़ता है।\n
+- कोडेक कॉन्फ़िगरेशन के साथ वीडियो और ऑडियो समर्थित।\n
+- सर्वर मोड प्रोटोकॉल, इंटरफ़ेस/पता फ़िल्टर, IPv4/IPv6 और पोर्ट सेटिंग जोड़ता है।\n
+- Wi‑Fi/मोबाइल नेटवर्क और IPv4/IPv6 पर काम करता है।\n
+- देखने के लिए RTSP क्लाइंट या प्लेयर की आवश्यकता है।
 </string>
 
     <string name="rtsp_mode_card_title">RTSP मोड चुनें:</string>
@@ -41,6 +40,7 @@
     <string name="rtsp_cast_permission_required_title">अनुमति आवश्यक है</string>
     <string name="rtsp_cast_permission_required">स्क्रीन कैप्चर करने के लिए ScreenStream एप्लिकेशन को स्क्रीन कास्ट अनुमति की आवश्यकता है।</string>
     <string name="rtsp_error_notification_permission_required">स्ट्रीमिंग सेवा शुरू करने के लिए एप्लिकेशन को सूचनाएँ सक्षम होना आवश्यक है।\nकृपया एप्लिकेशन सेटिंग्स में सूचनाएँ सक्षम करें।</string>
+    <string name="rtsp_error_ip_address_not_found">कोई IP पता नहीं मिला</string>
     <string name="rtsp_error_unspecified">कुछ गलत हुआ।</string>
 
     <string name="rtsp_media_server">मीडिया सर्वर</string>

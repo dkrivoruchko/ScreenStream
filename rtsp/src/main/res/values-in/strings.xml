@@ -7,13 +7,12 @@
     <string name="rtsp_stream_mode_description">Deskripsi mode RTSP</string>
     <string name="rtsp_stream_mode_details">
 - Didukung oleh protokol RTSP.\n
-- Memerlukan server media yang mendukung RTSP.\n
-- Mendukung video dan audio.\n
-- Dapat dilindungi dengan nama pengguna/kata sandi.\n
-- Enkripsi saluran kontrol opsional (RTSPS menggunakan TLS).\n
-- Kompatibel dengan WiFi, jaringan seluler, dan IPv4/IPv6.\n
-- Memerlukan klien atau pemutar RTSP untuk menonton.\n
-- Sangat dapat disesuaikan.\n
+- Mode server (default) menjadikan perangkat ini sebagai server RTSP.\n
+- Mode klien terhubung ke server RTSP jarak jauh.\n
+- Mendukung video dan audio dengan konfigurasi codec.\n
+- Mode server menambahkan protokol, filter antarmuka/alamat, IPv4/IPv6, dan pengaturan port.\n
+- Bekerja di jaringan Wi‑Fi/seluler dan IPv4/IPv6.\n
+- Memerlukan klien atau pemutar RTSP untuk menonton.
 </string>
 
     <string name="rtsp_mode_card_title">Pilih mode RTSP:</string>
@@ -41,6 +40,7 @@
     <string name="rtsp_cast_permission_required_title">Izin diperlukan</string>
     <string name="rtsp_cast_permission_required">Aplikasi ScreenStream memerlukan izin Cast Layar untuk merekam layar.</string>
     <string name="rtsp_error_notification_permission_required">Aplikasi memerlukan notifikasi diaktifkan untuk memulai layanan streaming.\nSilakan aktifkan notifikasi di pengaturan aplikasi.</string>
+    <string name="rtsp_error_ip_address_not_found">Tidak ditemukan alamat IP</string>
     <string name="rtsp_error_unspecified">Terjadi kesalahan.</string>
 
     <string name="rtsp_media_server">Server media</string>

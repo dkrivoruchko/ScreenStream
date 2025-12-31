@@ -44,7 +44,7 @@
     <string name="webrtc_pref_keep_awake_summary">Gerät und Bildschirm aktiviert lassen</string>
     <string name="webrtc_pref_stop_on_sleep">Stream im Standby-Modus stoppen</string>
     <string name="webrtc_pref_stop_on_sleep_summary">Stream stoppen, wenn der Bildschirm ausgeschaltet wird</string>
-    
+
     <string name="webrtc_stream_audio_permission_title">Audioaufnahme erlauben</string>
     <string name="webrtc_stream_audio_permission_message">Die Erlaubnis zur Aufnahme von Audio ist erforderlich, damit die Anwendung Audioinhalte streamen kann.\n\nOhne diese Erlaubnis erfolgt der Stream ohne Audio.</string>
     <string name="webrtc_stream_audio_permission_message_settings">Die Mikrofonberechtigung in den Anwendungsberechtigungen zu gewähren, ist erforderlich, damit die Anwendung Audioinhalte streamen kann.\n\nOhne diese Erlaubnis erfolgt der Stream ohne jeglichen Ton.</string>

@@ -7,13 +7,12 @@
     <string name="rtsp_stream_mode_description">RTSP rejimi tavsifi</string>
     <string name="rtsp_stream_mode_details">
 - RTSP protokoli asosida ishlaydi.\n
-- RTSP qo\'llab-quvvatlaydigan media server kerak.\n
-- Video va audio ni qo\'llab-quvvatlaydi.\n
-- Foydalanuvchi nomi/parol bilan himoyalanishi mumkin.\n
-- Ixtiyoriy boshqaruv kanali shifrlash (RTSPS TLS bilan).\n
-- WiFi, mobil tarmoqlar va IPv4/IPv6 bilan mos keladi.\n
-- Ko\'rish uchun RTSP mijozi yoki pleyeri kerak.\n
-- Juda moslashuvchan.\n
+- Server rejimi (standart) ushbu qurilmani RTSP server sifatida ishlatadi.\n
+- Klient rejimi masofadagi RTSP serverga ulanadi.\n
+- Kodek sozlamalari bilan video va audio qo\'llab-quvvatlanadi.\n
+- Server rejimi protokol, interfeys/manzil filtrlari, IPv4/IPv6 va port sozlamalarini qo\'shadi.\n
+- Wi‑Fi/mobil tarmoqlar va IPv4/IPv6 orqali ishlaydi.\n
+- Ko\'rish uchun RTSP mijozi yoki pleyeri kerak.
 </string>
 
     <string name="rtsp_mode_card_title">RTSP rejimini tanlang:</string>
@@ -41,6 +40,7 @@
     <string name="rtsp_cast_permission_required_title">Ruxsat kerak</string>
     <string name="rtsp_cast_permission_required">ScreenStream ilovasiga ekranni yozib olish uchun ruxsat kerak.</string>
     <string name="rtsp_error_notification_permission_required">Ilova translyatsiya xizmatini boshlash uchun bildirishnomalarni yoqishni talab qiladi.\nIlova sozlamalarida bildirishnomalarni yoqing.</string>
+    <string name="rtsp_error_ip_address_not_found">IP manzili topilmadi</string>
     <string name="rtsp_error_unspecified">Xatolik yuz berdi.</string>
 
     <string name="rtsp_media_server">Media server</string>

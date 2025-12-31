@@ -15,7 +15,7 @@
     <string name="app_activity_update_dialog_message">È stato scaricato un aggiornamento. Riavviare l\'app adesso?</string>
     <string name="app_activity_update_dialog_restart">Restart</string>
 
-    <string name="app_tab_stream">Trasmissione</string>
+    <string name="app_tab_stream">Streaming</string>
     <string name="app_tab_settings">Impostazioni</string>
     <string name="app_tab_about">Al riguardo</string>
     <string name="app_tab_exit">Esci</string>

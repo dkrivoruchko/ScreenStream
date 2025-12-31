@@ -15,14 +15,14 @@
     <string name="app_activity_update_dialog_message">更新已下載完畢，是否想現在重啓應用？</string>
     <string name="app_activity_update_dialog_restart">重啓應用</string>
 
-    <string name="app_tab_stream">主畫面</string>
+    <string name="app_tab_stream">串流</string>
     <string name="app_tab_settings">設定</string>
     <string name="app_tab_about">關於</string>
     <string name="app_tab_exit">離開</string>
 
     <string name="app_tab_stream_select_mode">選擇串流模式：</string>
 
-    <string name="app_permission_required_title">權限被拒</string>
+    <string name="app_permission_required_title">需要權限</string>
     <string name="app_permission_allow_notifications">應用程式需要發送通知的權限以啟用串流服務。\n\n請允許發送通知。</string>
     <string name="app_permission_allow_notifications_settings">應用程式需要發送通知的權限以啟用串流服務。\n\n請在應用程式設定中允許發送通知。</string>
     <string name="app_permission_notification_settings">開啟設定</string>
@@ -36,7 +36,7 @@
     <string name="app_tile_start">開始</string>
     <string name="app_tile_stop">停止</string>
 
-    <string name="app_pref_settings_search">設定搜尋</string>>
+    <string name="app_pref_settings_search">設定搜尋</string>
     <string name="app_pref_search">搜索</string>
     <string name="app_pref_close">關閉</string>
     <string name="app_pref_back">返回</string>
@@ -61,8 +61,8 @@
     <string name="app_pref_notification_summary">打開系統通知設置</string>
     <string name="app_pref_tile">新增應用程式磚</string>
     <string name="app_pref_tile_summary">新增應用程式磚到快速設定</string>
-    <string name="app_pref_logging">启用应用日志</string>
-    <string name="app_pref_logging_summary">收集应用日志</string>
+    <string name="app_pref_logging">啟用應用日誌</string>
+    <string name="app_pref_logging_summary">收集應用日誌</string>
 
     <string name="app_tab_about_app_version">版本：%1$s</string>
     <string name="app_tab_about_developer_name">由Dmytro Kryvoruchko開發</string>

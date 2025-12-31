@@ -17,7 +17,6 @@
 </string>
 
     <string name="mjpeg_item_address">Adres urządzenia:</string>
-
     <string name="mjpeg_stream_no_address">Nie znaleziono adresu</string>
     <string name="mjpeg_stream_interface">Łącze:\n%1$s</string>
     <string name="mjpeg_stream_copied">Skopiowano</string>
@@ -34,8 +33,8 @@
     <string name="mjpeg_stream_description_show_pin">Pokaż kod PIN transmisji</string>
     <string name="mjpeg_stream_description_create_pin">Utwórz nowy kod PIN transmisji</string>
     <string name="mjpeg_stream_current_traffic">Ruch: %1$,.2f Mbit/s</string>
-    <string name="mjpeg_stream_connected_clients">Połączeni klienci: %1$d</string>
     <string name="mjpeg_stream_traffic_graph">Wykres ruchu</string>
+    <string name="mjpeg_stream_connected_clients">Połączeni klienci: %1$d</string>
     <string name="mjpeg_stream_client_disconnected">Rozłączony</string>
     <string name="mjpeg_stream_client_slow_network">Wolne połączenie</string>
     <string name="mjpeg_stream_client_connected">Połączony</string>

@@ -7,13 +7,12 @@
     <string name="rtsp_stream_mode_description">RTSP模式说明</string>
     <string name="rtsp_stream_mode_details">
 - 基于RTSP协议。\n
-- 需要支持RTSP的媒体服务器。\n
-- 支持视频和音频。\n
-- 可通过用户名/密码保护。\n
-- 可选控制通道加密（使用TLS的RTSPS）。\n
-- 兼容WiFi、移动网络和IPv4/IPv6。\n
-- 需要RTSP客户端或播放器观看。\n
-- 高度可定制。\n
+- 服务器模式（默认）将此设备作为RTSP服务器。\n
+- 客户端模式连接到远程RTSP服务器。\n
+- 支持视频和音频，并可配置编解码器。\n
+- 服务器模式增加协议、接口/地址过滤、IPv4/IPv6 和端口设置。\n
+- 通过 Wi‑Fi/移动网络 和 IPv4/IPv6 工作。\n
+- 需要RTSP客户端或播放器观看。
 </string>
 
     <string name="rtsp_mode_card_title">选择RTSP模式：</string>
@@ -41,6 +40,7 @@
     <string name="rtsp_cast_permission_required_title">需要权限</string>
     <string name="rtsp_cast_permission_required">ScreenStream应用需要屏幕录制权限来捕获屏幕。</string>
     <string name="rtsp_error_notification_permission_required">应用需要启用通知才能启动流媒体服务。\n请在应用设置中启用通知。</string>
+    <string name="rtsp_error_ip_address_not_found">未找到 IP 地址</string>
     <string name="rtsp_error_unspecified">出了点问题。</string>
 
     <string name="rtsp_media_server">媒体服务器</string>

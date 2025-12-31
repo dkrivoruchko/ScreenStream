@@ -25,8 +25,8 @@
     <string name="app_tab_stream_select_mode">Select stream mode:</string>
 
     <string name="app_permission_required_title">Permission required</string>
-    <string name="app_permission_allow_notifications">Application require permission to send notifications to be able to start streaming service.\n\nPlease allow sending notifications.</string>
-    <string name="app_permission_allow_notifications_settings">Application require permission to send notifications to be able to start streaming service.\n\nPlease allow sending notifications in application settings.</string>
+    <string name="app_permission_allow_notifications">Application requires permission to send notifications to be able to start streaming service.\n\nPlease allow sending notifications.</string>
+    <string name="app_permission_allow_notifications_settings">Application requires permission to send notifications to be able to start streaming service.\n\nPlease allow sending notifications in application settings.</string>
     <string name="app_permission_notification_settings">Open settings</string>
 
     <string name="app_notification_channel_streaming">Streaming notifications</string>
@@ -42,9 +42,9 @@
     <string name="app_pref_search">Search</string>
     <string name="app_pref_close">Close</string>
     <string name="app_pref_back">Back</string>
-    <string name="app_pref_settings">Application settings</string>
-    <string name="app_pref_locale">Application language</string>
-    <string name="app_pref_locale_summary">Open application language settings</string>
+    <string name="app_pref_settings">App settings</string>
+    <string name="app_pref_locale">App language</string>
+    <string name="app_pref_locale_summary">Open app language settings</string>
     <string name="app_pref_locale_default">System default</string>
     <string name="app_pref_night_mode">Dark theme</string>
     <string-array name="app_pref_night_mode_options_api21_28">

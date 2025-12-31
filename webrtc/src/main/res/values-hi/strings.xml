@@ -44,7 +44,7 @@
     <string name="webrtc_pref_keep_awake_summary">स्ट्रीमिंग के दौरान डिवाइस और स्क्रीन को जागरूक रखें</string>
     <string name="webrtc_pref_stop_on_sleep">नींद पर धारा रोकें</string>
     <string name="webrtc_pref_stop_on_sleep_summary">यदि स्क्रीन बंद हो जाती है तो स्ट्रीम को रोकें</string>
-    
+
     <string name="webrtc_stream_audio_permission_title">ऑडियो रिकॉर्डिंग अनुमति दें</string>
     <string name="webrtc_stream_audio_permission_message">ऐप्लिकेशन को ऑडियो सामग्री स्ट्रीम करने के लिए ऑडियो रिकॉर्डिंग की अनुमति की आवश्यकता है।\n\nइस अनुमति को देने के बिना, स्ट्रीम ऑडियो के बिना होगा।</string>
     <string name="webrtc_stream_audio_permission_message_settings">ऐप्लिकेशन अनुमतियों में माइक्रोफ़ोन एक्सेस देना आवश्यक है, ताकि ऐप्लिकेशन ऑडियो सामग्री स्ट्रीम कर सके।\n\nइस अनुमति को देने के बिना, स्ट्रीम में कोई ऑडियो नहीं होगा।</string>

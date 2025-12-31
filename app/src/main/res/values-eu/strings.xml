@@ -15,12 +15,12 @@
     <string name="app_activity_update_dialog_message">Bertsio berri bat deskargatu da. Berrabiarazi nahi duzu aplikazioa?</string>
     <string name="app_activity_update_dialog_restart">Berrabiarazi</string>
 
-    <string name="app_tab_stream">Igorri</string>
+    <string name="app_tab_stream">Streaming</string>
     <string name="app_tab_settings">Aukerak</string>
     <string name="app_tab_about">Honi buruz</string>
     <string name="app_tab_exit">Irten</string>
 
-    <string name="app_tab_stream_select_mode">Hautatu igorpen modua:</string>
+    <string name="app_tab_stream_select_mode">Hautatu streaming modua:</string>
 
     <string name="app_permission_required_title">Baimena behar da</string>
     <string name="app_permission_allow_notifications">Aplikazioak jakinarazpenak bidaltzeko baimena behar du igorpen zerbitzua abiarazteko.\n\nBaimendu jakinarazpenak bidaltzea.</string>

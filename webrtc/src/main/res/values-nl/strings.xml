@@ -44,7 +44,7 @@
     <string name="webrtc_pref_keep_awake_summary">Houd het apparaat en het scherm actief tijdens het streamen</string>
     <string name="webrtc_pref_stop_on_sleep">Stop stream bij slaapmodus</string>
     <string name="webrtc_pref_stop_on_sleep_summary">Stop stream als het scherm word uitgezet</string>
-    
+
     <string name="webrtc_stream_audio_permission_title">Audio-opname toestaan</string>
     <string name="webrtc_stream_audio_permission_message">Toestemming om audio op te nemen is noodzakelijk voor de toepassing om audio-inhoud te streamen.\n\nZonder deze toestemming zal de stream zonder audio zijn.</string>
     <string name="webrtc_stream_audio_permission_message_settings">Toegang tot de microfoon verlenen in app-permissies is noodzakelijk voor de toepassing om audio-inhoud te streamen.\n\nZonder deze toestemming zal de stream zonder audio worden uitgevoerd.</string>

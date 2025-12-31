@@ -7,13 +7,12 @@
     <string name="rtsp_stream_mode_description">Descrição do modo RTSP</string>
     <string name="rtsp_stream_mode_details">
 - Funciona com protocolo RTSP.\n
-- Requer servidor de mídia compatível com RTSP.\n
-- Suporta vídeo e áudio.\n
-- Pode ser protegido por usuário/senha.\n
-- Criptografia opcional do canal de controle (RTSPS com TLS).\n
-- Compatível com WiFi, redes móveis e IPv4/IPv6.\n
-- Requer cliente ou player RTSP para visualização.\n
-- Altamente personalizável.\n
+- O modo servidor (padrão) hospeda este dispositivo como servidor RTSP.\n
+- O modo cliente conecta-se a um servidor RTSP remoto.\n
+- Suporta vídeo e áudio com configuração de codecs.\n
+- O modo servidor adiciona protocolo, filtros de interface/endereço, IPv4/IPv6 e configurações de porta.\n
+- Funciona em redes Wi‑Fi/móveis e IPv4/IPv6.\n
+- Requer cliente ou player RTSP para visualização.
 </string>
 
     <string name="rtsp_mode_card_title">Selecionar modo RTSP:</string>
@@ -41,6 +40,7 @@
     <string name="rtsp_cast_permission_required_title">Permissão necessária</string>
     <string name="rtsp_cast_permission_required">O aplicativo ScreenStream requer permissão de captura de tela.</string>
     <string name="rtsp_error_notification_permission_required">O aplicativo requer notificações ativadas para iniciar o serviço de transmissão.\nAtive as notificações nas configurações do aplicativo.</string>
+    <string name="rtsp_error_ip_address_not_found">Nenhum endereço IP encontrado</string>
     <string name="rtsp_error_unspecified">Algo deu errado.</string>
 
     <string name="rtsp_media_server">Servidor de mídia</string>

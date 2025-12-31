@@ -15,7 +15,7 @@
     <string name="app_activity_update_dialog_message">Обновление было только что загружено. Перезапустить приложение сейчас?</string>
     <string name="app_activity_update_dialog_restart">Перезапустить</string>
 
-    <string name="app_tab_stream">Главная</string>
+    <string name="app_tab_stream">Трансляция</string>
     <string name="app_tab_settings">Настройки</string>
     <string name="app_tab_about">Инфо</string>
     <string name="app_tab_exit">Выход</string>

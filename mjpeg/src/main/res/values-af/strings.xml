@@ -1,4 +1,3 @@
-<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="mjpeg_error_recover">Herstel</string>
     <string name="mjpeg_error_open_settings">Maak instellings oop</string>
@@ -15,7 +14,7 @@
 - Kliënte koppel via webblaaier deur die toepassing se verskafde IP-adres te gebruik.\n
 - Hoogs aanpasbaar.\n
 - Individuele data-oordrag vir elke kliënt (meer kliënte wat jy het, meer nie-werk bandwydte wat jy nodig het).
-    </string>
+</string>
 
     <string name="mjpeg_item_address">Toesteladres:</string>
     <string name="mjpeg_stream_no_address">Geen adres gevind nie</string>
@@ -71,6 +70,11 @@
     <string name="mjpeg_pref_settings_image">Beeld</string>
     <string name="mjpeg_pref_vr_mode">Virtuele werklikheidsmodus</string>
     <string name="mjpeg_pref_vr_mode_summary">Vang inhoud van halwe skerm af</string>
+    <string-array name="mjpeg_pref_vr_mode_options">
+        <item>Deaktiveer</item>
+        <item>Gebruik linker deel</item>
+        <item>Gebruik regter deel</item>
+    </string-array>
     <string name="mjpeg_pref_crop">Sny prent</string>
     <string name="mjpeg_pref_crop_summary">Sny prent voor dit na kliënt gestuur word</string>
     <string name="mjpeg_pref_crop_top">Crop top:</string>
@@ -151,6 +155,7 @@
 
     <string name="mjpeg_start_image_text">Begin stroom op toestel</string>
 
+    <!--HTML text-->
     <string name="mjpeg_html_stream_connecting">Probeer om te koppel</string>
     <string name="mjpeg_html_stream_require_pin">Hierdie stroom vereis PIN om toegang daartoe te verkry</string>
     <string name="mjpeg_html_enter_pin">Voer pen in:\\u0020</string>

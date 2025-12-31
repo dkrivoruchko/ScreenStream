@@ -1,4 +1,3 @@
-<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="mjpeg_error_recover">Pulih</string>
     <string name="mjpeg_error_open_settings">Buka pengaturan</string>
@@ -6,7 +5,7 @@
     <string name="mjpeg_stream_mode">Mode lokal (MJPEG)</string>
     <string name="mjpeg_stream_mode_description">Deskripsi mode lokal</string>
     <string name="mjpeg_stream_mode_details">
-        - Didukung oleh standar MJPEG.\n
+- Didukung oleh standar MJPEG.\n
         - Memanfaatkan PIN untuk keamanan (tanpa enkripsi).\n
         - Mengirim video sebagai rangkaian gambar independen (tanpa audio).\n
         - Bekerja tanpa koneksi internet dalam jaringan lokal Anda.  - Server HTTP tertanam.\n
@@ -14,7 +13,7 @@
         - Klien terhubung melalui browser web menggunakan alamat IP yang disediakan aplikasi.\n
         - Sangat dapat disesuaikan.\n
         - Transmisi data individual untuk setiap klien (semakin banyak klien yang Anda miliki, semakin banyak bandwidth yang Anda perlukan).
-    </string>
+</string>
 
     <string name="mjpeg_item_address">Alamat perangkat:</string>
     <string name="mjpeg_stream_no_address">Tidak ada alamat yang ditemukan</string>
@@ -70,6 +69,11 @@
     <string name="mjpeg_pref_settings_image">Gambar</string>
     <string name="mjpeg_pref_vr_mode">Modus realitas maya</string>
     <string name="mjpeg_pref_vr_mode_summary">Tangkap konten dari setengah layar</string>
+    <string-array name="mjpeg_pref_vr_mode_options">
+        <item>Nonaktifkan</item>
+        <item>Gunakan bagian kiri</item>
+        <item>Gunakan bagian kanan</item>
+    </string-array>
     <string name="mjpeg_pref_crop">Pangkas gambar</string>
     <string name="mjpeg_pref_crop_summary">Pangkas gambar sebelum dikirim ke klien</string>
     <string name="mjpeg_pref_crop_top">Pangkas bagian atas:</string>
@@ -150,6 +154,7 @@
 
     <string name="mjpeg_start_image_text">Mulai streaming di perangkat</string>
 
+    <!--HTML text-->
     <string name="mjpeg_html_stream_connecting">Mencoba terhubung</string>
     <string name="mjpeg_html_stream_require_pin">Aliran ini memerlukan PIN untuk mengaksesnya</string>
     <string name="mjpeg_html_enter_pin">Masukkan pin:\\u0020</string>

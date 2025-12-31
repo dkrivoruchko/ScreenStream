@@ -7,13 +7,12 @@
     <string name="rtsp_stream_mode_description">Описание режима RTSP</string>
     <string name="rtsp_stream_mode_details">
 - Работает по протоколу RTSP.\n
-- Требуется медиасервер с поддержкой RTSP.\n
-- Поддерживает видео и аудио.\n
-- Может быть защищен логином/паролем.\n
-- Опциональное шифрование канала управления (RTSPS с TLS).\n
-- Совместим с WiFi, мобильными сетями и IPv4/IPv6.\n
-- Требуется RTSP-клиент или плеер для просмотра.\n
-- Широкие возможности настройки.\n
+- Серверный режим (по умолчанию) делает это устройство RTSP‑сервером.\n
+- Клиентский режим подключается к удалённому RTSP‑серверу.\n
+- Поддерживает видео и аудио с настройкой кодеков.\n
+- Серверный режим добавляет настройки протокола, фильтров интерфейсов/адресов, IPv4/IPv6 и порта.\n
+- Работает через Wi‑Fi/мобильные сети и IPv4/IPv6.\n
+- Требуется RTSP-клиент или плеер для просмотра.
 </string>
 
     <string name="rtsp_mode_card_title">Выберите режим RTSP:</string>
@@ -41,6 +40,7 @@
     <string name="rtsp_cast_permission_required_title">Требуется разрешение</string>
     <string name="rtsp_cast_permission_required">Приложению ScreenStream требуется разрешение на запись экрана.</string>
     <string name="rtsp_error_notification_permission_required">Для запуска службы трансляции необходимо включить уведомления.\nВключите уведомления в настройках приложения.</string>
+    <string name="rtsp_error_ip_address_not_found">IP-адрес не найден</string>
     <string name="rtsp_error_unspecified">Что-то пошло не так.</string>
 
     <string name="rtsp_media_server">Медиасервер</string>

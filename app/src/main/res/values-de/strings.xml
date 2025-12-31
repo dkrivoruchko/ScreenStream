@@ -15,7 +15,7 @@
     <string name="app_activity_update_dialog_message">Eine Update wurde soeben heruntergeladen. App neu starten?</string>
     <string name="app_activity_update_dialog_restart">Neu starten</string>
 
-    <string name="app_tab_stream">Streamen</string>
+    <string name="app_tab_stream">Stream</string>
     <string name="app_tab_settings">Einstellungen</string>
     <string name="app_tab_about">Infos</string>
     <string name="app_tab_exit">Beenden</string>
@@ -74,5 +74,4 @@
     <string name="app_tab_about_privacy_policy">Datenschutzrichtlinie</string>
     <string name="app_tab_about_privacy_options">Datenschutzoptionen</string>
     <string name="app_tab_about_license">Lizenz</string>
-
 </resources>

@@ -6,14 +6,14 @@
     <string name="webrtc_stream_mode">Global rejim (WebRTC)</string>
     <string name="webrtc_stream_mode_description">Global rejim tavsifi</string>
     <string name="webrtc_stream_mode_details">
-        - WebRTC texnologiyasi asosida ishlaydi.\n
+- WebRTC texnologiyasi asosida ishlaydi.\n
         - End-to-end shifrlangan aloqa.\n
         - Parol bilan oqim himoyasi.\n
         - Video va audio yuborish mumkin.\n
         - Noyob oqim identifikatori va parol yordamida ulaning.\n
         - Striming uchun internet ulanishini talab qiladi.\n
         - Har bir mijoz uchun individual ma\'lumotlarni uzatish (sizda ko\'proq mijozlar bor, sizga ko\'proq Internet o\'tkazish qobiliyati kerak).
-    </string>
+</string>
 
     <string name="webrtc_stream_network_recovery">Aloqa uzildi. Qayta ulanmoqda…</string>
     <string name="webrtc_stream_server_address">Oqimga kirish: %1$s</string>

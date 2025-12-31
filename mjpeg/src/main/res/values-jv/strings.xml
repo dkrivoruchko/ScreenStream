@@ -1,4 +1,3 @@
-<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="mjpeg_error_recover">Waras</string>
     <string name="mjpeg_error_open_settings">Bukak setelan</string>
@@ -6,7 +5,7 @@
     <string name="mjpeg_stream_mode">Mode lokal (MJPEG)</string>
     <string name="mjpeg_stream_mode_description">Katrangan mode lokal</string>
     <string name="mjpeg_stream_mode_details">
-        - Powered by standar MJPEG.\n
+- Powered by standar MJPEG.\n
         - Gunakake PIN kanggo keamanan (ora ana enkripsi).\n
         - Ngirim video minangka seri gambar independen (ora ana audio).\n
         - Bisa tanpa sambungan internet ing jaringan lokal.\n
@@ -15,7 +14,7 @@
         - Klien nyambung liwat browser web nggunakake alamat IP sing diwenehake app.\n
         - Highly customizable.\n
         - Transmisi data individu kanggo saben klien (luwih akeh klien sing sampeyan duwe, luwih akeh bandwidth sing dibutuhake).
-    </string>
+</string>
 
     <string name="mjpeg_item_address">Alamat piranti:</string>
     <string name="mjpeg_stream_no_address">Ora ana alamat sing ditemokake</string>
@@ -71,6 +70,11 @@
     <string name="mjpeg_pref_settings_image">Gambar</string>
     <string name="mjpeg_pref_vr_mode">Mode kasunyatan virtual</string>
     <string name="mjpeg_pref_vr_mode_summary">Jupuk isi saka setengah layar</string>
+    <string-array name="mjpeg_pref_vr_mode_options">
+        <item>Nonaktifake</item>
+        <item>Gunakake bagean kiwa</item>
+        <item>Gunakake bagean tengen</item>
+    </string-array>
     <string name="mjpeg_pref_crop">Gambar potong</string>
     <string name="mjpeg_pref_crop_summary">Potong gambar sadurunge dikirim menyang klien</string>
     <string name="mjpeg_pref_crop_top">Pucuk ndhuwur:</string>
@@ -151,6 +155,7 @@
 
     <string name="mjpeg_start_image_text">Miwiti stream ing piranti</string>
 
+    <!--HTML text-->
     <string name="mjpeg_html_stream_connecting">Nyoba nyambungake</string>
     <string name="mjpeg_html_stream_require_pin">Stream iki mbutuhake PIN kanggo ngakses</string>
     <string name="mjpeg_html_enter_pin">Ketik pin:\\u0020</string>

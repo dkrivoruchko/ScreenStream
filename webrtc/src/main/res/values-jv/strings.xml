@@ -6,14 +6,14 @@
     <string name="webrtc_stream_mode">Mode Global (WebRTC)</string>
     <string name="webrtc_stream_mode_description">Katrangan mode global</string>
     <string name="webrtc_stream_mode_details">
-        - Powered by teknologi WebRTC.\n
+- Powered by teknologi WebRTC.\n
         - Komunikasi enkripsi end-to-end.\n
         - Perlindhungan stream nganggo sandhi.\n
         - Bisa ngirim video lan audio.\n
         - Sambungake nggunakake ID stream unik lan sandhi.\n
         - Mbutuhake sambungan internet kanggo streaming.\n
         - Transmisi data individu kanggo saben klien (luwih akeh klien sing sampeyan duwe, luwih akeh bandwidth Internet sing dibutuhake).
-    </string>
+</string>
 
     <string name="webrtc_stream_network_recovery">Sambungan ilang. Nyambung maneh…</string>
     <string name="webrtc_stream_server_address">Akses stream ing: %1$s</string>

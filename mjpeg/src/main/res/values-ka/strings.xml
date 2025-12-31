@@ -1,4 +1,3 @@
-<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="mjpeg_error_recover">აღდგენა</string>
     <string name="mjpeg_error_open_settings">გახსენით პარამეტრები</string>
@@ -6,7 +5,7 @@
     <string name="mjpeg_stream_mode">ლოკალური რეჟიმი (MJPEG)</string>
     <string name="mjpeg_stream_mode_description">ადგილობრივი რეჟიმის აღწერა</string>
     <string name="mjpeg_stream_mode_details">
-        - უზრუნველყოფილია MJPEG სტანდარტით.\n
+- უზრუნველყოფილია MJPEG სტანდარტით.\n
         - იყენებს PIN-ს უსაფრთხოებისთვის (დაშიფვრის გარეშე).\n
         - აგზავნის ვიდეოს დამოუკიდებელი სურათების სერიის სახით (აუდიო გარეშე).\n
         - მუშაობს ინტერნეტის გარეშე თქვენს ლოკალურ ქსელში.\\n - ჩაშენებული HTTP სერვერი.\n
@@ -14,7 +13,7 @@
         - კლიენტები უკავშირდებიან ვებ ბრაუზერს აპის მითითებული IP მისამართის გამოყენებით.\n
         - ძალიან რეგულირებადი.\n
         - ინდივიდუალური მონაცემთა გადაცემა თითოეული კლიენტისთვის (უფრო მეტი კლიენტი გყავთ, მეტი არასამუშაო გამტარობა გჭირდებათ).
-    </string>
+</string>
 
     <string name="mjpeg_item_address">მოწყობილობის მისამართი:</string>
     <string name="mjpeg_stream_no_address">მისამართი ვერ მოიძებნა</string>
@@ -70,6 +69,11 @@
     <string name="mjpeg_pref_settings_image">გამოსახულება</string>
     <string name="mjpeg_pref_vr_mode">ვირტუალური რეალობის რეჟიმი</string>
     <string name="mjpeg_pref_vr_mode_summary">გადაიღეთ შინაარსი ნახევარი ეკრანიდან</string>
+    <string-array name="mjpeg_pref_vr_mode_options">
+        <item>გამორთვა</item>
+        <item>გამოიყენეთ მარცხენა ნაწილი</item>
+        <item>გამოიყენეთ მარჯვენა ნაწილი</item>
+    </string-array>
     <string name="mjpeg_pref_crop">სურათის ამოჭრა</string>
     <string name="mjpeg_pref_crop_summary">სურათის ამოჭრა კლიენტისთვის გაგზავნამდე</string>
     <string name="mjpeg_pref_crop_top">მოჭრილი ზედა:</string>
@@ -150,6 +154,7 @@
 
     <string name="mjpeg_start_image_text">დაიწყეთ ნაკადი მოწყობილობაზე</string>
 
+    <!--HTML text-->
     <string name="mjpeg_html_stream_connecting">დაკავშირებას ცდილობს</string>
     <string name="mjpeg_html_stream_require_pin">ეს ნაკადი მასზე წვდომისთვის PIN-ს მოითხოვს</string>
     <string name="mjpeg_html_enter_pin">შეიყვანეთ პინი:\\u0020</string>

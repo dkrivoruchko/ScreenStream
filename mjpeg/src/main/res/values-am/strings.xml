@@ -1,4 +1,3 @@
-<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="mjpeg_error_recover">ማገገም</string>
     <string name="mjpeg_error_open_settings">ቅንብሮችን ይክፈቱ</string>
@@ -6,7 +5,7 @@
     <string name="mjpeg_stream_mode">የአካባቢ ሁነታ (MJPEG)</string>
     <string name="mjpeg_stream_mode_description">የአካባቢ ሁነታ መግለጫ</string>
     <string name="mjpeg_stream_mode_details">
-        - በMJPEG ደረጃ የተጎላበተ።\n
+- በMJPEG ደረጃ የተጎላበተ።\n
         - ለደህንነት ፒን ይጠቀማል (ምስጠራ የለም)።\n
         - ቪዲዮን እንደ ተከታታይ ገለልተኛ ምስሎች ይልካል (ድምጽ የለም)።\n
         - በአከባቢዎ አውታረመረብ ውስጥ ያለ የበይነመረብ ግንኙነት ይሰራል።\n
@@ -14,7 +13,7 @@
         - ከ WiFi እና/ወይም የሞባይል አውታረ መረቦች ጋር ይሰራል፣ IPv4 እና IPv6 ን ይደግፋል።\n
         - ደንበኞች በመተግበሪያው የቀረበውን የአይፒ አድራሻ በመጠቀም በድር አሳሽ ይገናኛሉ።  - በከፍተኛ ሁኔታ ሊበጅ የሚችል።\n
         - ለእያንዳንዱ ደንበኛ የግለሰብ ውሂብ ማስተላለፍ (ብዙ ደንበኞች አሉዎት ፣ ብዙ የማይሰራ ባንድዊድዝ ያስፈልግዎታል)።\n
-    </string>
+</string>
 
     <string name="mjpeg_item_address">የመሣሪያ አድራሻ፡-</string>
     <string name="mjpeg_stream_no_address">ምንም አድራሻ አልተገኘም።</string>
@@ -70,6 +69,11 @@
     <string name="mjpeg_pref_settings_image">ምስል</string>
     <string name="mjpeg_pref_vr_mode">ምናባዊ እውነታ ሁነታ</string>
     <string name="mjpeg_pref_vr_mode_summary">ይዘትን ከግማሽ ማያ ገጽ ያንሱ</string>
+    <string-array name="mjpeg_pref_vr_mode_options">
+        <item>አሰናክል</item>
+        <item>ግራ ክፍል ይጠቀሙ</item>
+        <item>ቀኝ ክፍል ይጠቀሙ</item>
+    </string-array>
     <string name="mjpeg_pref_crop">ምስል ይከርክሙ</string>
     <string name="mjpeg_pref_crop_summary">ወደ ደንበኛ ከመላክዎ በፊት ምስል ይከርክሙ</string>
     <string name="mjpeg_pref_crop_top">ከላይ ይከርክሙ፡</string>
@@ -150,6 +154,7 @@
 
     <string name="mjpeg_start_image_text">በመሣሪያው ላይ ዥረት ይጀምሩ</string>
 
+    <!--HTML text-->
     <string name="mjpeg_html_stream_connecting">ለመገናኘት በመሞከር ላይ</string>
     <string name="mjpeg_html_stream_require_pin">ይህ ዥረት እሱን ለማግኘት ፒን ያስፈልገዋል</string>
     <string name="mjpeg_html_enter_pin">ፒን አስገባ፡\\u0020</string>

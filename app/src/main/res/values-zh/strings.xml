@@ -15,22 +15,22 @@
     <string name="app_activity_update_dialog_message">更新已下载完毕，是否想现在重启程序？</string>
     <string name="app_activity_update_dialog_restart">重启程序 </string>
 
-    <string name="app_tab_stream">流</string>
+    <string name="app_tab_stream">串流</string>
     <string name="app_tab_settings">设置</string>
     <string name="app_tab_about">关于</string>
     <string name="app_tab_exit">退出</string>
 
-    <string name="app_tab_stream_select_mode">选择流模式：</string>
+    <string name="app_tab_stream_select_mode">选择串流模式：</string>
 
     <string name="app_permission_required_title">需要权限</string>
-    <string name="app_permission_allow_notifications">要能启动流服务，程序需要发送通知的权限。\n\n请允许发送通知。</string>
-    <string name="app_permission_allow_notifications_settings">为了能启动流服务，程序需要发送通知的权限。\n\n请在程序设置中允许发送通知。</string>
+    <string name="app_permission_allow_notifications">要能启动串流服务，程序需要发送通知的权限。\n\n请允许发送通知。</string>
+    <string name="app_permission_allow_notifications_settings">为了能启动串流服务，程序需要发送通知的权限。\n\n请在程序设置中允许发送通知。</string>
     <string name="app_permission_notification_settings">打开设置</string>
 
-    <string name="app_notification_channel_streaming">流通知</string>
+    <string name="app_notification_channel_streaming">串流通知</string>
     <string name="app_notification_channel_error">错误通知</string>
-    <string name="app_notification_streaming_title">传输中…</string>
-    <string name="app_notification_streaming_content">按下“停止”结束传输</string>
+    <string name="app_notification_streaming_title">串流中…</string>
+    <string name="app_notification_streaming_content">按下“停止”结束串流</string>
     <string name="app_notification_stop">停止</string>
 
     <string name="app_tile_start">开始</string>

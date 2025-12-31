@@ -16,7 +16,6 @@
 </string>
 
     <string name="mjpeg_item_address">Адреса пристрою:</string>
-
     <string name="mjpeg_stream_no_address">Адресу не знайдено</string>
     <string name="mjpeg_stream_interface">Інтерфейс:\n%1$s</string>
     <string name="mjpeg_stream_copied">Скопійовано</string>
