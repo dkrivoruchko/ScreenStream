@@ -1,9 +1,10 @@
 package info.dvkr.screenstream.ui.tabs.settings
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.Crossfade
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -11,7 +12,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -45,14 +45,11 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.layout.Placeable
-import androidx.compose.ui.layout.SubcomposeLayout
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -226,37 +223,14 @@ private fun SettingsListHeader(
     modifier: Modifier = Modifier
 ) {
     val searchVisible = remember { mutableStateOf(searchTextFlow.value.isNotBlank()) }
+    val requestSearchFocus = remember { mutableStateOf(false) }
 
-    Crossfade(
-        targetState = searchVisible.value,
-        modifier = modifier,
-        label = "SearchCrossfade"
-    ) { showSearch ->
-        SubcomposeLayout { constraints ->
-            val searchPlaceables = subcompose("SettingsListSearch") {
-                SettingsListSearch(searchTextFlow, onSearchTextChange, searchVisible)
-            }
-                .map { it.measure(constraints.copy(minWidth = 0, minHeight = 0)) }
-
-            var maxWidth = 0
-            var maxHeight = 0
-
-            searchPlaceables.forEach { placeable ->
-                maxWidth += placeable.width
-                maxHeight = placeable.height
-            }
-
-            val titlePlaceables: List<Placeable> = subcompose("SettingsListTitle") {
-                val size = DpSize(maxWidth.toDp(), maxHeight.toDp())
-                SettingsListTitle(size, searchVisible)
-            }.map { measurable -> measurable.measure(constraints) }
-
-            layout(maxWidth, maxHeight) {
-                if (showSearch) {
-                    searchPlaceables.forEach { placeable -> placeable.placeRelative(0, 0) }
-                } else {
-                    titlePlaceables.forEach { placeable -> placeable.placeRelative(0, 0) }
-                }
+    Box(modifier = modifier.animateContentSize()) {
+        if (searchVisible.value) {
+            SettingsListSearch(searchTextFlow, onSearchTextChange, searchVisible, requestSearchFocus)
+        } else {
+            SettingsListTitle(searchVisible) {
+                requestSearchFocus.value = true
             }
         }
     }
@@ -264,12 +238,12 @@ private fun SettingsListHeader(
 
 @Composable
 private fun SettingsListTitle(
-    size: DpSize,
-    searchVisible: MutableState<Boolean>
+    searchVisible: MutableState<Boolean>,
+    onSearchRequested: () -> Unit
 ) {
     Row(
         modifier = Modifier
-            .size(size)
+            .fillMaxWidth()
             .padding(start = 16.dp, end = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -278,7 +252,10 @@ private fun SettingsListTitle(
             modifier = Modifier.weight(1F),
             style = MaterialTheme.typography.headlineSmall
         )
-        IconButton(onClick = { searchVisible.value = true }) {
+        IconButton(onClick = {
+            searchVisible.value = true
+            onSearchRequested()
+        }) {
             Icon(imageVector = Icon_Search, contentDescription = stringResource(id = R.string.app_pref_search))
         }
     }
@@ -289,6 +266,7 @@ private fun SettingsListSearch(
     searchTextFlow: StateFlow<String>,
     onSearchTextChange: (String) -> Unit,
     searchVisible: MutableState<Boolean>,
+    requestFocus: MutableState<Boolean>,
 ) {
     val searchTextLocalProxy = remember { mutableStateOf(searchTextFlow.value) }
 
@@ -312,6 +290,7 @@ private fun SettingsListSearch(
                 onClick = {
                     focusManager.clearFocus()
                     searchVisible.value = false
+                    requestFocus.value = false
                     searchTextLocalProxy.value = ""
                     onSearchTextChange.invoke("")
                 }
@@ -322,7 +301,19 @@ private fun SettingsListSearch(
         singleLine = true
     )
 
-    LaunchedEffect(Unit) { if (searchVisible.value) { delay(50); focusRequester.requestFocus() } }
+    LaunchedEffect(requestFocus.value) {
+        if (requestFocus.value) {
+            delay(50)
+            focusRequester.requestFocus()
+            requestFocus.value = false
+        }
+    }
+
+    LaunchedEffect(searchVisible.value) {
+        if (searchVisible.value && requestFocus.value.not()) {
+            focusManager.clearFocus(force = true)
+        }
+    }
 }
 
 @Composable
