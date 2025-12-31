@@ -25,15 +25,15 @@ internal data class WebRtcState(
 }
 
 @Immutable
-internal sealed class WebRtcError(@StringRes open val id: Int, override val message: String? = null) : Throwable() {
-    internal data class PlayIntegrityError(
+internal sealed class WebRtcError(@field:StringRes open val id: Int, override val message: String? = null) : Throwable() {
+    internal class PlayIntegrityError(
         val code: Int,
         val isAutoRetryable: Boolean,
         override val message: String?,
-        @StringRes override val id: Int = R.string.webrtc_error_unspecified
+        @field:StringRes override val id: Int = R.string.webrtc_error_unspecified
     ) : WebRtcError(id)
 
-    internal data class NetworkError(
+    internal class NetworkError(
         val code: Int,
         override val message: String?,
         override val cause: Throwable?
@@ -42,7 +42,7 @@ internal sealed class WebRtcError(@StringRes open val id: Int, override val mess
         override fun toString(context: Context): String = context.getString(id) + if (message.isNullOrBlank()) "" else ":\n$message"
     }
 
-    internal data class SocketError(
+    internal class SocketError(
         override val message: String?,
         override val cause: Throwable?
     ) : WebRtcError(R.string.webrtc_error_unspecified) {
@@ -50,9 +50,9 @@ internal sealed class WebRtcError(@StringRes open val id: Int, override val mess
             context.getString(id) + " [$message] : ${if (cause?.message != null) cause.message else ""} "
     }
 
-    internal data object NotificationPermissionRequired : WebRtcError(R.string.webrtc_notification_permission_required)
+    internal class NotificationPermissionRequired : WebRtcError(R.string.webrtc_notification_permission_required)
 
-    internal data class UnknownError(override val cause: Throwable?) : WebRtcError(R.string.webrtc_error_unspecified) {
+    internal class UnknownError(override val cause: Throwable?) : WebRtcError(R.string.webrtc_error_unspecified) {
         override fun toString(context: Context): String = context.getString(id) + " [${cause?.message}]"
     }
 

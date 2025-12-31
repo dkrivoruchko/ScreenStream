@@ -33,7 +33,7 @@ internal data class RtspState(
 }
 
 @Immutable
-internal sealed class RtspError(@param:StringRes open val id: Int, override val message: String? = null) : Throwable() {
+internal sealed class RtspError(@field:StringRes open val id: Int, override val message: String? = null) : Throwable() {
     internal class NotificationPermissionRequired : RtspError(R.string.rtsp_error_notification_permission_required)
     internal class UnknownError(override val cause: Throwable?) : RtspError(R.string.rtsp_error_unspecified) {
         override fun toString(context: Context): String = context.getString(id) + " [${cause.toString()}]"

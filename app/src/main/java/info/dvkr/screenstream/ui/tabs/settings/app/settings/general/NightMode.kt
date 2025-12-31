@@ -84,7 +84,7 @@ internal object NightMode : ModuleSettings.Item {
     private fun getNightModeIndex(@AppCompatDelegate.NightMode nightMode: Int): Int =
         nightModesCompat.firstOrNull { it.mode == nightMode }?.index ?: nightModesCompat[1].index
 
-    private data class NightMode(val index: Int, @AppCompatDelegate.NightMode val mode: Int)
+    private data class NightMode(val index: Int, @field:AppCompatDelegate.NightMode val mode: Int)
 
     private val nightModesCompat =
         if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.P)

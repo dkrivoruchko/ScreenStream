@@ -149,7 +149,7 @@ internal class BitmapCapture(
         } catch (ex: SecurityException) {
             XLog.w(getLog("startDisplayCapture", ex.toString()), ex)
             state = State.ERROR
-            onError(MjpegError.CastSecurityException)
+            onError(MjpegError.CastSecurityException())
             safeRelease()
         }
 
@@ -210,7 +210,7 @@ internal class BitmapCapture(
         } catch (ex: SecurityException) {
             XLog.w(getLog("resize", ex.toString()), ex)
             state = State.ERROR
-            onError(MjpegError.CastSecurityException)
+            onError(MjpegError.CastSecurityException())
             safeRelease()
         }
 

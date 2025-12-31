@@ -77,7 +77,7 @@ public class MjpegModuleService : StreamingModuleService() {
     internal fun startForeground() {
         XLog.d(getLog("startForeground", "foregroundNotificationsEnabled: ${notificationHelper.foregroundNotificationsEnabled()}"))
 
-        if (notificationHelper.notificationPermissionGranted(this).not()) throw MjpegError.NotificationPermissionRequired
+        if (notificationHelper.notificationPermissionGranted(this).not()) throw MjpegError.NotificationPermissionRequired()
 
         startForeground(MjpegEvent.Intentable.StopStream("MjpegModuleService. User action: Notification").toIntent(this))
     }
@@ -85,7 +85,7 @@ public class MjpegModuleService : StreamingModuleService() {
     internal fun showErrorNotification(error: MjpegError) {
         if (error is MjpegError.NotificationPermissionRequired) return
 
-        if (error in listOf(MjpegError.AddressNotFoundException, MjpegError.AddressInUseException)) {
+        if (error is MjpegError.AddressNotFoundException || error is MjpegError.AddressInUseException) {
             XLog.i(getLog("showErrorNotification", "${error.javaClass.simpleName} ${error.cause}"))
         } else {
             XLog.e(getLog("showErrorNotification"), error)

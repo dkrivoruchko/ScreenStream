@@ -81,7 +81,7 @@ public class WebRtcModuleService : StreamingModuleService() {
     internal fun startForeground() {
         XLog.d(getLog("startForeground", "foregroundNotificationsEnabled: ${notificationHelper.foregroundNotificationsEnabled()}"))
 
-        if (notificationHelper.notificationPermissionGranted(this).not()) throw WebRtcError.NotificationPermissionRequired
+        if (notificationHelper.notificationPermissionGranted(this).not()) throw WebRtcError.NotificationPermissionRequired()
 
         startForeground(WebRtcEvent.Intentable.StopStream("WebRtcModuleService. User action: Notification").toIntent(this))
     }

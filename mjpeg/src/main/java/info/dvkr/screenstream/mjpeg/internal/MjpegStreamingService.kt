@@ -311,7 +311,7 @@ internal class MjpegStreamingService(
                         netInterfaces = emptyList()
                         clients = emptyList()
                         slowClients = emptyList()
-                        currentError = MjpegError.AddressNotFoundException
+                        currentError = MjpegError.AddressNotFoundException()
                     }
                 }
             }
@@ -427,7 +427,7 @@ internal class MjpegStreamingService(
                 waitingForPermission = false
                 if (pendingServer) {
                     XLog.d(getLog("processEvent", "RestartServer: No running server."))
-                    if (currentError == MjpegError.AddressNotFoundException) currentError = null
+                    if (currentError is MjpegError.AddressNotFoundException) currentError = null
                 } else {
                     httpServer.stop(event.reason is RestartReason.SettingsChanged)
                     if (mjpegSettings.data.value.stopOnConfigurationChange) {

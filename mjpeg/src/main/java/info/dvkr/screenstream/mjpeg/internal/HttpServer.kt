@@ -229,17 +229,17 @@ internal class HttpServer(
         } catch (cause: CancellationException) {
             if (cause.cause is SocketException) {
                 XLog.w(getLog("startServer.CancellationException.SocketException", cause.cause.toString()))
-                sendEvent(MjpegStreamingService.InternalEvent.Error(MjpegError.AddressInUseException))
+                sendEvent(MjpegStreamingService.InternalEvent.Error(MjpegError.AddressInUseException()))
             } else {
                 XLog.w(getLog("startServer.CancellationException", cause.toString()), cause)
-                sendEvent(MjpegStreamingService.InternalEvent.Error(MjpegError.HttpServerException))
+                sendEvent(MjpegStreamingService.InternalEvent.Error(MjpegError.HttpServerException()))
             }
         } catch (cause: BindException) {
             XLog.w(getLog("startServer.BindException", cause.toString()))
-            sendEvent(MjpegStreamingService.InternalEvent.Error(MjpegError.AddressInUseException))
+            sendEvent(MjpegStreamingService.InternalEvent.Error(MjpegError.AddressInUseException()))
         } catch (cause: Throwable) {
             XLog.e(getLog("startServer.Throwable"), cause)
-            sendEvent(MjpegStreamingService.InternalEvent.Error(MjpegError.HttpServerException))
+            sendEvent(MjpegStreamingService.InternalEvent.Error(MjpegError.HttpServerException()))
         }
         XLog.d(getLog("startServer", "Done. Ktor: ${server.hashCode()} "))
     }
@@ -303,7 +303,7 @@ internal class HttpServer(
             exception<Throwable> { call, cause ->
                 if (cause is IOException || cause is IllegalArgumentException || cause is IllegalStateException) return@exception
                 XLog.e(this@appModule.getLog("exception"), RuntimeException("Throwable", cause))
-                sendEvent(MjpegStreamingService.InternalEvent.Error(MjpegError.HttpServerException))
+                sendEvent(MjpegStreamingService.InternalEvent.Error(MjpegError.HttpServerException()))
                 call.respondText(text = "500: $cause", status = HttpStatusCode.InternalServerError)
             }
         }

@@ -36,17 +36,17 @@ internal data class MjpegState(
 }
 
 @Immutable
-internal sealed class MjpegError(@StringRes open val id: Int, override val message: String? = null) : Throwable() {
-    internal data object AddressNotFoundException : MjpegError(R.string.mjpeg_error_ip_address_not_found)
-    internal data object AddressInUseException : MjpegError(R.string.mjpeg_error_port_in_use)
-    internal data object CastSecurityException : MjpegError(R.string.mjpeg_error_invalid_media_projection)
-    internal data object HttpServerException : MjpegError(R.string.mjpeg_error_unspecified)
-    internal data class BitmapCaptureException(override val cause: Throwable?) : MjpegError(R.string.mjpeg_error_unspecified) {
+internal sealed class MjpegError(@field:StringRes open val id: Int, override val message: String? = null) : Throwable() {
+    internal class AddressNotFoundException : MjpegError(R.string.mjpeg_error_ip_address_not_found)
+    internal class AddressInUseException : MjpegError(R.string.mjpeg_error_port_in_use)
+    internal class CastSecurityException : MjpegError(R.string.mjpeg_error_invalid_media_projection)
+    internal class HttpServerException : MjpegError(R.string.mjpeg_error_unspecified)
+    internal class BitmapCaptureException(override val cause: Throwable?) : MjpegError(R.string.mjpeg_error_unspecified) {
         override fun toString(context: Context): String = context.getString(id) + " [${cause?.message}]"
     }
 
-    internal data object NotificationPermissionRequired : MjpegError(R.string.mjpeg_error_notification_permission_required)
-    internal data class UnknownError(override val cause: Throwable?) : MjpegError(R.string.mjpeg_error_unspecified) {
+    internal class NotificationPermissionRequired : MjpegError(R.string.mjpeg_error_notification_permission_required)
+    internal class UnknownError(override val cause: Throwable?) : MjpegError(R.string.mjpeg_error_unspecified) {
         override fun toString(context: Context): String = context.getString(id) + " [${cause?.message}]"
     }
 

@@ -242,6 +242,7 @@ internal class WebRtcStreamingService(
         }
     }
 
+    @Suppress("OVERRIDE_DEPRECATION")
     private val componentCallback = object : ComponentCallbacks {
         override fun onConfigurationChanged(newConfig: Configuration) = sendEvent(InternalEvent.ConfigurationChange(newConfig))
         override fun onLowMemory() = Unit

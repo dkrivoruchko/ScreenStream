@@ -9,7 +9,7 @@ import info.dvkr.screenstream.R
 internal enum class AppTabs(
     internal val icon: ImageVector,
     internal val iconSelected: ImageVector,
-    @StringRes internal val label: Int
+    @field:StringRes internal val label: Int
 ) {
     STREAM(Icon_Stream, Icon_Stream, R.string.app_tab_stream),
     SETTINGS(Icon_Settings, Icons_Settings_Filled, R.string.app_tab_settings),
