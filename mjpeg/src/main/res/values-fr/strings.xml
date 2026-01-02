@@ -99,6 +99,13 @@
     <string name="mjpeg_pref_resize_result">Taille de l\'image: %1$dx%2$d</string>
     <string name="mjpeg_pref_rotate">Faire pivoter l\'image dans le sens horaire</string>
     <string name="mjpeg_pref_rotate_summary">Faire pivoter l\'image avant de l\'envoyer au client</string>
+    <string name="mjpeg_pref_flip">Retourner l\'image</string>
+    <string name="mjpeg_pref_flip_summary">Retourner l\'image avant de l\'envoyer au client</string>
+    <string-array name="mjpeg_pref_flip_options">
+        <item>Aucun</item>
+        <item>Horizontal</item>
+        <item>Vertical</item>
+    </string-array>
     <string name="mjpeg_pref_fps">Limiter les images par seconde</string>
     <string name="mjpeg_pref_fps_summary">Définir le nombre maximum d\'images par seconde</string>
     <string name="mjpeg_pref_fps_text">Définir le nombre maximum d\'images par seconde.\nValeurs: 1/10–120\nPar défaut: 30</string>

@@ -98,6 +98,13 @@
     <string name="mjpeg_pref_resize_result">Размер изображения: %1$dx%2$d</string>
     <string name="mjpeg_pref_rotate">Поворачивать по часовой стрелке</string>
     <string name="mjpeg_pref_rotate_summary">Поворачивать изображение перед отправкой</string>
+    <string name="mjpeg_pref_flip">Отразить изображение</string>
+    <string name="mjpeg_pref_flip_summary">Отразить изображение перед отправкой</string>
+    <string-array name="mjpeg_pref_flip_options">
+        <item>Нет</item>
+        <item>По горизонтали</item>
+        <item>По вертикали</item>
+    </string-array>
     <string name="mjpeg_pref_fps">Ограничить кадры в секунду</string>
     <string name="mjpeg_pref_fps_summary">Установите максимальное количество кадров в секунду</string>
     <string name="mjpeg_pref_fps_text">Установите максимальное количество кадров в секунду.\nЗначения: 1/10–120\nПо умолчанию: 30</string>

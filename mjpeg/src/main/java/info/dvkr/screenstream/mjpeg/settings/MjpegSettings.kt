@@ -35,6 +35,7 @@ public interface MjpegSettings {
         public val RESOLUTION_HEIGHT: Preferences.Key<Int> = intPreferencesKey("RESOLUTION_HEIGHT")
         public val RESOLUTION_STRETCH: Preferences.Key<Boolean> = booleanPreferencesKey("RESOLUTION_STRETCH")
         public val ROTATION: Preferences.Key<Int> = intPreferencesKey("ROTATION")
+        public val FLIP: Preferences.Key<Int> = intPreferencesKey("FLIP")
         public val MAX_FPS: Preferences.Key<Int> = intPreferencesKey("MAX_FPS")
 
         public val ENABLE_PIN: Preferences.Key<Boolean> = booleanPreferencesKey("ENABLE_PIN")
@@ -78,6 +79,7 @@ public interface MjpegSettings {
         public const val RESOLUTION_HEIGHT: Int = 0
         public const val RESOLUTION_STRETCH: Boolean = true
         public const val ROTATION: Int = Values.ROTATION_0
+        public const val FLIP: Int = Values.FLIP_NONE
         public const val MAX_FPS: Int = 30
 
         public const val ENABLE_PIN: Boolean = false
@@ -101,6 +103,9 @@ public interface MjpegSettings {
         public const val ROTATION_90: Int = 90
         public const val ROTATION_180: Int = 180
         public const val ROTATION_270: Int = 270
+        public const val FLIP_NONE: Int = 0
+        public const val FLIP_HORIZONTAL: Int = 1
+        public const val FLIP_VERTICAL: Int = 2
 
 
         @IntDef(flag = true, value = [INTERFACE_WIFI, INTERFACE_MOBILE, INTERFACE_ETHERNET, INTERFACE_VPN])
@@ -148,6 +153,7 @@ public interface MjpegSettings {
         public val resolutionHeight: Int = Default.RESOLUTION_HEIGHT,
         public val resolutionStretch: Boolean = Default.RESOLUTION_STRETCH,
         public val rotation: Int = Default.ROTATION,
+        public val flip: Int = Default.FLIP,
         public val maxFPS: Int = Default.MAX_FPS,
 
         public val enablePin: Boolean = Default.ENABLE_PIN,

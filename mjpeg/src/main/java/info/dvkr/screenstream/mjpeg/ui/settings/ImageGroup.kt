@@ -8,6 +8,7 @@ import androidx.compose.ui.res.stringResource
 import info.dvkr.screenstream.common.ModuleSettings
 import info.dvkr.screenstream.mjpeg.R
 import info.dvkr.screenstream.mjpeg.ui.settings.image.CropImage
+import info.dvkr.screenstream.mjpeg.ui.settings.image.Flip
 import info.dvkr.screenstream.mjpeg.ui.settings.image.Grayscale
 import info.dvkr.screenstream.mjpeg.ui.settings.image.JpegQuality
 import info.dvkr.screenstream.mjpeg.ui.settings.image.MaxFPS
@@ -19,7 +20,7 @@ public object ImageGroup : ModuleSettings.Group {
     override val id: String = "IMAGE"
     override val position: Int = 1
     override val items: List<ModuleSettings.Item> =
-        listOf(VrMode, CropImage, Grayscale, ResizeImage, Rotation, MaxFPS, JpegQuality)
+        listOf(VrMode, CropImage, Grayscale, ResizeImage, Rotation, Flip, MaxFPS, JpegQuality)
             .filter { it.available }.sortedBy { it.position }
 
     @Composable

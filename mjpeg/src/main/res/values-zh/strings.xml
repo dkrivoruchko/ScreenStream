@@ -99,6 +99,13 @@
     <string name="mjpeg_pref_resize_result">图片尺寸： %1$dx%2$d</string>
     <string name="mjpeg_pref_rotate">顺时针旋转图片</string>
     <string name="mjpeg_pref_rotate_summary">发送到客户端前先旋转图片</string>
+    <string name="mjpeg_pref_flip">翻转图片</string>
+    <string name="mjpeg_pref_flip_summary">发送到客户端前翻转图片</string>
+    <string-array name="mjpeg_pref_flip_options">
+        <item>无</item>
+        <item>水平</item>
+        <item>垂直</item>
+    </string-array>
     <string name="mjpeg_pref_fps">限制每秒帧数</string>
     <string name="mjpeg_pref_fps_summary">设置每秒最大帧数</string>
     <string name="mjpeg_pref_fps_text">设置每秒最大帧数。\n值：1/10–120\n默认：30</string>

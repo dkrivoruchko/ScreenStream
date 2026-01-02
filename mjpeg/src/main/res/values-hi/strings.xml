@@ -99,6 +99,13 @@
     <string name="mjpeg_pref_resize_result">चित्र का आकार: %1$dx%2$d</string>
     <string name="mjpeg_pref_rotate">छवि को दक्षिणावर्त घुमाएँ</string>
     <string name="mjpeg_pref_rotate_summary">क्लाइंट को भेजने से पहले छवि को घुमाएं</string>
+    <string name="mjpeg_pref_flip">छवि पलटें</string>
+    <string name="mjpeg_pref_flip_summary">क्लाइंट को भेजने से पहले छवि पलटें</string>
+    <string-array name="mjpeg_pref_flip_options">
+        <item>कोई नहीं</item>
+        <item>क्षैतिज</item>
+        <item>ऊर्ध्वाधर</item>
+    </string-array>
     <string name="mjpeg_pref_fps">प्रति सेकंड फ्रेम सीमित करें</string>
     <string name="mjpeg_pref_fps_summary">अधिकतम प्रति सेकंड फ्रेम सेट करें</string>
     <string name="mjpeg_pref_fps_text">अधिकतम प्रति सेकंड फ्रेम सेट करें।\nमूल्य: 1/10–120\nडिफ़ॉल्ट: 30</string>

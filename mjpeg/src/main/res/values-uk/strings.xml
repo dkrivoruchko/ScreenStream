@@ -98,6 +98,13 @@
     <string name="mjpeg_pref_resize_result">Розмір зображення: %1$dx%2$d</string>
     <string name="mjpeg_pref_rotate">Повернути зображення за годинниковаою стрілкою</string>
     <string name="mjpeg_pref_rotate_summary">Повернути зображення перед надсиланням на клієнт</string>
+    <string name="mjpeg_pref_flip">Віддзеркалити зображення</string>
+    <string name="mjpeg_pref_flip_summary">Віддзеркалити зображення перед надсиланням на клієнт</string>
+    <string-array name="mjpeg_pref_flip_options">
+        <item>Немає</item>
+        <item>Горизонтальний</item>
+        <item>Вертикальний</item>
+    </string-array>
     <string name="mjpeg_pref_fps">Встановити ліміт кадрів на секунду</string>
     <string name="mjpeg_pref_fps_summary">Встановити максимальний ліміт кадрів за секунду</string>
     <string name="mjpeg_pref_fps_text">Встановити ліміт кадрів на секунду.\nВеличини: 1/10–120\nЗа замовчуванням: 30</string>

@@ -99,6 +99,13 @@
     <string name="mjpeg_pref_resize_result">%1$dx%2$d حجم الصورة</string>
     <string name="mjpeg_pref_rotate">تدوير الصورة في اتجاه عقارب الساعة</string>
     <string name="mjpeg_pref_rotate_summary">تدوير الصورة قبل إرسالها إلى العميل</string>
+    <string name="mjpeg_pref_flip">اقلب الصورة</string>
+    <string name="mjpeg_pref_flip_summary">اقلب الصورة قبل إرسالها إلى العميل</string>
+    <string-array name="mjpeg_pref_flip_options">
+        <item>بدون</item>
+        <item>أفقي</item>
+        <item>عمودي</item>
+    </string-array>
     <string name="mjpeg_pref_fps">الحد من صور في الثانية الواحدة</string>
     <string name="mjpeg_pref_fps_summary">اضبط أقصى صور في الثانية</string>
     <string name="mjpeg_pref_fps_text">عيّن الحد الأقصى للصور في الثانية. \n القيم: 1/10–120\nافتراضيًا: 30</string>

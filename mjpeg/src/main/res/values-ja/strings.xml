@@ -99,6 +99,13 @@
     <string name="mjpeg_pref_resize_result">画像サイズ: %1$dx%2$d</string>
     <string name="mjpeg_pref_rotate">時計回りに画像を回転する</string>
     <string name="mjpeg_pref_rotate_summary">クライアントに送信する前に画像を回転します</string>
+    <string name="mjpeg_pref_flip">画像を反転</string>
+    <string name="mjpeg_pref_flip_summary">送信前に画像を反転します</string>
+    <string-array name="mjpeg_pref_flip_options">
+        <item>なし</item>
+        <item>水平</item>
+        <item>垂直</item>
+    </string-array>
     <string name="mjpeg_pref_fps">FPSリミット</string>
     <string name="mjpeg_pref_fps_summary">最大FPSを設定します</string>
     <string name="mjpeg_pref_fps_text">最大FPSを指定してください.\n値: 1/10–120\n初期値: 30</string>

@@ -99,6 +99,13 @@
     <string name="mjpeg_pref_resize_result">تصویر سائز: %1$dx%2$d</string>
     <string name="mjpeg_pref_rotate">تصویر دائیں گھمائیں</string>
     <string name="mjpeg_pref_rotate_summary">کلائنٹ کو بھیجنے سے پہلے گھمائیں</string>
+    <string name="mjpeg_pref_flip">تصویر پلٹیں</string>
+    <string name="mjpeg_pref_flip_summary">کلائنٹ کو بھیجنے سے پہلے تصویر پلٹیں</string>
+    <string-array name="mjpeg_pref_flip_options">
+        <item>کوئی نہیں</item>
+        <item>افقی</item>
+        <item>عمودی</item>
+    </string-array>
     <string name="mjpeg_pref_fps">فریم/سیکنڈ حد</string>
     <string name="mjpeg_pref_fps_summary">زیادہ سے زیادہ فریم فی سیکنڈ مقرر کریں</string>
     <string name="mjpeg_pref_fps_text">زیادہ سے زیادہ فریم فی سیکنڈ مقرر کریں۔\nقدریں: 1/10–120\nڈیفالٹ: 30</string>

@@ -99,6 +99,13 @@
     <string name="mjpeg_pref_resize_result">Bildgröße: %1$dx%2$d</string>
     <string name="mjpeg_pref_rotate">Bild im Uhrzeigersinn drehen</string>
     <string name="mjpeg_pref_rotate_summary">Bild vor dem Senden drehen</string>
+    <string name="mjpeg_pref_flip">Bild spiegeln</string>
+    <string name="mjpeg_pref_flip_summary">Bild vor dem Senden spiegeln</string>
+    <string-array name="mjpeg_pref_flip_options">
+        <item>Keine</item>
+        <item>Horizontal</item>
+        <item>Vertikal</item>
+    </string-array>
     <string name="mjpeg_pref_fps">Bilder pro Sekunde begrenzen</string>
     <string name="mjpeg_pref_fps_summary">Maximale Bilder pro Sekunde festlegen</string>
     <string name="mjpeg_pref_fps_text">Maximale Bilder pro Sekunde festlegen.\nWerte: 1/10–120\nStandard: 30</string>

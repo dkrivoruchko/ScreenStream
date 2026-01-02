@@ -115,6 +115,9 @@ internal class MjpegSettingsImpl(context: Context) : MjpegSettings {
                 if (newSettings.rotation != MjpegSettings.Default.ROTATION)
                     set(MjpegSettings.Key.ROTATION, newSettings.rotation)
 
+                if (newSettings.flip != MjpegSettings.Default.FLIP)
+                    set(MjpegSettings.Key.FLIP, newSettings.flip)
+
                 if (newSettings.maxFPS != MjpegSettings.Default.MAX_FPS)
                     set(MjpegSettings.Key.MAX_FPS, newSettings.maxFPS)
 
@@ -181,6 +184,7 @@ internal class MjpegSettingsImpl(context: Context) : MjpegSettings {
         resolutionHeight = this[MjpegSettings.Key.RESOLUTION_HEIGHT] ?: MjpegSettings.Default.RESOLUTION_HEIGHT,
         resolutionStretch = this[MjpegSettings.Key.RESOLUTION_STRETCH] ?: MjpegSettings.Default.RESOLUTION_STRETCH,
         rotation = this[MjpegSettings.Key.ROTATION] ?: MjpegSettings.Default.ROTATION,
+        flip = this[MjpegSettings.Key.FLIP] ?: MjpegSettings.Default.FLIP,
         maxFPS = this[MjpegSettings.Key.MAX_FPS] ?: MjpegSettings.Default.MAX_FPS,
 
         enablePin = this[MjpegSettings.Key.ENABLE_PIN] ?: MjpegSettings.Default.ENABLE_PIN,

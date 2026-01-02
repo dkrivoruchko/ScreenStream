@@ -99,6 +99,13 @@
     <string name="mjpeg_pref_resize_result">Rozmiar obrazu: %1$dx%2$d</string>
     <string name="mjpeg_pref_rotate">Obróć zdjęcie zgodnie z ruchem wskazówek zegara</string>
     <string name="mjpeg_pref_rotate_summary">Obraca obraz przed wysłaniem</string>
+    <string name="mjpeg_pref_flip">Odbij obraz</string>
+    <string name="mjpeg_pref_flip_summary">Odbij obraz przed wysłaniem</string>
+    <string-array name="mjpeg_pref_flip_options">
+        <item>Brak</item>
+        <item>Poziomy</item>
+        <item>Pionowy</item>
+    </string-array>
     <string name="mjpeg_pref_fps">Ogranicz liczbę klatek na sekundę</string>
     <string name="mjpeg_pref_fps_summary">Ustawia maksymalną liczbę klatek na sekundę</string>
     <string name="mjpeg_pref_fps_text">Ustaw maksymalną liczbę klatek na sekundę.\nWartość: 1/10–120\nDomyślnie: 30</string>

@@ -98,6 +98,13 @@
     <string name="mjpeg_pref_resize_result">የሥዕል መጠን፡ %1$dx%2$d</string>
     <string name="mjpeg_pref_rotate">ምስሉን በሰዓት አቅጣጫ አሽከርክር</string>
     <string name="mjpeg_pref_rotate_summary">ወደ ደንበኛ ከመላክዎ በፊት ምስሉን ያሽከርክሩ</string>
+    <string name="mjpeg_pref_flip">ምስሉን ገልብጥ</string>
+    <string name="mjpeg_pref_flip_summary">ወደ ደንበኛ ከመላክዎ በፊት ምስሉን ገልብጡ</string>
+    <string-array name="mjpeg_pref_flip_options">
+        <item>ምንም</item>
+        <item>አግድም</item>
+        <item>አቀባዊ</item>
+    </string-array>
     <string name="mjpeg_pref_fps">ክፈፎች በሰከንድ ይገድቡ</string>
     <string name="mjpeg_pref_fps_summary">በሰከንድ ከፍተኛውን ፍሬሞች ያዘጋጁ</string>
     <string name="mjpeg_pref_fps_text">በሰከንድ ከፍተኛውን ፍሬሞች ያዘጋጁ። ዋጋ፡ 1/10–120 ነባሪ፡ 30</string>

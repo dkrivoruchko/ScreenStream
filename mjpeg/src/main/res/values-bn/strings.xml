@@ -99,6 +99,13 @@
     <string name="mjpeg_pref_resize_result">ছবির আকার: %1$dx%2$d</string>
     <string name="mjpeg_pref_rotate">ছবি ঘড়ির কাঁটার দিকে ঘোরান</string>
     <string name="mjpeg_pref_rotate_summary">ক্লায়েন্টকে পাঠানোর আগে চিত্রটি ঘোরান</string>
+    <string name="mjpeg_pref_flip">ছবি উল্টান</string>
+    <string name="mjpeg_pref_flip_summary">ক্লায়েন্টে পাঠানোর আগে ছবি উল্টান</string>
+    <string-array name="mjpeg_pref_flip_options">
+        <item>কোনোটিই নয়</item>
+        <item>অনুভূমিক</item>
+        <item>উল্লম্ব</item>
+    </string-array>
     <string name="mjpeg_pref_fps">প্রতি সেকেন্ডে ফ্রেম সীমিত করুন</string>
     <string name="mjpeg_pref_fps_summary">প্রতি সেকেন্ডে সর্বোচ্চ ফ্রেম সেট করুন</string>
     <string name="mjpeg_pref_fps_text">প্রতি সেকেন্ডে সর্বোচ্চ ফ্রেম সেট করুন। মান: 1/10–120 ডিফল্ট: 30</string>

@@ -98,6 +98,13 @@
     <string name="mjpeg_pref_resize_result">Ukuran gambar: %1$dx%2$d</string>
     <string name="mjpeg_pref_rotate">Putar gambar searah jarum jam</string>
     <string name="mjpeg_pref_rotate_summary">Putar gambar sebelum dikirim ke klien</string>
+    <string name="mjpeg_pref_flip">Balik gambar</string>
+    <string name="mjpeg_pref_flip_summary">Balik gambar sebelum mengirim ke klien</string>
+    <string-array name="mjpeg_pref_flip_options">
+        <item>Tidak ada</item>
+        <item>Horisontal</item>
+        <item>Vertikal</item>
+    </string-array>
     <string name="mjpeg_pref_fps">Batasi frame per detik</string>
     <string name="mjpeg_pref_fps_summary">Tetapkan frame maksimum per detik</string>
     <string name="mjpeg_pref_fps_text">Tetapkan frame maksimum per detik. Nilai: 1/10–120 Bawaan: 30</string>

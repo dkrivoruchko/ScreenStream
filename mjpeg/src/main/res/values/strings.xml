@@ -108,6 +108,13 @@
         <item>180\u00B0</item>
         <item>270\u00B0</item>
     </string-array>
+    <string name="mjpeg_pref_flip">Flip image</string>
+    <string name="mjpeg_pref_flip_summary">Flip image before sending to client</string>
+    <string-array name="mjpeg_pref_flip_options">
+        <item>None</item>
+        <item>Horizontal</item>
+        <item>Vertical</item>
+    </string-array>
     <string name="mjpeg_pref_fps">Limit frames per second</string>
     <string name="mjpeg_pref_fps_summary">Set maximum frames per second</string>
     <string name="mjpeg_pref_fps_text">Set maximum frames per second.\nValues: 1/10–120\nDefault: 30</string>

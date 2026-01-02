@@ -99,6 +99,13 @@
     <string name="mjpeg_pref_resize_result">Prentgrootte: %1$dx%2$d</string>
     <string name="mjpeg_pref_rotate">Draai prent kloksgewys</string>
     <string name="mjpeg_pref_rotate_summary">Draai prent voordat dit na kliënt gestuur word</string>
+    <string name="mjpeg_pref_flip">Spieël prent</string>
+    <string name="mjpeg_pref_flip_summary">Spieël prent voordat dit na kliënt gestuur word</string>
+    <string-array name="mjpeg_pref_flip_options">
+        <item>Geen</item>
+        <item>Horisontaal</item>
+        <item>Vertikaal</item>
+    </string-array>
     <string name="mjpeg_pref_fps">Beperk rame per sekonde</string>
     <string name="mjpeg_pref_fps_summary">Stel maksimum rame per sekonde</string>
     <string name="mjpeg_pref_fps_text">Stel maksimum rame per sekonde. Waardes: 1/10–120 Verstek: 30</string>

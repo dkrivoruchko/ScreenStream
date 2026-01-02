@@ -99,6 +99,13 @@
     <string name="mjpeg_pref_resize_result">Irudiaren tamaina: %1$dx%2$d</string>
     <string name="mjpeg_pref_rotate">Biratu irudia erlojuaren orratzen noranzkoan</string>
     <string name="mjpeg_pref_rotate_summary">Biratu irudia bezeroari bidali aurretik</string>
+    <string name="mjpeg_pref_flip">Irudia irauli</string>
+    <string name="mjpeg_pref_flip_summary">Irudia bezeroari bidali aurretik irauli</string>
+    <string-array name="mjpeg_pref_flip_options">
+        <item>Bat ere ez</item>
+        <item>Horizontala</item>
+        <item>Bertikala</item>
+    </string-array>
     <string name="mjpeg_pref_fps">Mugatu segundoko fotogramak</string>
     <string name="mjpeg_pref_fps_summary">Ezarri segundoko gehienezko fotograma kopurua</string>
     <string name="mjpeg_pref_fps_text">Ezarri segundoko gehienezko fotograma kopurua.\nBalioak: 1/10–120\nLehenetsia: 30</string>

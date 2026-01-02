@@ -98,6 +98,13 @@
     <string name="mjpeg_pref_resize_result">სურათის ზომა: %1$dx%2$d</string>
     <string name="mjpeg_pref_rotate">სურათის როტაცია საათის ისრის მიმართულებით</string>
     <string name="mjpeg_pref_rotate_summary">დაატრიალეთ სურათი კლიენტისთვის გაგზავნამდე</string>
+    <string name="mjpeg_pref_flip">სურათის გადაბრუნება</string>
+    <string name="mjpeg_pref_flip_summary">სურათის გადაბრუნება კლიენტისთვის გაგზავნამდე</string>
+    <string-array name="mjpeg_pref_flip_options">
+        <item>არცერთი</item>
+        <item>ჰორიზონტალური</item>
+        <item>ვერტიკალური</item>
+    </string-array>
     <string name="mjpeg_pref_fps">შეზღუდეთ კადრები წამში</string>
     <string name="mjpeg_pref_fps_summary">დააყენეთ მაქსიმალური კადრები წამში</string>
     <string name="mjpeg_pref_fps_text">დააყენეთ მაქსიმალური კადრები წამში. ღირებულებები: 1/10–120 ნაგულისხმევი: 30</string>

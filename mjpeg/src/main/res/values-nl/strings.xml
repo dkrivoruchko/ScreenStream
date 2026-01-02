@@ -99,6 +99,13 @@
     <string name="mjpeg_pref_resize_result">Beeld maat: %1$dx%2$d</string>
     <string name="mjpeg_pref_rotate">Draai het scherm om</string>
     <string name="mjpeg_pref_rotate_summary">Draai het scherm om voor het sturen naar de client</string>
+    <string name="mjpeg_pref_flip">Afbeelding spiegelen</string>
+    <string name="mjpeg_pref_flip_summary">Afbeelding spiegelen voor het sturen naar de client</string>
+    <string-array name="mjpeg_pref_flip_options">
+        <item>Geen</item>
+        <item>Horizontaal</item>
+        <item>Verticaal</item>
+    </string-array>
     <string name="mjpeg_pref_fps">Limiteer beelden per seconden (FPS)</string>
     <string name="mjpeg_pref_fps_summary">Maximum beelden per seconden (FPS)</string>
     <string name="mjpeg_pref_fps_text">Stel het maximum beelden per seconden in (FPS).\nWaardes: 1/10–120\nStandaard: 30</string>

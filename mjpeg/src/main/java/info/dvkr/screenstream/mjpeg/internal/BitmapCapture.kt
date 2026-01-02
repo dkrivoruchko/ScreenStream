@@ -51,6 +51,7 @@ internal class BitmapCapture(
         val targetHeight: Int = MjpegSettings.Default.RESOLUTION_HEIGHT,
         val stretch: Boolean = MjpegSettings.Default.RESOLUTION_STRETCH,
         val rotationDegrees: Int = MjpegSettings.Values.ROTATION_0,
+        val flipMode: Int = MjpegSettings.Default.FLIP,
         val maxFPS: Int = MjpegSettings.Default.MAX_FPS,
         val cropLeft: Int = MjpegSettings.Default.IMAGE_CROP_LEFT,
         val cropTop: Int = MjpegSettings.Default.IMAGE_CROP_TOP,
@@ -95,6 +96,7 @@ internal class BitmapCapture(
                 targetHeight = data.resolutionHeight,
                 stretch = data.resolutionStretch,
                 rotationDegrees = data.rotation,
+                flipMode = data.flip,
                 maxFPS = data.maxFPS,
                 cropLeft = if (data.imageCrop == MjpegSettings.Default.IMAGE_CROP) 0 else data.imageCropLeft,
                 cropTop = if (data.imageCrop == MjpegSettings.Default.IMAGE_CROP) 0 else data.imageCropTop,
@@ -332,6 +334,17 @@ internal class BitmapCapture(
                     90 -> postTranslate(scaledHeight.toFloat(), 0f)
                     180 -> postTranslate(scaledWidth.toFloat(), scaledHeight.toFloat())
                     270 -> postTranslate(0f, scaledWidth.toFloat())
+                }
+                when (imageOptions.flipMode) {
+                    MjpegSettings.Values.FLIP_HORIZONTAL -> {
+                        postScale(-1f, 1f)
+                        postTranslate(outputWidth.toFloat(), 0f)
+                    }
+
+                    MjpegSettings.Values.FLIP_VERTICAL -> {
+                        postScale(1f, -1f)
+                        postTranslate(0f, outputHeight.toFloat())
+                    }
                 }
             }
 

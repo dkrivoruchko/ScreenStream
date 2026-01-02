@@ -99,6 +99,13 @@
     <string name="mjpeg_pref_resize_result">畫面大小 size： %1$dx%2$d</string>
     <string name="mjpeg_pref_rotate">順時針旋轉畫面</string>
     <string name="mjpeg_pref_rotate_summary">傳送順時針旋轉過的畫面到用戶端</string>
+    <string name="mjpeg_pref_flip">翻轉畫面</string>
+    <string name="mjpeg_pref_flip_summary">傳送到用戶端前先翻轉畫面</string>
+    <string-array name="mjpeg_pref_flip_options">
+        <item>無</item>
+        <item>水平</item>
+        <item>垂直</item>
+    </string-array>
     <string name="mjpeg_pref_fps">畫面幀率限制</string>
     <string name="mjpeg_pref_fps_summary">設置每秒最大畫面數</string>
     <string name="mjpeg_pref_fps_text">設置每秒最大畫面數。\n範圍: 1/10–120\n預設: 30</string>
