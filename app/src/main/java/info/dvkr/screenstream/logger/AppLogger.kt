@@ -44,7 +44,8 @@ internal object AppLogger {
 
     @MainThread
     internal fun init(context: Context, configureLogger: (LogConfiguration.Builder) -> Unit) {
-        sharedPreferences = context.getSharedPreferences("info.dvkr.screenstream_logging", Application.MODE_PRIVATE)
+        val dpContext = context.deviceProtectedContext()
+        sharedPreferences = dpContext.getSharedPreferences("info.dvkr.screenstream_logging", Application.MODE_PRIVATE)
         isLoggingOn = sharedPreferences.getBoolean("loggingOn", false)
 
         val logConfiguration = LogConfiguration.Builder()
@@ -55,7 +56,7 @@ internal object AppLogger {
         var printers = emptyArray<Printer>()
         if (context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0) printers = printers.plus(AndroidPrinter())
         if (isLoggingOn) {
-            val filePrinter = FilePrinter.Builder(context.logFolder)
+            val filePrinter = FilePrinter.Builder(dpContext.logFolder)
                 .fileNameGenerator(DateSuffixFileNameGenerator(context.hashCode().toString()))
                 .cleanStrategy(FileLastModifiedCleanStrategy(86400000)) // One day
                 .flattener(ClassicFlattener())
@@ -74,7 +75,7 @@ internal object AppLogger {
         isLoggingOn = true
         Toast.makeText(context, context.getString(R.string.app_logs_enabled), Toast.LENGTH_LONG).show()
         GlobalScope.launch {
-            cleanLogFiles(context)
+            cleanLogFiles(context.deviceProtectedContext())
             sharedPreferences.edit(commit = true) { putBoolean("loggingOn", true) }
         }.invokeOnCompletion {
             ProcessPhoenix.triggerRebirth(context)
@@ -90,7 +91,7 @@ internal object AppLogger {
         Toast.makeText(context, context.getString(R.string.app_logs_disabled), Toast.LENGTH_LONG).show()
         GlobalScope.launch {
             sharedPreferences.edit(commit = true) { putBoolean("loggingOn", false) }
-            cleanLogFiles(context)
+            cleanLogFiles(context.deviceProtectedContext())
         }.invokeOnCompletion {
             ProcessPhoenix.triggerRebirth(context)
         }
@@ -98,9 +99,10 @@ internal object AppLogger {
 
     @MainThread
     internal suspend fun sendLogsInEmail(context: Context, text: String) {
+        val dpContext = context.deviceProtectedContext()
         val logZipFile = withContext(Dispatchers.Default) {
-            val logZipFile = context.logZipFile
-            LogUtils.compress(context.logFolder, logZipFile)
+            val logZipFile = dpContext.logZipFile
+            LogUtils.compress(dpContext.logFolder, logZipFile)
             logZipFile
         }
 
@@ -129,13 +131,17 @@ internal object AppLogger {
     }
 
     private val Context.logFolder: String
-        get() = cacheDir.absolutePath + "/logs/"
+        get() = deviceProtectedContext().cacheDir.absolutePath + "/logs/"
 
     private val Context.logZipFolder: String
-        get() = filesDir.absolutePath + "/logs/"
+        get() = deviceProtectedContext().cacheDir.absolutePath + "/logs/"
 
     private val Context.logZipFile: String
         get() = logZipFolder + "logs.zip"
+
+    private fun Context.deviceProtectedContext(): Context {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) createDeviceProtectedStorageContext() else this
+    }
 
     private class DateSuffixFileNameGenerator(private val suffix: String) : FileNameGenerator {
         private val localDateFormat: ThreadLocal<SimpleDateFormat> = object : ThreadLocal<SimpleDateFormat>() {
