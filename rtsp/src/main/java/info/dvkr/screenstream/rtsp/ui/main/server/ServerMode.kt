@@ -59,10 +59,14 @@ internal fun ServerMode(
 ) {
     Column(modifier = modifier) {
         if (rtspState.value.serverBindings.isEmpty()) {
+            val isError = rtspState.value.error != null
+            val messageId = if (isError) R.string.rtsp_interfaces_no_address else R.string.rtsp_interfaces_discovering
+            val messageColor = if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
+
             Text(
-                text = stringResource(id = R.string.rtsp_interfaces_no_address),
-                modifier = Modifier.padding(8.dp),
-                color = MaterialTheme.colorScheme.error,
+                text = stringResource(id = messageId),
+                modifier = Modifier.padding(12.dp),
+                color = messageColor,
                 style = MaterialTheme.typography.titleMedium
             )
         } else {

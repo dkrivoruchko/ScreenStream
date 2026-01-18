@@ -1,9 +1,8 @@
 package info.dvkr.screenstream
 
 import android.os.Bundle
-import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.appcompat.app.AppCompatDelegate
+import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.edit
 import androidx.lifecycle.lifecycleScope
 import com.elvishew.xlog.XLog
@@ -23,7 +22,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.android.ext.android.inject
 
-public abstract class AppUpdateActivity : ComponentActivity() {
+public abstract class AppUpdateActivity : AppCompatActivity() {
 
     private companion object {
         private const val APP_UPDATE_REQUEST_TIMEOUT = 8 * 60 * 60 * 1000L  // 8 hours. Don't need exact time frame
@@ -48,8 +47,6 @@ public abstract class AppUpdateActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        AppCompatDelegate.setApplicationLocales(AppCompatDelegate.getApplicationLocales())
 
         XLog.d(getLog("onCreate"))
 

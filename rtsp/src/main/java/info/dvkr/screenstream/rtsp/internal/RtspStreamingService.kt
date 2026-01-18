@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.ComponentCallbacks
 import android.content.Intent
 import android.content.pm.ActivityInfo
+import android.content.pm.ServiceInfo
 import android.content.res.Configuration
 import android.hardware.display.DisplayManager
 import android.hardware.display.VirtualDisplay
@@ -621,6 +622,11 @@ internal class RtspStreamingService(
             }
 
             is InternalEvent.StartStream -> {
+                if (projectionState.active != null) {
+                    XLog.d(getLog("StartStream", "Already streaming. Ignoring."))
+                    return
+                }
+
                 projectionState.cachedIntent?.let {
                     check(Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) { "RtspEvent.StartStream: UPSIDE_DOWN_CAKE" }
                     sendEvent(RtspEvent.StartProjection(it))
@@ -634,7 +640,10 @@ internal class RtspStreamingService(
             is RtspEvent.StartProjection -> {
                 projectionState.waitingForPermission = false
 
-                check(projectionState.active == null) { "Already streaming" }
+                if (projectionState.active != null) {
+                    XLog.d(getLog("StartProjection", "Already streaming. Ignoring."))
+                    return
+                }
                 check(selectedVideoEncoderInfo != null) { "No video encoder selected" }
 
                 val settings = rtspSettings.data.value
@@ -677,7 +686,9 @@ internal class RtspStreamingService(
                         { frame -> clientController?.onFrame(frame) ?: frame.release() }
                     }
 
-                service.startForeground()
+                val fgsType =
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION or if (settings.enableMic) ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE else 0
+                service.startForeground(fgsType)
 
                 // TODO Starting from Android R, if your application requests the SYSTEM_ALERT_WINDOW permission, and the user has
                 //  not explicitly denied it, the permission will be automatically granted until the projection is stopped.
@@ -726,7 +737,7 @@ internal class RtspStreamingService(
                             width,
                             height,
                             service.resources.displayMetrics.densityDpi,
-                            DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
+                            DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR or DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC,
                             Surface(surfaceTexture),
                             null,
                             null

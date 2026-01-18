@@ -23,6 +23,7 @@
 
     <string name="rtsp_interfaces_title">RTSP伺服器地址</string>
     <string name="rtsp_interfaces_no_address">沒有可用的網路位址。\n請檢查網路連線與介面篩選器。</string>
+    <string name="rtsp_interfaces_discovering">正在尋找位址…</string>
     <string name="rtsp_interfaces_interface_label">介面：\n%1$s</string>
     <string name="rtsp_interfaces_description_copy">複製地址</string>
     <string name="rtsp_interfaces_description_share">分享地址</string>

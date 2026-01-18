@@ -23,6 +23,7 @@
 
     <string name="rtsp_interfaces_title">عنوان خادم RTSP</string>
     <string name="rtsp_interfaces_no_address">لا توجد عناوين شبكة متاحة.\nتحقق من اتصال الشبكة وفلاتر الواجهة.</string>
+    <string name="rtsp_interfaces_discovering">جارٍ البحث عن العناوين…</string>
     <string name="rtsp_interfaces_interface_label">الواجهة:\n%1$s</string>
     <string name="rtsp_interfaces_description_copy">نسخ العنوان</string>
     <string name="rtsp_interfaces_description_share">عنوان المشاركة</string>

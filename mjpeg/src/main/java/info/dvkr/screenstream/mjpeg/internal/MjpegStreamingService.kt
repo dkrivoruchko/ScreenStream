@@ -5,6 +5,7 @@ import android.app.Activity
 import android.content.ComponentCallbacks
 import android.content.Intent
 import android.content.pm.ActivityInfo
+import android.content.pm.ServiceInfo
 import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -351,7 +352,7 @@ internal class MjpegStreamingService(
                     XLog.w(getLog("MjpegEvent.StartProjection", "Already streaming"))
                 } else {
                     waitingForPermission = false
-                    service.startForeground()
+                    service.startForeground(ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION)
 
                     // TODO Starting from Android R, if your application requests the SYSTEM_ALERT_WINDOW permission, and the user has
                     //  not explicitly denied it, the permission will be automatically granted until the projection is stopped.

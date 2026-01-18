@@ -23,6 +23,7 @@
 
     <string name="rtsp_interfaces_title">Адрес RTSP-сервера</string>
     <string name="rtsp_interfaces_no_address">Нет доступных сетевых адресов.\nПроверьте соединение и фильтры интерфейсов.</string>
+    <string name="rtsp_interfaces_discovering">Поиск адресов…</string>
     <string name="rtsp_interfaces_interface_label">Интерфейс:\n%1$s</string>
     <string name="rtsp_interfaces_description_copy">Копировать адрес</string>
     <string name="rtsp_interfaces_description_share">Поделиться адресом</string>

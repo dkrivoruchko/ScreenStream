@@ -9,6 +9,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
+import android.content.pm.ServiceInfo
 import android.content.res.Configuration
 import android.net.ConnectivityManager
 import android.net.Network
@@ -610,7 +611,10 @@ internal class WebRtcStreamingService(
                 waitingForPermission = false
                 check(isStreaming().not()) { "WebRtcEvent.StartProjection: Already streaming" }
 
-                service.startForeground()
+                val useMic = webRtcSettings.data.value.enableMic
+                val fgsType =
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION or if (useMic) ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE else 0
+                service.startForeground(fgsType)
 
                 isAudioPermissionGrantedOnStart =
                     ContextCompat.checkSelfPermission(service, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED

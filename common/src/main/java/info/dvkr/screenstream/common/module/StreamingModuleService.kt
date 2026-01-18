@@ -1,15 +1,12 @@
 package info.dvkr.screenstream.common.module
 
-import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Service
 import android.content.Intent
-import android.content.pm.ServiceInfo
 import android.os.IBinder
 import androidx.core.app.ServiceCompat
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.common.getLog
-import info.dvkr.screenstream.common.isPermissionGranted
 import info.dvkr.screenstream.common.notification.NotificationHelper
 import org.koin.android.ext.android.inject
 import java.util.UUID
@@ -62,13 +59,8 @@ public abstract class StreamingModuleService : Service() {
     }
 
     @SuppressLint("InlinedApi")
-    protected fun startForeground(stopIntent: Intent) {
+    protected fun startForeground(stopIntent: Intent, serviceType: Int) {
         val notification = notificationHelper.createForegroundNotification(this, stopIntent)
-        val serviceType = when {
-            isPermissionGranted(Manifest.permission.RECORD_AUDIO) -> ServiceInfo.FOREGROUND_SERVICE_TYPE_MANIFEST
-            else -> ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION
-        }
-
         ServiceCompat.startForeground(this, notificationIdForeground, notification, serviceType)
     }
 

@@ -23,6 +23,7 @@
 
     <string name="rtsp_interfaces_title">RTSPサーバーアドレス</string>
     <string name="rtsp_interfaces_no_address">利用可能なネットワークアドレスがありません。\nネットワーク接続とインターフェースフィルターを確認してください。</string>
+    <string name="rtsp_interfaces_discovering">アドレスを検索中…</string>
     <string name="rtsp_interfaces_interface_label">インターフェース:\n%1$s</string>
     <string name="rtsp_interfaces_description_copy">アドレスをコピー</string>
     <string name="rtsp_interfaces_description_share">アドレスを共有</string>

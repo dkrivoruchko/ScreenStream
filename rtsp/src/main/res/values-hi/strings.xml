@@ -23,6 +23,7 @@
 
     <string name="rtsp_interfaces_title">RTSP सर्वर पता</string>
     <string name="rtsp_interfaces_no_address">कोई नेटवर्क पता उपलब्ध नहीं है।\nनेटवर्क कनेक्शन और इंटरफ़ेस फ़िल्टर जांचें।</string>
+    <string name="rtsp_interfaces_discovering">पते खोजे जा रहे हैं…</string>
     <string name="rtsp_interfaces_interface_label">इंटरफ़ेस:\n%1$s</string>
     <string name="rtsp_interfaces_description_copy">पता कॉपी करें</string>
     <string name="rtsp_interfaces_description_share">पता साझा करें</string>

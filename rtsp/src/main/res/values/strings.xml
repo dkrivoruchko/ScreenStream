@@ -23,6 +23,7 @@
 
     <string name="rtsp_interfaces_title">RTSP server address</string>
     <string name="rtsp_interfaces_no_address">No network addresses available.\nCheck network connection and interface filters.</string>
+    <string name="rtsp_interfaces_discovering">Discovering addresses…</string>
     <string name="rtsp_interfaces_interface_label">Interface:\n%1$s</string>
     <string name="rtsp_interfaces_description_copy">Copy address</string>
     <string name="rtsp_interfaces_description_share">Share address</string>

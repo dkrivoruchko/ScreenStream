@@ -23,6 +23,7 @@
 
     <string name="rtsp_interfaces_title">Alamat server RTSP</string>
     <string name="rtsp_interfaces_no_address">Ora ana alamat jaringan kasedhiya.\nPriksa sambungan jaringan lan panyaring antarmuka.</string>
+    <string name="rtsp_interfaces_discovering">Nggoleki alamat…</string>
     <string name="rtsp_interfaces_interface_label">Antarmuka:\n%1$s</string>
     <string name="rtsp_interfaces_description_copy">Salin alamat</string>
     <string name="rtsp_interfaces_description_share">Nuduhake alamat</string>

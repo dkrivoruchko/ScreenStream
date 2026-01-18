@@ -23,6 +23,7 @@
 
     <string name="rtsp_interfaces_title">RTSP সার্ভার ঠিকানা</string>
     <string name="rtsp_interfaces_no_address">কোনো নেটওয়ার্ক ঠিকানা নেই।\nনেটওয়ার্ক সংযোগ ও ইন্টারফেস ফিল্টার যাচাই করুন।</string>
+    <string name="rtsp_interfaces_discovering">ঠিকানাগুলি খোঁজা হচ্ছে…</string>
     <string name="rtsp_interfaces_interface_label">ইন্টারফেস:\n%1$s</string>
     <string name="rtsp_interfaces_description_copy">ঠিকানা কপি করুন</string>
     <string name="rtsp_interfaces_description_share">ঠিকানা শেয়ার করুন</string>

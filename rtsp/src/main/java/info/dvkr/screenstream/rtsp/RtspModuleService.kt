@@ -86,12 +86,15 @@ public class RtspModuleService : StreamingModuleService() {
     }
 
     @Throws(RtspError.NotificationPermissionRequired::class, IllegalStateException::class)
-    internal fun startForeground() {
+    internal fun startForeground(fgsType: Int) {
         XLog.d(getLog("startForeground", "foregroundNotificationsEnabled: ${notificationHelper.foregroundNotificationsEnabled()}"))
 
         if (notificationHelper.notificationPermissionGranted(this).not()) throw RtspError.NotificationPermissionRequired()
 
-        startForeground(RtspEvent.Intentable.StopStream("RtspModuleService. User action: Notification").toIntent(this))
+        startForeground(
+            RtspEvent.Intentable.StopStream("RtspModuleService. User action: Notification").toIntent(this),
+            fgsType
+        )
     }
 
     internal fun showErrorNotification(error: RtspError) {

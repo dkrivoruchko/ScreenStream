@@ -1,22 +1,19 @@
 package info.dvkr.screenstream
 
 import android.os.Bundle
-import androidx.activity.ComponentActivity
-import androidx.appcompat.app.AppCompatDelegate
+import androidx.appcompat.app.AppCompatActivity
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.common.getLog
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
-public abstract class AppUpdateActivity : ComponentActivity() {
+public abstract class AppUpdateActivity : AppCompatActivity() {
 
     protected val updateFlow: StateFlow<((Boolean) -> Unit)?> = MutableStateFlow(null).asStateFlow()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        AppCompatDelegate.setApplicationLocales(AppCompatDelegate.getApplicationLocales())
 
         XLog.d(getLog("onCreate"))
     }

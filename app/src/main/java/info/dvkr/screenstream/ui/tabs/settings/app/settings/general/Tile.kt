@@ -7,16 +7,14 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.materialIcon
-import androidx.compose.material.icons.materialPath
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.Dp
@@ -57,7 +55,7 @@ private fun TileUI(
             .padding(horizontal = horizontalPadding + 16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(imageVector = Icon_Tile, contentDescription = null, modifier = Modifier.padding(end = 16.dp))
+        Icon(painter = painterResource(R.drawable.tile_small_24px), contentDescription = null, modifier = Modifier.padding(end = 16.dp))
 
         Column(modifier = Modifier.weight(1.0F)) {
             Text(
@@ -72,43 +70,5 @@ private fun TileUI(
                 style = MaterialTheme.typography.bodyMedium
             )
         }
-    }
-}
-
-private val Icon_Tile: ImageVector = materialIcon(name = "GridView") {
-    materialPath {
-        moveTo(3f, 11f)
-        horizontalLineTo(11f)
-        verticalLineTo(3f)
-        horizontalLineTo(3f)
-        moveTo(5f, 5f)
-        horizontalLineTo(9f)
-        verticalLineTo(9f)
-        horizontalLineTo(5f)
-        moveTo(13f, 21f)
-        horizontalLineTo(21f)
-        verticalLineTo(13f)
-        horizontalLineTo(13f)
-        moveTo(15f, 15f)
-        horizontalLineTo(19f)
-        verticalLineTo(19f)
-        horizontalLineTo(15f)
-        moveTo(3f, 21f)
-        horizontalLineTo(11f)
-        verticalLineTo(13f)
-        horizontalLineTo(3f)
-        moveTo(5f, 15f)
-        horizontalLineTo(9f)
-        verticalLineTo(19f)
-        horizontalLineTo(5f)
-        moveTo(13f, 3f)
-        verticalLineTo(11f)
-        horizontalLineTo(21f)
-        verticalLineTo(3f)
-        moveTo(19f, 9f)
-        horizontalLineTo(15f)
-        verticalLineTo(5f)
-        horizontalLineTo(19f)
-        close()
     }
 }

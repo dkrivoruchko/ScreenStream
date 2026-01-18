@@ -23,6 +23,7 @@
 
     <string name="rtsp_interfaces_title">RTSP-serveradres</string>
     <string name="rtsp_interfaces_no_address">Geen netwerkadresse beskikbaar.\nKontroleer netwerkverbinding en koppelvlakfilters.</string>
+    <string name="rtsp_interfaces_discovering">Soek tans na adresse…</string>
     <string name="rtsp_interfaces_interface_label">Koppelvlak:\n%1$s</string>
     <string name="rtsp_interfaces_description_copy">Kopieer adres</string>
     <string name="rtsp_interfaces_description_share">Deel adres</string>

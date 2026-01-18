@@ -231,20 +231,22 @@ private fun CopyAddressButton(
 
     IconButton(onClick = {
         scope.launch {
-            clipboard.setClipEntry(
-                ClipEntry(
-                    ClipData.newPlainText(fullAddress, fullAddress).apply {
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                            description.extras = PersistableBundle().apply {
-                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
-                                    putBoolean(ClipDescription.EXTRA_IS_SENSITIVE, true)
-                                else
-                                    putBoolean("android.content.extra.IS_SENSITIVE", true)
+            runCatching {
+                clipboard.setClipEntry(
+                    ClipEntry(
+                        ClipData.newPlainText(fullAddress, fullAddress).apply {
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                                description.extras = PersistableBundle().apply {
+                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
+                                        putBoolean(ClipDescription.EXTRA_IS_SENSITIVE, true)
+                                    else
+                                        putBoolean("android.content.extra.IS_SENSITIVE", true)
+                                }
                             }
                         }
-                    }
+                    )
                 )
-            )
+            }
         }
         if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.S_V2) {
             Toast.makeText(context, R.string.webrtc_stream_copied, Toast.LENGTH_LONG).show()

@@ -111,7 +111,7 @@ internal class ScreenCapturerAndroid(
 
     private fun createVirtualDisplay(): VirtualDisplay? = mediaProjection?.createVirtualDisplay(
         "WebRTC_ScreenCapture", width, height, 400,
-        DisplayManager.VIRTUAL_DISPLAY_FLAG_PRESENTATION,
+        DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR or DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC,
         Surface(surfaceTextureHelper.surfaceTexture), null, null
     )
 }

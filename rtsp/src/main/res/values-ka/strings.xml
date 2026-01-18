@@ -23,6 +23,7 @@
 
     <string name="rtsp_interfaces_title">RTSP სერვერის მისამართი</string>
     <string name="rtsp_interfaces_no_address">ქსელის მისამართები მიუწვდომელია.\nშეამოწმეთ ქსელის კავშირი და ინტერფეისის ფილტრები.</string>
+    <string name="rtsp_interfaces_discovering">მისამართების ძიება მიმდინარეობს…</string>
     <string name="rtsp_interfaces_interface_label">ინტერფეისი:\n%1$s</string>
     <string name="rtsp_interfaces_description_copy">დააკოპირეთ მისამართი</string>
     <string name="rtsp_interfaces_description_share">გააზიარე მისამართი</string>

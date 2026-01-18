@@ -23,6 +23,7 @@
 
     <string name="rtsp_interfaces_title">RTSP zerbitzariaren helbidea</string>
     <string name="rtsp_interfaces_no_address">Ez dago sare helbiderik.\nEgiaztatu sareko konexioa eta interfaze iragazkiak.</string>
+    <string name="rtsp_interfaces_discovering">Helbideak bilatzen…</string>
     <string name="rtsp_interfaces_interface_label">Interfazea:\n%1$s</string>
     <string name="rtsp_interfaces_description_copy">Copiar dirección</string>
     <string name="rtsp_interfaces_description_share">Compartir dirección</string>
