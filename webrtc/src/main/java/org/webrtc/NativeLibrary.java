@@ -11,7 +11,7 @@
 package org.webrtc;
 
 class NativeLibrary {
-  private static String TAG = "NativeLibrary";
+  private static final String TAG = "NativeLibrary";
 
   static class DefaultLoader implements NativeLibraryLoader {
     @Override
@@ -24,7 +24,7 @@ class NativeLibrary {
     }
   }
 
-  private static Object lock = new Object();
+  private static final Object lock = new Object();
   private static boolean libraryLoaded;
 
   /**

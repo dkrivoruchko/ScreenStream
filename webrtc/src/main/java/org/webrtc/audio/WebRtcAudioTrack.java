@@ -85,7 +85,7 @@ class WebRtcAudioTrack {
    */
   private class AudioTrackThread extends Thread {
     private volatile boolean keepAlive = true;
-    private LowLatencyAudioBufferManager bufferManager;
+    private final LowLatencyAudioBufferManager bufferManager;
 
     public AudioTrackThread(String name) {
       super(name);

@@ -49,7 +49,7 @@ public class MediaConstraints {
       if (this == other) {
         return true;
       }
-      if (other == null || getClass() != other.getClass()) {
+      if (!(other instanceof KeyValuePair)) {
         return false;
       }
       KeyValuePair that = (KeyValuePair) other;

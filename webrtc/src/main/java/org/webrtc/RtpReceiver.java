@@ -20,12 +20,18 @@ public class RtpReceiver {
     // Called when the first audio or video packet is received.
     @CalledByNative("Observer")
     public void onFirstPacketReceived(MediaStreamTrack.MediaType media_type);
+    // Called when the first audio or video packet is received after
+    // receptiveness changed.
+    // TODO: crbug.com/40821064 - remove default implementation.
+    @CalledByNative("Observer")
+    public default void onFirstPacketReceivedAfterReceptiveChange(
+      MediaStreamTrack.MediaType media_type) {}
   }
 
   private long nativeRtpReceiver;
   private long nativeObserver;
 
-  @Nullable private MediaStreamTrack cachedTrack;
+  @Nullable private final MediaStreamTrack cachedTrack;
 
   @CalledByNative
   public RtpReceiver(long nativeRtpReceiver) {

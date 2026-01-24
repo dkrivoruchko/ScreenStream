@@ -548,10 +548,6 @@ public class PeerConnection {
     // This is an optional wrapper for the C++ webrtc::TurnCustomizer.
     @Nullable public TurnCustomizer turnCustomizer;
 
-    // Actively reset the SRTP parameters whenever the DTLS transports underneath are reset for
-    // every offer/answer negotiation.This is only intended to be a workaround for crbug.com/835958
-    public boolean activeResetSrtpParams;
-
     /**
      * Defines advanced optional cryptographic settings related to SRTP and
      * frame encryption for native WebRTC. Setting this will overwrite any
@@ -622,7 +618,6 @@ public class PeerConnection {
       screencastMinBitrate = null;
       networkPreference = AdapterType.UNKNOWN;
       sdpSemantics = SdpSemantics.UNIFIED_PLAN;
-      activeResetSrtpParams = false;
       cryptoOptions = null;
       turnLoggingId = null;
       enableImplicitRollback = false;
@@ -810,11 +805,6 @@ public class PeerConnection {
     @CalledByNative("RTCConfiguration")
     SdpSemantics getSdpSemantics() {
       return sdpSemantics;
-    }
-
-    @CalledByNative("RTCConfiguration")
-    boolean getActiveResetSrtpParams() {
-      return activeResetSrtpParams;
     }
 
     @Nullable

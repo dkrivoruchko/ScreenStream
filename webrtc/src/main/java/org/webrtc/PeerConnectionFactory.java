@@ -95,6 +95,9 @@ public class PeerConnectionFactory {
         this.applicationContext = applicationContext;
       }
 
+      // Deprecated, use PeerConnectionFactory.Builder.setFieldTrials instead.
+      // TODO: bugs.webrtc.org/42220378 - Delete after January 1, 2026.
+      @Deprecated
       public Builder setFieldTrials(String fieldTrials) {
         this.fieldTrials = fieldTrials;
         return this;
@@ -163,7 +166,7 @@ public class PeerConnectionFactory {
 
   public static class Builder {
     @Nullable private Options options;
-    private Environment.Builder envBuilder = Environment.builder();
+    private final Environment.Builder envBuilder = Environment.builder();
     @Nullable private AudioDeviceModule audioDeviceModule;
     private AudioEncoderFactoryFactory audioEncoderFactoryFactory =
         new BuiltinAudioEncoderFactoryFactory();
@@ -176,6 +179,7 @@ public class PeerConnectionFactory {
     @Nullable private NetworkControllerFactoryFactory networkControllerFactoryFactory;
     @Nullable private NetworkStatePredictorFactoryFactory networkStatePredictorFactoryFactory;
     @Nullable private NetEqFactoryFactory neteqFactoryFactory;
+    @Nullable private AudioFrameProcessor audioFrameProcessor;
 
     private Builder() {}
 
@@ -262,6 +266,16 @@ public class PeerConnectionFactory {
       return this;
     }
 
+    /**
+     * Sets an AudioFrameProcessor for the PeerConnectionFactory.
+     *
+     * <p>This is used to process audio frames before they are sent to the audio device module.
+     */
+    public Builder setAudioFrameProcessor(AudioFrameProcessor audioFrameProcessor) {
+      this.audioFrameProcessor = audioFrameProcessor;
+      return this;
+    }
+
     public PeerConnectionFactory createPeerConnectionFactory() {
       checkInitializeHasBeenCalled();
       try (Environment env = envBuilder.build()) {
@@ -286,7 +300,8 @@ public class PeerConnectionFactory {
             networkStatePredictorFactoryFactory == null
                 ? 0
                 : networkStatePredictorFactoryFactory.createNativeNetworkStatePredictorFactory(),
-            neteqFactoryFactory == null ? 0 : neteqFactoryFactory.createNativeNetEqFactory());
+            neteqFactoryFactory == null ? 0 : neteqFactoryFactory.createNativeNetEqFactory(),
+            audioFrameProcessor == null ? 0 : audioFrameProcessor.getNativeAudioFrameProcessor());
       }
     }
   }
@@ -341,7 +356,8 @@ public class PeerConnectionFactory {
 
   // Field trial initialization. Must be called before PeerConnectionFactory
   // is created.
-  // Deprecated, use PeerConnectionFactory.initialize instead.
+  // Deprecated, use PeerConnectionFactory.Builder.setFieldTrials instead.
+  // TODO: bugs.webrtc.org/42220378 - Delete after January 1, 2026.
   @Deprecated
   public static void initializeFieldTrials(String fieldTrialsInitString) {
     nativeInitializeFieldTrials(fieldTrialsInitString);
@@ -606,7 +622,7 @@ public class PeerConnectionFactory {
       long audioDecoderFactory, VideoEncoderFactory encoderFactory,
       VideoDecoderFactory decoderFactory, long nativeAudioProcessor,
       long nativeFecControllerFactory, long nativeNetworkControllerFactory,
-      long nativeNetworkStatePredictorFactory, long neteqFactory);
+      long nativeNetworkStatePredictorFactory, long neteqFactory, long nativeAudioFrameProcessor);
 
   private static native long nativeCreatePeerConnection(long factory,
       PeerConnection.RTCConfiguration rtcConfig, MediaConstraints constraints, long nativeObserver,

@@ -19,17 +19,13 @@ package org.webrtc.audio;
  */
 public interface AudioDeviceModule {
   /**
-   * Returns a C++ pointer to a webrtc::AudioDeviceModule. Caller does _not_ take ownership and
-   * lifetime is handled through the release() call.
+   * Returns a C++ pointer to a {@code webrtc::AudioDeviceModule} instance.
+   * Lifetime of the returned object is handled through the release() call.
+   *
+   * @param webrtcEnvRef non-null non-owning pointer to {@code webrtc::Environment}
+   * @return non-null non-owning pointer to {@code webrtc::AudioDeviceModule}
    */
-  @Deprecated
-  default long getNativeAudioDeviceModulePointer() {
-    return 0;
-  }
-
-  public default long getNative(long webrtcEnvRef) {
-    return getNativeAudioDeviceModulePointer();
-  }
+  long getNative(long webrtcEnvRef);
 
   /**
    * Release resources for this AudioDeviceModule, including native resources. The object should not

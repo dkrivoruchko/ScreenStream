@@ -27,15 +27,23 @@ import org.webrtc.MediaStreamTrack;
  * default value".
  */
 public class RtpParameters {
+  /** Java version of webrtc::DegradationPreference - the ordering must be kept in sync. */
   public enum DegradationPreference {
-    /** Does not degrade resolution or framerate. */
-    DISABLED,
+    /**
+    * Maintain framerate and resolution regardless of video quality. Frames may be dropped
+    * before encoding if necessary not to overuse network and encoder resources.
+    */
+    MAINTAIN_FRAMERATE_AND_RESOLUTION,
     /** Degrade resolution in order to maintain framerate. */
     MAINTAIN_FRAMERATE,
     /** Degrade framerate in order to maintain resolution. */
     MAINTAIN_RESOLUTION,
     /** Degrade a balance of framerate and resolution. */
-    BALANCED;
+    BALANCED,
+    // TODO(webrtc:450044904): Switch downstream projects to MAINTAIN_FRAMERATE_AND_RESOLUTION
+    // and remove DISABLED.
+    /** Does not degrade resolution or framerate. */
+    DISABLED;
 
     @CalledByNative("DegradationPreference")
     static DegradationPreference fromNativeIndex(int nativeIndex) {

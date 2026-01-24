@@ -26,7 +26,7 @@ public final class PeerConnectionDependencies {
   private final SSLCertificateVerifier sslCertificateVerifier;
 
   public static class Builder {
-    private PeerConnection.Observer observer;
+    private final PeerConnection.Observer observer;
     private SSLCertificateVerifier sslCertificateVerifier;
 
     private Builder(PeerConnection.Observer observer) {

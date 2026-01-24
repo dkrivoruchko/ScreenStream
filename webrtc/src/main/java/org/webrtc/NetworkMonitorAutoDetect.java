@@ -94,7 +94,7 @@ public class NetworkMonitorAutoDetect extends BroadcastReceiver implements Netwo
   }
 
   @SuppressLint("NewApi")
-  @VisibleForTesting()
+  @VisibleForTesting
   class SimpleNetworkCallback extends NetworkCallback {
     @GuardedBy("availableNetworks") final Set<Network> availableNetworks;
 
@@ -447,7 +447,7 @@ public class NetworkMonitorAutoDetect extends BroadcastReceiver implements Netwo
     }
 
     @SuppressLint("NewApi")
-    @VisibleForTesting()
+    @VisibleForTesting
     NetworkRequest createNetworkRequest() {
       // Requests the following capabilities by default: NOT_VPN, NOT_RESTRICTED, TRUSTED
       NetworkRequest.Builder builder =
