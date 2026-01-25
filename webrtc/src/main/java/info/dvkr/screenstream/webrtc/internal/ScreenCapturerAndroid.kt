@@ -25,7 +25,7 @@ internal class ScreenCapturerAndroid(
     private var height: Int = 0
 
     @Synchronized
-    internal fun startCapture(mediaProjection: MediaProjection, width: Int, height: Int, capturerObserver: CapturerObserver) {
+    internal fun startCapture(mediaProjection: MediaProjection, width: Int, height: Int, capturerObserver: CapturerObserver): Boolean {
         checkNotDisposed()
         this.mediaProjection = mediaProjection
         this.capturerObserver = capturerObserver
@@ -36,15 +36,17 @@ internal class ScreenCapturerAndroid(
         surfaceTextureHelper.setTextureSize(width, height)
         virtualDisplay = createVirtualDisplay()
         if (virtualDisplay == null) {
+            XLog.i(getLog("startCapture", "virtualDisplay is null. Stopping projection."))
             mediaProjectionCallback.onStop()
-            XLog.w(
-                getLog("startCapture", "virtualDisplay is null"),
-                IllegalStateException("ScreenCapturerAndroid.startCapture: createVirtualDisplay() returned null.")
-            )
-            return
+            mediaProjection.unregisterCallback(mediaProjectionCallback)
+            mediaProjection.stop()
+            this.mediaProjection = null
+            surfaceTextureHelper.dispose()
+            return false
         }
         capturerObserver.onCapturerStarted(true)
         surfaceTextureHelper.startListening { frame -> capturerObserver.onFrameCaptured(frame) }
+        return true
     }
 
     @Synchronized
@@ -88,11 +90,8 @@ internal class ScreenCapturerAndroid(
                     virtualDisplay!!.release()
                     virtualDisplay = createVirtualDisplay()
                     if (virtualDisplay == null) {
+                        XLog.i(getLog("changeCaptureFormat", "virtualDisplay is null. Stopping projection."))
                         mediaProjectionCallback.onStop()
-                        XLog.w(
-                            getLog("startCapture", "virtualDisplay is null"),
-                            IllegalStateException("ScreenCapturerAndroid.changeCaptureFormat: createVirtualDisplay() returned null.")
-                        )
                         return@invokeAtFrontUninterruptibly
                     }
                 }

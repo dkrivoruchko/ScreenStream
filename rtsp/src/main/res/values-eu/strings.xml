@@ -22,7 +22,7 @@
     <string name="rtsp_mode_client_hint">Konektatu urruneko RTSP zerbitzari batera</string>
 
     <string name="rtsp_interfaces_title">RTSP zerbitzariaren helbidea</string>
-    <string name="rtsp_interfaces_no_address">Ez dago sare helbiderik.\nEgiaztatu sareko konexioa eta interfaze iragazkiak.</string>
+    <string name="rtsp_interfaces_no_address">Ez da helbiderik aurkitu.\nEgiaztatu konexioa edo Zerbitzariaren parametroak (Interfaze iragazkia, Helbide iragazkia).</string>
     <string name="rtsp_interfaces_discovering">Helbideak bilatzen…</string>
     <string name="rtsp_interfaces_interface_label">Interfazea:\n%1$s</string>
     <string name="rtsp_interfaces_description_copy">Copiar dirección</string>
@@ -41,7 +41,7 @@
     <string name="rtsp_cast_permission_required_title">Baimena beharrezkoa</string>
     <string name="rtsp_cast_permission_required">ScreenStream aplikazioak pantaila transmisio baimena behar du pantaila harrapatzeko.</string>
     <string name="rtsp_error_notification_permission_required">Aplikazioak jakinarazpenak gaituta egotea behar du transmisio zerbitzua hasteko.\nMesedez, gaitu jakinarazpenak aplikazioaren ezarpenetan.</string>
-    <string name="rtsp_error_ip_address_not_found">Ez da IP helbiderik aurkitu</string>
+    <string name="rtsp_error_ip_address_not_found">Ez da helbiderik aurkitu. Egiaztatu konexioa edo Zerbitzariaren parametroak (Interfaze iragazkia, Helbide iragazkia).</string>
     <string name="rtsp_error_unspecified">Zerbait oker joan da.</string>
 
     <string name="rtsp_media_server">Multimedia zerbitzaria</string>

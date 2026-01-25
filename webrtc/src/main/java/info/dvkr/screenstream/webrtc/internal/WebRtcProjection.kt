@@ -172,7 +172,16 @@ internal class WebRtcProjection(private val serviceContext: Context) : AudioReco
             )
 
             val screeSize = WindowMetricsCalculator.getOrCreate().computeMaximumWindowMetrics(serviceContext).bounds
-            screenCapturer.startCapture(mediaProjection, screeSize.width(), screeSize.height(), videoSource.capturerObserver)
+            val captureStarted = screenCapturer.startCapture(
+                mediaProjection, screeSize.width(), screeSize.height(), videoSource.capturerObserver
+            )
+            if (!captureStarted) {
+                XLog.i(getLog("start", "Capture start failed. Stopping projection."))
+                screenCapturer.dispose()
+                videoSource.dispose()
+                audioSource.dispose()
+                return
+            }
 
             val mediaStreamId = MediaStreamId.create(streamId)
             localMediaSteam = LocalMediaSteam(

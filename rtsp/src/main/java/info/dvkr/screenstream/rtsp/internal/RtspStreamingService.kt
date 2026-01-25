@@ -1,9 +1,11 @@
 package info.dvkr.screenstream.rtsp.internal
 
+import android.Manifest
 import android.app.Activity
 import android.content.ComponentCallbacks
 import android.content.Intent
 import android.content.pm.ActivityInfo
+import android.content.pm.PackageManager
 import android.content.pm.ServiceInfo
 import android.content.res.Configuration
 import android.hardware.display.DisplayManager
@@ -18,6 +20,7 @@ import android.os.Message
 import android.view.Surface
 import androidx.annotation.AnyThread
 import androidx.annotation.MainThread
+import androidx.core.content.ContextCompat
 import androidx.core.util.toClosedRange
 import androidx.window.layout.WindowMetricsCalculator
 import com.elvishew.xlog.XLog
@@ -166,7 +169,7 @@ internal class RtspStreamingService(
                         XLog.d(getLog("DiscoverAddress", "${netInterfaces.size} interfaces discovered (${event.reason})"))
 
                         if (netInterfaces.isEmpty()) {
-                            if (event.attempt < 3) {
+                            if (event.attempt < 4) {
                                 sendEvent(
                                     InternalEvent.RtspServer.DiscoverAddress(reason = event.reason, attempt = event.attempt + 1),
                                     1000
@@ -686,8 +689,19 @@ internal class RtspStreamingService(
                         { frame -> clientController?.onFrame(frame) ?: frame.release() }
                     }
 
-                val fgsType =
-                    ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION or if (settings.enableMic) ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE else 0
+                val audioPermissionGranted =
+                    ContextCompat.checkSelfPermission(service, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
+                val wantsAudio = settings.enableMic || settings.enableDeviceAudio
+                if (!audioPermissionGranted && wantsAudio) {
+                    coroutineScope.launch {
+                        rtspSettings.updateData { copy(enableMic = false, enableDeviceAudio = false) }
+                    }
+                }
+                val fgsType = ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION or if (audioPermissionGranted && wantsAudio) {
+                        ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
+                    } else {
+                        0
+                    }
                 service.startForeground(fgsType)
 
                 // TODO Starting from Android R, if your application requests the SYSTEM_ALERT_WINDOW permission, and the user has
@@ -745,17 +759,14 @@ internal class RtspStreamingService(
                     }
 
                     if (virtualDisplay == null) {
-                        XLog.w(getLog("startDisplayCapture", "virtualDisplay is null"))
-
-                        clientController?.stop()
+                        XLog.i(getLog("startDisplayCapture", "virtualDisplay is null. Stopping projection."))
 
                         stop()
 
                         mediaProjection.unregisterCallback(projectionCallback)
                         mediaProjection.stop()
 
-                        service.stopForeground()
-                        sendEvent(InternalEvent.Error(RtspError.UnknownError(IllegalStateException("virtualDisplay is null"))))
+                        stopStream(false)
                         return
                     }
 

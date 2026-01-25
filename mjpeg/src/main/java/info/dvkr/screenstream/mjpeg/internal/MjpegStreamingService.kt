@@ -365,6 +365,14 @@ internal class MjpegStreamingService(
                         sendEvent(InternalEvent.Error(error))
                     }
                     val captureStarted = bitmapCapture.start()
+                    if (!captureStarted) {
+                        XLog.i(getLog("StartProjection", "Capture not started. Stopping projection."))
+                        bitmapCapture.destroy()
+                        mediaProjection.unregisterCallback(projectionCallback)
+                        mediaProjection.stop()
+                        service.stopForeground()
+                        return
+                    }
                     if (captureStarted && Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
                         if (Build.VERSION.SDK_INT != Build.VERSION_CODES.S || !Build.MANUFACTURER.equals("Xiaomi", ignoreCase = true)) {
                             mediaProjectionIntent = event.intent

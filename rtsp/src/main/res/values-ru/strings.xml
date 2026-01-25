@@ -22,7 +22,7 @@
     <string name="rtsp_mode_client_hint">Подключиться к удалённому RTSP-серверу</string>
 
     <string name="rtsp_interfaces_title">Адрес RTSP-сервера</string>
-    <string name="rtsp_interfaces_no_address">Нет доступных сетевых адресов.\nПроверьте соединение и фильтры интерфейсов.</string>
+    <string name="rtsp_interfaces_no_address">Адрес не найден.\nПроверьте соединение или Параметры сервера (Фильтр интерфейсов, Фильтр адресов).</string>
     <string name="rtsp_interfaces_discovering">Поиск адресов…</string>
     <string name="rtsp_interfaces_interface_label">Интерфейс:\n%1$s</string>
     <string name="rtsp_interfaces_description_copy">Копировать адрес</string>
@@ -41,7 +41,7 @@
     <string name="rtsp_cast_permission_required_title">Требуется разрешение</string>
     <string name="rtsp_cast_permission_required">Приложению ScreenStream требуется разрешение на запись экрана.</string>
     <string name="rtsp_error_notification_permission_required">Для запуска службы трансляции необходимо включить уведомления.\nВключите уведомления в настройках приложения.</string>
-    <string name="rtsp_error_ip_address_not_found">IP-адрес не найден</string>
+    <string name="rtsp_error_ip_address_not_found">Адрес не найден. Проверьте соединение или Параметры сервера (Фильтр интерфейсов, Фильтр адресов).</string>
     <string name="rtsp_error_unspecified">Что-то пошло не так.</string>
 
     <string name="rtsp_media_server">Медиасервер</string>

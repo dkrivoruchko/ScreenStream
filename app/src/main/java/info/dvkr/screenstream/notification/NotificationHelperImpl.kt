@@ -96,7 +96,7 @@ internal class NotificationHelperImpl(context: Context) : NotificationHelper {
                 NotificationCompat.Action(
                     null,
                     context.getString(R.string.app_notification_stop),
-                    PendingIntent.getService(context, 2, stopIntent, PendingIntent.FLAG_IMMUTABLE)
+                    PendingIntent.getService(context, 2, stopIntent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
                 )
             )
             .also { builder ->

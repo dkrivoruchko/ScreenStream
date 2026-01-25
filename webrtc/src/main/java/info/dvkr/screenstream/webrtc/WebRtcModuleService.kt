@@ -41,16 +41,17 @@ public class WebRtcModuleService : StreamingModuleService() {
         }
         XLog.d(getLog("onStartCommand", "WebRtcModuleService.INTENT_ID: ${intent.getStringExtra(INTENT_ID)}"))
 
-        if (isDuplicateIntent(intent)) {
-            XLog.w(getLog("onStartCommand"), IllegalArgumentException("WebRtcModuleService.onStartCommand: duplicate intent, startId: $startId"))
-            return START_NOT_STICKY
-        }
-
         val webRtcEvent = WebRtcEvent.Intentable.fromIntent(intent) ?: run {
             XLog.e(getLog("onStartCommand"), IllegalArgumentException("WebRtcModuleService.onStartCommand: WebRtcEvent = null, startId: $startId"))
             return START_NOT_STICKY
         }
         XLog.d(getLog("onStartCommand", "WebRtcEvent: $webRtcEvent, startId: $startId"))
+
+        val shouldDedupe = webRtcEvent is WebRtcEvent.Intentable.StartService
+        if (shouldDedupe && isDuplicateIntent(intent)) {
+            XLog.i(getLog("onStartCommand", "Duplicate intent for $webRtcEvent. Ignoring. startId: $startId"))
+            return START_NOT_STICKY
+        }
 
         if ((flags and START_FLAG_REDELIVERY) != 0) {
             XLog.e(getLog("onStartCommand"), IllegalArgumentException("WebRtcModuleService.onStartCommand: redelivered intent, WebRtcEvent: $webRtcEvent, startId: $startId, $intent"))

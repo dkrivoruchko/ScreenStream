@@ -36,8 +36,8 @@ android {
         applicationId = "info.dvkr.screenstream"
         minSdk = rootProject.extra["minSdkVersion"] as Int
         targetSdk = rootProject.extra["targetSdkVersion"] as Int
-        versionCode = 43001
-        versionName = "4.3.1"
+        versionCode = 43002
+        versionName = "4.3.2"
 
         // https://medium.com/@crafty/no-if-you-do-that-then-you-cant-use-newer-features-on-older-platforms-e-g-fa595333c0a4
         vectorDrawables.useSupportLibrary = true

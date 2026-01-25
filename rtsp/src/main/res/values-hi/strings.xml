@@ -22,7 +22,7 @@
     <string name="rtsp_mode_client_hint">दूरस्थ RTSP सर्वर से कनेक्ट करें</string>
 
     <string name="rtsp_interfaces_title">RTSP सर्वर पता</string>
-    <string name="rtsp_interfaces_no_address">कोई नेटवर्क पता उपलब्ध नहीं है।\nनेटवर्क कनेक्शन और इंटरफ़ेस फ़िल्टर जांचें।</string>
+    <string name="rtsp_interfaces_no_address">पता नहीं मिला।\nकनेक्शन जांचें या सर्वर पैरामीटर (इंटरफ़ेस फ़िल्टर, पता फ़िल्टर)।</string>
     <string name="rtsp_interfaces_discovering">पते खोजे जा रहे हैं…</string>
     <string name="rtsp_interfaces_interface_label">इंटरफ़ेस:\n%1$s</string>
     <string name="rtsp_interfaces_description_copy">पता कॉपी करें</string>
@@ -41,7 +41,7 @@
     <string name="rtsp_cast_permission_required_title">अनुमति आवश्यक है</string>
     <string name="rtsp_cast_permission_required">स्क्रीन कैप्चर करने के लिए ScreenStream एप्लिकेशन को स्क्रीन कास्ट अनुमति की आवश्यकता है।</string>
     <string name="rtsp_error_notification_permission_required">स्ट्रीमिंग सेवा शुरू करने के लिए एप्लिकेशन को सूचनाएँ सक्षम होना आवश्यक है।\nकृपया एप्लिकेशन सेटिंग्स में सूचनाएँ सक्षम करें।</string>
-    <string name="rtsp_error_ip_address_not_found">कोई IP पता नहीं मिला</string>
+    <string name="rtsp_error_ip_address_not_found">पता नहीं मिला। कनेक्शन जांचें या सर्वर पैरामीटर (इंटरफ़ेस फ़िल्टर, पता फ़िल्टर)।</string>
     <string name="rtsp_error_unspecified">कुछ गलत हुआ।</string>
 
     <string name="rtsp_media_server">मीडिया सर्वर</string>

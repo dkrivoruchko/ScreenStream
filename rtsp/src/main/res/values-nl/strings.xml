@@ -22,7 +22,7 @@
     <string name="rtsp_mode_client_hint">Verbind met een externe RTSP-server</string>
 
     <string name="rtsp_interfaces_title">RTSP-serveradres</string>
-    <string name="rtsp_interfaces_no_address">Geen netwerkadressen beschikbaar.\nControleer netwerkverbinding en interfacefilters.</string>
+    <string name="rtsp_interfaces_no_address">Geen adres gevonden.\nControleer verbinding of Serverparameters (Interface filter, Adresfilter).</string>
     <string name="rtsp_interfaces_discovering">Adressen worden gezocht…</string>
     <string name="rtsp_interfaces_interface_label">Interface:\n%1$s</string>
     <string name="rtsp_interfaces_description_copy">Adres kopiëren</string>
@@ -41,7 +41,7 @@
     <string name="rtsp_cast_permission_required_title">Toestemming vereist</string>
     <string name="rtsp_cast_permission_required">ScreenStream-applicatie heeft schermopnametoestemming nodig om het scherm vast te leggen.</string>
     <string name="rtsp_error_notification_permission_required">Applicatie vereist dat meldingen zijn ingeschakeld om streamingservice te starten.\nSchakel meldingen in bij applicatie-instellingen.</string>
-    <string name="rtsp_error_ip_address_not_found">Geen IP-adres gevonden</string>
+    <string name="rtsp_error_ip_address_not_found">Geen adres gevonden. Controleer verbinding of Serverparameters (Interface filter, Adresfilter).</string>
     <string name="rtsp_error_unspecified">Er is iets misgegaan.</string>
 
     <string name="rtsp_media_server">Mediaserver</string>

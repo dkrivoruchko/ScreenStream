@@ -611,13 +611,23 @@ internal class WebRtcStreamingService(
                 waitingForPermission = false
                 check(isStreaming().not()) { "WebRtcEvent.StartProjection: Already streaming" }
 
-                val useMic = webRtcSettings.data.value.enableMic
-                val fgsType =
-                    ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION or if (useMic) ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE else 0
+                val settings = webRtcSettings.data.value
+                val audioPermissionGranted =
+                    ContextCompat.checkSelfPermission(service, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
+                val wantsAudio = settings.enableMic || settings.enableDeviceAudio
+                if (!audioPermissionGranted && wantsAudio) {
+                    coroutineScope.launch {
+                        webRtcSettings.updateData { copy(enableMic = false, enableDeviceAudio = false) }
+                    }
+                }
+                val fgsType = ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION or if (audioPermissionGranted && wantsAudio) {
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
+                } else {
+                    0
+                }
                 service.startForeground(fgsType)
 
-                isAudioPermissionGrantedOnStart =
-                    ContextCompat.checkSelfPermission(service, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
+                isAudioPermissionGrantedOnStart = audioPermissionGranted
 
                 val prj = requireNotNull(projection)
                 prj.start(currentStreamId, event.intent) {

@@ -22,7 +22,7 @@
     <string name="rtsp_mode_client_hint">Підключитися до віддаленого RTSP-сервера</string>
 
     <string name="rtsp_interfaces_title">Адреса RTSP-сервера</string>
-    <string name="rtsp_interfaces_no_address">Немає доступних мережевих адрес.\nПеревірте мережеве з’єднання та фільтри інтерфейсів.</string>
+    <string name="rtsp_interfaces_no_address">Адресу не знайдено.\nПеревірте з’єднання або Параметри сервера (Фільтр інтерфейсів, Фільтр адрес).</string>
     <string name="rtsp_interfaces_discovering">Пошук адрес…</string>
     <string name="rtsp_interfaces_interface_label">Інтерфейс:\n%1$s</string>
     <string name="rtsp_interfaces_description_copy">Скопіювати адресу</string>
@@ -41,7 +41,7 @@
     <string name="rtsp_cast_permission_required_title">Потрібен дозвіл</string>
     <string name="rtsp_cast_permission_required">Додатку ScreenStream потрібен дозвіл на запис екрану.</string>
     <string name="rtsp_error_notification_permission_required">Для запуску служби трансляції потрібно увімкнути сповіщення.\nУвімкніть сповіщення в налаштуваннях додатку.</string>
-    <string name="rtsp_error_ip_address_not_found">IP-адрес не знайдено</string>
+    <string name="rtsp_error_ip_address_not_found">Адресу не знайдено. Перевірте з’єднання або Параметри сервера (Фільтр інтерфейсів, Фільтр адрес).</string>
     <string name="rtsp_error_unspecified">Щось пішло не так.</string>
 
     <string name="rtsp_media_server">Медіасервер</string>

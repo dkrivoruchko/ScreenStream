@@ -22,7 +22,7 @@
     <string name="rtsp_mode_client_hint">Połącz z zdalnym serwerem RTSP</string>
 
     <string name="rtsp_interfaces_title">Adres serwera RTSP</string>
-    <string name="rtsp_interfaces_no_address">Brak dostępnych adresów sieciowych.\nSprawdź połączenie sieciowe i filtry interfejsu.</string>
+    <string name="rtsp_interfaces_no_address">Nie znaleziono adresu.\nSprawdź połączenie lub Parametry serwera (Filtr interfejsu, Filtr adresów).</string>
     <string name="rtsp_interfaces_discovering">Wyszukiwanie adresów…</string>
     <string name="rtsp_interfaces_interface_label">Łącze:\n%1$s</string>
     <string name="rtsp_interfaces_description_copy">Skopiuj adres</string>
@@ -41,7 +41,7 @@
     <string name="rtsp_cast_permission_required_title">Wymagane uprawnienie</string>
     <string name="rtsp_cast_permission_required">Aplikacja ScreenStream wymaga uprawnienia do nagrywania ekranu.</string>
     <string name="rtsp_error_notification_permission_required">Aplikacja wymaga włączonych powiadomień do uruchomienia usługi transmisji.\nWłącz powiadomienia w ustawieniach aplikacji.</string>
-    <string name="rtsp_error_ip_address_not_found">Nie znaleziono adresu IP</string>
+    <string name="rtsp_error_ip_address_not_found">Nie znaleziono adresu. Sprawdź połączenie lub Parametry serwera (Filtr interfejsu, Filtr adresów).</string>
     <string name="rtsp_error_unspecified">Coś poszło nie tak.</string>
 
     <string name="rtsp_media_server">Serwer mediów</string>

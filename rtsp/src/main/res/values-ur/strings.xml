@@ -22,7 +22,7 @@
     <string name="rtsp_mode_client_hint">ریموٹ RTSP سرور سے جڑیں</string>
 
     <string name="rtsp_interfaces_title">RTSP سرور پتہ</string>
-    <string name="rtsp_interfaces_no_address">کوئی نیٹ ورک پتہ دستیاب نہیں۔\nنیٹ ورک کنکشن اور انٹرفیس فلٹر چیک کریں۔</string>
+    <string name="rtsp_interfaces_no_address">کوئی پتہ نہیں ملا۔\nکنکشن چیک کریں یا سرور پیرامیٹرز (انٹرفیس فلٹر، ایڈریس فلٹر)۔</string>
     <string name="rtsp_interfaces_discovering">پتے تلاش کیے جا رہے ہیں…</string>
     <string name="rtsp_interfaces_interface_label">انٹرفیس:\n%1$s</string>
     <string name="rtsp_interfaces_description_copy">پتہ کاپی کریں</string>
@@ -41,7 +41,7 @@
     <string name="rtsp_cast_permission_required_title">اجازت درکار ہے</string>
     <string name="rtsp_cast_permission_required">اسکرین کیپچر کیلئے Screen Cast اجازت درکار ہے۔</string>
     <string name="rtsp_error_notification_permission_required">اسٹریمنگ سروس شروع کرنے کیلئے اطلاعات کی اجازت درکار ہے۔\nایپ کی ترتیبات میں اطلاعات فعال کریں۔</string>
-    <string name="rtsp_error_ip_address_not_found">IP پتہ نہیں ملا</string>
+    <string name="rtsp_error_ip_address_not_found">کوئی پتہ نہیں ملا۔ کنکشن چیک کریں یا سرور پیرامیٹرز (انٹرفیس فلٹر، ایڈریس فلٹر)۔</string>
     <string name="rtsp_error_unspecified">کچھ غلط ہو گیا۔</string>
 
     <string name="rtsp_media_server">میڈیا سرور</string>

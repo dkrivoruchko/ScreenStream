@@ -280,6 +280,7 @@ internal class AudioCapture(
                 }
 
                 size < 0 -> {
+                    if (!isRunning() || record.recordingState != AudioRecord.RECORDSTATE_RECORDING) break
                     val error = when (size) {
                         AudioRecord.ERROR_DEAD_OBJECT -> IllegalStateException("AudioRecord is dead (ERROR_DEAD_OBJECT).")
                         AudioRecord.ERROR_INVALID_OPERATION -> IllegalStateException("AudioRecord read failed (ERROR_INVALID_OPERATION).")

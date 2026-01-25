@@ -40,14 +40,6 @@ public class RtspModuleService : StreamingModuleService() {
         }
         XLog.d(getLog("onStartCommand", "RtspModuleService.INTENT_ID: ${intent.getStringExtra(INTENT_ID)}"))
 
-        if (isDuplicateIntent(intent)) {
-            XLog.w(
-                getLog("onStartCommand"),
-                IllegalArgumentException("RtspModuleService.onStartCommand: duplicate intent, startId: $startId")
-            )
-            return START_NOT_STICKY
-        }
-
         val mjpegEvent = RtspEvent.Intentable.fromIntent(intent) ?: run {
             XLog.e(
                 getLog("onStartCommand"),
@@ -56,6 +48,12 @@ public class RtspModuleService : StreamingModuleService() {
             return START_NOT_STICKY
         }
         XLog.d(getLog("onStartCommand", "RtspEvent: $mjpegEvent, startId: $startId"))
+
+        val shouldDedupe = mjpegEvent is RtspEvent.Intentable.StartService
+        if (shouldDedupe && isDuplicateIntent(intent)) {
+            XLog.i(getLog("onStartCommand", "Duplicate intent for $mjpegEvent. Ignoring. startId: $startId"))
+            return START_NOT_STICKY
+        }
 
         if ((flags and START_FLAG_REDELIVERY) != 0) {
             XLog.e(

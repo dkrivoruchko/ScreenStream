@@ -22,7 +22,7 @@
     <string name="rtsp_mode_client_hint">Masofadagi RTSP serverga ulang</string>
 
     <string name="rtsp_interfaces_title">RTSP server manzili</string>
-    <string name="rtsp_interfaces_no_address">Tarmoq manzillari mavjud emas.\nTarmoq ulanishini va interfeys filtrlarini tekshiring.</string>
+    <string name="rtsp_interfaces_no_address">Manzil topilmadi.\nUlanishni tekshiring yoki Server parametrlari (Interfeys filtri, Manzil filtri).</string>
     <string name="rtsp_interfaces_discovering">Manzillar qidirilmoqda…</string>
     <string name="rtsp_interfaces_interface_label">Interfeys:\n%1$s</string>
     <string name="rtsp_interfaces_description_copy">Manzilni nusxalash</string>
@@ -41,7 +41,7 @@
     <string name="rtsp_cast_permission_required_title">Ruxsat kerak</string>
     <string name="rtsp_cast_permission_required">ScreenStream ilovasiga ekranni yozib olish uchun ruxsat kerak.</string>
     <string name="rtsp_error_notification_permission_required">Ilova translyatsiya xizmatini boshlash uchun bildirishnomalarni yoqishni talab qiladi.\nIlova sozlamalarida bildirishnomalarni yoqing.</string>
-    <string name="rtsp_error_ip_address_not_found">IP manzili topilmadi</string>
+    <string name="rtsp_error_ip_address_not_found">Manzil topilmadi. Ulanishni tekshiring yoki Server parametrlari (Interfeys filtri, Manzil filtri).</string>
     <string name="rtsp_error_unspecified">Xatolik yuz berdi.</string>
 
     <string name="rtsp_media_server">Media server</string>

@@ -37,3 +37,5 @@ Follow that pattern and keep messages scoped to the change.
 `local.properties` is read for Play Store ad identifiers; keep it uncommitted.
 The debug keystore is checked in for convenience; do not use it for release builds.
 Keep WebRTC signaling endpoints configurable; never hardcode credentials.
+
+When debugging crashes/ANRs, always use the Firebase Crashlytics MCP tools to fetch the latest issues and details before proposing code changes.

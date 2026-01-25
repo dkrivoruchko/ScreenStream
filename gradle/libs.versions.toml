@@ -22,7 +22,7 @@ process-phoenix = "3.0.0"
 xlog = "1.11.1"
 
 #MJPEG
-ktor = "3.3.3"
+ktor = "3.4.0"
 
 #PlayStore-WebRTC
 play-services-tasks = "18.4.1"

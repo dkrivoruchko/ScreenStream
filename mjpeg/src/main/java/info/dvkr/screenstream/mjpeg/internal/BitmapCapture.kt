@@ -141,9 +141,8 @@ internal class BitmapCapture(
                 imageThreadHandler
             )
             if (virtualDisplay == null) {
-                XLog.w(getLog("startDisplayCapture", "virtualDisplay is null"))
+                XLog.i(getLog("startDisplayCapture", "virtualDisplay is null. Stopping projection."))
                 state = State.ERROR
-                onError(MjpegError.UnknownError(RuntimeException("virtualDisplay is null")))
                 safeRelease()
             } else {
                 state = State.STARTED
