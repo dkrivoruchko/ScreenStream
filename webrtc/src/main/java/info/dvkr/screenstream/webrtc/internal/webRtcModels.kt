@@ -32,7 +32,7 @@ internal open class WebRtcEvent(val priority: Int) {
                 else intent.getParcelableExtra(EXTRA_PARCELABLE, Intentable::class.java)
         }
 
-        @Parcelize internal data object StartService : Intentable(Priority.NONE)
+        @Parcelize internal data class StartService(val token: String) : Intentable(Priority.NONE)
         @Parcelize internal data class StopStream(val reason: String) : Intentable(Priority.RECOVER_IGNORE)
         @Parcelize internal data object RecoverError : Intentable(Priority.RECOVER_IGNORE)
 

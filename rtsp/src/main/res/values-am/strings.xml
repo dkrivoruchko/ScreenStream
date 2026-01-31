@@ -84,6 +84,7 @@
     <string name="rtsp_audio_permission_message">መተግበሪያው የድምጽ ይዘት ለማስተላለፍ ድምጽ የመቅዳት ፈቃድ ያስፈልገዋል።\n\nይህን ፈቃድ ባለመስጠት ዥረቱ ያለድምጽ ይሆናል።</string>
     <string name="rtsp_audio_permission_open_settings">ቅንብሮችን ክፈት</string>
     <string name="rtsp_audio_permission_message_settings">መተግበሪያው የድምጽ ይዘት ለማስተላለፍ በመተግበሪያ ፈቃዶች ውስጥ የማይክሮፎን መዳረሻ መፍቀድ ያስፈልጋል።\n\nይህን ፈቃድ ባለመስጠት ዥረቱ ያለድምጽ ይሆናል።</string>
+    <string name="rtsp_audio_capture_issue_detected">የድምጽ መቅረጽ ችግኝ ተገኘ።</string>
 
     <string name="rtsp_connection_access_denied">መዳረሻ ተከልክሏል</string>
     <string name="rtsp_connection_no_credentials">የተጠቃሚ ስምና የይለፍ ቃል ይግለጹ</string>

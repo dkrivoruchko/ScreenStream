@@ -84,6 +84,7 @@
     <string name="rtsp_audio_permission_message">إذن تسجيل الصوت ضروري للتطبيق لبث المحتوى الصوتي.\n\nبدون منح هذا الإذن، سيكون البث بدون صوت.</string>
     <string name="rtsp_audio_permission_open_settings">فتح الإعدادات</string>
     <string name="rtsp_audio_permission_message_settings">منح الوصول إلى الميكروفون في أذونات التطبيق ضروري للتطبيق لبث المحتوى الصوتي.\n\nبدون منح هذا الإذن، سيتم إجراء البث بدون صوت.</string>
+    <string name="rtsp_audio_capture_issue_detected">تم رصد مشكلة في التقاط الصوت</string>
 
     <string name="rtsp_connection_access_denied">تم رفض الوصول</string>
     <string name="rtsp_connection_no_credentials">حدد اسم المستخدم وكلمة المرور</string>

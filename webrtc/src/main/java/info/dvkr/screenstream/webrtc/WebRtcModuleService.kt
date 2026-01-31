@@ -60,7 +60,7 @@ public class WebRtcModuleService : StreamingModuleService() {
 
         if (streamingModuleManager.isActive(WebRtcStreamingModule.Id)) {
             when (webRtcEvent) {
-                is WebRtcEvent.Intentable.StartService -> webRtcStreamingModule.onServiceStart(this)
+                is WebRtcEvent.Intentable.StartService -> webRtcStreamingModule.onServiceStart(this, webRtcEvent.token)
                 is WebRtcEvent.Intentable.StopStream -> webRtcStreamingModule.sendEvent(webRtcEvent)
                 WebRtcEvent.Intentable.RecoverError -> webRtcStreamingModule.sendEvent(webRtcEvent)
             }

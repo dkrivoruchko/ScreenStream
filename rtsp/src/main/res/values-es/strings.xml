@@ -84,6 +84,7 @@
     <string name="rtsp_audio_permission_message">El permiso para grabar audio es necesario para que la aplicación transmita contenido de audio.\n\nSin conceder este permiso, la transmisión será sin audio.</string>
     <string name="rtsp_audio_permission_open_settings">Abrir ajustes</string>
     <string name="rtsp_audio_permission_message_settings">Otorgar acceso al micrófono en los permisos de la aplicación es necesario para que la aplicación transmita contenido de audio.\n\nSin conceder este permiso, la transmisión se realizará sin audio.</string>
+    <string name="rtsp_audio_capture_issue_detected">Se detectó un problema en la captura de audio</string>
 
     <string name="rtsp_connection_access_denied">Acceso denegado</string>
     <string name="rtsp_connection_no_credentials">Especifique usuario y contraseña</string>

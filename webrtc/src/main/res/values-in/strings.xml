@@ -32,6 +32,7 @@
     <string name="webrtc_stream_audio_select">Pilih sumber audio:</string>
     <string name="webrtc_stream_audio_mic">Mikropon</string>
     <string name="webrtc_stream_audio_device">Audio perangkat</string>
+    <string name="webrtc_stream_audio_device_unavailable">Audio perangkat tidak tersedia</string>
     <string name="webrtc_stream_connected_clients">Klien yang terhubung: %1$d</string>
     <string name="webrtc_stream_no_web_browser_found">Tidak ada peramban web yang ditemukan</string>
     <string name="webrtc_stream_external_app_error">Kesalahan aplikasi eksternal</string>

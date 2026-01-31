@@ -32,6 +32,7 @@
     <string name="webrtc_stream_audio_select">选择音频来源：</string>
     <string name="webrtc_stream_audio_mic">麦克风</string>
     <string name="webrtc_stream_audio_device">设备音频</string>
+    <string name="webrtc_stream_audio_device_unavailable">设备音频不可用</string>
     <string name="webrtc_stream_connected_clients">已连接的客户端： %1$d</string>
     <string name="webrtc_stream_no_web_browser_found">未找到网络浏览器</string>
     <string name="webrtc_stream_external_app_error">外部程序错误</string>

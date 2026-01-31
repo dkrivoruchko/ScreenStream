@@ -85,6 +85,7 @@
     <string name="rtsp_audio_permission_message">Permission to record audio is necessary for the application to stream audio content.\n\nWithout granting this permission, the stream will be without audio.</string>
     <string name="rtsp_audio_permission_open_settings">Open settings</string>
     <string name="rtsp_audio_permission_message_settings">Granting microphone access in application permissions is necessary for the application to stream audio content.\n\nWithout granting this permission, the stream will be conducted without any audio.</string>
+    <string name="rtsp_audio_capture_issue_detected">Some audio capture issue detected</string>
 
     <string name="rtsp_connection_access_denied">Access denied</string>
     <string name="rtsp_connection_no_credentials">Specify username and password</string>

@@ -84,6 +84,7 @@
     <string name="rtsp_audio_permission_message">Uprawnienie do nagrywania dźwięku jest niezbędne do transmisji audio.\n\nBez tego uprawnienia transmisja będzie bez dźwięku.</string>
     <string name="rtsp_audio_permission_open_settings">Otwórz ustawienia</string>
     <string name="rtsp_audio_permission_message_settings">Dostęp do mikrofonu jest niezbędny do transmisji audio.\n\nBez tego uprawnienia transmisja będzie bez dźwięku.</string>
+    <string name="rtsp_audio_capture_issue_detected">Wykryto problem z przechwytywaniem dźwięku</string>
 
     <string name="rtsp_connection_access_denied">Dostęp zabroniony</string>
     <string name="rtsp_connection_no_credentials">Podaj nazwę użytkownika i hasło</string>

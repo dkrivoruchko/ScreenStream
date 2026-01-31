@@ -32,6 +32,7 @@
     <string name="webrtc_stream_audio_select">ऑडियो स्रोत का चयन करें:</string>
     <string name="webrtc_stream_audio_mic">माइक्रोफ़ोन</string>
     <string name="webrtc_stream_audio_device">डिवाइस ऑडियो</string>
+    <string name="webrtc_stream_audio_device_unavailable">डिवाइस ऑडियो उपलब्ध नहीं है</string>
     <string name="webrtc_stream_connected_clients">कनेक्टेड ग्राहक: %1$d</string>
     <string name="webrtc_stream_no_web_browser_found">कोई वेब ब्राउज़र नहीं मिला</string>
     <string name="webrtc_stream_external_app_error">बाहरी एप्लिकेशन त्रुटि</string>

@@ -140,11 +140,17 @@ internal class MjpegStreamingService(
 
         // TODO https://android-developers.googleblog.com/2024/03/enhanced-screen-sharing-capabilities-in-android-14.html
         override fun onCapturedContentVisibilityChanged(isVisible: Boolean) {
-            XLog.i(this@MjpegStreamingService.getLog("MediaProjection.Callback", "onCapturedContentVisibilityChanged: $isVisible"))
+            XLog.e(
+                this@MjpegStreamingService.getLog("MediaProjection.Callback", "onCapturedContentVisibilityChanged: $isVisible"),
+                IllegalStateException("CapturedContentVisibilityChanged: $isVisible")
+            )
         }
 
         override fun onCapturedContentResize(width: Int, height: Int) {
-            XLog.i(this@MjpegStreamingService.getLog("MediaProjection.Callback", "onCapturedContentResize: width: $width, height: $height"))
+            XLog.e(
+                this@MjpegStreamingService.getLog("MediaProjection.Callback", "onCapturedContentResize: width: $width, height: $height"),
+                IllegalStateException("CapturedContentResize: $width x $height")
+            )
             sendEvent(InternalEvent.CapturedContentResize(width, height))
         }
     }
@@ -423,6 +429,13 @@ internal class MjpegStreamingService(
             }
 
             is InternalEvent.CapturedContentResize -> {
+                if (event.width <= 0 || event.height <= 0) {
+                    XLog.e(
+                        getLog("CapturedContentResize", "Invalid size: ${event.width} x ${event.height}. Ignoring."),
+                        IllegalArgumentException("Invalid capture size: ${event.width} x ${event.height}")
+                    )
+                    return
+                }
                 if (isStreaming) {
                     bitmapCapture?.resize(event.width, event.height)
                 } else {

@@ -84,6 +84,7 @@
     <string name="rtsp_audio_permission_message">Audio kontentni uzatish uchun ovoz yozishga ruxsat zarur.\n\nBu ruxsatsiz translyatsiya audiosiz bo\'ladi.</string>
     <string name="rtsp_audio_permission_open_settings">Sozlamalarni ochish</string>
     <string name="rtsp_audio_permission_message_settings">Audio kontentni uzatish uchun mikrofonga ruxsat zarur.\n\nBu ruxsatsiz translyatsiya audiosiz bo\'ladi.</string>
+    <string name="rtsp_audio_capture_issue_detected">Audio yozib olishda muammo aniqlandi</string>
 
     <string name="rtsp_connection_access_denied">Kirish rad etildi</string>
     <string name="rtsp_connection_no_credentials">Foydalanuvchi nomi va parolni kiriting</string>

@@ -54,7 +54,7 @@ internal class RtspServer(
         }
     }
 
-    internal fun setAudioData(audioParams: AudioParams) {
+    internal fun setAudioData(audioParams: AudioParams?) {
         this.audioParams.set(audioParams)
     }
 

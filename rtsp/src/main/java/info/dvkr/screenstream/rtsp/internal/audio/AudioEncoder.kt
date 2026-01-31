@@ -20,6 +20,7 @@ internal class AudioEncoder(
     private val codecInfo: AudioCodecInfo,
     private val onAudioInfo: (AudioSource.Params) -> Unit,
     private val onAudioFrame: (MediaFrame.AudioFrame) -> Unit,
+    private val onAudioCaptureError: (Throwable) -> Unit,
     private val onError: (Throwable) -> Unit,
 ) {
     private enum class State { IDLE, PREPARED, RUNNING, STOPPED }
@@ -62,17 +63,25 @@ internal class AudioEncoder(
 
                 this.audioSource = when {
                     enableMic && enableDeviceAudio ->
-                        MixAudioSource(audioParams, audioSource, mediaProjection, dispatcher, onAudioSourceFrame, onError)
+                        MixAudioSource(audioParams, audioSource, mediaProjection, dispatcher, onAudioSourceFrame, onAudioCaptureError)
 
                     enableMic ->
-                        MicrophoneSource(audioParams, audioSource, dispatcher, onAudioSourceFrame, onError)
+                        MicrophoneSource(audioParams, audioSource, dispatcher, onAudioSourceFrame, onAudioCaptureError)
 
                     enableDeviceAudio ->
-                        InternalAudioSource(audioParams, mediaProjection, dispatcher, onAudioSourceFrame, onError)
+                        InternalAudioSource(audioParams, mediaProjection, dispatcher, onAudioSourceFrame, onAudioCaptureError)
 
                     else -> null
-                }?.apply {
-                    checkIfConfigurationSupported()
+                }
+
+                if (this.audioSource != null) {
+                    try {
+                        this.audioSource!!.checkIfConfigurationSupported()
+                    } catch (cause: Throwable) {
+                        cleanupAfterPrepareFailure()
+                        onAudioCaptureError(cause)
+                        return
+                    }
                 }
 
                 if (this.audioSource == null) return

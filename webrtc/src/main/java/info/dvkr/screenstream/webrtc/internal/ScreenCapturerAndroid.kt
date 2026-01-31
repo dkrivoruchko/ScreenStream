@@ -74,6 +74,13 @@ internal class ScreenCapturerAndroid(
     @Synchronized
     internal fun changeCaptureFormat(width: Int, height: Int) {
         checkNotDisposed()
+        if (width <= 0 || height <= 0) {
+            XLog.e(
+                getLog("changeCaptureFormat", "Invalid size: $width x $height. Ignoring."),
+                IllegalArgumentException("Invalid capture size: $width x $height")
+            )
+            return
+        }
         if (this.width == width && this.height == height) {
             XLog.i(getLog("changeCaptureFormat", "Ignoring"))
             return

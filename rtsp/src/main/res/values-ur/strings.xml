@@ -84,6 +84,7 @@
     <string name="rtsp_audio_permission_message">آڈیو اسٹریم کیلئے ریکارڈنگ کی اجازت ضروری ہے۔\n\nبغیر اجازت کے اسٹریم میں آڈیو نہیں ہوگا۔</string>
     <string name="rtsp_audio_permission_open_settings">ترتیبات کھولیں</string>
     <string name="rtsp_audio_permission_message_settings">ایپ پرمیشنز میں مائیکروفون کی اجازت ضروری ہے تاکہ آڈیو اسٹریم ہو سکے۔\n\nبغیر اجازت کے اسٹریم میں آڈیو نہیں ہوگا۔</string>
+    <string name="rtsp_audio_capture_issue_detected">آڈیو کیپچر میں مسئلہ پایا گیا</string>
 
     <string name="rtsp_connection_access_denied">رسائی مسترد</string>
     <string name="rtsp_connection_no_credentials">یوزرنیم اور پاس ورڈ دیں</string>

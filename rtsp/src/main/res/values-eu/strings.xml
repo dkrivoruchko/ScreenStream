@@ -84,6 +84,7 @@
     <string name="rtsp_audio_permission_message">Audioa grabatzeko baimena beharrezkoa da aplikazioak audio edukia transmititzeko.\n\nBaimen hau eman gabe, transmisioak ez du audiorik izango.</string>
     <string name="rtsp_audio_permission_open_settings">Ezarpenak ireki</string>
     <string name="rtsp_audio_permission_message_settings">Mikrofonorako sarbidea ematea aplikazio-baimenetan beharrezkoa da aplikazioak audio edukia transmititzeko.\n\nBaimen hau eman gabe, transmisioa audiorik gabe egingo da.</string>
+    <string name="rtsp_audio_capture_issue_detected">Audio grabazioan arazo bat hauteman da</string>
 
     <string name="rtsp_connection_access_denied">Sarbidea ukatua</string>
     <string name="rtsp_connection_no_credentials">Zehaztu erabiltzaile-izena eta pasahitza</string>

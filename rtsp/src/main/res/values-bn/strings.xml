@@ -84,6 +84,7 @@
     <string name="rtsp_audio_permission_message">অডিও কন্টেন্ট স্ট্রিম করার জন্য অ্যাপ্লিকেশনের অডিও রেকর্ড করার অনুমতি প্রয়োজন।\n\nএই অনুমতি না দিলে, স্ট্রিম অডিও ছাড়া হবে।</string>
     <string name="rtsp_audio_permission_open_settings">সেটিংস খুলুন</string>
     <string name="rtsp_audio_permission_message_settings">অডিও কন্টেন্ট স্ট্রিম করার জন্য অ্যাপ্লিকেশন অনুমতিতে মাইক্রোফোন অ্যাক্সেস দেওয়া প্রয়োজন।\n\nএই অনুমতি না দিলে, স্ট্রিম অডিও ছাড়া পরিচালিত হবে।</string>
+    <string name="rtsp_audio_capture_issue_detected">অডিও ধারণে একটি সমস্যা শনাক্ত হয়েছে।</string>
 
     <string name="rtsp_connection_access_denied">অ্যাক্সেস অস্বীকৃত</string>
     <string name="rtsp_connection_no_credentials">ব্যবহারকারী নাম এবং পাসওয়ার্ড নির্দিষ্ট করুন</string>

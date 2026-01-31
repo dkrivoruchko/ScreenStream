@@ -56,7 +56,7 @@ public class MjpegModuleService : StreamingModuleService() {
 
         if (streamingModuleManager.isActive(MjpegStreamingModule.Id)) {
             when (mjpegEvent) {
-                is MjpegEvent.Intentable.StartService -> mjpegStreamingModule.onServiceStart(this)
+                is MjpegEvent.Intentable.StartService -> mjpegStreamingModule.onServiceStart(this, mjpegEvent.token)
                 is MjpegEvent.Intentable.StopStream -> mjpegStreamingModule.sendEvent(mjpegEvent)
                 MjpegEvent.Intentable.RecoverError -> mjpegStreamingModule.sendEvent(mjpegEvent)
             }

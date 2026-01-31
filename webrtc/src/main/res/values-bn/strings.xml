@@ -32,6 +32,7 @@
     <string name="webrtc_stream_audio_select">অডিও উত্স নির্বাচন করুন:</string>
     <string name="webrtc_stream_audio_mic">মাইক্রোফোন</string>
     <string name="webrtc_stream_audio_device">ডিভাইস অডিও</string>
+    <string name="webrtc_stream_audio_device_unavailable">ডিভাইস অডিও উপলব্ধ নয়</string>
     <string name="webrtc_stream_connected_clients">সংযুক্ত ক্লায়েন্ট: %1$d</string>
     <string name="webrtc_stream_no_web_browser_found">কোনো ওয়েব ব্রাউজার পাওয়া যায়নি</string>
     <string name="webrtc_stream_external_app_error">বহিরাগত অ্যাপ্লিকেশন ত্রুটি</string>

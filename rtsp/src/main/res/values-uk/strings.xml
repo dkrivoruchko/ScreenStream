@@ -84,6 +84,7 @@
     <string name="rtsp_audio_permission_message">Дозвіл на запис звуку необхідний для трансляції аудіо.\n\nБез цього дозволу трансляція буде без звуку.</string>
     <string name="rtsp_audio_permission_open_settings">Відкрити налаштування</string>
     <string name="rtsp_audio_permission_message_settings">Надання доступу до мікрофона необхідне для трансляції аудіо.\n\nБез цього дозволу трансляція буде без звуку.</string>
+    <string name="rtsp_audio_capture_issue_detected">Виявлено проблему із захопленням звуку</string>
 
     <string name="rtsp_connection_access_denied">Доступ заборонено</string>
     <string name="rtsp_connection_no_credentials">Вкажіть логін і пароль</string>

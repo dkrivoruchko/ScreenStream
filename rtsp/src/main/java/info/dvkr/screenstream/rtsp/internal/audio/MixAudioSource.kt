@@ -25,13 +25,13 @@ internal class MixAudioSource(
     mediaProjection: MediaProjection,
     private val dispatcher: CoroutineDispatcher,
     private val onAudioFrame: (AudioSource.Frame) -> Unit,
-    private val onError: (Throwable) -> Unit,
+    private val onCaptureError: (Throwable) -> Unit,
     private val micMixFactor: Float = 1.0f,
     private val intMixFactor: Float = 0.25f,
 ) : AudioSource {
 
-    private val microphone = MicrophoneSource(audioParams, audioSource, dispatcher, onAudioFrame = { pushToRing(it, micRing) }, onError)
-    private val internal = InternalAudioSource(audioParams, mediaProjection, dispatcher, onAudioFrame = { pushToRing(it, intRing) }, onError)
+    private val microphone = MicrophoneSource(audioParams, audioSource, dispatcher, onAudioFrame = { pushToRing(it, micRing) }, onCaptureError)
+    private val internal = InternalAudioSource(audioParams, mediaProjection, dispatcher, onAudioFrame = { pushToRing(it, intRing) }, onCaptureError)
 
     private val channels = if (audioParams.isStereo) 2 else 1
     private val chunkMs = 20

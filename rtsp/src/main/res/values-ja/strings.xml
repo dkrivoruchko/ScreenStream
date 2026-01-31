@@ -84,6 +84,7 @@
     <string name="rtsp_audio_permission_message">アプリが音声コンテンツをストリーミングするには音声録音の権限が必要です。\n\nこの権限がない場合、ストリームは音声なしで配信されます。</string>
     <string name="rtsp_audio_permission_open_settings">設定を開く</string>
     <string name="rtsp_audio_permission_message_settings">アプリが音声コンテンツをストリーミングするには、アプリ権限でマイクへのアクセスを許可する必要があります。\n\nこの権限がない場合、ストリームは音声なしで配信されます。</string>
+    <string name="rtsp_audio_capture_issue_detected">音声キャプチャで問題が検出されました</string>
 
     <string name="rtsp_connection_access_denied">アクセス拒否</string>
     <string name="rtsp_connection_no_credentials">ユーザー名とパスワードを指定してください</string>

@@ -32,6 +32,7 @@
     <string name="webrtc_stream_audio_select">აირჩიეთ აუდიო წყაროები:</string>
     <string name="webrtc_stream_audio_mic">მიკროფონი</string>
     <string name="webrtc_stream_audio_device">მოწყობილობის აუდიო</string>
+    <string name="webrtc_stream_audio_device_unavailable">მოწყობილობის აუდიო მიუწვდომელია</string>
     <string name="webrtc_stream_connected_clients">დაკავშირებული კლიენტები: %1$d</string>
     <string name="webrtc_stream_no_web_browser_found">ვებ ბრაუზერი ვერ მოიძებნა</string>
     <string name="webrtc_stream_external_app_error">გარე განაცხადის შეცდომა</string>

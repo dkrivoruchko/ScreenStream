@@ -9,10 +9,10 @@ internal class MicrophoneSource(
     private val audioSource: Int,
     dispatcher: CoroutineDispatcher,
     onAudioFrame: (AudioSource.Frame) -> Unit,
-    onError: (Throwable) -> Unit
+    onCaptureError: (Throwable) -> Unit
 ) : AudioSource {
 
-    private val audioCapture = AudioCapture(audioParams, dispatcher, onAudioFrame, onError)
+    private val audioCapture = AudioCapture(audioParams, dispatcher, onAudioFrame, onCaptureError)
 
     override val isRunning: Boolean
         get() = audioCapture.isRunning()

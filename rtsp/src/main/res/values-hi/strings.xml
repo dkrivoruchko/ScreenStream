@@ -84,6 +84,7 @@
     <string name="rtsp_audio_permission_message">ऑडियो सामग्री स्ट्रीम करने के लिए एप्लिकेशन को ऑडियो रिकॉर्ड करने की अनुमति आवश्यक है।\n\nयह अनुमति नहीं देने पर, स्ट्रीम बिना ऑडियो के होगी।</string>
     <string name="rtsp_audio_permission_open_settings">सेटिंग्स खोलें</string>
     <string name="rtsp_audio_permission_message_settings">ऑडियो सामग्री स्ट्रीम करने के लिए एप्लिकेशन अनुमतियों में माइक्रोफोन एक्सेस देना आवश्यक है।\n\nयह अनुमति नहीं देने पर, स्ट्रीम बिना ऑडियो के संचालित की जाएगी।</string>
+    <string name="rtsp_audio_capture_issue_detected">ऑडियो कैप्चर में समस्या मिली।</string>
 
     <string name="rtsp_connection_access_denied">पहुंच अस्वीकृत</string>
     <string name="rtsp_connection_no_credentials">उपयोगकर्ता नाम और पासवर्ड निर्दिष्ट करें</string>

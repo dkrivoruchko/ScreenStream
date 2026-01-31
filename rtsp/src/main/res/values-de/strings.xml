@@ -84,6 +84,7 @@
     <string name="rtsp_audio_permission_message">Die Erlaubnis zur Audioaufnahme ist notwendig, damit die App Audioinhalte streamen kann.\n\nOhne diese Berechtigung wird der Stream ohne Audio sein.</string>
     <string name="rtsp_audio_permission_open_settings">Einstellungen öffnen</string>
     <string name="rtsp_audio_permission_message_settings">Die Berechtigung für Mikrofonzugriff in den App-Berechtigungen ist notwendig, damit die App Audioinhalte streamen kann.\n\nOhne diese Berechtigung wird der Stream ohne Audio durchgeführt.</string>
+    <string name="rtsp_audio_capture_issue_detected">Es wurde ein Problem bei der Audioaufnahme erkannt</string>
 
     <string name="rtsp_connection_access_denied">Zugriff verweigert</string>
     <string name="rtsp_connection_no_credentials">Benutzername und Passwort angeben</string>

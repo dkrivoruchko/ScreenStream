@@ -84,6 +84,7 @@
     <string name="rtsp_audio_permission_message">Toestemming voor audio-opname is nodig om audio te streamen.\n\nZonder deze toestemming zal de stream geen audio bevatten.</string>
     <string name="rtsp_audio_permission_open_settings">Instellingen openen</string>
     <string name="rtsp_audio_permission_message_settings">Microfoontoestemming is nodig om audio te streamen.\n\nZonder deze toestemming zal de stream geen audio bevatten.</string>
+    <string name="rtsp_audio_capture_issue_detected">Er is een probleem met de audio-opname gedetecteerd</string>
 
     <string name="rtsp_connection_access_denied">Toegang geweigerd</string>
     <string name="rtsp_connection_no_credentials">Geef gebruikersnaam en wachtwoord op</string>

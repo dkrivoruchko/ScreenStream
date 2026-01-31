@@ -65,7 +65,7 @@ public class RtspModuleService : StreamingModuleService() {
 
         if (streamingModuleManager.isActive(RtspStreamingModule.Id)) {
             when (mjpegEvent) {
-                is RtspEvent.Intentable.StartService -> rtspStreamingModule.onServiceStart(this)
+                is RtspEvent.Intentable.StartService -> rtspStreamingModule.onServiceStart(this, mjpegEvent.token)
                 is RtspEvent.Intentable.StopStream -> rtspStreamingModule.sendEvent(mjpegEvent)
                 RtspEvent.Intentable.RecoverError -> rtspStreamingModule.sendEvent(mjpegEvent)
             }

@@ -11,10 +11,14 @@ import android.media.AudioRecord
 import android.media.projection.MediaProjection
 import android.media.projection.MediaProjectionManager
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
+import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.window.layout.WindowMetricsCalculator
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.common.getLog
+import info.dvkr.screenstream.webrtc.R
 import org.webrtc.AudioSource
 import org.webrtc.DefaultVideoDecoderFactory
 import org.webrtc.DefaultVideoEncoderFactory
@@ -50,6 +54,7 @@ internal class WebRtcProjection(private val serviceContext: Context) : AudioReco
     private enum class VideoCodec(val priority: Int) { VP8(1), VP9(2), H265(3), H264(4); }
 
     private val mediaProjectionManager = serviceContext.applicationContext.getSystemService(MediaProjectionManager::class.java)
+    private val mainHandler = Handler(Looper.getMainLooper())
 
     private val rootEglBase: EglBase = EglBase.create()
     private val audioDeviceModule = JavaAudioDeviceModule.builder(serviceContext.applicationContext)
@@ -124,9 +129,18 @@ internal class WebRtcProjection(private val serviceContext: Context) : AudioReco
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && deviceAudioMute.not()) {
             if (deviceAudioRecord == null) {
                 createAudioRecord(audioFormat, sampleRate, mediaProjection!!)?.let {
-                    deviceAudioRecord = it.apply { startRecording() }
+                    runCatching { it.startRecording() }.onFailure { cause ->
+                        XLog.w(getLog("onAudioDataRecorded", "AudioRecord start failed"), cause)
+                        it.release()
+                        setDeviceAudioMute(true)
+                        notifyDeviceAudioUnavailable()
+                        return
+                    }
+                    deviceAudioRecord = it
                 } ?: run {
                     XLog.w(getLog("onAudioDataRecorded", "Cannot create AudioRecord for projection"))
+                    setDeviceAudioMute(true)
+                    notifyDeviceAudioUnavailable()
                     return
                 }
             }
@@ -161,11 +175,17 @@ internal class WebRtcProjection(private val serviceContext: Context) : AudioReco
 
                     // TODO https://android-developers.googleblog.com/2024/03/enhanced-screen-sharing-capabilities-in-android-14.html
                     override fun onCapturedContentVisibilityChanged(isVisible: Boolean) {
-                        XLog.i(this@WebRtcProjection.getLog("MediaProjection.Callback", "onCapturedContentVisibilityChanged: $isVisible"))
+                        XLog.e(
+                            this@WebRtcProjection.getLog("MediaProjection.Callback", "onCapturedContentVisibilityChanged: $isVisible"),
+                            IllegalStateException("CapturedContentVisibilityChanged: $isVisible")
+                        )
                     }
 
                     override fun onCapturedContentResize(width: Int, height: Int) {
-                        XLog.i(this@WebRtcProjection.getLog("MediaProjection.Callback", "onCapturedContentResize: width: $width, height: $height"))
+                        XLog.e(
+                            this@WebRtcProjection.getLog("MediaProjection.Callback", "onCapturedContentResize: width: $width, height: $height"),
+                            IllegalStateException("CapturedContentResize: $width x $height")
+                        )
                         changeCaptureFormat(width, height)
                     }
                 }
@@ -204,6 +224,13 @@ internal class WebRtcProjection(private val serviceContext: Context) : AudioReco
         synchronized(lock) {
             if (isStopped || isRunning.not()) {
                 XLog.i(this@WebRtcProjection.getLog("changeCaptureFormat", "Ignoring: isStopped=$isStopped, isRunning=$isRunning"))
+                return
+            }
+            if (width <= 0 || height <= 0) {
+                XLog.e(
+                    this@WebRtcProjection.getLog("changeCaptureFormat", "Invalid size: $width x $height. Ignoring."),
+                    IllegalArgumentException("Invalid capture size: $width x $height")
+                )
                 return
             }
             XLog.d(this@WebRtcProjection.getLog("changeCaptureFormat", "width:$width, height:$height"))
@@ -268,7 +295,7 @@ internal class WebRtcProjection(private val serviceContext: Context) : AudioReco
         val format = AudioFormat.Builder()
             .setEncoding(audioFormat)
             .setSampleRate(sampleRate)
-            .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
+            .setChannelMask(AudioFormat.CHANNEL_IN_MONO)
             .build()
 
         val playbackConfig = AudioPlaybackCaptureConfiguration.Builder(mediaProjection)
@@ -277,12 +304,24 @@ internal class WebRtcProjection(private val serviceContext: Context) : AudioReco
             .addMatchingUsage(AudioAttributes.USAGE_UNKNOWN)
             .build()
 
-        return runCatching {
+        val record = runCatching {
             AudioRecord.Builder()
                 .setAudioFormat(format)
                 .setAudioPlaybackCaptureConfig(playbackConfig)
                 .build()
-        }.onFailure { e -> XLog.e(getLog("createAudioRecord", "Cannot create AudioRecord"), e) }.getOrNull()
+        }.onFailure { e -> XLog.e(getLog("createAudioRecord", "Cannot create AudioRecord"), e) }.getOrNull() ?: return null
+
+        if (record.state != AudioRecord.STATE_INITIALIZED) {
+            XLog.w(getLog("createAudioRecord", "AudioRecord not initialized."))
+            record.release()
+            return null
+        }
+
+        return record
+    }
+
+    private fun notifyDeviceAudioUnavailable() = mainHandler.post {
+        Toast.makeText(serviceContext, R.string.webrtc_stream_audio_device_unavailable, Toast.LENGTH_LONG).show()
     }
 
     private fun mixBuffers(buffer1: ByteBuffer, buffer2: ByteBuffer): ByteArray {

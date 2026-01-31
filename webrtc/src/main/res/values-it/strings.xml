@@ -32,6 +32,7 @@
     <string name="webrtc_stream_audio_select">Seleziona le sorgenti audio:</string>
     <string name="webrtc_stream_audio_mic">Microfono</string>
     <string name="webrtc_stream_audio_device">Audio del dispositivo</string>
+    <string name="webrtc_stream_audio_device_unavailable">Audio del dispositivo non disponibile</string>
     <string name="webrtc_stream_connected_clients">Client connessi: %1$d</string>
     <string name="webrtc_stream_no_web_browser_found">Nessun browser web trovato</string>
     <string name="webrtc_stream_external_app_error">Errore dell\'applicazione esterna</string>

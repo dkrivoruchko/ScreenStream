@@ -84,6 +84,7 @@
     <string name="rtsp_audio_permission_message">Toestemming om klank op te neem is nodig vir die toepassing om klankinhoud te stroom.\n\nSonder hierdie toestemming sal die stroom sonder klank wees.</string>
     <string name="rtsp_audio_permission_open_settings">Open instellings</string>
     <string name="rtsp_audio_permission_message_settings">Toestemming vir mikrofoontoegang in toepassingsinstellings is nodig vir die toepassing om klankinhoud te stroom.\n\nSonder hierdie toestemming sal die stroom sonder klank wees.</string>
+    <string name="rtsp_audio_capture_issue_detected">Probleem met oudio-opname opgespoor</string>
 
     <string name="rtsp_connection_access_denied">Toegang geweier</string>
     <string name="rtsp_connection_no_credentials">Spesifiseer gebruikersnaam en wagwoord</string>

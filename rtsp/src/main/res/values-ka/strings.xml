@@ -84,6 +84,7 @@
     <string name="rtsp_audio_permission_message">აუდიოს ჩაწერის ნებართვა აუცილებელია აპლიკაციისთვის აუდიო კონტენტის ტრანსლაციისთვის.\n\nამ ნებართვის გარეშე, ტრანსლაცია იქნება აუდიოს გარეშე.</string>
     <string name="rtsp_audio_permission_open_settings">პარამეტრების გახსნა</string>
     <string name="rtsp_audio_permission_message_settings">აპლიკაციის ნებართვებში მიკროფონზე წვდომის დაშვება აუცილებელია აპლიკაციისთვის აუდიო კონტენტის ტრანსლაციისთვის.\n\nამ ნებართვის გარეშე, ტრანსლაცია განხორციელდება აუდიოს გარეშე.</string>
+    <string name="rtsp_audio_capture_issue_detected">აუდიო ჩაწერის პრობლემა გამოვლინდა</string>
 
     <string name="rtsp_connection_access_denied">წვდომა უარყოფილია</string>
     <string name="rtsp_connection_no_credentials">მიუთითეთ მომხმარებლის სახელი და პაროლი</string>

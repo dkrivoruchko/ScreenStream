@@ -16,8 +16,10 @@ import android.media.projection.MediaProjectionManager
 import android.os.Build
 import android.os.Handler
 import android.os.HandlerThread
+import android.os.Looper
 import android.os.Message
 import android.view.Surface
+import android.widget.Toast
 import androidx.annotation.AnyThread
 import androidx.annotation.MainThread
 import androidx.core.content.ContextCompat
@@ -26,6 +28,7 @@ import androidx.window.layout.WindowMetricsCalculator
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.common.getVersionName
+import info.dvkr.screenstream.rtsp.R
 import info.dvkr.screenstream.rtsp.RtspModuleService
 import info.dvkr.screenstream.rtsp.internal.EncoderUtils.adjustResizeFactor
 import info.dvkr.screenstream.rtsp.internal.audio.AudioEncoder
@@ -72,6 +75,7 @@ internal class RtspStreamingService(
     private val appVersion = service.getVersionName()
     private val projectionManager = service.application.getSystemService(MediaProjectionManager::class.java)
     private val handler: Handler by lazy(LazyThreadSafetyMode.NONE) { Handler(looper, this) }
+    private val mainHandler: Handler by lazy(LazyThreadSafetyMode.NONE) { Handler(Looper.getMainLooper()) }
     private val coroutineDispatcher: CoroutineDispatcher by lazy(LazyThreadSafetyMode.NONE) { handler.asCoroutineDispatcher("RTSP-HT_Dispatcher") }
     private val supervisorJob = SupervisorJob()
     private val coroutineScope by lazy(LazyThreadSafetyMode.NONE) { CoroutineScope(supervisorJob + coroutineDispatcher) }
@@ -121,6 +125,8 @@ internal class RtspStreamingService(
 
     private var currentError: RtspError? = null
     private var previousError: RtspError? = null
+    private var audioCaptureDisabled: Boolean = false
+    private var audioIssueToastShown: Boolean = false
     // All vars must be read/write on this (RTSP_HT) thread
 
     private inner class RtspServerController() {
@@ -251,9 +257,12 @@ internal class RtspStreamingService(
             }
         }
 
-        fun setMediaParams(video: VideoParams? = null, audio: AudioParams? = null) {
-            video?.let { server?.setVideoData(it.codec, it.sps, it.pps, it.vps) }
-            audio?.let { server?.setAudioData(it) }
+        fun setVideoParams(video: VideoParams) {
+            server?.setVideoData(video.codec, video.sps, video.pps, video.vps)
+        }
+
+        fun setAudioParams(audio: AudioParams?) {
+            server?.setAudioData(audio)
         }
 
         fun onFrame(frame: MediaFrame) = when (frame) {
@@ -317,9 +326,12 @@ internal class RtspStreamingService(
             }
         }
 
-        fun setMediaParams(video: VideoParams? = null, audio: AudioParams? = null) {
-            video?.let { client?.setVideoData(it.codec, it.sps, it.pps, it.vps) }
-            audio?.let { client?.setAudioData(it) }
+        fun setVideoParams(video: VideoParams) {
+            client?.setVideoData(video.codec, video.sps, video.pps, video.vps)
+        }
+
+        fun setAudioParams(audio: AudioParams?) {
+            client?.setAudioData(audio)
         }
 
         fun onFrame(frame: MediaFrame) {
@@ -333,6 +345,7 @@ internal class RtspStreamingService(
         data class OnAudioCodecChange(val name: String?) : InternalEvent(Priority.DESTROY_IGNORE)
         data class ModeChanged(val mode: RtspSettings.Values.Mode) : InternalEvent(Priority.RECOVER_IGNORE)
         data object StartStream : InternalEvent(Priority.RECOVER_IGNORE)
+        data class AudioCaptureError(val cause: Throwable) : InternalEvent(Priority.RECOVER_IGNORE)
 
         data class OnAudioParamsChange(val micMute: Boolean, val deviceMute: Boolean, val micVolume: Float, val deviceVolume: Float) :
             InternalEvent(Priority.DESTROY_IGNORE)
@@ -381,11 +394,17 @@ internal class RtspStreamingService(
 
         // TODO https://android-developers.googleblog.com/2024/03/enhanced-screen-sharing-capabilities-in-android-14.html
         override fun onCapturedContentVisibilityChanged(isVisible: Boolean) {
-            XLog.i(this@RtspStreamingService.getLog("MediaProjection.Callback", "onCapturedContentVisibilityChanged: $isVisible"))
+            XLog.e(
+                this@RtspStreamingService.getLog("MediaProjection.Callback", "onCapturedContentVisibilityChanged: $isVisible"),
+                IllegalStateException("CapturedContentVisibilityChanged: $isVisible")
+            )
         }
 
         override fun onCapturedContentResize(width: Int, height: Int) {
-            XLog.i(this@RtspStreamingService.getLog("MediaProjection.Callback", "onCapturedContentResize: width: $width, height: $height"))
+            XLog.e(
+                this@RtspStreamingService.getLog("MediaProjection.Callback", "onCapturedContentResize: width: $width, height: $height"),
+                IllegalStateException("CapturedContentResize: $width x $height")
+            )
             sendEvent(InternalEvent.CapturedContentResize(width, height))
         }
     }
@@ -577,6 +596,8 @@ internal class RtspStreamingService(
                 )
                 currentError = null
                 previousError = null
+                audioCaptureDisabled = false
+                audioIssueToastShown = false
             }
 
             is InternalEvent.OnVideoCodecChange -> {
@@ -657,6 +678,7 @@ internal class RtspStreamingService(
                 val modeLocal = settings.mode
                 val serverController = if (modeLocal == RtspSettings.Values.Mode.SERVER) serverController else null
                 val clientController = if (modeLocal == RtspSettings.Values.Mode.CLIENT) clientController else null
+                var clientRtspUrl: RtspUrl? = null
 
                 if (modeLocal == RtspSettings.Values.Mode.SERVER) {
                     check(serverController != null) { "RtspServer controller is null" }
@@ -664,22 +686,26 @@ internal class RtspStreamingService(
                 } else {
                     check(clientController != null) { "RtspClient controller is null" }
 
-                    val rtspUrl = try {
+                    clientRtspUrl = try {
                         RtspUrl.parse(settings.serverAddress)
                     } catch (e: URISyntaxException) {
                         sendEvent(InternalEvent.Error(RtspError.UnknownError(e)))
                         return
                     }
-                    val onlyVideo = settings.enableMic.not() && settings.enableDeviceAudio.not()
-
-                    clientController.startClient(rtspUrl, onlyVideo)
                 }
 
-                val setMediaParams: (VideoParams?, AudioParams?) -> Unit =
+                val setVideoParams: (VideoParams) -> Unit =
                     if (modeLocal == RtspSettings.Values.Mode.SERVER) {
-                        { video, audio -> serverController?.setMediaParams(video = video, audio = audio) }
+                        { video -> serverController?.setVideoParams(video) }
                     } else {
-                        { video, audio -> clientController?.setMediaParams(video = video, audio = audio) }
+                        { video -> clientController?.setVideoParams(video) }
+                    }
+
+                val setAudioParams: (AudioParams?) -> Unit =
+                    if (modeLocal == RtspSettings.Values.Mode.SERVER) {
+                        { audio -> serverController?.setAudioParams(audio) }
+                    } else {
+                        { audio -> clientController?.setAudioParams(audio) }
                     }
 
                 val onFrame: (MediaFrame) -> Unit =
@@ -723,7 +749,7 @@ internal class RtspStreamingService(
                     onVideoInfo = { sps, pps, vps ->
                         val params = VideoParams(videoEncoderInfo.codec, sps, pps, vps)
                         projectionState.lastVideoParams = params
-                        setMediaParams(params, null)
+                        setVideoParams(params)
                     },
                     onVideoFrame = onFrame,
                     onFps = { sendEvent(InternalEvent.OnVideoFps(it)) },
@@ -781,9 +807,10 @@ internal class RtspStreamingService(
                         onAudioInfo = { params ->
                             val audioParams = AudioParams(audioEncoderInfo.codec, params.sampleRate, params.isStereo)
                             projectionState.lastAudioParams = audioParams
-                            setMediaParams(null, audioParams)
+                            setAudioParams(audioParams)
                         },
                         onAudioFrame = onFrame,
+                        onAudioCaptureError = { sendEvent(InternalEvent.AudioCaptureError(it)) },
                         onError = {
                             XLog.w(getLog("AudioEncoder.onError", it.message), it)
                             sendEvent(InternalEvent.Error(RtspError.UnknownError(it)))
@@ -829,6 +856,11 @@ internal class RtspStreamingService(
                     }
                 }
 
+                if (modeLocal == RtspSettings.Values.Mode.CLIENT) {
+                    val onlyVideo = audioCaptureDisabled || (settings.enableMic.not() && settings.enableDeviceAudio.not())
+                    clientController?.startClient(clientRtspUrl!!, onlyVideo)
+                }
+
                 projectionState.active = ActiveProjection(
                     mediaProjection = mediaProjection,
                     virtualDisplay = virtualDisplay!!,
@@ -853,6 +885,18 @@ internal class RtspStreamingService(
             is InternalEvent.OnAudioParamsChange -> {
                 projectionState.active?.audioEncoder?.setVolume(event.micVolume, event.deviceVolume)
                 projectionState.active?.audioEncoder?.setMute(event.micMute, event.deviceMute)
+            }
+
+            is InternalEvent.AudioCaptureError -> {
+                if (audioCaptureDisabled) return
+
+                audioCaptureDisabled = true
+                projectionState.lastAudioParams = null
+                projectionState.active?.audioEncoder?.stop()
+                projectionState.active = projectionState.active?.copy(audioEncoder = null)
+                serverController?.setAudioParams(null)
+                clientController?.setAudioParams(null)
+                showAudioCaptureIssueToastOnce()
             }
 
             is InternalEvent.ConfigurationChange -> {
@@ -899,6 +943,13 @@ internal class RtspStreamingService(
             is InternalEvent.CapturedContentResize -> {
                 val projection = projectionState.active ?: run {
                     XLog.d(getLog("CapturedContentResize", "Not streaming. Ignoring."))
+                    return
+                }
+                if (event.width <= 0 || event.height <= 0) {
+                    XLog.e(
+                        getLog("CapturedContentResize", "Invalid size: ${event.width} x ${event.height}. Ignoring."),
+                        IllegalArgumentException("Invalid capture size: ${event.width} x ${event.height}")
+                    )
                     return
                 }
 
@@ -974,6 +1025,9 @@ internal class RtspStreamingService(
             runCatching { service.unregisterComponentCallbacks(componentCallback) }
         }
 
+        audioCaptureDisabled = false
+        audioIssueToastShown = false
+
         clientController?.stop()
         serverController?.stop(stopServer)
 
@@ -984,5 +1038,11 @@ internal class RtspStreamingService(
         projectionState.lastAudioParams = null
 
         service.stopForeground()
+    }
+
+    private fun showAudioCaptureIssueToastOnce() {
+        if (audioIssueToastShown) return
+        audioIssueToastShown = true
+        mainHandler.post { Toast.makeText(service, R.string.rtsp_audio_capture_issue_detected, Toast.LENGTH_LONG).show() }
     }
 }

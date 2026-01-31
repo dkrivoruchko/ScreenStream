@@ -84,6 +84,7 @@
     <string name="rtsp_audio_permission_message">Izin untuk merekam audio diperlukan agar aplikasi dapat menyiarkan konten audio.\n\nTanpa izin ini, siaran akan tanpa audio.</string>
     <string name="rtsp_audio_permission_open_settings">Buka pengaturan</string>
     <string name="rtsp_audio_permission_message_settings">Pemberian akses mikrofon di izin aplikasi diperlukan agar aplikasi dapat menyiarkan konten audio.\n\nTanpa izin ini, siaran akan dilakukan tanpa audio.</string>
+    <string name="rtsp_audio_capture_issue_detected">Masalah pada perekaman audio terdeteksi</string>
 
     <string name="rtsp_connection_access_denied">Akses ditolak</string>
     <string name="rtsp_connection_no_credentials">Tentukan nama pengguna dan kata sandi</string>

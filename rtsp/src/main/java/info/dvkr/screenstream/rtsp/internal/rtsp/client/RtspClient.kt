@@ -227,7 +227,11 @@ internal class RtspClient(
 
     @Throws
     @AnyThread
-    internal fun setAudioData(params: AudioParams) = synchronized(rtspLock) {
+    internal fun setAudioData(params: AudioParams?) = synchronized(rtspLock) {
+        if (params == null) {
+            audioParams.set(null)
+            return
+        }
         XLog.d(getLog("setAudioData", "${params.codec}"))
         if (currentState == State.STREAMING) error("Cannot change audio codec while streaming")
         if (onlyVideo) error("Cannot change audio codec in only video mode")

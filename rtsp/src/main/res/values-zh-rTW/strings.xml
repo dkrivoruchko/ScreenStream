@@ -84,6 +84,7 @@
     <string name="rtsp_audio_permission_message">應用需要錄音權限才能傳輸音訊內容。\n\n如果不授予權限，串流將沒有音訊。</string>
     <string name="rtsp_audio_permission_open_settings">開啟設定</string>
     <string name="rtsp_audio_permission_message_settings">需要麥克風存取權限才能傳輸音訊內容。\n\n如果不授予權限，串流將沒有音訊。</string>
+    <string name="rtsp_audio_capture_issue_detected">偵測到音訊擷取問題</string>
 
     <string name="rtsp_connection_access_denied">存取被拒絕</string>
     <string name="rtsp_connection_no_credentials">請指定使用者名稱和密碼</string>

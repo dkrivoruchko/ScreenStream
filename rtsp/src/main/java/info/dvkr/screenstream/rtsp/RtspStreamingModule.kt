@@ -22,6 +22,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import org.koin.core.parameter.parametersOf
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 public class RtspStreamingModule : StreamingModule {
 
@@ -31,6 +33,7 @@ public class RtspStreamingModule : StreamingModule {
 
     private val _streamingServiceState: MutableStateFlow<StreamingModule.State> = MutableStateFlow(StreamingModule.State.Initiated)
     private val _rtspStateFlow: MutableStateFlow<RtspState> = MutableStateFlow(RtspState())
+    private var startToken: String? = null
 
     override val id: StreamingModule.Id = Id
     override val priority: Int = 10
@@ -54,6 +57,7 @@ public class RtspStreamingModule : StreamingModule {
             modifier = modifier
         )
 
+    @OptIn(ExperimentalUuidApi::class)
     @MainThread
     override fun startModule(context: Context) {
         XLog.d(getLog("startModule"))
@@ -61,26 +65,46 @@ public class RtspStreamingModule : StreamingModule {
 
         when (val state = _streamingServiceState.value) {
             StreamingModule.State.Initiated -> {
-                RtspModuleService.startService(context, RtspEvent.Intentable.StartService.toIntent(context))
+                startToken = Uuid.random().toString()
                 _streamingServiceState.value = StreamingModule.State.PendingStart
+                RtspModuleService.startService(context, RtspEvent.Intentable.StartService(startToken!!).toIntent(context))
             }
 
-            else -> throw RuntimeException("Unexpected state: $state")
+            StreamingModule.State.PendingStart ->
+                XLog.i(getLog("startModule", "Already starting (PendingStart). Ignoring."))
+
+            is StreamingModule.State.Running ->
+                XLog.w(getLog("startModule", "Already running. Ignoring."), RuntimeException("Unexpected state: $state"))
+
+            StreamingModule.State.PendingStop ->
+                XLog.w(getLog("startModule", "Stopping (PendingStop). Ignoring."), RuntimeException("Unexpected state: $state"))
         }
     }
 
     @MainThread
-    internal fun onServiceStart(service: Service) {
+    internal fun onServiceStart(service: Service, token: String) {
         XLog.d(getLog("onServiceStart", "Service: $service"))
 
         when (val state = _streamingServiceState.value) {
             StreamingModule.State.PendingStart -> {
+                if (token != startToken) {
+                    XLog.w(getLog("onServiceStart", "Invalid token. Ignoring."))
+                    return
+                }
+                startToken = null
                 val scope = RtspKoinScope().scope
                 _streamingServiceState.value = StreamingModule.State.Running(scope)
                 scope.get<RtspStreamingService> { parametersOf(service, _rtspStateFlow) }.start()
             }
 
-            else -> throw RuntimeException("Unexpected state: $state")
+            StreamingModule.State.Initiated ->
+                XLog.w(getLog("onServiceStart", "Unexpected Initiated state. Ignoring."), RuntimeException("Unexpected state: $state"))
+
+            is StreamingModule.State.Running ->
+                XLog.w(getLog("onServiceStart", "Already running. Ignoring."), RuntimeException("Unexpected state: $state"))
+
+            StreamingModule.State.PendingStop ->
+                XLog.w(getLog("onServiceStart", "Stopping (PendingStop). Ignoring."), RuntimeException("Unexpected state: $state"))
         }
     }
 
@@ -94,6 +118,7 @@ public class RtspStreamingModule : StreamingModule {
 
             StreamingModule.State.PendingStart -> {
                 XLog.d(getLog("stopModule", "Not started (PendingStart)"))
+                startToken = null
                 _streamingServiceState.value = StreamingModule.State.Initiated
             }
 
@@ -101,6 +126,7 @@ public class RtspStreamingModule : StreamingModule {
                 _streamingServiceState.value = StreamingModule.State.PendingStop
                 withContext(NonCancellable) { state.scope.get<RtspStreamingService>().destroyService() }
                 _rtspStateFlow.value = RtspState()
+                startToken = null
                 state.scope.close()
                 _streamingServiceState.value = StreamingModule.State.Initiated
             }

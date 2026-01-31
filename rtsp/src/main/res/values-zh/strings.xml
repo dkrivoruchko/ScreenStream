@@ -84,6 +84,7 @@
     <string name="rtsp_audio_permission_message">应用需要录音权限才能传输音频内容。\n\n如果不授予权限，流媒体将没有音频。</string>
     <string name="rtsp_audio_permission_open_settings">打开设置</string>
     <string name="rtsp_audio_permission_message_settings">需要麦克风访问权限才能传输音频内容。\n\n如果不授予权限，流媒体将没有音频。</string>
+    <string name="rtsp_audio_capture_issue_detected">检测到音频采集问题</string>
 
     <string name="rtsp_connection_access_denied">访问被拒绝</string>
     <string name="rtsp_connection_no_credentials">请指定用户名和密码</string>

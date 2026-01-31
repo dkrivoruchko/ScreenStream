@@ -37,7 +37,7 @@ public fun MediaProjectionPermission(
         contract = ActivityResultContracts.StartActivityForResult(),
         onResult = { activityResult ->
             if (shouldRequestPermission.not()) {
-                XLog.i(activityResult.getLog("MediaProjectionPermission"), IllegalStateException("MediaProjectionPermission: ignoring result"))
+                XLog.i(activityResult.getLog("MediaProjectionPermission"), "Ignoring result: shouldRequestPermission=false")
                 return@rememberLauncherForActivityResult
             }
             if (activityResult.resultCode == Activity.RESULT_OK) {
@@ -55,9 +55,15 @@ public fun MediaProjectionPermission(
             SideEffect {
                 // TODO media projection for multi-display devices
                 val mediaProjectionManager = context.getSystemService(MediaProjectionManager::class.java)
-                mediaProjectionPermissionLauncher.launch(mediaProjectionManager.createScreenCaptureIntent())
-
-                showMediaProjectionPermissionErrorDialog.value = false
+                runCatching {
+                    mediaProjectionPermissionLauncher.launch(mediaProjectionManager.createScreenCaptureIntent())
+                }.onFailure {
+                    XLog.e(context.getLog("MediaProjectionPermission", "Failed to launch permission activity"), it)
+                    onPermissionDenied.invoke()
+                    showMediaProjectionPermissionErrorDialog.value = true
+                }.onSuccess {
+                    showMediaProjectionPermissionErrorDialog.value = false
+                }
                 mediaProjectionRequested.value = true
             }
         }

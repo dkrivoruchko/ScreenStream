@@ -32,6 +32,7 @@
     <string name="webrtc_stream_audio_select">የድምጽ ምንጮችን ይምረጡ፡-</string>
     <string name="webrtc_stream_audio_mic">ማይክሮፎን</string>
     <string name="webrtc_stream_audio_device">የመሣሪያ ኦዲዮ</string>
+    <string name="webrtc_stream_audio_device_unavailable">የመሣሪያ ድምጽ አይገኝም</string>
     <string name="webrtc_stream_connected_clients">የተገናኙ ደንበኞች፡ %1$d</string>
     <string name="webrtc_stream_no_web_browser_found">ምንም የድር አሳሽ አልተገኘም።</string>
     <string name="webrtc_stream_external_app_error">የውጫዊ መተግበሪያ ስህተት</string>

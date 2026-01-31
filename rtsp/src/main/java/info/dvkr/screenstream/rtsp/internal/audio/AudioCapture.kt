@@ -29,7 +29,7 @@ internal class AudioCapture(
     private val audioParams: AudioSource.Params,
     private val dispatcher: CoroutineDispatcher,
     private val onAudioFrame: (AudioSource.Frame) -> Unit,
-    private val onError: (Throwable) -> Unit,
+    private val onCaptureError: (Throwable) -> Unit,
 ) {
     private var audioRecord: AudioRecord? = null
     private var scope: CoroutineScope? = null
@@ -40,6 +40,7 @@ internal class AudioCapture(
 
     private var _isRunning: Boolean = false
     private var _isMuted: Boolean = false
+    @Volatile private var _stopping: Boolean = false
 
     @get:Synchronized
     @set:Synchronized
@@ -79,8 +80,6 @@ internal class AudioCapture(
             if (testRecord.state != AudioRecord.STATE_INITIALIZED) {
                 throw IllegalArgumentException("Failed to initialize AudioRecord with given parameters.")
             }
-        } catch (e: Throwable) {
-            onError(e)
         } finally {
             testRecord?.release()
         }
@@ -106,8 +105,6 @@ internal class AudioCapture(
             if (testRecord.state != AudioRecord.STATE_INITIALIZED) {
                 throw IllegalArgumentException("Failed to initialize AudioRecord for internal capture.")
             }
-        } catch (e: Throwable) {
-            onError(e)
         } finally {
             testRecord?.release()
         }
@@ -119,35 +116,15 @@ internal class AudioCapture(
         var record: AudioRecord? = null
         try {
             check(!_isRunning) { "Audio capture is already running." }
+            _stopping = false
 
-            val bufferSizeInBytes = audioParams.calculateBufferSizeInBytes()
-
-            record = AudioRecord(
-                audioSource,
-                audioParams.sampleRate,
-                if (audioParams.isStereo) AudioFormat.CHANNEL_IN_STEREO else AudioFormat.CHANNEL_IN_MONO,
-                AudioFormat.ENCODING_PCM_16BIT,
-                bufferSizeInBytes
-            )
-
-            if (record.state != AudioRecord.STATE_INITIALIZED) {
-                record.release()
-                throw IllegalArgumentException("Failed to initialize AudioRecord with given parameters.")
-            }
-
-            audioRecord = record
-            initializeAudioEffects(record.audioSessionId, audioParams)
-
-            record.startRecording()
-            if (record.recordingState != AudioRecord.RECORDSTATE_RECORDING) {
-                throw IllegalArgumentException("Failed to start recording AudioRecord with given parameters.")
-            }
-
-            audioRecord = record
+            val (preparedRecord, bufferSizeInBytes) = createAndStart(audioSource)
+            record = preparedRecord
+            audioRecord = preparedRecord
             _isRunning = true
 
             scope = CoroutineScope(Job() + dispatcher).apply {
-                launch { readAudioLoop(record, bufferSizeInBytes) }
+                launch { readAudioLoop(record, bufferSizeInBytes) { createAndStart(audioSource) } }
             }
         } catch (cause: Exception) {
             scope?.cancel()
@@ -160,7 +137,7 @@ internal class AudioCapture(
             releaseAudioEffects()
 
             XLog.w(getLog("start", "Failed to start audio capture: ${cause.message}"), cause)
-            onError(cause)
+            onCaptureError(cause)
         }
     }
 
@@ -171,39 +148,15 @@ internal class AudioCapture(
         var record: AudioRecord? = null
         try {
             check(!_isRunning) { "Audio capture is already running." }
+            _stopping = false
 
-            val bufferSizeInBytes = audioParams.calculateBufferSizeInBytes()
-
-            record = AudioRecord.Builder()
-                .setAudioPlaybackCaptureConfig(config)
-                .setAudioFormat(
-                    AudioFormat.Builder()
-                        .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
-                        .setSampleRate(audioParams.sampleRate)
-                        .setChannelMask(if (audioParams.isStereo) AudioFormat.CHANNEL_IN_STEREO else AudioFormat.CHANNEL_IN_MONO)
-                        .build()
-                )
-                .setBufferSizeInBytes(bufferSizeInBytes)
-                .build()
-
-            if (record.state != AudioRecord.STATE_INITIALIZED) {
-                record.release()
-                throw IllegalArgumentException("Failed to initialize AudioRecord for internal capture.")
-            }
-
-            audioRecord = record
-            initializeAudioEffects(record.audioSessionId, audioParams)
-
-            record.startRecording()
-            if (record.recordingState != AudioRecord.RECORDSTATE_RECORDING) {
-                throw IllegalArgumentException("Failed to start recording AudioRecord with given parameters.")
-            }
-
-            audioRecord = record
+            val (preparedRecord, bufferSizeInBytes) = createAndStart(config)
+            record = preparedRecord
+            audioRecord = preparedRecord
             _isRunning = true
 
             scope = CoroutineScope(Job() + dispatcher).apply {
-                launch { readAudioLoop(record, bufferSizeInBytes) }
+                launch { readAudioLoop(record, bufferSizeInBytes) { createAndStart(config) } }
             }
         } catch (cause: Exception) {
             scope?.cancel()
@@ -216,13 +169,14 @@ internal class AudioCapture(
             releaseAudioEffects()
 
             XLog.w(getLog("start", "Failed to start audio capture: ${cause.message}"), cause)
-            onError(cause)
+            onCaptureError(cause)
         }
     }
 
     @Synchronized
     fun stop() {
         if (!_isRunning) return
+        _stopping = true
         _isRunning = false
 
         scope?.cancel()
@@ -235,14 +189,21 @@ internal class AudioCapture(
         releaseAudioEffects()
     }
 
-    private suspend fun readAudioLoop(record: AudioRecord, bufferSizeInBytes: Int) = runCatching {
-        val pcmByteBuffer = ByteBuffer.allocateDirect(bufferSizeInBytes).order(ByteOrder.nativeOrder())
-        val shortBuffer = pcmByteBuffer.asShortBuffer()
+    private suspend fun readAudioLoop(
+        record: AudioRecord,
+        bufferSizeInBytes: Int,
+        recreateRecord: () -> Pair<AudioRecord, Int>
+    ) = runCatching {
+        var currentRecord = record
+        var currentBufferSize = bufferSizeInBytes
+        var pcmByteBuffer = ByteBuffer.allocateDirect(currentBufferSize).order(ByteOrder.nativeOrder())
+        var shortBuffer = pcmByteBuffer.asShortBuffer()
+        var retryAttempted = false
 
         while (currentCoroutineContext().isActive) {
             if (!isRunning()) break
             pcmByteBuffer.clear()
-            val size = record.read(pcmByteBuffer, bufferSizeInBytes, AudioRecord.READ_BLOCKING)
+            val size = currentRecord.read(pcmByteBuffer, currentBufferSize, AudioRecord.READ_BLOCKING)
             when {
                 size > 0 -> {
                     if (size % 2 != 0) {
@@ -280,7 +241,28 @@ internal class AudioCapture(
                 }
 
                 size < 0 -> {
-                    if (!isRunning() || record.recordingState != AudioRecord.RECORDSTATE_RECORDING) break
+                    if (!isRunning() || _stopping || currentRecord.recordingState != AudioRecord.RECORDSTATE_RECORDING) {
+                        XLog.i(getLog("readAudioLoop", "Ignoring read error during teardown (code=$size)."))
+                        break
+                    }
+                    if (size == AudioRecord.ERROR_BAD_VALUE && !retryAttempted) {
+                        retryAttempted = true
+                        XLog.w(getLog("readAudioLoop", "ERROR_BAD_VALUE. Recreating AudioRecord and retrying once."))
+
+                        runCatching { currentRecord.stop() }
+                        currentRecord.release()
+                        releaseAudioEffects()
+
+                        val (newRecord, newBufferSize) = recreateRecord()
+                        currentRecord = newRecord
+                        currentBufferSize = newBufferSize
+                        pcmByteBuffer = ByteBuffer.allocateDirect(currentBufferSize).order(ByteOrder.nativeOrder())
+                        shortBuffer = pcmByteBuffer.asShortBuffer()
+                        audioRecord = newRecord
+
+                        XLog.i(getLog("readAudioLoop", "AudioRecord recreated. Continuing."))
+                        continue
+                    }
                     val error = when (size) {
                         AudioRecord.ERROR_DEAD_OBJECT -> IllegalStateException("AudioRecord is dead (ERROR_DEAD_OBJECT).")
                         AudioRecord.ERROR_INVALID_OPERATION -> IllegalStateException("AudioRecord read failed (ERROR_INVALID_OPERATION).")
@@ -289,7 +271,7 @@ internal class AudioCapture(
                         else -> IllegalStateException("AudioRecord read failed (code=$size).")
                     }
                     XLog.w(getLog("readAudioLoop", error.message ?: "AudioRecord read error"), error)
-                    onError(error)
+                    onCaptureError(error)
                     break
                 }
             }
@@ -297,7 +279,59 @@ internal class AudioCapture(
     }.onFailure { cause ->
         if (cause is CancellationException) throw cause
         XLog.w(getLog("readAudioLoop", "Failed to read audio: ${cause.message}"), cause)
-        onError(cause)
+        onCaptureError(cause)
+    }
+
+    @RequiresPermission(Manifest.permission.RECORD_AUDIO)
+    private fun createAndStart(audioSource: Int): Pair<AudioRecord, Int> {
+        val bufferSizeInBytes = audioParams.calculateBufferSizeInBytes()
+        val record = AudioRecord(
+            audioSource,
+            audioParams.sampleRate,
+            if (audioParams.isStereo) AudioFormat.CHANNEL_IN_STEREO else AudioFormat.CHANNEL_IN_MONO,
+            AudioFormat.ENCODING_PCM_16BIT,
+            bufferSizeInBytes
+        )
+        if (record.state != AudioRecord.STATE_INITIALIZED) {
+            record.release()
+            throw IllegalArgumentException("Failed to initialize AudioRecord with given parameters.")
+        }
+        initializeAudioEffects(record.audioSessionId, audioParams)
+        record.startRecording()
+        if (record.recordingState != AudioRecord.RECORDSTATE_RECORDING) {
+            record.release()
+            throw IllegalArgumentException("Failed to start recording AudioRecord with given parameters.")
+        }
+        return record to bufferSizeInBytes
+    }
+
+    @RequiresApi(Build.VERSION_CODES.Q)
+    @RequiresPermission(Manifest.permission.RECORD_AUDIO)
+    private fun createAndStart(config: AudioPlaybackCaptureConfiguration): Pair<AudioRecord, Int> {
+        val bufferSizeInBytes = audioParams.calculateBufferSizeInBytes()
+        val record = AudioRecord.Builder()
+            .setAudioPlaybackCaptureConfig(config)
+            .setAudioFormat(
+                AudioFormat.Builder()
+                    .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
+                    .setSampleRate(audioParams.sampleRate)
+                    .setChannelMask(if (audioParams.isStereo) AudioFormat.CHANNEL_IN_STEREO else AudioFormat.CHANNEL_IN_MONO)
+                    .build()
+            )
+            .setBufferSizeInBytes(bufferSizeInBytes)
+            .build()
+
+        if (record.state != AudioRecord.STATE_INITIALIZED) {
+            record.release()
+            throw IllegalArgumentException("Failed to initialize AudioRecord for internal capture.")
+        }
+        initializeAudioEffects(record.audioSessionId, audioParams)
+        record.startRecording()
+        if (record.recordingState != AudioRecord.RECORDSTATE_RECORDING) {
+            record.release()
+            throw IllegalArgumentException("Failed to start recording AudioRecord with given parameters.")
+        }
+        return record to bufferSizeInBytes
     }
 
     @Throws(Exception::class)

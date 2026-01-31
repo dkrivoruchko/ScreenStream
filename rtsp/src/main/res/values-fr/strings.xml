@@ -84,6 +84,7 @@
     <string name="rtsp_audio_permission_message">L\'autorisation d\'enregistrer l\'audio est nécessaire pour que l\'application puisse diffuser du contenu audio.\n\nSans cette autorisation, le flux sera sans audio.</string>
     <string name="rtsp_audio_permission_open_settings">Ouvrir les paramètres</string>
     <string name="rtsp_audio_permission_message_settings">L\'accès au microphone dans les autorisations de l\'application est nécessaire pour diffuser du contenu audio.\n\nSans cette autorisation, le flux sera effectué sans audio.</string>
+    <string name="rtsp_audio_capture_issue_detected">Un problème de capture audio a été détecté</string>
 
     <string name="rtsp_connection_access_denied">Accès refusé</string>
     <string name="rtsp_connection_no_credentials">Spécifiez le nom d\'utilisateur et le mot de passe</string>
