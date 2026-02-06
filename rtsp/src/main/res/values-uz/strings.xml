@@ -31,6 +31,11 @@
     <string name="rtsp_interfaces_qr_content_description">QR-kod</string>
     <string name="rtsp_interfaces_copied">Manzil nusxalandi</string>
     <string name="rtsp_interfaces_share_title">RTSP manzilini ulashish</string>
+    <string name="rtsp_bindings_retry">Qayta urinish</string>
+    <string name="rtsp_bind_error_port_in_use">Xato: Port band</string>
+    <string name="rtsp_bind_error_address_not_available">Xato: Manzil mavjud emas</string>
+    <string name="rtsp_bind_error_permission_denied">Xato: Ruxsat rad etildi</string>
+    <string name="rtsp_bind_error_unknown">Xato: Tinglovchi xatosi</string>
 
     <string name="rtsp_server_parameters">Server parametrlari</string>
     <string name="rtsp_client_parameters">Mijoz parametrlari</string>

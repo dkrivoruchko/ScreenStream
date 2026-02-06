@@ -31,6 +31,11 @@
     <string name="rtsp_interfaces_qr_content_description">QR کوڈ</string>
     <string name="rtsp_interfaces_copied">پتہ کاپی ہو گیا</string>
     <string name="rtsp_interfaces_share_title">RTSP پتہ شیئر کریں</string>
+    <string name="rtsp_bindings_retry">دوبارہ کوشش</string>
+    <string name="rtsp_bind_error_port_in_use">خرابی: پورٹ استعمال میں ہے</string>
+    <string name="rtsp_bind_error_address_not_available">خرابی: پتہ دستیاب نہیں</string>
+    <string name="rtsp_bind_error_permission_denied">خرابی: اجازت نہیں</string>
+    <string name="rtsp_bind_error_unknown">خرابی: لسنر ناکام</string>
 
     <string name="rtsp_server_parameters">سرور پیرامیٹرز</string>
     <string name="rtsp_client_parameters">کلائنٹ پیرامیٹرز</string>

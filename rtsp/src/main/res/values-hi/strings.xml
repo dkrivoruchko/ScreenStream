@@ -31,6 +31,11 @@
     <string name="rtsp_interfaces_qr_content_description">क्यूआर कोड</string>
     <string name="rtsp_interfaces_copied">पता कॉपी हुआ</string>
     <string name="rtsp_interfaces_share_title">RTSP पता साझा करें</string>
+    <string name="rtsp_bindings_retry">फिर आज़माएँ</string>
+    <string name="rtsp_bind_error_port_in_use">त्रुटि: पोर्ट उपयोग में है</string>
+    <string name="rtsp_bind_error_address_not_available">त्रुटि: पता उपलब्ध नहीं</string>
+    <string name="rtsp_bind_error_permission_denied">त्रुटि: अनुमति अस्वीकृत</string>
+    <string name="rtsp_bind_error_unknown">त्रुटि: लिस्नर विफल</string>
 
     <string name="rtsp_server_parameters">सर्वर पैरामीटर</string>
     <string name="rtsp_client_parameters">क्लाइंट पैरामीटर</string>

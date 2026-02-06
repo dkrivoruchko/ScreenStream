@@ -13,7 +13,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.BasicAlertDialog
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -43,19 +45,19 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import info.dvkr.screenstream.common.generateQRBitmap
 import info.dvkr.screenstream.rtsp.R
-import info.dvkr.screenstream.rtsp.settings.RtspSettings
+import info.dvkr.screenstream.rtsp.internal.RtspEvent
+import info.dvkr.screenstream.rtsp.internal.RtspStreamingService
+import info.dvkr.screenstream.rtsp.ui.RtspBindError
 import info.dvkr.screenstream.rtsp.ui.RtspBinding
 import info.dvkr.screenstream.rtsp.ui.RtspState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
-import org.koin.compose.koinInject
 
 @Composable
 internal fun ServerMode(
     rtspState: State<RtspState>,
-    modifier: Modifier = Modifier,
-    rtspSettings: RtspSettings = koinInject(),
-    scope: CoroutineScope = rememberCoroutineScope()
+    sendEvent: (RtspEvent) -> Unit,
+    modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier) {
         if (rtspState.value.serverBindings.isEmpty()) {
@@ -73,6 +75,8 @@ internal fun ServerMode(
             rtspState.value.serverBindings.forEachIndexed { index, binding ->
                 AddressRow(
                     binding = binding,
+                    isStreaming = rtspState.value.isStreaming,
+                    sendEvent = sendEvent,
                     modifier = Modifier.padding(top = 12.dp, bottom = 4.dp, start = 12.dp, end = 0.dp)
                 )
                 if (index != rtspState.value.serverBindings.lastIndex) {
@@ -86,19 +90,24 @@ internal fun ServerMode(
 @Composable
 private fun AddressRow(
     binding: RtspBinding,
+    isStreaming: Boolean,
+    sendEvent: (RtspEvent) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier) {
         Text(text = stringResource(id = R.string.rtsp_interfaces_title))
 
         val fullAddress = binding.fullAddress
+        val bindingFailed = binding.bindError != null
 
         Text(
             text = fullAddress,
             modifier = Modifier.padding(top = 8.dp, bottom = 4.dp),
-            color = MaterialTheme.colorScheme.primary,
+            color = if (bindingFailed) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
             fontSize = 18.sp,
-            style = MaterialTheme.typography.titleMedium.copy(textDecoration = TextDecoration.Underline)
+            style = MaterialTheme.typography.titleMedium.copy(
+                textDecoration = if (bindingFailed) TextDecoration.None else TextDecoration.Underline
+            )
         )
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -114,7 +123,46 @@ private fun AddressRow(
             ShareAddressButton(fullAddress)
             ShowQRCodeButton(fullAddress)
         }
+
+        binding.bindError?.let { bindError ->
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = bindError.toText(),
+                    modifier = Modifier.weight(1f),
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodyLarge
+                )
+                FilledTonalButton(
+                    onClick = { sendEvent(RtspStreamingService.InternalEvent.RetryBindings) },
+                    enabled = isStreaming.not(),
+                    modifier = Modifier.padding(start = 8.dp, end = 12.dp),
+                    colors = ButtonDefaults.filledTonalButtonColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer,
+                        contentColor = MaterialTheme.colorScheme.onErrorContainer
+                    )
+                ) {
+                    Text(text = stringResource(id = R.string.rtsp_bindings_retry))
+                }
+            }
+        }
     }
+}
+
+@Composable
+private fun RtspBindError.toText(): String {
+    val base = when (this) {
+        RtspBindError.PortInUse -> stringResource(R.string.rtsp_bind_error_port_in_use)
+        RtspBindError.AddressNotAvailable -> stringResource(R.string.rtsp_bind_error_address_not_available)
+        RtspBindError.PermissionDenied -> stringResource(R.string.rtsp_bind_error_permission_denied)
+        is RtspBindError.Unknown -> stringResource(R.string.rtsp_bind_error_unknown)
+    }
+
+    return if (this is RtspBindError.Unknown && technicalDetails.isNullOrBlank().not()) "$base [$technicalDetails]" else base
 }
 
 @Composable

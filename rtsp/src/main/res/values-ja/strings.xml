@@ -31,6 +31,11 @@
     <string name="rtsp_interfaces_qr_content_description">QRコード</string>
     <string name="rtsp_interfaces_copied">アドレスをコピーしました</string>
     <string name="rtsp_interfaces_share_title">RTSPアドレスを共有</string>
+    <string name="rtsp_bindings_retry">再試行</string>
+    <string name="rtsp_bind_error_port_in_use">エラー: ポート使用中</string>
+    <string name="rtsp_bind_error_address_not_available">エラー: アドレス利用不可</string>
+    <string name="rtsp_bind_error_permission_denied">エラー: 権限がありません</string>
+    <string name="rtsp_bind_error_unknown">エラー: リスナー失敗</string>
 
     <string name="rtsp_server_parameters">サーバーパラメータ</string>
     <string name="rtsp_client_parameters">クライアントパラメータ</string>

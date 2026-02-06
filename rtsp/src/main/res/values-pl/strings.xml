@@ -31,6 +31,11 @@
     <string name="rtsp_interfaces_qr_content_description">Kod QR</string>
     <string name="rtsp_interfaces_copied">Adres skopiowany</string>
     <string name="rtsp_interfaces_share_title">Udostępnij adres RTSP</string>
+    <string name="rtsp_bindings_retry">Ponów</string>
+    <string name="rtsp_bind_error_port_in_use">Błąd: Port zajęty</string>
+    <string name="rtsp_bind_error_address_not_available">Błąd: Adres niedostępny</string>
+    <string name="rtsp_bind_error_permission_denied">Błąd: Brak uprawnień</string>
+    <string name="rtsp_bind_error_unknown">Błąd: Listener nie działa</string>
 
     <string name="rtsp_server_parameters">Parametry serwera</string>
     <string name="rtsp_client_parameters">Parametry klienta</string>

@@ -225,8 +225,20 @@ internal class AudioEncoder(
         handlerThread?.apply {
             quitSafely()
             runCatching { join(250) }.onFailure {
-                quit()
+                XLog.w(this@AudioEncoder.getLog("stopInternal", "handlerThread.join() interrupted"), it)
+            }
+            if (isAlive) {
                 XLog.w(this@AudioEncoder.getLog("stopInternal", "handlerThread.join() took too long, forcing a shutdown"))
+                quit()
+                runCatching { join(250) }.onFailure {
+                    XLog.w(this@AudioEncoder.getLog("stopInternal", "handlerThread forced join interrupted"), it)
+                }
+                if (isAlive) {
+                    XLog.w(
+                        this@AudioEncoder.getLog("stopInternal", "handlerThread did not stop after forced shutdown"),
+                        IllegalStateException("AudioEncoder handlerThread still alive: name=$name, state=$state")
+                    )
+                }
             }
         }
         handlerThread = null

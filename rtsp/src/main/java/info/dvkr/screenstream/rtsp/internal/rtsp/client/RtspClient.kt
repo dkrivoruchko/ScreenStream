@@ -21,6 +21,7 @@ import info.dvkr.screenstream.rtsp.internal.rtsp.packets.G711Packet
 import info.dvkr.screenstream.rtsp.internal.rtsp.packets.H264Packet
 import info.dvkr.screenstream.rtsp.internal.rtsp.packets.H265Packet
 import info.dvkr.screenstream.rtsp.internal.rtsp.packets.OpusPacket
+import info.dvkr.screenstream.rtsp.internal.rtsp.packets.RtpBufferInaccessibleException
 import info.dvkr.screenstream.rtsp.internal.rtsp.sockets.TcpStreamSocket
 import info.dvkr.screenstream.rtsp.internal.rtsp.sockets.UdpStreamSocket
 import info.dvkr.screenstream.rtsp.settings.RtspSettings
@@ -679,6 +680,8 @@ internal class RtspClient(
                         }
                     }
                 } catch (_: CancellationException) {
+                } catch (error: RtpBufferInaccessibleException) {
+                    XLog.w(getLog("sendingLoop", "Dropping frame: ${error.message}"), error)
                 } catch (error: Throwable) {
                     if (currentCoroutineContext().isActive.not()) return
                     XLog.w(getLog("sendingLoop", "Error sending packet: ${error.message}"), error)

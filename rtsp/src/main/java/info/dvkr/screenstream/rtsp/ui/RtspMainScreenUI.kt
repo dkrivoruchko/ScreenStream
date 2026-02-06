@@ -76,7 +76,7 @@ internal fun RtspMainScreenUI(
             }
 
             item(key = "MODE") {
-                ModeCard(rtspState = rtspState, modifier = Modifier.padding(8.dp))
+                ModeCard(rtspState = rtspState, sendEvent = sendEvent, modifier = Modifier.padding(8.dp))
             }
             if (rtspSettingsState.value.mode == RtspSettings.Values.Mode.SERVER) {
                 item(key = "SERVER_PARAMETERS") {

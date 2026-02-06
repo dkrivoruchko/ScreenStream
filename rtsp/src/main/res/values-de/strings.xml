@@ -31,6 +31,11 @@
     <string name="rtsp_interfaces_qr_content_description">QR-Code</string>
     <string name="rtsp_interfaces_copied">Adresse kopiert</string>
     <string name="rtsp_interfaces_share_title">RTSP-Adresse teilen</string>
+    <string name="rtsp_bindings_retry">Erneut versuchen</string>
+    <string name="rtsp_bind_error_port_in_use">Fehler: Port belegt</string>
+    <string name="rtsp_bind_error_address_not_available">Fehler: Adresse nicht verfügbar</string>
+    <string name="rtsp_bind_error_permission_denied">Fehler: Berechtigung verweigert</string>
+    <string name="rtsp_bind_error_unknown">Fehler: Listener fehlgeschlagen</string>
 
     <string name="rtsp_server_parameters">Serverparameter</string>
     <string name="rtsp_client_parameters">Client-Parameter</string>

@@ -13,7 +13,15 @@ import info.dvkr.screenstream.rtsp.settings.RtspSettings
 internal enum class RtspClientStatus { IDLE, STARTING, ACTIVE, ERROR }
 
 @Immutable
-internal data class RtspBinding(val label: String, val fullAddress: String)
+internal sealed interface RtspBindError {
+    data object PortInUse : RtspBindError
+    data object AddressNotAvailable : RtspBindError
+    data object PermissionDenied : RtspBindError
+    data class Unknown(val technicalDetails: String?) : RtspBindError
+}
+
+@Immutable
+internal data class RtspBinding(val label: String, val fullAddress: String, val bindError: RtspBindError? = null)
 
 @Immutable
 internal data class RtspState(

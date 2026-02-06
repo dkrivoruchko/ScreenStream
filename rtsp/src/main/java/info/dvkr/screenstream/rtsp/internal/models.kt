@@ -29,9 +29,9 @@ internal sealed class MediaFrame {
 
 internal enum class Protocol { TCP, UDP }
 
-    internal sealed class RtpFrame(val trackId: Int, val buffer: ByteArray, val timeStamp: Long, val length: Int) {
-        class Video(buffer: ByteArray, timeStamp: Long, length: Int) : RtpFrame(VIDEO_TRACK_ID, buffer, timeStamp, length)
-        class Audio(buffer: ByteArray, timeStamp: Long, length: Int) : RtpFrame(AUDIO_TRACK_ID, buffer, timeStamp, length)
+internal sealed class RtpFrame(val trackId: Int, val buffer: ByteArray, val timeStamp: Long, val length: Int) {
+    class Video(buffer: ByteArray, timeStamp: Long, length: Int) : RtpFrame(VIDEO_TRACK_ID, buffer, timeStamp, length)
+    class Audio(buffer: ByteArray, timeStamp: Long, length: Int) : RtpFrame(AUDIO_TRACK_ID, buffer, timeStamp, length)
 
     companion object {
         const val VIDEO_TRACK_ID: Int = 0
@@ -82,6 +82,9 @@ internal data class AudioCodecInfo(
 )
 
 internal data class RtspNetInterface(val label: String, val address: InetAddress) {
+
+    internal val hostAddress: String = address.hostAddress ?: "unknown"
+    internal val bindKey: String = "$label|$hostAddress"
 
     internal fun buildUrl(port: Int, path: String): String {
         val baseUrl = if (address is Inet6Address) {

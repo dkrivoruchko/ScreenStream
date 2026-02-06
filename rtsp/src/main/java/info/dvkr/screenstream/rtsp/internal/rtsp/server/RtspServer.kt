@@ -8,10 +8,12 @@ import info.dvkr.screenstream.rtsp.internal.RtspStreamingService
 import info.dvkr.screenstream.rtsp.internal.VideoParams
 import info.dvkr.screenstream.rtsp.internal.rtsp.sockets.TcpStreamSocket
 import info.dvkr.screenstream.rtsp.settings.RtspSettings
+import info.dvkr.screenstream.rtsp.ui.RtspBindError
 import info.dvkr.screenstream.rtsp.ui.RtspError
 import io.ktor.network.selector.SelectorManager
 import io.ktor.network.sockets.ServerSocket
 import io.ktor.network.sockets.aSocket
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -23,6 +25,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
+import java.net.BindException
 import java.util.concurrent.atomic.AtomicReference
 
 internal class RtspServer(
@@ -36,11 +39,16 @@ internal class RtspServer(
 
     private var selectorManager: SelectorManager? = null
     private var serverJob: Job? = null
-    private val serverSockets: MutableList<Pair<ServerSocket, String>> = mutableListOf()
+    private val serverSocketsLock = Any()
+    private val serverSockets: MutableList<BoundSocket> = mutableListOf()
 
     private val rtspServerConnections = mutableListOf<RtspServerConnection>()
     private val videoParams = AtomicReference<VideoParams?>()
     private val audioParams = AtomicReference<AudioParams?>()
+
+    private data class BoundSocket(val socket: ServerSocket, val advertisedHost: String)
+    private data class BindFailure(val key: String, val host: String, val bindError: RtspBindError, val technicalDetails: String?)
+    private data class BindResult(val boundSockets: List<BoundSocket>, val bindFailures: List<BindFailure>)
 
     internal fun setVideoData(videoCodec: Codec.Video, sps: ByteArray, pps: ByteArray?, vps: ByteArray?) {
         val newParams = VideoParams(videoCodec, sps, pps, vps)
@@ -81,63 +89,113 @@ internal class RtspServer(
 
         serverJob = scope.launch {
             val selectorManager = SelectorManager(coroutineContext).also { this@RtspServer.selectorManager = it }
-            runCatching {
-                serverSockets.clear()
-                val bindFailures = mutableListOf<String>()
+            var boundSockets: List<BoundSocket> = emptyList()
+            var publishedSockets = false
+            try {
+                val bindResult = bindAll(addresses, port, selectorManager)
+                boundSockets = bindResult.boundSockets
 
-                addresses.forEach { networkInterface ->
-                    runCatching {
-                        val host = networkInterface.address.hostAddress!!.substringBefore('%')
-                        val serverSocket = aSocket(selectorManager).tcp().bind(host, port)
-                        serverSockets.add(serverSocket to host)
-                    }.onFailure { error ->
-                        val host = networkInterface.address.hostAddress?.substringBefore('%') ?: "unknown"
-                        bindFailures += "$host: ${error.message ?: error::class.simpleName}"
-                    }
-                }
-
-                if (serverSockets.isEmpty() || bindFailures.isNotEmpty()) {
-                    val hosts = addresses.mapNotNull { it.address.hostAddress?.substringBefore('%') }.joinToString(", ")
-                    val details = if (bindFailures.isNotEmpty()) bindFailures.joinToString("; ") else "no interfaces"
+                if (bindResult.bindFailures.isNotEmpty()) {
                     onEvent(
-                        RtspStreamingService.InternalEvent.Error(
-                            RtspError.UnknownError(IllegalStateException("RTSP bind failed (port=$port, hosts=$hosts): $details"))
+                        RtspStreamingService.InternalEvent.RtspServer.OnBindFailures(
+                            generation = generation,
+                            failures = bindResult.bindFailures.associate { it.key to it.bindError }
                         )
                     )
-                    serverSockets.forEach { runCatching { it.first.close() } }
-                    serverSockets.clear()
-                    runCatching { selectorManager.close() }
-                    this@RtspServer.selectorManager = null
+                }
+
+                if (bindResult.boundSockets.isEmpty()) {
+                    val error = RtspError.UnknownError(buildBindFailureException(addresses, port, bindResult.bindFailures))
+                    onEvent(RtspStreamingService.InternalEvent.RtspServer.OnError(generation = generation, error = error))
                     return@launch
                 }
 
+                synchronized(serverSocketsLock) {
+                    serverSockets.clear()
+                    serverSockets.addAll(bindResult.boundSockets)
+                }
+
+                publishedSockets = true
+
                 onEvent(RtspStreamingService.InternalEvent.RtspServer.OnStart(generation))
 
-                serverSockets.forEach { (serverSocket, boundHost) ->
-                    launch {
-                        while (isActive) {
-                            val clientSocket = try {
-                                serverSocket.accept()
-                            } catch (_: Throwable) {
-                                if (!isActive) break
-                                delay(50)
-                                continue
-                            }
-                            val serverConnection = RtspServerConnection(
-                                parentJob = scopeJob,
-                                tcpStreamSocket = TcpStreamSocket(scope.coroutineContext, selectorManager, clientSocket),
-                                serverMessageHandler = RtspServerMessageHandler(appVersion, boundHost, port, path),
-                                videoParams,
-                                audioParams,
-                                serverProtocolPolicy = protocol,
-                                onRequestKeyFrame = onRequestKeyFrame,
-                                onClosed = { synchronized(rtspServerConnections) { rtspServerConnections.remove(it) } }
-                            )
-                            synchronized(rtspServerConnections) { rtspServerConnections.add(serverConnection) }
-                            serverConnection.start()
-                        }
-                    }
+                bindResult.boundSockets.forEach { launchAcceptor(it, selectorManager, port, path, protocol) }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Throwable) {
+                onEvent(RtspStreamingService.InternalEvent.RtspServer.OnError(generation, RtspError.UnknownError(e)))
+            } finally {
+                if (!publishedSockets) {
+                    boundSockets.forEach { runCatching { it.socket.close() } }
+                    runCatching { selectorManager.close() }
+                    if (this@RtspServer.selectorManager === selectorManager) this@RtspServer.selectorManager = null
                 }
+            }
+        }
+    }
+
+    private suspend fun bindAll(addresses: List<RtspNetInterface>, port: Int, selectorManager: SelectorManager): BindResult {
+        val boundSockets = mutableListOf<BoundSocket>()
+        val bindFailures = mutableListOf<BindFailure>()
+
+        addresses.forEach { networkInterface ->
+            try {
+                val bindHost = networkInterface.address.hostAddress
+                    ?: throw IllegalStateException("Null hostAddress for ${networkInterface.label}")
+                val serverSocket = aSocket(selectorManager).tcp().bind(bindHost, port) { reuseAddress = true }
+                boundSockets += BoundSocket(serverSocket, bindHost.substringBefore('%'))
+            } catch (cancellation: CancellationException) {
+                throw cancellation
+            } catch (error: Throwable) {
+                bindFailures += BindFailure(
+                    key = networkInterface.bindKey,
+                    host = networkInterface.hostAddress,
+                    bindError = classifyBindError(error),
+                    technicalDetails = error.message ?: error::class.simpleName
+                )
+            }
+        }
+
+        return BindResult(boundSockets, bindFailures)
+    }
+
+    private fun buildBindFailureException(addresses: List<RtspNetInterface>, port: Int, bindFailures: List<BindFailure>): Throwable {
+        val hosts = addresses.mapNotNull { it.address.hostAddress?.substringBefore('%') }.joinToString(", ")
+        val details = bindFailures.takeIf { it.isNotEmpty() }
+            ?.joinToString("; ") { "${it.host}: ${it.technicalDetails ?: it.bindError::class.simpleName}" }
+            ?: "no interfaces"
+        return IllegalStateException("RTSP bind failed (port=$port, hosts=$hosts): $details")
+    }
+
+    private fun CoroutineScope.launchAcceptor(
+        boundSocket: BoundSocket,
+        selectorManager: SelectorManager,
+        port: Int,
+        path: String,
+        protocol: RtspSettings.Values.ProtocolPolicy
+    ) {
+        launch {
+            while (isActive) {
+                val clientSocket = try {
+                    boundSocket.socket.accept()
+                } catch (_: Throwable) {
+                    if (!isActive) break
+                    delay(50)
+                    continue
+                }
+
+                val serverConnection = RtspServerConnection(
+                    parentJob = scopeJob,
+                    tcpStreamSocket = TcpStreamSocket(scope.coroutineContext, selectorManager, clientSocket),
+                    serverMessageHandler = RtspServerMessageHandler(appVersion, boundSocket.advertisedHost, port, path),
+                    videoParams,
+                    audioParams,
+                    serverProtocolPolicy = protocol,
+                    onRequestKeyFrame = onRequestKeyFrame,
+                    onClosed = { synchronized(rtspServerConnections) { rtspServerConnections.remove(it) } }
+                )
+                synchronized(rtspServerConnections) { rtspServerConnections.add(serverConnection) }
+                serverConnection.start()
             }
         }
     }
@@ -158,8 +216,8 @@ internal class RtspServer(
         val snapshot = synchronized(rtspServerConnections) { rtspServerConnections.toList().also { rtspServerConnections.clear() } }
         snapshot.forEach { runCatching { it.stop() } }
 
-        serverSockets.forEach { runCatching { it.first.close() } }
-        serverSockets.clear()
+        val serverSocketsSnapshot = synchronized(serverSocketsLock) { serverSockets.toList().also { serverSockets.clear() } }
+        serverSocketsSnapshot.forEach { runCatching { it.socket.close() } }
         runCatching { selectorManager?.close() }
         selectorManager = null
         runCatching { serverJob?.cancelAndJoin() }
@@ -223,5 +281,33 @@ internal class RtspServer(
         }
 
         shared.releaseOne()
+    }
+
+    private fun classifyBindError(error: Throwable): RtspBindError {
+        val cause = rootCause(error)
+        if (cause is SecurityException) return RtspBindError.PermissionDenied
+
+        if (cause is BindException) {
+            val message = cause.message?.lowercase().orEmpty()
+            return when {
+                message.contains("address already in use") || message.contains("eaddrinuse") ->
+                    RtspBindError.PortInUse
+
+                message.contains("cannot assign requested address") || message.contains("eaddrnotavail") ->
+                    RtspBindError.AddressNotAvailable
+
+                message.contains("permission denied") || message.contains("eacces") ->
+                    RtspBindError.PermissionDenied
+
+                else -> RtspBindError.Unknown(cause.message ?: cause::class.simpleName)
+            }
+        }
+
+        return RtspBindError.Unknown(cause.message ?: cause::class.simpleName)
+    }
+
+    private tailrec fun rootCause(error: Throwable): Throwable {
+        val cause = error.cause ?: return error
+        return rootCause(cause)
     }
 }

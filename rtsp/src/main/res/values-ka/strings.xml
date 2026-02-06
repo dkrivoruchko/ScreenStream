@@ -31,6 +31,11 @@
     <string name="rtsp_interfaces_qr_content_description">Ქრ კოდი</string>
     <string name="rtsp_interfaces_copied">მისამართი დაკოპირდა</string>
     <string name="rtsp_interfaces_share_title">გააზიარე RTSP მისამართი</string>
+    <string name="rtsp_bindings_retry">ხელახლა ცდა</string>
+    <string name="rtsp_bind_error_port_in_use">შეცდომა: პორტი გამოყენებაშია</string>
+    <string name="rtsp_bind_error_address_not_available">შეცდომა: მისამართი მიუწვდომელია</string>
+    <string name="rtsp_bind_error_permission_denied">შეცდომა: წვდომა უარყოფილია</string>
+    <string name="rtsp_bind_error_unknown">შეცდომა: მსმენელი ჩაიშალა</string>
 
     <string name="rtsp_server_parameters">სერვერის პარამეტრები</string>
     <string name="rtsp_client_parameters">კლიენტის პარამეტრები</string>

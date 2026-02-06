@@ -31,6 +31,11 @@
     <string name="rtsp_interfaces_qr_content_description">QR-code</string>
     <string name="rtsp_interfaces_copied">Adres gekopieerd</string>
     <string name="rtsp_interfaces_share_title">RTSP-adres delen</string>
+    <string name="rtsp_bindings_retry">Opnieuw proberen</string>
+    <string name="rtsp_bind_error_port_in_use">Fout: Poort in gebruik</string>
+    <string name="rtsp_bind_error_address_not_available">Fout: Adres niet beschikbaar</string>
+    <string name="rtsp_bind_error_permission_denied">Fout: Toestemming geweigerd</string>
+    <string name="rtsp_bind_error_unknown">Fout: Listener mislukt</string>
 
     <string name="rtsp_server_parameters">Serverparameters</string>
     <string name="rtsp_client_parameters">Clientparameters</string>

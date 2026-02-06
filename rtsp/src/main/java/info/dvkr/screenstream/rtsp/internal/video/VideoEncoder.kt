@@ -160,8 +160,20 @@ internal class VideoEncoder(
         handlerThread?.apply {
             quitSafely()
             runCatching { join(250) }.onFailure {
-                quit()
+                XLog.w(this@VideoEncoder.getLog(logTag, "handlerThread.join() interrupted"), it)
+            }
+            if (isAlive) {
                 XLog.w(this@VideoEncoder.getLog(logTag, "handlerThread.join() took too long, forcing a shutdown"))
+                quit()
+                runCatching { join(250) }.onFailure {
+                    XLog.w(this@VideoEncoder.getLog(logTag, "handlerThread forced join interrupted"), it)
+                }
+                if (isAlive) {
+                    XLog.w(
+                        this@VideoEncoder.getLog(logTag, "handlerThread did not stop after forced shutdown"),
+                        IllegalStateException("VideoEncoder handlerThread still alive: name=$name, state=$state")
+                    )
+                }
             }
         }
         handlerThread = null
@@ -209,6 +221,10 @@ internal class VideoEncoder(
         }
     }
 
+    private fun isCallbackCodecActive(codec: MediaCodec): Boolean = synchronized(encoderLock) {
+        codec === videoEncoder && currentState == State.RUNNING
+    }
+
     private fun createCodecCallback(): MediaCodec.Callback = object : MediaCodec.Callback() {
         override fun onInputBufferAvailable(codec: MediaCodec, index: Int) {
             // No-op: We use a Surface input (EGL). No direct input buffers needed.
@@ -217,7 +233,8 @@ internal class VideoEncoder(
         override fun onOutputBufferAvailable(codec: MediaCodec, index: Int, info: MediaCodec.BufferInfo) {
             runCatching {
                 val videoFrame = synchronized(encoderLock) {
-                    if (currentState != State.RUNNING || info.size == 0) {
+                    val activeCodec = videoEncoder
+                    if (codec !== activeCodec || currentState != State.RUNNING || info.size == 0) {
                         releaseOutputBufferSafely(codec, index)
                         return
                     }
@@ -274,13 +291,37 @@ internal class VideoEncoder(
                 }
                 onVideoFrame(videoFrame)
             }.onFailure { cause ->
+                if (!isCallbackCodecActive(codec)) {
+                    XLog.v(
+                        this@VideoEncoder.getLog(
+                            "CodecCallback.onOutputBufferAvailable",
+                            "Ignoring stale callback failure: ${cause.message}"
+                        )
+                    )
+                    releaseOutputBufferSafely(codec, index)
+                    return@onFailure
+                }
+
                 XLog.w(this@VideoEncoder.getLog("CodecCallback.onOutputBufferAvailable", "onFailure: ${cause.message}"), cause)
                 releaseOutputBufferSafely(codec, index)
-                onError(cause)
+                if (isCallbackCodecActive(codec)) {
+                    onError(cause)
+                } else {
+                    XLog.v(
+                        this@VideoEncoder.getLog(
+                            "CodecCallback.onOutputBufferAvailable",
+                            "Ignoring callback failure after stop/reconfigure"
+                        )
+                    )
+                }
             }
         }
 
         override fun onError(codec: MediaCodec, cause: MediaCodec.CodecException) {
+            if (!isCallbackCodecActive(codec)) {
+                XLog.v(this@VideoEncoder.getLog("CodecCallback.onError", "Ignoring stale callback error: ${cause.message}"))
+                return
+            }
             XLog.w(this@VideoEncoder.getLog("CodecCallback.onError", "onFailure: ${cause.message}"), cause)
             onError(cause)
         }

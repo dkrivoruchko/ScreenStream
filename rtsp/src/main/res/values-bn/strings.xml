@@ -31,6 +31,11 @@
     <string name="rtsp_interfaces_qr_content_description">QR-কোড</string>
     <string name="rtsp_interfaces_copied">ঠিকানা কপি হয়েছে</string>
     <string name="rtsp_interfaces_share_title">RTSP ঠিকানা শেয়ার করুন</string>
+    <string name="rtsp_bindings_retry">পুনরায় চেষ্টা</string>
+    <string name="rtsp_bind_error_port_in_use">ত্রুটি: পোর্ট ব্যবহৃত</string>
+    <string name="rtsp_bind_error_address_not_available">ত্রুটি: ঠিকানা অনুপলভ্য</string>
+    <string name="rtsp_bind_error_permission_denied">ত্রুটি: অনুমতি নেই</string>
+    <string name="rtsp_bind_error_unknown">ত্রুটি: লিসেনার ব্যর্থ</string>
 
     <string name="rtsp_server_parameters">সার্ভার প্যারামিটার</string>
     <string name="rtsp_client_parameters">ক্লায়েন্ট প্যারামিটার</string>

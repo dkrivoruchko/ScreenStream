@@ -31,6 +31,11 @@
     <string name="rtsp_interfaces_qr_content_description">QR-код</string>
     <string name="rtsp_interfaces_copied">Адресу скопійовано</string>
     <string name="rtsp_interfaces_share_title">Поділитися RTSP-адресою</string>
+    <string name="rtsp_bindings_retry">Повторити</string>
+    <string name="rtsp_bind_error_port_in_use">Помилка: Порт зайнятий</string>
+    <string name="rtsp_bind_error_address_not_available">Помилка: Адреса недоступна</string>
+    <string name="rtsp_bind_error_permission_denied">Помилка: Доступ заборонено</string>
+    <string name="rtsp_bind_error_unknown">Помилка: Слухач не спрацював</string>
 
     <string name="rtsp_server_parameters">Параметри сервера</string>
     <string name="rtsp_client_parameters">Параметри клієнта</string>

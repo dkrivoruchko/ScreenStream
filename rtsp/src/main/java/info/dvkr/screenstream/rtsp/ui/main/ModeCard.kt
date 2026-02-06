@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import info.dvkr.screenstream.rtsp.R
+import info.dvkr.screenstream.rtsp.internal.RtspEvent
 import info.dvkr.screenstream.rtsp.settings.RtspSettings
 import info.dvkr.screenstream.rtsp.ui.RtspState
 import info.dvkr.screenstream.rtsp.ui.main.client.ClientMode
@@ -42,6 +43,7 @@ import org.koin.compose.koinInject
 @Composable
 internal fun ModeCard(
     rtspState: State<RtspState>,
+    sendEvent: (RtspEvent) -> Unit,
     modifier: Modifier = Modifier,
     rtspSettings: RtspSettings = koinInject(),
     scope: CoroutineScope = rememberCoroutineScope()
@@ -77,7 +79,7 @@ internal fun ModeCard(
                 HorizontalDivider(modifier = Modifier.fillMaxWidth())
 
                 when (selectedMode) {
-                    RtspSettings.Values.Mode.SERVER -> ServerMode(rtspState = rtspState)
+                    RtspSettings.Values.Mode.SERVER -> ServerMode(rtspState = rtspState, sendEvent = sendEvent)
 
                     RtspSettings.Values.Mode.CLIENT -> ClientMode(
                         rtspState = rtspState,

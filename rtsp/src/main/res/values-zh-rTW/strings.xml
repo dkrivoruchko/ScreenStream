@@ -31,6 +31,11 @@
     <string name="rtsp_interfaces_qr_content_description">QR碼</string>
     <string name="rtsp_interfaces_copied">位址已複製</string>
     <string name="rtsp_interfaces_share_title">分享RTSP位址</string>
+    <string name="rtsp_bindings_retry">重試</string>
+    <string name="rtsp_bind_error_port_in_use">錯誤：連接埠已占用</string>
+    <string name="rtsp_bind_error_address_not_available">錯誤：位址不可用</string>
+    <string name="rtsp_bind_error_permission_denied">錯誤：權限遭拒</string>
+    <string name="rtsp_bind_error_unknown">錯誤：監聽器失敗</string>
 
     <string name="rtsp_server_parameters">伺服器參數</string>
     <string name="rtsp_client_parameters">客戶端參數</string>

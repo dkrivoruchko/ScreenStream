@@ -31,6 +31,11 @@
     <string name="rtsp_interfaces_qr_content_description">QR-code</string>
     <string name="rtsp_interfaces_copied">አድራሻ ተገልብጧል</string>
     <string name="rtsp_interfaces_share_title">RTSP አድራሻ አጋራ</string>
+    <string name="rtsp_bindings_retry">እንደገና ይሞክሩ</string>
+    <string name="rtsp_bind_error_port_in_use">ስህተት: ፖርት ተጠቃሚ ነው</string>
+    <string name="rtsp_bind_error_address_not_available">ስህተት: አድራሻ አይገኝም</string>
+    <string name="rtsp_bind_error_permission_denied">ስህተት: ፍቃድ ተከልክሏል</string>
+    <string name="rtsp_bind_error_unknown">ስህተት: አዳሚ አልተሳካም</string>
 
     <string name="rtsp_server_parameters">የአገልጋይ ፓራሜትሮች</string>
     <string name="rtsp_client_parameters">የደንበኛ ፓራሜትሮች</string>

@@ -31,6 +31,11 @@
     <string name="rtsp_interfaces_qr_content_description">二维码</string>
     <string name="rtsp_interfaces_copied">地址已复制</string>
     <string name="rtsp_interfaces_share_title">分享RTSP地址</string>
+    <string name="rtsp_bindings_retry">重试</string>
+    <string name="rtsp_bind_error_port_in_use">错误：端口占用</string>
+    <string name="rtsp_bind_error_address_not_available">错误：地址不可用</string>
+    <string name="rtsp_bind_error_permission_denied">错误：权限被拒绝</string>
+    <string name="rtsp_bind_error_unknown">错误：监听器失败</string>
 
     <string name="rtsp_server_parameters">服务器参数</string>
     <string name="rtsp_client_parameters">客户端参数</string>

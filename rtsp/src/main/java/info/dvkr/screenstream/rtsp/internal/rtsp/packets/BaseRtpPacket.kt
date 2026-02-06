@@ -8,6 +8,8 @@ import kotlin.experimental.and
 import kotlin.experimental.or
 import kotlin.random.Random
 
+internal class RtpBufferInaccessibleException(cause: Throwable) : IllegalStateException("Frame buffer is inaccessible", cause)
+
 internal abstract class BaseRtpPacket(private var clock: Long, private val payloadType: Int) {
     companion object {
         const val MTU = 1028
@@ -76,7 +78,11 @@ internal abstract class BaseRtpPacket(private var clock: Long, private val paylo
             limit(info.offset + info.size)
         } catch (_: Exception) {
         }
-        return slice()
+        return try {
+            slice()
+        } catch (cause: IllegalStateException) {
+            throw RtpBufferInaccessibleException(cause)
+        }
     }
 
     private fun ByteArray.setLong(n: Long, begin: Int, end: Int) {
