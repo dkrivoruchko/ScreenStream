@@ -4,6 +4,8 @@ import android.content.Context
 import android.os.RemoteException
 import androidx.annotation.AnyThread
 import com.elvishew.xlog.XLog
+import com.google.android.gms.common.ConnectionResult
+import com.google.android.gms.common.GoogleApiAvailability
 import com.google.android.play.core.integrity.IntegrityManagerFactory
 import com.google.android.play.core.integrity.StandardIntegrityException
 import com.google.android.play.core.integrity.StandardIntegrityManager
@@ -22,6 +24,8 @@ import java.io.IOException
 internal class PlayIntegrity(serviceContext: Context, private val environment: WebRtcEnvironment, private val okHttpClient: OkHttpClient) {
 
     internal companion object {
+        private const val PACKAGE_PLAY_STORE: String = "com.android.vending"
+
         @JvmStatic
         private var standardIntegrityManager: StandardIntegrityManager? = null
 
@@ -29,10 +33,13 @@ internal class PlayIntegrity(serviceContext: Context, private val environment: W
         private var integrityTokenProvider: StandardIntegrityManager.StandardIntegrityTokenProvider? = null
     }
 
+    private val appContext: Context = serviceContext.applicationContext
+    private val googleApiAvailability: GoogleApiAvailability = GoogleApiAvailability.getInstance()
+
     init {
         XLog.d(getLog("init"))
         if (standardIntegrityManager == null) {
-            standardIntegrityManager = IntegrityManagerFactory.createStandard(serviceContext.applicationContext)
+            standardIntegrityManager = IntegrityManagerFactory.createStandard(appContext)
         }
     }
 
@@ -61,6 +68,11 @@ internal class PlayIntegrity(serviceContext: Context, private val environment: W
                 callback(Result.failure(WebRtcError.NetworkError(-1, e.message, e)))
             }
         })
+    }
+
+    internal fun checkEnvironment(): Result<Unit> = runCatching {
+        checkPlayStoreAvailable()
+        checkPlayServicesAvailable()
     }
 
     internal fun getToken(nonce: String, forceUpdate: Boolean, callback: Result<PlayIntegrityToken>.() -> Unit) {
@@ -132,6 +144,48 @@ internal class PlayIntegrity(serviceContext: Context, private val environment: W
                 }
                 callback(Result.failure(cause))
             }
+    }
+
+    private fun checkPlayStoreAvailable() {
+        val packageManager = appContext.packageManager
+        val playStoreInfo = runCatching { packageManager.getApplicationInfo(PACKAGE_PLAY_STORE, 0) }.getOrNull()
+            ?: throw WebRtcError.PlayIntegrityError(
+                StandardIntegrityErrorCode.PLAY_STORE_NOT_FOUND,
+                false,
+                "Official Google Play Store app is missing",
+                R.string.webrtc_error_play_integrity_install_play_store
+            )
+        if (!playStoreInfo.enabled) {
+            throw WebRtcError.PlayIntegrityError(
+                StandardIntegrityErrorCode.PLAY_STORE_NOT_FOUND,
+                false,
+                "Official Google Play Store app is disabled",
+                R.string.webrtc_error_play_integrity_install_play_store
+            )
+        }
+    }
+
+    private fun checkPlayServicesAvailable() {
+        when (googleApiAvailability.isGooglePlayServicesAvailable(appContext)) {
+            ConnectionResult.SUCCESS -> Unit
+            ConnectionResult.SERVICE_MISSING,
+            ConnectionResult.SERVICE_DISABLED,
+            ConnectionResult.SERVICE_INVALID -> throw WebRtcError.PlayIntegrityError(
+                StandardIntegrityErrorCode.PLAY_SERVICES_NOT_FOUND,
+                false,
+                "Google Play services missing or disabled",
+                R.string.webrtc_error_play_integrity_install_play_service
+            )
+
+            ConnectionResult.SERVICE_VERSION_UPDATE_REQUIRED -> throw WebRtcError.PlayIntegrityError(
+                StandardIntegrityErrorCode.PLAY_SERVICES_VERSION_OUTDATED,
+                false,
+                "Google Play services update required",
+                R.string.webrtc_error_play_integrity_update_play_service
+            )
+
+            else -> Unit
+        }
     }
 
     private fun StandardIntegrityException.toWebRtcError(): WebRtcError = when (errorCode) {

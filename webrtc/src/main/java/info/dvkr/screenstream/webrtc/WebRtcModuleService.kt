@@ -9,6 +9,7 @@ import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.common.module.StreamingModuleService
 import info.dvkr.screenstream.webrtc.internal.WebRtcEvent
 import info.dvkr.screenstream.webrtc.ui.WebRtcError
+import info.dvkr.screenstream.webrtc.ui.isExpectedEnvironmentIssue
 import kotlinx.coroutines.runBlocking
 import org.koin.android.ext.android.inject
 import java.net.ConnectException
@@ -95,6 +96,8 @@ public class WebRtcModuleService : StreamingModuleService() {
 
         if (error is WebRtcError.NetworkError && (error.cause is UnknownHostException || error.cause is ConnectException)) {
             XLog.i(getLog("showErrorNotification", "${error.javaClass.simpleName} ${error.cause}"))
+        } else if (error is WebRtcError.PlayIntegrityError && error.isExpectedEnvironmentIssue()) {
+            XLog.i(getLog("showErrorNotification", "Expected Play Integrity environment issue. code=${error.code}, message=${error.message}"))
         } else {
             XLog.e(getLog("showErrorNotification"), error)
         }

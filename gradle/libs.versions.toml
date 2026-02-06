@@ -1,6 +1,6 @@
 [versions]
 agp = "8.13.2"
-kotlin = "2.3.0"
+kotlin = "2.3.10"
 android-tools-desugar = "2.1.5"
 
 koin-android = "4.1.1"
@@ -9,14 +9,14 @@ kotlinx-coroutines = "1.10.2"
 
 androidx-core-ktx = "1.17.0"
 androidx-core-splashscreen = "1.2.0"
-androidx-activity-compose = "1.12.2"
+androidx-activity-compose = "1.12.3"
 androidx-fragment = "1.8.9"
 androidx-appcompat = "1.7.1"
 androidx-lifecycle = "2.10.0"
 androidx-window = "1.5.1"
 androidx-datastore-preferences = "1.2.0"
 
-compose-bom = "2026.01.00"
+compose-bom = "2026.01.01"
 
 process-phoenix = "3.0.0"
 xlog = "1.11.1"
@@ -25,6 +25,7 @@ xlog = "1.11.1"
 ktor = "3.4.0"
 
 #PlayStore-WebRTC
+play-services-base = "18.10.0"
 play-services-tasks = "18.4.1"
 play-integrity = "1.6.0"
 socket = "2.1.2"
@@ -93,6 +94,7 @@ okio = { module = "com.squareup.okio:okio", version.ref = "okio" }
 okhttp = { module = "com.squareup.okhttp3:okhttp", version.ref = "okhttp" }
 
 #PlayStore-App
+play-services-base = { module = "com.google.android.gms:play-services-base", version.ref = "play-services-base" }
 play-app-update = { module = "com.google.android.play:app-update-ktx", version.ref = "play-app-update" }
 play-app-review = { module = "com.google.android.play:review-ktx", version.ref = "play-app-review" }
 play-services-ads = { module = "com.google.android.gms:play-services-ads", version.ref = "play-services-ads" }

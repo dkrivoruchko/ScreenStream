@@ -47,6 +47,7 @@ android {
 dependencies {
     implementation(projects.common)
 
+    implementation(libs.play.services.base)
     implementation(libs.play.services.tasks)
     implementation(libs.play.integrity)
 

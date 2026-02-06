@@ -31,6 +31,7 @@ import info.dvkr.screenstream.webrtc.WebRtcModuleService
 import info.dvkr.screenstream.webrtc.settings.WebRtcSettings
 import info.dvkr.screenstream.webrtc.ui.WebRtcError
 import info.dvkr.screenstream.webrtc.ui.WebRtcState
+import info.dvkr.screenstream.webrtc.ui.isExpectedEnvironmentIssue
 import kotlinx.coroutines.CompletableJob
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -407,11 +408,33 @@ internal class WebRtcStreamingService(
                 currentError.get()?.let { error ->
                     if (error !is WebRtcError.NetworkError) {
                         XLog.w(getLog("GetNonce", "Error present. Ignoring. [$error]"))
-                        XLog.w(getLog("GetNonce", "Error present. Ignoring. [$error]"), RuntimeException("GetNonce: Error present. Ignoring. [$error]", error))
+                        if (error is WebRtcError.PlayIntegrityError && error.isExpectedEnvironmentIssue()) {
+                            XLog.i(getLog("GetNonce", "Expected Play Integrity environment issue. code=${error.code}."))
+                        } else {
+                            XLog.w(
+                                getLog("GetNonce", "Error present. Ignoring. [$error]"),
+                                RuntimeException("GetNonce: Error present. Ignoring. [$error]", error)
+                            )
+                        }
                         return
                     }
                 }
                 currentError.set(null)
+
+                val precheckResult = playIntegrity.checkEnvironment()
+                if (precheckResult.isFailure) {
+                    val cause = precheckResult.exceptionOrNull()!!
+                    networkRecovery.value = false
+                    if (cause is WebRtcError.PlayIntegrityError) {
+                        XLog.i(getLog("GetNonce", "Play Integrity precheck failed. code=${cause.code}, msg=${cause.message}"))
+                        currentError.set(cause)
+                    } else {
+                        XLog.w(getLog("GetNonce", "Play Integrity precheck failed: ${cause.message}"), cause)
+                        currentError.set(WebRtcError.UnknownError(cause))
+                    }
+                    sendEvent(WebRtcEvent.UpdateState)
+                    return
+                }
 
                 playIntegrity.getNonce {
                     // OkHttp thread
@@ -738,7 +761,10 @@ internal class WebRtcStreamingService(
 
             is InternalEvent.SendHostCandidates -> {
                 if (destroyPending) {
-                    XLog.i(getLog("SendHostCandidates", "DestroyPending. Ignoring"), IllegalStateException("SendHostCandidates: DestroyPending"))
+                    XLog.i(
+                        getLog("SendHostCandidates", "DestroyPending. Ignoring"),
+                        IllegalStateException("SendHostCandidates: DestroyPending")
+                    )
                     return
                 }
 
@@ -752,7 +778,10 @@ internal class WebRtcStreamingService(
 
             is InternalEvent.SetClientCandidate -> {
                 if (destroyPending) {
-                    XLog.i(getLog("SetClientCandidate", "DestroyPending. Ignoring"), IllegalStateException("SetClientCandidate: DestroyPending"))
+                    XLog.i(
+                        getLog("SetClientCandidate", "DestroyPending. Ignoring"),
+                        IllegalStateException("SetClientCandidate: DestroyPending")
+                    )
                     return
                 }
 
@@ -823,7 +852,10 @@ internal class WebRtcStreamingService(
 
             is InternalEvent.ConfigurationChange -> {
                 if (destroyPending) {
-                    XLog.i(getLog("ConfigurationChange", "DestroyPending. Ignoring"), IllegalStateException("ConfigurationChange: DestroyPending"))
+                    XLog.i(
+                        getLog("ConfigurationChange", "DestroyPending. Ignoring"),
+                        IllegalStateException("ConfigurationChange: DestroyPending")
+                    )
                     return
                 }
 
@@ -877,7 +909,10 @@ internal class WebRtcStreamingService(
 
             is WebRtcEvent.CreateNewPassword -> {
                 if (destroyPending) {
-                    XLog.i(getLog("CreateNewPassword", "DestroyPending. Ignoring"), IllegalStateException("CreateNewPassword: DestroyPending"))
+                    XLog.i(
+                        getLog("CreateNewPassword", "DestroyPending. Ignoring"),
+                        IllegalStateException("CreateNewPassword: DestroyPending")
+                    )
                     return
                 }
 

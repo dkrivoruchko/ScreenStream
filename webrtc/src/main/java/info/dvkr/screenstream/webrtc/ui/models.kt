@@ -3,6 +3,7 @@ package info.dvkr.screenstream.webrtc.ui
 import android.content.Context
 import androidx.annotation.StringRes
 import androidx.compose.runtime.Immutable
+import com.google.android.play.core.integrity.model.StandardIntegrityErrorCode
 import info.dvkr.screenstream.webrtc.R
 
 @Immutable
@@ -57,4 +58,15 @@ internal sealed class WebRtcError(@field:StringRes open val id: Int, override va
     }
 
     internal open fun toString(context: Context): String = if (id != 0) context.getString(id) else message ?: toString()
+}
+
+internal fun WebRtcError.PlayIntegrityError.isExpectedEnvironmentIssue(): Boolean = when (code) {
+    StandardIntegrityErrorCode.PLAY_STORE_NOT_FOUND,
+    StandardIntegrityErrorCode.PLAY_STORE_VERSION_OUTDATED,
+    StandardIntegrityErrorCode.PLAY_SERVICES_NOT_FOUND,
+    StandardIntegrityErrorCode.PLAY_SERVICES_VERSION_OUTDATED,
+    StandardIntegrityErrorCode.API_NOT_AVAILABLE,
+    StandardIntegrityErrorCode.CANNOT_BIND_TO_SERVICE -> true
+
+    else -> false
 }
