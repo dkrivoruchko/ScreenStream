@@ -1,6 +1,7 @@
 <resources>
     <string name="mjpeg_error_recover">აღდგენა</string>
     <string name="mjpeg_error_open_settings">გახსენით პარამეტრები</string>
+    <string name="mjpeg_close">დახურვა</string>
 
     <string name="mjpeg_stream_mode">ლოკალური რეჟიმი (MJPEG)</string>
     <string name="mjpeg_stream_mode_description">ადგილობრივი რეჟიმის აღწერა</string>
@@ -47,7 +48,7 @@
     <string name="mjpeg_slow_client_connection">აღმოჩენილია კლიენტის ნელი კავშირი</string>
 
     <string name="mjpeg_pref_header">ლოკალური რეჟიმის (MJPEG) პარამეტრები</string>
-    <string name="mjpeg_pref_settings_general">გენერალი</string>
+    <string name="mjpeg_pref_settings_general">ზოგადი პარამეტრები</string>
     <string name="mjpeg_pref_keep_awake">შეინახეთ მოწყობილობა ფხიზლად</string>
     <string name="mjpeg_pref_keep_awake_summary">შეინახეთ მოწყობილობა და ეკრანი ფხიზლად სტრიმინგის დროს</string>
     <string name="mjpeg_pref_stop_on_sleep">შეაჩერე ნაკადი ძილის დროს</string>
@@ -68,7 +69,7 @@
     <string name="mjpeg_pref_html_fit_window">გამოსახულების მორგება ბრაუზერის ფანჯარაში</string>
     <string name="mjpeg_pref_html_fit_window_summary">გამოსახულების მასშტაბირება ბრაუზერში სრულ ეკრანზე</string>
 
-    <string name="mjpeg_pref_settings_image">გამოსახულება</string>
+    <string name="mjpeg_pref_settings_image">გამოსახულების პარამეტრები</string>
     <string name="mjpeg_pref_vr_mode">ვირტუალური რეალობის რეჟიმი</string>
     <string name="mjpeg_pref_vr_mode_summary">გადაიღეთ შინაარსი ნახევარი ეკრანიდან</string>
     <string-array name="mjpeg_pref_vr_mode_options">
@@ -113,7 +114,7 @@
     <string name="mjpeg_pref_jpeg_quality_summary">დააყენეთ JPEG შეკუმშვის ხარისხი</string>
     <string name="mjpeg_pref_jpeg_quality_text">დააყენეთ JPEG შეკუმშვის ხარისხი. ღირებულებები: 10–100 ნაგულისხმევი: 80</string>
 
-    <string name="mjpeg_pref_settings_security">უსაფრთხოება</string>
+    <string name="mjpeg_pref_settings_security">უსაფრთხოების პარამეტრები</string>
     <string name="mjpeg_pref_enable_pin">ჩართეთ პინი</string>
     <string name="mjpeg_pref_enable_pin_summary">დაიცავით ნაკადზე წვდომა პინით</string>
     <string name="mjpeg_pref_hide_pin">ავტომატური დამალვის პინი ნაკადის დაწყებისას</string>
@@ -128,7 +129,7 @@
     <string name="mjpeg_pref_block_address">IP მისამართის დაბლოკვა</string>
     <string name="mjpeg_pref_block_address_summary">დაბლოკეთ კლიენტის IP მისამართი 5 არასწორი პინის მცდელობის შემდეგ 5 წუთის განმავლობაში</string>
 
-    <string name="mjpeg_pref_settings_advanced">Მოწინავე</string>
+    <string name="mjpeg_pref_settings_advanced">დამატებითი პარამეტრები</string>
     <string name="mjpeg_pref_interface_filter">ინტერფეისის ფილტრი</string>
     <string name="mjpeg_pref_interface_filter_summary">აირჩიეთ ქსელის ინტერფეისები სერვერისთვის</string>
     <string name="mjpeg_pref_filter_wifi">Wi-Fi</string>

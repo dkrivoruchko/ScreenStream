@@ -36,8 +36,6 @@
     <string name="app_tile_start">Mulai</string>
     <string name="app_tile_stop">Berhenti</string>
 
-    <string name="app_pref_settings_search">Pencarian pengaturan</string>
-    <string name="app_pref_search">Mencari</string>
     <string name="app_pref_close">Menutup</string>
     <string name="app_pref_back">Kembali</string>
     <string name="app_pref_settings">Pengaturan aplikasi</string>

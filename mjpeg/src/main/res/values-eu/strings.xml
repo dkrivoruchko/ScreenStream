@@ -1,6 +1,7 @@
 <resources>
     <string name="mjpeg_error_recover">Leheneratu</string>
     <string name="mjpeg_error_open_settings">Ireki konfigurazioa</string>
+    <string name="mjpeg_close">Itzi</string>
 
     <string name="mjpeg_stream_mode">Tokiko modua (MJPEG)</string>
     <string name="mjpeg_stream_mode_description">Tokiko moduaren deskribapena</string>
@@ -48,7 +49,7 @@
     <string name="mjpeg_slow_client_connection">Konexio motela detektatu da</string>
 
     <string name="mjpeg_pref_header">Tokiko moduaren konfigurazioa (MJPEG)</string>
-    <string name="mjpeg_pref_settings_general">Orokorra</string>
+    <string name="mjpeg_pref_settings_general">Parametro orokorrak</string>
     <string name="mjpeg_pref_keep_awake">Mantendu gailua aktibo</string>
     <string name="mjpeg_pref_keep_awake_summary">Mantendu gailua eta pantaila aktibo igortzean</string>
     <string name="mjpeg_pref_stop_on_sleep">Gelditu igorpena loa hartzean</string>
@@ -69,7 +70,7 @@
     <string name="mjpeg_pref_html_fit_window">Doitu irudia nabigatzailearen leihoari</string>
     <string name="mjpeg_pref_html_fit_window_summary">Eskalatu nabigatzailearen irudia leihoaren zabalera/altuerari</string>
 
-    <string name="mjpeg_pref_settings_image">Irudia</string>
+    <string name="mjpeg_pref_settings_image">Irudi parametroak</string>
     <string name="mjpeg_pref_vr_mode">Errealitate Birtuala modua</string>
     <string name="mjpeg_pref_vr_mode_summary">Kapturatu edukia errealitate areagotuko moduan</string>
     <string-array name="mjpeg_pref_vr_mode_options">
@@ -114,7 +115,7 @@
     <string name="mjpeg_pref_jpeg_quality_summary">Ezarri JPEG konpresioaren kalitatea</string>
     <string name="mjpeg_pref_jpeg_quality_text">Ezarri JPEG konpresioaren kalitatea.\nBalioak: 10–100\nLehenetsia: 80</string>
 
-    <string name="mjpeg_pref_settings_security">Segurtasuna</string>
+    <string name="mjpeg_pref_settings_security">Segurtasun parametroak</string>
     <string name="mjpeg_pref_enable_pin">Gaitu PINa</string>
     <string name="mjpeg_pref_enable_pin_summary">Babestu igorpenerako sarbidea PIN bidez</string>
     <string name="mjpeg_pref_hide_pin">Ezkutatu PINa automatikoki igorpena hastean</string>
@@ -129,7 +130,7 @@
     <string name="mjpeg_pref_block_address">Blokeatu IP helbidea</string>
     <string name="mjpeg_pref_block_address_summary">Blokeatu bezeroaren IP helbidea 5 PIN saiakera okerren ondoren 5 minutuz</string>
 
-    <string name="mjpeg_pref_settings_advanced">Aurreratua</string>
+    <string name="mjpeg_pref_settings_advanced">Parametro aurreratuak</string>
     <string name="mjpeg_pref_interface_filter">Interfaze iragazkia</string>
     <string name="mjpeg_pref_interface_filter_summary">Hautatu sare interfazeak zerbitzarirako</string>
     <string name="mjpeg_pref_filter_wifi">Wi-Fi</string>

@@ -31,8 +31,10 @@
     <string name="webrtc_stream_copied">已複製</string>
     <string name="webrtc_stream_audio_parameters">音訊參數</string>
     <string name="webrtc_stream_audio_mic">麥克風</string>
-    <string name="webrtc_stream_audio_device">設備音訊</string>
-    <string name="webrtc_stream_audio_device_unavailable">裝置音訊不可用</string>
+    <string name="webrtc_stream_audio_mic_summary">串流麥克風音訊</string>
+    <string name="webrtc_stream_audio_device">內部音訊</string>
+    <string name="webrtc_stream_audio_device_summary">串流此裝置的媒體音訊</string>
+    <string name="webrtc_stream_audio_device_unavailable">內部音訊不可用</string>
     <string name="webrtc_stream_connected_clients">已連接的客戶端：%1$d</string>
     <string name="webrtc_stream_no_web_browser_found">找不到網頁瀏覽器</string>
     <string name="webrtc_stream_external_app_error">外部應用程式錯誤</string>
@@ -46,9 +48,9 @@
     <string name="webrtc_stream_stop_on_sleep">睡眠時停止</string>
     <string name="webrtc_stream_stop_on_sleep_summary">當螢幕待機關閉時停止串流</string>
 
-    <string name="webrtc_stream_audio_permission_title">允許錄製音訊</string>
-    <string name="webrtc_stream_audio_permission_message">應用程式需要錄製音訊的權限以進行音訊串流。\n\n未授予此權限，串流將沒有音訊。</string>
-    <string name="webrtc_stream_audio_permission_message_settings">在應用程式權限中授予麥克風訪問權限對於進行音訊串流是必要的。\n\n未授予此權限，串流將不包括音訊。</string>
+    <string name="webrtc_stream_audio_permission_title">允許音訊存取</string>
+    <string name="webrtc_stream_audio_permission_message">串流麥克風或內部音訊需要麥克風權限。\n\n沒有此權限，串流將沒有聲音。</string>
+    <string name="webrtc_stream_audio_permission_message_settings">請在應用程式設定中啟用麥克風權限，以串流麥克風或內部音訊。\n\n沒有此權限，串流將沒有聲音。</string>
     <string name="webrtc_stream_audio_permission_open_settings">打開設定</string>
 
     <string name="webrtc_stream_cast_permission_required_title">需要權限</string>

@@ -31,8 +31,10 @@
     <string name="webrtc_stream_copied">Disalin</string>
     <string name="webrtc_stream_audio_parameters">Parameter audio</string>
     <string name="webrtc_stream_audio_mic">Mikropon</string>
-    <string name="webrtc_stream_audio_device">Audio piranti</string>
-    <string name="webrtc_stream_audio_device_unavailable">Audio piranti ora kasedhiya</string>
+    <string name="webrtc_stream_audio_mic_summary">Streaming audio mikropon</string>
+    <string name="webrtc_stream_audio_device">Audio internal</string>
+    <string name="webrtc_stream_audio_device_summary">Streaming audio media saka piranti iki</string>
+    <string name="webrtc_stream_audio_device_unavailable">Audio internal ora kasedhiya</string>
     <string name="webrtc_stream_connected_clients">Klien sing disambungake: %1$d</string>
     <string name="webrtc_stream_no_web_browser_found">Ora ana browser web sing ditemokake</string>
     <string name="webrtc_stream_external_app_error">Kesalahan aplikasi eksternal</string>
@@ -46,9 +48,9 @@
     <string name="webrtc_stream_stop_on_sleep">Mungkasi stream nalika turu</string>
     <string name="webrtc_stream_stop_on_sleep_summary">Mungkasi stream yen layar dipateni</string>
 
-    <string name="webrtc_stream_audio_permission_title">Ngidini rekaman audio</string>
-    <string name="webrtc_stream_audio_permission_message">Idin kanggo ngrekam audio perlu kanggo aplikasi kanggo stream isi audio.  Tanpa menehi idin iki, stream bakal tanpa audio.</string>
-    <string name="webrtc_stream_audio_permission_message_settings">Menehi akses mikropon ing ijin aplikasi perlu kanggo aplikasi kanggo stream konten audio.  Tanpa menehi ijin iki, stream bakal ditindakake tanpa audio.</string>
+    <string name="webrtc_stream_audio_permission_title">Ngidini akses audio</string>
+    <string name="webrtc_stream_audio_permission_message">Izin mikropon dibutuhake kanggo streaming audio mikropon utawa audio internal.\n\nTanpa iku, stream ora ana swara.</string>
+    <string name="webrtc_stream_audio_permission_message_settings">Aktifna izin mikropon ing setelan aplikasi kanggo streaming audio mikropon utawa audio internal.\n\nTanpa iku, stream ora ana swara.</string>
     <string name="webrtc_stream_audio_permission_open_settings">Bukak setelan</string>
 
     <string name="webrtc_stream_cast_permission_required_title">Ijin dibutuhake</string>

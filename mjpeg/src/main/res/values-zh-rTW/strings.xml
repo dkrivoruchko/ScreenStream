@@ -1,6 +1,7 @@
 <resources>
     <string name="mjpeg_error_recover">恢復</string>
     <string name="mjpeg_error_open_settings">開啟設定</string>
+    <string name="mjpeg_close">關閉</string>
 
     <string name="mjpeg_stream_mode">本地模式（MJPEG）</string>
     <string name="mjpeg_stream_mode_description">本地模式描述</string>
@@ -48,7 +49,7 @@
     <string name="mjpeg_slow_client_connection">偵測到用戶端網路速度不佳</string>
 
     <string name="mjpeg_pref_header">本地模式（MJPEG）設置</string>
-    <string name="mjpeg_pref_settings_general">一般</string>
+    <string name="mjpeg_pref_settings_general">一般參數</string>
     <string name="mjpeg_pref_keep_awake">保持設備喚醒狀態</string>
     <string name="mjpeg_pref_keep_awake_summary">播出視頻流的時候保持設備喚醒並且屏幕常亮</string>
     <string name="mjpeg_pref_stop_on_sleep">睡眠時停止</string>
@@ -69,7 +70,7 @@
     <string name="mjpeg_pref_html_fit_window">適應瀏覽器視窗的圖片</string>
     <string name="mjpeg_pref_html_fit_window_summary">在瀏覽器中縮放圖片以適應整個視窗的寬度/高度</string>
 
-    <string name="mjpeg_pref_settings_image">畫面</string>
+    <string name="mjpeg_pref_settings_image">影像參數</string>
     <string name="mjpeg_pref_vr_mode">虛擬實境模式</string>
     <string name="mjpeg_pref_vr_mode_summary">截取半個屏幕</string>
     <string-array name="mjpeg_pref_vr_mode_options">
@@ -114,7 +115,7 @@
     <string name="mjpeg_pref_jpeg_quality_summary">設定JPEG壓縮品質</string>
     <string name="mjpeg_pref_jpeg_quality_text">設定JPEG壓縮品質。\n範圍： 10–100\n預設： 80</string>
 
-    <string name="mjpeg_pref_settings_security">安全性</string>
+    <string name="mjpeg_pref_settings_security">安全參數</string>
     <string name="mjpeg_pref_enable_pin">使用pin</string>
     <string name="mjpeg_pref_enable_pin_summary">需輸入pin以進入被保護的串流</string>
     <string name="mjpeg_pref_hide_pin">串流開始後隱藏pin</string>
@@ -129,7 +130,7 @@
     <string name="mjpeg_pref_block_address">封禁 IP 位址</string>
     <string name="mjpeg_pref_block_address_summary">如果用戶端在 5 分鐘內輸錯了 5 次 pin，就會被封鎖</string>
 
-    <string name="mjpeg_pref_settings_advanced">進階</string>
+    <string name="mjpeg_pref_settings_advanced">進階參數</string>
     <string name="mjpeg_pref_interface_filter">介面篩選器</string>
     <string name="mjpeg_pref_interface_filter_summary">選擇伺服器的網路介面</string>
     <string name="mjpeg_pref_filter_wifi">Wi-Fi</string>

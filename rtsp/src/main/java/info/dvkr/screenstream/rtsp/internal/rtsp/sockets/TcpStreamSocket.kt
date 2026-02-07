@@ -13,7 +13,7 @@ import io.ktor.network.tls.tls
 import io.ktor.utils.io.ByteReadChannel
 import io.ktor.utils.io.ByteWriteChannel
 import io.ktor.utils.io.readFully
-import io.ktor.utils.io.readUTF8Line
+import io.ktor.utils.io.readLine
 import io.ktor.utils.io.writeFully
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -167,13 +167,13 @@ internal class TcpStreamSocket private constructor(
             var contentLength = 0
 
             sb.append(first.toInt().toChar())
-            val firstLine = ch.readUTF8Line() ?: return@withLock null
+            val firstLine = ch.readLine() ?: return@withLock null
             headerBytes += 1 + firstLine.length
             if (headerBytes > maxHeaderLength) throw IOException("RTSP header too large (> $maxHeaderLength bytes)")
             sb.append(firstLine).append("\r\n")
 
             while (true) {
-                val line = ch.readUTF8Line() ?: return@withLock null
+                val line = ch.readLine() ?: return@withLock null
                 if (line.isEmpty()) break
                 headerBytes += line.length + 2
                 if (headerBytes > maxHeaderLength) throw IOException("RTSP header too large (> $maxHeaderLength bytes)")

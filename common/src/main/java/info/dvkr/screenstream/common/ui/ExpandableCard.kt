@@ -14,8 +14,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.materialIcon
-import androidx.compose.material.icons.materialPath
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -25,11 +23,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
+import info.dvkr.screenstream.common.R
 
 @Composable
 public fun ExpandableCard(
@@ -66,11 +64,11 @@ public fun ExpandableCard(
 
                 if (expandable) {
                     Icon(
-                        imageVector = Icon_ChevronRight,
+                        painter = painterResource(R.drawable.chevron_right_24px),
                         contentDescription = null,
                         modifier = Modifier
                             .padding(start = 8.dp)
-                            .rotate(iconRotation.value)
+                            .graphicsLayer { rotationZ = iconRotation.value }
                             .align(Alignment.CenterStart)
                     )
                     LaunchedEffect(expanded.value) { iconRotation.animateTo(if (expanded.value) 90F else 0F) }
@@ -83,17 +81,5 @@ public fun ExpandableCard(
                 content.invoke(this)
             }
         }
-    }
-}
-
-private val Icon_ChevronRight: ImageVector = materialIcon(name = "Filled.ChevronRight") {
-    materialPath {
-        moveTo(10.0f, 6.0f)
-        lineTo(8.59f, 7.41f)
-        lineTo(13.17f, 12.0f)
-        lineToRelative(-4.58f, 4.59f)
-        lineTo(10.0f, 18.0f)
-        lineToRelative(6.0f, -6.0f)
-        close()
     }
 }

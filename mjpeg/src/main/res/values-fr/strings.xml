@@ -1,6 +1,7 @@
 <resources>
     <string name="mjpeg_error_recover">Récupérer</string>
     <string name="mjpeg_error_open_settings">Ouvrir les paramètres</string>
+    <string name="mjpeg_close">Fermer</string>
 
     <string name="mjpeg_stream_mode">Mode local (MJPEG)</string>
     <string name="mjpeg_stream_mode_description">Description du mode local</string>
@@ -48,7 +49,7 @@
     <string name="mjpeg_slow_client_connection">Connexion client lente détectée</string>
 
     <string name="mjpeg_pref_header">Paramètres du mode local (MJPEG)</string>
-    <string name="mjpeg_pref_settings_general">Général</string>
+    <string name="mjpeg_pref_settings_general">Paramètres généraux</string>
     <string name="mjpeg_pref_keep_awake">Maintenir l\'éveil du dispositif</string>
     <string name="mjpeg_pref_keep_awake_summary">Maintenir l\'éveil du dispositif et de l\'écran pendant la diffusion</string>
     <string name="mjpeg_pref_stop_on_sleep">Arrêter le flux en veille</string>
@@ -69,7 +70,7 @@
     <string name="mjpeg_pref_html_fit_window">Ajuster l\'image à la fenêtre du navigateur</string>
     <string name="mjpeg_pref_html_fit_window_summary">Agrandir l\'image dans le navigateur à la largeur/hauteur complète de la fenêtre</string>
 
-    <string name="mjpeg_pref_settings_image">Image</string>
+    <string name="mjpeg_pref_settings_image">Paramètres d\'image</string>
     <string name="mjpeg_pref_vr_mode">Mode réalité virtuelle</string>
     <string name="mjpeg_pref_vr_mode_summary">Capturer le contenu à partir de la moitié de l\'écran</string>
     <string-array name="mjpeg_pref_vr_mode_options">
@@ -114,7 +115,7 @@
     <string name="mjpeg_pref_jpeg_quality_summary">Définir la qualité de compression JPEG</string>
     <string name="mjpeg_pref_jpeg_quality_text">Définir la qualité de compression JPEG.\nValeurs: 10–100\nPar défaut: 80</string>
 
-    <string name="mjpeg_pref_settings_security">Sécurité</string>
+    <string name="mjpeg_pref_settings_security">Paramètres de sécurité</string>
     <string name="mjpeg_pref_enable_pin">Activer le code PIN</string>
     <string name="mjpeg_pref_enable_pin_summary">Protéger l\'accès au flux avec un code PIN</string>
     <string name="mjpeg_pref_hide_pin">Masquer automatiquement le code PIN au démarrage du flux</string>
@@ -129,7 +130,7 @@
     <string name="mjpeg_pref_block_address">Bloquer l\'adresse IP</string>
     <string name="mjpeg_pref_block_address_summary">Bloquer l\'adresse IP du client après 5 tentatives de code PIN incorrectes pendant 5 minutes</string>
 
-    <string name="mjpeg_pref_settings_advanced">Avancé</string>
+    <string name="mjpeg_pref_settings_advanced">Paramètres avancés</string>
     <string name="mjpeg_pref_interface_filter">Filtre d\'interface</string>
     <string name="mjpeg_pref_interface_filter_summary">Sélectionner les interfaces réseau pour le serveur</string>
     <string name="mjpeg_pref_filter_wifi">Wi-Fi</string>

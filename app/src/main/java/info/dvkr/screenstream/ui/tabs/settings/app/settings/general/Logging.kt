@@ -5,8 +5,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.selection.toggleable
-import androidx.compose.material.icons.materialIcon
-import androidx.compose.material.icons.materialPath
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
@@ -17,8 +15,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -61,7 +59,7 @@ private fun LoggingUI(
             .padding(start = horizontalPadding + 16.dp, end = horizontalPadding + 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(imageVector = Icon_Article, contentDescription = null, modifier = Modifier.padding(end = 16.dp))
+        Icon(painter = painterResource(R.drawable.article_24px), contentDescription = null, modifier = Modifier.padding(end = 16.dp))
 
         Column(modifier = Modifier.weight(1F)) {
             Text(
@@ -78,46 +76,5 @@ private fun LoggingUI(
         }
 
         Switch(checked = isLoggingOn, onCheckedChange = null, modifier = Modifier.scale(0.7F))
-    }
-}
-
-private val Icon_Article: ImageVector = materialIcon(name = "AutoMirrored.Outlined.Article", autoMirror = true) {
-    materialPath {
-        moveTo(19.0f, 5.0f)
-        verticalLineToRelative(14.0f)
-        horizontalLineTo(5.0f)
-        verticalLineTo(5.0f)
-        horizontalLineTo(19.0f)
-        moveTo(19.0f, 3.0f)
-        horizontalLineTo(5.0f)
-        curveTo(3.9f, 3.0f, 3.0f, 3.9f, 3.0f, 5.0f)
-        verticalLineToRelative(14.0f)
-        curveToRelative(0.0f, 1.1f, 0.9f, 2.0f, 2.0f, 2.0f)
-        horizontalLineToRelative(14.0f)
-        curveToRelative(1.1f, 0.0f, 2.0f, -0.9f, 2.0f, -2.0f)
-        verticalLineTo(5.0f)
-        curveTo(21.0f, 3.9f, 20.1f, 3.0f, 19.0f, 3.0f)
-        lineTo(19.0f, 3.0f)
-        close()
-    }
-    materialPath {
-        moveTo(14.0f, 17.0f)
-        horizontalLineTo(7.0f)
-        verticalLineToRelative(-2.0f)
-        horizontalLineToRelative(7.0f)
-        verticalLineTo(17.0f)
-        close()
-        moveTo(17.0f, 13.0f)
-        horizontalLineTo(7.0f)
-        verticalLineToRelative(-2.0f)
-        horizontalLineToRelative(10.0f)
-        verticalLineTo(13.0f)
-        close()
-        moveTo(17.0f, 9.0f)
-        horizontalLineTo(7.0f)
-        verticalLineTo(7.0f)
-        horizontalLineToRelative(10.0f)
-        verticalLineTo(9.0f)
-        close()
     }
 }

@@ -31,8 +31,10 @@
     <string name="webrtc_stream_copied">Скопировано</string>
     <string name="webrtc_stream_audio_parameters">Параметры аудио</string>
     <string name="webrtc_stream_audio_mic">Микрофон</string>
-    <string name="webrtc_stream_audio_device">Аудио устройства</string>
-    <string name="webrtc_stream_audio_device_unavailable">Звук устройства недоступен</string>
+    <string name="webrtc_stream_audio_mic_summary">Транслировать звук с микрофона</string>
+    <string name="webrtc_stream_audio_device">Внутренний звук</string>
+    <string name="webrtc_stream_audio_device_summary">Транслировать медиа-аудио с этого устройства</string>
+    <string name="webrtc_stream_audio_device_unavailable">Внутренний звук недоступен</string>
     <string name="webrtc_stream_connected_clients">Подключенные клиенты: %1$d</string>
     <string name="webrtc_stream_no_web_browser_found">Не найден веб-браузер</string>
     <string name="webrtc_stream_external_app_error">Ошибка внешнего приложения</string>
@@ -46,9 +48,9 @@
     <string name="webrtc_stream_stop_on_sleep">Останавливать при выключении</string>
     <string name="webrtc_stream_stop_on_sleep_summary">Останавливать трансляцию, если выключится экран</string>
 
-    <string name="webrtc_stream_audio_permission_title">Разрешить запись аудио</string>
-    <string name="webrtc_stream_audio_permission_message">Необходимо разрешение на запись аудио для работы приложения со звуком.\n\nБез предоставления этого разрешения трансляция будет без звука.</string>
-    <string name="webrtc_stream_audio_permission_message_settings">Необходимо предоставить доступ к микрофону в настройках разрешений приложения для работы со звуком.\n\nБез предоставления этого разрешения трансляция будет проводиться без звука.</string>
+    <string name="webrtc_stream_audio_permission_title">Разрешить доступ к аудио</string>
+    <string name="webrtc_stream_audio_permission_message">Для трансляции звука с микрофона или внутреннего звука требуется разрешение на микрофон.\n\nБез него трансляция будет без звука.</string>
+    <string name="webrtc_stream_audio_permission_message_settings">Включите разрешение на микрофон в настройках приложения, чтобы транслировать звук с микрофона или внутренний звук.\n\nБез него трансляция будет без звука.</string>
     <string name="webrtc_stream_audio_permission_open_settings">Открыть настройки</string>
 
     <string name="webrtc_stream_cast_permission_required_title">Требуется разрешение</string>

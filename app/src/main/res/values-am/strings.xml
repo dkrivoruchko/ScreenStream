@@ -36,8 +36,6 @@
     <string name="app_tile_start">ጀምር</string>
     <string name="app_tile_stop">ተወ</string>
 
-    <string name="app_pref_settings_search">የቅንብሮች ፍለጋ</string>
-    <string name="app_pref_search">ፈልግ</string>
     <string name="app_pref_close">ገጠመ</string>
     <string name="app_pref_back">ተመለስ</string>
     <string name="app_pref_settings">የመተግበሪያ ቅንብሮች</string>

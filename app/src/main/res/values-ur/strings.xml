@@ -36,8 +36,6 @@
     <string name="app_tile_start">شروع کریں</string>
     <string name="app_tile_stop">روکیں</string>
 
-    <string name="app_pref_settings_search">ترتیبات میں تلاش</string>
-    <string name="app_pref_search">تلاش</string>
     <string name="app_pref_close">بند کریں</string>
     <string name="app_pref_back">واپس</string>
     <string name="app_pref_settings">ایپ کی ترتیبات</string>

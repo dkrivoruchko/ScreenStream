@@ -31,8 +31,10 @@
     <string name="webrtc_stream_copied">تم نسخه</string>
     <string name="webrtc_stream_audio_parameters">معلمات الصوت</string>
     <string name="webrtc_stream_audio_mic">الميكروفون</string>
-    <string name="webrtc_stream_audio_device">صوت الجهاز</string>
-    <string name="webrtc_stream_audio_device_unavailable">صوت الجهاز غير متاح</string>
+    <string name="webrtc_stream_audio_mic_summary">بث صوت الميكروفون</string>
+    <string name="webrtc_stream_audio_device">الصوت الداخلي</string>
+    <string name="webrtc_stream_audio_device_summary">بث صوت الوسائط من هذا الجهاز</string>
+    <string name="webrtc_stream_audio_device_unavailable">الصوت الداخلي غير متاح</string>
     <string name="webrtc_stream_connected_clients">العملاء المتصلون: %1$d</string>
     <string name="webrtc_stream_no_web_browser_found">لم يتم العثور على متصفح ويب</string>
     <string name="webrtc_stream_external_app_error">خطأ في التطبيق الخارجي</string>
@@ -46,9 +48,9 @@
     <string name="webrtc_stream_stop_on_sleep">توقف عن البث أثناء النوم</string>
     <string name="webrtc_stream_stop_on_sleep_summary">أوقف البث إذا تم إيقاف تشغيل الشاشة</string>
 
-    <string name="webrtc_stream_audio_permission_title">اسمح بالتسجيل الصوتي</string>
-    <string name="webrtc_stream_audio_permission_message">الإذن بتسجيل الصوت ضروري لتطبيق بث المحتوى الصوتي.\n\بدون منح هذا الإذن، سيكون البث بدون صوت.</string>
-    <string name="webrtc_stream_audio_permission_message_settings">يعد منح الوصول إلى الميكروفون في أذونات التطبيق أمرا ضروريا للتطبيق لبث المحتوى الصوتي.\n\بدون منح هذا الإذن، سيتم إجراء البث بدون أي صوت.</string>
+    <string name="webrtc_stream_audio_permission_title">اسمح بالوصول إلى الصوت</string>
+    <string name="webrtc_stream_audio_permission_message">إذن الميكروفون مطلوب لبث صوت الميكروفون أو الصوت الداخلي.\n\nبدونه سيكون البث بلا صوت.</string>
+    <string name="webrtc_stream_audio_permission_message_settings">فعّل إذن الميكروفون في إعدادات التطبيق لبث صوت الميكروفون أو الصوت الداخلي.\n\nبدونه سيكون البث بلا صوت.</string>
     <string name="webrtc_stream_audio_permission_open_settings">افتح الإعدادات</string>
 
     <string name="webrtc_stream_cast_permission_required_title">الإذن مطلوب</string>

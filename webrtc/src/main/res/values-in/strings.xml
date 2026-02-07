@@ -31,8 +31,10 @@
     <string name="webrtc_stream_copied">Disalin</string>
     <string name="webrtc_stream_audio_parameters">Parameter audio</string>
     <string name="webrtc_stream_audio_mic">Mikropon</string>
-    <string name="webrtc_stream_audio_device">Audio perangkat</string>
-    <string name="webrtc_stream_audio_device_unavailable">Audio perangkat tidak tersedia</string>
+    <string name="webrtc_stream_audio_mic_summary">Streaming audio mikrofon</string>
+    <string name="webrtc_stream_audio_device">Audio internal</string>
+    <string name="webrtc_stream_audio_device_summary">Streaming audio media dari perangkat ini</string>
+    <string name="webrtc_stream_audio_device_unavailable">Audio internal tidak tersedia</string>
     <string name="webrtc_stream_connected_clients">Klien yang terhubung: %1$d</string>
     <string name="webrtc_stream_no_web_browser_found">Tidak ada peramban web yang ditemukan</string>
     <string name="webrtc_stream_external_app_error">Kesalahan aplikasi eksternal</string>
@@ -46,9 +48,9 @@
     <string name="webrtc_stream_stop_on_sleep">Hentikan streaming saat tidur</string>
     <string name="webrtc_stream_stop_on_sleep_summary">Hentikan streaming jika layar mati</string>
 
-    <string name="webrtc_stream_audio_permission_title">Izinkan rekaman audio</string>
-    <string name="webrtc_stream_audio_permission_message">Permission to record audio is necessary for the application to stream audio content.  Without granting this permission, the stream will be without audio.</string>
-    <string name="webrtc_stream_audio_permission_message_settings">Memberikan akses mikrofon dalam izin aplikasi diperlukan agar aplikasi dapat melakukan streaming konten audio.  Tanpa memberikan izin ini, streaming akan dilakukan tanpa audio apa pun.</string>
+    <string name="webrtc_stream_audio_permission_title">Izinkan akses audio</string>
+    <string name="webrtc_stream_audio_permission_message">Izin mikrofon diperlukan untuk streaming audio mikrofon atau audio internal.\n\nTanpanya, streaming tidak memiliki suara.</string>
+    <string name="webrtc_stream_audio_permission_message_settings">Aktifkan izin mikrofon di setelan aplikasi untuk streaming audio mikrofon atau audio internal.\n\nTanpanya, streaming tidak memiliki suara.</string>
     <string name="webrtc_stream_audio_permission_open_settings">Buka pengaturan</string>
 
     <string name="webrtc_stream_cast_permission_required_title">Izin diperlukan</string>

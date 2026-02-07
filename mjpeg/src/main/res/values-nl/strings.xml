@@ -1,6 +1,7 @@
 <resources>
     <string name="mjpeg_error_recover">Herstellen</string>
     <string name="mjpeg_error_open_settings">Instellingen openen</string>
+    <string name="mjpeg_close">Sluiten</string>
 
     <string name="mjpeg_stream_mode">Lokale modus (MJPEG)</string>
     <string name="mjpeg_stream_mode_description">Beschrijving van lokale modus</string>
@@ -48,7 +49,7 @@
     <string name="mjpeg_slow_client_connection">Slome client verbinding gedetecteerd</string>
 
     <string name="mjpeg_pref_header">Lokale modus (MJPEG) instellingen</string>
-    <string name="mjpeg_pref_settings_general">Algemeen</string>
+    <string name="mjpeg_pref_settings_general">Algemene parameters</string>
     <string name="mjpeg_pref_keep_awake">Apparaat actief houden</string>
     <string name="mjpeg_pref_keep_awake_summary">Houd het apparaat en het scherm actief tijdens het streamen</string>
     <string name="mjpeg_pref_stop_on_sleep">Stop stream bij slaapmodus</string>
@@ -69,7 +70,7 @@
     <string name="mjpeg_pref_html_fit_window">Pas afbeelding aan browservenster aan</string>
     <string name="mjpeg_pref_html_fit_window_summary">Vergroot afbeelding in browser naar volledige vensterbreedte/-hoogte</string>
 
-    <string name="mjpeg_pref_settings_image">Beeld</string>
+    <string name="mjpeg_pref_settings_image">Beeldparameters</string>
     <string name="mjpeg_pref_vr_mode">Virtual Reality modus</string>
     <string name="mjpeg_pref_vr_mode_summary">Neem het halve scherm op</string>
     <string-array name="mjpeg_pref_vr_mode_options">
@@ -114,7 +115,7 @@
     <string name="mjpeg_pref_jpeg_quality_summary">Stel JPEG compressie kwaliteit in</string>
     <string name="mjpeg_pref_jpeg_quality_text">Stel JPEG compressie kwaliteit.\nWaardes: 10–100\nStandaard: 80</string>
 
-    <string name="mjpeg_pref_settings_security">Beveiliging</string>
+    <string name="mjpeg_pref_settings_security">Beveiligingsparameters</string>
     <string name="mjpeg_pref_enable_pin">Zet pin aan</string>
     <string name="mjpeg_pref_enable_pin_summary">Beveilig stream met PIN</string>
     <string name="mjpeg_pref_hide_pin">Verberg de PIN met de start van de stream</string>
@@ -129,7 +130,7 @@
     <string name="mjpeg_pref_block_address">Blokkeer IP adressen</string>
     <string name="mjpeg_pref_block_address_summary">Blok IP adressen na 5 foute pogingen voor 5 minuten</string>
 
-    <string name="mjpeg_pref_settings_advanced">Overigen</string>
+    <string name="mjpeg_pref_settings_advanced">Geavanceerde parameters</string>
     <string name="mjpeg_pref_interface_filter">Interface filter</string>
     <string name="mjpeg_pref_interface_filter_summary">Selecteer netwerkinterfaces voor server</string>
     <string name="mjpeg_pref_filter_wifi">Wi-Fi</string>

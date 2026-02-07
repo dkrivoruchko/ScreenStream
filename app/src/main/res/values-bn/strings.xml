@@ -36,8 +36,6 @@
     <string name="app_tile_start">শুরু করুন</string>
     <string name="app_tile_stop">থামুন</string>
 
-    <string name="app_pref_settings_search">সেটিংস অনুসন্ধান</string>
-    <string name="app_pref_search">অনুসন্ধান করুন</string>
     <string name="app_pref_close">বন্ধ করুন</string>
     <string name="app_pref_back">পুনরায়</string>
     <string name="app_pref_settings">"অ্যাপ্লিকেশন সেটিংস "</string>

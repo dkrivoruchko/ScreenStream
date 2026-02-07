@@ -1,6 +1,7 @@
 <resources>
     <string name="mjpeg_error_recover">Waras</string>
     <string name="mjpeg_error_open_settings">Bukak setelan</string>
+    <string name="mjpeg_close">Nutup</string>
 
     <string name="mjpeg_stream_mode">Mode lokal (MJPEG)</string>
     <string name="mjpeg_stream_mode_description">Katrangan mode lokal</string>
@@ -48,7 +49,7 @@
     <string name="mjpeg_slow_client_connection">Sambungan klien alon dideteksi</string>
 
     <string name="mjpeg_pref_header">Setelan mode lokal (MJPEG).</string>
-    <string name="mjpeg_pref_settings_general">Umum</string>
+    <string name="mjpeg_pref_settings_general">Parameter umum</string>
     <string name="mjpeg_pref_keep_awake">Tansah piranti siyaga</string>
     <string name="mjpeg_pref_keep_awake_summary">Tansah piranti lan layar siyaga nalika streaming</string>
     <string name="mjpeg_pref_stop_on_sleep">Mungkasi stream nalika turu</string>
@@ -69,7 +70,7 @@
     <string name="mjpeg_pref_html_fit_window">Pas gambar menyang jendhela browser</string>
     <string name="mjpeg_pref_html_fit_window_summary">Skala gambar ing browser menyang kebekan jendhela</string>
 
-    <string name="mjpeg_pref_settings_image">Gambar</string>
+    <string name="mjpeg_pref_settings_image">Parameter gambar</string>
     <string name="mjpeg_pref_vr_mode">Mode kasunyatan virtual</string>
     <string name="mjpeg_pref_vr_mode_summary">Jupuk isi saka setengah layar</string>
     <string-array name="mjpeg_pref_vr_mode_options">
@@ -114,7 +115,7 @@
     <string name="mjpeg_pref_jpeg_quality_summary">Setel kualitas kompresi JPEG</string>
     <string name="mjpeg_pref_jpeg_quality_text">Setel kualitas kompresi JPEG. Nilai: 10–100 Default: 80</string>
 
-    <string name="mjpeg_pref_settings_security">Keamanan</string>
+    <string name="mjpeg_pref_settings_security">Parameter keamanan</string>
     <string name="mjpeg_pref_enable_pin">Aktifake pin</string>
     <string name="mjpeg_pref_enable_pin_summary">Nglindhungi akses kanggo stream karo pin</string>
     <string name="mjpeg_pref_hide_pin">Singidaken otomatis pin ing wiwitan stream</string>
@@ -129,7 +130,7 @@
     <string name="mjpeg_pref_block_address">Blokir alamat IP</string>
     <string name="mjpeg_pref_block_address_summary">Blokir alamat IP klien sawise 5 salah pin nyoba kanggo 5 menit</string>
 
-    <string name="mjpeg_pref_settings_advanced">Majeng</string>
+    <string name="mjpeg_pref_settings_advanced">Parameter majeng</string>
     <string name="mjpeg_pref_interface_filter">Panyaring antarmuka</string>
     <string name="mjpeg_pref_interface_filter_summary">Pilih antarmuka jaringan kanggo server</string>
     <string name="mjpeg_pref_filter_wifi">Wi-Fi</string>

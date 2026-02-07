@@ -31,8 +31,10 @@
     <string name="webrtc_stream_copied">Copied</string>
     <string name="webrtc_stream_audio_parameters">Audio parameters</string>
     <string name="webrtc_stream_audio_mic">Microphone</string>
-    <string name="webrtc_stream_audio_device">Device audio</string>
-    <string name="webrtc_stream_audio_device_unavailable">Device audio unavailable</string>
+    <string name="webrtc_stream_audio_mic_summary">Stream microphone audio</string>
+    <string name="webrtc_stream_audio_device">Internal audio</string>
+    <string name="webrtc_stream_audio_device_summary">Stream media audio from this device</string>
+    <string name="webrtc_stream_audio_device_unavailable">Internal audio unavailable</string>
     <string name="webrtc_stream_connected_clients">Connected clients: %1$d</string>
     <string name="webrtc_stream_no_web_browser_found">No web browser found</string>
     <string name="webrtc_stream_external_app_error">External application error</string>
@@ -46,9 +48,9 @@
     <string name="webrtc_stream_stop_on_sleep">Stop stream on sleep</string>
     <string name="webrtc_stream_stop_on_sleep_summary">Stop stream if screen turns off</string>
 
-    <string name="webrtc_stream_audio_permission_title">Allow audio recording</string>
-    <string name="webrtc_stream_audio_permission_message">Permission to record audio is necessary for the application to stream audio content.\n\nWithout granting this permission, the stream will be without audio.</string>
-    <string name="webrtc_stream_audio_permission_message_settings">Granting microphone access in application permissions is necessary for the application to stream audio content.\n\nWithout granting this permission, the stream will be conducted without any audio.</string>
+    <string name="webrtc_stream_audio_permission_title">Allow audio access</string>
+    <string name="webrtc_stream_audio_permission_message">Microphone permission is required to stream microphone or internal audio.\n\nWithout it, the stream has no sound.</string>
+    <string name="webrtc_stream_audio_permission_message_settings">Enable microphone permission in app settings to stream microphone or internal audio.\n\nWithout it, the stream has no sound.</string>
     <string name="webrtc_stream_audio_permission_open_settings">Open settings</string>
 
     <string name="webrtc_stream_cast_permission_required_title">Permission required</string>

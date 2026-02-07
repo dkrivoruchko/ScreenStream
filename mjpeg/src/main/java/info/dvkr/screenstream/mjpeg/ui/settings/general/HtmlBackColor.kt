@@ -19,8 +19,6 @@ import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.materialIcon
-import androidx.compose.material.icons.materialPath
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
@@ -41,8 +39,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.ImeAction
@@ -115,7 +113,11 @@ private fun HtmlBackColorUI(
             .padding(start = horizontalPadding + 16.dp, end = horizontalPadding + 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(imageVector = Icon_FormatColorFill, contentDescription = null, modifier = Modifier.padding(end = 16.dp))
+        Icon(
+            painter = painterResource(R.drawable.format_color_fill_24px),
+            contentDescription = null,
+            modifier = Modifier.padding(end = 16.dp)
+        )
 
         Column(modifier = Modifier.weight(1F)) {
             Text(
@@ -159,18 +161,24 @@ private fun HtmlBackColorDetailUI(
             ColorEditorPanel(
                 htmlBackColor = htmlBackColor,
                 onColorChange = onColorChange,
-                modifier = Modifier.padding(start = 24.dp, top = 8.dp, end = 24.dp, bottom = 4.dp).fillMaxWidth()
+                modifier = Modifier
+                    .padding(start = 24.dp, top = 8.dp, end = 24.dp, bottom = 4.dp)
+                    .fillMaxWidth()
             )
 
             ColorSliderPanel(
                 htmlBackColor = htmlBackColor,
                 onColorChange = onColorChange,
-                modifier = Modifier.padding(top = 16.dp).fillMaxWidth()
+                modifier = Modifier
+                    .padding(top = 16.dp)
+                    .fillMaxWidth()
             )
 
             ColorPalettePanel(
                 onColorChange = onColorChange,
-                modifier = Modifier.padding(16.dp).fillMaxWidth()
+                modifier = Modifier
+                    .padding(16.dp)
+                    .fillMaxWidth()
             )
         }
     }
@@ -191,7 +199,9 @@ private fun ColorEditorPanel(
     val width = remember { with(density) { textMeasurer.measure("000000").size.width.toDp() + 64.dp } }
 
     Surface(
-        modifier = modifier.requiredWidthIn(max = 296.dp).padding(horizontal = 8.dp),
+        modifier = modifier
+            .requiredWidthIn(max = 296.dp)
+            .padding(horizontal = 8.dp),
         shape = MaterialTheme.shapes.medium,
         color = htmlBackColor,
         border = BorderStroke(1.dp, SolidColor(borderColor))
@@ -202,7 +212,9 @@ private fun ColorEditorPanel(
                 currentColorString.value = newColorString.replace(colorRegexp, "").take(6)
                 runCatching { "#${currentColorString.value}".toColorInt() }.getOrNull()?.let { onColorChange.invoke(Color(it)) }
             },
-            modifier = Modifier.wrapContentWidth(align = Alignment.CenterHorizontally).width(width),
+            modifier = Modifier
+                .wrapContentWidth(align = Alignment.CenterHorizontally)
+                .width(width),
             prefix = { Text(text = "#") },
             keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Ascii, imeAction = ImeAction.Done),
             singleLine = true,
@@ -241,7 +253,9 @@ private fun ColorSliderPanel(
                 sliderRed.floatValue = it
                 onColorChange.invoke(Color(sliderRed.floatValue, sliderGreen.floatValue, sliderBlue.floatValue))
             },
-            modifier = Modifier.padding(vertical = 4.dp).fillMaxWidth()
+            modifier = Modifier
+                .padding(vertical = 4.dp)
+                .fillMaxWidth()
         )
         ColorSlider(
             name = "G",
@@ -251,7 +265,9 @@ private fun ColorSliderPanel(
                 sliderGreen.floatValue = it
                 onColorChange.invoke(Color(sliderRed.floatValue, sliderGreen.floatValue, sliderBlue.floatValue))
             },
-            modifier = Modifier.padding(vertical = 4.dp).fillMaxWidth()
+            modifier = Modifier
+                .padding(vertical = 4.dp)
+                .fillMaxWidth()
         )
         ColorSlider(
             name = "B",
@@ -261,7 +277,9 @@ private fun ColorSliderPanel(
                 sliderBlue.floatValue = it
                 onColorChange.invoke(Color(sliderRed.floatValue, sliderGreen.floatValue, sliderBlue.floatValue))
             },
-            modifier = Modifier.padding(vertical = 4.dp).fillMaxWidth()
+            modifier = Modifier
+                .padding(vertical = 4.dp)
+                .fillMaxWidth()
         )
     }
 }
@@ -281,7 +299,10 @@ private fun ColorSlider(
 
     val max = 296.dp + textWidth + textWidth
     Row(
-        modifier = modifier.requiredWidthIn(max = max).widthIn(max = max).padding(horizontal = 16.dp),
+        modifier = modifier
+            .requiredWidthIn(max = max)
+            .widthIn(max = max)
+            .padding(horizontal = 16.dp),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -294,7 +315,9 @@ private fun ColorSlider(
             Slider(
                 value = sliderValue.floatValue * 255,
                 onValueChange = { sliderValue.floatValue = it / 255 },
-                modifier = Modifier.weight(1F).padding(horizontal = 8.dp),
+                modifier = Modifier
+                    .weight(1F)
+                    .padding(horizontal = 8.dp),
                 valueRange = 0F..255F,
                 steps = 256,
                 onValueChangeFinished = { onValueChange.invoke(sliderValue.floatValue) },
@@ -319,7 +342,9 @@ private fun ColorPalettePanel(
     ) {
         HtmlBackColor.colorPalette.chunked(4).forEach { colorsRow ->
             Row(
-                modifier = Modifier.requiredWidthIn(max = 296.dp).widthIn(max = 296.dp),
+                modifier = Modifier
+                    .requiredWidthIn(max = 296.dp)
+                    .widthIn(max = 296.dp),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 colorsRow.forEach { color ->
@@ -335,39 +360,5 @@ private fun ColorPalettePanel(
                 }
             }
         }
-    }
-}
-
-private val Icon_FormatColorFill: ImageVector = materialIcon(name = "Outlined.FormatColorFill") {
-    materialPath {
-        moveTo(16.56f, 8.94f)
-        lineTo(7.62f, 0.0f)
-        lineTo(6.21f, 1.41f)
-        lineToRelative(2.38f, 2.38f)
-        lineTo(3.44f, 8.94f)
-        curveToRelative(-0.59f, 0.59f, -0.59f, 1.54f, 0.0f, 2.12f)
-        lineToRelative(5.5f, 5.5f)
-        curveTo(9.23f, 16.85f, 9.62f, 17.0f, 10.0f, 17.0f)
-        reflectiveCurveToRelative(0.77f, -0.15f, 1.06f, -0.44f)
-        lineToRelative(5.5f, -5.5f)
-        curveTo(17.15f, 10.48f, 17.15f, 9.53f, 16.56f, 8.94f)
-        close()
-        moveTo(5.21f, 10.0f)
-        lineTo(10.0f, 5.21f)
-        lineTo(14.79f, 10.0f)
-        horizontalLineTo(5.21f)
-        close()
-        moveTo(19.0f, 11.5f)
-        curveToRelative(0.0f, 0.0f, -2.0f, 2.17f, -2.0f, 3.5f)
-        curveToRelative(0.0f, 1.1f, 0.9f, 2.0f, 2.0f, 2.0f)
-        reflectiveCurveToRelative(2.0f, -0.9f, 2.0f, -2.0f)
-        curveTo(21.0f, 13.67f, 19.0f, 11.5f, 19.0f, 11.5f)
-        close()
-        moveTo(2.0f, 20.0f)
-        horizontalLineToRelative(20.0f)
-        verticalLineToRelative(4.0f)
-        horizontalLineTo(2.0f)
-        verticalLineTo(20.0f)
-        close()
     }
 }

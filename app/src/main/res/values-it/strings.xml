@@ -36,8 +36,6 @@
     <string name="app_tile_start">Avvia</string>
     <string name="app_tile_stop">Ferma</string>
 
-    <string name="app_pref_settings_search">Ricerca impostazioni</string>
-    <string name="app_pref_search">Cerca</string>
     <string name="app_pref_close">Chiudi</string>
     <string name="app_pref_back">Indietro</string>
     <string name="app_pref_settings">Impostazioni dell\'applicazione</string>

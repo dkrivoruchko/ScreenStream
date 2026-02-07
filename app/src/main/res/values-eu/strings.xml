@@ -36,8 +36,6 @@
     <string name="app_tile_start">Hasi</string>
     <string name="app_tile_stop">Gelditu</string>
 
-    <string name="app_pref_settings_search">Ezarpen-bilaketa</string>
-    <string name="app_pref_search">Bilatu</string>
     <string name="app_pref_close">Itzi</string>
     <string name="app_pref_back">Atzera</string>
     <string name="app_pref_settings">Aplikazioaren konfigurazioa</string>

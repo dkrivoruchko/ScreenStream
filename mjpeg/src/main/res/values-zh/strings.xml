@@ -1,6 +1,7 @@
 <resources>
     <string name="mjpeg_error_recover">恢复</string>
     <string name="mjpeg_error_open_settings">打开设置</string>
+    <string name="mjpeg_close">关闭</string>
 
     <string name="mjpeg_stream_mode">本地模式 (MJPEG)</string>
     <string name="mjpeg_stream_mode_description">本地模式描述</string>
@@ -48,7 +49,7 @@
     <string name="mjpeg_slow_client_connection">检测到慢速客户端连接</string>
 
     <string name="mjpeg_pref_header">本地模式（MJPEG）设置</string>
-    <string name="mjpeg_pref_settings_general">一般</string>
+    <string name="mjpeg_pref_settings_general">常规参数</string>
     <string name="mjpeg_pref_keep_awake">保持设备唤醒状态</string>
     <string name="mjpeg_pref_keep_awake_summary">传输时保持设备活跃，屏幕不熄灭</string>
     <string name="mjpeg_pref_stop_on_sleep">休眠时停止传输</string>
@@ -69,7 +70,7 @@
     <string name="mjpeg_pref_html_fit_window">适应浏览器窗口的图像</string>
     <string name="mjpeg_pref_html_fit_window_summary">将图像在浏览器中缩放到整个窗口宽度/高度</string>
 
-    <string name="mjpeg_pref_settings_image">图片</string>
+    <string name="mjpeg_pref_settings_image">图像参数</string>
     <string name="mjpeg_pref_vr_mode">虚拟现实模式</string>
     <string name="mjpeg_pref_vr_mode_summary">从半个屏幕捕获内容</string>
     <string-array name="mjpeg_pref_vr_mode_options">
@@ -114,7 +115,7 @@
     <string name="mjpeg_pref_jpeg_quality_summary">设置 JPEG 压缩质量</string>
     <string name="mjpeg_pref_jpeg_quality_text">设置 JPEG 压缩质量。\n值：10–100\n默认：80</string>
 
-    <string name="mjpeg_pref_settings_security">安全性</string>
+    <string name="mjpeg_pref_settings_security">安全参数</string>
     <string name="mjpeg_pref_enable_pin">启用 pin 码</string>
     <string name="mjpeg_pref_enable_pin_summary">用 pin 码保护对流的访问</string>
     <string name="mjpeg_pref_hide_pin">传输开始时隐藏 pin 码</string>
@@ -129,7 +130,7 @@
     <string name="mjpeg_pref_block_address">拦截 IP 地址</string>
     <string name="mjpeg_pref_block_address_summary">5 次错误的 pin 码尝试后，拦截客户端 IP 5 分钟</string>
 
-    <string name="mjpeg_pref_settings_advanced">高级</string>
+    <string name="mjpeg_pref_settings_advanced">高级参数</string>
     <string name="mjpeg_pref_interface_filter">接口过滤器</string>
     <string name="mjpeg_pref_interface_filter_summary">选择服务器的网络接口</string>
     <string name="mjpeg_pref_filter_wifi">Wi-Fi</string>

@@ -11,8 +11,6 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.materialIcon
-import androidx.compose.material.icons.materialPath
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -27,7 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextRange
@@ -106,7 +104,7 @@ private fun PinUI(
             .conditional(enabled.not()) { alpha(0.5F) },
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(imageVector = Icon_Dialpad, contentDescription = null, modifier = Modifier.padding(end = 16.dp))
+        Icon(painter = painterResource(R.drawable.dialpad_24px), contentDescription = null, modifier = Modifier.padding(end = 16.dp))
 
         Column(modifier = Modifier.weight(1F)) {
             Text(
@@ -190,69 +188,4 @@ private fun PinDetailUI(
     }
 
     LaunchedEffect(Unit) { delay(50); focusRequester.requestFocus() }
-}
-
-private val Icon_Dialpad: ImageVector = materialIcon(name = "Filled.Dialpad") {
-    materialPath {
-        moveTo(12.0f, 19.0f)
-        curveToRelative(-1.1f, 0.0f, -2.0f, 0.9f, -2.0f, 2.0f)
-        reflectiveCurveToRelative(0.9f, 2.0f, 2.0f, 2.0f)
-        reflectiveCurveToRelative(2.0f, -0.9f, 2.0f, -2.0f)
-        reflectiveCurveToRelative(-0.9f, -2.0f, -2.0f, -2.0f)
-        close()
-        moveTo(6.0f, 1.0f)
-        curveToRelative(-1.1f, 0.0f, -2.0f, 0.9f, -2.0f, 2.0f)
-        reflectiveCurveToRelative(0.9f, 2.0f, 2.0f, 2.0f)
-        reflectiveCurveToRelative(2.0f, -0.9f, 2.0f, -2.0f)
-        reflectiveCurveToRelative(-0.9f, -2.0f, -2.0f, -2.0f)
-        close()
-        moveTo(6.0f, 7.0f)
-        curveToRelative(-1.1f, 0.0f, -2.0f, 0.9f, -2.0f, 2.0f)
-        reflectiveCurveToRelative(0.9f, 2.0f, 2.0f, 2.0f)
-        reflectiveCurveToRelative(2.0f, -0.9f, 2.0f, -2.0f)
-        reflectiveCurveToRelative(-0.9f, -2.0f, -2.0f, -2.0f)
-        close()
-        moveTo(6.0f, 13.0f)
-        curveToRelative(-1.1f, 0.0f, -2.0f, 0.9f, -2.0f, 2.0f)
-        reflectiveCurveToRelative(0.9f, 2.0f, 2.0f, 2.0f)
-        reflectiveCurveToRelative(2.0f, -0.9f, 2.0f, -2.0f)
-        reflectiveCurveToRelative(-0.9f, -2.0f, -2.0f, -2.0f)
-        close()
-        moveTo(18.0f, 5.0f)
-        curveToRelative(1.1f, 0.0f, 2.0f, -0.9f, 2.0f, -2.0f)
-        reflectiveCurveToRelative(-0.9f, -2.0f, -2.0f, -2.0f)
-        reflectiveCurveToRelative(-2.0f, 0.9f, -2.0f, 2.0f)
-        reflectiveCurveToRelative(0.9f, 2.0f, 2.0f, 2.0f)
-        close()
-        moveTo(12.0f, 13.0f)
-        curveToRelative(-1.1f, 0.0f, -2.0f, 0.9f, -2.0f, 2.0f)
-        reflectiveCurveToRelative(0.9f, 2.0f, 2.0f, 2.0f)
-        reflectiveCurveToRelative(2.0f, -0.9f, 2.0f, -2.0f)
-        reflectiveCurveToRelative(-0.9f, -2.0f, -2.0f, -2.0f)
-        close()
-        moveTo(18.0f, 13.0f)
-        curveToRelative(-1.1f, 0.0f, -2.0f, 0.9f, -2.0f, 2.0f)
-        reflectiveCurveToRelative(0.9f, 2.0f, 2.0f, 2.0f)
-        reflectiveCurveToRelative(2.0f, -0.9f, 2.0f, -2.0f)
-        reflectiveCurveToRelative(-0.9f, -2.0f, -2.0f, -2.0f)
-        close()
-        moveTo(18.0f, 7.0f)
-        curveToRelative(-1.1f, 0.0f, -2.0f, 0.9f, -2.0f, 2.0f)
-        reflectiveCurveToRelative(0.9f, 2.0f, 2.0f, 2.0f)
-        reflectiveCurveToRelative(2.0f, -0.9f, 2.0f, -2.0f)
-        reflectiveCurveToRelative(-0.9f, -2.0f, -2.0f, -2.0f)
-        close()
-        moveTo(12.0f, 7.0f)
-        curveToRelative(-1.1f, 0.0f, -2.0f, 0.9f, -2.0f, 2.0f)
-        reflectiveCurveToRelative(0.9f, 2.0f, 2.0f, 2.0f)
-        reflectiveCurveToRelative(2.0f, -0.9f, 2.0f, -2.0f)
-        reflectiveCurveToRelative(-0.9f, -2.0f, -2.0f, -2.0f)
-        close()
-        moveTo(12.0f, 1.0f)
-        curveToRelative(-1.1f, 0.0f, -2.0f, 0.9f, -2.0f, 2.0f)
-        reflectiveCurveToRelative(0.9f, 2.0f, 2.0f, 2.0f)
-        reflectiveCurveToRelative(2.0f, -0.9f, 2.0f, -2.0f)
-        reflectiveCurveToRelative(-0.9f, -2.0f, -2.0f, -2.0f)
-        close()
-    }
 }

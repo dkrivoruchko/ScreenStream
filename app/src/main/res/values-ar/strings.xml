@@ -36,8 +36,6 @@
     <string name="app_tile_start">بدء</string>
     <string name="app_tile_stop">توقف</string>
 
-    <string name="app_pref_settings_search">بحث الإعدادات</string>
-    <string name="app_pref_search">بحث</string>
     <string name="app_pref_close">إغلاق</string>
     <string name="app_pref_back">رجوع</string>
     <string name="app_pref_settings">إعدادات التطبيق</string>

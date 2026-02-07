@@ -1,6 +1,7 @@
 <resources>
     <string name="mjpeg_error_recover">পুনরুদ্ধার করুন</string>
     <string name="mjpeg_error_open_settings">ওপেন সেটিংস</string>
+    <string name="mjpeg_close">বন্ধ করুন</string>
 
     <string name="mjpeg_stream_mode">স্থানীয় মোড (MJPEG)</string>
     <string name="mjpeg_stream_mode_description">স্থানীয় মোড বিবরণ</string>
@@ -48,7 +49,7 @@
     <string name="mjpeg_slow_client_connection">ধীরগতির ক্লায়েন্ট সংযোগ সনাক্ত করা হয়েছে৷</string>
 
     <string name="mjpeg_pref_header">স্থানীয় মোড (MJPEG) সেটিংস</string>
-    <string name="mjpeg_pref_settings_general">সাধারণ</string>
+    <string name="mjpeg_pref_settings_general">সাধারণ পরামিতি</string>
     <string name="mjpeg_pref_keep_awake">ডিভাইস জাগ্রত রাখুন</string>
     <string name="mjpeg_pref_keep_awake_summary">স্ট্রিমিং করার সময় ডিভাইস এবং স্ক্রীন সজাগ রাখুন</string>
     <string name="mjpeg_pref_stop_on_sleep">মোবাইল স্লিপ মোডে স্ট্রিম বন্ধ করুন</string>
@@ -69,7 +70,7 @@
     <string name="mjpeg_pref_html_fit_window">ব্রাউজারের উইন্ডোতে ছবিটি ফিট করুন</string>
     <string name="mjpeg_pref_html_fit_window_summary">ব্রাউজারে ছবিটি সম্পূর্ণ উইন্ডো প্রস্থ/উচ্চতায় স্কেল করুন</string>
 
-    <string name="mjpeg_pref_settings_image">ছবি</string>
+    <string name="mjpeg_pref_settings_image">ছবি পরামিতি</string>
     <string name="mjpeg_pref_vr_mode">ভার্চুয়াল বাস্তবতা মোড</string>
     <string name="mjpeg_pref_vr_mode_summary">অর্ধ স্ক্রীন থেকে বিষয়বস্তু ক্যাপচার</string>
     <string-array name="mjpeg_pref_vr_mode_options">
@@ -114,7 +115,7 @@
     <string name="mjpeg_pref_jpeg_quality_summary">JPEG কম্প্রেশন গুণমান সেট করুন</string>
     <string name="mjpeg_pref_jpeg_quality_text">JPEG কম্প্রেশন গুণমান সেট করুন। মান: 10–100 ডিফল্ট: 80</string>
 
-    <string name="mjpeg_pref_settings_security">নিরাপত্তা</string>
+    <string name="mjpeg_pref_settings_security">নিরাপত্তা পরামিতি</string>
     <string name="mjpeg_pref_enable_pin">পিন সক্ষম করুন</string>
     <string name="mjpeg_pref_enable_pin_summary">পিন দিয়ে স্ট্রিম অ্যাক্সেস রক্ষা করুন</string>
     <string name="mjpeg_pref_hide_pin">স্ট্রীম শুরুতে স্বয়ংক্রিয়ভাবে পিন লুকান</string>
@@ -129,7 +130,7 @@
     <string name="mjpeg_pref_block_address">IP ঠিকানা ব্লক করুন</string>
     <string name="mjpeg_pref_block_address_summary">5 মিনিটের জন্য 5টি ভুল পিনের প্রচেষ্টার পরে ক্লায়েন্ট আইপি ঠিকানা ব্লক করুন</string>
 
-    <string name="mjpeg_pref_settings_advanced">উন্নত</string>
+    <string name="mjpeg_pref_settings_advanced">উন্নত পরামিতি</string>
     <string name="mjpeg_pref_interface_filter">ইন্টারফেস ফিল্টার</string>
     <string name="mjpeg_pref_interface_filter_summary">সার্ভারের জন্য নেটওয়ার্ক ইন্টারফেস নির্বাচন করুন</string>
     <string name="mjpeg_pref_filter_wifi">ওয়াই-ফাই</string>

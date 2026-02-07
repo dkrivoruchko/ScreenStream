@@ -36,8 +36,6 @@
     <string name="app_tile_start">Démarrer</string>
     <string name="app_tile_stop">Arrêter</string>
 
-    <string name="app_pref_settings_search">Recherche de paramètres</string>
-    <string name="app_pref_search">Recherche</string>
     <string name="app_pref_close">Fermer</string>
     <string name="app_pref_back">Retour</string>
     <string name="app_pref_settings">Paramètres de l\'application</string>

@@ -1,6 +1,7 @@
 <resources>
     <string name="mjpeg_error_recover">Wiederherstellen</string>
     <string name="mjpeg_error_open_settings">Einstellungen öffnen</string>
+    <string name="mjpeg_close">Schließen</string>
 
     <string name="mjpeg_stream_mode">Lokaler Modus (MJPEG)</string>
     <string name="mjpeg_stream_mode_description">Beschreibung des lokalen Modus</string>
@@ -48,7 +49,7 @@
     <string name="mjpeg_slow_client_connection">Langsame Client-Verbindung erkannt</string>
 
     <string name="mjpeg_pref_header">Lokale Modus (MJPEG) Einstellungen</string>
-    <string name="mjpeg_pref_settings_general">Allgemein</string>
+    <string name="mjpeg_pref_settings_general">Allgemeine Parameter</string>
     <string name="mjpeg_pref_keep_awake">Gerät aktiviert lassen</string>
     <string name="mjpeg_pref_keep_awake_summary">Gerät und Bildschirm aktiviert lassen</string>
     <string name="mjpeg_pref_stop_on_sleep">Stream im Standby-Modus stoppen</string>
@@ -69,7 +70,7 @@
     <string name="mjpeg_pref_html_fit_window">Bild an Browserfenster anpassen</string>
     <string name="mjpeg_pref_html_fit_window_summary">Bild im Browser auf volle Fensterbreite/-höhe skalieren</string>
 
-    <string name="mjpeg_pref_settings_image">Bild</string>
+    <string name="mjpeg_pref_settings_image">Bildparameter</string>
     <string name="mjpeg_pref_vr_mode">Modus für virtuelle Realität</string>
     <string name="mjpeg_pref_vr_mode_summary">Erfassen von Inhalten vom halben Bildschirm</string>
     <string-array name="mjpeg_pref_vr_mode_options">
@@ -114,7 +115,7 @@
     <string name="mjpeg_pref_jpeg_quality_summary">JPEG-Kompressionsqualität festlegen</string>
     <string name="mjpeg_pref_jpeg_quality_text">JPEG-Kompressionsqualität festlegen.\nMögliche Werte: 10–100\nStandard: 80</string>
 
-    <string name="mjpeg_pref_settings_security">Sicherheit</string>
+    <string name="mjpeg_pref_settings_security">Sicherheitsparameter</string>
     <string name="mjpeg_pref_enable_pin">PIN aktivieren</string>
     <string name="mjpeg_pref_enable_pin_summary">Zugriff auf dem Stream mit PIN schützen</string>
     <string name="mjpeg_pref_hide_pin">Pin beim Stream-Start automatisch verstecken</string>
@@ -129,7 +130,7 @@
     <string name="mjpeg_pref_block_address">IP-Adresse blockieren</string>
     <string name="mjpeg_pref_block_address_summary">IP-Adresse für 5 Minuten blockieren nach 5 PIN-Eingabeversuchen</string>
 
-    <string name="mjpeg_pref_settings_advanced">Erweitert</string>
+    <string name="mjpeg_pref_settings_advanced">Erweiterte Parameter</string>
     <string name="mjpeg_pref_interface_filter">Schnittstellenfilter</string>
     <string name="mjpeg_pref_interface_filter_summary">Netzwerkschnittstellen für Server auswählen</string>
     <string name="mjpeg_pref_filter_wifi">WLAN</string>

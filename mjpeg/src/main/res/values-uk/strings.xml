@@ -1,6 +1,7 @@
 <resources>
     <string name="mjpeg_error_recover">Відновити</string>
     <string name="mjpeg_error_open_settings">Відкрити налаштування</string>
+    <string name="mjpeg_close">Закрити</string>
 
     <string name="mjpeg_stream_mode">Локальний режим (MJPEG)</string>
     <string name="mjpeg_stream_mode_description">Опис локального режиму</string>
@@ -47,7 +48,7 @@
     <string name="mjpeg_slow_client_connection">Виявлено повільне клієнтське з\'єднання</string>
 
     <string name="mjpeg_pref_header">Налаштування локального режиму (MJPEG)</string>
-    <string name="mjpeg_pref_settings_general">Загальне</string>
+    <string name="mjpeg_pref_settings_general">Загальні параметри</string>
     <string name="mjpeg_pref_keep_awake">Тримати пристрій активним</string>
     <string name="mjpeg_pref_keep_awake_summary">Тримати пристрій та екран активними під час трансляції</string>
     <string name="mjpeg_pref_stop_on_sleep">Зупиняти трансляцію при засинанні пристрою</string>
@@ -68,7 +69,7 @@
     <string name="mjpeg_pref_html_fit_window">Масштабувати зображення під вікно браузера</string>
     <string name="mjpeg_pref_html_fit_window_summary">Масштабувати зображення у браузері до повної ширини/висоти вікна</string>
 
-    <string name="mjpeg_pref_settings_image">Зображення</string>
+    <string name="mjpeg_pref_settings_image">Параметри зображення</string>
     <string name="mjpeg_pref_vr_mode">Режим віртуальної реальності</string>
     <string name="mjpeg_pref_vr_mode_summary">Захоплювати лише половину екрану</string>
     <string-array name="mjpeg_pref_vr_mode_options">
@@ -113,7 +114,7 @@
     <string name="mjpeg_pref_jpeg_quality_summary">Встановити якість компресії JPEG</string>
     <string name="mjpeg_pref_jpeg_quality_text">Встановити якість компресії JPEG.\nВеличини: 10–100\nЗа замовчуванням: 80</string>
 
-    <string name="mjpeg_pref_settings_security">Безпека</string>
+    <string name="mjpeg_pref_settings_security">Параметри безпеки</string>
     <string name="mjpeg_pref_enable_pin">Увімкнути ПІН код</string>
     <string name="mjpeg_pref_enable_pin_summary">Захистити трансляцію ПІН кодом</string>
     <string name="mjpeg_pref_hide_pin">Ховати ПІН код при початку трансляції</string>
@@ -128,7 +129,7 @@
     <string name="mjpeg_pref_block_address">Блокувати IP адресу</string>
     <string name="mjpeg_pref_block_address_summary">Заблокувати клієнтську IP адресу після 5 невірних спроб протягом 5 хвилин</string>
 
-    <string name="mjpeg_pref_settings_advanced">Розширені</string>
+    <string name="mjpeg_pref_settings_advanced">Розширені параметри</string>
     <string name="mjpeg_pref_interface_filter">Фільтр інтерфейсів</string>
     <string name="mjpeg_pref_interface_filter_summary">Виберіть мережеві інтерфейси для сервера</string>
     <string name="mjpeg_pref_filter_wifi">Wi-Fi</string>

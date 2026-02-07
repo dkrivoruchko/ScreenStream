@@ -12,8 +12,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.materialIcon
-import androidx.compose.material.icons.materialPath
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
@@ -23,7 +21,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -93,7 +91,11 @@ private fun RotationUI(
             .padding(start = horizontalPadding + 16.dp, end = horizontalPadding + 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(imageVector = Icon_Rotate90DegreesCw, contentDescription = null, modifier = Modifier.padding(end = 16.dp))
+        Icon(
+            painter = painterResource(R.drawable.rotate_90_degrees_cw_24px),
+            contentDescription = null,
+            modifier = Modifier.padding(end = 16.dp)
+        )
 
         Column(modifier = Modifier.weight(1F)) {
             Text(
@@ -158,29 +160,5 @@ private fun RotationDetailUI(
                 }
             }
         }
-    }
-}
-
-private val Icon_Rotate90DegreesCw: ImageVector = materialIcon(name = "Filled.Rotate90DegreesCw") {
-    materialPath {
-        moveTo(4.64f, 19.37f)
-        curveToRelative(3.03f, 3.03f, 7.67f, 3.44f, 11.15f, 1.25f)
-        lineToRelative(-1.46f, -1.46f)
-        curveToRelative(-2.66f, 1.43f, -6.04f, 1.03f, -8.28f, -1.21f)
-        curveToRelative(-2.73f, -2.73f, -2.73f, -7.17f, 0.0f, -9.9f)
-        curveTo(7.42f, 6.69f, 9.21f, 6.03f, 11.0f, 6.03f)
-        verticalLineTo(9.0f)
-        lineToRelative(4.0f, -4.0f)
-        lineToRelative(-4.0f, -4.0f)
-        verticalLineToRelative(3.01f)
-        curveToRelative(-2.3f, 0.0f, -4.61f, 0.87f, -6.36f, 2.63f)
-        curveTo(1.12f, 10.15f, 1.12f, 15.85f, 4.64f, 19.37f)
-        close()
-        moveTo(11.0f, 13.0f)
-        lineToRelative(6.0f, 6.0f)
-        lineToRelative(6.0f, -6.0f)
-        lineToRelative(-6.0f, -6.0f)
-        lineTo(11.0f, 13.0f)
-        close()
     }
 }

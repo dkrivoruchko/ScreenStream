@@ -31,8 +31,10 @@
     <string name="webrtc_stream_copied">კოპირებულია</string>
     <string name="webrtc_stream_audio_parameters">აუდიოს პარამეტრები</string>
     <string name="webrtc_stream_audio_mic">მიკროფონი</string>
-    <string name="webrtc_stream_audio_device">მოწყობილობის აუდიო</string>
-    <string name="webrtc_stream_audio_device_unavailable">მოწყობილობის აუდიო მიუწვდომელია</string>
+    <string name="webrtc_stream_audio_mic_summary">მიკროფონის აუდიოს სტრიმი</string>
+    <string name="webrtc_stream_audio_device">შიდა აუდიო</string>
+    <string name="webrtc_stream_audio_device_summary">ამ მოწყობილობის მედია აუდიოს სტრიმი</string>
+    <string name="webrtc_stream_audio_device_unavailable">შიდა აუდიო მიუწვდომელია</string>
     <string name="webrtc_stream_connected_clients">დაკავშირებული კლიენტები: %1$d</string>
     <string name="webrtc_stream_no_web_browser_found">ვებ ბრაუზერი ვერ მოიძებნა</string>
     <string name="webrtc_stream_external_app_error">გარე განაცხადის შეცდომა</string>
@@ -46,9 +48,9 @@
     <string name="webrtc_stream_stop_on_sleep">შეაჩერე ნაკადი ძილის დროს</string>
     <string name="webrtc_stream_stop_on_sleep_summary">შეაჩერე ნაკადი, თუ ეკრანი გამორთულია</string>
 
-    <string name="webrtc_stream_audio_permission_title">აუდიო ჩაწერის დაშვება</string>
-    <string name="webrtc_stream_audio_permission_message">აუდიოს ჩაწერის ნებართვა აუცილებელია, რომ აპლიკაციამ აუდიო კონტენტის სტრიმინგისთვის შეძლოს. ამ ნებართვის მინიჭების გარეშე, ნაკადი აუდიოს გარეშე იქნება.</string>
-    <string name="webrtc_stream_audio_permission_message_settings">აპლიკაციის ნებართვებში მიკროფონის წვდომის მინიჭება აუცილებელია იმისათვის, რომ აპლიკაციამ აუდიო კონტენტის სტრიმინგისთვის შეძლოს. ამ ნებართვის მინიჭების გარეშე, სტრიმინგი განხორციელდება აუდიოს გარეშე.</string>
+    <string name="webrtc_stream_audio_permission_title">აუდიო წვდომის დაშვება</string>
+    <string name="webrtc_stream_audio_permission_message">მიკროფონის ნებართვა საჭიროა მიკროფონის ან შიდა აუდიოს სტრიმისთვის.\n\nამის გარეშე სტრიმს ხმა არ ექნება.</string>
+    <string name="webrtc_stream_audio_permission_message_settings">ჩართეთ მიკროფონის ნებართვა აპის პარამეტრებში მიკროფონის ან შიდა აუდიოს სტრიმისთვის.\n\nამის გარეშე სტრიმს ხმა არ ექნება.</string>
     <string name="webrtc_stream_audio_permission_open_settings">გახსენით პარამეტრები</string>
 
     <string name="webrtc_stream_cast_permission_required_title">საჭიროა ნებართვა</string>

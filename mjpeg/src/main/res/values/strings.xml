@@ -1,6 +1,7 @@
 <resources>
     <string name="mjpeg_error_recover">Recover</string>
     <string name="mjpeg_error_open_settings">Open settings</string>
+    <string name="mjpeg_close">Close</string>
 
     <string name="mjpeg_stream_mode">Local mode (MJPEG)</string>
     <string name="mjpeg_stream_mode_description">Local mode description</string>
@@ -48,7 +49,7 @@
     <string name="mjpeg_slow_client_connection">Slow client connection detected</string>
 
     <string name="mjpeg_pref_header">Local mode (MJPEG) settings</string>
-    <string name="mjpeg_pref_settings_general">General</string>
+    <string name="mjpeg_pref_settings_general">General parameters</string>
     <string name="mjpeg_pref_keep_awake">Keep device awake</string>
     <string name="mjpeg_pref_keep_awake_summary">Keep device and screen awake while streaming</string>
     <string name="mjpeg_pref_stop_on_sleep">Stop stream on sleep</string>
@@ -69,7 +70,7 @@
     <string name="mjpeg_pref_html_fit_window">Fit image to browser window</string>
     <string name="mjpeg_pref_html_fit_window_summary">Scale up image in browser to full window width/height</string>
 
-    <string name="mjpeg_pref_settings_image">Image</string>
+    <string name="mjpeg_pref_settings_image">Image parameters</string>
     <string name="mjpeg_pref_vr_mode">Virtual reality mode</string>
     <string name="mjpeg_pref_vr_mode_summary">Capture content from half screen</string>
     <string-array name="mjpeg_pref_vr_mode_options">
@@ -123,7 +124,7 @@
     <string name="mjpeg_pref_jpeg_quality_summary">Set JPEG compression quality</string>
     <string name="mjpeg_pref_jpeg_quality_text">Set JPEG compression quality.\nValues: 10–100\nDefault: 80</string>
 
-    <string name="mjpeg_pref_settings_security">Security</string>
+    <string name="mjpeg_pref_settings_security">Security parameters</string>
     <string name="mjpeg_pref_enable_pin">Enable PIN</string>
     <string name="mjpeg_pref_enable_pin_summary">Protect access to stream with PIN</string>
     <string name="mjpeg_pref_hide_pin">Auto hide PIN on stream start</string>
@@ -138,7 +139,7 @@
     <string name="mjpeg_pref_block_address">Block IP address</string>
     <string name="mjpeg_pref_block_address_summary">Block client IP address after 5 wrong PIN attempts for 5 minutes</string>
 
-    <string name="mjpeg_pref_settings_advanced">Advanced</string>
+    <string name="mjpeg_pref_settings_advanced">Advanced parameters</string>
     <string name="mjpeg_pref_interface_filter">Interface filter</string>
     <string name="mjpeg_pref_interface_filter_summary">Select network interfaces for server</string>
     <string name="mjpeg_pref_filter_wifi">Wi-Fi</string>

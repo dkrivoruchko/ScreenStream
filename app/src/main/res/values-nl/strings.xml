@@ -36,8 +36,6 @@
     <string name="app_tile_start">Start</string>
     <string name="app_tile_stop">Stop</string>
 
-    <string name="app_pref_settings_search">Instellingen zoeken</string>
-    <string name="app_pref_search">Zoeken</string>
     <string name="app_pref_close">Sluiten</string>
     <string name="app_pref_back">Terug</string>
     <string name="app_pref_settings">Applicatie-instellingen</string>

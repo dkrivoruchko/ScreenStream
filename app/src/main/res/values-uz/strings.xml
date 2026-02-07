@@ -36,8 +36,6 @@
     <string name="app_tile_start">" Boshlash"</string>
     <string name="app_tile_stop">to\'xtating</string>
 
-    <string name="app_pref_settings_search">Sozlamalarni qidirish</string>
-    <string name="app_pref_search">Qidirmoq</string>
     <string name="app_pref_close">Yopish</string>
     <string name="app_pref_back">Orqaga</string>
     <string name="app_pref_settings">Ilova sozlamalari</string>

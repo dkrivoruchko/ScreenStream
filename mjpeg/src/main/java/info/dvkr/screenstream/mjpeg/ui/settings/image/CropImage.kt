@@ -15,8 +15,6 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.materialIcon
-import androidx.compose.material.icons.materialPath
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -37,8 +35,8 @@ import androidx.compose.ui.focus.FocusManager
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.ImeAction
@@ -129,7 +127,7 @@ private fun CropImageUI(
             .height(IntrinsicSize.Min),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(imageVector = Icon_Crop, contentDescription = null, modifier = Modifier.padding(end = 16.dp))
+        Icon(painter = painterResource(R.drawable.crop_24px), contentDescription = null, modifier = Modifier.padding(end = 16.dp))
 
         Column(modifier = Modifier.weight(1F)) {
             Text(
@@ -253,35 +251,4 @@ private fun CropRow(
         ),
         singleLine = true
     )
-}
-
-private val Icon_Crop: ImageVector = materialIcon(name = "Filled.Crop") {
-    materialPath {
-        moveTo(17.0f, 15.0f)
-        horizontalLineToRelative(2.0f)
-        verticalLineTo(7.0f)
-        curveToRelative(0.0f, -1.1f, -0.9f, -2.0f, -2.0f, -2.0f)
-        horizontalLineTo(9.0f)
-        verticalLineToRelative(2.0f)
-        horizontalLineToRelative(8.0f)
-        verticalLineToRelative(8.0f)
-        close()
-        moveTo(7.0f, 17.0f)
-        verticalLineTo(1.0f)
-        horizontalLineTo(5.0f)
-        verticalLineToRelative(4.0f)
-        horizontalLineTo(1.0f)
-        verticalLineToRelative(2.0f)
-        horizontalLineToRelative(4.0f)
-        verticalLineToRelative(10.0f)
-        curveToRelative(0.0f, 1.1f, 0.9f, 2.0f, 2.0f, 2.0f)
-        horizontalLineToRelative(10.0f)
-        verticalLineToRelative(4.0f)
-        horizontalLineToRelative(2.0f)
-        verticalLineToRelative(-4.0f)
-        horizontalLineToRelative(4.0f)
-        verticalLineToRelative(-2.0f)
-        horizontalLineTo(7.0f)
-        close()
-    }
 }

@@ -1,6 +1,7 @@
 <resources>
     <string name="mjpeg_error_recover">リカバリ</string>
     <string name="mjpeg_error_open_settings">設定を開く</string>
+    <string name="mjpeg_close">閉じる</string>
 
     <string name="mjpeg_stream_mode">ローカルモード（MJPEG）</string>
     <string name="mjpeg_stream_mode_description">ローカルモードの説明</string>
@@ -48,7 +49,7 @@
     <string name="mjpeg_slow_client_connection">遅いクライアント接続が検出されました</string>
 
     <string name="mjpeg_pref_header">ローカルモード（MJPEG）設定</string>
-    <string name="mjpeg_pref_settings_general">一般</string>
+    <string name="mjpeg_pref_settings_general">一般パラメータ</string>
     <string name="mjpeg_pref_keep_awake">デバイスを起きたままにする</string>
     <string name="mjpeg_pref_keep_awake_summary">ストリーミング中にデバイスと画面を起きたままに保つ</string>
     <string name="mjpeg_pref_stop_on_sleep">スリープ時にストリームを停止</string>
@@ -69,7 +70,7 @@
     <string name="mjpeg_pref_html_fit_window">画像をブラウザウィンドウに合わせる</string>
     <string name="mjpeg_pref_html_fit_window_summary">画像をブラウザでウィンドウの全幅/全高に拡大する</string>
 
-    <string name="mjpeg_pref_settings_image">画像</string>
+    <string name="mjpeg_pref_settings_image">画像パラメータ</string>
     <string name="mjpeg_pref_vr_mode">VRモード</string>
     <string name="mjpeg_pref_vr_mode_summary">画面の半分をキャプチャします</string>
     <string-array name="mjpeg_pref_vr_mode_options">
@@ -114,7 +115,7 @@
     <string name="mjpeg_pref_jpeg_quality_summary">JPEG圧縮の品質を設定します</string>
     <string name="mjpeg_pref_jpeg_quality_text">JPEG圧縮の品質を指定してください。\n値: 10–100\n初期値: 80</string>
 
-    <string name="mjpeg_pref_settings_security">セキュリティ</string>
+    <string name="mjpeg_pref_settings_security">セキュリティパラメータ</string>
     <string name="mjpeg_pref_enable_pin">PINを有効化</string>
     <string name="mjpeg_pref_enable_pin_summary">ストリームへのアクセスをPINで保護します</string>
     <string name="mjpeg_pref_hide_pin">ストリームの開始時に自動でPINを非表示にする</string>
@@ -129,7 +130,7 @@
     <string name="mjpeg_pref_block_address">IPアドレスをブロック</string>
     <string name="mjpeg_pref_block_address_summary">5回の誤ったPIN試行後、5分間クライアントのIPアドレスをブロック</string>
 
-    <string name="mjpeg_pref_settings_advanced">高度</string>
+    <string name="mjpeg_pref_settings_advanced">詳細パラメータ</string>
     <string name="mjpeg_pref_interface_filter">インターフェースフィルター</string>
     <string name="mjpeg_pref_interface_filter_summary">サーバー用のネットワークインターフェースを選択</string>
     <string name="mjpeg_pref_filter_wifi">Wi-Fi</string>

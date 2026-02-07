@@ -31,8 +31,10 @@
     <string name="webrtc_stream_copied">已复制</string>
     <string name="webrtc_stream_audio_parameters">音频参数</string>
     <string name="webrtc_stream_audio_mic">麦克风</string>
-    <string name="webrtc_stream_audio_device">设备音频</string>
-    <string name="webrtc_stream_audio_device_unavailable">设备音频不可用</string>
+    <string name="webrtc_stream_audio_mic_summary">传输麦克风音频</string>
+    <string name="webrtc_stream_audio_device">内部音频</string>
+    <string name="webrtc_stream_audio_device_summary">传输此设备的媒体音频</string>
+    <string name="webrtc_stream_audio_device_unavailable">内部音频不可用</string>
     <string name="webrtc_stream_connected_clients">已连接的客户端： %1$d</string>
     <string name="webrtc_stream_no_web_browser_found">未找到网络浏览器</string>
     <string name="webrtc_stream_external_app_error">外部程序错误</string>
@@ -46,9 +48,9 @@
     <string name="webrtc_stream_stop_on_sleep">休眠时停止传输</string>
     <string name="webrtc_stream_stop_on_sleep_summary">若屏幕熄灭停止传输</string>
 
-    <string name="webrtc_stream_audio_permission_title">允许录音</string>
-    <string name="webrtc_stream_audio_permission_message">程序需要录音权限才能传输音频内容。\n\n不授予此权限，将无法传输音频。</string>
-    <string name="webrtc_stream_audio_permission_message_settings">程序需要麦克风权限才能传输音频内容。\n\n不授予此权限，传输的视频画面将没有声音。</string>
+    <string name="webrtc_stream_audio_permission_title">允许音频访问</string>
+    <string name="webrtc_stream_audio_permission_message">串流麦克风或内部音频需要麦克风权限。\n\n没有该权限，串流将没有声音。</string>
+    <string name="webrtc_stream_audio_permission_message_settings">请在应用设置中启用麦克风权限，以串流麦克风或内部音频。\n\n没有该权限，串流将没有声音。</string>
     <string name="webrtc_stream_audio_permission_open_settings">打开设置</string>
 
     <string name="webrtc_stream_cast_permission_required_title">权限是必需的</string>

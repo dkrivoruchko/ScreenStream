@@ -11,8 +11,6 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.materialIcon
-import androidx.compose.material.icons.materialPath
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -26,7 +24,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextRange
@@ -91,7 +89,7 @@ private fun JpegQualityUI(
             .padding(start = horizontalPadding + 16.dp, end = horizontalPadding + 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(imageVector = Icon_HighQuality, contentDescription = null, modifier = Modifier.padding(end = 16.dp))
+        Icon(painter = painterResource(R.drawable.high_quality_24px), contentDescription = null, modifier = Modifier.padding(end = 16.dp))
 
         Column(modifier = Modifier.weight(1F)) {
             Text(
@@ -174,58 +172,4 @@ private fun JpegQualityDetailUI(
     }
 
     LaunchedEffect(Unit) { delay(50); focusRequester.requestFocus() }
-}
-
-private val Icon_HighQuality: ImageVector = materialIcon(name = "Outlined.HighQuality") {
-    materialPath {
-        moveTo(19.0f, 4.0f)
-        lineTo(5.0f, 4.0f)
-        curveToRelative(-1.11f, 0.0f, -2.0f, 0.9f, -2.0f, 2.0f)
-        verticalLineToRelative(12.0f)
-        curveToRelative(0.0f, 1.1f, 0.89f, 2.0f, 2.0f, 2.0f)
-        horizontalLineToRelative(14.0f)
-        curveToRelative(1.1f, 0.0f, 2.0f, -0.9f, 2.0f, -2.0f)
-        lineTo(21.0f, 6.0f)
-        curveToRelative(0.0f, -1.1f, -0.9f, -2.0f, -2.0f, -2.0f)
-        close()
-        moveTo(19.0f, 18.0f)
-        lineTo(5.0f, 18.0f)
-        lineTo(5.0f, 6.0f)
-        horizontalLineToRelative(14.0f)
-        verticalLineToRelative(12.0f)
-        close()
-        moveTo(7.5f, 13.0f)
-        horizontalLineToRelative(2.0f)
-        verticalLineToRelative(2.0f)
-        lineTo(11.0f, 15.0f)
-        lineTo(11.0f, 9.0f)
-        lineTo(9.5f, 9.0f)
-        verticalLineToRelative(2.5f)
-        horizontalLineToRelative(-2.0f)
-        lineTo(7.5f, 9.0f)
-        lineTo(6.0f, 9.0f)
-        verticalLineToRelative(6.0f)
-        horizontalLineToRelative(1.5f)
-        close()
-        moveTo(14.0f, 15.0f)
-        horizontalLineToRelative(0.75f)
-        verticalLineToRelative(1.5f)
-        horizontalLineToRelative(1.5f)
-        lineTo(16.25f, 15.0f)
-        lineTo(17.0f, 15.0f)
-        curveToRelative(0.55f, 0.0f, 1.0f, -0.45f, 1.0f, -1.0f)
-        verticalLineToRelative(-4.0f)
-        curveToRelative(0.0f, -0.55f, -0.45f, -1.0f, -1.0f, -1.0f)
-        horizontalLineToRelative(-3.0f)
-        curveToRelative(-0.55f, 0.0f, -1.0f, 0.45f, -1.0f, 1.0f)
-        verticalLineToRelative(4.0f)
-        curveToRelative(0.0f, 0.55f, 0.45f, 1.0f, 1.0f, 1.0f)
-        close()
-        moveTo(14.5f, 10.5f)
-        horizontalLineToRelative(2.0f)
-        verticalLineToRelative(3.0f)
-        horizontalLineToRelative(-2.0f)
-        verticalLineToRelative(-3.0f)
-        close()
-    }
 }

@@ -1,6 +1,7 @@
 <resources>
     <string name="mjpeg_error_recover">Pulih</string>
     <string name="mjpeg_error_open_settings">Buka pengaturan</string>
+    <string name="mjpeg_close">Tutup</string>
 
     <string name="mjpeg_stream_mode">Mode lokal (MJPEG)</string>
     <string name="mjpeg_stream_mode_description">Deskripsi mode lokal</string>
@@ -47,7 +48,7 @@
     <string name="mjpeg_slow_client_connection">Koneksi klien lambat terdeteksi</string>
 
     <string name="mjpeg_pref_header">Pengaturan mode lokal (MJPEG).</string>
-    <string name="mjpeg_pref_settings_general">Umum</string>
+    <string name="mjpeg_pref_settings_general">Parameter umum</string>
     <string name="mjpeg_pref_keep_awake">Jaga agar perangkat tetap terjaga</string>
     <string name="mjpeg_pref_keep_awake_summary">Jaga perangkat dan layar tetap aktif saat streaming</string>
     <string name="mjpeg_pref_stop_on_sleep">Hentikan streaming saat tidur</string>
@@ -68,7 +69,7 @@
     <string name="mjpeg_pref_html_fit_window">Sesuaikan gambar ke jendela browser</string>
     <string name="mjpeg_pref_html_fit_window_summary">Perbesar gambar di browser ke lebar/tinggi penuh jendela</string>
 
-    <string name="mjpeg_pref_settings_image">Gambar</string>
+    <string name="mjpeg_pref_settings_image">Parameter gambar</string>
     <string name="mjpeg_pref_vr_mode">Modus realitas maya</string>
     <string name="mjpeg_pref_vr_mode_summary">Tangkap konten dari setengah layar</string>
     <string-array name="mjpeg_pref_vr_mode_options">
@@ -113,7 +114,7 @@
     <string name="mjpeg_pref_jpeg_quality_summary">Atur kualitas kompresi JPEG</string>
     <string name="mjpeg_pref_jpeg_quality_text">Atur kualitas kompresi JPEG. Nilai: 10–100 Bawaan: 80</string>
 
-    <string name="mjpeg_pref_settings_security">Keamanan</string>
+    <string name="mjpeg_pref_settings_security">Parameter keamanan</string>
     <string name="mjpeg_pref_enable_pin">Aktifkan pin</string>
     <string name="mjpeg_pref_enable_pin_summary">Lindungi akses ke streaming dengan pin</string>
     <string name="mjpeg_pref_hide_pin">Sembunyikan pin secara otomatis saat streaming dimulai</string>
@@ -128,7 +129,7 @@
     <string name="mjpeg_pref_block_address">Blokir alamat IP</string>
     <string name="mjpeg_pref_block_address_summary">Blokir alamat IP klien setelah 5 kali upaya pin yang salah selama 5 menit</string>
 
-    <string name="mjpeg_pref_settings_advanced">Canggih</string>
+    <string name="mjpeg_pref_settings_advanced">Parameter lanjutan</string>
     <string name="mjpeg_pref_interface_filter">Filter antarmuka</string>
     <string name="mjpeg_pref_interface_filter_summary">Pilih antarmuka jaringan untuk server</string>
     <string name="mjpeg_pref_filter_wifi">Wi-Fi</string>

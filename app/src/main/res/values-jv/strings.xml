@@ -36,8 +36,6 @@
     <string name="app_tile_start">Miwiti</string>
     <string name="app_tile_stop">Mandeg</string>
 
-    <string name="app_pref_settings_search">Panelusuran setelan</string>
-    <string name="app_pref_search">Nggoleki</string>
     <string name="app_pref_close">Nutup</string>
     <string name="app_pref_back">Mbalik</string>
     <string name="app_pref_settings">Setelan aplikasi</string>

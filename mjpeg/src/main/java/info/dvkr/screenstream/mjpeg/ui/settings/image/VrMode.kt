@@ -15,8 +15,6 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.materialIcon
-import androidx.compose.material.icons.materialPath
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
@@ -29,7 +27,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -95,7 +93,7 @@ private fun VrModeUI(
             .height(IntrinsicSize.Min),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(imageVector = Icon_VirtualReality, contentDescription = null, modifier = Modifier.padding(end = 16.dp))
+        Icon(painter = painterResource(R.drawable.virtual_reality), contentDescription = null, modifier = Modifier.padding(end = 16.dp))
 
         Column(modifier = Modifier.weight(1F)) {
             Text(
@@ -171,46 +169,5 @@ private fun VrModeDetailUI(
                 }
             }
         }
-    }
-}
-
-private val Icon_VirtualReality: ImageVector = materialIcon(name = "VirtualReality") {
-    materialPath {
-        verticalLineToRelative(0.0F)
-        moveTo(5.0F, 3.0F)
-        curveTo(3.89F, 3.0F, 3.0F, 3.9F, 3.0F, 5.0F)
-        verticalLineTo(19.0F)
-        arcTo(2.0F, 2.0F, 0.0F, false, false, 5.0F, 21.0F)
-        horizontalLineTo(19.0F)
-        arcTo(2.0F, 2.0F, 0.0F, false, false, 21.0F, 19.0F)
-        verticalLineTo(5.0F)
-        arcTo(2.0F, 2.0F, 0.0F, false, false, 19.0F, 3.0F)
-        horizontalLineTo(5.0F)
-        moveTo(6.0F, 9.0F)
-        horizontalLineTo(7.5F)
-        lineTo(8.5F, 12.43F)
-        lineTo(9.5F, 9.0F)
-        horizontalLineTo(11.0F)
-        lineTo(9.25F, 15.0F)
-        horizontalLineTo(7.75F)
-        lineTo(6.0F, 9.0F)
-        moveTo(13.0F, 9.0F)
-        horizontalLineTo(16.5F)
-        curveTo(17.35F, 9.0F, 18.0F, 9.65F, 18.0F, 10.5F)
-        verticalLineTo(11.5F)
-        curveTo(18.0F, 12.1F, 17.6F, 12.65F, 17.1F, 12.9F)
-        lineTo(18.0F, 15.0F)
-        horizontalLineTo(16.5F)
-        lineTo(15.65F, 13.0F)
-        horizontalLineTo(14.5F)
-        verticalLineTo(15.0F)
-        horizontalLineTo(13.0F)
-        verticalLineTo(9.0F)
-        moveTo(14.5F, 10.5F)
-        verticalLineTo(11.5F)
-        horizontalLineTo(16.5F)
-        verticalLineTo(10.5F)
-        horizontalLineTo(14.5F)
-        close()
     }
 }

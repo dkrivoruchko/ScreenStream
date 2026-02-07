@@ -36,8 +36,6 @@
     <string name="app_tile_start">Старт</string>
     <string name="app_tile_stop">Стоп</string>
 
-    <string name="app_pref_settings_search">Пошук налаштувань</string>
-    <string name="app_pref_search">Пошук</string>
     <string name="app_pref_close">Закрити</string>
     <string name="app_pref_back">Назад</string>
     <string name="app_pref_settings">Налаштування додатка</string>

@@ -31,8 +31,10 @@
     <string name="webrtc_stream_copied">কপি করা হয়েছে</string>
     <string name="webrtc_stream_audio_parameters">অডিও পরামিতি</string>
     <string name="webrtc_stream_audio_mic">মাইক্রোফোন</string>
-    <string name="webrtc_stream_audio_device">ডিভাইস অডিও</string>
-    <string name="webrtc_stream_audio_device_unavailable">ডিভাইস অডিও উপলব্ধ নয়</string>
+    <string name="webrtc_stream_audio_mic_summary">মাইক্রোফোন অডিও স্ট্রিম করুন</string>
+    <string name="webrtc_stream_audio_device">ইন্টারনাল অডিও</string>
+    <string name="webrtc_stream_audio_device_summary">এই ডিভাইসের মিডিয়া অডিও স্ট্রিম করুন</string>
+    <string name="webrtc_stream_audio_device_unavailable">ইন্টারনাল অডিও উপলব্ধ নয়</string>
     <string name="webrtc_stream_connected_clients">সংযুক্ত ক্লায়েন্ট: %1$d</string>
     <string name="webrtc_stream_no_web_browser_found">কোনো ওয়েব ব্রাউজার পাওয়া যায়নি</string>
     <string name="webrtc_stream_external_app_error">বহিরাগত অ্যাপ্লিকেশন ত্রুটি</string>
@@ -46,9 +48,9 @@
     <string name="webrtc_stream_stop_on_sleep">মোবাইল স্লিপ মোডে স্ট্রিম বন্ধ করুন</string>
     <string name="webrtc_stream_stop_on_sleep_summary">স্ক্রিন বন্ধ হলে স্ট্রিম বন্ধ করুন</string>
 
-    <string name="webrtc_stream_audio_permission_title">অডিও রেকর্ডিংয়ের অনুমতি দিন</string>
-    <string name="webrtc_stream_audio_permission_message">অডিও কন্টেন্ট স্ট্রিম করার জন্য অ্যাপ্লিকেশনের জন্য অডিও রেকর্ড করার অনুমতি প্রয়োজন।  এই অনুমতি না দিলে, স্ট্রীমটি অডিও ছাড়াই হবে।</string>
-    <string name="webrtc_stream_audio_permission_message_settings">অডিও বিষয়বস্তু স্ট্রিম করার জন্য অ্যাপ্লিকেশনটির জন্য অ্যাপ্লিকেশন অনুমতিগুলিতে মাইক্রোফোন অ্যাক্সেস দেওয়া প্রয়োজন৷  এই অনুমতি প্রদান ছাড়া, স্ট্রীম কোনো অডিও ছাড়াই পরিচালিত হবে.</string>
+    <string name="webrtc_stream_audio_permission_title">অডিও অ্যাক্সেসের অনুমতি দিন</string>
+    <string name="webrtc_stream_audio_permission_message">মাইক্রোফোন বা ইন্টারনাল অডিও স্ট্রিম করতে মাইক্রোফোন অনুমতি প্রয়োজন।\n\nএটি না থাকলে স্ট্রিমে শব্দ থাকবে না।</string>
+    <string name="webrtc_stream_audio_permission_message_settings">মাইক্রোফোন বা ইন্টারনাল অডিও স্ট্রিম করতে অ্যাপ সেটিংসে মাইক্রোফোন অনুমতি চালু করুন।\n\nএটি না থাকলে স্ট্রিমে শব্দ থাকবে না।</string>
     <string name="webrtc_stream_audio_permission_open_settings">ওপেন সেটিংস</string>
 
     <string name="webrtc_stream_cast_permission_required_title">অনুমতি প্রয়োজন</string>

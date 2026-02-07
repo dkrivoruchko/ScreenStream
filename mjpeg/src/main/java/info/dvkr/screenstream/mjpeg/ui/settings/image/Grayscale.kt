@@ -5,8 +5,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.selection.toggleable
-import androidx.compose.material.icons.materialIcon
-import androidx.compose.material.icons.materialPath
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
@@ -15,7 +13,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -63,7 +61,7 @@ private fun GrayscaleUI(
             .padding(start = horizontalPadding + 16.dp, end = horizontalPadding + 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(imageVector = Icon_FilterBAndW, contentDescription = null, modifier = Modifier.padding(end = 16.dp))
+        Icon(painter = painterResource(R.drawable.filter_b_and_w_24px), contentDescription = null, modifier = Modifier.padding(end = 16.dp))
 
         Column(modifier = Modifier.weight(1F)) {
             Text(
@@ -80,29 +78,5 @@ private fun GrayscaleUI(
         }
 
         Switch(checked = imageGrayscale, onCheckedChange = null, modifier = Modifier.scale(0.7F))
-    }
-}
-
-private val Icon_FilterBAndW: ImageVector = materialIcon(name = "Outlined.FilterBAndW") {
-    materialPath {
-        moveTo(19.0f, 3.0f)
-        lineTo(5.0f, 3.0f)
-        curveToRelative(-1.1f, 0.0f, -2.0f, 0.9f, -2.0f, 2.0f)
-        verticalLineToRelative(14.0f)
-        curveToRelative(0.0f, 1.1f, 0.9f, 2.0f, 2.0f, 2.0f)
-        horizontalLineToRelative(14.0f)
-        curveToRelative(1.1f, 0.0f, 2.0f, -0.9f, 2.0f, -2.0f)
-        lineTo(21.0f, 5.0f)
-        curveToRelative(0.0f, -1.1f, -0.9f, -2.0f, -2.0f, -2.0f)
-        close()
-        moveTo(19.0f, 19.0f)
-        lineToRelative(-7.0f, -8.0f)
-        verticalLineToRelative(8.0f)
-        lineTo(5.0f, 19.0f)
-        lineToRelative(7.0f, -8.0f)
-        lineTo(12.0f, 5.0f)
-        horizontalLineToRelative(7.0f)
-        verticalLineToRelative(14.0f)
-        close()
     }
 }

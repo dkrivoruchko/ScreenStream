@@ -31,8 +31,10 @@
     <string name="webrtc_stream_copied">Ko‘chirildi</string>
     <string name="webrtc_stream_audio_parameters">Audio parametrlari</string>
     <string name="webrtc_stream_audio_mic">Mikrofon</string>
-    <string name="webrtc_stream_audio_device">Qurilma audio</string>
-    <string name="webrtc_stream_audio_device_unavailable">Qurilma audiosi mavjud emas</string>
+    <string name="webrtc_stream_audio_mic_summary">Mikrofon audiosini uzating</string>
+    <string name="webrtc_stream_audio_device">Ichki audio</string>
+    <string name="webrtc_stream_audio_device_summary">Ushbu qurilmaning media audiosini uzating</string>
+    <string name="webrtc_stream_audio_device_unavailable">Ichki audio mavjud emas</string>
     <string name="webrtc_stream_connected_clients">Ulangan mijozlar: %1$d</string>
     <string name="webrtc_stream_no_web_browser_found">Hech qanday veb-brauzer topilmadi</string>
     <string name="webrtc_stream_external_app_error">Tashqi dastur xatosi</string>
@@ -46,9 +48,9 @@
     <string name="webrtc_stream_stop_on_sleep">Uyqu rejimida translatsiyani toʻxtating</string>
     <string name="webrtc_stream_stop_on_sleep_summary">Agar ekran oʻchsa, oqimni toʻxtating</string>
 
-    <string name="webrtc_stream_audio_permission_title">Ovoz yozishga ruxsat bering</string>
-    <string name="webrtc_stream_audio_permission_message">Ilova audio kontentni oqimlashi uchun audio yozish uchun ruxsat zarur. Ushbu ruxsat berilmasa, oqim audiosiz bo\'ladi.</string>
-    <string name="webrtc_stream_audio_permission_message_settings">Ilova ruxsatnomalarida mikrofonga ruxsat berish ilova audio kontentni oqimlashi uchun zarur. Ushbu ruxsatnomasiz oqim hech qanday audiosiz amalga oshiriladi.</string>
+    <string name="webrtc_stream_audio_permission_title">Audio kirishiga ruxsat bering</string>
+    <string name="webrtc_stream_audio_permission_message">Mikrofon yoki ichki audioni uzatish uchun mikrofon ruxsati kerak.\n\nBusiz oqimda ovoz bo\'lmaydi.</string>
+    <string name="webrtc_stream_audio_permission_message_settings">Mikrofon yoki ichki audioni uzatish uchun ilova sozlamalarida mikrofon ruxsatini yoqing.\n\nBusiz oqimda ovoz bo\'lmaydi.</string>
     <string name="webrtc_stream_audio_permission_open_settings">Sozlamalarni oching</string>
 
     <string name="webrtc_stream_cast_permission_required_title">Ruxsat talab qilinadi</string>

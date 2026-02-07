@@ -36,8 +36,6 @@
     <string name="app_tile_start">開始</string>
     <string name="app_tile_stop">停止</string>
 
-    <string name="app_pref_settings_search">設定検索</string>
-    <string name="app_pref_search">検索</string>
     <string name="app_pref_close">閉じる</string>
     <string name="app_pref_back">戻る</string>
     <string name="app_pref_settings">アプリケーション設定</string>

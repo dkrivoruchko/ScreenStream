@@ -18,9 +18,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.selection.toggleable
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.Done
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -47,8 +44,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -314,7 +311,11 @@ private fun AudioEncoder(
             )
             Spacer(Modifier.weight(1f))
             val iconRotation = remember { Animatable(0F) }
-            Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = null, modifier = Modifier.rotate(iconRotation.value))
+            Icon(
+                painter = painterResource(R.drawable.arrow_drop_down_24px),
+                contentDescription = null,
+                modifier = Modifier.graphicsLayer { rotationZ = iconRotation.value }
+            )
             LaunchedEffect(expanded) { iconRotation.animateTo(targetValue = if (expanded) 180F else 0F, animationSpec = tween(500)) }
         }
 
@@ -328,7 +329,7 @@ private fun AudioEncoder(
                                 Row {
                                     if (selectedEncoder?.name == encoder.name) {
                                         Icon(
-                                            Icons.Default.Done,
+                                            painter = painterResource(R.drawable.check_small_24px),
                                             contentDescription = null,
                                             modifier = Modifier
                                                 .padding(start = 16.dp)

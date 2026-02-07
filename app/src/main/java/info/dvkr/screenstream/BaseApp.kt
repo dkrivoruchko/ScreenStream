@@ -10,12 +10,10 @@ import info.dvkr.screenstream.common.ModuleSettings
 import info.dvkr.screenstream.common.notification.NotificationHelper
 import info.dvkr.screenstream.logger.AppLogger
 import info.dvkr.screenstream.notification.NotificationHelperImpl
-import info.dvkr.screenstream.ui.tabs.settings.SettingsTabViewModel
 import info.dvkr.screenstream.ui.tabs.settings.app.AppModuleSettings
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.context.startKoin
 import org.koin.core.module.Module
-import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.bind
 import org.koin.dsl.module
 
@@ -66,7 +64,6 @@ public abstract class BaseApp : Application() {
             single(createdAtStart = true) { AdMob(get()) }
             single { NotificationHelperImpl(get()) } bind (NotificationHelper::class)
             single { AppModuleSettings() } bind (ModuleSettings::class)
-            viewModel { SettingsTabViewModel(get(), get(), get()) }
         }
 
         startKoin {

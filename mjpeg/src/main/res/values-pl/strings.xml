@@ -1,6 +1,7 @@
 <resources>
     <string name="mjpeg_error_recover">Odzyskaj</string>
     <string name="mjpeg_error_open_settings">Otwórz ustawienia</string>
+    <string name="mjpeg_close">Zamknij</string>
 
     <string name="mjpeg_stream_mode">Tryb lokalny (MJPEG)</string>
     <string name="mjpeg_stream_mode_description">Opis trybu lokalnego</string>
@@ -48,7 +49,7 @@
     <string name="mjpeg_slow_client_connection">Wykryto wolne połączenie klienta</string>
 
     <string name="mjpeg_pref_header">Ustawienia trybu lokalnego (MJPEG)</string>
-    <string name="mjpeg_pref_settings_general">Ogólne</string>
+    <string name="mjpeg_pref_settings_general">Parametry ogólne</string>
     <string name="mjpeg_pref_keep_awake">Utrzymuj urządzenie w stanie czuwania</string>
     <string name="mjpeg_pref_keep_awake_summary">Nie wyłączaj urządzenia i ekranu podczas przesyłania strumieniowego</string>
     <string name="mjpeg_pref_stop_on_sleep">Zatrzymaj transmisję podczas uśpienia</string>
@@ -69,7 +70,7 @@
     <string name="mjpeg_pref_html_fit_window">Dopasuj obraz do okna przeglądarki</string>
     <string name="mjpeg_pref_html_fit_window_summary">Powiększ obraz w przeglądarce do pełnej szerokości/wysokości okna</string>
 
-    <string name="mjpeg_pref_settings_image">Obraz</string>
+    <string name="mjpeg_pref_settings_image">Parametry obrazu</string>
     <string name="mjpeg_pref_vr_mode">Tryb wirtualnej rzeczywistości</string>
     <string name="mjpeg_pref_vr_mode_summary">Przechwytuje zawartość z połowy ekranu</string>
     <string-array name="mjpeg_pref_vr_mode_options">
@@ -114,7 +115,7 @@
     <string name="mjpeg_pref_jpeg_quality_summary">Ustawia jakość kompresji JPEG</string>
     <string name="mjpeg_pref_jpeg_quality_text">Ustaw jakość kompresji JPEG.\nWartość: 10–100\nDomyślnie: 80</string>
 
-    <string name="mjpeg_pref_settings_security">Bezpieczeństwo</string>
+    <string name="mjpeg_pref_settings_security">Parametry zabezpieczeń</string>
     <string name="mjpeg_pref_enable_pin">Użyj kodu PIN</string>
     <string name="mjpeg_pref_enable_pin_summary">Chroni dostęp do transmisji za pomocą kodu PIN</string>
     <string name="mjpeg_pref_hide_pin">Automatycznie ukryj kod PIN podczas uruchamiania transmisji</string>
@@ -129,7 +130,7 @@
     <string name="mjpeg_pref_block_address">Zablokuj adres IP</string>
     <string name="mjpeg_pref_block_address_summary">Blokuje przez 5 minut adres IP klienta po 5 próbach podania błędnego kodu PIN</string>
 
-    <string name="mjpeg_pref_settings_advanced">Zaawansowane</string>
+    <string name="mjpeg_pref_settings_advanced">Parametry zaawansowane</string>
     <string name="mjpeg_pref_interface_filter">Filtr interfejsu</string>
     <string name="mjpeg_pref_interface_filter_summary">Wybierz interfejsy sieciowe dla serwera</string>
     <string name="mjpeg_pref_filter_wifi">Wi-Fi</string>

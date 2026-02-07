@@ -1,6 +1,7 @@
 <resources>
     <string name="mjpeg_error_recover">Herstel</string>
     <string name="mjpeg_error_open_settings">Maak instellings oop</string>
+    <string name="mjpeg_close">Toemaak</string>
 
     <string name="mjpeg_stream_mode">Plaaslike modus (MJPEG)</string>
     <string name="mjpeg_stream_mode_description">Plaaslike modus beskrywing</string>
@@ -48,7 +49,7 @@
     <string name="mjpeg_slow_client_connection">Stadige kliëntverbinding bespeur</string>
 
     <string name="mjpeg_pref_header">Plaaslike modus (MJPEG) instellings</string>
-    <string name="mjpeg_pref_settings_general">Algemeen</string>
+    <string name="mjpeg_pref_settings_general">Algemene parameters</string>
     <string name="mjpeg_pref_keep_awake">Hou toestel wakker</string>
     <string name="mjpeg_pref_keep_awake_summary">Hou toestel en skerm wakker terwyl dit stroom</string>
     <string name="mjpeg_pref_stop_on_sleep">Stop stroom op slaap</string>
@@ -69,7 +70,7 @@
     <string name="mjpeg_pref_html_fit_window">Pas prent aan by blaaier venster</string>
     <string name="mjpeg_pref_html_fit_window_summary">Skaleer prent in blaaier na volle vensterbreedte/hoogte</string>
 
-    <string name="mjpeg_pref_settings_image">Beeld</string>
+    <string name="mjpeg_pref_settings_image">Beeldparameters</string>
     <string name="mjpeg_pref_vr_mode">Virtuele werklikheidsmodus</string>
     <string name="mjpeg_pref_vr_mode_summary">Vang inhoud van halwe skerm af</string>
     <string-array name="mjpeg_pref_vr_mode_options">
@@ -114,7 +115,7 @@
     <string name="mjpeg_pref_jpeg_quality_summary">Stel JPEG-kompressiekwaliteit in</string>
     <string name="mjpeg_pref_jpeg_quality_text">Stel JPEG-kompressiekwaliteit in. Waardes: 10–100 Verstek: 80</string>
 
-    <string name="mjpeg_pref_settings_security">Sekuriteit</string>
+    <string name="mjpeg_pref_settings_security">Sekuriteitsparameters</string>
     <string name="mjpeg_pref_enable_pin">Aktiveer pen</string>
     <string name="mjpeg_pref_enable_pin_summary">Beskerm toegang tot stroom met pen</string>
     <string name="mjpeg_pref_hide_pin">Versteek pen outomaties by stroombegin</string>
@@ -129,7 +130,7 @@
     <string name="mjpeg_pref_block_address">Blokkeer IP-adres</string>
     <string name="mjpeg_pref_block_address_summary">Blokkeer die kliënt se IP-adres na 5 verkeerde penpogings vir 5 minute</string>
 
-    <string name="mjpeg_pref_settings_advanced">Gevorderd</string>
+    <string name="mjpeg_pref_settings_advanced">Gevorderde parameters</string>
     <string name="mjpeg_pref_interface_filter">Koppelvlak filter</string>
     <string name="mjpeg_pref_interface_filter_summary">Kies netwerkkoppelvlakke vir bediener</string>
     <string name="mjpeg_pref_filter_wifi">Wi-Fi</string>

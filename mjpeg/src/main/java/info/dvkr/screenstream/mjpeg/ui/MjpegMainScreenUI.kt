@@ -10,8 +10,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
-import androidx.compose.material.icons.materialIcon
-import androidx.compose.material.icons.materialPath
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -22,7 +20,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -37,7 +35,12 @@ import info.dvkr.screenstream.mjpeg.ui.main.ClientsCard
 import info.dvkr.screenstream.mjpeg.ui.main.ErrorCard
 import info.dvkr.screenstream.mjpeg.ui.main.InterfacesCard
 import info.dvkr.screenstream.mjpeg.ui.main.PinCard
+import info.dvkr.screenstream.mjpeg.ui.main.SettingsGroupCard
 import info.dvkr.screenstream.mjpeg.ui.main.TrafficCard
+import info.dvkr.screenstream.mjpeg.ui.settings.AdvancedGroup
+import info.dvkr.screenstream.mjpeg.ui.settings.GeneralGroup
+import info.dvkr.screenstream.mjpeg.ui.settings.ImageGroup
+import info.dvkr.screenstream.mjpeg.ui.settings.SecurityGroup
 import kotlinx.coroutines.flow.StateFlow
 
 @Composable
@@ -78,6 +81,22 @@ internal fun MjpegMainScreenUI(
                 PinCard(mjpegState = mjpegState, onCreateNewPin = { sendEvent(MjpegEvent.CreateNewPin) }, modifier = Modifier.padding(8.dp))
             }
 
+            item(key = "SETTINGS_GENERAL") {
+                SettingsGroupCard(settingsGroup = GeneralGroup, modifier = Modifier.padding(8.dp))
+            }
+
+            item(key = "SETTINGS_IMAGE") {
+                SettingsGroupCard(settingsGroup = ImageGroup, modifier = Modifier.padding(8.dp))
+            }
+
+            item(key = "SETTINGS_SECURITY") {
+                SettingsGroupCard(settingsGroup = SecurityGroup, modifier = Modifier.padding(8.dp))
+            }
+
+            item(key = "SETTINGS_ADVANCED") {
+                SettingsGroupCard(settingsGroup = AdvancedGroup, modifier = Modifier.padding(8.dp))
+            }
+
             item(key = "TRAFFIC") {
                 TrafficCard(mjpegState = mjpegState, modifier = Modifier.padding(8.dp))
             }
@@ -114,7 +133,10 @@ internal fun MjpegMainScreenUI(
             )
         ) {
             Crossfade(targetState = mjpegState.value.isStreaming, label = "StreamingButtonCrossfade") { isStreaming ->
-                Icon(imageVector = if (isStreaming) Icon_Stop else Icon_PlayArrow, contentDescription = null)
+                Icon(
+                    painter = painterResource(if (isStreaming) R.drawable.stop_24px else R.drawable.play_arrow_24px),
+                    contentDescription = null
+                )
             }
             Spacer(modifier = Modifier.size(ButtonDefaults.IconSpacing))
             Text(
@@ -122,24 +144,5 @@ internal fun MjpegMainScreenUI(
                 style = MaterialTheme.typography.titleMedium
             )
         }
-    }
-}
-
-private val Icon_Stop: ImageVector = materialIcon(name = "Filled.Stop") {
-    materialPath {
-        moveTo(6.0f, 6.0f)
-        horizontalLineToRelative(12.0f)
-        verticalLineToRelative(12.0f)
-        horizontalLineTo(6.0f)
-        close()
-    }
-}
-
-private val Icon_PlayArrow: ImageVector = materialIcon(name = "Filled.PlayArrow") {
-    materialPath {
-        moveTo(8.0f, 5.0f)
-        verticalLineToRelative(14.0f)
-        lineToRelative(11.0f, -7.0f)
-        close()
     }
 }

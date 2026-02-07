@@ -7,6 +7,7 @@ import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.DrawableRes
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
@@ -32,6 +33,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.DialogProperties
 import androidx.core.net.toUri
 import androidx.lifecycle.Lifecycle
@@ -78,7 +80,8 @@ internal fun AudioCard(
         initiallyExpanded = false
     ) {
         AudioSource(
-            text = stringResource(id = R.string.webrtc_stream_audio_mic),
+            text = R.string.webrtc_stream_audio_mic,
+            textSummary = R.string.webrtc_stream_audio_mic_summary,
             iconId = R.drawable.mic_24px,
             selected = webRtcSettingsState.value.enableMic,
             enabled = webRtcState.value.isStreaming.not(),
@@ -91,15 +94,15 @@ internal fun AudioCard(
                     }
                     showRecordAudioPermission.value = true
                 }
-            },
-            modifier = Modifier.padding(top = 4.dp)
+            }
         )
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             HorizontalDivider()
 
             AudioSource(
-                text = stringResource(id = R.string.webrtc_stream_audio_device),
+                text = R.string.webrtc_stream_audio_device,
+                textSummary = R.string.webrtc_stream_audio_device_summary,
                 iconId = R.drawable.mobile_speaker_24px,
                 selected = webRtcSettingsState.value.enableDeviceAudio,
                 enabled = webRtcState.value.isStreaming.not(),
@@ -112,8 +115,7 @@ internal fun AudioCard(
                         }
                         showRecordAudioPermission.value = true
                     }
-                },
-                modifier = Modifier.padding(top = 4.dp)
+                }
             )
         }
     }
@@ -129,7 +131,8 @@ internal fun AudioCard(
 
 @Composable
 private fun AudioSource(
-    text: String,
+    @StringRes text: Int,
+    @StringRes textSummary: Int,
     @DrawableRes iconId: Int,
     enabled: Boolean,
     selected: Boolean,
@@ -143,7 +146,21 @@ private fun AudioSource(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(painter = painterResource(id = iconId), contentDescription = null, modifier = Modifier.padding(end = 16.dp))
-        Text(text = text, modifier = Modifier.weight(1F))
+
+        Column(modifier = Modifier.weight(1F)) {
+            Text(
+                text = stringResource(id = text),
+                modifier = Modifier.padding(top = 8.dp, bottom = 2.dp),
+                fontSize = 18.sp,
+                style = MaterialTheme.typography.bodyLarge
+            )
+            Text(
+                text = stringResource(id = textSummary),
+                modifier = Modifier.padding(top = 2.dp, bottom = 8.dp),
+                style = MaterialTheme.typography.bodyMedium
+            )
+        }
+
         Switch(checked = selected, onCheckedChange = null, modifier = Modifier.scale(0.7F), enabled = enabled)
     }
 }

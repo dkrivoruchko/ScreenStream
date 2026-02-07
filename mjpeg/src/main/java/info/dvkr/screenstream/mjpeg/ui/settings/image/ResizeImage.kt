@@ -13,8 +13,6 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.materialIcon
-import androidx.compose.material.icons.materialPath
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -34,8 +32,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.toComposeIntRect
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextRange
@@ -137,7 +135,7 @@ private fun ResizeImageUI(
             .padding(start = horizontalPadding + 16.dp, end = horizontalPadding + 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(imageVector = Icon_Resize, contentDescription = null, modifier = Modifier.padding(end = 16.dp))
+        Icon(painter = painterResource(R.drawable.resize_24px), contentDescription = null, modifier = Modifier.padding(end = 16.dp))
 
         Column(modifier = Modifier.weight(1F)) {
             Text(
@@ -376,40 +374,4 @@ private fun ResizeImageDetailUI(
     }
 
     LaunchedEffect(Unit) { delay(50); focusRequester.requestFocus() }
-}
-
-private val Icon_Resize: ImageVector = materialIcon(name = "Resize") {
-    materialPath {
-        verticalLineToRelative(0.0F)
-        moveTo(10.59F, 12.0F)
-        lineTo(14.59F, 8.0F)
-        horizontalLineTo(11.0F)
-        verticalLineTo(6.0F)
-        horizontalLineTo(18.0F)
-        verticalLineTo(13.0F)
-        horizontalLineTo(16.0F)
-        verticalLineTo(9.41F)
-        lineTo(12.0F, 13.41F)
-        verticalLineTo(16.0F)
-        horizontalLineTo(20.0F)
-        verticalLineTo(4.0F)
-        horizontalLineTo(8.0F)
-        verticalLineTo(12.0F)
-        horizontalLineTo(10.59F)
-        moveTo(22.0F, 2.0F)
-        verticalLineTo(18.0F)
-        horizontalLineTo(12.0F)
-        verticalLineTo(22.0F)
-        horizontalLineTo(2.0F)
-        verticalLineTo(12.0F)
-        horizontalLineTo(6.0F)
-        verticalLineTo(2.0F)
-        horizontalLineTo(22.0F)
-        moveTo(10.0F, 14.0F)
-        horizontalLineTo(4.0F)
-        verticalLineTo(20.0F)
-        horizontalLineTo(10.0F)
-        verticalLineTo(14.0F)
-        close()
-    }
 }

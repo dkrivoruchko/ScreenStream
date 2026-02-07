@@ -36,8 +36,6 @@
     <string name="app_tile_start">開始</string>
     <string name="app_tile_stop">停止</string>
 
-    <string name="app_pref_settings_search">設定搜尋</string>
-    <string name="app_pref_search">搜索</string>
     <string name="app_pref_close">關閉</string>
     <string name="app_pref_back">返回</string>
     <string name="app_pref_settings">應用程式設置</string>

@@ -5,8 +5,6 @@ import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -18,6 +16,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.Lifecycle
@@ -83,7 +82,7 @@ internal fun NotificationPermission(
                     Text(text = stringResource(id = android.R.string.ok))
                 }
             },
-            icon = { Icon(Icons.Default.Info, contentDescription = null) },
+            icon = { Icon(painter = painterResource(R.drawable.info_24px), contentDescription = null) },
             title = { Text(text = stringResource(id = R.string.app_permission_required_title)) },
             text = { Text(text = stringResource(id = R.string.app_permission_allow_notifications)) },
             shape = MaterialTheme.shapes.large,
@@ -104,7 +103,7 @@ internal fun NotificationPermission(
                     Text(text = stringResource(id = R.string.app_permission_notification_settings))
                 }
             },
-            icon = { Icon(Icons.Default.Info, contentDescription = null) },
+            icon = { Icon(painter = painterResource(R.drawable.info_24px), contentDescription = null) },
             title = { Text(text = stringResource(id = R.string.app_permission_required_title)) },
             text = { Text(text = stringResource(id = R.string.app_permission_allow_notifications_settings)) },
             shape = MaterialTheme.shapes.large,

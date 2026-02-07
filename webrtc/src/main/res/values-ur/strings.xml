@@ -31,8 +31,10 @@
     <string name="webrtc_stream_copied">کاپی ہو گیا</string>
     <string name="webrtc_stream_audio_parameters">آڈیو پیرامیٹرز</string>
     <string name="webrtc_stream_audio_mic">مائیکروفون</string>
-    <string name="webrtc_stream_audio_device">ڈیوائس آڈیو</string>
-    <string name="webrtc_stream_audio_device_unavailable">ڈیوائس آڈیو دستیاب نہیں ہے</string>
+    <string name="webrtc_stream_audio_mic_summary">مائیکروفون آڈیو اسٹریم کریں</string>
+    <string name="webrtc_stream_audio_device">اندرونی آڈیو</string>
+    <string name="webrtc_stream_audio_device_summary">اس ڈیوائس کی میڈیا آڈیو اسٹریم کریں</string>
+    <string name="webrtc_stream_audio_device_unavailable">اندرونی آڈیو دستیاب نہیں ہے</string>
     <string name="webrtc_stream_connected_clients">جڑے ہوئے کلائنٹس: %1$d</string>
     <string name="webrtc_stream_no_web_browser_found">کوئی ویب براؤزر نہیں ملا</string>
     <string name="webrtc_stream_external_app_error">بیرونی ایپ میں خرابی</string>
@@ -46,9 +48,9 @@
     <string name="webrtc_stream_stop_on_sleep">سلیپ پر اسٹریم روکیں</string>
     <string name="webrtc_stream_stop_on_sleep_summary">اسکرین بند ہو تو اسٹریم روکیں</string>
 
-    <string name="webrtc_stream_audio_permission_title">آڈیو ریکارڈنگ کی اجازت</string>
-    <string name="webrtc_stream_audio_permission_message">آڈیو اسٹریم کیلئے ریکارڈنگ کی اجازت ضروری ہے۔\n\nبغیر اجازت کے اسٹریم میں آڈیو نہیں ہوگا۔</string>
-    <string name="webrtc_stream_audio_permission_message_settings">ایپ پرمیشنز میں مائیکروفون کی اجازت ضروری ہے تاکہ آڈیو اسٹریم ہو سکے۔\n\nبغیر اجازت کے آڈیو نہیں ہوگا۔</string>
+    <string name="webrtc_stream_audio_permission_title">آڈیو رسائی کی اجازت دیں</string>
+    <string name="webrtc_stream_audio_permission_message">مائیکروفون یا اندرونی آڈیو اسٹریم کرنے کے لیے مائیکروفون اجازت ضروری ہے۔\n\nاس کے بغیر اسٹریم میں آواز نہیں ہوگی۔</string>
+    <string name="webrtc_stream_audio_permission_message_settings">مائیکروفون یا اندرونی آڈیو اسٹریم کرنے کے لیے ایپ سیٹنگز میں مائیکروفون اجازت فعال کریں۔\n\nاس کے بغیر اسٹریم میں آواز نہیں ہوگی۔</string>
     <string name="webrtc_stream_audio_permission_open_settings">ترتیبات کھولیں</string>
 
     <string name="webrtc_stream_cast_permission_required_title">اجازت درکار ہے</string>

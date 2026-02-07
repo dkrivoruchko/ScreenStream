@@ -1,6 +1,7 @@
 <resources>
     <string name="mjpeg_error_recover">ማገገም</string>
     <string name="mjpeg_error_open_settings">ቅንብሮችን ይክፈቱ</string>
+    <string name="mjpeg_close">ገጠመ</string>
 
     <string name="mjpeg_stream_mode">የአካባቢ ሁነታ (MJPEG)</string>
     <string name="mjpeg_stream_mode_description">የአካባቢ ሁነታ መግለጫ</string>
@@ -47,7 +48,7 @@
     <string name="mjpeg_slow_client_connection">ቀርፋፋ የደንበኛ ግንኙነት ተገኝቷል</string>
 
     <string name="mjpeg_pref_header">የአካባቢ ሁነታ (MJPEG) ቅንብሮች</string>
-    <string name="mjpeg_pref_settings_general">አጠቃላይ</string>
+    <string name="mjpeg_pref_settings_general">አጠቃላይ ፓራሜትሮች</string>
     <string name="mjpeg_pref_keep_awake">መሳሪያውን ነቅተው ይጠብቁ</string>
     <string name="mjpeg_pref_keep_awake_summary">በዥረት በሚለቀቁበት ጊዜ መሳሪያውን እና ማያ ገጹን ነቅተው ይጠብቁ</string>
     <string name="mjpeg_pref_stop_on_sleep">በእንቅልፍ ላይ ዥረት ያቁሙ</string>
@@ -68,7 +69,7 @@
     <string name="mjpeg_pref_html_fit_window">ምስልን እንደ መሣሪያ መስኮት ይስማማ</string>
     <string name="mjpeg_pref_html_fit_window_summary">አበረክቷት ምስልን በአጠቃቀም ስልክ ወደ ሙሉ መስኮት ስፋት/ቁመት</string>
 
-    <string name="mjpeg_pref_settings_image">ምስል</string>
+    <string name="mjpeg_pref_settings_image">የምስል ፓራሜትሮች</string>
     <string name="mjpeg_pref_vr_mode">ምናባዊ እውነታ ሁነታ</string>
     <string name="mjpeg_pref_vr_mode_summary">ይዘትን ከግማሽ ማያ ገጽ ያንሱ</string>
     <string-array name="mjpeg_pref_vr_mode_options">
@@ -113,7 +114,7 @@
     <string name="mjpeg_pref_jpeg_quality_summary">የ JPEG መጭመቂያ ጥራት ያዘጋጁ</string>
     <string name="mjpeg_pref_jpeg_quality_text">የ JPEG መጭመቂያ ጥራት ያዘጋጁ። ዋጋዎች: 10–100 ነባሪ፡ 80</string>
 
-    <string name="mjpeg_pref_settings_security">ደህንነት</string>
+    <string name="mjpeg_pref_settings_security">የደህንነት ፓራሜትሮች</string>
     <string name="mjpeg_pref_enable_pin">ፒን አንቃ</string>
     <string name="mjpeg_pref_enable_pin_summary">የዥረት መዳረሻን በፒን ጠብቅ</string>
     <string name="mjpeg_pref_hide_pin">በዥረት ጅምር ላይ ፒን በራስ-ሰር ደብቅ</string>
@@ -128,7 +129,7 @@
     <string name="mjpeg_pref_block_address">የአይፒ አድራሻን አግድ</string>
     <string name="mjpeg_pref_block_address_summary">ከ 5 የተሳሳቱ የፒን ሙከራዎች ለ 5 ደቂቃዎች በኋላ የደንበኛ አይፒ አድራሻን አግድ</string>
 
-    <string name="mjpeg_pref_settings_advanced">የላቀ</string>
+    <string name="mjpeg_pref_settings_advanced">የላቀ ፓራሜትሮች</string>
     <string name="mjpeg_pref_interface_filter">መገናኛ ማጣሪያ</string>
     <string name="mjpeg_pref_interface_filter_summary">ለአገልጋዩ የአውታረ መረብ መገናኛዎችን ይምረጡ</string>
     <string name="mjpeg_pref_filter_wifi">ዋይ-ፋይ</string>

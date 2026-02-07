@@ -4,6 +4,8 @@ import android.os.Build
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.LocalActivity
+import androidx.annotation.DrawableRes
+import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.EaseIn
 import androidx.compose.animation.core.EaseOut
@@ -63,7 +65,6 @@ import info.dvkr.screenstream.R
 import info.dvkr.screenstream.logger.AppLogger
 import info.dvkr.screenstream.logger.CollectingLogsUi
 import info.dvkr.screenstream.notification.NotificationPermission
-import info.dvkr.screenstream.ui.tabs.AppTabs
 import info.dvkr.screenstream.ui.tabs.about.AboutTabContent
 import info.dvkr.screenstream.ui.tabs.exit.ExitTabContent
 import info.dvkr.screenstream.ui.tabs.settings.SettingsTabContent
@@ -77,7 +78,11 @@ internal fun ScreenStreamContent(
     isLoggingOn: Boolean = AppLogger.isLoggingOn
 ) {
     if (isLoggingOn) {
-        Column(modifier = modifier.fillMaxSize()) {
+        Column(
+            modifier = modifier
+                .windowInsetsPadding(WindowInsets.safeDrawing)
+                .fillMaxSize()
+        ) {
             CollectingLogsUi(modifier = Modifier.fillMaxWidth())
             MainContent(
                 modifier = Modifier
@@ -86,7 +91,11 @@ internal fun ScreenStreamContent(
             )
         }
     } else {
-        MainContent(modifier = modifier.fillMaxSize())
+        MainContent(
+            modifier = modifier
+                .windowInsetsPadding(WindowInsets.safeDrawing)
+                .fillMaxSize()
+        )
     }
 
     val updateFlowState = updateFlow.collectAsStateWithLifecycle()
@@ -103,6 +112,17 @@ internal fun ScreenStreamContent(
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
         NotificationPermission()
     }
+}
+
+internal enum class AppTabs(
+    @field:DrawableRes internal val image: Int,
+    @field:DrawableRes internal val imageSelected: Int,
+    @field:StringRes internal val label: Int
+) {
+    STREAM(R.drawable.stream_24px, R.drawable.stream_24px, R.string.app_tab_stream),
+    SETTINGS(R.drawable.settings_24px, R.drawable.settings_filled_24px, R.string.app_tab_settings),
+    ABOUT(R.drawable.info_24px, R.drawable.info_filled_24px, R.string.app_tab_about),
+    EXIT(R.drawable.close_24px, R.drawable.close_24px, R.string.app_tab_exit)
 }
 
 @Composable
@@ -125,7 +145,7 @@ private fun MainContent(
     val contentBoundsInWindow = remember(windowSize) { mutableStateOf(windowSize.toIntRect().toRect()) }
 
     Surface(
-        modifier = modifier.windowInsetsPadding(WindowInsets.safeDrawing),
+        modifier = modifier,
         color = NavigationSuiteScaffoldDefaults.containerColor,
         contentColor = NavigationSuiteScaffoldDefaults.contentColor
     ) {
@@ -137,7 +157,12 @@ private fun MainContent(
                             NavigationBarItem(
                                 selected = selectedTab.value == tab,
                                 onClick = dropUnlessStarted { selectedTab.value = tab },
-                                icon = { Icon(imageVector = if (selectedTab.value == tab) tab.iconSelected else tab.icon, null) },
+                                icon = {
+                                    Icon(
+                                        painter = painterResource(if (selectedTab.value == tab) tab.imageSelected else tab.image),
+                                        null
+                                    )
+                                },
                                 modifier = Modifier.padding(horizontal = 4.dp),
                                 label = { Text(text = stringResource(tab.label)) },
                             )
@@ -150,7 +175,12 @@ private fun MainContent(
                             NavigationRailItem(
                                 selected = selectedTab.value == tab,
                                 onClick = dropUnlessStarted { selectedTab.value = tab },
-                                icon = { Icon(imageVector = if (selectedTab.value == tab) tab.iconSelected else tab.icon, null) },
+                                icon = {
+                                    Icon(
+                                        painter = painterResource(if (selectedTab.value == tab) tab.imageSelected else tab.image),
+                                        null
+                                    )
+                                },
                                 modifier = Modifier.padding(vertical = 4.dp),
                                 label = { Text(text = stringResource(tab.label)) }
                             )

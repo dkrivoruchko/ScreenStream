@@ -10,8 +10,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.materialIcon
-import androidx.compose.material.icons.materialPath
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -27,8 +25,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
@@ -152,7 +150,7 @@ private fun ModuleSelectorRow(
 
         IconButton(onClick = { openDescriptionDialog.value = true }) {
             Icon(
-                imageVector = Icon_HelpOutline,
+                painter = painterResource(R.drawable.help_24px),
                 contentDescription = stringResource(id = module.descriptionResource),
                 tint = MaterialTheme.colorScheme.primary
             )
@@ -182,38 +180,5 @@ private fun ModuleSelectorRow(
                 shape = MaterialTheme.shapes.large
             )
         }
-    }
-}
-
-private val Icon_HelpOutline: ImageVector = materialIcon(name = "AutoMirrored.Outlined.HelpOutline", autoMirror = true) {
-    materialPath {
-        moveTo(11.0f, 18.0f)
-        horizontalLineToRelative(2.0f)
-        verticalLineToRelative(-2.0f)
-        horizontalLineToRelative(-2.0f)
-        verticalLineToRelative(2.0f)
-        close()
-        moveTo(12.0f, 2.0f)
-        curveTo(6.48f, 2.0f, 2.0f, 6.48f, 2.0f, 12.0f)
-        reflectiveCurveToRelative(4.48f, 10.0f, 10.0f, 10.0f)
-        reflectiveCurveToRelative(10.0f, -4.48f, 10.0f, -10.0f)
-        reflectiveCurveTo(17.52f, 2.0f, 12.0f, 2.0f)
-        close()
-        moveTo(12.0f, 20.0f)
-        curveToRelative(-4.41f, 0.0f, -8.0f, -3.59f, -8.0f, -8.0f)
-        reflectiveCurveToRelative(3.59f, -8.0f, 8.0f, -8.0f)
-        reflectiveCurveToRelative(8.0f, 3.59f, 8.0f, 8.0f)
-        reflectiveCurveToRelative(-3.59f, 8.0f, -8.0f, 8.0f)
-        close()
-        moveTo(12.0f, 6.0f)
-        curveToRelative(-2.21f, 0.0f, -4.0f, 1.79f, -4.0f, 4.0f)
-        horizontalLineToRelative(2.0f)
-        curveToRelative(0.0f, -1.1f, 0.9f, -2.0f, 2.0f, -2.0f)
-        reflectiveCurveToRelative(2.0f, 0.9f, 2.0f, 2.0f)
-        curveToRelative(0.0f, 2.0f, -3.0f, 1.75f, -3.0f, 5.0f)
-        horizontalLineToRelative(2.0f)
-        curveToRelative(0.0f, -2.25f, 3.0f, -2.5f, 3.0f, -5.0f)
-        curveToRelative(0.0f, -2.21f, -1.79f, -4.0f, -4.0f, -4.0f)
-        close()
     }
 }

@@ -31,8 +31,10 @@
     <string name="webrtc_stream_copied">Kopiert</string>
     <string name="webrtc_stream_audio_parameters">Audioparameter</string>
     <string name="webrtc_stream_audio_mic">Mikrofon</string>
-    <string name="webrtc_stream_audio_device">Geräteaudio</string>
-    <string name="webrtc_stream_audio_device_unavailable">Geräteaudio nicht verfügbar</string>
+    <string name="webrtc_stream_audio_mic_summary">Mikrofon-Audio streamen</string>
+    <string name="webrtc_stream_audio_device">Interner Ton</string>
+    <string name="webrtc_stream_audio_device_summary">Medienaudio von diesem Gerät streamen</string>
+    <string name="webrtc_stream_audio_device_unavailable">Interner Ton nicht verfügbar</string>
     <string name="webrtc_stream_connected_clients">Verbundene Clients: %1$d</string>
     <string name="webrtc_stream_no_web_browser_found">Kein Webbrowser gefunden</string>
     <string name="webrtc_stream_external_app_error">Fehler bei externer Anwendung</string>
@@ -46,9 +48,9 @@
     <string name="webrtc_stream_stop_on_sleep">Stream im Standby-Modus stoppen</string>
     <string name="webrtc_stream_stop_on_sleep_summary">Stream stoppen, wenn der Bildschirm ausgeschaltet wird</string>
 
-    <string name="webrtc_stream_audio_permission_title">Audioaufnahme erlauben</string>
-    <string name="webrtc_stream_audio_permission_message">Die Erlaubnis zur Aufnahme von Audio ist erforderlich, damit die Anwendung Audioinhalte streamen kann.\n\nOhne diese Erlaubnis erfolgt der Stream ohne Audio.</string>
-    <string name="webrtc_stream_audio_permission_message_settings">Die Mikrofonberechtigung in den Anwendungsberechtigungen zu gewähren, ist erforderlich, damit die Anwendung Audioinhalte streamen kann.\n\nOhne diese Erlaubnis erfolgt der Stream ohne jeglichen Ton.</string>
+    <string name="webrtc_stream_audio_permission_title">Audiozugriff erlauben</string>
+    <string name="webrtc_stream_audio_permission_message">Die Mikrofonberechtigung ist erforderlich, um Mikrofon- oder internen Ton zu streamen.\n\nOhne sie hat der Stream keinen Ton.</string>
+    <string name="webrtc_stream_audio_permission_message_settings">Aktiviere die Mikrofonberechtigung in den App-Einstellungen, um Mikrofon- oder internen Ton zu streamen.\n\nOhne sie hat der Stream keinen Ton.</string>
     <string name="webrtc_stream_audio_permission_open_settings">Einstellungen öffnen</string>
 
     <string name="webrtc_stream_cast_permission_required_title">Berechtigung erforderlich</string>

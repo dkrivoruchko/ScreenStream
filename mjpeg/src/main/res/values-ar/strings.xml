@@ -1,6 +1,7 @@
 <resources>
     <string name="mjpeg_error_recover">تعافى</string>
     <string name="mjpeg_error_open_settings">افتح الإعدادات</string>
+    <string name="mjpeg_close">إغلاق</string>
 
     <string name="mjpeg_stream_mode">الوضع المحلي (MJPEG)</string>
     <string name="mjpeg_stream_mode_description">وصف الوضع المحلي</string>
@@ -48,7 +49,7 @@
     <string name="mjpeg_slow_client_connection">تم اكتشاف اتصال عميل بطيء</string>
 
     <string name="mjpeg_pref_header">إعدادات الوضع المحلي (MJPEG)</string>
-    <string name="mjpeg_pref_settings_general">عام</string>
+    <string name="mjpeg_pref_settings_general">معلمات عامة</string>
     <string name="mjpeg_pref_keep_awake">إبقاء الجهاز مستيقظًا</string>
     <string name="mjpeg_pref_keep_awake_summary">إبقاء الجهاز والشاشة مستيقظة أثناء البث</string>
     <string name="mjpeg_pref_stop_on_sleep">وقف البث عند النوم </string>
@@ -69,7 +70,7 @@
     <string name="mjpeg_pref_html_fit_window">تطويع الصورة لنافذة المتصفح</string>
     <string name="mjpeg_pref_html_fit_window_summary">تكبير الصورة في المتصفح لملء عرض/ارتفاع النافذة بالكامل</string>
 
-    <string name="mjpeg_pref_settings_image">صورة</string>
+    <string name="mjpeg_pref_settings_image">معلمات الصورة</string>
     <string name="mjpeg_pref_vr_mode">وضع الواقع الافتراضي</string>
     <string name="mjpeg_pref_vr_mode_summary">التقاط المحتوى من نصف الشاشة</string>
     <string-array name="mjpeg_pref_vr_mode_options">
@@ -114,7 +115,7 @@
     <string name="mjpeg_pref_jpeg_quality_summary">اضبط جودة ضغط JPEG</string>
     <string name="mjpeg_pref_jpeg_quality_text">اضبط جودة ضغط JPEG. القيم: 10–100\nالافتراضي: 80</string>
 
-    <string name="mjpeg_pref_settings_security">الحماية</string>
+    <string name="mjpeg_pref_settings_security">معلمات الأمان</string>
     <string name="mjpeg_pref_enable_pin">تمكين الرمز السري</string>
     <string name="mjpeg_pref_enable_pin_summary">حماية البث عن طريق الرمز السري</string>
     <string name="mjpeg_pref_hide_pin"> إخفاء الرمز السري على بدء البث</string>
@@ -129,7 +130,7 @@
     <string name="mjpeg_pref_block_address">حظر عنوان الآي بي</string>
     <string name="mjpeg_pref_block_address_summary">حظر عنوان الآي بي للعميل بعد 5 محاولات خاطئة لرمز الPIN لمدة 5 دقائق</string>
 
-    <string name="mjpeg_pref_settings_advanced">متقدم</string>
+    <string name="mjpeg_pref_settings_advanced">معلمات متقدمة</string>
     <string name="mjpeg_pref_interface_filter">تصفية الواجهة</string>
     <string name="mjpeg_pref_interface_filter_summary">اختر واجهات الشبكة للخادم</string>
     <string name="mjpeg_pref_filter_wifi">واي فاي</string>

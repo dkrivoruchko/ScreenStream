@@ -31,8 +31,10 @@
     <string name="webrtc_stream_copied">Gekopieer</string>
     <string name="webrtc_stream_audio_parameters">Klankparameters</string>
     <string name="webrtc_stream_audio_mic">Mikrofoon</string>
-    <string name="webrtc_stream_audio_device">Toestel oudio</string>
-    <string name="webrtc_stream_audio_device_unavailable">Toestelklank nie beskikbaar</string>
+    <string name="webrtc_stream_audio_mic_summary">Stroom mikrofoonklank</string>
+    <string name="webrtc_stream_audio_device">Interne oudio</string>
+    <string name="webrtc_stream_audio_device_summary">Stroom media-oudio vanaf hierdie toestel</string>
+    <string name="webrtc_stream_audio_device_unavailable">Interne oudio nie beskikbaar</string>
     <string name="webrtc_stream_connected_clients">Gekoppelde kliënte: %1$d</string>
     <string name="webrtc_stream_no_web_browser_found">Geen webblaaier gevind nie</string>
     <string name="webrtc_stream_external_app_error">Eksterne toepassingsfout</string>
@@ -46,9 +48,9 @@
     <string name="webrtc_stream_stop_on_sleep">Stop stroom op slaap</string>
     <string name="webrtc_stream_stop_on_sleep_summary">Stop stroom as die skerm afskakel</string>
 
-    <string name="webrtc_stream_audio_permission_title">Laat oudio-opname toe</string>
-    <string name="webrtc_stream_audio_permission_message">Toestemming om oudio op te neem is nodig vir die toepassing om oudio-inhoud te stroom.  Sonder om hierdie toestemming te verleen, sal die stroom sonder oudio wees.</string>
-    <string name="webrtc_stream_audio_permission_message_settings">Om mikrofoontoegang in toepassingstoestemmings te verleen, is nodig vir die toepassing om oudio-inhoud te stroom.  Sonder om hierdie toestemming te verleen, sal die stroom sonder enige oudio uitgevoer word.</string>
+    <string name="webrtc_stream_audio_permission_title">Laat oudiotoegang toe</string>
+    <string name="webrtc_stream_audio_permission_message">Mikrofoontoestemming is nodig om mikrofoon- of interne oudio te stroom.\n\nSonder dit sal die stroom geen klank hê nie.</string>
+    <string name="webrtc_stream_audio_permission_message_settings">Skakel mikrofoontoestemming in appinstellings aan om mikrofoon- of interne oudio te stroom.\n\nSonder dit sal die stroom geen klank hê nie.</string>
     <string name="webrtc_stream_audio_permission_open_settings">Maak instellings oop</string>
 
     <string name="webrtc_stream_cast_permission_required_title">Toestemming vereis</string>

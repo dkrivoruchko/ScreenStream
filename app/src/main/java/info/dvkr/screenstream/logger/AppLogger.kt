@@ -21,6 +21,7 @@ import com.elvishew.xlog.printer.file.FilePrinter
 import com.elvishew.xlog.printer.file.clean.FileLastModifiedCleanStrategy
 import com.elvishew.xlog.printer.file.naming.FileNameGenerator
 import com.jakewharton.processphoenix.ProcessPhoenix
+import info.dvkr.screenstream.BuildConfig
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.common.getVersionName
 import kotlinx.coroutines.DelicateCoroutinesApi
@@ -106,7 +107,7 @@ internal object AppLogger {
             logZipFile
         }
 
-        val fileUri = FileProvider.getUriForFile(context, "info.dvkr.screenstream.fileprovider", File(logZipFile))
+        val fileUri = FileProvider.getUriForFile(context, BuildConfig.APPLICATION_ID + ".fileprovider", File(logZipFile))
         val version = context.getVersionName()
         val versions = "Device: ${Build.MANUFACTURER} ${Build.MODEL} [API:${Build.VERSION.SDK_INT}, Build:$version]"
         val emailIntent = Intent(Intent.ACTION_SEND)

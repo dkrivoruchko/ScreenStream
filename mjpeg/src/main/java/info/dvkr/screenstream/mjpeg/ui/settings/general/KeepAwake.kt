@@ -6,8 +6,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.selection.toggleable
-import androidx.compose.material.icons.materialIcon
-import androidx.compose.material.icons.materialPath
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
@@ -16,7 +14,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -64,7 +62,7 @@ private fun KeepAwakeUI(
             .padding(start = horizontalPadding + 16.dp, end = horizontalPadding + 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(imageVector = Icon_NoSleep, contentDescription = null, modifier = Modifier.padding(end = 16.dp))
+        Icon(painter = painterResource(R.drawable.bedtime_off_24px), contentDescription = null, modifier = Modifier.padding(end = 16.dp))
 
         Column(modifier = Modifier.weight(1F)) {
             Text(
@@ -81,48 +79,5 @@ private fun KeepAwakeUI(
         }
 
         Switch(checked = keepAwake, onCheckedChange = null, modifier = Modifier.scale(0.7F))
-    }
-}
-
-private val Icon_NoSleep: ImageVector = materialIcon(name = "NoSleep") {
-    materialPath {
-        verticalLineToRelative(0.0F)
-        moveTo(2.0F, 5.27F)
-        lineTo(3.28F, 4.0F)
-        lineTo(20.0F, 20.72F)
-        lineTo(18.73F, 22.0F)
-        lineTo(12.73F, 16.0F)
-        horizontalLineTo(9.0F)
-        verticalLineTo(14.0F)
-        lineTo(9.79F, 13.06F)
-        lineTo(2.0F, 5.27F)
-        moveTo(23.0F, 12.0F)
-        horizontalLineTo(17.0F)
-        verticalLineTo(10.0F)
-        lineTo(20.39F, 6.0F)
-        horizontalLineTo(17.0F)
-        verticalLineTo(4.0F)
-        horizontalLineTo(23.0F)
-        verticalLineTo(6.0F)
-        lineTo(19.62F, 10.0F)
-        horizontalLineTo(23.0F)
-        verticalLineTo(12.0F)
-        moveTo(9.82F, 8.0F)
-        horizontalLineTo(15.0F)
-        verticalLineTo(10.0F)
-        lineTo(13.54F, 11.72F)
-        lineTo(9.82F, 8.0F)
-        moveTo(7.0F, 20.0F)
-        horizontalLineTo(1.0F)
-        verticalLineTo(18.0F)
-        lineTo(4.39F, 14.0F)
-        horizontalLineTo(1.0F)
-        verticalLineTo(12.0F)
-        horizontalLineTo(7.0F)
-        verticalLineTo(14.0F)
-        lineTo(3.62F, 18.0F)
-        horizontalLineTo(7.0F)
-        verticalLineTo(20.0F)
-        close()
     }
 }

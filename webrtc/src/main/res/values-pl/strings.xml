@@ -31,8 +31,10 @@
     <string name="webrtc_stream_copied">Skopiowano</string>
     <string name="webrtc_stream_audio_parameters">Parametry audio</string>
     <string name="webrtc_stream_audio_mic">Mikrofon</string>
-    <string name="webrtc_stream_audio_device">Audio urządzenia</string>
-    <string name="webrtc_stream_audio_device_unavailable">Dźwięk urządzenia niedostępny</string>
+    <string name="webrtc_stream_audio_mic_summary">Przesyłaj dźwięk z mikrofonu</string>
+    <string name="webrtc_stream_audio_device">Dźwięk wewnętrzny</string>
+    <string name="webrtc_stream_audio_device_summary">Przesyłaj dźwięk multimediów z tego urządzenia</string>
+    <string name="webrtc_stream_audio_device_unavailable">Dźwięk wewnętrzny niedostępny</string>
     <string name="webrtc_stream_connected_clients">Podłączonych klientów: %1$d</string>
     <string name="webrtc_stream_no_web_browser_found">Nie znaleziono przeglądarki internetowej</string>
     <string name="webrtc_stream_external_app_error">Błąd zewnętrznej aplikacji</string>
@@ -46,9 +48,9 @@
     <string name="webrtc_stream_stop_on_sleep">Zatrzymaj transmisję podczas uśpienia</string>
     <string name="webrtc_stream_stop_on_sleep_summary">Zatrzymuje transmisję, jeśli ekran się wyłączy</string>
 
-    <string name="webrtc_stream_audio_permission_title">Zezwól na nagrywanie dźwięku</string>
-    <string name="webrtc_stream_audio_permission_message">Zezwolenie na nagrywanie dźwięku jest niezbędne, aby aplikacja mogła przesyłać treści dźwiękowe.\n\nBez udzielenia tego zezwolenia strumień będzie bez dźwięku.</string>
-    <string name="webrtc_stream_audio_permission_message_settings">Udzielanie dostępu do mikrofonu w uprawnieniach aplikacji jest niezbędne, aby aplikacja mogła przesyłać treści dźwiękowe.\n\nBez udzielenia tego zezwolenia strumień będzie przeprowadzany bez dźwięku.</string>
+    <string name="webrtc_stream_audio_permission_title">Zezwól na dostęp do dźwięku</string>
+    <string name="webrtc_stream_audio_permission_message">Uprawnienie do mikrofonu jest wymagane, aby przesyłać dźwięk z mikrofonu lub dźwięk wewnętrzny.\n\nBez niego transmisja będzie bez dźwięku.</string>
+    <string name="webrtc_stream_audio_permission_message_settings">Włącz uprawnienie do mikrofonu w ustawieniach aplikacji, aby przesyłać dźwięk z mikrofonu lub dźwięk wewnętrzny.\n\nBez niego transmisja będzie bez dźwięku.</string>
     <string name="webrtc_stream_audio_permission_open_settings">Otwórz ustawienia</string>
 
     <string name="webrtc_stream_cast_permission_required_title">Wymagane uprawnienia</string>

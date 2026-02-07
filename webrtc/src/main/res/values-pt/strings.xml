@@ -31,8 +31,10 @@
     <string name="webrtc_stream_copied">Copiado</string>
     <string name="webrtc_stream_audio_parameters">Parâmetros de áudio</string>
     <string name="webrtc_stream_audio_mic">Microfone</string>
-    <string name="webrtc_stream_audio_device">Áudio do dispositivo</string>
-    <string name="webrtc_stream_audio_device_unavailable">Áudio do dispositivo indisponível</string>
+    <string name="webrtc_stream_audio_mic_summary">Transmitir áudio do microfone</string>
+    <string name="webrtc_stream_audio_device">Áudio interno</string>
+    <string name="webrtc_stream_audio_device_summary">Transmitir áudio de mídia deste dispositivo</string>
+    <string name="webrtc_stream_audio_device_unavailable">Áudio interno indisponível</string>
     <string name="webrtc_stream_connected_clients">Clientes conectados: %1$d</string>
     <string name="webrtc_stream_no_web_browser_found">Nenhum navegador da web encontrado</string>
     <string name="webrtc_stream_external_app_error">Erro na aplicação externa</string>
@@ -46,9 +48,9 @@
     <string name="webrtc_stream_stop_on_sleep">Parar a transmissão ao adormecer</string>
     <string name="webrtc_stream_stop_on_sleep_summary">Parar a transmissão quando a tela se desligar</string>
 
-    <string name="webrtc_stream_audio_permission_title">Permitir gravação de áudio</string>
-    <string name="webrtc_stream_audio_permission_message">A permissão para gravar áudio é necessária para que o aplicativo faça streaming de conteúdo de áudio.\n\nSem conceder essa permissão, o stream ficará sem áudio.</string>
-    <string name="webrtc_stream_audio_permission_message_settings">Conceder acesso ao microfone nas permissões do aplicativo é necessário para que o aplicativo faça streaming de conteúdo de áudio.\n\nSem conceder essa permissão, o stream será conduzido sem áudio.</string>
+    <string name="webrtc_stream_audio_permission_title">Permitir acesso ao áudio</string>
+    <string name="webrtc_stream_audio_permission_message">A permissão de microfone é necessária para transmitir áudio do microfone ou áudio interno.\n\nSem ela, a transmissão ficará sem som.</string>
+    <string name="webrtc_stream_audio_permission_message_settings">Ative a permissão de microfone nas configurações do app para transmitir áudio do microfone ou áudio interno.\n\nSem ela, a transmissão ficará sem som.</string>
     <string name="webrtc_stream_audio_permission_open_settings">Abrir configurações</string>
 
     <string name="webrtc_stream_cast_permission_required_title">Permissão necessária</string>

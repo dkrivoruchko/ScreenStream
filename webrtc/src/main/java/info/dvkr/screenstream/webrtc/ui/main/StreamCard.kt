@@ -22,8 +22,6 @@ import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.materialIcon
-import androidx.compose.material.icons.materialPath
 import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -43,12 +41,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.platform.Clipboard
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.SpanStyle
@@ -141,7 +139,7 @@ internal fun StreamCard(
                 ) {
                     IconButton(onClick = onGetNewStreamId) {
                         Icon(
-                            imageVector = Icon_Refresh,
+                            painter = painterResource(R.drawable.refresh_24px),
                             contentDescription = stringResource(id = R.string.webrtc_stream_description_get_new_id)
                         )
                     }
@@ -171,14 +169,14 @@ internal fun StreamCard(
                     if (isStreaming) {
                         IconButton(onClick = { }, interactionSource = interactionSource) {
                             Icon(
-                                imageVector = Icon_Visibility,
+                                painter = painterResource(R.drawable.visibility_24px),
                                 contentDescription = stringResource(id = R.string.webrtc_stream_description_show_password)
                             )
                         }
                     } else {
                         IconButton(onClick = onCreateNewPassword) {
                             Icon(
-                                imageVector = Icon_Refresh,
+                                painter = painterResource(R.drawable.refresh_24px),
                                 contentDescription = stringResource(id = R.string.webrtc_stream_description_create_password)
                             )
                         }
@@ -217,7 +215,10 @@ private fun OpenInBrowserButton(
             }
         }
     ) {
-        Icon(imageVector = Icon_OpenInNew, contentDescription = stringResource(id = R.string.webrtc_stream_description_open_address))
+        Icon(
+            painter = painterResource(R.drawable.open_in_new_24px),
+            contentDescription = stringResource(id = R.string.webrtc_stream_description_open_address)
+        )
     }
 }
 
@@ -252,7 +253,10 @@ private fun CopyAddressButton(
             Toast.makeText(context, R.string.webrtc_stream_copied, Toast.LENGTH_LONG).show()
         }
     }) {
-        Icon(imageVector = Icon_ContentCopy, contentDescription = stringResource(id = R.string.webrtc_stream_description_copy_address))
+        Icon(
+            painter = painterResource(R.drawable.content_copy_24px),
+            contentDescription = stringResource(id = R.string.webrtc_stream_description_copy_address)
+        )
     }
 }
 
@@ -269,7 +273,10 @@ private fun ShareAddressButton(
             context.startActivity(Intent.createChooser(sharingIntent, shareTitle))
         }
     ) {
-        Icon(imageVector = Icon_Share, contentDescription = stringResource(id = R.string.webrtc_stream_description_share_address))
+        Icon(
+            painter = painterResource(R.drawable.share_24px),
+            contentDescription = stringResource(id = R.string.webrtc_stream_description_share_address)
+        )
     }
 }
 
@@ -281,7 +288,10 @@ private fun ShowQRCodeButton(
     val showQRDialog = remember { mutableStateOf(false) }
 
     IconButton(onClick = { showQRDialog.value = true }) {
-        Icon(imageVector = Icon_QrCode, contentDescription = stringResource(id = R.string.webrtc_stream_description_qr_address))
+        Icon(
+            painter = painterResource(R.drawable.qr_code_24px),
+            contentDescription = stringResource(id = R.string.webrtc_stream_description_qr_address)
+        )
     }
 
     if (showQRDialog.value) {
@@ -302,241 +312,5 @@ private fun ShowQRCodeButton(
                 Image(bitmap = qrImageBitmap.value!!, contentDescription = stringResource(id = R.string.webrtc_stream_description_qr))
             }
         }
-    }
-}
-
-private val Icon_Refresh: ImageVector = materialIcon(name = "Filled.Refresh") {
-    materialPath {
-        moveTo(17.65f, 6.35f)
-        curveTo(16.2f, 4.9f, 14.21f, 4.0f, 12.0f, 4.0f)
-        curveToRelative(-4.42f, 0.0f, -7.99f, 3.58f, -7.99f, 8.0f)
-        reflectiveCurveToRelative(3.57f, 8.0f, 7.99f, 8.0f)
-        curveToRelative(3.73f, 0.0f, 6.84f, -2.55f, 7.73f, -6.0f)
-        horizontalLineToRelative(-2.08f)
-        curveToRelative(-0.82f, 2.33f, -3.04f, 4.0f, -5.65f, 4.0f)
-        curveToRelative(-3.31f, 0.0f, -6.0f, -2.69f, -6.0f, -6.0f)
-        reflectiveCurveToRelative(2.69f, -6.0f, 6.0f, -6.0f)
-        curveToRelative(1.66f, 0.0f, 3.14f, 0.69f, 4.22f, 1.78f)
-        lineTo(13.0f, 11.0f)
-        horizontalLineToRelative(7.0f)
-        verticalLineTo(4.0f)
-        lineToRelative(-2.35f, 2.35f)
-        close()
-    }
-}
-
-private val Icon_OpenInNew: ImageVector = materialIcon(name = "AutoMirrored.Filled.OpenInNew", autoMirror = true) {
-    materialPath {
-        moveTo(19.0f, 19.0f)
-        horizontalLineTo(5.0f)
-        verticalLineTo(5.0f)
-        horizontalLineToRelative(7.0f)
-        verticalLineTo(3.0f)
-        horizontalLineTo(5.0f)
-        curveToRelative(-1.11f, 0.0f, -2.0f, 0.9f, -2.0f, 2.0f)
-        verticalLineToRelative(14.0f)
-        curveToRelative(0.0f, 1.1f, 0.89f, 2.0f, 2.0f, 2.0f)
-        horizontalLineToRelative(14.0f)
-        curveToRelative(1.1f, 0.0f, 2.0f, -0.9f, 2.0f, -2.0f)
-        verticalLineToRelative(-7.0f)
-        horizontalLineToRelative(-2.0f)
-        verticalLineToRelative(7.0f)
-        close()
-        moveTo(14.0f, 3.0f)
-        verticalLineToRelative(2.0f)
-        horizontalLineToRelative(3.59f)
-        lineToRelative(-9.83f, 9.83f)
-        lineToRelative(1.41f, 1.41f)
-        lineTo(19.0f, 6.41f)
-        verticalLineTo(10.0f)
-        horizontalLineToRelative(2.0f)
-        verticalLineTo(3.0f)
-        horizontalLineToRelative(-7.0f)
-        close()
-    }
-}
-
-private val Icon_Share: ImageVector = materialIcon(name = "Filled.Share") {
-    materialPath {
-        moveTo(18.0f, 16.08f)
-        curveToRelative(-0.76f, 0.0f, -1.44f, 0.3f, -1.96f, 0.77f)
-        lineTo(8.91f, 12.7f)
-        curveToRelative(0.05f, -0.23f, 0.09f, -0.46f, 0.09f, -0.7f)
-        reflectiveCurveToRelative(-0.04f, -0.47f, -0.09f, -0.7f)
-        lineToRelative(7.05f, -4.11f)
-        curveToRelative(0.54f, 0.5f, 1.25f, 0.81f, 2.04f, 0.81f)
-        curveToRelative(1.66f, 0.0f, 3.0f, -1.34f, 3.0f, -3.0f)
-        reflectiveCurveToRelative(-1.34f, -3.0f, -3.0f, -3.0f)
-        reflectiveCurveToRelative(-3.0f, 1.34f, -3.0f, 3.0f)
-        curveToRelative(0.0f, 0.24f, 0.04f, 0.47f, 0.09f, 0.7f)
-        lineTo(8.04f, 9.81f)
-        curveTo(7.5f, 9.31f, 6.79f, 9.0f, 6.0f, 9.0f)
-        curveToRelative(-1.66f, 0.0f, -3.0f, 1.34f, -3.0f, 3.0f)
-        reflectiveCurveToRelative(1.34f, 3.0f, 3.0f, 3.0f)
-        curveToRelative(0.79f, 0.0f, 1.5f, -0.31f, 2.04f, -0.81f)
-        lineToRelative(7.12f, 4.16f)
-        curveToRelative(-0.05f, 0.21f, -0.08f, 0.43f, -0.08f, 0.65f)
-        curveToRelative(0.0f, 1.61f, 1.31f, 2.92f, 2.92f, 2.92f)
-        curveToRelative(1.61f, 0.0f, 2.92f, -1.31f, 2.92f, -2.92f)
-        reflectiveCurveToRelative(-1.31f, -2.92f, -2.92f, -2.92f)
-        close()
-    }
-}
-
-private val Icon_ContentCopy: ImageVector = materialIcon(name = "Filled.ContentCopy") {
-    materialPath {
-        moveTo(16.0f, 1.0f)
-        lineTo(4.0f, 1.0f)
-        curveToRelative(-1.1f, 0.0f, -2.0f, 0.9f, -2.0f, 2.0f)
-        verticalLineToRelative(14.0f)
-        horizontalLineToRelative(2.0f)
-        lineTo(4.0f, 3.0f)
-        horizontalLineToRelative(12.0f)
-        lineTo(16.0f, 1.0f)
-        close()
-        moveTo(19.0f, 5.0f)
-        lineTo(8.0f, 5.0f)
-        curveToRelative(-1.1f, 0.0f, -2.0f, 0.9f, -2.0f, 2.0f)
-        verticalLineToRelative(14.0f)
-        curveToRelative(0.0f, 1.1f, 0.9f, 2.0f, 2.0f, 2.0f)
-        horizontalLineToRelative(11.0f)
-        curveToRelative(1.1f, 0.0f, 2.0f, -0.9f, 2.0f, -2.0f)
-        lineTo(21.0f, 7.0f)
-        curveToRelative(0.0f, -1.1f, -0.9f, -2.0f, -2.0f, -2.0f)
-        close()
-        moveTo(19.0f, 21.0f)
-        lineTo(8.0f, 21.0f)
-        lineTo(8.0f, 7.0f)
-        horizontalLineToRelative(11.0f)
-        verticalLineToRelative(14.0f)
-        close()
-    }
-}
-
-private val Icon_QrCode: ImageVector = materialIcon(name = "Filled.QrCode") {
-    materialPath {
-        moveTo(3.0f, 11.0f)
-        horizontalLineToRelative(8.0f)
-        verticalLineTo(3.0f)
-        horizontalLineTo(3.0f)
-        verticalLineTo(11.0f)
-        close()
-        moveTo(5.0f, 5.0f)
-        horizontalLineToRelative(4.0f)
-        verticalLineToRelative(4.0f)
-        horizontalLineTo(5.0f)
-        verticalLineTo(5.0f)
-        close()
-    }
-    materialPath {
-        moveTo(3.0f, 21.0f)
-        horizontalLineToRelative(8.0f)
-        verticalLineToRelative(-8.0f)
-        horizontalLineTo(3.0f)
-        verticalLineTo(21.0f)
-        close()
-        moveTo(5.0f, 15.0f)
-        horizontalLineToRelative(4.0f)
-        verticalLineToRelative(4.0f)
-        horizontalLineTo(5.0f)
-        verticalLineTo(15.0f)
-        close()
-    }
-    materialPath {
-        moveTo(13.0f, 3.0f)
-        verticalLineToRelative(8.0f)
-        horizontalLineToRelative(8.0f)
-        verticalLineTo(3.0f)
-        horizontalLineTo(13.0f)
-        close()
-        moveTo(19.0f, 9.0f)
-        horizontalLineToRelative(-4.0f)
-        verticalLineTo(5.0f)
-        horizontalLineToRelative(4.0f)
-        verticalLineTo(9.0f)
-        close()
-    }
-    materialPath {
-        moveTo(19.0f, 19.0f)
-        horizontalLineToRelative(2.0f)
-        verticalLineToRelative(2.0f)
-        horizontalLineToRelative(-2.0f)
-        close()
-    }
-    materialPath {
-        moveTo(13.0f, 13.0f)
-        horizontalLineToRelative(2.0f)
-        verticalLineToRelative(2.0f)
-        horizontalLineToRelative(-2.0f)
-        close()
-    }
-    materialPath {
-        moveTo(15.0f, 15.0f)
-        horizontalLineToRelative(2.0f)
-        verticalLineToRelative(2.0f)
-        horizontalLineToRelative(-2.0f)
-        close()
-    }
-    materialPath {
-        moveTo(13.0f, 17.0f)
-        horizontalLineToRelative(2.0f)
-        verticalLineToRelative(2.0f)
-        horizontalLineToRelative(-2.0f)
-        close()
-    }
-    materialPath {
-        moveTo(15.0f, 19.0f)
-        horizontalLineToRelative(2.0f)
-        verticalLineToRelative(2.0f)
-        horizontalLineToRelative(-2.0f)
-        close()
-    }
-    materialPath {
-        moveTo(17.0f, 17.0f)
-        horizontalLineToRelative(2.0f)
-        verticalLineToRelative(2.0f)
-        horizontalLineToRelative(-2.0f)
-        close()
-    }
-    materialPath {
-        moveTo(17.0f, 13.0f)
-        horizontalLineToRelative(2.0f)
-        verticalLineToRelative(2.0f)
-        horizontalLineToRelative(-2.0f)
-        close()
-    }
-    materialPath {
-        moveTo(19.0f, 15.0f)
-        horizontalLineToRelative(2.0f)
-        verticalLineToRelative(2.0f)
-        horizontalLineToRelative(-2.0f)
-        close()
-    }
-}
-
-private val Icon_Visibility: ImageVector = materialIcon(name = "Outlined.Visibility") {
-    materialPath {
-        moveTo(12.0f, 6.0f)
-        curveToRelative(3.79f, 0.0f, 7.17f, 2.13f, 8.82f, 5.5f)
-        curveTo(19.17f, 14.87f, 15.79f, 17.0f, 12.0f, 17.0f)
-        reflectiveCurveToRelative(-7.17f, -2.13f, -8.82f, -5.5f)
-        curveTo(4.83f, 8.13f, 8.21f, 6.0f, 12.0f, 6.0f)
-        moveToRelative(0.0f, -2.0f)
-        curveTo(7.0f, 4.0f, 2.73f, 7.11f, 1.0f, 11.5f)
-        curveTo(2.73f, 15.89f, 7.0f, 19.0f, 12.0f, 19.0f)
-        reflectiveCurveToRelative(9.27f, -3.11f, 11.0f, -7.5f)
-        curveTo(21.27f, 7.11f, 17.0f, 4.0f, 12.0f, 4.0f)
-        close()
-        moveTo(12.0f, 9.0f)
-        curveToRelative(1.38f, 0.0f, 2.5f, 1.12f, 2.5f, 2.5f)
-        reflectiveCurveTo(13.38f, 14.0f, 12.0f, 14.0f)
-        reflectiveCurveToRelative(-2.5f, -1.12f, -2.5f, -2.5f)
-        reflectiveCurveTo(10.62f, 9.0f, 12.0f, 9.0f)
-        moveToRelative(0.0f, -2.0f)
-        curveToRelative(-2.48f, 0.0f, -4.5f, 2.02f, -4.5f, 4.5f)
-        reflectiveCurveTo(9.52f, 16.0f, 12.0f, 16.0f)
-        reflectiveCurveToRelative(4.5f, -2.02f, 4.5f, -4.5f)
-        reflectiveCurveTo(14.48f, 7.0f, 12.0f, 7.0f)
-        close()
     }
 }

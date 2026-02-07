@@ -38,8 +38,6 @@
     <string name="app_tile_start">Start</string>
     <string name="app_tile_stop">Stop</string>
 
-    <string name="app_pref_settings_search">Settings search</string>
-    <string name="app_pref_search">Search</string>
     <string name="app_pref_close">Close</string>
     <string name="app_pref_back">Back</string>
     <string name="app_pref_settings">App settings</string>
