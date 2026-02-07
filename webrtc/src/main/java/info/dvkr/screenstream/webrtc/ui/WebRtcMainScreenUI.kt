@@ -36,6 +36,7 @@ import info.dvkr.screenstream.webrtc.internal.WebRtcStreamingService
 import info.dvkr.screenstream.webrtc.ui.main.AudioCard
 import info.dvkr.screenstream.webrtc.ui.main.ClientsCard
 import info.dvkr.screenstream.webrtc.ui.main.ErrorCard
+import info.dvkr.screenstream.webrtc.ui.main.OtherParametersCard
 import info.dvkr.screenstream.webrtc.ui.main.StreamCard
 import kotlinx.coroutines.flow.StateFlow
 
@@ -83,6 +84,10 @@ internal fun WebRtcMainScreenUI(
                     webRtcState = webRtcState,
                     modifier = Modifier.padding(8.dp)
                 )
+            }
+
+            item(key = "OTHER_PARAMETERS") {
+                OtherParametersCard(modifier = Modifier.padding(8.dp))
             }
 
             item(key = "CLIENTS") {

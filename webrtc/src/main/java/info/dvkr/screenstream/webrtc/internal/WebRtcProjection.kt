@@ -1,15 +1,12 @@
 package info.dvkr.screenstream.webrtc.internal
 
 import android.annotation.SuppressLint
-import android.app.Activity
 import android.content.Context
-import android.content.Intent
 import android.media.AudioAttributes
 import android.media.AudioFormat
 import android.media.AudioPlaybackCaptureConfiguration
 import android.media.AudioRecord
 import android.media.projection.MediaProjection
-import android.media.projection.MediaProjectionManager
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
@@ -34,7 +31,7 @@ import org.webrtc.audio.AudioRecordDataCallback
 import org.webrtc.audio.JavaAudioDeviceModule
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
-import kotlin.math.max
+import kotlin.math.min
 
 internal class WebRtcProjection(private val serviceContext: Context) : AudioRecordDataCallback {
 
@@ -53,7 +50,6 @@ internal class WebRtcProjection(private val serviceContext: Context) : AudioReco
     private enum class AudioCodec { OPUS }
     private enum class VideoCodec(val priority: Int) { VP8(1), VP9(2), H265(3), H264(4); }
 
-    private val mediaProjectionManager = serviceContext.applicationContext.getSystemService(MediaProjectionManager::class.java)
     private val mainHandler = Handler(Looper.getMainLooper())
 
     private val rootEglBase: EglBase = EglBase.create()
@@ -69,6 +65,8 @@ internal class WebRtcProjection(private val serviceContext: Context) : AudioReco
     private var mediaProjection: MediaProjection? = null
     @Volatile private var deviceAudioMute: Boolean = true
     @Volatile private var deviceAudioRecord: AudioRecord? = null
+    private var deviceAudioRecoveryUsed: Boolean = false
+    private var reusableDeviceAudioBuffer: ByteBuffer? = null
     private var screenCapturer: ScreenCapturerAndroid? = null
     private var videoSource: VideoSource? = null
     private var audioSource: AudioSource? = null
@@ -116,6 +114,7 @@ internal class WebRtcProjection(private val serviceContext: Context) : AudioReco
     internal fun setDeviceAudioMute(mute: Boolean) = synchronized(lock) {
         XLog.d(this@WebRtcProjection.getLog("setDeviceAudioMute", "$mute"))
         deviceAudioMute = mute
+        if (!mute) deviceAudioRecoveryUsed = false
     }
 
     /**
@@ -127,40 +126,57 @@ internal class WebRtcProjection(private val serviceContext: Context) : AudioReco
      */
     override fun onAudioDataRecorded(audioFormat: Int, channelCount: Int, sampleRate: Int, audioBuffer: ByteBuffer) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && deviceAudioMute.not()) {
-            if (deviceAudioRecord == null) {
-                createAudioRecord(audioFormat, sampleRate, mediaProjection!!)?.let {
-                    runCatching { it.startRecording() }.onFailure { cause ->
-                        XLog.w(getLog("onAudioDataRecorded", "AudioRecord start failed"), cause)
-                        it.release()
-                        setDeviceAudioMute(true)
-                        notifyDeviceAudioUnavailable()
-                        return
-                    }
-                    deviceAudioRecord = it
-                } ?: run {
-                    XLog.w(getLog("onAudioDataRecorded", "Cannot create AudioRecord for projection"))
-                    setDeviceAudioMute(true)
-                    notifyDeviceAudioUnavailable()
+            val projection = synchronized(lock) {
+                if (isStopped || isRunning.not()) return
+                mediaProjection
+            } ?: run {
+                XLog.i(getLog("onAudioDataRecorded", "MediaProjection is null. Ignoring device-audio mix."))
+                return
+            }
+
+            var record: AudioRecord? = synchronized(lock) { deviceAudioRecord }
+            if (record == null) {
+                val createdRecord = createAudioRecord(audioFormat, sampleRate, projection) ?: run {
+                    recoverOrDisableDeviceAudio(null, "Cannot create AudioRecord for projection.")
                     return
+                }
+                runCatching { createdRecord.startRecording() }.onFailure { cause ->
+                    recoverOrDisableDeviceAudio(createdRecord, "AudioRecord start failed.", cause)
+                    return
+                }
+                synchronized(lock) {
+                    if (isStopped || isRunning.not() || mediaProjection == null) {
+                        runCatching { createdRecord.release() }
+                    } else if (deviceAudioRecord == null) {
+                        deviceAudioRecord = createdRecord
+                    } else {
+                        runCatching { createdRecord.release() }
+                    }
+                    record = deviceAudioRecord
                 }
             }
 
-            deviceAudioRecord?.apply {
-                val deviceAudioBuffer = ByteBuffer.allocateDirect(audioBuffer.capacity()).order(ByteOrder.nativeOrder())
-                read(deviceAudioBuffer, deviceAudioBuffer.capacity(), AudioRecord.READ_BLOCKING)
-                val mixed = mixBuffers(audioBuffer, deviceAudioBuffer)
-
-                audioBuffer.clear()
-                audioBuffer.put(mixed)
+            val activeRecord = record ?: return
+            val deviceAudioBuffer = obtainDeviceAudioBuffer(audioBuffer.capacity())
+            val readBytes = runCatching {
+                activeRecord.read(deviceAudioBuffer, deviceAudioBuffer.capacity(), AudioRecord.READ_BLOCKING)
+            }.onFailure { cause ->
+                recoverOrDisableDeviceAudio(activeRecord, "AudioRecord.read failed.", cause)
+            }.getOrNull() ?: return
+            if (readBytes <= 0) {
+                recoverOrDisableDeviceAudio(activeRecord, "AudioRecord.read failed: $readBytes.")
+                return
             }
+            mixPcm16InPlace(audioBuffer, deviceAudioBuffer, readBytes)
+            audioBuffer.position(audioBuffer.limit())
+            synchronized(lock) { deviceAudioRecoveryUsed = false }
         }
     }
 
-    internal fun start(streamId: StreamId, intent: Intent, mediaProjectionCallbackOnStop: () -> Unit) {
+    internal fun start(streamId: StreamId, mediaProjection: MediaProjection, onCaptureFatal: (Throwable) -> Unit): Boolean {
         synchronized(lock) {
             XLog.d(getLog("start"))
 
-            val mediaProjection = mediaProjectionManager.getMediaProjection(Activity.RESULT_OK, intent)!!
             val videoSource = peerConnectionFactory.createVideoSource(true)
             val audioSource = peerConnectionFactory.createAudioSource(audioMediaConstraints)
 
@@ -170,7 +186,6 @@ internal class WebRtcProjection(private val serviceContext: Context) : AudioReco
                     override fun onStop() {
                         XLog.i(this@WebRtcProjection.getLog("MediaProjection.Callback", "onStop"))
                         synchronized(lock) { isStopped = true }
-                        mediaProjectionCallbackOnStop.invoke()
                     }
 
                     // TODO https://android-developers.googleblog.com/2024/03/enhanced-screen-sharing-capabilities-in-android-14.html
@@ -188,6 +203,10 @@ internal class WebRtcProjection(private val serviceContext: Context) : AudioReco
                         )
                         changeCaptureFormat(width, height)
                     }
+                },
+                onCaptureFatal = { cause ->
+                    synchronized(lock) { isStopped = true }
+                    onCaptureFatal(cause)
                 }
             )
 
@@ -200,7 +219,7 @@ internal class WebRtcProjection(private val serviceContext: Context) : AudioReco
                 screenCapturer.dispose()
                 videoSource.dispose()
                 audioSource.dispose()
-                return
+                return false
             }
 
             val mediaStreamId = MediaStreamId.create(streamId)
@@ -214,9 +233,11 @@ internal class WebRtcProjection(private val serviceContext: Context) : AudioReco
             this.videoSource = videoSource
             this.audioSource = audioSource
             this.screenCapturer = screenCapturer
+            deviceAudioRecoveryUsed = false
             isStopped = false
             isRunning = true
             XLog.d(getLog("start", "MediaStreamId: $mediaStreamId"))
+            return true
         }
     }
 
@@ -275,6 +296,8 @@ internal class WebRtcProjection(private val serviceContext: Context) : AudioReco
 
             deviceAudioRecord?.release()
             deviceAudioRecord = null
+            deviceAudioRecoveryUsed = false
+            reusableDeviceAudioBuffer = null
 
             isStopped = true
             isRunning = false
@@ -324,30 +347,55 @@ internal class WebRtcProjection(private val serviceContext: Context) : AudioReco
         Toast.makeText(serviceContext, R.string.webrtc_stream_audio_device_unavailable, Toast.LENGTH_LONG).show()
     }
 
-    private fun mixBuffers(buffer1: ByteBuffer, buffer2: ByteBuffer): ByteArray {
-        buffer1.rewind()
-        val shortsArray1 = ShortArray(buffer1.capacity() / 2)
-        buffer1.order(ByteOrder.LITTLE_ENDIAN).asShortBuffer()[shortsArray1]
-
-        buffer2.rewind()
-        val shortsArray2 = ShortArray(buffer2.capacity() / 2)
-        buffer2.order(ByteOrder.LITTLE_ENDIAN).asShortBuffer()[shortsArray2]
-
-        val size = max(shortsArray1.size, shortsArray2.size)
-        if (size < 0) return ByteArray(0)
-        val result = ByteArray(size * 2)
-        for (i in 0 until size) {
-            var sum: Int = when {
-                i >= shortsArray1.size -> shortsArray2[i].toInt()
-                i >= shortsArray2.size -> shortsArray1[i].toInt()
-                else -> shortsArray1[i].toInt() + shortsArray2[i].toInt()
+    private fun recoverOrDisableDeviceAudio(record: AudioRecord?, message: String, cause: Throwable? = null) {
+        val shouldRetry = synchronized(lock) {
+            if (record != null) {
+                runCatching { record.release() }.onFailure {
+                    XLog.w(getLog("onAudioDataRecorded", "AudioRecord.release failed"), it)
+                }
+                if (deviceAudioRecord === record) deviceAudioRecord = null
             }
-            if (sum > Short.MAX_VALUE) sum = Short.MAX_VALUE.toInt()
-            if (sum < Short.MIN_VALUE) sum = Short.MIN_VALUE.toInt()
-            val byteIndex = i * 2
-            result[byteIndex] = (sum and 0xFF).toByte()
-            result[byteIndex + 1] = (sum shr 8 and 0xFF).toByte()
+
+            if (deviceAudioRecoveryUsed) false
+            else {
+                deviceAudioRecoveryUsed = true
+                true
+            }
         }
-        return result
+        if (shouldRetry) {
+            val details = cause?.message?.let { " Cause: $it" } ?: ""
+            XLog.w(getLog("onAudioDataRecorded", "$message Retrying AudioRecord recreation once.$details"))
+            return
+        }
+
+        if (cause == null) XLog.w(getLog("onAudioDataRecorded", "$message Disabling device audio."), IllegalStateException(message))
+        else XLog.w(getLog("onAudioDataRecorded", "$message Disabling device audio."), cause)
+        setDeviceAudioMute(true)
+        notifyDeviceAudioUnavailable()
+    }
+
+    private fun obtainDeviceAudioBuffer(capacity: Int): ByteBuffer = synchronized(lock) {
+        val buffer = reusableDeviceAudioBuffer
+        val reusable = if (buffer != null && buffer.capacity() >= capacity) {
+            buffer
+        } else {
+            ByteBuffer.allocateDirect(capacity).order(ByteOrder.nativeOrder()).also { reusableDeviceAudioBuffer = it }
+        }
+        reusable.clear()
+        reusable.limit(capacity)
+        reusable
+    }
+
+    private fun mixPcm16InPlace(micBuffer: ByteBuffer, deviceBuffer: ByteBuffer, bytesToMix: Int) {
+        val bytes = min(bytesToMix, min(micBuffer.limit(), deviceBuffer.limit())) and 0xFFFE
+        if (bytes <= 0) return
+
+        micBuffer.order(ByteOrder.LITTLE_ENDIAN)
+        deviceBuffer.order(ByteOrder.LITTLE_ENDIAN)
+        for (index in 0 until bytes step 2) {
+            val mixed = (micBuffer.getShort(index).toInt() + deviceBuffer.getShort(index).toInt())
+                .coerceIn(Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt())
+            micBuffer.putShort(index, mixed.toShort())
+        }
     }
 }

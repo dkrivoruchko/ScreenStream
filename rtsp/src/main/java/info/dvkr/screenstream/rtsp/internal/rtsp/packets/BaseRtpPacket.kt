@@ -72,17 +72,12 @@ internal abstract class BaseRtpPacket(private var clock: Long, private val paylo
         buffer[1] = buffer[1] or 0x80.toByte()
     }
 
-    protected fun ByteBuffer.removeInfo(info: MediaFrame.Info): ByteBuffer {
-        try {
-            position(info.offset)
-            limit(info.offset + info.size)
-        } catch (_: Exception) {
-        }
-        return try {
-            slice()
-        } catch (cause: IllegalStateException) {
-            throw RtpBufferInaccessibleException(cause)
-        }
+    protected fun ByteBuffer.removeInfo(info: MediaFrame.Info): ByteBuffer = try {
+        position(info.offset)
+        limit(info.offset + info.size)
+        slice()
+    } catch (cause: RuntimeException) {
+        throw RtpBufferInaccessibleException(cause)
     }
 
     private fun ByteArray.setLong(n: Long, begin: Int, end: Int) {

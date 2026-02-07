@@ -29,7 +29,7 @@
     <string name="webrtc_stream_description_qr_address">Wys adres as QR-kode</string>
     <string name="webrtc_stream_description_qr">QR kode</string>
     <string name="webrtc_stream_copied">Gekopieer</string>
-    <string name="webrtc_stream_audio_select">Kies oudiobronne:</string>
+    <string name="webrtc_stream_audio_parameters">Klankparameters</string>
     <string name="webrtc_stream_audio_mic">Mikrofoon</string>
     <string name="webrtc_stream_audio_device">Toestel oudio</string>
     <string name="webrtc_stream_audio_device_unavailable">Toestelklank nie beskikbaar</string>
@@ -40,11 +40,11 @@
     <string name="webrtc_stream_start">Begin stroom</string>
     <string name="webrtc_stream_stop">Stop stroom</string>
 
-    <string name="webrtc_pref_header">Globale modus (WebRTC) instellings</string>
-    <string name="webrtc_pref_keep_awake">Hou toestel wakker</string>
-    <string name="webrtc_pref_keep_awake_summary">Hou toestel en skerm wakker terwyl dit stroom</string>
-    <string name="webrtc_pref_stop_on_sleep">Stop stroom op slaap</string>
-    <string name="webrtc_pref_stop_on_sleep_summary">Stop stroom as die skerm afskakel</string>
+    <string name="webrtc_stream_other_parameters">Ander parameters</string>
+    <string name="webrtc_stream_keep_awake">Hou toestel wakker</string>
+    <string name="webrtc_stream_keep_awake_summary">Hou toestel en skerm wakker terwyl dit stroom</string>
+    <string name="webrtc_stream_stop_on_sleep">Stop stroom op slaap</string>
+    <string name="webrtc_stream_stop_on_sleep_summary">Stop stroom as die skerm afskakel</string>
 
     <string name="webrtc_stream_audio_permission_title">Laat oudio-opname toe</string>
     <string name="webrtc_stream_audio_permission_message">Toestemming om oudio op te neem is nodig vir die toepassing om oudio-inhoud te stroom.  Sonder om hierdie toestemming te verleen, sal die stroom sonder oudio wees.</string>

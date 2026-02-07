@@ -10,11 +10,11 @@ import info.dvkr.screenstream.common.getLog
 import org.webrtc.CapturerObserver
 import org.webrtc.SurfaceTextureHelper
 import org.webrtc.ThreadUtils
-import java.util.concurrent.CountDownLatch
 
 internal class ScreenCapturerAndroid(
     private val surfaceTextureHelper: SurfaceTextureHelper,
-    private val mediaProjectionCallback: MediaProjection.Callback
+    private val mediaProjectionCallback: MediaProjection.Callback,
+    private val onCaptureFatal: (Throwable) -> Unit
 ) {
 
     private var mediaProjection: MediaProjection? = null
@@ -39,7 +39,6 @@ internal class ScreenCapturerAndroid(
             XLog.i(getLog("startCapture", "virtualDisplay is null. Stopping projection."))
             mediaProjectionCallback.onStop()
             mediaProjection.unregisterCallback(mediaProjectionCallback)
-            mediaProjection.stop()
             this.mediaProjection = null
             surfaceTextureHelper.dispose()
             return false
@@ -52,23 +51,16 @@ internal class ScreenCapturerAndroid(
     @Synchronized
     internal fun stopCapture() {
         checkNotDisposed()
-        val latch = CountDownLatch(1)
         ThreadUtils.invokeAtFrontUninterruptibly(surfaceTextureHelper.handler) {
-            try {
-                surfaceTextureHelper.stopListening()
-                surfaceTextureHelper.dispose()
-                capturerObserver.onCapturerStopped()
+            surfaceTextureHelper.stopListening()
+            surfaceTextureHelper.dispose()
+            capturerObserver.onCapturerStopped()
 
-                virtualDisplay?.release()
-                virtualDisplay = null
-                mediaProjection?.unregisterCallback(mediaProjectionCallback)
-                mediaProjection?.stop()
-                mediaProjection = null
-            } finally {
-                latch.countDown()
-            }
+            virtualDisplay?.release()
+            virtualDisplay = null
+            mediaProjection?.unregisterCallback(mediaProjectionCallback)
+            mediaProjection = null
         }
-        latch.await()
     }
 
     @Synchronized
@@ -97,8 +89,9 @@ internal class ScreenCapturerAndroid(
                     virtualDisplay!!.release()
                     virtualDisplay = createVirtualDisplay()
                     if (virtualDisplay == null) {
-                        XLog.i(getLog("changeCaptureFormat", "virtualDisplay is null. Stopping projection."))
-                        mediaProjectionCallback.onStop()
+                        val cause = IllegalStateException("changeCaptureFormat: virtualDisplay recreation failed")
+                        XLog.e(getLog("changeCaptureFormat", cause.message), cause)
+                        onCaptureFatal(cause)
                         return@invokeAtFrontUninterruptibly
                     }
                 }

@@ -1,5 +1,7 @@
 package info.dvkr.screenstream.rtsp.internal.rtsp.server
 
+import android.system.ErrnoException
+import android.system.OsConstants
 import info.dvkr.screenstream.rtsp.internal.AudioParams
 import info.dvkr.screenstream.rtsp.internal.Codec
 import info.dvkr.screenstream.rtsp.internal.MediaFrame
@@ -26,6 +28,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import java.net.BindException
+import java.net.SocketException
 import java.util.concurrent.atomic.AtomicReference
 
 internal class RtspServer(
@@ -284,30 +287,51 @@ internal class RtspServer(
     }
 
     private fun classifyBindError(error: Throwable): RtspBindError {
-        val cause = rootCause(error)
-        if (cause is SecurityException) return RtspBindError.PermissionDenied
-
-        if (cause is BindException) {
-            val message = cause.message?.lowercase().orEmpty()
-            return when {
-                message.contains("address already in use") || message.contains("eaddrinuse") ->
-                    RtspBindError.PortInUse
-
-                message.contains("cannot assign requested address") || message.contains("eaddrnotavail") ->
-                    RtspBindError.AddressNotAvailable
-
-                message.contains("permission denied") || message.contains("eacces") ->
-                    RtspBindError.PermissionDenied
-
-                else -> RtspBindError.Unknown(cause.message ?: cause::class.simpleName)
+        val causes = buildList {
+            var current: Throwable? = error
+            while (current != null) {
+                add(current)
+                current = current.cause
             }
         }
 
-        return RtspBindError.Unknown(cause.message ?: cause::class.simpleName)
+        if (causes.any { it is SecurityException }) return RtspBindError.PermissionDenied
+
+        causes
+            .filterIsInstance<ErrnoException>()
+            .firstNotNullOfOrNull { mapErrnoToBindError(it.errno) }
+            ?.let { return it }
+
+        causes.filterIsInstance<BindException>().firstOrNull()?.let { return classifyBindErrorFromMessage(it.message) }
+        causes.filterIsInstance<SocketException>().firstOrNull()?.let { return classifyBindErrorFromMessage(it.message) }
+
+        val details = causes.firstNotNullOfOrNull { it.message?.takeIf(String::isNotBlank) } ?: error::class.simpleName
+        return RtspBindError.Unknown(details)
     }
 
-    private tailrec fun rootCause(error: Throwable): Throwable {
-        val cause = error.cause ?: return error
-        return rootCause(cause)
+    private fun mapErrnoToBindError(errno: Int): RtspBindError? = when (errno) {
+        OsConstants.EADDRINUSE -> RtspBindError.PortInUse
+        OsConstants.EADDRNOTAVAIL -> RtspBindError.AddressNotAvailable
+        OsConstants.EACCES, OsConstants.EPERM -> RtspBindError.PermissionDenied
+
+        else -> null
+    }
+
+    private fun classifyBindErrorFromMessage(message: String?): RtspBindError {
+        val normalized = message?.lowercase().orEmpty()
+        return when {
+            normalized.contains("address already in use")
+                    || normalized.contains("eaddrinuse") -> RtspBindError.PortInUse
+
+            normalized.contains("cannot assign requested address")
+                    || normalized.contains("eaddrnotavail") -> RtspBindError.AddressNotAvailable
+
+            normalized.contains("permission denied")
+                    || normalized.contains("eacces")
+                    || normalized.contains("eperm")
+                    || normalized.contains("access denied") -> RtspBindError.PermissionDenied
+
+            else -> RtspBindError.Unknown(message ?: "Bind failed")
+        }
     }
 }

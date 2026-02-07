@@ -29,7 +29,7 @@
     <string name="webrtc_stream_description_qr_address">أظهر العنوان كرمز QR</string>
     <string name="webrtc_stream_description_qr">رمز الاستجابة السريعة</string>
     <string name="webrtc_stream_copied">تم نسخه</string>
-    <string name="webrtc_stream_audio_select">حدد مصادر الصوت:</string>
+    <string name="webrtc_stream_audio_parameters">معلمات الصوت</string>
     <string name="webrtc_stream_audio_mic">الميكروفون</string>
     <string name="webrtc_stream_audio_device">صوت الجهاز</string>
     <string name="webrtc_stream_audio_device_unavailable">صوت الجهاز غير متاح</string>
@@ -40,11 +40,11 @@
     <string name="webrtc_stream_start">بدء التيار</string>
     <string name="webrtc_stream_stop">توقف التيار</string>
 
-    <string name="webrtc_pref_header">إعدادات الوضع العالمي (WebRTC)</string>
-    <string name="webrtc_pref_keep_awake">أبق الجهاز مستيقظا</string>
-    <string name="webrtc_pref_keep_awake_summary">حافظ على الجهاز والشاشة مستيقظا أثناء البث</string>
-    <string name="webrtc_pref_stop_on_sleep">توقف عن البث أثناء النوم</string>
-    <string name="webrtc_pref_stop_on_sleep_summary">أوقف البث إذا تم إيقاف تشغيل الشاشة</string>
+    <string name="webrtc_stream_other_parameters">معلمات أخرى</string>
+    <string name="webrtc_stream_keep_awake">أبق الجهاز مستيقظا</string>
+    <string name="webrtc_stream_keep_awake_summary">حافظ على الجهاز والشاشة مستيقظا أثناء البث</string>
+    <string name="webrtc_stream_stop_on_sleep">توقف عن البث أثناء النوم</string>
+    <string name="webrtc_stream_stop_on_sleep_summary">أوقف البث إذا تم إيقاف تشغيل الشاشة</string>
 
     <string name="webrtc_stream_audio_permission_title">اسمح بالتسجيل الصوتي</string>
     <string name="webrtc_stream_audio_permission_message">الإذن بتسجيل الصوت ضروري لتطبيق بث المحتوى الصوتي.\n\بدون منح هذا الإذن، سيكون البث بدون صوت.</string>

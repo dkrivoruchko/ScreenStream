@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -73,11 +74,15 @@ internal fun ServerParametersCard(
             enabled = isStreaming.not()
         ) { showBottomSheetForItemId = ServerProtocol.id }
 
+        HorizontalDivider()
+
         InterfaceFilter.ItemUI(
             horizontalPadding = 0.dp,
             coroutineScope = scope,
             enabled = isStreaming.not()
         ) { showBottomSheetForItemId = InterfaceFilter.id }
+
+        HorizontalDivider()
 
         AddressFilter.ItemUI(
             horizontalPadding = 0.dp,
@@ -85,17 +90,23 @@ internal fun ServerParametersCard(
             enabled = isStreaming.not()
         ) { showBottomSheetForItemId = AddressFilter.id }
 
+        HorizontalDivider()
+
         EnableIPv4.ItemUI(
             horizontalPadding = 0.dp,
             coroutineScope = scope,
             enabled = isStreaming.not()
         )
 
+        HorizontalDivider()
+
         EnableIPv6.ItemUI(
             horizontalPadding = 0.dp,
             coroutineScope = scope,
             enabled = isStreaming.not()
         )
+
+        HorizontalDivider()
 
         ServerPort.ItemUI(
             horizontalPadding = 0.dp,

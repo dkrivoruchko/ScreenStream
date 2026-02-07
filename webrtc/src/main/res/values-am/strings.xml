@@ -29,7 +29,7 @@
     <string name="webrtc_stream_description_qr_address">አድራሻ እንደ QR-code አሳይ</string>
     <string name="webrtc_stream_description_qr">QR-code</string>
     <string name="webrtc_stream_copied">ተገልብጧል</string>
-    <string name="webrtc_stream_audio_select">የድምጽ ምንጮችን ይምረጡ፡-</string>
+    <string name="webrtc_stream_audio_parameters">የድምጽ ፓራሜትሮች</string>
     <string name="webrtc_stream_audio_mic">ማይክሮፎን</string>
     <string name="webrtc_stream_audio_device">የመሣሪያ ኦዲዮ</string>
     <string name="webrtc_stream_audio_device_unavailable">የመሣሪያ ድምጽ አይገኝም</string>
@@ -40,11 +40,11 @@
     <string name="webrtc_stream_start">ጅረት ጀምር</string>
     <string name="webrtc_stream_stop">ዥረት አቁም</string>
 
-    <string name="webrtc_pref_header">ሁለንተናዊ ሁነታ (WebRTC) ቅንብሮች</string>
-    <string name="webrtc_pref_keep_awake">መሳሪያውን ነቅተው ይጠብቁ</string>
-    <string name="webrtc_pref_keep_awake_summary">በዥረት በሚለቀቁበት ጊዜ መሳሪያውን እና ማያ ገጹን ነቅተው ይጠብቁ</string>
-    <string name="webrtc_pref_stop_on_sleep">በእንቅልፍ ላይ ዥረት ያቁሙ</string>
-    <string name="webrtc_pref_stop_on_sleep_summary">ማያ ገጹ ከጠፋ ዥረቱን ያቁሙ</string>
+    <string name="webrtc_stream_other_parameters">ሌሎች ቅንብሮች</string>
+    <string name="webrtc_stream_keep_awake">መሳሪያውን ነቅተው ይጠብቁ</string>
+    <string name="webrtc_stream_keep_awake_summary">በዥረት በሚለቀቁበት ጊዜ መሳሪያውን እና ማያ ገጹን ነቅተው ይጠብቁ</string>
+    <string name="webrtc_stream_stop_on_sleep">በእንቅልፍ ላይ ዥረት ያቁሙ</string>
+    <string name="webrtc_stream_stop_on_sleep_summary">ማያ ገጹ ከጠፋ ዥረቱን ያቁሙ</string>
 
     <string name="webrtc_stream_audio_permission_title">የድምጽ ቀረጻ ፍቀድ</string>
     <string name="webrtc_stream_audio_permission_message">የድምጽ ይዘትን ለማሰራጨት ኦዲዮን የመቅዳት ፍቃድ አስፈላጊ ነው።  ይህን ፈቃድ ሳይሰጥ፣ ዥረቱ ኦዲዮ የሌለው ይሆናል።</string>

@@ -29,7 +29,7 @@
     <string name="webrtc_stream_description_qr_address">Adresse als QR-Code anzeigen</string>
     <string name="webrtc_stream_description_qr">QR-Code</string>
     <string name="webrtc_stream_copied">Kopiert</string>
-    <string name="webrtc_stream_audio_select">Audioquellen auswählen:</string>
+    <string name="webrtc_stream_audio_parameters">Audioparameter</string>
     <string name="webrtc_stream_audio_mic">Mikrofon</string>
     <string name="webrtc_stream_audio_device">Geräteaudio</string>
     <string name="webrtc_stream_audio_device_unavailable">Geräteaudio nicht verfügbar</string>
@@ -40,11 +40,11 @@
     <string name="webrtc_stream_start">Stream starten</string>
     <string name="webrtc_stream_stop">Stream stoppen</string>
 
-    <string name="webrtc_pref_header">Globaler Modus (WebRTC) Einstellungen</string>
-    <string name="webrtc_pref_keep_awake">Gerät aktiviert lassen</string>
-    <string name="webrtc_pref_keep_awake_summary">Gerät und Bildschirm aktiviert lassen</string>
-    <string name="webrtc_pref_stop_on_sleep">Stream im Standby-Modus stoppen</string>
-    <string name="webrtc_pref_stop_on_sleep_summary">Stream stoppen, wenn der Bildschirm ausgeschaltet wird</string>
+    <string name="webrtc_stream_other_parameters">Weitere Parameter</string>
+    <string name="webrtc_stream_keep_awake">Gerät aktiviert lassen</string>
+    <string name="webrtc_stream_keep_awake_summary">Gerät und Bildschirm aktiviert lassen</string>
+    <string name="webrtc_stream_stop_on_sleep">Stream im Standby-Modus stoppen</string>
+    <string name="webrtc_stream_stop_on_sleep_summary">Stream stoppen, wenn der Bildschirm ausgeschaltet wird</string>
 
     <string name="webrtc_stream_audio_permission_title">Audioaufnahme erlauben</string>
     <string name="webrtc_stream_audio_permission_message">Die Erlaubnis zur Aufnahme von Audio ist erforderlich, damit die Anwendung Audioinhalte streamen kann.\n\nOhne diese Erlaubnis erfolgt der Stream ohne Audio.</string>

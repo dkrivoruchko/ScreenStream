@@ -29,7 +29,7 @@
     <string name="webrtc_stream_description_qr_address">Tampilake alamat minangka kode QR</string>
     <string name="webrtc_stream_description_qr">QR-kode</string>
     <string name="webrtc_stream_copied">Disalin</string>
-    <string name="webrtc_stream_audio_select">Pilih sumber audio:</string>
+    <string name="webrtc_stream_audio_parameters">Parameter audio</string>
     <string name="webrtc_stream_audio_mic">Mikropon</string>
     <string name="webrtc_stream_audio_device">Audio piranti</string>
     <string name="webrtc_stream_audio_device_unavailable">Audio piranti ora kasedhiya</string>
@@ -40,11 +40,11 @@
     <string name="webrtc_stream_start">Miwiti stream</string>
     <string name="webrtc_stream_stop">Stop stream</string>
 
-    <string name="webrtc_pref_header">Setelan mode global (WebRTC).</string>
-    <string name="webrtc_pref_keep_awake">Tansah piranti siyaga</string>
-    <string name="webrtc_pref_keep_awake_summary">Tansah piranti lan layar siyaga nalika streaming</string>
-    <string name="webrtc_pref_stop_on_sleep">Mungkasi stream nalika turu</string>
-    <string name="webrtc_pref_stop_on_sleep_summary">Mungkasi stream yen layar dipateni</string>
+    <string name="webrtc_stream_other_parameters">Paramèter liyane</string>
+    <string name="webrtc_stream_keep_awake">Tansah piranti siyaga</string>
+    <string name="webrtc_stream_keep_awake_summary">Tansah piranti lan layar siyaga nalika streaming</string>
+    <string name="webrtc_stream_stop_on_sleep">Mungkasi stream nalika turu</string>
+    <string name="webrtc_stream_stop_on_sleep_summary">Mungkasi stream yen layar dipateni</string>
 
     <string name="webrtc_stream_audio_permission_title">Ngidini rekaman audio</string>
     <string name="webrtc_stream_audio_permission_message">Idin kanggo ngrekam audio perlu kanggo aplikasi kanggo stream isi audio.  Tanpa menehi idin iki, stream bakal tanpa audio.</string>

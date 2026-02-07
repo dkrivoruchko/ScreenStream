@@ -29,7 +29,7 @@
     <string name="webrtc_stream_description_qr_address">پتہ QR کوڈ میں دکھائیں</string>
     <string name="webrtc_stream_description_qr">QR کوڈ</string>
     <string name="webrtc_stream_copied">کاپی ہو گیا</string>
-    <string name="webrtc_stream_audio_select">آڈیو ذرائع منتخب کریں:</string>
+    <string name="webrtc_stream_audio_parameters">آڈیو پیرامیٹرز</string>
     <string name="webrtc_stream_audio_mic">مائیکروفون</string>
     <string name="webrtc_stream_audio_device">ڈیوائس آڈیو</string>
     <string name="webrtc_stream_audio_device_unavailable">ڈیوائس آڈیو دستیاب نہیں ہے</string>
@@ -40,11 +40,11 @@
     <string name="webrtc_stream_start">اسٹریم شروع کریں</string>
     <string name="webrtc_stream_stop">اسٹریم روکیں</string>
 
-    <string name="webrtc_pref_header">عالمی موڈ (WebRTC) ترتیبات</string>
-    <string name="webrtc_pref_keep_awake">ڈیوائس جاگتی رکھیں</string>
-    <string name="webrtc_pref_keep_awake_summary">اسٹریم کے دوران ڈیوائس اور اسکرین جاگتی رکھیں</string>
-    <string name="webrtc_pref_stop_on_sleep">سلیپ پر اسٹریم روکیں</string>
-    <string name="webrtc_pref_stop_on_sleep_summary">اسکرین بند ہو تو اسٹریم روکیں</string>
+    <string name="webrtc_stream_other_parameters">دیگر پیرامیٹرز</string>
+    <string name="webrtc_stream_keep_awake">ڈیوائس جاگتی رکھیں</string>
+    <string name="webrtc_stream_keep_awake_summary">اسٹریم کے دوران ڈیوائس اور اسکرین جاگتی رکھیں</string>
+    <string name="webrtc_stream_stop_on_sleep">سلیپ پر اسٹریم روکیں</string>
+    <string name="webrtc_stream_stop_on_sleep_summary">اسکرین بند ہو تو اسٹریم روکیں</string>
 
     <string name="webrtc_stream_audio_permission_title">آڈیو ریکارڈنگ کی اجازت</string>
     <string name="webrtc_stream_audio_permission_message">آڈیو اسٹریم کیلئے ریکارڈنگ کی اجازت ضروری ہے۔\n\nبغیر اجازت کے اسٹریم میں آڈیو نہیں ہوگا۔</string>

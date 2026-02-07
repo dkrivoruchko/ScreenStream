@@ -29,7 +29,7 @@
     <string name="webrtc_stream_description_qr_address">Mostra indirizzo come codice QR</string>
     <string name="webrtc_stream_description_qr">Codice QR</string>
     <string name="webrtc_stream_copied">Copiato</string>
-    <string name="webrtc_stream_audio_select">Seleziona le sorgenti audio:</string>
+    <string name="webrtc_stream_audio_parameters">Parametri audio</string>
     <string name="webrtc_stream_audio_mic">Microfono</string>
     <string name="webrtc_stream_audio_device">Audio del dispositivo</string>
     <string name="webrtc_stream_audio_device_unavailable">Audio del dispositivo non disponibile</string>
@@ -40,11 +40,11 @@
     <string name="webrtc_stream_start">Avvia lo streaming</string>
     <string name="webrtc_stream_stop">Arresta lo streaming</string>
 
-    <string name="webrtc_pref_header">Impostazioni modalità globale (WebRTC)</string>
-    <string name="webrtc_pref_keep_awake">Mantieni il dispositivo attivo</string>
-    <string name="webrtc_pref_keep_awake_summary">Mantieni il dispositivo e lo schermo attivi durante lo streaming</string>
-    <string name="webrtc_pref_stop_on_sleep">Interrompi a schermo spento</string>
-    <string name="webrtc_pref_stop_on_sleep_summary">Interrompi la trasmissione quando lo schermo si spegne</string>
+    <string name="webrtc_stream_other_parameters">Altri parametri</string>
+    <string name="webrtc_stream_keep_awake">Mantieni il dispositivo attivo</string>
+    <string name="webrtc_stream_keep_awake_summary">Mantieni il dispositivo e lo schermo attivi durante lo streaming</string>
+    <string name="webrtc_stream_stop_on_sleep">Interrompi a schermo spento</string>
+    <string name="webrtc_stream_stop_on_sleep_summary">Interrompi la trasmissione quando lo schermo si spegne</string>
 
     <string name="webrtc_stream_audio_permission_title">Consenti la registrazione audio</string>
     <string name="webrtc_stream_audio_permission_message">È necessario il permesso per registrare l\'audio per l\'applicazione per lo streaming audio.\n\nSenza concedere questo permesso, lo streaming sarà senza audio.</string>

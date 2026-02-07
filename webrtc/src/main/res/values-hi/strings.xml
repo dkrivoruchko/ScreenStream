@@ -29,7 +29,7 @@
     <string name="webrtc_stream_description_qr_address">पता QR-कोड के रूप में दिखाएं</string>
     <string name="webrtc_stream_description_qr">क्यूआर कोड</string>
     <string name="webrtc_stream_copied">कॉपी किया गया</string>
-    <string name="webrtc_stream_audio_select">ऑडियो स्रोत का चयन करें:</string>
+    <string name="webrtc_stream_audio_parameters">ऑडियो पैरामीटर</string>
     <string name="webrtc_stream_audio_mic">माइक्रोफ़ोन</string>
     <string name="webrtc_stream_audio_device">डिवाइस ऑडियो</string>
     <string name="webrtc_stream_audio_device_unavailable">डिवाइस ऑडियो उपलब्ध नहीं है</string>
@@ -40,11 +40,11 @@
     <string name="webrtc_stream_start">स्ट्रीम शुरू करें</string>
     <string name="webrtc_stream_stop">स्ट्रीम बंद करें</string>
 
-    <string name="webrtc_pref_header">वैश्विक मोड (WebRTC) सेटिंग्स</string>
-    <string name="webrtc_pref_keep_awake">डिवाइस जागरूक रखें</string>
-    <string name="webrtc_pref_keep_awake_summary">स्ट्रीमिंग के दौरान डिवाइस और स्क्रीन को जागरूक रखें</string>
-    <string name="webrtc_pref_stop_on_sleep">नींद पर धारा रोकें</string>
-    <string name="webrtc_pref_stop_on_sleep_summary">यदि स्क्रीन बंद हो जाती है तो स्ट्रीम को रोकें</string>
+    <string name="webrtc_stream_other_parameters">अन्य पैरामीटर</string>
+    <string name="webrtc_stream_keep_awake">डिवाइस जागरूक रखें</string>
+    <string name="webrtc_stream_keep_awake_summary">स्ट्रीमिंग के दौरान डिवाइस और स्क्रीन को जागरूक रखें</string>
+    <string name="webrtc_stream_stop_on_sleep">नींद पर धारा रोकें</string>
+    <string name="webrtc_stream_stop_on_sleep_summary">यदि स्क्रीन बंद हो जाती है तो स्ट्रीम को रोकें</string>
 
     <string name="webrtc_stream_audio_permission_title">ऑडियो रिकॉर्डिंग अनुमति दें</string>
     <string name="webrtc_stream_audio_permission_message">ऐप्लिकेशन को ऑडियो सामग्री स्ट्रीम करने के लिए ऑडियो रिकॉर्डिंग की अनुमति की आवश्यकता है।\n\nइस अनुमति को देने के बिना, स्ट्रीम ऑडियो के बिना होगा।</string>

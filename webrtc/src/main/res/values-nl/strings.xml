@@ -29,7 +29,7 @@
     <string name="webrtc_stream_description_qr_address">Toon adres als QR-code</string>
     <string name="webrtc_stream_description_qr">QR-code</string>
     <string name="webrtc_stream_copied">Gekopieerd</string>
-    <string name="webrtc_stream_audio_select">Audiobronnen selecteren:</string>
+    <string name="webrtc_stream_audio_parameters">Audioparameters</string>
     <string name="webrtc_stream_audio_mic">Microfoon</string>
     <string name="webrtc_stream_audio_device">Apparaataudio</string>
     <string name="webrtc_stream_audio_device_unavailable">Apparaataudio niet beschikbaar</string>
@@ -40,11 +40,11 @@
     <string name="webrtc_stream_start">Start stream</string>
     <string name="webrtc_stream_stop">Stop stream</string>
 
-    <string name="webrtc_pref_header">Globale modus (WebRTC) instellingen</string>
-    <string name="webrtc_pref_keep_awake">Apparaat actief houden</string>
-    <string name="webrtc_pref_keep_awake_summary">Houd het apparaat en het scherm actief tijdens het streamen</string>
-    <string name="webrtc_pref_stop_on_sleep">Stop stream bij slaapmodus</string>
-    <string name="webrtc_pref_stop_on_sleep_summary">Stop stream als het scherm word uitgezet</string>
+    <string name="webrtc_stream_other_parameters">Overige parameters</string>
+    <string name="webrtc_stream_keep_awake">Apparaat actief houden</string>
+    <string name="webrtc_stream_keep_awake_summary">Houd het apparaat en het scherm actief tijdens het streamen</string>
+    <string name="webrtc_stream_stop_on_sleep">Stop stream bij slaapmodus</string>
+    <string name="webrtc_stream_stop_on_sleep_summary">Stop stream als het scherm word uitgezet</string>
 
     <string name="webrtc_stream_audio_permission_title">Audio-opname toestaan</string>
     <string name="webrtc_stream_audio_permission_message">Toestemming om audio op te nemen is noodzakelijk voor de toepassing om audio-inhoud te streamen.\n\nZonder deze toestemming zal de stream zonder audio zijn.</string>

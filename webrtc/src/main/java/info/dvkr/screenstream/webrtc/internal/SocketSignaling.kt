@@ -126,6 +126,19 @@ internal class SocketSignaling(
     @Suppress("NOTHING_TO_INLINE")
     internal inline fun socketId(): String? = socket?.id()
 
+    private fun isStaleSocketCallback(currentSocket: Socket, tag: String, requireConnected: Boolean = true): Boolean {
+        if (socket === currentSocket && (!requireConnected || currentSocket.connected())) return false
+
+        XLog.i(
+            getLog(
+                tag,
+                "Stale socket callback. Ignoring. requireConnected=$requireConnected, activeSocketId=${socketId()}, " +
+                        "callbackSocketId=${currentSocket.id()}, callbackConnected=${currentSocket.connected()}"
+            )
+        )
+        return true
+    }
+
     init {
         XLog.d(getLog("init"))
     }
@@ -144,15 +157,19 @@ internal class SocketSignaling(
             .apply { callFactory = okHttpClient; webSocketFactory = okHttpClient }
 
         socket = IO.socket(environment.signalingServerUrl, options).apply {
+            val currentSocket = this
             on(Socket.EVENT_CONNECT) {
+                if (isStaleSocketCallback(currentSocket, "openSocket.${Socket.EVENT_CONNECT}[${currentSocket.id()}]", false)) return@on
                 XLog.d(this@SocketSignaling.getLog(Socket.EVENT_CONNECT + "[${socketId()}]", id()))
                 eventListener.onSocketConnected()
             }
             on(Socket.EVENT_DISCONNECT) { args -> // Auto reconnect
+                if (isStaleSocketCallback(currentSocket, "openSocket.${Socket.EVENT_DISCONNECT}[${currentSocket.id()}]", false)) return@on
                 XLog.d(this@SocketSignaling.getLog(Socket.EVENT_DISCONNECT, args.contentToString()))
                 eventListener.onSocketDisconnected(args.contentToString())
             }
             on(Socket.EVENT_CONNECT_ERROR) { args -> // Auto or User reconnect
+                if (isStaleSocketCallback(currentSocket, "openSocket.${Socket.EVENT_CONNECT_ERROR}[${currentSocket.id()}]", false)) return@on
                 XLog.e(this@SocketSignaling.getLog(Socket.EVENT_CONNECT_ERROR, args.contentToString()))
                 val message = (args?.firstOrNull() as? JSONObject)?.optString(Payload.MESSAGE) ?: ""
                 if (message.startsWith("$ERROR_TOKEN_VERIFICATION_FAILED:TOKEN_EXPIRED")) {
@@ -165,6 +182,7 @@ internal class SocketSignaling(
                     eventListener.onError(Error.SocketAuthError.fromMessage(message) ?: Error.SocketConnectError(message))
             }
             on(Event.SOCKET_ERROR) { args -> // Server always disconnects socket on this event. User reconnect
+                if (isStaleSocketCallback(currentSocket, "openSocket.${Event.SOCKET_ERROR}[${currentSocket.id()}]", false)) return@on
                 XLog.e(this@SocketSignaling.getLog(Event.SOCKET_ERROR + "[${socketId()}]", args.contentToString()))
                 val message = (args?.firstOrNull() as? JSONObject)?.optString(Payload.STATUS) ?: ""
                 eventListener.onError(Error.SocketCheckError(message))
@@ -191,6 +209,8 @@ internal class SocketSignaling(
 
         currentSocket.emit(Event.STREAM_CREATE, arrayOf(data), object : AckWithTimeout(10_000) {
             override fun onSuccess(args: Array<Any?>?) { // Callback may never be called
+                if (isStaleSocketCallback(currentSocket, "sendStreamCreate[${socketId()}]")) return
+
                 val msgV = "[${Event.STREAM_CREATE}] Response: ${args.contentToString()}"
                 XLog.v(this@SocketSignaling.getLog("sendStreamCreate[${socketId()}]", msgV))
                 val ack = SocketAck.fromAck(args)
@@ -215,6 +235,8 @@ internal class SocketSignaling(
             }
 
             override fun onTimeout() {
+                if (isStaleSocketCallback(currentSocket, "sendStreamCreate[${socketId()}]")) return
+
                 val msg = "[${Event.STREAM_CREATE}] => Timeout"
                 XLog.w(this@SocketSignaling.getLog("sendStreamCreate[${socketId()}]", msg))
                 eventListener.onError(Error.StreamCreateError(msg, IllegalStateException(msg)))
@@ -291,6 +313,8 @@ internal class SocketSignaling(
 
         currentSocket.emit(Event.STREAM_REMOVE, arrayOf(), object : AckWithTimeout(10_000) {
             override fun onSuccess(args: Array<Any?>?) { // Callback may never be called
+                if (isStaleSocketCallback(currentSocket, "sendStreamRemove[${socketId()}]")) return
+
                 val msg = "[${Event.STREAM_REMOVE}] Response: ${args.contentToString()}"
                 XLog.v(this@SocketSignaling.getLog("sendStreamRemove[${socketId()}]", msg))
                 when (val status = SocketAck.fromAck(args).status) {
@@ -301,6 +325,8 @@ internal class SocketSignaling(
             }
 
             override fun onTimeout() {
+                if (isStaleSocketCallback(currentSocket, "sendStreamRemove[${socketId()}]")) return
+
                 XLog.w(this@SocketSignaling.getLog("sendStreamRemove[${socketId()}]", "[${Event.STREAM_REMOVE}] => Timeout"))
                 eventListener.onStreamRemoved()
             }
@@ -317,13 +343,16 @@ internal class SocketSignaling(
 
         currentSocket.emit(Event.STREAM_START, arrayOf(data), object : AckWithTimeout(10_000) {
             override fun onSuccess(args: Array<Any?>?) { // Callback may never be called
+                if (isStaleSocketCallback(currentSocket, "sendStreamStart[${socketId()}]")) return
+
                 XLog.v(this@SocketSignaling.getLog("sendStreamStart[${socketId()}]", "Response: ${args.contentToString()}"))
                 when (val status = SocketAck.fromAck(args).status) {
                     Payload.OK -> XLog.d(this@SocketSignaling.getLog("sendStreamStart[${socketId()}]", "OK"))
 
                     Payload.ERROR_NO_CLIENT_FOUND -> {
                         XLog.d(this@SocketSignaling.getLog("sendStreamStart[${socketId()}]", "Client: $clientId => $status"))
-                        eventListener.onClientNotFound(clientId!!, "[${Event.STREAM_START}]")
+                        clientId?.let { eventListener.onClientNotFound(it, "[${Event.STREAM_START}]") }
+                            ?: XLog.w(this@SocketSignaling.getLog("sendStreamStart[${socketId()}]", "No client found for ALL"))
                     }
 
                     else -> throw IllegalArgumentException("sendStreamStart => $status")
@@ -331,6 +360,8 @@ internal class SocketSignaling(
             }
 
             override fun onTimeout() {
+                if (isStaleSocketCallback(currentSocket, "sendStreamStart[${socketId()}]")) return
+
                 val msg = "[${Event.STREAM_START}] => Timeout"
                 XLog.w(this@SocketSignaling.getLog("sendStreamStart[${socketId()}]", msg))
                 eventListener.onError(Error.StreamStartError(msg, IllegalStateException(msg)))
@@ -347,6 +378,11 @@ internal class SocketSignaling(
         val latch = CountDownLatch(1)
 
         currentSocket.emit(Event.STREAM_STOP, arrayOf()) { args -> // Callback may never be called
+            if (isStaleSocketCallback(currentSocket, "sendStreamStop[${socketId()}]")) {
+                latch.countDown()
+                return@emit
+            }
+
             XLog.v(getLog("sendStreamStop[${socketId()}]", "Response: ${args.contentToString()}"))
             when (val status = SocketAck.fromAck(args).status) {
                 Payload.OK -> XLog.d(getLog("sendStreamStop[${socketId()}]", "OK"))
@@ -371,6 +407,8 @@ internal class SocketSignaling(
 
         currentSocket.emit(Event.HOST_OFFER, arrayOf(data), object : AckWithTimeout(10_000) {
             override fun onSuccess(args: Array<Any?>?) { // Callback may never be called
+                if (isStaleSocketCallback(currentSocket, "sendHostOffer[${socketId()}]")) return
+
                 XLog.v(this@SocketSignaling.getLog("sendHostOffer[${socketId()}]", "Response: ${args.contentToString()}"))
                 when (val status = SocketAck.fromAck(args).status) {
                     Payload.OK -> {
@@ -393,6 +431,8 @@ internal class SocketSignaling(
             }
 
             override fun onTimeout() {
+                if (isStaleSocketCallback(currentSocket, "sendHostOffer[${socketId()}]")) return
+
                 XLog.w(this@SocketSignaling.getLog("sendHostOffer[${socketId()}]", "[${Event.HOST_OFFER}] => Timeout"))
                 eventListener.onClientNotFound(clientId, "[${Event.HOST_OFFER}] => Timeout")
             }
@@ -414,6 +454,8 @@ internal class SocketSignaling(
 
         currentSocket.emit(Event.HOST_CANDIDATE, arrayOf(data), object : AckWithTimeout(10_000) {
             override fun onSuccess(args: Array<Any?>?) { // Callback may never be called
+                if (isStaleSocketCallback(currentSocket, "sendHostCandidates[${socketId()}]")) return
+
                 XLog.v(this@SocketSignaling.getLog("sendHostCandidates[${socketId()}]", "Response: ${args.contentToString()}"))
                 when (val status = SocketAck.fromAck(args).status) {
                     Payload.OK -> XLog.d(this@SocketSignaling.getLog("sendHostCandidates[${socketId()}]", "Client: $clientId => OK"))
@@ -433,6 +475,8 @@ internal class SocketSignaling(
             }
 
             override fun onTimeout() {
+                if (isStaleSocketCallback(currentSocket, "sendHostCandidates[${socketId()}]")) return
+
                 XLog.w(this@SocketSignaling.getLog("sendHostCandidates[${socketId()}]", "[${Event.HOST_CANDIDATE}] => Timeout"))
                 eventListener.onClientNotFound(clientId, "[${Event.HOST_CANDIDATE}] => Timeout")
             }
@@ -456,6 +500,8 @@ internal class SocketSignaling(
 
         currentSocket.emit(Event.REMOVE_CLIENT, arrayOf(data), object : AckWithTimeout(10_000) {
             override fun onSuccess(args: Array<Any?>?) { // Callback may never be called
+                if (isStaleSocketCallback(currentSocket, "sendRemoveClients[${socketId()}]")) return
+
                 XLog.v(this@SocketSignaling.getLog("sendRemoveClients[${socketId()}]", "Response: ${args.contentToString()}"))
                 when (val status = SocketAck.fromAck(args).status) {
                     Payload.OK -> XLog.d(this@SocketSignaling.getLog("sendRemoveClients[${socketId()}]", "OK"))
@@ -464,6 +510,8 @@ internal class SocketSignaling(
             }
 
             override fun onTimeout() {
+                if (isStaleSocketCallback(currentSocket, "sendRemoveClients[${socketId()}]")) return
+
                 XLog.w(this@SocketSignaling.getLog("sendRemoveClients[${socketId()}]", "[${Event.REMOVE_CLIENT}] => Timeout"))
             }
         })

@@ -24,13 +24,13 @@ import org.webrtc.RtpReceiver
 import org.webrtc.RtpTransceiver
 import org.webrtc.SdpObserver
 import org.webrtc.SessionDescription
-import java.util.Collections
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 import java.util.zip.CRC32
 
 internal class WebRtcClient(
     internal val clientId: ClientId,
+    internal val generation: Long,
     iceServers: List<IceServer>,
     private val factory: PeerConnectionFactory,
     private val videoCodecs: List<RtpCapabilities.CodecCapability>,
@@ -39,10 +39,10 @@ internal class WebRtcClient(
 ) {
 
     internal interface EventListener {
-        fun onHostOffer(clientId: ClientId, offer: Offer)
-        fun onHostCandidates(clientId: ClientId, candidates: List<IceCandidate>)
-        fun onClientAddress(clientId: ClientId)
-        fun onError(clientId: ClientId, cause: Throwable)
+        fun onHostOffer(clientId: ClientId, generation: Long, epoch: Long, offer: Offer)
+        fun onHostCandidates(clientId: ClientId, generation: Long, epoch: Long, candidates: List<IceCandidate>)
+        fun onClientAddress(clientId: ClientId, generation: Long, epoch: Long)
+        fun onError(clientId: ClientId, generation: Long, epoch: Long, cause: Throwable)
     }
 
     @OptIn(ExperimentalStdlibApi::class)
@@ -54,7 +54,8 @@ internal class WebRtcClient(
     private val rtcConfig = RTCConfiguration(iceServers.ifEmpty { defaultIceServers }).apply {
         tcpCandidatePolicy = PeerConnection.TcpCandidatePolicy.DISABLED
     }
-    private val pendingHostCandidates: MutableList<IceCandidate> = Collections.synchronizedList(mutableListOf())
+    private val pendingCandidatesLock = Any()
+    private val pendingHostCandidates: MutableList<IceCandidate> = mutableListOf()
     private var queuedAnswer: Answer? = null
     private val queuedCandidates: MutableList<IceCandidate> = mutableListOf()
     private val queuedRequestKeyFrame: AtomicBoolean = AtomicBoolean(false)
@@ -73,8 +74,8 @@ internal class WebRtcClient(
     }
 
     // WebRTC-HT thread
-    internal fun start(mediaStream: LocalMediaSteam) {
-        XLog.d(getLog("start", "Client: $id, mediaStream: ${mediaStream.id}"))
+    internal fun start(mediaStream: LocalMediaSteam, epoch: Long) {
+        XLog.d(getLog("start", "Client: $id, mediaStream: ${mediaStream.id}, epoch=$epoch"))
 
         if (state.get() != State.CREATED) {
             val msg = "Wrong client $id state: $state, expecting: ${State.CREATED}"
@@ -82,7 +83,12 @@ internal class WebRtcClient(
             stop()
         }
 
-        val observer = WebRTCPeerConnectionObserver(clientId, ::onHostCandidate, ::onCandidatePairChanged, ::onPeerDisconnected)
+        val observer = WebRTCPeerConnectionObserver(
+            clientId = clientId,
+            onHostCandidate = { candidate -> onHostCandidate(candidate, epoch) },
+            onCandidatePairChanged = { onCandidatePairChanged(epoch) },
+            onPeerDisconnected = { onPeerDisconnected(epoch) }
+        )
         peerConnection = factory.createPeerConnection(rtcConfig, observer)!!.apply {
             addTrack(mediaStream.videoTrack)
             addTrack(mediaStream.audioTrack)
@@ -101,7 +107,7 @@ internal class WebRtcClient(
         }
 
         mediaStreamId = mediaStream.id
-        pendingHostCandidates.clear()
+        synchronized(pendingCandidatesLock) { pendingHostCandidates.clear() }
         state.set(State.PENDING_OFFER)
 
         XLog.d(getLog("start", "createOffer: Client: $id, mediaStream: ${mediaStream.id}"))
@@ -110,12 +116,17 @@ internal class WebRtcClient(
                 // Signaling thread
                 override fun onCreateSuccess(sessionDescription: SessionDescription) {
                     XLog.d(this@WebRtcClient.getLog("start", "createOffer.onSuccess: Client: $id"))
-                    setHostOffer(mediaStream.id, SessionDescription(SessionDescription.Type.OFFER, sessionDescription.description))
+                    setHostOffer(mediaStream.id, SessionDescription(SessionDescription.Type.OFFER, sessionDescription.description), epoch)
                 }
 
                 // Signaling thread
-                override fun onCreateFailure(s: String?) =
-                    eventListener.onError(clientId, IllegalStateException("Client: $id. createHostOffer.onFailure: $s"))
+                override fun onCreateFailure(s: String?) {
+                    if (state.get() == State.CREATED || peerConnection == null) {
+                        XLog.i(this@WebRtcClient.getLog("start", "createOffer.onFailure for stale client. Ignoring: $id"))
+                        return
+                    }
+                    eventListener.onError(clientId, generation, epoch, IllegalStateException("Client: $id. createHostOffer.onFailure: $s"))
+                }
 
                 override fun onSetSuccess() = Unit
                 override fun onSetFailure(s: String?) = Unit
@@ -134,7 +145,7 @@ internal class WebRtcClient(
         peerConnection?.dispose()
         peerConnection = null
         mediaStreamId = null
-        pendingHostCandidates.clear()
+        synchronized(pendingCandidatesLock) { pendingHostCandidates.clear() }
         queuedAnswer = null
         queuedCandidates.clear()
         queuedRequestKeyFrame.set(false)
@@ -158,57 +169,74 @@ internal class WebRtcClient(
                 val parameters = videoSender.parameters
                 // A trivial change to parameters can force a keyframe. We just set them again.
                 videoSender.parameters = parameters
-            } ?: XLog.w(getLog("requestKeyFrame", "No video sender found for client $id"))
+            } ?: XLog.w(
+                getLog("requestKeyFrame", "No video sender found for client $id"),
+                IllegalStateException("WebRtcClient.requestKeyFrame.noVideoSender")
+            )
         }
     }
 
     // Signaling thread
-    private fun setHostOffer(mediaStreamId: MediaStreamId, sessionDescription: SessionDescription) {
+    private fun setHostOffer(mediaStreamId: MediaStreamId, sessionDescription: SessionDescription, epoch: Long) {
         if (state.get() != State.PENDING_OFFER) {
             val msg = "Wrong client $id state: $state, expecting: ${State.PENDING_OFFER}"
-            XLog.w(getLog("setHostOffer", msg), IllegalStateException("setHostOffer: $msg"))
-            eventListener.onError(clientId, IllegalStateException("setHostOffer: $msg"))
+            XLog.i(getLog("setHostOffer", "$msg. Ignoring stale callback."))
             return
         }
 
         XLog.d(getLog("setHostOffer", "Client: $id, mediaStreamId: $mediaStreamId"))
 
-        peerConnection!!.setLocalDescription(getSdpObserver {
+        val currentPeerConnection = peerConnection
+        if (currentPeerConnection == null) {
+            XLog.i(getLog("setHostOffer", "peerConnection is null. Ignoring stale callback."))
+            return
+        }
+
+        currentPeerConnection.setLocalDescription(getSdpObserver {
             // Signaling thread
             onSuccess {
                 XLog.d(this@WebRtcClient.getLog("setHostOffer", "onSuccess. Client: $id"))
+                if (peerConnection !== currentPeerConnection) {
+                    XLog.i(this@WebRtcClient.getLog("setHostOffer.onSuccess", "Stale peerConnection. Ignoring. Client: $id"))
+                    return@onSuccess
+                }
                 if (state.get() != State.PENDING_OFFER) {
                     val msg = "Wrong client $id state: $state, expecting: ${State.PENDING_OFFER}"
-                    XLog.w(this@WebRtcClient.getLog("setHostOffer.onSuccess", msg), IllegalStateException("setHostOffer.onSuccess: $msg"))
-                    eventListener.onError(clientId, IllegalStateException("setHostOffer.onSuccess: $msg"))
+                    XLog.i(this@WebRtcClient.getLog("setHostOffer.onSuccess", "$msg. Ignoring stale callback."))
                 } else {
                     state.set(State.PENDING_OFFER_ACCEPT)
-                    eventListener.onHostOffer(clientId, Offer(sessionDescription.description))
+                    eventListener.onHostOffer(clientId, generation, epoch, Offer(sessionDescription.description))
                 }
             }
-            onFailure { eventListener.onError(clientId, IllegalStateException("Client: $id. setHostOffer.onFailure: ${it.message}")) }
+            onFailure {
+                if (peerConnection !== currentPeerConnection || state.get() == State.CREATED || isBenignSdpStateError(it.message)) {
+                    XLog.i(this@WebRtcClient.getLog("setHostOffer.onFailure", "Ignoring stale/benign failure for client $id: ${it.message}"))
+                } else {
+                    eventListener.onError(clientId, generation, epoch, IllegalStateException("Client: $id. setHostOffer.onFailure: ${it.message}"))
+                }
+            }
         }, sessionDescription)
     }
 
     // Signaling thread
-    private fun onHostCandidate(candidate: IceCandidate) {
+    private fun onHostCandidate(candidate: IceCandidate, epoch: Long) {
         val msg = "Client: $id, MediaStream: $mediaStreamId, State: $state"
         when (state.get()) {
-            State.CREATED, State.PENDING_OFFER -> {
-                XLog.w(this@WebRtcClient.getLog("onHostCandidate", "$msg. Ignoring"), IllegalStateException("onHostCandidate: $msg"))
-                eventListener.onError(clientId, IllegalStateException("Client: $id. onHostCandidate: $msg"))
+            State.CREATED -> {
+                XLog.i(this@WebRtcClient.getLog("onHostCandidate", "$msg. Ignoring stale candidate"))
             }
 
-            State.PENDING_OFFER_ACCEPT -> {
+            State.PENDING_OFFER, State.PENDING_OFFER_ACCEPT -> {
                 XLog.d(this@WebRtcClient.getLog("onHostCandidate", "$msg. Accumulating"))
-                pendingHostCandidates.add(candidate)
+                synchronized(pendingCandidatesLock) { pendingHostCandidates.add(candidate) }
             }
 
             State.OFFER_ACCEPTED -> {
                 XLog.d(this@WebRtcClient.getLog("onHostCandidate", msg))
-                val list = pendingHostCandidates.apply { add(candidate) }.toList()
-                pendingHostCandidates.clear()
-                eventListener.onHostCandidates(clientId, list)
+                val list = synchronized(pendingCandidatesLock) {
+                    pendingHostCandidates.apply { add(candidate) }.toList().also { pendingHostCandidates.clear() }
+                }
+                eventListener.onHostCandidates(clientId, generation, epoch, list)
             }
 
             else -> Unit // Nothing
@@ -216,27 +244,41 @@ internal class WebRtcClient(
     }
 
     // WebRTC-HT thread
-    internal fun onHostOfferConfirmed() {
+    internal fun onHostOfferConfirmed(epoch: Long) {
         if (state.get() == State.OFFER_ACCEPTED) {
-            XLog.w(getLog("onHostOfferConfirmed", "Client $id already in OFFER_ACCEPTED state. Ignoring."))
+            XLog.w(
+                getLog("onHostOfferConfirmed", "Client $id already in OFFER_ACCEPTED state. Ignoring."),
+                IllegalStateException("WebRtcClient.onHostOfferConfirmed.alreadyAccepted")
+            )
+            return
+        }
+
+        if (state.get() == State.CREATED || state.get() == State.PENDING_OFFER) {
+            XLog.w(
+                getLog("onHostOfferConfirmed", "Client $id in state ${state.get()}. Ignoring stale callback."),
+                IllegalStateException("WebRtcClient.onHostOfferConfirmed.staleState")
+            )
             return
         }
 
         if (state.get() != State.PENDING_OFFER_ACCEPT) {
             val msg = "Wrong client $id state: $state, expecting: ${State.PENDING_OFFER_ACCEPT}"
-            XLog.w(getLog("onHostOfferConfirmed", msg), IllegalStateException("onHostOfferConfirmed: $msg"))
-            eventListener.onError(clientId, IllegalStateException("onHostOfferConfirmed: $msg"))
+            XLog.w(
+                getLog("onHostOfferConfirmed", "$msg. Ignoring stale callback."),
+                IllegalStateException("WebRtcClient.onHostOfferConfirmed.wrongState")
+            )
             return
         }
 
         XLog.d(getLog("onHostOfferConfirmed", "Client: $id"))
         state.set(State.OFFER_ACCEPTED)
-        val hostCandidates = pendingHostCandidates.toList()
-        pendingHostCandidates.clear()
-        eventListener.onHostCandidates(clientId, hostCandidates)
+        val hostCandidates = synchronized(pendingCandidatesLock) {
+            pendingHostCandidates.toList().also { pendingHostCandidates.clear() }
+        }
+        eventListener.onHostCandidates(clientId, generation, epoch, hostCandidates)
 
         queuedAnswer?.let {
-            setClientAnswer(mediaStreamId!!, it)
+            setClientAnswer(mediaStreamId!!, it, epoch)
             queuedAnswer = null
         }
         queuedCandidates.forEach { setClientCandidate(mediaStreamId!!, it) }
@@ -248,15 +290,16 @@ internal class WebRtcClient(
     }
 
     // WebRTC-HT thread
-    internal fun setClientAnswer(mediaStreamId: MediaStreamId, answer: Answer) {
+    internal fun setClientAnswer(mediaStreamId: MediaStreamId, answer: Answer, epoch: Long) {
         if (state.get() != State.OFFER_ACCEPTED) {
             if (state.get() == State.PENDING_OFFER_ACCEPT) {
                 XLog.i(getLog("setClientAnswer", "Client $id in PENDING_OFFER_ACCEPT state. Queueing answer."))
                 queuedAnswer = answer
+            } else if (state.get() == State.CREATED || state.get() == State.PENDING_OFFER) {
+                XLog.i(getLog("setClientAnswer", "Client $id in ${state.get()} state. Ignoring stale answer."))
             } else {
                 val msg = "Wrong client $id state: $state, expecting: ${State.OFFER_ACCEPTED}"
-                XLog.w(getLog("setClientAnswer", msg), IllegalStateException("setClientAnswer: $msg"))
-                eventListener.onError(clientId, IllegalStateException("setClientAnswer: $msg"))
+                XLog.i(getLog("setClientAnswer", "$msg. Ignoring stale answer."))
             }
             return
         }
@@ -265,15 +308,35 @@ internal class WebRtcClient(
 
         if (this.mediaStreamId != mediaStreamId) {
             val msg = "Requesting '$mediaStreamId' but current is '${this.mediaStreamId}'."
-            XLog.w(getLog("setClientAnswer", msg), IllegalStateException("setClientAnswer: $msg"))
-            eventListener.onError(clientId, IllegalStateException("setClientAnswer: $msg"))
+            XLog.w(
+                getLog("setClientAnswer", "$msg Ignoring stale answer."),
+                IllegalStateException("WebRtcClient.setClientAnswer.staleMediaStreamId")
+            )
             return
         }
 
-        peerConnection!!.setRemoteDescription(getSdpObserver {
+        val currentPeerConnection = peerConnection
+        if (currentPeerConnection == null) {
+            XLog.i(getLog("setClientAnswer", "peerConnection is null. Ignoring stale answer."))
+            return
+        }
+
+        currentPeerConnection.setRemoteDescription(getSdpObserver {
             // Signaling thread
-            onSuccess { XLog.d(this@WebRtcClient.getLog("setClientAnswer.onSuccess", "Client: $id")) }
-            onFailure { eventListener.onError(clientId, IllegalStateException("Client: $id. setClientAnswer.onFailure: ${it.message}")) }
+            onSuccess {
+                if (peerConnection !== currentPeerConnection) {
+                    XLog.i(this@WebRtcClient.getLog("setClientAnswer.onSuccess", "Stale peerConnection. Ignoring. Client: $id"))
+                    return@onSuccess
+                }
+                XLog.d(this@WebRtcClient.getLog("setClientAnswer.onSuccess", "Client: $id"))
+            }
+            onFailure {
+                if (peerConnection !== currentPeerConnection || state.get() == State.CREATED || isBenignSdpStateError(it.message)) {
+                    XLog.i(this@WebRtcClient.getLog("setClientAnswer.onFailure", "Ignoring stale/benign failure for client $id: ${it.message}"))
+                } else {
+                    eventListener.onError(clientId, generation, epoch, IllegalStateException("Client: $id. setClientAnswer.onFailure: ${it.message}"))
+                }
+            }
         }, answer.asSessionDescription())
     }
 
@@ -283,10 +346,11 @@ internal class WebRtcClient(
             if (state.get() == State.PENDING_OFFER_ACCEPT) {
                 XLog.i(getLog("setClientCandidate", "Client $id in PENDING_OFFER_ACCEPT state. Queueing candidate."))
                 queuedCandidates.add(candidate)
+            } else if (state.get() == State.CREATED || state.get() == State.PENDING_OFFER) {
+                XLog.i(getLog("setClientCandidate", "Client $id in ${state.get()} state. Ignoring stale candidate."))
             } else {
                 val msg = "Wrong client $id state: $state, expecting: ${State.OFFER_ACCEPTED}"
-                XLog.w(getLog("setClientCandidate", msg), IllegalStateException("setClientCandidate: $msg"))
-                eventListener.onError(clientId, IllegalStateException("setClientCandidate: $msg"))
+                XLog.i(getLog("setClientCandidate", "$msg. Ignoring stale candidate."))
             }
             return
         }
@@ -295,16 +359,24 @@ internal class WebRtcClient(
 
         if (this.mediaStreamId != mediaStreamId) {
             val msg = "Requesting '$mediaStreamId' but current is '${this.mediaStreamId}'."
-            XLog.w(getLog("setClientCandidate", msg), IllegalStateException("setClientCandidate: $msg"))
-            eventListener.onError(clientId, IllegalStateException("setClientCandidate: $msg"))
+            XLog.w(
+                getLog("setClientCandidate", "$msg Ignoring stale candidate."),
+                IllegalStateException("WebRtcClient.setClientCandidate.staleMediaStreamId")
+            )
             return
         }
 
-        peerConnection!!.addIceCandidate(candidate)
+        val currentPeerConnection = peerConnection
+        if (currentPeerConnection == null) {
+            XLog.i(getLog("setClientCandidate", "peerConnection is null. Ignoring stale candidate."))
+            return
+        }
+
+        currentPeerConnection.addIceCandidate(candidate)
     }
 
     // Signaling thread
-    private fun onCandidatePairChanged() {
+    private fun onCandidatePairChanged(epoch: Long) {
         XLog.d(this@WebRtcClient.getLog("onCandidatePairChanged", "Client: $id, MediaStream: $mediaStreamId, State: $state"))
 
         peerConnection?.getStats { report ->
@@ -330,15 +402,24 @@ internal class WebRtcClient(
             val remoteIP = remoteCandidate.members["ip"] as String? ?: ""
 
             clientAddress.set("${localNetworkType.uppercase()}${localCandidateType?.let { " [$it]" }}\n${remoteIP.ifBlank { "-" }}")
-            eventListener.onClientAddress(clientId)
+            eventListener.onClientAddress(clientId, generation, epoch)
         }
     }
 
     // Signaling thread
-    private fun onPeerDisconnected() {
+    private fun onPeerDisconnected(epoch: Long) {
         val msg = "Client: $id, MediaStream: '$mediaStreamId', State: $state"
         XLog.d(this@WebRtcClient.getLog("onPeersDisconnected", msg))
-        eventListener.onError(clientId, IllegalStateException("onPeerDisconnected: $msg"))
+        if (state.get() != State.OFFER_ACCEPTED) {
+            XLog.i(this@WebRtcClient.getLog("onPeersDisconnected", "Client not active anymore. Ignoring. $msg"))
+            return
+        }
+        eventListener.onError(clientId, generation, epoch, IllegalStateException("onPeerDisconnected: $msg"))
+    }
+
+    private fun isBenignSdpStateError(message: String?): Boolean {
+        val msg = message?.lowercase() ?: return false
+        return msg.contains("called in wrong state: stable") || msg.contains("called in wrong state: closed")
     }
 
     private inline fun getSdpObserver(crossinline callback: Result<Unit>.() -> Unit): SdpObserver = object : SdpObserver {
@@ -387,7 +468,11 @@ internal class WebRtcClient(
         }
 
         override fun onIceCandidateError(event: IceCandidateErrorEvent?) {
-            XLog.v(getLog("onIceCandidateError", "Client: $clientId"))
+            val details = event?.let { "url=${it.url}, code=${it.errorCode}, text=${it.errorText}" } ?: "-"
+            XLog.w(
+                getLog("onIceCandidateError", "Client: $clientId, $details"),
+                IllegalStateException("WebRtcClient.onIceCandidateError")
+            )
         }
 
         override fun onIceCandidatesRemoved(iceCandidates: Array<out IceCandidate>?) {

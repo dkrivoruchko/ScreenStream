@@ -52,8 +52,10 @@ internal class PlayIntegrity(serviceContext: Context, private val environment: W
         okHttpClient.newCall(nonceRequest).enqueue(object : Callback {
             override fun onResponse(call: Call, response: Response) {
                 runCatching {
-                    if (response.isSuccessful) response.use { it.body.string() }
-                    else throw WebRtcError.NetworkError(response.code, response.message, null)
+                    response.use {
+                        if (it.isSuccessful) it.body.string()
+                        else throw WebRtcError.NetworkError(it.code, it.message, null)
+                    }
                 }.onFailure {
                     XLog.w(this@PlayIntegrity.getLog("getNonce", "Read failed: ${it.message}"))
                     callback(Result.failure(if (it is WebRtcError.NetworkError) it else WebRtcError.NetworkError(0, it.message, it)))

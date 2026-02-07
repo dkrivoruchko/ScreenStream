@@ -1,11 +1,9 @@
 package info.dvkr.screenstream.mjpeg.internal
 
 import android.annotation.SuppressLint
-import android.app.Activity
 import android.content.ComponentCallbacks
 import android.content.Intent
 import android.content.pm.ActivityInfo
-import android.content.pm.ServiceInfo
 import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -27,9 +25,13 @@ import android.os.PowerManager
 import android.widget.Toast
 import androidx.annotation.AnyThread
 import androidx.annotation.MainThread
+import androidx.core.graphics.createBitmap
+import androidx.core.graphics.scale
+import androidx.core.graphics.toColorInt
 import androidx.window.layout.WindowMetricsCalculator
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.common.getLog
+import info.dvkr.screenstream.common.module.ProjectionCoordinator
 import info.dvkr.screenstream.mjpeg.MjpegModuleService
 import info.dvkr.screenstream.mjpeg.R
 import info.dvkr.screenstream.mjpeg.settings.MjpegSettings
@@ -51,9 +53,6 @@ import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.random.Random
-import androidx.core.graphics.createBitmap
-import androidx.core.graphics.scale
-import androidx.core.graphics.toColorInt
 
 internal class MjpegStreamingService(
     private val service: MjpegModuleService,
@@ -72,6 +71,17 @@ internal class MjpegStreamingService(
     private val bitmapStateFlow = MutableStateFlow(createBitmap(1, 1))
     private val httpServer by lazy(mode = LazyThreadSafetyMode.NONE) {
         HttpServer(service, mjpegSettings, bitmapStateFlow.asStateFlow(), ::sendEvent)
+    }
+    private val projectionCoordinator by lazy(mode = LazyThreadSafetyMode.NONE) {
+        ProjectionCoordinator(
+            tag = "MJPEG",
+            projectionManager = projectionManager,
+            callbackHandler = mainHandler,
+            startForeground = { fgsType -> service.startForeground(fgsType) },
+            onProjectionStopped = { generation ->
+                sendEvent(MjpegEvent.Intentable.StopStream("ProjectionCoordinator.onStop[generation=$generation]"))
+            }
+        )
     }
 
     // All Volatiles vars must be write on this (WebRTC-HT) thread
@@ -134,8 +144,7 @@ internal class MjpegStreamingService(
 
     private val projectionCallback = object : MediaProjection.Callback() {
         override fun onStop() {
-            XLog.i(this@MjpegStreamingService.getLog("MediaProjection.Callback", "onStop"))
-            sendEvent(MjpegEvent.Intentable.StopStream("MediaProjection.Callback"))
+            XLog.i(this@MjpegStreamingService.getLog("MediaProjection.Callback", "onStop (handled by coordinator)"))
         }
 
         // TODO https://android-developers.googleblog.com/2024/03/enhanced-screen-sharing-capabilities-in-android-14.html
@@ -358,44 +367,63 @@ internal class MjpegStreamingService(
                     XLog.w(getLog("MjpegEvent.StartProjection", "Already streaming"))
                 } else {
                     waitingForPermission = false
-                    service.startForeground(ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION)
+                    val result = projectionCoordinator.start(event.intent, wantsMicrophone = false) { _, mediaProjection, _ ->
+                        // TODO Starting from Android R, if your application requests the SYSTEM_ALERT_WINDOW permission, and the user has
+                        //  not explicitly denied it, the permission will be automatically granted until the projection is stopped.
+                        //  The permission allows your app to display user controls on top of the screen being captured.
+                        mediaProjection.registerCallback(projectionCallback, mainHandler)
 
-                    // TODO Starting from Android R, if your application requests the SYSTEM_ALERT_WINDOW permission, and the user has
-                    //  not explicitly denied it, the permission will be automatically granted until the projection is stopped.
-                    //  The permission allows your app to display user controls on top of the screen being captured.
-                    val mediaProjection = projectionManager.getMediaProjection(Activity.RESULT_OK, event.intent)!!.apply {
-                        registerCallback(projectionCallback, Handler(Looper.getMainLooper()))
-                    }
+                        val bitmapCapture = BitmapCapture(service, mjpegSettings, mediaProjection, bitmapStateFlow) { error ->
+                            sendEvent(InternalEvent.Error(error))
+                        }
+                        val captureStarted = bitmapCapture.start()
+                        if (!captureStarted) {
+                            XLog.i(getLog("StartProjection", "Capture not started. Stopping projection."))
+                            bitmapCapture.destroy()
+                            mediaProjection.unregisterCallback(projectionCallback)
+                            return@start false
+                        }
 
-                    val bitmapCapture = BitmapCapture(service, mjpegSettings, mediaProjection, bitmapStateFlow) { error ->
-                        sendEvent(InternalEvent.Error(error))
+                        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                            if (Build.VERSION.SDK_INT != Build.VERSION_CODES.S || !Build.MANUFACTURER.equals("Xiaomi", ignoreCase = true)) {
+                                mediaProjectionIntent = event.intent
+                                service.registerComponentCallbacks(componentCallback)
+                            }
+                        }
+
+                        @Suppress("DEPRECATION")
+                        @SuppressLint("WakelockTimeout")
+                        if (Build.MANUFACTURER !in listOf("OnePlus", "OPPO") && mjpegSettings.data.value.keepAwake) {
+                            val flags = PowerManager.SCREEN_DIM_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP
+                            wakeLock = powerManager.newWakeLock(flags, "ScreenStream::MJPEG-Tag").apply { acquire() }
+                        }
+
+                        this@MjpegStreamingService.isStreaming = true
+                        this@MjpegStreamingService.mediaProjection = mediaProjection
+                        this@MjpegStreamingService.bitmapCapture = bitmapCapture
+                        true
                     }
-                    val captureStarted = bitmapCapture.start()
-                    if (!captureStarted) {
-                        XLog.i(getLog("StartProjection", "Capture not started. Stopping projection."))
-                        bitmapCapture.destroy()
-                        mediaProjection.unregisterCallback(projectionCallback)
-                        mediaProjection.stop()
-                        service.stopForeground()
-                        return
-                    }
-                    if (captureStarted && Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                        if (Build.VERSION.SDK_INT != Build.VERSION_CODES.S || !Build.MANUFACTURER.equals("Xiaomi", ignoreCase = true)) {
-                            mediaProjectionIntent = event.intent
-                            service.registerComponentCallbacks(componentCallback)
+                    when (result) {
+                        is ProjectionCoordinator.StartResult.Started -> {
+                            currentError = null
+                            XLog.i(getLog("MjpegEvent.StartProjection", "Started generation=${result.generation}"))
+                        }
+
+                        ProjectionCoordinator.StartResult.Busy -> {
+                            XLog.w(getLog("MjpegEvent.StartProjection", "Coordinator is busy. Ignoring."))
+                        }
+
+                        is ProjectionCoordinator.StartResult.Blocked, is ProjectionCoordinator.StartResult.Fatal -> {
+                            val cause = result.cause ?: error("Missing cause for failed start result")
+                            if (result is ProjectionCoordinator.StartResult.Fatal) {
+                                XLog.e(getLog("MjpegEvent.StartProjection", "Fatal start error"), cause)
+                                stopStream()
+                            } else {
+                                XLog.w(getLog("MjpegEvent.StartProjection", "Blocked by system"), cause)
+                            }
+                            currentError = cause as? MjpegError ?: MjpegError.UnknownError(cause)
                         }
                     }
-
-                    @Suppress("DEPRECATION")
-                    @SuppressLint("WakelockTimeout")
-                    if (Build.MANUFACTURER !in listOf("OnePlus", "OPPO") && mjpegSettings.data.value.keepAwake) {
-                        val flags = PowerManager.SCREEN_DIM_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP
-                        wakeLock = powerManager.newWakeLock(flags, "ScreenStream::MJPEG-Tag").apply { acquire() }
-                    }
-
-                    this@MjpegStreamingService.isStreaming = true
-                    this@MjpegStreamingService.mediaProjection = mediaProjection
-                    this@MjpegStreamingService.bitmapCapture = bitmapCapture
                 }
 
             is MjpegEvent.Intentable.StopStream -> {
@@ -526,8 +554,8 @@ internal class MjpegStreamingService(
             bitmapCapture?.destroy()
             bitmapCapture = null
             mediaProjection?.unregisterCallback(projectionCallback)
-            mediaProjection?.stop()
             mediaProjection = null
+            projectionCoordinator.stop()
 
             isStreaming = false
         } else {

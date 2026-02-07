@@ -29,7 +29,7 @@
     <string name="webrtc_stream_description_qr_address">QR-কোড হিসাবে ঠিকানা দেখান</string>
     <string name="webrtc_stream_description_qr">QR-কোড</string>
     <string name="webrtc_stream_copied">কপি করা হয়েছে</string>
-    <string name="webrtc_stream_audio_select">অডিও উত্স নির্বাচন করুন:</string>
+    <string name="webrtc_stream_audio_parameters">অডিও পরামিতি</string>
     <string name="webrtc_stream_audio_mic">মাইক্রোফোন</string>
     <string name="webrtc_stream_audio_device">ডিভাইস অডিও</string>
     <string name="webrtc_stream_audio_device_unavailable">ডিভাইস অডিও উপলব্ধ নয়</string>
@@ -40,11 +40,11 @@
     <string name="webrtc_stream_start">স্ট্রীম শুরু করুন</string>
     <string name="webrtc_stream_stop">স্ট্রীম বন্ধ করুন</string>
 
-    <string name="webrtc_pref_header">গ্লোবাল মোড (WebRTC) সেটিংস</string>
-    <string name="webrtc_pref_keep_awake">ডিভাইস জাগ্রত রাখুন</string>
-    <string name="webrtc_pref_keep_awake_summary">স্ট্রিমিং করার সময় ডিভাইস এবং স্ক্রীন সজাগ রাখুন</string>
-    <string name="webrtc_pref_stop_on_sleep">মোবাইল স্লিপ মোডে স্ট্রিম বন্ধ করুন</string>
-    <string name="webrtc_pref_stop_on_sleep_summary">স্ক্রিন বন্ধ হলে স্ট্রিম বন্ধ করুন</string>
+    <string name="webrtc_stream_other_parameters">অন্যান্য প্যারামিটার</string>
+    <string name="webrtc_stream_keep_awake">ডিভাইস জাগ্রত রাখুন</string>
+    <string name="webrtc_stream_keep_awake_summary">স্ট্রিমিং করার সময় ডিভাইস এবং স্ক্রীন সজাগ রাখুন</string>
+    <string name="webrtc_stream_stop_on_sleep">মোবাইল স্লিপ মোডে স্ট্রিম বন্ধ করুন</string>
+    <string name="webrtc_stream_stop_on_sleep_summary">স্ক্রিন বন্ধ হলে স্ট্রিম বন্ধ করুন</string>
 
     <string name="webrtc_stream_audio_permission_title">অডিও রেকর্ডিংয়ের অনুমতি দিন</string>
     <string name="webrtc_stream_audio_permission_message">অডিও কন্টেন্ট স্ট্রিম করার জন্য অ্যাপ্লিকেশনের জন্য অডিও রেকর্ড করার অনুমতি প্রয়োজন।  এই অনুমতি না দিলে, স্ট্রীমটি অডিও ছাড়াই হবে।</string>

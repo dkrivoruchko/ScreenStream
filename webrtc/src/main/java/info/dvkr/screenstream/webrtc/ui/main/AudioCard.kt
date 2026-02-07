@@ -6,13 +6,13 @@ import android.os.Build
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.DrawableRes
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.selection.toggleable
-import androidx.compose.material.icons.materialIcon
-import androidx.compose.material.icons.materialPath
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
@@ -28,8 +28,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
@@ -71,16 +71,17 @@ internal fun AudioCard(
                     .align(Alignment.CenterStart)
                     .padding(start = 48.dp)
             ) {
-                Text(text = stringResource(id = R.string.webrtc_stream_audio_select), style = MaterialTheme.typography.titleMedium)
+                Text(text = stringResource(id = R.string.webrtc_stream_audio_parameters), style = MaterialTheme.typography.titleMedium)
             }
         },
         modifier = modifier,
-        initiallyExpanded = true
+        initiallyExpanded = false
     ) {
         AudioSource(
             text = stringResource(id = R.string.webrtc_stream_audio_mic),
+            iconId = R.drawable.mic_24px,
             selected = webRtcSettingsState.value.enableMic,
-            enabled = Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE || webRtcState.value.isStreaming.not(),
+            enabled = webRtcState.value.isStreaming.not(),
             onChange = { enabled ->
                 if (enabled.not() || context.isPermissionGranted(Manifest.permission.RECORD_AUDIO)) {
                     scope.launch { webRtcSettings.updateData { copy(enableMic = enabled) } }
@@ -90,14 +91,18 @@ internal fun AudioCard(
                     }
                     showRecordAudioPermission.value = true
                 }
-            }
+            },
+            modifier = Modifier.padding(top = 4.dp)
         )
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            HorizontalDivider()
+
             AudioSource(
                 text = stringResource(id = R.string.webrtc_stream_audio_device),
+                iconId = R.drawable.mobile_speaker_24px,
                 selected = webRtcSettingsState.value.enableDeviceAudio,
-                enabled = Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE || webRtcState.value.isStreaming.not(),
+                enabled = webRtcState.value.isStreaming.not(),
                 onChange = { enabled ->
                     if (enabled.not() || context.isPermissionGranted(Manifest.permission.RECORD_AUDIO)) {
                         scope.launch { webRtcSettings.updateData { copy(enableDeviceAudio = enabled) } }
@@ -107,7 +112,8 @@ internal fun AudioCard(
                         }
                         showRecordAudioPermission.value = true
                     }
-                }
+                },
+                modifier = Modifier.padding(top = 4.dp)
             )
         }
     }
@@ -124,6 +130,7 @@ internal fun AudioCard(
 @Composable
 private fun AudioSource(
     text: String,
+    @DrawableRes iconId: Int,
     enabled: Boolean,
     selected: Boolean,
     onChange: (Boolean) -> Unit,
@@ -132,9 +139,10 @@ private fun AudioSource(
     Row(
         modifier = modifier
             .conditional(enabled) { toggleable(value = selected, onValueChange = { onChange.invoke(selected.not()) }) }
-            .padding(start = 12.dp, top = 4.dp, end = 4.dp, bottom = 4.dp),
+            .padding(start = 16.dp, top = 8.dp, end = 10.dp, bottom = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        Icon(painter = painterResource(id = iconId), contentDescription = null, modifier = Modifier.padding(end = 16.dp))
         Text(text = text, modifier = Modifier.weight(1F))
         Switch(checked = selected, onCheckedChange = null, modifier = Modifier.scale(0.7F), enabled = enabled)
     }
@@ -202,7 +210,7 @@ private fun RequestPermission(
                     Text(text = stringResource(id = android.R.string.cancel))
                 }
             },
-            icon = { Icon(Icon_Mic, contentDescription = null) },
+            icon = { Icon(painterResource(R.drawable.mic_24px), contentDescription = null) },
             title = { Text(text = stringResource(id = R.string.webrtc_stream_audio_permission_title)) },
             text = { Text(text = stringResource(id = R.string.webrtc_stream_audio_permission_message)) },
             shape = MaterialTheme.shapes.large,
@@ -245,35 +253,11 @@ private fun RequestPermission(
                     Text(text = stringResource(id = android.R.string.cancel))
                 }
             },
-            icon = { Icon(Icon_Mic, contentDescription = null) },
+            icon = { Icon(painterResource(R.drawable.mic_24px), contentDescription = null) },
             title = { Text(text = stringResource(id = R.string.webrtc_stream_audio_permission_title)) },
             text = { Text(text = stringResource(id = R.string.webrtc_stream_audio_permission_message_settings)) },
             shape = MaterialTheme.shapes.large,
             properties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false)
         )
-    }
-}
-
-private val Icon_Mic: ImageVector = materialIcon(name = "Filled.Mic") {
-    materialPath {
-        moveTo(12.0f, 14.0f)
-        curveToRelative(1.66f, 0.0f, 2.99f, -1.34f, 2.99f, -3.0f)
-        lineTo(15.0f, 5.0f)
-        curveToRelative(0.0f, -1.66f, -1.34f, -3.0f, -3.0f, -3.0f)
-        reflectiveCurveTo(9.0f, 3.34f, 9.0f, 5.0f)
-        verticalLineToRelative(6.0f)
-        curveToRelative(0.0f, 1.66f, 1.34f, 3.0f, 3.0f, 3.0f)
-        close()
-        moveTo(17.3f, 11.0f)
-        curveToRelative(0.0f, 3.0f, -2.54f, 5.1f, -5.3f, 5.1f)
-        reflectiveCurveTo(6.7f, 14.0f, 6.7f, 11.0f)
-        lineTo(5.0f, 11.0f)
-        curveToRelative(0.0f, 3.41f, 2.72f, 6.23f, 6.0f, 6.72f)
-        lineTo(11.0f, 21.0f)
-        horizontalLineToRelative(2.0f)
-        verticalLineToRelative(-3.28f)
-        curveToRelative(3.28f, -0.48f, 6.0f, -3.3f, 6.0f, -6.72f)
-        horizontalLineToRelative(-1.7f)
-        close()
     }
 }

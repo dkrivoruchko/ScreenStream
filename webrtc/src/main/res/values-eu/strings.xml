@@ -29,7 +29,7 @@
     <string name="webrtc_stream_description_qr_address">Mostrar dirección como código QR</string>
     <string name="webrtc_stream_description_qr">Código QR</string>
     <string name="webrtc_stream_copied">Copiado</string>
-    <string name="webrtc_stream_audio_select">Seleccionar fuentes de audio:</string>
+    <string name="webrtc_stream_audio_parameters">Audio parametroak</string>
     <string name="webrtc_stream_audio_mic">Micrófono</string>
     <string name="webrtc_stream_audio_device">Audio del dispositivo</string>
     <string name="webrtc_stream_audio_device_unavailable">Gailuaren audioa ez dago erabilgarri</string>
@@ -40,11 +40,11 @@
     <string name="webrtc_stream_start">Iniciar transmisión</string>
     <string name="webrtc_stream_stop">Detener transmisión</string>
 
-    <string name="webrtc_pref_header">Configuración de modo global (WebRTC)</string>
-    <string name="webrtc_pref_keep_awake">Mantener el dispositivo activo</string>
-    <string name="webrtc_pref_keep_awake_summary">Mantener el dispositivo y la pantalla activos durante la transmisión</string>
-    <string name="webrtc_pref_stop_on_sleep">Detener transmisión al dormir</string>
-    <string name="webrtc_pref_stop_on_sleep_summary">Detener transmisión si la apaga la pantalla</string>
+    <string name="webrtc_stream_other_parameters">Beste parametro batzuk</string>
+    <string name="webrtc_stream_keep_awake">Mantener el dispositivo activo</string>
+    <string name="webrtc_stream_keep_awake_summary">Mantener el dispositivo y la pantalla activos durante la transmisión</string>
+    <string name="webrtc_stream_stop_on_sleep">Detener transmisión al dormir</string>
+    <string name="webrtc_stream_stop_on_sleep_summary">Detener transmisión si la apaga la pantalla</string>
 
     <string name="webrtc_stream_audio_permission_title">Permitir grabación de audio</string>
     <string name="webrtc_stream_audio_permission_message">Se requiere permiso para grabar audio para que la aplicación pueda transmitir contenido de audio.\n\nSin otorgar este permiso, la transmisión se realizará sin audio.</string>

@@ -1,4 +1,4 @@
-package info.dvkr.screenstream.webrtc.ui.settings.general
+package info.dvkr.screenstream.webrtc.ui.settings
 
 import android.content.res.Resources
 import androidx.compose.foundation.layout.Column
@@ -34,8 +34,8 @@ internal object StopOnSleep : ModuleSettings.Item {
     override val available: Boolean = true
 
     override fun has(resources: Resources, text: String): Boolean = with(resources) {
-        getString(R.string.webrtc_pref_stop_on_sleep).contains(text, ignoreCase = true) ||
-                getString(R.string.webrtc_pref_stop_on_sleep_summary).contains(text, ignoreCase = true)
+        getString(R.string.webrtc_stream_stop_on_sleep).contains(text, ignoreCase = true) ||
+                getString(R.string.webrtc_stream_stop_on_sleep_summary).contains(text, ignoreCase = true)
     }
 
     @Composable
@@ -68,13 +68,13 @@ private fun StopOnSleepUI(
 
         Column(modifier = Modifier.weight(1F)) {
             Text(
-                text = stringResource(id = R.string.webrtc_pref_stop_on_sleep),
+                text = stringResource(id = R.string.webrtc_stream_stop_on_sleep),
                 modifier = Modifier.padding(top = 8.dp, bottom = 2.dp),
                 fontSize = 18.sp,
                 style = MaterialTheme.typography.bodyLarge
             )
             Text(
-                text = stringResource(id = R.string.webrtc_pref_stop_on_sleep_summary),
+                text = stringResource(id = R.string.webrtc_stream_stop_on_sleep_summary),
                 modifier = Modifier.padding(top = 2.dp, bottom = 8.dp),
                 style = MaterialTheme.typography.bodyMedium
             )

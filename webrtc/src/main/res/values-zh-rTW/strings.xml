@@ -29,7 +29,7 @@
     <string name="webrtc_stream_description_qr_address">以 QR 碼形式顯示地址</string>
     <string name="webrtc_stream_description_qr">QR碼</string>
     <string name="webrtc_stream_copied">已複製</string>
-    <string name="webrtc_stream_audio_select">選擇音訊來源：</string>
+    <string name="webrtc_stream_audio_parameters">音訊參數</string>
     <string name="webrtc_stream_audio_mic">麥克風</string>
     <string name="webrtc_stream_audio_device">設備音訊</string>
     <string name="webrtc_stream_audio_device_unavailable">裝置音訊不可用</string>
@@ -40,11 +40,11 @@
     <string name="webrtc_stream_start">開始串流</string>
     <string name="webrtc_stream_stop">停止串流</string>
 
-    <string name="webrtc_pref_header">全局模式（WebRTC）設置</string>
-    <string name="webrtc_pref_keep_awake">保持設備喚醒狀態</string>
-    <string name="webrtc_pref_keep_awake_summary">播出視頻流的時候保持設備喚醒並且屏幕常亮</string>
-    <string name="webrtc_pref_stop_on_sleep">睡眠時停止</string>
-    <string name="webrtc_pref_stop_on_sleep_summary">當螢幕待機關閉時停止串流</string>
+    <string name="webrtc_stream_other_parameters">其他參數</string>
+    <string name="webrtc_stream_keep_awake">保持設備喚醒狀態</string>
+    <string name="webrtc_stream_keep_awake_summary">播出視頻流的時候保持設備喚醒並且屏幕常亮</string>
+    <string name="webrtc_stream_stop_on_sleep">睡眠時停止</string>
+    <string name="webrtc_stream_stop_on_sleep_summary">當螢幕待機關閉時停止串流</string>
 
     <string name="webrtc_stream_audio_permission_title">允許錄製音訊</string>
     <string name="webrtc_stream_audio_permission_message">應用程式需要錄製音訊的權限以進行音訊串流。\n\n未授予此權限，串流將沒有音訊。</string>

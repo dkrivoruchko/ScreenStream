@@ -29,7 +29,7 @@
     <string name="webrtc_stream_description_qr_address">以二维码形式显示地址</string>
     <string name="webrtc_stream_description_qr">二维码</string>
     <string name="webrtc_stream_copied">已复制</string>
-    <string name="webrtc_stream_audio_select">选择音频来源：</string>
+    <string name="webrtc_stream_audio_parameters">音频参数</string>
     <string name="webrtc_stream_audio_mic">麦克风</string>
     <string name="webrtc_stream_audio_device">设备音频</string>
     <string name="webrtc_stream_audio_device_unavailable">设备音频不可用</string>
@@ -40,11 +40,11 @@
     <string name="webrtc_stream_start">开始流</string>
     <string name="webrtc_stream_stop">停止流</string>
 
-    <string name="webrtc_pref_header">全局模式（WebRTC）设置</string>
-    <string name="webrtc_pref_keep_awake">保持设备唤醒状态</string>
-    <string name="webrtc_pref_keep_awake_summary">传输时保持设备活跃，屏幕不熄灭</string>
-    <string name="webrtc_pref_stop_on_sleep">休眠时停止传输</string>
-    <string name="webrtc_pref_stop_on_sleep_summary">若屏幕熄灭停止传输</string>
+    <string name="webrtc_stream_other_parameters">其他参数</string>
+    <string name="webrtc_stream_keep_awake">保持设备唤醒状态</string>
+    <string name="webrtc_stream_keep_awake_summary">传输时保持设备活跃，屏幕不熄灭</string>
+    <string name="webrtc_stream_stop_on_sleep">休眠时停止传输</string>
+    <string name="webrtc_stream_stop_on_sleep_summary">若屏幕熄灭停止传输</string>
 
     <string name="webrtc_stream_audio_permission_title">允许录音</string>
     <string name="webrtc_stream_audio_permission_message">程序需要录音权限才能传输音频内容。\n\n不授予此权限，将无法传输音频。</string>

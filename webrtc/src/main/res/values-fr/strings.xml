@@ -29,7 +29,7 @@
     <string name="webrtc_stream_description_qr_address">Afficher l\'adresse sous forme de code QR</string>
     <string name="webrtc_stream_description_qr">Code QR</string>
     <string name="webrtc_stream_copied">Copié</string>
-    <string name="webrtc_stream_audio_select">Sélectionner les sources audio :</string>
+    <string name="webrtc_stream_audio_parameters">Paramètres audio</string>
     <string name="webrtc_stream_audio_mic">Microphone</string>
     <string name="webrtc_stream_audio_device">Audio de l\'appareil</string>
     <string name="webrtc_stream_audio_device_unavailable">Audio de l’appareil indisponible</string>
@@ -40,11 +40,11 @@
     <string name="webrtc_stream_start">Démarrer le flux</string>
     <string name="webrtc_stream_stop">Arrêter le flux</string>
 
-    <string name="webrtc_pref_header">Paramètres du mode global (WebRTC)</string>
-    <string name="webrtc_pref_keep_awake">Mantener el dispositivo activo</string>
-    <string name="webrtc_pref_keep_awake_summary">Mantener el dispositivo y la pantalla activos mientras se transmite</string>
-    <string name="webrtc_pref_stop_on_sleep">Arrêter en veille</string>
-    <string name="webrtc_pref_stop_on_sleep_summary">Arrête la diffusion si l\'écran s\'éteint</string>
+    <string name="webrtc_stream_other_parameters">Autres paramètres</string>
+    <string name="webrtc_stream_keep_awake">Mantener el dispositivo activo</string>
+    <string name="webrtc_stream_keep_awake_summary">Mantener el dispositivo y la pantalla activos mientras se transmite</string>
+    <string name="webrtc_stream_stop_on_sleep">Arrêter en veille</string>
+    <string name="webrtc_stream_stop_on_sleep_summary">Arrête la diffusion si l\'écran s\'éteint</string>
 
     <string name="webrtc_stream_audio_permission_title">Autoriser l\'enregistrement audio</string>
     <string name="webrtc_stream_audio_permission_message">L\'autorisation d\'enregistrer l\'audio est nécessaire pour que l\'application puisse diffuser du contenu audio.\n\nSans cette autorisation, la diffusion se fera sans audio.</string>

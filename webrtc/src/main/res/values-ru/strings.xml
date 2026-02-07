@@ -29,7 +29,7 @@
     <string name="webrtc_stream_description_qr_address">Показать адрес как QR-код</string>
     <string name="webrtc_stream_description_qr">QR-код</string>
     <string name="webrtc_stream_copied">Скопировано</string>
-    <string name="webrtc_stream_audio_select">Выберите аудиоисточники:</string>
+    <string name="webrtc_stream_audio_parameters">Параметры аудио</string>
     <string name="webrtc_stream_audio_mic">Микрофон</string>
     <string name="webrtc_stream_audio_device">Аудио устройства</string>
     <string name="webrtc_stream_audio_device_unavailable">Звук устройства недоступен</string>
@@ -40,11 +40,11 @@
     <string name="webrtc_stream_start">Начать трансляцию</string>
     <string name="webrtc_stream_stop">Остановить трансляцию</string>
 
-    <string name="webrtc_pref_header">Настройки глобального режима (WebRTC)</string>
-    <string name="webrtc_pref_keep_awake">Держать устройство активным</string>
-    <string name="webrtc_pref_keep_awake_summary">Держать устройство и экран активными при трансляции</string>
-    <string name="webrtc_pref_stop_on_sleep">Останавливать при выключении</string>
-    <string name="webrtc_pref_stop_on_sleep_summary">Останавливать трансляцию, если выключится экран</string>
+    <string name="webrtc_stream_other_parameters">Другие параметры</string>
+    <string name="webrtc_stream_keep_awake">Держать устройство активным</string>
+    <string name="webrtc_stream_keep_awake_summary">Держать устройство и экран активными при трансляции</string>
+    <string name="webrtc_stream_stop_on_sleep">Останавливать при выключении</string>
+    <string name="webrtc_stream_stop_on_sleep_summary">Останавливать трансляцию, если выключится экран</string>
 
     <string name="webrtc_stream_audio_permission_title">Разрешить запись аудио</string>
     <string name="webrtc_stream_audio_permission_message">Необходимо разрешение на запись аудио для работы приложения со звуком.\n\nБез предоставления этого разрешения трансляция будет без звука.</string>

@@ -1,4 +1,4 @@
-package info.dvkr.screenstream.webrtc.ui.settings.general
+package info.dvkr.screenstream.webrtc.ui.settings
 
 import android.content.res.Resources
 import android.os.Build
@@ -35,8 +35,8 @@ internal object KeepAwake : ModuleSettings.Item {
     override val available: Boolean = Build.MANUFACTURER !in listOf("OnePlus", "OPPO")
 
     override fun has(resources: Resources, text: String): Boolean = with(resources) {
-        getString(R.string.webrtc_pref_keep_awake).contains(text, ignoreCase = true) ||
-                getString(R.string.webrtc_pref_keep_awake_summary).contains(text, ignoreCase = true)
+        getString(R.string.webrtc_stream_keep_awake).contains(text, ignoreCase = true) ||
+                getString(R.string.webrtc_stream_keep_awake_summary).contains(text, ignoreCase = true)
     }
 
     @Composable
@@ -69,13 +69,13 @@ private fun KeepAwakeUI(
 
         Column(modifier = Modifier.weight(1F)) {
             Text(
-                text = stringResource(id = R.string.webrtc_pref_keep_awake),
+                text = stringResource(id = R.string.webrtc_stream_keep_awake),
                 modifier = Modifier.padding(top = 8.dp, bottom = 2.dp),
                 fontSize = 18.sp,
                 style = MaterialTheme.typography.bodyLarge
             )
             Text(
-                text = stringResource(id = R.string.webrtc_pref_keep_awake_summary),
+                text = stringResource(id = R.string.webrtc_stream_keep_awake_summary),
                 modifier = Modifier.padding(top = 2.dp, bottom = 8.dp),
                 style = MaterialTheme.typography.bodyMedium
             )
