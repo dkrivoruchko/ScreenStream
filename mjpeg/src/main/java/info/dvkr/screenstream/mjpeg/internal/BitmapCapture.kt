@@ -33,7 +33,6 @@ import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
 
-// https://developer.android.com/media/grow/media-projection
 internal class BitmapCapture(
     private val serviceContext: Context,
     private val mjpegSettings: MjpegSettings,
@@ -82,6 +81,8 @@ internal class BitmapCapture(
 
     private var transformMatrix = Matrix()
     private var transformMatrixDirty = true
+    private var matrixSourceWidth = -1
+    private var matrixSourceHeight = -1
     private var paint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.DITHER_FLAG or Paint.FILTER_BITMAP_FLAG)
 
     init {
@@ -135,7 +136,7 @@ internal class BitmapCapture(
                 currentWidth,
                 currentHeight,
                 serviceContext.resources.configuration.densityDpi,
-                DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR or DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC,
+                DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
                 imageReader!!.surface,
                 null,
                 imageThreadHandler
@@ -194,9 +195,11 @@ internal class BitmapCapture(
 
         currentWidth = width
         currentHeight = height
+        transformMatrixDirty = true
+        matrixSourceWidth = -1
+        matrixSourceHeight = -1
+        lastImageMillis = 0L
 
-        virtualDisplay?.surface = null
-        imageReader?.surface?.release() // For some reason imageReader.close() does not release surface
         imageReader?.close()
 
         val newImageListener = ImageListener()
@@ -205,7 +208,13 @@ internal class BitmapCapture(
             setOnImageAvailableListener(newImageListener, imageThreadHandler)
         }
 
+        //Issue 370625489 (https://issuetracker.google.com/issues/370625489)
+        //After onCapturedContentResize + resize/surface swap, no output
+        //Affected Android 14, Android 15 base + QPR1
+        //Fixed in Android 15 QPR2
+
         try {
+            virtualDisplay?.surface = null
             virtualDisplay?.resize(width, height, serviceContext.resources.configuration.densityDpi)
             virtualDisplay?.surface = imageReader!!.surface
         } catch (ex: SecurityException) {
@@ -225,11 +234,13 @@ internal class BitmapCapture(
         imageListener = null
         virtualDisplay?.release()
         virtualDisplay = null
-        imageReader?.surface?.release() // For some reason imageReader.close() does not release surface
         imageReader?.close()
         imageReader = null
         reusableBitmap = null
         outputBitmap = null
+        matrixSourceWidth = -1
+        matrixSourceHeight = -1
+        transformMatrixDirty = true
     }
 
     private inner class ImageListener : ImageReader.OnImageAvailableListener {
@@ -272,6 +283,11 @@ internal class BitmapCapture(
         val plane = image.planes[0]
         val fullWidth = image.width
         val fullHeight = image.height
+        if (matrixSourceWidth != fullWidth || matrixSourceHeight != fullHeight) {
+            matrixSourceWidth = fullWidth
+            matrixSourceHeight = fullHeight
+            transformMatrixDirty = true
+        }
 
         val planeWidth = plane.rowStride / plane.pixelStride
         if (reusableBitmap == null || reusableBitmap!!.width != planeWidth || reusableBitmap!!.height != fullHeight) {

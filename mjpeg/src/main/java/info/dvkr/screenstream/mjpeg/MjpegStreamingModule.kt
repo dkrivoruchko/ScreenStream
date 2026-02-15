@@ -67,7 +67,13 @@ public class MjpegStreamingModule : StreamingModule {
             StreamingModule.State.Initiated -> {
                 startToken = Uuid.random().toString()
                 _streamingServiceState.value = StreamingModule.State.PendingStart
-                MjpegModuleService.startService(context, MjpegEvent.Intentable.StartService(startToken!!).toIntent(context))
+                try {
+                    MjpegModuleService.startService(context, MjpegEvent.Intentable.StartService(startToken!!).toIntent(context))
+                } catch (t: Throwable) {
+                    startToken = null
+                    _streamingServiceState.value = StreamingModule.State.Initiated
+                    throw t
+                }
             }
 
             StreamingModule.State.PendingStart ->

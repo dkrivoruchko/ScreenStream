@@ -34,7 +34,7 @@
     <string name="webrtc_stream_audio_mic_summary">Mikrofon audiosini uzating</string>
     <string name="webrtc_stream_audio_device">Ichki audio</string>
     <string name="webrtc_stream_audio_device_summary">Ushbu qurilmaning media audiosini uzating</string>
-    <string name="webrtc_stream_audio_device_unavailable">Ichki audio mavjud emas</string>
+    <string name="webrtc_stream_audio_capture_unavailable">Audio yozib olishda muammo aniqlandi</string>
     <string name="webrtc_stream_connected_clients">Ulangan mijozlar: %1$d</string>
     <string name="webrtc_stream_no_web_browser_found">Hech qanday veb-brauzer topilmadi</string>
     <string name="webrtc_stream_external_app_error">Tashqi dastur xatosi</string>

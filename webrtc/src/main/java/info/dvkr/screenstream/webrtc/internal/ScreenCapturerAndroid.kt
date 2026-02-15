@@ -23,6 +23,7 @@ internal class ScreenCapturerAndroid(
     private var isDisposed: Boolean = false
     private var width: Int = 0
     private var height: Int = 0
+    private var captureSurface: Surface? = null
 
     @Synchronized
     internal fun startCapture(mediaProjection: MediaProjection, width: Int, height: Int, capturerObserver: CapturerObserver): Boolean {
@@ -34,12 +35,16 @@ internal class ScreenCapturerAndroid(
 
         mediaProjection.registerCallback(mediaProjectionCallback, surfaceTextureHelper.handler)
         surfaceTextureHelper.setTextureSize(width, height)
+        captureSurface?.release()
+        captureSurface = Surface(surfaceTextureHelper.surfaceTexture)
         virtualDisplay = createVirtualDisplay()
         if (virtualDisplay == null) {
             XLog.i(getLog("startCapture", "virtualDisplay is null. Stopping projection."))
             mediaProjectionCallback.onStop()
             mediaProjection.unregisterCallback(mediaProjectionCallback)
             this.mediaProjection = null
+            captureSurface?.release()
+            captureSurface = null
             surfaceTextureHelper.dispose()
             return false
         }
@@ -60,6 +65,8 @@ internal class ScreenCapturerAndroid(
             virtualDisplay = null
             mediaProjection?.unregisterCallback(mediaProjectionCallback)
             mediaProjection = null
+            captureSurface?.release()
+            captureSurface = null
         }
     }
 
@@ -73,8 +80,9 @@ internal class ScreenCapturerAndroid(
             )
             return
         }
-        if (this.width == width && this.height == height) {
-            XLog.i(getLog("changeCaptureFormat", "Ignoring"))
+        val sizeChanged = this.width != width || this.height != height
+        if (!sizeChanged) {
+            XLog.v(getLog("changeCaptureFormat", "Same size. Ignoring reconfigure"))
             return
         }
         this.width = width
@@ -83,8 +91,12 @@ internal class ScreenCapturerAndroid(
             ThreadUtils.invokeAtFrontUninterruptibly(surfaceTextureHelper.handler) {
                 surfaceTextureHelper.setTextureSize(width, height)
 
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                     virtualDisplay!!.resize(width, height, 400)
+                    val newSurface = Surface(surfaceTextureHelper.surfaceTexture)
+                    virtualDisplay!!.surface = newSurface
+                    captureSurface?.release()
+                    captureSurface = newSurface
                 } else {
                     virtualDisplay!!.release()
                     virtualDisplay = createVirtualDisplay()
@@ -110,7 +122,7 @@ internal class ScreenCapturerAndroid(
 
     private fun createVirtualDisplay(): VirtualDisplay? = mediaProjection?.createVirtualDisplay(
         "WebRTC_ScreenCapture", width, height, 400,
-        DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR or DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC,
-        Surface(surfaceTextureHelper.surfaceTexture), null, null
+        DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
+        captureSurface ?: Surface(surfaceTextureHelper.surfaceTexture).also { captureSurface = it }, null, null
     )
 }

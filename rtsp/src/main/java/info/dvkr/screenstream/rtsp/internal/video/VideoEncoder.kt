@@ -30,6 +30,13 @@ internal class VideoEncoder(
 ) {
     private enum class State { IDLE, PREPARED, RUNNING, STOPPED }
 
+    private data class StopSnapshot(
+        val eglRenderer: EglRenderer?,
+        val videoEncoder: MediaCodec?,
+        val handler: Handler?,
+        val handlerThread: HandlerThread?
+    )
+
     private val fpsCalculator = FpsCalculator { framesPerSecond ->
         onFps.invoke(framesPerSecond)
     }
@@ -104,13 +111,9 @@ internal class VideoEncoder(
                 currentState = State.PREPARED
             }
         }.onFailure { cause ->
-            cleanupAfterPrepareFailure()
+            stopInternal(force = true, logTag = "prepareCleanup")
             onError(cause)
         }
-    }
-
-    private fun cleanupAfterPrepareFailure(): Unit = synchronized(encoderLock) {
-        stopInternal(force = true, logTag = "prepareCleanup")
     }
 
     internal fun start(): Unit = synchronized(encoderLock) {
@@ -127,37 +130,43 @@ internal class VideoEncoder(
         XLog.v(getLog("start", "Done"))
     }
 
-    internal fun stop(): Unit = synchronized(encoderLock) {
+    internal fun stop() {
         XLog.v(getLog("stop"))
         if (stopInternal(force = false, logTag = "stopInternal").not()) return
         XLog.v(getLog("stop", "Done"))
     }
 
     private fun stopInternal(force: Boolean, logTag: String): Boolean {
-        if (!force && (currentState == State.IDLE || currentState == State.STOPPED)) {
-            XLog.w(getLog("stop", "Cannot stop unless state is RUNNING. Current: $currentState"))
-            return false
-        }
-
-        currentState = State.STOPPED
-        isCodecConfigSent = false
-        lastBitrate = null
-
-        eglRenderer?.stop()
-        eglRenderer = null
-
-        videoEncoder?.apply {
-            runCatching {
-                stop()
-                release()
-            }.onFailure {
-                XLog.w(this@VideoEncoder.getLog(logTag, "mediaCodec.stop() exception: ${it.message}"), it)
+        val snapshot = synchronized(encoderLock) {
+            if (!force && (currentState == State.IDLE || currentState == State.STOPPED)) {
+                XLog.w(getLog("stop", "Cannot stop unless state is PREPARED or RUNNING. Current: $currentState"))
+                return@synchronized null
             }
-        }
-        videoEncoder = null
 
-        handler?.removeCallbacksAndMessages(null)
-        handlerThread?.apply {
+            currentState = State.STOPPED
+            isCodecConfigSent = false
+            lastBitrate = null
+
+            StopSnapshot(eglRenderer, videoEncoder, handler, handlerThread).also {
+                eglRenderer = null
+                videoEncoder = null
+                handler = null
+                handlerThread = null
+            }
+        } ?: return false
+
+        snapshot.eglRenderer?.stop()
+
+        snapshot.videoEncoder?.runCatching {
+            stop()
+            release()
+        }?.onFailure {
+            XLog.w(this@VideoEncoder.getLog(logTag, "mediaCodec.stop() exception: ${it.message}"), it)
+        }
+
+        snapshot.handler?.removeCallbacksAndMessages(null)
+
+        snapshot.handlerThread?.apply {
             quitSafely()
             runCatching { join(250) }.onFailure {
                 XLog.w(this@VideoEncoder.getLog(logTag, "handlerThread.join() interrupted"), it)
@@ -176,10 +185,10 @@ internal class VideoEncoder(
                 }
             }
         }
-        handlerThread = null
-        handler = null
 
-        currentState = State.IDLE
+        synchronized(encoderLock) {
+            currentState = State.IDLE
+        }
         return true
     }
 
@@ -253,6 +262,7 @@ internal class VideoEncoder(
                     }
 
                     val flags = adjustedInfo.flags
+                    val isKeyFrame = flags.hasFlag(MediaCodec.BUFFER_FLAG_KEY_FRAME)
                     if (flags.hasFlag(MediaCodec.BUFFER_FLAG_CODEC_CONFIG)) {
                         if (!isCodecConfigSent) {
                             outputBuffer.duplicate().extractCodecConfig(adjustedInfo)?.let { (sps, pps, vps) ->
@@ -269,7 +279,7 @@ internal class VideoEncoder(
                         return
                     }
 
-                    if (!isCodecConfigSent && flags.hasFlag(MediaCodec.BUFFER_FLAG_KEY_FRAME)) {
+                    if (!isCodecConfigSent && isKeyFrame) {
                         outputBuffer.duplicate().extractCodecConfig(adjustedInfo)?.let { (sps, pps, vps) ->
                             onVideoInfo(sps.stripAnnexBStartCode(), pps?.stripAnnexBStartCode(), vps?.stripAnnexBStartCode())
                             isCodecConfigSent = true
@@ -284,7 +294,7 @@ internal class VideoEncoder(
                             offset = adjustedInfo.offset,
                             size = adjustedInfo.size,
                             timestamp = adjustedInfo.presentationTimeUs,
-                            isKeyFrame = flags.hasFlag(MediaCodec.BUFFER_FLAG_KEY_FRAME)
+                            isKeyFrame = isKeyFrame
                         ),
                         releaseCallback = { releaseOutputBufferSafely(codec, index) }
                     )

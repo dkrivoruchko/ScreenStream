@@ -168,25 +168,40 @@ internal class PlayIntegrity(serviceContext: Context, private val environment: W
     }
 
     private fun checkPlayServicesAvailable() {
-        when (googleApiAvailability.isGooglePlayServicesAvailable(appContext)) {
+        val status = googleApiAvailability.isGooglePlayServicesAvailable(appContext)
+        val statusText = googleApiAvailability.getErrorString(status)
+
+        when (status) {
             ConnectionResult.SUCCESS -> Unit
             ConnectionResult.SERVICE_MISSING,
             ConnectionResult.SERVICE_DISABLED,
             ConnectionResult.SERVICE_INVALID -> throw WebRtcError.PlayIntegrityError(
                 StandardIntegrityErrorCode.PLAY_SERVICES_NOT_FOUND,
                 false,
-                "Google Play services missing or disabled",
+                "Google Play services missing or disabled ($statusText)",
                 R.string.webrtc_error_play_integrity_install_play_service
             )
 
             ConnectionResult.SERVICE_VERSION_UPDATE_REQUIRED -> throw WebRtcError.PlayIntegrityError(
                 StandardIntegrityErrorCode.PLAY_SERVICES_VERSION_OUTDATED,
                 false,
-                "Google Play services update required",
+                "Google Play services update required ($statusText)",
                 R.string.webrtc_error_play_integrity_update_play_service
             )
 
-            else -> Unit
+            ConnectionResult.SERVICE_UPDATING -> throw WebRtcError.PlayIntegrityError(
+                StandardIntegrityErrorCode.PLAY_SERVICES_VERSION_OUTDATED,
+                false,
+                "Google Play services updating ($statusText)",
+                R.string.webrtc_error_play_integrity_update_play_service
+            )
+
+            else -> throw WebRtcError.PlayIntegrityError(
+                StandardIntegrityErrorCode.PLAY_SERVICES_NOT_FOUND,
+                false,
+                "Google Play services unavailable ($statusText, code=$status)",
+                R.string.webrtc_error_play_integrity_install_play_service
+            )
         }
     }
 

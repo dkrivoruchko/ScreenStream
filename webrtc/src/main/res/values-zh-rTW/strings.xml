@@ -34,7 +34,7 @@
     <string name="webrtc_stream_audio_mic_summary">串流麥克風音訊</string>
     <string name="webrtc_stream_audio_device">內部音訊</string>
     <string name="webrtc_stream_audio_device_summary">串流此裝置的媒體音訊</string>
-    <string name="webrtc_stream_audio_device_unavailable">內部音訊不可用</string>
+    <string name="webrtc_stream_audio_capture_unavailable">偵測到音訊擷取問題</string>
     <string name="webrtc_stream_connected_clients">已連接的客戶端：%1$d</string>
     <string name="webrtc_stream_no_web_browser_found">找不到網頁瀏覽器</string>
     <string name="webrtc_stream_external_app_error">外部應用程式錯誤</string>

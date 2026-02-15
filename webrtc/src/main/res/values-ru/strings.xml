@@ -34,7 +34,7 @@
     <string name="webrtc_stream_audio_mic_summary">Транслировать звук с микрофона</string>
     <string name="webrtc_stream_audio_device">Внутренний звук</string>
     <string name="webrtc_stream_audio_device_summary">Транслировать медиа-аудио с этого устройства</string>
-    <string name="webrtc_stream_audio_device_unavailable">Внутренний звук недоступен</string>
+    <string name="webrtc_stream_audio_capture_unavailable">Обнаружена проблема с захватом звука</string>
     <string name="webrtc_stream_connected_clients">Подключенные клиенты: %1$d</string>
     <string name="webrtc_stream_no_web_browser_found">Не найден веб-браузер</string>
     <string name="webrtc_stream_external_app_error">Ошибка внешнего приложения</string>

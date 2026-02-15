@@ -25,7 +25,7 @@ public class ProjectionCoordinator(
             get() = null
 
         public data object Busy : StartResult
-        public data class Started(val generation: Long, val mediaProjection: MediaProjection, val microphoneEnabled: Boolean) : StartResult
+        public data class Started(val generation: Long, val mediaProjection: MediaProjection, val audioFgsUpgradeSucceeded: Boolean) : StartResult
         public data class Blocked(override val cause: Throwable) : StartResult
         public data class Fatal(override val cause: Throwable) : StartResult
     }
@@ -41,8 +41,8 @@ public class ProjectionCoordinator(
 
     public fun start(
         permissionIntent: Intent,
-        wantsMicrophone: Boolean,
-        buildPipeline: (generation: Long, mediaProjection: MediaProjection, microphoneEnabled: Boolean) -> Boolean
+        requiresAudioFgsUpgrade: Boolean,
+        buildPipeline: (generation: Long, mediaProjection: MediaProjection, audioFgsUpgradeSucceeded: Boolean) -> Boolean
     ): StartResult {
         synchronized(lock) {
             if (isStarting || activeSession != null) {
@@ -59,7 +59,7 @@ public class ProjectionCoordinator(
         }
         synchronized(lock) { startingGeneration = generation }
 
-        XLog.d(getLog("start[$tag]", "Starting generation=$generation, wantsMicrophone=$wantsMicrophone"))
+        XLog.d(getLog("start[$tag]", "Starting generation=$generation, requiresAudioFgsUpgrade=$requiresAudioFgsUpgrade"))
 
         var mediaProjection: MediaProjection? = null
         var callback: MediaProjection.Callback? = null
@@ -126,12 +126,12 @@ public class ProjectionCoordinator(
             }
             projection.registerCallback(callback, callbackHandler)
 
-            var microphoneEnabled = false
-            if (wantsMicrophone) {
+            var audioFgsUpgradeSucceeded = false
+            if (requiresAudioFgsUpgrade) {
                 runCatching {
                     startForeground(ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION or ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE)
                 }.onSuccess {
-                    microphoneEnabled = true
+                    audioFgsUpgradeSucceeded = true
                     XLog.i(getLog("start[$tag]", "Microphone FGS upgrade succeeded. generation=$generation"))
                 }.onFailure { cause ->
                     XLog.w(getLog("start[$tag]", "Microphone FGS upgrade failed. Continuing video-only. generation=$generation"), cause)
@@ -139,7 +139,7 @@ public class ProjectionCoordinator(
             }
 
             val pipelineStarted = runCatching {
-                buildPipeline(generation, projection, microphoneEnabled)
+                buildPipeline(generation, projection, audioFgsUpgradeSucceeded)
             }.onFailure { cause ->
                 XLog.e(getLog("start[$tag]", "buildPipeline failed. generation=$generation"), cause)
             }.getOrElse {
@@ -181,8 +181,8 @@ public class ProjectionCoordinator(
                 isStarting = false
                 startingGeneration = null
             }
-            XLog.i(getLog("start[$tag]", "Started generation=$generation, microphoneEnabled=$microphoneEnabled"))
-            return StartResult.Started(generation = generation, mediaProjection = projection, microphoneEnabled = microphoneEnabled)
+            XLog.i(getLog("start[$tag]", "Started generation=$generation, audioFgsUpgradeSucceeded=$audioFgsUpgradeSucceeded"))
+            return StartResult.Started(generation, projection, audioFgsUpgradeSucceeded)
         } catch (cause: Throwable) {
             XLog.e(getLog("start[$tag]", "Unexpected start failure. generation=$generation"), cause)
             callback?.let { runCatching { mediaProjection?.unregisterCallback(it) } }

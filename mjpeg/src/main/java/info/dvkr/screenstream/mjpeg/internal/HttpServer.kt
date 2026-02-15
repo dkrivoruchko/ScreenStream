@@ -198,6 +198,10 @@ internal class HttpServer(
             }
             .filter { (jpeg, _) -> jpeg.isNotEmpty() }
             .onEach { (jpeg, _) -> lastJPEG.set(jpeg) }
+            .catch { cause ->
+                XLog.e(getLog("mjpegFlow", "Producer failed"), cause)
+                throw cause
+            }
             .flatMapLatest { (jpeg, maxFPS) ->
                 if (maxFPS > 0) { // If maxFPS > 0, repeatedly emit the same JPEG every second (keep-alive)
                     flow {
@@ -211,6 +215,11 @@ internal class HttpServer(
                 }
             }
             .conflate()
+            .onCompletion { cause ->
+                if (cause != null && cause !is CancellationException) {
+                    XLog.e(getLog("mjpegFlow", "Producer completed with error"), cause)
+                }
+            }
             .shareIn(coroutineScope, SharingStarted.Eagerly, 1)
 
         mjpegSharedFlow.set(mjpegFlow)

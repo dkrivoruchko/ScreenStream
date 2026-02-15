@@ -536,7 +536,7 @@ internal class WebRtcStreamingService(
                             currentError.set(WebRtcError.UnknownError(cause))
                             sendEvent(WebRtcEvent.UpdateState)
                         } else if (cause.isNonRetryable() || event.attempt >= 20) {
-                            networkAvailable.value = false
+                            if (cause.isConnectivityIssue()) networkAvailable.value = false
                             networkRecovery.value = false
                             currentError.set(cause)
                             sendEvent(WebRtcEvent.UpdateState)
@@ -746,19 +746,18 @@ internal class WebRtcStreamingService(
                 }
 
                 val settings = webRtcSettings.data.value
-                val audioPermissionGranted =
-                    ContextCompat.checkSelfPermission(service, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
-                val wantsAudio = settings.enableMic || settings.enableDeviceAudio
-                if (!audioPermissionGranted && wantsAudio) {
+                val userRequestedMic = settings.enableMic
+                val userRequestedDeviceAudio = settings.enableDeviceAudio
+                val hasAudioPermission = ContextCompat.checkSelfPermission(service, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
+                if (!hasAudioPermission && (userRequestedMic || userRequestedDeviceAudio)) {
                     coroutineScope.launch {
                         webRtcSettings.updateData { copy(enableMic = false, enableDeviceAudio = false) }
                     }
                 }
                 val prj = requireNotNull(projection)
                 val sessionEpoch = bumpStreamEpoch("StartProjection")
-                val wantsMicrophoneForSession = audioPermissionGranted && settings.enableMic
-                val wantsDeviceAudioForSession = audioPermissionGranted && settings.enableDeviceAudio
-                val startResult = projectionCoordinator.start(event.intent, wantsMicrophoneForSession) { _, mediaProjection, microphoneEnabled ->
+                val requiresAudioFgsUpgrade = hasAudioPermission && (userRequestedMic || userRequestedDeviceAudio)
+                val startResult = projectionCoordinator.start(event.intent, requiresAudioFgsUpgrade) { _, mediaProjection, audioFgsUpgradeSucceeded ->
                     val projectionStarted = prj.start(currentStreamId, mediaProjection) { cause ->
                         sendEvent(InternalEvent.CaptureFatal(cause))
                     }
@@ -767,11 +766,10 @@ internal class WebRtcStreamingService(
                         return@start false
                     }
 
-                    val microphoneEnabledForSession = wantsMicrophoneForSession && microphoneEnabled
-                    val deviceAudioEnabledForSession = wantsDeviceAudioForSession
-                    prj.setMicrophoneMute(!microphoneEnabledForSession)
+                    val isAudioCaptureAllowedForSession = hasAudioPermission && audioFgsUpgradeSucceeded
+                    prj.setMicrophoneMute(!(userRequestedMic && isAudioCaptureAllowedForSession))
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                        prj.setDeviceAudioMute(!deviceAudioEnabledForSession)
+                        prj.setDeviceAudioMute(!(userRequestedDeviceAudio && isAudioCaptureAllowedForSession))
                     }
 
                     if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
@@ -795,7 +793,7 @@ internal class WebRtcStreamingService(
                 }
                 when (startResult) {
                     is ProjectionCoordinator.StartResult.Started -> {
-                        if (wantsMicrophoneForSession && !startResult.microphoneEnabled) {
+                        if (hasAudioPermission && (userRequestedMic || userRequestedDeviceAudio) && !startResult.audioFgsUpgradeSucceeded) {
                             XLog.w(getLog("StartProjection", "Microphone FGS upgrade failed. Streaming without microphone."))
                             showAudioCaptureIssueToastOnce()
                         }
@@ -1129,7 +1127,7 @@ internal class WebRtcStreamingService(
     private fun showAudioCaptureIssueToastOnce() {
         if (audioIssueToastShown) return
         audioIssueToastShown = true
-        mainHandler.post { Toast.makeText(service, R.string.webrtc_stream_audio_device_unavailable, Toast.LENGTH_LONG).show() }
+        mainHandler.post { Toast.makeText(service, R.string.webrtc_stream_audio_capture_unavailable, Toast.LENGTH_LONG).show() }
     }
 
     // Inline Only

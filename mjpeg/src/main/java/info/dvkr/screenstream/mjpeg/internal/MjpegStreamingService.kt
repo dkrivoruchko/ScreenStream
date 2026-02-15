@@ -144,22 +144,15 @@ internal class MjpegStreamingService(
 
     private val projectionCallback = object : MediaProjection.Callback() {
         override fun onStop() {
-            XLog.i(this@MjpegStreamingService.getLog("MediaProjection.Callback", "onStop (handled by coordinator)"))
+            XLog.v(this@MjpegStreamingService.getLog("MediaProjection.Callback", "onStop (handled by coordinator)"))
         }
 
-        // TODO https://android-developers.googleblog.com/2024/03/enhanced-screen-sharing-capabilities-in-android-14.html
         override fun onCapturedContentVisibilityChanged(isVisible: Boolean) {
-            XLog.e(
-                this@MjpegStreamingService.getLog("MediaProjection.Callback", "onCapturedContentVisibilityChanged: $isVisible"),
-                IllegalStateException("CapturedContentVisibilityChanged: $isVisible")
-            )
+            XLog.v(this@MjpegStreamingService.getLog("MediaProjection.Callback", "onCapturedContentVisibilityChanged: $isVisible"))
         }
 
         override fun onCapturedContentResize(width: Int, height: Int) {
-            XLog.e(
-                this@MjpegStreamingService.getLog("MediaProjection.Callback", "onCapturedContentResize: width: $width, height: $height"),
-                IllegalStateException("CapturedContentResize: $width x $height")
-            )
+            XLog.v(this@MjpegStreamingService.getLog("MediaProjection.Callback", "onCapturedContentResize: width: $width, height: $height"))
             sendEvent(InternalEvent.CapturedContentResize(width, height))
         }
     }
@@ -367,10 +360,7 @@ internal class MjpegStreamingService(
                     XLog.w(getLog("MjpegEvent.StartProjection", "Already streaming"))
                 } else {
                     waitingForPermission = false
-                    val result = projectionCoordinator.start(event.intent, wantsMicrophone = false) { _, mediaProjection, _ ->
-                        // TODO Starting from Android R, if your application requests the SYSTEM_ALERT_WINDOW permission, and the user has
-                        //  not explicitly denied it, the permission will be automatically granted until the projection is stopped.
-                        //  The permission allows your app to display user controls on top of the screen being captured.
+                    val result = projectionCoordinator.start(event.intent, requiresAudioFgsUpgrade = false) { _, mediaProjection, _ ->
                         mediaProjection.registerCallback(projectionCallback, mainHandler)
 
                         val bitmapCapture = BitmapCapture(service, mjpegSettings, mediaProjection, bitmapStateFlow) { error ->
@@ -385,10 +375,8 @@ internal class MjpegStreamingService(
                         }
 
                         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                            if (Build.VERSION.SDK_INT != Build.VERSION_CODES.S || !Build.MANUFACTURER.equals("Xiaomi", ignoreCase = true)) {
-                                mediaProjectionIntent = event.intent
-                                service.registerComponentCallbacks(componentCallback)
-                            }
+                            mediaProjectionIntent = event.intent
+                            service.registerComponentCallbacks(componentCallback)
                         }
 
                         @Suppress("DEPRECATION")
@@ -531,11 +519,7 @@ internal class MjpegStreamingService(
             is InternalEvent.Traffic -> traffic = event.traffic
 
             is MjpegEvent.CreateNewPin -> when {
-                destroyPending -> XLog.i(
-                    getLog("CreateNewPin", "DestroyPending. Ignoring"),
-                    IllegalStateException("CreateNewPin: DestroyPending")
-                )
-
+                destroyPending -> XLog.i(getLog("CreateNewPin", "DestroyPending. Ignoring"), IllegalStateException("CreateNewPin: DestroyPending"))
                 isStreaming -> XLog.i(getLog("CreateNewPin", "Streaming. Ignoring."), IllegalStateException("CreateNewPin: Streaming."))
                 mjpegSettings.data.value.enablePin -> mjpegSettings.updateData { copy(pin = randomPin()) } // will restart server
             }

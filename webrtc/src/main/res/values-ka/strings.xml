@@ -34,7 +34,7 @@
     <string name="webrtc_stream_audio_mic_summary">მიკროფონის აუდიოს სტრიმი</string>
     <string name="webrtc_stream_audio_device">შიდა აუდიო</string>
     <string name="webrtc_stream_audio_device_summary">ამ მოწყობილობის მედია აუდიოს სტრიმი</string>
-    <string name="webrtc_stream_audio_device_unavailable">შიდა აუდიო მიუწვდომელია</string>
+    <string name="webrtc_stream_audio_capture_unavailable">აუდიო ჩაწერის პრობლემა გამოვლინდა</string>
     <string name="webrtc_stream_connected_clients">დაკავშირებული კლიენტები: %1$d</string>
     <string name="webrtc_stream_no_web_browser_found">ვებ ბრაუზერი ვერ მოიძებნა</string>
     <string name="webrtc_stream_external_app_error">გარე განაცხადის შეცდომა</string>

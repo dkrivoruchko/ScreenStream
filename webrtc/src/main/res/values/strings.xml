@@ -34,7 +34,7 @@
     <string name="webrtc_stream_audio_mic_summary">Stream microphone audio</string>
     <string name="webrtc_stream_audio_device">Internal audio</string>
     <string name="webrtc_stream_audio_device_summary">Stream media audio from this device</string>
-    <string name="webrtc_stream_audio_device_unavailable">Internal audio unavailable</string>
+    <string name="webrtc_stream_audio_capture_unavailable">Audio capture unavailable</string>
     <string name="webrtc_stream_connected_clients">Connected clients: %1$d</string>
     <string name="webrtc_stream_no_web_browser_found">No web browser found</string>
     <string name="webrtc_stream_external_app_error">External application error</string>

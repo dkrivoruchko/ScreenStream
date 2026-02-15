@@ -231,7 +231,7 @@ internal class RtspClient(
     internal fun setAudioData(params: AudioParams?) = synchronized(rtspLock) {
         if (params == null) {
             audioParams.set(null)
-            return
+            return@synchronized
         }
         XLog.d(getLog("setAudioData", "${params.codec}"))
         if (currentState == State.STREAMING) error("Cannot change audio codec while streaming")
@@ -558,14 +558,15 @@ internal class RtspClient(
     }
 
     private suspend fun sendingLoop(tcpSocket: TcpStreamSocket, ports: SelectedPorts, videoParams: VideoParams, audioParams: AudioParams?) {
+        val hasAudio = audioParams != null
         var ssrcVideo = Random.nextInt().toLong() and 0xFFFFFFFFL
-        val ssrcAudio = Random.nextInt().toLong() and 0xFFFFFFFFL
+        val ssrcAudio = if (hasAudio) Random.nextInt().toLong() and 0xFFFFFFFFL else 0L
         val protocol = ports.protocol
 
         val videoUdpSocket = if (protocol == Protocol.TCP) null else
             UdpStreamSocket(selectorManager, rtspUrl.host, ports.videoServer.client, ports.videoClient.client).apply { connect() }
 
-        val audioUdpSocket = if (protocol == Protocol.TCP || onlyVideo) null else
+        val audioUdpSocket = if (protocol == Protocol.TCP || !hasAudio) null else
             UdpStreamSocket(selectorManager, rtspUrl.host, ports.audioServer.client, ports.audioClient.client).apply { connect() }
 
         val bitrateCalculator = BitrateCalculator(scope) { bitrate ->
@@ -591,7 +592,7 @@ internal class RtspClient(
             },
             videoUdpSocket = if (protocol == Protocol.TCP) null else
                 UdpStreamSocket(selectorManager, rtspUrl.host, ports.videoServer.server, ports.videoClient.server).apply { connect() },
-            audioUdpSocket = if (protocol == Protocol.TCP || onlyVideo) null else
+            audioUdpSocket = if (protocol == Protocol.TCP || !hasAudio) null else
                 UdpStreamSocket(selectorManager, rtspUrl.host, ports.audioServer.server, ports.audioClient.server).apply { connect() },
             ssrcVideo = ssrcVideo,
             ssrcAudio = ssrcAudio

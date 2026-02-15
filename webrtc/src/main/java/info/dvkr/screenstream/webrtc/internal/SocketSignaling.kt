@@ -248,6 +248,7 @@ internal class SocketSignaling(
         XLog.d(getLog("onStreamCreated[${socketId()}]"))
 
         currentSocket.on(Event.STREAM_JOIN) { args ->
+            if (isStaleSocketCallback(currentSocket, "onStreamCreated.${Event.STREAM_JOIN}[${currentSocket.id()}]")) return@on
             XLog.v(getLog("onStreamCreated[${socketId()}]", "[${Event.STREAM_JOIN}] Payload: ${args.contentToString()}"))
             val payload = SocketPayload.fromPayload(args)
             if (payload.clientId.isEmpty()) {
@@ -264,6 +265,7 @@ internal class SocketSignaling(
         }
 
         currentSocket.on(Event.CLIENT_ANSWER) { args ->
+            if (isStaleSocketCallback(currentSocket, "onStreamCreated.${Event.CLIENT_ANSWER}[${currentSocket.id()}]")) return@on
             XLog.v(getLog("onStreamCreated[${socketId()}]", "[${Event.CLIENT_ANSWER}]"))
             val payload = SocketPayload.fromPayload(args)
             if (payload.clientId.isEmpty() || payload.answer.isEmpty()) {
@@ -277,6 +279,7 @@ internal class SocketSignaling(
         }
 
         currentSocket.on(Event.CLIENT_CANDIDATE) { args ->
+            if (isStaleSocketCallback(currentSocket, "onStreamCreated.${Event.CLIENT_CANDIDATE}[${currentSocket.id()}]")) return@on
             XLog.v(getLog("onStreamCreated[${socketId()}]", "[${Event.CLIENT_CANDIDATE}]"))
             val payload = SocketPayload.fromPayload(args)
             if (payload.clientId.isEmpty() || payload.candidate == null) {
@@ -290,6 +293,7 @@ internal class SocketSignaling(
         }
 
         currentSocket.on(Event.STREAM_LEAVE) { args ->
+            if (isStaleSocketCallback(currentSocket, "onStreamCreated.${Event.STREAM_LEAVE}[${currentSocket.id()}]")) return@on
             XLog.v(getLog("onStreamCreated[${socketId()}]", "[${Event.STREAM_LEAVE}] Payload: ${args.contentToString()}"))
             val payload = SocketPayload.fromPayload(args)
             if (payload.clientId.isEmpty()) {

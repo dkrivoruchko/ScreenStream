@@ -12,7 +12,6 @@ internal open class RtspEvent(val priority: Int) {
     internal object Priority {
         internal const val NONE: Int = -1
         internal const val RESTART_IGNORE: Int = 10
-        internal const val VIDEO_RECONFIGURE_IGNORE: Int = 15
         internal const val RECOVER_IGNORE: Int = 20
         internal const val DESTROY_IGNORE: Int = 30
     }

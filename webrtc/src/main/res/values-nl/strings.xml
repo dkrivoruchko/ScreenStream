@@ -34,7 +34,7 @@
     <string name="webrtc_stream_audio_mic_summary">Microfoonaudio streamen</string>
     <string name="webrtc_stream_audio_device">Interne audio</string>
     <string name="webrtc_stream_audio_device_summary">Media-audio van dit apparaat streamen</string>
-    <string name="webrtc_stream_audio_device_unavailable">Interne audio niet beschikbaar</string>
+    <string name="webrtc_stream_audio_capture_unavailable">Er is een probleem met de audio-opname gedetecteerd</string>
     <string name="webrtc_stream_connected_clients">Aangesloten clients: %1$d</string>
     <string name="webrtc_stream_no_web_browser_found">Geen webbrowser gevonden</string>
     <string name="webrtc_stream_external_app_error">Fout bij externe toepassing</string>

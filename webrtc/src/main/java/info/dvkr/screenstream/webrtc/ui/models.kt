@@ -39,7 +39,8 @@ internal sealed class WebRtcError(@field:StringRes open val id: Int, override va
         override val message: String?,
         override val cause: Throwable?
     ) : WebRtcError(R.string.webrtc_error_check_network) {
-        internal fun isNonRetryable(): Boolean = code in 500..599
+        internal fun isNonRetryable(): Boolean = code in 400..499 && code != 408 && code != 429
+        internal fun isConnectivityIssue(): Boolean = code <= 0
         override fun toString(context: Context): String = context.getString(id) + if (message.isNullOrBlank()) "" else ":\n$message"
     }
 

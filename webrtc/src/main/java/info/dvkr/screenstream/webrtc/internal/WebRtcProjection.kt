@@ -188,19 +188,12 @@ internal class WebRtcProjection(private val serviceContext: Context) : AudioReco
                         synchronized(lock) { isStopped = true }
                     }
 
-                    // TODO https://android-developers.googleblog.com/2024/03/enhanced-screen-sharing-capabilities-in-android-14.html
                     override fun onCapturedContentVisibilityChanged(isVisible: Boolean) {
-                        XLog.e(
-                            this@WebRtcProjection.getLog("MediaProjection.Callback", "onCapturedContentVisibilityChanged: $isVisible"),
-                            IllegalStateException("CapturedContentVisibilityChanged: $isVisible")
-                        )
+                        XLog.v(this@WebRtcProjection.getLog("MediaProjection.Callback", "onCapturedContentVisibilityChanged: $isVisible"))
                     }
 
                     override fun onCapturedContentResize(width: Int, height: Int) {
-                        XLog.e(
-                            this@WebRtcProjection.getLog("MediaProjection.Callback", "onCapturedContentResize: width: $width, height: $height"),
-                            IllegalStateException("CapturedContentResize: $width x $height")
-                        )
+                        XLog.v(this@WebRtcProjection.getLog("MediaProjection.Callback", "onCapturedContentResize: width:$width, height:$height"))
                         changeCaptureFormat(width, height)
                     }
                 },
@@ -344,7 +337,7 @@ internal class WebRtcProjection(private val serviceContext: Context) : AudioReco
     }
 
     private fun notifyDeviceAudioUnavailable() = mainHandler.post {
-        Toast.makeText(serviceContext, R.string.webrtc_stream_audio_device_unavailable, Toast.LENGTH_LONG).show()
+        Toast.makeText(serviceContext, R.string.webrtc_stream_audio_capture_unavailable, Toast.LENGTH_LONG).show()
     }
 
     private fun recoverOrDisableDeviceAudio(record: AudioRecord?, message: String, cause: Throwable? = null) {

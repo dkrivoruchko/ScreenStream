@@ -451,7 +451,7 @@ internal class WebRtcClient(
 
         override fun onConnectionChange(newState: PeerConnectionState) {
             XLog.v(getLog("onConnectionChange", "Client: $clientId => $newState"))
-            if (newState in listOf(PeerConnectionState.DISCONNECTED, PeerConnectionState.FAILED)) onPeerDisconnected()
+            if (newState == PeerConnectionState.FAILED) onPeerDisconnected()
         }
 
         override fun onIceConnectionReceivingChange(b: Boolean) {

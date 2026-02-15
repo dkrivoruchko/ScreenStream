@@ -67,7 +67,13 @@ public class RtspStreamingModule : StreamingModule {
             StreamingModule.State.Initiated -> {
                 startToken = Uuid.random().toString()
                 _streamingServiceState.value = StreamingModule.State.PendingStart
-                RtspModuleService.startService(context, RtspEvent.Intentable.StartService(startToken!!).toIntent(context))
+                try {
+                    RtspModuleService.startService(context, RtspEvent.Intentable.StartService(startToken!!).toIntent(context))
+                } catch (t: Throwable) {
+                    startToken = null
+                    _streamingServiceState.value = StreamingModule.State.Initiated
+                    throw t
+                }
             }
 
             StreamingModule.State.PendingStart ->

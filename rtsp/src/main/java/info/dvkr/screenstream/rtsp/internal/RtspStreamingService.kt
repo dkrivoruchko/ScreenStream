@@ -51,6 +51,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.android.asCoroutineDispatcher
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -91,17 +92,19 @@ internal class RtspStreamingService(
         )
     }
 
-    internal data class ActiveProjection(
+    private class ActiveProjection(
         val mediaProjection: MediaProjection,
         val virtualDisplay: VirtualDisplay,
         val videoEncoder: VideoEncoder,
-        val audioEncoder: AudioEncoder? = null,
-        val deviceConfiguration: Configuration
+        var captureSurface: Surface,
+        var audioEncoder: AudioEncoder? = null,
+        var deviceConfiguration: Configuration
     ) {
         fun stop(projectionCallback: MediaProjection.Callback) {
             videoEncoder.stop()
+            virtualDisplay.surface = null
             virtualDisplay.release()
-            virtualDisplay.surface?.release()
+            runCatching { captureSurface.release() }
 
             audioEncoder?.stop()
 
@@ -109,11 +112,16 @@ internal class RtspStreamingService(
         }
 
         fun reconfigureVideo(width: Int, height: Int, fps: Int, bitRate: Int, densityDpi: Int) {
+            val oldSurface = captureSurface
             videoEncoder.stop()
-            virtualDisplay.surface?.release()
             videoEncoder.prepare(width, height, fps, bitRate)
+            val inputSurfaceTexture = videoEncoder.inputSurfaceTexture ?: throw IllegalStateException("VideoEncoder input surface is null")
+            val newSurface = Surface(inputSurfaceTexture)
+            virtualDisplay.surface = null
             virtualDisplay.resize(width, height, densityDpi)
-            virtualDisplay.surface = Surface(videoEncoder.inputSurfaceTexture)
+            virtualDisplay.surface = newSurface
+            captureSurface = newSurface
+            runCatching { oldSurface.release() }
             videoEncoder.start()
         }
     }
@@ -149,7 +157,54 @@ internal class RtspStreamingService(
     private var previousError: RtspError? = null
     private var audioCaptureDisabled: Boolean = false
     private var audioIssueToastShown: Boolean = false
+    private var resizeActor: ResizeConflateActor? = null
     // All vars must be read/write on this (RTSP_HT) thread
+
+    private inner class ResizeConflateActor(
+        private val projection: ActiveProjection,
+        initialEncodedWidth: Int,
+        initialEncodedHeight: Int
+    ) {
+        private val resizeRequests = Channel<Pair<Int, Int>>(Channel.CONFLATED)
+        private var encodedSize: Pair<Int, Int> = initialEncodedWidth to initialEncodedHeight
+        private val job: Job = coroutineScope.launch {
+            for (source in resizeRequests) {
+                val activeProjection = projectionState.active
+                if (activeProjection !== projection) continue
+
+                val videoCapabilities = selectedVideoEncoderInfo?.capabilities?.videoCapabilities ?: continue
+                val settings = rtspSettings.data.value
+                val (_, targetWidth, targetHeight) = videoCapabilities.adjustResizeFactor(
+                    source.first, source.second, settings.videoResizeFactor / 100
+                )
+                if (targetWidth == encodedSize.first && targetHeight == encodedSize.second) continue
+
+                try {
+                    activeProjection.reconfigureVideo(
+                        width = targetWidth,
+                        height = targetHeight,
+                        fps = settings.videoFps.coerceIn(videoCapabilities.supportedFrameRates.toClosedRange()),
+                        bitRate = settings.videoBitrateBits.coerceIn(videoCapabilities.bitrateRange.toClosedRange()),
+                        densityDpi = service.resources.displayMetrics.densityDpi
+                    )
+                    encodedSize = targetWidth to targetHeight
+                } catch (cause: Throwable) {
+                    sendEvent(InternalEvent.Error(RtspError.UnknownError(cause)))
+                    return@launch
+                }
+            }
+        }
+
+        fun offer(sourceWidth: Int, sourceHeight: Int) {
+            if (sourceWidth <= 0 || sourceHeight <= 0) return
+            resizeRequests.trySend(sourceWidth to sourceHeight)
+        }
+
+        fun close() {
+            resizeRequests.close()
+            job.cancel()
+        }
+    }
 
     private inner class RtspServerController() {
         var isActive: Boolean = false
@@ -401,7 +456,6 @@ internal class RtspStreamingService(
         }
 
         data class CapturedContentResize(val width: Int, val height: Int) : InternalEvent(Priority.RECOVER_IGNORE)
-        data class ApplyVideoReconfigure(val width: Int, val height: Int) : InternalEvent(Priority.VIDEO_RECONFIGURE_IGNORE)
         data class Error(val error: RtspError) : InternalEvent(Priority.RECOVER_IGNORE)
         data class Destroy(val destroyJob: CompletableJob) : InternalEvent(Priority.DESTROY_IGNORE)
 
@@ -543,40 +597,21 @@ internal class RtspStreamingService(
         if (timeout > 0) XLog.d(getLog("sendEvent", "New event [Timeout: $timeout] => $event"))
         else XLog.v(getLog("sendEvent", "New event => $event"))
 
-        if (event is InternalEvent.ApplyVideoReconfigure) {
-            handler.removeMessages(RtspEvent.Priority.VIDEO_RECONFIGURE_IGNORE)
-        }
         if (event is InternalEvent.RtspServer.DiscoverAddress) {
             handler.removeMessages(RtspEvent.Priority.RESTART_IGNORE)
         }
         if (event is RtspEvent.Intentable.RecoverError) {
             handler.removeMessages(RtspEvent.Priority.RESTART_IGNORE)
-            handler.removeMessages(RtspEvent.Priority.VIDEO_RECONFIGURE_IGNORE)
             handler.removeMessages(RtspEvent.Priority.RECOVER_IGNORE)
         }
         if (event is InternalEvent.Destroy) {
             handler.removeMessages(RtspEvent.Priority.RESTART_IGNORE)
-            handler.removeMessages(RtspEvent.Priority.VIDEO_RECONFIGURE_IGNORE)
             handler.removeMessages(RtspEvent.Priority.RECOVER_IGNORE)
             handler.removeMessages(RtspEvent.Priority.DESTROY_IGNORE)
         }
 
         val wasSent = handler.sendMessageDelayed(handler.obtainMessage(event.priority, event), timeout)
         if (!wasSent) XLog.e(getLog("sendEvent", "Failed to send event: $event"))
-    }
-
-    private fun scheduleVideoReconfigure(projection: ActiveProjection, sourceWidth: Int, sourceHeight: Int, source: String) {
-        val videoCapabilities = selectedVideoEncoderInfo!!.capabilities.videoCapabilities!!
-        val (_, width, height) = videoCapabilities.adjustResizeFactor(
-            sourceWidth, sourceHeight, rtspSettings.data.value.videoResizeFactor / 100
-        )
-
-        if (width == projection.videoEncoder.width && height == projection.videoEncoder.height) {
-            XLog.d(getLog(source, "No change relevant for streaming. Ignoring."))
-            return
-        }
-
-        sendEvent(event = InternalEvent.ApplyVideoReconfigure(width = width, height = height), timeout = 120)
     }
 
     private fun buildViewState(): RtspState {
@@ -663,6 +698,8 @@ internal class RtspStreamingService(
                     waitingForPermission = false,
                     cachedIntent = if (event.clearIntent) null else projectionState.cachedIntent
                 )
+                resizeActor?.close()
+                resizeActor = null
                 currentError = null
                 previousError = null
                 audioCaptureDisabled = false
@@ -806,161 +843,178 @@ internal class RtspStreamingService(
                 }
                 val wantsMicrophoneForSession = audioPermissionGranted && settings.enableMic
                 val wantsDeviceAudioForSession = audioPermissionGranted && settings.enableDeviceAudio
-                val startResult = projectionCoordinator.start(event.intent, wantsMicrophoneForSession) { _, mediaProjection, microphoneEnabled ->
-                    // TODO Starting from Android R, if your application requests the SYSTEM_ALERT_WINDOW permission, and the user has
-                    //  not explicitly denied it, the permission will be automatically granted until the projection is stopped.
-                    //  The permission allows your app to display user controls on top of the screen being captured.
-                    mediaProjection.registerCallback(projectionCallback, handler)
+                val startResult =
+                    projectionCoordinator.start(event.intent, wantsMicrophoneForSession) { _, mediaProjection, audioFgsUpgradeSucceeded ->
+                        // TODO Starting from Android R, if your application requests the SYSTEM_ALERT_WINDOW permission, and the user has
+                        //  not explicitly denied it, the permission will be automatically granted until the projection is stopped.
+                        //  The permission allows your app to display user controls on top of the screen being captured.
+                        mediaProjection.registerCallback(projectionCallback, handler)
 
-                    MasterClock.reset()
-                    MasterClock.ensureStarted()
+                        MasterClock.reset()
+                        MasterClock.ensureStarted()
 
-                    var virtualDisplay: VirtualDisplay? = null
-                    val deviceConfiguration = Configuration(service.resources.configuration)
-                    val videoEncoderInfo = selectedVideoEncoderInfo!!
-
-                    val videoEncoder = VideoEncoder(
-                        codecInfo = videoEncoderInfo,
-                        onVideoInfo = { sps, pps, vps ->
-                            val params = VideoParams(videoEncoderInfo.codec, sps, pps, vps)
-                            projectionState.lastVideoParams = params
-                            setVideoParams(params)
-                        },
-                        onVideoFrame = onFrame,
-                        onFps = { sendEvent(InternalEvent.OnVideoFps(it)) },
-                        onError = {
-                            XLog.w(getLog("VideoEncoder.onError", it.message), it)
-                            sendEvent(InternalEvent.Error(RtspError.UnknownError(it)))
-                        }
-                    ).apply {
+                        var virtualDisplay: VirtualDisplay? = null
+                        var captureSurface: Surface? = null
+                        val deviceConfiguration = Configuration(service.resources.configuration)
+                        val videoEncoderInfo = selectedVideoEncoderInfo!!
                         val videoCapabilities = videoEncoderInfo.capabilities.videoCapabilities!!
                         val bounds = WindowMetricsCalculator.getOrCreate().computeMaximumWindowMetrics(service).bounds
-                        val (_, width, height) = videoCapabilities.adjustResizeFactor(
-                            bounds.width(), bounds.height(), settings.videoResizeFactor / 100
+                        val sourceWidth = bounds.width()
+                        val sourceHeight = bounds.height()
+                        val (_, encodedWidth, encodedHeight) = videoCapabilities.adjustResizeFactor(
+                            sourceWidth, sourceHeight, settings.videoResizeFactor / 100
                         )
 
-                        prepare(
-                            width,
-                            height,
-                            fps = settings.videoFps.coerceIn(videoCapabilities.supportedFrameRates.toClosedRange()),
-                            bitRate = settings.videoBitrateBits.coerceIn(videoCapabilities.bitrateRange.toClosedRange())
-                        )
-
-                        this.inputSurfaceTexture?.let { surfaceTexture ->
-                            virtualDisplay = mediaProjection.createVirtualDisplay(
-                                "ScreenStreamVirtualDisplay",
-                                width,
-                                height,
-                                service.resources.displayMetrics.densityDpi,
-                                DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR or DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC,
-                                Surface(surfaceTexture),
-                                null,
-                                null
-                            )
-                        }
-
-                        if (virtualDisplay == null) {
-                            XLog.i(getLog("startDisplayCapture", "virtualDisplay is null. Stopping projection."))
-                            stop()
-                            mediaProjection.unregisterCallback(projectionCallback)
-                            return@start false
-                        }
-
-                        start()
-                    }
-
-                    val microphoneEnabledForSession = wantsMicrophoneForSession && microphoneEnabled
-                    val deviceAudioEnabledForSession = wantsDeviceAudioForSession
-                    val audioEnabledForSession = microphoneEnabledForSession || deviceAudioEnabledForSession
-                    var audioEncoder: AudioEncoder? = null
-                    if (audioEnabledForSession) {
-                        val audioEncoderInfo = selectedAudioEncoderInfo!!
-                        audioEncoder = AudioEncoder(
-                            codecInfo = audioEncoderInfo,
-                            onAudioInfo = { params ->
-                                val audioParams = AudioParams(audioEncoderInfo.codec, params.sampleRate, params.isStereo)
-                                projectionState.lastAudioParams = audioParams
-                                setAudioParams(audioParams)
+                        val videoEncoder = VideoEncoder(
+                            codecInfo = videoEncoderInfo,
+                            onVideoInfo = { sps, pps, vps ->
+                                val params = VideoParams(videoEncoderInfo.codec, sps, pps, vps)
+                                projectionState.lastVideoParams = params
+                                setVideoParams(params)
                             },
-                            onAudioFrame = onFrame,
-                            onAudioCaptureError = { sendEvent(InternalEvent.AudioCaptureError(it)) },
+                            onVideoFrame = onFrame,
+                            onFps = { sendEvent(InternalEvent.OnVideoFps(it)) },
                             onError = {
-                                XLog.w(getLog("AudioEncoder.onError", it.message), it)
+                                XLog.w(getLog("VideoEncoder.onError", it.message), it)
                                 sendEvent(InternalEvent.Error(RtspError.UnknownError(it)))
                             }
                         ).apply {
-                            val requestedBitrate = settings.audioBitrateBits
-                            val requestedStereo = settings.stereoAudio
-                            val paramsFromSettings = when (audioEncoderInfo.codec) {
-                                is Codec.Audio.G711 -> AudioSource.Params.DEFAULT_G711.copy(
-                                    bitrate = 64 * 1000,
-                                    echoCanceler = settings.audioEchoCanceller,
-                                    noiseSuppressor = settings.audioNoiseSuppressor
-                                )
+                            prepare(
+                                encodedWidth,
+                                encodedHeight,
+                                fps = settings.videoFps.coerceIn(videoCapabilities.supportedFrameRates.toClosedRange()),
+                                bitRate = settings.videoBitrateBits.coerceIn(videoCapabilities.bitrateRange.toClosedRange())
+                            )
 
-                                is Codec.Audio.OPUS -> AudioSource.Params.DEFAULT_OPUS.copy(
-                                    bitrate = requestedBitrate,
-                                    echoCanceler = settings.audioEchoCanceller,
-                                    noiseSuppressor = settings.audioNoiseSuppressor,
-                                    isStereo = true
-                                )
-
-                                else -> AudioSource.Params.DEFAULT.copy(
-                                    bitrate = requestedBitrate,
-                                    isStereo = requestedStereo,
-                                    echoCanceler = settings.audioEchoCanceller,
-                                    noiseSuppressor = settings.audioNoiseSuppressor
+                            this.inputSurfaceTexture?.let { surfaceTexture ->
+                                captureSurface = Surface(surfaceTexture)
+                                virtualDisplay = mediaProjection.createVirtualDisplay(
+                                    "ScreenStreamVirtualDisplay",
+                                    encodedWidth,
+                                    encodedHeight,
+                                    service.resources.displayMetrics.densityDpi,
+                                    DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
+                                    captureSurface,
+                                    null,
+                                    null
                                 )
                             }
 
-                            prepare(
-                                enableMic = microphoneEnabledForSession,
-                                enableDeviceAudio = deviceAudioEnabledForSession,
-                                dispatcher = Dispatchers.IO,
-                                audioParams = paramsFromSettings,
-                                audioSource = MediaRecorder.AudioSource.DEFAULT,
-                                mediaProjection = mediaProjection,
-                            )
-
-                            setMute(settings.muteMic, settings.muteDeviceAudio)
-                            setVolume(settings.volumeMic, settings.volumeDeviceAudio)
+                            if (virtualDisplay == null) {
+                                XLog.i(getLog("startDisplayCapture", "virtualDisplay is null. Stopping projection."))
+                                stop()
+                                mediaProjection.unregisterCallback(projectionCallback)
+                                runCatching { captureSurface?.release() }
+                                return@start false
+                            }
 
                             start()
                         }
-                    } else {
-                        projectionState.lastAudioParams = null
-                        setAudioParams(null)
-                    }
 
-                    if (modeLocal == RtspSettings.Values.Mode.CLIENT) {
-                        val onlyVideo = audioCaptureDisabled || !audioEnabledForSession
-                        clientController?.startClient(clientRtspUrl!!, onlyVideo)
-                    }
+                        val microphoneEnabledForSession = wantsMicrophoneForSession && audioFgsUpgradeSucceeded
+                        val deviceAudioEnabledForSession = wantsDeviceAudioForSession
+                        val audioEnabledForSession = microphoneEnabledForSession || deviceAudioEnabledForSession
+                        var audioEncoder: AudioEncoder? = null
+                        if (audioEnabledForSession) {
+                            val audioEncoderInfo = selectedAudioEncoderInfo!!
+                            audioEncoder = AudioEncoder(
+                                codecInfo = audioEncoderInfo,
+                                onAudioInfo = { params ->
+                                    val audioParams = AudioParams(audioEncoderInfo.codec, params.sampleRate, params.isStereo)
+                                    projectionState.lastAudioParams = audioParams
+                                    setAudioParams(audioParams)
+                                },
+                                onAudioFrame = onFrame,
+                                onAudioCaptureError = { sendEvent(InternalEvent.AudioCaptureError(it)) },
+                                onError = {
+                                    XLog.w(getLog("AudioEncoder.onError", it.message), it)
+                                    sendEvent(InternalEvent.Error(RtspError.UnknownError(it)))
+                                }
+                            ).apply {
+                                val requestedBitrate = settings.audioBitrateBits
+                                val requestedStereo = settings.stereoAudio
+                                val paramsFromSettings = when (audioEncoderInfo.codec) {
+                                    is Codec.Audio.G711 -> AudioSource.Params.DEFAULT_G711.copy(
+                                        bitrate = 64 * 1000,
+                                        echoCanceler = settings.audioEchoCanceller,
+                                        noiseSuppressor = settings.audioNoiseSuppressor
+                                    )
 
-                    projectionState.active = ActiveProjection(
-                        mediaProjection = mediaProjection,
-                        virtualDisplay = virtualDisplay!!,
-                        videoEncoder = videoEncoder,
-                        audioEncoder = audioEncoder,
-                        deviceConfiguration = deviceConfiguration
-                    )
+                                    is Codec.Audio.OPUS -> AudioSource.Params.DEFAULT_OPUS.copy(
+                                        bitrate = requestedBitrate,
+                                        echoCanceler = settings.audioEchoCanceller,
+                                        noiseSuppressor = settings.audioNoiseSuppressor,
+                                        isStereo = true
+                                    )
 
-                    if (modeLocal == RtspSettings.Values.Mode.SERVER) {
-                        serverController?.start(coroutineScope)
-                    }
-                    if (modeLocal == RtspSettings.Values.Mode.CLIENT) {
-                        clientController?.connect()
-                    }
+                                    else -> AudioSource.Params.DEFAULT.copy(
+                                        bitrate = requestedBitrate,
+                                        isStereo = requestedStereo,
+                                        echoCanceler = settings.audioEchoCanceller,
+                                        noiseSuppressor = settings.audioNoiseSuppressor
+                                    )
+                                }
 
-                    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                        projectionState.cachedIntent = event.intent
-                        service.registerComponentCallbacks(componentCallback)
+                                prepare(
+                                    enableMic = microphoneEnabledForSession,
+                                    enableDeviceAudio = deviceAudioEnabledForSession,
+                                    dispatcher = Dispatchers.IO,
+                                    audioParams = paramsFromSettings,
+                                    audioSource = MediaRecorder.AudioSource.DEFAULT,
+                                    mediaProjection = mediaProjection,
+                                )
+
+                                setMute(settings.muteMic, settings.muteDeviceAudio)
+                                setVolume(settings.volumeMic, settings.volumeDeviceAudio)
+
+                                start()
+                            }
+                        } else {
+                            projectionState.lastAudioParams = null
+                            setAudioParams(null)
+                        }
+
+                        if (modeLocal == RtspSettings.Values.Mode.CLIENT) {
+                            val onlyVideo = audioCaptureDisabled || !audioEnabledForSession
+                            clientController?.startClient(clientRtspUrl!!, onlyVideo)
+                        }
+
+                        projectionState.active = ActiveProjection(
+                            mediaProjection = mediaProjection,
+                            virtualDisplay = virtualDisplay!!,
+                            videoEncoder = videoEncoder,
+                            captureSurface = captureSurface ?: run {
+                                XLog.i(getLog("StartProjection", "captureSurface is null. Stopping projection."))
+                                videoEncoder.stop()
+                                mediaProjection.unregisterCallback(projectionCallback)
+                                return@start false
+                            },
+                            audioEncoder = audioEncoder,
+                            deviceConfiguration = deviceConfiguration
+                        )
+                        resizeActor?.close()
+                        resizeActor = ResizeConflateActor(
+                            projection = projectionState.active!!,
+                            initialEncodedWidth = encodedWidth,
+                            initialEncodedHeight = encodedHeight
+                        )
+
+                        if (modeLocal == RtspSettings.Values.Mode.SERVER) {
+                            serverController?.start(coroutineScope)
+                        }
+                        if (modeLocal == RtspSettings.Values.Mode.CLIENT) {
+                            clientController?.connect()
+                        }
+
+                        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                            projectionState.cachedIntent = event.intent
+                            service.registerComponentCallbacks(componentCallback)
+                        }
+                        true
                     }
-                    true
-                }
                 when (startResult) {
                     is ProjectionCoordinator.StartResult.Started -> {
-                        if (wantsMicrophoneForSession && !startResult.microphoneEnabled) {
+                        if (wantsMicrophoneForSession && !startResult.audioFgsUpgradeSucceeded) {
                             XLog.w(getLog("StartProjection", "Microphone FGS upgrade failed. Streaming without microphone."))
                             showAudioCaptureIssueToastOnce()
                         }
@@ -997,7 +1051,7 @@ internal class RtspStreamingService(
                 audioCaptureDisabled = true
                 projectionState.lastAudioParams = null
                 projectionState.active?.audioEncoder?.stop()
-                projectionState.active = projectionState.active?.copy(audioEncoder = null)
+                projectionState.active?.audioEncoder = null
                 serverController?.setAudioParams(null)
                 clientController?.setAudioParams(null)
                 showAudioCaptureIssueToastOnce()
@@ -1016,21 +1070,21 @@ internal class RtspStreamingService(
 
                 val newConfig = Configuration(event.newConfig)
                 val configDiff = projection.deviceConfiguration.diff(newConfig)
-                projectionState.active = projection.copy(deviceConfiguration = newConfig)
+                projection.deviceConfiguration = newConfig
                 if (configDiff and ActivityInfo.CONFIG_ORIENTATION != 0
                     || configDiff and ActivityInfo.CONFIG_SCREEN_LAYOUT != 0
                     || configDiff and ActivityInfo.CONFIG_SCREEN_SIZE != 0
                     || configDiff and ActivityInfo.CONFIG_DENSITY != 0
                 ) {
                     val bounds = WindowMetricsCalculator.getOrCreate().computeMaximumWindowMetrics(service).bounds
-                    scheduleVideoReconfigure(projection, bounds.width(), bounds.height(), source = "ConfigurationChange")
+                    resizeActor?.offer(sourceWidth = bounds.width(), sourceHeight = bounds.height())
                 } else {
                     XLog.d(getLog("ConfigurationChange", "No change relevant for streaming. Ignoring."))
                 }
             }
 
             is InternalEvent.CapturedContentResize -> {
-                val projection = projectionState.active ?: run {
+                if (projectionState.active == null) {
                     XLog.d(getLog("CapturedContentResize", "Not streaming. Ignoring."))
                     return
                 }
@@ -1041,29 +1095,7 @@ internal class RtspStreamingService(
                     )
                     return
                 }
-
-                scheduleVideoReconfigure(projection, event.width, event.height, source = "CapturedContentResize")
-            }
-
-            is InternalEvent.ApplyVideoReconfigure -> {
-                val projection = projectionState.active ?: run {
-                    XLog.d(getLog("ApplyVideoReconfigure", "Not streaming. Ignoring."))
-                    return
-                }
-
-                if (event.width == projection.videoEncoder.width && event.height == projection.videoEncoder.height) {
-                    XLog.d(getLog("ApplyVideoReconfigure", "Same size ${event.width}x${event.height}. Ignoring."))
-                    return
-                }
-
-                val videoCapabilities = selectedVideoEncoderInfo!!.capabilities.videoCapabilities!!
-                projection.reconfigureVideo(
-                    width = event.width,
-                    height = event.height,
-                    fps = rtspSettings.data.value.videoFps.coerceIn(videoCapabilities.supportedFrameRates.toClosedRange()),
-                    bitRate = rtspSettings.data.value.videoBitrateBits.coerceIn(videoCapabilities.bitrateRange.toClosedRange()),
-                    densityDpi = service.resources.displayMetrics.densityDpi
-                )
+                resizeActor?.offer(sourceWidth = event.width, sourceHeight = event.height)
             }
 
             is RtspEvent.Intentable.StopStream -> stopStream(false)
@@ -1116,7 +1148,8 @@ internal class RtspStreamingService(
     // Inline Only
     @Suppress("NOTHING_TO_INLINE")
     private inline fun stopStream(stopServer: Boolean) {
-        handler.removeMessages(RtspEvent.Priority.VIDEO_RECONFIGURE_IGNORE)
+        resizeActor?.close()
+        resizeActor = null
 
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             runCatching { service.unregisterComponentCallbacks(componentCallback) }

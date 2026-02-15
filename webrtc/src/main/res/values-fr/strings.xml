@@ -34,7 +34,7 @@
     <string name="webrtc_stream_audio_mic_summary">Diffuser l\'audio du microphone</string>
     <string name="webrtc_stream_audio_device">Audio interne</string>
     <string name="webrtc_stream_audio_device_summary">Diffuser l\'audio multimédia de cet appareil</string>
-    <string name="webrtc_stream_audio_device_unavailable">Audio interne indisponible</string>
+    <string name="webrtc_stream_audio_capture_unavailable">Un problème de capture audio a été détecté</string>
     <string name="webrtc_stream_connected_clients">Clients connectés : %1$d</string>
     <string name="webrtc_stream_no_web_browser_found">Aucun navigateur web trouvé</string>
     <string name="webrtc_stream_external_app_error">Erreur d\'application externe</string>
