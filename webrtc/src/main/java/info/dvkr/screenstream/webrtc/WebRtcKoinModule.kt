@@ -25,6 +25,14 @@ public val WebRtcKoinModule: Module = module {
     single { WebRtcSettingsImpl(get()) } bind (WebRtcSettings::class)
     scope<WebRtcKoinScope> {
         scoped { WebRtcEnvironment(get()) }
-        scoped { params -> WebRtcStreamingService(params.get(), params.get(), get(), get()) } bind (WebRtcStreamingService::class)
+        scoped { params ->
+            WebRtcStreamingService(
+                service = params.get(),
+                mutableWebRtcStateFlow = params.get(),
+                environment = get(),
+                webRtcSettings = get(),
+                streamingAnalytics = get()
+            )
+        } bind (WebRtcStreamingService::class)
     }
 }

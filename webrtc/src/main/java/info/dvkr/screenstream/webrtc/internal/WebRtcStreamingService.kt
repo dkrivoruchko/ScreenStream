@@ -21,12 +21,18 @@ import android.os.HandlerThread
 import android.os.Looper
 import android.os.Message
 import android.os.PowerManager
+import android.os.SystemClock
 import android.widget.Toast
 import androidx.annotation.AnyThread
 import androidx.annotation.MainThread
 import androidx.core.content.ContextCompat
 import androidx.window.layout.WindowMetricsCalculator
 import com.elvishew.xlog.XLog
+import info.dvkr.screenstream.common.analytics.EntryPoint
+import info.dvkr.screenstream.common.analytics.StartFailGroup
+import info.dvkr.screenstream.common.analytics.StreamMode
+import info.dvkr.screenstream.common.analytics.StreamingAnalytics
+import info.dvkr.screenstream.common.analytics.StreamingSessionAnalyticsTracker
 import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.common.getVersionName
 import info.dvkr.screenstream.common.module.ProjectionCoordinator
@@ -65,7 +71,8 @@ internal class WebRtcStreamingService(
     private val service: WebRtcModuleService,
     private val mutableWebRtcStateFlow: MutableStateFlow<WebRtcState>,
     private val environment: WebRtcEnvironment,
-    private val webRtcSettings: WebRtcSettings
+    private val webRtcSettings: WebRtcSettings,
+    private val streamingAnalytics: StreamingAnalytics
 ) : HandlerThread("WebRTC-HT", android.os.Process.THREAD_PRIORITY_DISPLAY), Handler.Callback {
 
     private data class ClientSession(val generation: Long, val epoch: Long, val client: WebRtcClient)
@@ -96,6 +103,13 @@ internal class WebRtcStreamingService(
             onProjectionStopped = { generation ->
                 sendEvent(WebRtcEvent.Intentable.StopStream("ProjectionCoordinator.onStop[generation=$generation]"))
             }
+        )
+    }
+    private val sessionAnalyticsTracker by lazy(LazyThreadSafetyMode.NONE) {
+        StreamingSessionAnalyticsTracker(
+            analytics = streamingAnalytics,
+            streamModeProvider = { StreamMode.WEBRTC },
+            nowElapsedRealtimeMs = { SystemClock.elapsedRealtime() }
         )
     }
 
@@ -448,13 +462,15 @@ internal class WebRtcStreamingService(
         } catch (cause: Throwable) {
             XLog.e(this@WebRtcStreamingService.getLog("handleMessage.catch", cause.toString()), cause)
 
+            sessionAnalyticsTracker.onStartAborted()
             mediaProjectionIntent = null
-            stopStream()
+            stopStream("HandleMessageException")
 
             if (cause is WebRtcError) currentError.set(cause) else currentError.set(WebRtcError.UnknownError(cause))
         } finally {
             XLog.d(this@WebRtcStreamingService.getLog("handleMessage", "Done [$event] New state: [${getStateString()}]"))
             if (event is InternalEvent.Destroy) event.destroyJob.complete()
+            sessionAnalyticsTracker.onActiveConsumersChanged(currentActiveConsumersCount())
             publishState()
         }
 
@@ -731,7 +747,10 @@ internal class WebRtcStreamingService(
                 currentError.set(WebRtcError.SocketError(event.error.message ?: "Unknown error", event.error.cause))
             }
 
-            is WebRtcEvent.CastPermissionsDenied -> waitingForPermission = false
+            is WebRtcEvent.CastPermissionsDenied -> {
+                waitingForPermission = false
+                sessionAnalyticsTracker.onStartFailed(StartFailGroup.PERMISSION_DENIED)
+            }
 
             is WebRtcEvent.StartProjection -> {
                 if (destroyPending) {
@@ -748,7 +767,8 @@ internal class WebRtcStreamingService(
                 val settings = webRtcSettings.data.value
                 val userRequestedMic = settings.enableMic
                 val userRequestedDeviceAudio = settings.enableDeviceAudio
-                val hasAudioPermission = ContextCompat.checkSelfPermission(service, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
+                val hasAudioPermission =
+                    ContextCompat.checkSelfPermission(service, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
                 if (!hasAudioPermission && (userRequestedMic || userRequestedDeviceAudio)) {
                     coroutineScope.launch {
                         webRtcSettings.updateData { copy(enableMic = false, enableDeviceAudio = false) }
@@ -757,40 +777,44 @@ internal class WebRtcStreamingService(
                 val prj = requireNotNull(projection)
                 val sessionEpoch = bumpStreamEpoch("StartProjection")
                 val requiresAudioFgsUpgrade = hasAudioPermission && (userRequestedMic || userRequestedDeviceAudio)
-                val startResult = projectionCoordinator.start(event.intent, requiresAudioFgsUpgrade) { _, mediaProjection, audioFgsUpgradeSucceeded ->
-                    val projectionStarted = prj.start(currentStreamId, mediaProjection) { cause ->
-                        sendEvent(InternalEvent.CaptureFatal(cause))
-                    }
-                    if (!projectionStarted) {
-                        XLog.w(this@WebRtcStreamingService.getLog("StartProjection", "projection.start returned false"), IllegalStateException("projection.start returned false"))
-                        return@start false
-                    }
+                val startResult =
+                    projectionCoordinator.start(event.intent, requiresAudioFgsUpgrade) { _, mediaProjection, audioFgsUpgradeSucceeded ->
+                        val projectionStarted = prj.start(currentStreamId, mediaProjection) { cause ->
+                            sendEvent(InternalEvent.CaptureFatal(cause))
+                        }
+                        if (!projectionStarted) {
+                            XLog.w(
+                                this@WebRtcStreamingService.getLog("StartProjection", "projection.start returned false"),
+                                IllegalStateException("projection.start returned false")
+                            )
+                            return@start false
+                        }
 
-                    val isAudioCaptureAllowedForSession = hasAudioPermission && audioFgsUpgradeSucceeded
-                    prj.setMicrophoneMute(!(userRequestedMic && isAudioCaptureAllowedForSession))
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                        prj.setDeviceAudioMute(!(userRequestedDeviceAudio && isAudioCaptureAllowedForSession))
-                    }
+                        val isAudioCaptureAllowedForSession = hasAudioPermission && audioFgsUpgradeSucceeded
+                        prj.setMicrophoneMute(!(userRequestedMic && isAudioCaptureAllowedForSession))
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                            prj.setDeviceAudioMute(!(userRequestedDeviceAudio && isAudioCaptureAllowedForSession))
+                        }
 
-                    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                        mediaProjectionIntent = event.intent
-                        service.registerComponentCallbacks(componentCallback)
-                    }
+                        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                            mediaProjectionIntent = event.intent
+                            service.registerComponentCallbacks(componentCallback)
+                        }
 
-                    synchronizeClientEpoch(sessionEpoch)
-                    requireNotNull(signaling).sendStreamStart()
-                    clients.forEach { (_, session) ->
-                        session.client.start(prj.localMediaSteam!!, session.epoch)
-                    }
+                        synchronizeClientEpoch(sessionEpoch)
+                        requireNotNull(signaling).sendStreamStart()
+                        clients.forEach { (_, session) ->
+                            session.client.start(prj.localMediaSteam!!, session.epoch)
+                        }
 
-                    @Suppress("DEPRECATION")
-                    @SuppressLint("WakelockTimeout")
-                    if (Build.MANUFACTURER !in listOf("OnePlus", "OPPO") && webRtcSettings.data.value.keepAwake) {
-                        val flags = PowerManager.SCREEN_DIM_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP
-                        wakeLock = powerManager.newWakeLock(flags, "ScreenStream::WebRTC-Tag").apply { acquire() }
+                        @Suppress("DEPRECATION")
+                        @SuppressLint("WakelockTimeout")
+                        if (Build.MANUFACTURER !in listOf("OnePlus", "OPPO") && webRtcSettings.data.value.keepAwake) {
+                            val flags = PowerManager.SCREEN_DIM_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP
+                            wakeLock = powerManager.newWakeLock(flags, "ScreenStream::WebRTC-Tag").apply { acquire() }
+                        }
+                        true
                     }
-                    true
-                }
                 when (startResult) {
                     is ProjectionCoordinator.StartResult.Started -> {
                         if (hasAudioPermission && (userRequestedMic || userRequestedDeviceAudio) && !startResult.audioFgsUpgradeSucceeded) {
@@ -798,14 +822,19 @@ internal class WebRtcStreamingService(
                             showAudioCaptureIssueToastOnce()
                         }
                         currentError.set(null)
+                        sessionAnalyticsTracker.onStarted(currentActiveConsumersCount())
                     }
 
                     ProjectionCoordinator.StartResult.Busy -> {
+                        sessionAnalyticsTracker.onStartFailed(StartFailGroup.BUSY)
                         XLog.w(getLog("StartProjection", "Coordinator is busy. Ignoring."))
                     }
 
                     is ProjectionCoordinator.StartResult.Blocked, is ProjectionCoordinator.StartResult.Fatal -> {
                         val cause = startResult.cause ?: error("Missing cause for failed start result")
+                        sessionAnalyticsTracker.onStartFailed(
+                            if (startResult is ProjectionCoordinator.StartResult.Fatal) StartFailGroup.FATAL else StartFailGroup.BLOCKED
+                        )
                         mediaProjectionIntent = null
                         waitingForPermission = false
                         if (startResult is ProjectionCoordinator.StartResult.Fatal) {
@@ -813,7 +842,7 @@ internal class WebRtcStreamingService(
                         } else {
                             XLog.w(getLog("StartProjection", "Blocked by system"), cause)
                         }
-                        stopStream()
+                        stopStream("StartProjectionFailed")
                         currentError.set(cause as? WebRtcError ?: WebRtcError.UnknownError(cause))
                     }
                 }
@@ -828,7 +857,7 @@ internal class WebRtcStreamingService(
                 sendEvent(WebRtcEvent.Intentable.StopStream("CaptureFatal:${event.cause.javaClass.simpleName}:${event.cause.message}"))
             }
 
-            is WebRtcEvent.Intentable.StopStream -> stopStream()
+            is WebRtcEvent.Intentable.StopStream -> stopStream(event.reason)
 
             is WebRtcEvent.Intentable.RecoverError -> {
                 if (destroyPending) {
@@ -836,7 +865,7 @@ internal class WebRtcStreamingService(
                     return
                 }
 
-                stopStream()
+                stopStream("RecoverError")
 
                 signaling?.destroy()
                 signaling = null
@@ -857,6 +886,7 @@ internal class WebRtcStreamingService(
                     XLog.i(getLog("StartStream", "DestroyPending. Ignoring"), IllegalStateException("StartStream: DestroyPending"))
                     return
                 }
+                sessionAnalyticsTracker.onStartAttempt(EntryPoint.BUTTON)
 
                 mediaProjectionIntent?.let {
                     check(Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) { "WebRtcEvent.StartStream: UPSIDE_DOWN_CAKE" }
@@ -1043,7 +1073,7 @@ internal class WebRtcStreamingService(
             }
 
             is InternalEvent.Destroy -> {
-                stopStream()
+                stopStream("Destroy")
 
                 signaling?.destroy()
                 signaling = null
@@ -1101,12 +1131,15 @@ internal class WebRtcStreamingService(
 
     // Inline Only
     @Suppress("NOTHING_TO_INLINE")
-    private inline fun stopStream() {
+    private inline fun stopStream(stopReason: String? = null) {
+        val wasStreaming = isStreaming()
+        val activeConsumersAtStop = currentActiveConsumersCount()
+
         val stopEpoch = bumpStreamEpoch("stopStream")
         synchronizeClientEpoch(stopEpoch)
         audioIssueToastShown = false
 
-        if (isStreaming()) {
+        if (wasStreaming) {
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
                 runCatching { service.unregisterComponentCallbacks(componentCallback) }
             }
@@ -1118,11 +1151,19 @@ internal class WebRtcStreamingService(
         }
         projectionCoordinator.stop()
 
+        if (wasStreaming) {
+            sessionAnalyticsTracker.onEnded(stopReason, activeConsumersAtStop)
+        }
+
         wakeLock?.apply { if (isHeld) release() }
         wakeLock = null
 
         service.stopForeground()
     }
+
+    // Inline Only
+    @Suppress("NOTHING_TO_INLINE")
+    private inline fun currentActiveConsumersCount(): Int = clients.size
 
     private fun showAudioCaptureIssueToastOnce() {
         if (audioIssueToastShown) return

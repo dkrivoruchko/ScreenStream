@@ -24,6 +24,14 @@ public val MjpegKoinModule: org.koin.core.module.Module = module {
     single { MjpegSettingsImpl(context = get()) } bind (MjpegSettings::class)
     scope<MjpegKoinScope> {
         scoped { NetworkHelper(get()) }
-        scoped { params -> MjpegStreamingService(params.get(), params.get(), get(), get()) } bind (MjpegStreamingService::class)
+        scoped { params ->
+            MjpegStreamingService(
+                service = params.get(),
+                mutableMjpegStateFlow = params.get(),
+                networkHelper = get(),
+                mjpegSettings = get(),
+                streamingAnalytics = get()
+            )
+        } bind (MjpegStreamingService::class)
     }
 }

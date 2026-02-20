@@ -22,6 +22,7 @@ import android.os.HandlerThread
 import android.os.Looper
 import android.os.Message
 import android.os.PowerManager
+import android.os.SystemClock
 import android.widget.Toast
 import androidx.annotation.AnyThread
 import androidx.annotation.MainThread
@@ -30,6 +31,11 @@ import androidx.core.graphics.scale
 import androidx.core.graphics.toColorInt
 import androidx.window.layout.WindowMetricsCalculator
 import com.elvishew.xlog.XLog
+import info.dvkr.screenstream.common.analytics.EntryPoint
+import info.dvkr.screenstream.common.analytics.StartFailGroup
+import info.dvkr.screenstream.common.analytics.StreamMode
+import info.dvkr.screenstream.common.analytics.StreamingAnalytics
+import info.dvkr.screenstream.common.analytics.StreamingSessionAnalyticsTracker
 import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.common.module.ProjectionCoordinator
 import info.dvkr.screenstream.mjpeg.MjpegModuleService
@@ -58,7 +64,8 @@ internal class MjpegStreamingService(
     private val service: MjpegModuleService,
     private val mutableMjpegStateFlow: MutableStateFlow<MjpegState>,
     private val networkHelper: NetworkHelper,
-    private val mjpegSettings: MjpegSettings
+    private val mjpegSettings: MjpegSettings,
+    private val streamingAnalytics: StreamingAnalytics
 ) : HandlerThread("MJPEG-HT", android.os.Process.THREAD_PRIORITY_DISPLAY), Handler.Callback {
 
     private val powerManager: PowerManager = service.application.getSystemService(PowerManager::class.java)
@@ -81,6 +88,13 @@ internal class MjpegStreamingService(
             onProjectionStopped = { generation ->
                 sendEvent(MjpegEvent.Intentable.StopStream("ProjectionCoordinator.onStop[generation=$generation]"))
             }
+        )
+    }
+    private val sessionAnalyticsTracker by lazy(LazyThreadSafetyMode.NONE) {
+        StreamingSessionAnalyticsTracker(
+            analytics = streamingAnalytics,
+            streamModeProvider = { StreamMode.MJPEG },
+            nowElapsedRealtimeMs = { SystemClock.elapsedRealtime() }
         )
     }
 
@@ -268,8 +282,9 @@ internal class MjpegStreamingService(
         } catch (cause: Throwable) {
             XLog.e(this@MjpegStreamingService.getLog("handleMessage.catch", cause.toString()), cause)
 
+            sessionAnalyticsTracker.onStartAborted()
             mediaProjectionIntent = null
-            stopStream()
+            stopStream("HandleMessageException")
 
             currentError = if (cause is MjpegError) cause else MjpegError.UnknownError(cause)
         } finally {
@@ -277,6 +292,7 @@ internal class MjpegStreamingService(
                 XLog.d(this@MjpegStreamingService.getLog("handleMessage", "Done [$event] New state: [${getStateString()}]"))
             }
             if (event is InternalEvent.Destroy) event.destroyJob.complete()
+            sessionAnalyticsTracker.onActiveConsumersChanged(currentActiveConsumersCount())
             publishState()
         }
 
@@ -337,10 +353,14 @@ internal class MjpegStreamingService(
 
             is InternalEvent.StartStopFromWebPage -> when {
                 isStreaming -> sendEvent(MjpegEvent.Intentable.StopStream("StartStopFromWebPage"))
-                pendingServer.not() && currentError == null -> waitingForPermission = true
+                pendingServer.not() && currentError == null -> {
+                    sessionAnalyticsTracker.onStartAttempt(EntryPoint.WEB)
+                    waitingForPermission = true
+                }
             }
 
             is InternalEvent.StartStream -> {
+                sessionAnalyticsTracker.onStartAttempt(EntryPoint.BUTTON)
                 mediaProjectionIntent?.let {
                     check(Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) { "MjpegEvent.StartStream: UPSIDE_DOWN_CAKE" }
                     sendEvent(MjpegEvent.StartProjection(it))
@@ -349,7 +369,10 @@ internal class MjpegStreamingService(
                 }
             }
 
-            is MjpegEvent.CastPermissionsDenied -> waitingForPermission = false
+            is MjpegEvent.CastPermissionsDenied -> {
+                waitingForPermission = false
+                sessionAnalyticsTracker.onStartFailed(StartFailGroup.PERMISSION_DENIED)
+            }
 
             is MjpegEvent.StartProjection ->
                 if (pendingServer) {
@@ -394,19 +417,23 @@ internal class MjpegStreamingService(
                     when (result) {
                         is ProjectionCoordinator.StartResult.Started -> {
                             currentError = null
+                            sessionAnalyticsTracker.onStarted(currentActiveConsumersCount())
                             XLog.i(getLog("MjpegEvent.StartProjection", "Started generation=${result.generation}"))
                         }
 
                         ProjectionCoordinator.StartResult.Busy -> {
+                            sessionAnalyticsTracker.onStartFailed(StartFailGroup.BUSY)
                             XLog.w(getLog("MjpegEvent.StartProjection", "Coordinator is busy. Ignoring."))
                         }
 
                         is ProjectionCoordinator.StartResult.Blocked, is ProjectionCoordinator.StartResult.Fatal -> {
                             val cause = result.cause ?: error("Missing cause for failed start result")
                             if (result is ProjectionCoordinator.StartResult.Fatal) {
+                                sessionAnalyticsTracker.onStartFailed(StartFailGroup.FATAL)
                                 XLog.e(getLog("MjpegEvent.StartProjection", "Fatal start error"), cause)
-                                stopStream()
+                                stopStream("StartProjectionFatal")
                             } else {
+                                sessionAnalyticsTracker.onStartFailed(StartFailGroup.BLOCKED)
                                 XLog.w(getLog("MjpegEvent.StartProjection", "Blocked by system"), cause)
                             }
                             currentError = cause as? MjpegError ?: MjpegError.UnknownError(cause)
@@ -415,7 +442,7 @@ internal class MjpegStreamingService(
                 }
 
             is MjpegEvent.Intentable.StopStream -> {
-                stopStream()
+                stopStream(event.reason)
 
                 if (mjpegSettings.data.value.enablePin && mjpegSettings.data.value.autoChangePin)
                     mjpegSettings.updateData { copy(pin = randomPin()) }
@@ -460,7 +487,7 @@ internal class MjpegStreamingService(
             }
 
             is InternalEvent.RestartServer -> {
-                if (mjpegSettings.data.value.stopOnConfigurationChange) stopStream()
+                if (mjpegSettings.data.value.stopOnConfigurationChange) stopStream("ConfigurationChange")
 
                 waitingForPermission = false
                 if (pendingServer) {
@@ -487,7 +514,7 @@ internal class MjpegStreamingService(
             }
 
             is MjpegEvent.Intentable.RecoverError -> {
-                stopStream()
+                stopStream("RecoverError")
                 httpServer.stop(true)
 
                 handler.removeMessages(MjpegEvent.Priority.RESTART_IGNORE)
@@ -498,7 +525,7 @@ internal class MjpegStreamingService(
             }
 
             is InternalEvent.Destroy -> {
-                stopStream()
+                stopStream("Destroy")
                 httpServer.destroy()
                 currentError = null
             }
@@ -530,8 +557,11 @@ internal class MjpegStreamingService(
 
     // Inline Only
     @Suppress("NOTHING_TO_INLINE")
-    private inline fun stopStream() {
-        if (isStreaming) {
+    private inline fun stopStream(stopReason: String? = null) {
+        val wasStreaming = isStreaming
+        val activeConsumersAtStop = currentActiveConsumersCount()
+
+        if (wasStreaming) {
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
                 service.unregisterComponentCallbacks(componentCallback)
             }
@@ -546,11 +576,20 @@ internal class MjpegStreamingService(
             XLog.d(getLog("stopStream", "Not streaming. Ignoring."))
         }
 
+        if (wasStreaming) {
+            sessionAnalyticsTracker.onEnded(stopReason, activeConsumersAtStop)
+        }
+
         wakeLock?.apply { if (isHeld) release() }
         wakeLock = null
 
         service.stopForeground()
     }
+
+    // Inline Only
+    @Suppress("NOTHING_TO_INLINE")
+    private inline fun currentActiveConsumersCount(): Int =
+        clients.count { it.state == MjpegState.Client.State.CONNECTED || it.state == MjpegState.Client.State.SLOW_CONNECTION }
 
     // Inline Only
     @Suppress("NOTHING_TO_INLINE")

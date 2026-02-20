@@ -24,8 +24,17 @@
             android:name="com.google.android.gms.ads.APPLICATION_ID"
             android:value="${adMobPubId}" />
         <meta-data
-            android:name="com.google.android.gms.ads.DELAY_APP_MEASUREMENT_INIT"
+            android:name="google_analytics_default_allow_analytics_storage"
             android:value="true" />
+        <meta-data
+            android:name="google_analytics_default_allow_ad_storage"
+            android:value="true" />
+        <meta-data
+            android:name="google_analytics_default_allow_ad_user_data"
+            android:value="eu_consent_policy" />
+        <meta-data
+            android:name="google_analytics_default_allow_ad_personalization_signals"
+            android:value="eu_consent_policy" />
 
         <activity
             android:name="info.dvkr.screenstream.SingleActivity"

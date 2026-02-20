@@ -175,7 +175,7 @@ public fun AdaptiveBanner(
         BoxWithConstraints(modifier = modifier) {
             val activity = LocalActivity.current!!
             val adSize = remember(activity, this.maxWidth) {
-                AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(activity, maxWidth.value.toInt())
+                AdSize.getLargeAnchoredAdaptiveBannerAdSize(activity, maxWidth.value.toInt())
             }
 
             val adBox = remember(adSize, collapsible) { movableContentOf { AdBox(adMob, adSize, collapsible, activity) } }
@@ -187,10 +187,12 @@ public fun AdaptiveBanner(
 
 @Composable
 private fun AdBox(adMob: AdMob, adSize: AdSize, collapsible: Boolean, activity: Activity) {
+    val isSlotVisible = remember(adSize) { mutableStateOf(false) }
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .defaultMinSize(minHeight = adSize.height.dp)
+            .defaultMinSize(minHeight = if (isSlotVisible.value) adSize.height.dp else 0.dp)
     ) {
         val selectedAdUnitId = remember(adSize) { mutableStateOf("") }
         LaunchedEffect(Unit) { selectedAdUnitId.value = adMob.getFreeAdUnitId() }
@@ -208,8 +210,13 @@ private fun AdBox(adMob: AdMob, adSize: AdSize, collapsible: Boolean, activity: 
                         adUnitId = selectedAdUnitId.value
                         setAdSize(adSize)
                         adListener = object : AdListener() {
+                            override fun onAdLoaded() {
+                                isSlotVisible.value = true
+                            }
+
                             override fun onAdFailedToLoad(adError: LoadAdError) {
                                 XLog.w(getLog("onAdFailedToLoad", adError.toString()))
+                                isSlotVisible.value = false
                             }
                         }
 
@@ -260,6 +267,7 @@ private fun AdBox(adMob: AdMob, adSize: AdSize, collapsible: Boolean, activity: 
                         CoroutineScope(Dispatchers.Main.immediate + adReloadJob).launch {
                             repeat(Int.MAX_VALUE) { i ->
                                 XLog.d(adView.getLog("AdaptiveBanner", "update ($i): ${adView.adUnitId}"))
+                                isSlotVisible.value = true
                                 adView.loadAd(adRequestBuilder.build())
                                 adMob.setAdViewLoaded(adView.adUnitId)
                                 adUnitLoaded.value = true

@@ -7,6 +7,7 @@ import android.os.StrictMode
 import com.elvishew.xlog.LogConfiguration
 import com.jakewharton.processphoenix.ProcessPhoenix
 import info.dvkr.screenstream.common.ModuleSettings
+import info.dvkr.screenstream.common.analytics.StreamingAnalytics
 import info.dvkr.screenstream.common.notification.NotificationHelper
 import info.dvkr.screenstream.logger.AppLogger
 import info.dvkr.screenstream.notification.NotificationHelperImpl
@@ -62,6 +63,7 @@ public abstract class BaseApp : Application() {
 
         val defaultModule = module {
             single(createdAtStart = true) { AdMob(get()) }
+            single(createdAtStart = true) { AppStreamingAnalytics(get()) } bind (StreamingAnalytics::class)
             single { NotificationHelperImpl(get()) } bind (NotificationHelper::class)
             single { AppModuleSettings() } bind (ModuleSettings::class)
         }

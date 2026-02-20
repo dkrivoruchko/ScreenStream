@@ -16,6 +16,7 @@ import android.os.Handler
 import android.os.HandlerThread
 import android.os.Looper
 import android.os.Message
+import android.os.SystemClock
 import android.view.Surface
 import android.widget.Toast
 import androidx.annotation.AnyThread
@@ -24,6 +25,11 @@ import androidx.core.content.ContextCompat
 import androidx.core.util.toClosedRange
 import androidx.window.layout.WindowMetricsCalculator
 import com.elvishew.xlog.XLog
+import info.dvkr.screenstream.common.analytics.EntryPoint
+import info.dvkr.screenstream.common.analytics.StartFailGroup
+import info.dvkr.screenstream.common.analytics.StreamMode
+import info.dvkr.screenstream.common.analytics.StreamingAnalytics
+import info.dvkr.screenstream.common.analytics.StreamingSessionAnalyticsTracker
 import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.common.getVersionName
 import info.dvkr.screenstream.common.module.ProjectionCoordinator
@@ -70,7 +76,8 @@ internal class RtspStreamingService(
     private val service: RtspModuleService,
     private val mutableRtspStateFlow: MutableStateFlow<RtspState>,
     private val rtspSettings: RtspSettings,
-    private val networkHelper: NetworkHelper
+    private val networkHelper: NetworkHelper,
+    private val streamingAnalytics: StreamingAnalytics
 ) : HandlerThread("RTSP-HT", android.os.Process.THREAD_PRIORITY_DISPLAY), Handler.Callback {
 
     private val appVersion = service.getVersionName()
@@ -89,6 +96,18 @@ internal class RtspStreamingService(
             onProjectionStopped = { generation ->
                 sendEvent(RtspEvent.Intentable.StopStream("ProjectionCoordinator.onStop[generation=$generation]"))
             }
+        )
+    }
+    private val sessionAnalyticsTracker by lazy(LazyThreadSafetyMode.NONE) {
+        StreamingSessionAnalyticsTracker(
+            analytics = streamingAnalytics,
+            streamModeProvider = {
+                when (rtspSettings.data.value.mode) {
+                    RtspSettings.Values.Mode.SERVER -> StreamMode.RTSP_SERVER
+                    RtspSettings.Values.Mode.CLIENT -> StreamMode.RTSP_CLIENT
+                }
+            },
+            nowElapsedRealtimeMs = { SystemClock.elapsedRealtime() }
         )
     }
 
@@ -323,7 +342,7 @@ internal class RtspStreamingService(
                 }
 
                 is InternalEvent.RtspServer.OnError -> {
-                    stopStream(true)
+                    stopStream(stopServer = true, stopReason = "RtspServerError")
                     currentError = event.error
                     isActive = false
                 }
@@ -412,14 +431,14 @@ internal class RtspStreamingService(
                 }
 
                 is InternalEvent.RtspClient.OnDisconnect -> {
-                    stopStream(true)
+                    stopStream(stopServer = true, stopReason = "RtspClientDisconnect")
                     status = RtspClientStatus.IDLE
                 }
 
                 is InternalEvent.RtspClient.OnBitrate -> Unit //TODO Skip for now
 
                 is InternalEvent.RtspClient.OnError -> {
-                    stopStream(true)
+                    stopStream(stopServer = true, stopReason = "RtspClientError")
                     status = RtspClientStatus.ERROR
                     currentError = event.error
                 }
@@ -656,9 +675,10 @@ internal class RtspStreamingService(
         } catch (cause: Throwable) {
             XLog.e(this@RtspStreamingService.getLog("handleMessage.catch", cause.toString()), cause)
 
+            sessionAnalyticsTracker.onStartAborted()
             projectionState.cachedIntent = null
             projectionState.waitingForPermission = false
-            stopStream(true)
+            stopStream(stopServer = true, stopReason = "HandleMessageException")
 
             currentError = cause as? RtspError ?: RtspError.UnknownError(cause)
             if (rtspSettings.data.value.mode == RtspSettings.Values.Mode.SERVER) {
@@ -668,6 +688,7 @@ internal class RtspStreamingService(
             }
         } finally {
             if (event is InternalEvent.Destroy) event.destroyJob.complete()
+            sessionAnalyticsTracker.onActiveConsumersChanged(currentActiveConsumersCount())
 
             mutableRtspStateFlow.value = buildViewState()
 
@@ -742,7 +763,7 @@ internal class RtspStreamingService(
             }
 
             is InternalEvent.ModeChanged -> {
-                stopStream(true)
+                stopStream(stopServer = true, stopReason = "ModeChanged")
 
                 sendEvent(InternalEvent.InitState(false))
 
@@ -756,6 +777,7 @@ internal class RtspStreamingService(
                     XLog.d(getLog("StartStream", "Already streaming. Ignoring."))
                     return
                 }
+                sessionAnalyticsTracker.onStartAttempt(EntryPoint.BUTTON)
 
                 projectionState.cachedIntent?.let {
                     check(Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) { "RtspEvent.StartStream: UPSIDE_DOWN_CAKE" }
@@ -777,7 +799,10 @@ internal class RtspStreamingService(
                 sendEvent(InternalEvent.RtspServer.DiscoverAddress(reason = "RetryBindings"))
             }
 
-            is RtspEvent.CastPermissionsDenied -> projectionState.waitingForPermission = false
+            is RtspEvent.CastPermissionsDenied -> {
+                projectionState.waitingForPermission = false
+                sessionAnalyticsTracker.onStartFailed(StartFailGroup.PERMISSION_DENIED)
+            }
 
             is RtspEvent.StartProjection -> {
                 projectionState.waitingForPermission = false
@@ -1019,17 +1044,22 @@ internal class RtspStreamingService(
                             showAudioCaptureIssueToastOnce()
                         }
                         currentError = null
+                        sessionAnalyticsTracker.onStarted(currentActiveConsumersCount())
                     }
 
                     ProjectionCoordinator.StartResult.Busy -> {
+                        sessionAnalyticsTracker.onStartFailed(StartFailGroup.BUSY)
                         XLog.w(getLog("StartProjection", "Coordinator is busy. Ignoring."))
                     }
 
                     is ProjectionCoordinator.StartResult.Blocked, is ProjectionCoordinator.StartResult.Fatal -> {
                         val cause = startResult.cause ?: error("Missing cause for failed start result")
+                        sessionAnalyticsTracker.onStartFailed(
+                            if (startResult is ProjectionCoordinator.StartResult.Fatal) StartFailGroup.FATAL else StartFailGroup.BLOCKED
+                        )
                         projectionState.cachedIntent = null
                         projectionState.waitingForPermission = false
-                        stopStream(true)
+                        stopStream(stopServer = true, stopReason = "StartProjectionFailed")
                         currentError = cause as? RtspError ?: RtspError.UnknownError(cause)
                         if (rtspSettings.data.value.mode == RtspSettings.Values.Mode.SERVER) {
                             serverController?.isActive = false
@@ -1098,12 +1128,18 @@ internal class RtspStreamingService(
                 resizeActor?.offer(sourceWidth = event.width, sourceHeight = event.height)
             }
 
-            is RtspEvent.Intentable.StopStream -> stopStream(false)
+            is RtspEvent.Intentable.StopStream -> stopStream(stopServer = false, stopReason = event.reason)
 
             is RtspEvent.Intentable.RecoverError,
             is InternalEvent.Destroy,
             is InternalEvent.Error -> {
-                stopStream(true)
+                val stopReason = when (event) {
+                    is RtspEvent.Intentable.RecoverError -> "RecoverError"
+                    is InternalEvent.Destroy -> "Destroy"
+                    is InternalEvent.Error -> "InternalError"
+                    else -> null
+                }
+                stopStream(stopServer = true, stopReason = stopReason)
 
                 if (event is InternalEvent.Error) {
                     currentError = event.error
@@ -1147,7 +1183,10 @@ internal class RtspStreamingService(
 
     // Inline Only
     @Suppress("NOTHING_TO_INLINE")
-    private inline fun stopStream(stopServer: Boolean) {
+    private inline fun stopStream(stopServer: Boolean, stopReason: String? = null) {
+        val wasStreaming = projectionState.active != null
+        val activeConsumersAtStop = currentActiveConsumersCount()
+
         resizeActor?.close()
         resizeActor = null
 
@@ -1168,7 +1207,19 @@ internal class RtspStreamingService(
         projectionState.lastAudioParams = null
         projectionCoordinator.stop()
 
+        if (wasStreaming) {
+            sessionAnalyticsTracker.onEnded(stopReason, activeConsumersAtStop)
+        }
+
         service.stopForeground()
+    }
+
+    // Inline Only
+    @Suppress("NOTHING_TO_INLINE")
+    private inline fun currentActiveConsumersCount(): Int {
+        val serverConsumers = serverController?.statsSnapshot?.count { it.lastSentAtMs > 0L } ?: 0
+        val clientConsumers = if (clientController?.status == RtspClientStatus.ACTIVE) 1 else 0
+        return maxOf(serverConsumers, clientConsumers)
     }
 
     private fun showAudioCaptureIssueToastOnce() {
