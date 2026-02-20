@@ -47,6 +47,7 @@ public class SingleActivity : AppUpdateActivity() {
                 ScreenStreamContent(updateFlow = updateFlow)
             }
         }
+        AppReview.startTracking(activity = this, streamingModulesManager = streamingModulesManager)
 
         appSettings.data.map { it.nightMode }
             .distinctUntilChanged()

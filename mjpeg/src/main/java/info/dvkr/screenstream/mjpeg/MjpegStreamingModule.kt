@@ -19,6 +19,7 @@ import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import org.koin.core.parameter.parametersOf
@@ -44,6 +45,13 @@ public class MjpegStreamingModule : StreamingModule {
 
     override val isStreaming: Flow<Boolean>
         get() = _mjpegStateFlow.map { it.isStreaming }
+
+    override val hasActiveConsumer: Flow<Boolean>
+        get() = _mjpegStateFlow.map { state ->
+            state.clients.any { client ->
+                client.state == MjpegState.Client.State.CONNECTED || client.state == MjpegState.Client.State.SLOW_CONNECTION
+            }
+        }.distinctUntilChanged()
 
     override val nameResource: Int = R.string.mjpeg_stream_mode
     override val descriptionResource: Int = R.string.mjpeg_stream_mode_description

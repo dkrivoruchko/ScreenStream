@@ -3,7 +3,6 @@ package info.dvkr.screenstream.ui
 import android.os.Build
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
-import androidx.activity.compose.LocalActivity
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedContent
@@ -41,7 +40,6 @@ import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffo
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffoldLayout
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteType
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -60,7 +58,6 @@ import androidx.compose.ui.unit.toRect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.dropUnlessStarted
 import androidx.window.core.layout.WindowSizeClass
-import info.dvkr.screenstream.AppReview
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.logger.AppLogger
 import info.dvkr.screenstream.logger.CollectingLogsUi
@@ -105,9 +102,6 @@ internal fun ScreenStreamContent(
             onDismissButtonClick = { updateFlowState.value?.invoke(false) }
         )
     }
-
-    val activity = LocalActivity.current
-    LaunchedEffect(Unit) { AppReview.showReviewUi(activity) }
 
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
         NotificationPermission()

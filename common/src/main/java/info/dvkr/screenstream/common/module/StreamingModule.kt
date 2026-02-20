@@ -33,6 +33,8 @@ public interface StreamingModule {
 
     public val isStreaming: Flow<Boolean>
 
+    public val hasActiveConsumer: Flow<Boolean>
+
     @get:StringRes
     public val nameResource: Int
 
