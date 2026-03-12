@@ -63,6 +63,7 @@
     <string name="webrtc_error_play_integrity_install_play_service">দয়া করে প্লে পরিষেবাগুলি ইনস্টল বা সক্ষম করুন৷</string>
     <string name="webrtc_error_play_integrity_update_play_service">অনুগ্রহ করে Google Play পরিষেবা আপডেট করুন</string>
     <string name="webrtc_error_check_network">ইন্টারনেট সংযোগের জন্য অনুগ্রহ করে পরীক্ষা করুন</string>
+    <string name="webrtc_error_incomplete_installation">অ্যাপের ইনস্টলেশন অসম্পূর্ণ। অনুগ্রহ করে Google Play থেকে অ্যাপটি পুনরায় ইনস্টল করুন।</string>
     <string name="webrtc_notification_permission_required">স্ট্রিমিং পরিষেবা শুরু করতে অ্যাপ্লিকেশানের জন্য বিজ্ঞপ্তিগুলি সক্রিয় করা প্রয়োজন৷ অ্যাপ্লিকেশন সেটিংসে বিজ্ঞপ্তি সক্রিয় করুন.</string>
     <string name="webrtc_error_unspecified">কিছু ভুল হয়েছে। অনুগ্রহ করে একটু পরে আবার চেষ্টা করুন।</string>
 </resources>

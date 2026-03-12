@@ -168,10 +168,11 @@ internal class EglRenderer(
     private fun stopOnHandlerThread() {
         handler.removeCallbacksAndMessages(null)
 
-        surfaceTexture?.setOnFrameAvailableListener(null)
+        val surfaceTextureToRelease = surfaceTexture
+        surfaceTextureToRelease?.setOnFrameAvailableListener(null)
         surfaceTexture = null
 
-        runCatching { releaseGL() }.onFailure { XLog.e(getLog("stop", "Failed to release GL resources."), it) }
+        runCatching { releaseGL(surfaceTextureToRelease) }.onFailure { XLog.e(getLog("stop", "Failed to release GL resources."), it) }
 
         handlerThread.quitSafely()
     }
@@ -342,7 +343,7 @@ internal class EglRenderer(
         GLES20.glViewport(0, 0, width, height)
     }
 
-    private fun releaseGL() {
+    private fun releaseGL(surfaceTextureToRelease: SurfaceTexture?) {
         XLog.v(getLog("releaseGL"))
 
         check(Thread.currentThread() == handlerThread.looper?.thread) { "All GL calls must be on EglRenderer HandlerThread!" }
@@ -383,7 +384,7 @@ internal class EglRenderer(
         }
         eglDisplay = EGL14.EGL_NO_DISPLAY
 
-        surfaceTexture?.release()
+        surfaceTextureToRelease?.release()
         surfaceTexture = null
 
         XLog.v(getLog("releaseGL", "Done"))

@@ -246,27 +246,18 @@ internal class WebRtcClient(
     // WebRTC-HT thread
     internal fun onHostOfferConfirmed(epoch: Long) {
         if (state.get() == State.OFFER_ACCEPTED) {
-            XLog.w(
-                getLog("onHostOfferConfirmed", "Client $id already in OFFER_ACCEPTED state. Ignoring."),
-                IllegalStateException("WebRtcClient.onHostOfferConfirmed.alreadyAccepted")
-            )
+            XLog.w(getLog("onHostOfferConfirmed", "Client $id already in OFFER_ACCEPTED state. Ignoring."))
             return
         }
 
         if (state.get() == State.CREATED || state.get() == State.PENDING_OFFER) {
-            XLog.w(
-                getLog("onHostOfferConfirmed", "Client $id in state ${state.get()}. Ignoring stale callback."),
-                IllegalStateException("WebRtcClient.onHostOfferConfirmed.staleState")
-            )
+            XLog.w(getLog("onHostOfferConfirmed", "Client $id in state ${state.get()}. Ignoring stale callback."))
             return
         }
 
         if (state.get() != State.PENDING_OFFER_ACCEPT) {
             val msg = "Wrong client $id state: $state, expecting: ${State.PENDING_OFFER_ACCEPT}"
-            XLog.w(
-                getLog("onHostOfferConfirmed", "$msg. Ignoring stale callback."),
-                IllegalStateException("WebRtcClient.onHostOfferConfirmed.wrongState")
-            )
+            XLog.w(getLog("onHostOfferConfirmed", "$msg. Ignoring stale callback."))
             return
         }
 
@@ -469,10 +460,7 @@ internal class WebRtcClient(
 
         override fun onIceCandidateError(event: IceCandidateErrorEvent?) {
             val details = event?.let { "url=${it.url}, code=${it.errorCode}, text=${it.errorText}" } ?: "-"
-            XLog.w(
-                getLog("onIceCandidateError", "Client: $clientId, $details"),
-                IllegalStateException("WebRtcClient.onIceCandidateError")
-            )
+            XLog.w(getLog("onIceCandidateError", "Client: $clientId, $details"))
         }
 
         override fun onIceCandidatesRemoved(iceCandidates: Array<out IceCandidate>?) {

@@ -58,6 +58,7 @@ internal class SocketSignaling(
         internal class SocketCheckError(override val message: String) : Error(false, true)
         internal class SocketConnectError(override val message: String) : Error(true, false)
         internal class StreamCreateError(override val message: String, override val cause: Throwable) : Error(true, true)
+        internal class StreamRemoveError(override val message: String, override val cause: Throwable) : Error(true, true)
         internal class StreamStartError(override val message: String, override val cause: Throwable) : Error(true, true)
     }
 
@@ -322,17 +323,25 @@ internal class SocketSignaling(
                 val msg = "[${Event.STREAM_REMOVE}] Response: ${args.contentToString()}"
                 XLog.v(this@SocketSignaling.getLog("sendStreamRemove[${socketId()}]", msg))
                 when (val status = SocketAck.fromAck(args).status) {
-                    Payload.OK -> XLog.d(this@SocketSignaling.getLog("sendStreamRemove[${socketId()}]", "OK"))
-                    else -> XLog.w(this@SocketSignaling.getLog("sendStreamRemove[${socketId()}]", "[${Event.STREAM_REMOVE}] => $status"))
+                    Payload.OK -> {
+                        XLog.d(this@SocketSignaling.getLog("sendStreamRemove[${socketId()}]", "OK"))
+                        eventListener.onStreamRemoved()
+                    }
+
+                    else -> {
+                        val errorMessage = "[${Event.STREAM_REMOVE}] => $status"
+                        XLog.w(this@SocketSignaling.getLog("sendStreamRemove[${socketId()}]", errorMessage))
+                        eventListener.onError(Error.StreamRemoveError(errorMessage, IllegalStateException(errorMessage)))
+                    }
                 }
-                eventListener.onStreamRemoved()
             }
 
             override fun onTimeout() {
                 if (isStaleSocketCallback(currentSocket, "sendStreamRemove[${socketId()}]")) return
 
-                XLog.w(this@SocketSignaling.getLog("sendStreamRemove[${socketId()}]", "[${Event.STREAM_REMOVE}] => Timeout"))
-                eventListener.onStreamRemoved()
+                val errorMessage = "[${Event.STREAM_REMOVE}] => Timeout"
+                XLog.w(this@SocketSignaling.getLog("sendStreamRemove[${socketId()}]", errorMessage))
+                eventListener.onError(Error.StreamRemoveError(errorMessage, IllegalStateException(errorMessage)))
             }
         })
     }

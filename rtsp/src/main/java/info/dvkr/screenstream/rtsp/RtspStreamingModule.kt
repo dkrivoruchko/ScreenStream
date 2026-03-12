@@ -138,11 +138,13 @@ public class RtspStreamingModule : StreamingModule {
             StreamingModule.State.PendingStart -> {
                 XLog.d(getLog("stopModule", "Not started (PendingStart)"))
                 startToken = null
+                _rtspStateFlow.value = RtspState()
                 _streamingServiceState.value = StreamingModule.State.Initiated
             }
 
             is StreamingModule.State.Running -> {
                 _streamingServiceState.value = StreamingModule.State.PendingStop
+                _rtspStateFlow.value = RtspState()
                 withContext(NonCancellable) { state.scope.get<RtspStreamingService>().destroyService() }
                 _rtspStateFlow.value = RtspState()
                 startToken = null
@@ -169,10 +171,18 @@ public class RtspStreamingModule : StreamingModule {
 
         when (val state = _streamingServiceState.value) {
             is StreamingModule.State.Running -> state.scope.get<RtspStreamingService>().sendEvent(event)
-            else -> XLog.w(
-                getLog("sendEvent", "Unexpected state: $state for event $event"),
-                RuntimeException("Unexpected state: $state for event $event")
-            )
+            else -> when (event) {
+                is RtspEvent.StartProjection,
+                RtspEvent.CastPermissionsDenied,
+                is RtspEvent.Intentable.StopStream,
+                RtspStreamingService.InternalEvent.StartStream ->
+                    XLog.i(getLog("sendEvent", "Ignoring stale event in state=$state: $event"))
+
+                else -> XLog.w(
+                    getLog("sendEvent", "Unexpected state: $state for event $event"),
+                    RuntimeException("Unexpected state: $state for event $event")
+                )
+            }
         }
     }
 }

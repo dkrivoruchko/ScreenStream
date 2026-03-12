@@ -173,7 +173,12 @@ internal class WebRtcProjection(private val serviceContext: Context) : AudioReco
         }
     }
 
-    internal fun start(streamId: StreamId, mediaProjection: MediaProjection, onCaptureFatal: (Throwable) -> Unit): Boolean {
+    internal fun start(
+        streamId: StreamId,
+        mediaProjection: MediaProjection,
+        onCaptureFatal: (Throwable) -> Unit,
+        isStartupStillValid: () -> Boolean
+    ): Boolean {
         synchronized(lock) {
             XLog.d(getLog("start"))
 
@@ -205,10 +210,18 @@ internal class WebRtcProjection(private val serviceContext: Context) : AudioReco
 
             val screeSize = WindowMetricsCalculator.getOrCreate().computeMaximumWindowMetrics(serviceContext).bounds
             val captureStarted = screenCapturer.startCapture(
-                mediaProjection, screeSize.width(), screeSize.height(), videoSource.capturerObserver
+                mediaProjection, screeSize.width(), screeSize.height(), videoSource.capturerObserver, isStartupStillValid
             )
             if (!captureStarted) {
                 XLog.i(getLog("start", "Capture start failed. Stopping projection."))
+                screenCapturer.dispose()
+                videoSource.dispose()
+                audioSource.dispose()
+                return false
+            }
+            if (!isStartupStillValid()) {
+                XLog.i(getLog("start", "Startup invalidated after capture start."))
+                screenCapturer.stopCapture()
                 screenCapturer.dispose()
                 videoSource.dispose()
                 audioSource.dispose()

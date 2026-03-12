@@ -26,8 +26,18 @@ internal class ScreenCapturerAndroid(
     private var captureSurface: Surface? = null
 
     @Synchronized
-    internal fun startCapture(mediaProjection: MediaProjection, width: Int, height: Int, capturerObserver: CapturerObserver): Boolean {
+    internal fun startCapture(
+        mediaProjection: MediaProjection,
+        width: Int,
+        height: Int,
+        capturerObserver: CapturerObserver,
+        isStartupStillValid: () -> Boolean
+    ): Boolean {
         checkNotDisposed()
+        if (!isStartupStillValid()) {
+            XLog.i(getLog("startCapture", "Startup already invalidated. Ignoring capture start."))
+            return false
+        }
         this.mediaProjection = mediaProjection
         this.capturerObserver = capturerObserver
         this.width = width
@@ -38,9 +48,9 @@ internal class ScreenCapturerAndroid(
         captureSurface?.release()
         captureSurface = Surface(surfaceTextureHelper.surfaceTexture)
         virtualDisplay = createVirtualDisplay()
-        if (virtualDisplay == null) {
-            XLog.i(getLog("startCapture", "virtualDisplay is null. Stopping projection."))
-            mediaProjectionCallback.onStop()
+        if (virtualDisplay == null || !isStartupStillValid()) {
+            val reason = if (virtualDisplay == null) "virtualDisplay is null" else "startup invalidated"
+            XLog.i(getLog("startCapture", "$reason. Capture start failed."))
             mediaProjection.unregisterCallback(mediaProjectionCallback)
             this.mediaProjection = null
             captureSurface?.release()

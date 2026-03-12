@@ -54,6 +54,8 @@ internal sealed class WebRtcError(@field:StringRes open val id: Int, override va
 
     internal class NotificationPermissionRequired : WebRtcError(R.string.webrtc_notification_permission_required)
 
+    internal class IncompleteInstallation(override val cause: Throwable?) : WebRtcError(R.string.webrtc_error_incomplete_installation)
+
     internal class UnknownError(override val cause: Throwable?) : WebRtcError(R.string.webrtc_error_unspecified) {
         override fun toString(context: Context): String = context.getString(id) + " [${cause?.message}]"
     }

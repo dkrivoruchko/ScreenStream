@@ -63,6 +63,7 @@
     <string name="webrtc_error_play_integrity_install_play_service">请安装或启用 Play 服务</string>
     <string name="webrtc_error_play_integrity_update_play_service">请更新 Google Play 服务</string>
     <string name="webrtc_error_check_network">请检查互联网连接</string>
+    <string name="webrtc_error_incomplete_installation">应用安装不完整。请从 Google Play 重新安装应用。</string>
     <string name="webrtc_notification_permission_required">需要授予通知权限程序才能启动流服务。\n请在程序设置中启用通知。</string>
     <string name="webrtc_error_unspecified">出错了。请稍后再试。</string>
 </resources>

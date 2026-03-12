@@ -383,15 +383,21 @@ internal class MjpegStreamingService(
                     XLog.w(getLog("MjpegEvent.StartProjection", "Already streaming"))
                 } else {
                     waitingForPermission = false
-                    val result = projectionCoordinator.start(event.intent, requiresAudioFgsUpgrade = false) { _, mediaProjection, _ ->
+                    val result = projectionCoordinator.start(event.intent, requiresAudioFgsUpgrade = false) { _, mediaProjection, _, isStartupStillValid ->
                         mediaProjection.registerCallback(projectionCallback, mainHandler)
 
                         val bitmapCapture = BitmapCapture(service, mjpegSettings, mediaProjection, bitmapStateFlow) { error ->
                             sendEvent(InternalEvent.Error(error))
                         }
-                        val captureStarted = bitmapCapture.start()
+                        val captureStarted = bitmapCapture.start(isStartupStillValid)
                         if (!captureStarted) {
                             XLog.i(getLog("StartProjection", "Capture not started. Stopping projection."))
+                            bitmapCapture.destroy()
+                            mediaProjection.unregisterCallback(projectionCallback)
+                            return@start false
+                        }
+                        if (!isStartupStillValid()) {
+                            XLog.i(getLog("StartProjection", "Startup invalidated after capture start."))
                             bitmapCapture.destroy()
                             mediaProjection.unregisterCallback(projectionCallback)
                             return@start false
@@ -428,6 +434,9 @@ internal class MjpegStreamingService(
 
                         is ProjectionCoordinator.StartResult.Blocked, is ProjectionCoordinator.StartResult.Fatal -> {
                             val cause = result.cause ?: error("Missing cause for failed start result")
+                            if (result.cachedIntentAction == ProjectionCoordinator.CachedIntentAction.INVALIDATE) {
+                                mediaProjectionIntent = null
+                            }
                             if (result is ProjectionCoordinator.StartResult.Fatal) {
                                 sessionAnalyticsTracker.onStartFailed(StartFailGroup.FATAL)
                                 XLog.e(getLog("MjpegEvent.StartProjection", "Fatal start error"), cause)
@@ -560,6 +569,7 @@ internal class MjpegStreamingService(
     private inline fun stopStream(stopReason: String? = null) {
         val wasStreaming = isStreaming
         val activeConsumersAtStop = currentActiveConsumersCount()
+        waitingForPermission = false
 
         if (wasStreaming) {
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {

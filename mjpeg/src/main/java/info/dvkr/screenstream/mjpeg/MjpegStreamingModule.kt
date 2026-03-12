@@ -133,11 +133,13 @@ public class MjpegStreamingModule : StreamingModule {
             StreamingModule.State.PendingStart -> {
                 XLog.d(getLog("stopModule", "Not started (PendingStart)"))
                 startToken = null
+                _mjpegStateFlow.value = MjpegState()
                 _streamingServiceState.value = StreamingModule.State.Initiated
             }
 
             is StreamingModule.State.Running -> {
                 _streamingServiceState.value = StreamingModule.State.PendingStop
+                _mjpegStateFlow.value = MjpegState()
                 withContext(NonCancellable) { state.scope.get<MjpegStreamingService>().destroyService() }
                 _mjpegStateFlow.value = MjpegState()
                 startToken = null
@@ -163,10 +165,18 @@ public class MjpegStreamingModule : StreamingModule {
 
         when (val state = _streamingServiceState.value) {
             is StreamingModule.State.Running -> state.scope.get<MjpegStreamingService>().sendEvent(event)
-            else -> XLog.w(
-                getLog("sendEvent", "Unexpected state: $state for event $event"),
-                RuntimeException("Unexpected state: $state for event $event")
-            )
+            else -> when (event) {
+                is MjpegEvent.CastPermissionsDenied,
+                is MjpegEvent.StartProjection,
+                is MjpegEvent.Intentable.StopStream,
+                is MjpegStreamingService.InternalEvent.StartStream ->
+                    XLog.i(getLog("sendEvent", "Ignoring stale event $event in state $state"))
+
+                else -> XLog.w(
+                    getLog("sendEvent", "Unexpected state: $state for event $event"),
+                    RuntimeException("Unexpected state: $state for event $event")
+                )
+            }
         }
     }
 }

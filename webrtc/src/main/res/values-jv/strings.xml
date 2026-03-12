@@ -63,6 +63,7 @@
     <string name="webrtc_error_play_integrity_install_play_service">Mangga instal utawa ngaktifake Layanan Play</string>
     <string name="webrtc_error_play_integrity_update_play_service">Mangga nganyari Layanan Google Play</string>
     <string name="webrtc_error_check_network">Mangga priksa panyambungan Internet</string>
+    <string name="webrtc_error_incomplete_installation">Pamasangan aplikasi ora pepak. Mangga pasang maneh aplikasi saka Google Play.</string>
     <string name="webrtc_notification_permission_required">Aplikasi mbutuhake kabar supaya bisa diaktifake kanggo miwiti layanan streaming. Mangga aktifake kabar ing setelan aplikasi.</string>
     <string name="webrtc_error_unspecified">Ana sing salah. Mangga nyoba maneh mengko.</string>
 </resources>

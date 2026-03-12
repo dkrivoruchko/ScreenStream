@@ -63,6 +63,7 @@
     <string name="webrtc_error_play_integrity_install_play_service">እባክዎ የPlay አገልግሎቶችን ይጫኑ ወይም ያንቁ</string>
     <string name="webrtc_error_play_integrity_update_play_service">እባክህ Google Play አገልግሎቶችን አዘምን</string>
     <string name="webrtc_error_check_network">እባክዎ የበይነመረብ ግንኙነትን ያረጋግጡ</string>
+    <string name="webrtc_error_incomplete_installation">የመተግበሪያው ጭነት ያልተሟላ ነው። እባክዎ መተግበሪያውን ከGoogle Play ዳግም ይጫኑ።</string>
     <string name="webrtc_notification_permission_required">ትግበራ የዥረት አገልግሎት ለመጀመር ማሳወቂያዎችን መንቃት ያስፈልገዋል። እባክዎ በመተግበሪያ ቅንብሮች ውስጥ ማሳወቂያዎችን ያንቁ።</string>
     <string name="webrtc_error_unspecified">የሆነ ስህተት ተከስቷል። እባክዎ ቆየት ብለው ይሞክሩ።</string>
 </resources>

@@ -25,6 +25,21 @@ internal sealed class MediaFrame {
     data class AudioFrame(override val data: ByteBuffer, override val info: Info, private val releaseCallback: () -> Unit) : MediaFrame() {
         override fun release() = releaseCallback.invoke()
     }
+
+    internal fun detachedCopy(): MediaFrame {
+        val source = data.duplicate().apply {
+            position(info.offset)
+            limit(info.offset + info.size)
+        }
+        val bytes = ByteArray(info.size).also { source.get(it) }
+        val copiedInfo = info.copy(offset = 0, size = bytes.size)
+        val copiedBuffer = ByteBuffer.wrap(bytes)
+
+        return when (this) {
+            is VideoFrame -> VideoFrame(copiedBuffer, copiedInfo) {}
+            is AudioFrame -> AudioFrame(copiedBuffer, copiedInfo) {}
+        }
+    }
 }
 
 internal enum class Protocol { TCP, UDP }

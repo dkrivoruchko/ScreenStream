@@ -63,6 +63,7 @@
     <string name="webrtc_error_play_integrity_install_play_service">გთხოვთ, დააინსტალიროთ ან ჩართოთ Play Services</string>
     <string name="webrtc_error_play_integrity_update_play_service">გთხოვთ განაახლოთ Google Play Services</string>
     <string name="webrtc_error_check_network">გთხოვთ, შეამოწმოთ ინტერნეტთან დაკავშირება</string>
+    <string name="webrtc_error_incomplete_installation">აპის ინსტალაცია არასრულია. გთხოვთ, ხელახლა დააყენოთ აპი Google Play-დან.</string>
     <string name="webrtc_notification_permission_required">აპლიკაცია მოითხოვს შეტყობინებების ჩართვას სტრიმინგის სერვისის დასაწყებად. გთხოვთ, ჩართოთ შეტყობინებები აპლიკაციის პარამეტრებში.</string>
     <string name="webrtc_error_unspecified">Რაღაც არასწორად წავიდა. Გთხოვთ სცადოთ მოგვიანებით.</string>
 </resources>

@@ -20,14 +20,28 @@ public class ProjectionCoordinator(
     private val onProjectionStopped: (generation: Long) -> Unit
 ) {
 
+    public enum class CachedIntentAction {
+        KEEP,
+        INVALIDATE
+    }
+
     public sealed interface StartResult {
         public val cause: Throwable?
             get() = null
+        public val cachedIntentAction: CachedIntentAction
+            get() = CachedIntentAction.KEEP
 
         public data object Busy : StartResult
         public data class Started(val generation: Long, val mediaProjection: MediaProjection, val audioFgsUpgradeSucceeded: Boolean) : StartResult
-        public data class Blocked(override val cause: Throwable) : StartResult
-        public data class Fatal(override val cause: Throwable) : StartResult
+        public data class Blocked(
+            override val cause: Throwable,
+            override val cachedIntentAction: CachedIntentAction = CachedIntentAction.KEEP
+        ) : StartResult
+
+        public data class Fatal(
+            override val cause: Throwable,
+            override val cachedIntentAction: CachedIntentAction = CachedIntentAction.KEEP
+        ) : StartResult
     }
 
     private data class ActiveSession(val generation: Long, val mediaProjection: MediaProjection, val callback: MediaProjection.Callback)
@@ -42,7 +56,12 @@ public class ProjectionCoordinator(
     public fun start(
         permissionIntent: Intent,
         requiresAudioFgsUpgrade: Boolean,
-        buildPipeline: (generation: Long, mediaProjection: MediaProjection, audioFgsUpgradeSucceeded: Boolean) -> Boolean
+        buildPipeline: (
+            generation: Long,
+            mediaProjection: MediaProjection,
+            audioFgsUpgradeSucceeded: Boolean,
+            isStartupStillValid: () -> Boolean
+        ) -> Boolean
     ): StartResult {
         synchronized(lock) {
             if (isStarting || activeSession != null) {
@@ -138,8 +157,12 @@ public class ProjectionCoordinator(
                 }
             }
 
+            val isStartupStillValid = {
+                synchronized(lock) { isStarting && startingGeneration == generation }
+            }
+
             val pipelineStarted = runCatching {
-                buildPipeline(generation, projection, audioFgsUpgradeSucceeded)
+                buildPipeline(generation, projection, audioFgsUpgradeSucceeded, isStartupStillValid)
             }.onFailure { cause ->
                 XLog.e(getLog("start[$tag]", "buildPipeline failed. generation=$generation"), cause)
             }.getOrElse {
@@ -149,7 +172,7 @@ public class ProjectionCoordinator(
                     isStarting = false
                     startingGeneration = null
                 }
-                return StartResult.Fatal(it)
+                return StartResult.Fatal(it, CachedIntentAction.INVALIDATE)
             }
             if (!pipelineStarted) {
                 val cause = IllegalStateException("buildPipeline returned false")
@@ -160,7 +183,7 @@ public class ProjectionCoordinator(
                     isStarting = false
                     startingGeneration = null
                 }
-                return StartResult.Fatal(cause)
+                return StartResult.Fatal(cause, CachedIntentAction.INVALIDATE)
             }
 
             val startupInterrupted = synchronized(lock) { isStarting.not() || startingGeneration != generation }
@@ -173,7 +196,7 @@ public class ProjectionCoordinator(
                     isStarting = false
                     startingGeneration = null
                 }
-                return StartResult.Fatal(cause)
+                return StartResult.Fatal(cause, CachedIntentAction.INVALIDATE)
             }
 
             synchronized(lock) {
@@ -191,7 +214,8 @@ public class ProjectionCoordinator(
                 isStarting = false
                 startingGeneration = null
             }
-            return StartResult.Fatal(cause)
+            val cachedIntentAction = if (mediaProjection != null) CachedIntentAction.INVALIDATE else CachedIntentAction.KEEP
+            return StartResult.Fatal(cause, cachedIntentAction)
         }
     }
 

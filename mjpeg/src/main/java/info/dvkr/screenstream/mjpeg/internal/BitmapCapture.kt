@@ -116,7 +116,7 @@ internal class BitmapCapture(
     }
 
     @Synchronized
-    internal fun start(): Boolean {
+    internal fun start(isStartupStillValid: () -> Boolean): Boolean {
         XLog.d(getLog("start"))
         requireState(State.INIT)
 
@@ -130,6 +130,13 @@ internal class BitmapCapture(
             setOnImageAvailableListener(newImageListener, imageThreadHandler)
         }
 
+        if (!isStartupStillValid()) {
+            XLog.i(getLog("start", "Startup invalidated before virtual display creation."))
+            state = State.ERROR
+            safeRelease()
+            return false
+        }
+
         try {
             virtualDisplay = mediaProjection.createVirtualDisplay(
                 "BitmapCaptureVirtualDisplay",
@@ -141,8 +148,9 @@ internal class BitmapCapture(
                 null,
                 imageThreadHandler
             )
-            if (virtualDisplay == null) {
-                XLog.i(getLog("startDisplayCapture", "virtualDisplay is null. Stopping projection."))
+            if (virtualDisplay == null || !isStartupStillValid()) {
+                val reason = if (virtualDisplay == null) "virtualDisplay is null" else "startup invalidated"
+                XLog.i(getLog("startDisplayCapture", "$reason. Capture start failed."))
                 state = State.ERROR
                 safeRelease()
             } else {

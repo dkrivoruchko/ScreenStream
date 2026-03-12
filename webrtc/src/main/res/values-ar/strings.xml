@@ -63,6 +63,7 @@
     <string name="webrtc_error_play_integrity_install_play_service">يرجى تثبيت أو تمكين خدمات اللعب</string>
     <string name="webrtc_error_play_integrity_update_play_service">يرجى تحديث خدمات جوجل بلاي</string>
     <string name="webrtc_error_check_network">الرجاء التحقق من توافر الاتصال بالإنترنت</string>
+    <string name="webrtc_error_incomplete_installation">تثبيت التطبيق غير مكتمل. يُرجى إعادة تثبيت التطبيق من Google Play.</string>
     <string name="webrtc_notification_permission_required">يتطلب التطبيق تمكين الإشعارات لبدء خدمة البث.\nيرجى تمكين الإشعارات في إعدادات التطبيق.</string>
     <string name="webrtc_error_unspecified">حدث خطأ ما. من فضلك حاول مرة أخرى لاحقا.</string>
 </resources>

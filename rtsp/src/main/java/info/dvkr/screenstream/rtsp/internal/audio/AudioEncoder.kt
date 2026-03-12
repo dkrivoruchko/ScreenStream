@@ -25,6 +25,14 @@ internal class AudioEncoder(
 ) {
     private enum class State { IDLE, PREPARED, RUNNING, STOPPED }
 
+    private data class StopSnapshot(
+        val audioSource: AudioSource?,
+        val g711Codec: G711Codec?,
+        val audioEncoder: MediaCodec?,
+        val handler: Handler?,
+        val handlerThread: HandlerThread?
+    )
+
     private val encoderLock = Any()
     private var currentState = State.IDLE
         set(value) {
@@ -48,6 +56,7 @@ internal class AudioEncoder(
         audioSource: Int,
         mediaProjection: MediaProjection,
     ) {
+        var audioSourceConfigurationError: Throwable? = null
         runCatching {
             synchronized(encoderLock) {
                 check(currentState == State.IDLE)
@@ -75,13 +84,8 @@ internal class AudioEncoder(
                 }
 
                 if (this.audioSource != null) {
-                    try {
-                        this.audioSource!!.checkIfConfigurationSupported()
-                    } catch (cause: Throwable) {
-                        cleanupAfterPrepareFailure()
-                        onAudioCaptureError(cause)
-                        return
-                    }
+                    audioSourceConfigurationError = runCatching { this.audioSource!!.checkIfConfigurationSupported() }.exceptionOrNull()
+                    if (audioSourceConfigurationError != null) return@synchronized
                 }
 
                 if (this.audioSource == null) return
@@ -133,41 +137,13 @@ internal class AudioEncoder(
                 onAudioInfo(audioParams)
             }
         }.onFailure { cause ->
-            cleanupAfterPrepareFailure()
+            stopInternal(force = true, logTag = "cleanupAfterPrepareFailure")
             onError(cause)
         }
-    }
 
-    private fun cleanupAfterPrepareFailure(): Unit = synchronized(encoderLock) {
-        runCatching { audioSource?.stop() }
-        audioSource = null
-
-        g711Codec?.stopEncoding()
-        g711Codec = null
-
-        audioEncoder?.apply {
-            runCatching {
-                stop()
-                release()
-            }.onFailure {
-                XLog.w(this@AudioEncoder.getLog("cleanupAfterPrepareFailure", "mediaCodec.stop() exception: ${it.message}"), it)
-            }
-        }
-        audioEncoder = null
-
-        handler?.removeCallbacksAndMessages(null)
-        handlerThread?.apply {
-            quitSafely()
-            runCatching { join(250) }.onFailure {
-                quit()
-                XLog.w(this@AudioEncoder.getLog("cleanupAfterPrepareFailure", "handlerThread.join() took too long, forcing a shutdown"))
-            }
-        }
-        handlerThread = null
-        handler = null
-
-        frameQueue.clear()
-        currentState = State.IDLE
+        val configurationError = audioSourceConfigurationError ?: return
+        stopInternal(force = true, logTag = "cleanupAfterPrepareFailure")
+        onAudioCaptureError(configurationError)
     }
 
     internal fun start(): Unit = synchronized(encoderLock) {
@@ -191,64 +167,77 @@ internal class AudioEncoder(
         XLog.v(getLog("start", "Done"))
     }
 
-    internal fun stop(): Unit = synchronized(encoderLock) {
-        if (audioSource == null) {
-            XLog.i(getLog("stop", "No audioSource. Ignoring"))
-            return
-        }
+    internal fun stop() {
         XLog.v(getLog("stop"))
+        if (stopInternal(force = false, logTag = "stopInternal").not()) return
+        XLog.v(getLog("stop", "Done"))
+    }
 
-        if (currentState == State.IDLE || currentState == State.STOPPED) {
-            XLog.w(getLog("stop", "Cannot stop unless state is RUNNING. Current: $currentState"))
-            return
-        }
-        currentState = State.STOPPED
-
-        audioSource!!.stop()
-        audioSource = null
-
-        // G711
-        g711Codec?.stopEncoding()
-        g711Codec = null
-
-        audioEncoder?.apply {
-            runCatching {
-                stop()
-                release()
-            }.onFailure {
-                XLog.w(this@AudioEncoder.getLog("stopInternal", "mediaCodec.stop() exception: ${it.message}"), it)
+    private fun stopInternal(force: Boolean, logTag: String): Boolean {
+        val snapshot = synchronized(encoderLock) {
+            if (audioSource == null && !force) {
+                XLog.i(getLog("stop", "No audioSource. Ignoring"))
+                return@synchronized null
             }
-        }
-        audioEncoder = null
+            if (!force && (currentState == State.IDLE || currentState == State.STOPPED)) {
+                XLog.w(getLog("stop", "Cannot stop unless state is RUNNING. Current: $currentState"))
+                return@synchronized null
+            }
 
-        handler?.removeCallbacksAndMessages(null)
-        handlerThread?.apply {
+            currentState = State.STOPPED
+
+            StopSnapshot(audioSource, g711Codec, audioEncoder, handler, handlerThread).also {
+                audioSource = null
+                g711Codec = null
+                audioEncoder = null
+                handler = null
+                handlerThread = null
+            }
+        } ?: return false
+
+        runCatching { snapshot.audioSource?.stop() }
+
+        snapshot.g711Codec?.stopEncoding()
+
+        snapshot.audioEncoder?.runCatching {
+            stop()
+            release()
+        }?.onFailure {
+            XLog.w(this@AudioEncoder.getLog(logTag, "mediaCodec.stop() exception: ${it.message}"), it)
+        }
+
+        snapshot.handler?.removeCallbacksAndMessages(null)
+
+        snapshot.handlerThread?.apply {
             quitSafely()
             runCatching { join(250) }.onFailure {
-                XLog.w(this@AudioEncoder.getLog("stopInternal", "handlerThread.join() interrupted"), it)
+                XLog.w(this@AudioEncoder.getLog(logTag, "handlerThread.join() interrupted"), it)
             }
             if (isAlive) {
-                XLog.w(this@AudioEncoder.getLog("stopInternal", "handlerThread.join() took too long, forcing a shutdown"))
+                XLog.w(this@AudioEncoder.getLog(logTag, "handlerThread.join() took too long, forcing a shutdown"))
                 quit()
                 runCatching { join(250) }.onFailure {
-                    XLog.w(this@AudioEncoder.getLog("stopInternal", "handlerThread forced join interrupted"), it)
+                    XLog.w(this@AudioEncoder.getLog(logTag, "handlerThread forced join interrupted"), it)
                 }
                 if (isAlive) {
                     XLog.w(
-                        this@AudioEncoder.getLog("stopInternal", "handlerThread did not stop after forced shutdown"),
+                        this@AudioEncoder.getLog(logTag, "handlerThread did not stop after forced shutdown"),
                         IllegalStateException("AudioEncoder handlerThread still alive: name=$name, state=$state")
                     )
                 }
             }
         }
-        handlerThread = null
-        handler = null
 
         frameQueue.clear()
 
-        currentState = State.IDLE
+        synchronized(encoderLock) {
+            currentState = State.IDLE
+        }
+        return true
+    }
 
-        XLog.v(getLog("stop", "Done"))
+    private fun isCallbackCodecActive(codec: MediaCodec): Boolean = synchronized(encoderLock) {
+        codec === audioEncoder && currentState == State.RUNNING
     }
 
     internal fun setMute(micMute: Boolean, deviceMute: Boolean) {
@@ -273,6 +262,9 @@ internal class AudioEncoder(
         override fun onInputBufferAvailable(codec: MediaCodec, index: Int) {
             runCatching {
                 synchronized(encoderLock) {
+                    val activeCodec = audioEncoder
+                    if (codec !== activeCodec) return
+
                     if (currentState != State.RUNNING) {
                         runCatching { codec.queueInputBuffer(index, 0, 0, 0, 0) }
                         return
@@ -298,15 +290,30 @@ internal class AudioEncoder(
                     codec.queueInputBuffer(index, 0, frame.size, frame.timestampUs, 0)
                 }
             }.onFailure { cause ->
+                if (!isCallbackCodecActive(codec)) {
+                    XLog.v(
+                        this@AudioEncoder.getLog(
+                            "CodecCallback.onInputBufferAvailable",
+                            "Ignoring stale callback failure: ${cause.message}"
+                        )
+                    )
+                    return@onFailure
+                }
+
                 XLog.w(this@AudioEncoder.getLog("CodecCallback.onInputBufferAvailable", "onFailure: ${cause.message}"), cause)
-                onError(cause)
+                if (isCallbackCodecActive(codec)) {
+                    onError(cause)
+                } else {
+                    XLog.v(this@AudioEncoder.getLog("CodecCallback.onInputBufferAvailable", "Ignoring callback failure after stop"))
+                }
             }
         }
 
         override fun onOutputBufferAvailable(codec: MediaCodec, index: Int, info: MediaCodec.BufferInfo) {
             runCatching {
                 val audioFrame = synchronized(encoderLock) {
-                    if (currentState != State.RUNNING || info.size == 0) {
+                    val activeCodec = audioEncoder
+                    if (codec !== activeCodec || currentState != State.RUNNING || info.size == 0) {
                         runCatching { codec.releaseOutputBuffer(index, false) }
                         return
                     }
@@ -338,18 +345,38 @@ internal class AudioEncoder(
 
                 onAudioFrame(audioFrame)
             }.onFailure { cause ->
+                if (!isCallbackCodecActive(codec)) {
+                    XLog.v(
+                        this@AudioEncoder.getLog(
+                            "CodecCallback.onOutputBufferAvailable",
+                            "Ignoring stale callback failure: ${cause.message}"
+                        )
+                    )
+                    runCatching { codec.releaseOutputBuffer(index, false) }
+                    return@onFailure
+                }
+
                 XLog.w(this@AudioEncoder.getLog("CodecCallback.onOutputBufferAvailable", "onFailure: ${cause.message}"), cause)
                 runCatching { codec.releaseOutputBuffer(index, false) }
-                onError(cause)
+                if (isCallbackCodecActive(codec)) {
+                    onError(cause)
+                } else {
+                    XLog.v(this@AudioEncoder.getLog("CodecCallback.onOutputBufferAvailable", "Ignoring callback failure after stop"))
+                }
             }
         }
 
         override fun onError(codec: MediaCodec, cause: MediaCodec.CodecException) {
+            if (!isCallbackCodecActive(codec)) {
+                XLog.v(this@AudioEncoder.getLog("CodecCallback.onError", "Ignoring stale callback error: ${cause.message}"))
+                return
+            }
             XLog.w(this@AudioEncoder.getLog("CodecCallback.onError", "onFailure: ${cause.message}"), cause)
             onError(cause)
         }
 
         override fun onOutputFormatChanged(codec: MediaCodec, format: MediaFormat) {
+            if (!isCallbackCodecActive(codec)) return
             XLog.i(this@AudioEncoder.getLog("CodecCallback.onOutputFormatChanged", "[Not handled] codec: $codec, format: $format"))
         }
     }

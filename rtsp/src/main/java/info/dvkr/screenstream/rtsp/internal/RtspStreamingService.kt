@@ -8,6 +8,7 @@ import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.hardware.display.DisplayManager
 import android.hardware.display.VirtualDisplay
+import android.media.MediaCodec
 import android.media.MediaRecorder
 import android.media.projection.MediaProjection
 import android.media.projection.MediaProjectionManager
@@ -117,7 +118,8 @@ internal class RtspStreamingService(
         val videoEncoder: VideoEncoder,
         var captureSurface: Surface,
         var audioEncoder: AudioEncoder? = null,
-        var deviceConfiguration: Configuration
+        var deviceConfiguration: Configuration,
+        val onVideoReconfigureStart: () -> Unit = {}
     ) {
         fun stop(projectionCallback: MediaProjection.Callback) {
             videoEncoder.stop()
@@ -132,11 +134,12 @@ internal class RtspStreamingService(
 
         fun reconfigureVideo(width: Int, height: Int, fps: Int, bitRate: Int, densityDpi: Int) {
             val oldSurface = captureSurface
+            onVideoReconfigureStart()
+            virtualDisplay.surface = null
             videoEncoder.stop()
             videoEncoder.prepare(width, height, fps, bitRate)
             val inputSurfaceTexture = videoEncoder.inputSurfaceTexture ?: throw IllegalStateException("VideoEncoder input surface is null")
             val newSurface = Surface(inputSurfaceTexture)
-            virtualDisplay.surface = null
             virtualDisplay.resize(width, height, densityDpi)
             virtualDisplay.surface = newSurface
             captureSurface = newSurface
@@ -177,6 +180,8 @@ internal class RtspStreamingService(
     private var audioCaptureDisabled: Boolean = false
     private var audioIssueToastShown: Boolean = false
     private var resizeActor: ResizeConflateActor? = null
+    private var settingsLoaded: Boolean = false
+    private var initializedMode: RtspSettings.Values.Mode? = null
     // All vars must be read/write on this (RTSP_HT) thread
 
     private inner class ResizeConflateActor(
@@ -208,7 +213,7 @@ internal class RtspStreamingService(
                     )
                     encodedSize = targetWidth to targetHeight
                 } catch (cause: Throwable) {
-                    sendEvent(InternalEvent.Error(RtspError.UnknownError(cause)))
+                    sendEvent(InternalEvent.Error(cause.toVideoReconfigureError()))
                     return@launch
                 }
             }
@@ -418,6 +423,10 @@ internal class RtspStreamingService(
             status = RtspClientStatus.IDLE
         }
 
+        fun beginVideoReconfigure() {
+            client?.beginVideoReconfigure()
+        }
+
         fun onEvent(event: InternalEvent.RtspClient) {
             if (event.generation != generation) {
                 XLog.d(getLog("RtspClient:${event::class.simpleName}", "Stale generation=${event.generation}. Ignoring."))
@@ -459,7 +468,7 @@ internal class RtspStreamingService(
     }
 
     internal sealed class InternalEvent(priority: Int) : RtspEvent(priority) {
-        data class InitState(val clearIntent: Boolean) : InternalEvent(Priority.DESTROY_IGNORE)
+        data class InitState(val clearIntent: Boolean, val mode: RtspSettings.Values.Mode) : InternalEvent(Priority.DESTROY_IGNORE)
         data class OnVideoCodecChange(val name: String?) : InternalEvent(Priority.DESTROY_IGNORE)
         data class OnAudioCodecChange(val name: String?) : InternalEvent(Priority.DESTROY_IGNORE)
         data class ModeChanged(val mode: RtspSettings.Values.Mode) : InternalEvent(Priority.RECOVER_IGNORE)
@@ -538,8 +547,6 @@ internal class RtspStreamingService(
 
         mutableRtspStateFlow.value = buildViewState()
 
-        sendEvent(InternalEvent.InitState(true))
-
         fun <T> Flow<T>.listenForChange(scope: CoroutineScope, drop: Int = 0, action: suspend (T) -> Unit) =
             distinctUntilChanged().drop(drop).onEach { action(it) }.launchIn(scope)
 
@@ -566,7 +573,15 @@ internal class RtspStreamingService(
             .listenForChange(coroutineScope) { sendEvent(it) }
 
         rtspSettings.data.map { it.mode }.listenForChange(coroutineScope, 1) { mode ->
-            sendEvent(InternalEvent.ModeChanged(mode))
+            if (!settingsLoaded) {
+                settingsLoaded = true
+                sendEvent(InternalEvent.InitState(clearIntent = true, mode = mode))
+                if (mode == RtspSettings.Values.Mode.SERVER) {
+                    sendEvent(InternalEvent.RtspServer.DiscoverAddress(reason = "InitState"))
+                }
+            } else {
+                sendEvent(InternalEvent.ModeChanged(mode))
+            }
         }
 
         rtspSettings.data.map {
@@ -582,6 +597,18 @@ internal class RtspStreamingService(
         }.listenForChange(coroutineScope, 1) { config ->
             XLog.i(getLog("SettingsChanged", config.toString()))
             sendEvent(InternalEvent.RtspServer.DiscoverAddress(reason = "SettingsChanged"), timeout = 200)
+        }
+
+        coroutineScope.launch {
+            delay(250)
+            if (settingsLoaded) return@launch
+
+            settingsLoaded = true
+            val mode = rtspSettings.data.value.mode
+            sendEvent(InternalEvent.InitState(clearIntent = true, mode = mode))
+            if (mode == RtspSettings.Values.Mode.SERVER) {
+                sendEvent(InternalEvent.RtspServer.DiscoverAddress(reason = "InitStateFallback"))
+            }
         }
     }
 
@@ -634,7 +661,7 @@ internal class RtspStreamingService(
     }
 
     private fun buildViewState(): RtspState {
-        val selectedMode = rtspSettings.data.value.mode
+        val selectedMode = initializedMode ?: rtspSettings.data.value.mode
         val isServerMode = selectedMode == RtspSettings.Values.Mode.SERVER
         val serverActive = serverController?.isActive == true
         val status = if (isServerMode) {
@@ -652,7 +679,7 @@ internal class RtspStreamingService(
             }
         }
         val errorBlocks = currentError != null && currentError !is RtspError.ClientError
-        val isBusy = destroyPending || projectionState.waitingForPermission || errorBlocks || readinessBusy
+        val isBusy = destroyPending || !settingsLoaded || initializedMode == null || projectionState.waitingForPermission || errorBlocks || readinessBusy
 
         return RtspState(
             mode = selectedMode,
@@ -681,7 +708,7 @@ internal class RtspStreamingService(
             stopStream(stopServer = true, stopReason = "HandleMessageException")
 
             currentError = cause as? RtspError ?: RtspError.UnknownError(cause)
-            if (rtspSettings.data.value.mode == RtspSettings.Values.Mode.SERVER) {
+            if ((initializedMode ?: rtspSettings.data.value.mode) == RtspSettings.Values.Mode.SERVER) {
                 serverController?.isActive = false
             } else {
                 clientController?.status = RtspClientStatus.ERROR
@@ -710,11 +737,12 @@ internal class RtspStreamingService(
             is InternalEvent.InitState -> {
                 serverController = null
                 clientController = null
-                if (rtspSettings.data.value.mode == RtspSettings.Values.Mode.SERVER) {
+                if (event.mode == RtspSettings.Values.Mode.SERVER) {
                     serverController = RtspServerController()
                 } else {
                     clientController = RtspClientController()
                 }
+                initializedMode = event.mode
                 projectionState = ProjectionState(
                     waitingForPermission = false,
                     cachedIntent = if (event.clearIntent) null else projectionState.cachedIntent
@@ -763,9 +791,13 @@ internal class RtspStreamingService(
             }
 
             is InternalEvent.ModeChanged -> {
+                if (event.mode == initializedMode) {
+                    XLog.d(getLog("ModeChanged", "Already initialized for mode=$initializedMode. Ignoring."))
+                    return
+                }
                 stopStream(stopServer = true, stopReason = "ModeChanged")
 
-                sendEvent(InternalEvent.InitState(false))
+                sendEvent(InternalEvent.InitState(clearIntent = false, mode = event.mode))
 
                 if (event.mode == RtspSettings.Values.Mode.SERVER) {
                     sendEvent(InternalEvent.RtspServer.DiscoverAddress(reason = "ModeChanged"))
@@ -773,6 +805,10 @@ internal class RtspStreamingService(
             }
 
             is InternalEvent.StartStream -> {
+                if (!settingsLoaded || initializedMode == null) {
+                    XLog.i(getLog("StartStream", "Settings are not initialized yet. Ignoring."))
+                    return
+                }
                 if (projectionState.active != null) {
                     XLog.d(getLog("StartStream", "Already streaming. Ignoring."))
                     return
@@ -805,6 +841,10 @@ internal class RtspStreamingService(
             }
 
             is RtspEvent.StartProjection -> {
+                if (!settingsLoaded || initializedMode == null) {
+                    XLog.i(getLog("StartProjection", "Settings are not initialized yet. Ignoring."))
+                    return
+                }
                 projectionState.waitingForPermission = false
 
                 if (projectionState.active != null) {
@@ -824,10 +864,21 @@ internal class RtspStreamingService(
                 var clientRtspUrl: RtspUrl? = null
 
                 if (modeLocal == RtspSettings.Values.Mode.SERVER) {
-                    check(serverController != null) { "RtspServer controller is null" }
+                    if (serverController == null) {
+                        XLog.w(getLog("StartProjection", "Server controller is null for mode=$modeLocal. Reinitializing."))
+                        sendEvent(InternalEvent.InitState(clearIntent = false, mode = modeLocal))
+                        sendEvent(InternalEvent.RtspServer.DiscoverAddress(reason = "StartProjectionControllerRecovery"), timeout = 25)
+                        sendEvent(event, timeout = 50)
+                        return
+                    }
                     check(serverController.isActive) { "RtspServer is not ready" }
                 } else {
-                    check(clientController != null) { "RtspClient controller is null" }
+                    if (clientController == null) {
+                        XLog.w(getLog("StartProjection", "Client controller is null for mode=$modeLocal. Reinitializing."))
+                        sendEvent(InternalEvent.InitState(clearIntent = false, mode = modeLocal))
+                        sendEvent(event, timeout = 50)
+                        return
+                    }
 
                     clientRtspUrl = try {
                         RtspUrl.parse(settings.serverAddress)
@@ -869,7 +920,7 @@ internal class RtspStreamingService(
                 val wantsMicrophoneForSession = audioPermissionGranted && settings.enableMic
                 val wantsDeviceAudioForSession = audioPermissionGranted && settings.enableDeviceAudio
                 val startResult =
-                    projectionCoordinator.start(event.intent, wantsMicrophoneForSession) { _, mediaProjection, audioFgsUpgradeSucceeded ->
+                    projectionCoordinator.start(event.intent, wantsMicrophoneForSession) { _, mediaProjection, audioFgsUpgradeSucceeded, isStartupStillValid ->
                         // TODO Starting from Android R, if your application requests the SYSTEM_ALERT_WINDOW permission, and the user has
                         //  not explicitly denied it, the permission will be automatically granted until the projection is stopped.
                         //  The permission allows your app to display user controls on top of the screen being captured.
@@ -901,7 +952,7 @@ internal class RtspStreamingService(
                             onFps = { sendEvent(InternalEvent.OnVideoFps(it)) },
                             onError = {
                                 XLog.w(getLog("VideoEncoder.onError", it.message), it)
-                                sendEvent(InternalEvent.Error(RtspError.UnknownError(it)))
+                                sendEvent(InternalEvent.Error(it.toVideoPipelineError()))
                             }
                         ).apply {
                             prepare(
@@ -910,6 +961,13 @@ internal class RtspStreamingService(
                                 fps = settings.videoFps.coerceIn(videoCapabilities.supportedFrameRates.toClosedRange()),
                                 bitRate = settings.videoBitrateBits.coerceIn(videoCapabilities.bitrateRange.toClosedRange())
                             )
+
+                            if (!isStartupStillValid()) {
+                                XLog.i(getLog("StartProjection", "Startup invalidated before virtual display creation."))
+                                stop()
+                                mediaProjection.unregisterCallback(projectionCallback)
+                                return@start false
+                            }
 
                             this.inputSurfaceTexture?.let { surfaceTexture ->
                                 captureSurface = Surface(surfaceTexture)
@@ -925,8 +983,9 @@ internal class RtspStreamingService(
                                 )
                             }
 
-                            if (virtualDisplay == null) {
-                                XLog.i(getLog("startDisplayCapture", "virtualDisplay is null. Stopping projection."))
+                            if (virtualDisplay == null || !isStartupStillValid()) {
+                                val reason = if (virtualDisplay == null) "virtualDisplay is null" else "startup invalidated"
+                                XLog.i(getLog("startDisplayCapture", "$reason. Stopping projection."))
                                 stop()
                                 mediaProjection.unregisterCallback(projectionCallback)
                                 runCatching { captureSurface?.release() }
@@ -953,7 +1012,7 @@ internal class RtspStreamingService(
                                 onAudioCaptureError = { sendEvent(InternalEvent.AudioCaptureError(it)) },
                                 onError = {
                                     XLog.w(getLog("AudioEncoder.onError", it.message), it)
-                                    sendEvent(InternalEvent.Error(RtspError.UnknownError(it)))
+                                    sendEvent(InternalEvent.Error(it.toAudioPipelineError()))
                                 }
                             ).apply {
                                 val requestedBitrate = settings.audioBitrateBits
@@ -999,6 +1058,17 @@ internal class RtspStreamingService(
                             setAudioParams(null)
                         }
 
+                        if (!isStartupStillValid()) {
+                            XLog.i(getLog("StartProjection", "Startup invalidated after encoder startup."))
+                            videoEncoder.stop()
+                            virtualDisplay?.surface = null
+                            virtualDisplay?.release()
+                            runCatching { captureSurface?.release() }
+                            audioEncoder?.stop()
+                            mediaProjection.unregisterCallback(projectionCallback)
+                            return@start false
+                        }
+
                         if (modeLocal == RtspSettings.Values.Mode.CLIENT) {
                             val onlyVideo = audioCaptureDisabled || !audioEnabledForSession
                             clientController?.startClient(clientRtspUrl!!, onlyVideo)
@@ -1015,7 +1085,8 @@ internal class RtspStreamingService(
                                 return@start false
                             },
                             audioEncoder = audioEncoder,
-                            deviceConfiguration = deviceConfiguration
+                            deviceConfiguration = deviceConfiguration,
+                            onVideoReconfigureStart = { clientController?.beginVideoReconfigure() }
                         )
                         resizeActor?.close()
                         resizeActor = ResizeConflateActor(
@@ -1057,7 +1128,9 @@ internal class RtspStreamingService(
                         sessionAnalyticsTracker.onStartFailed(
                             if (startResult is ProjectionCoordinator.StartResult.Fatal) StartFailGroup.FATAL else StartFailGroup.BLOCKED
                         )
-                        projectionState.cachedIntent = null
+                        if (startResult.cachedIntentAction == ProjectionCoordinator.CachedIntentAction.INVALIDATE) {
+                            projectionState.cachedIntent = null
+                        }
                         projectionState.waitingForPermission = false
                         stopStream(stopServer = true, stopReason = "StartProjectionFailed")
                         currentError = cause as? RtspError ?: RtspError.UnknownError(cause)
@@ -1152,8 +1225,9 @@ internal class RtspStreamingService(
 
                 if (event is RtspEvent.Intentable.RecoverError) {
                     handler.removeMessages(RtspEvent.Priority.RECOVER_IGNORE)
-                    sendEvent(InternalEvent.InitState(true))
-                    if (rtspSettings.data.value.mode == RtspSettings.Values.Mode.SERVER) {
+                    val mode = rtspSettings.data.value.mode
+                    sendEvent(InternalEvent.InitState(clearIntent = true, mode = mode))
+                    if (mode == RtspSettings.Values.Mode.SERVER) {
                         sendEvent(InternalEvent.RtspServer.DiscoverAddress(reason = "RecoverError"))
                     }
                 }
@@ -1189,6 +1263,7 @@ internal class RtspStreamingService(
 
         resizeActor?.close()
         resizeActor = null
+        projectionState.waitingForPermission = false
 
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             runCatching { service.unregisterComponentCallbacks(componentCallback) }
@@ -1202,7 +1277,6 @@ internal class RtspStreamingService(
 
         projectionState.active?.stop(projectionCallback)
         projectionState.active = null
-        projectionState.waitingForPermission = false
         projectionState.lastVideoParams = null
         projectionState.lastAudioParams = null
         projectionCoordinator.stop()
@@ -1227,4 +1301,14 @@ internal class RtspStreamingService(
         audioIssueToastShown = true
         mainHandler.post { Toast.makeText(service, R.string.rtsp_audio_capture_issue_detected, Toast.LENGTH_LONG).show() }
     }
+
+    private fun Throwable.toVideoPipelineError(): RtspError.UnknownError =
+        if (this is MediaCodec.CodecException) RtspError.VideoCodecError(this)
+        else RtspError.VideoRendererError(this)
+
+    private fun Throwable.toVideoReconfigureError(): RtspError.UnknownError = RtspError.VideoReconfigureError(this)
+
+    private fun Throwable.toAudioPipelineError(): RtspError.UnknownError =
+        if (this is MediaCodec.CodecException) RtspError.AudioCodecError(this)
+        else RtspError.UnknownError(this)
 }

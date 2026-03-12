@@ -63,6 +63,7 @@
     <string name="webrtc_error_play_integrity_install_play_service">براہ کرم پلے سروسز انسٹال یا فعال کریں</string>
     <string name="webrtc_error_play_integrity_update_play_service">براہ کرم گوگل پلے سروسز اپ ڈیٹ کریں</string>
     <string name="webrtc_error_check_network">براہ کرم انٹرنیٹ کنکشن چیک کریں</string>
+    <string name="webrtc_error_incomplete_installation">ایپ کی تنصیب نامکمل ہے۔ براہ کرم Google Play سے ایپ کو دوبارہ انسٹال کریں۔</string>
     <string name="webrtc_notification_permission_required">اسٹریمنگ سروس شروع کرنے کیلئے اطلاعات کی اجازت درکار ہے۔\nایپ کی ترتیبات میں اطلاعات فعال کریں۔</string>
     <string name="webrtc_error_unspecified">کچھ غلط ہو گیا۔ بعد میں دوبارہ کوشش کریں۔</string>
 </resources>

@@ -132,6 +132,7 @@ internal class WebRtcStreamingService(
     private val clientGenerations: ConcurrentHashMap<ClientId, ClientTag> = ConcurrentHashMap()
     private var previousError: WebRtcError? = null
     private var audioIssueToastShown: Boolean = false
+    private var streamRecreateInFlight: Boolean = false
     // All vars must be read/write on this (WebRTC-HT) thread
 
     internal sealed class InternalEvent(priority: Int) : WebRtcEvent(priority) {
@@ -141,6 +142,7 @@ internal class WebRtcStreamingService(
         data class OpenSocket(val token: PlayIntegrityToken) : InternalEvent(Priority.RECOVER_IGNORE)
         data object StreamCreate : InternalEvent(Priority.RECOVER_IGNORE)
         data class StreamCreated(val streamId: StreamId) : InternalEvent(Priority.RECOVER_IGNORE)
+        data object StreamRemoved : InternalEvent(Priority.RECOVER_IGNORE)
         data class ClientJoin(val clientId: ClientId, val iceServers: List<IceServer>) : InternalEvent(Priority.RECOVER_IGNORE)
         data class SocketSignalingError(val error: SocketSignaling.Error) : InternalEvent(Priority.RECOVER_IGNORE)
         data class CaptureFatal(val cause: Throwable) : InternalEvent(Priority.STOP_IGNORE)
@@ -231,7 +233,7 @@ internal class WebRtcStreamingService(
 
         override fun onStreamRemoved() {
             XLog.v(this@WebRtcStreamingService.getLog("SocketSignaling.onStreamRemoved"))
-            sendEvent(InternalEvent.StreamCreate)
+            sendEvent(InternalEvent.StreamRemoved)
         }
 
         override fun onClientJoin(clientId: ClientId, iceServers: List<IceServer>) {
@@ -295,12 +297,17 @@ internal class WebRtcStreamingService(
         }
 
         override fun onError(clientId: ClientId, generation: Long, epoch: Long, cause: Throwable) {
+            val isPeerDisconnected = cause.message?.startsWith("onPeerDisconnected") == true
             if (clientGenerations[clientId] != ClientTag(generation, epoch) || epoch != streamEpoch) {
-                XLog.i(this@WebRtcStreamingService.getLog("WebRTCClient.onError", "Stale generation for client: $clientId. Ignoring."), cause)
+                if (isPeerDisconnected) {
+                    XLog.i(this@WebRtcStreamingService.getLog("WebRTCClient.onError", "Stale generation for client: $clientId. Ignoring."))
+                } else {
+                    XLog.i(this@WebRtcStreamingService.getLog("WebRTCClient.onError", "Stale generation for client: $clientId. Ignoring."), cause)
+                }
                 return
             }
-            if (cause.message?.startsWith("onPeerDisconnected") == true) {
-                XLog.w(this@WebRtcStreamingService.getLog("WebRTCClient.onError", "Client: $clientId: ${cause.message}"), cause)
+            if (isPeerDisconnected) {
+                XLog.w(this@WebRtcStreamingService.getLog("WebRTCClient.onError", "Client: $clientId: ${cause.message}"))
                 sendEvent(WebRtcEvent.RemoveClient(clientId, false, "onError:${cause.message}"))
             } else {
                 XLog.e(this@WebRtcStreamingService.getLog("WebRTCClient.onError", "Client: $clientId"), cause)
@@ -499,6 +506,7 @@ internal class WebRtcStreamingService(
                 clientGenerations.clear()
                 clientGenerationCounter = 0
                 audioIssueToastShown = false
+                streamRecreateInFlight = false
 
                 currentError.set(null)
                 networkRecovery.value = false
@@ -662,13 +670,37 @@ internal class WebRtcStreamingService(
                 }
 
                 networkRecovery.value = false
+                streamRecreateInFlight = false
                 currentStreamId = event.streamId
                 if (currentStreamPassword.isEmpty()) currentStreamPassword = StreamPassword.generateNew()
-                projection = projection ?: WebRtcProjection(service)
+                if (projection == null) {
+                    projection = try {
+                        WebRtcProjection(service)
+                    } catch (cause: UnsatisfiedLinkError) {
+                        if (cause.message?.contains("libjingle_peerconnection_so.so") != true) throw cause
+                        XLog.w(getLog("StreamCreated", "Missing WebRTC native library. abi=${Build.SUPPORTED_ABIS.joinToString()} nativeLibraryDir=${service.applicationInfo.nativeLibraryDir}"), cause)
+                        throw WebRtcError.IncompleteInstallation(cause)
+                    }
+                }
                 projection!!.setMicrophoneMute(webRtcSettings.data.value.enableMic.not())
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                     projection!!.setDeviceAudioMute(webRtcSettings.data.value.enableDeviceAudio.not())
                 }
+            }
+
+            is InternalEvent.StreamRemoved -> {
+                if (destroyPending) {
+                    XLog.i(getLog("StreamRemoved", "DestroyPending. Ignoring"))
+                    return
+                }
+
+                if (streamRecreateInFlight.not()) {
+                    XLog.i(getLog("StreamRemoved", "No recreate in flight. Ignoring stale callback."))
+                    return
+                }
+
+                streamRecreateInFlight = false
+                sendEvent(InternalEvent.StreamCreate)
             }
 
             is InternalEvent.ClientJoin -> {
@@ -744,6 +776,9 @@ internal class WebRtcStreamingService(
                     return
                 }
 
+                if (event.error is SocketSignaling.Error.StreamRemoveError) {
+                    streamRecreateInFlight = false
+                }
                 currentError.set(WebRtcError.SocketError(event.error.message ?: "Unknown error", event.error.cause))
             }
 
@@ -778,15 +813,19 @@ internal class WebRtcStreamingService(
                 val sessionEpoch = bumpStreamEpoch("StartProjection")
                 val requiresAudioFgsUpgrade = hasAudioPermission && (userRequestedMic || userRequestedDeviceAudio)
                 val startResult =
-                    projectionCoordinator.start(event.intent, requiresAudioFgsUpgrade) { _, mediaProjection, audioFgsUpgradeSucceeded ->
-                        val projectionStarted = prj.start(currentStreamId, mediaProjection) { cause ->
+                    projectionCoordinator.start(event.intent, requiresAudioFgsUpgrade) { _, mediaProjection, audioFgsUpgradeSucceeded, isStartupStillValid ->
+                        val projectionStarted = prj.start(currentStreamId, mediaProjection, { cause ->
                             sendEvent(InternalEvent.CaptureFatal(cause))
-                        }
+                        }, isStartupStillValid)
                         if (!projectionStarted) {
                             XLog.w(
                                 this@WebRtcStreamingService.getLog("StartProjection", "projection.start returned false"),
                                 IllegalStateException("projection.start returned false")
                             )
+                            return@start false
+                        }
+                        if (!isStartupStillValid()) {
+                            XLog.i(getLog("StartProjection", "Startup invalidated after projection start."))
                             return@start false
                         }
 
@@ -835,7 +874,9 @@ internal class WebRtcStreamingService(
                         sessionAnalyticsTracker.onStartFailed(
                             if (startResult is ProjectionCoordinator.StartResult.Fatal) StartFailGroup.FATAL else StartFailGroup.BLOCKED
                         )
-                        mediaProjectionIntent = null
+                        if (startResult.cachedIntentAction == ProjectionCoordinator.CachedIntentAction.INVALIDATE) {
+                            mediaProjectionIntent = null
+                        }
                         waitingForPermission = false
                         if (startResult is ProjectionCoordinator.StartResult.Fatal) {
                             XLog.e(getLog("StartProjection", "Fatal start error"), cause)
@@ -871,6 +912,7 @@ internal class WebRtcStreamingService(
                 signaling = null
                 projection?.destroy()
                 projection = null
+                waitingForPermission = false
 
                 currentError.set(null)
 
@@ -1093,6 +1135,12 @@ internal class WebRtcStreamingService(
                     return
                 }
 
+                if (streamRecreateInFlight) {
+                    XLog.i(getLog("GetNewStreamId", "Recreate already in progress. Ignoring."))
+                    return
+                }
+
+                streamRecreateInFlight = true
                 requireNotNull(signaling).sendStreamRemove(currentStreamId)
                 clients = HashMap()
                 clientGenerations.clear()
@@ -1112,6 +1160,11 @@ internal class WebRtcStreamingService(
 
                 if (isStreaming()) {
                     XLog.i(getLog("CreateNewPassword", "Streaming. Ignoring."))
+                    return
+                }
+
+                if (streamRecreateInFlight) {
+                    XLog.i(getLog("CreateNewPassword", "Stream recreate in progress. Ignoring."))
                     return
                 }
 
@@ -1138,6 +1191,7 @@ internal class WebRtcStreamingService(
         val stopEpoch = bumpStreamEpoch("stopStream")
         synchronizeClientEpoch(stopEpoch)
         audioIssueToastShown = false
+        waitingForPermission = false
 
         if (wasStreaming) {
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
@@ -1174,7 +1228,7 @@ internal class WebRtcStreamingService(
     // Inline Only
     @Suppress("NOTHING_TO_INLINE")
     private inline fun getStateString() =
-        "Destroy: $destroyPending, Socket:${signaling?.socketId()}, StreamId:$currentStreamId, Streaming:${isStreaming()}, WFP:$waitingForPermission, networkRecovery:${networkRecovery.value} Clients:${clients.size}"
+        "Destroy: $destroyPending, Socket:${signaling?.socketId()}, StreamId:$currentStreamId, Streaming:${isStreaming()}, WFP:$waitingForPermission, recreate:$streamRecreateInFlight, networkRecovery:${networkRecovery.value} Clients:${clients.size}"
 
     // Inline Only
     @Suppress("NOTHING_TO_INLINE")

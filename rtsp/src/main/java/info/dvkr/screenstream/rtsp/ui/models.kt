@@ -43,9 +43,13 @@ internal data class RtspState(
 @Immutable
 internal sealed class RtspError(@field:StringRes open val id: Int, override val message: String? = null) : Throwable() {
     internal class NotificationPermissionRequired : RtspError(R.string.rtsp_error_notification_permission_required)
-    internal class UnknownError(override val cause: Throwable?) : RtspError(R.string.rtsp_error_unspecified) {
+    internal open class UnknownError(override val cause: Throwable?) : RtspError(R.string.rtsp_error_unspecified) {
         override fun toString(context: Context): String = context.getString(id) + " [${cause.toString()}]"
     }
+    internal class VideoCodecError(override val cause: Throwable?) : UnknownError(cause)
+    internal class VideoRendererError(override val cause: Throwable?) : UnknownError(cause)
+    internal class VideoReconfigureError(override val cause: Throwable?) : UnknownError(cause)
+    internal class AudioCodecError(override val cause: Throwable?) : UnknownError(cause)
 
     @Immutable
     internal sealed class ClientError(@StringRes id: Int) : RtspError(id) {

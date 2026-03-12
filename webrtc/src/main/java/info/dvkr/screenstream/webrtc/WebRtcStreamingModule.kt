@@ -134,6 +134,7 @@ public class WebRtcStreamingModule : StreamingModule {
 
             is StreamingModule.State.Running -> {
                 _streamingServiceState.value = StreamingModule.State.PendingStop
+                _webRtcStateFlow.value = WebRtcState()
                 withContext(NonCancellable) { state.scope.get<WebRtcStreamingService>().destroyService() }
                 _webRtcStateFlow.value = WebRtcState()
                 startToken = null
@@ -159,10 +160,20 @@ public class WebRtcStreamingModule : StreamingModule {
 
         when (val state = _streamingServiceState.value) {
             is StreamingModule.State.Running -> state.scope.get<WebRtcStreamingService>().sendEvent(event)
-            else -> XLog.w(
-                getLog("sendEvent", "Unexpected state: $state for event $event"),
-                RuntimeException("Unexpected state: $state for event $event")
-            )
+            else -> when (event) {
+                is WebRtcEvent.Intentable.StopStream,
+                is WebRtcEvent.StartProjection,
+                is WebRtcEvent.CastPermissionsDenied,
+                is WebRtcEvent.GetNewStreamId,
+                is WebRtcEvent.CreateNewPassword,
+                is WebRtcStreamingService.InternalEvent.StartStream ->
+                    XLog.i(getLog("sendEvent", "Ignoring stale event in state $state => $event"))
+
+                else -> XLog.w(
+                    getLog("sendEvent", "Unexpected state: $state for event $event"),
+                    RuntimeException("Unexpected state: $state for event $event")
+                )
+            }
         }
     }
 }

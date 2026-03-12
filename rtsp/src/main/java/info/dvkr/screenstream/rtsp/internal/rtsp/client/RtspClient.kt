@@ -73,8 +73,8 @@ internal class RtspClient(
     private enum class State { IDLE, CONNECTING, STREAMING }
 
     private sealed class QueuedItem {
-        class Frame(val frame: MediaFrame) : QueuedItem()
-        class NewVideoParams(val videoParams: VideoParams) : QueuedItem()
+        class Frame(val frame: MediaFrame, val videoGeneration: Int?) : QueuedItem()
+        class NewVideoParams(val videoParams: VideoParams, val videoGeneration: Int) : QueuedItem()
     }
 
     private class MediaFramesBuffer(val capacity: Int = 32) {
@@ -92,8 +92,8 @@ internal class RtspClient(
         private val droppedAudioFrames = AtomicLong(0)
 
         // Guarded by rtspLock
-        fun trySendFrame(frame: MediaFrame): ChannelResult<Unit> =
-            itemsChannel.trySend(QueuedItem.Frame(frame))
+        fun trySendFrame(frame: MediaFrame, videoGeneration: Int?): ChannelResult<Unit> =
+            itemsChannel.trySend(QueuedItem.Frame(frame, videoGeneration))
                 .onSuccess { bufferedFrameCount.incrementAndGet() }
                 .onFailure {
                     XLog.w(getLog("trySendFrame", "Frame discarded"))
@@ -104,8 +104,8 @@ internal class RtspClient(
                     }
                 }
 
-        fun trySendNewVideoParams(videoParams: VideoParams): ChannelResult<Unit> =
-            itemsChannel.trySend(QueuedItem.NewVideoParams(videoParams))
+        fun trySendNewVideoParams(videoParams: VideoParams, videoGeneration: Int): ChannelResult<Unit> =
+            itemsChannel.trySend(QueuedItem.NewVideoParams(videoParams, videoGeneration))
                 .onFailure { XLog.w(getLog("trySendNewVideoParams", "NewVideoParams discarded")) }
 
         suspend fun receiveItemWithTimeoutOrNull(timeMillis: Long = 100): QueuedItem? {
@@ -208,6 +208,8 @@ internal class RtspClient(
         }
 
     private var connectionJob = AtomicReference<Job?>(null)
+    private var currentVideoGeneration = 0
+    private var acceptVideoFrames = true
 
     @Throws
     @AnyThread
@@ -220,7 +222,8 @@ internal class RtspClient(
             Codec.Video.AV1 -> VideoParams(videoCodec, sps, pps, vps)
         }
         if (currentState == State.STREAMING) {
-            mediaFramesBuffer.trySendNewVideoParams(params)
+            mediaFramesBuffer.trySendNewVideoParams(params, currentVideoGeneration)
+            acceptVideoFrames = true
         } else {
             videoParams.get().complete(params)
         }
@@ -242,10 +245,39 @@ internal class RtspClient(
 
     @AnyThread
     internal fun enqueueFrame(frame: MediaFrame) = synchronized(rtspLock) {
-        if (currentState != State.STREAMING || frame is MediaFrame.AudioFrame && onlyVideo) {
-            frame.release()
+        val detachedFrame = runCatching { frame.detachedCopy() }
+            .onFailure { XLog.w(getLog("enqueueFrame", "Failed to detach frame. Dropping.")) }
+            .getOrNull()
+
+        frame.release()
+
+        if (detachedFrame == null) {
+            return@synchronized
+        }
+
+        val videoGeneration = if (detachedFrame is MediaFrame.VideoFrame) {
+            if (!acceptVideoFrames) {
+                detachedFrame.release()
+                return@synchronized
+            }
+            currentVideoGeneration
         } else {
-            mediaFramesBuffer.trySendFrame(frame)
+            null
+        }
+
+        if (currentState != State.STREAMING || detachedFrame is MediaFrame.AudioFrame && onlyVideo) {
+            detachedFrame.release()
+        } else {
+            mediaFramesBuffer.trySendFrame(detachedFrame, videoGeneration)
+        }
+    }
+
+    @AnyThread
+    internal fun beginVideoReconfigure() {
+        synchronized(rtspLock) {
+            if (currentState != State.STREAMING) return
+            currentVideoGeneration++
+            acceptVideoFrames = false
         }
     }
 
@@ -257,6 +289,8 @@ internal class RtspClient(
                 synchronized(rtspLock) {
                     if (currentState != State.IDLE) error("Cannot connect while streaming")
                     currentState = State.CONNECTING
+                    currentVideoGeneration = 0
+                    acceptVideoFrames = true
                 }
 
                 val videoParams = withTimeoutOrNull(5_000) { this@RtspClient.videoParams.get().await() }
@@ -559,6 +593,7 @@ internal class RtspClient(
 
     private suspend fun sendingLoop(tcpSocket: TcpStreamSocket, ports: SelectedPorts, videoParams: VideoParams, audioParams: AudioParams?) {
         val hasAudio = audioParams != null
+        var activeVideoGeneration = 0
         var ssrcVideo = Random.nextInt().toLong() and 0xFFFFFFFFL
         val ssrcAudio = if (hasAudio) Random.nextInt().toLong() and 0xFFFFFFFFL else 0L
         val protocol = ports.protocol
@@ -625,9 +660,11 @@ internal class RtspClient(
                 try {
                     when (queuedItem) {
                         is QueuedItem.Frame -> {
+                            if (queuedItem.frame is MediaFrame.VideoFrame && queuedItem.videoGeneration != activeVideoGeneration) {
+                                continue
+                            }
                             // If queue is congested, drop non-key video frames to reduce latency
                             if (queuedItem.frame is MediaFrame.VideoFrame && mediaFramesBuffer.hasCongestion(75f) && queuedItem.frame.info.isKeyFrame.not()) {
-                                queuedItem.frame.release()
                                 continue
                             }
                             val rtpFrames = when (val mediaFrame = queuedItem.frame) {
@@ -659,6 +696,7 @@ internal class RtspClient(
 
                         is QueuedItem.NewVideoParams -> {
                             val vParams = queuedItem.videoParams
+                            activeVideoGeneration = queuedItem.videoGeneration
                             when {
                                 vParams.codec is Codec.Video.H264 && videoPacket is H264Packet -> {
                                     XLog.w(getLog("sendingLoop", "Applying new SPS/PPS for H264"))
@@ -707,6 +745,8 @@ internal class RtspClient(
             }
             synchronized(rtspLock) {
                 currentState = State.IDLE
+                currentVideoGeneration = 0
+                acceptVideoFrames = true
                 mediaFramesBuffer.clear()
             }
         }
