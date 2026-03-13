@@ -7,22 +7,22 @@ koin-android = "4.1.1"
 
 kotlinx-coroutines = "1.10.2"
 
-androidx-core-ktx = "1.17.0"
+androidx-core-ktx = "1.18.0"
 androidx-core-splashscreen = "1.2.0"
-androidx-activity-compose = "1.12.4"
+androidx-activity-compose = "1.13.0"
 androidx-fragment = "1.8.9"
 androidx-appcompat = "1.7.1"
 androidx-lifecycle = "2.10.0"
 androidx-window = "1.5.1"
-androidx-datastore-preferences = "1.2.0"
+androidx-datastore-preferences = "1.2.1"
 
-compose-bom = "2026.02.00"
+compose-bom = "2026.03.00"
 
 process-phoenix = "3.0.0"
 xlog = "1.11.1"
 
 #MJPEG
-ktor = "3.4.0"
+ktor = "3.4.1"
 
 #PlayStore-WebRTC
 play-services-base = "18.10.0"
