@@ -30,6 +30,17 @@ public interface NetworkChangeDetector {
     CONNECTION_NONE
   }
 
+  public static enum NetworkSlice {
+    NO_SLICE(0),
+    UNIFIED_COMMUNICATIONS(1);
+
+    public final int code;
+
+    NetworkSlice(int code) {
+      this.code = code;
+    }
+  }
+
   public static class IPAddress {
     public final byte[] address;
 
@@ -52,14 +63,21 @@ public interface NetworkChangeDetector {
     public final ConnectionType underlyingTypeForVpn;
     public final long handle;
     public final IPAddress[] ipAddresses;
+    public final NetworkSlice slice;
 
-    public NetworkInformation(String name, ConnectionType type, ConnectionType underlyingTypeForVpn,
-        long handle, IPAddress[] addresses) {
+    public NetworkInformation(
+        String name,
+        ConnectionType type,
+        ConnectionType underlyingTypeForVpn,
+        long handle,
+        IPAddress[] addresses,
+        NetworkSlice slice) {
       this.name = name;
       this.type = type;
       this.underlyingTypeForVpn = underlyingTypeForVpn;
       this.handle = handle;
       this.ipAddresses = addresses;
+      this.slice = slice;
     }
 
     @SuppressWarnings("UnusedMethod")
@@ -90,6 +108,12 @@ public interface NetworkChangeDetector {
     @CalledByNative("NetworkInformation")
     private String getName() {
       return name;
+    }
+
+    @SuppressWarnings("UnusedMethod")
+    @CalledByNative("NetworkInformation")
+    private int getSliceAsInt() {
+      return slice.code;
     }
   };
 
