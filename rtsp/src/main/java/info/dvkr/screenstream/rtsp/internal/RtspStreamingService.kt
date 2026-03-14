@@ -813,7 +813,10 @@ internal class RtspStreamingService(
                     XLog.d(getLog("StartStream", "Already streaming. Ignoring."))
                     return
                 }
-                sessionAnalyticsTracker.onStartAttempt(EntryPoint.BUTTON)
+                sessionAnalyticsTracker.onStartAttempt(
+                    entryPoint = EntryPoint.BUTTON,
+                    usedCachedPermission = projectionState.cachedIntent != null
+                )
 
                 projectionState.cachedIntent?.let {
                     check(Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) { "RtspEvent.StartStream: UPSIDE_DOWN_CAKE" }

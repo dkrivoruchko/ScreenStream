@@ -8,17 +8,31 @@ public sealed interface StreamingAnalyticsEvent {
     public data class StreamStartAttempt(
         public val streamMode: StreamMode,
         public val entryPoint: EntryPoint,
+        public val usedCachedPermission: Boolean,
     ) : StreamingAnalyticsEvent
 
     public data class StreamStarted(
         public val streamMode: StreamMode,
         public val entryPoint: EntryPoint,
+        public val usedCachedPermission: Boolean,
     ) : StreamingAnalyticsEvent
 
     public data class StreamStartFailed(
         public val streamMode: StreamMode,
         public val entryPoint: EntryPoint,
+        public val usedCachedPermission: Boolean,
         public val startFailGroup: StartFailGroup,
+    ) : StreamingAnalyticsEvent
+
+    public data class StreamStartAborted(
+        public val streamMode: StreamMode,
+        public val entryPoint: EntryPoint,
+        public val usedCachedPermission: Boolean,
+    ) : StreamingAnalyticsEvent
+
+    public data class FirstConsumerConnected(
+        public val streamMode: StreamMode,
+        public val entryPoint: EntryPoint,
     ) : StreamingAnalyticsEvent
 
     public data class StreamEnded(

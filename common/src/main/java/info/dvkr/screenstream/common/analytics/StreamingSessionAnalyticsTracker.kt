@@ -11,6 +11,7 @@ public class StreamingSessionAnalyticsTracker(
     }
 
     private var pendingEntryPoint: EntryPoint = EntryPoint.UNKNOWN
+    private var pendingUsedCachedPermission: Boolean = false
 
     private var sessionActive: Boolean = false
     private var sessionStreamMode: StreamMode = StreamMode.MJPEG
@@ -20,25 +21,43 @@ public class StreamingSessionAnalyticsTracker(
     private var usefulStreamingMs: Long = 0L
     private var maxActiveConsumers: Int = 0
     private var hadActiveConsumer: Boolean = false
+    private var firstConsumerConnectedLogged: Boolean = false
 
-    public fun onStartAttempt(entryPoint: EntryPoint) {
+    public fun onStartAttempt(entryPoint: EntryPoint, usedCachedPermission: Boolean) {
         if (!sessionActive && pendingEntryPoint != EntryPoint.UNKNOWN) return
         pendingEntryPoint = entryPoint
-        analytics.logEvent(StreamingAnalyticsEvent.StreamStartAttempt(streamMode = streamModeProvider.invoke(), entryPoint = entryPoint))
+        pendingUsedCachedPermission = usedCachedPermission
+        analytics.logEvent(
+            StreamingAnalyticsEvent.StreamStartAttempt(
+                streamMode = streamModeProvider.invoke(),
+                entryPoint = entryPoint,
+                usedCachedPermission = usedCachedPermission
+            )
+        )
     }
 
     public fun onStartFailed(startFailGroup: StartFailGroup) {
         analytics.logEvent(
             StreamingAnalyticsEvent.StreamStartFailed(
-                streamMode = streamModeProvider.invoke(), entryPoint = pendingEntryPoint, startFailGroup = startFailGroup
+                streamMode = streamModeProvider.invoke(),
+                entryPoint = pendingEntryPoint,
+                usedCachedPermission = pendingUsedCachedPermission,
+                startFailGroup = startFailGroup
             )
         )
-        pendingEntryPoint = EntryPoint.UNKNOWN
+        clearPendingStart()
     }
 
     public fun onStartAborted() {
         if (sessionActive || pendingEntryPoint == EntryPoint.UNKNOWN) return
-        onStartFailed(StartFailGroup.UNKNOWN)
+        analytics.logEvent(
+            StreamingAnalyticsEvent.StreamStartAborted(
+                streamMode = streamModeProvider.invoke(),
+                entryPoint = pendingEntryPoint,
+                usedCachedPermission = pendingUsedCachedPermission
+            )
+        )
+        clearPendingStart()
     }
 
     public fun onStarted(initialActiveConsumers: Int = 0) {
@@ -46,9 +65,15 @@ public class StreamingSessionAnalyticsTracker(
         val streamMode: StreamMode = streamModeProvider.invoke()
         val entryPoint: EntryPoint = pendingEntryPoint
 
-        analytics.logEvent(StreamingAnalyticsEvent.StreamStarted(streamMode = streamMode, entryPoint = entryPoint))
+        analytics.logEvent(
+            StreamingAnalyticsEvent.StreamStarted(
+                streamMode = streamMode,
+                entryPoint = entryPoint,
+                usedCachedPermission = pendingUsedCachedPermission
+            )
+        )
 
-        pendingEntryPoint = EntryPoint.UNKNOWN
+        clearPendingStart()
         sessionActive = true
         sessionStreamMode = streamMode
         sessionEntryPoint = entryPoint
@@ -57,6 +82,7 @@ public class StreamingSessionAnalyticsTracker(
         usefulStreamingMs = 0L
         maxActiveConsumers = 0
         hadActiveConsumer = false
+        firstConsumerConnectedLogged = false
 
         updateActiveConsumers(initialActiveConsumers, now)
     }
@@ -94,6 +120,15 @@ public class StreamingSessionAnalyticsTracker(
     private fun updateActiveConsumers(activeConsumers: Int, now: Long) {
         val normalizedActiveConsumers: Int = activeConsumers.coerceAtLeast(0)
         if (normalizedActiveConsumers > 0) {
+            if (!firstConsumerConnectedLogged) {
+                analytics.logEvent(
+                    StreamingAnalyticsEvent.FirstConsumerConnected(
+                        streamMode = sessionStreamMode,
+                        entryPoint = sessionEntryPoint
+                    )
+                )
+                firstConsumerConnectedLogged = true
+            }
             hadActiveConsumer = true
             if (usefulSegmentStartElapsedMs == null) usefulSegmentStartElapsedMs = now
         } else {
@@ -112,6 +147,7 @@ public class StreamingSessionAnalyticsTracker(
     }
 
     private fun clearSession() {
+        clearPendingStart()
         sessionActive = false
         sessionEntryPoint = EntryPoint.UNKNOWN
         sessionStartedAtElapsedMs = 0L
@@ -119,5 +155,11 @@ public class StreamingSessionAnalyticsTracker(
         usefulStreamingMs = 0L
         maxActiveConsumers = 0
         hadActiveConsumer = false
+        firstConsumerConnectedLogged = false
+    }
+
+    private fun clearPendingStart() {
+        pendingEntryPoint = EntryPoint.UNKNOWN
+        pendingUsedCachedPermission = false
     }
 }

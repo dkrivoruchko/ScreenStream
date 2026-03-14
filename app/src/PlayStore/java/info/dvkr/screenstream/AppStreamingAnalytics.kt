@@ -20,6 +20,10 @@ public class AppStreamingAnalytics(context: Context) : StreamingAnalytics {
                     Bundle().apply {
                         putString(StreamingAnalyticsSchema.ParamName.STREAM_MODE, event.streamMode.analyticsValue)
                         putString(StreamingAnalyticsSchema.ParamName.ENTRY_POINT, event.entryPoint.analyticsValue)
+                        putLong(
+                            StreamingAnalyticsSchema.ParamName.USED_CACHED_PERMISSION,
+                            StreamingAnalyticsMappers.toFlag(event.usedCachedPermission).toLong()
+                        )
                     }
                 )
             }
@@ -30,6 +34,10 @@ public class AppStreamingAnalytics(context: Context) : StreamingAnalytics {
                     Bundle().apply {
                         putString(StreamingAnalyticsSchema.ParamName.STREAM_MODE, event.streamMode.analyticsValue)
                         putString(StreamingAnalyticsSchema.ParamName.ENTRY_POINT, event.entryPoint.analyticsValue)
+                        putLong(
+                            StreamingAnalyticsSchema.ParamName.USED_CACHED_PERMISSION,
+                            StreamingAnalyticsMappers.toFlag(event.usedCachedPermission).toLong()
+                        )
                     }
                 )
             }
@@ -40,7 +48,35 @@ public class AppStreamingAnalytics(context: Context) : StreamingAnalytics {
                     Bundle().apply {
                         putString(StreamingAnalyticsSchema.ParamName.STREAM_MODE, event.streamMode.analyticsValue)
                         putString(StreamingAnalyticsSchema.ParamName.ENTRY_POINT, event.entryPoint.analyticsValue)
+                        putLong(
+                            StreamingAnalyticsSchema.ParamName.USED_CACHED_PERMISSION,
+                            StreamingAnalyticsMappers.toFlag(event.usedCachedPermission).toLong()
+                        )
                         putString(StreamingAnalyticsSchema.ParamName.START_FAIL_GROUP, event.startFailGroup.analyticsValue)
+                    }
+                )
+            }
+
+            is StreamingAnalyticsEvent.StreamStartAborted -> {
+                firebaseAnalytics.logEvent(
+                    StreamingAnalyticsSchema.EventName.STREAM_START_ABORTED,
+                    Bundle().apply {
+                        putString(StreamingAnalyticsSchema.ParamName.STREAM_MODE, event.streamMode.analyticsValue)
+                        putString(StreamingAnalyticsSchema.ParamName.ENTRY_POINT, event.entryPoint.analyticsValue)
+                        putLong(
+                            StreamingAnalyticsSchema.ParamName.USED_CACHED_PERMISSION,
+                            StreamingAnalyticsMappers.toFlag(event.usedCachedPermission).toLong()
+                        )
+                    }
+                )
+            }
+
+            is StreamingAnalyticsEvent.FirstConsumerConnected -> {
+                firebaseAnalytics.logEvent(
+                    StreamingAnalyticsSchema.EventName.FIRST_CONSUMER_CONNECTED,
+                    Bundle().apply {
+                        putString(StreamingAnalyticsSchema.ParamName.STREAM_MODE, event.streamMode.analyticsValue)
+                        putString(StreamingAnalyticsSchema.ParamName.ENTRY_POINT, event.entryPoint.analyticsValue)
                     }
                 )
             }

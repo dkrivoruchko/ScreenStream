@@ -928,7 +928,10 @@ internal class WebRtcStreamingService(
                     XLog.i(getLog("StartStream", "DestroyPending. Ignoring"), IllegalStateException("StartStream: DestroyPending"))
                     return
                 }
-                sessionAnalyticsTracker.onStartAttempt(EntryPoint.BUTTON)
+                sessionAnalyticsTracker.onStartAttempt(
+                    entryPoint = EntryPoint.BUTTON,
+                    usedCachedPermission = mediaProjectionIntent != null
+                )
 
                 mediaProjectionIntent?.let {
                     check(Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) { "WebRtcEvent.StartStream: UPSIDE_DOWN_CAKE" }

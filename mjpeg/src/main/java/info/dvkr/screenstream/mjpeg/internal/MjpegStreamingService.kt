@@ -354,13 +354,19 @@ internal class MjpegStreamingService(
             is InternalEvent.StartStopFromWebPage -> when {
                 isStreaming -> sendEvent(MjpegEvent.Intentable.StopStream("StartStopFromWebPage"))
                 pendingServer.not() && currentError == null -> {
-                    sessionAnalyticsTracker.onStartAttempt(EntryPoint.WEB)
+                    sessionAnalyticsTracker.onStartAttempt(
+                        entryPoint = EntryPoint.WEB,
+                        usedCachedPermission = mediaProjectionIntent != null
+                    )
                     waitingForPermission = true
                 }
             }
 
             is InternalEvent.StartStream -> {
-                sessionAnalyticsTracker.onStartAttempt(EntryPoint.BUTTON)
+                sessionAnalyticsTracker.onStartAttempt(
+                    entryPoint = EntryPoint.BUTTON,
+                    usedCachedPermission = mediaProjectionIntent != null
+                )
                 mediaProjectionIntent?.let {
                     check(Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) { "MjpegEvent.StartStream: UPSIDE_DOWN_CAKE" }
                     sendEvent(MjpegEvent.StartProjection(it))

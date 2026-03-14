@@ -6,12 +6,15 @@ public object StreamingAnalyticsSchema {
         public const val STREAM_START_ATTEMPT: String = "stream_start_attempt"
         public const val STREAM_STARTED: String = "stream_started"
         public const val STREAM_START_FAILED: String = "stream_start_failed"
+        public const val STREAM_START_ABORTED: String = "stream_start_aborted"
+        public const val FIRST_CONSUMER_CONNECTED: String = "first_consumer_connected"
         public const val STREAM_ENDED: String = "stream_ended"
     }
 
     public object ParamName {
         public const val STREAM_MODE: String = "stream_mode"
         public const val ENTRY_POINT: String = "entry_point"
+        public const val USED_CACHED_PERMISSION: String = "used_cached_permission"
         public const val START_FAIL_GROUP: String = "start_fail_group"
         public const val STOP_REASON_GROUP: String = "stop_reason_group"
         public const val DURATION_BUCKET: String = "duration_bucket"
