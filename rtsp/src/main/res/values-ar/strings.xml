@@ -43,8 +43,6 @@
     <string name="rtsp_stream_start">بدء البث</string>
     <string name="rtsp_stream_stop">إيقاف البث</string>
 
-    <string name="rtsp_cast_permission_required_title">الإذن مطلوب</string>
-    <string name="rtsp_cast_permission_required">يتطلب تطبيق ScreenStream إذن بث الشاشة لالتقاط الشاشة.</string>
     <string name="rtsp_error_notification_permission_required">يتطلب التطبيق تمكين الإشعارات لبدء خدمة البث.\nيرجى تمكين الإشعارات في إعدادات التطبيق.</string>
     <string name="rtsp_error_ip_address_not_found">لم يتم العثور على عنوان. تحقق من الاتصال أو معلمات الخادم (تصفية الواجهة، تصفية العناوين).</string>
     <string name="rtsp_error_unspecified">حدث خطأ ما.</string>

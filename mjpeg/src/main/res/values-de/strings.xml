@@ -42,10 +42,6 @@
     <string name="mjpeg_stream_client_blocked">Blockiert</string>
     <string name="mjpeg_stream_start">Stream starten</string>
     <string name="mjpeg_stream_stop">Stream stoppen</string>
-
-    <string name="mjpeg_stream_cast_permission_required_title">Berechtigung erforderlich</string>
-    <string name="mjpeg_stream_cast_permission_required">ScreenStream App benötigt die ScreenCast-Berechtigung um den Bildschirm aufzunehmen.</string>
-
     <string name="mjpeg_slow_client_connection">Langsame Client-Verbindung erkannt</string>
 
     <string name="mjpeg_pref_header">Lokale Modus (MJPEG) Einstellungen</string>

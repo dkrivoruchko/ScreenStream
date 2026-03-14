@@ -42,10 +42,6 @@
     <string name="mjpeg_stream_client_blocked">Geblokeerd</string>
     <string name="mjpeg_stream_start">Start stream</string>
     <string name="mjpeg_stream_stop">Stop stream</string>
-
-    <string name="mjpeg_stream_cast_permission_required_title">Toestemming vereist</string>
-    <string name="mjpeg_stream_cast_permission_required">ScreenStream app heeft Scherm Delen toestemming nodig om je scherm op te nemen.</string>
-
     <string name="mjpeg_slow_client_connection">Slome client verbinding gedetecteerd</string>
 
     <string name="mjpeg_pref_header">Lokale modus (MJPEG) instellingen</string>

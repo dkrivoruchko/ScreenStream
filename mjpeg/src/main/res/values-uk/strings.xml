@@ -41,10 +41,6 @@
     <string name="mjpeg_stream_client_blocked">Заблоковано</string>
     <string name="mjpeg_stream_start">Почати трансляцію</string>
     <string name="mjpeg_stream_stop">Зупинити трансляцію</string>
-
-    <string name="mjpeg_stream_cast_permission_required_title">Потрібен дозвіл</string>
-    <string name="mjpeg_stream_cast_permission_required">ScreenStream додаток вимагає дозвіл Screen Cast щоб записувати екран.</string>
-
     <string name="mjpeg_slow_client_connection">Виявлено повільне клієнтське з\'єднання</string>
 
     <string name="mjpeg_pref_header">Налаштування локального режиму (MJPEG)</string>

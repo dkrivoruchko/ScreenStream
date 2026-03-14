@@ -42,10 +42,6 @@
     <string name="mjpeg_stream_client_blocked">অবরুদ্ধ (ব্লক)</string>
     <string name="mjpeg_stream_start">স্ট্রীম শুরু করুন</string>
     <string name="mjpeg_stream_stop">স্ট্রীম বন্ধ করুন</string>
-
-    <string name="mjpeg_stream_cast_permission_required_title">অনুমতি প্রয়োজন</string>
-    <string name="mjpeg_stream_cast_permission_required">স্ক্রিন ক্যাপচার করতে স্ক্রিনস্ট্রিম অ্যাপ্লিকেশনটির স্ক্রিন কাস্টের অনুমতি প্রয়োজন।</string>
-
     <string name="mjpeg_slow_client_connection">ধীরগতির ক্লায়েন্ট সংযোগ সনাক্ত করা হয়েছে৷</string>
 
     <string name="mjpeg_pref_header">স্থানীয় মোড (MJPEG) সেটিংস</string>

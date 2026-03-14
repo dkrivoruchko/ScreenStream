@@ -12,6 +12,7 @@ public class StreamingSessionAnalyticsTracker(
 
     private var pendingEntryPoint: EntryPoint = EntryPoint.UNKNOWN
     private var pendingUsedCachedPermission: Boolean = false
+    private var pendingPermissionEducationShown: Boolean = false
 
     private var sessionActive: Boolean = false
     private var sessionStreamMode: StreamMode = StreamMode.MJPEG
@@ -23,15 +24,17 @@ public class StreamingSessionAnalyticsTracker(
     private var hadActiveConsumer: Boolean = false
     private var firstConsumerConnectedLogged: Boolean = false
 
-    public fun onStartAttempt(entryPoint: EntryPoint, usedCachedPermission: Boolean) {
+    public fun onStartAttempt(entryPoint: EntryPoint, usedCachedPermission: Boolean, permissionEducationShown: Boolean) {
         if (!sessionActive && pendingEntryPoint != EntryPoint.UNKNOWN) return
         pendingEntryPoint = entryPoint
         pendingUsedCachedPermission = usedCachedPermission
+        pendingPermissionEducationShown = permissionEducationShown
         analytics.logEvent(
             StreamingAnalyticsEvent.StreamStartAttempt(
                 streamMode = streamModeProvider.invoke(),
                 entryPoint = entryPoint,
-                usedCachedPermission = usedCachedPermission
+                usedCachedPermission = usedCachedPermission,
+                permissionEducationShown = permissionEducationShown
             )
         )
     }
@@ -42,6 +45,7 @@ public class StreamingSessionAnalyticsTracker(
                 streamMode = streamModeProvider.invoke(),
                 entryPoint = pendingEntryPoint,
                 usedCachedPermission = pendingUsedCachedPermission,
+                permissionEducationShown = pendingPermissionEducationShown,
                 startFailGroup = startFailGroup
             )
         )
@@ -54,7 +58,8 @@ public class StreamingSessionAnalyticsTracker(
             StreamingAnalyticsEvent.StreamStartAborted(
                 streamMode = streamModeProvider.invoke(),
                 entryPoint = pendingEntryPoint,
-                usedCachedPermission = pendingUsedCachedPermission
+                usedCachedPermission = pendingUsedCachedPermission,
+                permissionEducationShown = pendingPermissionEducationShown
             )
         )
         clearPendingStart()
@@ -69,7 +74,8 @@ public class StreamingSessionAnalyticsTracker(
             StreamingAnalyticsEvent.StreamStarted(
                 streamMode = streamMode,
                 entryPoint = entryPoint,
-                usedCachedPermission = pendingUsedCachedPermission
+                usedCachedPermission = pendingUsedCachedPermission,
+                permissionEducationShown = pendingPermissionEducationShown
             )
         )
 
@@ -161,5 +167,6 @@ public class StreamingSessionAnalyticsTracker(
     private fun clearPendingStart() {
         pendingEntryPoint = EntryPoint.UNKNOWN
         pendingUsedCachedPermission = false
+        pendingPermissionEducationShown = false
     }
 }

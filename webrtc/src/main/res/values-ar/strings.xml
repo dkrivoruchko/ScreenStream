@@ -52,10 +52,6 @@
     <string name="webrtc_stream_audio_permission_message">إذن الميكروفون مطلوب لبث صوت الميكروفون أو الصوت الداخلي.\n\nبدونه سيكون البث بلا صوت.</string>
     <string name="webrtc_stream_audio_permission_message_settings">فعّل إذن الميكروفون في إعدادات التطبيق لبث صوت الميكروفون أو الصوت الداخلي.\n\nبدونه سيكون البث بلا صوت.</string>
     <string name="webrtc_stream_audio_permission_open_settings">افتح الإعدادات</string>
-
-    <string name="webrtc_stream_cast_permission_required_title">الإذن مطلوب</string>
-    <string name="webrtc_stream_cast_permission_required">يتطلب تطبيق ستريم الشاشة إذن ستريم الشاشة لالتقاط الشاشة.</string>
-
     <string name="webrtc_item_client_disconnect">فصل</string>
 
     <string name="webrtc_error_play_integrity_update_play_store">يرجى تحديث متجر جوجل بلاي</string>

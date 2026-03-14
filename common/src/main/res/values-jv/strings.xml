@@ -1,0 +1,8 @@
+<resources>
+    <string name="common_screen_capture_permission_required_title">Ijin dibutuhake</string>
+    <string name="common_screen_capture_permission_education_message">Android bakal njaluk ijin kanggo nuduhake layar sampeyan. Tanpa iki, siaran ora bisa diwiwiti. Sampeyan bisa mandheg nuduhake kapan wae.</string>
+    <string name="common_screen_capture_permission_denied_message">Siaran ora diwiwiti amarga ijin kanggo nuduhake layar sampeyan ora diwenehake. Tutul Coba maneh kanggo mbukak maneh layar idin Android.</string>
+
+    <string name="common_continue">Lanjutake</string>
+    <string name="common_try_again">Coba maneh</string>
+</resources>

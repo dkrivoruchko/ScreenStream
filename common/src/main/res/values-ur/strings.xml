@@ -1,0 +1,8 @@
+<resources>
+    <string name="common_screen_capture_permission_required_title">اجازت درکار ہے</string>
+    <string name="common_screen_capture_permission_education_message">Android آپ کی اسکرین شیئر کرنے کی اجازت مانگے گا۔ اس کے بغیر اسٹریمنگ شروع نہیں ہو سکتی۔ آپ کسی بھی وقت شیئرنگ روک سکتے ہیں۔</string>
+    <string name="common_screen_capture_permission_denied_message">اسٹریمنگ شروع نہیں ہوئی کیونکہ آپ کی اسکرین شیئر کرنے کی اجازت نہیں دی گئی۔ Android کی اجازت والی اسکرین دوبارہ کھولنے کے لیے دوبارہ کوشش کریں پر ٹیپ کریں۔</string>
+
+    <string name="common_continue">جاری رکھیں</string>
+    <string name="common_try_again">دوبارہ کوشش کریں</string>
+</resources>

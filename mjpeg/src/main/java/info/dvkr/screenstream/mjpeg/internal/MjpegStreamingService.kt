@@ -123,7 +123,7 @@ internal class MjpegStreamingService(
         data class InitState(val clearIntent: Boolean = true) : InternalEvent(Priority.RESTART_IGNORE)
         data class DiscoverAddress(val reason: String, val attempt: Int) : InternalEvent(Priority.RESTART_IGNORE)
         data class StartServer(val interfaces: List<MjpegNetInterface>) : InternalEvent(Priority.RESTART_IGNORE)
-        data object StartStream : InternalEvent(Priority.RESTART_IGNORE)
+        data class StartStream(val permissionEducationShown: Boolean) : InternalEvent(Priority.RESTART_IGNORE)
         data object StartStopFromWebPage : InternalEvent(Priority.RESTART_IGNORE)
         data object ScreenOff : InternalEvent(Priority.RESTART_IGNORE)
         data class ConfigurationChange(val newConfig: Configuration) : InternalEvent(Priority.RESTART_IGNORE) {
@@ -356,7 +356,8 @@ internal class MjpegStreamingService(
                 pendingServer.not() && currentError == null -> {
                     sessionAnalyticsTracker.onStartAttempt(
                         entryPoint = EntryPoint.WEB,
-                        usedCachedPermission = mediaProjectionIntent != null
+                        usedCachedPermission = mediaProjectionIntent != null,
+                        permissionEducationShown = false
                     )
                     waitingForPermission = true
                 }
@@ -365,7 +366,8 @@ internal class MjpegStreamingService(
             is InternalEvent.StartStream -> {
                 sessionAnalyticsTracker.onStartAttempt(
                     entryPoint = EntryPoint.BUTTON,
-                    usedCachedPermission = mediaProjectionIntent != null
+                    usedCachedPermission = mediaProjectionIntent != null,
+                    permissionEducationShown = event.permissionEducationShown
                 )
                 mediaProjectionIntent?.let {
                     check(Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) { "MjpegEvent.StartStream: UPSIDE_DOWN_CAKE" }

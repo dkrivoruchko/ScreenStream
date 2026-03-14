@@ -23,12 +23,15 @@ import info.dvkr.screenstream.common.R
 import info.dvkr.screenstream.common.getLog
 
 @Composable
-public fun MediaProjectionPermission(
+internal fun MediaProjectionPermission(
     shouldRequestPermission: Boolean,
+    shouldShowEducationDialog: Boolean,
+    onEducationConfirmed: () -> Unit,
+    onEducationCancelled: () -> Unit,
     onPermissionGranted: (Intent) -> Unit,
     onPermissionDenied: () -> Unit,
-    requiredDialogTitle: String,
-    requiredDialogText: String,
+    onPermissionRetryRequested: () -> Unit,
+    onPermissionRetryCancelled: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val mediaProjectionRequested = retain { mutableStateOf(false) }
@@ -71,18 +74,54 @@ public fun MediaProjectionPermission(
         mediaProjectionRequested.value = false
     }
 
-    if (showMediaProjectionPermissionErrorDialog.value) {
+    if (shouldShowEducationDialog) {
         AlertDialog(
-            onDismissRequest = {},
+            onDismissRequest = onEducationCancelled,
             confirmButton = {
-                TextButton(onClick = { showMediaProjectionPermissionErrorDialog.value = false }) {
-                    Text(text = stringResource(id = android.R.string.ok))
+                TextButton(onClick = onEducationConfirmed) {
+                    Text(text = stringResource(id = R.string.common_continue))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = onEducationCancelled) {
+                    Text(text = stringResource(id = android.R.string.cancel))
                 }
             },
             modifier = modifier,
             icon = { Icon(painter = painterResource(R.drawable.cast_warning_24px), contentDescription = null) },
-            title = { Text(text = requiredDialogTitle) },
-            text = { Text(text = requiredDialogText) },
+            title = { Text(text = stringResource(id = R.string.common_screen_capture_permission_required_title)) },
+            text = { Text(text = stringResource(id = R.string.common_screen_capture_permission_education_message)) },
+            shape = MaterialTheme.shapes.large
+        )
+    }
+
+    if (showMediaProjectionPermissionErrorDialog.value) {
+        AlertDialog(
+            onDismissRequest = {},
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showMediaProjectionPermissionErrorDialog.value = false
+                        onPermissionRetryRequested.invoke()
+                    }
+                ) {
+                    Text(text = stringResource(id = R.string.common_try_again))
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showMediaProjectionPermissionErrorDialog.value = false
+                        onPermissionRetryCancelled.invoke()
+                    }
+                ) {
+                    Text(text = stringResource(id = android.R.string.cancel))
+                }
+            },
+            modifier = modifier,
+            icon = { Icon(painter = painterResource(R.drawable.cast_warning_24px), contentDescription = null) },
+            title = { Text(text = stringResource(id = R.string.common_screen_capture_permission_required_title)) },
+            text = { Text(text = stringResource(id = R.string.common_screen_capture_permission_denied_message)) },
             shape = MaterialTheme.shapes.large
         )
     }

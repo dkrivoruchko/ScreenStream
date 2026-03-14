@@ -52,10 +52,6 @@
     <string name="webrtc_stream_audio_permission_message">মাইক্রোফোন বা ইন্টারনাল অডিও স্ট্রিম করতে মাইক্রোফোন অনুমতি প্রয়োজন।\n\nএটি না থাকলে স্ট্রিমে শব্দ থাকবে না।</string>
     <string name="webrtc_stream_audio_permission_message_settings">মাইক্রোফোন বা ইন্টারনাল অডিও স্ট্রিম করতে অ্যাপ সেটিংসে মাইক্রোফোন অনুমতি চালু করুন।\n\nএটি না থাকলে স্ট্রিমে শব্দ থাকবে না।</string>
     <string name="webrtc_stream_audio_permission_open_settings">ওপেন সেটিংস</string>
-
-    <string name="webrtc_stream_cast_permission_required_title">অনুমতি প্রয়োজন</string>
-    <string name="webrtc_stream_cast_permission_required">স্ক্রিন ক্যাপচার করতে স্ক্রিনস্ট্রিম অ্যাপ্লিকেশনটির স্ক্রিন কাস্টের অনুমতি প্রয়োজন।</string>
-
     <string name="webrtc_item_client_disconnect">সংযোগ বিচ্ছিন্ন করুন</string>
 
     <string name="webrtc_error_play_integrity_update_play_store">অনুগ্রহ করে গুগল প্লে স্টোর আপডেট করুন</string>

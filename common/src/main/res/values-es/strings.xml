@@ -1,0 +1,8 @@
+<resources>
+    <string name="common_screen_capture_permission_required_title">Permiso requerido</string>
+    <string name="common_screen_capture_permission_education_message">Android pedirá permiso para compartir tu pantalla. Sin él, la transmisión no puede iniciarse. Puedes dejar de compartir en cualquier momento.</string>
+    <string name="common_screen_capture_permission_denied_message">La transmisión no se inició porque no se concedió el permiso para compartir tu pantalla. Toca Reintentar para abrir de nuevo la pantalla de permisos de Android.</string>
+
+    <string name="common_continue">Continuar</string>
+    <string name="common_try_again">Reintentar</string>
+</resources>

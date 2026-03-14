@@ -42,10 +42,6 @@
     <string name="mjpeg_stream_client_blocked">已封鎖</string>
     <string name="mjpeg_stream_start">開始串流</string>
     <string name="mjpeg_stream_stop">停止串流</string>
-
-    <string name="mjpeg_stream_cast_permission_required_title">需要權限</string>
-    <string name="mjpeg_stream_cast_permission_required">需要螢幕錄製的權限以捕捉畫面。</string>
-
     <string name="mjpeg_slow_client_connection">偵測到用戶端網路速度不佳</string>
 
     <string name="mjpeg_pref_header">本地模式（MJPEG）設置</string>

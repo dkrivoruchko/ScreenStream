@@ -1,0 +1,8 @@
+<resources>
+    <string name="common_screen_capture_permission_required_title">Berechtigung erforderlich</string>
+    <string name="common_screen_capture_permission_education_message">Android wird um Erlaubnis bitten, Ihren Bildschirm zu teilen. Ohne diese kann der Stream nicht gestartet werden. Sie können die Freigabe jederzeit beenden.</string>
+    <string name="common_screen_capture_permission_denied_message">Der Stream wurde nicht gestartet, weil keine Berechtigung zum Teilen Ihres Bildschirms erteilt wurde. Tippen Sie auf Erneut versuchen, um den Android-Berechtigungsbildschirm erneut zu öffnen.</string>
+
+    <string name="common_continue">Weiter</string>
+    <string name="common_try_again">Erneut versuchen</string>
+</resources>

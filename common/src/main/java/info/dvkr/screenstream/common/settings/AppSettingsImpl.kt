@@ -56,6 +56,9 @@ internal class AppSettingsImpl(context: Context) : AppSettings {
 
                 if (newSettings.dynamicTheme != AppSettings.Default.DYNAMIC_THEME)
                     set(AppSettings.Key.DYNAMIC_THEME, newSettings.dynamicTheme)
+
+                if (newSettings.screenCaptureEducationCompleted != AppSettings.Default.SCREEN_CAPTURE_EDUCATION_COMPLETED)
+                    set(AppSettings.Key.SCREEN_CAPTURE_EDUCATION_COMPLETED, newSettings.screenCaptureEducationCompleted)
             }
         }
         Unit
@@ -65,5 +68,6 @@ internal class AppSettingsImpl(context: Context) : AppSettings {
         streamingModule = StreamingModule.Id(this[AppSettings.Key.STREAMING_MODULE] ?: AppSettings.Default.STREAMING_MODULE.value),
         nightMode = this[AppSettings.Key.NIGHT_MODE] ?: AppSettings.Default.NIGHT_MODE,
         dynamicTheme = this[AppSettings.Key.DYNAMIC_THEME] ?: AppSettings.Default.DYNAMIC_THEME,
+        screenCaptureEducationCompleted = this[AppSettings.Key.SCREEN_CAPTURE_EDUCATION_COMPLETED] ?: AppSettings.Default.SCREEN_CAPTURE_EDUCATION_COMPLETED,
     )
 }

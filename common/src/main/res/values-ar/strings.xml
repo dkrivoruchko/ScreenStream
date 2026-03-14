@@ -1,0 +1,8 @@
+<resources>
+    <string name="common_screen_capture_permission_required_title">الإذن مطلوب</string>
+    <string name="common_screen_capture_permission_education_message">سيطلب Android إذنًا لمشاركة شاشتك. من دونه، لا يمكن بدء البث. يمكنك إيقاف المشاركة في أي وقت.</string>
+    <string name="common_screen_capture_permission_denied_message">لم يبدأ البث لأن إذن مشاركة شاشتك لم يتم منحه. اضغط على حاول مرة أخرى لفتح شاشة إذن Android مرة أخرى.</string>
+
+    <string name="common_continue">متابعة</string>
+    <string name="common_try_again">حاول مرة أخرى</string>
+</resources>

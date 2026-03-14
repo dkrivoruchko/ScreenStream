@@ -52,10 +52,6 @@
     <string name="webrtc_stream_audio_permission_message">Microphone permission is required to stream microphone or internal audio.\n\nWithout it, the stream has no sound.</string>
     <string name="webrtc_stream_audio_permission_message_settings">Enable microphone permission in app settings to stream microphone or internal audio.\n\nWithout it, the stream has no sound.</string>
     <string name="webrtc_stream_audio_permission_open_settings">Open settings</string>
-
-    <string name="webrtc_stream_cast_permission_required_title">Permission required</string>
-    <string name="webrtc_stream_cast_permission_required">ScreenStream application requires Screen Cast permission to capture screen.</string>
-
     <string name="webrtc_item_client_disconnect">Disconnect</string>
 
     <string name="webrtc_error_play_integrity_update_play_store">Please update Google Play Store</string>

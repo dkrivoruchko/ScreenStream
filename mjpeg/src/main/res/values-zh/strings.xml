@@ -42,10 +42,6 @@
     <string name="mjpeg_stream_client_blocked">已拦截</string>
     <string name="mjpeg_stream_start">开始流</string>
     <string name="mjpeg_stream_stop">停止流</string>
-
-    <string name="mjpeg_stream_cast_permission_required_title">需要权限</string>
-    <string name="mjpeg_stream_cast_permission_required">ScreenStream 程序需要投屏权限来捕捉屏幕。</string>
-
     <string name="mjpeg_slow_client_connection">检测到慢速客户端连接</string>
 
     <string name="mjpeg_pref_header">本地模式（MJPEG）设置</string>

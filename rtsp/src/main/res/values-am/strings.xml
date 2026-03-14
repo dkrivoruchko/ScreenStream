@@ -43,8 +43,6 @@
     <string name="rtsp_stream_start">ዥረት ጀምር</string>
     <string name="rtsp_stream_stop">ዥረት አቁም</string>
 
-    <string name="rtsp_cast_permission_required_title">ፈቃድ ያስፈልጋል</string>
-    <string name="rtsp_cast_permission_required">ScreenStream መተግበሪያ ለማያ ገጽ ማንሳት የማያ ገጽ ስርጭት ፈቃድ ያስፈልገዋል።</string>
     <string name="rtsp_error_notification_permission_required">መተግበሪያው የዥረት አገልግሎት ለመጀመር ማሳወቂያዎች እንዲነቁ ይፈልጋል።\nእባክዎ በመተግበሪያ ቅንብሮች ውስጥ ማሳወቂያዎችን ያንቁ።</string>
     <string name="rtsp_error_ip_address_not_found">አድራሻ አልተገኘም። ግንኙነትን ያረጋግጡ ወይም የአገልጋይ ፓራሜትሮች (መገናኛ ማጣሪያ፣ አድራሻ ማጣሪያ)።</string>
     <string name="rtsp_error_unspecified">አንድ ችግር ተፈጥሯል።</string>

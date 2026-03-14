@@ -52,10 +52,6 @@
     <string name="webrtc_stream_audio_permission_message">მიკროფონის ნებართვა საჭიროა მიკროფონის ან შიდა აუდიოს სტრიმისთვის.\n\nამის გარეშე სტრიმს ხმა არ ექნება.</string>
     <string name="webrtc_stream_audio_permission_message_settings">ჩართეთ მიკროფონის ნებართვა აპის პარამეტრებში მიკროფონის ან შიდა აუდიოს სტრიმისთვის.\n\nამის გარეშე სტრიმს ხმა არ ექნება.</string>
     <string name="webrtc_stream_audio_permission_open_settings">გახსენით პარამეტრები</string>
-
-    <string name="webrtc_stream_cast_permission_required_title">საჭიროა ნებართვა</string>
-    <string name="webrtc_stream_cast_permission_required">ScreenStream აპლიკაცია მოითხოვს Screen Cast ნებართვას ეკრანის გადასაღებად.</string>
-
     <string name="webrtc_item_client_disconnect">გათიშვა</string>
 
     <string name="webrtc_error_play_integrity_update_play_store">გთხოვთ განაახლოთ Google Play Store</string>

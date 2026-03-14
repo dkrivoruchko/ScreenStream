@@ -1,0 +1,8 @@
+<resources>
+    <string name="common_screen_capture_permission_required_title">Требуется разрешение</string>
+    <string name="common_screen_capture_permission_education_message">Android запросит разрешение на показ экрана. Без него трансляция не может быть запущена. Вы можете остановить показ в любой момент.</string>
+    <string name="common_screen_capture_permission_denied_message">Трансляция не была запущена, потому что разрешение на показ экрана не было предоставлено. Нажмите Повторить, чтобы снова открыть экран разрешения Android.</string>
+
+    <string name="common_continue">Продолжить</string>
+    <string name="common_try_again">Повторить</string>
+</resources>

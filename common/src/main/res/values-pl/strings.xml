@@ -1,0 +1,8 @@
+<resources>
+    <string name="common_screen_capture_permission_required_title">Wymagane uprawnienia</string>
+    <string name="common_screen_capture_permission_education_message">Android poprosi o uprawnienie do udostępniania ekranu. Bez niego transmisja nie może się rozpocząć. Udostępnianie możesz zatrzymać w dowolnym momencie.</string>
+    <string name="common_screen_capture_permission_denied_message">Transmisja nie została uruchomiona, ponieważ nie przyznano uprawnienia do udostępniania ekranu. Stuknij Spróbuj ponownie, aby ponownie otworzyć ekran uprawnień Androida.</string>
+
+    <string name="common_continue">Kontynuuj</string>
+    <string name="common_try_again">Spróbuj ponownie</string>
+</resources>

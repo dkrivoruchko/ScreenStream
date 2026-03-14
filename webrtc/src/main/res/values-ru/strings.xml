@@ -52,10 +52,6 @@
     <string name="webrtc_stream_audio_permission_message">Для трансляции звука с микрофона или внутреннего звука требуется разрешение на микрофон.\n\nБез него трансляция будет без звука.</string>
     <string name="webrtc_stream_audio_permission_message_settings">Включите разрешение на микрофон в настройках приложения, чтобы транслировать звук с микрофона или внутренний звук.\n\nБез него трансляция будет без звука.</string>
     <string name="webrtc_stream_audio_permission_open_settings">Открыть настройки</string>
-
-    <string name="webrtc_stream_cast_permission_required_title">Требуется разрешение</string>
-    <string name="webrtc_stream_cast_permission_required">Приложению ScreenStream требуется разрешение на захват экрана (Screen Cast) для работы.</string>
-
     <string name="webrtc_item_client_disconnect">Отключить</string>
 
     <string name="webrtc_error_play_integrity_update_play_store">Пожалуйста, обновите Google Play Store</string>

@@ -52,10 +52,6 @@
     <string name="webrtc_stream_audio_permission_message">Se requiere permiso de micrófono para transmitir audio del micrófono o audio interno.\n\nSin él, la transmisión no tendrá sonido.</string>
     <string name="webrtc_stream_audio_permission_message_settings">Activa el permiso de micrófono en los ajustes de la app para transmitir audio del micrófono o audio interno.\n\nSin él, la transmisión no tendrá sonido.</string>
     <string name="webrtc_stream_audio_permission_open_settings">Abrir configuración</string>
-
-    <string name="webrtc_stream_cast_permission_required_title">Permiso requerido</string>
-    <string name="webrtc_stream_cast_permission_required">La aplicación ScreenStream requiere permiso de transmisión de pantalla (Screen Cast).</string>
-
     <string name="webrtc_item_client_disconnect">Desconectar</string>
 
     <string name="webrtc_error_play_integrity_update_play_store">Por favor, actualice Google Play Store</string>

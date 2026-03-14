@@ -15,12 +15,14 @@ public interface AppSettings {
         public val STREAMING_MODULE: Preferences.Key<String> = stringPreferencesKey("STREAMING_MODULE")
         public val NIGHT_MODE: Preferences.Key<Int> = intPreferencesKey("NIGHT_MODE")
         public val DYNAMIC_THEME: Preferences.Key<Boolean> = booleanPreferencesKey("DYNAMIC_THEME")
+        public val SCREEN_CAPTURE_EDUCATION_COMPLETED: Preferences.Key<Boolean> = booleanPreferencesKey("SCREEN_CAPTURE_EDUCATION_COMPLETED")
     }
 
     public object Default {
         public val STREAMING_MODULE: StreamingModule.Id = StreamingModule.Id("_NONE_")
         public const val NIGHT_MODE: Int = AppCompatDelegate.MODE_NIGHT_UNSPECIFIED
         public const val DYNAMIC_THEME: Boolean = false
+        public const val SCREEN_CAPTURE_EDUCATION_COMPLETED: Boolean = false
     }
 
     @Immutable
@@ -28,6 +30,7 @@ public interface AppSettings {
         public val streamingModule: StreamingModule.Id = Default.STREAMING_MODULE,
         public val nightMode: Int = Default.NIGHT_MODE,
         public val dynamicTheme: Boolean = Default.DYNAMIC_THEME,
+        public val screenCaptureEducationCompleted: Boolean = Default.SCREEN_CAPTURE_EDUCATION_COMPLETED,
     )
 
     public val data: StateFlow<Data>

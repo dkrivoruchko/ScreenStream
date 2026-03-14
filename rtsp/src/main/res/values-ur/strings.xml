@@ -43,8 +43,6 @@
     <string name="rtsp_stream_start">اسٹریم شروع کریں</string>
     <string name="rtsp_stream_stop">اسٹریم روکیں</string>
 
-    <string name="rtsp_cast_permission_required_title">اجازت درکار ہے</string>
-    <string name="rtsp_cast_permission_required">اسکرین کیپچر کیلئے Screen Cast اجازت درکار ہے۔</string>
     <string name="rtsp_error_notification_permission_required">اسٹریمنگ سروس شروع کرنے کیلئے اطلاعات کی اجازت درکار ہے۔\nایپ کی ترتیبات میں اطلاعات فعال کریں۔</string>
     <string name="rtsp_error_ip_address_not_found">کوئی پتہ نہیں ملا۔ کنکشن چیک کریں یا سرور پیرامیٹرز (انٹرفیس فلٹر، ایڈریس فلٹر)۔</string>
     <string name="rtsp_error_unspecified">کچھ غلط ہو گیا۔</string>

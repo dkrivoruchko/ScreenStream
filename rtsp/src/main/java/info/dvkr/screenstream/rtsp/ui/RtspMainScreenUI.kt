@@ -26,8 +26,9 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.dropUnlessStarted
 import info.dvkr.screenstream.common.ui.DoubleClickProtection
-import info.dvkr.screenstream.common.ui.MediaProjectionPermission
+import info.dvkr.screenstream.common.ui.ScreenCapturePermissionWithEducation
 import info.dvkr.screenstream.common.ui.get
+import info.dvkr.screenstream.common.ui.rememberScreenCapturePermissionWithEducationState
 import info.dvkr.screenstream.rtsp.R
 import info.dvkr.screenstream.rtsp.internal.RtspEvent
 import info.dvkr.screenstream.rtsp.internal.RtspStreamingService
@@ -51,14 +52,16 @@ internal fun RtspMainScreenUI(
 ) {
     val rtspState = rtspStateFlow.collectAsStateWithLifecycle()
     val rtspSettingsState = rtspSettings.data.collectAsStateWithLifecycle()
+    val screenCapturePermissionWithEducationState = rememberScreenCapturePermissionWithEducationState()
 
     BoxWithConstraints(modifier = modifier) {
-        MediaProjectionPermission(
+        ScreenCapturePermissionWithEducation(
+            state = screenCapturePermissionWithEducationState,
             shouldRequestPermission = rtspState.value.waitingCastPermission,
+            isStreaming = rtspState.value.isStreaming,
+            onStartRequested = { educationShown -> sendEvent(RtspStreamingService.InternalEvent.StartStream(permissionEducationShown = educationShown)) },
             onPermissionGranted = { intent -> if (rtspState.value.waitingCastPermission) sendEvent(RtspEvent.StartProjection(intent)) },
             onPermissionDenied = { if (rtspState.value.waitingCastPermission) sendEvent(RtspEvent.CastPermissionsDenied) },
-            requiredDialogTitle = stringResource(id = R.string.rtsp_cast_permission_required_title),
-            requiredDialogText = stringResource(id = R.string.rtsp_cast_permission_required)
         )
 
         val lazyVerticalStaggeredGridState = rememberLazyStaggeredGridState()
@@ -108,8 +111,11 @@ internal fun RtspMainScreenUI(
         Button(
             onClick = dropUnlessStarted {
                 doubleClickProtection.processClick {
-                    if (rtspState.value.isStreaming) sendEvent(RtspEvent.Intentable.StopStream("User action: Button"))
-                    else sendEvent(RtspStreamingService.InternalEvent.StartStream)
+                    if (rtspState.value.isStreaming) {
+                        sendEvent(RtspEvent.Intentable.StopStream("User action: Button"))
+                    } else {
+                        screenCapturePermissionWithEducationState.requestStart()
+                    }
                 }
             },
             modifier = Modifier

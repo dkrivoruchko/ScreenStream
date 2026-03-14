@@ -15,6 +15,7 @@ public object StreamingAnalyticsSchema {
         public const val STREAM_MODE: String = "stream_mode"
         public const val ENTRY_POINT: String = "entry_point"
         public const val USED_CACHED_PERMISSION: String = "used_cached_permission"
+        public const val PERMISSION_EDUCATION_SHOWN: String = "permission_education_shown"
         public const val START_FAIL_GROUP: String = "start_fail_group"
         public const val STOP_REASON_GROUP: String = "stop_reason_group"
         public const val DURATION_BUCKET: String = "duration_bucket"

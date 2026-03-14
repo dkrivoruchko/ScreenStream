@@ -1,0 +1,8 @@
+<resources>
+    <string name="common_screen_capture_permission_required_title">需要权限</string>
+    <string name="common_screen_capture_permission_education_message">Android 将请求共享屏幕的权限。没有此权限，串流无法开始。您可以随时停止共享。</string>
+    <string name="common_screen_capture_permission_denied_message">由于未授予共享屏幕权限，串流未开始。点按重试可再次打开 Android 权限界面。</string>
+
+    <string name="common_continue">继续</string>
+    <string name="common_try_again">重试</string>
+</resources>

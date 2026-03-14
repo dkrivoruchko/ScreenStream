@@ -1,0 +1,8 @@
+<resources>
+    <string name="common_screen_capture_permission_required_title">Toestemming benodig</string>
+    <string name="common_screen_capture_permission_education_message">Android sal vra vir toestemming om jou skerm te deel. Daarsonder kan stroming nie begin nie. Jy kan deling enige tyd stop.</string>
+    <string name="common_screen_capture_permission_denied_message">Stroming het nie begin nie omdat toestemming om jou skerm te deel nie gegee is nie. Tik Probeer weer om die Android-toestemmingskerm weer oop te maak.</string>
+
+    <string name="common_continue">Gaan voort</string>
+    <string name="common_try_again">Probeer weer</string>
+</resources>

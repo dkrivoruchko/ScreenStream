@@ -42,10 +42,6 @@
     <string name="mjpeg_stream_client_blocked">Geblokkeer</string>
     <string name="mjpeg_stream_start">Begin stroom</string>
     <string name="mjpeg_stream_stop">Stop stroom</string>
-
-    <string name="mjpeg_stream_cast_permission_required_title">Toestemming vereis</string>
-    <string name="mjpeg_stream_cast_permission_required">ScreenStream-toepassing vereis Screen Cast-toestemming om skerm vas te vang.</string>
-
     <string name="mjpeg_slow_client_connection">Stadige kliëntverbinding bespeur</string>
 
     <string name="mjpeg_pref_header">Plaaslike modus (MJPEG) instellings</string>

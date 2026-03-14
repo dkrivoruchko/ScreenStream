@@ -43,8 +43,6 @@
     <string name="rtsp_stream_start">Avvia streaming</string>
     <string name="rtsp_stream_stop">Ferma streaming</string>
 
-    <string name="rtsp_cast_permission_required_title">Permesso richiesto</string>
-    <string name="rtsp_cast_permission_required">L\'applicazione ScreenStream richiede il permesso di cattura schermo.</string>
     <string name="rtsp_error_notification_permission_required">L\'applicazione richiede notifiche abilitate per avviare il servizio di streaming.\nAttiva le notifiche nelle impostazioni.</string>
     <string name="rtsp_error_ip_address_not_found">Nessun indirizzo trovato. Controlla la connessione o Parametri del server (Filtro interfaccia, Filtro indirizzi).</string>
     <string name="rtsp_error_unspecified">Qualcosa è andato storto.</string>

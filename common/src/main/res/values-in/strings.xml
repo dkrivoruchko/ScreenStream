@@ -1,0 +1,8 @@
+<resources>
+    <string name="common_screen_capture_permission_required_title">Izin diperlukan</string>
+    <string name="common_screen_capture_permission_education_message">Android akan meminta izin untuk membagikan layar Anda. Tanpanya, streaming tidak dapat dimulai. Anda dapat berhenti berbagi kapan saja.</string>
+    <string name="common_screen_capture_permission_denied_message">Streaming tidak dimulai karena izin untuk membagikan layar Anda tidak diberikan. Ketuk Coba lagi untuk membuka lagi layar izin Android.</string>
+
+    <string name="common_continue">Lanjutkan</string>
+    <string name="common_try_again">Coba lagi</string>
+</resources>

@@ -1,0 +1,8 @@
+<resources>
+    <string name="common_screen_capture_permission_required_title">Toestemming vereist</string>
+    <string name="common_screen_capture_permission_education_message">Android vraagt toestemming om uw scherm te delen. Zonder die toestemming kan de stream niet starten. U kunt het delen op elk moment stoppen.</string>
+    <string name="common_screen_capture_permission_denied_message">De stream is niet gestart omdat geen toestemming is verleend om uw scherm te delen. Tik op Opnieuw proberen om het Android-toestemmingsscherm opnieuw te openen.</string>
+
+    <string name="common_continue">Doorgaan</string>
+    <string name="common_try_again">Opnieuw proberen</string>
+</resources>

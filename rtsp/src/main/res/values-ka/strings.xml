@@ -43,8 +43,6 @@
     <string name="rtsp_stream_start">ტრანსლაციის დაწყება</string>
     <string name="rtsp_stream_stop">ტრანსლაციის შეწყვეტა</string>
 
-    <string name="rtsp_cast_permission_required_title">საჭიროა ნებართვა</string>
-    <string name="rtsp_cast_permission_required">ScreenStream აპლიკაციას სჭირდება ეკრანის ტრანსლაციის ნებართვა ეკრანის ჩასაწერად.</string>
     <string name="rtsp_error_notification_permission_required">აპლიკაციას სჭირდება შეტყობინებების ჩართვა სტრიმინგის სერვისის გასაშვებად.\nგთხოვთ, ჩართოთ შეტყობინებები აპლიკაციის პარამეტრებში.</string>
     <string name="rtsp_error_ip_address_not_found">მისამართი ვერ მოიძებნა. შეამოწმეთ კავშირი ან სერვერის პარამეტრები (ინტერფეისის ფილტრი, მისამართის ფილტრი).</string>
     <string name="rtsp_error_unspecified">რაღაც შეცდომა მოხდა.</string>

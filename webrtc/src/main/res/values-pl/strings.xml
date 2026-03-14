@@ -52,10 +52,6 @@
     <string name="webrtc_stream_audio_permission_message">Uprawnienie do mikrofonu jest wymagane, aby przesyłać dźwięk z mikrofonu lub dźwięk wewnętrzny.\n\nBez niego transmisja będzie bez dźwięku.</string>
     <string name="webrtc_stream_audio_permission_message_settings">Włącz uprawnienie do mikrofonu w ustawieniach aplikacji, aby przesyłać dźwięk z mikrofonu lub dźwięk wewnętrzny.\n\nBez niego transmisja będzie bez dźwięku.</string>
     <string name="webrtc_stream_audio_permission_open_settings">Otwórz ustawienia</string>
-
-    <string name="webrtc_stream_cast_permission_required_title">Wymagane uprawnienia</string>
-    <string name="webrtc_stream_cast_permission_required">Aplikacja ScreenStream wymaga uprawnień do rzutowania ekranu w celu przechwycenia ekranu.</string>
-
     <string name="webrtc_item_client_disconnect">Rozłącz</string>
 
     <string name="webrtc_error_play_integrity_update_play_store">Proszę zaktualizować Google Play Store</string>

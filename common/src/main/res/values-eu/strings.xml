@@ -1,0 +1,8 @@
+<resources>
+    <string name="common_screen_capture_permission_required_title">Baimena behar da</string>
+    <string name="common_screen_capture_permission_education_message">Android-ek zure pantaila partekatzeko baimena eskatuko du. Hori gabe, transmisioa ezin da hasi. Partekatzea edozein unetan eten dezakezu.</string>
+    <string name="common_screen_capture_permission_denied_message">Transmisioa ez da hasi zure pantaila partekatzeko baimena eman ez delako. Sakatu Saiatu berriro Android-en baimen-pantaila berriro irekitzeko.</string>
+
+    <string name="common_continue">Jarraitu</string>
+    <string name="common_try_again">Saiatu berriro</string>
+</resources>

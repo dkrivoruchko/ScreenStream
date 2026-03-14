@@ -1,0 +1,8 @@
+<resources>
+    <string name="common_screen_capture_permission_required_title">Autorisation requise</string>
+    <string name="common_screen_capture_permission_education_message">Android demandera l\'autorisation de partager votre écran. Sans elle, la diffusion ne peut pas démarrer. Vous pouvez arrêter le partage à tout moment.</string>
+    <string name="common_screen_capture_permission_denied_message">La diffusion n\'a pas démarré car l\'autorisation de partager votre écran n\'a pas été accordée. Appuyez sur Réessayer pour rouvrir l\'écran d\'autorisation Android.</string>
+
+    <string name="common_continue">Continuer</string>
+    <string name="common_try_again">Réessayer</string>
+</resources>

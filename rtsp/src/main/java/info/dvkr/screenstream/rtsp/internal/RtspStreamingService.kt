@@ -472,7 +472,7 @@ internal class RtspStreamingService(
         data class OnVideoCodecChange(val name: String?) : InternalEvent(Priority.DESTROY_IGNORE)
         data class OnAudioCodecChange(val name: String?) : InternalEvent(Priority.DESTROY_IGNORE)
         data class ModeChanged(val mode: RtspSettings.Values.Mode) : InternalEvent(Priority.RECOVER_IGNORE)
-        data object StartStream : InternalEvent(Priority.RECOVER_IGNORE)
+        data class StartStream(val permissionEducationShown: Boolean) : InternalEvent(Priority.RECOVER_IGNORE)
         data object RetryBindings : InternalEvent(Priority.RECOVER_IGNORE)
         data class AudioCaptureError(val cause: Throwable) : InternalEvent(Priority.RECOVER_IGNORE)
 
@@ -815,7 +815,8 @@ internal class RtspStreamingService(
                 }
                 sessionAnalyticsTracker.onStartAttempt(
                     entryPoint = EntryPoint.BUTTON,
-                    usedCachedPermission = projectionState.cachedIntent != null
+                    usedCachedPermission = projectionState.cachedIntent != null,
+                    permissionEducationShown = event.permissionEducationShown
                 )
 
                 projectionState.cachedIntent?.let {

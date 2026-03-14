@@ -26,8 +26,9 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.dropUnlessStarted
 import info.dvkr.screenstream.common.ui.DoubleClickProtection
-import info.dvkr.screenstream.common.ui.MediaProjectionPermission
+import info.dvkr.screenstream.common.ui.ScreenCapturePermissionWithEducation
 import info.dvkr.screenstream.common.ui.get
+import info.dvkr.screenstream.common.ui.rememberScreenCapturePermissionWithEducationState
 import info.dvkr.screenstream.webrtc.R
 import info.dvkr.screenstream.webrtc.internal.WebRtcEvent
 import info.dvkr.screenstream.webrtc.internal.WebRtcStreamingService
@@ -45,14 +46,16 @@ internal fun WebRtcMainScreenUI(
     modifier: Modifier = Modifier
 ) {
     val webRtcState = webRtcStateFlow.collectAsStateWithLifecycle()
+    val screenCapturePermissionWithEducationState = rememberScreenCapturePermissionWithEducationState()
 
     BoxWithConstraints(modifier = modifier) {
-        MediaProjectionPermission(
+        ScreenCapturePermissionWithEducation(
+            state = screenCapturePermissionWithEducationState,
             shouldRequestPermission = webRtcState.value.waitingCastPermission,
+            isStreaming = webRtcState.value.isStreaming,
+            onStartRequested = { educationShown -> sendEvent(WebRtcStreamingService.InternalEvent.StartStream(permissionEducationShown = educationShown)) },
             onPermissionGranted = { intent -> if (webRtcState.value.waitingCastPermission) sendEvent(WebRtcEvent.StartProjection(intent)) },
             onPermissionDenied = { if (webRtcState.value.waitingCastPermission) sendEvent(WebRtcEvent.CastPermissionsDenied) },
-            requiredDialogTitle = stringResource(id = R.string.webrtc_stream_cast_permission_required_title),
-            requiredDialogText = stringResource(id = R.string.webrtc_stream_cast_permission_required)
         )
 
         val lazyVerticalStaggeredGridState = rememberLazyStaggeredGridState()
@@ -106,8 +109,11 @@ internal fun WebRtcMainScreenUI(
         Button(
             onClick = dropUnlessStarted {
                 doubleClickProtection.processClick {
-                    if (webRtcState.value.isStreaming) sendEvent(WebRtcEvent.Intentable.StopStream("User action: Button"))
-                    else sendEvent(WebRtcStreamingService.InternalEvent.StartStream)
+                    if (webRtcState.value.isStreaming) {
+                        sendEvent(WebRtcEvent.Intentable.StopStream("User action: Button"))
+                    } else {
+                        screenCapturePermissionWithEducationState.requestStart()
+                    }
                 }
             },
             modifier = Modifier

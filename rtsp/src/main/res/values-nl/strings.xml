@@ -43,8 +43,6 @@
     <string name="rtsp_stream_start">Stream starten</string>
     <string name="rtsp_stream_stop">Stream stoppen</string>
 
-    <string name="rtsp_cast_permission_required_title">Toestemming vereist</string>
-    <string name="rtsp_cast_permission_required">ScreenStream-applicatie heeft schermopnametoestemming nodig om het scherm vast te leggen.</string>
     <string name="rtsp_error_notification_permission_required">Applicatie vereist dat meldingen zijn ingeschakeld om streamingservice te starten.\nSchakel meldingen in bij applicatie-instellingen.</string>
     <string name="rtsp_error_ip_address_not_found">Geen adres gevonden. Controleer verbinding of Serverparameters (Interface filter, Adresfilter).</string>
     <string name="rtsp_error_unspecified">Er is iets misgegaan.</string>

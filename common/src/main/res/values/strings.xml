@@ -1,0 +1,8 @@
+<resources>
+    <string name="common_screen_capture_permission_required_title">Permission required</string>
+    <string name="common_screen_capture_permission_education_message">Android will ask for permission to share your screen. Without it, streaming cannot start. You can stop sharing at any time.</string>
+    <string name="common_screen_capture_permission_denied_message">Streaming didn\'t start because permission to share your screen wasn\'t granted. Tap Try again to open the Android permission screen again.</string>
+
+    <string name="common_continue">Continue</string>
+    <string name="common_try_again">Try again</string>
+</resources>

@@ -1,0 +1,8 @@
+<resources>
+    <string name="common_screen_capture_permission_required_title">অনুমতি প্রয়োজন</string>
+    <string name="common_screen_capture_permission_education_message">Android আপনার স্ক্রিন শেয়ার করার অনুমতি চাইবে। এটি ছাড়া স্ট্রিমিং শুরু করা যাবে না। আপনি যেকোনো সময় শেয়ার করা বন্ধ করতে পারেন।</string>
+    <string name="common_screen_capture_permission_denied_message">আপনার স্ক্রিন শেয়ার করার অনুমতি না দেওয়ায় স্ট্রিমিং শুরু হয়নি। Android অনুমতি স্ক্রিন আবার খুলতে আবার চেষ্টা করুন-এ ট্যাপ করুন।</string>
+
+    <string name="common_continue">চালিয়ে যান</string>
+    <string name="common_try_again">আবার চেষ্টা করুন</string>
+</resources>

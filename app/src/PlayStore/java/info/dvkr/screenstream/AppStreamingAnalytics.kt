@@ -24,6 +24,10 @@ public class AppStreamingAnalytics(context: Context) : StreamingAnalytics {
                             StreamingAnalyticsSchema.ParamName.USED_CACHED_PERMISSION,
                             StreamingAnalyticsMappers.toFlag(event.usedCachedPermission).toLong()
                         )
+                        putLong(
+                            StreamingAnalyticsSchema.ParamName.PERMISSION_EDUCATION_SHOWN,
+                            StreamingAnalyticsMappers.toFlag(event.permissionEducationShown).toLong()
+                        )
                     }
                 )
             }
@@ -37,6 +41,10 @@ public class AppStreamingAnalytics(context: Context) : StreamingAnalytics {
                         putLong(
                             StreamingAnalyticsSchema.ParamName.USED_CACHED_PERMISSION,
                             StreamingAnalyticsMappers.toFlag(event.usedCachedPermission).toLong()
+                        )
+                        putLong(
+                            StreamingAnalyticsSchema.ParamName.PERMISSION_EDUCATION_SHOWN,
+                            StreamingAnalyticsMappers.toFlag(event.permissionEducationShown).toLong()
                         )
                     }
                 )
@@ -52,6 +60,10 @@ public class AppStreamingAnalytics(context: Context) : StreamingAnalytics {
                             StreamingAnalyticsSchema.ParamName.USED_CACHED_PERMISSION,
                             StreamingAnalyticsMappers.toFlag(event.usedCachedPermission).toLong()
                         )
+                        putLong(
+                            StreamingAnalyticsSchema.ParamName.PERMISSION_EDUCATION_SHOWN,
+                            StreamingAnalyticsMappers.toFlag(event.permissionEducationShown).toLong()
+                        )
                         putString(StreamingAnalyticsSchema.ParamName.START_FAIL_GROUP, event.startFailGroup.analyticsValue)
                     }
                 )
@@ -66,6 +78,10 @@ public class AppStreamingAnalytics(context: Context) : StreamingAnalytics {
                         putLong(
                             StreamingAnalyticsSchema.ParamName.USED_CACHED_PERMISSION,
                             StreamingAnalyticsMappers.toFlag(event.usedCachedPermission).toLong()
+                        )
+                        putLong(
+                            StreamingAnalyticsSchema.ParamName.PERMISSION_EDUCATION_SHOWN,
+                            StreamingAnalyticsMappers.toFlag(event.permissionEducationShown).toLong()
                         )
                     }
                 )

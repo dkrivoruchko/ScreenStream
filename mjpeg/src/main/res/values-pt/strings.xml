@@ -42,10 +42,6 @@
     <string name="mjpeg_stream_client_blocked">Bloqueado</string>
     <string name="mjpeg_stream_start">Iniciar transmissão</string>
     <string name="mjpeg_stream_stop">Parar transmissão</string>
-
-    <string name="mjpeg_stream_cast_permission_required_title">Permissão necessária</string>
-    <string name="mjpeg_stream_cast_permission_required">O aplicativo ScreenStream requer permissão de transmissão de tela para capturar a tela.</string>
-
     <string name="mjpeg_slow_client_connection">Detetada conexão lenta do cliente</string>
 
     <string name="mjpeg_pref_header">Configurações do modo local (MJPEG)</string>

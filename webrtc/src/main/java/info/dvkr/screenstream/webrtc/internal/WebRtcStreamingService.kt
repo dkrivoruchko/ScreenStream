@@ -146,7 +146,7 @@ internal class WebRtcStreamingService(
         data class ClientJoin(val clientId: ClientId, val iceServers: List<IceServer>) : InternalEvent(Priority.RECOVER_IGNORE)
         data class SocketSignalingError(val error: SocketSignaling.Error) : InternalEvent(Priority.RECOVER_IGNORE)
         data class CaptureFatal(val cause: Throwable) : InternalEvent(Priority.STOP_IGNORE)
-        data object StartStream : InternalEvent(Priority.STOP_IGNORE)
+        data class StartStream(val permissionEducationShown: Boolean) : InternalEvent(Priority.STOP_IGNORE)
         data class SendHostOffer(val clientId: ClientId, val generation: Long, val epoch: Long, val offer: Offer) : InternalEvent(Priority.STOP_IGNORE)
         data class HostOfferConfirmed(val clientId: ClientId, val generation: Long, val epoch: Long) : InternalEvent(Priority.STOP_IGNORE)
         data class SetClientAnswer(val clientId: ClientId, val generation: Long, val epoch: Long, val answer: Answer) : InternalEvent(Priority.STOP_IGNORE)
@@ -930,7 +930,8 @@ internal class WebRtcStreamingService(
                 }
                 sessionAnalyticsTracker.onStartAttempt(
                     entryPoint = EntryPoint.BUTTON,
-                    usedCachedPermission = mediaProjectionIntent != null
+                    usedCachedPermission = mediaProjectionIntent != null,
+                    permissionEducationShown = event.permissionEducationShown
                 )
 
                 mediaProjectionIntent?.let {

@@ -175,7 +175,7 @@ public class RtspStreamingModule : StreamingModule {
                 is RtspEvent.StartProjection,
                 RtspEvent.CastPermissionsDenied,
                 is RtspEvent.Intentable.StopStream,
-                RtspStreamingService.InternalEvent.StartStream ->
+                is RtspStreamingService.InternalEvent.StartStream ->
                     XLog.i(getLog("sendEvent", "Ignoring stale event in state=$state: $event"))
 
                 else -> XLog.w(

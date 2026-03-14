@@ -52,10 +52,6 @@
     <string name="webrtc_stream_audio_permission_message">串流麥克風或內部音訊需要麥克風權限。\n\n沒有此權限，串流將沒有聲音。</string>
     <string name="webrtc_stream_audio_permission_message_settings">請在應用程式設定中啟用麥克風權限，以串流麥克風或內部音訊。\n\n沒有此權限，串流將沒有聲音。</string>
     <string name="webrtc_stream_audio_permission_open_settings">打開設定</string>
-
-    <string name="webrtc_stream_cast_permission_required_title">需要權限</string>
-    <string name="webrtc_stream_cast_permission_required">ScreenStream 應用程式需要屏幕投射權限以捕捉屏幕。</string>
-
     <string name="webrtc_item_client_disconnect">斷開連接</string>
 
     <string name="webrtc_error_play_integrity_update_play_store">請更新 Google Play 商店</string>

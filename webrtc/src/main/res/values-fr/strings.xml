@@ -52,10 +52,6 @@
     <string name="webrtc_stream_audio_permission_message">L\'autorisation du microphone est requise pour diffuser l\'audio du microphone ou l\'audio interne.\n\nSans elle, le flux n\'aura pas de son.</string>
     <string name="webrtc_stream_audio_permission_message_settings">Activez l\'autorisation du microphone dans les paramètres de l\'app pour diffuser l\'audio du microphone ou l\'audio interne.\n\nSans elle, le flux n\'aura pas de son.</string>
     <string name="webrtc_stream_audio_permission_open_settings">Ouvrir les paramètres</string>
-
-    <string name="webrtc_stream_cast_permission_required_title">Autorisation requise</string>
-    <string name="webrtc_stream_cast_permission_required">L\'application ScreenStream requiert l\'autorisation de diffusion de l\'écran (Screen Cast).</string>
-
     <string name="webrtc_item_client_disconnect">Déconnexion</string>
 
     <string name="webrtc_error_play_integrity_update_play_store">Veuillez mettre à jour Google Play Store</string>

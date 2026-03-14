@@ -26,8 +26,9 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.dropUnlessStarted
 import info.dvkr.screenstream.common.ui.DoubleClickProtection
-import info.dvkr.screenstream.common.ui.MediaProjectionPermission
+import info.dvkr.screenstream.common.ui.ScreenCapturePermissionWithEducation
 import info.dvkr.screenstream.common.ui.get
+import info.dvkr.screenstream.common.ui.rememberScreenCapturePermissionWithEducationState
 import info.dvkr.screenstream.mjpeg.R
 import info.dvkr.screenstream.mjpeg.internal.MjpegEvent
 import info.dvkr.screenstream.mjpeg.internal.MjpegStreamingService
@@ -50,14 +51,16 @@ internal fun MjpegMainScreenUI(
     modifier: Modifier = Modifier
 ) {
     val mjpegState = mjpegStateFlow.collectAsStateWithLifecycle()
+    val screenCapturePermissionWithEducationState = rememberScreenCapturePermissionWithEducationState()
 
     BoxWithConstraints(modifier = modifier) {
-        MediaProjectionPermission(
+        ScreenCapturePermissionWithEducation(
+            state = screenCapturePermissionWithEducationState,
             shouldRequestPermission = mjpegState.value.waitingCastPermission,
+            isStreaming = mjpegState.value.isStreaming,
+            onStartRequested = { educationShown -> sendEvent(MjpegStreamingService.InternalEvent.StartStream(permissionEducationShown = educationShown)) },
             onPermissionGranted = { intent -> if (mjpegState.value.waitingCastPermission) sendEvent(MjpegEvent.StartProjection(intent)) },
             onPermissionDenied = { if (mjpegState.value.waitingCastPermission) sendEvent(MjpegEvent.CastPermissionsDenied) },
-            requiredDialogTitle = stringResource(id = R.string.mjpeg_stream_cast_permission_required_title),
-            requiredDialogText = stringResource(id = R.string.mjpeg_stream_cast_permission_required)
         )
 
         val lazyVerticalStaggeredGridState = rememberLazyStaggeredGridState()
@@ -115,8 +118,11 @@ internal fun MjpegMainScreenUI(
         Button(
             onClick = dropUnlessStarted {
                 doubleClickProtection.processClick {
-                    if (mjpegState.value.isStreaming) sendEvent(MjpegEvent.Intentable.StopStream("User action: Button"))
-                    else sendEvent(MjpegStreamingService.InternalEvent.StartStream)
+                    if (mjpegState.value.isStreaming) {
+                        sendEvent(MjpegEvent.Intentable.StopStream("User action: Button"))
+                    } else {
+                        screenCapturePermissionWithEducationState.requestStart()
+                    }
                 }
             },
             modifier = Modifier

@@ -41,10 +41,6 @@
     <string name="mjpeg_stream_client_blocked">Diblokir</string>
     <string name="mjpeg_stream_start">Mulai streaming</string>
     <string name="mjpeg_stream_stop">Hentikan streaming</string>
-
-    <string name="mjpeg_stream_cast_permission_required_title">Izin diperlukan</string>
-    <string name="mjpeg_stream_cast_permission_required">Aplikasi ScreenStream memerlukan izin Screen Cast untuk menangkap layar.</string>
-
     <string name="mjpeg_slow_client_connection">Koneksi klien lambat terdeteksi</string>
 
     <string name="mjpeg_pref_header">Pengaturan mode lokal (MJPEG).</string>

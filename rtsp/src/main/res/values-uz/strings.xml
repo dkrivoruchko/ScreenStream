@@ -43,8 +43,6 @@
     <string name="rtsp_stream_start">Translyatsiyani boshlash</string>
     <string name="rtsp_stream_stop">Translyatsiyani to\'xtatish</string>
 
-    <string name="rtsp_cast_permission_required_title">Ruxsat kerak</string>
-    <string name="rtsp_cast_permission_required">ScreenStream ilovasiga ekranni yozib olish uchun ruxsat kerak.</string>
     <string name="rtsp_error_notification_permission_required">Ilova translyatsiya xizmatini boshlash uchun bildirishnomalarni yoqishni talab qiladi.\nIlova sozlamalarida bildirishnomalarni yoqing.</string>
     <string name="rtsp_error_ip_address_not_found">Manzil topilmadi. Ulanishni tekshiring yoki Server parametrlari (Interfeys filtri, Manzil filtri).</string>
     <string name="rtsp_error_unspecified">Xatolik yuz berdi.</string>
