@@ -86,6 +86,7 @@ internal class MjpegStreamingService(
             callbackHandler = mainHandler,
             startForeground = { fgsType -> service.startForeground(fgsType) },
             onProjectionStopped = { generation ->
+                XLog.i(getLog("ProjectionCoordinator.onStop", "g=$generation, streaming=$isStreaming"))
                 sendEvent(MjpegEvent.Intentable.StopStream("ProjectionCoordinator.onStop[generation=$generation]"))
             }
         )
@@ -248,6 +249,11 @@ internal class MjpegStreamingService(
     @Synchronized
     internal fun sendEvent(event: MjpegEvent, timeout: Long = 0) {
         if (destroyPending) {
+            when (event) {
+                is InternalEvent.StartStream,
+                is MjpegEvent.CastPermissionsDenied,
+                is MjpegEvent.StartProjection -> sessionAnalyticsTracker.onStartAborted()
+            }
             XLog.w(getLog("sendEvent", "Pending destroy: Ignoring event => $event"))
             return
         }
@@ -282,11 +288,11 @@ internal class MjpegStreamingService(
         } catch (cause: Throwable) {
             XLog.e(this@MjpegStreamingService.getLog("handleMessage.catch", cause.toString()), cause)
 
-            sessionAnalyticsTracker.onStartAborted()
+            sessionAnalyticsTracker.onStartFailedIfPending(StartFailGroup.UNKNOWN)
             mediaProjectionIntent = null
             stopStream("HandleMessageException")
 
-            currentError = if (cause is MjpegError) cause else MjpegError.UnknownError(cause)
+            currentError = cause as? MjpegError ?: MjpegError.UnknownError(cause)
         } finally {
             if (event !is InternalEvent.Traffic) {
                 XLog.d(this@MjpegStreamingService.getLog("handleMessage", "Done [$event] New state: [${getStateString()}]"))
@@ -382,89 +388,121 @@ internal class MjpegStreamingService(
                 sessionAnalyticsTracker.onStartFailed(StartFailGroup.PERMISSION_DENIED)
             }
 
-            is MjpegEvent.StartProjection ->
+            is MjpegEvent.StartProjection -> {
+                waitingForPermission = false
+
                 if (pendingServer) {
-                    waitingForPermission = false
-                    XLog.w(getLog("MjpegEvent.StartProjection", "Server is not ready. Ignoring"))
-                } else if (isStreaming) {
-                    waitingForPermission = false
-                    XLog.w(getLog("MjpegEvent.StartProjection", "Already streaming"))
-                } else {
-                    waitingForPermission = false
-                    val result = projectionCoordinator.start(event.intent, requiresAudioFgsUpgrade = false) { _, mediaProjection, _, isStartupStillValid ->
-                        mediaProjection.registerCallback(projectionCallback, mainHandler)
-
-                        val bitmapCapture = BitmapCapture(service, mjpegSettings, mediaProjection, bitmapStateFlow) { error ->
-                            sendEvent(InternalEvent.Error(error))
-                        }
-                        val captureStarted = bitmapCapture.start(isStartupStillValid)
-                        if (!captureStarted) {
-                            XLog.i(getLog("StartProjection", "Capture not started. Stopping projection."))
-                            bitmapCapture.destroy()
-                            mediaProjection.unregisterCallback(projectionCallback)
-                            return@start false
-                        }
-                        if (!isStartupStillValid()) {
-                            XLog.i(getLog("StartProjection", "Startup invalidated after capture start."))
-                            bitmapCapture.destroy()
-                            mediaProjection.unregisterCallback(projectionCallback)
-                            return@start false
-                        }
-
-                        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                            mediaProjectionIntent = event.intent
-                            service.registerComponentCallbacks(componentCallback)
-                        }
-
-                        @Suppress("DEPRECATION")
-                        @SuppressLint("WakelockTimeout")
-                        if (Build.MANUFACTURER !in listOf("OnePlus", "OPPO") && mjpegSettings.data.value.keepAwake) {
-                            val flags = PowerManager.SCREEN_DIM_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP
-                            wakeLock = powerManager.newWakeLock(flags, "ScreenStream::MJPEG-Tag").apply { acquire() }
-                        }
-
-                        this@MjpegStreamingService.isStreaming = true
-                        this@MjpegStreamingService.mediaProjection = mediaProjection
-                        this@MjpegStreamingService.bitmapCapture = bitmapCapture
-                        true
-                    }
-                    when (result) {
-                        is ProjectionCoordinator.StartResult.Started -> {
-                            currentError = null
-                            sessionAnalyticsTracker.onStarted(currentActiveConsumersCount())
-                            XLog.i(getLog("MjpegEvent.StartProjection", "Started generation=${result.generation}"))
-                        }
-
-                        ProjectionCoordinator.StartResult.Busy -> {
-                            sessionAnalyticsTracker.onStartFailed(StartFailGroup.BUSY)
-                            XLog.w(getLog("MjpegEvent.StartProjection", "Coordinator is busy. Ignoring."))
-                        }
-
-                        is ProjectionCoordinator.StartResult.Blocked, is ProjectionCoordinator.StartResult.Fatal -> {
-                            val cause = result.cause ?: error("Missing cause for failed start result")
-                            if (result.cachedIntentAction == ProjectionCoordinator.CachedIntentAction.INVALIDATE) {
-                                mediaProjectionIntent = null
-                            }
-                            if (result is ProjectionCoordinator.StartResult.Fatal) {
-                                sessionAnalyticsTracker.onStartFailed(StartFailGroup.FATAL)
-                                XLog.e(getLog("MjpegEvent.StartProjection", "Fatal start error"), cause)
-                                stopStream("StartProjectionFatal")
-                            } else {
-                                sessionAnalyticsTracker.onStartFailed(StartFailGroup.BLOCKED)
-                                XLog.w(getLog("MjpegEvent.StartProjection", "Blocked by system"), cause)
-                            }
-                            currentError = cause as? MjpegError ?: MjpegError.UnknownError(cause)
-                        }
-                    }
+                    sessionAnalyticsTracker.onStartFailed(StartFailGroup.UNKNOWN)
+                    val cause = IllegalStateException("StartProjection while server pending")
+                    XLog.w(getLog("MjpegEvent.StartProjection", "Server pending"), cause)
+                    return
                 }
 
-            is MjpegEvent.Intentable.StopStream -> {
-                stopStream(event.reason)
+                if (isStreaming) {
+                    sessionAnalyticsTracker.onStartAborted()
+                    XLog.w(getLog("MjpegEvent.StartProjection", "Already streaming"))
+                    return
+                }
 
-                if (mjpegSettings.data.value.enablePin && mjpegSettings.data.value.autoChangePin)
+                val result = projectionCoordinator.start(
+                    event.intent,
+                    requiresAudioFgsUpgrade = false
+                ) { _, mediaProjection, _, isStartupStillValid ->
+                    mediaProjection.registerCallback(projectionCallback, mainHandler)
+
+                    val bitmapCapture = BitmapCapture(service, mjpegSettings, mediaProjection, bitmapStateFlow) { error ->
+                        sendEvent(InternalEvent.Error(error))
+                    }
+                    val captureStarted = bitmapCapture.start(isStartupStillValid)
+                    if (!captureStarted) {
+                        XLog.i(getLog("StartProjection", "Capture not started. Stopping projection."))
+                        bitmapCapture.destroy()
+                        mediaProjection.unregisterCallback(projectionCallback)
+                        return@start false
+                    }
+                    if (!isStartupStillValid()) {
+                        XLog.i(getLog("StartProjection", "Startup invalidated after capture start."))
+                        bitmapCapture.destroy()
+                        mediaProjection.unregisterCallback(projectionCallback)
+                        return@start false
+                    }
+
+                    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                        mediaProjectionIntent = event.intent
+                        service.registerComponentCallbacks(componentCallback)
+                    }
+
+                    @Suppress("DEPRECATION")
+                    @SuppressLint("WakelockTimeout")
+                    if (Build.MANUFACTURER !in listOf("OnePlus", "OPPO") && mjpegSettings.data.value.keepAwake) {
+                        val flags = PowerManager.SCREEN_DIM_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP
+                        wakeLock = powerManager.newWakeLock(flags, "ScreenStream::MJPEG-Tag").apply { acquire() }
+                    }
+
+                    this@MjpegStreamingService.isStreaming = true
+                    this@MjpegStreamingService.mediaProjection = mediaProjection
+                    this@MjpegStreamingService.bitmapCapture = bitmapCapture
+                    true
+                }
+                when (result) {
+                    is ProjectionCoordinator.StartResult.Started -> {
+                        currentError = null
+                        sessionAnalyticsTracker.onStarted(currentActiveConsumersCount())
+                        XLog.i(getLog("MjpegEvent.StartProjection", "Started. g=${result.generation}"))
+                    }
+
+                    is ProjectionCoordinator.StartResult.Interrupted -> {
+                        if (result.cachedIntentAction == ProjectionCoordinator.CachedIntentAction.INVALIDATE) {
+                            mediaProjectionIntent = null
+                        }
+                        sessionAnalyticsTracker.onStartAborted()
+                        XLog.i(
+                            getLog(
+                                "MjpegEvent.StartProjection",
+                                "Interrupted. intent=${result.cachedIntentAction}/${mediaProjectionIntent != null}"
+                            ), result.cause
+                        )
+                        currentError = null
+                        sendEvent(MjpegEvent.Intentable.StopStream("StartProjectionInterrupted"))
+                    }
+
+                    ProjectionCoordinator.StartResult.Busy -> {
+                        sessionAnalyticsTracker.onStartFailed(StartFailGroup.BUSY)
+                        XLog.w(getLog("MjpegEvent.StartProjection", "Busy. intent=${mediaProjectionIntent != null}"))
+                    }
+
+                    is ProjectionCoordinator.StartResult.Blocked, is ProjectionCoordinator.StartResult.Fatal -> {
+                        val cause = result.cause ?: error("Missing cause for failed start result")
+                        if (result.cachedIntentAction == ProjectionCoordinator.CachedIntentAction.INVALIDATE) {
+                            mediaProjectionIntent = null
+                        }
+                        val failedAction =
+                            if (result is ProjectionCoordinator.StartResult.Blocked) {
+                                sessionAnalyticsTracker.onStartFailed(StartFailGroup.BLOCKED)
+                                "Blocked"
+                            } else {
+                                sessionAnalyticsTracker.onStartFailed(StartFailGroup.FATAL)
+                                "Fatal"
+                            }
+                        val logMessage = "$failedAction. intent=${result.cachedIntentAction}/${mediaProjectionIntent != null}"
+                        if (result is ProjectionCoordinator.StartResult.Blocked) {
+                            XLog.w(getLog("MjpegEvent.StartProjection", logMessage), cause)
+                        } else {
+                            XLog.e(getLog("MjpegEvent.StartProjection", logMessage), cause)
+                            stopStream("StartProjectionFatal")
+                        }
+                        currentError = cause as? MjpegError ?: MjpegError.UnknownError(cause)
+                    }
+                }
+            }
+
+            is MjpegEvent.Intentable.StopStream -> {
+                val wasStreaming = stopStream(event.reason)
+
+                if (wasStreaming && mjpegSettings.data.value.enablePin && mjpegSettings.data.value.autoChangePin)
                     mjpegSettings.updateData { copy(pin = randomPin()) }
 
-                if (mjpegSettings.data.value.htmlShowPressStart) bitmapStateFlow.value = getStartBitmap()
+                if (wasStreaming && mjpegSettings.data.value.htmlShowPressStart) bitmapStateFlow.value = getStartBitmap()
             }
 
             is InternalEvent.ScreenOff -> if (isStreaming && mjpegSettings.data.value.stopOnSleep)
@@ -542,6 +580,7 @@ internal class MjpegStreamingService(
             }
 
             is InternalEvent.Destroy -> {
+                sessionAnalyticsTracker.onStartAborted()
                 stopStream("Destroy")
                 httpServer.destroy()
                 currentError = null
@@ -574,10 +613,20 @@ internal class MjpegStreamingService(
 
     // Inline Only
     @Suppress("NOTHING_TO_INLINE")
-    private inline fun stopStream(stopReason: String? = null) {
+    private inline fun stopStream(stopReason: String? = null): Boolean {
         val wasStreaming = isStreaming
         val activeConsumersAtStop = currentActiveConsumersCount()
         waitingForPermission = false
+        if (wasStreaming) {
+            XLog.i(
+                getLog(
+                    "stopStream",
+                    "stop=$stopReason, consumers=$activeConsumersAtStop, intent=${mediaProjectionIntent != null}"
+                )
+            )
+        } else {
+            XLog.d(getLog("stopStream", "skip. stop=$stopReason, intent=${mediaProjectionIntent != null}"))
+        }
 
         if (wasStreaming) {
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
@@ -590,8 +639,6 @@ internal class MjpegStreamingService(
             projectionCoordinator.stop()
 
             isStreaming = false
-        } else {
-            XLog.d(getLog("stopStream", "Not streaming. Ignoring."))
         }
 
         if (wasStreaming) {
@@ -602,6 +649,8 @@ internal class MjpegStreamingService(
         wakeLock = null
 
         service.stopForeground()
+
+        return wasStreaming
     }
 
     // Inline Only

@@ -148,9 +148,14 @@ internal class BitmapCapture(
                 null,
                 imageThreadHandler
             )
-            if (virtualDisplay == null || !isStartupStillValid()) {
-                val reason = if (virtualDisplay == null) "virtualDisplay is null" else "startup invalidated"
-                XLog.i(getLog("startDisplayCapture", "$reason. Capture start failed."))
+            if (!isStartupStillValid()) {
+                XLog.i(getLog("startDisplayCapture", "Startup invalidated after virtual display creation."))
+                state = State.ERROR
+                safeRelease()
+                return false
+            }
+            if (virtualDisplay == null) {
+                XLog.i(getLog("startDisplayCapture", "virtualDisplay is null. Capture start failed."))
                 state = State.ERROR
                 safeRelease()
             } else {

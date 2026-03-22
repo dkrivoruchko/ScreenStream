@@ -33,6 +33,11 @@ public class ProjectionCoordinator(
 
         public data object Busy : StartResult
         public data class Started(val generation: Long, val mediaProjection: MediaProjection, val audioFgsUpgradeSucceeded: Boolean) : StartResult
+        public data class Interrupted(
+            override val cause: Throwable,
+            override val cachedIntentAction: CachedIntentAction = CachedIntentAction.INVALIDATE
+        ) : StartResult
+
         public data class Blocked(
             override val cause: Throwable,
             override val cachedIntentAction: CachedIntentAction = CachedIntentAction.KEEP
@@ -118,29 +123,29 @@ public class ProjectionCoordinator(
 
             callback = object : MediaProjection.Callback() {
                 override fun onStop() {
-                    val shouldHandle = synchronized(lock) {
+                    val shouldNotify = synchronized(lock) {
                         val session = activeSession
                         when {
                             session != null && session.generation == generation && session.mediaProjection === projection -> {
                                 activeSession = null
+                                XLog.i(getLog("MediaProjection.Callback[$tag]", "onStop. g=$generation, state=active"))
                                 true
                             }
 
                             session == null && isStarting && startingGeneration == generation -> {
                                 isStarting = false
                                 startingGeneration = null
-                                true
+                                XLog.i(getLog("MediaProjection.Callback[$tag]", "onStop. g=$generation, state=startup"))
+                                false
                             }
 
-                            else -> false
+                            else -> {
+                                XLog.i(getLog("MediaProjection.Callback[$tag]", "onStop stale. g=$generation"))
+                                false
+                            }
                         }
                     }
-                    if (!shouldHandle) {
-                        XLog.i(getLog("MediaProjection.Callback[$tag]", "Stale callback ignored. generation=$generation"))
-                        return
-                    }
-                    XLog.i(getLog("MediaProjection.Callback[$tag]", "onStop. generation=$generation"))
-                    onProjectionStopped(generation)
+                    if (shouldNotify) onProjectionStopped(generation)
                 }
             }
             projection.registerCallback(callback, callbackHandler)
@@ -151,9 +156,9 @@ public class ProjectionCoordinator(
                     startForeground(ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION or ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE)
                 }.onSuccess {
                     audioFgsUpgradeSucceeded = true
-                    XLog.i(getLog("start[$tag]", "Microphone FGS upgrade succeeded. generation=$generation"))
+                    XLog.i(getLog("start[$tag]", "Mic FGS ok. g=$generation"))
                 }.onFailure { cause ->
-                    XLog.w(getLog("start[$tag]", "Microphone FGS upgrade failed. Continuing video-only. generation=$generation"), cause)
+                    XLog.w(getLog("start[$tag]", "Mic FGS failed. g=$generation"), cause)
                 }
             }
 
@@ -175,7 +180,9 @@ public class ProjectionCoordinator(
                 return StartResult.Fatal(it, CachedIntentAction.INVALIDATE)
             }
             if (!pipelineStarted) {
-                val cause = IllegalStateException("buildPipeline returned false")
+                val startupInterrupted = synchronized(lock) { isStarting.not() || startingGeneration != generation }
+                val cause = if (startupInterrupted) IllegalStateException("Projection stopped during startup. generation=$generation")
+                else IllegalStateException("buildPipeline returned false")
                 XLog.w(getLog("start[$tag]", "Pipeline was not started. generation=$generation"), cause)
                 runCatching { projection.unregisterCallback(callback) }
                 runCatching { projection.stop() }
@@ -183,28 +190,32 @@ public class ProjectionCoordinator(
                     isStarting = false
                     startingGeneration = null
                 }
-                return StartResult.Fatal(cause, CachedIntentAction.INVALIDATE)
+                return if (startupInterrupted) StartResult.Interrupted(cause) else StartResult.Fatal(cause, CachedIntentAction.INVALIDATE)
             }
 
-            val startupInterrupted = synchronized(lock) { isStarting.not() || startingGeneration != generation }
-            if (startupInterrupted) {
+            val started = synchronized(lock) {
+                if (isStarting.not() || startingGeneration != generation) {
+                    false
+                } else {
+                    activeSession = ActiveSession(generation = generation, mediaProjection = projection, callback = callback)
+                    isStarting = false
+                    startingGeneration = null
+                    true
+                }
+            }
+            if (!started) {
                 val cause = IllegalStateException("Projection stopped during startup. generation=$generation")
-                XLog.w(getLog("start[$tag]", "Start interrupted"), cause)
+                XLog.i(getLog("start[$tag]", "Interrupted. g=$generation"), cause)
                 runCatching { projection.unregisterCallback(callback) }
                 runCatching { projection.stop() }
                 synchronized(lock) {
                     isStarting = false
                     startingGeneration = null
                 }
-                return StartResult.Fatal(cause, CachedIntentAction.INVALIDATE)
+                return StartResult.Interrupted(cause)
             }
 
-            synchronized(lock) {
-                activeSession = ActiveSession(generation = generation, mediaProjection = projection, callback = callback)
-                isStarting = false
-                startingGeneration = null
-            }
-            XLog.i(getLog("start[$tag]", "Started generation=$generation, audioFgsUpgradeSucceeded=$audioFgsUpgradeSucceeded"))
+            XLog.i(getLog("start[$tag]", "Started. g=$generation, micFgs=$audioFgsUpgradeSucceeded"))
             return StartResult.Started(generation, projection, audioFgsUpgradeSucceeded)
         } catch (cause: Throwable) {
             XLog.e(getLog("start[$tag]", "Unexpected start failure. generation=$generation"), cause)

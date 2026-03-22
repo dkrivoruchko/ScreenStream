@@ -101,6 +101,7 @@ internal class WebRtcStreamingService(
             callbackHandler = handler,
             startForeground = { fgsType -> service.startForeground(fgsType) },
             onProjectionStopped = { generation ->
+                XLog.i(getLog("ProjectionCoordinator.onStop", "g=$generation, streaming=${isStreaming()}"))
                 sendEvent(WebRtcEvent.Intentable.StopStream("ProjectionCoordinator.onStop[generation=$generation]"))
             }
         )
@@ -437,6 +438,11 @@ internal class WebRtcStreamingService(
     @Synchronized
     internal fun sendEvent(event: WebRtcEvent, timeout: Long = 0) {
         if (destroyPending) {
+            when (event) {
+                is InternalEvent.StartStream,
+                is WebRtcEvent.CastPermissionsDenied,
+                is WebRtcEvent.StartProjection -> sessionAnalyticsTracker.onStartAborted()
+            }
             XLog.i(getLog("sendEvent", "Pending destroy: Ignoring event => $event"))
             return
         }
@@ -469,7 +475,7 @@ internal class WebRtcStreamingService(
         } catch (cause: Throwable) {
             XLog.e(this@WebRtcStreamingService.getLog("handleMessage.catch", cause.toString()), cause)
 
-            sessionAnalyticsTracker.onStartAborted()
+            sessionAnalyticsTracker.onStartFailedIfPending(StartFailGroup.UNKNOWN)
             mediaProjectionIntent = null
             stopStream("HandleMessageException")
 
@@ -784,18 +790,25 @@ internal class WebRtcStreamingService(
 
             is WebRtcEvent.CastPermissionsDenied -> {
                 waitingForPermission = false
+                if (destroyPending) {
+                    sessionAnalyticsTracker.onStartAborted()
+                    XLog.i(getLog("CastPermissionsDenied", "DestroyPending. abort"))
+                    return
+                }
                 sessionAnalyticsTracker.onStartFailed(StartFailGroup.PERMISSION_DENIED)
             }
 
             is WebRtcEvent.StartProjection -> {
+                waitingForPermission = false
                 if (destroyPending) {
-                    XLog.i(getLog("StartProjection", "DestroyPending. Ignoring"), IllegalStateException("StartProjection: DestroyPending"))
+                    sessionAnalyticsTracker.onStartAborted()
+                    XLog.i(getLog("StartProjection", "DestroyPending. abort"), IllegalStateException("StartProjection: DestroyPending"))
                     return
                 }
 
-                waitingForPermission = false
                 if (isStreaming()) {
-                    XLog.d(getLog("StartProjection", "Already streaming. Ignoring."))
+                    sessionAnalyticsTracker.onStartAborted()
+                    XLog.d(getLog("StartProjection", "Already streaming. stale callback"))
                     return
                 }
 
@@ -809,7 +822,7 @@ internal class WebRtcStreamingService(
                         webRtcSettings.updateData { copy(enableMic = false, enableDeviceAudio = false) }
                     }
                 }
-                val prj = requireNotNull(projection)
+                val prj = requireNotNull(projection) { "StartProjection: projection == null" }
                 val sessionEpoch = bumpStreamEpoch("StartProjection")
                 val requiresAudioFgsUpgrade = hasAudioPermission && (userRequestedMic || userRequestedDeviceAudio)
                 val startResult =
@@ -840,12 +853,6 @@ internal class WebRtcStreamingService(
                             service.registerComponentCallbacks(componentCallback)
                         }
 
-                        synchronizeClientEpoch(sessionEpoch)
-                        requireNotNull(signaling).sendStreamStart()
-                        clients.forEach { (_, session) ->
-                            session.client.start(prj.localMediaSteam!!, session.epoch)
-                        }
-
                         @Suppress("DEPRECATION")
                         @SuppressLint("WakelockTimeout")
                         if (Build.MANUFACTURER !in listOf("OnePlus", "OPPO") && webRtcSettings.data.value.keepAwake) {
@@ -856,32 +863,66 @@ internal class WebRtcStreamingService(
                     }
                 when (startResult) {
                     is ProjectionCoordinator.StartResult.Started -> {
+                        synchronizeClientEpoch(sessionEpoch)
+                        requireNotNull(signaling).sendStreamStart()
+                        clients.forEach { (_, session) ->
+                            session.client.start(prj.localMediaSteam!!, session.epoch)
+                        }
+
                         if (hasAudioPermission && (userRequestedMic || userRequestedDeviceAudio) && !startResult.audioFgsUpgradeSucceeded) {
                             XLog.w(getLog("StartProjection", "Microphone FGS upgrade failed. Streaming without microphone."))
                             showAudioCaptureIssueToastOnce()
                         }
                         currentError.set(null)
                         sessionAnalyticsTracker.onStarted(currentActiveConsumersCount())
+                        XLog.i(
+                            getLog(
+                                "StartProjection",
+                                "Started. intent=${mediaProjectionIntent != null}, micFgs=${startResult.audioFgsUpgradeSucceeded}, epoch=$sessionEpoch"
+                            )
+                        )
+                    }
+
+                    is ProjectionCoordinator.StartResult.Interrupted -> {
+                        if (startResult.cachedIntentAction == ProjectionCoordinator.CachedIntentAction.INVALIDATE) {
+                            mediaProjectionIntent = null
+                        }
+                        waitingForPermission = false
+                        sessionAnalyticsTracker.onStartAborted()
+                        XLog.i(
+                            getLog(
+                                "StartProjection",
+                                "Interrupted. intent=${startResult.cachedIntentAction}/${mediaProjectionIntent != null}, epoch=$sessionEpoch"
+                            ), startResult.cause
+                        )
+                        currentError.set(null)
+                        stopStream("StartProjectionInterrupted")
                     }
 
                     ProjectionCoordinator.StartResult.Busy -> {
                         sessionAnalyticsTracker.onStartFailed(StartFailGroup.BUSY)
-                        XLog.w(getLog("StartProjection", "Coordinator is busy. Ignoring."))
+                        XLog.w(getLog("StartProjection", "Busy. intent=${mediaProjectionIntent != null}, epoch=$sessionEpoch"))
                     }
 
-                    is ProjectionCoordinator.StartResult.Blocked, is ProjectionCoordinator.StartResult.Fatal -> {
+                    is ProjectionCoordinator.StartResult.Blocked,
+                    is ProjectionCoordinator.StartResult.Fatal -> {
                         val cause = startResult.cause ?: error("Missing cause for failed start result")
                         sessionAnalyticsTracker.onStartFailed(
-                            if (startResult is ProjectionCoordinator.StartResult.Fatal) StartFailGroup.FATAL else StartFailGroup.BLOCKED
+                            if (startResult is ProjectionCoordinator.StartResult.Blocked) StartFailGroup.BLOCKED else StartFailGroup.FATAL
                         )
                         if (startResult.cachedIntentAction == ProjectionCoordinator.CachedIntentAction.INVALIDATE) {
                             mediaProjectionIntent = null
                         }
                         waitingForPermission = false
-                        if (startResult is ProjectionCoordinator.StartResult.Fatal) {
-                            XLog.e(getLog("StartProjection", "Fatal start error"), cause)
+                        val logMessage = if (startResult is ProjectionCoordinator.StartResult.Blocked) {
+                            "Blocked. intent=${startResult.cachedIntentAction}/${mediaProjectionIntent != null}, epoch=$sessionEpoch"
                         } else {
-                            XLog.w(getLog("StartProjection", "Blocked by system"), cause)
+                            "Fatal. intent=${startResult.cachedIntentAction}/${mediaProjectionIntent != null}, epoch=$sessionEpoch"
+                        }
+                        if (startResult is ProjectionCoordinator.StartResult.Blocked) {
+                            XLog.w(getLog("StartProjection", logMessage), cause)
+                        } else {
+                            XLog.e(getLog("StartProjection", logMessage), cause)
                         }
                         stopStream("StartProjectionFailed")
                         currentError.set(cause as? WebRtcError ?: WebRtcError.UnknownError(cause))
@@ -1119,6 +1160,7 @@ internal class WebRtcStreamingService(
             }
 
             is InternalEvent.Destroy -> {
+                sessionAnalyticsTracker.onStartAborted()
                 stopStream("Destroy")
 
                 signaling?.destroy()
@@ -1191,6 +1233,14 @@ internal class WebRtcStreamingService(
     private inline fun stopStream(stopReason: String? = null) {
         val wasStreaming = isStreaming()
         val activeConsumersAtStop = currentActiveConsumersCount()
+        val logMessage = buildString {
+            append(if (wasStreaming) "stop=" else "skip. stop=")
+            append(stopReason)
+            if (wasStreaming) append(", consumers=$activeConsumersAtStop")
+            append(", intent=${mediaProjectionIntent != null}, epoch=$streamEpoch")
+        }
+        if (wasStreaming) XLog.i(getLog("stopStream", logMessage))
+        else XLog.d(getLog("stopStream", logMessage))
 
         val stopEpoch = bumpStreamEpoch("stopStream")
         synchronizeClientEpoch(stopEpoch)
@@ -1203,10 +1253,8 @@ internal class WebRtcStreamingService(
             }
             requireNotNull(signaling).sendStreamStop()
             clients.forEach { it.value.client.stop() }
-            requireNotNull(projection).stop()
-        } else {
-            XLog.d(getLog("stopStream", "Not streaming. Ignoring."))
         }
+        projection?.stop()
         projectionCoordinator.stop()
 
         if (wasStreaming) {

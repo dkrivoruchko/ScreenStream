@@ -52,6 +52,12 @@ public class StreamingSessionAnalyticsTracker(
         clearPendingStart()
     }
 
+    public fun onStartFailedIfPending(startFailGroup: StartFailGroup): Boolean {
+        if (sessionActive || pendingEntryPoint == EntryPoint.UNKNOWN) return false
+        onStartFailed(startFailGroup)
+        return true
+    }
+
     public fun onStartAborted() {
         if (sessionActive || pendingEntryPoint == EntryPoint.UNKNOWN) return
         analytics.logEvent(
