@@ -404,45 +404,50 @@ internal class MjpegStreamingService(
                     return
                 }
 
-                val result = projectionCoordinator.start(
-                    event.intent,
-                    requiresAudioFgsUpgrade = false
-                ) { _, mediaProjection, _, isStartupStillValid ->
-                    mediaProjection.registerCallback(projectionCallback, mainHandler)
+                val foregroundError = projectionCoordinator.startForegroundForProjection(requiresAudioForegroundService = false)
+                val startPhase: String
+                val result = if (foregroundError != null) {
+                    startPhase = "foreground promotion"
+                    projectionCoordinator.asForegroundStartResult(foregroundError)
+                } else {
+                    startPhase = "projection startup"
+                    projectionCoordinator.startProjection(event.intent) { _, mediaProjection, _, isStartupStillValid ->
+                        mediaProjection.registerCallback(projectionCallback, mainHandler)
 
-                    val bitmapCapture = BitmapCapture(service, mjpegSettings, mediaProjection, bitmapStateFlow) { error ->
-                        sendEvent(InternalEvent.Error(error))
-                    }
-                    val captureStarted = bitmapCapture.start(isStartupStillValid)
-                    if (!captureStarted) {
-                        XLog.i(getLog("StartProjection", "Capture not started. Stopping projection."))
-                        bitmapCapture.destroy()
-                        mediaProjection.unregisterCallback(projectionCallback)
-                        return@start false
-                    }
-                    if (!isStartupStillValid()) {
-                        XLog.i(getLog("StartProjection", "Startup invalidated after capture start."))
-                        bitmapCapture.destroy()
-                        mediaProjection.unregisterCallback(projectionCallback)
-                        return@start false
-                    }
+                        val bitmapCapture = BitmapCapture(service, mjpegSettings, mediaProjection, bitmapStateFlow) { error ->
+                            sendEvent(InternalEvent.Error(error))
+                        }
+                        val captureStarted = bitmapCapture.start(isStartupStillValid)
+                        if (!captureStarted) {
+                            XLog.i(getLog("StartProjection", "Capture not started. Stopping projection."))
+                            bitmapCapture.destroy()
+                            mediaProjection.unregisterCallback(projectionCallback)
+                            return@startProjection false
+                        }
+                        if (!isStartupStillValid()) {
+                            XLog.i(getLog("StartProjection", "Startup invalidated after capture start."))
+                            bitmapCapture.destroy()
+                            mediaProjection.unregisterCallback(projectionCallback)
+                            return@startProjection false
+                        }
 
-                    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                        mediaProjectionIntent = event.intent
-                        service.registerComponentCallbacks(componentCallback)
-                    }
+                        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                            mediaProjectionIntent = event.intent
+                            service.registerComponentCallbacks(componentCallback)
+                        }
 
-                    @Suppress("DEPRECATION")
-                    @SuppressLint("WakelockTimeout")
-                    if (Build.MANUFACTURER !in listOf("OnePlus", "OPPO") && mjpegSettings.data.value.keepAwake) {
-                        val flags = PowerManager.SCREEN_DIM_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP
-                        wakeLock = powerManager.newWakeLock(flags, "ScreenStream::MJPEG-Tag").apply { acquire() }
-                    }
+                        @Suppress("DEPRECATION")
+                        @SuppressLint("WakelockTimeout")
+                        if (Build.MANUFACTURER !in listOf("OnePlus", "OPPO") && mjpegSettings.data.value.keepAwake) {
+                            val flags = PowerManager.SCREEN_DIM_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP
+                            wakeLock = powerManager.newWakeLock(flags, "ScreenStream::MJPEG-Tag").apply { acquire() }
+                        }
 
-                    this@MjpegStreamingService.isStreaming = true
-                    this@MjpegStreamingService.mediaProjection = mediaProjection
-                    this@MjpegStreamingService.bitmapCapture = bitmapCapture
-                    true
+                        this@MjpegStreamingService.isStreaming = true
+                        this@MjpegStreamingService.mediaProjection = mediaProjection
+                        this@MjpegStreamingService.bitmapCapture = bitmapCapture
+                        true
+                    }
                 }
                 when (result) {
                     is ProjectionCoordinator.StartResult.Started -> {
@@ -468,7 +473,7 @@ internal class MjpegStreamingService(
 
                     ProjectionCoordinator.StartResult.Busy -> {
                         sessionAnalyticsTracker.onStartFailed(StartFailGroup.BUSY)
-                        XLog.w(getLog("MjpegEvent.StartProjection", "Busy. intent=${mediaProjectionIntent != null}"))
+                        XLog.w(getLog("MjpegEvent.StartProjection", "Busy during $startPhase. intent=${mediaProjectionIntent != null}"))
                     }
 
                     is ProjectionCoordinator.StartResult.Blocked, is ProjectionCoordinator.StartResult.Fatal -> {
@@ -484,7 +489,7 @@ internal class MjpegStreamingService(
                                 sessionAnalyticsTracker.onStartFailed(StartFailGroup.FATAL)
                                 "Fatal"
                             }
-                        val logMessage = "$failedAction. intent=${result.cachedIntentAction}/${mediaProjectionIntent != null}"
+                        val logMessage = "$failedAction during $startPhase. intent=${result.cachedIntentAction}/${mediaProjectionIntent != null}"
                         if (result is ProjectionCoordinator.StartResult.Blocked) {
                             XLog.w(getLog("MjpegEvent.StartProjection", logMessage), cause)
                         } else {

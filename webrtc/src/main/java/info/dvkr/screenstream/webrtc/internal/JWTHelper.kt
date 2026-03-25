@@ -10,9 +10,12 @@ import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.common.getLog
 import org.json.JSONObject
 import java.security.KeyFactory
+import java.security.KeyPair
 import java.security.KeyPairGenerator
 import java.security.KeyStore
 import java.security.PrivateKey
+import java.security.ProviderException
+import java.security.PublicKey
 import java.security.SecureRandom
 import java.security.Signature
 import java.security.interfaces.ECPublicKey
@@ -30,6 +33,9 @@ internal object JWTHelper {
 
     private val keyStore = KeyStore.getInstance(ANDROID_KEY_STORE).apply { load(null) }
 
+    @Volatile
+    private var softwareKeyPair: KeyPair? = null
+
     init {
         XLog.d(getLog("init", "Key alias: $KEY_ALIAS"))
         runCatching { if (keyStore.containsAlias(KEY_ALIAS).not()) createKey() }
@@ -37,7 +43,40 @@ internal object JWTHelper {
     }
 
     @Throws
+    @Synchronized
     internal fun createJWT(environment: WebRtcEnvironment, streamId: String): String {
+        softwareKeyPair?.let { return createJWT(environment, streamId, it.public, it.private) }
+
+        val firstAttempt = runCatching {
+            createJWT(environment, streamId, getPublicKey(), getPrivateKey())
+        }
+        if (firstAttempt.isSuccess) return firstAttempt.getOrThrow()
+
+        val firstCause = firstAttempt.exceptionOrNull()!!
+        if (firstCause.isAndroidKeystoreFailure().not()) throw firstCause
+
+        XLog.w(getLog("createJWT", "AndroidKeyStore failed. Retrying with key reset."), firstCause)
+
+        val secondAttempt = runCatching {
+            if (keyStore.containsAlias(KEY_ALIAS)) removeKey()
+            createKey()
+            createJWT(environment, streamId, getPublicKey(), getPrivateKey())
+        }
+        if (secondAttempt.isSuccess) return secondAttempt.getOrThrow()
+
+        val secondCause = secondAttempt.exceptionOrNull()!!
+        if (secondCause.isAndroidKeystoreFailure().not()) throw secondCause
+
+        // Temporary workaround for broken device KeyMint/Keystore implementations.
+        val keyPair = softwareKeyPair ?: KeyPairGenerator.getInstance(KeyProperties.KEY_ALGORITHM_EC).run {
+            initialize(ECGenParameterSpec("secp256r1"))
+            generateKeyPair()
+        }.also { softwareKeyPair = it }
+        XLog.w(getLog("createJWT", "Switching to temporary in-memory software key after repeated AndroidKeyStore failures."), secondCause)
+        return createJWT(environment, streamId, keyPair.public, keyPair.private)
+    }
+
+    private fun createJWT(environment: WebRtcEnvironment, streamId: String, publicKey: PublicKey, privateKey: PrivateKey): String {
         val headerString = JSONObject()
             .put("typ", "JWT")
             .put("alg", "ES256")
@@ -48,7 +87,7 @@ internal object JWTHelper {
             .put("aud", environment.signalingServerHost)
             .put("iss", environment.packageName)
             .apply { if (streamId.isNotEmpty()) put("streamId", streamId) }
-            .put("pubKey", getPublicKeyAsString())
+            .put("pubKey", getPublicKeyAsString(publicKey))
             .toString()
 
         val base64Payload = payloadString.toByteArray().toBase64UrlSafeNoPadding
@@ -56,7 +95,7 @@ internal object JWTHelper {
         val headerAndPayload = "$base64Header.$base64Payload"
 
         val signature = Signature.getInstance("SHA256withECDSA").run {
-            initSign(getPrivateKey(), SecureRandom())
+            initSign(privateKey, SecureRandom())
             update(headerAndPayload.toByteArray())
             sign()
         }
@@ -101,6 +140,9 @@ internal object JWTHelper {
         keyStore.deleteEntry(KEY_ALIAS)
     }
 
+    private fun Throwable.isAndroidKeystoreFailure(): Boolean = generateSequence(this) { it.cause }
+        .any { it is ProviderException || it.javaClass.name == "android.security.KeyStoreException" }
+
     private val ByteArray.toBase64UrlSafeNoPadding
         inline get() : String = Base64.encodeToString(this, Base64.NO_WRAP or Base64.URL_SAFE or Base64.NO_PADDING)
 
@@ -135,11 +177,13 @@ internal object JWTHelper {
         return concatSignature
     }
 
-    private fun getPublicKeyAsString(): String {
-        XLog.d(getLog("getPublicKeyAsString", "Alias: $KEY_ALIAS"))
-
+    private fun getPublicKey(): PublicKey {
         keyStore.containsAlias(KEY_ALIAS) || throw IllegalStateException("Key not found, alias: $KEY_ALIAS")
-        val publicKey = keyStore.getCertificate(KEY_ALIAS).publicKey!!
+        return keyStore.getCertificate(KEY_ALIAS).publicKey!!
+    }
+
+    private fun getPublicKeyAsString(publicKey: PublicKey = getPublicKey()): String {
+        XLog.d(getLog("getPublicKeyAsString", "Alias: $KEY_ALIAS"))
 
         // https://developer.android.com/reference/android/security/keystore/KeyGenParameterSpec#known-issues
         val publicKeyFixed = if (Build.VERSION.SDK_INT != Build.VERSION_CODES.M) publicKey

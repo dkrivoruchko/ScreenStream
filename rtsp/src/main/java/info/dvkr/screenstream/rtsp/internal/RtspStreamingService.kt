@@ -936,8 +936,14 @@ internal class RtspStreamingService(
                 }
                 val wantsMicrophoneForSession = audioPermissionGranted && settings.enableMic
                 val wantsDeviceAudioForSession = audioPermissionGranted && settings.enableDeviceAudio
-                val startResult =
-                    projectionCoordinator.start(event.intent, wantsMicrophoneForSession) { _, mediaProjection, audioFgsUpgradeSucceeded, isStartupStillValid ->
+                val foregroundError = projectionCoordinator.startForegroundForProjection(wantsMicrophoneForSession)
+                val startPhase: String
+                val startResult = if (foregroundError != null) {
+                    startPhase = "foreground promotion"
+                    projectionCoordinator.asForegroundStartResult(foregroundError)
+                } else {
+                    startPhase = "projection startup"
+                    projectionCoordinator.startProjection(event.intent) { _, mediaProjection, audioCaptureAllowed, isStartupStillValid ->
                         // TODO Starting from Android R, if your application requests the SYSTEM_ALERT_WINDOW permission, and the user has
                         //  not explicitly denied it, the permission will be automatically granted until the projection is stopped.
                         //  The permission allows your app to display user controls on top of the screen being captured.
@@ -982,7 +988,7 @@ internal class RtspStreamingService(
                                 XLog.i(getLog("StartProjection", "Startup invalidated before virtual display creation."))
                                 stop()
                                 mediaProjection.unregisterCallback(projectionCallback)
-                                return@start false
+                                return@startProjection false
                             }
 
                             this.inputSurfaceTexture?.let { surfaceTexture ->
@@ -1005,13 +1011,13 @@ internal class RtspStreamingService(
                                 stop()
                                 mediaProjection.unregisterCallback(projectionCallback)
                                 runCatching { captureSurface?.release() }
-                                return@start false
+                                return@startProjection false
                             }
 
                             start()
                         }
 
-                        val microphoneEnabledForSession = wantsMicrophoneForSession && audioFgsUpgradeSucceeded
+                        val microphoneEnabledForSession = wantsMicrophoneForSession && audioCaptureAllowed
                         val deviceAudioEnabledForSession = wantsDeviceAudioForSession
                         val audioEnabledForSession = microphoneEnabledForSession || deviceAudioEnabledForSession
                         var audioEncoder: AudioEncoder? = null
@@ -1081,7 +1087,7 @@ internal class RtspStreamingService(
                             runCatching { captureSurface?.release() }
                             audioEncoder?.stop()
                             mediaProjection.unregisterCallback(projectionCallback)
-                            return@start false
+                            return@startProjection false
                         }
 
                         projectionState.active = ActiveProjection(
@@ -1092,7 +1098,7 @@ internal class RtspStreamingService(
                                 XLog.i(getLog("StartProjection", "captureSurface is null. Stopping projection."))
                                 videoEncoder.stop()
                                 mediaProjection.unregisterCallback(projectionCallback)
-                                return@start false
+                                return@startProjection false
                             },
                             audioEncoder = audioEncoder,
                             deviceConfiguration = deviceConfiguration,
@@ -1110,9 +1116,10 @@ internal class RtspStreamingService(
                         }
                         true
                     }
+                }
                 when (startResult) {
                     is ProjectionCoordinator.StartResult.Started -> {
-                        val microphoneEnabledForSession = wantsMicrophoneForSession && startResult.audioFgsUpgradeSucceeded
+                        val microphoneEnabledForSession = wantsMicrophoneForSession && startResult.audioCaptureAllowed
                         val audioEnabledForSession = wantsDeviceAudioForSession || microphoneEnabledForSession
                         when (modeLocal) {
                             RtspSettings.Values.Mode.SERVER -> serverController?.start(coroutineScope)
@@ -1125,13 +1132,9 @@ internal class RtspStreamingService(
                                 clientController?.connect()
                             }
                         }
-                        if (wantsMicrophoneForSession && !microphoneEnabledForSession) {
-                            XLog.w(getLog("StartProjection", "Microphone FGS upgrade failed. Streaming without microphone."))
-                            showAudioCaptureIssueToastOnce()
-                        }
                         currentError = null
                         sessionAnalyticsTracker.onStarted(currentActiveConsumersCount())
-                        XLog.i(getLog("StartProjection", "Started. mode=$modeLocal, intent=${projectionState.cachedIntent != null}, micFgs=${startResult.audioFgsUpgradeSucceeded}"))
+                        XLog.i(getLog("StartProjection", "Started. mode=$modeLocal, intent=${projectionState.cachedIntent != null}, audioFgs=${startResult.audioCaptureAllowed}"))
                     }
 
                     is ProjectionCoordinator.StartResult.Interrupted -> {
@@ -1147,7 +1150,7 @@ internal class RtspStreamingService(
 
                     ProjectionCoordinator.StartResult.Busy -> {
                         sessionAnalyticsTracker.onStartFailed(StartFailGroup.BUSY)
-                        XLog.w(getLog("StartProjection", "Busy. mode=$modeLocal, intent=${projectionState.cachedIntent != null}"))
+                        XLog.w(getLog("StartProjection", "Busy during $startPhase. mode=$modeLocal, intent=${projectionState.cachedIntent != null}"))
                     }
 
                     is ProjectionCoordinator.StartResult.Blocked, is ProjectionCoordinator.StartResult.Fatal -> {
@@ -1160,9 +1163,9 @@ internal class RtspStreamingService(
                         }
                         projectionState.waitingForPermission = false
                         val logMessage = if (startResult is ProjectionCoordinator.StartResult.Blocked) {
-                            "Blocked. mode=$modeLocal, intent=${startResult.cachedIntentAction}/${projectionState.cachedIntent != null}"
+                            "Blocked during $startPhase. mode=$modeLocal, intent=${startResult.cachedIntentAction}/${projectionState.cachedIntent != null}"
                         } else {
-                            "Fatal. mode=$modeLocal, intent=${startResult.cachedIntentAction}/${projectionState.cachedIntent != null}"
+                            "Fatal during $startPhase. mode=$modeLocal, intent=${startResult.cachedIntentAction}/${projectionState.cachedIntent != null}"
                         }
                         if (startResult is ProjectionCoordinator.StartResult.Blocked) {
                             XLog.w(getLog("StartProjection", logMessage), cause)

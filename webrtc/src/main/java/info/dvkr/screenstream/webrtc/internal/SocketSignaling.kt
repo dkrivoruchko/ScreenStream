@@ -200,11 +200,6 @@ internal class SocketSignaling(
         currentSocket.connected() || return
 
         val data = runCatching { JSONObject().put("jwt", JWTHelper.createJWT(environment, streamId.value)) }
-            .recoverCatching {
-                JWTHelper.removeKey()
-                JWTHelper.createKey()
-                JSONObject().put("jwt", JWTHelper.createJWT(environment, streamId.value))
-            }
             .onFailure { eventListener.onError(Error.StreamCreateError("createJWT error: ${it.message}", it)) }
             .getOrNull() ?: return
 

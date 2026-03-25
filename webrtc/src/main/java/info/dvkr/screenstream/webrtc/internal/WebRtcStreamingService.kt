@@ -824,9 +824,15 @@ internal class WebRtcStreamingService(
                 }
                 val prj = requireNotNull(projection) { "StartProjection: projection == null" }
                 val sessionEpoch = bumpStreamEpoch("StartProjection")
-                val requiresAudioFgsUpgrade = hasAudioPermission && (userRequestedMic || userRequestedDeviceAudio)
-                val startResult =
-                    projectionCoordinator.start(event.intent, requiresAudioFgsUpgrade) { _, mediaProjection, audioFgsUpgradeSucceeded, isStartupStillValid ->
+                val requiresAudioForegroundService = hasAudioPermission && (userRequestedMic || userRequestedDeviceAudio)
+                val foregroundError = projectionCoordinator.startForegroundForProjection(requiresAudioForegroundService)
+                val startPhase: String
+                val startResult = if (foregroundError != null) {
+                    startPhase = "foreground promotion"
+                    projectionCoordinator.asForegroundStartResult(foregroundError)
+                } else {
+                    startPhase = "projection startup"
+                    projectionCoordinator.startProjection(event.intent) { _, mediaProjection, audioCaptureAllowed, isStartupStillValid ->
                         val projectionStarted = prj.start(currentStreamId, mediaProjection, { cause ->
                             sendEvent(InternalEvent.CaptureFatal(cause))
                         }, isStartupStillValid)
@@ -835,17 +841,16 @@ internal class WebRtcStreamingService(
                                 this@WebRtcStreamingService.getLog("StartProjection", "projection.start returned false"),
                                 IllegalStateException("projection.start returned false")
                             )
-                            return@start false
+                            return@startProjection false
                         }
                         if (!isStartupStillValid()) {
                             XLog.i(getLog("StartProjection", "Startup invalidated after projection start."))
-                            return@start false
+                            return@startProjection false
                         }
 
-                        val isAudioCaptureAllowedForSession = hasAudioPermission && audioFgsUpgradeSucceeded
-                        prj.setMicrophoneMute(!(userRequestedMic && isAudioCaptureAllowedForSession))
+                        prj.setMicrophoneMute(!(userRequestedMic && audioCaptureAllowed))
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                            prj.setDeviceAudioMute(!(userRequestedDeviceAudio && isAudioCaptureAllowedForSession))
+                            prj.setDeviceAudioMute(!(userRequestedDeviceAudio && audioCaptureAllowed))
                         }
 
                         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
@@ -861,6 +866,7 @@ internal class WebRtcStreamingService(
                         }
                         true
                     }
+                }
                 when (startResult) {
                     is ProjectionCoordinator.StartResult.Started -> {
                         synchronizeClientEpoch(sessionEpoch)
@@ -869,16 +875,12 @@ internal class WebRtcStreamingService(
                             session.client.start(prj.localMediaSteam!!, session.epoch)
                         }
 
-                        if (hasAudioPermission && (userRequestedMic || userRequestedDeviceAudio) && !startResult.audioFgsUpgradeSucceeded) {
-                            XLog.w(getLog("StartProjection", "Microphone FGS upgrade failed. Streaming without microphone."))
-                            showAudioCaptureIssueToastOnce()
-                        }
                         currentError.set(null)
                         sessionAnalyticsTracker.onStarted(currentActiveConsumersCount())
                         XLog.i(
                             getLog(
                                 "StartProjection",
-                                "Started. intent=${mediaProjectionIntent != null}, micFgs=${startResult.audioFgsUpgradeSucceeded}, epoch=$sessionEpoch"
+                                "Started. intent=${mediaProjectionIntent != null}, audioFgs=${startResult.audioCaptureAllowed}, epoch=$sessionEpoch"
                             )
                         )
                     }
@@ -901,7 +903,7 @@ internal class WebRtcStreamingService(
 
                     ProjectionCoordinator.StartResult.Busy -> {
                         sessionAnalyticsTracker.onStartFailed(StartFailGroup.BUSY)
-                        XLog.w(getLog("StartProjection", "Busy. intent=${mediaProjectionIntent != null}, epoch=$sessionEpoch"))
+                        XLog.w(getLog("StartProjection", "Busy during $startPhase. intent=${mediaProjectionIntent != null}, epoch=$sessionEpoch"))
                     }
 
                     is ProjectionCoordinator.StartResult.Blocked,
@@ -915,9 +917,9 @@ internal class WebRtcStreamingService(
                         }
                         waitingForPermission = false
                         val logMessage = if (startResult is ProjectionCoordinator.StartResult.Blocked) {
-                            "Blocked. intent=${startResult.cachedIntentAction}/${mediaProjectionIntent != null}, epoch=$sessionEpoch"
+                            "Blocked during $startPhase. intent=${startResult.cachedIntentAction}/${mediaProjectionIntent != null}, epoch=$sessionEpoch"
                         } else {
-                            "Fatal. intent=${startResult.cachedIntentAction}/${mediaProjectionIntent != null}, epoch=$sessionEpoch"
+                            "Fatal during $startPhase. intent=${startResult.cachedIntentAction}/${mediaProjectionIntent != null}, epoch=$sessionEpoch"
                         }
                         if (startResult is ProjectionCoordinator.StartResult.Blocked) {
                             XLog.w(getLog("StartProjection", logMessage), cause)
