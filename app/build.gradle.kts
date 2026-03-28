@@ -35,8 +35,8 @@ android {
         applicationId = "info.dvkr.screenstream"
         minSdk = rootProject.extra["minSdkVersion"] as Int
         targetSdk = rootProject.extra["targetSdkVersion"] as Int
-        versionCode = 43004
-        versionName = "4.3.4"
+        versionCode = 43006
+        versionName = "4.3.6"
 
         // https://medium.com/@crafty/no-if-you-do-that-then-you-cant-use-newer-features-on-older-platforms-e-g-fa595333c0a4
         vectorDrawables.useSupportLibrary = true
@@ -135,6 +135,7 @@ dependencies {
     "PlayStoreImplementation"(libs.play.app.update)
     "PlayStoreImplementation"(libs.play.app.review)
     "PlayStoreImplementation"(libs.play.services.ads)
+    "PlayStoreImplementation"("androidx.work:work-runtime:2.11.2") // Override the old transitive WorkManager from play-services-ads for AGP 9.x compatibility.
     "PlayStoreImplementation"(libs.webkit)
     "PlayStoreImplementation"(platform(libs.firebase.bom))
     "PlayStoreImplementation"(libs.firebase.analytics)
