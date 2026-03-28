@@ -1,9 +1,9 @@
 [versions]
-agp = "8.13.2"
-kotlin = "2.3.10"
+agp = "9.1.0"
+kotlin = "2.3.20"
 android-tools-desugar = "2.1.5"
 
-koin-android = "4.1.1"
+koin-android = "4.2.0"
 
 kotlinx-coroutines = "1.10.2"
 
@@ -16,13 +16,13 @@ androidx-lifecycle = "2.10.0"
 androidx-window = "1.5.1"
 androidx-datastore-preferences = "1.2.1"
 
-compose-bom = "2026.03.00"
+compose-bom = "2026.03.01"
 
 process-phoenix = "3.0.0"
 xlog = "1.11.1"
 
 #MJPEG
-ktor = "3.4.1"
+ktor = "3.4.2"
 
 #PlayStore-WebRTC
 play-services-base = "18.10.0"
@@ -35,16 +35,14 @@ okhttp = "5.3.2"
 #PlayStore-App
 play-app-update = "2.1.0"
 play-app-review = "2.0.2"
-play-services-ads = "25.0.0"
+play-services-ads = "25.1.0"
 webkit = "1.15.0"
-firebase-analytics = "23.0.0"
-firebase-crashlytics = "20.0.4"
+firebase-bom = "34.11.0"
 google-services = "4.4.4"
 crashlytics-gradle = "3.0.6"
 
 [libraries]
 android-tools-desugar = { module = "com.android.tools:desugar_jdk_libs", version.ref = "android-tools-desugar" }
-kotlinStdlibJdk8 = { module = "org.jetbrains.kotlin:kotlin-stdlib-jdk8", version.ref = "kotlin" }
 kotlinReflect = { module = "org.jetbrains.kotlin:kotlin-reflect", version.ref = "kotlin" }
 
 koin-android-compose = { module = "io.insert-koin:koin-androidx-compose", version.ref = "koin-android" }
@@ -98,15 +96,14 @@ play-app-update = { module = "com.google.android.play:app-update-ktx", version.r
 play-app-review = { module = "com.google.android.play:review-ktx", version.ref = "play-app-review" }
 play-services-ads = { module = "com.google.android.gms:play-services-ads", version.ref = "play-services-ads" }
 webkit = { module = "androidx.webkit:webkit", version.ref = "webkit" }
-firebase-analytics = { module = "com.google.firebase:firebase-analytics", version.ref = "firebase-analytics" }
-firebase-crashlytics = { module = "com.google.firebase:firebase-crashlytics", version.ref = "firebase-crashlytics" }
-firebase-crashlytics-ndk = { module = "com.google.firebase:firebase-crashlytics-ndk", version.ref = "firebase-crashlytics" }
-firebase-crashlytics-gradle = { module = "com.google.firebase:firebase-crashlytics-gradle", version.ref = "crashlytics-gradle" }
+firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebase-bom" }
+firebase-analytics = { module = "com.google.firebase:firebase-analytics" }
+firebase-crashlytics = { module = "com.google.firebase:firebase-crashlytics" }
+firebase-crashlytics-ndk = { module = "com.google.firebase:firebase-crashlytics-ndk" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }
 androidLibrary = { id = "com.android.library", version.ref = "agp" }
-kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-parcelize = { id = "org.jetbrains.kotlin.plugin.parcelize", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 

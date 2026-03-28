@@ -1,6 +1,5 @@
 plugins {
     alias(libs.plugins.androidLibrary)
-    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.parcelize)
     alias(libs.plugins.kotlin.compose)
 }
@@ -25,7 +24,6 @@ android {
 }
 
 dependencies {
-    api(libs.kotlinStdlibJdk8)
     api(libs.kotlinReflect)
     api(libs.kotlinx.coroutines.android)
 

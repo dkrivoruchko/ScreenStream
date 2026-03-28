@@ -4,7 +4,6 @@ import java.util.Properties
 
 plugins {
     alias(libs.plugins.androidApplication)
-    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.googleServices)
     alias(libs.plugins.firebaseCrashlytics)
@@ -64,10 +63,6 @@ android {
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
 //            baselineProfile.automaticGenerationDuringBuild = true
-            configure<CrashlyticsExtension> {
-                mappingFileUploadEnabled = true
-                nativeSymbolUploadEnabled = true
-            }
         }
     }
 
@@ -76,6 +71,10 @@ android {
         create("FDroid") {
             dimension = "Default"
             manifestPlaceholders += mapOf("adMobPubId" to "")
+            configure<CrashlyticsExtension> {
+                mappingFileUploadEnabled = false
+                nativeSymbolUploadEnabled = false
+            }
         }
         create("PlayStore") {
             dimension = "Default"
@@ -83,11 +82,11 @@ android {
             File(rootProject.rootDir, "local.properties").apply { if (exists() && isFile) inputStream().use { localProps.load(it) } }
             manifestPlaceholders += mapOf("adMobPubId" to localProps.getProperty("ad.pubId", "\"\""))
             buildConfigField("String", "AD_UNIT_IDS", localProps.getProperty("ad.unitIds", "\"[]\""))
+            configure<CrashlyticsExtension> {
+                mappingFileUploadEnabled = true
+                nativeSymbolUploadEnabled = true
+            }
         }
-    }
-
-    googleServices {
-        missingGoogleServicesStrategy = GoogleServicesPlugin.MissingGoogleServicesStrategy.IGNORE
     }
 
     compileOptions {
@@ -100,6 +99,20 @@ android {
             excludes += "custom.config.*"
             excludes += "DebugProbesKt.bin"
         }
+    }
+}
+
+googleServices {
+    // Play Store variants provide google-services.json; FDroid variants do not.
+    missingGoogleServicesStrategy = GoogleServicesPlugin.MissingGoogleServicesStrategy.IGNORE
+}
+
+tasks.configureEach {
+    if (name.startsWith("processFDroid") && name.endsWith("GoogleServices")) {
+        enabled = false
+    }
+    if (name.contains("FDroid") && name.startsWith("injectCrashlytics")) {
+        enabled = false
     }
 }
 
@@ -123,6 +136,7 @@ dependencies {
     "PlayStoreImplementation"(libs.play.app.review)
     "PlayStoreImplementation"(libs.play.services.ads)
     "PlayStoreImplementation"(libs.webkit)
+    "PlayStoreImplementation"(platform(libs.firebase.bom))
     "PlayStoreImplementation"(libs.firebase.analytics)
     "PlayStoreImplementation"(libs.firebase.crashlytics)
     "PlayStoreImplementation"(libs.firebase.crashlytics.ndk)
