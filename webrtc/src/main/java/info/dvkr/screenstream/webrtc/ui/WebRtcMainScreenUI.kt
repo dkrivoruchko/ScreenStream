@@ -20,6 +20,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -30,6 +31,7 @@ import info.dvkr.screenstream.common.ui.ScreenCapturePermissionWithEducation
 import info.dvkr.screenstream.common.ui.get
 import info.dvkr.screenstream.common.ui.rememberScreenCapturePermissionWithEducationState
 import info.dvkr.screenstream.webrtc.R
+import info.dvkr.screenstream.webrtc.WebRtcModuleService
 import info.dvkr.screenstream.webrtc.internal.WebRtcEvent
 import info.dvkr.screenstream.webrtc.internal.WebRtcStreamingService
 import info.dvkr.screenstream.webrtc.ui.main.AudioCard
@@ -47,6 +49,7 @@ internal fun WebRtcMainScreenUI(
 ) {
     val webRtcState = webRtcStateFlow.collectAsStateWithLifecycle()
     val screenCapturePermissionWithEducationState = rememberScreenCapturePermissionWithEducationState()
+    val context = LocalContext.current
 
     BoxWithConstraints(modifier = modifier) {
         ScreenCapturePermissionWithEducation(
@@ -54,7 +57,7 @@ internal fun WebRtcMainScreenUI(
             shouldRequestPermission = webRtcState.value.waitingCastPermission,
             isStreaming = webRtcState.value.isStreaming,
             onStartRequested = { educationShown -> sendEvent(WebRtcStreamingService.InternalEvent.StartStream(permissionEducationShown = educationShown)) },
-            onPermissionGranted = { intent -> if (webRtcState.value.waitingCastPermission) sendEvent(WebRtcEvent.StartProjection(intent)) },
+            onPermissionGranted = { intent -> if (webRtcState.value.waitingCastPermission) WebRtcModuleService.startProjection(context, intent) },
             onPermissionDenied = { if (webRtcState.value.waitingCastPermission) sendEvent(WebRtcEvent.CastPermissionsDenied) },
         )
 

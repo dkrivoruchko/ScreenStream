@@ -22,6 +22,15 @@ public class MjpegModuleService : StreamingModuleService() {
             XLog.i(getLog("MjpegModuleService.startService", "RunningAppProcessInfo.importance: $importance"))
             context.startService(intent)
         }
+
+        internal fun startProjection(context: Context, permissionIntent: Intent, source: String = "ui_permission") {
+            val intent = MjpegEvent.Intentable.StartProjection(permissionIntent).toIntent(context)
+            XLog.d(getLog("MjpegModuleService.startProjection", "Run intent: ${intent.extras}"))
+            val importance = ActivityManager.RunningAppProcessInfo().also { ActivityManager.getMyMemoryState(it) }.importance
+            XLog.i(getLog("MjpegModuleService.startProjection", "RunningAppProcessInfo.importance: $importance"))
+            XLog.i(getLog("MjpegModuleService.startProjection", "SP_TRACE route=preflight_v1 stage=service_command source=$source importance=$importance"))
+            context.startService(intent)
+        }
     }
 
     override val notificationIdForeground: Int = 100
@@ -57,6 +66,10 @@ public class MjpegModuleService : StreamingModuleService() {
         if (streamingModuleManager.isActive(MjpegStreamingModule.Id)) {
             when (mjpegEvent) {
                 is MjpegEvent.Intentable.StartService -> mjpegStreamingModule.onServiceStart(this, mjpegEvent.token)
+                is MjpegEvent.Intentable.StartProjection -> {
+                    XLog.i(getLog("onStartCommand", "SP_TRACE route=preflight_v1 stage=service_dispatch event=StartProjection startId=$startId"))
+                    mjpegStreamingModule.startProjection(mjpegEvent.intent)
+                }
                 is MjpegEvent.Intentable.StopStream -> mjpegStreamingModule.sendEvent(mjpegEvent)
                 MjpegEvent.Intentable.RecoverError -> mjpegStreamingModule.sendEvent(mjpegEvent)
             }

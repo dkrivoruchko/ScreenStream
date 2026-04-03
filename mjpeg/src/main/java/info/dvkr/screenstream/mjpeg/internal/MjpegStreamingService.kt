@@ -91,6 +91,20 @@ internal class MjpegStreamingService(
             }
         )
     }
+
+    @MainThread
+    internal fun tryStartProjectionForeground(): Throwable? {
+        val foregroundStartError = projectionCoordinator.startForegroundForProjection(requiresAudioForegroundService = false)
+        XLog.i(getLog("tryStartProjectionForeground", "SP_TRACE route=preflight_v1 stage=foreground_preflight audioMode=none result=${foregroundStartError?.javaClass?.simpleName ?: "ok"}"))
+        return foregroundStartError
+    }
+
+    private fun clearPreparedProjectionStartIfNeeded(foregroundStartProcessed: Boolean, foregroundStartError: Throwable?) {
+        if (!foregroundStartProcessed || foregroundStartError != null) return
+        projectionCoordinator.stop()
+        service.stopForeground()
+    }
+
     private val sessionAnalyticsTracker by lazy(LazyThreadSafetyMode.NONE) {
         StreamingSessionAnalyticsTracker(
             analytics = streamingAnalytics,
@@ -268,11 +282,19 @@ internal class MjpegStreamingService(
         if (event is MjpegEvent.Intentable.RecoverError) {
             handler.removeMessages(MjpegEvent.Priority.RESTART_IGNORE)
             handler.removeMessages(MjpegEvent.Priority.RECOVER_IGNORE)
+            handler.removeMessages(MjpegEvent.Priority.START_PROJECTION)
         }
         if (event is InternalEvent.Destroy) {
             handler.removeMessages(MjpegEvent.Priority.RESTART_IGNORE)
             handler.removeMessages(MjpegEvent.Priority.RECOVER_IGNORE)
             handler.removeMessages(MjpegEvent.Priority.DESTROY_IGNORE)
+            handler.removeMessages(MjpegEvent.Priority.START_PROJECTION)
+        }
+        if (event is MjpegEvent.StartProjection) {
+            if (handler.hasMessages(MjpegEvent.Priority.START_PROJECTION)) {
+                XLog.i(getLog("sendEvent", "Replacing pending StartProjection"))
+            }
+            handler.removeMessages(MjpegEvent.Priority.START_PROJECTION)
         }
 
         handler.sendMessageDelayed(handler.obtainMessage(event.priority, event), timeout)
@@ -377,7 +399,7 @@ internal class MjpegStreamingService(
                 )
                 mediaProjectionIntent?.let {
                     check(Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) { "MjpegEvent.StartStream: UPSIDE_DOWN_CAKE" }
-                    sendEvent(MjpegEvent.StartProjection(it))
+                    MjpegModuleService.startProjection(service, it, "cached_permission")
                 } ?: run {
                     waitingForPermission = true
                 }
@@ -390,8 +412,10 @@ internal class MjpegStreamingService(
 
             is MjpegEvent.StartProjection -> {
                 waitingForPermission = false
+                XLog.i(getLog("MjpegEvent.StartProjection", "SP_TRACE route=preflight_v1 stage=async_start preflight=${event.foregroundStartProcessed} preflightError=${event.foregroundStartError?.javaClass?.simpleName ?: "none"} pendingServer=$pendingServer isStreaming=$isStreaming cachedIntent=${mediaProjectionIntent != null}"))
 
                 if (pendingServer) {
+                    clearPreparedProjectionStartIfNeeded(event.foregroundStartProcessed, event.foregroundStartError)
                     sessionAnalyticsTracker.onStartFailed(StartFailGroup.UNKNOWN)
                     val cause = IllegalStateException("StartProjection while server pending")
                     XLog.w(getLog("MjpegEvent.StartProjection", "Server pending"), cause)
@@ -399,18 +423,13 @@ internal class MjpegStreamingService(
                 }
 
                 if (isStreaming) {
+                    clearPreparedProjectionStartIfNeeded(event.foregroundStartProcessed, event.foregroundStartError)
                     sessionAnalyticsTracker.onStartAborted()
                     XLog.w(getLog("MjpegEvent.StartProjection", "Already streaming"))
                     return
                 }
 
-                val foregroundError = projectionCoordinator.startForegroundForProjection(requiresAudioForegroundService = false)
-                val startPhase: String
-                val result = if (foregroundError != null) {
-                    startPhase = "foreground promotion"
-                    projectionCoordinator.asForegroundStartResult(foregroundError)
-                } else {
-                    startPhase = "projection startup"
+                val startProjection = {
                     projectionCoordinator.startProjection(event.intent) { _, mediaProjection, _, isStartupStillValid ->
                         mediaProjection.registerCallback(projectionCallback, mainHandler)
 
@@ -449,10 +468,31 @@ internal class MjpegStreamingService(
                         true
                     }
                 }
+                val startPhase: String
+                val result = if (event.foregroundStartProcessed) {
+                    val foregroundStartError = event.foregroundStartError
+                    if (foregroundStartError != null) {
+                        startPhase = "foreground promotion"
+                        projectionCoordinator.asForegroundStartResult(foregroundStartError)
+                    } else {
+                        startPhase = "projection startup"
+                        startProjection()
+                    }
+                } else {
+                    val foregroundError = projectionCoordinator.startForegroundForProjection(requiresAudioForegroundService = false)
+                    if (foregroundError != null) {
+                        startPhase = "foreground promotion"
+                        projectionCoordinator.asForegroundStartResult(foregroundError)
+                    } else {
+                        startPhase = "projection startup"
+                        startProjection()
+                    }
+                }
                 when (result) {
                     is ProjectionCoordinator.StartResult.Started -> {
                         currentError = null
                         sessionAnalyticsTracker.onStarted(currentActiveConsumersCount())
+                        XLog.i(getLog("MjpegEvent.StartProjection", "SP_TRACE route=preflight_v1 stage=result status=started phase=$startPhase cachedIntent=${mediaProjectionIntent != null}"))
                         XLog.i(getLog("MjpegEvent.StartProjection", "Started. g=${result.generation}"))
                     }
 
@@ -467,12 +507,14 @@ internal class MjpegStreamingService(
                                 "Interrupted. intent=${result.cachedIntentAction}/${mediaProjectionIntent != null}"
                             ), result.cause
                         )
+                        XLog.i(getLog("MjpegEvent.StartProjection", "SP_TRACE route=preflight_v1 stage=result status=interrupted phase=$startPhase cachedIntent=${mediaProjectionIntent != null}"))
                         currentError = null
                         sendEvent(MjpegEvent.Intentable.StopStream("StartProjectionInterrupted"))
                     }
 
                     ProjectionCoordinator.StartResult.Busy -> {
                         sessionAnalyticsTracker.onStartFailed(StartFailGroup.BUSY)
+                        XLog.i(getLog("MjpegEvent.StartProjection", "SP_TRACE route=preflight_v1 stage=result status=busy phase=$startPhase cachedIntent=${mediaProjectionIntent != null}"))
                         XLog.w(getLog("MjpegEvent.StartProjection", "Busy during $startPhase. intent=${mediaProjectionIntent != null}"))
                     }
 
@@ -490,6 +532,7 @@ internal class MjpegStreamingService(
                                 "Fatal"
                             }
                         val logMessage = "$failedAction during $startPhase. intent=${result.cachedIntentAction}/${mediaProjectionIntent != null}"
+                        XLog.i(getLog("MjpegEvent.StartProjection", "SP_TRACE route=preflight_v1 stage=result status=${if (result is ProjectionCoordinator.StartResult.Blocked) "blocked" else "fatal"} phase=$startPhase cachedIntent=${mediaProjectionIntent != null}"))
                         if (result is ProjectionCoordinator.StartResult.Blocked) {
                             XLog.w(getLog("MjpegEvent.StartProjection", logMessage), cause)
                         } else {
@@ -579,6 +622,7 @@ internal class MjpegStreamingService(
 
                 handler.removeMessages(MjpegEvent.Priority.RESTART_IGNORE)
                 handler.removeMessages(MjpegEvent.Priority.RECOVER_IGNORE)
+                handler.removeMessages(MjpegEvent.Priority.START_PROJECTION)
 
                 sendEvent(InternalEvent.InitState(true))
                 sendEvent(InternalEvent.DiscoverAddress("RecoverError", 0))

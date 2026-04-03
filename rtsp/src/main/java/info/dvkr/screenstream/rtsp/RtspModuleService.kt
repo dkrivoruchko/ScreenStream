@@ -22,6 +22,15 @@ public class RtspModuleService : StreamingModuleService() {
             XLog.i(getLog("RtspModuleService.startService", "RunningAppProcessInfo.importance: $importance"))
             context.startService(intent)
         }
+
+        internal fun startProjection(context: Context, permissionIntent: Intent, source: String = "ui_permission") {
+            val intent = RtspEvent.Intentable.StartProjection(permissionIntent).toIntent(context)
+            XLog.d(getLog("RtspModuleService.startProjection", "Run intent: ${intent.extras}"))
+            val importance = ActivityManager.RunningAppProcessInfo().also { ActivityManager.getMyMemoryState(it) }.importance
+            XLog.i(getLog("RtspModuleService.startProjection", "RunningAppProcessInfo.importance: $importance"))
+            XLog.i(getLog("RtspModuleService.startProjection", "SP_TRACE route=preflight_v1 stage=service_command source=$source importance=$importance"))
+            context.startService(intent)
+        }
     }
 
     override val notificationIdForeground: Int = 300
@@ -40,34 +49,38 @@ public class RtspModuleService : StreamingModuleService() {
         }
         XLog.d(getLog("onStartCommand", "RtspModuleService.INTENT_ID: ${intent.getStringExtra(INTENT_ID)}"))
 
-        val mjpegEvent = RtspEvent.Intentable.fromIntent(intent) ?: run {
+        val rtspEvent = RtspEvent.Intentable.fromIntent(intent) ?: run {
             XLog.e(
                 getLog("onStartCommand"),
                 IllegalArgumentException("RtspModuleService.onStartCommand: RtspEvent = null, startId: $startId")
             )
             return START_NOT_STICKY
         }
-        XLog.d(getLog("onStartCommand", "RtspEvent: $mjpegEvent, startId: $startId"))
+        XLog.d(getLog("onStartCommand", "RtspEvent: $rtspEvent, startId: $startId"))
 
-        val shouldDedupe = mjpegEvent is RtspEvent.Intentable.StartService
+        val shouldDedupe = rtspEvent is RtspEvent.Intentable.StartService
         if (shouldDedupe && isDuplicateIntent(intent)) {
-            XLog.i(getLog("onStartCommand", "Duplicate intent for $mjpegEvent. Ignoring. startId: $startId"))
+            XLog.i(getLog("onStartCommand", "Duplicate intent for $rtspEvent. Ignoring. startId: $startId"))
             return START_NOT_STICKY
         }
 
         if ((flags and START_FLAG_REDELIVERY) != 0) {
             XLog.e(
                 getLog("onStartCommand"),
-                IllegalArgumentException("RtspModuleService.onStartCommand: redelivered intent, RtspEvent: $mjpegEvent, startId: $startId, $intent")
+                IllegalArgumentException("RtspModuleService.onStartCommand: redelivered intent, RtspEvent: $rtspEvent, startId: $startId, $intent")
             )
             return START_NOT_STICKY
         }
 
         if (streamingModuleManager.isActive(RtspStreamingModule.Id)) {
-            when (mjpegEvent) {
-                is RtspEvent.Intentable.StartService -> rtspStreamingModule.onServiceStart(this, mjpegEvent.token)
-                is RtspEvent.Intentable.StopStream -> rtspStreamingModule.sendEvent(mjpegEvent)
-                RtspEvent.Intentable.RecoverError -> rtspStreamingModule.sendEvent(mjpegEvent)
+            when (rtspEvent) {
+                is RtspEvent.Intentable.StartService -> rtspStreamingModule.onServiceStart(this, rtspEvent.token)
+                is RtspEvent.Intentable.StartProjection -> {
+                    XLog.i(getLog("onStartCommand", "SP_TRACE route=preflight_v1 stage=service_dispatch event=StartProjection startId=$startId"))
+                    rtspStreamingModule.startProjection(rtspEvent.intent)
+                }
+                is RtspEvent.Intentable.StopStream -> rtspStreamingModule.sendEvent(rtspEvent)
+                RtspEvent.Intentable.RecoverError -> rtspStreamingModule.sendEvent(rtspEvent)
             }
         } else {
             XLog.w(getLog("onStartCommand", "Not active module. Stop self, startId: $startId"))

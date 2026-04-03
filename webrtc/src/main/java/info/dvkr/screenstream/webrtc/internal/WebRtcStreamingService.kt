@@ -106,6 +106,38 @@ internal class WebRtcStreamingService(
             }
         )
     }
+
+    @MainThread
+    internal fun tryStartProjectionForeground(): Throwable? {
+        val settings = webRtcSettings.data.value
+        val userRequestedMic = settings.enableMic
+        val userRequestedDeviceAudio = settings.enableDeviceAudio
+        val hasAudioPermission =
+            ContextCompat.checkSelfPermission(service, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
+        if (!hasAudioPermission && (userRequestedMic || userRequestedDeviceAudio)) {
+            coroutineScope.launch {
+                webRtcSettings.updateData { copy(enableMic = false, enableDeviceAudio = false) }
+            }
+        }
+        // Playback capture also records audio and shares the same audio FGS path on Android 14+.
+        val wantsAudioForegroundService = hasAudioPermission && (userRequestedMic || userRequestedDeviceAudio)
+        val foregroundStartError = projectionCoordinator.startForegroundForProjection(wantsAudioForegroundService)
+        val audioMode = when {
+            hasAudioPermission && userRequestedMic && userRequestedDeviceAudio -> "both"
+            hasAudioPermission && userRequestedMic -> "mic"
+            hasAudioPermission && userRequestedDeviceAudio -> "device"
+            else -> "none"
+        }
+        XLog.i(getLog("tryStartProjectionForeground", "SP_TRACE route=preflight_v1 stage=foreground_preflight audioMode=$audioMode hasAudioPermission=$hasAudioPermission result=${foregroundStartError?.javaClass?.simpleName ?: "ok"}"))
+        return foregroundStartError
+    }
+
+    private fun clearPreparedProjectionStartIfNeeded(foregroundStartProcessed: Boolean, foregroundStartError: Throwable?) {
+        if (!foregroundStartProcessed || foregroundStartError != null) return
+        projectionCoordinator.stop()
+        service.stopForeground()
+    }
+
     private val sessionAnalyticsTracker by lazy(LazyThreadSafetyMode.NONE) {
         StreamingSessionAnalyticsTracker(
             analytics = streamingAnalytics,
@@ -457,11 +489,19 @@ internal class WebRtcStreamingService(
         if (event is WebRtcEvent.Intentable.RecoverError) {
             handler.removeMessages(WebRtcEvent.Priority.STOP_IGNORE)
             handler.removeMessages(WebRtcEvent.Priority.RECOVER_IGNORE)
+            handler.removeMessages(WebRtcEvent.Priority.START_PROJECTION)
         }
         if (event is InternalEvent.Destroy) {
             handler.removeMessages(WebRtcEvent.Priority.STOP_IGNORE)
             handler.removeMessages(WebRtcEvent.Priority.RECOVER_IGNORE)
             handler.removeMessages(WebRtcEvent.Priority.DESTROY_IGNORE)
+            handler.removeMessages(WebRtcEvent.Priority.START_PROJECTION)
+        }
+        if (event is WebRtcEvent.StartProjection) {
+            if (handler.hasMessages(WebRtcEvent.Priority.START_PROJECTION)) {
+                XLog.i(getLog("sendEvent", "Replacing pending StartProjection"))
+            }
+            handler.removeMessages(WebRtcEvent.Priority.START_PROJECTION)
         }
 
         handler.sendMessageDelayed(handler.obtainMessage(event.priority, event), timeout)
@@ -801,12 +841,14 @@ internal class WebRtcStreamingService(
             is WebRtcEvent.StartProjection -> {
                 waitingForPermission = false
                 if (destroyPending) {
+                    clearPreparedProjectionStartIfNeeded(event.foregroundStartProcessed, event.foregroundStartError)
                     sessionAnalyticsTracker.onStartAborted()
                     XLog.i(getLog("StartProjection", "DestroyPending. abort"), IllegalStateException("StartProjection: DestroyPending"))
                     return
                 }
 
                 if (isStreaming()) {
+                    clearPreparedProjectionStartIfNeeded(event.foregroundStartProcessed, event.foregroundStartError)
                     sessionAnalyticsTracker.onStartAborted()
                     XLog.d(getLog("StartProjection", "Already streaming. stale callback"))
                     return
@@ -822,16 +864,20 @@ internal class WebRtcStreamingService(
                         webRtcSettings.updateData { copy(enableMic = false, enableDeviceAudio = false) }
                     }
                 }
-                val prj = requireNotNull(projection) { "StartProjection: projection == null" }
+                val prj = projection ?: run {
+                    clearPreparedProjectionStartIfNeeded(event.foregroundStartProcessed, event.foregroundStartError)
+                    throw IllegalStateException("StartProjection: projection == null")
+                }
                 val sessionEpoch = bumpStreamEpoch("StartProjection")
-                val requiresAudioForegroundService = hasAudioPermission && (userRequestedMic || userRequestedDeviceAudio)
-                val foregroundError = projectionCoordinator.startForegroundForProjection(requiresAudioForegroundService)
-                val startPhase: String
-                val startResult = if (foregroundError != null) {
-                    startPhase = "foreground promotion"
-                    projectionCoordinator.asForegroundStartResult(foregroundError)
-                } else {
-                    startPhase = "projection startup"
+                val wantsAudioForegroundService = hasAudioPermission && (userRequestedMic || userRequestedDeviceAudio)
+                val audioMode = when {
+                    hasAudioPermission && userRequestedMic && userRequestedDeviceAudio -> "both"
+                    hasAudioPermission && userRequestedMic -> "mic"
+                    hasAudioPermission && userRequestedDeviceAudio -> "device"
+                    else -> "none"
+                }
+                XLog.i(getLog("StartProjection", "SP_TRACE route=preflight_v1 stage=async_start audioMode=$audioMode preflight=${event.foregroundStartProcessed} preflightError=${event.foregroundStartError?.javaClass?.simpleName ?: "none"} cachedIntent=${mediaProjectionIntent != null} epoch=$sessionEpoch"))
+                val startProjection = {
                     projectionCoordinator.startProjection(event.intent) { _, mediaProjection, audioCaptureAllowed, isStartupStillValid ->
                         val projectionStarted = prj.start(currentStreamId, mediaProjection, { cause ->
                             sendEvent(InternalEvent.CaptureFatal(cause))
@@ -867,6 +913,26 @@ internal class WebRtcStreamingService(
                         true
                     }
                 }
+                val startPhase: String
+                val startResult = if (event.foregroundStartProcessed) {
+                    val foregroundStartError = event.foregroundStartError
+                    if (foregroundStartError != null) {
+                        startPhase = "foreground promotion"
+                        projectionCoordinator.asForegroundStartResult(foregroundStartError)
+                    } else {
+                        startPhase = "projection startup"
+                        startProjection()
+                    }
+                } else {
+                    val foregroundError = projectionCoordinator.startForegroundForProjection(wantsAudioForegroundService)
+                    if (foregroundError != null) {
+                        startPhase = "foreground promotion"
+                        projectionCoordinator.asForegroundStartResult(foregroundError)
+                    } else {
+                        startPhase = "projection startup"
+                        startProjection()
+                    }
+                }
                 when (startResult) {
                     is ProjectionCoordinator.StartResult.Started -> {
                         synchronizeClientEpoch(sessionEpoch)
@@ -877,6 +943,7 @@ internal class WebRtcStreamingService(
 
                         currentError.set(null)
                         sessionAnalyticsTracker.onStarted(currentActiveConsumersCount())
+                        XLog.i(getLog("StartProjection", "SP_TRACE route=preflight_v1 stage=result status=started audioMode=$audioMode phase=$startPhase cachedIntent=${mediaProjectionIntent != null} epoch=$sessionEpoch"))
                         XLog.i(
                             getLog(
                                 "StartProjection",
@@ -891,6 +958,7 @@ internal class WebRtcStreamingService(
                         }
                         waitingForPermission = false
                         sessionAnalyticsTracker.onStartAborted()
+                        XLog.i(getLog("StartProjection", "SP_TRACE route=preflight_v1 stage=result status=interrupted audioMode=$audioMode phase=$startPhase cachedIntent=${mediaProjectionIntent != null} epoch=$sessionEpoch"))
                         XLog.i(
                             getLog(
                                 "StartProjection",
@@ -903,6 +971,7 @@ internal class WebRtcStreamingService(
 
                     ProjectionCoordinator.StartResult.Busy -> {
                         sessionAnalyticsTracker.onStartFailed(StartFailGroup.BUSY)
+                        XLog.i(getLog("StartProjection", "SP_TRACE route=preflight_v1 stage=result status=busy audioMode=$audioMode phase=$startPhase cachedIntent=${mediaProjectionIntent != null} epoch=$sessionEpoch"))
                         XLog.w(getLog("StartProjection", "Busy during $startPhase. intent=${mediaProjectionIntent != null}, epoch=$sessionEpoch"))
                     }
 
@@ -921,6 +990,7 @@ internal class WebRtcStreamingService(
                         } else {
                             "Fatal during $startPhase. intent=${startResult.cachedIntentAction}/${mediaProjectionIntent != null}, epoch=$sessionEpoch"
                         }
+                        XLog.i(getLog("StartProjection", "SP_TRACE route=preflight_v1 stage=result status=${if (startResult is ProjectionCoordinator.StartResult.Blocked) "blocked" else "fatal"} audioMode=$audioMode phase=$startPhase cachedIntent=${mediaProjectionIntent != null} epoch=$sessionEpoch"))
                         if (startResult is ProjectionCoordinator.StartResult.Blocked) {
                             XLog.w(getLog("StartProjection", logMessage), cause)
                         } else {
@@ -961,6 +1031,7 @@ internal class WebRtcStreamingService(
 
                 handler.removeMessages(WebRtcEvent.Priority.STOP_IGNORE)
                 handler.removeMessages(WebRtcEvent.Priority.RECOVER_IGNORE)
+                handler.removeMessages(WebRtcEvent.Priority.START_PROJECTION)
 
                 sendEvent(InternalEvent.InitState)
                 sendEvent(InternalEvent.GetNonce(0, true))
@@ -979,7 +1050,7 @@ internal class WebRtcStreamingService(
 
                 mediaProjectionIntent?.let {
                     check(Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) { "WebRtcEvent.StartStream: UPSIDE_DOWN_CAKE" }
-                    sendEvent(WebRtcEvent.StartProjection(it))
+                    WebRtcModuleService.startProjection(service, it, "cached_permission")
                 } ?: run { waitingForPermission = true }
             }
 

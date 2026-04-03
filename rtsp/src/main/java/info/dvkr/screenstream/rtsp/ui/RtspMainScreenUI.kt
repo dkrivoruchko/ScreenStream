@@ -20,6 +20,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -30,6 +31,7 @@ import info.dvkr.screenstream.common.ui.ScreenCapturePermissionWithEducation
 import info.dvkr.screenstream.common.ui.get
 import info.dvkr.screenstream.common.ui.rememberScreenCapturePermissionWithEducationState
 import info.dvkr.screenstream.rtsp.R
+import info.dvkr.screenstream.rtsp.RtspModuleService
 import info.dvkr.screenstream.rtsp.internal.RtspEvent
 import info.dvkr.screenstream.rtsp.internal.RtspStreamingService
 import info.dvkr.screenstream.rtsp.internal.rtsp.RtspUrl
@@ -53,6 +55,7 @@ internal fun RtspMainScreenUI(
     val rtspState = rtspStateFlow.collectAsStateWithLifecycle()
     val rtspSettingsState = rtspSettings.data.collectAsStateWithLifecycle()
     val screenCapturePermissionWithEducationState = rememberScreenCapturePermissionWithEducationState()
+    val context = LocalContext.current
 
     BoxWithConstraints(modifier = modifier) {
         ScreenCapturePermissionWithEducation(
@@ -60,7 +63,7 @@ internal fun RtspMainScreenUI(
             shouldRequestPermission = rtspState.value.waitingCastPermission,
             isStreaming = rtspState.value.isStreaming,
             onStartRequested = { educationShown -> sendEvent(RtspStreamingService.InternalEvent.StartStream(permissionEducationShown = educationShown)) },
-            onPermissionGranted = { intent -> if (rtspState.value.waitingCastPermission) sendEvent(RtspEvent.StartProjection(intent)) },
+            onPermissionGranted = { intent -> if (rtspState.value.waitingCastPermission) RtspModuleService.startProjection(context, intent) },
             onPermissionDenied = { if (rtspState.value.waitingCastPermission) sendEvent(RtspEvent.CastPermissionsDenied) },
         )
 

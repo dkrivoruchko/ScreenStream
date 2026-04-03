@@ -2,6 +2,7 @@ package info.dvkr.screenstream.mjpeg
 
 import android.app.Service
 import android.content.Context
+import android.content.Intent
 import android.os.Looper
 import androidx.annotation.MainThread
 import androidx.compose.runtime.Composable
@@ -35,6 +36,7 @@ public class MjpegStreamingModule : StreamingModule {
     private val _streamingServiceState: MutableStateFlow<StreamingModule.State> = MutableStateFlow(StreamingModule.State.Initiated)
     private val _mjpegStateFlow: MutableStateFlow<MjpegState> = MutableStateFlow(MjpegState())
     private var startToken: String? = null
+    private var streamingService: MjpegStreamingService? = null
 
     override val id: StreamingModule.Id = Id
     override val priority: Int = 30
@@ -107,8 +109,17 @@ public class MjpegStreamingModule : StreamingModule {
                 }
                 startToken = null
                 val scope = MjpegKoinScope().scope
-                _streamingServiceState.value = StreamingModule.State.Running(scope)
-                scope.get<MjpegStreamingService> { parametersOf(service, _mjpegStateFlow) }.start()
+                try {
+                    val createdStreamingService = scope.get<MjpegStreamingService> { parametersOf(service, _mjpegStateFlow) }
+                    streamingService = createdStreamingService
+                    _streamingServiceState.value = StreamingModule.State.Running(scope)
+                    createdStreamingService.start()
+                } catch (t: Throwable) {
+                    streamingService = null
+                    scope.close()
+                    _streamingServiceState.value = StreamingModule.State.Initiated
+                    throw t
+                }
             }
 
             StreamingModule.State.Initiated ->
@@ -133,6 +144,7 @@ public class MjpegStreamingModule : StreamingModule {
             StreamingModule.State.PendingStart -> {
                 XLog.d(getLog("stopModule", "Not started (PendingStart)"))
                 startToken = null
+                streamingService = null
                 _mjpegStateFlow.value = MjpegState()
                 _streamingServiceState.value = StreamingModule.State.Initiated
             }
@@ -140,11 +152,19 @@ public class MjpegStreamingModule : StreamingModule {
             is StreamingModule.State.Running -> {
                 _streamingServiceState.value = StreamingModule.State.PendingStop
                 _mjpegStateFlow.value = MjpegState()
-                withContext(NonCancellable) { state.scope.get<MjpegStreamingService>().destroyService() }
-                _mjpegStateFlow.value = MjpegState()
-                startToken = null
-                state.scope.close()
-                _streamingServiceState.value = StreamingModule.State.Initiated
+                val activeStreamingService = streamingService
+                try {
+                    withContext(NonCancellable) {
+                        if (activeStreamingService != null) activeStreamingService.destroyService()
+                        else XLog.w(getLog("stopModule", "Running state without MjpegStreamingService"))
+                    }
+                } finally {
+                    streamingService = null
+                    _mjpegStateFlow.value = MjpegState()
+                    startToken = null
+                    state.scope.close()
+                    _streamingServiceState.value = StreamingModule.State.Initiated
+                }
             }
 
             StreamingModule.State.PendingStop -> XLog.d(getLog("stopModule", "Already stopping (PendingStop). Ignoring"))
@@ -159,12 +179,37 @@ public class MjpegStreamingModule : StreamingModule {
     }
 
     @MainThread
+    internal fun startProjection(intent: Intent) {
+        XLog.d(getLog("startProjection", "intent=$intent"))
+        check(Looper.getMainLooper().isCurrentThread) { "Only main thread allowed" }
+
+        when (val state = _streamingServiceState.value) {
+            is StreamingModule.State.Running -> {
+                val activeStreamingService = streamingService
+                if (activeStreamingService != null) {
+                    val foregroundStartError = activeStreamingService.tryStartProjectionForeground()
+                    activeStreamingService.sendEvent(MjpegEvent.StartProjection(intent = intent, foregroundStartProcessed = true, foregroundStartError))
+                } else XLog.w(getLog("startProjection", "Running state without MjpegStreamingService"))
+            }
+
+            else -> XLog.i(getLog("startProjection", "Ignoring stale intent in state $state"))
+        }
+    }
+
+    @MainThread
     internal fun sendEvent(event: MjpegEvent) {
         XLog.d(getLog("sendEvent", "Event $event"))
         check(Looper.getMainLooper().isCurrentThread) { "Only main thread allowed" }
 
         when (val state = _streamingServiceState.value) {
-            is StreamingModule.State.Running -> state.scope.get<MjpegStreamingService>().sendEvent(event)
+            is StreamingModule.State.Running -> {
+                val activeStreamingService = streamingService
+                if (activeStreamingService != null) activeStreamingService.sendEvent(event)
+                else XLog.w(
+                    getLog("sendEvent", "Running state without MjpegStreamingService for event $event"),
+                    RuntimeException("Unexpected state: $state for event $event")
+                )
+            }
             else -> when (event) {
                 is MjpegEvent.CastPermissionsDenied,
                 is MjpegEvent.StartProjection,

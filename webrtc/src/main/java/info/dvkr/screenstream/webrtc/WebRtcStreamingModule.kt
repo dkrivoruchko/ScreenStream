@@ -2,6 +2,7 @@ package info.dvkr.screenstream.webrtc
 
 import android.app.Service
 import android.content.Context
+import android.content.Intent
 import android.os.Looper
 import androidx.annotation.MainThread
 import androidx.compose.runtime.Composable
@@ -35,6 +36,7 @@ public class WebRtcStreamingModule : StreamingModule {
     private val _streamingServiceState: MutableStateFlow<StreamingModule.State> = MutableStateFlow(StreamingModule.State.Initiated)
     private val _webRtcStateFlow: MutableStateFlow<WebRtcState> = MutableStateFlow(WebRtcState())
     private var startToken: String? = null
+    private var streamingService: WebRtcStreamingService? = null
 
     override val id: StreamingModule.Id = Id
     override val priority: Int = 20
@@ -103,8 +105,17 @@ public class WebRtcStreamingModule : StreamingModule {
                 }
                 startToken = null
                 val scope = WebRtcKoinScope().scope
-                _streamingServiceState.value = StreamingModule.State.Running(scope)
-                scope.get<WebRtcStreamingService> { parametersOf(service, _webRtcStateFlow) }.start()
+                try {
+                    val createdStreamingService = scope.get<WebRtcStreamingService> { parametersOf(service, _webRtcStateFlow) }
+                    streamingService = createdStreamingService
+                    _streamingServiceState.value = StreamingModule.State.Running(scope)
+                    createdStreamingService.start()
+                } catch (t: Throwable) {
+                    streamingService = null
+                    scope.close()
+                    _streamingServiceState.value = StreamingModule.State.Initiated
+                    throw t
+                }
             }
 
             StreamingModule.State.Initiated ->
@@ -129,17 +140,26 @@ public class WebRtcStreamingModule : StreamingModule {
             StreamingModule.State.PendingStart -> {
                 XLog.d(getLog("stopModule", "Not started (PendingStart)"))
                 startToken = null
+                streamingService = null
                 _streamingServiceState.value = StreamingModule.State.Initiated
             }
 
             is StreamingModule.State.Running -> {
                 _streamingServiceState.value = StreamingModule.State.PendingStop
                 _webRtcStateFlow.value = WebRtcState()
-                withContext(NonCancellable) { state.scope.get<WebRtcStreamingService>().destroyService() }
-                _webRtcStateFlow.value = WebRtcState()
-                startToken = null
-                state.scope.close()
-                _streamingServiceState.value = StreamingModule.State.Initiated
+                val activeStreamingService = streamingService
+                try {
+                    withContext(NonCancellable) {
+                        if (activeStreamingService != null) activeStreamingService.destroyService()
+                        else XLog.w(getLog("stopModule", "Running state without WebRtcStreamingService"))
+                    }
+                } finally {
+                    streamingService = null
+                    _webRtcStateFlow.value = WebRtcState()
+                    startToken = null
+                    state.scope.close()
+                    _streamingServiceState.value = StreamingModule.State.Initiated
+                }
             }
 
             StreamingModule.State.PendingStop -> XLog.d(getLog("stopModule", "Already stopping (PendingStop). Ignoring"))
@@ -154,12 +174,37 @@ public class WebRtcStreamingModule : StreamingModule {
     }
 
     @MainThread
+    internal fun startProjection(intent: Intent) {
+        XLog.d(getLog("startProjection", "intent=$intent"))
+        check(Looper.getMainLooper().isCurrentThread) { "Only main thread allowed" }
+
+        when (val state = _streamingServiceState.value) {
+            is StreamingModule.State.Running -> {
+                val activeStreamingService = streamingService
+                if (activeStreamingService != null) {
+                    val foregroundStartError = activeStreamingService.tryStartProjectionForeground()
+                    activeStreamingService.sendEvent(WebRtcEvent.StartProjection(intent = intent, foregroundStartProcessed = true, foregroundStartError))
+                } else XLog.w(getLog("startProjection", "Running state without WebRtcStreamingService"))
+            }
+
+            else -> XLog.i(getLog("startProjection", "Ignoring stale intent in state $state"))
+        }
+    }
+
+    @MainThread
     internal fun sendEvent(event: WebRtcEvent) {
         XLog.d(getLog("sendEvent", "Event $event"))
         check(Looper.getMainLooper().isCurrentThread) { "Only main thread allowed" }
 
         when (val state = _streamingServiceState.value) {
-            is StreamingModule.State.Running -> state.scope.get<WebRtcStreamingService>().sendEvent(event)
+            is StreamingModule.State.Running -> {
+                val activeStreamingService = streamingService
+                if (activeStreamingService != null) activeStreamingService.sendEvent(event)
+                else XLog.w(
+                    getLog("sendEvent", "Running state without WebRtcStreamingService for event $event"),
+                    RuntimeException("Unexpected state: $state for event $event")
+                )
+            }
             else -> when (event) {
                 is WebRtcEvent.Intentable.StopStream,
                 is WebRtcEvent.StartProjection,

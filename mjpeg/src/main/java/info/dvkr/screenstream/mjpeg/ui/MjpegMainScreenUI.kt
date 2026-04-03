@@ -20,6 +20,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -29,6 +30,7 @@ import info.dvkr.screenstream.common.ui.DoubleClickProtection
 import info.dvkr.screenstream.common.ui.ScreenCapturePermissionWithEducation
 import info.dvkr.screenstream.common.ui.get
 import info.dvkr.screenstream.common.ui.rememberScreenCapturePermissionWithEducationState
+import info.dvkr.screenstream.mjpeg.MjpegModuleService
 import info.dvkr.screenstream.mjpeg.R
 import info.dvkr.screenstream.mjpeg.internal.MjpegEvent
 import info.dvkr.screenstream.mjpeg.internal.MjpegStreamingService
@@ -52,6 +54,7 @@ internal fun MjpegMainScreenUI(
 ) {
     val mjpegState = mjpegStateFlow.collectAsStateWithLifecycle()
     val screenCapturePermissionWithEducationState = rememberScreenCapturePermissionWithEducationState()
+    val context = LocalContext.current
 
     BoxWithConstraints(modifier = modifier) {
         ScreenCapturePermissionWithEducation(
@@ -59,7 +62,7 @@ internal fun MjpegMainScreenUI(
             shouldRequestPermission = mjpegState.value.waitingCastPermission,
             isStreaming = mjpegState.value.isStreaming,
             onStartRequested = { educationShown -> sendEvent(MjpegStreamingService.InternalEvent.StartStream(permissionEducationShown = educationShown)) },
-            onPermissionGranted = { intent -> if (mjpegState.value.waitingCastPermission) sendEvent(MjpegEvent.StartProjection(intent)) },
+            onPermissionGranted = { intent -> if (mjpegState.value.waitingCastPermission) MjpegModuleService.startProjection(context, intent) },
             onPermissionDenied = { if (mjpegState.value.waitingCastPermission) sendEvent(MjpegEvent.CastPermissionsDenied) },
         )
 

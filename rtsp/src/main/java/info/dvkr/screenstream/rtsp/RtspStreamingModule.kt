@@ -2,6 +2,7 @@ package info.dvkr.screenstream.rtsp
 
 import android.app.Service
 import android.content.Context
+import android.content.Intent
 import android.os.Looper
 import androidx.annotation.MainThread
 import androidx.compose.runtime.Composable
@@ -37,6 +38,7 @@ public class RtspStreamingModule : StreamingModule {
     private val _streamingServiceState: MutableStateFlow<StreamingModule.State> = MutableStateFlow(StreamingModule.State.Initiated)
     private val _rtspStateFlow: MutableStateFlow<RtspState> = MutableStateFlow(RtspState())
     private var startToken: String? = null
+    private var streamingService: RtspStreamingService? = null
 
     override val id: StreamingModule.Id = Id
     override val priority: Int = 10
@@ -112,8 +114,17 @@ public class RtspStreamingModule : StreamingModule {
                 }
                 startToken = null
                 val scope = RtspKoinScope().scope
-                _streamingServiceState.value = StreamingModule.State.Running(scope)
-                scope.get<RtspStreamingService> { parametersOf(service, _rtspStateFlow) }.start()
+                try {
+                    val createdStreamingService = scope.get<RtspStreamingService> { parametersOf(service, _rtspStateFlow) }
+                    streamingService = createdStreamingService
+                    _streamingServiceState.value = StreamingModule.State.Running(scope)
+                    createdStreamingService.start()
+                } catch (t: Throwable) {
+                    streamingService = null
+                    scope.close()
+                    _streamingServiceState.value = StreamingModule.State.Initiated
+                    throw t
+                }
             }
 
             StreamingModule.State.Initiated ->
@@ -138,6 +149,7 @@ public class RtspStreamingModule : StreamingModule {
             StreamingModule.State.PendingStart -> {
                 XLog.d(getLog("stopModule", "Not started (PendingStart)"))
                 startToken = null
+                streamingService = null
                 _rtspStateFlow.value = RtspState()
                 _streamingServiceState.value = StreamingModule.State.Initiated
             }
@@ -145,11 +157,19 @@ public class RtspStreamingModule : StreamingModule {
             is StreamingModule.State.Running -> {
                 _streamingServiceState.value = StreamingModule.State.PendingStop
                 _rtspStateFlow.value = RtspState()
-                withContext(NonCancellable) { state.scope.get<RtspStreamingService>().destroyService() }
-                _rtspStateFlow.value = RtspState()
-                startToken = null
-                state.scope.close()
-                _streamingServiceState.value = StreamingModule.State.Initiated
+                val activeStreamingService = streamingService
+                try {
+                    withContext(NonCancellable) {
+                        if (activeStreamingService != null) activeStreamingService.destroyService()
+                        else XLog.w(getLog("stopModule", "Running state without RtspStreamingService"))
+                    }
+                } finally {
+                    streamingService = null
+                    _rtspStateFlow.value = RtspState()
+                    startToken = null
+                    state.scope.close()
+                    _streamingServiceState.value = StreamingModule.State.Initiated
+                }
             }
 
             StreamingModule.State.PendingStop -> XLog.d(getLog("stopModule", "Already stopping (PendingStop). Ignoring"))
@@ -165,12 +185,37 @@ public class RtspStreamingModule : StreamingModule {
     }
 
     @MainThread
+    internal fun startProjection(intent: Intent) {
+        XLog.d(getLog("startProjection", "intent=$intent"))
+        check(Looper.getMainLooper().isCurrentThread) { "Only main thread allowed" }
+
+        when (val state = _streamingServiceState.value) {
+            is StreamingModule.State.Running -> {
+                val activeStreamingService = streamingService
+                if (activeStreamingService != null) {
+                    val foregroundStartError = activeStreamingService.tryStartProjectionForeground()
+                    activeStreamingService.sendEvent(RtspEvent.StartProjection(intent = intent, foregroundStartProcessed = true, foregroundStartError))
+                } else XLog.w(getLog("startProjection", "Running state without RtspStreamingService"))
+            }
+
+            else -> XLog.i(getLog("startProjection", "Ignoring stale intent in state $state"))
+        }
+    }
+
+    @MainThread
     internal fun sendEvent(event: RtspEvent) {
         XLog.d(getLog("sendEvent", "Event $event"))
         check(Looper.getMainLooper().isCurrentThread) { "Only main thread allowed" }
 
         when (val state = _streamingServiceState.value) {
-            is StreamingModule.State.Running -> state.scope.get<RtspStreamingService>().sendEvent(event)
+            is StreamingModule.State.Running -> {
+                val activeStreamingService = streamingService
+                if (activeStreamingService != null) activeStreamingService.sendEvent(event)
+                else XLog.w(
+                    getLog("sendEvent", "Running state without RtspStreamingService for event $event"),
+                    RuntimeException("Unexpected state: $state for event $event")
+                )
+            }
             else -> when (event) {
                 is RtspEvent.StartProjection,
                 RtspEvent.CastPermissionsDenied,

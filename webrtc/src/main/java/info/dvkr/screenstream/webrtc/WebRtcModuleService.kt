@@ -27,6 +27,16 @@ public class WebRtcModuleService : StreamingModuleService() {
             XLog.i(getLog("WebRtcModuleService.startService", "RunningAppProcessInfo.importance: $importance"))
             context.startService(intent)
         }
+
+        @Throws(ServiceStartNotAllowedException::class)
+        internal fun startProjection(context: Context, permissionIntent: Intent, source: String = "ui_permission") {
+            val intent = WebRtcEvent.Intentable.StartProjection(permissionIntent).toIntent(context)
+            XLog.d(getLog("WebRtcModuleService.startProjection", "Run intent: ${intent.extras}"))
+            val importance = ActivityManager.RunningAppProcessInfo().also { ActivityManager.getMyMemoryState(it) }.importance
+            XLog.i(getLog("WebRtcModuleService.startProjection", "RunningAppProcessInfo.importance: $importance"))
+            XLog.i(getLog("WebRtcModuleService.startProjection", "SP_TRACE route=preflight_v1 stage=service_command source=$source importance=$importance"))
+            context.startService(intent)
+        }
     }
 
     override val notificationIdForeground: Int = 200
@@ -62,6 +72,10 @@ public class WebRtcModuleService : StreamingModuleService() {
         if (streamingModuleManager.isActive(WebRtcStreamingModule.Id)) {
             when (webRtcEvent) {
                 is WebRtcEvent.Intentable.StartService -> webRtcStreamingModule.onServiceStart(this, webRtcEvent.token)
+                is WebRtcEvent.Intentable.StartProjection -> {
+                    XLog.i(getLog("onStartCommand", "SP_TRACE route=preflight_v1 stage=service_dispatch event=StartProjection startId=$startId"))
+                    webRtcStreamingModule.startProjection(webRtcEvent.intent)
+                }
                 is WebRtcEvent.Intentable.StopStream -> webRtcStreamingModule.sendEvent(webRtcEvent)
                 WebRtcEvent.Intentable.RecoverError -> webRtcStreamingModule.sendEvent(webRtcEvent)
             }
