@@ -1,5 +1,6 @@
 package info.dvkr.screenstream.ui.theme
 
+import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
@@ -10,7 +11,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import info.dvkr.screenstream.common.settings.AppSettings
-import info.dvkr.screenstream.ui.tabs.settings.app.settings.general.DynamicTheme
 import org.koin.compose.koinInject
 
 private val lightScheme = lightColorScheme(
@@ -89,6 +89,8 @@ private val darkScheme = darkColorScheme(
     surfaceContainerHighest = surfaceContainerHighestDark,
 )
 
+internal val dynamicThemeAvailable: Boolean = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+
 @Composable
 internal fun ScreenStreamTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
@@ -98,8 +100,8 @@ internal fun ScreenStreamTheme(
     val appSettingsState = appSettings.data.collectAsStateWithLifecycle()
 
     val colorScheme = when {
-        DynamicTheme.available && appSettingsState.value.dynamicTheme && darkTheme -> dynamicDarkColorScheme(LocalContext.current)
-        DynamicTheme.available && appSettingsState.value.dynamicTheme && darkTheme.not() -> dynamicLightColorScheme(LocalContext.current)
+        dynamicThemeAvailable && appSettingsState.value.dynamicTheme && darkTheme -> dynamicDarkColorScheme(LocalContext.current)
+        dynamicThemeAvailable && appSettingsState.value.dynamicTheme && darkTheme.not() -> dynamicLightColorScheme(LocalContext.current)
         darkTheme -> darkScheme
         else -> lightScheme
     }

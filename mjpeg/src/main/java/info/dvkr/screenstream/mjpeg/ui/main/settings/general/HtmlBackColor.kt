@@ -1,0 +1,290 @@
+package info.dvkr.screenstream.mjpeg.ui.main.settings.general
+
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredWidthIn
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentWidth
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Slider
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.core.graphics.toColorInt
+import info.dvkr.screenstream.mjpeg.R
+import info.dvkr.screenstream.mjpeg.ui.main.settings.common.SettingEditorLayout
+import info.dvkr.screenstream.mjpeg.ui.main.settings.common.SettingValueRow
+
+@Composable
+internal fun HtmlBackColorRow(
+    htmlBackColor: Color,
+    onClick: () -> Unit
+) {
+    SettingValueRow(
+        enabled = true,
+        iconRes = R.drawable.format_color_fill_24px,
+        title = stringResource(R.string.mjpeg_pref_html_back_color),
+        summary = stringResource(R.string.mjpeg_pref_html_back_color_summary),
+        onClick = onClick,
+        trailingContent = {
+            Spacer(
+                modifier = Modifier
+                    .padding(horizontal = 8.dp)
+                    .size(36.dp)
+                    .clip(MaterialTheme.shapes.medium)
+                    .background(htmlBackColor)
+                    .border(BorderStroke(1.dp, SolidColor(LocalContentColor.current)), MaterialTheme.shapes.medium)
+            )
+        }
+    )
+}
+
+@Composable
+internal fun HtmlBackColorEditor(
+    htmlBackColor: Color,
+    onColorChange: (Color) -> Unit,
+) {
+    SettingEditorLayout {
+        ColorEditorPanel(
+            htmlBackColor = htmlBackColor,
+            onColorChange = onColorChange,
+            modifier = Modifier
+                .padding(top = 8.dp, bottom = 4.dp)
+                .fillMaxWidth()
+        )
+
+        ColorSliderPanel(
+            htmlBackColor = htmlBackColor,
+            onColorChange = onColorChange,
+            modifier = Modifier
+                .padding(top = 16.dp)
+                .fillMaxWidth()
+        )
+
+        ColorPalettePanel(
+            onColorChange = onColorChange,
+            modifier = Modifier
+                .padding(vertical = 16.dp)
+                .fillMaxWidth()
+        )
+    }
+}
+
+private val colorPalette = listOf(
+    Color("#F44336".toColorInt()), Color("#E91E63".toColorInt()), Color("#9C27B0".toColorInt()), Color("#673AB7".toColorInt()),
+    Color("#3F51B5".toColorInt()), Color("#2196F3".toColorInt()), Color("#03A9F4".toColorInt()), Color("#00BCD4".toColorInt()),
+    Color("#009688".toColorInt()), Color("#4CAF50".toColorInt()), Color("#8BC34A".toColorInt()), Color("#CDDC39".toColorInt()),
+    Color("#FFEB3B".toColorInt()), Color("#FFC107".toColorInt()), Color("#FF9800".toColorInt()), Color("#FF5722".toColorInt()),
+    Color("#795548".toColorInt()), Color("#9E9E9E".toColorInt()), Color("#607D8B".toColorInt()), Color("#000000".toColorInt()),
+)
+
+@Composable
+private fun ColorEditorPanel(
+    htmlBackColor: Color,
+    onColorChange: (Color) -> Unit,
+    modifier: Modifier = Modifier,
+    borderColor: Color = LocalContentColor.current,
+) {
+    val currentColorString = remember(htmlBackColor) { mutableStateOf("%06X".format(0xFFFFFF and htmlBackColor.toArgb())) }
+    val textColor = remember(htmlBackColor) { if (htmlBackColor.luminance() <= 0.5F) Color.White else Color.Black }
+    val colorRegexp = remember { "[^0-9a-fA-F]".toRegex() }
+    val textMeasurer = rememberTextMeasurer()
+    val density = LocalDensity.current
+    val width = remember { with(density) { textMeasurer.measure("000000").size.width.toDp() + 64.dp } }
+
+    Surface(
+        modifier = modifier
+            .requiredWidthIn(max = 296.dp)
+            .padding(horizontal = 8.dp),
+        shape = MaterialTheme.shapes.medium,
+        color = htmlBackColor,
+        border = BorderStroke(1.dp, SolidColor(borderColor))
+    ) {
+        OutlinedTextField(
+            value = currentColorString.value,
+            onValueChange = { newColorString ->
+                currentColorString.value = newColorString.replace(colorRegexp, "").take(6)
+                runCatching { "#${currentColorString.value}".toColorInt() }.getOrNull()?.let { onColorChange(Color(it)) }
+            },
+            modifier = Modifier
+                .wrapContentWidth(align = Alignment.CenterHorizontally)
+                .width(width),
+            prefix = { Text(text = "#") },
+            keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Ascii, imeAction = ImeAction.Done),
+            singleLine = true,
+            colors = OutlinedTextFieldDefaults.colors(
+                disabledBorderColor = Color.Transparent,
+                errorBorderColor = Color.Transparent,
+                focusedBorderColor = Color.Transparent,
+                unfocusedBorderColor = Color.Transparent,
+                focusedTextColor = textColor,
+                unfocusedTextColor = textColor,
+                disabledPrefixColor = textColor,
+                errorPrefixColor = textColor,
+                focusedPrefixColor = textColor,
+                unfocusedPrefixColor = textColor,
+            )
+        )
+    }
+}
+
+@Composable
+private fun ColorSliderPanel(
+    htmlBackColor: Color,
+    onColorChange: (Color) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val sliderRed = remember(htmlBackColor) { mutableFloatStateOf(htmlBackColor.red) }
+    val sliderGreen = remember(htmlBackColor) { mutableFloatStateOf(htmlBackColor.green) }
+    val sliderBlue = remember(htmlBackColor) { mutableFloatStateOf(htmlBackColor.blue) }
+
+    Column(modifier = modifier) {
+        ColorSlider(
+            name = "R",
+            color = Color(255, 0, 0),
+            value = sliderRed.floatValue,
+            onValueChange = {
+                sliderRed.floatValue = it
+                onColorChange(Color(sliderRed.floatValue, sliderGreen.floatValue, sliderBlue.floatValue))
+            },
+            modifier = Modifier
+                .padding(vertical = 4.dp)
+                .fillMaxWidth()
+        )
+        ColorSlider(
+            name = "G",
+            color = Color(0, 255, 0),
+            value = sliderGreen.floatValue,
+            onValueChange = {
+                sliderGreen.floatValue = it
+                onColorChange(Color(sliderRed.floatValue, sliderGreen.floatValue, sliderBlue.floatValue))
+            },
+            modifier = Modifier
+                .padding(vertical = 4.dp)
+                .fillMaxWidth()
+        )
+        ColorSlider(
+            name = "B",
+            color = Color(0, 0, 255),
+            value = sliderBlue.floatValue,
+            onValueChange = {
+                sliderBlue.floatValue = it
+                onColorChange(Color(sliderRed.floatValue, sliderGreen.floatValue, sliderBlue.floatValue))
+            },
+            modifier = Modifier
+                .padding(vertical = 4.dp)
+                .fillMaxWidth()
+        )
+    }
+}
+
+@Composable
+private fun ColorSlider(
+    name: String,
+    color: Color,
+    value: Float,
+    onValueChange: (Float) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val textMeasurer = rememberTextMeasurer()
+    val density = LocalDensity.current
+    val textWidth = remember { with(density) { textMeasurer.measure("00000").size.width.toDp() } }
+    val sliderValue = remember(value) { mutableFloatStateOf(value) }
+
+    val maxWidth = 296.dp + textWidth + textWidth
+    Row(
+        modifier = modifier
+            .requiredWidthIn(max = maxWidth)
+            .widthIn(max = maxWidth)
+            .padding(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = name,
+            modifier = Modifier.requiredWidthIn(min = textWidth, max = textWidth),
+            textAlign = TextAlign.End
+        )
+        MaterialTheme(colorScheme = MaterialTheme.colorScheme.copy(primary = color)) {
+            Slider(
+                value = sliderValue.floatValue * 255,
+                onValueChange = { sliderValue.floatValue = it / 255 },
+                modifier = Modifier
+                    .weight(1F)
+                    .padding(horizontal = 8.dp),
+                valueRange = 0F..255F,
+                steps = 256,
+                onValueChangeFinished = { onValueChange(sliderValue.floatValue) },
+            )
+        }
+        Text(
+            text = (sliderValue.floatValue * 255).toInt().toString(),
+            modifier = Modifier.requiredWidthIn(min = textWidth, max = textWidth)
+        )
+    }
+}
+
+@Composable
+private fun ColorPalettePanel(
+    onColorChange: (Color) -> Unit,
+    modifier: Modifier = Modifier,
+    borderColor: Color = LocalContentColor.current,
+) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        colorPalette.chunked(4).forEach { colorsRow ->
+            Row(
+                modifier = Modifier
+                    .requiredWidthIn(max = 296.dp)
+                    .widthIn(max = 296.dp),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                colorsRow.forEach { color ->
+                    Spacer(
+                        modifier = Modifier
+                            .padding(8.dp)
+                            .size(48.dp)
+                            .clip(MaterialTheme.shapes.large)
+                            .background(color)
+                            .border(BorderStroke(1.dp, SolidColor(borderColor)), MaterialTheme.shapes.large)
+                            .clickable(role = Role.Button) { onColorChange(color) }
+                    )
+                }
+            }
+        }
+    }
+}

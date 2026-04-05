@@ -32,7 +32,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import info.dvkr.screenstream.R
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @Composable
@@ -148,7 +147,7 @@ internal fun CollectingLogsUi(modifier: Modifier = Modifier) {
                     Spacer(Modifier.navigationBarsPadding())
                 }
 
-                LaunchedEffect(Unit) { delay(50); focusRequester.requestFocus() }
+                LaunchedEffect(focusRequester) { focusRequester.requestFocus() }
             }
         }
     }

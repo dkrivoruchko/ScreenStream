@@ -18,6 +18,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -26,6 +27,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.dropUnlessStarted
+import info.dvkr.screenstream.common.notification.NotificationHelper
 import info.dvkr.screenstream.common.ui.DoubleClickProtection
 import info.dvkr.screenstream.common.ui.ScreenCapturePermissionWithEducation
 import info.dvkr.screenstream.common.ui.get
@@ -34,31 +36,43 @@ import info.dvkr.screenstream.webrtc.R
 import info.dvkr.screenstream.webrtc.WebRtcModuleService
 import info.dvkr.screenstream.webrtc.internal.WebRtcEvent
 import info.dvkr.screenstream.webrtc.internal.WebRtcStreamingService
-import info.dvkr.screenstream.webrtc.ui.main.AudioCard
-import info.dvkr.screenstream.webrtc.ui.main.ClientsCard
-import info.dvkr.screenstream.webrtc.ui.main.ErrorCard
-import info.dvkr.screenstream.webrtc.ui.main.OtherParametersCard
-import info.dvkr.screenstream.webrtc.ui.main.StreamCard
+import info.dvkr.screenstream.webrtc.settings.WebRtcSettings
+import info.dvkr.screenstream.webrtc.ui.main.cards.AudioCard
+import info.dvkr.screenstream.webrtc.ui.main.cards.ClientsCard
+import info.dvkr.screenstream.webrtc.ui.main.cards.ErrorCard
+import info.dvkr.screenstream.webrtc.ui.main.cards.OtherSettingsCard
+import info.dvkr.screenstream.webrtc.ui.main.cards.StreamCard
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
+import org.koin.compose.koinInject
 
 @Composable
 internal fun WebRtcMainScreenUI(
     webRtcStateFlow: StateFlow<WebRtcState>,
     sendEvent: (event: WebRtcEvent) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    webRtcSettings: WebRtcSettings = koinInject(),
+    notificationHelper: NotificationHelper = koinInject()
 ) {
     val webRtcState = webRtcStateFlow.collectAsStateWithLifecycle()
+    val webRtcSettingsState = webRtcSettings.data.collectAsStateWithLifecycle()
+    val scope = rememberCoroutineScope()
     val screenCapturePermissionWithEducationState = rememberScreenCapturePermissionWithEducationState()
     val context = LocalContext.current
+    val state = webRtcState.value
+    val settings = webRtcSettingsState.value
+    val updateSettings: (WebRtcSettings.Data.() -> WebRtcSettings.Data) -> Unit = { transform ->
+        scope.launch { webRtcSettings.updateData(transform) }
+    }
 
     BoxWithConstraints(modifier = modifier) {
         ScreenCapturePermissionWithEducation(
             state = screenCapturePermissionWithEducationState,
-            shouldRequestPermission = webRtcState.value.waitingCastPermission,
-            isStreaming = webRtcState.value.isStreaming,
+            shouldRequestPermission = state.waitingCastPermission,
+            isStreaming = state.isStreaming,
             onStartRequested = { educationShown -> sendEvent(WebRtcStreamingService.InternalEvent.StartStream(permissionEducationShown = educationShown)) },
-            onPermissionGranted = { intent -> if (webRtcState.value.waitingCastPermission) WebRtcModuleService.startProjection(context, intent) },
-            onPermissionDenied = { if (webRtcState.value.waitingCastPermission) sendEvent(WebRtcEvent.CastPermissionsDenied) },
+            onPermissionGranted = { intent -> if (state.waitingCastPermission) WebRtcModuleService.startProjection(context, intent) },
+            onPermissionDenied = { if (state.waitingCastPermission) sendEvent(WebRtcEvent.CastPermissionsDenied) },
         )
 
         val lazyVerticalStaggeredGridState = rememberLazyStaggeredGridState()
@@ -68,15 +82,22 @@ internal fun WebRtcMainScreenUI(
             state = lazyVerticalStaggeredGridState,
             contentPadding = PaddingValues(start = 8.dp, end = 8.dp, bottom = 64.dp),
         ) {
-            webRtcState.value.error?.let {
+            state.error?.let {
                 item(key = "ERROR") {
-                    ErrorCard(error = it, modifier = Modifier.padding(8.dp), sendEvent = sendEvent)
+                    ErrorCard(
+                        error = it,
+                        sendEvent = sendEvent,
+                        openNotificationSettings = {
+                            context.startActivity(notificationHelper.getStreamNotificationSettingsIntent())
+                        },
+                        modifier = Modifier.padding(8.dp)
+                    )
                 }
             }
 
             item(key = "STREAM") {
                 StreamCard(
-                    webRtcState = webRtcState,
+                    state = state,
                     onGetNewStreamId = { sendEvent(WebRtcEvent.GetNewStreamId) }, //TODO notify user that this will disconnect all clients
                     onCreateNewPassword = { sendEvent(WebRtcEvent.CreateNewPassword) }, //TODO notify user that this will disconnect all clients
                     modifier = Modifier.padding(8.dp)
@@ -85,26 +106,33 @@ internal fun WebRtcMainScreenUI(
 
             item(key = "AUDIO") {
                 AudioCard(
-                    webRtcState = webRtcState,
+                    isStreaming = state.isStreaming,
+                    settings = settings,
+                    updateSettings = updateSettings,
                     modifier = Modifier.padding(8.dp)
                 )
             }
 
             item(key = "OTHER_PARAMETERS") {
-                OtherParametersCard(modifier = Modifier.padding(8.dp))
+                OtherSettingsCard(
+                    settings = settings,
+                    updateSettings = updateSettings,
+                    enabled = state.isStreaming.not(),
+                    modifier = Modifier.padding(8.dp)
+                )
             }
 
             item(key = "CLIENTS") {
                 ClientsCard(
-                    webRtcState = webRtcState,
+                    state = state,
                     onClientDisconnect = { clientId -> sendEvent(WebRtcEvent.RemoveClient(clientId, true, "User request")) },
                     modifier = Modifier.padding(8.dp)
                 )
             }
         }
 
-        LaunchedEffect(webRtcState.value.error) {
-            if (webRtcState.value.error != null) lazyVerticalStaggeredGridState.animateScrollToItem(0)
+        LaunchedEffect(state.error) {
+            if (state.error != null) lazyVerticalStaggeredGridState.animateScrollToItem(0)
         }
 
         val doubleClickProtection = remember { DoubleClickProtection.get() }
@@ -112,7 +140,7 @@ internal fun WebRtcMainScreenUI(
         Button(
             onClick = dropUnlessStarted {
                 doubleClickProtection.processClick {
-                    if (webRtcState.value.isStreaming) {
+                    if (state.isStreaming) {
                         sendEvent(WebRtcEvent.Intentable.StopStream("User action: Button"))
                     } else {
                         screenCapturePermissionWithEducationState.requestStart()
@@ -122,7 +150,7 @@ internal fun WebRtcMainScreenUI(
             modifier = Modifier
                 .padding(start = 16.dp, end = 16.dp, bottom = 8.dp)
                 .align(alignment = Alignment.BottomCenter),
-            enabled = webRtcState.value.isBusy.not(),
+            enabled = state.isBusy.not(),
             shape = MaterialTheme.shapes.medium,
             contentPadding = PaddingValues(start = 12.dp, top = 12.dp, bottom = 12.dp, end = 16.dp),
             elevation = ButtonDefaults.buttonElevation(
@@ -132,7 +160,7 @@ internal fun WebRtcMainScreenUI(
                 hoveredElevation = 6.0.dp,
             )
         ) {
-            Crossfade(targetState = webRtcState.value.isStreaming, label = "StreamingButtonCrossfade") { isStreaming ->
+            Crossfade(targetState = state.isStreaming, label = "StreamingButtonCrossfade") { isStreaming ->
                 Icon(
                     painter = if (isStreaming) painterResource(R.drawable.stop_24px) else painterResource(R.drawable.play_arrow_24px),
                     contentDescription = null
@@ -140,7 +168,7 @@ internal fun WebRtcMainScreenUI(
             }
             Spacer(modifier = Modifier.size(ButtonDefaults.IconSpacing))
             Text(
-                text = stringResource(id = if (webRtcState.value.isStreaming) R.string.webrtc_stream_stop else R.string.webrtc_stream_start),
+                text = stringResource(id = if (state.isStreaming) R.string.webrtc_stream_stop else R.string.webrtc_stream_start),
                 style = MaterialTheme.typography.titleMedium
             )
         }

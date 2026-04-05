@@ -1,7 +1,6 @@
 package info.dvkr.screenstream.common.ui
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.EaseInOutCubic
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -18,9 +17,6 @@ import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
@@ -31,25 +27,30 @@ import info.dvkr.screenstream.common.R
 
 @Composable
 public fun ExpandableCard(
+    expanded: Boolean,
+    onExpandedChange: (Boolean) -> Unit,
     headerContent: @Composable BoxScope.() -> Unit,
     modifier: Modifier = Modifier,
     contentModifier: Modifier = Modifier,
     expandable: Boolean = true,
-    initiallyExpanded: Boolean = false,
     content: @Composable ColumnScope.() -> Unit
 ) {
     ElevatedCard(modifier = modifier) {
-        val expanded = remember(expandable) { mutableStateOf(false) }
-        val iconRotation = remember { Animatable(0F) }
+        val contentVisible = expandable && expanded
         val animatedAlpha = animateFloatAsState(
-            targetValue = if (expanded.value) 1F else 0F,
+            targetValue = if (contentVisible) 1F else 0F,
             animationSpec = tween(easing = EaseInOutCubic),
             label = "ExpandableCardAlpha"
+        )
+        val animatedRotation = animateFloatAsState(
+            targetValue = if (contentVisible) 90F else 0F,
+            animationSpec = tween(easing = EaseInOutCubic),
+            label = "ExpandableCardRotation"
         )
         Row(modifier = Modifier.fillMaxWidth()) {
             Box(
                 modifier = Modifier
-                    .conditional(expandable) { clickable(role = Role.Button) { expanded.value = expanded.value.not() } }
+                    .conditional(expandable) { clickable(role = Role.Button) { onExpandedChange(expanded.not()) } }
                     .defaultMinSize(minHeight = 48.dp)
                     .fillMaxWidth()
             ) {
@@ -68,15 +69,13 @@ public fun ExpandableCard(
                         contentDescription = null,
                         modifier = Modifier
                             .padding(start = 8.dp)
-                            .graphicsLayer { rotationZ = iconRotation.value }
+                            .graphicsLayer { rotationZ = animatedRotation.value }
                             .align(Alignment.CenterStart)
                     )
-                    LaunchedEffect(expanded.value) { iconRotation.animateTo(if (expanded.value) 90F else 0F) }
-                    LaunchedEffect(Unit) { expanded.value = initiallyExpanded }
                 }
             }
         }
-        AnimatedVisibility(visible = expanded.value) {
+        AnimatedVisibility(visible = contentVisible) {
             Column(modifier = contentModifier) {
                 content.invoke(this)
             }

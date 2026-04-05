@@ -28,6 +28,7 @@ internal class NotificationHelperImpl(context: Context) : NotificationHelper {
 
     private val notificationManager = context.getSystemService(NotificationManager::class.java)
     private val packageName = context.packageName
+    private val packageManager = context.packageManager
     private val largeIcon by lazy(LazyThreadSafetyMode.NONE) { AppCompatResources.getDrawable(context, R.drawable.logo)?.toBitmap() }
 
     init {
@@ -52,6 +53,10 @@ internal class NotificationHelperImpl(context: Context) : NotificationHelper {
             }.let { notificationManager.createNotificationChannel(it) }
         }
     }
+
+    override fun canOpenAppNotificationSettings(): Boolean =
+        (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && getNotificationSettingsIntent().resolveActivity(packageManager) != null)
+            .also { XLog.d(getLog("canOpenAppNotificationSettings", "$it")) }
 
     override fun notificationPermissionGranted(context: Context): Boolean =
         (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU || context.isPermissionGranted(Manifest.permission.POST_NOTIFICATIONS))

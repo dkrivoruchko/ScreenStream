@@ -6,7 +6,6 @@ import androidx.annotation.StringRes
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.Modifier
-import info.dvkr.screenstream.common.ModuleSettings
 import kotlinx.coroutines.flow.Flow
 import org.koin.core.scope.Scope
 
@@ -15,6 +14,13 @@ public interface StreamingModule {
 
     @Immutable
     public data class Id(public val value: String)
+
+    @Immutable
+    public enum class WindowWidthSizeClass {
+        COMPACT,
+        MEDIUM,
+        EXPANDED,
+    }
 
     public sealed class State {
         public data object Initiated : State()
@@ -26,8 +32,6 @@ public interface StreamingModule {
     public val id: Id
 
     public val priority: Int
-
-    public val moduleSettings: ModuleSettings
 
     public val isRunning: Flow<Boolean>
 
@@ -45,7 +49,7 @@ public interface StreamingModule {
     public val detailsResource: Int
 
     @Composable
-    public fun StreamUIContent(modifier: Modifier)
+    public fun StreamUIContent(windowWidthSizeClass: WindowWidthSizeClass, modifier: Modifier)
 
     @MainThread
     public fun startModule(context: Context)

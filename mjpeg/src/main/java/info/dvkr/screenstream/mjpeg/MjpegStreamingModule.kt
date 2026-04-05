@@ -8,13 +8,11 @@ import androidx.annotation.MainThread
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.elvishew.xlog.XLog
-import info.dvkr.screenstream.common.ModuleSettings
 import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.common.module.StreamingModule
 import info.dvkr.screenstream.mjpeg.internal.MjpegEvent
 import info.dvkr.screenstream.mjpeg.internal.MjpegStreamingService
 import info.dvkr.screenstream.mjpeg.ui.MjpegMainScreenUI
-import info.dvkr.screenstream.mjpeg.ui.MjpegModuleSettings
 import info.dvkr.screenstream.mjpeg.ui.MjpegState
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.Flow
@@ -40,7 +38,6 @@ public class MjpegStreamingModule : StreamingModule {
 
     override val id: StreamingModule.Id = Id
     override val priority: Int = 30
-    override val moduleSettings: ModuleSettings = MjpegModuleSettings
 
     override val isRunning: Flow<Boolean>
         get() = _streamingServiceState.map { it is StreamingModule.State.Running }
@@ -60,10 +57,14 @@ public class MjpegStreamingModule : StreamingModule {
     override val detailsResource: Int = R.string.mjpeg_stream_mode_details
 
     @Composable
-    override fun StreamUIContent(modifier: Modifier): Unit =
+    override fun StreamUIContent(
+        windowWidthSizeClass: StreamingModule.WindowWidthSizeClass,
+        modifier: Modifier
+    ): Unit =
         MjpegMainScreenUI(
             mjpegStateFlow = _mjpegStateFlow.asStateFlow(),
             sendEvent = ::sendEvent,
+            windowWidthSizeClass = windowWidthSizeClass,
             modifier = modifier
         )
 

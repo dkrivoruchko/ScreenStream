@@ -8,7 +8,6 @@ import androidx.annotation.MainThread
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.elvishew.xlog.XLog
-import info.dvkr.screenstream.common.ModuleSettings
 import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.common.module.StreamingModule
 import info.dvkr.screenstream.rtsp.internal.RtspEvent
@@ -16,7 +15,6 @@ import info.dvkr.screenstream.rtsp.internal.RtspStreamingService
 import info.dvkr.screenstream.rtsp.settings.RtspSettings
 import info.dvkr.screenstream.rtsp.ui.RtspClientStatus
 import info.dvkr.screenstream.rtsp.ui.RtspMainScreenUI
-import info.dvkr.screenstream.rtsp.ui.RtspModuleSettings
 import info.dvkr.screenstream.rtsp.ui.RtspState
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.Flow
@@ -42,7 +40,6 @@ public class RtspStreamingModule : StreamingModule {
 
     override val id: StreamingModule.Id = Id
     override val priority: Int = 10
-    override val moduleSettings: ModuleSettings = RtspModuleSettings
 
     override val isRunning: Flow<Boolean>
         get() = _streamingServiceState.map { it is StreamingModule.State.Running }
@@ -65,10 +62,14 @@ public class RtspStreamingModule : StreamingModule {
     override val detailsResource: Int = R.string.rtsp_stream_mode_details
 
     @Composable
-    override fun StreamUIContent(modifier: Modifier): Unit =
+    override fun StreamUIContent(
+        windowWidthSizeClass: StreamingModule.WindowWidthSizeClass,
+        modifier: Modifier
+    ): Unit =
         RtspMainScreenUI(
             rtspStateFlow = _rtspStateFlow.asStateFlow(),
             sendEvent = ::sendEvent,
+            windowWidthSizeClass = windowWidthSizeClass,
             modifier = modifier
         )
 

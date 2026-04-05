@@ -6,6 +6,8 @@ import android.content.Intent
 
 public interface NotificationHelper {
 
+    public fun canOpenAppNotificationSettings(): Boolean
+
     public fun notificationPermissionGranted(context: Context): Boolean
 
     public fun foregroundNotificationsEnabled(): Boolean

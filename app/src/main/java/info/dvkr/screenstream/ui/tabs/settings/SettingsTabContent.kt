@@ -1,9 +1,8 @@
 package info.dvkr.screenstream.ui.tabs.settings
 
+import android.os.Build
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -11,8 +10,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -29,11 +26,11 @@ import androidx.compose.material3.adaptive.layout.ListDetailPaneScaffoldRole
 import androidx.compose.material3.adaptive.layout.calculatePaneScaffoldDirective
 import androidx.compose.material3.adaptive.navigation.rememberListDetailPaneScaffoldNavigator
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -41,59 +38,182 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.window.core.layout.WindowSizeClass
 import info.dvkr.screenstream.AdaptiveBanner
 import info.dvkr.screenstream.R
-import info.dvkr.screenstream.common.ModuleSettings
-import info.dvkr.screenstream.ui.tabs.settings.app.AppModuleSettings
+import info.dvkr.screenstream.common.notification.NotificationHelper
+import info.dvkr.screenstream.common.settings.AppSettings
+import info.dvkr.screenstream.logger.AppLogger
+import info.dvkr.screenstream.tile.TileActionService
+import info.dvkr.screenstream.ui.tabs.settings.app.AppLocaleDetail
+import info.dvkr.screenstream.ui.tabs.settings.app.AppLocaleRow
+import info.dvkr.screenstream.ui.tabs.settings.app.DynamicThemeRow
+import info.dvkr.screenstream.ui.tabs.settings.app.LoggingRow
+import info.dvkr.screenstream.ui.tabs.settings.app.NightModeDetail
+import info.dvkr.screenstream.ui.tabs.settings.app.NightModeRow
+import info.dvkr.screenstream.ui.tabs.settings.app.NotificationsRow
+import info.dvkr.screenstream.ui.tabs.settings.app.TileRow
+import info.dvkr.screenstream.ui.theme.dynamicThemeAvailable
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
+
+private enum class AppSetting { APP_LOCALE, NIGHT_MODE }
 
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @Composable
 internal fun SettingsTabContent(
     boundsInWindow: Rect,
     modifier: Modifier = Modifier,
-    appModuleSettings: AppModuleSettings = koinInject()
+    appSettings: AppSettings = koinInject(),
+    notificationHelper: NotificationHelper = koinInject(),
+    scope: CoroutineScope = rememberCoroutineScope()
 ) {
-    val scope = rememberCoroutineScope()
+    val settingsData = appSettings.data.collectAsStateWithLifecycle().value
+
+    val context = LocalContext.current
     val windowAdaptiveInfo = currentWindowAdaptiveInfo()
     val listPanePreferredWidth = calculateListPanePreferredWidth(windowAdaptiveInfo, boundsInWindow)
     val scaffoldDirective = calculatePaneScaffoldDirective(windowAdaptiveInfo, HingePolicy.AvoidOccluding)
         .copy(verticalPartitionSpacerSize = 0.dp, horizontalPartitionSpacerSize = 0.dp)
-    val navigator = rememberListDetailPaneScaffoldNavigator<ModuleSettings.Id>(scaffoldDirective)
+    val navigator = rememberListDetailPaneScaffoldNavigator<AppSetting>(scaffoldDirective)
+    val lazyListState = rememberLazyListState()
 
     BackHandler(enabled = navigator.canNavigateBack()) { scope.launch { navigator.navigateBack() } }
-
-    val lazyListState = rememberLazyListState()
 
     ListDetailPaneScaffold(
         directive = navigator.scaffoldDirective,
         value = navigator.scaffoldValue,
         listPane = {
             AnimatedPane(modifier = Modifier.preferredWidth(listPanePreferredWidth)) {
-                SettingsListPane(
-                    lazyListState = lazyListState,
-                    settings = appModuleSettings,
-                    onSettingSelected = { scope.launch { navigator.navigateTo(ListDetailPaneScaffoldRole.Detail, it) } },
-                    modifier = Modifier.preferredWidth(listPanePreferredWidth)
-                )
+                Column(modifier = Modifier.fillMaxSize()) {
+                    AdaptiveBanner(modifier = Modifier.fillMaxWidth())
+
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .imePadding(),
+                        state = lazyListState
+                    ) {
+                        item(key = "SETTINGS_HEADER", contentType = "HEADER") {
+                            Text(
+                                text = stringResource(id = R.string.app_pref_settings),
+                                modifier = Modifier
+                                    .background(color = MaterialTheme.colorScheme.secondaryContainer)
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                                fontSize = 18.sp,
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                        }
+
+                        item(key = AppSetting.APP_LOCALE, contentType = "ITEM") {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .animateItem()
+                            ) {
+                                AppLocaleRow(
+                                    onShowDetail = { scope.launch { navigator.navigateTo(ListDetailPaneScaffoldRole.Detail, AppSetting.APP_LOCALE) } })
+                            }
+                        }
+
+                        item(key = AppSetting.NIGHT_MODE, contentType = "ITEM") {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .animateItem()
+                            ) {
+                                NightModeRow(
+                                    nightMode = settingsData.nightMode,
+                                    onShowDetail = { scope.launch { navigator.navigateTo(ListDetailPaneScaffoldRole.Detail, AppSetting.NIGHT_MODE) } })
+                            }
+                        }
+
+                        if (dynamicThemeAvailable) {
+                            item(key = "DYNAMIC_THEME", contentType = "ITEM") {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .animateItem()
+                                ) {
+                                    HorizontalDivider()
+                                    DynamicThemeRow(
+                                        dynamicTheme = settingsData.dynamicTheme,
+                                        onValueChange = { dynamicTheme ->
+                                            if (settingsData.dynamicTheme != dynamicTheme) {
+                                                scope.launch { appSettings.updateData { copy(dynamicTheme = dynamicTheme) } }
+                                            }
+                                        })
+                                }
+                            }
+                        }
+
+                        if (notificationHelper.canOpenAppNotificationSettings()) {
+                            item(key = "NOTIFICATIONS", contentType = "ITEM") {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .animateItem()
+                                ) {
+                                    HorizontalDivider()
+                                    NotificationsRow(onClick = { context.startActivity(notificationHelper.getNotificationSettingsIntent()) })
+                                }
+                            }
+                        }
+
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            item(key = "TILE", contentType = "ITEM") {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .animateItem()
+                                ) {
+                                    HorizontalDivider()
+                                    TileRow(onClick = { TileActionService.showAddTileRequest(context) })
+                                }
+                            }
+                        }
+
+                        if (AppLogger.isLoggingOn) {
+                            item(key = "LOGGING", contentType = "ITEM") {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .animateItem()
+                                ) {
+                                    HorizontalDivider()
+                                    LoggingRow()
+                                }
+                            }
+                        }
+                    }
+                }
             }
         },
         detailPane = {
             AnimatedPane(modifier = Modifier.fillMaxSize()) {
-                getModuleSettingsItem(appModuleSettings, navigator.currentDestination?.contentKey)
-                    ?.DetailUI { title -> DetailUITitle(title, navigator.canNavigateBack()) { scope.launch { navigator.navigateBack() } } }
+                when (navigator.currentDestination?.contentKey) {
+                    AppSetting.APP_LOCALE -> AppLocaleDetail(
+                        headerContent = { title -> DetailUITitle(title, navigator.canNavigateBack()) { scope.launch { navigator.navigateBack() } } })
+
+                    AppSetting.NIGHT_MODE -> NightModeDetail(
+                        headerContent = { title -> DetailUITitle(title, navigator.canNavigateBack()) { scope.launch { navigator.navigateBack() } } },
+                        nightMode = settingsData.nightMode,
+                        onNightModeSelected = { nightMode ->
+                            if (settingsData.nightMode != nightMode) {
+                                scope.launch { appSettings.updateData { copy(nightMode = nightMode) } }
+                            }
+                        })
+
+                    else -> Unit
+                }
             }
         },
         modifier = modifier
     )
 }
-
-private fun getModuleSettingsItem(settings: ModuleSettings, settingId: ModuleSettings.Id?): ModuleSettings.Item? =
-    if (settingId == null) null
-    else if (settings.id != settingId.moduleId) null
-    else settings.groups.firstOrNull { it.id == settingId.groupId }?.items?.firstOrNull { it.id == settingId.itemId }
 
 @Composable
 private fun DetailUITitle(title: String, canNavigateBack: Boolean, navigateBack: () -> Unit) {
@@ -128,75 +248,6 @@ private fun DetailUITitle(title: String, canNavigateBack: Boolean, navigateBack:
             fontSize = 18.sp,
             style = MaterialTheme.typography.titleMedium
         )
-    }
-}
-
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-private fun SettingsListPane(
-    lazyListState: LazyListState,
-    settings: ModuleSettings,
-    onSettingSelected: (ModuleSettings.Id) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val scope = rememberCoroutineScope()
-
-    BoxWithConstraints(modifier) {
-        val horizontalPadding = if (this.maxWidth >= 480.dp) 16.dp else 0.dp
-
-        val secondaryContainer = MaterialTheme.colorScheme.secondaryContainer
-        val titleModifier = remember(maxWidth, secondaryContainer) {
-            Modifier
-                .background(color = secondaryContainer)
-                .padding(horizontal = horizontalPadding + 16.dp, vertical = 8.dp)
-                .fillMaxWidth()
-        }
-
-        Column(modifier = Modifier.fillMaxSize()) {
-            AdaptiveBanner(modifier = Modifier.fillMaxWidth())
-
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .imePadding(),
-                state = lazyListState
-            ) {
-                // stickyHeader has bug in Compose
-                item(key = settings.id, contentType = "HEADER") {
-                    settings.TitleUI(modifier = titleModifier)
-                }
-
-                settings.groups.forEach { settingsGroup ->
-                    item(key = "${settings.id}#${settingsGroup.id}", contentType = "HEADER") {
-                        settingsGroup.TitleUI(modifier = titleModifier)
-                    }
-
-                    itemsIndexed(
-                        items = settingsGroup.items,
-                        key = { _, settingsItem -> "${settings.id}#${settingsGroup.id}#${settingsItem.id}" },
-                        contentType = { _, _ -> "ITEM" },
-                        itemContent = { index, settingsItem ->
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .animateItem()
-                            ) {
-                                settingsItem.ItemUI(
-                                    horizontalPadding = horizontalPadding,
-                                    coroutineScope = scope,
-                                    onDetailShow = {
-                                        onSettingSelected(ModuleSettings.Id(settings.id, settingsGroup.id, settingsItem.id))
-                                    }
-                                )
-                                if (index != settingsGroup.items.size - 1) {
-                                    HorizontalDivider()
-                                }
-                            }
-                        }
-                    )
-                }
-            }
-        }
     }
 }
 

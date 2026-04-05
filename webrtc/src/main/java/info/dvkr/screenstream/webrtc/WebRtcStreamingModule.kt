@@ -8,13 +8,11 @@ import androidx.annotation.MainThread
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.elvishew.xlog.XLog
-import info.dvkr.screenstream.common.ModuleSettings
 import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.common.module.StreamingModule
 import info.dvkr.screenstream.webrtc.internal.WebRtcEvent
 import info.dvkr.screenstream.webrtc.internal.WebRtcStreamingService
 import info.dvkr.screenstream.webrtc.ui.WebRtcMainScreenUI
-import info.dvkr.screenstream.webrtc.ui.WebRtcModuleSettings
 import info.dvkr.screenstream.webrtc.ui.WebRtcState
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.Flow
@@ -40,7 +38,6 @@ public class WebRtcStreamingModule : StreamingModule {
 
     override val id: StreamingModule.Id = Id
     override val priority: Int = 20
-    override val moduleSettings: ModuleSettings = WebRtcModuleSettings
 
     override val isRunning: Flow<Boolean>
         get() = _streamingServiceState.map { it is StreamingModule.State.Running }
@@ -58,7 +55,10 @@ public class WebRtcStreamingModule : StreamingModule {
     override val detailsResource: Int = R.string.webrtc_stream_mode_details
 
     @Composable
-    override fun StreamUIContent(modifier: Modifier): Unit =
+    override fun StreamUIContent(
+        windowWidthSizeClass: StreamingModule.WindowWidthSizeClass,
+        modifier: Modifier
+    ): Unit =
         WebRtcMainScreenUI(
             webRtcStateFlow = _webRtcStateFlow.asStateFlow(),
             sendEvent = ::sendEvent,
@@ -205,6 +205,7 @@ public class WebRtcStreamingModule : StreamingModule {
                     RuntimeException("Unexpected state: $state for event $event")
                 )
             }
+
             else -> when (event) {
                 is WebRtcEvent.Intentable.StopStream,
                 is WebRtcEvent.StartProjection,

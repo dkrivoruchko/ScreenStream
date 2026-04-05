@@ -1,0 +1,159 @@
+package info.dvkr.screenstream.ui.tabs.settings.app
+
+import android.annotation.SuppressLint
+import android.content.Intent
+import android.net.Uri
+import android.os.Build
+import android.provider.Settings
+import androidx.annotation.MainThread
+import androidx.appcompat.app.AppCompatDelegate
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.minimumInteractiveComponentSize
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.unit.dp
+import androidx.core.os.LocaleListCompat
+import info.dvkr.screenstream.R
+import info.dvkr.screenstream.ui.tabs.settings.app.common.SettingActionRow
+import org.xmlpull.v1.XmlPullParser
+import java.util.Locale
+
+@Composable
+internal fun AppLocaleRow(
+    onShowDetail: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val context = LocalContext.current
+
+    SettingActionRow(
+        iconRes = R.drawable.translate_24px,
+        title = stringResource(id = R.string.app_pref_locale),
+        summary = stringResource(id = R.string.app_pref_locale_summary),
+        onClick = {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+                onShowDetail()
+            } else {
+                context.startActivity(
+                    Intent(Settings.ACTION_APP_LOCALE_SETTINGS).setData(Uri.fromParts("package", context.packageName, null))
+                )
+            }
+        },
+        modifier = modifier
+    )
+}
+
+@SuppressLint("DiscouragedApi")
+@Composable
+internal fun AppLocaleDetail(
+    headerContent: @Composable (String) -> Unit,
+    @MainThread onLanguageSelected: (String?) -> Unit = { languageTag ->
+        if (languageTag != null) AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(languageTag))
+        else AppCompatDelegate.setApplicationLocales(LocaleListCompat.getEmptyLocaleList())
+    }
+) {
+    val context = LocalContext.current
+    val resources = LocalResources.current
+    val appLanguageTag = remember { AppCompatDelegate.getApplicationLocales().get(0)?.toLanguageTag() }
+
+    val languageTags = remember(resources, context.packageName) {
+        val localeConfigId = resources.getIdentifier("_generated_res_locale_config", "xml", context.packageName)
+        resources.getXml(localeConfigId).run {
+            val tags = mutableListOf<String>()
+            while (eventType != XmlPullParser.END_DOCUMENT) {
+                if (eventType == XmlPullParser.START_TAG && name == "locale") {
+                    tags.add(getAttributeValue(0))
+                }
+                next()
+            }
+            tags.toList()
+        }.map { tag ->
+            val locale = Locale.forLanguageTag(tag)
+            val displayLanguage = locale.getDisplayLanguage(locale)
+                .replaceFirstChar { if (it.isLowerCase()) it.titlecase(locale) else it.toString() }
+            val displayCountry = locale.getDisplayCountry(locale).let { if (it.isNotBlank()) " ($it)" else "" }
+            tag to "$displayLanguage$displayCountry"
+        }.sortedBy { it.second }
+    }
+
+    Column(modifier = Modifier.fillMaxWidth()) {
+        headerContent(stringResource(id = R.string.app_pref_locale))
+
+        Column(
+            modifier = Modifier
+                .padding(vertical = 8.dp)
+                .selectableGroup()
+                .verticalScroll(rememberScrollState())
+        ) {
+            LanguageRow(
+                displayLanguage = stringResource(id = R.string.app_pref_locale_default),
+                selected = appLanguageTag == null,
+                onClick = { onLanguageSelected(null) }
+            )
+
+            languageTags.forEach { (tag, displayLanguage) ->
+                LanguageRow(
+                    displayLanguage = displayLanguage,
+                    selected = appLanguageTag == tag,
+                    onClick = { onLanguageSelected(tag) }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun LanguageRow(
+    displayLanguage: String,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .padding(vertical = 4.dp)
+            .selectable(selected = selected, onClick = onClick, role = Role.RadioButton)
+            .fillMaxWidth()
+            .defaultMinSize(minHeight = 48.dp)
+            .minimumInteractiveComponentSize(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        if (selected) {
+            Text(
+                text = displayLanguage,
+                modifier = Modifier
+                    .padding(start = 24.dp)
+                    .weight(1F)
+            )
+            Icon(
+                painter = painterResource(R.drawable.check_small_24px),
+                contentDescription = null,
+                modifier = Modifier.padding(end = 24.dp),
+                tint = MaterialTheme.colorScheme.primary
+            )
+        } else {
+            Text(
+                text = displayLanguage,
+                modifier = Modifier
+                    .padding(horizontal = 24.dp)
+                    .weight(1F)
+            )
+        }
+    }
+}

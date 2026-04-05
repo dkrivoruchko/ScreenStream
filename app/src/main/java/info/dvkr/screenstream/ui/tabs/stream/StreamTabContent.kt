@@ -50,6 +50,13 @@ internal fun StreamTabContent( //TODO Add foldable support
     streamingModulesManager: StreamingModuleManager = koinInject()
 ) {
     val activeModule = streamingModulesManager.activeModuleStateFlow.collectAsStateWithLifecycle()
+    val windowWidthSizeClass = with(currentWindowAdaptiveInfo().windowSizeClass) {
+        when {
+            isWidthAtLeastBreakpoint(WindowSizeClass.WIDTH_DP_EXPANDED_LOWER_BOUND) -> StreamingModule.WindowWidthSizeClass.EXPANDED
+            isWidthAtLeastBreakpoint(WindowSizeClass.WIDTH_DP_MEDIUM_LOWER_BOUND) -> StreamingModule.WindowWidthSizeClass.MEDIUM
+            else -> StreamingModule.WindowWidthSizeClass.COMPACT
+        }
+    }
 
     Column(modifier = modifier) {
         val with = with(LocalDensity.current) { boundsInWindow.width.toDp() }
@@ -78,7 +85,10 @@ internal fun StreamTabContent( //TODO Add foldable support
                 AdaptiveBanner(modifier = Modifier.fillMaxWidth())
             }
         }
-        activeModule.value?.StreamUIContent(modifier = Modifier.fillMaxSize())
+        activeModule.value?.StreamUIContent(
+            windowWidthSizeClass = windowWidthSizeClass,
+            modifier = Modifier.fillMaxSize()
+        )
     }
 }
 
@@ -92,8 +102,13 @@ private fun StreamingModuleSelector(
         .collectAsStateWithLifecycle(initialValue = AppSettings.Default.STREAMING_MODULE)
 
     val adaptiveInfo = currentWindowAdaptiveInfo()
+    val expanded = rememberSaveable {
+        mutableStateOf(adaptiveInfo.windowSizeClass.isHeightAtLeastBreakpoint(WindowSizeClass.HEIGHT_DP_MEDIUM_LOWER_BOUND))
+    }
 
     ExpandableCard(
+        expanded = expanded.value,
+        onExpandedChange = { expanded.value = it },
         headerContent = {
             Column(
                 modifier = Modifier
@@ -108,7 +123,6 @@ private fun StreamingModuleSelector(
         },
         modifier = modifier,
         contentModifier = Modifier.selectableGroup(),
-        initiallyExpanded = adaptiveInfo.windowSizeClass.isHeightAtLeastBreakpoint(WindowSizeClass.HEIGHT_DP_MEDIUM_LOWER_BOUND)
     ) {
         streamingModulesManager.modules.forEach { module ->
             ModuleSelectorRow(
