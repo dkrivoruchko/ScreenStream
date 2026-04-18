@@ -1,56 +1,48 @@
-![](screenshots/about_image_full.png)
+![](docs/images/hero.png)
 # ScreenStream
 
-ScreenStream is a user-friendly Android application that allows users to easily share their device screen and audio and view it directly in a web browser. No additional software is required other than the ScreenStream itself, a web browser, and an internet connection (for Global mode).
+ScreenStream is a user-friendly Android application for streaming your device screen and audio. Use Local (MJPEG) or Global (WebRTC) mode to view the stream in a web browser, or use RTSP mode with a compatible RTSP client or player.
 
-Google Play version supports all modes: **Global mode (WebRTC)**, **Local mode (MJPEG)** and **RTSP mode** with ads included.<br>
-Versions from F-Droid are ad-free and support only **Local mode (MJPEG)** and **RTSP mode**.
+The Google Play version supports all modes: **Global mode (WebRTC)**, **Local mode (MJPEG)**, and **RTSP mode**, with ads included.<br>
+F-Droid versions are ad-free and support only **Local mode (MJPEG)** and **RTSP mode**.
 
 <a href='https://play.google.com/store/apps/details?id=info.dvkr.screenstream'><img alt='Get it on Google Play' src='https://play.google.com/intl/en_us/badges/images/generic/en_badge_web_generic.png' height="100"/></a> <a href="https://f-droid.org/packages/info.dvkr.screenstream/" target="_blank"><img src="https://f-droid.org/badge/get-it-on.png" alt="Get it on F-Droid" height="100"/></a>
 
- * [Project support](#project-support)
- * [Stream modes](#stream-modes)
-   + [Local mode (MJPEG)](#local-mode-mjpeg)
-   + [Global mode (WebRTC)](#global-mode-webrtc)
-   + [RTSP mode](#rtsp-mode)
- * [Screenshots](#screenshots)
- * [Contribution](#contribution)
- * [Developer](#developed-by)
- * [Privacy Policy and Terms & Conditions](#privacy-policy-and-terms--conditions)
- * [License](#license)
-
 ## Project support
 
-If you find **ScreenStream** useful, please consider donating to support its development.<br>
-Your contribution is greatly appreciated!
+If **ScreenStream** is useful to you and you want to support its development, you can use any of the options below.
 
-**Tron (TRC20) USDT / USDC :** `TUKtTz3oe3qKYmm1ScDLKjRz9ty1FahpzR`
+**Preferred (Tether Wallet / Tether.me):** `dmkr0@tether.me`
 
-**Solana (SPL) USDT / USDC :** `7HasyJBLpiNhFvMvbfKUDXZwThRCfc3S4Yr74Rbs5e23`
+Tether Wallet supports Tether.me addresses as human-readable identifiers, so this is the simplest option if you already use Tether Wallet.
 
-**BNB Smart Chain (BEP20) USDT / USDC / BUSD / BNB :** `0x96818c1CfE9F613d8194c882a0898B8B3c47077B`
+If you prefer direct on-chain transfers, use one of these addresses:
+
+**USD₮ / USA₮ (Ethereum / ERC-20):** `0x5bb898c72dd3dD5E7f7A0Ab12854a60374B7c1dA`
+
+**BTC (on-chain):** `bc1q8wuv4esej0rdyn2jwkd93v7wvyep7uutzsmlh9`
 
 ## Stream modes
 
-ScreenStream offers three stream modes: **Global mode (WebRTC)** (in [Google Play Store](https://play.google.com/store/apps/details?id=info.dvkr.screenstream) version only), **Local mode (MJPEG)** and **RTSP mode**. All modes aim to stream the Android device screen and audio but function differently. They are independent of each other, with unique functionalities, restrictions, and customization options.
+ScreenStream offers three stream modes: **Global mode (WebRTC)** (available only in the [Google Play Store](https://play.google.com/store/apps/details?id=info.dvkr.screenstream) version), **Local mode (MJPEG)**, and **RTSP mode**. All modes stream the Android device screen, but they function differently. Audio support is available in **Global mode (WebRTC)** and **RTSP mode** only. The modes are independent of each other and have different capabilities, restrictions, and customization options.
 
 | Mode                   | Transport | Audio | Internet required | Server side                                                   | Security                                     |
 |------------------------|-----------|-------|-------------------|---------------------------------------------------------------|----------------------------------------------|
-| **Local (MJPEG)**      | HTTP MJPEG | ✕     | No            | Built‑in                                                      | Optional 4‑digit PIN                         |
-| **Global (WebRTC)**    | WebRTC    | ✓     | Yes               | Public signalling @ screenstream.io                        | End‑to‑end encryption + password          |
-| **RTSP Server/Client** | RTSP<br>H.265/H.264/AV1<br>OPUS/AAC/G.711 | ✓ | No (server) / Depends (client) | Built‑in server (Server mode) / External server (client mode) | Client mode supports RTSP auth + RTSPS (TLS) |
+| **Local mode (MJPEG)**   | HTTP MJPEG | ✕     | No                    | Built-in                                                        | Optional 4-6 digit PIN                         |
+| **Global mode (WebRTC)** | WebRTC     | ✓     | Yes                   | Public signaling service at [screenstream.io](https://screenstream.io) | End-to-end encryption + password               |
+| **RTSP mode**            | RTSP<br>H.265/H.264<br>OPUS/AAC/G.711 | ✓ | No (server) / Depends (client) | Built‑in server (Server mode) / External server (client mode) | Client mode supports RTSP auth + RTSPS (TLS) |
 
-In **Global (WebRTC)** and **Local (MJPEG)** modes the number of clients is not directly limited, but it's important to keep in mind that each client consumes CPU resources and bandwidth for data transmission.
+In **Global mode (WebRTC)** and **Local mode (MJPEG)**, the number of clients is not directly limited, but each client consumes CPU resources and bandwidth.
 
-The application uses Android [MediaProjection](https://developer.android.com/reference/android/media/projection/MediaProjection) feature and requires Android 6.0 or higher.
+ScreenStream uses Android's [MediaProjection](https://developer.android.com/reference/android/media/projection/MediaProjection) API and requires Android 6.0 or higher.
 
 > [!WARNING]
 >
-> - **High Traffic on Mobile Networks**: Use caution when streaming via mobile 3G/4G/5G/LTE networks to avoid excessive data usage.
+> - **High traffic on mobile networks:** Streaming over 3G/4G/5G/LTE can consume a large amount of data.
 > 
-> - **Delay in Streaming**: Expect a delay of at least 0.5-1 second or more in certain conditions: slow device, poor internet or network connection, or when the device is under heavy CPU load due to other applications.
+> - **Streaming delay:** Expect at least 0.5-1 second of delay, and potentially more on slower devices, unstable networks, or under heavy CPU load.
 > 
-> - **Video Streaming Limitation**: ScreenStream is not designed for streaming video, particularly HD video. While it will function, the stream quality may not meet your expectations.
+> - **Not optimized for video playback:** ScreenStream is not designed for streaming video content, especially HD video, so playback quality may not meet your expectations.
 
 ### Local mode (MJPEG)
 
@@ -58,7 +50,7 @@ Local mode in the ScreenStream application is built on the MJPEG standard and ut
 
 For optimal performance, a fast and stable network connection is recommended due to high traffic and low network delay requirements.
 
-In Local mode, the app processes each frame independently, one-by-one, enabling additional image transformations such as cropping, resizing, rotating, and more before sending the image to the client's web browser. 
+In Local mode, the app processes each frame independently, one by one, enabling additional image transformations such as cropping, resizing, rotating, and more before sending the image to the client's web browser.
 
 The Local mode offers the following functionality:
 - Powered by MJPEG standard.
@@ -78,13 +70,29 @@ The Local mode offers the following functionality:
 >
 > - Some WiFi networks, particularly public or guest networks, may block connections between its clients for security reasons. In such cases, connecting to the device via WiFi might not be feasible. For instance, a laptop and a phone within such a WiFi network will not be able to connect to each other.
 
+**Screenshots**
+
+<p>
+  <img src="docs/images/mjpeg-1.png" alt="Local mode main screen" width="270" />&nbsp;
+  <img src="docs/images/mjpeg-7.png" alt="Local mode activity and connected clients" width="270" />&nbsp;
+  <img src="docs/images/mjpeg-2.png" alt="Local mode information dialog" width="270" />
+</p>
+<p>
+  <img src="docs/images/mjpeg-3.png" alt="Local mode general parameters" width="270" />&nbsp;
+  <img src="docs/images/mjpeg-4.png" alt="Local mode image parameters" width="270" />&nbsp;
+  <img src="docs/images/mjpeg-5.png" alt="Local mode security parameters" width="270" />
+</p>
+<p align="center">
+  <img src="docs/images/mjpeg-6.png" alt="Local mode advanced parameters" width="290" />
+</p>
+
 ### Global mode (WebRTC)
 
 Global mode in the ScreenStream application is built on WebRTC technology and relies on an external signaling server to facilitate communication between the streaming host (the app) and the streaming client, which is a web browser equipped with the ScreenStream [Web Client](https://screenstream.io).
 
-Both the signaling server and the web client for ScreenStream are open-source and available in the [ScreenStreamWeb](https://github.com/dkrivoruchko/ScreenStreamWeb) repository. These components can be accessed publicly at https://screenstream.io. The system is designed to function seamlessly with any desktop or mobile browser that supports WebRTC, such as Chrome, Safari, EDGE, Firefox, and others.
+Both the signaling server and the web client for ScreenStream are open-source and available in the [ScreenStreamWeb](https://github.com/dkrivoruchko/ScreenStreamWeb) repository. These components are publicly available at [screenstream.io](https://screenstream.io). The system is designed to work with modern desktop and mobile browsers that support WebRTC, including Chrome, Safari, Edge, Firefox, and others.
 
-The Global mode was introduced in app version 4 and offers the following functionality:
+Global mode offers the following functionality:
 - Powered by WebRTC technology.
 - End-to-end encrypted communication.
 - Stream protection with password.
@@ -94,7 +102,15 @@ The Global mode was introduced in app version 4 and offers the following functio
 - Individual data transmission for each client, with more clients requiring increased internet bandwidth to maintain optimal performance.
 
 > [!NOTE]
-> Global mode (WebRTC) only available in Google Play version
+> Global mode (WebRTC) is available only in the Google Play version.
+
+**Screenshots**
+
+<p>
+  <img src="docs/images/webrtc-1.png" alt="Global mode main screen" width="270" />&nbsp;
+  <img src="docs/images/webrtc-2.png" alt="Global mode information dialog" width="270" />&nbsp;
+  <img src="docs/images/webrtc-3.png" alt="Global mode audio parameters" width="270" />
+</p>
 
 ### RTSP mode
 
@@ -113,38 +129,39 @@ For optimal performance, a fast and stable network connection is recommended due
 > [!NOTE]
 > Client mode requires an RTSP‑capable media server (e.g., [MediaMTX](https://github.com/aler9/mediamtx)).
 
-## Screenshots
+**Screenshots**
 
-![](screenshots/screenshot_lm_d.png)&nbsp;![](screenshots/screenshot_lm_d_about.png)<br>
-![](screenshots/screenshot_gm_d.png)&nbsp;![](screenshots/screenshot_gm_d_about.png)<br>
-![](screenshots/screenshot_rtsp_d.png)&nbsp;![](screenshots/screenshot_rtsp_d_about.png)<br>
-![](screenshots/screenshot_rtsp_d_video.png)&nbsp;![](screenshots/screenshot_rtsp_d_audio.png)<br>
-![](screenshots/screenshot_settings_1_d.png)&nbsp;![](screenshots/screenshot_settings_1_l.png)<br>
-![](screenshots/screenshot_settings_2_d.png)&nbsp;![](screenshots/screenshot_settings_2_l.png)<br>
-![](screenshots/screenshot_settings_3_d.png)&nbsp;![](screenshots/screenshot_settings_3_l.png)<br>
-![](screenshots/screenshot_settings_4_d.png)&nbsp;![](screenshots/screenshot_settings_4_l.png)<br>
-![](screenshots/screenshot_about_d.png)
+<p>
+  <img src="docs/images/rtsp-1.png" alt="RTSP mode main screen" width="270" />&nbsp;
+  <img src="docs/images/rtsp-2.png" alt="RTSP mode information dialog" width="270" />&nbsp;
+  <img src="docs/images/rtsp-3.png" alt="RTSP mode server parameters" width="270" />
+</p>
+<p align="center">
+  <img src="docs/images/rtsp-4.png" alt="RTSP mode video parameters" width="290" />&nbsp;
+  <img src="docs/images/rtsp-5.png" alt="RTSP mode audio parameters" width="290" />
+</p>
 
 ## Contribution
 
-To contribute with translation, kindly translate the following four files:
+To contribute a translation, please translate the following five files:
 
-1. https://github.com/dkrivoruchko/ScreenStream/blob/master/app/src/main/res/values/strings.xml
-1. https://github.com/dkrivoruchko/ScreenStream/blob/master/mjpeg/src/main/res/values/strings.xml
-1. https://github.com/dkrivoruchko/ScreenStream/blob/master/webrtc/src/main/res/values/strings.xml
-1. https://github.com/dkrivoruchko/ScreenStream/blob/master/rtsp/src/main/res/values/strings.xml
+1. [app/src/main/res/values/strings.xml](app/src/main/res/values/strings.xml)
+1. [common/src/main/res/values/strings.xml](common/src/main/res/values/strings.xml)
+1. [mjpeg/src/main/res/values/strings.xml](mjpeg/src/main/res/values/strings.xml)
+1. [webrtc/src/main/res/values/strings.xml](webrtc/src/main/res/values/strings.xml)
+1. [rtsp/src/main/res/values/strings.xml](rtsp/src/main/res/values/strings.xml)
 
-Then, please, [make a pull request](https://help.github.com/en/articles/creating-a-pull-request) or send those translated files to the developer via e-mail <dkrivoruchko@gmail.com> as an attachment.
+Please submit a [pull request](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request). If that is not possible, you can send the translated files to the developer via e-mail <dkrivoruchko@gmail.com>.
 
-Your contribution is valuable and will help improve the accessibility of the application. Thank you for your efforts!
+Your contribution helps make the application more accessible. Thank you for your efforts.
 
-## Developed By
+## Developer
 
-Developed by [Dmytro Kryvoruchko](dkrivoruchko@gmail.com). If there are any issues or ideas, feel free to contact me.
+Developed by [Dmytro Kryvoruchko](mailto:dkrivoruchko@gmail.com). If you have any issues or ideas, feel free to contact me.
 
-## Privacy Policy and Terms & Conditions
+## Privacy and Terms
 
-App [Privacy Policy](https://github.com/dkrivoruchko/ScreenStream/blob/master/PrivacyPolicy.md) and [Terms & Conditions](https://github.com/dkrivoruchko/ScreenStream/blob/master/TermsConditions.md)
+App [Privacy Policy](PrivacyPolicy.md) and [Terms & Conditions](TermsConditions.md)
 
 ## License
 
