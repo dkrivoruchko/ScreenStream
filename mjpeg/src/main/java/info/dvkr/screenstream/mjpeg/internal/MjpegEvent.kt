@@ -28,16 +28,16 @@ internal open class MjpegEvent(val priority: Int) {
         }
 
         @Parcelize internal data class StartService(val token: String) : Intentable(Priority.NONE)
-        @Parcelize internal data class StartProjection(val intent: Intent) : Intentable(Priority.START_PROJECTION)
+        @Parcelize internal data class StartProjection(val startAttemptId: String, val intent: Intent) : Intentable(Priority.START_PROJECTION)
         @Parcelize internal data class StopStream(val reason: String) : Intentable(Priority.RESTART_IGNORE)
         @Parcelize internal data object RecoverError : Intentable(Priority.RECOVER_IGNORE)
 
         internal fun toIntent(context: Context): Intent = MjpegModuleService.getIntent(context).putExtra(EXTRA_PARCELABLE, this)
     }
 
-    internal data object CastPermissionsDenied : MjpegEvent(Priority.RECOVER_IGNORE)
+    internal data class CastPermissionsDenied(val startAttemptId: String) : MjpegEvent(Priority.RECOVER_IGNORE)
     internal data class StartProjection(
-        val intent: Intent, val foregroundStartProcessed: Boolean = false, val foregroundStartError: Throwable? = null
+        val startAttemptId: String, val intent: Intent, val foregroundStartProcessed: Boolean = false, val foregroundStartError: Throwable? = null
     ) : MjpegEvent(Priority.START_PROJECTION)
     internal data object CreateNewPin : MjpegEvent(Priority.DESTROY_IGNORE)
 }

@@ -58,7 +58,9 @@ internal fun TrafficCard(
             Text(
                 text = stringResource(id = R.string.mjpeg_stream_current_traffic, currentTraffic)
                     .stylePlaceholder("%1$,.2f".format(locale, currentTraffic), SpanStyle(fontWeight = FontWeight.Bold)),
-                modifier = Modifier.align(Alignment.Center)
+                modifier = Modifier
+                    .align(Alignment.CenterStart)
+                    .padding(start = 48.dp)
             )
         },
         modifier = modifier

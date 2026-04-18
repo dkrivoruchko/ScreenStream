@@ -23,12 +23,12 @@ public class RtspModuleService : StreamingModuleService() {
             context.startService(intent)
         }
 
-        internal fun startProjection(context: Context, permissionIntent: Intent, source: String = "ui_permission") {
-            val intent = RtspEvent.Intentable.StartProjection(permissionIntent).toIntent(context)
-            XLog.d(getLog("RtspModuleService.startProjection", "Run intent: ${intent.extras}"))
+        internal fun dispatchProjectionIntent(context: Context, startAttemptId: String, permissionIntent: Intent) {
+            val intent = RtspEvent.Intentable.StartProjection(startAttemptId, permissionIntent).toIntent(context)
+            XLog.d(getLog("RtspModuleService.dispatchProjectionIntent", "Run intent: ${intent.extras}"))
             val importance = ActivityManager.RunningAppProcessInfo().also { ActivityManager.getMyMemoryState(it) }.importance
-            XLog.i(getLog("RtspModuleService.startProjection", "RunningAppProcessInfo.importance: $importance"))
-            XLog.i(getLog("RtspModuleService.startProjection", "SP_TRACE route=preflight_v1 stage=service_command source=$source importance=$importance"))
+            XLog.i(getLog("RtspModuleService.dispatchProjectionIntent", "RunningAppProcessInfo.importance: $importance"))
+            XLog.i(getLog("RtspModuleService.dispatchProjectionIntent", "SP_TRACE route=service_cached_permission stage=service_command startAttemptId=$startAttemptId importance=$importance"))
             context.startService(intent)
         }
     }
@@ -76,8 +76,8 @@ public class RtspModuleService : StreamingModuleService() {
             when (rtspEvent) {
                 is RtspEvent.Intentable.StartService -> rtspStreamingModule.onServiceStart(this, rtspEvent.token)
                 is RtspEvent.Intentable.StartProjection -> {
-                    XLog.i(getLog("onStartCommand", "SP_TRACE route=preflight_v1 stage=service_dispatch event=StartProjection startId=$startId"))
-                    rtspStreamingModule.startProjection(rtspEvent.intent)
+                    XLog.i(getLog("onStartCommand", "SP_TRACE route=service_cached_permission stage=service_dispatch event=StartProjection startAttemptId=${rtspEvent.startAttemptId} startId=$startId"))
+                    rtspStreamingModule.startProjection(rtspEvent.startAttemptId, rtspEvent.intent)
                 }
                 is RtspEvent.Intentable.StopStream -> rtspStreamingModule.sendEvent(rtspEvent)
                 RtspEvent.Intentable.RecoverError -> rtspStreamingModule.sendEvent(rtspEvent)

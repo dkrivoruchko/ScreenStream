@@ -28,6 +28,7 @@ internal data class RtspState(
     val mode: RtspSettings.Values.Mode = RtspSettings.Default.MODE,
     val isBusy: Boolean = true,
     val waitingCastPermission: Boolean = false,
+    val startAttemptId: String? = null,
     val isStreaming: Boolean = false,
     val selectedVideoEncoder: VideoCodecInfo? = null,
     val selectedAudioEncoder: AudioCodecInfo? = null,
@@ -37,7 +38,7 @@ internal data class RtspState(
     val error: RtspError? = null
 ) {
     override fun toString(): String =
-        "RtspViewState(mode=$mode, isBusy=$isBusy, wCP=$waitingCastPermission, isStreaming=$isStreaming, serverClients=${serverClientStats.size}, clientStatus=$clientStatus, error=$error)"
+        "RtspState(mode=$mode busy=$isBusy wait=$waitingCastPermission start=$startAttemptId str=$isStreaming srvClients=${serverClientStats.size} client=$clientStatus err=$error)"
 }
 
 @Immutable

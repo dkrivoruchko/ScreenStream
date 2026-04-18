@@ -1,5 +1,6 @@
 package info.dvkr.screenstream.webrtc.ui
 
+import android.content.Intent
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.PaddingValues
@@ -33,7 +34,6 @@ import info.dvkr.screenstream.common.ui.ScreenCapturePermissionWithEducation
 import info.dvkr.screenstream.common.ui.get
 import info.dvkr.screenstream.common.ui.rememberScreenCapturePermissionWithEducationState
 import info.dvkr.screenstream.webrtc.R
-import info.dvkr.screenstream.webrtc.WebRtcModuleService
 import info.dvkr.screenstream.webrtc.internal.WebRtcEvent
 import info.dvkr.screenstream.webrtc.internal.WebRtcStreamingService
 import info.dvkr.screenstream.webrtc.settings.WebRtcSettings
@@ -50,6 +50,7 @@ import org.koin.compose.koinInject
 internal fun WebRtcMainScreenUI(
     webRtcStateFlow: StateFlow<WebRtcState>,
     sendEvent: (event: WebRtcEvent) -> Unit,
+    onProjectionGranted: (startAttemptId: String, intent: Intent) -> Unit,
     modifier: Modifier = Modifier,
     webRtcSettings: WebRtcSettings = koinInject(),
     notificationHelper: NotificationHelper = koinInject()
@@ -68,11 +69,11 @@ internal fun WebRtcMainScreenUI(
     BoxWithConstraints(modifier = modifier) {
         ScreenCapturePermissionWithEducation(
             state = screenCapturePermissionWithEducationState,
-            shouldRequestPermission = state.waitingCastPermission,
+            startAttemptId = state.startAttemptId?.takeIf { state.waitingCastPermission },
             isStreaming = state.isStreaming,
             onStartRequested = { educationShown -> sendEvent(WebRtcStreamingService.InternalEvent.StartStream(permissionEducationShown = educationShown)) },
-            onPermissionGranted = { intent -> if (state.waitingCastPermission) WebRtcModuleService.startProjection(context, intent) },
-            onPermissionDenied = { if (state.waitingCastPermission) sendEvent(WebRtcEvent.CastPermissionsDenied) },
+            onPermissionGranted = { startAttemptId, intent -> if (state.startAttemptId == startAttemptId) onProjectionGranted(startAttemptId, intent) },
+            onPermissionDenied = { startAttemptId -> if (state.startAttemptId == startAttemptId) sendEvent(WebRtcEvent.CastPermissionsDenied(startAttemptId)) },
         )
 
         val lazyVerticalStaggeredGridState = rememberLazyStaggeredGridState()
@@ -104,6 +105,14 @@ internal fun WebRtcMainScreenUI(
                 )
             }
 
+            item(key = "CLIENTS") {
+                ClientsCard(
+                    state = state,
+                    onClientDisconnect = { clientId -> sendEvent(WebRtcEvent.RemoveClient(clientId, true, "User request")) },
+                    modifier = Modifier.padding(8.dp)
+                )
+            }
+
             item(key = "AUDIO") {
                 AudioCard(
                     isStreaming = state.isStreaming,
@@ -118,14 +127,6 @@ internal fun WebRtcMainScreenUI(
                     settings = settings,
                     updateSettings = updateSettings,
                     enabled = state.isStreaming.not(),
-                    modifier = Modifier.padding(8.dp)
-                )
-            }
-
-            item(key = "CLIENTS") {
-                ClientsCard(
-                    state = state,
-                    onClientDisconnect = { clientId -> sendEvent(WebRtcEvent.RemoveClient(clientId, true, "User request")) },
                     modifier = Modifier.padding(8.dp)
                 )
             }

@@ -1,5 +1,6 @@
 package info.dvkr.screenstream.rtsp.ui
 
+import android.content.Intent
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.PaddingValues
@@ -34,7 +35,6 @@ import info.dvkr.screenstream.common.ui.ScreenCapturePermissionWithEducation
 import info.dvkr.screenstream.common.ui.get
 import info.dvkr.screenstream.common.ui.rememberScreenCapturePermissionWithEducationState
 import info.dvkr.screenstream.rtsp.R
-import info.dvkr.screenstream.rtsp.RtspModuleService
 import info.dvkr.screenstream.rtsp.internal.RtspEvent
 import info.dvkr.screenstream.rtsp.internal.RtspStreamingService
 import info.dvkr.screenstream.rtsp.internal.rtsp.RtspUrl
@@ -53,6 +53,7 @@ import org.koin.compose.koinInject
 internal fun RtspMainScreenUI(
     rtspStateFlow: StateFlow<RtspState>,
     sendEvent: (event: RtspEvent) -> Unit,
+    onProjectionGranted: (startAttemptId: String, intent: Intent) -> Unit,
     windowWidthSizeClass: StreamingModule.WindowWidthSizeClass,
     modifier: Modifier = Modifier,
     rtspSettings: RtspSettings = koinInject(),
@@ -73,11 +74,11 @@ internal fun RtspMainScreenUI(
     BoxWithConstraints(modifier = modifier) {
         ScreenCapturePermissionWithEducation(
             state = screenCapturePermissionWithEducationState,
-            shouldRequestPermission = state.waitingCastPermission,
+            startAttemptId = state.startAttemptId?.takeIf { state.waitingCastPermission },
             isStreaming = state.isStreaming,
             onStartRequested = { educationShown -> sendEvent(RtspStreamingService.InternalEvent.StartStream(permissionEducationShown = educationShown)) },
-            onPermissionGranted = { intent -> if (state.waitingCastPermission) RtspModuleService.startProjection(context, intent) },
-            onPermissionDenied = { if (state.waitingCastPermission) sendEvent(RtspEvent.CastPermissionsDenied) },
+            onPermissionGranted = { startAttemptId, intent -> if (state.startAttemptId == startAttemptId) onProjectionGranted(startAttemptId, intent) },
+            onPermissionDenied = { startAttemptId -> if (state.startAttemptId == startAttemptId) sendEvent(RtspEvent.CastPermissionsDenied(startAttemptId)) },
         )
 
         val lazyVerticalStaggeredGridState = rememberLazyStaggeredGridState()

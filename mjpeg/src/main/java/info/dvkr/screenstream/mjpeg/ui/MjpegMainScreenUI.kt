@@ -33,7 +33,6 @@ import info.dvkr.screenstream.common.ui.DoubleClickProtection
 import info.dvkr.screenstream.common.ui.ScreenCapturePermissionWithEducation
 import info.dvkr.screenstream.common.ui.get
 import info.dvkr.screenstream.common.ui.rememberScreenCapturePermissionWithEducationState
-import info.dvkr.screenstream.mjpeg.MjpegModuleService
 import info.dvkr.screenstream.mjpeg.R
 import info.dvkr.screenstream.mjpeg.internal.MjpegEvent
 import info.dvkr.screenstream.mjpeg.internal.MjpegStreamingService
@@ -55,6 +54,7 @@ import org.koin.compose.koinInject
 internal fun MjpegMainScreenUI(
     mjpegStateFlow: StateFlow<MjpegState>,
     sendEvent: (event: MjpegEvent) -> Unit,
+    onProjectionGranted: (startAttemptId: String, intent: android.content.Intent) -> Unit,
     windowWidthSizeClass: StreamingModule.WindowWidthSizeClass,
     modifier: Modifier = Modifier,
     mjpegSettings: MjpegSettings = koinInject(),
@@ -74,11 +74,11 @@ internal fun MjpegMainScreenUI(
     BoxWithConstraints(modifier = modifier) {
         ScreenCapturePermissionWithEducation(
             state = screenCapturePermissionWithEducationState,
-            shouldRequestPermission = state.waitingCastPermission,
+            startAttemptId = state.startAttemptId?.takeIf { state.waitingCastPermission },
             isStreaming = state.isStreaming,
             onStartRequested = { educationShown -> sendEvent(MjpegStreamingService.InternalEvent.StartStream(permissionEducationShown = educationShown)) },
-            onPermissionGranted = { intent -> if (state.waitingCastPermission) MjpegModuleService.startProjection(context, intent) },
-            onPermissionDenied = { if (state.waitingCastPermission) sendEvent(MjpegEvent.CastPermissionsDenied) },
+            onPermissionGranted = { startAttemptId, intent -> if (state.startAttemptId == startAttemptId) onProjectionGranted(startAttemptId, intent) },
+            onPermissionDenied = { startAttemptId -> if (state.startAttemptId == startAttemptId) sendEvent(MjpegEvent.CastPermissionsDenied(startAttemptId)) },
         )
 
         val lazyVerticalStaggeredGridState = rememberLazyStaggeredGridState()
@@ -112,6 +112,14 @@ internal fun MjpegMainScreenUI(
                     onCreateNewPin = { sendEvent(MjpegEvent.CreateNewPin) },
                     modifier = Modifier.padding(8.dp)
                 )
+            }
+
+            item(key = "TRAFFIC") {
+                TrafficCard(traffic = state.traffic, modifier = Modifier.padding(8.dp))
+            }
+
+            item(key = "CLIENTS") {
+                ClientsCard(clients = state.clients, modifier = Modifier.padding(8.dp))
             }
 
             item(key = "SETTINGS_GENERAL") {
@@ -149,14 +157,6 @@ internal fun MjpegMainScreenUI(
                     windowWidthSizeClass = windowWidthSizeClass,
                     modifier = Modifier.padding(8.dp)
                 )
-            }
-
-            item(key = "TRAFFIC") {
-                TrafficCard(traffic = state.traffic, modifier = Modifier.padding(8.dp))
-            }
-
-            item(key = "CLIENTS") {
-                ClientsCard(clients = state.clients, modifier = Modifier.padding(8.dp))
             }
         }
 

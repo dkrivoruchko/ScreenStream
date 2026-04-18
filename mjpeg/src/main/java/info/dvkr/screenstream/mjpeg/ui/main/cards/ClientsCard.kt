@@ -34,7 +34,9 @@ internal fun ClientsCard(
             Text(
                 text = stringResource(id = R.string.mjpeg_stream_connected_clients, clientsCount)
                     .stylePlaceholder(clientsCount.toString(), SpanStyle(fontWeight = FontWeight.Bold)),
-                modifier = Modifier.align(Alignment.Center)
+                modifier = Modifier
+                    .align(Alignment.CenterStart)
+                    .padding(start = 48.dp)
             )
         },
         modifier = modifier,

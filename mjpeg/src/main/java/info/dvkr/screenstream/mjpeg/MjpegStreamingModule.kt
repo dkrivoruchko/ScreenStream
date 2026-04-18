@@ -64,6 +64,7 @@ public class MjpegStreamingModule : StreamingModule {
         MjpegMainScreenUI(
             mjpegStateFlow = _mjpegStateFlow.asStateFlow(),
             sendEvent = ::sendEvent,
+            onProjectionGranted = ::startProjection,
             windowWidthSizeClass = windowWidthSizeClass,
             modifier = modifier
         )
@@ -180,8 +181,8 @@ public class MjpegStreamingModule : StreamingModule {
     }
 
     @MainThread
-    internal fun startProjection(intent: Intent) {
-        XLog.d(getLog("startProjection", "intent=$intent"))
+    internal fun startProjection(startAttemptId: String, intent: Intent) {
+        XLog.d(getLog("startProjection", "startAttemptId=$startAttemptId, intent=$intent"))
         check(Looper.getMainLooper().isCurrentThread) { "Only main thread allowed" }
 
         when (val state = _streamingServiceState.value) {
@@ -189,7 +190,7 @@ public class MjpegStreamingModule : StreamingModule {
                 val activeStreamingService = streamingService
                 if (activeStreamingService != null) {
                     val foregroundStartError = activeStreamingService.tryStartProjectionForeground()
-                    activeStreamingService.sendEvent(MjpegEvent.StartProjection(intent = intent, foregroundStartProcessed = true, foregroundStartError))
+                    activeStreamingService.sendEvent(MjpegEvent.StartProjection(startAttemptId, intent, foregroundStartProcessed = true, foregroundStartError))
                 } else XLog.w(getLog("startProjection", "Running state without MjpegStreamingService"))
             }
 

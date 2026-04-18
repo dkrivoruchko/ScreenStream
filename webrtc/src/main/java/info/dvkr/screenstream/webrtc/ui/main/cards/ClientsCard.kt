@@ -37,7 +37,9 @@ internal fun ClientsCard(
             Text(
                 text = stringResource(id = R.string.webrtc_stream_connected_clients, state.clients.size)
                     .stylePlaceholder(state.clients.size.toString(), SpanStyle(fontWeight = FontWeight.Bold)),
-                modifier = Modifier.align(Alignment.Center)
+                modifier = Modifier
+                    .align(Alignment.CenterStart)
+                    .padding(start = 48.dp)
             )
         },
         modifier = modifier,

@@ -21,6 +21,11 @@ public class ProjectionCoordinator(
     private val onProjectionStopped: (generation: Long) -> Unit
 ) {
 
+    private companion object {
+        private const val PROJECTION_ACQUIRE_RETRY_DELAY_MS = 100L
+        private const val PROJECTION_ACQUIRE_RETRY_WINDOW_MS = 1500L
+    }
+
     public enum class CachedIntentAction {
         KEEP,
         INVALIDATE
@@ -111,7 +116,10 @@ public class ProjectionCoordinator(
 
     public fun asForegroundStartResult(cause: Throwable): StartResult = when {
         cause is BusyStartException -> StartResult.Busy
-        Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE && cause is ForegroundServiceTypeException -> StartResult.Fatal(cause)
+        Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE && cause is ForegroundServiceTypeException -> {
+            XLog.i(getLog("asForegroundStartResult[$tag]", "Fatal foreground start on Android 14+. cause=${cause.javaClass.simpleName}: ${cause.message}"))
+            StartResult.Fatal(cause)
+        }
         Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && cause is ServiceStartNotAllowedException -> StartResult.Blocked(cause)
         else -> StartResult.Fatal(cause)
     }
@@ -143,17 +151,26 @@ public class ProjectionCoordinator(
             val projection = try {
                 projectionManager.getMediaProjection(Activity.RESULT_OK, permissionIntent)
             } catch (cause: SecurityException) {
-                if (cause.message?.contains("FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION") != true) throw cause
+                val shouldRetry = Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE && foregroundStartDelay in 0..PROJECTION_ACQUIRE_RETRY_WINDOW_MS
+                if (!shouldRetry) {
+                    synchronized(lock) { clearStartingState() }
+                    return StartResult.Fatal(cause, CachedIntentAction.INVALIDATE)
+                }
                 projectionRetried = true
-                XLog.w(getLog("startProjection[$tag]", "Projection acquisition failed on first attempt. Retrying in 100ms. generation=$generation"))
-                SystemClock.sleep(100)
-                projectionManager.getMediaProjection(Activity.RESULT_OK, permissionIntent)
+                XLog.w(getLog("startProjection[$tag]", "Projection acquisition failed on first attempt. Retrying in ${PROJECTION_ACQUIRE_RETRY_DELAY_MS}ms. generation=$generation afterForeground=${foregroundStartDelay}ms cause=${cause.javaClass.simpleName}: ${cause.message}"))
+                SystemClock.sleep(PROJECTION_ACQUIRE_RETRY_DELAY_MS)
+                try {
+                    projectionManager.getMediaProjection(Activity.RESULT_OK, permissionIntent)
+                } catch (retryCause: SecurityException) {
+                    synchronized(lock) { clearStartingState() }
+                    return StartResult.Fatal(retryCause, CachedIntentAction.INVALIDATE)
+                }
             }
             if (projection == null) {
                 val cause = IllegalStateException("MediaProjectionManager.getMediaProjection returned null")
                 XLog.e(getLog("startProjection[$tag]", "Projection acquisition failed. generation=$generation, cause=${cause.message}"))
                 synchronized(lock) { clearStartingState() }
-                return StartResult.Fatal(cause)
+                return StartResult.Fatal(cause, CachedIntentAction.INVALIDATE)
             }
             mediaProjection = projection
             if (projectionRetried) {

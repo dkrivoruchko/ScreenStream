@@ -69,6 +69,7 @@ public class RtspStreamingModule : StreamingModule {
         RtspMainScreenUI(
             rtspStateFlow = _rtspStateFlow.asStateFlow(),
             sendEvent = ::sendEvent,
+            onProjectionGranted = ::startProjection,
             windowWidthSizeClass = windowWidthSizeClass,
             modifier = modifier
         )
@@ -186,8 +187,8 @@ public class RtspStreamingModule : StreamingModule {
     }
 
     @MainThread
-    internal fun startProjection(intent: Intent) {
-        XLog.d(getLog("startProjection", "intent=$intent"))
+    internal fun startProjection(startAttemptId: String, intent: Intent) {
+        XLog.d(getLog("startProjection", "startAttemptId=$startAttemptId, intent=$intent"))
         check(Looper.getMainLooper().isCurrentThread) { "Only main thread allowed" }
 
         when (val state = _streamingServiceState.value) {
@@ -195,7 +196,7 @@ public class RtspStreamingModule : StreamingModule {
                 val activeStreamingService = streamingService
                 if (activeStreamingService != null) {
                     val foregroundStartError = activeStreamingService.tryStartProjectionForeground()
-                    activeStreamingService.sendEvent(RtspEvent.StartProjection(intent = intent, foregroundStartProcessed = true, foregroundStartError))
+                    activeStreamingService.sendEvent(RtspEvent.StartProjection(startAttemptId, intent, foregroundStartProcessed = true, foregroundStartError))
                 } else XLog.w(getLog("startProjection", "Running state without RtspStreamingService"))
             }
 
@@ -219,7 +220,7 @@ public class RtspStreamingModule : StreamingModule {
             }
             else -> when (event) {
                 is RtspEvent.StartProjection,
-                RtspEvent.CastPermissionsDenied,
+                is RtspEvent.CastPermissionsDenied,
                 is RtspEvent.Intentable.StopStream,
                 is RtspStreamingService.InternalEvent.StartStream ->
                     XLog.i(getLog("sendEvent", "Ignoring stale event in state=$state: $event"))

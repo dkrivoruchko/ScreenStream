@@ -62,6 +62,7 @@ public class WebRtcStreamingModule : StreamingModule {
         WebRtcMainScreenUI(
             webRtcStateFlow = _webRtcStateFlow.asStateFlow(),
             sendEvent = ::sendEvent,
+            onProjectionGranted = ::startProjection,
             modifier = modifier
         )
 
@@ -174,8 +175,8 @@ public class WebRtcStreamingModule : StreamingModule {
     }
 
     @MainThread
-    internal fun startProjection(intent: Intent) {
-        XLog.d(getLog("startProjection", "intent=$intent"))
+    internal fun startProjection(startAttemptId: String, intent: Intent) {
+        XLog.d(getLog("startProjection", "startAttemptId=$startAttemptId, intent=$intent"))
         check(Looper.getMainLooper().isCurrentThread) { "Only main thread allowed" }
 
         when (val state = _streamingServiceState.value) {
@@ -183,7 +184,7 @@ public class WebRtcStreamingModule : StreamingModule {
                 val activeStreamingService = streamingService
                 if (activeStreamingService != null) {
                     val foregroundStartError = activeStreamingService.tryStartProjectionForeground()
-                    activeStreamingService.sendEvent(WebRtcEvent.StartProjection(intent = intent, foregroundStartProcessed = true, foregroundStartError))
+                    activeStreamingService.sendEvent(WebRtcEvent.StartProjection(startAttemptId, intent, foregroundStartProcessed = true, foregroundStartError))
                 } else XLog.w(getLog("startProjection", "Running state without WebRtcStreamingService"))
             }
 

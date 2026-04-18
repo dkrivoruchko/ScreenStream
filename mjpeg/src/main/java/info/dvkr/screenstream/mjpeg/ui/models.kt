@@ -11,6 +11,7 @@ internal data class MjpegState(
     val isBusy: Boolean = true,
     val serverNetInterfaces: List<ServerNetInterface> = emptyList(),
     val waitingCastPermission: Boolean = false,
+    val startAttemptId: String? = null,
     val isStreaming: Boolean = false,
     val pin: Pin = Pin(MjpegSettings.Default.ENABLE_PIN, MjpegSettings.Default.PIN, MjpegSettings.Default.HIDE_PIN_ON_START),
     val clients: List<Client> = emptyList(),
@@ -32,7 +33,7 @@ internal data class MjpegState(
     internal data class TrafficPoint(val time: Long, val MBytes: Float)
 
     override fun toString(): String =
-        "MjpegState(isBusy=$isBusy, wCP=$waitingCastPermission, isStreaming=$isStreaming, netInterfaces=$serverNetInterfaces, clients=${clients.size}, error=$error)"
+        "MjpegState(busy=$isBusy wait=$waitingCastPermission start=$startAttemptId str=$isStreaming ifs=${serverNetInterfaces.size} clients=${clients.size} err=$error)"
 }
 
 @Immutable
