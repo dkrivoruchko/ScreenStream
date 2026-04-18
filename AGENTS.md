@@ -29,9 +29,6 @@ Product flavors are PascalCase (`FDroid`, `PlayStore`), and module names are low
 - Strings live in module `res/values` (app, mjpeg, rtsp, webrtc). Avoid hardcoded literals.
 - Use compact AOSP‑style UI terms; prefer “stream”/“device”. Use loanwords when standard, otherwise localize.
 
-## Commit & Pull Request Guidelines
-Recent commits use short, sentence-style summaries (e.g., “Readme update”, “Minor updates”).
-Follow that pattern and keep messages scoped to the change.
 
 ## Security & Configuration Tips
 `local.properties` is read for Play Store ad identifiers; keep it uncommitted.
@@ -39,3 +36,7 @@ The debug keystore is checked in for convenience; do not use it for release buil
 Keep WebRTC signaling endpoints configurable; never hardcode credentials.
 
 When debugging crashes/ANRs, always use the Firebase Crashlytics MCP tools to fetch the latest issues and details before proposing code changes.
+
+Prefer Android CLI for Android-specific tasks, use Android Studio MCP/Agent tooling when IDE integration helps, and fall back to raw terminal or Gradle commands only for unsupported operations, verification, or debugging.
+
+Use a connected physical Android device for app run/test when available. If none is connected, ask before launching an emulator.
