@@ -31,9 +31,9 @@ import androidx.lifecycle.compose.dropUnlessStarted
 import info.dvkr.screenstream.common.module.StreamingModule
 import info.dvkr.screenstream.common.notification.NotificationHelper
 import info.dvkr.screenstream.common.ui.DoubleClickProtection
-import info.dvkr.screenstream.common.ui.ScreenCapturePermissionWithEducation
 import info.dvkr.screenstream.common.ui.get
-import info.dvkr.screenstream.common.ui.rememberScreenCapturePermissionWithEducationState
+import info.dvkr.screenstream.common.ui.mediaprojection.ScreenCapturePermissionFlow
+import info.dvkr.screenstream.common.ui.mediaprojection.rememberScreenCaptureStartRequester
 import info.dvkr.screenstream.rtsp.R
 import info.dvkr.screenstream.rtsp.internal.RtspEvent
 import info.dvkr.screenstream.rtsp.internal.RtspStreamingService
@@ -62,7 +62,7 @@ internal fun RtspMainScreenUI(
     val rtspState = rtspStateFlow.collectAsStateWithLifecycle()
     val rtspSettingsState = rtspSettings.data.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
-    val screenCapturePermissionWithEducationState = rememberScreenCapturePermissionWithEducationState()
+    val screenCaptureStartRequester = rememberScreenCaptureStartRequester()
     val context = LocalContext.current
     val state = rtspState.value
     val settings = rtspSettingsState.value
@@ -72,11 +72,14 @@ internal fun RtspMainScreenUI(
     }
 
     BoxWithConstraints(modifier = modifier) {
-        ScreenCapturePermissionWithEducation(
-            state = screenCapturePermissionWithEducationState,
+        ScreenCapturePermissionFlow(
+            startRequester = screenCaptureStartRequester,
+            permissionScopeKey = "rtsp",
             startAttemptId = state.startAttemptId?.takeIf { state.waitingCastPermission },
-            isStreaming = state.isStreaming,
-            onStartRequested = { educationShown -> sendEvent(RtspStreamingService.InternalEvent.StartStream(permissionEducationShown = educationShown)) },
+            onStartRequested = onStartRequested@{ educationShown ->
+                if (state.isStreaming) return@onStartRequested
+                sendEvent(RtspStreamingService.InternalEvent.StartStream(permissionEducationShown = educationShown))
+            },
             onPermissionGranted = { startAttemptId, intent -> if (state.startAttemptId == startAttemptId) onProjectionGranted(startAttemptId, intent) },
             onPermissionDenied = { startAttemptId -> if (state.startAttemptId == startAttemptId) sendEvent(RtspEvent.CastPermissionsDenied(startAttemptId)) },
         )
@@ -170,7 +173,7 @@ internal fun RtspMainScreenUI(
                     if (state.isStreaming) {
                         sendEvent(RtspEvent.Intentable.StopStream("User action: Button"))
                     } else {
-                        screenCapturePermissionWithEducationState.requestStart()
+                        screenCaptureStartRequester.request()
                     }
                 }
             },

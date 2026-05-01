@@ -30,9 +30,9 @@ import androidx.lifecycle.compose.dropUnlessStarted
 import info.dvkr.screenstream.common.module.StreamingModule
 import info.dvkr.screenstream.common.notification.NotificationHelper
 import info.dvkr.screenstream.common.ui.DoubleClickProtection
-import info.dvkr.screenstream.common.ui.ScreenCapturePermissionWithEducation
 import info.dvkr.screenstream.common.ui.get
-import info.dvkr.screenstream.common.ui.rememberScreenCapturePermissionWithEducationState
+import info.dvkr.screenstream.common.ui.mediaprojection.ScreenCapturePermissionFlow
+import info.dvkr.screenstream.common.ui.mediaprojection.rememberScreenCaptureStartRequester
 import info.dvkr.screenstream.mjpeg.R
 import info.dvkr.screenstream.mjpeg.internal.MjpegEvent
 import info.dvkr.screenstream.mjpeg.internal.MjpegStreamingService
@@ -63,7 +63,7 @@ internal fun MjpegMainScreenUI(
     val mjpegState = mjpegStateFlow.collectAsStateWithLifecycle()
     val mjpegSettingsState = mjpegSettings.data.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
-    val screenCapturePermissionWithEducationState = rememberScreenCapturePermissionWithEducationState()
+    val screenCaptureStartRequester = rememberScreenCaptureStartRequester()
     val context = LocalContext.current
     val state = mjpegState.value
     val settings = mjpegSettingsState.value
@@ -72,11 +72,14 @@ internal fun MjpegMainScreenUI(
     }
 
     BoxWithConstraints(modifier = modifier) {
-        ScreenCapturePermissionWithEducation(
-            state = screenCapturePermissionWithEducationState,
+        ScreenCapturePermissionFlow(
+            startRequester = screenCaptureStartRequester,
+            permissionScopeKey = "mjpeg",
             startAttemptId = state.startAttemptId?.takeIf { state.waitingCastPermission },
-            isStreaming = state.isStreaming,
-            onStartRequested = { educationShown -> sendEvent(MjpegStreamingService.InternalEvent.StartStream(permissionEducationShown = educationShown)) },
+            onStartRequested = onStartRequested@{ educationShown ->
+                if (state.isStreaming) return@onStartRequested
+                sendEvent(MjpegStreamingService.InternalEvent.StartStream(permissionEducationShown = educationShown))
+            },
             onPermissionGranted = { startAttemptId, intent -> if (state.startAttemptId == startAttemptId) onProjectionGranted(startAttemptId, intent) },
             onPermissionDenied = { startAttemptId -> if (state.startAttemptId == startAttemptId) sendEvent(MjpegEvent.CastPermissionsDenied(startAttemptId)) },
         )
@@ -172,7 +175,7 @@ internal fun MjpegMainScreenUI(
                     if (state.isStreaming) {
                         sendEvent(MjpegEvent.Intentable.StopStream("User action: Button"))
                     } else {
-                        screenCapturePermissionWithEducationState.requestStart()
+                        screenCaptureStartRequester.request()
                     }
                 }
             },

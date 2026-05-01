@@ -32,6 +32,7 @@ dependencies {
     api(libs.androidx.fragment)
     api(libs.androidx.appcompat)
     api(libs.androidx.lifecycle.runtime.compose)
+    api(libs.androidx.lifecycle.viewmodel.compose)
     api(libs.androidx.window)
     api(libs.androidx.datastore.preferences)
 
