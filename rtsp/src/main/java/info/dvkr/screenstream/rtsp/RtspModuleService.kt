@@ -29,7 +29,17 @@ public class RtspModuleService : StreamingModuleService() {
             val importance = ActivityManager.RunningAppProcessInfo().also { ActivityManager.getMyMemoryState(it) }.importance
             XLog.i(getLog("RtspModuleService.dispatchProjectionIntent", "RunningAppProcessInfo.importance: $importance"))
             XLog.i(getLog("RtspModuleService.dispatchProjectionIntent", "SP_TRACE route=service_cached_permission stage=service_command startAttemptId=$startAttemptId importance=$importance"))
-            context.startService(intent)
+            runCatching {
+                context.startService(intent)
+            }.onFailure {
+                XLog.e(
+                    getLog(
+                        "RtspModuleService.dispatchProjectionIntent",
+                        "SP_TRACE route=service_cached_permission stage=service_command_failed startAttemptId=$startAttemptId importance=$importance"
+                    ),
+                    it
+                )
+            }.getOrThrow()
         }
     }
 

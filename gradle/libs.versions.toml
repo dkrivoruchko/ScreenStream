@@ -1,6 +1,6 @@
 [versions]
-agp = "9.1.1"
-kotlin = "2.3.20"
+agp = "9.2.0"
+kotlin = "2.3.21"
 android-tools-desugar = "2.1.5"
 
 koin-android = "4.2.1"
@@ -16,13 +16,13 @@ androidx-lifecycle = "2.10.0"
 androidx-window = "1.5.1"
 androidx-datastore-preferences = "1.2.1"
 
-compose-bom = "2026.03.01"
+compose-bom = "2026.04.01"
 
 process-phoenix = "3.0.0"
 xlog = "1.11.1"
 
 #MJPEG
-ktor = "3.4.2"
+ktor = "3.4.3"
 
 #PlayStore-WebRTC
 play-services-base = "18.10.0"

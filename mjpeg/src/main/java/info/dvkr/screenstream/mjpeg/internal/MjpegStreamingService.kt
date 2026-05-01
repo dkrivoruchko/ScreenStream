@@ -401,6 +401,7 @@ internal class MjpegStreamingService(
                     mediaProjectionIntent?.let {
                         check(Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) { "MjpegEvent.StartStopFromWebPage: UPSIDE_DOWN_CAKE" }
                         waitingForPermission = false
+                        XLog.i(getLog("StartStopFromWebPage", "SP_TRACE route=service_cached_permission stage=dispatch_source source=web startAttemptId=$startAttemptId"))
                         MjpegModuleService.dispatchProjectionIntent(service, startAttemptId, it)
                     } ?: run {
                         waitingForPermission = true
@@ -428,6 +429,7 @@ internal class MjpegStreamingService(
                 mediaProjectionIntent?.let {
                     check(Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) { "MjpegEvent.StartStream: UPSIDE_DOWN_CAKE" }
                     waitingForPermission = false
+                    XLog.i(getLog("StartStream", "SP_TRACE route=service_cached_permission stage=dispatch_source source=button startAttemptId=$startAttemptId"))
                     MjpegModuleService.dispatchProjectionIntent(service, startAttemptId, it)
                 } ?: run {
                     waitingForPermission = true

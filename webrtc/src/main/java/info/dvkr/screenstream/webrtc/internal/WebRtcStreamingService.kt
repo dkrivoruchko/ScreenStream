@@ -1086,6 +1086,7 @@ internal class WebRtcStreamingService(
                 mediaProjectionIntent?.let {
                     check(Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) { "WebRtcEvent.StartStream: UPSIDE_DOWN_CAKE" }
                     waitingForPermission = false
+                    XLog.i(getLog("StartStream", "SP_TRACE route=service_cached_permission stage=dispatch_source source=button startAttemptId=$startAttemptId"))
                     WebRtcModuleService.dispatchProjectionIntent(service, startAttemptId, it)
                 } ?: run {
                     waitingForPermission = true

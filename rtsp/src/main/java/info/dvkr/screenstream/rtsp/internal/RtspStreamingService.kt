@@ -902,6 +902,7 @@ internal class RtspStreamingService(
                 projectionState.cachedIntent?.let {
                     check(Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) { "RtspEvent.StartStream: UPSIDE_DOWN_CAKE" }
                     projectionState.waitingForPermission = false
+                    XLog.i(getLog("StartStream", "SP_TRACE route=service_cached_permission stage=dispatch_source source=button startAttemptId=$startAttemptId"))
                     RtspModuleService.dispatchProjectionIntent(service, startAttemptId, it)
                 } ?: run {
                     projectionState.waitingForPermission = true
