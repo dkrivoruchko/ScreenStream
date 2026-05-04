@@ -1,7 +1,7 @@
 ![](docs/images/hero.png)
 # ScreenStream
 
-ScreenStream is a user-friendly Android application for streaming your device screen and audio. Use Local (MJPEG) or Global (WebRTC) mode to view the stream in a web browser, or use RTSP mode with a compatible RTSP client or player.
+ScreenStream is a user-friendly Android application for streaming your device screen and audio. Use Local mode (MJPEG) or Global mode (WebRTC) to view the stream in a web browser, or use RTSP mode with a compatible RTSP client or player.
 
 The Google Play version supports all modes: **Global mode (WebRTC)**, **Local mode (MJPEG)**, and **RTSP mode**, with ads included.<br>
 F-Droid versions are ad-free and support only **Local mode (MJPEG)** and **RTSP mode**.
@@ -26,49 +26,50 @@ If you prefer direct on-chain transfers, use one of these addresses:
 
 ScreenStream offers three stream modes: **Global mode (WebRTC)** (available only in the [Google Play Store](https://play.google.com/store/apps/details?id=info.dvkr.screenstream) version), **Local mode (MJPEG)**, and **RTSP mode**. All modes stream the Android device screen, but they function differently. Audio support is available in **Global mode (WebRTC)** and **RTSP mode** only. The modes are independent of each other and have different capabilities, restrictions, and customization options.
 
-| Mode                   | Transport | Audio | Internet required | Server side                                                   | Security                                     |
-|------------------------|-----------|-------|-------------------|---------------------------------------------------------------|----------------------------------------------|
-| **Local mode (MJPEG)**   | HTTP MJPEG | ✕     | No                    | Built-in                                                        | Optional 4-6 digit PIN                         |
-| **Global mode (WebRTC)** | WebRTC     | ✓     | Yes                   | Public signaling service at [screenstream.io](https://screenstream.io) | End-to-end encryption + password               |
-| **RTSP mode**            | RTSP<br>H.265/H.264<br>OPUS/AAC/G.711 | ✓ | No (server) / Depends (client) | Built‑in server (Server mode) / External server (client mode) | Client mode supports RTSP auth + RTSPS (TLS) |
+| Mode                       | Transport                             | Audio | Internet required              | Server side                                                            | Security                                     |
+|----------------------------|---------------------------------------|-------|--------------------------------|------------------------------------------------------------------------|----------------------------------------------|
+| **Local mode (MJPEG)**     | MJPEG over HTTP                       | ✕     | No                             | Built-in                                                               | Optional 4-6 digit PIN                       |
+| **Global mode (WebRTC)**   | WebRTC                                | ✓     | Yes                            | Public signaling service at [screenstream.io](https://screenstream.io) | End-to-end encryption + password             |
+| **RTSP mode**              | RTSP<br>H.265/H.264<br>OPUS/AAC/G.711 | ✓     | No (server) / Depends (client) | Built‑in server (Server mode) / External server (client mode)          | Client mode supports RTSP auth + RTSPS (TLS) |
 
-In **Global mode (WebRTC)** and **Local mode (MJPEG)**, the number of clients is not directly limited, but each client consumes CPU resources and bandwidth.
+In **Global mode (WebRTC)** and **Local mode (MJPEG)**, the number of clients is not directly limited, but each client uses CPU resources and separate bandwidth.
 
 ScreenStream uses Android's [MediaProjection](https://developer.android.com/reference/android/media/projection/MediaProjection) API and requires Android 6.0 or higher.
 
 > [!WARNING]
 >
 > - **High traffic on mobile networks:** Streaming over 3G/4G/5G/LTE can consume a large amount of data.
-> 
+>
 > - **Streaming delay:** Expect at least 0.5-1 second of delay, and potentially more on slower devices, unstable networks, or under heavy CPU load.
-> 
+>
 > - **Not optimized for video playback:** ScreenStream is not designed for streaming video content, especially HD video, so playback quality may not meet your expectations.
 
 ### Local mode (MJPEG)
 
-Local mode in the ScreenStream application is built on the MJPEG standard and utilizes an embedded HTTP server within the app. As a result, an internet connection is not required; instead, it can function on a local network, such as Wi-Fi, device hotspot, Network-over-USB, or any other network between the client's web browser and the Android device with the ScreenStream app.
+Local mode uses MJPEG and a built-in HTTP server. It works on a local network without internet, such as Wi-Fi, a device hotspot, Network-over-USB, or any other network between the Android device and the client's browser.
 
 For optimal performance, a fast and stable network connection is recommended due to high traffic and low network delay requirements.
 
 In Local mode, the app processes each frame independently, one by one, enabling additional image transformations such as cropping, resizing, rotating, and more before sending the image to the client's web browser.
 
 The Local mode offers the following functionality:
-- Powered by MJPEG standard.
-- Utilizes PIN for security (no encryption).
-- Sends video as a series of independent images (no audio).
-- Works without an internet connection within your local network.
-- Embedded HTTP server.
-- Allows resizing by percentage or specifying an exact resolution.
-- Works with WiFi and/or mobile networks, supporting IPv4 and IPv6.
-- Clients connect via web browser using the app's provided IP address.
+
+- Uses MJPEG.
+- PIN protection, no encryption.
+- Video only, sent as separate images.
+- Works on your local network, no internet required.
+- Built-in HTTP server.
+- Allows resizing by percentage or exact resolution.
+- Supports Wi-Fi, mobile networks, IPv4, and IPv6.
+- Clients connect in a browser using the app address.
 - Highly customizable.
-- Individual data transmission for each client, with more clients requiring increased internet bandwidth to maintain optimal performance.
+- Each client uses separate bandwidth.
 
 > [!NOTE]
 >
 > - Please be aware that certain cell operators may block incoming connections to your device for security reasons. Consequently, even if your device has an IP address from a cell operator, connecting to the device using this IP address may not be possible.
 >
-> - Some WiFi networks, particularly public or guest networks, may block connections between its clients for security reasons. In such cases, connecting to the device via WiFi might not be feasible. For instance, a laptop and a phone within such a WiFi network will not be able to connect to each other.
+> - Some Wi-Fi networks, particularly public or guest networks, may block connections between its clients for security reasons. In such cases, connecting to the device via Wi-Fi might not be feasible. For instance, a laptop and a phone within such a Wi-Fi network will not be able to connect to each other.
 
 **Screenshots**
 
@@ -78,12 +79,12 @@ The Local mode offers the following functionality:
   <img src="docs/images/mjpeg-2.png" alt="Local mode information dialog" width="270" />
 </p>
 <p>
-  <img src="docs/images/mjpeg-3.png" alt="Local mode general parameters" width="270" />&nbsp;
-  <img src="docs/images/mjpeg-4.png" alt="Local mode image parameters" width="270" />&nbsp;
-  <img src="docs/images/mjpeg-5.png" alt="Local mode security parameters" width="270" />
+  <img src="docs/images/mjpeg-3.png" alt="Local mode general settings" width="270" />&nbsp;
+  <img src="docs/images/mjpeg-4.png" alt="Local mode image settings" width="270" />&nbsp;
+  <img src="docs/images/mjpeg-5.png" alt="Local mode security settings" width="270" />
 </p>
 <p align="center">
-  <img src="docs/images/mjpeg-6.png" alt="Local mode advanced parameters" width="290" />
+  <img src="docs/images/mjpeg-6.png" alt="Local mode advanced settings" width="290" />
 </p>
 
 ### Global mode (WebRTC)
@@ -93,13 +94,14 @@ Global mode in the ScreenStream application is built on WebRTC technology and re
 Both the signaling server and the web client for ScreenStream are open-source and available in the [ScreenStreamWeb](https://github.com/dkrivoruchko/ScreenStreamWeb) repository. These components are publicly available at [screenstream.io](https://screenstream.io). The system is designed to work with modern desktop and mobile browsers that support WebRTC, including Chrome, Safari, Edge, Firefox, and others.
 
 Global mode offers the following functionality:
+
 - Powered by WebRTC technology.
 - End-to-end encrypted communication.
 - Stream protection with password.
-- Supports both video and audio streaming.
-- Connect using unique stream ID and password.
+- Supports video and audio streaming.
+- Connect using a unique stream ID and password.
 - Requires an internet connection for streaming.
-- Individual data transmission for each client, with more clients requiring increased internet bandwidth to maintain optimal performance.
+- Each client uses separate internet bandwidth.
 
 > [!NOTE]
 > Global mode (WebRTC) is available only in the Google Play version.
@@ -109,7 +111,7 @@ Global mode offers the following functionality:
 <p>
   <img src="docs/images/webrtc-1.png" alt="Global mode main screen" width="270" />&nbsp;
   <img src="docs/images/webrtc-2.png" alt="Global mode information dialog" width="270" />&nbsp;
-  <img src="docs/images/webrtc-3.png" alt="Global mode audio parameters" width="270" />
+  <img src="docs/images/webrtc-3.png" alt="Global mode audio settings" width="270" />
 </p>
 
 ### RTSP mode
@@ -127,18 +129,18 @@ For optimal performance, a fast and stable network connection is recommended due
 - Tested with [VLC media player](https://www.videolan.org/vlc/), [FFplay](https://ffmpeg.org/ffplay.html), [mpv](https://mpv.io/), and [gst-play-1.0](https://gstreamer.freedesktop.org/) (GStreamer) players.
 
 > [!NOTE]
-> Client mode requires an RTSP‑capable media server (e.g., [MediaMTX](https://github.com/aler9/mediamtx)).
+> Client mode requires an RTSP‑capable media server (e.g., [MediaMTX](https://github.com/bluenviron/mediamtx)).
 
 **Screenshots**
 
 <p>
   <img src="docs/images/rtsp-1.png" alt="RTSP mode main screen" width="270" />&nbsp;
   <img src="docs/images/rtsp-2.png" alt="RTSP mode information dialog" width="270" />&nbsp;
-  <img src="docs/images/rtsp-3.png" alt="RTSP mode server parameters" width="270" />
+  <img src="docs/images/rtsp-3.png" alt="RTSP mode server settings" width="270" />
 </p>
 <p align="center">
-  <img src="docs/images/rtsp-4.png" alt="RTSP mode video parameters" width="290" />&nbsp;
-  <img src="docs/images/rtsp-5.png" alt="RTSP mode audio parameters" width="290" />
+  <img src="docs/images/rtsp-4.png" alt="RTSP mode video settings" width="290" />&nbsp;
+  <img src="docs/images/rtsp-5.png" alt="RTSP mode audio settings" width="290" />
 </p>
 
 ## Contribution
