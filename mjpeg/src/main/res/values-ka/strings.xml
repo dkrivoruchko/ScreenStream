@@ -3,17 +3,18 @@
     <string name="mjpeg_error_open_settings">გახსენით პარამეტრები</string>
     <string name="mjpeg_close">დახურვა</string>
 
-    <string name="mjpeg_stream_mode">ლოკალური რეჟიმი (MJPEG)</string>
-    <string name="mjpeg_stream_mode_description">ადგილობრივი რეჟიმის აღწერა</string>
+    <string name="mjpeg_stream_mode">ლოკალური რეჟიმი · MJPEG</string>
+    <string name="mjpeg_stream_mode_description">სტრიმინგი თქვენს ლოკალურ ქსელში</string>
     <string name="mjpeg_stream_mode_details">
-- უზრუნველყოფილია MJPEG სტანდარტით.\n
-        - იყენებს PIN-ს უსაფრთხოებისთვის (დაშიფვრის გარეშე).\n
-        - აგზავნის ვიდეოს დამოუკიდებელი სურათების სერიის სახით (აუდიო გარეშე).\n
-        - მუშაობს ინტერნეტის გარეშე თქვენს ლოკალურ ქსელში.\\n - ჩაშენებული HTTP სერვერი.\n
-        - მუშაობს WiFi და/ან მობილურ ქსელებთან, მხარს უჭერს IPv4 და IPv6.\n
-        - კლიენტები უკავშირდებიან ვებ ბრაუზერს აპის მითითებული IP მისამართის გამოყენებით.\n
-        - ძალიან რეგულირებადი.\n
-        - ინდივიდუალური მონაცემთა გადაცემა თითოეული კლიენტისთვის (უფრო მეტი კლიენტი გყავთ, მეტი არასამუშაო გამტარობა გჭირდებათ).
+- იყენებს MJPEG-ს.\n
+- PIN დაცვა, დაშიფვრის გარეშე.\n
+- მხოლოდ ვიდეო, იგზავნება ცალკე სურათებად.\n
+- მუშაობს ლოკალურ ქსელში, ინტერნეტი არ სჭირდება.\n
+- ჩაშენებული HTTP სერვერი.\n
+- მხარს უჭერს Wi-Fi-ს, მობილურ ქსელებს, IPv4-ს და IPv6-ს.\n
+- კლიენტები ბრაუზერში უკავშირდებიან აპის მისამართით.\n
+- მარტივად დასაყენებელია.\n
+- თითოეული კლიენტი ცალკე გამტარობას იყენებს.
 </string>
 
     <string name="mjpeg_item_address">მოწყობილობის მისამართი:</string>
@@ -43,7 +44,7 @@
     <string name="mjpeg_stream_stop">შეაჩერე ნაკადი</string>
     <string name="mjpeg_slow_client_connection">აღმოჩენილია კლიენტის ნელი კავშირი</string>
 
-    <string name="mjpeg_pref_header">ლოკალური რეჟიმის (MJPEG) პარამეტრები</string>
+    <string name="mjpeg_pref_header">ლოკალური რეჟიმის · MJPEG პარამეტრები</string>
     <string name="mjpeg_pref_settings_general">ზოგადი პარამეტრები</string>
     <string name="mjpeg_pref_keep_awake">შეინახეთ მოწყობილობა ფხიზლად</string>
     <string name="mjpeg_pref_keep_awake_summary">შეინახეთ მოწყობილობა და ეკრანი ფხიზლად სტრიმინგის დროს</string>
@@ -83,7 +84,7 @@
     <string name="mjpeg_pref_crop_warning">ჩამოჭრა იგნორირებული იქნება, თუ შედეგი ცარიელი სურათია</string>
     <string name="mjpeg_pref_crop_error">შეიყვანეთ მოსავლის სწორი მნიშვნელობები</string>
     <string name="mjpeg_pref_grayscale">რუხი ფერის რეჟიმი</string>
-    <string name="mjpeg_pref_grayscale_summary">რუხი ფერის სურათი კლიენტისთვის გაგზავნამდე</string>
+    <string name="mjpeg_pref_grayscale_summary">გაგზავნამდე გამოსახულების ნაცრისფერში გადაყვანა</string>
     <string name="mjpeg_pref_resize">სურათის ზომის შეცვლა</string>
     <string name="mjpeg_pref_resize_summary">შეცვალეთ სურათის ზომა კლიენტისთვის გაგზავნამდე</string>
     <string name="mjpeg_pref_resize_mode_percent">ზომის შეცვლა პროცენტით</string>
@@ -91,7 +92,7 @@
     <string name="mjpeg_pref_resize_width">სიგანე:</string>
     <string name="mjpeg_pref_resize_height">სიმაღლე:</string>
     <string name="mjpeg_pref_resize_stretch">გაჭიმვა მოსარგებად</string>
-    <string name="mjpeg_pref_resize_text">დააყენეთ სურათის ზომის შეცვლის ფაქტორი პროცენტებში. ღირებულებები: 10–150 ნაგულისხმევი: 50 ეკრანის ზომა: %1$dx%2$d</string>
+    <string name="mjpeg_pref_resize_text">დააყენეთ სურათის ზომის შეცვლის ფაქტორი პროცენტებში.\nღირებულებები: 10–150\nნაგულისხმევი: 50\nეკრანის ზომა: %1$dx%2$d</string>
     <string name="mjpeg_pref_resize_result">სურათის ზომა: %1$dx%2$d</string>
     <string name="mjpeg_pref_rotate">სურათის როტაცია საათის ისრის მიმართულებით</string>
     <string name="mjpeg_pref_rotate_summary">დაატრიალეთ სურათი კლიენტისთვის გაგზავნამდე</string>
@@ -104,24 +105,24 @@
     </string-array>
     <string name="mjpeg_pref_fps">შეზღუდეთ კადრები წამში</string>
     <string name="mjpeg_pref_fps_summary">დააყენეთ მაქსიმალური კადრები წამში</string>
-    <string name="mjpeg_pref_fps_text">დააყენეთ მაქსიმალური კადრები წამში. ღირებულებები: 1/10–120 ნაგულისხმევი: 30</string>
+    <string name="mjpeg_pref_fps_text">დააყენეთ მაქსიმალური კადრები წამში.\nღირებულებები: 1/10–120\nნაგულისხმევი: 30</string>
     <string name="mjpeg_pref_fps_low_mode_text">შეზღუდეთ კადრის სიხშირე ერთ კადრამდე ყოველ %d წამში, იდეალურია E-Ink ეკრანებისთვის.</string>
     <string name="mjpeg_pref_jpeg_quality">JPEG შეკუმშვის ხარისხი</string>
     <string name="mjpeg_pref_jpeg_quality_summary">დააყენეთ JPEG შეკუმშვის ხარისხი</string>
-    <string name="mjpeg_pref_jpeg_quality_text">დააყენეთ JPEG შეკუმშვის ხარისხი. ღირებულებები: 10–100 ნაგულისხმევი: 80</string>
+    <string name="mjpeg_pref_jpeg_quality_text">დააყენეთ JPEG შეკუმშვის ხარისხი.\nღირებულებები: 10–100\nნაგულისხმევი: 80</string>
 
     <string name="mjpeg_pref_settings_security">უსაფრთხოების პარამეტრები</string>
     <string name="mjpeg_pref_enable_pin">ჩართეთ პინი</string>
     <string name="mjpeg_pref_enable_pin_summary">დაიცავით ნაკადზე წვდომა პინით</string>
-    <string name="mjpeg_pref_hide_pin">ავტომატური დამალვის პინი ნაკადის დაწყებისას</string>
-    <string name="mjpeg_pref_hide_pin_summary">სტრიმინგის დროს აჩვენეთ ვარსკვლავები დამაგრების ნაცვლად</string>
+    <string name="mjpeg_pref_hide_pin">ნაკადის დაწყებისას PIN-ის ავტომატურად დამალვა</string>
+    <string name="mjpeg_pref_hide_pin_summary">PIN-ის ნაცვლად ვარსკვლავების ჩვენება სტრიმინგის დროს</string>
     <string name="mjpeg_pref_new_pin_on_start">ახალი პინი დაწყებისას</string>
     <string name="mjpeg_pref_new_pin_on_start_summary">შექმენით ახალი პინი განაცხადის დაწყებისას</string>
     <string name="mjpeg_pref_auto_change_pin">ავტომატური შეცვლა პინი</string>
     <string name="mjpeg_pref_auto_change_pin_summary">შექმენით ახალი პინი ყოველი ახალი ნაკადისთვის</string>
     <string name="mjpeg_pref_set_pin">პინის დაყენება</string>
     <string name="mjpeg_pref_set_pin_summary">შეიყვანეთ პინი ხელით</string>
-    <string name="mjpeg_pref_set_pin_text">შეიყვანეთ პინი. ნაგულისხმევი: 000000</string>
+    <string name="mjpeg_pref_set_pin_text">შეიყვანეთ პინი.\nნაგულისხმევი: 000000</string>
     <string name="mjpeg_pref_block_address">IP მისამართის დაბლოკვა</string>
     <string name="mjpeg_pref_block_address_summary">დაბლოკეთ კლიენტის IP მისამართი 5 არასწორი პინის მცდელობის შემდეგ 5 წუთის განმავლობაში</string>
 
@@ -150,12 +151,12 @@
     <string name="mjpeg_label_loopback">Loopback</string>
     <string name="mjpeg_pref_server_port">Სერვერის პორტი</string>
     <string name="mjpeg_pref_server_port_summary">დააყენეთ პორტი შემომავალი კავშირებისთვის</string>
-    <string name="mjpeg_pref_server_port_text">დააყენეთ სერვერის პორტი შემომავალი კავშირებისთვის. ღირებულებები: 1025–65535 ნაგულისხმევი: 8080</string>
+    <string name="mjpeg_pref_server_port_text">დააყენეთ სერვერის პორტი შემომავალი კავშირებისთვის.\nღირებულებები: 1025–65535\nნაგულისხმევი: 8080</string>
 
     <string name="mjpeg_error_port_in_use">პორტი უკვე გამოიყენება. აირჩიე სხვა.</string>
-    <string name="mjpeg_error_invalid_media_projection">უსაფრთხოების შეცდომა: არასწორი მედია პროექცია. სცადე კიდევ ერთხელ.</string>
-    <string name="mjpeg_error_ip_address_not_found">IP მისამართი ვერ მოიძებნა. სცადეთ გამორთოთ \"მხოლოდ WiFi-ის გამოყენება\" ნაკადის პარამეტრებში.</string>
-    <string name="mjpeg_error_notification_permission_required">აპლიკაცია მოითხოვს შეტყობინებების ჩართვას სტრიმინგის სერვისის დასაწყებად. გთხოვთ, ჩართოთ შეტყობინებები აპლიკაციის პარამეტრებში.</string>
+    <string name="mjpeg_error_invalid_media_projection">უსაფრთხოების შეცდომა: ეკრანის ჩაწერის ნებართვა არასწორია. სცადეთ ხელახლა.</string>
+    <string name="mjpeg_error_ip_address_not_found">IP მისამართი ვერ მოიძებნა.\nსცადეთ ქსელის ფილტრების შეცვლა ნაკადის პარამეტრებში.</string>
+    <string name="mjpeg_error_notification_permission_required">სტრიმინგის სერვისის დასაწყებად ამ აპს შეტყობინებები ჩართული უნდა ჰქონდეს.\nჩართეთ შეტყობინებები აპის პარამეტრებში.</string>
     <string name="mjpeg_error_unspecified">Რაღაც არასწორად წავიდა. Გთხოვთ სცადოთ მოგვიანებით.</string>
 
     <string name="mjpeg_start_image_text">დაიწყეთ ნაკადი მოწყობილობაზე</string>
@@ -164,9 +165,9 @@
     <string name="mjpeg_html_stream_connecting">დაკავშირებას ცდილობს</string>
     <string name="mjpeg_html_stream_reconnecting">ხელახლა ერთდება…</string>
     <string name="mjpeg_html_stream_require_pin">ეს ნაკადი მასზე წვდომისთვის PIN-ს მოითხოვს</string>
-    <string name="mjpeg_html_enter_pin">შეიყვანეთ პინი:\\u0020</string>
+    <string name="mjpeg_html_enter_pin">შეიყვანეთ PIN:\u0020</string>
     <string name="mjpeg_html_submit_pin">გაგზავნა</string>
-    <string name="mjpeg_html_wrong_pin">არასწორი ქინძისთავი!</string>
+    <string name="mjpeg_html_wrong_pin">არასწორი PIN!</string>
     <string name="mjpeg_html_address_blocked">კლიენტის მისამართი დაბლოკილია</string>
     <string name="mjpeg_html_error_unspecified">Რაღაც არასწორად წავიდა. &lt;br&gt; გთხოვთ, გადატვირთოთ გვერდი და სცადოთ ხელახლა.</string>
 </resources>

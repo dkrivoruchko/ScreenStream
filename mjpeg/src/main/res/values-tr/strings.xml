@@ -1,0 +1,173 @@
+<resources>
+    <string name="mjpeg_error_recover">Kurtar</string>
+    <string name="mjpeg_error_open_settings">Ayarları aç</string>
+    <string name="mjpeg_close">Kapat</string>
+
+    <string name="mjpeg_stream_mode">Yerel mod · MJPEG</string>
+    <string name="mjpeg_stream_mode_description">Yerel ağınızda yayın yapın</string>
+    <string name="mjpeg_stream_mode_details">
+- MJPEG kullanır.\n
+- PIN koruması, şifreleme yok.\n
+- Yalnızca video, ayrı görüntüler olarak gönderilir.\n
+- Yerel ağınızda çalışır, internet gerekmez.\n
+- Yerleşik HTTP sunucusu.\n
+- Wi-Fi, mobil ağlar, IPv4 ve IPv6 desteği.\n
+- İstemciler uygulama adresiyle tarayıcıdan bağlanır.\n
+- Oldukça yapılandırılabilir.\n
+- Her istemci ayrı bant genişliği kullanır.
+</string>
+
+    <string name="mjpeg_item_address">Cihaz adresi:</string>
+    <string name="mjpeg_stream_no_address">Adres bulunamadı</string>
+    <string name="mjpeg_stream_interface">Arayüz:\n%1$s</string>
+    <string name="mjpeg_stream_copied">Kopyalandı</string>
+    <string name="mjpeg_stream_no_web_browser_found">Web tarayıcısı bulunamadı</string>
+    <string name="mjpeg_stream_external_app_error">Harici uygulama hatası</string>
+    <string name="mjpeg_stream_share_address">Cihaz adresini paylaş</string>
+    <string name="mjpeg_item_address_description_open_address">Adresi aç</string>
+    <string name="mjpeg_item_address_description_copy_address">Adresi kopyala</string>
+    <string name="mjpeg_item_address_description_share_address">Adresi paylaş</string>
+    <string name="mjpeg_item_address_description_qr_address">Adresi QR kodu olarak göster</string>
+    <string name="mjpeg_item_address_description_qr">QR kodu</string>
+    <string name="mjpeg_stream_pin">PIN: %1$s</string>
+    <string name="mjpeg_stream_pin_disabled">PIN devre dışı</string>
+    <string name="mjpeg_stream_description_show_pin">Yayın PIN\'ini göster</string>
+    <string name="mjpeg_stream_description_create_pin">Yeni yayın PIN\'i oluştur</string>
+    <string name="mjpeg_stream_current_traffic">Trafik: %1$,.2f Mbit/sn</string>
+    <string name="mjpeg_stream_traffic_graph">Trafik grafiği</string>
+    <string name="mjpeg_stream_connected_clients">Bağlı istemciler: %1$d</string>
+    <string name="mjpeg_stream_client_disconnected">Bağlantı kesildi</string>
+    <string name="mjpeg_stream_client_slow_network">Yavaş bağlantı</string>
+    <string name="mjpeg_stream_client_connected">Bağlandı</string>
+    <string name="mjpeg_stream_client_blocked">Engellendi</string>
+    <string name="mjpeg_stream_start">Yayını başlat</string>
+    <string name="mjpeg_stream_stop">Yayını durdur</string>
+    <string name="mjpeg_slow_client_connection">Yavaş istemci bağlantısı algılandı</string>
+
+    <string name="mjpeg_pref_header">Yerel mod · MJPEG ayarları</string>
+    <string name="mjpeg_pref_settings_general">Genel ayarlar</string>
+    <string name="mjpeg_pref_keep_awake">Cihazı uyanık tut</string>
+    <string name="mjpeg_pref_keep_awake_summary">Yayın sırasında cihazı ve ekranı uyanık tut</string>
+    <string name="mjpeg_pref_stop_on_sleep">Uyku modunda yayını durdur</string>
+    <string name="mjpeg_pref_stop_on_sleep_summary">Ekran kapanırsa yayını durdur</string>
+    <string name="mjpeg_pref_stop_on_configuration">Yapılandırma değişince yayını durdur</string>
+    <string name="mjpeg_pref_stop_on_configuration_summary">Yayın yapılandırması değiştiğinde yayını durdur</string>
+    <string name="mjpeg_pref_detect_slow_connections">Yavaş bağlantıları bildir</string>
+    <string name="mjpeg_pref_detect_slow_connections_summary">Yavaş istemci bağlantılarını algıla ve bildir</string>
+    <string name="mjpeg_pref_html_buttons">Web sayfası düğmelerini etkinleştir</string>
+    <string name="mjpeg_pref_html_buttons_summary">Web sayfasında kontrol düğmelerini göster</string>
+    <string name="mjpeg_pref_html_show_press_start">\"Cihazda yayını başlat\" öğesini göster</string>
+    <string name="mjpeg_pref_html_show_press_start_summary">Web sayfasında \"Cihazda yayını başlat\" öğesini göster</string>
+    <string name="mjpeg_pref_html_keep_image_on_reconnect">Yeniden bağlanırken görüntüyü koru</string>
+    <string name="mjpeg_pref_html_keep_image_on_reconnect_summary">Yeniden bağlanırken son görüntüyü görünür tut</string>
+    <string name="mjpeg_pref_html_back_color">Web sayfası arka plan rengi</string>
+    <string name="mjpeg_pref_html_back_color_summary">Web sayfası arka plan rengini ayarla</string>
+    <string name="mjpeg_pref_html_back_color_title">Arka plan rengini seç</string>
+    <string name="mjpeg_pref_html_fit_window">Görüntüyü tarayıcı penceresine sığdır</string>
+    <string name="mjpeg_pref_html_fit_window_summary">Tarayıcıda görüntüyü pencerenin tam genişlik/yüksekliğine ölçekle</string>
+
+    <string name="mjpeg_pref_settings_image">Görüntü ayarları</string>
+    <string name="mjpeg_pref_vr_mode">Sanal gerçeklik modu</string>
+    <string name="mjpeg_pref_vr_mode_summary">İçeriği ekranın yarısından yakala</string>
+    <string-array name="mjpeg_pref_vr_mode_options">
+        <item>Devre dışı</item>
+        <item>Sol kısmı kullan</item>
+        <item>Sağ kısmı kullan</item>
+    </string-array>
+    <string name="mjpeg_pref_crop">Görüntüyü kırp</string>
+    <string name="mjpeg_pref_crop_summary">İstemciye göndermeden önce görüntüyü kırp</string>
+    <string name="mjpeg_pref_crop_top">Üstten kırp:</string>
+    <string name="mjpeg_pref_crop_bottom">Alttan kırp:</string>
+    <string name="mjpeg_pref_crop_left">Soldan kırp:</string>
+    <string name="mjpeg_pref_crop_right">Sağdan kırp:</string>
+    <string name="mjpeg_pref_crop_pixels">piksel</string>
+    <string name="mjpeg_pref_crop_warning">Sonuç boş bir görüntü olursa kırpma yok sayılır</string>
+    <string name="mjpeg_pref_crop_error">Geçerli kırpma değerleri girin</string>
+    <string name="mjpeg_pref_grayscale">Gri tonlama modu</string>
+    <string name="mjpeg_pref_grayscale_summary">Göndermeden önce görüntüyü gri tonlamaya çevir</string>
+    <string name="mjpeg_pref_resize">Görüntüyü yeniden boyutlandır</string>
+    <string name="mjpeg_pref_resize_summary">İstemciye göndermeden önce görüntüyü yeniden boyutlandır</string>
+    <string name="mjpeg_pref_resize_mode_percent">Yüzdeye göre yeniden boyutlandır</string>
+    <string name="mjpeg_pref_resize_mode_resolution">Tam çözünürlük</string>
+    <string name="mjpeg_pref_resize_width">Genişlik:</string>
+    <string name="mjpeg_pref_resize_height">Yükseklik:</string>
+    <string name="mjpeg_pref_resize_stretch">Sığdırmak için genişlet</string>
+    <string name="mjpeg_pref_resize_text">Görüntü yeniden boyutlandırma oranını yüzde olarak ayarlayın.\nDeğerler: 10–150\nVarsayılan: 50\nEkran boyutu: %1$dx%2$d</string>
+    <string name="mjpeg_pref_resize_result">Resim boyutu: %1$dx%2$d</string>
+    <string name="mjpeg_pref_rotate">Görüntüyü saat yönünde döndür</string>
+    <string name="mjpeg_pref_rotate_summary">İstemciye göndermeden önce görüntüyü döndür</string>
+    <string name="mjpeg_pref_flip">Görüntüyü çevir</string>
+    <string name="mjpeg_pref_flip_summary">İstemciye göndermeden önce görüntüyü çevir</string>
+    <string-array name="mjpeg_pref_flip_options">
+        <item>Yok</item>
+        <item>Yatay</item>
+        <item>Dikey</item>
+    </string-array>
+    <string name="mjpeg_pref_fps">Saniyedeki kare sayısını sınırla</string>
+    <string name="mjpeg_pref_fps_summary">Saniyedeki maksimum kare sayısını ayarla</string>
+    <string name="mjpeg_pref_fps_text">Saniyedeki maksimum kare sayısını ayarlayın.\nDeğerler: 1/10–120\nVarsayılan: 30</string>
+    <string name="mjpeg_pref_fps_low_mode_text">Kare hızını her %d saniyede bir kareyle sınırla; E-Ink ekranlar için idealdir.</string>
+    <string name="mjpeg_pref_jpeg_quality">JPEG sıkıştırma kalitesi</string>
+    <string name="mjpeg_pref_jpeg_quality_summary">JPEG sıkıştırma kalitesini ayarla</string>
+    <string name="mjpeg_pref_jpeg_quality_text">JPEG sıkıştırma kalitesini ayarlayın.\nDeğerler: 10–100\nVarsayılan: 80</string>
+
+    <string name="mjpeg_pref_settings_security">Güvenlik ayarları</string>
+    <string name="mjpeg_pref_enable_pin">PIN\'i etkinleştir</string>
+    <string name="mjpeg_pref_enable_pin_summary">Yayına erişimi PIN ile koru</string>
+    <string name="mjpeg_pref_hide_pin">Yayın başladığında PIN\'i otomatik gizle</string>
+    <string name="mjpeg_pref_hide_pin_summary">Yayın sırasında PIN yerine yıldız göster</string>
+    <string name="mjpeg_pref_new_pin_on_start">Başlangıçta yeni PIN</string>
+    <string name="mjpeg_pref_new_pin_on_start_summary">Uygulama başlangıcında yeni PIN oluştur</string>
+    <string name="mjpeg_pref_auto_change_pin">PIN\'i otomatik değiştir</string>
+    <string name="mjpeg_pref_auto_change_pin_summary">Her yeni yayın için yeni PIN oluştur</string>
+    <string name="mjpeg_pref_set_pin">PIN ayarla</string>
+    <string name="mjpeg_pref_set_pin_summary">PIN\'i manuel gir</string>
+    <string name="mjpeg_pref_set_pin_text">PIN girin.\nVarsayılan: 000000</string>
+    <string name="mjpeg_pref_block_address">IP adresini engelle</string>
+    <string name="mjpeg_pref_block_address_summary">5 yanlış PIN denemesinden sonra istemci IP adresini 5 dakika engelle</string>
+
+    <string name="mjpeg_pref_settings_advanced">Gelişmiş ayarlar</string>
+    <string name="mjpeg_pref_interface_filter">Arayüz filtresi</string>
+    <string name="mjpeg_pref_interface_filter_summary">Sunucu için ağ arayüzlerini seçin</string>
+    <string name="mjpeg_pref_filter_wifi">Wi-Fi</string>
+    <string name="mjpeg_pref_filter_mobile">Mobil</string>
+    <string name="mjpeg_pref_filter_ethernet">Ethernet</string>
+    <string name="mjpeg_pref_filter_vpn">VPN</string>
+    <string name="mjpeg_pref_filter_unknown">bilinmeyen</string>
+    <string name="mjpeg_pref_filter_no_restriction">Kısıtlama yok</string>
+    <string name="mjpeg_pref_address_filter">Adres filtresi</string>
+    <string name="mjpeg_pref_address_filter_summary">Sunucu için IP adresi türlerini seçin</string>
+    <string name="mjpeg_pref_filter_private">Özel</string>
+    <string name="mjpeg_pref_filter_localhost">Localhost</string>
+    <string name="mjpeg_pref_filter_public">Genel</string>
+    <string name="mjpeg_pref_enable_ipv4">IPv4 desteğini etkinleştir</string>
+    <string name="mjpeg_pref_enable_ipv4_summary">Sunucuyu IPv4 adreslerinde de çalıştır</string>
+    <string name="mjpeg_pref_enable_ipv6">IPv6 desteğini etkinleştir</string>
+    <string name="mjpeg_pref_enable_ipv6_summary">Sunucuyu IPv6 adreslerinde de çalıştır</string>
+    <string name="mjpeg_label_ipv4_lan">IPv4 LAN</string>
+    <string name="mjpeg_label_ipv6_ula">IPv6 ULA</string>
+    <string name="mjpeg_label_public_ipv4">Genel IPv4</string>
+    <string name="mjpeg_label_public_ipv6">Genel IPv6</string>
+    <string name="mjpeg_label_loopback">Loopback</string>
+    <string name="mjpeg_pref_server_port">Sunucu bağlantı noktası</string>
+    <string name="mjpeg_pref_server_port_summary">Gelen bağlantılar için bağlantı noktasını ayarla</string>
+    <string name="mjpeg_pref_server_port_text">Gelen bağlantılar için sunucu bağlantı noktasını ayarlayın.\nDeğerler: 1025–65535\nVarsayılan: 8080</string>
+
+    <string name="mjpeg_error_port_in_use">Bağlantı noktası zaten kullanımda. Başka bir tane seçin.</string>
+    <string name="mjpeg_error_invalid_media_projection">Güvenlik hatası: Geçersiz ekran yakalama izni. Tekrar deneyin.</string>
+    <string name="mjpeg_error_ip_address_not_found">IP adresi bulunamadı.\nYayın ayarlarında ağ filtrelerini değiştirmeyi deneyin.</string>
+    <string name="mjpeg_error_notification_permission_required">Bu uygulamanın yayın hizmetini başlatmak için bildirimleri etkinleştirmesi gerekir.\nUygulama ayarlarında bildirimleri etkinleştirin.</string>
+    <string name="mjpeg_error_unspecified">Bir şeyler ters gitti. Lütfen daha sonra tekrar deneyin.</string>
+
+    <string name="mjpeg_start_image_text">Cihazda yayını başlat</string>
+
+    <!--HTML text-->
+    <string name="mjpeg_html_stream_connecting">Bağlanmaya çalışılıyor</string>
+    <string name="mjpeg_html_stream_reconnecting">Yeniden bağlanıyor…</string>
+    <string name="mjpeg_html_stream_require_pin">Bu yayına erişmek için PIN gerekir</string>
+    <string name="mjpeg_html_enter_pin">PIN girin:\u0020</string>
+    <string name="mjpeg_html_submit_pin">Gönder</string>
+    <string name="mjpeg_html_wrong_pin">Yanlış PIN!</string>
+    <string name="mjpeg_html_address_blocked">İstemci adresi engellendi</string>
+    <string name="mjpeg_html_error_unspecified">Bir şeyler ters gitti. &lt;br&gt; Lütfen sayfayı yenileyip tekrar deneyin.</string>
+</resources>

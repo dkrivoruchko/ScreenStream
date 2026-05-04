@@ -5,11 +5,11 @@
 
     <string name="app_logs_collecting">የመተግበሪያ ምዝግብ ማስታወሻዎችን በመሰብሰብ ላይ…</string>
     <string name="app_logs_send_title">ምዝግብ ማስታወሻዎችን ለገንቢ ይላኩ።</string>
-    <string name="app_logs_send_message">እባክዎ የችግሩን መግለጫ ያክሉ፡-</string>
+    <string name="app_logs_send_message">እባክዎ የችግኙን መግለጫ ያክሉ፡</string>
     <string name="app_logs_send">ላክ</string>
-    <string name="app_logs_enabled">መግባት ነቅቷል።</string>
-    <string name="app_logs_disabled">መግባት ተሰናክሏል።</string>
-    <string name="app_logs_stop">መግባት አቁም</string>
+    <string name="app_logs_enabled">ሎግ መያዝ ነቅቷል።</string>
+    <string name="app_logs_disabled">ሎግ መያዝ ተሰናክሏል።</string>
+    <string name="app_logs_stop">ሎግ መያዝ አቁም</string>
 
     <string name="app_activity_update_dialog_title">ማዘመን አለ።</string>
     <string name="app_activity_update_dialog_message">አንድ ዝማኔ አሁን ወርዷል። መተግበሪያ አሁን ዳግም ይጀመር?</string>
@@ -23,42 +23,42 @@
     <string name="app_tab_stream_select_mode">የዥረት ሁነታን ይምረጡ፡</string>
 
     <string name="app_permission_required_title">ፍቃድ ያስፈልጋል</string>
-    <string name="app_permission_allow_notifications">መተግበሪያ የዥረት አገልግሎት ለመጀመር ማሳወቂያዎችን ለመላክ ፈቃድ ይፈልጋል።  እባክዎ ማሳወቂያዎችን ለመላክ ፍቀድ።</string>
-    <string name="app_permission_allow_notifications_settings">መተግበሪያ የዥረት አገልግሎት ለመጀመር ማሳወቂያዎችን ለመላክ ፈቃድ ይፈልጋል።  እባክዎ በመተግበሪያ ቅንብሮች ውስጥ ማሳወቂያዎችን ለመላክ ይፍቀዱ።</string>
+    <string name="app_permission_allow_notifications">ይህ መተግበሪያ የዥረት አገልግሎቱን ለመጀመር የማሳወቂያ ፈቃድ ይፈልጋል።\n\nማሳወቂያዎችን ይፍቀዱ።</string>
+    <string name="app_permission_allow_notifications_settings">ይህ መተግበሪያ የዥረት አገልግሎቱን ለመጀመር የማሳወቂያ ፈቃድ ይፈልጋል።\n\nበመተግበሪያ ቅንብሮች ውስጥ ማሳወቂያዎችን ያንቁ።</string>
     <string name="app_permission_notification_settings">ቅንብሮችን ይክፈቱ</string>
 
     <string name="app_notification_channel_streaming">የዥረት ማሳወቂያዎች</string>
     <string name="app_notification_channel_error">የስህተት ማሳወቂያዎች</string>
     <string name="app_notification_streaming_title">በዥረት መልቀቅ…</string>
-    <string name="app_notification_streaming_content">ዥረቱን ለመጨረስ STOP ን ይጫኑ</string>
+    <string name="app_notification_streaming_content">ዥረቱን ለማቆም አቁምን ይንኩ</string>
     <string name="app_notification_stop">ተወ</string>
 
     <string name="app_tile_start">ጀምር</string>
     <string name="app_tile_stop">ተወ</string>
 
-    <string name="app_pref_close">ገጠመ</string>
+    <string name="app_pref_close">ዝጋ</string>
     <string name="app_pref_back">ተመለስ</string>
-    <string name="app_pref_settings">የመተግበሪያ ቅንብሮች</string>
+    <string name="app_pref_settings">ቅንብሮች</string>
     <string name="app_pref_locale">የመተግበሪያ ቋንቋ</string>
     <string name="app_pref_locale_summary">የመተግበሪያ ቋንቋ ቅንብሮችን ይክፈቱ</string>
     <string name="app_pref_locale_default">የስርዓት ነባሪ</string>
     <string name="app_pref_night_mode">ጨለማ ጭብጥ</string>
     <string-array name="app_pref_night_mode_options_api21_28">
-        <item>እያለ</item>
-        <item>በባትሪ ሳቨር የተወሰነ</item>
+        <item>ሁልጊዜ</item>
+        <item>በባትሪ ቆጣቢ የተወሰነ</item>
         <item>በፍጹም</item>
     </string-array>
     <string-array name="app_pref_night_mode_options_api29">
-        <item>እያለ</item>
-        <item>ራስእራስ (ስርዓትን ይከተላል)</item>
+        <item>ሁልጊዜ</item>
+        <item>በራስ-ሰር (ስርዓቱን ይከተላል)</item>
         <item>በፍጹም</item>
     </string-array>
     <string name="app_pref_dynamic_theme">ተለዋዋጭ ቀለም</string>
     <string name="app_pref_dynamic_theme_summary">በግድግዳ ወረቀትዎ ቀለሞች ላይ በመመስረት መልክውን ያስተካክሉ</string>
     <string name="app_pref_notification">የመሣሪያ ማሳወቂያ ቅንብሮች</string>
     <string name="app_pref_notification_summary">የስርዓት ማሳወቂያ ቅንብሮችን ክፈት</string>
-    <string name="app_pref_tile">እባክዎ የመተግበሪያ ሸክላ ያክሉ</string>
-    <string name="app_pref_tile_summary">የመተግበሪያ ሸክላ ወደ ፈጣን ቅንብሮች አክል</string>
+    <string name="app_pref_tile">የመተግበሪያ ፈጣን ቅንብር ቁልፍ ያክሉ</string>
+    <string name="app_pref_tile_summary">የመተግበሪያ ፈጣን ቅንብር ቁልፍን ወደ ፈጣን ቅንብሮች ያክሉ</string>
     <string name="app_pref_logging">የመተግበሪያ ምዝግብ ማስታወሻዎችን አንቃ</string>
     <string name="app_pref_logging_summary">የመተግበሪያ ምዝግብ ማስታወሻዎችን ይሰብስቡ</string>
 
@@ -68,8 +68,8 @@
     <string name="app_tab_about_write_email">ለገንቢ ኢሜይል ይጻፉ</string>
     <string name="app_tab_about_email_chooser_header">ኢሜይል በመላክ ላይ…</string>
     <string name="app_tab_about_app_sources">የመተግበሪያ ምንጮች</string>
-    <string name="app_tab_about_terms_conditions">አተገባበሩና ​​መመሪያው</string>
-    <string name="app_tab_about_privacy_policy">የ ግል የሆነ</string>
+    <string name="app_tab_about_terms_conditions">ውሎች እና ሁኔታዎች</string>
+    <string name="app_tab_about_privacy_policy">የግላዊነት ፖሊሲ</string>
     <string name="app_tab_about_privacy_options">የግላዊነት አማራጮች</string>
     <string name="app_tab_about_license">ፈቃድ</string>
 </resources>

@@ -13,7 +13,7 @@
 
     <string name="app_activity_update_dialog_title">Aggiornamento disponibile</string>
     <string name="app_activity_update_dialog_message">È stato scaricato un aggiornamento. Riavviare l\'app adesso?</string>
-    <string name="app_activity_update_dialog_restart">Restart</string>
+    <string name="app_activity_update_dialog_restart">Riavvia</string>
 
     <string name="app_tab_stream">Streaming</string>
     <string name="app_tab_settings">Impostazioni</string>
@@ -23,14 +23,14 @@
     <string name="app_tab_stream_select_mode">Seleziona la modalità di streaming:</string>
 
     <string name="app_permission_required_title">Richiesta autorizzazione</string>
-    <string name="app_permission_allow_notifications">L\'applicazione richiede il permesso di inviare notifiche per poter avviare il servizio di streaming.\n\nSi prega di concedere il permesso di inviare notifiche.</string>
-    <string name="app_permission_allow_notifications_settings">L\'applicazione richiede il permesso di inviare notifiche per poter avviare il servizio di streaming.\n\nSi prega di concedere il permesso di inviare notifiche nelle impostazioni dell\'applicazione.</string>
+    <string name="app_permission_allow_notifications">Questa app richiede l\'autorizzazione alle notifiche per avviare il servizio di streaming.\n\nConsenti le notifiche.</string>
+    <string name="app_permission_allow_notifications_settings">Questa app richiede l\'autorizzazione alle notifiche per avviare il servizio di streaming.\n\nAttiva le notifiche nelle impostazioni dell\'app.</string>
     <string name="app_permission_notification_settings">Apri impostazioni</string>
 
     <string name="app_notification_channel_streaming">Notifiche di streaming</string>
     <string name="app_notification_channel_error">Notifiche di errore</string>
     <string name="app_notification_streaming_title">Trasmissione…</string>
-    <string name="app_notification_streaming_content">Premi FERMA per interrompere la trasmissione</string>
+    <string name="app_notification_streaming_content">Tocca Interrompi per terminare lo streaming</string>
     <string name="app_notification_stop">Ferma</string>
 
     <string name="app_tile_start">Avvia</string>
@@ -38,7 +38,7 @@
 
     <string name="app_pref_close">Chiudi</string>
     <string name="app_pref_back">Indietro</string>
-    <string name="app_pref_settings">Impostazioni dell\'applicazione</string>
+    <string name="app_pref_settings">Impostazioni</string>
     <string name="app_pref_locale">Lingua dell\'applicazione</string>
     <string name="app_pref_locale_summary">Apri le impostazioni della lingua dell\'applicazione</string>
     <string name="app_pref_locale_default">Impostazione predefinita di sistema</string>

@@ -5,7 +5,7 @@
 
     <string name="app_logs_collecting">正在收集應用日誌…</string>
     <string name="app_logs_send_title">把日誌發送給開發者</string>
-    <string name="app_logs_send_message">請添加問題描述：</string>
+    <string name="app_logs_send_message">請新增問題描述：</string>
     <string name="app_logs_send">發送</string>
     <string name="app_logs_enabled">啟用記錄</string>
     <string name="app_logs_disabled">停用記錄</string>
@@ -23,14 +23,14 @@
     <string name="app_tab_stream_select_mode">選擇串流模式：</string>
 
     <string name="app_permission_required_title">需要權限</string>
-    <string name="app_permission_allow_notifications">應用程式需要發送通知的權限以啟用串流服務。\n\n請允許發送通知。</string>
-    <string name="app_permission_allow_notifications_settings">應用程式需要發送通知的權限以啟用串流服務。\n\n請在應用程式設定中允許發送通知。</string>
+    <string name="app_permission_allow_notifications">此應用程式需要通知權限才能啟動串流服務。\n\n請允許通知。</string>
+    <string name="app_permission_allow_notifications_settings">此應用程式需要通知權限才能啟動串流服務。\n\n請在應用程式設定中啟用通知。</string>
     <string name="app_permission_notification_settings">開啟設定</string>
 
     <string name="app_notification_channel_streaming">串流通知</string>
     <string name="app_notification_channel_error">錯誤通知</string>
     <string name="app_notification_streaming_title">串流…</string>
-    <string name="app_notification_streaming_content">按下停止以結束串流</string>
+    <string name="app_notification_streaming_content">點選停止以結束串流</string>
     <string name="app_notification_stop">停止</string>
 
     <string name="app_tile_start">開始</string>
@@ -38,25 +38,25 @@
 
     <string name="app_pref_close">關閉</string>
     <string name="app_pref_back">返回</string>
-    <string name="app_pref_settings">應用程式設置</string>
+    <string name="app_pref_settings">設定</string>
     <string name="app_pref_locale">應用程式語言</string>
     <string name="app_pref_locale_summary">開啟應用程式語言設定</string>
     <string name="app_pref_locale_default">系統預設</string>
     <string name="app_pref_night_mode">夜間模式</string>
     <string-array name="app_pref_night_mode_options_api21_28">
         <item>總是</item>
-        <item>由電池保護來決定</item>
-        <item>不用</item>
+        <item>依省電模式設定</item>
+        <item>永不</item>
     </string-array>
     <string-array name="app_pref_night_mode_options_api29">
-        <item>總是</item>
-        <item>自動 (跟隨系統設置)</item>
-        <item>不用</item>
+        <item>始終</item>
+        <item>自動 (跟隨系統設定)</item>
+        <item>永不</item>
     </string-array>
     <string name="app_pref_dynamic_theme">動態顏色</string>
     <string name="app_pref_dynamic_theme_summary">根據您的桌布顏色調整外觀</string>
-    <string name="app_pref_notification">設備通知設置</string>
-    <string name="app_pref_notification_summary">打開系統通知設置</string>
+    <string name="app_pref_notification">裝置通知設定</string>
+    <string name="app_pref_notification_summary">開啟系統通知設定</string>
     <string name="app_pref_tile">新增應用程式磚</string>
     <string name="app_pref_tile_summary">新增應用程式磚到快速設定</string>
     <string name="app_pref_logging">啟用應用日誌</string>

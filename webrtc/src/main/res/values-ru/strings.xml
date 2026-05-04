@@ -3,20 +3,20 @@
     <string name="webrtc_error_recover">Восстановить</string>
     <string name="webrtc_error_open_settings">Открыть настройки</string>
 
-    <string name="webrtc_stream_mode">Глобальный режим (WebRTC)</string>
-    <string name="webrtc_stream_mode_description">Описание глобального режима</string>
+    <string name="webrtc_stream_mode">Глобальный режим · WebRTC</string>
+    <string name="webrtc_stream_mode_description">Трансляция через интернет с WebRTC</string>
     <string name="webrtc_stream_mode_details">
 - Работает на технологии WebRTC\n
-- Сквозное шифрованние данных\n
+- Сквозное шифрование данных\n
 - Защита трансляции паролем\n
 - Может передавать видео и аудио\n
 - Подключение к трансляции с использованием уникального идентификатора и пароля\n
 - Для отправки и приема трансляции требуется подключение к Интернету\n
-- Индивидуальная передача данных для каждого клиента (чем больше клиентов, тем больше требуется пропускной способности Интернета)
+- Каждый клиент использует отдельную интернет-пропускную способность.
 </string>
 
     <string name="webrtc_stream_network_recovery">Соединение потеряно. Переподключение…</string>
-    <string name="webrtc_stream_server_address">Доступ к трансляции по адресу:\n%1$s</string>
+    <string name="webrtc_stream_server_address">Откройте трансляцию по адресу:\n%1$s</string>
     <string name="webrtc_stream_stream_id_getting">Получение ID трансляции…</string>
     <string name="webrtc_stream_stream_id">ID трансляции: %1$s</string>
     <string name="webrtc_stream_stream_password">Пароль трансляции: %1$s</string>
@@ -29,12 +29,12 @@
     <string name="webrtc_stream_description_qr_address">Показать адрес как QR-код</string>
     <string name="webrtc_stream_description_qr">QR-код</string>
     <string name="webrtc_stream_copied">Скопировано</string>
-    <string name="webrtc_stream_audio_parameters">Параметры аудио</string>
+    <string name="webrtc_stream_audio_parameters">Настройки аудио</string>
     <string name="webrtc_stream_audio_mic">Микрофон</string>
     <string name="webrtc_stream_audio_mic_summary">Транслировать звук с микрофона</string>
     <string name="webrtc_stream_audio_device">Внутренний звук</string>
     <string name="webrtc_stream_audio_device_summary">Транслировать медиа-аудио с этого устройства</string>
-    <string name="webrtc_stream_audio_capture_unavailable">Обнаружена проблема с захватом звука</string>
+    <string name="webrtc_stream_audio_capture_unavailable">Захват звука недоступен</string>
     <string name="webrtc_stream_connected_clients">Подключенные клиенты: %1$d</string>
     <string name="webrtc_stream_no_web_browser_found">Не найден веб-браузер</string>
     <string name="webrtc_stream_external_app_error">Ошибка внешнего приложения</string>
@@ -42,7 +42,7 @@
     <string name="webrtc_stream_start">Начать трансляцию</string>
     <string name="webrtc_stream_stop">Остановить трансляцию</string>
 
-    <string name="webrtc_stream_other_parameters">Другие параметры</string>
+    <string name="webrtc_stream_other_parameters">Другие настройки</string>
     <string name="webrtc_stream_keep_awake">Держать устройство активным</string>
     <string name="webrtc_stream_keep_awake_summary">Держать устройство и экран активными при трансляции</string>
     <string name="webrtc_stream_stop_on_sleep">Останавливать при выключении</string>
@@ -58,8 +58,8 @@
     <string name="webrtc_error_play_integrity_install_play_store">Пожалуйста, установите или включите официальный Google Play Store</string>
     <string name="webrtc_error_play_integrity_install_play_service">Пожалуйста, установите или включите Play Services</string>
     <string name="webrtc_error_play_integrity_update_play_service">Пожалуйста, обновите Google Play Services</string>
-    <string name="webrtc_error_check_network">Пожалуйста, проверьте подключение к интернету</string>
+    <string name="webrtc_error_check_network">Проверьте подключение к интернету</string>
     <string name="webrtc_error_incomplete_installation">Установка приложения выполнена не полностью. Пожалуйста, переустановите приложение из Google Play.</string>
-    <string name="webrtc_notification_permission_required">Для запуска службы потоковой передачи требуется включить уведомления в приложении.\nПожалуйста, включите уведомления в настройках приложения.</string>
+    <string name="webrtc_notification_permission_required">Этому приложению нужны включенные уведомления, чтобы запустить службу трансляции.\nВключите уведомления в настройках приложения.</string>
     <string name="webrtc_error_unspecified">Что-то пошло не так. Пожалуйста, попробуйте еще раз позже.</string>
 </resources>

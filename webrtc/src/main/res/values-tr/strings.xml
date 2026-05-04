@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="webrtc_error_recover">Kurtar</string>
+    <string name="webrtc_error_open_settings">Ayarları aç</string>
+
+    <string name="webrtc_stream_mode">Global mod · WebRTC</string>
+    <string name="webrtc_stream_mode_description">WebRTC ile internet üzerinden yayın yapın</string>
+    <string name="webrtc_stream_mode_details">
+- WebRTC teknolojisiyle çalışır.\n
+- Uçtan uca şifreli iletişim.\n
+- Yayın parola ile korunur.\n
+- Video ve ses gönderebilir.\n
+- Benzersiz yayın kimliği ve parola ile bağlanılır.\n
+- Yayın için internet bağlantısı gerekir.\n
+- Her istemci ayrı internet bant genişliği kullanır.
+</string>
+
+    <string name="webrtc_stream_network_recovery">Bağlantı kesildi. Yeniden bağlanıyor…</string>
+    <string name="webrtc_stream_server_address">Yayına şu adresten erişin:\n%1$s</string>
+    <string name="webrtc_stream_stream_id_getting">Yayın kimliği alınıyor…</string>
+    <string name="webrtc_stream_stream_id">Yayın kimliği: %1$s</string>
+    <string name="webrtc_stream_stream_password">Yayın parolası: %1$s</string>
+    <string name="webrtc_stream_description_show_password">Yayın parolasını göster</string>
+    <string name="webrtc_stream_description_get_new_id">Yeni yayın kimliği al</string>
+    <string name="webrtc_stream_description_create_password">Yeni yayın parolası oluştur</string>
+    <string name="webrtc_stream_description_open_address">Adresi aç</string>
+    <string name="webrtc_stream_description_copy_address">Adresi kopyala</string>
+    <string name="webrtc_stream_description_share_address">Adresi paylaş</string>
+    <string name="webrtc_stream_description_qr_address">Adresi QR kodu olarak göster</string>
+    <string name="webrtc_stream_description_qr">QR kodu</string>
+    <string name="webrtc_stream_copied">Kopyalandı</string>
+    <string name="webrtc_stream_audio_parameters">Ses ayarları</string>
+    <string name="webrtc_stream_audio_mic">Mikrofon</string>
+    <string name="webrtc_stream_audio_mic_summary">Mikrofon sesini yayınla</string>
+    <string name="webrtc_stream_audio_device">Dahili ses</string>
+    <string name="webrtc_stream_audio_device_summary">Bu cihazdaki medya sesini yayınla</string>
+    <string name="webrtc_stream_audio_capture_unavailable">Ses yakalama kullanılamıyor</string>
+    <string name="webrtc_stream_connected_clients">Bağlı istemciler: %1$d</string>
+    <string name="webrtc_stream_no_web_browser_found">Web tarayıcısı bulunamadı</string>
+    <string name="webrtc_stream_external_app_error">Harici uygulama hatası</string>
+    <string name="webrtc_stream_share_address">Cihaz adresini paylaş</string>
+    <string name="webrtc_stream_start">Yayını başlat</string>
+    <string name="webrtc_stream_stop">Yayını durdur</string>
+
+    <string name="webrtc_stream_other_parameters">Diğer ayarlar</string>
+    <string name="webrtc_stream_keep_awake">Cihazı uyanık tut</string>
+    <string name="webrtc_stream_keep_awake_summary">Yayın sırasında cihazı ve ekranı uyanık tut</string>
+    <string name="webrtc_stream_stop_on_sleep">Uyku modunda yayını durdur</string>
+    <string name="webrtc_stream_stop_on_sleep_summary">Ekran kapanırsa yayını durdur</string>
+
+    <string name="webrtc_stream_audio_permission_title">Ses erişimine izin ver</string>
+    <string name="webrtc_stream_audio_permission_message">Mikrofon veya dahili sesi yayınlamak için mikrofon izni gereklidir.\n\nBu izin olmadan yayında ses olmaz.</string>
+    <string name="webrtc_stream_audio_permission_message_settings">Mikrofon veya dahili sesi yayınlamak için uygulama ayarlarından mikrofon iznini etkinleştirin.\n\nBu izin olmadan yayında ses olmaz.</string>
+    <string name="webrtc_stream_audio_permission_open_settings">Ayarları aç</string>
+    <string name="webrtc_item_client_disconnect">Bağlantıyı kes</string>
+
+    <string name="webrtc_error_play_integrity_update_play_store">Lütfen Google Play Store\'u güncelleyin</string>
+    <string name="webrtc_error_play_integrity_install_play_store">Lütfen resmi Google Play Store\'u yükleyin veya etkinleştirin</string>
+    <string name="webrtc_error_play_integrity_install_play_service">Lütfen Play Hizmetleri\'ni yükleyin veya etkinleştirin</string>
+    <string name="webrtc_error_play_integrity_update_play_service">Lütfen Google Play Hizmetleri\'ni güncelleyin</string>
+    <string name="webrtc_error_check_network">İnternet bağlantınızı kontrol edin</string>
+    <string name="webrtc_error_incomplete_installation">Uygulama kurulumu tamamlanmamış. Lütfen uygulamayı Google Play\'den yeniden yükleyin.</string>
+    <string name="webrtc_notification_permission_required">Bu uygulamanın yayın hizmetini başlatmak için bildirimleri etkinleştirmesi gerekir.\nUygulama ayarlarında bildirimleri etkinleştirin.</string>
+    <string name="webrtc_error_unspecified">Bir şeyler ters gitti. Lütfen daha sonra tekrar deneyin.</string>
+</resources>

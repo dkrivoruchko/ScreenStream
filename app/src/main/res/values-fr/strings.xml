@@ -1,47 +1,47 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_error_title">Erreur</string>
-    <string name="app_error_recover">Récupérer</string>
+    <string name="app_error_recover">Rétablir</string>
 
     <string name="app_logs_collecting">Collecte des journaux d\'application…</string>
     <string name="app_logs_send_title">Envoyer des journaux au développeur</string>
-    <string name="app_logs_send_message">Veuillez ajouter une description du problème:</string>
+    <string name="app_logs_send_message">Veuillez ajouter une description du problème :</string>
     <string name="app_logs_send">Envoyer</string>
     <string name="app_logs_enabled">Journalisation activée</string>
     <string name="app_logs_disabled">Journalisation désactivée</string>
     <string name="app_logs_stop">Arrêter l\'enregistrement</string>
 
     <string name="app_activity_update_dialog_title">Mise à jour disponible</string>
-    <string name="app_activity_update_dialog_message">Une mise à jour vient d\'être téléchargée. Redémarrer l\'application maintenant?</string>
+    <string name="app_activity_update_dialog_message">Une mise à jour vient d\'être téléchargée. Redémarrer l\'application maintenant ?</string>
     <string name="app_activity_update_dialog_restart">Redémarrer</string>
 
     <string name="app_tab_stream">Diffusion</string>
     <string name="app_tab_settings">Réglages</string>
-    <string name="app_tab_about">À propos de</string>
+    <string name="app_tab_about">À propos</string>
     <string name="app_tab_exit">Quitter</string>
 
-    <string name="app_tab_stream_select_mode">Sélectionnez le mode de flux:</string>
+    <string name="app_tab_stream_select_mode">Sélectionnez le mode de diffusion :</string>
 
     <string name="app_permission_required_title">Permission requise</string>
-    <string name="app_permission_allow_notifications">L\'application nécessite l\'autorisation d\'envoyer des notifications pour pouvoir démarrer le service de streaming.\n\nVeuillez autoriser l\'envoi de notifications.</string>
-    <string name="app_permission_allow_notifications_settings">L\'application nécessite l\'autorisation d\'envoyer des notifications pour pouvoir démarrer le service de streaming.\n\nVeuillez autoriser l\'envoi de notifications dans les paramètres de l\'application.</string>
+    <string name="app_permission_allow_notifications">Cette application a besoin de l\'autorisation de notifications pour démarrer le service de diffusion.\n\nAutorisez les notifications.</string>
+    <string name="app_permission_allow_notifications_settings">Cette application a besoin de l\'autorisation de notifications pour démarrer le service de diffusion.\n\nActivez les notifications dans les paramètres de l\'application.</string>
     <string name="app_permission_notification_settings">Ouvrir les paramètres</string>
 
     <string name="app_notification_channel_streaming">Notifications de diffusion</string>
     <string name="app_notification_channel_error">Notifications d\'erreur</string>
     <string name="app_notification_streaming_title">Diffusion…</string>
-    <string name="app_notification_streaming_content">Appuyez sur Arrêtez pour arrêter la diffusion</string>
-    <string name="app_notification_stop">Arrêtez</string>
+    <string name="app_notification_streaming_content">Appuyez sur Arrêter pour terminer la diffusion</string>
+    <string name="app_notification_stop">Arrêter</string>
 
     <string name="app_tile_start">Démarrer</string>
     <string name="app_tile_stop">Arrêter</string>
 
     <string name="app_pref_close">Fermer</string>
     <string name="app_pref_back">Retour</string>
-    <string name="app_pref_settings">Paramètres de l\'application</string>
+    <string name="app_pref_settings">Réglages</string>
     <string name="app_pref_locale">Langue de l\'application</string>
     <string name="app_pref_locale_summary">Ouvrir les paramètres de langue de l\'application</string>
-    <string name="app_pref_locale_default">Paramètre par défaut du système</string>
+    <string name="app_pref_locale_default">Langue du système</string>
     <string name="app_pref_night_mode">Thème sombre</string>
     <string-array name="app_pref_night_mode_options_api21_28">
         <item>Toujours</item>
@@ -50,11 +50,11 @@
     </string-array>
     <string-array name="app_pref_night_mode_options_api29">
         <item>Toujours</item>
-        <item>Automatiquement (système de suivi)</item>
+        <item>Automatique (selon le système)</item>
         <item>Jamais</item>
     </string-array>
     <string name="app_pref_dynamic_theme">Couleur dynamique</string>
-    <string name="app_pref_dynamic_theme_summary">Ajustez l\'apparence en fonction des couleurs de votre papier peint</string>
+    <string name="app_pref_dynamic_theme_summary">Adapter l\'apparence aux couleurs de votre fond d\'écran</string>
     <string name="app_pref_notification">Paramètres de notification de l\'appareil</string>
     <string name="app_pref_notification_summary">Ouvrir les paramètres de notification du système</string>
     <string name="app_pref_tile">Ajouter une tuile d\'application</string>
@@ -62,11 +62,11 @@
     <string name="app_pref_logging">Activer les journaux d\'application</string>
     <string name="app_pref_logging_summary">Collecter les journaux d\'application</string>
 
-    <string name="app_tab_about_app_version">Version: %1$s</string>
+    <string name="app_tab_about_app_version">Version : %1$s</string>
     <string name="app_tab_about_developer_name">Développé par Dmytro Kryvoruchko</string>
     <string name="app_tab_about_rate_app">Évaluer l\'application</string>
-    <string name="app_tab_about_write_email">Envoyer un courriel au développeur</string>
-    <string name="app_tab_about_email_chooser_header">Envoi du courriel…</string>
+    <string name="app_tab_about_write_email">Envoyer un e-mail au développeur</string>
+    <string name="app_tab_about_email_chooser_header">Envoi de l\'e-mail…</string>
     <string name="app_tab_about_app_sources">Code source de l\'application</string>
     <string name="app_tab_about_terms_conditions">Conditions générales</string>
     <string name="app_tab_about_privacy_policy">Politique de confidentialité</string>

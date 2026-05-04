@@ -5,7 +5,7 @@
 
     <string name="app_logs_collecting">एप्लिकेशन लॉग एकत्रित कर रहा है …</string>
     <string name="app_logs_send_title">डेवलपर को लॉग भेजें</string>
-    <string name="app_logs_send_message">कृपया समस्या विवरण जोड़ें:</string>
+    <string name="app_logs_send_message">कृपया समस्या का विवरण जोड़ें:</string>
     <string name="app_logs_send">भेजें</string>
     <string name="app_logs_enabled">लॉगिंग सक्षम</string>
     <string name="app_logs_disabled">लॉगिंग अक्षम</string>
@@ -23,14 +23,14 @@
     <string name="app_tab_stream_select_mode">स्ट्रीम मोड चुनें:</string>
 
     <string name="app_permission_required_title">अनुमति आवश्यक है</string>
-    <string name="app_permission_allow_notifications">स्ट्रीमिंग सेवा शुरू करने के लिए ऐप्लिकेशन को सूचनाओं भेजने की अनुमति की आवश्यकता है।\n\nकृपया सूचनाएँ भेजने की अनुमति दें।</string>
-    <string name="app_permission_allow_notifications_settings">स्ट्रीमिंग सेवा शुरू करने के लिए ऐप्लिकेशन को सूचनाएँ भेजने की अनुमति की आवश्यकता है।\n\nकृपया ऐप्लिकेशन की सेटिंग्स में सूचनाओं को भेजने की अनुमति दें।</string>
+    <string name="app_permission_allow_notifications">स्ट्रीमिंग सेवा शुरू करने के लिए इस ऐप को सूचना अनुमति चाहिए।\n\nसूचनाओं की अनुमति दें।</string>
+    <string name="app_permission_allow_notifications_settings">स्ट्रीमिंग सेवा शुरू करने के लिए इस ऐप को सूचना अनुमति चाहिए।\n\nऐप सेटिंग में सूचनाएँ चालू करें।</string>
     <string name="app_permission_notification_settings">सेटिंग्स खोलें</string>
 
     <string name="app_notification_channel_streaming">स्ट्रीमिंग सूचनाएँ</string>
     <string name="app_notification_channel_error">त्रुटि सूचनाएँ</string>
     <string name="app_notification_streaming_title">प्रवाह…</string>
-    <string name="app_notification_streaming_content">धारा समाप्त करने के लिए STOP दबाएँ</string>
+    <string name="app_notification_streaming_content">स्ट्रीम समाप्त करने के लिए रोकें पर टैप करें</string>
     <string name="app_notification_stop">रुकें</string>
 
     <string name="app_tile_start">शुरू</string>
@@ -38,7 +38,7 @@
 
     <string name="app_pref_close">बंद करें</string>
     <string name="app_pref_back">पीछे</string>
-    <string name="app_pref_settings">एप्लिकेशन सेटिंग्स</string>
+    <string name="app_pref_settings">सेटिंग्स</string>
     <string name="app_pref_locale">ऐप्लिकेशन भाषा</string>
     <string name="app_pref_locale_summary">ऐप्लिकेशन भाषा सेटिंग्स खोलें</string>
     <string name="app_pref_locale_default">सिस्टम डिफ़ॉल्ट</string>
@@ -63,7 +63,7 @@
     <string name="app_pref_logging_summary">आवेदन पत्र एकत्र करें</string>
 
     <string name="app_tab_about_app_version">संस्करण: %1$s</string>
-    <string name="app_tab_about_developer_name">दिमित्री Dmytro Krivoruchko द्वारा विकसित</string>
+    <string name="app_tab_about_developer_name">Dmytro Kryvoruchko द्वारा विकसित</string>
     <string name="app_tab_about_rate_app">एप्लिकेशन का मूल्यांकन करें</string>
     <string name="app_tab_about_write_email">डेवलपर को ईमेल लिखें</string>
     <string name="app_tab_about_email_chooser_header">ईमेल भेज रहा हूं…</string>

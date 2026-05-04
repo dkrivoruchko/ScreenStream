@@ -3,8 +3,8 @@
     <string name="rtsp_error_recover">Восстановить</string>
     <string name="rtsp_error_open_settings">Открыть настройки</string>
 
-    <string name="rtsp_stream_mode">Режим RTSP (RTSP)</string>
-    <string name="rtsp_stream_mode_description">Описание режима RTSP</string>
+    <string name="rtsp_stream_mode">Режим RTSP · RTSP</string>
+    <string name="rtsp_stream_mode_description">Трансляция через RTSP-клиент или сервер</string>
     <string name="rtsp_stream_mode_details">
 - Работает по протоколу RTSP.\n
 - Серверный режим (по умолчанию) делает это устройство RTSP‑сервером.\n
@@ -22,7 +22,7 @@
     <string name="rtsp_mode_client_hint">Подключиться к удалённому RTSP-серверу</string>
 
     <string name="rtsp_interfaces_title">Адрес RTSP-сервера</string>
-    <string name="rtsp_interfaces_no_address">Адрес не найден.\nПроверьте соединение или Параметры сервера (Фильтр интерфейсов, Фильтр адресов).</string>
+    <string name="rtsp_interfaces_no_address">Адрес не найден.\nПроверьте соединение или измените настройки сервера (Фильтр интерфейсов, Фильтр адресов).</string>
     <string name="rtsp_interfaces_discovering">Поиск адресов…</string>
     <string name="rtsp_interfaces_interface_label">Интерфейс:\n%1$s</string>
     <string name="rtsp_interfaces_description_copy">Копировать адрес</string>
@@ -37,14 +37,14 @@
     <string name="rtsp_bind_error_permission_denied">Ошибка: Доступ запрещен</string>
     <string name="rtsp_bind_error_unknown">Ошибка: Сбой слушателя</string>
 
-    <string name="rtsp_server_parameters">Параметры сервера</string>
-    <string name="rtsp_client_parameters">Параметры клиента</string>
+    <string name="rtsp_server_parameters">Настройки сервера</string>
+    <string name="rtsp_client_parameters">Настройки клиента</string>
 
     <string name="rtsp_stream_start">Запустить трансляцию</string>
     <string name="rtsp_stream_stop">Остановить трансляцию</string>
 
-    <string name="rtsp_error_notification_permission_required">Для запуска службы трансляции необходимо включить уведомления.\nВключите уведомления в настройках приложения.</string>
-    <string name="rtsp_error_ip_address_not_found">Адрес не найден. Проверьте соединение или Параметры сервера (Фильтр интерфейсов, Фильтр адресов).</string>
+    <string name="rtsp_error_notification_permission_required">Этому приложению нужны включенные уведомления, чтобы запустить службу трансляции.\nВключите уведомления в настройках приложения.</string>
+    <string name="rtsp_error_ip_address_not_found">Адрес не найден. Проверьте соединение или измените настройки сервера (Фильтр интерфейсов, Фильтр адресов).</string>
     <string name="rtsp_error_unspecified">Что-то пошло не так.</string>
 
     <string name="rtsp_media_server">Медиасервер</string>
@@ -62,7 +62,7 @@
     <string name="rtsp_label_public_ipv6">Публичный IPv6</string>
     <string name="rtsp_label_loopback">Loopback</string>
 
-    <string name="rtsp_video_parameters">Параметры видео</string>
+    <string name="rtsp_video_parameters">Настройки видео</string>
     <string name="rtsp_video_encoder">Видеокодек:</string>
     <string name="rtsp_video_encoder_auto">Авто</string>
     <string name="rtsp_video_resize_image">Размер изображения: %1$.2f%%</string>
@@ -75,18 +75,18 @@
     <string name="rtsp_video_bitrate_mbit">%.2f Мбит</string>
     <string name="rtsp_video_bitrate_kbit">%d Кбит</string>
 
-    <string name="rtsp_audio_parameters">Параметры аудио</string>
+    <string name="rtsp_audio_parameters">Настройки аудио</string>
     <string name="rtsp_audio_mic">Микрофон</string>
     <string name="rtsp_audio_mic_mute">Отключить микрофон</string>
-    <string name="rtsp_audio_device">Звук устройства</string>
-    <string name="rtsp_audio_device_mute">Отключить звук устройства</string>
+    <string name="rtsp_audio_device">Внутренний звук</string>
+    <string name="rtsp_audio_device_mute">Отключить внутренний звук</string>
     <string name="rtsp_audio_encoder">Аудиокодек:</string>
     <string name="rtsp_audio_encoder_auto">Авто</string>
     <string name="rtsp_audio_bitrate">Битрейт аудио: %1$s/сек</string>
     <string name="rtsp_audio_permission_title">Разрешить запись звука</string>
-    <string name="rtsp_audio_permission_message">Разрешение на запись звука необходимо для трансляции аудио.\n\nБез этого разрешения трансляция будет без звука.</string>
+    <string name="rtsp_audio_permission_message">Для трансляции аудио требуется разрешение на запись звука.\n\nБез него в трансляции не будет звука.</string>
     <string name="rtsp_audio_permission_open_settings">Открыть настройки</string>
-    <string name="rtsp_audio_permission_message_settings">Предоставление доступа к микрофону необходимо для трансляции аудио.\n\nБез этого разрешения трансляция будет без звука.</string>
+    <string name="rtsp_audio_permission_message_settings">Включите разрешение микрофона в настройках приложения, чтобы транслировать аудио.\n\nБез него в трансляции не будет звука.</string>
     <string name="rtsp_audio_capture_issue_detected">Обнаружена проблема с захватом звука</string>
 
     <string name="rtsp_connection_access_denied">Доступ запрещен</string>
@@ -114,6 +114,6 @@
     <string name="rtsp_pref_enable_ipv6">Включить IPv6</string>
     <string name="rtsp_pref_enable_ipv6_summary">Запустить сервер на IPv6-адресах</string>
     <string name="rtsp_pref_server_port">Порт сервера</string>
-    <string name="rtsp_pref_server_port_summary">Установить порт для входяших подключений</string>
+    <string name="rtsp_pref_server_port_summary">Установить порт для входящих подключений</string>
     <string name="rtsp_pref_server_port_text">Установите порт сервера для входящих подключений.\nЗначения: 1025–65535\nПо умолчанию: 8554</string>
 </resources>

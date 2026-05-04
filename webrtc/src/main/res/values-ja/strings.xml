@@ -3,8 +3,8 @@
     <string name="webrtc_error_recover">復旧</string>
     <string name="webrtc_error_open_settings">設定を開く</string>
 
-    <string name="webrtc_stream_mode">グローバルモード（WebRTC）</string>
-    <string name="webrtc_stream_mode_description">グローバルモードの説明</string>
+    <string name="webrtc_stream_mode">グローバルモード · WebRTC</string>
+    <string name="webrtc_stream_mode_description">WebRTCでインターネット配信</string>
     <string name="webrtc_stream_mode_details">
 - WebRTCテクノロジーにより動作します。\n
 - 端から端まで暗号化された通信。\n
@@ -12,7 +12,7 @@
 - ビデオとオーディオを送信できます。\n
 - ユニークなストリームIDとパスワードを使用して接続します。\n
 - ストリーミングにはインターネット接続が必要です。\n
-- 各クライアントごとに個別のデータ転送が必要です（クライアントが増えると、より多くのインターネット帯域幅が必要です）。
+- 各クライアントが個別のインターネット帯域幅を使用します。
 </string>
 
     <string name="webrtc_stream_network_recovery">接続が失われました。再接続中…</string>
@@ -29,12 +29,12 @@
     <string name="webrtc_stream_description_qr_address">QRコードとしてアドレスを表示</string>
     <string name="webrtc_stream_description_qr">QRコード</string>
     <string name="webrtc_stream_copied">コピーしました</string>
-    <string name="webrtc_stream_audio_parameters">音声パラメータ</string>
+    <string name="webrtc_stream_audio_parameters">音声設定</string>
     <string name="webrtc_stream_audio_mic">マイク</string>
     <string name="webrtc_stream_audio_mic_summary">マイク音声を配信</string>
     <string name="webrtc_stream_audio_device">内部音声</string>
     <string name="webrtc_stream_audio_device_summary">この端末のメディア音声を配信</string>
-    <string name="webrtc_stream_audio_capture_unavailable">音声キャプチャで問題が検出されました</string>
+    <string name="webrtc_stream_audio_capture_unavailable">音声キャプチャを利用できません</string>
     <string name="webrtc_stream_connected_clients">接続されたクライアント: %1$d</string>
     <string name="webrtc_stream_no_web_browser_found">Webブラウザが見つかりません</string>
     <string name="webrtc_stream_external_app_error">外部アプリケーションエラー</string>
@@ -42,7 +42,7 @@
     <string name="webrtc_stream_start">ストリームを開始</string>
     <string name="webrtc_stream_stop">ストリームを停止</string>
 
-    <string name="webrtc_stream_other_parameters">その他のパラメータ</string>
+    <string name="webrtc_stream_other_parameters">その他の設定</string>
     <string name="webrtc_stream_keep_awake">デバイスを起きたままにする</string>
     <string name="webrtc_stream_keep_awake_summary">ストリーミング中にデバイスと画面を起きたままに保つ</string>
     <string name="webrtc_stream_stop_on_sleep">スリープ時にストリームを停止</string>
@@ -60,6 +60,6 @@
     <string name="webrtc_error_play_integrity_update_play_service">Google Playサービスを更新してください</string>
     <string name="webrtc_error_check_network">インターネット接続を確認してください</string>
     <string name="webrtc_error_incomplete_installation">アプリのインストールが不完全です。Google Play からアプリを再インストールしてください。</string>
-    <string name="webrtc_notification_permission_required">アプリケーションはストリーミングサービスを開始するために通知の有効化が必要です。\nアプリケーションの設定で通知を有効にしてください。</string>
+    <string name="webrtc_notification_permission_required">ストリーミングサービスを開始するには、このアプリの通知を有効にする必要があります。\nアプリ設定で通知を有効にしてください。</string>
     <string name="webrtc_error_unspecified">何かがうまくいかなかったようです。後で再試行してください。</string>
 </resources>

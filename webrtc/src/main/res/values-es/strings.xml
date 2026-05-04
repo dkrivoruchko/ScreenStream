@@ -1,40 +1,40 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="webrtc_error_recover">Recuperar</string>
-    <string name="webrtc_error_open_settings">Abrir configuración</string>
+    <string name="webrtc_error_open_settings">Abrir ajustes</string>
 
-    <string name="webrtc_stream_mode">Modo global (WebRTC)</string>
-    <string name="webrtc_stream_mode_description">Descripción del modo global</string>
+    <string name="webrtc_stream_mode">Modo global · WebRTC</string>
+    <string name="webrtc_stream_mode_description">Transmitir por internet con WebRTC</string>
     <string name="webrtc_stream_mode_details">
-- Impulsado por la tecnología WebRTC.\n
+- Usa la tecnología WebRTC.\n
 - Comunicación cifrada de extremo a extremo.\n
-- Protección del flujo con contraseña.\n
+- Transmisión protegida con contraseña.\n
 - Puede enviar video y audio.\n
-- Conéctese mediante una identificación única de flujo y contraseña.\n
+- Conéctese con un ID de transmisión único y una contraseña.\n
 - Requiere una conexión a Internet para la transmisión.\n
-- Transmisión de datos individual para cada cliente (cuantos más clientes tenga, más ancho de banda de Internet necesitará).
+- Cada cliente usa ancho de banda de internet separado.
 </string>
 
     <string name="webrtc_stream_network_recovery">Conexión perdida. Reconectando…</string>
-    <string name="webrtc_stream_server_address">Acceda al flujo en:\n%1$s</string>
-    <string name="webrtc_stream_stream_id_getting">Obteniendo ID de flujo…</string>
-    <string name="webrtc_stream_stream_id">ID de flujo: %1$s</string>
-    <string name="webrtc_stream_stream_password">Contraseña del flujo: %1$s</string>
-    <string name="webrtc_stream_description_show_password">Mostrar contraseña del flujo</string>
-    <string name="webrtc_stream_description_get_new_id">Obtener nueva ID de flujo</string>
-    <string name="webrtc_stream_description_create_password">Crear nueva contraseña del flujo</string>
+    <string name="webrtc_stream_server_address">Accede a la transmisión en:\n%1$s</string>
+    <string name="webrtc_stream_stream_id_getting">Obteniendo ID de transmisión…</string>
+    <string name="webrtc_stream_stream_id">ID de transmisión: %1$s</string>
+    <string name="webrtc_stream_stream_password">Contraseña de transmisión: %1$s</string>
+    <string name="webrtc_stream_description_show_password">Mostrar contraseña de transmisión</string>
+    <string name="webrtc_stream_description_get_new_id">Obtener nuevo ID de transmisión</string>
+    <string name="webrtc_stream_description_create_password">Crear nueva contraseña de transmisión</string>
     <string name="webrtc_stream_description_open_address">Abrir dirección</string>
     <string name="webrtc_stream_description_copy_address">Copiar dirección</string>
     <string name="webrtc_stream_description_share_address">Compartir dirección</string>
     <string name="webrtc_stream_description_qr_address">Mostrar dirección como código QR</string>
     <string name="webrtc_stream_description_qr">Código QR</string>
     <string name="webrtc_stream_copied">Copiado</string>
-    <string name="webrtc_stream_audio_parameters">Parámetros de audio</string>
+    <string name="webrtc_stream_audio_parameters">Ajustes de audio</string>
     <string name="webrtc_stream_audio_mic">Micrófono</string>
     <string name="webrtc_stream_audio_mic_summary">Transmitir audio del micrófono</string>
     <string name="webrtc_stream_audio_device">Audio interno</string>
     <string name="webrtc_stream_audio_device_summary">Transmitir el audio multimedia de este dispositivo</string>
-    <string name="webrtc_stream_audio_capture_unavailable">Se detectó un problema en la captura de audio</string>
+    <string name="webrtc_stream_audio_capture_unavailable">Captura de audio no disponible</string>
     <string name="webrtc_stream_connected_clients">Clientes conectados: %1$d</string>
     <string name="webrtc_stream_no_web_browser_found">No se encontró navegador web</string>
     <string name="webrtc_stream_external_app_error">Error de aplicación externa</string>
@@ -42,24 +42,24 @@
     <string name="webrtc_stream_start">Iniciar transmisión</string>
     <string name="webrtc_stream_stop">Detener transmisión</string>
 
-    <string name="webrtc_stream_other_parameters">Otros parámetros</string>
+    <string name="webrtc_stream_other_parameters">Otros ajustes</string>
     <string name="webrtc_stream_keep_awake">Mantener el dispositivo activo</string>
     <string name="webrtc_stream_keep_awake_summary">Mantener el dispositivo y la pantalla activos durante la transmisión</string>
-    <string name="webrtc_stream_stop_on_sleep">Detener transmisión al dormir</string>
-    <string name="webrtc_stream_stop_on_sleep_summary">Detener transmisión si la apaga la pantalla</string>
+    <string name="webrtc_stream_stop_on_sleep">Detener transmisión al bloquear</string>
+    <string name="webrtc_stream_stop_on_sleep_summary">Detener transmisión si la pantalla se apaga</string>
 
     <string name="webrtc_stream_audio_permission_title">Permitir acceso al audio</string>
     <string name="webrtc_stream_audio_permission_message">Se requiere permiso de micrófono para transmitir audio del micrófono o audio interno.\n\nSin él, la transmisión no tendrá sonido.</string>
     <string name="webrtc_stream_audio_permission_message_settings">Activa el permiso de micrófono en los ajustes de la app para transmitir audio del micrófono o audio interno.\n\nSin él, la transmisión no tendrá sonido.</string>
-    <string name="webrtc_stream_audio_permission_open_settings">Abrir configuración</string>
+    <string name="webrtc_stream_audio_permission_open_settings">Abrir ajustes</string>
     <string name="webrtc_item_client_disconnect">Desconectar</string>
 
     <string name="webrtc_error_play_integrity_update_play_store">Por favor, actualice Google Play Store</string>
     <string name="webrtc_error_play_integrity_install_play_store">Por favor, instale o habilite Google Play Store oficial</string>
     <string name="webrtc_error_play_integrity_install_play_service">Por favor, instale o habilite Google Play Services</string>
     <string name="webrtc_error_play_integrity_update_play_service">Por favor, actualice Google Play Services</string>
-    <string name="webrtc_error_check_network">Por favor, verifique la conectividad a Internet</string>
+    <string name="webrtc_error_check_network">Comprueba tu conexión a internet</string>
     <string name="webrtc_error_incomplete_installation">La instalación de la aplicación está incompleta. Por favor, reinstale la aplicación desde Google Play.</string>
-    <string name="webrtc_notification_permission_required">La aplicación requiere que las notificaciones estén habilitadas para iniciar el servicio de transmisión.\nPor favor, habilite las notificaciones en la configuración de la aplicación.</string>
+    <string name="webrtc_notification_permission_required">Esta app necesita las notificaciones activadas para iniciar el servicio de transmisión.\nActiva las notificaciones en los ajustes de la app.</string>
     <string name="webrtc_error_unspecified">Algo salió mal. Por favor, inténtelo de nuevo más tarde.</string>
 </resources>

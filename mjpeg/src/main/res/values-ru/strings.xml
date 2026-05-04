@@ -3,17 +3,18 @@
     <string name="mjpeg_error_open_settings">Открыть настройки</string>
     <string name="mjpeg_close">Закрыть</string>
 
-    <string name="mjpeg_stream_mode">Локальный режим (MJPEG)</string>
-    <string name="mjpeg_stream_mode_description">Описание локального режима</string>
+    <string name="mjpeg_stream_mode">Локальный режим · MJPEG</string>
+    <string name="mjpeg_stream_mode_description">Трансляция по локальной сети</string>
     <string name="mjpeg_stream_mode_details">
-- Работает на стандарте MJPEG\n
-- Без шифрования (только PIN-код)\n
-- Может передавать только видео (в виде потока отдельных изображений)\n
-- Может работать в локальной сети без подключения к Интернету\n
-- Встроенный HTTP-сервер\n
-- Клиенты подключаются через веб-браузер, используя IP-адрес, предоставленный приложением\n
-- Множество настроек\n
-- Индивидуальная передача данных для каждого клиента (чем больше клиентов, тем больше требуется пропускной способности сети)
+- Использует MJPEG.\n
+- Защита PIN-кодом, без шифрования.\n
+- Только видео, отправляется отдельными изображениями.\n
+- Работает в локальной сети, интернет не нужен.\n
+- Встроенный HTTP-сервер.\n
+- Поддерживает Wi-Fi, мобильные сети, IPv4 и IPv6.\n
+- Клиенты подключаются в браузере по адресу приложения.\n
+- Гибко настраивается.\n
+- Каждый клиент использует отдельную пропускную способность.
 </string>
 
     <string name="mjpeg_item_address">Адрес устройства:</string>
@@ -36,15 +37,15 @@
     <string name="mjpeg_stream_traffic_graph">График трафика</string>
     <string name="mjpeg_stream_connected_clients">Подключено клиентов: %1$d</string>
     <string name="mjpeg_stream_client_disconnected">Отключен</string>
-    <string name="mjpeg_stream_client_slow_network">Медленный</string>
+    <string name="mjpeg_stream_client_slow_network">Медленное подключение</string>
     <string name="mjpeg_stream_client_connected">Подключен</string>
     <string name="mjpeg_stream_client_blocked">Заблокирован</string>
     <string name="mjpeg_stream_start">Начать трансляцию</string>
     <string name="mjpeg_stream_stop">Остановить трансляцию</string>
     <string name="mjpeg_slow_client_connection">Обнаружено медленное соединение</string>
 
-    <string name="mjpeg_pref_header">Настройки локального режима (MJPEG)</string>
-    <string name="mjpeg_pref_settings_general">Общие параметры</string>
+    <string name="mjpeg_pref_header">Настройки локального режима · MJPEG</string>
+    <string name="mjpeg_pref_settings_general">Общие настройки</string>
     <string name="mjpeg_pref_keep_awake">Держать устройство активным</string>
     <string name="mjpeg_pref_keep_awake_summary">Держать устройство и экран активными при трансляции</string>
     <string name="mjpeg_pref_stop_on_sleep">Останавливать при выключении</string>
@@ -65,7 +66,7 @@
     <string name="mjpeg_pref_html_fit_window">Масштабировать изображение под окно браузера</string>
     <string name="mjpeg_pref_html_fit_window_summary">Масштабировать изображение в браузере до полной ширины/высоты окна</string>
 
-    <string name="mjpeg_pref_settings_image">Параметры изображения</string>
+    <string name="mjpeg_pref_settings_image">Настройки изображения</string>
     <string name="mjpeg_pref_vr_mode">Режим виртуальной реальности</string>
     <string name="mjpeg_pref_vr_mode_summary">Захват контента с половины экрана</string>
     <string-array name="mjpeg_pref_vr_mode_options">
@@ -83,7 +84,7 @@
     <string name="mjpeg_pref_crop_warning">Обрезка будет проигнорирована если приведет к пустому изображению</string>
     <string name="mjpeg_pref_crop_error">Введите верные значения</string>
     <string name="mjpeg_pref_grayscale">Pежим оттенков серого</string>
-    <string name="mjpeg_pref_grayscale_summary">Переводить изображение в градации серого перед отправкой</string>
+    <string name="mjpeg_pref_grayscale_summary">Преобразовать изображение в оттенки серого перед отправкой</string>
     <string name="mjpeg_pref_resize">Размер изображения</string>
     <string name="mjpeg_pref_resize_summary">Изменять размер изображения перед отправкой</string>
     <string name="mjpeg_pref_resize_mode_percent">Изменить размер в процентах</string>
@@ -110,10 +111,10 @@
     <string name="mjpeg_pref_jpeg_quality_summary">Установить качество JPEG</string>
     <string name="mjpeg_pref_jpeg_quality_text">Установите качество сжатия JPEG.\nЗначения: 10–100\nПо умолчанию: 80</string>
 
-    <string name="mjpeg_pref_settings_security">Параметры безопасности</string>
+    <string name="mjpeg_pref_settings_security">Настройки безопасности</string>
     <string name="mjpeg_pref_enable_pin">Использовать PIN-код</string>
     <string name="mjpeg_pref_enable_pin_summary">Защитить доступ к трансляции PIN-кодом</string>
-    <string name="mjpeg_pref_hide_pin">Скрыть PIN-код</string>
+    <string name="mjpeg_pref_hide_pin">Автоматически скрывать PIN-код при запуске трансляции</string>
     <string name="mjpeg_pref_hide_pin_summary">При трансляции скрывать PIN-код</string>
     <string name="mjpeg_pref_new_pin_on_start">Новый PIN-код при старте</string>
     <string name="mjpeg_pref_new_pin_on_start_summary">Генерировать новый PIN-код при старте приложения</string>
@@ -121,11 +122,11 @@
     <string name="mjpeg_pref_auto_change_pin_summary">Генерировать новый PIN-код для каждой трансляции</string>
     <string name="mjpeg_pref_set_pin">Установить PIN-код</string>
     <string name="mjpeg_pref_set_pin_summary">Указать PIN-код</string>
-    <string name="mjpeg_pref_set_pin_text">Введите пин.\nПо умолчанию: 000000</string>
+    <string name="mjpeg_pref_set_pin_text">Введите PIN-код.\nПо умолчанию: 000000</string>
     <string name="mjpeg_pref_block_address">Блокрировать IP-адрес</string>
     <string name="mjpeg_pref_block_address_summary">Блокировать IP-адрес клиента после 5 неправильных попыток ввода PIN-кода на 5 минут</string>
 
-    <string name="mjpeg_pref_settings_advanced">Расширенные параметры</string>
+    <string name="mjpeg_pref_settings_advanced">Расширенные настройки</string>
     <string name="mjpeg_pref_interface_filter">Фильтр интерфейсов</string>
     <string name="mjpeg_pref_interface_filter_summary">Выберите сетевые интерфейсы для сервера</string>
     <string name="mjpeg_pref_filter_wifi">Wi-Fi</string>
@@ -149,13 +150,13 @@
     <string name="mjpeg_label_public_ipv6">Публичный IPv6</string>
     <string name="mjpeg_label_loopback">Loopback</string>
     <string name="mjpeg_pref_server_port">Порт сервера</string>
-    <string name="mjpeg_pref_server_port_summary">Установить порт для входяших подключений</string>
-    <string name="mjpeg_pref_server_port_text">Установите порт сервера для входящих подключений.\nЗначения: 1025–65535\nПо умолчанию: 808)</string>
+    <string name="mjpeg_pref_server_port_summary">Установить порт для входящих подключений</string>
+    <string name="mjpeg_pref_server_port_text">Установите порт сервера для входящих подключений.\nЗначения: 1025–65535\nПо умолчанию: 8080</string>
 
     <string name="mjpeg_error_port_in_use">Порт уже используется. Выберите другой.</string>
-    <string name="mjpeg_error_invalid_media_projection">Ошибка безопасности: Недопустимая проекция медиа. Попробуйте еще раз.</string>
-    <string name="mjpeg_error_ip_address_not_found">IP-адрес не найден.\nПопробуйте отключить \"Использовать только WiFi\" в настройках трансляции.</string>
-    <string name="mjpeg_error_notification_permission_required">Для запуска службы потоковой передачи требуется включить уведомления в приложении.\nПожалуйста, включите уведомления в настройках приложения.</string>
+    <string name="mjpeg_error_invalid_media_projection">Ошибка безопасности: недействительное разрешение на захват экрана. Попробуйте снова.</string>
+    <string name="mjpeg_error_ip_address_not_found">IP-адрес не найден.\nПопробуйте изменить сетевые фильтры в настройках трансляции.</string>
+    <string name="mjpeg_error_notification_permission_required">Этому приложению нужны включенные уведомления, чтобы запустить службу трансляции.\nВключите уведомления в настройках приложения.</string>
     <string name="mjpeg_error_unspecified">Что-то пошло не так. Пожалуйста, попробуйте позже.</string>
 
     <string name="mjpeg_start_image_text">Запустите трансляцию на устройстве</string>

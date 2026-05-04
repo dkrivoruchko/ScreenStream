@@ -3,20 +3,20 @@
     <string name="webrtc_error_recover">Pulih</string>
     <string name="webrtc_error_open_settings">Buka pengaturan</string>
 
-    <string name="webrtc_stream_mode">Modus global (WebRTC)</string>
-    <string name="webrtc_stream_mode_description">Deskripsi mode global</string>
+    <string name="webrtc_stream_mode">Modus global · WebRTC</string>
+    <string name="webrtc_stream_mode_description">Streaming melalui internet dengan WebRTC</string>
     <string name="webrtc_stream_mode_details">
 - Didukung oleh teknologi WebRTC.\n
-        - Komunikasi terenkripsi ujung ke ujung.\n
-        - Perlindungan streaming dengan kata sandi.\n
-        - Dapat mengirim video dan audio.\n
-        - Hubungkan menggunakan ID aliran unik dan kata sandi.\n
-        - Membutuhkan koneksi internet untuk streaming.\n
-        - Transmisi data individual untuk setiap klien (semakin banyak klien yang Anda miliki, semakin banyak bandwidth Internet yang Anda perlukan).
+- Komunikasi terenkripsi ujung ke ujung.\n
+- Perlindungan streaming dengan kata sandi.\n
+- Dapat mengirim video dan audio.\n
+- Hubungkan menggunakan ID aliran unik dan kata sandi.\n
+- Membutuhkan koneksi internet untuk streaming.\n
+- Setiap klien memakai bandwidth internet terpisah.
 </string>
 
     <string name="webrtc_stream_network_recovery">Koneksi terputus. Menyambung kembali…</string>
-    <string name="webrtc_stream_server_address">Akses aliran di: %1$s</string>
+    <string name="webrtc_stream_server_address">Akses streaming di:\n%1$s</string>
     <string name="webrtc_stream_stream_id_getting">Mendapatkan ID Aliran…</string>
     <string name="webrtc_stream_stream_id">ID Aliran: %1$s</string>
     <string name="webrtc_stream_stream_password">Kata sandi streaming: %1$s</string>
@@ -29,12 +29,12 @@
     <string name="webrtc_stream_description_qr_address">Tampilkan alamat sebagai kode QR</string>
     <string name="webrtc_stream_description_qr">Kode QR</string>
     <string name="webrtc_stream_copied">Disalin</string>
-    <string name="webrtc_stream_audio_parameters">Parameter audio</string>
+    <string name="webrtc_stream_audio_parameters">Setelan audio</string>
     <string name="webrtc_stream_audio_mic">Mikropon</string>
     <string name="webrtc_stream_audio_mic_summary">Streaming audio mikrofon</string>
     <string name="webrtc_stream_audio_device">Audio internal</string>
     <string name="webrtc_stream_audio_device_summary">Streaming audio media dari perangkat ini</string>
-    <string name="webrtc_stream_audio_capture_unavailable">Masalah pada perekaman audio terdeteksi</string>
+    <string name="webrtc_stream_audio_capture_unavailable">Perekaman audio tidak tersedia</string>
     <string name="webrtc_stream_connected_clients">Klien yang terhubung: %1$d</string>
     <string name="webrtc_stream_no_web_browser_found">Tidak ada peramban web yang ditemukan</string>
     <string name="webrtc_stream_external_app_error">Kesalahan aplikasi eksternal</string>
@@ -42,7 +42,7 @@
     <string name="webrtc_stream_start">Mulai streaming</string>
     <string name="webrtc_stream_stop">Hentikan streaming</string>
 
-    <string name="webrtc_stream_other_parameters">Parameter lainnya</string>
+    <string name="webrtc_stream_other_parameters">Setelan lainnya</string>
     <string name="webrtc_stream_keep_awake">Jaga agar perangkat tetap terjaga</string>
     <string name="webrtc_stream_keep_awake_summary">Jaga perangkat dan layar tetap aktif saat streaming</string>
     <string name="webrtc_stream_stop_on_sleep">Hentikan streaming saat tidur</string>
@@ -52,14 +52,14 @@
     <string name="webrtc_stream_audio_permission_message">Izin mikrofon diperlukan untuk streaming audio mikrofon atau audio internal.\n\nTanpanya, streaming tidak memiliki suara.</string>
     <string name="webrtc_stream_audio_permission_message_settings">Aktifkan izin mikrofon di setelan aplikasi untuk streaming audio mikrofon atau audio internal.\n\nTanpanya, streaming tidak memiliki suara.</string>
     <string name="webrtc_stream_audio_permission_open_settings">Buka pengaturan</string>
-    <string name="webrtc_item_client_disconnect">tidak terhubung</string>
+    <string name="webrtc_item_client_disconnect">Putuskan</string>
 
     <string name="webrtc_error_play_integrity_update_play_store">Harap perbarui Google Play Store</string>
     <string name="webrtc_error_play_integrity_install_play_store">Silakan instal atau aktifkan Google Play Store resmi</string>
     <string name="webrtc_error_play_integrity_install_play_service">Silakan instal atau aktifkan Layanan Play</string>
     <string name="webrtc_error_play_integrity_update_play_service">Harap perbarui Layanan Google Play</string>
-    <string name="webrtc_error_check_network">Silakan periksa konektivitas Internet</string>
+    <string name="webrtc_error_check_network">Periksa koneksi internet Anda</string>
     <string name="webrtc_error_incomplete_installation">Instalasi aplikasi tidak lengkap. Harap instal ulang aplikasi dari Google Play.</string>
-    <string name="webrtc_notification_permission_required">Aplikasi memerlukan pemberitahuan untuk diaktifkan untuk memulai layanan streaming. Harap aktifkan notifikasi di pengaturan aplikasi.</string>
+    <string name="webrtc_notification_permission_required">Aplikasi ini memerlukan notifikasi aktif untuk memulai layanan streaming.\nAktifkan notifikasi di setelan aplikasi.</string>
     <string name="webrtc_error_unspecified">Ada yang salah. Silakan coba lagi nanti.</string>
 </resources>

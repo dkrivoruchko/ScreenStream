@@ -3,18 +3,18 @@
     <string name="mjpeg_error_open_settings">Apri impostazioni</string>
     <string name="mjpeg_close">Chiudi</string>
 
-    <string name="mjpeg_stream_mode">Modalità locale (MJPEG)</string>
-    <string name="mjpeg_stream_mode_description">Descrizione della modalità locale</string>
+    <string name="mjpeg_stream_mode">Modalità locale · MJPEG</string>
+    <string name="mjpeg_stream_mode_description">Trasmetti sulla rete locale</string>
     <string name="mjpeg_stream_mode_details">
-- Alimentato dallo standard MJPEG.\n
-- Utilizza il PIN per la sicurezza (nessuna crittografia).\n
-- Invia il video come una serie di immagini indipendenti (senza audio).\n
-- Funziona senza una connessione Internet all\'interno della tua rete locale.\n
+- Usa MJPEG.\n
+- Protezione con PIN, senza crittografia.\n
+- Solo video, inviato come immagini separate.\n
+- Funziona sulla rete locale, senza Internet.\n
 - Server HTTP integrato.\n
-- Funziona con reti WiFi e/o reti mobili, supportando IPv4 e IPv6.\n
-- I client si connettono tramite un browser web utilizzando l\'indirizzo IP fornito dall\'app.\n
-- Altamente personalizzabile.\n
-- Trasmissione dati individuale per ogni cliente (più clienti hai, maggiore è la larghezza di banda di rete richiesta).
+- Supporta Wi-Fi, reti mobili, IPv4 e IPv6.\n
+- I client si connettono dal browser usando l\'indirizzo dell\'app.\n
+- Altamente configurabile.\n
+- Ogni client usa banda separata.
 </string>
 
     <string name="mjpeg_item_address">Indirizzo del dispositivo:</string>
@@ -29,10 +29,10 @@
     <string name="mjpeg_item_address_description_share_address">Condividi indirizzo</string>
     <string name="mjpeg_item_address_description_qr_address">Mostra indirizzo come codice QR</string>
     <string name="mjpeg_item_address_description_qr">Codice QR</string>
-    <string name="mjpeg_stream_pin">Pin: %1$s</string>
-    <string name="mjpeg_stream_pin_disabled">Pin disattivato</string>
-    <string name="mjpeg_stream_description_show_pin">Mostra pin dello streaming</string>
-    <string name="mjpeg_stream_description_create_pin">Crea nuovo pin dello streaming</string>
+    <string name="mjpeg_stream_pin">PIN: %1$s</string>
+    <string name="mjpeg_stream_pin_disabled">PIN disattivato</string>
+    <string name="mjpeg_stream_description_show_pin">Mostra PIN dello streaming</string>
+    <string name="mjpeg_stream_description_create_pin">Crea nuovo PIN dello streaming</string>
     <string name="mjpeg_stream_current_traffic">Traffico: %1$,.2f Mbit/s</string>
     <string name="mjpeg_stream_traffic_graph">Grafico del traffico</string>
     <string name="mjpeg_stream_connected_clients">Client connessi: %1$d</string>
@@ -44,8 +44,8 @@
     <string name="mjpeg_stream_stop">Arresta lo streaming</string>
     <string name="mjpeg_slow_client_connection">Rilevata connessione lenta del client</string>
 
-    <string name="mjpeg_pref_header">Impostazioni modalità locale (MJPEG)</string>
-    <string name="mjpeg_pref_settings_general">Parametri generali</string>
+    <string name="mjpeg_pref_header">Impostazioni modalità locale · MJPEG</string>
+    <string name="mjpeg_pref_settings_general">Impostazioni generali</string>
     <string name="mjpeg_pref_keep_awake">Mantieni il dispositivo attivo</string>
     <string name="mjpeg_pref_keep_awake_summary">Mantieni il dispositivo e lo schermo attivi durante lo streaming</string>
     <string name="mjpeg_pref_stop_on_sleep">Interrompi a schermo spento</string>
@@ -66,7 +66,7 @@
     <string name="mjpeg_pref_html_fit_window">Adatta immagine alla finestra del browser</string>
     <string name="mjpeg_pref_html_fit_window_summary">Scala l\'immagine nel browser a larghezza/altezza completa della finestra</string>
 
-    <string name="mjpeg_pref_settings_image">Parametri immagine</string>
+    <string name="mjpeg_pref_settings_image">Impostazioni immagine</string>
     <string name="mjpeg_pref_vr_mode">Modalità realtà virtuale</string>
     <string name="mjpeg_pref_vr_mode_summary">Cattura contenuto da metà schermo</string>
     <string-array name="mjpeg_pref_vr_mode_options">
@@ -84,10 +84,10 @@
     <string name="mjpeg_pref_crop_warning">Il ritaglio verrà ignorato se il risultato è un\'immagine vuota</string>
     <string name="mjpeg_pref_crop_error">Inserisci valori di ritaglio validi</string>
     <string name="mjpeg_pref_grayscale">Modalità scala di grigi</string>
-    <string name="mjpeg_pref_grayscale_summary">Immagine in scala di grigi prima dell\'invio al cliente</string>
+    <string name="mjpeg_pref_grayscale_summary">Converti l\'immagine in scala di grigi prima dell\'invio</string>
     <string name="mjpeg_pref_resize">Ridimensiona immagine</string>
     <string name="mjpeg_pref_resize_summary">Ridimensiona l\'immagine prima di inviarla al client</string>
-    <string name="mjpeg_pref_resize_mode_percent">Ridimensiona in percentuale</string>
+    <string name="mjpeg_pref_resize_mode_percent">Ridimensiona per percentuale</string>
     <string name="mjpeg_pref_resize_mode_resolution">Risoluzione esatta</string>
     <string name="mjpeg_pref_resize_width">Larghezza:</string>
     <string name="mjpeg_pref_resize_height">Altezza:</string>
@@ -109,24 +109,24 @@
     <string name="mjpeg_pref_fps_low_mode_text">Limita il frame rate a un fotogramma ogni %d secondi, ideale per schermi E-Ink.</string>
     <string name="mjpeg_pref_jpeg_quality">Qualità di compressione JPEG</string>
     <string name="mjpeg_pref_jpeg_quality_summary">Imposta la qualità di compressione JPEG</string>
-    <string name="mjpeg_pref_jpeg_quality_text">Imposta la qualità di compressione JPEG. Valori: 10–100\nPredefinito: 80</string>
+    <string name="mjpeg_pref_jpeg_quality_text">Imposta la qualità di compressione JPEG.\nValori: 10–100\nPredefinito: 80</string>
 
-    <string name="mjpeg_pref_settings_security">Parametri sicurezza</string>
-    <string name="mjpeg_pref_enable_pin">Attiva pin</string>
-    <string name="mjpeg_pref_enable_pin_summary">Proteggi l\'accesso alla trasmissione con un pin</string>
-    <string name="mjpeg_pref_hide_pin">Nascondi pin quando la trasmissione inizia</string>
-    <string name="mjpeg_pref_hide_pin_summary">Mostra asterischi invece del pin quando trasmetti</string>
-    <string name="mjpeg_pref_new_pin_on_start">Nuovo pin all\'avvio</string>
-    <string name="mjpeg_pref_new_pin_on_start_summary">Genera un nuovo pin all\'avvio dell\'applicazione</string>
-    <string name="mjpeg_pref_auto_change_pin">Cambia automaticamente pin</string>
-    <string name="mjpeg_pref_auto_change_pin_summary">Genera un nuovo pin per ogni nuova trasmissione</string>
-    <string name="mjpeg_pref_set_pin">Imposta pin</string>
-    <string name="mjpeg_pref_set_pin_summary">Inserisci pin manualmente</string>
-    <string name="mjpeg_pref_set_pin_text">Inserisci pin.\nPredefinito: 0000</string>
+    <string name="mjpeg_pref_settings_security">Impostazioni sicurezza</string>
+    <string name="mjpeg_pref_enable_pin">Attiva PIN</string>
+    <string name="mjpeg_pref_enable_pin_summary">Proteggi l\'accesso alla trasmissione con un PIN</string>
+    <string name="mjpeg_pref_hide_pin">Nascondi automaticamente il PIN all\'avvio dello streaming</string>
+    <string name="mjpeg_pref_hide_pin_summary">Mostra asterischi invece del PIN quando trasmetti</string>
+    <string name="mjpeg_pref_new_pin_on_start">Nuovo PIN all\'avvio</string>
+    <string name="mjpeg_pref_new_pin_on_start_summary">Genera un nuovo PIN all\'avvio dell\'applicazione</string>
+    <string name="mjpeg_pref_auto_change_pin">Cambia automaticamente il PIN</string>
+    <string name="mjpeg_pref_auto_change_pin_summary">Genera un nuovo PIN per ogni nuova trasmissione</string>
+    <string name="mjpeg_pref_set_pin">Imposta PIN</string>
+    <string name="mjpeg_pref_set_pin_summary">Inserisci PIN manualmente</string>
+    <string name="mjpeg_pref_set_pin_text">Inserisci PIN.\nPredefinito: 000000</string>
     <string name="mjpeg_pref_block_address">Blocca indirizzo IP</string>
-    <string name="mjpeg_pref_block_address_summary">Blocca indirizzo IP del client dopo 5 tentativi falliti del pin</string>
+    <string name="mjpeg_pref_block_address_summary">Blocca indirizzo IP del client dopo 5 tentativi falliti del PIN</string>
 
-    <string name="mjpeg_pref_settings_advanced">Parametri avanzati</string>
+    <string name="mjpeg_pref_settings_advanced">Impostazioni avanzate</string>
     <string name="mjpeg_pref_interface_filter">Filtro interfaccia</string>
     <string name="mjpeg_pref_interface_filter_summary">Seleziona interfacce di rete per il server</string>
     <string name="mjpeg_pref_filter_wifi">Wi-Fi</string>
@@ -151,12 +151,12 @@
     <string name="mjpeg_label_loopback">Loopback</string>
     <string name="mjpeg_pref_server_port">Porta server</string>
     <string name="mjpeg_pref_server_port_summary">Imposta la porta per le connessioni in ingresso</string>
-    <string name="mjpeg_pref_server_port_text">Imposta la porta per le connessione in ingresso.\nValori: 1025–65535\nPredefinita: 8080</string>
+    <string name="mjpeg_pref_server_port_text">Imposta la porta per le connessioni in ingresso.\nValori: 1025–65535\nPredefinita: 8080</string>
 
     <string name="mjpeg_error_port_in_use">Porta già in uso. Scegline un\'altra.</string>
-    <string name="mjpeg_error_invalid_media_projection">Errore di sicurezza: protezione multimedia non valida. Riprova.</string>
-    <string name="mjpeg_error_ip_address_not_found">Indirizzo IP non trovato.\nProva a disabilitare \"Usa solo WiFi\" nelle impostazioni di streaming.</string>
-    <string name="mjpeg_error_notification_permission_required">L\'applicazione richiede che le notifiche siano abilitate per avviare il servizio di streaming.\nSi prega di abilitare le notifiche nelle impostazioni dell\'applicazione.</string>
+    <string name="mjpeg_error_invalid_media_projection">Errore di sicurezza: autorizzazione di acquisizione schermo non valida. Riprova.</string>
+    <string name="mjpeg_error_ip_address_not_found">Indirizzo IP non trovato.\nProva a regolare i filtri di rete nelle impostazioni di streaming.</string>
+    <string name="mjpeg_error_notification_permission_required">Questa app richiede le notifiche attive per avviare il servizio di streaming.\nAttiva le notifiche nelle impostazioni dell\'app.</string>
     <string name="mjpeg_error_unspecified">Qualcosa è andato storto. Per favore, riprova più tardi.</string>
 
     <string name="mjpeg_start_image_text">Avvia lo streaming sul dispositivo</string>
@@ -165,9 +165,9 @@
     <string name="mjpeg_html_stream_connecting">Tentativo di connessione</string>
     <string name="mjpeg_html_stream_reconnecting">Riconnessione…</string>
     <string name="mjpeg_html_stream_require_pin">L\'accesso a questa trasmissione richiede un PIN</string>
-    <string name="mjpeg_html_enter_pin">Inserisci pin:\u0020</string>
+    <string name="mjpeg_html_enter_pin">Inserisci PIN:\u0020</string>
     <string name="mjpeg_html_submit_pin">Invia</string>
-    <string name="mjpeg_html_wrong_pin">Pin errato!</string>
+    <string name="mjpeg_html_wrong_pin">PIN errato!</string>
     <string name="mjpeg_html_address_blocked">Indirizzo client bloccato</string>
     <string name="mjpeg_html_error_unspecified">Qualcosa è andato storto. &lt;br&gt; Si prega di ricaricare la pagina e riprovare.</string>
 </resources>

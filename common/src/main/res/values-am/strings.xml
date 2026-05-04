@@ -1,7 +1,7 @@
 <resources>
     <string name="common_screen_capture_permission_required_title">ፈቃድ ያስፈልጋል</string>
     <string name="common_screen_capture_permission_education_message">አንድሮይድ ማያ ገጽዎን ለማጋራት ፈቃድ ይጠይቃል። ያለዚህ ስርጭት መጀመር አይችልም። ማጋራትን በማንኛውም ጊዜ ማቆም ይችላሉ።</string>
-    <string name="common_screen_capture_permission_denied_message">ማያ ገጽዎን ለማጋራት ፈቃድ ስላልተሰጠ ስርጭት አልተጀመረም። የAndroid ፈቃድ ማያውን እንደገና ለመክፈት እንደገና ሞክር ይንኩ።</string>
+    <string name="common_screen_capture_permission_denied_message">ማያ ገጽዎን ለማጋራት ፈቃድ ስላልተሰጠ ስርጭት አልተጀመረም። የAndroid ፈቃድ ማያውን እንደገና ለመክፈት እንደገና ሞክርን ይንኩ።</string>
 
     <string name="common_continue">ቀጥል</string>
     <string name="common_try_again">እንደገና ሞክር</string>

@@ -1,65 +1,65 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="webrtc_error_recover">تعافى</string>
-    <string name="webrtc_error_open_settings">افتح الإعدادات</string>
+    <string name="webrtc_error_recover">استعادة</string>
+    <string name="webrtc_error_open_settings">فتح الإعدادات</string>
 
-    <string name="webrtc_stream_mode">الوضع العالمي (WebRTC)</string>
-    <string name="webrtc_stream_mode_description">وصف الوضع العالمي</string>
+    <string name="webrtc_stream_mode">الوضع العالمي · WebRTC</string>
+    <string name="webrtc_stream_mode_description">البث عبر الإنترنت باستخدام WebRTC</string>
     <string name="webrtc_stream_mode_details">
-- مدعوم من تقنية WebRTC.\n
+- يعمل بتقنية WebRTC.\n
 - اتصال مشفر من طرف إلى طرف.\n
 - حماية البث بكلمة مرور.\n
 - يمكنه إرسال الفيديو والصوت.\n
-- قم بالاتصال باستخدام معرف التدفق الفريد وكلمة المرور.\n
-- يتطلب اتصالا بالإنترنت للبث.\n
-- نقل البيانات الفردية لكل عميل (المزيد من العملاء لديك، والمزيد من عرض النطاق الترددي للإنترنت الذي تحتاجه).
+- اتصل باستخدام معرف بث فريد وكلمة مرور.\n
+- يتطلب اتصالًا بالإنترنت للبث.\n
+- يستخدم كل عميل نطاقًا تردديًا منفصلًا للإنترنت.
 </string>
 
     <string name="webrtc_stream_network_recovery">فُقد الاتصال. جارٍ إعادة الاتصال…</string>
-    <string name="webrtc_stream_server_address">الوصول إلى البث في:\n%1$s</string>
+    <string name="webrtc_stream_server_address">الوصول إلى البث عبر:\n%1$s</string>
     <string name="webrtc_stream_stream_id_getting">الحصول على معرف البث…</string>
     <string name="webrtc_stream_stream_id">معرف البث: %1$s</string>
     <string name="webrtc_stream_stream_password">كلمة مرور البث: %1$s</string>
-    <string name="webrtc_stream_description_show_password">أظهر كلمة مرور البث</string>
-    <string name="webrtc_stream_description_get_new_id">احصل على معرف بث جديد</string>
-    <string name="webrtc_stream_description_create_password">قم بإنشاء كلمة مرور جديدة للبث</string>
-    <string name="webrtc_stream_description_open_address">عنوان مفتوح</string>
+    <string name="webrtc_stream_description_show_password">عرض كلمة مرور البث</string>
+    <string name="webrtc_stream_description_get_new_id">الحصول على معرف بث جديد</string>
+    <string name="webrtc_stream_description_create_password">إنشاء كلمة مرور جديدة للبث</string>
+    <string name="webrtc_stream_description_open_address">فتح العنوان</string>
     <string name="webrtc_stream_description_copy_address">نسخ العنوان</string>
-    <string name="webrtc_stream_description_share_address">عنوان المشاركة</string>
-    <string name="webrtc_stream_description_qr_address">أظهر العنوان كرمز QR</string>
-    <string name="webrtc_stream_description_qr">رمز الاستجابة السريعة</string>
+    <string name="webrtc_stream_description_share_address">مشاركة العنوان</string>
+    <string name="webrtc_stream_description_qr_address">عرض العنوان كرمز QR</string>
+    <string name="webrtc_stream_description_qr">رمز QR</string>
     <string name="webrtc_stream_copied">تم نسخه</string>
-    <string name="webrtc_stream_audio_parameters">معلمات الصوت</string>
+    <string name="webrtc_stream_audio_parameters">إعدادات الصوت</string>
     <string name="webrtc_stream_audio_mic">الميكروفون</string>
     <string name="webrtc_stream_audio_mic_summary">بث صوت الميكروفون</string>
     <string name="webrtc_stream_audio_device">الصوت الداخلي</string>
     <string name="webrtc_stream_audio_device_summary">بث صوت الوسائط من هذا الجهاز</string>
-    <string name="webrtc_stream_audio_capture_unavailable">تم رصد مشكلة في التقاط الصوت</string>
+    <string name="webrtc_stream_audio_capture_unavailable">التقاط الصوت غير متاح</string>
     <string name="webrtc_stream_connected_clients">العملاء المتصلون: %1$d</string>
     <string name="webrtc_stream_no_web_browser_found">لم يتم العثور على متصفح ويب</string>
     <string name="webrtc_stream_external_app_error">خطأ في التطبيق الخارجي</string>
-    <string name="webrtc_stream_share_address">شارك عنوان الجهاز</string>
-    <string name="webrtc_stream_start">بدء التيار</string>
-    <string name="webrtc_stream_stop">توقف التيار</string>
+    <string name="webrtc_stream_share_address">مشاركة عنوان الجهاز</string>
+    <string name="webrtc_stream_start">بدء البث</string>
+    <string name="webrtc_stream_stop">إيقاف البث</string>
 
-    <string name="webrtc_stream_other_parameters">معلمات أخرى</string>
-    <string name="webrtc_stream_keep_awake">أبق الجهاز مستيقظا</string>
+    <string name="webrtc_stream_other_parameters">إعدادات أخرى</string>
+    <string name="webrtc_stream_keep_awake">إبقاء الجهاز مستيقظًا</string>
     <string name="webrtc_stream_keep_awake_summary">حافظ على الجهاز والشاشة مستيقظا أثناء البث</string>
-    <string name="webrtc_stream_stop_on_sleep">توقف عن البث أثناء النوم</string>
+    <string name="webrtc_stream_stop_on_sleep">إيقاف البث عند السكون</string>
     <string name="webrtc_stream_stop_on_sleep_summary">أوقف البث إذا تم إيقاف تشغيل الشاشة</string>
 
     <string name="webrtc_stream_audio_permission_title">اسمح بالوصول إلى الصوت</string>
     <string name="webrtc_stream_audio_permission_message">إذن الميكروفون مطلوب لبث صوت الميكروفون أو الصوت الداخلي.\n\nبدونه سيكون البث بلا صوت.</string>
     <string name="webrtc_stream_audio_permission_message_settings">فعّل إذن الميكروفون في إعدادات التطبيق لبث صوت الميكروفون أو الصوت الداخلي.\n\nبدونه سيكون البث بلا صوت.</string>
     <string name="webrtc_stream_audio_permission_open_settings">افتح الإعدادات</string>
-    <string name="webrtc_item_client_disconnect">فصل</string>
+    <string name="webrtc_item_client_disconnect">قطع الاتصال</string>
 
     <string name="webrtc_error_play_integrity_update_play_store">يرجى تحديث متجر جوجل بلاي</string>
     <string name="webrtc_error_play_integrity_install_play_store">يرجى تثبيت متجر جوجل بلاي الرسمي أو تمكينه</string>
-    <string name="webrtc_error_play_integrity_install_play_service">يرجى تثبيت أو تمكين خدمات اللعب</string>
+    <string name="webrtc_error_play_integrity_install_play_service">يرجى تثبيت خدمات Google Play أو تمكينها</string>
     <string name="webrtc_error_play_integrity_update_play_service">يرجى تحديث خدمات جوجل بلاي</string>
-    <string name="webrtc_error_check_network">الرجاء التحقق من توافر الاتصال بالإنترنت</string>
+    <string name="webrtc_error_check_network">تحقق من اتصالك بالإنترنت</string>
     <string name="webrtc_error_incomplete_installation">تثبيت التطبيق غير مكتمل. يُرجى إعادة تثبيت التطبيق من Google Play.</string>
-    <string name="webrtc_notification_permission_required">يتطلب التطبيق تمكين الإشعارات لبدء خدمة البث.\nيرجى تمكين الإشعارات في إعدادات التطبيق.</string>
-    <string name="webrtc_error_unspecified">حدث خطأ ما. من فضلك حاول مرة أخرى لاحقا.</string>
+    <string name="webrtc_notification_permission_required">يحتاج هذا التطبيق إلى تفعيل الإشعارات لبدء خدمة البث.\nفعّل الإشعارات من إعدادات التطبيق.</string>
+    <string name="webrtc_error_unspecified">حدث خطأ ما. يرجى المحاولة مرة أخرى لاحقًا.</string>
 </resources>

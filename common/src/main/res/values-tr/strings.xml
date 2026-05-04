@@ -1,0 +1,8 @@
+<resources>
+    <string name="common_screen_capture_permission_required_title">İzin gerekli</string>
+    <string name="common_screen_capture_permission_education_message">Android ekranınızı paylaşmak için izin isteyecek. Bu izin olmadan yayın başlatılamaz. Paylaşımı istediğiniz zaman durdurabilirsiniz.</string>
+    <string name="common_screen_capture_permission_denied_message">Ekran paylaşma izni verilmediği için yayın başlatılamadı. Android izin ekranını tekrar açmak için Yeniden dene\'ye dokunun.</string>
+
+    <string name="common_continue">Devam et</string>
+    <string name="common_try_again">Yeniden dene</string>
+</resources>

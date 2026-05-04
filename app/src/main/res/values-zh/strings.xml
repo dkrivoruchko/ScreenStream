@@ -13,7 +13,7 @@
 
     <string name="app_activity_update_dialog_title">有新版本</string>
     <string name="app_activity_update_dialog_message">更新已下载完毕，是否想现在重启程序？</string>
-    <string name="app_activity_update_dialog_restart">重启程序 </string>
+    <string name="app_activity_update_dialog_restart">重启程序</string>
 
     <string name="app_tab_stream">串流</string>
     <string name="app_tab_settings">设置</string>
@@ -23,14 +23,14 @@
     <string name="app_tab_stream_select_mode">选择串流模式：</string>
 
     <string name="app_permission_required_title">需要权限</string>
-    <string name="app_permission_allow_notifications">要能启动串流服务，程序需要发送通知的权限。\n\n请允许发送通知。</string>
-    <string name="app_permission_allow_notifications_settings">为了能启动串流服务，程序需要发送通知的权限。\n\n请在程序设置中允许发送通知。</string>
+    <string name="app_permission_allow_notifications">此应用需要通知权限才能启动串流服务。\n\n请允许通知。</string>
+    <string name="app_permission_allow_notifications_settings">此应用需要通知权限才能启动串流服务。\n\n请在应用设置中启用通知。</string>
     <string name="app_permission_notification_settings">打开设置</string>
 
     <string name="app_notification_channel_streaming">串流通知</string>
     <string name="app_notification_channel_error">错误通知</string>
     <string name="app_notification_streaming_title">串流中…</string>
-    <string name="app_notification_streaming_content">按下“停止”结束串流</string>
+    <string name="app_notification_streaming_content">点按停止以结束串流</string>
     <string name="app_notification_stop">停止</string>
 
     <string name="app_tile_start">开始</string>
@@ -38,7 +38,7 @@
 
     <string name="app_pref_close">关闭</string>
     <string name="app_pref_back">返回</string>
-    <string name="app_pref_settings">应用设置</string>
+    <string name="app_pref_settings">设置</string>
     <string name="app_pref_locale">程序语言</string>
     <string name="app_pref_locale_summary">打开程序语言设置</string>
     <string name="app_pref_locale_default">系统默认</string>
@@ -55,10 +55,10 @@
     </string-array>
     <string name="app_pref_dynamic_theme">动态颜色</string>
     <string name="app_pref_dynamic_theme_summary">根据您的壁纸颜色调整外观</string>
-    <string name="app_pref_notification">打开设备通知设置</string>
+    <string name="app_pref_notification">设备通知设置</string>
     <string name="app_pref_notification_summary">打开系统通知设置</string>
-    <string name="app_pref_tile">添加应用瓷砖</string>
-    <string name="app_pref_tile_summary">将应用瓷砖添加到快速设置</string>
+    <string name="app_pref_tile">添加应用快捷设置图块</string>
+    <string name="app_pref_tile_summary">将应用快捷设置图块添加到快速设置</string>
     <string name="app_pref_logging">启用程序日志</string>
     <string name="app_pref_logging_summary">收集程序日志</string>
 

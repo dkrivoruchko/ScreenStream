@@ -3,17 +3,18 @@
     <string name="mjpeg_error_open_settings">Відкрити налаштування</string>
     <string name="mjpeg_close">Закрити</string>
 
-    <string name="mjpeg_stream_mode">Локальний режим (MJPEG)</string>
-    <string name="mjpeg_stream_mode_description">Опис локального режиму</string>
+    <string name="mjpeg_stream_mode">Локальний режим · MJPEG</string>
+    <string name="mjpeg_stream_mode_description">Трансляція через локальну мережу</string>
     <string name="mjpeg_stream_mode_details">
-- Працює на основі стандарту MJPEG\n
-- Відсутність шифрування (тільки PIN-код)\n
-- Можливість надсилання лише відео (як потік незалежних зображень)\n
-- Можливість працювати в локальній мережі без наяності Інтернету\n
-- Вбудований HTTP-сервер\n
-- Клієнти підключаються через веб-браузер, використовуючи IP-адресу, надану додатком\n
-- Багадо доступніх налаштувань\n
-- Індивідуальна передача даних для кожного клієнта (чим більше клієнтів, тим більша потрібна пропускна здатність мережі)
+- Використовує MJPEG.\n
+- Захист PIN-кодом, без шифрування.\n
+- Лише відео, надсилається окремими зображеннями.\n
+- Працює в локальній мережі, інтернет не потрібен.\n
+- Вбудований HTTP-сервер.\n
+- Підтримує Wi-Fi, мобільні мережі, IPv4 та IPv6.\n
+- Клієнти підключаються в браузері за адресою додатку.\n
+- Гнучко налаштовується.\n
+- Кожен клієнт використовує окрему пропускну здатність.
 </string>
 
     <string name="mjpeg_item_address">Адреса пристрою:</string>
@@ -43,8 +44,8 @@
     <string name="mjpeg_stream_stop">Зупинити трансляцію</string>
     <string name="mjpeg_slow_client_connection">Виявлено повільне клієнтське з\'єднання</string>
 
-    <string name="mjpeg_pref_header">Налаштування локального режиму (MJPEG)</string>
-    <string name="mjpeg_pref_settings_general">Загальні параметри</string>
+    <string name="mjpeg_pref_header">Налаштування локального режиму · MJPEG</string>
+    <string name="mjpeg_pref_settings_general">Загальні налаштування</string>
     <string name="mjpeg_pref_keep_awake">Тримати пристрій активним</string>
     <string name="mjpeg_pref_keep_awake_summary">Тримати пристрій та екран активними під час трансляції</string>
     <string name="mjpeg_pref_stop_on_sleep">Зупиняти трансляцію при засинанні пристрою</string>
@@ -65,13 +66,13 @@
     <string name="mjpeg_pref_html_fit_window">Масштабувати зображення під вікно браузера</string>
     <string name="mjpeg_pref_html_fit_window_summary">Масштабувати зображення у браузері до повної ширини/висоти вікна</string>
 
-    <string name="mjpeg_pref_settings_image">Параметри зображення</string>
+    <string name="mjpeg_pref_settings_image">Налаштування зображення</string>
     <string name="mjpeg_pref_vr_mode">Режим віртуальної реальності</string>
     <string name="mjpeg_pref_vr_mode_summary">Захоплювати лише половину екрану</string>
     <string-array name="mjpeg_pref_vr_mode_options">
         <item>Вимкнути</item>
-        <item>Використоувати ліву частину</item>
-        <item>Використоувати праву частину</item>
+        <item>Використовувати ліву частину</item>
+        <item>Використовувати праву частину</item>
     </string-array>
     <string name="mjpeg_pref_crop">Обрізати зображення</string>
     <string name="mjpeg_pref_crop_summary">Обрізати зображення перед надсиланням на клієнт</string>
@@ -83,7 +84,7 @@
     <string name="mjpeg_pref_crop_warning">Обрізання зображення буде проігноровано якщо результатом буде пусте зображення</string>
     <string name="mjpeg_pref_crop_error">Введіть коректні величини обрізання</string>
     <string name="mjpeg_pref_grayscale">Режим відтінків сірого</string>
-    <string name="mjpeg_pref_grayscale_summary">Переводити зображення у градації сірого перед відправкою</string>
+    <string name="mjpeg_pref_grayscale_summary">Перетворити зображення у відтінки сірого перед надсиланням</string>
     <string name="mjpeg_pref_resize">Змінити розмір зображення</string>
     <string name="mjpeg_pref_resize_summary">Змінити розмір зображення перед надсиланням на клієнт</string>
     <string name="mjpeg_pref_resize_mode_percent">Змінити розмір у відсотках</string>
@@ -110,10 +111,10 @@
     <string name="mjpeg_pref_jpeg_quality_summary">Встановити якість компресії JPEG</string>
     <string name="mjpeg_pref_jpeg_quality_text">Встановити якість компресії JPEG.\nВеличини: 10–100\nЗа замовчуванням: 80</string>
 
-    <string name="mjpeg_pref_settings_security">Параметри безпеки</string>
+    <string name="mjpeg_pref_settings_security">Налаштування безпеки</string>
     <string name="mjpeg_pref_enable_pin">Увімкнути ПІН код</string>
     <string name="mjpeg_pref_enable_pin_summary">Захистити трансляцію ПІН кодом</string>
-    <string name="mjpeg_pref_hide_pin">Ховати ПІН код при початку трансляції</string>
+    <string name="mjpeg_pref_hide_pin">Автоматично ховати PIN-код під час запуску трансляції</string>
     <string name="mjpeg_pref_hide_pin_summary">Замаскувати ПІН код під час трансляції</string>
     <string name="mjpeg_pref_new_pin_on_start">Новий ПІН код при старті</string>
     <string name="mjpeg_pref_new_pin_on_start_summary">Створювати новий ПІН код при старті додатку</string>
@@ -125,7 +126,7 @@
     <string name="mjpeg_pref_block_address">Блокувати IP адресу</string>
     <string name="mjpeg_pref_block_address_summary">Заблокувати клієнтську IP адресу після 5 невірних спроб протягом 5 хвилин</string>
 
-    <string name="mjpeg_pref_settings_advanced">Розширені параметри</string>
+    <string name="mjpeg_pref_settings_advanced">Розширені налаштування</string>
     <string name="mjpeg_pref_interface_filter">Фільтр інтерфейсів</string>
     <string name="mjpeg_pref_interface_filter_summary">Виберіть мережеві інтерфейси для сервера</string>
     <string name="mjpeg_pref_filter_wifi">Wi-Fi</string>
@@ -153,9 +154,9 @@
     <string name="mjpeg_pref_server_port_text">Встановити порт для вхідних підключень.\nВеличини: 1025–65535\nЗа замовчуванням: 8080</string>
 
     <string name="mjpeg_error_port_in_use">Порт уже у використанні. Виберіть інший.</string>
-    <string name="mjpeg_error_invalid_media_projection">Помилка безпеки: Неправильна проекція медіа. Спробуйте ще раз.</string>
-    <string name="mjpeg_error_ip_address_not_found">IP-адресу не знайдено.\nСпробуйте вимкнути \"Використовувати лише WiFi\" в налаштуваннях трансляції.</string>
-    <string name="mjpeg_error_notification_permission_required">Для запуску служби потокової передачі потрібно включити сповіщення в додатку.\nБудь ласка, включіть сповіщення в налаштуваннях додатку.</string>
+    <string name="mjpeg_error_invalid_media_projection">Помилка безпеки: недійсний дозвіл на захоплення екрана. Спробуйте ще раз.</string>
+    <string name="mjpeg_error_ip_address_not_found">IP-адресу не знайдено.\nСпробуйте змінити мережеві фільтри в налаштуваннях трансляції.</string>
+    <string name="mjpeg_error_notification_permission_required">Цьому додатку потрібні ввімкнені сповіщення, щоб запустити службу трансляції.\nУвімкніть сповіщення в налаштуваннях додатку.</string>
     <string name="mjpeg_error_unspecified">Щось пішло не так. Спробуйте ще раз пізніше.</string>
 
     <string name="mjpeg_start_image_text">Розпочніть трансляцію на пристрої</string>

@@ -3,8 +3,8 @@
     <string name="rtsp_error_recover">पुनर्प्राप्त करें</string>
     <string name="rtsp_error_open_settings">सेटिंग्स खोलें</string>
 
-    <string name="rtsp_stream_mode">RTSP मोड (RTSP)</string>
-    <string name="rtsp_stream_mode_description">RTSP मोड विवरण</string>
+    <string name="rtsp_stream_mode">RTSP मोड · RTSP</string>
+    <string name="rtsp_stream_mode_description">RTSP क्लाइंट या सर्वर से स्ट्रीम करें</string>
     <string name="rtsp_stream_mode_details">
 - RTSP प्रोटोकॉल द्वारा संचालित।\n
 - सर्वर मोड (डिफ़ॉल्ट) इस डिवाइस को RTSP सर्वर के रूप में होस्ट करता है।\n
@@ -22,7 +22,7 @@
     <string name="rtsp_mode_client_hint">दूरस्थ RTSP सर्वर से कनेक्ट करें</string>
 
     <string name="rtsp_interfaces_title">RTSP सर्वर पता</string>
-    <string name="rtsp_interfaces_no_address">पता नहीं मिला।\nकनेक्शन जांचें या सर्वर पैरामीटर (इंटरफ़ेस फ़िल्टर, पता फ़िल्टर)।</string>
+    <string name="rtsp_interfaces_no_address">पता नहीं मिला।\nकनेक्शन जांचें या सर्वर सेटिंग्स समायोजित करें (इंटरफ़ेस फ़िल्टर, पता फ़िल्टर)।</string>
     <string name="rtsp_interfaces_discovering">पते खोजे जा रहे हैं…</string>
     <string name="rtsp_interfaces_interface_label">इंटरफ़ेस:\n%1$s</string>
     <string name="rtsp_interfaces_description_copy">पता कॉपी करें</string>
@@ -37,14 +37,14 @@
     <string name="rtsp_bind_error_permission_denied">त्रुटि: अनुमति अस्वीकृत</string>
     <string name="rtsp_bind_error_unknown">त्रुटि: लिस्नर विफल</string>
 
-    <string name="rtsp_server_parameters">सर्वर पैरामीटर</string>
-    <string name="rtsp_client_parameters">क्लाइंट पैरामीटर</string>
+    <string name="rtsp_server_parameters">सर्वर सेटिंग्स</string>
+    <string name="rtsp_client_parameters">क्लाइंट सेटिंग्स</string>
 
     <string name="rtsp_stream_start">स्ट्रीम शुरू करें</string>
     <string name="rtsp_stream_stop">स्ट्रीम बंद करें</string>
 
-    <string name="rtsp_error_notification_permission_required">स्ट्रीमिंग सेवा शुरू करने के लिए एप्लिकेशन को सूचनाएँ सक्षम होना आवश्यक है।\nकृपया एप्लिकेशन सेटिंग्स में सूचनाएँ सक्षम करें।</string>
-    <string name="rtsp_error_ip_address_not_found">पता नहीं मिला। कनेक्शन जांचें या सर्वर पैरामीटर (इंटरफ़ेस फ़िल्टर, पता फ़िल्टर)।</string>
+    <string name="rtsp_error_notification_permission_required">स्ट्रीमिंग सेवा शुरू करने के लिए इस ऐप में सूचनाएँ चालू होनी चाहिए।\nऐप सेटिंग में सूचनाएँ चालू करें।</string>
+    <string name="rtsp_error_ip_address_not_found">पता नहीं मिला। कनेक्शन जांचें या सर्वर सेटिंग्स समायोजित करें (इंटरफ़ेस फ़िल्टर, पता फ़िल्टर)।</string>
     <string name="rtsp_error_unspecified">कुछ गलत हुआ।</string>
 
     <string name="rtsp_media_server">मीडिया सर्वर</string>
@@ -62,7 +62,7 @@
     <string name="rtsp_label_public_ipv6">सार्वजनिक IPv6</string>
     <string name="rtsp_label_loopback">लूपबैक</string>
 
-    <string name="rtsp_video_parameters">वीडियो पैरामीटर</string>
+    <string name="rtsp_video_parameters">वीडियो सेटिंग्स</string>
     <string name="rtsp_video_encoder">वीडियो एनकोडर:</string>
     <string name="rtsp_video_encoder_auto">ऑटो</string>
     <string name="rtsp_video_resize_image">छवि का आकार बदलें: %1$.2f%%</string>
@@ -75,19 +75,19 @@
     <string name="rtsp_video_bitrate_mbit">%.2f एमबिट</string>
     <string name="rtsp_video_bitrate_kbit">%d केबिट</string>
 
-    <string name="rtsp_audio_parameters">ऑडियो पैरामीटर</string>
+    <string name="rtsp_audio_parameters">ऑडियो सेटिंग्स</string>
     <string name="rtsp_audio_mic">माइक्रोफोन</string>
     <string name="rtsp_audio_mic_mute">माइक्रोफ़ोन म्यूट करें</string>
-    <string name="rtsp_audio_device">डिवाइस ऑडियो</string>
-    <string name="rtsp_audio_device_mute">डिवाइस ऑडियो म्यूट करें</string>
+    <string name="rtsp_audio_device">आंतरिक ऑडियो</string>
+    <string name="rtsp_audio_device_mute">आंतरिक ऑडियो म्यूट करें</string>
     <string name="rtsp_audio_encoder">ऑडियो एनकोडर:</string>
     <string name="rtsp_audio_encoder_auto">ऑटो</string>
     <string name="rtsp_audio_bitrate">ऑडियो बिटरेट: %1$s/सेकंड</string>
     <string name="rtsp_audio_permission_title">ऑडियो रिकॉर्डिंग की अनुमति दें</string>
-    <string name="rtsp_audio_permission_message">ऑडियो सामग्री स्ट्रीम करने के लिए एप्लिकेशन को ऑडियो रिकॉर्ड करने की अनुमति आवश्यक है।\n\nयह अनुमति नहीं देने पर, स्ट्रीम बिना ऑडियो के होगी।</string>
+    <string name="rtsp_audio_permission_message">ऑडियो स्ट्रीम करने के लिए ऑडियो रिकॉर्डिंग अनुमति आवश्यक है।\n\nइसके बिना स्ट्रीम में ऑडियो नहीं होगा।</string>
     <string name="rtsp_audio_permission_open_settings">सेटिंग्स खोलें</string>
-    <string name="rtsp_audio_permission_message_settings">ऑडियो सामग्री स्ट्रीम करने के लिए एप्लिकेशन अनुमतियों में माइक्रोफोन एक्सेस देना आवश्यक है।\n\nयह अनुमति नहीं देने पर, स्ट्रीम बिना ऑडियो के संचालित की जाएगी।</string>
-    <string name="rtsp_audio_capture_issue_detected">ऑडियो कैप्चर में समस्या मिली।</string>
+    <string name="rtsp_audio_permission_message_settings">ऑडियो स्ट्रीम करने के लिए ऐप सेटिंग में माइक्रोफ़ोन अनुमति चालू करें।\n\nइसके बिना स्ट्रीम में ऑडियो नहीं होगा।</string>
+    <string name="rtsp_audio_capture_issue_detected">ऑडियो कैप्चर समस्या मिली</string>
 
     <string name="rtsp_connection_access_denied">पहुंच अस्वीकृत</string>
     <string name="rtsp_connection_no_credentials">उपयोगकर्ता नाम और पासवर्ड निर्दिष्ट करें</string>

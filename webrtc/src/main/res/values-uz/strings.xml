@@ -3,38 +3,38 @@
     <string name="webrtc_error_recover">Qayta tiklash</string>
     <string name="webrtc_error_open_settings">Sozlamalarni oching</string>
 
-    <string name="webrtc_stream_mode">Global rejim (WebRTC)</string>
-    <string name="webrtc_stream_mode_description">Global rejim tavsifi</string>
+    <string name="webrtc_stream_mode">Global rejim · WebRTC</string>
+    <string name="webrtc_stream_mode_description">WebRTC bilan internet orqali translatsiya qiling</string>
     <string name="webrtc_stream_mode_details">
 - WebRTC texnologiyasi asosida ishlaydi.\n
-        - End-to-end shifrlangan aloqa.\n
-        - Parol bilan oqim himoyasi.\n
-        - Video va audio yuborish mumkin.\n
-        - Noyob oqim identifikatori va parol yordamida ulaning.\n
-        - Striming uchun internet ulanishini talab qiladi.\n
-        - Har bir mijoz uchun individual ma\'lumotlarni uzatish (sizda ko\'proq mijozlar bor, sizga ko\'proq Internet o\'tkazish qobiliyati kerak).
+- End-to-end shifrlangan aloqa.\n
+- Parol bilan oqim himoyasi.\n
+- Video va audio yuborish mumkin.\n
+- Noyob oqim identifikatori va parol yordamida ulaning.\n
+- Striming uchun internet ulanishini talab qiladi.\n
+- Har bir mijoz alohida internet o\'tkazish qobiliyatidan foydalanadi.
 </string>
 
     <string name="webrtc_stream_network_recovery">Aloqa uzildi. Qayta ulanmoqda…</string>
-    <string name="webrtc_stream_server_address">Oqimga kirish: %1$s</string>
+    <string name="webrtc_stream_server_address">Translatsiyani shu manzilda oching:\n%1$s</string>
     <string name="webrtc_stream_stream_id_getting">Stream ID olinmoqda…</string>
     <string name="webrtc_stream_stream_id">Oqim identifikatori: %1$s</string>
     <string name="webrtc_stream_stream_password">Oqim paroli: %1$s</string>
     <string name="webrtc_stream_description_show_password">Oqim parolini ko‘rsatish</string>
     <string name="webrtc_stream_description_get_new_id">Yangi oqim identifikatorini oling</string>
     <string name="webrtc_stream_description_create_password">Yangi oqim parolini yarating</string>
-    <string name="webrtc_stream_description_open_address">Ochiq manzil</string>
+    <string name="webrtc_stream_description_open_address">Manzilni ochish</string>
     <string name="webrtc_stream_description_copy_address">Manzilni nusxalash</string>
     <string name="webrtc_stream_description_share_address">Manzilni ulashish</string>
     <string name="webrtc_stream_description_qr_address">Manzilni QR-kod sifatida ko\'rsatish</string>
     <string name="webrtc_stream_description_qr">QR-kod</string>
     <string name="webrtc_stream_copied">Ko‘chirildi</string>
-    <string name="webrtc_stream_audio_parameters">Audio parametrlari</string>
+    <string name="webrtc_stream_audio_parameters">Audio sozlamalari</string>
     <string name="webrtc_stream_audio_mic">Mikrofon</string>
     <string name="webrtc_stream_audio_mic_summary">Mikrofon audiosini uzating</string>
     <string name="webrtc_stream_audio_device">Ichki audio</string>
     <string name="webrtc_stream_audio_device_summary">Ushbu qurilmaning media audiosini uzating</string>
-    <string name="webrtc_stream_audio_capture_unavailable">Audio yozib olishda muammo aniqlandi</string>
+    <string name="webrtc_stream_audio_capture_unavailable">Audio yozib olish mavjud emas</string>
     <string name="webrtc_stream_connected_clients">Ulangan mijozlar: %1$d</string>
     <string name="webrtc_stream_no_web_browser_found">Hech qanday veb-brauzer topilmadi</string>
     <string name="webrtc_stream_external_app_error">Tashqi dastur xatosi</string>
@@ -42,7 +42,7 @@
     <string name="webrtc_stream_start">Oqimni boshlash</string>
     <string name="webrtc_stream_stop">Oqimni to‘xtatish</string>
 
-    <string name="webrtc_stream_other_parameters">Boshqa parametrlar</string>
+    <string name="webrtc_stream_other_parameters">Boshqa sozlamalar</string>
     <string name="webrtc_stream_keep_awake">Qurilmani hushyor turing</string>
     <string name="webrtc_stream_keep_awake_summary">Translatsiya paytida qurilma va ekranni hushyor turing</string>
     <string name="webrtc_stream_stop_on_sleep">Uyqu rejimida translatsiyani toʻxtating</string>
@@ -58,8 +58,8 @@
     <string name="webrtc_error_play_integrity_install_play_store">Rasmiy Google Play doʻkonini oʻrnating yoki yoqing</string>
     <string name="webrtc_error_play_integrity_install_play_service">Play xizmatlarini oʻrnating yoki yoqing</string>
     <string name="webrtc_error_play_integrity_update_play_service">Google Play xizmatlarini yangilang</string>
-    <string name="webrtc_error_check_network">Iltimos, Internetga ulanishni tekshiring</string>
+    <string name="webrtc_error_check_network">Internetga ulanishingizni tekshiring</string>
     <string name="webrtc_error_incomplete_installation">Ilova toʻliq o‘rnatilmagan. Iltimos, ilovani Google Play orqali qayta o‘rnating.</string>
-    <string name="webrtc_notification_permission_required">Oqim xizmatini boshlash uchun ilova bildirishnomalarni yoqishni talab qiladi. Iltimos, ilova sozlamalarida bildirishnomalarni yoqing.</string>
+    <string name="webrtc_notification_permission_required">Bu ilovaga translatsiya xizmatini boshlash uchun bildirishnomalar yoqilgan bo\'lishi kerak.\nIlova sozlamalarida bildirishnomalarni yoqing.</string>
     <string name="webrtc_error_unspecified">Nimadir noto\'g\'ri bajarildi. Iltimos keyinroq qayta urinib ko\'ring.</string>
 </resources>

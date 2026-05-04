@@ -3,20 +3,20 @@
     <string name="webrtc_error_recover">पुनर्प्राप्ति</string>
     <string name="webrtc_error_open_settings">सेटिंग्स खोलें</string>
 
-    <string name="webrtc_stream_mode">वैश्विक मोड (WebRTC)</string>
-    <string name="webrtc_stream_mode_description">वैश्विक मोड का विवरण</string>
+    <string name="webrtc_stream_mode">वैश्विक मोड · WebRTC</string>
+    <string name="webrtc_stream_mode_description">WebRTC से इंटरनेट पर स्ट्रीम करें</string>
     <string name="webrtc_stream_mode_details">
 - WebRTC प्रौद्योगिकी द्वारा संचालित।\n
 - एंड-टू-एंड एन्क्रिप्टेड संचार।\n
 - पासवर्ड के साथ स्ट्रीम सुरक्षा।\n
 - वीडियो और ऑडियो भेज सकते हैं।\n
-- एकदिवसीय स्ट्रीम आईडी और पासवर्ड का उपयोग करें।\n
+- अद्वितीय स्ट्रीम ID और पासवर्ड से कनेक्ट करें।\n
 - स्ट्रीमिंग के लिए इंटरनेट कनेक्शन की आवश्यकता है।\n
-- प्रत्येक ग्राहक के लिए व्यक्तिगत डेटा प्रसारण (जितने अधिक ग्राहक होते हैं, उतना अधिक इंटरनेट बैंडविड्थ की आवश्यकता होती है)।
+- हर क्लाइंट अलग इंटरनेट बैंडविड्थ उपयोग करता है।
 </string>
 
     <string name="webrtc_stream_network_recovery">कनेक्शन खो गया। फिर से जुड़ रहा है…</string>
-    <string name="webrtc_stream_server_address">पते पर पहुंचें:\n%1$s</string>
+    <string name="webrtc_stream_server_address">स्ट्रीम यहाँ खोलें:\n%1$s</string>
     <string name="webrtc_stream_stream_id_getting">स्ट्रीम आईडी प्राप्त कर रहा है…</string>
     <string name="webrtc_stream_stream_id">स्ट्रीम आईडी: %1$s</string>
     <string name="webrtc_stream_stream_password">स्ट्रीम पासवर्ड: %1$s</string>
@@ -29,12 +29,12 @@
     <string name="webrtc_stream_description_qr_address">पता QR-कोड के रूप में दिखाएं</string>
     <string name="webrtc_stream_description_qr">क्यूआर कोड</string>
     <string name="webrtc_stream_copied">कॉपी किया गया</string>
-    <string name="webrtc_stream_audio_parameters">ऑडियो पैरामीटर</string>
+    <string name="webrtc_stream_audio_parameters">ऑडियो सेटिंग्स</string>
     <string name="webrtc_stream_audio_mic">माइक्रोफ़ोन</string>
     <string name="webrtc_stream_audio_mic_summary">माइक्रोफ़ोन ऑडियो स्ट्रीम करें</string>
     <string name="webrtc_stream_audio_device">आंतरिक ऑडियो</string>
     <string name="webrtc_stream_audio_device_summary">इस डिवाइस का मीडिया ऑडियो स्ट्रीम करें</string>
-    <string name="webrtc_stream_audio_capture_unavailable">ऑडियो कैप्चर में समस्या मिली।</string>
+    <string name="webrtc_stream_audio_capture_unavailable">ऑडियो कैप्चर उपलब्ध नहीं है</string>
     <string name="webrtc_stream_connected_clients">कनेक्टेड ग्राहक: %1$d</string>
     <string name="webrtc_stream_no_web_browser_found">कोई वेब ब्राउज़र नहीं मिला</string>
     <string name="webrtc_stream_external_app_error">बाहरी एप्लिकेशन त्रुटि</string>
@@ -42,7 +42,7 @@
     <string name="webrtc_stream_start">स्ट्रीम शुरू करें</string>
     <string name="webrtc_stream_stop">स्ट्रीम बंद करें</string>
 
-    <string name="webrtc_stream_other_parameters">अन्य पैरामीटर</string>
+    <string name="webrtc_stream_other_parameters">अन्य सेटिंग्स</string>
     <string name="webrtc_stream_keep_awake">डिवाइस जागरूक रखें</string>
     <string name="webrtc_stream_keep_awake_summary">स्ट्रीमिंग के दौरान डिवाइस और स्क्रीन को जागरूक रखें</string>
     <string name="webrtc_stream_stop_on_sleep">नींद पर धारा रोकें</string>
@@ -58,8 +58,8 @@
     <string name="webrtc_error_play_integrity_install_play_store">कृपया आधिकृत Google Play Store को स्थापित करें या सक्षम करें</string>
     <string name="webrtc_error_play_integrity_install_play_service">कृपया Google Play सेवाएं स्थापित करें या सक्षम करें</string>
     <string name="webrtc_error_play_integrity_update_play_service">कृपया Google Play सेवाएं अपडेट करें</string>
-    <string name="webrtc_error_check_network">कृपया इंटरनेट कनेक्टिविटी की जांच करें</string>
+    <string name="webrtc_error_check_network">अपना इंटरनेट कनेक्शन जांचें</string>
     <string name="webrtc_error_incomplete_installation">ऐप का इंस्टॉलेशन अधूरा है। कृपया Google Play से ऐप को फिर से इंस्टॉल करें।</string>
-    <string name="webrtc_notification_permission_required">ऐप्लिकेशन को स्ट्रीमिंग सेवा शुरू करने के लिए सूचनाओं को सक्षम करने की आवश्यकता है।\nकृपया ऐप्लिकेशन की सेटिंग्स में सूचनाओं को सक्षम करें।</string>
+    <string name="webrtc_notification_permission_required">स्ट्रीमिंग सेवा शुरू करने के लिए इस ऐप में सूचनाएँ चालू होनी चाहिए।\nऐप सेटिंग में सूचनाएँ चालू करें।</string>
     <string name="webrtc_error_unspecified">कुछ गड़बड़ हो गई है। कृपया बाद में पुनः प्रयास करें।</string>
 </resources>

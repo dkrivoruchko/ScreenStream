@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="rtsp_error_recover">Récupérer</string>
+    <string name="rtsp_error_recover">Rétablir</string>
     <string name="rtsp_error_open_settings">Ouvrir les paramètres</string>
 
-    <string name="rtsp_stream_mode">Mode RTSP (RTSP)</string>
-    <string name="rtsp_stream_mode_description">Description du mode RTSP</string>
+    <string name="rtsp_stream_mode">Mode RTSP · RTSP</string>
+    <string name="rtsp_stream_mode_description">Diffuser avec un client ou serveur RTSP</string>
     <string name="rtsp_stream_mode_details">
 - Alimenté par le protocole RTSP.\n
 - Le mode serveur (par défaut) héberge cet appareil en tant que serveur RTSP.\n
@@ -22,9 +22,9 @@
     <string name="rtsp_mode_client_hint">Se connecter à un serveur RTSP distant</string>
 
     <string name="rtsp_interfaces_title">Adresse du serveur RTSP</string>
-    <string name="rtsp_interfaces_no_address">Aucune adresse trouvée.\nVérifiez la connexion ou Paramètres du serveur (Filtre d\'interface, Filtre d\'adresse).</string>
+    <string name="rtsp_interfaces_no_address">Aucune adresse trouvée.\nVérifiez la connexion ou ajustez les paramètres du serveur (Filtre d\'interface, Filtre d\'adresse).</string>
     <string name="rtsp_interfaces_discovering">Recherche des adresses…</string>
-    <string name="rtsp_interfaces_interface_label">Interface:\n%1$s</string>
+    <string name="rtsp_interfaces_interface_label">Interface :\n%1$s</string>
     <string name="rtsp_interfaces_description_copy">Copier l\'adresse</string>
     <string name="rtsp_interfaces_description_share">Partager l\'adresse</string>
     <string name="rtsp_interfaces_description_qr">Afficher l\'adresse sous forme de code QR</string>
@@ -32,19 +32,19 @@
     <string name="rtsp_interfaces_copied">Adresse copiée</string>
     <string name="rtsp_interfaces_share_title">Partager l\'adresse RTSP</string>
     <string name="rtsp_bindings_retry">Réessayer</string>
-    <string name="rtsp_bind_error_port_in_use">Erreur: Port déjà utilisé</string>
-    <string name="rtsp_bind_error_address_not_available">Erreur: Adresse indisponible</string>
-    <string name="rtsp_bind_error_permission_denied">Erreur: Autorisation refusée</string>
-    <string name="rtsp_bind_error_unknown">Erreur: Échec du listener</string>
+    <string name="rtsp_bind_error_port_in_use">Erreur : Port déjà utilisé</string>
+    <string name="rtsp_bind_error_address_not_available">Erreur : Adresse indisponible</string>
+    <string name="rtsp_bind_error_permission_denied">Erreur : Autorisation refusée</string>
+    <string name="rtsp_bind_error_unknown">Erreur : échec de l\'écoute</string>
 
     <string name="rtsp_server_parameters">Paramètres du serveur</string>
     <string name="rtsp_client_parameters">Paramètres du client</string>
 
-    <string name="rtsp_stream_start">Démarrer le flux</string>
-    <string name="rtsp_stream_stop">Arrêter le flux</string>
+    <string name="rtsp_stream_start">Démarrer la diffusion</string>
+    <string name="rtsp_stream_stop">Arrêter la diffusion</string>
 
-    <string name="rtsp_error_notification_permission_required">L\'application nécessite que les notifications soient activées pour démarrer le service de diffusion.\nVeuillez activer les notifications dans les paramètres de l\'application.</string>
-    <string name="rtsp_error_ip_address_not_found">Aucune adresse trouvée. Vérifiez la connexion ou Paramètres du serveur (Filtre d\'interface, Filtre d\'adresse).</string>
+    <string name="rtsp_error_notification_permission_required">Cette application nécessite l\'activation des notifications pour démarrer le service de diffusion.\nActivez les notifications dans les paramètres de l\'application.</string>
+    <string name="rtsp_error_ip_address_not_found">Aucune adresse trouvée. Vérifiez la connexion ou ajustez les paramètres du serveur (Filtre d\'interface, Filtre d\'adresse).</string>
     <string name="rtsp_error_unspecified">Un problème est survenu.</string>
 
     <string name="rtsp_media_server">Serveur média</string>
@@ -78,16 +78,16 @@
     <string name="rtsp_audio_parameters">Paramètres audio</string>
     <string name="rtsp_audio_mic">Microphone</string>
     <string name="rtsp_audio_mic_mute">Couper le micro</string>
-    <string name="rtsp_audio_device">Audio de l\'appareil</string>
-    <string name="rtsp_audio_device_mute">Couper l\'audio de l\'appareil</string>
+    <string name="rtsp_audio_device">Audio interne</string>
+    <string name="rtsp_audio_device_mute">Couper l\'audio interne</string>
     <string name="rtsp_audio_encoder">Encodeur audio :</string>
     <string name="rtsp_audio_encoder_auto">Auto</string>
     <string name="rtsp_audio_bitrate">Débit audio : %1$s/sec</string>
     <string name="rtsp_audio_permission_title">Autoriser l\'enregistrement audio</string>
-    <string name="rtsp_audio_permission_message">L\'autorisation d\'enregistrer l\'audio est nécessaire pour que l\'application puisse diffuser du contenu audio.\n\nSans cette autorisation, le flux sera sans audio.</string>
+    <string name="rtsp_audio_permission_message">L\'autorisation d\'enregistrement audio est requise pour diffuser l\'audio.\n\nSans elle, la diffusion n\'aura pas de son.</string>
     <string name="rtsp_audio_permission_open_settings">Ouvrir les paramètres</string>
-    <string name="rtsp_audio_permission_message_settings">L\'accès au microphone dans les autorisations de l\'application est nécessaire pour diffuser du contenu audio.\n\nSans cette autorisation, le flux sera effectué sans audio.</string>
-    <string name="rtsp_audio_capture_issue_detected">Un problème de capture audio a été détecté</string>
+    <string name="rtsp_audio_permission_message_settings">Activez l\'autorisation du microphone dans les paramètres de l\'application pour diffuser l\'audio.\n\nSans elle, la diffusion n\'aura pas de son.</string>
+    <string name="rtsp_audio_capture_issue_detected">Problème de capture audio détecté</string>
 
     <string name="rtsp_connection_access_denied">Accès refusé</string>
     <string name="rtsp_connection_no_credentials">Spécifiez le nom d\'utilisateur et le mot de passe</string>
@@ -115,5 +115,5 @@
     <string name="rtsp_pref_enable_ipv6_summary">Exécuter le serveur sur des adresses IPv6</string>
     <string name="rtsp_pref_server_port">Port du serveur</string>
     <string name="rtsp_pref_server_port_summary">Définir le port pour les connexions entrantes</string>
-    <string name="rtsp_pref_server_port_text">Définir le port du serveur pour les connexions entrantes.\nValeurs : 1025–65535\nPar défaut: 8554</string>
+    <string name="rtsp_pref_server_port_text">Définir le port du serveur pour les connexions entrantes.\nValeurs : 1025–65535\nPar défaut : 8554</string>
 </resources>

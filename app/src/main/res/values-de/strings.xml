@@ -5,14 +5,14 @@
 
     <string name="app_logs_collecting">Logs werden gesammelt…</string>
     <string name="app_logs_send_title">Logs zum Entwickler senden</string>
-    <string name="app_logs_send_message">Bitte fügen Sie eine Fehlerbeschreibung hinzu:</string>
+    <string name="app_logs_send_message">Bitte fügen Sie eine Problembeschreibung hinzu:</string>
     <string name="app_logs_send">Senden</string>
     <string name="app_logs_enabled">Protokollierung aktiviert</string>
     <string name="app_logs_disabled">Protokollierung deaktiviert</string>
     <string name="app_logs_stop">Log-Aufzeichnung stoppen</string>
 
     <string name="app_activity_update_dialog_title">Update verfügbar</string>
-    <string name="app_activity_update_dialog_message">Eine Update wurde soeben heruntergeladen. App neu starten?</string>
+    <string name="app_activity_update_dialog_message">Ein Update wurde soeben heruntergeladen. App neu starten?</string>
     <string name="app_activity_update_dialog_restart">Neu starten</string>
 
     <string name="app_tab_stream">Stream</string>
@@ -23,14 +23,14 @@
     <string name="app_tab_stream_select_mode">Stream-Modus auswählen:</string>
 
     <string name="app_permission_required_title">Berechtigung erforderlich</string>
-    <string name="app_permission_allow_notifications">Die Anwendung benötigt die Berechtigung, Benachrichtigungen senden zu dürfen, um den Streaming-Dienst starten zu können.\n\nBitte erlauben Sie das Senden von Benachrichtigungen.</string>
-    <string name="app_permission_allow_notifications_settings">Die Anwendung benötigt die Berechtigung, Benachrichtigungen senden zu dürfen, um den Streaming-Dienst starten zu können.\n\nBitte erlauben Sie das Senden von Benachrichtigungen in den Anwendungseinstellungen.</string>
+    <string name="app_permission_allow_notifications">Diese App benötigt die Benachrichtigungsberechtigung, um den Streaming-Dienst zu starten.\n\nBenachrichtigungen erlauben.</string>
+    <string name="app_permission_allow_notifications_settings">Diese App benötigt die Benachrichtigungsberechtigung, um den Streaming-Dienst zu starten.\n\nAktivieren Sie Benachrichtigungen in den App-Einstellungen.</string>
     <string name="app_permission_notification_settings">Einstellungen öffnen</string>
 
     <string name="app_notification_channel_streaming">Streaming-Benachrichtigungen</string>
     <string name="app_notification_channel_error">Fehlerbenachrichtigungen</string>
     <string name="app_notification_streaming_title">Streaming läuft …</string>
-    <string name="app_notification_streaming_content">Tippen Sie STOPP um den Stream zu stoppen</string>
+    <string name="app_notification_streaming_content">Tippen Sie auf Stopp, um den Stream zu beenden</string>
     <string name="app_notification_stop">Stopp</string>
 
     <string name="app_tile_start">Start</string>
@@ -38,7 +38,7 @@
 
     <string name="app_pref_close">Schließen</string>
     <string name="app_pref_back">Zurück</string>
-    <string name="app_pref_settings">Anwendungseinstellungen</string>
+    <string name="app_pref_settings">Einstellungen</string>
     <string name="app_pref_locale">Anwendungssprache</string>
     <string name="app_pref_locale_summary">Anwendungssprache-Einstellungen öffnen</string>
     <string name="app_pref_locale_default">Systemstandard</string>

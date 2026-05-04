@@ -3,8 +3,8 @@
     <string name="webrtc_error_recover">بحال کریں</string>
     <string name="webrtc_error_open_settings">ترتیبات کھولیں</string>
 
-    <string name="webrtc_stream_mode">عالمی موڈ (WebRTC)</string>
-    <string name="webrtc_stream_mode_description">عالمی موڈ کی تفصیل</string>
+    <string name="webrtc_stream_mode">عالمی موڈ · WebRTC</string>
+    <string name="webrtc_stream_mode_description">WebRTC کے ساتھ انٹرنیٹ پر اسٹریم کریں</string>
     <string name="webrtc_stream_mode_details">
 - WebRTC ٹیکنالوجی پر مبنی۔\n
 - اینڈ ٹو اینڈ انکرپشن۔\n
@@ -12,11 +12,11 @@
 - ویڈیو اور آڈیو دونوں۔\n
 - منفرد اسٹریم ID اور پاس ورڈ سے کنکشن۔\n
 - اسٹریم کیلئے انٹرنیٹ درکار ہے۔\n
-- ہر کلائنٹ کیلئے الگ ڈیٹا؛ زیادہ کلائنٹس تو زیادہ بینڈوڈتھ درکار ہوگی۔
+- ہر کلائنٹ الگ انٹرنیٹ بینڈوڈتھ استعمال کرتا ہے۔
 </string>
 
     <string name="webrtc_stream_network_recovery">کنکشن ٹوٹ گیا۔ دوبارہ جڑ رہے ہیں…</string>
-    <string name="webrtc_stream_server_address">اسٹریم یہاں کھولیں:\n%1$s</string>
+    <string name="webrtc_stream_server_address">اس پتے پر اسٹریم کھولیں:\n%1$s</string>
     <string name="webrtc_stream_stream_id_getting">اسٹریم ID حاصل ہو رہی ہے…</string>
     <string name="webrtc_stream_stream_id">اسٹریم ID: %1$s</string>
     <string name="webrtc_stream_stream_password">اسٹریم پاس ورڈ: %1$s</string>
@@ -29,12 +29,12 @@
     <string name="webrtc_stream_description_qr_address">پتہ QR کوڈ میں دکھائیں</string>
     <string name="webrtc_stream_description_qr">QR کوڈ</string>
     <string name="webrtc_stream_copied">کاپی ہو گیا</string>
-    <string name="webrtc_stream_audio_parameters">آڈیو پیرامیٹرز</string>
+    <string name="webrtc_stream_audio_parameters">آڈیو ترتیبات</string>
     <string name="webrtc_stream_audio_mic">مائیکروفون</string>
     <string name="webrtc_stream_audio_mic_summary">مائیکروفون آڈیو اسٹریم کریں</string>
     <string name="webrtc_stream_audio_device">اندرونی آڈیو</string>
     <string name="webrtc_stream_audio_device_summary">اس ڈیوائس کی میڈیا آڈیو اسٹریم کریں</string>
-    <string name="webrtc_stream_audio_capture_unavailable">آڈیو کیپچر میں مسئلہ پایا گیا</string>
+    <string name="webrtc_stream_audio_capture_unavailable">آڈیو کیپچر دستیاب نہیں ہے</string>
     <string name="webrtc_stream_connected_clients">جڑے ہوئے کلائنٹس: %1$d</string>
     <string name="webrtc_stream_no_web_browser_found">کوئی ویب براؤزر نہیں ملا</string>
     <string name="webrtc_stream_external_app_error">بیرونی ایپ میں خرابی</string>
@@ -42,7 +42,7 @@
     <string name="webrtc_stream_start">اسٹریم شروع کریں</string>
     <string name="webrtc_stream_stop">اسٹریم روکیں</string>
 
-    <string name="webrtc_stream_other_parameters">دیگر پیرامیٹرز</string>
+    <string name="webrtc_stream_other_parameters">دیگر ترتیبات</string>
     <string name="webrtc_stream_keep_awake">ڈیوائس جاگتی رکھیں</string>
     <string name="webrtc_stream_keep_awake_summary">اسٹریم کے دوران ڈیوائس اور اسکرین جاگتی رکھیں</string>
     <string name="webrtc_stream_stop_on_sleep">سلیپ پر اسٹریم روکیں</string>
@@ -58,8 +58,8 @@
     <string name="webrtc_error_play_integrity_install_play_store">براہ کرم آفیشل گوگل پلے اسٹور انسٹال یا فعال کریں</string>
     <string name="webrtc_error_play_integrity_install_play_service">براہ کرم پلے سروسز انسٹال یا فعال کریں</string>
     <string name="webrtc_error_play_integrity_update_play_service">براہ کرم گوگل پلے سروسز اپ ڈیٹ کریں</string>
-    <string name="webrtc_error_check_network">براہ کرم انٹرنیٹ کنکشن چیک کریں</string>
+    <string name="webrtc_error_check_network">اپنا انٹرنیٹ کنکشن چیک کریں</string>
     <string name="webrtc_error_incomplete_installation">ایپ کی تنصیب نامکمل ہے۔ براہ کرم Google Play سے ایپ کو دوبارہ انسٹال کریں۔</string>
-    <string name="webrtc_notification_permission_required">اسٹریمنگ سروس شروع کرنے کیلئے اطلاعات کی اجازت درکار ہے۔\nایپ کی ترتیبات میں اطلاعات فعال کریں۔</string>
+    <string name="webrtc_notification_permission_required">اس ایپ کو اسٹریمنگ سروس شروع کرنے کے لیے اطلاعات فعال چاہیے۔\nایپ کی ترتیبات میں اطلاعات فعال کریں۔</string>
     <string name="webrtc_error_unspecified">کچھ غلط ہو گیا۔ بعد میں دوبارہ کوشش کریں۔</string>
 </resources>

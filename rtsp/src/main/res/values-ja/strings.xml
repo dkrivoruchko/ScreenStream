@@ -3,8 +3,8 @@
     <string name="rtsp_error_recover">復旧</string>
     <string name="rtsp_error_open_settings">設定を開く</string>
 
-    <string name="rtsp_stream_mode">RTSPモード (RTSP)</string>
-    <string name="rtsp_stream_mode_description">RTSPモードの説明</string>
+    <string name="rtsp_stream_mode">RTSPモード · RTSP</string>
+    <string name="rtsp_stream_mode_description">RTSPクライアントまたはサーバーでストリーミング</string>
     <string name="rtsp_stream_mode_details">
 - RTSPプロトコルで動作。\n
 - サーバーモード（デフォルト）ではこの端末をRTSPサーバーとしてホストします。\n
@@ -22,7 +22,7 @@
     <string name="rtsp_mode_client_hint">リモートRTSPサーバーに接続</string>
 
     <string name="rtsp_interfaces_title">RTSPサーバーアドレス</string>
-    <string name="rtsp_interfaces_no_address">アドレスが見つかりません。\n接続を確認するか、サーバーパラメータ（インターフェースフィルター、アドレスフィルター）を確認してください。</string>
+    <string name="rtsp_interfaces_no_address">アドレスが見つかりません。\n接続を確認するか、サーバー設定を調整してください（インターフェースフィルター、アドレスフィルター）。</string>
     <string name="rtsp_interfaces_discovering">アドレスを検索中…</string>
     <string name="rtsp_interfaces_interface_label">インターフェース:\n%1$s</string>
     <string name="rtsp_interfaces_description_copy">アドレスをコピー</string>
@@ -37,14 +37,14 @@
     <string name="rtsp_bind_error_permission_denied">エラー: 権限がありません</string>
     <string name="rtsp_bind_error_unknown">エラー: リスナー失敗</string>
 
-    <string name="rtsp_server_parameters">サーバーパラメータ</string>
-    <string name="rtsp_client_parameters">クライアントパラメータ</string>
+    <string name="rtsp_server_parameters">サーバー設定</string>
+    <string name="rtsp_client_parameters">クライアント設定</string>
 
     <string name="rtsp_stream_start">配信開始</string>
     <string name="rtsp_stream_stop">配信停止</string>
 
-    <string name="rtsp_error_notification_permission_required">ストリーミングサービスを開始するには通知を有効にする必要があります。\nアプリ設定で通知を有効にしてください。</string>
-    <string name="rtsp_error_ip_address_not_found">アドレスが見つかりません。接続を確認するか、サーバーパラメータ（インターフェースフィルター、アドレスフィルター）を確認してください。</string>
+    <string name="rtsp_error_notification_permission_required">ストリーミングサービスを開始するには、このアプリの通知を有効にする必要があります。\nアプリ設定で通知を有効にしてください。</string>
+    <string name="rtsp_error_ip_address_not_found">アドレスが見つかりません。接続を確認するか、サーバー設定を調整してください（インターフェースフィルター、アドレスフィルター）。</string>
     <string name="rtsp_error_unspecified">エラーが発生しました。</string>
 
     <string name="rtsp_media_server">メディアサーバー</string>
@@ -62,7 +62,7 @@
     <string name="rtsp_label_public_ipv6">パブリックIPv6</string>
     <string name="rtsp_label_loopback">ループバック</string>
 
-    <string name="rtsp_video_parameters">動画パラメータ</string>
+    <string name="rtsp_video_parameters">動画設定</string>
     <string name="rtsp_video_encoder">動画エンコーダー：</string>
     <string name="rtsp_video_encoder_auto">自動</string>
     <string name="rtsp_video_resize_image">画像リサイズ: %1$.2f%%</string>
@@ -75,19 +75,19 @@
     <string name="rtsp_video_bitrate_mbit">%.2f Mbit</string>
     <string name="rtsp_video_bitrate_kbit">%d Kbit</string>
 
-    <string name="rtsp_audio_parameters">音声パラメータ</string>
+    <string name="rtsp_audio_parameters">音声設定</string>
     <string name="rtsp_audio_mic">マイク</string>
     <string name="rtsp_audio_mic_mute">マイクをミュート</string>
-    <string name="rtsp_audio_device">デバイスの音声</string>
-    <string name="rtsp_audio_device_mute">デバイスの音声をミュート</string>
+    <string name="rtsp_audio_device">内部音声</string>
+    <string name="rtsp_audio_device_mute">内部音声をミュート</string>
     <string name="rtsp_audio_encoder">音声エンコーダー：</string>
     <string name="rtsp_audio_encoder_auto">自動</string>
     <string name="rtsp_audio_bitrate">音声ビットレート: %1$s/秒</string>
     <string name="rtsp_audio_permission_title">音声録音を許可</string>
-    <string name="rtsp_audio_permission_message">アプリが音声コンテンツをストリーミングするには音声録音の権限が必要です。\n\nこの権限がない場合、ストリームは音声なしで配信されます。</string>
+    <string name="rtsp_audio_permission_message">音声を配信するには録音権限が必要です。\n\n権限がない場合、配信に音声は含まれません。</string>
     <string name="rtsp_audio_permission_open_settings">設定を開く</string>
-    <string name="rtsp_audio_permission_message_settings">アプリが音声コンテンツをストリーミングするには、アプリ権限でマイクへのアクセスを許可する必要があります。\n\nこの権限がない場合、ストリームは音声なしで配信されます。</string>
-    <string name="rtsp_audio_capture_issue_detected">音声キャプチャで問題が検出されました</string>
+    <string name="rtsp_audio_permission_message_settings">音声を配信するには、アプリ設定でマイク権限を有効にしてください。\n\n権限がない場合、配信に音声は含まれません。</string>
+    <string name="rtsp_audio_capture_issue_detected">音声キャプチャの問題が検出されました</string>
 
     <string name="rtsp_connection_access_denied">アクセス拒否</string>
     <string name="rtsp_connection_no_credentials">ユーザー名とパスワードを指定してください</string>

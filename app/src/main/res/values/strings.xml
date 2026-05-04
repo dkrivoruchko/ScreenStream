@@ -7,7 +7,7 @@
 
     <string name="app_logs_collecting">Collecting application logs…</string>
     <string name="app_logs_send_title">Send logs to developer</string>
-    <string name="app_logs_send_message">Please add issue description:</string>
+    <string name="app_logs_send_message">Please add a description of the issue:</string>
     <string name="app_logs_send">Send</string>
     <string name="app_logs_enabled">Logging enabled</string>
     <string name="app_logs_disabled">Logging disabled</string>
@@ -25,14 +25,14 @@
     <string name="app_tab_stream_select_mode">Select stream mode:</string>
 
     <string name="app_permission_required_title">Permission required</string>
-    <string name="app_permission_allow_notifications">Application requires permission to send notifications to be able to start streaming service.\n\nPlease allow sending notifications.</string>
-    <string name="app_permission_allow_notifications_settings">Application requires permission to send notifications to be able to start streaming service.\n\nPlease allow sending notifications in application settings.</string>
+    <string name="app_permission_allow_notifications">This app needs notification permission to start the streaming service.\n\nAllow notifications.</string>
+    <string name="app_permission_allow_notifications_settings">This app needs notification permission to start the streaming service.\n\nEnable notifications in app settings.</string>
     <string name="app_permission_notification_settings">Open settings</string>
 
     <string name="app_notification_channel_streaming">Streaming notifications</string>
     <string name="app_notification_channel_error">Error notifications</string>
     <string name="app_notification_streaming_title">Streaming…</string>
-    <string name="app_notification_streaming_content">Press STOP to finish stream</string>
+    <string name="app_notification_streaming_content">Tap Stop to end the stream</string>
     <string name="app_notification_stop">Stop</string>
 
     <string name="app_tile_start">Start</string>
@@ -40,7 +40,7 @@
 
     <string name="app_pref_close">Close</string>
     <string name="app_pref_back">Back</string>
-    <string name="app_pref_settings">App settings</string>
+    <string name="app_pref_settings">Settings</string>
     <string name="app_pref_locale">App language</string>
     <string name="app_pref_locale_summary">Open app language settings</string>
     <string name="app_pref_locale_default">System default</string>

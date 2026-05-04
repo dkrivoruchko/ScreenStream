@@ -3,8 +3,8 @@
     <string name="webrtc_error_recover">Herstellen</string>
     <string name="webrtc_error_open_settings">Instellingen openen</string>
 
-    <string name="webrtc_stream_mode">Wereldwijde modus (WebRTC)</string>
-    <string name="webrtc_stream_mode_description">Beschrijving van de wereldwijde modus</string>
+    <string name="webrtc_stream_mode">Wereldwijde modus · WebRTC</string>
+    <string name="webrtc_stream_mode_description">Streamen via internet met WebRTC</string>
     <string name="webrtc_stream_mode_details">
 - Aangedreven door WebRTC-technologie.\n
 - Eind-tot-eind versleutelde communicatie.\n
@@ -12,11 +12,11 @@
 - Kan video en audio verzenden.\n
 - Verbinding maken met unieke stream-ID en wachtwoord.\n
 - Vereist een internetverbinding voor streamen.\n
-- Individuele gegevensoverdracht voor elke client (hoe meer cliënten je hebt, hoe meer internetbandbreedte je nodig hebt).
+- Elke client gebruikt aparte internetbandbreedte.
 </string>
 
     <string name="webrtc_stream_network_recovery">Verbinding verbroken. Opnieuw verbinden…</string>
-    <string name="webrtc_stream_server_address">Toegang tot stream op:\n%1$s</string>
+    <string name="webrtc_stream_server_address">Open de stream op:\n%1$s</string>
     <string name="webrtc_stream_stream_id_getting">Stream-ID ophalen…</string>
     <string name="webrtc_stream_stream_id">Stream-ID: %1$s</string>
     <string name="webrtc_stream_stream_password">Streamwachtwoord: %1$s</string>
@@ -29,24 +29,24 @@
     <string name="webrtc_stream_description_qr_address">Toon adres als QR-code</string>
     <string name="webrtc_stream_description_qr">QR-code</string>
     <string name="webrtc_stream_copied">Gekopieerd</string>
-    <string name="webrtc_stream_audio_parameters">Audioparameters</string>
+    <string name="webrtc_stream_audio_parameters">Audio-instellingen</string>
     <string name="webrtc_stream_audio_mic">Microfoon</string>
     <string name="webrtc_stream_audio_mic_summary">Microfoonaudio streamen</string>
     <string name="webrtc_stream_audio_device">Interne audio</string>
     <string name="webrtc_stream_audio_device_summary">Media-audio van dit apparaat streamen</string>
-    <string name="webrtc_stream_audio_capture_unavailable">Er is een probleem met de audio-opname gedetecteerd</string>
+    <string name="webrtc_stream_audio_capture_unavailable">Audio-opname niet beschikbaar</string>
     <string name="webrtc_stream_connected_clients">Aangesloten clients: %1$d</string>
     <string name="webrtc_stream_no_web_browser_found">Geen webbrowser gevonden</string>
     <string name="webrtc_stream_external_app_error">Fout bij externe toepassing</string>
     <string name="webrtc_stream_share_address">Apparaatadres delen</string>
-    <string name="webrtc_stream_start">Start stream</string>
-    <string name="webrtc_stream_stop">Stop stream</string>
+    <string name="webrtc_stream_start">Stream starten</string>
+    <string name="webrtc_stream_stop">Stream stoppen</string>
 
-    <string name="webrtc_stream_other_parameters">Overige parameters</string>
+    <string name="webrtc_stream_other_parameters">Overige instellingen</string>
     <string name="webrtc_stream_keep_awake">Apparaat actief houden</string>
     <string name="webrtc_stream_keep_awake_summary">Houd het apparaat en het scherm actief tijdens het streamen</string>
     <string name="webrtc_stream_stop_on_sleep">Stop stream bij slaapmodus</string>
-    <string name="webrtc_stream_stop_on_sleep_summary">Stop stream als het scherm word uitgezet</string>
+    <string name="webrtc_stream_stop_on_sleep_summary">Stop stream als het scherm wordt uitgezet</string>
 
     <string name="webrtc_stream_audio_permission_title">Audiotoegang toestaan</string>
     <string name="webrtc_stream_audio_permission_message">Microfoonmachtiging is vereist om microfoonaudio of interne audio te streamen.\n\nZonder deze machtiging heeft de stream geen geluid.</string>
@@ -58,8 +58,8 @@
     <string name="webrtc_error_play_integrity_install_play_store">Installeer of activeer alsjeblieft de officiële Google Play Store</string>
     <string name="webrtc_error_play_integrity_install_play_service">Installeer of activeer alsjeblieft Play Services</string>
     <string name="webrtc_error_play_integrity_update_play_service">Werk alsjeblieft Google Play-services bij</string>
-    <string name="webrtc_error_check_network">Controleer alsjeblieft de internetverbinding</string>
+    <string name="webrtc_error_check_network">Controleer je internetverbinding</string>
     <string name="webrtc_error_incomplete_installation">De app-installatie is onvolledig. Installeer de app opnieuw via Google Play.</string>
-    <string name="webrtc_notification_permission_required">De applicatie vereist dat meldingen zijn ingeschakeld om de streamingdienst te starten.\nSchakel meldingen in in de applicatie-instellingen.</string>
+    <string name="webrtc_notification_permission_required">Deze app heeft meldingen nodig om de streamingdienst te starten.\nSchakel meldingen in via de appinstellingen.</string>
     <string name="webrtc_error_unspecified">Er is iets misgegaan. Probeer het later alsjeblieft opnieuw.</string>
 </resources>

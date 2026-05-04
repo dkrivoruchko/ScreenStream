@@ -3,16 +3,16 @@
     <string name="app_error_title">Fout</string>
     <string name="app_error_recover">Herstellen</string>
 
-    <string name="app_logs_collecting">Logboek word opgeslagen…</string>
+    <string name="app_logs_collecting">Logboek wordt opgeslagen…</string>
     <string name="app_logs_send_title">Stuur het logboek naar de developers</string>
-    <string name="app_logs_send_message">Beschrijf de fout:</string>
+    <string name="app_logs_send_message">Voeg een beschrijving van het probleem toe:</string>
     <string name="app_logs_send">Verzenden</string>
     <string name="app_logs_enabled">Loggen ingeschakeld</string>
     <string name="app_logs_disabled">Loggen uitgeschakeld</string>
     <string name="app_logs_stop">Stop met loggen</string>
 
     <string name="app_activity_update_dialog_title">Update beschikbaar</string>
-    <string name="app_activity_update_dialog_message">Een update is zojuist gedownload. Herstart de app</string>
+    <string name="app_activity_update_dialog_message">Een update is zojuist gedownload. App nu herstarten?</string>
     <string name="app_activity_update_dialog_restart">Herstart</string>
 
     <string name="app_tab_stream">Stream</string>
@@ -23,14 +23,14 @@
     <string name="app_tab_stream_select_mode">Selecteer streammodus:</string>
 
     <string name="app_permission_required_title">Toestemming nodig</string>
-    <string name="app_permission_allow_notifications">De applicatie vereist toestemming om meldingen te versturen om de streamingdienst te kunnen starten.\n\nGeef toestemming voor het versturen van meldingen.</string>
-    <string name="app_permission_allow_notifications_settings">De applicatie vereist toestemming om meldingen te versturen om de streamingdienst te kunnen starten.\n\nGeef toestemming voor het versturen van meldingen in de applicatie-instellingen.</string>
+    <string name="app_permission_allow_notifications">Deze app heeft meldingsrechten nodig om de streamingdienst te starten.\n\nSta meldingen toe.</string>
+    <string name="app_permission_allow_notifications_settings">Deze app heeft meldingsrechten nodig om de streamingdienst te starten.\n\nSchakel meldingen in via de appinstellingen.</string>
     <string name="app_permission_notification_settings">Instellingen openen</string>
 
     <string name="app_notification_channel_streaming">Meldingen voor streaming</string>
     <string name="app_notification_channel_error">Foutmeldingen</string>
     <string name="app_notification_streaming_title">Stream…</string>
-    <string name="app_notification_streaming_content">Druk op STOP om de stream te stoppen</string>
+    <string name="app_notification_streaming_content">Tik op Stop om de stream te beëindigen</string>
     <string name="app_notification_stop">Stop</string>
 
     <string name="app_tile_start">Start</string>
@@ -38,7 +38,7 @@
 
     <string name="app_pref_close">Sluiten</string>
     <string name="app_pref_back">Terug</string>
-    <string name="app_pref_settings">Applicatie-instellingen</string>
+    <string name="app_pref_settings">Instellingen</string>
     <string name="app_pref_locale">Applicatietaal</string>
     <string name="app_pref_locale_summary">Open applicatietaalinstellingen</string>
     <string name="app_pref_locale_default">Standaard systeemtaal</string>
@@ -66,7 +66,7 @@
     <string name="app_tab_about_developer_name">Gemaakt door Dmytro Kryvoruchko</string>
     <string name="app_tab_about_rate_app">Beoordeel de app</string>
     <string name="app_tab_about_write_email">Schrijf een email naar de developer</string>
-    <string name="app_tab_about_email_chooser_header">Mail word verzonden…</string>
+    <string name="app_tab_about_email_chooser_header">Mail wordt verzonden…</string>
     <string name="app_tab_about_app_sources">Applicatie bronnen</string>
     <string name="app_tab_about_terms_conditions">Algemene Voorwaarden</string>
     <string name="app_tab_about_privacy_policy">Privacybeleid</string>

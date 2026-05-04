@@ -3,20 +3,20 @@
     <string name="webrtc_error_recover">Herstel</string>
     <string name="webrtc_error_open_settings">Maak instellings oop</string>
 
-    <string name="webrtc_stream_mode">Globale modus (WebRTC)</string>
-    <string name="webrtc_stream_mode_description">Globale modus beskrywing</string>
+    <string name="webrtc_stream_mode">Globale modus · WebRTC</string>
+    <string name="webrtc_stream_mode_description">Stroom oor die internet met WebRTC</string>
     <string name="webrtc_stream_mode_details">
 - Aangedryf deur WebRTC-tegnologie.\n
-        - End-tot-end geënkripteerde kommunikasie.\n
-        - Stroombeskerming met wagwoord.\n
-        - Kan video en klank stuur.\n
-        - Koppel met unieke stroom-ID en wagwoord.\n
-        - Vereis \'n internetverbinding vir stroom.\n
-        - Individuele data-oordrag vir elke kliënt (meer kliënte wat jy het, meer internet bandwydte wat jy nodig het).
+- End-tot-end geënkripteerde kommunikasie.\n
+- Stroombeskerming met wagwoord.\n
+- Kan video en klank stuur.\n
+- Koppel met unieke stroom-ID en wagwoord.\n
+- Vereis \'n internetverbinding vir stroom.\n
+- Elke kliënt gebruik aparte internetbandwydte.
 </string>
 
     <string name="webrtc_stream_network_recovery">Verbinding verloor. Koppel weer…</string>
-    <string name="webrtc_stream_server_address">Toegang tot stroom by: %1$s</string>
+    <string name="webrtc_stream_server_address">Toegang tot die stroom by:\n%1$s</string>
     <string name="webrtc_stream_stream_id_getting">Kry tans stroom-ID …</string>
     <string name="webrtc_stream_stream_id">Stroom-ID: %1$s</string>
     <string name="webrtc_stream_stream_password">Stroomwagwoord: %1$s</string>
@@ -29,12 +29,12 @@
     <string name="webrtc_stream_description_qr_address">Wys adres as QR-kode</string>
     <string name="webrtc_stream_description_qr">QR kode</string>
     <string name="webrtc_stream_copied">Gekopieer</string>
-    <string name="webrtc_stream_audio_parameters">Klankparameters</string>
+    <string name="webrtc_stream_audio_parameters">Klankinstellings</string>
     <string name="webrtc_stream_audio_mic">Mikrofoon</string>
     <string name="webrtc_stream_audio_mic_summary">Stroom mikrofoonklank</string>
     <string name="webrtc_stream_audio_device">Interne oudio</string>
     <string name="webrtc_stream_audio_device_summary">Stroom media-oudio vanaf hierdie toestel</string>
-    <string name="webrtc_stream_audio_capture_unavailable">Probleem met oudio-opname opgespoor</string>
+    <string name="webrtc_stream_audio_capture_unavailable">Oudio-opname nie beskikbaar nie</string>
     <string name="webrtc_stream_connected_clients">Gekoppelde kliënte: %1$d</string>
     <string name="webrtc_stream_no_web_browser_found">Geen webblaaier gevind nie</string>
     <string name="webrtc_stream_external_app_error">Eksterne toepassingsfout</string>
@@ -42,7 +42,7 @@
     <string name="webrtc_stream_start">Begin stroom</string>
     <string name="webrtc_stream_stop">Stop stroom</string>
 
-    <string name="webrtc_stream_other_parameters">Ander parameters</string>
+    <string name="webrtc_stream_other_parameters">Ander instellings</string>
     <string name="webrtc_stream_keep_awake">Hou toestel wakker</string>
     <string name="webrtc_stream_keep_awake_summary">Hou toestel en skerm wakker terwyl dit stroom</string>
     <string name="webrtc_stream_stop_on_sleep">Stop stroom op slaap</string>
@@ -58,8 +58,8 @@
     <string name="webrtc_error_play_integrity_install_play_store">Installeer of aktiveer asseblief amptelike Google Play Winkel</string>
     <string name="webrtc_error_play_integrity_install_play_service">Installeer of aktiveer asseblief Play Services</string>
     <string name="webrtc_error_play_integrity_update_play_service">Dateer asseblief Google Play Dienste op</string>
-    <string name="webrtc_error_check_network">Kyk asseblief vir internetverbinding</string>
+    <string name="webrtc_error_check_network">Kontroleer jou internetverbinding</string>
     <string name="webrtc_error_incomplete_installation">Die toepassing is onvolledig geïnstalleer. Herinstalleer asseblief die toepassing vanaf Google Play.</string>
-    <string name="webrtc_notification_permission_required">Aansoek vereis dat kennisgewings geaktiveer word om stroomdiens te begin. Aktiveer asseblief kennisgewings in toepassinginstellings.</string>
+    <string name="webrtc_notification_permission_required">Hierdie app benodig kennisgewings om die stroomdiens te begin.\nAktiveer kennisgewings in appinstellings.</string>
     <string name="webrtc_error_unspecified">Iets het verkeerd geloop. Probeer asseblief weer later.</string>
 </resources>

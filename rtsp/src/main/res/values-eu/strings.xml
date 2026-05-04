@@ -3,8 +3,8 @@
     <string name="rtsp_error_recover">Berreskuratu</string>
     <string name="rtsp_error_open_settings">Ezarpenak ireki</string>
 
-    <string name="rtsp_stream_mode">RTSP modua (RTSP)</string>
-    <string name="rtsp_stream_mode_description">RTSP moduaren deskribapena</string>
+    <string name="rtsp_stream_mode">RTSP modua · RTSP</string>
+    <string name="rtsp_stream_mode_description">Streamatu RTSP bezero edo zerbitzari batekin</string>
     <string name="rtsp_stream_mode_details">
 - RTSP protokoloak bultzatuta.\n
 - Zerbitzari moduak (lehenetsia) gailu hau RTSP zerbitzari gisa ostatatzen du.\n
@@ -22,29 +22,29 @@
     <string name="rtsp_mode_client_hint">Konektatu urruneko RTSP zerbitzari batera</string>
 
     <string name="rtsp_interfaces_title">RTSP zerbitzariaren helbidea</string>
-    <string name="rtsp_interfaces_no_address">Ez da helbiderik aurkitu.\nEgiaztatu konexioa edo Zerbitzariaren parametroak (Interfaze iragazkia, Helbide iragazkia).</string>
+    <string name="rtsp_interfaces_no_address">Ez da helbiderik aurkitu.\nEgiaztatu konexioa edo doitu zerbitzariaren ezarpenak (Interfaze-iragazkia, Helbide-iragazkia).</string>
     <string name="rtsp_interfaces_discovering">Helbideak bilatzen…</string>
     <string name="rtsp_interfaces_interface_label">Interfazea:\n%1$s</string>
-    <string name="rtsp_interfaces_description_copy">Copiar dirección</string>
-    <string name="rtsp_interfaces_description_share">Compartir dirección</string>
-    <string name="rtsp_interfaces_description_qr">Mostrar dirección como código QR</string>
-    <string name="rtsp_interfaces_qr_content_description">Código QR</string>
+    <string name="rtsp_interfaces_description_copy">Kopiatu helbidea</string>
+    <string name="rtsp_interfaces_description_share">Partekatu helbidea</string>
+    <string name="rtsp_interfaces_description_qr">Erakutsi helbidea QR kode gisa</string>
+    <string name="rtsp_interfaces_qr_content_description">QR kodea</string>
     <string name="rtsp_interfaces_copied">Helbidea kopiatuta</string>
     <string name="rtsp_interfaces_share_title">Partekatu RTSP helbidea</string>
     <string name="rtsp_bindings_retry">Berriz saiatu</string>
-    <string name="rtsp_bind_error_port_in_use">Errorea: Ataka erabilita</string>
+    <string name="rtsp_bind_error_port_in_use">Errorea: portua erabiltzen ari da</string>
     <string name="rtsp_bind_error_address_not_available">Errorea: Helbidea ez dago erabilgarri</string>
     <string name="rtsp_bind_error_permission_denied">Errorea: Baimena ukatuta</string>
     <string name="rtsp_bind_error_unknown">Errorea: Entzuleak huts egin du</string>
 
-    <string name="rtsp_server_parameters">Zerbitzariaren parametroak</string>
-    <string name="rtsp_client_parameters">Bezeroaren parametroak</string>
+    <string name="rtsp_server_parameters">Zerbitzariaren ezarpenak</string>
+    <string name="rtsp_client_parameters">Bezeroaren ezarpenak</string>
 
     <string name="rtsp_stream_start">Transmisioa hasi</string>
     <string name="rtsp_stream_stop">Transmisioa gelditu</string>
 
-    <string name="rtsp_error_notification_permission_required">Aplikazioak jakinarazpenak gaituta egotea behar du transmisio zerbitzua hasteko.\nMesedez, gaitu jakinarazpenak aplikazioaren ezarpenetan.</string>
-    <string name="rtsp_error_ip_address_not_found">Ez da helbiderik aurkitu. Egiaztatu konexioa edo Zerbitzariaren parametroak (Interfaze iragazkia, Helbide iragazkia).</string>
+    <string name="rtsp_error_notification_permission_required">Aplikazio honek jakinarazpenak gaituta behar ditu transmisio-zerbitzua hasteko.\nGaitu jakinarazpenak aplikazioaren ezarpenetan.</string>
+    <string name="rtsp_error_ip_address_not_found">Ez da helbiderik aurkitu. Egiaztatu konexioa edo doitu zerbitzariaren ezarpenak (Interfaze-iragazkia, Helbide-iragazkia).</string>
     <string name="rtsp_error_unspecified">Zerbait oker joan da.</string>
 
     <string name="rtsp_media_server">Multimedia zerbitzaria</string>
@@ -62,7 +62,7 @@
     <string name="rtsp_label_public_ipv6">IPv6 publikoa</string>
     <string name="rtsp_label_loopback">Loopback</string>
 
-    <string name="rtsp_video_parameters">Bideo parametroak</string>
+    <string name="rtsp_video_parameters">Bideo-ezarpenak</string>
     <string name="rtsp_video_encoder">Bideo kodetzailea:</string>
     <string name="rtsp_video_encoder_auto">Auto</string>
     <string name="rtsp_video_resize_image">Irudia birneurritu: %1$.2f%%</string>
@@ -75,25 +75,25 @@
     <string name="rtsp_video_bitrate_mbit">%.2f Mbit</string>
     <string name="rtsp_video_bitrate_kbit">%d Kbit</string>
 
-    <string name="rtsp_audio_parameters">Audio parametroak</string>
+    <string name="rtsp_audio_parameters">Audio-ezarpenak</string>
     <string name="rtsp_audio_mic">Mikrofonoa</string>
     <string name="rtsp_audio_mic_mute">Mututu mikrofonoa</string>
-    <string name="rtsp_audio_device">Gailuaren audioa</string>
-    <string name="rtsp_audio_device_mute">Mututu gailuaren audioa</string>
+    <string name="rtsp_audio_device">Barneko audioa</string>
+    <string name="rtsp_audio_device_mute">Mututu barneko audioa</string>
     <string name="rtsp_audio_encoder">Audio kodetzailea:</string>
     <string name="rtsp_audio_encoder_auto">Auto</string>
     <string name="rtsp_audio_bitrate">Audio bit-emaria: %1$s/seg</string>
     <string name="rtsp_audio_permission_title">Audio grabazioa baimendu</string>
-    <string name="rtsp_audio_permission_message">Audioa grabatzeko baimena beharrezkoa da aplikazioak audio edukia transmititzeko.\n\nBaimen hau eman gabe, transmisioak ez du audiorik izango.</string>
+    <string name="rtsp_audio_permission_message">Audioa transmititzeko audioa grabatzeko baimena behar da.\n\nHori gabe, transmisioak ez du audiorik izango.</string>
     <string name="rtsp_audio_permission_open_settings">Ezarpenak ireki</string>
-    <string name="rtsp_audio_permission_message_settings">Mikrofonorako sarbidea ematea aplikazio-baimenetan beharrezkoa da aplikazioak audio edukia transmititzeko.\n\nBaimen hau eman gabe, transmisioa audiorik gabe egingo da.</string>
-    <string name="rtsp_audio_capture_issue_detected">Audio grabazioan arazo bat hauteman da</string>
+    <string name="rtsp_audio_permission_message_settings">Audioa transmititzeko, gaitu mikrofono-baimena aplikazioaren ezarpenetan.\n\nHori gabe, transmisioak ez du audiorik izango.</string>
+    <string name="rtsp_audio_capture_issue_detected">Audioa atzemateko arazoa hauteman da</string>
 
     <string name="rtsp_connection_access_denied">Sarbidea ukatua</string>
     <string name="rtsp_connection_no_credentials">Zehaztu erabiltzaile-izena eta pasahitza</string>
     <string name="rtsp_connection_invalid_credentials">Erabiltzaile-izena edo pasahitza baliogabea da</string>
 
-    <string name="rtsp_close">Itzi</string>
+    <string name="rtsp_close">Itxi</string>
     <string name="rtsp_pref_protocol">RTSP protokoloa</string>
     <string name="rtsp_pref_protocol_summary">Hautatu RTP paketeetarako garraioa</string>
     <string name="rtsp_pref_interface_filter">Interfaze iragazkia</string>

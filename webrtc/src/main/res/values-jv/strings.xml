@@ -3,20 +3,20 @@
     <string name="webrtc_error_recover">Waras</string>
     <string name="webrtc_error_open_settings">Bukak setelan</string>
 
-    <string name="webrtc_stream_mode">Mode Global (WebRTC)</string>
-    <string name="webrtc_stream_mode_description">Katrangan mode global</string>
+    <string name="webrtc_stream_mode">Mode Global · WebRTC</string>
+    <string name="webrtc_stream_mode_description">Streaming liwat internet nganggo WebRTC</string>
     <string name="webrtc_stream_mode_details">
 - Powered by teknologi WebRTC.\n
-        - Komunikasi enkripsi end-to-end.\n
-        - Perlindhungan stream nganggo sandhi.\n
-        - Bisa ngirim video lan audio.\n
-        - Sambungake nggunakake ID stream unik lan sandhi.\n
-        - Mbutuhake sambungan internet kanggo streaming.\n
-        - Transmisi data individu kanggo saben klien (luwih akeh klien sing sampeyan duwe, luwih akeh bandwidth Internet sing dibutuhake).
+- Komunikasi enkripsi end-to-end.\n
+- Perlindhungan stream nganggo sandhi.\n
+- Bisa ngirim video lan audio.\n
+- Sambungake nggunakake ID stream unik lan sandhi.\n
+- Mbutuhake sambungan internet kanggo streaming.\n
+- Saben klien nggunakake bandwidth internet kapisah.
 </string>
 
     <string name="webrtc_stream_network_recovery">Sambungan ilang. Nyambung maneh…</string>
-    <string name="webrtc_stream_server_address">Akses stream ing: %1$s</string>
+    <string name="webrtc_stream_server_address">Akses stream ing:\n%1$s</string>
     <string name="webrtc_stream_stream_id_getting">Njupuk ID Stream…</string>
     <string name="webrtc_stream_stream_id">ID Aliran: %1$s</string>
     <string name="webrtc_stream_stream_password">Sandi stream: %1$s</string>
@@ -24,25 +24,25 @@
     <string name="webrtc_stream_description_get_new_id">Entuk ID stream anyar</string>
     <string name="webrtc_stream_description_create_password">Nggawe sandi stream anyar</string>
     <string name="webrtc_stream_description_open_address">Bukak alamat</string>
-    <string name="webrtc_stream_description_copy_address">alamat salinan</string>
+    <string name="webrtc_stream_description_copy_address">Salin alamat</string>
     <string name="webrtc_stream_description_share_address">Nuduhake alamat</string>
     <string name="webrtc_stream_description_qr_address">Tampilake alamat minangka kode QR</string>
     <string name="webrtc_stream_description_qr">QR-kode</string>
     <string name="webrtc_stream_copied">Disalin</string>
-    <string name="webrtc_stream_audio_parameters">Parameter audio</string>
+    <string name="webrtc_stream_audio_parameters">Setelan audio</string>
     <string name="webrtc_stream_audio_mic">Mikropon</string>
     <string name="webrtc_stream_audio_mic_summary">Streaming audio mikropon</string>
     <string name="webrtc_stream_audio_device">Audio internal</string>
     <string name="webrtc_stream_audio_device_summary">Streaming audio media saka piranti iki</string>
-    <string name="webrtc_stream_audio_capture_unavailable">Ana masalah ing rekaman audio sing dideteksi</string>
+    <string name="webrtc_stream_audio_capture_unavailable">Perekaman audio ora kasedhiya</string>
     <string name="webrtc_stream_connected_clients">Klien sing disambungake: %1$d</string>
     <string name="webrtc_stream_no_web_browser_found">Ora ana browser web sing ditemokake</string>
     <string name="webrtc_stream_external_app_error">Kesalahan aplikasi eksternal</string>
     <string name="webrtc_stream_share_address">Nuduhake alamat piranti</string>
     <string name="webrtc_stream_start">Miwiti stream</string>
-    <string name="webrtc_stream_stop">Stop stream</string>
+    <string name="webrtc_stream_stop">Mandhegake stream</string>
 
-    <string name="webrtc_stream_other_parameters">Paramèter liyane</string>
+    <string name="webrtc_stream_other_parameters">Setelan liyane</string>
     <string name="webrtc_stream_keep_awake">Tansah piranti siyaga</string>
     <string name="webrtc_stream_keep_awake_summary">Tansah piranti lan layar siyaga nalika streaming</string>
     <string name="webrtc_stream_stop_on_sleep">Mungkasi stream nalika turu</string>
@@ -58,8 +58,8 @@
     <string name="webrtc_error_play_integrity_install_play_store">Mangga instal utawa aktifake Google Play Store resmi</string>
     <string name="webrtc_error_play_integrity_install_play_service">Mangga instal utawa ngaktifake Layanan Play</string>
     <string name="webrtc_error_play_integrity_update_play_service">Mangga nganyari Layanan Google Play</string>
-    <string name="webrtc_error_check_network">Mangga priksa panyambungan Internet</string>
+    <string name="webrtc_error_check_network">Priksa sambungan internet sampeyan</string>
     <string name="webrtc_error_incomplete_installation">Pamasangan aplikasi ora pepak. Mangga pasang maneh aplikasi saka Google Play.</string>
-    <string name="webrtc_notification_permission_required">Aplikasi mbutuhake kabar supaya bisa diaktifake kanggo miwiti layanan streaming. Mangga aktifake kabar ing setelan aplikasi.</string>
+    <string name="webrtc_notification_permission_required">Aplikasi iki mbutuhake kabar aktif kanggo miwiti layanan streaming.\nAktifake kabar ing setelan aplikasi.</string>
     <string name="webrtc_error_unspecified">Ana sing salah. Mangga nyoba maneh mengko.</string>
 </resources>

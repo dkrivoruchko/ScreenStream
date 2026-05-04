@@ -5,11 +5,11 @@
 
     <string name="app_logs_collecting">Coletando logs do aplicativo…</string>
     <string name="app_logs_send_title">Enviar logs para o desenvolvedor</string>
-    <string name="app_logs_send_message">Por favor, adicione uma descrição do problema:</string>
+    <string name="app_logs_send_message">Adicione uma descrição do problema:</string>
     <string name="app_logs_send">Enviar</string>
-    <string name="app_logs_enabled">Registo ativado</string>
-    <string name="app_logs_disabled">Registo desativado</string>
-    <string name="app_logs_stop">Parar o registro</string>
+    <string name="app_logs_enabled">Registro ativado</string>
+    <string name="app_logs_disabled">Registro desativado</string>
+    <string name="app_logs_stop">Parar registro</string>
 
     <string name="app_activity_update_dialog_title">Atualização disponível</string>
     <string name="app_activity_update_dialog_message">Uma atualização foi baixada. Reiniciar o aplicativo agora?</string>
@@ -23,14 +23,14 @@
     <string name="app_tab_stream_select_mode">Selecionar modo de transmissão:</string>
 
     <string name="app_permission_required_title">Permissão necessária</string>
-    <string name="app_permission_allow_notifications">O aplicativo requer permissão para enviar notificações para iniciar o serviço de transmissão.\n\nPor favor, permita o envio de notificações.</string>
-    <string name="app_permission_allow_notifications_settings">O aplicativo requer permissão para enviar notificações para iniciar o serviço de transmissão.\n\nPor favor, permita o envio de notificações nas configurações do aplicativo.</string>
+    <string name="app_permission_allow_notifications">Este app precisa da permissão de notificações para iniciar o serviço de transmissão.\n\nPermita notificações.</string>
+    <string name="app_permission_allow_notifications_settings">Este app precisa da permissão de notificações para iniciar o serviço de transmissão.\n\nAtive as notificações nas configurações do app.</string>
     <string name="app_permission_notification_settings">Abrir configurações</string>
 
-    <string name="app_notification_channel_streaming">Notificações de streaming</string>
+    <string name="app_notification_channel_streaming">Notificações de transmissão</string>
     <string name="app_notification_channel_error">Notificações de erro</string>
     <string name="app_notification_streaming_title">Transmitindo…</string>
-    <string name="app_notification_streaming_content">Pressione PARAR para encerrar a transmissão</string>
+    <string name="app_notification_streaming_content">Toque em Parar para encerrar a transmissão</string>
     <string name="app_notification_stop">Parar</string>
 
     <string name="app_tile_start">Iniciar</string>
@@ -38,7 +38,7 @@
 
     <string name="app_pref_close">Fechar</string>
     <string name="app_pref_back">Voltar</string>
-    <string name="app_pref_settings">Configurações do aplicativo</string>
+    <string name="app_pref_settings">Configurações</string>
     <string name="app_pref_locale">Idioma do aplicativo</string>
     <string name="app_pref_locale_summary">Abrir configurações de idioma do aplicativo</string>
     <string name="app_pref_locale_default">Padrão do sistema</string>

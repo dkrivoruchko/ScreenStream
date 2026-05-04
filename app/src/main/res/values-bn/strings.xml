@@ -23,22 +23,22 @@
     <string name="app_tab_stream_select_mode">স্ট্রিম মোড নির্বাচন করুন:</string>
 
     <string name="app_permission_required_title">অনুমতি প্রয়োজন</string>
-    <string name="app_permission_allow_notifications">স্ট্রিমিং পরিষেবা শুরু করতে সক্ষম হওয়ার জন্য বিজ্ঞপ্তি পাঠানোর জন্য আবেদনের অনুমতি প্রয়োজন।  বিজ্ঞপ্তি পাঠানোর অনুমতি দিন.</string>
-    <string name="app_permission_allow_notifications_settings">স্ট্রিমিং পরিষেবা শুরু করতে সক্ষম হওয়ার জন্য বিজ্ঞপ্তি পাঠানোর জন্য আবেদনের অনুমতি প্রয়োজন।  অনুগ্রহ করে অ্যাপ্লিকেশন সেটিংসে বিজ্ঞপ্তি পাঠানোর অনুমতি দিন।</string>
-    <string name="app_permission_notification_settings">ওপেন সেটিংস</string>
+    <string name="app_permission_allow_notifications">স্ট্রিমিং পরিষেবা শুরু করতে এই অ্যাপের বিজ্ঞপ্তির অনুমতি প্রয়োজন।\n\nবিজ্ঞপ্তির অনুমতি দিন।</string>
+    <string name="app_permission_allow_notifications_settings">স্ট্রিমিং পরিষেবা শুরু করতে এই অ্যাপের বিজ্ঞপ্তির অনুমতি প্রয়োজন।\n\nঅ্যাপ সেটিংসে বিজ্ঞপ্তি চালু করুন।</string>
+    <string name="app_permission_notification_settings">সেটিংস খুলুন</string>
 
     <string name="app_notification_channel_streaming">স্ট্রিমিং বিজ্ঞপ্তি</string>
     <string name="app_notification_channel_error">ত্রুটি বিজ্ঞপ্তি</string>
     <string name="app_notification_streaming_title">স্ট্রিমিং…</string>
-    <string name="app_notification_streaming_content">স্ট্রীম শেষ করতে STOP টিপুন</string>
+    <string name="app_notification_streaming_content">স্ট্রিম শেষ করতে বন্ধ করুন-এ ট্যাপ করুন</string>
     <string name="app_notification_stop">থামুন</string>
 
     <string name="app_tile_start">শুরু করুন</string>
     <string name="app_tile_stop">থামুন</string>
 
     <string name="app_pref_close">বন্ধ করুন</string>
-    <string name="app_pref_back">পুনরায়</string>
-    <string name="app_pref_settings">"অ্যাপ্লিকেশন সেটিংস "</string>
+    <string name="app_pref_back">ফিরে যান</string>
+    <string name="app_pref_settings">সেটিংস</string>
     <string name="app_pref_locale">অ্যাপ্লিকেশন ভাষা</string>
     <string name="app_pref_locale_summary">অ্যাপ্লিকেশন ভাষা সেটিংস খুলুন</string>
     <string name="app_pref_locale_default">সিস্টেমের ডিফল্ট</string>

@@ -3,18 +3,18 @@
     <string name="mjpeg_error_open_settings">設定を開く</string>
     <string name="mjpeg_close">閉じる</string>
 
-    <string name="mjpeg_stream_mode">ローカルモード（MJPEG）</string>
-    <string name="mjpeg_stream_mode_description">ローカルモードの説明</string>
+    <string name="mjpeg_stream_mode">ローカルモード · MJPEG</string>
+    <string name="mjpeg_stream_mode_description">ローカルネットワークでストリーミング</string>
     <string name="mjpeg_stream_mode_details">
-- MJPEG標準によって動作します。\n
-- セキュリティのためにPINを使用します（暗号化はありません）。\n
-- 音声のない独立した画像のシリーズとしてビデオを送信します。\n
-- ローカルネットワーク内でインターネット接続なしで動作します。\n
-- 埋め込み型HTTPサーバーを備えています。\n
-- WiFiおよび/またはモバイルネットワークをサポートし、IPv4およびIPv6をサポートします。\n
-- クライアントは、アプリが提供するIPアドレスを使用してWebブラウザを介して接続します。\n
-- 高度にカスタマイズ可能です。\n
-- 各クライアントごとの個別のデータ送信（クライアントが多いほど、ネットワーク帯域幅が必要です）。
+- MJPEGを使用します。\n
+- PIN保護、暗号化なし。\n
+- 動画のみを個別の画像として送信します。\n
+- ローカルネットワークで動作し、インターネットは不要です。\n
+- 内蔵HTTPサーバー。\n
+- Wi-Fi、モバイルネットワーク、IPv4、IPv6に対応。\n
+- クライアントはアプリのアドレスを使ってブラウザで接続します。\n
+- 高度に設定可能。\n
+- 各クライアントが個別の帯域幅を使用します。
 </string>
 
     <string name="mjpeg_item_address">端末のアドレス:</string>
@@ -44,8 +44,8 @@
     <string name="mjpeg_stream_stop">ストリームを停止</string>
     <string name="mjpeg_slow_client_connection">遅いクライアント接続が検出されました</string>
 
-    <string name="mjpeg_pref_header">ローカルモード（MJPEG）設定</string>
-    <string name="mjpeg_pref_settings_general">一般パラメータ</string>
+    <string name="mjpeg_pref_header">ローカルモード · MJPEG 設定</string>
+    <string name="mjpeg_pref_settings_general">一般設定</string>
     <string name="mjpeg_pref_keep_awake">デバイスを起きたままにする</string>
     <string name="mjpeg_pref_keep_awake_summary">ストリーミング中にデバイスと画面を起きたままに保つ</string>
     <string name="mjpeg_pref_stop_on_sleep">スリープ時にストリームを停止</string>
@@ -66,7 +66,7 @@
     <string name="mjpeg_pref_html_fit_window">画像をブラウザウィンドウに合わせる</string>
     <string name="mjpeg_pref_html_fit_window_summary">画像をブラウザでウィンドウの全幅/全高に拡大する</string>
 
-    <string name="mjpeg_pref_settings_image">画像パラメータ</string>
+    <string name="mjpeg_pref_settings_image">画像設定</string>
     <string name="mjpeg_pref_vr_mode">VRモード</string>
     <string name="mjpeg_pref_vr_mode_summary">画面の半分をキャプチャします</string>
     <string-array name="mjpeg_pref_vr_mode_options">
@@ -84,10 +84,10 @@
     <string name="mjpeg_pref_crop_warning">結果が空の画像の場合は切り抜きは無視されます</string>
     <string name="mjpeg_pref_crop_error">有効な切り抜き値を入力してください</string>
     <string name="mjpeg_pref_grayscale">グレースケールモード</string>
-    <string name="mjpeg_pref_grayscale_summary">クライアントに送信する前に画像をグレースケールに変換</string>
+    <string name="mjpeg_pref_grayscale_summary">送信前に画像をグレースケールに変換</string>
     <string name="mjpeg_pref_resize">画像のリサイズ</string>
     <string name="mjpeg_pref_resize_summary">クライアントに送信する前に画像サイズを変更します</string>
-    <string name="mjpeg_pref_resize_mode_percent">パーセントでリサイズ</string>
+    <string name="mjpeg_pref_resize_mode_percent">パーセンテージでリサイズ</string>
     <string name="mjpeg_pref_resize_mode_resolution">正確な解像度</string>
     <string name="mjpeg_pref_resize_width">幅:</string>
     <string name="mjpeg_pref_resize_height">高さ:</string>
@@ -111,10 +111,10 @@
     <string name="mjpeg_pref_jpeg_quality_summary">JPEG圧縮の品質を設定します</string>
     <string name="mjpeg_pref_jpeg_quality_text">JPEG圧縮の品質を指定してください。\n値: 10–100\n初期値: 80</string>
 
-    <string name="mjpeg_pref_settings_security">セキュリティパラメータ</string>
+    <string name="mjpeg_pref_settings_security">セキュリティ設定</string>
     <string name="mjpeg_pref_enable_pin">PINを有効化</string>
     <string name="mjpeg_pref_enable_pin_summary">ストリームへのアクセスをPINで保護します</string>
-    <string name="mjpeg_pref_hide_pin">ストリームの開始時に自動でPINを非表示にする</string>
+    <string name="mjpeg_pref_hide_pin">ストリーム開始時にPINを自動で非表示</string>
     <string name="mjpeg_pref_hide_pin_summary">ストリーミング中にPINの代わりにアスタリスクを表示します</string>
     <string name="mjpeg_pref_new_pin_on_start">アプリ開始時に新しいPINを生成する</string>
     <string name="mjpeg_pref_new_pin_on_start_summary">アプリケーションの開始時に新しいPINを生成します</string>
@@ -126,7 +126,7 @@
     <string name="mjpeg_pref_block_address">IPアドレスをブロック</string>
     <string name="mjpeg_pref_block_address_summary">5回の誤ったPIN試行後、5分間クライアントのIPアドレスをブロック</string>
 
-    <string name="mjpeg_pref_settings_advanced">詳細パラメータ</string>
+    <string name="mjpeg_pref_settings_advanced">詳細設定</string>
     <string name="mjpeg_pref_interface_filter">インターフェースフィルター</string>
     <string name="mjpeg_pref_interface_filter_summary">サーバー用のネットワークインターフェースを選択</string>
     <string name="mjpeg_pref_filter_wifi">Wi-Fi</string>
@@ -154,9 +154,9 @@
     <string name="mjpeg_pref_server_port_text">接続を待ち受けるポートを設定してください。\n値: 1025–65535\n初期値: 8080</string>
 
     <string name="mjpeg_error_port_in_use">ポートは既に使用されています。 他のポートを選択してください。</string>
-    <string name="mjpeg_error_invalid_media_projection">セキュリティエラー: メディアプロジェクションが無効です。 もう一度お試しください。</string>
-    <string name="mjpeg_error_ip_address_not_found">IPアドレスが見つかりません。\nストリーム設定で「WiFiのみ使用する」を無効にしてみてください。</string>
-    <string name="mjpeg_error_notification_permission_required">アプリケーションはストリーミングサービスを開始するために通知の有効化が必要です。\nアプリケーションの設定で通知を有効にしてください。</string>
+    <string name="mjpeg_error_invalid_media_projection">セキュリティエラー: 画面キャプチャ権限が無効です。もう一度お試しください。</string>
+    <string name="mjpeg_error_ip_address_not_found">IPアドレスが見つかりません。\nストリーム設定でネットワークフィルターを調整してください。</string>
+    <string name="mjpeg_error_notification_permission_required">ストリーミングサービスを開始するには、このアプリの通知を有効にする必要があります。\nアプリ設定で通知を有効にしてください。</string>
     <string name="mjpeg_error_unspecified">何か問題が発生しました。後で再試行してください。</string>
 
     <string name="mjpeg_start_image_text">デバイスでストリームを開始</string>

@@ -1,7 +1,7 @@
 <resources>
     <string name="common_screen_capture_permission_required_title">許可が必要です</string>
     <string name="common_screen_capture_permission_education_message">Android が画面を共有する許可を求めます。この許可がないと配信を開始できません。共有はいつでも停止できます。</string>
-    <string name="common_screen_capture_permission_denied_message">画面を共有する許可が付与されなかったため、配信は開始されませんでした。もう一度 Android の許可画面を開くには、再試行 をタップしてください。</string>
+    <string name="common_screen_capture_permission_denied_message">画面共有の許可が付与されなかったため、配信は開始されませんでした。Android の許可画面をもう一度開くには、再試行をタップしてください。</string>
 
     <string name="common_continue">続行</string>
     <string name="common_try_again">再試行</string>

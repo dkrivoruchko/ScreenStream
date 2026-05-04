@@ -5,7 +5,7 @@
 
     <string name="app_logs_collecting">Mengumpulkan log aplikasi…</string>
     <string name="app_logs_send_title">Kirim log ke pengembang</string>
-    <string name="app_logs_send_message">Silakan tambahkan deskripsi masalah:</string>
+    <string name="app_logs_send_message">Tambahkan deskripsi masalah:</string>
     <string name="app_logs_send">Mengirim</string>
     <string name="app_logs_enabled">Pencatatan log diaktifkan</string>
     <string name="app_logs_disabled">Pencatatan log dinonaktifkan</string>
@@ -23,22 +23,22 @@
     <string name="app_tab_stream_select_mode">Pilih mode streaming:</string>
 
     <string name="app_permission_required_title">Izin diperlukan</string>
-    <string name="app_permission_allow_notifications">Aplikasi memerlukan izin untuk mengirim pemberitahuan untuk dapat memulai layanan streaming. Mohon izinkan pengiriman notifikasi.</string>
-    <string name="app_permission_allow_notifications_settings">Aplikasi memerlukan izin untuk mengirim pemberitahuan untuk dapat memulai layanan streaming. Harap izinkan pengiriman pemberitahuan dalam pengaturan aplikasi.</string>
+    <string name="app_permission_allow_notifications">Aplikasi ini memerlukan izin notifikasi untuk memulai layanan streaming.\n\nIzinkan notifikasi.</string>
+    <string name="app_permission_allow_notifications_settings">Aplikasi ini memerlukan izin notifikasi untuk memulai layanan streaming.\n\nAktifkan notifikasi di setelan aplikasi.</string>
     <string name="app_permission_notification_settings">Buka pengaturan</string>
 
     <string name="app_notification_channel_streaming">Pemberitahuan streaming</string>
     <string name="app_notification_channel_error">Pemberitahuan kesalahan</string>
     <string name="app_notification_streaming_title">Streaming…</string>
-    <string name="app_notification_streaming_content">Tekan STOP untuk menyelesaikan streaming</string>
+    <string name="app_notification_streaming_content">Ketuk Berhenti untuk mengakhiri streaming</string>
     <string name="app_notification_stop">Berhenti</string>
 
     <string name="app_tile_start">Mulai</string>
     <string name="app_tile_stop">Berhenti</string>
 
-    <string name="app_pref_close">Menutup</string>
+    <string name="app_pref_close">Tutup</string>
     <string name="app_pref_back">Kembali</string>
-    <string name="app_pref_settings">Pengaturan aplikasi</string>
+    <string name="app_pref_settings">Pengaturan</string>
     <string name="app_pref_locale">Bahasa aplikasi</string>
     <string name="app_pref_locale_summary">Buka pengaturan bahasa aplikasi</string>
     <string name="app_pref_locale_default">Bawaan sistem</string>

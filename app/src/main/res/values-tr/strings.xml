@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_error_title">Hata</string>
+    <string name="app_error_recover">Kurtar</string>
+
+    <string name="app_logs_collecting">Uygulama günlükleri toplanıyor…</string>
+    <string name="app_logs_send_title">Günlükleri geliştiriciye gönder</string>
+    <string name="app_logs_send_message">Lütfen sorunun açıklamasını ekleyin:</string>
+    <string name="app_logs_send">Gönder</string>
+    <string name="app_logs_enabled">Günlük kaydı etkin</string>
+    <string name="app_logs_disabled">Günlük kaydı devre dışı</string>
+    <string name="app_logs_stop">Günlük kaydını durdur</string>
+
+    <string name="app_activity_update_dialog_title">Güncelleme var</string>
+    <string name="app_activity_update_dialog_message">Bir güncelleme indirildi. Uygulama şimdi yeniden başlatılsın mı?</string>
+    <string name="app_activity_update_dialog_restart">Yeniden başlat</string>
+
+    <string name="app_tab_stream">Yayın</string>
+    <string name="app_tab_settings">Ayarlar</string>
+    <string name="app_tab_about">Hakkında</string>
+    <string name="app_tab_exit">Çıkış</string>
+
+    <string name="app_tab_stream_select_mode">Yayın modunu seçin:</string>
+
+    <string name="app_permission_required_title">İzin gerekli</string>
+    <string name="app_permission_allow_notifications">Bu uygulamanın yayın hizmetini başlatmak için bildirim iznine ihtiyacı var.\n\nBildirimlere izin verin.</string>
+    <string name="app_permission_allow_notifications_settings">Bu uygulamanın yayın hizmetini başlatmak için bildirim iznine ihtiyacı var.\n\nUygulama ayarlarında bildirimleri etkinleştirin.</string>
+    <string name="app_permission_notification_settings">Ayarları aç</string>
+
+    <string name="app_notification_channel_streaming">Yayın bildirimleri</string>
+    <string name="app_notification_channel_error">Hata bildirimleri</string>
+    <string name="app_notification_streaming_title">Yayınlanıyor…</string>
+    <string name="app_notification_streaming_content">Yayını bitirmek için Durdur\'a dokunun</string>
+    <string name="app_notification_stop">Durdur</string>
+
+    <string name="app_tile_start">Başlat</string>
+    <string name="app_tile_stop">Durdur</string>
+
+    <string name="app_pref_close">Kapat</string>
+    <string name="app_pref_back">Geri</string>
+    <string name="app_pref_settings">Ayarlar</string>
+    <string name="app_pref_locale">Uygulama dili</string>
+    <string name="app_pref_locale_summary">Uygulama dili ayarlarını aç</string>
+    <string name="app_pref_locale_default">Sistem varsayılanı</string>
+    <string name="app_pref_night_mode">Koyu tema</string>
+    <string-array name="app_pref_night_mode_options_api21_28">
+        <item>Her zaman</item>
+        <item>Pil Tasarrufu ile</item>
+        <item>Asla</item>
+    </string-array>
+    <string-array name="app_pref_night_mode_options_api29">
+        <item>Her zaman</item>
+        <item>Otomatik (sistemi izle)</item>
+        <item>Asla</item>
+    </string-array>
+    <string name="app_pref_dynamic_theme">Dinamik renk</string>
+    <string name="app_pref_dynamic_theme_summary">Görünümü duvar kağıdınızın renklerine göre ayarla</string>
+    <string name="app_pref_notification">Cihaz bildirim ayarları</string>
+    <string name="app_pref_notification_summary">Sistem bildirim ayarlarını aç</string>
+    <string name="app_pref_tile">Uygulama kutucuğu ekle</string>
+    <string name="app_pref_tile_summary">Uygulama kutucuğunu Hızlı Ayarlar\'a ekle</string>
+    <string name="app_pref_logging">Uygulama günlüklerini etkinleştir</string>
+    <string name="app_pref_logging_summary">Uygulama günlüklerini topla</string>
+
+    <string name="app_tab_about_app_version">Sürüm: %1$s</string>
+    <string name="app_tab_about_developer_name">Dmytro Kryvoruchko tarafından geliştirildi</string>
+    <string name="app_tab_about_rate_app">Uygulamayı değerlendir</string>
+    <string name="app_tab_about_write_email">Geliştiriciye e-posta yaz</string>
+    <string name="app_tab_about_email_chooser_header">E-posta gönderiliyor…</string>
+    <string name="app_tab_about_app_sources">Uygulama kaynakları</string>
+    <string name="app_tab_about_terms_conditions">Şartlar ve Koşullar</string>
+    <string name="app_tab_about_privacy_policy">Gizlilik politikası</string>
+    <string name="app_tab_about_privacy_options">Gizlilik seçenekleri</string>
+    <string name="app_tab_about_license">Lisans</string>
+</resources>

@@ -3,8 +3,8 @@
     <string name="rtsp_error_recover">恢复</string>
     <string name="rtsp_error_open_settings">打开设置</string>
 
-    <string name="rtsp_stream_mode">RTSP模式（RTSP）</string>
-    <string name="rtsp_stream_mode_description">RTSP模式说明</string>
+    <string name="rtsp_stream_mode">RTSP 模式 · RTSP</string>
+    <string name="rtsp_stream_mode_description">通过 RTSP 客户端或服务器串流</string>
     <string name="rtsp_stream_mode_details">
 - 基于RTSP协议。\n
 - 服务器模式（默认）将此设备作为RTSP服务器。\n
@@ -15,14 +15,14 @@
 - 需要RTSP客户端或播放器观看。
 </string>
 
-    <string name="rtsp_mode_card_title">选择RTSP模式：</string>
+    <string name="rtsp_mode_card_title">选择 RTSP 模式：</string>
     <string name="rtsp_mode_server">服务器</string>
     <string name="rtsp_mode_server_hint">将此设备作为RTSP服务器</string>
     <string name="rtsp_mode_client">客户端</string>
     <string name="rtsp_mode_client_hint">连接到远程RTSP服务器</string>
 
     <string name="rtsp_interfaces_title">RTSP服务器地址</string>
-    <string name="rtsp_interfaces_no_address">未找到地址。\n请检查连接，或在服务器参数中调整（接口过滤器、地址过滤器）。</string>
+    <string name="rtsp_interfaces_no_address">未找到地址。\n请检查连接，或调整服务器设置（接口过滤器、地址过滤器）。</string>
     <string name="rtsp_interfaces_discovering">正在查找地址…</string>
     <string name="rtsp_interfaces_interface_label">接口：\n%1$s</string>
     <string name="rtsp_interfaces_description_copy">复制地址</string>
@@ -37,14 +37,14 @@
     <string name="rtsp_bind_error_permission_denied">错误：权限被拒绝</string>
     <string name="rtsp_bind_error_unknown">错误：监听器失败</string>
 
-    <string name="rtsp_server_parameters">服务器参数</string>
-    <string name="rtsp_client_parameters">客户端参数</string>
+    <string name="rtsp_server_parameters">服务器设置</string>
+    <string name="rtsp_client_parameters">客户端设置</string>
 
     <string name="rtsp_stream_start">开始流媒体</string>
     <string name="rtsp_stream_stop">停止流媒体</string>
 
-    <string name="rtsp_error_notification_permission_required">应用需要启用通知才能启动流媒体服务。\n请在应用设置中启用通知。</string>
-    <string name="rtsp_error_ip_address_not_found">未找到地址。请检查连接，或在服务器参数中调整（接口过滤器、地址过滤器）。</string>
+    <string name="rtsp_error_notification_permission_required">此应用需要启用通知才能启动串流服务。\n请在应用设置中启用通知。</string>
+    <string name="rtsp_error_ip_address_not_found">未找到地址。请检查连接，或调整服务器设置（接口过滤器、地址过滤器）。</string>
     <string name="rtsp_error_unspecified">出了点问题。</string>
 
     <string name="rtsp_media_server">媒体服务器</string>
@@ -62,7 +62,7 @@
     <string name="rtsp_label_public_ipv6">公网IPv6</string>
     <string name="rtsp_label_loopback">环回</string>
 
-    <string name="rtsp_video_parameters">视频参数</string>
+    <string name="rtsp_video_parameters">视频设置</string>
     <string name="rtsp_video_encoder">视频编码器：</string>
     <string name="rtsp_video_encoder_auto">自动</string>
     <string name="rtsp_video_resize_image">调整图像大小：%1$.2f%%</string>
@@ -75,18 +75,18 @@
     <string name="rtsp_video_bitrate_mbit">%.2f Mbit</string>
     <string name="rtsp_video_bitrate_kbit">%d Kbit</string>
 
-    <string name="rtsp_audio_parameters">音频参数</string>
+    <string name="rtsp_audio_parameters">音频设置</string>
     <string name="rtsp_audio_mic">麦克风</string>
     <string name="rtsp_audio_mic_mute">静音麦克风</string>
-    <string name="rtsp_audio_device">设备音频</string>
-    <string name="rtsp_audio_device_mute">静音设备音频</string>
+    <string name="rtsp_audio_device">内部音频</string>
+    <string name="rtsp_audio_device_mute">静音内部音频</string>
     <string name="rtsp_audio_encoder">音频编码器：</string>
     <string name="rtsp_audio_encoder_auto">自动</string>
     <string name="rtsp_audio_bitrate">音频比特率：%1$s/秒</string>
     <string name="rtsp_audio_permission_title">允许录音</string>
-    <string name="rtsp_audio_permission_message">应用需要录音权限才能传输音频内容。\n\n如果不授予权限，流媒体将没有音频。</string>
+    <string name="rtsp_audio_permission_message">串流音频需要录音权限。\n\n没有该权限，串流将没有音频。</string>
     <string name="rtsp_audio_permission_open_settings">打开设置</string>
-    <string name="rtsp_audio_permission_message_settings">需要麦克风访问权限才能传输音频内容。\n\n如果不授予权限，流媒体将没有音频。</string>
+    <string name="rtsp_audio_permission_message_settings">请在应用设置中启用麦克风权限以串流音频。\n\n没有该权限，串流将没有音频。</string>
     <string name="rtsp_audio_capture_issue_detected">检测到音频采集问题</string>
 
     <string name="rtsp_connection_access_denied">访问被拒绝</string>

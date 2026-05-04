@@ -23,14 +23,14 @@
     <string name="app_tab_stream_select_mode">ストリームモードを選択：</string>
 
     <string name="app_permission_required_title">権限が必要です</string>
-    <string name="app_permission_allow_notifications">アプリケーションは通知を送信する許可が必要です。\n\n通知の送信を許可してください。</string>
-    <string name="app_permission_allow_notifications_settings">アプリケーションは通知を送信する許可が必要です。\n\nアプリケーションの設定で通知の送信を許可してください。</string>
+    <string name="app_permission_allow_notifications">このアプリはストリーミングサービスを開始するために通知権限が必要です。\n\n通知を許可してください。</string>
+    <string name="app_permission_allow_notifications_settings">このアプリはストリーミングサービスを開始するために通知権限が必要です。\n\nアプリ設定で通知を有効にしてください。</string>
     <string name="app_permission_notification_settings">設定を開く</string>
 
     <string name="app_notification_channel_streaming">ストリーミング通知</string>
     <string name="app_notification_channel_error">エラー通知</string>
     <string name="app_notification_streaming_title">ストリーム中…</string>
-    <string name="app_notification_streaming_content">停止を押してストリームを停止します</string>
+    <string name="app_notification_streaming_content">ストリームを終了するには停止をタップ</string>
     <string name="app_notification_stop">停止</string>
 
     <string name="app_tile_start">開始</string>
@@ -38,7 +38,7 @@
 
     <string name="app_pref_close">閉じる</string>
     <string name="app_pref_back">戻る</string>
-    <string name="app_pref_settings">アプリケーション設定</string>
+    <string name="app_pref_settings">設定</string>
     <string name="app_pref_locale">アプリケーション言語</string>
     <string name="app_pref_locale_summary">アプリケーション言語設定を開く</string>
     <string name="app_pref_locale_default">システムデフォルト</string>

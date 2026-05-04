@@ -3,18 +3,18 @@
     <string name="mjpeg_error_open_settings">सेटिंग्स खोलें</string>
     <string name="mjpeg_close">बंद करें</string>
 
-    <string name="mjpeg_stream_mode">स्थानीय मोड (MJPEG)</string>
-    <string name="mjpeg_stream_mode_description">स्थानीय मोड विवरण</string>
+    <string name="mjpeg_stream_mode">स्थानीय मोड · MJPEG</string>
+    <string name="mjpeg_stream_mode_description">अपने स्थानीय नेटवर्क पर स्ट्रीम करें</string>
     <string name="mjpeg_stream_mode_details">
-- MJPEG मानक द्वारा संचालित।\n
-- सुरक्षा के लिए पिन का उपयोग करता है (कोई एन्क्रिप्शन नहीं)।\n
-- वीडियो को अलग-अलग छवियों के रूप में भेजता है (कोई ऑडियो नहीं)।\n
-- आपके स्थानीय नेटवर्क के भीतर इंटरनेट कनेक्शन के बिना काम करता है।\n
-- एम्बेडेड HTTP सर्वर।\n
-- WiFi और/या मोबाइल नेटवर्क के साथ काम करता है, IPv4 और IPv6 का समर्थन करता है।\n
-- क्लाइंट्स एप्लिकेशन द्वारा प्रदान किए गए IP पते का उपयोग करके वेब ब्राउज़र के माध्यम से कनेक्ट करते हैं।\n
-- उच्च रूपरेखित।\n
-- प्रत्येक क्लाइंट के लिए व्यक्तिगत डेटा प्रसारण (जितने अधिक क्लाइंट्स होते हैं, उतना अधिक नेटवर्क बैंडविड्थ की आवश्यकता होती है)।
+- MJPEG का उपयोग करता है।\n
+- PIN सुरक्षा, कोई एन्क्रिप्शन नहीं।\n
+- केवल वीडियो, अलग-अलग छवियों के रूप में भेजा जाता है।\n
+- आपके स्थानीय नेटवर्क पर काम करता है, इंटरनेट आवश्यक नहीं।\n
+- बिल्ट-इन HTTP सर्वर।\n
+- Wi-Fi, मोबाइल नेटवर्क, IPv4 और IPv6 का समर्थन करता है।\n
+- क्लाइंट ऐप पते से ब्राउज़र में जुड़ते हैं।\n
+- अत्यधिक कॉन्फ़िगर करने योग्य।\n
+- हर क्लाइंट अलग बैंडविड्थ उपयोग करता है।
 </string>
 
     <string name="mjpeg_item_address">डिवाइस पता:</string>
@@ -29,13 +29,13 @@
     <string name="mjpeg_item_address_description_share_address">पता साझा करें</string>
     <string name="mjpeg_item_address_description_qr_address">पता QR कोड के रूप में दिखाएं</string>
     <string name="mjpeg_item_address_description_qr">क्यूआर कोड</string>
-    <string name="mjpeg_stream_pin">पिन:%1$s</string>
+    <string name="mjpeg_stream_pin">पिन: %1$s</string>
     <string name="mjpeg_stream_pin_disabled">पिन अक्षम है</string>
     <string name="mjpeg_stream_description_show_pin">स्ट्रीम पिन दिखाएं</string>
     <string name="mjpeg_stream_description_create_pin">नई स्ट्रीम पिन बनाएं</string>
-    <string name="mjpeg_stream_current_traffic">ट्रैफ़िक:%1$,.2f Mbit/s</string>
+    <string name="mjpeg_stream_current_traffic">ट्रैफ़िक: %1$,.2f Mbit/s</string>
     <string name="mjpeg_stream_traffic_graph">ट्रैफिक ग्राफ़</string>
-    <string name="mjpeg_stream_connected_clients">कनेक्टेड क्लाइंट:%1$d</string>
+    <string name="mjpeg_stream_connected_clients">कनेक्टेड क्लाइंट: %1$d</string>
     <string name="mjpeg_stream_client_disconnected">डिस्कनेक्ट किया गया</string>
     <string name="mjpeg_stream_client_slow_network">धीमी गति का कनेक्सन</string>
     <string name="mjpeg_stream_client_connected">जुड़ा हुआ</string>
@@ -44,8 +44,8 @@
     <string name="mjpeg_stream_stop">स्ट्रीम बंद करें</string>
     <string name="mjpeg_slow_client_connection">धीमी क्लाइंट कनेक्शन का पता चला</string>
 
-    <string name="mjpeg_pref_header">स्थानीय मोड (MJPEG) सेटिंग्स</string>
-    <string name="mjpeg_pref_settings_general">सामान्य पैरामीटर</string>
+    <string name="mjpeg_pref_header">स्थानीय मोड · MJPEG सेटिंग्स</string>
+    <string name="mjpeg_pref_settings_general">सामान्य सेटिंग्स</string>
     <string name="mjpeg_pref_keep_awake">डिवाइस जागरूक रखें</string>
     <string name="mjpeg_pref_keep_awake_summary">स्ट्रीमिंग के दौरान डिवाइस और स्क्रीन को जागरूक रखें</string>
     <string name="mjpeg_pref_stop_on_sleep">नींद पर धारा रोकें</string>
@@ -66,7 +66,7 @@
     <string name="mjpeg_pref_html_fit_window">छवि को ब्राउज़र विंडो में फिट करें</string>
     <string name="mjpeg_pref_html_fit_window_summary">ब्राउज़र में छवि को पूरी विंडो चौड़ाई/ऊँचाई में बढ़ाएँ</string>
 
-    <string name="mjpeg_pref_settings_image">चित्र पैरामीटर</string>
+    <string name="mjpeg_pref_settings_image">छवि सेटिंग्स</string>
     <string name="mjpeg_pref_vr_mode">आभासी वास्तविकता मोड</string>
     <string name="mjpeg_pref_vr_mode_summary">आधे स्क्रीन से सामग्री कैप्चर करें</string>
     <string-array name="mjpeg_pref_vr_mode_options">
@@ -84,7 +84,7 @@
     <string name="mjpeg_pref_crop_warning">छवि खाली होने पर काटें नजरअंदाज कर दिया जाएगा</string>
     <string name="mjpeg_pref_crop_error">मान्य काटें मूल्य दर्ज करें</string>
     <string name="mjpeg_pref_grayscale">ग्रेस्केल मोड</string>
-    <string name="mjpeg_pref_grayscale_summary">ग्रेस्केल छवि को ग्राहक को भेजने से पहले</string>
+    <string name="mjpeg_pref_grayscale_summary">भेजने से पहले छवि को ग्रेस्केल में बदलें</string>
     <string name="mjpeg_pref_resize">चित्र को पुनर्कार करें</string>
     <string name="mjpeg_pref_resize_summary">क्लाइंट को भेजने से पहले छवि का आकार बदलें</string>
     <string name="mjpeg_pref_resize_mode_percent">प्रतिशत से आकार बदलें</string>
@@ -111,10 +111,10 @@
     <string name="mjpeg_pref_jpeg_quality_summary">JPEG संपीड़न गुणवत्ता सेट करें</string>
     <string name="mjpeg_pref_jpeg_quality_text">JPEG संपीड़न गुणवत्ता सेट करें।\nमूल्य: 10–100\nडिफ़ॉल्ट: 80</string>
 
-    <string name="mjpeg_pref_settings_security">सुरक्षा पैरामीटर</string>
+    <string name="mjpeg_pref_settings_security">सुरक्षा सेटिंग्स</string>
     <string name="mjpeg_pref_enable_pin">पिन सक्षम करें</string>
     <string name="mjpeg_pref_enable_pin_summary">पिन के साथ स्ट्रीम तक पहुंच को सुरक्षित रखें</string>
-    <string name="mjpeg_pref_hide_pin">ऑटो स्टार्ट पिन ऑन स्ट्रीम स्टार्ट</string>
+    <string name="mjpeg_pref_hide_pin">स्ट्रीम शुरू होने पर PIN अपने-आप छिपाएँ</string>
     <string name="mjpeg_pref_hide_pin_summary">स्ट्रीमिंग करते समय पिन के बजाय तारांकन दिखाएँ</string>
     <string name="mjpeg_pref_new_pin_on_start">प्रारंभ पर नया पिन</string>
     <string name="mjpeg_pref_new_pin_on_start_summary">एप्लिकेशन प्रारंभ पर नया पिन जनरेट करें</string>
@@ -122,11 +122,11 @@
     <string name="mjpeg_pref_auto_change_pin_summary">प्रत्येक नई स्ट्रीम के लिए नया पिन जनरेट करें</string>
     <string name="mjpeg_pref_set_pin">पिन सेट करें</string>
     <string name="mjpeg_pref_set_pin_summary">पिन मैन्युअल रूप से दर्ज करें</string>
-    <string name="mjpeg_pref_set_pin_text">पिन दर्ज करें।\nसंदर्भ: 000000</string>
+    <string name="mjpeg_pref_set_pin_text">पिन दर्ज करें।\nडिफ़ॉल्ट: 000000</string>
     <string name="mjpeg_pref_block_address">IP पता अवरुद्ध करें</string>
     <string name="mjpeg_pref_block_address_summary">5 गलत PIN प्रयासों के बाद 5 मिनट के लिए क्लाइंट का IP पता अवरुद्ध करें</string>
 
-    <string name="mjpeg_pref_settings_advanced">उन्नत पैरामीटर</string>
+    <string name="mjpeg_pref_settings_advanced">उन्नत सेटिंग्स</string>
     <string name="mjpeg_pref_interface_filter">इंटरफ़ेस फ़िल्टर</string>
     <string name="mjpeg_pref_interface_filter_summary">सर्वर के लिए नेटवर्क इंटरफ़ेस चुनें</string>
     <string name="mjpeg_pref_filter_wifi">वाई-फ़ाई</string>
@@ -154,9 +154,9 @@
     <string name="mjpeg_pref_server_port_text">आने वाले कनेक्शन के लिए सर्वर पोर्ट सेट करें।\nमूल्य: 1025–65535\nडिफ़ॉल्ट: 8080</string>
 
     <string name="mjpeg_error_port_in_use">पोर्ट पहले से ही उपयोग में है। कोई दूसरा चुनें।</string>
-    <string name="mjpeg_error_invalid_media_projection">सुरक्षा त्रुटि: अमान्य मीडिया प्रक्षेपण। एक बार और कोशिश करें।</string>
-    <string name="mjpeg_error_ip_address_not_found">IP पता नहीं मिला।\nप्रवाह सेटिंग्स में \"वाईफाई का ही इस्तेमाल करें\" को अक्षम करने का प्रयास करें।</string>
-    <string name="mjpeg_error_notification_permission_required">ऐप्लिकेशन को स्ट्रीमिंग सेवा शुरू करने के लिए सूचनाओं को सक्षम करने की आवश्यकता है।\nकृपया ऐप्लिकेशन की सेटिंग्स में सूचनाओं को सक्षम करें।</string>
+    <string name="mjpeg_error_invalid_media_projection">सुरक्षा त्रुटि: अमान्य स्क्रीन कैप्चर अनुमति। फिर से कोशिश करें।</string>
+    <string name="mjpeg_error_ip_address_not_found">IP पता नहीं मिला।\nस्ट्रीम सेटिंग्स में नेटवर्क फ़िल्टर समायोजित करने का प्रयास करें।</string>
+    <string name="mjpeg_error_notification_permission_required">स्ट्रीमिंग सेवा शुरू करने के लिए इस ऐप में सूचनाएँ चालू होनी चाहिए।\nऐप सेटिंग में सूचनाएँ चालू करें।</string>
     <string name="mjpeg_error_unspecified">कुछ गलत हो गया है। कृपया बाद में पुनः प्रयास करें।</string>
 
     <string name="mjpeg_start_image_text">उपकरण पर स्ट्रीम शुरू करें</string>

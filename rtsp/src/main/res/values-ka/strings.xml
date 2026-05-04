@@ -3,8 +3,8 @@
     <string name="rtsp_error_recover">აღდგენა</string>
     <string name="rtsp_error_open_settings">პარამეტრების გახსნა</string>
 
-    <string name="rtsp_stream_mode">RTSP რეჟიმი (RTSP)</string>
-    <string name="rtsp_stream_mode_description">RTSP რეჟიმის აღწერა</string>
+    <string name="rtsp_stream_mode">RTSP რეჟიმი · RTSP</string>
+    <string name="rtsp_stream_mode_description">სტრიმინგი RTSP კლიენტით ან სერვერით</string>
     <string name="rtsp_stream_mode_details">
 - მუშაობს RTSP პროტოკოლით.\n
 - სერვერის რეჟიმი (ნაგულისხმევი) ამ მოწყობილობას RTSP სერვერად მასპინძლობს.\n
@@ -22,7 +22,7 @@
     <string name="rtsp_mode_client_hint">დაუკავშირდი დისტანციურ RTSP სერვერს</string>
 
     <string name="rtsp_interfaces_title">RTSP სერვერის მისამართი</string>
-    <string name="rtsp_interfaces_no_address">მისამართი ვერ მოიძებნა.\nშეამოწმეთ კავშირი ან სერვერის პარამეტრები (ინტერფეისის ფილტრი, მისამართის ფილტრი).</string>
+    <string name="rtsp_interfaces_no_address">მისამართი ვერ მოიძებნა.\nშეამოწმეთ კავშირი ან შეცვალეთ სერვერის პარამეტრები (ინტერფეისის ფილტრი, მისამართის ფილტრი).</string>
     <string name="rtsp_interfaces_discovering">მისამართების ძიება მიმდინარეობს…</string>
     <string name="rtsp_interfaces_interface_label">ინტერფეისი:\n%1$s</string>
     <string name="rtsp_interfaces_description_copy">დააკოპირეთ მისამართი</string>
@@ -43,8 +43,8 @@
     <string name="rtsp_stream_start">ტრანსლაციის დაწყება</string>
     <string name="rtsp_stream_stop">ტრანსლაციის შეწყვეტა</string>
 
-    <string name="rtsp_error_notification_permission_required">აპლიკაციას სჭირდება შეტყობინებების ჩართვა სტრიმინგის სერვისის გასაშვებად.\nგთხოვთ, ჩართოთ შეტყობინებები აპლიკაციის პარამეტრებში.</string>
-    <string name="rtsp_error_ip_address_not_found">მისამართი ვერ მოიძებნა. შეამოწმეთ კავშირი ან სერვერის პარამეტრები (ინტერფეისის ფილტრი, მისამართის ფილტრი).</string>
+    <string name="rtsp_error_notification_permission_required">სტრიმინგის სერვისის დასაწყებად ამ აპს შეტყობინებები ჩართული უნდა ჰქონდეს.\nჩართეთ შეტყობინებები აპის პარამეტრებში.</string>
+    <string name="rtsp_error_ip_address_not_found">მისამართი ვერ მოიძებნა. შეამოწმეთ კავშირი ან შეცვალეთ სერვერის პარამეტრები (ინტერფეისის ფილტრი, მისამართის ფილტრი).</string>
     <string name="rtsp_error_unspecified">რაღაც შეცდომა მოხდა.</string>
 
     <string name="rtsp_media_server">მედია სერვერი</string>
@@ -78,16 +78,16 @@
     <string name="rtsp_audio_parameters">აუდიოს პარამეტრები</string>
     <string name="rtsp_audio_mic">მიკროფონი</string>
     <string name="rtsp_audio_mic_mute">მიკროფონის დადუმება</string>
-    <string name="rtsp_audio_device">მოწყობილობის აუდიო</string>
-    <string name="rtsp_audio_device_mute">მოწყობილობის აუდიოს დადუმება</string>
+    <string name="rtsp_audio_device">შიდა აუდიო</string>
+    <string name="rtsp_audio_device_mute">შიდა აუდიოს დადუმება</string>
     <string name="rtsp_audio_encoder">აუდიო ენკოდერი:</string>
     <string name="rtsp_audio_encoder_auto">ავტო</string>
     <string name="rtsp_audio_bitrate">აუდიოს ბიტრეიტი: %1$s/წმ</string>
     <string name="rtsp_audio_permission_title">აუდიოს ჩაწერის დაშვება</string>
-    <string name="rtsp_audio_permission_message">აუდიოს ჩაწერის ნებართვა აუცილებელია აპლიკაციისთვის აუდიო კონტენტის ტრანსლაციისთვის.\n\nამ ნებართვის გარეშე, ტრანსლაცია იქნება აუდიოს გარეშე.</string>
+    <string name="rtsp_audio_permission_message">აუდიოს სტრიმინგისთვის საჭიროა აუდიოს ჩაწერის ნებართვა.\n\nმის გარეშე ნაკადს ხმა არ ექნება.</string>
     <string name="rtsp_audio_permission_open_settings">პარამეტრების გახსნა</string>
-    <string name="rtsp_audio_permission_message_settings">აპლიკაციის ნებართვებში მიკროფონზე წვდომის დაშვება აუცილებელია აპლიკაციისთვის აუდიო კონტენტის ტრანსლაციისთვის.\n\nამ ნებართვის გარეშე, ტრანსლაცია განხორციელდება აუდიოს გარეშე.</string>
-    <string name="rtsp_audio_capture_issue_detected">აუდიო ჩაწერის პრობლემა გამოვლინდა</string>
+    <string name="rtsp_audio_permission_message_settings">აუდიოს სტრიმინგისთვის ჩართეთ მიკროფონის ნებართვა აპის პარამეტრებში.\n\nმის გარეშე ნაკადს ხმა არ ექნება.</string>
+    <string name="rtsp_audio_capture_issue_detected">გამოვლინდა აუდიოს ჩაწერის პრობლემა</string>
 
     <string name="rtsp_connection_access_denied">წვდომა უარყოფილია</string>
     <string name="rtsp_connection_no_credentials">მიუთითეთ მომხმარებლის სახელი და პაროლი</string>

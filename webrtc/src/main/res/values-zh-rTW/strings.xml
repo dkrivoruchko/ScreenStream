@@ -3,8 +3,8 @@
     <string name="webrtc_error_recover">恢復</string>
     <string name="webrtc_error_open_settings">開啟設定</string>
 
-    <string name="webrtc_stream_mode">全球模式 (WebRTC)</string>
-    <string name="webrtc_stream_mode_description">全球模式說明</string>
+    <string name="webrtc_stream_mode">全球模式 · WebRTC</string>
+    <string name="webrtc_stream_mode_description">使用 WebRTC 透過網際網路串流</string>
     <string name="webrtc_stream_mode_details">
 - 基於 WebRTC 技術。\n
 - 點對點加密通訊。\n
@@ -12,54 +12,54 @@
 - 可以傳送視訊和音訊。\n
 - 使用獨特的串流 ID 和密碼連接。\n
 - 需要網際網路連接進行串流。\n
-- 每個客戶端的數據傳輸都是獨立的（客戶端越多，需要的網際網路頻寬越多）。
+- 每個用戶端使用獨立網際網路頻寬。
 </string>
 
     <string name="webrtc_stream_network_recovery">連線中斷。重新連線中…</string>
-    <string name="webrtc_stream_server_address">在以下地址訪問串流：\n%1$s</string>
+    <string name="webrtc_stream_server_address">在此存取串流：\n%1$s</string>
     <string name="webrtc_stream_stream_id_getting">正在獲取串流 ID…</string>
     <string name="webrtc_stream_stream_id">串流 ID：%1$s</string>
     <string name="webrtc_stream_stream_password">串流密碼：%1$s</string>
     <string name="webrtc_stream_description_show_password">顯示串流密碼</string>
     <string name="webrtc_stream_description_get_new_id">獲取新的串流 ID</string>
     <string name="webrtc_stream_description_create_password">創建新的串流密碼</string>
-    <string name="webrtc_stream_description_open_address">打開地址</string>
-    <string name="webrtc_stream_description_copy_address">複製地址</string>
-    <string name="webrtc_stream_description_share_address">分享地址</string>
-    <string name="webrtc_stream_description_qr_address">以 QR 碼形式顯示地址</string>
+    <string name="webrtc_stream_description_open_address">開啟位址</string>
+    <string name="webrtc_stream_description_copy_address">複製位址</string>
+    <string name="webrtc_stream_description_share_address">分享位址</string>
+    <string name="webrtc_stream_description_qr_address">以 QR 碼形式顯示位址</string>
     <string name="webrtc_stream_description_qr">QR碼</string>
     <string name="webrtc_stream_copied">已複製</string>
-    <string name="webrtc_stream_audio_parameters">音訊參數</string>
+    <string name="webrtc_stream_audio_parameters">音訊設定</string>
     <string name="webrtc_stream_audio_mic">麥克風</string>
     <string name="webrtc_stream_audio_mic_summary">串流麥克風音訊</string>
     <string name="webrtc_stream_audio_device">內部音訊</string>
     <string name="webrtc_stream_audio_device_summary">串流此裝置的媒體音訊</string>
-    <string name="webrtc_stream_audio_capture_unavailable">偵測到音訊擷取問題</string>
+    <string name="webrtc_stream_audio_capture_unavailable">音訊擷取無法使用</string>
     <string name="webrtc_stream_connected_clients">已連接的客戶端：%1$d</string>
     <string name="webrtc_stream_no_web_browser_found">找不到網頁瀏覽器</string>
     <string name="webrtc_stream_external_app_error">外部應用程式錯誤</string>
-    <string name="webrtc_stream_share_address">分享設備地址</string>
+    <string name="webrtc_stream_share_address">分享裝置位址</string>
     <string name="webrtc_stream_start">開始串流</string>
     <string name="webrtc_stream_stop">停止串流</string>
 
-    <string name="webrtc_stream_other_parameters">其他參數</string>
-    <string name="webrtc_stream_keep_awake">保持設備喚醒狀態</string>
-    <string name="webrtc_stream_keep_awake_summary">播出視頻流的時候保持設備喚醒並且屏幕常亮</string>
+    <string name="webrtc_stream_other_parameters">其他設定</string>
+    <string name="webrtc_stream_keep_awake">保持裝置喚醒狀態</string>
+    <string name="webrtc_stream_keep_awake_summary">串流視訊時保持裝置喚醒並讓螢幕常亮</string>
     <string name="webrtc_stream_stop_on_sleep">睡眠時停止</string>
     <string name="webrtc_stream_stop_on_sleep_summary">當螢幕待機關閉時停止串流</string>
 
     <string name="webrtc_stream_audio_permission_title">允許音訊存取</string>
     <string name="webrtc_stream_audio_permission_message">串流麥克風或內部音訊需要麥克風權限。\n\n沒有此權限，串流將沒有聲音。</string>
     <string name="webrtc_stream_audio_permission_message_settings">請在應用程式設定中啟用麥克風權限，以串流麥克風或內部音訊。\n\n沒有此權限，串流將沒有聲音。</string>
-    <string name="webrtc_stream_audio_permission_open_settings">打開設定</string>
+    <string name="webrtc_stream_audio_permission_open_settings">開啟設定</string>
     <string name="webrtc_item_client_disconnect">斷開連接</string>
 
     <string name="webrtc_error_play_integrity_update_play_store">請更新 Google Play 商店</string>
     <string name="webrtc_error_play_integrity_install_play_store">請安裝或啟用官方的 Google Play 商店</string>
     <string name="webrtc_error_play_integrity_install_play_service">請安裝或啟用 Play 服務</string>
     <string name="webrtc_error_play_integrity_update_play_service">請更新 Google Play 服務</string>
-    <string name="webrtc_error_check_network">請檢查互聯網連接</string>
+    <string name="webrtc_error_check_network">檢查您的網際網路連線</string>
     <string name="webrtc_error_incomplete_installation">應用程式安裝不完整。請從 Google Play 重新安裝應用程式。</string>
-    <string name="webrtc_notification_permission_required">應用程式需要啟用通知以開始串流服務。\n請在應用程式設定中啟用通知。</string>
+    <string name="webrtc_notification_permission_required">此應用程式需要啟用通知才能啟動串流服務。\n請在應用程式設定中啟用通知。</string>
     <string name="webrtc_error_unspecified">出現了一些問題，請稍後再試。</string>
 </resources>

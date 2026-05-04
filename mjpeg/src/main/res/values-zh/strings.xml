@@ -3,18 +3,18 @@
     <string name="mjpeg_error_open_settings">打开设置</string>
     <string name="mjpeg_close">关闭</string>
 
-    <string name="mjpeg_stream_mode">本地模式 (MJPEG)</string>
-    <string name="mjpeg_stream_mode_description">本地模式描述</string>
+    <string name="mjpeg_stream_mode">本地模式 · MJPEG</string>
+    <string name="mjpeg_stream_mode_description">通过本地网络串流</string>
     <string name="mjpeg_stream_mode_details">
-- 由 MJPEG 标准驱动\n
-- 使用 PIN 码增强安全性 （无加密）\n
-- 以一系列独立图片的形式发送视频（无声音）\n
-- 本地网络下，即使没有互联网连接也可运行\n
-- 内嵌 HTTP 服务器\n
-- 可在 WiFi 和/或移动网络下工作，支持 IPv4 和 IPv6\n
-- 客户端使用本程序提供的 IP 地址，通过网络浏览器进行连接\n
-- 定制程度高\n
-- 每个客户端单独的数据传输 （拥有的客户端越多，所需的带宽也越多)
+- 使用 MJPEG。\n
+- PIN 保护，无加密。\n
+- 仅视频，以独立图像发送。\n
+- 在本地网络中工作，无需互联网。\n
+- 内置 HTTP 服务器。\n
+- 支持 Wi-Fi、移动网络、IPv4 和 IPv6。\n
+- 客户端使用应用地址在浏览器中连接。\n
+- 高度可配置。\n
+- 每个客户端使用独立带宽。
 </string>
 
     <string name="mjpeg_item_address">设备地址：</string>
@@ -29,10 +29,10 @@
     <string name="mjpeg_item_address_description_share_address">分享地址</string>
     <string name="mjpeg_item_address_description_qr_address">以二维码形式显示地址</string>
     <string name="mjpeg_item_address_description_qr">二维码</string>
-    <string name="mjpeg_stream_pin">Pin 码：%1$s</string>
-    <string name="mjpeg_stream_pin_disabled">停用了 Pin 码</string>
-    <string name="mjpeg_stream_description_show_pin">显示 Pin 码</string>
-    <string name="mjpeg_stream_description_create_pin">新建 Pin 码</string>
+    <string name="mjpeg_stream_pin">PIN 码：%1$s</string>
+    <string name="mjpeg_stream_pin_disabled">停用了 PIN 码</string>
+    <string name="mjpeg_stream_description_show_pin">显示 PIN 码</string>
+    <string name="mjpeg_stream_description_create_pin">新建 PIN 码</string>
     <string name="mjpeg_stream_current_traffic">网速： %1$,.2f Mbit/s</string>
     <string name="mjpeg_stream_traffic_graph">流量图</string>
     <string name="mjpeg_stream_connected_clients">已连接的客户端：%1$d</string>
@@ -44,8 +44,8 @@
     <string name="mjpeg_stream_stop">停止流</string>
     <string name="mjpeg_slow_client_connection">检测到慢速客户端连接</string>
 
-    <string name="mjpeg_pref_header">本地模式（MJPEG）设置</string>
-    <string name="mjpeg_pref_settings_general">常规参数</string>
+    <string name="mjpeg_pref_header">本地模式 · MJPEG 设置</string>
+    <string name="mjpeg_pref_settings_general">常规设置</string>
     <string name="mjpeg_pref_keep_awake">保持设备唤醒状态</string>
     <string name="mjpeg_pref_keep_awake_summary">传输时保持设备活跃，屏幕不熄灭</string>
     <string name="mjpeg_pref_stop_on_sleep">休眠时停止传输</string>
@@ -66,7 +66,7 @@
     <string name="mjpeg_pref_html_fit_window">适应浏览器窗口的图像</string>
     <string name="mjpeg_pref_html_fit_window_summary">将图像在浏览器中缩放到整个窗口宽度/高度</string>
 
-    <string name="mjpeg_pref_settings_image">图像参数</string>
+    <string name="mjpeg_pref_settings_image">图像设置</string>
     <string name="mjpeg_pref_vr_mode">虚拟现实模式</string>
     <string name="mjpeg_pref_vr_mode_summary">从半个屏幕捕获内容</string>
     <string-array name="mjpeg_pref_vr_mode_options">
@@ -84,10 +84,10 @@
     <string name="mjpeg_pref_crop_warning">如果裁剪结果是空白图片，那么裁剪操作将被忽略</string>
     <string name="mjpeg_pref_crop_error">输入有效的裁剪值</string>
     <string name="mjpeg_pref_grayscale">灰度模式</string>
-    <string name="mjpeg_pref_grayscale_summary">发送到客户端前对图片进行灰度处理</string>
+    <string name="mjpeg_pref_grayscale_summary">发送前将图像转为灰度</string>
     <string name="mjpeg_pref_resize">调整图片尺寸</string>
     <string name="mjpeg_pref_resize_summary">发送到客户端前调整图片尺寸</string>
-    <string name="mjpeg_pref_resize_mode_percent">按百分比调整</string>
+    <string name="mjpeg_pref_resize_mode_percent">按百分比调整大小</string>
     <string name="mjpeg_pref_resize_mode_resolution">精确分辨率</string>
     <string name="mjpeg_pref_resize_width">宽度：</string>
     <string name="mjpeg_pref_resize_height">高度：</string>
@@ -111,22 +111,22 @@
     <string name="mjpeg_pref_jpeg_quality_summary">设置 JPEG 压缩质量</string>
     <string name="mjpeg_pref_jpeg_quality_text">设置 JPEG 压缩质量。\n值：10–100\n默认：80</string>
 
-    <string name="mjpeg_pref_settings_security">安全参数</string>
-    <string name="mjpeg_pref_enable_pin">启用 pin 码</string>
-    <string name="mjpeg_pref_enable_pin_summary">用 pin 码保护对流的访问</string>
-    <string name="mjpeg_pref_hide_pin">传输开始时隐藏 pin 码</string>
-    <string name="mjpeg_pref_hide_pin_summary">传输时显示星号而非 pin 码</string>
-    <string name="mjpeg_pref_new_pin_on_start">启动时生成新的 pin 码</string>
-    <string name="mjpeg_pref_new_pin_on_start_summary">程序启动时生成新 pin 码</string>
-    <string name="mjpeg_pref_auto_change_pin">自动更改 pin 码</string>
-    <string name="mjpeg_pref_auto_change_pin_summary">为每个新流生成新的 pin 码</string>
-    <string name="mjpeg_pref_set_pin">设置 pin 码</string>
-    <string name="mjpeg_pref_set_pin_summary">手动输入 pin 码</string>
-    <string name="mjpeg_pref_set_pin_text">输入 pin 码。\n默认：000000</string>
+    <string name="mjpeg_pref_settings_security">安全设置</string>
+    <string name="mjpeg_pref_enable_pin">启用 PIN 码</string>
+    <string name="mjpeg_pref_enable_pin_summary">用 PIN 码保护对流的访问</string>
+    <string name="mjpeg_pref_hide_pin">串流开始时自动隐藏 PIN</string>
+    <string name="mjpeg_pref_hide_pin_summary">传输时显示星号而非 PIN 码</string>
+    <string name="mjpeg_pref_new_pin_on_start">启动时生成新的 PIN 码</string>
+    <string name="mjpeg_pref_new_pin_on_start_summary">程序启动时生成新 PIN 码</string>
+    <string name="mjpeg_pref_auto_change_pin">自动更改 PIN 码</string>
+    <string name="mjpeg_pref_auto_change_pin_summary">为每个新流生成新的 PIN 码</string>
+    <string name="mjpeg_pref_set_pin">设置 PIN 码</string>
+    <string name="mjpeg_pref_set_pin_summary">手动输入 PIN 码</string>
+    <string name="mjpeg_pref_set_pin_text">输入 PIN 码。\n默认：000000</string>
     <string name="mjpeg_pref_block_address">拦截 IP 地址</string>
-    <string name="mjpeg_pref_block_address_summary">5 次错误的 pin 码尝试后，拦截客户端 IP 5 分钟</string>
+    <string name="mjpeg_pref_block_address_summary">5 次错误的 PIN 码尝试后，拦截客户端 IP 5 分钟</string>
 
-    <string name="mjpeg_pref_settings_advanced">高级参数</string>
+    <string name="mjpeg_pref_settings_advanced">高级设置</string>
     <string name="mjpeg_pref_interface_filter">接口过滤器</string>
     <string name="mjpeg_pref_interface_filter_summary">选择服务器的网络接口</string>
     <string name="mjpeg_pref_filter_wifi">Wi-Fi</string>
@@ -154,9 +154,9 @@
     <string name="mjpeg_pref_server_port_text">设置传入连接的服务器端口。\n值的范围：1025–65535\n默认：8080</string>
 
     <string name="mjpeg_error_port_in_use">此端口已被占用。请另选一个。</string>
-    <string name="mjpeg_error_invalid_media_projection">安全错误：无效的媒体投影。请再试一次。</string>
-    <string name="mjpeg_error_ip_address_not_found">没找到 IP 地址。\n试着在流设置中停用 \"仅使用 WiFi\" 。</string>
-    <string name="mjpeg_error_notification_permission_required">要能启动流服务，程序需要发送通知。 \n请在程序设置中启用通知。</string>
+    <string name="mjpeg_error_invalid_media_projection">安全错误：屏幕捕获权限无效。请重试。</string>
+    <string name="mjpeg_error_ip_address_not_found">未找到 IP 地址。\n请尝试在串流设置中调整网络过滤器。</string>
+    <string name="mjpeg_error_notification_permission_required">此应用需要启用通知才能启动串流服务。\n请在应用设置中启用通知。</string>
     <string name="mjpeg_error_unspecified">出错了。请稍后再试。</string>
 
     <string name="mjpeg_start_image_text">在设备上开始传输</string>
@@ -165,9 +165,9 @@
     <string name="mjpeg_html_stream_connecting">尝试连接中</string>
     <string name="mjpeg_html_stream_reconnecting">正在重连…</string>
     <string name="mjpeg_html_stream_require_pin">需要 PIN 码才能访问这个流。</string>
-    <string name="mjpeg_html_enter_pin">输入 pin 码：\u0020</string>
+    <string name="mjpeg_html_enter_pin">输入 PIN 码：\u0020</string>
     <string name="mjpeg_html_submit_pin">提交</string>
-    <string name="mjpeg_html_wrong_pin">pin 码错误！</string>
+    <string name="mjpeg_html_wrong_pin">PIN 码错误！</string>
     <string name="mjpeg_html_address_blocked">客户端地址被拦截</string>
     <string name="mjpeg_html_error_unspecified">出错了。 &lt;br&gt; 请重新加载页面并重试。</string>
 </resources>

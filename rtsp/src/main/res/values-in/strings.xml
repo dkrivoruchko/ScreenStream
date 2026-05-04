@@ -3,8 +3,8 @@
     <string name="rtsp_error_recover">Pulihkan</string>
     <string name="rtsp_error_open_settings">Buka pengaturan</string>
 
-    <string name="rtsp_stream_mode">Mode RTSP (RTSP)</string>
-    <string name="rtsp_stream_mode_description">Deskripsi mode RTSP</string>
+    <string name="rtsp_stream_mode">Mode RTSP · RTSP</string>
+    <string name="rtsp_stream_mode_description">Streaming dengan klien atau server RTSP</string>
     <string name="rtsp_stream_mode_details">
 - Didukung oleh protokol RTSP.\n
 - Mode server (default) menjadikan perangkat ini sebagai server RTSP.\n
@@ -22,7 +22,7 @@
     <string name="rtsp_mode_client_hint">Hubungkan ke server RTSP jarak jauh</string>
 
     <string name="rtsp_interfaces_title">Alamat server RTSP</string>
-    <string name="rtsp_interfaces_no_address">Alamat tidak ditemukan.\nPeriksa koneksi atau Parameter server (Filter antarmuka, Filter alamat).</string>
+    <string name="rtsp_interfaces_no_address">Alamat tidak ditemukan.\nPeriksa koneksi atau sesuaikan setelan server (Filter antarmuka, Filter alamat).</string>
     <string name="rtsp_interfaces_discovering">Mencari alamat…</string>
     <string name="rtsp_interfaces_interface_label">Antarmuka:\n%1$s</string>
     <string name="rtsp_interfaces_description_copy">Salin alamat</string>
@@ -37,14 +37,14 @@
     <string name="rtsp_bind_error_permission_denied">Kesalahan: Izin ditolak</string>
     <string name="rtsp_bind_error_unknown">Kesalahan: Listener gagal</string>
 
-    <string name="rtsp_server_parameters">Parameter server</string>
-    <string name="rtsp_client_parameters">Parameter klien</string>
+    <string name="rtsp_server_parameters">Setelan server</string>
+    <string name="rtsp_client_parameters">Setelan klien</string>
 
     <string name="rtsp_stream_start">Mulai siaran</string>
     <string name="rtsp_stream_stop">Hentikan siaran</string>
 
-    <string name="rtsp_error_notification_permission_required">Aplikasi memerlukan notifikasi diaktifkan untuk memulai layanan streaming.\nSilakan aktifkan notifikasi di pengaturan aplikasi.</string>
-    <string name="rtsp_error_ip_address_not_found">Alamat tidak ditemukan. Periksa koneksi atau Parameter server (Filter antarmuka, Filter alamat).</string>
+    <string name="rtsp_error_notification_permission_required">Aplikasi ini memerlukan notifikasi aktif untuk memulai layanan streaming.\nAktifkan notifikasi di setelan aplikasi.</string>
+    <string name="rtsp_error_ip_address_not_found">Alamat tidak ditemukan. Periksa koneksi atau sesuaikan setelan server (Filter antarmuka, Filter alamat).</string>
     <string name="rtsp_error_unspecified">Terjadi kesalahan.</string>
 
     <string name="rtsp_media_server">Server media</string>
@@ -62,7 +62,7 @@
     <string name="rtsp_label_public_ipv6">IPv6 publik</string>
     <string name="rtsp_label_loopback">Loopback</string>
 
-    <string name="rtsp_video_parameters">Parameter video</string>
+    <string name="rtsp_video_parameters">Setelan video</string>
     <string name="rtsp_video_encoder">Encoder video:</string>
     <string name="rtsp_video_encoder_auto">Otomatis</string>
     <string name="rtsp_video_resize_image">Ubah ukuran gambar: %1$.2f%%</string>
@@ -75,19 +75,19 @@
     <string name="rtsp_video_bitrate_mbit">%.2f Mbit</string>
     <string name="rtsp_video_bitrate_kbit">%d Kbit</string>
 
-    <string name="rtsp_audio_parameters">Parameter audio</string>
+    <string name="rtsp_audio_parameters">Setelan audio</string>
     <string name="rtsp_audio_mic">Mikrofon</string>
     <string name="rtsp_audio_mic_mute">Bisukan mikrofon</string>
-    <string name="rtsp_audio_device">Audio perangkat</string>
-    <string name="rtsp_audio_device_mute">Bisukan audio perangkat</string>
+    <string name="rtsp_audio_device">Audio internal</string>
+    <string name="rtsp_audio_device_mute">Bisukan audio internal</string>
     <string name="rtsp_audio_encoder">Encoder audio:</string>
     <string name="rtsp_audio_encoder_auto">Otomatis</string>
     <string name="rtsp_audio_bitrate">Bitrate audio: %1$s/detik</string>
     <string name="rtsp_audio_permission_title">Izinkan perekaman audio</string>
-    <string name="rtsp_audio_permission_message">Izin untuk merekam audio diperlukan agar aplikasi dapat menyiarkan konten audio.\n\nTanpa izin ini, siaran akan tanpa audio.</string>
+    <string name="rtsp_audio_permission_message">Izin perekaman audio diperlukan untuk menyiarkan audio.\n\nTanpanya, streaming tidak memiliki audio.</string>
     <string name="rtsp_audio_permission_open_settings">Buka pengaturan</string>
-    <string name="rtsp_audio_permission_message_settings">Pemberian akses mikrofon di izin aplikasi diperlukan agar aplikasi dapat menyiarkan konten audio.\n\nTanpa izin ini, siaran akan dilakukan tanpa audio.</string>
-    <string name="rtsp_audio_capture_issue_detected">Masalah pada perekaman audio terdeteksi</string>
+    <string name="rtsp_audio_permission_message_settings">Aktifkan izin mikrofon di setelan aplikasi untuk menyiarkan audio.\n\nTanpanya, streaming tidak memiliki audio.</string>
+    <string name="rtsp_audio_capture_issue_detected">Masalah penangkapan audio terdeteksi</string>
 
     <string name="rtsp_connection_access_denied">Akses ditolak</string>
     <string name="rtsp_connection_no_credentials">Tentukan nama pengguna dan kata sandi</string>

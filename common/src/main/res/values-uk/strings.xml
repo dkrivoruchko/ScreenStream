@@ -1,7 +1,7 @@
 <resources>
     <string name="common_screen_capture_permission_required_title">Потрібен дозвіл</string>
     <string name="common_screen_capture_permission_education_message">Android попросить дозвіл на показ екрана. Без нього трансляцію неможливо розпочати. Ви можете зупинити показ у будь-який момент.</string>
-    <string name="common_screen_capture_permission_denied_message">Трансляцію не було розпочато, оскільки дозвіл на показ екрана не було надано. Натисніть Спробувати знову, щоб знову відкрити екран дозволу Android.</string>
+    <string name="common_screen_capture_permission_denied_message">Трансляцію не розпочато, оскільки дозвіл на показ екрана не надано. Натисніть Спробувати знову, щоб знову відкрити екран дозволу Android.</string>
 
     <string name="common_continue">Продовжити</string>
     <string name="common_try_again">Спробувати знову</string>

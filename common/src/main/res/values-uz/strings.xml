@@ -1,7 +1,7 @@
 <resources>
     <string name="common_screen_capture_permission_required_title">Ruxsat talab qilinadi</string>
     <string name="common_screen_capture_permission_education_message">Android ekraningizni ulashish uchun ruxsat so‘raydi. Busiz translyatsiyani boshlab bo‘lmaydi. Ulashishni istalgan vaqtda to‘xtatishingiz mumkin.</string>
-    <string name="common_screen_capture_permission_denied_message">Translyatsiya boshlanmadi, chunki ekraningizni ulashish uchun ruxsat berilmadi. Android ruxsat ekranini yana ochish uchun Qayta urinish tugmasini bosing.</string>
+    <string name="common_screen_capture_permission_denied_message">Ekranni ulashish ruxsati berilmagani uchun translatsiya boshlanmadi. Android ruxsat ekranini qayta ochish uchun Qayta urinish tugmasini bosing.</string>
 
     <string name="common_continue">Davom etish</string>
     <string name="common_try_again">Qayta urinish</string>

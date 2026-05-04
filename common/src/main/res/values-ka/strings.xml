@@ -1,7 +1,7 @@
 <resources>
     <string name="common_screen_capture_permission_required_title">საჭიროა ნებართვა</string>
     <string name="common_screen_capture_permission_education_message">Android მოგთხოვთ ეკრანის გაზიარების ნებართვას. მის გარეშე ტრანსლაცია ვერ დაიწყება. გაზიარების შეწყვეტა ნებისმიერ დროს შეგიძლიათ.</string>
-    <string name="common_screen_capture_permission_denied_message">ტრანსლაცია არ დაიწყო, რადგან ეკრანის გაზიარების ნებართვა არ გაიცა. Android-ის ნებართვის ეკრანის ხელახლა გასახსნელად დააჭირეთ სცადეთ ხელახლა.</string>
+    <string name="common_screen_capture_permission_denied_message">ტრანსლაცია არ დაიწყო, რადგან ეკრანის გაზიარების ნებართვა არ გაიცა. Android-ის ნებართვის ეკრანის ხელახლა გასახსნელად შეეხეთ სცადეთ ხელახლა.</string>
 
     <string name="common_continue">გაგრძელება</string>
     <string name="common_try_again">სცადეთ ხელახლა</string>

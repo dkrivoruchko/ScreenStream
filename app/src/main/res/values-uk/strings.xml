@@ -5,7 +5,7 @@
 
     <string name="app_logs_collecting">Збір діагностичної інформації…</string>
     <string name="app_logs_send_title">Надіслати діагностичну інформацію до розробника</string>
-    <string name="app_logs_send_message">Будь ласка, додайте опис проблеми:</string>
+    <string name="app_logs_send_message">Додайте опис проблеми:</string>
     <string name="app_logs_send">Надіслати</string>
     <string name="app_logs_enabled">Ведення журналу увімкнено</string>
     <string name="app_logs_disabled">Ведення журналу вимкнено</string>
@@ -23,14 +23,14 @@
     <string name="app_tab_stream_select_mode">Оберіть режим трансляції:</string>
 
     <string name="app_permission_required_title">Дозвіл обов\'язковий</string>
-    <string name="app_permission_allow_notifications">Додатку потрібен дозвіл на надсилання сповіщень, щоб мати можливість запустити службу потокової передачі. Дозвольте надсилати сповіщення.</string>
-    <string name="app_permission_allow_notifications_settings">Додатку потрібен дозвіл на надсилання сповіщень, щоб мати можливість запустити службу потокової передачі. Дозвольте надсилання сповіщень у налаштуваннях додатку.</string>
+    <string name="app_permission_allow_notifications">Цьому додатку потрібен дозвіл на сповіщення, щоб запустити службу трансляції.\n\nДозвольте сповіщення.</string>
+    <string name="app_permission_allow_notifications_settings">Цьому додатку потрібен дозвіл на сповіщення, щоб запустити службу трансляції.\n\nУвімкніть сповіщення в налаштуваннях додатку.</string>
     <string name="app_permission_notification_settings">Відкрити налаштування</string>
 
     <string name="app_notification_channel_streaming">Сповіщення про трансляцію</string>
     <string name="app_notification_channel_error">Сповіщення про помилки</string>
     <string name="app_notification_streaming_title">Трансляція…</string>
-    <string name="app_notification_streaming_content">Натисніть СТОП щоб зупинити трансляцію</string>
+    <string name="app_notification_streaming_content">Натисніть Зупинити, щоб завершити трансляцію</string>
     <string name="app_notification_stop">Стоп</string>
 
     <string name="app_tile_start">Старт</string>
@@ -38,7 +38,7 @@
 
     <string name="app_pref_close">Закрити</string>
     <string name="app_pref_back">Назад</string>
-    <string name="app_pref_settings">Налаштування додатка</string>
+    <string name="app_pref_settings">Налаштування</string>
     <string name="app_pref_locale">Мова додадку</string>
     <string name="app_pref_locale_summary">Перейти до налаштувань мови додатку</string>
     <string name="app_pref_locale_default">Системні налаштування</string>
@@ -54,7 +54,7 @@
         <item>Ніколи</item>
     </string-array>
     <string name="app_pref_dynamic_theme">Динамічний колір</string>
-    <string name="app_pref_dynamic_theme_summary">Налаштування вигляду на основі кольорів вашого шпалер</string>
+    <string name="app_pref_dynamic_theme_summary">Налаштовує вигляд на основі кольорів ваших шпалер</string>
     <string name="app_pref_notification">Налаштування повідомлень пристрою</string>
     <string name="app_pref_notification_summary">Перейти в системні налаштування повідомлень</string>
     <string name="app_pref_tile">Додати плитку додатка</string>

@@ -3,8 +3,8 @@
     <string name="rtsp_error_recover">Recover</string>
     <string name="rtsp_error_open_settings">Open settings</string>
 
-    <string name="rtsp_stream_mode">RTSP mode (RTSP)</string>
-    <string name="rtsp_stream_mode_description">RTSP mode description</string>
+    <string name="rtsp_stream_mode">RTSP mode · RTSP</string>
+    <string name="rtsp_stream_mode_description">Stream with an RTSP client or server</string>
     <string name="rtsp_stream_mode_details">
 - Powered by RTSP protocol.\n
 - Server mode (default) hosts this device as an RTSP server.\n
@@ -22,7 +22,7 @@
     <string name="rtsp_mode_client_hint">Connect to a remote RTSP server</string>
 
     <string name="rtsp_interfaces_title">RTSP server address</string>
-    <string name="rtsp_interfaces_no_address">No address found.\nCheck connection or Server parameters (Interface filter, Address filter).</string>
+    <string name="rtsp_interfaces_no_address">No address found.\nCheck the connection or adjust Server settings (Interface filter, Address filter).</string>
     <string name="rtsp_interfaces_discovering">Discovering addresses…</string>
     <string name="rtsp_interfaces_interface_label">Interface:\n%1$s</string>
     <string name="rtsp_interfaces_description_copy">Copy address</string>
@@ -37,14 +37,14 @@
     <string name="rtsp_bind_error_permission_denied">Error: Permission denied</string>
     <string name="rtsp_bind_error_unknown">Error: Listener failed</string>
 
-    <string name="rtsp_server_parameters">Server parameters</string>
-    <string name="rtsp_client_parameters">Client parameters</string>
+    <string name="rtsp_server_parameters">Server settings</string>
+    <string name="rtsp_client_parameters">Client settings</string>
 
     <string name="rtsp_stream_start">Start stream</string>
     <string name="rtsp_stream_stop">Stop stream</string>
 
-    <string name="rtsp_error_notification_permission_required">Application requires notifications to be enabled to start streaming service.\nPlease enable notifications in application settings.</string>
-    <string name="rtsp_error_ip_address_not_found">No address found. Check connection or Server parameters (Interface filter, Address filter).</string>
+    <string name="rtsp_error_notification_permission_required">This app needs notifications enabled to start the streaming service.\nEnable notifications in app settings.</string>
+    <string name="rtsp_error_ip_address_not_found">No address found. Check the connection or adjust Server settings (Interface filter, Address filter).</string>
     <string name="rtsp_error_unspecified">Something went wrong.</string>
 
     <string name="rtsp_media_server">Media server</string>
@@ -63,7 +63,7 @@
     <string name="rtsp_label_loopback">Loopback</string>
     <string name="rtsp_label_interface" translatable="false">%1$s (%2$s)</string>
 
-    <string name="rtsp_video_parameters">Video parameters</string>
+    <string name="rtsp_video_parameters">Video settings</string>
     <string name="rtsp_video_encoder">Video encoder:</string>
     <string name="rtsp_video_encoder_auto">Auto</string>
     <string name="rtsp_video_resize_image">Resize image: %1$.2f%%</string>
@@ -76,19 +76,19 @@
     <string name="rtsp_video_bitrate_mbit">%.2f Mbit</string>
     <string name="rtsp_video_bitrate_kbit">%d Kbit</string>
 
-    <string name="rtsp_audio_parameters">Audio parameters</string>
+    <string name="rtsp_audio_parameters">Audio settings</string>
     <string name="rtsp_audio_mic">Microphone</string>
     <string name="rtsp_audio_mic_mute">Mute microphone</string>
-    <string name="rtsp_audio_device">Device audio</string>
-    <string name="rtsp_audio_device_mute">Mute device audio</string>
+    <string name="rtsp_audio_device">Internal audio</string>
+    <string name="rtsp_audio_device_mute">Mute internal audio</string>
     <string name="rtsp_audio_encoder">Audio encoder:</string>
     <string name="rtsp_audio_encoder_auto">Auto</string>
     <string name="rtsp_audio_bitrate">Audio bitrate: %1$s/sec</string>
     <string name="rtsp_audio_permission_title">Allow audio recording</string>
-    <string name="rtsp_audio_permission_message">Permission to record audio is necessary for the application to stream audio content.\n\nWithout granting this permission, the stream will be without audio.</string>
+    <string name="rtsp_audio_permission_message">Audio recording permission is required to stream audio.\n\nWithout it, the stream will have no audio.</string>
     <string name="rtsp_audio_permission_open_settings">Open settings</string>
-    <string name="rtsp_audio_permission_message_settings">Granting microphone access in application permissions is necessary for the application to stream audio content.\n\nWithout granting this permission, the stream will be conducted without any audio.</string>
-    <string name="rtsp_audio_capture_issue_detected">Some audio capture issue detected</string>
+    <string name="rtsp_audio_permission_message_settings">Enable microphone permission in app settings to stream audio.\n\nWithout it, the stream will have no audio.</string>
+    <string name="rtsp_audio_capture_issue_detected">Audio capture issue detected</string>
 
     <string name="rtsp_connection_access_denied">Access denied</string>
     <string name="rtsp_connection_no_credentials">Specify username and password</string>

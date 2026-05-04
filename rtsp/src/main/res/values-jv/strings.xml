@@ -3,8 +3,8 @@
     <string name="rtsp_error_recover">Mulihake</string>
     <string name="rtsp_error_open_settings">Bukak setelan</string>
 
-    <string name="rtsp_stream_mode">Mode RTSP (RTSP)</string>
-    <string name="rtsp_stream_mode_description">Deskripsi mode RTSP</string>
+    <string name="rtsp_stream_mode">Mode RTSP · RTSP</string>
+    <string name="rtsp_stream_mode_description">Streaming nganggo klien utawa server RTSP</string>
     <string name="rtsp_stream_mode_details">
 - Didukung protokol RTSP.\n
 - Mode server (default) ng-host piranti iki minangka server RTSP.\n
@@ -22,7 +22,7 @@
     <string name="rtsp_mode_client_hint">Sambung menyang server RTSP adoh</string>
 
     <string name="rtsp_interfaces_title">Alamat server RTSP</string>
-    <string name="rtsp_interfaces_no_address">Ora nemu alamat.\nPriksa sambungan utawa Parameter server (Panyaring antarmuka, Panyaring alamat).</string>
+    <string name="rtsp_interfaces_no_address">Ora nemu alamat.\nPriksa sambungan utawa setel setelan server (Panyaring antarmuka, Panyaring alamat).</string>
     <string name="rtsp_interfaces_discovering">Nggoleki alamat…</string>
     <string name="rtsp_interfaces_interface_label">Antarmuka:\n%1$s</string>
     <string name="rtsp_interfaces_description_copy">Salin alamat</string>
@@ -37,14 +37,14 @@
     <string name="rtsp_bind_error_permission_denied">Kesalahan: Ijin ditolak</string>
     <string name="rtsp_bind_error_unknown">Kesalahan: Listener gagal</string>
 
-    <string name="rtsp_server_parameters">Parameter server</string>
-    <string name="rtsp_client_parameters">Parameter klien</string>
+    <string name="rtsp_server_parameters">Setelan server</string>
+    <string name="rtsp_client_parameters">Setelan klien</string>
 
     <string name="rtsp_stream_start">Miwiti siaran</string>
     <string name="rtsp_stream_stop">Mandheg siaran</string>
 
-    <string name="rtsp_error_notification_permission_required">Aplikasi butuh notifikasi diaktifake kanggo miwiti layanan streaming.\nMangga aktifake notifikasi ing setelan aplikasi.</string>
-    <string name="rtsp_error_ip_address_not_found">Ora nemu alamat. Priksa sambungan utawa Parameter server (Panyaring antarmuka, Panyaring alamat).</string>
+    <string name="rtsp_error_notification_permission_required">Aplikasi iki mbutuhake kabar aktif kanggo miwiti layanan streaming.\nAktifake kabar ing setelan aplikasi.</string>
+    <string name="rtsp_error_ip_address_not_found">Ora nemu alamat. Priksa sambungan utawa setel setelan server (Panyaring antarmuka, Panyaring alamat).</string>
     <string name="rtsp_error_unspecified">Ana masalah sing kedadeyan.</string>
 
     <string name="rtsp_media_server">Server media</string>
@@ -62,7 +62,7 @@
     <string name="rtsp_label_public_ipv6">IPv6 umum</string>
     <string name="rtsp_label_loopback">Loopback</string>
 
-    <string name="rtsp_video_parameters">Parameter video</string>
+    <string name="rtsp_video_parameters">Setelan video</string>
     <string name="rtsp_video_encoder">Encoder video:</string>
     <string name="rtsp_video_encoder_auto">Otomatis</string>
     <string name="rtsp_video_resize_image">Ukuran gambar: %1$.2f%%</string>
@@ -75,19 +75,19 @@
     <string name="rtsp_video_bitrate_mbit">%.2f Mbit</string>
     <string name="rtsp_video_bitrate_kbit">%d Kbit</string>
 
-    <string name="rtsp_audio_parameters">Parameter audio</string>
+    <string name="rtsp_audio_parameters">Setelan audio</string>
     <string name="rtsp_audio_mic">Mikrofon</string>
     <string name="rtsp_audio_mic_mute">Bisu mikropon</string>
-    <string name="rtsp_audio_device">Audio piranti</string>
-    <string name="rtsp_audio_device_mute">Bisu audio piranti</string>
+    <string name="rtsp_audio_device">Audio internal</string>
+    <string name="rtsp_audio_device_mute">Bisu audio internal</string>
     <string name="rtsp_audio_encoder">Encoder audio:</string>
     <string name="rtsp_audio_encoder_auto">Otomatis</string>
     <string name="rtsp_audio_bitrate">Bitrate audio: %1$s/detik</string>
     <string name="rtsp_audio_permission_title">Ijinke rekaman audio</string>
-    <string name="rtsp_audio_permission_message">Ijin kanggo ngerekam audio dibutuhake kanggo aplikasi bisa nyiarake konten audio.\n\nTanpa ijin iki, siaran bakal tanpa audio.</string>
+    <string name="rtsp_audio_permission_message">Ijin rekaman audio dibutuhake kanggo streaming audio.\n\nTanpa iku, stream ora ana audione.</string>
     <string name="rtsp_audio_permission_open_settings">Bukak setelan</string>
-    <string name="rtsp_audio_permission_message_settings">Menehi akses mikrofon ing ijin aplikasi dibutuhake supaya aplikasi bisa nyiarake konten audio.\n\nTanpa ijin iki, siaran bakal dilakokake tanpa audio.</string>
-    <string name="rtsp_audio_capture_issue_detected">Ana masalah ing rekaman audio sing dideteksi</string>
+    <string name="rtsp_audio_permission_message_settings">Aktifake ijin mikrofon ing setelan aplikasi kanggo streaming audio.\n\nTanpa iku, stream ora ana audione.</string>
+    <string name="rtsp_audio_capture_issue_detected">Masalah tangkapan audio dideteksi</string>
 
     <string name="rtsp_connection_access_denied">Akses ditolak</string>
     <string name="rtsp_connection_no_credentials">Tentokake jeneng panganggo lan tembung sandi</string>
@@ -110,9 +110,9 @@
     <string name="rtsp_pref_address_filter_localhost">Localhost</string>
     <string name="rtsp_pref_address_filter_public">Umum</string>
     <string name="rtsp_pref_enable_ipv4">Aktifake IPv4</string>
-    <string name="rtsp_pref_enable_ipv4_summary">Jalankan server ing alamat IPv4</string>
+    <string name="rtsp_pref_enable_ipv4_summary">Jalanake server ing alamat IPv4</string>
     <string name="rtsp_pref_enable_ipv6">Aktifake IPv6</string>
-    <string name="rtsp_pref_enable_ipv6_summary">Jalankan server ing alamat IPv6</string>
+    <string name="rtsp_pref_enable_ipv6_summary">Jalanake server ing alamat IPv6</string>
     <string name="rtsp_pref_server_port">Port server</string>
     <string name="rtsp_pref_server_port_summary">Setel port kanggo sambungan mlebu</string>
     <string name="rtsp_pref_server_port_text">Setel port server kanggo sambungan mlebu.\nAngka: 1025–65535\nDefault: 8554</string>

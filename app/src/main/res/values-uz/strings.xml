@@ -5,14 +5,14 @@
 
     <string name="app_logs_collecting">Ilova jurnallari yig\'ilmoqda…</string>
     <string name="app_logs_send_title">Jurnallarni ishlab chiquvchiga yuboring</string>
-    <string name="app_logs_send_message">Iltimos, muammo tavsifini qo\'shing:</string>
+    <string name="app_logs_send_message">Muammo tavsifini qo\'shing:</string>
     <string name="app_logs_send">Yuborish</string>
     <string name="app_logs_enabled">Jurnal yoqilgan</string>
-    <string name="app_logs_disabled">Jurnal o\‘chirilgan</string>
+    <string name="app_logs_disabled">Jurnal o‘chirilgan</string>
     <string name="app_logs_stop">Jurnalni to\'xtating</string>
 
     <string name="app_activity_update_dialog_title">Yangilanish mavjud</string>
-    <string name="app_activity_update_dialog_message">Yangilanish endigina yuklab olindi</string>
+    <string name="app_activity_update_dialog_message">Yangilanish endigina yuklab olindi. Ilova hozir qayta ishga tushirilsinmi?</string>
     <string name="app_activity_update_dialog_restart">Qayta ishga tushirish</string>
 
     <string name="app_tab_stream">Strim</string>
@@ -23,22 +23,22 @@
     <string name="app_tab_stream_select_mode">Strim rejimini tanlang:</string>
 
     <string name="app_permission_required_title">Ruxsat talab qilinadi</string>
-    <string name="app_permission_allow_notifications">Striming xizmatini ishga tushirish uchun ilova bildirishnomalarni yuborishga ruxsat talab qiladi. Iltimos, bildirishnomalarni yuborishga ruxsat bering.</string>
-    <string name="app_permission_allow_notifications_settings">Striming xizmatini ishga tushirish uchun ilova bildirishnomalarni yuborishga ruxsat talab qiladi. Ilova sozlamalarida bildirishnomalarni yuborishga ruxsat bering.</string>
+    <string name="app_permission_allow_notifications">Bu ilovaga translatsiya xizmatini boshlash uchun bildirishnoma ruxsati kerak.\n\nBildirishnomalarga ruxsat bering.</string>
+    <string name="app_permission_allow_notifications_settings">Bu ilovaga translatsiya xizmatini boshlash uchun bildirishnoma ruxsati kerak.\n\nIlova sozlamalarida bildirishnomalarni yoqing.</string>
     <string name="app_permission_notification_settings">Sozlamalarni oching</string>
 
     <string name="app_notification_channel_streaming">Oqimli bildirishnomalar</string>
     <string name="app_notification_channel_error">Xato bildirishnomalari</string>
     <string name="app_notification_streaming_title">Oqim qilinmoqda…</string>
-    <string name="app_notification_streaming_content">Oqimni tugatish uchun STOP tugmasini bosing</string>
-    <string name="app_notification_stop">to\'xtating</string>
+    <string name="app_notification_streaming_content">Translatsiyani tugatish uchun To\'xtatish tugmasini bosing</string>
+    <string name="app_notification_stop">To‘xtatish</string>
 
-    <string name="app_tile_start">" Boshlash"</string>
-    <string name="app_tile_stop">to\'xtating</string>
+    <string name="app_tile_start">Boshlash</string>
+    <string name="app_tile_stop">To‘xtatish</string>
 
     <string name="app_pref_close">Yopish</string>
     <string name="app_pref_back">Orqaga</string>
-    <string name="app_pref_settings">Ilova sozlamalari</string>
+    <string name="app_pref_settings">Sozlamalar</string>
     <string name="app_pref_locale">Ilova tili</string>
     <string name="app_pref_locale_summary">Ilova tili sozlamalarini oching</string>
     <string name="app_pref_locale_default">Tizim standarti</string>
@@ -63,7 +63,7 @@
     <string name="app_pref_logging_summary">Ilova jurnallarini yig\'ing</string>
 
     <string name="app_tab_about_app_version">Versiya: %1$s</string>
-    <string name="app_tab_about_developer_name">Dmitriy Krivoruchko tomonidan ishlab chiqilgan</string>
+    <string name="app_tab_about_developer_name">Dmytro Kryvoruchko tomonidan ishlab chiqilgan</string>
     <string name="app_tab_about_rate_app">Baholash ilovasi</string>
     <string name="app_tab_about_write_email">Dasturchiga elektron pochta xabarini yozing</string>
     <string name="app_tab_about_email_chooser_header">Email yuborilmoqda…</string>

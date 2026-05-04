@@ -3,38 +3,38 @@
     <string name="mjpeg_error_open_settings">開啟設定</string>
     <string name="mjpeg_close">關閉</string>
 
-    <string name="mjpeg_stream_mode">本地模式（MJPEG）</string>
-    <string name="mjpeg_stream_mode_description">本地模式描述</string>
+    <string name="mjpeg_stream_mode">本地模式 · MJPEG</string>
+    <string name="mjpeg_stream_mode_description">透過區域網路串流</string>
     <string name="mjpeg_stream_mode_details">
-- 使用MJPEG標準驅動。\n
-- 使用PIN碼進行安全傳輸（無加密）。\n
-- 將影片作為一系列獨立圖像傳送（無音訊）。\n
-- 在本地網絡中無需互聯網連接即可運作。\n
-- 內嵌HTTP伺服器。\n
-- 支援WiFi和/或移動網絡，支援IPv4和IPv6。\n
-- 客戶端使用應用程式提供的IP地址通過Web瀏覽器連接。\n
-- 高度可自訂。\n
-- 每個客戶端的數據傳輸獨立進行（客戶端越多，所需的網絡頻寬越大）。
+- 使用 MJPEG。\n
+- PIN 保護，無加密。\n
+- 僅視訊，以獨立影像傳送。\n
+- 在本機網路中運作，無需網際網路。\n
+- 內建 HTTP 伺服器。\n
+- 支援 Wi-Fi、行動網路、IPv4 和 IPv6。\n
+- 用戶端使用應用程式位址在瀏覽器中連線。\n
+- 高度可設定。\n
+- 每個用戶端使用獨立頻寬。
 </string>
 
     <string name="mjpeg_item_address">本機位址：</string>
     <string name="mjpeg_stream_no_address">找不到位址</string>
-    <string name="mjpeg_stream_interface">端口:\n%1$s</string>
+    <string name="mjpeg_stream_interface">介面：\n%1$s</string>
     <string name="mjpeg_stream_copied">已複製</string>
     <string name="mjpeg_stream_no_web_browser_found">未找到瀏覽器</string>
     <string name="mjpeg_stream_external_app_error">外部應用錯誤</string>
-    <string name="mjpeg_stream_share_address">分享設備位址</string>
-    <string name="mjpeg_item_address_description_open_address">打開位址</string>
+    <string name="mjpeg_stream_share_address">分享裝置位址</string>
+    <string name="mjpeg_item_address_description_open_address">開啟位址</string>
     <string name="mjpeg_item_address_description_copy_address">複製位址</string>
     <string name="mjpeg_item_address_description_share_address">分享位址</string>
-    <string name="mjpeg_item_address_description_qr_address">展示位址或二維碼</string>
+    <string name="mjpeg_item_address_description_qr_address">以 QR 碼顯示位址</string>
     <string name="mjpeg_item_address_description_qr">QR碼</string>
     <string name="mjpeg_stream_pin">PIN: %1$s</string>
-    <string name="mjpeg_stream_pin_disabled">停用PIN</string>
+    <string name="mjpeg_stream_pin_disabled">停用 PIN</string>
     <string name="mjpeg_stream_description_show_pin">顯示串流 PIN 碼</string>
     <string name="mjpeg_stream_description_create_pin">建立新的串流 PIN 碼</string>
     <string name="mjpeg_stream_current_traffic">流量：%1$,.2f Mbit/s</string>
-    <string name="mjpeg_stream_traffic_graph">流量图</string>
+    <string name="mjpeg_stream_traffic_graph">流量圖</string>
     <string name="mjpeg_stream_connected_clients">已連接用戶端數：%1$d</string>
     <string name="mjpeg_stream_client_disconnected">已斷線</string>
     <string name="mjpeg_stream_client_slow_network">網路不佳</string>
@@ -44,20 +44,20 @@
     <string name="mjpeg_stream_stop">停止串流</string>
     <string name="mjpeg_slow_client_connection">偵測到用戶端網路速度不佳</string>
 
-    <string name="mjpeg_pref_header">本地模式（MJPEG）設置</string>
-    <string name="mjpeg_pref_settings_general">一般參數</string>
-    <string name="mjpeg_pref_keep_awake">保持設備喚醒狀態</string>
-    <string name="mjpeg_pref_keep_awake_summary">播出視頻流的時候保持設備喚醒並且屏幕常亮</string>
+    <string name="mjpeg_pref_header">本地模式 · MJPEG 設定</string>
+    <string name="mjpeg_pref_settings_general">一般設定</string>
+    <string name="mjpeg_pref_keep_awake">保持裝置喚醒狀態</string>
+    <string name="mjpeg_pref_keep_awake_summary">串流視訊時保持裝置喚醒並讓螢幕常亮</string>
     <string name="mjpeg_pref_stop_on_sleep">睡眠時停止</string>
     <string name="mjpeg_pref_stop_on_sleep_summary">當螢幕待機關閉時停止串流</string>
-    <string name="mjpeg_pref_stop_on_configuration">配置更改时停止串流</string>
-    <string name="mjpeg_pref_stop_on_configuration_summary">当串流配置更改时停止串流</string>
+    <string name="mjpeg_pref_stop_on_configuration">設定變更時停止串流</string>
+    <string name="mjpeg_pref_stop_on_configuration_summary">當串流設定變更時停止串流</string>
     <string name="mjpeg_pref_detect_slow_connections">顯示慢速連接通知</string>
     <string name="mjpeg_pref_detect_slow_connections_summary">偵測並通知慢速連接的客戶端</string>
     <string name="mjpeg_pref_html_buttons">啓用網頁按鈕</string>
     <string name="mjpeg_pref_html_buttons_summary">在網頁上顯示控制按鈕</string>
-    <string name="mjpeg_pref_html_show_press_start">顯示 \"在設備上開始串流\"</string>
-    <string name="mjpeg_pref_html_show_press_start_summary">在網頁上顯示 \"在設備上開始串流\"</string>
+    <string name="mjpeg_pref_html_show_press_start">顯示 \"在裝置上開始串流\"</string>
+    <string name="mjpeg_pref_html_show_press_start_summary">在網頁上顯示 \"在裝置上開始串流\"</string>
     <string name="mjpeg_pref_html_keep_image_on_reconnect">重新連線時保留影像</string>
     <string name="mjpeg_pref_html_keep_image_on_reconnect_summary">重新連線時保持最後一張影像可見</string>
     <string name="mjpeg_pref_html_back_color">背景色</string>
@@ -66,9 +66,9 @@
     <string name="mjpeg_pref_html_fit_window">適應瀏覽器視窗的圖片</string>
     <string name="mjpeg_pref_html_fit_window_summary">在瀏覽器中縮放圖片以適應整個視窗的寬度/高度</string>
 
-    <string name="mjpeg_pref_settings_image">影像參數</string>
+    <string name="mjpeg_pref_settings_image">影像設定</string>
     <string name="mjpeg_pref_vr_mode">虛擬實境模式</string>
-    <string name="mjpeg_pref_vr_mode_summary">截取半個屏幕</string>
+    <string name="mjpeg_pref_vr_mode_summary">截取半個螢幕</string>
     <string-array name="mjpeg_pref_vr_mode_options">
         <item>停用</item>
         <item>使用左半邊</item>
@@ -84,16 +84,16 @@
     <string name="mjpeg_pref_crop_warning">如果剪裁的結果是一張空圖片，那麼剪裁參數將被忽略</string>
     <string name="mjpeg_pref_crop_error">請輸入有效的剪裁參數</string>
     <string name="mjpeg_pref_grayscale">灰度模式</string>
-    <string name="mjpeg_pref_grayscale_summary">傳送剪黑白畫面到用戶端</string>
+    <string name="mjpeg_pref_grayscale_summary">傳送前將影像轉為灰階</string>
     <string name="mjpeg_pref_resize">縮放畫面</string>
     <string name="mjpeg_pref_resize_summary">傳送縮放過的畫面到用戶端</string>
-    <string name="mjpeg_pref_resize_mode_percent">按百分比調整</string>
+    <string name="mjpeg_pref_resize_mode_percent">按百分比調整大小</string>
     <string name="mjpeg_pref_resize_mode_resolution">精確解析度</string>
     <string name="mjpeg_pref_resize_width">寬度：</string>
     <string name="mjpeg_pref_resize_height">高度：</string>
     <string name="mjpeg_pref_resize_stretch">延展以符合</string>
-    <string name="mjpeg_pref_resize_text">設置縮放百分比。\n範圍： 10–150\n預設： 50\n螢幕解析度： %1$dx%2$d</string>
-    <string name="mjpeg_pref_resize_result">畫面大小 size： %1$dx%2$d</string>
+    <string name="mjpeg_pref_resize_text">設定縮放百分比。\n範圍： 10–150\n預設： 50\n螢幕解析度： %1$dx%2$d</string>
+    <string name="mjpeg_pref_resize_result">畫面大小：%1$dx%2$d</string>
     <string name="mjpeg_pref_rotate">順時針旋轉畫面</string>
     <string name="mjpeg_pref_rotate_summary">傳送順時針旋轉過的畫面到用戶端</string>
     <string name="mjpeg_pref_flip">翻轉畫面</string>
@@ -104,29 +104,29 @@
         <item>垂直</item>
     </string-array>
     <string name="mjpeg_pref_fps">畫面幀率限制</string>
-    <string name="mjpeg_pref_fps_summary">設置每秒最大畫面數</string>
-    <string name="mjpeg_pref_fps_text">設置每秒最大畫面數。\n範圍: 1/10–120\n預設: 30</string>
+    <string name="mjpeg_pref_fps_summary">設定每秒最大畫面數</string>
+    <string name="mjpeg_pref_fps_text">設定每秒最大畫面數。\n範圍: 1/10–120\n預設: 30</string>
     <string name="mjpeg_pref_fps_low_mode_text">將幀速率限制為每%d秒一幀，適用於電子墨水螢幕。</string>
     <string name="mjpeg_pref_jpeg_quality">JPEG壓縮品質</string>
     <string name="mjpeg_pref_jpeg_quality_summary">設定JPEG壓縮品質</string>
     <string name="mjpeg_pref_jpeg_quality_text">設定JPEG壓縮品質。\n範圍： 10–100\n預設： 80</string>
 
-    <string name="mjpeg_pref_settings_security">安全參數</string>
-    <string name="mjpeg_pref_enable_pin">使用pin</string>
-    <string name="mjpeg_pref_enable_pin_summary">需輸入pin以進入被保護的串流</string>
-    <string name="mjpeg_pref_hide_pin">串流開始後隱藏pin</string>
-    <string name="mjpeg_pref_hide_pin_summary">串流開始後顯示星號代替pin</string>
-    <string name="mjpeg_pref_new_pin_on_start">產生新的pin</string>
-    <string name="mjpeg_pref_new_pin_on_start_summary">每當程式開啟就產生一組新的pin</string>
-    <string name="mjpeg_pref_auto_change_pin">自動更換pin</string>
-    <string name="mjpeg_pref_auto_change_pin_summary">每次開啟串流就產生一組新的pin</string>
-    <string name="mjpeg_pref_set_pin">設定pin</string>
-    <string name="mjpeg_pref_set_pin_summary">手動輸入pin</string>
-    <string name="mjpeg_pref_set_pin_text">輸入pin。\n預設： 000000</string>
+    <string name="mjpeg_pref_settings_security">安全設定</string>
+    <string name="mjpeg_pref_enable_pin">啟用 PIN</string>
+    <string name="mjpeg_pref_enable_pin_summary">需輸入 PIN 才能進入受保護的串流</string>
+    <string name="mjpeg_pref_hide_pin">串流開始時自動隱藏 PIN</string>
+    <string name="mjpeg_pref_hide_pin_summary">串流開始後顯示星號代替 PIN</string>
+    <string name="mjpeg_pref_new_pin_on_start">產生新 PIN</string>
+    <string name="mjpeg_pref_new_pin_on_start_summary">每當程式開啟就產生一組新 PIN</string>
+    <string name="mjpeg_pref_auto_change_pin">自動更換 PIN</string>
+    <string name="mjpeg_pref_auto_change_pin_summary">每次開啟串流就產生一組新 PIN</string>
+    <string name="mjpeg_pref_set_pin">設定 PIN</string>
+    <string name="mjpeg_pref_set_pin_summary">手動輸入 PIN</string>
+    <string name="mjpeg_pref_set_pin_text">輸入 PIN。\n預設：000000</string>
     <string name="mjpeg_pref_block_address">封禁 IP 位址</string>
-    <string name="mjpeg_pref_block_address_summary">如果用戶端在 5 分鐘內輸錯了 5 次 pin，就會被封鎖</string>
+    <string name="mjpeg_pref_block_address_summary">如果用戶端在 5 分鐘內輸錯了 5 次 PIN，就會被封鎖</string>
 
-    <string name="mjpeg_pref_settings_advanced">進階參數</string>
+    <string name="mjpeg_pref_settings_advanced">進階設定</string>
     <string name="mjpeg_pref_interface_filter">介面篩選器</string>
     <string name="mjpeg_pref_interface_filter_summary">選擇伺服器的網路介面</string>
     <string name="mjpeg_pref_filter_wifi">Wi-Fi</string>
@@ -154,20 +154,20 @@
     <string name="mjpeg_pref_server_port_text">設定連入使用的連接埠號。\n範圍： 1025–65535\n預設： 8080</string>
 
     <string name="mjpeg_error_port_in_use">該連接埠正被使用中。請換一個試試</string>
-    <string name="mjpeg_error_invalid_media_projection">安全性錯誤：無效的螢幕投射。請重試</string>
-    <string name="mjpeg_error_ip_address_not_found">找不到 IP 地址。\n請嘗試在串流設定中停用「僅使用WiFi」。</string>
-    <string name="mjpeg_error_notification_permission_required">應用程式需要啟用通知以開始串流服務。\n請在應用程式設定中啟用通知。</string>
+    <string name="mjpeg_error_invalid_media_projection">安全性錯誤：螢幕擷取權限無效。請重試。</string>
+    <string name="mjpeg_error_ip_address_not_found">找不到 IP 位址。\n請嘗試在串流設定中調整網路篩選器。</string>
+    <string name="mjpeg_error_notification_permission_required">此應用程式需要啟用通知才能啟動串流服務。\n請在應用程式設定中啟用通知。</string>
     <string name="mjpeg_error_unspecified">出現問題。請稍後再試。</string>
 
-    <string name="mjpeg_start_image_text">在設備上開始串流</string>
+    <string name="mjpeg_start_image_text">在裝置上開始串流</string>
 
     <!--HTML text-->
     <string name="mjpeg_html_stream_connecting">嘗試連接</string>
     <string name="mjpeg_html_stream_reconnecting">正在重新連線…</string>
-    <string name="mjpeg_html_stream_require_pin">此串流需要PIN以觀看</string>
-    <string name="mjpeg_html_enter_pin">輸入pin：\u0020</string>
+    <string name="mjpeg_html_stream_require_pin">此串流需要 PIN 才能觀看</string>
+    <string name="mjpeg_html_enter_pin">輸入 PIN：\u0020</string>
     <string name="mjpeg_html_submit_pin">傳送</string>
-    <string name="mjpeg_html_wrong_pin">pin錯誤！</string>
+    <string name="mjpeg_html_wrong_pin">PIN 錯誤！</string>
     <string name="mjpeg_html_address_blocked">用戶端位址已被封禁</string>
     <string name="mjpeg_html_error_unspecified">出現問題。&lt;br&gt; 請重新載入頁面並重試。</string>
 </resources>

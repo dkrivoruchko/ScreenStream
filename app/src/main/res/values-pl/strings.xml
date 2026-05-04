@@ -23,14 +23,14 @@
     <string name="app_tab_stream_select_mode">Wybierz tryb strumienia:</string>
 
     <string name="app_permission_required_title">Wymaga pozwolenia</string>
-    <string name="app_permission_allow_notifications">Aplikacja wymaga zgody na wysyłanie powiadomień, aby rozpocząć usługę przesyłania strumieniowego.\n\nProszę zezwolić na wysyłanie powiadomień.</string>
-    <string name="app_permission_allow_notifications_settings">Aplikacja wymaga zgody na wysyłanie powiadomień, aby rozpocząć usługę przesyłania strumieniowego.\n\nProszę zezwolić na wysyłanie powiadomień w ustawieniach aplikacji.</string>
+    <string name="app_permission_allow_notifications">Ta aplikacja potrzebuje uprawnienia do powiadomień, aby uruchomić usługę transmisji.\n\nZezwól na powiadomienia.</string>
+    <string name="app_permission_allow_notifications_settings">Ta aplikacja potrzebuje uprawnienia do powiadomień, aby uruchomić usługę transmisji.\n\nWłącz powiadomienia w ustawieniach aplikacji.</string>
     <string name="app_permission_notification_settings">Otwórz ustawienia</string>
 
     <string name="app_notification_channel_streaming">Powiadomienia o przesyłaniu</string>
     <string name="app_notification_channel_error">Powiadomienia o błędach</string>
     <string name="app_notification_streaming_title">Transmisja…</string>
-    <string name="app_notification_streaming_content">Naciśnij STOP, aby zakończyć transmisję</string>
+    <string name="app_notification_streaming_content">Dotknij Zatrzymaj, aby zakończyć transmisję</string>
     <string name="app_notification_stop">Stop</string>
 
     <string name="app_tile_start">Start</string>
@@ -38,7 +38,7 @@
 
     <string name="app_pref_close">Zamknij</string>
     <string name="app_pref_back">Powrót</string>
-    <string name="app_pref_settings">Ustawienia aplikacji</string>
+    <string name="app_pref_settings">Ustawienia</string>
     <string name="app_pref_locale">Język aplikacji</string>
     <string name="app_pref_locale_summary">Otwiera ustawienia języka aplikacji</string>
     <string name="app_pref_locale_default">Domyślny dla systemu</string>

@@ -3,8 +3,8 @@
     <string name="webrtc_error_recover">Ripristina</string>
     <string name="webrtc_error_open_settings">Apri impostazioni</string>
 
-    <string name="webrtc_stream_mode">Modalità globale (WebRTC)</string>
-    <string name="webrtc_stream_mode_description">Descrizione della modalità globale</string>
+    <string name="webrtc_stream_mode">Modalità globale · WebRTC</string>
+    <string name="webrtc_stream_mode_description">Trasmetti via internet con WebRTC</string>
     <string name="webrtc_stream_mode_details">
 - Alimentato dalla tecnologia WebRTC.\n
 - Comunicazione crittografata end-to-end.\n
@@ -12,11 +12,11 @@
 - Possibilità di inviare video e audio.\n
 - Connessione tramite ID stream unico e password.\n
 - Richiede una connessione Internet per lo streaming.\n
-- Trasmissione dati individuale per ciascun cliente (più clienti hai, più larghezza di banda Internet è necessaria).
+- Ogni client usa banda Internet separata.
 </string>
 
     <string name="webrtc_stream_network_recovery">Connessione persa. Riconnessione…</string>
-    <string name="webrtc_stream_server_address">Accedi allo stream su:\n%1$s</string>
+    <string name="webrtc_stream_server_address">Accedi allo streaming da:\n%1$s</string>
     <string name="webrtc_stream_stream_id_getting">Ottenimento ID Stream…</string>
     <string name="webrtc_stream_stream_id">ID Stream: %1$s</string>
     <string name="webrtc_stream_stream_password">Password dello stream: %1$s</string>
@@ -29,12 +29,12 @@
     <string name="webrtc_stream_description_qr_address">Mostra indirizzo come codice QR</string>
     <string name="webrtc_stream_description_qr">Codice QR</string>
     <string name="webrtc_stream_copied">Copiato</string>
-    <string name="webrtc_stream_audio_parameters">Parametri audio</string>
+    <string name="webrtc_stream_audio_parameters">Impostazioni audio</string>
     <string name="webrtc_stream_audio_mic">Microfono</string>
     <string name="webrtc_stream_audio_mic_summary">Trasmetti audio del microfono</string>
     <string name="webrtc_stream_audio_device">Audio interno</string>
     <string name="webrtc_stream_audio_device_summary">Trasmetti audio multimediale da questo dispositivo</string>
-    <string name="webrtc_stream_audio_capture_unavailable">Rilevato un problema di acquisizione audio</string>
+    <string name="webrtc_stream_audio_capture_unavailable">Acquisizione audio non disponibile</string>
     <string name="webrtc_stream_connected_clients">Client connessi: %1$d</string>
     <string name="webrtc_stream_no_web_browser_found">Nessun browser web trovato</string>
     <string name="webrtc_stream_external_app_error">Errore dell\'applicazione esterna</string>
@@ -42,7 +42,7 @@
     <string name="webrtc_stream_start">Avvia lo streaming</string>
     <string name="webrtc_stream_stop">Arresta lo streaming</string>
 
-    <string name="webrtc_stream_other_parameters">Altri parametri</string>
+    <string name="webrtc_stream_other_parameters">Altre impostazioni</string>
     <string name="webrtc_stream_keep_awake">Mantieni il dispositivo attivo</string>
     <string name="webrtc_stream_keep_awake_summary">Mantieni il dispositivo e lo schermo attivi durante lo streaming</string>
     <string name="webrtc_stream_stop_on_sleep">Interrompi a schermo spento</string>
@@ -58,8 +58,8 @@
     <string name="webrtc_error_play_integrity_install_play_store">Per favore, installa o abilita il Google Play Store ufficiale</string>
     <string name="webrtc_error_play_integrity_install_play_service">Per favore, installa o abilita i Play Services</string>
     <string name="webrtc_error_play_integrity_update_play_service">Per favore, aggiorna i Google Play services</string>
-    <string name="webrtc_error_check_network">Per favore, verifica la connettività Internet</string>
+    <string name="webrtc_error_check_network">Controlla la connessione Internet</string>
     <string name="webrtc_error_incomplete_installation">L\'installazione dell\'app non è completa. Reinstalla l\'app da Google Play.</string>
-    <string name="webrtc_notification_permission_required">L\'applicazione richiede che le notifiche siano abilitate per avviare il servizio di streaming.\nSi prega di abilitare le notifiche nelle impostazioni dell\'applicazione.</string>
+    <string name="webrtc_notification_permission_required">Questa app richiede le notifiche attive per avviare il servizio di streaming.\nAttiva le notifiche nelle impostazioni dell\'app.</string>
     <string name="webrtc_error_unspecified">Qualcosa è andato storto. Per favore, riprova più tardi.</string>
 </resources>

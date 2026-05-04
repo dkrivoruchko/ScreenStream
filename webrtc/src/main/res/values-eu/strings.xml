@@ -1,65 +1,65 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="webrtc_error_recover">Recuperar</string>
-    <string name="webrtc_error_open_settings">Abrir configuración</string>
+    <string name="webrtc_error_recover">Berreskuratu</string>
+    <string name="webrtc_error_open_settings">Ireki ezarpenak</string>
 
-    <string name="webrtc_stream_mode">Modo global (WebRTC)</string>
-    <string name="webrtc_stream_mode_description">Descripción del modo global</string>
+    <string name="webrtc_stream_mode">Modu globala · WebRTC</string>
+    <string name="webrtc_stream_mode_description">Streamatu Interneten WebRTC bidez</string>
     <string name="webrtc_stream_mode_details">
-- Impulsado por la tecnología WebRTC.\n
-- Comunicación cifrada de extremo a extremo.\n
-- Protección del flujo con contraseña.\n
-- Puede enviar video y audio.\n
-- Conéctese mediante una identificación única de flujo y contraseña.\n
-- Requiere una conexión a Internet para la transmisión.\n
-- Transmisión de datos individual para cada cliente (cuantos más clientes tenga, más ancho de banda de Internet necesitará).
+- WebRTC teknologia erabiltzen du.\n
+- Muturretik muturrerako komunikazio zifratua.\n
+- Emisioa pasahitzarekin babestuta.\n
+- Bideoa eta audioa bidal ditzake.\n
+- Konektatu emisio-ID bakarra eta pasahitza erabiliz.\n
+- Emisiorako Interneteko konexioa behar da.\n
+- Bezero bakoitzak Interneteko banda-zabalera bereizia erabiltzen du.
 </string>
 
-    <string name="webrtc_stream_network_recovery">Konexioa galdu da. Berkonektatzen…</string>
-    <string name="webrtc_stream_server_address">Acceda al flujo en:\n%1$s</string>
-    <string name="webrtc_stream_stream_id_getting">Obteniendo ID de flujo…</string>
-    <string name="webrtc_stream_stream_id">ID de flujo: %1$s</string>
-    <string name="webrtc_stream_stream_password">Contraseña del flujo: %1$s</string>
-    <string name="webrtc_stream_description_show_password">Mostrar contraseña del flujo</string>
-    <string name="webrtc_stream_description_get_new_id">Obtener nueva ID de flujo</string>
-    <string name="webrtc_stream_description_create_password">Crear nueva contraseña del flujo</string>
-    <string name="webrtc_stream_description_open_address">Abrir dirección</string>
-    <string name="webrtc_stream_description_copy_address">Copiar dirección</string>
-    <string name="webrtc_stream_description_share_address">Compartir dirección</string>
-    <string name="webrtc_stream_description_qr_address">Mostrar dirección como código QR</string>
-    <string name="webrtc_stream_description_qr">Código QR</string>
-    <string name="webrtc_stream_copied">Copiado</string>
-    <string name="webrtc_stream_audio_parameters">Audio parametroak</string>
-    <string name="webrtc_stream_audio_mic">Micrófono</string>
-    <string name="webrtc_stream_audio_mic_summary">Mikrofonoaren audioa transmititu</string>
+    <string name="webrtc_stream_network_recovery">Konexioa galdu da. Berriro konektatzen…</string>
+    <string name="webrtc_stream_server_address">Sartu transmisiora hemen:\n%1$s</string>
+    <string name="webrtc_stream_stream_id_getting">Emisio-IDa lortzen…</string>
+    <string name="webrtc_stream_stream_id">Emisio-IDa: %1$s</string>
+    <string name="webrtc_stream_stream_password">Emisioaren pasahitza: %1$s</string>
+    <string name="webrtc_stream_description_show_password">Erakutsi emisioaren pasahitza</string>
+    <string name="webrtc_stream_description_get_new_id">Lortu emisio-ID berria</string>
+    <string name="webrtc_stream_description_create_password">Sortu emisioaren pasahitz berria</string>
+    <string name="webrtc_stream_description_open_address">Ireki helbidea</string>
+    <string name="webrtc_stream_description_copy_address">Kopiatu helbidea</string>
+    <string name="webrtc_stream_description_share_address">Partekatu helbidea</string>
+    <string name="webrtc_stream_description_qr_address">Erakutsi helbidea QR kode gisa</string>
+    <string name="webrtc_stream_description_qr">QR kodea</string>
+    <string name="webrtc_stream_copied">Kopiatuta</string>
+    <string name="webrtc_stream_audio_parameters">Audio-ezarpenak</string>
+    <string name="webrtc_stream_audio_mic">Mikrofonoa</string>
+    <string name="webrtc_stream_audio_mic_summary">Transmititu mikrofonoaren audioa</string>
     <string name="webrtc_stream_audio_device">Barneko audioa</string>
-    <string name="webrtc_stream_audio_device_summary">Gailu honetako multimedia-audioa transmititu</string>
-    <string name="webrtc_stream_audio_capture_unavailable">Audio grabazioan arazo bat hauteman da</string>
-    <string name="webrtc_stream_connected_clients">Clientes conectados: %1$d</string>
-    <string name="webrtc_stream_no_web_browser_found">No se encontró navegador web</string>
-    <string name="webrtc_stream_external_app_error">Error de aplicación externa</string>
-    <string name="webrtc_stream_share_address">Compartir dirección del dispositivo</string>
-    <string name="webrtc_stream_start">Iniciar transmisión</string>
-    <string name="webrtc_stream_stop">Detener transmisión</string>
+    <string name="webrtc_stream_audio_device_summary">Transmititu gailu honetako multimedia-audioa</string>
+    <string name="webrtc_stream_audio_capture_unavailable">Audioa kapturatzea ez dago erabilgarri</string>
+    <string name="webrtc_stream_connected_clients">Konektatutako bezeroak: %1$d</string>
+    <string name="webrtc_stream_no_web_browser_found">Ez da web arakatzailerik aurkitu</string>
+    <string name="webrtc_stream_external_app_error">Kanpoko aplikazioaren errorea</string>
+    <string name="webrtc_stream_share_address">Partekatu gailuaren helbidea</string>
+    <string name="webrtc_stream_start">Hasi emisioa</string>
+    <string name="webrtc_stream_stop">Gelditu emisioa</string>
 
-    <string name="webrtc_stream_other_parameters">Beste parametro batzuk</string>
-    <string name="webrtc_stream_keep_awake">Mantener el dispositivo activo</string>
-    <string name="webrtc_stream_keep_awake_summary">Mantener el dispositivo y la pantalla activos durante la transmisión</string>
-    <string name="webrtc_stream_stop_on_sleep">Detener transmisión al dormir</string>
-    <string name="webrtc_stream_stop_on_sleep_summary">Detener transmisión si la apaga la pantalla</string>
+    <string name="webrtc_stream_other_parameters">Beste ezarpenak</string>
+    <string name="webrtc_stream_keep_awake">Mantendu gailua piztuta</string>
+    <string name="webrtc_stream_keep_awake_summary">Mantendu gailua eta pantaila piztuta emisioan zehar</string>
+    <string name="webrtc_stream_stop_on_sleep">Gelditu emisioa pantaila itzaltzean</string>
+    <string name="webrtc_stream_stop_on_sleep_summary">Gelditu emisioa pantaila itzaltzen bada</string>
 
-    <string name="webrtc_stream_audio_permission_title">Baimendu audioaren sarbidea</string>
-    <string name="webrtc_stream_audio_permission_message">Mikrofono-baimena behar da mikrofonoaren edo barneko audioaren transmisiorako.\n\nBaimenik gabe, transmisioak ez du soinurik izango.</string>
-    <string name="webrtc_stream_audio_permission_message_settings">Gaitu mikrofono-baimena aplikazioaren ezarpenetan mikrofonoaren edo barneko audioaren transmisiorako.\n\nBaimenik gabe, transmisioak ez du soinurik izango.</string>
-    <string name="webrtc_stream_audio_permission_open_settings">Abrir configuración</string>
-    <string name="webrtc_item_client_disconnect">Desconectar</string>
+    <string name="webrtc_stream_audio_permission_title">Baimendu audiorako sarbidea</string>
+    <string name="webrtc_stream_audio_permission_message">Mikrofono-baimena behar da mikrofonoaren edo barneko audioaren transmisiorako.\n\nBaimenik gabe, emisioak ez du soinurik izango.</string>
+    <string name="webrtc_stream_audio_permission_message_settings">Gaitu mikrofono-baimena aplikazioaren ezarpenetan mikrofonoaren edo barneko audioaren transmisiorako.\n\nBaimenik gabe, emisioak ez du soinurik izango.</string>
+    <string name="webrtc_stream_audio_permission_open_settings">Ireki ezarpenak</string>
+    <string name="webrtc_item_client_disconnect">Deskonektatu</string>
 
-    <string name="webrtc_error_play_integrity_update_play_store">Por favor, actualice Google Play Store</string>
-    <string name="webrtc_error_play_integrity_install_play_store">Por favor, instale o habilite Google Play Store oficial</string>
-    <string name="webrtc_error_play_integrity_install_play_service">Por favor, instale o habilite Google Play Services</string>
-    <string name="webrtc_error_play_integrity_update_play_service">Por favor, actualice Google Play Services</string>
-    <string name="webrtc_error_check_network">Por favor, verifique la conectividad a Internet</string>
-    <string name="webrtc_error_incomplete_installation">La instalación de la aplicación está incompleta. Vuelva a instalar la aplicación desde Google Play.</string>
-    <string name="webrtc_notification_permission_required">La aplicación requiere que las notificaciones estén habilitadas para iniciar el servicio de transmisión.\nPor favor, habilite las notificaciones en la configuración de la aplicación.</string>
-    <string name="webrtc_error_unspecified">Algo salió mal. Por favor, inténtelo de nuevo más tarde.</string>
+    <string name="webrtc_error_play_integrity_update_play_store">Eguneratu Google Play Store</string>
+    <string name="webrtc_error_play_integrity_install_play_store">Instalatu edo gaitu Google Play Store ofiziala</string>
+    <string name="webrtc_error_play_integrity_install_play_service">Instalatu edo gaitu Google Play zerbitzuak</string>
+    <string name="webrtc_error_play_integrity_update_play_service">Eguneratu Google Play zerbitzuak</string>
+    <string name="webrtc_error_check_network">Egiaztatu Interneteko konexioa</string>
+    <string name="webrtc_error_incomplete_installation">Aplikazioaren instalazioa osatu gabe dago. Berrinstalatu aplikazioa Google Play-tik.</string>
+    <string name="webrtc_notification_permission_required">Aplikazio honek jakinarazpenak gaituta behar ditu transmisio-zerbitzua hasteko.\nGaitu jakinarazpenak aplikazioaren ezarpenetan.</string>
+    <string name="webrtc_error_unspecified">Zerbait gaizki atera da. Saiatu berriro geroago.</string>
 </resources>

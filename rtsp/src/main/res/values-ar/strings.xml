@@ -3,8 +3,8 @@
     <string name="rtsp_error_recover">استعادة</string>
     <string name="rtsp_error_open_settings">فتح الإعدادات</string>
 
-    <string name="rtsp_stream_mode">وضع RTSP (RTSP)</string>
-    <string name="rtsp_stream_mode_description">وصف وضع RTSP</string>
+    <string name="rtsp_stream_mode">وضع RTSP · RTSP</string>
+    <string name="rtsp_stream_mode_description">البث عبر عميل أو خادم RTSP</string>
     <string name="rtsp_stream_mode_details">
 - يعمل ببروتوكول RTSP.\n
 - وضع الخادم (الافتراضي) يستضيف هذا الجهاز كخادم RTSP.\n
@@ -22,29 +22,29 @@
     <string name="rtsp_mode_client_hint">اتصل بخادم RTSP بعيد</string>
 
     <string name="rtsp_interfaces_title">عنوان خادم RTSP</string>
-    <string name="rtsp_interfaces_no_address">لم يتم العثور على عنوان.\nتحقق من الاتصال أو معلمات الخادم (تصفية الواجهة، تصفية العناوين).</string>
+    <string name="rtsp_interfaces_no_address">لم يتم العثور على عنوان.\nتحقق من الاتصال أو اضبط إعدادات الخادم (تصفية الواجهة، تصفية العناوين).</string>
     <string name="rtsp_interfaces_discovering">جارٍ البحث عن العناوين…</string>
     <string name="rtsp_interfaces_interface_label">الواجهة:\n%1$s</string>
     <string name="rtsp_interfaces_description_copy">نسخ العنوان</string>
-    <string name="rtsp_interfaces_description_share">عنوان المشاركة</string>
-    <string name="rtsp_interfaces_description_qr">أظهر العنوان كرمز QR</string>
-    <string name="rtsp_interfaces_qr_content_description">رمز الاستجابة السريعة</string>
+    <string name="rtsp_interfaces_description_share">مشاركة العنوان</string>
+    <string name="rtsp_interfaces_description_qr">عرض العنوان كرمز QR</string>
+    <string name="rtsp_interfaces_qr_content_description">رمز QR</string>
     <string name="rtsp_interfaces_copied">تم نسخ العنوان</string>
     <string name="rtsp_interfaces_share_title">مشاركة عنوان RTSP</string>
     <string name="rtsp_bindings_retry">إعادة المحاولة</string>
     <string name="rtsp_bind_error_port_in_use">خطأ: المنفذ مستخدم</string>
     <string name="rtsp_bind_error_address_not_available">خطأ: العنوان غير متاح</string>
     <string name="rtsp_bind_error_permission_denied">خطأ: الإذن مرفوض</string>
-    <string name="rtsp_bind_error_unknown">خطأ: فشل المستمع</string>
+    <string name="rtsp_bind_error_unknown">خطأ: فشل المستمع الشبكي</string>
 
-    <string name="rtsp_server_parameters">معلمات الخادم</string>
-    <string name="rtsp_client_parameters">معلمات العميل</string>
+    <string name="rtsp_server_parameters">إعدادات الخادم</string>
+    <string name="rtsp_client_parameters">إعدادات العميل</string>
 
     <string name="rtsp_stream_start">بدء البث</string>
     <string name="rtsp_stream_stop">إيقاف البث</string>
 
-    <string name="rtsp_error_notification_permission_required">يتطلب التطبيق تمكين الإشعارات لبدء خدمة البث.\nيرجى تمكين الإشعارات في إعدادات التطبيق.</string>
-    <string name="rtsp_error_ip_address_not_found">لم يتم العثور على عنوان. تحقق من الاتصال أو معلمات الخادم (تصفية الواجهة، تصفية العناوين).</string>
+    <string name="rtsp_error_notification_permission_required">يحتاج هذا التطبيق إلى تفعيل الإشعارات لبدء خدمة البث.\nفعّل الإشعارات من إعدادات التطبيق.</string>
+    <string name="rtsp_error_ip_address_not_found">لم يتم العثور على عنوان. تحقق من الاتصال أو اضبط إعدادات الخادم (تصفية الواجهة، تصفية العناوين).</string>
     <string name="rtsp_error_unspecified">حدث خطأ ما.</string>
 
     <string name="rtsp_media_server">خادم الوسائط</string>
@@ -62,7 +62,7 @@
     <string name="rtsp_label_public_ipv6">IPv6 عام</string>
     <string name="rtsp_label_loopback">حلقة محلية</string>
 
-    <string name="rtsp_video_parameters">معلمات الفيديو</string>
+    <string name="rtsp_video_parameters">إعدادات الفيديو</string>
     <string name="rtsp_video_encoder">ترميز الفيديو:</string>
     <string name="rtsp_video_encoder_auto">تلقائي</string>
     <string name="rtsp_video_resize_image">تغيير حجم الصورة: %1$.2f%%</string>
@@ -75,18 +75,18 @@
     <string name="rtsp_video_bitrate_mbit">%.2f ميجابت</string>
     <string name="rtsp_video_bitrate_kbit">%d كيلوبت</string>
 
-    <string name="rtsp_audio_parameters">معلمات الصوت</string>
+    <string name="rtsp_audio_parameters">إعدادات الصوت</string>
     <string name="rtsp_audio_mic">الميكروفون</string>
     <string name="rtsp_audio_mic_mute">كتم صوت الميكروفون</string>
-    <string name="rtsp_audio_device">صوت الجهاز</string>
-    <string name="rtsp_audio_device_mute">كتم صوت الجهاز</string>
+    <string name="rtsp_audio_device">الصوت الداخلي</string>
+    <string name="rtsp_audio_device_mute">كتم الصوت الداخلي</string>
     <string name="rtsp_audio_encoder">ترميز الصوت:</string>
     <string name="rtsp_audio_encoder_auto">تلقائي</string>
     <string name="rtsp_audio_bitrate">معدل بت الصوت: %1$s/ثانية</string>
     <string name="rtsp_audio_permission_title">السماح بتسجيل الصوت</string>
-    <string name="rtsp_audio_permission_message">إذن تسجيل الصوت ضروري للتطبيق لبث المحتوى الصوتي.\n\nبدون منح هذا الإذن، سيكون البث بدون صوت.</string>
+    <string name="rtsp_audio_permission_message">إذن تسجيل الصوت مطلوب لبث الصوت.\n\nبدونه لن يحتوي البث على صوت.</string>
     <string name="rtsp_audio_permission_open_settings">فتح الإعدادات</string>
-    <string name="rtsp_audio_permission_message_settings">منح الوصول إلى الميكروفون في أذونات التطبيق ضروري للتطبيق لبث المحتوى الصوتي.\n\nبدون منح هذا الإذن، سيتم إجراء البث بدون صوت.</string>
+    <string name="rtsp_audio_permission_message_settings">فعّل إذن الميكروفون من إعدادات التطبيق لبث الصوت.\n\nبدونه لن يحتوي البث على صوت.</string>
     <string name="rtsp_audio_capture_issue_detected">تم رصد مشكلة في التقاط الصوت</string>
 
     <string name="rtsp_connection_access_denied">تم رفض الوصول</string>
@@ -113,7 +113,7 @@
     <string name="rtsp_pref_enable_ipv4_summary">تشغيل الخادم على عناوين IPv4</string>
     <string name="rtsp_pref_enable_ipv6">تفعيل IPv6</string>
     <string name="rtsp_pref_enable_ipv6_summary">تشغيل الخادم على عناوين IPv6</string>
-    <string name="rtsp_pref_server_port">منفذ سيرفر</string>
+    <string name="rtsp_pref_server_port">منفذ الخادم</string>
     <string name="rtsp_pref_server_port_summary">تعيين منفذ للاتصالات الواردة</string>
     <string name="rtsp_pref_server_port_text">تعيين منفذ خادم للاتصالات الواردة.\nالقيم: 1025–65535\nالافتراضي: 8554</string>
 </resources>

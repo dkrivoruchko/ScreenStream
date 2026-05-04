@@ -3,8 +3,8 @@
     <string name="rtsp_error_recover">Herstellen</string>
     <string name="rtsp_error_open_settings">Instellingen openen</string>
 
-    <string name="rtsp_stream_mode">RTSP-modus (RTSP)</string>
-    <string name="rtsp_stream_mode_description">RTSP-modus beschrijving</string>
+    <string name="rtsp_stream_mode">RTSP-modus · RTSP</string>
+    <string name="rtsp_stream_mode_description">Streamen met RTSP-client of -server</string>
     <string name="rtsp_stream_mode_details">
 - Gebruikt RTSP-protocol.\n
 - Servermodus (standaard) host dit apparaat als RTSP-server.\n
@@ -22,7 +22,7 @@
     <string name="rtsp_mode_client_hint">Verbind met een externe RTSP-server</string>
 
     <string name="rtsp_interfaces_title">RTSP-serveradres</string>
-    <string name="rtsp_interfaces_no_address">Geen adres gevonden.\nControleer verbinding of Serverparameters (Interface filter, Adresfilter).</string>
+    <string name="rtsp_interfaces_no_address">Geen adres gevonden.\nControleer de verbinding of pas Serverinstellingen aan (Interfacefilter, Adresfilter).</string>
     <string name="rtsp_interfaces_discovering">Adressen worden gezocht…</string>
     <string name="rtsp_interfaces_interface_label">Interface:\n%1$s</string>
     <string name="rtsp_interfaces_description_copy">Adres kopiëren</string>
@@ -37,14 +37,14 @@
     <string name="rtsp_bind_error_permission_denied">Fout: Toestemming geweigerd</string>
     <string name="rtsp_bind_error_unknown">Fout: Listener mislukt</string>
 
-    <string name="rtsp_server_parameters">Serverparameters</string>
-    <string name="rtsp_client_parameters">Clientparameters</string>
+    <string name="rtsp_server_parameters">Serverinstellingen</string>
+    <string name="rtsp_client_parameters">Clientinstellingen</string>
 
     <string name="rtsp_stream_start">Stream starten</string>
     <string name="rtsp_stream_stop">Stream stoppen</string>
 
-    <string name="rtsp_error_notification_permission_required">Applicatie vereist dat meldingen zijn ingeschakeld om streamingservice te starten.\nSchakel meldingen in bij applicatie-instellingen.</string>
-    <string name="rtsp_error_ip_address_not_found">Geen adres gevonden. Controleer verbinding of Serverparameters (Interface filter, Adresfilter).</string>
+    <string name="rtsp_error_notification_permission_required">Deze app heeft meldingen nodig om de streamingdienst te starten.\nSchakel meldingen in via de appinstellingen.</string>
+    <string name="rtsp_error_ip_address_not_found">Geen adres gevonden. Controleer de verbinding of pas Serverinstellingen aan (Interfacefilter, Adresfilter).</string>
     <string name="rtsp_error_unspecified">Er is iets misgegaan.</string>
 
     <string name="rtsp_media_server">Mediaserver</string>
@@ -62,7 +62,7 @@
     <string name="rtsp_label_public_ipv6">Publiek IPv6</string>
     <string name="rtsp_label_loopback">Loopback</string>
 
-    <string name="rtsp_video_parameters">Videoparameters</string>
+    <string name="rtsp_video_parameters">Video-instellingen</string>
     <string name="rtsp_video_encoder">Video-encoder:</string>
     <string name="rtsp_video_encoder_auto">Auto</string>
     <string name="rtsp_video_resize_image">Afbeelding herschalen: %1$.2f%%</string>
@@ -75,19 +75,19 @@
     <string name="rtsp_video_bitrate_mbit">%.2f Mbit</string>
     <string name="rtsp_video_bitrate_kbit">%d Kbit</string>
 
-    <string name="rtsp_audio_parameters">Audioparameters</string>
+    <string name="rtsp_audio_parameters">Audio-instellingen</string>
     <string name="rtsp_audio_mic">Microfoon</string>
     <string name="rtsp_audio_mic_mute">Microfoon dempen</string>
-    <string name="rtsp_audio_device">Apparaatgeluid</string>
-    <string name="rtsp_audio_device_mute">Apparaatgeluid dempen</string>
+    <string name="rtsp_audio_device">Interne audio</string>
+    <string name="rtsp_audio_device_mute">Interne audio dempen</string>
     <string name="rtsp_audio_encoder">Audio-encoder:</string>
     <string name="rtsp_audio_encoder_auto">Auto</string>
     <string name="rtsp_audio_bitrate">Audiobitrate: %1$s/sec</string>
     <string name="rtsp_audio_permission_title">Audio-opname toestaan</string>
-    <string name="rtsp_audio_permission_message">Toestemming voor audio-opname is nodig om audio te streamen.\n\nZonder deze toestemming zal de stream geen audio bevatten.</string>
+    <string name="rtsp_audio_permission_message">Toestemming voor audio-opname is vereist om audio te streamen.\n\nZonder deze toestemming heeft de stream geen audio.</string>
     <string name="rtsp_audio_permission_open_settings">Instellingen openen</string>
-    <string name="rtsp_audio_permission_message_settings">Microfoontoestemming is nodig om audio te streamen.\n\nZonder deze toestemming zal de stream geen audio bevatten.</string>
-    <string name="rtsp_audio_capture_issue_detected">Er is een probleem met de audio-opname gedetecteerd</string>
+    <string name="rtsp_audio_permission_message_settings">Schakel microfoontoestemming in via de appinstellingen om audio te streamen.\n\nZonder deze toestemming heeft de stream geen audio.</string>
+    <string name="rtsp_audio_capture_issue_detected">Probleem met audio-opname gedetecteerd</string>
 
     <string name="rtsp_connection_access_denied">Toegang geweigerd</string>
     <string name="rtsp_connection_no_credentials">Geef gebruikersnaam en wachtwoord op</string>
@@ -96,7 +96,7 @@
     <string name="rtsp_close">Sluiten</string>
     <string name="rtsp_pref_protocol">RTSP-protocol</string>
     <string name="rtsp_pref_protocol_summary">Selecteer transport voor RTP-pakketten</string>
-    <string name="rtsp_pref_interface_filter">Interface filter</string>
+    <string name="rtsp_pref_interface_filter">Interfacefilter</string>
     <string name="rtsp_pref_interface_filter_summary">Selecteer netwerkinterfaces voor server</string>
     <string name="rtsp_pref_interface_filter_wifi">Wi-Fi</string>
     <string name="rtsp_pref_interface_filter_mobile">Mobiel</string>
@@ -113,7 +113,7 @@
     <string name="rtsp_pref_enable_ipv4_summary">Server uitvoeren op IPv4-adressen</string>
     <string name="rtsp_pref_enable_ipv6">IPv6 inschakelen</string>
     <string name="rtsp_pref_enable_ipv6_summary">Server uitvoeren op IPv6-adressen</string>
-    <string name="rtsp_pref_server_port">Server poort</string>
+    <string name="rtsp_pref_server_port">Serverpoort</string>
     <string name="rtsp_pref_server_port_summary">Stel welke poort gebruikt mag worden voor verbindingen in</string>
     <string name="rtsp_pref_server_port_text">Stel de server poort in voor inkomende verbindingen.\nWaardes: 1025–65535\nStandaard: 8554</string>
 </resources>

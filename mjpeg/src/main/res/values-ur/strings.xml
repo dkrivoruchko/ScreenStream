@@ -3,18 +3,18 @@
     <string name="mjpeg_error_open_settings">ترتیبات کھولیں</string>
     <string name="mjpeg_close">بند کریں</string>
 
-    <string name="mjpeg_stream_mode">لوکل موڈ (MJPEG)</string>
-    <string name="mjpeg_stream_mode_description">لوکل موڈ کی تفصیل</string>
+    <string name="mjpeg_stream_mode">لوکل موڈ · MJPEG</string>
+    <string name="mjpeg_stream_mode_description">اپنے مقامی نیٹ ورک پر اسٹریم کریں</string>
     <string name="mjpeg_stream_mode_details">
-- MJPEG معیار پر مبنی۔\n
-- سیکیورٹی کیلئے PIN (انکرپشن نہیں)۔\n
-- ویڈیو تصاویر کے سلسلے کی صورت میں (آڈیو نہیں)۔\n
-- لوکل نیٹ ورک میں انٹرنیٹ کے بغیر بھی چلتا ہے۔\n
-- ایمبیڈڈ HTTP سرور۔\n
-- WiFi/موبائل، IPv4 اور IPv6 سپورٹ۔\n
-- کلائنٹس براؤزر سے ایپ کے دیے IP پتے پر جڑتے ہیں۔\n
-- زیادہ حسبِ ضرورت۔\n
-- ہر کلائنٹ کیلئے الگ ڈیٹا؛ زیادہ کلائنٹس تو زیادہ بینڈوڈتھ درکار ہوگی۔
+- MJPEG استعمال کرتا ہے۔\n
+- PIN تحفظ، کوئی انکرپشن نہیں۔\n
+- صرف ویڈیو، الگ تصاویر کے طور پر بھیجی جاتی ہے۔\n
+- آپ کے مقامی نیٹ ورک پر کام کرتا ہے، انٹرنیٹ درکار نہیں۔\n
+- بلٹ اِن HTTP سرور۔\n
+- Wi-Fi، موبائل نیٹ ورکس، IPv4 اور IPv6 کی معاونت۔\n
+- کلائنٹس ایپ کے پتے سے براؤزر میں جڑتے ہیں۔\n
+- بہت قابل ترتیب۔\n
+- ہر کلائنٹ الگ بینڈوڈتھ استعمال کرتا ہے۔
 </string>
 
     <string name="mjpeg_item_address">ڈیوائس پتہ:</string>
@@ -44,8 +44,8 @@
     <string name="mjpeg_stream_stop">اسٹریم روکیں</string>
     <string name="mjpeg_slow_client_connection">سست کلائنٹ کنکشن ملا</string>
 
-    <string name="mjpeg_pref_header">لوکل موڈ (MJPEG) ترتیبات</string>
-    <string name="mjpeg_pref_settings_general">عمومی پیرامیٹرز</string>
+    <string name="mjpeg_pref_header">لوکل موڈ · MJPEG ترتیبات</string>
+    <string name="mjpeg_pref_settings_general">عمومی ترتیبات</string>
     <string name="mjpeg_pref_keep_awake">ڈیوائس جاگتی رکھیں</string>
     <string name="mjpeg_pref_keep_awake_summary">اسٹریم کے دوران ڈیوائس اور اسکرین جاگتی رکھیں</string>
     <string name="mjpeg_pref_stop_on_sleep">سلیپ پر اسٹریم روکیں</string>
@@ -66,7 +66,7 @@
     <string name="mjpeg_pref_html_fit_window">تصویر کو ونڈو میں فٹ کریں</string>
     <string name="mjpeg_pref_html_fit_window_summary">براؤزر میں تصویر کو پوری ونڈو کے مطابق کریں</string>
 
-    <string name="mjpeg_pref_settings_image">تصویر پیرامیٹرز</string>
+    <string name="mjpeg_pref_settings_image">تصویر کی ترتیبات</string>
     <string name="mjpeg_pref_vr_mode">VR موڈ</string>
     <string name="mjpeg_pref_vr_mode_summary">آدھی اسکرین سے کیپچر کریں</string>
     <string-array name="mjpeg_pref_vr_mode_options">
@@ -84,10 +84,10 @@
     <string name="mjpeg_pref_crop_warning">اگر نتیجہ خالی تصویر ہو تو تراشنا نظرانداز ہوگا</string>
     <string name="mjpeg_pref_crop_error">درست تراش اقدار درج کریں</string>
     <string name="mjpeg_pref_grayscale">گریسکیل موڈ</string>
-    <string name="mjpeg_pref_grayscale_summary">کلائنٹ کو بھیجنے سے پہلے تصویر کو گریسکیل کریں</string>
+    <string name="mjpeg_pref_grayscale_summary">بھیجنے سے پہلے تصویر کو گرے اسکیل میں تبدیل کریں</string>
     <string name="mjpeg_pref_resize">تصویر کا سائز بدلیں</string>
     <string name="mjpeg_pref_resize_summary">کلائنٹ کو بھیجنے سے پہلے سائز بدلیں</string>
-    <string name="mjpeg_pref_resize_mode_percent">فیصد سے سائز بدلیں</string>
+    <string name="mjpeg_pref_resize_mode_percent">فیصد کے حساب سے سائز بدلیں</string>
     <string name="mjpeg_pref_resize_mode_resolution">مقرر ریزولوشن</string>
     <string name="mjpeg_pref_resize_width">چوڑائی:</string>
     <string name="mjpeg_pref_resize_height">اونچائی:</string>
@@ -111,10 +111,10 @@
     <string name="mjpeg_pref_jpeg_quality_summary">JPEG کمپریشن معیار مقرر کریں</string>
     <string name="mjpeg_pref_jpeg_quality_text">JPEG کمپریشن معیار مقرر کریں۔\nقدریں: 10–100\nڈیفالٹ: 80</string>
 
-    <string name="mjpeg_pref_settings_security">سیکیورٹی پیرامیٹرز</string>
+    <string name="mjpeg_pref_settings_security">سیکیورٹی ترتیبات</string>
     <string name="mjpeg_pref_enable_pin">PIN فعال کریں</string>
     <string name="mjpeg_pref_enable_pin_summary">اسٹریم تک رسائی PIN سے محفوظ کریں</string>
-    <string name="mjpeg_pref_hide_pin">اسٹریم پر PIN چھپائیں</string>
+    <string name="mjpeg_pref_hide_pin">اسٹریم شروع ہونے پر PIN خودکار طور پر چھپائیں</string>
     <string name="mjpeg_pref_hide_pin_summary">اسٹریم کے دوران PIN کی جگہ ستارے دکھائیں</string>
     <string name="mjpeg_pref_new_pin_on_start">شروع پر نیا PIN</string>
     <string name="mjpeg_pref_new_pin_on_start_summary">ایپ شروع ہوتے ہی نیا PIN بنائیں</string>
@@ -126,7 +126,7 @@
     <string name="mjpeg_pref_block_address">IP بلاک کریں</string>
     <string name="mjpeg_pref_block_address_summary">PIN 5 بار غلط ہو تو IP 5 منٹ کیلئے بلاک کریں</string>
 
-    <string name="mjpeg_pref_settings_advanced">اعلی درجے کے پیرامیٹرز</string>
+    <string name="mjpeg_pref_settings_advanced">اعلیٰ ترتیبات</string>
     <string name="mjpeg_pref_interface_filter">انٹرفیس فلٹر</string>
     <string name="mjpeg_pref_interface_filter_summary">سرور کیلئے نیٹ ورک انٹرفیس منتخب کریں</string>
     <string name="mjpeg_pref_filter_wifi">وائی فائی</string>
@@ -154,9 +154,9 @@
     <string name="mjpeg_pref_server_port_text">آنے والے کنکشنز کیلئے سرور پورٹ سیٹ کریں۔\nقدریں: 1025–65535\nڈیفالٹ: 8080</string>
 
     <string name="mjpeg_error_port_in_use">پورٹ پہلے سے استعمال میں ہے۔ دوسری منتخب کریں۔</string>
-    <string name="mjpeg_error_invalid_media_projection">سیکیورٹی خرابی: غلط میڈیا پروجیکشن۔ دوبارہ کوشش کریں۔</string>
+    <string name="mjpeg_error_invalid_media_projection">سیکیورٹی خرابی: اسکرین کیپچر کی اجازت غلط ہے۔ دوبارہ کوشش کریں۔</string>
     <string name="mjpeg_error_ip_address_not_found">IP پتہ نہیں ملا۔\nاسٹریم ترتیبات میں نیٹ ورک فلٹر ایڈجسٹ کریں۔</string>
-    <string name="mjpeg_error_notification_permission_required">اسٹریمنگ سروس شروع کرنے کیلئے اطلاعات کی اجازت درکار ہے۔\nایپ کی ترتیبات میں اطلاعات فعال کریں۔</string>
+    <string name="mjpeg_error_notification_permission_required">اس ایپ کو اسٹریمنگ سروس شروع کرنے کے لیے اطلاعات فعال چاہیے۔\nایپ کی ترتیبات میں اطلاعات فعال کریں۔</string>
     <string name="mjpeg_error_unspecified">کچھ غلط ہو گیا۔ بعد میں دوبارہ کوشش کریں۔</string>
 
     <string name="mjpeg_start_image_text">ڈیوائس پر اسٹریم شروع کریں</string>

@@ -3,20 +3,20 @@
     <string name="webrtc_error_recover">აღდგენა</string>
     <string name="webrtc_error_open_settings">გახსენით პარამეტრები</string>
 
-    <string name="webrtc_stream_mode">გლობალური რეჟიმი (WebRTC)</string>
-    <string name="webrtc_stream_mode_description">გლობალური რეჟიმის აღწერა</string>
+    <string name="webrtc_stream_mode">გლობალური რეჟიმი · WebRTC</string>
+    <string name="webrtc_stream_mode_description">სტრიმინგი ინტერნეტით WebRTC-ის გამოყენებით</string>
     <string name="webrtc_stream_mode_details">
 - უზრუნველყოფილია WebRTC ტექნოლოგიით.\n
-        - ბოლოდან ბოლომდე დაშიფრული კომუნიკაცია.\n
-        - ნაკადის დაცვა პაროლით.\n
-        - შეუძლია ვიდეო და აუდიოს გაგზავნა.\n
-        - დაკავშირება უნიკალური ნაკადის ID და პაროლის გამოყენებით.\n
-        - სტრიმინგისთვის საჭიროა ინტერნეტ კავშირი.\n
-        - ინდივიდუალური მონაცემთა გადაცემა თითოეული კლიენტისთვის (უფრო მეტი კლიენტი გყავთ, მეტი ინტერნეტ გამტარობა გჭირდებათ).
+- ბოლოდან ბოლომდე დაშიფრული კომუნიკაცია.\n
+- ნაკადის დაცვა პაროლით.\n
+- შეუძლია ვიდეო და აუდიოს გაგზავნა.\n
+- დაკავშირება უნიკალური ნაკადის ID და პაროლის გამოყენებით.\n
+- სტრიმინგისთვის საჭიროა ინტერნეტ კავშირი.\n
+- თითოეული კლიენტი ცალკე ინტერნეტ გამტარობას იყენებს.
 </string>
 
     <string name="webrtc_stream_network_recovery">კავშირი დაიკარგა. ხელახლა უკავშირდება…</string>
-    <string name="webrtc_stream_server_address">ნაკადზე წვდომა აქ: %1$s</string>
+    <string name="webrtc_stream_server_address">ნაკადზე წვდომა აქ:\n%1$s</string>
     <string name="webrtc_stream_stream_id_getting">მიმდინარეობს ნაკადის ID-ის მიღება…</string>
     <string name="webrtc_stream_stream_id">ნაკადის ID: %1$s</string>
     <string name="webrtc_stream_stream_password">სტრიმინგის პაროლი: %1$s</string>
@@ -34,7 +34,7 @@
     <string name="webrtc_stream_audio_mic_summary">მიკროფონის აუდიოს სტრიმი</string>
     <string name="webrtc_stream_audio_device">შიდა აუდიო</string>
     <string name="webrtc_stream_audio_device_summary">ამ მოწყობილობის მედია აუდიოს სტრიმი</string>
-    <string name="webrtc_stream_audio_capture_unavailable">აუდიო ჩაწერის პრობლემა გამოვლინდა</string>
+    <string name="webrtc_stream_audio_capture_unavailable">აუდიოს ჩაწერა მიუწვდომელია</string>
     <string name="webrtc_stream_connected_clients">დაკავშირებული კლიენტები: %1$d</string>
     <string name="webrtc_stream_no_web_browser_found">ვებ ბრაუზერი ვერ მოიძებნა</string>
     <string name="webrtc_stream_external_app_error">გარე განაცხადის შეცდომა</string>
@@ -58,8 +58,8 @@
     <string name="webrtc_error_play_integrity_install_play_store">გთხოვთ დააინსტალიროთ ან ჩართოთ ოფიციალური Google Play Store</string>
     <string name="webrtc_error_play_integrity_install_play_service">გთხოვთ, დააინსტალიროთ ან ჩართოთ Play Services</string>
     <string name="webrtc_error_play_integrity_update_play_service">გთხოვთ განაახლოთ Google Play Services</string>
-    <string name="webrtc_error_check_network">გთხოვთ, შეამოწმოთ ინტერნეტთან დაკავშირება</string>
+    <string name="webrtc_error_check_network">შეამოწმეთ ინტერნეტკავშირი</string>
     <string name="webrtc_error_incomplete_installation">აპის ინსტალაცია არასრულია. გთხოვთ, ხელახლა დააყენოთ აპი Google Play-დან.</string>
-    <string name="webrtc_notification_permission_required">აპლიკაცია მოითხოვს შეტყობინებების ჩართვას სტრიმინგის სერვისის დასაწყებად. გთხოვთ, ჩართოთ შეტყობინებები აპლიკაციის პარამეტრებში.</string>
+    <string name="webrtc_notification_permission_required">სტრიმინგის სერვისის დასაწყებად ამ აპს შეტყობინებები ჩართული უნდა ჰქონდეს.\nჩართეთ შეტყობინებები აპის პარამეტრებში.</string>
     <string name="webrtc_error_unspecified">Რაღაც არასწორად წავიდა. Გთხოვთ სცადოთ მოგვიანებით.</string>
 </resources>

@@ -3,18 +3,18 @@
     <string name="mjpeg_error_open_settings">Bukak setelan</string>
     <string name="mjpeg_close">Nutup</string>
 
-    <string name="mjpeg_stream_mode">Mode lokal (MJPEG)</string>
-    <string name="mjpeg_stream_mode_description">Katrangan mode lokal</string>
+    <string name="mjpeg_stream_mode">Mode lokal · MJPEG</string>
+    <string name="mjpeg_stream_mode_description">Streaming liwat jaringan lokal</string>
     <string name="mjpeg_stream_mode_details">
-- Powered by standar MJPEG.\n
-        - Gunakake PIN kanggo keamanan (ora ana enkripsi).\n
-        - Ngirim video minangka seri gambar independen (ora ana audio).\n
-        - Bisa tanpa sambungan internet ing jaringan lokal.\n
-        - Server HTTP sing dipasang.\n
-        - Bisa nganggo WiFi lan/utawa jaringan seluler, ndhukung IPv4 lan IPv6.\n
-        - Klien nyambung liwat browser web nggunakake alamat IP sing diwenehake app.\n
-        - Highly customizable.\n
-        - Transmisi data individu kanggo saben klien (luwih akeh klien sing sampeyan duwe, luwih akeh bandwidth sing dibutuhake).
+- Nggunakake MJPEG.\n
+- Perlindungan PIN, tanpa enkripsi.\n
+- Mung video, dikirim minangka gambar kapisah.\n
+- Mlaku ing jaringan lokal, ora perlu internet.\n
+- Server HTTP bawaan.\n
+- Ndhukung Wi-Fi, jaringan seluler, IPv4, lan IPv6.\n
+- Klien nyambung ing browser nganggo alamat app.\n
+- Gampang dikonfigurasi.\n
+- Saben klien nggunakake bandwidth kapisah.
 </string>
 
     <string name="mjpeg_item_address">Alamat piranti:</string>
@@ -41,11 +41,11 @@
     <string name="mjpeg_stream_client_connected">Nyambung</string>
     <string name="mjpeg_stream_client_blocked">Diblokir</string>
     <string name="mjpeg_stream_start">Miwiti stream</string>
-    <string name="mjpeg_stream_stop">Stop stream</string>
+    <string name="mjpeg_stream_stop">Mandhegake stream</string>
     <string name="mjpeg_slow_client_connection">Sambungan klien alon dideteksi</string>
 
-    <string name="mjpeg_pref_header">Setelan mode lokal (MJPEG).</string>
-    <string name="mjpeg_pref_settings_general">Parameter umum</string>
+    <string name="mjpeg_pref_header">Setelan mode lokal · MJPEG</string>
+    <string name="mjpeg_pref_settings_general">Setelan umum</string>
     <string name="mjpeg_pref_keep_awake">Tansah piranti siyaga</string>
     <string name="mjpeg_pref_keep_awake_summary">Tansah piranti lan layar siyaga nalika streaming</string>
     <string name="mjpeg_pref_stop_on_sleep">Mungkasi stream nalika turu</string>
@@ -66,7 +66,7 @@
     <string name="mjpeg_pref_html_fit_window">Pas gambar menyang jendhela browser</string>
     <string name="mjpeg_pref_html_fit_window_summary">Skala gambar ing browser menyang kebekan jendhela</string>
 
-    <string name="mjpeg_pref_settings_image">Parameter gambar</string>
+    <string name="mjpeg_pref_settings_image">Setelan gambar</string>
     <string name="mjpeg_pref_vr_mode">Mode kasunyatan virtual</string>
     <string name="mjpeg_pref_vr_mode_summary">Jupuk isi saka setengah layar</string>
     <string-array name="mjpeg_pref_vr_mode_options">
@@ -84,15 +84,15 @@
     <string name="mjpeg_pref_crop_warning">Potong bakal diabaikan yen asil gambar kosong</string>
     <string name="mjpeg_pref_crop_error">Ketik nilai potong sing bener</string>
     <string name="mjpeg_pref_grayscale">Mode skala abu-abu</string>
-    <string name="mjpeg_pref_grayscale_summary">Gambar grayscale sadurunge dikirim menyang klien</string>
+    <string name="mjpeg_pref_grayscale_summary">Owahi gambar dadi grayscale sadurunge dikirim</string>
     <string name="mjpeg_pref_resize">Ngowahi ukuran gambar</string>
     <string name="mjpeg_pref_resize_summary">Ganti ukuran gambar sadurunge dikirim menyang klien</string>
-    <string name="mjpeg_pref_resize_mode_percent">Owahi ukuran nganggo persen</string>
+    <string name="mjpeg_pref_resize_mode_percent">Ganti ukuran miturut persentase</string>
     <string name="mjpeg_pref_resize_mode_resolution">Resolusi pas</string>
     <string name="mjpeg_pref_resize_width">Amba:</string>
     <string name="mjpeg_pref_resize_height">Dhuwur:</string>
     <string name="mjpeg_pref_resize_stretch">Tarik supaya pas</string>
-    <string name="mjpeg_pref_resize_text">Setel faktor pangowahan ukuran gambar ing persen. Nilai: 10–150 Default: 50 Ukuran layar: %1$dx%2$d</string>
+    <string name="mjpeg_pref_resize_text">Setel faktor pangowahan ukuran gambar ing persen.\nNilai: 10–150\nDefault: 50\nUkuran layar: %1$dx%2$d</string>
     <string name="mjpeg_pref_resize_result">Ukuran gambar: %1$dx%2$d</string>
     <string name="mjpeg_pref_rotate">Puter gambar searah jarum jam</string>
     <string name="mjpeg_pref_rotate_summary">Puter gambar sadurunge dikirim menyang klien</string>
@@ -105,16 +105,16 @@
     </string-array>
     <string name="mjpeg_pref_fps">Watesan pigura per detik</string>
     <string name="mjpeg_pref_fps_summary">Setel pigura maksimum saben detik</string>
-    <string name="mjpeg_pref_fps_text">Setel pigura maksimum saben detik. Nilai: 1/10–120 Default: 30</string>
+    <string name="mjpeg_pref_fps_text">Setel pigura maksimum saben detik.\nNilai: 1/10–120\nDefault: 30</string>
     <string name="mjpeg_pref_fps_low_mode_text">Watesi tarif pigura dadi siji pigura saben %d detik, cocog kanggo layar E-Ink.</string>
     <string name="mjpeg_pref_jpeg_quality">Kualitas kompresi JPEG</string>
     <string name="mjpeg_pref_jpeg_quality_summary">Setel kualitas kompresi JPEG</string>
-    <string name="mjpeg_pref_jpeg_quality_text">Setel kualitas kompresi JPEG. Nilai: 10–100 Default: 80</string>
+    <string name="mjpeg_pref_jpeg_quality_text">Setel kualitas kompresi JPEG.\nNilai: 10–100\nDefault: 80</string>
 
-    <string name="mjpeg_pref_settings_security">Parameter keamanan</string>
+    <string name="mjpeg_pref_settings_security">Setelan keamanan</string>
     <string name="mjpeg_pref_enable_pin">Aktifake pin</string>
     <string name="mjpeg_pref_enable_pin_summary">Nglindhungi akses kanggo stream karo pin</string>
-    <string name="mjpeg_pref_hide_pin">Singidaken otomatis pin ing wiwitan stream</string>
+    <string name="mjpeg_pref_hide_pin">Singidaken PIN otomatis nalika stream diwiwiti</string>
     <string name="mjpeg_pref_hide_pin_summary">Tampilake tanda bintang tinimbang pin nalika streaming</string>
     <string name="mjpeg_pref_new_pin_on_start">Pin anyar ing wiwitan</string>
     <string name="mjpeg_pref_new_pin_on_start_summary">Nggawe pin anyar ing wiwitan aplikasi</string>
@@ -122,11 +122,11 @@
     <string name="mjpeg_pref_auto_change_pin_summary">Gawe pin anyar kanggo saben stream anyar</string>
     <string name="mjpeg_pref_set_pin">Setel pin</string>
     <string name="mjpeg_pref_set_pin_summary">Ketik pin kanthi manual</string>
-    <string name="mjpeg_pref_set_pin_text">Ketik pin. Default: 000000</string>
+    <string name="mjpeg_pref_set_pin_text">Ketik pin.\nDefault: 000000</string>
     <string name="mjpeg_pref_block_address">Blokir alamat IP</string>
     <string name="mjpeg_pref_block_address_summary">Blokir alamat IP klien sawise 5 salah pin nyoba kanggo 5 menit</string>
 
-    <string name="mjpeg_pref_settings_advanced">Parameter majeng</string>
+    <string name="mjpeg_pref_settings_advanced">Setelan lanjut</string>
     <string name="mjpeg_pref_interface_filter">Panyaring antarmuka</string>
     <string name="mjpeg_pref_interface_filter_summary">Pilih antarmuka jaringan kanggo server</string>
     <string name="mjpeg_pref_filter_wifi">Wi-Fi</string>
@@ -141,9 +141,9 @@
     <string name="mjpeg_pref_filter_localhost">Localhost</string>
     <string name="mjpeg_pref_filter_public">Umum</string>
     <string name="mjpeg_pref_enable_ipv4">Aktifake IPv4</string>
-    <string name="mjpeg_pref_enable_ipv4_summary">Jalukake server ing alamat IPv4</string>
+    <string name="mjpeg_pref_enable_ipv4_summary">Jalanake server ing alamat IPv4</string>
     <string name="mjpeg_pref_enable_ipv6">Aktifake IPv6</string>
-    <string name="mjpeg_pref_enable_ipv6_summary">Jalukake server ing alamat IPv6</string>
+    <string name="mjpeg_pref_enable_ipv6_summary">Jalanake server ing alamat IPv6</string>
     <string name="mjpeg_label_ipv4_lan">IPv4 LAN</string>
     <string name="mjpeg_label_ipv6_ula">IPv6 ULA</string>
     <string name="mjpeg_label_public_ipv4">IPv4 umum</string>
@@ -151,12 +151,12 @@
     <string name="mjpeg_label_loopback">Loopback</string>
     <string name="mjpeg_pref_server_port">Port server</string>
     <string name="mjpeg_pref_server_port_summary">Setel port kanggo sambungan mlebu</string>
-    <string name="mjpeg_pref_server_port_text">Setel port server kanggo sambungan mlebu. Angka: 1025–65535 Default: 8080</string>
+    <string name="mjpeg_pref_server_port_text">Setel port server kanggo sambungan mlebu.\nAngka: 1025–65535\nDefault: 8080</string>
 
     <string name="mjpeg_error_port_in_use">Port wis dienggo. Pilih liyane.</string>
-    <string name="mjpeg_error_invalid_media_projection">Kesalahan keamanan: Proyeksi media ora valid. Coba sepisan maneh.</string>
-    <string name="mjpeg_error_ip_address_not_found">Alamat IP ora ditemokake. Coba mateni \"Gunakake WiFi mung\" ing setelan stream.</string>
-    <string name="mjpeg_error_notification_permission_required">Aplikasi mbutuhake kabar supaya bisa diaktifake kanggo miwiti layanan streaming. Mangga aktifake kabar ing setelan aplikasi.</string>
+    <string name="mjpeg_error_invalid_media_projection">Kesalahan keamanan: ijin tangkapan layar ora valid. Coba maneh.</string>
+    <string name="mjpeg_error_ip_address_not_found">Alamat IP ora ditemokake.\nCoba atur filter jaringan ing setelan stream.</string>
+    <string name="mjpeg_error_notification_permission_required">Aplikasi iki mbutuhake kabar aktif kanggo miwiti layanan streaming.\nAktifake kabar ing setelan aplikasi.</string>
     <string name="mjpeg_error_unspecified">Ana sing salah. Mangga nyoba maneh mengko.</string>
 
     <string name="mjpeg_start_image_text">Miwiti stream ing piranti</string>
@@ -165,7 +165,7 @@
     <string name="mjpeg_html_stream_connecting">Nyoba nyambungake</string>
     <string name="mjpeg_html_stream_reconnecting">Nyambung maneh…</string>
     <string name="mjpeg_html_stream_require_pin">Stream iki mbutuhake PIN kanggo ngakses</string>
-    <string name="mjpeg_html_enter_pin">Ketik pin:\\u0020</string>
+    <string name="mjpeg_html_enter_pin">Ketik PIN:\u0020</string>
     <string name="mjpeg_html_submit_pin">Kirimake</string>
     <string name="mjpeg_html_wrong_pin">Salah pin!</string>
     <string name="mjpeg_html_address_blocked">Alamat klien diblokir</string>

@@ -3,8 +3,8 @@
     <string name="rtsp_error_recover">Recuperar</string>
     <string name="rtsp_error_open_settings">Abrir ajustes</string>
 
-    <string name="rtsp_stream_mode">Modo RTSP (RTSP)</string>
-    <string name="rtsp_stream_mode_description">Descripción del modo RTSP</string>
+    <string name="rtsp_stream_mode">Modo RTSP · RTSP</string>
+    <string name="rtsp_stream_mode_description">Transmitir con un cliente o servidor RTSP</string>
     <string name="rtsp_stream_mode_details">
 - Funciona con el protocolo RTSP.\n
 - El modo servidor (predeterminado) aloja este dispositivo como servidor RTSP.\n
@@ -22,7 +22,7 @@
     <string name="rtsp_mode_client_hint">Conectar a un servidor RTSP remoto</string>
 
     <string name="rtsp_interfaces_title">Dirección del servidor RTSP</string>
-    <string name="rtsp_interfaces_no_address">No se encontró ninguna dirección.\nCompruebe la conexión o Parámetros del servidor (Filtro de interfaz, Filtro de dirección).</string>
+    <string name="rtsp_interfaces_no_address">No se encontró ninguna dirección.\nCompruebe la conexión o modifique los ajustes del servidor (Filtro de interfaz, Filtro de dirección).</string>
     <string name="rtsp_interfaces_discovering">Buscando direcciones…</string>
     <string name="rtsp_interfaces_interface_label">Interfaz:\n%1$s</string>
     <string name="rtsp_interfaces_description_copy">Copiar dirección</string>
@@ -35,16 +35,16 @@
     <string name="rtsp_bind_error_port_in_use">Error: Puerto en uso</string>
     <string name="rtsp_bind_error_address_not_available">Error: Dirección no disponible</string>
     <string name="rtsp_bind_error_permission_denied">Error: Permiso denegado</string>
-    <string name="rtsp_bind_error_unknown">Error: Fallo del listener</string>
+    <string name="rtsp_bind_error_unknown">Error: fallo al escuchar</string>
 
-    <string name="rtsp_server_parameters">Parámetros del servidor</string>
-    <string name="rtsp_client_parameters">Parámetros del cliente</string>
+    <string name="rtsp_server_parameters">Ajustes del servidor</string>
+    <string name="rtsp_client_parameters">Ajustes del cliente</string>
 
     <string name="rtsp_stream_start">Iniciar transmisión</string>
     <string name="rtsp_stream_stop">Detener transmisión</string>
 
-    <string name="rtsp_error_notification_permission_required">La aplicación requiere que las notificaciones estén habilitadas para iniciar el servicio de transmisión.\nPor favor, active las notificaciones en los ajustes de la aplicación.</string>
-    <string name="rtsp_error_ip_address_not_found">No se encontró ninguna dirección. Compruebe la conexión o Parámetros del servidor (Filtro de interfaz, Filtro de dirección).</string>
+    <string name="rtsp_error_notification_permission_required">Esta app necesita las notificaciones activadas para iniciar el servicio de transmisión.\nActiva las notificaciones en los ajustes de la app.</string>
+    <string name="rtsp_error_ip_address_not_found">No se encontró ninguna dirección. Compruebe la conexión o modifique los ajustes del servidor (Filtro de interfaz, Filtro de dirección).</string>
     <string name="rtsp_error_unspecified">Algo salió mal.</string>
 
     <string name="rtsp_media_server">Servidor multimedia</string>
@@ -62,7 +62,7 @@
     <string name="rtsp_label_public_ipv6">IPv6 pública</string>
     <string name="rtsp_label_loopback">Loopback</string>
 
-    <string name="rtsp_video_parameters">Parámetros de video</string>
+    <string name="rtsp_video_parameters">Ajustes de video</string>
     <string name="rtsp_video_encoder">Codificador de video:</string>
     <string name="rtsp_video_encoder_auto">Auto</string>
     <string name="rtsp_video_resize_image">Redimensionar imagen: %1$.2f%%</string>
@@ -75,19 +75,19 @@
     <string name="rtsp_video_bitrate_mbit">%.2f Mbit</string>
     <string name="rtsp_video_bitrate_kbit">%d Kbit</string>
 
-    <string name="rtsp_audio_parameters">Parámetros de audio</string>
+    <string name="rtsp_audio_parameters">Ajustes de audio</string>
     <string name="rtsp_audio_mic">Micrófono</string>
     <string name="rtsp_audio_mic_mute">Silenciar micrófono</string>
-    <string name="rtsp_audio_device">Audio del dispositivo</string>
-    <string name="rtsp_audio_device_mute">Silenciar audio del dispositivo</string>
+    <string name="rtsp_audio_device">Audio interno</string>
+    <string name="rtsp_audio_device_mute">Silenciar audio interno</string>
     <string name="rtsp_audio_encoder">Codificador de audio:</string>
     <string name="rtsp_audio_encoder_auto">Auto</string>
     <string name="rtsp_audio_bitrate">Tasa de bits de audio: %1$s/seg</string>
     <string name="rtsp_audio_permission_title">Permitir grabación de audio</string>
-    <string name="rtsp_audio_permission_message">El permiso para grabar audio es necesario para que la aplicación transmita contenido de audio.\n\nSin conceder este permiso, la transmisión será sin audio.</string>
+    <string name="rtsp_audio_permission_message">Se requiere permiso para grabar audio para transmitir audio.\n\nSin él, la transmisión no tendrá audio.</string>
     <string name="rtsp_audio_permission_open_settings">Abrir ajustes</string>
-    <string name="rtsp_audio_permission_message_settings">Otorgar acceso al micrófono en los permisos de la aplicación es necesario para que la aplicación transmita contenido de audio.\n\nSin conceder este permiso, la transmisión se realizará sin audio.</string>
-    <string name="rtsp_audio_capture_issue_detected">Se detectó un problema en la captura de audio</string>
+    <string name="rtsp_audio_permission_message_settings">Activa el permiso del micrófono en los ajustes de la app para transmitir audio.\n\nSin él, la transmisión no tendrá audio.</string>
+    <string name="rtsp_audio_capture_issue_detected">Problema de captura de audio detectado</string>
 
     <string name="rtsp_connection_access_denied">Acceso denegado</string>
     <string name="rtsp_connection_no_credentials">Especifique usuario y contraseña</string>
@@ -115,5 +115,5 @@
     <string name="rtsp_pref_enable_ipv6_summary">Ejecutar servidor en direcciones IPv6</string>
     <string name="rtsp_pref_server_port">Puerto del Servidor</string>
     <string name="rtsp_pref_server_port_summary">Puerto para conexiones entrantes</string>
-    <string name="rtsp_pref_server_port_text">Puerto para conexiones entrantes.\nValores: 1025–65535\nPor defecto: 8554</string>
+    <string name="rtsp_pref_server_port_text">Defina el puerto del servidor para conexiones entrantes.\nValores: 1025–65535\nPredeterminado: 8554</string>
 </resources>

@@ -3,8 +3,8 @@
     <string name="webrtc_error_recover">Recover</string>
     <string name="webrtc_error_open_settings">Open settings</string>
 
-    <string name="webrtc_stream_mode">Global mode (WebRTC)</string>
-    <string name="webrtc_stream_mode_description">Global mode description</string>
+    <string name="webrtc_stream_mode">Global mode · WebRTC</string>
+    <string name="webrtc_stream_mode_description">Stream over the internet with WebRTC</string>
     <string name="webrtc_stream_mode_details">
 - Powered by WebRTC technology.\n
 - End-to-end encrypted communication.\n
@@ -12,11 +12,11 @@
 - Can send video and audio.\n
 - Connect using unique stream ID and password.\n
 - Requires an internet connection for streaming.\n
-- Individual data transmission for each client (more clients you have, more Internet bandwidth you need).
+- Each client uses separate internet bandwidth.
 </string>
 
     <string name="webrtc_stream_network_recovery">Connection lost. Reconnecting…</string>
-    <string name="webrtc_stream_server_address">Access stream at:\n%1$s</string>
+    <string name="webrtc_stream_server_address">Access the stream at:\n%1$s</string>
     <string name="webrtc_stream_stream_id_getting">Getting Stream ID…</string>
     <string name="webrtc_stream_stream_id">Stream ID: %1$s</string>
     <string name="webrtc_stream_stream_password">Stream password: %1$s</string>
@@ -29,7 +29,7 @@
     <string name="webrtc_stream_description_qr_address">Show address as QR code</string>
     <string name="webrtc_stream_description_qr">QR code</string>
     <string name="webrtc_stream_copied">Copied</string>
-    <string name="webrtc_stream_audio_parameters">Audio parameters</string>
+    <string name="webrtc_stream_audio_parameters">Audio settings</string>
     <string name="webrtc_stream_audio_mic">Microphone</string>
     <string name="webrtc_stream_audio_mic_summary">Stream microphone audio</string>
     <string name="webrtc_stream_audio_device">Internal audio</string>
@@ -42,7 +42,7 @@
     <string name="webrtc_stream_start">Start stream</string>
     <string name="webrtc_stream_stop">Stop stream</string>
 
-    <string name="webrtc_stream_other_parameters">Other parameters</string>
+    <string name="webrtc_stream_other_parameters">Other settings</string>
     <string name="webrtc_stream_keep_awake">Keep device awake</string>
     <string name="webrtc_stream_keep_awake_summary">Keep device and screen awake while streaming</string>
     <string name="webrtc_stream_stop_on_sleep">Stop stream on sleep</string>
@@ -58,8 +58,8 @@
     <string name="webrtc_error_play_integrity_install_play_store">Please install or enable official Google Play Store</string>
     <string name="webrtc_error_play_integrity_install_play_service">Please install or enable Play Services</string>
     <string name="webrtc_error_play_integrity_update_play_service">Please update Google Play Services</string>
-    <string name="webrtc_error_check_network">Please check for Internet connectivity</string>
+    <string name="webrtc_error_check_network">Check your internet connection</string>
     <string name="webrtc_error_incomplete_installation">App installation is incomplete. Please reinstall the app from Google Play.</string>
-    <string name="webrtc_notification_permission_required">Application requires notifications to be enabled to start streaming service.\nPlease enable notifications in application settings.</string>
+    <string name="webrtc_notification_permission_required">This app needs notifications enabled to start the streaming service.\nEnable notifications in app settings.</string>
     <string name="webrtc_error_unspecified">Something went wrong. Please try again later.</string>
 </resources>
