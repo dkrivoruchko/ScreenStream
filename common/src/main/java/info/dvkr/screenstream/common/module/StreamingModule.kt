@@ -1,6 +1,8 @@
 package info.dvkr.screenstream.common.module
 
+import android.app.BackgroundServiceStartNotAllowedException
 import android.content.Context
+import android.os.Build
 import androidx.annotation.MainThread
 import androidx.annotation.StringRes
 import androidx.compose.runtime.Composable
@@ -59,4 +61,17 @@ public interface StreamingModule {
 
     @MainThread
     public fun stopStream(reason: String)
+
+    public class StartBlockedException(
+        public val moduleId: Id,
+        public val importance: Int,
+        cause: Throwable
+    ) : IllegalStateException(
+        "Service start blocked for module $moduleId, importance=$importance: ${cause.javaClass.simpleName}: ${cause.message}",
+        cause
+    )
 }
+
+public fun Throwable.isStreamingModuleStartBlocked(): Boolean =
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) this is BackgroundServiceStartNotAllowedException
+    else this is IllegalStateException

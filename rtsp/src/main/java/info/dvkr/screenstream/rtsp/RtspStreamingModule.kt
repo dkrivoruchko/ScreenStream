@@ -1,5 +1,6 @@
 package info.dvkr.screenstream.rtsp
 
+import android.app.ActivityManager
 import android.app.Service
 import android.content.Context
 import android.content.Intent
@@ -10,6 +11,7 @@ import androidx.compose.ui.Modifier
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.common.module.StreamingModule
+import info.dvkr.screenstream.common.module.isStreamingModuleStartBlocked
 import info.dvkr.screenstream.rtsp.internal.RtspEvent
 import info.dvkr.screenstream.rtsp.internal.RtspStreamingService
 import info.dvkr.screenstream.rtsp.settings.RtspSettings
@@ -84,12 +86,17 @@ public class RtspStreamingModule : StreamingModule {
             StreamingModule.State.Initiated -> {
                 startToken = Uuid.random().toString()
                 _streamingServiceState.value = StreamingModule.State.PendingStart
+                val intent = RtspEvent.Intentable.StartService(startToken!!).toIntent(context)
                 try {
-                    RtspModuleService.startService(context, RtspEvent.Intentable.StartService(startToken!!).toIntent(context))
-                } catch (t: Throwable) {
+                    RtspModuleService.startService(context, intent)
+                } catch (error: Throwable) {
                     startToken = null
                     _streamingServiceState.value = StreamingModule.State.Initiated
-                    throw t
+                    if (error.isStreamingModuleStartBlocked()) {
+                        val importance = ActivityManager.RunningAppProcessInfo().also { ActivityManager.getMyMemoryState(it) }.importance
+                        throw StreamingModule.StartBlockedException(id, importance, error)
+                    }
+                    throw error
                 }
             }
 
