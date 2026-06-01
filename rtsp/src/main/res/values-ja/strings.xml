@@ -61,6 +61,7 @@
     <string name="rtsp_label_public_ipv4">パブリックIPv4</string>
     <string name="rtsp_label_public_ipv6">パブリックIPv6</string>
     <string name="rtsp_label_loopback">ループバック</string>
+    <string name="rtsp_label_interface" translatable="false">%1$s (%2$s)</string>
 
     <string name="rtsp_video_parameters">動画設定</string>
     <string name="rtsp_video_encoder">動画エンコーダー：</string>
@@ -96,6 +97,8 @@
     <string name="rtsp_close">閉じる</string>
     <string name="rtsp_pref_protocol">RTSPプロトコル</string>
     <string name="rtsp_pref_protocol_summary">RTPパケットの転送方式を選択</string>
+    <string name="rtsp_pref_audio_only">音声のみ</string>
+    <string name="rtsp_pref_audio_only_summary">動画なしで音声を配信</string>
     <string name="rtsp_pref_interface_filter">インターフェースフィルター</string>
     <string name="rtsp_pref_interface_filter_summary">サーバー用のネットワークインターフェースを選択</string>
     <string name="rtsp_pref_interface_filter_wifi">Wi-Fi</string>

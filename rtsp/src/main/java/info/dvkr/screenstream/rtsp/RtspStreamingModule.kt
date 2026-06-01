@@ -229,6 +229,7 @@ public class RtspStreamingModule : StreamingModule {
                 is RtspEvent.StartProjection,
                 is RtspEvent.CastPermissionsDenied,
                 is RtspEvent.Intentable.StopStream,
+                RtspStreamingService.InternalEvent.StartMicrophoneAudioOnlyStream,
                 is RtspStreamingService.InternalEvent.StartStream ->
                     XLog.i(getLog("sendEvent", "Ignoring stale event in state=$state: $event"))
 

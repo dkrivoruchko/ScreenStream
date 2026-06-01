@@ -9,6 +9,12 @@ import info.dvkr.screenstream.common.getVersionName
 import info.dvkr.screenstream.common.randomString
 import info.dvkr.screenstream.mjpeg.R
 import info.dvkr.screenstream.mjpeg.internal.HttpServerData.Companion.getClientId
+import info.dvkr.screenstream.mjpeg.internal.audio.MjpegAudioPacket
+import info.dvkr.screenstream.mjpeg.internal.audio.OggOpusMuxer
+import info.dvkr.screenstream.mjpeg.internal.mp4.Mp4AudioPacket
+import info.dvkr.screenstream.mjpeg.internal.mp4.Mp4BoxWriter
+import info.dvkr.screenstream.mjpeg.internal.mp4.Mp4StreamConfig
+import info.dvkr.screenstream.mjpeg.internal.mp4.Mp4VideoPacket
 import info.dvkr.screenstream.mjpeg.settings.MjpegSettings
 import info.dvkr.screenstream.mjpeg.ui.MjpegError
 import io.ktor.http.CacheControl
@@ -71,11 +77,13 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.onStart
@@ -99,6 +107,10 @@ internal class HttpServer(
     context: Context,
     private val mjpegSettings: MjpegSettings,
     private val bitmapStateFlow: StateFlow<Bitmap>,
+    private val audioPacketFlow: SharedFlow<MjpegAudioPacket>,
+    private val mp4ConfigFlow: StateFlow<Mp4StreamConfig?>,
+    private val mp4VideoPacketFlow: SharedFlow<Mp4VideoPacket>,
+    private val mp4AudioPacketFlow: SharedFlow<Mp4AudioPacket>,
     private val sendEvent: (MjpegEvent) -> Unit
 ) {
     private val debuggable = context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0
@@ -135,6 +147,21 @@ internal class HttpServer(
         val fitWindow: Boolean,
         val keepImageOnReconnect: Boolean
     )
+
+    private sealed class Mp4Sample {
+        abstract val generation: Long
+        abstract val timestampUs: Long
+
+        data class Video(val packet: Mp4VideoPacket) : Mp4Sample() {
+            override val generation: Long = packet.generation
+            override val timestampUs: Long = packet.timestampUs
+        }
+
+        data class Audio(val packet: Mp4AudioPacket) : Mp4Sample() {
+            override val generation: Long = packet.generation
+            override val timestampUs: Long = packet.timestampUs
+        }
+    }
 
     init {
         XLog.d(getLog("init"))
@@ -369,6 +396,64 @@ internal class HttpServer(
                 }
             }
 
+            if (serverData.audioAddress.isNotEmpty()) {
+                get(serverData.audioAddress) {
+                    val clientId = call.request.getClientId()
+                    val remoteAddress = call.request.origin.remoteAddress
+                    val remotePort = call.request.origin.remotePort
+
+                    if (serverData.isClientAllowed(clientId, remoteAddress).not()) {
+                        call.respond(HttpStatusCode.Forbidden)
+                        return@get
+                    }
+
+                    fun stopClientStream(channel: ByteWriteChannel) = channel.isClosedForWrite || serverData.isAddressBlocked(remoteAddress) ||
+                            serverData.isDisconnected(clientId, remoteAddress, remotePort)
+
+                    call.respond(object : OutgoingContent.WriteChannelContent() {
+                        override val status: HttpStatusCode = HttpStatusCode.OK
+                        override val contentType: ContentType = ContentType.parse("audio/ogg; codecs=opus")
+
+                        override suspend fun writeTo(channel: ByteWriteChannel) {
+                            var currentGeneration = -1L
+                            var muxer: OggOpusMuxer? = null
+
+                            audioPacketFlow
+                                .onStart {
+                                    XLog.i(this@appModule.getLog("audio.onStart", "Client: $clientId:$remotePort"))
+                                    serverData.addConnected(clientId, remoteAddress, remotePort)
+                                }
+                                .onCompletion {
+                                    XLog.i(this@appModule.getLog("audio.onCompletion", "Client: $clientId:$remotePort"))
+                                    serverData.setDisconnected(clientId, remoteAddress, remotePort)
+                                }
+                                .takeWhile { stopClientStream(channel).not() }
+                                .onEach { packet ->
+                                    if (stopClientStream(channel)) return@onEach
+
+                                    if (packet.generation != currentGeneration) {
+                                        muxer?.eosPage()?.let { page -> channel.writeFully(page) }
+                                        currentGeneration = packet.generation
+                                        val newMuxer = OggOpusMuxer(channelCount = 2)
+                                        muxer = newMuxer
+                                        newMuxer.headerPages().forEach { page ->
+                                            channel.writeFully(page)
+                                            serverData.setNextBytes(clientId, remoteAddress, remotePort, page.size)
+                                        }
+                                    }
+
+                                    val page = muxer!!.audioPage(packet.data, packet.durationSamples)
+                                    channel.writeFully(page)
+                                    channel.flush()
+                                    serverData.setNextBytes(clientId, remoteAddress, remotePort, page.size)
+                                }
+                                .catch { /* Empty intentionally */ }
+                                .collect()
+                        }
+                    })
+                }
+            }
+
             webSocket("/socket") {
                 val clientId = call.request.getClientId()
                 val remoteAddress = call.request.origin.remoteAddress
@@ -379,8 +464,17 @@ internal class HttpServer(
                         frame as? Frame.Text ?: continue
                         val msg = runCatching { JSONObject(frame.readText()) }.getOrNull() ?: continue
 
-                        val enableButtons = mjpegSettings.data.value.htmlEnableButtons && serverData.enablePin.not()
-                        val streamData = JSONObject().put("enableButtons", enableButtons).put("streamAddress", serverData.streamAddress)
+                        val settings = mjpegSettings.data.value
+                        val enableButtons = settings.htmlEnableButtons && serverData.enablePin.not()
+                        val mp4Selected = settings.streamFormat == MjpegSettings.Values.STREAM_FORMAT_MP4
+                        val streamFormat = if (mp4Selected) "MP4" else "MJPEG"
+                        val streamAudioOnly = mp4Selected && settings.streamAudioOnly
+                        val streamData = JSONObject()
+                            .put("enableButtons", enableButtons)
+                            .put("streamAddress", serverData.streamAddress)
+                            .put("audioAddress", JSONObject.NULL)
+                            .put("audioOnly", streamAudioOnly)
+                            .put("streamFormat", streamFormat)
 
                         when (val type = msg.optString("type").uppercase()) {
                             "HEARTBEAT" -> send("HEARTBEAT", msg.optString("data"))
@@ -425,6 +519,65 @@ internal class HttpServer(
 
                 fun stopClientStream(channel: ByteWriteChannel) = channel.isClosedForWrite || serverData.isAddressBlocked(remoteAddress) ||
                         serverData.isDisconnected(clientId, remoteAddress, remotePort)
+
+                if (serverData.streamFormat == MjpegSettings.Values.STREAM_FORMAT_MP4) {
+                    call.respond(object : OutgoingContent.WriteChannelContent() {
+                        override val status: HttpStatusCode = HttpStatusCode.OK
+                        override val contentType: ContentType = ContentType.parse("video/mp4")
+
+                        override suspend fun writeTo(channel: ByteWriteChannel) {
+                            var sequence = 1
+                            XLog.i(this@appModule.getLog("mp4.onStart", "Client: $clientId:$remotePort"))
+                            serverData.addConnected(clientId, remoteAddress, remotePort)
+
+                            try {
+                                val config = mp4ConfigFlow
+                                    .filter { it != null }
+                                    .map { requireNotNull(it) }
+                                    .takeWhile { stopClientStream(channel).not() }
+                                    .firstOrNull() ?: return
+
+                                val initSegment = Mp4BoxWriter.initSegment(config)
+                                channel.writeFully(initSegment)
+                                channel.flush()
+                                serverData.setNextBytes(clientId, remoteAddress, remotePort, initSegment.size)
+
+                                val samples = merge(
+                                    mp4VideoPacketFlow.map { Mp4Sample.Video(it) },
+                                    mp4AudioPacketFlow.map { Mp4Sample.Audio(it) }
+                                )
+                                var timestampOffsetUs: Long? = null
+                                var videoStarted = config.video == null
+
+                                samples
+                                    .takeWhile { sample -> sample.generation == config.generation && stopClientStream(channel).not() }
+                                    .onEach { sample ->
+                                        if (stopClientStream(channel)) return@onEach
+                                        if (!videoStarted) {
+                                            val videoPacket = (sample as? Mp4Sample.Video)?.packet
+                                            if (videoPacket?.isKeyFrame != true) return@onEach
+                                            timestampOffsetUs = videoPacket.timestampUs
+                                            videoStarted = true
+                                        }
+                                        val offsetUs = timestampOffsetUs ?: sample.timestampUs.also { timestampOffsetUs = it }
+                                        val segment = when (sample) {
+                                            is Mp4Sample.Video -> Mp4BoxWriter.videoSegment(sequence++, sample.packet, offsetUs)
+                                            is Mp4Sample.Audio -> Mp4BoxWriter.audioSegment(sequence++, sample.packet, offsetUs)
+                                        }
+                                        channel.writeFully(segment)
+                                        channel.flush()
+                                        serverData.setNextBytes(clientId, remoteAddress, remotePort, segment.size)
+                                    }
+                                    .catch { /* Empty intentionally */ }
+                                    .collect()
+                            } finally {
+                                XLog.i(this@appModule.getLog("mp4.onCompletion", "Client: $clientId:$remotePort"))
+                                serverData.setDisconnected(clientId, remoteAddress, remotePort)
+                            }
+                        }
+                    })
+                    return@get
+                }
 
                 call.respond(object : OutgoingContent.WriteChannelContent() {
                     override val status: HttpStatusCode = HttpStatusCode.OK

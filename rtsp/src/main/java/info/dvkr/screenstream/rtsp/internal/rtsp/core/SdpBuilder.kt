@@ -15,15 +15,17 @@ import kotlin.io.encoding.Base64
 
 internal class SdpBuilder {
 
-    fun createSdpBody(videoParams: VideoParams, audioParams: AudioParams?, sdpSessionId: Int): String {
-        val spsString = videoParams.sps.encodeBase64()
-        val ppsString = videoParams.pps?.encodeBase64().orEmpty()
-        val vpsString = videoParams.vps?.encodeBase64().orEmpty()
-        val videoCodecBody = when (videoParams.codec) {
-            Codec.Video.H264 -> createH264Body(0, spsString, ppsString)
-            Codec.Video.H265 -> createH265Body(0, spsString, ppsString, vpsString)
-            Codec.Video.AV1 -> createAV1Body(0)
-        }
+    fun createSdpBody(videoParams: VideoParams?, audioParams: AudioParams?, sdpSessionId: Int): String {
+        val videoCodecBody = videoParams?.let { params ->
+            val spsString = params.sps.encodeBase64()
+            val ppsString = params.pps?.encodeBase64().orEmpty()
+            val vpsString = params.vps?.encodeBase64().orEmpty()
+            when (params.codec) {
+                Codec.Video.H264 -> createH264Body(0, spsString, ppsString)
+                Codec.Video.H265 -> createH265Body(0, spsString, ppsString, vpsString)
+                Codec.Video.AV1 -> createAV1Body(0)
+            }
+        }.orEmpty()
 
         val audioCodecBody = when (audioParams) {
             null -> ""

@@ -61,6 +61,7 @@
     <string name="rtsp_label_public_ipv4">IPv4 público</string>
     <string name="rtsp_label_public_ipv6">IPv6 público</string>
     <string name="rtsp_label_loopback">Loopback</string>
+    <string name="rtsp_label_interface" translatable="false">%1$s (%2$s)</string>
 
     <string name="rtsp_video_parameters">Configurações de vídeo</string>
     <string name="rtsp_video_encoder">Codificador de vídeo:</string>
@@ -96,6 +97,8 @@
     <string name="rtsp_close">Fechar</string>
     <string name="rtsp_pref_protocol">Protocolo RTSP</string>
     <string name="rtsp_pref_protocol_summary">Selecionar transporte para pacotes RTP</string>
+    <string name="rtsp_pref_audio_only">Somente áudio</string>
+    <string name="rtsp_pref_audio_only_summary">Transmitir áudio sem vídeo</string>
     <string name="rtsp_pref_interface_filter">Filtro de interface</string>
     <string name="rtsp_pref_interface_filter_summary">Selecionar interfaces de rede para servidor</string>
     <string name="rtsp_pref_interface_filter_wifi">Wi-Fi</string>

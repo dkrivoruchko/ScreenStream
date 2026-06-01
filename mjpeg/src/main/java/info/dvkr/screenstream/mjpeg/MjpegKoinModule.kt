@@ -20,7 +20,7 @@ public class MjpegKoinScope : KoinScopeComponent {
 internal val MjpegKoinQualifier: Qualifier = StringQualifier("MjpegStreamingModule")
 
 public val MjpegKoinModule: org.koin.core.module.Module = module {
-    single(MjpegKoinQualifier) { MjpegStreamingModule() } bind (StreamingModule::class)
+    single(MjpegKoinQualifier) { MjpegStreamingModule(get()) } bind (StreamingModule::class)
     single { MjpegSettingsImpl(context = get()) } bind (MjpegSettings::class)
     scope<MjpegKoinScope> {
         scoped { NetworkHelper(get()) }

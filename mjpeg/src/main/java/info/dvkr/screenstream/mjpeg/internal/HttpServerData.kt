@@ -128,7 +128,9 @@ internal class HttpServerData(private val sendEvent: (MjpegEvent) -> Unit) {
     @Volatile internal var enablePin: Boolean = false
     @Volatile internal var pin: String = ""
     @Volatile internal var blockAddress: Boolean = false
+    @Volatile internal var streamFormat: Int = MjpegSettings.Values.STREAM_FORMAT_MJPEG
     @Volatile internal var streamAddress: String = ""
+    @Volatile internal var audioAddress: String = ""
     @Volatile internal var jpegFallbackAddress: String = ""
 
     private val statisticScope = CoroutineScope(Job() + Dispatchers.Default)
@@ -145,8 +147,11 @@ internal class HttpServerData(private val sendEvent: (MjpegEvent) -> Unit) {
         enablePin = mjpegSettings.data.value.enablePin
         pin = mjpegSettings.data.value.pin
         blockAddress = mjpegSettings.data.value.blockAddress
+        streamFormat = if (mjpegSettings.data.value.streamFormat == MjpegSettings.Values.STREAM_FORMAT_MP4)
+            MjpegSettings.Values.STREAM_FORMAT_MP4 else MjpegSettings.Values.STREAM_FORMAT_MJPEG
         val streamAddressBase = if (enablePin) randomString(16) else "stream"
-        streamAddress = "$streamAddressBase.mjpeg"
+        streamAddress = if (streamFormat == MjpegSettings.Values.STREAM_FORMAT_MP4) "$streamAddressBase.mp4" else "$streamAddressBase.mjpeg"
+        audioAddress = if (streamFormat == MjpegSettings.Values.STREAM_FORMAT_MP4) "" else "$streamAddressBase.ogg"
         jpegFallbackAddress = "$streamAddressBase.jpeg"
     }
 

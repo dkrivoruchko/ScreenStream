@@ -3,7 +3,7 @@
     <string name="mjpeg_error_open_settings">Abrir configurações</string>
     <string name="mjpeg_close">Fechar</string>
 
-    <string name="mjpeg_stream_mode">Modo local · MJPEG</string>
+    <string name="mjpeg_stream_mode">Modo local · %1$s</string>
     <string name="mjpeg_stream_mode_description">Transmitir pela rede local</string>
     <string name="mjpeg_stream_mode_details">
 - Usa MJPEG.\n
@@ -65,8 +65,37 @@
     <string name="mjpeg_pref_html_back_color_title">Selecionar a cor de fundo</string>
     <string name="mjpeg_pref_html_fit_window">Ajustar imagem à janela do navegador</string>
     <string name="mjpeg_pref_html_fit_window_summary">Redimensionar imagem no navegador para largura/altura total da janela</string>
+    <string name="mjpeg_pref_stream_format">Stream format</string>
+    <string name="mjpeg_pref_stream_format_summary">Choose local stream video format</string>
+    <string name="mjpeg_pref_stream_format_text">MP4 uses H.264 video and AAC audio in one browser stream. MJPEG streams images only.</string>
+    <string name="mjpeg_pref_stream_format_mjpeg">MJPEG</string>
+    <string name="mjpeg_pref_stream_format_mp4">MP4</string>
+    <string name="mjpeg_pref_audio_only">Audio only</string>
+    <string name="mjpeg_pref_audio_only_summary">Stream audio without screen video</string>
+
+    <string name="mjpeg_audio_parameters">Audio settings</string>
+    <string name="mjpeg_audio_mic">Microphone</string>
+    <string name="mjpeg_audio_mic_mute">Mute microphone</string>
+    <string name="mjpeg_audio_device">Device audio</string>
+    <string name="mjpeg_audio_device_mute">Mute device audio</string>
+    <string name="mjpeg_audio_bitrate">Audio bitrate: %1$s</string>
+    <string name="mjpeg_audio_bitrate_mbit" translatable="false">%.1f Mbit/s</string>
+    <string name="mjpeg_audio_bitrate_kbit" translatable="false">%d Kbit/s</string>
+    <string name="mjpeg_audio_permission_title">Audio permission required</string>
+    <string name="mjpeg_audio_permission_message">Allow audio recording to stream microphone or device audio.</string>
+    <string name="mjpeg_audio_permission_message_settings">Audio permission is blocked. Enable microphone permission in app settings.</string>
+    <string name="mjpeg_audio_permission_open_settings">Open settings</string>
 
     <string name="mjpeg_pref_settings_image">Configurações de imagem</string>
+    <string name="mjpeg_pref_settings_video">Configurações de vídeo</string>
+    <string name="mjpeg_video_encoder">Video encoder</string>
+    <string name="mjpeg_video_encoder_summary">Select H.264 encoder for MP4 streams</string>
+    <string name="mjpeg_video_encoder_auto">Auto</string>
+    <string name="mjpeg_video_bitrate_title">Video bitrate</string>
+    <string name="mjpeg_video_bitrate_summary">Set MP4 video bitrate</string>
+    <string name="mjpeg_video_bitrate">Video bitrate: %1$s</string>
+    <string name="mjpeg_video_bitrate_mbit" translatable="false">%.1f Mbit/s</string>
+    <string name="mjpeg_video_bitrate_kbit" translatable="false">%d Kbit/s</string>
     <string name="mjpeg_pref_vr_mode">Modo de realidade virtual</string>
     <string name="mjpeg_pref_vr_mode_summary">Capturar conteúdo da metade da tela</string>
     <string-array name="mjpeg_pref_vr_mode_options">
@@ -87,6 +116,8 @@
     <string name="mjpeg_pref_grayscale_summary">Converter a imagem em tons de cinza antes de enviar</string>
     <string name="mjpeg_pref_resize">Redimensionar imagem</string>
     <string name="mjpeg_pref_resize_summary">Redimensionar a imagem antes de enviá-la para o cliente</string>
+    <string name="mjpeg_pref_resize_value" translatable="false">%1$d%%</string>
+    <string name="mjpeg_pref_resize_resolution_value" translatable="false">%1$dx%2$d</string>
     <string name="mjpeg_pref_resize_mode_percent">Redimensionar por porcentagem</string>
     <string name="mjpeg_pref_resize_mode_resolution">Resolução exata</string>
     <string name="mjpeg_pref_resize_width">Largura:</string>
@@ -96,6 +127,7 @@
     <string name="mjpeg_pref_resize_result">Tamanho da imagem: %1$dx%2$d</string>
     <string name="mjpeg_pref_rotate">Girar imagem no sentido horário</string>
     <string name="mjpeg_pref_rotate_summary">Girar a imagem antes de enviá-la para o cliente</string>
+    <string name="mjpeg_pref_rotate_value" translatable="false">%1$d\u00B0</string>
     <string name="mjpeg_pref_flip">Inverter imagem</string>
     <string name="mjpeg_pref_flip_summary">Inverter a imagem antes de enviá-la ao cliente</string>
     <string-array name="mjpeg_pref_flip_options">
@@ -149,6 +181,7 @@
     <string name="mjpeg_label_public_ipv4">IPv4 público</string>
     <string name="mjpeg_label_public_ipv6">IPv6 público</string>
     <string name="mjpeg_label_loopback">Loopback</string>
+    <string name="mjpeg_label_interface" translatable="false">%1$s (%2$s)</string>
     <string name="mjpeg_pref_server_port">Porta do servidor</string>
     <string name="mjpeg_pref_server_port_summary">Definir a porta para conexões de entrada</string>
     <string name="mjpeg_pref_server_port_text">Definir a porta do servidor para conexões de entrada.\nValores: 1025–65535\nPadrão: 8080</string>

@@ -166,12 +166,18 @@ internal fun RtspMainScreenUI(
 
         val mediaServerUrlError = selectedMode == RtspSettings.Values.Mode.CLIENT &&
                 runCatching { RtspUrl.parse(settings.serverAddress) }.isFailure
+        val startWithoutScreenCapture = selectedMode == RtspSettings.Values.Mode.SERVER &&
+                settings.streamAudioOnly &&
+                settings.enableMic &&
+                settings.enableDeviceAudio.not()
 
         Button(
             onClick = dropUnlessStarted {
                 doubleClickProtection.processClick {
                     if (state.isStreaming) {
                         sendEvent(RtspEvent.Intentable.StopStream("User action: Button"))
+                    } else if (startWithoutScreenCapture) {
+                        sendEvent(RtspStreamingService.InternalEvent.StartMicrophoneAudioOnlyStream)
                     } else {
                         screenCaptureStartRequester.request()
                     }

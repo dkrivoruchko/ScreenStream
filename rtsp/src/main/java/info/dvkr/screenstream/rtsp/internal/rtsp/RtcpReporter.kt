@@ -58,6 +58,7 @@ internal class RtcpReporter(
     private var videoSdes: ByteArray = buildSdesPacket(ssrcVideo)
     private var audioSdes: ByteArray = buildSdesPacket(ssrcAudio)
 
+    private val videoEnabled = ssrcVideo != 0L
     private val audioEnabled = ssrcAudio != 0L
 
     private val lock = Mutex()
@@ -68,7 +69,8 @@ internal class RtcpReporter(
             lock.withLock {
                 if (closed) return@withLock
                 val now = System.currentTimeMillis()
-                val activeVideo = videoTrack.packetCount > 0 && (now - videoTrack.lastRtpUpdateAtMs) <= (2 * REPORT_INTERVAL_MS + 1000L)
+                val activeVideo =
+                    videoEnabled && videoTrack.packetCount > 0 && (now - videoTrack.lastRtpUpdateAtMs) <= (2 * REPORT_INTERVAL_MS + 1000L)
                 val activeAudio =
                     audioEnabled && audioTrack.packetCount > 0 && (now - audioTrack.lastRtpUpdateAtMs) <= (2 * REPORT_INTERVAL_MS + 1000L)
 
@@ -106,7 +108,7 @@ internal class RtcpReporter(
 
         periodicJob.cancel()
 
-        runCatching { sendBye(0, videoTrack.buffer) }
+        if (videoEnabled) runCatching { sendBye(0, videoTrack.buffer) }
         if (audioEnabled) runCatching { sendBye(1, audioTrack.buffer) }
 
         videoUdpSocket?.close()

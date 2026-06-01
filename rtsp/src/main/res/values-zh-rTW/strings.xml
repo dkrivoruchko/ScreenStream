@@ -61,6 +61,7 @@
     <string name="rtsp_label_public_ipv4">公用IPv4</string>
     <string name="rtsp_label_public_ipv6">公用IPv6</string>
     <string name="rtsp_label_loopback">迴路</string>
+    <string name="rtsp_label_interface" translatable="false">%1$s (%2$s)</string>
 
     <string name="rtsp_video_parameters">視訊設定</string>
     <string name="rtsp_video_encoder">視訊編碼器：</string>
@@ -96,6 +97,8 @@
     <string name="rtsp_close">關閉</string>
     <string name="rtsp_pref_protocol">RTSP 通訊協定</string>
     <string name="rtsp_pref_protocol_summary">選擇RTP封包傳輸方式</string>
+    <string name="rtsp_pref_audio_only">僅音訊</string>
+    <string name="rtsp_pref_audio_only_summary">無視訊，僅串流音訊</string>
     <string name="rtsp_pref_interface_filter">介面篩選器</string>
     <string name="rtsp_pref_interface_filter_summary">選擇伺服器的網路介面</string>
     <string name="rtsp_pref_interface_filter_wifi">Wi-Fi</string>

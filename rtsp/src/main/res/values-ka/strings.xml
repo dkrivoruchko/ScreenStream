@@ -61,6 +61,7 @@
     <string name="rtsp_label_public_ipv4">საჯარო IPv4</string>
     <string name="rtsp_label_public_ipv6">საჯარო IPv6</string>
     <string name="rtsp_label_loopback">Loopback</string>
+    <string name="rtsp_label_interface" translatable="false">%1$s (%2$s)</string>
 
     <string name="rtsp_video_parameters">ვიდეოს პარამეტრები</string>
     <string name="rtsp_video_encoder">ვიდეო ენკოდერი:</string>
@@ -96,6 +97,8 @@
     <string name="rtsp_close">დახურვა</string>
     <string name="rtsp_pref_protocol">RTSP პროტოკოლი</string>
     <string name="rtsp_pref_protocol_summary">აირჩიეთ RTP პაკეტების ტრანსპორტი</string>
+    <string name="rtsp_pref_audio_only">მხოლოდ აუდიო</string>
+    <string name="rtsp_pref_audio_only_summary">აუდიოს სტრიმი ვიდეოს გარეშე</string>
     <string name="rtsp_pref_interface_filter">ინტერფეისის ფილტრი</string>
     <string name="rtsp_pref_interface_filter_summary">აირჩიეთ ქსელის ინტერფეისები სერვერისთვის</string>
     <string name="rtsp_pref_interface_filter_wifi">Wi-Fi</string>

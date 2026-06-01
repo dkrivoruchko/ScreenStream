@@ -1,5 +1,6 @@
 package info.dvkr.screenstream.mjpeg.ui
 
+import android.os.Build
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.PaddingValues
@@ -27,6 +28,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.dropUnlessStarted
+import info.dvkr.screenstream.common.analytics.EntryPoint
 import info.dvkr.screenstream.common.module.StreamingModule
 import info.dvkr.screenstream.common.notification.NotificationHelper
 import info.dvkr.screenstream.common.ui.DoubleClickProtection
@@ -38,6 +40,7 @@ import info.dvkr.screenstream.mjpeg.internal.MjpegEvent
 import info.dvkr.screenstream.mjpeg.internal.MjpegStreamingService
 import info.dvkr.screenstream.mjpeg.settings.MjpegSettings
 import info.dvkr.screenstream.mjpeg.ui.main.cards.AdvancedSettingsCard
+import info.dvkr.screenstream.mjpeg.ui.main.cards.AudioSettingsCard
 import info.dvkr.screenstream.mjpeg.ui.main.cards.ClientsCard
 import info.dvkr.screenstream.mjpeg.ui.main.cards.ErrorCard
 import info.dvkr.screenstream.mjpeg.ui.main.cards.GeneralSettingsCard
@@ -67,6 +70,7 @@ internal fun MjpegMainScreenUI(
     val context = LocalContext.current
     val state = mjpegState.value
     val settings = mjpegSettingsState.value
+    val mp4Selected = settings.streamFormat == MjpegSettings.Values.STREAM_FORMAT_MP4
     val updateSettings: (MjpegSettings.Data.() -> MjpegSettings.Data) -> Unit = { transform ->
         scope.launch { mjpegSettings.updateData(transform) }
     }
@@ -137,10 +141,23 @@ internal fun MjpegMainScreenUI(
             item(key = "SETTINGS_IMAGE") {
                 ImageSettingsCard(
                     settings = settings,
+                    mp4Selected = mp4Selected,
+                    isStreaming = state.isStreaming,
                     updateSettings = updateSettings,
                     windowWidthSizeClass = windowWidthSizeClass,
                     modifier = Modifier.padding(8.dp)
                 )
+            }
+
+            if (mp4Selected) {
+                item(key = "SETTINGS_AUDIO") {
+                    AudioSettingsCard(
+                        isStreaming = state.isStreaming,
+                        settings = settings,
+                        updateSettings = updateSettings,
+                        modifier = Modifier.padding(8.dp)
+                    )
+                }
             }
 
             item(key = "SETTINGS_SECURITY") {
@@ -168,12 +185,16 @@ internal fun MjpegMainScreenUI(
         }
 
         val doubleClickProtection = remember { DoubleClickProtection.get() }
+        val deviceAudioSelected = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && settings.enableDeviceAudio
+        val startWithoutScreenCapture = mp4Selected && settings.streamAudioOnly && settings.enableMic && deviceAudioSelected.not()
 
         Button(
             onClick = dropUnlessStarted {
                 doubleClickProtection.processClick {
                     if (state.isStreaming) {
                         sendEvent(MjpegEvent.Intentable.StopStream("User action: Button"))
+                    } else if (startWithoutScreenCapture) {
+                        sendEvent(MjpegStreamingService.InternalEvent.StartMicrophoneAudioOnlyStream(EntryPoint.BUTTON))
                     } else {
                         screenCaptureStartRequester.request()
                     }

@@ -61,6 +61,7 @@
     <string name="rtsp_label_public_ipv4">পাবলিক IPv4</string>
     <string name="rtsp_label_public_ipv6">পাবলিক IPv6</string>
     <string name="rtsp_label_loopback">লুপব্যাক</string>
+    <string name="rtsp_label_interface" translatable="false">%1$s (%2$s)</string>
 
     <string name="rtsp_video_parameters">ভিডিও সেটিংস</string>
     <string name="rtsp_video_encoder">ভিডিও এনকোডার:</string>
@@ -96,6 +97,8 @@
     <string name="rtsp_close">বন্ধ করুন</string>
     <string name="rtsp_pref_protocol">RTSP প্রোটোকল</string>
     <string name="rtsp_pref_protocol_summary">RTP প্যাকেটের পরিবহন নির্বাচন করুন</string>
+    <string name="rtsp_pref_audio_only">শুধু অডিও</string>
+    <string name="rtsp_pref_audio_only_summary">ভিডিও ছাড়া অডিও স্ট্রিম করুন</string>
     <string name="rtsp_pref_interface_filter">ইন্টারফেস ফিল্টার</string>
     <string name="rtsp_pref_interface_filter_summary">সার্ভারের জন্য নেটওয়ার্ক ইন্টারফেস নির্বাচন করুন</string>
     <string name="rtsp_pref_interface_filter_wifi">ওয়াই-ফাই</string>

@@ -3,7 +3,7 @@
     <string name="mjpeg_error_open_settings">فتح الإعدادات</string>
     <string name="mjpeg_close">إغلاق</string>
 
-    <string name="mjpeg_stream_mode">الوضع المحلي · MJPEG</string>
+    <string name="mjpeg_stream_mode">الوضع المحلي · %1$s</string>
     <string name="mjpeg_stream_mode_description">البث عبر شبكتك المحلية</string>
     <string name="mjpeg_stream_mode_details">
 - يستخدم MJPEG.\n
@@ -65,8 +65,37 @@
     <string name="mjpeg_pref_html_back_color_title">اختيار لون الخلفية</string>
     <string name="mjpeg_pref_html_fit_window">ملاءمة الصورة لنافذة المتصفح</string>
     <string name="mjpeg_pref_html_fit_window_summary">تكبير الصورة في المتصفح لملء عرض/ارتفاع النافذة بالكامل</string>
+    <string name="mjpeg_pref_stream_format">Stream format</string>
+    <string name="mjpeg_pref_stream_format_summary">Choose local stream video format</string>
+    <string name="mjpeg_pref_stream_format_text">MP4 uses H.264 video and AAC audio in one browser stream. MJPEG streams images only.</string>
+    <string name="mjpeg_pref_stream_format_mjpeg">MJPEG</string>
+    <string name="mjpeg_pref_stream_format_mp4">MP4</string>
+    <string name="mjpeg_pref_audio_only">Audio only</string>
+    <string name="mjpeg_pref_audio_only_summary">Stream audio without screen video</string>
+
+    <string name="mjpeg_audio_parameters">Audio settings</string>
+    <string name="mjpeg_audio_mic">Microphone</string>
+    <string name="mjpeg_audio_mic_mute">Mute microphone</string>
+    <string name="mjpeg_audio_device">Device audio</string>
+    <string name="mjpeg_audio_device_mute">Mute device audio</string>
+    <string name="mjpeg_audio_bitrate">Audio bitrate: %1$s</string>
+    <string name="mjpeg_audio_bitrate_mbit" translatable="false">%.1f Mbit/s</string>
+    <string name="mjpeg_audio_bitrate_kbit" translatable="false">%d Kbit/s</string>
+    <string name="mjpeg_audio_permission_title">Audio permission required</string>
+    <string name="mjpeg_audio_permission_message">Allow audio recording to stream microphone or device audio.</string>
+    <string name="mjpeg_audio_permission_message_settings">Audio permission is blocked. Enable microphone permission in app settings.</string>
+    <string name="mjpeg_audio_permission_open_settings">Open settings</string>
 
     <string name="mjpeg_pref_settings_image">إعدادات الصورة</string>
+    <string name="mjpeg_pref_settings_video">إعدادات الفيديو</string>
+    <string name="mjpeg_video_encoder">Video encoder</string>
+    <string name="mjpeg_video_encoder_summary">Select H.264 encoder for MP4 streams</string>
+    <string name="mjpeg_video_encoder_auto">Auto</string>
+    <string name="mjpeg_video_bitrate_title">Video bitrate</string>
+    <string name="mjpeg_video_bitrate_summary">Set MP4 video bitrate</string>
+    <string name="mjpeg_video_bitrate">Video bitrate: %1$s</string>
+    <string name="mjpeg_video_bitrate_mbit" translatable="false">%.1f Mbit/s</string>
+    <string name="mjpeg_video_bitrate_kbit" translatable="false">%d Kbit/s</string>
     <string name="mjpeg_pref_vr_mode">وضع الواقع الافتراضي</string>
     <string name="mjpeg_pref_vr_mode_summary">التقاط المحتوى من نصف الشاشة</string>
     <string-array name="mjpeg_pref_vr_mode_options">
@@ -87,6 +116,8 @@
     <string name="mjpeg_pref_grayscale_summary">حوّل الصورة إلى تدرج رمادي قبل الإرسال</string>
     <string name="mjpeg_pref_resize">تغيير حجم الصورة</string>
     <string name="mjpeg_pref_resize_summary">تغيير حجم الصورة قبل إرسالها إلى العميل</string>
+    <string name="mjpeg_pref_resize_value" translatable="false">%1$d%%</string>
+    <string name="mjpeg_pref_resize_resolution_value" translatable="false">%1$dx%2$d</string>
     <string name="mjpeg_pref_resize_mode_percent">تغيير الحجم بالنسبة المئوية</string>
     <string name="mjpeg_pref_resize_mode_resolution">دقة محددة</string>
     <string name="mjpeg_pref_resize_width">العرض:</string>
@@ -96,6 +127,7 @@
     <string name="mjpeg_pref_resize_result">حجم الصورة: %1$dx%2$d</string>
     <string name="mjpeg_pref_rotate">تدوير الصورة في اتجاه عقارب الساعة</string>
     <string name="mjpeg_pref_rotate_summary">تدوير الصورة قبل إرسالها إلى العميل</string>
+    <string name="mjpeg_pref_rotate_value" translatable="false">%1$d\u00B0</string>
     <string name="mjpeg_pref_flip">اقلب الصورة</string>
     <string name="mjpeg_pref_flip_summary">اقلب الصورة قبل إرسالها إلى العميل</string>
     <string-array name="mjpeg_pref_flip_options">
@@ -149,6 +181,7 @@
     <string name="mjpeg_label_public_ipv4">IPv4 عام</string>
     <string name="mjpeg_label_public_ipv6">IPv6 عام</string>
     <string name="mjpeg_label_loopback">حلقة محلية</string>
+    <string name="mjpeg_label_interface" translatable="false">%1$s (%2$s)</string>
     <string name="mjpeg_pref_server_port">منفذ الخادم</string>
     <string name="mjpeg_pref_server_port_summary">تعيين منفذ للاتصالات الواردة</string>
     <string name="mjpeg_pref_server_port_text">تعيين منفذ الخادم للاتصالات الواردة.\nالقيم: 1025–65535\nالافتراضي: 8080</string>

@@ -67,7 +67,8 @@
       filter: drop-shadow(3px 3px 2px rgba(0, 0, 0, .4));
     }
 
-    #streamDiv img {
+    #streamDiv img,
+    #streamDiv video {
       position: absolute;
       top: 0;
       bottom: 0;
@@ -78,6 +79,21 @@
       max-height: -webkit-fill-available;
       max-height: 100dvh;
       max-width: 100%;
+    }
+
+    #streamDiv video {
+      display: none;
+      background: #000;
+    }
+
+    #audioStream {
+      position: absolute;
+      left: 50%;
+      bottom: 16px;
+      transform: translateX(-50%);
+      z-index: 10;
+      display: none;
+      max-width: calc(100% - 32px);
     }
 
     #buttonsDiv {
@@ -237,7 +253,8 @@
     </div>
   </div>
 
-  <div id="streamDiv"><img id="stream" FIT_WINDOW /></div>
+  <div id="streamDiv"><img id="stream" FIT_WINDOW /><video id="videoStream" controls preload="none" playsinline></video></div>
+  <audio id="audioStream" controls autoplay preload="auto" playsinline></audio>
 
   <div id="buttonsDiv">
     <input type="image" id="fullscreen" style="width:24px;height:24px;margin:4px;" src="data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23FFF' d='M5,5H10V7H7V10H5V5M14,5H19V10H17V7H14V5M17,14H19V19H14V17H17V14M10,17V19H5V14H7V17H10Z' /%3E%3C/svg%3E" onclick="toggleFullscreen()" />
@@ -278,6 +295,8 @@
     var buttonPiP = document.getElementById("PiP");
     var streamDiv = document.getElementById("streamDiv");
     var stream = document.getElementById("stream");
+    var videoStream = document.getElementById("videoStream");
+    var audioStream = document.getElementById("audioStream");
     var connectDiv = document.getElementById("connectDiv");
     var reconnectDiv = document.getElementById("reconnectDiv");
     var pinDiv = document.getElementById("pinDiv");
@@ -290,6 +309,48 @@
     var keepImageOnReconnect = document.body.dataset.keepImageOnReconnect === "true";
     var hasStreamImage = false;
     var isReconnecting = false;
+    var activeAudioUrl = null;
+    var activeVideoUrl = null;
+    var pendingAudioAutoplay = null;
+    var pendingVideoAutoplay = null;
+    var audioRetryInProgress = false;
+    var videoRetryInProgress = false;
+    var currentStreamFormat = "MJPEG";
+
+    function retryPendingVideoAutoplay() {
+        if (pendingVideoAutoplay && videoRetryInProgress === false) {
+            var retry = pendingVideoAutoplay;
+            pendingVideoAutoplay = null;
+            videoRetryInProgress = true;
+            setVideoSource(retry.url);
+            playVideo();
+            videoRetryInProgress = false;
+        }
+    }
+
+    function retryPendingAudioAutoplay() {
+        if (pendingAudioAutoplay && audioRetryInProgress === false) {
+            var retry = pendingAudioAutoplay;
+            pendingAudioAutoplay = null;
+            audioRetryInProgress = true;
+            setAudioSource(retry.url);
+            playAudio(retry.visibleControls);
+            audioRetryInProgress = false;
+        }
+    }
+
+    ["pointerdown", "keydown"].forEach(function (eventName) {
+        document.addEventListener(eventName, retryPendingVideoAutoplay, { passive: true, capture: true });
+        document.addEventListener(eventName, retryPendingAudioAutoplay, { passive: true, capture: true });
+    });
+
+    videoStream.addEventListener("playing", function () {
+        pendingVideoAutoplay = null;
+    });
+
+    audioStream.addEventListener("playing", function () {
+        pendingAudioAutoplay = null;
+    });
 
     var enableButtons = false;
     var buttonsHideFunction = function buttonsHideFunction() {
@@ -312,9 +373,13 @@
         if (enable) {
             stream.style.width = "100%";
             stream.style.objectFit = "contain";
+            videoStream.style.width = "100%";
+            videoStream.style.objectFit = "contain";
         } else {
             stream.style.width = null;
             stream.style.objectFit = null;
+            videoStream.style.width = null;
+            videoStream.style.objectFit = null;
         }
     }
 
@@ -396,6 +461,7 @@
         streamDiv.style.visibility = "hidden";
         errorDiv.style.visibility = "hidden";
         stream.src = "";
+        stopVideo();
 
         websocket = new WebsocketHeartbeat("ws://" + window.location.host + "/socket?clientId=" + clientId);
 
@@ -421,6 +487,7 @@
                 connectDiv.style.visibility = "visible";
                 streamDiv.style.visibility = "hidden";
                 stream.src = "";
+                stopVideo();
                 hideReconnectBar();
             }
             MJPEGErrorCounter = 0;
@@ -430,6 +497,8 @@
             if (document.pictureInPictureElement) {
                 document.exitPictureInPicture();
             }
+            stopAudio();
+            stopVideo();
         };
 
         websocket.onmessage = function (msg) {
@@ -443,7 +512,19 @@
                 blockedDiv.style.visibility = "hidden";
                 pinWrongMsg.style.visibility = "inherit";
                 isReconnecting = false;
-                showStream(message.data.streamAddress + ("?clientId=" + clientId));
+                if (message.data.streamAddress) {
+                    currentStreamFormat = message.data.streamFormat || "MJPEG";
+                    showStream(message.data.streamAddress + ("?clientId=" + clientId), currentStreamFormat, message.data.audioOnly);
+                } else {
+                    stream.src = "";
+                    stopVideo();
+                    streamDiv.style.visibility = "hidden";
+                }
+                if (message.data.audioAddress) {
+                    showAudio(message.data.audioAddress + ("?clientId=" + clientId), message.data.audioOnly);
+                } else {
+                    stopAudio();
+                }
                 configureButtons(message.data.enableButtons);
                 hideReconnectBar();
                 return;
@@ -491,7 +572,12 @@
         };
     }
 
-    function showStream(url) {
+    function showStream(url, streamFormat, audioOnly) {
+        if (streamFormat === "MP4") {
+            showVideoStream(url, audioOnly);
+            return;
+        }
+        stopVideo();
         if (!(keepImageOnReconnect && hasStreamImage && isReconnecting)) {
             streamDiv.style.visibility = "hidden";
             stream.src = "";
@@ -533,9 +619,140 @@
         });
     }
 
+    function showVideoStream(url, audioOnly) {
+        stream.onload = null;
+        stream.onerror = null;
+        stream.src = "";
+        stream.style.display = "none";
+        stopAudio();
+
+        if (!(keepImageOnReconnect && hasStreamImage && isReconnecting)) {
+            streamDiv.style.visibility = "hidden";
+            stopVideo();
+        }
+        errorDiv.style.visibility = "hidden";
+        clearTimeout(showStreamTimeoutId);
+
+        setVideoSource(url);
+        playVideo();
+    }
+
+    function setVideoSource(url) {
+        activeVideoUrl = url;
+        videoStream.src = url + (url.indexOf("?") === -1 ? "?" : "&") + "videoStart=" + Date.now();
+        videoStream.load();
+    }
+
+    function clearVideoElementSource() {
+        videoStream.pause();
+        videoStream.removeAttribute("src");
+        videoStream.load();
+    }
+
+    function playVideo() {
+        if (!videoStream.src && activeVideoUrl) {
+            setVideoSource(activeVideoUrl);
+        }
+        videoStream.muted = false;
+        videoStream.controls = true;
+        videoStream.style.display = "block";
+
+        var playPromise = videoStream.play();
+        if (playPromise) {
+            playPromise.then(function () {
+                hasStreamImage = true;
+                streamDiv.style.visibility = "visible";
+                hideReconnectBar();
+            })["catch"](function () {
+                pendingVideoAutoplay = { url: activeVideoUrl };
+                clearVideoElementSource();
+                videoStream.controls = true;
+                videoStream.style.display = "block";
+                hasStreamImage = true;
+                streamDiv.style.visibility = "visible";
+                hideReconnectBar();
+            });
+        } else {
+            hasStreamImage = true;
+            streamDiv.style.visibility = "visible";
+            hideReconnectBar();
+        }
+    }
+
+    function showAudio(url, visibleControls) {
+        if (activeAudioUrl !== url) {
+            setAudioSource(url);
+        }
+        playAudio(visibleControls);
+    }
+
+    function setAudioSource(url) {
+        activeAudioUrl = url;
+        audioStream.src = url + (url.indexOf("?") === -1 ? "?" : "&") + "audioStart=" + Date.now();
+        audioStream.load();
+    }
+
+    function clearAudioElementSource() {
+        audioStream.pause();
+        audioStream.removeAttribute("src");
+        audioStream.load();
+    }
+
+    function playAudio(visibleControls) {
+        if (!audioStream.src && activeAudioUrl) {
+            setAudioSource(activeAudioUrl);
+        }
+        audioStream.autoplay = true;
+        audioStream.muted = false;
+        audioStream.controls = visibleControls;
+        audioStream.style.display = visibleControls ? "block" : "none";
+
+        var playPromise = audioStream.play();
+        if (playPromise) {
+            playPromise.then(function () {
+                pendingAudioAutoplay = null;
+                audioStream.controls = visibleControls;
+                audioStream.style.display = visibleControls ? "block" : "none";
+            })["catch"](function () {
+                pendingAudioAutoplay = { url: activeAudioUrl, visibleControls: visibleControls };
+                audioStream.pause();
+                audioStream.controls = true;
+                audioStream.style.display = "block";
+            });
+        }
+    }
+
+    function stopAudio() {
+        activeAudioUrl = null;
+        pendingAudioAutoplay = null;
+        clearAudioElementSource();
+        audioStream.controls = true;
+        audioStream.style.display = "none";
+    }
+
+    function stopVideo() {
+        activeVideoUrl = null;
+        pendingVideoAutoplay = null;
+        clearVideoElementSource();
+        videoStream.pause();
+        videoStream.style.display = "none";
+        stream.style.display = "";
+    }
+
     var drawTimeoutId = null;
 
     function togglePiP() {
+        if (currentStreamFormat === "MP4") {
+            if (document.pictureInPictureElement) {
+                document.exitPictureInPicture();
+            } else {
+                videoStream.requestPictureInPicture()["catch"](function (error) {
+                    window.DD_LOGS && DD_LOGS.logger.error("PiP.requestPictureInPicture:", { message: error });
+                    buttonPiP.style.display = "none";
+                });
+            }
+            return;
+        }
         if (document.pictureInPictureElement) {
             document.exitPictureInPicture();
         } else {

@@ -61,6 +61,7 @@
     <string name="rtsp_label_public_ipv4">Ommaviy IPv4</string>
     <string name="rtsp_label_public_ipv6">Ommaviy IPv6</string>
     <string name="rtsp_label_loopback">Loopback</string>
+    <string name="rtsp_label_interface" translatable="false">%1$s (%2$s)</string>
 
     <string name="rtsp_video_parameters">Video sozlamalari</string>
     <string name="rtsp_video_encoder">Video kodlovchi:</string>
@@ -96,6 +97,8 @@
     <string name="rtsp_close">Yopish</string>
     <string name="rtsp_pref_protocol">RTSP protokoli</string>
     <string name="rtsp_pref_protocol_summary">RTP paketlari uchun transportni tanlang</string>
+    <string name="rtsp_pref_audio_only">Faqat audio</string>
+    <string name="rtsp_pref_audio_only_summary">Videosiz audio uzating</string>
     <string name="rtsp_pref_interface_filter">Interfeys filtri</string>
     <string name="rtsp_pref_interface_filter_summary">Server uchun tarmoq interfeyslarini tanlang</string>
     <string name="rtsp_pref_interface_filter_wifi">Wi-Fi</string>

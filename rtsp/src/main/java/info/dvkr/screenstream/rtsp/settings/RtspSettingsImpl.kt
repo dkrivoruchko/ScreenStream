@@ -71,6 +71,9 @@ internal class RtspSettingsImpl(
                 if (newSettings.mode != RtspSettings.Default.MODE)
                     set(RtspSettings.Key.MODE, newSettings.mode.name)
 
+                if (newSettings.streamAudioOnly != RtspSettings.Default.STREAM_AUDIO_ONLY)
+                    set(RtspSettings.Key.STREAM_AUDIO_ONLY, newSettings.streamAudioOnly)
+
                 if (newSettings.videoCodecAutoSelect != RtspSettings.Default.VIDEO_CODEC_AUTO_SELECT)
                     set(RtspSettings.Key.VIDEO_CODEC_AUTO_SELECT, newSettings.videoCodecAutoSelect)
 
@@ -161,6 +164,7 @@ internal class RtspSettingsImpl(
         mode = runCatching {
             this[RtspSettings.Key.MODE]?.let { name -> RtspSettings.Values.Mode.valueOf(name) }
         }.getOrNull() ?: RtspSettings.Default.MODE,
+        streamAudioOnly = this[RtspSettings.Key.STREAM_AUDIO_ONLY] ?: RtspSettings.Default.STREAM_AUDIO_ONLY,
 
         videoCodecAutoSelect = this[RtspSettings.Key.VIDEO_CODEC_AUTO_SELECT] ?: RtspSettings.Default.VIDEO_CODEC_AUTO_SELECT,
         videoCodec = this[RtspSettings.Key.VIDEO_CODEC] ?: RtspSettings.Default.VIDEO_CODEC,

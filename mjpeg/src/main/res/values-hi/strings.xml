@@ -3,7 +3,7 @@
     <string name="mjpeg_error_open_settings">सेटिंग्स खोलें</string>
     <string name="mjpeg_close">बंद करें</string>
 
-    <string name="mjpeg_stream_mode">स्थानीय मोड · MJPEG</string>
+    <string name="mjpeg_stream_mode">स्थानीय मोड · %1$s</string>
     <string name="mjpeg_stream_mode_description">अपने स्थानीय नेटवर्क पर स्ट्रीम करें</string>
     <string name="mjpeg_stream_mode_details">
 - MJPEG का उपयोग करता है।\n
@@ -65,8 +65,37 @@
     <string name="mjpeg_pref_html_back_color_title">पृष्ठभूमि का रंग चुनें</string>
     <string name="mjpeg_pref_html_fit_window">छवि को ब्राउज़र विंडो में फिट करें</string>
     <string name="mjpeg_pref_html_fit_window_summary">ब्राउज़र में छवि को पूरी विंडो चौड़ाई/ऊँचाई में बढ़ाएँ</string>
+    <string name="mjpeg_pref_stream_format">Stream format</string>
+    <string name="mjpeg_pref_stream_format_summary">Choose local stream video format</string>
+    <string name="mjpeg_pref_stream_format_text">MP4 uses H.264 video and AAC audio in one browser stream. MJPEG streams images only.</string>
+    <string name="mjpeg_pref_stream_format_mjpeg">MJPEG</string>
+    <string name="mjpeg_pref_stream_format_mp4">MP4</string>
+    <string name="mjpeg_pref_audio_only">Audio only</string>
+    <string name="mjpeg_pref_audio_only_summary">Stream audio without screen video</string>
+
+    <string name="mjpeg_audio_parameters">Audio settings</string>
+    <string name="mjpeg_audio_mic">Microphone</string>
+    <string name="mjpeg_audio_mic_mute">Mute microphone</string>
+    <string name="mjpeg_audio_device">Device audio</string>
+    <string name="mjpeg_audio_device_mute">Mute device audio</string>
+    <string name="mjpeg_audio_bitrate">Audio bitrate: %1$s</string>
+    <string name="mjpeg_audio_bitrate_mbit" translatable="false">%.1f Mbit/s</string>
+    <string name="mjpeg_audio_bitrate_kbit" translatable="false">%d Kbit/s</string>
+    <string name="mjpeg_audio_permission_title">Audio permission required</string>
+    <string name="mjpeg_audio_permission_message">Allow audio recording to stream microphone or device audio.</string>
+    <string name="mjpeg_audio_permission_message_settings">Audio permission is blocked. Enable microphone permission in app settings.</string>
+    <string name="mjpeg_audio_permission_open_settings">Open settings</string>
 
     <string name="mjpeg_pref_settings_image">छवि सेटिंग्स</string>
+    <string name="mjpeg_pref_settings_video">वीडियो सेटिंग्स</string>
+    <string name="mjpeg_video_encoder">Video encoder</string>
+    <string name="mjpeg_video_encoder_summary">Select H.264 encoder for MP4 streams</string>
+    <string name="mjpeg_video_encoder_auto">Auto</string>
+    <string name="mjpeg_video_bitrate_title">Video bitrate</string>
+    <string name="mjpeg_video_bitrate_summary">Set MP4 video bitrate</string>
+    <string name="mjpeg_video_bitrate">Video bitrate: %1$s</string>
+    <string name="mjpeg_video_bitrate_mbit" translatable="false">%.1f Mbit/s</string>
+    <string name="mjpeg_video_bitrate_kbit" translatable="false">%d Kbit/s</string>
     <string name="mjpeg_pref_vr_mode">आभासी वास्तविकता मोड</string>
     <string name="mjpeg_pref_vr_mode_summary">आधे स्क्रीन से सामग्री कैप्चर करें</string>
     <string-array name="mjpeg_pref_vr_mode_options">
@@ -87,6 +116,8 @@
     <string name="mjpeg_pref_grayscale_summary">भेजने से पहले छवि को ग्रेस्केल में बदलें</string>
     <string name="mjpeg_pref_resize">चित्र को पुनर्कार करें</string>
     <string name="mjpeg_pref_resize_summary">क्लाइंट को भेजने से पहले छवि का आकार बदलें</string>
+    <string name="mjpeg_pref_resize_value" translatable="false">%1$d%%</string>
+    <string name="mjpeg_pref_resize_resolution_value" translatable="false">%1$dx%2$d</string>
     <string name="mjpeg_pref_resize_mode_percent">प्रतिशत से आकार बदलें</string>
     <string name="mjpeg_pref_resize_mode_resolution">सटीक रिज़ॉल्यूशन</string>
     <string name="mjpeg_pref_resize_width">चौड़ाई:</string>
@@ -96,6 +127,7 @@
     <string name="mjpeg_pref_resize_result">चित्र का आकार: %1$dx%2$d</string>
     <string name="mjpeg_pref_rotate">छवि को दक्षिणावर्त घुमाएँ</string>
     <string name="mjpeg_pref_rotate_summary">क्लाइंट को भेजने से पहले छवि को घुमाएं</string>
+    <string name="mjpeg_pref_rotate_value" translatable="false">%1$d\u00B0</string>
     <string name="mjpeg_pref_flip">छवि पलटें</string>
     <string name="mjpeg_pref_flip_summary">क्लाइंट को भेजने से पहले छवि पलटें</string>
     <string-array name="mjpeg_pref_flip_options">
@@ -149,6 +181,7 @@
     <string name="mjpeg_label_public_ipv4">सार्वजनिक IPv4</string>
     <string name="mjpeg_label_public_ipv6">सार्वजनिक IPv6</string>
     <string name="mjpeg_label_loopback">लूपबैक</string>
+    <string name="mjpeg_label_interface" translatable="false">%1$s (%2$s)</string>
     <string name="mjpeg_pref_server_port">सर्वर पोर्ट</string>
     <string name="mjpeg_pref_server_port_summary">आने वाले कनेक्शन के लिए पोर्ट सेट करें</string>
     <string name="mjpeg_pref_server_port_text">आने वाले कनेक्शन के लिए सर्वर पोर्ट सेट करें।\nमूल्य: 1025–65535\nडिफ़ॉल्ट: 8080</string>
