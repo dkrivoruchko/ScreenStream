@@ -33,7 +33,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.window.core.layout.WindowSizeClass
-import info.dvkr.screenstream.AdaptiveBanner
+import info.dvkr.screenstream.AnchoredAdaptiveBanner
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.common.module.StreamingModule
 import info.dvkr.screenstream.common.module.StreamingModuleManager
@@ -71,7 +71,7 @@ internal fun StreamTabContent( //TODO Add foldable support
                     )
                 }
                 Column(modifier = Modifier.weight(1F)) {
-                    AdaptiveBanner(modifier = Modifier.fillMaxWidth())
+                    AnchoredAdaptiveBanner(modifier = Modifier.fillMaxWidth())
                 }
             }
         } else {
@@ -82,7 +82,7 @@ internal fun StreamTabContent( //TODO Add foldable support
                         .padding(top = 8.dp, start = 16.dp, end = 16.dp, bottom = 8.dp)
                         .fillMaxWidth()
                 )
-                AdaptiveBanner(modifier = Modifier.fillMaxWidth())
+                AnchoredAdaptiveBanner(modifier = Modifier.fillMaxWidth())
             }
         }
         activeModule.value?.StreamUIContent(

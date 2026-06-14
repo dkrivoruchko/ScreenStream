@@ -40,7 +40,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.window.core.layout.WindowSizeClass
-import info.dvkr.screenstream.AdaptiveBanner
+import info.dvkr.screenstream.InlineAdaptiveBanner
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.common.notification.NotificationHelper
 import info.dvkr.screenstream.common.settings.AppSettings
@@ -86,8 +86,6 @@ internal fun SettingsTabContent(
         listPane = {
             AnimatedPane(modifier = Modifier.preferredWidth(listPanePreferredWidth)) {
                 Column(modifier = Modifier.fillMaxSize()) {
-                    AdaptiveBanner(modifier = Modifier.fillMaxWidth())
-
                     LazyColumn(
                         modifier = Modifier
                             .fillMaxSize()
@@ -123,6 +121,7 @@ internal fun SettingsTabContent(
                                     .fillMaxWidth()
                                     .animateItem()
                             ) {
+                                HorizontalDivider()
                                 NightModeRow(
                                     nightMode = settingsData.nightMode,
                                     onShowDetail = { scope.launch { navigator.navigateTo(ListDetailPaneScaffoldRole.Detail, AppSetting.NIGHT_MODE) } })
@@ -172,6 +171,14 @@ internal fun SettingsTabContent(
                                     TileRow(onClick = { TileActionService.showAddTileRequest(context) })
                                 }
                             }
+                        }
+
+                        item(key = "AD_BANNER", contentType = "AD") {
+                            InlineAdaptiveBanner(
+                                modifier = Modifier
+                                    .padding(top = 8.dp)
+                                    .fillMaxWidth()
+                            )
                         }
                     }
                 }

@@ -104,6 +104,11 @@ googleServices {
     missingGoogleServicesStrategy = GoogleServicesPlugin.MissingGoogleServicesStrategy.IGNORE
 }
 
+configurations.configureEach {
+    exclude(group = "com.google.android.gms", module = "play-services-ads")
+    exclude(group = "com.google.android.gms", module = "play-services-ads-lite")
+}
+
 tasks.configureEach {
     if (name.startsWith("processFDroid") && name.endsWith("GoogleServices")) {
         enabled = false
@@ -127,12 +132,10 @@ dependencies {
     implementation(projects.rtsp)
 
     "PlayStoreImplementation"(projects.webrtc)
-    "PlayStoreImplementation"(libs.play.services.tasks)
     "PlayStoreImplementation"(libs.play.app.update)
     "PlayStoreImplementation"(libs.play.app.review)
-    "PlayStoreImplementation"(libs.play.services.ads)
-    "PlayStoreImplementation"(libs.androidx.work.runtime) // Override the old transitive WorkManager from play-services-ads for AGP 9.x compatibility.
-    "PlayStoreImplementation"(libs.webkit)
+    "PlayStoreImplementation"(libs.ads.mobile.sdk)
+    "PlayStoreImplementation"(libs.androidx.work.runtime) // Override the old transitive WorkManager from ads-mobile-sdk.
     "PlayStoreImplementation"(platform(libs.firebase.bom))
     "PlayStoreImplementation"(libs.firebase.analytics)
     "PlayStoreImplementation"(libs.firebase.crashlytics)

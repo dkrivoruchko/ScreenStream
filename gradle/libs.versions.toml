@@ -3,7 +3,7 @@ agp = "9.2.1"
 kotlin = "2.4.0"
 android-tools-desugar = "2.1.5"
 
-koin-android = "4.2.1"
+koin-android = "4.2.2"
 
 kotlinx-coroutines = "1.11.0"
 
@@ -35,8 +35,7 @@ okhttp = "5.4.0"
 #PlayStore-App
 play-app-update = "2.1.0"
 play-app-review = "2.0.2"
-play-services-ads = "25.3.0"
-webkit = "1.16.0"
+ads-mobile-sdk = "1.2.0"
 firebase-bom = "34.14.1"
 google-services = "4.4.4"
 crashlytics-gradle = "3.0.7"
@@ -95,8 +94,7 @@ okhttp = { module = "com.squareup.okhttp3:okhttp", version.ref = "okhttp" }
 play-services-base = { module = "com.google.android.gms:play-services-base", version.ref = "play-services-base" }
 play-app-update = { module = "com.google.android.play:app-update-ktx", version.ref = "play-app-update" }
 play-app-review = { module = "com.google.android.play:review-ktx", version.ref = "play-app-review" }
-play-services-ads = { module = "com.google.android.gms:play-services-ads", version.ref = "play-services-ads" }
-webkit = { module = "androidx.webkit:webkit", version.ref = "webkit" }
+ads-mobile-sdk = { module = "com.google.android.libraries.ads.mobile.sdk:ads-mobile-sdk", version.ref = "ads-mobile-sdk" }
 firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebase-bom" }
 firebase-analytics = { module = "com.google.firebase:firebase-analytics" }
 firebase-crashlytics = { module = "com.google.firebase:firebase-crashlytics" }
