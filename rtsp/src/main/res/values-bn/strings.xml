@@ -116,4 +116,6 @@
     <string name="rtsp_pref_server_port">সার্ভারের পোর্ট</string>
     <string name="rtsp_pref_server_port_summary">ইনকামিং সংযোগের জন্য পোর্ট সেট করুন</string>
     <string name="rtsp_pref_server_port_text">ইনকামিং সংযোগের জন্য সার্ভার পোর্ট সেট করুন।\nমান: 1025–65535\nডিফল্ট: 8554</string>
+    <string name="rtsp_pref_onvif_discovery">ONVIF আবিষ্কার</string>
+    <string name="rtsp_pref_onvif_discovery_summary">ONVIF ক্লায়েন্টদের এই স্ট্রিম খুঁজতে দিন। শুধু H.264 সমর্থিত</string>
 </resources>

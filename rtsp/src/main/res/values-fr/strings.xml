@@ -116,4 +116,6 @@
     <string name="rtsp_pref_server_port">Port du serveur</string>
     <string name="rtsp_pref_server_port_summary">Définir le port pour les connexions entrantes</string>
     <string name="rtsp_pref_server_port_text">Définir le port du serveur pour les connexions entrantes.\nValeurs : 1025–65535\nPar défaut : 8554</string>
+    <string name="rtsp_pref_onvif_discovery">Découverte ONVIF</string>
+    <string name="rtsp_pref_onvif_discovery_summary">Permettre aux clients ONVIF de trouver ce flux. Prend uniquement en charge H.264</string>
 </resources>

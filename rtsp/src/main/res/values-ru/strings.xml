@@ -116,4 +116,6 @@
     <string name="rtsp_pref_server_port">Порт сервера</string>
     <string name="rtsp_pref_server_port_summary">Установить порт для входящих подключений</string>
     <string name="rtsp_pref_server_port_text">Установите порт сервера для входящих подключений.\nЗначения: 1025–65535\nПо умолчанию: 8554</string>
+    <string name="rtsp_pref_onvif_discovery">Обнаружение ONVIF</string>
+    <string name="rtsp_pref_onvif_discovery_summary">Разрешить ONVIF-клиентам находить этот поток. Поддерживается только H.264</string>
 </resources>

@@ -112,6 +112,7 @@ internal data class RtspNetInterface(val label: String, val address: InetAddress
     }
 }
 
+internal data class RtspServerEndpoint(val address: InetAddress, val bindHost: String, val rtspUrl: String)
 
 internal class VideoParams(val codec: Codec.Video, val sps: ByteArray, val pps: ByteArray?, val vps: ByteArray?) {
     val isOk: Boolean

@@ -27,6 +27,7 @@ import info.dvkr.screenstream.rtsp.ui.main.settings.server.EnableIPv4Row
 import info.dvkr.screenstream.rtsp.ui.main.settings.server.EnableIPv6Row
 import info.dvkr.screenstream.rtsp.ui.main.settings.server.InterfaceFilterEditor
 import info.dvkr.screenstream.rtsp.ui.main.settings.server.InterfaceFilterRow
+import info.dvkr.screenstream.rtsp.ui.main.settings.server.OnvifDiscoveryRow
 import info.dvkr.screenstream.rtsp.ui.main.settings.server.ServerPortEditor
 import info.dvkr.screenstream.rtsp.ui.main.settings.server.ServerPortRow
 import info.dvkr.screenstream.rtsp.ui.main.settings.server.ServerProtocolEditor
@@ -116,6 +117,17 @@ internal fun ServerSettingsCard(
             enabled = enabled,
             serverPort = settings.serverPort
         ) { selectedSheet = ServerSettingSheet.ServerPort }
+
+        HorizontalDivider()
+
+        OnvifDiscoveryRow(
+            enabled = enabled,
+            onvifDiscoveryEnabled = settings.onvifDiscoveryEnabled
+        ) { newValue ->
+            updateSettings {
+                copy(onvifDiscoveryEnabled = newValue)
+            }
+        }
 
         selectedSheet?.let { sheet ->
             RtspSettingModal(

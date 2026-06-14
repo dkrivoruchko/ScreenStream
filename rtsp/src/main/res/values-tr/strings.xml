@@ -116,4 +116,6 @@
     <string name="rtsp_pref_server_port">Sunucu bağlantı noktası</string>
     <string name="rtsp_pref_server_port_summary">Gelen bağlantılar için bağlantı noktasını ayarla</string>
     <string name="rtsp_pref_server_port_text">Gelen bağlantılar için sunucu bağlantı noktasını ayarlayın.\nDeğerler: 1025–65535\nVarsayılan: 8554</string>
+    <string name="rtsp_pref_onvif_discovery">ONVIF keşfi</string>
+    <string name="rtsp_pref_onvif_discovery_summary">ONVIF istemcileri bu yayını bulsun. Yalnızca H.264 desteklenir</string>
 </resources>

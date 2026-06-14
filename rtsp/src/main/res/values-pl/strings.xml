@@ -116,4 +116,6 @@
     <string name="rtsp_pref_server_port">Port serwera</string>
     <string name="rtsp_pref_server_port_summary">Ustawianie portu dla połączeń przychodzących</string>
     <string name="rtsp_pref_server_port_text">Ustaw numer portu serwera dla połączeń przychodzących.\nWartość: 1025–65535\nDomyślnie: 8554</string>
+    <string name="rtsp_pref_onvif_discovery">Wykrywanie ONVIF</string>
+    <string name="rtsp_pref_onvif_discovery_summary">Pozwól klientom ONVIF znaleźć ten strumień. Obsługuje tylko H.264</string>
 </resources>

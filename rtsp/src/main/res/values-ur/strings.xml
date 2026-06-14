@@ -116,4 +116,6 @@
     <string name="rtsp_pref_server_port">سرور پورٹ</string>
     <string name="rtsp_pref_server_port_summary">آنے والے کنکشنز کیلئے پورٹ سیٹ کریں</string>
     <string name="rtsp_pref_server_port_text">آنے والے کنکشنز کیلئے سرور پورٹ سیٹ کریں۔\nقدریں: 1025–65535\nڈیفالٹ: 8554</string>
+    <string name="rtsp_pref_onvif_discovery">ONVIF دریافت</string>
+    <string name="rtsp_pref_onvif_discovery_summary">ONVIF کلائنٹس کو یہ اسٹریم تلاش کرنے دیں۔ صرف H.264 معاون ہے</string>
 </resources>

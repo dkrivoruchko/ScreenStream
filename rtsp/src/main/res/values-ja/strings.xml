@@ -116,4 +116,6 @@
     <string name="rtsp_pref_server_port">サーバー ポート</string>
     <string name="rtsp_pref_server_port_summary">接続を待ち受けるポートを設定します</string>
     <string name="rtsp_pref_server_port_text">接続を待ち受けるポートを設定してください。\n値: 1025–65535\n初期値: 8554</string>
+    <string name="rtsp_pref_onvif_discovery">ONVIF検出</string>
+    <string name="rtsp_pref_onvif_discovery_summary">ONVIFクライアントにこのストリームを検出させる。H.264 のみ対応</string>
 </resources>

@@ -116,4 +116,6 @@
     <string name="rtsp_pref_server_port">Zerbitzariaren ataka</string>
     <string name="rtsp_pref_server_port_summary">Sarrerako konexioetarako ataka</string>
     <string name="rtsp_pref_server_port_text">Sarrerako konexioetarako ataka.\nBalioak: 1025–65535\nLehenetsia: 8554</string>
+    <string name="rtsp_pref_onvif_discovery">ONVIF aurkikuntza</string>
+    <string name="rtsp_pref_onvif_discovery_summary">Utzi ONVIF bezeroei stream hau aurkitzen. H.264 bakarrik onartzen da</string>
 </resources>

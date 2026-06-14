@@ -116,4 +116,6 @@
     <string name="rtsp_pref_server_port">Port server</string>
     <string name="rtsp_pref_server_port_summary">Setel port kanggo sambungan mlebu</string>
     <string name="rtsp_pref_server_port_text">Setel port server kanggo sambungan mlebu.\nAngka: 1025–65535\nDefault: 8554</string>
+    <string name="rtsp_pref_onvif_discovery">Panemuan ONVIF</string>
+    <string name="rtsp_pref_onvif_discovery_summary">Idini klien ONVIF nemokake stream iki. Mung ndhukung H.264</string>
 </resources>

@@ -116,4 +116,6 @@
     <string name="rtsp_pref_server_port">Server porti</string>
     <string name="rtsp_pref_server_port_summary">Kiruvchi ulanishlar uchun portni o\'rnating</string>
     <string name="rtsp_pref_server_port_text">Kiruvchi ulanishlar uchun server portini o\'rnating.\nQiymatlar: 1025–65535\nStandart: 8554</string>
+    <string name="rtsp_pref_onvif_discovery">ONVIF aniqlash</string>
+    <string name="rtsp_pref_onvif_discovery_summary">ONVIF mijozlari bu strimni topsin. Faqat H.264 qo‘llab-quvvatlanadi</string>
 </resources>

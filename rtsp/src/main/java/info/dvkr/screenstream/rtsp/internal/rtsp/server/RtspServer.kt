@@ -6,6 +6,7 @@ import info.dvkr.screenstream.rtsp.internal.AudioParams
 import info.dvkr.screenstream.rtsp.internal.Codec
 import info.dvkr.screenstream.rtsp.internal.MediaFrame
 import info.dvkr.screenstream.rtsp.internal.RtspNetInterface
+import info.dvkr.screenstream.rtsp.internal.RtspServerEndpoint
 import info.dvkr.screenstream.rtsp.internal.RtspStreamingService
 import info.dvkr.screenstream.rtsp.internal.VideoParams
 import info.dvkr.screenstream.rtsp.internal.rtsp.sockets.TcpStreamSocket
@@ -49,7 +50,7 @@ internal class RtspServer(
     private val videoParams = AtomicReference<VideoParams?>()
     private val audioParams = AtomicReference<AudioParams?>()
 
-    private data class BoundSocket(val socket: ServerSocket, val advertisedHost: String)
+    private data class BoundSocket(val socket: ServerSocket, val netInterface: RtspNetInterface, val advertisedHost: String)
     private data class BindFailure(val key: String, val host: String, val bindError: RtspBindError, val technicalDetails: String?)
     private data class BindResult(val boundSockets: List<BoundSocket>, val bindFailures: List<BindFailure>)
 
@@ -120,7 +121,18 @@ internal class RtspServer(
 
                 publishedSockets = true
 
-                onEvent(RtspStreamingService.InternalEvent.RtspServer.OnStart(generation))
+                onEvent(
+                    RtspStreamingService.InternalEvent.RtspServer.OnStart(
+                        generation = generation,
+                        endpoints = bindResult.boundSockets.map { boundSocket ->
+                            RtspServerEndpoint(
+                                address = boundSocket.netInterface.address,
+                                bindHost = boundSocket.netInterface.hostAddress,
+                                rtspUrl = boundSocket.netInterface.buildUrl(port, path)
+                            )
+                        }
+                    )
+                )
 
                 bindResult.boundSockets.forEach { launchAcceptor(it, selectorManager, port, path, protocol) }
             } catch (e: CancellationException) {
@@ -146,7 +158,7 @@ internal class RtspServer(
                 val bindHost = networkInterface.address.hostAddress
                     ?: throw IllegalStateException("Null hostAddress for ${networkInterface.label}")
                 val serverSocket = aSocket(selectorManager).tcp().bind(bindHost, port) { reuseAddress = true }
-                boundSockets += BoundSocket(serverSocket, bindHost.substringBefore('%'))
+                boundSockets += BoundSocket(serverSocket, networkInterface, bindHost.substringBefore('%'))
             } catch (cancellation: CancellationException) {
                 throw cancellation
             } catch (error: Throwable) {

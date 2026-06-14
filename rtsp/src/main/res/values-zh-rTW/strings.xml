@@ -116,4 +116,6 @@
     <string name="rtsp_pref_server_port">伺服器連接埠</string>
     <string name="rtsp_pref_server_port_summary">設定連接埠</string>
     <string name="rtsp_pref_server_port_text">設定連入使用的連接埠號。\n範圍：1025–65535\n預設：8554</string>
+    <string name="rtsp_pref_onvif_discovery">ONVIF 探索</string>
+    <string name="rtsp_pref_onvif_discovery_summary">讓 ONVIF 用戶端探索此串流。僅支援 H.264</string>
 </resources>

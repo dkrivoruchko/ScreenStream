@@ -116,4 +116,6 @@
     <string name="rtsp_pref_server_port">Porta do servidor</string>
     <string name="rtsp_pref_server_port_summary">Definir a porta para conexões de entrada</string>
     <string name="rtsp_pref_server_port_text">Definir a porta do servidor para conexões de entrada.\nValores: 1025–65535\nPadrão: 8554</string>
+    <string name="rtsp_pref_onvif_discovery">Descoberta ONVIF</string>
+    <string name="rtsp_pref_onvif_discovery_summary">Permitir que clientes ONVIF encontrem este stream. Suporta apenas H.264</string>
 </resources>

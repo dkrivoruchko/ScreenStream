@@ -116,4 +116,6 @@
     <string name="rtsp_pref_server_port">Bedienerpoort</string>
     <string name="rtsp_pref_server_port_summary">Stel poort vir inkomende verbindings</string>
     <string name="rtsp_pref_server_port_text">Stel bedienerpoort vir inkomende verbindings.\nWaardes: 1025–65535\nVerstek: 8554</string>
+    <string name="rtsp_pref_onvif_discovery">ONVIF-opsporing</string>
+    <string name="rtsp_pref_onvif_discovery_summary">Laat ONVIF-kliënte hierdie stroom vind. Ondersteun slegs H.264</string>
 </resources>

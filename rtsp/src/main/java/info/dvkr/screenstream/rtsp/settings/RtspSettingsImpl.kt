@@ -18,12 +18,18 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.IOException
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
+@OptIn(ExperimentalUuidApi::class)
 internal class RtspSettingsImpl(
     context: Context
 ) : RtspSettings {
+
+    private val coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.IO)
 
     private val dataStore: DataStore<Preferences> = PreferenceDataStoreFactory.create(
         corruptionHandler = ReplaceFileCorruptionHandler { ex -> XLog.e(ex); emptyPreferences() },
@@ -37,10 +43,20 @@ internal class RtspSettingsImpl(
             if (cause is IOException) emit(RtspSettings.Data()) else throw cause
         }
         .stateIn(
-            CoroutineScope(Dispatchers.IO),
+            coroutineScope,
             SharingStarted.WhileSubscribed(stopTimeoutMillis = 5000),
             RtspSettings.Data()
         )
+
+    init {
+        coroutineScope.launch {
+            dataStore.edit { preferences ->
+                if (preferences[RtspSettings.Key.ONVIF_DEVICE_ID].isNullOrBlank()) {
+                    preferences[RtspSettings.Key.ONVIF_DEVICE_ID] = Uuid.random().toString()
+                }
+            }
+        }
+    }
 
     override suspend fun updateData(transform: RtspSettings.Data.() -> RtspSettings.Data) = withContext(NonCancellable + Dispatchers.IO) {
         dataStore.edit { preferences ->
@@ -141,6 +157,12 @@ internal class RtspSettingsImpl(
 
                 if (newSettings.serverPath != RtspSettings.Default.SERVER_PATH)
                     set(RtspSettings.Key.SERVER_PATH, newSettings.serverPath)
+
+                if (newSettings.onvifDiscoveryEnabled != RtspSettings.Default.ONVIF_DISCOVERY_ENABLED)
+                    set(RtspSettings.Key.ONVIF_DISCOVERY_ENABLED, newSettings.onvifDiscoveryEnabled)
+
+                if (newSettings.onvifDeviceId != RtspSettings.Default.ONVIF_DEVICE_ID)
+                    set(RtspSettings.Key.ONVIF_DEVICE_ID, newSettings.onvifDeviceId)
             }
         }
         Unit
@@ -187,5 +209,7 @@ internal class RtspSettingsImpl(
         enableIPv6 = this[RtspSettings.Key.ENABLE_IPV6] ?: RtspSettings.Default.ENABLE_IPV6,
         serverPort = this[RtspSettings.Key.SERVER_PORT] ?: RtspSettings.Default.SERVER_PORT,
         serverPath = this[RtspSettings.Key.SERVER_PATH] ?: RtspSettings.Default.SERVER_PATH,
+        onvifDiscoveryEnabled = this[RtspSettings.Key.ONVIF_DISCOVERY_ENABLED] ?: RtspSettings.Default.ONVIF_DISCOVERY_ENABLED,
+        onvifDeviceId = this[RtspSettings.Key.ONVIF_DEVICE_ID] ?: RtspSettings.Default.ONVIF_DEVICE_ID,
     )
 }
