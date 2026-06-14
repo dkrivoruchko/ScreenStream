@@ -116,4 +116,6 @@
     <string name="rtsp_pref_server_port">Სერვერის პორტი</string>
     <string name="rtsp_pref_server_port_summary">დააყენეთ პორტი შემომავალი კავშირებისთვის</string>
     <string name="rtsp_pref_server_port_text">დააყენეთ სერვერის პორტი შემომავალი კავშირებისთვის.\nღირებულებები: 1025–65535\nნაგულისხმევი: 8554</string>
+    <string name="rtsp_pref_onvif_discovery">ONVIF აღმოჩენა</string>
+    <string name="rtsp_pref_onvif_discovery_summary">ONVIF კლიენტებმა იპოვონ ეს ნაკადი. მხარდაჭერილია მხოლოდ H.264</string>
 </resources>

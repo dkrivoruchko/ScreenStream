@@ -116,4 +116,6 @@
     <string name="rtsp_pref_server_port">सर्वर पोर्ट</string>
     <string name="rtsp_pref_server_port_summary">आने वाले कनेक्शन के लिए पोर्ट सेट करें</string>
     <string name="rtsp_pref_server_port_text">आने वाले कनेक्शन के लिए सर्वर पोर्ट सेट करें।\nमूल्य: 1025–65535\nडिफ़ॉल्ट: 8554</string>
+    <string name="rtsp_pref_onvif_discovery">ONVIF खोज</string>
+    <string name="rtsp_pref_onvif_discovery_summary">ONVIF क्लाइंट को यह स्ट्रीम खोजने दें। केवल H.264 समर्थित है</string>
 </resources>

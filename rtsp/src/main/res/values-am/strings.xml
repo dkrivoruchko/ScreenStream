@@ -116,4 +116,6 @@
     <string name="rtsp_pref_server_port">የአገልጋይ ወደብ</string>
     <string name="rtsp_pref_server_port_summary">ለገቢ ግንኙነቶች ወደብ ያዘጋጁ</string>
     <string name="rtsp_pref_server_port_text">ለመጪ ግንኙነቶች የአገልጋይ ወደብ ያዘጋጁ።\nዋጋ፡ 1025–65535\nነባሪ፡ 8554</string>
+    <string name="rtsp_pref_onvif_discovery">የONVIF ፍለጋ</string>
+    <string name="rtsp_pref_onvif_discovery_summary">የONVIF ደንበኞች ይህን ዥረት እንዲያገኙ። H.264 ብቻ ይደገፋል</string>
 </resources>

@@ -116,4 +116,6 @@
     <string name="rtsp_pref_server_port">Port server</string>
     <string name="rtsp_pref_server_port_summary">Atur port untuk koneksi masuk</string>
     <string name="rtsp_pref_server_port_text">Atur port server untuk koneksi masuk.\nNilai: 1025–65535\nBawaan: 8554</string>
+    <string name="rtsp_pref_onvif_discovery">Penemuan ONVIF</string>
+    <string name="rtsp_pref_onvif_discovery_summary">Izinkan klien ONVIF menemukan stream ini. Hanya mendukung H.264</string>
 </resources>

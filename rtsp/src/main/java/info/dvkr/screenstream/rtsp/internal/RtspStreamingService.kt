@@ -39,6 +39,7 @@ import info.dvkr.screenstream.rtsp.RtspModuleService
 import info.dvkr.screenstream.rtsp.internal.EncoderUtils.adjustResizeFactor
 import info.dvkr.screenstream.rtsp.internal.audio.AudioEncoder
 import info.dvkr.screenstream.rtsp.internal.audio.AudioSource
+import info.dvkr.screenstream.rtsp.internal.onvif.OnvifServer
 import info.dvkr.screenstream.rtsp.internal.rtsp.RtspUrl
 import info.dvkr.screenstream.rtsp.internal.rtsp.client.RtspClient
 import info.dvkr.screenstream.rtsp.internal.rtsp.server.ClientStats
@@ -267,7 +268,7 @@ internal class RtspStreamingService(
         }
     }
 
-    private inner class RtspServerController() {
+    private inner class RtspServerController {
         var isActive: Boolean = false
 
         var bindings: List<RtspBinding> = emptyList()
@@ -279,30 +280,22 @@ internal class RtspStreamingService(
         private var generation: Long = 0L
         private var statsHeartbeatJob: Job? = null
         private var discoveredBindings: List<DiscoveredBinding> = emptyList()
+        private var onvifServer: OnvifServer? = null
 
         private var server: RtspServer? = null
-            set(value) {
-                if (value == null) {
-                    statsHeartbeatJob?.cancel()
-                    statsHeartbeatJob = null
-                    generation++
-                    field?.stop()
-                    isActive = false
-                    discoveredBindings = emptyList()
-                    bindings = emptyList()
-                }
-                field = value
-            }
 
-        fun onEvent(event: InternalEvent.RtspServer) {
-            if (event !is InternalEvent.RtspServer.DiscoverAddress && event.generation != generation) {
+        suspend fun onEvent(event: InternalEvent.RtspServer) {
+            if (event !is InternalEvent.RtspServer.DiscoverAddress &&
+                event !is InternalEvent.RtspServer.OnvifDiscoveryChanged &&
+                event.generation != generation
+            ) {
                 XLog.d(getLog("RtspServer:${event::class.simpleName}", "Stale generation=${event.generation}. Ignoring."))
                 return
             }
 
             when (event) {
                 is InternalEvent.RtspServer.DiscoverAddress -> {
-                    server = null
+                    clearServer()
 
                     runCatching {
                         val netInterfaces = networkHelper.getNetInterfaces(
@@ -375,6 +368,16 @@ internal class RtspStreamingService(
                 is InternalEvent.RtspServer.OnStart -> {
                     isActive = true
                     currentError = null
+                    onvifServer = OnvifServer(
+                        context = service,
+                        deviceId = rtspSettings.data.value.onvifDeviceId,
+                        appVersion = appVersion,
+                        protocolPolicy = rtspSettings.data.value.serverProtocol,
+                        endpoints = event.endpoints
+                    ).also { server ->
+                        updateOnvifVideoMetadata(server, projectionState.lastVideoParams)
+                        server.setEnabled(rtspSettings.data.value.onvifDiscoveryEnabled)
+                    }
                 }
 
                 is InternalEvent.RtspServer.OnBindFailures -> {
@@ -389,8 +392,11 @@ internal class RtspStreamingService(
                     isActive = false
                 }
 
-                is InternalEvent.RtspServer.OnStop -> server = null
+                is InternalEvent.RtspServer.OnStop -> clearServer()
                 is InternalEvent.RtspServer.OnClientStats -> Unit // Intentional to trigger serverClientStats update
+                is InternalEvent.RtspServer.OnvifDiscoveryChanged -> {
+                    onvifServer?.setEnabled(rtspSettings.data.value.onvifDiscoveryEnabled)
+                }
             }
         }
 
@@ -404,22 +410,31 @@ internal class RtspStreamingService(
             }
         }
 
-        fun stop(stopServer: Boolean) {
+        suspend fun stop(stopServer: Boolean) {
             if (server == null) return
 
             statsHeartbeatJob?.cancel()
             statsHeartbeatJob = null
 
             if (stopServer) {
-                server = null
+                clearServer()
             } else {
                 server?.disconnectAllClients()
                 server?.clearMediaParams()
+                onvifServer?.let { updateOnvifVideoMetadata(it, null) }
             }
         }
 
-        fun setVideoParams(video: VideoParams) {
+        fun setVideoParams(video: VideoParams, width: Int = 0, height: Int = 0) {
             server?.setVideoData(video.codec, video.sps, video.pps, video.vps)
+            val currentOnvifServer = onvifServer
+            if (currentOnvifServer != null) {
+                coroutineScope.launch {
+                    if (onvifServer === currentOnvifServer && projectionState.lastVideoParams === video) {
+                        updateOnvifVideoMetadata(currentOnvifServer, video, width, height)
+                    }
+                }
+            }
         }
 
         fun setAudioParams(audio: AudioParams?) {
@@ -430,9 +445,32 @@ internal class RtspStreamingService(
             is MediaFrame.VideoFrame -> server?.onVideoFrame(frame) ?: frame.release()
             is MediaFrame.AudioFrame -> server?.onAudioFrame(frame) ?: frame.release()
         }
+
+        private suspend fun updateOnvifVideoMetadata(onvifServer: OnvifServer, videoParams: VideoParams?, width: Int = 0, height: Int = 0) {
+            val videoEncoder = projectionState.active?.videoEncoder
+            onvifServer.setVideoMetadata(
+                videoParams = videoParams,
+                width = width.takeIf { it > 0 } ?: videoEncoder?.width ?: 0,
+                height = height.takeIf { it > 0 } ?: videoEncoder?.height ?: 0,
+                fps = rtspSettings.data.value.videoFps
+            )
+        }
+
+        private suspend fun clearServer() {
+            statsHeartbeatJob?.cancel()
+            statsHeartbeatJob = null
+            onvifServer?.close()
+            onvifServer = null
+            generation++
+            server?.stop()
+            server = null
+            isActive = false
+            discoveredBindings = emptyList()
+            bindings = emptyList()
+        }
     }
 
-    private inner class RtspClientController() {
+    private inner class RtspClientController {
         var status: RtspClientStatus = RtspClientStatus.IDLE
 
         private var client: RtspClient? = null
@@ -464,7 +502,7 @@ internal class RtspStreamingService(
             client?.beginVideoReconfigure()
         }
 
-        fun onEvent(event: InternalEvent.RtspClient) {
+        suspend fun onEvent(event: InternalEvent.RtspClient) {
             if (event.generation != generation) {
                 XLog.d(getLog("RtspClient:${event::class.simpleName}", "Stale generation=${event.generation}. Ignoring."))
                 return
@@ -543,9 +581,12 @@ internal class RtspStreamingService(
                 RtspServer(Priority.RECOVER_IGNORE)
 
             data class OnError(override val generation: Long, val error: RtspError) : RtspServer(Priority.RECOVER_IGNORE)
-            data class OnStart(override val generation: Long) : RtspServer(Priority.RECOVER_IGNORE)
+            data class OnStart(override val generation: Long, val endpoints: List<RtspServerEndpoint>) : RtspServer(Priority.RECOVER_IGNORE)
             data class OnStop(override val generation: Long) : RtspServer(Priority.DESTROY_IGNORE)
             data class OnClientStats(override val generation: Long) : RtspServer(Priority.DESTROY_IGNORE)
+            data object OnvifDiscoveryChanged : RtspServer(Priority.RECOVER_IGNORE) {
+                override val generation: Long = -1L
+            }
         }
 
         data class OnVideoFps(val fps: Int) : InternalEvent(Priority.DESTROY_IGNORE)
@@ -634,6 +675,10 @@ internal class RtspStreamingService(
         }.listenForChange(coroutineScope, 1) { config ->
             XLog.i(getLog("SettingsChanged", config.toString()))
             sendEvent(InternalEvent.RtspServer.DiscoverAddress(reason = "SettingsChanged"), timeout = 200)
+        }
+
+        rtspSettings.data.map { it.onvifDiscoveryEnabled }.listenForChange(coroutineScope, 1) {
+            sendEvent(InternalEvent.RtspServer.OnvifDiscoveryChanged)
         }
 
         coroutineScope.launch {
@@ -785,7 +830,7 @@ internal class RtspStreamingService(
     }
 
     // On RTSP-HT only
-    private fun processEvent(event: RtspEvent) {
+    private suspend fun processEvent(event: RtspEvent) {
         when (event) {
             is InternalEvent.InitState -> {
                 serverController = null
@@ -876,11 +921,11 @@ internal class RtspStreamingService(
                 val blockedByError = currentError != null && currentError !is RtspError.ClientError
                 val notReady =
                     blockedByError ||
-                        when (mode) {
-                            RtspSettings.Values.Mode.SERVER -> serverController?.isActive != true
-                            RtspSettings.Values.Mode.CLIENT ->
-                                clientController == null || selectedVideoEncoderInfo == null || (audioEnabled && selectedAudioEncoderInfo == null)
-                        }
+                            when (mode) {
+                                RtspSettings.Values.Mode.SERVER -> serverController?.isActive != true
+                                RtspSettings.Values.Mode.CLIENT ->
+                                    clientController == null || selectedVideoEncoderInfo == null || (audioEnabled && selectedAudioEncoderInfo == null)
+                            }
                 if (notReady) {
                     XLog.i(
                         getLog(
@@ -1012,11 +1057,11 @@ internal class RtspStreamingService(
                     }
                 }
 
-                val setVideoParams: (VideoParams) -> Unit =
+                val setVideoParams: (VideoParams, Int, Int) -> Unit =
                     if (modeLocal == RtspSettings.Values.Mode.SERVER) {
-                        { video -> serverController?.setVideoParams(video) }
+                        { video, width, height -> serverController?.setVideoParams(video, width, height) }
                     } else {
-                        { video -> clientController?.setVideoParams(video) }
+                        { video, _, _ -> clientController?.setVideoParams(video) }
                     }
 
                 val setAudioParams: (AudioParams?) -> Unit =
@@ -1080,7 +1125,7 @@ internal class RtspStreamingService(
                             onVideoInfo = { sps, pps, vps ->
                                 val params = VideoParams(videoEncoderInfo.codec, sps, pps, vps)
                                 projectionState.lastVideoParams = params
-                                setVideoParams(params)
+                                setVideoParams(params, encodedWidth, encodedHeight)
                             },
                             onVideoFrame = onFrame,
                             onFps = { sendEvent(InternalEvent.OnVideoFps(it)) },
@@ -1433,9 +1478,7 @@ internal class RtspStreamingService(
         }
     }
 
-    // Inline Only
-    @Suppress("NOTHING_TO_INLINE")
-    private inline fun stopStream(stopServer: Boolean, stopReason: String? = null) {
+    private suspend fun stopStream(stopServer: Boolean, stopReason: String? = null) {
         val wasStreaming = projectionState.active != null
         val activeConsumersAtStop = currentActiveConsumersCount()
         if (wasStreaming) {

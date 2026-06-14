@@ -47,6 +47,8 @@ public interface RtspSettings {
         public val ENABLE_IPV6: Preferences.Key<Boolean> = booleanPreferencesKey("ENABLE_IPV6")
         public val SERVER_PORT: Preferences.Key<Int> = intPreferencesKey("SERVER_PORT")
         public val SERVER_PATH: Preferences.Key<String> = stringPreferencesKey("SERVER_PATH")
+        public val ONVIF_DISCOVERY_ENABLED: Preferences.Key<Boolean> = booleanPreferencesKey("ONVIF_DISCOVERY_ENABLED")
+        public val ONVIF_DEVICE_ID: Preferences.Key<String> = stringPreferencesKey("ONVIF_DEVICE_ID")
     }
 
     public object Default {
@@ -84,6 +86,8 @@ public interface RtspSettings {
         public const val ENABLE_IPV6: Boolean = false
         public const val SERVER_PORT: Int = 8554
         public const val SERVER_PATH: String = "screen"
+        public const val ONVIF_DISCOVERY_ENABLED: Boolean = false
+        public const val ONVIF_DEVICE_ID: String = ""
     }
 
     public object Values {
@@ -146,6 +150,8 @@ public interface RtspSettings {
         public val enableIPv6: Boolean = Default.ENABLE_IPV6,
         public val serverPort: Int = Default.SERVER_PORT,
         public val serverPath: String = Default.SERVER_PATH,
+        public val onvifDiscoveryEnabled: Boolean = Default.ONVIF_DISCOVERY_ENABLED,
+        public val onvifDeviceId: String = Default.ONVIF_DEVICE_ID,
     )
 
     public val data: StateFlow<Data>

@@ -116,4 +116,6 @@
     <string name="rtsp_pref_server_port">Serverpoort</string>
     <string name="rtsp_pref_server_port_summary">Stel welke poort gebruikt mag worden voor verbindingen in</string>
     <string name="rtsp_pref_server_port_text">Stel de server poort in voor inkomende verbindingen.\nWaardes: 1025–65535\nStandaard: 8554</string>
+    <string name="rtsp_pref_onvif_discovery">ONVIF-detectie</string>
+    <string name="rtsp_pref_onvif_discovery_summary">Laat ONVIF-clients deze stream vinden. Ondersteunt alleen H.264</string>
 </resources>

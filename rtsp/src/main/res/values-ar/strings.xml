@@ -116,4 +116,6 @@
     <string name="rtsp_pref_server_port">منفذ الخادم</string>
     <string name="rtsp_pref_server_port_summary">تعيين منفذ للاتصالات الواردة</string>
     <string name="rtsp_pref_server_port_text">تعيين منفذ خادم للاتصالات الواردة.\nالقيم: 1025–65535\nالافتراضي: 8554</string>
+    <string name="rtsp_pref_onvif_discovery">اكتشاف ONVIF</string>
+    <string name="rtsp_pref_onvif_discovery_summary">السماح لعملاء ONVIF بالعثور على هذا البث. يدعم H.264 فقط</string>
 </resources>

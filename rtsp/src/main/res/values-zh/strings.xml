@@ -116,4 +116,6 @@
     <string name="rtsp_pref_server_port">服务器端口</string>
     <string name="rtsp_pref_server_port_summary">设置传入连接的端口</string>
     <string name="rtsp_pref_server_port_text">设置传入连接的服务器端口。\n范围：1025–65535\n默认：8554</string>
+    <string name="rtsp_pref_onvif_discovery">ONVIF 发现</string>
+    <string name="rtsp_pref_onvif_discovery_summary">让 ONVIF 客户端发现此串流。仅支持 H.264</string>
 </resources>
