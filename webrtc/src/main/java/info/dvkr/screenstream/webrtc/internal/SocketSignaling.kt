@@ -1,6 +1,7 @@
 package info.dvkr.screenstream.webrtc.internal
 
 import android.os.Build
+import android.os.SystemClock
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.webrtc.internal.SocketSignaling.Payload.ERROR_TOKEN_VERIFICATION_FAILED
@@ -15,8 +16,6 @@ import org.json.JSONException
 import org.json.JSONObject
 import org.webrtc.IceCandidate
 import org.webrtc.PeerConnection.IceServer
-import java.util.concurrent.CountDownLatch
-import java.util.concurrent.TimeUnit
 
 internal class SocketSignaling(
     private val environment: WebRtcEnvironment,
@@ -57,9 +56,9 @@ internal class SocketSignaling(
 
         internal class SocketCheckError(override val message: String) : Error(false, true)
         internal class SocketConnectError(override val message: String) : Error(true, false)
-        internal class StreamCreateError(override val message: String, override val cause: Throwable) : Error(true, true)
-        internal class StreamRemoveError(override val message: String, override val cause: Throwable) : Error(true, true)
-        internal class StreamStartError(override val message: String, override val cause: Throwable) : Error(true, true)
+        internal class StreamCreateError(override val message: String, override val cause: Throwable, retry: Boolean = false) : Error(retry, true)
+        internal class StreamRemoveError(override val message: String, override val cause: Throwable, retry: Boolean = false) : Error(retry, true)
+        internal class HostRelayError(override val message: String, override val cause: Throwable, retry: Boolean = false) : Error(retry, true)
     }
 
     internal interface EventListener {
@@ -68,12 +67,12 @@ internal class SocketSignaling(
         fun onSocketDisconnected(reason: String)
         fun onStreamCreated(streamId: StreamId)
         fun onStreamRemoved()
-        fun onClientJoin(clientId: ClientId, iceServers: List<IceServer>)
-        fun onClientLeave(clientId: ClientId)
-        fun onClientNotFound(clientId: ClientId, reason: String)
-        fun onClientAnswer(clientId: ClientId, answer: Answer)
-        fun onClientCandidate(clientId: ClientId, candidate: IceCandidate)
-        fun onHostOfferConfirmed(clientId: ClientId)
+        fun onClientJoin(clientId: ClientId, joinAttemptId: AttemptId, iceServers: List<IceServer>)
+        fun onClientLeave(clientId: ClientId, joinAttemptId: AttemptId)
+        fun onClientNotFound(key: NegotiationKey, reason: String)
+        fun onClientStartNotFound(key: ClientSessionKey, reason: String)
+        fun onClientAnswer(clientId: ClientId, negotiationAttemptId: AttemptId, answer: Answer)
+        fun onClientCandidate(clientId: ClientId, negotiationAttemptId: AttemptId, candidate: IceCandidate)
         fun onError(cause: Error)
     }
 
@@ -100,6 +99,10 @@ internal class SocketSignaling(
         const val MESSAGE = "message"
         const val STATUS = "status"
         const val OK = "OK"
+        const val PROTOCOL_VERSION = "protocolVersion"
+        const val HOST_CREATE_ATTEMPT_ID = "hostCreateAttemptId"
+        const val JOIN_ATTEMPT_ID = "joinAttemptId"
+        const val NEGOTIATION_ATTEMPT_ID = "negotiationAttemptId"
         const val STREAM_ID = "streamId"
         const val ICE_SERVERS = "iceServers"
         const val PASSWORD_HASH = "passwordHash"
@@ -119,6 +122,9 @@ internal class SocketSignaling(
 
         const val ERROR_TOKEN_VERIFICATION_FAILED = "ERROR:TOKEN_VERIFICATION_FAILED"
     }
+
+    private fun isRetryableAckStatus(status: String): Boolean =
+        status == Payload.ERROR_TIMEOUT_OR_NO_RESPONSE
 
     @Volatile
     private var socket: Socket? = null
@@ -142,6 +148,74 @@ internal class SocketSignaling(
 
     init {
         XLog.d(getLog("init"))
+    }
+
+    private fun emitHostRelayWithAck(
+        currentSocket: Socket,
+        socketEvent: String,
+        payload: JSONObject,
+        tag: String,
+        key: NegotiationKey
+    ) {
+        val startedAt = SystemClock.elapsedRealtime()
+
+        currentSocket.emit(socketEvent, arrayOf(payload), object : AckWithTimeout(10_000) {
+            override fun onSuccess(args: Array<Any?>?) {
+                val logTag = "$tag[${socketId()}]"
+                if (isStaleSocketCallback(currentSocket, logTag)) return
+
+                val elapsed = SystemClock.elapsedRealtime() - startedAt
+                XLog.v(this@SocketSignaling.getLog(logTag, "Response: ${args.contentToString()}"))
+                when (val status = SocketAck.fromAck(args).status) {
+                    Payload.OK -> XLog.d(
+                        this@SocketSignaling.getLog(
+                            logTag,
+                            "Client: ${key.clientId} => OK, negotiationAttemptId=${key.attemptId}, elapsed_ms=$elapsed"
+                        )
+                    )
+
+                    Payload.ERROR_NO_CLIENT_FOUND -> {
+                        XLog.d(
+                            this@SocketSignaling.getLog(
+                                logTag,
+                                "Client: ${key.clientId} => $status, negotiationAttemptId=${key.attemptId}, elapsed_ms=$elapsed"
+                            )
+                        )
+                        eventListener.onClientNotFound(key, "[$socketEvent]")
+                    }
+
+                    Payload.ERROR_TIMEOUT_OR_NO_RESPONSE -> XLog.w(
+                        this@SocketSignaling.getLog(
+                            logTag,
+                            "[$socketEvent] => Timeout, negotiationAttemptId=${key.attemptId}, elapsed_ms=$elapsed. Keeping client; ICE state owns recovery."
+                        )
+                    )
+
+                    else -> {
+                        val msg = "[$socketEvent] => $status"
+                        val cause = IllegalStateException("$tag => $status")
+                        XLog.e(
+                            this@SocketSignaling.getLog(
+                                logTag,
+                                "Client: ${key.clientId} => unexpected ACK status: $status, negotiationAttemptId=${key.attemptId}, elapsed_ms=$elapsed"
+                            ), cause
+                        )
+                        eventListener.onError(Error.HostRelayError(msg, cause, retry = isRetryableAckStatus(status)))
+                    }
+                }
+            }
+
+            override fun onTimeout() {
+                val logTag = "$tag[${socketId()}]"
+                if (isStaleSocketCallback(currentSocket, logTag)) return
+                XLog.w(
+                    this@SocketSignaling.getLog(
+                        logTag,
+                        "[$socketEvent] => Timeout, negotiationAttemptId=${key.attemptId}, elapsed_ms=${SystemClock.elapsedRealtime() - startedAt}. Keeping client; ICE state owns recovery."
+                    )
+                )
+            }
+        })
     }
 
     @Throws(IllegalArgumentException::class)
@@ -199,31 +273,43 @@ internal class SocketSignaling(
         val currentSocket = socket ?: return
         currentSocket.connected() || return
 
-        val data = runCatching { JSONObject().put("jwt", JWTHelper.createJWT(environment, streamId.value)) }
+        val hostCreateAttemptId = AttemptId.random()
+        val data = runCatching {
+            JSONObject()
+                .put("jwt", JWTHelper.createJWT(environment, streamId.value))
+                .put(Payload.PROTOCOL_VERSION, WEBRTC_PROTOCOL_VERSION)
+                .put(Payload.HOST_CREATE_ATTEMPT_ID, hostCreateAttemptId.value)
+        }
             .onFailure { eventListener.onError(Error.StreamCreateError("createJWT error: ${it.message}", it)) }
             .getOrNull() ?: return
 
+        val startedAt = SystemClock.elapsedRealtime()
+        XLog.d(getLog("sendStreamCreate[${socketId()}]", "hostCreateAttemptId=$hostCreateAttemptId"))
+
         currentSocket.emit(Event.STREAM_CREATE, arrayOf(data), object : AckWithTimeout(10_000) {
             override fun onSuccess(args: Array<Any?>?) { // Callback may never be called
-                if (isStaleSocketCallback(currentSocket, "sendStreamCreate[${socketId()}]")) return
+                val logTag = "sendStreamCreate[${socketId()}]"
+                if (isStaleSocketCallback(currentSocket, logTag)) return
 
                 val msgV = "[${Event.STREAM_CREATE}] Response: ${args.contentToString()}"
-                XLog.v(this@SocketSignaling.getLog("sendStreamCreate[${socketId()}]", msgV))
+                val elapsed = SystemClock.elapsedRealtime() - startedAt
+                XLog.v(this@SocketSignaling.getLog(logTag, msgV))
                 val ack = SocketAck.fromAck(args)
                 when {
                     ack.status != Payload.OK -> {
                         val msg = "[${Event.STREAM_CREATE}] => ${ack.status}"
-                        XLog.e(this@SocketSignaling.getLog("sendStreamCreate[${socketId()}]", "$msg Data: $data"))
-                        eventListener.onError(Error.StreamCreateError(msg, IllegalStateException(msg)))
+                        XLog.e(this@SocketSignaling.getLog(logTag, "$msg, hostCreateAttemptId=$hostCreateAttemptId, elapsed_ms=$elapsed"))
+                        eventListener.onError(Error.StreamCreateError(msg, IllegalStateException(msg), retry = isRetryableAckStatus(ack.status)))
                     }
 
                     ack.streamId.isEmpty() -> {
                         val msg = "[${Event.STREAM_CREATE}] => StreamId is empty"
-                        XLog.e(this@SocketSignaling.getLog("sendStreamCreate[${socketId()}]", "$msg Data: $data"))
+                        XLog.e(this@SocketSignaling.getLog(logTag, "$msg, hostCreateAttemptId=$hostCreateAttemptId, elapsed_ms=$elapsed"))
                         eventListener.onError(Error.StreamCreateError(msg, IllegalStateException(msg)))
                     }
 
                     else -> {
+                        XLog.d(this@SocketSignaling.getLog(logTag, "OK, hostCreateAttemptId=$hostCreateAttemptId, elapsed_ms=$elapsed"))
                         onStreamCreated(currentSocket)
                         eventListener.onStreamCreated(ack.streamId)
                     }
@@ -231,11 +317,16 @@ internal class SocketSignaling(
             }
 
             override fun onTimeout() {
-                if (isStaleSocketCallback(currentSocket, "sendStreamCreate[${socketId()}]")) return
+                val logTag = "sendStreamCreate[${socketId()}]"
+                if (isStaleSocketCallback(currentSocket, logTag)) return
 
-                val msg = "[${Event.STREAM_CREATE}] => Timeout"
-                XLog.w(this@SocketSignaling.getLog("sendStreamCreate[${socketId()}]", msg))
-                eventListener.onError(Error.StreamCreateError(msg, IllegalStateException(msg)))
+                val msg =
+                    "[${Event.STREAM_CREATE}] => Timeout, classification=create_ack_timeout, hostCreateAttemptId=$hostCreateAttemptId, elapsed_ms=${SystemClock.elapsedRealtime() - startedAt}"
+                XLog.w(this@SocketSignaling.getLog(logTag, msg))
+                currentSocket.off()
+                currentSocket.close()
+                if (socket === currentSocket) socket = null
+                eventListener.onSocketDisconnected(msg)
             }
         })
     }
@@ -244,16 +335,20 @@ internal class SocketSignaling(
         XLog.d(getLog("onStreamCreated[${socketId()}]"))
 
         currentSocket.on(Event.STREAM_JOIN) { args ->
-            if (isStaleSocketCallback(currentSocket, "onStreamCreated.${Event.STREAM_JOIN}[${currentSocket.id()}]")) return@on
-            XLog.v(getLog("onStreamCreated[${socketId()}]", "[${Event.STREAM_JOIN}] Payload: ${args.contentToString()}"))
+            if (isStaleSocketCallback(currentSocket, "onStreamCreated.${Event.STREAM_JOIN}[${currentSocket.id()}]")) {
+                SocketPayload.fromPayload(args).sendOkAck()
+                return@on
+            }
+            XLog.v(getLog("onStreamCreated[${socketId()}]", "[${Event.STREAM_JOIN}]"))
             val payload = SocketPayload.fromPayload(args)
-            if (payload.clientId.isEmpty()) {
-                val msg = "[${Event.STREAM_JOIN}] ClientId is empty"
+            if (payload.clientId.isEmpty() || payload.joinAttemptId.isEmpty()) {
+                val msg = "[${Event.STREAM_JOIN}] ClientId or JoinAttemptId is empty"
                 XLog.e(getLog("onStreamCreated", msg), IllegalArgumentException("onStreamCreated: $msg"))
                 payload.sendErrorAck(Payload.ERROR_EMPTY_OR_BAD_DATA)
             } else if (passwordVerifier.isValid(payload.clientId, payload.passwordHash)) {
                 payload.sendOkAck()
-                eventListener.onClientJoin(payload.clientId, payload.iceServers)
+                XLog.d(getLog("onStreamCreated", "[${Event.STREAM_JOIN}] OK"))
+                eventListener.onClientJoin(payload.clientId, payload.joinAttemptId, payload.iceServers)
             } else {
                 XLog.w(getLog("onStreamCreated", "[${Event.STREAM_JOIN}] Wrong stream password"))
                 payload.sendErrorAck(Payload.ERROR_WRONG_STREAM_PASSWORD)
@@ -261,44 +356,56 @@ internal class SocketSignaling(
         }
 
         currentSocket.on(Event.CLIENT_ANSWER) { args ->
-            if (isStaleSocketCallback(currentSocket, "onStreamCreated.${Event.CLIENT_ANSWER}[${currentSocket.id()}]")) return@on
+            if (isStaleSocketCallback(currentSocket, "onStreamCreated.${Event.CLIENT_ANSWER}[${currentSocket.id()}]")) {
+                SocketPayload.fromPayload(args).sendOkAck()
+                return@on
+            }
             XLog.v(getLog("onStreamCreated[${socketId()}]", "[${Event.CLIENT_ANSWER}]"))
             val payload = SocketPayload.fromPayload(args)
-            if (payload.clientId.isEmpty() || payload.answer.isEmpty()) {
-                val msg = "[${Event.CLIENT_ANSWER}] ClientId or Answer is empty"
+            if (payload.clientId.isEmpty() || payload.negotiationAttemptId.isEmpty() || payload.answer.isEmpty()) {
+                val msg = "[${Event.CLIENT_ANSWER}] ClientId, NegotiationAttemptId or Answer is empty"
                 XLog.e(getLog("onStreamCreated", msg), IllegalArgumentException("onStreamCreated: $msg"))
                 payload.sendErrorAck(Payload.ERROR_EMPTY_OR_BAD_DATA)
             } else {
                 payload.sendOkAck()
-                eventListener.onClientAnswer(payload.clientId, payload.answer)
+                eventListener.onClientAnswer(payload.clientId, payload.negotiationAttemptId, payload.answer)
             }
         }
 
         currentSocket.on(Event.CLIENT_CANDIDATE) { args ->
-            if (isStaleSocketCallback(currentSocket, "onStreamCreated.${Event.CLIENT_CANDIDATE}[${currentSocket.id()}]")) return@on
+            if (isStaleSocketCallback(currentSocket, "onStreamCreated.${Event.CLIENT_CANDIDATE}[${currentSocket.id()}]")) {
+                SocketPayload.fromPayload(args).sendOkAck()
+                return@on
+            }
             XLog.v(getLog("onStreamCreated[${socketId()}]", "[${Event.CLIENT_CANDIDATE}]"))
             val payload = SocketPayload.fromPayload(args)
-            if (payload.clientId.isEmpty() || payload.candidate == null) {
-                val msg = "[${Event.CLIENT_CANDIDATE}] ClientId or Candidate is empty"
+            if (payload.clientId.isEmpty() || payload.negotiationAttemptId.isEmpty() || (payload.candidate == null && payload.candidateEnd.not())) {
+                val msg = "[${Event.CLIENT_CANDIDATE}] ClientId, NegotiationAttemptId or Candidate is empty"
                 XLog.e(getLog("onStreamCreated", msg), IllegalArgumentException("onStreamCreated: $msg"))
                 payload.sendErrorAck(Payload.ERROR_EMPTY_OR_BAD_DATA)
+            } else if (payload.candidateEnd) {
+                payload.sendOkAck()
+                XLog.d(getLog("onStreamCreated", "[${Event.CLIENT_CANDIDATE}] End-of-candidates ignored. Client: ${payload.clientId}"))
             } else {
                 payload.sendOkAck()
-                eventListener.onClientCandidate(payload.clientId, payload.candidate!!)
+                eventListener.onClientCandidate(payload.clientId, payload.negotiationAttemptId, payload.candidate!!)
             }
         }
 
         currentSocket.on(Event.STREAM_LEAVE) { args ->
-            if (isStaleSocketCallback(currentSocket, "onStreamCreated.${Event.STREAM_LEAVE}[${currentSocket.id()}]")) return@on
-            XLog.v(getLog("onStreamCreated[${socketId()}]", "[${Event.STREAM_LEAVE}] Payload: ${args.contentToString()}"))
+            if (isStaleSocketCallback(currentSocket, "onStreamCreated.${Event.STREAM_LEAVE}[${currentSocket.id()}]")) {
+                SocketPayload.fromPayload(args).sendOkAck()
+                return@on
+            }
+            XLog.v(getLog("onStreamCreated[${socketId()}]", "[${Event.STREAM_LEAVE}]"))
             val payload = SocketPayload.fromPayload(args)
-            if (payload.clientId.isEmpty()) {
-                val msg = "[${Event.STREAM_LEAVE}] ClientId is empty"
+            if (payload.clientId.isEmpty() || payload.joinAttemptId.isEmpty()) {
+                val msg = "[${Event.STREAM_LEAVE}] ClientId or JoinAttemptId is empty"
                 XLog.e(getLog("onStreamCreated", msg), IllegalArgumentException("onStreamCreated: $msg"))
                 payload.sendErrorAck(Payload.ERROR_EMPTY_OR_BAD_DATA)
             } else {
                 payload.sendOkAck()
-                eventListener.onClientLeave(payload.clientId)
+                eventListener.onClientLeave(payload.clientId, payload.joinAttemptId)
             }
         }
     }
@@ -311,6 +418,7 @@ internal class SocketSignaling(
 
         currentSocket.off(Event.STREAM_JOIN).off(Event.CLIENT_ANSWER).off(Event.CLIENT_CANDIDATE).off(Event.STREAM_LEAVE)
 
+        val startedAt = SystemClock.elapsedRealtime()
         currentSocket.emit(Event.STREAM_REMOVE, arrayOf(), object : AckWithTimeout(10_000) {
             override fun onSuccess(args: Array<Any?>?) { // Callback may never be called
                 if (isStaleSocketCallback(currentSocket, "sendStreamRemove[${socketId()}]")) return
@@ -319,14 +427,19 @@ internal class SocketSignaling(
                 XLog.v(this@SocketSignaling.getLog("sendStreamRemove[${socketId()}]", msg))
                 when (val status = SocketAck.fromAck(args).status) {
                     Payload.OK -> {
-                        XLog.d(this@SocketSignaling.getLog("sendStreamRemove[${socketId()}]", "OK"))
+                        XLog.d(this@SocketSignaling.getLog("sendStreamRemove[${socketId()}]", "OK, elapsed_ms=${SystemClock.elapsedRealtime() - startedAt}"))
                         eventListener.onStreamRemoved()
                     }
 
                     else -> {
                         val errorMessage = "[${Event.STREAM_REMOVE}] => $status"
-                        XLog.w(this@SocketSignaling.getLog("sendStreamRemove[${socketId()}]", errorMessage))
-                        eventListener.onError(Error.StreamRemoveError(errorMessage, IllegalStateException(errorMessage)))
+                        XLog.w(
+                            this@SocketSignaling.getLog(
+                                "sendStreamRemove[${socketId()}]",
+                                "$errorMessage, elapsed_ms=${SystemClock.elapsedRealtime() - startedAt}"
+                            )
+                        )
+                        eventListener.onError(Error.StreamRemoveError(errorMessage, IllegalStateException(errorMessage), retry = isRetryableAckStatus(status)))
                     }
                 }
             }
@@ -334,45 +447,60 @@ internal class SocketSignaling(
             override fun onTimeout() {
                 if (isStaleSocketCallback(currentSocket, "sendStreamRemove[${socketId()}]")) return
 
-                val errorMessage = "[${Event.STREAM_REMOVE}] => Timeout"
-                XLog.w(this@SocketSignaling.getLog("sendStreamRemove[${socketId()}]", errorMessage))
-                eventListener.onError(Error.StreamRemoveError(errorMessage, IllegalStateException(errorMessage)))
+                val errorMessage =
+                    "[${Event.STREAM_REMOVE}] => Timeout, classification=remove_ack_timeout_or_lost_ack, elapsed_ms=${SystemClock.elapsedRealtime() - startedAt}"
+                XLog.w(this@SocketSignaling.getLog("sendStreamRemove[${socketId()}]", "$errorMessage. Reconnecting before recreate."))
+                currentSocket.off()
+                currentSocket.close()
+                if (socket === currentSocket) socket = null
+                eventListener.onSocketDisconnected(errorMessage)
             }
         })
     }
 
-    internal fun sendStreamStart(clientId: ClientId? = null) {
-        XLog.d(getLog("sendStreamStart[${socketId()}]", "ClientId: ${clientId ?: "ALL"}"))
+    internal fun sendStreamStart(clientKey: ClientSessionKey? = null) {
+        XLog.d(getLog("sendStreamStart[${socketId()}]", "ClientId: ${clientKey?.clientId ?: "ALL"}"))
 
         val currentSocket = socket ?: return
         currentSocket.connected() || return
 
-        val data = JSONObject().put(Payload.CLIENT_ID, clientId?.value ?: "ALL")
+        val data = JSONObject().put(Payload.CLIENT_ID, clientKey?.clientId?.value ?: "ALL").apply {
+            clientKey?.let { put(Payload.JOIN_ATTEMPT_ID, it.joinAttemptId.value) }
+        }
+        val startedAt = SystemClock.elapsedRealtime()
 
         currentSocket.emit(Event.STREAM_START, arrayOf(data), object : AckWithTimeout(10_000) {
-            override fun onSuccess(args: Array<Any?>?) { // Callback may never be called
-                if (isStaleSocketCallback(currentSocket, "sendStreamStart[${socketId()}]")) return
+            override fun onSuccess(args: Array<Any?>?) {
+                val logTag = "sendStreamStart[${socketId()}]"
+                if (isStaleSocketCallback(currentSocket, logTag)) return
 
-                XLog.v(this@SocketSignaling.getLog("sendStreamStart[${socketId()}]", "Response: ${args.contentToString()}"))
+                val elapsed = SystemClock.elapsedRealtime() - startedAt
+                XLog.v(this@SocketSignaling.getLog(logTag, "Response: ${args.contentToString()}"))
                 when (val status = SocketAck.fromAck(args).status) {
-                    Payload.OK -> XLog.d(this@SocketSignaling.getLog("sendStreamStart[${socketId()}]", "OK"))
+                    Payload.OK -> XLog.d(this@SocketSignaling.getLog(logTag, "OK, clientId=${clientKey?.clientId ?: "ALL"}, elapsed_ms=$elapsed"))
 
                     Payload.ERROR_NO_CLIENT_FOUND -> {
-                        XLog.d(this@SocketSignaling.getLog("sendStreamStart[${socketId()}]", "Client: $clientId => $status"))
-                        clientId?.let { eventListener.onClientNotFound(it, "[${Event.STREAM_START}]") }
-                            ?: XLog.w(this@SocketSignaling.getLog("sendStreamStart[${socketId()}]", "No client found for ALL"))
+                        XLog.d(this@SocketSignaling.getLog(logTag, "Client: ${clientKey?.clientId} => $status, elapsed_ms=$elapsed"))
+                        clientKey?.let { eventListener.onClientStartNotFound(it, "[${Event.STREAM_START}]") }
                     }
 
-                    else -> throw IllegalArgumentException("sendStreamStart => $status")
+                    Payload.ERROR_TIMEOUT_OR_NO_RESPONSE -> XLog.w(
+                        this@SocketSignaling.getLog(logTag, "[${Event.STREAM_START}] => Timeout, elapsed_ms=$elapsed")
+                    )
+
+                    else -> {
+                        val msg = "[${Event.STREAM_START}] => $status"
+                        val cause = IllegalStateException("sendStreamStart => $status")
+                        XLog.e(this@SocketSignaling.getLog(logTag, "Unexpected ACK status: $status, elapsed_ms=$elapsed"), cause)
+                        eventListener.onError(Error.HostRelayError(msg, cause, retry = isRetryableAckStatus(status)))
+                    }
                 }
             }
 
             override fun onTimeout() {
-                if (isStaleSocketCallback(currentSocket, "sendStreamStart[${socketId()}]")) return
-
-                val msg = "[${Event.STREAM_START}] => Timeout"
-                XLog.w(this@SocketSignaling.getLog("sendStreamStart[${socketId()}]", msg))
-                eventListener.onError(Error.StreamStartError(msg, IllegalStateException(msg)))
+                val logTag = "sendStreamStart[${socketId()}]"
+                if (isStaleSocketCallback(currentSocket, logTag)) return
+                XLog.w(this@SocketSignaling.getLog(logTag, "[${Event.STREAM_START}] => Timeout, elapsed_ms=${SystemClock.elapsedRealtime() - startedAt}"))
             }
         })
     }
@@ -383,72 +511,43 @@ internal class SocketSignaling(
         val currentSocket = socket ?: return
         currentSocket.connected() || return
 
-        val latch = CountDownLatch(1)
+        currentSocket.emit(Event.STREAM_STOP, arrayOf(), object : AckWithTimeout(1_000) {
+            override fun onSuccess(args: Array<Any?>?) {
+                val logTag = "sendStreamStop[${socketId()}]"
+                if (isStaleSocketCallback(currentSocket, logTag)) return
 
-        currentSocket.emit(Event.STREAM_STOP, arrayOf()) { args -> // Callback may never be called
-            if (isStaleSocketCallback(currentSocket, "sendStreamStop[${socketId()}]")) {
-                latch.countDown()
-                return@emit
-            }
-
-            XLog.v(getLog("sendStreamStop[${socketId()}]", "Response: ${args.contentToString()}"))
-            when (val status = SocketAck.fromAck(args).status) {
-                Payload.OK -> XLog.d(getLog("sendStreamStop[${socketId()}]", "OK"))
-                else -> XLog.e(getLog("sendStreamStop", status), IllegalArgumentException("sendStreamStop => $status"))
-            }
-            latch.countDown()
-        }
-
-        runCatching {
-            val releasedBeforeTimeout = latch.await(500, TimeUnit.MILLISECONDS)
-            if (releasedBeforeTimeout.not()) XLog.w(getLog("sendStreamStop[${socketId()}]", "Server response timeout"))
-        }
-    }
-
-    internal fun sendHostOffer(clientId: ClientId, offer: Offer) {
-        XLog.d(getLog("sendHostOffer[${socketId()}]", "Client: $clientId"))
-
-        val currentSocket = socket ?: return
-        currentSocket.connected() || return
-
-        val data = JSONObject().put(Payload.CLIENT_ID, clientId.value).put(Payload.OFFER, offer.description)
-
-        currentSocket.emit(Event.HOST_OFFER, arrayOf(data), object : AckWithTimeout(10_000) {
-            override fun onSuccess(args: Array<Any?>?) { // Callback may never be called
-                if (isStaleSocketCallback(currentSocket, "sendHostOffer[${socketId()}]")) return
-
-                XLog.v(this@SocketSignaling.getLog("sendHostOffer[${socketId()}]", "Response: ${args.contentToString()}"))
+                XLog.v(this@SocketSignaling.getLog(logTag, "Response: ${args.contentToString()}"))
                 when (val status = SocketAck.fromAck(args).status) {
-                    Payload.OK -> {
-                        XLog.d(this@SocketSignaling.getLog("sendHostOffer[${socketId()}]", "Client: $clientId => OK"))
-                        eventListener.onHostOfferConfirmed(clientId)
-                    }
-
-                    Payload.ERROR_NO_CLIENT_FOUND -> {
-                        XLog.d(this@SocketSignaling.getLog("sendHostOffer[${socketId()}]", "Client: $clientId => $status"))
-                        eventListener.onClientNotFound(clientId, "[${Event.HOST_OFFER}]")
-                    }
-
-                    Payload.ERROR_TIMEOUT_OR_NO_RESPONSE -> {
-                        XLog.w(this@SocketSignaling.getLog("sendHostOffer[${socketId()}]", "[${Event.HOST_OFFER}] => Timeout"))
-                        eventListener.onClientNotFound(clientId, "[${Event.HOST_OFFER}] => Timeout")
-                    }
-
-                    else -> throw IllegalArgumentException("sendHostOffer => $status")
+                    Payload.OK -> XLog.d(this@SocketSignaling.getLog(logTag, "OK"))
+                    else -> XLog.w(this@SocketSignaling.getLog(logTag, status), IllegalArgumentException("sendStreamStop => $status"))
                 }
             }
 
             override fun onTimeout() {
-                if (isStaleSocketCallback(currentSocket, "sendHostOffer[${socketId()}]")) return
-
-                XLog.w(this@SocketSignaling.getLog("sendHostOffer[${socketId()}]", "[${Event.HOST_OFFER}] => Timeout"))
-                eventListener.onClientNotFound(clientId, "[${Event.HOST_OFFER}] => Timeout")
+                if (isStaleSocketCallback(currentSocket, "sendStreamStop[${socketId()}]")) return
+                XLog.w(this@SocketSignaling.getLog("sendStreamStop[${socketId()}]", "Server response timeout"))
             }
         })
     }
 
-    internal fun sendHostCandidates(clientId: ClientId, candidates: List<IceCandidate>) {
-        XLog.d(getLog("sendHostCandidates[${socketId()}]", "Client: $clientId"))
+    internal fun sendHostOffer(key: NegotiationKey, offer: Offer): Boolean {
+        XLog.d(getLog("sendHostOffer[${socketId()}]", "Client: ${key.clientId}, negotiationAttemptId=${key.attemptId}"))
+
+        val currentSocket = socket ?: return false
+        if (currentSocket.connected().not()) return false
+
+        val data = JSONObject()
+            .put(Payload.CLIENT_ID, key.clientId.value)
+            .put(Payload.JOIN_ATTEMPT_ID, key.session.joinAttemptId.value)
+            .put(Payload.NEGOTIATION_ATTEMPT_ID, key.attemptId.value)
+            .put(Payload.OFFER, offer.description)
+
+        emitHostRelayWithAck(currentSocket, Event.HOST_OFFER, data, "sendHostOffer", key)
+        return true
+    }
+
+    internal fun sendHostCandidates(key: NegotiationKey, candidates: List<IceCandidate>) {
+        XLog.d(getLog("sendHostCandidates[${socketId()}]", "Client: ${key.clientId}, negotiationAttemptId=${key.attemptId}"))
 
         val currentSocket = socket ?: return
         currentSocket.connected() || return
@@ -457,38 +556,12 @@ internal class SocketSignaling(
             JSONObject().put(Payload.CANDIDATE, sdp).put(Payload.SPD_INDEX, sdpMLineIndex).put(Payload.SPD_MID, sdpMid)
 
         val data = JSONObject()
-            .put(Payload.CLIENT_ID, clientId.value)
+            .put(Payload.CLIENT_ID, key.clientId.value)
+            .put(Payload.JOIN_ATTEMPT_ID, key.session.joinAttemptId.value)
+            .put(Payload.NEGOTIATION_ATTEMPT_ID, key.attemptId.value)
             .put(Payload.CANDIDATES, JSONArray(candidates.map { it.toJsonObject() }.toTypedArray()))
 
-        currentSocket.emit(Event.HOST_CANDIDATE, arrayOf(data), object : AckWithTimeout(10_000) {
-            override fun onSuccess(args: Array<Any?>?) { // Callback may never be called
-                if (isStaleSocketCallback(currentSocket, "sendHostCandidates[${socketId()}]")) return
-
-                XLog.v(this@SocketSignaling.getLog("sendHostCandidates[${socketId()}]", "Response: ${args.contentToString()}"))
-                when (val status = SocketAck.fromAck(args).status) {
-                    Payload.OK -> XLog.d(this@SocketSignaling.getLog("sendHostCandidates[${socketId()}]", "Client: $clientId => OK"))
-
-                    Payload.ERROR_NO_CLIENT_FOUND -> {
-                        XLog.d(this@SocketSignaling.getLog("sendHostCandidates[${socketId()}]", "Client: $clientId => $status"))
-                        eventListener.onClientNotFound(clientId, "[${Event.HOST_CANDIDATE}]")
-                    }
-
-                    Payload.ERROR_TIMEOUT_OR_NO_RESPONSE -> {
-                        XLog.w(this@SocketSignaling.getLog("sendHostCandidates[${socketId()}]", "[${Event.HOST_CANDIDATE}] => Timeout"))
-                        eventListener.onClientNotFound(clientId, "[${Event.HOST_CANDIDATE}] => Timeout")
-                    }
-
-                    else -> throw IllegalArgumentException("sendHostCandidates => $status")
-                }
-            }
-
-            override fun onTimeout() {
-                if (isStaleSocketCallback(currentSocket, "sendHostCandidates[${socketId()}]")) return
-
-                XLog.w(this@SocketSignaling.getLog("sendHostCandidates[${socketId()}]", "[${Event.HOST_CANDIDATE}] => Timeout"))
-                eventListener.onClientNotFound(clientId, "[${Event.HOST_CANDIDATE}] => Timeout")
-            }
-        })
+        emitHostRelayWithAck(currentSocket, Event.HOST_CANDIDATE, data, "sendHostCandidates", key)
     }
 
     internal fun sendRemoveClients(clientIds: List<ClientId>, reason: String) {
@@ -513,7 +586,10 @@ internal class SocketSignaling(
                 XLog.v(this@SocketSignaling.getLog("sendRemoveClients[${socketId()}]", "Response: ${args.contentToString()}"))
                 when (val status = SocketAck.fromAck(args).status) {
                     Payload.OK -> XLog.d(this@SocketSignaling.getLog("sendRemoveClients[${socketId()}]", "OK"))
-                    else -> throw IllegalArgumentException("sendRemoveClients => $status")
+                    else -> XLog.w(
+                        this@SocketSignaling.getLog("sendRemoveClients[${socketId()}]", "Unexpected ACK status: $status"),
+                        IllegalStateException("sendRemoveClients => $status")
+                    )
                 }
             }
 
@@ -557,6 +633,14 @@ internal class SocketSignaling(
             json?.optString(Payload.PASSWORD_HASH) ?: ""
         }
 
+        val negotiationAttemptId: AttemptId by lazy(LazyThreadSafetyMode.NONE) {
+            AttemptId.validOrEmpty(json?.opt(Payload.NEGOTIATION_ATTEMPT_ID) as? String)
+        }
+
+        val joinAttemptId: AttemptId by lazy(LazyThreadSafetyMode.NONE) {
+            AttemptId.validOrEmpty(json?.opt(Payload.JOIN_ATTEMPT_ID) as? String)
+        }
+
         val iceServers: List<IceServer> by lazy(LazyThreadSafetyMode.NONE) {
             json?.optJSONArray(Payload.ICE_SERVERS)?.let { iceServersArray ->
                 (0 until iceServersArray.length()).mapNotNull { i ->
@@ -580,9 +664,21 @@ internal class SocketSignaling(
         }
 
         val candidate: IceCandidate? by lazy(LazyThreadSafetyMode.NONE) {
-            runCatching { json?.getJSONObject(Payload.CANDIDATE)?.toIceCandidate() }
+            runCatching {
+                if (candidateEnd) null
+                else json?.getJSONObject(Payload.CANDIDATE)?.toIceCandidate()
+            }
                 .onFailure { XLog.e(getLog("SocketPayload", "[${Event.CLIENT_CANDIDATE}] Json error: ${it.message}"), it) }
                 .getOrDefault(null)
+        }
+
+        val candidateEnd: Boolean by lazy(LazyThreadSafetyMode.NONE) {
+            if (json?.has(Payload.CANDIDATE) != true) return@lazy false
+            val candidateValue = json.opt(Payload.CANDIDATE)
+            candidateValue == null ||
+                    candidateValue == JSONObject.NULL ||
+                    candidateValue == "" ||
+                    (candidateValue is JSONObject && candidateValue.has(Payload.CANDIDATE) && candidateValue.optString(Payload.CANDIDATE).isBlank())
         }
 
         fun sendOkAck() = ack?.call(JSONObject().put(Payload.STATUS, Payload.OK))

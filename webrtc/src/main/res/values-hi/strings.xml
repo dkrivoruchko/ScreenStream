@@ -2,6 +2,7 @@
 <resources>
     <string name="webrtc_error_recover">पुनर्प्राप्ति</string>
     <string name="webrtc_error_open_settings">सेटिंग्स खोलें</string>
+    <string name="webrtc_error_signaling_server_unavailable">सर्वर तक नहीं पहुंचा जा सकता। दर्शक शायद जुड़ न पाएं।</string>
 
     <string name="webrtc_stream_mode">वैश्विक मोड · WebRTC</string>
     <string name="webrtc_stream_mode_description">WebRTC से इंटरनेट पर स्ट्रीम करें</string>

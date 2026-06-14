@@ -2,6 +2,7 @@
 <resources>
     <string name="webrtc_error_recover">Rétablir</string>
     <string name="webrtc_error_open_settings">Ouvrir les paramètres</string>
+    <string name="webrtc_error_signaling_server_unavailable">Impossible de joindre le serveur. Les spectateurs peuvent ne pas pouvoir rejoindre.</string>
 
     <string name="webrtc_stream_mode">Mode global · WebRTC</string>
     <string name="webrtc_stream_mode_description">Diffuser sur Internet avec WebRTC</string>

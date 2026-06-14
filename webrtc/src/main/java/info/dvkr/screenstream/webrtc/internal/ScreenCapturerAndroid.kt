@@ -51,6 +51,8 @@ internal class ScreenCapturerAndroid(
         if (virtualDisplay == null || !isStartupStillValid()) {
             val reason = if (virtualDisplay == null) "virtualDisplay is null" else "startup invalidated"
             XLog.i(getLog("startCapture", "$reason. Capture start failed."))
+            virtualDisplay?.release()
+            virtualDisplay = null
             mediaProjection.unregisterCallback(mediaProjectionCallback)
             this.mediaProjection = null
             captureSurface?.release()

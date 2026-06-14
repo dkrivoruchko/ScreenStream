@@ -2,6 +2,7 @@
 <resources>
     <string name="webrtc_error_recover">Восстановить</string>
     <string name="webrtc_error_open_settings">Открыть настройки</string>
+    <string name="webrtc_error_signaling_server_unavailable">Не удаётся подключиться к серверу. Зрители могут не суметь присоединиться.</string>
 
     <string name="webrtc_stream_mode">Глобальный режим · WebRTC</string>
     <string name="webrtc_stream_mode_description">Трансляция через интернет с WebRTC</string>

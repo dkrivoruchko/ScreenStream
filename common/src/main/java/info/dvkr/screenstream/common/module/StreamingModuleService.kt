@@ -70,7 +70,7 @@ public abstract class StreamingModuleService : Service() {
         ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
     }
 
-    protected fun showErrorNotification(message: String, recoverIntent: Intent) {
+    protected fun showErrorNotification(message: String, recoverIntent: Intent?) {
         hideErrorNotification()
 
         if (notificationHelper.notificationPermissionGranted(this).not()) {

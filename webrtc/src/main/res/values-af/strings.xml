@@ -2,6 +2,7 @@
 <resources>
     <string name="webrtc_error_recover">Herstel</string>
     <string name="webrtc_error_open_settings">Maak instellings oop</string>
+    <string name="webrtc_error_signaling_server_unavailable">Kan nie die bediener bereik nie. Kykers kan dalk nie aansluit nie.</string>
 
     <string name="webrtc_stream_mode">Globale modus · WebRTC</string>
     <string name="webrtc_stream_mode_description">Stroom oor die internet met WebRTC</string>

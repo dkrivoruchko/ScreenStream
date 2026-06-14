@@ -2,6 +2,7 @@
 <resources>
     <string name="webrtc_error_recover">恢復</string>
     <string name="webrtc_error_open_settings">開啟設定</string>
+    <string name="webrtc_error_signaling_server_unavailable">無法連上伺服器。觀看者可能無法加入。</string>
 
     <string name="webrtc_stream_mode">全球模式 · WebRTC</string>
     <string name="webrtc_stream_mode_description">使用 WebRTC 透過網際網路串流</string>

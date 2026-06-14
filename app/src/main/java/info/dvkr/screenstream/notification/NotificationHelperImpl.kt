@@ -115,7 +115,7 @@ internal class NotificationHelperImpl(context: Context) : NotificationHelper {
             }.build()
     }
 
-    override fun getErrorNotification(context: Context, message: String, recoverIntent: Intent): Notification {
+    override fun getErrorNotification(context: Context, message: String, recoverIntent: Intent?): Notification {
         XLog.d(getLog("getErrorNotification", "context: ${context::class.java.simpleName}#${context.hashCode()}, message: $message"))
 
         return NotificationCompat.Builder(context, CHANNEL_ERROR)
@@ -128,13 +128,18 @@ internal class NotificationHelperImpl(context: Context) : NotificationHelper {
             .setContentText(message)
             .setStyle(NotificationCompat.BigTextStyle().bigText(message))
             .setContentIntent(PendingIntent.getActivity(context, 0, SingleActivity.getIntent(context), PendingIntent.FLAG_IMMUTABLE))
-            .addAction(
-                NotificationCompat.Action(
-                    null,
-                    context.getString(R.string.app_error_recover),
-                    PendingIntent.getService(context, 5, recoverIntent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
-                )
-            ).also { builder ->
+            .apply {
+                if (recoverIntent != null) {
+                    addAction(
+                        NotificationCompat.Action(
+                            null,
+                            context.getString(R.string.app_error_recover),
+                            PendingIntent.getService(context, 5, recoverIntent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
+                        )
+                    )
+                }
+            }
+            .also { builder ->
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     notificationManager.getNotificationChannel(CHANNEL_ERROR)?.let { notificationChannel ->
                         builder
@@ -143,8 +148,7 @@ internal class NotificationHelperImpl(context: Context) : NotificationHelper {
                             .setVibrate(notificationChannel.vibrationPattern)
                     }
                 }
-            }
-            .build()
+            }.build()
     }
 
     override fun showNotification(notificationId: Int, notification: Notification) {

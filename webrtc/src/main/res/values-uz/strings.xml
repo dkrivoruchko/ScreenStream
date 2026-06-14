@@ -2,6 +2,7 @@
 <resources>
     <string name="webrtc_error_recover">Qayta tiklash</string>
     <string name="webrtc_error_open_settings">Sozlamalarni oching</string>
+    <string name="webrtc_error_signaling_server_unavailable">Serverga ulanib bo‘lmadi. Tomoshabinlar qo‘shila olmasligi mumkin.</string>
 
     <string name="webrtc_stream_mode">Global rejim · WebRTC</string>
     <string name="webrtc_stream_mode_description">WebRTC bilan internet orqali translatsiya qiling</string>

@@ -26,7 +26,8 @@ internal fun ErrorCard(
     error: WebRtcError,
     sendEvent: (event: WebRtcEvent) -> Unit,
     openNotificationSettings: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    showRecoverAction: Boolean = true
 ) {
     ElevatedCard(modifier = modifier) {
         Column(
@@ -42,21 +43,23 @@ internal fun ErrorCard(
                 style = MaterialTheme.typography.titleMedium
             )
 
-            OutlinedButton(
-                onClick = {
-                    sendEvent(WebRtcEvent.Intentable.RecoverError)
-                    if (error is WebRtcError.NotificationPermissionRequired) {
-                        openNotificationSettings()
-                    }
-                },
-                modifier = Modifier
-                    .padding(top = 8.dp)
-                    .align(Alignment.End),
-                border = ButtonDefaults.outlinedButtonBorder(true).copy(brush = SolidColor(MaterialTheme.colorScheme.onError))
-            ) {
-                val buttonTextId = if (error is WebRtcError.NotificationPermissionRequired) R.string.webrtc_error_open_settings
-                else R.string.webrtc_error_recover
-                Text(text = stringResource(buttonTextId), color = MaterialTheme.colorScheme.onError)
+            if (showRecoverAction) {
+                OutlinedButton(
+                    onClick = {
+                        sendEvent(WebRtcEvent.Intentable.RecoverError)
+                        if (error is WebRtcError.NotificationPermissionRequired) {
+                            openNotificationSettings()
+                        }
+                    },
+                    modifier = Modifier
+                        .padding(top = 8.dp)
+                        .align(Alignment.End),
+                    border = ButtonDefaults.outlinedButtonBorder(true).copy(brush = SolidColor(MaterialTheme.colorScheme.onError))
+                ) {
+                    val buttonTextId = if (error is WebRtcError.NotificationPermissionRequired) R.string.webrtc_error_open_settings
+                    else R.string.webrtc_error_recover
+                    Text(text = stringResource(buttonTextId), color = MaterialTheme.colorScheme.onError)
+                }
             }
         }
     }

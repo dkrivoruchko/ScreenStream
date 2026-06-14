@@ -2,6 +2,7 @@
 <resources>
     <string name="webrtc_error_recover">復旧</string>
     <string name="webrtc_error_open_settings">設定を開く</string>
+    <string name="webrtc_error_signaling_server_unavailable">サーバーに接続できません。視聴者が参加できない可能性があります。</string>
 
     <string name="webrtc_stream_mode">グローバルモード · WebRTC</string>
     <string name="webrtc_stream_mode_description">WebRTCでインターネット配信</string>

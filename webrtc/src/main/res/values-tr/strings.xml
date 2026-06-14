@@ -2,6 +2,7 @@
 <resources>
     <string name="webrtc_error_recover">Kurtar</string>
     <string name="webrtc_error_open_settings">Ayarları aç</string>
+    <string name="webrtc_error_signaling_server_unavailable">Sunucuya ulaşılamıyor. İzleyiciler katılamayabilir.</string>
 
     <string name="webrtc_stream_mode">Global mod · WebRTC</string>
     <string name="webrtc_stream_mode_description">WebRTC ile internet üzerinden yayın yapın</string>

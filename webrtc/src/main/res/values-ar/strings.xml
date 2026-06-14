@@ -2,6 +2,7 @@
 <resources>
     <string name="webrtc_error_recover">استعادة</string>
     <string name="webrtc_error_open_settings">فتح الإعدادات</string>
+    <string name="webrtc_error_signaling_server_unavailable">تعذّر الوصول إلى الخادم. قد لا يتمكن المشاهدون من الانضمام.</string>
 
     <string name="webrtc_stream_mode">الوضع العالمي · WebRTC</string>
     <string name="webrtc_stream_mode_description">البث عبر الإنترنت باستخدام WebRTC</string>

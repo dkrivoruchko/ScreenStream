@@ -114,3 +114,27 @@ internal value class MediaStreamId private constructor(val value: String) {
 }
 
 internal class LocalMediaSteam(val id: MediaStreamId, val videoTrack: VideoTrack, val audioTrack: AudioTrack)
+
+internal const val WEBRTC_PROTOCOL_VERSION: Int = 2
+
+@JvmInline
+internal value class AttemptId(val value: String) {
+    internal companion object {
+        internal val EMPTY: AttemptId = AttemptId("")
+        private val VALID_ATTEMPT_ID = Regex("^[A-Za-z0-9_-]{16,64}$")
+
+        internal fun random(): AttemptId = AttemptId(randomString(16))
+        internal fun validOrEmpty(value: String?): AttemptId =
+            if (value != null && VALID_ATTEMPT_ID.matches(value)) AttemptId(value) else EMPTY
+    }
+
+    internal fun isEmpty(): Boolean = value.isBlank()
+
+    override fun toString(): String = value
+}
+
+internal data class ClientSessionKey(val clientId: ClientId, val joinAttemptId: AttemptId)
+
+internal data class NegotiationKey(val session: ClientSessionKey, val attemptId: AttemptId) {
+    val clientId: ClientId get() = session.clientId
+}

@@ -94,7 +94,8 @@ internal fun WebRtcMainScreenUI(
                         openNotificationSettings = {
                             context.startActivity(notificationHelper.getStreamNotificationSettingsIntent())
                         },
-                        modifier = Modifier.padding(8.dp)
+                        modifier = Modifier.padding(8.dp),
+                        showRecoverAction = !(state.isStreaming && it is WebRtcError.SignalingServerUnavailable)
                     )
                 }
             }
@@ -154,7 +155,7 @@ internal fun WebRtcMainScreenUI(
             modifier = Modifier
                 .padding(start = 16.dp, end = 16.dp, bottom = 8.dp)
                 .align(alignment = Alignment.BottomCenter),
-            enabled = state.isBusy.not(),
+            enabled = state.isStreaming || state.isBusy.not(),
             shape = MaterialTheme.shapes.medium,
             contentPadding = PaddingValues(start = 12.dp, top = 12.dp, bottom = 12.dp, end = 16.dp),
             elevation = ButtonDefaults.buttonElevation(

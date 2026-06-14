@@ -2,6 +2,7 @@
 <resources>
     <string name="webrtc_error_recover">Wiederherstellen</string>
     <string name="webrtc_error_open_settings">Einstellungen öffnen</string>
+    <string name="webrtc_error_signaling_server_unavailable">Server nicht erreichbar. Zuschauer können möglicherweise nicht beitreten.</string>
 
     <string name="webrtc_stream_mode">Globaler Modus · WebRTC</string>
     <string name="webrtc_stream_mode_description">Über das Internet mit WebRTC streamen</string>

@@ -2,6 +2,7 @@
 <resources>
     <string name="webrtc_error_recover">აღდგენა</string>
     <string name="webrtc_error_open_settings">გახსენით პარამეტრები</string>
+    <string name="webrtc_error_signaling_server_unavailable">სერვერთან დაკავშირება ვერ ხერხდება. მაყურებლებმა შეიძლება ვერ შემოუერთდნენ.</string>
 
     <string name="webrtc_stream_mode">გლობალური რეჟიმი · WebRTC</string>
     <string name="webrtc_stream_mode_description">სტრიმინგი ინტერნეტით WebRTC-ის გამოყენებით</string>

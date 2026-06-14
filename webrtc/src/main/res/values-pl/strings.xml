@@ -2,6 +2,7 @@
 <resources>
     <string name="webrtc_error_recover">Przywróć</string>
     <string name="webrtc_error_open_settings">Otwórz ustawienia</string>
+    <string name="webrtc_error_signaling_server_unavailable">Nie można połączyć się z serwerem. Widzowie mogą nie być w stanie dołączyć.</string>
 
     <string name="webrtc_stream_mode">Tryb globalny · WebRTC</string>
     <string name="webrtc_stream_mode_description">Strumieniuj przez internet z WebRTC</string>

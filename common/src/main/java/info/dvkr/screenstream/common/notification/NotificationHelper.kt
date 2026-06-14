@@ -20,7 +20,7 @@ public interface NotificationHelper {
 
     public fun createForegroundNotification(context: Context, stopIntent: Intent): Notification
 
-    public fun getErrorNotification(context: Context, message: String, recoverIntent: Intent): Notification
+    public fun getErrorNotification(context: Context, message: String, recoverIntent: Intent?): Notification
 
     public fun showNotification(notificationId: Int, notification: Notification)
 

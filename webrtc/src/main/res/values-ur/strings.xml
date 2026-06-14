@@ -2,6 +2,7 @@
 <resources>
     <string name="webrtc_error_recover">بحال کریں</string>
     <string name="webrtc_error_open_settings">ترتیبات کھولیں</string>
+    <string name="webrtc_error_signaling_server_unavailable">سرور تک رسائی نہیں ہو رہی۔ ناظرین شاید شامل نہ ہو سکیں۔</string>
 
     <string name="webrtc_stream_mode">عالمی موڈ · WebRTC</string>
     <string name="webrtc_stream_mode_description">WebRTC کے ساتھ انٹرنیٹ پر اسٹریم کریں</string>

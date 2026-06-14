@@ -119,7 +119,7 @@ public class WebRtcModuleService : StreamingModuleService() {
         )
     }
 
-    internal fun showErrorNotification(error: WebRtcError) {
+    internal fun showErrorNotification(error: WebRtcError, showRecoverAction: Boolean = true) {
         if (error is WebRtcError.NotificationPermissionRequired) return
 
         if (error is WebRtcError.NetworkError && (error.cause is UnknownHostException || error.cause is ConnectException)) {
@@ -132,7 +132,7 @@ public class WebRtcModuleService : StreamingModuleService() {
 
         showErrorNotification(
             message = error.toString(this),
-            recoverIntent = WebRtcEvent.Intentable.RecoverError.toIntent(this)
+            recoverIntent = if (showRecoverAction) WebRtcEvent.Intentable.RecoverError.toIntent(this) else null
         )
     }
 }

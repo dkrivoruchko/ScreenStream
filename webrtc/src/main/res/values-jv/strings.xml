@@ -2,6 +2,7 @@
 <resources>
     <string name="webrtc_error_recover">Waras</string>
     <string name="webrtc_error_open_settings">Bukak setelan</string>
+    <string name="webrtc_error_signaling_server_unavailable">Server ora bisa digayuh. Pamirsa bisa uga ora bisa melu.</string>
 
     <string name="webrtc_stream_mode">Mode Global · WebRTC</string>
     <string name="webrtc_stream_mode_description">Streaming liwat internet nganggo WebRTC</string>

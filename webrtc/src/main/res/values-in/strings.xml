@@ -2,6 +2,7 @@
 <resources>
     <string name="webrtc_error_recover">Pulih</string>
     <string name="webrtc_error_open_settings">Buka pengaturan</string>
+    <string name="webrtc_error_signaling_server_unavailable">Tidak dapat menjangkau server. Penonton mungkin tidak dapat bergabung.</string>
 
     <string name="webrtc_stream_mode">Modus global · WebRTC</string>
     <string name="webrtc_stream_mode_description">Streaming melalui internet dengan WebRTC</string>
