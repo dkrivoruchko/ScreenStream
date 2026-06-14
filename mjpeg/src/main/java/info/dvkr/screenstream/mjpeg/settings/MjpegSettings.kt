@@ -4,6 +4,7 @@ import androidx.annotation.IntDef
 import androidx.compose.runtime.Immutable
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import kotlinx.coroutines.flow.StateFlow
@@ -21,6 +22,22 @@ public interface MjpegSettings {
         public val HTML_KEEP_IMAGE_ON_RECONNECT: Preferences.Key<Boolean> = booleanPreferencesKey("HTML_KEEP_IMAGE_ON_RECONNECT")
         public val HTML_BACK_COLOR: Preferences.Key<Int> = intPreferencesKey("HTML_BACK_COLOR")
         public val HTML_FIT_WINDOW: Preferences.Key<Boolean> = booleanPreferencesKey("HTML_FIT_WINDOW")
+        public val STREAM_FORMAT: Preferences.Key<Int> = intPreferencesKey("STREAM_FORMAT")
+        public val STREAM_AUDIO_ONLY: Preferences.Key<Boolean> = booleanPreferencesKey("STREAM_AUDIO_ONLY")
+
+        public val VIDEO_CODEC_AUTO_SELECT: Preferences.Key<Boolean> = booleanPreferencesKey("VIDEO_CODEC_AUTO_SELECT")
+        public val VIDEO_CODEC: Preferences.Key<String> = stringPreferencesKey("VIDEO_CODEC")
+        public val VIDEO_BITRATE: Preferences.Key<Int> = intPreferencesKey("VIDEO_BITRATE")
+
+        public val AUDIO_BITRATE: Preferences.Key<Int> = intPreferencesKey("AUDIO_BITRATE")
+        public val ENABLE_MIC: Preferences.Key<Boolean> = booleanPreferencesKey("ENABLE_MIC")
+        public val MUTE_MIC: Preferences.Key<Boolean> = booleanPreferencesKey("MUTE_MIC")
+        public val VOLUME_MIC: Preferences.Key<Float> = floatPreferencesKey("VOLUME_MIC")
+        public val ENABLE_DEVICE_AUDIO: Preferences.Key<Boolean> = booleanPreferencesKey("ENABLE_DEVICE_AUDIO")
+        public val MUTE_DEVICE_AUDIO: Preferences.Key<Boolean> = booleanPreferencesKey("MUTE_DEVICE_AUDIO")
+        public val VOLUME_DEVICE_AUDIO: Preferences.Key<Float> = floatPreferencesKey("VOLUME_DEVICE_AUDIO")
+        public val AUDIO_ECHO_CANCELLER: Preferences.Key<Boolean> = booleanPreferencesKey("AUDIO_ECHO_CANCELLER")
+        public val AUDIO_NOISE_SUPPRESSOR: Preferences.Key<Boolean> = booleanPreferencesKey("AUDIO_NOISE_SUPPRESSOR")
 
         public val VR_MODE: Preferences.Key<Int> = intPreferencesKey("VR_MODE")
         public val IMAGE_CROP: Preferences.Key<Boolean> = booleanPreferencesKey("IMAGE_CROP")
@@ -63,6 +80,22 @@ public interface MjpegSettings {
         public const val HTML_KEEP_IMAGE_ON_RECONNECT: Boolean = true
         public const val HTML_BACK_COLOR: Int = -15723496// "FF101418".toLong(radix = 16).toInt()
         public const val HTML_FIT_WINDOW: Boolean = true
+        public const val STREAM_FORMAT: Int = Values.STREAM_FORMAT_MJPEG
+        public const val STREAM_AUDIO_ONLY: Boolean = false
+
+        public const val VIDEO_CODEC_AUTO_SELECT: Boolean = true
+        public const val VIDEO_CODEC: String = ""
+        public const val VIDEO_BITRATE: Int = 4500 * 1000
+
+        public const val AUDIO_BITRATE: Int = 128 * 1000
+        public const val ENABLE_MIC: Boolean = false
+        public const val MUTE_MIC: Boolean = false
+        public const val VOLUME_MIC: Float = 1.0F
+        public const val ENABLE_DEVICE_AUDIO: Boolean = false
+        public const val MUTE_DEVICE_AUDIO: Boolean = false
+        public const val VOLUME_DEVICE_AUDIO: Float = 1.0F
+        public const val AUDIO_ECHO_CANCELLER: Boolean = true
+        public const val AUDIO_NOISE_SUPPRESSOR: Boolean = false
 
         public const val VR_MODE_DISABLE: Int = 0
         public const val VR_MODE_LEFT: Int = 1
@@ -107,6 +140,9 @@ public interface MjpegSettings {
         public const val FLIP_HORIZONTAL: Int = 1
         public const val FLIP_VERTICAL: Int = 2
 
+        public const val STREAM_FORMAT_MJPEG: Int = 0
+        public const val STREAM_FORMAT_MP4: Int = 1
+
 
         @IntDef(flag = true, value = [INTERFACE_WIFI, INTERFACE_MOBILE, INTERFACE_ETHERNET, INTERFACE_VPN])
         @Retention(AnnotationRetention.SOURCE)
@@ -139,6 +175,22 @@ public interface MjpegSettings {
         public val htmlKeepImageOnReconnect: Boolean = Default.HTML_KEEP_IMAGE_ON_RECONNECT,
         public val htmlBackColor: Int = Default.HTML_BACK_COLOR,
         public val htmlFitWindow: Boolean = Default.HTML_FIT_WINDOW,
+        public val streamFormat: Int = Default.STREAM_FORMAT,
+        public val streamAudioOnly: Boolean = Default.STREAM_AUDIO_ONLY,
+
+        public val videoCodecAutoSelect: Boolean = Default.VIDEO_CODEC_AUTO_SELECT,
+        public val videoCodec: String = Default.VIDEO_CODEC,
+        public val videoBitrateBits: Int = Default.VIDEO_BITRATE,
+
+        public val audioBitrateBits: Int = Default.AUDIO_BITRATE,
+        public val enableMic: Boolean = Default.ENABLE_MIC,
+        public val muteMic: Boolean = Default.MUTE_MIC,
+        public val volumeMic: Float = Default.VOLUME_MIC,
+        public val enableDeviceAudio: Boolean = Default.ENABLE_DEVICE_AUDIO,
+        public val muteDeviceAudio: Boolean = Default.MUTE_DEVICE_AUDIO,
+        public val volumeDeviceAudio: Float = Default.VOLUME_DEVICE_AUDIO,
+        public val audioEchoCanceller: Boolean = Default.AUDIO_ECHO_CANCELLER,
+        public val audioNoiseSuppressor: Boolean = Default.AUDIO_NOISE_SUPPRESSOR,
 
         public val vrMode: Int = Default.VR_MODE_DISABLE,
         public val imageCrop: Boolean = Default.IMAGE_CROP,

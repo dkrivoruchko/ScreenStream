@@ -3,7 +3,7 @@
     <string name="mjpeg_error_open_settings">設定を開く</string>
     <string name="mjpeg_close">閉じる</string>
 
-    <string name="mjpeg_stream_mode">ローカルモード · MJPEG</string>
+    <string name="mjpeg_stream_mode">ローカルモード · %1$s</string>
     <string name="mjpeg_stream_mode_description">ローカルネットワークでストリーミング</string>
     <string name="mjpeg_stream_mode_details">
 - MJPEGを使用します。\n
@@ -65,8 +65,37 @@
     <string name="mjpeg_pref_html_back_color_title">背景色を選択してください</string>
     <string name="mjpeg_pref_html_fit_window">画像をブラウザウィンドウに合わせる</string>
     <string name="mjpeg_pref_html_fit_window_summary">画像をブラウザでウィンドウの全幅/全高に拡大する</string>
+    <string name="mjpeg_pref_stream_format">Stream format</string>
+    <string name="mjpeg_pref_stream_format_summary">Choose local stream video format</string>
+    <string name="mjpeg_pref_stream_format_text">MP4 uses H.264 video and AAC audio in one browser stream. MJPEG streams images only.</string>
+    <string name="mjpeg_pref_stream_format_mjpeg">MJPEG</string>
+    <string name="mjpeg_pref_stream_format_mp4">MP4</string>
+    <string name="mjpeg_pref_audio_only">Audio only</string>
+    <string name="mjpeg_pref_audio_only_summary">Stream audio without screen video</string>
+
+    <string name="mjpeg_audio_parameters">Audio settings</string>
+    <string name="mjpeg_audio_mic">Microphone</string>
+    <string name="mjpeg_audio_mic_mute">Mute microphone</string>
+    <string name="mjpeg_audio_device">Device audio</string>
+    <string name="mjpeg_audio_device_mute">Mute device audio</string>
+    <string name="mjpeg_audio_bitrate">Audio bitrate: %1$s</string>
+    <string name="mjpeg_audio_bitrate_mbit" translatable="false">%.1f Mbit/s</string>
+    <string name="mjpeg_audio_bitrate_kbit" translatable="false">%d Kbit/s</string>
+    <string name="mjpeg_audio_permission_title">Audio permission required</string>
+    <string name="mjpeg_audio_permission_message">Allow audio recording to stream microphone or device audio.</string>
+    <string name="mjpeg_audio_permission_message_settings">Audio permission is blocked. Enable microphone permission in app settings.</string>
+    <string name="mjpeg_audio_permission_open_settings">Open settings</string>
 
     <string name="mjpeg_pref_settings_image">画像設定</string>
+    <string name="mjpeg_pref_settings_video">動画設定</string>
+    <string name="mjpeg_video_encoder">Video encoder</string>
+    <string name="mjpeg_video_encoder_summary">Select H.264 encoder for MP4 streams</string>
+    <string name="mjpeg_video_encoder_auto">Auto</string>
+    <string name="mjpeg_video_bitrate_title">Video bitrate</string>
+    <string name="mjpeg_video_bitrate_summary">Set MP4 video bitrate</string>
+    <string name="mjpeg_video_bitrate">Video bitrate: %1$s</string>
+    <string name="mjpeg_video_bitrate_mbit" translatable="false">%.1f Mbit/s</string>
+    <string name="mjpeg_video_bitrate_kbit" translatable="false">%d Kbit/s</string>
     <string name="mjpeg_pref_vr_mode">VRモード</string>
     <string name="mjpeg_pref_vr_mode_summary">画面の半分をキャプチャします</string>
     <string-array name="mjpeg_pref_vr_mode_options">
@@ -87,6 +116,8 @@
     <string name="mjpeg_pref_grayscale_summary">送信前に画像をグレースケールに変換</string>
     <string name="mjpeg_pref_resize">画像のリサイズ</string>
     <string name="mjpeg_pref_resize_summary">クライアントに送信する前に画像サイズを変更します</string>
+    <string name="mjpeg_pref_resize_value" translatable="false">%1$d%%</string>
+    <string name="mjpeg_pref_resize_resolution_value" translatable="false">%1$dx%2$d</string>
     <string name="mjpeg_pref_resize_mode_percent">パーセンテージでリサイズ</string>
     <string name="mjpeg_pref_resize_mode_resolution">正確な解像度</string>
     <string name="mjpeg_pref_resize_width">幅:</string>
@@ -96,6 +127,7 @@
     <string name="mjpeg_pref_resize_result">画像サイズ: %1$dx%2$d</string>
     <string name="mjpeg_pref_rotate">時計回りに画像を回転する</string>
     <string name="mjpeg_pref_rotate_summary">クライアントに送信する前に画像を回転します</string>
+    <string name="mjpeg_pref_rotate_value" translatable="false">%1$d\u00B0</string>
     <string name="mjpeg_pref_flip">画像を反転</string>
     <string name="mjpeg_pref_flip_summary">送信前に画像を反転します</string>
     <string-array name="mjpeg_pref_flip_options">
@@ -149,6 +181,7 @@
     <string name="mjpeg_label_public_ipv4">パブリックIPv4</string>
     <string name="mjpeg_label_public_ipv6">パブリックIPv6</string>
     <string name="mjpeg_label_loopback">ループバック</string>
+    <string name="mjpeg_label_interface" translatable="false">%1$s (%2$s)</string>
     <string name="mjpeg_pref_server_port">サーバー ポート</string>
     <string name="mjpeg_pref_server_port_summary">接続を待ち受けるポートを設定します</string>
     <string name="mjpeg_pref_server_port_text">接続を待ち受けるポートを設定してください。\n値: 1025–65535\n初期値: 8080</string>

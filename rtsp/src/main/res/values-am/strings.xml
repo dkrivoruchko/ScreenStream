@@ -61,6 +61,7 @@
     <string name="rtsp_label_public_ipv4">ህዝባዊ IPv4</string>
     <string name="rtsp_label_public_ipv6">ህዝባዊ IPv6</string>
     <string name="rtsp_label_loopback">Loopback</string>
+    <string name="rtsp_label_interface" translatable="false">%1$s (%2$s)</string>
 
     <string name="rtsp_video_parameters">የቪዲዮ ቅንብሮች</string>
     <string name="rtsp_video_encoder">የቪዲዮ አርቃቂ:</string>
@@ -96,6 +97,8 @@
     <string name="rtsp_close">ዝጋ</string>
     <string name="rtsp_pref_protocol">RTSP ፕሮቶኮል</string>
     <string name="rtsp_pref_protocol_summary">ለRTP ጥቅሎች መጓጓዣ ይምረጡ</string>
+    <string name="rtsp_pref_audio_only">ድምጽ ብቻ</string>
+    <string name="rtsp_pref_audio_only_summary">ቪዲዮ ሳይኖር ድምጽ ይልቀቁ</string>
     <string name="rtsp_pref_interface_filter">መገናኛ ማጣሪያ</string>
     <string name="rtsp_pref_interface_filter_summary">ለአገልጋዩ የአውታረ መረብ መገናኛዎችን ይምረጡ</string>
     <string name="rtsp_pref_interface_filter_wifi">ዋይ-ፋይ</string>

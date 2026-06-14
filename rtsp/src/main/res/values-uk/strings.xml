@@ -61,6 +61,7 @@
     <string name="rtsp_label_public_ipv4">Публічний IPv4</string>
     <string name="rtsp_label_public_ipv6">Публічний IPv6</string>
     <string name="rtsp_label_loopback">Loopback</string>
+    <string name="rtsp_label_interface" translatable="false">%1$s (%2$s)</string>
 
     <string name="rtsp_video_parameters">Налаштування відео</string>
     <string name="rtsp_video_encoder">Відеокодек:</string>
@@ -96,6 +97,8 @@
     <string name="rtsp_close">Закрити</string>
     <string name="rtsp_pref_protocol">Протокол RTSP</string>
     <string name="rtsp_pref_protocol_summary">Виберіть транспорт для RTP-пакетів</string>
+    <string name="rtsp_pref_audio_only">Лише аудіо</string>
+    <string name="rtsp_pref_audio_only_summary">Транслювати аудіо без відео</string>
     <string name="rtsp_pref_interface_filter">Фільтр інтерфейсів</string>
     <string name="rtsp_pref_interface_filter_summary">Виберіть мережеві інтерфейси для сервера</string>
     <string name="rtsp_pref_interface_filter_wifi">Wi-Fi</string>

@@ -7,13 +7,17 @@ import android.content.Intent
 import android.os.Looper
 import androidx.annotation.MainThread
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.common.module.StreamingModule
 import info.dvkr.screenstream.common.module.isStreamingModuleStartBlocked
 import info.dvkr.screenstream.mjpeg.internal.MjpegEvent
 import info.dvkr.screenstream.mjpeg.internal.MjpegStreamingService
+import info.dvkr.screenstream.mjpeg.settings.MjpegSettings
 import info.dvkr.screenstream.mjpeg.ui.MjpegMainScreenUI
 import info.dvkr.screenstream.mjpeg.ui.MjpegState
 import kotlinx.coroutines.NonCancellable
@@ -27,7 +31,7 @@ import org.koin.core.parameter.parametersOf
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
-public class MjpegStreamingModule : StreamingModule {
+public class MjpegStreamingModule(private val mjpegSettings: MjpegSettings) : StreamingModule {
 
     public companion object {
         public val Id: StreamingModule.Id = StreamingModule.Id("MJPEG")
@@ -57,6 +61,17 @@ public class MjpegStreamingModule : StreamingModule {
     override val nameResource: Int = R.string.mjpeg_stream_mode
     override val descriptionResource: Int = R.string.mjpeg_stream_mode_description
     override val detailsResource: Int = R.string.mjpeg_stream_mode_details
+
+    @Composable
+    override fun name(): String {
+        val settings by mjpegSettings.data.collectAsStateWithLifecycle()
+        val streamFormatResource = if (settings.streamFormat == MjpegSettings.Values.STREAM_FORMAT_MP4) {
+            R.string.mjpeg_pref_stream_format_mp4
+        } else {
+            R.string.mjpeg_pref_stream_format_mjpeg
+        }
+        return stringResource(nameResource, stringResource(streamFormatResource))
+    }
 
     @Composable
     override fun StreamUIContent(
@@ -223,6 +238,7 @@ public class MjpegStreamingModule : StreamingModule {
                 is MjpegEvent.CastPermissionsDenied,
                 is MjpegEvent.StartProjection,
                 is MjpegEvent.Intentable.StopStream,
+                is MjpegStreamingService.InternalEvent.StartMicrophoneAudioOnlyStream,
                 is MjpegStreamingService.InternalEvent.StartStream ->
                     XLog.i(getLog("sendEvent", "Ignoring stale event $event in state $state"))
 

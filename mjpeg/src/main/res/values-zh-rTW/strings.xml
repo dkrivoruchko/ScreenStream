@@ -3,7 +3,7 @@
     <string name="mjpeg_error_open_settings">開啟設定</string>
     <string name="mjpeg_close">關閉</string>
 
-    <string name="mjpeg_stream_mode">本地模式 · MJPEG</string>
+    <string name="mjpeg_stream_mode">本地模式 · %1$s</string>
     <string name="mjpeg_stream_mode_description">透過區域網路串流</string>
     <string name="mjpeg_stream_mode_details">
 - 使用 MJPEG。\n
@@ -65,8 +65,37 @@
     <string name="mjpeg_pref_html_back_color_title">選擇背景色</string>
     <string name="mjpeg_pref_html_fit_window">適應瀏覽器視窗的圖片</string>
     <string name="mjpeg_pref_html_fit_window_summary">在瀏覽器中縮放圖片以適應整個視窗的寬度/高度</string>
+    <string name="mjpeg_pref_stream_format">Stream format</string>
+    <string name="mjpeg_pref_stream_format_summary">Choose local stream video format</string>
+    <string name="mjpeg_pref_stream_format_text">MP4 uses H.264 video and AAC audio in one browser stream. MJPEG streams images only.</string>
+    <string name="mjpeg_pref_stream_format_mjpeg">MJPEG</string>
+    <string name="mjpeg_pref_stream_format_mp4">MP4</string>
+    <string name="mjpeg_pref_audio_only">Audio only</string>
+    <string name="mjpeg_pref_audio_only_summary">Stream audio without screen video</string>
+
+    <string name="mjpeg_audio_parameters">Audio settings</string>
+    <string name="mjpeg_audio_mic">Microphone</string>
+    <string name="mjpeg_audio_mic_mute">Mute microphone</string>
+    <string name="mjpeg_audio_device">Device audio</string>
+    <string name="mjpeg_audio_device_mute">Mute device audio</string>
+    <string name="mjpeg_audio_bitrate">Audio bitrate: %1$s</string>
+    <string name="mjpeg_audio_bitrate_mbit" translatable="false">%.1f Mbit/s</string>
+    <string name="mjpeg_audio_bitrate_kbit" translatable="false">%d Kbit/s</string>
+    <string name="mjpeg_audio_permission_title">Audio permission required</string>
+    <string name="mjpeg_audio_permission_message">Allow audio recording to stream microphone or device audio.</string>
+    <string name="mjpeg_audio_permission_message_settings">Audio permission is blocked. Enable microphone permission in app settings.</string>
+    <string name="mjpeg_audio_permission_open_settings">Open settings</string>
 
     <string name="mjpeg_pref_settings_image">影像設定</string>
+    <string name="mjpeg_pref_settings_video">影片設定</string>
+    <string name="mjpeg_video_encoder">Video encoder</string>
+    <string name="mjpeg_video_encoder_summary">Select H.264 encoder for MP4 streams</string>
+    <string name="mjpeg_video_encoder_auto">Auto</string>
+    <string name="mjpeg_video_bitrate_title">Video bitrate</string>
+    <string name="mjpeg_video_bitrate_summary">Set MP4 video bitrate</string>
+    <string name="mjpeg_video_bitrate">Video bitrate: %1$s</string>
+    <string name="mjpeg_video_bitrate_mbit" translatable="false">%.1f Mbit/s</string>
+    <string name="mjpeg_video_bitrate_kbit" translatable="false">%d Kbit/s</string>
     <string name="mjpeg_pref_vr_mode">虛擬實境模式</string>
     <string name="mjpeg_pref_vr_mode_summary">截取半個螢幕</string>
     <string-array name="mjpeg_pref_vr_mode_options">
@@ -87,6 +116,8 @@
     <string name="mjpeg_pref_grayscale_summary">傳送前將影像轉為灰階</string>
     <string name="mjpeg_pref_resize">縮放畫面</string>
     <string name="mjpeg_pref_resize_summary">傳送縮放過的畫面到用戶端</string>
+    <string name="mjpeg_pref_resize_value" translatable="false">%1$d%%</string>
+    <string name="mjpeg_pref_resize_resolution_value" translatable="false">%1$dx%2$d</string>
     <string name="mjpeg_pref_resize_mode_percent">按百分比調整大小</string>
     <string name="mjpeg_pref_resize_mode_resolution">精確解析度</string>
     <string name="mjpeg_pref_resize_width">寬度：</string>
@@ -96,6 +127,7 @@
     <string name="mjpeg_pref_resize_result">畫面大小：%1$dx%2$d</string>
     <string name="mjpeg_pref_rotate">順時針旋轉畫面</string>
     <string name="mjpeg_pref_rotate_summary">傳送順時針旋轉過的畫面到用戶端</string>
+    <string name="mjpeg_pref_rotate_value" translatable="false">%1$d\u00B0</string>
     <string name="mjpeg_pref_flip">翻轉畫面</string>
     <string name="mjpeg_pref_flip_summary">傳送到用戶端前先翻轉畫面</string>
     <string-array name="mjpeg_pref_flip_options">
@@ -149,6 +181,7 @@
     <string name="mjpeg_label_public_ipv4">公用IPv4</string>
     <string name="mjpeg_label_public_ipv6">公用IPv6</string>
     <string name="mjpeg_label_loopback">迴路</string>
+    <string name="mjpeg_label_interface" translatable="false">%1$s (%2$s)</string>
     <string name="mjpeg_pref_server_port">伺服器連接埠</string>
     <string name="mjpeg_pref_server_port_summary">設定連接埠</string>
     <string name="mjpeg_pref_server_port_text">設定連入使用的連接埠號。\n範圍： 1025–65535\n預設： 8080</string>

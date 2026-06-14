@@ -97,6 +97,8 @@
     <string name="rtsp_close">Close</string>
     <string name="rtsp_pref_protocol">RTSP protocol</string>
     <string name="rtsp_pref_protocol_summary">Select transport for RTP packets</string>
+    <string name="rtsp_pref_audio_only">Audio only</string>
+    <string name="rtsp_pref_audio_only_summary">Stream audio without video</string>
     <string name="rtsp_pref_interface_filter">Interface filter</string>
     <string name="rtsp_pref_interface_filter_summary">Select network interfaces for server</string>
     <string name="rtsp_pref_interface_filter_wifi">Wi-Fi</string>

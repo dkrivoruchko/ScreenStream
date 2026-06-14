@@ -1,9 +1,14 @@
 package info.dvkr.screenstream.mjpeg.internal
 
 import android.annotation.SuppressLint
+import android.Manifest
+import android.app.ForegroundServiceTypeException
+import android.app.ServiceStartNotAllowedException
 import android.content.ComponentCallbacks
 import android.content.Intent
 import android.content.pm.ActivityInfo
+import android.content.pm.PackageManager
+import android.content.pm.ServiceInfo
 import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -26,6 +31,7 @@ import android.os.SystemClock
 import android.widget.Toast
 import androidx.annotation.AnyThread
 import androidx.annotation.MainThread
+import androidx.core.content.ContextCompat
 import androidx.core.graphics.createBitmap
 import androidx.core.graphics.scale
 import androidx.core.graphics.toColorInt
@@ -40,6 +46,16 @@ import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.common.module.ProjectionCoordinator
 import info.dvkr.screenstream.mjpeg.MjpegModuleService
 import info.dvkr.screenstream.mjpeg.R
+import info.dvkr.screenstream.mjpeg.internal.audio.EncodedAudioPacket
+import info.dvkr.screenstream.mjpeg.internal.audio.MjpegAudioEncoder
+import info.dvkr.screenstream.mjpeg.internal.audio.MjpegAudioEncoderUtils
+import info.dvkr.screenstream.mjpeg.internal.audio.MjpegAudioPacket
+import info.dvkr.screenstream.mjpeg.internal.audio.MjpegAudioSource
+import info.dvkr.screenstream.mjpeg.internal.audio.MjpegMasterClock
+import info.dvkr.screenstream.mjpeg.internal.mp4.Mp4AudioPacket
+import info.dvkr.screenstream.mjpeg.internal.mp4.Mp4Capture
+import info.dvkr.screenstream.mjpeg.internal.mp4.Mp4StreamConfig
+import info.dvkr.screenstream.mjpeg.internal.mp4.Mp4VideoPacket
 import info.dvkr.screenstream.mjpeg.settings.MjpegSettings
 import info.dvkr.screenstream.mjpeg.ui.MjpegError
 import info.dvkr.screenstream.mjpeg.ui.MjpegState
@@ -51,8 +67,11 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.android.asCoroutineDispatcher
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeoutOrNull
@@ -79,8 +98,30 @@ internal class MjpegStreamingService(
     private val supervisorJob = SupervisorJob()
     private val coroutineScope by lazy(LazyThreadSafetyMode.NONE) { CoroutineScope(supervisorJob + coroutineDispatcher) }
     private val bitmapStateFlow = MutableStateFlow(createBitmap(1, 1))
+    private val audioPacketFlow = MutableSharedFlow<MjpegAudioPacket>(
+        extraBufferCapacity = 64,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST
+    )
+    private val mp4ConfigFlow = MutableStateFlow<Mp4StreamConfig?>(null)
+    private val mp4VideoPacketFlow = MutableSharedFlow<Mp4VideoPacket>(
+        extraBufferCapacity = 64,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST
+    )
+    private val mp4AudioPacketFlow = MutableSharedFlow<Mp4AudioPacket>(
+        extraBufferCapacity = 64,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST
+    )
     private val httpServer by lazy(mode = LazyThreadSafetyMode.NONE) {
-        HttpServer(service, mjpegSettings, bitmapStateFlow.asStateFlow(), ::sendEvent)
+        HttpServer(
+            service,
+            mjpegSettings,
+            bitmapStateFlow.asStateFlow(),
+            audioPacketFlow.asSharedFlow(),
+            mp4ConfigFlow.asStateFlow(),
+            mp4VideoPacketFlow.asSharedFlow(),
+            mp4AudioPacketFlow.asSharedFlow(),
+            ::sendEvent
+        )
     }
     private val projectionCoordinator by lazy(mode = LazyThreadSafetyMode.NONE) {
         ProjectionCoordinator(
@@ -97,8 +138,31 @@ internal class MjpegStreamingService(
 
     @MainThread
     internal fun tryStartProjectionForeground(): Throwable? {
-        val foregroundStartError = projectionCoordinator.startForegroundForProjection(requiresAudioForegroundService = false)
-        XLog.i(getLog("tryStartProjectionForeground", "SP_TRACE route=preflight_v1 stage=foreground_preflight audioMode=none result=${foregroundStartError?.javaClass?.simpleName ?: "ok"}"))
+        val settings = mjpegSettings.data.value
+        val useMp4 = settings.streamFormat == MjpegSettings.Values.STREAM_FORMAT_MP4
+        val audioPermissionGranted =
+            ContextCompat.checkSelfPermission(service, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
+        val deviceAudioSupported = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
+        val wantsAudio = useMp4 && (settings.enableMic || (deviceAudioSupported && settings.enableDeviceAudio))
+        if (!audioPermissionGranted && wantsAudio) {
+            coroutineScope.launch {
+                mjpegSettings.updateData { copy(enableMic = false, enableDeviceAudio = false) }
+            }
+        } else if (!deviceAudioSupported && settings.enableDeviceAudio) {
+            coroutineScope.launch {
+                mjpegSettings.updateData { copy(enableDeviceAudio = false) }
+            }
+        }
+        val wantsAudioForegroundService = audioPermissionGranted && wantsAudio
+        val foregroundStartError = projectionCoordinator.startForegroundForProjection(wantsAudioForegroundService)
+        val audioMode = when {
+            useMp4.not() -> "none"
+            audioPermissionGranted && settings.enableMic && settings.enableDeviceAudio -> "both"
+            audioPermissionGranted && settings.enableMic -> "mic"
+            audioPermissionGranted && settings.enableDeviceAudio -> "device"
+            else -> "none"
+        }
+        XLog.i(getLog("tryStartProjectionForeground", "SP_TRACE route=preflight_v1 stage=foreground_preflight audioMode=$audioMode result=${foregroundStartError?.javaClass?.simpleName ?: "ok"}"))
         return foregroundStartError
     }
 
@@ -106,6 +170,18 @@ internal class MjpegStreamingService(
         if (!foregroundStartProcessed || foregroundStartError != null) return
         projectionCoordinator.stop()
         service.stopForeground()
+    }
+
+    private fun startForegroundForMicrophoneOnly(): Throwable? {
+        val foregroundServiceType =
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE else 0
+        return runCatching { service.startForeground(foregroundServiceType) }.exceptionOrNull()
+    }
+
+    private fun Throwable.toForegroundStartFailGroup(): StartFailGroup = when {
+        Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && this is ServiceStartNotAllowedException -> StartFailGroup.BLOCKED
+        Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE && this is ForegroundServiceTypeException -> StartFailGroup.FATAL
+        else -> StartFailGroup.FATAL
     }
 
     private val sessionAnalyticsTracker by lazy(LazyThreadSafetyMode.NONE) {
@@ -134,6 +210,11 @@ internal class MjpegStreamingService(
     private var mediaProjectionIntent: Intent? = null
     private var mediaProjection: MediaProjection? = null
     private var bitmapCapture: BitmapCapture? = null
+    private var audioEncoder: MjpegAudioEncoder? = null
+    private var mp4Capture: Mp4Capture? = null
+    private var audioGeneration: Long = 0L
+    private var mp4Generation: Long = 0L
+    private var componentCallbacksRegistered: Boolean = false
     private var currentError: MjpegError? = null
     private var previousError: MjpegError? = null
     // All vars must be read/write on this (WebRTC-HT) thread
@@ -143,6 +224,7 @@ internal class MjpegStreamingService(
         data class DiscoverAddress(val reason: String, val attempt: Int) : InternalEvent(Priority.RESTART_IGNORE)
         data class StartServer(val interfaces: List<MjpegNetInterface>) : InternalEvent(Priority.RESTART_IGNORE)
         data class StartStream(val permissionEducationShown: Boolean) : InternalEvent(Priority.RESTART_IGNORE)
+        data class StartMicrophoneAudioOnlyStream(val entryPoint: EntryPoint) : InternalEvent(Priority.RESTART_IGNORE)
         data object StartStopFromWebPage : InternalEvent(Priority.RESTART_IGNORE)
         data object ScreenOff : InternalEvent(Priority.RESTART_IGNORE)
         data class ConfigurationChange(val newConfig: Configuration) : InternalEvent(Priority.RESTART_IGNORE) {
@@ -153,6 +235,7 @@ internal class MjpegStreamingService(
         data class RestartServer(val reason: RestartReason) : InternalEvent(Priority.RESTART_IGNORE)
         data object UpdateStartBitmap : InternalEvent(Priority.RESTART_IGNORE)
 
+        data class AudioCaptureError(val cause: Throwable) : InternalEvent(Priority.RECOVER_IGNORE)
         data class Error(val error: MjpegError) : InternalEvent(Priority.RECOVER_IGNORE)
 
         data class Destroy(val destroyJob: CompletableJob) : InternalEvent(Priority.DESTROY_IGNORE)
@@ -163,11 +246,19 @@ internal class MjpegStreamingService(
 
     internal sealed class RestartReason(private val msg: String) {
         object ConnectionChanged : RestartReason("")
+        object StreamFormatChanged : RestartReason(MjpegSettings.Key.STREAM_FORMAT.name)
         class SettingsChanged(msg: String) : RestartReason(msg)
         class NetworkSettingsChanged(msg: String) : RestartReason(msg)
 
         override fun toString(): String = "${javaClass.simpleName}[$msg]"
     }
+
+    private data class AudioSettings(
+        val muteMic: Boolean,
+        val muteDeviceAudio: Boolean,
+        val volumeMic: Float,
+        val volumeDeviceAudio: Float
+    )
 
     @Suppress("OVERRIDE_DEPRECATION")
     private val componentCallback = object : ComponentCallbacks {
@@ -241,6 +332,19 @@ internal class MjpegStreamingService(
         mjpegSettings.data.map { it.serverPort }.listenForChange(coroutineScope, 1) {
             sendEvent(InternalEvent.RestartServer(RestartReason.NetworkSettingsChanged(MjpegSettings.Key.SERVER_PORT.name)))
         }
+        mjpegSettings.data.map { it.streamFormat }.listenForChange(coroutineScope, 1) {
+            sendEvent(InternalEvent.RestartServer(RestartReason.StreamFormatChanged))
+        }
+        mjpegSettings.data.map { AudioSettings(it.muteMic, it.muteDeviceAudio, it.volumeMic, it.volumeDeviceAudio) }
+            .listenForChange(coroutineScope, 1) { settings ->
+                audioEncoder?.setMute(settings.muteMic, settings.muteDeviceAudio)
+                audioEncoder?.setVolume(settings.volumeMic, settings.volumeDeviceAudio)
+                mp4Capture?.setMute(settings.muteMic, settings.muteDeviceAudio)
+                mp4Capture?.setVolume(settings.volumeMic, settings.volumeDeviceAudio)
+            }
+        mjpegSettings.data.map { it.videoBitrateBits }.listenForChange(coroutineScope, 1) { bitrateBits ->
+            mp4Capture?.setVideoBitrate(bitrateBits)
+        }
     }
 
     @MainThread
@@ -269,6 +373,7 @@ internal class MjpegStreamingService(
         if (destroyPending) {
             when (event) {
                 is InternalEvent.StartStream,
+                is InternalEvent.StartMicrophoneAudioOnlyStream,
                 is MjpegEvent.CastPermissionsDenied,
                 is MjpegEvent.StartProjection -> sessionAnalyticsTracker.onStartAborted()
             }
@@ -331,6 +436,142 @@ internal class MjpegStreamingService(
         true
     }
 
+    private fun createAndStartAudioEncoder(
+        settings: MjpegSettings.Data,
+        enableMic: Boolean,
+        enableDeviceAudio: Boolean,
+        mediaProjection: MediaProjection?
+    ): MjpegAudioEncoder {
+        val encoderInfo = requireNotNull(MjpegAudioEncoderUtils.selectedOpusEncoder) { "No OPUS audio encoder available" }
+        val generation = ++audioGeneration
+        val params = MjpegAudioSource.Params.DEFAULT_OPUS.copy(
+            bitrate = settings.audioBitrateBits,
+            echoCanceler = settings.audioEchoCanceller,
+            noiseSuppressor = settings.audioNoiseSuppressor,
+            isStereo = true
+        )
+
+        val encoder = MjpegAudioEncoder(
+            codecInfo = encoderInfo,
+            onAudioPacket = { packet: EncodedAudioPacket ->
+                audioPacketFlow.tryEmit(
+                    MjpegAudioPacket(
+                        generation = generation,
+                        data = packet.data,
+                        durationSamples = packet.durationSamples
+                    )
+                )
+            },
+            onAudioCaptureError = {
+                XLog.w(getLog("AudioCapture.onError", it.message), it)
+                sendEvent(InternalEvent.AudioCaptureError(it))
+            },
+            onError = {
+                XLog.w(getLog("AudioEncoder.onError", it.message), it)
+                sendEvent(InternalEvent.Error(MjpegError.UnknownError(it)))
+            }
+        )
+
+        return encoder.apply {
+            runCatching {
+                prepare(
+                    enableMic = enableMic,
+                    enableDeviceAudio = enableDeviceAudio,
+                    dispatcher = Dispatchers.IO,
+                    audioParams = params,
+                    mediaProjection = mediaProjection
+                )
+                setMute(settings.muteMic, settings.muteDeviceAudio)
+                setVolume(settings.volumeMic, settings.volumeDeviceAudio)
+                start()
+                check(isCapturing) { "Audio capture did not start" }
+            }.onFailure { cause ->
+                stop()
+                throw cause
+            }
+        }
+    }
+
+    private fun startMicrophoneAudioOnly(entryPoint: EntryPoint) {
+        if (pendingStartAttemptId != null) {
+            XLog.i(getLog("StartMicrophoneAudioOnly", "Permission already pending id=${pendingStartAttemptId ?: "none"}"))
+            return
+        }
+        if (pendingServer || currentError != null || isStreaming) {
+            XLog.i(getLog("StartMicrophoneAudioOnly", "Not ready. pendingServer=$pendingServer isStreaming=$isStreaming error=${currentError != null}"))
+            return
+        }
+
+        val settings = mjpegSettings.data.value
+        val deviceAudioSelected = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && settings.enableDeviceAudio
+        val validMode = settings.streamFormat == MjpegSettings.Values.STREAM_FORMAT_MP4 &&
+                settings.streamAudioOnly && settings.enableMic && deviceAudioSelected.not()
+        if (!validMode) {
+            XLog.i(
+                getLog(
+                    "StartMicrophoneAudioOnly",
+                    "Invalid mode. format=${settings.streamFormat} audioOnly=${settings.streamAudioOnly} mic=${settings.enableMic} device=${settings.enableDeviceAudio}"
+                )
+            )
+            return
+        }
+
+        sessionAnalyticsTracker.onStartAttempt(
+            entryPoint = entryPoint,
+            usedCachedPermission = false,
+            permissionEducationShown = false
+        )
+
+        val audioPermissionGranted =
+            ContextCompat.checkSelfPermission(service, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
+        if (!audioPermissionGranted) {
+            coroutineScope.launch { mjpegSettings.updateData { copy(enableMic = false) } }
+            sessionAnalyticsTracker.onStartFailed(StartFailGroup.PERMISSION_DENIED)
+            currentError = MjpegError.UnknownError(IllegalStateException("Audio-only stream requires audio recording permission"))
+            return
+        }
+
+        startForegroundForMicrophoneOnly()?.let { foregroundError ->
+            sessionAnalyticsTracker.onStartFailed(foregroundError.toForegroundStartFailGroup())
+            currentError = MjpegError.UnknownError(foregroundError)
+            return
+        }
+
+        runCatching {
+            MjpegMasterClock.reset()
+            MjpegMasterClock.ensureStarted()
+            val capture = Mp4Capture(
+                serviceContext = service,
+                settings = settings,
+                mediaProjection = null,
+                generation = ++mp4Generation,
+                enableMic = true,
+                enableDeviceAudio = false,
+                dispatcher = Dispatchers.IO,
+                configFlow = mp4ConfigFlow,
+                videoPacketFlow = mp4VideoPacketFlow,
+                audioPacketFlow = mp4AudioPacketFlow,
+                onError = { error -> sendEvent(InternalEvent.Error(error)) },
+                onAudioCaptureError = { cause -> sendEvent(InternalEvent.AudioCaptureError(cause)) }
+            )
+            check(capture.start { true }) { "MP4 audio capture did not start" }
+            mp4Capture = capture
+            isStreaming = true
+            currentError = null
+            sessionAnalyticsTracker.onStarted(currentActiveConsumersCount())
+            XLog.i(getLog("StartMicrophoneAudioOnly", "Started. entryPoint=$entryPoint"))
+        }.onFailure { cause ->
+            XLog.e(getLog("StartMicrophoneAudioOnly", "Failed: ${cause.message}"), cause)
+            mp4Capture?.stop()
+            mp4Capture = null
+            mp4ConfigFlow.value = null
+            isStreaming = false
+            service.stopForeground()
+            sessionAnalyticsTracker.onStartFailed(StartFailGroup.FATAL)
+            currentError = MjpegError.UnknownError(cause)
+        }
+    }
+
     // On MJPEG-HT only
     private suspend fun processEvent(event: MjpegEvent) {
         when (event) {
@@ -346,6 +587,10 @@ internal class MjpegStreamingService(
                 if (event.clearIntent) mediaProjectionIntent = null
                 mediaProjection = null
                 bitmapCapture = null
+                audioEncoder = null
+                mp4Capture = null
+                mp4ConfigFlow.value = null
+                componentCallbacksRegistered = false
 
                 currentError = null
             }
@@ -386,6 +631,12 @@ internal class MjpegStreamingService(
 
             is InternalEvent.StartStopFromWebPage -> when {
                 isStreaming -> sendEvent(MjpegEvent.Intentable.StopStream("StartStopFromWebPage"))
+                mjpegSettings.data.value.streamFormat == MjpegSettings.Values.STREAM_FORMAT_MP4 &&
+                        mjpegSettings.data.value.streamAudioOnly &&
+                        mjpegSettings.data.value.enableMic &&
+                        (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q || mjpegSettings.data.value.enableDeviceAudio.not()) ->
+                    startMicrophoneAudioOnly(EntryPoint.WEB)
+
                 pendingServer.not() && currentError == null -> {
                     if (pendingStartAttemptId != null) {
                         XLog.i(getLog("StartStopFromWebPage", "Permission already pending id=${pendingStartAttemptId ?: "none"}"))
@@ -437,6 +688,8 @@ internal class MjpegStreamingService(
                 }
             }
 
+            is InternalEvent.StartMicrophoneAudioOnlyStream -> startMicrophoneAudioOnly(event.entryPoint)
+
             is MjpegEvent.CastPermissionsDenied -> {
                 val currentStartAttemptId = pendingStartAttemptId
                 if (currentStartAttemptId != event.startAttemptId) {
@@ -480,25 +733,105 @@ internal class MjpegStreamingService(
                     return
                 }
 
+                val settings = mjpegSettings.data.value
+                val useMp4 = settings.streamFormat == MjpegSettings.Values.STREAM_FORMAT_MP4
+                val streamAudioOnly = useMp4 && settings.streamAudioOnly
+                val deviceAudioSupported = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
+                val audioRequested = useMp4 && (settings.enableMic || (deviceAudioSupported && settings.enableDeviceAudio))
+                if (streamAudioOnly && !audioRequested) {
+                    clearPreparedProjectionStartIfNeeded(event.foregroundStartProcessed, event.foregroundStartError)
+                    pendingStartAttemptId = null
+                    throw IllegalStateException("Audio-only stream requires microphone or device audio")
+                }
+
                 pendingStartAttemptId = null
 
                 val startProjection = {
-                    projectionCoordinator.startProjection(event.intent) { _, mediaProjection, _, isStartupStillValid ->
+                    projectionCoordinator.startProjection(event.intent) { _, mediaProjection, audioCaptureAllowed, isStartupStillValid ->
                         mediaProjection.registerCallback(projectionCallback, mainHandler)
 
-                        val bitmapCapture = BitmapCapture(service, mjpegSettings, mediaProjection, bitmapStateFlow) { error ->
-                            sendEvent(InternalEvent.Error(error))
-                        }
-                        val captureStarted = bitmapCapture.start(isStartupStillValid)
-                        if (!captureStarted) {
-                            XLog.i(getLog("StartProjection", "Capture not started. Stopping projection."))
-                            bitmapCapture.destroy()
+                        MjpegMasterClock.reset()
+                        MjpegMasterClock.ensureStarted()
+
+                        var bitmapCapture: BitmapCapture? = null
+                        var audioEncoder: MjpegAudioEncoder? = null
+                        var mp4Capture: Mp4Capture? = null
+
+                        val audioPermissionGranted =
+                            ContextCompat.checkSelfPermission(service, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
+                        val enableMic = useMp4 && audioPermissionGranted && settings.enableMic && audioCaptureAllowed
+                        val enableDeviceAudio = useMp4 && audioPermissionGranted && deviceAudioSupported && settings.enableDeviceAudio
+                        val enableAudio = enableMic || enableDeviceAudio
+                        if (streamAudioOnly && !enableAudio) {
                             mediaProjection.unregisterCallback(projectionCallback)
-                            return@startProjection false
+                            throw IllegalStateException("Audio-only stream requires audio recording permission")
+                        }
+
+                        if (useMp4) {
+                            mp4Capture = Mp4Capture(
+                                serviceContext = service,
+                                settings = settings,
+                                mediaProjection = mediaProjection,
+                                generation = ++mp4Generation,
+                                enableMic = enableMic,
+                                enableDeviceAudio = enableDeviceAudio,
+                                dispatcher = Dispatchers.IO,
+                                configFlow = mp4ConfigFlow,
+                                videoPacketFlow = mp4VideoPacketFlow,
+                                audioPacketFlow = mp4AudioPacketFlow,
+                                onError = { error -> sendEvent(InternalEvent.Error(error)) },
+                                onAudioCaptureError = { cause -> sendEvent(InternalEvent.AudioCaptureError(cause)) }
+                            )
+                            val captureStarted = mp4Capture.start(isStartupStillValid)
+                            if (!captureStarted) {
+                                XLog.i(getLog("StartProjection", "MP4 capture not started. Stopping projection."))
+                                mp4Capture.stop()
+                                mediaProjection.unregisterCallback(projectionCallback)
+                                return@startProjection false
+                            }
+                            if (!isStartupStillValid()) {
+                                XLog.i(getLog("StartProjection", "Startup invalidated after MP4 capture start."))
+                                mp4Capture.stop()
+                                mediaProjection.unregisterCallback(projectionCallback)
+                                return@startProjection false
+                            }
+                        } else if (!streamAudioOnly) {
+                            bitmapCapture = BitmapCapture(service, mjpegSettings, mediaProjection, bitmapStateFlow) { error ->
+                                sendEvent(InternalEvent.Error(error))
+                            }
+                            val captureStarted = bitmapCapture.start(isStartupStillValid)
+                            if (!captureStarted) {
+                                XLog.i(getLog("StartProjection", "Capture not started. Stopping projection."))
+                                bitmapCapture.destroy()
+                                mediaProjection.unregisterCallback(projectionCallback)
+                                return@startProjection false
+                            }
+                            if (!isStartupStillValid()) {
+                                XLog.i(getLog("StartProjection", "Startup invalidated after capture start."))
+                                bitmapCapture.destroy()
+                                mediaProjection.unregisterCallback(projectionCallback)
+                                return@startProjection false
+                            }
+                        }
+
+                        if (!useMp4 && enableAudio) {
+                            audioEncoder = runCatching {
+                                createAndStartAudioEncoder(settings, enableMic, enableDeviceAudio, mediaProjection)
+                            }.getOrElse { cause ->
+                                if (streamAudioOnly) {
+                                    bitmapCapture?.destroy()
+                                    mediaProjection.unregisterCallback(projectionCallback)
+                                    throw cause
+                                }
+                                XLog.w(getLog("StartProjection", "Audio capture unavailable. Continuing video-only: ${cause.message}"), cause)
+                                null
+                            }
                         }
                         if (!isStartupStillValid()) {
-                            XLog.i(getLog("StartProjection", "Startup invalidated after capture start."))
-                            bitmapCapture.destroy()
+                            XLog.i(getLog("StartProjection", "Startup invalidated after audio start."))
+                            bitmapCapture?.destroy()
+                            audioEncoder?.stop()
+                            mp4Capture?.stop()
                             mediaProjection.unregisterCallback(projectionCallback)
                             return@startProjection false
                         }
@@ -506,11 +839,12 @@ internal class MjpegStreamingService(
                         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
                             mediaProjectionIntent = event.intent
                             service.registerComponentCallbacks(componentCallback)
+                            componentCallbacksRegistered = true
                         }
 
                         @Suppress("DEPRECATION")
                         @SuppressLint("WakelockTimeout")
-                        if (Build.MANUFACTURER !in listOf("OnePlus", "OPPO") && mjpegSettings.data.value.keepAwake) {
+                        if (!streamAudioOnly && Build.MANUFACTURER !in listOf("OnePlus", "OPPO") && settings.keepAwake) {
                             val flags = PowerManager.SCREEN_DIM_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP
                             wakeLock = powerManager.newWakeLock(flags, "ScreenStream::MJPEG-Tag").apply { acquire() }
                         }
@@ -518,6 +852,8 @@ internal class MjpegStreamingService(
                         this@MjpegStreamingService.isStreaming = true
                         this@MjpegStreamingService.mediaProjection = mediaProjection
                         this@MjpegStreamingService.bitmapCapture = bitmapCapture
+                        this@MjpegStreamingService.audioEncoder = audioEncoder
+                        this@MjpegStreamingService.mp4Capture = mp4Capture
                         true
                     }
                 }
@@ -532,7 +868,9 @@ internal class MjpegStreamingService(
                         startProjection()
                     }
                 } else {
-                    val foregroundError = projectionCoordinator.startForegroundForProjection(requiresAudioForegroundService = false)
+                    val audioPermissionGranted =
+                        ContextCompat.checkSelfPermission(service, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
+                    val foregroundError = projectionCoordinator.startForegroundForProjection(audioPermissionGranted && audioRequested)
                     if (foregroundError != null) {
                         startPhase = "foreground promotion"
                         projectionCoordinator.asForegroundStartResult(foregroundError)
@@ -638,7 +976,11 @@ internal class MjpegStreamingService(
                         configDiff and ActivityInfo.CONFIG_ORIENTATION != 0 || configDiff and ActivityInfo.CONFIG_SCREEN_LAYOUT != 0 ||
                         configDiff and ActivityInfo.CONFIG_SCREEN_SIZE != 0 || configDiff and ActivityInfo.CONFIG_DENSITY != 0
                     ) {
-                        bitmapCapture?.resize()
+                        if (mp4Capture != null) {
+                            XLog.i(getLog("ConfigurationChange", "Active MP4 stream keeps existing virtual display. Ignoring resize."))
+                        } else {
+                            bitmapCapture?.resize()
+                        }
                     } else {
                         XLog.d(getLog("ConfigurationChange", "No change relevant for streaming. Ignoring."))
                     }
@@ -657,14 +999,20 @@ internal class MjpegStreamingService(
                     return
                 }
                 if (isStreaming) {
-                    bitmapCapture?.resize(event.width, event.height)
+                    if (mp4Capture != null) {
+                        XLog.i(getLog("CapturedContentResize", "Active MP4 stream keeps existing virtual display: ${event.width} x ${event.height}"))
+                    } else {
+                        bitmapCapture?.resize(event.width, event.height)
+                    }
                 } else {
                     XLog.d(getLog("CapturedContentResize", "Not streaming. Ignoring."))
                 }
             }
 
             is InternalEvent.RestartServer -> {
-                if (mjpegSettings.data.value.stopOnConfigurationChange) stopStream("ConfigurationChange")
+                if (mjpegSettings.data.value.stopOnConfigurationChange || event.reason is RestartReason.StreamFormatChanged) {
+                    stopStream("ConfigurationChange")
+                }
 
                 pendingStartAttemptId = null
                 waitingForPermission = false
@@ -689,6 +1037,22 @@ internal class MjpegStreamingService(
             InternalEvent.UpdateStartBitmap -> {
                 startBitmap = null
                 if (isStreaming.not() && mjpegSettings.data.value.htmlShowPressStart) bitmapStateFlow.value = getStartBitmap()
+            }
+
+            is InternalEvent.AudioCaptureError -> {
+                if (mp4Capture != null) {
+                    stopStream("Mp4AudioCaptureError")
+                    currentError = MjpegError.UnknownError(event.cause)
+                    return
+                }
+                audioEncoder?.stop()
+                audioEncoder = null
+                if (bitmapCapture == null) {
+                    stopStream("AudioCaptureError")
+                    currentError = MjpegError.UnknownError(event.cause)
+                } else {
+                    XLog.w(getLog("AudioCaptureError", "Continuing video-only: ${event.cause.message}"), event.cause)
+                }
             }
 
             is MjpegEvent.Intentable.RecoverError -> {
@@ -754,11 +1118,17 @@ internal class MjpegStreamingService(
         }
 
         if (wasStreaming) {
-            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                service.unregisterComponentCallbacks(componentCallback)
+            if (componentCallbacksRegistered && Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                runCatching { service.unregisterComponentCallbacks(componentCallback) }
+                componentCallbacksRegistered = false
             }
             bitmapCapture?.destroy()
             bitmapCapture = null
+            audioEncoder?.stop()
+            audioEncoder = null
+            mp4Capture?.stop()
+            mp4Capture = null
+            mp4ConfigFlow.value = null
             mediaProjection?.unregisterCallback(projectionCallback)
             mediaProjection = null
             projectionCoordinator.stop()

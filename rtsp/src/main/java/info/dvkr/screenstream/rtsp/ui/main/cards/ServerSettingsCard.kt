@@ -23,6 +23,7 @@ import info.dvkr.screenstream.rtsp.settings.RtspSettings
 import info.dvkr.screenstream.rtsp.ui.main.settings.common.RtspSettingModal
 import info.dvkr.screenstream.rtsp.ui.main.settings.server.AddressFilterEditor
 import info.dvkr.screenstream.rtsp.ui.main.settings.server.AddressFilterRow
+import info.dvkr.screenstream.rtsp.ui.main.settings.server.AudioOnlyRow
 import info.dvkr.screenstream.rtsp.ui.main.settings.server.EnableIPv4Row
 import info.dvkr.screenstream.rtsp.ui.main.settings.server.EnableIPv6Row
 import info.dvkr.screenstream.rtsp.ui.main.settings.server.InterfaceFilterEditor
@@ -65,6 +66,15 @@ internal fun ServerSettingsCard(
             enabled = enabled,
             protocol = settings.serverProtocol
         ) { selectedSheet = ServerSettingSheet.Protocol }
+
+        HorizontalDivider()
+
+        AudioOnlyRow(
+            enabled = enabled,
+            streamAudioOnly = settings.streamAudioOnly
+        ) { newValue ->
+            updateSettings { copy(streamAudioOnly = newValue) }
+        }
 
         HorizontalDivider()
 

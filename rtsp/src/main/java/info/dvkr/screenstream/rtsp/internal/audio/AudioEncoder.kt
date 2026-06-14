@@ -54,7 +54,7 @@ internal class AudioEncoder(
         dispatcher: CoroutineDispatcher,
         audioParams: AudioSource.Params,
         audioSource: Int,
-        mediaProjection: MediaProjection,
+        mediaProjection: MediaProjection?,
     ) {
         var audioSourceConfigurationError: Throwable? = null
         runCatching {
@@ -71,14 +71,18 @@ internal class AudioEncoder(
                 }
 
                 this.audioSource = when {
-                    enableMic && enableDeviceAudio ->
-                        MixAudioSource(audioParams, audioSource, mediaProjection, dispatcher, onAudioSourceFrame, onAudioCaptureError)
+                    enableMic && enableDeviceAudio -> {
+                        val projection = requireNotNull(mediaProjection) { "MediaProjection is required for internal audio capture" }
+                        MixAudioSource(audioParams, audioSource, projection, dispatcher, onAudioSourceFrame, onAudioCaptureError)
+                    }
 
                     enableMic ->
                         MicrophoneSource(audioParams, audioSource, dispatcher, onAudioSourceFrame, onAudioCaptureError)
 
-                    enableDeviceAudio ->
-                        InternalAudioSource(audioParams, mediaProjection, dispatcher, onAudioSourceFrame, onAudioCaptureError)
+                    enableDeviceAudio -> {
+                        val projection = requireNotNull(mediaProjection) { "MediaProjection is required for internal audio capture" }
+                        InternalAudioSource(audioParams, projection, dispatcher, onAudioSourceFrame, onAudioCaptureError)
+                    }
 
                     else -> null
                 }

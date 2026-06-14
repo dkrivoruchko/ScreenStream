@@ -142,6 +142,8 @@ private fun ModuleSelectorRow(
     onModuleSelect: (StreamingModule.Id) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val moduleName = module.name()
+
     Row(
         modifier = modifier.selectable(
             selected = module.id == selectedModuleId,
@@ -155,7 +157,7 @@ private fun ModuleSelectorRow(
         RadioButton(selected = module.id == selectedModuleId, onClick = null, modifier = Modifier.padding(start = 8.dp))
 
         Text(
-            text = stringResource(id = module.nameResource),
+            text = moduleName,
             modifier = Modifier
                 .padding(start = 16.dp)
                 .weight(1F),
@@ -180,7 +182,7 @@ private fun ModuleSelectorRow(
                 },
                 title = {
                     Text(
-                        text = stringResource(id = module.nameResource),
+                        text = moduleName,
                         modifier = Modifier.fillMaxWidth(),
                         textAlign = TextAlign.Center
                     )

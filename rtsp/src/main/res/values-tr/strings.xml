@@ -61,6 +61,7 @@
     <string name="rtsp_label_public_ipv4">Genel IPv4</string>
     <string name="rtsp_label_public_ipv6">Genel IPv6</string>
     <string name="rtsp_label_loopback">Loopback</string>
+    <string name="rtsp_label_interface" translatable="false">%1$s (%2$s)</string>
 
     <string name="rtsp_video_parameters">Video ayarları</string>
     <string name="rtsp_video_encoder">Video kodlayıcı:</string>
@@ -96,6 +97,8 @@
     <string name="rtsp_close">Kapat</string>
     <string name="rtsp_pref_protocol">RTSP protokolü</string>
     <string name="rtsp_pref_protocol_summary">RTP paketleri için taşıma seçin</string>
+    <string name="rtsp_pref_audio_only">Yalnızca ses</string>
+    <string name="rtsp_pref_audio_only_summary">Video olmadan ses yayınla</string>
     <string name="rtsp_pref_interface_filter">Arayüz filtresi</string>
     <string name="rtsp_pref_interface_filter_summary">Sunucu için ağ arayüzlerini seçin</string>
     <string name="rtsp_pref_interface_filter_wifi">Wi-Fi</string>

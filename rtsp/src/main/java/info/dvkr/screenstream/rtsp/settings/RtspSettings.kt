@@ -20,6 +20,7 @@ public interface RtspSettings {
         public val CLIENT_PROTOCOL: Preferences.Key<String> = stringPreferencesKey("CLIENT_PROTOCOL")
         public val SERVER_PROTOCOL: Preferences.Key<String> = stringPreferencesKey("SERVER_PROTOCOL")
         public val MODE: Preferences.Key<String> = stringPreferencesKey("MODE")
+        public val STREAM_AUDIO_ONLY: Preferences.Key<Boolean> = booleanPreferencesKey("STREAM_AUDIO_ONLY")
 
         public val VIDEO_CODEC_AUTO_SELECT: Preferences.Key<Boolean> = booleanPreferencesKey("VIDEO_CODEC_AUTO_SELECT")
         public val VIDEO_CODEC: Preferences.Key<String> = stringPreferencesKey("VIDEO_CODEC")
@@ -58,6 +59,7 @@ public interface RtspSettings {
         public val CLIENT_PROTOCOL: Values.ProtocolPolicy = Values.ProtocolPolicy.AUTO
         public val SERVER_PROTOCOL: Values.ProtocolPolicy = Values.ProtocolPolicy.AUTO
         public val MODE: Values.Mode = Values.Mode.SERVER
+        public const val STREAM_AUDIO_ONLY: Boolean = false
 
         public const val VIDEO_CODEC_AUTO_SELECT: Boolean = true
         public const val VIDEO_CODEC: String = ""
@@ -120,6 +122,7 @@ public interface RtspSettings {
         public val clientProtocol: Values.ProtocolPolicy = Default.CLIENT_PROTOCOL,
         public val serverProtocol: Values.ProtocolPolicy = Default.SERVER_PROTOCOL,
         public val mode: Values.Mode = Default.MODE,
+        public val streamAudioOnly: Boolean = Default.STREAM_AUDIO_ONLY,
 
         public val videoCodecAutoSelect: Boolean = Default.VIDEO_CODEC_AUTO_SELECT,
         public val videoCodec: String = Default.VIDEO_CODEC,

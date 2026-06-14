@@ -42,7 +42,7 @@ internal class RtspServerMessageHandler(
 
     internal fun createDescribeResponse(
         cSeq: Int,
-        videoParams: VideoParams,
+        videoParams: VideoParams?,
         audioParams: AudioParams?
     ): RtspMessage =
         ResponseBuilder.ok()

@@ -61,6 +61,7 @@
     <string name="rtsp_label_public_ipv4">IPv4 publikoa</string>
     <string name="rtsp_label_public_ipv6">IPv6 publikoa</string>
     <string name="rtsp_label_loopback">Loopback</string>
+    <string name="rtsp_label_interface" translatable="false">%1$s (%2$s)</string>
 
     <string name="rtsp_video_parameters">Bideo-ezarpenak</string>
     <string name="rtsp_video_encoder">Bideo kodetzailea:</string>
@@ -96,6 +97,8 @@
     <string name="rtsp_close">Itxi</string>
     <string name="rtsp_pref_protocol">RTSP protokoloa</string>
     <string name="rtsp_pref_protocol_summary">Hautatu RTP paketeetarako garraioa</string>
+    <string name="rtsp_pref_audio_only">Audioa soilik</string>
+    <string name="rtsp_pref_audio_only_summary">Streamatu audioa bideorik gabe</string>
     <string name="rtsp_pref_interface_filter">Interfaze iragazkia</string>
     <string name="rtsp_pref_interface_filter_summary">Hautatu sare interfazeak zerbitzarirako</string>
     <string name="rtsp_pref_interface_filter_wifi">Wi-Fi</string>

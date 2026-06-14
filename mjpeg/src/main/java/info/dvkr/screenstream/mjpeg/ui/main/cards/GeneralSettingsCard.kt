@@ -23,6 +23,7 @@ import info.dvkr.screenstream.common.ui.ExpandableCard
 import info.dvkr.screenstream.mjpeg.R
 import info.dvkr.screenstream.mjpeg.settings.MjpegSettings
 import info.dvkr.screenstream.mjpeg.ui.main.settings.common.MjpegSettingModal
+import info.dvkr.screenstream.mjpeg.ui.main.settings.general.AudioOnlyRow
 import info.dvkr.screenstream.mjpeg.ui.main.settings.general.HtmlBackColorEditor
 import info.dvkr.screenstream.mjpeg.ui.main.settings.general.HtmlBackColorRow
 import info.dvkr.screenstream.mjpeg.ui.main.settings.general.HtmlEnableButtonsRow
@@ -33,6 +34,8 @@ import info.dvkr.screenstream.mjpeg.ui.main.settings.general.KeepAwakeRow
 import info.dvkr.screenstream.mjpeg.ui.main.settings.general.NotifySlowConnectionsRow
 import info.dvkr.screenstream.mjpeg.ui.main.settings.general.StopOnConfigurationChangeRow
 import info.dvkr.screenstream.mjpeg.ui.main.settings.general.StopOnSleepRow
+import info.dvkr.screenstream.mjpeg.ui.main.settings.general.StreamFormatEditor
+import info.dvkr.screenstream.mjpeg.ui.main.settings.general.StreamFormatRow
 
 @Composable
 internal fun GeneralSettingsCard(
@@ -43,6 +46,7 @@ internal fun GeneralSettingsCard(
 ) {
     var selectedSheet by rememberSaveable { mutableStateOf<GeneralSettingSheet?>(null) }
     val expanded = rememberSaveable { mutableStateOf(false) }
+    val mp4Selected = settings.streamFormat == MjpegSettings.Values.STREAM_FORMAT_MP4
 
     ExpandableCard(
         expanded = expanded.value,
@@ -67,6 +71,19 @@ internal fun GeneralSettingsCard(
             }
             HorizontalDivider()
         }
+
+        StreamFormatRow(
+            streamFormat = settings.streamFormat,
+            onDetailShow = { selectedSheet = GeneralSettingSheet.StreamFormat }
+        )
+        HorizontalDivider()
+
+        AudioOnlyRow(
+            streamAudioOnly = mp4Selected && settings.streamAudioOnly,
+            enabled = mp4Selected,
+            onValueChange = { newValue -> if (mp4Selected) updateSettings { copy(streamAudioOnly = newValue) } }
+        )
+        HorizontalDivider()
 
         StopOnSleepRow(settings.stopOnSleep) { newValue ->
             updateSettings { copy(stopOnSleep = newValue) }
@@ -117,6 +134,17 @@ internal fun GeneralSettingsCard(
                 onDismissRequest = { selectedSheet = null }
             ) {
                 when (sheet) {
+                    GeneralSettingSheet.StreamFormat -> StreamFormatEditor(settings.streamFormat) { value ->
+                        if (settings.streamFormat != value) {
+                            updateSettings {
+                                copy(
+                                    streamFormat = value,
+                                    streamAudioOnly = if (value == MjpegSettings.Values.STREAM_FORMAT_MP4) streamAudioOnly else false
+                                )
+                            }
+                        }
+                    }
+
                     GeneralSettingSheet.HtmlBackColor -> HtmlBackColorEditor(
                         htmlBackColor = Color(settings.htmlBackColor),
                         onColorChange = { value ->
@@ -132,5 +160,6 @@ internal fun GeneralSettingsCard(
 }
 
 private enum class GeneralSettingSheet(@get:StringRes val titleRes: Int) {
+    StreamFormat(R.string.mjpeg_pref_stream_format),
     HtmlBackColor(R.string.mjpeg_pref_html_back_color)
 }

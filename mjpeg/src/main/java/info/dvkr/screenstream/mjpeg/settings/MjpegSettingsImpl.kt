@@ -75,6 +75,48 @@ internal class MjpegSettingsImpl(context: Context) : MjpegSettings {
                 if (newSettings.htmlFitWindow != MjpegSettings.Default.HTML_FIT_WINDOW)
                     set(MjpegSettings.Key.HTML_FIT_WINDOW, newSettings.htmlFitWindow)
 
+                if (newSettings.streamFormat != MjpegSettings.Default.STREAM_FORMAT)
+                    set(MjpegSettings.Key.STREAM_FORMAT, newSettings.streamFormat)
+
+                if (newSettings.streamAudioOnly != MjpegSettings.Default.STREAM_AUDIO_ONLY)
+                    set(MjpegSettings.Key.STREAM_AUDIO_ONLY, newSettings.streamAudioOnly)
+
+                if (newSettings.videoCodecAutoSelect != MjpegSettings.Default.VIDEO_CODEC_AUTO_SELECT)
+                    set(MjpegSettings.Key.VIDEO_CODEC_AUTO_SELECT, newSettings.videoCodecAutoSelect)
+
+                if (newSettings.videoCodec != MjpegSettings.Default.VIDEO_CODEC)
+                    set(MjpegSettings.Key.VIDEO_CODEC, newSettings.videoCodec)
+
+                if (newSettings.videoBitrateBits != MjpegSettings.Default.VIDEO_BITRATE)
+                    set(MjpegSettings.Key.VIDEO_BITRATE, newSettings.videoBitrateBits)
+
+                if (newSettings.audioBitrateBits != MjpegSettings.Default.AUDIO_BITRATE)
+                    set(MjpegSettings.Key.AUDIO_BITRATE, newSettings.audioBitrateBits)
+
+                if (newSettings.enableMic != MjpegSettings.Default.ENABLE_MIC)
+                    set(MjpegSettings.Key.ENABLE_MIC, newSettings.enableMic)
+
+                if (newSettings.muteMic != MjpegSettings.Default.MUTE_MIC)
+                    set(MjpegSettings.Key.MUTE_MIC, newSettings.muteMic)
+
+                if (newSettings.volumeMic != MjpegSettings.Default.VOLUME_MIC)
+                    set(MjpegSettings.Key.VOLUME_MIC, newSettings.volumeMic)
+
+                if (newSettings.enableDeviceAudio != MjpegSettings.Default.ENABLE_DEVICE_AUDIO)
+                    set(MjpegSettings.Key.ENABLE_DEVICE_AUDIO, newSettings.enableDeviceAudio)
+
+                if (newSettings.muteDeviceAudio != MjpegSettings.Default.MUTE_DEVICE_AUDIO)
+                    set(MjpegSettings.Key.MUTE_DEVICE_AUDIO, newSettings.muteDeviceAudio)
+
+                if (newSettings.volumeDeviceAudio != MjpegSettings.Default.VOLUME_DEVICE_AUDIO)
+                    set(MjpegSettings.Key.VOLUME_DEVICE_AUDIO, newSettings.volumeDeviceAudio)
+
+                if (newSettings.audioEchoCanceller != MjpegSettings.Default.AUDIO_ECHO_CANCELLER)
+                    set(MjpegSettings.Key.AUDIO_ECHO_CANCELLER, newSettings.audioEchoCanceller)
+
+                if (newSettings.audioNoiseSuppressor != MjpegSettings.Default.AUDIO_NOISE_SUPPRESSOR)
+                    set(MjpegSettings.Key.AUDIO_NOISE_SUPPRESSOR, newSettings.audioNoiseSuppressor)
+
 
                 if (newSettings.vrMode != MjpegSettings.Default.VR_MODE_DISABLE)
                     set(MjpegSettings.Key.VR_MODE, newSettings.vrMode)
@@ -170,6 +212,22 @@ internal class MjpegSettingsImpl(context: Context) : MjpegSettings {
         htmlKeepImageOnReconnect = this[MjpegSettings.Key.HTML_KEEP_IMAGE_ON_RECONNECT] ?: MjpegSettings.Default.HTML_KEEP_IMAGE_ON_RECONNECT,
         htmlBackColor = this[MjpegSettings.Key.HTML_BACK_COLOR] ?: MjpegSettings.Default.HTML_BACK_COLOR,
         htmlFitWindow = this[MjpegSettings.Key.HTML_FIT_WINDOW] ?: MjpegSettings.Default.HTML_FIT_WINDOW,
+        streamFormat = this[MjpegSettings.Key.STREAM_FORMAT] ?: MjpegSettings.Default.STREAM_FORMAT,
+        streamAudioOnly = this[MjpegSettings.Key.STREAM_AUDIO_ONLY] ?: MjpegSettings.Default.STREAM_AUDIO_ONLY,
+
+        videoCodecAutoSelect = this[MjpegSettings.Key.VIDEO_CODEC_AUTO_SELECT] ?: MjpegSettings.Default.VIDEO_CODEC_AUTO_SELECT,
+        videoCodec = this[MjpegSettings.Key.VIDEO_CODEC] ?: MjpegSettings.Default.VIDEO_CODEC,
+        videoBitrateBits = this[MjpegSettings.Key.VIDEO_BITRATE] ?: MjpegSettings.Default.VIDEO_BITRATE,
+
+        audioBitrateBits = this[MjpegSettings.Key.AUDIO_BITRATE] ?: MjpegSettings.Default.AUDIO_BITRATE,
+        enableMic = this[MjpegSettings.Key.ENABLE_MIC] ?: MjpegSettings.Default.ENABLE_MIC,
+        muteMic = this[MjpegSettings.Key.MUTE_MIC] ?: MjpegSettings.Default.MUTE_MIC,
+        volumeMic = this[MjpegSettings.Key.VOLUME_MIC] ?: MjpegSettings.Default.VOLUME_MIC,
+        enableDeviceAudio = this[MjpegSettings.Key.ENABLE_DEVICE_AUDIO] ?: MjpegSettings.Default.ENABLE_DEVICE_AUDIO,
+        muteDeviceAudio = this[MjpegSettings.Key.MUTE_DEVICE_AUDIO] ?: MjpegSettings.Default.MUTE_DEVICE_AUDIO,
+        volumeDeviceAudio = this[MjpegSettings.Key.VOLUME_DEVICE_AUDIO] ?: MjpegSettings.Default.VOLUME_DEVICE_AUDIO,
+        audioEchoCanceller = this[MjpegSettings.Key.AUDIO_ECHO_CANCELLER] ?: MjpegSettings.Default.AUDIO_ECHO_CANCELLER,
+        audioNoiseSuppressor = this[MjpegSettings.Key.AUDIO_NOISE_SUPPRESSOR] ?: MjpegSettings.Default.AUDIO_NOISE_SUPPRESSOR,
 
         vrMode = this[MjpegSettings.Key.VR_MODE] ?: MjpegSettings.Default.VR_MODE_DISABLE,
         imageCrop = this[MjpegSettings.Key.IMAGE_CROP] ?: MjpegSettings.Default.IMAGE_CROP,

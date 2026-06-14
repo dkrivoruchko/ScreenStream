@@ -61,6 +61,7 @@
     <string name="rtsp_label_public_ipv4">IPv4 عام</string>
     <string name="rtsp_label_public_ipv6">IPv6 عام</string>
     <string name="rtsp_label_loopback">حلقة محلية</string>
+    <string name="rtsp_label_interface" translatable="false">%1$s (%2$s)</string>
 
     <string name="rtsp_video_parameters">إعدادات الفيديو</string>
     <string name="rtsp_video_encoder">ترميز الفيديو:</string>
@@ -96,6 +97,8 @@
     <string name="rtsp_close">إغلاق</string>
     <string name="rtsp_pref_protocol">بروتوكول RTSP</string>
     <string name="rtsp_pref_protocol_summary">اختر ناقل حزم RTP</string>
+    <string name="rtsp_pref_audio_only">الصوت فقط</string>
+    <string name="rtsp_pref_audio_only_summary">بث الصوت بدون فيديو</string>
     <string name="rtsp_pref_interface_filter">تصفية الواجهة</string>
     <string name="rtsp_pref_interface_filter_summary">اختر واجهات الشبكة للخادم</string>
     <string name="rtsp_pref_interface_filter_wifi">واي فاي</string>

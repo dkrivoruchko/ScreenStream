@@ -8,6 +8,7 @@ import androidx.annotation.StringRes
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import kotlinx.coroutines.flow.Flow
 import org.koin.core.scope.Scope
 
@@ -49,6 +50,9 @@ public interface StreamingModule {
 
     @get:StringRes
     public val detailsResource: Int
+
+    @Composable
+    public fun name(): String = stringResource(nameResource)
 
     @Composable
     public fun StreamUIContent(windowWidthSizeClass: WindowWidthSizeClass, modifier: Modifier)

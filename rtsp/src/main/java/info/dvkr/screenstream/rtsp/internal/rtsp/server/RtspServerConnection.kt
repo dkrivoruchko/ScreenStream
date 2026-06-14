@@ -253,20 +253,17 @@ internal class RtspServerConnection(
 
                 RtspBaseMessageHandler.Method.DESCRIBE -> tcpStreamSocket.withWriteLock {
                     val videoParams = this@RtspServerConnection.videoParams.get()
-                    if (videoParams == null) {
+                    val audioParams = this@RtspServerConnection.audioParams.get()
+                    if (videoParams == null && audioParams == null) {
                         writeAndFlush(serverMessageHandler.createErrorResponse(503, cSeq))
                     } else {
-                        writeAndFlush(serverMessageHandler.createDescribeResponse(cSeq, videoParams, audioParams.get()))
+                        writeAndFlush(serverMessageHandler.createDescribeResponse(cSeq, videoParams, audioParams))
                     }
                 }
 
                 RtspBaseMessageHandler.Method.SETUP -> {
                     if (state == State.Playing) {
                         tcpStreamSocket.withWriteLock { writeAndFlush(serverMessageHandler.createErrorResponse(455, cSeq)) }
-                        continue
-                    }
-                    if (this@RtspServerConnection.videoParams.get() == null) {
-                        tcpStreamSocket.withWriteLock { writeAndFlush(serverMessageHandler.createErrorResponse(503, cSeq)) }
                         continue
                     }
                     val transportHeader = serverMessageHandler.getTransport(request)
@@ -276,6 +273,10 @@ internal class RtspServerConnection(
                     }
                     if (trackId !in 0..1) {
                         tcpStreamSocket.withWriteLock { writeAndFlush(serverMessageHandler.createErrorResponse(400, cSeq)) }
+                        continue
+                    }
+                    if (trackId == RtpFrame.VIDEO_TRACK_ID && this@RtspServerConnection.videoParams.get() == null) {
+                        tcpStreamSocket.withWriteLock { writeAndFlush(serverMessageHandler.createErrorResponse(404, cSeq)) }
                         continue
                     }
                     if (trackId == RtpFrame.AUDIO_TRACK_ID && this@RtspServerConnection.audioParams.get() == null) {
@@ -437,11 +438,12 @@ internal class RtspServerConnection(
                         tcpStreamSocket.withWriteLock { writeAndFlush(serverMessageHandler.createErrorResponse(454, cSeq)) }
                         continue
                     }
-                    if (this@RtspServerConnection.videoParams.get() == null) {
+                    if (this@RtspServerConnection.videoParams.get() == null && this@RtspServerConnection.audioParams.get() == null) {
                         tcpStreamSocket.withWriteLock { writeAndFlush(serverMessageHandler.createErrorResponse(503, cSeq)) }
                         continue
                     }
-                    if (state != State.Ready || !videoSetupDone) {
+                    val hasSetup = stateLock.withLock { videoSetupDone || audioSetupDone }
+                    if (state != State.Ready || !hasSetup) {
                         tcpStreamSocket.withWriteLock { writeAndFlush(serverMessageHandler.createErrorResponse(455, cSeq)) }
                         continue
                     }

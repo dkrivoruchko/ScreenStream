@@ -61,6 +61,7 @@
     <string name="rtsp_label_public_ipv4">عوامی IPv4</string>
     <string name="rtsp_label_public_ipv6">عوامی IPv6</string>
     <string name="rtsp_label_loopback">لوپ بیک</string>
+    <string name="rtsp_label_interface" translatable="false">%1$s (%2$s)</string>
 
     <string name="rtsp_video_parameters">ویڈیو ترتیبات</string>
     <string name="rtsp_video_encoder">ویڈیو انکوڈر:</string>
@@ -96,6 +97,8 @@
     <string name="rtsp_close">بند کریں</string>
     <string name="rtsp_pref_protocol">RTSP پروٹوکول</string>
     <string name="rtsp_pref_protocol_summary">RTP پیکٹس کیلئے ٹرانسپورٹ منتخب کریں</string>
+    <string name="rtsp_pref_audio_only">صرف آڈیو</string>
+    <string name="rtsp_pref_audio_only_summary">ویڈیو کے بغیر آڈیو اسٹریم کریں</string>
     <string name="rtsp_pref_interface_filter">انٹرفیس فلٹر</string>
     <string name="rtsp_pref_interface_filter_summary">سرور کیلئے نیٹ ورک انٹرفیس منتخب کریں</string>
     <string name="rtsp_pref_interface_filter_wifi">وائی فائی</string>

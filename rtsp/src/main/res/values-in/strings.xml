@@ -61,6 +61,7 @@
     <string name="rtsp_label_public_ipv4">IPv4 publik</string>
     <string name="rtsp_label_public_ipv6">IPv6 publik</string>
     <string name="rtsp_label_loopback">Loopback</string>
+    <string name="rtsp_label_interface" translatable="false">%1$s (%2$s)</string>
 
     <string name="rtsp_video_parameters">Setelan video</string>
     <string name="rtsp_video_encoder">Encoder video:</string>
@@ -96,6 +97,8 @@
     <string name="rtsp_close">Tutup</string>
     <string name="rtsp_pref_protocol">Protokol RTSP</string>
     <string name="rtsp_pref_protocol_summary">Pilih transport untuk paket RTP</string>
+    <string name="rtsp_pref_audio_only">Audio saja</string>
+    <string name="rtsp_pref_audio_only_summary">Streaming audio tanpa video</string>
     <string name="rtsp_pref_interface_filter">Filter antarmuka</string>
     <string name="rtsp_pref_interface_filter_summary">Pilih antarmuka jaringan untuk server</string>
     <string name="rtsp_pref_interface_filter_wifi">Wi-Fi</string>
