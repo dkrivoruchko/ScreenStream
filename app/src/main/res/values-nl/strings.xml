@@ -3,14 +3,6 @@
     <string name="app_error_title">Fout</string>
     <string name="app_error_recover">Herstellen</string>
 
-    <string name="app_logs_collecting">Logboek wordt opgeslagen…</string>
-    <string name="app_logs_send_title">Stuur het logboek naar de developers</string>
-    <string name="app_logs_send_message">Voeg een beschrijving van het probleem toe:</string>
-    <string name="app_logs_send">Verzenden</string>
-    <string name="app_logs_enabled">Loggen ingeschakeld</string>
-    <string name="app_logs_disabled">Loggen uitgeschakeld</string>
-    <string name="app_logs_stop">Stop met loggen</string>
-
     <string name="app_activity_update_dialog_title">Update beschikbaar</string>
     <string name="app_activity_update_dialog_message">Een update is zojuist gedownload. App nu herstarten?</string>
     <string name="app_activity_update_dialog_restart">Herstart</string>
@@ -26,6 +18,12 @@
     <string name="app_permission_allow_notifications">Deze app heeft meldingsrechten nodig om de streamingdienst te starten.\n\nSta meldingen toe.</string>
     <string name="app_permission_allow_notifications_settings">Deze app heeft meldingsrechten nodig om de streamingdienst te starten.\n\nSchakel meldingen in via de appinstellingen.</string>
     <string name="app_permission_notification_settings">Instellingen openen</string>
+    <string name="app_permission_local_network_title">Toegang tot lokaal netwerk vereist</string>
+    <string name="app_permission_local_network_message">Sta toe dat ScreenStream uw lokale netwerk gebruikt zodat apparaten verbinding kunnen maken met uw stream.</string>
+    <string name="app_permission_local_network_off_title">Toegang tot lokaal netwerk is uitgeschakeld</string>
+    <string name="app_permission_local_network_settings_message">Schakel toegang tot het lokale netwerk in via Android-instellingen om uw scherm te delen met apparaten.</string>
+    <string name="app_permission_open_settings">Instellingen openen</string>
+    <string name="app_permission_try_again">Opnieuw proberen</string>
 
     <string name="app_notification_channel_streaming">Meldingen voor streaming</string>
     <string name="app_notification_channel_error">Foutmeldingen</string>
@@ -36,7 +34,6 @@
     <string name="app_tile_start">Start</string>
     <string name="app_tile_stop">Stop</string>
 
-    <string name="app_pref_close">Sluiten</string>
     <string name="app_pref_back">Terug</string>
     <string name="app_pref_settings">Instellingen</string>
     <string name="app_pref_locale">Applicatietaal</string>
@@ -59,14 +56,10 @@
     <string name="app_pref_notification_summary">Open notificatie instellingen</string>
     <string name="app_pref_tile">Applicatietegel toevoegen</string>
     <string name="app_pref_tile_summary">Applicatietegel toevoegen aan Snelle instellingen</string>
-    <string name="app_pref_logging">Zet applicatie loggen aan</string>
-    <string name="app_pref_logging_summary">Totaal logboek opsomming</string>
 
     <string name="app_tab_about_app_version">Versie: %1$s</string>
     <string name="app_tab_about_developer_name">Gemaakt door Dmytro Kryvoruchko</string>
     <string name="app_tab_about_rate_app">Beoordeel de app</string>
-    <string name="app_tab_about_write_email">Schrijf een email naar de developer</string>
-    <string name="app_tab_about_email_chooser_header">Mail wordt verzonden…</string>
     <string name="app_tab_about_app_sources">Applicatie bronnen</string>
     <string name="app_tab_about_terms_conditions">Algemene Voorwaarden</string>
     <string name="app_tab_about_privacy_policy">Privacybeleid</string>

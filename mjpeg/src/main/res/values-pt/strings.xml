@@ -2,6 +2,7 @@
     <string name="mjpeg_error_recover">Recuperar</string>
     <string name="mjpeg_error_open_settings">Abrir configurações</string>
     <string name="mjpeg_close">Fechar</string>
+    <string name="mjpeg_error_local_network_permission_required">O acesso à rede local é necessário para que dispositivos possam se conectar à sua transmissão.</string>
 
     <string name="mjpeg_stream_mode">Modo local · MJPEG</string>
     <string name="mjpeg_stream_mode_description">Transmitir pela rede local</string>

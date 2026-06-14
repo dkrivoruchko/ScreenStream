@@ -1,7 +1,6 @@
 package info.dvkr.screenstream.ui.tabs.about
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -15,8 +14,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -29,7 +26,6 @@ import info.dvkr.screenstream.R
 import info.dvkr.screenstream.common.findActivity
 import info.dvkr.screenstream.common.getVersionName
 import info.dvkr.screenstream.common.openStringUrl
-import info.dvkr.screenstream.logger.AppLogger
 import org.koin.compose.koinInject
 
 @Composable
@@ -59,17 +55,9 @@ public fun AboutTabContent(
         )
 
         val context = LocalContext.current
-//        val loggerClicksCounter = remember { mutableIntStateOf(0) }
         Text(
             text = stringResource(id = R.string.app_tab_about_app_version, context.getVersionName()),
-            modifier = Modifier
-                .padding(8.dp)
-//                .clickable { //TODO AppLogger doest send logs correctly
-//                    if (AppLogger.isLoggingOn) return@clickable
-//                    loggerClicksCounter.intValue += 1
-//                    if (loggerClicksCounter.intValue >= 5) AppLogger.enableLogging(context)
-//                }
-                .padding(8.dp),
+            modifier = Modifier.padding(16.dp),
             style = MaterialTheme.typography.titleMedium
         )
 

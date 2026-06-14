@@ -29,6 +29,7 @@ import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
 import kotlin.coroutines.cancellation.CancellationException
+import kotlin.time.Duration.Companion.milliseconds
 
 public class SingleActivity : AppUpdateActivity() {
 
@@ -130,7 +131,7 @@ public class SingleActivity : AppUpdateActivity() {
                     return
                 }
 
-                delay(75L)
+                delay(75.milliseconds)
             }
         } finally {
             if (moduleStartInProgress == moduleId) moduleStartInProgress = null

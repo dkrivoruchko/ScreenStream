@@ -3,7 +3,6 @@ package info.dvkr.screenstream.rtsp.ui.main.cards
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -33,7 +32,6 @@ import info.dvkr.screenstream.rtsp.ui.main.settings.server.ServerPortRow
 import info.dvkr.screenstream.rtsp.ui.main.settings.server.ServerProtocolEditor
 import info.dvkr.screenstream.rtsp.ui.main.settings.server.ServerProtocolRow
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun ServerSettingsCard(
     settings: RtspSettings.Data,

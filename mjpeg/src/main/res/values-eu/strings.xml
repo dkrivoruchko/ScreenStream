@@ -2,6 +2,7 @@
     <string name="mjpeg_error_recover">Leheneratu</string>
     <string name="mjpeg_error_open_settings">Ireki ezarpenak</string>
     <string name="mjpeg_close">Itzi</string>
+    <string name="mjpeg_error_local_network_permission_required">Tokiko sarerako sarbidea behar da, gailuak zure transmisiora konektatu ahal izateko.</string>
 
     <string name="mjpeg_stream_mode">Tokiko modua · MJPEG</string>
     <string name="mjpeg_stream_mode_description">Streamatu zure sare lokalean</string>

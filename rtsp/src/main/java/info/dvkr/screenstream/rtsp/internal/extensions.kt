@@ -6,7 +6,6 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.net.ConnectivityManager
 import android.net.Network
-import android.net.wifi.WifiManager
 import android.os.Build
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.common.getLog
@@ -21,7 +20,7 @@ import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.onStart
 import kotlin.io.encoding.Base64
-import kotlin.io.encoding.ExperimentalEncodingApi
+import kotlin.time.Duration.Companion.milliseconds
 
 @OptIn(FlowPreview::class)
 @Suppress("DEPRECATION")
@@ -32,7 +31,7 @@ internal fun Context.startListening(serviceJob: Job, onScreenOff: () -> Unit, on
 
     connectionChangeMutableStateFlow
         .onStart { XLog.v(this@startListening.getLog("startListening", "onStart")) }
-        .debounce(500)
+        .debounce(500.milliseconds)
         .onEach {
             XLog.d(this@startListening.getLog("startListening", "onEach: $it"))
             onConnectionChanged.invoke()
@@ -43,10 +42,6 @@ internal fun Context.startListening(serviceJob: Job, onScreenOff: () -> Unit, on
     val intentFilter = IntentFilter().apply {
         addAction(Intent.ACTION_SCREEN_OFF)
         addAction("android.net.wifi.WIFI_AP_STATE_CHANGED")
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
-            addAction(ConnectivityManager.CONNECTIVITY_ACTION)
-            addAction(WifiManager.WIFI_STATE_CHANGED_ACTION)
-        }
     }
 
     val broadcastReceiver: BroadcastReceiver = object : BroadcastReceiver() {
@@ -56,8 +51,6 @@ internal fun Context.startListening(serviceJob: Job, onScreenOff: () -> Unit, on
             when (intent?.action) {
                 Intent.ACTION_SCREEN_OFF -> onScreenOff.invoke()
 
-                WifiManager.WIFI_STATE_CHANGED_ACTION,
-                ConnectivityManager.CONNECTIVITY_ACTION,
                 "android.net.wifi.WIFI_AP_STATE_CHANGED" -> connectionChangeMutableStateFlow.value = System.currentTimeMillis()
             }
         }
@@ -73,31 +66,28 @@ internal fun Context.startListening(serviceJob: Job, onScreenOff: () -> Unit, on
         runCatching { unregisterReceiver(broadcastReceiver) }
     }
 
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-        val networkCallback = object : ConnectivityManager.NetworkCallback() {
-            override fun onAvailable(network: Network) {
-                XLog.v(this@startListening.getLog("onAvailable", "Network: $network"))
-                connectionChangeMutableStateFlow.value = System.currentTimeMillis()
-            }
-
-            override fun onLost(network: Network) {
-                XLog.v(this@startListening.getLog("onLost", "Network: $network"))
-                connectionChangeMutableStateFlow.value = System.currentTimeMillis()
-            }
+    val networkCallback = object : ConnectivityManager.NetworkCallback() {
+        override fun onAvailable(network: Network) {
+            XLog.v(this@startListening.getLog("onAvailable", "Network: $network"))
+            connectionChangeMutableStateFlow.value = System.currentTimeMillis()
         }
 
-        val connectivityManager = getSystemService(ConnectivityManager::class.java)
-
-        connectivityManager.registerDefaultNetworkCallback(networkCallback)
-
-        serviceJob.invokeOnCompletion {
-            XLog.d(getLog("invokeOnCompletion", "unregisterNetworkCallback"))
-            connectivityManager.unregisterNetworkCallback(networkCallback)
+        override fun onLost(network: Network) {
+            XLog.v(this@startListening.getLog("onLost", "Network: $network"))
+            connectionChangeMutableStateFlow.value = System.currentTimeMillis()
         }
+    }
+
+    val connectivityManager = getSystemService(ConnectivityManager::class.java)
+
+    connectivityManager.registerDefaultNetworkCallback(networkCallback)
+
+    serviceJob.invokeOnCompletion {
+        XLog.d(getLog("invokeOnCompletion", "unregisterNetworkCallback"))
+        connectivityManager.unregisterNetworkCallback(networkCallback)
     }
 }
 
-@OptIn(ExperimentalEncodingApi::class)
 internal fun ByteArray.encodeBase64(): String = Base64.encode(this)
 
 internal fun ByteArray.stripAnnexBStartCode(): ByteArray = when {

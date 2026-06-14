@@ -46,6 +46,7 @@ import org.json.JSONArray
 import org.koin.compose.koinInject
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicBoolean
+import kotlin.time.Duration.Companion.milliseconds
 
 public class AdMob(private val context: Context) {
 
@@ -60,7 +61,7 @@ public class AdMob(private val context: Context) {
 
         var availableAdUnits = adUnits.filter { it.inComposition.not() }
         while (availableAdUnits.isEmpty()) {
-            delay(100)
+            delay(100.milliseconds)
             availableAdUnits = adUnits.filter { it.inComposition.not() }
         }
         return availableAdUnits.minByOrNull { it.lastUsedMillis }!!.apply {
@@ -73,7 +74,7 @@ public class AdMob(private val context: Context) {
         XLog.d(this@AdMob.getLog("AdaptiveBanner.waitAdUnitReady", adUnitId))
         val adUnit = adUnits.first { it.id == adUnitId }
         require(adUnit.inComposition)
-        while (adUnit.lastUsedMillis + 62_000 - System.currentTimeMillis() > 0) delay(100)
+        while (adUnit.lastUsedMillis + 62_000 - System.currentTimeMillis() > 0) delay(100.milliseconds)
         XLog.d(this@AdMob.getLog("AdaptiveBanner.waitAdUnitReady.done", "$adUnit"))
         return true
     }
@@ -271,7 +272,7 @@ private fun AdBox(adMob: AdMob, adSize: AdSize, collapsible: Boolean, activity: 
                                 adView.loadAd(adRequestBuilder.build())
                                 adMob.setAdViewLoaded(adView.adUnitId)
                                 adUnitLoaded.value = true
-                                delay(60_000)
+                                delay(60_000.milliseconds)
                             }
                         }
                     }

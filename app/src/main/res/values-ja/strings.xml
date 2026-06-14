@@ -3,14 +3,6 @@
     <string name="app_error_title">エラー</string>
     <string name="app_error_recover">回復</string>
 
-    <string name="app_logs_collecting">アプリケーションログを収集しています…</string>
-    <string name="app_logs_send_title">開発者にログを送る</string>
-    <string name="app_logs_send_message">問題の説明を追加してください:</string>
-    <string name="app_logs_send">送信</string>
-    <string name="app_logs_enabled">記録が有効になっています</string>
-    <string name="app_logs_disabled">記録が無効になっています</string>
-    <string name="app_logs_stop">ログの収集を停止</string>
-
     <string name="app_activity_update_dialog_title">更新が利用可能</string>
     <string name="app_activity_update_dialog_message">アップデートをダウンロードしました。 今すぐアプリを再起動しますか?</string>
     <string name="app_activity_update_dialog_restart">再起動</string>
@@ -26,6 +18,12 @@
     <string name="app_permission_allow_notifications">このアプリはストリーミングサービスを開始するために通知権限が必要です。\n\n通知を許可してください。</string>
     <string name="app_permission_allow_notifications_settings">このアプリはストリーミングサービスを開始するために通知権限が必要です。\n\nアプリ設定で通知を有効にしてください。</string>
     <string name="app_permission_notification_settings">設定を開く</string>
+    <string name="app_permission_local_network_title">ローカルネットワークへのアクセスが必要です</string>
+    <string name="app_permission_local_network_message">デバイスがストリームに接続できるように、ScreenStream にローカルネットワークの使用を許可してください。</string>
+    <string name="app_permission_local_network_off_title">ローカルネットワークへのアクセスがオフです</string>
+    <string name="app_permission_local_network_settings_message">デバイスと画面を共有するには、Android 設定でローカルネットワークへのアクセスをオンにしてください。</string>
+    <string name="app_permission_open_settings">設定を開く</string>
+    <string name="app_permission_try_again">もう一度試す</string>
 
     <string name="app_notification_channel_streaming">ストリーミング通知</string>
     <string name="app_notification_channel_error">エラー通知</string>
@@ -36,7 +34,6 @@
     <string name="app_tile_start">開始</string>
     <string name="app_tile_stop">停止</string>
 
-    <string name="app_pref_close">閉じる</string>
     <string name="app_pref_back">戻る</string>
     <string name="app_pref_settings">設定</string>
     <string name="app_pref_locale">アプリケーション言語</string>
@@ -59,14 +56,10 @@
     <string name="app_pref_notification_summary">システムの通知設定を開きます</string>
     <string name="app_pref_tile">アプリのタイルを追加</string>
     <string name="app_pref_tile_summary">クイック設定にアプリのタイルを追加</string>
-    <string name="app_pref_logging">アプリケーションログを有効化</string>
-    <string name="app_pref_logging_summary">アプリケーションログを収集します</string>
 
     <string name="app_tab_about_app_version">バージョン: %1$s</string>
     <string name="app_tab_about_developer_name">開発者: Dmytro Kryvoruchko</string>
     <string name="app_tab_about_rate_app">アプリを評価</string>
-    <string name="app_tab_about_write_email">開発者へEメールを書く</string>
-    <string name="app_tab_about_email_chooser_header">Eメールを送信中…</string>
     <string name="app_tab_about_app_sources">アプリケーションのソースコード</string>
     <string name="app_tab_about_terms_conditions">利用規約</string>
     <string name="app_tab_about_privacy_policy">プライバシーポリシー</string>

@@ -2,6 +2,7 @@
 <resources>
     <string name="rtsp_error_recover">Recover</string>
     <string name="rtsp_error_open_settings">Open settings</string>
+    <string name="rtsp_error_local_network_permission_required">Local network access is required so devices can connect to your stream.</string>
 
     <string name="rtsp_stream_mode">RTSP mode · RTSP</string>
     <string name="rtsp_stream_mode_description">Stream with an RTSP client or server</string>

@@ -2,6 +2,7 @@
 <resources>
     <string name="rtsp_error_recover">Tiklash</string>
     <string name="rtsp_error_open_settings">Sozlamalarni ochish</string>
+    <string name="rtsp_error_local_network_permission_required">Qurilmalar translatsiyangizga ulanishi uchun mahalliy tarmoqqa kirish kerak.</string>
 
     <string name="rtsp_stream_mode">RTSP rejimi · RTSP</string>
     <string name="rtsp_stream_mode_description">RTSP mijozi yoki serveri orqali translatsiya qiling</string>

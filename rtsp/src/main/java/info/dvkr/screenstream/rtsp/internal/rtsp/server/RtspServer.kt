@@ -31,6 +31,7 @@ import kotlinx.coroutines.withContext
 import java.net.BindException
 import java.net.SocketException
 import java.util.concurrent.atomic.AtomicReference
+import kotlin.time.Duration.Companion.milliseconds
 
 internal class RtspServer(
     private val appVersion: String,
@@ -195,7 +196,7 @@ internal class RtspServer(
                     boundSocket.socket.accept()
                 } catch (_: Throwable) {
                     if (!isActive) break
-                    delay(50)
+                    delay(50.milliseconds)
                     continue
                 }
 

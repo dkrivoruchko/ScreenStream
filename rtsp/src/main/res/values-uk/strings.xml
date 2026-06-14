@@ -2,6 +2,7 @@
 <resources>
     <string name="rtsp_error_recover">Відновити</string>
     <string name="rtsp_error_open_settings">Відкрити налаштування</string>
+    <string name="rtsp_error_local_network_permission_required">Потрібен доступ до локальної мережі, щоб пристрої могли підключатися до вашої трансляції.</string>
 
     <string name="rtsp_stream_mode">Режим RTSP · RTSP</string>
     <string name="rtsp_stream_mode_description">Трансляція через RTSP-клієнт або сервер</string>

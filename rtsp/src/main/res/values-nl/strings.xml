@@ -2,6 +2,7 @@
 <resources>
     <string name="rtsp_error_recover">Herstellen</string>
     <string name="rtsp_error_open_settings">Instellingen openen</string>
+    <string name="rtsp_error_local_network_permission_required">Toegang tot het lokale netwerk is vereist zodat apparaten verbinding kunnen maken met uw stream.</string>
 
     <string name="rtsp_stream_mode">RTSP-modus · RTSP</string>
     <string name="rtsp_stream_mode_description">Streamen met RTSP-client of -server</string>

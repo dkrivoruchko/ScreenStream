@@ -2,6 +2,7 @@
     <string name="mjpeg_error_recover">Wiederherstellen</string>
     <string name="mjpeg_error_open_settings">Einstellungen öffnen</string>
     <string name="mjpeg_close">Schließen</string>
+    <string name="mjpeg_error_local_network_permission_required">Zugriff auf das lokale Netzwerk ist erforderlich, damit Geräte eine Verbindung zu Ihrem Stream herstellen können.</string>
 
     <string name="mjpeg_stream_mode">Lokaler Modus · MJPEG</string>
     <string name="mjpeg_stream_mode_description">Über Ihr lokales Netzwerk streamen</string>

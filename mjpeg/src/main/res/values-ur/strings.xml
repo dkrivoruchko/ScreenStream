@@ -2,6 +2,7 @@
     <string name="mjpeg_error_recover">بحال کریں</string>
     <string name="mjpeg_error_open_settings">ترتیبات کھولیں</string>
     <string name="mjpeg_close">بند کریں</string>
+    <string name="mjpeg_error_local_network_permission_required">مقامی نیٹ ورک تک رسائی درکار ہے تاکہ آلات آپ کی اسٹریم سے منسلک ہو سکیں۔</string>
 
     <string name="mjpeg_stream_mode">لوکل موڈ · MJPEG</string>
     <string name="mjpeg_stream_mode_description">اپنے مقامی نیٹ ورک پر اسٹریم کریں</string>

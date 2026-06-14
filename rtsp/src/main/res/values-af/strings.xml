@@ -2,6 +2,7 @@
 <resources>
     <string name="rtsp_error_recover">Herstel</string>
     <string name="rtsp_error_open_settings">Maak instellings oop</string>
+    <string name="rtsp_error_local_network_permission_required">Toegang tot die plaaslike netwerk is nodig sodat toestelle met jou stroom kan verbind.</string>
 
     <string name="rtsp_stream_mode">RTSP-modus · RTSP</string>
     <string name="rtsp_stream_mode_description">Stroom met RTSP-kliënt of -bediener</string>

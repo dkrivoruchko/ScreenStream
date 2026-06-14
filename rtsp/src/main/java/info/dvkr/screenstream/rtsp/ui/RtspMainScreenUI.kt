@@ -28,6 +28,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.dropUnlessStarted
+import info.dvkr.screenstream.common.getAppSettingsIntent
 import info.dvkr.screenstream.common.module.StreamingModule
 import info.dvkr.screenstream.common.notification.NotificationHelper
 import info.dvkr.screenstream.common.ui.DoubleClickProtection
@@ -91,13 +92,16 @@ internal fun RtspMainScreenUI(
             state = lazyVerticalStaggeredGridState,
             contentPadding = PaddingValues(start = 8.dp, end = 8.dp, bottom = 64.dp),
         ) {
-            if (state.error is RtspError.UnknownError || state.error is RtspError.NotificationPermissionRequired) {
+            if (state.error is RtspError.UnknownError || state.error is RtspError.NotificationPermissionRequired || state.error is RtspError.LocalNetworkPermissionRequired) {
                 item(key = "ERROR") {
                     ErrorCard(
                         error = state.error,
                         sendEvent = sendEvent,
                         openNotificationSettings = {
                             context.startActivity(notificationHelper.getStreamNotificationSettingsIntent())
+                        },
+                        openLocalNetworkSettings = {
+                            context.startActivity(context.getAppSettingsIntent())
                         },
                         modifier = Modifier.padding(8.dp)
                     )

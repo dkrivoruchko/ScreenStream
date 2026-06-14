@@ -24,7 +24,6 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import org.koin.core.parameter.parametersOf
-import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 public class WebRtcStreamingModule : StreamingModule {
@@ -68,7 +67,6 @@ public class WebRtcStreamingModule : StreamingModule {
             modifier = modifier
         )
 
-    @OptIn(ExperimentalUuidApi::class)
     @MainThread
     override fun startModule(context: Context) {
         XLog.d(getLog("startModule"))

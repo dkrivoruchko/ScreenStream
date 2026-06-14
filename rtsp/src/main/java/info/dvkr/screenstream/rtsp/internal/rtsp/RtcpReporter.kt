@@ -11,6 +11,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.io.IOException
+import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * Periodically emits RTCP Sender Reports (and a BYE on close) for video/audio tracks.
@@ -77,7 +78,7 @@ internal class RtcpReporter(
 
                 // If no active tracks for a while, suppress SRs; do not close here to allow quick resume.
             }
-            delay(REPORT_INTERVAL_MS)
+            delay(REPORT_INTERVAL_MS.milliseconds)
         }
     }
 

@@ -7,6 +7,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.util.concurrent.atomic.AtomicLong
+import kotlin.time.Duration.Companion.milliseconds
 
 internal class BitrateCalculator(
     private val scope: CoroutineScope,
@@ -22,7 +23,7 @@ internal class BitrateCalculator(
         totalBytes.set(0)
         job = scope.launch {
             while (isActive) {
-                delay(1000)
+                delay(1000.milliseconds)
                 val nowNs = System.nanoTime()
                 val elapsedNs = nowNs - startNs
                 val currentBytes = totalBytes.getAndSet(0)

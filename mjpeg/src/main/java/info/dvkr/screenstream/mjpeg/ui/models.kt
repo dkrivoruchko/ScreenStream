@@ -47,6 +47,7 @@ internal sealed class MjpegError(@field:StringRes open val id: Int, override val
     }
 
     internal class NotificationPermissionRequired : MjpegError(R.string.mjpeg_error_notification_permission_required)
+    internal class LocalNetworkPermissionRequired : MjpegError(R.string.mjpeg_error_local_network_permission_required)
     internal class UnknownError(override val cause: Throwable?) : MjpegError(R.string.mjpeg_error_unspecified) {
         override fun toString(context: Context): String = context.getString(id) + " [${cause?.message}]"
     }

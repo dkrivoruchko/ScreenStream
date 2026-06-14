@@ -3,14 +3,6 @@
     <string name="app_error_title">Kesalahan</string>
     <string name="app_error_recover">Pulih</string>
 
-    <string name="app_logs_collecting">Mengumpulkan log aplikasi…</string>
-    <string name="app_logs_send_title">Kirim log ke pengembang</string>
-    <string name="app_logs_send_message">Tambahkan deskripsi masalah:</string>
-    <string name="app_logs_send">Mengirim</string>
-    <string name="app_logs_enabled">Pencatatan log diaktifkan</string>
-    <string name="app_logs_disabled">Pencatatan log dinonaktifkan</string>
-    <string name="app_logs_stop">Hentikan pencatatan</string>
-
     <string name="app_activity_update_dialog_title">Pembaruan tersedia</string>
     <string name="app_activity_update_dialog_message">Pembaruan baru saja diunduh. Mulai ulang aplikasi sekarang?</string>
     <string name="app_activity_update_dialog_restart">Mengulang kembali</string>
@@ -26,6 +18,12 @@
     <string name="app_permission_allow_notifications">Aplikasi ini memerlukan izin notifikasi untuk memulai layanan streaming.\n\nIzinkan notifikasi.</string>
     <string name="app_permission_allow_notifications_settings">Aplikasi ini memerlukan izin notifikasi untuk memulai layanan streaming.\n\nAktifkan notifikasi di setelan aplikasi.</string>
     <string name="app_permission_notification_settings">Buka pengaturan</string>
+    <string name="app_permission_local_network_title">Akses jaringan lokal diperlukan</string>
+    <string name="app_permission_local_network_message">Izinkan ScreenStream menggunakan jaringan lokal Anda agar perangkat dapat terhubung ke streaming Anda.</string>
+    <string name="app_permission_local_network_off_title">Akses jaringan lokal nonaktif</string>
+    <string name="app_permission_local_network_settings_message">Aktifkan akses jaringan lokal di Setelan Android untuk membagikan layar Anda dengan perangkat.</string>
+    <string name="app_permission_open_settings">Buka pengaturan</string>
+    <string name="app_permission_try_again">Coba lagi</string>
 
     <string name="app_notification_channel_streaming">Pemberitahuan streaming</string>
     <string name="app_notification_channel_error">Pemberitahuan kesalahan</string>
@@ -36,7 +34,6 @@
     <string name="app_tile_start">Mulai</string>
     <string name="app_tile_stop">Berhenti</string>
 
-    <string name="app_pref_close">Tutup</string>
     <string name="app_pref_back">Kembali</string>
     <string name="app_pref_settings">Pengaturan</string>
     <string name="app_pref_locale">Bahasa aplikasi</string>
@@ -59,14 +56,10 @@
     <string name="app_pref_notification_summary">Buka pengaturan notifikasi sistem</string>
     <string name="app_pref_tile">Tambahkan ubin aplikasi</string>
     <string name="app_pref_tile_summary">Tambahkan ubin aplikasi ke Pengaturan Cepat</string>
-    <string name="app_pref_logging">Aktifkan log aplikasi</string>
-    <string name="app_pref_logging_summary">Kumpulkan log aplikasi</string>
 
     <string name="app_tab_about_app_version">Versi: %1$s</string>
     <string name="app_tab_about_developer_name">Dikembangkan oleh Dmytro Kryvoruchko</string>
     <string name="app_tab_about_rate_app">Nilai aplikasi</string>
-    <string name="app_tab_about_write_email">Tulis email ke pengembang</string>
-    <string name="app_tab_about_email_chooser_header">Mengirim email…</string>
     <string name="app_tab_about_app_sources">Sumber aplikasi</string>
     <string name="app_tab_about_terms_conditions">Syarat dan Ketentuan</string>
     <string name="app_tab_about_privacy_policy">Kebijakan privasi</string>

@@ -2,6 +2,7 @@
 <resources>
     <string name="rtsp_error_recover">復旧</string>
     <string name="rtsp_error_open_settings">設定を開く</string>
+    <string name="rtsp_error_local_network_permission_required">デバイスがストリームに接続できるように、ローカルネットワークへのアクセスが必要です。</string>
 
     <string name="rtsp_stream_mode">RTSPモード · RTSP</string>
     <string name="rtsp_stream_mode_description">RTSPクライアントまたはサーバーでストリーミング</string>

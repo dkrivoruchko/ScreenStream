@@ -2,6 +2,7 @@
 <resources>
     <string name="rtsp_error_recover">पुनर्प्राप्त करें</string>
     <string name="rtsp_error_open_settings">सेटिंग्स खोलें</string>
+    <string name="rtsp_error_local_network_permission_required">डिवाइस आपकी स्ट्रीम से जुड़ सकें, इसके लिए स्थानीय नेटवर्क ऐक्सेस आवश्यक है।</string>
 
     <string name="rtsp_stream_mode">RTSP मोड · RTSP</string>
     <string name="rtsp_stream_mode_description">RTSP क्लाइंट या सर्वर से स्ट्रीम करें</string>

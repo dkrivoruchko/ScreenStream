@@ -3,14 +3,6 @@
     <string name="app_error_title">Błąd</string>
     <string name="app_error_recover">Odzyskaj</string>
 
-    <string name="app_logs_collecting">Trwa zbieranie dzienników aplikacji…</string>
-    <string name="app_logs_send_title">Wyślij dzienniki do programisty</string>
-    <string name="app_logs_send_message">Dodaj opis problemu:</string>
-    <string name="app_logs_send">Wyślij</string>
-    <string name="app_logs_enabled">Logowanie włączone</string>
-    <string name="app_logs_disabled">Logowanie wyłączone</string>
-    <string name="app_logs_stop">Zatrzymaj rejestrowanie</string>
-
     <string name="app_activity_update_dialog_title">Dostępna aktualizacja</string>
     <string name="app_activity_update_dialog_message">Pobrano aktualizację. Zrestartować aplikację?</string>
     <string name="app_activity_update_dialog_restart">Uruchom ponownie</string>
@@ -26,6 +18,12 @@
     <string name="app_permission_allow_notifications">Ta aplikacja potrzebuje uprawnienia do powiadomień, aby uruchomić usługę transmisji.\n\nZezwól na powiadomienia.</string>
     <string name="app_permission_allow_notifications_settings">Ta aplikacja potrzebuje uprawnienia do powiadomień, aby uruchomić usługę transmisji.\n\nWłącz powiadomienia w ustawieniach aplikacji.</string>
     <string name="app_permission_notification_settings">Otwórz ustawienia</string>
+    <string name="app_permission_local_network_title">Wymagany dostęp do sieci lokalnej</string>
+    <string name="app_permission_local_network_message">Zezwól ScreenStream na używanie sieci lokalnej, aby urządzenia mogły połączyć się z Twoją transmisją.</string>
+    <string name="app_permission_local_network_off_title">Dostęp do sieci lokalnej jest wyłączony</string>
+    <string name="app_permission_local_network_settings_message">Włącz dostęp do sieci lokalnej w ustawieniach Androida, aby udostępnić ekran urządzeniom.</string>
+    <string name="app_permission_open_settings">Otwórz ustawienia</string>
+    <string name="app_permission_try_again">Spróbuj ponownie</string>
 
     <string name="app_notification_channel_streaming">Powiadomienia o przesyłaniu</string>
     <string name="app_notification_channel_error">Powiadomienia o błędach</string>
@@ -36,7 +34,6 @@
     <string name="app_tile_start">Start</string>
     <string name="app_tile_stop">Stop</string>
 
-    <string name="app_pref_close">Zamknij</string>
     <string name="app_pref_back">Powrót</string>
     <string name="app_pref_settings">Ustawienia</string>
     <string name="app_pref_locale">Język aplikacji</string>
@@ -59,14 +56,10 @@
     <string name="app_pref_notification_summary">Otwiera ustawienia powiadomień systemu</string>
     <string name="app_pref_tile">Dodaj kafelek aplikacji</string>
     <string name="app_pref_tile_summary">Dodaj kafelek aplikacji do Szybkich ustawień</string>
-    <string name="app_pref_logging">Włącz dzienniki aplikacji</string>
-    <string name="app_pref_logging_summary">Zbieraj dzienniki aplikacji</string>
 
     <string name="app_tab_about_app_version">Wersja: %1$s</string>
     <string name="app_tab_about_developer_name">Programista Dmytro Kryvoruchko</string>
     <string name="app_tab_about_rate_app">Oceń aplikację</string>
-    <string name="app_tab_about_write_email">Napisz e-mail do autora</string>
-    <string name="app_tab_about_email_chooser_header">Wysyłam wiadomość e-mail…</string>
     <string name="app_tab_about_app_sources">Kod źródłowy aplikacji</string>
     <string name="app_tab_about_terms_conditions">Regulamin</string>
     <string name="app_tab_about_privacy_policy">Polityka prywatności</string>

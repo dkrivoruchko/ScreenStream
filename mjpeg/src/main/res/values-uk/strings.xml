@@ -2,6 +2,7 @@
     <string name="mjpeg_error_recover">Відновити</string>
     <string name="mjpeg_error_open_settings">Відкрити налаштування</string>
     <string name="mjpeg_close">Закрити</string>
+    <string name="mjpeg_error_local_network_permission_required">Потрібен доступ до локальної мережі, щоб пристрої могли підключатися до вашої трансляції.</string>
 
     <string name="mjpeg_stream_mode">Локальний режим · MJPEG</string>
     <string name="mjpeg_stream_mode_description">Трансляція через локальну мережу</string>

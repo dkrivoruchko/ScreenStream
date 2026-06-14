@@ -3,14 +3,6 @@
     <string name="app_error_title">خرابی</string>
     <string name="app_error_recover">بحال کریں</string>
 
-    <string name="app_logs_collecting">ایپ لاگز جمع ہو رہے ہیں…</string>
-    <string name="app_logs_send_title">لاگز ڈویلپر کو بھیجیں</string>
-    <string name="app_logs_send_message">براہ کرم مسئلے کی وضاحت شامل کریں:</string>
-    <string name="app_logs_send">بھیجیں</string>
-    <string name="app_logs_enabled">لاگنگ فعال ہے</string>
-    <string name="app_logs_disabled">لاگنگ غیر فعال ہے</string>
-    <string name="app_logs_stop">لاگنگ روکیں</string>
-
     <string name="app_activity_update_dialog_title">اپ ڈیٹ دستیاب ہے</string>
     <string name="app_activity_update_dialog_message">اپ ڈیٹ ڈاؤن لوڈ ہو چکی ہے۔ ایپ دوبارہ شروع کریں؟</string>
     <string name="app_activity_update_dialog_restart">دوبارہ شروع کریں</string>
@@ -26,6 +18,12 @@
     <string name="app_permission_allow_notifications">اس ایپ کو اسٹریمنگ سروس شروع کرنے کے لیے اطلاعات کی اجازت درکار ہے۔\n\nاطلاعات کی اجازت دیں۔</string>
     <string name="app_permission_allow_notifications_settings">اس ایپ کو اسٹریمنگ سروس شروع کرنے کے لیے اطلاعات کی اجازت درکار ہے۔\n\nایپ کی ترتیبات میں اطلاعات فعال کریں۔</string>
     <string name="app_permission_notification_settings">ترتیبات کھولیں</string>
+    <string name="app_permission_local_network_title">مقامی نیٹ ورک تک رسائی درکار ہے</string>
+    <string name="app_permission_local_network_message">ScreenStream کو اپنا مقامی نیٹ ورک استعمال کرنے کی اجازت دیں تاکہ آلات آپ کی اسٹریم سے منسلک ہو سکیں۔</string>
+    <string name="app_permission_local_network_off_title">مقامی نیٹ ورک تک رسائی بند ہے</string>
+    <string name="app_permission_local_network_settings_message">اپنی اسکرین آلات کے ساتھ شیئر کرنے کے لیے Android ترتیبات میں مقامی نیٹ ورک تک رسائی فعال کریں۔</string>
+    <string name="app_permission_open_settings">ترتیبات کھولیں</string>
+    <string name="app_permission_try_again">دوبارہ کوشش کریں</string>
 
     <string name="app_notification_channel_streaming">اسٹریمنگ اطلاعات</string>
     <string name="app_notification_channel_error">خرابی اطلاعات</string>
@@ -36,7 +34,6 @@
     <string name="app_tile_start">شروع کریں</string>
     <string name="app_tile_stop">روکیں</string>
 
-    <string name="app_pref_close">بند کریں</string>
     <string name="app_pref_back">واپس</string>
     <string name="app_pref_settings">ترتیبات</string>
     <string name="app_pref_locale">ایپ کی زبان</string>
@@ -59,14 +56,10 @@
     <string name="app_pref_notification_summary">سسٹم اطلاعی ترتیبات کھولیں</string>
     <string name="app_pref_tile">ایپ ٹائل شامل کریں</string>
     <string name="app_pref_tile_summary">کوئک سیٹنگز میں ایپ ٹائل شامل کریں</string>
-    <string name="app_pref_logging">ایپ لاگز فعال کریں</string>
-    <string name="app_pref_logging_summary">ایپ لاگز جمع کریں</string>
 
     <string name="app_tab_about_app_version">ورژن: %1$s</string>
     <string name="app_tab_about_developer_name">تیار کردہ: Dmytro Kryvoruchko</string>
     <string name="app_tab_about_rate_app">ایپ ریٹ کریں</string>
-    <string name="app_tab_about_write_email">ڈویلپر کو ای میل کریں</string>
-    <string name="app_tab_about_email_chooser_header">ای میل بھیجی جا رہی ہے…</string>
     <string name="app_tab_about_app_sources">ایپ کے ماخذ</string>
     <string name="app_tab_about_terms_conditions">شرائط و ضوابط</string>
     <string name="app_tab_about_privacy_policy">رازداری کی پالیسی</string>

@@ -3,10 +3,8 @@ package info.dvkr.screenstream.rtsp.internal.onvif
 import info.dvkr.screenstream.rtsp.settings.RtspSettings
 import java.util.Calendar
 import java.util.TimeZone
-import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
-@OptIn(ExperimentalUuidApi::class)
 internal object OnvifMessages {
     private const val SOAP_ENV = "http://www.w3.org/2003/05/soap-envelope"
     private const val WSA = "http://schemas.xmlsoap.org/ws/2004/08/addressing"

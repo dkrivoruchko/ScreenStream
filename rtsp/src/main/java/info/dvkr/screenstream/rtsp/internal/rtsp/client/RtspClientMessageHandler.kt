@@ -14,6 +14,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeout
 import java.io.IOException
 import java.security.MessageDigest
+import kotlin.time.Duration.Companion.milliseconds
 
 internal class RtspClientMessageHandler(
     appVersion: String, host: String, port: Int, path: String, private val username: String?, private val password: String?
@@ -209,7 +210,7 @@ internal class RtspClientMessageHandler(
         method: Method,
         timeoutMs: Long = 15_000,
         allowedInterleavedChannels: Set<Int>? = null,
-    ): Command = withTimeout(timeoutMs) { getResponse(tcpSocket, method, allowedInterleavedChannels) }
+    ): Command = withTimeout(timeoutMs.milliseconds) { getResponse(tcpSocket, method, allowedInterleavedChannels) }
 
     private suspend fun getResponse(tcpSocket: TcpStreamSocket, method: Method, allowedInterleavedChannels: Set<Int>?): Command =
         lock.withLock {
@@ -231,7 +232,7 @@ internal class RtspClientMessageHandler(
 
     internal fun getPorts(command: Command): Pair<RtspClient.Ports?, RtspClient.Ports?> {
         val transport = extractTransport(command.text).ifEmpty { return null to null }
-        val parsed = TransportHeader.Companion.parse(transport) ?: return null to null
+        val parsed = TransportHeader.parse(transport) ?: return null to null
         val client = parsed.clientPorts?.let { (rtp, rtcp) -> RtspClient.Ports(rtp, rtcp) }
         val server = parsed.serverPorts?.let { (rtp, rtcp) -> RtspClient.Ports(rtp, rtcp) }
         return client to server

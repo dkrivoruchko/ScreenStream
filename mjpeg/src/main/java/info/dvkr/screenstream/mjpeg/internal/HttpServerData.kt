@@ -27,6 +27,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
+import kotlin.time.Duration.Companion.milliseconds
 
 internal class HttpServerData(private val sendEvent: (MjpegEvent) -> Unit) {
 
@@ -176,7 +177,7 @@ internal class HttpServerData(private val sendEvent: (MjpegEvent) -> Unit) {
                     publishedClients.addAll(clients)
                 }
 
-                delay(1000)
+                delay(1000.milliseconds)
             }
         }
     }
@@ -206,7 +207,6 @@ internal class HttpServerData(private val sendEvent: (MjpegEvent) -> Unit) {
     internal fun isPinValid(clientId: String, remoteAddress: String, pinHash: String?): Boolean {
         val client = clients[clientId] ?: run { Client(clientId).also { clients[clientId] = it } }
 
-        @OptIn(ExperimentalStdlibApi::class)
         val isPinValid = (clientId + pin).encodeToByteArray().toSHA256Bytes().toHexString() == pinHash
         val blockAddress = client.onPinCheck(isPinValid, blockAddress)
         if (blockAddress) blockedAddresses[remoteAddress] = System.currentTimeMillis() + ADDRESS_BLOCK_TIME_MILLIS
@@ -236,7 +236,7 @@ internal class HttpServerData(private val sendEvent: (MjpegEvent) -> Unit) {
 
     internal suspend fun notifyClients(type: String, data: Any? = null, timeout: Long = 2000) = supervisorScope {
         val message = JSONObject().put("type", type).put("data", data).toString()
-        withTimeoutOrNull(timeout) {
+        withTimeoutOrNull(timeout.milliseconds) {
             clients.forEach { (_, client) ->
                 client.session.get()?.let { socketSession -> if (socketSession.isActive) launch { socketSession.send(message) } }
             }

@@ -37,6 +37,7 @@ import info.dvkr.screenstream.common.analytics.StreamMode
 import info.dvkr.screenstream.common.analytics.StreamingAnalytics
 import info.dvkr.screenstream.common.analytics.StreamingSessionAnalyticsTracker
 import info.dvkr.screenstream.common.getLog
+import info.dvkr.screenstream.common.isLocalNetworkPermissionGranted
 import info.dvkr.screenstream.common.module.ProjectionCoordinator
 import info.dvkr.screenstream.mjpeg.MjpegModuleService
 import info.dvkr.screenstream.mjpeg.R
@@ -59,10 +60,9 @@ import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.random.Random
-import kotlin.uuid.ExperimentalUuidApi
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.uuid.Uuid
 
-@OptIn(ExperimentalUuidApi::class)
 internal class MjpegStreamingService(
     private val service: MjpegModuleService,
     private val mutableMjpegStateFlow: MutableStateFlow<MjpegState>,
@@ -252,7 +252,7 @@ internal class MjpegStreamingService(
 
         val destroyJob = Job()
         sendEvent(InternalEvent.Destroy(destroyJob))
-        withTimeoutOrNull(3000) { destroyJob.join() } ?: XLog.w(getLog("destroyService", "Timeout"))
+        withTimeoutOrNull(3000.milliseconds) { destroyJob.join() } ?: XLog.w(getLog("destroyService", "Timeout"))
 
         handler.removeCallbacksAndMessages(null)
 
@@ -351,6 +351,16 @@ internal class MjpegStreamingService(
             }
 
             is InternalEvent.DiscoverAddress -> {
+                if (service.isLocalNetworkPermissionGranted().not()) {
+                    if (pendingServer.not()) httpServer.stop(false)
+                    netInterfaces = emptyList()
+                    clients = emptyList()
+                    slowClients = emptyList()
+                    pendingServer = false
+                    currentError = MjpegError.LocalNetworkPermissionRequired()
+                    return
+                }
+
                 if (pendingServer.not()) httpServer.stop(false)
 
                 val newInterfaces = networkHelper.getNetInterfaces(
@@ -375,6 +385,16 @@ internal class MjpegStreamingService(
             }
 
             is InternalEvent.StartServer -> {
+                if (service.isLocalNetworkPermissionGranted().not()) {
+                    if (pendingServer.not()) httpServer.stop(false)
+                    netInterfaces = emptyList()
+                    clients = emptyList()
+                    slowClients = emptyList()
+                    pendingServer = false
+                    currentError = MjpegError.LocalNetworkPermissionRequired()
+                    return
+                }
+
                 if (pendingServer.not()) httpServer.stop(false)
                 httpServer.start(event.interfaces.toList())
 
@@ -417,6 +437,10 @@ internal class MjpegStreamingService(
                 }
                 if (pendingServer || currentError != null || isStreaming) {
                     XLog.i(getLog("StartStream", "Not ready. pendingServer=$pendingServer isStreaming=$isStreaming error=${currentError != null}"))
+                    return
+                }
+                if (service.isLocalNetworkPermissionGranted().not()) {
+                    currentError = MjpegError.LocalNetworkPermissionRequired()
                     return
                 }
                 sessionAnalyticsTracker.onStartAttempt(

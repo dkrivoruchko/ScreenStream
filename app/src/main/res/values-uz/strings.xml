@@ -3,14 +3,6 @@
     <string name="app_error_title">Xato</string>
     <string name="app_error_recover">Qayta tiklash</string>
 
-    <string name="app_logs_collecting">Ilova jurnallari yig\'ilmoqda…</string>
-    <string name="app_logs_send_title">Jurnallarni ishlab chiquvchiga yuboring</string>
-    <string name="app_logs_send_message">Muammo tavsifini qo\'shing:</string>
-    <string name="app_logs_send">Yuborish</string>
-    <string name="app_logs_enabled">Jurnal yoqilgan</string>
-    <string name="app_logs_disabled">Jurnal o‘chirilgan</string>
-    <string name="app_logs_stop">Jurnalni to\'xtating</string>
-
     <string name="app_activity_update_dialog_title">Yangilanish mavjud</string>
     <string name="app_activity_update_dialog_message">Yangilanish endigina yuklab olindi. Ilova hozir qayta ishga tushirilsinmi?</string>
     <string name="app_activity_update_dialog_restart">Qayta ishga tushirish</string>
@@ -26,6 +18,12 @@
     <string name="app_permission_allow_notifications">Bu ilovaga translatsiya xizmatini boshlash uchun bildirishnoma ruxsati kerak.\n\nBildirishnomalarga ruxsat bering.</string>
     <string name="app_permission_allow_notifications_settings">Bu ilovaga translatsiya xizmatini boshlash uchun bildirishnoma ruxsati kerak.\n\nIlova sozlamalarida bildirishnomalarni yoqing.</string>
     <string name="app_permission_notification_settings">Sozlamalarni oching</string>
+    <string name="app_permission_local_network_title">Mahalliy tarmoqqa kirish kerak</string>
+    <string name="app_permission_local_network_message">Qurilmalar translatsiyangizga ulanishi uchun ScreenStreamga mahalliy tarmoqdan foydalanishga ruxsat bering.</string>
+    <string name="app_permission_local_network_off_title">Mahalliy tarmoqqa kirish faol emas</string>
+    <string name="app_permission_local_network_settings_message">Ekraningizni qurilmalar bilan ulashish uchun Android sozlamalarida mahalliy tarmoqqa kirishni yoqing.</string>
+    <string name="app_permission_open_settings">Sozlamalarni oching</string>
+    <string name="app_permission_try_again">Qayta urining</string>
 
     <string name="app_notification_channel_streaming">Oqimli bildirishnomalar</string>
     <string name="app_notification_channel_error">Xato bildirishnomalari</string>
@@ -36,7 +34,6 @@
     <string name="app_tile_start">Boshlash</string>
     <string name="app_tile_stop">To‘xtatish</string>
 
-    <string name="app_pref_close">Yopish</string>
     <string name="app_pref_back">Orqaga</string>
     <string name="app_pref_settings">Sozlamalar</string>
     <string name="app_pref_locale">Ilova tili</string>
@@ -59,14 +56,10 @@
     <string name="app_pref_notification_summary">Tizim bildirishnoma sozlamalarini oching</string>
     <string name="app_pref_tile">Ilova plitasini qo\'shing</string>
     <string name="app_pref_tile_summary">Ilova plitasini Tezkor sozlamalarga qo\'shing</string>
-    <string name="app_pref_logging">Ilova jurnallarini yoqish</string>
-    <string name="app_pref_logging_summary">Ilova jurnallarini yig\'ing</string>
 
     <string name="app_tab_about_app_version">Versiya: %1$s</string>
     <string name="app_tab_about_developer_name">Dmytro Kryvoruchko tomonidan ishlab chiqilgan</string>
     <string name="app_tab_about_rate_app">Baholash ilovasi</string>
-    <string name="app_tab_about_write_email">Dasturchiga elektron pochta xabarini yozing</string>
-    <string name="app_tab_about_email_chooser_header">Email yuborilmoqda…</string>
     <string name="app_tab_about_app_sources">Ilova manbalari</string>
     <string name="app_tab_about_terms_conditions">Foydalanish shartlari</string>
     <string name="app_tab_about_privacy_policy">Maxfiylik siyosati</string>

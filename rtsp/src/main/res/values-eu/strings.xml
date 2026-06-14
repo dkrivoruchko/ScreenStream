@@ -2,6 +2,7 @@
 <resources>
     <string name="rtsp_error_recover">Berreskuratu</string>
     <string name="rtsp_error_open_settings">Ezarpenak ireki</string>
+    <string name="rtsp_error_local_network_permission_required">Tokiko sarerako sarbidea behar da, gailuak zure transmisiora konektatu ahal izateko.</string>
 
     <string name="rtsp_stream_mode">RTSP modua · RTSP</string>
     <string name="rtsp_stream_mode_description">Streamatu RTSP bezero edo zerbitzari batekin</string>

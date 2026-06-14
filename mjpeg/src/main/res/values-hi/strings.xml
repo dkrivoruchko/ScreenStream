@@ -2,6 +2,7 @@
     <string name="mjpeg_error_recover">पुनर्प्राप्त करें</string>
     <string name="mjpeg_error_open_settings">सेटिंग्स खोलें</string>
     <string name="mjpeg_close">बंद करें</string>
+    <string name="mjpeg_error_local_network_permission_required">डिवाइस आपके स्ट्रीम से जुड़ सकें, इसके लिए स्थानीय नेटवर्क एक्सेस आवश्यक है।</string>
 
     <string name="mjpeg_stream_mode">स्थानीय मोड · MJPEG</string>
     <string name="mjpeg_stream_mode_description">अपने स्थानीय नेटवर्क पर स्ट्रीम करें</string>

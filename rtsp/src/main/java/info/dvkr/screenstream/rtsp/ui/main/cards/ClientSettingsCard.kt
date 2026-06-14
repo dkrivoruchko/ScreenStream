@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -26,7 +25,6 @@ import info.dvkr.screenstream.rtsp.ui.main.settings.client.ClientProtocolEditor
 import info.dvkr.screenstream.rtsp.ui.main.settings.client.ClientProtocolRow
 import info.dvkr.screenstream.rtsp.ui.main.settings.common.RtspSettingModal
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun ClientSettingsCard(
     settings: RtspSettings.Data,

@@ -2,6 +2,7 @@
     <string name="mjpeg_error_recover">استعادة</string>
     <string name="mjpeg_error_open_settings">فتح الإعدادات</string>
     <string name="mjpeg_close">إغلاق</string>
+    <string name="mjpeg_error_local_network_permission_required">مطلوب الوصول إلى الشبكة المحلية حتى تتمكن الأجهزة من الاتصال بالبث.</string>
 
     <string name="mjpeg_stream_mode">الوضع المحلي · MJPEG</string>
     <string name="mjpeg_stream_mode_description">البث عبر شبكتك المحلية</string>

@@ -2,6 +2,7 @@
 <resources>
     <string name="rtsp_error_recover">Wiederherstellen</string>
     <string name="rtsp_error_open_settings">Einstellungen öffnen</string>
+    <string name="rtsp_error_local_network_permission_required">Zugriff auf das lokale Netzwerk ist erforderlich, damit Geräte eine Verbindung zu Ihrem Stream herstellen können.</string>
 
     <string name="rtsp_stream_mode">RTSP-Modus · RTSP</string>
     <string name="rtsp_stream_mode_description">Mit RTSP-Client oder -Server streamen</string>

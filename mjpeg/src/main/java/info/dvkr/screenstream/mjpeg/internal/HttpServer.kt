@@ -94,6 +94,7 @@ import java.nio.charset.StandardCharsets
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
+import kotlin.time.Duration.Companion.milliseconds
 
 internal class HttpServer(
     context: Context,
@@ -207,7 +208,7 @@ internal class HttpServer(
                     flow {
                         while (currentCoroutineContext().isActive) {
                             emit(jpeg)
-                            delay(1000)
+                            delay(1000.milliseconds)
                         }
                     }
                 } else {
@@ -404,7 +405,7 @@ internal class HttpServer(
                             }
                         }
                     }
-                } catch (ignore: CancellationException) {
+                } catch (_: CancellationException) {
                 } catch (cause: Exception) {
                     XLog.w(this@appModule.getLog("socket", "catch: ${cause.localizedMessage}"), cause)
                 } finally {

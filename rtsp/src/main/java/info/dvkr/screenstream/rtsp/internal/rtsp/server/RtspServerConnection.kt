@@ -37,6 +37,7 @@ import java.nio.ByteBuffer
 import java.security.SecureRandom
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
+import kotlin.time.Duration.Companion.milliseconds
 
 internal class RtspServerConnection(
     parentJob: Job,
@@ -567,7 +568,7 @@ internal class RtspServerConnection(
                 VideoStateSnapshot(isStreaming, videoSetupDone, waitingForKeyframe, sendRtpPackets)
             }
             if (!streaming) {
-                delay(10)
+                delay(10.milliseconds)
                 continue
             }
             val videoBlob = videoQueue.receiveCatching().getOrNull() ?: break
@@ -631,7 +632,7 @@ internal class RtspServerConnection(
                 AudioStateSnapshot(isStreaming, audioSetupDone, sendRtpPackets)
             }
             if (!streaming) {
-                delay(10)
+                delay(10.milliseconds)
                 continue
             }
             val audioBlob = audioQueue.receiveCatching().getOrNull() ?: break

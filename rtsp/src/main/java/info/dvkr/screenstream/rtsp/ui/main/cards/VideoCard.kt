@@ -58,6 +58,7 @@ import info.dvkr.screenstream.rtsp.ui.main.media.EncoderItem
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
+import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
 internal fun VideoCard(
@@ -282,7 +283,7 @@ private fun ImageSize(
                     .weight(1f)
                     .align(Alignment.CenterVertically),
                 valueRange = 10F..100F,
-                onValueChangeFinished = { onValueChange.invoke(sliderPosition); scope.launch { delay(250); counter = counter + 1 } }
+                onValueChangeFinished = { onValueChange.invoke(sliderPosition); scope.launch { delay(250.milliseconds); counter = counter + 1 } }
             )
             Text(text = stringResource(R.string.rtsp_video_resize_image_100), modifier = Modifier.align(Alignment.CenterVertically))
         }

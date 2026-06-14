@@ -6,7 +6,6 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.net.ConnectivityManager
 import android.net.Network
-import android.net.wifi.WifiManager
 import android.os.Build
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.common.getLog
@@ -23,8 +22,7 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.onStart
-import java.net.Inet6Address
-import java.net.InetAddress
+import kotlin.time.Duration.Companion.milliseconds
 
 internal fun Context.getFileFromAssets(fileName: String): ByteArray {
     XLog.d(getLog("getFileFromAssets", fileName))
@@ -34,8 +32,6 @@ internal fun Context.getFileFromAssets(fileName: String): ByteArray {
 
 internal fun <T> Flow<T>.listenForChange(scope: CoroutineScope, drop: Int = 0, action: suspend (T) -> Unit) =
     distinctUntilChanged().drop(drop).onEach { action(it) }.launchIn(scope)
-
-internal fun InetAddress.asString(): String = if (this is Inet6Address) "[${this.hostAddress}]" else this.hostAddress ?: ""
 
 internal fun Int.toColorHexString(): String = "#%06X".format(0xFFFFFF and this)
 
@@ -48,7 +44,7 @@ internal fun Context.startListening(serviceJob: Job, onScreenOff: () -> Unit, on
 
     connectionChangeMutableStateFlow
         .onStart { XLog.v(this@startListening.getLog("startListening", "onStart")) }
-        .debounce(500)
+        .debounce(500.milliseconds)
         .onEach {
             XLog.d(this@startListening.getLog("startListening", "onEach: $it"))
             onConnectionChanged.invoke()
@@ -59,10 +55,6 @@ internal fun Context.startListening(serviceJob: Job, onScreenOff: () -> Unit, on
     val intentFilter = IntentFilter().apply {
         addAction(Intent.ACTION_SCREEN_OFF)
         addAction("android.net.wifi.WIFI_AP_STATE_CHANGED")
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
-            addAction(ConnectivityManager.CONNECTIVITY_ACTION)
-            addAction(WifiManager.WIFI_STATE_CHANGED_ACTION)
-        }
     }
 
     val broadcastReceiver: BroadcastReceiver = object : BroadcastReceiver() {
@@ -72,8 +64,6 @@ internal fun Context.startListening(serviceJob: Job, onScreenOff: () -> Unit, on
             when (intent?.action) {
                 Intent.ACTION_SCREEN_OFF -> onScreenOff.invoke()
 
-                WifiManager.WIFI_STATE_CHANGED_ACTION,
-                ConnectivityManager.CONNECTIVITY_ACTION,
                 "android.net.wifi.WIFI_AP_STATE_CHANGED" -> connectionChangeMutableStateFlow.value = System.currentTimeMillis()
             }
         }
@@ -89,26 +79,24 @@ internal fun Context.startListening(serviceJob: Job, onScreenOff: () -> Unit, on
         runCatching { unregisterReceiver(broadcastReceiver) }
     }
 
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-        val networkCallback = object : ConnectivityManager.NetworkCallback() {
-            override fun onAvailable(network: Network) {
-                XLog.v(this@startListening.getLog("onAvailable", "Network: $network"))
-                connectionChangeMutableStateFlow.value = System.currentTimeMillis()
-            }
-
-            override fun onLost(network: Network) {
-                XLog.v(this@startListening.getLog("onLost", "Network: $network"))
-                connectionChangeMutableStateFlow.value = System.currentTimeMillis()
-            }
+    val networkCallback = object : ConnectivityManager.NetworkCallback() {
+        override fun onAvailable(network: Network) {
+            XLog.v(this@startListening.getLog("onAvailable", "Network: $network"))
+            connectionChangeMutableStateFlow.value = System.currentTimeMillis()
         }
 
-        val connectivityManager = getSystemService(ConnectivityManager::class.java)
-
-        connectivityManager.registerDefaultNetworkCallback(networkCallback)
-
-        serviceJob.invokeOnCompletion {
-            XLog.d(getLog("invokeOnCompletion", "unregisterNetworkCallback"))
-            connectivityManager.unregisterNetworkCallback(networkCallback)
+        override fun onLost(network: Network) {
+            XLog.v(this@startListening.getLog("onLost", "Network: $network"))
+            connectionChangeMutableStateFlow.value = System.currentTimeMillis()
         }
+    }
+
+    val connectivityManager = getSystemService(ConnectivityManager::class.java)
+
+    connectivityManager.registerDefaultNetworkCallback(networkCallback)
+
+    serviceJob.invokeOnCompletion {
+        XLog.d(getLog("invokeOnCompletion", "unregisterNetworkCallback"))
+        connectivityManager.unregisterNetworkCallback(networkCallback)
     }
 }

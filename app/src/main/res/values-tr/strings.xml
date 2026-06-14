@@ -3,14 +3,6 @@
     <string name="app_error_title">Hata</string>
     <string name="app_error_recover">Kurtar</string>
 
-    <string name="app_logs_collecting">Uygulama günlükleri toplanıyor…</string>
-    <string name="app_logs_send_title">Günlükleri geliştiriciye gönder</string>
-    <string name="app_logs_send_message">Lütfen sorunun açıklamasını ekleyin:</string>
-    <string name="app_logs_send">Gönder</string>
-    <string name="app_logs_enabled">Günlük kaydı etkin</string>
-    <string name="app_logs_disabled">Günlük kaydı devre dışı</string>
-    <string name="app_logs_stop">Günlük kaydını durdur</string>
-
     <string name="app_activity_update_dialog_title">Güncelleme var</string>
     <string name="app_activity_update_dialog_message">Bir güncelleme indirildi. Uygulama şimdi yeniden başlatılsın mı?</string>
     <string name="app_activity_update_dialog_restart">Yeniden başlat</string>
@@ -26,6 +18,12 @@
     <string name="app_permission_allow_notifications">Bu uygulamanın yayın hizmetini başlatmak için bildirim iznine ihtiyacı var.\n\nBildirimlere izin verin.</string>
     <string name="app_permission_allow_notifications_settings">Bu uygulamanın yayın hizmetini başlatmak için bildirim iznine ihtiyacı var.\n\nUygulama ayarlarında bildirimleri etkinleştirin.</string>
     <string name="app_permission_notification_settings">Ayarları aç</string>
+    <string name="app_permission_local_network_title">Yerel ağ erişimi gerekli</string>
+    <string name="app_permission_local_network_message">ScreenStream uygulamasının yerel ağınızı kullanmasına izin verin, böylece cihazlar yayınınıza bağlanabilir.</string>
+    <string name="app_permission_local_network_off_title">Yerel ağ erişimi kapalı</string>
+    <string name="app_permission_local_network_settings_message">Ekranınızı cihazlarla paylaşmak için Android Ayarlarında yerel ağ erişimini açın.</string>
+    <string name="app_permission_open_settings">Ayarları aç</string>
+    <string name="app_permission_try_again">Tekrar dene</string>
 
     <string name="app_notification_channel_streaming">Yayın bildirimleri</string>
     <string name="app_notification_channel_error">Hata bildirimleri</string>
@@ -36,7 +34,6 @@
     <string name="app_tile_start">Başlat</string>
     <string name="app_tile_stop">Durdur</string>
 
-    <string name="app_pref_close">Kapat</string>
     <string name="app_pref_back">Geri</string>
     <string name="app_pref_settings">Ayarlar</string>
     <string name="app_pref_locale">Uygulama dili</string>
@@ -59,14 +56,10 @@
     <string name="app_pref_notification_summary">Sistem bildirim ayarlarını aç</string>
     <string name="app_pref_tile">Uygulama kutucuğu ekle</string>
     <string name="app_pref_tile_summary">Uygulama kutucuğunu Hızlı Ayarlar\'a ekle</string>
-    <string name="app_pref_logging">Uygulama günlüklerini etkinleştir</string>
-    <string name="app_pref_logging_summary">Uygulama günlüklerini topla</string>
 
     <string name="app_tab_about_app_version">Sürüm: %1$s</string>
     <string name="app_tab_about_developer_name">Dmytro Kryvoruchko tarafından geliştirildi</string>
     <string name="app_tab_about_rate_app">Uygulamayı değerlendir</string>
-    <string name="app_tab_about_write_email">Geliştiriciye e-posta yaz</string>
-    <string name="app_tab_about_email_chooser_header">E-posta gönderiliyor…</string>
     <string name="app_tab_about_app_sources">Uygulama kaynakları</string>
     <string name="app_tab_about_terms_conditions">Şartlar ve Koşullar</string>
     <string name="app_tab_about_privacy_policy">Gizlilik politikası</string>

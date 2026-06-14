@@ -3,14 +3,6 @@
     <string name="app_error_title">错误</string>
     <string name="app_error_recover">恢复</string>
 
-    <string name="app_logs_collecting">正在收集程序日志…</string>
-    <string name="app_logs_send_title">把日志发送给开发者</string>
-    <string name="app_logs_send_message">请添加问题描述：</string>
-    <string name="app_logs_send">发送</string>
-    <string name="app_logs_enabled">已启用日志记录</string>
-    <string name="app_logs_disabled">已停用日志记录</string>
-    <string name="app_logs_stop">停止记录日志</string>
-
     <string name="app_activity_update_dialog_title">有新版本</string>
     <string name="app_activity_update_dialog_message">更新已下载完毕，是否想现在重启程序？</string>
     <string name="app_activity_update_dialog_restart">重启程序</string>
@@ -26,6 +18,12 @@
     <string name="app_permission_allow_notifications">此应用需要通知权限才能启动串流服务。\n\n请允许通知。</string>
     <string name="app_permission_allow_notifications_settings">此应用需要通知权限才能启动串流服务。\n\n请在应用设置中启用通知。</string>
     <string name="app_permission_notification_settings">打开设置</string>
+    <string name="app_permission_local_network_title">需要访问本地网络</string>
+    <string name="app_permission_local_network_message">允许 ScreenStream 使用您的本地网络，以便设备可以连接到您的串流。</string>
+    <string name="app_permission_local_network_off_title">本地网络访问已关闭</string>
+    <string name="app_permission_local_network_settings_message">请在 Android 设置中开启本地网络访问，以便与设备共享您的屏幕。</string>
+    <string name="app_permission_open_settings">打开设置</string>
+    <string name="app_permission_try_again">重试</string>
 
     <string name="app_notification_channel_streaming">串流通知</string>
     <string name="app_notification_channel_error">错误通知</string>
@@ -36,7 +34,6 @@
     <string name="app_tile_start">开始</string>
     <string name="app_tile_stop">停止</string>
 
-    <string name="app_pref_close">关闭</string>
     <string name="app_pref_back">返回</string>
     <string name="app_pref_settings">设置</string>
     <string name="app_pref_locale">程序语言</string>
@@ -59,14 +56,10 @@
     <string name="app_pref_notification_summary">打开系统通知设置</string>
     <string name="app_pref_tile">添加应用快捷设置图块</string>
     <string name="app_pref_tile_summary">将应用快捷设置图块添加到快速设置</string>
-    <string name="app_pref_logging">启用程序日志</string>
-    <string name="app_pref_logging_summary">收集程序日志</string>
 
     <string name="app_tab_about_app_version">版本：%1$s</string>
     <string name="app_tab_about_developer_name">开发者：Dmytro Kryvoruchko</string>
     <string name="app_tab_about_rate_app">评价程序</string>
-    <string name="app_tab_about_write_email">给开发者写电子邮件</string>
-    <string name="app_tab_about_email_chooser_header">正在发送电子邮件…</string>
     <string name="app_tab_about_app_sources">程序源码</string>
     <string name="app_tab_about_terms_conditions">条款和条件</string>
     <string name="app_tab_about_privacy_policy">隐私政策</string>

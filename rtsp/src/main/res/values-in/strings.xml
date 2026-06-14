@@ -2,6 +2,7 @@
 <resources>
     <string name="rtsp_error_recover">Pulihkan</string>
     <string name="rtsp_error_open_settings">Buka pengaturan</string>
+    <string name="rtsp_error_local_network_permission_required">Akses jaringan lokal diperlukan agar perangkat dapat terhubung ke streaming Anda.</string>
 
     <string name="rtsp_stream_mode">Mode RTSP · RTSP</string>
     <string name="rtsp_stream_mode_description">Streaming dengan klien atau server RTSP</string>

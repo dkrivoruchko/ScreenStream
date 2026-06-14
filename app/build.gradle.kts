@@ -35,11 +35,8 @@ android {
         applicationId = "info.dvkr.screenstream"
         minSdk = rootProject.extra["minSdkVersion"] as Int
         targetSdk = rootProject.extra["targetSdkVersion"] as Int
-        versionCode = 43008
-        versionName = "4.3.8"
-
-        // https://medium.com/@crafty/no-if-you-do-that-then-you-cant-use-newer-features-on-older-platforms-e-g-fa595333c0a4
-        vectorDrawables.useSupportLibrary = true
+        versionCode = 44000
+        versionName = "4.4.0"
 
         ndk.abiFilters.addAll(listOf("armeabi-v7a", "x86", "arm64-v8a", "x86_64"))
     }
@@ -125,7 +122,6 @@ dependencies {
     implementation(libs.androidx.compose.material3.adaptive.navigation.suite)
     implementation(libs.androidx.compose.material3.adaptive.layout)
     implementation(libs.androidx.compose.material3.adaptive.navigation)
-    implementation(libs.processPhoenix)
 
     implementation(projects.mjpeg)
     implementation(projects.rtsp)
@@ -135,7 +131,7 @@ dependencies {
     "PlayStoreImplementation"(libs.play.app.update)
     "PlayStoreImplementation"(libs.play.app.review)
     "PlayStoreImplementation"(libs.play.services.ads)
-    "PlayStoreImplementation"("androidx.work:work-runtime:2.11.2") // Override the old transitive WorkManager from play-services-ads for AGP 9.x compatibility.
+    "PlayStoreImplementation"(libs.androidx.work.runtime) // Override the old transitive WorkManager from play-services-ads for AGP 9.x compatibility.
     "PlayStoreImplementation"(libs.webkit)
     "PlayStoreImplementation"(platform(libs.firebase.bom))
     "PlayStoreImplementation"(libs.firebase.analytics)

@@ -2,6 +2,7 @@
     <string name="mjpeg_error_recover">Pulih</string>
     <string name="mjpeg_error_open_settings">Buka pengaturan</string>
     <string name="mjpeg_close">Tutup</string>
+    <string name="mjpeg_error_local_network_permission_required">Akses jaringan lokal diperlukan agar perangkat dapat terhubung ke streaming Anda.</string>
 
     <string name="mjpeg_stream_mode">Mode lokal · MJPEG</string>
     <string name="mjpeg_stream_mode_description">Streaming melalui jaringan lokal Anda</string>

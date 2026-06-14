@@ -2,6 +2,7 @@
     <string name="mjpeg_error_recover">恢復</string>
     <string name="mjpeg_error_open_settings">開啟設定</string>
     <string name="mjpeg_close">關閉</string>
+    <string name="mjpeg_error_local_network_permission_required">需要區域網路存取權，讓裝置可以連線到您的串流。</string>
 
     <string name="mjpeg_stream_mode">本地模式 · MJPEG</string>
     <string name="mjpeg_stream_mode_description">透過區域網路串流</string>

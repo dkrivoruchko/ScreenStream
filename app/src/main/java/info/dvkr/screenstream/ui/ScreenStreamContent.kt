@@ -1,5 +1,6 @@
 package info.dvkr.screenstream.ui
 
+import android.Manifest
 import android.os.Build
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
@@ -13,7 +14,6 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -48,6 +48,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onPlaced
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -59,8 +60,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.dropUnlessStarted
 import androidx.window.core.layout.WindowSizeClass
 import info.dvkr.screenstream.R
-import info.dvkr.screenstream.logger.AppLogger
-import info.dvkr.screenstream.logger.CollectingLogsUi
+import info.dvkr.screenstream.common.isPermissionGranted
+import info.dvkr.screenstream.network.LocalNetworkPermission
 import info.dvkr.screenstream.notification.NotificationPermission
 import info.dvkr.screenstream.ui.tabs.about.AboutTabContent
 import info.dvkr.screenstream.ui.tabs.exit.ExitTabContent
@@ -71,29 +72,13 @@ import kotlinx.coroutines.flow.StateFlow
 @Composable
 internal fun ScreenStreamContent(
     updateFlow: StateFlow<((Boolean) -> Unit)?>,
-    modifier: Modifier = Modifier,
-    isLoggingOn: Boolean = AppLogger.isLoggingOn
+    modifier: Modifier = Modifier
 ) {
-    if (isLoggingOn) {
-        Column(
-            modifier = modifier
-                .windowInsetsPadding(WindowInsets.safeDrawing)
-                .fillMaxSize()
-        ) {
-            CollectingLogsUi(modifier = Modifier.fillMaxWidth())
-            MainContent(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1F)
-            )
-        }
-    } else {
-        MainContent(
-            modifier = modifier
-                .windowInsetsPadding(WindowInsets.safeDrawing)
-                .fillMaxSize()
-        )
-    }
+    MainContent(
+        modifier = modifier
+            .windowInsetsPadding(WindowInsets.safeDrawing)
+            .fillMaxSize()
+    )
 
     val updateFlowState = updateFlow.collectAsStateWithLifecycle()
     if (updateFlowState.value != null) {
@@ -103,8 +88,17 @@ internal fun ScreenStreamContent(
         )
     }
 
+    val context = LocalContext.current
+    val isNotificationPermissionMissing = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            context.isPermissionGranted(Manifest.permission.POST_NOTIFICATIONS).not()
+    val localNetworkPermissionEnabled = rememberSaveable {
+        mutableStateOf(isNotificationPermissionMissing.not())
+    }
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-        NotificationPermission()
+        NotificationPermission(onCanRequestNextPermissionChange = { localNetworkPermissionEnabled.value = it })
+    }
+    if (Build.VERSION.SDK_INT >= 37) {
+        LocalNetworkPermission(enabled = localNetworkPermissionEnabled.value)
     }
 }
 

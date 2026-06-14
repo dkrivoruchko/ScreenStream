@@ -3,14 +3,6 @@
     <string name="app_error_title">Помилка</string>
     <string name="app_error_recover">Відновити</string>
 
-    <string name="app_logs_collecting">Збір діагностичної інформації…</string>
-    <string name="app_logs_send_title">Надіслати діагностичну інформацію до розробника</string>
-    <string name="app_logs_send_message">Додайте опис проблеми:</string>
-    <string name="app_logs_send">Надіслати</string>
-    <string name="app_logs_enabled">Ведення журналу увімкнено</string>
-    <string name="app_logs_disabled">Ведення журналу вимкнено</string>
-    <string name="app_logs_stop">Зупинити збір</string>
-
     <string name="app_activity_update_dialog_title">Доступне оновлення</string>
     <string name="app_activity_update_dialog_message">Оновлення завантажено. Перезапустити додаток зараз?</string>
     <string name="app_activity_update_dialog_restart">Перезапустити</string>
@@ -26,6 +18,12 @@
     <string name="app_permission_allow_notifications">Цьому додатку потрібен дозвіл на сповіщення, щоб запустити службу трансляції.\n\nДозвольте сповіщення.</string>
     <string name="app_permission_allow_notifications_settings">Цьому додатку потрібен дозвіл на сповіщення, щоб запустити службу трансляції.\n\nУвімкніть сповіщення в налаштуваннях додатку.</string>
     <string name="app_permission_notification_settings">Відкрити налаштування</string>
+    <string name="app_permission_local_network_title">Потрібен доступ до локальної мережі</string>
+    <string name="app_permission_local_network_message">Дозвольте ScreenStream використовувати локальну мережу, щоб пристрої могли підключатися до вашої трансляції.</string>
+    <string name="app_permission_local_network_off_title">Доступ до локальної мережі вимкнено</string>
+    <string name="app_permission_local_network_settings_message">Увімкніть доступ до локальної мережі в налаштуваннях Android, щоб ділитися екраном із пристроями.</string>
+    <string name="app_permission_open_settings">Відкрити налаштування</string>
+    <string name="app_permission_try_again">Спробувати ще раз</string>
 
     <string name="app_notification_channel_streaming">Сповіщення про трансляцію</string>
     <string name="app_notification_channel_error">Сповіщення про помилки</string>
@@ -36,7 +34,6 @@
     <string name="app_tile_start">Старт</string>
     <string name="app_tile_stop">Стоп</string>
 
-    <string name="app_pref_close">Закрити</string>
     <string name="app_pref_back">Назад</string>
     <string name="app_pref_settings">Налаштування</string>
     <string name="app_pref_locale">Мова додадку</string>
@@ -59,14 +56,10 @@
     <string name="app_pref_notification_summary">Перейти в системні налаштування повідомлень</string>
     <string name="app_pref_tile">Додати плитку додатка</string>
     <string name="app_pref_tile_summary">Додати плитку додатка до Швидких налаштувань</string>
-    <string name="app_pref_logging">Увімкнути діагностичну інформацію</string>
-    <string name="app_pref_logging_summary">Збирати діагностичну інформацію</string>
 
     <string name="app_tab_about_app_version">Версія: %1$s</string>
     <string name="app_tab_about_developer_name">Розробник Дмитро Криворучко</string>
     <string name="app_tab_about_rate_app">Оцінити додаток</string>
-    <string name="app_tab_about_write_email">Написати електронного листа розробнику</string>
-    <string name="app_tab_about_email_chooser_header">Надсилання листа…</string>
     <string name="app_tab_about_app_sources">Вихідний код додатку</string>
     <string name="app_tab_about_terms_conditions">Умови та Положення</string>
     <string name="app_tab_about_privacy_policy">Політика приватності</string>

@@ -2,6 +2,7 @@
     <string name="mjpeg_error_recover">Waras</string>
     <string name="mjpeg_error_open_settings">Bukak setelan</string>
     <string name="mjpeg_close">Nutup</string>
+    <string name="mjpeg_error_local_network_permission_required">Akses jaringan lokal dibutuhake supaya piranti bisa nyambung menyang stream sampeyan.</string>
 
     <string name="mjpeg_stream_mode">Mode lokal · MJPEG</string>
     <string name="mjpeg_stream_mode_description">Streaming liwat jaringan lokal</string>

@@ -3,14 +3,6 @@
     <string name="app_error_title">خطأ</string>
     <string name="app_error_recover">استعادة</string>
 
-    <string name="app_logs_collecting">جارٍ جمع سجلات التطبيق…</string>
-    <string name="app_logs_send_title">أرسل السجلات إلى المطور</string>
-    <string name="app_logs_send_message">يرجى إضافة وصف للمشكلة:</string>
-    <string name="app_logs_send">إرسال</string>
-    <string name="app_logs_enabled">تم تفعيل تسجيل السجلات</string>
-    <string name="app_logs_disabled">تم تعطيل تسجيل السجلات</string>
-    <string name="app_logs_stop">إيقاف تسجيل السجلات</string>
-
     <string name="app_activity_update_dialog_title">التحديث متاح</string>
     <string name="app_activity_update_dialog_message">تم تنزيل تحديث للتو. أعد تشغيل التطبيق الآن؟</string>
     <string name="app_activity_update_dialog_restart">إعادة التشغيل</string>
@@ -26,6 +18,12 @@
     <string name="app_permission_allow_notifications">يحتاج هذا التطبيق إلى إذن الإشعارات لبدء خدمة البث.\n\nاسمح بالإشعارات.</string>
     <string name="app_permission_allow_notifications_settings">يحتاج هذا التطبيق إلى إذن الإشعارات لبدء خدمة البث.\n\nفعّل الإشعارات من إعدادات التطبيق.</string>
     <string name="app_permission_notification_settings">فتح الإعدادات</string>
+    <string name="app_permission_local_network_title">مطلوب الوصول إلى الشبكة المحلية</string>
+    <string name="app_permission_local_network_message">اسمح لـ ScreenStream باستخدام شبكتك المحلية حتى تتمكن الأجهزة من الاتصال بالبث.</string>
+    <string name="app_permission_local_network_off_title">الوصول إلى الشبكة المحلية متوقف</string>
+    <string name="app_permission_local_network_settings_message">فعّل الوصول إلى الشبكة المحلية في إعدادات Android لمشاركة شاشتك مع الأجهزة.</string>
+    <string name="app_permission_open_settings">فتح الإعدادات</string>
+    <string name="app_permission_try_again">حاول مرة أخرى</string>
 
     <string name="app_notification_channel_streaming">إشعارات البث</string>
     <string name="app_notification_channel_error">إشعارات الأخطاء</string>
@@ -36,7 +34,6 @@
     <string name="app_tile_start">بدء</string>
     <string name="app_tile_stop">إيقاف</string>
 
-    <string name="app_pref_close">إغلاق</string>
     <string name="app_pref_back">رجوع</string>
     <string name="app_pref_settings">الإعدادات</string>
     <string name="app_pref_locale">لغة التطبيق</string>
@@ -59,14 +56,10 @@
     <string name="app_pref_notification_summary">افتح إعدادات إشعار النظام</string>
     <string name="app_pref_tile">إضافة مربع التطبيق</string>
     <string name="app_pref_tile_summary">إضافة مربع التطبيق إلى الإعدادات السريعة</string>
-    <string name="app_pref_logging">تفعيل سجلات التطبيق</string>
-    <string name="app_pref_logging_summary">جمع سجلات التطبيق</string>
 
     <string name="app_tab_about_app_version">الإصدار: %1$s</string>
     <string name="app_tab_about_developer_name">تم تطويره بواسطة دميترو كريفوروشكو</string>
     <string name="app_tab_about_rate_app">قيّم التطبيق</string>
-    <string name="app_tab_about_write_email">مراسلة المطور عبر البريد الإلكتروني</string>
-    <string name="app_tab_about_email_chooser_header">إرسال بريد إلكتروني…</string>
     <string name="app_tab_about_app_sources">مصادر التطبيق</string>
     <string name="app_tab_about_terms_conditions">الشروط والأحكام</string>
     <string name="app_tab_about_privacy_policy">سياسة الخصوصية</string>

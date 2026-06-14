@@ -44,12 +44,10 @@ import info.dvkr.screenstream.AdaptiveBanner
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.common.notification.NotificationHelper
 import info.dvkr.screenstream.common.settings.AppSettings
-import info.dvkr.screenstream.logger.AppLogger
 import info.dvkr.screenstream.tile.TileActionService
 import info.dvkr.screenstream.ui.tabs.settings.app.AppLocaleDetail
 import info.dvkr.screenstream.ui.tabs.settings.app.AppLocaleRow
 import info.dvkr.screenstream.ui.tabs.settings.app.DynamicThemeRow
-import info.dvkr.screenstream.ui.tabs.settings.app.LoggingRow
 import info.dvkr.screenstream.ui.tabs.settings.app.NightModeDetail
 import info.dvkr.screenstream.ui.tabs.settings.app.NightModeRow
 import info.dvkr.screenstream.ui.tabs.settings.app.NotificationsRow
@@ -172,19 +170,6 @@ internal fun SettingsTabContent(
                                 ) {
                                     HorizontalDivider()
                                     TileRow(onClick = { TileActionService.showAddTileRequest(context) })
-                                }
-                            }
-                        }
-
-                        if (AppLogger.isLoggingOn) {
-                            item(key = "LOGGING", contentType = "ITEM") {
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .animateItem()
-                                ) {
-                                    HorizontalDivider()
-                                    LoggingRow()
                                 }
                             }
                         }

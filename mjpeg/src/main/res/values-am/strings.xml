@@ -2,6 +2,7 @@
     <string name="mjpeg_error_recover">ማገገም</string>
     <string name="mjpeg_error_open_settings">ቅንብሮችን ይክፈቱ</string>
     <string name="mjpeg_close">ዝጋ</string>
+    <string name="mjpeg_error_local_network_permission_required">መሣሪያዎች ወደ ስርጭትዎ እንዲገናኙ የአካባቢ አውታረ መረብ መዳረሻ ያስፈልጋል።</string>
 
     <string name="mjpeg_stream_mode">የአካባቢ ሁነታ · MJPEG</string>
     <string name="mjpeg_stream_mode_description">በአካባቢያዊ አውታረ መረብዎ ላይ ያስተላልፉ</string>

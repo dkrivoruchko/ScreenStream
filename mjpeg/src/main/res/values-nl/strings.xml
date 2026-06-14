@@ -2,6 +2,7 @@
     <string name="mjpeg_error_recover">Herstellen</string>
     <string name="mjpeg_error_open_settings">Instellingen openen</string>
     <string name="mjpeg_close">Sluiten</string>
+    <string name="mjpeg_error_local_network_permission_required">Toegang tot het lokale netwerk is vereist zodat apparaten verbinding kunnen maken met uw stream.</string>
 
     <string name="mjpeg_stream_mode">Lokale modus · MJPEG</string>
     <string name="mjpeg_stream_mode_description">Streamen via uw lokale netwerk</string>

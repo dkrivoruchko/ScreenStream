@@ -234,13 +234,11 @@ private fun CopyAddressButton(
                 clipboard.setClipEntry(
                     ClipEntry(
                         ClipData.newPlainText(fullAddress, fullAddress).apply {
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                                description.extras = PersistableBundle().apply {
-                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
-                                        putBoolean(ClipDescription.EXTRA_IS_SENSITIVE, true)
-                                    else
-                                        putBoolean("android.content.extra.IS_SENSITIVE", true)
-                                }
+                            description.extras = PersistableBundle().apply {
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
+                                    putBoolean(ClipDescription.EXTRA_IS_SENSITIVE, true)
+                                else
+                                    putBoolean("android.content.extra.IS_SENSITIVE", true)
                             }
                         }
                     )

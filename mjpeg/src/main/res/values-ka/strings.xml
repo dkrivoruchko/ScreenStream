@@ -2,6 +2,7 @@
     <string name="mjpeg_error_recover">აღდგენა</string>
     <string name="mjpeg_error_open_settings">გახსენით პარამეტრები</string>
     <string name="mjpeg_close">დახურვა</string>
+    <string name="mjpeg_error_local_network_permission_required">ლოკალურ ქსელზე წვდომა საჭიროა, რათა მოწყობილობები თქვენს ნაკადს დაუკავშირდნენ.</string>
 
     <string name="mjpeg_stream_mode">ლოკალური რეჟიმი · MJPEG</string>
     <string name="mjpeg_stream_mode_description">სტრიმინგი თქვენს ლოკალურ ქსელში</string>

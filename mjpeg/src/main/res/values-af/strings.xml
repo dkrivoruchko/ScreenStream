@@ -2,6 +2,7 @@
     <string name="mjpeg_error_recover">Herstel</string>
     <string name="mjpeg_error_open_settings">Maak instellings oop</string>
     <string name="mjpeg_close">Toemaak</string>
+    <string name="mjpeg_error_local_network_permission_required">Toegang tot plaaslike netwerk is nodig sodat toestelle met jou stroom kan verbind.</string>
 
     <string name="mjpeg_stream_mode">Plaaslike modus · MJPEG</string>
     <string name="mjpeg_stream_mode_description">Stroom oor jou plaaslike netwerk</string>

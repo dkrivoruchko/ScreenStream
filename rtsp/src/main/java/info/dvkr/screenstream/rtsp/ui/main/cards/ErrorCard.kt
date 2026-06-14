@@ -26,6 +26,7 @@ internal fun ErrorCard(
     error: RtspError,
     sendEvent: (event: RtspEvent) -> Unit,
     openNotificationSettings: () -> Unit,
+    openLocalNetworkSettings: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     ElevatedCard(modifier = modifier) {
@@ -45,8 +46,10 @@ internal fun ErrorCard(
             OutlinedButton(
                 onClick = {
                     sendEvent(RtspEvent.Intentable.RecoverError)
-                    if (error is RtspError.NotificationPermissionRequired) {
-                        openNotificationSettings()
+                    when (error) {
+                        is RtspError.NotificationPermissionRequired -> openNotificationSettings()
+                        is RtspError.LocalNetworkPermissionRequired -> openLocalNetworkSettings()
+                        else -> Unit
                     }
                 },
                 modifier = Modifier
@@ -54,8 +57,10 @@ internal fun ErrorCard(
                     .align(Alignment.End),
                 border = ButtonDefaults.outlinedButtonBorder(true).copy(brush = SolidColor(MaterialTheme.colorScheme.onError))
             ) {
-                val buttonTextId = if (error is RtspError.NotificationPermissionRequired) R.string.rtsp_error_open_settings
-                else R.string.rtsp_error_recover
+                val buttonTextId = if (error is RtspError.NotificationPermissionRequired || error is RtspError.LocalNetworkPermissionRequired)
+                    R.string.rtsp_error_open_settings
+                else
+                    R.string.rtsp_error_recover
                 Text(text = stringResource(buttonTextId), color = MaterialTheme.colorScheme.onError)
             }
         }

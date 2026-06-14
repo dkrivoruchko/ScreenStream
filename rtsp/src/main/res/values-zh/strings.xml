@@ -2,6 +2,7 @@
 <resources>
     <string name="rtsp_error_recover">恢复</string>
     <string name="rtsp_error_open_settings">打开设置</string>
+    <string name="rtsp_error_local_network_permission_required">需要访问本地网络，以便设备可以连接到您的串流。</string>
 
     <string name="rtsp_stream_mode">RTSP 模式 · RTSP</string>
     <string name="rtsp_stream_mode_description">通过 RTSP 客户端或服务器串流</string>

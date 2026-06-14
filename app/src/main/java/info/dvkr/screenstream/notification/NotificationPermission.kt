@@ -33,10 +33,16 @@ import org.koin.compose.koinInject
 @RequiresApi(Build.VERSION_CODES.TIRAMISU)
 internal fun NotificationPermission(
     permission: String = Manifest.permission.POST_NOTIFICATIONS,
-    notificationHelper: NotificationHelper = koinInject()
+    notificationHelper: NotificationHelper = koinInject(),
+    onCanRequestNextPermissionChange: (Boolean) -> Unit = {}
 ) {
     val context = LocalContext.current
-    if (context.isPermissionGranted(permission)) return
+    val isPermissionGranted = context.isPermissionGranted(permission)
+    DisposableEffect(isPermissionGranted) {
+        onCanRequestNextPermissionChange(isPermissionGranted)
+        onDispose { onCanRequestNextPermissionChange(true) }
+    }
+    if (isPermissionGranted) return
 
     val activity = remember(context) { context.findActivity() }
     val showRationaleDialog = rememberSaveable { mutableStateOf(false) }
@@ -44,6 +50,7 @@ internal fun NotificationPermission(
 
     val requestPermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
         if (isGranted) {
+            onCanRequestNextPermissionChange(true)
             showRationaleDialog.value = false
             showSettingsDialog.value = false
         } else {
@@ -59,6 +66,8 @@ internal fun NotificationPermission(
                 val isGranted = context.isPermissionGranted(permission)
                 if (isGranted.not() && showRationaleDialog.value.not() && showSettingsDialog.value.not()) {
                     requestPermissionLauncher.launch(permission)
+                } else if (isGranted) {
+                    onCanRequestNextPermissionChange(true)
                 }
             }
         }

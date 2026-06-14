@@ -1,5 +1,7 @@
 package info.dvkr.screenstream.common
 
+import android.Manifest
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
@@ -7,7 +9,9 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.Color
+import android.net.Uri
 import android.os.Build
+import android.provider.Settings
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.createBitmap
@@ -50,6 +54,10 @@ public fun Context.findActivity(): Activity {
 public fun Context.isPermissionGranted(permission: String): Boolean =
     ContextCompat.checkSelfPermission(this, permission) == PackageManager.PERMISSION_GRANTED
 
+@SuppressLint("InlinedApi")
+public fun Context.isLocalNetworkPermissionGranted(): Boolean =
+    Build.VERSION.SDK_INT < 37 || isPermissionGranted(Manifest.permission.ACCESS_LOCAL_NETWORK)
+
 public fun Activity.shouldShowPermissionRationale(permission: String): Boolean =
     ActivityCompat.shouldShowRequestPermissionRationale(this, permission)
 
@@ -66,3 +74,7 @@ public fun Context.openStringUrl(url: String, onError: (Throwable) -> Unit = {})
         onError.invoke(it)
     }
 }
+
+public fun Context.getAppSettingsIntent(): Intent =
+    Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+        .setData(Uri.fromParts("package", packageName, null))

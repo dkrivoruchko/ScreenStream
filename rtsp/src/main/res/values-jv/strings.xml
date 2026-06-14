@@ -2,6 +2,7 @@
 <resources>
     <string name="rtsp_error_recover">Mulihake</string>
     <string name="rtsp_error_open_settings">Bukak setelan</string>
+    <string name="rtsp_error_local_network_permission_required">Akses jaringan lokal dibutuhake supaya piranti bisa nyambung menyang stream sampeyan.</string>
 
     <string name="rtsp_stream_mode">Mode RTSP · RTSP</string>
     <string name="rtsp_stream_mode_description">Streaming nganggo klien utawa server RTSP</string>

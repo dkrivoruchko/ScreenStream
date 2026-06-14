@@ -5,7 +5,6 @@ import android.content.Context
 import android.content.res.Resources
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
-import android.os.Build
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.mjpeg.R
@@ -162,7 +161,7 @@ internal class NetworkHelper(private val context: Context) {
                 val needsLocalhost = addressFilter == 0 || (addressFilter and MjpegSettings.Values.ADDRESS_LOCALHOST) != 0
                 if (isLoopback && needsLocalhost) return@filter true
 
-                !useStrictFiltering || Build.VERSION.SDK_INT < 24 || !nif.isVirtual
+                !useStrictFiltering || !nif.isVirtual
             }
             .forEach { nif ->
                 val transportMask = when {

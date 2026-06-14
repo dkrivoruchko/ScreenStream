@@ -2,6 +2,7 @@
 <resources>
     <string name="rtsp_error_recover">Rétablir</string>
     <string name="rtsp_error_open_settings">Ouvrir les paramètres</string>
+    <string name="rtsp_error_local_network_permission_required">L\'accès au réseau local est requis pour que les appareils puissent se connecter à votre diffusion.</string>
 
     <string name="rtsp_stream_mode">Mode RTSP · RTSP</string>
     <string name="rtsp_stream_mode_description">Diffuser avec un client ou serveur RTSP</string>

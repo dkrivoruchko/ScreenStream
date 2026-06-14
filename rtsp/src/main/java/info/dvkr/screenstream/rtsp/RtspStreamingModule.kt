@@ -26,7 +26,6 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import org.koin.core.parameter.parametersOf
-import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 public class RtspStreamingModule : StreamingModule {
@@ -59,6 +58,8 @@ public class RtspStreamingModule : StreamingModule {
             }
             .distinctUntilChanged()
 
+    override val requiresLocalNetworkPermission: Boolean = true
+
     override val nameResource: Int = R.string.rtsp_stream_mode
     override val descriptionResource: Int = R.string.rtsp_stream_mode_description
     override val detailsResource: Int = R.string.rtsp_stream_mode_details
@@ -76,7 +77,6 @@ public class RtspStreamingModule : StreamingModule {
             modifier = modifier
         )
 
-    @OptIn(ExperimentalUuidApi::class)
     @MainThread
     override fun startModule(context: Context) {
         XLog.d(getLog("startModule"))
@@ -193,6 +193,11 @@ public class RtspStreamingModule : StreamingModule {
         sendEvent(RtspEvent.Intentable.StopStream(reason))
     }
 
+    override fun recoverError() {
+        XLog.d(getLog("recoverError"))
+        sendEvent(RtspEvent.Intentable.RecoverError)
+    }
+
     @MainThread
     internal fun startProjection(startAttemptId: String, intent: Intent) {
         XLog.d(getLog("startProjection", "startAttemptId=$startAttemptId, intent=$intent"))
@@ -228,6 +233,7 @@ public class RtspStreamingModule : StreamingModule {
             else -> when (event) {
                 is RtspEvent.StartProjection,
                 is RtspEvent.CastPermissionsDenied,
+                is RtspEvent.Intentable.RecoverError,
                 is RtspEvent.Intentable.StopStream,
                 is RtspStreamingService.InternalEvent.StartStream ->
                     XLog.i(getLog("sendEvent", "Ignoring stale event in state=$state: $event"))

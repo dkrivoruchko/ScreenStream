@@ -3,14 +3,6 @@
     <string name="app_error_title">Errore</string>
     <string name="app_error_recover">Ripristina</string>
 
-    <string name="app_logs_collecting">Recupero del registro dell\'app…</string>
-    <string name="app_logs_send_title">Invia registro allo sviluppatore</string>
-    <string name="app_logs_send_message">Aggiungi una descrizione del problema:</string>
-    <string name="app_logs_send">Invia</string>
-    <string name="app_logs_enabled">Registrazione abilitata</string>
-    <string name="app_logs_disabled">Registrazione disabilitata</string>
-    <string name="app_logs_stop">Ferma il registro</string>
-
     <string name="app_activity_update_dialog_title">Aggiornamento disponibile</string>
     <string name="app_activity_update_dialog_message">È stato scaricato un aggiornamento. Riavviare l\'app adesso?</string>
     <string name="app_activity_update_dialog_restart">Riavvia</string>
@@ -26,6 +18,12 @@
     <string name="app_permission_allow_notifications">Questa app richiede l\'autorizzazione alle notifiche per avviare il servizio di streaming.\n\nConsenti le notifiche.</string>
     <string name="app_permission_allow_notifications_settings">Questa app richiede l\'autorizzazione alle notifiche per avviare il servizio di streaming.\n\nAttiva le notifiche nelle impostazioni dell\'app.</string>
     <string name="app_permission_notification_settings">Apri impostazioni</string>
+    <string name="app_permission_local_network_title">Accesso alla rete locale richiesto</string>
+    <string name="app_permission_local_network_message">Consenti a ScreenStream di usare la tua rete locale così i dispositivi possono connettersi allo streaming.</string>
+    <string name="app_permission_local_network_off_title">Accesso alla rete locale disattivato</string>
+    <string name="app_permission_local_network_settings_message">Attiva l\'accesso alla rete locale nelle impostazioni Android per condividere lo schermo con i dispositivi.</string>
+    <string name="app_permission_open_settings">Apri impostazioni</string>
+    <string name="app_permission_try_again">Riprova</string>
 
     <string name="app_notification_channel_streaming">Notifiche di streaming</string>
     <string name="app_notification_channel_error">Notifiche di errore</string>
@@ -36,7 +34,6 @@
     <string name="app_tile_start">Avvia</string>
     <string name="app_tile_stop">Ferma</string>
 
-    <string name="app_pref_close">Chiudi</string>
     <string name="app_pref_back">Indietro</string>
     <string name="app_pref_settings">Impostazioni</string>
     <string name="app_pref_locale">Lingua dell\'applicazione</string>
@@ -59,14 +56,10 @@
     <string name="app_pref_notification_summary">Apri impostazioni di notifica di sistema</string>
     <string name="app_pref_tile">Aggiungi riquadro applicazione</string>
     <string name="app_pref_tile_summary">Aggiungi riquadro applicazione alle Impostazioni rapide</string>
-    <string name="app_pref_logging">Attiva registro dell\'applicazione</string>
-    <string name="app_pref_logging_summary">Raccogli il registro dell\'applicazione</string>
 
     <string name="app_tab_about_app_version">Versione: %1$s</string>
     <string name="app_tab_about_developer_name">Sviluppato da Dmytro Kryvoruchko</string>
     <string name="app_tab_about_rate_app">Valuta l\'app</string>
-    <string name="app_tab_about_write_email">Scrivi email allo sviluppatore</string>
-    <string name="app_tab_about_email_chooser_header">Invio dell\'email…</string>
     <string name="app_tab_about_app_sources">Sorgenti dell\'applicazione</string>
     <string name="app_tab_about_terms_conditions">Termini e Condizioni</string>
     <string name="app_tab_about_privacy_policy">Informativa sulla Privacy</string>

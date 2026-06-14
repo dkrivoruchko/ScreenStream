@@ -32,7 +32,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.runBlocking
 import org.koin.android.ext.android.get
 
-@RequiresApi(Build.VERSION_CODES.N)
 public class TileActionService : TileService() {
 
     internal companion object {

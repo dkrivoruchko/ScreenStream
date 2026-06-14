@@ -24,7 +24,6 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import org.koin.core.parameter.parametersOf
-import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 public class MjpegStreamingModule : StreamingModule {
@@ -54,6 +53,8 @@ public class MjpegStreamingModule : StreamingModule {
             }
         }.distinctUntilChanged()
 
+    override val requiresLocalNetworkPermission: Boolean = true
+
     override val nameResource: Int = R.string.mjpeg_stream_mode
     override val descriptionResource: Int = R.string.mjpeg_stream_mode_description
     override val detailsResource: Int = R.string.mjpeg_stream_mode_details
@@ -71,7 +72,6 @@ public class MjpegStreamingModule : StreamingModule {
             modifier = modifier
         )
 
-    @OptIn(ExperimentalUuidApi::class)
     @MainThread
     override fun startModule(context: Context) {
         XLog.d(getLog("startModule"))
@@ -187,6 +187,11 @@ public class MjpegStreamingModule : StreamingModule {
         sendEvent(MjpegEvent.Intentable.StopStream(reason))
     }
 
+    override fun recoverError() {
+        XLog.d(getLog("recoverError"))
+        sendEvent(MjpegEvent.Intentable.RecoverError)
+    }
+
     @MainThread
     internal fun startProjection(startAttemptId: String, intent: Intent) {
         XLog.d(getLog("startProjection", "startAttemptId=$startAttemptId, intent=$intent"))
@@ -222,6 +227,7 @@ public class MjpegStreamingModule : StreamingModule {
             else -> when (event) {
                 is MjpegEvent.CastPermissionsDenied,
                 is MjpegEvent.StartProjection,
+                is MjpegEvent.Intentable.RecoverError,
                 is MjpegEvent.Intentable.StopStream,
                 is MjpegStreamingService.InternalEvent.StartStream ->
                     XLog.i(getLog("sendEvent", "Ignoring stale event $event in state $state"))

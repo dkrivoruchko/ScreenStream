@@ -2,6 +2,7 @@
 <resources>
     <string name="rtsp_error_recover">Recuperar</string>
     <string name="rtsp_error_open_settings">Abrir configurações</string>
+    <string name="rtsp_error_local_network_permission_required">O acesso à rede local é necessário para que dispositivos possam se conectar à sua transmissão.</string>
 
     <string name="rtsp_stream_mode">Modo RTSP · RTSP</string>
     <string name="rtsp_stream_mode_description">Transmitir com cliente ou servidor RTSP</string>

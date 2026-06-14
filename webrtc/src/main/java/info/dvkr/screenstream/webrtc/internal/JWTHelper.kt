@@ -1,15 +1,11 @@
 package info.dvkr.screenstream.webrtc.internal
 
-import android.os.Build
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.Base64
-import android.view.View
-import androidx.core.text.layoutDirection
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.common.getLog
 import org.json.JSONObject
-import java.security.KeyFactory
 import java.security.KeyPair
 import java.security.KeyPairGenerator
 import java.security.KeyStore
@@ -18,10 +14,7 @@ import java.security.ProviderException
 import java.security.PublicKey
 import java.security.SecureRandom
 import java.security.Signature
-import java.security.interfaces.ECPublicKey
 import java.security.spec.ECGenParameterSpec
-import java.security.spec.X509EncodedKeySpec
-import java.util.Locale
 import javax.security.auth.x500.X500Principal
 
 internal object JWTHelper {
@@ -105,14 +98,8 @@ internal object JWTHelper {
 
     @Throws
     internal fun createKey() {
-        // Workaround for known date parsing issue in KeyPairGenerator class https://issuetracker.google.com/issues/37095309
-        val currentLocale = Locale.getDefault()
-        val applyFix = Build.VERSION.SDK_INT == Build.VERSION_CODES.M && currentLocale.layoutDirection == View.LAYOUT_DIRECTION_RTL
-
         runCatching {
-            XLog.d(getLog("createKey", "Key alias: $KEY_ALIAS, applyFix: $applyFix"))
-
-            if (applyFix) Locale.setDefault(Locale.ENGLISH)
+            XLog.d(getLog("createKey", "Key alias: $KEY_ALIAS"))
 
             val parameterSpec = KeyGenParameterSpec.Builder(KEY_ALIAS, KeyProperties.PURPOSE_SIGN)
                 .setCertificateSubject(X500Principal("CN=$KEY_ALIAS"))
@@ -124,11 +111,8 @@ internal object JWTHelper {
                 initialize(parameterSpec)
                 generateKeyPair()
             }
-
-            if (applyFix) Locale.setDefault(currentLocale)
         }
             .onFailure {
-                if (applyFix) Locale.setDefault(currentLocale)
                 XLog.e(getLog("createKey", "Key alias: $KEY_ALIAS"), it)
             }
             .getOrThrow()
@@ -185,11 +169,7 @@ internal object JWTHelper {
     private fun getPublicKeyAsString(publicKey: PublicKey = getPublicKey()): String {
         XLog.d(getLog("getPublicKeyAsString", "Alias: $KEY_ALIAS"))
 
-        // https://developer.android.com/reference/android/security/keystore/KeyGenParameterSpec#known-issues
-        val publicKeyFixed = if (Build.VERSION.SDK_INT != Build.VERSION_CODES.M) publicKey
-        else (KeyFactory.getInstance(publicKey.algorithm).generatePublic(X509EncodedKeySpec(publicKey.encoded)) as ECPublicKey)
-
-        return BEGIN_PUBLIC_KEY + "\n" + Base64.encodeToString(publicKeyFixed.encoded, Base64.NO_WRAP) + "\n" + END_PUBLIC_KEY
+        return BEGIN_PUBLIC_KEY + "\n" + Base64.encodeToString(publicKey.encoded, Base64.NO_WRAP) + "\n" + END_PUBLIC_KEY
     }
 
     private fun getPrivateKey(): PrivateKey {

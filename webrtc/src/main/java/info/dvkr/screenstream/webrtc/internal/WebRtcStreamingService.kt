@@ -65,10 +65,9 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.math.min
 import kotlin.math.pow
-import kotlin.uuid.ExperimentalUuidApi
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.uuid.Uuid
 
-@OptIn(ExperimentalUuidApi::class)
 internal class WebRtcStreamingService(
     private val service: WebRtcModuleService,
     private val mutableWebRtcStateFlow: MutableStateFlow<WebRtcState>,
@@ -484,7 +483,7 @@ internal class WebRtcStreamingService(
 
         val destroyJob = Job()
         sendEvent(InternalEvent.Destroy(destroyJob))
-        withTimeoutOrNull(3000) { destroyJob.join() } ?: XLog.w(getLog("destroyService", "Timeout"))
+        withTimeoutOrNull(3000.milliseconds) { destroyJob.join() } ?: XLog.w(getLog("destroyService", "Timeout"))
 
         handler.removeCallbacksAndMessages(null)
 

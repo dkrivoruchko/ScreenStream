@@ -2,6 +2,7 @@
 <resources>
     <string name="rtsp_error_recover">აღდგენა</string>
     <string name="rtsp_error_open_settings">პარამეტრების გახსნა</string>
+    <string name="rtsp_error_local_network_permission_required">ლოკალურ ქსელზე წვდომა საჭიროა, რათა მოწყობილობები თქვენს ნაკადს დაუკავშირდნენ.</string>
 
     <string name="rtsp_stream_mode">RTSP რეჟიმი · RTSP</string>
     <string name="rtsp_stream_mode_description">სტრიმინგი RTSP კლიენტით ან სერვერით</string>

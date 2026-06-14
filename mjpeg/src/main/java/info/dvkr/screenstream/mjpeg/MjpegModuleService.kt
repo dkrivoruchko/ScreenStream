@@ -114,7 +114,7 @@ public class MjpegModuleService : StreamingModuleService() {
     }
 
     internal fun showErrorNotification(error: MjpegError) {
-        if (error is MjpegError.NotificationPermissionRequired) return
+        if (error is MjpegError.NotificationPermissionRequired || error is MjpegError.LocalNetworkPermissionRequired) return
 
         if (error is MjpegError.AddressNotFoundException || error is MjpegError.AddressInUseException) {
             XLog.i(getLog("showErrorNotification", "${error.javaClass.simpleName} ${error.cause}"))

@@ -17,6 +17,7 @@ import kotlinx.coroutines.launch
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import kotlin.math.abs
+import kotlin.time.Duration.Companion.milliseconds
 
 @RequiresApi(Build.VERSION_CODES.Q)
 internal class MixAudioSource(
@@ -25,7 +26,7 @@ internal class MixAudioSource(
     mediaProjection: MediaProjection,
     private val dispatcher: CoroutineDispatcher,
     private val onAudioFrame: (AudioSource.Frame) -> Unit,
-    private val onCaptureError: (Throwable) -> Unit,
+    onCaptureError: (Throwable) -> Unit,
     private val micMixFactor: Float = 1.0f,
     private val intMixFactor: Float = 0.25f,
 ) : AudioSource {
@@ -106,7 +107,7 @@ internal class MixAudioSource(
 
                 nextPtsUs += chunkDurationUs
                 val sleepUs = nextPtsUs - MasterClock.relativeTimeUs()
-                if (sleepUs > 0) delay((sleepUs / 1000L).coerceAtLeast(1L))
+                if (sleepUs > 0) delay((sleepUs / 1000L).coerceAtLeast(1L).milliseconds)
             }
         }
     }

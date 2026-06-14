@@ -41,6 +41,9 @@ public interface StreamingModule {
 
     public val hasActiveConsumer: Flow<Boolean>
 
+    public val requiresLocalNetworkPermission: Boolean
+        get() = false
+
     @get:StringRes
     public val nameResource: Int
 
@@ -61,6 +64,9 @@ public interface StreamingModule {
 
     @MainThread
     public fun stopStream(reason: String)
+
+    @MainThread
+    public fun recoverError(): Unit = Unit
 
     public class StartBlockedException(
         public val moduleId: Id,

@@ -46,7 +46,6 @@ internal class WebRtcClient(
         fun onError(key: NegotiationKey, cause: Throwable)
     }
 
-    @OptIn(ExperimentalStdlibApi::class)
     internal val publicId: String = CRC32().apply { update(clientId.value.encodeToByteArray()) }.value.toHexString().takeLast(8).uppercase()
 
     private enum class State { CREATED, PENDING_OFFER, LOCAL_OFFER_SET }

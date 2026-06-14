@@ -2,6 +2,7 @@
     <string name="mjpeg_error_recover">Kurtar</string>
     <string name="mjpeg_error_open_settings">Ayarları aç</string>
     <string name="mjpeg_close">Kapat</string>
+    <string name="mjpeg_error_local_network_permission_required">Cihazların yayınınıza bağlanabilmesi için yerel ağ erişimi gereklidir.</string>
 
     <string name="mjpeg_stream_mode">Yerel mod · MJPEG</string>
     <string name="mjpeg_stream_mode_description">Yerel ağınızda yayın yapın</string>

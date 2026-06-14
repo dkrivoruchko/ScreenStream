@@ -20,6 +20,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeout
 import java.io.IOException
 import kotlin.coroutines.CoroutineContext
+import kotlin.time.Duration.Companion.milliseconds
 
 internal class TcpStreamSocket private constructor(
     private val tlsCoroutineContext: CoroutineContext,
@@ -71,7 +72,7 @@ internal class TcpStreamSocket private constructor(
 
     internal suspend fun connect() {
         if (tcpSocket != null) return
-        withTimeout(10_000) {
+        withTimeout(10_000.milliseconds) {
             tcpSocket = aSocket(selectorManager)
                 .tcp()
                 .connect(InetSocketAddress(remoteHost, remotePort)) { keepAlive = true; noDelay = true }

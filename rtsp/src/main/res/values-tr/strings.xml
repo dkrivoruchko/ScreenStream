@@ -2,6 +2,7 @@
 <resources>
     <string name="rtsp_error_recover">Kurtar</string>
     <string name="rtsp_error_open_settings">Ayarları aç</string>
+    <string name="rtsp_error_local_network_permission_required">Cihazların yayınınıza bağlanabilmesi için yerel ağ erişimi gereklidir.</string>
 
     <string name="rtsp_stream_mode">RTSP modu · RTSP</string>
     <string name="rtsp_stream_mode_description">RTSP istemcisi veya sunucusuyla yayın yapın</string>

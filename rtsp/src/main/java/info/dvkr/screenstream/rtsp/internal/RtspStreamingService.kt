@@ -33,6 +33,7 @@ import info.dvkr.screenstream.common.analytics.StreamingAnalytics
 import info.dvkr.screenstream.common.analytics.StreamingSessionAnalyticsTracker
 import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.common.getVersionName
+import info.dvkr.screenstream.common.isLocalNetworkPermissionGranted
 import info.dvkr.screenstream.common.module.ProjectionCoordinator
 import info.dvkr.screenstream.rtsp.R
 import info.dvkr.screenstream.rtsp.RtspModuleService
@@ -73,10 +74,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeoutOrNull
 import java.net.URISyntaxException
-import kotlin.uuid.ExperimentalUuidApi
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.uuid.Uuid
 
-@OptIn(ExperimentalUuidApi::class)
 internal class RtspStreamingService(
     private val service: RtspModuleService,
     private val mutableRtspStateFlow: MutableStateFlow<RtspState>,
@@ -295,6 +295,12 @@ internal class RtspStreamingService(
 
             when (event) {
                 is InternalEvent.RtspServer.DiscoverAddress -> {
+                    if (service.isLocalNetworkPermissionGranted().not()) {
+                        clearServer()
+                        currentError = RtspError.LocalNetworkPermissionRequired()
+                        return
+                    }
+
                     clearServer()
 
                     runCatching {
@@ -405,7 +411,7 @@ internal class RtspStreamingService(
             statsHeartbeatJob = coroutineScope.launch {
                 while (isActive) {
                     sendEvent(InternalEvent.RtspServer.OnClientStats(generation))
-                    delay(1000)
+                    delay(1000.milliseconds)
                 }
             }
         }
@@ -477,6 +483,12 @@ internal class RtspStreamingService(
         private var generation: Long = 0L
 
         fun startClient(rtspUrl: RtspUrl, onlyVideo: Boolean) {
+            if (service.isLocalNetworkPermissionGranted().not()) {
+                stop()
+                currentError = RtspError.LocalNetworkPermissionRequired()
+                status = RtspClientStatus.ERROR
+                return
+            }
             currentError = null
             client = RtspClient(appVersion, ++generation, rtspUrl, rtspSettings.data.value.clientProtocol, onlyVideo) {
                 XLog.d(getLog("RtspClient.sendEvent", it.toString()))
@@ -485,6 +497,12 @@ internal class RtspStreamingService(
         }
 
         fun connect() {
+            if (service.isLocalNetworkPermissionGranted().not()) {
+                stop()
+                currentError = RtspError.LocalNetworkPermissionRequired()
+                status = RtspClientStatus.ERROR
+                return
+            }
             currentError = null
             status = RtspClientStatus.STARTING
             client?.connect()
@@ -682,7 +700,7 @@ internal class RtspStreamingService(
         }
 
         coroutineScope.launch {
-            delay(250)
+            delay(250.milliseconds)
             if (settingsLoaded) return@launch
 
             settingsLoaded = true
@@ -702,7 +720,7 @@ internal class RtspStreamingService(
 
         val destroyJob = Job()
         sendEvent(InternalEvent.Destroy(destroyJob))
-        withTimeoutOrNull(3000) { destroyJob.join() } ?: XLog.w(getLog("destroyService", "Timeout"))
+        withTimeoutOrNull(3000.milliseconds) { destroyJob.join() } ?: XLog.w(getLog("destroyService", "Timeout"))
 
         handler.removeCallbacksAndMessages(null)
 
@@ -820,7 +838,9 @@ internal class RtspStreamingService(
             if (previousError != currentError) {
                 previousError = currentError
                 val notifyError = currentError?.takeUnless {
-                    it is RtspError.ClientError || it is RtspError.NotificationPermissionRequired
+                    it is RtspError.ClientError ||
+                            it is RtspError.NotificationPermissionRequired ||
+                            it is RtspError.LocalNetworkPermissionRequired
                 }
                 notifyError?.let { service.showErrorNotification(it) } ?: service.hideErrorNotification()
             }
@@ -933,6 +953,11 @@ internal class RtspStreamingService(
                             "Not ready. mode=$mode blockedByError=$blockedByError serverReady=${serverController?.isActive == true} clientReady=${clientController != null} videoReady=${selectedVideoEncoderInfo != null} audioReady=${!audioEnabled || selectedAudioEncoderInfo != null}"
                         )
                     )
+                    return
+                }
+                if (service.isLocalNetworkPermissionGranted().not()) {
+                    currentError = RtspError.LocalNetworkPermissionRequired()
+                    if (mode == RtspSettings.Values.Mode.CLIENT) clientController?.status = RtspClientStatus.ERROR
                     return
                 }
                 sessionAnalyticsTracker.onStartAttempt(

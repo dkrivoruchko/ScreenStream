@@ -5,10 +5,11 @@ import android.content.pm.ApplicationInfo
 import android.os.Build
 import android.os.StrictMode
 import com.elvishew.xlog.LogConfiguration
-import com.jakewharton.processphoenix.ProcessPhoenix
+import com.elvishew.xlog.XLog
+import com.elvishew.xlog.printer.AndroidPrinter
+import com.elvishew.xlog.printer.Printer
 import info.dvkr.screenstream.common.analytics.StreamingAnalytics
 import info.dvkr.screenstream.common.notification.NotificationHelper
-import info.dvkr.screenstream.logger.AppLogger
 import info.dvkr.screenstream.notification.NotificationHelperImpl
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.context.startKoin
@@ -18,16 +19,16 @@ import org.koin.dsl.module
 
 public abstract class BaseApp : Application() {
 
-    public abstract fun configureLogger(builder: LogConfiguration.Builder)
+    protected open fun configureReleaseLogger(builder: LogConfiguration.Builder): Unit = Unit
 
     public abstract val streamingModules: Array<Module>
 
     override fun onCreate() {
         super.onCreate()
 
-        if (ProcessPhoenix.isPhoenixProcess(this)) return
+        val isDebuggable = applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0
 
-        if (applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0) {
+        if (isDebuggable) {
             StrictMode.setThreadPolicy(
                 StrictMode.ThreadPolicy.Builder()
                     .detectAll()
@@ -57,7 +58,7 @@ public abstract class BaseApp : Application() {
             )
         }
 
-        AppLogger.init(this, ::configureLogger)
+        initLogger(isDebuggable)
 
         val defaultModule = module {
             single(createdAtStart = true) { AdMob(get()) }
@@ -70,5 +71,15 @@ public abstract class BaseApp : Application() {
             androidContext(this@BaseApp)
             modules(defaultModule, *streamingModules)
         }
+    }
+
+    private fun initLogger(isDebuggable: Boolean) {
+        val logConfiguration = LogConfiguration.Builder()
+            .tag("SSApp")
+            .apply { if (isDebuggable.not()) configureReleaseLogger(this) }
+            .build()
+        val printers = if (isDebuggable) arrayOf<Printer>(AndroidPrinter()) else emptyArray()
+
+        XLog.init(logConfiguration, *printers)
     }
 }

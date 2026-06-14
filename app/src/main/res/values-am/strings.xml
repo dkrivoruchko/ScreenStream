@@ -3,14 +3,6 @@
     <string name="app_error_title">ስህተት</string>
     <string name="app_error_recover">ማገገም</string>
 
-    <string name="app_logs_collecting">የመተግበሪያ ምዝግብ ማስታወሻዎችን በመሰብሰብ ላይ…</string>
-    <string name="app_logs_send_title">ምዝግብ ማስታወሻዎችን ለገንቢ ይላኩ።</string>
-    <string name="app_logs_send_message">እባክዎ የችግኙን መግለጫ ያክሉ፡</string>
-    <string name="app_logs_send">ላክ</string>
-    <string name="app_logs_enabled">ሎግ መያዝ ነቅቷል።</string>
-    <string name="app_logs_disabled">ሎግ መያዝ ተሰናክሏል።</string>
-    <string name="app_logs_stop">ሎግ መያዝ አቁም</string>
-
     <string name="app_activity_update_dialog_title">ማዘመን አለ።</string>
     <string name="app_activity_update_dialog_message">አንድ ዝማኔ አሁን ወርዷል። መተግበሪያ አሁን ዳግም ይጀመር?</string>
     <string name="app_activity_update_dialog_restart">እንደገና ጀምር</string>
@@ -26,6 +18,12 @@
     <string name="app_permission_allow_notifications">ይህ መተግበሪያ የዥረት አገልግሎቱን ለመጀመር የማሳወቂያ ፈቃድ ይፈልጋል።\n\nማሳወቂያዎችን ይፍቀዱ።</string>
     <string name="app_permission_allow_notifications_settings">ይህ መተግበሪያ የዥረት አገልግሎቱን ለመጀመር የማሳወቂያ ፈቃድ ይፈልጋል።\n\nበመተግበሪያ ቅንብሮች ውስጥ ማሳወቂያዎችን ያንቁ።</string>
     <string name="app_permission_notification_settings">ቅንብሮችን ይክፈቱ</string>
+    <string name="app_permission_local_network_title">የአካባቢ አውታረ መረብ መዳረሻ ያስፈልጋል</string>
+    <string name="app_permission_local_network_message">መሣሪያዎች ወደ ስርጭትዎ እንዲገናኙ ScreenStream የአካባቢ አውታረ መረብዎን እንዲጠቀም ይፍቀዱ።</string>
+    <string name="app_permission_local_network_off_title">የአካባቢ አውታረ መረብ መዳረሻ ጠፍቷል</string>
+    <string name="app_permission_local_network_settings_message">ማያዎን ከመሣሪያዎች ጋር ለማጋራት በAndroid ቅንብሮች ውስጥ የአካባቢ አውታረ መረብ መዳረሻን ያንቁ።</string>
+    <string name="app_permission_open_settings">ቅንብሮችን ይክፈቱ</string>
+    <string name="app_permission_try_again">እንደገና ይሞክሩ</string>
 
     <string name="app_notification_channel_streaming">የዥረት ማሳወቂያዎች</string>
     <string name="app_notification_channel_error">የስህተት ማሳወቂያዎች</string>
@@ -36,7 +34,6 @@
     <string name="app_tile_start">ጀምር</string>
     <string name="app_tile_stop">ተወ</string>
 
-    <string name="app_pref_close">ዝጋ</string>
     <string name="app_pref_back">ተመለስ</string>
     <string name="app_pref_settings">ቅንብሮች</string>
     <string name="app_pref_locale">የመተግበሪያ ቋንቋ</string>
@@ -59,14 +56,10 @@
     <string name="app_pref_notification_summary">የስርዓት ማሳወቂያ ቅንብሮችን ክፈት</string>
     <string name="app_pref_tile">የመተግበሪያ ፈጣን ቅንብር ቁልፍ ያክሉ</string>
     <string name="app_pref_tile_summary">የመተግበሪያ ፈጣን ቅንብር ቁልፍን ወደ ፈጣን ቅንብሮች ያክሉ</string>
-    <string name="app_pref_logging">የመተግበሪያ ምዝግብ ማስታወሻዎችን አንቃ</string>
-    <string name="app_pref_logging_summary">የመተግበሪያ ምዝግብ ማስታወሻዎችን ይሰብስቡ</string>
 
     <string name="app_tab_about_app_version">ስሪት፡ %1$s</string>
     <string name="app_tab_about_developer_name">በዲሚትሮ Kryvoruchko የተሰራ</string>
     <string name="app_tab_about_rate_app">መተግበሪያ ደረጃ ይስጡ</string>
-    <string name="app_tab_about_write_email">ለገንቢ ኢሜይል ይጻፉ</string>
-    <string name="app_tab_about_email_chooser_header">ኢሜይል በመላክ ላይ…</string>
     <string name="app_tab_about_app_sources">የመተግበሪያ ምንጮች</string>
     <string name="app_tab_about_terms_conditions">ውሎች እና ሁኔታዎች</string>
     <string name="app_tab_about_privacy_policy">የግላዊነት ፖሊሲ</string>

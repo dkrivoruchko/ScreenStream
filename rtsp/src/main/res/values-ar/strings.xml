@@ -2,6 +2,7 @@
 <resources>
     <string name="rtsp_error_recover">استعادة</string>
     <string name="rtsp_error_open_settings">فتح الإعدادات</string>
+    <string name="rtsp_error_local_network_permission_required">مطلوب الوصول إلى الشبكة المحلية حتى تتمكن الأجهزة من الاتصال بالبث.</string>
 
     <string name="rtsp_stream_mode">وضع RTSP · RTSP</string>
     <string name="rtsp_stream_mode_description">البث عبر عميل أو خادم RTSP</string>

@@ -21,6 +21,7 @@ public abstract class StreamingModuleService : Service() {
 
     protected val processedIntents: MutableSet<String> = mutableSetOf()
 
+    @Suppress("RedundantVisibilityModifier")
     protected companion object {
         public const val INTENT_ID: String = "info.dvkr.screenstream.intent.ID"
 
