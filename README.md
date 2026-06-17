@@ -34,7 +34,7 @@ ScreenStream offers three stream modes: **Global mode (WebRTC)** (available only
 
 In **Global mode (WebRTC)** and **Local mode (MJPEG)**, the number of clients is not directly limited, but each client uses CPU resources and separate bandwidth.
 
-ScreenStream uses Android's [MediaProjection](https://developer.android.com/reference/android/media/projection/MediaProjection) API and requires Android 6.0 or higher.
+ScreenStream uses Android's [MediaProjection](https://developer.android.com/reference/android/media/projection/MediaProjection) API and requires Android 7.0 or higher.
 
 > [!WARNING]
 >
@@ -125,6 +125,7 @@ For optimal performance, a fast and stable network connection is recommended due
 - Client mode connects to a remote RTSP server (e.g., MediaMTX).
 - Supports video and audio with codec configuration.
 - Server mode adds protocol, interface/address filters, IPv4/IPv6, and port settings.
+- Optional ONVIF discovery lets compatible clients find RTSP server streams; H.264 only.
 - Requires an RTSP client or player for viewing.
 - Tested with [VLC media player](https://www.videolan.org/vlc/), [FFplay](https://ffmpeg.org/ffplay.html), [mpv](https://mpv.io/), and [gst-play-1.0](https://gstreamer.freedesktop.org/) (GStreamer) players.
 
