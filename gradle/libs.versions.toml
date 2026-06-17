@@ -35,9 +35,9 @@ okhttp = "5.4.0"
 #PlayStore-App
 play-app-update = "2.1.0"
 play-app-review = "2.0.2"
-ads-mobile-sdk = "1.2.0"
-firebase-bom = "34.14.1"
-google-services = "4.4.4"
+ads-mobile-sdk = "1.2.1"
+firebase-bom = "34.15.0"
+google-services = "4.5.0"
 crashlytics-gradle = "3.0.7"
 
 [libraries]
