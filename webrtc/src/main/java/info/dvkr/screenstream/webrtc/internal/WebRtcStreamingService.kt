@@ -599,11 +599,6 @@ internal class WebRtcStreamingService(
                         XLog.w(getLog("GetNonce", "Error present. Ignoring. [$error]"))
                         if (error is WebRtcError.PlayIntegrityError && error.isExpectedEnvironmentIssue()) {
                             XLog.i(getLog("GetNonce", "Expected Play Integrity environment issue. code=${error.code}."))
-                        } else {
-                            XLog.w(
-                                getLog("GetNonce", "Error present. Ignoring. [$error]"),
-                                RuntimeException("GetNonce: Error present. Ignoring. [$error]", error)
-                            )
                         }
                         return
                     }

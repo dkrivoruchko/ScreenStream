@@ -37,8 +37,8 @@ internal class ScreenCapturePermissionViewModel(
         data object Idle : PermissionState
         data object EducationRequired : PermissionState
         data class LaunchRequested(val attemptId: String) : PermissionState
-        data class WaitingForResult(val attemptId: String) : PermissionState
-        data class GrantReceived(val attemptId: String, val intent: Intent, val receivedAtElapsedMs: Long) : PermissionState
+        data class WaitingForResult(val attemptId: String, val launchedAtElapsedMs: Long) : PermissionState
+        data class GrantReceived(val attemptId: String, val intent: Intent, val receivedAtElapsedMs: Long, val permissionUiDurationMs: Long) : PermissionState
         data object RetryRequired : PermissionState
     }
 
@@ -86,8 +86,9 @@ internal class ScreenCapturePermissionViewModel(
     internal fun onLaunchStarted(startAttemptId: String): Boolean {
         val launchRequested = state as? PermissionState.LaunchRequested ?: return false
         if (launchRequested.attemptId != startAttemptId) return false
-        XLog.i(getLog("ScreenCapturePermission", "MP_UI launch id=$startAttemptId"))
-        state = PermissionState.WaitingForResult(startAttemptId)
+        val launchedAtElapsedMs = SystemClock.elapsedRealtime()
+        XLog.i(getLog("ScreenCapturePermission", "MP_UI launch id=$startAttemptId t=$launchedAtElapsedMs"))
+        state = PermissionState.WaitingForResult(startAttemptId, launchedAtElapsedMs)
         return true
     }
 
@@ -111,11 +112,12 @@ internal class ScreenCapturePermissionViewModel(
         val attemptId = waitingForResult?.attemptId
         val resultOk = resultCode == Activity.RESULT_OK
         val hasData = data != null
+        val permissionUiDurationMs = waitingForResult?.let { SystemClock.elapsedRealtime() - it.launchedAtElapsedMs } ?: -1L
         XLog.i(
             getLog(
                 "ScreenCapturePermission",
                 "MP_UI result id=${attemptId ?: "none"} current=${currentStartAttemptId ?: "none"} ok=$resultOk " +
-                        "data=$hasData resumed=$lifecycleResumed state=${state.name}"
+                        "data=$hasData resumed=$lifecycleResumed state=${state.name} permissionUiMs=$permissionUiDurationMs"
             )
         )
 
@@ -125,7 +127,8 @@ internal class ScreenCapturePermissionViewModel(
             state = PermissionState.GrantReceived(
                 attemptId = activeAttemptId,
                 intent = data,
-                receivedAtElapsedMs = SystemClock.elapsedRealtime()
+                receivedAtElapsedMs = SystemClock.elapsedRealtime(),
+                permissionUiDurationMs = permissionUiDurationMs
             )
             if (lifecycleResumed.not()) {
                 XLog.i(getLog("ScreenCapturePermission", "MP_UI result_pending_resume id=$activeAttemptId current=${currentStartAttemptId ?: "none"}"))
@@ -154,14 +157,14 @@ internal class ScreenCapturePermissionViewModel(
 
         val waitMs = grant.waitMs()
         if (waitMs >= GRANT_DELIVERY_TIMEOUT.inWholeMilliseconds) {
-            XLog.i(getLog("ScreenCapturePermission", "MP_UI result_timeout id=${grant.attemptId} waitMs=$waitMs source=deliver"))
+            XLog.i(getLog("ScreenCapturePermission", "MP_UI result_timeout id=${grant.attemptId} waitMs=$waitMs permissionUiMs=${grant.permissionUiDurationMs} source=deliver"))
             state = PermissionState.RetryRequired
             onPermissionDenied?.invoke(grant.attemptId)
             return false
         }
 
         state = PermissionState.Idle
-        XLog.i(getLog("ScreenCapturePermission", "MP_UI result_delivered id=${grant.attemptId} waitMs=$waitMs"))
+        XLog.i(getLog("ScreenCapturePermission", "MP_UI result_delivered id=${grant.attemptId} waitMs=$waitMs permissionUiMs=${grant.permissionUiDurationMs}"))
         onPermissionGranted(grant.attemptId, grant.intent)
         return true
     }
@@ -173,7 +176,7 @@ internal class ScreenCapturePermissionViewModel(
         if (waitMs < GRANT_DELIVERY_TIMEOUT.inWholeMilliseconds) return
 
         state = PermissionState.RetryRequired
-        XLog.i(getLog("ScreenCapturePermission", "MP_UI result_timeout id=$startAttemptId waitMs=$waitMs source=timer"))
+        XLog.i(getLog("ScreenCapturePermission", "MP_UI result_timeout id=$startAttemptId waitMs=$waitMs permissionUiMs=${grant.permissionUiDurationMs} source=timer"))
         onPermissionDenied(startAttemptId)
     }
 

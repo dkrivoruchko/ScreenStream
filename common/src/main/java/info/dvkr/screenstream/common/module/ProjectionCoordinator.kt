@@ -1,6 +1,7 @@
 package info.dvkr.screenstream.common.module
 
 import android.app.Activity
+import android.app.ActivityManager
 import android.app.ForegroundServiceTypeException
 import android.app.ServiceStartNotAllowedException
 import android.content.Intent
@@ -83,6 +84,9 @@ public class ProjectionCoordinator(
         return ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION
     }
 
+    private fun currentProcessImportance(): Int =
+        ActivityManager.RunningAppProcessInfo().also { ActivityManager.getMyMemoryState(it) }.importance
+
     public fun startForegroundForProjection(requiresAudioForegroundService: Boolean): Throwable? {
         val pending = synchronized(lock) {
             if (pendingStart != null || activeSession != null) {
@@ -100,16 +104,37 @@ public class ProjectionCoordinator(
         }
 
         try {
-            startForeground(getInitialForegroundServiceType(pending.requiresAudioForegroundService))
+            val fgsType = getInitialForegroundServiceType(pending.requiresAudioForegroundService)
+            val startedBeforeMs = SystemClock.elapsedRealtime()
+            XLog.i(
+                getLog(
+                    "startForegroundForProjection[$tag]",
+                    "SP_DIAG stage=fgs_start_request generation=${pending.generation} fgsType=$fgsType " +
+                            "requiresAudioFgs=${pending.requiresAudioForegroundService} importance=${currentProcessImportance()} thread=${Thread.currentThread().name}"
+                )
+            )
+            startForeground(fgsType)
             val startedAt = SystemClock.elapsedRealtime()
             synchronized(lock) {
                 if (pendingStart?.generation == pending.generation) pendingStart = pending.copy(foregroundStartedAtMs = startedAt)
             }
-            XLog.i(getLog("startForegroundForProjection[$tag]", "Started. generation=${pending.generation}, requiresAudioFgs=${pending.requiresAudioForegroundService}"))
+            XLog.i(
+                getLog(
+                    "startForegroundForProjection[$tag]",
+                    "Started. generation=${pending.generation}, requiresAudioFgs=${pending.requiresAudioForegroundService} " +
+                            "fgsType=$fgsType elapsed=${startedAt - startedBeforeMs}ms importance=${currentProcessImportance()}"
+                )
+            )
             return null
         } catch (cause: Throwable) {
             synchronized(lock) { clearStartingState() }
-            XLog.w(getLog("startForegroundForProjection[$tag]", "Failed. generation=${pending.generation}, cause=${cause.javaClass.simpleName}: ${cause.message}"))
+            XLog.w(
+                getLog(
+                    "startForegroundForProjection[$tag]",
+                    "Failed. generation=${pending.generation}, requiresAudioFgs=${pending.requiresAudioForegroundService} " +
+                            "importance=${currentProcessImportance()} cause=${cause.javaClass.simpleName}: ${cause.message}"
+                )
+            )
             return cause
         }
     }
@@ -149,8 +174,24 @@ public class ProjectionCoordinator(
             val projectionStartTime = SystemClock.elapsedRealtime()
             var projectionRetried = false
             val projection = try {
+                XLog.i(
+                    getLog(
+                        "startProjection[$tag]",
+                        "SP_DIAG stage=projection_acquire_attempt generation=$generation attempt=first " +
+                                "requiresAudioFgs=$requiresAudioForegroundService afterForeground=${foregroundStartDelay}ms importance=${currentProcessImportance()} " +
+                                "thread=${Thread.currentThread().name}"
+                    )
+                )
                 projectionManager.getMediaProjection(Activity.RESULT_OK, permissionIntent)
             } catch (cause: SecurityException) {
+                XLog.i(
+                    getLog(
+                        "startProjection[$tag]",
+                        "SP_DIAG stage=projection_acquire_result generation=$generation result=first_fail " +
+                                "requiresAudioFgs=$requiresAudioForegroundService afterForeground=${foregroundStartDelay}ms importance=${currentProcessImportance()} " +
+                                "cause=${cause.javaClass.simpleName}: ${cause.message}"
+                    )
+                )
                 val shouldRetry = Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE && foregroundStartDelay in 0..PROJECTION_ACQUIRE_RETRY_WINDOW_MS
                 if (!shouldRetry) {
                     synchronized(lock) { clearStartingState() }
@@ -160,8 +201,23 @@ public class ProjectionCoordinator(
                 XLog.w(getLog("startProjection[$tag]", "Projection acquisition failed on first attempt. Retrying in ${PROJECTION_ACQUIRE_RETRY_DELAY_MS}ms. generation=$generation afterForeground=${foregroundStartDelay}ms cause=${cause.javaClass.simpleName}: ${cause.message}"))
                 SystemClock.sleep(PROJECTION_ACQUIRE_RETRY_DELAY_MS)
                 try {
+                    XLog.i(
+                        getLog(
+                            "startProjection[$tag]",
+                            "SP_DIAG stage=projection_acquire_attempt generation=$generation attempt=retry " +
+                                    "requiresAudioFgs=$requiresAudioForegroundService afterForeground=${foregroundStartDelay}ms importance=${currentProcessImportance()}"
+                        )
+                    )
                     projectionManager.getMediaProjection(Activity.RESULT_OK, permissionIntent)
                 } catch (retryCause: SecurityException) {
+                    XLog.i(
+                        getLog(
+                            "startProjection[$tag]",
+                            "SP_DIAG stage=projection_acquire_result generation=$generation result=retry_fail " +
+                                    "requiresAudioFgs=$requiresAudioForegroundService afterForeground=${foregroundStartDelay}ms importance=${currentProcessImportance()} " +
+                                    "cause=${retryCause.javaClass.simpleName}: ${retryCause.message}"
+                        )
+                    )
                     synchronized(lock) { clearStartingState() }
                     return StartResult.Fatal(retryCause, CachedIntentAction.INVALIDATE)
                 }
@@ -173,6 +229,14 @@ public class ProjectionCoordinator(
                 return StartResult.Fatal(cause, CachedIntentAction.INVALIDATE)
             }
             mediaProjection = projection
+            XLog.i(
+                getLog(
+                    "startProjection[$tag]",
+                    "SP_DIAG stage=projection_acquire_result generation=$generation result=${if (projectionRetried) "retry_success" else "success"} " +
+                            "requiresAudioFgs=$requiresAudioForegroundService afterForeground=${foregroundStartDelay}ms elapsed=${SystemClock.elapsedRealtime() - projectionStartTime}ms " +
+                            "importance=${currentProcessImportance()}"
+                )
+            )
             if (projectionRetried) {
                 XLog.i(getLog("startProjection[$tag]", "Projection acquisition recovered after retry. generation=$generation, elapsed=${SystemClock.elapsedRealtime() - projectionStartTime}ms"))
             }
