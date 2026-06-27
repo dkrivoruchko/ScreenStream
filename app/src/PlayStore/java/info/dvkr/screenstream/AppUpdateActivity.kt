@@ -112,6 +112,7 @@ public abstract class AppUpdateActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         XLog.d(getLog("onDestroy"))
+        adMob.onActivityDestroyed(this)
         super.onDestroy()
     }
 }
