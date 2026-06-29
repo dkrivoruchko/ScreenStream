@@ -35,8 +35,8 @@ android {
         applicationId = "info.dvkr.screenstream"
         minSdk = rootProject.extra["minSdkVersion"] as Int
         targetSdk = rootProject.extra["targetSdkVersion"] as Int
-        versionCode = 44000
-        versionName = "4.4.0"
+        versionCode = 44001
+        versionName = "4.4.1"
 
         ndk.abiFilters.addAll(listOf("armeabi-v7a", "x86", "arm64-v8a", "x86_64"))
     }
