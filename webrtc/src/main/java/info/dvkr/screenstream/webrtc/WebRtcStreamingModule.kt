@@ -188,8 +188,10 @@ public class WebRtcStreamingModule : StreamingModule {
             is StreamingModule.State.Running -> {
                 val activeStreamingService = streamingService
                 if (activeStreamingService != null) {
-                    val foregroundStartError = activeStreamingService.tryStartProjectionForeground()
-                    activeStreamingService.sendEvent(WebRtcEvent.StartProjection(startAttemptId, intent, foregroundStartProcessed = true, foregroundStartError))
+                    if (activeStreamingService.prepareStartProjectionForeground(startAttemptId)) {
+                        val foregroundStartError = activeStreamingService.tryStartProjectionForeground()
+                        activeStreamingService.sendEvent(WebRtcEvent.StartProjection(startAttemptId, intent, foregroundStartProcessed = true, foregroundStartError))
+                    }
                 } else XLog.w(getLog("startProjection", "Running state without WebRtcStreamingService"))
             }
 

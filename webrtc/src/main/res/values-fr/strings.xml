@@ -2,6 +2,9 @@
 <resources>
     <string name="webrtc_error_recover">Rétablir</string>
     <string name="webrtc_error_open_settings">Ouvrir les paramètres</string>
+    <string name="webrtc_error_start_screen_sharing">Démarrer le partage d’écran</string>
+    <string name="webrtc_error_start_with_audio">Démarrer avec l’audio</string>
+    <string name="webrtc_error_allow_microphone">Autoriser le micro</string>
     <string name="webrtc_error_signaling_server_unavailable">Impossible de joindre le serveur. Les spectateurs peuvent ne pas pouvoir rejoindre.</string>
 
     <string name="webrtc_stream_mode">Mode global · WebRTC</string>
@@ -62,5 +65,9 @@
     <string name="webrtc_error_check_network">Vérifiez votre connexion Internet</string>
     <string name="webrtc_error_incomplete_installation">L\'installation de l\'application est incomplète. Veuillez réinstaller l\'application depuis Google Play.</string>
     <string name="webrtc_notification_permission_required">Cette application nécessite l\'activation des notifications pour démarrer le service de diffusion.\nActivez les notifications dans les paramètres de l\'application.</string>
+    <string name="webrtc_error_screen_capture_start_blocked">Android a bloqué le démarrage du partage d’écran. Gardez ScreenStream ouvert et recommencez.</string>
+    <string name="webrtc_error_projection_acquire_rejected">L’autorisation de capture d’écran n’est plus valide. Démarrez à nouveau le partage d’écran.</string>
+    <string name="webrtc_error_audio_permission_required">L’autorisation du micro est requise pour démarrer la diffusion avec l’audio.</string>
+    <string name="webrtc_error_audio_start_blocked">Android a bloqué le démarrage du partage audio. Gardez ScreenStream ouvert et redémarrez avec l’audio.</string>
     <string name="webrtc_error_unspecified">Une erreur s\'est produite. Veuillez réessayer ultérieurement.</string>
 </resources>

@@ -2,6 +2,9 @@
 <resources>
     <string name="rtsp_error_recover">აღდგენა</string>
     <string name="rtsp_error_open_settings">პარამეტრების გახსნა</string>
+    <string name="rtsp_error_start_screen_sharing">ეკრანის გაზიარების დაწყება</string>
+    <string name="rtsp_error_start_with_audio">დაწყება აუდიოთი</string>
+    <string name="rtsp_error_allow_microphone">მიკროფონის დაშვება</string>
     <string name="rtsp_error_local_network_permission_required">ლოკალურ ქსელზე წვდომა საჭიროა, რათა მოწყობილობები თქვენს ნაკადს დაუკავშირდნენ.</string>
 
     <string name="rtsp_stream_mode">RTSP რეჟიმი · RTSP</string>
@@ -45,6 +48,10 @@
     <string name="rtsp_stream_stop">ტრანსლაციის შეწყვეტა</string>
 
     <string name="rtsp_error_notification_permission_required">სტრიმინგის სერვისის დასაწყებად ამ აპს შეტყობინებები ჩართული უნდა ჰქონდეს.\nჩართეთ შეტყობინებები აპის პარამეტრებში.</string>
+    <string name="rtsp_error_screen_capture_start_blocked">Android-მა დაბლოკა ეკრანის გაზიარების დაწყება. დატოვეთ ScreenStream გახსნილი და დაიწყეთ ხელახლა.</string>
+    <string name="rtsp_error_projection_acquire_rejected">ეკრანის ჩაწერის ნებართვა აღარ არის მოქმედი. ხელახლა დაიწყეთ ეკრანის გაზიარება.</string>
+    <string name="rtsp_error_audio_permission_required">აუდიოთი სტრიმინგის დასაწყებად საჭიროა მიკროფონის ნებართვა.</string>
+    <string name="rtsp_error_audio_start_blocked">Android-მა დაბლოკა აუდიოს გაზიარების დაწყება. დატოვეთ ScreenStream გახსნილი და ხელახლა დაიწყეთ აუდიოთი.</string>
     <string name="rtsp_error_ip_address_not_found">მისამართი ვერ მოიძებნა. შეამოწმეთ კავშირი ან შეცვალეთ სერვერის პარამეტრები (ინტერფეისის ფილტრი, მისამართის ფილტრი).</string>
     <string name="rtsp_error_unspecified">რაღაც შეცდომა მოხდა.</string>
 

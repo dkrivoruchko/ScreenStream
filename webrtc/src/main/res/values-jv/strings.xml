@@ -2,6 +2,9 @@
 <resources>
     <string name="webrtc_error_recover">Waras</string>
     <string name="webrtc_error_open_settings">Bukak setelan</string>
+    <string name="webrtc_error_start_screen_sharing">Miwiti nuduhake layar</string>
+    <string name="webrtc_error_start_with_audio">Miwiti nganggo audio</string>
+    <string name="webrtc_error_allow_microphone">Idini mikropon</string>
     <string name="webrtc_error_signaling_server_unavailable">Server ora bisa digayuh. Pamirsa bisa uga ora bisa melu.</string>
 
     <string name="webrtc_stream_mode">Mode Global · WebRTC</string>
@@ -62,5 +65,9 @@
     <string name="webrtc_error_check_network">Priksa sambungan internet sampeyan</string>
     <string name="webrtc_error_incomplete_installation">Pamasangan aplikasi ora pepak. Mangga pasang maneh aplikasi saka Google Play.</string>
     <string name="webrtc_notification_permission_required">Aplikasi iki mbutuhake kabar aktif kanggo miwiti layanan streaming.\nAktifake kabar ing setelan aplikasi.</string>
+    <string name="webrtc_error_screen_capture_start_blocked">Android mblokir wiwitan nuduhake layar. Tansah ScreenStream tetep kabukak lan miwiti maneh.</string>
+    <string name="webrtc_error_projection_acquire_rejected">Idin njupuk layar wis ora valid maneh. Miwiti maneh nuduhake layar.</string>
+    <string name="webrtc_error_audio_permission_required">Idin mikropon dibutuhake kanggo miwiti streaming nganggo audio.</string>
+    <string name="webrtc_error_audio_start_blocked">Android mblokir wiwitan nuduhake audio. Tansah ScreenStream tetep kabukak lan miwiti maneh nganggo audio.</string>
     <string name="webrtc_error_unspecified">Ana sing salah. Mangga nyoba maneh mengko.</string>
 </resources>

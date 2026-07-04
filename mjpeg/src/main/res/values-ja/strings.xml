@@ -1,6 +1,7 @@
 <resources>
     <string name="mjpeg_error_recover">リカバリ</string>
     <string name="mjpeg_error_open_settings">設定を開く</string>
+    <string name="mjpeg_error_start_screen_sharing">画面共有を開始</string>
     <string name="mjpeg_close">閉じる</string>
     <string name="mjpeg_error_local_network_permission_required">デバイスがストリームに接続できるように、ローカルネットワークへのアクセスが必要です。</string>
 
@@ -156,6 +157,8 @@
 
     <string name="mjpeg_error_port_in_use">ポートは既に使用されています。 他のポートを選択してください。</string>
     <string name="mjpeg_error_invalid_media_projection">セキュリティエラー: 画面キャプチャ権限が無効です。もう一度お試しください。</string>
+    <string name="mjpeg_error_screen_capture_start_blocked">Android により画面共有の開始がブロックされました。ScreenStream を開いたまま、もう一度開始してください。</string>
+    <string name="mjpeg_error_projection_acquire_rejected">画面キャプチャの権限は無効になりました。画面共有をもう一度開始してください。</string>
     <string name="mjpeg_error_ip_address_not_found">IPアドレスが見つかりません。\nストリーム設定でネットワークフィルターを調整してください。</string>
     <string name="mjpeg_error_notification_permission_required">ストリーミングサービスを開始するには、このアプリの通知を有効にする必要があります。\nアプリ設定で通知を有効にしてください。</string>
     <string name="mjpeg_error_unspecified">何か問題が発生しました。後で再試行してください。</string>

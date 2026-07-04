@@ -1,6 +1,7 @@
 <resources>
     <string name="mjpeg_error_recover">पुनर्प्राप्त करें</string>
     <string name="mjpeg_error_open_settings">सेटिंग्स खोलें</string>
+    <string name="mjpeg_error_start_screen_sharing">स्क्रीन शेयरिंग शुरू करें</string>
     <string name="mjpeg_close">बंद करें</string>
     <string name="mjpeg_error_local_network_permission_required">डिवाइस आपके स्ट्रीम से जुड़ सकें, इसके लिए स्थानीय नेटवर्क एक्सेस आवश्यक है।</string>
 
@@ -156,6 +157,8 @@
 
     <string name="mjpeg_error_port_in_use">पोर्ट पहले से ही उपयोग में है। कोई दूसरा चुनें।</string>
     <string name="mjpeg_error_invalid_media_projection">सुरक्षा त्रुटि: अमान्य स्क्रीन कैप्चर अनुमति। फिर से कोशिश करें।</string>
+    <string name="mjpeg_error_screen_capture_start_blocked">Android ने स्क्रीन शेयरिंग शुरू होने से रोक दी। ScreenStream खुला रखें और फिर से शुरू करें।</string>
+    <string name="mjpeg_error_projection_acquire_rejected">स्क्रीन कैप्चर अनुमति अब मान्य नहीं है। स्क्रीन शेयरिंग फिर से शुरू करें।</string>
     <string name="mjpeg_error_ip_address_not_found">IP पता नहीं मिला।\nस्ट्रीम सेटिंग्स में नेटवर्क फ़िल्टर समायोजित करने का प्रयास करें।</string>
     <string name="mjpeg_error_notification_permission_required">स्ट्रीमिंग सेवा शुरू करने के लिए इस ऐप में सूचनाएँ चालू होनी चाहिए।\nऐप सेटिंग में सूचनाएँ चालू करें।</string>
     <string name="mjpeg_error_unspecified">कुछ गलत हो गया है। कृपया बाद में पुनः प्रयास करें।</string>

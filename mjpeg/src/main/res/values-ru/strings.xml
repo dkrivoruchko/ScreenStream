@@ -1,6 +1,7 @@
 <resources>
     <string name="mjpeg_error_recover">Восстановить</string>
     <string name="mjpeg_error_open_settings">Открыть настройки</string>
+    <string name="mjpeg_error_start_screen_sharing">Начать демонстрацию экрана</string>
     <string name="mjpeg_close">Закрыть</string>
     <string name="mjpeg_error_local_network_permission_required">Требуется доступ к локальной сети, чтобы устройства могли подключаться к трансляции.</string>
 
@@ -156,6 +157,8 @@
 
     <string name="mjpeg_error_port_in_use">Порт уже используется. Выберите другой.</string>
     <string name="mjpeg_error_invalid_media_projection">Ошибка безопасности: недействительное разрешение на захват экрана. Попробуйте снова.</string>
+    <string name="mjpeg_error_screen_capture_start_blocked">Android заблокировал запуск демонстрации экрана. Оставьте ScreenStream открытым и запустите снова.</string>
+    <string name="mjpeg_error_projection_acquire_rejected">Разрешение на захват экрана больше недействительно. Начните демонстрацию экрана снова.</string>
     <string name="mjpeg_error_ip_address_not_found">IP-адрес не найден.\nПопробуйте изменить сетевые фильтры в настройках трансляции.</string>
     <string name="mjpeg_error_notification_permission_required">Этому приложению нужны включенные уведомления, чтобы запустить службу трансляции.\nВключите уведомления в настройках приложения.</string>
     <string name="mjpeg_error_unspecified">Что-то пошло не так. Пожалуйста, попробуйте позже.</string>

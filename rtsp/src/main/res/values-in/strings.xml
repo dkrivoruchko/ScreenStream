@@ -2,6 +2,9 @@
 <resources>
     <string name="rtsp_error_recover">Pulihkan</string>
     <string name="rtsp_error_open_settings">Buka pengaturan</string>
+    <string name="rtsp_error_start_screen_sharing">Mulai berbagi layar</string>
+    <string name="rtsp_error_start_with_audio">Mulai dengan audio</string>
+    <string name="rtsp_error_allow_microphone">Izinkan mikrofon</string>
     <string name="rtsp_error_local_network_permission_required">Akses jaringan lokal diperlukan agar perangkat dapat terhubung ke streaming Anda.</string>
 
     <string name="rtsp_stream_mode">Mode RTSP · RTSP</string>
@@ -45,6 +48,10 @@
     <string name="rtsp_stream_stop">Hentikan siaran</string>
 
     <string name="rtsp_error_notification_permission_required">Aplikasi ini memerlukan notifikasi aktif untuk memulai layanan streaming.\nAktifkan notifikasi di setelan aplikasi.</string>
+    <string name="rtsp_error_screen_capture_start_blocked">Android memblokir mulai berbagi layar. Biarkan ScreenStream tetap terbuka dan mulai lagi.</string>
+    <string name="rtsp_error_projection_acquire_rejected">Izin tangkapan layar tidak berlaku lagi. Mulai berbagi layar lagi.</string>
+    <string name="rtsp_error_audio_permission_required">Izin mikrofon diperlukan untuk mulai streaming dengan audio.</string>
+    <string name="rtsp_error_audio_start_blocked">Android memblokir mulai berbagi audio. Biarkan ScreenStream tetap terbuka dan mulai lagi dengan audio.</string>
     <string name="rtsp_error_ip_address_not_found">Alamat tidak ditemukan. Periksa koneksi atau sesuaikan setelan server (Filter antarmuka, Filter alamat).</string>
     <string name="rtsp_error_unspecified">Terjadi kesalahan.</string>
 

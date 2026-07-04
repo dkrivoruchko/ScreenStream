@@ -20,15 +20,19 @@ import androidx.compose.ui.unit.dp
 import info.dvkr.screenstream.mjpeg.R
 import info.dvkr.screenstream.mjpeg.internal.MjpegEvent
 import info.dvkr.screenstream.mjpeg.ui.MjpegError
+import info.dvkr.screenstream.mjpeg.ui.isStartupPolicyError
 
 @Composable
 internal fun ErrorCard(
     error: MjpegError,
     sendEvent: (event: MjpegEvent) -> Unit,
+    retryStartupPolicyError: () -> Unit,
     openNotificationSettings: () -> Unit,
     openLocalNetworkSettings: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val startupPolicyError = error.isStartupPolicyError()
+
     ElevatedCard(modifier = modifier) {
         Column(
             modifier = Modifier
@@ -45,11 +49,19 @@ internal fun ErrorCard(
 
             OutlinedButton(
                 onClick = {
-                    sendEvent(MjpegEvent.Intentable.RecoverError)
-                    when (error) {
-                        is MjpegError.NotificationPermissionRequired -> openNotificationSettings()
-                        is MjpegError.LocalNetworkPermissionRequired -> openLocalNetworkSettings()
-                        else -> Unit
+                    when {
+                        startupPolicyError -> retryStartupPolicyError()
+                        error is MjpegError.NotificationPermissionRequired -> {
+                            sendEvent(MjpegEvent.Intentable.RecoverError)
+                            openNotificationSettings()
+                        }
+
+                        error is MjpegError.LocalNetworkPermissionRequired -> {
+                            sendEvent(MjpegEvent.Intentable.RecoverError)
+                            openLocalNetworkSettings()
+                        }
+
+                        else -> sendEvent(MjpegEvent.Intentable.RecoverError)
                     }
                 },
                 modifier = Modifier
@@ -57,10 +69,11 @@ internal fun ErrorCard(
                     .align(Alignment.End),
                 border = ButtonDefaults.outlinedButtonBorder(true).copy(brush = SolidColor(MaterialTheme.colorScheme.onError))
             ) {
-                val buttonTextId = if (error is MjpegError.NotificationPermissionRequired || error is MjpegError.LocalNetworkPermissionRequired)
-                    R.string.mjpeg_error_open_settings
-                else
-                    R.string.mjpeg_error_recover
+                val buttonTextId = when {
+                    startupPolicyError -> R.string.mjpeg_error_start_screen_sharing
+                    error is MjpegError.NotificationPermissionRequired || error is MjpegError.LocalNetworkPermissionRequired -> R.string.mjpeg_error_open_settings
+                    else -> R.string.mjpeg_error_recover
+                }
                 Text(text = stringResource(buttonTextId), color = MaterialTheme.colorScheme.onError)
             }
         }

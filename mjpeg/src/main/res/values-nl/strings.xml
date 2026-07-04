@@ -1,6 +1,7 @@
 <resources>
     <string name="mjpeg_error_recover">Herstellen</string>
     <string name="mjpeg_error_open_settings">Instellingen openen</string>
+    <string name="mjpeg_error_start_screen_sharing">Scherm delen starten</string>
     <string name="mjpeg_close">Sluiten</string>
     <string name="mjpeg_error_local_network_permission_required">Toegang tot het lokale netwerk is vereist zodat apparaten verbinding kunnen maken met uw stream.</string>
 
@@ -156,6 +157,8 @@
 
     <string name="mjpeg_error_port_in_use">Poort is al in gebruik, kies een andere.</string>
     <string name="mjpeg_error_invalid_media_projection">Beveiligingsfout: ongeldige schermopnametoestemming. Probeer opnieuw.</string>
+    <string name="mjpeg_error_screen_capture_start_blocked">Android heeft het starten van scherm delen geblokkeerd. Houd ScreenStream open en start opnieuw.</string>
+    <string name="mjpeg_error_projection_acquire_rejected">De schermopnamemachtiging is niet meer geldig. Start scherm delen opnieuw.</string>
     <string name="mjpeg_error_ip_address_not_found">IP-adres niet gevonden.\nPas de netwerkfilters aan in de streaminstellingen.</string>
     <string name="mjpeg_error_notification_permission_required">Deze app heeft meldingen nodig om de streamingdienst te starten.\nSchakel meldingen in via de appinstellingen.</string>
     <string name="mjpeg_error_unspecified">Er is iets misgegaan. Probeer het later opnieuw.</string>

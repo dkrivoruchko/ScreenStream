@@ -2,6 +2,9 @@
 <resources>
     <string name="webrtc_error_recover">აღდგენა</string>
     <string name="webrtc_error_open_settings">გახსენით პარამეტრები</string>
+    <string name="webrtc_error_start_screen_sharing">ეკრანის გაზიარების დაწყება</string>
+    <string name="webrtc_error_start_with_audio">დაწყება აუდიოთი</string>
+    <string name="webrtc_error_allow_microphone">მიკროფონის დაშვება</string>
     <string name="webrtc_error_signaling_server_unavailable">სერვერთან დაკავშირება ვერ ხერხდება. მაყურებლებმა შეიძლება ვერ შემოუერთდნენ.</string>
 
     <string name="webrtc_stream_mode">გლობალური რეჟიმი · WebRTC</string>
@@ -62,5 +65,9 @@
     <string name="webrtc_error_check_network">შეამოწმეთ ინტერნეტკავშირი</string>
     <string name="webrtc_error_incomplete_installation">აპის ინსტალაცია არასრულია. გთხოვთ, ხელახლა დააყენოთ აპი Google Play-დან.</string>
     <string name="webrtc_notification_permission_required">სტრიმინგის სერვისის დასაწყებად ამ აპს შეტყობინებები ჩართული უნდა ჰქონდეს.\nჩართეთ შეტყობინებები აპის პარამეტრებში.</string>
+    <string name="webrtc_error_screen_capture_start_blocked">Android-მა დაბლოკა ეკრანის გაზიარების დაწყება. დატოვეთ ScreenStream გახსნილი და დაიწყეთ ხელახლა.</string>
+    <string name="webrtc_error_projection_acquire_rejected">ეკრანის ჩაწერის ნებართვა აღარ არის მოქმედი. ხელახლა დაიწყეთ ეკრანის გაზიარება.</string>
+    <string name="webrtc_error_audio_permission_required">აუდიოთი სტრიმინგის დასაწყებად საჭიროა მიკროფონის ნებართვა.</string>
+    <string name="webrtc_error_audio_start_blocked">Android-მა დაბლოკა აუდიოს გაზიარების დაწყება. დატოვეთ ScreenStream გახსნილი და ხელახლა დაიწყეთ აუდიოთი.</string>
     <string name="webrtc_error_unspecified">Რაღაც არასწორად წავიდა. Გთხოვთ სცადოთ მოგვიანებით.</string>
 </resources>

@@ -2,6 +2,9 @@
 <resources>
     <string name="rtsp_error_recover">Recover</string>
     <string name="rtsp_error_open_settings">Open settings</string>
+    <string name="rtsp_error_start_screen_sharing">Start screen sharing</string>
+    <string name="rtsp_error_start_with_audio">Start with audio</string>
+    <string name="rtsp_error_allow_microphone">Allow microphone</string>
     <string name="rtsp_error_local_network_permission_required">Local network access is required so devices can connect to your stream.</string>
 
     <string name="rtsp_stream_mode">RTSP mode · RTSP</string>
@@ -45,6 +48,10 @@
     <string name="rtsp_stream_stop">Stop stream</string>
 
     <string name="rtsp_error_notification_permission_required">This app needs notifications enabled to start the streaming service.\nEnable notifications in app settings.</string>
+    <string name="rtsp_error_screen_capture_start_blocked">Android blocked screen sharing startup. Keep ScreenStream open and start again.</string>
+    <string name="rtsp_error_projection_acquire_rejected">Screen capture permission is no longer valid. Start screen sharing again.</string>
+    <string name="rtsp_error_audio_permission_required">Microphone permission is required to start streaming with audio.</string>
+    <string name="rtsp_error_audio_start_blocked">Android blocked audio sharing startup. Keep ScreenStream open and start with audio again.</string>
     <string name="rtsp_error_ip_address_not_found">No address found. Check the connection or adjust Server settings (Interface filter, Address filter).</string>
     <string name="rtsp_error_unspecified">Something went wrong.</string>
 

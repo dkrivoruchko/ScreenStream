@@ -32,11 +32,17 @@ public class ProjectionCoordinator(
         INVALIDATE
     }
 
+    public enum class FailureReason {
+        PROJECTION_ACQUIRE_REJECTED
+    }
+
     public sealed interface StartResult {
         public val cause: Throwable?
             get() = null
         public val cachedIntentAction: CachedIntentAction
             get() = CachedIntentAction.KEEP
+        public val failureReason: FailureReason?
+            get() = null
 
         public data object Busy : StartResult
         public data class Started(val generation: Long, val mediaProjection: MediaProjection, val audioCaptureAllowed: Boolean) : StartResult
@@ -52,7 +58,8 @@ public class ProjectionCoordinator(
 
         public data class Fatal(
             override val cause: Throwable,
-            override val cachedIntentAction: CachedIntentAction = CachedIntentAction.KEEP
+            override val cachedIntentAction: CachedIntentAction = CachedIntentAction.KEEP,
+            override val failureReason: FailureReason? = null
         ) : StartResult
     }
 
@@ -195,7 +202,7 @@ public class ProjectionCoordinator(
                 val shouldRetry = Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE && foregroundStartDelay in 0..PROJECTION_ACQUIRE_RETRY_WINDOW_MS
                 if (!shouldRetry) {
                     synchronized(lock) { clearStartingState() }
-                    return StartResult.Fatal(cause, CachedIntentAction.INVALIDATE)
+                    return StartResult.Fatal(cause, CachedIntentAction.INVALIDATE, FailureReason.PROJECTION_ACQUIRE_REJECTED)
                 }
                 projectionRetried = true
                 XLog.w(getLog("startProjection[$tag]", "Projection acquisition failed on first attempt. Retrying in ${PROJECTION_ACQUIRE_RETRY_DELAY_MS}ms. generation=$generation afterForeground=${foregroundStartDelay}ms cause=${cause.javaClass.simpleName}: ${cause.message}"))
@@ -219,14 +226,14 @@ public class ProjectionCoordinator(
                         )
                     )
                     synchronized(lock) { clearStartingState() }
-                    return StartResult.Fatal(retryCause, CachedIntentAction.INVALIDATE)
+                    return StartResult.Fatal(retryCause, CachedIntentAction.INVALIDATE, FailureReason.PROJECTION_ACQUIRE_REJECTED)
                 }
             }
             if (projection == null) {
                 val cause = IllegalStateException("MediaProjectionManager.getMediaProjection returned null")
                 XLog.e(getLog("startProjection[$tag]", "Projection acquisition failed. generation=$generation, cause=${cause.message}"))
                 synchronized(lock) { clearStartingState() }
-                return StartResult.Fatal(cause, CachedIntentAction.INVALIDATE)
+                return StartResult.Fatal(cause, CachedIntentAction.INVALIDATE, FailureReason.PROJECTION_ACQUIRE_REJECTED)
             }
             mediaProjection = projection
             XLog.i(

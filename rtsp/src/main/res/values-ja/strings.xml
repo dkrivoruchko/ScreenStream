@@ -2,6 +2,9 @@
 <resources>
     <string name="rtsp_error_recover">復旧</string>
     <string name="rtsp_error_open_settings">設定を開く</string>
+    <string name="rtsp_error_start_screen_sharing">画面共有を開始</string>
+    <string name="rtsp_error_start_with_audio">音声付きで開始</string>
+    <string name="rtsp_error_allow_microphone">マイクを許可</string>
     <string name="rtsp_error_local_network_permission_required">デバイスがストリームに接続できるように、ローカルネットワークへのアクセスが必要です。</string>
 
     <string name="rtsp_stream_mode">RTSPモード · RTSP</string>
@@ -45,6 +48,10 @@
     <string name="rtsp_stream_stop">配信停止</string>
 
     <string name="rtsp_error_notification_permission_required">ストリーミングサービスを開始するには、このアプリの通知を有効にする必要があります。\nアプリ設定で通知を有効にしてください。</string>
+    <string name="rtsp_error_screen_capture_start_blocked">Android により画面共有の開始がブロックされました。ScreenStream を開いたまま、もう一度開始してください。</string>
+    <string name="rtsp_error_projection_acquire_rejected">画面キャプチャの権限は無効になりました。画面共有をもう一度開始してください。</string>
+    <string name="rtsp_error_audio_permission_required">音声付きでストリーミングを開始するにはマイクの権限が必要です。</string>
+    <string name="rtsp_error_audio_start_blocked">Android により音声共有の開始がブロックされました。ScreenStream を開いたまま、音声付きでもう一度開始してください。</string>
     <string name="rtsp_error_ip_address_not_found">アドレスが見つかりません。接続を確認するか、サーバー設定を調整してください（インターフェースフィルター、アドレスフィルター）。</string>
     <string name="rtsp_error_unspecified">エラーが発生しました。</string>
 

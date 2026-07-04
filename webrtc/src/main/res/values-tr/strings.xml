@@ -2,6 +2,9 @@
 <resources>
     <string name="webrtc_error_recover">Kurtar</string>
     <string name="webrtc_error_open_settings">Ayarları aç</string>
+    <string name="webrtc_error_start_screen_sharing">Ekran paylaşımını başlat</string>
+    <string name="webrtc_error_start_with_audio">Sesle başlat</string>
+    <string name="webrtc_error_allow_microphone">Mikrofona izin ver</string>
     <string name="webrtc_error_signaling_server_unavailable">Sunucuya ulaşılamıyor. İzleyiciler katılamayabilir.</string>
 
     <string name="webrtc_stream_mode">Global mod · WebRTC</string>
@@ -62,5 +65,9 @@
     <string name="webrtc_error_check_network">İnternet bağlantınızı kontrol edin</string>
     <string name="webrtc_error_incomplete_installation">Uygulama kurulumu tamamlanmamış. Lütfen uygulamayı Google Play\'den yeniden yükleyin.</string>
     <string name="webrtc_notification_permission_required">Bu uygulamanın yayın hizmetini başlatmak için bildirimleri etkinleştirmesi gerekir.\nUygulama ayarlarında bildirimleri etkinleştirin.</string>
+    <string name="webrtc_error_screen_capture_start_blocked">Android ekran paylaşımının başlatılmasını engelledi. ScreenStream’i açık tutun ve tekrar başlatın.</string>
+    <string name="webrtc_error_projection_acquire_rejected">Ekran yakalama izni artık geçerli değil. Ekran paylaşımını tekrar başlatın.</string>
+    <string name="webrtc_error_audio_permission_required">Sesle yayını başlatmak için mikrofon izni gereklidir.</string>
+    <string name="webrtc_error_audio_start_blocked">Android ses paylaşımının başlatılmasını engelledi. ScreenStream’i açık tutun ve sesle tekrar başlatın.</string>
     <string name="webrtc_error_unspecified">Bir şeyler ters gitti. Lütfen daha sonra tekrar deneyin.</string>
 </resources>

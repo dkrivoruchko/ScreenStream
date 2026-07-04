@@ -1,6 +1,7 @@
 <resources>
     <string name="mjpeg_error_recover">Odzyskaj</string>
     <string name="mjpeg_error_open_settings">Otwórz ustawienia</string>
+    <string name="mjpeg_error_start_screen_sharing">Rozpocznij udostępnianie ekranu</string>
     <string name="mjpeg_close">Zamknij</string>
     <string name="mjpeg_error_local_network_permission_required">Dostęp do sieci lokalnej jest wymagany, aby urządzenia mogły połączyć się z Twoją transmisją.</string>
 
@@ -156,6 +157,8 @@
 
     <string name="mjpeg_error_port_in_use">Port w użyciu. Wybierz inny.</string>
     <string name="mjpeg_error_invalid_media_projection">Błąd zabezpieczeń: nieprawidłowe uprawnienie do przechwytywania ekranu. Spróbuj ponownie.</string>
+    <string name="mjpeg_error_screen_capture_start_blocked">Android zablokował uruchomienie udostępniania ekranu. Pozostaw ScreenStream otwarty i rozpocznij ponownie.</string>
+    <string name="mjpeg_error_projection_acquire_rejected">Uprawnienie do przechwytywania ekranu jest już nieważne. Rozpocznij ponownie udostępnianie ekranu.</string>
     <string name="mjpeg_error_ip_address_not_found">Nie znaleziono adresu IP.\nSpróbuj dostosować filtry sieci w ustawieniach strumienia.</string>
     <string name="mjpeg_error_notification_permission_required">Ta aplikacja wymaga włączonych powiadomień, aby uruchomić usługę transmisji.\nWłącz powiadomienia w ustawieniach aplikacji.</string>
     <string name="mjpeg_error_unspecified">Coś poszło nie tak. Proszę spróbować ponownie później.</string>

@@ -2,6 +2,9 @@
 <resources>
     <string name="rtsp_error_recover">ማገገም</string>
     <string name="rtsp_error_open_settings">ቅንብሮችን ክፈት</string>
+    <string name="rtsp_error_start_screen_sharing">የማያ ገጽ ማጋራትን ይጀምሩ</string>
+    <string name="rtsp_error_start_with_audio">ከድምጽ ጋር ይጀምሩ</string>
+    <string name="rtsp_error_allow_microphone">ማይክሮፎንን ይፍቀዱ</string>
     <string name="rtsp_error_local_network_permission_required">መሣሪያዎች ወደ ስርጭትዎ እንዲገናኙ የአካባቢ አውታረ መረብ መዳረሻ ያስፈልጋል።</string>
 
     <string name="rtsp_stream_mode">RTSP ሁነታ · RTSP</string>
@@ -45,6 +48,10 @@
     <string name="rtsp_stream_stop">ዥረት አቁም</string>
 
     <string name="rtsp_error_notification_permission_required">ይህ መተግበሪያ የዥረት አገልግሎቱን ለመጀመር ማሳወቂያዎች እንዲነቁ ይፈልጋል።\nበመተግበሪያ ቅንብሮች ውስጥ ማሳወቂያዎችን ያንቁ።</string>
+    <string name="rtsp_error_screen_capture_start_blocked">Android የማያ ገጽ ማጋራት መጀመርን አግዷል። ScreenStream ክፍት ይቆይ እና እንደገና ይጀምሩ።</string>
+    <string name="rtsp_error_projection_acquire_rejected">የማያ ገጽ መቅረጽ ፈቃድ ከእንግዲህ ትክክለኛ አይደለም። የማያ ገጽ ማጋራትን እንደገና ይጀምሩ።</string>
+    <string name="rtsp_error_audio_permission_required">ከድምጽ ጋር ማሰራጨት ለመጀመር የማይክሮፎን ፍቃድ ያስፈልጋል።</string>
+    <string name="rtsp_error_audio_start_blocked">Android የድምጽ ማጋራት መጀመርን አግዷል። ScreenStream ክፍት ይቆይ እና ከድምጽ ጋር እንደገና ይጀምሩ።</string>
     <string name="rtsp_error_ip_address_not_found">አድራሻ አልተገኘም። ግንኙነቱን ያረጋግጡ ወይም የአገልጋይ ቅንብሮችን ያስተካክሉ (መገናኛ ማጣሪያ፣ አድራሻ ማጣሪያ)።</string>
     <string name="rtsp_error_unspecified">አንድ ችግር ተፈጥሯል።</string>
 

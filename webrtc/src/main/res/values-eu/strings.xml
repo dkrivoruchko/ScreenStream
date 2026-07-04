@@ -2,6 +2,9 @@
 <resources>
     <string name="webrtc_error_recover">Berreskuratu</string>
     <string name="webrtc_error_open_settings">Ireki ezarpenak</string>
+    <string name="webrtc_error_start_screen_sharing">Hasi pantaila partekatzen</string>
+    <string name="webrtc_error_start_with_audio">Hasi audioarekin</string>
+    <string name="webrtc_error_allow_microphone">Baimendu mikrofonoa</string>
     <string name="webrtc_error_signaling_server_unavailable">Ezin da zerbitzarira iritsi. Baliteke ikusleek bat egin ezin izatea.</string>
 
     <string name="webrtc_stream_mode">Modu globala · WebRTC</string>
@@ -62,5 +65,9 @@
     <string name="webrtc_error_check_network">Egiaztatu Interneteko konexioa</string>
     <string name="webrtc_error_incomplete_installation">Aplikazioaren instalazioa osatu gabe dago. Berrinstalatu aplikazioa Google Play-tik.</string>
     <string name="webrtc_notification_permission_required">Aplikazio honek jakinarazpenak gaituta behar ditu transmisio-zerbitzua hasteko.\nGaitu jakinarazpenak aplikazioaren ezarpenetan.</string>
+    <string name="webrtc_error_screen_capture_start_blocked">Android-ek pantaila partekatzearen hasiera blokeatu du. Mantendu ScreenStream irekita eta hasi berriro.</string>
+    <string name="webrtc_error_projection_acquire_rejected">Pantaila kapturatzeko baimena ez da baliozkoa dagoeneko. Hasi berriro pantaila partekatzen.</string>
+    <string name="webrtc_error_audio_permission_required">Mikrofono-baimena behar da audioarekin transmititzen hasteko.</string>
+    <string name="webrtc_error_audio_start_blocked">Android-ek audioa partekatzearen hasiera blokeatu du. Mantendu ScreenStream irekita eta hasi berriro audioarekin.</string>
     <string name="webrtc_error_unspecified">Zerbait gaizki atera da. Saiatu berriro geroago.</string>
 </resources>

@@ -1,6 +1,9 @@
 package info.dvkr.screenstream.webrtc.ui
 
+import android.Manifest
 import android.content.Intent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.PaddingValues
@@ -18,8 +21,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -28,11 +33,15 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.dropUnlessStarted
+import info.dvkr.screenstream.common.findActivity
+import info.dvkr.screenstream.common.getAppSettingsIntent
+import info.dvkr.screenstream.common.isPermissionGranted
 import info.dvkr.screenstream.common.notification.NotificationHelper
 import info.dvkr.screenstream.common.ui.DoubleClickProtection
 import info.dvkr.screenstream.common.ui.get
 import info.dvkr.screenstream.common.ui.mediaprojection.ScreenCapturePermissionFlow
 import info.dvkr.screenstream.common.ui.mediaprojection.rememberScreenCaptureStartRequester
+import info.dvkr.screenstream.common.shouldShowPermissionRationale
 import info.dvkr.screenstream.webrtc.R
 import info.dvkr.screenstream.webrtc.internal.WebRtcEvent
 import info.dvkr.screenstream.webrtc.internal.WebRtcStreamingService
@@ -62,6 +71,23 @@ internal fun WebRtcMainScreenUI(
     val context = LocalContext.current
     val state = webRtcState.value
     val settings = webRtcSettingsState.value
+    val activity = remember(context) { context.findActivity() }
+    val recordAudioDeniedOnce = rememberSaveable { mutableStateOf(false) }
+    val appSettingsLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+        if (context.isPermissionGranted(Manifest.permission.RECORD_AUDIO)) screenCaptureStartRequester.request()
+    }
+    val recordAudioLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) {
+            recordAudioDeniedOnce.value = false
+            screenCaptureStartRequester.request()
+        } else if (activity.shouldShowPermissionRationale(Manifest.permission.RECORD_AUDIO)) {
+            recordAudioDeniedOnce.value = true
+        } else if (recordAudioDeniedOnce.value) {
+            appSettingsLauncher.launch(context.getAppSettingsIntent())
+        } else {
+            recordAudioDeniedOnce.value = true
+        }
+    }
     val updateSettings: (WebRtcSettings.Data.() -> WebRtcSettings.Data) -> Unit = { transform ->
         scope.launch { webRtcSettings.updateData(transform) }
     }
@@ -73,7 +99,12 @@ internal fun WebRtcMainScreenUI(
             startAttemptId = state.startAttemptId?.takeIf { state.waitingCastPermission },
             onStartRequested = onStartRequested@{ educationShown ->
                 if (state.isStreaming) return@onStartRequested
-                sendEvent(WebRtcStreamingService.InternalEvent.StartStream(permissionEducationShown = educationShown))
+                sendEvent(
+                    WebRtcStreamingService.InternalEvent.StartStream(
+                        permissionEducationShown = educationShown,
+                        clearStartupPolicyError = state.error?.isStartupPolicyError() == true
+                    )
+                )
             },
             onPermissionGranted = { startAttemptId, intent -> if (state.startAttemptId == startAttemptId) onProjectionGranted(startAttemptId, intent) },
             onPermissionDenied = { startAttemptId -> if (state.startAttemptId == startAttemptId) sendEvent(WebRtcEvent.CastPermissionsDenied(startAttemptId)) },
@@ -91,6 +122,9 @@ internal fun WebRtcMainScreenUI(
                     ErrorCard(
                         error = it,
                         sendEvent = sendEvent,
+                        audioEnabled = settings.enableMic || settings.enableDeviceAudio,
+                        retryStartupPolicyError = { screenCaptureStartRequester.request() },
+                        allowMicrophone = { recordAudioLauncher.launch(Manifest.permission.RECORD_AUDIO) },
                         openNotificationSettings = {
                             context.startActivity(notificationHelper.getStreamNotificationSettingsIntent())
                         },
@@ -119,7 +153,7 @@ internal fun WebRtcMainScreenUI(
 
             item(key = "AUDIO") {
                 AudioCard(
-                    isStreaming = state.isStreaming,
+                    enabled = !state.isStreaming && !state.waitingCastPermission && state.startAttemptId == null,
                     settings = settings,
                     updateSettings = updateSettings,
                     modifier = Modifier.padding(8.dp)

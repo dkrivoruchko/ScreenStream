@@ -2,6 +2,9 @@
 <resources>
     <string name="webrtc_error_recover">بحال کریں</string>
     <string name="webrtc_error_open_settings">ترتیبات کھولیں</string>
+    <string name="webrtc_error_start_screen_sharing">اسکرین شیئرنگ شروع کریں</string>
+    <string name="webrtc_error_start_with_audio">آڈیو کے ساتھ شروع کریں</string>
+    <string name="webrtc_error_allow_microphone">مائیکروفون کی اجازت دیں</string>
     <string name="webrtc_error_signaling_server_unavailable">سرور تک رسائی نہیں ہو رہی۔ ناظرین شاید شامل نہ ہو سکیں۔</string>
 
     <string name="webrtc_stream_mode">عالمی موڈ · WebRTC</string>
@@ -62,5 +65,9 @@
     <string name="webrtc_error_check_network">اپنا انٹرنیٹ کنکشن چیک کریں</string>
     <string name="webrtc_error_incomplete_installation">ایپ کی تنصیب نامکمل ہے۔ براہ کرم Google Play سے ایپ کو دوبارہ انسٹال کریں۔</string>
     <string name="webrtc_notification_permission_required">اس ایپ کو اسٹریمنگ سروس شروع کرنے کے لیے اطلاعات فعال چاہیے۔\nایپ کی ترتیبات میں اطلاعات فعال کریں۔</string>
+    <string name="webrtc_error_screen_capture_start_blocked">Android نے اسکرین شیئرنگ شروع ہونے سے روک دی۔ ScreenStream کھلا رکھیں اور دوبارہ شروع کریں۔</string>
+    <string name="webrtc_error_projection_acquire_rejected">اسکرین کیپچر کی اجازت اب درست نہیں ہے۔ اسکرین شیئرنگ دوبارہ شروع کریں۔</string>
+    <string name="webrtc_error_audio_permission_required">آڈیو کے ساتھ اسٹریمنگ شروع کرنے کے لیے مائیکروفون اجازت ضروری ہے۔</string>
+    <string name="webrtc_error_audio_start_blocked">Android نے آڈیو شیئرنگ شروع ہونے سے روک دی۔ ScreenStream کھلا رکھیں اور آڈیو کے ساتھ دوبارہ شروع کریں۔</string>
     <string name="webrtc_error_unspecified">کچھ غلط ہو گیا۔ بعد میں دوبارہ کوشش کریں۔</string>
 </resources>

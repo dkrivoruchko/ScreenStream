@@ -1,6 +1,7 @@
 <resources>
     <string name="mjpeg_error_recover">Waras</string>
     <string name="mjpeg_error_open_settings">Bukak setelan</string>
+    <string name="mjpeg_error_start_screen_sharing">Miwiti nuduhake layar</string>
     <string name="mjpeg_close">Nutup</string>
     <string name="mjpeg_error_local_network_permission_required">Akses jaringan lokal dibutuhake supaya piranti bisa nyambung menyang stream sampeyan.</string>
 
@@ -156,6 +157,8 @@
 
     <string name="mjpeg_error_port_in_use">Port wis dienggo. Pilih liyane.</string>
     <string name="mjpeg_error_invalid_media_projection">Kesalahan keamanan: ijin tangkapan layar ora valid. Coba maneh.</string>
+    <string name="mjpeg_error_screen_capture_start_blocked">Android mblokir wiwitan nuduhake layar. Tansah ScreenStream tetep kabukak lan miwiti maneh.</string>
+    <string name="mjpeg_error_projection_acquire_rejected">Idin njupuk layar wis ora valid maneh. Miwiti maneh nuduhake layar.</string>
     <string name="mjpeg_error_ip_address_not_found">Alamat IP ora ditemokake.\nCoba atur filter jaringan ing setelan stream.</string>
     <string name="mjpeg_error_notification_permission_required">Aplikasi iki mbutuhake kabar aktif kanggo miwiti layanan streaming.\nAktifake kabar ing setelan aplikasi.</string>
     <string name="mjpeg_error_unspecified">Ana sing salah. Mangga nyoba maneh mengko.</string>

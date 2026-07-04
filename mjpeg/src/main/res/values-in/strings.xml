@@ -1,6 +1,7 @@
 <resources>
     <string name="mjpeg_error_recover">Pulih</string>
     <string name="mjpeg_error_open_settings">Buka pengaturan</string>
+    <string name="mjpeg_error_start_screen_sharing">Mulai berbagi layar</string>
     <string name="mjpeg_close">Tutup</string>
     <string name="mjpeg_error_local_network_permission_required">Akses jaringan lokal diperlukan agar perangkat dapat terhubung ke streaming Anda.</string>
 
@@ -156,6 +157,8 @@
 
     <string name="mjpeg_error_port_in_use">Port sudah digunakan. Pilih yang lain.</string>
     <string name="mjpeg_error_invalid_media_projection">Kesalahan keamanan: Izin tangkapan layar tidak valid. Coba lagi.</string>
+    <string name="mjpeg_error_screen_capture_start_blocked">Android memblokir mulai berbagi layar. Biarkan ScreenStream tetap terbuka dan mulai lagi.</string>
+    <string name="mjpeg_error_projection_acquire_rejected">Izin tangkapan layar tidak berlaku lagi. Mulai berbagi layar lagi.</string>
     <string name="mjpeg_error_ip_address_not_found">Alamat IP tidak ditemukan.\nCoba sesuaikan filter jaringan di pengaturan streaming.</string>
     <string name="mjpeg_error_notification_permission_required">Aplikasi ini memerlukan notifikasi aktif untuk memulai layanan streaming.\nAktifkan notifikasi di setelan aplikasi.</string>
     <string name="mjpeg_error_unspecified">Ada yang salah. Silakan coba lagi nanti.</string>

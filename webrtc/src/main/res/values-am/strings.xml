@@ -2,6 +2,9 @@
 <resources>
     <string name="webrtc_error_recover">ማገገም</string>
     <string name="webrtc_error_open_settings">ቅንብሮችን ይክፈቱ</string>
+    <string name="webrtc_error_start_screen_sharing">የማያ ገጽ ማጋራትን ይጀምሩ</string>
+    <string name="webrtc_error_start_with_audio">ከድምጽ ጋር ይጀምሩ</string>
+    <string name="webrtc_error_allow_microphone">ማይክሮፎንን ይፍቀዱ</string>
     <string name="webrtc_error_signaling_server_unavailable">አገልጋዩን መድረስ አልተቻለም። ተመልካቾች መቀላቀል ላይችሉ ይችላሉ።</string>
 
     <string name="webrtc_stream_mode">ሁለንተናዊ ሁነታ · WebRTC</string>
@@ -62,5 +65,9 @@
     <string name="webrtc_error_check_network">የበይነመረብ ግንኙነትዎን ያረጋግጡ</string>
     <string name="webrtc_error_incomplete_installation">የመተግበሪያው ጭነት ያልተሟላ ነው። እባክዎ መተግበሪያውን ከGoogle Play ዳግም ይጫኑ።</string>
     <string name="webrtc_notification_permission_required">ይህ መተግበሪያ የዥረት አገልግሎቱን ለመጀመር ማሳወቂያዎች እንዲነቁ ይፈልጋል።\nበመተግበሪያ ቅንብሮች ውስጥ ማሳወቂያዎችን ያንቁ።</string>
+    <string name="webrtc_error_screen_capture_start_blocked">Android የማያ ገጽ ማጋራት መጀመርን አግዷል። ScreenStream ክፍት ይቆይ እና እንደገና ይጀምሩ።</string>
+    <string name="webrtc_error_projection_acquire_rejected">የማያ ገጽ መቅረጽ ፈቃድ ከእንግዲህ ትክክለኛ አይደለም። የማያ ገጽ ማጋራትን እንደገና ይጀምሩ።</string>
+    <string name="webrtc_error_audio_permission_required">ከድምጽ ጋር ማሰራጨት ለመጀመር የማይክሮፎን ፍቃድ ያስፈልጋል።</string>
+    <string name="webrtc_error_audio_start_blocked">Android የድምጽ ማጋራት መጀመርን አግዷል። ScreenStream ክፍት ይቆይ እና ከድምጽ ጋር እንደገና ይጀምሩ።</string>
     <string name="webrtc_error_unspecified">የሆነ ስህተት ተከስቷል። እባክዎ ቆየት ብለው ይሞክሩ።</string>
 </resources>

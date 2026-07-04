@@ -10,6 +10,7 @@ import info.dvkr.screenstream.common.module.StreamingModuleService
 import info.dvkr.screenstream.webrtc.internal.WebRtcEvent
 import info.dvkr.screenstream.webrtc.ui.WebRtcError
 import info.dvkr.screenstream.webrtc.ui.isExpectedEnvironmentIssue
+import info.dvkr.screenstream.webrtc.ui.isStartupPolicyError
 import kotlinx.coroutines.runBlocking
 import org.koin.android.ext.android.inject
 import java.net.ConnectException
@@ -35,17 +36,7 @@ public class WebRtcModuleService : StreamingModuleService() {
             val importance = ActivityManager.RunningAppProcessInfo().also { ActivityManager.getMyMemoryState(it) }.importance
             XLog.i(getLog("WebRtcModuleService.dispatchProjectionIntent", "RunningAppProcessInfo.importance: $importance"))
             XLog.i(getLog("WebRtcModuleService.dispatchProjectionIntent", "SP_TRACE route=service_cached_permission stage=service_command startAttemptId=$startAttemptId importance=$importance"))
-            runCatching {
-                context.startService(intent)
-            }.onFailure {
-                XLog.e(
-                    getLog(
-                        "WebRtcModuleService.dispatchProjectionIntent",
-                        "SP_TRACE route=service_cached_permission stage=service_command_failed startAttemptId=$startAttemptId importance=$importance"
-                    ),
-                    it
-                )
-            }.getOrThrow()
+            context.startService(intent)
         }
     }
 
@@ -122,10 +113,13 @@ public class WebRtcModuleService : StreamingModuleService() {
     internal fun showErrorNotification(error: WebRtcError, showRecoverAction: Boolean = true) {
         if (error is WebRtcError.NotificationPermissionRequired) return
 
+        val startupPolicyError = error.isStartupPolicyError()
         if (error is WebRtcError.NetworkError && (error.cause is UnknownHostException || error.cause is ConnectException)) {
             XLog.i(getLog("showErrorNotification", "${error.javaClass.simpleName} ${error.cause}"))
         } else if (error is WebRtcError.PlayIntegrityError && error.isExpectedEnvironmentIssue()) {
             XLog.i(getLog("showErrorNotification", "Expected Play Integrity environment issue. code=${error.code}, message=${error.message}"))
+        } else if (startupPolicyError) {
+            XLog.i(getLog("showErrorNotification", "${error.javaClass.simpleName} ${error.cause}"))
         } else {
             XLog.e(getLog("showErrorNotification"), error)
         }

@@ -1,6 +1,7 @@
 <resources>
     <string name="mjpeg_error_recover">Leheneratu</string>
     <string name="mjpeg_error_open_settings">Ireki ezarpenak</string>
+    <string name="mjpeg_error_start_screen_sharing">Hasi pantaila partekatzen</string>
     <string name="mjpeg_close">Itzi</string>
     <string name="mjpeg_error_local_network_permission_required">Tokiko sarerako sarbidea behar da, gailuak zure transmisiora konektatu ahal izateko.</string>
 
@@ -156,6 +157,8 @@
 
     <string name="mjpeg_error_port_in_use">Portua dagoeneko erabiltzen ari da. Aukeratu beste bat.</string>
     <string name="mjpeg_error_invalid_media_projection">Segurtasun-errorea: pantaila kapturatzeko baimena ez da baliozkoa. Saiatu berriro.</string>
+    <string name="mjpeg_error_screen_capture_start_blocked">Android-ek pantaila partekatzearen hasiera blokeatu du. Mantendu ScreenStream irekita eta hasi berriro.</string>
+    <string name="mjpeg_error_projection_acquire_rejected">Pantaila kapturatzeko baimena ez da baliozkoa dagoeneko. Hasi berriro pantaila partekatzen.</string>
     <string name="mjpeg_error_ip_address_not_found">Ez da aurkitu IP helbidea.\nSaiatu sare-iragazkiak doitzen igorpenaren ezarpenetan.</string>
     <string name="mjpeg_error_notification_permission_required">Aplikazio honek jakinarazpenak gaituta behar ditu transmisio-zerbitzua hasteko.\nGaitu jakinarazpenak aplikazioaren ezarpenetan.</string>
     <string name="mjpeg_error_unspecified">Zerbait gaizki joan da. Mesedez, saiatu beranduago.</string>

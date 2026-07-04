@@ -2,6 +2,9 @@
 <resources>
     <string name="rtsp_error_recover">بحال کریں</string>
     <string name="rtsp_error_open_settings">ترتیبات کھولیں</string>
+    <string name="rtsp_error_start_screen_sharing">اسکرین شیئرنگ شروع کریں</string>
+    <string name="rtsp_error_start_with_audio">آڈیو کے ساتھ شروع کریں</string>
+    <string name="rtsp_error_allow_microphone">مائیکروفون کی اجازت دیں</string>
     <string name="rtsp_error_local_network_permission_required">مقامی نیٹ ورک تک رسائی درکار ہے تاکہ آلات آپ کی اسٹریم سے منسلک ہو سکیں۔</string>
 
     <string name="rtsp_stream_mode">RTSP موڈ · RTSP</string>
@@ -45,6 +48,10 @@
     <string name="rtsp_stream_stop">اسٹریم روکیں</string>
 
     <string name="rtsp_error_notification_permission_required">اس ایپ کو اسٹریمنگ سروس شروع کرنے کے لیے اطلاعات فعال چاہیے۔\nایپ کی ترتیبات میں اطلاعات فعال کریں۔</string>
+    <string name="rtsp_error_screen_capture_start_blocked">Android نے اسکرین شیئرنگ شروع ہونے سے روک دی۔ ScreenStream کھلا رکھیں اور دوبارہ شروع کریں۔</string>
+    <string name="rtsp_error_projection_acquire_rejected">اسکرین کیپچر کی اجازت اب درست نہیں ہے۔ اسکرین شیئرنگ دوبارہ شروع کریں۔</string>
+    <string name="rtsp_error_audio_permission_required">آڈیو کے ساتھ اسٹریمنگ شروع کرنے کے لیے مائیکروفون اجازت ضروری ہے۔</string>
+    <string name="rtsp_error_audio_start_blocked">Android نے آڈیو شیئرنگ شروع ہونے سے روک دی۔ ScreenStream کھلا رکھیں اور آڈیو کے ساتھ دوبارہ شروع کریں۔</string>
     <string name="rtsp_error_ip_address_not_found">کوئی پتہ نہیں ملا۔ کنکشن چیک کریں یا سرور کی ترتیبات ایڈجسٹ کریں (انٹرفیس فلٹر، ایڈریس فلٹر)۔</string>
     <string name="rtsp_error_unspecified">کچھ غلط ہو گیا۔</string>
 

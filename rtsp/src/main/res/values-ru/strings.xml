@@ -2,6 +2,9 @@
 <resources>
     <string name="rtsp_error_recover">Восстановить</string>
     <string name="rtsp_error_open_settings">Открыть настройки</string>
+    <string name="rtsp_error_start_screen_sharing">Начать демонстрацию экрана</string>
+    <string name="rtsp_error_start_with_audio">Запустить со звуком</string>
+    <string name="rtsp_error_allow_microphone">Разрешить микрофон</string>
     <string name="rtsp_error_local_network_permission_required">Требуется доступ к локальной сети, чтобы устройства могли подключаться к трансляции.</string>
 
     <string name="rtsp_stream_mode">Режим RTSP · RTSP</string>
@@ -45,6 +48,10 @@
     <string name="rtsp_stream_stop">Остановить трансляцию</string>
 
     <string name="rtsp_error_notification_permission_required">Этому приложению нужны включенные уведомления, чтобы запустить службу трансляции.\nВключите уведомления в настройках приложения.</string>
+    <string name="rtsp_error_screen_capture_start_blocked">Android заблокировал запуск демонстрации экрана. Оставьте ScreenStream открытым и запустите снова.</string>
+    <string name="rtsp_error_projection_acquire_rejected">Разрешение на захват экрана больше недействительно. Начните демонстрацию экрана снова.</string>
+    <string name="rtsp_error_audio_permission_required">Для запуска трансляции со звуком требуется разрешение на микрофон.</string>
+    <string name="rtsp_error_audio_start_blocked">Android заблокировал запуск передачи звука. Оставьте ScreenStream открытым и запустите снова со звуком.</string>
     <string name="rtsp_error_ip_address_not_found">Адрес не найден. Проверьте соединение или измените настройки сервера (Фильтр интерфейсов, Фильтр адресов).</string>
     <string name="rtsp_error_unspecified">Что-то пошло не так.</string>
 

@@ -79,7 +79,12 @@ internal fun MjpegMainScreenUI(
             startAttemptId = state.startAttemptId?.takeIf { state.waitingCastPermission },
             onStartRequested = onStartRequested@{ educationShown ->
                 if (state.isStreaming) return@onStartRequested
-                sendEvent(MjpegStreamingService.InternalEvent.StartStream(permissionEducationShown = educationShown))
+                sendEvent(
+                    MjpegStreamingService.InternalEvent.StartStream(
+                        permissionEducationShown = educationShown,
+                        clearStartupPolicyError = state.error?.isStartupPolicyError() == true
+                    )
+                )
             },
             onPermissionGranted = { startAttemptId, intent -> if (state.startAttemptId == startAttemptId) onProjectionGranted(startAttemptId, intent) },
             onPermissionDenied = { startAttemptId -> if (state.startAttemptId == startAttemptId) sendEvent(MjpegEvent.CastPermissionsDenied(startAttemptId)) },
@@ -97,6 +102,7 @@ internal fun MjpegMainScreenUI(
                     ErrorCard(
                         error = it,
                         sendEvent = sendEvent,
+                        retryStartupPolicyError = { screenCaptureStartRequester.request() },
                         openNotificationSettings = {
                             context.startActivity(notificationHelper.getStreamNotificationSettingsIntent())
                         },

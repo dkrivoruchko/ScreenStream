@@ -1,6 +1,7 @@
 <resources>
     <string name="mjpeg_error_recover">აღდგენა</string>
     <string name="mjpeg_error_open_settings">გახსენით პარამეტრები</string>
+    <string name="mjpeg_error_start_screen_sharing">ეკრანის გაზიარების დაწყება</string>
     <string name="mjpeg_close">დახურვა</string>
     <string name="mjpeg_error_local_network_permission_required">ლოკალურ ქსელზე წვდომა საჭიროა, რათა მოწყობილობები თქვენს ნაკადს დაუკავშირდნენ.</string>
 
@@ -156,6 +157,8 @@
 
     <string name="mjpeg_error_port_in_use">პორტი უკვე გამოიყენება. აირჩიე სხვა.</string>
     <string name="mjpeg_error_invalid_media_projection">უსაფრთხოების შეცდომა: ეკრანის ჩაწერის ნებართვა არასწორია. სცადეთ ხელახლა.</string>
+    <string name="mjpeg_error_screen_capture_start_blocked">Android-მა დაბლოკა ეკრანის გაზიარების დაწყება. დატოვეთ ScreenStream გახსნილი და დაიწყეთ ხელახლა.</string>
+    <string name="mjpeg_error_projection_acquire_rejected">ეკრანის ჩაწერის ნებართვა აღარ არის მოქმედი. ხელახლა დაიწყეთ ეკრანის გაზიარება.</string>
     <string name="mjpeg_error_ip_address_not_found">IP მისამართი ვერ მოიძებნა.\nსცადეთ ქსელის ფილტრების შეცვლა ნაკადის პარამეტრებში.</string>
     <string name="mjpeg_error_notification_permission_required">სტრიმინგის სერვისის დასაწყებად ამ აპს შეტყობინებები ჩართული უნდა ჰქონდეს.\nჩართეთ შეტყობინებები აპის პარამეტრებში.</string>
     <string name="mjpeg_error_unspecified">Რაღაც არასწორად წავიდა. Გთხოვთ სცადოთ მოგვიანებით.</string>

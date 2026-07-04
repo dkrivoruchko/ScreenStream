@@ -2,6 +2,9 @@
 <resources>
     <string name="webrtc_error_recover">Herstel</string>
     <string name="webrtc_error_open_settings">Maak instellings oop</string>
+    <string name="webrtc_error_start_screen_sharing">Begin skermdeling</string>
+    <string name="webrtc_error_start_with_audio">Begin met oudio</string>
+    <string name="webrtc_error_allow_microphone">Laat mikrofoon toe</string>
     <string name="webrtc_error_signaling_server_unavailable">Kan nie die bediener bereik nie. Kykers kan dalk nie aansluit nie.</string>
 
     <string name="webrtc_stream_mode">Globale modus · WebRTC</string>
@@ -62,5 +65,9 @@
     <string name="webrtc_error_check_network">Kontroleer jou internetverbinding</string>
     <string name="webrtc_error_incomplete_installation">Die toepassing is onvolledig geïnstalleer. Herinstalleer asseblief die toepassing vanaf Google Play.</string>
     <string name="webrtc_notification_permission_required">Hierdie app benodig kennisgewings om die stroomdiens te begin.\nAktiveer kennisgewings in appinstellings.</string>
+    <string name="webrtc_error_screen_capture_start_blocked">Android het die begin van skermdeling geblokkeer. Hou ScreenStream oop en begin weer.</string>
+    <string name="webrtc_error_projection_acquire_rejected">Skermopnametoestemming is nie meer geldig nie. Begin skermdeling weer.</string>
+    <string name="webrtc_error_audio_permission_required">Mikrofoontoestemming is nodig om met oudio te begin stroom.</string>
+    <string name="webrtc_error_audio_start_blocked">Android het die begin van oudiodeling geblokkeer. Hou ScreenStream oop en begin weer met oudio.</string>
     <string name="webrtc_error_unspecified">Iets het verkeerd geloop. Probeer asseblief weer later.</string>
 </resources>

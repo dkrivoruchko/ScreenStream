@@ -1,6 +1,7 @@
 <resources>
     <string name="mjpeg_error_recover">Recover</string>
     <string name="mjpeg_error_open_settings">Open settings</string>
+    <string name="mjpeg_error_start_screen_sharing">Start screen sharing</string>
     <string name="mjpeg_close">Close</string>
     <string name="mjpeg_error_local_network_permission_required">Local network access is required so devices can connect to your stream.</string>
 
@@ -166,6 +167,8 @@
 
     <string name="mjpeg_error_port_in_use">Port already in use. Choose another one.</string>
     <string name="mjpeg_error_invalid_media_projection">Security error: Invalid screen capture permission. Try again.</string>
+    <string name="mjpeg_error_screen_capture_start_blocked">Android blocked screen sharing startup. Keep ScreenStream open and start again.</string>
+    <string name="mjpeg_error_projection_acquire_rejected">Screen capture permission is no longer valid. Start screen sharing again.</string>
     <string name="mjpeg_error_ip_address_not_found">IP address not found.\nTry to adjust network filters in stream settings.</string>
     <string name="mjpeg_error_notification_permission_required">This app needs notifications enabled to start the streaming service.\nEnable notifications in app settings.</string>
     <string name="mjpeg_error_unspecified">Something went wrong. Please try again later.</string>

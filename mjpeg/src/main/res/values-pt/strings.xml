@@ -1,6 +1,7 @@
 <resources>
     <string name="mjpeg_error_recover">Recuperar</string>
     <string name="mjpeg_error_open_settings">Abrir configurações</string>
+    <string name="mjpeg_error_start_screen_sharing">Iniciar compartilhamento de tela</string>
     <string name="mjpeg_close">Fechar</string>
     <string name="mjpeg_error_local_network_permission_required">O acesso à rede local é necessário para que dispositivos possam se conectar à sua transmissão.</string>
 
@@ -156,6 +157,8 @@
 
     <string name="mjpeg_error_port_in_use">Porta já em uso. Escolha outra.</string>
     <string name="mjpeg_error_invalid_media_projection">Erro de segurança: permissão de captura de tela inválida. Tente novamente.</string>
+    <string name="mjpeg_error_screen_capture_start_blocked">O Android bloqueou o início do compartilhamento de tela. Mantenha o ScreenStream aberto e inicie novamente.</string>
+    <string name="mjpeg_error_projection_acquire_rejected">A permissão de captura de tela não é mais válida. Inicie o compartilhamento de tela novamente.</string>
     <string name="mjpeg_error_ip_address_not_found">Endereço IP não encontrado.\nTente ajustar os filtros de rede nas configurações de transmissão.</string>
     <string name="mjpeg_error_notification_permission_required">Este app precisa de notificações ativadas para iniciar o serviço de transmissão.\nAtive as notificações nas configurações do app.</string>
     <string name="mjpeg_error_unspecified">Algo deu errado. Tente novamente mais tarde.</string>

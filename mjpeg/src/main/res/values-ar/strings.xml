@@ -1,6 +1,7 @@
 <resources>
     <string name="mjpeg_error_recover">استعادة</string>
     <string name="mjpeg_error_open_settings">فتح الإعدادات</string>
+    <string name="mjpeg_error_start_screen_sharing">ابدأ مشاركة الشاشة</string>
     <string name="mjpeg_close">إغلاق</string>
     <string name="mjpeg_error_local_network_permission_required">مطلوب الوصول إلى الشبكة المحلية حتى تتمكن الأجهزة من الاتصال بالبث.</string>
 
@@ -156,6 +157,8 @@
 
     <string name="mjpeg_error_port_in_use">المنفذ قيد الاستخدام. اختر منفذًا آخر.</string>
     <string name="mjpeg_error_invalid_media_projection">خطأ أمني: إذن التقاط الشاشة غير صالح. حاول مرة أخرى.</string>
+    <string name="mjpeg_error_screen_capture_start_blocked">حظر Android بدء مشاركة الشاشة. أبقِ ScreenStream مفتوحًا وابدأ مرة أخرى.</string>
+    <string name="mjpeg_error_projection_acquire_rejected">لم يعد إذن التقاط الشاشة صالحًا. ابدأ مشاركة الشاشة مرة أخرى.</string>
     <string name="mjpeg_error_ip_address_not_found">لم يتم العثور على عنوان IP.\nحاول تعديل فلاتر الشبكة في إعدادات البث.</string>
     <string name="mjpeg_error_notification_permission_required">يحتاج هذا التطبيق إلى تفعيل الإشعارات لبدء خدمة البث.\nفعّل الإشعارات من إعدادات التطبيق.</string>
     <string name="mjpeg_error_unspecified">حدث خطأ ما. يرجى المحاولة مرة أخرى لاحقًا.</string>

@@ -1,6 +1,7 @@
 <resources>
     <string name="mjpeg_error_recover">Qayta tiklash</string>
     <string name="mjpeg_error_open_settings">Sozlamalarni oching</string>
+    <string name="mjpeg_error_start_screen_sharing">Ekran ulashishni boshlash</string>
     <string name="mjpeg_close">Yopish</string>
     <string name="mjpeg_error_local_network_permission_required">Qurilmalar translatsiyangizga ulanishi uchun mahalliy tarmoqqa kirish kerak.</string>
 
@@ -156,6 +157,8 @@
 
     <string name="mjpeg_error_port_in_use">Port allaqachon ishlatilmoqda. Boshqasini tanlang.</string>
     <string name="mjpeg_error_invalid_media_projection">Xavfsizlik xatosi: ekran yozib olish ruxsati yaroqsiz. Qayta urinib ko\'ring.</string>
+    <string name="mjpeg_error_screen_capture_start_blocked">Android ekran ulashishni boshlashni blokladi. ScreenStream ochiq tursin va qayta boshlang.</string>
+    <string name="mjpeg_error_projection_acquire_rejected">Ekranni yozib olish ruxsati endi yaroqli emas. Ekran ulashishni qayta boshlang.</string>
     <string name="mjpeg_error_ip_address_not_found">IP manzil topilmadi.\nOqim sozlamalarida tarmoq filtrlarini sozlab ko‘ring.</string>
     <string name="mjpeg_error_notification_permission_required">Bu ilovaga translatsiya xizmatini boshlash uchun bildirishnomalar yoqilgan bo\'lishi kerak.\nIlova sozlamalarida bildirishnomalarni yoqing.</string>
     <string name="mjpeg_error_unspecified">Nimadir noto\'g\'ri bajarildi. Iltimos keyinroq qayta urinib ko\'ring.</string>

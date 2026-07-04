@@ -79,5 +79,9 @@ public interface StreamingModule {
 }
 
 public fun Throwable.isStreamingModuleStartBlocked(): Boolean =
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) this is BackgroundServiceStartNotAllowedException
-    else this is IllegalStateException
+    when {
+        this is StreamingModule.StartBlockedException -> true
+        Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> this is BackgroundServiceStartNotAllowedException
+        this is IllegalStateException -> message?.contains("Not allowed to start service", ignoreCase = true) == true
+        else -> false
+    }

@@ -2,6 +2,9 @@
 <resources>
     <string name="rtsp_error_recover">Berreskuratu</string>
     <string name="rtsp_error_open_settings">Ezarpenak ireki</string>
+    <string name="rtsp_error_start_screen_sharing">Hasi pantaila partekatzen</string>
+    <string name="rtsp_error_start_with_audio">Hasi audioarekin</string>
+    <string name="rtsp_error_allow_microphone">Baimendu mikrofonoa</string>
     <string name="rtsp_error_local_network_permission_required">Tokiko sarerako sarbidea behar da, gailuak zure transmisiora konektatu ahal izateko.</string>
 
     <string name="rtsp_stream_mode">RTSP modua · RTSP</string>
@@ -45,6 +48,10 @@
     <string name="rtsp_stream_stop">Transmisioa gelditu</string>
 
     <string name="rtsp_error_notification_permission_required">Aplikazio honek jakinarazpenak gaituta behar ditu transmisio-zerbitzua hasteko.\nGaitu jakinarazpenak aplikazioaren ezarpenetan.</string>
+    <string name="rtsp_error_screen_capture_start_blocked">Android-ek pantaila partekatzearen hasiera blokeatu du. Mantendu ScreenStream irekita eta hasi berriro.</string>
+    <string name="rtsp_error_projection_acquire_rejected">Pantaila kapturatzeko baimena ez da baliozkoa dagoeneko. Hasi berriro pantaila partekatzen.</string>
+    <string name="rtsp_error_audio_permission_required">Mikrofono-baimena behar da audioarekin transmititzen hasteko.</string>
+    <string name="rtsp_error_audio_start_blocked">Android-ek audioa partekatzearen hasiera blokeatu du. Mantendu ScreenStream irekita eta hasi berriro audioarekin.</string>
     <string name="rtsp_error_ip_address_not_found">Ez da helbiderik aurkitu. Egiaztatu konexioa edo doitu zerbitzariaren ezarpenak (Interfaze-iragazkia, Helbide-iragazkia).</string>
     <string name="rtsp_error_unspecified">Zerbait oker joan da.</string>
 

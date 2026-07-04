@@ -1,6 +1,7 @@
 <resources>
     <string name="mjpeg_error_recover">بحال کریں</string>
     <string name="mjpeg_error_open_settings">ترتیبات کھولیں</string>
+    <string name="mjpeg_error_start_screen_sharing">اسکرین شیئرنگ شروع کریں</string>
     <string name="mjpeg_close">بند کریں</string>
     <string name="mjpeg_error_local_network_permission_required">مقامی نیٹ ورک تک رسائی درکار ہے تاکہ آلات آپ کی اسٹریم سے منسلک ہو سکیں۔</string>
 
@@ -156,6 +157,8 @@
 
     <string name="mjpeg_error_port_in_use">پورٹ پہلے سے استعمال میں ہے۔ دوسری منتخب کریں۔</string>
     <string name="mjpeg_error_invalid_media_projection">سیکیورٹی خرابی: اسکرین کیپچر کی اجازت غلط ہے۔ دوبارہ کوشش کریں۔</string>
+    <string name="mjpeg_error_screen_capture_start_blocked">Android نے اسکرین شیئرنگ شروع ہونے سے روک دی۔ ScreenStream کھلا رکھیں اور دوبارہ شروع کریں۔</string>
+    <string name="mjpeg_error_projection_acquire_rejected">اسکرین کیپچر کی اجازت اب درست نہیں ہے۔ اسکرین شیئرنگ دوبارہ شروع کریں۔</string>
     <string name="mjpeg_error_ip_address_not_found">IP پتہ نہیں ملا۔\nاسٹریم ترتیبات میں نیٹ ورک فلٹر ایڈجسٹ کریں۔</string>
     <string name="mjpeg_error_notification_permission_required">اس ایپ کو اسٹریمنگ سروس شروع کرنے کے لیے اطلاعات فعال چاہیے۔\nایپ کی ترتیبات میں اطلاعات فعال کریں۔</string>
     <string name="mjpeg_error_unspecified">کچھ غلط ہو گیا۔ بعد میں دوبارہ کوشش کریں۔</string>

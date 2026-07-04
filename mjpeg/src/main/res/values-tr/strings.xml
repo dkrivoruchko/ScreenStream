@@ -1,6 +1,7 @@
 <resources>
     <string name="mjpeg_error_recover">Kurtar</string>
     <string name="mjpeg_error_open_settings">Ayarları aç</string>
+    <string name="mjpeg_error_start_screen_sharing">Ekran paylaşımını başlat</string>
     <string name="mjpeg_close">Kapat</string>
     <string name="mjpeg_error_local_network_permission_required">Cihazların yayınınıza bağlanabilmesi için yerel ağ erişimi gereklidir.</string>
 
@@ -156,6 +157,8 @@
 
     <string name="mjpeg_error_port_in_use">Bağlantı noktası zaten kullanımda. Başka bir tane seçin.</string>
     <string name="mjpeg_error_invalid_media_projection">Güvenlik hatası: Geçersiz ekran yakalama izni. Tekrar deneyin.</string>
+    <string name="mjpeg_error_screen_capture_start_blocked">Android ekran paylaşımının başlatılmasını engelledi. ScreenStream’i açık tutun ve tekrar başlatın.</string>
+    <string name="mjpeg_error_projection_acquire_rejected">Ekran yakalama izni artık geçerli değil. Ekran paylaşımını tekrar başlatın.</string>
     <string name="mjpeg_error_ip_address_not_found">IP adresi bulunamadı.\nYayın ayarlarında ağ filtrelerini değiştirmeyi deneyin.</string>
     <string name="mjpeg_error_notification_permission_required">Bu uygulamanın yayın hizmetini başlatmak için bildirimleri etkinleştirmesi gerekir.\nUygulama ayarlarında bildirimleri etkinleştirin.</string>
     <string name="mjpeg_error_unspecified">Bir şeyler ters gitti. Lütfen daha sonra tekrar deneyin.</string>

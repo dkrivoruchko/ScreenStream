@@ -2,6 +2,9 @@
 <resources>
     <string name="webrtc_error_recover">恢復</string>
     <string name="webrtc_error_open_settings">開啟設定</string>
+    <string name="webrtc_error_start_screen_sharing">開始分享螢幕</string>
+    <string name="webrtc_error_start_with_audio">使用音訊開始</string>
+    <string name="webrtc_error_allow_microphone">允許麥克風</string>
     <string name="webrtc_error_signaling_server_unavailable">無法連上伺服器。觀看者可能無法加入。</string>
 
     <string name="webrtc_stream_mode">全球模式 · WebRTC</string>
@@ -62,5 +65,9 @@
     <string name="webrtc_error_check_network">檢查您的網際網路連線</string>
     <string name="webrtc_error_incomplete_installation">應用程式安裝不完整。請從 Google Play 重新安裝應用程式。</string>
     <string name="webrtc_notification_permission_required">此應用程式需要啟用通知才能啟動串流服務。\n請在應用程式設定中啟用通知。</string>
+    <string name="webrtc_error_screen_capture_start_blocked">Android 已封鎖螢幕分享啟動。請保持 ScreenStream 開啟並重新開始。</string>
+    <string name="webrtc_error_projection_acquire_rejected">螢幕擷取權限已不再有效。請重新開始分享螢幕。</string>
+    <string name="webrtc_error_audio_permission_required">需要麥克風權限才能使用音訊開始串流。</string>
+    <string name="webrtc_error_audio_start_blocked">Android 已封鎖音訊分享啟動。請保持 ScreenStream 開啟並使用音訊重新開始。</string>
     <string name="webrtc_error_unspecified">出現了一些問題，請稍後再試。</string>
 </resources>

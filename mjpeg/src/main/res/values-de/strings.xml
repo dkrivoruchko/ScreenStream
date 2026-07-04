@@ -1,6 +1,7 @@
 <resources>
     <string name="mjpeg_error_recover">Wiederherstellen</string>
     <string name="mjpeg_error_open_settings">Einstellungen öffnen</string>
+    <string name="mjpeg_error_start_screen_sharing">Bildschirmfreigabe starten</string>
     <string name="mjpeg_close">Schließen</string>
     <string name="mjpeg_error_local_network_permission_required">Zugriff auf das lokale Netzwerk ist erforderlich, damit Geräte eine Verbindung zu Ihrem Stream herstellen können.</string>
 
@@ -156,6 +157,8 @@
 
     <string name="mjpeg_error_port_in_use">Port wird bereits genutzt. Bitte wählen Sie einen anderen Port.</string>
     <string name="mjpeg_error_invalid_media_projection">Sicherheitsfehler: Ungültige Bildschirmaufnahme-Berechtigung. Erneut versuchen.</string>
+    <string name="mjpeg_error_screen_capture_start_blocked">Android hat den Start der Bildschirmfreigabe blockiert. Lassen Sie ScreenStream geöffnet und starten Sie erneut.</string>
+    <string name="mjpeg_error_projection_acquire_rejected">Die Bildschirmaufnahme-Berechtigung ist nicht mehr gültig. Starten Sie die Bildschirmfreigabe erneut.</string>
     <string name="mjpeg_error_ip_address_not_found">IP-Adresse nicht gefunden.\nPassen Sie die Netzwerkfilter in den Stream-Einstellungen an.</string>
     <string name="mjpeg_error_notification_permission_required">Diese App benötigt aktivierte Benachrichtigungen, um den Streaming-Dienst zu starten.\nAktivieren Sie Benachrichtigungen in den App-Einstellungen.</string>
     <string name="mjpeg_error_unspecified">Etwas ist schiefgegangen. Bitte versuchen Sie es später erneut.</string>

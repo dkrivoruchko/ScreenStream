@@ -2,6 +2,9 @@
 <resources>
     <string name="webrtc_error_recover">पुनर्प्राप्ति</string>
     <string name="webrtc_error_open_settings">सेटिंग्स खोलें</string>
+    <string name="webrtc_error_start_screen_sharing">स्क्रीन शेयरिंग शुरू करें</string>
+    <string name="webrtc_error_start_with_audio">ऑडियो के साथ शुरू करें</string>
+    <string name="webrtc_error_allow_microphone">माइक्रोफ़ोन की अनुमति दें</string>
     <string name="webrtc_error_signaling_server_unavailable">सर्वर तक नहीं पहुंचा जा सकता। दर्शक शायद जुड़ न पाएं।</string>
 
     <string name="webrtc_stream_mode">वैश्विक मोड · WebRTC</string>
@@ -62,5 +65,9 @@
     <string name="webrtc_error_check_network">अपना इंटरनेट कनेक्शन जांचें</string>
     <string name="webrtc_error_incomplete_installation">ऐप का इंस्टॉलेशन अधूरा है। कृपया Google Play से ऐप को फिर से इंस्टॉल करें।</string>
     <string name="webrtc_notification_permission_required">स्ट्रीमिंग सेवा शुरू करने के लिए इस ऐप में सूचनाएँ चालू होनी चाहिए।\nऐप सेटिंग में सूचनाएँ चालू करें।</string>
+    <string name="webrtc_error_screen_capture_start_blocked">Android ने स्क्रीन शेयरिंग शुरू होने से रोक दी। ScreenStream खुला रखें और फिर से शुरू करें।</string>
+    <string name="webrtc_error_projection_acquire_rejected">स्क्रीन कैप्चर अनुमति अब मान्य नहीं है। स्क्रीन शेयरिंग फिर से शुरू करें।</string>
+    <string name="webrtc_error_audio_permission_required">ऑडियो के साथ स्ट्रीमिंग शुरू करने के लिए माइक्रोफ़ोन अनुमति आवश्यक है।</string>
+    <string name="webrtc_error_audio_start_blocked">Android ने ऑडियो शेयरिंग शुरू होने से रोक दी। ScreenStream खुला रखें और ऑडियो के साथ फिर से शुरू करें।</string>
     <string name="webrtc_error_unspecified">कुछ गड़बड़ हो गई है। कृपया बाद में पुनः प्रयास करें।</string>
 </resources>

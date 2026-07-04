@@ -207,8 +207,10 @@ public class RtspStreamingModule : StreamingModule {
             is StreamingModule.State.Running -> {
                 val activeStreamingService = streamingService
                 if (activeStreamingService != null) {
-                    val foregroundStartError = activeStreamingService.tryStartProjectionForeground()
-                    activeStreamingService.sendEvent(RtspEvent.StartProjection(startAttemptId, intent, foregroundStartProcessed = true, foregroundStartError))
+                    if (activeStreamingService.prepareStartProjectionForeground(startAttemptId)) {
+                        val foregroundStartError = activeStreamingService.tryStartProjectionForeground()
+                        activeStreamingService.sendEvent(RtspEvent.StartProjection(startAttemptId, intent, foregroundStartProcessed = true, foregroundStartError))
+                    }
                 } else XLog.w(getLog("startProjection", "Running state without RtspStreamingService"))
             }
 

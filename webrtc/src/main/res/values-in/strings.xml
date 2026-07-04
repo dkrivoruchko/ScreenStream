@@ -2,6 +2,9 @@
 <resources>
     <string name="webrtc_error_recover">Pulih</string>
     <string name="webrtc_error_open_settings">Buka pengaturan</string>
+    <string name="webrtc_error_start_screen_sharing">Mulai berbagi layar</string>
+    <string name="webrtc_error_start_with_audio">Mulai dengan audio</string>
+    <string name="webrtc_error_allow_microphone">Izinkan mikrofon</string>
     <string name="webrtc_error_signaling_server_unavailable">Tidak dapat menjangkau server. Penonton mungkin tidak dapat bergabung.</string>
 
     <string name="webrtc_stream_mode">Modus global · WebRTC</string>
@@ -62,5 +65,9 @@
     <string name="webrtc_error_check_network">Periksa koneksi internet Anda</string>
     <string name="webrtc_error_incomplete_installation">Instalasi aplikasi tidak lengkap. Harap instal ulang aplikasi dari Google Play.</string>
     <string name="webrtc_notification_permission_required">Aplikasi ini memerlukan notifikasi aktif untuk memulai layanan streaming.\nAktifkan notifikasi di setelan aplikasi.</string>
+    <string name="webrtc_error_screen_capture_start_blocked">Android memblokir mulai berbagi layar. Biarkan ScreenStream tetap terbuka dan mulai lagi.</string>
+    <string name="webrtc_error_projection_acquire_rejected">Izin tangkapan layar tidak berlaku lagi. Mulai berbagi layar lagi.</string>
+    <string name="webrtc_error_audio_permission_required">Izin mikrofon diperlukan untuk mulai streaming dengan audio.</string>
+    <string name="webrtc_error_audio_start_blocked">Android memblokir mulai berbagi audio. Biarkan ScreenStream tetap terbuka dan mulai lagi dengan audio.</string>
     <string name="webrtc_error_unspecified">Ada yang salah. Silakan coba lagi nanti.</string>
 </resources>

@@ -2,6 +2,9 @@
 <resources>
     <string name="rtsp_error_recover">恢复</string>
     <string name="rtsp_error_open_settings">打开设置</string>
+    <string name="rtsp_error_start_screen_sharing">开始共享屏幕</string>
+    <string name="rtsp_error_start_with_audio">带音频开始</string>
+    <string name="rtsp_error_allow_microphone">允许麦克风</string>
     <string name="rtsp_error_local_network_permission_required">需要访问本地网络，以便设备可以连接到您的串流。</string>
 
     <string name="rtsp_stream_mode">RTSP 模式 · RTSP</string>
@@ -45,6 +48,10 @@
     <string name="rtsp_stream_stop">停止流媒体</string>
 
     <string name="rtsp_error_notification_permission_required">此应用需要启用通知才能启动串流服务。\n请在应用设置中启用通知。</string>
+    <string name="rtsp_error_screen_capture_start_blocked">Android 阻止了屏幕共享启动。请保持 ScreenStream 打开并重新开始。</string>
+    <string name="rtsp_error_projection_acquire_rejected">屏幕捕获权限已失效。请重新开始共享屏幕。</string>
+    <string name="rtsp_error_audio_permission_required">需要麦克风权限才能带音频开始串流。</string>
+    <string name="rtsp_error_audio_start_blocked">Android 阻止了音频共享启动。请保持 ScreenStream 打开并带音频重新开始。</string>
     <string name="rtsp_error_ip_address_not_found">未找到地址。请检查连接，或调整服务器设置（接口过滤器、地址过滤器）。</string>
     <string name="rtsp_error_unspecified">出了点问题。</string>
 

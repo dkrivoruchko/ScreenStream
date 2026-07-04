@@ -2,6 +2,9 @@
 <resources>
     <string name="rtsp_error_recover">Wiederherstellen</string>
     <string name="rtsp_error_open_settings">Einstellungen öffnen</string>
+    <string name="rtsp_error_start_screen_sharing">Bildschirmfreigabe starten</string>
+    <string name="rtsp_error_start_with_audio">Mit Audio starten</string>
+    <string name="rtsp_error_allow_microphone">Mikrofon zulassen</string>
     <string name="rtsp_error_local_network_permission_required">Zugriff auf das lokale Netzwerk ist erforderlich, damit Geräte eine Verbindung zu Ihrem Stream herstellen können.</string>
 
     <string name="rtsp_stream_mode">RTSP-Modus · RTSP</string>
@@ -45,6 +48,10 @@
     <string name="rtsp_stream_stop">Stream stoppen</string>
 
     <string name="rtsp_error_notification_permission_required">Diese App benötigt aktivierte Benachrichtigungen, um den Streaming-Dienst zu starten.\nAktivieren Sie Benachrichtigungen in den App-Einstellungen.</string>
+    <string name="rtsp_error_screen_capture_start_blocked">Android hat den Start der Bildschirmfreigabe blockiert. Lassen Sie ScreenStream geöffnet und starten Sie erneut.</string>
+    <string name="rtsp_error_projection_acquire_rejected">Die Bildschirmaufnahme-Berechtigung ist nicht mehr gültig. Starten Sie die Bildschirmfreigabe erneut.</string>
+    <string name="rtsp_error_audio_permission_required">Die Mikrofonberechtigung ist erforderlich, um das Streaming mit Audio zu starten.</string>
+    <string name="rtsp_error_audio_start_blocked">Android hat den Start der Audiofreigabe blockiert. Lassen Sie ScreenStream geöffnet und starten Sie erneut mit Audio.</string>
     <string name="rtsp_error_ip_address_not_found">Keine Adresse gefunden. Prüfen Sie die Verbindung oder passen Sie die Servereinstellungen an (Schnittstellenfilter, Adressfilter).</string>
     <string name="rtsp_error_unspecified">Etwas ist schiefgelaufen.</string>
 

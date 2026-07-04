@@ -2,6 +2,9 @@
 <resources>
     <string name="rtsp_error_recover">Kurtar</string>
     <string name="rtsp_error_open_settings">Ayarları aç</string>
+    <string name="rtsp_error_start_screen_sharing">Ekran paylaşımını başlat</string>
+    <string name="rtsp_error_start_with_audio">Sesle başlat</string>
+    <string name="rtsp_error_allow_microphone">Mikrofona izin ver</string>
     <string name="rtsp_error_local_network_permission_required">Cihazların yayınınıza bağlanabilmesi için yerel ağ erişimi gereklidir.</string>
 
     <string name="rtsp_stream_mode">RTSP modu · RTSP</string>
@@ -45,6 +48,10 @@
     <string name="rtsp_stream_stop">Yayını durdur</string>
 
     <string name="rtsp_error_notification_permission_required">Bu uygulamanın yayın hizmetini başlatmak için bildirimleri etkinleştirmesi gerekir.\nUygulama ayarlarında bildirimleri etkinleştirin.</string>
+    <string name="rtsp_error_screen_capture_start_blocked">Android ekran paylaşımının başlatılmasını engelledi. ScreenStream’i açık tutun ve tekrar başlatın.</string>
+    <string name="rtsp_error_projection_acquire_rejected">Ekran yakalama izni artık geçerli değil. Ekran paylaşımını tekrar başlatın.</string>
+    <string name="rtsp_error_audio_permission_required">Sesle yayını başlatmak için mikrofon izni gereklidir.</string>
+    <string name="rtsp_error_audio_start_blocked">Android ses paylaşımının başlatılmasını engelledi. ScreenStream’i açık tutun ve sesle tekrar başlatın.</string>
     <string name="rtsp_error_ip_address_not_found">Adres bulunamadı. Bağlantıyı kontrol edin veya sunucu ayarlarını düzenleyin (Arayüz filtresi, Adres filtresi).</string>
     <string name="rtsp_error_unspecified">Bir şeyler ters gitti.</string>
 

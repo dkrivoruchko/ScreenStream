@@ -1,6 +1,7 @@
 <resources>
     <string name="mjpeg_error_recover">Ripristina</string>
     <string name="mjpeg_error_open_settings">Apri impostazioni</string>
+    <string name="mjpeg_error_start_screen_sharing">Avvia condivisione schermo</string>
     <string name="mjpeg_close">Chiudi</string>
     <string name="mjpeg_error_local_network_permission_required">L\'accesso alla rete locale è necessario affinché i dispositivi possano connettersi allo streaming.</string>
 
@@ -156,6 +157,8 @@
 
     <string name="mjpeg_error_port_in_use">Porta già in uso. Scegline un\'altra.</string>
     <string name="mjpeg_error_invalid_media_projection">Errore di sicurezza: autorizzazione di acquisizione schermo non valida. Riprova.</string>
+    <string name="mjpeg_error_screen_capture_start_blocked">Android ha bloccato l’avvio della condivisione schermo. Tieni ScreenStream aperto e riprova.</string>
+    <string name="mjpeg_error_projection_acquire_rejected">L’autorizzazione alla cattura dello schermo non è più valida. Avvia di nuovo la condivisione schermo.</string>
     <string name="mjpeg_error_ip_address_not_found">Indirizzo IP non trovato.\nProva a regolare i filtri di rete nelle impostazioni di streaming.</string>
     <string name="mjpeg_error_notification_permission_required">Questa app richiede le notifiche attive per avviare il servizio di streaming.\nAttiva le notifiche nelle impostazioni dell\'app.</string>
     <string name="mjpeg_error_unspecified">Qualcosa è andato storto. Per favore, riprova più tardi.</string>

@@ -1,6 +1,7 @@
 <resources>
     <string name="mjpeg_error_recover">Herstel</string>
     <string name="mjpeg_error_open_settings">Maak instellings oop</string>
+    <string name="mjpeg_error_start_screen_sharing">Begin skermdeling</string>
     <string name="mjpeg_close">Toemaak</string>
     <string name="mjpeg_error_local_network_permission_required">Toegang tot plaaslike netwerk is nodig sodat toestelle met jou stroom kan verbind.</string>
 
@@ -156,6 +157,8 @@
 
     <string name="mjpeg_error_port_in_use">Poort reeds in gebruik. Kies \'n ander een.</string>
     <string name="mjpeg_error_invalid_media_projection">Sekuriteitsfout: Ongeldige skermopnametoestemming. Probeer weer.</string>
+    <string name="mjpeg_error_screen_capture_start_blocked">Android het die begin van skermdeling geblokkeer. Hou ScreenStream oop en begin weer.</string>
+    <string name="mjpeg_error_projection_acquire_rejected">Skermopnametoestemming is nie meer geldig nie. Begin skermdeling weer.</string>
     <string name="mjpeg_error_ip_address_not_found">IP-adres nie gevind nie.\nProbeer om netwerkfilters in stroominstellings aan te pas.</string>
     <string name="mjpeg_error_notification_permission_required">Hierdie app benodig kennisgewings om die stroomdiens te begin.\nAktiveer kennisgewings in appinstellings.</string>
     <string name="mjpeg_error_unspecified">Iets het verkeerd geloop. Probeer asseblief weer later.</string>

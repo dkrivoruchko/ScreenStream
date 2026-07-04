@@ -20,15 +20,22 @@ import androidx.compose.ui.unit.dp
 import info.dvkr.screenstream.rtsp.R
 import info.dvkr.screenstream.rtsp.internal.RtspEvent
 import info.dvkr.screenstream.rtsp.ui.RtspError
+import info.dvkr.screenstream.rtsp.ui.isStartupPolicyError
 
 @Composable
 internal fun ErrorCard(
     error: RtspError,
     sendEvent: (event: RtspEvent) -> Unit,
+    audioEnabled: Boolean,
+    retryStartupPolicyError: () -> Unit,
+    allowMicrophone: () -> Unit,
     openNotificationSettings: () -> Unit,
     openLocalNetworkSettings: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val startupPolicyError = error.isStartupPolicyError()
+    val microphonePermissionError = error is RtspError.AudioPermissionRequired && audioEnabled
+
     ElevatedCard(modifier = modifier) {
         Column(
             modifier = Modifier
@@ -45,11 +52,20 @@ internal fun ErrorCard(
 
             OutlinedButton(
                 onClick = {
-                    sendEvent(RtspEvent.Intentable.RecoverError)
-                    when (error) {
-                        is RtspError.NotificationPermissionRequired -> openNotificationSettings()
-                        is RtspError.LocalNetworkPermissionRequired -> openLocalNetworkSettings()
-                        else -> Unit
+                    when {
+                        microphonePermissionError -> allowMicrophone()
+                        startupPolicyError -> retryStartupPolicyError()
+                        error is RtspError.NotificationPermissionRequired -> {
+                            sendEvent(RtspEvent.Intentable.RecoverError)
+                            openNotificationSettings()
+                        }
+
+                        error is RtspError.LocalNetworkPermissionRequired -> {
+                            sendEvent(RtspEvent.Intentable.RecoverError)
+                            openLocalNetworkSettings()
+                        }
+
+                        else -> sendEvent(RtspEvent.Intentable.RecoverError)
                     }
                 },
                 modifier = Modifier
@@ -57,10 +73,13 @@ internal fun ErrorCard(
                     .align(Alignment.End),
                 border = ButtonDefaults.outlinedButtonBorder(true).copy(brush = SolidColor(MaterialTheme.colorScheme.onError))
             ) {
-                val buttonTextId = if (error is RtspError.NotificationPermissionRequired || error is RtspError.LocalNetworkPermissionRequired)
-                    R.string.rtsp_error_open_settings
-                else
-                    R.string.rtsp_error_recover
+                val buttonTextId = when {
+                    microphonePermissionError -> R.string.rtsp_error_allow_microphone
+                    error is RtspError.AudioStartBlocked -> R.string.rtsp_error_start_with_audio
+                    startupPolicyError -> R.string.rtsp_error_start_screen_sharing
+                    error is RtspError.NotificationPermissionRequired || error is RtspError.LocalNetworkPermissionRequired -> R.string.rtsp_error_open_settings
+                    else -> R.string.rtsp_error_recover
+                }
                 Text(text = stringResource(buttonTextId), color = MaterialTheme.colorScheme.onError)
             }
         }

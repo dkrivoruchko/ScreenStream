@@ -1,6 +1,7 @@
 <resources>
     <string name="mjpeg_error_recover">Rétablir</string>
     <string name="mjpeg_error_open_settings">Ouvrir les paramètres</string>
+    <string name="mjpeg_error_start_screen_sharing">Démarrer le partage d’écran</string>
     <string name="mjpeg_close">Fermer</string>
     <string name="mjpeg_error_local_network_permission_required">L\'accès au réseau local est requis pour que les appareils puissent se connecter à votre diffusion.</string>
 
@@ -156,6 +157,8 @@
 
     <string name="mjpeg_error_port_in_use">Port déjà utilisé. Choisissez-en un autre.</string>
     <string name="mjpeg_error_invalid_media_projection">Erreur de sécurité : autorisation de capture d’écran non valide. Réessayez.</string>
+    <string name="mjpeg_error_screen_capture_start_blocked">Android a bloqué le démarrage du partage d’écran. Gardez ScreenStream ouvert et recommencez.</string>
+    <string name="mjpeg_error_projection_acquire_rejected">L’autorisation de capture d’écran n’est plus valide. Démarrez à nouveau le partage d’écran.</string>
     <string name="mjpeg_error_ip_address_not_found">Adresse IP introuvable.\nEssayez d\'ajuster les filtres réseau dans les paramètres de diffusion.</string>
     <string name="mjpeg_error_notification_permission_required">Cette application nécessite l\'activation des notifications pour démarrer le service de diffusion.\nActivez les notifications dans les paramètres de l\'application.</string>
     <string name="mjpeg_error_unspecified">Quelque chose s\'est mal passé. Veuillez réessayer ultérieurement.</string>

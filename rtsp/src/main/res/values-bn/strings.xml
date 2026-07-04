@@ -2,6 +2,9 @@
 <resources>
     <string name="rtsp_error_recover">পুনরুদ্ধার</string>
     <string name="rtsp_error_open_settings">সেটিংস খুলুন</string>
+    <string name="rtsp_error_start_screen_sharing">স্ক্রিন শেয়ারিং শুরু করুন</string>
+    <string name="rtsp_error_start_with_audio">অডিওসহ শুরু করুন</string>
+    <string name="rtsp_error_allow_microphone">মাইক্রোফোনের অনুমতি দিন</string>
     <string name="rtsp_error_local_network_permission_required">ডিভাইসগুলো যাতে আপনার স্ট্রিমে যুক্ত হতে পারে, সে জন্য স্থানীয় নেটওয়ার্ক অ্যাক্সেস প্রয়োজন।</string>
 
     <string name="rtsp_stream_mode">RTSP মোড · RTSP</string>
@@ -45,6 +48,10 @@
     <string name="rtsp_stream_stop">স্ট্রিম বন্ধ করুন</string>
 
     <string name="rtsp_error_notification_permission_required">স্ট্রিমিং পরিষেবা শুরু করতে এই অ্যাপে বিজ্ঞপ্তি চালু থাকতে হবে।\nঅ্যাপ সেটিংসে বিজ্ঞপ্তি চালু করুন।</string>
+    <string name="rtsp_error_screen_capture_start_blocked">Android স্ক্রিন শেয়ারিং শুরু করা ব্লক করেছে। ScreenStream খোলা রাখুন এবং আবার শুরু করুন।</string>
+    <string name="rtsp_error_projection_acquire_rejected">স্ক্রিন ক্যাপচার অনুমতি আর বৈধ নয়। আবার স্ক্রিন শেয়ারিং শুরু করুন।</string>
+    <string name="rtsp_error_audio_permission_required">অডিওসহ স্ট্রিমিং শুরু করতে মাইক্রোফোন অনুমতি প্রয়োজন।</string>
+    <string name="rtsp_error_audio_start_blocked">Android অডিও শেয়ারিং শুরু করা ব্লক করেছে। ScreenStream খোলা রাখুন এবং আবার অডিওসহ শুরু করুন।</string>
     <string name="rtsp_error_ip_address_not_found">কোনো ঠিকানা পাওয়া যায়নি। সংযোগ পরীক্ষা করুন অথবা সার্ভার সেটিংস সামঞ্জস্য করুন (ইন্টারফেস ফিল্টার, ঠিকানা ফিল্টার)।</string>
     <string name="rtsp_error_unspecified">কিছু একটা সমস্যা হয়েছে।</string>
 

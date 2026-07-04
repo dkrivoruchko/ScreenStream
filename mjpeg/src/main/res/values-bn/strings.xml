@@ -1,6 +1,7 @@
 <resources>
     <string name="mjpeg_error_recover">পুনরুদ্ধার করুন</string>
     <string name="mjpeg_error_open_settings">সেটিংস খুলুন</string>
+    <string name="mjpeg_error_start_screen_sharing">স্ক্রিন শেয়ারিং শুরু করুন</string>
     <string name="mjpeg_close">বন্ধ করুন</string>
     <string name="mjpeg_error_local_network_permission_required">ডিভাইসগুলো যাতে আপনার স্ট্রিমে যুক্ত হতে পারে, সে জন্য স্থানীয় নেটওয়ার্ক অ্যাক্সেস প্রয়োজন।</string>
 
@@ -156,6 +157,8 @@
 
     <string name="mjpeg_error_port_in_use">পোর্ট ইতিমধ্যেই ব্যবহার করা হচ্ছে। অন্য একটি চয়ন করুন.</string>
     <string name="mjpeg_error_invalid_media_projection">নিরাপত্তা ত্রুটি: স্ক্রিন ক্যাপচার অনুমতি অবৈধ। আবার চেষ্টা করুন।</string>
+    <string name="mjpeg_error_screen_capture_start_blocked">Android স্ক্রিন শেয়ারিং শুরু করা ব্লক করেছে। ScreenStream খোলা রাখুন এবং আবার শুরু করুন।</string>
+    <string name="mjpeg_error_projection_acquire_rejected">স্ক্রিন ক্যাপচার অনুমতি আর বৈধ নয়। আবার স্ক্রিন শেয়ারিং শুরু করুন।</string>
     <string name="mjpeg_error_ip_address_not_found">IP ঠিকানা পাওয়া যায়নি।\nস্ট্রিম সেটিংসে নেটওয়ার্ক ফিল্টার সামঞ্জস্য করার চেষ্টা করুন।</string>
     <string name="mjpeg_error_notification_permission_required">স্ট্রিমিং পরিষেবা শুরু করতে এই অ্যাপে বিজ্ঞপ্তি চালু থাকতে হবে।\nঅ্যাপ সেটিংসে বিজ্ঞপ্তি চালু করুন।</string>
     <string name="mjpeg_error_unspecified">কিছু ভুল হয়েছে। অনুগ্রহ করে একটু পরে আবার চেষ্টা করুন।</string>

@@ -41,6 +41,8 @@ internal sealed class MjpegError(@field:StringRes open val id: Int, override val
     internal class AddressNotFoundException : MjpegError(R.string.mjpeg_error_ip_address_not_found)
     internal class AddressInUseException : MjpegError(R.string.mjpeg_error_port_in_use)
     internal class CastSecurityException : MjpegError(R.string.mjpeg_error_invalid_media_projection)
+    internal class ScreenCaptureStartBlocked(override val cause: Throwable?) : MjpegError(R.string.mjpeg_error_screen_capture_start_blocked)
+    internal class ProjectionAcquireRejected(override val cause: Throwable?) : MjpegError(R.string.mjpeg_error_projection_acquire_rejected)
     internal class HttpServerException : MjpegError(R.string.mjpeg_error_unspecified)
     internal class BitmapCaptureException(override val cause: Throwable?) : MjpegError(R.string.mjpeg_error_unspecified) {
         override fun toString(context: Context): String = context.getString(id) + " [${cause?.message}]"
@@ -54,3 +56,6 @@ internal sealed class MjpegError(@field:StringRes open val id: Int, override val
 
     internal open fun toString(context: Context): String = if (id != 0) context.getString(id) else message ?: toString()
 }
+
+internal fun MjpegError.isStartupPolicyError(): Boolean =
+    this is MjpegError.ScreenCaptureStartBlocked || this is MjpegError.ProjectionAcquireRejected

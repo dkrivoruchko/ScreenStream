@@ -60,12 +60,23 @@ internal sealed class WebRtcError(@field:StringRes open val id: Int, override va
 
     internal class IncompleteInstallation(override val cause: Throwable?) : WebRtcError(R.string.webrtc_error_incomplete_installation)
 
+    internal class ScreenCaptureStartBlocked(override val cause: Throwable?) : WebRtcError(R.string.webrtc_error_screen_capture_start_blocked)
+    internal class ProjectionAcquireRejected(override val cause: Throwable?) : WebRtcError(R.string.webrtc_error_projection_acquire_rejected)
+    internal class AudioPermissionRequired : WebRtcError(R.string.webrtc_error_audio_permission_required)
+    internal class AudioStartBlocked(override val cause: Throwable?) : WebRtcError(R.string.webrtc_error_audio_start_blocked)
+
     internal class UnknownError(override val cause: Throwable?) : WebRtcError(R.string.webrtc_error_unspecified) {
         override fun toString(context: Context): String = context.getString(id) + " [${cause?.message}]"
     }
 
     internal open fun toString(context: Context): String = if (id != 0) context.getString(id) else message ?: toString()
 }
+
+internal fun WebRtcError.isStartupPolicyError(): Boolean =
+    this is WebRtcError.ScreenCaptureStartBlocked ||
+            this is WebRtcError.ProjectionAcquireRejected ||
+            this is WebRtcError.AudioPermissionRequired ||
+            this is WebRtcError.AudioStartBlocked
 
 internal fun WebRtcError.PlayIntegrityError.isExpectedEnvironmentIssue(): Boolean = when (code) {
     StandardIntegrityErrorCode.PLAY_STORE_NOT_FOUND,

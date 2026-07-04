@@ -45,6 +45,10 @@ internal data class RtspState(
 internal sealed class RtspError(@field:StringRes open val id: Int, override val message: String? = null) : Throwable() {
     internal class NotificationPermissionRequired : RtspError(R.string.rtsp_error_notification_permission_required)
     internal class LocalNetworkPermissionRequired : RtspError(R.string.rtsp_error_local_network_permission_required)
+    internal class ScreenCaptureStartBlocked(override val cause: Throwable?) : RtspError(R.string.rtsp_error_screen_capture_start_blocked)
+    internal class ProjectionAcquireRejected(override val cause: Throwable?) : RtspError(R.string.rtsp_error_projection_acquire_rejected)
+    internal class AudioPermissionRequired : RtspError(R.string.rtsp_error_audio_permission_required)
+    internal class AudioStartBlocked(override val cause: Throwable?) : RtspError(R.string.rtsp_error_audio_start_blocked)
     internal open class UnknownError(override val cause: Throwable?) : RtspError(R.string.rtsp_error_unspecified) {
         override fun toString(context: Context): String = context.getString(id) + " [${cause.toString()}]"
     }
@@ -68,3 +72,9 @@ internal sealed class RtspError(@field:StringRes open val id: Int, override val 
 
     internal open fun toString(context: Context): String = if (id != 0) context.getString(id) else message ?: toString()
 }
+
+internal fun RtspError.isStartupPolicyError(): Boolean =
+    this is RtspError.ScreenCaptureStartBlocked ||
+            this is RtspError.ProjectionAcquireRejected ||
+            this is RtspError.AudioPermissionRequired ||
+            this is RtspError.AudioStartBlocked

@@ -2,6 +2,9 @@
 <resources>
     <string name="webrtc_error_recover">Восстановить</string>
     <string name="webrtc_error_open_settings">Открыть настройки</string>
+    <string name="webrtc_error_start_screen_sharing">Начать демонстрацию экрана</string>
+    <string name="webrtc_error_start_with_audio">Запустить со звуком</string>
+    <string name="webrtc_error_allow_microphone">Разрешить микрофон</string>
     <string name="webrtc_error_signaling_server_unavailable">Не удаётся подключиться к серверу. Зрители могут не суметь присоединиться.</string>
 
     <string name="webrtc_stream_mode">Глобальный режим · WebRTC</string>
@@ -62,5 +65,9 @@
     <string name="webrtc_error_check_network">Проверьте подключение к интернету</string>
     <string name="webrtc_error_incomplete_installation">Установка приложения выполнена не полностью. Пожалуйста, переустановите приложение из Google Play.</string>
     <string name="webrtc_notification_permission_required">Этому приложению нужны включенные уведомления, чтобы запустить службу трансляции.\nВключите уведомления в настройках приложения.</string>
+    <string name="webrtc_error_screen_capture_start_blocked">Android заблокировал запуск демонстрации экрана. Оставьте ScreenStream открытым и запустите снова.</string>
+    <string name="webrtc_error_projection_acquire_rejected">Разрешение на захват экрана больше недействительно. Начните демонстрацию экрана снова.</string>
+    <string name="webrtc_error_audio_permission_required">Для запуска трансляции со звуком требуется разрешение на микрофон.</string>
+    <string name="webrtc_error_audio_start_blocked">Android заблокировал запуск передачи звука. Оставьте ScreenStream открытым и запустите снова со звуком.</string>
     <string name="webrtc_error_unspecified">Что-то пошло не так. Пожалуйста, попробуйте еще раз позже.</string>
 </resources>

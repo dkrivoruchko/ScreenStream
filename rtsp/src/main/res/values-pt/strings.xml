@@ -2,6 +2,9 @@
 <resources>
     <string name="rtsp_error_recover">Recuperar</string>
     <string name="rtsp_error_open_settings">Abrir configurações</string>
+    <string name="rtsp_error_start_screen_sharing">Iniciar compartilhamento de tela</string>
+    <string name="rtsp_error_start_with_audio">Iniciar com áudio</string>
+    <string name="rtsp_error_allow_microphone">Permitir microfone</string>
     <string name="rtsp_error_local_network_permission_required">O acesso à rede local é necessário para que dispositivos possam se conectar à sua transmissão.</string>
 
     <string name="rtsp_stream_mode">Modo RTSP · RTSP</string>
@@ -45,6 +48,10 @@
     <string name="rtsp_stream_stop">Parar transmissão</string>
 
     <string name="rtsp_error_notification_permission_required">Este app precisa de notificações ativadas para iniciar o serviço de transmissão.\nAtive as notificações nas configurações do app.</string>
+    <string name="rtsp_error_screen_capture_start_blocked">O Android bloqueou o início do compartilhamento de tela. Mantenha o ScreenStream aberto e inicie novamente.</string>
+    <string name="rtsp_error_projection_acquire_rejected">A permissão de captura de tela não é mais válida. Inicie o compartilhamento de tela novamente.</string>
+    <string name="rtsp_error_audio_permission_required">A permissão do microfone é necessária para iniciar a transmissão com áudio.</string>
+    <string name="rtsp_error_audio_start_blocked">O Android bloqueou o início do compartilhamento de áudio. Mantenha o ScreenStream aberto e inicie novamente com áudio.</string>
     <string name="rtsp_error_ip_address_not_found">Nenhum endereço encontrado. Verifique a conexão ou ajuste as configurações do servidor (Filtro de interface, Filtro de endereço).</string>
     <string name="rtsp_error_unspecified">Algo deu errado.</string>
 

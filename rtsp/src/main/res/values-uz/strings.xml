@@ -2,6 +2,9 @@
 <resources>
     <string name="rtsp_error_recover">Tiklash</string>
     <string name="rtsp_error_open_settings">Sozlamalarni ochish</string>
+    <string name="rtsp_error_start_screen_sharing">Ekran ulashishni boshlash</string>
+    <string name="rtsp_error_start_with_audio">Audio bilan boshlash</string>
+    <string name="rtsp_error_allow_microphone">Mikrofonga ruxsat berish</string>
     <string name="rtsp_error_local_network_permission_required">Qurilmalar translatsiyangizga ulanishi uchun mahalliy tarmoqqa kirish kerak.</string>
 
     <string name="rtsp_stream_mode">RTSP rejimi · RTSP</string>
@@ -45,6 +48,10 @@
     <string name="rtsp_stream_stop">Translyatsiyani to\'xtatish</string>
 
     <string name="rtsp_error_notification_permission_required">Bu ilovaga translatsiya xizmatini boshlash uchun bildirishnomalar yoqilgan bo\'lishi kerak.\nIlova sozlamalarida bildirishnomalarni yoqing.</string>
+    <string name="rtsp_error_screen_capture_start_blocked">Android ekran ulashishni boshlashni blokladi. ScreenStream ochiq tursin va qayta boshlang.</string>
+    <string name="rtsp_error_projection_acquire_rejected">Ekranni yozib olish ruxsati endi yaroqli emas. Ekran ulashishni qayta boshlang.</string>
+    <string name="rtsp_error_audio_permission_required">Audio bilan translatsiyani boshlash uchun mikrofon ruxsati kerak.</string>
+    <string name="rtsp_error_audio_start_blocked">Android audio ulashishni boshlashni blokladi. ScreenStream ochiq tursin va audio bilan qayta boshlang.</string>
     <string name="rtsp_error_ip_address_not_found">Manzil topilmadi. Ulanishni tekshiring yoki server sozlamalarini o‘zgartiring (Interfeys filtri, Manzil filtri).</string>
     <string name="rtsp_error_unspecified">Xatolik yuz berdi.</string>
 

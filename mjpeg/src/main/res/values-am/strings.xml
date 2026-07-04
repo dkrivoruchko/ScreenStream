@@ -1,6 +1,7 @@
 <resources>
     <string name="mjpeg_error_recover">ማገገም</string>
     <string name="mjpeg_error_open_settings">ቅንብሮችን ይክፈቱ</string>
+    <string name="mjpeg_error_start_screen_sharing">የማያ ገጽ ማጋራትን ይጀምሩ</string>
     <string name="mjpeg_close">ዝጋ</string>
     <string name="mjpeg_error_local_network_permission_required">መሣሪያዎች ወደ ስርጭትዎ እንዲገናኙ የአካባቢ አውታረ መረብ መዳረሻ ያስፈልጋል።</string>
 
@@ -156,6 +157,8 @@
 
     <string name="mjpeg_error_port_in_use">ወደብ አስቀድሞ ጥቅም ላይ ውሏል። ሌላ ይምረጡ።</string>
     <string name="mjpeg_error_invalid_media_projection">የደህንነት ስህተት፡ ልክ ያልሆነ የማያ ገጽ መቅረጽ ፈቃድ። እንደገና ይሞክሩ።</string>
+    <string name="mjpeg_error_screen_capture_start_blocked">Android የማያ ገጽ ማጋራት መጀመርን አግዷል። ScreenStream ክፍት ይቆይ እና እንደገና ይጀምሩ።</string>
+    <string name="mjpeg_error_projection_acquire_rejected">የማያ ገጽ መቅረጽ ፈቃድ ከእንግዲህ ትክክለኛ አይደለም። የማያ ገጽ ማጋራትን እንደገና ይጀምሩ።</string>
     <string name="mjpeg_error_ip_address_not_found">የIP አድራሻ አልተገኘም።\nበዥረት ቅንብሮች ውስጥ የአውታረ መረብ ማጣሪያዎችን ለማስተካከል ይሞክሩ።</string>
     <string name="mjpeg_error_notification_permission_required">ይህ መተግበሪያ የዥረት አገልግሎቱን ለመጀመር ማሳወቂያዎች እንዲነቁ ይፈልጋል።\nበመተግበሪያ ቅንብሮች ውስጥ ማሳወቂያዎችን ያንቁ።</string>
     <string name="mjpeg_error_unspecified">የሆነ ስህተት ተከስቷል። እባክዎ ቆየት ብለው ይሞክሩ።</string>

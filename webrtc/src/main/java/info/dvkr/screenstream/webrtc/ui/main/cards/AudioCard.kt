@@ -51,7 +51,7 @@ import info.dvkr.screenstream.webrtc.settings.WebRtcSettings
 
 @Composable
 internal fun AudioCard(
-    isStreaming: Boolean,
+    enabled: Boolean,
     settings: WebRtcSettings.Data,
     updateSettings: (WebRtcSettings.Data.() -> WebRtcSettings.Data) -> Unit,
     modifier: Modifier = Modifier,
@@ -79,7 +79,7 @@ internal fun AudioCard(
             textSummary = stringResource(R.string.webrtc_stream_audio_mic_summary),
             iconId = R.drawable.mic_24px,
             selected = settings.enableMic,
-            enabled = isStreaming.not(),
+            enabled = enabled,
             onChange = { enabled ->
                 if (enabled.not() || context.isPermissionGranted(Manifest.permission.RECORD_AUDIO)) {
                     updateSettings { copy(enableMic = enabled) }
@@ -97,7 +97,7 @@ internal fun AudioCard(
                 textSummary = stringResource(R.string.webrtc_stream_audio_device_summary),
                 iconId = R.drawable.mobile_speaker_24px,
                 selected = settings.enableDeviceAudio,
-                enabled = isStreaming.not(),
+                enabled = enabled,
                 onChange = { enabled ->
                     if (enabled.not() || context.isPermissionGranted(Manifest.permission.RECORD_AUDIO)) {
                         updateSettings { copy(enableDeviceAudio = enabled) }
