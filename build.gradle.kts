@@ -7,8 +7,8 @@ plugins {
     alias(libs.plugins.firebaseCrashlytics) apply false
 }
 
-val minSdkVersion by extra(24)
-val targetSdkVersion by extra(37)
-val compileSdkVersion by extra(37)
-val buildToolsVersion by extra("37.0.0")
-val ndkVersion by extra("29.0.14206865")
+extra.set("minSdkVersion", 24)
+extra.set("targetSdkVersion", 37)
+extra.set("compileSdkVersion", 37)
+extra.set("buildToolsVersion", "37.0.0")
+extra.set("ndkVersion", "29.0.14206865")

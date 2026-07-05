@@ -17,7 +17,7 @@ androidx-window = "1.5.1"
 androidx-datastore-preferences = "1.2.1"
 androidx-work = "2.11.2"
 
-compose-bom = "2026.06.00"
+compose-bom = "2026.06.01"
 
 xlog = "1.11.1"
 
