@@ -43,7 +43,13 @@ public interface ImageEncoderProvider {
     /** Encoded image format produced by encoders from this provider. */
     public val outputFormat: EncodedImageFormat
 
-    /** Creates a plan-scoped encoder for the requested raw input shape and encoded cap. */
+    /**
+     * Creates a plan-scoped encoder for the requested raw input shape and encoded cap.
+     *
+     * Throws [ImageEncoderUnavailableException] when the provider cannot create a usable encoder
+     * for the request. Provider implementations may also throw runtime exceptions; the engine
+     * maps provider failures to session problem surfaces.
+     */
     public fun createEncoder(request: ImageEncoderRequest): ImageEncoder
 }
 
@@ -220,8 +226,8 @@ public class ImageEncoderUnavailableException public constructor(
 /**
  * Built-in JPEG encoder provider.
  *
- * The runtime encoder backend is implemented in a later phase; this type currently defines
- * public construction, validation, identifiers, and format. JPEG output is opaque 8-bit SDR/sRGB;
+ * The runtime encoder backend is not implemented yet; this type currently defines public
+ * construction, validation, identifiers, and format. JPEG output is opaque 8-bit SDR/sRGB;
  * source alpha is not preserved.
  */
 public class JpegImageEncoderProvider public constructor(
@@ -245,7 +251,7 @@ public class JpegImageEncoderProvider public constructor(
 
 /** Backend selection policy for [JpegImageEncoderProvider]. */
 public enum class JpegEncoderBackendPolicy {
-    /** Prefer the best validated backend, falling back according to design rules. */
+    /** Prefer the best validated backend, falling back when a preferred backend is unavailable. */
     Auto,
 
     /** Use only the framework Bitmap-compress backend. */

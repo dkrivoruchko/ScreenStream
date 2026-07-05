@@ -26,9 +26,12 @@
 - Before adding or updating Android, AndroidX, Kotlin, Coroutines, Gradle, AGP, NDK, or Build Tools versions, check current official sources online.
 - Use release/stable versions in this module's Gradle configuration.
 - Treat the main user-facing thread as the coordinator: it keeps context, asks the user for decisions, plans phases, and delegates bounded work to sub-agents.
+- Communicate with the user in the main thread only in Russian. Keep all code, KDoc, comments, tests, commit text if any, and project documentation in English.
+- Code documentation must describe the current contract directly and must not reference the design document, design document version names, implementation phases, tracker phases, roadmap, or process.
 - Use sub-agents for implementation, audits, focused research, and independent reviews when useful. At most six sub-agents may be active at the same time; finished agents may be closed and replaced with fresh ones.
 - Prefer compact, modern, idiomatic Kotlin/Coroutines/Android code, but do not trade clarity or design compliance for cleverness.
 - Review every code change with at least one self-review plus two independent reviews before considering the phase complete.
+- Run Gradle validation tasks sequentially for this module; concurrent Gradle/Kotlin compile invocations can corrupt or invalidate Kotlin incremental caches.
 - Split the work into explicit phases in this file as implementation starts or when the current phase changes.
 
 ## Status
@@ -36,6 +39,8 @@
 - Setup is complete.
 - Phase 1 is complete: public API type signatures, defaults, constructor validation, and public KDoc are implemented and aligned with design-v16.
 - Phase 1 validation passed with `:screencaptureengine:compileDebugKotlin`, `:screencaptureengine:lintDebug`, JetBrains IDE error inspection, self-review, and two independent documentation audits.
+- Phase 2 implementation is complete: pure internal output planning now resolves source/crop, rotation, output sizing, checked pixel/byte arithmetic, injected runtime caps, conservative capture-target downscale, encoder request shape, and delayed effective-parameter construction after encoder info is known.
+- Phase 2 tests were intentionally not added by user request. Validation used `:screencaptureengine:compileDebugKotlin`, `:screencaptureengine:lintDebug`, JetBrains IDE inspection, self-review, targeted early-downscale research, and independent sub-agent design/engineering/documentation audits.
 - Runtime implementation has not started. `CaptureMetricsProviders` factory bodies and `JpegImageEncoderProvider.createEncoder(...)` intentionally fail until their runtime phases are designed/implemented.
 
 ## Phases
@@ -73,16 +78,22 @@
 
 ## Next
 
-- Prepare Phase 2 proposal: Pure Geometry And Planning Core.
+- Prepare Phase 3 proposal: Session Control And Delivery Skeleton.
 
 ## Open Questions
 
-- Built-in `CaptureMetricsProviders` need a live update strategy for `StateFlow<CaptureMetrics>`, including lifecycle/cleanup ownership. The public API has no close/unregister hook on `CaptureMetricsProvider`; resolve before implementing provider runtime behavior.
+- Deferred: built-in `CaptureMetricsProviders` need a live update strategy for `StateFlow<CaptureMetrics>`, including lifecycle/cleanup ownership. Do not implement provider runtime behavior until this is resolved. Session `stop()` / `close()` can clean engine-owned registrations, but they are not by themselves a complete lifecycle model for callbacks/listeners tied to `Activity`, `Service`, `Context`, `Display`, or window ownership. Decide whether providers are lifecycle-bound, explicitly closeable, session-owned, owner-owned, or some combination before implementing these factories.
 
 ## Decisions
 
 - Public config defaults are constructor default values only, not extra public constants.
 - Built-in JPEG identifiers: provider id `jpeg`, format name `JPEG`, MIME type `image/jpeg`.
+- Phase 2 uses the design early-downscale model with conservative integer quantization: capture-target dimensions never exceed logical capture and are adjusted so the effective target scale does not fall below the required scale.
+- Phase 2 planner does not create encoders or fabricate encoder backend info; it builds `ImageEncoderRequest`, and later runtime encoder creation supplies `ImageEncoderInfo` before public effective parameters are built.
+- Java interop remains a non-goal. `@Throws` annotations are not added to the encoder SPI unless a future approved design change adds Java-facing API requirements.
+- Do not add tests unless the user explicitly approves them for the current phase or task.
+- Runtime placeholder public APIs should fail with ordinary exceptions, not `Error` types, while runtime behavior is intentionally unavailable.
+- Keep validation constants private and local for now instead of adding a shared constants/helper abstraction. Revisit only if actual drift or repeated update burden appears.
 
 ## Design Deviations
 

@@ -261,8 +261,8 @@ public class CaptureTarget public constructor(
     init {
         require(width > 0) { "width must be positive, was $width" }
         require(height > 0) { "height must be positive, was $height" }
-        require(scaleFromLogicalCapture.isFinite() && scaleFromLogicalCapture > 0.0) {
-            "scaleFromLogicalCapture must be finite and positive, was $scaleFromLogicalCapture"
+        require(scaleFromLogicalCapture.isFinite() && scaleFromLogicalCapture > 0.0 && scaleFromLogicalCapture <= 1.0) {
+            "scaleFromLogicalCapture must be finite and in (0.0, 1.0], was $scaleFromLogicalCapture"
         }
     }
 }

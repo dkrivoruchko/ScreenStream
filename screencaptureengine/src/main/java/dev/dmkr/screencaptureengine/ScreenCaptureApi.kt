@@ -14,7 +14,7 @@ import kotlinx.coroutines.flow.StateFlow
  * The engine owns capture, rendering, encoding, and latest-frame publication for one session.
  * Consent UI and foreground-service compliance remain the responsibility of the integrating app.
  * Once a fresh projection is passed to [startSession], the engine owns it for that session.
- * A projection is single-use for this design; a stopped or already-used projection cannot start
+ * A projection is single-use for the engine; a stopped or already-used projection cannot start
  * another session.
  */
 public interface ScreenCaptureEngine {
@@ -89,28 +89,28 @@ public interface CaptureMetricsProvider {
 /**
  * Built-in metric-provider factories for common Android integration points.
  *
- * Runtime bodies are intentionally not implemented in Phase 1; live update semantics and
- * lifecycle ownership must be resolved before these factories become usable.
+ * Runtime bodies are intentionally not implemented yet; live update semantics and lifecycle
+ * ownership must be resolved before these factories become usable.
  */
 public object CaptureMetricsProviders {
     /** Currently throws; intended provider for capture started from an activity/window owner. */
     public fun fromActivity(activity: Activity): CaptureMetricsProvider {
-        throw NotImplementedError("CaptureMetricsProviders runtime behavior is not implemented yet")
+        throw UnsupportedOperationException("CaptureMetricsProviders runtime behavior is not implemented yet")
     }
 
     /** Currently throws; intended provider for UI-bound contexts without direct [Activity] access. */
     public fun fromUiContext(context: Context): CaptureMetricsProvider {
-        throw NotImplementedError("CaptureMetricsProviders runtime behavior is not implemented yet")
+        throw UnsupportedOperationException("CaptureMetricsProviders runtime behavior is not implemented yet")
     }
 
     /** Currently throws; intended provider for integrations that explicitly know the target [Display]. */
     public fun fromDisplay(baseContext: Context, display: Display): CaptureMetricsProvider {
-        throw NotImplementedError("CaptureMetricsProviders runtime behavior is not implemented yet")
+        throw UnsupportedOperationException("CaptureMetricsProviders runtime behavior is not implemented yet")
     }
 
     /** Currently throws; intended fallback for service/application contexts without better ownership. */
     public fun bestEffort(context: Context): CaptureMetricsProvider {
-        throw NotImplementedError("CaptureMetricsProviders runtime behavior is not implemented yet")
+        throw UnsupportedOperationException("CaptureMetricsProviders runtime behavior is not implemented yet")
     }
 }
 
