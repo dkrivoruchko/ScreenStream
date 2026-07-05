@@ -27,30 +27,21 @@ import kotlin.math.min
 /**
  * Pure deterministic output planner.
  *
- * This class resolves capture geometry semantics without touching Android platform objects, GL
- * state, MediaProjection, or encoder instances. Runtime/device facts such as texture, viewport,
- * renderbuffer, and memory caps are supplied through [OutputPlanningLimits] by later runtime
- * layers. The selected encoder backend is also resolved later; this planner only builds the
- * raw-input [ImageEncoderRequest] needed to create or validate an encoder.
+ * This class resolves capture geometry semantics without touching Android platform objects, GL state, MediaProjection, or encoder instances. Runtime/device
+ * facts such as texture, viewport, renderbuffer, and memory caps are supplied through [OutputPlanningLimits] by runtime layers. The selected encoder backend is
+ * resolved outside this planner; this planner only builds the raw-input [ImageEncoderRequest] needed to create or validate an encoder.
  */
 @Suppress("unused")
-internal class ScreenCaptureOutputPlanner internal constructor(
-    private val limits: OutputPlanningLimits,
-) {
-    internal fun plan(
-        geometry: CaptureGeometry,
-        parameters: ScreenCaptureParameters,
-    ): OutputPlanResult {
+internal class ScreenCaptureOutputPlanner internal constructor(private val limits: OutputPlanningLimits) {
+    internal fun plan(geometry: CaptureGeometry, parameters: ScreenCaptureParameters): OutputPlanResult {
         val sourceRect = resolveSourceRect(geometry, parameters.sourceRegion)
         val appliedSourceRect = when (val cropResult = applyCrop(sourceRect, parameters.crop)) {
             AppliedSourceRectResult.Overflow -> return OutputPlanResult.Failure(
-                kind = ScreenCaptureProblemKind.OutputLimitsExceeded,
-                message = "Source crop coordinates exceeded supported limits.",
+                ScreenCaptureProblemKind.OutputLimitsExceeded, "Source crop coordinates exceeded supported limits.",
             )
 
             AppliedSourceRectResult.Empty -> return OutputPlanResult.Failure(
-                kind = ScreenCaptureProblemKind.OutputPlanInvalid,
-                message = "Source region and crop produced an empty source rectangle.",
+                ScreenCaptureProblemKind.OutputPlanInvalid, "Source region and crop produced an empty source rectangle.",
             )
 
             is AppliedSourceRectResult.Success -> cropResult.rect
@@ -59,57 +50,43 @@ internal class ScreenCaptureOutputPlanner internal constructor(
         val orientedContentSize = resolveOrientedContentSize(appliedSourceRect, parameters.rotation)
         val finalImageSize = resolveFinalImageSize(orientedContentSize, parameters.outputSize)
             ?: return OutputPlanResult.Failure(
-                kind = ScreenCaptureProblemKind.OutputLimitsExceeded,
-                message = "Final output size could not be represented as positive Int dimensions.",
+                ScreenCaptureProblemKind.OutputLimitsExceeded, "Final output size could not be represented as positive Int dimensions.",
             )
 
         val outputPixelCount = multiplyLong(finalImageSize.width, finalImageSize.height)
-            ?: return OutputPlanResult.Failure(
-                kind = ScreenCaptureProblemKind.OutputLimitsExceeded,
-                message = "Final output pixel count overflowed.",
-            )
         if (outputPixelCount > limits.maxOutputPixels) {
-            return OutputPlanResult.Failure(
-                kind = ScreenCaptureProblemKind.OutputLimitsExceeded,
-                message = "Final output pixel count exceeds maxOutputPixels.",
-            )
+            return OutputPlanResult.Failure(ScreenCaptureProblemKind.OutputLimitsExceeded, "Final output pixel count exceeds maxOutputPixels.")
         }
         if (finalImageSize.width > limits.maxFinalImageWidth || finalImageSize.height > limits.maxFinalImageHeight) {
-            return OutputPlanResult.Failure(
-                kind = ScreenCaptureProblemKind.OutputLimitsExceeded,
-                message = "Final output dimensions exceed runtime limits.",
-            )
+            return OutputPlanResult.Failure(ScreenCaptureProblemKind.OutputLimitsExceeded, "Final output dimensions exceed runtime limits.")
         }
 
         val rowStrideBytes = multiplyLong(finalImageSize.width, RGBA_8888_BYTES_PER_PIXEL)
-            ?.takeIf { it <= Int.MAX_VALUE && it <= limits.maxRowStrideBytes }
+            .takeIf { it <= Int.MAX_VALUE && it <= limits.maxRowStrideBytes }
             ?.toInt()
-            ?: return OutputPlanResult.Failure(
-                kind = ScreenCaptureProblemKind.OutputLimitsExceeded,
-                message = "Final output row stride exceeds supported limits.",
-            )
+            ?: return OutputPlanResult.Failure(ScreenCaptureProblemKind.OutputLimitsExceeded, "Final output row stride exceeds supported limits.")
         val rgbaByteCount = multiplyLong(rowStrideBytes, finalImageSize.height)
-            ?: return OutputPlanResult.Failure(
-                kind = ScreenCaptureProblemKind.OutputLimitsExceeded,
-                message = "Final output RGBA byte count overflowed.",
-            )
         if (rgbaByteCount > limits.maxRgbaBytes) {
-            return OutputPlanResult.Failure(
-                kind = ScreenCaptureProblemKind.OutputLimitsExceeded,
-                message = "Final output RGBA byte count exceeds runtime limits.",
-            )
+            return OutputPlanResult.Failure(ScreenCaptureProblemKind.OutputLimitsExceeded, "Final output RGBA byte count exceeds runtime limits.")
         }
 
         val captureTarget = resolveCaptureTarget(geometry, orientedContentSize, finalImageSize)
             ?: return OutputPlanResult.Failure(
-                kind = ScreenCaptureProblemKind.OutputLimitsExceeded,
-                message = "Capture target size could not be represented as positive Int dimensions.",
+                ScreenCaptureProblemKind.OutputLimitsExceeded, "Capture target size could not be represented as positive Int dimensions.",
             )
         if (captureTarget.width > limits.maxCaptureTargetWidth || captureTarget.height > limits.maxCaptureTargetHeight) {
-            return OutputPlanResult.Failure(
-                kind = ScreenCaptureProblemKind.OutputLimitsExceeded,
-                message = "Capture target dimensions exceed runtime limits.",
-            )
+            return OutputPlanResult.Failure(ScreenCaptureProblemKind.OutputLimitsExceeded, "Capture target dimensions exceed runtime limits.")
+        }
+        val captureTargetPixelCount = multiplyLong(captureTarget.width, captureTarget.height)
+        if (captureTargetPixelCount > limits.maxCaptureTargetPixels) {
+            return OutputPlanResult.Failure(ScreenCaptureProblemKind.OutputLimitsExceeded, "Capture target pixel count exceeds runtime limits.")
+        }
+        if (captureTargetPixelCount > Long.MAX_VALUE / RGBA_8888_BYTES_PER_PIXEL.toLong()) {
+            return OutputPlanResult.Failure(ScreenCaptureProblemKind.OutputLimitsExceeded, "Capture target byte count overflowed.")
+        }
+        val captureTargetByteCount = captureTargetPixelCount * RGBA_8888_BYTES_PER_PIXEL.toLong()
+        if (captureTargetByteCount > limits.maxCaptureTargetBytes) {
+            return OutputPlanResult.Failure(ScreenCaptureProblemKind.OutputLimitsExceeded, "Capture target byte count exceeds runtime limits.")
         }
 
         val encoderRequest = ImageEncoderRequest(
@@ -141,50 +118,20 @@ internal class ScreenCaptureOutputPlanner internal constructor(
         )
     }
 
-    private fun resolveSourceRect(
-        geometry: CaptureGeometry,
-        sourceRegion: SourceRegion,
-    ): ImageRect = when (sourceRegion) {
-        SourceRegion.Full -> ImageRect(
-            left = 0,
-            top = 0,
-            right = geometry.widthPx,
-            bottom = geometry.heightPx,
-        )
-
-        SourceRegion.LeftHalf -> ImageRect(
-            left = 0,
-            top = 0,
-            right = geometry.widthPx / 2,
-            bottom = geometry.heightPx,
-        )
-
-        SourceRegion.RightHalf -> ImageRect(
-            left = geometry.widthPx / 2,
-            top = 0,
-            right = geometry.widthPx,
-            bottom = geometry.heightPx,
-        )
+    private fun resolveSourceRect(geometry: CaptureGeometry, sourceRegion: SourceRegion): ImageRect = when (sourceRegion) {
+        SourceRegion.Full -> ImageRect(left = 0, top = 0, right = geometry.widthPx, bottom = geometry.heightPx)
+        SourceRegion.LeftHalf -> ImageRect(left = 0, top = 0, right = geometry.widthPx / 2, bottom = geometry.heightPx)
+        SourceRegion.RightHalf -> ImageRect(left = geometry.widthPx / 2, top = 0, right = geometry.widthPx, bottom = geometry.heightPx)
     }
 
-    private fun applyCrop(
-        sourceRect: ImageRect,
-        crop: CropInsetsPx,
-    ): AppliedSourceRectResult {
+    private fun applyCrop(sourceRect: ImageRect, crop: CropInsetsPx): AppliedSourceRectResult {
         val left = sourceRect.left.toLong() + crop.left.toLong()
         val top = sourceRect.top.toLong() + crop.top.toLong()
         val right = sourceRect.right.toLong() - crop.right.toLong()
         val bottom = sourceRect.bottom.toLong() - crop.bottom.toLong()
         return if (left < right && top < bottom) {
             if (left <= Int.MAX_VALUE && top <= Int.MAX_VALUE && right <= Int.MAX_VALUE && bottom <= Int.MAX_VALUE) {
-                AppliedSourceRectResult.Success(
-                    rect = ImageRect(
-                        left = left.toInt(),
-                        top = top.toInt(),
-                        right = right.toInt(),
-                        bottom = bottom.toInt(),
-                    ),
-                )
+                AppliedSourceRectResult.Success(ImageRect(left = left.toInt(), top = top.toInt(), right = right.toInt(), bottom = bottom.toInt()))
             } else {
                 AppliedSourceRectResult.Overflow
             }
@@ -193,10 +140,7 @@ internal class ScreenCaptureOutputPlanner internal constructor(
         }
     }
 
-    private fun resolveOrientedContentSize(
-        appliedSourceRect: ImageRect,
-        rotation: Rotation,
-    ): Size = when (rotation) {
+    private fun resolveOrientedContentSize(appliedSourceRect: ImageRect, rotation: Rotation): Size = when (rotation) {
         Rotation.Degrees0,
         Rotation.Degrees180,
             -> Size(width = appliedSourceRect.width, height = appliedSourceRect.height)
@@ -206,10 +150,7 @@ internal class ScreenCaptureOutputPlanner internal constructor(
             -> Size(width = appliedSourceRect.height, height = appliedSourceRect.width)
     }
 
-    private fun resolveFinalImageSize(
-        orientedContentSize: Size,
-        outputSize: OutputSize,
-    ): Size? = when (outputSize) {
+    private fun resolveFinalImageSize(orientedContentSize: Size, outputSize: OutputSize): Size? = when (outputSize) {
         is OutputSize.ScaleFactor -> {
             val width = roundPositiveToInt(orientedContentSize.width.toDouble() * outputSize.factor)
             val height = roundPositiveToInt(orientedContentSize.height.toDouble() * outputSize.factor)
@@ -226,10 +167,7 @@ internal class ScreenCaptureOutputPlanner internal constructor(
                 val width = roundPositiveToInt(orientedContentSize.width.toDouble() * scale)
                 val height = roundPositiveToInt(orientedContentSize.height.toDouble() * scale)
                 if (width != null && height != null) {
-                    Size(
-                        width = min(width, outputSize.width),
-                        height = min(height, outputSize.height),
-                    )
+                    Size(width = min(width, outputSize.width), height = min(height, outputSize.height))
                 } else {
                     null
                 }
@@ -237,11 +175,7 @@ internal class ScreenCaptureOutputPlanner internal constructor(
         }
     }
 
-    private fun resolveCaptureTarget(
-        geometry: CaptureGeometry,
-        orientedContentSize: Size,
-        finalImageSize: Size,
-    ): CaptureTarget? {
+    private fun resolveCaptureTarget(geometry: CaptureGeometry, orientedContentSize: Size, finalImageSize: Size): CaptureTarget? {
         /*
          * Early downscale is computed from the selected/cropped/oriented content and final output
          * size, but applies the resulting scale to the whole logical capture. Integer target
@@ -277,13 +211,10 @@ internal class ScreenCaptureOutputPlanner internal constructor(
         if (!value.isFinite() || value < 0.0 || value > Int.MAX_VALUE.toDouble()) return null
         val rounded = floor(value + 0.5)
         if (!rounded.isFinite() || rounded > Int.MAX_VALUE.toDouble()) return null
-        return max(1, rounded.toInt())
+        return rounded.toInt().coerceAtLeast(1)
     }
 
-    private fun roundCaptureTargetDimension(
-        logicalDimension: Int,
-        requiredCaptureScale: Double,
-    ): Int? {
+    private fun roundCaptureTargetDimension(logicalDimension: Int, requiredCaptureScale: Double): Int? {
         val scaledDimension = logicalDimension.toDouble() * requiredCaptureScale
         if (!scaledDimension.isFinite() || scaledDimension < 0.0 || scaledDimension > Int.MAX_VALUE.toDouble()) {
             return null
@@ -296,54 +227,42 @@ internal class ScreenCaptureOutputPlanner internal constructor(
         } else {
             roundedDimension
         }
-        return min(max(1, conservativeDimension), logicalDimension)
+        return conservativeDimension.coerceIn(1, logicalDimension)
     }
 
-    private fun multiplyLong(
-        left: Int,
-        right: Int,
-    ): Long? = try {
-        Math.multiplyExact(left.toLong(), right.toLong())
-    } catch (_: ArithmeticException) {
-        null
-    }
+    private fun multiplyLong(left: Int, right: Int): Long = left.toLong() * right.toLong()
+
 }
 
 /**
  * Planning caps supplied by public config and runtime capability discovery.
  *
- * This pure planner does not query GL or allocate buffers. Runtime layers should derive
- * capture-target limits from SurfaceTexture/viewport/texture constraints, final-image limits
- * from framebuffer and readback constraints, and byte limits from configured memory policy and
- * backend caps.
+ * This pure planner does not query GL or allocate buffers. Runtime layers should derive capture-target limits from SurfaceTexture/viewport/texture
+ * constraints, final-image limits from framebuffer and readback constraints, and byte limits from configured memory policy and backend caps.
  */
 @Suppress("unused")
-internal data class OutputPlanningLimits(
+internal class OutputPlanningLimits(
     internal val maxOutputPixels: Int,
     internal val maxEncodedBytes: Int,
     internal val maxFinalImageWidth: Int = Int.MAX_VALUE,
     internal val maxFinalImageHeight: Int = Int.MAX_VALUE,
     internal val maxCaptureTargetWidth: Int = Int.MAX_VALUE,
     internal val maxCaptureTargetHeight: Int = Int.MAX_VALUE,
+    internal val maxCaptureTargetPixels: Long = Long.MAX_VALUE,
+    internal val maxCaptureTargetBytes: Long = Long.MAX_VALUE,
     internal val maxRowStrideBytes: Int = Int.MAX_VALUE,
     internal val maxRgbaBytes: Long = Long.MAX_VALUE,
     internal val readbackMode: ReadbackMode = ReadbackMode.Es2,
 ) {
     init {
-        require(maxOutputPixels in MAX_OUTPUT_PIXELS_RANGE) {
-            "maxOutputPixels must be in $MAX_OUTPUT_PIXELS_RANGE, was $maxOutputPixels"
-        }
-        require(maxEncodedBytes in MAX_ENCODED_BYTES_RANGE) {
-            "maxEncodedBytes must be in $MAX_ENCODED_BYTES_RANGE, was $maxEncodedBytes"
-        }
+        require(maxOutputPixels in MAX_OUTPUT_PIXELS_RANGE) { "maxOutputPixels must be in $MAX_OUTPUT_PIXELS_RANGE, was $maxOutputPixels" }
+        require(maxEncodedBytes in MAX_ENCODED_BYTES_RANGE) { "maxEncodedBytes must be in $MAX_ENCODED_BYTES_RANGE, was $maxEncodedBytes" }
         require(maxFinalImageWidth > 0) { "maxFinalImageWidth must be positive, was $maxFinalImageWidth" }
         require(maxFinalImageHeight > 0) { "maxFinalImageHeight must be positive, was $maxFinalImageHeight" }
-        require(maxCaptureTargetWidth > 0) {
-            "maxCaptureTargetWidth must be positive, was $maxCaptureTargetWidth"
-        }
-        require(maxCaptureTargetHeight > 0) {
-            "maxCaptureTargetHeight must be positive, was $maxCaptureTargetHeight"
-        }
+        require(maxCaptureTargetWidth > 0) { "maxCaptureTargetWidth must be positive, was $maxCaptureTargetWidth" }
+        require(maxCaptureTargetHeight > 0) { "maxCaptureTargetHeight must be positive, was $maxCaptureTargetHeight" }
+        require(maxCaptureTargetPixels > 0L) { "maxCaptureTargetPixels must be positive, was $maxCaptureTargetPixels" }
+        require(maxCaptureTargetBytes > 0L) { "maxCaptureTargetBytes must be positive, was $maxCaptureTargetBytes" }
         require(maxRowStrideBytes > 0) { "maxRowStrideBytes must be positive, was $maxRowStrideBytes" }
         require(maxRgbaBytes > 0L) { "maxRgbaBytes must be positive, was $maxRgbaBytes" }
     }
@@ -367,9 +286,8 @@ internal sealed class OutputPlanResult private constructor() {
 /**
  * Generation-independent plan produced by [ScreenCaptureOutputPlanner].
  *
- * The plan intentionally does not contain [ImageEncoderInfo]. Runtime encoder creation uses the
- * parameter-selected provider after [encoderRequest] is known, then calls [toEffectiveParameters]
- * with the selected provider/backend info.
+ * The plan intentionally does not contain [ImageEncoderInfo]. Runtime encoder creation uses the parameter-selected provider after [encoderRequest] is known,
+ * then calls [toEffectiveParameters] with the selected provider/backend info.
  */
 @Suppress("unused")
 internal class ScreenCaptureOutputPlan internal constructor(
@@ -412,13 +330,11 @@ internal class ScreenCaptureOutputPlan internal constructor(
 
 /** Internal crop resolution result that preserves invalid-plan versus limits-exceeded mapping. */
 private sealed class AppliedSourceRectResult private constructor() {
-    class Success(
-        val rect: ImageRect,
-    ) : AppliedSourceRectResult()
+    class Success(val rect: ImageRect) : AppliedSourceRectResult()
 
-    object Empty : AppliedSourceRectResult()
+    data object Empty : AppliedSourceRectResult()
 
-    object Overflow : AppliedSourceRectResult()
+    data object Overflow : AppliedSourceRectResult()
 }
 
 private const val RGBA_8888_BYTES_PER_PIXEL: Int = 4

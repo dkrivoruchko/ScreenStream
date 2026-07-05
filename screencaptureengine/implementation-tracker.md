@@ -1,99 +1,92 @@
 # ScreenCaptureEngine Implementation Tracker
 
-## Document Policy
-
-- Write current implementation status, next steps, open questions, blockers, bugs, design gaps, agreed deviations, and decisions that affect future implementation.
-- Do not write historical noise, cancelled ideas, transient dependency checks, obvious facts duplicated from Gradle files, or completed micro-steps that no longer affect future work.
-- Keep this document compact and update it by replacing stale information, not by appending a long changelog.
-
 ## Source Of Truth
 
-- Design: `screen-capture-engine-design-v16.md`.
-- The design file is read-only.
-- The design is the primary and controlling source of truth for implementation.
-- Design compliance is mandatory by default.
-- Approved deviations are allowed only when implementation exposes a real conflict, gap, platform issue, or better-supported approach; each deviation must be explicitly agreed with the user and recorded in `Design Deviations`.
+- Design: `screen-capture-engine-design-v21.md`.
+- The design file is read-only and controls implementation unless an approved deviation is recorded here.
+- Main-thread user communication is Russian. Code, KDoc, comments, tests, commit text, and project documentation are English.
+- Code documentation describes the current contract directly; it must not reference design document versions, implementation phases, tracker phases, roadmap, or process.
 
-## Work Agreement
+## Work Rules
 
-- At the start of every phase, first prepare a phase implementation proposal for user approval. The proposal must include scope, intended files/areas, implementation direction, official research summary, validation plan, risks, and questions.
-- Do not start code changes for a phase until the user approves that phase proposal.
-- After reading the design and before writing code, perform focused research using current official Android, AndroidX, Kotlin, Coroutines, Gradle, AGP, NDK, and Build Tools sources relevant to that phase.
-- Stop and ask the user for an explicit decision when implementation exposes a design gap, conflict, missing case, unexpected platform behavior, unclear tradeoff, failed assumption, or unspecified behavior.
-- Do not invent public API, fallback policy, lifecycle behavior, error handling, integration behavior, or deviations from the design.
-- Record every approved deviation from the design in the `Design Deviations` section.
-- Keep this module independent from existing project modules and app-specific code.
-- Before adding or updating Android, AndroidX, Kotlin, Coroutines, Gradle, AGP, NDK, or Build Tools versions, check current official sources online.
-- Use release/stable versions in this module's Gradle configuration.
-- Treat the main user-facing thread as the coordinator: it keeps context, asks the user for decisions, plans phases, and delegates bounded work to sub-agents.
-- Communicate with the user in the main thread only in Russian. Keep all code, KDoc, comments, tests, commit text if any, and project documentation in English.
-- Code documentation must describe the current contract directly and must not reference the design document, design document version names, implementation phases, tracker phases, roadmap, or process.
-- Use sub-agents for implementation, audits, focused research, and independent reviews when useful. At most six sub-agents may be active at the same time; finished agents may be closed and replaced with fresh ones.
-- Prefer compact, modern, idiomatic Kotlin/Coroutines/Android code, but do not trade clarity or design compliance for cleverness.
-- Review every code change with at least one self-review plus two independent reviews before considering the phase complete.
-- Run Gradle validation tasks sequentially for this module; concurrent Gradle/Kotlin compile invocations can corrupt or invalidate Kotlin incremental caches.
-- Split the work into explicit phases in this file as implementation starts or when the current phase changes.
+- Start each new phase with a proposal for user approval: scope, files/areas, direction, official research summary, validation, risks, and questions.
+- Before code changes for a phase, read the design and perform focused research using current official sources relevant to that phase.
+- Do not invent public API, lifecycle behavior, fallback policy, error handling, integration behavior, or deviations from the design.
+- Stop for user/design-author input when implementation exposes a design gap, conflict, missing case, risky tradeoff, or repeated ambiguity.
+- Design-author questions must be phrased in design/state-machine terms because the design author does not see this codebase.
+- For non-trivial design, architecture, concurrency, or contract choices, validate the idea first with at least two independent sub-agents when practical. Use a
+  third independent review for disputed or high-risk findings. Do not rush into the first plausible solution.
+- Use sub-agents for bounded implementation, audits, focused research, and reviews when useful; close finished agents promptly. Sub-agent briefs must instruct
+  them to use current official online sources for platform/library behavior and best practices instead of relying on memory, including Kotlin 2.4 language/API
+  behavior when Kotlin choices are relevant.
+- Read-only audits should also look for simpler, more compact, equally reliable implementation options. Record confirmed problems separately from optional
+  simplification proposals, with evidence and tradeoffs.
+- Keep this module independent from existing app modules. Use stable/release dependency versions and check current official sources before version changes.
+- Prefer compact, modern, idiomatic Kotlin. Do not add helper abstractions or data classes unless they carry real behavior, reduce meaningful duplication, or match the existing design.
+- Prefer compact Kotlin formatting within the project line width; avoid early line breaks when a direct expression remains readable.
+- Do not add tests unless the user explicitly approves them for the current phase/task. This is a process constraint; the design test matrix still applies before final completion.
+- Validate with sequential Gradle tasks for this module; avoid concurrent Gradle/Kotlin compile runs.
 
-## Status
+## Current State
 
-- Setup is complete.
-- Phase 1 is complete: public API type signatures, defaults, constructor validation, and public KDoc are implemented and aligned with design-v16.
-- Phase 1 validation passed with `:screencaptureengine:compileDebugKotlin`, `:screencaptureengine:lintDebug`, JetBrains IDE error inspection, self-review, and two independent documentation audits.
-- Phase 2 implementation is complete: pure internal output planning now resolves source/crop, rotation, output sizing, checked pixel/byte arithmetic, injected runtime caps, conservative capture-target downscale, encoder request shape, and delayed effective-parameter construction after encoder info is known.
-- Phase 2 tests were intentionally not added by user request. Validation used `:screencaptureengine:compileDebugKotlin`, `:screencaptureengine:lintDebug`, JetBrains IDE inspection, self-review, targeted early-downscale research, and independent sub-agent design/engineering/documentation audits.
-- Runtime implementation has not started. `CaptureMetricsProviders` factory bodies and `JpegImageEncoderProvider.createEncoder(...)` intentionally fail until their runtime phases are designed/implemented.
+- Setup and Phases 1-3 are complete against v21.
+- Implemented: public API/validation/KDoc/manual equality, pure output planning, capture-target pixel/byte caps, delayed encoder-info attachment, internal session skeleton, latest-only frame delivery, bounded public snapshot leases, callback failure accounting, slow-consumer tracking, dispatcher handoff, watchdogs, and diagnostic rate limiting.
+- Delivery/stop semantics match v21; there are no known blocking findings.
+- Current validation baseline: Gradle Kotlin compile, Gradle lint, JetBrains reformat, targeted JetBrains inspections, self-review, and independent sub-agent audits.
+- Not implemented yet: MediaProjection, VirtualDisplay, GL/readback, JPEG runtime, built-in metrics-provider runtime behavior, provider fallback policy, final lifecycle hardening, and tests.
+- `CaptureMetricsProviders` factory bodies and `JpegImageEncoderProvider.createEncoder(...)` intentionally fail until their runtime phases are designed and implemented.
 
-## Phases
+## Phase Map
 
-0. Setup Lock
-   - Goal: lock module boundaries, versions, dependencies, package layout, and progress-file rules.
-   - Gate: no dependency on existing project modules; only stable/release Gradle values.
-1. Public API And Validation
-   - Goal: implement the design-v16 public API surface, defaults, and constructor validation.
-   - Gate: API matches the design document; no unsanctioned fields or behavior.
-2. Pure Geometry And Planning Core
-   - Goal: implement deterministic non-platform planning: metrics abstractions, source/crop math, rotation, mirror, output sizing, checked arithmetic, caps, and capture target planning.
-   - Gate: stop for any ambiguity in rounding, caps, rejection, or suspension behavior.
-3. Session Control And Delivery Skeleton
-   - Goal: implement lifecycle/control flow without real capture: serialized session operations, state/stats/events, subscriptions, snapshot slots, and latest-only delivery.
-   - Gate: no callbacks on producer-critical contexts; delivery and drop semantics match the design.
-4. MediaProjection And VirtualDisplay Runtime
-   - Goal: implement fresh projection ownership, single `VirtualDisplay`, callback registration, API 34+ first-resize startup wait, generation model, resize/surface ordering, and projection stop handling.
-   - Gate: stop for any platform behavior that conflicts with or is not covered by the design.
-5. GL ES2 Rendering And Readback
-   - Goal: implement the required baseline pipeline: `SurfaceTexture`/OES, EGL/GL thread, transform matrix, crop/rotate/mirror/resize/grayscale, framebuffer, `glReadPixels`, and stale-generation drops.
-   - Gate: no raw RGBA exposure to normal consumers; rendering matches public coordinate rules.
-6. Encoding And Latest Publication
-   - Goal: implement framework JPEG, synchronous encoder execution, sink caps, immutable snapshots, borrowed encoded frames, publication stats, and delivery drops.
-   - Gate: encoded-size limits are enforced; slow consumers cannot block producer work; callback failures are contained.
-7. Runtime Reconfiguration And Failure Hardening
-   - Goal: implement atomic parameter updates, geometry changes, suspend/resume, provider changes, trim memory, repeated-failure thresholds, terminal/recoverable mapping, and cleanup.
-   - Gate: lifecycle transitions and problem kinds match the design; no invented fallback policy.
-8. Native JPEG And ES3/PBO Accelerators
-   - Goal: implement NDK JPEG and ES3/PBO as optional performance paths with validation and fallback to framework JPEG/ES2.
-   - Gate: old-device load safety and backend failures are handled exactly as designed.
-9. Final Compliance And Matrix
-   - Goal: complete design compliance audit, review pass, platform matrix planning/validation, and standalone harness only if needed inside `screencaptureengine`.
-   - Gate: self-review plus two independent reviews; unresolved gaps are recorded and escalated.
+- 0. Setup Lock: complete.
+- 1. Public API And Validation: complete.
+- 2. Pure Geometry And Planning Core: complete.
+- 3. Session Control And Delivery Skeleton: complete for non-runtime scope.
+- 4. MediaProjection And VirtualDisplay Runtime: next phase.
+- 5. GL ES2 Rendering And Readback: future.
+- 6. Encoding And Latest Publication: future.
+- 7. Runtime Reconfiguration And Failure Hardening: future.
+- 8. Native JPEG And ES3/PBO Accelerators: future.
+- 9. Final Compliance And Matrix: future.
 
 ## Next
 
-- Prepare Phase 3 proposal: Session Control And Delivery Skeleton.
+- Prepare the Phase 4 proposal: MediaProjection And VirtualDisplay Runtime. Runtime implementation must route public state, stats, diagnostic events, frame drops,
+  visibility changes, geometry transitions, and output-plan transitions through `ScreenCaptureSessionCore` instead of publishing parallel state from runtime code.
 
-## Open Questions
+## Phase 4 Preparation
 
-- Deferred: built-in `CaptureMetricsProviders` need a live update strategy for `StateFlow<CaptureMetrics>`, including lifecycle/cleanup ownership. Do not implement provider runtime behavior until this is resolved. Session `stop()` / `close()` can clean engine-owned registrations, but they are not by themselves a complete lifecycle model for callbacks/listeners tied to `Activity`, `Service`, `Context`, `Display`, or window ownership. Decide whether providers are lifecycle-bound, explicitly closeable, session-owned, owner-owned, or some combination before implementing these factories.
+- Do not start Phase 4 implementation before presenting a proposal and getting user approval.
+- Read `screen-capture-engine-design-v21.md` first, especially MediaProjection ownership, virtual display lifecycle, stop/failure boundaries, metrics-provider ownership,
+  captured-content resize/visibility callbacks, output suspension/resume, and fresh-projection requirements.
+- Use current official Android documentation for MediaProjection and VirtualDisplay behavior; use current Kotlin/coroutines documentation for lifecycle and concurrency
+  decisions.
+- Use at least two independent sub-agents for Phase 4 research/proposal review. Their briefs must be fresh and bounded; do not fork/replay the parent conversation.
+- Keep runtime state owned by `ScreenCaptureSessionCore`. Add narrow internal entrypoints there when runtime needs to publish lifecycle/output/stats/events, instead of
+  letting runtime code mutate public flows or counters directly.
+- Preserve existing delivery semantics: latest-only publication, bounded public snapshot slots, callback exceptions contained as delivery drops, and terminal stop as
+  an immediate publication/delivery boundary.
+- Do not implement GL/readback, JPEG runtime, ES3/PBO, or tests in Phase 4 unless the user explicitly expands scope.
+- Proposed validation for Phase 4 should include module Kotlin compile, module lint, JetBrains reformat/inspections, self-review, and sub-agent audit. Tests still
+  require explicit user approval.
 
-## Decisions
+## Open Decisions
 
-- Public config defaults are constructor default values only, not extra public constants.
-- Built-in JPEG identifiers: provider id `jpeg`, format name `JPEG`, MIME type `image/jpeg`.
-- Phase 2 uses the design early-downscale model with conservative integer quantization: capture-target dimensions never exceed logical capture and are adjusted so the effective target scale does not fall below the required scale.
-- Phase 2 planner does not create encoders or fabricate encoder backend info; it builds `ImageEncoderRequest`, and later runtime encoder creation supplies `ImageEncoderInfo` before public effective parameters are built.
-- Java interop remains a non-goal. `@Throws` annotations are not added to the encoder SPI unless a future approved design change adds Java-facing API requirements.
-- Do not add tests unless the user explicitly approves them for the current phase or task.
-- Runtime placeholder public APIs should fail with ordinary exceptions, not `Error` types, while runtime behavior is intentionally unavailable.
-- Keep validation constants private and local for now instead of adding a shared constants/helper abstraction. Revisit only if actual drift or repeated update burden appears.
+- `FrameRate.Auto` is implementation-defined by the design; choose and document the bounded policy before Phase 4 implementation.
+- ES3/PBO validation details are implementation-defined by the design; choose them during the ES3/PBO phase inside the required fallback/lifecycle rules.
+- Deferred: publishing stats once per encoded-frame result needs an explicit observable-stats policy decision.
+- Deferred: replacing internal `AtomicReference` state with `@Volatile` needs targeted lifecycle race tests.
+- Deferred: early snapshot-copy skip when all subscriptions are busy/stale changes delivery decision timing and needs design approval.
+- Deferred: lease issuing/refcount API refactor needs targeted lease tests.
+
+## Durable Decisions
+
+- Runtime placeholder public APIs fail with ordinary exceptions, not `Error` types.
+- Public immutable value/state models use manual `equals`/`hashCode`; do not convert them to `data class` by default.
+- Keep validation constants private/local unless actual drift or repeated update burden justifies a shared abstraction.
+- Kotlin has no standard checked integer arithmetic equivalent to JVM `Math.addExact` / `Math.multiplyExact`; keep those APIs where checked overflow is required unless a clearer project-local abstraction becomes justified.
+- Configured caller-owned dispatchers are reached through an engine-owned callback bridge so custom direct/immediate dispatchers cannot run callbacks on the single delivery coordinator worker or producer-critical callers.
+- Subscription stats snapshots from the delivery coordinator are versioned; the session core ignores older snapshots so races cannot roll public counters backward.
 
 ## Design Deviations
 

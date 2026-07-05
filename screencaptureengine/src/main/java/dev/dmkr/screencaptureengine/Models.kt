@@ -3,27 +3,27 @@ package dev.dmkr.screencaptureengine
 /**
  * Logical source region selected before crop, rotation, and output scaling.
  *
- * Coordinates are expressed in logical captured-content pixels, before any internal capture
- * target downscale. This is a view-selection control, not a privacy/redaction boundary.
+ * Coordinates are expressed in logical captured-content pixels, before any internal capture target downscale. This is a view-selection control, not a
+ * privacy/redaction boundary.
  */
 public sealed interface SourceRegion {
     /** Full logical captured content. */
-    public object Full : SourceRegion
+    public data object Full : SourceRegion
 
     /** Left half split at width / 2. */
-    public object LeftHalf : SourceRegion
+    public data object LeftHalf : SourceRegion
 
     /** Right half split at width / 2; receives the extra pixel for odd widths. */
-    public object RightHalf : SourceRegion
+    public data object RightHalf : SourceRegion
 }
 
 /** How a target output rectangle is resolved from selected content. */
 public sealed interface ContentMode {
     /** Fill the requested target dimensions without preserving aspect ratio. */
-    public object Stretch : ContentMode
+    public data object Stretch : ContentMode
 
     /** Fit within the requested target bounds while preserving aspect ratio and adding no padding. */
-    public object AspectFit : ContentMode
+    public data object AspectFit : ContentMode
 }
 
 /** Clockwise rotation applied after source selection and crop. */
@@ -69,14 +69,15 @@ public enum class CaptureGeometrySource {
 }
 
 /** Positive pixel size. */
-public class Size public constructor(
-    public val width: Int,
-    public val height: Int,
-) {
+public class Size public constructor(public val width: Int, public val height: Int) {
     init {
         require(width > 0) { "width must be positive, was $width" }
         require(height > 0) { "height must be positive, was $height" }
     }
+
+    public override fun equals(other: Any?): Boolean = other is Size && width == other.width && height == other.height
+
+    public override fun hashCode(): Int = 31 * width + height
 }
 
 /** Rectangle in image coordinates, using left/top inclusive and right/bottom exclusive edges. */
@@ -100,14 +101,19 @@ public class ImageRect public constructor(
         require(right >= left) { "right must be greater than or equal to left" }
         require(bottom >= top) { "bottom must be greater than or equal to top" }
     }
+
+    public override fun equals(other: Any?): Boolean =
+        other is ImageRect && left == other.left && top == other.top && right == other.right && bottom == other.bottom
+
+    public override fun hashCode(): Int = 31 * (31 * (31 * left + top) + right) + bottom
 }
 
 /**
  * Pixel crop insets applied to the selected [SourceRegion].
  *
- * Insets are interpreted in logical captured-content pixels. If crop makes the selected rect
- * empty, the plan is invalid: startup fails, a parameter update is rejected, or running output
- * becomes suspended after a geometry change.
+ * Insets are interpreted in logical captured-content pixels and each value must be in `0..32768`.
+ * If crop makes the selected rect empty, the plan is invalid: startup fails, a parameter update is rejected, or running output becomes suspended after a
+ * geometry change.
  */
 public class CropInsetsPx public constructor(
     public val left: Int = 0,
@@ -121,6 +127,11 @@ public class CropInsetsPx public constructor(
         require(right in CROP_INSET_RANGE) { "right must be in $CROP_INSET_RANGE, was $right" }
         require(bottom in CROP_INSET_RANGE) { "bottom must be in $CROP_INSET_RANGE, was $bottom" }
     }
+
+    public override fun equals(other: Any?): Boolean =
+        other is CropInsetsPx && left == other.left && top == other.top && right == other.right && bottom == other.bottom
+
+    public override fun hashCode(): Int = 31 * (31 * (31 * left + top) + right) + bottom
 
     public companion object {
         /** No crop. */
@@ -137,19 +148,19 @@ public class CropInsetsPx public constructor(
  * `floor(value + 0.5)`, then clamp to at least 1 px only after a non-empty source rect exists.
  */
 public sealed interface OutputSize {
-    /** Scales selected oriented content by [factor] using positive-size rounding. */
-    public class ScaleFactor public constructor(
-        public val factor: Double,
-    ) : OutputSize {
+    /** Scales selected oriented content by [factor] in `0.10..2.00` using positive-size rounding. */
+    public class ScaleFactor public constructor(public val factor: Double) : OutputSize {
         init {
-            require(factor.isFinite() && factor in SCALE_FACTOR_RANGE) {
-                "factor must be finite and in $SCALE_FACTOR_RANGE, was $factor"
-            }
+            require(factor.isFinite() && factor in SCALE_FACTOR_RANGE) { "factor must be finite and in $SCALE_FACTOR_RANGE, was $factor" }
         }
+
+        public override fun equals(other: Any?): Boolean = other is ScaleFactor && factor == other.factor
+
+        public override fun hashCode(): Int = factor.hashCode()
     }
 
     /**
-     * Resolves output within or exactly to explicit [width] x [height] dimensions.
+     * Resolves output within or exactly to explicit [width] x [height] dimensions. Dimensions must be in `1..32768`.
      *
      * [ContentMode.Stretch] produces exactly the target size. [ContentMode.AspectFit] treats
      * the target as max bounds, preserves aspect ratio, and adds no padding.
@@ -163,6 +174,11 @@ public sealed interface OutputSize {
             require(width in TARGET_SIZE_RANGE) { "width must be in $TARGET_SIZE_RANGE, was $width" }
             require(height in TARGET_SIZE_RANGE) { "height must be in $TARGET_SIZE_RANGE, was $height" }
         }
+
+        public override fun equals(other: Any?): Boolean =
+            other is TargetSize && width == other.width && height == other.height && contentMode == other.contentMode
+
+        public override fun hashCode(): Int = 31 * (31 * width + height) + contentMode.hashCode()
     }
 }
 
@@ -173,35 +189,45 @@ public sealed interface OutputSize {
  * delivery drops and do not make the engine build a backlog.
  */
 public sealed interface FrameRate {
-    /** Publishes at most [fps] frames per second from source frame availability. */
+    /** Publishes at most [fps] frames per second from source frame availability; [fps] must be in `1..120`. */
     public class MaxFps public constructor(
         public val fps: Int,
     ) : FrameRate {
         init {
             require(fps in MAX_FPS_RANGE) { "fps must be in $MAX_FPS_RANGE, was $fps" }
         }
+
+        public override fun equals(other: Any?): Boolean = other is MaxFps && fps == other.fps
+
+        public override fun hashCode(): Int = fps
     }
 
-    /** Requests periodic refresh publication opportunities for static sources, subject to lifecycle and backpressure. */
-    public class PeriodicRefresh public constructor(
-        public val intervalMillis: Long,
-    ) : FrameRate {
+    /**
+     * Requests periodic refresh publication opportunities for static sources.
+     *
+     * [intervalMillis] must be in `1000..300000`; lifecycle state and backpressure may still skip a refresh opportunity.
+     */
+    public class PeriodicRefresh public constructor(public val intervalMillis: Long) : FrameRate {
         init {
             require(intervalMillis in PERIODIC_REFRESH_INTERVAL_RANGE) {
                 "intervalMillis must be in $PERIODIC_REFRESH_INTERVAL_RANGE, was $intervalMillis"
             }
         }
+
+        public override fun equals(other: Any?): Boolean = other is PeriodicRefresh && intervalMillis == other.intervalMillis
+
+        public override fun hashCode(): Int = intervalMillis.hashCode()
     }
 
-    /** Engine-defined bounded frame-rate policy. */
-    public object Auto : FrameRate
+    /** Engine-defined bounded frame-rate policy; concrete pacing is resolved before production starts. */
+    public data object Auto : FrameRate
 }
 
 /**
  * Metrics emitted by [CaptureMetricsProvider].
  *
- * Metrics are mandatory even when API 34+ captured-content resize becomes authoritative,
- * because density and bootstrap geometry still need an owner-context source.
+ * Metrics are mandatory even when API 34+ captured-content resize becomes authoritative, because density and bootstrap geometry still need an owner-context
+ * source.
  */
 public class CaptureMetrics public constructor(
     /** Logical width in pixels. */
@@ -218,13 +244,17 @@ public class CaptureMetrics public constructor(
         require(heightPx > 0) { "heightPx must be positive, was $heightPx" }
         require(densityDpi > 0) { "densityDpi must be positive, was $densityDpi" }
     }
+
+    public override fun equals(other: Any?): Boolean =
+        other is CaptureMetrics && widthPx == other.widthPx && heightPx == other.heightPx && densityDpi == other.densityDpi
+
+    public override fun hashCode(): Int = 31 * (31 * widthPx + heightPx) + densityDpi
 }
 
 /**
  * Current logical capture geometry used for planning.
  *
- * The [source] records whether geometry came from metrics, provisional metrics, or the
- * authoritative MediaProjection captured-content resize callback.
+ * The [source] records whether geometry came from metrics, provisional metrics, or the authoritative MediaProjection captured-content resize callback.
  */
 public class CaptureGeometry public constructor(
     public val widthPx: Int,
@@ -237,13 +267,18 @@ public class CaptureGeometry public constructor(
         require(heightPx > 0) { "heightPx must be positive, was $heightPx" }
         require(densityDpi > 0) { "densityDpi must be positive, was $densityDpi" }
     }
+
+    public override fun equals(other: Any?): Boolean =
+        other is CaptureGeometry && widthPx == other.widthPx && heightPx == other.heightPx && densityDpi == other.densityDpi && source == other.source
+
+    public override fun hashCode(): Int = 31 * (31 * (31 * widthPx + heightPx) + densityDpi) + source.hashCode()
 }
 
 /**
  * Actual projection target surface size selected by planning.
  *
- * This target represents the whole logical captured content, possibly uniformly downscaled
- * before GL source selection and final output rendering.
+ * This target represents the whole logical captured content, possibly downscaled before GL source selection and final output rendering. Integer target
+ * dimensions may quantize the two axes differently; [scaleFromLogicalCapture] reports the effective minimum axis scale.
  */
 public class CaptureTarget public constructor(
     /** Capture target width in pixels. */
@@ -252,7 +287,7 @@ public class CaptureTarget public constructor(
     /** Capture target height in pixels. */
     public val height: Int,
 
-    /** Uniform scale from logical captured content to capture target. */
+    /** Effective minimum scale from logical captured content to capture target. */
     public val scaleFromLogicalCapture: Double,
 
     /** True when the target is smaller than logical captured content for early downscale. */
@@ -265,14 +300,19 @@ public class CaptureTarget public constructor(
             "scaleFromLogicalCapture must be finite and in (0.0, 1.0], was $scaleFromLogicalCapture"
         }
     }
+
+    public override fun equals(other: Any?): Boolean =
+        other is CaptureTarget && width == other.width && height == other.height && scaleFromLogicalCapture == other.scaleFromLogicalCapture &&
+                isEarlyDownscaled == other.isEarlyDownscaled
+
+    public override fun hashCode(): Int = 31 * (31 * (31 * width + height) + scaleFromLogicalCapture.hashCode()) + isEarlyDownscaled.hashCode()
 }
 
 /**
  * User-requested capture/render/encode parameters.
  *
- * These values describe desired behavior. [ScreenCaptureEffectiveParameters] reports what was
- * actually planned for the current geometry and device/runtime capabilities. The values are
- * applied atomically by [ScreenCaptureSession.setParameters].
+ * These values describe desired behavior. [ScreenCaptureEffectiveParameters] reports what was actually planned for the current geometry and device/runtime
+ * capabilities. The values are applied atomically by [ScreenCaptureSession.setParameters].
  */
 public class ScreenCaptureParameters public constructor(
     /** Logical source region selected before crop. */
@@ -302,9 +342,24 @@ public class ScreenCaptureParameters public constructor(
     init {
         require(encoderProvider.id.isNotBlank()) { "encoderProvider.id must not be blank" }
         require(encoderProvider.outputFormat.name.isNotBlank()) { "encoderProvider.outputFormat.name must not be blank" }
-        require(encoderProvider.outputFormat.mimeType.isNotBlank()) {
-            "encoderProvider.outputFormat.mimeType must not be blank"
-        }
+        require(encoderProvider.outputFormat.mimeType.isNotBlank()) { "encoderProvider.outputFormat.mimeType must not be blank" }
+    }
+
+    public override fun equals(other: Any?): Boolean =
+        other is ScreenCaptureParameters && sourceRegion == other.sourceRegion && crop == other.crop && outputSize == other.outputSize &&
+                rotation == other.rotation && mirror == other.mirror && colorMode == other.colorMode && frameRate == other.frameRate &&
+                encoderProvider == other.encoderProvider
+
+    public override fun hashCode(): Int {
+        var result = sourceRegion.hashCode()
+        result = 31 * result + crop.hashCode()
+        result = 31 * result + outputSize.hashCode()
+        result = 31 * result + rotation.hashCode()
+        result = 31 * result + mirror.hashCode()
+        result = 31 * result + colorMode.hashCode()
+        result = 31 * result + frameRate.hashCode()
+        result = 31 * result + encoderProvider.hashCode()
+        return result
     }
 
     public companion object {
@@ -316,9 +371,8 @@ public class ScreenCaptureParameters public constructor(
 /**
  * Effective parameters after validation, geometry resolution, and backend selection.
  *
- * These are the authoritative public coordinates and dimensions for active output. In
- * particular, [appliedSourceRect] is always reported in logical captured-content coordinates
- * before capture-target sampling, even when [captureTarget] is downscaled.
+ * These are the authoritative public coordinates and dimensions for active output. In particular, [appliedSourceRect] is always reported in logical
+ * captured-content coordinates before capture-target sampling, even when [captureTarget] is downscaled.
  */
 public class ScreenCaptureEffectiveParameters public constructor(
     /** Geometry used to derive this plan. */
@@ -362,24 +416,51 @@ public class ScreenCaptureEffectiveParameters public constructor(
 
     /** Frame-rate policy applied by this plan. */
     public val frameRate: FrameRate,
-)
+) {
+    public override fun equals(other: Any?): Boolean =
+        other is ScreenCaptureEffectiveParameters && captureGeometry == other.captureGeometry && captureTarget == other.captureTarget &&
+                sourceRegion == other.sourceRegion && crop == other.crop && appliedSourceRect == other.appliedSourceRect &&
+                orientedContentSize == other.orientedContentSize && outputSize == other.outputSize && finalImageSize == other.finalImageSize &&
+                rotation == other.rotation && mirror == other.mirror && colorMode == other.colorMode && readbackMode == other.readbackMode &&
+                encoderInfo == other.encoderInfo && frameRate == other.frameRate
+
+    public override fun hashCode(): Int {
+        var result = captureGeometry.hashCode()
+        result = 31 * result + captureTarget.hashCode()
+        result = 31 * result + sourceRegion.hashCode()
+        result = 31 * result + crop.hashCode()
+        result = 31 * result + appliedSourceRect.hashCode()
+        result = 31 * result + orientedContentSize.hashCode()
+        result = 31 * result + outputSize.hashCode()
+        result = 31 * result + finalImageSize.hashCode()
+        result = 31 * result + rotation.hashCode()
+        result = 31 * result + mirror.hashCode()
+        result = 31 * result + colorMode.hashCode()
+        result = 31 * result + readbackMode.hashCode()
+        result = 31 * result + encoderInfo.hashCode()
+        result = 31 * result + frameRate.hashCode()
+        return result
+    }
+}
 
 /** Result of an atomic parameter update request. */
 public sealed interface ScreenCaptureParameterUpdateResult {
     /** New parameters were fully applied. */
-    public object Applied : ScreenCaptureParameterUpdateResult
+    public data object Applied : ScreenCaptureParameterUpdateResult
 
     /** New parameters were rejected; previous active parameters remain in use. */
-    public class Rejected public constructor(
-        public val problem: ScreenCaptureProblem,
-    ) : ScreenCaptureParameterUpdateResult
+    public class Rejected public constructor(public val problem: ScreenCaptureProblem) : ScreenCaptureParameterUpdateResult {
+        public override fun equals(other: Any?): Boolean = other is Rejected && problem == other.problem
+
+        public override fun hashCode(): Int = problem.hashCode()
+    }
 }
 
 /**
  * Public lifecycle state of a session.
  *
- * [Running] means the projection/session is alive. Its output can still be [ScreenCaptureOutputState.Suspended],
- * in which case no new frames are published until parameters or geometry become valid again.
+ * [Running] means the projection/session is alive. Its output can still be [ScreenCaptureOutputState.Suspended], in which case no new frames are published
+ * until parameters or geometry become valid again.
  */
 public sealed interface ScreenCaptureSessionState {
     /** Session is alive; output is either active or suspended. */
@@ -388,26 +469,39 @@ public sealed interface ScreenCaptureSessionState {
 
         /** Visibility of captured content when the platform reports it, otherwise null. */
         public val capturedContentVisible: Boolean?,
-    ) : ScreenCaptureSessionState
+    ) : ScreenCaptureSessionState {
+        public override fun equals(other: Any?): Boolean =
+            other is Running && output == other.output && capturedContentVisible == other.capturedContentVisible
+
+        public override fun hashCode(): Int = 31 * output.hashCode() + (capturedContentVisible?.hashCode() ?: 0)
+    }
 
     /** Session ended normally from owner/system capture stop. Terminal and non-restartable. */
     public class Stopped public constructor(
         public val reason: ScreenCaptureStopReason,
         public val problem: ScreenCaptureProblem?,
-    ) : ScreenCaptureSessionState
+    ) : ScreenCaptureSessionState {
+        public override fun equals(other: Any?): Boolean = other is Stopped && reason == other.reason && problem == other.problem
+
+        public override fun hashCode(): Int = 31 * reason.hashCode() + (problem?.hashCode() ?: 0)
+    }
 
     /** Session ended due to a fatal engine/platform problem. Terminal and non-restartable. */
-    public class Failed public constructor(
-        public val problem: ScreenCaptureProblem,
-    ) : ScreenCaptureSessionState
+    public class Failed public constructor(public val problem: ScreenCaptureProblem) : ScreenCaptureSessionState {
+        public override fun equals(other: Any?): Boolean = other is Failed && problem == other.problem
+
+        public override fun hashCode(): Int = problem.hashCode()
+    }
 }
 
 /** Current output status while the session is running. */
 public sealed interface ScreenCaptureOutputState {
     /** Output plan is active and may publish frames. */
-    public class Active public constructor(
-        public val effectiveParameters: ScreenCaptureEffectiveParameters,
-    ) : ScreenCaptureOutputState
+    public class Active public constructor(public val effectiveParameters: ScreenCaptureEffectiveParameters) : ScreenCaptureOutputState {
+        public override fun equals(other: Any?): Boolean = other is Active && effectiveParameters == other.effectiveParameters
+
+        public override fun hashCode(): Int = effectiveParameters.hashCode()
+    }
 
     /**
      * Output plan is unavailable; no new frames are published until resumed.
@@ -419,7 +513,13 @@ public sealed interface ScreenCaptureOutputState {
         public val problem: ScreenCaptureProblem,
         public val previousEffectiveParameters: ScreenCaptureEffectiveParameters,
         public val currentCaptureGeometry: CaptureGeometry,
-    ) : ScreenCaptureOutputState
+    ) : ScreenCaptureOutputState {
+        public override fun equals(other: Any?): Boolean =
+            other is Suspended && problem == other.problem && previousEffectiveParameters == other.previousEffectiveParameters &&
+                    currentCaptureGeometry == other.currentCaptureGeometry
+
+        public override fun hashCode(): Int = 31 * (31 * problem.hashCode() + previousEffectiveParameters.hashCode()) + currentCaptureGeometry.hashCode()
+    }
 }
 
 /**
@@ -436,22 +536,26 @@ public class ScreenCaptureProblem public constructor(
     public val kind: ScreenCaptureProblemKind,
 
     /** Optional diagnostic text, not a parsing contract. */
-    public val message: String?,
+    public val message: String? = null,
 
     /** Optional underlying cause. */
-    public val cause: Throwable?,
+    public val cause: Throwable? = null,
 ) {
     init {
         require(sequence >= 0L) { "sequence must be non-negative, was $sequence" }
     }
+
+    public override fun equals(other: Any?): Boolean =
+        other is ScreenCaptureProblem && sequence == other.sequence && kind == other.kind && message == other.message && cause == other.cause
+
+    public override fun hashCode(): Int = 31 * (31 * (31 * sequence.hashCode() + kind.hashCode()) + (message?.hashCode() ?: 0)) + (cause?.hashCode() ?: 0)
 }
 
 /**
  * Stable technical classification for public problems.
  *
- * This enum does not encode severity. Owners should interpret it together with the surface
- * carrying the problem: startup exception, rejected update, suspended output, failed state, or
- * diagnostic event.
+ * This enum does not encode severity. Owners should interpret it together with the surface carrying the problem: startup exception, rejected update,
+ * suspended output, failed state, or diagnostic event.
  */
 public enum class ScreenCaptureProblemKind {
     ProjectionInvalidOrStopped,
@@ -499,8 +603,7 @@ public enum class ScreenCaptureStopReason {
 /**
  * Session counters, rates, byte sizes, and delivery pressure.
  *
- * Production drops and delivery drops are separate: one encoded frame can be published
- * successfully even if one or more subscriptions skip delivery.
+ * Production drops and delivery drops are separate: one encoded frame can be published successfully even if one or more subscription delivery attempts fail.
  */
 public class ScreenCaptureStats public constructor(
     /** Successful encoder outputs before stale-generation and encoded-size publication checks. */
@@ -512,7 +615,7 @@ public class ScreenCaptureStats public constructor(
     /** Production opportunities/results that did not become the internal latest frame. */
     public val droppedFrames: ScreenCaptureFrameDropStats = ScreenCaptureFrameDropStats(),
 
-    /** Per-subscription delivery skips; never increments [droppedFrames]. */
+    /** Per-subscription delivery attempts that did not complete; never increments [droppedFrames]. */
     public val droppedDeliveries: ScreenCaptureDeliveryDropStats = ScreenCaptureDeliveryDropStats(),
 
     /** Published frames per second over session lifetime using monotonic elapsed time. */
@@ -533,39 +636,48 @@ public class ScreenCaptureStats public constructor(
     /** Currently registered frame subscriptions. */
     public val activeFrameSubscriptions: Int = 0,
 
-    /** Subscriptions currently considered slow or failing by engine diagnostics. */
+    /** Active subscriptions classified as slow or failing by consecutive direct delivery problems. */
     public val slowConsumers: Int = 0,
 ) {
     init {
         require(framesEncoded >= 0L) { "framesEncoded must be non-negative, was $framesEncoded" }
         require(framesPublished >= 0L) { "framesPublished must be non-negative, was $framesPublished" }
-        require(publishedFps.isFinite() && publishedFps >= 0.0) {
-            "publishedFps must be finite and non-negative, was $publishedFps"
-        }
-        require(averageEncodeMs.isFinite() && averageEncodeMs >= 0.0) {
-            "averageEncodeMs must be finite and non-negative, was $averageEncodeMs"
-        }
-        require(averageReadbackMs.isFinite() && averageReadbackMs >= 0.0) {
-            "averageReadbackMs must be finite and non-negative, was $averageReadbackMs"
-        }
-        require(lastEncodedByteCount >= 0) {
-            "lastEncodedByteCount must be non-negative, was $lastEncodedByteCount"
-        }
-        require(averageEncodedByteCount >= 0) {
-            "averageEncodedByteCount must be non-negative, was $averageEncodedByteCount"
-        }
-        require(activeFrameSubscriptions >= 0) {
-            "activeFrameSubscriptions must be non-negative, was $activeFrameSubscriptions"
-        }
+        require(publishedFps.isFinite() && publishedFps >= 0.0) { "publishedFps must be finite and non-negative, was $publishedFps" }
+        require(averageEncodeMs.isFinite() && averageEncodeMs >= 0.0) { "averageEncodeMs must be finite and non-negative, was $averageEncodeMs" }
+        require(averageReadbackMs.isFinite() && averageReadbackMs >= 0.0) { "averageReadbackMs must be finite and non-negative, was $averageReadbackMs" }
+        require(lastEncodedByteCount >= 0) { "lastEncodedByteCount must be non-negative, was $lastEncodedByteCount" }
+        require(averageEncodedByteCount >= 0) { "averageEncodedByteCount must be non-negative, was $averageEncodedByteCount" }
+        require(activeFrameSubscriptions >= 0) { "activeFrameSubscriptions must be non-negative, was $activeFrameSubscriptions" }
         require(slowConsumers >= 0) { "slowConsumers must be non-negative, was $slowConsumers" }
+    }
+
+    public override fun equals(other: Any?): Boolean =
+        other is ScreenCaptureStats && framesEncoded == other.framesEncoded && framesPublished == other.framesPublished &&
+                droppedFrames == other.droppedFrames && droppedDeliveries == other.droppedDeliveries && publishedFps == other.publishedFps &&
+                averageEncodeMs == other.averageEncodeMs && averageReadbackMs == other.averageReadbackMs &&
+                lastEncodedByteCount == other.lastEncodedByteCount && averageEncodedByteCount == other.averageEncodedByteCount &&
+                activeFrameSubscriptions == other.activeFrameSubscriptions && slowConsumers == other.slowConsumers
+
+    public override fun hashCode(): Int {
+        var result = framesEncoded.hashCode()
+        result = 31 * result + framesPublished.hashCode()
+        result = 31 * result + droppedFrames.hashCode()
+        result = 31 * result + droppedDeliveries.hashCode()
+        result = 31 * result + publishedFps.hashCode()
+        result = 31 * result + averageEncodeMs.hashCode()
+        result = 31 * result + averageReadbackMs.hashCode()
+        result = 31 * result + lastEncodedByteCount
+        result = 31 * result + averageEncodedByteCount
+        result = 31 * result + activeFrameSubscriptions
+        result = 31 * result + slowConsumers
+        return result
     }
 }
 
 /**
  * Production-frame drop counters.
  *
- * [total] must equal the sum of the listed categories. Each dropped production opportunity or
- * completed encoded result is counted in exactly one category.
+ * [total] must equal the sum of the listed categories. Each dropped production opportunity or completed encoded result is counted in exactly one category.
  */
 public class ScreenCaptureFrameDropStats public constructor(
     /** Sum of all production drop categories. */
@@ -603,14 +715,8 @@ public class ScreenCaptureFrameDropStats public constructor(
         require(byTransientFailure >= 0L) { "byTransientFailure must be non-negative, was $byTransientFailure" }
         val categoryTotal = try {
             Math.addExact(
-                Math.addExact(
-                    Math.addExact(byFrameRatePolicy, byReadbackBusy),
-                    Math.addExact(byEncoderBusy, byOutputSuspended),
-                ),
-                Math.addExact(
-                    Math.addExact(byStaleGeneration, byEncodedSizeLimit),
-                    byTransientFailure,
-                ),
+                Math.addExact(Math.addExact(byFrameRatePolicy, byReadbackBusy), Math.addExact(byEncoderBusy, byOutputSuspended)),
+                Math.addExact(Math.addExact(byStaleGeneration, byEncodedSizeLimit), byTransientFailure),
             )
         } catch (exception: ArithmeticException) {
             throw IllegalArgumentException("sum of frame drop categories must not overflow Long", exception)
@@ -619,25 +725,45 @@ public class ScreenCaptureFrameDropStats public constructor(
             "total must equal the sum of frame drop categories"
         }
     }
+
+    public override fun equals(other: Any?): Boolean =
+        other is ScreenCaptureFrameDropStats && total == other.total && byFrameRatePolicy == other.byFrameRatePolicy &&
+                byReadbackBusy == other.byReadbackBusy && byEncoderBusy == other.byEncoderBusy && byOutputSuspended == other.byOutputSuspended &&
+                byStaleGeneration == other.byStaleGeneration && byEncodedSizeLimit == other.byEncodedSizeLimit &&
+                byTransientFailure == other.byTransientFailure
+
+    public override fun hashCode(): Int {
+        var result = total.hashCode()
+        result = 31 * result + byFrameRatePolicy.hashCode()
+        result = 31 * result + byReadbackBusy.hashCode()
+        result = 31 * result + byEncoderBusy.hashCode()
+        result = 31 * result + byOutputSuspended.hashCode()
+        result = 31 * result + byStaleGeneration.hashCode()
+        result = 31 * result + byEncodedSizeLimit.hashCode()
+        result = 31 * result + byTransientFailure.hashCode()
+        return result
+    }
 }
 
 /**
  * Per-subscription delivery drop counters.
  *
- * [total] must equal the sum of the listed categories. Delivery drops are consumer-side skips
- * and do not mean production failed.
+ * [total] must equal the sum of the listed categories. Delivery drops are failed delivery attempts and do not mean production failed.
  */
 public class ScreenCaptureDeliveryDropStats public constructor(
     /** Sum of all delivery drop categories. */
     public val total: Long = 0L,
 
-    /** Subscription already had a scheduled or running callback for another frame. */
+    /** Subscription already had a scheduled, handed-off, or admitted callback for another publication. */
     public val bySubscriptionBusy: Long = 0L,
 
-    /** Dispatch to the selected callback dispatcher failed or saturated. */
+    /** Dispatch failed or saturated before callback admission. */
     public val byDispatchFailed: Long = 0L,
 
-    /** No immutable snapshot slot was available for this delivery. */
+    /** User callback threw after callback admission. */
+    public val byCallbackThrew: Long = 0L,
+
+    /** No immutable public delivery snapshot slot was available for this delivery. */
     public val bySnapshotSlotsExhausted: Long = 0L,
 
     /** Delivery skipped because the session/output became stale or terminal. */
@@ -647,14 +773,13 @@ public class ScreenCaptureDeliveryDropStats public constructor(
         require(total >= 0L) { "total must be non-negative, was $total" }
         require(bySubscriptionBusy >= 0L) { "bySubscriptionBusy must be non-negative, was $bySubscriptionBusy" }
         require(byDispatchFailed >= 0L) { "byDispatchFailed must be non-negative, was $byDispatchFailed" }
-        require(bySnapshotSlotsExhausted >= 0L) {
-            "bySnapshotSlotsExhausted must be non-negative, was $bySnapshotSlotsExhausted"
-        }
+        require(byCallbackThrew >= 0L) { "byCallbackThrew must be non-negative, was $byCallbackThrew" }
+        require(bySnapshotSlotsExhausted >= 0L) { "bySnapshotSlotsExhausted must be non-negative, was $bySnapshotSlotsExhausted" }
         require(byStaleSession >= 0L) { "byStaleSession must be non-negative, was $byStaleSession" }
         val categoryTotal = try {
             Math.addExact(
                 Math.addExact(bySubscriptionBusy, byDispatchFailed),
-                Math.addExact(bySnapshotSlotsExhausted, byStaleSession),
+                Math.addExact(Math.addExact(bySnapshotSlotsExhausted, byCallbackThrew), byStaleSession),
             )
         } catch (exception: ArithmeticException) {
             throw IllegalArgumentException("sum of delivery drop categories must not overflow Long", exception)
@@ -663,13 +788,27 @@ public class ScreenCaptureDeliveryDropStats public constructor(
             "total must equal the sum of delivery drop categories"
         }
     }
+
+    public override fun equals(other: Any?): Boolean =
+        other is ScreenCaptureDeliveryDropStats && total == other.total && bySubscriptionBusy == other.bySubscriptionBusy &&
+                byDispatchFailed == other.byDispatchFailed && byCallbackThrew == other.byCallbackThrew &&
+                bySnapshotSlotsExhausted == other.bySnapshotSlotsExhausted && byStaleSession == other.byStaleSession
+
+    public override fun hashCode(): Int {
+        var result = total.hashCode()
+        result = 31 * result + bySubscriptionBusy.hashCode()
+        result = 31 * result + byDispatchFailed.hashCode()
+        result = 31 * result + byCallbackThrew.hashCode()
+        result = 31 * result + bySnapshotSlotsExhausted.hashCode()
+        result = 31 * result + byStaleSession.hashCode()
+        return result
+    }
 }
 
 /**
  * Best-effort diagnostic event for logging, telemetry, or debug UI.
  *
- * Events are not a control-flow contract. State, stats, update return values, and frame
- * callbacks remain authoritative for their respective surfaces.
+ * Events are not a control-flow contract. State, stats, update return values, and frame callbacks remain authoritative for their respective surfaces.
  */
 public class ScreenCaptureEvent public constructor(
     /** Monotonic event sequence. */
@@ -682,10 +821,10 @@ public class ScreenCaptureEvent public constructor(
     public val type: ScreenCaptureEventType,
 
     /** Optional associated problem. */
-    public val problem: ScreenCaptureProblem?,
+    public val problem: ScreenCaptureProblem? = null,
 
     /** Optional diagnostic text, not a parsing contract. */
-    public val message: String?,
+    public val message: String? = null,
 ) {
     init {
         require(sequence >= 0L) { "sequence must be non-negative, was $sequence" }
@@ -693,6 +832,14 @@ public class ScreenCaptureEvent public constructor(
             "timestampElapsedRealtimeNanos must be non-negative, was $timestampElapsedRealtimeNanos"
         }
     }
+
+    public override fun equals(other: Any?): Boolean =
+        other is ScreenCaptureEvent && sequence == other.sequence && timestampElapsedRealtimeNanos == other.timestampElapsedRealtimeNanos &&
+                type == other.type && problem == other.problem && message == other.message
+
+    public override fun hashCode(): Int =
+        31 * (31 * (31 * (31 * sequence.hashCode() + timestampElapsedRealtimeNanos.hashCode()) + type.hashCode()) + (problem?.hashCode() ?: 0)) +
+                (message?.hashCode() ?: 0)
 }
 
 /** Stable diagnostic event category. */

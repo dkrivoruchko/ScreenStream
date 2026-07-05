@@ -5,9 +5,8 @@ import java.nio.ByteBuffer
 /**
  * Borrowed encoded image bytes delivered to normal consumers.
  *
- * This is not a raw frame and not a transport packet. The frame is valid only for the
- * synchronous callback body that received it. Consumers that need bytes after the callback
- * returns must copy them.
+ * This is not a raw frame and not a transport packet. The frame is valid only for the admitted synchronous callback invocation that received it. Consumers
+ * that need bytes after the callback returns must copy them.
  */
 public interface EncodedImageFrame {
     /** Encoded byte format declared by the encoder provider. */
@@ -32,9 +31,8 @@ public interface EncodedImageFrame {
 /**
  * Public synchronous encoder provider SPI.
  *
- * Providers are lightweight, immutable, and thread-safe. Created [ImageEncoder] instances are
- * scoped to a session/output plan and are called only by the engine encoder context. Provider
- * output is opaque to the engine except for byte count and declared [outputFormat].
+ * Providers are lightweight, immutable, and thread-safe. Created [ImageEncoder] instances are scoped to a session/output plan and are called only by the
+ * engine encoder context. Provider output is opaque to the engine except for byte count and declared [outputFormat].
  */
 public interface ImageEncoderProvider {
     /** Stable provider identifier used in diagnostics and effective parameters. */
@@ -56,19 +54,15 @@ public interface ImageEncoderProvider {
 /**
  * Plan-scoped synchronous image encoder.
  *
- * Implementations must consume [ImageEncoderInput] fully during [encode] and must not retain
- * raw buffers, sinks, or row pointers after the call returns. Providers must not call engine
- * public APIs from [encode] and must not require the engine GL context.
+ * Implementations must consume [ImageEncoderInput] fully during [encode] and must not retain raw buffers, sinks, or row pointers after the call returns.
+ * Providers must not call engine public APIs from [encode] and must not require the engine GL context.
  */
 public interface ImageEncoder {
     /** Provider/backend information exposed in effective parameters. */
     public val info: ImageEncoderInfo
 
     /** Encodes one borrowed raw input into [output]. */
-    public fun encode(
-        input: ImageEncoderInput,
-        output: EncodedImageSink,
-    ): ImageEncodeResult
+    public fun encode(input: ImageEncoderInput, output: EncodedImageSink): ImageEncodeResult
 
     /** Releases encoder-owned resources. */
     public fun close()
@@ -77,8 +71,7 @@ public interface ImageEncoder {
 /**
  * Request used to create an encoder for one output plan.
  *
- * The values describe the raw RGBA input shape that the engine will pass to [ImageEncoder.encode]
- * and the encoded-size cap the provider must respect.
+ * The values describe the raw RGBA input shape that the engine will pass to [ImageEncoder.encode] and the encoded-size cap the provider must respect.
  */
 public class ImageEncoderRequest public constructor(
     /** Final image width in pixels. */
@@ -107,13 +100,19 @@ public class ImageEncoderRequest public constructor(
             "rowStrideBytes must be at least width * 4"
         }
     }
+
+    public override fun equals(other: Any?): Boolean =
+        other is ImageEncoderRequest && width == other.width && height == other.height && rowStrideBytes == other.rowStrideBytes &&
+                maxEncodedBytes == other.maxEncodedBytes && inputFormat == other.inputFormat
+
+    public override fun hashCode(): Int = 31 * (31 * (31 * (31 * width + height) + rowStrideBytes) + maxEncodedBytes) + inputFormat.hashCode()
 }
 
 /**
  * Borrowed raw image input visible only to encoder providers.
  *
- * Normal frame consumers never receive this raw RGBA view. The [buffer] contents are sensitive
- * screen data and are valid only during the synchronous [ImageEncoder.encode] call.
+ * Normal frame consumers never receive this raw RGBA view. The [buffer] contents are sensitive screen data and are valid only during the synchronous
+ * [ImageEncoder.encode] call.
  */
 public interface ImageEncoderInput {
     /** Raw image width in pixels. */
@@ -135,9 +134,8 @@ public interface ImageEncoderInput {
 /**
  * Bounded encoded-output sink owned by the engine.
  *
- * A write returning false means the output would exceed [maxByteCount]; providers should stop
- * encoding and return [ImageEncodeResult.Failed]. Providers must write encoded bytes only
- * through this sink.
+ * A write returning false means the output would exceed [maxByteCount]; providers should stop encoding and return [ImageEncodeResult.Failed]. Providers must
+ * write encoded bytes only through this sink.
  */
 public interface EncodedImageSink {
     /** Encoded bytes written so far. */
@@ -156,13 +154,14 @@ public interface EncodedImageSink {
 /** Result of one synchronous encode attempt. Provider exceptions are mapped by the engine. */
 public sealed interface ImageEncodeResult {
     /** Encoding completed and bytes were written within the sink cap. */
-    public object Success : ImageEncodeResult
+    public data object Success : ImageEncodeResult
 
     /** Encoding failed without throwing through the engine boundary. */
-    public class Failed public constructor(
-        public val message: String?,
-        public val cause: Throwable?,
-    ) : ImageEncodeResult
+    public class Failed public constructor(public val message: String? = null, public val cause: Throwable? = null) : ImageEncodeResult {
+        public override fun equals(other: Any?): Boolean = other is Failed && message == other.message && cause == other.cause
+
+        public override fun hashCode(): Int = 31 * (message?.hashCode() ?: 0) + (cause?.hashCode() ?: 0)
+    }
 }
 
 /** Public description of the provider/backend selected for an output plan. */
@@ -181,13 +180,18 @@ public class ImageEncoderInfo public constructor(
         require(outputFormat.name.isNotBlank()) { "outputFormat.name must not be blank" }
         require(outputFormat.mimeType.isNotBlank()) { "outputFormat.mimeType must not be blank" }
     }
+
+    public override fun equals(other: Any?): Boolean =
+        other is ImageEncoderInfo && providerId == other.providerId && outputFormat == other.outputFormat && backendName == other.backendName
+
+    public override fun hashCode(): Int = 31 * (31 * providerId.hashCode() + outputFormat.hashCode()) + (backendName?.hashCode() ?: 0)
 }
 
 /**
  * Opaque single-image byte format descriptor.
  *
- * Apps may provide formats other than JPEG by declaring stable descriptors, but the engine does
- * not parse, transcode, or guarantee interoperability for those bytes.
+ * Apps may provide formats other than JPEG by declaring stable descriptors, but the engine does not parse, transcode, or guarantee interoperability for those
+ * bytes.
  */
 public class EncodedImageFormat public constructor(
     /** Stable human-readable format name. */
@@ -200,15 +204,16 @@ public class EncodedImageFormat public constructor(
         require(name.isNotBlank()) { "name must not be blank" }
         require(mimeType.isNotBlank()) { "mimeType must not be blank" }
     }
+
+    public override fun equals(other: Any?): Boolean = other is EncodedImageFormat && name == other.name && mimeType == other.mimeType
+
+    public override fun hashCode(): Int = 31 * name.hashCode() + mimeType.hashCode()
 }
 
 /** Built-in encoded image formats known to the engine. */
 public object EncodedImageFormats {
     /** Baseline JPEG still image format. */
-    public val Jpeg: EncodedImageFormat = EncodedImageFormat(
-        name = "JPEG",
-        mimeType = "image/jpeg",
-    )
+    public val Jpeg: EncodedImageFormat = EncodedImageFormat(name = "JPEG", mimeType = "image/jpeg")
 }
 
 /** Raw input formats that the engine may pass to encoder providers. */
@@ -218,17 +223,13 @@ public enum class ImageEncoderInputFormat {
 }
 
 /** Thrown when an encoder provider cannot create a usable encoder for a request. */
-public class ImageEncoderUnavailableException public constructor(
-    message: String?,
-    cause: Throwable?,
-) : Exception(message, cause)
+public class ImageEncoderUnavailableException public constructor(message: String? = null, cause: Throwable? = null) : Exception(message, cause)
 
 /**
- * Built-in JPEG encoder provider.
+ * JPEG encoder provider API.
  *
- * The runtime encoder backend is not implemented yet; this type currently defines public
- * construction, validation, identifiers, and format. JPEG output is opaque 8-bit SDR/sRGB;
- * source alpha is not preserved.
+ * JPEG output is opaque 8-bit SDR/sRGB; source alpha is not preserved. This provider describes JPEG metadata, validates quality/backend policy, and throws
+ * [ImageEncoderUnavailableException] when no JPEG runtime backend is available.
  */
 public class JpegImageEncoderProvider public constructor(
     /** JPEG quality in the Android/Bitmap-style 0..100 range. */
@@ -245,16 +246,21 @@ public class JpegImageEncoderProvider public constructor(
     public override val outputFormat: EncodedImageFormat = EncodedImageFormats.Jpeg
 
     public override fun createEncoder(request: ImageEncoderRequest): ImageEncoder {
-        throw ImageEncoderUnavailableException("JPEG encoder runtime is not implemented yet", null)
+        throw ImageEncoderUnavailableException("JPEG encoder runtime is unavailable", null)
     }
+
+    public override fun equals(other: Any?): Boolean =
+        other is JpegImageEncoderProvider && quality == other.quality && backendPolicy == other.backendPolicy
+
+    public override fun hashCode(): Int = 31 * quality + backendPolicy.hashCode()
 }
 
 /** Backend selection policy for [JpegImageEncoderProvider]. */
 public enum class JpegEncoderBackendPolicy {
-    /** Prefer the best validated backend, falling back when a preferred backend is unavailable. */
+    /** Request the best validated backend. */
     Auto,
 
-    /** Use only the framework Bitmap-compress backend. */
+    /** Request only the framework Bitmap-compress backend. */
     FrameworkOnly,
 }
 
