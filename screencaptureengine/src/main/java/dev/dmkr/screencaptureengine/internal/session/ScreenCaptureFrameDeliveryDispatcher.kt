@@ -9,10 +9,12 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 
 /**
- * Admission-controlled dispatch target for public frame callbacks.
+ * Admission-controlled dispatch target for engine delivery work and final public callback execution.
  *
- * The engine-owned target exposes queue saturation synchronously. Caller-owned dispatchers do not expose portable saturation state, so failures are limited
- * to exceptions thrown before callback admission is known to have happened.
+ * The engine-owned target exposes queue saturation synchronously. Caller-owned dispatchers do not
+ * expose portable saturation state, so exceptions and cancellation observed before callback
+ * admission are classified best-effort. A successful dispatch handoff is not a successful
+ * delivery; delivery succeeds only after callback admission and normal callback return.
  */
 internal sealed interface ScreenCaptureFrameDeliveryDispatcher {
     val isCallerOwned: Boolean
@@ -20,6 +22,19 @@ internal sealed interface ScreenCaptureFrameDeliveryDispatcher {
     fun dispatchFailure(block: (dispatchCancelledBeforeStart: Boolean) -> Unit): Throwable?
 
     fun close()
+
+    class Delegating(
+        override val isCallerOwned: Boolean,
+        private val dispatch: (block: (dispatchCancelledBeforeStart: Boolean) -> Unit) -> Throwable?,
+        private val closeDispatcher: () -> Unit,
+    ) : ScreenCaptureFrameDeliveryDispatcher {
+        override fun dispatchFailure(block: (dispatchCancelledBeforeStart: Boolean) -> Unit): Throwable? =
+            dispatch(block)
+
+        override fun close() {
+            closeDispatcher()
+        }
+    }
 
     class EngineOwned(threadNamePrefix: String, queueCapacity: Int, workerCount: Int) : ScreenCaptureFrameDeliveryDispatcher {
         override val isCallerOwned: Boolean = false

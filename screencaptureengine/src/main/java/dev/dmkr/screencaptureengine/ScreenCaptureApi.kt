@@ -14,23 +14,28 @@ import kotlinx.coroutines.flow.StateFlow
  *
  * The engine owns capture, rendering, encoding, and latest-frame publication for one session.
  * Consent UI and foreground-service compliance remain the responsibility of the integrating app.
- * Once a fresh projection is passed to [startSession], the engine owns it for that session.
- * A projection is single-use for the engine; a stopped or already-used projection cannot start
- * another session.
+ * Passing a projection to [startSession] lets the engine attach startup callbacks and, if startup
+ * reaches virtual-display creation, consume that projection. A returned active session owns the
+ * projection lifecycle for this engine. If startup fails before a session is returned, retry
+ * ownership is reported by [ScreenCaptureStartException.requiresFreshProjection].
  */
 public interface ScreenCaptureEngine {
     /**
      * Starts a new capture session using a fresh, active [mediaProjection].
      *
-     * Implementations must be suspending and main-safe. The call returns only after required
-     * startup resources are initialized and initial `Running(Active)` state is published. On API
-     * 34+ startup waits up to `3_000 ms` after non-null virtual-display creation for the first valid
-     * captured-content resize; timeout fails startup with [ScreenCaptureProblemKind.StartupGeometryUnavailable],
-     * and projection stop wins if observed first or in the same serialized control turn. Startup
-     * failures are reported with [ScreenCaptureStartException]. Calls from engine-owned callbacks or
-     * internal execution contexts fail fast with [IllegalStateException] to avoid deadlocks. If the
-     * caller coroutine is cancelled after the projection has been consumed, retry requires fresh
-     * user consent and a new [MediaProjection].
+     * Fresh means active, not stopped, not already used for a virtual display, and not already
+     * observed stopped by [MediaProjection.Callback.onStop]. Implementations must be suspending
+     * and main-safe. The call returns only after required startup resources are initialized and
+     * initial `Running(Active)` state is published. On API 34+ startup waits up to `3_000 ms`
+     * after non-null virtual-display creation for the first valid captured-content resize; timeout
+     * fails startup with [ScreenCaptureProblemKind.StartupGeometryUnavailable], and projection stop
+     * wins if observed first or in the same serialized control turn. Startup failures are reported
+     * with [ScreenCaptureStartException]; [ScreenCaptureStartException.requiresFreshProjection] is
+     * the retry signal. Calls from engine-owned callbacks or internal execution contexts fail fast
+     * with [IllegalStateException] to avoid deadlocks.
+     *
+     * A returned active session owns the projection lifecycle. Owner [ScreenCaptureSession.stop] or
+     * [ScreenCaptureSession.close] requests [MediaProjection.stop] best-effort for that session.
      */
     public suspend fun startSession(
         config: ScreenCaptureConfig,
@@ -116,28 +121,29 @@ internal interface EngineAttachableCaptureMetricsProvider : CaptureMetricsProvid
 /**
  * Metric-provider factory API for common Android integration points.
  *
- * These factories define the ownership contract for their runtime implementations: factory calls do not register long-lived platform listeners, sessions attach
- * and detach their own observations, and provider objects remain caller-owned. Factory methods throw [UnsupportedOperationException] when no platform metrics
- * runtime is available.
+ * These public factory slots are reserved for built-in Android metrics providers. The current
+ * production implementation does not provide those built-in providers, so each factory throws
+ * [UnsupportedOperationException]. Caller-supplied [CaptureMetricsProvider] implementations remain
+ * supported and are observed per session.
  */
 @Suppress("UNUSED_PARAMETER")
 public object CaptureMetricsProviders {
-    /** Creates an activity/window-owned provider, or throws [UnsupportedOperationException] when no metrics runtime is available. */
+    /** Placeholder for an activity/window-owned provider; currently throws [UnsupportedOperationException]. */
     public fun fromActivity(activity: Activity): CaptureMetricsProvider {
         throw UnsupportedOperationException("CaptureMetricsProviders runtime behavior is unavailable")
     }
 
-    /** Creates a UI-context provider, or throws [UnsupportedOperationException] when no metrics runtime is available. */
+    /** Placeholder for a UI-context provider; currently throws [UnsupportedOperationException]. */
     public fun fromUiContext(context: Context): CaptureMetricsProvider {
         throw UnsupportedOperationException("CaptureMetricsProviders runtime behavior is unavailable")
     }
 
-    /** Creates a display-specific provider, or throws [UnsupportedOperationException] when no metrics runtime is available. */
+    /** Placeholder for a display-specific provider; currently throws [UnsupportedOperationException]. */
     public fun fromDisplay(baseContext: Context, display: Display): CaptureMetricsProvider {
         throw UnsupportedOperationException("CaptureMetricsProviders runtime behavior is unavailable")
     }
 
-    /** Creates a best-effort provider, or throws [UnsupportedOperationException] when no metrics runtime is available. */
+    /** Placeholder for a best-effort provider; currently throws [UnsupportedOperationException]. */
     public fun bestEffort(context: Context): CaptureMetricsProvider {
         throw UnsupportedOperationException("CaptureMetricsProviders runtime behavior is unavailable")
     }
@@ -167,7 +173,8 @@ public interface ScreenCaptureSession {
      * Stops the session from the owner side.
      *
      * This is an immediate publication/frame-delivery boundary, not a synchronous
-     * heavy-resource destruction barrier. Idempotent and fast-bounded.
+     * heavy-resource destruction barrier. For a returned active session, this requests
+     * [MediaProjection.stop] best-effort. Idempotent and fast-bounded.
      */
     public fun stop()
 

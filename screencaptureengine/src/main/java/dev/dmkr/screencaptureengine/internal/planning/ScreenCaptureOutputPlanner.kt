@@ -110,7 +110,7 @@ internal class ScreenCaptureOutputPlanner internal constructor(private val limit
                 mirror = parameters.mirror,
                 colorMode = parameters.colorMode,
                 readbackMode = limits.readbackMode,
-                frameRate = parameters.frameRate,
+                frameRate = resolveFrameRate(parameters.frameRate),
                 encoderRequest = encoderRequest,
                 rowStrideBytes = rowStrideBytes,
                 rgbaByteCount = rgbaByteCount,
@@ -142,12 +142,10 @@ internal class ScreenCaptureOutputPlanner internal constructor(private val limit
 
     private fun resolveOrientedContentSize(appliedSourceRect: ImageRect, rotation: Rotation): Size = when (rotation) {
         Rotation.Degrees0,
-        Rotation.Degrees180,
-            -> Size(width = appliedSourceRect.width, height = appliedSourceRect.height)
+        Rotation.Degrees180 -> Size(width = appliedSourceRect.width, height = appliedSourceRect.height)
 
         Rotation.Degrees90,
-        Rotation.Degrees270,
-            -> Size(width = appliedSourceRect.height, height = appliedSourceRect.width)
+        Rotation.Degrees270 -> Size(width = appliedSourceRect.height, height = appliedSourceRect.width)
     }
 
     private fun resolveFinalImageSize(orientedContentSize: Size, outputSize: OutputSize): Size? = when (outputSize) {
@@ -231,6 +229,11 @@ internal class ScreenCaptureOutputPlanner internal constructor(private val limit
     }
 
     private fun multiplyLong(left: Int, right: Int): Long = left.toLong() * right.toLong()
+
+    private fun resolveFrameRate(frameRate: FrameRate): FrameRate = when (frameRate) {
+        FrameRate.Auto -> FrameRate.MaxFps(DEFAULT_AUTO_FRAME_RATE_FPS)
+        else -> frameRate
+    }
 
 }
 
@@ -338,5 +341,6 @@ private sealed class AppliedSourceRectResult private constructor() {
 }
 
 private const val RGBA_8888_BYTES_PER_PIXEL: Int = 4
+private const val DEFAULT_AUTO_FRAME_RATE_FPS: Int = 30
 private val MAX_OUTPUT_PIXELS_RANGE: IntRange = 1..268_435_456
 private val MAX_ENCODED_BYTES_RANGE: IntRange = 1_024..268_435_456

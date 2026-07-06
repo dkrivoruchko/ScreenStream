@@ -228,8 +228,9 @@ public class ImageEncoderUnavailableException public constructor(message: String
 /**
  * JPEG encoder provider API.
  *
- * JPEG output is opaque 8-bit SDR/sRGB; source alpha is not preserved. This provider describes JPEG metadata, validates quality/backend policy, and throws
- * [ImageEncoderUnavailableException] when no JPEG runtime backend is available.
+ * JPEG output is opaque 8-bit SDR/sRGB; source alpha is not preserved. The current production
+ * implementation exposes validated provider metadata, but [createEncoder] throws
+ * [ImageEncoderUnavailableException] because the built-in JPEG runtime backend is not available.
  */
 public class JpegImageEncoderProvider public constructor(
     /** JPEG quality in the Android/Bitmap-style 0..100 range. */

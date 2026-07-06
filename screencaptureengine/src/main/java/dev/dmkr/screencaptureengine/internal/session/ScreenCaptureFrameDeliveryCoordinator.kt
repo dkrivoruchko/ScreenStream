@@ -28,6 +28,22 @@ internal class ScreenCaptureFrameDeliveryCoordinator(
     private val onFrameDeliveryFailure: (ScreenCaptureProblemKind, String, Throwable) -> Unit,
     private val onSlowConsumerPressure: (String) -> Unit,
     private val onSubscriptionStatsChanged: (activeFrameSubscriptions: Int, slowConsumers: Int, version: Long) -> Unit,
+    private val coordinationDispatcher: ScreenCaptureFrameDeliveryDispatcher = ScreenCaptureFrameDeliveryDispatcher.EngineOwned(
+        threadNamePrefix = "ScreenCaptureDeliveryCoordinator",
+        queueCapacity = ENGINE_OWNED_DELIVERY_QUEUE_CAPACITY,
+        workerCount = ENGINE_OWNED_COORDINATOR_THREADS,
+    ),
+    private val deliveryTaskDispatcher: ScreenCaptureFrameDeliveryDispatcher = ScreenCaptureFrameDeliveryDispatcher.EngineOwned(
+        threadNamePrefix = "ScreenCaptureDeliveryTask",
+        queueCapacity = ENGINE_OWNED_DELIVERY_QUEUE_CAPACITY,
+        workerCount = ENGINE_OWNED_COORDINATOR_THREADS,
+    ),
+    private val defaultCallbackDispatcher: ScreenCaptureFrameDeliveryDispatcher = ScreenCaptureFrameDeliveryDispatcher.EngineOwned(
+        threadNamePrefix = "ScreenCaptureFrameDelivery",
+        queueCapacity = ENGINE_OWNED_DELIVERY_QUEUE_CAPACITY,
+        workerCount = ENGINE_OWNED_CALLBACK_THREADS,
+    ),
+    private val watchdogSchedulingEnabled: Boolean = true,
 ) {
     private val lock = Any()
     private val watchdogExecutor = ScheduledThreadPoolExecutor(1) { runnable ->
@@ -35,21 +51,6 @@ internal class ScreenCaptureFrameDeliveryCoordinator(
     }.apply {
         removeOnCancelPolicy = true
     }
-    private val coordinationDispatcher = ScreenCaptureFrameDeliveryDispatcher.EngineOwned(
-        threadNamePrefix = "ScreenCaptureDeliveryCoordinator",
-        queueCapacity = ENGINE_OWNED_DELIVERY_QUEUE_CAPACITY,
-        workerCount = ENGINE_OWNED_COORDINATOR_THREADS,
-    )
-    private val deliveryTaskDispatcher = ScreenCaptureFrameDeliveryDispatcher.EngineOwned(
-        threadNamePrefix = "ScreenCaptureDeliveryTask",
-        queueCapacity = ENGINE_OWNED_DELIVERY_QUEUE_CAPACITY,
-        workerCount = ENGINE_OWNED_COORDINATOR_THREADS,
-    )
-    private val defaultCallbackDispatcher = ScreenCaptureFrameDeliveryDispatcher.EngineOwned(
-        threadNamePrefix = "ScreenCaptureFrameDelivery",
-        queueCapacity = ENGINE_OWNED_DELIVERY_QUEUE_CAPACITY,
-        workerCount = ENGINE_OWNED_CALLBACK_THREADS,
-    )
     private val callbackDispatcher = config.frameCallbackDispatcher
         ?.let(ScreenCaptureFrameDeliveryDispatcher::CallerOwned)
         ?: defaultCallbackDispatcher
@@ -93,6 +94,21 @@ internal class ScreenCaptureFrameDeliveryCoordinator(
         }
         if (!shouldDispatch) return
         dispatchCoordinatorTurn()
+    }
+
+    fun invalidateLatestFromSession() {
+        val staleRecords: List<DeliveryRecord>
+        synchronized(lock) {
+            if (closed) return
+            latestSignalSequence = null
+            pendingSnapshotCopies.forEach(PendingSnapshotCopy::markStaleLocked)
+            pendingSnapshotCopies.clear()
+            staleRecords = retirePreCallbackRecordsLocked()
+        }
+        staleRecords.forEach { record ->
+            record.releaseLease()
+            applyDeliveryDrop(DeliveryDropKind.StaleSession, record.subscription)
+        }
     }
 
     private fun dispatchCoordinatorTurn() {
@@ -354,12 +370,18 @@ internal class ScreenCaptureFrameDeliveryCoordinator(
             retireStalePreCallbackDelivery(record)
             return
         }
+        if (!isPreCallbackDeliveryActive(record)) return
         if (callbackDispatcher.isCallerOwned) {
             dispatchCallbackThroughEngineBridge(record, metadata)
         } else {
             dispatchCallbackToSelectedDispatcher(record, metadata)
         }
     }
+
+    private fun isPreCallbackDeliveryActive(record: DeliveryRecord): Boolean =
+        synchronized(lock) {
+            record.isNotStartedLocked() && record.subscription.isScheduledLocked(record.deliveryId)
+        }
 
     private fun dispatchCallbackThroughEngineBridge(record: DeliveryRecord, metadata: FrameDeliveryMetadata) {
         val bridgeFailure = defaultCallbackDispatcher.dispatchFailure { dispatchCancelledBeforeStart ->
@@ -551,6 +573,7 @@ internal class ScreenCaptureFrameDeliveryCoordinator(
     }
 
     private fun schedulePreBodyWatchdog(record: DeliveryRecord) {
+        if (!watchdogSchedulingEnabled) return
         try {
             val future = watchdogExecutor.schedule(
                 {
@@ -577,6 +600,7 @@ internal class ScreenCaptureFrameDeliveryCoordinator(
         scheduleRunningCallbackWatchdog(record, RUNNING_CALLBACK_STUCK_FIRST_DIAGNOSTIC_MILLIS)
 
     private fun scheduleRunningCallbackWatchdog(record: DeliveryRecord, delayMillis: Long): ScheduledFuture<*>? {
+        if (!watchdogSchedulingEnabled) return null
         try {
             val future = watchdogExecutor.schedule(
                 {

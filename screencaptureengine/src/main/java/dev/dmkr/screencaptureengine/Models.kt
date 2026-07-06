@@ -766,7 +766,7 @@ public class ScreenCaptureDeliveryDropStats public constructor(
     /** No immutable public delivery snapshot slot was available for this delivery. */
     public val bySnapshotSlotsExhausted: Long = 0L,
 
-    /** Delivery skipped because the session/output became stale or terminal. */
+    /** Materialized delivery record retired before callback admission due to stale or terminal session, generation, or subscription. */
     public val byStaleSession: Long = 0L,
 ) {
     init {
