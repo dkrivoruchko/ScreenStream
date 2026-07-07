@@ -72,6 +72,8 @@ internal interface ProjectionTargetOwnerHandle : AutoCloseable {
     fun targetSizeLimits(): ProjectionTargetSizeLimits
 
     fun createTarget(width: Int, height: Int, densityDpi: Int): ProjectionTargetHandle
+
+    fun startupRenderingGlAccess(): StartupRenderingGlAccess
 }
 
 internal data class ProjectionTargetSizeLimits(

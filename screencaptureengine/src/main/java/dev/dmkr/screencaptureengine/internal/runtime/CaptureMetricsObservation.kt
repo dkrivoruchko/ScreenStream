@@ -11,13 +11,13 @@ import kotlinx.coroutines.launch
 import kotlin.coroutines.CoroutineContext
 
 /**
- * Session-owned observation of a caller-owned metrics provider.
+ * Internal startup-to-runtime observation of a caller-owned metrics provider.
  *
  * The provider object remains caller-owned. The supplied coroutine context contributes only
  * non-`Job` elements such as dispatcher/test scheduler context. This observation owns its internal
- * collector job, optional provider attachment, and latest valid metrics snapshot used by startup
- * and later runtime ownership until closed. Closing the observation cancels only observation-owned
- * jobs and attachments, never the caller or provider's shared job.
+ * collector job, optional provider attachment, and latest valid metrics snapshot while held by
+ * startup, pre-active, or initial-runtime resource owners. Closing the observation cancels only
+ * observation-owned jobs and attachments, never the caller or provider's shared job.
  */
 internal class CaptureMetricsObservation private constructor(
     private val metricsAttachment: DisposableHandle?,

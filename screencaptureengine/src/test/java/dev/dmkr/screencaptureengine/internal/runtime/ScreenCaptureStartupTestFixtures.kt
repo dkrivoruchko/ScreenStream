@@ -41,6 +41,7 @@ internal fun assertMilestonesInOrder(
 internal class TestRuntime(
     apiLevel: Int,
     startupResizeTimeoutMillis: Long = 3_000L,
+    private val runCleanupSynchronously: Boolean = true,
 ) {
     val events = mutableListOf<String>()
     val metricsProvider = TestMetricsProvider(CaptureMetrics(widthPx = 1080, heightPx = 1920, densityDpi = 440))
@@ -53,6 +54,7 @@ internal class TestRuntime(
     var cleanupSchedulerFailure: Throwable? = null
     var failOnCleanupFailure = true
     val cleanupFailures = mutableListOf<Throwable>()
+    private val scheduledCleanupBlocks = ArrayDeque<() -> Unit>()
 
     private val transaction = ScreenCaptureStartupTransaction(
         apiLevel = apiLevel,
@@ -74,7 +76,11 @@ internal class TestRuntime(
         },
         cleanupScheduler = { block ->
             cleanupSchedulerFailure?.let { throw it }
-            block()
+            if (runCleanupSynchronously) {
+                block()
+            } else {
+                scheduledCleanupBlocks += block
+            }
         },
         cleanupFailureSink = {
             cleanupFailures += it
@@ -87,6 +93,12 @@ internal class TestRuntime(
             config = ScreenCaptureConfig(metricsProvider = metricsProvider),
             projection = projection,
         )
+
+    fun runScheduledCleanup() {
+        while (scheduledCleanupBlocks.isNotEmpty()) {
+            scheduledCleanupBlocks.removeFirst().invoke()
+        }
+    }
 }
 
 internal class TestMetricsProvider(initialMetrics: CaptureMetrics) : EngineAttachableCaptureMetricsProvider {
@@ -196,7 +208,7 @@ internal data object FakeProjectionCallbackHandlerHandle : ProjectionCallbackHan
 
 internal class FakeProjectionTargetOwner(
     private val events: MutableList<String>,
-) : ProjectionTargetOwnerHandle {
+) : ProjectionTargetOwnerHandle, ProjectionTargetGlCapability, StartupRenderingGlAccess {
     val createdTargets = mutableListOf<TargetCreation>()
     val createdHandles = mutableListOf<FakeProjectionTargetHandle>()
     var closeCount = 0
@@ -208,6 +220,9 @@ internal class FakeProjectionTargetOwner(
     var maxTargetHeight = Int.MAX_VALUE
     var afterTargetSizeLimits: (() -> Unit)? = null
     var afterCreateTarget: (() -> Unit)? = null
+    override val isGlLaneAbandoned: Boolean = false
+
+    override fun startupRenderingGlAccess(): StartupRenderingGlAccess = this
 
     override fun targetSizeLimits(): ProjectionTargetSizeLimits {
         val failure = targetSizeLimitsFailure
@@ -221,6 +236,7 @@ internal class FakeProjectionTargetOwner(
         createCount++
         createFailures.removeFirstOrNull()?.let { throw it }
         val handle = FakeProjectionTargetHandle(
+            owner = this,
             generation = createCount.toLong(),
             width = width,
             height = height,
@@ -237,9 +253,43 @@ internal class FakeProjectionTargetOwner(
         createdHandles.forEach { handle -> handle.closeFromOwner() }
         closeFailure?.let { throw it }
     }
+
+    override suspend fun withCurrentProjectionTarget(
+        target: ProjectionTargetHandle,
+        generation: Long,
+        block: ProjectionTargetGlScope.() -> Unit,
+    ) {
+        val fakeTarget = target as? FakeProjectionTargetHandle
+            ?: error("Projection target is not owned by this FakeProjectionTargetOwner.")
+        check(fakeTarget.owner === this) { "Projection target is owned by a different ProjectionTargetOwner." }
+        check(fakeTarget.generation == generation) {
+            "Projection target generation mismatch. Expected $generation, was ${fakeTarget.generation}."
+        }
+        check(fakeTarget.closeCount == 0) { "Projection target generation $generation is closed." }
+        block(FakeProjectionTargetGlScope(fakeTarget))
+    }
+
+    override fun abandonGlLane() = Unit
+
+    override suspend fun <T> withCurrentStartupRenderingTarget(
+        target: ProjectionTargetHandle,
+        generation: Long,
+        onCancellation: (T) -> Unit,
+        block: StartupRenderingGlScope.() -> T,
+    ): T {
+        val fakeTarget = target as? FakeProjectionTargetHandle
+            ?: error("Projection target is not owned by this FakeProjectionTargetOwner.")
+        check(fakeTarget.owner === this) { "Projection target is owned by a different ProjectionTargetOwner." }
+        check(fakeTarget.generation == generation) {
+            "Projection target generation mismatch. Expected $generation, was ${fakeTarget.generation}."
+        }
+        check(fakeTarget.closeCount == 0) { "Projection target generation $generation is closed." }
+        return block(FakeStartupRenderingGlScope(target = fakeTarget, abandonment = this))
+    }
 }
 
 internal class FakeProjectionTargetHandle(
+    val owner: FakeProjectionTargetOwner,
     override val generation: Long,
     override val width: Int,
     override val height: Int,
@@ -266,6 +316,38 @@ internal class FakeProjectionTargetHandle(
 }
 
 internal data object FakeProjectionSurfaceHandle : ProjectionSurfaceHandle
+
+internal class FakeProjectionTargetGlScope(
+    private val target: FakeProjectionTargetHandle,
+) : ProjectionTargetGlScope {
+    override val generation: Long = target.generation
+    override val width: Int = target.width
+    override val height: Int = target.height
+    override val densityDpi: Int = target.densityDpi
+
+    override fun validateExternalOesTexture() = Unit
+}
+
+internal class FakeStartupRenderingGlScope(
+    target: FakeProjectionTargetHandle,
+    override val abandonment: GlLaneAbandonment,
+) : StartupRenderingGlScope {
+    override val gl: GlLaneScope = FakeGlLaneScope
+    override val projectionTarget: ProjectionTargetGlScope = FakeProjectionTargetGlScope(target)
+    override val retirementLane: GlResourceRetirementLane = GlResourceRetirementLane { _, block ->
+        block(FakeGlLaneScope)
+        true
+    }
+}
+
+private data object FakeGlLaneScope : GlLaneScope {
+    override fun targetSizeLimits(): ProjectionTargetSizeLimits =
+        ProjectionTargetSizeLimits(maxWidth = Int.MAX_VALUE, maxHeight = Int.MAX_VALUE)
+
+    override fun checkCurrentContext(operation: String) = Unit
+
+    override fun checkGl(operation: String) = Unit
+}
 
 internal class FakeProjectionVirtualDisplayOwner : ProjectionVirtualDisplayOwner {
     var closeCount = 0

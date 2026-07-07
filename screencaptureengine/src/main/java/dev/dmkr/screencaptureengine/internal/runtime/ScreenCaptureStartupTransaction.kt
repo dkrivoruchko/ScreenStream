@@ -25,9 +25,8 @@ import kotlin.time.Duration.Companion.milliseconds
  * Internal startup transaction that reaches authoritative startup geometry without exposing a public session.
  *
  * The transaction validates inputs, creates the projection target, attaches projection callbacks,
- * creates the single virtual display, and resolves authoritative startup geometry. It does not
- * reach `RenderingPipelineReady`, commit `InitialActivePlanCommitted`, publish public state, start
- * encoding, or publish frames.
+ * creates the single virtual display, and resolves authoritative startup geometry. It stops before
+ * rendering/readback/encoder preparation, public state publication, encoding, and frame publication.
  */
 @Suppress("unused")
 internal class ScreenCaptureStartupTransaction(

@@ -1,51 +1,53 @@
 package dev.dmkr.screencaptureengine.internal.runtime
 
 import android.graphics.SurfaceTexture
-import android.opengl.EGL14
-import android.opengl.EGLConfig
-import android.opengl.EGLContext
-import android.opengl.EGLDisplay
-import android.opengl.EGLSurface
 import android.opengl.GLES11Ext
 import android.opengl.GLES20
-import android.os.Handler
-import android.os.HandlerThread
-import android.os.Process
 import android.view.Surface
-import java.util.concurrent.CountDownLatch
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
-import kotlin.math.min
 
 /**
  * Owns generation-numbered projection targets backed by a GL external OES texture.
  *
- * Creation and GL teardown run on the owner GL thread. Each target owns its `SurfaceTexture`,
- * projection `Surface`, and OES texture until the target or owner is closed. The exposed surface is
- * the MediaProjection/VirtualDisplay input; GL rendering and readback remain separate runtime
- * ownership built on top of the target generation.
+ * Each target owns its `SurfaceTexture`, projection `Surface`, and OES texture until the target or
+ * owner is closed. The GL lane and current EGL context are owned by [GlLaneContextOwner]. Startup
+ * rendering access exposes only the current target for the expected generation and reports
+ * owner/generation/closed-target mismatches as typed startup GL access invariants.
  */
+@OptIn(BlockingProjectionTargetGlAccess::class)
 internal class ProjectionTargetOwner internal constructor(
-    threadName: String = "ScreenCaptureProjectionTarget",
-) : ProjectionTargetOwnerHandle {
+    private val glLane: ProjectionTargetGlLane,
+) : ProjectionTargetOwnerHandle,
+    ProjectionTargetGlCapability,
+    StartupRenderingGlAccess,
+    ProjectionTargetOwnerAbandonment {
+    internal constructor(
+        threadName: String = "ScreenCaptureProjectionTarget",
+    ) : this(GlLaneContextOwner(threadName))
+
     private val stateLock = ReentrantLock()
     private val noActiveWork = stateLock.newCondition()
-    private val handlerThread = HandlerThread(threadName, Process.THREAD_PRIORITY_DISPLAY).apply { start() }
-    private val handler = Handler(handlerThread.looper)
     private val liveTargets = LinkedHashSet<ProjectionTarget>()
-    private var eglState: EglState? = null
     private var isClosed = false
+    private var isAbandoned = false
     private var activeCreations = 0
     private var activeReleases = 0
     private var nextGeneration = 1L
 
-    override fun targetSizeLimits(): ProjectionTargetSizeLimits =
-        runOnGlThread {
-            check(!isClosedLocked()) { "ProjectionTargetOwner is closed." }
-            ensureEglOnGlThread()
-            queryTargetSizeLimitsOnGlThread()
+    override val isGlLaneAbandoned: Boolean
+        get() = isGlLaneAbandonedForOwner()
+
+    override fun startupRenderingGlAccess(): StartupRenderingGlAccess = this
+
+    override fun targetSizeLimits(): ProjectionTargetSizeLimits {
+        checkOpen()
+        return glLane.executeCurrentBlocking {
+            checkOpen()
+            targetSizeLimits()
         }
+    }
 
     override fun createTarget(width: Int, height: Int, densityDpi: Int): ProjectionTarget {
         require(width > 0) { "width must be positive, was $width" }
@@ -53,7 +55,7 @@ internal class ProjectionTargetOwner internal constructor(
         require(densityDpi > 0) { "densityDpi must be positive, was $densityDpi" }
 
         val generation = stateLock.withLock {
-            check(!isClosed) { "ProjectionTargetOwner is closed." }
+            checkOpenLocked()
             val value = nextGeneration
             nextGeneration = Math.addExact(value, 1L)
             activeCreations += 1
@@ -61,13 +63,19 @@ internal class ProjectionTargetOwner internal constructor(
         }
 
         try {
-            val target = runOnGlThread {
-                check(!isClosedLocked()) { "ProjectionTargetOwner is closed." }
-                createTargetOnGlThread(generation = generation, width = width, height = height, densityDpi = densityDpi)
+            val target = glLane.executeCurrentBlocking {
+                checkOpen()
+                createTargetOnGlThread(
+                    gl = this,
+                    generation = generation,
+                    width = width,
+                    height = height,
+                    densityDpi = densityDpi,
+                )
             }
             var shouldReleaseCreatedTarget: ProjectionTarget? = null
             stateLock.withLock {
-                if (isClosed) {
+                if (isClosed || isAbandoned) {
                     shouldReleaseCreatedTarget = target
                     check(target.markClosedForOwner())
                 } else {
@@ -88,11 +96,11 @@ internal class ProjectionTargetOwner internal constructor(
     }
 
     override fun close() {
-        check(Thread.currentThread() != handlerThread.looper.thread) { "ProjectionTargetOwner.close must not be called from its GL thread." }
+        check(!glLane.isOnGlThread()) { "ProjectionTargetOwner.close must not be called from its GL thread." }
         val targetsToRelease = stateLock.withLock {
             if (isClosed) return
             isClosed = true
-            while ((activeCreations > 0) || (activeReleases > 0)) {
+            while (!isAbandoned && ((activeCreations > 0) || (activeReleases > 0))) {
                 noActiveWork.awaitUninterruptibly()
             }
             liveTargets.filter(ProjectionTarget::markClosedForOwner).also { targets ->
@@ -111,20 +119,76 @@ internal class ProjectionTargetOwner internal constructor(
                 noActiveWork.signalAll()
             }
         }
-        cleanupFailures.collect { runOnGlThread { releaseEglOnGlThread() } }
-        cleanupFailures.collect {
-            handlerThread.quitSafely()
-            if (Thread.currentThread() != handlerThread.looper.thread) {
-                handlerThread.join()
-            }
-        }
+        cleanupFailures.collect(glLane::close)
         cleanupFailures.throwIfAny()
     }
 
-    private fun createTargetOnGlThread(generation: Long, width: Int, height: Int, densityDpi: Int): ProjectionTarget {
-        ensureEglOnGlThread()
-        validateTargetSizeOnGlThread(width, height)
-        val textureId = createExternalOesTexture()
+    override fun abandonGlLane() {
+        stateLock.withLock {
+            isAbandoned = true
+            noActiveWork.signalAll()
+        }
+        (glLane as? GlLaneAbandonment)?.abandonGlLane()
+    }
+
+    override suspend fun <T> withCurrentStartupRenderingTarget(
+        target: ProjectionTargetHandle,
+        generation: Long,
+        onCancellation: (T) -> Unit,
+        block: StartupRenderingGlScope.() -> T,
+    ): T =
+        glLane.executeCurrent(onCancellation = onCancellation) {
+            checkOpenForStartupRenderingGlAccess()
+            val ownedTarget = target as? ProjectionTarget
+                ?: throw StartupRenderingGlAccessException(
+                    reason = StartupRenderingGlAccessFailureReason.ProjectionTargetOwnerMismatch,
+                    message = "Projection target is not owned by this ProjectionTargetOwner.",
+                )
+            ownedTarget.validateForStartupRenderingGlAccess(expectedOwner = this@ProjectionTargetOwner, expectedGeneration = generation)
+            val retirementLane = startupRenderingRetirementLane()
+            val glAccess = ScopedGlLaneAccess(this)
+            val targetAccess = ScopedProjectionTargetGlAccess(target = ownedTarget, gl = glAccess)
+            val access = ScopedStartupRenderingGlAccess(
+                scopedGl = glAccess,
+                scopedProjectionTarget = targetAccess,
+                retirementLane = retirementLane,
+                abandonment = this@ProjectionTargetOwner,
+            )
+            try {
+                block(access)
+            } finally {
+                access.close()
+            }
+        }
+
+    override suspend fun withCurrentProjectionTarget(
+        target: ProjectionTargetHandle,
+        generation: Long,
+        block: ProjectionTargetGlScope.() -> Unit,
+    ) {
+        glLane.executeCurrent {
+            checkOpen()
+            val ownedTarget = target as? ProjectionTarget
+                ?: error("Projection target is not owned by this ProjectionTargetOwner.")
+            ownedTarget.validateForCurrentGlAccess(expectedOwner = this@ProjectionTargetOwner, expectedGeneration = generation)
+            val access = ScopedProjectionTargetGlAccess(target = ownedTarget, gl = this)
+            try {
+                block(access)
+            } finally {
+                access.close()
+            }
+        }
+    }
+
+    private fun createTargetOnGlThread(
+        gl: GlLaneScope,
+        generation: Long,
+        width: Int,
+        height: Int,
+        densityDpi: Int,
+    ): ProjectionTarget {
+        validateTargetSizeOnGlThread(gl, width, height)
+        val textureId = createExternalOesTexture(gl)
         var surfaceTexture: SurfaceTexture? = null
         var surface: Surface? = null
         try {
@@ -145,95 +209,29 @@ internal class ProjectionTargetOwner internal constructor(
             )
         } catch (cause: Throwable) {
             surface?.release()
-            surfaceTexture?.let { releaseSurfaceTextureAndTextureOnGlThread(it, textureId) } ?: deleteTextureOnGlThread(textureId)
+            surfaceTexture?.let {
+                releaseSurfaceTextureAndTextureOnGlThread(gl = gl, surfaceTexture = it, textureId = textureId)
+            } ?: deleteTextureOnGlThread(textureId)
             throw cause
         }
     }
 
-    private fun ensureEglOnGlThread() {
-        eglState?.let { state ->
-            makeCurrent(state)
-            return
-        }
-
-        val display = EGL14.eglGetDisplay(EGL14.EGL_DEFAULT_DISPLAY)
-        check(display != EGL14.EGL_NO_DISPLAY) { "eglGetDisplay returned EGL_NO_DISPLAY." }
-        var initialized = false
-        var context = EGL14.EGL_NO_CONTEXT
-        var surface = EGL14.EGL_NO_SURFACE
-        try {
-            val version = IntArray(2)
-            if (!EGL14.eglInitialize(display, version, 0, version, 1)) {
-                throwEglFailure("eglInitialize")
-            }
-            initialized = true
-            if (!EGL14.eglBindAPI(EGL14.EGL_OPENGL_ES_API)) {
-                throwEglFailure("eglBindAPI")
-            }
-
-            val configs = arrayOfNulls<EGLConfig>(1)
-            val configCount = IntArray(1)
-            val configAttributes = intArrayOf(
-                EGL14.EGL_RED_SIZE, 8,
-                EGL14.EGL_GREEN_SIZE, 8,
-                EGL14.EGL_BLUE_SIZE, 8,
-                EGL14.EGL_ALPHA_SIZE, 8,
-                EGL14.EGL_RENDERABLE_TYPE, EGL14.EGL_OPENGL_ES2_BIT,
-                EGL14.EGL_SURFACE_TYPE, EGL14.EGL_PBUFFER_BIT,
-                EGL14.EGL_NONE,
-            )
-            val eglConfigAvailable = EGL14.eglChooseConfig(display, configAttributes, 0, configs, 0, configs.size, configCount, 0)
-            if (!eglConfigAvailable || (configCount[0] <= 0)) {
-                throwEglFailure("eglChooseConfig")
-            }
-            val config = checkNotNull(configs[0]) { "eglChooseConfig returned a null config." }
-
-            val contextAttributes = intArrayOf(EGL14.EGL_CONTEXT_CLIENT_VERSION, 2, EGL14.EGL_NONE)
-            context = EGL14.eglCreateContext(display, config, EGL14.EGL_NO_CONTEXT, contextAttributes, 0)
-            if (context == EGL14.EGL_NO_CONTEXT) {
-                throwEglFailure("eglCreateContext")
-            }
-
-            val surfaceAttributes = intArrayOf(EGL14.EGL_WIDTH, 1, EGL14.EGL_HEIGHT, 1, EGL14.EGL_NONE)
-            surface = EGL14.eglCreatePbufferSurface(display, config, surfaceAttributes, 0)
-            if (surface == EGL14.EGL_NO_SURFACE) {
-                throwEglFailure("eglCreatePbufferSurface")
-            }
-
-            val state = EglState(display = display, context = context, surface = surface)
-            makeCurrent(state)
-            eglState = state
-        } catch (cause: Throwable) {
-            if (surface != EGL14.EGL_NO_SURFACE) {
-                EGL14.eglDestroySurface(display, surface)
-            }
-            if (context != EGL14.EGL_NO_CONTEXT) {
-                EGL14.eglDestroyContext(display, context)
-            }
-            if (initialized) {
-                EGL14.eglReleaseThread()
-                EGL14.eglTerminate(display)
-            }
-            throw cause
-        }
-    }
-
-    private fun createExternalOesTexture(): Int {
+    private fun createExternalOesTexture(gl: GlLaneScope): Int {
         val textures = IntArray(1)
         GLES20.glGenTextures(1, textures, 0)
-        checkGl("glGenTextures")
+        gl.checkGl("glGenTextures")
         val textureId = textures[0]
         check(textureId != 0) { "glGenTextures returned 0." }
 
         try {
             GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, textureId)
-            checkGl("glBindTexture")
+            gl.checkGl("glBindTexture")
             GLES20.glTexParameteri(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_LINEAR)
             GLES20.glTexParameteri(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR)
             GLES20.glTexParameteri(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_WRAP_S, GLES20.GL_CLAMP_TO_EDGE)
             GLES20.glTexParameteri(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_WRAP_T, GLES20.GL_CLAMP_TO_EDGE)
             GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, 0)
-            checkGl("configure external OES texture")
+            gl.checkGl("configure external OES texture")
         } catch (cause: Throwable) {
             deleteTextureOnGlThread(textureId)
             throw cause
@@ -241,23 +239,11 @@ internal class ProjectionTargetOwner internal constructor(
         return textureId
     }
 
-    private fun validateTargetSizeOnGlThread(width: Int, height: Int) {
-        val limits = queryTargetSizeLimitsOnGlThread()
+    private fun validateTargetSizeOnGlThread(gl: GlLaneScope, width: Int, height: Int) {
+        val limits = gl.targetSizeLimits()
         check((width <= limits.maxWidth) && (height <= limits.maxHeight)) {
             "Projection target ${width}x$height exceeds GL target size limits ${limits.maxWidth}x${limits.maxHeight}."
         }
-    }
-
-    private fun queryTargetSizeLimitsOnGlThread(): ProjectionTargetSizeLimits {
-        val textureSize = IntArray(1)
-        val viewportDims = IntArray(2)
-        GLES20.glGetIntegerv(GLES20.GL_MAX_TEXTURE_SIZE, textureSize, 0)
-        GLES20.glGetIntegerv(GLES20.GL_MAX_VIEWPORT_DIMS, viewportDims, 0)
-        checkGl("query GL target size limits")
-        val maxWidth = min(textureSize[0], viewportDims[0])
-        val maxHeight = min(textureSize[0], viewportDims[1])
-        check((maxWidth > 0) && (maxHeight > 0)) { "GL returned invalid target size limits." }
-        return ProjectionTargetSizeLimits(maxWidth = maxWidth, maxHeight = maxHeight)
     }
 
     private fun closeTarget(target: ProjectionTarget, surface: Surface, surfaceTexture: SurfaceTexture, textureId: Int) {
@@ -278,16 +264,29 @@ internal class ProjectionTargetOwner internal constructor(
 
     private fun releaseTargetResources(surface: Surface, surfaceTexture: SurfaceTexture, textureId: Int) {
         val cleanupFailures = CleanupFailureCollector()
-        cleanupFailures.collect {
-            runOnGlThread {
-                clearSurfaceTextureFrameListenerOnGlThread(surfaceTexture)
+        if (!isGlLaneAbandonedForOwner()) {
+            cleanupFailures.collect {
+                glLane.executeCurrentIfCreatedBlocking {
+                    clearSurfaceTextureFrameListenerOnGlThread(surfaceTexture)
+                }
             }
         }
         cleanupFailures.collect { surface.release() }
-        cleanupFailures.collect {
-            runOnGlThread {
-                releaseSurfaceTextureAndTextureOnGlThread(surfaceTexture, textureId)
+        var releasedOnGlLane = false
+        if (!isGlLaneAbandonedForOwner()) {
+            cleanupFailures.collect {
+                glLane.executeCurrentIfCreatedBlocking {
+                    releaseSurfaceTextureAndTextureOnGlThread(
+                        gl = this,
+                        surfaceTexture = surfaceTexture,
+                        textureId = textureId,
+                    )
+                    releasedOnGlLane = true
+                }
             }
+        }
+        if (!releasedOnGlLane) {
+            cleanupFailures.collect { surfaceTexture.release() }
         }
         cleanupFailures.throwIfAny()
     }
@@ -296,79 +295,49 @@ internal class ProjectionTargetOwner internal constructor(
         runCatching { surfaceTexture.setOnFrameAvailableListener(null) }
     }
 
-    private fun releaseSurfaceTextureAndTextureOnGlThread(surfaceTexture: SurfaceTexture, textureId: Int) {
+    private fun releaseSurfaceTextureAndTextureOnGlThread(
+        gl: GlLaneScope,
+        surfaceTexture: SurfaceTexture,
+        textureId: Int,
+    ) {
         runCatching { surfaceTexture.release() }
         deleteTextureOnGlThread(textureId)
+        gl.checkGl("release projection target texture")
     }
 
     private fun deleteTextureOnGlThread(textureId: Int) {
-        if ((textureId == 0) || (eglState == null)) return
+        if (textureId == 0) return
         GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, 0)
         GLES20.glDeleteTextures(1, intArrayOf(textureId), 0)
     }
 
-    private fun releaseEglOnGlThread() {
-        val state = eglState ?: return
-        EGL14.eglMakeCurrent(state.display, EGL14.EGL_NO_SURFACE, EGL14.EGL_NO_SURFACE, EGL14.EGL_NO_CONTEXT)
-        EGL14.eglDestroySurface(state.display, state.surface)
-        EGL14.eglDestroyContext(state.display, state.context)
-        EGL14.eglReleaseThread()
-        EGL14.eglTerminate(state.display)
-        eglState = null
-    }
+    private fun isGlLaneAbandonedForOwner(): Boolean =
+        stateLock.withLock { isAbandoned } || ((glLane as? GlLaneAbandonment)?.isGlLaneAbandoned == true)
 
-    private fun makeCurrent(state: EglState) {
-        if (!EGL14.eglMakeCurrent(state.display, state.surface, state.surface, state.context)) {
-            throwEglFailure("eglMakeCurrent")
+    private fun startupRenderingRetirementLane(): GlResourceRetirementLane =
+        glLane as? GlResourceRetirementLane
+            ?: error("Projection target GL lane does not provide GL resource retirement.")
+
+    private fun checkOpen() {
+        stateLock.withLock {
+            checkOpenLocked()
         }
     }
 
-    private fun isClosedLocked(): Boolean = stateLock.withLock { isClosed }
-
-    private fun <T> runOnGlThread(block: () -> T): T {
-        if (Thread.currentThread() == handlerThread.looper.thread) {
-            return block()
+    private fun checkOpenForStartupRenderingGlAccess() {
+        stateLock.withLock {
+            if (isClosed || isAbandoned) {
+                throw StartupRenderingGlAccessException(
+                    reason = StartupRenderingGlAccessFailureReason.ProjectionTargetOwnerClosed,
+                    message = "ProjectionTargetOwner is closed.",
+                )
+            }
         }
-
-        val latch = CountDownLatch(1)
-        var value: T? = null
-        var failure: Throwable? = null
-        if (!handler.post {
-                try {
-                    value = block()
-                } catch (cause: Throwable) {
-                    failure = cause
-                } finally {
-                    latch.countDown()
-                }
-            }) {
-            throw IllegalStateException("GL thread is not accepting work.")
-        }
-        try {
-            latch.await()
-        } catch (cause: InterruptedException) {
-            Thread.currentThread().interrupt()
-            throw IllegalStateException("Interrupted while waiting for GL thread.", cause)
-        }
-        failure?.let { cause -> throw cause }
-        @Suppress("UNCHECKED_CAST")
-        return value as T
     }
 
-    private fun throwEglFailure(operation: String): Nothing {
-        throw IllegalStateException("$operation failed with EGL error 0x${Integer.toHexString(EGL14.eglGetError())}.")
+    private fun checkOpenLocked() {
+        check(!isClosed && !isAbandoned) { "ProjectionTargetOwner is closed." }
     }
-
-    private fun checkGl(operation: String) {
-        val error = GLES20.glGetError()
-        check(error == GLES20.GL_NO_ERROR) { "$operation failed with GL error 0x${Integer.toHexString(error)}." }
-    }
-
-    private data class EglState(
-        val display: EGLDisplay,
-        val context: EGLContext,
-        val surface: EGLSurface,
-    )
 
     internal class ProjectionTarget internal constructor(
         override val generation: Long,
@@ -392,5 +361,175 @@ internal class ProjectionTargetOwner internal constructor(
         internal fun releaseOwnedResources() {
             owner.releaseTargetResources(surface = androidSurface, surfaceTexture = surfaceTexture, textureId = textureId)
         }
+
+        internal fun validateForCurrentGlAccess(expectedOwner: ProjectionTargetOwner, expectedGeneration: Long) {
+            check(owner === expectedOwner) { "Projection target is owned by a different ProjectionTargetOwner." }
+            check(generation == expectedGeneration) {
+                "Projection target generation mismatch. Expected $expectedGeneration, was $generation."
+            }
+            check(!isClosed.get()) { "Projection target generation $generation is closed." }
+        }
+
+        internal fun validateForStartupRenderingGlAccess(expectedOwner: ProjectionTargetOwner, expectedGeneration: Long) {
+            if (owner !== expectedOwner) {
+                throw StartupRenderingGlAccessException(
+                    reason = StartupRenderingGlAccessFailureReason.ProjectionTargetOwnerMismatch,
+                    message = "Projection target is owned by a different ProjectionTargetOwner.",
+                )
+            }
+            if (generation != expectedGeneration) {
+                throw StartupRenderingGlAccessException(
+                    reason = StartupRenderingGlAccessFailureReason.ProjectionTargetGenerationMismatch,
+                    message = "Projection target generation mismatch. Expected $expectedGeneration, was $generation.",
+                )
+            }
+            if (isClosed.get()) {
+                throw StartupRenderingGlAccessException(
+                    reason = StartupRenderingGlAccessFailureReason.ProjectionTargetClosed,
+                    message = "Projection target generation $generation is closed.",
+                )
+            }
+        }
+
+        internal fun validateExternalOesTextureOnCurrentGlThread(gl: GlLaneScope) {
+            gl.checkCurrentContext("Projection target external OES validation")
+            GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, textureId)
+            gl.checkGl("validate projection target external OES texture")
+            GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, 0)
+            gl.checkGl("unbind projection target external OES texture")
+        }
     }
+
+    private class ScopedProjectionTargetGlAccess(
+        private val target: ProjectionTarget,
+        private val gl: GlLaneScope,
+    ) : ProjectionTargetGlScope, AutoCloseable {
+        private var isActive = true
+
+        override val generation: Long
+            get() {
+                checkActive()
+                return target.generation
+            }
+
+        override val width: Int
+            get() {
+                checkActive()
+                return target.width
+            }
+
+        override val height: Int
+            get() {
+                checkActive()
+                return target.height
+            }
+
+        override val densityDpi: Int
+            get() {
+                checkActive()
+                return target.densityDpi
+            }
+
+        override fun validateExternalOesTexture() {
+            checkActive()
+            target.validateExternalOesTextureOnCurrentGlThread(gl)
+        }
+
+        override fun close() {
+            isActive = false
+        }
+
+        private fun checkActive() {
+            check(isActive) { "Projection target GL access is no longer active." }
+            gl.checkCurrentContext("Projection target GL access")
+        }
+    }
+
+    private class ScopedStartupRenderingGlAccess(
+        private val scopedGl: ScopedGlLaneAccess,
+        private val scopedProjectionTarget: ScopedProjectionTargetGlAccess,
+        override val retirementLane: GlResourceRetirementLane,
+        override val abandonment: GlLaneAbandonment,
+    ) : StartupRenderingGlScope, AutoCloseable {
+        private var isActive = true
+
+        override val gl: GlLaneScope
+            get() {
+                checkActive()
+                return scopedGl
+            }
+
+        override val projectionTarget: ProjectionTargetGlScope
+            get() {
+                checkActive()
+                return scopedProjectionTarget
+            }
+
+        override fun close() {
+            isActive = false
+            scopedProjectionTarget.close()
+            scopedGl.close()
+        }
+
+        private fun checkActive() {
+            check(isActive) { "Startup rendering GL access is no longer active." }
+        }
+    }
+
+    private class ScopedGlLaneAccess(
+        private val gl: GlLaneScope,
+    ) : GlLaneScope, AutoCloseable {
+        private var isActive = true
+
+        override fun targetSizeLimits(): ProjectionTargetSizeLimits {
+            checkActive()
+            return gl.targetSizeLimits()
+        }
+
+        override fun checkCurrentContext(operation: String) {
+            checkActive()
+            gl.checkCurrentContext(operation)
+        }
+
+        override fun checkGl(operation: String) {
+            checkActive()
+            gl.checkGl(operation)
+        }
+
+        override fun close() {
+            isActive = false
+        }
+
+        private fun checkActive() {
+            check(isActive) { "Startup rendering GL access is no longer active." }
+        }
+    }
+}
+
+/**
+ * Owner-mediated GL access to a supplied projection target handle and expected generation.
+ *
+ * Access runs only on the owning GL lane and validates the supplied handle's owner, generation,
+ * and closed state before exposing OES texture validation to rendering preparation code. This
+ * capability is for target validation/readiness; it does not consume frames or read pixels.
+ */
+internal interface ProjectionTargetGlCapability {
+    suspend fun withCurrentProjectionTarget(
+        target: ProjectionTargetHandle,
+        generation: Long,
+        block: ProjectionTargetGlScope.() -> Unit,
+    )
+}
+
+internal interface ProjectionTargetOwnerAbandonment {
+    fun abandonGlLane()
+}
+
+internal interface ProjectionTargetGlScope {
+    val generation: Long
+    val width: Int
+    val height: Int
+    val densityDpi: Int
+
+    fun validateExternalOesTexture()
 }

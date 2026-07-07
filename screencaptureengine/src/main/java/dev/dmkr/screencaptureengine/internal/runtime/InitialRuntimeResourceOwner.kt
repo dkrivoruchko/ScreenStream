@@ -8,15 +8,13 @@ import dev.dmkr.screencaptureengine.internal.planning.ScreenCaptureOutputPlan
  * Move-only owner for resources handed off after pre-active plan preparation.
  *
  * This object owns the callback route, callback registration, metrics observation, single
- * `VirtualDisplay`, current generation-owned projection target, cleanup policy, and initial plan
- * snapshots until public runtime integration consumes them. It is still internal ownership: it does
- * not publish public state, prepare rendering/readback/encoder resources, or itself mark
- * `InitialActivePlanCommitted`.
+ * `VirtualDisplay`, current generation-owned projection target, prepared rendering pipeline
+ * resources, cleanup policy, and initial plan snapshots. It is still internal ownership: it does
+ * not publish public state, expose a session, or run the render loop.
  *
  * [initialPendingSignals] is the exactly-once startup-to-runtime handoff snapshot. Pending
- * geometry and density represent runtime work after the first Active commit. The latest visibility
- * value initializes the first public `capturedContentVisible` value and is not a replayed runtime
- * visibility update.
+ * geometry and density are carried without mutating the frozen initial snapshots. The latest
+ * visibility value is retained as initial state and is not replayed as a runtime visibility update.
  */
 internal class InitialRuntimeResourceOwner internal constructor(
     transfer: InitialRuntimeResourceTransfer,
@@ -32,6 +30,7 @@ internal class InitialRuntimeResourceOwner internal constructor(
     private val cleanupFailureSink = transfer.cleanupFailureSink
     private val projectionStopObserved = transfer.projectionStopObserved
     private val stopProjectionIfRequired = transfer.stopProjectionIfRequired
+    private val preparedRenderingPipelineResources = transfer.preparedRenderingPipelineResources
     private val signalMailbox = StartupToRuntimeSignalMailbox(startupGeometry = transfer.startupGeometry)
     private var closed = false
 
@@ -39,6 +38,8 @@ internal class InitialRuntimeResourceOwner internal constructor(
     internal val milestones: List<ScreenCaptureStartupMilestone> = transfer.milestones
     internal val initialOutputPlan: ScreenCaptureOutputPlan = transfer.initialOutputPlan
     internal val initialProjectionTarget: ProjectionTargetSnapshot = transfer.initialProjectionTarget
+    internal val initialRenderTransformPackage: FirstPlanRenderTransformPackage =
+        preparedRenderingPipelineResources.renderTransformPackage
     internal val initialPendingSignals: StartupRuntimePendingSignals = transfer.pendingSignals
     internal val currentProjectionTargetSnapshot: ProjectionTargetSnapshot
         get() = currentProjectionTarget.snapshot()
@@ -103,6 +104,7 @@ internal class InitialRuntimeResourceOwner internal constructor(
             cleanupFailureSink = cleanupFailureSink,
         ) {
             val cleanupFailures = CleanupFailureCollector()
+            cleanupFailures.collect { preparedRenderingPipelineResources.close() }
             cleanupFailures.collect { virtualDisplayOwner.close() }
             cleanupFailures.collect { projectionTargetOwner.close() }
             cleanupFailures.throwIfAny()
@@ -131,6 +133,7 @@ internal class InitialRuntimeResourceTransfer internal constructor(
     val cleanupFailureSink: StartupCleanupFailureSink,
     val projectionStopObserved: () -> Boolean,
     val stopProjectionIfRequired: () -> Unit,
+    val preparedRenderingPipelineResources: InitialRuntimePreparedRenderingPipelineResources,
     val initialOutputPlan: ScreenCaptureOutputPlan,
     val initialProjectionTarget: ProjectionTargetSnapshot,
     val pendingSignals: StartupRuntimePendingSignals,

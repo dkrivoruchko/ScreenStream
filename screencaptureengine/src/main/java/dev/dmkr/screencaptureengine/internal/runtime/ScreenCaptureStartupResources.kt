@@ -9,7 +9,7 @@ import dev.dmkr.screencaptureengine.ScreenCaptureProblemKind
  *
  * The bag owns callback routing, metrics observation, the single `VirtualDisplay`, and the current
  * generation-owned projection target until it is closed or transferred to pre-active runtime
- * ownership. It has not reached `RenderingPipelineReady` or `InitialActivePlanCommitted`.
+ * ownership. Rendering/readback/encoder resources and public session state are outside this bag.
  */
 internal class ScreenCaptureStartupResources internal constructor(
     private val callbackRouter: StartupProjectionCallbackRouter,
