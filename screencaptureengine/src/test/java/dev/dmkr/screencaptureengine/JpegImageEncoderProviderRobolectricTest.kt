@@ -76,20 +76,24 @@ class JpegImageEncoderProviderRobolectricTest {
             quality = 75,
             backendPolicy = JpegEncoderBackendPolicy.FrameworkOnly,
         )
-        val source = encoderApiSource()
+        val publicSource = jpegProviderSource()
+        val backendSource = frameworkJpegBackendSource()
 
         assertEquals(80, defaultProvider.quality)
         assertEquals(JpegEncoderBackendPolicy.Auto, defaultProvider.backendPolicy)
         assertEquals(75, configuredProvider.quality)
         assertEquals(JpegEncoderBackendPolicy.FrameworkOnly, configuredProvider.backendPolicy)
         removedSeamNames.forEach { seamName ->
-            assertFalse("$seamName leaked through EncoderApi.kt", source.contains(seamName))
+            assertFalse("$seamName leaked through JpegImageEncoderProvider.kt", publicSource.contains(seamName))
+            assertFalse("$seamName leaked through FrameworkBitmapCompressJpegEncoder.kt", backendSource.contains(seamName))
         }
-        assertTrue(source.contains("public class JpegImageEncoderProvider"))
-        assertTrue(source.contains("private class FrameworkBitmapCompressJpegEncoder"))
-        assertTrue(source.contains("private class EncodedImageSinkOutputStream"))
-        assertFalse(source.contains("public class FrameworkBitmapCompressJpegEncoder"))
-        assertFalse(source.contains("public class EncodedImageSinkOutputStream"))
+        assertTrue(publicSource.contains("public class JpegImageEncoderProvider"))
+        assertTrue(backendSource.contains("private class FrameworkBitmapCompressJpegEncoder"))
+        assertTrue(backendSource.contains("private class EncodedImageSinkOutputStream"))
+        assertFalse(publicSource.contains("FrameworkBitmapCompressJpegEncoder"))
+        assertFalse(publicSource.contains("EncodedImageSinkOutputStream"))
+        assertFalse(backendSource.contains("public class FrameworkBitmapCompressJpegEncoder"))
+        assertFalse(backendSource.contains("public class EncodedImageSinkOutputStream"))
     }
 
     @Test
@@ -426,11 +430,19 @@ class JpegImageEncoderProviderRobolectricTest {
         assertEquals(height, bitmap.height)
     }
 
-    private fun encoderApiSource(): String =
+    private fun jpegProviderSource(): String =
         Files.readString(
             resolveSourcePath(
-                rootRelativePath = "screencaptureengine/src/main/java/dev/dmkr/screencaptureengine/EncoderApi.kt",
-                moduleRelativePath = "src/main/java/dev/dmkr/screencaptureengine/EncoderApi.kt",
+                rootRelativePath = "screencaptureengine/src/main/java/dev/dmkr/screencaptureengine/JpegImageEncoderProvider.kt",
+                moduleRelativePath = "src/main/java/dev/dmkr/screencaptureengine/JpegImageEncoderProvider.kt",
+            ),
+        )
+
+    private fun frameworkJpegBackendSource(): String =
+        Files.readString(
+            resolveSourcePath(
+                rootRelativePath = "screencaptureengine/src/main/java/dev/dmkr/screencaptureengine/internal/encoding/provider/FrameworkBitmapCompressJpegEncoder.kt",
+                moduleRelativePath = "src/main/java/dev/dmkr/screencaptureengine/internal/encoding/provider/FrameworkBitmapCompressJpegEncoder.kt",
             ),
         )
 
