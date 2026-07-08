@@ -1,7 +1,9 @@
 package dev.dmkr.screencaptureengine.internal.runtime
 
+import android.os.SystemClock
 import dev.dmkr.screencaptureengine.CaptureGeometry
 import dev.dmkr.screencaptureengine.CaptureMetrics
+import dev.dmkr.screencaptureengine.ScreenCaptureConfig
 import dev.dmkr.screencaptureengine.internal.planning.ScreenCaptureOutputPlan
 
 /**
@@ -15,6 +17,8 @@ import dev.dmkr.screencaptureengine.internal.planning.ScreenCaptureOutputPlan
  * [initialPendingSignals] is the exactly-once startup-to-runtime handoff snapshot. Pending
  * geometry and density are carried without mutating the frozen initial snapshots. The latest
  * visibility value is retained as initial state and is not replayed as a runtime visibility update.
+ * After [transferToActiveRuntimeOwner] succeeds, this owner is inert and must not close or reuse any
+ * moved runtime resources.
  */
 internal class InitialRuntimeResourceOwner internal constructor(
     transfer: InitialRuntimeResourceTransfer,
@@ -32,7 +36,7 @@ internal class InitialRuntimeResourceOwner internal constructor(
     private val stopProjectionIfRequired = transfer.stopProjectionIfRequired
     private val preparedRenderingPipelineResources = transfer.preparedRenderingPipelineResources
     private val signalMailbox = StartupToRuntimeSignalMailbox(startupGeometry = transfer.startupGeometry)
-    private var closed = false
+    private var state = InitialRuntimeResourceOwnerState.Open
 
     internal val startupGeometry: CaptureGeometry = transfer.startupGeometry
     internal val milestones: List<ScreenCaptureStartupMilestone> = transfer.milestones
@@ -66,7 +70,7 @@ internal class InitialRuntimeResourceOwner internal constructor(
 
     override fun onProjectionStopped() {
         synchronized(lock) {
-            if (closed) return
+            if (state != InitialRuntimeResourceOwnerState.Open) return
             signalMailbox.recordProjectionStopped()
         }
     }
@@ -74,7 +78,7 @@ internal class InitialRuntimeResourceOwner internal constructor(
     override fun onCapturedContentResized(resize: ProjectionCapturedContentResize) {
         if ((resize.width <= 0) || (resize.height <= 0)) return
         synchronized(lock) {
-            if (closed) return
+            if (state != InitialRuntimeResourceOwnerState.Open) return
             signalMailbox.recordCapturedContentResize(resize)
         }
     }
@@ -85,15 +89,66 @@ internal class InitialRuntimeResourceOwner internal constructor(
 
     override fun onCapturedContentVisibilityChanged(isVisible: Boolean) {
         synchronized(lock) {
-            if (closed) return
+            if (state != InitialRuntimeResourceOwnerState.Open) return
             signalMailbox.recordCapturedContentVisibility(isVisible)
+        }
+    }
+
+    internal fun transferToActiveRuntimeOwner(
+        config: ScreenCaptureConfig,
+        commitBoundary: InitialActivationCommitBoundary = InitialActivationCommitBoundary(),
+        elapsedRealtimeNanos: () -> Long = SystemClock::elapsedRealtimeNanos,
+    ): ActiveRuntimeOwner {
+        var movedPreparedResourcesToRetire: ActiveRuntimePreparedRenderingPipelineResources? = null
+        return try {
+            synchronized(lock) {
+                checkOpenLocked()
+                val movedResources = preparedRenderingPipelineResources.moveToActiveRuntimeOwner()
+                movedPreparedResourcesToRetire = movedResources
+                val pendingSignals = initialPendingSignals.mergeWith(
+                    signalMailbox.drain(
+                        latestMetrics = metricsObservation.latestMetrics,
+                        projectionStopObserved = isProjectionStoppedLocked(),
+                    )
+                )
+                val owner = ActiveRuntimeOwner(
+                    transfer = ActiveRuntimeTransfer(
+                        config = config,
+                        callbackRouter = callbackRouter,
+                        callbackAdapter = callbackAdapter,
+                        projectionTargetOwner = projectionTargetOwner,
+                        virtualDisplayOwner = virtualDisplayOwner,
+                        currentProjectionTarget = currentProjectionTarget,
+                        startupGeometry = startupGeometry,
+                        metricsObservation = metricsObservation,
+                        cleanupScheduler = cleanupScheduler,
+                        cleanupFailureSink = cleanupFailureSink,
+                        projectionStopObserved = projectionStopObserved,
+                        stopProjectionIfRequired = stopProjectionIfRequired,
+                        preparedRenderingPipelineResources = movedResources,
+                        initialOutputPlan = initialOutputPlan,
+                        pendingSignals = pendingSignals,
+                        expectedCurrentListener = this,
+                    ),
+                    commitBoundary = commitBoundary,
+                    elapsedRealtimeNanos = elapsedRealtimeNanos,
+                )
+                state = InitialRuntimeResourceOwnerState.Transferred
+                movedPreparedResourcesToRetire = null
+                owner
+            }
+        } catch (cause: Throwable) {
+            movedPreparedResourcesToRetire?.let { resources ->
+                runCatching { resources.close() }.onFailure(::reportCleanupFailure)
+            }
+            throw cause
         }
     }
 
     override fun close() {
         synchronized(lock) {
-            if (closed) return
-            closed = true
+            if (state != InitialRuntimeResourceOwnerState.Open) return
+            state = InitialRuntimeResourceOwnerState.Closed
         }
         callbackRouter.close()
         runCatching { callbackAdapter.close() }.onFailure(::reportCleanupFailure)
@@ -116,9 +171,26 @@ internal class InitialRuntimeResourceOwner internal constructor(
     }
 
     private fun checkOpenLocked() {
-        check(!closed) { "InitialRuntimeResourceOwner is closed." }
+        check(state == InitialRuntimeResourceOwnerState.Open) { "InitialRuntimeResourceOwner is $state." }
     }
 }
+
+private enum class InitialRuntimeResourceOwnerState {
+    Open,
+    Transferred,
+    Closed,
+}
+
+private fun StartupRuntimePendingSignals.mergeWith(
+    later: StartupRuntimePendingSignals,
+): StartupRuntimePendingSignals =
+    StartupRuntimePendingSignals(
+        projectionStopObserved = projectionStopObserved || later.projectionStopObserved,
+        pendingCapturedContentResize = later.pendingCapturedContentResize ?: pendingCapturedContentResize,
+        latestCaptureMetrics = later.latestCaptureMetrics,
+        pendingCaptureGeometry = later.pendingCaptureGeometry ?: pendingCaptureGeometry,
+        latestCapturedContentVisible = later.latestCapturedContentVisible ?: latestCapturedContentVisible,
+    )
 
 internal class InitialRuntimeResourceTransfer internal constructor(
     val callbackRouter: StartupProjectionCallbackRouter,

@@ -2,8 +2,10 @@ package dev.dmkr.screencaptureengine.internal.runtime
 
 import dev.dmkr.screencaptureengine.ImageEncoder
 import dev.dmkr.screencaptureengine.ImageEncoderInfo
+import dev.dmkr.screencaptureengine.ImageEncoderInputFormat
 import dev.dmkr.screencaptureengine.ImageEncoderProvider
 import dev.dmkr.screencaptureengine.ImageEncoderRequest
+import dev.dmkr.screencaptureengine.JpegImageEncoderProvider
 import dev.dmkr.screencaptureengine.ScreenCaptureProblemKind
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -441,7 +443,7 @@ internal class ProviderPreparationContext internal constructor(
             if (shouldComplete) {
                 result.complete(
                     ProviderCreateEncoderResult.Failure(
-                        kind = ScreenCaptureProblemKind.EncoderUnavailable,
+                        kind = provider.classifyCreateEncoderFailure(request, throwable),
                         message = throwable.message ?: "ImageEncoderProvider.createEncoder failed.",
                         cause = throwable,
                     ),
@@ -478,6 +480,61 @@ internal class ProviderPreparationContext internal constructor(
         }
     }
 }
+
+private fun ImageEncoderProvider.classifyCreateEncoderFailure(
+    request: ImageEncoderRequest,
+    throwable: Throwable,
+): ScreenCaptureProblemKind =
+    if (this is JpegImageEncoderProvider && request.isBuiltInFrameworkJpegAllocationFailureRequest(throwable)) {
+        ScreenCaptureProblemKind.AllocationFailed
+    } else {
+        ScreenCaptureProblemKind.EncoderUnavailable
+    }
+
+private fun ImageEncoderRequest.isBuiltInFrameworkJpegAllocationFailureRequest(throwable: Throwable): Boolean =
+    !hasImpossibleFrameworkJpegRawSpan() && throwable.hasOutOfMemoryCause()
+
+private fun ImageEncoderRequest.hasImpossibleFrameworkJpegRawSpan(): Boolean {
+    if (inputFormat != ImageEncoderInputFormat.Rgba8888SrgbOpaque) return false
+    if (rowStrideBytes.toLong() < width.toLong() * RGBA_8888_BYTES_PER_PIXEL) return false
+    val requiredByteCount = checkedRequiredByteCount(
+        height = height,
+        rowStrideBytes = rowStrideBytes,
+        width = width,
+    ) ?: return true
+    return requiredByteCount > Int.MAX_VALUE
+}
+
+private fun Throwable.hasOutOfMemoryCause(): Boolean {
+    var current: Throwable? = this
+    while (current != null) {
+        if (current is OutOfMemoryError) return true
+        current = current.cause
+    }
+    return false
+}
+
+private fun checkedRequiredByteCount(height: Int, rowStrideBytes: Int, width: Int): Long? {
+    val lastRowOffset = checkedMultiplyLong((height - 1).toLong(), rowStrideBytes.toLong()) ?: return null
+    val rowPayloadBytes = checkedMultiplyLong(width.toLong(), RGBA_8888_BYTES_PER_PIXEL) ?: return null
+    return checkedAddLong(lastRowOffset, rowPayloadBytes)
+}
+
+private fun checkedMultiplyLong(left: Long, right: Long): Long? =
+    try {
+        Math.multiplyExact(left, right)
+    } catch (_: ArithmeticException) {
+        null
+    }
+
+private fun checkedAddLong(left: Long, right: Long): Long? =
+    try {
+        Math.addExact(left, right)
+    } catch (_: ArithmeticException) {
+        null
+    }
+
+private const val RGBA_8888_BYTES_PER_PIXEL: Long = 4L
 
 internal class ProviderPreparationToken internal constructor() {
     private val active = AtomicBoolean(true)

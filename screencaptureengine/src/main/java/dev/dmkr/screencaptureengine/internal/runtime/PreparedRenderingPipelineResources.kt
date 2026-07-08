@@ -1,5 +1,6 @@
 package dev.dmkr.screencaptureengine.internal.runtime
 
+import dev.dmkr.screencaptureengine.ImageEncoderInfo
 import dev.dmkr.screencaptureengine.ImageEncoderProvider
 import dev.dmkr.screencaptureengine.Size
 import dev.dmkr.screencaptureengine.internal.planning.ScreenCaptureOutputPlan
@@ -145,17 +146,81 @@ internal class InitialRuntimePreparedRenderingPipelineResources internal constru
     private val encoderResources: PreparedImageEncoderResources,
 ) : AutoCloseable {
     private val lock = Any()
+    private var moved = false
     private var closed = false
+
+    internal fun moveToActiveRuntimeOwner(): ActiveRuntimePreparedRenderingPipelineResources {
+        synchronized(lock) {
+            check(!moved) { "InitialRuntimePreparedRenderingPipelineResources were already moved." }
+            check(!closed) { "InitialRuntimePreparedRenderingPipelineResources are closed." }
+            moved = true
+        }
+        return ActiveRuntimePreparedRenderingPipelineResources(
+            readbackResources = readbackResources,
+            renderTransformPackage = renderTransformPackage,
+            encoderResources = encoderResources,
+        )
+    }
 
     override fun close() {
         synchronized(lock) {
-            if (closed) return
+            if (closed || moved) return
             closed = true
         }
         closeRenderingPipelineResources(
             readbackResources = readbackResources,
             encoderResources = encoderResources,
         )
+    }
+}
+
+/**
+ * Prepared rendering resources after ownership has moved into the active runtime/session owner.
+ */
+internal class ActiveRuntimePreparedRenderingPipelineResources internal constructor(
+    private val readbackResources: PreparedRenderingReadbackResources,
+    internal val renderTransformPackage: FirstPlanRenderTransformPackage,
+    private val encoderResources: PreparedImageEncoderResources,
+) : AutoCloseable {
+    private val lock = Any()
+    private var readbackResourcesClosed = false
+    private var encoderResourcesClosed = false
+
+    internal val encoderInfo: ImageEncoderInfo
+        get() = encoderResources.info
+
+    internal val encoderResourcesForRuntime: PreparedImageEncoderResources
+        get() = encoderResources
+
+    internal fun es2ReadbackResourcesForRuntime(): PreparedEs2RenderingReadbackResources =
+        readbackResources as? PreparedEs2RenderingReadbackResources
+            ?: error("Initial runtime production requires prepared ES2 readback resources.")
+
+    internal fun closeEncoderResourcesOnly() {
+        val shouldClose = synchronized(lock) {
+            if (encoderResourcesClosed) {
+                false
+            } else {
+                encoderResourcesClosed = true
+                true
+            }
+        }
+        if (shouldClose) encoderResources.close()
+    }
+
+    override fun close() {
+        val closeReadback: Boolean
+        val closeEncoder: Boolean
+        synchronized(lock) {
+            closeReadback = !readbackResourcesClosed
+            closeEncoder = !encoderResourcesClosed
+            readbackResourcesClosed = true
+            encoderResourcesClosed = true
+        }
+        val cleanupFailures = CleanupFailureCollector()
+        if (closeReadback) cleanupFailures.collect { readbackResources.close() }
+        if (closeEncoder) cleanupFailures.collect { encoderResources.close() }
+        cleanupFailures.throwIfAny()
     }
 }
 

@@ -390,6 +390,28 @@ class Es2RenderingPipelinePreparerTest {
     }
 
     @Test
+    fun encoderAllocationFailureClosesEs2AndPreservesAllocationClassification() = runTest {
+        val plan = nonTrivialOutputPlan()
+        val es2Fixture = preparedEs2Fixture(plan = plan)
+
+        val result = preparer(
+            es2Prepare = {
+                Es2RenderingReadbackPreparationResult.Success(es2Fixture.resources)
+            },
+            encoderPrepare = { _, _, _ ->
+                ImageEncoderPreparationResult.Failure(
+                    kind = ScreenCaptureProblemKind.AllocationFailed,
+                    message = "encoder allocation failed",
+                    cause = null,
+                )
+            },
+        ).prepareInitialRenderingPipeline(request(plan = plan))
+
+        assertEquals(ScreenCaptureProblemKind.AllocationFailed, result.failure().kind)
+        assertEquals(1, es2Fixture.retirement.retireCount)
+    }
+
+    @Test
     fun fakeStaleEncoderFailureClosesEs2AndReturnsLifecycleStale() = runTest {
         val plan = nonTrivialOutputPlan()
         val es2Fixture = preparedEs2Fixture(plan = plan)

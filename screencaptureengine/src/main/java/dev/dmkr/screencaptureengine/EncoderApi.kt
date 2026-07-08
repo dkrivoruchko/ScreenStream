@@ -1,5 +1,7 @@
 package dev.dmkr.screencaptureengine
 
+import android.graphics.Bitmap
+import java.io.OutputStream
 import java.nio.ByteBuffer
 
 /**
@@ -228,18 +230,23 @@ public class ImageEncoderUnavailableException public constructor(message: String
 /**
  * JPEG encoder provider API.
  *
- * JPEG output is opaque 8-bit SDR/sRGB; source alpha is not preserved. The current production
- * implementation exposes validated provider metadata, but [createEncoder] throws
- * [ImageEncoderUnavailableException] because the built-in JPEG runtime backend is not available.
+ * JPEG output is opaque 8-bit SDR/sRGB; source alpha is not preserved. The built-in framework
+ * backend accepts canonical top-to-bottom [ImageEncoderInputFormat.Rgba8888SrgbOpaque] input and
+ * converts RGBA bytes to opaque ARGB pixels before framework compression.
  */
-public class JpegImageEncoderProvider public constructor(
+public class JpegImageEncoderProvider : ImageEncoderProvider {
     /** JPEG quality in the Android/Bitmap-style 0..100 range. */
-    public val quality: Int = 80,
+    public val quality: Int
 
     /** Backend selection policy for the built-in JPEG provider. */
-    public val backendPolicy: JpegEncoderBackendPolicy = JpegEncoderBackendPolicy.Auto,
-) : ImageEncoderProvider {
-    init {
+    public val backendPolicy: JpegEncoderBackendPolicy
+
+    public constructor(
+        quality: Int = 80,
+        backendPolicy: JpegEncoderBackendPolicy = JpegEncoderBackendPolicy.Auto,
+    ) {
+        this.quality = quality
+        this.backendPolicy = backendPolicy
         require(quality in JPEG_QUALITY_RANGE) { "quality must be in $JPEG_QUALITY_RANGE, was $quality" }
     }
 
@@ -247,13 +254,74 @@ public class JpegImageEncoderProvider public constructor(
     public override val outputFormat: EncodedImageFormat = EncodedImageFormats.Jpeg
 
     public override fun createEncoder(request: ImageEncoderRequest): ImageEncoder {
-        throw ImageEncoderUnavailableException("JPEG encoder runtime is unavailable", null)
+        val backend = when (backendPolicy) {
+            JpegEncoderBackendPolicy.Auto,
+            JpegEncoderBackendPolicy.FrameworkOnly,
+                -> JpegEncoderBackend.FrameworkBitmapCompress
+        }
+        return when (backend) {
+            JpegEncoderBackend.FrameworkBitmapCompress -> createFrameworkBitmapCompressEncoder(request)
+            JpegEncoderBackend.NdkAndroidBitmapCompress -> throw ImageEncoderUnavailableException(
+                "Native Android Bitmap JPEG backend is unavailable.",
+                null,
+            )
+        }
     }
 
     public override fun equals(other: Any?): Boolean =
         other is JpegImageEncoderProvider && quality == other.quality && backendPolicy == other.backendPolicy
 
     public override fun hashCode(): Int = 31 * quality + backendPolicy.hashCode()
+
+    private fun validateRequestForFrameworkBackend(request: ImageEncoderRequest) {
+        if (request.inputFormat != ImageEncoderInputFormat.Rgba8888SrgbOpaque) {
+            throw ImageEncoderUnavailableException("Framework JPEG requires RGBA8888 sRGB opaque input.", null)
+        }
+        if (request.rowStrideBytes.toLong() < request.width.toLong() * RGBA_8888_BYTES_PER_PIXEL) {
+            throw ImageEncoderUnavailableException("Framework JPEG row stride is incompatible with width.", null)
+        }
+    }
+
+    private fun createFrameworkBitmapCompressEncoder(request: ImageEncoderRequest): ImageEncoder {
+        validateRequestForFrameworkBackend(request)
+        val requiredByteCount = checkedRequiredByteCount(
+            height = request.height,
+            rowStrideBytes = request.rowStrideBytes,
+            width = request.width,
+        ) ?: throw ImageEncoderUnavailableException("Framework JPEG raw input byte span overflowed.", null)
+        if (requiredByteCount > Int.MAX_VALUE) {
+            throw ImageEncoderUnavailableException("Framework JPEG raw input byte span exceeds ByteBuffer limits.", null)
+        }
+        val pixelCount = checkedMultiplyLong(request.width.toLong(), request.height.toLong())
+            ?: throw ImageEncoderUnavailableException("Framework JPEG pixel count overflowed.", null)
+        if (pixelCount > Int.MAX_VALUE) {
+            throw ImageEncoderUnavailableException("Framework JPEG pixel count exceeds supported retained scratch size.", null)
+        }
+
+        var bitmap: Bitmap? = null
+        return try {
+            val argbPixels = allocateFrameworkJpegResource("Framework JPEG ARGB scratch allocation failed.") {
+                IntArray(pixelCount.toInt())
+            }
+            val createdBitmap = allocateFrameworkJpegResource("Framework JPEG bitmap allocation failed.") {
+                Bitmap.createBitmap(request.width, request.height, Bitmap.Config.ARGB_8888)
+            }
+            bitmap = createdBitmap
+            createdBitmap.setHasAlpha(false)
+            FrameworkBitmapCompressJpegEncoder(
+                request = request,
+                quality = quality,
+                bitmap = createdBitmap,
+                argbPixels = argbPixels,
+            )
+        } catch (throwable: Throwable) {
+            bitmap?.recycle()
+            if (throwable is ImageEncoderUnavailableException) {
+                throw throwable
+            }
+            throw ImageEncoderUnavailableException("Framework JPEG backend preparation failed.", throwable)
+        }
+    }
 }
 
 /** Backend selection policy for [JpegImageEncoderProvider]. */
@@ -277,3 +345,170 @@ public enum class JpegEncoderBackend {
 private const val RGBA_8888_BYTES_PER_PIXEL: Long = 4L
 private val JPEG_QUALITY_RANGE: IntRange = 0..100
 private val MAX_ENCODED_BYTES_RANGE: IntRange = 1_024..268_435_456
+
+private class FrameworkBitmapCompressJpegEncoder(
+    request: ImageEncoderRequest,
+    private val quality: Int,
+    private val bitmap: Bitmap,
+    private val argbPixels: IntArray,
+) : ImageEncoder {
+    private val lock = Any()
+    private var closed = false
+
+    override val info: ImageEncoderInfo = ImageEncoderInfo(
+        providerId = "jpeg",
+        outputFormat = EncodedImageFormats.Jpeg,
+        backendName = JpegEncoderBackend.FrameworkBitmapCompress.name,
+    )
+
+    private val width = request.width
+    private val height = request.height
+    private val rowStrideBytes = request.rowStrideBytes
+    private val requiredByteCount = checkedRequiredByteCount(
+        height = request.height,
+        rowStrideBytes = request.rowStrideBytes,
+        width = request.width,
+    )
+
+    override fun encode(input: ImageEncoderInput, output: EncodedImageSink): ImageEncodeResult =
+        synchronized(lock) {
+            if (closed) {
+                return@synchronized ImageEncodeResult.Failed("Framework JPEG encoder is closed.", null)
+            }
+            validateInput(input)?.let { message ->
+                return@synchronized ImageEncodeResult.Failed(message, null)
+            }
+
+            try {
+                copyRgbaToOpaqueArgb(input.buffer)
+                bitmap.setPixels(argbPixels, 0, width, 0, 0, width, height)
+                val stream = EncodedImageSinkOutputStream(output)
+                val compressed = try {
+                    bitmap.compress(Bitmap.CompressFormat.JPEG, quality, stream)
+                } catch (throwable: Throwable) {
+                    val sinkFailure = stream.failure
+                    if (sinkFailure != null) {
+                        return@synchronized ImageEncodeResult.Failed("Framework JPEG sink write failed.", sinkFailure)
+                    }
+                    throw throwable
+                }
+                val streamFailure = stream.failure
+                when {
+                    streamFailure != null -> ImageEncodeResult.Failed("Framework JPEG sink write failed.", streamFailure)
+                    compressed -> ImageEncodeResult.Success
+                    else -> ImageEncodeResult.Failed("Framework JPEG compression failed.", null)
+                }
+            } catch (throwable: Throwable) {
+                ImageEncodeResult.Failed("Framework JPEG compression failed.", throwable)
+            }
+        }
+
+    override fun close() {
+        synchronized(lock) {
+            if (closed) return
+            closed = true
+            bitmap.recycle()
+        }
+    }
+
+    private fun validateInput(input: ImageEncoderInput): String? {
+        if (input.width != width || input.height != height) {
+            return "ImageEncoderInput dimensions do not match the prepared JPEG encoder."
+        }
+        if (input.rowStrideBytes != rowStrideBytes) {
+            return "ImageEncoderInput row stride does not match the prepared JPEG encoder."
+        }
+        if (input.format != ImageEncoderInputFormat.Rgba8888SrgbOpaque) {
+            return "ImageEncoderInput format is not supported by framework JPEG."
+        }
+        if (input.buffer.position() != 0) {
+            return "ImageEncoderInput buffer position must be zero."
+        }
+        val byteCount = requiredByteCount ?: return "ImageEncoderInput byte span overflowed."
+        if (byteCount > input.buffer.limit().toLong()) {
+            return "ImageEncoderInput buffer limit is smaller than the required image span."
+        }
+        return null
+    }
+
+    private fun copyRgbaToOpaqueArgb(buffer: ByteBuffer) {
+        var destinationIndex = 0
+        repeat(height) { y ->
+            var sourceIndex = y * rowStrideBytes
+            repeat(width) {
+                val r = buffer.get(sourceIndex).toInt() and 0xFF
+                val g = buffer.get(sourceIndex + 1).toInt() and 0xFF
+                val b = buffer.get(sourceIndex + 2).toInt() and 0xFF
+                argbPixels[destinationIndex] = OPAQUE_ALPHA_MASK or (r shl 16) or (g shl 8) or b
+                destinationIndex += 1
+                sourceIndex += RGBA_8888_BYTES_PER_PIXEL_INT
+            }
+        }
+    }
+}
+
+private class EncodedImageSinkOutputStream(
+    private val sink: EncodedImageSink,
+) : OutputStream() {
+    private val singleByte = ByteArray(1)
+    var failure: Throwable? = null
+        private set
+
+    override fun write(oneByte: Int) {
+        singleByte[0] = oneByte.toByte()
+        write(singleByte, 0, 1)
+    }
+
+    override fun write(buffer: ByteArray, offset: Int, count: Int) {
+        val existingFailure = failure
+        if (existingFailure != null) {
+            throw EncodedImageSinkWriteException("Encoded sink was already rejected.", existingFailure)
+        }
+
+        try {
+            if (!sink.write(buffer, offset, count)) {
+                throw EncodedImageSinkWriteException("Encoded sink rejected framework JPEG bytes.", null)
+            }
+        } catch (throwable: Throwable) {
+            val failureToRecord = if (throwable is EncodedImageSinkWriteException) throwable else
+                EncodedImageSinkWriteException("Encoded sink threw while writing framework JPEG bytes.", throwable)
+            failure = failureToRecord
+            throw failureToRecord
+        }
+    }
+}
+
+private class EncodedImageSinkWriteException(
+    message: String,
+    cause: Throwable?,
+) : RuntimeException(message, cause)
+
+private inline fun <T> allocateFrameworkJpegResource(message: String, allocate: () -> T): T =
+    try {
+        allocate()
+    } catch (error: OutOfMemoryError) {
+        throw ImageEncoderUnavailableException(message, error)
+    }
+
+private fun checkedRequiredByteCount(height: Int, rowStrideBytes: Int, width: Int): Long? {
+    val lastRowOffset = checkedMultiplyLong((height - 1).toLong(), rowStrideBytes.toLong()) ?: return null
+    val rowPayloadBytes = checkedMultiplyLong(width.toLong(), RGBA_8888_BYTES_PER_PIXEL) ?: return null
+    return checkedAddLong(lastRowOffset, rowPayloadBytes)
+}
+
+private fun checkedMultiplyLong(left: Long, right: Long): Long? =
+    try {
+        Math.multiplyExact(left, right)
+    } catch (_: ArithmeticException) {
+        null
+    }
+
+private fun checkedAddLong(left: Long, right: Long): Long? =
+    try {
+        Math.addExact(left, right)
+    } catch (_: ArithmeticException) {
+        null
+    }
+
+private const val RGBA_8888_BYTES_PER_PIXEL_INT: Int = 4
+private const val OPAQUE_ALPHA_MASK: Int = -0x1000000

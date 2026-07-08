@@ -29,15 +29,22 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
 
 /**
  * Internal lifecycle, statistics, diagnostics, and latest-frame owner.
  *
- * This class does not own MediaProjection, GL, readback, or encoder resources. Runtime layers supply already-validated state transitions, parameter
- * application, and encoded bytes. Public frame delivery is delegated to [ScreenCaptureFrameDeliveryCoordinator] so lifecycle accounting and callback
- * handoff rules stay separate.
+ * This class does not own MediaProjection, GL, readback, or encoder resources. Runtime layers supply
+ * already-validated state transitions, parameter application, and encoded bytes. Public frame
+ * delivery is delegated to [ScreenCaptureFrameDeliveryCoordinator] so lifecycle accounting and
+ * callback handoff rules stay separate.
+ *
+ * Once runtime code materializes a production attempt, it must complete through the returned
+ * [ProductionAttemptToken]. That token is the generation fence that guarantees exactly one
+ * publication or production-drop outcome even if stop, projection stop, output suspension, or
+ * generation replacement wins before the attempt finishes.
  */
 @Suppress("unused")
 internal class ScreenCaptureSessionCore internal constructor(
@@ -45,6 +52,7 @@ internal class ScreenCaptureSessionCore internal constructor(
     initialState: ScreenCaptureSessionState.Running,
     private val parameterUpdater: suspend (ScreenCaptureParameters, ScreenCaptureParameterCommitGate) -> ScreenCaptureParameterUpdateResult,
     private val trimMemoryHandler: (Int) -> Unit = {},
+    private val terminalCommitHandler: (ScreenCaptureSessionTerminalCommit) -> Unit = {},
     private val elapsedRealtimeNanos: () -> Long = SystemClock::elapsedRealtimeNanos,
 ) : ScreenCaptureSession {
     private val terminalProblem = AtomicReference<ScreenCaptureProblem?>(null)
@@ -133,40 +141,27 @@ internal class ScreenCaptureSessionCore internal constructor(
         format: EncodedImageFormat,
         bytes: ByteArray,
         timestampElapsedRealtimeNanos: Long = nowNanos(),
+        countEncodedFrame: Boolean = true,
+        copyBytes: Boolean = true,
     ): Boolean {
         require(generation >= 0L) { "generation must be non-negative, was $generation" }
         require(bytes.isNotEmpty()) { "bytes must not be empty" }
         require(timestampElapsedRealtimeNanos >= 0L) { "timestampElapsedRealtimeNanos must be non-negative, was $timestampElapsedRealtimeNanos" }
         if (isTerminal()) return false
-        synchronized(sessionGate) {
-            if (isTerminal()) {
-                return false
-            }
-            publicationDropKindLocked(generation, bytes.size)?.let { dropKind ->
-                recordEncodedFrameDroppedLocked(bytes.size, dropKind)
-                return false
-            }
-        }
-        val latestBytes = bytes.copyOf()
-        val publishedFrame = synchronized(sessionGate) {
-            if (isTerminal()) {
-                return false
-            }
-            publicationDropKindLocked(generation, latestBytes.size)?.let { dropKind ->
-                recordEncodedFrameDroppedLocked(bytes.size, dropKind)
-                return false
-            }
-            LatestEncodedFrame(format, latestBytes, frameSequence.incrementAndGet(), timestampElapsedRealtimeNanos).also { frame ->
-                latestFrame = frame
-                synchronized(statsLock) {
-                    statsAccumulator = statsAccumulator.withEncodedFrame(bytes.size)
-                    statsAccumulator = statsAccumulator.withPublishedFrame()
-                    publishStatsLocked()
-                }
-            }
-        }
-        frameDeliveryCoordinator.signalLatestFramePublished(publishedFrame.sequence)
-        return true
+        val attempt = beginProductionAttempt(generation = generation, materializeInvalidOutput = true) ?: return false
+        return attempt.completeEncodedSuccess(
+            format = format,
+            bytes = bytes,
+            encodeDurationNanos = null,
+            timestampElapsedRealtimeNanos = timestampElapsedRealtimeNanos,
+            countEncodedFrame = countEncodedFrame,
+            copyBytes = copyBytes,
+        )
+    }
+
+    internal fun beginProductionAttempt(generation: Long): ProductionAttemptToken? {
+        require(generation >= 0L) { "generation must be non-negative, was $generation" }
+        return beginProductionAttempt(generation = generation, materializeInvalidOutput = false)
     }
 
     internal fun currentOutputGeneration(): Long =
@@ -244,7 +239,13 @@ internal class ScreenCaptureSessionCore internal constructor(
             }
         }
 
-    internal fun recordProductionFrameDrop(kind: ProductionFrameDropKind) {
+    /**
+     * Records a current-session production drop only when no generation-scoped attempt was materialized.
+     *
+     * Runtime work that borrowed GL/readback/encoder resources must complete through [ProductionAttemptToken] so terminal and generation races resolve
+     * against the generation that admitted that attempt.
+     */
+    internal fun recordCurrentUnmaterializedProductionFrameDrop(kind: ProductionFrameDropKind) {
         synchronized(sessionGate) {
             if (isTerminal()) return
             recordProductionFrameDropLocked(kind)
@@ -253,20 +254,26 @@ internal class ScreenCaptureSessionCore internal constructor(
 
     internal fun finishStopped(reason: ScreenCaptureStopReason, problem: ScreenCaptureProblem?) {
         val rejectionProblem = terminalRejectionProblem(reason, problem)
+        val terminalCommit: ScreenCaptureSessionTerminalCommit
         synchronized(sessionGate) {
             if (!terminalProblem.compareAndSet(null, rejectionProblem)) return
             latestFrame = null
+            terminalCommit = ScreenCaptureSessionTerminalCommit.Stopped(reason = reason, problem = problem)
         }
+        invokeTerminalCommitHandler(terminalCommit)
         frameDeliveryCoordinator.closeFromSession()
         mutableState.value = ScreenCaptureSessionState.Stopped(reason = reason, problem = problem)
         emitEvent(ScreenCaptureEventType.SessionStopped, problem = problem, message = "Session stopped.")
     }
 
     internal fun finishFailed(problem: ScreenCaptureProblem) {
+        val terminalCommit: ScreenCaptureSessionTerminalCommit
         synchronized(sessionGate) {
             if (!terminalProblem.compareAndSet(null, problem)) return
             latestFrame = null
+            terminalCommit = ScreenCaptureSessionTerminalCommit.Failed(problem)
         }
+        invokeTerminalCommitHandler(terminalCommit)
         frameDeliveryCoordinator.closeFromSession()
         mutableState.value = ScreenCaptureSessionState.Failed(problem)
     }
@@ -282,6 +289,26 @@ internal class ScreenCaptureSessionCore internal constructor(
     private fun latestFrameBySequence(sequence: Long): LatestEncodedFrame? =
         synchronized(sessionGate) {
             latestFrame?.takeIf { frame -> !isTerminal() && frame.sequence == sequence }
+        }
+
+    private fun invokeTerminalCommitHandler(terminalCommit: ScreenCaptureSessionTerminalCommit) {
+        try {
+            // This hook is an inline fast fence/steal point only. It must not wait for runtime cleanup, GL work, encoders, or callback delivery.
+            terminalCommitHandler(terminalCommit)
+        } catch (_: Throwable) {
+            // Terminal publication and delivery shutdown must still complete even if an internal fence hook is faulty.
+        }
+    }
+
+    private fun beginProductionAttempt(generation: Long, materializeInvalidOutput: Boolean): ProductionAttemptToken? =
+        synchronized(sessionGate) {
+            if (isTerminal()) {
+                null
+            } else if (!materializeInvalidOutput && publicationDropKindLocked(generation, byteCount = 1) != null) {
+                null
+            } else {
+                ProductionAttemptToken(session = this, generation = generation)
+            }
         }
 
     private fun terminalRejectionProblem(reason: ScreenCaptureStopReason, problem: ScreenCaptureProblem?): ScreenCaptureProblem =
@@ -303,6 +330,7 @@ internal class ScreenCaptureSessionCore internal constructor(
 
     private fun publicationDropKindLocked(generation: Long, byteCount: Int): ProductionFrameDropKind? =
         when {
+            isTerminal() -> ProductionFrameDropKind.StaleGeneration
             generation != currentOutputGeneration -> ProductionFrameDropKind.StaleGeneration
             (mutableState.value as? ScreenCaptureSessionState.Running)?.output !is ScreenCaptureOutputState.Active ->
                 ProductionFrameDropKind.OutputSuspended
@@ -326,9 +354,77 @@ internal class ScreenCaptureSessionCore internal constructor(
         emitEvent(type = ScreenCaptureEventType.EncodedFrameDropped, problem = null, message = "Encoded frame dropped.", rateLimitDiagnostic = true)
     }
 
-    private fun recordEncodedFrameDroppedLocked(byteCount: Int, kind: ProductionFrameDropKind) {
+    internal fun recordReadbackSample(durationNanos: Long) {
         synchronized(statsLock) {
-            statsAccumulator = statsAccumulator.withEncodedFrame(byteCount).withFrameDrop(kind)
+            statsAccumulator = statsAccumulator.withReadbackSample(durationNanos)
+            publishStatsLocked()
+        }
+    }
+
+    internal fun completeProductionDrop(generation: Long, kind: ProductionFrameDropKind) {
+        val resolvedKind = synchronized(sessionGate) {
+            when {
+                isTerminal() || generation != currentOutputGeneration -> ProductionFrameDropKind.StaleGeneration
+                (mutableState.value as? ScreenCaptureSessionState.Running)?.output !is ScreenCaptureOutputState.Active ->
+                    ProductionFrameDropKind.OutputSuspended
+
+                else -> kind
+            }
+        }
+        synchronized(statsLock) {
+            statsAccumulator = statsAccumulator.withFrameDrop(resolvedKind)
+            publishStatsLocked()
+        }
+        emitEvent(type = ScreenCaptureEventType.EncodedFrameDropped, problem = null, message = "Encoded frame dropped.", rateLimitDiagnostic = true)
+    }
+
+    internal fun completeEncodedSuccess(
+        generation: Long,
+        format: EncodedImageFormat,
+        bytes: ByteArray,
+        encodeDurationNanos: Long?,
+        timestampElapsedRealtimeNanos: Long,
+        countEncodedFrame: Boolean = true,
+        copyBytes: Boolean = true,
+    ): Boolean {
+        synchronized(sessionGate) {
+            publicationDropKindLocked(generation, bytes.size)?.let { dropKind ->
+                if (countEncodedFrame && bytes.size <= config.maxEncodedBytes) {
+                    recordEncodedFrameDroppedLocked(byteCount = bytes.size, encodeDurationNanos = encodeDurationNanos, kind = dropKind)
+                } else {
+                    recordProductionFrameDropLocked(dropKind)
+                }
+                return false
+            }
+        }
+        val latestBytes = if (copyBytes) bytes.copyOf() else bytes
+        val publishedFrame = synchronized(sessionGate) {
+            publicationDropKindLocked(generation, latestBytes.size)?.let { dropKind ->
+                if (countEncodedFrame && latestBytes.size <= config.maxEncodedBytes) {
+                    recordEncodedFrameDroppedLocked(byteCount = bytes.size, encodeDurationNanos = encodeDurationNanos, kind = dropKind)
+                } else {
+                    recordProductionFrameDropLocked(dropKind)
+                }
+                return false
+            }
+            LatestEncodedFrame(format, latestBytes, frameSequence.incrementAndGet(), timestampElapsedRealtimeNanos).also { frame ->
+                latestFrame = frame
+                synchronized(statsLock) {
+                    if (countEncodedFrame) {
+                        statsAccumulator = statsAccumulator.withEncodedFrame(byteCount = bytes.size, encodeDurationNanos = encodeDurationNanos)
+                    }
+                    statsAccumulator = statsAccumulator.withPublishedFrame()
+                    publishStatsLocked()
+                }
+            }
+        }
+        frameDeliveryCoordinator.signalLatestFramePublished(publishedFrame.sequence)
+        return true
+    }
+
+    private fun recordEncodedFrameDroppedLocked(byteCount: Int, encodeDurationNanos: Long?, kind: ProductionFrameDropKind) {
+        synchronized(statsLock) {
+            statsAccumulator = statsAccumulator.withEncodedFrame(byteCount = byteCount, encodeDurationNanos = encodeDurationNanos).withFrameDrop(kind)
             publishStatsLocked()
         }
         emitEvent(type = ScreenCaptureEventType.EncodedFrameDropped, problem = null, message = "Encoded frame dropped.", rateLimitDiagnostic = true)
@@ -387,7 +483,7 @@ internal class ScreenCaptureSessionCore internal constructor(
         }
     }
 
-    private fun nowNanos(): Long = elapsedRealtimeNanos()
+    internal fun nowNanos(): Long = elapsedRealtimeNanos()
 }
 
 /**
@@ -403,6 +499,80 @@ internal fun interface ScreenCaptureParameterCommitGate {
 
 private data object CancelledFrameSubscription : FrameSubscription {
     override fun cancel() = Unit
+}
+
+internal sealed class ScreenCaptureSessionTerminalCommit private constructor() {
+    internal class Stopped internal constructor(
+        internal val reason: ScreenCaptureStopReason,
+        internal val problem: ScreenCaptureProblem?,
+    ) : ScreenCaptureSessionTerminalCommit()
+
+    internal class Failed internal constructor(
+        internal val problem: ScreenCaptureProblem,
+    ) : ScreenCaptureSessionTerminalCommit()
+}
+
+/**
+ * One-shot completion handle for a materialized runtime production attempt.
+ *
+ * Readback timing is sampled once when valid raw input was produced, even if the attempt later
+ * becomes stale. Encode timing and `framesEncoded` are sampled only by [completeEncodedSuccess].
+ * Every terminal path is guarded by [completed], so callers may race cleanup/cancellation paths
+ * without double publishing or double-counting a drop.
+ */
+internal class ProductionAttemptToken internal constructor(
+    private val session: ScreenCaptureSessionCore,
+    private val generation: Long,
+) {
+    private val readbackCompleted = AtomicBoolean(false)
+    private val completed = AtomicBoolean(false)
+
+    internal fun recordReadbackSuccess(durationNanos: Long) {
+        require(durationNanos >= 0L) { "durationNanos must be non-negative, was $durationNanos" }
+        if (readbackCompleted.compareAndSet(false, true)) {
+            session.recordReadbackSample(durationNanos)
+        }
+    }
+
+    internal fun completeEncodedSuccess(
+        format: EncodedImageFormat,
+        bytes: ByteArray,
+        encodeDurationNanos: Long?,
+        timestampElapsedRealtimeNanos: Long = session.nowNanos(),
+        countEncodedFrame: Boolean = true,
+        copyBytes: Boolean = true,
+    ): Boolean {
+        require(encodeDurationNanos == null || encodeDurationNanos >= 0L) {
+            "encodeDurationNanos must be null or non-negative, was $encodeDurationNanos"
+        }
+        require(bytes.isNotEmpty()) { "bytes must not be empty" }
+        require(timestampElapsedRealtimeNanos >= 0L) { "timestampElapsedRealtimeNanos must be non-negative, was $timestampElapsedRealtimeNanos" }
+        if (!completed.compareAndSet(false, true)) return false
+        return session.completeEncodedSuccess(
+            generation = generation,
+            format = format,
+            bytes = bytes,
+            encodeDurationNanos = encodeDurationNanos,
+            timestampElapsedRealtimeNanos = timestampElapsedRealtimeNanos,
+            countEncodedFrame = countEncodedFrame,
+            copyBytes = copyBytes,
+        )
+    }
+
+    internal fun completeEncodedSizeLimitDrop(): Boolean =
+        completeDrop(ProductionFrameDropKind.EncodedSizeLimit)
+
+    internal fun completeEncodeFailedDrop(): Boolean =
+        completeDrop(ProductionFrameDropKind.TransientFailure)
+
+    internal fun completeEncodeThrewDrop(): Boolean =
+        completeDrop(ProductionFrameDropKind.TransientFailure)
+
+    internal fun completeDrop(kind: ProductionFrameDropKind): Boolean {
+        if (!completed.compareAndSet(false, true)) return false
+        session.completeProductionDrop(generation = generation, kind = kind)
+        return true
+    }
 }
 
 internal enum class ProductionFrameDropKind {
@@ -425,13 +595,31 @@ private data class StatsAccumulator(
     val deliveryDrops: ScreenCaptureDeliveryDropStats = ScreenCaptureDeliveryDropStats(),
     val lastEncodedByteCount: Int = 0,
     val totalEncodedByteCount: Long = 0L,
+    val encodeSampleCount: Long = 0L,
+    val totalEncodeDurationNanos: Long = 0L,
+    val readbackSampleCount: Long = 0L,
+    val totalReadbackDurationNanos: Long = 0L,
     val activeFrameSubscriptions: Int = 0,
     val slowConsumers: Int = 0,
 ) {
-    fun withEncodedFrame(byteCount: Int): StatsAccumulator = copy(
-        framesEncoded = Math.addExact(framesEncoded, 1L),
-        lastEncodedByteCount = byteCount,
-        totalEncodedByteCount = Math.addExact(totalEncodedByteCount, byteCount.toLong()),
+    fun withEncodedFrame(byteCount: Int, encodeDurationNanos: Long?): StatsAccumulator {
+        val hasEncodeSample = encodeDurationNanos != null
+        return copy(
+            framesEncoded = Math.addExact(framesEncoded, 1L),
+            lastEncodedByteCount = byteCount,
+            totalEncodedByteCount = Math.addExact(totalEncodedByteCount, byteCount.toLong()),
+            encodeSampleCount = if (hasEncodeSample) Math.addExact(encodeSampleCount, 1L) else encodeSampleCount,
+            totalEncodeDurationNanos = if (hasEncodeSample) {
+                Math.addExact(totalEncodeDurationNanos, encodeDurationNanos)
+            } else {
+                totalEncodeDurationNanos
+            },
+        )
+    }
+
+    fun withReadbackSample(durationNanos: Long): StatsAccumulator = copy(
+        readbackSampleCount = Math.addExact(readbackSampleCount, 1L),
+        totalReadbackDurationNanos = Math.addExact(totalReadbackDurationNanos, durationNanos),
     )
 
     fun withPublishedFrame(): StatsAccumulator = copy(framesPublished = Math.addExact(framesPublished, 1L))
@@ -486,8 +674,8 @@ private data class StatsAccumulator(
             droppedFrames = frameDrops,
             droppedDeliveries = deliveryDrops,
             publishedFps = if (elapsedSeconds > 0.0) framesPublished.toDouble() / elapsedSeconds else 0.0,
-            averageEncodeMs = 0.0,
-            averageReadbackMs = 0.0,
+            averageEncodeMs = averageDurationMs(totalEncodeDurationNanos, encodeSampleCount),
+            averageReadbackMs = averageDurationMs(totalReadbackDurationNanos, readbackSampleCount),
             lastEncodedByteCount = lastEncodedByteCount,
             averageEncodedByteCount = if (framesEncoded > 0L) {
                 (totalEncodedByteCount / framesEncoded).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
@@ -499,6 +687,9 @@ private data class StatsAccumulator(
         )
     }
 }
+
+private fun averageDurationMs(totalDurationNanos: Long, sampleCount: Long): Double =
+    if (sampleCount > 0L) totalDurationNanos.toDouble() / sampleCount.toDouble() / NANOS_PER_MILLISECOND else 0.0
 
 private fun Long.checkedIncrement(): Long = Math.addExact(this, 1L)
 
@@ -546,3 +737,4 @@ private const val EVENT_BUFFER_CAPACITY: Int = 32
 private const val DIAGNOSTIC_EVENT_RATE_LIMIT_NANOS: Long = 1_000_000_000L
 private const val INITIAL_OUTPUT_GENERATION: Long = 0L
 private const val NANOS_PER_SECOND: Double = 1_000_000_000.0
+private const val NANOS_PER_MILLISECOND: Double = 1_000_000.0

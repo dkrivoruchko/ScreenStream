@@ -2,6 +2,7 @@ package dev.dmkr.screencaptureengine.internal.runtime
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotSame
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
@@ -55,7 +56,9 @@ class PreparedEs2RenderingReadbackResourcesTest {
         val closeThreads = List(threadCount) {
             Thread {
                 ready.countDown()
-                start.await(5, TimeUnit.SECONDS)
+                check(start.await(5, TimeUnit.SECONDS)) {
+                    "Timed out waiting to start racing close thread."
+                }
                 resources.close()
                 closed.countDown()
             }.apply { start() }
@@ -67,7 +70,7 @@ class PreparedEs2RenderingReadbackResourcesTest {
             assertTrue(closed.await(5, TimeUnit.SECONDS))
         } finally {
             start.countDown()
-            closeThreads.forEach { it.join(5_000) }
+            closeThreads.forEach { it.joinOrFail("racing close") }
         }
 
         assertEquals(1, lane.enqueuedCount)
@@ -103,7 +106,7 @@ class PreparedEs2RenderingReadbackResourcesTest {
     }
 
     @Test
-    fun prepareReadbackBufferAfterCloseFailsFastWithoutReusingBuffer() {
+    fun readbackBufferAfterCloseFailsFastWithoutReusingBuffer() {
         val lane = ManualRetirementLane()
         val gles = RecordingEs2Gles()
         val resources = newResources(lane = lane, gles = gles)
@@ -111,24 +114,67 @@ class PreparedEs2RenderingReadbackResourcesTest {
         resources.close()
 
         val thrown = assertThrows(IllegalStateException::class.java) {
-            resources.prepareReadbackBuffer()
+            resources.readbackBuffer
         }
 
         assertEquals("Prepared ES2 rendering/readback resources are closed.", thrown.message)
     }
 
     @Test
-    fun queuedRetirementWorkDoesNotCaptureResourceObjectOrReadbackBuffer() {
+    fun acquireReadbackLeaseDuringInProgressCloseFailsFast() {
+        val lane = BlockingAdmissionRetirementLane()
+        val gles = RecordingEs2Gles()
+        val resources = newResources(lane = lane, gles = gles)
+        val closeReturned = CountDownLatch(1)
+        val closeThread = Thread {
+            resources.close()
+            closeReturned.countDown()
+        }.apply { start() }
+
+        try {
+            assertTrue(lane.retirementAdmissionEntered.await(5, TimeUnit.SECONDS))
+            assertEquals(1, lane.enqueuedCount.get())
+            assertEquals(1, closeReturned.count)
+
+            val thrown = assertThrows(IllegalStateException::class.java) {
+                resources.tryAcquireRgbaReadbackLease()
+            }
+
+            assertEquals("Prepared ES2 rendering/readback resources are closed.", thrown.message)
+        } finally {
+            lane.releaseRetirementAdmission.countDown()
+            closeThread.joinOrFail("close during retirement admission")
+        }
+
+        assertTrue(closeReturned.await(5, TimeUnit.SECONDS))
+    }
+
+    @Test
+    fun queuedRetirementWorkUsesExplicitSnapshotCommand() {
         val lane = ManualRetirementLane()
         val gles = RecordingEs2Gles()
         val resources = newResources(lane = lane, gles = gles)
-        val readbackBuffer = resources.readbackBuffer
+        val readbackMetadata = resources.readbackBuffer
 
         resources.close()
 
         val queuedBlock = lane.singleQueuedBlock()
-        assertFalse(queuedBlock.capturesReference(resources))
-        assertFalse(queuedBlock.capturesReference(readbackBuffer))
+        assertTrue(queuedBlock is PreparedEs2RenderingReadbackResourceRetirement)
+        assertEquals(0, readbackMetadata.capacity())
+
+        lane.runNext()
+
+        assertEquals(
+            listOf(
+                "deleteProgram:4",
+                "deleteShader:5",
+                "deleteShader:6",
+                "deleteFramebuffer:2",
+                "deleteRenderbuffer:3",
+                "deleteTexture:1",
+            ),
+            gles.calls,
+        )
     }
 
     @Test
@@ -163,7 +209,7 @@ class PreparedEs2RenderingReadbackResourcesTest {
     }
 
     @Test
-    fun prepareReadbackBufferClearsPositionAndLimitsToRequiredByteCountWithoutCopying() {
+    fun readbackBufferReturnsNonRawReadOnlyMetadata() {
         val lane = ManualRetirementLane()
         val gles = RecordingEs2Gles()
         val backingBuffer = ByteBuffer.allocateDirect(48)
@@ -176,7 +222,7 @@ class PreparedEs2RenderingReadbackResourcesTest {
                 programId = 4,
                 vertexShaderId = 5,
                 fragmentShaderId = 6,
-                programBinding = originalProgramBinding(programId = 4),
+                programBinding = originalProgramBinding(),
             ),
             width = 4,
             height = 3,
@@ -187,12 +233,51 @@ class PreparedEs2RenderingReadbackResourcesTest {
         backingBuffer.position(7)
         backingBuffer.limit(47)
 
-        val preparedBuffer = resources.prepareReadbackBuffer()
+        val readbackBuffer = resources.readbackBuffer
 
-        assertSame(backingBuffer, preparedBuffer)
-        assertEquals(0, preparedBuffer.position())
-        assertEquals(48, preparedBuffer.limit())
-        assertEquals(48, preparedBuffer.capacity())
+        assertNotSame(backingBuffer, readbackBuffer)
+        assertTrue(readbackBuffer.isDirect)
+        assertTrue(readbackBuffer.isReadOnly)
+        assertEquals(0, readbackBuffer.position())
+        assertEquals(0, readbackBuffer.limit())
+        assertEquals(0, readbackBuffer.capacity())
+    }
+
+    @Test
+    fun rgbaReadbackLeaseIsOnlyMutableReadbackPathAndIsExclusive() {
+        val lane = ManualRetirementLane()
+        val gles = RecordingEs2Gles()
+        val resources = newResources(lane = lane, gles = gles)
+
+        val firstLease = checkNotNull(resources.tryAcquireRgbaReadbackLease())
+
+        assertEquals(null, resources.tryAcquireRgbaReadbackLease())
+        assertFalse(firstLease.mutableReadbackBuffer().isReadOnly)
+
+        firstLease.close()
+
+        val secondLease = checkNotNull(resources.tryAcquireRgbaReadbackLease())
+        secondLease.close()
+    }
+
+    @Test
+    fun retainedReadbackMetadataDoesNotAliasLeaseStorage() {
+        val lane = ManualRetirementLane()
+        val gles = RecordingEs2Gles()
+        val resources = newResources(lane = lane, gles = gles)
+        val retainedMetadata = resources.readbackBuffer
+
+        val lease = checkNotNull(resources.tryAcquireRgbaReadbackLease())
+        lease.mutableReadbackBuffer().put(0, 42)
+        val leaseReadOnlyView = lease.readOnlyBufferView()
+
+        assertTrue(retainedMetadata.isReadOnly)
+        assertEquals(0, retainedMetadata.capacity())
+        assertNotSame(retainedMetadata, lease.mutableReadbackBuffer())
+        assertNotSame(retainedMetadata, leaseReadOnlyView)
+        assertEquals(42, leaseReadOnlyView.get(0).toInt())
+
+        lease.close()
     }
 
     @Test
@@ -219,11 +304,33 @@ class PreparedEs2RenderingReadbackResourcesTest {
             assertEquals(emptyList<String>(), gles.calls)
         } finally {
             lane.releaseBlockedWork.countDown()
-            closeThread.join(5_000)
+            closeThread.joinOrFail("close queued behind blocked GL work")
             lane.close()
         }
 
         assertEquals(emptyList<String>(), gles.calls)
+    }
+
+    @Test
+    fun closeWhileReadbackLeaseActivePreventsFurtherLeaseAcquisition() {
+        val lane = ManualRetirementLane()
+        val gles = RecordingEs2Gles()
+        val resources = newResources(lane = lane, gles = gles)
+        val activeLease = checkNotNull(resources.tryAcquireRgbaReadbackLease())
+
+        resources.close()
+
+        val whileLeaseActiveThrown = assertThrows(IllegalStateException::class.java) {
+            resources.tryAcquireRgbaReadbackLease()
+        }
+        activeLease.close()
+        val afterLeaseReleaseThrown = assertThrows(IllegalStateException::class.java) {
+            resources.tryAcquireRgbaReadbackLease()
+        }
+
+        assertEquals("Prepared ES2 rendering/readback resources are closed.", whileLeaseActiveThrown.message)
+        assertEquals("Prepared ES2 rendering/readback resources are closed.", afterLeaseReleaseThrown.message)
+        assertEquals(1, lane.enqueuedCount)
     }
 
     private fun newResources(
@@ -239,7 +346,7 @@ class PreparedEs2RenderingReadbackResourcesTest {
                 programId = 4,
                 vertexShaderId = 5,
                 fragmentShaderId = 6,
-                programBinding = originalProgramBinding(programId = 4),
+                programBinding = originalProgramBinding(),
             ),
             width = 4,
             height = 3,
@@ -248,9 +355,9 @@ class PreparedEs2RenderingReadbackResourcesTest {
             gles = gles,
         )
 
-    private fun originalProgramBinding(programId: Int): Es2RenderingProgramBindingMetadata =
+    private fun originalProgramBinding(): Es2RenderingProgramBindingMetadata =
         Es2RenderingProgramBindingMetadata(
-            programId = programId,
+            programId = 4,
             shaderVariant = Es2RenderingShaderVariant.OriginalExternalOes,
             attributeLocations = Es2RenderingProgramAttributeLocations(
                 position = 7,
@@ -336,7 +443,9 @@ class PreparedEs2RenderingReadbackResourcesTest {
         fun enqueueBlockedGlWork() {
             queue.put {
                 blockedWorkEntered.countDown()
-                releaseBlockedWork.await(5, TimeUnit.SECONDS)
+                check(releaseBlockedWork.await(5, TimeUnit.SECONDS)) {
+                    "Timed out waiting to release blocked GL work."
+                }
             }
         }
 
@@ -348,7 +457,23 @@ class PreparedEs2RenderingReadbackResourcesTest {
 
         override fun close() {
             abandon()
-            worker.join(5_000)
+            worker.join(5_000L)
+            assertFalse("blocking retirement worker did not finish", worker.isAlive)
+        }
+    }
+
+    private class BlockingAdmissionRetirementLane : GlResourceRetirementLane {
+        val retirementAdmissionEntered = CountDownLatch(1)
+        val releaseRetirementAdmission = CountDownLatch(1)
+        val enqueuedCount = AtomicInteger()
+
+        override fun retireGlResources(label: String, block: GlLaneScope.() -> Unit): Boolean {
+            enqueuedCount.incrementAndGet()
+            retirementAdmissionEntered.countDown()
+            check(releaseRetirementAdmission.await(5, TimeUnit.SECONDS)) {
+                "Timed out waiting to release retirement admission."
+            }
+            return true
         }
     }
 
@@ -453,14 +578,9 @@ class PreparedEs2RenderingReadbackResourcesTest {
             deleteFailures[call]?.let { throw it }
         }
     }
-}
 
-private fun Any.capturesReference(target: Any): Boolean =
-    javaClass.declaredFields.any { field ->
-        if (field.type.isPrimitive) {
-            false
-        } else {
-            field.isAccessible = true
-            field.get(this) === target
-        }
+    private fun Thread.joinOrFail(description: String) {
+        join(5_000L)
+        assertFalse("$description thread did not finish", isAlive)
     }
+}

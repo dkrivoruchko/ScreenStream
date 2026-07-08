@@ -47,9 +47,31 @@ internal class FakeImageEncoder(
     var encodeCount = 0
     var closeCount = 0
     var encodeResult: ImageEncodeResult = ImageEncodeResult.Success
+    var encodedBytes: ByteArray = byteArrayOf(1, 2, 3)
+    var encodeFailure: Throwable? = null
+    var lastInputBufferPosition: Int? = null
+    var lastInputBufferLimit: Int? = null
+    var mutateInputBufferPositionTo: Int? = null
+    var onEncodeEntered: (() -> Unit)? = null
+    var onEncodeAfterWrite: (() -> Unit)? = null
+    var awaitEncodeRelease: (() -> Unit)? = null
+    val encodeThreadIds = mutableListOf<Long>()
+    val encodeThreadNames = mutableListOf<String>()
 
     override fun encode(input: ImageEncoderInput, output: EncodedImageSink): ImageEncodeResult {
         encodeCount++
+        encodeThreadIds += System.identityHashCode(Thread.currentThread()).toLong()
+        encodeThreadNames += Thread.currentThread().name
+        lastInputBufferPosition = input.buffer.position()
+        lastInputBufferLimit = input.buffer.limit()
+        mutateInputBufferPositionTo?.let(input.buffer::position)
+        onEncodeEntered?.invoke()
+        awaitEncodeRelease?.invoke()
+        encodeFailure?.let { throw it }
+        if (encodeResult == ImageEncodeResult.Success) {
+            output.write(encodedBytes, 0, encodedBytes.size)
+            onEncodeAfterWrite?.invoke()
+        }
         return encodeResult
     }
 

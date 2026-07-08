@@ -21,6 +21,7 @@ internal class ProjectionTargetOwner internal constructor(
     private val glLane: ProjectionTargetGlLane,
 ) : ProjectionTargetOwnerHandle,
     ProjectionTargetGlCapability,
+    RuntimeProjectionTargetGlAccess,
     StartupRenderingGlAccess,
     ProjectionTargetOwnerAbandonment {
     internal constructor(
@@ -29,6 +30,7 @@ internal class ProjectionTargetOwner internal constructor(
 
     private val stateLock = ReentrantLock()
     private val noActiveWork = stateLock.newCondition()
+    private val runtimeOwnerIdentity = RuntimeProjectionTargetOwnerIdentity()
     private val liveTargets = LinkedHashSet<ProjectionTarget>()
     private var isClosed = false
     private var isAbandoned = false
@@ -179,6 +181,54 @@ internal class ProjectionTargetOwner internal constructor(
             }
         }
     }
+
+    override suspend fun installRuntimeFrameSignalSink(
+        target: ProjectionTargetHandle,
+        generation: Long,
+        sink: RuntimeFrameSignalSink,
+    ) {
+        glLane.executeCurrent {
+            checkOpen()
+            val ownedTarget = target as? ProjectionTarget
+                ?: error("Projection target is not owned by this ProjectionTargetOwner.")
+            ownedTarget.validateForCurrentGlAccess(expectedOwner = this@ProjectionTargetOwner, expectedGeneration = generation)
+            ownedTarget.installRuntimeFrameSignalSink(sink)
+        }
+    }
+
+    override suspend fun clearRuntimeFrameSignalSink(
+        target: ProjectionTargetHandle,
+        generation: Long,
+    ) {
+        glLane.executeCurrent {
+            checkOpen()
+            val ownedTarget = target as? ProjectionTarget
+                ?: error("Projection target is not owned by this ProjectionTargetOwner.")
+            ownedTarget.validateForCurrentGlAccess(expectedOwner = this@ProjectionTargetOwner, expectedGeneration = generation)
+            ownedTarget.clearRuntimeFrameSignalSink()
+        }
+    }
+
+    override suspend fun <T> withCurrentRuntimeProjectionTarget(
+        target: ProjectionTargetHandle,
+        generation: Long,
+        onCancellation: (T) -> Unit,
+        block: RuntimeProjectionTargetGlScope.() -> T,
+    ): T =
+        glLane.executeCurrent(onCancellation = onCancellation) {
+            checkOpen()
+            val ownedTarget = target as? ProjectionTarget
+                ?: error("Projection target is not owned by this ProjectionTargetOwner.")
+            ownedTarget.validateForCurrentGlAccess(expectedOwner = this@ProjectionTargetOwner, expectedGeneration = generation)
+            val glAccess = ScopedGlLaneAccess(this)
+            val targetAccess = ScopedRuntimeProjectionTargetGlAccess(target = ownedTarget, scopedGl = glAccess)
+            try {
+                block(targetAccess)
+            } finally {
+                targetAccess.close()
+                glAccess.close()
+            }
+        }
 
     private fun createTargetOnGlThread(
         gl: GlLaneScope,
@@ -350,6 +400,7 @@ internal class ProjectionTargetOwner internal constructor(
         private val textureId: Int,
     ) : ProjectionTargetHandle {
         private val isClosed = AtomicBoolean()
+        private val runtimeTargetIdentity = RuntimeProjectionTargetInstanceIdentity()
         override val surface: ProjectionSurfaceHandle = AndroidProjectionSurfaceHandle(androidSurface)
 
         override fun close() {
@@ -398,6 +449,50 @@ internal class ProjectionTargetOwner internal constructor(
             GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, 0)
             gl.checkGl("unbind projection target external OES texture")
         }
+
+        internal fun installRuntimeFrameSignalSink(sink: RuntimeFrameSignalSink) {
+            // SurfaceTexture callbacks are enqueue-only signals; frame consumption stays inside
+            // RuntimeProjectionTargetGlScope on the owning GL lane after the public commit.
+            surfaceTexture.setOnFrameAvailableListener(
+                RuntimeProjectionTargetFrameAvailableListener(
+                    generation = generation,
+                    sink = sink,
+                ),
+            )
+        }
+
+        internal fun clearRuntimeFrameSignalSink() {
+            surfaceTexture.setOnFrameAvailableListener(null)
+        }
+
+        internal fun updateTexImageOnCurrentGlThread(gl: GlLaneScope) {
+            gl.checkCurrentContext("Runtime projection target frame update")
+            surfaceTexture.updateTexImage()
+        }
+
+        internal fun getTransformMatrixOnCurrentGlThread(gl: GlLaneScope, destination: FloatArray) {
+            require(destination.size >= RUNTIME_OES_MATRIX_ELEMENT_COUNT) {
+                "OES transform matrix destination must contain at least 16 values."
+            }
+            gl.checkCurrentContext("Runtime projection target transform matrix")
+            surfaceTexture.getTransformMatrix(destination)
+        }
+
+        internal fun timestampNanosOnCurrentGlThread(gl: GlLaneScope): Long {
+            gl.checkCurrentContext("Runtime projection target timestamp")
+            return surfaceTexture.timestamp
+        }
+
+        internal fun externalOesTexture(): RuntimeExternalOesTexture =
+            RuntimeExternalOesTexture(textureId = textureId)
+
+        internal fun runtimeProjectionTargetIdentity(): RuntimeProjectionTargetIdentity =
+            RuntimeProjectionTargetIdentity(
+                ownerIdentity = owner.runtimeOwnerIdentity,
+                targetIdentity = runtimeTargetIdentity,
+                generation = generation,
+                externalOesTexture = externalOesTexture(),
+            )
     }
 
     private class ScopedProjectionTargetGlAccess(
@@ -476,6 +571,79 @@ internal class ProjectionTargetOwner internal constructor(
         }
     }
 
+    private class ScopedRuntimeProjectionTargetGlAccess(
+        private val target: ProjectionTarget,
+        private val scopedGl: GlLaneScope,
+    ) : RuntimeProjectionTargetGlScope, AutoCloseable {
+        private var isActive = true
+
+        override val gl: GlLaneScope
+            get() {
+                checkActive()
+                return scopedGl
+            }
+
+        override val generation: Long
+            get() {
+                checkActive()
+                return target.generation
+            }
+
+        override val width: Int
+            get() {
+                checkActive()
+                return target.width
+            }
+
+        override val height: Int
+            get() {
+                checkActive()
+                return target.height
+            }
+
+        override val densityDpi: Int
+            get() {
+                checkActive()
+                return target.densityDpi
+            }
+
+        override val projectionTargetIdentity: RuntimeProjectionTargetIdentity
+            get() {
+                checkActive()
+                return target.runtimeProjectionTargetIdentity()
+            }
+
+        override val externalOesTexture: RuntimeExternalOesTexture
+            get() {
+                checkActive()
+                return target.externalOesTexture()
+            }
+
+        override fun updateTexImage() {
+            checkActive()
+            target.updateTexImageOnCurrentGlThread(scopedGl)
+        }
+
+        override fun getTransformMatrix(destination: FloatArray) {
+            checkActive()
+            target.getTransformMatrixOnCurrentGlThread(gl = scopedGl, destination = destination)
+        }
+
+        override fun timestampNanos(): Long {
+            checkActive()
+            return target.timestampNanosOnCurrentGlThread(scopedGl)
+        }
+
+        override fun close() {
+            isActive = false
+        }
+
+        private fun checkActive() {
+            check(isActive) { "Runtime projection target GL access is no longer active." }
+            scopedGl.checkCurrentContext("Runtime projection target GL access")
+        }
+    }
+
     private class ScopedGlLaneAccess(
         private val gl: GlLaneScope,
     ) : GlLaneScope, AutoCloseable {
@@ -533,3 +701,5 @@ internal interface ProjectionTargetGlScope {
 
     fun validateExternalOesTexture()
 }
+
+private const val RUNTIME_OES_MATRIX_ELEMENT_COUNT: Int = 16

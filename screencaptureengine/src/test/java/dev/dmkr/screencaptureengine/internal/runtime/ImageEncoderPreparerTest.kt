@@ -10,6 +10,7 @@ import dev.dmkr.screencaptureengine.ImageEncoderInputFormat
 import dev.dmkr.screencaptureengine.ImageEncoderProvider
 import dev.dmkr.screencaptureengine.ImageEncoderRequest
 import dev.dmkr.screencaptureengine.ImageEncoderUnavailableException
+import dev.dmkr.screencaptureengine.JpegImageEncoderProvider
 import dev.dmkr.screencaptureengine.ScreenCaptureProblemKind
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -69,6 +70,64 @@ class ImageEncoderPreparerTest {
         val failures = listOf(
             ImageEncoderUnavailableException("unavailable"),
             IllegalStateException("boom"),
+        )
+
+        failures.forEach { providerFailure ->
+            val providerContext = ProviderPreparationContext()
+            val provider = SimpleImageEncoderProvider().apply {
+                createFailure = providerFailure
+            }
+
+            try {
+                val result = ImageEncoderPreparer(providerContext).prepare(
+                    token = providerContext.newToken(),
+                    provider = provider,
+                    request = testEncoderRequest(),
+                )
+
+                assertTrue(result is ImageEncoderPreparationResult.Failure)
+                val failure = result as ImageEncoderPreparationResult.Failure
+                assertEquals(ScreenCaptureProblemKind.EncoderUnavailable, failure.kind)
+                assertSame(providerFailure, failure.cause)
+            } finally {
+                providerContext.close()
+            }
+        }
+    }
+
+    @Test
+    fun builtInJpegImpossibleRawSpanMapsToEncoderUnavailable() = runBlocking {
+        val providerContext = ProviderPreparationContext()
+        val request = jpegRequest(
+            width = 1,
+            height = 2,
+            rowStrideBytes = Int.MAX_VALUE,
+        )
+
+        try {
+            val result = ImageEncoderPreparer(providerContext).prepare(
+                token = providerContext.newToken(),
+                provider = JpegImageEncoderProvider(),
+                request = request,
+            )
+
+            assertTrue(result is ImageEncoderPreparationResult.Failure)
+            val failure = result as ImageEncoderPreparationResult.Failure
+            assertEquals(ScreenCaptureProblemKind.EncoderUnavailable, failure.kind)
+            assertTrue(failure.cause is ImageEncoderUnavailableException)
+        } finally {
+            providerContext.close()
+        }
+    }
+
+    @Test
+    fun unmarkedAllocationLikeProviderFailuresMapToEncoderUnavailable() = runBlocking {
+        val failures = listOf(
+            OutOfMemoryError("ordinary provider allocation"),
+            ImageEncoderUnavailableException(
+                message = "ordinary unavailable",
+                cause = OutOfMemoryError("ordinary provider allocation"),
+            ),
         )
 
         failures.forEach { providerFailure ->
@@ -336,7 +395,7 @@ class ImageEncoderPreparerTest {
     }
 
     @Test
-    fun staleSuccessObservedBeforeAbandonCompletesPromptlyAndClosesEncoderOnce() = runBlocking {
+    fun staleSuccessAfterCancelCompletesPromptlyAndClosesEncoderOnce() = runBlocking {
         val providerContext = ProviderPreparationContext()
         val releaseProvider = CountDownLatch(1)
         val encoder = CloseTrackingImageEncoder()
@@ -356,7 +415,7 @@ class ImageEncoderPreparerTest {
             }
             assertTrue(provider.awaitStarted())
 
-            token.markInactiveWithoutAbandonForRaceTest()
+            token.cancelForRaceTest()
             releaseProvider.countDown()
 
             val result = withTimeout(1_000L) { pending.await() }
@@ -374,7 +433,7 @@ class ImageEncoderPreparerTest {
     }
 
     @Test
-    fun staleProviderFailureObservedBeforeAbandonCompletesPromptly() = runBlocking {
+    fun staleProviderFailureAfterCancelCompletesPromptly() = runBlocking {
         val providerFailure = IllegalStateException("provider failed after stale")
         val diagnostic = AtomicReference<Throwable?>()
         val diagnosticLatch = CountDownLatch(1)
@@ -401,7 +460,7 @@ class ImageEncoderPreparerTest {
             }
             assertTrue(provider.awaitStarted())
 
-            token.markInactiveWithoutAbandonForRaceTest()
+            token.cancelForRaceTest()
             releaseProvider.countDown()
 
             val result = withTimeout(1_000L) { pending.await() }
@@ -447,7 +506,7 @@ class ImageEncoderPreparerTest {
             }
             assertTrue(provider.awaitStarted())
 
-            token.markInactiveWithoutAbandonForRaceTest()
+            token.cancelForRaceTest()
             releaseProvider.countDown()
 
             val result = withTimeout(1_000L) { pending.await() }
@@ -495,7 +554,7 @@ class ImageEncoderPreparerTest {
             }
             assertTrue(firstProvider.awaitStarted())
 
-            token.markInactiveWithoutAbandonForRaceTest()
+            token.cancelForRaceTest()
             releaseProvider.countDown()
 
             val staleResult = withTimeout(1_000L) { first.await() }
@@ -525,7 +584,7 @@ class ImageEncoderPreparerTest {
     }
 
     @Test
-    fun staleValidationFailureObservedBeforeAbandonCompletesPromptlyAndClosesEncoderOnce() = runBlocking {
+    fun staleValidationFailureAfterCancelCompletesPromptlyAndClosesEncoderOnce() = runBlocking {
         val providerContext = ProviderPreparationContext()
         val releaseProvider = CountDownLatch(1)
         val invalidEncoder = CloseTrackingImageEncoder(
@@ -551,7 +610,7 @@ class ImageEncoderPreparerTest {
             }
             assertTrue(provider.awaitStarted())
 
-            token.markInactiveWithoutAbandonForRaceTest()
+            token.cancelForRaceTest()
             releaseProvider.countDown()
 
             val result = withTimeout(1_000L) { pending.await() }
@@ -598,7 +657,7 @@ class ImageEncoderPreparerTest {
             }
             assertTrue(provider.awaitStarted())
 
-            token.markInactiveWithoutAbandonForRaceTest()
+            token.cancelForRaceTest()
             releaseProvider.countDown()
 
             val result = withTimeout(1_000L) { pending.await() }
@@ -926,11 +985,21 @@ class ImageEncoderPreparerTest {
             inputFormat = ImageEncoderInputFormat.Rgba8888SrgbOpaque,
         )
 
-    private fun ProviderPreparationToken.markInactiveWithoutAbandonForRaceTest() {
-        val field = ProviderPreparationToken::class.java.getDeclaredField("active")
-        field.isAccessible = true
-        val active = field.get(this) as AtomicBoolean
-        assertTrue(active.compareAndSet(true, false))
+    private fun jpegRequest(
+        width: Int,
+        height: Int,
+        rowStrideBytes: Int,
+    ): ImageEncoderRequest =
+        ImageEncoderRequest(
+            width = width,
+            height = height,
+            rowStrideBytes = rowStrideBytes,
+            maxEncodedBytes = 1_024,
+            inputFormat = ImageEncoderInputFormat.Rgba8888SrgbOpaque,
+        )
+
+    private fun ProviderPreparationToken.cancelForRaceTest() {
+        cancel()
     }
 }
 

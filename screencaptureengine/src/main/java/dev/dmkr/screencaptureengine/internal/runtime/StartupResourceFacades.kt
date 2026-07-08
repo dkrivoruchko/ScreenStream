@@ -63,6 +63,8 @@ internal class MediaProjectionHandle internal constructor(
 internal interface ProjectionCallbackRegistration : AutoCloseable {
     val callbackHandler: ProjectionCallbackHandlerHandle?
 
+    val projectionStopArbiter: ProjectionStopArbiter
+
     val projectionStopObserved: Boolean
 
     fun register(projection: ProjectionHandle)

@@ -33,6 +33,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
 import org.junit.Test
 import java.util.concurrent.BlockingQueue
@@ -42,6 +43,235 @@ import java.util.concurrent.atomic.AtomicInteger
 import kotlin.coroutines.CoroutineContext
 
 class ScreenCaptureSessionCoreTest {
+    @Test
+    fun beginProductionAttempt_staleBeforeMaterializationReturnsNullWithoutDrop() {
+        val session = sessionCore()
+        session.updateOutputActive(effectiveParameters(), generation = 1L)
+
+        val attempt = session.beginProductionAttempt(generation = 0L)
+
+        assertNull(attempt)
+        val stats = session.stats.value
+        assertEquals(0L, stats.framesEncoded)
+        assertEquals(0L, stats.framesPublished)
+        assertEquals(0L, stats.droppedFrames.total)
+        assertEquals(0.0, stats.averageEncodeMs, 0.0)
+        assertEquals(0.0, stats.averageReadbackMs, 0.0)
+    }
+
+    @Test
+    fun productionAttempt_successPublishesAndRecordsReadbackAndEncodeAveragesOnce() {
+        val session = sessionCore()
+        val attempt = session.beginProductionAttempt(generation = 0L) ?: throw AssertionError("production attempt was not materialized")
+
+        attempt.recordReadbackSuccess(durationNanos = 2_000_000L)
+        attempt.recordReadbackSuccess(durationNanos = 8_000_000L)
+        val published = attempt.completeEncodedSuccess(
+            format = EncodedImageFormats.Jpeg,
+            bytes = byteArrayOf(1, 2, 3, 4),
+            encodeDurationNanos = 3_000_000L,
+        )
+        val completedAgain = attempt.completeEncodeFailedDrop()
+
+        assertEquals(true, published)
+        assertEquals(false, completedAgain)
+        val stats = session.stats.value
+        assertEquals(1L, stats.framesEncoded)
+        assertEquals(1L, stats.framesPublished)
+        assertEquals(0L, stats.droppedFrames.total)
+        assertEquals(3.0, stats.averageEncodeMs, 0.0)
+        assertEquals(2.0, stats.averageReadbackMs, 0.0)
+        assertEquals(4, stats.lastEncodedByteCount)
+        assertEquals(4, stats.averageEncodedByteCount)
+    }
+
+    @Test
+    fun productionAttempt_successAfterGenerationChangeCountsEncodedAndStaleDropWithoutDelivery() {
+        val callbackDispatcher = QueuingDispatcher()
+        val session = sessionCore(frameCallbackDispatcher = callbackDispatcher)
+        try {
+            val deliveredSequences = LinkedBlockingQueue<Long>()
+            session.onFrame { frame -> deliveredSequences.put(frame.sequence) }
+            val attempt = session.beginProductionAttempt(generation = 0L) ?: throw AssertionError("production attempt was not materialized")
+            attempt.recordReadbackSuccess(durationNanos = 4_000_000L)
+            session.updateOutputActive(effectiveParameters(), generation = 1L)
+
+            val published = attempt.completeEncodedSuccess(
+                format = EncodedImageFormats.Jpeg,
+                bytes = byteArrayOf(5, 6, 7, 8, 9),
+                encodeDurationNanos = 6_000_000L,
+            )
+
+            assertFalse(published)
+            deliveredSequences.assertNoValue("stale materialized attempt callback", callbackDispatcher)
+            val stats = session.stats.value
+            assertEquals(1L, stats.framesEncoded)
+            assertEquals(0L, stats.framesPublished)
+            assertEquals(1L, stats.droppedFrames.total)
+            assertEquals(1L, stats.droppedFrames.byStaleGeneration)
+            assertEquals(6.0, stats.averageEncodeMs, 0.0)
+            assertEquals(4.0, stats.averageReadbackMs, 0.0)
+            assertEquals(5, stats.lastEncodedByteCount)
+            assertEquals(5, stats.averageEncodedByteCount)
+        } finally {
+            session.stop()
+        }
+    }
+
+    @Test
+    fun productionAttempt_encodedSizeLimitDropDoesNotCountEncodedOrEncodeAverage() {
+        val session = sessionCore()
+        val attempt = session.beginProductionAttempt(generation = 0L) ?: throw AssertionError("production attempt was not materialized")
+        attempt.recordReadbackSuccess(durationNanos = 1_000_000L)
+
+        val completed = attempt.completeEncodedSizeLimitDrop()
+
+        assertEquals(true, completed)
+        val stats = session.stats.value
+        assertEquals(0L, stats.framesEncoded)
+        assertEquals(0L, stats.framesPublished)
+        assertEquals(1L, stats.droppedFrames.total)
+        assertEquals(1L, stats.droppedFrames.byEncodedSizeLimit)
+        assertEquals(0.0, stats.averageEncodeMs, 0.0)
+        assertEquals(1.0, stats.averageReadbackMs, 0.0)
+        assertEquals(0, stats.lastEncodedByteCount)
+        assertEquals(0, stats.averageEncodedByteCount)
+    }
+
+    @Test
+    fun productionAttempt_oversizeSuccessDoesNotCountEncodedStatsOrPublish() {
+        val session = sessionCore(maxEncodedBytes = 1_024)
+        val attempt = session.beginProductionAttempt(generation = 0L) ?: throw AssertionError("production attempt was not materialized")
+        attempt.recordReadbackSuccess(durationNanos = 2_000_000L)
+
+        val published = attempt.completeEncodedSuccess(
+            format = EncodedImageFormats.Jpeg,
+            bytes = ByteArray(1_025) { 7 },
+            encodeDurationNanos = 4_000_000L,
+        )
+
+        assertFalse(published)
+        val stats = session.stats.value
+        assertEquals(0L, stats.framesEncoded)
+        assertEquals(0L, stats.framesPublished)
+        assertEquals(1L, stats.droppedFrames.total)
+        assertEquals(1L, stats.droppedFrames.byEncodedSizeLimit)
+        assertEquals(0.0, stats.averageEncodeMs, 0.0)
+        assertEquals(2.0, stats.averageReadbackMs, 0.0)
+        assertEquals(0, stats.lastEncodedByteCount)
+        assertEquals(0, stats.averageEncodedByteCount)
+    }
+
+    @Test
+    fun productionAttempt_providerFailureAndThrowDropTransientWithoutEncodedStats() {
+        val session = sessionCore()
+        val failedAttempt = session.beginProductionAttempt(generation = 0L) ?: throw AssertionError("failed attempt was not materialized")
+        val threwAttempt = session.beginProductionAttempt(generation = 0L) ?: throw AssertionError("throw attempt was not materialized")
+
+        assertEquals(true, failedAttempt.completeEncodeFailedDrop())
+        assertEquals(true, threwAttempt.completeEncodeThrewDrop())
+
+        val stats = session.stats.value
+        assertEquals(0L, stats.framesEncoded)
+        assertEquals(0L, stats.framesPublished)
+        assertEquals(2L, stats.droppedFrames.total)
+        assertEquals(2L, stats.droppedFrames.byTransientFailure)
+        assertEquals(0.0, stats.averageEncodeMs, 0.0)
+        assertEquals(0, stats.lastEncodedByteCount)
+    }
+
+    @Test
+    fun productionAttempt_providerFailureAfterStopCountsStaleDrop() {
+        val session = sessionCore()
+        val attempt = session.beginProductionAttempt(generation = 0L) ?: throw AssertionError("production attempt was not materialized")
+
+        session.stop()
+        val completed = attempt.completeEncodeFailedDrop()
+
+        assertEquals(true, completed)
+        val stats = session.stats.value
+        assertEquals(0L, stats.framesEncoded)
+        assertEquals(0L, stats.framesPublished)
+        assertEquals(1L, stats.droppedFrames.total)
+        assertEquals(1L, stats.droppedFrames.byStaleGeneration)
+        assertEquals(0L, stats.droppedFrames.byTransientFailure)
+    }
+
+    @Test
+    fun currentUnmaterializedProductionFrameDropDoesNotAccountAfterTerminal() {
+        val session = sessionCore()
+
+        session.recordCurrentUnmaterializedProductionFrameDrop(ProductionFrameDropKind.FrameRatePolicy)
+        session.stop()
+        session.recordCurrentUnmaterializedProductionFrameDrop(ProductionFrameDropKind.FrameRatePolicy)
+
+        val stats = session.stats.value
+        assertEquals(1L, stats.droppedFrames.total)
+        assertEquals(1L, stats.droppedFrames.byFrameRatePolicy)
+        assertEquals(0L, stats.droppedFrames.byStaleGeneration)
+    }
+
+    @Test
+    fun productionAttempt_successAfterStopCountsStaleDropWithoutPublishing() {
+        val session = sessionCore()
+        val attempt = session.beginProductionAttempt(generation = 0L) ?: throw AssertionError("production attempt was not materialized")
+
+        session.stop()
+        val published = attempt.completeEncodedSuccess(
+            format = EncodedImageFormats.Jpeg,
+            bytes = byteArrayOf(1, 2, 3),
+            encodeDurationNanos = 5_000_000L,
+        )
+
+        assertFalse(published)
+        val stats = session.stats.value
+        assertEquals(1L, stats.framesEncoded)
+        assertEquals(0L, stats.framesPublished)
+        assertEquals(1L, stats.droppedFrames.total)
+        assertEquals(1L, stats.droppedFrames.byStaleGeneration)
+        assertEquals(5.0, stats.averageEncodeMs, 0.0)
+    }
+
+    @Test
+    fun terminalCommitHandlerRunsOnceForWinningStopAndFailure() {
+        val stoppedCommits = mutableListOf<ScreenCaptureSessionTerminalCommit>()
+        val stoppedSession = sessionCore(terminalCommitHandler = stoppedCommits::add)
+
+        stoppedSession.stop()
+        stoppedSession.stop()
+
+        assertEquals(1, stoppedCommits.size)
+        val stoppedCommit = stoppedCommits.single() as ScreenCaptureSessionTerminalCommit.Stopped
+        assertEquals(ScreenCaptureStopReason.OwnerStop, stoppedCommit.reason)
+        assertSame(null, stoppedCommit.problem)
+
+        val failedCommits = mutableListOf<ScreenCaptureSessionTerminalCommit>()
+        val failedSession = sessionCore(terminalCommitHandler = failedCommits::add)
+        val problem = failedSession.newProblem(ScreenCaptureProblemKind.GlResourceFailure, "GL failed.", null)
+
+        failedSession.finishFailed(problem)
+        failedSession.finishFailed(problem)
+
+        assertEquals(1, failedCommits.size)
+        val failedCommit = failedCommits.single() as ScreenCaptureSessionTerminalCommit.Failed
+        assertSame(problem, failedCommit.problem)
+    }
+
+    @Test
+    fun terminalCommitHandlerThrowDoesNotBlockCoordinatorCloseOrTerminalStatePublication() {
+        val session = sessionCore(terminalCommitHandler = {
+            throw IllegalStateException("terminal hook failed")
+        })
+        val subscription = session.onFrame { }
+
+        session.stop()
+
+        val state = session.state.value as ScreenCaptureSessionState.Stopped
+        assertEquals(ScreenCaptureStopReason.OwnerStop, state.reason)
+        assertEquals(0L, session.stats.value.activeFrameSubscriptions.toLong())
+        subscription.cancel()
+    }
+
     @Test
     fun publishEncodedFrame_staleGenerationCountsEncodedAndDropWithoutPublishing() {
         val session = sessionCore()
@@ -68,6 +298,31 @@ class ScreenCaptureSessionCoreTest {
         assertEquals(3, stats.averageEncodedByteCount)
         assertEquals(1, stats.activeFrameSubscriptions)
         assertEquals(0, stats.slowConsumers)
+    }
+
+    @Test
+    fun publishEncodedFrame_oversizeDoesNotCountEncodedStatsOrPublish() {
+        val session = sessionCore(maxEncodedBytes = 1_024)
+        val deliveredSequences = LinkedBlockingQueue<Long>()
+        session.onFrame { frame -> deliveredSequences.put(frame.sequence) }
+
+        val published = session.publishEncodedFrame(
+            generation = 0L,
+            format = EncodedImageFormats.Jpeg,
+            bytes = ByteArray(1_025) { 9 },
+        )
+
+        assertFalse(published)
+        deliveredSequences.assertNoValue("oversize frame callback")
+        val stats = session.stats.value
+        assertEquals(0L, stats.framesEncoded)
+        assertEquals(0L, stats.framesPublished)
+        assertEquals(1L, stats.droppedFrames.total)
+        assertEquals(1L, stats.droppedFrames.byEncodedSizeLimit)
+        assertEquals(0.0, stats.averageEncodeMs, 0.0)
+        assertEquals(0, stats.lastEncodedByteCount)
+        assertEquals(0, stats.averageEncodedByteCount)
+        assertEquals(1, stats.activeFrameSubscriptions)
     }
 
     @Test
@@ -240,18 +495,25 @@ class ScreenCaptureSessionCoreTest {
 
     private fun sessionCore(
         frameCallbackDispatcher: CoroutineDispatcher? = null,
+        terminalCommitHandler: (ScreenCaptureSessionTerminalCommit) -> Unit = {},
+        maxEncodedBytes: Int = DEFAULT_TEST_MAX_ENCODED_BYTES,
         parameterUpdater: suspend (ScreenCaptureParameters, ScreenCaptureParameterCommitGate) -> ScreenCaptureParameterUpdateResult = { _, commitGate ->
             commitGate.commit { ScreenCaptureParameterUpdateResult.Applied }
         },
     ): ScreenCaptureSessionCore {
         var nowNanos = 1_000_000_000L
         return ScreenCaptureSessionCore(
-            config = ScreenCaptureConfig(metricsProvider = TestMetricsProvider(), frameCallbackDispatcher = frameCallbackDispatcher),
+            config = ScreenCaptureConfig(
+                metricsProvider = TestMetricsProvider(),
+                maxEncodedBytes = maxEncodedBytes,
+                frameCallbackDispatcher = frameCallbackDispatcher,
+            ),
             initialState = ScreenCaptureSessionState.Running(
                 output = ScreenCaptureOutputState.Active(effectiveParameters()),
                 capturedContentVisible = null,
             ),
             parameterUpdater = parameterUpdater,
+            terminalCommitHandler = terminalCommitHandler,
         ) {
             nowNanos += 1_000_000L
             nowNanos
@@ -304,8 +566,13 @@ class ScreenCaptureSessionCoreTest {
             cause = null,
         )
 
-    private fun <T : Any> BlockingQueue<T>.assertNoValue(description: String) {
-        val value = poll(NO_DELIVERY_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)
+    private fun <T : Any> BlockingQueue<T>.assertNoValue(description: String, callbackDispatcher: QueuingDispatcher? = null) {
+        callbackDispatcher?.assertNoQueuedTasks(description)
+        val value = if (callbackDispatcher == null) {
+            poll(NO_DELIVERY_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)
+        } else {
+            poll()
+        }
         assertEquals("$description was observed", null, value)
     }
 
@@ -321,10 +588,15 @@ class ScreenCaptureSessionCoreTest {
 
         fun awaitDispatched(description: String): Runnable =
             tasks.poll(TIMEOUT_MILLIS, TimeUnit.MILLISECONDS) ?: throw AssertionError("$description was not observed")
+
+        fun assertNoQueuedTasks(description: String) {
+            assertEquals("$description queued a callback task", null, tasks.poll())
+        }
     }
 
     private companion object {
         const val NO_DELIVERY_TIMEOUT_MILLIS: Long = 100L
         const val TIMEOUT_MILLIS: Long = 2_000L
+        const val DEFAULT_TEST_MAX_ENCODED_BYTES: Int = 8 * 1024 * 1024
     }
 }

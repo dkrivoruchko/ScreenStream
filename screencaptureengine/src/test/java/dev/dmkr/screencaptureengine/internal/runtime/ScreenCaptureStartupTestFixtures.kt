@@ -9,6 +9,7 @@ import dev.dmkr.screencaptureengine.ScreenCaptureStartException
 import kotlinx.coroutines.DisposableHandle
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.suspendCancellableCoroutine
 import org.junit.Assert.assertTrue
 
 internal suspend fun expectStartException(block: suspend () -> Any): ScreenCaptureStartException =
@@ -147,8 +148,9 @@ internal class FakeProjectionCallbackRegistration(
     private val events: MutableList<String>,
 ) : ProjectionCallbackRegistration {
     override val callbackHandler: ProjectionCallbackHandlerHandle = FakeProjectionCallbackHandlerHandle
+    override val projectionStopArbiter: ProjectionStopArbiter = ProjectionStopArbiter()
     override val projectionStopObserved: Boolean
-        get() = stopObserved
+        get() = projectionStopArbiter.projectionStopObserved
 
     var listener: MediaProjectionCallbackAdapter.Listener? = null
     var synchronousEventObserver: ((ProjectionCallbackRawEvent) -> Unit)? = null
@@ -156,7 +158,7 @@ internal class FakeProjectionCallbackRegistration(
     var emitStopDuringRegister = false
     var closeCount = 0
 
-    private var stopObserved = false
+    private var pendingStopListenerDelivery = false
     private var nextResizeId = 1L
 
     override fun register(projection: ProjectionHandle) {
@@ -172,33 +174,43 @@ internal class FakeProjectionCallbackRegistration(
     }
 
     fun emitStop() {
-        if (stopObserved) return
-        stopObserved = true
+        emitStopRawOnly()
+        deliverPendingStopToListener()
+    }
+
+    fun emitStopRawOnly() {
+        if (!projectionStopArbiter.markRawStopObserved()) return
+        pendingStopListenerDelivery = true
         synchronousEventObserver?.invoke(ProjectionCallbackRawEvent.Stop)
+    }
+
+    fun deliverPendingStopToListener() {
+        if (!pendingStopListenerDelivery) return
+        pendingStopListenerDelivery = false
         listener?.onProjectionStopped()
     }
 
     fun emitResize(width: Int, height: Int) {
-        if (stopObserved) return
+        if (projectionStopObserved) return
         val resize = ProjectionCapturedContentResize(id = nextResizeId++, width = width, height = height)
         synchronousEventObserver?.invoke(ProjectionCallbackRawEvent.Resize(resize))
         emitResizeToListener(resize)
     }
 
     fun emitResizeRawOnly(width: Int, height: Int): ProjectionCapturedContentResize {
-        check(!stopObserved)
+        check(!projectionStopObserved)
         val resize = ProjectionCapturedContentResize(id = nextResizeId++, width = width, height = height)
         synchronousEventObserver?.invoke(ProjectionCallbackRawEvent.Resize(resize))
         return resize
     }
 
     fun emitResizeToListener(resize: ProjectionCapturedContentResize) {
-        if (stopObserved) return
+        if (projectionStopObserved) return
         listener?.onCapturedContentResized(resize)
     }
 
     fun emitVisibility(isVisible: Boolean) {
-        if (stopObserved) return
+        if (projectionStopObserved) return
         synchronousEventObserver?.invoke(ProjectionCallbackRawEvent.Visibility(isVisible))
         listener?.onCapturedContentVisibilityChanged(isVisible)
     }
@@ -208,7 +220,11 @@ internal data object FakeProjectionCallbackHandlerHandle : ProjectionCallbackHan
 
 internal class FakeProjectionTargetOwner(
     private val events: MutableList<String>,
-) : ProjectionTargetOwnerHandle, ProjectionTargetGlCapability, StartupRenderingGlAccess {
+) : ProjectionTargetOwnerHandle,
+    ProjectionTargetGlCapability,
+    ProjectionTargetOwnerAbandonment,
+    RuntimeProjectionTargetGlAccess,
+    StartupRenderingGlAccess {
     val createdTargets = mutableListOf<TargetCreation>()
     val createdHandles = mutableListOf<FakeProjectionTargetHandle>()
     var closeCount = 0
@@ -220,7 +236,22 @@ internal class FakeProjectionTargetOwner(
     var maxTargetHeight = Int.MAX_VALUE
     var afterTargetSizeLimits: (() -> Unit)? = null
     var afterCreateTarget: (() -> Unit)? = null
-    override val isGlLaneAbandoned: Boolean = false
+    var abandonGlLaneCount = 0
+        private set
+    override val isGlLaneAbandoned: Boolean
+        get() = abandonGlLaneCount > 0
+    val runtimeOwnerIdentity = RuntimeProjectionTargetOwnerIdentity()
+    var installedRuntimeFrameSignalSink: RuntimeFrameSignalSink? = null
+    var runtimeFrameSignalInstallCount = 0
+    var runtimeFrameSignalClearCount = 0
+    var runtimeUpdateTexImageCount = 0
+    var runtimeGetTransformMatrixCount = 0
+    var runtimeTimestampReadCount = 0
+    var runtimeTimestampNanos = 123_456L
+    var runtimeOesMatrix: FloatArray = identityMatrix4()
+    var invokeRuntimeCancellationWithResult = false
+    var suspendRuntimeAccessUntilCancelledWithLateResult = false
+    var suspendRuntimeAccessUntilCancelledWithoutLateResult = false
 
     override fun startupRenderingGlAccess(): StartupRenderingGlAccess = this
 
@@ -269,7 +300,9 @@ internal class FakeProjectionTargetOwner(
         block(FakeProjectionTargetGlScope(fakeTarget))
     }
 
-    override fun abandonGlLane() = Unit
+    override fun abandonGlLane() {
+        abandonGlLaneCount++
+    }
 
     override suspend fun <T> withCurrentStartupRenderingTarget(
         target: ProjectionTargetHandle,
@@ -286,6 +319,67 @@ internal class FakeProjectionTargetOwner(
         check(fakeTarget.closeCount == 0) { "Projection target generation $generation is closed." }
         return block(FakeStartupRenderingGlScope(target = fakeTarget, abandonment = this))
     }
+
+    override suspend fun installRuntimeFrameSignalSink(
+        target: ProjectionTargetHandle,
+        generation: Long,
+        sink: RuntimeFrameSignalSink,
+    ) {
+        validateRuntimeTarget(target = target, generation = generation)
+        runtimeFrameSignalInstallCount++
+        installedRuntimeFrameSignalSink = sink
+    }
+
+    override suspend fun clearRuntimeFrameSignalSink(target: ProjectionTargetHandle, generation: Long) {
+        validateRuntimeTarget(target = target, generation = generation)
+        runtimeFrameSignalClearCount++
+        installedRuntimeFrameSignalSink = null
+    }
+
+    override suspend fun <T> withCurrentRuntimeProjectionTarget(
+        target: ProjectionTargetHandle,
+        generation: Long,
+        onCancellation: (T) -> Unit,
+        block: RuntimeProjectionTargetGlScope.() -> T,
+    ): T {
+        val fakeTarget = validateRuntimeTarget(target = target, generation = generation)
+        if (suspendRuntimeAccessUntilCancelledWithoutLateResult) {
+            return suspendCancellableCoroutine { continuation ->
+                continuation.invokeOnCancellation {
+                    // Deliberately no late result: simulates a GL operation that never reports completion.
+                }
+            }
+        }
+        if (suspendRuntimeAccessUntilCancelledWithLateResult) {
+            return suspendCancellableCoroutine { continuation ->
+                continuation.invokeOnCancellation {
+                    runCatching { block(FakeRuntimeProjectionTargetGlScope(owner = this, target = fakeTarget)) }
+                        .onSuccess(onCancellation)
+                }
+            }
+        }
+        val result = block(FakeRuntimeProjectionTargetGlScope(owner = this, target = fakeTarget))
+        if (invokeRuntimeCancellationWithResult) {
+            onCancellation(result)
+            throw IllegalStateException("Test runtime cancellation after successful result.")
+        }
+        return result
+    }
+
+    fun emitRuntimeFrameAvailable(target: FakeProjectionTargetHandle = createdHandles.single()) {
+        installedRuntimeFrameSignalSink?.enqueueFrameAvailable(generation = target.generation)
+    }
+
+    private fun validateRuntimeTarget(target: ProjectionTargetHandle, generation: Long): FakeProjectionTargetHandle {
+        val fakeTarget = target as? FakeProjectionTargetHandle
+            ?: error("Projection target is not owned by this FakeProjectionTargetOwner.")
+        check(fakeTarget.owner === this) { "Projection target is owned by a different ProjectionTargetOwner." }
+        check(fakeTarget.generation == generation) {
+            "Projection target generation mismatch. Expected $generation, was ${fakeTarget.generation}."
+        }
+        check(fakeTarget.closeCount == 0) { "Projection target generation $generation is closed." }
+        return fakeTarget
+    }
 }
 
 internal class FakeProjectionTargetHandle(
@@ -296,6 +390,7 @@ internal class FakeProjectionTargetHandle(
     override val densityDpi: Int,
 ) : ProjectionTargetHandle {
     override val surface: ProjectionSurfaceHandle = FakeProjectionSurfaceHandle
+    val runtimeTargetIdentity = RuntimeProjectionTargetInstanceIdentity()
     var closeCount = 0
     var directCloseCount = 0
     var ownerCloseCount = 0
@@ -340,6 +435,39 @@ internal class FakeStartupRenderingGlScope(
     }
 }
 
+internal class FakeRuntimeProjectionTargetGlScope(
+    private val owner: FakeProjectionTargetOwner,
+    private val target: FakeProjectionTargetHandle,
+) : RuntimeProjectionTargetGlScope {
+    override val gl: GlLaneScope = FakeGlLaneScope
+    override val generation: Long = target.generation
+    override val width: Int = target.width
+    override val height: Int = target.height
+    override val densityDpi: Int = target.densityDpi
+    override val externalOesTexture: RuntimeExternalOesTexture = RuntimeExternalOesTexture(textureId = 77)
+    override val projectionTargetIdentity: RuntimeProjectionTargetIdentity =
+        RuntimeProjectionTargetIdentity(
+            ownerIdentity = owner.runtimeOwnerIdentity,
+            targetIdentity = target.runtimeTargetIdentity,
+            generation = target.generation,
+            externalOesTexture = externalOesTexture,
+        )
+
+    override fun updateTexImage() {
+        owner.runtimeUpdateTexImageCount++
+    }
+
+    override fun getTransformMatrix(destination: FloatArray) {
+        owner.runtimeGetTransformMatrixCount++
+        owner.runtimeOesMatrix.copyInto(destination, endIndex = 16)
+    }
+
+    override fun timestampNanos(): Long {
+        owner.runtimeTimestampReadCount++
+        return owner.runtimeTimestampNanos
+    }
+}
+
 private data object FakeGlLaneScope : GlLaneScope {
     override fun targetSizeLimits(): ProjectionTargetSizeLimits =
         ProjectionTargetSizeLimits(maxWidth = Int.MAX_VALUE, maxHeight = Int.MAX_VALUE)
@@ -348,6 +476,14 @@ private data object FakeGlLaneScope : GlLaneScope {
 
     override fun checkGl(operation: String) = Unit
 }
+
+private fun identityMatrix4(): FloatArray =
+    floatArrayOf(
+        1.0f, 0.0f, 0.0f, 0.0f,
+        0.0f, 1.0f, 0.0f, 0.0f,
+        0.0f, 0.0f, 1.0f, 0.0f,
+        0.0f, 0.0f, 0.0f, 1.0f,
+    )
 
 internal class FakeProjectionVirtualDisplayOwner : ProjectionVirtualDisplayOwner {
     var closeCount = 0

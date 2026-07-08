@@ -55,6 +55,7 @@ internal class RenderingPipelinePreparationFailure internal constructor(
             ScreenCaptureProblemKind.ReadbackUnavailable,
             ScreenCaptureProblemKind.EncoderUnavailable,
             ScreenCaptureProblemKind.EncoderValidationFailed,
+            ScreenCaptureProblemKind.AllocationFailed,
             ScreenCaptureProblemKind.InternalInvariantViolation,
         )
     }

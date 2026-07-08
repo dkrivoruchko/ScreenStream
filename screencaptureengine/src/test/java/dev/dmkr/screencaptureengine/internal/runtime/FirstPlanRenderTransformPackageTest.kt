@@ -21,7 +21,8 @@ import dev.dmkr.screencaptureengine.internal.planning.ScreenCaptureOutputPlanner
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import java.lang.reflect.Field
+import java.nio.file.Files
+import java.nio.file.Path
 
 class FirstPlanRenderTransformPackageTest {
     @Test
@@ -403,28 +404,28 @@ class FirstPlanRenderTransformPackageTest {
     }
 
     private fun concreteOesMatrixStorageFieldPaths(): List<String> {
-        val visitedTypes = mutableSetOf<Class<*>>()
-        return FirstPlanRenderTransformPackage::class.java.declaredFields
-            .filter { field -> field.isOesMetadataRoot() }
-            .flatMap { field -> field.concreteOesMatrixStorageFieldPaths(path = field.name, visitedTypes = visitedTypes) }
+        val source = Files.readString(
+            resolveSourcePath(
+                rootRelativePath = "screencaptureengine/src/main/java/dev/dmkr/screencaptureengine/internal/runtime/FirstPlanRenderTransformPackage.kt",
+                moduleRelativePath = "src/main/java/dev/dmkr/screencaptureengine/internal/runtime/FirstPlanRenderTransformPackage.kt",
+            ),
+        )
+        val concreteMatrixStoragePattern = Regex(
+            pattern = """.*(?i:oes).*(FloatArray|FirstPlanRenderMatrix4).+|.*(FloatArray|FirstPlanRenderMatrix4).*(?i:oes).*""",
+        )
+        return source.lines()
+            .map(String::trim)
+            .filter { line -> concreteMatrixStoragePattern.matches(line) }
     }
 
-    private fun Field.concreteOesMatrixStorageFieldPaths(path: String, visitedTypes: MutableSet<Class<*>>): List<String> {
-        if (type == FloatArray::class.java || type == FirstPlanRenderMatrix4::class.java) return listOf(path)
-        if (!type.isInspectableFirstPlanMetadataType() || !visitedTypes.add(type)) return emptyList()
-        return type.declaredFields.flatMap { field ->
-            field.concreteOesMatrixStorageFieldPaths(path = "$path.${field.name}", visitedTypes = visitedTypes)
-        }
+    private fun resolveSourcePath(rootRelativePath: String, moduleRelativePath: String): Path {
+        val start = Path.of(System.getProperty("user.dir")).toAbsolutePath()
+        val roots = generateSequence(start) { path -> path.parent }.toList()
+        return roots
+            .flatMap { root -> listOf(root.resolve(rootRelativePath), root.resolve(moduleRelativePath)) }
+            .firstOrNull(Files::isRegularFile)
+            ?: error("Unable to resolve source path $rootRelativePath or $moduleRelativePath from $start")
     }
-
-    private fun Field.isOesMetadataRoot(): Boolean =
-        name.contains("oes", ignoreCase = true) || type.simpleName.contains("Oes", ignoreCase = true)
-
-    private fun Class<*>.isInspectableFirstPlanMetadataType(): Boolean =
-        !isPrimitive && !isEnum && !isArray && name.startsWith(firstPlanRuntimeClassPrefix())
-
-    private fun firstPlanRuntimeClassPrefix(): String =
-        FirstPlanRenderTransformPackage::class.java.name.removeSuffix("RenderTransformPackage")
 
     private fun identityMatrix4Values(): FloatArray =
         FloatArray(16) { index -> if (index % 5 == 0) 1.0f else 0.0f }

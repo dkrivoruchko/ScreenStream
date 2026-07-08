@@ -133,7 +133,7 @@ class ScreenCaptureFrameDeliveryCoordinatorTest {
             harness.assertNoUnexpectedFailures()
         } finally {
             allowFirstCallbackReturn.countDown()
-            firstCallbackThread?.join(TIMEOUT_MILLIS)
+            firstCallbackThread?.joinForCleanup()
             harness.close()
         }
     }
@@ -389,7 +389,7 @@ class ScreenCaptureFrameDeliveryCoordinatorTest {
             harness.assertNoUnexpectedFailures()
         } finally {
             allowFirstCallbackReturn.countDown()
-            firstCallbackThread?.join(TIMEOUT_MILLIS)
+            firstCallbackThread?.joinForCleanup()
             harness.close()
         }
     }
@@ -474,7 +474,7 @@ class ScreenCaptureFrameDeliveryCoordinatorTest {
             harness.assertNoUnexpectedFailures()
         } finally {
             allowCallbackReturn.countDown()
-            callbackThread?.join(TIMEOUT_MILLIS)
+            callbackThread?.joinForCleanup()
             harness.close()
         }
     }
@@ -696,6 +696,11 @@ class ScreenCaptureFrameDeliveryCoordinatorTest {
     private fun Thread.joinOrFail(description: String) {
         join(TIMEOUT_MILLIS)
         assertFalse("$description did not finish", isAlive)
+    }
+
+    private fun Thread.joinForCleanup() {
+        // Best-effort cleanup wait; test bodies use joinOrFail when termination is part of the contract.
+        join(TIMEOUT_MILLIS)
     }
 
     private companion object {

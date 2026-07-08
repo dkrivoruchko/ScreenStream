@@ -222,11 +222,12 @@ class Es2RenderingReadbackResourcePreparerTest {
     @Test
     fun gles20ApiDoesNotExposeRuntimeRenderingOrReadbackMethods() {
         val forbiddenMethodFragments = listOf("readPixels", "draw", "pbo", "fence", "map")
+        val source = gles20ApiSourceBody()
 
         forbiddenMethodFragments.forEach { fragment ->
             assertFalse(
                 "Gles20Api exposes forbidden readiness method fragment $fragment",
-                Gles20Api::class.java.methods.any { method -> method.name.contains(fragment, ignoreCase = true) },
+                Regex("""\bfun\s+\w*$fragment\w*\s*\(""", RegexOption.IGNORE_CASE).containsMatchIn(source),
             )
         }
     }
@@ -276,7 +277,9 @@ class Es2RenderingReadbackResourcePreparerTest {
             gles.uniformLocationNames,
         )
         assertEquals(listOf(20), gles.validateProgramCalls)
-        assertFalse(Gles20Api::class.java.methods.any { method -> method.name.contains("readPixels", ignoreCase = true) })
+        assertFalse(
+            Regex("""\bfun\s+\w*readPixels\w*\s*\(""", RegexOption.IGNORE_CASE).containsMatchIn(gles20ApiSourceBody()),
+        )
         assertEquals(emptyList<String>(), gles.deleteCalls)
 
         resources.close()
@@ -1026,6 +1029,25 @@ class Es2RenderingReadbackResourcePreparerTest {
             Es2OesMatrixCompositionRule.RuntimeOesMatrixComposedWithStaticPlanTransform,
             binding.dynamicOesMatrixUniformSlot.compositionRule,
         )
+    }
+
+    private fun gles20ApiSourceBody(): String =
+        Files.readString(
+            resolveSourcePath(
+                rootRelativePath = "screencaptureengine/src/main/java/dev/dmkr/screencaptureengine/internal/runtime/Gles20Api.kt",
+                moduleRelativePath = "src/main/java/dev/dmkr/screencaptureengine/internal/runtime/Gles20Api.kt",
+            ),
+        )
+            .substringAfter("internal interface Gles20Api {")
+            .substringBefore("\n}")
+
+    private fun resolveSourcePath(rootRelativePath: String, moduleRelativePath: String): Path {
+        val start = Path.of(System.getProperty("user.dir")).toAbsolutePath()
+        val roots = generateSequence(start) { path -> path.parent }.toList()
+        return roots
+            .flatMap { root -> listOf(root.resolve(rootRelativePath), root.resolve(moduleRelativePath)) }
+            .firstOrNull(Files::isRegularFile)
+            ?: error("Unable to resolve source path $rootRelativePath or $moduleRelativePath from $start")
     }
 
     private fun resolveEs2ReadinessProductionFiles(): List<Es2ReadinessSourceFile> {

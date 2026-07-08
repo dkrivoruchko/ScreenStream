@@ -57,7 +57,7 @@ internal class PreActiveRuntimeOwner internal constructor(
     private var preparedRenderingPipelineResources: PreparedRenderingPipelineResources? = null
     private var transferredRuntimeOwner: InitialRuntimeResourceOwner? = null
     private val signalMailbox = StartupToRuntimeSignalMailbox(startupGeometry = startupGeometry)
-    internal var movedInitialRenderingPipelineResourcesObserver: ((PreparedRenderingPipelineResources) -> Unit)? = null
+    internal var afterInitialRenderingPipelineResourcesMovedForTesting: (() -> Unit)? = null
 
     init {
         callbackRouter.handoffTo(this)
@@ -240,7 +240,7 @@ internal class PreActiveRuntimeOwner internal constructor(
                         )
                         preparedComponents = null
                         movedPreparedResources = resources
-                        movedInitialRenderingPipelineResourcesObserver?.invoke(resources)
+                        afterInitialRenderingPipelineResourcesMovedForTesting?.invoke()
                         movedPreparedResources = null
                         resources
                     }

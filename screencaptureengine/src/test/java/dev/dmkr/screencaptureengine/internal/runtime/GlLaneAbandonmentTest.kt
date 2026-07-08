@@ -1,9 +1,5 @@
 package dev.dmkr.screencaptureengine.internal.runtime
 
-import android.graphics.SurfaceTexture
-import android.os.Handler
-import android.os.HandlerThread
-import android.view.Surface
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -30,7 +26,6 @@ class GlLaneAbandonmentTest {
     @Test
     fun abandonedLaneRejectsNewBlockingAndSuspendWork() = runTest {
         val owner = GlLaneContextOwner("test-gl-abandoned-rejects")
-        val handlerThread = owner.privateHandlerThread()
 
         owner.abandonGlLane()
 
@@ -53,13 +48,11 @@ class GlLaneAbandonmentTest {
             },
         )
         owner.close()
-        handlerThread.join(5_000)
     }
 
     @Test
     fun closedLaneRejectsNewRetirementWork() {
         val owner = GlLaneContextOwner("test-gl-closed-retirement-rejects")
-        val handlerThread = owner.privateHandlerThread()
 
         owner.close()
 
@@ -68,22 +61,24 @@ class GlLaneAbandonmentTest {
                 throw AssertionError("Closed GL lane should not accept retirement work.")
             },
         )
-        handlerThread.join(5_000)
     }
 
     @Test
     fun closeAfterAbandonDoesNotWaitForBusyGlThread() {
         val owner = GlLaneContextOwner("test-gl-abandoned-close")
-        val handler = owner.privateHandler()
-        val handlerThread = owner.privateHandlerThread()
         val entered = CountDownLatch(1)
         val releaseBusyWork = CountDownLatch(1)
         val closed = CountDownLatch(1)
+        owner.setGlRetirementRunnerForTest { _, block ->
+            block(NoOpGlLaneScope)
+        }
 
         assertTrue(
-            handler.post {
+            owner.retireGlResources("test busy retirement before abandon close") {
                 entered.countDown()
-                releaseBusyWork.await(5, TimeUnit.SECONDS)
+                check(releaseBusyWork.await(5, TimeUnit.SECONDS)) {
+                    "Timed out waiting to release busy GL work."
+                }
             },
         )
         assertTrue(entered.await(5, TimeUnit.SECONDS))
@@ -99,8 +94,8 @@ class GlLaneAbandonmentTest {
             assertTrue(closed.await(500, TimeUnit.MILLISECONDS))
         } finally {
             releaseBusyWork.countDown()
-            closeThread.join(5_000)
-            handlerThread.join(5_000)
+            closeThread.joinOrFail("close after abandon")
+            owner.setGlRetirementRunnerForTest(null)
         }
     }
 
@@ -108,17 +103,20 @@ class GlLaneAbandonmentTest {
     @Test
     fun abandonWhileCloseIsWaitingForPostedGlCleanupReturnsPromptly() {
         val owner = GlLaneContextOwner("test-gl-close-then-abandon")
-        val handler = owner.privateHandler()
-        val handlerThread = owner.privateHandlerThread()
         val busyWorkEntered = CountDownLatch(1)
         val releaseBusyWork = CountDownLatch(1)
         val closeStarted = CountDownLatch(1)
         val closed = CountDownLatch(1)
+        owner.setGlRetirementRunnerForTest { _, block ->
+            block(NoOpGlLaneScope)
+        }
 
         assertTrue(
-            handler.post {
+            owner.retireGlResources("test busy retirement before close abandon") {
                 busyWorkEntered.countDown()
-                releaseBusyWork.await(5, TimeUnit.SECONDS)
+                check(releaseBusyWork.await(5, TimeUnit.SECONDS)) {
+                    "Timed out waiting to release busy GL work."
+                }
             },
         )
         assertTrue(busyWorkEntered.await(5, TimeUnit.SECONDS))
@@ -139,27 +137,30 @@ class GlLaneAbandonmentTest {
             assertTrue(closed.await(500, TimeUnit.MILLISECONDS))
         } finally {
             releaseBusyWork.countDown()
-            closeThread.join(5_000)
-            handlerThread.join(5_000)
+            closeThread.joinOrFail("close waiting for posted cleanup")
+            owner.setGlRetirementRunnerForTest(null)
         }
     }
 
     @Test
     fun queuedRetirementWorkIsDroppedByAbandonWithoutBlockingCaller() {
         val owner = GlLaneContextOwner("test-gl-retirement-abandon")
-        val handler = owner.privateHandler()
-        val handlerThread = owner.privateHandlerThread()
         val busyWorkEntered = CountDownLatch(1)
         val releaseBusyWork = CountDownLatch(1)
         val retirementReturned = CountDownLatch(1)
         val closeReturned = CountDownLatch(1)
         val retirementResult = AtomicReference<Boolean?>()
         val retirementBlockRan = AtomicBoolean()
+        owner.setGlRetirementRunnerForTest { _, block ->
+            block(NoOpGlLaneScope)
+        }
 
         assertTrue(
-            handler.post {
+            owner.retireGlResources("test busy retirement before queued abandon") {
                 busyWorkEntered.countDown()
-                releaseBusyWork.await(5, TimeUnit.SECONDS)
+                check(releaseBusyWork.await(5, TimeUnit.SECONDS)) {
+                    "Timed out waiting to release busy GL work."
+                }
             },
         )
         assertTrue(busyWorkEntered.await(5, TimeUnit.SECONDS))
@@ -189,23 +190,20 @@ class GlLaneAbandonmentTest {
             try {
                 assertTrue(closeReturned.await(500, TimeUnit.MILLISECONDS))
             } finally {
-                closeThread.join(5_000)
+                closeThread.joinOrFail("close after queued retirement abandon")
             }
         } finally {
             releaseBusyWork.countDown()
-            retirementThread.join(5_000)
-            handlerThread.join(5_000)
+            retirementThread.joinOrFail("queued retirement caller")
+            owner.setGlRetirementRunnerForTest(null)
         }
 
         assertFalse(retirementBlockRan.get())
-        assertFalse(handlerThread.isAlive)
     }
 
     @Test
     fun acceptedQueuedRetirementRunsDuringOrdinaryCloseDrain() {
         val owner = GlLaneContextOwner("test-gl-retirement-close-drain")
-        val handler = owner.privateHandler()
-        val handlerThread = owner.privateHandlerThread()
         val busyWorkEntered = CountDownLatch(1)
         val releaseBusyWork = CountDownLatch(1)
         val releaseQueuedRetirement = CountDownLatch(1)
@@ -220,9 +218,11 @@ class GlLaneAbandonmentTest {
         }
 
         assertTrue(
-            handler.post {
+            owner.retireGlResources("test busy retirement before close drain") {
                 busyWorkEntered.countDown()
-                releaseBusyWork.await(5, TimeUnit.SECONDS)
+                check(releaseBusyWork.await(5, TimeUnit.SECONDS)) {
+                    "Timed out waiting to release busy GL work."
+                }
             },
         )
         assertTrue(busyWorkEntered.await(5, TimeUnit.SECONDS))
@@ -268,22 +268,19 @@ class GlLaneAbandonmentTest {
             } finally {
                 releaseBusyWork.countDown()
                 releaseQueuedRetirement.countDown()
-                closeThread.join(5_000)
+                closeThread.joinOrFail("close draining queued retirement")
             }
         } finally {
             releaseBusyWork.countDown()
             releaseQueuedRetirement.countDown()
-            retirementThread.join(5_000)
+            retirementThread.joinOrFail("queued retirement caller")
             owner.setGlRetirementRunnerForTest(null)
-            handlerThread.join(5_000)
         }
     }
 
     @Test
     fun retirementFromGlThreadIsQueuedAndDoesNotRunInline() {
         val owner = GlLaneContextOwner("test-gl-retirement-on-gl-thread")
-        val handler = owner.privateHandler()
-        val handlerThread = owner.privateHandlerThread()
         val releaseGlCallback = CountDownLatch(1)
         val retirementReturned = CountDownLatch(1)
         val outerGlWorkReturned = CountDownLatch(1)
@@ -296,7 +293,7 @@ class GlLaneAbandonmentTest {
         }
 
         assertTrue(
-            handler.post {
+            owner.retireGlResources("test outer GL-thread retirement") {
                 retirementResult.set(
                     owner.retireGlResources("test GL-thread retirement") {
                         retirementBlockRan.set(true)
@@ -305,7 +302,9 @@ class GlLaneAbandonmentTest {
                 )
                 inlineBlockRanAtReturn.set(retirementBlockRan.get())
                 retirementReturned.countDown()
-                releaseGlCallback.await(5, TimeUnit.SECONDS)
+                check(releaseGlCallback.await(5, TimeUnit.SECONDS)) {
+                    "Timed out waiting to release outer GL callback."
+                }
                 outerGlWorkReturned.countDown()
             },
         )
@@ -325,7 +324,6 @@ class GlLaneAbandonmentTest {
             releaseGlCallback.countDown()
             owner.setGlRetirementRunnerForTest(null)
             owner.close()
-            handlerThread.join(5_000)
         }
     }
 
@@ -340,7 +338,6 @@ class GlLaneAbandonmentTest {
                 reported.countDown()
             },
         )
-        val handlerThread = owner.privateHandlerThread()
         val cleanupFailure = IllegalStateException("delete failed")
         owner.setGlRetirementRunnerForTest { _, block ->
             block(NoOpGlLaneScope)
@@ -360,23 +357,23 @@ class GlLaneAbandonmentTest {
         } finally {
             owner.setGlRetirementRunnerForTest(null)
             owner.close()
-            handlerThread.join(5_000)
         }
     }
 
     @Test
-    fun retirementFailureDefaultHandlerRethrowingSameFailureDoesNotStopLaterRetirement() {
-        val owner = GlLaneContextOwner("test-gl-retirement-default-handler-failure")
-        val handlerThread = owner.privateHandlerThread()
+    fun retirementFailureSinkThrowingSameFailureDoesNotStopLaterRetirement() {
         val reportedFailure = AtomicReference<Throwable?>()
         val reported = CountDownLatch(1)
         val laterRetirementRan = CountDownLatch(1)
         val cleanupFailure = IllegalStateException("delete failed")
-        handlerThread.uncaughtExceptionHandler = Thread.UncaughtExceptionHandler { _, failure ->
-            reportedFailure.set(failure)
-            reported.countDown()
-            throw failure
-        }
+        val owner = GlLaneContextOwner(
+            threadName = "test-gl-retirement-failure-sink-failure",
+            glRetirementFailureSink = { failure ->
+                reportedFailure.set(failure)
+                reported.countDown()
+                throw failure
+            },
+        )
         owner.setGlRetirementRunnerForTest { _, block ->
             block(NoOpGlLaneScope)
         }
@@ -402,15 +399,12 @@ class GlLaneAbandonmentTest {
         } finally {
             owner.setGlRetirementRunnerForTest(null)
             owner.close()
-            handlerThread.join(5_000)
         }
     }
 
     @Test
     fun queuedSuspendWorkFailsPromptlyWhenGlLaneIsAbandoned() {
         val owner = GlLaneContextOwner("test-gl-suspend-abandon")
-        val handler = owner.privateHandler()
-        val handlerThread = owner.privateHandlerThread()
         val busyWorkEntered = CountDownLatch(1)
         val releaseBusyWork = CountDownLatch(1)
         val suspendPosted = CountDownLatch(1)
@@ -420,11 +414,16 @@ class GlLaneAbandonmentTest {
         owner.setSuspendedCallPostObserverForTest {
             suspendPosted.countDown()
         }
+        owner.setGlRetirementRunnerForTest { _, block ->
+            block(NoOpGlLaneScope)
+        }
 
         assertTrue(
-            handler.post {
+            owner.retireGlResources("test busy retirement before suspend abandon") {
                 busyWorkEntered.countDown()
-                releaseBusyWork.await(5, TimeUnit.SECONDS)
+                check(releaseBusyWork.await(5, TimeUnit.SECONDS)) {
+                    "Timed out waiting to release busy GL work."
+                }
             },
         )
         assertTrue(busyWorkEntered.await(5, TimeUnit.SECONDS))
@@ -460,16 +459,14 @@ class GlLaneAbandonmentTest {
         } finally {
             owner.setSuspendedCallPostObserverForTest(null)
             releaseBusyWork.countDown()
-            suspendThread.join(5_000)
-            handlerThread.join(5_000)
+            suspendThread.joinOrFail("queued suspend work")
+            owner.setGlRetirementRunnerForTest(null)
         }
     }
 
     @Test
     fun queuedSuspendWorkCancelledBeforeAbandonRemainsCancelledAndDoesNotRun() = runTest {
         val owner = GlLaneContextOwner("test-gl-suspend-cancel-then-abandon")
-        val handler = owner.privateHandler()
-        val handlerThread = owner.privateHandlerThread()
         val busyWorkEntered = CountDownLatch(1)
         val releaseBusyWork = CountDownLatch(1)
         val suspendPosted = CountDownLatch(1)
@@ -477,11 +474,16 @@ class GlLaneAbandonmentTest {
         owner.setSuspendedCallPostObserverForTest {
             suspendPosted.countDown()
         }
+        owner.setGlRetirementRunnerForTest { _, block ->
+            block(NoOpGlLaneScope)
+        }
 
         assertTrue(
-            handler.post {
+            owner.retireGlResources("test busy retirement before suspend cancel") {
                 busyWorkEntered.countDown()
-                releaseBusyWork.await(5, TimeUnit.SECONDS)
+                check(releaseBusyWork.await(5, TimeUnit.SECONDS)) {
+                    "Timed out waiting to release busy GL work."
+                }
             },
         )
         assertTrue(busyWorkEntered.await(5, TimeUnit.SECONDS))
@@ -513,7 +515,7 @@ class GlLaneAbandonmentTest {
             releaseBusyWork.countDown()
             suspendJob.cancel()
             suspendJob.join()
-            handlerThread.join(5_000)
+            owner.setGlRetirementRunnerForTest(null)
         }
 
         assertFalse(suspendBlockRan.get())
@@ -524,9 +526,19 @@ class GlLaneAbandonmentTest {
     fun projectionTargetOwnerAbandonWhileCloseIsWaitingForActiveWorkReturnsPromptly() {
         val glLane = CleanupBlockingGlLane()
         val owner = ProjectionTargetOwner(glLane)
+        val creationFailure = AtomicReference<Throwable?>()
         val closeStarted = CountDownLatch(1)
         val closed = CountDownLatch(1)
-        owner.setActiveCreationsForTest(1)
+        glLane.blockExecuteCurrentBlocking.set(true)
+
+        val createThread = Thread {
+            creationFailure.set(
+                runCatching {
+                    owner.createTarget(width = 16, height = 16, densityDpi = 320)
+                }.exceptionOrNull(),
+            )
+        }.apply { start() }
+        assertTrue(glLane.executeCurrentBlockingEntered.await(5, TimeUnit.SECONDS))
 
         val closeThread = Thread {
             closeStarted.countDown()
@@ -544,27 +556,17 @@ class GlLaneAbandonmentTest {
             assertTrue(closed.await(500, TimeUnit.MILLISECONDS))
             assertTrue(glLane.closeCalled.get())
         } finally {
-            closeThread.join(5_000)
+            glLane.releaseExecuteCurrentBlocking.countDown()
+            createThread.joinOrFail("projection target creation")
+            closeThread.joinOrFail("projection target close")
         }
+        assertTrue(creationFailure.get() is IllegalStateException)
     }
 
     @Test
     fun projectionTargetOwnerCloseAfterAbandonDoesNotDispatchGlCleanup() {
         val glLane = CleanupBlockingGlLane()
         val owner = ProjectionTargetOwner(glLane)
-        val surfaceTexture = SurfaceTexture(0)
-        val surface = Surface(surfaceTexture)
-        val target = ProjectionTargetOwner.ProjectionTarget(
-            generation = 1L,
-            width = 16,
-            height = 16,
-            densityDpi = 320,
-            androidSurface = surface,
-            owner = owner,
-            surfaceTexture = surfaceTexture,
-            textureId = 11,
-        )
-        owner.addLiveTargetForTest(target)
         val closed = CountDownLatch(1)
 
         owner.abandonGlLane()
@@ -580,7 +582,7 @@ class GlLaneAbandonmentTest {
             assertTrue(glLane.closeCalled.get())
         } finally {
             glLane.releaseCleanup.countDown()
-            closeThread.join(5_000)
+            closeThread.joinOrFail("projection target close after abandon")
         }
     }
 
@@ -592,36 +594,13 @@ class GlLaneAbandonmentTest {
             exception
         }
 
-    private fun GlLaneContextOwner.privateHandler(): Handler {
-        val field = GlLaneContextOwner::class.java.getDeclaredField("handler")
-        field.isAccessible = true
-        return field.get(this) as Handler
-    }
-
-    private fun GlLaneContextOwner.privateHandlerThread(): HandlerThread {
-        val field = GlLaneContextOwner::class.java.getDeclaredField("handlerThread")
-        field.isAccessible = true
-        return field.get(this) as HandlerThread
-    }
-
-    @Suppress("UNCHECKED_CAST")
-    private fun ProjectionTargetOwner.addLiveTargetForTest(target: ProjectionTargetOwner.ProjectionTarget) {
-        val field = ProjectionTargetOwner::class.java.getDeclaredField("liveTargets")
-        field.isAccessible = true
-        val liveTargets = field.get(this) as MutableSet<ProjectionTargetOwner.ProjectionTarget>
-        liveTargets.add(target)
-    }
-
-    private fun ProjectionTargetOwner.setActiveCreationsForTest(value: Int) {
-        val field = ProjectionTargetOwner::class.java.getDeclaredField("activeCreations")
-        field.isAccessible = true
-        field.setInt(this, value)
-    }
-
     private class CleanupBlockingGlLane : ProjectionTargetGlLane, GlLaneAbandonment {
         val cleanupDispatched = AtomicBoolean()
         val closeCalled = AtomicBoolean()
         val releaseCleanup = CountDownLatch(1)
+        val blockExecuteCurrentBlocking = AtomicBoolean()
+        val executeCurrentBlockingEntered = CountDownLatch(1)
+        val releaseExecuteCurrentBlocking = CountDownLatch(1)
         override val isGlLaneAbandoned: Boolean
             get() = abandoned.get()
 
@@ -631,8 +610,15 @@ class GlLaneAbandonmentTest {
         override fun isOnGlThread(): Boolean = false
 
         @OptIn(BlockingProjectionTargetGlAccess::class)
-        override fun <T> executeCurrentBlocking(block: GlLaneScope.() -> T): T =
-            block(scope)
+        override fun <T> executeCurrentBlocking(block: GlLaneScope.() -> T): T {
+            if (blockExecuteCurrentBlocking.get()) {
+                executeCurrentBlockingEntered.countDown()
+                check(releaseExecuteCurrentBlocking.await(5, TimeUnit.SECONDS)) {
+                    "Timed out waiting to release blocking GL execution."
+                }
+            }
+            return block(scope)
+        }
 
         override suspend fun <T> executeCurrent(
             onCancellation: (T) -> Unit,
@@ -647,7 +633,9 @@ class GlLaneAbandonmentTest {
         @OptIn(BlockingProjectionTargetGlAccess::class)
         override fun executeCurrentIfCreatedBlocking(block: GlLaneScope.() -> Unit) {
             cleanupDispatched.set(true)
-            releaseCleanup.await(5, TimeUnit.SECONDS)
+            check(releaseCleanup.await(5, TimeUnit.SECONDS)) {
+                "Timed out waiting to release projection target cleanup."
+            }
             block(scope)
         }
 
@@ -688,5 +676,10 @@ class GlLaneAbandonmentTest {
             Thread.sleep(10)
         }
         return false
+    }
+
+    private fun Thread.joinOrFail(description: String) {
+        join(5_000L)
+        assertFalse("$description thread did not finish", isAlive)
     }
 }

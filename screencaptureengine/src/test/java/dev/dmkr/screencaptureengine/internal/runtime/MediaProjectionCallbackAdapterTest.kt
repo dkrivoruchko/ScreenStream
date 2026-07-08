@@ -1,6 +1,7 @@
 package dev.dmkr.screencaptureengine.internal.runtime
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -57,6 +58,81 @@ class MediaProjectionCallbackAdapterTest {
             assertEquals(0, executor.drain())
             assertEquals(listOf(CallbackEvent.Stop), listener.events())
         }
+    }
+
+    @Test
+    fun callback_onStopMarksProjectionStopBeforeListenerDrain() {
+        val listener = RecordingListener()
+        val executor = DeterministicExecutorService()
+        val rawEvents = CopyOnWriteArrayList<ProjectionCallbackRawEvent>()
+        MediaProjectionCallbackAdapter(
+            listener = listener,
+            synchronousEventObserver = rawEvents::add,
+            listenerExecutor = executor,
+        ).use { adapter ->
+            adapter.callback.onStop()
+
+            assertTrue(adapter.projectionStopObserved)
+            assertEquals(listOf(ProjectionCallbackRawEvent.Stop), rawEvents.toList())
+            assertEquals(emptyList<CallbackEvent>(), listener.events())
+
+            assertEquals(1, executor.drain())
+            assertEquals(listOf(CallbackEvent.Stop), listener.events())
+        }
+    }
+
+    @Test
+    fun callback_onStopMarksProjectionStopBeforeBlockedListenerSubmissionReturns() {
+        val listener = RecordingListener()
+        val executor = BlockingExecuteExecutorService()
+        val callbackEnteredExecutor = CountDownLatch(1)
+        val releaseExecutor = CountDownLatch(1)
+        executor.onExecuteEntered = { callbackEnteredExecutor.countDown() }
+        executor.awaitExecuteRelease = {
+            assertTrue(releaseExecutor.await(2, TimeUnit.SECONDS))
+        }
+        MediaProjectionCallbackAdapter(listener, listenerExecutor = executor).use { adapter ->
+            val callbackThread = Thread { adapter.callback.onStop() }.apply { start() }
+
+            assertTrue(callbackEnteredExecutor.await(2, TimeUnit.SECONDS))
+            assertTrue(adapter.projectionStopObserved)
+            assertEquals(emptyList<CallbackEvent>(), listener.events())
+
+            releaseExecutor.countDown()
+            callbackThread.joinOrFail("projection stop callback")
+            executor.drain()
+
+            assertEquals(listOf(CallbackEvent.Stop), listener.events())
+        }
+    }
+
+    @Test
+    fun arbiterRawStopMarkWaitsForPublicOutcomeGate() {
+        val arbiter = ProjectionStopArbiter()
+        val publicOutcomeEntered = CountDownLatch(1)
+        val allowPublicOutcomeToReturn = CountDownLatch(1)
+        val rawMarkReturned = CountDownLatch(1)
+
+        val publicOutcomeThread = Thread {
+            arbiter.arbitratePublicOutcome { rawStopObserved ->
+                assertEquals(false, rawStopObserved)
+                publicOutcomeEntered.countDown()
+                assertTrue(allowPublicOutcomeToReturn.await(2, TimeUnit.SECONDS))
+            }
+        }.apply { start() }
+        assertTrue(publicOutcomeEntered.await(2, TimeUnit.SECONDS))
+
+        val rawMarkThread = Thread {
+            arbiter.markRawStopObserved()
+            rawMarkReturned.countDown()
+        }.apply { start() }
+
+        assertEquals(1L, rawMarkReturned.count)
+        allowPublicOutcomeToReturn.countDown()
+        assertTrue(rawMarkReturned.await(2, TimeUnit.SECONDS))
+        publicOutcomeThread.joinOrFail("public outcome arbitration")
+        rawMarkThread.joinOrFail("raw stop mark")
+        assertTrue(arbiter.projectionStopObserved)
     }
 
     @Test
@@ -142,7 +218,9 @@ class MediaProjectionCallbackAdapterTest {
             listener = listener,
             synchronousEventObserver = {
                 observerStarted.countDown()
-                releaseObserver.await(2, TimeUnit.SECONDS)
+                check(releaseObserver.await(2, TimeUnit.SECONDS)) {
+                    "Timed out waiting to release synchronous observer."
+                }
             },
             listenerExecutor = executor,
         )
@@ -159,8 +237,8 @@ class MediaProjectionCallbackAdapterTest {
         closeThread.start()
         assertTrue(closeReturned.await(2, TimeUnit.SECONDS))
         releaseObserver.countDown()
-        callbackThread.join(2_000)
-        closeThread.join(2_000)
+        callbackThread.joinOrFail("projection stop callback")
+        closeThread.joinOrFail("adapter close")
 
         assertNull(callbackFailure.get())
         assertNull(closeFailure.get())
@@ -226,9 +304,58 @@ class MediaProjectionCallbackAdapterTest {
         }
     }
 
+    private class BlockingExecuteExecutorService : AbstractExecutorService() {
+        private val tasks = ConcurrentLinkedQueue<Runnable>()
+
+        @Volatile
+        private var isShutdown = false
+        var onExecuteEntered: (() -> Unit)? = null
+        var awaitExecuteRelease: (() -> Unit)? = null
+
+        override fun execute(command: Runnable) {
+            if (isShutdown) throw RejectedExecutionException("Executor is shut down.")
+            onExecuteEntered?.invoke()
+            awaitExecuteRelease?.invoke()
+            tasks += command
+        }
+
+        override fun shutdown() {
+            isShutdown = true
+        }
+
+        override fun shutdownNow(): MutableList<Runnable> {
+            isShutdown = true
+            val remaining = mutableListOf<Runnable>()
+            while (true) {
+                remaining += tasks.poll() ?: break
+            }
+            return remaining
+        }
+
+        override fun isShutdown(): Boolean = isShutdown
+
+        override fun isTerminated(): Boolean = isShutdown && tasks.isEmpty()
+
+        override fun awaitTermination(timeout: Long, unit: TimeUnit): Boolean = isTerminated
+
+        fun drain(): Int {
+            var count = 0
+            while (true) {
+                val task = tasks.poll() ?: return count
+                task.run()
+                count++
+            }
+        }
+    }
+
     private sealed interface CallbackEvent {
         data object Stop : CallbackEvent
         data class Resize(val width: Int, val height: Int) : CallbackEvent
         data class Visibility(val isVisible: Boolean) : CallbackEvent
+    }
+
+    private fun Thread.joinOrFail(description: String) {
+        join(2_000L)
+        assertFalse("$description thread did not finish", isAlive)
     }
 }

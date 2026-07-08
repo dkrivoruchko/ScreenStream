@@ -27,18 +27,18 @@ internal class MediaProjectionCallbackAdapter internal constructor(
     private val stateLock = Any()
     private val callbackThread = HandlerThread(callbackThreadName, Process.THREAD_PRIORITY_DISPLAY).apply { start() }
     private val isClosed = AtomicBoolean()
-    private val isProjectionStopped = AtomicBoolean()
     private val eventSequence = java.util.concurrent.atomic.AtomicLong()
     private var registeredProjection: ProjectionHandle? = null
 
     private val handler: Handler = Handler(callbackThread.looper)
     override val callbackHandler: ProjectionCallbackHandlerHandle = AndroidProjectionCallbackHandlerHandle(handler)
+    override val projectionStopArbiter: ProjectionStopArbiter = ProjectionStopArbiter()
     override val projectionStopObserved: Boolean
-        get() = isProjectionStopped.get()
+        get() = projectionStopArbiter.projectionStopObserved
 
     internal val callback: MediaProjection.Callback = object : MediaProjection.Callback() {
         override fun onStop() {
-            dispatchObservedEvent(ProjectionCallbackRawEvent.Stop)
+            dispatchObservedStop()
         }
 
         override fun onCapturedContentResize(width: Int, height: Int) {
@@ -84,16 +84,24 @@ internal class MediaProjectionCallbackAdapter internal constructor(
         synchronized(stateLock) {
             if (isClosed.get()) return
             when (event) {
-                ProjectionCallbackRawEvent.Stop -> {
-                    if (!isProjectionStopped.compareAndSet(false, true)) return
-                }
-
+                ProjectionCallbackRawEvent.Stop -> error("Stop must be dispatched through dispatchObservedStop.")
                 is ProjectionCallbackRawEvent.Resize,
-                is ProjectionCallbackRawEvent.Visibility -> {
-                    if (isProjectionStopped.get()) return
-                }
+                is ProjectionCallbackRawEvent.Visibility -> if (projectionStopArbiter.projectionStopObserved) return
             }
         }
+        deliverObservedEvent(event)
+    }
+
+    private fun dispatchObservedStop() {
+        if (isClosed.get()) return
+        if (!projectionStopArbiter.markRawStopObserved()) return
+        if (isClosed.get()) return
+        deliverObservedEvent(ProjectionCallbackRawEvent.Stop)
+    }
+
+    private fun deliverObservedEvent(event: ProjectionCallbackRawEvent) {
+        if (isClosed.get()) return
+        if (event != ProjectionCallbackRawEvent.Stop && projectionStopArbiter.projectionStopObserved) return
         synchronousEventObserver?.invoke(event)
         try {
             listenerExecutor.execute {
@@ -102,13 +110,13 @@ internal class MediaProjectionCallbackAdapter internal constructor(
                         null
                     } else when (event) {
                         ProjectionCallbackRawEvent.Stop -> listener::onProjectionStopped
-                        is ProjectionCallbackRawEvent.Resize -> if (!isProjectionStopped.get()) {
+                        is ProjectionCallbackRawEvent.Resize -> if (!projectionStopArbiter.projectionStopObserved) {
                             { listener.onCapturedContentResized(event.resize) }
                         } else {
                             null
                         }
 
-                        is ProjectionCallbackRawEvent.Visibility -> if (!isProjectionStopped.get()) {
+                        is ProjectionCallbackRawEvent.Visibility -> if (!projectionStopArbiter.projectionStopObserved) {
                             { listener.onCapturedContentVisibilityChanged(event.isVisible) }
                         } else {
                             null

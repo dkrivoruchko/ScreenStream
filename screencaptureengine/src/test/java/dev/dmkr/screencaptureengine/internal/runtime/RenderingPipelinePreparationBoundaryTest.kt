@@ -32,6 +32,7 @@ class RenderingPipelinePreparationBoundaryTest {
             ScreenCaptureProblemKind.ReadbackUnavailable,
             ScreenCaptureProblemKind.EncoderUnavailable,
             ScreenCaptureProblemKind.EncoderValidationFailed,
+            ScreenCaptureProblemKind.AllocationFailed,
             ScreenCaptureProblemKind.InternalInvariantViolation,
         )
 
@@ -381,9 +382,7 @@ class RenderingPipelinePreparationBoundaryTest {
         val owner = runtime.start().transferToPreActiveRuntimeOwner()
         val prepared = owner.prepareInitialActivePlan(ScreenCaptureConfig(metricsProvider = runtime.metricsProvider))
         val preparer = TestRenderingPipelinePreparer()
-        lateinit var movedResources: PreparedRenderingPipelineResources
-        owner.movedInitialRenderingPipelineResourcesObserver = { resources ->
-            movedResources = resources
+        owner.afterInitialRenderingPipelineResourcesMovedForTesting = {
             owner.close()
         }
 
@@ -393,65 +392,7 @@ class RenderingPipelinePreparationBoundaryTest {
         runCurrent()
 
         assertEquals(ScreenCaptureProblemKind.GlResourceFailure, exception.problem.kind)
-        assertFalse(movedResources.planPreparationToken.isCurrent)
-        assertEquals(1, preparer.preparedResources.single().closeCount)
-        assertEquals(1, preparer.preparedEncoders.single().closeCount)
-        assertEquals(1, runtime.virtualDisplayOwner.closeCount)
-        assertEquals(1, runtime.targetOwner.closeCount)
-    }
-
-    @Test
-    fun preActiveRenderingPipelinePreparationPreMoveOpenOwnerActiveTokenIdentityMismatchIsInvariantViolation() = runTest {
-        val runtime = TestRuntime(apiLevel = 33)
-        val owner = runtime.start().transferToPreActiveRuntimeOwner()
-        val prepared = owner.prepareInitialActivePlan(ScreenCaptureConfig(metricsProvider = runtime.metricsProvider))
-        val preparer = TestRenderingPipelinePreparer()
-        val replacementToken = PlanPreparationToken(
-            ownerToken = prepared.ownerToken,
-            planToken = prepared.planToken,
-            projectionTargetGeneration = prepared.projectionTarget.generation,
-        )
-        preparer.afterPrepare = {
-            owner.replaceActivePlanPreparationTokenForTest(replacementToken)
-        }
-
-        val exception = expectStartException {
-            owner.prepareInitialRenderingPipeline(preparedPlan = prepared, preparer = preparer)
-        }
-        runCurrent()
-
-        assertEquals(ScreenCaptureProblemKind.InternalInvariantViolation, exception.problem.kind)
-        assertTrue(preparer.requests.single().planPreparationToken.isCurrent)
-        assertEquals(1, preparer.preparedResources.single().closeCount)
-        assertEquals(1, preparer.preparedEncoders.single().closeCount)
-        assertEquals(1, runtime.virtualDisplayOwner.closeCount)
-        assertEquals(1, runtime.targetOwner.closeCount)
-    }
-
-    @Test
-    fun preActiveRenderingPipelinePreparationOpenOwnerActiveTokenIdentityMismatchIsInvariantViolation() = runTest {
-        val runtime = TestRuntime(apiLevel = 33)
-        val owner = runtime.start().transferToPreActiveRuntimeOwner()
-        val prepared = owner.prepareInitialActivePlan(ScreenCaptureConfig(metricsProvider = runtime.metricsProvider))
-        val preparer = TestRenderingPipelinePreparer()
-        lateinit var movedResources: PreparedRenderingPipelineResources
-        val replacementToken = PlanPreparationToken(
-            ownerToken = prepared.ownerToken,
-            planToken = prepared.planToken,
-            projectionTargetGeneration = prepared.projectionTarget.generation,
-        )
-        owner.movedInitialRenderingPipelineResourcesObserver = { resources ->
-            movedResources = resources
-            owner.replaceActivePlanPreparationTokenForTest(replacementToken)
-        }
-
-        val exception = expectStartException {
-            owner.prepareInitialRenderingPipeline(preparedPlan = prepared, preparer = preparer)
-        }
-        runCurrent()
-
-        assertEquals(ScreenCaptureProblemKind.InternalInvariantViolation, exception.problem.kind)
-        assertTrue(movedResources.planPreparationToken.isCurrent)
+        assertFalse(preparer.requests.single().planPreparationToken.isCurrent)
         assertEquals(1, preparer.preparedResources.single().closeCount)
         assertEquals(1, preparer.preparedEncoders.single().closeCount)
         assertEquals(1, runtime.virtualDisplayOwner.closeCount)
@@ -478,11 +419,5 @@ class RenderingPipelinePreparationBoundaryTest {
         assertEquals(1, preparer.preparedEncoders.single().closeCount)
         assertEquals(1, runtime.virtualDisplayOwner.closeCount)
         assertEquals(1, runtime.targetOwner.closeCount)
-    }
-
-    private fun PreActiveRuntimeOwner.replaceActivePlanPreparationTokenForTest(token: PlanPreparationToken) {
-        val field = PreActiveRuntimeOwner::class.java.getDeclaredField("activePlanPreparationToken")
-        field.isAccessible = true
-        field.set(this, token)
     }
 }

@@ -19,6 +19,8 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
+import java.nio.file.Files
+import java.nio.file.Path
 import kotlin.coroutines.resumeWithException
 
 @RunWith(RobolectricTestRunner::class)
@@ -181,7 +183,9 @@ class ProjectionTargetGlCapabilityTest {
                     onCancellation = { resource: CloseCountingResource -> resource.close() },
                 ) {
                     blockEntered.countDown()
-                    releaseBlock.await(5, TimeUnit.SECONDS)
+                    check(releaseBlock.await(5, TimeUnit.SECONDS)) {
+                        "Timed out waiting to release startup rendering GL block."
+                    }
                     CloseCountingResource(cleanupCount)
                 }
             }
@@ -202,13 +206,28 @@ class ProjectionTargetGlCapabilityTest {
 
     @Test
     fun projectionTargetGlScopeDoesNotExposeRawSurfaceTextureOrSurface() {
-        val declaredMethods = ProjectionTargetGlScope::class.java.methods
-            .filter { method -> method.declaringClass == ProjectionTargetGlScope::class.java }
+        val source = Files.readString(
+            resolveSourcePath(
+                rootRelativePath = "screencaptureengine/src/main/java/dev/dmkr/screencaptureengine/internal/runtime/ProjectionTargetOwner.kt",
+                moduleRelativePath = "src/main/java/dev/dmkr/screencaptureengine/internal/runtime/ProjectionTargetOwner.kt",
+            ),
+        )
+        val interfaceBody = source.substringAfter("internal interface ProjectionTargetGlScope {")
+            .substringBefore("\n}")
 
-        assertFalse(declaredMethods.any { method -> method.returnType == SurfaceTexture::class.java })
-        assertFalse(declaredMethods.any { method -> method.returnType == Surface::class.java })
-        assertFalse(declaredMethods.any { method -> method.name.contains("TextureId", ignoreCase = true) })
-        assertFalse(declaredMethods.any { method -> method.name.contains("SurfaceTexture", ignoreCase = true) })
+        assertFalse(interfaceBody.contains("SurfaceTexture"))
+        assertFalse(interfaceBody.contains("Surface"))
+        assertFalse(interfaceBody.contains("TextureId", ignoreCase = true))
+        assertFalse(interfaceBody.contains("textureId", ignoreCase = true))
+    }
+
+    private fun resolveSourcePath(rootRelativePath: String, moduleRelativePath: String): Path {
+        val start = Path.of(System.getProperty("user.dir")).toAbsolutePath()
+        val roots = generateSequence(start) { path -> path.parent }.toList()
+        return roots
+            .flatMap { root -> listOf(root.resolve(rootRelativePath), root.resolve(moduleRelativePath)) }
+            .firstOrNull(Files::isRegularFile)
+            ?: error("Unable to resolve source path $rootRelativePath or $moduleRelativePath from $start")
     }
 
     private class TestProjectionTarget(
