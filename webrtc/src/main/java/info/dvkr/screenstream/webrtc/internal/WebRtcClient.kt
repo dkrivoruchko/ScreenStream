@@ -21,6 +21,7 @@ import org.webrtc.PeerConnectionFactory
 import org.webrtc.RtpCapabilities
 import org.webrtc.RtpParameters
 import org.webrtc.RtpReceiver
+import org.webrtc.RtpSender
 import org.webrtc.RtpTransceiver
 import org.webrtc.SdpObserver
 import org.webrtc.SessionDescription
@@ -73,10 +74,16 @@ internal class WebRtcClient(
     private var peerConnection: PeerConnection? = null
 
     @Volatile
+    private var videoSender: RtpSender? = null
+
+    @Volatile
     private var remoteAnswerReceived: Boolean = false
 
     @Volatile
     private var remoteAnswerApplied: Boolean = false
+
+    @Volatile
+    private var keyFrameRequestedOnConnected: Boolean = false
 
     @Volatile
     private var lastPeerConnectionState: PeerConnectionState = PeerConnectionState.NEW
@@ -123,7 +130,7 @@ internal class WebRtcClient(
         val currentPeerConnection = factory.createPeerConnection(rtcConfig, observer)!!
         observerPeerConnection = currentPeerConnection
         currentPeerConnection.apply {
-            addTrack(mediaStream.videoTrack)
+            videoSender = addTrack(mediaStream.videoTrack)
             addTrack(mediaStream.audioTrack)
             transceivers.forEach {
                 if (it.mediaType == MediaStreamTrack.MediaType.MEDIA_TYPE_VIDEO) {
@@ -146,6 +153,7 @@ internal class WebRtcClient(
             queuedCandidates.clear()
             remoteAnswerReceived = false
             remoteAnswerApplied = false
+            keyFrameRequestedOnConnected = false
         }
         state.set(State.PENDING_OFFER)
 
@@ -188,12 +196,14 @@ internal class WebRtcClient(
 
         peerConnection?.dispose()
         peerConnection = null
+        videoSender = null
         mediaStreamId = null
         synchronized(pendingCandidatesLock) { pendingHostCandidates.clear() }
         synchronized(queuedClientDataLock) {
             queuedCandidates.clear()
             remoteAnswerReceived = false
             remoteAnswerApplied = false
+            keyFrameRequestedOnConnected = false
         }
         lastPeerConnectionState = PeerConnectionState.NEW
         peerConnectionStateEpoch = 0
@@ -396,6 +406,26 @@ internal class WebRtcClient(
             queuedCandidates.toList().also { queuedCandidates.clear() }
         }
         clientCandidates.forEach { setClientCandidate(mediaStreamId, it) }
+        requestKeyFrameIfReady(attemptId)
+    }
+
+    private fun requestKeyFrameIfReady(attemptId: AttemptId) {
+        if (state.get() != State.LOCAL_OFFER_SET || !remoteAnswerApplied || lastPeerConnectionState != PeerConnectionState.CONNECTED) return
+        if (keyFrameRequestedOnConnected) return
+
+        keyFrameRequestedOnConnected = true
+        val sender = videoSender
+        if (sender == null) {
+            XLog.i(getLog("requestKeyFrame", "Video sender is null. Client: $id, attemptId=$attemptId"))
+            return
+        }
+
+        val generated = runCatching { sender.generateKeyFrame() }.onFailure {
+            XLog.w(getLog("requestKeyFrame", "Failed. Client: $id, attemptId=$attemptId"), it)
+        }.getOrDefault(false)
+
+        if (generated) XLog.d(getLog("requestKeyFrame", "Requested. Client: $id, attemptId=$attemptId"))
+        else XLog.w(getLog("requestKeyFrame", "Rejected. Client: $id, attemptId=$attemptId"))
     }
 
     // WebRTC-HT thread
@@ -485,6 +515,10 @@ internal class WebRtcClient(
         lastPeerConnectionState = peerConnectionState
         val connectionStateEpoch = ++peerConnectionStateEpoch
         when (peerConnectionState) {
+            PeerConnectionState.CONNECTED -> {
+                requestKeyFrameIfReady(callbackAttemptId)
+            }
+
             PeerConnectionState.FAILED -> {
                 val msg = "Client: $id, MediaStream: '$mediaStreamId', State: $state"
                 XLog.d(this@WebRtcClient.getLog("onPeerFailed", msg))

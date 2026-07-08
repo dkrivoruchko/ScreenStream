@@ -39,6 +39,14 @@ public final class Environment implements AutoCloseable {
     return webrtcEnv;
   }
 
+  /**
+   * Returns current time as controlled by webrtcEnv. By default this is
+   * normally same as System.nanoTime(), but call this function to be safe.
+   */
+  public long getCurrentTimeNanos() {
+    return nativeCurrentTimeNanos(webrtcEnv);
+  }
+
   @Override
   public void close() {
     nativeFree(webrtcEnv);
@@ -49,6 +57,6 @@ public final class Environment implements AutoCloseable {
   }
 
   private static native long nativeCreate(@Nullable String fieldTrials);
-
+  private static native long nativeCurrentTimeNanos(long webrtcEnv);
   private static native void nativeFree(long webrtcEnv);
 }

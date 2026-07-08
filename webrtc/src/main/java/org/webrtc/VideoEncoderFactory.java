@@ -16,20 +16,20 @@ import androidx.annotation.Nullable;
 public interface VideoEncoderFactory {
   public interface VideoEncoderSelector {
     /** Called with the VideoCodecInfo of the currently used encoder. */
-    @CalledByNative("VideoEncoderSelector") void onCurrentEncoder(VideoCodecInfo info);
+    @CalledByNative void onCurrentEncoder(VideoCodecInfo info);
 
     /**
      * Called with the current available bitrate. Returns null if the encoder selector prefers to
      * keep the current encoder or a VideoCodecInfo if a new encoder is preferred.
      */
-    @Nullable @CalledByNative("VideoEncoderSelector") VideoCodecInfo onAvailableBitrate(int kbps);
+    @Nullable @CalledByNative VideoCodecInfo onAvailableBitrate(int kbps);
 
     /**
      * Called every time the encoder input resolution change. Returns null if the encoder selector
      * prefers to keep the current encoder or a VideoCodecInfo if a new encoder is preferred.
      */
     @Nullable
-    @CalledByNative("VideoEncoderSelector")
+    @CalledByNative
     default VideoCodecInfo onResolutionChange(int widht, int height) {
       return null;
     }
@@ -39,7 +39,7 @@ public interface VideoEncoderFactory {
      * selector prefers to keep the current encoder or a VideoCodecInfo if a new encoder is
      * preferred.
      */
-    @Nullable @CalledByNative("VideoEncoderSelector") VideoCodecInfo onEncoderBroken();
+    @Nullable @CalledByNative VideoCodecInfo onEncoderBroken();
   }
 
   /** Creates an encoder for the given video codec. */

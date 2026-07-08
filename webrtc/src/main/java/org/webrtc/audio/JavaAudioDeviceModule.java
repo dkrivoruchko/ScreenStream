@@ -42,6 +42,7 @@ public class JavaAudioDeviceModule implements AudioDeviceModule {
     private AudioTrackErrorCallback audioTrackErrorCallback;
     private AudioRecordErrorCallback audioRecordErrorCallback;
     private SamplesReadyCallback samplesReadyCallback;
+    private AudioRecordDataCallback audioRecordDataCallback;
     private AudioTrackStateCallback audioTrackStateCallback;
     private AudioRecordStateCallback audioRecordStateCallback;
     private boolean useHardwareAcousticEchoCanceler = isBuiltInAcousticEchoCancelerSupported();
@@ -51,7 +52,6 @@ public class JavaAudioDeviceModule implements AudioDeviceModule {
     private AudioAttributes audioAttributes;
     private boolean useLowLatency;
     private boolean enableVolumeLogger;
-    private AudioRecordDataCallback audioRecordDataCallback;
 
     private Builder(Context context) {
       this.context = context;
@@ -142,6 +142,14 @@ public class JavaAudioDeviceModule implements AudioDeviceModule {
     }
 
     /**
+     * Set a callback to manipulate the raw audio input before it is passed to native WebRTC.
+     */
+    public Builder setAudioRecordDataCallback(AudioRecordDataCallback audioRecordDataCallback) {
+      this.audioRecordDataCallback = audioRecordDataCallback;
+      return this;
+    }
+
+    /**
      * Set a callback to retrieve information from the AudioTrack on when audio starts and stop.
      */
     public Builder setAudioTrackStateCallback(AudioTrackStateCallback audioTrackStateCallback) {
@@ -223,16 +231,6 @@ public class JavaAudioDeviceModule implements AudioDeviceModule {
     }
 
     /**
-     * Can be used to gain access to the raw ByteBuffer from the recording device before it's
-     * fed into WebRTC. You can use this to manipulate the ByteBuffer (e.g. audio filters).
-     * Make sure that the operation is fast.
-     */
-    public Builder setAudioRecordDataCallback(AudioRecordDataCallback audioRecordDataCallback) {
-      this.audioRecordDataCallback = audioRecordDataCallback;
-      return this;
-    }
-
-    /**
      * Construct an AudioDeviceModule based on the supplied arguments. The caller takes ownership
      * and is responsible for calling release().
      */
@@ -266,7 +264,8 @@ public class JavaAudioDeviceModule implements AudioDeviceModule {
       }
       final WebRtcAudioRecord audioInput = new WebRtcAudioRecord(context, executor, audioManager,
           audioSource, audioFormat, audioRecordErrorCallback, audioRecordStateCallback,
-          samplesReadyCallback, audioRecordDataCallback, useHardwareAcousticEchoCanceler, useHardwareNoiseSuppressor);
+          samplesReadyCallback, audioRecordDataCallback, useHardwareAcousticEchoCanceler,
+          useHardwareNoiseSuppressor);
       final WebRtcAudioTrack audioOutput =
           new WebRtcAudioTrack(context, audioManager, audioAttributes, audioTrackErrorCallback,
               audioTrackStateCallback, useLowLatency, enableVolumeLogger);

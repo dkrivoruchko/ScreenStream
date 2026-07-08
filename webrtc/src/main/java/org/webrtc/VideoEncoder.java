@@ -38,7 +38,7 @@ public interface VideoEncoder {
           automaticResizeOn, new VideoEncoder.Capabilities(false /* lossNotification */));
     }
 
-    @CalledByNative("Settings")
+    @CalledByNative
     public Settings(int numberOfCores, int width, int height, int startBitrate, int maxFramerate,
         int numberOfSimulcastStreams, boolean automaticResizeOn, Capabilities capabilities) {
       this.numberOfCores = numberOfCores;
@@ -60,7 +60,7 @@ public interface VideoEncoder {
      */
     public final boolean lossNotification;
 
-    @CalledByNative("Capabilities")
+    @CalledByNative
     public Capabilities(boolean lossNotification) {
       this.lossNotification = lossNotification;
     }
@@ -70,7 +70,7 @@ public interface VideoEncoder {
   public class EncodeInfo {
     public final EncodedImage.FrameType[] frameTypes;
 
-    @CalledByNative("EncodeInfo")
+    @CalledByNative
     public EncodeInfo(EncodedImage.FrameType[] frameTypes) {
       this.frameTypes = frameTypes;
     }
@@ -100,7 +100,7 @@ public interface VideoEncoder {
      * Initializes the allocation with a two dimensional array of bitrates. The first index of the
      * array is the spatial layer and the second index in the temporal layer.
      */
-    @CalledByNative("BitrateAllocation")
+    @CalledByNative
     public BitrateAllocation(int[][] bitratesBbs) {
       this.bitratesBbs = bitratesBbs;
     }
@@ -215,22 +215,22 @@ public interface VideoEncoder {
       this.maxBitrateBps = maxBitrateBps;
     }
 
-    @CalledByNative("ResolutionBitrateLimits")
+    @CalledByNative
     public int getFrameSizePixels() {
       return frameSizePixels;
     }
 
-    @CalledByNative("ResolutionBitrateLimits")
+    @CalledByNative
     public int getMinStartBitrateBps() {
       return minStartBitrateBps;
     }
 
-    @CalledByNative("ResolutionBitrateLimits")
+    @CalledByNative
     public int getMinBitrateBps() {
       return minBitrateBps;
     }
 
-    @CalledByNative("ResolutionBitrateLimits")
+    @CalledByNative
     public int getMaxBitrateBps() {
       return maxBitrateBps;
     }
@@ -251,7 +251,7 @@ public interface VideoEncoder {
      */
     public final double framerateFps;
 
-    @CalledByNative("RateControlParameters")
+    @CalledByNative
     public RateControlParameters(BitrateAllocation bitrate, double framerateFps) {
       this.bitrate = bitrate;
       this.framerateFps = framerateFps;
@@ -280,12 +280,12 @@ public interface VideoEncoder {
       this.applyAlignmentToAllSimulcastLayers = applyAlignmentToAllSimulcastLayers;
     }
 
-    @CalledByNative("EncoderInfo")
+    @CalledByNative
     public int getRequestedResolutionAlignment() {
       return requestedResolutionAlignment;
     }
 
-    @CalledByNative("EncoderInfo")
+    @CalledByNative
     public boolean getApplyAlignmentToAllSimulcastLayers() {
       return applyAlignmentToAllSimulcastLayers;
     }

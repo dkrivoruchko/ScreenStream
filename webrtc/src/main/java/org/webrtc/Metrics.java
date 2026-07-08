@@ -47,14 +47,14 @@ public class Metrics {
     public final Map<Integer, Integer> samples =
         new HashMap<Integer, Integer>(); // <value, # of events>
 
-    @CalledByNative("HistogramInfo")
+    @CalledByNative
     public HistogramInfo(int min, int max, int bucketCount) {
       this.min = min;
       this.max = max;
       this.bucketCount = bucketCount;
     }
 
-    @CalledByNative("HistogramInfo")
+    @CalledByNative
     public void addSample(int value, int numEvents) {
       samples.put(value, numEvents);
     }

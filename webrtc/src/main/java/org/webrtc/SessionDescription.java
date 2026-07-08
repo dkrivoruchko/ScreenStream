@@ -29,7 +29,7 @@ public class SessionDescription {
       return name().toLowerCase(Locale.US);
     }
 
-    @CalledByNative("Type")
+    @CalledByNative
     public static Type fromCanonicalForm(String canonical) {
       return Type.valueOf(Type.class, canonical.toUpperCase(Locale.US));
     }

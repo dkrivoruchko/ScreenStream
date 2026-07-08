@@ -35,7 +35,7 @@ public class EncodedImage implements RefCounted {
       return nativeIndex;
     }
 
-    @CalledByNative("FrameType")
+    @CalledByNative
     static FrameType fromNativeIndex(int nativeIndex) {
       for (FrameType type : FrameType.values()) {
         if (type.getNative() == nativeIndex) {

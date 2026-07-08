@@ -18,12 +18,12 @@ public class RtpReceiver {
   /** Java wrapper for a C++ RtpReceiverObserverInterface*/
   public static interface Observer {
     // Called when the first audio or video packet is received.
-    @CalledByNative("Observer")
+    @CalledByNative
     public void onFirstPacketReceived(MediaStreamTrack.MediaType media_type);
     // Called when the first audio or video packet is received after
     // receptiveness changed.
     // TODO: crbug.com/40821064 - remove default implementation.
-    @CalledByNative("Observer")
+    @CalledByNative
     public default void onFirstPacketReceivedAfterReceptiveChange(
       MediaStreamTrack.MediaType media_type) {}
   }

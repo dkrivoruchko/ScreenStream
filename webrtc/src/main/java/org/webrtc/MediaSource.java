@@ -19,7 +19,7 @@ public class MediaSource {
     ENDED,
     MUTED;
 
-    @CalledByNative("State")
+    @CalledByNative
     static State fromNativeIndex(int nativeIndex) {
       return values()[nativeIndex];
     }

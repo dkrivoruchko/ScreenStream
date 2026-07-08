@@ -48,17 +48,17 @@ public final class CryptoOptions {
       this.enableEncryptedRtpHeaderExtensions = enableEncryptedRtpHeaderExtensions;
     }
 
-    @CalledByNative("Srtp")
+    @CalledByNative
     public boolean getEnableGcmCryptoSuites() {
       return enableGcmCryptoSuites;
     }
 
-    @CalledByNative("Srtp")
+    @CalledByNative
     public boolean getEnableAes128Sha1_32CryptoCipher() {
       return enableAes128Sha1_32CryptoCipher;
     }
 
-    @CalledByNative("Srtp")
+    @CalledByNative
     public boolean getEnableEncryptedRtpHeaderExtensions() {
       return enableEncryptedRtpHeaderExtensions;
     }
@@ -80,7 +80,7 @@ public final class CryptoOptions {
       this.requireFrameEncryption = requireFrameEncryption;
     }
 
-    @CalledByNative("SFrame")
+    @CalledByNative
     public boolean getRequireFrameEncryption() {
       return requireFrameEncryption;
     }

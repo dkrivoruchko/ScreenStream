@@ -49,7 +49,7 @@ public interface NetworkChangeDetector {
     }
 
     @SuppressWarnings("UnusedMethod")
-    @CalledByNative("IPAddress")
+    @CalledByNative
     private byte[] getAddress() {
       return address;
     }
@@ -81,37 +81,37 @@ public interface NetworkChangeDetector {
     }
 
     @SuppressWarnings("UnusedMethod")
-    @CalledByNative("NetworkInformation")
+    @CalledByNative
     private IPAddress[] getIpAddresses() {
       return ipAddresses;
     }
 
     @SuppressWarnings("UnusedMethod")
-    @CalledByNative("NetworkInformation")
+    @CalledByNative
     private ConnectionType getConnectionType() {
       return type;
     }
 
     @SuppressWarnings("UnusedMethod")
-    @CalledByNative("NetworkInformation")
+    @CalledByNative
     private ConnectionType getUnderlyingConnectionTypeForVpn() {
       return underlyingTypeForVpn;
     }
 
     @SuppressWarnings("UnusedMethod")
-    @CalledByNative("NetworkInformation")
+    @CalledByNative
     private long getHandle() {
       return handle;
     }
 
     @SuppressWarnings("UnusedMethod")
-    @CalledByNative("NetworkInformation")
+    @CalledByNative
     private String getName() {
       return name;
     }
 
     @SuppressWarnings("UnusedMethod")
-    @CalledByNative("NetworkInformation")
+    @CalledByNative
     private int getSliceAsInt() {
       return slice.code;
     }

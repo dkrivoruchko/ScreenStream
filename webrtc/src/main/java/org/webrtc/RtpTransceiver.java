@@ -47,12 +47,12 @@ public class RtpTransceiver {
       this.nativeIndex = nativeIndex;
     }
 
-    @CalledByNative("RtpTransceiverDirection")
+    @CalledByNative
     int getNativeIndex() {
       return nativeIndex;
     }
 
-    @CalledByNative("RtpTransceiverDirection")
+    @CalledByNative
     static RtpTransceiverDirection fromNativeIndex(int nativeIndex) {
       for (RtpTransceiverDirection type : RtpTransceiverDirection.values()) {
         if (type.getNativeIndex() == nativeIndex) {
@@ -94,17 +94,17 @@ public class RtpTransceiver {
       this.sendEncodings = new ArrayList<RtpParameters.Encoding>(sendEncodings);
     }
 
-    @CalledByNative("RtpTransceiverInit")
+    @CalledByNative
     int getDirectionNativeIndex() {
       return direction.getNativeIndex();
     }
 
-    @CalledByNative("RtpTransceiverInit")
+    @CalledByNative
     List<String> getStreamIds() {
       return new ArrayList<String>(this.streamIds);
     }
 
-    @CalledByNative("RtpTransceiverInit")
+    @CalledByNative
     List<RtpParameters.Encoding> getSendEncodings() {
       return new ArrayList<RtpParameters.Encoding>(this.sendEncodings);
     }

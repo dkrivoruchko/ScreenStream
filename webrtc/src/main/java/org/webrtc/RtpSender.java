@@ -11,6 +11,7 @@
 package org.webrtc;
 
 import androidx.annotation.Nullable;
+import java.util.Collections;
 import java.util.List;
 import org.webrtc.MediaStreamTrack;
 
@@ -103,6 +104,16 @@ public class RtpSender {
     nativeSetFrameEncryptor(nativeRtpSender, frameEncryptor.getNativeFrameEncryptor());
   }
 
+  public boolean generateKeyFrame() {
+    return generateKeyFrame(Collections.emptyList());
+  }
+
+  public boolean generateKeyFrame(List<String> rids) {
+    checkRtpSenderExists();
+    return nativeGenerateKeyFrame(nativeRtpSender,
+        rids == null ? Collections.emptyList() : rids);
+  }
+
   public void dispose() {
     checkRtpSenderExists();
     if (dtmfSender != null) {
@@ -146,6 +157,8 @@ public class RtpSender {
   private static native RtpParameters nativeGetParameters(long rtpSender);
 
   private static native String nativeGetId(long rtpSender);
+
+  private static native boolean nativeGenerateKeyFrame(long rtpSender, List<String> rids);
 
   private static native void nativeSetFrameEncryptor(long rtpSender, long nativeFrameEncryptor);
 

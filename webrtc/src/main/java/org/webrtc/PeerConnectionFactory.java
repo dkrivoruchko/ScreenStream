@@ -148,17 +148,17 @@ public class PeerConnectionFactory {
     public boolean disableEncryption;
     public boolean disableNetworkMonitor;
 
-    @CalledByNative("Options")
+    @CalledByNative
     int getNetworkIgnoreMask() {
       return networkIgnoreMask;
     }
 
-    @CalledByNative("Options")
+    @CalledByNative
     boolean getDisableEncryption() {
       return disableEncryption;
     }
 
-    @CalledByNative("Options")
+    @CalledByNative
     boolean getDisableNetworkMonitor() {
       return disableNetworkMonitor;
     }

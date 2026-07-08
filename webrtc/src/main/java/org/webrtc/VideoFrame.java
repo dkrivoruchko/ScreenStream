@@ -38,7 +38,7 @@ public class VideoFrame implements RefCounted {
     /**
      * Representation of the underlying buffer. Currently, only NATIVE and I420 are supported.
      */
-    @CalledByNative("Buffer")
+    @CalledByNative
     @VideoFrameBufferType
     default int getBufferType() {
       return VideoFrameBufferType.NATIVE;
@@ -47,8 +47,8 @@ public class VideoFrame implements RefCounted {
     /**
      * Resolution of the buffer in pixels.
      */
-    @CalledByNative("Buffer") int getWidth();
-    @CalledByNative("Buffer") int getHeight();
+    @CalledByNative int getWidth();
+    @CalledByNative int getHeight();
 
     /**
      * Returns a memory-backed frame in I420 format. If the pixel data is in another format, a
@@ -58,16 +58,16 @@ public class VideoFrame implements RefCounted {
      * <p> Conversion may fail, for example if reading the pixel data from a texture fails. If the
      * conversion fails, null is returned.
      */
-    @Nullable @CalledByNative("Buffer") I420Buffer toI420();
+    @Nullable @CalledByNative I420Buffer toI420();
 
-    @Override @CalledByNative("Buffer") void retain();
-    @Override @CalledByNative("Buffer") void release();
+    @Override @CalledByNative void retain();
+    @Override @CalledByNative void release();
 
     /**
      * Crops a region defined by `cropx`, `cropY`, `cropWidth` and `cropHeight`. Scales it to size
      * `scaleWidth` x `scaleHeight`.
      */
-    @CalledByNative("Buffer")
+    @CalledByNative
     Buffer cropAndScale(
         int cropX, int cropY, int cropWidth, int cropHeight, int scaleWidth, int scaleHeight);
   }
@@ -87,25 +87,25 @@ public class VideoFrame implements RefCounted {
      * be 0. Callers may mutate the ByteBuffer (eg. through relative-read operations), so
      * implementations must return a new ByteBuffer or slice for each call.
      */
-    @CalledByNative("I420Buffer") ByteBuffer getDataY();
+    @CalledByNative ByteBuffer getDataY();
     /**
      * Returns a direct ByteBuffer containing U-plane data. The buffer capacity is at least
      * getStrideU() * ((getHeight() + 1) / 2) bytes. The position of the returned buffer is ignored
      * and must be 0. Callers may mutate the ByteBuffer (eg. through relative-read operations), so
      * implementations must return a new ByteBuffer or slice for each call.
      */
-    @CalledByNative("I420Buffer") ByteBuffer getDataU();
+    @CalledByNative ByteBuffer getDataU();
     /**
      * Returns a direct ByteBuffer containing V-plane data. The buffer capacity is at least
      * getStrideV() * ((getHeight() + 1) / 2) bytes. The position of the returned buffer is ignored
      * and must be 0. Callers may mutate the ByteBuffer (eg. through relative-read operations), so
      * implementations must return a new ByteBuffer or slice for each call.
      */
-    @CalledByNative("I420Buffer") ByteBuffer getDataV();
+    @CalledByNative ByteBuffer getDataV();
 
-    @CalledByNative("I420Buffer") int getStrideY();
-    @CalledByNative("I420Buffer") int getStrideU();
-    @CalledByNative("I420Buffer") int getStrideV();
+    @CalledByNative int getStrideY();
+    @CalledByNative int getStrideU();
+    @CalledByNative int getStrideV();
   }
 
   /**

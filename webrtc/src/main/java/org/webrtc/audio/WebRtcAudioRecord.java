@@ -104,8 +104,8 @@ class WebRtcAudioRecord {
 
   private final @Nullable AudioRecordErrorCallback errorCallback;
   private final @Nullable AudioRecordStateCallback stateCallback;
-  private final @Nullable AudioRecordDataCallback audioRecordDataCallback;
   private final @Nullable SamplesReadyCallback audioSamplesReadyCallback;
+  private final @Nullable AudioRecordDataCallback audioRecordDataCallback;
   private final boolean isAcousticEchoCancelerSupported;
   private final boolean isNoiseSuppressorSupported;
 
@@ -154,13 +154,10 @@ class WebRtcAudioRecord {
                 captureTimeNs = audioTimestamp.nanoTime;
               }
             }
-
-            // Allow the client to intercept the ByteBuffer (to modify it)
             if (audioRecordDataCallback != null) {
               audioRecordDataCallback.onAudioDataRecorded(audioRecord.getAudioFormat(),
-                audioRecord.getChannelCount(), audioRecord.getSampleRate(), byteBuffer);
+                  audioRecord.getChannelCount(), audioRecord.getSampleRate(), byteBuffer);
             }
-
             nativeDataIsRecorded(nativeAudioRecord, bytesRead, captureTimeNs);
           }
           if (audioSamplesReadyCallback != null) {
@@ -204,7 +201,7 @@ class WebRtcAudioRecord {
   WebRtcAudioRecord(Context context, AudioManager audioManager) {
     this(context, newDefaultScheduler() /* scheduler */, audioManager, DEFAULT_AUDIO_SOURCE,
         DEFAULT_AUDIO_FORMAT, null /* errorCallback */, null /* stateCallback */,
-        null /* audioSamplesReadyCallback */, null /* audioRecordCallback */,
+        null /* audioSamplesReadyCallback */, null /* audioRecordDataCallback */,
         WebRtcAudioEffects.isAcousticEchoCancelerSupported(),
         WebRtcAudioEffects.isNoiseSuppressorSupported());
   }

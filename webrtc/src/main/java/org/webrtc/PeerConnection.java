@@ -38,7 +38,7 @@ public class PeerConnection {
     GATHERING,
     COMPLETE;
 
-    @CalledByNative("IceGatheringState")
+    @CalledByNative
     static IceGatheringState fromNativeIndex(int nativeIndex) {
       return values()[nativeIndex];
     }
@@ -54,7 +54,7 @@ public class PeerConnection {
     DISCONNECTED,
     CLOSED;
 
-    @CalledByNative("IceConnectionState")
+    @CalledByNative
     static IceConnectionState fromNativeIndex(int nativeIndex) {
       return values()[nativeIndex];
     }
@@ -69,7 +69,7 @@ public class PeerConnection {
     FAILED,
     CLOSED;
 
-    @CalledByNative("PeerConnectionState")
+    @CalledByNative
     static PeerConnectionState fromNativeIndex(int nativeIndex) {
       return values()[nativeIndex];
     }
@@ -90,7 +90,7 @@ public class PeerConnection {
     HAVE_REMOTE_PRANSWER,
     CLOSED;
 
-    @CalledByNative("SignalingState")
+    @CalledByNative
     static SignalingState fromNativeIndex(int nativeIndex) {
       return values()[nativeIndex];
     }
@@ -99,69 +99,69 @@ public class PeerConnection {
   /** Java version of PeerConnectionObserver. */
   public static interface Observer {
     /** Triggered when the SignalingState changes. */
-    @CalledByNative("Observer") void onSignalingChange(SignalingState newState);
+    @CalledByNative void onSignalingChange(SignalingState newState);
 
     /** Triggered when the IceConnectionState changes. */
-    @CalledByNative("Observer") void onIceConnectionChange(IceConnectionState newState);
+    @CalledByNative void onIceConnectionChange(IceConnectionState newState);
 
     /* Triggered when the standard-compliant state transition of IceConnectionState happens. */
-    @CalledByNative("Observer")
+    @CalledByNative
     default void onStandardizedIceConnectionChange(IceConnectionState newState) {}
 
     /** Triggered when the PeerConnectionState changes. */
-    @CalledByNative("Observer")
+    @CalledByNative
     default void onConnectionChange(PeerConnectionState newState) {}
 
     /** Triggered when the ICE connection receiving status changes. */
-    @CalledByNative("Observer") void onIceConnectionReceivingChange(boolean receiving);
+    @CalledByNative void onIceConnectionReceivingChange(boolean receiving);
 
     /** Triggered when the IceGatheringState changes. */
-    @CalledByNative("Observer") void onIceGatheringChange(IceGatheringState newState);
+    @CalledByNative void onIceGatheringChange(IceGatheringState newState);
 
     /** Triggered when a new ICE candidate has been found. */
-    @CalledByNative("Observer") void onIceCandidate(IceCandidate candidate);
+    @CalledByNative void onIceCandidate(IceCandidate candidate);
 
     /** Triggered when gathering of an ICE candidate failed. */
-    default @CalledByNative("Observer") void onIceCandidateError(IceCandidateErrorEvent event) {}
+    default @CalledByNative void onIceCandidateError(IceCandidateErrorEvent event) {}
 
     /** Triggered when some ICE candidates have been removed. */
-    @CalledByNative("Observer") void onIceCandidatesRemoved(IceCandidate[] candidates);
+    @CalledByNative void onIceCandidatesRemoved(IceCandidate[] candidates);
 
     /** Triggered when the ICE candidate pair is changed. */
-    @CalledByNative("Observer")
+    @CalledByNative
     default void onSelectedCandidatePairChanged(CandidatePairChangeEvent event) {}
 
     /** Triggered when media is received on a new stream from remote peer. */
-    @CalledByNative("Observer") void onAddStream(MediaStream stream);
+    @CalledByNative void onAddStream(MediaStream stream);
 
     /** Triggered when a remote peer close a stream. */
-    @CalledByNative("Observer") void onRemoveStream(MediaStream stream);
+    @CalledByNative void onRemoveStream(MediaStream stream);
 
     /** Triggered when a remote peer opens a DataChannel. */
-    @CalledByNative("Observer") void onDataChannel(DataChannel dataChannel);
+    @CalledByNative void onDataChannel(DataChannel dataChannel);
 
     /** Triggered when renegotiation is necessary. */
-    @CalledByNative("Observer") void onRenegotiationNeeded();
+    @CalledByNative void onRenegotiationNeeded();
 
     /**
      * Triggered when a new track is signaled by the remote peer, as a result of
      * setRemoteDescription.
      */
-    @CalledByNative("Observer")
+    @CalledByNative
     default void onAddTrack(RtpReceiver receiver, MediaStream[] mediaStreams){};
 
     /**
      * Triggered when a previously added remote track is removed by the remote
      * peer, as a result of setRemoteDescription.
      */
-    @CalledByNative("Observer") default void onRemoveTrack(RtpReceiver receiver){};
+    @CalledByNative default void onRemoveTrack(RtpReceiver receiver){};
 
     /**
      * Triggered when the signaling from SetRemoteDescription indicates that a transceiver
      * will be receiving media from a remote endpoint. This is only called if UNIFIED_PLAN
      * semantics are specified. The transceiver will be disposed automatically.
      */
-    @CalledByNative("Observer") default void onTrack(RtpTransceiver transceiver){};
+    @CalledByNative default void onTrack(RtpTransceiver transceiver){};
   }
 
   /** Java version of PeerConnectionInterface.IceServer. */
@@ -333,40 +333,40 @@ public class PeerConnection {
     }
 
     @Nullable
-    @CalledByNative("IceServer")
+    @CalledByNative
     List<String> getUrls() {
       return urls;
     }
 
     @Nullable
-    @CalledByNative("IceServer")
+    @CalledByNative
     String getUsername() {
       return username;
     }
 
     @Nullable
-    @CalledByNative("IceServer")
+    @CalledByNative
     String getPassword() {
       return password;
     }
 
-    @CalledByNative("IceServer")
+    @CalledByNative
     TlsCertPolicy getTlsCertPolicy() {
       return tlsCertPolicy;
     }
 
     @Nullable
-    @CalledByNative("IceServer")
+    @CalledByNative
     String getHostname() {
       return hostname;
     }
 
-    @CalledByNative("IceServer")
+    @CalledByNative
     List<String> getTlsAlpnProtocols() {
       return tlsAlpnProtocols;
     }
 
-    @CalledByNative("IceServer")
+    @CalledByNative
     List<String> getTlsEllipticCurves() {
       return tlsEllipticCurves;
     }
@@ -413,7 +413,7 @@ public class PeerConnection {
     }
 
     @Nullable
-    @CalledByNative("AdapterType")
+    @CalledByNative
     static AdapterType fromNativeIndex(int nativeIndex) {
       return BY_BITMASK.get(nativeIndex);
     }
@@ -627,219 +627,219 @@ public class PeerConnection {
       portAllocatorFlags = 0;
     }
 
-    @CalledByNative("RTCConfiguration")
+    @CalledByNative
     IceTransportsType getIceTransportsType() {
       return iceTransportsType;
     }
 
-    @CalledByNative("RTCConfiguration")
+    @CalledByNative
     List<IceServer> getIceServers() {
       return iceServers;
     }
 
-    @CalledByNative("RTCConfiguration")
+    @CalledByNative
     BundlePolicy getBundlePolicy() {
       return bundlePolicy;
     }
 
-    @CalledByNative("RTCConfiguration")
+    @CalledByNative
     PortPrunePolicy getTurnPortPrunePolicy() {
       return turnPortPrunePolicy;
     }
 
     @Nullable
-    @CalledByNative("RTCConfiguration")
+    @CalledByNative
     RtcCertificatePem getCertificate() {
       return certificate;
     }
 
-    @CalledByNative("RTCConfiguration")
+    @CalledByNative
     RtcpMuxPolicy getRtcpMuxPolicy() {
       return rtcpMuxPolicy;
     }
 
-    @CalledByNative("RTCConfiguration")
+    @CalledByNative
     TcpCandidatePolicy getTcpCandidatePolicy() {
       return tcpCandidatePolicy;
     }
 
-    @CalledByNative("RTCConfiguration")
+    @CalledByNative
     CandidateNetworkPolicy getCandidateNetworkPolicy() {
       return candidateNetworkPolicy;
     }
 
-    @CalledByNative("RTCConfiguration")
+    @CalledByNative
     int getAudioJitterBufferMaxPackets() {
       return audioJitterBufferMaxPackets;
     }
 
-    @CalledByNative("RTCConfiguration")
+    @CalledByNative
     boolean getAudioJitterBufferFastAccelerate() {
       return audioJitterBufferFastAccelerate;
     }
 
-    @CalledByNative("RTCConfiguration")
+    @CalledByNative
     int getIceConnectionReceivingTimeout() {
       return iceConnectionReceivingTimeout;
     }
 
-    @CalledByNative("RTCConfiguration")
+    @CalledByNative
     int getIceBackupCandidatePairPingInterval() {
       return iceBackupCandidatePairPingInterval;
     }
 
-    @CalledByNative("RTCConfiguration")
+    @CalledByNative
     KeyType getKeyType() {
       return keyType;
     }
 
-    @CalledByNative("RTCConfiguration")
+    @CalledByNative
     ContinualGatheringPolicy getContinualGatheringPolicy() {
       return continualGatheringPolicy;
     }
 
-    @CalledByNative("RTCConfiguration")
+    @CalledByNative
     int getIceCandidatePoolSize() {
       return iceCandidatePoolSize;
     }
 
-    @CalledByNative("RTCConfiguration")
+    @CalledByNative
     boolean getPruneTurnPorts() {
       return pruneTurnPorts;
     }
 
-    @CalledByNative("RTCConfiguration")
+    @CalledByNative
     boolean getPresumeWritableWhenFullyRelayed() {
       return presumeWritableWhenFullyRelayed;
     }
 
-    @CalledByNative("RTCConfiguration")
+    @CalledByNative
     boolean getSurfaceIceCandidatesOnIceTransportTypeChanged() {
       return surfaceIceCandidatesOnIceTransportTypeChanged;
     }
 
     @Nullable
-    @CalledByNative("RTCConfiguration")
+    @CalledByNative
     Integer getIceCheckIntervalStrongConnectivity() {
       return iceCheckIntervalStrongConnectivityMs;
     }
 
     @Nullable
-    @CalledByNative("RTCConfiguration")
+    @CalledByNative
     Integer getIceCheckIntervalWeakConnectivity() {
       return iceCheckIntervalWeakConnectivityMs;
     }
 
     @Nullable
-    @CalledByNative("RTCConfiguration")
+    @CalledByNative
     Integer getIceCheckMinInterval() {
       return iceCheckMinInterval;
     }
 
     @Nullable
-    @CalledByNative("RTCConfiguration")
+    @CalledByNative
     Integer getIceUnwritableTimeout() {
       return iceUnwritableTimeMs;
     }
 
     @Nullable
-    @CalledByNative("RTCConfiguration")
+    @CalledByNative
     Integer getIceUnwritableMinChecks() {
       return iceUnwritableMinChecks;
     }
 
     @Nullable
-    @CalledByNative("RTCConfiguration")
+    @CalledByNative
     Integer getStunCandidateKeepaliveInterval() {
       return stunCandidateKeepaliveIntervalMs;
     }
 
     @Nullable
-    @CalledByNative("RTCConfiguration")
+    @CalledByNative
     Integer getStableWritableConnectionPingIntervalMs() {
       return stableWritableConnectionPingIntervalMs;
     }
 
-    @CalledByNative("RTCConfiguration")
+    @CalledByNative
     boolean getDisableIPv6OnWifi() {
       return disableIPv6OnWifi;
     }
 
-    @CalledByNative("RTCConfiguration")
+    @CalledByNative
     int getMaxIPv6Networks() {
       return maxIPv6Networks;
     }
 
     @Nullable
-    @CalledByNative("RTCConfiguration")
+    @CalledByNative
     TurnCustomizer getTurnCustomizer() {
       return turnCustomizer;
     }
 
-    @CalledByNative("RTCConfiguration")
+    @CalledByNative
     boolean getEnableDscp() {
       return enableDscp;
     }
 
-    @CalledByNative("RTCConfiguration")
+    @CalledByNative
     boolean getEnableCpuOveruseDetection() {
       return enableCpuOveruseDetection;
     }
 
-    @CalledByNative("RTCConfiguration")
+    @CalledByNative
     boolean getSuspendBelowMinBitrate() {
       return suspendBelowMinBitrate;
     }
 
     @Nullable
-    @CalledByNative("RTCConfiguration")
+    @CalledByNative
     Integer getScreencastMinBitrate() {
       return screencastMinBitrate;
     }
 
-    @CalledByNative("RTCConfiguration")
+    @CalledByNative
     AdapterType getNetworkPreference() {
       return networkPreference;
     }
 
-    @CalledByNative("RTCConfiguration")
+    @CalledByNative
     SdpSemantics getSdpSemantics() {
       return sdpSemantics;
     }
 
     @Nullable
-    @CalledByNative("RTCConfiguration")
+    @CalledByNative
     CryptoOptions getCryptoOptions() {
       return cryptoOptions;
     }
 
     @Nullable
-    @CalledByNative("RTCConfiguration")
+    @CalledByNative
     String getTurnLoggingId() {
       return turnLoggingId;
     }
 
-    @CalledByNative("RTCConfiguration")
+    @CalledByNative
     boolean getEnableImplicitRollback() {
       return enableImplicitRollback;
     }
 
-    @CalledByNative("RTCConfiguration")
+    @CalledByNative
     boolean getOfferExtmapAllowMixed() {
       return offerExtmapAllowMixed;
     }
 
-    @CalledByNative("RTCConfiguration")
+    @CalledByNative
     int getPortAllocatorMinPort() {
       return portAllocatorMinPort;
     }
 
-    @CalledByNative("RTCConfiguration")
+    @CalledByNative
     int getPortAllocatorMaxPort() {
       return portAllocatorMaxPort;
     }
 
-    @CalledByNative("RTCConfiguration")
+    @CalledByNative
     @PortAllocatorFlags
     int getPortAllocatorFlags() {
       return portAllocatorFlags;

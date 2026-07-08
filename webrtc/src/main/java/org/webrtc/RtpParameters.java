@@ -45,7 +45,7 @@ public class RtpParameters {
     /** Does not degrade resolution or framerate. */
     DISABLED;
 
-    @CalledByNative("DegradationPreference")
+    @CalledByNative
     static DegradationPreference fromNativeIndex(int nativeIndex) {
       return values()[nativeIndex];
     }
@@ -98,7 +98,7 @@ public class RtpParameters {
       this.scaleResolutionDownBy = scaleResolutionDownBy;
     }
 
-    @CalledByNative("Encoding")
+    @CalledByNative
     Encoding(String rid, boolean active, double bitratePriority, @Priority int networkPriority,
         Integer maxBitrateBps, Integer minBitrateBps, Integer maxFramerate,
         Integer numTemporalLayers, Double scaleResolutionDownBy, Long ssrc,
@@ -117,63 +117,63 @@ public class RtpParameters {
     }
 
     @Nullable
-    @CalledByNative("Encoding")
+    @CalledByNative
     String getRid() {
       return rid;
     }
 
-    @CalledByNative("Encoding")
+    @CalledByNative
     boolean getActive() {
       return active;
     }
 
-    @CalledByNative("Encoding")
+    @CalledByNative
     double getBitratePriority() {
       return bitratePriority;
     }
 
-    @CalledByNative("Encoding")
+    @CalledByNative
     @Priority
     int getNetworkPriority() {
       return networkPriority;
     }
 
     @Nullable
-    @CalledByNative("Encoding")
+    @CalledByNative
     Integer getMaxBitrateBps() {
       return maxBitrateBps;
     }
 
     @Nullable
-    @CalledByNative("Encoding")
+    @CalledByNative
     Integer getMinBitrateBps() {
       return minBitrateBps;
     }
 
     @Nullable
-    @CalledByNative("Encoding")
+    @CalledByNative
     Integer getMaxFramerate() {
       return maxFramerate;
     }
 
     @Nullable
-    @CalledByNative("Encoding")
+    @CalledByNative
     Integer getNumTemporalLayers() {
       return numTemporalLayers;
     }
 
     @Nullable
-    @CalledByNative("Encoding")
+    @CalledByNative
     Double getScaleResolutionDownBy() {
       return scaleResolutionDownBy;
     }
 
-    @CalledByNative("Encoding")
+    @CalledByNative
     Long getSsrc() {
       return ssrc;
     }
 
-    @CalledByNative("Encoding")
+    @CalledByNative
     boolean getAdaptivePTime() {
       return adaptiveAudioPacketTime;
     }
@@ -193,7 +193,7 @@ public class RtpParameters {
     // The "format specific parameters" field from the "a=fmtp" line in the SDP
     public Map<String, String> parameters;
 
-    @CalledByNative("Codec")
+    @CalledByNative
     Codec(int payloadType, String name, MediaStreamTrack.MediaType kind, Integer clockRate,
         Integer numChannels, Map<String, String> parameters) {
       this.payloadType = payloadType;
@@ -204,33 +204,33 @@ public class RtpParameters {
       this.parameters = parameters;
     }
 
-    @CalledByNative("Codec")
+    @CalledByNative
     int getPayloadType() {
       return payloadType;
     }
 
-    @CalledByNative("Codec")
+    @CalledByNative
     String getName() {
       return name;
     }
 
-    @CalledByNative("Codec")
+    @CalledByNative
     MediaStreamTrack.MediaType getKind() {
       return kind;
     }
 
-    @CalledByNative("Codec")
+    @CalledByNative
     Integer getClockRate() {
       return clockRate;
     }
 
-    @CalledByNative("Codec")
+    @CalledByNative
     Integer getNumChannels() {
       return numChannels;
     }
 
-    @CalledByNative("Codec")
-    Map getParameters() {
+    @CalledByNative
+    Map<String, String> getParameters() {
       return parameters;
     }
   }
@@ -241,18 +241,18 @@ public class RtpParameters {
     /** Whether reduced size RTCP is configured or compound RTCP */
     private final boolean reducedSize;
 
-    @CalledByNative("Rtcp")
+    @CalledByNative
     Rtcp(String cname, boolean reducedSize) {
       this.cname = cname;
       this.reducedSize = reducedSize;
     }
 
-    @CalledByNative("Rtcp")
+    @CalledByNative
     public String getCname() {
       return cname;
     }
 
-    @CalledByNative("Rtcp")
+    @CalledByNative
     public boolean getReducedSize() {
       return reducedSize;
     }
@@ -266,24 +266,24 @@ public class RtpParameters {
     /** Whether the header extension is encrypted or not. */
     private final boolean encrypted;
 
-    @CalledByNative("HeaderExtension")
+    @CalledByNative
     HeaderExtension(String uri, int id, boolean encrypted) {
       this.uri = uri;
       this.id = id;
       this.encrypted = encrypted;
     }
 
-    @CalledByNative("HeaderExtension")
+    @CalledByNative
     public String getUri() {
       return uri;
     }
 
-    @CalledByNative("HeaderExtension")
+    @CalledByNative
     public int getId() {
       return id;
     }
 
-    @CalledByNative("HeaderExtension")
+    @CalledByNative
     public boolean getEncrypted() {
       return encrypted;
     }

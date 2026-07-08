@@ -1415,8 +1415,7 @@ internal class WebRtcStreamingService(
                     val prj = projection ?: return@withActiveNegotiation
                     val mediaStream = prj.localMediaSteam ?: return@withActiveNegotiation
                     currentClient.client.onClientAnswerApplied(mediaStream.id, event.key.attemptId)
-                    // Disabled: resize-based keyframe hack can deadlock WebRTC-HT with ScreenStreamSurfaceTexture.
-                    // prj.forceKeyFrame()
+                    // Keyframe is requested by WebRtcClient through the patched RtpSender API.
                 }
             }
 

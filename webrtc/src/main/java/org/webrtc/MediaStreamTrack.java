@@ -22,7 +22,7 @@ public class MediaStreamTrack {
     LIVE,
     ENDED;
 
-    @CalledByNative("State")
+    @CalledByNative
     static State fromNativeIndex(int nativeIndex) {
       return values()[nativeIndex];
     }
@@ -39,12 +39,12 @@ public class MediaStreamTrack {
       this.nativeIndex = nativeIndex;
     }
 
-    @CalledByNative("MediaType")
+    @CalledByNative
     int getNative() {
       return nativeIndex;
     }
 
-    @CalledByNative("MediaType")
+    @CalledByNative
     static MediaType fromNativeIndex(int nativeIndex) {
       for (MediaType type : MediaType.values()) {
         if (type.getNative() == nativeIndex) {

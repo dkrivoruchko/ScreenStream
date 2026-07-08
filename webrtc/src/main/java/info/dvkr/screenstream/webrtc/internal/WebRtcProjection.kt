@@ -66,6 +66,7 @@ internal class WebRtcProjection(private val serviceContext: Context) : AudioReco
     @Volatile private var deviceAudioMute: Boolean = true
     @Volatile private var deviceAudioRecord: AudioRecord? = null
     private var deviceAudioRecoveryUsed: Boolean = false
+    private var unsupportedDeviceAudioMixLogged: Boolean = false
     private var reusableDeviceAudioBuffer: ByteBuffer? = null
     private var screenCapturer: ScreenCapturerAndroid? = null
     private var videoSource: VideoSource? = null
@@ -126,6 +127,8 @@ internal class WebRtcProjection(private val serviceContext: Context) : AudioReco
      */
     override fun onAudioDataRecorded(audioFormat: Int, channelCount: Int, sampleRate: Int, audioBuffer: ByteBuffer) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && deviceAudioMute.not()) {
+            if (isDeviceAudioMixFormatSupported(audioFormat, channelCount, audioBuffer).not()) return
+
             val projection = synchronized(lock) {
                 if (isStopped || isRunning.not()) return
                 mediaProjection
@@ -159,12 +162,12 @@ internal class WebRtcProjection(private val serviceContext: Context) : AudioReco
             val activeRecord = record ?: return
             val deviceAudioBuffer = obtainDeviceAudioBuffer(audioBuffer.capacity())
             val readBytes = runCatching {
-                activeRecord.read(deviceAudioBuffer, deviceAudioBuffer.capacity(), AudioRecord.READ_BLOCKING)
+                activeRecord.read(deviceAudioBuffer, deviceAudioBuffer.capacity(), AudioRecord.READ_NON_BLOCKING)
             }.onFailure { cause ->
                 recoverOrDisableDeviceAudio(activeRecord, "AudioRecord.read failed.", cause)
             }.getOrNull() ?: return
             if (readBytes <= 0) {
-                recoverOrDisableDeviceAudio(activeRecord, "AudioRecord.read failed: $readBytes.")
+                if (readBytes < 0) recoverOrDisableDeviceAudio(activeRecord, "AudioRecord.read failed: $readBytes.")
                 return
             }
             mixPcm16InPlace(audioBuffer, deviceAudioBuffer, readBytes)
@@ -347,6 +350,20 @@ internal class WebRtcProjection(private val serviceContext: Context) : AudioReco
         }
 
         return record
+    }
+
+    @RequiresApi(Build.VERSION_CODES.Q)
+    private fun isDeviceAudioMixFormatSupported(audioFormat: Int, channelCount: Int, audioBuffer: ByteBuffer): Boolean {
+        val supported = audioFormat == AudioFormat.ENCODING_PCM_16BIT && channelCount == 1 && audioBuffer.isDirect
+        if (supported) return true
+
+        synchronized(lock) {
+            if (unsupportedDeviceAudioMixLogged) return false
+            unsupportedDeviceAudioMixLogged = true
+        }
+        XLog.w(getLog("onAudioDataRecorded", "Device-audio mix requires direct PCM16 mono buffer. " +
+                "format=$audioFormat, channelCount=$channelCount, isDirect=${audioBuffer.isDirect}."))
+        return false
     }
 
     private fun notifyDeviceAudioUnavailable() = mainHandler.post {

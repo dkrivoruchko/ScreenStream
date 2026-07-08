@@ -29,12 +29,12 @@ public class MediaConstraints {
       this.value = value;
     }
 
-    @CalledByNative("KeyValuePair")
+    @CalledByNative
     public String getKey() {
       return key;
     }
 
-    @CalledByNative("KeyValuePair")
+    @CalledByNative
     public String getValue() {
       return value;
     }

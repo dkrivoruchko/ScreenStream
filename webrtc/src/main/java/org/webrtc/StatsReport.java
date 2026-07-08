@@ -17,7 +17,7 @@ public class StatsReport {
     public final String name;
     public final String value;
 
-    @CalledByNative("Value")
+    @CalledByNative
     public Value(String name, String value) {
       this.name = name;
       this.value = value;

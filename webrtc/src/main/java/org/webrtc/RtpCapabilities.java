@@ -33,7 +33,7 @@ public class RtpCapabilities {
 
     public CodecCapability() {}
 
-    @CalledByNative("CodecCapability")
+    @CalledByNative
     CodecCapability(int preferredPayloadType, String name, MediaStreamTrack.MediaType kind,
         Integer clockRate, Integer numChannels, String mimeType, Map<String, String> parameters) {
       this.preferredPayloadType = preferredPayloadType;
@@ -45,33 +45,33 @@ public class RtpCapabilities {
       this.mimeType = mimeType;
     }
 
-    @CalledByNative("CodecCapability")
+    @CalledByNative
     int getPreferredPayloadType() {
       return preferredPayloadType;
     }
 
-    @CalledByNative("CodecCapability")
+    @CalledByNative
     String getName() {
       return name;
     }
 
-    @CalledByNative("CodecCapability")
+    @CalledByNative
     MediaStreamTrack.MediaType getKind() {
       return kind;
     }
 
-    @CalledByNative("CodecCapability")
+    @CalledByNative
     Integer getClockRate() {
       return clockRate;
     }
 
-    @CalledByNative("CodecCapability")
+    @CalledByNative
     Integer getNumChannels() {
       return numChannels;
     }
 
-    @CalledByNative("CodecCapability")
-    Map getParameters() {
+    @CalledByNative
+    Map<String, String> getParameters() {
       return parameters;
     }
   }
@@ -81,24 +81,24 @@ public class RtpCapabilities {
     private final int preferredId;
     private final boolean preferredEncrypted;
 
-    @CalledByNative("HeaderExtensionCapability")
+    @CalledByNative
     HeaderExtensionCapability(String uri, int preferredId, boolean preferredEncrypted) {
       this.uri = uri;
       this.preferredId = preferredId;
       this.preferredEncrypted = preferredEncrypted;
     }
 
-    @CalledByNative("HeaderExtensionCapability")
+    @CalledByNative
     public String getUri() {
       return uri;
     }
 
-    @CalledByNative("HeaderExtensionCapability")
+    @CalledByNative
     public int getPreferredId() {
       return preferredId;
     }
 
-    @CalledByNative("HeaderExtensionCapability")
+    @CalledByNative
     public boolean getPreferredEncrypted() {
       return preferredEncrypted;
     }
